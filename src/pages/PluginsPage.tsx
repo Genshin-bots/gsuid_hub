@@ -112,6 +112,12 @@ export default function PluginsPage() {
     return serviceChanged || svListChanged || enabledChanged;
   }, [editedServiceConfig, originalServiceConfig, editedSvList, originalSvList, editedEnabled, originalEnabled]);
 
+  // 过滤空字符串的辅助函数
+  const filterEmptyPrefix = (prefix: string[] | undefined): string[] => {
+    if (!Array.isArray(prefix)) return [];
+    return prefix.filter(item => item !== '');
+  };
+
   // Fetch plugins from API
   const fetchPlugins = async () => {
     try {
@@ -130,10 +136,16 @@ export default function PluginsPage() {
           config: JSON.parse(JSON.stringify(firstPlugin.config)),
           groups: JSON.parse(JSON.stringify(firstPlugin.config_groups || []))
         });
-        setOriginalServiceConfig(JSON.parse(JSON.stringify(firstPlugin.service_config || null)));
+        
+        const processedServiceConfig = firstPlugin.service_config ? {
+          ...firstPlugin.service_config,
+          prefix: filterEmptyPrefix(firstPlugin.service_config.prefix)
+        } : null;
+        
+        setOriginalServiceConfig(JSON.parse(JSON.stringify(processedServiceConfig)));
         setOriginalSvList(JSON.parse(JSON.stringify(firstPlugin.sv_list || [])));
         setEditedServiceConfig({
-          ...(firstPlugin.service_config || {}),
+          ...(processedServiceConfig || {}),
           enabled: firstPlugin.enabled ?? true
         });
         setEditedSvList(JSON.parse(JSON.stringify(firstPlugin.sv_list || [])));
@@ -163,10 +175,16 @@ export default function PluginsPage() {
         config: JSON.parse(JSON.stringify(selectedPlugin.config)),
         groups: JSON.parse(JSON.stringify(selectedPlugin.config_groups || []))
       });
-      setOriginalServiceConfig(JSON.parse(JSON.stringify(selectedPlugin.service_config || null)));
+      
+      const processedServiceConfig = selectedPlugin.service_config ? {
+        ...selectedPlugin.service_config,
+        prefix: filterEmptyPrefix(selectedPlugin.service_config.prefix)
+      } : null;
+      
+      setOriginalServiceConfig(JSON.parse(JSON.stringify(processedServiceConfig)));
       setOriginalSvList(JSON.parse(JSON.stringify(selectedPlugin.sv_list || [])));
       setEditedServiceConfig({
-        ...(selectedPlugin.service_config || {}),
+        ...(processedServiceConfig || {}),
         enabled: selectedPlugin.enabled ?? true
       });
       setEditedSvList(JSON.parse(JSON.stringify(selectedPlugin.sv_list || [])));
@@ -254,10 +272,11 @@ export default function PluginsPage() {
     if (!selectedPlugin) return;
     setIsSavingService(true);
     try {
-      // 保存服务配置（包含 enabled 状态）
+      // 保存服务配置（包含 enabled 状态），过滤掉prefix中的空字符串
       const servicePayload = {
         ...editedServiceConfig,
-        enabled: editedEnabled
+        enabled: editedEnabled,
+        prefix: filterEmptyPrefix(editedServiceConfig.prefix)
       };
       await pluginsApi.updateServiceConfig(selectedPlugin.name, servicePayload as Record<string, unknown>);
 
@@ -266,7 +285,10 @@ export default function PluginsPage() {
         await pluginsApi.updateSvConfig(selectedPlugin.name, sv.name, sv as unknown as Record<string, unknown>);
       }
 
-      setOriginalServiceConfig(JSON.parse(JSON.stringify(editedServiceConfig)));
+      setOriginalServiceConfig(JSON.parse(JSON.stringify({
+        ...editedServiceConfig,
+        prefix: filterEmptyPrefix(editedServiceConfig.prefix)
+      })));
       setOriginalSvList(JSON.parse(JSON.stringify(editedSvList)));
       setOriginalEnabled(editedEnabled);
 
@@ -365,7 +387,7 @@ export default function PluginsPage() {
             {/* 服务配置区域 - 重新设计为与Core配置一致的风格 */}
             <Collapsible defaultOpen={false}>
               <CollapsibleTrigger asChild>
-                <div className="flex items-center justify-between mb-6 cursor-pointer hover:opacity-80 transition-opacity">
+                <div className="flex items-center justify-between mb-6 cursor-pointer hover:opacity-80 transition-opacity bg-background/50 rounded-xl p-4 border">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
                       <Server className="w-5 h-5 text-primary" />
@@ -379,7 +401,24 @@ export default function PluginsPage() {
                 </div>
               </CollapsibleTrigger>
               <CollapsibleContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-5">
+                {/* Plugin服务配置 - 独立可折叠 */}
+                <Collapsible defaultOpen={true}>
+                  <CollapsibleTrigger asChild>
+                    <div className="flex items-center justify-between mb-6 cursor-pointer hover:opacity-80 transition-opacity bg-muted/30 rounded-lg p-3 border">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                          <Server className="w-4 h-4 text-primary" />
+                        </div>
+                        <div>
+                          <h4 className="text-lg font-semibold">Plugin服务配置</h4>
+                          <p className="text-muted-foreground text-sm">管理整个插件的配置</p>
+                        </div>
+                      </div>
+                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-5">
                 {/* 插件状态 */}
                 <div className="space-y-2">
                   <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
@@ -521,6 +560,25 @@ export default function PluginsPage() {
                   </div>
                 </div>
 
+                {/* prefix 可编辑 - 使用tags组件 */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                    <Key className="w-4 h-4" />
+                    prefix
+                  </Label>
+                  <ConfigField
+                    fieldKey="prefix"
+                    field={{
+                      type: 'tags',
+                      label: 'prefix',
+                      value: editedServiceConfig.prefix || [],
+                      placeholder: '输入前缀内容'
+                    }}
+                    onChange={(fieldKey, value) => setEditedServiceConfig(prev => ({ ...prev, [fieldKey]: value }))}
+                    showLabel={false}
+                  />
+                </div>
+
                 {/* force_prefix 只读显示 - 每个元素一个tag */}
                 <div className="space-y-2">
                   <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
@@ -539,23 +597,30 @@ export default function PluginsPage() {
                     )}
                     <span className="text-xs text-muted-foreground">(只读)</span>
                   </div>
-                </div>
-              </div>
-
-              {/* SV 服务列表配置 - 卡片样式 */}
-              {editedSvList && editedSvList.length > 0 && (
-                <div className="mt-8 space-y-6">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                      <Server className="w-4 h-4 text-primary" />
-                    </div>
-                    <div>
-                      <h4 className="text-lg font-semibold">SV 服务配置</h4>
-                      <p className="text-muted-foreground text-sm">管理单个服务的详细配置</p>
-                    </div>
                   </div>
+                </div>
+                  </CollapsibleContent>
+                </Collapsible>
 
-                  <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {/* SV 服务列表配置 - 独立可折叠 */}
+                {editedSvList && editedSvList.length > 0 && (
+                  <Collapsible defaultOpen={false} className="mt-8">
+                    <CollapsibleTrigger asChild>
+                      <div className="flex items-center justify-between mb-6 cursor-pointer hover:opacity-80 transition-opacity bg-muted/30 rounded-lg p-3 border">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                            <Server className="w-4 h-4 text-primary" />
+                          </div>
+                          <div>
+                            <h4 className="text-lg font-semibold">SV 服务配置</h4>
+                            <p className="text-muted-foreground text-sm">管理单个服务的详细配置</p>
+                          </div>
+                        </div>
+                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                     {editedSvList.map((sv, index) => (
                       <Card key={`${sv.name}-${index}`} className="glass-card border">
                         <CardContent className="p-6 space-y-4">
@@ -694,20 +759,23 @@ export default function PluginsPage() {
                       </Card>
                     ))}
                   </div>
-
-                  <div className="flex items-center justify-end mt-6">
-                    <Button
-                      size="lg"
-                      className="gap-2 min-w-[160px] h-11"
-                      disabled={!isServiceDirty || isSavingService}
-                      onClick={handleSaveService}
-                    >
-                      {isSavingService ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                      确认修改
-                    </Button>
-                  </div>
-                </div>
+                  </CollapsibleContent>
+                </Collapsible>
               )}
+
+              {/* 服务配置保存按钮 - 放在最外层 */}
+              <div className="flex items-center justify-end mt-8">
+                <Button
+                  size="lg"
+                  className="gap-2 min-w-[160px] h-11"
+                  disabled={!isServiceDirty || isSavingService}
+                  onClick={handleSaveService}
+                >
+                  {isSavingService ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  确认修改
+                </Button>
+              </div>
+
               </CollapsibleContent>
             </Collapsible>
 
@@ -716,7 +784,7 @@ export default function PluginsPage() {
             {/* 参数配置区域 - 默认展开 */}
             <Collapsible defaultOpen={true}>
               <CollapsibleTrigger asChild>
-                <div className="flex items-center justify-between mb-6 cursor-pointer hover:opacity-80 transition-opacity">
+                <div className="flex items-center justify-between mb-6 cursor-pointer hover:opacity-80 transition-opacity bg-background/50 rounded-xl p-4 border">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
                       <Settings className="w-5 h-5 text-primary" />

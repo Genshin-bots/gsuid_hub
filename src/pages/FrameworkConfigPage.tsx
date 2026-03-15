@@ -184,7 +184,10 @@ export default function FrameworkConfigPage() {
       <Card className="glass-card">
         <CardContent className="p-4">
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-            <Label className="text-sm font-medium min-w-[80px]">选择配置</Label>
+            <Label className="flex items-center gap-2 text-base font-bold min-w-[120px]">
+              <Settings className="w-4 h-4 text-primary" />
+              选择配置
+            </Label>
             <ToggleGroup
               type="single"
               value={selectedConfigId}
