@@ -744,6 +744,7 @@ export interface ThemeConfig {
   background_image: string | null;
   blur_intensity: number;
   theme_preset: 'default' | 'shadcn' | 'custom';
+  language: 'zh-CN' | 'en-US';
 }
 
 export interface ThemeConfigResponse {

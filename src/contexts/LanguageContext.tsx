@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import { useTheme } from './ThemeContext';
 import zhCN from '@/i18n/locales/zh-CN.json';
 import enUS from '@/i18n/locales/en-US.json';
 
@@ -69,7 +70,15 @@ interface LanguageProviderProps {
 }
 
 export function LanguageProvider({ children }: LanguageProviderProps) {
+  // 使用 ThemeContext 保存语言到后端
+  const themeContext = useTheme();
+  
+  // 同步本地状态与 ThemeContext
   const [language, setLanguageState] = useState<Language>(() => {
+    // 优先使用 ThemeContext 中已初始化的语言
+    if (themeContext.language) {
+      return themeContext.language;
+    }
     // 从 localStorage 读取保存的语言设置
     const saved = localStorage.getItem(LANGUAGE_STORAGE_KEY);
     if (saved === 'zh-CN' || saved === 'en-US') {
@@ -79,11 +88,20 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
     return 'zh-CN';
   });
 
-  // 保存语言设置到 localStorage
+  // 同步语言变化到 ThemeContext
+  useEffect(() => {
+    if (themeContext.language && themeContext.language !== language) {
+      setLanguageState(themeContext.language);
+    }
+  }, [themeContext.language]);
+
+  // 保存语言设置到 localStorage 和后端
   const setLanguage = useCallback((lang: Language) => {
     setLanguageState(lang);
     localStorage.setItem(LANGUAGE_STORAGE_KEY, lang);
-  }, []);
+    // 调用 ThemeContext 保存到后端
+    themeContext.setLanguage(lang);
+  }, [themeContext.setLanguage]);
 
   // 翻译函数
   const t = useCallback((key: string): string => {

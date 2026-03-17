@@ -78,8 +78,8 @@ function AppRoutes() {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <LanguageProvider>
-      <ThemeProvider>
+    <ThemeProvider>
+      <LanguageProvider>
         <AuthProvider>
           <TooltipProvider>
             <Toaster />
@@ -89,8 +89,8 @@ const App = () => (
             </HashRouter>
           </TooltipProvider>
         </AuthProvider>
-      </ThemeProvider>
-    </LanguageProvider>
+      </LanguageProvider>
+    </ThemeProvider>
   </QueryClientProvider>
 );
 

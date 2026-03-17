@@ -11,6 +11,8 @@ type ThemeColor = 'red' | 'orchid' | 'blue' | 'green' | 'orange' | 'pink';
 type ThemePreset = 'default' | 'shadcn';
 type IconColor = 'white' | 'black' | 'colored';
 
+type Language = 'zh-CN' | 'en-US';
+
 interface ThemeContextType {
   mode: ThemeMode;
   style: ThemeStyle;
@@ -19,13 +21,15 @@ interface ThemeContextType {
   blurIntensity: number;
   iconColor: IconColor;
   themePreset: ThemePreset;
+  language: Language;
   setMode: (mode: ThemeMode) => void;
   setStyle: (style: ThemeStyle) => void;
   setColor: (color: ThemeColor) => void;
   setBackgroundImage: (url: string | null) => void;
-  setBlurIntensity: (value: number) => void;
+  setBlurIntensity: (value: number, autoSave?: boolean) => void;
   setIconColor: (color: IconColor) => void;
   setThemePreset: (preset: ThemePreset) => void;
+  setLanguage: (lang: Language) => void;
   saveToBackend: () => Promise<void>;
 }
 
@@ -222,6 +226,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [blurIntensity, setBlurIntensityState] = useState<number>(12);
   const [iconColor, setIconColorState] = useState<IconColor>('colored');
   const [themePreset, setThemePresetState] = useState<ThemePreset>('default');
+  const [language, setLanguageState] = useState<Language>('zh-CN');
   const [isInitialized, setIsInitialized] = useState(false);
 
   // 计算当前主题颜色 - 使用 useMemo 避免不必要的重新计算
@@ -259,6 +264,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
           if (config.theme_preset && ['default', 'shadcn'].includes(config.theme_preset)) {
             setThemePresetState(config.theme_preset as ThemePreset);
           }
+          if (config.language && ['zh-CN', 'en-US'].includes(config.language)) {
+            setLanguageState(config.language as Language);
+          }
         }
       } catch (error) {
         // 后端失败时回退到 localStorage
@@ -280,6 +288,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       const savedBlur = localStorage.getItem('theme_blur');
       const savedIconColor = localStorage.getItem('theme_icon_color') as IconColor;
       const savedPreset = localStorage.getItem('theme_preset') as ThemePreset;
+      const savedLanguage = localStorage.getItem('theme_language') as Language;
 
       if (savedMode) setModeState(savedMode);
       if (savedStyle) setStyleState(savedStyle);
@@ -288,6 +297,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       if (savedBlur) setBlurIntensityState(parseInt(savedBlur, 10));
       if (savedIconColor) setIconColorState(savedIconColor);
       if (savedPreset) setThemePresetState(savedPreset);
+      if (savedLanguage) setLanguageState(savedLanguage);
     } catch (e) {
       console.error('Failed to load theme from localStorage:', e);
     }
@@ -352,11 +362,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         background_image: backgroundImage,
         blur_intensity: blurIntensity,
         theme_preset: themePreset,
+        language,
       });
     } catch (error) {
       console.error('Failed to save theme to backend:', error);
     }
-  }, [mode, style, color, iconColor, backgroundImage, blurIntensity, themePreset]);
+  }, [mode, style, color, iconColor, backgroundImage, blurIntensity, themePreset, language]);
 
   // 包装状态更新函数，确保在初始化后才应用
   const setMode = useCallback((newMode: ThemeMode) => {
@@ -395,6 +406,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
               background_image: url,
               blur_intensity: blurIntensity,
               theme_preset: themePreset,
+              language,
             });
           } catch (error) {
             console.error('Failed to save theme to backend:', error);
@@ -402,12 +414,55 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         })();
       }
     },
-    [isInitialized, mode, style, color, iconColor, blurIntensity, themePreset]
+    [isInitialized, mode, style, color, iconColor, blurIntensity, themePreset, language]
   );
 
-  const setBlurIntensity = useCallback((value: number) => {
+  // 设置毛玻璃强度 - 默认自动保存到后端
+  const setBlurIntensity = useCallback((value: number, autoSave: boolean = true) => {
     setBlurIntensityState(value);
-  }, []);
+    if (autoSave && isInitialized) {
+      (async () => {
+        try {
+          await themeApi.saveConfig({
+            mode,
+            style,
+            color,
+            icon_color: iconColor,
+            background_image: backgroundImage,
+            blur_intensity: value,
+            theme_preset: themePreset,
+            language,
+          });
+        } catch (error) {
+          console.error('Failed to save blur intensity to backend:', error);
+        }
+      })();
+    }
+  }, [isInitialized, mode, style, color, iconColor, backgroundImage, themePreset, language]);
+
+  // 设置语言 - 自动保存到后端和 localStorage
+  const setLanguage = useCallback((lang: Language) => {
+    setLanguageState(lang);
+    localStorage.setItem('theme_language', lang);
+    if (isInitialized) {
+      (async () => {
+        try {
+          await themeApi.saveConfig({
+            mode,
+            style,
+            color,
+            icon_color: iconColor,
+            background_image: backgroundImage,
+            blur_intensity: blurIntensity,
+            theme_preset: themePreset,
+            language: lang,
+          });
+        } catch (error) {
+          console.error('Failed to save language to backend:', error);
+        }
+      })();
+    }
+  }, [isInitialized, mode, style, color, iconColor, backgroundImage, blurIntensity, themePreset]);
 
   // Context value
   const value = useMemo(
@@ -419,6 +474,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       blurIntensity,
       iconColor,
       themePreset,
+      language,
       setMode,
       setStyle,
       setColor,
@@ -426,6 +482,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       setBlurIntensity,
       setIconColor,
       setThemePreset,
+      setLanguage,
       saveToBackend,
     }),
     [
@@ -436,6 +493,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       blurIntensity,
       iconColor,
       themePreset,
+      language,
       setMode,
       setStyle,
       setColor,
@@ -443,6 +501,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       setBlurIntensity,
       setIconColor,
       setThemePreset,
+      setLanguage,
       saveToBackend,
     ]
   );
