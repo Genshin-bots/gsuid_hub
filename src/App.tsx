@@ -19,6 +19,7 @@ import SchedulerPage from "@/pages/SchedulerPage";
 import PluginStorePage from "@/pages/PluginStorePage";
 import CoreConfigPage from "@/pages/CoreConfigPage";
 import BackupPage from "@/pages/BackupPage";
+import SettingsPage from "@/pages/SettingsPage";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -70,6 +71,7 @@ function AppRoutes() {
         <Route path="framework-config" element={<FrameworkConfigPage />} />
         <Route path="core-config" element={<CoreConfigPage />} />
         <Route path="backup" element={<BackupPage />} />
+        <Route path="settings" element={<SettingsPage />} />
       </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>

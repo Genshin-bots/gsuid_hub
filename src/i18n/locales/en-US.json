@@ -496,5 +496,29 @@
     "animeRail": "Star Rail",
     "randomWife": "Random Wife",
     "ruinsGirl": "Ruins Girl"
+  },
+  "settings": {
+    "title": "Account Settings",
+    "description": "Manage your account information and security settings",
+    "profileInfo": "Profile Information",
+    "changePassword": "Change Password",
+    "oldPassword": "Old Password",
+    "oldPasswordPlaceholder": "Enter old password",
+    "newPassword": "New Password",
+    "newPasswordPlaceholder": "Enter new password",
+    "updatePassword": "Update Password",
+    "avatarHint": "Click avatar to change image",
+    "avatarInvalidType": "Please select an image file",
+    "avatarTooLarge": "Image size cannot exceed 5MB",
+    "avatarUpdated": "Avatar updated",
+    "avatarUpdateFailed": "Failed to update avatar",
+    "nameEmpty": "Username cannot be empty",
+    "nameUpdated": "Username updated",
+    "nameUpdateFailed": "Failed to update username",
+    "passwordEmpty": "Please enter old and new password",
+    "passwordTooShort": "New password must be at least 6 characters",
+    "passwordUpdated": "Password updated",
+    "passwordUpdateFailed": "Failed to update password",
+    "emailReadOnly": "Email address cannot be changed"
   }
 }

@@ -496,5 +496,29 @@
     "animeRail": "星穹铁道",
     "randomWife": "随机老婆",
     "ruinsGirl": "废墟少女"
+  },
+  "settings": {
+    "title": "账号设置",
+    "description": "管理您的账号信息和安全设置",
+    "profileInfo": "个人信息",
+    "changePassword": "修改密码",
+    "oldPassword": "旧密码",
+    "oldPasswordPlaceholder": "输入旧密码",
+    "newPassword": "新密码",
+    "newPasswordPlaceholder": "输入新密码",
+    "updatePassword": "更新密码",
+    "avatarHint": "点击头像更换图片",
+    "avatarInvalidType": "请选择图片文件",
+    "avatarTooLarge": "图片大小不能超过 5MB",
+    "avatarUpdated": "头像已更新",
+    "avatarUpdateFailed": "头像更新失败",
+    "nameEmpty": "用户名不能为空",
+    "nameUpdated": "用户名已更新",
+    "nameUpdateFailed": "用户名更新失败",
+    "passwordEmpty": "请输入旧密码和新密码",
+    "passwordTooShort": "新密码长度至少6位",
+    "passwordUpdated": "密码已更新",
+    "passwordUpdateFailed": "密码更新失败",
+    "emailReadOnly": "邮箱地址不可修改"
   }
 }

@@ -262,18 +262,18 @@ class ApiClient {
     options: RequestInit = {}
   ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
-    
+
     // Get auth token
     const token = getAuthToken();
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
-    
+
     // Add Authorization header if token exists
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
-    
+
     const response = await fetch(url, {
       ...options,
       headers: {
@@ -284,11 +284,11 @@ class ApiClient {
     });
 
     const data: ApiResponse<T> = await response.json();
-    
+
     if (data.status !== 0) {
       throw new Error(data.msg || 'API request failed');
     }
-    
+
     return data.data;
   }
 
@@ -317,12 +317,12 @@ class ApiClient {
   // Get raw response with status (for theme config which needs full response)
   async getRaw<T>(endpoint: string): Promise<ApiResponse<T>> {
     const url = `${this.baseUrl}${endpoint}`;
-    
+
     const token = getAuthToken();
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
-    
+
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
@@ -353,10 +353,10 @@ export interface BotItem {
 export const dashboardApi = {
   getMetrics: (botId: string = 'all') =>
     api.get<KeyMetrics>(`/api/dashboard/metrics?bot_id=${botId}`),
-  
+
   getCommands: (botId: string = 'all') =>
     api.get<CommandData[]>(`/api/dashboard/commands?bot_id=${botId}`),
-  
+
   getUsersGroups: (botId: string = 'all') =>
     api.get<UserGroupData[]>(`/api/dashboard/users-groups?bot_id=${botId}`),
 
@@ -378,10 +378,10 @@ export const dashboardApi = {
 // ===================
 
 export const configApi = {
-  getCoreConfig: () => 
+  getCoreConfig: () =>
     api.get<CoreConfig>('/api/core/config'),
-  
-  setCoreConfig: (config: CoreConfig) => 
+
+  setCoreConfig: (config: CoreConfig) =>
     api.post<{ status: number; msg: string }>('/api/core/config', config),
 };
 
@@ -429,16 +429,16 @@ export interface PluginStoreListResponse {
 export const pluginsApi = {
   getPlugins: () =>
     api.get<Plugin[]>('/api/plugins'),
-  
+
   updatePlugin: (pluginName: string, config: Record<string, unknown>) =>
     api.post<{ status: number; msg: string }>(`/api/plugins/${pluginName}`, config),
-  
+
   togglePlugin: (pluginName: string, enabled: boolean) =>
     api.post<{ status: number; msg: string }>(`/api/plugins/${pluginName}/toggle?enabled=${enabled}`),
-  
+
   updateServiceConfig: (pluginName: string, config: Record<string, unknown>) =>
     api.post<{ status: number; msg: string }>(`/api/plugins/${pluginName}/service`, config),
-  
+
   updateSvConfig: (pluginName: string, svName: string, config: Record<string, unknown>) =>
     api.post<{ status: number; msg: string }>(`/api/plugins/${pluginName}/sv/${svName}`, config),
 };
@@ -457,7 +457,7 @@ export interface FrameworkConfig {
 export const frameworkConfigApi = {
   getFrameworkConfigs: () =>
     api.get<FrameworkConfig[]>('/api/framework-config'),
-  
+
   updateFrameworkConfig: (configName: string, config: Record<string, unknown>) =>
     api.post<{ status: number; msg: string }>(`/api/framework-config/${configName}`, config),
 };
@@ -469,13 +469,13 @@ export const frameworkConfigApi = {
 export const pluginStoreApi = {
   getPluginList: () =>
     api.get<PluginStoreListResponse>('/api/plugin-store/list'),
-  
+
   installPlugin: (pluginId: string, repoUrl?: string) =>
     api.post<{ status: number; msg: string }>(`/api/plugin-store/install/${pluginId}`, { repo_url: repoUrl || '' }),
-  
+
   updatePlugin: (pluginId: string) =>
     api.post<{ status: number; msg: string }>(`/api/plugin-store/update/${pluginId}`),
-  
+
   uninstallPlugin: (pluginId: string) =>
     api.delete<{ status: number; msg: string }>(`/api/plugin-store/uninstall/${pluginId}`),
 };
@@ -498,13 +498,13 @@ export const logsApi = {
     if (params.source) query.set('source', params.source);
     if (params.page) query.set('page', String(params.page));
     if (params.per_page) query.set('per_page', String(params.per_page));
-    
+
     return api.get<LogResponse>(`/api/logs?${query.toString()}`);
   },
-  
+
   getSources: () =>
     api.get<string[]>('/api/logs/sources'),
-  
+
   getStats: (params: {
     date?: string;
     level?: string;
@@ -516,7 +516,7 @@ export const logsApi = {
     if (params.level) query.set('level', params.level);
     if (params.source) query.set('source', params.source);
     if (params.per_page) query.set('per_page', String(params.per_page));
-    
+
     return api.get<{
       total: number;
       total_pages: number;
@@ -539,16 +539,16 @@ export const logsApi = {
 export const schedulerApi = {
   getJobs: () =>
     api.get<SchedulerJob[]>('/api/scheduler/jobs'),
-  
+
   runJob: (jobId: string) =>
     api.post<{ status: number; msg: string }>(`/api/scheduler/jobs/${jobId}/run`),
-  
+
   deleteJob: (jobId: string) =>
     api.delete<{ status: number; msg: string }>(`/api/scheduler/jobs/${jobId}`),
-  
+
   pauseJob: (jobId: string) =>
     api.post<{ status: number; msg: string }>(`/api/scheduler/jobs/${jobId}/pause`),
-  
+
   resumeJob: (jobId: string) =>
     api.post<{ status: number; msg: string }>(`/api/scheduler/jobs/${jobId}/resume`),
 };
@@ -568,10 +568,10 @@ export interface FileTreeNode {
 export const backupApi = {
   getFiles: () =>
     api.get<BackupFile[]>('/api/backup/files'),
-  
+
   createBackup: () =>
     api.post<{ status: number; msg: string }>('/api/backup/create'),
-  
+
   deleteFile: (fileId: string) =>
     api.delete<{ status: number; msg: string }>(`/api/backup/${fileId}`),
 
@@ -605,25 +605,25 @@ export const backupApi = {
 export const databaseApi = {
   getTables: () =>
     api.get<DatabaseTable[]>('/api/database/tables'),
-  
+
   getPlugins: () =>
     api.get<PluginDatabaseInfo[]>('/api/database/plugins'),
-  
+
   getPluginTables: (pluginId: string) =>
     api.get<PluginDatabaseInfo>(`/api/database/${pluginId}/tables`),
-  
+
   getTableMetadata: (tableName: string) =>
     api.get<DatabaseTableInfo>(`/api/database/table/${tableName}`),
-  
+
   getTableData: (tableName: string, page: number = 1, perPage: number = 20) =>
     api.get<PaginatedData>(`/api/database/table/${tableName}/data?page=${page}&per_page=${perPage}`),
-  
+
   createRecord: (tableName: string, data: Record<string, unknown>) =>
     api.post<Record<string, unknown>>(`/api/database/table/${tableName}/data`, data),
-  
+
   updateRecord: (tableName: string, recordId: string | number, data: Record<string, unknown>) =>
     api.put<Record<string, unknown>>(`/api/database/table/${tableName}/data/${recordId}`, data),
-  
+
   deleteRecord: (tableName: string, recordId: string | number) =>
     api.delete<void>(`/api/database/table/${tableName}/data/${recordId}`),
 };
@@ -635,25 +635,44 @@ export const databaseApi = {
 export const authApi = {
   login: (email: string, password: string) =>
     api.post<{ user: User; token: string }>('/api/auth/login', { email, password }),
-   
+
   register: (name: string, email: string, password: string, registerCode: string = '', isAdmin: boolean = false) =>
     api.post<{ user: User; token: string; status: number; msg: string }>('/api/auth/register', { name, email, password, register_code: registerCode, is_admin: isAdmin }),
-   
+
   logout: () =>
     api.post<void>('/api/auth/logout'),
-   
+
   getCurrentUser: () =>
     api.get<User>('/api/auth/me'),
-  
+
   // 检查是否已存在管理员账号
   checkAdminExists: () =>
     api.get<{ is_admin_exist: boolean }>('/api/auth/admin/exists'),
-   
-  uploadAvatar: (file: File) => {
+
+  uploadAvatar: async (file: File) => {
     const formData = new FormData();
     formData.append('avatar', file);
-    return api.post<{ avatar: string }>('/api/auth/avatar', formData);
+
+    const token = getAuthToken();
+    const response = await fetch(`${getCustomApiHost()}/api/auth/avatar`, {
+      method: 'POST',
+      headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+      body: formData,
+      credentials: 'include',
+    });
+
+    const data: ApiResponse<{ avatar: string }> = await response.json();
+    if (data.status !== 0) {
+      throw new Error(data.msg || 'Upload failed');
+    }
+    return data.data;
   },
+
+  updateName: (name: string) =>
+    api.post<{ name: string }>('/api/auth/name', { name }),
+
+  updatePassword: (oldPassword: string, newPassword: string) =>
+    api.post<void>('/api/auth/password', { old_password: oldPassword, new_password: newPassword }),
 };
 
 // ===================
@@ -677,21 +696,21 @@ export const assetsApi = {
       target_filename: targetFilename
     });
   },
-  
+
   delete: async (path: string) => {
     return api.delete<{ status: number; msg: string }>(`/api/assets/delete?path=${encodeURIComponent(path)}`);
   },
-  
+
   getPreviewUrl: (path: string) => {
     if (!path) return '';
     if (path.startsWith('http') || path.startsWith('data:')) return path;
-    
+
     try {
       // 使用更健壮的 Base64 编码方式处理中文路径
       const bytes = new TextEncoder().encode(path);
       const binString = Array.from(bytes, (byte) => String.fromCharCode(byte)).join("");
       const encodedPath = btoa(binString);
-      
+
       const token = getAuthToken();
       // 添加时间戳参数防止浏览器缓存，确保新上传图片能立即显示
       const timestamp = Date.now();
@@ -760,7 +779,7 @@ export interface ThemeConfigResponse {
 export const themeApi = {
   getConfig: () =>
     api.getRaw<ThemeConfig>('/api/theme/config'),
-  
+
   saveConfig: (config: ThemeConfig) =>
     api.post<{ status: number; msg: string }>('/api/theme/config', config),
 };
