@@ -198,7 +198,7 @@ export default function SchedulerPage() {
               <Timer className="w-8 h-8 text-primary" />
               <div>
                 <p className="text-2xl font-bold">{stats.total}</p>
-                <p className="text-xs text-muted-foreground">总任务数</p>
+                <p className="text-xs text-muted-foreground">{t('scheduler.totalTasks')}</p>
               </div>
             </div>
           </CardContent>
@@ -209,7 +209,7 @@ export default function SchedulerPage() {
               <Play className="w-8 h-8 text-green-500" />
               <div>
                 <p className="text-2xl font-bold">{stats.running}</p>
-                <p className="text-xs text-muted-foreground">运行中</p>
+                <p className="text-xs text-muted-foreground">{t('scheduler.running')}</p>
               </div>
             </div>
           </CardContent>
@@ -220,7 +220,7 @@ export default function SchedulerPage() {
               <Pause className="w-8 h-8 text-yellow-500" />
               <div>
                 <p className="text-2xl font-bold">{stats.paused}</p>
-                <p className="text-xs text-muted-foreground">已暂停</p>
+                <p className="text-xs text-muted-foreground">{t('scheduler.paused')}</p>
               </div>
             </div>
           </CardContent>
@@ -231,7 +231,7 @@ export default function SchedulerPage() {
               <XCircle className="w-8 h-8 text-destructive" />
               <div>
                 <p className="text-2xl font-bold">{stats.error}</p>
-                <p className="text-xs text-muted-foreground">异常</p>
+                <p className="text-xs text-muted-foreground">{t('scheduler.error')}</p>
               </div>
             </div>
           </CardContent>
@@ -244,7 +244,7 @@ export default function SchedulerPage() {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              placeholder="搜索任务名称或描述..."
+              placeholder={t('scheduler.searchTask')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10"
@@ -258,7 +258,7 @@ export default function SchedulerPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Clock className="w-5 h-5" />
-            定时任务列表
+            {t('scheduler.taskList')}
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
@@ -266,12 +266,12 @@ export default function SchedulerPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>任务名称</TableHead>
-                  <TableHead className="hidden md:table-cell">执行周期</TableHead>
-                  <TableHead>状态</TableHead>
-                  <TableHead className="hidden lg:table-cell">下次执行</TableHead>
-                  <TableHead className="hidden lg:table-cell">上次结果</TableHead>
-                  <TableHead className="text-right">操作</TableHead>
+                  <TableHead>{t('scheduler.taskName')}</TableHead>
+                  <TableHead className="hidden md:table-cell">{t('scheduler.executionCycle')}</TableHead>
+                  <TableHead>{t('scheduler.status')}</TableHead>
+                  <TableHead className="hidden lg:table-cell">{t('scheduler.nextExecution')}</TableHead>
+                  <TableHead className="hidden lg:table-cell">{t('scheduler.lastResult')}</TableHead>
+                  <TableHead className="text-right">{t('scheduler.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -315,7 +315,7 @@ export default function SchedulerPage() {
                           variant="ghost"
                           size="icon"
                           onClick={() => toggleTaskStatus(task.id)}
-                          title={task.status === 'running' ? '暂停' : '启动'}
+                          title={task.status === 'running' ? t('scheduler.pause') : t('scheduler.start')}
                         >
                           {task.status === 'running' ? (
                             <Pause className="w-4 h-4" />
@@ -327,7 +327,7 @@ export default function SchedulerPage() {
                           variant="ghost"
                           size="icon"
                           onClick={() => runTaskNow(task.id)}
-                          title="立即执行"
+                          title={t('scheduler.runNow')}
                         >
                           <RefreshCw className="w-4 h-4" />
                         </Button>
@@ -355,27 +355,27 @@ export default function SchedulerPage() {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground">状态</p>
+                  <p className="text-xs text-muted-foreground">{t('scheduler.status')}</p>
                   {getStatusBadge(selectedTask.status)}
                 </div>
                 <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground">Cron 表达式</p>
+                  <p className="text-xs text-muted-foreground">{t('scheduler.cronExpression')}</p>
                   <p className="font-mono text-sm">{selectedTask.cronExpression}</p>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground">执行周期</p>
+                  <p className="text-xs text-muted-foreground">{t('scheduler.executionCycle')}</p>
                   <p className="text-sm">{selectedTask.cronDescription}</p>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground">平均执行时长</p>
+                  <p className="text-xs text-muted-foreground">{t('scheduler.avgDuration')}</p>
                   <p className="text-sm">{selectedTask.avgDuration}</p>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground">下次执行时间</p>
+                  <p className="text-xs text-muted-foreground">{t('scheduler.nextRunTime')}</p>
                   <p className="text-sm">{format(selectedTask.nextRun, 'yyyy-MM-dd HH:mm:ss', { locale: zhCN })}</p>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground">上次执行时间</p>
+                  <p className="text-xs text-muted-foreground">{t('scheduler.lastRunTime')}</p>
                   <p className="text-sm">
                     {selectedTask.lastRun 
                       ? format(selectedTask.lastRun, 'yyyy-MM-dd HH:mm:ss', { locale: zhCN })
@@ -384,16 +384,16 @@ export default function SchedulerPage() {
                   </p>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground">总执行次数</p>
+                  <p className="text-xs text-muted-foreground">{t('scheduler.totalRuns')}</p>
                   <p className="text-sm">{selectedTask.runCount.toLocaleString()}</p>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground">上次执行结果</p>
+                  <p className="text-xs text-muted-foreground">{t('scheduler.lastResult')}</p>
                   <div className="flex items-center gap-2">
                     {getResultIcon(selectedTask.lastResult)}
                     <span className="text-sm">
-                      {selectedTask.lastResult === 'success' ? '成功' : 
-                       selectedTask.lastResult === 'failed' ? '失败' : '待执行'}
+                      {selectedTask.lastResult === 'success' ? t('scheduler.success') :
+                       selectedTask.lastResult === 'failed' ? t('scheduler.failed') : t('scheduler.pending')}
                     </span>
                   </div>
                 </div>
@@ -407,12 +407,12 @@ export default function SchedulerPage() {
                   {selectedTask.status === 'running' ? (
                     <>
                       <Pause className="w-4 h-4 mr-2" />
-                      暂停任务
+                      {t('scheduler.pause')} {t('scheduler.title')}
                     </>
                   ) : (
                     <>
                       <Play className="w-4 h-4 mr-2" />
-                      启动任务
+                      {t('scheduler.start')} {t('scheduler.title')}
                     </>
                   )}
                 </Button>
@@ -421,7 +421,7 @@ export default function SchedulerPage() {
                   onClick={() => runTaskNow(selectedTask.id)}
                 >
                   <RefreshCw className="w-4 h-4 mr-2" />
-                  立即执行
+                  {t('scheduler.runNow')}
                 </Button>
               </div>
             </div>

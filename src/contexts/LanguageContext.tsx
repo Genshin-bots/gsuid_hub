@@ -12,7 +12,7 @@ export type Language = 'zh-CN' | 'en-US';
 interface LanguageContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
-  t: (key: string) => string;
+  t: (key: string, params?: Record<string, string | number>) => string;
   availableLanguages: { code: Language; name: string }[];
 }
 
@@ -104,13 +104,22 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
   }, [themeContext.setLanguage]);
 
   // 翻译函数
-  const t = useCallback((key: string): string => {
+  const t = useCallback((key: string, params?: Record<string, string | number>): string => {
     const locale = locales[language];
     if (!locale) {
       console.warn(`Locale '${language}' not found`);
       return key;
     }
-    return getNestedValue(locale, key);
+    let value = getNestedValue(locale, key);
+    
+    // 如果有参数，进行替换
+    if (params) {
+      Object.entries(params).forEach(([paramKey, paramValue]) => {
+        value = value.replace(new RegExp(`\\{${paramKey}\\}`, 'g'), String(paramValue));
+      });
+    }
+    
+    return value;
   }, [language]);
 
   // 提供者值

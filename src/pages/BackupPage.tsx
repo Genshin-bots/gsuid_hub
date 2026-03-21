@@ -33,7 +33,7 @@ interface BackupConfigItem {
 }
 
 // Convert backend config to frontend ConfigFieldDefinition
-const convertToConfig = (backendConfig: Record<string, BackupConfigItem>): Record<string, ConfigFieldDefinition> => {
+const convertToConfig = (backendConfig: Record<string, BackupConfigItem>, t?: (key: string) => string): Record<string, ConfigFieldDefinition> => {
   const config: Record<string, ConfigFieldDefinition> = {};
   for (const [key, value] of Object.entries(backendConfig)) {
     let type: ConfigFieldType = 'text';
@@ -77,7 +77,7 @@ const convertToConfig = (backendConfig: Record<string, BackupConfigItem>): Recor
       value: value.data as ConfigValue,
       type,
       label: value.title || key,
-      placeholder: value.desc || '请输入内容',
+      placeholder: value.desc || (t ? t('backup.enterValue') : '请输入内容'),
       options: value.options,
       description: value.desc || key,
       required: false,
@@ -145,7 +145,7 @@ export default function BackupPage() {
           setSelectedPaths(backendConfig.backup_dir.data);
         }
         
-        const convertedConfig = convertToConfig(backendConfig);
+        const convertedConfig = convertToConfig(backendConfig, t);
         console.log('BackupPage: Converted config:', convertedConfig);
         setConfig(convertedConfig);
         // Save original config for change detection
@@ -335,8 +335,8 @@ export default function BackupPage() {
         type: 'text',
         label: 'WebDAV URL',
         value: '' as ConfigValue,
-        placeholder: '请输入 WebDAV 服务器地址',
-        description: 'WebDAV 服务器地址',
+        placeholder: t('backup.webdavServerPlaceholder'),
+        description: t('backup.webdavServer'),
         required: false,
         disabled: false,
       };
@@ -344,10 +344,10 @@ export default function BackupPage() {
     if (!config.webdav_username) {
       config.webdav_username = {
         type: 'text',
-        label: 'WebDAV 用户名',
+        label: t('backup.webdavUsername'),
         value: '' as ConfigValue,
-        placeholder: '请输入用户名',
-        description: 'WebDAV 服务器用户名',
+        placeholder: t('backup.webdavUsernamePlaceholder'),
+        description: t('backup.webdavUsername'),
         required: false,
         disabled: false,
       };
@@ -355,10 +355,10 @@ export default function BackupPage() {
     if (!config.webdav_password) {
       config.webdav_password = {
         type: 'password',
-        label: 'WebDAV 密码',
+        label: t('backup.webdavPassword'),
         value: '' as ConfigValue,
-        placeholder: '请输入密码',
-        description: 'WebDAV 服务器密码',
+        placeholder: t('backup.webdavPasswordPlaceholder'),
+        description: t('backup.webdavPassword'),
         required: false,
         disabled: false,
       };
@@ -462,8 +462,8 @@ export default function BackupPage() {
 
           <Card className="glass-card">
             <CardHeader>
-              <CardTitle>备份内容</CardTitle>
-              <CardDescription>选择需要备份的文件和文件夹</CardDescription>
+              <CardTitle>{t('backup.backupContent')}</CardTitle>
+              <CardDescription>{t('backup.selectBackupItems', { count: selectedPaths.length })}</CardDescription>
             </CardHeader>
             <CardContent>
               <FileTreeSelector
@@ -473,7 +473,7 @@ export default function BackupPage() {
                 className="max-h-80 overflow-auto"
               />
               <p className="text-sm text-muted-foreground mt-3">
-                已选择 {selectedPaths.length} 个项目
+                {t('backup.selectBackupItems', { count: selectedPaths.length })}
               </p>
             </CardContent>
           </Card>
@@ -482,18 +482,18 @@ export default function BackupPage() {
         <TabsContent value="downloads">
           <Card className="glass-card">
             <CardHeader>
-              <CardTitle>备份历史</CardTitle>
-              <CardDescription>管理和下载已创建的备份文件</CardDescription>
+              <CardTitle>{t('backup.backupHistory')}</CardTitle>
+              <CardDescription>{t('backup.backupDownload')}</CardDescription>
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>文件名</TableHead>
-                    <TableHead>大小</TableHead>
-                    <TableHead>创建时间</TableHead>
-                    <TableHead>状态</TableHead>
-                    <TableHead className="text-right">操作</TableHead>
+                    <TableHead>{t('backup.filename')}</TableHead>
+                    <TableHead>{t('backup.size')}</TableHead>
+                    <TableHead>{t('backup.createTime')}</TableHead>
+                    <TableHead>{t('backup.status')}</TableHead>
+                    <TableHead className="text-right">{t('scheduler.actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -511,8 +511,8 @@ export default function BackupPage() {
                             backup.status === 'in_progress' ? 'secondary' : 'destructive'
                           }
                         >
-                          {backup.status === 'completed' ? '完成' : 
-                           backup.status === 'in_progress' ? '进行中' : '失败'}
+                          {backup.status === 'completed' ? t('backup.completed') :
+                           backup.status === 'in_progress' ? t('backup.inProgress') : t('backup.failed')}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
@@ -542,7 +542,7 @@ export default function BackupPage() {
               
               {backupList.length === 0 && (
                 <div className="text-center py-8 text-muted-foreground">
-                  暂无备份记录
+                  {t('backup.noBackupRecords')}
                 </div>
               )}
             </CardContent>
@@ -553,15 +553,15 @@ export default function BackupPage() {
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>确认删除备份</AlertDialogTitle>
+            <AlertDialogTitle>{t('backup.confirmDelete')}</AlertDialogTitle>
             <AlertDialogDescription>
-              确定要删除备份文件 <span className="font-medium text-foreground">{deleteTarget?.filename}</span> 吗？此操作无法撤销。
+              {t('backup.confirmDeleteMessage', { filename: deleteTarget?.filename })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogCancel>{t('backup.cancel')}</AlertDialogCancel>
             <AlertDialogAction onClick={handleConfirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              删除
+              {t('backup.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

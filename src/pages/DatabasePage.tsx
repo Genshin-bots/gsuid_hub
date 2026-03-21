@@ -11,7 +11,7 @@ import { Switch } from '@/components/ui/switch';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Search, Plus, Pencil, Trash2, Filter, RefreshCw, ChevronLeft, ChevronRight, Settings, Database } from 'lucide-react';
+import { Search, Plus, Pencil, Trash2, Filter, RefreshCw, ChevronLeft, ChevronRight, Settings, Database, X, PlusCircle } from 'lucide-react';
 import { databaseApi, PluginDatabaseInfo, DatabaseTableInfo, DatabaseColumn, PaginatedData } from '@/lib/api';
 import { toast } from '@/hooks/use-toast';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -26,6 +26,9 @@ export default function DatabasePage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterColumn, setFilterColumn] = useState<string>('');
   const [filterValue, setFilterValue] = useState('');
+  const [filters, setFilters] = useState<{column: string; value: string}[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
   const [editingItem, setEditingItem] = useState<Record<string, unknown> | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
@@ -71,8 +74,16 @@ export default function DatabasePage() {
 
   useEffect(() => {
     if (activeTable) {
+      // 切换表时重置搜索和筛选状态
+      setSearchTerm('');
+      setFilterColumn('');
+      setFilterValue('');
+      setFilters([]);
+      setCurrentPage(1);
+      setHasSearched(false);
+      
       fetchTableMetadata(activeTable);
-      fetchTableData(activeTable, currentPage, perPage);
+      fetchTableData(activeTable, 1, perPage);
     }
   }, [activeTable]);
 
@@ -85,9 +96,26 @@ export default function DatabasePage() {
     }
   };
 
-  const fetchTableData = async (tableName: string, page: number = 1, pageSize: number = 20) => {
+  const fetchTableData = async (
+    tableName: string,
+    page: number = 1,
+    pageSize: number = 20,
+    search?: string,
+    searchColumns?: string[],
+    filterColumns?: string[],
+    filterValues?: string[]
+  ) => {
     try {
-      const result = await databaseApi.getTableData(tableName, page, pageSize);
+      setIsSearching(true);
+      const result = await databaseApi.getTableData(
+        tableName,
+        page,
+        pageSize,
+        search,
+        searchColumns,
+        filterColumns,
+        filterValues
+      );
       setData(result);
       setCurrentPage(page);
     } catch (error) {
@@ -97,33 +125,100 @@ export default function DatabasePage() {
         description: t('database.loadDataFailed'),
         variant: 'destructive'
       });
+    } finally {
+      setIsSearching(false);
     }
+  };
+
+  const handleSearch = () => {
+    if (!activeTable) return;
+    
+    // 标记已经点击过搜索按钮
+    setHasSearched(true);
+    
+    // 收集所有筛选条件
+    const filterCols: string[] = [];
+    const filterVals: string[] = [];
+    
+    // 添加新的筛选条件（如果有）
+    if (filterColumn && filterValue) {
+      filterCols.push(filterColumn);
+      filterVals.push(filterValue);
+    }
+    
+    // 添加已保存的多个筛选条件
+    filters.forEach(f => {
+      filterCols.push(f.column);
+      filterVals.push(f.value);
+    });
+    
+    // 调用后端搜索API
+    fetchTableData(activeTable, 1, perPage, searchTerm || undefined, undefined, filterCols, filterVals);
+  };
+
+  const addFilter = () => {
+    if (filterColumn && filterValue) {
+      // 检查是否已存在相同列的筛选
+      const existingIndex = filters.findIndex(f => f.column === filterColumn);
+      if (existingIndex >= 0) {
+        // 更新已存在的筛选
+        const newFilters = [...filters];
+        newFilters[existingIndex] = { column: filterColumn, value: filterValue };
+        setFilters(newFilters);
+      } else {
+        // 添加新的筛选
+        setFilters([...filters, { column: filterColumn, value: filterValue }]);
+      }
+      // 清空当前输入
+      setFilterColumn('');
+      setFilterValue('');
+    }
+  };
+
+  const removeFilter = (index: number) => {
+    setFilters(filters.filter((_, i) => i !== index));
   };
 
   const columns = tableMetadata?.columns || [];
   const columnNames = columns.map(col => col.name);
 
+  // 前端筛选逻辑 - 仅用于后端未返回筛选结果时的本地筛选
+  // 前端筛选逻辑 - 仅在点击搜索按钮后执行
   const filteredData = useMemo(() => {
     if (!data?.items) return [];
     
     let result = [...data.items];
 
-    if (searchTerm) {
-      result = result.filter((item) =>
-        Object.values(item).some((val) =>
-          String(val).toLowerCase().includes(searchTerm.toLowerCase())
-        )
-      );
-    }
+    // 只有在点击过搜索按钮后才进行前端筛选
+    if (hasSearched) {
+      // 搜索功能 - 搜索所有列
+      if (searchTerm) {
+        result = result.filter((item) =>
+          Object.values(item).some((val) =>
+            String(val).toLowerCase().includes(searchTerm.toLowerCase())
+          )
+        );
+      }
 
-    if (filterColumn && filterValue) {
-      result = result.filter((item) =>
-        String(item[filterColumn]).toLowerCase().includes(filterValue.toLowerCase())
-      );
+      // 当前选中的筛选列
+      if (filterColumn && filterValue) {
+        result = result.filter((item) =>
+          String(item[filterColumn]).toLowerCase().includes(filterValue.toLowerCase())
+        );
+      }
+
+      // 已添加的多个筛选条件
+      if (filters.length > 0) {
+        result = result.filter((item) => {
+          return filters.every(f =>
+            String(item[f.column]).toLowerCase().includes(f.value.toLowerCase())
+          );
+        });
+      }
     }
 
     return result;
-  }, [data, searchTerm, filterColumn, filterValue]);
+  }, [data, searchTerm, filterColumn, filterValue, filters, hasSearched]);
 
   const totalPages = data ? Math.ceil(data.total / perPage) : 0;
 
@@ -220,7 +315,7 @@ export default function DatabasePage() {
       <Card className="glass-card">
         <CardContent className="p-4">
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-            <Label className="text-sm font-medium min-w-[80px]">{t('database.selectPlugin')}</Label>
+            <h2 className="text-lg font-semibold min-w-[80px]">{t('database.selectPlugin')}</h2>
             <Select
               value={selectedPluginId}
               onValueChange={setSelectedPluginId}
@@ -250,7 +345,7 @@ export default function DatabasePage() {
       {selectedPlugin && selectedPlugin.tables.length > 0 && (
         <Card className="glass-card">
           <CardContent className="p-4">
-            <Label className="text-sm font-medium mb-3 block">{t('database.selectTable')}</Label>
+            <h2 className="text-lg font-semibold mb-3 block">{t('database.selectTable')}</h2>
             <ToggleGroup type="single" value={activeTable} onValueChange={setActiveTable} className="flex flex-wrap gap-1">
               {selectedPlugin.tables.map((table) => (
                 <ToggleGroupItem key={table.table_name} value={table.table_name} className="px-4 py-2">
@@ -274,46 +369,98 @@ export default function DatabasePage() {
                 </Button>
                 <Button onClick={handleCreate} size="sm">
                   <Plus className="h-4 w-4 mr-1" />
-                  {t('database.add')}
+                  {t('database.addNew')}
                 </Button>
               </div>
             </div>
           </CardHeader>
           
           <CardContent>
-            <div className="flex flex-wrap gap-4 mb-4">
+            <div className="flex flex-wrap items-center gap-4 mb-4">
+              {/* 全局搜索框 */}
               <div className="flex items-center gap-2">
                 <Search className="h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder={t('database.search')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                   className="w-full sm:w-[200px]"
                 />
               </div>
               
-              <div className="flex items-center gap-2">
-                <Filter className="h-4 w-4 text-muted-foreground" />
-                <Select value={filterColumn} onValueChange={setFilterColumn}>
-                  <SelectTrigger className="w-full sm:w-[150px]">
-                    <SelectValue placeholder={t('database.filterColumn')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {columns.map((col) => (
-                      <SelectItem key={col.name} value={col.name}>
-                        {col.title}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {filterColumn && (
-                  <Input
-                    placeholder="值..."
-                    value={filterValue}
-                    onChange={(e) => setFilterValue(e.target.value)}
-                    className="w-full sm:w-[150px]"
-                  />
+              {/* 筛选区域 + 搜索按钮 */}
+              <div className="flex items-center gap-2 flex-wrap flex-1">
+                {/* 筛选区域 */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Filter className="h-4 w-4 text-muted-foreground" />
+                  <Select value={filterColumn} onValueChange={setFilterColumn}>
+                    <SelectTrigger className="w-full sm:w-[150px]">
+                      <SelectValue placeholder={t('database.filterColumn')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {columns.map((col) => (
+                        <SelectItem key={col.name} value={col.name}>
+                          {col.title}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {filterColumn && (
+                    <>
+                      <Input
+                        placeholder={t('database.filterValue')}
+                        value={filterValue}
+                        onChange={(e) => setFilterValue(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && addFilter()}
+                        className="w-full sm:w-[150px]"
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={addFilter}
+                        title="添加筛选"
+                      >
+                        <PlusCircle className="h-4 w-4" />
+                      </Button>
+                    </>
+                  )}
+                </div>
+
+                {/* 已添加的筛选条件 */}
+                {filters.length > 0 && (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {filters.map((filter, index) => {
+                      const col = columns.find(c => c.name === filter.column);
+                      return (
+                        <Badge key={index} variant="secondary" className="flex items-center gap-1 px-2 py-1">
+                          {col?.title || filter.column}: {filter.value}
+                          <button
+                            onClick={() => removeFilter(index)}
+                            className="ml-1 hover:text-destructive"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      );
+                    })}
+                  </div>
                 )}
+
+                {/* 搜索按钮 - 放在右侧 */}
+                <Button
+                  onClick={handleSearch}
+                  size="sm"
+                  disabled={isSearching}
+                  className="ml-auto"
+                >
+                  {isSearching ? (
+                    <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+                  ) : (
+                    <Search className="h-4 w-4 mr-1" />
+                  )}
+                  {t('database.search')}
+                </Button>
               </div>
             </div>
 

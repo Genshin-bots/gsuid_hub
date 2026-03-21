@@ -395,7 +395,11 @@
     "failed": "Failed",
     "cancel": "Cancel",
     "delete": "Delete",
-    "download": "Download"
+    "download": "Download",
+    "enterValue": "Enter value",
+    "webdavServerPlaceholder": "Enter WebDAV server address",
+    "webdavUsernamePlaceholder": "Enter username",
+    "webdavPasswordPlaceholder": "Enter password"
   },
   "logs": {
     "title": "Logs",

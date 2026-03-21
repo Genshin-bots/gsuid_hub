@@ -395,7 +395,11 @@
     "failed": "失败",
     "cancel": "取消",
     "delete": "删除",
-    "download": "下载"
+    "download": "下载",
+    "enterValue": "请输入内容",
+    "webdavServerPlaceholder": "请输入 WebDAV 服务器地址",
+    "webdavUsernamePlaceholder": "请输入用户名",
+    "webdavPasswordPlaceholder": "请输入密码"
   },
   "logs": {
     "title": "日志查看",

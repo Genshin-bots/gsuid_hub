@@ -192,7 +192,7 @@ export default function CoreConfigPage() {
             <Alert variant="destructive" className="border-orange-500/50 bg-orange-500/10 relative">
               <AlertTriangle className="h-4 w-4 text-orange-500" />
               <AlertDescription className="text-orange-600 dark:text-orange-400 pr-8">
-                如无法确定选项原意，切勿随意修改，修改需重启 GsCore 生效
+                {t('coreConfig.warning')}
               </AlertDescription>
               <button 
                 onClick={() => setShowWarning(false)}
@@ -224,7 +224,7 @@ export default function CoreConfigPage() {
               size="lg"
             >
               <CheckCircle className="w-4 h-4" />
-              确认修改
+              {t('common.confirmModify')}
             </Button>
           </div>
         </CardContent>

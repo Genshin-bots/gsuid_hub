@@ -615,8 +615,34 @@ export const databaseApi = {
   getTableMetadata: (tableName: string) =>
     api.get<DatabaseTableInfo>(`/api/database/table/${tableName}`),
 
-  getTableData: (tableName: string, page: number = 1, perPage: number = 20) =>
-    api.get<PaginatedData>(`/api/database/table/${tableName}/data?page=${page}&per_page=${perPage}`),
+  getTableData: (
+    tableName: string,
+    page: number = 1,
+    perPage: number = 20,
+    search?: string,
+    searchColumns?: string[],
+    filterColumns?: string[],
+    filterValues?: string[]
+  ) => {
+    const params = new URLSearchParams();
+    params.set('page', String(page));
+    params.set('per_page', String(perPage));
+    
+    if (search) {
+      params.set('search', search);
+    }
+    if (searchColumns && searchColumns.length > 0) {
+      params.set('search_columns', searchColumns.join(','));
+    }
+    if (filterColumns && filterColumns.length > 0) {
+      params.set('filter_columns', filterColumns.join(','));
+    }
+    if (filterValues && filterValues.length > 0) {
+      params.set('filter_values', filterValues.join(','));
+    }
+    
+    return api.get<PaginatedData>(`/api/database/table/${tableName}/data?${params.toString()}`);
+  },
 
   createRecord: (tableName: string, data: Record<string, unknown>) =>
     api.post<Record<string, unknown>>(`/api/database/table/${tableName}/data`, data),
