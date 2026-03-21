@@ -28,12 +28,33 @@ interface CoreConfig {
   [key: string]: unknown;
 }
 
+// i18n key mapping for config fields
+const fieldLabelKeys: Record<string, string> = {
+  default_bg: 'coreConfig.defaultBg',
+  log_level: 'coreConfig.logLevel',
+  log_output: 'coreConfig.logOutput',
+  log_module: 'coreConfig.showModuleLog',
+  HOST: 'coreConfig.host',
+  PORT: 'coreConfig.port',
+  ENABLE_HTTP: 'coreConfig.enableHttp',
+  WS_TOKEN: 'coreConfig.wsToken',
+  REGISTER_CODE: 'coreConfig.registerCode',
+  TRUSTED_IPS: 'coreConfig.trustedIps',
+  masters: 'coreConfig.admins',
+  superusers: 'coreConfig.superusers',
+  misfire_grace_time: 'coreConfig.misfireGraceTime',
+  enable_empty_start: 'coreConfig.emptyStart',
+  command_start: 'coreConfig.commandPrefix'
+};
+
 // Convert API config to field definition
 const apiConfigToFieldDefinition = (key: string, value: unknown): ConfigFieldDefinition => {
+  const labelKey = fieldLabelKeys[key] || `coreConfig.${key}`;
+  
   if (key === 'default_bg') {
     return {
       type: 'image',
-      label: '默认背景图',
+      label: labelKey,
       value: value as string,
       upload_to: 'data',
       filename: 'bg',
@@ -41,18 +62,18 @@ const apiConfigToFieldDefinition = (key: string, value: unknown): ConfigFieldDef
     };
   }
   if (typeof value === 'boolean') {
-    return { type: 'boolean', label: key, value };
+    return { type: 'boolean', label: labelKey, value };
   }
   if (typeof value === 'number') {
-    return { type: 'number', label: key, value, placeholder: '输入数值' };
+    return { type: 'number', label: labelKey, value, placeholder: 'coreConfig.enterValue' };
   }
   if (Array.isArray(value)) {
-    return { type: 'tags', label: key, value, placeholder: '请输入/选择标签' };
+    return { type: 'tags', label: labelKey, value, placeholder: 'coreConfig.enterTags' };
   }
   if (key === 'log_level') {
     return {
       type: 'select',
-      label: '日志级别',
+      label: labelKey,
       value: value as string,
       options: ['TRACE', 'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']
     };
@@ -60,30 +81,30 @@ const apiConfigToFieldDefinition = (key: string, value: unknown): ConfigFieldDef
   if (key === 'log_output') {
     return {
       type: 'tags',
-      label: '日志输出方式',
+      label: labelKey,
       value: value as string[],
-      placeholder: '选择日志输出方式'
+      placeholder: 'coreConfig.enterTags'
     };
   }
   if (key === 'log_module') {
     return {
       type: 'boolean',
-      label: '显示模块日志',
+      label: labelKey,
       value: value as boolean
     };
   }
-  if (key === 'HOST') return { type: 'text', label: '服务监听地址', value: String(value), placeholder: '输入监听地址' };
-  if (key === 'PORT') return { type: 'text', label: '服务端口', value: String(value), placeholder: '输入端口号' };
-  if (key === 'ENABLE_HTTP') return { type: 'boolean', label: '启用HTTP服务', value: value as boolean };
-  if (key === 'WS_TOKEN') return { type: 'text', label: 'WebSocket Token', value: String(value), placeholder: '输入WebSocket Token' };
-  if (key === 'TRUSTED_IPS') return { type: 'tags', label: '受信任IP地址', value: value as string[], placeholder: '输入IP地址' };
-  if (key === 'masters') return { type: 'tags', label: '管理员列表', value: value as string[], placeholder: '输入管理员ID' };
-  if (key === 'superusers') return { type: 'tags', label: '超级用户列表', value: value as string[], placeholder: '输入超级用户ID' };
-  if (key === 'misfire_grace_time') return { type: 'number', label: '任务过期容忍时间(秒)', value: value as number, placeholder: '输入秒数' };
-  if (key === 'enable_empty_start') return { type: 'boolean', label: '允许空配置启动', value: value as boolean };
-  if (key === 'command_start') return { type: 'tags', label: '命令前缀', value: value as string[], placeholder: '输入命令前缀' };
-  
-  return { type: 'text', label: key, value: String(value), placeholder: '输入内容' };
+  if (key === 'HOST') return { type: 'text', label: labelKey, value: String(value), placeholder: 'coreConfig.enterValue' };
+  if (key === 'PORT') return { type: 'text', label: labelKey, value: String(value), placeholder: 'coreConfig.enterValue' };
+  if (key === 'ENABLE_HTTP') return { type: 'boolean', label: labelKey, value: value as boolean };
+  if (key === 'WS_TOKEN') return { type: 'text', label: labelKey, value: String(value), placeholder: 'coreConfig.enterValue' };
+  if (key === 'TRUSTED_IPS') return { type: 'tags', label: labelKey, value: value as string[], placeholder: 'coreConfig.enterTags' };
+  if (key === 'masters') return { type: 'tags', label: labelKey, value: value as string[], placeholder: 'coreConfig.enterTags' };
+  if (key === 'superusers') return { type: 'tags', label: labelKey, value: value as string[], placeholder: 'coreConfig.enterTags' };
+  if (key === 'misfire_grace_time') return { type: 'number', label: labelKey, value: value as number, placeholder: 'coreConfig.enterValue' };
+  if (key === 'enable_empty_start') return { type: 'boolean', label: labelKey, value: value as boolean };
+  if (key === 'command_start') return { type: 'tags', label: labelKey, value: value as string[], placeholder: 'coreConfig.enterTags' };
+   
+  return { type: 'text', label: labelKey, value: String(value), placeholder: 'coreConfig.content' };
 };
 
 export default function CoreConfigPage() {
@@ -172,7 +193,7 @@ export default function CoreConfigPage() {
   };
 
   return (
-    <div className="space-y-6 h-full flex flex-col">
+    <div className="space-y-6 flex-1 overflow-auto p-6 h-full flex flex-col">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">

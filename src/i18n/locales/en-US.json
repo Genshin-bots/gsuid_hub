@@ -81,9 +81,10 @@
     "database": "Database Management",
     "console": "Real-time Console",
     "scheduler": "Task Scheduler",
-    "coreConfig": "Core Configuration",
+    "coreConfig": "Core Config",
     "backup": "Backup Management",
     "frameworkConfig": "Framework Configuration",
+    "aiConfig": "AI Config",
     "plugins": "Plugin Settings",
     "pluginStore": "Plugin Store",
     "logs": "Logs",
@@ -220,7 +221,7 @@
     "pending": "Pending"
   },
   "coreConfig": {
-    "title": "Core Configuration",
+    "title": "Core Config",
     "description": "Manage system core configuration parameters",
     "warning": "Do not modify if unsure about options, GsCore restart required after changes",
     "defaultBg": "Default Background",
@@ -242,7 +243,17 @@
     "content": "Enter content",
     "configSaved": "Core config saved successfully, GsCore restart required",
     "loadFailed": "Unable to load core configuration",
-    "saveFailed": "Error saving configuration"
+    "saveFailed": "Error saving configuration",
+    "registerCode": "Web Console Registration Code"
+  },
+  "aiConfig": {
+    "title": "AI Config",
+    "description": "Manage GsCore AI related configuration parameters",
+    "selectConfig": "Select Config",
+    "noAIConfig": "No AI configuration available",
+    "configSaved": "AI config saved successfully",
+    "loadFailed": "Unable to load AI configuration",
+    "saveFailed": "Error saving AI configuration"
   },
   "frameworkConfig": {
     "title": "Framework Configuration",
@@ -441,8 +452,8 @@
     "iconColor": "Icon Color",
     "iconColorDesc": "Choose sidebar and button icon colors",
     "colored": "Use theme color icons",
-    "whiteIcon": "Use white icons (suitable for dark backgrounds)",
-    "blackIcon": "Use black icons (suitable for light backgrounds)",
+    "whiteIcon": "Use white icons",
+    "blackIcon": "Use black icons",
     "glassIntensity": "Glassmorphism Intensity",
     "glassIntensityDesc": "Adjust blur effect intensity",
     "blurIntensity": "Blur Intensity",

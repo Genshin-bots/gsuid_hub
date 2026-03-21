@@ -25,6 +25,7 @@ import { cn } from '@/lib/utils';
 import { assetsApi } from '@/lib/api';
 import { toast } from '@/hooks/use-toast';
 import { ChevronsUpDown } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 // 根据 title 关键词匹配图标
 const getTitleIcon = (title: string) => {
@@ -112,10 +113,15 @@ export function ConfigField({
   showLabel = true,
   className
 }: ConfigFieldProps) {
+  const { t } = useLanguage();
   const [tagInput, setTagInput] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const value = field.value;
+  
+  // Translate label if it's an i18n key (contains a dot), otherwise use as-is
+  const displayLabel = field.label.includes('.') ? t(field.label) : field.label;
+  const displayPlaceholder = field.placeholder?.includes('.') ? t(field.placeholder) : field.placeholder;
 
   const handleAddTag = () => {
     if (tagInput.trim()) {
@@ -147,7 +153,7 @@ export function ConfigField({
             type={field.type === 'email' ? 'email' : field.type === 'url' ? 'url' : field.type === 'password' ? 'password' : 'text'}
             value={value as string}
             onChange={(e) => onChange(fieldKey, e.target.value)}
-            placeholder={field.placeholder || `输入${field.label}`}
+            placeholder={displayPlaceholder || `输入${displayLabel}`}
             disabled={field.disabled}
             className="bg-background h-10"
           />
@@ -167,7 +173,7 @@ export function ConfigField({
               type="number"
               value={numValue}
               onChange={(e) => onChange(fieldKey, Number(e.target.value))}
-              placeholder={field.placeholder}
+              placeholder={displayPlaceholder}
               disabled={field.disabled}
               className="bg-background h-10 pr-10 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
             />
@@ -211,7 +217,7 @@ export function ConfigField({
                   <Input
                     value={value as string}
                     onChange={(e) => onChange(fieldKey, e.target.value)}
-                    placeholder={field.placeholder || '请输入或选择'}
+                    placeholder={displayPlaceholder || '请输入或选择'}
                     disabled={field.disabled}
                     className="bg-background h-10 pr-10 w-full"
                   />
@@ -256,7 +262,7 @@ export function ConfigField({
           <Input
             value={value as string}
             onChange={(e) => onChange(fieldKey, e.target.value)}
-            placeholder={field.placeholder || `输入${field.label}`}
+            placeholder={displayPlaceholder || (field.placeholder ? t(field.placeholder) : `输入${displayLabel}`)}
             disabled={field.disabled}
             className="bg-background h-10"
           />
@@ -360,7 +366,7 @@ export function ConfigField({
             type="time"
             value={value as string}
             onChange={(e) => onChange(fieldKey, e.target.value)}
-            placeholder={field.placeholder || "选择时间"}
+            placeholder={displayPlaceholder || "选择时间"}
             disabled={field.disabled}
             className="bg-background h-10"
           />
@@ -385,7 +391,7 @@ export function ConfigField({
             ))}
             <input
               type="text"
-              placeholder={listValue.length === 0 ? (field.placeholder || '请输入/选择标签') : '添加...'}
+              placeholder={listValue.length === 0 ? (displayPlaceholder || '请输入/选择标签') : '添加...'}
               value={tagInput}
               onChange={(e) => setTagInput(e.target.value)}
               onKeyDown={(e) => {
@@ -540,8 +546,8 @@ export function ConfigField({
       <div className={cn("flex flex-col", className)}>
         {showLabel && (
           <Label className="text-sm font-medium text-muted-foreground mb-2 h-5 flex items-center gap-2">
-            {getTitleIcon(field.label)}
-            {field.label}
+            {getTitleIcon(displayLabel)}
+            {displayLabel}
             {field.required && <span className="text-destructive ml-1">*</span>}
             {field.description && (
               <Tooltip>

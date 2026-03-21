@@ -19,6 +19,7 @@ import SchedulerPage from "@/pages/SchedulerPage";
 import PluginStorePage from "@/pages/PluginStorePage";
 import CoreConfigPage from "@/pages/CoreConfigPage";
 import BackupPage from "@/pages/BackupPage";
+import AIConfigPage from "@/pages/AIConfigPage";
 import SettingsPage from "@/pages/SettingsPage";
 import NotFound from "@/pages/NotFound";
 
@@ -69,6 +70,7 @@ function AppRoutes() {
         <Route path="scheduler" element={<SchedulerPage />} />
         <Route path="plugin-store" element={<PluginStorePage />} />
         <Route path="framework-config" element={<FrameworkConfigPage />} />
+        <Route path="ai-config" element={<AIConfigPage />} />
         <Route path="core-config" element={<CoreConfigPage />} />
         <Route path="backup" element={<BackupPage />} />
         <Route path="settings" element={<SettingsPage />} />

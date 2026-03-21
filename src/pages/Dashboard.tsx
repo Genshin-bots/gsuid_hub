@@ -265,7 +265,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="space-y-6 h-full flex flex-col">
+    <div className="space-y-6 flex-1 overflow-auto p-6 h-full flex flex-col">
       {/* Header with Bot Selector */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>

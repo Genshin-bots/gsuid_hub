@@ -303,7 +303,7 @@ export default function DatabasePage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 flex-1 overflow-auto p-6">
       <div>
         <h1 className="text-3xl font-bold flex items-center gap-3">
           <Database className="w-8 h-8" />

@@ -81,9 +81,10 @@
     "database": "数据库管理",
     "console": "实时控制台",
     "scheduler": "任务调度",
-    "coreConfig": "Core 核心配置",
+    "coreConfig": "核心配置",
     "backup": "备份管理",
     "frameworkConfig": "框架配置",
+    "aiConfig": "AI 配置",
     "plugins": "插件配置",
     "pluginStore": "插件商城",
     "logs": "日志查看",
@@ -220,7 +221,7 @@
     "pending": "待执行"
   },
   "coreConfig": {
-    "title": "Core 核心配置",
+    "title": "核心配置",
     "description": "管理系统核心配置参数",
     "warning": "如无法确定选项原意，切勿随意修改，修改需重启 GsCore 生效",
     "defaultBg": "默认背景图",
@@ -242,7 +243,17 @@
     "content": "输入内容",
     "configSaved": "核心配置已成功保存，需要重启 GsCore 生效",
     "loadFailed": "无法加载核心配置",
-    "saveFailed": "保存配置时发生错误"
+    "saveFailed": "保存配置时发生错误",
+    "registerCode": "网页控制台注册码"
+  },
+  "aiConfig": {
+    "title": "AI 配置",
+    "description": "管理 GsCore AI 相关的配置参数",
+    "selectConfig": "选择配置",
+    "noAIConfig": "暂无 AI 配置",
+    "configSaved": "AI 配置已成功保存",
+    "loadFailed": "无法加载 AI 配置",
+    "saveFailed": "保存 AI 配置时发生错误"
   },
   "frameworkConfig": {
     "title": "框架配置",
@@ -441,8 +452,8 @@
     "iconColor": "ICON 颜色",
     "iconColorDesc": "选择侧边栏和按钮图标的颜色",
     "colored": "使用主题色图标",
-    "whiteIcon": "使用白色图标（适合深色背景）",
-    "blackIcon": "使用黑色图标（适合浅色背景）",
+    "whiteIcon": "使用白色图标",
+    "blackIcon": "使用黑色图标",
     "glassIntensity": "毛玻璃强度",
     "glassIntensityDesc": "调整模糊效果的强度",
     "blurIntensity": "模糊强度",

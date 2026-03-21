@@ -1,4 +1,4 @@
-import { LayoutDashboard, Database, Settings, FileText, LogOut, Palette, Terminal, Calendar, Store, Cpu, HardDrive, PanelLeftClose, PanelLeft, Cog, Power, RotateCw, Globe, User } from 'lucide-react';
+import { LayoutDashboard, Database, Settings, FileText, LogOut, Palette, Terminal, Calendar, Store, Cpu, HardDrive, PanelLeftClose, PanelLeft, Cog, Power, RotateCw, Globe, User, Brain } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -51,6 +51,10 @@ const getNavItems = (t: (key: string) => string) => [{
   title: t('sidebar.frameworkConfig'),
   url: '/framework-config',
   icon: Cpu
+}, {
+  title: t('sidebar.aiConfig'),
+  url: '/ai-config',
+  icon: Brain
 }, {
   title: t('sidebar.plugins'),
   url: '/plugins',

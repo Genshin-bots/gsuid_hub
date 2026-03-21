@@ -1,20 +1,13 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
-import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Settings, Loader2, Save, Cpu } from 'lucide-react';
 import { ConfigField, ConfigFieldDefinition, ConfigValue, ConfigFieldType } from '@/components/config';
 import { frameworkConfigApi, PluginConfigItem } from '@/lib/api';
 import { toast } from '@/hooks/use-toast';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
 // Local config type with converted fields
 interface LocalFrameworkConfig {
@@ -75,8 +68,17 @@ const convertToConfig = (config: Record<string, PluginConfigItem>): Record<strin
   return result;
 };
 
-export default function FrameworkConfigPage() {
-  const { style } = useTheme();
+// Remove "AI " prefix from config name for display
+const getDisplayName = (name: string): string => {
+  // Handle names starting with "AI " (including leading space)
+  const trimmed = name.trimStart();
+  if (trimmed.toLowerCase().startsWith('ai ')) {
+    return trimmed.substring(3);
+  }
+  return trimmed;
+};
+
+export default function AIConfigPage() {
   const { t } = useLanguage();
   const [configs, setConfigs] = useState<LocalFrameworkConfig[]>([]);
   const [selectedConfigId, setSelectedConfigId] = useState<string>('');
@@ -97,21 +99,17 @@ export default function FrameworkConfigPage() {
     return JSON.stringify(selectedConfig.config) !== JSON.stringify(originalConfig);
   }, [selectedConfig?.config, originalConfig]);
   
-  // Fetch configs from API
+  // Fetch AI configs from API
   const fetchConfigs = async () => {
     try {
       setIsLoading(true);
       const data = await frameworkConfigApi.getFrameworkConfigs();
-      // Filter out backup config (备份配置) and AI configs as they're handled in separate pages
-      const filtered = data.filter(c => {
-        const nameLower = c.name.toLowerCase();
-        const fullNameLower = c.full_name.toLowerCase();
-        return nameLower !== 'backup' &&
-          nameLower !== '备份配置' &&
-          !nameLower.startsWith('gscore ai') &&
-          !fullNameLower.startsWith('gscore ai');
-      });
-      const converted = filtered.map(c => ({
+      // Filter configs that start with "GsCore AI" (case insensitive)
+      const aiConfigs = data.filter(c => 
+        c.name.toLowerCase().startsWith('gscore ai') ||
+        c.full_name.toLowerCase().startsWith('gscore ai')
+      );
+      const converted = aiConfigs.map(c => ({
         ...c,
         config: convertToConfig(c.config)
       }));
@@ -124,10 +122,10 @@ export default function FrameworkConfigPage() {
         setOriginalConfig(JSON.parse(JSON.stringify(firstConfig.config)));
       }
     } catch (error) {
-      console.error('Failed to fetch framework configs:', error);
+      console.error('Failed to fetch AI configs:', error);
       toast({
         title: t('common.loadFailed'),
-        description: t('frameworkConfig.loadFailed') || 'Unable to load framework configuration',
+        description: t('aiConfig.loadFailed') || 'Unable to load AI configuration',
         variant: 'destructive'
       });
     } finally {
@@ -172,9 +170,9 @@ export default function FrameworkConfigPage() {
       });
       await frameworkConfigApi.updateFrameworkConfig(selectedConfig.full_name, configToSave);
       setOriginalConfig(JSON.parse(JSON.stringify(selectedConfig.config)));
-      toast({ title: t('common.success'), description: t('frameworkConfig.configSaved') });
+      toast({ title: t('common.success'), description: t('aiConfig.configSaved') });
     } catch (error) {
-      toast({ title: t('common.saveFailed'), description: t('frameworkConfig.saveFailed') || 'Failed to update framework configuration', variant: 'destructive' });
+      toast({ title: t('common.saveFailed'), description: t('aiConfig.saveFailed') || 'Failed to update AI configuration', variant: 'destructive' });
     } finally {
       setIsSaving(false);
     }
@@ -186,93 +184,95 @@ export default function FrameworkConfigPage() {
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-3">
             <Cpu className="w-8 h-8" />
-            {t('frameworkConfig.title')}
+            {t('aiConfig.title')}
           </h1>
-          <p className="text-muted-foreground mt-1">{t('frameworkConfig.description')}</p>
+          <p className="text-muted-foreground mt-1">{t('aiConfig.description')}</p>
         </div>
       </div>
-      
-      <Card className="glass-card">
-        <CardContent className="p-4">
-          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-            <Label className="flex items-center gap-2 text-base font-bold min-w-[120px]">
-              <Settings className="w-4 h-4 text-primary" />
-              {t('frameworkConfig.selectConfig')}
-            </Label>
-            <ToggleGroup
-              type="single"
-              value={selectedConfigId}
-              onValueChange={(value) => {
-                if (value) setSelectedConfigId(value);
-              }}
-              className="flex flex-wrap gap-2"
-              disabled={isLoading}
-            >
-              {configs.map((config) => (
-                <ToggleGroupItem
-                  key={config.id}
-                  value={config.id}
-                  className="px-3 py-1.5"
-                >
-                  {config.name}
-                </ToggleGroupItem>
-              ))}
-            </ToggleGroup>
-          </div>
-        </CardContent>
-      </Card>
       
       {isLoading ? (
         <div className="flex items-center justify-center h-64">
           <Loader2 className="w-8 h-8 animate-spin" />
         </div>
-      ) : !selectedConfig ? (
+      ) : configs.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
-          暂无框架配置
+          {t('aiConfig.noAIConfig')}
         </div>
       ) : (
         <>
           <Card className="glass-card">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <div className="flex items-center gap-2">
-                <Settings className="w-5 h-5" />
-                <CardTitle>{selectedConfig.name} 配置</CardTitle>
-              </div>
-              <Button
-                onClick={handleSaveConfig}
-                disabled={!isConfigDirty || isSaving}
-                className="gap-2"
-              >
-                {isSaving ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Save className="w-4 h-4" />
-                )}
-                保存配置
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <CardDescription className="mb-4">
-                修改 {selectedConfig.name} 相关的配置参数
-              </CardDescription>
-              {Object.keys(selectedConfig.config).length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  该配置组暂无参数配置项
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {Object.entries(selectedConfig.config).map(([key, field]: [string, any]) => (
-                    <ConfigField
-                      key={key}
-                      fieldKey={key}
-                      field={field}
-                      onChange={updateConfigValue}
-                    />
+            <CardContent className="p-4">
+              <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                <Label className="flex items-center gap-2 text-base font-bold min-w-[120px]">
+                  <Settings className="w-4 h-4 text-primary" />
+                  {t('aiConfig.selectConfig')}
+                </Label>
+                <ToggleGroup
+                  type="single"
+                  value={selectedConfigId}
+                  onValueChange={(value) => {
+                    if (value) setSelectedConfigId(value);
+                  }}
+                  className="flex flex-wrap gap-2"
+                  disabled={isLoading}
+                >
+                  {configs.map((config) => (
+                    <ToggleGroupItem
+                      key={config.id}
+                      value={config.id}
+                      className="px-3 py-1.5"
+                    >
+                      {getDisplayName(config.name)}
+                    </ToggleGroupItem>
                   ))}
-                </div>
-              )}
+                </ToggleGroup>
+              </div>
             </CardContent>
           </Card>
+          
+          {selectedConfig && (
+            <Card className="glass-card">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <div className="flex items-center gap-2">
+                  <Settings className="w-5 h-5" />
+                  <CardTitle>{getDisplayName(selectedConfig.name)}</CardTitle>
+                </div>
+                <Button
+                  onClick={handleSaveConfig}
+                  disabled={!isConfigDirty || isSaving}
+                  className="gap-2"
+                >
+                  {isSaving ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Save className="w-4 h-4" />
+                  )}
+                  保存配置
+                </Button>
+              </CardHeader>
+              <CardContent>
+                <CardDescription className="mb-4">
+                  修改 {getDisplayName(selectedConfig.name)} 相关的配置参数
+                </CardDescription>
+                {Object.keys(selectedConfig.config).length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    该配置组暂无参数配置项
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {Object.entries(selectedConfig.config).map(([key, field]: [string, any]) => (
+                      <ConfigField
+                        key={key}
+                        fieldKey={key}
+                        field={field}
+                        onChange={updateConfigValue}
+                      />
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </>
       )}
     </div>

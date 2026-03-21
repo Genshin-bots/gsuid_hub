@@ -114,7 +114,7 @@ export default function ThemesPage() {
   const isCustomImage = backgroundImage && !allPresetValues.includes(backgroundImage);
 
   return (
-    <div className="space-y-6 h-full flex flex-col">
+    <div className="space-y-6 flex-1 overflow-auto p-6 h-full flex flex-col">
       <div>
         <h1 className="text-3xl font-bold flex items-center gap-3">
           <Palette className="w-8 h-8" />

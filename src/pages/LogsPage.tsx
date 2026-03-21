@@ -183,7 +183,7 @@ export default function LogsPage() {
  const currentDebugCount = logs.filter((l) => l.level === 'debug').length;
 
  return (
-    <div className="space-y-6 h-full flex flex-col">
+   <div className="space-y-6 flex-1 overflow-auto p-6 h-full flex flex-col">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-3">

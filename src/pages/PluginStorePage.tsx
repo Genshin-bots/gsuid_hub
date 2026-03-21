@@ -56,13 +56,16 @@ export default function PluginStorePage() {
     fetchPlugins();
   }, []);
 
-  // Handle install plugin
+  // Handle install plugin - 直接更新本地状态，不重新请求 API
   const handleInstall = async (pluginId: string) => {
     try {
       setActionLoading(pluginId);
       await pluginStoreApi.installPlugin(pluginId);
       toast({ title: t('pluginStore.installSuccess'), description: t('pluginStore.installSuccess') });
-      fetchPlugins(); // Refresh list
+      // 直接更新本地状态，避免触发后端重新加载
+      setPlugins(prev => prev.map(p =>
+        p.id === pluginId ? { ...p, installed: true, hasUpdate: false } : p
+      ));
     } catch (error) {
       toast({
         title: t('pluginStore.installFailed'),
@@ -74,13 +77,16 @@ export default function PluginStorePage() {
     }
   };
 
-  // Handle update plugin
+  // Handle update plugin - 直接更新本地状态，不重新请求 API
   const handleUpdate = async (pluginId: string) => {
     try {
       setActionLoading(pluginId);
       await pluginStoreApi.updatePlugin(pluginId);
       toast({ title: t('pluginStore.updateSuccess'), description: t('pluginStore.updateSuccess') });
-      fetchPlugins(); // Refresh list
+      // 直接更新本地状态，避免触发后端重新加载
+      setPlugins(prev => prev.map(p =>
+        p.id === pluginId ? { ...p, hasUpdate: false } : p
+      ));
     } catch (error) {
       toast({
         title: t('pluginStore.updateFailed'),
@@ -92,14 +98,17 @@ export default function PluginStorePage() {
     }
   };
 
-  // Handle uninstall plugin
+  // Handle uninstall plugin - 直接更新本地状态，不重新请求 API
   const handleUninstall = async (pluginId: string) => {
     if (confirm(t('pluginStore.uninstallConfirm') + ' "' + plugins.find(p => p.id === pluginId)?.name + '" ' + t('pluginStore.confirmUninstall'))) {
       try {
         setActionLoading(pluginId);
         await pluginStoreApi.uninstallPlugin(pluginId);
         toast({ title: t('pluginStore.uninstallSuccess'), description: t('pluginStore.uninstallSuccess') });
-        fetchPlugins(); // Refresh list
+        // 直接更新本地状态，避免触发后端重新加载
+        setPlugins(prev => prev.map(p =>
+          p.id === pluginId ? { ...p, installed: false, hasUpdate: false } : p
+        ));
       } catch (error) {
         toast({
           title: t('pluginStore.uninstallFailed'),
@@ -150,7 +159,7 @@ export default function PluginStorePage() {
   }, [plugins, activeTab, searchQuery]);
 
   return (
-    <div className="space-y-6 h-full flex flex-col">
+    <div className="space-y-6 flex-1 overflow-auto p-6 h-full flex flex-col">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-3">
