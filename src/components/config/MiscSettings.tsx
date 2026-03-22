@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Save, Settings, Sun, Moon, MessageSquare, UserX, Shield, Clock, ListFilter } from 'lucide-react';
+import { Loader2, Save, Settings, Sun, Moon, MessageSquare, UserX, Shield, Clock, ListFilter, HelpCircle } from 'lucide-react';
 import { frameworkConfigApi, FrameworkConfigListItem } from '@/lib/api';
 import { toast } from '@/hooks/use-toast';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -258,7 +258,7 @@ export default function MiscSettings() {
 
   if (!miscConfig) {
     return (
-      <div className="space-y-6 flex-1 overflow-auto p-6 h-full flex flex-col -mt-2">
+      <div className="space-y-6 flex-1 overflow-visible h-full flex flex-col">
         <Card className="glass-card">
           <CardContent className="p-6">
             <p className="text-center text-muted-foreground">{t('miscConfig.notFound')}</p>
@@ -271,33 +271,36 @@ export default function MiscSettings() {
   const config = miscConfig.config;
 
   return (
-    <div className="space-y-6 flex-1 overflow-auto p-6 h-full flex flex-col -mt-2">
+    <div className="space-y-6 flex-1 overflow-visible h-full flex flex-col">
       {/* Display Settings */}
       <Card className="glass-card">
-        <CardContent className="p-6 space-y-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <HelpCircle className="w-5 h-5" />
+            {config.HelpMode.title}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
           {/* Help Mode */}
-          <div className="space-y-3">
-            <Label>{config.HelpMode.title}</Label>
-            <div className="grid grid-cols-2 gap-3">
-              {['light', 'dark'].map((mode) => (
-                <button
-                  key={mode}
-                  onClick={() => handleChange('HelpMode', mode)}
-                  className={cn(
-                    "p-4 rounded-lg border-2 transition-all flex items-center gap-3",
-                    config.HelpMode.value === mode
-                      ? "border-primary bg-primary/10"
-                      : "border-border hover:border-primary/50"
-                  )}
-                >
-                  {mode === 'light' && <Sun className="w-5 h-5" />}
-                  {mode === 'dark' && <Moon className="w-5 h-5" />}
-                  <span className="font-medium">{mode === 'light' ? t('miscConfig.lightMode') : t('miscConfig.darkMode')}</span>
-                </button>
-              ))}
-            </div>
-            <p className="text-sm text-muted-foreground">{config.HelpMode.desc}</p>
+          <div className="grid grid-cols-2 gap-3">
+            {['light', 'dark'].map((mode) => (
+              <button
+                key={mode}
+                onClick={() => handleChange('HelpMode', mode)}
+                className={cn(
+                  "p-4 rounded-lg border-2 transition-all flex items-center gap-3",
+                  config.HelpMode.value === mode
+                    ? "border-primary bg-primary/10"
+                    : "border-border hover:border-primary/50"
+                )}
+              >
+                {mode === 'light' && <Sun className="w-5 h-5" />}
+                {mode === 'dark' && <Moon className="w-5 h-5" />}
+                <span className="font-medium">{mode === 'light' ? t('miscConfig.lightMode') : t('miscConfig.darkMode')}</span>
+              </button>
+            ))}
           </div>
+          <p className="text-sm text-muted-foreground">{config.HelpMode.desc}</p>
         </CardContent>
       </Card>
 

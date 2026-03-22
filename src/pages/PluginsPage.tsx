@@ -348,7 +348,7 @@ export default function PluginsPage() {
             <Settings className="h-6 w-6 text-primary" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">{t('plugins.title')}</h1>
+            <h1 className="text-3xl font-bold tracking-tight">{t('plugins.title')}</h1>
             <p className="text-muted-foreground">{t('plugins.description')}</p>
           </div>
         </div>

@@ -125,7 +125,7 @@ export default function StateConfigPage() {
   const selectConfigs = Object.entries(config).filter(([_, field]) => field.type === 'select');
 
   return (
-    <div className="space-y-6 flex-1 overflow-auto p-6 h-full flex flex-col -mt-2">
+    <div className="space-y-6 flex-1 overflow-visible h-full flex flex-col">
       {/* 开关配置 */}
       {boolConfigs.length > 0 && (
         <Card className="glass-card">

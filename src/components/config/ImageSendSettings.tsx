@@ -371,7 +371,7 @@ export default function ImageSendSettings() {
 
   if (!imageSendConfig) {
     return (
-      <div className="space-y-6 flex-1 overflow-auto p-6 h-full flex flex-col -mt-2">
+      <div className="space-y-6 flex-1 overflow-visible h-full flex flex-col">
         <Card className="glass-card">
           <CardContent className="p-6">
             <p className="text-center text-muted-foreground">{t('imageSendConfig.notFound')}</p>
@@ -392,11 +392,11 @@ export default function ImageSendSettings() {
   ];
 
   return (
-    <div className="space-y-6 flex-1 overflow-auto p-6 h-full flex flex-col -mt-2">
+    <div className="space-y-6 flex-1 overflow-visible h-full flex flex-col">
       {/* Help Text - Moved to top with better layout */}
       <Card className="glass-card border-primary/30 bg-primary/5">
         <CardHeader className="pb-4">
-          <CardTitle className="flex items-center gap-2 text-base">
+          <CardTitle className="flex items-center gap-2 text-lg">
             <Globe className="w-5 h-5 text-primary" />
             {t('imageSendConfig.sendMethodHelp')}
           </CardTitle>

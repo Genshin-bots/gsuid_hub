@@ -348,7 +348,7 @@ export default function CoreSettings() {
 
   if (!coreConfig) {
     return (
-      <div className="space-y-6 flex-1 overflow-auto p-6 h-full flex flex-col -mt-2">
+      <div className="space-y-6 flex-1 overflow-visible h-full flex flex-col">
         <Card className="glass-card">
           <CardContent className="p-6">
             <p className="text-center text-muted-foreground">{t('coreConfig.notFound')}</p>
@@ -361,31 +361,34 @@ export default function CoreSettings() {
   const config = coreConfig.config;
 
   return (
-    <div className="space-y-6 flex-1 overflow-auto p-6 h-full flex flex-col -mt-2">
+    <div className="space-y-6 flex-1 overflow-visible h-full flex flex-col">
       {/* Environment Settings */}
       <Card className="glass-card">
-        <CardContent className="p-6 space-y-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Cpu className="w-5 h-5" />
+            {t('coreConfig.startVenv')}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
           {/* VENV Selection */}
-          <div className="space-y-3">
-            <Label>{t('coreConfig.startVenv')}</Label>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-              {VENV_OPTIONS.map((option) => (
-                <button
-                  key={option}
-                  onClick={() => handleChange('StartVENV', option)}
-                  className={cn(
-                    "p-3 rounded-lg border-2 transition-all text-center",
-                    config.StartVENV.value === option
-                      ? "border-primary bg-primary/10"
-                      : "border-border hover:border-primary/50"
-                  )}
-                >
-                  <span className="font-medium">{option.toUpperCase()}</span>
-                </button>
-              ))}
-            </div>
-            <p className="text-sm text-muted-foreground">{config.StartVENV.desc}</p>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            {VENV_OPTIONS.map((option) => (
+              <button
+                key={option}
+                onClick={() => handleChange('StartVENV', option)}
+                className={cn(
+                  "p-3 rounded-lg border-2 transition-all text-center",
+                  config.StartVENV.value === option
+                    ? "border-primary bg-primary/10"
+                    : "border-border hover:border-primary/50"
+                )}
+              >
+                <span className="font-medium">{option.toUpperCase()}</span>
+              </button>
+            ))}
           </div>
+          <p className="text-sm text-muted-foreground">{config.StartVENV.desc}</p>
 
           {/* Custom Restart Command */}
           <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
@@ -741,3 +744,4 @@ export default function CoreSettings() {
     </div>
   );
 }
+

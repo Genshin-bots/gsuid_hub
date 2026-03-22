@@ -688,7 +688,7 @@
     "linkRemoteDesc": "使用远程图床服务"
   },
   "buttonMdConfig": {
-    "title": "按钮和Markdown配置",
+    "title": "按钮和MD配置",
     "description": "配置按钮和Markdown的发送平台和样式",
     "notFound": "未找到按钮和Markdown配置",
     "loadFailed": "无法加载按钮和Markdown配置",

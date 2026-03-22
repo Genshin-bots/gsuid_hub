@@ -99,8 +99,8 @@ export default function ButtonMarkdownSettings() {
 
   const buttonMdConfig = useMemo(() => {
     return configs.find(c =>
-      c.name === '按钮和Markdown配置' ||
-      c.full_name === '按钮和Markdown配置' ||
+      c.name === '按钮和MD配置' ||
+      c.full_name === '按钮和MD配置' ||
       c.full_name === buttonMdConfigName
     );
   }, [configs, buttonMdConfigName]);
@@ -300,7 +300,7 @@ export default function ButtonMarkdownSettings() {
 
   if (!buttonMdConfig) {
     return (
-      <div className="space-y-6 flex-1 overflow-auto p-6 h-full flex flex-col -mt-2">
+      <div className="space-y-6 flex-1 overflow-visible h-full flex flex-col">
         <Card className="glass-card">
           <CardContent className="p-6">
             <p className="text-center text-muted-foreground">{t('buttonMdConfig.notFound')}</p>
@@ -313,7 +313,7 @@ export default function ButtonMarkdownSettings() {
   const config = buttonMdConfig.config;
 
   return (
-    <div className="space-y-6 flex-1 overflow-auto p-6 h-full flex flex-col -mt-2">
+    <div className="space-y-6 flex-1 overflow-visible h-full flex flex-col">
       {/* Platform Selection Card */}
       <Card className="glass-card">
         <CardContent className="p-6 space-y-6">

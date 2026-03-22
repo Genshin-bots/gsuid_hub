@@ -369,7 +369,7 @@ export default function BackupPage() {
     <div className="space-y-6 flex-1 overflow-auto p-6 h-full flex flex-col">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-3">
+          <h1 className="text-3xl font-bold flex items-center gap-3">
             <div className="p-2 rounded-lg bg-primary/10">
               <HardDrive className="w-6 h-6 text-primary" />
             </div>

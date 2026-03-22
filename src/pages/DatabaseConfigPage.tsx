@@ -360,7 +360,7 @@ export default function DatabaseConfigPage() {
 
   if (!databaseConfig) {
     return (
-      <div className="space-y-6 flex-1 overflow-auto p-6 h-full flex flex-col -mt-2">
+      <div className="space-y-6 flex-1 overflow-visible h-full flex flex-col">
         <Card className="glass-card">
           <CardContent className="p-6">
             <p className="text-center text-muted-foreground">{t('databaseConfig.notFound')}</p>
@@ -373,7 +373,7 @@ export default function DatabaseConfigPage() {
   const dbConfig = databaseConfig.config;
 
   return (
-    <div className="space-y-6 flex-1 overflow-auto p-6 h-full flex flex-col -mt-2">
+    <div className="space-y-6 flex-1 overflow-visible h-full flex flex-col">
       {/* Database Type Selection - Always Visible */}
       <Card className="glass-card">
         <CardHeader>

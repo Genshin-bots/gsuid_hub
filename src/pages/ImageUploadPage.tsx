@@ -347,7 +347,7 @@ export default function ImageUploadPage() {
 
   if (!imageUploadConfig) {
     return (
-      <div className="space-y-6 flex-1 overflow-auto p-6 h-full flex flex-col -mt-2">
+      <div className="space-y-6 flex-1 overflow-visible h-full flex flex-col">
         <Card className="glass-card">
           <CardContent className="p-6">
             <p className="text-center text-muted-foreground">{t('imageUpload.notFound')}</p>
@@ -361,7 +361,7 @@ export default function ImageUploadPage() {
   const isPicSrvEnabled = uploadConfig.EnablePicSrv.value;
 
   return (
-    <div className="space-y-6 flex-1 overflow-auto p-6 h-full flex flex-col -mt-2">
+    <div className="space-y-6 flex-1 overflow-visible h-full flex flex-col">
       {/* Image Service Toggle - First as main switch */}
       <Card className={cn("glass-card", !isPicSrvEnabled && "opacity-60")}>
         <CardHeader>
