@@ -1,6 +1,6 @@
-import { LayoutDashboard, Database, Settings, FileText, LogOut, Palette, Terminal, Calendar, Store, Cpu, HardDrive, PanelLeftClose, PanelLeft, Cog, Power, RotateCw, Globe, User, Brain } from 'lucide-react';
+import { LayoutDashboard, Database, Settings, FileText, LogOut, Palette, Terminal, Calendar, Store, Cpu, HardDrive, PanelLeftClose, PanelLeft, Cog, Power, RotateCw, Globe, User, Brain, ChevronDown, ChevronRight } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -12,7 +12,7 @@ import { Progress } from '@/components/ui/progress';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { getAuthToken, getCustomApiHost, systemApi } from '@/lib/api';
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -21,57 +21,106 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+
+// 导航项类型定义
+interface NavItem {
+  title: string;
+  url?: string;
+  icon?: React.ElementType;
+  children?: NavItem[];
+}
 
 // 导航项配置 - 辅助函数获取翻译后的标题
-const getNavItems = (t: (key: string) => string) => [{
-  title: t('sidebar.dashboard'),
-  url: '/dashboard',
-  icon: LayoutDashboard
-}, {
-  title: t('sidebar.database'),
-  url: '/database',
-  icon: Database
-}, {
-  title: t('sidebar.console'),
-  url: '/console',
-  icon: Terminal
-}, {
-  title: t('sidebar.scheduler'),
-  url: '/scheduler',
-  icon: Calendar
-}, {
-  title: t('sidebar.coreConfig'),
-  url: '/core-config',
-  icon: Cog
-}, {
-  title: t('sidebar.backup'),
-  url: '/backup',
-  icon: HardDrive
-}, {
-  title: t('sidebar.frameworkConfig'),
-  url: '/framework-config',
-  icon: Cpu
-}, {
-  title: t('sidebar.aiConfig'),
-  url: '/ai-config',
-  icon: Brain
-}, {
-  title: t('sidebar.plugins'),
-  url: '/plugins',
-  icon: Settings
-}, {
-  title: t('sidebar.pluginStore'),
-  url: '/plugin-store',
-  icon: Store
-}, {
-  title: t('sidebar.logs'),
-  url: '/logs',
-  icon: FileText
-}, {
-  title: t('sidebar.themes'),
-  url: '/themes',
-  icon: Palette
-}];
+const getNavItems = (t: (key: string) => string): NavItem[] => [
+  {
+    title: t('sidebar.dashboard'),
+    url: '/dashboard',
+    icon: LayoutDashboard
+  },
+  {
+    title: t('sidebar.database'),
+    url: '/database',
+    icon: Database
+  },
+  {
+    title: t('sidebar.adminCore'),
+    icon: Cog,
+    children: [
+      {
+        title: t('sidebar.coreConfig'),
+        url: '/core-config',
+        icon: Cog
+      },
+      {
+        title: t('sidebar.frameworkConfig'),
+        url: '/framework-config',
+        icon: Cpu
+      },
+      {
+        title: t('sidebar.backup'),
+        url: '/backup',
+        icon: HardDrive
+      },
+      {
+        title: t('sidebar.scheduler'),
+        url: '/scheduler',
+        icon: Calendar
+      }
+    ]
+  },
+  {
+    title: t('sidebar.logsView'),
+    icon: FileText,
+    children: [
+      {
+        title: t('sidebar.console'),
+        url: '/console',
+        icon: Terminal
+      },
+      {
+        title: t('sidebar.historyLogs'),
+        url: '/logs',
+        icon: FileText
+      }
+    ]
+  },
+  {
+    title: t('sidebar.aiConfig'),
+    url: '/ai-config',
+    icon: Brain
+  },
+  {
+    title: t('sidebar.plugins'),
+    url: '/plugins',
+    icon: Settings
+  },
+  {
+    title: t('sidebar.pluginStore'),
+    url: '/plugin-store',
+    icon: Store
+  },
+  {
+    title: t('sidebar.consoleManagement'),
+    icon: Settings,
+    children: [
+      {
+        title: t('sidebar.themes'),
+        url: '/themes',
+        icon: Palette
+      },
+      {
+        title: t('sidebar.accountSettings'),
+        url: '/settings',
+        icon: User
+      }
+    ]
+  }
+];
 export function AppSidebar() {
   const navigate = useNavigate();
   const {
@@ -91,6 +140,36 @@ export function AppSidebar() {
   const navItems = getNavItems(t);
   const isCollapsed = state === 'collapsed';
   const isGlassmorphism = style === 'glassmorphism';
+
+  // 展开/收起状态管理
+  const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
+  const location = useLocation();
+  const isInitialMount = useRef(true);
+
+  const toggleExpanded = (title: string) => {
+    setExpandedItems(prev => ({
+      ...prev,
+      [title]: !prev[title]
+    }));
+  };
+
+  // 首次加载时根据当前路由自动展开对应的一级菜单
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      const currentPath = location.pathname;
+      navItems.forEach(item => {
+        if (item.children) {
+          const hasActiveChild = item.children.some(child =>
+            currentPath === child.url || currentPath.startsWith(child.url + '/')
+          );
+          if (hasActiveChild) {
+            setExpandedItems(prev => ({ ...prev, [item.title]: true }));
+          }
+        }
+      });
+    }
+  }, [location.pathname, navItems]);
 
   const [showRestartDialog, setShowRestartDialog] = useState(false);
   const [isRestarting, setIsRestarting] = useState(false);
@@ -310,16 +389,22 @@ export function AppSidebar() {
     };
   }, []);
 
+  // Get icon style based on iconColor setting
+  // Must set stroke to make lucide icons work correctly since they use stroke="currentColor"
+  const getIconStyle = (): React.CSSProperties => {
+    if (iconColor === 'white') {
+      return { color: 'white', stroke: 'white', filter: 'drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5))' };
+    } else if (iconColor === 'black') {
+      return { color: 'black', stroke: 'black' };
+    }
+    // colored - use primary color via CSS variable
+    return { color: 'hsl(var(--primary))', stroke: 'hsl(var(--primary))' };
+  };
+
   // Get icon class based on iconColor setting
   const getIconClass = (customClass = "") => {
     const baseClass = customClass || "w-5 h-5";
-    if (iconColor === 'white') {
-      return cn(baseClass, "text-white drop-shadow");
-    } else if (iconColor === 'black') {
-      return cn(baseClass, "text-black");
-    }
-    // colored - use default (text-primary)
-    return cn(baseClass, "text-primary");
+    return baseClass;
   };
 
   return <Sidebar variant="sidebar" collapsible="icon" className={cn("border-0", isGlassmorphism ? "floating-sidebar" : "bg-sidebar shadow-lg")}>
@@ -352,14 +437,64 @@ export function AppSidebar() {
         </SidebarGroupLabel>}
         <SidebarGroupContent>
           <SidebarMenu className={cn(isCollapsed && "items-center")}>
-            {navItems.map(item => <SidebarMenuItem key={item.title} className={cn(isCollapsed ? "w-auto" : "w-full")}>
-              <SidebarMenuButton asChild tooltip={item.title}>
-                <NavLink to={item.url} className={cn("flex items-center rounded-lg transition-all", isCollapsed ? "justify-center w-10 h-10 p-0" : "gap-3 px-3 py-2.5", "hover:bg-primary/10")} activeClassName="bg-primary/20 text-primary font-medium shadow-sm">
-                  <item.icon className={getIconClass("w-5 h-5 shrink-0")} />
-                  {!isCollapsed && <span>{item.title}</span>}
-                </NavLink>
-              </SidebarMenuButton>
-            </SidebarMenuItem>)}
+            {navItems.map(item => {
+              const hasChildren = item.children && item.children.length > 0;
+              const isExpanded = expandedItems[item.title] ?? false;
+              
+              if (hasChildren) {
+                // 有子菜单的项（可展开的）
+                return (
+                  <Collapsible
+                    key={item.title}
+                    open={isExpanded}
+                    onOpenChange={() => toggleExpanded(item.title)}
+                    className={cn(isCollapsed ? "w-auto" : "w-full")}
+                  >
+                    <SidebarMenuItem className="w-full">
+                      <CollapsibleTrigger asChild>
+                        <SidebarMenuButton tooltip={item.title} className={cn("flex items-center rounded-lg transition-all cursor-pointer", isCollapsed ? "justify-center w-10 h-10 p-0" : "gap-3 px-3 py-2.5 w-full", "hover:bg-primary/10")}>
+                          {item.icon && React.createElement(item.icon, { className: getIconClass("w-5 h-5 shrink-0"), style: getIconStyle() })}
+                          {!isCollapsed && (
+                            <>
+                              <span className="flex-1 text-left">{item.title}</span>
+                              {isExpanded ? React.createElement(ChevronDown, { className: getIconClass("w-4 h-4"), style: getIconStyle() }) : React.createElement(ChevronRight, { className: getIconClass("w-4 h-4"), style: getIconStyle() })}
+                            </>
+                          )}
+                        </SidebarMenuButton>
+                      </CollapsibleTrigger>
+                      {!isCollapsed && (
+                        <CollapsibleContent>
+                          <SidebarMenu className="ml-2 mt-1 border-l-2 border-primary/20 pl-2">
+                            {item.children?.map(child => (
+                              <SidebarMenuItem key={child.title} className="w-full">
+                                <SidebarMenuButton asChild tooltip={child.title}>
+                                  <NavLink to={child.url || '#'} className={cn("flex items-center rounded-lg transition-all", "gap-3 px-3 py-2", "hover:bg-primary/10")} activeClassName="bg-primary/20 text-primary font-medium shadow-sm">
+                                    {child.icon && <child.icon className={getIconClass("w-4 h-4 shrink-0")} />}
+                                    <span>{child.title}</span>
+                                  </NavLink>
+                                </SidebarMenuButton>
+                              </SidebarMenuItem>
+                            ))}
+                          </SidebarMenu>
+                        </CollapsibleContent>
+                      )}
+                    </SidebarMenuItem>
+                  </Collapsible>
+                );
+              }
+              
+              // 没有子菜单的项（一级导航）
+              return (
+                <SidebarMenuItem key={item.title} className={cn(isCollapsed ? "w-auto" : "w-full")}>
+                  <SidebarMenuButton asChild tooltip={item.title}>
+                    <NavLink to={item.url || '#'} className={cn("flex items-center rounded-lg transition-all", isCollapsed ? "justify-center w-10 h-10 p-0" : "gap-3 px-3 py-2.5", "hover:bg-primary/10")} activeClassName="bg-primary/20 text-primary font-medium shadow-sm">
+                      {item.icon && <item.icon className={getIconClass("w-5 h-5 shrink-0")} />}
+                      {!isCollapsed && <span>{item.title}</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              );
+            })}
           </SidebarMenu>
         </SidebarGroupContent>
       </SidebarGroup>

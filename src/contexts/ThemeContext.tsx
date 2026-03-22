@@ -27,7 +27,7 @@ interface ThemeContextType {
   setColor: (color: ThemeColor) => void;
   setBackgroundImage: (url: string | null) => void;
   setBlurIntensity: (value: number, autoSave?: boolean) => void;
-  setIconColor: (color: IconColor) => void;
+  setIconColor: (color: IconColor, autoSave?: boolean) => void;
   setThemePreset: (preset: ThemePreset) => void;
   setLanguage: (lang: Language) => void;
   saveToBackend: () => Promise<void>;
@@ -386,9 +386,27 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setThemePresetState(newPreset);
   }, []);
 
-  const setIconColor = useCallback((newIconColor: IconColor) => {
+  const setIconColor = useCallback((newIconColor: IconColor, autoSave?: boolean) => {
     setIconColorState(newIconColor);
-  }, []);
+    if (autoSave && isInitialized) {
+      (async () => {
+        try {
+          await themeApi.saveConfig({
+            mode,
+            style,
+            color,
+            icon_color: newIconColor,
+            background_image: backgroundImage,
+            blur_intensity: blurIntensity,
+            theme_preset: themePreset,
+            language,
+          });
+        } catch (error) {
+          console.error('Failed to save theme to backend:', error);
+        }
+      })();
+    }
+  }, [isInitialized, mode, style, color, backgroundImage, blurIntensity, themePreset, language]);
 
   const setBackgroundImage = useCallback(
     (url: string | null, autoSave: boolean = true) => {

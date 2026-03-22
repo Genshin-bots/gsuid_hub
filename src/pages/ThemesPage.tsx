@@ -284,8 +284,7 @@ export default function ThemesPage() {
                   variant={iconColor === option.id ? 'default' : 'outline'}
                   className="flex-1 h-20 flex-col gap-2"
                   onClick={() => {
-                    setIconColor(option.id);
-                    saveToBackend();
+                    setIconColor(option.id, true);
                   }}
                 >
                   <span className="text-2xl">{option.icon}</span>

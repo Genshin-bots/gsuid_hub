@@ -14,7 +14,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Settings, Loader2, ChevronDown, Save, Server, Cog, LayoutGrid, Users, Shield, Filter, Zap, MessageSquare, Key } from 'lucide-react';
 import { ConfigField, ConfigFieldDefinition, ConfigValue, ConfigFieldType } from '@/components/config';
-import { pluginsApi, Plugin, ServiceConfig, SvItem, PluginConfigItem, PluginConfigGroup } from '@/lib/api';
+import { pluginsApi, Plugin, ServiceConfig, SvItem, PluginConfigItem, PluginConfigGroup, PluginListItem } from '@/lib/api';
 import { toast } from '@/hooks/use-toast';
 
 // Convert API plugin to local plugin type
@@ -29,7 +29,7 @@ const convertToPlugin = (plugin: Plugin): any => {
       if (rawType.includes('bool')) type = 'boolean';
       else if (rawType.includes('int')) type = 'number';
       else if (rawType.includes('list') || rawType.includes('array')) type = configItem.options ? 'multiselect' : 'tags';
-      else if (rawType.includes('gstime')) type = 'time';
+      else if (rawType.includes('gstimer')) type = 'time';
       else if (rawType.includes('time') || rawType.includes('date')) type = 'date';
       else if (rawType.includes('str') || rawType.includes('string')) type = configItem.options ? 'select' : 'text';
       else if (rawType.includes('dict') || rawType.includes('object')) {
@@ -67,10 +67,12 @@ const convertToPlugin = (plugin: Plugin): any => {
 export default function PluginsPage() {
   const { style } = useTheme();
   const { t } = useLanguage();
+  const [pluginList, setPluginList] = useState<PluginListItem[]>([]);
   const [plugins, setPlugins] = useState<Plugin[]>([]);
   const [selectedPluginId, setSelectedPluginId] = useState<string>('');
   const [selectedConfigName, setSelectedConfigName] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [isSavingConfig, setIsSavingConfig] = useState(false);
   const [isSavingService, setIsSavingService] = useState(false);
 
@@ -107,42 +109,19 @@ export default function PluginsPage() {
     return prefix.filter(item => item !== '');
   };
 
-  // Fetch plugins from API
-  const fetchPlugins = async () => {
+  // Fetch plugin list (lightweight)
+  const fetchPluginList = async () => {
     try {
       setIsLoading(true);
-      const data = await pluginsApi.getPlugins();
-      const converted = data.map(convertToPlugin);
-      setPlugins(converted);
-      // 如果有插件且没有选中的，默认选中第一个
-      if (converted.length > 0 && !selectedPluginId) {
-        const firstPlugin = converted[0];
-        setSelectedPluginId(firstPlugin.id);
-        if (firstPlugin.config_names && firstPlugin.config_names.length > 0) {
-          setSelectedConfigName(firstPlugin.config_names[0]);
-        }
-        setOriginalConfig({
-          config: JSON.parse(JSON.stringify(firstPlugin.config)),
-          groups: JSON.parse(JSON.stringify(firstPlugin.config_groups || []))
-        });
-        
-        const processedServiceConfig = firstPlugin.service_config ? {
-          ...firstPlugin.service_config,
-          prefix: filterEmptyPrefix(firstPlugin.service_config.prefix)
-        } : null;
-        
-        setOriginalServiceConfig(JSON.parse(JSON.stringify(processedServiceConfig)));
-        setOriginalSvList(JSON.parse(JSON.stringify(firstPlugin.sv_list || [])));
-        setEditedServiceConfig({
-          ...(processedServiceConfig || {}),
-          enabled: firstPlugin.enabled ?? true
-        });
-        setEditedSvList(JSON.parse(JSON.stringify(firstPlugin.sv_list || [])));
-        setOriginalEnabled(firstPlugin.enabled ?? true);
-        setEditedEnabled(firstPlugin.enabled ?? true);
+      const data = await pluginsApi.getPluginList();
+      setPluginList(data);
+      
+      // If has plugins and none selected, select first
+      if (data.length > 0 && !selectedPluginId) {
+        setSelectedPluginId(data[0].id);
       }
     } catch (error) {
-      console.error('Failed to fetch plugins:', error);
+      console.error('Failed to fetch plugin list:', error);
       toast({
         title: t('plugins.loadFailed'),
         description: t('plugins.loadPluginListFailed'),
@@ -153,11 +132,79 @@ export default function PluginsPage() {
     }
   };
 
+  // Fetch plugin detail for a specific plugin
+  const fetchPluginDetail = async (pluginName: string) => {
+    try {
+      setIsLoadingDetail(true);
+      const data = await pluginsApi.getPlugin(pluginName);
+      const converted = convertToPlugin(data);
+      
+      setPlugins(prev => {
+        // Remove existing plugin with same id if exists, then add new one
+        const filtered = prev.filter(p => p.id !== converted.id);
+        return [...filtered, converted];
+      });
+      
+      // If this is the selected plugin, set original config
+      if (data.id === selectedPluginId) {
+        setOriginalConfig({
+          config: JSON.parse(JSON.stringify(converted.config)),
+          groups: JSON.parse(JSON.stringify(converted.config_groups || []))
+        });
+        
+        const processedServiceConfig = converted.service_config ? {
+          ...converted.service_config,
+          prefix: filterEmptyPrefix(converted.service_config.prefix)
+        } : null;
+        
+        setOriginalServiceConfig(JSON.parse(JSON.stringify(processedServiceConfig)));
+        setOriginalSvList(JSON.parse(JSON.stringify(converted.sv_list || [])));
+        setEditedServiceConfig({
+          ...(processedServiceConfig || {}),
+          enabled: converted.enabled ?? true
+        });
+        setEditedSvList(JSON.parse(JSON.stringify(converted.sv_list || [])));
+        setOriginalEnabled(converted.enabled ?? true);
+        setEditedEnabled(converted.enabled ?? true);
+
+        if (converted.config_names && converted.config_names.length > 0) {
+          setSelectedConfigName(converted.config_names[0]);
+        } else {
+          setSelectedConfigName(null);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch plugin detail:', error);
+      toast({
+        title: t('plugins.loadFailed'),
+        description: t('plugins.loadPluginDetailFailed'),
+        variant: 'destructive'
+      });
+    } finally {
+      setIsLoadingDetail(false);
+    }
+  };
+
   useEffect(() => {
-    fetchPlugins();
+    fetchPluginList();
   }, []);
 
-  // Update original state when selected plugin changes
+  // Fetch detail when selected plugin changes
+  useEffect(() => {
+    if (selectedPluginId) {
+      // Check if we already have the detail for this plugin
+      const existingPlugin = plugins.find(p => p.id === selectedPluginId);
+      if (!existingPlugin) {
+        // Need to fetch detail for this plugin
+        const pluginInfo = pluginList.find(p => p.id === selectedPluginId);
+        if (pluginInfo) {
+          fetchPluginDetail(pluginInfo.name);
+        }
+      }
+    }
+  }, [selectedPluginId, pluginList, plugins]);
+
+  // Update original state when selected plugin detail changes
   useEffect(() => {
     if (selectedPlugin) {
       setOriginalConfig({
@@ -188,7 +235,7 @@ export default function PluginsPage() {
         setSelectedConfigName(null);
       }
     }
-  }, [selectedPluginId]);
+  }, [selectedPlugin?.id]);
 
   const updateConfigValue = useCallback((pluginId: string, fieldKey: string, value: ConfigValue, groupName: string | null) => {
     setPlugins((prev) =>
@@ -323,7 +370,7 @@ export default function PluginsPage() {
                   <SelectValue placeholder={t('plugins.selectPlugin')} />
                 </SelectTrigger>
                 <SelectContent>
-                  {plugins.map((plugin) => (
+                  {pluginList.map((plugin) => (
                     <SelectItem key={plugin.id} value={plugin.id}>
                       <div className="flex items-center gap-2">
                         {plugin.icon ? (
@@ -345,7 +392,7 @@ export default function PluginsPage() {
         </CardContent>
       </Card>
 
-      {isLoading ? (
+      {isLoading || isLoadingDetail ? (
         <Card className="glass-card">
           <CardContent className="py-12 text-center">
             <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
@@ -487,11 +534,11 @@ export default function PluginsPage() {
                     {t('plugins.pluginWhiteList')}
                   </Label>
                   <ConfigField
-                    fieldKey="plugin_white_list"
+                    fieldKey="white_list"
                     field={{
                       type: 'tags',
                       label: t('plugins.pluginWhiteList'),
-                      value: editedServiceConfig.plugin_white_list || [],
+                      value: editedServiceConfig.white_list || [],
                       placeholder: t('plugins.enterWhitelistContent')
                     }}
                     onChange={(fieldKey, value) => setEditedServiceConfig(prev => ({ ...prev, [fieldKey]: value }))}
@@ -506,11 +553,11 @@ export default function PluginsPage() {
                     {t('plugins.pluginBlackList')}
                   </Label>
                   <ConfigField
-                    fieldKey="plugin_black_list"
+                    fieldKey="black_list"
                     field={{
                       type: 'tags',
                       label: t('plugins.pluginBlackList'),
-                      value: editedServiceConfig.plugin_black_list || [],
+                      value: editedServiceConfig.black_list || [],
                       placeholder: t('plugins.enterBlacklistContent')
                     }}
                     onChange={(fieldKey, value) => setEditedServiceConfig(prev => ({ ...prev, [fieldKey]: value }))}

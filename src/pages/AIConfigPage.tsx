@@ -1,13 +1,12 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef, useLayoutEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import { Settings, Loader2, Save, Cpu } from 'lucide-react';
 import { ConfigField, ConfigFieldDefinition, ConfigValue, ConfigFieldType } from '@/components/config';
-import { frameworkConfigApi, PluginConfigItem } from '@/lib/api';
+import { frameworkConfigApi, PluginConfigItem, FrameworkConfigListItem } from '@/lib/api';
 import { toast } from '@/hooks/use-toast';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 // Local config type with converted fields
 interface LocalFrameworkConfig {
@@ -31,7 +30,7 @@ const convertToConfig = (config: Record<string, PluginConfigItem>): Record<strin
       type = 'number';
     } else if (rawType.includes('list') || rawType.includes('array')) {
       type = configItem.options ? 'multiselect' : 'tags';
-    } else if (rawType.includes('gstime')) {
+    } else if (rawType.includes('gstimer')) {
       type = 'time';
     } else if (rawType.includes('time') || rawType.includes('date')) {
       type = 'date';
@@ -80,13 +79,32 @@ const getDisplayName = (name: string): string => {
 
 export default function AIConfigPage() {
   const { t } = useLanguage();
+  const [configList, setConfigList] = useState<FrameworkConfigListItem[]>([]);
   const [configs, setConfigs] = useState<LocalFrameworkConfig[]>([]);
   const [selectedConfigId, setSelectedConfigId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   
   // Track original state for change detection
   const [originalConfig, setOriginalConfig] = useState<Record<string, any>>({});
+  
+  // Check if tabs can fit in one row
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [canFitTabs, setCanFitTabs] = useState(true);
+  
+  useLayoutEffect(() => {
+    const checkFit = () => {
+      if (!containerRef.current) return;
+      const containerWidth = containerRef.current.offsetWidth;
+      const tabWidth = configList.length * 140 + 16; // Approximate tab width + padding
+      setCanFitTabs(containerWidth >= tabWidth);
+    };
+    
+    checkFit();
+    window.addEventListener('resize', checkFit);
+    return () => window.removeEventListener('resize', checkFit);
+  }, [configList.length]);
   
   // Get current selected config
   const selectedConfig = useMemo(() => {
@@ -99,30 +117,19 @@ export default function AIConfigPage() {
     return JSON.stringify(selectedConfig.config) !== JSON.stringify(originalConfig);
   }, [selectedConfig?.config, originalConfig]);
   
-  // Fetch AI configs from API
-  const fetchConfigs = async () => {
+  // Fetch AI config list from API (轻量级接口)
+  const fetchConfigList = async () => {
     try {
       setIsLoading(true);
-      const data = await frameworkConfigApi.getFrameworkConfigs();
-      // Filter configs that start with "GsCore AI" (case insensitive)
-      const aiConfigs = data.filter(c => 
-        c.name.toLowerCase().startsWith('gscore ai') ||
-        c.full_name.toLowerCase().startsWith('gscore ai')
-      );
-      const converted = aiConfigs.map(c => ({
-        ...c,
-        config: convertToConfig(c.config)
-      }));
-      setConfigs(converted);
+      const data = await frameworkConfigApi.getFrameworkConfigList('GsCore AI');
+      setConfigList(data);
       
       // If has configs and none selected, select first
-      if (converted.length > 0 && !selectedConfigId) {
-        const firstConfig = converted[0];
-        setSelectedConfigId(firstConfig.id);
-        setOriginalConfig(JSON.parse(JSON.stringify(firstConfig.config)));
+      if (data.length > 0) {
+        setSelectedConfigId(data[0].id);
       }
     } catch (error) {
-      console.error('Failed to fetch AI configs:', error);
+      console.error('Failed to fetch AI config list:', error);
       toast({
         title: t('common.loadFailed'),
         description: t('aiConfig.loadFailed') || 'Unable to load AI configuration',
@@ -132,17 +139,64 @@ export default function AIConfigPage() {
       setIsLoading(false);
     }
   };
+
+  // Fetch config detail for a specific config
+  const fetchConfigDetail = async (configName: string) => {
+    try {
+      setIsLoadingDetail(true);
+      const data = await frameworkConfigApi.getFrameworkConfig(configName);
+      const converted = {
+        ...data,
+        config: convertToConfig(data.config)
+      };
+      
+      setConfigs(prev => {
+        // Remove existing config with same id if exists, then add new one
+        const filtered = prev.filter(c => c.id !== data.id);
+        return [...filtered, converted];
+      });
+      
+      // If this is the selected config, set original config
+      if (data.id === selectedConfigId) {
+        setOriginalConfig(JSON.parse(JSON.stringify(converted.config)));
+      }
+    } catch (error) {
+      console.error('Failed to fetch AI config detail:', error);
+      toast({
+        title: t('common.loadFailed'),
+        description: t('aiConfig.loadFailed') || 'Unable to load AI configuration',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsLoadingDetail(false);
+    }
+  };
   
   useEffect(() => {
-    fetchConfigs();
+    fetchConfigList();
   }, []);
+  
+  // Fetch detail when selected config changes
+  useEffect(() => {
+    if (selectedConfigId && configList.length > 0) {
+      // Check if we already have the detail for this config
+      const existingConfig = configs.find(c => c.id === selectedConfigId);
+      if (!existingConfig) {
+        // Need to fetch detail for this config
+        const configInfo = configList.find(c => c.id === selectedConfigId);
+        if (configInfo) {
+          fetchConfigDetail(configInfo.full_name);
+        }
+      }
+    }
+  }, [selectedConfigId, configList, configs, fetchConfigDetail]);
   
   // Update original state when selected config changes
   useEffect(() => {
     if (selectedConfig) {
       setOriginalConfig(JSON.parse(JSON.stringify(selectedConfig.config)));
     }
-  }, [selectedConfigId]);
+  }, [selectedConfig?.id]);
   
   const updateConfigValue = useCallback((fieldKey: string, value: ConfigValue) => {
     setConfigs(prev =>
@@ -194,43 +248,71 @@ export default function AIConfigPage() {
         <div className="flex items-center justify-center h-64">
           <Loader2 className="w-8 h-8 animate-spin" />
         </div>
-      ) : configs.length === 0 ? (
+      ) : configList.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
           {t('aiConfig.noAIConfig')}
         </div>
       ) : (
         <>
-          <Card className="glass-card">
-            <CardContent className="p-4">
-              <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-                <Label className="flex items-center gap-2 text-base font-bold min-w-[120px]">
-                  <Settings className="w-4 h-4 text-primary" />
-                  {t('aiConfig.selectConfig')}
-                </Label>
-                <ToggleGroup
-                  type="single"
-                  value={selectedConfigId}
-                  onValueChange={(value) => {
-                    if (value) setSelectedConfigId(value);
-                  }}
-                  className="flex flex-wrap gap-2"
-                  disabled={isLoading}
-                >
-                  {configs.map((config) => (
-                    <ToggleGroupItem
-                      key={config.id}
-                      value={config.id}
-                      className="px-3 py-1.5"
-                    >
+          <div ref={containerRef} className="flex items-center justify-between w-full">
+            {canFitTabs ? (
+              <div className="flex items-center gap-1 p-1 bg-muted/50 rounded-lg border border-border/40 w-fit">
+                {configList.map((config) => (
+                  <button
+                    key={config.id}
+                    onClick={() => setSelectedConfigId(config.id)}
+                    disabled={isLoading}
+                    className={`
+                      relative px-4 py-2 text-sm font-medium rounded-md transition-all duration-200
+                      ${selectedConfigId === config.id
+                        ? 'bg-primary text-primary-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-muted/80'
+                      }
+                    `}
+                  >
+                    <span className="flex items-center gap-2">
+                      <Settings className="w-4 h-4" />
                       {getDisplayName(config.name)}
-                    </ToggleGroupItem>
-                  ))}
-                </ToggleGroup>
+                    </span>
+                  </button>
+                ))}
               </div>
-            </CardContent>
-          </Card>
+            ) : (
+              <Card className="glass-card w-full sm:w-fit">
+                <CardContent className="p-4">
+                  <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                    <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                      <Settings className="w-4 h-4" />
+                      <span>{t('aiConfig.selectConfig')}</span>
+                    </div>
+                    <div className="flex-1 w-full">
+                      <Select value={selectedConfigId} onValueChange={setSelectedConfigId}>
+                        <SelectTrigger className="w-full sm:w-[300px] bg-background/50">
+                          <SelectValue placeholder={t('aiConfig.selectConfig')} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {configList.map((config) => (
+                            <SelectItem key={config.id} value={config.id}>
+                              <span className="flex items-center gap-2">
+                                <Settings className="w-4 h-4" />
+                                {getDisplayName(config.name)}
+                              </span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
           
-          {selectedConfig && (
+          {!selectedConfig || isLoadingDetail ? (
+            <div className="flex items-center justify-center h-64">
+              <Loader2 className="w-8 h-8 animate-spin" />
+            </div>
+          ) : (
             <Card className="glass-card">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <div className="flex items-center gap-2">

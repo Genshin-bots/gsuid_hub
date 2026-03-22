@@ -7,10 +7,13 @@ import FrameworkConfigPage from "@/pages/FrameworkConfigPage";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
+import { ConfigDirtyProvider } from "@/contexts/ConfigDirtyContext";
 import { AppLayout } from "@/components/layout/AppLayout";
 import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
 import DatabasePage from "@/pages/DatabasePage";
+import DatabaseConfigPage from "@/pages/DatabaseConfigPage";
+import StateConfigPage from "@/pages/StateConfigPage";
 import PluginsPage from "@/pages/PluginsPage";
 import LogsPage from "@/pages/LogsPage";
 import ThemesPage from "@/pages/ThemesPage";
@@ -72,6 +75,8 @@ function AppRoutes() {
         <Route path="framework-config" element={<FrameworkConfigPage />} />
         <Route path="ai-config" element={<AIConfigPage />} />
         <Route path="core-config" element={<CoreConfigPage />} />
+        <Route path="database-config" element={<DatabaseConfigPage />} />
+        <Route path="state-config" element={<StateConfigPage />} />
         <Route path="backup" element={<BackupPage />} />
         <Route path="settings" element={<SettingsPage />} />
       </Route>
@@ -85,13 +90,15 @@ const App = () => (
     <ThemeProvider>
       <LanguageProvider>
         <AuthProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <HashRouter>
-              <AppRoutes />
-            </HashRouter>
-          </TooltipProvider>
+          <ConfigDirtyProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <HashRouter>
+                <AppRoutes />
+              </HashRouter>
+            </TooltipProvider>
+          </ConfigDirtyProvider>
         </AuthProvider>
       </LanguageProvider>
     </ThemeProvider>

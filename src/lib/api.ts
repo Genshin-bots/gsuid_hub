@@ -117,8 +117,6 @@ export interface ServiceConfig {
   area: string;
   black_list: string[];
   white_list: string[];
-  plugin_black_list: string[];
-  plugin_white_list: string[];
   prefix: string[];
   force_prefix: string[];
   disable_force_prefix: boolean;
@@ -386,8 +384,18 @@ export const configApi = {
 };
 
 // ===================
-// Plugins APIs
+// Plugins APIs (New - separate list and detail endpoints)
 // ===================
+
+// 插件列表项（轻量级）
+export interface PluginListItem {
+  id: string;
+  name: string;
+  description: string;
+  enabled: boolean;
+  status: string;
+  icon?: string;
+}
 
 // ===================
 // Plugins APIs
@@ -427,6 +435,15 @@ export interface PluginStoreListResponse {
 }
 
 export const pluginsApi = {
+  // 获取插件列表（轻量级接口）
+  getPluginList: () =>
+    api.get<PluginListItem[]>('/api/plugins/list'),
+
+  // 获取插件详情（包含完整配置）
+  getPlugin: (pluginName: string) =>
+    api.get<Plugin>(`/api/plugins/${pluginName}`),
+
+  // 获取所有插件（兼容旧接口）
   getPlugins: () =>
     api.get<Plugin[]>('/api/plugins'),
 
@@ -444,9 +461,25 @@ export const pluginsApi = {
 };
 
 // ===================
-// Framework Config APIs
+// Framework Config APIs (New - separate list and detail)
 // ===================
 
+// 框架配置列表项（轻量级）
+export interface FrameworkConfigListItem {
+  id: string;
+  name: string;
+  full_name: string;
+}
+
+// 框架配置详情
+export interface FrameworkConfigDetail {
+  id: string;
+  name: string;
+  full_name: string;
+  config: Record<string, PluginConfigItem>;
+}
+
+// 兼容旧接口的 FrameworkConfig 类型
 export interface FrameworkConfig {
   id: string;
   name: string;
@@ -455,11 +488,25 @@ export interface FrameworkConfig {
 }
 
 export const frameworkConfigApi = {
+  // 获取框架配置列表（轻量级接口）
+  getFrameworkConfigList: (prefix: string = 'GsCore') =>
+    api.get<FrameworkConfigListItem[]>(`/api/framework-config/list?prefix=${prefix}`),
+
+  // 获取框架配置详情
+  getFrameworkConfig: (configName: string) =>
+    api.get<FrameworkConfigDetail>(`/api/framework-config/${configName}`),
+
+  // 兼容旧接口 - 获取所有框架配置
   getFrameworkConfigs: () =>
     api.get<FrameworkConfig[]>('/api/framework-config'),
 
+  // 更新框架配置
   updateFrameworkConfig: (configName: string, config: Record<string, unknown>) =>
     api.post<{ status: number; msg: string }>(`/api/framework-config/${configName}`, config),
+
+  // 更新单个框架配置项
+  updateFrameworkConfigItem: (configName: string, itemName: string, value: unknown) =>
+    api.post<{ status: number; msg: string }>(`/api/framework-config/${configName}/item/${itemName}`, { value }),
 };
 
 // ===================

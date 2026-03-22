@@ -258,38 +258,38 @@ All colors MUST be HSL.
 }
 
 /* Icon color variations based on data-icon-color attribute */
-/* Apply to all icons EXCEPT those inside buttons */
+/* Apply to all icons EXCEPT those inside native buttons */
 
-[data-icon-color="white"] :not(button):not([class*="Button"]) > .lucide,
-[data-icon-color="white"] :not(button):not([class*="Button"]) .lucide {
+[data-icon-color="white"] :not(button):not([class*="Button"]) .lucide,
+[data-icon-color="white"] [data-sidebar="menu-button"] .lucide {
   color: white !important;
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
 }
 
-[data-icon-color="black"] :not(button):not([class*="Button"]) > .lucide,
-[data-icon-color="black"] :not(button):not([class*="Button"]) .lucide {
+[data-icon-color="black"] :not(button):not([class*="Button"]) .lucide,
+[data-icon-color="black"] [data-sidebar="menu-button"] .lucide {
   color: black !important;
 }
 
-[data-icon-color="colored"] :not(button):not([class*="Button"]) > .lucide,
-[data-icon-color="colored"] :not(button):not([class*="Button"]) .lucide {
+[data-icon-color="colored"] :not(button):not([class*="Button"]) .lucide,
+[data-icon-color="colored"] [data-sidebar="menu-button"] .lucide {
   color: hsl(var(--primary)) !important;
   filter: none;
 }
 
-/* Ensure text icons also work, exclude buttons */
-[data-icon-color="white"] :not(button):not([class*="Button"]) > text,
-[data-icon-color="white"] :not(button):not([class*="Button"]) text {
+/* Ensure text icons also work */
+[data-icon-color="white"] :not(button):not([class*="Button"]) text,
+[data-icon-color="white"] [data-sidebar="menu-button"] text {
   fill: white !important;
 }
 
-[data-icon-color="black"] :not(button):not([class*="Button"]) > text,
-[data-icon-color="black"] :not(button):not([class*="Button"]) text {
+[data-icon-color="black"] :not(button):not([class*="Button"]) text,
+[data-icon-color="black"] [data-sidebar="menu-button"] text {
   fill: black !important;
 }
 
-[data-icon-color="colored"] :not(button):not([class*="Button"]) > text,
-[data-icon-color="colored"] :not(button):not([class*="Button"]) text {
+[data-icon-color="colored"] :not(button):not([class*="Button"]) text,
+[data-icon-color="colored"] [data-sidebar="menu-button"] text {
   fill: hsl(var(--primary)) !important;
 }
 
@@ -425,4 +425,33 @@ All colors MUST be HSL.
 [data-icon-color] [class*="Button"] text,
 [data-icon-color] [role="button"] text {
   fill: inherit !important;
+}
+
+/* Sidebar menu button icons should respect iconColor setting */
+/* This must come after the inherit rules to take precedence */
+[data-icon-color="colored"] [data-sidebar="menu-button"] .lucide {
+  color: hsl(var(--primary)) !important;
+  filter: none;
+}
+
+[data-icon-color="white"] [data-sidebar="menu-button"] .lucide {
+  color: white !important;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+}
+
+[data-icon-color="black"] [data-sidebar="menu-button"] .lucide {
+  color: black !important;
+}
+
+/* Sidebar menu button text icons */
+[data-icon-color="colored"] [data-sidebar="menu-button"] text {
+  fill: hsl(var(--primary)) !important;
+}
+
+[data-icon-color="white"] [data-sidebar="menu-button"] text {
+  fill: white !important;
+}
+
+[data-icon-color="black"] [data-sidebar="menu-button"] text {
+  fill: black !important;
 }

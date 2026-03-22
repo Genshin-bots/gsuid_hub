@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { TimePicker } from '@/components/ui/time-picker';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -362,13 +363,10 @@ export function ConfigField({
 
       case 'time':
         return (
-          <Input
-            type="time"
-            value={value as string}
-            onChange={(e) => onChange(fieldKey, e.target.value)}
-            placeholder={displayPlaceholder || "选择时间"}
+          <TimePicker
+            value={value as string | [number, number]}
+            onChange={(val) => onChange(fieldKey, val)}
             disabled={field.disabled}
-            className="bg-background h-10"
           />
         );
 
@@ -376,7 +374,7 @@ export function ConfigField({
       case 'tags':
         const listValue = Array.isArray(value) ? value : [];
         return (
-          <div className="flex flex-wrap items-center gap-1.5 min-h-10 px-3 py-2 border rounded-md bg-background">
+          <div className="flex flex-wrap items-center gap-1.5 h-10 px-3 py-1 border rounded-md bg-background">
             {listValue.map((item, index) => (
               <Badge key={index} variant="secondary" className="gap-1 h-6 text-xs">
                 {item}

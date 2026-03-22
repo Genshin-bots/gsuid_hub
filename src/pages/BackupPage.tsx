@@ -54,9 +54,9 @@ const convertToConfig = (backendConfig: Record<string, BackupConfigItem>, t?: (k
         // 如果有options则是多选，否则是标签列表
         type = value.options && value.options.length > 0 ? 'multiselect' : 'tags';
         break;
-      case 'GsTimeConfig':
-        // 时间配置使用text类型显示
-        type = 'text';
+      case 'GsTimeRConfig':
+        // 时间配置使用time类型显示
+        type = 'time';
         break;
       case 'GsStrConfig':
         // 如果有options则是下拉选择，否则是普通文本

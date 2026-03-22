@@ -30,21 +30,21 @@ interface CoreConfig {
 
 // i18n key mapping for config fields
 const fieldLabelKeys: Record<string, string> = {
-  default_bg: 'coreConfig.defaultBg',
-  log_level: 'coreConfig.logLevel',
-  log_output: 'coreConfig.logOutput',
-  log_module: 'coreConfig.showModuleLog',
-  HOST: 'coreConfig.host',
-  PORT: 'coreConfig.port',
-  ENABLE_HTTP: 'coreConfig.enableHttp',
-  WS_TOKEN: 'coreConfig.wsToken',
-  REGISTER_CODE: 'coreConfig.registerCode',
-  TRUSTED_IPS: 'coreConfig.trustedIps',
-  masters: 'coreConfig.admins',
-  superusers: 'coreConfig.superusers',
-  misfire_grace_time: 'coreConfig.misfireGraceTime',
-  enable_empty_start: 'coreConfig.emptyStart',
-  command_start: 'coreConfig.commandPrefix'
+  default_bg: 'coreFrameworkConfig.defaultBg',
+  log_level: 'coreFrameworkConfig.logLevel',
+  log_output: 'coreFrameworkConfig.logOutput',
+  log_module: 'coreFrameworkConfig.showModuleLog',
+  HOST: 'coreFrameworkConfig.host',
+  PORT: 'coreFrameworkConfig.port',
+  ENABLE_HTTP: 'coreFrameworkConfig.enableHttp',
+  WS_TOKEN: 'coreFrameworkConfig.wsToken',
+  REGISTER_CODE: 'coreFrameworkConfig.registerCode',
+  TRUSTED_IPS: 'coreFrameworkConfig.trustedIps',
+  masters: 'coreFrameworkConfig.admins',
+  superusers: 'coreFrameworkConfig.superusers',
+  misfire_grace_time: 'coreFrameworkConfig.misfireGraceTime',
+  enable_empty_start: 'coreFrameworkConfig.emptyStart',
+  command_start: 'coreFrameworkConfig.commandPrefix'
 };
 
 // Convert API config to field definition
@@ -65,10 +65,10 @@ const apiConfigToFieldDefinition = (key: string, value: unknown): ConfigFieldDef
     return { type: 'boolean', label: labelKey, value };
   }
   if (typeof value === 'number') {
-    return { type: 'number', label: labelKey, value, placeholder: 'coreConfig.enterValue' };
+    return { type: 'number', label: labelKey, value, placeholder: 'coreFrameworkConfig.enterValue' };
   }
   if (Array.isArray(value)) {
-    return { type: 'tags', label: labelKey, value, placeholder: 'coreConfig.enterTags' };
+    return { type: 'tags', label: labelKey, value, placeholder: 'coreFrameworkConfig.enterTags' };
   }
   if (key === 'log_level') {
     return {
@@ -83,7 +83,7 @@ const apiConfigToFieldDefinition = (key: string, value: unknown): ConfigFieldDef
       type: 'tags',
       label: labelKey,
       value: value as string[],
-      placeholder: 'coreConfig.enterTags'
+      placeholder: 'coreFrameworkConfig.enterTags'
     };
   }
   if (key === 'log_module') {
@@ -93,16 +93,16 @@ const apiConfigToFieldDefinition = (key: string, value: unknown): ConfigFieldDef
       value: value as boolean
     };
   }
-  if (key === 'HOST') return { type: 'text', label: labelKey, value: String(value), placeholder: 'coreConfig.enterValue' };
-  if (key === 'PORT') return { type: 'text', label: labelKey, value: String(value), placeholder: 'coreConfig.enterValue' };
+  if (key === 'HOST') return { type: 'text', label: labelKey, value: String(value), placeholder: 'coreFrameworkConfig.enterValue' };
+  if (key === 'PORT') return { type: 'text', label: labelKey, value: String(value), placeholder: 'coreFrameworkConfig.enterValue' };
   if (key === 'ENABLE_HTTP') return { type: 'boolean', label: labelKey, value: value as boolean };
-  if (key === 'WS_TOKEN') return { type: 'text', label: labelKey, value: String(value), placeholder: 'coreConfig.enterValue' };
-  if (key === 'TRUSTED_IPS') return { type: 'tags', label: labelKey, value: value as string[], placeholder: 'coreConfig.enterTags' };
-  if (key === 'masters') return { type: 'tags', label: labelKey, value: value as string[], placeholder: 'coreConfig.enterTags' };
-  if (key === 'superusers') return { type: 'tags', label: labelKey, value: value as string[], placeholder: 'coreConfig.enterTags' };
-  if (key === 'misfire_grace_time') return { type: 'number', label: labelKey, value: value as number, placeholder: 'coreConfig.enterValue' };
+  if (key === 'WS_TOKEN') return { type: 'text', label: labelKey, value: String(value), placeholder: 'coreFrameworkConfig.enterValue' };
+  if (key === 'TRUSTED_IPS') return { type: 'tags', label: labelKey, value: value as string[], placeholder: 'coreFrameworkConfig.enterTags' };
+  if (key === 'masters') return { type: 'tags', label: labelKey, value: value as string[], placeholder: 'coreFrameworkConfig.enterTags' };
+  if (key === 'superusers') return { type: 'tags', label: labelKey, value: value as string[], placeholder: 'coreFrameworkConfig.enterTags' };
+  if (key === 'misfire_grace_time') return { type: 'number', label: labelKey, value: value as number, placeholder: 'coreFrameworkConfig.enterValue' };
   if (key === 'enable_empty_start') return { type: 'boolean', label: labelKey, value: value as boolean };
-  if (key === 'command_start') return { type: 'tags', label: labelKey, value: value as string[], placeholder: 'coreConfig.enterTags' };
+  if (key === 'command_start') return { type: 'tags', label: labelKey, value: value as string[], placeholder: 'coreFrameworkConfig.enterTags' };
    
   return { type: 'text', label: labelKey, value: String(value), placeholder: 'coreConfig.content' };
 };
@@ -213,7 +213,7 @@ export default function CoreConfigPage() {
             <Alert variant="destructive" className="border-orange-500/50 bg-orange-500/10 relative">
               <AlertTriangle className="h-4 w-4 text-orange-500" />
               <AlertDescription className="text-orange-600 dark:text-orange-400 pr-8">
-                {t('coreConfig.warning')}
+                {t('coreFrameworkConfig.warning')}
               </AlertDescription>
               <button 
                 onClick={() => setShowWarning(false)}
