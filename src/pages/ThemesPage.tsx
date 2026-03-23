@@ -138,7 +138,7 @@ export default function ThemesPage() {
               <Button
                 variant={mode === 'light' ? 'default' : 'outline'}
                 className="flex-1 h-20 flex-col gap-2"
-                onClick={() => setMode('light')}
+                onClick={() => setMode('light', true)}
               >
                 <Sun className="w-6 h-6" />
                 {t('themes.lightMode')}
@@ -146,7 +146,7 @@ export default function ThemesPage() {
               <Button
                 variant={mode === 'dark' ? 'default' : 'outline'}
                 className="flex-1 h-20 flex-col gap-2"
-                onClick={() => setMode('dark')}
+                onClick={() => setMode('dark', true)}
               >
                 <Moon className="w-6 h-6" />
                 {t('themes.darkMode')}
@@ -169,7 +169,7 @@ export default function ThemesPage() {
               <Button
                 variant={style === 'solid' ? 'default' : 'outline'}
                 className="flex-1 h-20 flex-col gap-2"
-                onClick={() => setStyle('solid')}
+                onClick={() => setStyle('solid', true)}
               >
                 <div className="w-8 h-8 rounded-lg bg-primary" />
                 {t('themes.solidStyle')}
@@ -177,7 +177,7 @@ export default function ThemesPage() {
               <Button
                 variant={style === 'glassmorphism' ? 'default' : 'outline'}
                 className="flex-1 h-20 flex-col gap-2"
-                onClick={() => setStyle('glassmorphism')}
+                onClick={() => setStyle('glassmorphism', true)}
               >
                 <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary/50 to-accent/50 backdrop-blur border border-border/50" />
                 {t('themes.glassStyle')}
@@ -200,7 +200,7 @@ export default function ThemesPage() {
               {themeColors.map((theme) => (
                 <button
                   key={theme.id}
-                  onClick={() => setColor(theme.id)}
+                  onClick={() => setColor(theme.id, true)}
                   className={`relative aspect-square rounded-xl transition-all hover:scale-105 ${
                     color === theme.id ? 'ring-2 ring-offset-2 ring-offset-background ring-primary' : ''
                   }`}
@@ -241,10 +241,7 @@ export default function ThemesPage() {
               <Button
                 variant={themePreset === 'default' ? 'default' : 'outline'}
                 className="flex-1 h-20 flex-col gap-2"
-                onClick={() => {
-                  setThemePreset('default');
-                  saveToBackend();
-                }}
+                onClick={() => setThemePreset('default', true)}
               >
                 <Palette className="w-6 h-6" />
                 {t('themes.defaultStyle')}
@@ -252,10 +249,7 @@ export default function ThemesPage() {
               <Button
                 variant={themePreset === 'shadcn' ? 'default' : 'outline'}
                 className="flex-1 h-20 flex-col gap-2"
-                onClick={() => {
-                  setThemePreset('shadcn');
-                  saveToBackend();
-                }}
+                onClick={() => setThemePreset('shadcn', true)}
               >
                 <div className="w-6 h-6 rounded border-2 border-current" />
                 {t('themes.shadcnStyle')}

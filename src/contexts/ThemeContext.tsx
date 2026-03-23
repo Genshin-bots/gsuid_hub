@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react';
 import { themeApi, ThemeConfigResponse } from '@/lib/api';
+import { toast } from 'sonner';
 
 // ============================================================================
 // 类型定义
@@ -22,13 +23,13 @@ interface ThemeContextType {
   iconColor: IconColor;
   themePreset: ThemePreset;
   language: Language;
-  setMode: (mode: ThemeMode) => void;
-  setStyle: (style: ThemeStyle) => void;
-  setColor: (color: ThemeColor) => void;
+  setMode: (mode: ThemeMode, autoSave?: boolean) => void;
+  setStyle: (style: ThemeStyle, autoSave?: boolean) => void;
+  setColor: (color: ThemeColor, autoSave?: boolean) => void;
   setBackgroundImage: (url: string | null) => void;
   setBlurIntensity: (value: number, autoSave?: boolean) => void;
   setIconColor: (color: IconColor, autoSave?: boolean) => void;
-  setThemePreset: (preset: ThemePreset) => void;
+  setThemePreset: (preset: ThemePreset, autoSave?: boolean) => void;
   setLanguage: (lang: Language) => void;
   saveToBackend: () => Promise<void>;
 }
@@ -370,21 +371,109 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, [mode, style, color, iconColor, backgroundImage, blurIntensity, themePreset, language]);
 
   // 包装状态更新函数，确保在初始化后才应用
-  const setMode = useCallback((newMode: ThemeMode) => {
+  const setMode = useCallback((newMode: ThemeMode, autoSave?: boolean) => {
     setModeState(newMode);
-  }, []);
+    if (autoSave) {
+      if (!isInitialized) {
+        toast.error('系统繁忙，请稍后再试');
+        return;
+      }
+      (async () => {
+        try {
+          await themeApi.saveConfig({
+            mode: newMode,
+            style,
+            color,
+            icon_color: iconColor,
+            background_image: backgroundImage,
+            blur_intensity: blurIntensity,
+            theme_preset: themePreset,
+            language,
+          });
+        } catch (error) {
+          console.error('Failed to save mode to backend:', error);
+        }
+      })();
+    }
+  }, [isInitialized, style, color, iconColor, backgroundImage, blurIntensity, themePreset, language]);
 
-  const setStyle = useCallback((newStyle: ThemeStyle) => {
+  const setStyle = useCallback((newStyle: ThemeStyle, autoSave?: boolean) => {
     setStyleState(newStyle);
-  }, []);
+    if (autoSave) {
+      if (!isInitialized) {
+        toast.error('系统繁忙，请稍后再试');
+        return;
+      }
+      (async () => {
+        try {
+          await themeApi.saveConfig({
+            mode,
+            style: newStyle,
+            color,
+            icon_color: iconColor,
+            background_image: backgroundImage,
+            blur_intensity: blurIntensity,
+            theme_preset: themePreset,
+            language,
+          });
+        } catch (error) {
+          console.error('Failed to save style to backend:', error);
+        }
+      })();
+    }
+  }, [isInitialized, mode, color, iconColor, backgroundImage, blurIntensity, themePreset, language]);
 
-  const setColor = useCallback((newColor: ThemeColor) => {
+  const setColor = useCallback((newColor: ThemeColor, autoSave?: boolean) => {
     setColorState(newColor);
-  }, []);
-
-  const setThemePreset = useCallback((newPreset: ThemePreset) => {
+    if (autoSave) {
+      if (!isInitialized) {
+        toast.error('系统繁忙，请稍后再试');
+        return;
+      }
+      (async () => {
+        try {
+          await themeApi.saveConfig({
+            mode,
+            style,
+            color: newColor,
+            icon_color: iconColor,
+            background_image: backgroundImage,
+            blur_intensity: blurIntensity,
+            theme_preset: themePreset,
+            language,
+          });
+        } catch (error) {
+          console.error('Failed to save color to backend:', error);
+        }
+      })();
+    }
+  }, [isInitialized, mode, style, iconColor, backgroundImage, blurIntensity, themePreset, language]);
+  
+  const setThemePreset = useCallback((newPreset: ThemePreset, autoSave?: boolean) => {
     setThemePresetState(newPreset);
-  }, []);
+    if (autoSave) {
+      if (!isInitialized) {
+        toast.error('系统繁忙，请稍后再试');
+        return;
+      }
+      (async () => {
+        try {
+          await themeApi.saveConfig({
+            mode,
+            style,
+            color,
+            icon_color: iconColor,
+            background_image: backgroundImage,
+            blur_intensity: blurIntensity,
+            theme_preset: newPreset,
+            language,
+          });
+        } catch (error) {
+          console.error('Failed to save theme preset to backend:', error);
+        }
+      })();
+    }
+  }, [isInitialized, mode, style, color, iconColor, backgroundImage, blurIntensity, language]);
 
   const setIconColor = useCallback((newIconColor: IconColor, autoSave?: boolean) => {
     setIconColorState(newIconColor);
