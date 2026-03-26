@@ -1,6 +1,6 @@
-@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap");
+@import url("https://fonts.lug.ustc.edu.cn/css2?family=Poppins:wght@400;500;600;700&display=swap");
+@import url("https://fonts.lug.ustc.edu.cn/css2?family=Merriweather:wght@400;700&display=swap");
+@import url("https://fonts.lug.ustc.edu.cn/css2?family=JetBrains+Mono:wght@400;700&display=swap");
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -166,15 +166,20 @@ All colors MUST be HSL.
 }
 
 /* Glass morphism effects - refined with dynamic blur */
+/* Only apply backdrop-filter in glassmorphism mode for better performance */
 .glass-card {
   background: hsl(var(--card) / 0.25) !important;
-  backdrop-filter: blur(var(--blur-intensity, 12px));
-  -webkit-backdrop-filter: blur(var(--blur-intensity, 12px));
   border: 1px solid hsl(var(--border) / 0.4);
   box-shadow:
     0 8px 32px hsl(0 0% 0% / 0.08),
     inset 0 1px 0 hsl(var(--primary) / 0.06);
   min-width: 0;
+}
+
+/* Apply backdrop-filter only in glassmorphism mode */
+[data-style="glassmorphism"] .glass-card {
+  backdrop-filter: blur(var(--blur-intensity, 12px));
+  -webkit-backdrop-filter: blur(var(--blur-intensity, 12px));
 }
 
 /* Dark mode optimization - avoid bright white glare */
@@ -206,12 +211,16 @@ All colors MUST be HSL.
 
 .glass-sidebar {
   background: hsl(var(--sidebar) / 0.2) !important;
-  backdrop-filter: blur(var(--blur-intensity, 12px));
-  -webkit-backdrop-filter: blur(var(--blur-intensity, 12px));
   border-right: 1px solid hsl(var(--border) / 0.3);
   box-shadow:
     4px 0 24px hsl(0 0% 0% / 0.06),
     inset 0 1px 0 hsl(var(--primary) / 0.05);
+}
+
+/* Apply backdrop-filter only in glassmorphism mode */
+[data-style="glassmorphism"] .glass-sidebar {
+  backdrop-filter: blur(var(--blur-intensity, 12px));
+  -webkit-backdrop-filter: blur(var(--blur-intensity, 12px));
 }
 
 /* 移动端模式下毛玻璃侧边栏使用直角 */
@@ -224,13 +233,17 @@ All colors MUST be HSL.
 /* Floating sidebar specific styles */
 .floating-sidebar {
   background: hsl(var(--sidebar) / 0.25) !important;
-  backdrop-filter: blur(var(--blur-intensity, 12px));
-  -webkit-backdrop-filter: blur(var(--blur-intensity, 12px));
   border: 1px solid hsl(var(--border) / 0.3);
   box-shadow:
     0 8px 32px hsl(0 0% 0% / 0.1),
     0 4px 16px hsl(0 0% 0% / 0.06),
     inset 0 1px 0 hsl(var(--primary) / 0.06);
+}
+
+/* Apply backdrop-filter only in glassmorphism mode */
+[data-style="glassmorphism"] .floating-sidebar {
+  backdrop-filter: blur(var(--blur-intensity, 12px));
+  -webkit-backdrop-filter: blur(var(--blur-intensity, 12px));
 }
 
 /* Solid mode - remove glass effect from dropdown/popover elements */
@@ -263,12 +276,24 @@ All colors MUST be HSL.
   -webkit-backdrop-filter: none !important;
 }
 
+/* Apply backdrop-filter only in glassmorphism mode */
+[data-style="glassmorphism"] [role="dialog"],
+[data-style="glassmorphism"] [class*="DialogContent"],
+[data-style="glassmorphism"] [class*="popover"] {
+  backdrop-filter: blur(var(--blur-intensity, 12px));
+  -webkit-backdrop-filter: blur(var(--blur-intensity, 12px));
+}
+
 /* Terminal specific glass style */
 .glass-terminal {
   background: hsl(240 10% 8% / 0.9);
+  border: 1px solid hsl(var(--border) / 0.2);
+}
+
+/* Apply backdrop-filter only in glassmorphism mode */
+[data-style="glassmorphism"] .glass-terminal {
   backdrop-filter: blur(var(--blur-intensity, 12px));
   -webkit-backdrop-filter: blur(var(--blur-intensity, 12px));
-  border: 1px solid hsl(var(--border) / 0.2);
 }
 
 /* Icon color variations based on data-icon-color attribute */
@@ -306,7 +331,7 @@ All colors MUST be HSL.
   fill: hsl(var(--primary)) !important;
 }
 
-/* Glass effect for all inputs */
+/* Glass effect for all inputs - only apply in glassmorphism mode for performance */
 @layer base {
   input,
   select,
@@ -314,14 +339,23 @@ All colors MUST be HSL.
   [role="combobox"],
   [role="listbox"],
   .ui-input,
-  .ui-select-trigger,
-  .bg-background {
+  .ui-select-trigger {
     background: hsl(var(--background) / 0.4) !important;
-    backdrop-filter: blur(10px) !important;
-    -webkit-backdrop-filter: blur(10px) !important;
     border: 1px solid hsl(var(--border) / 0.5) !important;
     border-radius: var(--radius) !important;
     transition: all 0.2s ease !important;
+  }
+  
+  /* Only apply backdrop-filter in glassmorphism mode */
+  [data-style="glassmorphism"] input,
+  [data-style="glassmorphism"] select,
+  [data-style="glassmorphism"] textarea,
+  [data-style="glassmorphism"] [role="combobox"],
+  [data-style="glassmorphism"] [role="listbox"],
+  [data-style="glassmorphism"] .ui-input,
+  [data-style="glassmorphism"] .ui-select-trigger {
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
   }
   
   input:focus,
@@ -342,8 +376,7 @@ All colors MUST be HSL.
   .dark [role="combobox"],
   .dark [role="listbox"],
   .dark .ui-input,
-  .dark .ui-select-trigger,
-  .dark .bg-background {
+  .dark .ui-select-trigger {
     background: hsl(var(--background) / 0.3) !important;
     border: 1px solid hsl(var(--border) / 0.4) !important;
   }
@@ -370,6 +403,20 @@ All colors MUST be HSL.
     background: hsl(var(--background) / 0.5) !important;
     border-color: hsl(var(--ring) / 0.7) !important;
   }
+}
+
+/* Solid mode - completely disable backdrop-filter for better performance */
+[data-style="solid"] input,
+[data-style="solid"] select,
+[data-style="solid"] textarea,
+[data-style="solid"] [role="combobox"],
+[data-style="solid"] [role="listbox"],
+[data-style="solid"] .ui-input,
+[data-style="solid"] .ui-select-trigger,
+[data-style="solid"] .bg-background {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background: hsl(var(--background)) !important;
 }
 
 .glass-input {

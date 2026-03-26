@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react';
 import { useTheme } from './ThemeContext';
 import zhCN from '@/i18n/locales/zh-CN.json';
 import enUS from '@/i18n/locales/en-US.json';
@@ -29,6 +29,33 @@ const availableLanguages: { code: Language; name: string }[] = [
   { code: 'zh-CN', name: '简体中文' },
   { code: 'en-US', name: 'English' },
 ];
+
+// 预定义的翻译函数（不在组件内部创建）
+const defaultT = (key: string, locale: Record<string, unknown>, params?: Record<string, string | number>): string => {
+  if (!locale) {
+    return key;
+  }
+  const keys = key.split('.');
+  let current: unknown = locale;
+  
+  for (const k of keys) {
+    if (current && typeof current === 'object' && k in current) {
+      current = (current as Record<string, unknown>)[k];
+    } else {
+      return key;
+    }
+  }
+  
+  let value = typeof current === 'string' ? current : key;
+  
+  if (params) {
+    Object.entries(params).forEach(([paramKey, paramValue]) => {
+      value = value.replace(new RegExp(`\\{${paramKey}\\}`, 'g'), String(paramValue));
+    });
+  }
+  
+  return value;
+};
 
 // ============================================================================
 // 存储键名
@@ -103,32 +130,18 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
     themeContext.setLanguage(lang);
   }, [themeContext.setLanguage]);
 
-  // 翻译函数
+  // 翻译函数 - 使用useMemo缓存
   const t = useCallback((key: string, params?: Record<string, string | number>): string => {
-    const locale = locales[language];
-    if (!locale) {
-      console.warn(`Locale '${language}' not found`);
-      return key;
-    }
-    let value = getNestedValue(locale, key);
-    
-    // 如果有参数，进行替换
-    if (params) {
-      Object.entries(params).forEach(([paramKey, paramValue]) => {
-        value = value.replace(new RegExp(`\\{${paramKey}\\}`, 'g'), String(paramValue));
-      });
-    }
-    
-    return value;
+    return defaultT(key, locales[language], params);
   }, [language]);
 
-  // 提供者值
-  const value: LanguageContextType = {
+  // 提供者值 - 使用useMemo避免每次渲染创建新对象
+  const value = useMemo<LanguageContextType>(() => ({
     language,
     setLanguage,
     t,
     availableLanguages,
-  };
+  }), [language, setLanguage, t]);
 
   return (
     <LanguageContext.Provider value={value}>

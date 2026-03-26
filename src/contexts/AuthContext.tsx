@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback } from 'react';
 import { authApi, User, getAuthToken, setAuthToken } from '@/lib/api';
 
 interface AuthContextType {
@@ -18,13 +18,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check for existing session by fetching current user
     const checkAuth = async () => {
       try {
         const userData = await authApi.getCurrentUser();
         setUser(userData);
       } catch {
-        // Not authenticated, clear any stale data
         localStorage.removeItem('auth_user');
       } finally {
         setIsLoading(false);
@@ -34,17 +32,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkAuth();
   }, []);
 
-  const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+  const login = useCallback(async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     setIsLoading(true);
     
     try {
       const response = await authApi.login(email, password);
       
-      // Response now includes user and token
       if (response.user && response.token) {
         const userData = response.user;
         setUser(userData);
-        // Save token for API requests
         setAuthToken(response.token);
         localStorage.setItem('auth_user', JSON.stringify(userData));
         setIsLoading(false);
@@ -57,19 +53,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(false);
       return { success: false, error: error instanceof Error ? error.message : '登录失败' };
     }
-  };
+  }, []);
 
-  const register = async (name: string, email: string, password: string, registerCode: string = '', isAdmin: boolean = false): Promise<{ success: boolean; error?: string }> => {
+  const register = useCallback(async (name: string, email: string, password: string, registerCode: string = '', isAdmin: boolean = false): Promise<{ success: boolean; error?: string }> => {
     setIsLoading(true);
     
     try {
       const response = await authApi.register(name, email, password, registerCode, isAdmin);
       
-      // Response includes user and token
       if (response.user && response.token) {
         const userData = response.user;
         setUser(userData);
-        // Save token for API requests
         setAuthToken(response.token);
         localStorage.setItem('auth_user', JSON.stringify(userData));
         setIsLoading(false);
@@ -82,21 +76,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(false);
       return { success: false, error: error instanceof Error ? error.message : '注册失败' };
     }
-  };
+  }, []);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
       await authApi.logout();
     } catch {
       // Ignore logout errors
     } finally {
       setUser(null);
-      setAuthToken(null);  // Clear auth token
+      setAuthToken(null);
       localStorage.removeItem('auth_user');
     }
-  };
+  }, []);
 
-  const refreshUser = async () => {
+  const refreshUser = useCallback(async () => {
     try {
       const userData = await authApi.getCurrentUser();
       setUser(userData);
@@ -104,10 +98,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       // Ignore refresh errors
     }
-  };
+  }, []);
+
+  // 使用useMemo缓存context value，避免不必要的重渲染
+  const contextValue = useMemo(
+    () => ({
+      user,
+      isLoading,
+      login,
+      register,
+      logout,
+      refreshUser,
+      isAuthenticated: !!user,
+    }),
+    [user, isLoading, login, register, logout, refreshUser]
+  );
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, register, logout, refreshUser, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );

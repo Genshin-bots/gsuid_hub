@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -57,7 +57,7 @@ export default function ThemesPage() {
     mode, style, color, backgroundImage, blurIntensity,
     iconColor, themePreset,
     setMode, setStyle, setColor, setBackgroundImage, setBlurIntensity,
-    setIconColor, setThemePreset, saveToBackend
+    setIconColor, setThemePreset
   } = useTheme();
   const [customUrl, setCustomUrl] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);

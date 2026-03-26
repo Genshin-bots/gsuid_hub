@@ -4,20 +4,17 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { Search, RefreshCw, Download, ChevronDown, AlertCircle, AlertTriangle, Info, Bug, Loader2, FileText, Calendar } from 'lucide-react';
+import { Search, RefreshCw, Download, ChevronDown, AlertCircle, AlertTriangle, Info, Bug, FileText, Calendar } from 'lucide-react';
 import { logsApi } from '@/lib/api';
 import { toast } from '@/hooks/use-toast';
 import { StructuredDataViewer } from '@/components/StructuredDataViewer';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useVirtualizer } from '@tanstack/react-virtual';
+import React, { memo } from 'react';
 
 type LogLevel = 'info' | 'warn' | 'error' | 'debug' | 'all';
 
@@ -44,6 +41,64 @@ const levelColors = {
   debug: 'bg-gray-500/20 text-gray-400 border-gray-500/30',
 };
 
+// 日志条目组件 - 使用memo优化
+const LogEntryItem = memo(function LogEntryItem({
+  log,
+  isExpanded,
+  onToggle,
+}: {
+  log: LogEntry;
+  isExpanded: boolean;
+  onToggle: () => void;
+}) {
+  const Icon = levelIcons[log.level as keyof typeof levelIcons] || Info;
+  const colorClass = levelColors[log.level as keyof typeof levelColors] || levelColors.info;
+  
+  return (
+    <div
+      className={cn(
+        "p-3 rounded-lg border mx-4 mb-2 transition-all",
+        colorClass,
+        log.details && 'cursor-pointer hover:opacity-80'
+      )}
+      onClick={log.details ? onToggle : undefined}
+    >
+      <div className="flex items-start gap-3">
+        <Icon className="w-4 h-4 mt-0.5 shrink-0" />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Badge variant="outline" className="text-xs">
+              {log.source || 'core'}
+            </Badge>
+            <span className="text-xs text-muted-foreground">
+              {log.timestamp ? new Date(log.timestamp).toLocaleString('zh-CN') : ''}
+            </span>
+          </div>
+          <div className="mt-1 text-sm break-all">
+            <StructuredDataViewer data={log.message} />
+          </div>
+        </div>
+        {log.details && (
+          <ChevronDown
+            className={cn(
+              "w-4 h-4 shrink-0 transition-transform",
+              isExpanded && 'rotate-180'
+            )}
+          />
+        )}
+      </div>
+      
+      {log.details && isExpanded && (
+        <div className="mt-3 pt-3 border-t border-current/20">
+          <pre className="text-xs overflow-x-auto whitespace-pre-wrap font-mono bg-background/50 p-2 rounded">
+            {log.details.stack}
+          </pre>
+        </div>
+      )}
+    </div>
+  );
+});
+
 export default function LogsPage() {
   const { t } = useLanguage();
   const [logs, setLogs] = useState<LogEntry[]>([]);
@@ -61,6 +116,8 @@ export default function LogsPage() {
   const [warnCount, setWarnCount] = useState(0);
   const [errorCount, setErrorCount] = useState(0);
   const [debugCount, setDebugCount] = useState(0);
+  
+  // 滚动容器引用
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Fetch logs and stats from API
@@ -100,16 +157,16 @@ export default function LogsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [selectedDate, levelFilter, currentPage, perPage]);
+  }, [selectedDate, levelFilter, currentPage, perPage, t]);
 
   // Fetch logs when filters change
   useEffect(() => {
     fetchLogs();
   }, [fetchLogs]);
 
-  // Auto-refresh every 30 seconds
+  // Auto-refresh every 60 seconds
   useEffect(() => {
-    const interval = setInterval(fetchLogs, 30000);
+    const interval = setInterval(fetchLogs, 60000);
     return () => clearInterval(interval);
   }, [fetchLogs]);
 
@@ -120,7 +177,6 @@ export default function LogsPage() {
         const dates = await logsApi.getAvailableDates();
         setAvailableDates(dates);
         
-        // If selected date is not available, select the most recent available date
         if (dates.length > 0) {
           const selectedDateStr = selectedDate.toISOString().split('T')[0];
           if (!dates.includes(selectedDateStr)) {
@@ -138,12 +194,20 @@ export default function LogsPage() {
 
   const filteredLogs = useMemo(() => {
     if (!searchTerm) return logs;
+    const lowerSearch = searchTerm.toLowerCase();
     return logs.filter((log) =>
-      log.message.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      log.source.toLowerCase().includes(searchTerm.toLowerCase())
+      log.message.toLowerCase().includes(lowerSearch) ||
+      log.source.toLowerCase().includes(lowerSearch)
     );
   }, [logs, searchTerm]);
 
+  // 虚拟滚动器 - 使用原生滚动容器
+  const rowVirtualizer = useVirtualizer({
+    count: filteredLogs.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => 90, // 估计每行高度
+    overscan: 5, // 预渲染额外5项
+  });
 
   const handleRefresh = () => {
     fetchLogs();
@@ -178,13 +242,9 @@ export default function LogsPage() {
     });
   };
 
- const currentErrorCount = logs.filter((l) => l.level === 'error').length;
- const currentWarnCount = logs.filter((l) => l.level === 'warn').length;
- const currentDebugCount = logs.filter((l) => l.level === 'debug').length;
-
  return (
    <div className="space-y-6 flex-1 overflow-auto p-6 h-full flex flex-col">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between shrink-0">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-3">
             <FileText className="w-8 h-8" />
@@ -194,8 +254,8 @@ export default function LogsPage() {
         </div>
         
         <div className="flex gap-2">
-          <Button variant="outline" onClick={handleRefresh}>
-            <RefreshCw className="w-4 h-4 mr-2" />
+          <Button variant="outline" onClick={handleRefresh} disabled={isLoading}>
+            <RefreshCw className={cn("w-4 h-4 mr-2", isLoading && "animate-spin")} />
             {t('logs.refresh')}
           </Button>
           <Button variant="outline" onClick={handleExport}>
@@ -206,7 +266,7 @@ export default function LogsPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 shrink-0">
         <Card className="glass-card">
           <CardContent className="p-4 flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
@@ -266,11 +326,10 @@ export default function LogsPage() {
             </div>
           </CardContent>
         </Card>
-        
       </div>
 
       {/* Filters */}
-      <Card className="glass-card">
+      <Card className="glass-card shrink-0">
         <CardContent className="p-4">
           <div className="flex flex-col sm:flex-row gap-4">
             {/* Date Picker */}
@@ -294,7 +353,7 @@ export default function LogsPage() {
                   onSelect={(date) => {
                     if (date) {
                       setSelectedDate(date);
-                      setCurrentPage(1); // Reset to first page when date changes
+                      setCurrentPage(1);
                     }
                   }}
                   defaultMonth={selectedDate}
@@ -331,81 +390,62 @@ export default function LogsPage() {
         </CardContent>
       </Card>
 
-      {/* Log List */}
-      <Card className="glass-card">
-        <CardHeader>
+      {/* Log List with Virtual Scrolling */}
+      <Card className="glass-card flex-1 min-h-0 flex flex-col">
+        <CardHeader className="shrink-0">
           <CardTitle>日志列表 ({filteredLogs.length})</CardTitle>
         </CardHeader>
-        <CardContent className="p-0">
-          <ScrollArea className="h-[500px]" ref={scrollRef}>
-            <div className="space-y-1 p-4">
-              {filteredLogs.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  {t('logs.noMatchingLogs')}
-                </div>
-              ) : (
-                filteredLogs.map((log) => {
-                  const Icon = levelIcons[log.level] || Info;
-                  const isExpanded = expandedLogs.has(log.id ?? 0);
-                  
+        <CardContent className="flex-1 min-h-0 p-0">
+          {/* 虚拟滚动容器 - 使用原生overflow-auto */}
+          <div 
+            ref={scrollRef}
+            className="h-full overflow-auto"
+            style={{
+              contain: 'strict', // CSS性能优化
+            }}
+          >
+            {filteredLogs.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                {t('logs.noMatchingLogs')}
+              </div>
+            ) : (
+              <div
+                style={{
+                  height: `${rowVirtualizer.getTotalSize()}px`,
+                  width: '100%',
+                  position: 'relative',
+                }}
+              >
+                {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                  const log = filteredLogs[virtualRow.index];
                   return (
-                    <Collapsible
+                    <div
                       key={log.id}
-                      open={isExpanded}
-                      onOpenChange={() => log.details && toggleExpand(log.id)}
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: `${virtualRow.size}px`,
+                        transform: `translateY(${virtualRow.start}px)`,
+                      }}
                     >
-                      <div
-                        className={`p-3 rounded-lg border ${levelColors[log.level]} ${
-                          log.details ? 'cursor-pointer hover:opacity-80' : ''
-                        }`}
-                      >
-                        <CollapsibleTrigger asChild>
-                          <div className="flex items-start gap-3">
-                            <Icon className="w-4 h-4 mt-0.5 shrink-0" />
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <Badge variant="outline" className="text-xs">
-                                  {log.source || 'core'}
-                                </Badge>
-                                <span className="text-xs text-muted-foreground">
-                                  {log.timestamp ? new Date(log.timestamp).toLocaleString('zh-CN') : ''}
-                                </span>
-                              </div>
-                              <div className="mt-1 text-sm break-all">
-                                <StructuredDataViewer data={log.message} />
-                              </div>
-                            </div>
-                            {log.details && (
-                              <ChevronDown
-                                className={`w-4 h-4 shrink-0 transition-transform ${
-                                  isExpanded ? 'rotate-180' : ''
-                                }`}
-                              />
-                            )}
-                          </div>
-                        </CollapsibleTrigger>
-                        
-                        {log.details && (
-                          <CollapsibleContent>
-                            <div className="mt-3 pt-3 border-t border-current/20">
-                              <pre className="text-xs overflow-x-auto whitespace-pre-wrap font-mono bg-background/50 p-2 rounded">
-                                {log.details.stack}
-                              </pre>
-                            </div>
-                          </CollapsibleContent>
-                        )}
-                      </div>
-                    </Collapsible>
+                      <LogEntryItem
+                        log={log}
+                        isExpanded={expandedLogs.has(log.id ?? 0)}
+                        onToggle={() => log.details && toggleExpand(log.id ?? 0)}
+                      />
+                    </div>
                   );
-                })
-              )}
-            </div>
-          </ScrollArea>
+                })}
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
 
       {/* Pagination */}
-      <Card className="glass-card">
+      <Card className="glass-card shrink-0">
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
             <div className="text-sm text-muted-foreground">

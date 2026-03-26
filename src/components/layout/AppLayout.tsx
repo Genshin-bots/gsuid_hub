@@ -53,45 +53,68 @@ function LayoutContent() {
 
   const isGradient = backgroundImage?.startsWith('linear-gradient');
   const isImage = backgroundImage && !isGradient;
-
   const isGlassmorphism = style === 'glassmorphism';
-  const isSolid = style === 'solid';
-  const hasBackground = isGlassmorphism && backgroundImage;
-  const hasDefaultGlass = isGlassmorphism && !backgroundImage;
+
+  // 合并背景层为单一元素，减少DOM层级和重绘
+  const getBackgroundStyle = (): React.CSSProperties => {
+    const baseStyle: React.CSSProperties = {
+      position: 'fixed',
+      inset: 0,
+      zIndex: -10,
+    };
+
+    if (isGlassmorphism) {
+      if (isGradient) {
+        return { ...baseStyle, background: backgroundImage };
+      }
+      if (isImage) {
+        return {
+          ...baseStyle,
+          backgroundImage: `url("${backgroundImage}")`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          backgroundAttachment: 'fixed',
+        };
+      }
+      // 默认毛玻璃渐变
+      return {
+        ...baseStyle,
+        background: 'linear-gradient(135deg, hsl(var(--primary) / 0.1) 0%, hsl(var(--background)) 50%, hsl(var(--accent) / 0.1) 100%)',
+      };
+    }
+
+    // Solid 模式
+    if (isImage) {
+      return {
+        ...baseStyle,
+        backgroundImage: `url("${backgroundImage}")`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        backgroundAttachment: 'fixed',
+      };
+    }
+    return {
+      ...baseStyle,
+      background: 'linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--secondary) / 0.3) 100%)',
+    };
+  };
 
   return (
     <>
-      {/* Background layers - fixed at bottom */}
-      {hasBackground && (
-        <div className="fixed inset-0 -z-10">
-          {isGradient ? (
-            <div className="w-full h-full" style={{ background: backgroundImage }} />
-          ) : (
-            <div
-              className="w-full h-full bg-cover bg-center bg-no-repeat bg-fixed"
-              style={{ backgroundImage: `url("${backgroundImage}")` }}
-            />
-          )}
-        </div>
-      )}
-      
-      {hasDefaultGlass && (
-        <div className="fixed inset-0 -z-10 rounded-none">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-background to-accent/10 rounded-none" />
-        </div>
-      )}
+      {/* 合并后的单一背景层 */}
+      <div style={getBackgroundStyle()} />
 
-      {isSolid && (
-        <div className="fixed inset-0 -z-10">
-          {backgroundImage ? (
-            <div
-              className="w-full h-full bg-cover bg-center bg-no-repeat bg-fixed"
-              style={{ backgroundImage: `url("${backgroundImage}")` }}
-            />
-          ) : (
-            <div className="w-full h-full bg-gradient-to-br from-background via-background to-secondary/30" />
-          )}
-        </div>
+      {/* 毛玻璃模式下的额外叠加层（仅毛玻璃模式需要） */}
+      {isGlassmorphism && !backgroundImage && (
+        <div
+          className="fixed inset-0 -z-10 pointer-events-none"
+          style={{
+            backdropFilter: `blur(${blurIntensity}px)`,
+            WebkitBackdropFilter: `blur(${blurIntensity}px)`,
+          }}
+        />
       )}
 
       {/*
