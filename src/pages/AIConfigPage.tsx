@@ -643,10 +643,9 @@ export default function AIConfigPage() {
                             <ConfigField
                               fieldKey="max_results"
                               field={{
-                                type: 'select',
+                                type: 'number',
                                 label: 'max_results',
-                                value: String(tavilyConfig.config.max_results?.value || '10'),
-                                options: (tavilyConfig.config.max_results?.options as string[]) || ['5', '10', '15', '20'],
+                                value: (tavilyConfig.config.max_results?.value as number) || 10,
                                 placeholder: '',
                                 description: '',
                               }}
