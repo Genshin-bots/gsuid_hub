@@ -521,7 +521,8 @@
     "searchResults": "搜索到 {count} 条结果",
     "clearSearch": "清除搜索",
     "noSearchResults": "未找到匹配的提示词",
-    "empty": "暂无提示词，点击添加按钮创建"
+    "empty": "暂无提示词，点击添加按钮创建",
+    "tags": "标签"
   },
   "plugins": {
     "title": "插件配置",

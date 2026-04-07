@@ -521,7 +521,8 @@
     "searchResults": "Found {count} results",
     "clearSearch": "Clear Search",
     "noSearchResults": "No matching prompts found",
-    "empty": "No prompts yet, click the add button to create one"
+    "empty": "No prompts yet, click the add button to create one",
+    "tags": "标签"
   },
   "plugins": {
     "title": "Plugin Configuration",
