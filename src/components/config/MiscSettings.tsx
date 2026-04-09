@@ -77,6 +77,7 @@ export default function MiscSettings() {
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [originalConfig, setOriginalConfig] = useState<Record<string, any>>({});
+  const [originalRawConfig, setOriginalRawConfig] = useState<Record<string, PluginConfigItem> | undefined>(undefined);
   const [miscConfigName, setMiscConfigName] = useState<string>('');
 
   const miscConfig = useMemo(() => {
@@ -165,6 +166,7 @@ export default function MiscSettings() {
 
       setConfigs([convertedConfig]);
       setOriginalConfig(JSON.parse(JSON.stringify(convertedConfig.config)));
+      setOriginalRawConfig(JSON.parse(JSON.stringify(data.config)));
     } catch (error) {
       console.error('Failed to fetch misc config detail:', error);
       toast({
@@ -190,6 +192,7 @@ export default function MiscSettings() {
   useEffect(() => {
     if (miscConfig) {
       setOriginalConfig(JSON.parse(JSON.stringify(miscConfig.config)));
+      setOriginalRawConfig(JSON.parse(JSON.stringify(miscConfig.rawConfig)));
       setDirty(false);
     }
   }, [miscConfig?.id, setDirty]);
@@ -300,6 +303,7 @@ export default function MiscSettings() {
 
       await frameworkConfigApi.updateFrameworkConfig(miscConfig.full_name, configToSave);
       setOriginalConfig(JSON.parse(JSON.stringify(miscConfig.config)));
+      setOriginalRawConfig(JSON.parse(JSON.stringify(miscConfig.rawConfig)));
       setDirty(false);
       toast({ title: t('common.success'), description: t('miscConfig.configSaved') });
     } catch (error) {
@@ -315,8 +319,12 @@ export default function MiscSettings() {
 
   const isConfigDirty = useMemo(() => {
     if (!miscConfig) return false;
-    return JSON.stringify(miscConfig.config) !== JSON.stringify(originalConfig);
-  }, [miscConfig, originalConfig]);
+    const configChanged = JSON.stringify(miscConfig.config) !== JSON.stringify(originalConfig);
+    // 同时检查预料之外的配置项（rawConfig）是否有变化
+    const rawConfigChanged = miscConfig.rawConfig && originalRawConfig ?
+      JSON.stringify(miscConfig.rawConfig) !== JSON.stringify(originalRawConfig) : false;
+    return configChanged || rawConfigChanged;
+  }, [miscConfig, originalConfig, originalRawConfig]);
 
   if (isLoading || isLoadingDetail) {
     return (

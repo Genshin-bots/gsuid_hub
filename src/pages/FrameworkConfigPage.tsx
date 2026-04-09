@@ -372,7 +372,7 @@ export default function FrameworkConfigPage() {
           <div className="flex justify-end pt-4">
             <Button
               onClick={handleSaveConfig}
-              disabled={!isDirty || isSaving}
+              disabled={!isConfigDirty || isSaving}
               className="gap-2"
             >
               {isSaving ? (

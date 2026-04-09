@@ -106,6 +106,7 @@ export default function ButtonMarkdownSettings() {
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [originalConfig, setOriginalConfig] = useState<Record<string, any>>({});
+  const [originalRawConfig, setOriginalRawConfig] = useState<Record<string, PluginConfigItem> | undefined>(undefined);
   const [buttonMdConfigName, setButtonMdConfigName] = useState<string>('');
 
   const buttonMdConfig = useMemo(() => {
@@ -213,6 +214,7 @@ export default function ButtonMarkdownSettings() {
 
       setConfigs([convertedConfig]);
       setOriginalConfig(JSON.parse(JSON.stringify(convertedConfig.config)));
+      setOriginalRawConfig(JSON.parse(JSON.stringify(data.config)));
     } catch (error) {
       console.error('Failed to fetch button markdown config detail:', error);
       toast({
@@ -238,6 +240,7 @@ export default function ButtonMarkdownSettings() {
   useEffect(() => {
     if (buttonMdConfig) {
       setOriginalConfig(JSON.parse(JSON.stringify(buttonMdConfig.config)));
+      setOriginalRawConfig(JSON.parse(JSON.stringify(buttonMdConfig.rawConfig)));
       setDirty(false);
     }
   }, [buttonMdConfig?.id, setDirty]);
@@ -362,6 +365,7 @@ export default function ButtonMarkdownSettings() {
 
       await frameworkConfigApi.updateFrameworkConfig(buttonMdConfig.full_name, configToSave);
       setOriginalConfig(JSON.parse(JSON.stringify(buttonMdConfig.config)));
+      setOriginalRawConfig(JSON.parse(JSON.stringify(buttonMdConfig.rawConfig)));
       setDirty(false);
       toast({ title: t('common.success'), description: t('buttonMdConfig.configSaved') });
     } catch (error) {
@@ -377,8 +381,12 @@ export default function ButtonMarkdownSettings() {
 
   const isConfigDirty = useMemo(() => {
     if (!buttonMdConfig) return false;
-    return JSON.stringify(buttonMdConfig.config) !== JSON.stringify(originalConfig);
-  }, [buttonMdConfig, originalConfig]);
+    const configChanged = JSON.stringify(buttonMdConfig.config) !== JSON.stringify(originalConfig);
+    // 同时检查预料之外的配置项（rawConfig）是否有变化
+    const rawConfigChanged = buttonMdConfig.rawConfig && originalRawConfig ?
+      JSON.stringify(buttonMdConfig.rawConfig) !== JSON.stringify(originalRawConfig) : false;
+    return configChanged || rawConfigChanged;
+  }, [buttonMdConfig, originalConfig, originalRawConfig]);
 
   if (isLoading || isLoadingDetail) {
     return (
