@@ -9,8 +9,8 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { 
   Cpu, Loader2, Save, Settings, Zap, Users, Ban, CheckCircle,
-  Sparkles, Search, Brain, Shield, Key, Globe, Clock, MessageSquare,
-  Lightbulb, Layers
+  Sparkles, Search, Brain, Key, Globe, Clock, MessageSquare,
+  Layers
 } from 'lucide-react';
 import { ChipGroup } from '@/components/ui/MultiSelectChipGroup';
 import { frameworkConfigApi, PluginConfigItem, FrameworkConfigListItem } from '@/lib/api';
@@ -28,40 +28,6 @@ interface LocalFrameworkConfig {
   full_name: string;
   config: Record<string, PluginConfigItem>;
 }
-
-// AI模式配置 - 使用i18n键
-const getAIModes = (t: any) => [
-  {
-    value: '提及应答',
-    label: t('aiConfig.actionMode.mentionResponse'),
-    desc: t('aiConfig.actionMode.mentionResponseDesc'),
-    icon: MessageSquare,
-    color: 'text-blue-500'
-  },
-  {
-    value: '定时巡检',
-    label: t('aiConfig.actionMode.scheduledInspection'),
-    desc: t('aiConfig.actionMode.scheduledInspectionDesc'),
-    icon: Clock,
-    color: 'text-green-500'
-  },
-  {
-    value: '趣向捕捉(暂不可用)',
-    label: t('aiConfig.actionMode.interestCapture'),
-    desc: t('aiConfig.actionMode.interestCaptureDesc'),
-    icon: Lightbulb,
-    color: 'text-yellow-500',
-    disabled: true
-  },
-  {
-    value: '困境救场(暂不可用)',
-    label: t('aiConfig.actionMode.troubleRescue'),
-    desc: t('aiConfig.actionMode.troubleRescueDesc'),
-    icon: Shield,
-    color: 'text-purple-500',
-    disabled: true
-  },
-];
 
 // 模型支持能力 - 使用i18n键
 const getModelCapabilities = (t: any) => [
@@ -251,7 +217,6 @@ export default function AIConfigPage() {
   };
   
   // Get options
-  const aiModeValue = (aiConfig?.config.ai_mode?.value as string[]) || [];
   const openaiProviderOptions = (aiConfig?.config.openai_provider?.options || ['openai']) as string[];
   const embeddingProviderOptions = (aiConfig?.config.embedding_provider?.options || ['local']) as string[];
   const websearchProviderOptions = (aiConfig?.config.websearch_provider?.options || ['Tavily']) as string[];
@@ -274,17 +239,15 @@ export default function AIConfigPage() {
   }
   
   return (
-    <div className="space-y-4 flex-1 overflow-auto p-6 h-full flex flex-col">
+    <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Brain className="w-6 h-6 text-primary" />
+          <h1 className="text-3xl font-bold flex items-center gap-3">
+            <Brain className="w-8 h-8" />
             {t('aiConfig.title')}
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {t('aiConfig.description')}
-          </p>
+          <p className="text-muted-foreground mt-1">{t('aiConfig.description')}</p>
         </div>
         <Button
           onClick={handleSaveConfig}
@@ -339,64 +302,7 @@ export default function AIConfigPage() {
           {/* AI启用后的配置 */}
           {isAIEnabled && (
             <>
-              {/* Card 2: 行动模式 */}
-              <Card className={cn("overflow-hidden", isGlass && "glass-card")}>
-                <CardContent className="p-6 space-y-4">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="w-5 h-5 text-primary" />
-                    <h2 className="text-base font-semibold">{t('aiConfig.actionMode.title')}</h2>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    {t('aiConfig.actionMode.description')}
-                  </p>
-                  
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    {getAIModes(t).map((mode) => {
-                      const isSelected = aiModeValue.includes(mode.value);
-                      const Icon = mode.icon;
-                      return (
-                        <button
-                          key={mode.value}
-                          onClick={() => {
-                            if (mode.disabled) return;
-                            const newValue = isSelected
-                              ? aiModeValue.filter(v => v !== mode.value)
-                              : [...aiModeValue, mode.value];
-                            updateConfigValue(aiConfig.id, 'ai_mode', newValue);
-                          }}
-                          disabled={mode.disabled}
-                          className={cn(
-                            "p-3 rounded-xl border-2 text-left transition-all",
-                            "hover:shadow-sm",
-                            isSelected
-                              ? "border-primary bg-primary/5"
-                              : "border-border hover:border-primary/30",
-                            mode.disabled && "opacity-50 cursor-not-allowed"
-                          )}
-                        >
-                          <div className="flex items-center gap-2 mb-1">
-                            <Icon className={cn("w-4 h-4", mode.color)} />
-                            <span className={cn(
-                              "font-medium text-sm",
-                              isSelected && "text-primary"
-                            )}>
-                              {mode.label}
-                            </span>
-                            {isSelected && (
-                              <CheckCircle className="w-3.5 h-3.5 text-primary ml-auto" />
-                            )}
-                          </div>
-                          <p className="text-xs text-muted-foreground leading-relaxed">
-                            {mode.desc}
-                          </p>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
-              
-              {/* Card 3: 服务提供方（大卡片，无标题，不可折叠） */}
+              {/* Card 2: 服务提供方（大卡片，无标题，不可折叠） */}
               <Card className={cn("overflow-hidden", isGlass && "glass-card")}>
                 <CardContent className="p-6 space-y-8">
                   {/* AI模型服务 */}

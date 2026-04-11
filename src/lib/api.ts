@@ -297,6 +297,32 @@ class ApiClient {
       throw new Error('会话已过期，请重新登录');
     }
 
+    // Handle non-OK responses
+    if (!response.ok) {
+      // Try to parse error message from response
+      let errorMessage = `HTTP Error: ${response.status}`;
+      try {
+        const text = await response.text();
+        // Try to parse as JSON first
+        try {
+          const errorData = JSON.parse(text);
+          if (errorData.msg) {
+            errorMessage = errorData.msg;
+          } else if (typeof errorData === 'string') {
+            errorMessage = text;
+          }
+        } catch {
+          // Not JSON, use raw text if available
+          if (text) {
+            errorMessage = text;
+          }
+        }
+      } catch {
+        // Ignore parsing errors
+      }
+      throw new Error(errorMessage);
+    }
+
     const data: ApiResponse<T> = await response.json();
 
     if (data.status !== 0) {
@@ -956,6 +982,50 @@ export interface PersonaFrameworkConfig {
   };
 }
 
+// 角色配置相关类型
+export type PersonaScope = 'disabled' | 'global' | 'specific';
+export type AIMode = '提及应答' | '定时巡检' | '趣向捕捉(暂不可用)' | '困境救场(暂不可用)';
+
+export interface PersonaConfig {
+  ai_mode: AIMode[];
+  scope: PersonaScope;
+  target_groups: string[];
+  inspect_interval?: number; // 定时巡检间隔（分钟）：5, 10, 15, 30, 60
+  keywords?: string[]; // 触发关键词列表（用于提及应答模式）
+}
+
+export interface PersonaConfigResponse {
+  status: number;
+  msg: string;
+  data: PersonaConfig | null;
+}
+
+export interface PersonaConfigUpdateRequest {
+  ai_mode?: AIMode[];
+  scope?: PersonaScope;
+  target_groups?: string[];
+  inspect_interval?: number;
+  keywords?: string[];
+}
+
+export interface PersonaConfigUpdateResponse {
+  status: number;
+  msg: string;
+  data: PersonaConfig;
+}
+
+export interface AllPersonaConfigsResponse {
+  status: number;
+  msg: string;
+  data: Record<string, PersonaConfig>;
+}
+
+export interface GlobalPersonaResponse {
+  status: number;
+  msg: string;
+  data: string | null;
+}
+
 export const personaApi = {
   // 获取角色列表
   getPersonaList: () =>
@@ -1024,6 +1094,22 @@ export const personaApi = {
   // 获取人格框架配置
   getFrameworkConfig: () =>
     api.get<PersonaFrameworkConfig>('/api/framework-config/GsCore%20AI%20%E4%BA%BA%E8%AE%BE%E9%85%8D%E7%BD%AE'),
+
+  // 获取角色配置
+  getPersonaConfig: (personaName: string) =>
+    api.get<PersonaConfig>(`/api/persona/${encodeURIComponent(personaName)}/config`),
+
+  // 更新角色配置
+  updatePersonaConfig: (personaName: string, config: PersonaConfigUpdateRequest) =>
+    api.put<PersonaConfig>(`/api/persona/${encodeURIComponent(personaName)}/config`, config),
+
+  // 获取全局启用的角色
+  getGlobalPersona: () =>
+    api.get<string | null>('/api/persona/config/global'),
+
+  // 获取所有角色配置
+  getAllPersonaConfigs: () =>
+    api.get<Record<string, PersonaConfig>>('/api/persona/config/all'),
 };
 
 // ===================

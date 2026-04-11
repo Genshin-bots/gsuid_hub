@@ -73,14 +73,23 @@ const formatTime = (timestamp: number | null | undefined): string => {
 };
 
 const getSessionDisplayId = (session: SessionInfo): string => {
-  // 对于群聊，只显示 group_id，不显示 %%% 分割符
+  // 新格式: {bot_id}%%%{group_id}%%%{user_id}
+  // 优先使用 API 返回的 group_id 和 user_id 字段
   if (session.type === 'group' && session.group_id) {
     return session.group_id;
   }
-  // 对于私聊，显示 user_id 或 session_id
   if (session.type === 'private' && session.user_id) {
     return session.user_id;
   }
+  
+  // 如果 API 没有返回 group_id/user_id，尝试从 session_id 解析
+  const parts = session.session_id.split('%%%');
+  if (parts.length === 3) {
+    const [, groupId, userId] = parts;
+    // 群聊时返回 group_id，私聊时返回 user_id
+    return session.type === 'group' ? groupId : userId;
+  }
+  
   return session.session_id;
 };
 
