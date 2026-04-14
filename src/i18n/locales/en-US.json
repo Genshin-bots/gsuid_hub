@@ -461,11 +461,19 @@
   },
   "aiTools": {
     "title": "AI Tools",
-    "description": "View and manage AI tool functions, grouped by plugin",
+    "description": "View and manage AI tool functions, filterable by category and plugin",
     "loadFailed": "Failed to load AI tools",
     "noTools": "No AI tools available",
-    "filterByPlugin": "Plugin:",
-    "allPlugins": "All"
+    "filterAll": "All",
+    "filterByCategory": "By Category",
+    "filterByPlugin": "By Plugin",
+    "category": "Category",
+    "plugin": "Plugin",
+    "allCategories": "All Categories",
+    "allPlugins": "All Plugins",
+    "selectCategory": "Select Category",
+    "selectPlugin": "Select Plugin",
+    "toolCount": "Showing {count} / {total} tools"
   },
   "aiSkills": {
     "title": "AI Skills",

@@ -303,6 +303,25 @@ interface DailyCommandData {
 }
 ```
 
+### 5.3 认证失败处理 (401)
+
+当 API 请求返回 401 状态码时，系统会自动跳转登录页。使用 `getLoginPath()` 函数动态获取登录路径，以兼容开发和生产环境的不同路径配置。
+
+```tsx
+import { getLoginPath } from '@/lib/api';
+
+// 获取当前环境对应的登录路径
+// 开发模式: /login
+// 生产模式: /app/login
+const loginPath = getLoginPath();
+window.location.href = loginPath;
+```
+
+**关键点**：
+- `import.meta.env.BASE_URL` 在开发模式为 `/`，生产模式为 `/app/`
+- `getLoginPath()` 自动处理路径拼接，确保无论何种部署方式都能正确跳转
+- 401 错误会在 `src/lib/api.ts` 的 `ApiClient.request()`、`ApiClient.getRaw()` 等方法中统一处理
+
 ---
 
 ## 6. AI Tools API

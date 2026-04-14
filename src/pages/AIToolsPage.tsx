@@ -26,13 +26,14 @@ interface ParsedTool {
   summary: string;
   fullDescription: string;
   plugin: string;
+  category: string;
 }
 
 // ============================================================================
 // 工具函数
 // ============================================================================
 
-function parseToolDescription(tool: AITool, plugin: string): ParsedTool {
+function parseToolDescription(tool: AITool): ParsedTool {
   const lines = tool.description.split('\n');
   const firstLine = lines[0];
   // 如果第一行字数小于11，则作为标题
@@ -56,7 +57,8 @@ function parseToolDescription(tool: AITool, plugin: string): ParsedTool {
     title,
     summary,
     fullDescription: tool.description,
-    plugin,
+    plugin: tool.plugin,
+    category: tool.category,
   };
 }
 
@@ -70,34 +72,58 @@ export default function AIToolsPage() {
   const isGlass = style === 'glassmorphism';
 
   // 状态
+  const [tools, setTools] = useState<AITool[]>([]);
+  const [toolsByCategory, setToolsByCategory] = useState<Record<string, AITool[]>>({});
   const [toolsByPlugin, setToolsByPlugin] = useState<Record<string, AITool[]>>({});
+  const [categories, setCategories] = useState<string[]>([]);
+  const [plugins, setPlugins] = useState<string[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedTool, setSelectedTool] = useState<ParsedTool | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  
+  // 筛选状态 - 同时支持分类和插件筛选
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedPlugin, setSelectedPlugin] = useState<string>('all');
 
   // 获取所有插件列表（core 放在最后）
   const pluginList = useMemo(() => {
-    const plugins = Object.keys(toolsByPlugin);
     return ['all', ...plugins.filter(p => p !== 'core').sort(), ...plugins.filter(p => p === 'core')];
-  }, [toolsByPlugin]);
+  }, [plugins]);
 
-  // 按插件过滤后的工具列表
+  // 获取所有分类列表（self, buildin 放在前面）
+  const categoryList = useMemo(() => {
+    const priorityOrder = ['self', 'buildin'];
+    const sortedCategories = [...categories].sort((a, b) => {
+      const aIndex = priorityOrder.indexOf(a);
+      const bIndex = priorityOrder.indexOf(b);
+      if (aIndex === -1 && bIndex === -1) return a.localeCompare(b);
+      if (aIndex === -1) return 1;
+      if (bIndex === -1) return -1;
+      return aIndex - bIndex;
+    });
+    return ['all', ...sortedCategories];
+  }, [categories]);
+
+  // 按筛选条件过滤后的工具列表
   const filteredTools = useMemo(() => {
-    if (selectedPlugin === 'all') {
-      // 返回扁平化的工具列表，同时保留 plugin 信息
-      return Object.entries(toolsByPlugin).flatMap(([plugin, tools]) =>
-        Array.isArray(tools) ? tools.map(tool => ({ ...tool, plugin })) : []
-      );
+    let result = tools;
+    
+    if (selectedCategory !== 'all') {
+      result = result.filter(tool => tool.category === selectedCategory);
     }
-    const pluginTools = toolsByPlugin[selectedPlugin];
-    return Array.isArray(pluginTools) ? pluginTools.map(tool => ({ ...tool, plugin: selectedPlugin })) : [];
-  }, [toolsByPlugin, selectedPlugin]);
+    
+    if (selectedPlugin !== 'all') {
+      result = result.filter(tool => tool.plugin === selectedPlugin);
+    }
+    
+    return result;
+  }, [tools, selectedCategory, selectedPlugin]);
 
   // 解析后的工具列表
   const parsedTools = useMemo(() => {
-    return filteredTools.map(tool => parseToolDescription(tool, tool.plugin));
+    return filteredTools.map(tool => parseToolDescription(tool));
   }, [filteredTools]);
 
   // 加载工具列表
@@ -106,13 +132,17 @@ export default function AIToolsPage() {
       try {
         setIsLoading(true);
         setError(null);
-        // api.get returns data.data directly when status is 0
-        // tools is now Record<string, AITool[]> grouped by plugin name
-        const data = await aiToolsApi.getToolsList() as unknown as { tools: Record<string, AITool[]>; count: number };
-        setToolsByPlugin(data.tools || {});
+        const data = await aiToolsApi.getToolsList();
+        setTools(data.tools || []);
+        setToolsByCategory(data.by_category || {});
+        setToolsByPlugin(data.by_plugin || {});
+        setCategories(data.categories || []);
+        setPlugins(data.plugins || []);
+        setTotalCount(data.total_count || 0);
       } catch (err) {
-        setError(err instanceof Error ? err.message : t('aiTools.loadFailed'));
-        toast.error(err instanceof Error ? err.message : t('aiTools.loadFailed'));
+        const errorMsg = err instanceof Error ? err.message : t('aiTools.loadFailed');
+        setError(errorMsg);
+        toast.error(errorMsg);
       } finally {
         setIsLoading(false);
       }
@@ -137,18 +167,48 @@ export default function AIToolsPage() {
         <p className="text-muted-foreground mt-1">{t('aiTools.description')}</p>
       </div>
 
-      {/* 插件过滤器 */}
-      {!isLoading && Object.keys(toolsByPlugin).length > 0 && (
-        <TabButtonGroup
-          options={pluginList.map((plugin) => ({
-            value: plugin,
-            label: plugin === 'all' ? (t('aiTools.allPlugins') || '全部') : plugin,
-            icon: <Wrench className="w-4 h-4" />,
-          }))}
-          value={selectedPlugin}
-          onValueChange={setSelectedPlugin}
-          glassClassName={isGlass ? 'glass-card' : 'border border-border/50'}
-        />
+      {/* 筛选区域 */}
+      {!isLoading && categories.length > 0 && (
+        <div className="space-y-4">
+          {/* 分类筛选 */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">{t('aiTools.category') || '分类'}：</span>
+            <TabButtonGroup
+              options={categoryList.map((category) => ({
+                value: category,
+                label: category === 'all'
+                  ? (t('aiTools.allCategories') || '全部分类')
+                  : `${category} (${toolsByCategory[category]?.length || 0})`,
+                icon: <Wrench className="w-4 h-4" />,
+              }))}
+              value={selectedCategory}
+              onValueChange={setSelectedCategory}
+              glassClassName={isGlass ? 'glass-card' : 'border border-border/50'}
+            />
+          </div>
+
+          {/* 插件筛选 */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">{t('aiTools.plugin') || '插件'}：</span>
+            <TabButtonGroup
+              options={pluginList.map((plugin) => ({
+                value: plugin,
+                label: plugin === 'all'
+                  ? (t('aiTools.allPlugins') || '全部插件')
+                  : `${plugin} (${toolsByPlugin[plugin]?.length || 0})`,
+                icon: <Wrench className="w-4 h-4" />,
+              }))}
+              value={selectedPlugin}
+              onValueChange={setSelectedPlugin}
+              glassClassName={isGlass ? 'glass-card' : 'border border-border/50'}
+            />
+          </div>
+
+          {/* 工具统计 */}
+          <p className="text-sm text-muted-foreground">
+            {t('aiTools.toolCount', { count: filteredTools.length, total: totalCount })}
+          </p>
+        </div>
       )}
 
       {/* 错误提示 */}
@@ -193,8 +253,8 @@ export default function AIToolsPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {parsedTools.map((tool) => (
-            <Card 
-              key={tool.name} 
+            <Card
+              key={tool.name}
               className={cn(
                 "cursor-pointer transition-colors hover:border-primary/50",
                 isGlass ? "glass-card" : "border border-border/50"
@@ -207,11 +267,16 @@ export default function AIToolsPage() {
                     <Wrench className="w-5 h-5 text-primary" />
                     <span className="text-lg">{tool.title}</span>
                   </CardTitle>
-                  {tool.plugin && tool.plugin !== 'core' && (
-                    <span className="text-xs px-2 py-0.5 rounded bg-primary/10 text-primary">
-                      {tool.plugin}
+                  <div className="flex flex-col gap-1 items-end">
+                    {tool.plugin && tool.plugin !== 'core' && (
+                      <span className="text-xs px-2 py-0.5 rounded bg-primary/10 text-primary">
+                        {tool.plugin}
+                      </span>
+                    )}
+                    <span className="text-xs px-2 py-0.5 rounded bg-secondary text-secondary-foreground">
+                      {tool.category}
                     </span>
-                  )}
+                  </div>
                 </div>
                 <CardDescription className="text-xs text-muted-foreground font-mono">
                   {tool.name}
@@ -239,7 +304,15 @@ export default function AIToolsPage() {
               {selectedTool?.title}
             </DialogDescription>
           </DialogHeader>
-          <div className="mt-4">
+          <div className="mt-4 space-y-2">
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-muted-foreground">{t('aiTools.category') || '分类'}：</span>
+              <span className="px-2 py-0.5 rounded bg-secondary">{selectedTool?.category}</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-muted-foreground">{t('aiTools.plugin') || '插件'}：</span>
+              <span className="px-2 py-0.5 rounded bg-primary/10 text-primary">{selectedTool?.plugin}</span>
+            </div>
             <pre className="whitespace-pre-wrap text-sm font-mono bg-muted/50 p-4 rounded-md overflow-x-auto">
               {selectedTool?.fullDescription}
             </pre>

@@ -462,11 +462,19 @@
   },
   "aiTools": {
     "title": "AI 工具",
-    "description": "查看和管理 AI 可用的工具函数，按插件分组",
+    "description": "查看和管理 AI 可用的工具函数，支持按分类和插件筛选",
     "loadFailed": "加载 AI 工具失败",
     "noTools": "暂无可用的 AI 工具",
-    "filterByPlugin": "插件:",
-    "allPlugins": "全部"
+    "filterAll": "全部",
+    "filterByCategory": "按分类",
+    "filterByPlugin": "按插件",
+    "category": "分类",
+    "plugin": "插件",
+    "allCategories": "全部分类",
+    "allPlugins": "全部插件",
+    "selectCategory": "选择分类",
+    "selectPlugin": "选择插件",
+    "toolCount": "显示 {count} / {total} 个工具"
   },
   "aiSkills": {
     "title": "AI 技能",

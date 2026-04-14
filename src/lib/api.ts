@@ -19,6 +19,14 @@ export function getCustomApiHost(): string {
   return API_BASE;
 }
 
+// Get the login path based on the current base URL (supports both dev and production paths)
+export function getLoginPath(): string {
+  const baseUrl = import.meta.env.BASE_URL || '/';
+  // Remove trailing slash and ensure it starts with /
+  const base = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+  return `${base}/login`;
+}
+
 export function setCustomApiHost(host: string): void {
   API_BASE = host;
   // Update the api instance's baseUrl
@@ -293,7 +301,7 @@ class ApiClient {
     if (response.status === 401) {
       setAuthToken(null);
       localStorage.removeItem('auth_user');
-      window.location.href = '/login';
+      window.location.href = getLoginPath();
       throw new Error('会话已过期，请重新登录');
     }
 
@@ -377,7 +385,7 @@ class ApiClient {
     if (response.status === 401) {
       setAuthToken(null);
       localStorage.removeItem('auth_user');
-      window.location.href = '/login';
+      window.location.href = getLoginPath();
       throw new Error('会话已过期，请重新登录');
     }
 
@@ -788,7 +796,7 @@ export const authApi = {
     if (response.status === 401) {
       setAuthToken(null);
       localStorage.removeItem('auth_user');
-      window.location.href = '/login';
+      window.location.href = getLoginPath();
       throw new Error('会话已过期，请重新登录');
     }
 
@@ -1119,6 +1127,8 @@ export const personaApi = {
 export interface AITool {
   name: string;
   description: string;
+  plugin: string;
+  category: string;
 }
 
 // ===================
@@ -1201,21 +1211,38 @@ export const aiSkillsApi = {
 };
 
 export interface AIToolsListResponse {
-  success: boolean;
-  data: {
-    tools: Record<string, AITool[]>;
-    count: number;
-  };
+  tools: AITool[];
+  by_category: Record<string, AITool[]>;
+  by_plugin: Record<string, AITool[]>;
+  categories: string[];
+  plugins: string[];
+  count: number;
+  total_count: number;
+}
+
+export interface AIToolCategoriesResponse {
+  status: number;
+  msg: string;
+  data: Array<{ name: string; count: number }>;
 }
 
 export const aiToolsApi = {
   // 获取 AI 工具列表
-  getToolsList: () =>
-    api.get<AIToolsListResponse>('/api/ai/tools/list'),
+  getToolsList: (params?: { category?: string; plugin?: string }) => {
+    const query = new URLSearchParams();
+    if (params?.category) query.set('category', params.category);
+    if (params?.plugin) query.set('plugin', params.plugin);
+    const queryStr = query.toString();
+    return api.get<AIToolsListResponse>(`/api/ai/tools/list${queryStr ? `?${queryStr}` : ''}`);
+  },
+
+  // 获取工具分类列表
+  getToolCategories: () =>
+    api.get<AIToolCategoriesResponse>('/api/ai/tools/categories'),
 
   // 获取指定工具详情
   getToolDetail: (toolName: string) =>
-    api.get<{ status: number; msg: string; data: AITool & { plugin: string } | null }>(`/api/ai/tools/${encodeURIComponent(toolName)}`),
+    api.get<{ status: number; msg: string; data: AITool | null }>(`/api/ai/tools/${encodeURIComponent(toolName)}`),
 };
 
 // ===================
@@ -1362,7 +1389,7 @@ export const aiImageApi = {
     if (response.status === 401) {
       setAuthToken(null);
       localStorage.removeItem('auth_user');
-      window.location.href = '/login';
+      window.location.href = getLoginPath();
       throw new Error('会话已过期，请重新登录');
     }
 
@@ -1406,7 +1433,7 @@ export const aiImageApi = {
     if (response.status === 401) {
       setAuthToken(null);
       localStorage.removeItem('auth_user');
-      window.location.href = '/login';
+      window.location.href = getLoginPath();
       throw new Error('会话已过期，请重新登录');
     }
 
