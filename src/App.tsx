@@ -28,6 +28,7 @@ import PersonaConfigPage from "@/pages/PersonaConfigPage";
 import AIToolsPage from "@/pages/AIToolsPage";
 import AISkillsPage from "@/pages/AISkillsPage";
 import AIStatisticsPage from "@/pages/AIStatisticsPage";
+import AIScheduledTasksPage from "@/pages/AIScheduledTasksPage";
 import AIKnowledgePage from "@/pages/AIKnowledgePage";
 import SystemPromptPage from "@/pages/SystemPromptPage";
 import SessionManagementPage from "@/pages/SessionManagementPage";
@@ -86,6 +87,7 @@ function AppRoutes() {
         <Route path="ai-tools" element={<AIToolsPage />} />
         <Route path="ai-skills" element={<AISkillsPage />} />
         <Route path="ai-statistics" element={<AIStatisticsPage />} />
+        <Route path="ai-scheduled-tasks" element={<AIScheduledTasksPage />} />
         <Route path="ai-knowledge" element={<AIKnowledgePage />} />
         <Route path="system-prompt" element={<SystemPromptPage />} />
         <Route path="session-management" element={<SessionManagementPage />} />

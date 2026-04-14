@@ -148,8 +148,11 @@ async function fetchTokenByModel(date?: string): Promise<TokenByModel[]> {
   return api.get<TokenByModel[]>(`/api/ai/statistics/token-by-model?${params.toString()}`);
 }
 
-async function fetchActiveUsers(limit: number = 20): Promise<ActiveUser[]> {
-  return api.get<ActiveUser[]>(`/api/ai/statistics/active-users?limit=${limit}`);
+async function fetchActiveUsers(date?: string, limit: number = 20): Promise<ActiveUser[]> {
+  const params = new URLSearchParams();
+  if (date) params.set('date', date);
+  params.set('limit', limit.toString());
+  return api.get<ActiveUser[]>(`/api/ai/statistics/active-users?${params.toString()}`);
 }
 
 async function fetchRagDocuments(): Promise<RagDocument[]> {
@@ -234,7 +237,7 @@ export default function AIStatisticsPage() {
       const [summaryData, tokenData, usersData, ragData] = await Promise.all([
         fetchStatisticsSummary(dateStr).catch(() => null),
         fetchTokenByModel(dateStr).catch(() => []),
-        fetchActiveUsers(20).catch(() => []),
+        fetchActiveUsers(dateStr, 20).catch(() => []),
         fetchRagDocuments().catch(() => []),
       ]);
 

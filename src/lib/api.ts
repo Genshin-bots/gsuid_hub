@@ -1613,3 +1613,95 @@ export const systemPromptApi = {
     return api.get<SystemPromptSearchResponse>(`/api/ai/system_prompt/search?${params.toString()}`);
   },
 };
+
+// ===================
+// AI Scheduled Tasks API - /api/ai/scheduled_tasks
+// ===================
+
+export interface AIScheduledTask {
+  task_id: string;
+  task_type: 'once' | 'interval';
+  user_id: string;
+  group_id: string | null;
+  bot_id: string;
+  bot_self_id: string;
+  user_type: 'direct' | 'group';
+  persona_name: string;
+  session_id: string;
+  task_prompt: string;
+  status: 'pending' | 'paused' | 'executed' | 'failed' | 'cancelled';
+  created_at: string;
+  executed_at: string | null;
+  result: string | null;
+  error_message: string | null;
+  interval_seconds: number;
+  max_executions: number;
+  current_executions: number;
+  start_time: string;
+  next_run_time: string | null;
+}
+
+export interface AIScheduledTaskStats {
+  total: number;
+  pending: number;
+  paused: number;
+  executed: number;
+  failed: number;
+  cancelled: number;
+  interval_count: number;
+  once_count: number;
+}
+
+export interface CreateScheduledTaskRequest {
+  task_type: 'once' | 'interval';
+  interval_type?: 'minutes' | 'hours' | 'days';
+  interval_value?: number;
+  task_prompt: string;
+  max_executions?: number;
+  run_time?: string;
+}
+
+export interface UpdateScheduledTaskRequest {
+  task_prompt?: string;
+  max_executions?: number;
+}
+
+export const aiScheduledTasksApi = {
+  // 获取任务列表
+  getTasks: (params?: { user_id?: string; status?: string; task_type?: string }) => {
+    const query = new URLSearchParams();
+    if (params?.user_id) query.set('user_id', params.user_id);
+    if (params?.status) query.set('status', params.status);
+    if (params?.task_type) query.set('task_type', params.task_type);
+    const queryString = query.toString();
+    return api.get<AIScheduledTask[]>(`/api/ai/scheduled_tasks${queryString ? `?${queryString}` : ''}`);
+  },
+
+  // 获取任务详情
+  getTaskDetail: (taskId: string) =>
+    api.get<AIScheduledTask>(`/api/ai/scheduled_tasks/${encodeURIComponent(taskId)}`),
+
+  // 创建任务
+  createTask: (data: CreateScheduledTaskRequest) =>
+    api.post<{ task_id: string }>('/api/ai/scheduled_tasks', data),
+
+  // 修改任务
+  updateTask: (taskId: string, data: UpdateScheduledTaskRequest) =>
+    api.put<{ status: number; msg: string }>(`/api/ai/scheduled_tasks/${encodeURIComponent(taskId)}`, data),
+
+  // 删除任务
+  deleteTask: (taskId: string) =>
+    api.delete<{ status: number; msg: string }>(`/api/ai/scheduled_tasks/${encodeURIComponent(taskId)}`),
+
+  // 暂停任务
+  pauseTask: (taskId: string) =>
+    api.post<{ status: number; msg: string }>(`/api/ai/scheduled_tasks/${encodeURIComponent(taskId)}/pause`),
+
+  // 恢复任务
+  resumeTask: (taskId: string) =>
+    api.post<{ status: number; msg: string }>(`/api/ai/scheduled_tasks/${encodeURIComponent(taskId)}/resume`),
+
+  // 获取任务统计
+  getStats: () =>
+    api.get<AIScheduledTaskStats>('/api/ai/scheduled_tasks/stats/overview'),
+};
