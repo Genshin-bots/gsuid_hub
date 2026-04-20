@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+﻿import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
@@ -310,6 +310,7 @@ function KnowledgeGraph({
   const alphaRef = useRef(1.0);
   const drawFrameRef = useRef<number>(0);
   const needsRedrawRef = useRef(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [, forceUpdate] = useState(0);
 
   // Build graph data from props
@@ -317,8 +318,10 @@ function KnowledgeGraph({
     const nodes: GraphNode[] = [];
     const cx = 400;
     const cy = 300;
+    const existingIds = new Set<string>();
 
     entities.forEach((entity, i) => {
+      existingIds.add(entity.id);
       const angle = (2 * Math.PI * i) / Math.max(entities.length, 1);
       const radius = 150 + Math.random() * 100;
       nodes.push({
@@ -334,6 +337,7 @@ function KnowledgeGraph({
     });
 
     categories.forEach((cat, i) => {
+      existingIds.add(cat.id);
       const angle = (2 * Math.PI * i) / Math.max(categories.length, 1) + Math.PI / 4;
       const radius = 250 + Math.random() * 80;
       nodes.push({
@@ -348,8 +352,33 @@ function KnowledgeGraph({
       });
     });
 
+    // Add placeholder nodes for edge endpoints not in the entity/category lists
+    // This fixes the "all scopes" bug where paginated entities miss some edge endpoints
+    const missingIds = new Set<string>();
+    for (const edge of edges) {
+      if (!existingIds.has(edge.source_entity_id)) missingIds.add(edge.source_entity_id);
+      if (!existingIds.has(edge.target_entity_id)) missingIds.add(edge.target_entity_id);
+    }
+    let missingIdx = 0;
+    for (const id of missingIds) {
+      existingIds.add(id);
+      const angle = (2 * Math.PI * missingIdx) / Math.max(missingIds.size, 1) + Math.PI / 6;
+      const radius = 180 + Math.random() * 120;
+      nodes.push({
+        id,
+        label: id.slice(0, 8),
+        type: 'entity',
+        x: cx + radius * Math.cos(angle),
+        y: cy + radius * Math.sin(angle),
+        vx: 0,
+        vy: 0,
+        isSpeaker: false,
+      });
+      missingIdx++;
+    }
+
     return nodes;
-  }, [entities, categories]);
+  }, [entities, categories, edges]);
 
   const graphEdges = useMemo(() => {
     return edges.map((edge) => ({
@@ -521,6 +550,18 @@ function KnowledgeGraph({
     };
   }, [isDark]);
 
+  // Build adjacency map for hover highlighting
+  const adjacencyMap = useMemo(() => {
+    const adj = new Map<string, Set<string>>();
+    for (const edge of graphEdges) {
+      if (!adj.has(edge.source)) adj.set(edge.source, new Set());
+      if (!adj.has(edge.target)) adj.set(edge.target, new Set());
+      adj.get(edge.source)!.add(edge.target);
+      adj.get(edge.target)!.add(edge.source);
+    }
+    return adj;
+  }, [graphEdges]);
+
   // The actual draw function
   const drawGraph = useCallback(() => {
     const canvas = canvasRef.current;
@@ -545,6 +586,30 @@ function KnowledgeGraph({
     const hoveredNode = hoveredNodeRef.current;
     const c = colors;
 
+    // Compute highlighted node set when hovering
+    let highlightedNodes: Set<string> | null = null;
+    if (hoveredNode) {
+      highlightedNodes = new Set<string>([hoveredNode]);
+      const neighbors = adjacencyMap.get(hoveredNode);
+      if (neighbors) {
+        for (const n of neighbors) highlightedNodes.add(n);
+      }
+    }
+
+    // Helper: get dim factor for a node (0 = fully dimmed, 1 = normal/bright)
+    const getNodeAlpha = (nodeId: string): number => {
+      if (!highlightedNodes) return 1;
+      return highlightedNodes.has(nodeId) ? 1 : 0.15;
+    };
+
+    // Helper: get dim factor for an edge
+    const getEdgeAlpha = (sourceId: string, targetId: string): number => {
+      if (!highlightedNodes) return 1;
+      // Edge is highlighted if both endpoints are highlighted
+      if (highlightedNodes.has(sourceId) && highlightedNodes.has(targetId)) return 1;
+      return 0.08;
+    };
+
     // Draw edges
     // Track label positions to avoid overlap
     const labelPositions: { x: number; y: number; w: number; h: number }[] = [];
@@ -556,18 +621,28 @@ function KnowledgeGraph({
       const source = nodes[si];
       const target = nodes[ti];
 
+      const edgeAlpha = getEdgeAlpha(edge.source, edge.target);
+
       ctx.beginPath();
       ctx.moveTo(source.x, source.y);
       ctx.lineTo(target.x, target.y);
-      ctx.strokeStyle = edge.invalid ? c.edgeInvalid : c.edgeNormal;
-      ctx.lineWidth = edge.invalid ? 1 : 1.5;
+      if (edgeAlpha < 1) {
+        ctx.globalAlpha = edgeAlpha;
+        ctx.strokeStyle = edge.invalid ? c.edgeInvalid : c.edgeNormal;
+      } else {
+        ctx.globalAlpha = 1;
+        // Highlighted edges: brighter color and thicker
+        ctx.strokeStyle = edge.invalid ? c.edgeInvalid : (isDark ? 'rgba(148, 163, 184, 0.7)' : 'rgba(100, 116, 139, 0.7)');
+      }
+      ctx.lineWidth = edgeAlpha < 1 ? (edge.invalid ? 1 : 1.5) : (edge.invalid ? 1.5 : 2.5);
       if (edge.invalid) ctx.setLineDash([4, 4]);
       else ctx.setLineDash([]);
       ctx.stroke();
       ctx.setLineDash([]);
+      ctx.globalAlpha = 1;
 
-      // Edge label - only show when zoomed in enough
-      if (zoomRef.current > 0.6) {
+      // Edge label - only show when zoomed in enough and edge is visible
+      if (zoomRef.current > 0.6 && edgeAlpha > 0.5) {
         const mx = (source.x + target.x) / 2;
         const my = (source.y + target.y) / 2;
 
@@ -636,7 +711,10 @@ function KnowledgeGraph({
     // Draw nodes
     for (const node of nodes) {
       const isHovered = hoveredNode === node.id;
+      const nodeAlpha = getNodeAlpha(node.id);
       const nodeRadius = node.type === 'category' ? 24 : (node.isSpeaker ? 20 : 16);
+
+      ctx.globalAlpha = nodeAlpha;
 
       // Category: draw as rounded rect
       if (node.type === 'category') {
@@ -689,10 +767,12 @@ function KnowledgeGraph({
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(truncateText(node.label, 12), node.x, node.y);
+
+      ctx.globalAlpha = 1;
     }
 
     ctx.restore();
-  }, [graphEdges, colors, isDark]);
+  }, [graphEdges, colors, isDark, adjacencyMap]);
 
   // Wheel zoom handler - use useEffect with { passive: false } to avoid passive event listener error
   useEffect(() => {
@@ -780,15 +860,75 @@ function KnowledgeGraph({
     }
   }, []);
 
+  // Fullscreen toggle
+  const toggleFullscreen = useCallback(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    if (!document.fullscreenElement) {
+      container.requestFullscreen().then(() => {
+        setIsFullscreen(true);
+        needsRedrawRef.current = true;
+      }).catch(() => {});
+    } else {
+      document.exitFullscreen().then(() => {
+        setIsFullscreen(false);
+        needsRedrawRef.current = true;
+      }).catch(() => {});
+    }
+  }, []);
+
+  // Listen for fullscreen changes (e.g. user presses Escape)
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+      needsRedrawRef.current = true;
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
+  // Touch event handlers for mobile drag
+  const handleTouchStart = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
+    if (e.touches.length === 1) {
+      isDraggingRef.current = true;
+      dragStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    }
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
+    if (isDraggingRef.current && e.touches.length === 1) {
+      e.preventDefault();
+      offsetRef.current = {
+        x: offsetRef.current.x + e.touches[0].clientX - dragStartRef.current.x,
+        y: offsetRef.current.y + e.touches[0].clientY - dragStartRef.current.y,
+      };
+      dragStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      needsRedrawRef.current = true;
+      forceUpdate((v) => v + 1);
+    }
+  }, []);
+
+  const handleTouchEnd = useCallback(() => {
+    isDraggingRef.current = false;
+  }, []);
+
   return (
-    <div ref={containerRef} className="relative w-full" style={{ height: 500 }}>
+    <div
+      ref={containerRef}
+      className={cn(
+        'relative w-full',
+        isFullscreen ? 'fixed inset-0 z-50 bg-background' : ''
+      )}
+      style={isFullscreen ? { height: '100vh' } : { height: 'calc(100vh - 280px)', minHeight: 400 }}
+    >
       <canvas
         ref={canvasRef}
         className={cn(
-          'w-full h-full rounded-lg',
+          'w-full h-full',
+          isFullscreen ? '' : 'rounded-lg',
           isGlass ? 'glass-card' : 'border border-border/50'
         )}
-        style={{ cursor: 'grab' }}
+        style={{ cursor: 'grab', touchAction: 'none' }}
         onClick={handleCanvasClick}
         onMouseMove={handleCanvasMove}
         onMouseDown={(e) => {
@@ -797,6 +937,9 @@ function KnowledgeGraph({
         }}
         onMouseUp={() => { isDraggingRef.current = false; }}
         onMouseLeave={() => { isDraggingRef.current = false; hoveredNodeRef.current = null; needsRedrawRef.current = true; }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
       />
       {/* Controls */}
       <div className="absolute top-3 right-3 flex flex-col gap-1">
@@ -806,7 +949,7 @@ function KnowledgeGraph({
         <Button variant="outline" size="icon" className="h-8 w-8 bg-background/80 backdrop-blur" onClick={() => { zoomRef.current = Math.max(zoomRef.current / 1.2, 0.1); needsRedrawRef.current = true; forceUpdate((v) => v + 1); }}>
           <ZoomOut className="w-4 h-4" />
         </Button>
-        <Button variant="outline" size="icon" className="h-8 w-8 bg-background/80 backdrop-blur" onClick={() => { zoomRef.current = 1; offsetRef.current = { x: 0, y: 0 }; needsRedrawRef.current = true; forceUpdate((v) => v + 1); }}>
+        <Button variant="outline" size="icon" className="h-8 w-8 bg-background/80 backdrop-blur" onClick={toggleFullscreen}>
           <Maximize2 className="w-4 h-4" />
         </Button>
       </div>
@@ -928,24 +1071,138 @@ function EdgeItem({ edge, isGlass, onClick, sourceName, targetName }: { edge: Ed
   );
 }
 
-function CategoryNode({ category, isGlass, onClick }: { category: Category; isGlass: boolean; onClick: () => void }) {
+function CategoryLayerTree({
+  categories,
+  isGlass,
+  isDark,
+  onClick,
+}: {
+  categories: Category[];
+  isGlass: boolean;
+  isDark: boolean;
+  onClick: (id: string) => void;
+}) {
+  // Group categories by layer
+  const layerGroups = useMemo(() => {
+    const groups = new Map<number, Category[]>();
+    for (const cat of categories) {
+      const list = groups.get(cat.layer) || [];
+      list.push(cat);
+      groups.set(cat.layer, list);
+    }
+    // Sort layers ascending
+    return new Map([...groups.entries()].sort(([a], [b]) => a - b));
+  }, [categories]);
+
+  const maxLayer = categories.length > 0 ? Math.max(...categories.map(c => c.layer)) : 0;
+
+  // Layer color palette - gradient from root to leaf
+  const getLayerColor = (layer: number) => {
+    const colors = [
+      { bg: 'rgba(139, 92, 246, 0.12)', border: 'rgba(139, 92, 246, 0.5)', text: 'text-violet-600 dark:text-violet-400', accent: 'bg-violet-500' },
+      { bg: 'rgba(59, 130, 246, 0.12)', border: 'rgba(59, 130, 246, 0.5)', text: 'text-blue-600 dark:text-blue-400', accent: 'bg-blue-500' },
+      { bg: 'rgba(16, 185, 129, 0.12)', border: 'rgba(16, 185, 129, 0.5)', text: 'text-emerald-600 dark:text-emerald-400', accent: 'bg-emerald-500' },
+      { bg: 'rgba(245, 158, 11, 0.12)', border: 'rgba(245, 158, 11, 0.5)', text: 'text-amber-600 dark:text-amber-400', accent: 'bg-amber-500' },
+      { bg: 'rgba(239, 68, 68, 0.12)', border: 'rgba(239, 68, 68, 0.5)', text: 'text-red-600 dark:text-red-400', accent: 'bg-red-500' },
+      { bg: 'rgba(236, 72, 153, 0.12)', border: 'rgba(236, 72, 153, 0.5)', text: 'text-pink-600 dark:text-pink-400', accent: 'bg-pink-500' },
+    ];
+    return colors[layer % colors.length];
+  };
+
+  if (categories.length === 0) return null;
+
   return (
-    <Card className={cn('cursor-pointer transition-all hover:shadow-md hover:border-primary/50', isGlass ? 'glass-card' : 'border border-border/50')} onClick={onClick}>
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Layers className="w-4 h-4 text-primary" />
-            <span className="font-medium">{category.name}</span>
-          </div>
-          <Badge variant="outline">Layer {category.layer}</Badge>
-        </div>
-        {category.summary && <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{category.summary}</p>}
-        <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-          <span>{category.child_categories_count} 子分类</span>
-          <span>{category.member_entities_count} 实体</span>
-        </div>
-      </CardContent>
-    </Card>
+    <div className="space-y-1">
+      {/* Layer header legend */}
+      <div className="flex items-center gap-3 mb-4 flex-wrap">
+        {Array.from(layerGroups.entries()).map(([layer, cats]) => {
+          const color = getLayerColor(layer);
+          return (
+            <div key={layer} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <span className={cn('w-2.5 h-2.5 rounded-sm', color.accent)} />
+              <span>Layer {layer}</span>
+              <span className="text-muted-foreground/60">({cats.length})</span>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Tree structure */}
+      <div className={cn('rounded-lg p-4', isGlass ? 'glass-card' : 'border border-border/50 bg-background/50')}>
+        {Array.from(layerGroups.entries()).map(([layer, cats], groupIdx) => {
+          const color = getLayerColor(layer);
+          const isLastGroup = groupIdx === layerGroups.size - 1;
+
+          return (
+            <div key={layer} className="relative">
+              {/* Vertical connector line from parent layer */}
+              {groupIdx > 0 && (
+                <div className="absolute left-5 -top-3 w-px h-3 bg-border/50" />
+              )}
+
+              {/* Layer label row */}
+              <div className="flex items-center gap-2 mb-2">
+                <div className={cn('w-10 h-6 rounded flex items-center justify-center text-xs font-semibold text-white', color.accent)}>
+                  L{layer}
+                </div>
+                <div className="flex-1 h-px bg-border/30" />
+                <span className="text-xs text-muted-foreground">{cats.length} 项</span>
+              </div>
+
+              {/* Category items in this layer */}
+              <div className="ml-5 pl-4 border-l-2 border-border/20 space-y-1.5 mb-3">
+                {cats.map((cat) => (
+                  <div
+                    key={cat.id}
+                    className={cn(
+                      'group flex items-center gap-3 px-3 py-2 rounded-md cursor-pointer transition-all',
+                      'hover:shadow-sm hover:bg-accent/50',
+                      isGlass ? 'hover:bg-accent/30' : 'hover:bg-accent/50'
+                    )}
+                    onClick={() => onClick(cat.id)}
+                  >
+                    {/* Node connector dot */}
+                    <div className="relative flex items-center justify-center -ml-[21px] w-4">
+                      <div className="w-2 h-2 rounded-full border-2 bg-background" style={{ borderColor: color.border }} />
+                    </div>
+
+                    {/* Category info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <FolderTree className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
+                        <span className="font-medium text-sm truncate">{cat.name}</span>
+                      </div>
+                      {cat.summary && (
+                        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1 ml-5.5">{cat.summary}</p>
+                      )}
+                    </div>
+
+                    {/* Stats badges */}
+                    <div className="flex items-center gap-2 shrink-0">
+                      {cat.child_categories_count > 0 && (
+                        <Badge variant="outline" className="text-xs h-5 px-1.5">
+                          <Layers className="w-3 h-3 mr-0.5" />{cat.child_categories_count}
+                        </Badge>
+                      )}
+                      {cat.member_entities_count > 0 && (
+                        <Badge variant="outline" className="text-xs h-5 px-1.5">
+                          <Brain className="w-3 h-3 mr-0.5" />{cat.member_entities_count}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Vertical connector line to child layer */}
+              {!isLastGroup && (
+                <div className="absolute left-5 bottom-0 w-px h-3 bg-border/50" />
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
@@ -1035,7 +1292,7 @@ export default function AIMemoryPage() {
     try {
       setIsLoadingData(true);
       const scope = scopeOverride ?? selectedScope;
-      const params: { page: number; page_size: number; scope_key?: string; all_scopes?: boolean; search?: string; is_speaker?: boolean } = { page, page_size: 20, search: entitySearch || undefined, is_speaker: entityFilterSpeaker };
+      const params: { page: number; page_size: number; scope_key?: string; all_scopes?: boolean; search?: string; is_speaker?: boolean } = { page, page_size: 9999, search: entitySearch || undefined, is_speaker: entityFilterSpeaker };
       if (scope !== 'all') {
         params.scope_key = scope;
       } else {
@@ -1053,7 +1310,7 @@ export default function AIMemoryPage() {
     try {
       setIsLoadingData(true);
       const scope = scopeOverride ?? selectedScope;
-      const params: { page: number; page_size: number; scope_key?: string; all_scopes?: boolean } = { page, page_size: 20 };
+      const params: { page: number; page_size: number; scope_key?: string; all_scopes?: boolean } = { page, page_size: 9999 };
       if (scope !== 'all') {
         params.scope_key = scope;
       } else {
@@ -1067,11 +1324,12 @@ export default function AIMemoryPage() {
     finally { setIsLoadingData(false); }
   };
 
+
   const fetchCategories = async (page = 1, scopeOverride?: string) => {
     try {
       setIsLoadingData(true);
       const scope = scopeOverride ?? selectedScope;
-      const params: { page: number; page_size: number; scope_key?: string; all_scopes?: boolean } = { page, page_size: 20 };
+      const params: { page: number; page_size: number; scope_key?: string; all_scopes?: boolean } = { page, page_size: 9999 };
       if (scope !== 'all') {
         params.scope_key = scope;
       } else {
@@ -1494,15 +1752,18 @@ export default function AIMemoryPage() {
             </div>
           </div>
           {isLoadingData ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-32 w-full" />)}</div>
+            <div className="space-y-3">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 w-full" />)}</div>
           ) : categories.length === 0 ? (
             <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
               <CardContent className="flex flex-col items-center justify-center p-8 text-muted-foreground"><FolderTree className="w-12 h-12 mb-4 opacity-50" /><p>{t('aiMemory.noCategories')}</p></CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {categories.map((category) => <CategoryNode key={category.id} category={category} isGlass={isGlass} onClick={() => openDetailDialog('category', category.id)} />)}
-            </div>
+            <CategoryLayerTree
+              categories={categories}
+              isGlass={isGlass}
+              isDark={isDark}
+              onClick={(id) => openDetailDialog('category', id)}
+            />
           )}
           {totalCategories > 20 && (
             <div className="flex justify-center gap-2">
