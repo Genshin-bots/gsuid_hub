@@ -116,6 +116,7 @@ interface Category {
   summary: string;
   tag: string[];
   layer: number;
+  parent_id: string | null;
   child_categories_count: number;
   member_entities_count: number;
   created_at: string;
@@ -1277,6 +1278,121 @@ function EdgeItem({ edge, isGlass, onClick, sourceName, targetName }: { edge: Ed
   );
 }
 
+function CategoryTreeNode({
+  category,
+  children,
+  isGlass,
+  depth,
+  onToggle,
+  onClick,
+  expandedIds,
+  loadingIds,
+  childrenMap,
+}: {
+  category: Category;
+  children: Category[];
+  isGlass: boolean;
+  depth: number;
+  onToggle: (id: string) => void;
+  onClick: (id: string) => void;
+  expandedIds: Set<string>;
+  loadingIds?: Set<string>;
+  childrenMap?: Map<string, Category[]>;
+}) {
+  const isExpanded = expandedIds.has(category.id);
+  const isLoading = loadingIds.has(category.id);
+  const hasChildren = category.child_categories_count > 0 || children.length > 0;
+
+  const layerColors = [
+    'bg-violet-500',
+    'bg-blue-500',
+    'bg-emerald-500',
+    'bg-amber-500',
+    'bg-red-500',
+    'bg-pink-500',
+  ];
+
+  return (
+    <div className="animate-in fade-in duration-200">
+      <div
+        className={cn(
+          'group flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer transition-all hover:shadow-sm',
+          isGlass ? 'hover:bg-accent/30' : 'hover:bg-accent/50'
+        )}
+        style={{ paddingLeft: `${12 + depth * 16}px` }}
+        onClick={() => onClick(category.id)}
+      >
+        {hasChildren ? (
+          <button
+            className="w-5 h-5 flex items-center justify-center rounded hover:bg-accent shrink-0 transition-colors"
+            onClick={(e) => { e.stopPropagation(); onToggle(category.id); }}
+          >
+            {isLoading ? (
+              <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
+            ) : (
+              <ChevronRight className={cn(
+                'w-3.5 h-3.5 text-muted-foreground transition-transform duration-200',
+                isExpanded && 'rotate-90'
+              )} />
+            )}
+          </button>
+        ) : (
+          <div className="w-5 h-5 shrink-0" />
+        )}
+
+        <div className={cn(
+          'w-6 h-6 rounded flex items-center justify-center text-[10px] font-bold text-white shrink-0',
+          layerColors[depth % layerColors.length]
+        )}>
+          L{category.layer}
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <FolderTree className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
+            <span className="font-medium text-sm truncate">{category.name}</span>
+          </div>
+          {category.summary && (
+            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1 ml-5.5">{category.summary}</p>
+          )}
+        </div>
+
+        <div className="flex items-center gap-1.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+          {category.child_categories_count > 0 && (
+            <Badge variant="outline" className="text-xs h-5 px-1.5">
+              <Layers className="w-3 h-3 mr-0.5" />{category.child_categories_count}
+            </Badge>
+          )}
+          {category.member_entities_count > 0 && (
+            <Badge variant="outline" className="text-xs h-5 px-1.5">
+              <Brain className="w-3 h-3 mr-0.5" />{category.member_entities_count}
+            </Badge>
+          )}
+        </div>
+      </div>
+
+      {isExpanded && children.length > 0 && (
+        <div className="mt-1">
+          {children.map(child => (
+            <CategoryTreeNode
+              key={child.id}
+              category={child}
+              children={childrenMap ? childrenMap.get(child.id) || [] : []}
+              isGlass={isGlass}
+              depth={depth + 1}
+              onToggle={onToggle}
+              onClick={onClick}
+              expandedIds={expandedIds}
+              loadingIds={loadingIds}
+              childrenMap={childrenMap}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function CategoryLayerTree({
   categories,
   isGlass,
@@ -1288,125 +1404,87 @@ function CategoryLayerTree({
   isDark: boolean;
   onClick: (id: string) => void;
 }) {
-  // Group categories by layer
-  const layerGroups = useMemo(() => {
-    const groups = new Map<number, Category[]>();
-    for (const cat of categories) {
-      const list = groups.get(cat.layer) || [];
-      list.push(cat);
-      groups.set(cat.layer, list);
-    }
-    // Sort layers ascending
-    return new Map([...groups.entries()].sort(([a], [b]) => a - b));
-  }, [categories]);
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
+  // Find max layer to determine root level
   const maxLayer = categories.length > 0 ? Math.max(...categories.map(c => c.layer)) : 0;
 
-  // Layer color palette - gradient from root to leaf
-  const getLayerColor = (layer: number) => {
-    const colors = [
-      { bg: 'rgba(139, 92, 246, 0.12)', border: 'rgba(139, 92, 246, 0.5)', text: 'text-violet-600 dark:text-violet-400', accent: 'bg-violet-500' },
-      { bg: 'rgba(59, 130, 246, 0.12)', border: 'rgba(59, 130, 246, 0.5)', text: 'text-blue-600 dark:text-blue-400', accent: 'bg-blue-500' },
-      { bg: 'rgba(16, 185, 129, 0.12)', border: 'rgba(16, 185, 129, 0.5)', text: 'text-emerald-600 dark:text-emerald-400', accent: 'bg-emerald-500' },
-      { bg: 'rgba(245, 158, 11, 0.12)', border: 'rgba(245, 158, 11, 0.5)', text: 'text-amber-600 dark:text-amber-400', accent: 'bg-amber-500' },
-      { bg: 'rgba(239, 68, 68, 0.12)', border: 'rgba(239, 68, 68, 0.5)', text: 'text-red-600 dark:text-red-400', accent: 'bg-red-500' },
-      { bg: 'rgba(236, 72, 153, 0.12)', border: 'rgba(236, 72, 153, 0.5)', text: 'text-pink-600 dark:text-pink-400', accent: 'bg-pink-500' },
-    ];
-    return colors[layer % colors.length];
-  };
+  // Build tree structure from categories using parent_id
+  const { rootIds, childrenMap } = useMemo(() => {
+    const roots = new Set<string>();
+    const children = new Map<string, Category[]>();
+    
+    // Initialize children map for all categories
+    for (const cat of categories) {
+      children.set(cat.id, []);
+    }
+    
+    // Build parent-child relationships
+    for (const cat of categories) {
+      if (cat.parent_id && children.has(cat.parent_id)) {
+        const parentChildren = children.get(cat.parent_id)!;
+        parentChildren.push(cat);
+      } else {
+        // No parent found, this is a root (only max layer roots are true roots)
+        roots.add(cat.id);
+      }
+    }
+    
+    return { rootIds: roots, childrenMap: children };
+  }, [categories]);
+
+  // Filter to only show roots at max layer (Layer 3 in this case)
+  const rootCategories = categories.filter(c => rootIds.has(c.id) && c.layer === maxLayer);
+
+  const handleToggle = useCallback((id: string) => {
+    setExpandedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }, []);
 
   if (categories.length === 0) return null;
 
+  const layerColors = [
+    'bg-violet-500',
+    'bg-blue-500',
+    'bg-emerald-500',
+    'bg-amber-500',
+    'bg-red-500',
+    'bg-pink-500',
+  ];
+
   return (
     <div className="space-y-1">
-      {/* Layer header legend */}
       <div className="flex items-center gap-3 mb-4 flex-wrap">
-        {Array.from(layerGroups.entries()).map(([layer, cats]) => {
-          const color = getLayerColor(layer);
-          return (
-            <div key={layer} className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <span className={cn('w-2.5 h-2.5 rounded-sm', color.accent)} />
-              <span>Layer {layer}</span>
-              <span className="text-muted-foreground/60">({cats.length})</span>
-            </div>
-          );
-        })}
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <span className={cn('w-2.5 h-2.5 rounded-sm', layerColors[0])} />
+          <span>Layer {maxLayer}</span>
+        </div>
+        <span className="text-xs text-muted-foreground ml-2">点击展开/收起子分类</span>
       </div>
 
-      {/* Tree structure */}
       <div className={cn('rounded-lg p-4', isGlass ? 'glass-card' : 'border border-border/50 bg-background/50')}>
-        {Array.from(layerGroups.entries()).map(([layer, cats], groupIdx) => {
-          const color = getLayerColor(layer);
-          const isLastGroup = groupIdx === layerGroups.size - 1;
-
-          return (
-            <div key={layer} className="relative">
-              {/* Vertical connector line from parent layer */}
-              {groupIdx > 0 && (
-                <div className="absolute left-5 -top-3 w-px h-3 bg-border/50" />
-              )}
-
-              {/* Layer label row */}
-              <div className="flex items-center gap-2 mb-2">
-                <div className={cn('w-10 h-6 rounded flex items-center justify-center text-xs font-semibold text-white', color.accent)}>
-                  L{layer}
-                </div>
-                <div className="flex-1 h-px bg-border/30" />
-                <span className="text-xs text-muted-foreground">{cats.length} 项</span>
-              </div>
-
-              {/* Category items in this layer */}
-              <div className="ml-5 pl-4 border-l-2 border-border/20 space-y-1.5 mb-3">
-                {cats.map((cat) => (
-                  <div
-                    key={cat.id}
-                    className={cn(
-                      'group flex items-center gap-3 px-3 py-2 rounded-md cursor-pointer transition-all',
-                      'hover:shadow-sm hover:bg-accent/50',
-                      isGlass ? 'hover:bg-accent/30' : 'hover:bg-accent/50'
-                    )}
-                    onClick={() => onClick(cat.id)}
-                  >
-                    {/* Node connector dot */}
-                    <div className="relative flex items-center justify-center -ml-[21px] w-4">
-                      <div className="w-2 h-2 rounded-full border-2 bg-background" style={{ borderColor: color.border }} />
-                    </div>
-
-                    {/* Category info */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <FolderTree className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
-                        <span className="font-medium text-sm truncate">{cat.name}</span>
-                      </div>
-                      {cat.summary && (
-                        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1 ml-5.5">{cat.summary}</p>
-                      )}
-                    </div>
-
-                    {/* Stats badges */}
-                    <div className="flex items-center gap-2 shrink-0">
-                      {cat.child_categories_count > 0 && (
-                        <Badge variant="outline" className="text-xs h-5 px-1.5">
-                          <Layers className="w-3 h-3 mr-0.5" />{cat.child_categories_count}
-                        </Badge>
-                      )}
-                      {cat.member_entities_count > 0 && (
-                        <Badge variant="outline" className="text-xs h-5 px-1.5">
-                          <Brain className="w-3 h-3 mr-0.5" />{cat.member_entities_count}
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Vertical connector line to child layer */}
-              {!isLastGroup && (
-                <div className="absolute left-5 bottom-0 w-px h-3 bg-border/50" />
-              )}
-            </div>
-          );
-        })}
+        <div className="space-y-1">
+          {rootCategories.map((cat) => (
+            <CategoryTreeNode
+              key={cat.id}
+              category={cat}
+              children={childrenMap.get(cat.id) || []}
+              isGlass={isGlass}
+              depth={0}
+              onToggle={handleToggle}
+              onClick={onClick}
+              expandedIds={expandedIds}
+              loadingIds={new Set()}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -1468,7 +1546,7 @@ export default function AIMemoryPage() {
         let targetScope = 'all';
         if (scopesData && scopesData.length > 0) {
           setScopes(scopesData);
-          const firstValid = scopesData.find(s => !s.scope_key.includes('assistant'));
+          const firstValid = scopesData.find(s => s.scope_key !== 'all' && !s.scope_key.includes('assistant'));
           targetScope = firstValid ? firstValid.scope_key : 'all';
           setSelectedScope(targetScope);
         }
@@ -1748,7 +1826,7 @@ export default function AIMemoryPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">{t('aiMemory.allScopes')}</SelectItem>
-                  {scopes.filter(s => !s.scope_key.includes("assistant")).map((s) => <SelectItem key={s.scope_key} value={s.scope_key}>{s.scope_key}</SelectItem>)}
+                  {scopes.map((s) => <SelectItem key={s.scope_key} value={s.scope_key}>{s.scope_key}</SelectItem>)}
                 </SelectContent>
               </Select>
               <Button variant="outline" size="sm" onClick={() => { fetchEntities(1); fetchEdges(1); fetchCategories(1); }}>
@@ -1808,7 +1886,7 @@ export default function AIMemoryPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">{t('aiMemory.allScopes')}</SelectItem>
-                  {scopes.filter(s => !s.scope_key.includes("assistant")).map((s) => <SelectItem key={s.scope_key} value={s.scope_key}>{s.scope_key}</SelectItem>)}
+                  {scopes.map((s) => <SelectItem key={s.scope_key} value={s.scope_key}>{s.scope_key}</SelectItem>)}
                 </SelectContent>
               </Select>
               <Button variant="outline" size="sm" onClick={() => fetchEpisodes(episodePage)}><RefreshCw className="w-4 h-4 mr-1" />{t('common.refresh')}</Button>
@@ -1866,7 +1944,7 @@ export default function AIMemoryPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">{t('aiMemory.allScopes')}</SelectItem>
-                  {scopes.filter(s => !s.scope_key.includes("assistant")).map((s) => <SelectItem key={s.scope_key} value={s.scope_key}>{s.scope_key}</SelectItem>)}
+                  {scopes.map((s) => <SelectItem key={s.scope_key} value={s.scope_key}>{s.scope_key}</SelectItem>)}
                 </SelectContent>
               </Select>
               <Button variant="outline" size="sm" onClick={() => { setEntityFilterSpeaker(entityFilterSpeaker === undefined ? true : entityFilterSpeaker === true ? false : undefined); fetchEntities(1); }}>
@@ -1915,7 +1993,7 @@ export default function AIMemoryPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">{t('aiMemory.allScopes')}</SelectItem>
-                  {scopes.filter(s => !s.scope_key.includes("assistant")).map((s) => <SelectItem key={s.scope_key} value={s.scope_key}>{s.scope_key}</SelectItem>)}
+                  {scopes.map((s) => <SelectItem key={s.scope_key} value={s.scope_key}>{s.scope_key}</SelectItem>)}
                 </SelectContent>
               </Select>
               <Button variant="outline" size="sm" onClick={() => fetchEdges(edgePage)}><RefreshCw className="w-4 h-4 mr-1" />{t('common.refresh')}</Button>
@@ -1959,7 +2037,7 @@ export default function AIMemoryPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">{t('aiMemory.allScopes')}</SelectItem>
-                  {scopes.filter(s => !s.scope_key.includes("assistant")).map((s) => <SelectItem key={s.scope_key} value={s.scope_key}>{s.scope_key}</SelectItem>)}
+                  {scopes.map((s) => <SelectItem key={s.scope_key} value={s.scope_key}>{s.scope_key}</SelectItem>)}
                 </SelectContent>
               </Select>
               <Button variant="outline" size="sm" onClick={() => fetchCategories(categoryPage)}><RefreshCw className="w-4 h-4 mr-1" />{t('common.refresh')}</Button>
@@ -1978,13 +2056,6 @@ export default function AIMemoryPage() {
               isDark={isDark}
               onClick={(id) => openDetailDialog('category', id)}
             />
-          )}
-          {totalCategories > 20 && (
-            <div className="flex justify-center gap-2">
-              <Button variant="outline" size="sm" disabled={categoryPage <= 1} onClick={() => fetchCategories(categoryPage - 1)}>{t('common.previousPage')}</Button>
-              <span className="flex items-center text-sm text-muted-foreground">{categoryPage} / {Math.ceil(totalCategories / 20)}</span>
-              <Button variant="outline" size="sm" disabled={categoryPage >= Math.ceil(totalCategories / 20)} onClick={() => fetchCategories(categoryPage + 1)}>{t('common.nextPage')}</Button>
-            </div>
           )}
       </div>
       )}

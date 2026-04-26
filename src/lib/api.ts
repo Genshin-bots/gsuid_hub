@@ -568,6 +568,241 @@ export const frameworkConfigApi = {
 };
 
 // ===================
+// OpenAI Config APIs
+// ===================
+
+export interface OpenAIConfigOptions {
+  base_url: string[];
+  model_name: string[];
+  embedding_model: string[];
+  model_support: string[];
+}
+
+export interface OpenAIConfigData {
+  base_url: string;
+  api_key: string[];
+  model_name: string;
+  embedding_model: string;
+  model_support: string[];
+}
+
+export interface OpenAIConfigDetail {
+  name: string;
+  config: OpenAIConfigData;
+}
+
+export interface OpenAIConfigListResponse {
+  configs: string[];
+  current: string;
+}
+
+export const openaiConfigApi = {
+  // 获取 OpenAI 配置文件列表
+  getConfigList: () =>
+    api.get<OpenAIConfigListResponse>('/api/openai_config/list'),
+
+  // 获取 OpenAI 配置详情
+  getConfig: (configName: string) =>
+    api.get<OpenAIConfigDetail>(`/api/openai_config/${configName}`),
+
+  // 创建或更新 OpenAI 配置文件
+  saveConfig: (configName: string, config: OpenAIConfigData) =>
+    api.post<{ status: number; msg: string; data: { name: string } }>(`/api/openai_config/${configName}`, { config }),
+
+  // 创建默认配置的 OpenAI 配置文件
+  createDefault: (configName: string) =>
+    api.post<{ status: number; msg: string }>(`/api/openai_config/${configName}/create_default`),
+
+  // 删除 OpenAI 配置文件
+  deleteConfig: (configName: string) =>
+    api.delete<{ status: number; msg: string }>(`/api/openai_config/${configName}`),
+
+  // 重命名 OpenAI 配置文件
+  renameConfig: (oldName: string, newName: string) =>
+    api.post<{ status: number; msg: string; data: { old_name: string; new_name: string } }>(
+      `/api/openai_config/${oldName}/rename?new_name=${encodeURIComponent(newName)}`
+    ),
+
+  // 获取当前激活的 OpenAI 配置
+  getCurrentConfig: () =>
+    api.get<OpenAIConfigDetail>('/api/openai_config/current'),
+
+  // 切换 OpenAI 配置文件（热切换）
+  switchConfig: (configName: string) =>
+    api.post<{ status: number; msg: string; data: { name: string } }>(`/api/openai_config/${configName}/switch`),
+
+  // 获取 OpenAI 配置可选项
+  getOptions: () =>
+    api.get<OpenAIConfigOptions>('/api/openai_config/options'),
+};
+
+// ===================
+// Provider Config APIs
+// ===================
+
+export interface ProviderInfo {
+  id: string;
+  name: string;
+  description: string;
+  config_count: number;
+  configs: string[];
+}
+
+export interface ProviderListData {
+  providers: ProviderInfo[];
+  current: string;
+}
+
+export interface ProviderConfigField {
+  title: string;
+  desc: string;
+  data: unknown;
+  options?: string[];
+}
+
+export interface ProviderConfigDetail {
+  name: string;
+  provider: string;
+  config: Record<string, ProviderConfigField>;
+}
+
+export interface TaskConfigResponse {
+  task_level: string;
+  current_config: string;
+  current_provider: string;
+  config_detail: ProviderConfigDetail;
+  available_configs: Record<string, string[]>;
+}
+
+export interface AllConfigsSummary {
+  openai_configs: Array<{
+    name: string;
+    provider: string;
+    model_name: string;
+    base_url: string;
+  }>;
+  anthropic_configs: Array<{
+    name: string;
+    provider: string;
+    model_name: string;
+    base_url: string;
+  }>;
+  current_provider: string;
+  high_level_config: string;
+  low_level_config: string;
+}
+
+export interface ProviderConfigOptions {
+  provider: string;
+  options: {
+    base_url: string[];
+    model_name: string[];
+    embedding_model: string[];
+    model_support: string[];
+  };
+}
+
+export const providerConfigApi = {
+  // 获取 Provider 列表
+  getProviders: () =>
+    api.get<ProviderListData>('/api/provider_config/providers'),
+
+  // 设置 Provider
+  setProvider: (provider: string) =>
+    api.post<{ status: number; msg: string; data: { provider: string } }>(
+      `/api/provider_config/provider/${provider}`
+    ),
+
+  // 获取任务级别配置
+  getTaskConfig: (taskLevel: 'high' | 'low') =>
+    api.get<TaskConfigResponse>(`/api/provider_config/task_config/${taskLevel}`),
+
+  // 设置任务级别配置
+  setTaskConfig: (taskLevel: 'high' | 'low', configName: string, provider?: string) =>
+    api.post<{ status: number; msg: string; data: { task_level: string; config_name: string; provider: string } }>(
+      `/api/provider_config/task_config/${taskLevel}`,
+      { config_name: configName, provider }
+    ),
+
+  // 获取所有配置摘要
+  getAllConfigs: () =>
+    api.get<AllConfigsSummary>('/api/provider_config/all_configs'),
+
+  // 获取配置详情
+  getConfigDetail: (provider: string, configName: string) =>
+    api.get<{ name: string; provider: string; config: Record<string, ProviderConfigField> }>(
+      `/api/provider_config/config/${provider}/${configName}`
+    ),
+
+  // 创建或更新配置
+  saveConfig: (provider: string, configName: string, config: Record<string, { data: unknown }>) =>
+    api.post<{ status: number; msg: string; data: { name: string; provider: string } }>(
+      `/api/provider_config/config/${provider}/${configName}`,
+      { config }
+    ),
+
+  // 创建默认配置
+  createDefaultConfig: (provider: string, configName: string) =>
+    api.post<{ status: number; msg: string; data: { name: string; provider: string } }>(
+      `/api/provider_config/config/${provider}/${configName}/create_default`
+    ),
+
+  // 删除配置
+  deleteConfig: (provider: string, configName: string) =>
+    api.delete<{ status: number; msg: string }>(
+      `/api/provider_config/config/${provider}/${configName}`
+    ),
+
+  // 重命名配置（通过创建新配置+删除旧配置实现）
+  renameConfig: async (provider: string, oldName: string, newName: string, apiClient: typeof api): Promise<{ status: number; msg: string }> => {
+    // 1. 获取旧配置详情
+    const detail = await apiClient.get<{ name: string; provider: string; config: Record<string, ProviderConfigField> }>(
+      `/api/provider_config/config/${provider}/${oldName}`
+    );
+    // 2. 用新名字保存配置
+    const configData: Record<string, { data: unknown }> = {};
+    for (const [key, field] of Object.entries(detail.config)) {
+      configData[key] = { data: field.data };
+    }
+    await apiClient.post<{ status: number; msg: string }>(
+      `/api/provider_config/config/${provider}/${newName}`,
+      { config: configData }
+    );
+    // 3. 删除旧配置
+    return apiClient.delete<{ status: number; msg: string }>(
+      `/api/provider_config/config/${provider}/${oldName}`
+    );
+  },
+
+  // 获取配置可选项
+  getConfigOptions: (provider: string) =>
+    api.get<ProviderConfigOptions>(`/api/provider_config/config/${provider}/options`),
+
+  // --- 兼容旧接口 ---
+  // 获取高级任务配置 (兼容旧版)
+  getHighLevelConfig: () =>
+    api.get<TaskConfigResponse>('/api/provider_config/task_config/high'),
+
+  // 获取低级任务配置 (兼容旧版)
+  getLowLevelConfig: () =>
+    api.get<TaskConfigResponse>('/api/provider_config/task_config/low'),
+
+  // 设置高级任务配置 (兼容旧版)
+  setHighLevelConfig: (configName: string, provider?: string) =>
+    api.post<{ status: number; msg: string; data: { task_level: string; config_name: string; provider: string } }>(
+      `/api/provider_config/task_config/high`,
+      { config_name: configName, provider }
+    ),
+
+  // 设置低级任务配置 (兼容旧版)
+  setLowLevelConfig: (configName: string, provider?: string) =>
+    api.post<{ status: number; msg: string; data: { task_level: string; config_name: string; provider: string } }>(
+      `/api/provider_config/task_config/low`,
+      { config_name: configName, provider }
+    ),
+};
+
+// ===================
 // Plugin Store APIs
 // ===================
 
