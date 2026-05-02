@@ -24,6 +24,7 @@ import {
 import {
   frameworkConfigApi,
   providerConfigApi,
+  embeddingConfigApi,
   api,
   PluginConfigItem,
   FrameworkConfigListItem,
@@ -32,10 +33,12 @@ import {
   AllConfigsSummary,
   AllConfigItem,
   ProviderConfigOptions,
+  EmbeddingConfigSummary,
+  EmbeddingConfigField,
 } from '@/lib/api';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { ConfigField, ConfigValue, DynamicConfigPanel } from '@/components/config';
+import { ConfigField, ConfigValue, ConfigFieldType, DynamicConfigPanel } from '@/components/config';
 import {
   Select,
   SelectContent,
@@ -224,6 +227,13 @@ export default function AIConfigPage() {
   // State - Provider Config Options
   const [providerConfigOptions, setProviderConfigOptions] = useState<ProviderConfigOptions | null>(null);
 
+  // State - Embedding Config
+  const [embeddingSummary, setEmbeddingSummary] = useState<EmbeddingConfigSummary | null>(null);
+  const [isLoadingEmbeddingConfig, setIsLoadingEmbeddingConfig] = useState(false);
+  const [isSavingEmbeddingConfig, setIsSavingEmbeddingConfig] = useState(false);
+  const [embeddingLocalConfig, setEmbeddingLocalConfig] = useState<Record<string, EmbeddingConfigField>>({});
+  const [embeddingOpenaiConfig, setEmbeddingOpenaiConfig] = useState<Record<string, EmbeddingConfigField>>({});
+
   // Dialog states
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
@@ -319,6 +329,25 @@ export default function AIConfigPage() {
     }
   }, [normalizeConfigName]);
 
+  const fetchEmbeddingConfig = useCallback(async () => {
+    try {
+      setIsLoadingEmbeddingConfig(true);
+      const summary = await embeddingConfigApi.getSummary();
+      setEmbeddingSummary(summary);
+      setEmbeddingLocalConfig(summary.local_config || {});
+      setEmbeddingOpenaiConfig(summary.openai_config || {});
+    } catch (error) {
+      console.error('Failed to fetch embedding config:', error);
+      toast({
+        title: t('common.error'),
+        description: t('aiConfig.serviceProvider.embeddingConfigLoadFailed'),
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoadingEmbeddingConfig(false);
+    }
+  }, [t]);
+
   const fetchConfigList = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -363,7 +392,8 @@ export default function AIConfigPage() {
     fetchConfigList();
     fetchProviderList();
     fetchAllConfigs();
-  }, [fetchConfigList, fetchProviderList, fetchAllConfigs]);
+    fetchEmbeddingConfig();
+  }, [fetchConfigList, fetchProviderList, fetchAllConfigs, fetchEmbeddingConfig]);
 
   // 使用 ref 跟踪已请求过的配置，避免重复请求
   const fetchedConfigNamesRef = useRef<Set<string>>(new Set());
@@ -568,6 +598,92 @@ export default function AIConfigPage() {
     setOpenaiConfigData(prev => prev ? { ...prev, [field]: value } : null);
   }, []);
 
+  // 嵌入模型配置 - 切换提供方
+  const handleSwitchEmbeddingProvider = useCallback(async (provider: string) => {
+    try {
+      const response = await embeddingConfigApi.setProvider(provider);
+      toast({
+        title: t('common.success'),
+        description: response.msg || t('aiConfig.serviceProvider.embeddingProviderSwitched', { provider }),
+      });
+      // 刷新嵌入模型配置摘要
+      await fetchEmbeddingConfig();
+    } catch (error) {
+      console.error('Failed to switch embedding provider:', error);
+      toast({
+        title: t('common.error'),
+        description: t('aiConfig.serviceProvider.embeddingProviderSwitchFailed'),
+        variant: 'destructive',
+      });
+    }
+  }, [t, fetchEmbeddingConfig]);
+
+  // 嵌入模型配置 - 更新本地配置字段
+  const updateEmbeddingLocalField = useCallback((fieldKey: string, value: unknown) => {
+    setEmbeddingLocalConfig(prev => ({
+      ...prev,
+      [fieldKey]: { ...prev[fieldKey], data: value },
+    }));
+  }, []);
+
+  // 嵌入模型配置 - 更新 OpenAI 配置字段
+  const updateEmbeddingOpenaiField = useCallback((fieldKey: string, value: unknown) => {
+    setEmbeddingOpenaiConfig(prev => ({
+      ...prev,
+      [fieldKey]: { ...prev[fieldKey], data: value },
+    }));
+  }, []);
+
+  // 嵌入模型配置 - 保存本地配置
+  const handleSaveEmbeddingLocalConfig = useCallback(async () => {
+    try {
+      setIsSavingEmbeddingConfig(true);
+      const configData: Record<string, unknown> = {};
+      Object.entries(embeddingLocalConfig).forEach(([key, field]) => {
+        configData[key] = field.data;
+      });
+      await embeddingConfigApi.saveLocalConfig(configData);
+      toast({
+        title: t('common.success'),
+        description: t('aiConfig.serviceProvider.embeddingConfigSaved'),
+      });
+    } catch (error) {
+      console.error('Failed to save embedding local config:', error);
+      toast({
+        title: t('common.error'),
+        description: t('aiConfig.serviceProvider.embeddingConfigSaveFailed'),
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSavingEmbeddingConfig(false);
+    }
+  }, [embeddingLocalConfig, t]);
+
+  // 嵌入模型配置 - 保存 OpenAI 配置
+  const handleSaveEmbeddingOpenaiConfig = useCallback(async () => {
+    try {
+      setIsSavingEmbeddingConfig(true);
+      const configData: Record<string, unknown> = {};
+      Object.entries(embeddingOpenaiConfig).forEach(([key, field]) => {
+        configData[key] = field.data;
+      });
+      await embeddingConfigApi.saveOpenaiConfig(configData);
+      toast({
+        title: t('common.success'),
+        description: t('aiConfig.serviceProvider.embeddingConfigSaved'),
+      });
+    } catch (error) {
+      console.error('Failed to save embedding openai config:', error);
+      toast({
+        title: t('common.error'),
+        description: t('aiConfig.serviceProvider.embeddingConfigSaveFailed'),
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSavingEmbeddingConfig(false);
+    }
+  }, [embeddingOpenaiConfig, t]);
+
   const openDeleteDialog = (configName: string, provider: string) => {
     setEditingConfigName(configName); // 纯配置名
     setEditingConfigProvider(provider);
@@ -732,15 +848,15 @@ export default function AIConfigPage() {
   }
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
+    <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-3">
-            <Bot className="w-7 h-7 text-primary" />
+          <h1 className="text-3xl font-bold flex items-center gap-3">
+            <Bot className="w-8 h-8" />
             {t('aiConfig.title')}
           </h1>
-          <p className="text-muted-foreground mt-1 text-sm">{t('aiConfig.description')}</p>
+          <p className="text-muted-foreground mt-1">{t('aiConfig.description')}</p>
         </div>
         <Button
           onClick={handleSaveConfig}
@@ -1081,50 +1197,156 @@ export default function AIConfigPage() {
                     iconClass="text-primary"
                     isGlass={isGlass}
                   >
+                    {/* 嵌入模型提供方选择 */}
                     <ChipGroup
-                      options={embeddingProviderOptions.map(p => ({
+                      options={(embeddingSummary?.available_providers || embeddingProviderOptions).map(p => ({
                         value: p,
-                        label: p === 'local' ? t('aiConfig.serviceProvider.localModel') : p,
-                        icon: <Database className="w-3.5 h-3.5" />,
+                        label: p === 'local' ? t('aiConfig.serviceProvider.localModel') : p === 'openai' ? t('aiConfig.serviceProvider.openaiModel') : p,
+                        icon: p === 'local' ? <Database className="w-3.5 h-3.5" /> : <Globe className="w-3.5 h-3.5" />,
                       }))}
-                      value={[aiConfig.config.embedding_provider?.value as string].filter(Boolean)}
-                      onValueChange={(newValue) => updateConfigValue(aiConfig.id, 'embedding_provider', newValue[0] || '')}
+                      value={[embeddingSummary?.provider || aiConfig.config.embedding_provider?.value as string].filter(Boolean)}
+                      onValueChange={(newValue) => {
+                        const newProvider = newValue[0] || '';
+                        // 同时更新 aiConfig 中的 embedding_provider 和调用 API 切换
+                        updateConfigValue(aiConfig.id, 'embedding_provider', newProvider);
+                        handleSwitchEmbeddingProvider(newProvider);
+                      }}
                       selectMode="single"
                       showRadioIndicator
                     />
-                    {embeddingConfig && (
+                    {/* 提供方描述 */}
+                    <p className="text-xs text-muted-foreground mt-1 px-1">
+                      {t('aiConfig.serviceProvider.embeddingProviderDesc')}
+                    </p>
+
+                    {/* 嵌入模型配置 - 根据提供方显示不同表单 */}
+                    {isLoadingEmbeddingConfig ? (
+                      <div className="flex items-center justify-center py-6">
+                        <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                      </div>
+                    ) : (
                       <SubConfigPanel
                         title={t('aiConfig.serviceProvider.embeddingConfig')}
                         icon={<Layers className="w-3.5 h-3.5" />}
                       >
                         <div className="space-y-4">
-                          <DynamicConfigPanel
-                            config={embeddingConfig.config}
-                            configId={embeddingConfig.id}
-                            onChange={updateConfigValue}
-                          />
-                          <div className="pt-4 border-t border-border/30">
-                            <ToggleRow
-                              icon={<CheckCircle className="w-5 h-5" />}
-                              iconColorClass="text-primary"
-                              title={t('aiConfig.serviceProvider.enableRerank')}
-                              description={t('aiConfig.serviceProvider.rerankQuality')}
-                              checked={isRerankEnabled}
-                              onCheckedChange={(checked) => updateConfigValue(aiConfig.id, 'enable_rerank', checked)}
-                            />
-                            {isRerankEnabled && rerankConfig && (
-                              <div className="mt-3 pl-4 border-l-2 border-primary/20">
-                                <DynamicConfigPanel
-                                  config={rerankConfig.config}
-                                  configId={rerankConfig.id}
-                                  onChange={updateConfigValue}
-                                />
+                          {/* 本地模型配置 */}
+                          {(embeddingSummary?.provider || aiConfig.config.embedding_provider?.value) === 'local' && (
+                            <div className="space-y-3">
+                              {Object.entries(embeddingLocalConfig).map(([key, field]) => (
+                                <div key={key} className="space-y-1.5">
+                                  <Label className="text-sm font-medium">{field.title || key}</Label>
+                                  {field.desc && <p className="text-xs text-muted-foreground">{field.desc}</p>}
+                                  <ConfigField
+                                    fieldKey={key}
+                                    field={{
+                                      type: (Array.isArray(field.options) && field.options.length > 0 ? 'select' : 'text') as ConfigFieldType,
+                                      label: field.title || key,
+                                      value: field.data as string,
+                                      options: field.options || [],
+                                      placeholder: '',
+                                      description: field.desc || '',
+                                    }}
+                                    showLabel={false}
+                                    onChange={(k, v) => updateEmbeddingLocalField(k, v)}
+                                  />
+                                </div>
+                              ))}
+                              <div className="pt-2">
+                                <Button
+                                  size="sm"
+                                  onClick={handleSaveEmbeddingLocalConfig}
+                                  disabled={isSavingEmbeddingConfig}
+                                  className="gap-2"
+                                >
+                                  {isSavingEmbeddingConfig ? (
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                  ) : (
+                                    <Save className="w-3.5 h-3.5" />
+                                  )}
+                                  {t('common.save')}
+                                </Button>
                               </div>
-                            )}
-                          </div>
+                            </div>
+                          )}
+
+                          {/* OpenAI 兼容配置 */}
+                          {(embeddingSummary?.provider || aiConfig.config.embedding_provider?.value) === 'openai' && (
+                            <div className="space-y-3">
+                              {Object.entries(embeddingOpenaiConfig).map(([key, field]) => (
+                                <div key={key} className="space-y-1.5">
+                                  <Label className="text-sm font-medium flex items-center gap-2">
+                                    {key === 'base_url' && <Globe className="w-3.5 h-3.5" />}
+                                    {key === 'api_key' && <Key className="w-3.5 h-3.5" />}
+                                    {key === 'embedding_model' && <Cpu className="w-3.5 h-3.5" />}
+                                    {field.title || key}
+                                  </Label>
+                                  {field.desc && <p className="text-xs text-muted-foreground">{field.desc}</p>}
+                                  {key === 'api_key' ? (
+                                    <ConfigField
+                                      fieldKey={key}
+                                      field={{
+                                        type: 'tags',
+                                        label: field.title || key,
+                                        value: (field.data as string[]) || [],
+                                        placeholder: '输入API密钥（支持多个）',
+                                        description: field.desc || '',
+                                      }}
+                                      showLabel={false}
+                                      onChange={(k, v) => updateEmbeddingOpenaiField(k, v)}
+                                    />
+                                  ) : (
+                                    <InputWithDropdown
+                                      value={(field.data as string) || ''}
+                                      onChange={(val) => updateEmbeddingOpenaiField(key, val)}
+                                      options={field.options || []}
+                                      placeholder={`选择或输入${field.title || key}`}
+                                      inputPlaceholder={field.options?.[0] || ''}
+                                    />
+                                  )}
+                                </div>
+                              ))}
+                              <div className="pt-2">
+                                <Button
+                                  size="sm"
+                                  onClick={handleSaveEmbeddingOpenaiConfig}
+                                  disabled={isSavingEmbeddingConfig}
+                                  className="gap-2"
+                                >
+                                  {isSavingEmbeddingConfig ? (
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                  ) : (
+                                    <Save className="w-3.5 h-3.5" />
+                                  )}
+                                  {t('common.save')}
+                                </Button>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </SubConfigPanel>
                     )}
+
+                    {/* Rerank 配置 */}
+                    <div className="pt-4 border-t border-border/30">
+                      <ToggleRow
+                        icon={<CheckCircle className="w-5 h-5" />}
+                        iconColorClass="text-primary"
+                        title={t('aiConfig.serviceProvider.enableRerank')}
+                        description={t('aiConfig.serviceProvider.rerankQuality')}
+                        checked={isRerankEnabled}
+                        onCheckedChange={(checked) => updateConfigValue(aiConfig.id, 'enable_rerank', checked)}
+                      />
+                      {isRerankEnabled && rerankConfig && (
+                        <div className="mt-3 pl-4 border-l-2 border-primary/20">
+                          <DynamicConfigPanel
+                            config={rerankConfig.config}
+                            configId={rerankConfig.id}
+                            onChange={updateConfigValue}
+                          />
+                        </div>
+                      )}
+                    </div>
                   </SectionCard>
 
                   {/* 网络搜索服务 */}

@@ -807,6 +807,62 @@ export const providerConfigApi = {
 };
 
 // ===================
+// Embedding Config APIs
+// ===================
+
+export interface EmbeddingConfigField {
+  title: string;
+  desc: string;
+  data: unknown;
+  options?: string[];
+}
+
+export interface EmbeddingProviderData {
+  provider: string;
+  available_providers: string[];
+}
+
+export interface EmbeddingConfigSummary {
+  provider: string;
+  available_providers: string[];
+  local_config: Record<string, EmbeddingConfigField>;
+  openai_config: Record<string, EmbeddingConfigField>;
+}
+
+export const embeddingConfigApi = {
+  // 获取当前嵌入模型提供方
+  getProvider: () =>
+    api.get<EmbeddingProviderData>('/api/embedding_config/provider'),
+
+  // 设置嵌入模型提供方
+  setProvider: (provider: string) =>
+    api.post<{ status: number; msg: string; data: { provider: string } }>(
+      '/api/embedding_config/provider',
+      { provider }
+    ),
+
+  // 获取本地嵌入模型配置
+  getLocalConfig: () =>
+    api.get<Record<string, EmbeddingConfigField>>('/api/embedding_config/local'),
+
+  // 保存本地嵌入模型配置
+  saveLocalConfig: (config: Record<string, unknown>) =>
+    api.post<{ status: number; msg: string }>('/api/embedding_config/local', config),
+
+  // 获取 OpenAI 嵌入模型配置
+  getOpenaiConfig: () =>
+    api.get<Record<string, EmbeddingConfigField>>('/api/embedding_config/openai'),
+
+  // 保存 OpenAI 嵌入模型配置
+  saveOpenaiConfig: (config: Record<string, unknown>) =>
+    api.post<{ status: number; msg: string }>('/api/embedding_config/openai', config),
+
+  // 获取嵌入模型配置摘要（一次性获取所有配置）
+  getSummary: () =>
+    api.get<EmbeddingConfigSummary>('/api/embedding_config/summary'),
+};
+
+// ===================
 // Plugin Store APIs
 // ===================
 
@@ -2126,4 +2182,78 @@ export const mcpConfigApi = {
   // 热重载所有配置
   reload: () =>
     api.post<MCPReloadResponse>('/api/ai/mcp/reload'),
+};
+
+// ===================
+// Git Update API
+// ===================
+
+export interface GitCommitInfo {
+  hash: string;
+  short_hash: string;
+  author: string;
+  date: string;
+  message: string;
+}
+
+export interface GitPluginStatus {
+  name: string;
+  path: string;
+  branch: string;
+  is_git_repo: boolean;
+  current_commit: GitCommitInfo | null;
+}
+
+export interface GitCommitListResponse {
+  plugin_name: string;
+  branch: string;
+  current_hash: string;
+  commits: GitCommitInfo[];
+}
+
+export interface GitLocalCommitListResponse {
+  plugin_name: string;
+  branch: string;
+  commits: GitCommitInfo[];
+}
+
+export interface GitCheckoutResponse {
+  success: boolean;
+  message: string;
+}
+
+export interface GitForceUpdateResponse {
+  success: boolean;
+  message: string;
+  current_commit: GitCommitInfo | null;
+}
+
+export const gitUpdateApi = {
+  // 获取所有插件的 Git 状态
+  getStatus: () =>
+    api.get<GitPluginStatus[]>('/api/git-update/status'),
+
+  // 获取单个插件的 Git 状态
+  getPluginStatus: (pluginName: string) =>
+    api.get<GitPluginStatus>(`/api/git-update/status/${encodeURIComponent(pluginName)}`),
+
+  // 获取远程 Commit 列表
+  getRemoteCommits: (pluginName: string, maxCount?: number) => {
+    const query = maxCount ? `?max_count=${maxCount}` : '';
+    return api.get<GitCommitListResponse>(`/api/git-update/commits/${encodeURIComponent(pluginName)}${query}`);
+  },
+
+  // 获取本地 Commit 历史
+  getLocalCommits: (pluginName: string, maxCount?: number) => {
+    const query = maxCount ? `?max_count=${maxCount}` : '';
+    return api.get<GitLocalCommitListResponse>(`/api/git-update/local-commits/${encodeURIComponent(pluginName)}${query}`);
+  },
+
+  // 回退到指定 Commit
+  checkout: (pluginName: string, commitHash: string) =>
+    api.post<GitCheckoutResponse>(`/api/git-update/checkout/${encodeURIComponent(pluginName)}`, { commit_hash: commitHash }),
+
+  // 强制更新
+  forceUpdate: (pluginName: string) =>
+    api.post<GitForceUpdateResponse>(`/api/git-update/force-update/${encodeURIComponent(pluginName)}`),
 };

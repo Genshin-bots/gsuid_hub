@@ -21,6 +21,7 @@ import ThemesPage from "@/pages/ThemesPage";
 import ConsolePage from "@/pages/ConsolePage";
 import SchedulerPage from "@/pages/SchedulerPage";
 import PluginStorePage from "@/pages/PluginStorePage";
+import GitUpdatePage from "@/pages/GitUpdatePage";
 import CoreConfigPage from "@/pages/CoreConfigPage";
 import BackupPage from "@/pages/BackupPage";
 import AIConfigPage from "@/pages/AIConfigPage";
@@ -83,6 +84,7 @@ function AppRoutes() {
         <Route path="console" element={<ConsolePage />} />
         <Route path="scheduler" element={<SchedulerPage />} />
         <Route path="plugin-store" element={<PluginStorePage />} />
+        <Route path="git-update" element={<GitUpdatePage />} />
         <Route path="framework-config" element={<FrameworkConfigPage />} />
         <Route path="ai-config" element={<AIConfigPage />} />
         <Route path="persona-config" element={<PersonaConfigPage />} />

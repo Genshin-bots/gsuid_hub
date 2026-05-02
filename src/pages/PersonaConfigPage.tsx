@@ -1004,7 +1004,7 @@ export default function PersonaConfigPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <>
       {/* 隐藏的文件输入框 - 用于所有上传 */}
       <input
         type="file"
@@ -1018,6 +1018,7 @@ export default function PersonaConfigPage() {
         }
       />
 
+    <div className="p-6 space-y-6">
       {/* 页面标题和操作 */}
       <div className="flex items-center justify-between">
         <div>
@@ -1745,5 +1746,6 @@ export default function PersonaConfigPage() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+    </>
   );
 }

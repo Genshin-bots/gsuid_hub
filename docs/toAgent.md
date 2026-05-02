@@ -1537,5 +1537,64 @@ function isSshUrl(url: string): boolean {
 
 ---
 
-*文档版本: 2.2*
+## 19. 页面排版铁律
+
+**所有页面必须严格遵循以下排版规范，确保全站视觉一致性。**
+
+### 19.1 页面根容器
+
+```tsx
+<div className="p-6 space-y-6">
+  {/* 页面内容 */}
+</div>
+```
+
+- **页边距**：统一使用 `p-6`（24px），不得使用 `max-w-7xl mx-auto` 等额外宽度限制
+- **内容间距**：统一使用 `space-y-6`
+
+### 19.2 页面标题区域
+
+```tsx
+<div className="flex items-center justify-between">
+  <div>
+    <h1 className="text-3xl font-bold flex items-center gap-3">
+      <IconComponent className="w-8 h-8" />
+      {t('pageTitle')}
+    </h1>
+    <p className="text-muted-foreground mt-1">{t('pageDescription')}</p>
+  </div>
+  {/* 右侧操作按钮 */}
+</div>
+```
+
+- **标题字号**：统一使用 `text-3xl font-bold`
+- **标题 ICON**：直接使用图标组件，`className="w-8 h-8"`，**不加**背景容器（如 `rounded-xl bg-primary/10` 等）
+- **ICON 与标题**：通过 `flex items-center gap-3` 水平排列
+- **描述文字**：使用 `text-muted-foreground mt-1`，**不加** `text-sm`（继承默认字号）
+
+### 19.3 反面示例（禁止使用）
+
+```tsx
+// ❌ 错误：标题字号过小
+<h1 className="text-2xl font-bold">
+
+// ❌ 错误：ICON 带背景容器
+<div className="w-10 h-10 rounded-xl bg-primary/10">
+  <Icon className="w-5 h-5 text-primary" />
+</div>
+
+// ❌ 错误：描述文字加了 text-sm
+<p className="text-muted-foreground mt-1 text-sm">
+
+// ❌ 错误：根容器加了宽度限制
+<div className="p-6 space-y-6 max-w-7xl mx-auto">
+```
+
+### 19.4 参考页面
+
+[`AISkillsPage.tsx`](src/pages/AISkillsPage.tsx) 是排版标准参考页面，所有新页面和现有页面都应与其保持一致。
+
+---
+
+*文档版本: 2.3*
 *最后更新: 2026年*

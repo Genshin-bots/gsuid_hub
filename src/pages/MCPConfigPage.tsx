@@ -343,20 +343,15 @@ export default function MCPConfigPage() {
 
   return (
     <TooltipProvider>
-      <div className="space-y-6">
+      <div className="p-6 space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className={cn(
-              "w-10 h-10 rounded-xl flex items-center justify-center transition-transform duration-300",
-              "bg-primary/10"
-            )}>
-              <Server className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold">{t('mcpConfig.title')}</h1>
-              <p className="text-sm text-muted-foreground">{t('mcpConfig.description')}</p>
-            </div>
+          <div>
+            <h1 className="text-3xl font-bold flex items-center gap-3">
+              <Server className="w-8 h-8" />
+              {t('mcpConfig.title')}
+            </h1>
+            <p className="text-muted-foreground mt-1">{t('mcpConfig.description')}</p>
           </div>
           <div className="flex items-center gap-2">
             <Tooltip>

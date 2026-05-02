@@ -1,4 +1,4 @@
-import { LayoutDashboard, Database, Settings, FileText, LogOut, Palette, Terminal, Calendar, Store, Cpu, HardDrive, PanelLeftClose, PanelLeft, Cog, Power, RotateCw, Globe, User, Brain, ChevronDown, ChevronRight, Wrench, Sparkles, BookOpen, MessageSquare, History, TrendingUp, Clock, Server } from 'lucide-react';
+import { LayoutDashboard, Database, Settings, FileText, LogOut, Palette, Terminal, Calendar, Store, Cpu, HardDrive, PanelLeftClose, PanelLeft, Cog, Power, RotateCw, Globe, User, Brain, ChevronDown, ChevronRight, Wrench, Sparkles, BookOpen, MessageSquare, History, TrendingUp, Clock, Server, GitBranch } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -37,7 +37,7 @@ interface NavItem {
 }
 
 // 静态导航配置 - 避免每次渲染重新创建
-const NAV_ITEMS_KEYS = ['dashboard', 'database', 'adminCore', 'logsView', 'aiConfig', 'aiPersona', 'plugins', 'pluginStore', 'consoleManagement'] as const;
+const NAV_ITEMS_KEYS = ['dashboard', 'database', 'adminCore', 'logsView', 'aiConfig', 'aiPersona', 'plugins', 'pluginStore', 'gitUpdate', 'consoleManagement'] as const;
 
 // 图标映射 - 使用静态对象避免每次渲染重新创建
 const ICON_MAP: Record<string, React.ElementType> = {
@@ -55,6 +55,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   Palette,
   User,
   Server,
+  GitBranch,
 };
 
 // 导航项配置
@@ -98,6 +99,7 @@ const getNavItems = (t: (key: string) => string): NavItem[] => [
   },
   { title: t('sidebar.plugins'), url: '/plugins', icon: Settings },
   { title: t('sidebar.pluginStore'), url: '/plugin-store', icon: Store },
+  { title: t('sidebar.gitUpdate'), url: '/git-update', icon: GitBranch },
   {
     title: t('sidebar.consoleManagement'),
     icon: Settings,

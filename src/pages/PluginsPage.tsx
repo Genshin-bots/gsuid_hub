@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
@@ -72,6 +72,9 @@ export default function PluginsPage() {
   const [pluginList, setPluginList] = useState<PluginListItem[]>([]);
   const [plugins, setPlugins] = useState<Plugin[]>([]);
   const [selectedPluginId, setSelectedPluginId] = useState<string>('');
+  
+  // 用于跟踪当前正在加载的插件ID，防止竞态条件
+  const loadingPluginIdRef = useRef<string | null>(null);
   const [selectedConfigName, setSelectedConfigName] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
@@ -136,9 +139,19 @@ export default function PluginsPage() {
 
   // Fetch plugin detail for a specific plugin
   const fetchPluginDetail = async (pluginName: string) => {
+    const requestId = pluginName; // 用插件名作为请求ID
+    loadingPluginIdRef.current = requestId;
+    
     try {
       setIsLoadingDetail(true);
       const data = await pluginsApi.getPlugin(pluginName);
+      
+      // 竞态条件检查：如果当前正在加载的不是这个请求，则忽略响应
+      if (loadingPluginIdRef.current !== requestId) {
+        console.log(`Ignored stale response for plugin: ${pluginName}`);
+        return;
+      }
+      
       const converted = convertToPlugin(data);
       
       setPlugins(prev => {
@@ -148,7 +161,8 @@ export default function PluginsPage() {
       });
       
       // If this is the selected plugin, set original config
-      if (data.id === selectedPluginId) {
+      // 再次检查 selectedPluginId 是否仍然匹配，防止慢请求覆盖快请求的数据
+      if (data.id === selectedPluginId && loadingPluginIdRef.current === requestId) {
         setOriginalConfig({
           config: JSON.parse(JSON.stringify(converted.config)),
           groups: JSON.parse(JSON.stringify(converted.config_groups || []))
@@ -183,7 +197,11 @@ export default function PluginsPage() {
         variant: 'destructive'
       });
     } finally {
-      setIsLoadingDetail(false);
+      // 只有当前请求ID匹配时才清除加载状态
+      if (loadingPluginIdRef.current === requestId) {
+        loadingPluginIdRef.current = null;
+        setIsLoadingDetail(false);
+      }
     }
   };
 
@@ -208,36 +226,43 @@ export default function PluginsPage() {
 
   // Update original state when selected plugin detail changes
   useEffect(() => {
-    if (selectedPlugin) {
-      setOriginalConfig({
-        config: JSON.parse(JSON.stringify(selectedPlugin.config)),
-        groups: JSON.parse(JSON.stringify(selectedPlugin.config_groups || []))
-      });
-      
-      const processedServiceConfig = selectedPlugin.service_config ? {
-        ...selectedPlugin.service_config,
-        prefix: filterEmptyPrefix(selectedPlugin.service_config.prefix)
-      } : null;
-      
-      setOriginalServiceConfig(JSON.parse(JSON.stringify(processedServiceConfig)));
-      setOriginalSvList(JSON.parse(JSON.stringify(selectedPlugin.sv_list || [])));
-      setEditedServiceConfig({
-        ...(processedServiceConfig || {}),
-        enabled: selectedPlugin.enabled ?? true
-      });
-      setEditedSvList(JSON.parse(JSON.stringify(selectedPlugin.sv_list || [])));
-      setOriginalEnabled(selectedPlugin.enabled ?? true);
-      setEditedEnabled(selectedPlugin.enabled ?? true);
-
-      if (selectedPlugin.config_names && selectedPlugin.config_names.length > 0) {
-        if (!selectedConfigName || !selectedPlugin.config_names.includes(selectedConfigName)) {
-          setSelectedConfigName(selectedPlugin.config_names[0]);
-        }
-      } else {
-        setSelectedConfigName(null);
-      }
+    // 竞态条件检查：确保当前加载的插件与 selectedPlugin 匹配
+    if (!selectedPlugin || loadingPluginIdRef.current === null) return;
+    
+    // 如果当前正在加载的插件ID与 selectedPlugin 的 ID 不匹配，说明已经有新的请求在执行
+    // 应该等待新请求完成，而不是用旧数据覆盖
+    if (loadingPluginIdRef.current !== selectedPlugin.id) {
+      return;
     }
-  }, [selectedPlugin?.id]);
+    
+    setOriginalConfig({
+      config: JSON.parse(JSON.stringify(selectedPlugin.config)),
+      groups: JSON.parse(JSON.stringify(selectedPlugin.config_groups || []))
+    });
+    
+    const processedServiceConfig = selectedPlugin.service_config ? {
+      ...selectedPlugin.service_config,
+      prefix: filterEmptyPrefix(selectedPlugin.service_config.prefix)
+    } : null;
+    
+    setOriginalServiceConfig(JSON.parse(JSON.stringify(processedServiceConfig)));
+    setOriginalSvList(JSON.parse(JSON.stringify(selectedPlugin.sv_list || [])));
+    setEditedServiceConfig({
+      ...(processedServiceConfig || {}),
+      enabled: selectedPlugin.enabled ?? true
+    });
+    setEditedSvList(JSON.parse(JSON.stringify(selectedPlugin.sv_list || [])));
+    setOriginalEnabled(selectedPlugin.enabled ?? true);
+    setEditedEnabled(selectedPlugin.enabled ?? true);
+
+    if (selectedPlugin.config_names && selectedPlugin.config_names.length > 0) {
+      if (!selectedConfigName || !selectedPlugin.config_names.includes(selectedConfigName)) {
+        setSelectedConfigName(selectedPlugin.config_names[0]);
+      }
+    } else {
+      setSelectedConfigName(null);
+    }
+  }, [selectedPlugin?.id, selectedPlugin, selectedConfigName]);
 
   const updateConfigValue = useCallback((pluginId: string, fieldKey: string, value: ConfigValue, groupName: string | null) => {
     setPlugins((prev) =>
