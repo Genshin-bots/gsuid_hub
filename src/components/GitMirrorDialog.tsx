@@ -80,7 +80,7 @@ function isSshUrl(url: string): boolean {
 }
 
 /** 根据 mirror 字段和 remote_url 获取镜像状态的 Badge 颜色和图标 */
-function getMirrorBadge(mirror: string, remoteUrl: string, t: (key: string) => string) {
+export function getMirrorBadge(mirror: string, remoteUrl: string, t: (key: string) => string) {
   // 优先检测 SSH URL（无论后端返回什么 mirror 值，只要 URL 是 SSH 格式就显示 SSH）
   if (remoteUrl && isSshUrl(remoteUrl)) {
     return {

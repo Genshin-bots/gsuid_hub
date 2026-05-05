@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
@@ -7,18 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
 import { Progress } from '@/components/ui/progress';
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-} from 'recharts';
+import { EChartsWrapper, CHART_PALETTE } from '@/components/charts';
+import type { EChartsOption } from 'echarts';
 import {
   Coins,
   Clock,
@@ -138,9 +128,6 @@ interface StatisticsSummary {
   persona_leaderboard: PersonaLeaderboard[];
   active_users: ActiveUser[];
 }
-
-// 颜色配置
-const CHART_COLORS = ['#6366f1', '#8b5cf6', '#a855f7', '#d946ef', '#ec4899', '#f43f5e'];
 
 // ============================================================================
 // API 函数
@@ -298,6 +285,177 @@ export default function AIStatisticsPage() {
     output: item.output_tokens ?? 0,
   }));
 
+  // ============================================================================
+  // ECharts 配置
+  // ============================================================================
+
+  // 意图分布 - 环形图
+  const intentPieOption = useMemo<EChartsOption>(() => ({
+    animationDuration: 1000,
+    animationEasing: 'cubicOut' as const,
+    tooltip: {
+      trigger: 'item',
+      formatter: '{b}: {c} ({d}%)',
+    },
+    legend: {
+      orient: 'vertical',
+      right: '2%',
+      top: 'center',
+      textStyle: { fontSize: 11 },
+      itemGap: 8,
+    },
+    series: [
+      {
+        type: 'pie',
+        radius: ['40%', '65%'],
+        center: ['35%', '50%'],
+        avoidLabelOverlap: false,
+        itemStyle: {
+          borderRadius: 6,
+          borderColor: 'transparent',
+          borderWidth: 2,
+        },
+        label: {
+          show: false,
+          position: 'center',
+        },
+        labelLine: {
+          show: false,
+        },
+        emphasis: {
+          scale: true,
+          scaleSize: 8,
+          label: {
+            show: true,
+            fontSize: 13,
+            fontWeight: 'bold',
+            formatter: '{b}\n{d}%',
+          },
+          itemStyle: {
+            shadowBlur: 10,
+            shadowOffsetX: 0,
+            shadowColor: 'rgba(0, 0, 0, 0.2)',
+          },
+        },
+        data: intentChartData.map((item, index) => ({
+          name: item.name,
+          value: item.value,
+          itemStyle: { color: CHART_PALETTE[index % CHART_PALETTE.length] },
+        })),
+      },
+    ],
+  }), [intentChartData]);
+
+  // 触发方式分布 - 水平柱状图
+  const triggerBarOption = useMemo<EChartsOption>(() => ({
+    animationDuration: 800,
+    animationEasing: 'cubicOut' as const,
+    grid: { left: '3%', right: '10%', bottom: '8%', top: '8%', containLabel: true },
+    xAxis: { type: 'value' },
+    yAxis: {
+      type: 'category',
+      data: triggerChartData.map(d => d.name),
+      axisLabel: { fontSize: 11 },
+    },
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+    series: [
+      {
+        type: 'bar',
+        data: triggerChartData.map((d, i) => ({
+          value: d.value,
+          itemStyle: { color: CHART_PALETTE[i % CHART_PALETTE.length] },
+        })),
+        barMaxWidth: 24,
+        itemStyle: { borderRadius: [0, 4, 4, 0] },
+        emphasis: { focus: 'series' },
+        label: {
+          show: true,
+          position: 'right',
+          formatter: '{c}',
+          fontSize: 11,
+        },
+      },
+    ],
+  }), [triggerChartData]);
+
+  // Token by Model - 分组柱状图
+  const tokenModelOption = useMemo<EChartsOption>(() => ({
+    animationDuration: 800,
+    animationEasing: 'cubicOut' as const,
+    grid: { left: '3%', right: '4%', bottom: '12%', top: '15%', containLabel: true },
+    xAxis: {
+      type: 'category',
+      data: tokenModelChartData.map(d => d.name),
+      axisLabel: { rotate: tokenModelChartData.length > 5 ? 30 : 0, fontSize: 11 },
+    },
+    yAxis: { type: 'value' },
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+    legend: {
+      data: [
+        { name: t('aiStatistics.inputTokens'), icon: 'roundRect' },
+        { name: t('aiStatistics.outputTokens'), icon: 'roundRect' },
+      ],
+      bottom: 0,
+    },
+    series: [
+      {
+        name: t('aiStatistics.inputTokens'),
+        type: 'bar',
+        data: tokenModelChartData.map(d => d.input),
+        barMaxWidth: 30,
+        itemStyle: { borderRadius: [4, 4, 0, 0] },
+        emphasis: { focus: 'series' },
+      },
+      {
+        name: t('aiStatistics.outputTokens'),
+        type: 'bar',
+        data: tokenModelChartData.map(d => d.output),
+        barMaxWidth: 30,
+        itemStyle: { borderRadius: [4, 4, 0, 0] },
+        emphasis: { focus: 'series' },
+      },
+    ],
+  }), [tokenModelChartData, t]);
+
+  // Token by Type - 分组柱状图
+  const tokenTypeOption = useMemo<EChartsOption>(() => ({
+    animationDuration: 800,
+    animationEasing: 'cubicOut' as const,
+    grid: { left: '3%', right: '4%', bottom: '12%', top: '15%', containLabel: true },
+    xAxis: {
+      type: 'category',
+      data: tokenTypeChartData.map(d => d.name),
+      axisLabel: { fontSize: 11 },
+    },
+    yAxis: { type: 'value' },
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+    legend: {
+      data: [
+        { name: t('aiStatistics.inputTokens'), icon: 'roundRect' },
+        { name: t('aiStatistics.outputTokens'), icon: 'roundRect' },
+      ],
+      bottom: 0,
+    },
+    series: [
+      {
+        name: t('aiStatistics.inputTokens'),
+        type: 'bar',
+        data: tokenTypeChartData.map(d => d.input),
+        barMaxWidth: 30,
+        itemStyle: { borderRadius: [4, 4, 0, 0] },
+        emphasis: { focus: 'series' },
+      },
+      {
+        name: t('aiStatistics.outputTokens'),
+        type: 'bar',
+        data: tokenTypeChartData.map(d => d.output),
+        barMaxWidth: 30,
+        itemStyle: { borderRadius: [4, 4, 0, 0] },
+        emphasis: { focus: 'series' },
+      },
+    ],
+  }), [tokenTypeChartData, t]);
+
   return (
     <div className="space-y-6">
       {/* 页面标题 */}
@@ -428,24 +586,7 @@ export default function AIStatisticsPage() {
                   <CardContent>
                     <div className="h-[200px]">
                       {intentChartData.length > 0 ? (
-                        <ResponsiveContainer width="100%" height="100%">
-                          <PieChart>
-                            <Pie
-                              data={intentChartData}
-                              cx="50%"
-                              cy="50%"
-                              innerRadius={60}
-                              outerRadius={80}
-                              dataKey="value"
-                              label={({ name, percentage }) => `${name} (${(percentage ?? 0).toFixed(1)}%)`}
-                            >
-                              {intentChartData.map((_, index) => (
-                                <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                              ))}
-                            </Pie>
-                            <Tooltip />
-                          </PieChart>
-                        </ResponsiveContainer>
+                        <EChartsWrapper option={intentPieOption} height={200} />
                       ) : (
                         <div className="flex items-center justify-center h-full text-muted-foreground">
                           {t('common.noData')}
@@ -466,15 +607,7 @@ export default function AIStatisticsPage() {
                   <CardContent>
                     <div className="h-[200px]">
                       {triggerChartData.length > 0 ? (
-                        <ResponsiveContainer width="100%" height="100%">
-                          <BarChart data={triggerChartData} layout="vertical">
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis type="number" />
-                            <YAxis dataKey="name" type="category" width={80} />
-                            <Tooltip />
-                            <Bar dataKey="value" fill={CHART_COLORS[0]} radius={[0, 4, 4, 0]} />
-                          </BarChart>
-                        </ResponsiveContainer>
+                        <EChartsWrapper option={triggerBarOption} height={200} />
                       ) : (
                         <div className="flex items-center justify-center h-full text-muted-foreground">
                           {t('common.noData')}
@@ -560,16 +693,7 @@ export default function AIStatisticsPage() {
                   <CardContent>
                     <div className="h-[300px]">
                       {tokenModelChartData.length > 0 ? (
-                        <ResponsiveContainer width="100%" height="100%">
-                          <BarChart data={tokenModelChartData}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="name" />
-                            <YAxis />
-                            <Tooltip />
-                            <Bar dataKey="input" name={t('aiStatistics.inputTokens')} fill={CHART_COLORS[0]} />
-                            <Bar dataKey="output" name={t('aiStatistics.outputTokens')} fill={CHART_COLORS[1]} />
-                          </BarChart>
-                        </ResponsiveContainer>
+                        <EChartsWrapper option={tokenModelOption} height={300} />
                       ) : (
                         <div className="flex items-center justify-center h-full text-muted-foreground">
                           {t('common.noData')}
@@ -590,16 +714,7 @@ export default function AIStatisticsPage() {
                   <CardContent>
                     <div className="h-[300px]">
                       {tokenTypeChartData.length > 0 ? (
-                        <ResponsiveContainer width="100%" height="100%">
-                          <BarChart data={tokenTypeChartData}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="name" />
-                            <YAxis />
-                            <Tooltip />
-                            <Bar dataKey="input" name={t('aiStatistics.inputTokens')} fill={CHART_COLORS[2]} />
-                            <Bar dataKey="output" name={t('aiStatistics.outputTokens')} fill={CHART_COLORS[3]} />
-                          </BarChart>
-                        </ResponsiveContainer>
+                        <EChartsWrapper option={tokenTypeOption} height={300} />
                       ) : (
                         <div className="flex items-center justify-center h-full text-muted-foreground">
                           {t('common.noData')}

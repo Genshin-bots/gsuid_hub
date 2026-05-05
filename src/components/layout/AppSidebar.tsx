@@ -1,4 +1,4 @@
-import { LayoutDashboard, Database, Settings, FileText, LogOut, Palette, Terminal, Calendar, Store, Cpu, HardDrive, PanelLeftClose, PanelLeft, Cog, Power, RotateCw, Globe, User, Brain, ChevronDown, ChevronRight, Wrench, Sparkles, BookOpen, MessageSquare, History, TrendingUp, Clock, Server, GitBranch } from 'lucide-react';
+import { LayoutDashboard, Database, Settings, FileText, LogOut, Palette, Terminal, Calendar, Store, Cpu, HardDrive, PanelLeftClose, PanelLeft, Cog, Power, RotateCw, Globe, User, Brain, ChevronDown, ChevronRight, Wrench, Sparkles, BookOpen, MessageSquare, History, TrendingUp, Clock, Server, GitBranch, Image as ImageIcon } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -48,6 +48,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   HardDrive,
   Calendar,
   FileText,
+  ImageIcon,
   Terminal,
   Brain,
   Settings,
@@ -92,6 +93,7 @@ const getNavItems = (t: (key: string) => string): NavItem[] => [
       { title: t('sidebar.aiStatistics'), url: '/ai-statistics', icon: TrendingUp },
       { title: t('sidebar.aiScheduledTasks'), url: '/ai-scheduled-tasks', icon: Clock },
       { title: t('sidebar.aiKnowledge'), url: '/ai-knowledge', icon: BookOpen },
+      { title: t('sidebar.aiMeme'), url: '/ai-meme', icon: ImageIcon },
       { title: t('sidebar.aiMemory'), url: '/ai-memory', icon: Brain },
       { title: t('sidebar.systemPrompt'), url: '/system-prompt', icon: MessageSquare },
       { title: t('sidebar.sessionManagement'), url: '/session-management', icon: History }
@@ -295,7 +297,7 @@ export function AppSidebar() {
               <div className="flex flex-col">
                 <div className="flex items-center gap-1">
                   <span className="font-bold text-lg">{t('sidebar.gsCore')}</span>
-                  <Badge variant="default" className="text-xs font-medium">v{import.meta.env.PACKAGE_VERSION || '0.0.8'}</Badge>
+                  <Badge variant="default" className="text-xs font-medium">v{import.meta.env.PACKAGE_VERSION || '0.0.9'}</Badge>
                 </div>
                 <span className="text-xs text-muted-foreground">​{t('sidebar.早柚核心')}</span>
               </div>

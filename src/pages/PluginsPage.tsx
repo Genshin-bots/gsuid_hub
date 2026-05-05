@@ -12,11 +12,27 @@ import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
-import { Settings, Loader2, ChevronDown, Save, Server, Cog, LayoutGrid, Users, Shield, Filter, Zap, MessageSquare, Key, Command } from 'lucide-react';
+import { Settings, Loader2, ChevronDown, Save, Server, LayoutGrid, Users, Shield, Filter, Zap, MessageSquare, Key, Command, Package } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ConfigField, ConfigFieldDefinition, ConfigValue, ConfigFieldType } from '@/components/config';
-import { pluginsApi, Plugin, ServiceConfig, SvItem, SvCommand, PluginConfigItem, PluginConfigGroup, PluginListItem } from '@/lib/api';
+import { pluginsApi, Plugin, ServiceConfig, SvItem, SvCommand, PluginConfigItem, PluginConfigGroup, PluginListItem, getPluginIconUrl } from '@/lib/api';
 import { toast } from '@/hooks/use-toast';
+
+// 带 fallback 的插件图标组件
+function PluginIcon({ pluginName, className = 'w-[18px] h-[18px]' }: { pluginName: string; className?: string }) {
+  const [imgError, setImgError] = useState(false);
+  if (imgError) {
+    return <Package className={`${className} text-muted-foreground/50`} />;
+  }
+  return (
+    <img
+      src={getPluginIconUrl(pluginName)}
+      className={`${className} rounded-sm object-contain`}
+      alt=""
+      onError={() => setImgError(true)}
+    />
+  );
+}
 
 // Convert API plugin to local plugin type
 const convertToPlugin = (plugin: Plugin): any => {
@@ -385,10 +401,8 @@ export default function PluginsPage() {
         options={pluginList.map((plugin) => ({
           value: plugin.id,
           label: plugin.name,
-          icon: plugin.icon ? (
-            <img src={plugin.icon} className="w-4 h-4 rounded-sm" alt="" />
-          ) : (
-            <Cog className="w-4 h-4" />
+          icon: (
+            <PluginIcon pluginName={plugin.name} />
           ),
         }))}
         value={selectedPluginId}
@@ -408,11 +422,7 @@ export default function PluginsPage() {
           <div className="p-6 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center overflow-hidden">
-                {selectedPlugin.icon ? (
-                  <img src={selectedPlugin.icon} className="w-10 h-10 object-contain" alt="" />
-                ) : (
-                  <Settings className="w-6 h-6 text-primary" />
-                )}
+                <PluginIcon pluginName={selectedPlugin.name} className="w-10 h-10" />
               </div>
               <div>
                 <h3 className="text-xl font-bold">{selectedPlugin.name}</h3>

@@ -32,6 +32,7 @@ import AIStatisticsPage from "@/pages/AIStatisticsPage";
 import AIMemoryPage from "@/pages/AIMemoryPage";
 import AIScheduledTasksPage from "@/pages/AIScheduledTasksPage";
 import AIKnowledgePage from "@/pages/AIKnowledgePage";
+import AIMemePage from "@/pages/AIMemePage";
 import SystemPromptPage from "@/pages/SystemPromptPage";
 import SessionManagementPage from "@/pages/SessionManagementPage";
 import MCPConfigPage from "@/pages/MCPConfigPage";
@@ -94,6 +95,7 @@ function AppRoutes() {
         <Route path="ai-statistics" element={<AIStatisticsPage />} />
         <Route path="ai-scheduled-tasks" element={<AIScheduledTasksPage />} />
         <Route path="ai-knowledge" element={<AIKnowledgePage />} />
+        <Route path="ai-meme" element={<AIMemePage />} />
         <Route path="ai-memory" element={<AIMemoryPage />} />
         <Route path="system-prompt" element={<SystemPromptPage />} />
         <Route path="session-management" element={<SessionManagementPage />} />

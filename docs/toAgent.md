@@ -929,6 +929,53 @@ interface ChipGroupProps {
 />
 ```
 
+#### TagsInput (`src/components/config/TagsInput.tsx`)
+
+标签输入组件，用于管理字符串标签列表。支持搜索已添加标签、回车添加自定义标签、可选标签列表选择。**所有需要标签/关键词输入的场景必须使用此组件，禁止自行实现标签输入 UI。**
+
+```tsx
+// 类型定义
+interface TagsInputProps {
+  value: string[];
+  onChange: (value: string[]) => void;
+  placeholder?: string;
+  disabled?: boolean;
+  options?: string[];  // 可选的预设标签列表
+}
+```
+
+**使用示例：**
+
+```tsx
+import { TagsInput } from '@/components/config/TagsInput';
+
+// 基本用法 - 自由输入标签
+<TagsInput
+  value={tags}
+  onChange={setTags}
+/>
+
+// 带预设选项
+<TagsInput
+  value={tags}
+  onChange={setTags}
+  options={['搞笑', '无语', '开心', '吐槽']}
+/>
+
+// 配合 Label 使用
+<div className="space-y-1.5">
+  <Label className="text-xs font-medium text-muted-foreground">情绪标签</Label>
+  <TagsInput value={emotionTags} onChange={setEmotionTags} />
+</div>
+```
+
+**功能特性：**
+- 已添加标签以 chip 形式展示，支持点击删除
+- 点击「更多」按钮打开 Popover，可搜索已添加标签
+- 在 Popover 搜索框中输入新标签后回车即可添加
+- 如提供 `options` 参数，Popover 中会显示可选标签列表
+- 支持复制标签文本
+
 ### 11.4 关键实现
 
 1. **层级化的配置结构**
@@ -1596,5 +1643,120 @@ function isSshUrl(url: string): boolean {
 
 ---
 
-*文档版本: 2.3*
+## 20. Switch 组件 UX 规范
+
+### 20.1 组件位置
+
+```
+src/components/ui/switch.tsx
+```
+
+### 20.2 默认样式
+
+Switch 组件已在组件层面内置了主题色行为：
+
+```tsx
+// 组件内部已包含以下默认样式
+"data-[state=checked]:bg-primary data-[state=unchecked]:bg-input aria-[checked=true]:bg-primary aria-[checked=false]:bg-input"
+```
+
+- **选中状态**：使用主题色 `bg-primary`（自动适配亮/暗模式）
+- **未选中状态**：使用 `bg-input`（灰色输入框背景色）
+
+### 20.3 Tooltip + Switch 兼容性问题
+
+**⚠️ 重要**：当 Switch 被 `TooltipTrigger asChild` 包裹时，Radix UI 的 Tooltip 会将自己的 `data-state`（`closed`/`open`）覆盖到子元素上，导致 Switch 的 `data-state`（`checked`/`unchecked`）被覆盖，`data-[state=checked]:bg-primary` 选择器失效。
+
+**解决方案**：用 `<span>` 包裹 Switch，让 Tooltip 的 `data-state` 作用在 `<span>` 上而不是 Switch 上：
+
+```tsx
+// ✅ 正确：用 span 包裹，避免 data-state 被覆盖
+<Tooltip>
+  <TooltipTrigger asChild>
+    <span>
+      <Switch checked={enabled} onCheckedChange={setEnabled} />
+    </span>
+  </TooltipTrigger>
+  <TooltipContent>
+    <p>提示文字</p>
+  </TooltipContent>
+</Tooltip>
+
+// ❌ 错误：Switch 直接作为 asChild 子元素，data-state 会被 Tooltip 覆盖
+<Tooltip>
+  <TooltipTrigger asChild>
+    <Switch checked={enabled} onCheckedChange={setEnabled} />
+  </TooltipTrigger>
+  <TooltipContent>
+    <p>提示文字</p>
+  </TooltipContent>
+</Tooltip>
+```
+
+**受影响的场景**：
+- 任何使用 `<TooltipTrigger asChild><Switch ... /></TooltipTrigger>` 的地方
+- 任何使用 `asChild` 并可能覆盖 `data-state` 的 Radix UI 组件
+
+### 20.3 使用规则
+
+#### ✅ 正确用法 - 直接使用，无需额外 className
+
+```tsx
+<Switch
+  checked={isEnabled}
+  onCheckedChange={setIsEnabled}
+/>
+```
+
+#### ❌ 错误用法 - 不要手动覆盖主题色
+
+```tsx
+// 不要这样做！组件已内置主题色
+<Switch
+  checked={isEnabled}
+  onCheckedChange={setIsEnabled}
+  className="data-[state=checked]:bg-primary"  // 冗余！
+/>
+
+// 不要使用硬编码颜色
+<Switch
+  className="data-[state=checked]:bg-green-500"  // 禁止！
+/>
+```
+
+#### ✅ 允许的额外 className
+
+只允许添加不影响颜色的样式，如尺寸调整：
+
+```tsx
+<Switch
+  checked={isAIEnabled}
+  onCheckedChange={handleToggle}
+  className="scale-110"  // 仅调整大小，不影响颜色
+/>
+```
+
+### 20.4 特殊场景
+
+如果某个 Switch 需要使用非主题色（如红色表示危险操作），必须有明确的设计理由，并在代码注释中说明：
+
+```tsx
+// 危险操作开关使用红色主题
+<Switch
+  checked={isDangerous}
+  onCheckedChange={handleToggle}
+  className="data-[state=checked]:bg-destructive"
+/>
+```
+
+### 20.5 检查清单
+
+- [ ] Switch 选中状态是否使用主题色（`bg-primary`）
+- [ ] Switch 未选中状态是否使用灰色（`bg-input`）
+- [ ] 是否有冗余的 `data-[state=checked]:bg-primary` className
+- [ ] 是否有硬编码的颜色值（如 `bg-green-500`、`bg-red-500`）
+
+---
+
+*文档版本: 2.4*
 *最后更新: 2026年*

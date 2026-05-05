@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
+import GitMirrorDialog, { getMirrorBadge } from '@/components/GitMirrorDialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,32 +28,104 @@ import {
   AlertTriangle,
   CheckCircle2,
   ChevronDown,
-  Cog,
+  Package,
+  MessageSquare,
+  Link,
+  Globe,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import {
   gitUpdateApi,
-  pluginsApi,
+  gitMirrorApi,
   GitPluginStatus,
   GitCommitInfo,
   GitCommitListResponse,
-  PluginListItem,
+  GitPluginInfo,
+  getPluginIconUrl,
 } from '@/lib/api';
 
 const PAGE_SIZE = 20;
+
+// 带 fallback 的插件图标组件
+function PluginIcon({ pluginName, className = 'w-[18px] h-[18px]' }: { pluginName: string; className?: string }) {
+  const [imgError, setImgError] = useState(false);
+  if (imgError) {
+    return <Package className={`${className} text-muted-foreground/50`} />;
+  }
+  return (
+    <img
+      src={getPluginIconUrl(pluginName)}
+      className={`${className} rounded-sm object-contain`}
+      alt=""
+      onError={() => setImgError(true)}
+    />
+  );
+}
+
+// 缓存相关常量
+const GIT_STATUS_CACHE_KEY = 'gitUpdate_status_cache';
+const GIT_COMMITS_CACHE_PREFIX = 'gitUpdate_commits_';
+const GIT_CACHE_TTL = 24 * 60 * 60 * 1000; // 24小时
+
+interface CacheEntry<T> {
+  data: T;
+  timestamp: number;
+}
+
+function getCachedData<T>(key: string): T | null {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    const entry: CacheEntry<T> = JSON.parse(raw);
+    if (Date.now() - entry.timestamp > GIT_CACHE_TTL) {
+      localStorage.removeItem(key);
+      return null;
+    }
+    return entry.data;
+  } catch {
+    return null;
+  }
+}
+
+function setCachedData<T>(key: string, data: T): void {
+  try {
+    const entry: CacheEntry<T> = { data, timestamp: Date.now() };
+    localStorage.setItem(key, JSON.stringify(entry));
+  } catch {
+    // localStorage 满或其他错误，静默忽略
+  }
+}
+
+function clearCommitsCache(pluginName?: string) {
+  if (pluginName) {
+    localStorage.removeItem(GIT_COMMITS_CACHE_PREFIX + pluginName);
+  } else {
+    // 清除所有 commits 缓存
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key?.startsWith(GIT_COMMITS_CACHE_PREFIX)) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach(k => localStorage.removeItem(k));
+  }
+}
 
 // Memoized commit card for mobile
 const CommitCard = memo(function CommitCard({
   commit,
   isCurrent,
+  isFuture,
   isCheckingOut,
   onCheckout,
   t,
 }: {
   commit: GitCommitInfo;
   isCurrent: boolean;
+  isFuture: boolean;
   isCheckingOut: boolean;
   onCheckout: (commit: GitCommitInfo) => void;
   t: (key: string) => string;
@@ -76,14 +149,14 @@ const CommitCard = memo(function CommitCard({
           </div>
           {!isCurrent && (
             <Button
-              variant="outline"
+              variant={isFuture ? 'default' : 'outline'}
               size="sm"
               onClick={() => onCheckout(commit)}
               disabled={isCheckingOut}
               className="gap-1 text-xs h-7 whitespace-nowrap shrink-0"
             >
-              <RotateCcw className="w-3 h-3" />
-              {t('gitUpdate.checkoutToVersion')}
+              {isFuture ? <ArrowDownToLine className="w-3 h-3" /> : <RotateCcw className="w-3 h-3" />}
+              {isFuture ? t('gitUpdate.updateToVersion') : t('gitUpdate.checkoutToVersion')}
             </Button>
           )}
         </div>
@@ -107,12 +180,14 @@ const CommitCard = memo(function CommitCard({
 const CommitRow = memo(function CommitRow({
   commit,
   isCurrent,
+  isFuture,
   isCheckingOut,
   onCheckout,
   t,
 }: {
   commit: GitCommitInfo;
   isCurrent: boolean;
+  isFuture: boolean;
   isCheckingOut: boolean;
   onCheckout: (commit: GitCommitInfo) => void;
   t: (key: string) => string;
@@ -140,14 +215,14 @@ const CommitRow = memo(function CommitRow({
       <td className="p-3 text-right">
         {!isCurrent && (
           <Button
-            variant="outline"
+            variant={isFuture ? 'default' : 'outline'}
             size="sm"
             onClick={() => onCheckout(commit)}
             disabled={isCheckingOut}
             className="gap-1 whitespace-nowrap"
           >
-            <RotateCcw className="w-3 h-3" />
-            {t('gitUpdate.checkoutToVersion')}
+            {isFuture ? <ArrowDownToLine className="w-3 h-3" /> : <RotateCcw className="w-3 h-3" />}
+            {isFuture ? t('gitUpdate.updateToVersion') : t('gitUpdate.checkoutToVersion')}
           </Button>
         )}
       </td>
@@ -164,7 +239,7 @@ export default function GitUpdatePage() {
 
   // State
   const [plugins, setPlugins] = useState<GitPluginStatus[]>([]);
-  const [pluginIcons, setPluginIcons] = useState<Record<string, string>>({});
+  const [gitPluginsMap, setGitPluginsMap] = useState<Record<string, GitPluginInfo>>({});
   const [selectedPlugin, setSelectedPlugin] = useState<string>('');
   const [commitsData, setCommitsData] = useState<GitCommitListResponse | null>(null);
   const [isLoadingStatus, setIsLoadingStatus] = useState(true);
@@ -183,30 +258,37 @@ export default function GitUpdatePage() {
     commit: GitCommitInfo | null;
   }>({ open: false, commit: null });
   const [forceUpdateDialog, setForceUpdateDialog] = useState(false);
+  const [gitMirrorOpen, setGitMirrorOpen] = useState(false);
 
-  // Fetch all plugin statuses + icons (runs once on mount)
+  // Fetch all plugin statuses + icons (runs once on mount, with cache)
   useEffect(() => {
     let cancelled = false;
 
     async function load() {
+      // 尝试从缓存加载
+      const cached = getCachedData<GitPluginStatus[]>(GIT_STATUS_CACHE_KEY);
+      if (cached) {
+        if (cancelled) return;
+        const gitPlugins = cached.filter(p => p.is_git_repo);
+        setPlugins(gitPlugins);
+        if (gitPlugins.length > 0) {
+          const core = gitPlugins.find(p => p.name.toLowerCase() === 'gsuid_core');
+          setSelectedPlugin(core ? core.name : gitPlugins[0].name);
+        }
+        setIsLoadingStatus(false);
+        return;
+      }
+
       try {
         setIsLoadingStatus(true);
-        const [statusData, pluginList] = await Promise.all([
-          gitUpdateApi.getStatus(),
-          pluginsApi.getPluginList().catch(() => [] as PluginListItem[]),
-        ]);
+        const statusData = await gitUpdateApi.getStatus();
 
         if (cancelled) return;
 
         const gitPlugins = statusData.filter(p => p.is_git_repo);
         setPlugins(gitPlugins);
-
-        // Build icon map from plugin list
-        const iconMap: Record<string, string> = {};
-        pluginList.forEach((p: PluginListItem) => {
-          if (p.icon) iconMap[p.id.toLowerCase()] = p.icon;
-        });
-        setPluginIcons(iconMap);
+        // 写入缓存
+        setCachedData(GIT_STATUS_CACHE_KEY, statusData);
 
         // Set default selection
         if (gitPlugins.length > 0) {
@@ -231,17 +313,52 @@ export default function GitUpdatePage() {
     return () => { cancelled = true; };
   }, []); // Only run once on mount
 
-  // Fetch commits when plugin changes
+  // Fetch git mirror info for remote_url and mirror badge
+  useEffect(() => {
+    let cancelled = false;
+    async function loadMirrorInfo() {
+      try {
+        const data = await gitMirrorApi.getInfo();
+        if (cancelled) return;
+        const map: Record<string, GitPluginInfo> = {};
+        data.plugins.forEach(p => {
+          map[p.name.toLowerCase()] = p;
+        });
+        setGitPluginsMap(map);
+      } catch (error) {
+        console.error('Failed to fetch git mirror info:', error);
+      }
+    }
+    loadMirrorInfo();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Fetch commits when plugin changes (with cache)
   useEffect(() => {
     if (!selectedPlugin) return;
     let cancelled = false;
 
     async function loadCommits() {
+      // 尝试从缓存加载
+      const cacheKey = GIT_COMMITS_CACHE_PREFIX + selectedPlugin;
+      const cached = getCachedData<GitCommitListResponse>(cacheKey);
+      if (cached) {
+        if (cancelled) return;
+        setCommitsData(cached);
+        setDisplayCount(PAGE_SIZE);
+        setIsLoadingCommits(false);
+        return;
+      }
+
       try {
         setIsLoadingCommits(true);
         setDisplayCount(PAGE_SIZE);
         const data = await gitUpdateApi.getRemoteCommits(selectedPlugin);
-        if (!cancelled) setCommitsData(data);
+        if (!cancelled) {
+          setCommitsData(data);
+          // 写入缓存
+          setCachedData(cacheKey, data);
+        }
       } catch (error) {
         console.error('Failed to fetch commits:', error);
         if (!cancelled) {
@@ -261,13 +378,15 @@ export default function GitUpdatePage() {
     return () => { cancelled = true; };
   }, [selectedPlugin]); // Only depends on selectedPlugin
 
-  // Handle refresh
+  // Handle refresh (force refresh, bypass cache)
   const handleRefresh = useCallback(async () => {
     try {
       setIsLoadingStatus(true);
       const statusData = await gitUpdateApi.getStatus();
       const gitPlugins = statusData.filter(p => p.is_git_repo);
       setPlugins(gitPlugins);
+      // 更新缓存
+      setCachedData(GIT_STATUS_CACHE_KEY, statusData);
     } catch (error) {
       console.error('Failed to refresh:', error);
     } finally {
@@ -280,6 +399,8 @@ export default function GitUpdatePage() {
         setDisplayCount(PAGE_SIZE);
         const data = await gitUpdateApi.getRemoteCommits(selectedPluginRef.current);
         setCommitsData(data);
+        // 更新缓存
+        setCachedData(GIT_COMMITS_CACHE_PREFIX + selectedPluginRef.current, data);
       } catch (error) {
         console.error('Failed to refresh commits:', error);
       } finally {
@@ -298,9 +419,12 @@ export default function GitUpdatePage() {
         title: t('common.success'),
         description: t('gitUpdate.checkoutSuccess', { hash: checkoutDialog.commit.short_hash }),
       });
-      // Refresh commits
+      // 清除缓存并刷新 commits
+      clearCommitsCache(selectedPlugin);
+      localStorage.removeItem(GIT_STATUS_CACHE_KEY);
       const data = await gitUpdateApi.getRemoteCommits(selectedPlugin);
       setCommitsData(data);
+      setCachedData(GIT_COMMITS_CACHE_PREFIX + selectedPlugin, data);
     } catch (error) {
       console.error('Checkout failed:', error);
       toast({
@@ -326,8 +450,12 @@ export default function GitUpdatePage() {
           hash: result.current_commit?.short_hash || '',
         }),
       });
+      // 清除缓存并刷新
+      clearCommitsCache(selectedPlugin);
+      localStorage.removeItem(GIT_STATUS_CACHE_KEY);
       const data = await gitUpdateApi.getRemoteCommits(selectedPlugin);
       setCommitsData(data);
+      setCachedData(GIT_COMMITS_CACHE_PREFIX + selectedPlugin, data);
     } catch (error) {
       console.error('Force update failed:', error);
       toast({
@@ -343,6 +471,7 @@ export default function GitUpdatePage() {
 
   // Get current plugin status
   const currentPlugin = plugins.find(p => p.name === selectedPlugin);
+  const currentMirrorInfo = gitPluginsMap[selectedPlugin?.toLowerCase()] || null;
 
   // Format plugin display name
   const getPluginDisplayName = (name: string) => {
@@ -362,8 +491,33 @@ export default function GitUpdatePage() {
     setCheckoutDialog({ open: true, commit });
   }, []);
 
+  // Handle update all plugins
+  const handleUpdateAll = async () => {
+    try {
+      setIsForceUpdating(true);
+      await gitUpdateApi.updateAll();
+      toast({
+        title: t('common.success'),
+        description: t('gitUpdate.updateAllSuccess'),
+      });
+      // 清除所有缓存并刷新
+      clearCommitsCache();
+      await handleRefresh();
+    } catch (error) {
+      console.error('Failed to update all plugins:', error);
+      toast({
+        title: t('common.error'),
+        description: t('gitUpdate.updateAllFailed'),
+        variant: 'destructive',
+      });
+    } finally {
+      setIsForceUpdating(false);
+      setForceUpdateDialog(false);
+    }
+  };
+
   return (
-    <div className="space-y-4 flex-1 overflow-hidden p-4 sm:p-6 h-full flex flex-col">
+    <div className="space-y-4 flex-1 overflow-auto p-4 sm:p-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -375,22 +529,41 @@ export default function GitUpdatePage() {
             {t('gitUpdate.description')}
           </p>
         </div>
-        <Button
-          variant="outline"
-          onClick={handleRefresh}
-          disabled={isLoadingStatus || isLoadingCommits}
-          className="gap-2 self-start sm:self-auto"
-        >
-          <RefreshCw className={`w-4 h-4 ${(isLoadingStatus || isLoadingCommits) ? 'animate-spin' : ''}`} />
-          {t('gitUpdate.refresh')}
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setGitMirrorOpen(true)}
+            className="gap-2 self-start sm:self-auto"
+          >
+            <GitBranch className="w-4 h-4" />
+            {t('gitMirror.title')}
+          </Button>
+          <Button
+            variant="default"
+            onClick={handleUpdateAll}
+            disabled={isLoadingStatus || isForceUpdating}
+            className="gap-2 self-start sm:self-auto"
+          >
+            <Download className="w-4 h-4" />
+            {t('gitUpdate.updateAll')}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleRefresh}
+            disabled={isLoadingStatus || isLoadingCommits}
+            className="gap-2 self-start sm:self-auto"
+          >
+            <RefreshCw className={`w-4 h-4 ${(isLoadingStatus || isLoadingCommits) ? 'animate-spin' : ''}`} />
+            {t('gitUpdate.refresh')}
+          </Button>
+        </div>
       </div>
 
       {/* Plugin Selector - TabButtonGroup style */}
       {isLoadingStatus ? (
-        <div className="flex flex-wrap gap-1 p-1 bg-muted/50 rounded-lg border border-border/40">
+        <div className="flex flex-nowrap gap-1 p-1 bg-muted/50 rounded-lg border border-border/40 overflow-x-auto">
           {[1, 2, 3].map(i => (
-            <Skeleton key={i} className="h-9 w-24 rounded-md" />
+            <Skeleton key={i} className="h-9 w-24 rounded-md shrink-0" />
           ))}
         </div>
       ) : (
@@ -398,11 +571,7 @@ export default function GitUpdatePage() {
           options={plugins.map(plugin => ({
             value: plugin.name,
             label: getPluginDisplayName(plugin.name),
-            icon: pluginIcons[plugin.name.toLowerCase()] ? (
-              <img src={pluginIcons[plugin.name.toLowerCase()]} className="w-4 h-4 rounded-sm" alt="" />
-            ) : (
-              <Cog className="w-4 h-4" />
-            ),
+            icon: <PluginIcon pluginName={plugin.name} />,
           }))}
           value={selectedPlugin}
           onValueChange={setSelectedPlugin}
@@ -420,41 +589,69 @@ export default function GitUpdatePage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-              <div className="flex items-center gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="flex items-center gap-2 min-w-0">
                 <GitBranch className="w-4 h-4 text-muted-foreground shrink-0" />
-                <span className="text-sm text-muted-foreground">{t('gitUpdate.branch')}:</span>
+                <span className="text-sm text-muted-foreground whitespace-nowrap">{t('gitUpdate.branch')}:</span>
                 <Badge variant="secondary" className="whitespace-nowrap">{currentPlugin.branch}</Badge>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 min-w-0">
                 <GitCommit className="w-4 h-4 text-muted-foreground shrink-0" />
-                <span className="text-sm text-muted-foreground">{t('gitUpdate.commit')}:</span>
+                <span className="text-sm text-muted-foreground whitespace-nowrap">{t('gitUpdate.commit')}:</span>
                 <Badge variant="outline" className="font-mono whitespace-nowrap">
                   {currentPlugin.current_commit.short_hash}
                 </Badge>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 min-w-0">
                 <User className="w-4 h-4 text-muted-foreground shrink-0" />
-                <span className="text-sm text-muted-foreground">{t('gitUpdate.author')}:</span>
+                <span className="text-sm text-muted-foreground whitespace-nowrap">{t('gitUpdate.author')}:</span>
                 <span className="text-sm truncate">{currentPlugin.current_commit.author}</span>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 min-w-0">
                 <Calendar className="w-4 h-4 text-muted-foreground shrink-0" />
-                <span className="text-sm text-muted-foreground">{t('gitUpdate.date')}:</span>
-                <span className="text-sm truncate">{currentPlugin.current_commit.date}</span>
+                <span className="text-sm text-muted-foreground whitespace-nowrap">{t('gitUpdate.date')}:</span>
+                <span className="text-sm whitespace-nowrap">{currentPlugin.current_commit.date}</span>
               </div>
             </div>
-            <div className="mt-2 flex items-start gap-2">
-              <span className="text-sm text-muted-foreground shrink-0">{t('gitUpdate.message')}:</span>
-              <span className="text-sm">{currentPlugin.current_commit.message}</span>
+            <div className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="flex items-start gap-2 min-w-0 col-span-2">
+                <MessageSquare className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
+                <span className="text-sm">{currentPlugin.current_commit.message}</span>
+              </div>
+              {currentMirrorInfo?.remote_url && (
+                <div className="flex items-center gap-2 min-w-0">
+                  <Link className="w-4 h-4 text-muted-foreground shrink-0" />
+                  <Badge
+                    variant="outline"
+                    className="text-xs font-mono whitespace-nowrap"
+                    title={currentMirrorInfo.remote_url}
+                  >
+                    {currentMirrorInfo.remote_url.replace(/^https?:\/\//, '').split('/').slice(-2).join('/')}
+                  </Badge>
+                </div>
+              )}
+              {currentMirrorInfo?.remote_url && (
+                <div className="flex items-center gap-2 min-w-0">
+                  <Globe className="w-4 h-4 text-muted-foreground shrink-0" />
+                  {(() => {
+                    const badge = getMirrorBadge(currentMirrorInfo.mirror || 'unknown', currentMirrorInfo.remote_url, t);
+                    return (
+                      <Badge variant="outline" className={`text-xs whitespace-nowrap ${badge.className}`}>
+                        {badge.icon}
+                        <span className="ml-1">{badge.label}</span>
+                      </Badge>
+                    );
+                  })()}
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
       )}
 
       {/* Commit List */}
-      <Card className="glass-card flex-1 flex flex-col min-h-0 overflow-hidden">
-        <CardHeader className="pb-3 shrink-0">
+      <Card className="glass-card">
+        <CardHeader className="pb-3">
           <CardTitle className="text-base sm:text-lg flex items-center gap-2">
             <ArrowDownToLine className="w-5 h-5 text-primary" />
             {t('gitUpdate.remoteCommits')}
@@ -463,7 +660,7 @@ export default function GitUpdatePage() {
             {t('gitUpdate.detachedHeadWarning')}
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex-1 min-h-0 overflow-hidden p-0 sm:px-6 sm:pb-6">
+        <CardContent className="p-0 sm:px-6 sm:pb-6">
           {isLoadingCommits ? (
             <div className="space-y-3 p-4 sm:p-0">
               {[1, 2, 3, 4, 5].map(i => (
@@ -482,35 +679,37 @@ export default function GitUpdatePage() {
             </div>
           ) : isMobile ? (
             /* Mobile: Card layout */
-            <div className="h-full overflow-y-auto">
-              <div className="space-y-3 p-4">
-                {displayedCommits.map((commit) => (
+            <div className="space-y-3 p-4">
+              {(() => {
+                const currentIdx = allCommits.findIndex(c => c.hash === commitsData.current_hash);
+                return displayedCommits.map((commit, index) => (
                   <CommitCard
                     key={commit.hash}
                     commit={commit}
                     isCurrent={commit.hash === commitsData.current_hash}
+                    isFuture={currentIdx === -1 || index < currentIdx}
                     isCheckingOut={isCheckingOut}
                     onCheckout={handleCheckoutClick}
                     t={t}
                   />
-                ))}
-                {hasMore && (
-                  <div className="flex justify-center pt-2">
-                    <Button
-                      variant="outline"
-                      onClick={handleLoadMore}
-                      className="gap-2"
-                    >
-                      <ChevronDown className="w-4 h-4" />
-                      {t('gitUpdate.loadMore')} ({displayCount}/{allCommits.length})
-                    </Button>
-                  </div>
-                )}
-              </div>
+                ));
+              })()}
+              {hasMore && (
+                <div className="flex justify-center pt-2">
+                  <Button
+                    variant="outline"
+                    onClick={handleLoadMore}
+                    className="gap-2"
+                  >
+                    <ChevronDown className="w-4 h-4" />
+                    {t('gitUpdate.loadMore')} ({displayCount}/{allCommits.length})
+                  </Button>
+                </div>
+              )}
             </div>
           ) : (
             /* Desktop: Table layout */
-            <div className="h-full overflow-y-auto">
+            <div>
               <table className="w-full caption-bottom text-sm">
                 <thead className="sticky top-0 bg-background z-10">
                   <tr className="border-b border-border/50">
@@ -522,16 +721,20 @@ export default function GitUpdatePage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {displayedCommits.map((commit) => (
-                    <CommitRow
-                      key={commit.hash}
-                      commit={commit}
-                      isCurrent={commit.hash === commitsData.current_hash}
-                      isCheckingOut={isCheckingOut}
-                      onCheckout={handleCheckoutClick}
-                      t={t}
-                    />
-                  ))}
+                  {(() => {
+                    const currentIdx = allCommits.findIndex(c => c.hash === commitsData.current_hash);
+                    return displayedCommits.map((commit, index) => (
+                      <CommitRow
+                        key={commit.hash}
+                        commit={commit}
+                        isCurrent={commit.hash === commitsData.current_hash}
+                        isFuture={currentIdx === -1 || index < currentIdx}
+                        isCheckingOut={isCheckingOut}
+                        onCheckout={handleCheckoutClick}
+                        t={t}
+                      />
+                    ));
+                  })()}
                   {hasMore && (
                     <tr>
                       <td colSpan={5} className="text-center py-4">
@@ -630,6 +833,11 @@ export default function GitUpdatePage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <GitMirrorDialog
+        open={gitMirrorOpen}
+        onOpenChange={setGitMirrorOpen}
+      />
     </div>
   );
 }

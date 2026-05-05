@@ -369,11 +369,11 @@ export default function ThemesPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             {/* No Background Option */}
-            <div>
-              <Label className="text-sm mb-2 block">{t('themes.default')}</Label>
+            <div className="pb-4 border-b border-border">
+              <Label className="bg-primary/10 text-primary text-sm px-2 py-1 rounded-md font-medium mb-2 block">{t('themes.default')}</Label>
               <button
                 onClick={() => handleSelectBackground(null)}
-                className={`relative aspect-video w-24 rounded-lg overflow-hidden transition-all hover:scale-105 ${
+                className={`relative aspect-video w-32 sm:w-40 rounded-lg overflow-hidden transition-all hover:scale-105 ${
                   backgroundImage === null ? 'ring-2 ring-primary' : 'ring-1 ring-border'
                 }`}
               >
@@ -389,9 +389,9 @@ export default function ThemesPage() {
             </div>
 
             {/* ACGN Background Presets */}
-            <div>
-              <Label className="text-sm mb-2 block">{t('themes.animeBg')}</Label>
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+            <div className="pt-4 pb-4 border-b border-border">
+              <Label className="bg-primary/10 text-primary text-sm px-2 py-1 rounded-md font-medium mb-2 block">{t('themes.animeBg')}</Label>
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
                 {animeBgPresets.map((bg) => (
                   <button
                     key={bg.id}
@@ -422,8 +422,8 @@ export default function ThemesPage() {
             </div>
 
             {/* Image Preset Backgrounds */}
-            <div>
-              <Label className="text-sm mb-2 block">{t('themes.imageBg')}</Label>
+            <div className="pt-4 pb-4 border-b border-border">
+              <Label className="bg-primary/10 text-primary text-sm px-2 py-1 rounded-md font-medium mb-2 block">{t('themes.imageBg')}</Label>
               <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
                 {imagePresets.map((bg) => (
                   <button
@@ -453,18 +453,18 @@ export default function ThemesPage() {
             </div>
 
             {/* Gradient Preset Backgrounds */}
-            <div>
-              <Label className="text-sm mb-2 block">{t('themes.gradientBg')}</Label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+            <div className="pt-4 pb-4 border-b border-border">
+              <Label className="bg-primary/10 text-primary text-sm px-2 py-1 rounded-md font-medium mb-2 block">{t('themes.gradientBg')}</Label>
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
                 {gradientPresets.map((bg) => (
                   <button
                     key={bg.id}
                     onClick={() => handleSelectBackground(bg.value)}
-                    className={`relative aspect-square rounded-lg overflow-hidden transition-all hover:scale-105 ${
+                    className={`relative aspect-video rounded-lg overflow-hidden transition-all hover:scale-105 ${
                       backgroundImage === bg.value ? 'ring-2 ring-primary' : 'ring-1 ring-border'
                     }`}
                   >
-                    <div 
+                    <div
                       className="w-full h-full"
                       style={{ background: bg.value }}
                     />
@@ -473,26 +473,17 @@ export default function ThemesPage() {
                         <Check className="w-5 h-5 text-primary-foreground drop-shadow" />
                       </div>
                     )}
+                    <span className="absolute bottom-1 left-1 text-[10px] bg-background/80 px-1 rounded">
+                      {t(bg.name)}
+                    </span>
                   </button>
-                ))}
-              </div>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {gradientPresets.map((bg) => (
-                  <span
-                    key={bg.id}
-                    className={`text-xs px-2 py-1 rounded-full ${
-                      backgroundImage === bg.value ? 'bg-primary text-primary-foreground' : 'bg-muted'
-                    }`}
-                  >
-                    {t(bg.name)}
-                  </span>
                 ))}
               </div>
             </div>
 
             {/* Custom Upload */}
-            <div className="space-y-3">
-              <Label className="text-sm">{t('themes.customBg')}</Label>
+            <div className="pt-4">
+              <Label className="bg-primary/10 text-primary text-sm px-2 py-1 rounded-md font-medium mb-3 block">{t('themes.customBg')}</Label>
                
               {/* File Upload */}
               <div className="flex gap-2">

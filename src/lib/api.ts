@@ -518,6 +518,18 @@ export const pluginsApi = {
     api.post<{ status: number; msg: string }>(`/api/plugins/${pluginName}/sv/${svName}`, config),
 };
 
+/**
+ * 构建插件 ICON 图片 URL
+ * 使用后端 /api/plugins/icon/{plugin_name} 接口获取插件图标
+ * @param pluginName 插件名称
+ * @returns 图标 URL，可直接用于 <img src>
+ */
+export function getPluginIconUrl(pluginName: string): string {
+  const token = getAuthToken();
+  const baseUrl = `${getCustomApiHost()}/api/plugins/icon/${encodeURIComponent(pluginName)}`;
+  return token ? `${baseUrl}?token=${token}` : baseUrl;
+}
+
 // ===================
 // Framework Config APIs (New - separate list and detail)
 // ===================
@@ -2118,6 +2130,27 @@ export const gitMirrorApi = {
 // MCP Config API
 // ===================
 
+export interface MCPToolParameter {
+  type: string;
+  required: boolean;
+}
+
+export interface MCPToolDefinition {
+  name: string;
+  description: string;
+  parameters?: Record<string, MCPToolParameter>;
+}
+
+export interface MCPToolFromServer {
+  name: string;
+  description: string;
+  input_schema?: {
+    type: string;
+    properties: Record<string, { type: string }>;
+    required?: string[];
+  };
+}
+
 export interface MCPConfig {
   config_id: string;
   name: string;
@@ -2125,6 +2158,9 @@ export interface MCPConfig {
   args: string[];
   env: Record<string, string>;
   enabled: boolean;
+  register_as_ai_tools: boolean;
+  tools: MCPToolDefinition[];
+  tool_permissions?: Record<string, number>;
 }
 
 export interface MCPConfigListResponse {
@@ -2138,6 +2174,9 @@ export interface MCPConfigCreateData {
   args?: string[];
   env?: Record<string, string>;
   enabled?: boolean;
+  register_as_ai_tools?: boolean;
+  tools?: MCPToolDefinition[];
+  tool_permissions?: Record<string, number>;
 }
 
 export interface MCPConfigUpdateData {
@@ -2146,12 +2185,46 @@ export interface MCPConfigUpdateData {
   args?: string[];
   env?: Record<string, string>;
   enabled?: boolean;
+  register_as_ai_tools?: boolean;
+  tools?: MCPToolDefinition[];
+  tool_permissions?: Record<string, number>;
 }
 
 export interface MCPReloadResponse {
   old_tool_count: number;
   new_tool_count: number;
   config_count: number;
+}
+
+export interface MCPDiscoverToolsResponse {
+  config_id?: string;
+  tools: MCPToolFromServer[];
+  count: number;
+}
+
+export interface MCPImportRequest {
+  json_config: string;
+}
+
+export interface MCPImportResponse {
+  config_id: string;
+  name: string;
+  tools_count: number;
+  tool_names: string[];
+}
+
+export interface MCPPreset {
+  name: string;
+  description: string;
+  command: string;
+  args: string[];
+  env_template: Record<string, string>;
+  default_tools: Array<{ name: string; description: string }>;
+}
+
+export interface MCPPresetsResponse {
+  presets: MCPPreset[];
+  count: number;
 }
 
 export const mcpConfigApi = {
@@ -2182,6 +2255,22 @@ export const mcpConfigApi = {
   // 热重载所有配置
   reload: () =>
     api.post<MCPReloadResponse>('/api/ai/mcp/reload'),
+
+  // 从已配置的 MCP 服务器发现工具
+  discoverTools: (configId: string) =>
+    api.get<MCPDiscoverToolsResponse>(`/api/ai/mcp/${encodeURIComponent(configId)}/tools`),
+
+  // 从临时配置发现工具（不保存）
+  discoverToolsFromConfig: (data: { name: string; command: string; args?: string[]; env?: Record<string, string> }) =>
+    api.post<MCPDiscoverToolsResponse>('/api/ai/mcp/tools/discover', data),
+
+  // 从 JSON 导入 MCP 配置
+  importConfig: (data: MCPImportRequest) =>
+    api.post<MCPImportResponse>('/api/ai/mcp/tools/import', data),
+
+  // 获取 MCP 预设列表
+  getPresets: () =>
+    api.get<MCPPresetsResponse>('/api/ai/mcp/presets'),
 };
 
 // ===================
@@ -2202,6 +2291,8 @@ export interface GitPluginStatus {
   branch: string;
   is_git_repo: boolean;
   current_commit: GitCommitInfo | null;
+  remote_url?: string;
+  mirror?: 'gitcode' | 'cnb' | 'ghproxy' | 'github' | 'unknown';
 }
 
 export interface GitCommitListResponse {
@@ -2256,4 +2347,163 @@ export const gitUpdateApi = {
   // 强制更新
   forceUpdate: (pluginName: string) =>
     api.post<GitForceUpdateResponse>(`/api/git-update/force-update/${encodeURIComponent(pluginName)}`),
+
+  // 更新全部插件
+  updateAll: () =>
+    api.post('/api/git-update/update-all'),
+};
+
+// ===================
+// Meme Management API
+// ===================
+
+export interface MemeRecord {
+  meme_id: string;
+  file_path: string;
+  file_size: number;
+  file_mime: string;
+  width: number;
+  height: number;
+  source_group: string;
+  folder: string;
+  persona_hint: string;
+  emotion_tags: string[];
+  scene_tags: string[];
+  description: string;
+  custom_tags: string[];
+  status: 'pending' | 'tagged' | 'manual' | 'pending_manual' | 'rejected';
+  nsfw_score: number;
+  use_count: number;
+  last_used_at: string | null;
+  last_used_group: string;
+  created_at: string;
+  tagged_at: string | null;
+  updated_at: string;
+}
+
+export interface MemeListResponse {
+  records: MemeRecord[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+export interface MemeStatsData {
+  total: number;
+  status_counts: Record<string, number>;
+  folder_counts: Record<string, number>;
+  total_usage: number;
+  top_memes: {
+    meme_id: string;
+    description: string;
+    use_count: number;
+    file_path: string;
+  }[];
+}
+
+export interface MemeListParams {
+  folder?: string;
+  status?: string;
+  sort?: string;
+  page?: number;
+  page_size?: number;
+  q?: string;
+}
+
+export interface MemeUpdateData {
+  description?: string;
+  emotion_tags?: string[];
+  scene_tags?: string[];
+  custom_tags?: string[];
+  persona_hint?: string;
+}
+
+export const memeApi = {
+  // 列表查询
+  getList: (params: MemeListParams = {}) => {
+    const searchParams = new URLSearchParams();
+    if (params.folder) searchParams.set('folder', params.folder);
+    if (params.status) searchParams.set('status', params.status);
+    if (params.sort) searchParams.set('sort', params.sort);
+    if (params.page) searchParams.set('page', String(params.page));
+    if (params.page_size) searchParams.set('page_size', String(params.page_size));
+    if (params.q) searchParams.set('q', params.q);
+    const query = searchParams.toString();
+    return api.get<MemeListResponse>(`/api/meme/list${query ? `?${query}` : ''}`);
+  },
+
+  // 获取单条记录详情
+  getDetail: (memeId: string) =>
+    api.get<MemeRecord>(`/api/meme/${memeId}`),
+
+  // 获取原始图片 URL
+  getImageUrl: (memeId: string) => {
+    const base = getCustomApiHost();
+    return `${base}/api/meme/image/${memeId}`;
+  },
+
+  // 更新标签/描述/归属
+  update: (memeId: string, data: MemeUpdateData) =>
+    api.put<null>(`/api/meme/${memeId}`, data),
+
+  // 移动表情包到目标文件夹
+  move: (memeId: string, targetFolder: string) => {
+    const formData = new URLSearchParams();
+    formData.set('target_folder', targetFolder);
+    return api.post<null>(`/api/meme/${memeId}/move`, Object.fromEntries(formData));
+  },
+
+  // 删除表情包
+  delete: (memeId: string) =>
+    api.delete<null>(`/api/meme/${memeId}`),
+
+  // 手动上传表情包
+  upload: async (file: File, folder: string = 'common', autoTag: boolean = true) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('folder', folder);
+    formData.append('auto_tag', String(autoTag));
+
+    const token = getAuthToken();
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const base = getCustomApiHost();
+    const response = await fetch(`${base}/api/meme/upload`, {
+      method: 'POST',
+      headers,
+      body: formData,
+      credentials: 'include',
+    });
+
+    if (response.status === 401) {
+      setAuthToken(null);
+      localStorage.removeItem('auth_user');
+      window.location.href = getLoginPath();
+      throw new Error('会话已过期，请重新登录');
+    }
+
+    if (!response.ok) {
+      let errorMessage = `HTTP Error: ${response.status}`;
+      try {
+        const data = await response.json();
+        if (data.msg) errorMessage = data.msg;
+      } catch { /* ignore */ }
+      throw new Error(errorMessage);
+    }
+
+    const data: ApiResponse<{ meme_id: string }> = await response.json();
+    if (data.status !== 0) throw new Error(data.msg || 'Upload failed');
+    return data.data;
+  },
+
+  // 重新触发 VLM 打标
+  retag: (memeId: string) =>
+    api.post<null>(`/api/meme/${memeId}/retag`),
+
+  // 统计概览
+  getStats: () =>
+    api.get<MemeStatsData>('/api/meme/stats'),
 };

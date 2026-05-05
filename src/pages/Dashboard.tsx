@@ -1,10 +1,6 @@
 import { useMemo, useState, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
-  LineChart, Line, BarChart, Bar,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
-} from 'recharts';
-import {
   Users, UsersRound, UserPlus, UserMinus, TrendingUp,
   Activity, Calendar, Bot, MessageSquare, LayoutGrid
 } from 'lucide-react';
@@ -21,10 +17,10 @@ import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { dashboardApi, DailyCommandData, BotItem } from '@/lib/api';
-import {
-  commandColors,
-} from '@/lib/mockData';
+import { commandColors } from '@/lib/mockData';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { EChartsWrapper } from '@/components/charts';
+import type { EChartsOption } from 'echarts';
 
 export default function Dashboard() {
   const { t } = useLanguage();
@@ -56,28 +52,27 @@ export default function Dashboard() {
   const [dailyPersonalTriggers, setDailyPersonalTriggers] = useState<Array<Record<string, any>>>([]);
   const [isLoadingDaily, setIsLoadingDaily] = useState(false);
  
- // Dynamic command list from API
- const [commandTypeList, setCommandTypeList] = useState<string[]>([]);
- 
- // Fetch bot list from API
- useEffect(() => {
-   const fetchBots = async () => {
-     try {
-       const bots = await dashboardApi.getBots();
-       if (bots.length > 0) {
-         setBotList(bots);
-       }
-     } catch (error) {
-       console.error('Failed to fetch bot list:', error);
-       // Fallback to default: only show "summary" on error
-       setBotList([{ id: 'all', name: t('dashboard.summary') }]);
-     }
-   };
-   fetchBots();
- }, []);
-   
- // Fetch data from API
- useEffect(() => {
+  // Dynamic command list from API
+  const [commandTypeList, setCommandTypeList] = useState<string[]>([]);
+  
+  // Fetch bot list from API
+  useEffect(() => {
+    const fetchBots = async () => {
+      try {
+        const bots = await dashboardApi.getBots();
+        if (bots.length > 0) {
+          setBotList(bots);
+        }
+      } catch (error) {
+        console.error('Failed to fetch bot list:', error);
+        setBotList([{ id: 'all', name: t('dashboard.summary') }]);
+      }
+    };
+    fetchBots();
+  }, []);
+    
+  // Fetch data from API
+  useEffect(() => {
     const fetchData = async () => {
       try {
         const [metrics, commands, usersGroups] = await Promise.all([
@@ -90,7 +85,6 @@ export default function Dashboard() {
         setMonthlyUserGroupData(usersGroups);
       } catch (error) {
         console.error('Failed to fetch dashboard data:', error);
-        // Fallback to mock data on error
         setKeyMetrics({
           dau: Math.floor(Math.random() * 5000) + 1000,
           dag: Math.floor(Math.random() * 800) + 200,
@@ -137,7 +131,6 @@ export default function Dashboard() {
           dashboardApi.getDailyPersonalTriggers(dateStr, selectedBot),
         ]);
         
-        // 如果是今天且没有数据，自动切到昨天
         const today = new Date();
         const isToday = selectedDate.getDate() === today.getDate() &&
                         selectedDate.getMonth() === today.getMonth() &&
@@ -154,12 +147,10 @@ export default function Dashboard() {
         setDailyGroupTriggers(groupTriggers);
         setDailyPersonalTriggers(personalTriggers);
         
-        // Extract dynamic command types from API data
         if (groupTriggers.length > 0) {
           const firstItem = groupTriggers[0];
           const cmds = Object.keys(firstItem).filter(k => k !== 'group');
           setCommandTypeList(cmds);
-          // Set visibility for all commands
           const visibility: Record<string, boolean> = {};
           cmds.forEach(cmd => { visibility[cmd] = true; });
           setGroupTriggerVisibility(visibility);
@@ -167,7 +158,6 @@ export default function Dashboard() {
         }
       } catch (error) {
         console.error('Failed to fetch daily data:', error);
-        // Fallback to empty data on error
         setDailyCommandUsage([]);
         setDailyGroupTriggers([]);
         setDailyPersonalTriggers([]);
@@ -190,79 +180,341 @@ export default function Dashboard() {
     { title: t('dashboard.dagMagRatio'), value: keyMetrics.dagMagRatio, icon: TrendingUp, color: 'text-pink-500', desc: t('dashboard.dagMagRatio') },
   ];
 
-  // Generic legend click handler
-  const createLegendClickHandler = (setter: React.Dispatch<React.SetStateAction<Record<string, boolean>>>) => {
-    return useCallback((e: any) => {
-      const { dataKey } = e;
-      setter(prev => ({ ...prev, [dataKey]: !prev[dataKey] }));
-    }, [setter]);
-  };
+  // ============================================================================
+  // ECharts 配置
+  // ============================================================================
 
-  const handleMonthlyCommandLegendClick = createLegendClickHandler(setMonthlyCommandVisibility);
-  const handleMonthlyUserGroupLegendClick = createLegendClickHandler(setMonthlyUserGroupVisibility);
-  const handleCommandUsageLegendClick = createLegendClickHandler(setCommandUsageVisibility);
-  const handleGroupTriggerLegendClick = createLegendClickHandler(setGroupTriggerVisibility);
-  const handlePersonalTriggerLegendClick = createLegendClickHandler(setPersonalTriggerVisibility);
+  // 月度命令统计 - 折线图
+  const monthlyCommandOption = useMemo<EChartsOption>(() => ({
+    animationDuration: 1000,
+    animationEasing: 'cubicOut' as const,
+    grid: { left: '3%', right: '4%', bottom: '12%', top: '15%', containLabel: true },
+    xAxis: {
+      type: 'category',
+      data: monthlyCommandData.map(d => d.date.slice(5)),
+      boundaryGap: false,
+    },
+    yAxis: { type: 'value' },
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'cross', label: { show: false } },
+    },
+    legend: {
+      data: [
+        { name: t('dashboard.sendCommand'), icon: 'roundRect' },
+        { name: t('dashboard.receiveCommand'), icon: 'roundRect' },
+        { name: t('dashboard.commandCall'), icon: 'roundRect' },
+        { name: t('dashboard.imageGen'), icon: 'roundRect' },
+      ],
+      bottom: 0,
+      selected: {
+        [t('dashboard.sendCommand')]: monthlyCommandVisibility.sentCommands,
+        [t('dashboard.receiveCommand')]: monthlyCommandVisibility.receivedCommands,
+        [t('dashboard.commandCall')]: monthlyCommandVisibility.commandCalls,
+        [t('dashboard.imageGen')]: monthlyCommandVisibility.imageGenerated,
+      },
+    },
+    series: [
+      {
+        name: t('dashboard.sendCommand'),
+        type: 'line',
+        data: monthlyCommandData.map(d => d.sentCommands),
+        smooth: true,
+        symbol: 'circle',
+        symbolSize: 6,
+        lineStyle: { width: 2.5 },
+        areaStyle: {
+          opacity: 0.08,
+        },
+        emphasis: { focus: 'series' },
+      },
+      {
+        name: t('dashboard.receiveCommand'),
+        type: 'line',
+        data: monthlyCommandData.map(d => d.receivedCommands),
+        smooth: true,
+        symbol: 'circle',
+        symbolSize: 6,
+        lineStyle: { width: 2.5 },
+        areaStyle: {
+          opacity: 0.08,
+        },
+        emphasis: { focus: 'series' },
+      },
+      {
+        name: t('dashboard.commandCall'),
+        type: 'line',
+        data: monthlyCommandData.map(d => d.commandCalls),
+        smooth: true,
+        symbol: 'circle',
+        symbolSize: 6,
+        lineStyle: { width: 2.5 },
+        areaStyle: {
+          opacity: 0.08,
+        },
+        emphasis: { focus: 'series' },
+      },
+      {
+        name: t('dashboard.imageGen'),
+        type: 'line',
+        data: monthlyCommandData.map(d => d.imageGenerated),
+        smooth: true,
+        symbol: 'circle',
+        symbolSize: 6,
+        lineStyle: { width: 2.5 },
+        areaStyle: {
+          opacity: 0.08,
+        },
+        emphasis: { focus: 'series' },
+      },
+    ],
+  }), [monthlyCommandData, monthlyCommandVisibility, t]);
 
-  // Custom tooltip for stacked bar charts
-  const StackedBarTooltip = ({ active, payload, label }: any) => {
-    if (!active || !payload || !payload.length) return null;
-    
-    const total = payload.reduce((sum: number, entry: any) => sum + (entry.value || 0), 0);
-    
-    return (
-      <div className="bg-card border border-border rounded-lg p-3 shadow-lg">
-        <p className="font-semibold mb-2 text-foreground">{label}</p>
-        <div className="space-y-1 max-h-48 overflow-y-auto">
-          {payload.filter((entry: any) => entry.value > 0).map((entry: any, index: number) => (
-            <div key={index} className="flex items-center justify-between gap-4 text-sm">
-              <div className="flex items-center gap-2">
-                <div 
-                  className="w-3 h-3 rounded-sm" 
-                  style={{ backgroundColor: entry.fill }}
-                />
-                <span className="text-muted-foreground">{entry.name}</span>
-              </div>
-              <span className="font-medium text-foreground">{entry.value}</span>
-            </div>
-          ))}
-        </div>
-        <div className="border-t border-border mt-2 pt-2 flex justify-between">
-          <span className="text-muted-foreground text-sm">{t('dashboard.total')}</span>
-          <span className="font-semibold text-foreground">{total}</span>
-        </div>
-      </div>
-    );
-  };
+  // 月度用户与群组统计 - 柱状图
+  const monthlyUserGroupOption = useMemo<EChartsOption>(() => ({
+    animationDuration: 800,
+    animationEasing: 'cubicOut' as const,
+    grid: { left: '3%', right: '4%', bottom: '12%', top: '15%', containLabel: true },
+    xAxis: {
+      type: 'category',
+      data: monthlyUserGroupData.map(d => d.date.slice(5)),
+    },
+    yAxis: { type: 'value' },
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+    legend: {
+      data: [
+        { name: t('dashboard.users'), icon: 'roundRect' },
+        { name: t('dashboard.groups'), icon: 'roundRect' },
+      ],
+      bottom: 0,
+      selected: {
+        [t('dashboard.users')]: monthlyUserGroupVisibility.users,
+        [t('dashboard.groups')]: monthlyUserGroupVisibility.groups,
+      },
+    },
+    series: [
+      {
+        name: t('dashboard.users'),
+        type: 'bar',
+        data: monthlyUserGroupData.map(d => d.users),
+        barMaxWidth: 30,
+        itemStyle: { borderRadius: [4, 4, 0, 0] },
+        emphasis: { focus: 'series' },
+      },
+      {
+        name: t('dashboard.groups'),
+        type: 'bar',
+        data: monthlyUserGroupData.map(d => d.groups),
+        barMaxWidth: 30,
+        itemStyle: { borderRadius: [4, 4, 0, 0] },
+        emphasis: { focus: 'series' },
+      },
+    ],
+  }), [monthlyUserGroupData, monthlyUserGroupVisibility, t]);
 
-  // Custom legend with click to toggle visibility
-  const renderClickableLegend = (props: any, visibility: Record<string, boolean>) => {
-    const { payload } = props;
-    return (
-      <div className="flex flex-wrap justify-center gap-2 mt-2">
-        {payload.map((entry: any, index: number) => (
-          <div
-            key={index}
-            className={cn(
-              "flex items-center gap-1.5 px-2 py-1 rounded-md cursor-pointer transition-all text-xs",
-              visibility[entry.dataKey] 
-                ? "bg-muted/50 hover:bg-muted" 
-                : "bg-muted/20 opacity-50 hover:opacity-70"
-            )}
-            onClick={() => props.onClick?.({ dataKey: entry.dataKey })}
-          >
-            <div 
-              className="w-3 h-3 rounded-sm" 
-              style={{ backgroundColor: entry.color }}
-            />
-            <span className={visibility[entry.dataKey] ? "text-foreground" : "text-muted-foreground line-through"}>
-              {entry.value}
-            </span>
+  // 命令使用量 - 水平柱状图
+  const commandUsageOption = useMemo<EChartsOption>(() => ({
+    animationDuration: 800,
+    animationEasing: 'cubicOut' as const,
+    grid: { left: '3%', right: '8%', bottom: '8%', top: '8%', containLabel: true },
+    xAxis: { type: 'value' },
+    yAxis: {
+      type: 'category',
+      data: dailyCommandUsage.map(d => d.command),
+      axisLabel: { fontSize: 11 },
+    },
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+    legend: {
+      data: [{ name: t('dashboard.callCount'), icon: 'roundRect' }],
+      bottom: 0,
+      selected: {
+        [t('dashboard.callCount')]: commandUsageVisibility.count,
+      },
+    },
+    series: [
+      {
+        name: t('dashboard.callCount'),
+        type: 'bar',
+        data: dailyCommandUsage.map(d => d.count),
+        barMaxWidth: 24,
+        itemStyle: { borderRadius: [0, 6, 6, 0] },
+        emphasis: { focus: 'series' },
+      },
+    ],
+  }), [dailyCommandUsage, commandUsageVisibility, t]);
+
+  // 群组命令触发量 - 堆叠水平柱状图
+  const groupTriggerOption = useMemo<EChartsOption>(() => ({
+    animationDuration: 800,
+    animationEasing: 'cubicOut' as const,
+    grid: { left: '3%', right: '8%', bottom: '12%', top: '8%', containLabel: true },
+    xAxis: { type: 'value' },
+    yAxis: {
+      type: 'category',
+      data: dailyGroupTriggers.map(d => d.group),
+      axisLabel: { fontSize: 10 },
+    },
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'shadow' },
+      formatter: (params: any) => {
+        if (!Array.isArray(params) || params.length === 0) return '';
+        const label = params[0].axisValue;
+        let total = 0;
+        let rows = '';
+        params.forEach((p: any) => {
+          if (p.value > 0) {
+            total += p.value;
+            rows += `<div style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin:2px 0">
+              <span style="display:flex;align-items:center;gap:6px">
+                <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${p.color}"></span>
+                ${p.seriesName}
+              </span>
+              <span style="font-weight:600">${p.value}</span>
+            </div>`;
+          }
+        });
+        return `<div style="min-width:120px">
+          <div style="font-weight:600;margin-bottom:6px">${label}</div>
+          ${rows}
+          <div style="border-top:1px solid rgba(128,128,128,0.2);margin-top:6px;padding-top:6px;display:flex;justify-content:space-between">
+            <span>${t('dashboard.total')}</span><span style="font-weight:700">${total}</span>
           </div>
-        ))}
-      </div>
-    );
-  };
+        </div>`;
+      },
+    },
+    legend: {
+      data: commandTypeList.map(cmd => ({ name: cmd, icon: 'roundRect' })),
+      bottom: 0,
+      selected: groupTriggerVisibility,
+    },
+    series: commandTypeList.map((cmd, index) => ({
+      name: cmd,
+      type: 'bar' as const,
+      stack: 'total',
+      data: dailyGroupTriggers.map(d => d[cmd] || 0),
+      barMaxWidth: 20,
+      itemStyle: {
+        color: commandColors[cmd] || '#6b7280',
+        borderRadius: index === commandTypeList.length - 1 ? [0, 6, 6, 0] : undefined,
+      },
+      emphasis: { focus: 'series' as const },
+    })),
+  }), [dailyGroupTriggers, commandTypeList, groupTriggerVisibility, t]);
+
+  // 个人命令触发量 - 堆叠水平柱状图
+  const personalTriggerOption = useMemo<EChartsOption>(() => ({
+    animationDuration: 800,
+    animationEasing: 'cubicOut' as const,
+    grid: { left: '3%', right: '8%', bottom: '12%', top: '8%', containLabel: true },
+    xAxis: { type: 'value' },
+    yAxis: {
+      type: 'category',
+      data: dailyPersonalTriggers.map(d => d.user),
+      axisLabel: { fontSize: 10 },
+    },
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'shadow' },
+      formatter: (params: any) => {
+        if (!Array.isArray(params) || params.length === 0) return '';
+        const label = params[0].axisValue;
+        let total = 0;
+        let rows = '';
+        params.forEach((p: any) => {
+          if (p.value > 0) {
+            total += p.value;
+            rows += `<div style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin:2px 0">
+              <span style="display:flex;align-items:center;gap:6px">
+                <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${p.color}"></span>
+                ${p.seriesName}
+              </span>
+              <span style="font-weight:600">${p.value}</span>
+            </div>`;
+          }
+        });
+        return `<div style="min-width:120px">
+          <div style="font-weight:600;margin-bottom:6px">${label}</div>
+          ${rows}
+          <div style="border-top:1px solid rgba(128,128,128,0.2);margin-top:6px;padding-top:6px;display:flex;justify-content:space-between">
+            <span>${t('dashboard.total')}</span><span style="font-weight:700">${total}</span>
+          </div>
+        </div>`;
+      },
+    },
+    legend: {
+      data: commandTypeList.map(cmd => ({ name: cmd, icon: 'roundRect' })),
+      bottom: 0,
+      selected: personalTriggerVisibility,
+    },
+    series: commandTypeList.map((cmd, index) => ({
+      name: cmd,
+      type: 'bar' as const,
+      stack: 'total',
+      data: dailyPersonalTriggers.map(d => d[cmd] || 0),
+      barMaxWidth: 20,
+      itemStyle: {
+        color: commandColors[cmd] || '#6b7280',
+        borderRadius: index === commandTypeList.length - 1 ? [0, 6, 6, 0] : undefined,
+      },
+      emphasis: { focus: 'series' as const },
+    })),
+  }), [dailyPersonalTriggers, commandTypeList, personalTriggerVisibility, t]);
+
+  // Legend 切换事件处理
+  const handleLegendSelectChanged = useCallback((
+    setter: React.Dispatch<React.SetStateAction<Record<string, boolean>>>,
+    keyMap: Record<string, string>
+  ) => {
+    return (params: any) => {
+      if (params.type === 'legendselectchanged') {
+        setter(prev => {
+          const next = { ...prev };
+          Object.entries(keyMap).forEach(([legendName, stateKey]) => {
+            if (legendName in params.selected) {
+              next[stateKey] = params.selected[legendName];
+            }
+          });
+          return next;
+        });
+      }
+    };
+  }, []);
+
+  const monthlyCommandLegendHandler = useMemo(() => handleLegendSelectChanged(
+    setMonthlyCommandVisibility,
+    {
+      [t('dashboard.sendCommand')]: 'sentCommands',
+      [t('dashboard.receiveCommand')]: 'receivedCommands',
+      [t('dashboard.commandCall')]: 'commandCalls',
+      [t('dashboard.imageGen')]: 'imageGenerated',
+    }
+  ), [t, handleLegendSelectChanged]);
+
+  const monthlyUserGroupLegendHandler = useMemo(() => handleLegendSelectChanged(
+    setMonthlyUserGroupVisibility,
+    {
+      [t('dashboard.users')]: 'users',
+      [t('dashboard.groups')]: 'groups',
+    }
+  ), [t, handleLegendSelectChanged]);
+
+  const commandUsageLegendHandler = useMemo(() => handleLegendSelectChanged(
+    setCommandUsageVisibility,
+    { [t('dashboard.callCount')]: 'count' }
+  ), [t, handleLegendSelectChanged]);
+
+  const groupTriggerLegendHandler = useMemo(() => {
+    const keyMap: Record<string, string> = {};
+    commandTypeList.forEach(cmd => { keyMap[cmd] = cmd; });
+    return handleLegendSelectChanged(setGroupTriggerVisibility, keyMap);
+  }, [commandTypeList, handleLegendSelectChanged]);
+
+  const personalTriggerLegendHandler = useMemo(() => {
+    const keyMap: Record<string, string> = {};
+    commandTypeList.forEach(cmd => { keyMap[cmd] = cmd; });
+    return handleLegendSelectChanged(setPersonalTriggerVisibility, keyMap);
+  }, [commandTypeList, handleLegendSelectChanged]);
 
   return (
     <div className="space-y-6 flex-1 overflow-auto p-6 h-full flex flex-col">
@@ -276,7 +528,6 @@ export default function Dashboard() {
           <p className="text-muted-foreground mt-1">{t('dashboard.description')}</p>
         </div>
         
-        {/* #TODO: Populate bot list from API */}
         <div className="flex items-center gap-2">
           <Bot className="w-5 h-5 text-muted-foreground" />
           <Select value={selectedBot} onValueChange={setSelectedBot}>
@@ -321,65 +572,11 @@ export default function Dashboard() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {/* #TODO: Replace with actual API data */}
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={monthlyCommandData}>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-              <XAxis 
-                dataKey="date" 
-                tick={{ fontSize: 12 }}
-                tickFormatter={(value) => value.slice(5)}
-                className="text-muted-foreground"
-              />
-              <YAxis tick={{ fontSize: 12 }} className="text-muted-foreground" />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: 'hsl(var(--card))', 
-                  border: '1px solid hsl(var(--border))',
-                  borderRadius: '8px'
-                }}
-              />
-              <Legend 
-                content={(props) => renderClickableLegend({ ...props, onClick: handleMonthlyCommandLegendClick }, monthlyCommandVisibility)}
-              />
-              <Line 
-                type="monotone" 
-                dataKey="sentCommands" 
-                stroke="#3b82f6"
-                name={t('dashboard.sendCommand')}
-                strokeWidth={2}
-                dot={false}
-                hide={!monthlyCommandVisibility.sentCommands}
-              />
-              <Line 
-                type="monotone" 
-                dataKey="receivedCommands" 
-                stroke="#10b981"
-                name={t('dashboard.receiveCommand')}
-                strokeWidth={2}
-                dot={false}
-                hide={!monthlyCommandVisibility.receivedCommands}
-              />
-              <Line 
-                type="monotone" 
-                dataKey="commandCalls" 
-                stroke="#f59e0b"
-                name={t('dashboard.commandCall')}
-                strokeWidth={2}
-                dot={false}
-                hide={!monthlyCommandVisibility.commandCalls}
-              />
-              <Line 
-                type="monotone" 
-                dataKey="imageGenerated" 
-                stroke="#8b5cf6"
-                name={t('dashboard.imageGen')}
-                strokeWidth={2}
-                dot={false}
-                hide={!monthlyCommandVisibility.imageGenerated}
-              />
-            </LineChart>
-          </ResponsiveContainer>
+          <EChartsWrapper
+            option={monthlyCommandOption}
+            height={300}
+            onEvents={{ legendselectchanged: monthlyCommandLegendHandler }}
+          />
         </CardContent>
       </Card>
 
@@ -392,42 +589,11 @@ export default function Dashboard() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {/* #TODO: Replace with actual API data */}
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={monthlyUserGroupData}>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-              <XAxis 
-                dataKey="date" 
-                tick={{ fontSize: 12 }}
-                tickFormatter={(value) => value.slice(5)}
-              />
-              <YAxis tick={{ fontSize: 12 }} />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: 'hsl(var(--card))', 
-                  border: '1px solid hsl(var(--border))',
-                  borderRadius: '8px'
-                }}
-              />
-              <Legend 
-                content={(props) => renderClickableLegend({ ...props, onClick: handleMonthlyUserGroupLegendClick }, monthlyUserGroupVisibility)}
-              />
-              <Bar 
-                dataKey="users" 
-                fill="#3b82f6"
-                name={t('dashboard.users')}
-                radius={[4, 4, 0, 0]}
-                hide={!monthlyUserGroupVisibility.users}
-              />
-              <Bar 
-                dataKey="groups" 
-                fill="#10b981"
-                name={t('dashboard.groups')}
-                radius={[4, 4, 0, 0]}
-                hide={!monthlyUserGroupVisibility.groups}
-              />
-            </BarChart>
-          </ResponsiveContainer>
+          <EChartsWrapper
+            option={monthlyUserGroupOption}
+            height={300}
+            onEvents={{ legendselectchanged: monthlyUserGroupLegendHandler }}
+          />
         </CardContent>
       </Card>
 
@@ -469,37 +635,17 @@ export default function Dashboard() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {/* #TODO: Replace with actual API data */}
-          <ResponsiveContainer width="100%" height={350}>
-            <BarChart data={dailyCommandUsage} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-              <XAxis type="number" tick={{ fontSize: 12 }} />
-              <YAxis dataKey="command" type="category" tick={{ fontSize: 11 }} width={70} />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: 'hsl(var(--card))', 
-                  border: '1px solid hsl(var(--border))',
-                  borderRadius: '8px'
-                }}
-              />
-              <Legend 
-                content={(props) => renderClickableLegend({ ...props, onClick: handleCommandUsageLegendClick }, commandUsageVisibility)}
-              />
-              <Bar 
-                dataKey="count" 
-                fill="#3b82f6"
-                name={t('dashboard.callCount')}
-                radius={[0, 6, 6, 0]}
-                hide={!commandUsageVisibility.count}
-              />
-            </BarChart>
-          </ResponsiveContainer>
+          <EChartsWrapper
+            option={commandUsageOption}
+            height={350}
+            onEvents={{ legendselectchanged: commandUsageLegendHandler }}
+          />
         </CardContent>
       </Card>
 
-      {/* Group & Personal Triggers - Each on Separate Row */}
+      {/* Group & Personal Triggers */}
       <div className="space-y-6">
-        {/* Group Command Triggers Stacked Bar Chart */}
+        {/* Group Command Triggers */}
         <Card className="glass-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -508,33 +654,15 @@ export default function Dashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {/* #TODO: Replace with actual API data */}
-            <ResponsiveContainer width="100%" height={350}>
-              <BarChart data={dailyGroupTriggers} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                <XAxis type="number" tick={{ fontSize: 10 }} />
-                <YAxis dataKey="group" type="category" tick={{ fontSize: 10 }} width={55} />
-                <Tooltip content={<StackedBarTooltip />} />
-                <Legend 
-                  content={(props) => renderClickableLegend({ ...props, onClick: handleGroupTriggerLegendClick }, groupTriggerVisibility)}
-                />
-                {commandTypeList.map((cmd, index) => (
-                  <Bar
-                    key={cmd}
-                    dataKey={cmd}
-                    stackId="total"
-                    fill={commandColors[cmd] || '#6b7280'}
-                    name={cmd}
-                    hide={!groupTriggerVisibility[cmd]}
-                    radius={index === commandTypeList.length - 1 ? [0, 6, 6, 0] : undefined}
-                  />
-                ))}
-              </BarChart>
-            </ResponsiveContainer>
+            <EChartsWrapper
+              option={groupTriggerOption}
+              height={350}
+              onEvents={{ legendselectchanged: groupTriggerLegendHandler }}
+            />
           </CardContent>
         </Card>
 
-        {/* Personal Command Triggers Stacked Bar Chart */}
+        {/* Personal Command Triggers */}
         <Card className="glass-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -543,29 +671,11 @@ export default function Dashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {/* #TODO: Replace with actual API data */}
-            <ResponsiveContainer width="100%" height={350}>
-              <BarChart data={dailyPersonalTriggers} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                <XAxis type="number" tick={{ fontSize: 10 }} />
-                <YAxis dataKey="user" type="category" tick={{ fontSize: 10 }} width={75} />
-                <Tooltip content={<StackedBarTooltip />} />
-                <Legend 
-                  content={(props) => renderClickableLegend({ ...props, onClick: handlePersonalTriggerLegendClick }, personalTriggerVisibility)}
-                />
-                {commandTypeList.map((cmd, index) => (
-                  <Bar
-                    key={cmd}
-                    dataKey={cmd}
-                    stackId="total"
-                    fill={commandColors[cmd] || '#6b7280'}
-                    name={cmd}
-                    hide={!personalTriggerVisibility[cmd]}
-                    radius={index === commandTypeList.length - 1 ? [0, 6, 6, 0] : undefined}
-                  />
-                ))}
-              </BarChart>
-            </ResponsiveContainer>
+            <EChartsWrapper
+              option={personalTriggerOption}
+              height={350}
+              onEvents={{ legendselectchanged: personalTriggerLegendHandler }}
+            />
           </CardContent>
         </Card>
       </div>

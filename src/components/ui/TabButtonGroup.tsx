@@ -47,7 +47,7 @@ export function TabButtonGroup({
             buttonClassName
           )}
         >
-          <span className="w-5 h-5 flex-shrink-0 flex items-center justify-center">
+          <span className="w-[22px] h-[22px] flex-shrink-0 flex items-center justify-center">
             {option.icon}
           </span>
           {option.label}
