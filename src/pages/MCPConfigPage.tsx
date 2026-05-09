@@ -82,7 +82,10 @@ interface FormData {
 const PERMISSION_OPTIONS: { value: number; labelKey: string }[] = [
   { value: 0, labelKey: 'mcpConfig.roleMaster' },
   { value: 1, labelKey: 'mcpConfig.roleSuperuser' },
-  { value: 2, labelKey: 'mcpConfig.roleAdmin' },
+  { value: 2, labelKey: 'mcpConfig.roleGroupOwner' },
+  { value: 3, labelKey: 'mcpConfig.roleGroupAdmin' },
+  { value: 4, labelKey: 'mcpConfig.roleChannelAdmin' },
+  { value: 5, labelKey: 'mcpConfig.roleSubChannelAdmin' },
   { value: 6, labelKey: 'mcpConfig.roleAll' },
 ];
 
@@ -1146,7 +1149,7 @@ export default function MCPConfigPage() {
                       variant="outline"
                       size="sm"
                       onClick={() => {
-                        // Add default permission (pm=3, all users) for each selected tool
+                        // Add default permission (pm=6, all users) for each selected tool
                         const newPerms = { ...formData.toolPermissions };
                         selectedToolNames.forEach(toolName => {
                           if (newPerms[toolName] === undefined) {

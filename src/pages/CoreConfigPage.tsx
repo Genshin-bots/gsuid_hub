@@ -40,7 +40,7 @@ const fieldLabelKeys: Record<string, string> = {
   WS_TOKEN: 'coreFrameworkConfig.wsToken',
   REGISTER_CODE: 'coreFrameworkConfig.registerCode',
   TRUSTED_IPS: 'coreFrameworkConfig.trustedIps',
-  masters: 'coreFrameworkConfig.admins',
+  masters: 'coreFrameworkConfig.masters',
   superusers: 'coreFrameworkConfig.superusers',
   misfire_grace_time: 'coreFrameworkConfig.misfireGraceTime',
   enable_empty_start: 'coreFrameworkConfig.emptyStart',
@@ -98,8 +98,24 @@ const apiConfigToFieldDefinition = (key: string, value: unknown): ConfigFieldDef
   if (key === 'ENABLE_HTTP') return { type: 'boolean', label: labelKey, value: value as boolean };
   if (key === 'WS_TOKEN') return { type: 'text', label: labelKey, value: String(value), placeholder: 'coreFrameworkConfig.enterValue' };
   if (key === 'TRUSTED_IPS') return { type: 'tags', label: labelKey, value: value as string[], placeholder: 'coreFrameworkConfig.enterTags' };
-  if (key === 'masters') return { type: 'tags', label: labelKey, value: value as string[], placeholder: 'coreFrameworkConfig.enterTags' };
-  if (key === 'superusers') return { type: 'tags', label: labelKey, value: value as string[], placeholder: 'coreFrameworkConfig.enterTags' };
+  if (key === 'masters') {
+    return {
+      type: 'tags',
+      label: labelKey,
+      value: value as string[],
+      placeholder: 'coreFrameworkConfig.enterTags',
+      description: 'coreFrameworkConfig.mastersDesc'
+    };
+  }
+  if (key === 'superusers') {
+    return {
+      type: 'tags',
+      label: labelKey,
+      value: value as string[],
+      placeholder: 'coreFrameworkConfig.enterTags',
+      description: 'coreFrameworkConfig.superusersDesc'
+    };
+  }
   if (key === 'misfire_grace_time') return { type: 'number', label: labelKey, value: value as number, placeholder: 'coreFrameworkConfig.enterValue' };
   if (key === 'enable_empty_start') return { type: 'boolean', label: labelKey, value: value as boolean };
   if (key === 'command_start') return { type: 'tags', label: labelKey, value: value as string[], placeholder: 'coreFrameworkConfig.enterTags' };

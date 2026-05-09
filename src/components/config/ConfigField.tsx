@@ -124,6 +124,7 @@ export function ConfigField({
   // Translate label if it's an i18n key (contains a dot), otherwise use as-is
   const displayLabel = field.label.includes('.') ? t(field.label) : field.label;
   const displayPlaceholder = field.placeholder?.includes('.') ? t(field.placeholder) : field.placeholder;
+  const displayDescription = field.description?.includes('.') ? t(field.description) : field.description;
 
   const handleAddTag = () => {
     if (tagInput.trim() && Array.isArray(value) && value.every(v => typeof v === 'string')) {
@@ -439,7 +440,7 @@ export function ConfigField({
             {getTitleIcon(displayLabel)}
             {displayLabel}
             {field.required && <span className="text-destructive ml-1">*</span>}
-            {field.description && (
+            {displayDescription && (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
@@ -451,7 +452,7 @@ export function ConfigField({
                   </button>
                 </TooltipTrigger>
                 <TooltipContent side="top" className="max-w-xs">
-                  <p>{field.description}</p>
+                  <p>{displayDescription}</p>
                 </TooltipContent>
               </Tooltip>
             )}
