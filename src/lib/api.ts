@@ -1279,6 +1279,16 @@ export interface PersonaCreateResponse {
   content: string;
 }
 
+export interface PersonaAddRequest {
+  name: string;
+  content: string;
+}
+
+export interface PersonaAddResponse {
+  name: string;
+  content: string;
+}
+
 export interface PersonaAvatarResponse {
   path: string;
 }
@@ -1370,6 +1380,10 @@ export const personaApi = {
   // 创建新角色
   createPersona: (data: PersonaCreateRequest) =>
     api.post<PersonaCreateResponse>('/api/persona/create', data),
+
+  // 直接添加角色
+  addPersona: (data: PersonaAddRequest) =>
+    api.post<PersonaAddResponse>('/api/persona/add', data),
 
   // 删除角色
   deletePersona: (personaName: string) =>

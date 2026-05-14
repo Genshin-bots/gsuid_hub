@@ -986,11 +986,11 @@ export default function GitUpdatePage() {
               {t('gitUpdate.checkoutConfirmTitle')}
             </AlertDialogTitle>
             <AlertDialogDescription className="text-left space-y-2">
-              <div>确认将 <strong>{getPluginDisplayName(selectedPlugin)}</strong> 回退到 commit <code className="bg-muted px-1 py-0.5 rounded font-mono text-xs">{checkoutDialog.commit?.short_hash || ''}</code>？</div>
+              <div>{t('gitUpdate.checkoutConfirmMessage', { plugin: getPluginDisplayName(selectedPlugin), hash: checkoutDialog.commit?.short_hash || '' })}</div>
               <div className="text-muted-foreground">
-                commit <code className="bg-muted px-1 py-0.5 rounded font-mono text-xs">{checkoutDialog.commit?.short_hash || ''}</code>：<span className="font-medium">{checkoutDialog.commit?.message || ''}</span>
+                {t('gitUpdate.checkoutConfirmCommitInfo', { hash: checkoutDialog.commit?.short_hash || '', message: checkoutDialog.commit?.message || '' })}
               </div>
-              <div className="text-yellow-600 dark:text-yellow-500 font-medium">⚠️ 注意：切换将执行 <code className="bg-muted px-1 py-0.5 rounded font-mono text-xs">git reset --hard</code>，如有本地代码修改将移除，此操作不可逆。</div>
+              <div className="text-yellow-600 dark:text-yellow-500 font-medium">{t('gitUpdate.checkoutConfirmWarning')}</div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

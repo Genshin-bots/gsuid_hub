@@ -192,10 +192,14 @@ export default function PersonaConfigPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isSavingConfig, setIsSavingConfig] = useState(false);
 
-  // 创建对话框状态
+  // AI 创建对话框状态
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [newPersonaName, setNewPersonaName] = useState('');
   const [newPersonaQuery, setNewPersonaQuery] = useState('');
+
+  // 手动创建对话框状态
+  const [createManuallyDialogOpen, setCreateManuallyDialogOpen] = useState(false);
+  const [newPersonaContent, setNewPersonaContent] = useState('');
 
   // 编辑对话框状态
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -374,7 +378,41 @@ export default function PersonaConfigPage() {
       await loadData();
     } catch (error) {
       console.error('Failed to create persona:', error);
-      toast.error(t('personaConfig.createFailed'));
+      const errorMsg = error instanceof Error ? error.message : '';
+      toast.error(errorMsg || t('personaConfig.createFailed'));
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  // 手动创建新人格
+  const handleAddPersona = async () => {
+    if (!newPersonaName.trim()) {
+      toast.error(t('common.error'));
+      return;
+    }
+    if (!newPersonaContent.trim()) {
+      toast.error(t('common.error'));
+      return;
+    }
+
+    try {
+      setIsCreating(true);
+      await personaApi.addPersona({
+        name: newPersonaName.trim(),
+        content: newPersonaContent.trim(),
+      });
+
+      toast.success(t('personaConfig.createSuccess'));
+      setCreateManuallyDialogOpen(false);
+      setNewPersonaName('');
+      setNewPersonaContent('');
+
+      await loadData();
+    } catch (error) {
+      console.error('Failed to add persona:', error);
+      const errorMsg = error instanceof Error ? error.message : '';
+      toast.error(errorMsg || t('personaConfig.createFailed'));
     } finally {
       setIsCreating(false);
     }
@@ -1029,81 +1067,161 @@ export default function PersonaConfigPage() {
           <p className="text-muted-foreground mt-1">{t('personaConfig.description')}</p>
         </div>
 
-        <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" />
-              {t('personaConfig.createNew')}
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-primary" />
+        <div className="flex items-center gap-2">
+          {/* AI 生成按钮 */}
+          <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <Sparkles className="h-4 w-4" />
                 {t('personaConfig.createNew')}
-              </DialogTitle>
-              <DialogDescription>
-                {t('personaConfig.createNewDesc')}
-              </DialogDescription>
-            </DialogHeader>
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[500px]">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-primary" />
+                  {t('personaConfig.createNew')}
+                </DialogTitle>
+                <DialogDescription>
+                  {t('personaConfig.createNewDesc')}
+                </DialogDescription>
+              </DialogHeader>
 
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="persona-name">
-                  {t('personaConfig.personaName')}
-                </Label>
-                <Input
-                  id="persona-name"
-                  placeholder={t('personaConfig.personaNamePlaceholder')}
-                  value={newPersonaName}
-                  onChange={(e) => setNewPersonaName(e.target.value)}
-                />
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="persona-name">
+                    {t('personaConfig.personaName')}
+                  </Label>
+                  <Input
+                    id="persona-name"
+                    placeholder={t('personaConfig.personaNamePlaceholder')}
+                    value={newPersonaName}
+                    onChange={(e) => setNewPersonaName(e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="persona-query">
+                    {t('personaConfig.personaQuery')}
+                  </Label>
+                  <Textarea
+                    id="persona-query"
+                    placeholder={t('personaConfig.personaQueryPlaceholder')}
+                    value={newPersonaQuery}
+                    onChange={(e) => setNewPersonaQuery(e.target.value)}
+                    rows={4}
+                  />
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="persona-query">
-                  {t('personaConfig.personaQuery')}
-                </Label>
-                <Textarea
-                  id="persona-query"
-                  placeholder={t('personaConfig.personaQueryPlaceholder')}
-                  value={newPersonaQuery}
-                  onChange={(e) => setNewPersonaQuery(e.target.value)}
-                  rows={4}
-                />
-              </div>
-            </div>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setCreateDialogOpen(false)}
+                  disabled={isCreating}
+                >
+                  {t('common.cancel')}
+                </Button>
+                <Button
+                  onClick={handleCreatePersona}
+                  disabled={
+                    isCreating || !newPersonaName.trim() || !newPersonaQuery.trim()
+                  }
+                  className="gap-2"
+                >
+                  {isCreating ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      {t('personaConfig.creating')}
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-4 w-4" />
+                      {t('common.confirm')}
+                    </>
+                  )}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
 
-            <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => setCreateDialogOpen(false)}
-                disabled={isCreating}
-              >
-                {t('common.cancel')}
+          {/* 手动创建按钮 */}
+          <Dialog open={createManuallyDialogOpen} onOpenChange={setCreateManuallyDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="gap-2">
+                <Plus className="h-4 w-4" />
+                {t('personaConfig.createNewManually')}
               </Button>
-              <Button
-                onClick={handleCreatePersona}
-                disabled={
-                  isCreating || !newPersonaName.trim() || !newPersonaQuery.trim()
-                }
-                className="gap-2"
-              >
-                {isCreating ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    {t('personaConfig.creating')}
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="h-4 w-4" />
-                    {t('common.confirm')}
-                  </>
-                )}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[500px]">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Plus className="h-5 w-5 text-primary" />
+                  {t('personaConfig.createNewManually')}
+                </DialogTitle>
+                <DialogDescription>
+                  {t('personaConfig.createNewManuallyDesc')}
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="persona-name-manual">
+                    {t('personaConfig.personaName')}
+                  </Label>
+                  <Input
+                    id="persona-name-manual"
+                    placeholder={t('personaConfig.personaNamePlaceholder')}
+                    value={newPersonaName}
+                    onChange={(e) => setNewPersonaName(e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="persona-content-manual">
+                    {t('personaConfig.personaContent')}
+                  </Label>
+                  <Textarea
+                    id="persona-content-manual"
+                    placeholder={t('personaConfig.personaContentPlaceholder')}
+                    value={newPersonaContent}
+                    onChange={(e) => setNewPersonaContent(e.target.value)}
+                    rows={8}
+                  />
+                </div>
+              </div>
+
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setCreateManuallyDialogOpen(false)}
+                  disabled={isCreating}
+                >
+                  {t('common.cancel')}
+                </Button>
+                <Button
+                  onClick={handleAddPersona}
+                  disabled={
+                    isCreating || !newPersonaName.trim() || !newPersonaContent.trim()
+                  }
+                  className="gap-2"
+                >
+                  {isCreating ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      {t('common.loading')}
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="h-4 w-4" />
+                      {t('common.confirm')}
+                    </>
+                  )}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       {/* 全局启用提示 */}
