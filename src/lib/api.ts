@@ -183,6 +183,8 @@ export interface PluginConfigGroup {
 
 export interface LogEntry {
   id?: number;
+  log_id?: number;
+  date?: string;
   level: string;
   source: string;
   message: string;
@@ -195,6 +197,26 @@ export interface LogResponse {
   rows: LogEntry[];
   page: number;
   per_page: number;
+}
+
+export interface LogContextLog {
+  log_id: number;
+  date: string;
+  timestamp: string;
+  level: string;
+  source: string;
+  message: string;
+}
+
+export interface LogContextResponse {
+  target: LogContextLog;
+  before_logs: LogContextLog[];
+  after_logs: LogContextLog[];
+  before_count: number;
+  after_count: number;
+  total_in_date: number;
+  has_more_before: boolean;
+  has_more_after: boolean;
 }
 
 export interface SchedulerJob {
@@ -391,6 +413,38 @@ class ApiClient {
 
     const data: ApiResponse<T> = await response.json();
     return data;
+  }
+
+  // Download file as Blob with auth header
+  async downloadBlob(endpoint: string): Promise<Blob> {
+    const url = `${this.baseUrl}${endpoint}`;
+
+    const token = getAuthToken();
+    const headers: Record<string, string> = {};
+
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers,
+      credentials: 'include',
+    });
+
+    // Handle 401 Unauthorized - redirect to login
+    if (response.status === 401) {
+      setAuthToken(null);
+      localStorage.removeItem('auth_user');
+      window.location.href = getLoginPath();
+      throw new Error('会话已过期，请重新登录');
+    }
+
+    if (!response.ok) {
+      throw new Error(`下载失败: HTTP ${response.status}`);
+    }
+
+    return response.blob();
   }
 }
 
@@ -959,6 +1013,21 @@ export const logsApi = {
 
   getAvailableDates: () =>
     api.get<string[]>('/api/logs/available-dates'),
+
+  getContext: (params: {
+    log_id: number;
+    date: string;
+    before?: number;
+    after?: number;
+  }) => {
+    const query = new URLSearchParams();
+    query.set('log_id', String(params.log_id));
+    query.set('date', params.date);
+    if (params.before !== undefined) query.set('before', String(params.before));
+    if (params.after !== undefined) query.set('after', String(params.after));
+
+    return api.get<LogContextResponse>(`/api/logs/context?${query.toString()}`);
+  },
 };
 
 // ===================
@@ -1025,6 +1094,9 @@ export const backupApi = {
 
   getFileTree: () =>
     api.get<FileTreeNode[]>('/api/backup/file-tree'),
+
+  downloadFile: (fileId: string): Promise<Blob> =>
+    api.downloadBlob(`/api/backup/download?file_id=${encodeURIComponent(fileId)}`),
 };
 
 // ===================

@@ -1354,7 +1354,18 @@
     "searchLogs": "搜索日志...",
     "all": "全部",
     "logList": "日志列表 ({count})",
-    "noMatchingLogs": "暂无匹配的日志"
+    "noMatchingLogs": "暂无匹配的日志",
+    "singleDate": "单日期",
+    "dateRange": "日期范围",
+    "startDate": "开始日期",
+    "endDate": "结束日期",
+    "newLogsAvailable": "有新日志可用，点击刷新查看",
+    "contextTitle": "日志上下文",
+    "contextNotAvailable": "该日志暂不支持查看上下文",
+    "contextLoadFailed": "加载日志上下文失败",
+    "loadMoreBefore": "加载更早的日志",
+    "loadMoreAfter": "加载更晚的日志",
+    "contextInfo": "当天共 {total} 条日志，当前显示前 {before} 条 + 后 {after} 条"
   },
   "themes": {
     "title": "主题设置",

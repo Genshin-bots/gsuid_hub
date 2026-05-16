@@ -316,9 +316,26 @@ export default function BackupPage() {
     setDeleteTarget(null);
   };
 
-  const handleDownload = (backup: BackupFileWithMeta) => {
-    // Use the download URL from API
-    window.open(backup.downloadUrl, '_blank');
+  const handleDownload = async (backup: BackupFileWithMeta) => {
+    try {
+      // Use authenticated download via API (window.open doesn't send auth headers)
+      const blob = await backupApi.downloadFile(backup.fileName);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = backup.fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Download failed:', error);
+      toast({
+        title: t('common.error'),
+        description: error instanceof Error ? error.message : String(error),
+        variant: 'destructive',
+      });
+    }
   };
 
   const handleDeleteClick = (backup: BackupFileWithMeta) => {
