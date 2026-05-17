@@ -60,6 +60,10 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
+import Graph from 'graphology';
+import Sigma from 'sigma';
+import forceAtlas2 from 'graphology-layout-forceatlas2';
+import FA2Layout from 'graphology-layout-forceatlas2/worker';
 
 // ============================================================================
 // Types
@@ -280,226 +284,47 @@ function truncateText(text: string, maxLength: number): string {
 }
 
 // ============================================================================
-// Knowledge Graph Visualization (Canvas-based)
+// Knowledge Graph Visualization (WebGL via sigma.js + graphology)
 // ============================================================================
 
-// --- Large Graph Optimizations ---
-// Keep all loaded data searchable/clickable, but render with adaptive LOD, batching and idle drawing.
-const MAX_RENDER_EDGES_HARD_LIMIT = 12000;
 const CENTER_NODE_COUNT = 3;
-const CENTER_NODE_RING_RADIUS = 920;
-const HUB_SEPARATION_DISTANCE = 900;
-const NODE_COLLISION_PADDING = 10;
-const MAX_SIMULATION_EDGES = 1800;
-const MAX_ACTIVE_RENDER_EDGES = 2200;
-const LARGE_GRAPH_NODE_THRESHOLD = 1200;
 const HUGE_GRAPH_NODE_THRESHOLD = 5000;
-const MASSIVE_GRAPH_NODE_THRESHOLD = 10000;
-const MAX_VISIBLE_NODES_LOW_ZOOM = 1800;
-const MAX_VISIBLE_NODES_HUGE_LOW_ZOOM = 1200;
+const FA2_MAX_NODES = 8000;       // above this the force layout is skipped (deterministic layout only)
+const MAX_RENDER_EDGES = 30000;   // hard cap so layout + rendering stay bounded
+const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
 
-interface Viewport {
-  left: number; top: number; right: number; bottom: number;
-}
+type NodeKind = 'speaker' | 'entity' | 'placeholder';
 
-function getViewport(rect: DOMRect, zoom: number, offset: {x:number;y:number}): Viewport {
-  const invZoom = 1 / zoom;
-  return {
-    left: -offset.x * invZoom - 60,
-    top: -offset.y * invZoom - 60,
-    right: (-offset.x + rect.width) * invZoom + 60,
-    bottom: (-offset.y + rect.height) * invZoom + 60,
-  };
-}
-
-function isNodeInViewport(node: GraphNode, vp: Viewport, radius = 30): boolean {
-  return node.x + radius >= vp.left && node.x - radius <= vp.right &&
-         node.y + radius >= vp.top && node.y - radius <= vp.bottom;
-}
-
-// Barnes-Hut Quadtree for O(n log n) repulsion
-class QuadTree {
-  x: number; y: number; w: number; h: number;
-  children: QuadTree[] | null = null;
-  point: GraphNode | null = null;
-  mass = 0; cx = 0; cy = 0;
-
-  constructor(x: number, y: number, w: number, h: number) {
-    this.x = x; this.y = y; this.w = w; this.h = h;
-  }
-
-  insert(node: GraphNode) {
-    if (node.x < this.x || node.x > this.x + this.w || node.y < this.y || node.y > this.y + this.h) return;
-    if (!this.children && !this.point && this.mass === 0) {
-      this.point = node;
-      this.mass = 1;
-      this.cx = node.x;
-      this.cy = node.y;
-      return;
-    }
-    if (!this.children) {
-      this.subdivide();
-      if (this.point) {
-        this.insertIntoChild(this.point);
-        this.point = null;
-      }
-    }
-    this.insertIntoChild(node);
-    this.mass += 1;
-    this.cx = (this.cx * (this.mass - 1) + node.x) / this.mass;
-    this.cy = (this.cy * (this.mass - 1) + node.y) / this.mass;
-  }
-
-  private subdivide() {
-    const hw = this.w / 2, hh = this.h / 2;
-    this.children = [
-      new QuadTree(this.x, this.y, hw, hh),
-      new QuadTree(this.x + hw, this.y, hw, hh),
-      new QuadTree(this.x, this.y + hh, hw, hh),
-      new QuadTree(this.x + hw, this.y + hh, hw, hh),
-    ];
-  }
-
-  private insertIntoChild(node: GraphNode) {
-    for (const child of this.children!) {
-      if (node.x >= child.x && node.x <= child.x + child.w && node.y >= child.y && node.y <= child.y + child.h) {
-        child.insert(node);
-        return;
-      }
-    }
-    let closest = this.children[0];
-    let closestDist = Infinity;
-    for (const child of this.children) {
-      const cx = child.x + child.w / 2;
-      const cy = child.y + child.h / 2;
-      const d = (node.x - cx) ** 2 + (node.y - cy) ** 2;
-      if (d < closestDist) {
-        closestDist = d;
-        closest = child;
-      }
-    }
-    closest.insert(node);
-  }
-
-  applyForce(node: GraphNode, alpha: number, repulsion: number, theta = 0.5) {
-    if (this.mass === 0) return;
-    // Guard against self-interaction at leaf level
-    if (this.point === node) return;
-
-    const dx = this.cx - node.x;
-    const dy = this.cy - node.y;
-    const distSq = dx * dx + dy * dy;
-    if (distSq === 0) return;
-    const dist = Math.sqrt(distSq);
-    const s = this.w;
-
-    // Use epsilon to avoid floating-point boundary issues
-    const eps = 1e-9;
-    const containsNode = node.x >= this.x - eps && node.x <= this.x + this.w + eps &&
-                         node.y >= this.y - eps && node.y <= this.y + this.h + eps;
-
-    // Clamp distance to avoid huge forces at close range
-    const clampedDist = Math.max(dist, 1.0);
-
-    if (!containsNode && (s / clampedDist) < theta) {
-      const force = (repulsion * this.mass) / (clampedDist * clampedDist);
-      const fx = (dx / clampedDist) * force * alpha;
-      const fy = (dy / clampedDist) * force * alpha;
-      node.vx -= fx;
-      node.vy -= fy;
-    } else if (this.children) {
-      for (const child of this.children) {
-        child.applyForce(node, alpha, repulsion, theta);
-      }
-    } else if (this.point && this.point !== node) {
-      const pdx = this.point.x - node.x;
-      const pdy = this.point.y - node.y;
-      const pdistSq = pdx * pdx + pdy * pdy;
-      if (pdistSq === 0) return;
-      const pdist = Math.sqrt(pdistSq);
-      const pclampedDist = Math.max(pdist, 1.0);
-      const pforce = repulsion / (pclampedDist * pclampedDist);
-      const pfx = (pdx / pclampedDist) * pforce * alpha;
-      const pfy = (pdy / pclampedDist) * pforce * alpha;
-      node.vx -= pfx;
-      node.vy -= pfy;
-    }
-  }
-}
-
-interface GraphNode {
+interface NodeMeta {
   id: string;
   label: string;
-  type: 'entity' | 'category';
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  isSpeaker?: boolean;
-  layer?: number;
   degree: number;
+  kind: NodeKind;
   centerRank?: number;
 }
 
-interface GraphEdge {
-  source: string;
-  target: string;
-  label: string;
-  invalid?: boolean;
+// Even, overlap-free disk layout used as the starting point — and as the final
+// layout for graphs too large to run a force simulation on.
+function phyllotaxisPosition(index: number, spacing: number): { x: number; y: number } {
+  const radius = spacing * Math.sqrt(index + 0.5);
+  const angle = index * GOLDEN_ANGLE;
+  return { x: radius * Math.cos(angle), y: radius * Math.sin(angle) };
 }
 
-// Uniform spatial hash grid for O(1)-ish viewport queries and hit-testing.
-// Simulation is disabled above HUGE_GRAPH_NODE_THRESHOLD, so node positions are
-// static once a huge graph's layout is fixed — a grid built once then keeps
-// pan/zoom/hover cost independent of the total entity count.
-const SPATIAL_GRID_CELL_SIZE = 260;
-
-class SpatialGrid {
-  private cell: number;
-  private buckets = new Map<string, GraphNode[]>();
-
-  constructor(nodes: GraphNode[], cell = SPATIAL_GRID_CELL_SIZE) {
-    this.cell = cell;
-    for (let i = 0; i < nodes.length; i++) {
-      const n = nodes[i];
-      const key = `${Math.floor(n.x / cell)},${Math.floor(n.y / cell)}`;
-      const bucket = this.buckets.get(key);
-      if (bucket) bucket.push(n);
-      else this.buckets.set(key, [n]);
-    }
-  }
-
-  // Candidate nodes whose cell overlaps the viewport (caller still does a precise test).
-  queryViewport(vp: Viewport, pad = 80): GraphNode[] {
-    const cell = this.cell;
-    const gx0 = Math.floor((vp.left - pad) / cell);
-    const gx1 = Math.floor((vp.right + pad) / cell);
-    const gy0 = Math.floor((vp.top - pad) / cell);
-    const gy1 = Math.floor((vp.bottom + pad) / cell);
-    const out: GraphNode[] = [];
-    for (let gx = gx0; gx <= gx1; gx++) {
-      for (let gy = gy0; gy <= gy1; gy++) {
-        const bucket = this.buckets.get(`${gx},${gy}`);
-        if (bucket) for (let i = 0; i < bucket.length; i++) out.push(bucket[i]);
+function getGraphPalette(isDark: boolean) {
+  return isDark
+    ? {
+        speaker: '#60a5fa', entity: '#818cf8', placeholder: '#94a3b8', center: '#facc15',
+        edge: 'rgba(96,165,250,0.7)', edgeInvalid: 'rgba(248,113,113,0.75)',
+        nodeDim: 'rgba(100,116,139,0.18)', edgeDim: 'rgba(96,165,250,0.12)',
+        label: '#e2e8f0', labelBg: 'rgba(15,23,42,0.78)',
       }
-    }
-    return out;
-  }
-
-  // Candidate nodes in the 3x3 cell neighbourhood of a point (cell size >> node radius).
-  queryPoint(x: number, y: number): GraphNode[] {
-    const cell = this.cell;
-    const cgx = Math.floor(x / cell);
-    const cgy = Math.floor(y / cell);
-    const out: GraphNode[] = [];
-    for (let gx = cgx - 1; gx <= cgx + 1; gx++) {
-      for (let gy = cgy - 1; gy <= cgy + 1; gy++) {
-        const bucket = this.buckets.get(`${gx},${gy}`);
-        if (bucket) for (let i = 0; i < bucket.length; i++) out.push(bucket[i]);
-      }
-    }
-    return out;
-  }
+    : {
+        speaker: '#3b82f6', entity: '#6366f1', placeholder: '#64748b', center: '#f59e0b',
+        edge: 'rgba(37,99,235,0.6)', edgeInvalid: 'rgba(239,68,68,0.65)',
+        nodeDim: 'rgba(148,163,184,0.22)', edgeDim: 'rgba(37,99,235,0.12)',
+        label: '#1e293b', labelBg: 'rgba(255,255,255,0.82)',
+      };
 }
 
 function KnowledgeGraph({
@@ -517,997 +342,353 @@ function KnowledgeGraph({
   isDark: boolean;
   onNodeClick: (type: 'entity' | 'category', id: string) => void;
 }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  void categories; // categories are not rendered as graph nodes (kept for API compatibility)
+  const { t } = useLanguage();
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const zoomRef = useRef(1);
-  const offsetRef = useRef({ x: 0, y: 0 });
-  const isDraggingRef = useRef(false);
-  const dragStartRef = useRef({ x: 0, y: 0 });
-  const lastPinchDistRef = useRef(0);
-  const lastPinchCenterRef = useRef({ x: 0, y: 0 });
-  const hoveredNodeRef = useRef<string | null>(null);
-  const nodesRef = useRef<GraphNode[]>([]);
-  const animFrameRef = useRef<number>(0);
-  const alphaRef = useRef(1.0);
-  const drawFrameRef = useRef<number | null>(null);
-  const needsRedrawRef = useRef(true);
-  const spatialGridRef = useRef<SpatialGrid | null>(null);
-  const importanceOrderRef = useRef<GraphNode[]>([]);
+  const sigmaRef = useRef<Sigma | null>(null);
+  const graphRef = useRef<Graph | null>(null);
+  const fa2Ref = useRef<FA2Layout | null>(null);
+
+  // Mutable refs read by sigma's reducers, so theme/hover/focus changes only need a refresh.
+  const isDarkRef = useRef(isDark);
+  const hoveredRef = useRef<string | null>(null);
+  const highlightRef = useRef<Set<string> | null>(null);
+  const focusedRef = useRef<string | null>(null);
+  const onNodeClickRef = useRef(onNodeClick);
+  isDarkRef.current = isDark;
+  onNodeClickRef.current = onNodeClick;
+
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [nodeSearchQuery, setNodeSearchQuery] = useState('');
   const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null);
+  const [isLayoutRunning, setIsLayoutRunning] = useState(false);
 
-  // Build graph data from props
-  const graphData = useMemo(() => {
-    const cx = 400;
-    const cy = 300;
-    const existingIds = new Set<string>();
-    const nodes: GraphNode[] = [];
-    const degreeMap = new Map<string, number>();
-
+  // Node metadata: degree, kind and TOP-N center ranking. Drives both the graph
+  // build and the search panel.
+  const nodeMeta = useMemo(() => {
+    const degree = new Map<string, number>();
     for (const edge of edges) {
-      degreeMap.set(edge.source_entity_id, (degreeMap.get(edge.source_entity_id) || 0) + 1);
-      degreeMap.set(edge.target_entity_id, (degreeMap.get(edge.target_entity_id) || 0) + 1);
+      if (edge.source_entity_id === edge.target_entity_id) continue;
+      degree.set(edge.source_entity_id, (degree.get(edge.source_entity_id) || 0) + 1);
+      degree.set(edge.target_entity_id, (degree.get(edge.target_entity_id) || 0) + 1);
     }
-
-    const centerRankMap = new Map<string, number>();
-    Array.from(degreeMap.entries())
-      .filter(([, degree]) => degree > 0)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, CENTER_NODE_COUNT)
-      .forEach(([id], index) => centerRankMap.set(id, index + 1));
-
-    const isHugeInitialGraph = entities.length > HUGE_GRAPH_NODE_THRESHOLD;
-
-    entities.forEach((entity, i) => {
-      existingIds.add(entity.id);
-      const centerRank = centerRankMap.get(entity.id);
-      const angle = centerRank
-        ? (-Math.PI / 2) + ((2 * Math.PI * (centerRank - 1)) / Math.max(CENTER_NODE_COUNT, 1))
-        : (2 * Math.PI * i) / Math.max(entities.length, 1);
-      const radius = centerRank
-        ? CENTER_NODE_RING_RADIUS
-        : isHugeInitialGraph
-          ? 700 + (i % 19) * 58 + Math.floor(i / 19) * 3
-          : 320 + (i % 9) * 48 + Math.random() * 180;
-      nodes.push({
+    const meta = new Map<string, NodeMeta>();
+    for (const entity of entities) {
+      meta.set(entity.id, {
         id: entity.id,
         label: entity.name,
-        type: 'entity',
-        x: cx + radius * Math.cos(angle),
-        y: cy + radius * Math.sin(angle),
-        vx: 0,
-        vy: 0,
-        isSpeaker: entity.is_speaker,
-        degree: degreeMap.get(entity.id) || 0,
-        centerRank,
+        degree: degree.get(entity.id) || 0,
+        kind: entity.is_speaker ? 'speaker' : 'entity',
       });
-    });
-
-
-    // Add placeholder nodes for edge endpoints not in the entity/category lists
-    const missingIds = new Set<string>();
+    }
     for (const edge of edges) {
-      if (!existingIds.has(edge.source_entity_id)) missingIds.add(edge.source_entity_id);
-      if (!existingIds.has(edge.target_entity_id)) missingIds.add(edge.target_entity_id);
+      for (const id of [edge.source_entity_id, edge.target_entity_id]) {
+        if (!meta.has(id)) {
+          meta.set(id, { id, label: id.slice(0, 8), degree: degree.get(id) || 0, kind: 'placeholder' });
+        }
+      }
     }
-    let missingIdx = 0;
-    for (const id of missingIds) {
-      existingIds.add(id);
-      const centerRank = centerRankMap.get(id);
-      const angle = centerRank
-        ? (-Math.PI / 2) + ((2 * Math.PI * (centerRank - 1)) / Math.max(CENTER_NODE_COUNT, 1))
-        : (2 * Math.PI * missingIdx) / Math.max(missingIds.size, 1) + Math.PI / 6;
-      const radius = centerRank
-        ? CENTER_NODE_RING_RADIUS
-        : isHugeInitialGraph
-          ? 720 + (missingIdx % 19) * 58 + Math.floor(missingIdx / 19) * 3
-          : 320 + (missingIdx % 9) * 48 + Math.random() * 140;
-      nodes.push({
-        id,
-        label: id.slice(0, 8),
-        type: 'entity',
-        x: cx + radius * Math.cos(angle),
-        y: cy + radius * Math.sin(angle),
-        vx: 0,
-        vy: 0,
-        isSpeaker: false,
-        degree: degreeMap.get(id) || 0,
-        centerRank,
-      });
-      missingIdx++;
-    }
-
-    let graphEdges = edges.map((edge) => ({
-      source: edge.source_entity_id,
-      target: edge.target_entity_id,
-      label: truncateText(edge.fact, 30),
-      invalid: !!edge.invalid_at,
-    }));
-
-    if (graphEdges.length > MAX_RENDER_EDGES_HARD_LIMIT) {
-      graphEdges = graphEdges.slice(0, MAX_RENDER_EDGES_HARD_LIMIT);
-    }
-
-    return { nodes, edges: graphEdges };
+    Array.from(meta.values())
+      .filter((m) => m.degree > 0)
+      .sort((a, b) => b.degree - a.degree)
+      .slice(0, CENTER_NODE_COUNT)
+      .forEach((m, i) => { m.centerRank = i + 1; });
+    return meta;
   }, [entities, edges]);
 
   const nodeSearchResults = useMemo(() => {
     const query = nodeSearchQuery.trim().toLowerCase();
     if (!query) return [];
-    return graphData.nodes
-      .filter((node) => node.label.toLowerCase().includes(query) || node.id.toLowerCase().includes(query))
+    return Array.from(nodeMeta.values())
+      .filter((m) => m.label.toLowerCase().includes(query) || m.id.toLowerCase().includes(query))
       .sort((a, b) => b.degree - a.degree)
       .slice(0, 8);
-  }, [graphData.nodes, nodeSearchQuery]);
+  }, [nodeMeta, nodeSearchQuery]);
 
-  // Build node index for O(1) lookup
-  const nodeIndexRef = useRef<Map<string, number>>(new Map());
+  // Build the graphology graph + sigma renderer. Rebuilt only when data changes.
   useEffect(() => {
-    const idx = new Map<string, number>();
-    graphData.nodes.forEach((n, i) => idx.set(n.id, i));
-    nodeIndexRef.current = idx;
-  }, [graphData]);
+    const container = containerRef.current;
+    if (!container) return;
 
-  const drawGraphRef = useRef<(() => void) | null>(null);
+    const graph = new Graph({ multi: true, type: 'directed' });
+    const spacing = nodeMeta.size > HUGE_GRAPH_NODE_THRESHOLD ? 12 : 24;
 
-  const scheduleRedraw = useCallback(() => {
-    needsRedrawRef.current = true;
-    if (drawFrameRef.current !== null) return;
-    drawFrameRef.current = requestAnimationFrame(() => {
-      drawFrameRef.current = null;
-      if (!needsRedrawRef.current) return;
-      needsRedrawRef.current = false;
-      drawGraphRef.current?.();
+    let index = 0;
+    nodeMeta.forEach((m) => {
+      const pos = phyllotaxisPosition(index++, spacing);
+      const size = m.centerRank
+        ? 13 - m.centerRank
+        : m.kind === 'speaker' ? 6.5 : m.kind === 'placeholder' ? 3.5 : 5;
+      graph.addNode(m.id, {
+        x: pos.x,
+        y: pos.y,
+        size,
+        label: truncateText(m.label, 24),
+        kind: m.kind,
+        centerRank: m.centerRank ?? 0,
+        degree: m.degree,
+      });
     });
+
+    let renderedEdges = 0;
+    for (const edge of edges) {
+      if (renderedEdges >= MAX_RENDER_EDGES) break;
+      if (edge.source_entity_id === edge.target_entity_id) continue;
+      if (!graph.hasNode(edge.source_entity_id) || !graph.hasNode(edge.target_entity_id)) continue;
+      try {
+        graph.addEdgeWithKey(edge.id, edge.source_entity_id, edge.target_entity_id, {
+          size: 1,
+          invalid: !!edge.invalid_at,
+          label: truncateText(edge.fact, 36),
+        });
+        renderedEdges++;
+      } catch {
+        // duplicate edge key — ignore
+      }
+    }
+    graphRef.current = graph;
+
+    // Draw the node label centered on the node — inside a small pill — so the
+    // entity name reads as sitting inside the node rather than floating beside it.
+    const drawNodeLabel = (context: CanvasRenderingContext2D, data: any, settings: any) => {
+      if (!data.label) return;
+      const palette = getGraphPalette(isDarkRef.current);
+      const fontSize = settings.labelSize as number;
+      context.font = `${settings.labelWeight} ${fontSize}px ${settings.labelFont}`;
+      const textWidth = context.measureText(data.label).width;
+      const padX = 5;
+      const boxW = textWidth + padX * 2;
+      const boxH = fontSize + 6;
+      context.fillStyle = palette.labelBg;
+      context.beginPath();
+      context.roundRect(data.x - boxW / 2, data.y - boxH / 2, boxW, boxH, 4);
+      context.fill();
+      context.fillStyle = (settings.labelColor && settings.labelColor.color) || palette.label;
+      context.textAlign = 'center';
+      context.textBaseline = 'middle';
+      context.fillText(data.label, data.x, data.y);
+    };
+
+    // Draw the edge fact horizontally at the edge midpoint (never rotated along
+    // the line). Only the hovered node's edges keep a label, so this stays sparse.
+    const drawEdgeLabel = (
+      context: CanvasRenderingContext2D,
+      edgeData: any,
+      sourceData: any,
+      targetData: any,
+      settings: any,
+    ) => {
+      if (!edgeData.label) return;
+      const palette = getGraphPalette(isDarkRef.current);
+      const fontSize = settings.edgeLabelSize as number;
+      context.font = `${settings.edgeLabelWeight} ${fontSize}px ${settings.edgeLabelFont}`;
+      const mx = (sourceData.x + targetData.x) / 2;
+      const my = (sourceData.y + targetData.y) / 2;
+      const textWidth = context.measureText(edgeData.label).width;
+      const boxW = textWidth + 10;
+      const boxH = fontSize + 6;
+      context.fillStyle = palette.labelBg;
+      context.beginPath();
+      context.roundRect(mx - boxW / 2, my - boxH / 2, boxW, boxH, 4);
+      context.fill();
+      context.fillStyle = palette.label;
+      context.textAlign = 'center';
+      context.textBaseline = 'middle';
+      context.fillText(edgeData.label, mx, my);
+    };
+
+    const renderer = new Sigma(graph, container, {
+      renderLabels: true,
+      renderEdgeLabels: true,
+      labelColor: { color: getGraphPalette(isDarkRef.current).label },
+      labelRenderedSizeThreshold: graph.order > HUGE_GRAPH_NODE_THRESHOLD ? 12 : 6,
+      labelDensity: 1,
+      labelGridCellSize: 70,
+      labelWeight: '600',
+      defaultDrawNodeLabel: drawNodeLabel,
+      defaultDrawNodeHover: drawNodeLabel,
+      defaultDrawEdgeLabel: drawEdgeLabel,
+      minEdgeThickness: 1,
+      minCameraRatio: 0.02,
+      maxCameraRatio: 14,
+      allowInvalidContainer: true,
+      defaultNodeColor: getGraphPalette(isDarkRef.current).entity,
+      defaultEdgeColor: getGraphPalette(isDarkRef.current).edge,
+      nodeReducer: (node, data) => {
+        const palette = getGraphPalette(isDarkRef.current);
+        const res = { ...data };
+        let color = data.centerRank
+          ? palette.center
+          : data.kind === 'speaker' ? palette.speaker
+          : data.kind === 'placeholder' ? palette.placeholder
+          : palette.entity;
+        const highlight = highlightRef.current;
+        if (highlight) {
+          if (highlight.has(node)) {
+            // Hovering a node reveals the name of every node it connects to.
+            res.forceLabel = true;
+          } else {
+            color = palette.nodeDim;
+            res.label = '';
+          }
+        }
+        if (node === hoveredRef.current || node === focusedRef.current) {
+          res.highlighted = true;
+          res.forceLabel = true;
+        }
+        res.color = color;
+        return res;
+      },
+      edgeReducer: (edge, data) => {
+        const palette = getGraphPalette(isDarkRef.current);
+        const res = { ...data };
+        let color = data.invalid ? palette.edgeInvalid : palette.edge;
+        const highlight = highlightRef.current;
+        const hovered = hoveredRef.current;
+        if (highlight) {
+          const [src, tgt] = graph.extremities(edge);
+          if (src === hovered || tgt === hovered) {
+            // Show the fact only on the hovered node's own edges.
+            res.forceLabel = true;
+          } else {
+            res.label = '';
+            if (!highlight.has(src) || !highlight.has(tgt)) color = palette.edgeDim;
+          }
+        } else {
+          // No persistent edge labels — they only appear on hover.
+          res.label = '';
+        }
+        res.color = color;
+        return res;
+      },
+    });
+    sigmaRef.current = renderer;
+
+    renderer.on('enterNode', ({ node }) => {
+      hoveredRef.current = node;
+      const set = new Set<string>([node]);
+      graph.forEachNeighbor(node, (neighbor) => set.add(neighbor));
+      highlightRef.current = set;
+      renderer.refresh({ skipIndexation: true });
+      container.style.cursor = 'pointer';
+    });
+    renderer.on('leaveNode', () => {
+      hoveredRef.current = null;
+      highlightRef.current = null;
+      renderer.refresh({ skipIndexation: true });
+      container.style.cursor = 'grab';
+    });
+    renderer.on('clickNode', ({ node }) => {
+      onNodeClickRef.current('entity', node);
+    });
+
+    // Force layout (off the main thread) for graphs small enough to benefit;
+    // larger graphs keep the deterministic phyllotaxis layout.
+    let layoutTimer = 0;
+    if (graph.order > 1 && graph.order <= FA2_MAX_NODES) {
+      const settings = forceAtlas2.inferSettings(graph);
+      const layout = new FA2Layout(graph, {
+        settings: { ...settings, slowDown: 1 + Math.log(graph.order + 1) },
+      });
+      fa2Ref.current = layout;
+      layout.start();
+      setIsLayoutRunning(true);
+      layoutTimer = window.setTimeout(() => {
+        layout.stop();
+        setIsLayoutRunning(false);
+      }, Math.min(9000, 2500 + graph.order));
+    }
+
+    return () => {
+      window.clearTimeout(layoutTimer);
+      if (fa2Ref.current) {
+        fa2Ref.current.kill();
+        fa2Ref.current = null;
+      }
+      renderer.kill();
+      sigmaRef.current = null;
+      graphRef.current = null;
+      setIsLayoutRunning(false);
+    };
+  }, [nodeMeta, edges]);
+
+  // Re-skin on theme change without rebuilding the graph.
+  useEffect(() => {
+    const renderer = sigmaRef.current;
+    if (!renderer) return;
+    const palette = getGraphPalette(isDark);
+    renderer.setSetting('labelColor', { color: palette.label });
+    renderer.setSetting('defaultNodeColor', palette.entity);
+    renderer.setSetting('defaultEdgeColor', palette.edge);
+    renderer.refresh({ skipIndexation: true });
+  }, [isDark]);
+
+  const stopLayout = useCallback(() => {
+    if (fa2Ref.current) {
+      fa2Ref.current.stop();
+      setIsLayoutRunning(false);
+    }
   }, []);
 
   const focusNode = useCallback((nodeId: string, options?: { closeResults?: boolean }) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const idx = nodeIndexRef.current.get(nodeId);
-    if (idx === undefined) return;
-    const node = nodesRef.current[idx];
-    if (!node) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const targetZoom = Math.max(zoomRef.current, 1.25);
-    zoomRef.current = Math.min(targetZoom, 5);
-    offsetRef.current = {
-      x: rect.width / 2 - node.x * zoomRef.current,
-      y: rect.height / 2 - node.y * zoomRef.current,
-    };
-    hoveredNodeRef.current = nodeId;
+    const renderer = sigmaRef.current;
+    const graph = graphRef.current;
+    if (!renderer || !graph || !graph.hasNode(nodeId)) return;
+    focusedRef.current = nodeId;
     setFocusedNodeId(nodeId);
     if (options?.closeResults) setNodeSearchQuery('');
-    scheduleRedraw();
-  }, [scheduleRedraw]);
+    const display = renderer.getNodeDisplayData(nodeId);
+    if (display) {
+      const camera = renderer.getCamera();
+      camera.animate(
+        { x: display.x, y: display.y, ratio: Math.min(camera.ratio, 0.22) },
+        { duration: 600 },
+      );
+    }
+    renderer.refresh({ skipIndexation: true });
+  }, []);
 
   const handleSearchSubmit = useCallback((e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const firstResult = nodeSearchResults[0];
-    if (firstResult) focusNode(firstResult.id, { closeResults: true });
+    const first = nodeSearchResults[0];
+    if (first) focusNode(first.id, { closeResults: true });
   }, [focusNode, nodeSearchResults]);
 
-  const simulationEdges = useMemo(() => {
-    if (graphData.nodes.length > HUGE_GRAPH_NODE_THRESHOLD) return [];
-    if (graphData.edges.length <= MAX_SIMULATION_EDGES) return graphData.edges;
-    const step = Math.ceil(graphData.edges.length / MAX_SIMULATION_EDGES);
-    const sampled: GraphEdge[] = [];
-    for (let i = 0; i < graphData.edges.length && sampled.length < MAX_SIMULATION_EDGES; i += step) {
-      sampled.push(graphData.edges[i]);
-    }
-    return sampled;
-  }, [graphData.edges]);
-
-  // Force simulation with Barnes-Hut and convergence detection
-  useEffect(() => {
-    nodesRef.current = graphData.nodes.map((n) => ({ ...n }));
-    // Pre-sorted importance list lets the low-zoom cap skip an O(n log n) sort per frame.
-    importanceOrderRef.current = [...nodesRef.current].sort(
-      (a, b) => (Number(!!b.centerRank) - Number(!!a.centerRank)) || (b.degree - a.degree)
-    );
-    const rebuildSpatialGrid = () => { spatialGridRef.current = new SpatialGrid(nodesRef.current); };
-    rebuildSpatialGrid();
-    const isHugeGraph = graphData.nodes.length > HUGE_GRAPH_NODE_THRESHOLD;
-    alphaRef.current = isHugeGraph ? 0 : 1.0;
-    if (isHugeGraph) {
-      scheduleRedraw();
-      return () => cancelAnimationFrame(animFrameRef.current);
-    }
-    let running = true;
-    let stableFrames = 0;
-    let frame = 0;
-
-    const simulate = () => {
-      if (!running) return;
-      const nodes = nodesRef.current;
-      if (nodes.length === 0) return;
-
-      const alpha = alphaRef.current;
-
-      if (alpha > 0.001) {
-        // Barnes-Hut approximation for O(n log n) repulsion
-        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-        for (const node of nodes) {
-          if (node.x < minX) minX = node.x;
-          if (node.y < minY) minY = node.y;
-          if (node.x > maxX) maxX = node.x;
-          if (node.y > maxY) maxY = node.y;
-        }
-        const size = Math.max(maxX - minX, maxY - minY, 100);
-        const tree = new QuadTree(minX - 1, minY - 1, size + 2, size + 2);
-        for (const node of nodes) tree.insert(node);
-        // Scale repulsion for large graphs to prevent overlap; hubs get extra space
-        const repulsion = Math.min(22000, 520000 / Math.max(1, nodes.length));
-        for (const node of nodes) {
-          const hubMultiplier = node.centerRank ? 2.8 : 1 + Math.min(node.degree, 20) * 0.025;
-          tree.applyForce(node, alpha, repulsion * hubMultiplier);
-        }
-
-        // Attraction along edges. High-degree centers use longer springs so their edge bundles spread out.
-        const idx = nodeIndexRef.current;
-        for (const edge of simulationEdges) {
-          const si = idx.get(edge.source);
-          const ti = idx.get(edge.target);
-          if (si === undefined || ti === undefined) continue;
-          const source = nodes[si];
-          const target = nodes[ti];
-          const dx = target.x - source.x;
-          const dy = target.y - source.y;
-          const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-          const baseIdealDist = nodes.length > 2000 ? 90 : 180;
-          const centerBoost = source.centerRank || target.centerRank ? 190 : 0;
-          const degreeBoost = Math.min(Math.max(source.degree, target.degree), 30) * 4;
-          const idealDist = baseIdealDist + centerBoost + degreeBoost;
-          const force = (dist - idealDist) * 0.012 * alpha;
-          const fx = (dx / dist) * force;
-          const fy = (dy / dist) * force;
-          source.vx += fx;
-          source.vy += fy;
-          target.vx -= fx;
-          target.vy -= fy;
-        }
-
-        // Explicitly keep top centers apart; this makes top1/top2/top3 visually distinguishable.
-        const centerNodes = nodes.filter((node) => node.centerRank);
-        for (let i = 0; i < centerNodes.length; i++) {
-          for (let j = i + 1; j < centerNodes.length; j++) {
-            const a = centerNodes[i];
-            const b = centerNodes[j];
-            const dx = b.x - a.x;
-            const dy = b.y - a.y;
-            const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-            if (dist >= HUB_SEPARATION_DISTANCE) continue;
-            const force = (HUB_SEPARATION_DISTANCE - dist) * 0.035 * alpha;
-            const fx = (dx / dist) * force;
-            const fy = (dy / dist) * force;
-            a.vx -= fx;
-            a.vy -= fy;
-            b.vx += fx;
-            b.vy += fy;
-          }
-        }
-
-        // Lightweight grid-based collision pass; skip frames on large graphs to keep interaction smooth.
-        if (nodes.length <= LARGE_GRAPH_NODE_THRESHOLD || frame % 3 === 0) {
-          const collisionCellSize = 72;
-          const collisionGrid = new Map<string, number[]>();
-          const getCollisionRadius = (node: GraphNode) =>
-            (node.type === 'category' ? 28 : (node.isSpeaker ? 24 : 20)) + (node.centerRank ? 8 : 0);
-          for (let i = 0; i < nodes.length; i++) {
-            const node = nodes[i];
-            const gx = Math.floor(node.x / collisionCellSize);
-            const gy = Math.floor(node.y / collisionCellSize);
-            const key = `${gx},${gy}`;
-            const bucket = collisionGrid.get(key);
-            if (bucket) bucket.push(i);
-            else collisionGrid.set(key, [i]);
-          }
-          for (let i = 0; i < nodes.length; i++) {
-            const a = nodes[i];
-            const ar = getCollisionRadius(a);
-            const gx = Math.floor(a.x / collisionCellSize);
-            const gy = Math.floor(a.y / collisionCellSize);
-            for (let ox = -1; ox <= 1; ox++) {
-              for (let oy = -1; oy <= 1; oy++) {
-                const bucket = collisionGrid.get(`${gx + ox},${gy + oy}`);
-                if (!bucket) continue;
-                for (const j of bucket) {
-                  if (j <= i) continue;
-                  const b = nodes[j];
-                  const br = getCollisionRadius(b);
-                  const minDist = ar + br + NODE_COLLISION_PADDING;
-                  const dx = b.x - a.x;
-                  const dy = b.y - a.y;
-                  const distSq = dx * dx + dy * dy;
-                  if (distSq <= 0 || distSq >= minDist * minDist) continue;
-                  const dist = Math.sqrt(distSq);
-                  const force = (minDist - dist) * 0.025 * alpha;
-                  const fx = (dx / dist) * force;
-                  const fy = (dy / dist) * force;
-                  a.vx -= fx;
-                  a.vy -= fy;
-                  b.vx += fx;
-                  b.vy += fy;
-                }
-              }
-            }
-          }
-        }
-
-        // Center gravity - weak global pull plus ring anchors for hubs to avoid center pile-up.
-        const gravityStrength = nodes.length > 2000 ? 0.004 : 0.0015;
-        for (const node of nodes) {
-          if (node.centerRank) {
-            const anchorAngle = (-Math.PI / 2) + ((2 * Math.PI * (node.centerRank - 1)) / Math.max(CENTER_NODE_COUNT, 1));
-            const anchorX = 400 + CENTER_NODE_RING_RADIUS * Math.cos(anchorAngle);
-            const anchorY = 300 + CENTER_NODE_RING_RADIUS * Math.sin(anchorAngle);
-            node.vx += (anchorX - node.x) * 0.006 * alpha;
-            node.vy += (anchorY - node.y) * 0.006 * alpha;
-          } else {
-            node.vx += (400 - node.x) * gravityStrength * alpha;
-            node.vy += (300 - node.y) * gravityStrength * alpha;
-          }
-        }
-
-        // Apply velocity with damping, clamping and boundary limits
-        let totalMovement = 0;
-        const maxVelocity = 8;
-        const bound = 6000;
-        for (const node of nodes) {
-          node.vx *= 0.4;
-          node.vy *= 0.4;
-          // Clamp velocity to prevent runaway nodes
-          const v = Math.sqrt(node.vx * node.vx + node.vy * node.vy);
-          if (v > maxVelocity) {
-            node.vx = (node.vx / v) * maxVelocity;
-            node.vy = (node.vy / v) * maxVelocity;
-          }
-          node.x += node.vx;
-          node.y += node.vy;
-          // Hard boundary to keep nodes in reasonable range
-          node.x = Math.max(-bound, Math.min(bound, node.x));
-          node.y = Math.max(-bound, Math.min(bound, node.y));
-          totalMovement += Math.abs(node.vx) + Math.abs(node.vy);
-        }
-
-        frame++;
-        alphaRef.current *= nodes.length > LARGE_GRAPH_NODE_THRESHOLD ? 0.985 : 0.99;
-
-        // Early stop if barely moving
-        if (totalMovement < nodes.length * 0.005) {
-          stableFrames++;
-          if (stableFrames > 60) alphaRef.current = 0;
-        } else {
-          stableFrames = 0;
-        }
-
-        rebuildSpatialGrid();
-        scheduleRedraw();
-        animFrameRef.current = requestAnimationFrame(simulate);
-      }
-    };
-
-    simulate();
-    return () => {
-      running = false;
-      cancelAnimationFrame(animFrameRef.current);
-    };
-  }, [graphData, simulationEdges, scheduleRedraw]);
-
-  // Theme-aware color palette
-  const colors = useMemo(() => {
-    if (isDark) {
-      return {
-        edgeNormal: 'rgba(148, 163, 184, 0.3)',
-        edgeInvalid: 'rgba(239, 68, 68, 0.4)',
-        edgeLabel: 'rgba(203, 213, 225, 0.85)',
-        nodeLabel: 'rgba(226, 232, 240, 0.95)',
-        nodeLabelHover: 'rgba(248, 250, 252, 1)',
-        // Speaker node
-        speakerFill: 'rgba(59, 130, 246, 0.2)',
-        speakerFillHover: 'rgba(59, 130, 246, 0.35)',
-        speakerStroke: 'rgba(96, 165, 250, 0.7)',
-        speakerStrokeHover: 'rgba(96, 165, 250, 1)',
-        speakerGlow: 'rgba(59, 130, 246, 0.15)',
-        // Entity node
-        entityFill: 'rgba(99, 102, 241, 0.15)',
-        entityFillHover: 'rgba(99, 102, 241, 0.3)',
-        entityStroke: 'rgba(129, 140, 248, 0.6)',
-        entityStrokeHover: 'rgba(129, 140, 248, 1)',
-        entityGlow: 'rgba(99, 102, 241, 0.15)',
-        // Category node
-        catFill: 'rgba(139, 92, 246, 0.18)',
-        catFillHover: 'rgba(139, 92, 246, 0.35)',
-        catStroke: 'rgba(167, 139, 250, 0.65)',
-        catStrokeHover: 'rgba(167, 139, 250, 1)',
-        catGlow: 'rgba(139, 92, 246, 0.15)',
-      };
-    }
-    return {
-      edgeNormal: 'rgba(100, 116, 139, 0.35)',
-      edgeInvalid: 'rgba(239, 68, 68, 0.3)',
-      edgeLabel: 'rgba(71, 85, 105, 0.8)',
-      nodeLabel: 'rgba(30, 41, 59, 0.9)',
-      nodeLabelHover: 'rgba(15, 23, 42, 0.95)',
-      // Speaker node
-      speakerFill: 'rgba(59, 130, 246, 0.12)',
-      speakerFillHover: 'rgba(59, 130, 246, 0.25)',
-      speakerStroke: 'rgba(59, 130, 246, 0.6)',
-      speakerStrokeHover: 'rgba(59, 130, 246, 0.9)',
-      speakerGlow: 'rgba(59, 130, 246, 0.12)',
-      // Entity node
-      entityFill: 'rgba(99, 102, 241, 0.1)',
-      entityFillHover: 'rgba(99, 102, 241, 0.25)',
-      entityStroke: 'rgba(99, 102, 241, 0.5)',
-      entityStrokeHover: 'rgba(99, 102, 241, 0.9)',
-      entityGlow: 'rgba(99, 102, 241, 0.12)',
-      // Category node
-      catFill: 'rgba(139, 92, 246, 0.12)',
-      catFillHover: 'rgba(139, 92, 246, 0.25)',
-      catStroke: 'rgba(139, 92, 246, 0.6)',
-      catStrokeHover: 'rgba(139, 92, 246, 0.9)',
-      catGlow: 'rgba(139, 92, 246, 0.12)',
-    };
-  }, [isDark]);
-
-  // Build adjacency map for hover highlighting
-  const adjacencyMap = useMemo(() => {
-    const adj = new Map<string, Set<string>>();
-    for (const edge of graphData.edges) {
-      if (!adj.has(edge.source)) adj.set(edge.source, new Set());
-      if (!adj.has(edge.target)) adj.set(edge.target, new Set());
-      adj.get(edge.source)!.add(edge.target);
-      adj.get(edge.target)!.add(edge.source);
-    }
-    return adj;
-  }, [graphData]);
-
-  // The actual draw function with viewport culling and LOD
-  const drawGraph = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const dpr = window.devicePixelRatio || 1;
-    const rect = canvas.getBoundingClientRect();
-    if (canvas.width !== Math.round(rect.width * dpr) || canvas.height !== Math.round(rect.height * dpr)) {
-      canvas.width = Math.round(rect.width * dpr);
-      canvas.height = Math.round(rect.height * dpr);
-    }
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-    ctx.clearRect(0, 0, rect.width, rect.height);
-    ctx.save();
-    ctx.translate(offsetRef.current.x, offsetRef.current.y);
-    ctx.scale(zoomRef.current, zoomRef.current);
-
-    const nodes = nodesRef.current;
-    const hoveredNode = hoveredNodeRef.current;
-    const selectedNodeId = focusedNodeId;
-    const c = colors;
-    const zoom = zoomRef.current;
-
-    // Viewport culling
-    const vp = getViewport(rect, zoom, offsetRef.current);
-
-    // Compute highlighted node set when hovering
-    let highlightedNodes: Set<string> | null = null;
-    if (hoveredNode) {
-      highlightedNodes = new Set<string>([hoveredNode]);
-      const neighbors = adjacencyMap.get(hoveredNode);
-      if (neighbors) {
-        for (const n of neighbors) highlightedNodes.add(n);
-      }
-    }
-
-    const getNodeAlpha = (nodeId: string): number => {
-      if (!highlightedNodes) return 1;
-      return highlightedNodes.has(nodeId) ? 1 : 0.15;
-    };
-
-    const getEdgeAlpha = (sourceId: string, targetId: string): number => {
-      if (!highlightedNodes) return 1;
-      if (highlightedNodes.has(sourceId) && highlightedNodes.has(targetId)) return 1;
-      return 0.08;
-    };
-
-    // LOD thresholds. Huge graphs avoid text and complex strokes until the user zooms in.
-    const isHugeGraph = nodes.length > HUGE_GRAPH_NODE_THRESHOLD;
-    const isMassiveGraph = nodes.length > MASSIVE_GRAPH_NODE_THRESHOLD;
-    const showEdgeLabels = !isHugeGraph && zoom > 0.6;
-    const showNodeLabels = zoom > (isHugeGraph ? 0.85 : 0.3);
-    const minNodeRadius = zoom < 0.2 ? 2 : (zoom < 0.4 ? 4 : undefined);
-
-    // Spatial-grid culling keeps this independent of total node count; the precise
-    // viewport test then trims candidates pulled from neighbouring cells.
-    const grid = spatialGridRef.current;
-    const culledCandidates = grid ? grid.queryViewport(vp) : nodes;
-    let visibleNodes = culledCandidates.filter((n) => isNodeInViewport(n, vp, 40));
-    const focusedOrHovered = new Set<string>([hoveredNode, selectedNodeId].filter(Boolean) as string[]);
-    const lowZoomVisibleLimit = isMassiveGraph ? MAX_VISIBLE_NODES_HUGE_LOW_ZOOM : MAX_VISIBLE_NODES_LOW_ZOOM;
-    if (!highlightedNodes && visibleNodes.length > lowZoomVisibleLimit && zoom < 0.75) {
-      // Walk the pre-sorted importance list instead of sorting the visible set each frame.
-      const order = importanceOrderRef.current;
-      if (order.length) {
-        const capped: GraphNode[] = [];
-        const seen = new Set<string>();
-        for (const id of focusedOrHovered) {
-          const idx = nodeIndexRef.current.get(id);
-          if (idx !== undefined) { capped.push(nodes[idx]); seen.add(id); }
-        }
-        for (let i = 0; i < order.length && capped.length < lowZoomVisibleLimit; i++) {
-          const n = order[i];
-          if (seen.has(n.id) || !isNodeInViewport(n, vp, 40)) continue;
-          capped.push(n);
-        }
-        visibleNodes = capped;
-      } else {
-        visibleNodes = visibleNodes
-          .sort((a, b) => (Number(!!focusedOrHovered.has(b.id)) - Number(!!focusedOrHovered.has(a.id))) || (Number(!!b.centerRank) - Number(!!a.centerRank)) || b.degree - a.degree)
-          .slice(0, lowZoomVisibleLimit);
-      }
-    }
-    const visibleNodeSet = new Set(visibleNodes.map((n) => n.id));
-
-    // For edge culling, use a much larger margin because edges can cross the viewport
-    // even when both endpoints are outside it
-    const edgeMargin = 2000;
-    const edgeVp: Viewport = {
-      left: vp.left - edgeMargin,
-      top: vp.top - edgeMargin,
-      right: vp.right + edgeMargin,
-      bottom: vp.bottom + edgeMargin,
-    };
-
-    // Draw edges with batched styles
-    ctx.lineCap = 'round';
-    const labelPositions: { x: number; y: number; w: number; h: number }[] = [];
-    let edgeLabelCount = 0;
-    const maxEdgeLabels = 40;
-
-    const activeSimulation = alphaRef.current > 0.02;
-    const maxRenderedEdges = isMassiveGraph ? 1200 : (isHugeGraph ? 2200 : MAX_ACTIVE_RENDER_EDGES);
-    const shouldCapEdges = (activeSimulation || isHugeGraph || zoom < 0.7) && graphData.edges.length > maxRenderedEdges;
-    const edgeStep = shouldCapEdges ? Math.ceil(graphData.edges.length / maxRenderedEdges) : 1;
-    const batchEdges = !highlightedNodes && !showEdgeLabels;
-    const normalEdgePath = batchEdges ? new Path2D() : null;
-    const invalidEdgePath = batchEdges ? new Path2D() : null;
-    let hasNormalEdgePath = false;
-    let hasInvalidEdgePath = false;
-
-    for (let edgeIndex = 0; edgeIndex < graphData.edges.length; edgeIndex += edgeStep) {
-      const edge = graphData.edges[edgeIndex];
-      const si = nodeIndexRef.current.get(edge.source);
-      const ti = nodeIndexRef.current.get(edge.target);
-      if (si === undefined || ti === undefined) continue;
-      const source = nodes[si];
-      const target = nodes[ti];
-
-      // Cull edges where both ends are far off-screen
-      if (!isNodeInViewport(source, edgeVp, 0) && !isNodeInViewport(target, edgeVp, 0)) continue;
-
-      const edgeAlpha = getEdgeAlpha(edge.source, edge.target);
-
-      if (batchEdges) {
-        const path = edge.invalid ? invalidEdgePath! : normalEdgePath!;
-        path.moveTo(source.x, source.y);
-        path.lineTo(target.x, target.y);
-        if (edge.invalid) hasInvalidEdgePath = true;
-        else hasNormalEdgePath = true;
-      } else {
-        ctx.beginPath();
-        ctx.moveTo(source.x, source.y);
-        ctx.lineTo(target.x, target.y);
-        if (edgeAlpha < 1) {
-          ctx.globalAlpha = edgeAlpha;
-          ctx.strokeStyle = edge.invalid ? c.edgeInvalid : c.edgeNormal;
-        } else {
-          ctx.globalAlpha = 1;
-          ctx.strokeStyle = edge.invalid ? c.edgeInvalid : (isDark ? 'rgba(148, 163, 184, 0.7)' : 'rgba(100, 116, 139, 0.7)');
-        }
-        ctx.lineWidth = edgeAlpha < 1 ? (edge.invalid ? 1 : 1.5) : (edge.invalid ? 1.5 : 2.5);
-        if (edge.invalid) ctx.setLineDash([4, 4]);
-        else ctx.setLineDash([]);
-        ctx.stroke();
-        ctx.setLineDash([]);
-        ctx.globalAlpha = 1;
-      }
-
-      // Edge label with LOD and count limit
-      if (!isHugeGraph && showEdgeLabels && edgeAlpha > 0.5 && edgeLabelCount < maxEdgeLabels) {
-        const mx = (source.x + target.x) / 2;
-        const my = (source.y + target.y) / 2;
-        if (mx < vp.left || mx > vp.right || my < vp.top || my > vp.bottom) continue;
-
-        ctx.font = '10px system-ui';
-        const textWidth = ctx.measureText(edge.label).width;
-        const textHeight = 12;
-        const padding = 4;
-        const labelW = textWidth + padding * 2;
-        const labelH = textHeight + padding;
-
-        let labelX = mx;
-        let labelY = my - 8;
-        let offsetStep = 0;
-        const maxSteps = 4;
-
-        while (offsetStep < maxSteps) {
-          const candidateX = labelX;
-          const candidateY = labelY - offsetStep * 14;
-          const candidateRect = {
-            x: candidateX - labelW / 2,
-            y: candidateY - labelH / 2,
-            w: labelW,
-            h: labelH,
-          };
-
-          let overlaps = false;
-          for (const existing of labelPositions) {
-            if (
-              candidateRect.x < existing.x + existing.w &&
-              candidateRect.x + candidateRect.w > existing.x &&
-              candidateRect.y < existing.y + existing.h &&
-              candidateRect.y + candidateRect.h > existing.y
-            ) {
-              overlaps = true;
-              break;
-            }
-          }
-
-          if (!overlaps) {
-            labelX = candidateX;
-            labelY = candidateY;
-            labelPositions.push(candidateRect);
-            break;
-          }
-          offsetStep++;
-        }
-
-        if (offsetStep < maxSteps) {
-          const bgX = labelX - labelW / 2;
-          const bgY = labelY - labelH / 2;
-          ctx.fillStyle = isDark ? 'rgba(15, 23, 42, 0.75)' : 'rgba(255, 255, 255, 0.75)';
-          ctx.beginPath();
-          ctx.roundRect(bgX, bgY, labelW, labelH, 3);
-          ctx.fill();
-          ctx.fillStyle = c.edgeLabel;
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText(edge.label, labelX, labelY);
-          edgeLabelCount++;
-        }
-      }
-    }
-
-    if (batchEdges) {
-      ctx.globalAlpha = isMassiveGraph && zoom < 0.5 ? 0.45 : 0.75;
-      ctx.lineWidth = zoom < 0.35 ? 1 : 1.5;
-      ctx.setLineDash([]);
-      if (hasNormalEdgePath) {
-        ctx.strokeStyle = c.edgeNormal;
-        ctx.stroke(normalEdgePath!);
-      }
-      if (hasInvalidEdgePath) {
-        ctx.strokeStyle = c.edgeInvalid;
-        ctx.setLineDash([4, 4]);
-        ctx.stroke(invalidEdgePath!);
-        ctx.setLineDash([]);
-      }
-      ctx.globalAlpha = 1;
-    }
-
-    // Draw nodes in batches by type to minimize state changes
-    const drawNodeBatch = (nodeList: GraphNode[]) => {
-      for (const node of nodeList) {
-        if (!visibleNodeSet.has(node.id)) continue;
-        const isHovered = hoveredNode === node.id;
-        const isFocused = selectedNodeId === node.id;
-        const nodeAlpha = getNodeAlpha(node.id);
-        let nodeRadius = node.type === 'category' ? 24 : (node.isSpeaker ? 20 : 16);
-        if (node.centerRank) nodeRadius += 7 - node.centerRank;
-        if (minNodeRadius !== undefined && !isHovered) {
-          nodeRadius = Math.max(minNodeRadius, nodeRadius * zoom);
-        }
-
-        ctx.globalAlpha = nodeAlpha;
-
-        if (node.type === 'category') {
-          const w = nodeRadius * 2.2;
-          const h = nodeRadius * 1.4;
-          const rx = 6;
-          if (isHovered || isFocused) {
-            ctx.beginPath();
-            ctx.roundRect(node.x - w / 2 - 6, node.y - h / 2 - 6, w + 12, h + 12, rx + 3);
-            ctx.fillStyle = isFocused ? (isDark ? 'rgba(34, 211, 238, 0.18)' : 'rgba(14, 165, 233, 0.16)') : c.catGlow;
-            ctx.fill();
-          }
-          ctx.beginPath();
-          ctx.roundRect(node.x - w / 2, node.y - h / 2, w, h, rx);
-          ctx.fillStyle = isHovered || isFocused ? c.catFillHover : c.catFill;
-          ctx.strokeStyle = isFocused ? 'rgba(34, 211, 238, 0.95)' : (isHovered ? c.catStrokeHover : c.catStroke);
-          ctx.lineWidth = isFocused ? 3 : (isHovered ? 2.5 : 1.5);
-          ctx.fill();
-          ctx.stroke();
-        } else {
-          if (isHovered || isFocused) {
-            ctx.beginPath();
-            ctx.arc(node.x, node.y, nodeRadius + (isFocused ? 11 : 6), 0, Math.PI * 2);
-            ctx.fillStyle = isFocused ? (isDark ? 'rgba(34, 211, 238, 0.2)' : 'rgba(14, 165, 233, 0.16)') : (node.isSpeaker ? c.speakerGlow : c.entityGlow);
-            ctx.fill();
-          }
-          if (node.centerRank) {
-            ctx.beginPath();
-            ctx.arc(node.x, node.y, nodeRadius + 9, 0, Math.PI * 2);
-            ctx.fillStyle = isDark ? 'rgba(250, 204, 21, 0.12)' : 'rgba(245, 158, 11, 0.12)';
-            ctx.fill();
-          }
-          ctx.beginPath();
-          ctx.arc(node.x, node.y, nodeRadius, 0, Math.PI * 2);
-          if (node.isSpeaker) {
-            ctx.fillStyle = isHovered || isFocused ? c.speakerFillHover : c.speakerFill;
-            ctx.strokeStyle = isFocused ? 'rgba(34, 211, 238, 0.95)' : (node.centerRank ? 'rgba(250, 204, 21, 0.95)' : (isHovered ? c.speakerStrokeHover : c.speakerStroke));
-          } else {
-            ctx.fillStyle = isHovered || isFocused ? c.entityFillHover : c.entityFill;
-            ctx.strokeStyle = isFocused ? 'rgba(34, 211, 238, 0.95)' : (node.centerRank ? 'rgba(250, 204, 21, 0.95)' : (isHovered ? c.entityStrokeHover : c.entityStroke));
-          }
-          ctx.lineWidth = isFocused ? 3.5 : (node.centerRank ? 3 : (isHovered ? 2.5 : 1.5));
-          ctx.fill();
-          ctx.stroke();
-        }
-
-        if ((!isHugeGraph || visibleNodes.length < 900 || node.centerRank) && (showNodeLabels || isHovered || node.centerRank || isFocused)) {
-          ctx.font = `${isHovered || node.centerRank || isFocused ? 'bold ' : ''}${node.centerRank || isFocused ? 13 : 12}px system-ui`;
-          ctx.fillStyle = isHovered ? c.nodeLabelHover : c.nodeLabel;
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText(truncateText(node.label, node.centerRank ? 14 : 12), node.x, node.y);
-          if (node.centerRank && zoom > 0.25) {
-            ctx.font = 'bold 10px system-ui';
-            ctx.fillStyle = isDark ? 'rgba(250, 204, 21, 0.95)' : 'rgba(180, 83, 9, 0.95)';
-            ctx.fillText(`TOP ${node.centerRank} · ${node.degree}`, node.x, node.y + nodeRadius + 13);
-          }
-        }
-
-        ctx.globalAlpha = 1;
-      }
-    };
-
-    drawNodeBatch(visibleNodes);
-
-    ctx.restore();
-  }, [graphData, colors, isDark, adjacencyMap, focusedNodeId]);
-
-  useEffect(() => {
-    drawGraphRef.current = drawGraph;
-    scheduleRedraw();
-  }, [drawGraph, scheduleRedraw]);
-
-  useEffect(() => () => {
-    if (drawFrameRef.current !== null) cancelAnimationFrame(drawFrameRef.current);
-  }, []);
-
-  // Wheel zoom handler - use useEffect with { passive: false } to avoid passive event listener error
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const handleWheel = (e: WheelEvent) => {
-      e.preventDefault();
-      const rect = canvas.getBoundingClientRect();
-      const mouseX = e.clientX - rect.left;
-      const mouseY = e.clientY - rect.top;
-      const delta = e.deltaY > 0 ? 0.9 : 1.1;
-      const newZoom = Math.min(Math.max(zoomRef.current * delta, 0.1), 5);
-      const scaleChange = newZoom / zoomRef.current;
-      offsetRef.current = {
-        x: mouseX - (mouseX - offsetRef.current.x) * scaleChange,
-        y: mouseY - (mouseY - offsetRef.current.y) * scaleChange,
-      };
-      zoomRef.current = newZoom;
-      scheduleRedraw();
-    };
-    canvas.addEventListener('wheel', handleWheel, { passive: false });
-    return () => canvas.removeEventListener('wheel', handleWheel);
-  }, [scheduleRedraw]);
-
-  const handleCanvasClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const x = (e.clientX - rect.left - offsetRef.current.x) / zoomRef.current;
-    const y = (e.clientY - rect.top - offsetRef.current.y) / zoomRef.current;
-
-    const grid = spatialGridRef.current;
-    const candidates = grid ? grid.queryPoint(x, y) : nodesRef.current;
-    let best: GraphNode | null = null;
-    let bestDistSq = Infinity;
-    for (const node of candidates) {
-      const dx = x - node.x;
-      const dy = y - node.y;
-      const r = node.type === 'category' ? 26 : (node.isSpeaker ? 22 : 18) + (node.centerRank ? 8 : 0);
-      const distSq = dx * dx + dy * dy;
-      if (distSq < r * r && distSq < bestDistSq) {
-        best = node;
-        bestDistSq = distSq;
-      }
-    }
-    if (best) onNodeClick(best.type, best.id);
-  }, [onNodeClick]);
-
-  const handleCanvasMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (isDraggingRef.current) {
-      offsetRef.current = {
-        x: offsetRef.current.x + e.clientX - dragStartRef.current.x,
-        y: offsetRef.current.y + e.clientY - dragStartRef.current.y,
-      };
-      dragStartRef.current = { x: e.clientX, y: e.clientY };
-      scheduleRedraw();
-      return;
-    }
-
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const x = (e.clientX - rect.left - offsetRef.current.x) / zoomRef.current;
-    const y = (e.clientY - rect.top - offsetRef.current.y) / zoomRef.current;
-
-    const nodes = nodesRef.current;
-
-    // Optimization: skip expensive hover detection for massive graphs at low zoom
-    if (nodes.length > 2000 && zoomRef.current < 0.6) {
-      if (hoveredNodeRef.current !== null) {
-        hoveredNodeRef.current = null;
-        scheduleRedraw();
-      }
-      canvas.style.cursor = 'grab';
-      return;
-    }
-
-    const grid = spatialGridRef.current;
-    const candidates = grid ? grid.queryPoint(x, y) : nodes;
-    let foundId: string | null = null;
-    let bestDistSq = Infinity;
-    for (const node of candidates) {
-      const dx = x - node.x;
-      const dy = y - node.y;
-      const r = node.type === 'category' ? 26 : (node.isSpeaker ? 22 : 18) + (node.centerRank ? 8 : 0);
-      const distSq = dx * dx + dy * dy;
-      if (distSq < r * r && distSq < bestDistSq) {
-        foundId = node.id;
-        bestDistSq = distSq;
-      }
-    }
-    if (foundId) {
-      if (hoveredNodeRef.current !== foundId) {
-        hoveredNodeRef.current = foundId;
-        scheduleRedraw();
-      }
-      canvas.style.cursor = 'pointer';
-    } else {
-      if (hoveredNodeRef.current !== null) {
-        hoveredNodeRef.current = null;
-        scheduleRedraw();
-      }
-      canvas.style.cursor = isDraggingRef.current ? 'grabbing' : 'grab';
-    }
-  }, [scheduleRedraw]);
-
-  // Fullscreen toggle
   const toggleFullscreen = useCallback(() => {
-    const container = containerRef.current;
-    if (!container) return;
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return;
     if (!document.fullscreenElement) {
-      container.requestFullscreen().then(() => {
-        setIsFullscreen(true);
-        scheduleRedraw();
-      }).catch(() => {});
+      wrapper.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {});
     } else {
-      document.exitFullscreen().then(() => {
-        setIsFullscreen(false);
-        scheduleRedraw();
-      }).catch(() => {});
-    }
-  }, [scheduleRedraw]);
-
-  // Listen for fullscreen changes (e.g. user presses Escape)
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
-      scheduleRedraw();
-    };
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
-  }, [scheduleRedraw]);
-
-  // Touch event handlers for mobile drag and pinch zoom
-  const handleTouchStart = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
-    if (e.touches.length === 1) {
-      isDraggingRef.current = true;
-      dragStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-    } else if (e.touches.length === 2) {
-      isDraggingRef.current = false;
-      const dx = e.touches[0].clientX - e.touches[1].clientX;
-      const dy = e.touches[0].clientY - e.touches[1].clientY;
-      lastPinchDistRef.current = Math.sqrt(dx * dx + dy * dy);
-      lastPinchCenterRef.current = {
-        x: (e.touches[0].clientX + e.touches[1].clientX) / 2,
-        y: (e.touches[0].clientY + e.touches[1].clientY) / 2,
-      };
+      document.exitFullscreen().then(() => setIsFullscreen(false)).catch(() => {});
     }
   }, []);
 
-  const handleTouchMove = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
-    if (e.touches.length === 2) {
-      e.preventDefault();
-      const dx = e.touches[0].clientX - e.touches[1].clientX;
-      const dy = e.touches[0].clientY - e.touches[1].clientY;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      const scale = dist / Math.max(lastPinchDistRef.current, 1);
-
-      const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
-      const centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
-
-      const newZoom = Math.min(Math.max(zoomRef.current * scale, 0.1), 5);
-      const scaleChange = newZoom / zoomRef.current;
-
-      offsetRef.current = {
-        x: centerX - (centerX - offsetRef.current.x) * scaleChange,
-        y: centerY - (centerY - offsetRef.current.y) * scaleChange,
-      };
-      zoomRef.current = newZoom;
-
-      lastPinchDistRef.current = dist;
-      lastPinchCenterRef.current = { x: centerX, y: centerY };
-      scheduleRedraw();
-      return;
-    }
-
-    if (isDraggingRef.current && e.touches.length === 1) {
-      e.preventDefault();
-      offsetRef.current = {
-        x: offsetRef.current.x + e.touches[0].clientX - dragStartRef.current.x,
-        y: offsetRef.current.y + e.touches[0].clientY - dragStartRef.current.y,
-      };
-      dragStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-      scheduleRedraw();
-    }
-  }, [scheduleRedraw]);
-
-  const handleTouchEnd = useCallback(() => {
-    isDraggingRef.current = false;
-    lastPinchDistRef.current = 0;
+  // Sigma auto-tracks container resize; nudge a refresh after fullscreen transitions.
+  useEffect(() => {
+    const handleChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+      window.setTimeout(() => sigmaRef.current?.refresh(), 60);
+    };
+    document.addEventListener('fullscreenchange', handleChange);
+    return () => document.removeEventListener('fullscreenchange', handleChange);
   }, []);
 
   return (
     <div
-      ref={containerRef}
-      className={cn(
-        'relative w-full',
-        isFullscreen ? 'fixed inset-0 z-50 bg-background' : ''
-      )}
+      ref={wrapperRef}
+      className={cn('relative w-full', isFullscreen ? 'fixed inset-0 z-50 bg-background' : '')}
       style={isFullscreen ? { height: '100vh' } : { height: 'calc(100vh - 280px)', minHeight: 400 }}
     >
-      <canvas
-        ref={canvasRef}
+      <div
+        ref={containerRef}
         className={cn(
           'w-full h-full',
           isFullscreen ? '' : 'rounded-lg',
-          isGlass ? 'glass-card' : 'border border-border/50'
+          isGlass ? 'glass-card' : 'border border-border/50',
         )}
-        style={{ cursor: 'grab', touchAction: 'none' }}
-        onClick={handleCanvasClick}
-        onMouseMove={handleCanvasMove}
-        onMouseDown={(e) => {
-          isDraggingRef.current = true;
-          dragStartRef.current = { x: e.clientX, y: e.clientY };
-        }}
-        onMouseUp={() => { isDraggingRef.current = false; }}
-        onMouseLeave={() => { isDraggingRef.current = false; hoveredNodeRef.current = null; scheduleRedraw(); }}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
+        style={{ cursor: 'grab' }}
       />
       {/* Search */}
       <form
@@ -1532,7 +713,7 @@ function KnowledgeGraph({
                   type="button"
                   className={cn(
                     'flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-accent/60',
-                    focusedNodeId === node.id && 'bg-accent/70'
+                    focusedNodeId === node.id && 'bg-accent/70',
                   )}
                   onClick={() => focusNode(node.id, { closeResults: true })}
                 >
@@ -1553,33 +734,44 @@ function KnowledgeGraph({
       </form>
       {/* Controls */}
       <div className="absolute top-3 right-3 flex flex-col gap-1">
-        <Button variant="outline" size="icon" className="h-8 w-8 bg-background/80 backdrop-blur" onClick={() => { zoomRef.current = Math.min(zoomRef.current * 1.2, 5); scheduleRedraw(); }}>
+        <Button variant="outline" size="icon" className="h-8 w-8 bg-background/80 backdrop-blur" onClick={() => sigmaRef.current?.getCamera().animatedZoom()}>
           <ZoomIn className="w-4 h-4" />
         </Button>
-        <Button variant="outline" size="icon" className="h-8 w-8 bg-background/80 backdrop-blur" onClick={() => { zoomRef.current = Math.max(zoomRef.current / 1.2, 0.1); scheduleRedraw(); }}>
+        <Button variant="outline" size="icon" className="h-8 w-8 bg-background/80 backdrop-blur" onClick={() => sigmaRef.current?.getCamera().animatedUnzoom()}>
           <ZoomOut className="w-4 h-4" />
         </Button>
         <Button variant="outline" size="icon" className="h-8 w-8 bg-background/80 backdrop-blur" onClick={toggleFullscreen}>
           <Maximize2 className="w-4 h-4" />
         </Button>
       </div>
+      {/* Layout indicator */}
+      {isLayoutRunning && (
+        <button
+          type="button"
+          onClick={stopLayout}
+          className="absolute top-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 rounded-md bg-background/85 px-3 py-1.5 text-xs text-muted-foreground shadow-sm backdrop-blur transition-colors hover:text-foreground"
+        >
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          正在计算布局…点击停止
+        </button>
+      )}
       {/* Legend */}
-      <div className="absolute bottom-3 left-3 flex items-center gap-4 text-xs text-muted-foreground bg-background/80 backdrop-blur rounded-md px-3 py-2">
+      <div className="absolute bottom-3 left-3 flex flex-wrap items-center gap-4 text-xs text-muted-foreground bg-background/80 backdrop-blur rounded-md px-3 py-2">
         <span className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded-full border border-blue-400/60 bg-blue-400/10" />
-          {useLanguage().t('aiMemory.legendSpeaker')}
+          <span className="w-3 h-3 rounded-full bg-blue-400/70" />
+          {t('aiMemory.legendSpeaker')}
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded-full border border-indigo-400/60 bg-indigo-400/10" />
-          {useLanguage().t('aiMemory.legendEntity')}
+          <span className="w-3 h-3 rounded-full bg-indigo-400/70" />
+          {t('aiMemory.legendEntity')}
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded-full border-2 border-yellow-400/90 bg-yellow-400/10" />
+          <span className="w-3 h-3 rounded-full bg-yellow-400/80" />
           中心节点 TOP3
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="w-5 h-0 border-t border-dashed border-red-400/60" />
-          {useLanguage().t('aiMemory.legendInvalid')}
+          <span className="w-5 h-0 border-t-2 border-red-400/70" />
+          {t('aiMemory.legendInvalid')}
         </span>
       </div>
     </div>
