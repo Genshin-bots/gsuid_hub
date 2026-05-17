@@ -318,6 +318,24 @@
     "loadFailed": "无法加载 AI 配置",
     "saveFailed": "保存 AI 配置时发生错误",
     "saveButton": "保存配置",
+    "checkConfig": "检查配置",
+    "wizard": {
+      "title": "AI 配置状态",
+      "description": "检查您的 AI 功能配置状态",
+      "aiUsable": "AI 功能可用",
+      "aiNotUsable": "AI 功能不可用",
+      "summary": "共 {total} 项配置，{ok} 项正常，{warning} 项警告",
+      "aiRange": "AI 用户范围",
+      "allUsers": "全部用户",
+      "personaList": "人格配置",
+      "inspect": "定时巡检",
+      "whitelistNote": "仅以下用户可用：",
+      "blacklistNote": "以下用户不可用：",
+      "scopeGlobal": "全局启用",
+      "scopeSpecific": "特定启用",
+      "scopeDisabled": "不启用",
+      "memoryWarningTip": "全部群聊模式会处理所有群聊的记忆，可能占用较多 Token"
+    },
     "serviceSwitch": {
       "title": "启用AI服务",
       "enabledDesc": "AI服务已启用，用户可以使用AI功能",
@@ -1252,7 +1270,9 @@
     "update": "更新",
     "uninstall": "卸载",
     "install": "安装",
-    "details": "详情"
+    "details": "详情",
+    "noReadme": "暂无 README 内容",
+    "readmeLoadFailed": "加载 README 失败"
   },
   "gitMirror": {
     "title": "Git 镜像源管理",

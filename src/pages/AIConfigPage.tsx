@@ -38,6 +38,11 @@ import {
   EmbeddingConfigField,
   mcpConfigApi,
   MCPConfig,
+  aiWizardApi,
+  AIWizardChecklistItem,
+  AIWizardStatusResponse,
+  AIWizardPersonaScope,
+  personaApi,
 } from '@/lib/api';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -186,6 +191,26 @@ function ToggleRow({ icon, iconColorClass, title, description, checked, onChecke
   );
 }
 
+// Persona Avatar Component
+function PersonaAvatar({ name, isEnabled }: { name: string; isEnabled: boolean }) {
+  const [imgError, setImgError] = useState(false);
+
+  return (
+    <div className="w-8 h-8 rounded-full overflow-hidden bg-muted flex items-center justify-center">
+      {!imgError ? (
+        <img
+          src={personaApi.getAvatarUrl(name, Date.now())}
+          alt={name}
+          className={cn("w-full h-full object-cover", !isEnabled && "opacity-50")}
+          onError={() => setImgError(true)}
+        />
+      ) : (
+        <Bot className={cn("w-4 h-4", isEnabled ? "text-primary" : "text-muted-foreground")} />
+      )}
+    </div>
+  );
+}
+
 // 空状态组件
 function EmptyState({ icon, title, description }: { icon: React.ReactNode; title: string; description?: string }) {
   return (
@@ -262,6 +287,15 @@ export default function AIConfigPage() {
   const [mcpConfigs, setMcpConfigs] = useState<MCPConfig[]>([]);
   const [mcpToolDialogOpen, setMcpToolDialogOpen] = useState(false);
   const [mcpToolDialogType, setMcpToolDialogType] = useState<'websearch' | 'image_understand'>('websearch');
+
+  // State - AI Wizard
+  const [isWizardDialogOpen, setIsWizardDialogOpen] = useState(false);
+  const [wizardChecklist, setWizardChecklist] = useState<AIWizardChecklistItem[]>([]);
+  const [wizardOverallStatus, setWizardOverallStatus] = useState<'overall_ok' | 'overall_warning' | 'overall_error'>('overall_ok');
+  const [wizardUsable, setWizardUsable] = useState(false);
+  const [wizardSummary, setWizardSummary] = useState({ total: 0, ok: 0, warning: 0, error: 0 });
+  const [isWizardLoading, setIsWizardLoading] = useState(false);
+  const [wizardStatus, setWizardStatus] = useState<AIWizardStatusResponse | null>(null);
 
   // ============================================================================
   // Data Fetching
@@ -854,26 +888,50 @@ export default function AIConfigPage() {
 
       if (changedConfigs.length === 0) {
         toast({ title: t('common.success'), description: t('aiConfig.configSaved') });
-        setIsSaving(false);
-        return;
+      } else {
+        for (const config of changedConfigs) {
+          const configToSave: Record<string, any> = {};
+          Object.entries(config.config).forEach(([key, field]: [string, any]) => {
+            if (field && typeof field === 'object' && 'value' in field) {
+              configToSave[key] = field.value;
+            }
+          });
+          await frameworkConfigApi.updateFrameworkConfig(config.full_name, configToSave);
+        }
+        setOriginalConfig(JSON.parse(JSON.stringify(configs)));
+        toast({ title: t('common.success'), description: t('aiConfig.configSaved') });
       }
 
-      for (const config of changedConfigs) {
-        const configToSave: Record<string, any> = {};
-        Object.entries(config.config).forEach(([key, field]: [string, any]) => {
-          if (field && typeof field === 'object' && 'value' in field) {
-            configToSave[key] = field.value;
-          }
-        });
-        await frameworkConfigApi.updateFrameworkConfig(config.full_name, configToSave);
-      }
-      setOriginalConfig(JSON.parse(JSON.stringify(configs)));
-      toast({ title: t('common.success'), description: t('aiConfig.configSaved') });
+      // 保存成功后调用向导 API 获取配置状态
+      await fetchWizardChecklist();
     } catch (error) {
       console.error('Save error:', error);
       toast({ title: t('common.saveFailed'), description: t('aiConfig.saveFailed'), variant: 'destructive' });
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const fetchWizardChecklist = async () => {
+    try {
+      setIsWizardLoading(true);
+      const [checklistResponse, statusResponse] = await Promise.all([
+        aiWizardApi.getChecklist(),
+        aiWizardApi.getStatus(),
+      ]);
+      console.log('Wizard checklist:', checklistResponse);
+      console.log('Wizard status:', statusResponse);
+      setWizardChecklist(checklistResponse.items);
+      setWizardOverallStatus(checklistResponse.overall_status);
+      setWizardUsable(checklistResponse.usable);
+      setWizardSummary(checklistResponse.summary);
+      setWizardStatus(statusResponse);
+      setIsWizardDialogOpen(true);
+    } catch (error) {
+      console.error('Failed to fetch wizard checklist:', error);
+      toast({ title: '获取配置状态失败', description: error instanceof Error ? error.message : '未知错误', variant: 'destructive' });
+    } finally {
+      setIsWizardLoading(false);
     }
   };
 
@@ -930,22 +988,38 @@ export default function AIConfigPage() {
           </h1>
           <p className="text-muted-foreground mt-1">{t('aiConfig.description')}</p>
         </div>
-        <Button
-          onClick={handleSaveConfig}
-          disabled={!isConfigDirty || isSaving}
-          size="sm"
-          className={cn(
-            "gap-2 transition-all duration-300",
-            isConfigDirty && "animate-in fade-in slide-in-from-bottom-2"
-          )}
-        >
-          {isSaving ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Save className="w-4 h-4" />
-          )}
-          {t('aiConfig.saveButton')}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={() => fetchWizardChecklist()}
+            disabled={isWizardLoading}
+            size="sm"
+            variant="outline"
+            className="gap-2"
+          >
+            {isWizardLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Sparkles className="w-4 h-4" />
+            )}
+            {t('aiConfig.checkConfig')}
+          </Button>
+          <Button
+            onClick={handleSaveConfig}
+            disabled={!isConfigDirty || isSaving}
+            size="sm"
+            className={cn(
+              "gap-2 transition-all duration-300",
+              isConfigDirty && "animate-in fade-in slide-in-from-bottom-2"
+            )}
+          >
+            {isSaving ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Save className="w-4 h-4" />
+            )}
+            {t('aiConfig.saveButton')}
+          </Button>
+        </div>
       </div>
 
       {isLoadingDetail && Object.keys(configs).length === 0 ? (
@@ -2107,6 +2181,176 @@ export default function AIConfigPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setMcpToolDialogOpen(false)}>
               {t('common.cancel')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* AI Wizard Configuration Status Dialog */}
+      <Dialog open={isWizardDialogOpen} onOpenChange={setIsWizardDialogOpen}>
+        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5" />
+              {t('aiConfig.wizard.title')}
+            </DialogTitle>
+            <DialogDescription>
+              {t('aiConfig.wizard.description')}
+            </DialogDescription>
+          </DialogHeader>
+
+          {isWizardLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {/* Overall Status Banner */}
+              <div className={cn(
+                "p-4 rounded-lg border flex items-center gap-3",
+                wizardOverallStatus === 'overall_ok' && "bg-green-500/10 border-green-500/20",
+                wizardOverallStatus === 'overall_warning' && "bg-yellow-500/10 border-yellow-500/20",
+                wizardOverallStatus === 'overall_error' && "bg-red-500/10 border-red-500/20"
+              )}>
+                {wizardOverallStatus === 'overall_ok' && <CheckCircle className="w-6 h-6 text-green-500" />}
+                {wizardOverallStatus === 'overall_warning' && <AlertTriangle className="w-6 h-6 text-yellow-500" />}
+                {wizardOverallStatus === 'overall_error' && <AlertTriangle className="w-6 h-6 text-red-500" />}
+                <div>
+                  <p className="font-medium">
+                    {wizardUsable
+                      ? t('aiConfig.wizard.aiUsable')
+                      : t('aiConfig.wizard.aiNotUsable')
+                    }
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {t('aiConfig.wizard.summary', {
+                      total: wizardSummary.total,
+                      ok: wizardSummary.ok,
+                      warning: wizardSummary.warning
+                    })}
+                  </p>
+                </div>
+              </div>
+
+              {/* Persona List Section */}
+              {wizardStatus?.persona && (
+                <div className="p-3 rounded-lg border bg-muted/30 border-border/40">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Bot className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">{t('aiConfig.wizard.personaList') || '人格配置'}</span>
+                    <span className="text-xs text-muted-foreground">({wizardStatus.persona.note})</span>
+                  </div>
+                  {/* AI Enable Range Info - Only show when not mode=all */}
+                  {wizardStatus?.ai_enable_range && wizardStatus.ai_enable_range.mode !== 'all' && (
+                    <div className="mb-2 p-2 rounded bg-muted/50 text-xs">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Users className="w-3.5 h-3.5 text-muted-foreground" />
+                        <span className="font-medium">{wizardStatus.ai_enable_range.mode === 'white_list' ? t('aiConfig.wizard.whitelistNote') || '白名单' : t('aiConfig.wizard.blacklistNote') || '黑名单'}:</span>
+                        <Badge variant="default" className="text-[10px]">{wizardStatus.ai_enable_range.mode}</Badge>
+                      </div>
+                      <div className="ml-5 space-y-0.5">
+                        {wizardStatus.ai_enable_range.mode === 'white_list' && wizardStatus.ai_enable_range.white_list.map((userId, idx) => (
+                          <p key={idx} className="text-muted-foreground/70">✓ {userId}</p>
+                        ))}
+                        {wizardStatus.ai_enable_range.mode === 'black_list' && wizardStatus.ai_enable_range.black_list.map((userId, idx) => (
+                          <p key={idx} className="text-muted-foreground/70">✗ {userId}</p>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  <div className={cn(
+                    "grid gap-3",
+                    wizardStatus.persona.personas.length > 1 ? "grid-cols-2" : "grid-cols-1"
+                  )}>
+                    {wizardStatus.persona.personas.map((persona, idx) => (
+                      <div key={idx} className={cn(
+                        "p-3 rounded-lg border text-xs",
+                        persona.is_enabled ? "bg-green-500/5 border-green-500/10" : "bg-muted border-muted"
+                      )}>
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="relative w-8 h-8 flex-shrink-0">
+                            <PersonaAvatar name={persona.name} isEnabled={persona.is_enabled} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              {persona.is_enabled ? (
+                                <CheckCircle className="w-3 h-3 text-green-500" />
+                              ) : (
+                                <Ban className="w-3 h-3 text-muted-foreground" />
+                              )}
+                              <span className="font-medium">{persona.name}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <Badge variant="default" className="text-[10px]">
+                            {persona.scope === 'global' && t('aiConfig.wizard.scopeGlobal')}
+                            {persona.scope === 'specific' && t('aiConfig.wizard.scopeSpecific')}
+                            {persona.scope === 'disabled' && t('aiConfig.wizard.scopeDisabled')}
+                          </Badge>
+                          {persona.has_inspect && (
+                            <Badge variant="secondary" className="text-[10px]">
+                              {t('aiConfig.wizard.inspect') || '巡检'}({persona.inspect_interval})
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-muted-foreground text-[11px]">{persona.scope_desc}</p>
+                        {persona.scope === 'specific' && persona.target_groups.length > 0 && (
+                          <div className="mt-1.5 space-y-0.5">
+                            {persona.target_groups.map((group, gIdx) => (
+                              <p key={gIdx} className="text-muted-foreground/70 text-[10px] ml-1">├ {group}</p>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Checklist Items */}
+              <div className="grid grid-cols-2 gap-3">
+                {wizardChecklist.filter(item => item.id !== 'ai_enable' && item.id !== 'ai_range' && item.id !== 'persona').map((item) => (
+                  <TooltipProvider key={item.id} delayDuration={100}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div
+                          className={cn(
+                            "p-3 rounded-lg border flex items-start gap-3 cursor-help",
+                            item.status === 'ok' && "bg-green-500/5 border-green-500/10",
+                            item.status === 'warning' && "bg-yellow-500/5 border-yellow-500/10",
+                            item.status === 'error' && "bg-red-500/5 border-red-500/10"
+                          )}
+                        >
+                          {item.status === 'ok' && <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />}
+                          {item.status === 'warning' && <AlertTriangle className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />}
+                          {item.status === 'error' && <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-sm">{item.name}</span>
+                              <Badge variant="outline" className="text-xs">
+                                {item.category}
+                              </Badge>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1">{item.message}</p>
+                          </div>
+                        </div>
+                      </TooltipTrigger>
+                      {item.id === 'memory' && item.status === 'warning' && (
+                        <TooltipContent side="top" className="max-w-xs">
+                          <p>{t('aiConfig.wizard.memoryWarningTip') || '全部群聊模式会处理所有群聊的记忆，可能占用较多 Token'}</p>
+                        </TooltipContent>
+                      )}
+                    </Tooltip>
+                  </TooltipProvider>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsWizardDialogOpen(false)}>
+              {t('common.close')}
             </Button>
           </DialogFooter>
         </DialogContent>

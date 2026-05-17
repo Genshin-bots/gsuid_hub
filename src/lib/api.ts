@@ -2732,7 +2732,130 @@ export const aiSessionLogsApi = {
   getFileLog: (fileName: string) =>
     api.get<SessionLogDetail>(`/api/ai/session_logs/file/${encodeURIComponent(fileName)}`),
 
-  // 获取日志统计概览
+// 获取日志统计概览
   getStatsOverview: () =>
     api.get<SessionLogStatsOverview>('/api/ai/session_logs/stats/overview'),
+};
+
+// ===================
+// AI Wizard APIs
+// ===================
+
+export interface AIWizardChecklistItem {
+  id: string;
+  category: string;
+  name: string;
+  status: 'ok' | 'warning' | 'error';
+  value: unknown;
+  message: string;
+}
+
+export interface AIWizardChecklistSummary {
+  total: number;
+  ok: number;
+  warning: number;
+  error: number;
+}
+
+export interface AIWizardChecklistResponse {
+  items: AIWizardChecklistItem[];
+  overall_status: 'overall_ok' | 'overall_warning' | 'overall_error';
+  usable: boolean;
+  summary: AIWizardChecklistSummary;
+}
+
+// AI Wizard Status API Types
+export interface AIWizardPersonaScope {
+  name: string;
+  ai_mode: string[];
+  inspect_interval: number | null;
+  has_inspect: boolean;
+  scope: 'disabled' | 'global' | 'specific';
+  target_groups: string[];
+  is_enabled: boolean;
+  scope_desc: string;
+}
+
+export interface AIWizardPersona {
+  persona_count: number;
+  enabled_count: number;
+  inspect_enabled_count: number;
+  configured: boolean;
+  personas: AIWizardPersonaScope[];
+  note: string;
+}
+
+export interface AIWizardStatusResponse {
+  ai_enabled: boolean;
+  ai_enable_range: {
+    mode: 'all' | 'white_list' | 'black_list';
+    mode_desc: string;
+    white_list: string[];
+    black_list: string[];
+    note: string;
+  };
+  high_level_model: {
+    configured: boolean;
+    provider: string;
+    config_name: string;
+    model_name: string;
+    full_name: string;
+  };
+  low_level_model: {
+    configured: boolean;
+    provider: string;
+    config_name: string;
+    model_name: string;
+    full_name: string;
+  };
+  vision_support: {
+    available: boolean;
+    high_level_vision: { supported: boolean; model_name: string; note: string };
+    low_level_vision: { supported: boolean; model_name: string; note: string };
+    vlm_fallback: { configured: boolean; provider: string; tools: string[]; note: string };
+  };
+  persona: AIWizardPersona;
+  memory: {
+    enabled: boolean;
+    memory_mode: string[];
+    memory_session: string;
+  };
+  embedding: {
+    provider: string;
+    configured: boolean;
+    issues: string[];
+    model_name: string;
+    note: string;
+  };
+  web_search: {
+    provider: string;
+    configured: boolean;
+    issues: string[];
+    note: string;
+  };
+  missing_configs: Array<{
+    category: string;
+    item: string;
+    severity: 'critical' | 'warning' | 'info';
+    message: string;
+    recommendation: string;
+  }>;
+  summary: {
+    total_issues: number;
+    critical_count: number;
+    warning_count: number;
+    info_count: number;
+    ai_usable: boolean;
+    note: string;
+  };
+}
+
+export const aiWizardApi = {
+  // 获取 AI 配置检查清单
+  getChecklist: () =>
+    api.get<AIWizardChecklistResponse>('/api/ai/wizard/checklist'),
+
+  // 获取 AI 配置详细状态（包含人格范围信息）
+  getStatus: () =>
+    api.get<AIWizardStatusResponse>('/api/ai/wizard/status'),
 };

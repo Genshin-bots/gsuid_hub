@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Save, Cpu, Play, RefreshCw, Clock, Globe, Package, Zap, GitBranch, AlertCircle } from 'lucide-react';
+import { Loader2, Save, Cpu, Play, RefreshCw, Clock, Package, Zap, GitBranch, AlertCircle } from 'lucide-react';
 import { frameworkConfigApi, FrameworkConfigListItem } from '@/lib/api';
 import { toast } from '@/hooks/use-toast';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -89,12 +89,6 @@ interface CoreConfig {
   AutoReloadPlugins: {
     value: boolean;
     default: boolean;
-    title: string;
-    desc: string;
-  };
-  ProxyURL: {
-    value: string;
-    default: string;
     title: string;
     desc: string;
   };
@@ -245,12 +239,6 @@ export default function CoreSettings() {
             default: (data.config.AutoReloadPlugins?.default ?? true) as boolean,
             title: data.config.AutoReloadPlugins?.title || '自动重载插件',
             desc: data.config.AutoReloadPlugins?.desc || 'Core内插件更新/安装时自动载入/重载'
-          },
-          ProxyURL: {
-            value: (data.config.ProxyURL?.value || '') as string,
-            default: (data.config.ProxyURL?.default || '') as string,
-            title: data.config.ProxyURL?.title || '安装插件时使用git代理地址',
-            desc: data.config.ProxyURL?.desc || 'git代理地址'
           }
         }
       };
@@ -699,29 +687,6 @@ export default function CoreSettings() {
               checked={config.AutoReloadPlugins.value}
               onCheckedChange={(checked) => handleChange('AutoReloadPlugins', checked)}
             />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Network Settings */}
-      <Card className="glass-card">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Globe className="w-5 h-5" />
-            {t('coreConfig.network')}
-          </CardTitle>
-          <CardDescription>{t('coreConfig.networkDesc')}</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="ProxyURL">{config.ProxyURL.title}</Label>
-            <Input
-              id="ProxyURL"
-              value={config.ProxyURL.value}
-              onChange={(e) => handleChange('ProxyURL', e.target.value)}
-              placeholder={config.ProxyURL.desc}
-            />
-            <p className="text-sm text-muted-foreground">{config.ProxyURL.desc}</p>
           </div>
         </CardContent>
       </Card>

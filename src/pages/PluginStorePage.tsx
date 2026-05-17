@@ -3,13 +3,18 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Store, Search, Package, RefreshCw, Download, Trash2, Star, User, DownloadCloud, GitBranch } from 'lucide-react';
+import { Store, Search, Package, RefreshCw, Download, Trash2, DownloadCloud, GitBranch, FileText, ExternalLink, Grid3x3, Check, Sparkles, Wrench } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { pluginStoreApi, StorePlugin, gitMirrorApi, GitPluginInfo } from '@/lib/api';
 import { Skeleton } from '@/components/ui/skeleton';
 import GitMirrorDialog, { getMirrorBadge } from '@/components/GitMirrorDialog';
+import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
+import ReactMarkdown from 'react-markdown';
+import rehypeRaw from 'rehype-raw';
+import remarkGfm from 'remark-gfm';
+import type { Components } from 'react-markdown';
 
 // 缓存相关常量
 const PLUGIN_CACHE_KEY = 'pluginStore_cache';
@@ -45,6 +50,50 @@ function setCachedData<T>(key: string, data: T): void {
   }
 }
 
+
+// Custom components for react-markdown
+const markdownComponents: Components = {
+  pre: ({ children }) => (
+    <pre className="bg-muted p-4 rounded-lg overflow-x-auto my-4 text-sm font-mono">
+      {children}
+    </pre>
+  ),
+  code: ({ className, children, ...props }) => {
+    const isInline = !className;
+    if (isInline) {
+      return (
+        <code className="bg-muted px-1.5 py-0.5 rounded text-sm font-mono text-foreground" {...props}>
+          {children}
+        </code>
+      );
+    }
+    return (
+      <code className={className} {...props}>
+        {children}
+      </code>
+    );
+  },
+  table: ({ children }) => (
+    <div className="overflow-x-auto my-4">
+      <table className="min-w-full divide-y divide-border border border-border">
+        {children}
+      </table>
+    </div>
+  ),
+  thead: ({ children }) => (
+    <thead className="bg-muted/50">{children}</thead>
+  ),
+  th: ({ children }) => (
+    <th className="px-4 py-2 text-left text-sm font-semibold text-foreground">{children}</th>
+  ),
+  td: ({ children }) => (
+    <td className="px-4 py-2 text-sm text-foreground/90">{children}</td>
+  ),
+  tr: ({ children }) => (
+    <tr className="even:bg-muted/30">{children}</tr>
+  ),
+};
+
 export default function PluginStorePage() {
   const { toast } = useToast();
   const { t } = useLanguage();
@@ -57,6 +106,12 @@ export default function PluginStorePage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [gitMirrorOpen, setGitMirrorOpen] = useState(false);
   const [gitPluginsMap, setGitPluginsMap] = useState<Record<string, GitPluginInfo>>({});
+  
+  // README dialog state
+  const [readmeDialogOpen, setReadmeDialogOpen] = useState(false);
+  const [selectedPlugin, setSelectedPlugin] = useState<StorePlugin | null>(null);
+  const [readmeContent, setReadmeContent] = useState<string>('');
+  const [readmeLoading, setReadmeLoading] = useState(false);
 
   // 判断插件是否为"停止维护"
   const isDeprecated = (plugin: StorePlugin) => {
@@ -231,7 +286,7 @@ export default function PluginStorePage() {
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(
-        p => p.id.toLowerCase().includes(query) || 
+        p => p.id.toLowerCase().includes(query) ||
              p.description.toLowerCase().includes(query) ||
              p.tags.some(tag => tag.toLowerCase().includes(query))
       );
@@ -248,6 +303,91 @@ export default function PluginStorePage() {
 
     return filtered;
   }, [plugins, activeTab, searchQuery]);
+
+  // Build README URLs based on mirror type
+  const buildReadmeUrls = (plugin: StorePlugin): string[] => {
+    const gitInfo = gitPluginsMap[plugin.id.toLowerCase()];
+    const mirror = gitInfo?.mirror || 'github';
+    const remoteUrl = gitInfo?.remote_url || plugin.link || `https://github.com/${plugin.id}`;
+    
+    // Extract owner and repo from remote URL
+    const match = remoteUrl.match(/github\.com[/:]([^/]+)\/([^/.]+)/);
+    if (!match) {
+      // Fallback if URL parsing fails
+      return [`${remoteUrl}/raw/main/README.md`, `${remoteUrl}/raw/master/README.md`];
+    }
+    const [, owner, repo] = match;
+    
+    const urls: string[] = [];
+    
+    switch (mirror) {
+      case 'cnb':
+        // cnb.cool format: https://cnb.cool/gscore-mirror/StarRailUID/-/git/raw/master/README.md
+        urls.push(`https://cnb.cool/${owner}/${repo}/-/git/raw/master/README.md`);
+        urls.push(`https://cnb.cool/${owner}/${repo}/-/git/raw/main/README.md`);
+        break;
+      case 'gitcode':
+        // gitcode.com format: https://raw.gitcode.com/gscore-mirror/StarRailUID/raw/master/README.md
+        urls.push(`https://raw.gitcode.com/${owner}/${repo}/raw/master/README.md`);
+        urls.push(`https://raw.gitcode.com/${owner}/${repo}/raw/main/README.md`);
+        break;
+      case 'ghproxy':
+        // ghproxy.com format
+        urls.push(`https://ghproxy.com/https://raw.githubusercontent.com/${owner}/${repo}/master/README.md`);
+        urls.push(`https://ghproxy.com/https://raw.githubusercontent.com/${owner}/${repo}/main/README.md`);
+        break;
+      case 'github':
+      default:
+        // Direct raw.githubusercontent.com format
+        urls.push(`https://raw.githubusercontent.com/${owner}/${repo}/refs/heads/master/README.md`);
+        urls.push(`https://raw.githubusercontent.com/${owner}/${repo}/refs/heads/main/README.md`);
+        break;
+    }
+    
+    return urls;
+  };
+
+  // Handle card click to show README
+  const handleCardClick = async (plugin: StorePlugin) => {
+    setSelectedPlugin(plugin);
+    setReadmeDialogOpen(true);
+    setReadmeLoading(true);
+    setReadmeContent('');
+
+    try {
+      const urls = buildReadmeUrls(plugin);
+      
+      for (const url of urls) {
+        try {
+          const response = await fetch(url);
+          if (response.ok) {
+            const text = await response.text();
+            setReadmeContent(text);
+            return;
+          }
+        } catch {
+          // Try next URL
+          continue;
+        }
+      }
+      
+      setReadmeContent(t('pluginStore.noReadme'));
+    } catch (error) {
+      console.error('Failed to fetch README:', error);
+      setReadmeContent(t('pluginStore.readmeLoadFailed'));
+    } finally {
+      setReadmeLoading(false);
+    }
+  };
+
+  // Tab options for TabButtonGroup
+  const tabOptions = [
+    { value: 'all', label: t('pluginStore.allPlugins'), icon: <Grid3x3 className="w-4 h-4" /> },
+    { value: 'installed', label: t('pluginStore.installed'), icon: <Check className="w-4 h-4" /> },
+    { value: 'updates', label: t('pluginStore.updates'), icon: <RefreshCw className="w-4 h-4" /> },
+    { value: 'fun', label: t('pluginStore.funPlugins'), icon: <Sparkles className="w-4 h-4" /> },
+    { value: 'tool', label: t('pluginStore.toolPlugins'), icon: <Wrench className="w-4 h-4" /> },
+  ];
 
   return (
     <div className="space-y-6 flex-1 overflow-auto p-6 h-full flex flex-col">
@@ -294,16 +434,13 @@ export default function PluginStorePage() {
         </CardContent>
       </Card>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="flex-wrap h-auto gap-1 bg-muted/50 p-1">
-          <TabsTrigger value="all">{t('pluginStore.allPlugins')}</TabsTrigger>
-          <TabsTrigger value="installed">{t('pluginStore.installed')}</TabsTrigger>
-          <TabsTrigger value="updates">{t('pluginStore.updates')}</TabsTrigger>
-          <TabsTrigger value="fun">{t('pluginStore.funPlugins')}</TabsTrigger>
-          <TabsTrigger value="tool">{t('pluginStore.toolPlugins')}</TabsTrigger>
-        </TabsList>
+      <TabButtonGroup
+        options={tabOptions}
+        value={activeTab}
+        onValueChange={setActiveTab}
+      />
 
-        <TabsContent value={activeTab} className="mt-6">
+      <div className="mt-6">
           {isLoading ? (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
@@ -351,7 +488,8 @@ export default function PluginStorePage() {
                 return (
                   <Card
                     key={plugin.id}
-                    className={`glass-card flex flex-col overflow-hidden ${deprecated ? 'opacity-60' : ''} ${plugin.installed ? 'ring-1 ring-green-500/30' : ''}`}
+                    className={`glass-card flex flex-col overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all ${deprecated ? 'opacity-60' : ''} ${plugin.installed ? 'ring-1 ring-green-500/30' : ''}`}
+                    onClick={() => handleCardClick(plugin)}
                   >
                     {/* 卡片内容区域 */}
                     <div className="p-4 pb-2">
@@ -521,13 +659,80 @@ export default function PluginStorePage() {
               })}
             </div>
           )}
-        </TabsContent>
-      </Tabs>
+        </div>
 
       <GitMirrorDialog
         open={gitMirrorOpen}
         onOpenChange={setGitMirrorOpen}
       />
+
+      {/* README Dialog */}
+      <Dialog open={readmeDialogOpen} onOpenChange={setReadmeDialogOpen}>
+        <DialogContent className="w-[90vw] max-w-5xl h-[85vh] flex flex-col p-0 overflow-hidden">
+          {/* Custom Header */}
+          <div className="px-6 py-4 border-b shrink-0">
+            <div className="flex items-center justify-between pr-8">
+              <div className="flex items-center gap-2 min-w-0">
+                <FileText className="w-5 h-5 text-muted-foreground shrink-0" />
+                <h2 className="text-lg font-semibold truncate">{selectedPlugin?.id}</h2>
+              </div>
+              {selectedPlugin && (
+                <a
+                  href={selectedPlugin.link || `https://github.com/${selectedPlugin.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors shrink-0 ml-4"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  <span>GitHub</span>
+                </a>
+              )}
+            </div>
+            <p className="text-sm text-muted-foreground mt-1 pr-8">
+              {selectedPlugin?.description}
+            </p>
+          </div>
+          
+          {/* Scrollable Content */}
+          <div className="flex-1 overflow-y-auto p-6">
+            {readmeLoading ? (
+              <div className="space-y-3">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-4 w-5/6" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-2/3" />
+              </div>
+            ) : (
+              <div className="prose dark:prose-invert max-w-none
+                prose-headings:font-bold prose-headings:text-foreground
+                prose-h1:text-3xl prose-h1:mb-6 prose-h1:mt-8 prose-h1:border-b prose-h1:pb-4
+                prose-h2:text-2xl prose-h2:mb-4 prose-h2:mt-6
+                prose-h3:text-xl prose-h3:mb-3 prose-h3:mt-5
+                prose-h4:text-lg prose-h4:mb-2 prose-h4:mt-4
+                prose-p:my-4 prose-p:leading-8 prose-p:text-foreground/90
+                prose-a:text-blue-500 prose-a:no-underline hover:prose-a:underline prose-a:font-medium
+                prose-strong:text-foreground prose-strong:font-bold
+                prose-code:bg-muted prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:text-foreground
+                prose-pre:bg-muted prose-pre:p-4 prose-pre:rounded-lg prose-pre:overflow-x-auto
+                prose-ul:my-4 prose-ol:my-4 prose-li:my-2
+                prose-blockquote:border-l-4 prose-blockquote:border-muted-foreground/30 prose-blockquote:pl-4 prose-blockquote:italic prose-blockquote:text-muted-foreground prose-blockquote:my-4
+                prose-img:rounded-lg prose-img:shadow-md prose-img:my-4
+                prose-hr:border-border prose-hr:my-8
+                prose-table:my-4">
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  rehypePlugins={[rehypeRaw]}
+                  components={markdownComponents}
+                >
+                  {readmeContent}
+                </ReactMarkdown>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

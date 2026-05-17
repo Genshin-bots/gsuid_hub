@@ -48,6 +48,7 @@ import {
   HardDrive,
   Cpu,
   SlidersHorizontal,
+  Download,
 } from 'lucide-react';
 import {
   aiSessionLogsApi,
@@ -665,6 +666,28 @@ export default function AIHistoryPage() {
     }
   }, [fetchStats, fetchLogs, selectedLog, fetchDetail]);
 
+  // 下载当前会话JSON（含子Agent）
+  const handleDownloadSession = useCallback(() => {
+    if (!detail) return;
+
+    const downloadData = {
+      main_session: detail,
+      linked_agents: linkedAgentDetail ? [linkedAgentDetail] : [],
+    };
+
+    const jsonStr = JSON.stringify(downloadData, null, 2);
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `session_${detail.session_id}_${Date.now()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast({ title: '下载成功', description: '会话JSON已保存' });
+  }, [detail, linkedAgentDetail]);
+
   // 应用筛选
   const handleApplyFilter = useCallback(() => {
     fetchLogs(0);
@@ -709,8 +732,9 @@ export default function AIHistoryPage() {
   const avatarUrl = personaName ? personaApi.getAvatarUrl(personaName) : '';
 
   return (
-    <div className="flex-1 overflow-hidden h-full flex">
-      {/* 左侧边栏 - 日志列表 */}
+    <TooltipProvider>
+      <div className="flex-1 overflow-hidden h-full flex">
+        {/* 左侧边栏 - 日志列表 */}
       <div className={cn(
         "border-r flex flex-col shrink-0",
         "w-full absolute inset-0 z-10 sm:relative sm:w-80 lg:w-96",
@@ -1149,6 +1173,21 @@ export default function AIHistoryPage() {
                     <RefreshCw className="w-4 h-4" />
                   )}
                 </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleDownloadSession}
+                      className="h-8 w-8"
+                    >
+                      <Download className="w-4 h-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>下载会话JSON</p>
+                  </TooltipContent>
+                </Tooltip>
               </div>
             </div>
 
@@ -1230,6 +1269,7 @@ export default function AIHistoryPage() {
           </div>
         )}
       </div>
-    </div>
+      </div>
+    </TooltipProvider>
   );
 }

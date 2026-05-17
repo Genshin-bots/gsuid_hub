@@ -318,6 +318,24 @@
     "loadFailed": "Unable to load AI configuration",
     "saveFailed": "Error saving AI configuration",
     "saveButton": "Save Configuration",
+    "checkConfig": "Check Configuration",
+    "wizard": {
+      "title": "AI Configuration Status",
+      "description": "Check your AI feature configuration status",
+      "aiUsable": "AI is Usable",
+      "aiNotUsable": "AI is Not Available",
+      "summary": "{total} items total, {ok} OK, {warning} warnings",
+      "aiRange": "AI User Range",
+      "allUsers": "All Users",
+      "personaList": "Persona Configuration",
+      "inspect": "Inspect",
+      "whitelistNote": "Only these users can use:",
+      "blacklistNote": "These users cannot use:",
+      "scopeGlobal": "Global",
+      "scopeSpecific": "Specific",
+      "scopeDisabled": "Disabled",
+      "memoryWarningTip": "All groups mode processes memory for all groups, which may consume more tokens"
+    },
     "serviceSwitch": {
       "title": "Enable AI Service",
       "enabledDesc": "AI service is enabled, users can use AI features",
@@ -1255,7 +1273,9 @@
     "update": "Update",
     "uninstall": "Uninstall",
     "install": "Install",
-    "details": "Details"
+    "details": "Details",
+    "noReadme": "No README content available",
+    "readmeLoadFailed": "Failed to load README"
   },
   "gitMirror": {
     "title": "Git Mirror Management",
