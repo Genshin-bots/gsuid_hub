@@ -1056,22 +1056,22 @@ export default function PersonaConfigPage() {
         }
       />
 
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-6">
       {/* 页面标题和操作 */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-3">
-            <Brain className="w-8 h-8" />
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0 overflow-x-auto">
+          <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
+            <Brain className="w-8 h-8 shrink-0" />
             {t('personaConfig.title')}
           </h1>
-          <p className="text-muted-foreground mt-1">{t('personaConfig.description')}</p>
+          <p className="whitespace-nowrap text-muted-foreground mt-1">{t('personaConfig.description')}</p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2 self-end sm:self-auto">
           {/* AI 生成按钮 */}
           <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="gap-2">
+              <Button className="gap-2 whitespace-nowrap">
                 <Sparkles className="h-4 w-4" />
                 {t('personaConfig.createNew')}
               </Button>
@@ -1148,7 +1148,7 @@ export default function PersonaConfigPage() {
           {/* 手动创建按钮 */}
           <Dialog open={createManuallyDialogOpen} onOpenChange={setCreateManuallyDialogOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline" className="gap-2">
+              <Button variant="outline" className="gap-2 whitespace-nowrap">
                 <Plus className="h-4 w-4" />
                 {t('personaConfig.createNewManually')}
               </Button>

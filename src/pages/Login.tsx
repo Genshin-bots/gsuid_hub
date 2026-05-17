@@ -106,7 +106,7 @@ export default function Login() {
     }
     
     if (result.success) {
-      navigate('/dashboard');
+      navigate('/home');
     } else {
       setError(result.error || (isRegisterMode ? t('login.registerFailed') : t('login.loginFailed')));
     }

@@ -390,23 +390,23 @@ export default function BackupPage() {
   }
 
   return (
-    <div className="space-y-6 flex-1 overflow-auto p-6 h-full flex flex-col">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/10">
+    <div className="space-y-6 flex-1 overflow-auto p-4 sm:p-6 h-full flex flex-col">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0 overflow-x-auto">
+          <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
+            <div className="shrink-0 p-2 rounded-lg bg-primary/10">
               <HardDrive className="w-6 h-6 text-primary" />
             </div>
             {t('backup.title')}
           </h1>
-          <p className="text-muted-foreground mt-1">{t('backup.description')}</p>
+          <p className="whitespace-nowrap text-muted-foreground mt-1">{t('backup.description')}</p>
         </div>
-        <div className="flex gap-2">
-          <Button onClick={handleSaveSettings} disabled={!hasChanges || isSaving}>
+        <div className="flex flex-wrap justify-end gap-2 self-end sm:self-auto">
+          <Button onClick={handleSaveSettings} disabled={!hasChanges || isSaving} className="whitespace-nowrap">
             <Save className="w-4 h-4 mr-2" />
             {isSaving ? t('backup.saving') : t('backup.saveSettings')}
           </Button>
-          <Button onClick={handleBackupNow} disabled={isBackingUp}>
+          <Button onClick={handleBackupNow} disabled={isBackingUp} className="whitespace-nowrap">
             <Play className="w-4 h-4 mr-2" />
             {isBackingUp ? t('backup.backingUp') : t('backup.backupNow')}
           </Button>

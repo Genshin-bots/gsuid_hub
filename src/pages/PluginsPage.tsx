@@ -474,18 +474,18 @@ export default function PluginsPage() {
   };
 
   return (
-    <div className="space-y-6 flex-1 overflow-auto p-6 h-full flex flex-col">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-primary/10 rounded-lg">
+    <div className="space-y-6 flex-1 overflow-auto p-4 sm:p-6 h-full flex flex-col">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="shrink-0 p-2 bg-primary/10 rounded-lg">
             <Settings className="h-6 w-6 text-primary" />
           </div>
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">{t('plugins.title')}</h1>
-            <p className="text-muted-foreground">{t('plugins.description')}</p>
+          <div className="min-w-0 overflow-x-auto">
+            <h1 className="whitespace-nowrap text-3xl font-bold tracking-tight">{t('plugins.title')}</h1>
+            <p className="whitespace-nowrap text-muted-foreground">{t('plugins.description')}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2 self-end sm:self-auto">
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -494,7 +494,7 @@ export default function PluginsPage() {
                   size="sm"
                   onClick={handleUpdateAllClick}
                   disabled={isLoading || pluginList.length === 0}
-                  className="gap-2"
+                  className="gap-2 whitespace-nowrap"
                 >
                   <Download className="w-4 h-4" />
                   {t('plugins.updateAllPlugins')}
@@ -513,7 +513,7 @@ export default function PluginsPage() {
                   size="sm"
                   onClick={handleReloadPlugin}
                   disabled={!selectedPlugin || isReloadingPlugin}
-                  className="gap-2"
+                  className="gap-2 whitespace-nowrap"
                 >
                   <RotateCw className={`w-4 h-4 ${isReloadingPlugin ? 'animate-spin' : ''}`} />
                   {t('plugins.reloadPlugin')}

@@ -240,18 +240,18 @@ export default function AISkillsPage() {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-6">
       {/* 页面标题 */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-3">
-            <Sparkles className="w-8 h-8" />
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0 overflow-x-auto">
+          <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
+            <Sparkles className="w-8 h-8 shrink-0" />
             {t('aiSkills.title')}
           </h1>
-          <p className="text-muted-foreground mt-1">{t('aiSkills.description')}</p>
+          <p className="whitespace-nowrap text-muted-foreground mt-1">{t('aiSkills.description')}</p>
         </div>
         {/* 新增技能按钮 */}
-        <Button onClick={() => setAddDialogOpen(true)} className="gap-2">
+        <Button onClick={() => setAddDialogOpen(true)} className="gap-2 whitespace-nowrap self-end sm:self-auto">
           <Plus className="h-4 w-4" />
           {t('aiSkills.addSkill')}
         </Button>

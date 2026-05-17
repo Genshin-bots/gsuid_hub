@@ -284,29 +284,29 @@ export default function ConsolePage() {
   const virtualItems = virtualizer.getVirtualItems();
 
   return (
-    <div className="space-y-6 flex-1 overflow-auto p-6 h-full flex flex-col">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-3">
-            <Terminal className="w-8 h-8" />
+    <div className="space-y-6 flex-1 overflow-auto p-4 sm:p-6 h-full flex flex-col">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0 overflow-x-auto">
+          <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
+            <Terminal className="w-8 h-8 shrink-0" />
             {t('console.title')}
           </h1>
-          <p className="text-muted-foreground mt-1">{t('console.description')}</p>
+          <p className="whitespace-nowrap text-muted-foreground mt-1">{t('console.description')}</p>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <div className="flex flex-wrap items-center justify-end gap-2 self-end sm:self-auto">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground whitespace-nowrap">
             <Circle className="w-2 h-2 fill-green-500 text-green-500 animate-pulse" />
             {t('console.connected')}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 whitespace-nowrap">
             <span className="text-sm text-muted-foreground">{t('console.autoScroll')}</span>
             <Switch checked={autoScroll} onCheckedChange={setAutoScroll} />
           </div>
-          <Button variant="outline" size="sm" onClick={exportLogs}>
+          <Button variant="outline" size="sm" onClick={exportLogs} className="whitespace-nowrap">
             <Download className="w-4 h-4 mr-2" />
             {t('console.exportLogs')}
           </Button>
-          <Button variant="outline" size="sm" onClick={clearLogs}>
+          <Button variant="outline" size="sm" onClick={clearLogs} className="whitespace-nowrap">
             <Trash2 className="w-4 h-4 mr-2" />
             {t('console.clear')}
           </Button>

@@ -278,6 +278,43 @@ export interface SystemInfo {
   uptime: string;
 }
 
+export interface VersionInfo {
+  version: string;
+  commit: string;
+  python: {
+    version: string;
+    implementation: string;
+    compiler: string;
+  };
+  platform: {
+    system: string;
+    release: string;
+    machine: string;
+    processor: string;
+  };
+  pid: number;
+  executable: string;
+  dependencies: {
+    fastapi: string;
+    uvicorn: string;
+    pydantic: string;
+    sqlalchemy: string;
+  };
+}
+
+export interface ActiveBotInfo {
+  name: string;
+  ws_bot_id: string;
+  bot_id: string;
+  connected: boolean;
+}
+
+export interface ActiveBotsInfo {
+  count: number;
+  names: string[];
+  bots: ActiveBotInfo[];
+}
+
 // ===================
 // API Client
 // ===================
@@ -371,6 +408,61 @@ class ApiClient {
       method: 'POST',
       body: body ? JSON.stringify(body) : undefined,
     });
+  }
+
+  async postFormData<T>(endpoint: string, formData: FormData): Promise<T> {
+    const url = `${this.baseUrl}${endpoint}`;
+
+    const token = getAuthToken();
+    const headers: Record<string, string> = {};
+
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: formData,
+      credentials: 'include',
+    });
+
+    if (response.status === 401) {
+      setAuthToken(null);
+      localStorage.removeItem('auth_user');
+      window.location.href = getLoginPath();
+      throw new Error('会话已过期，请重新登录');
+    }
+
+    if (!response.ok) {
+      let errorMessage = `HTTP Error: ${response.status}`;
+      try {
+        const text = await response.text();
+        try {
+          const errorData = JSON.parse(text);
+          if (errorData.msg) {
+            errorMessage = errorData.msg;
+          } else if (typeof errorData === 'string') {
+            errorMessage = text;
+          }
+        } catch {
+          if (text) {
+            errorMessage = text;
+          }
+        }
+      } catch {
+        // Ignore parsing errors
+      }
+      throw new Error(errorMessage);
+    }
+
+    const data: ApiResponse<T> = await response.json();
+
+    if (data.status !== 0) {
+      throw new Error(data.msg || 'API request failed');
+    }
+
+    return data.data;
   }
 
   put<T>(endpoint: string, body?: unknown): Promise<T> {
@@ -1936,6 +2028,21 @@ export interface SessionPersonaResponse {
   persona_content: string | null;
 }
 
+export interface SendSessionMessageRequest {
+  message?: string;
+  images?: File[];
+  image_urls?: string[];
+  at_sender?: boolean;
+}
+
+export interface SendSessionMessageResponse {
+  session_id: string;
+  target_type: 'private' | 'group';
+  target_id: string;
+  text_sent: boolean;
+  image_count: number;
+}
+
 export interface HistoryStats {
   history_manager: {
     total_sessions: number;
@@ -1974,6 +2081,17 @@ export const historyApi = {
   // 获取指定 Session 的 Persona 内容
   getSessionPersona: (sessionId: string) =>
     api.get<SessionPersonaResponse>(`/api/history/${encodeURIComponent(sessionId)}/persona`),
+
+  // 向指定 Session 发送消息（multipart/form-data，支持文本与多图）
+  sendSessionMessage: (sessionId: string, data: SendSessionMessageRequest) => {
+    const formData = new FormData();
+    formData.append('message', data.message || '');
+    formData.append('at_sender', String(data.at_sender ?? false));
+    data.images?.forEach((image) => formData.append('images', image));
+    data.image_urls?.forEach((url) => formData.append('image_urls', url));
+
+    return api.postFormData<SendSessionMessageResponse>(`/api/history/${encodeURIComponent(sessionId)}/send`, formData);
+  },
 
   // 获取历史管理器统计信息
   getStats: () =>
@@ -2858,4 +2976,26 @@ export const aiWizardApi = {
   // 获取 AI 配置详细状态（包含人格范围信息）
   getStatus: () =>
     api.get<AIWizardStatusResponse>('/api/ai/wizard/status'),
+};
+
+// ===================
+// Version API
+// ===================
+
+export const versionApi = {
+  // 获取框架版本与后端环境信息
+  getVersion: () =>
+    api.get<VersionInfo>('/api/version'),
+
+  // 获取当前 active_bot 列表与数量
+  getBots: () =>
+    api.get<ActiveBotsInfo>('/api/version/bots'),
+
+  // 获取当前 active_bot 数量
+  getBotsCount: () =>
+    api.get<{ count: number }>('/api/version/bots/count'),
+
+  // 获取当前 active_bot 名称列表
+  getBotNames: () =>
+    api.get<{ names: string[] }>('/api/version/bots/names'),
 };

@@ -978,23 +978,23 @@ export default function AIConfigPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-3">
-            <Bot className="w-8 h-8" />
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0 overflow-x-auto">
+          <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
+            <Bot className="w-8 h-8 shrink-0" />
             {t('aiConfig.title')}
           </h1>
-          <p className="text-muted-foreground mt-1">{t('aiConfig.description')}</p>
+          <p className="whitespace-nowrap text-muted-foreground mt-1">{t('aiConfig.description')}</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2 self-end sm:self-auto">
           <Button
             onClick={() => fetchWizardChecklist()}
             disabled={isWizardLoading}
             size="sm"
             variant="outline"
-            className="gap-2"
+            className="gap-2 whitespace-nowrap"
           >
             {isWizardLoading ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -1008,7 +1008,7 @@ export default function AIConfigPage() {
             disabled={!isConfigDirty || isSaving}
             size="sm"
             className={cn(
-              "gap-2 transition-all duration-300",
+              "gap-2 whitespace-nowrap transition-all duration-300",
               isConfigDirty && "animate-in fade-in slide-in-from-bottom-2"
             )}
           >
@@ -1081,20 +1081,20 @@ export default function AIConfigPage() {
               {/* Section: 模型配置 */}
               <div className="space-y-4">
                 {/* Section Header */}
-                <div className="flex items-center justify-between px-1">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                <div className="flex flex-col gap-3 px-1 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex min-w-0 items-center gap-2.5 overflow-x-auto">
+                    <div className="w-8 h-8 shrink-0 rounded-lg bg-primary/10 flex items-center justify-center">
                       <Wifi className="w-4 h-4 text-primary" />
                     </div>
-                    <div>
-                      <h2 className="text-sm font-semibold text-foreground">{t('aiConfig.serviceProvider.title')}</h2>
-                      <p className="text-xs text-muted-foreground">{t('aiConfig.serviceProvider.subtitle') || '管理AI服务提供方和模型配置'}</p>
+                    <div className="min-w-0">
+                      <h2 className="whitespace-nowrap text-sm font-semibold text-foreground">{t('aiConfig.serviceProvider.title')}</h2>
+                      <p className="whitespace-nowrap text-xs text-muted-foreground">{t('aiConfig.serviceProvider.subtitle') || '管理AI服务提供方和模型配置'}</p>
                     </div>
                   </div>
                   <Button
                     variant="outline"
                     size="sm"
-                    className="h-8 gap-1.5 text-xs"
+                    className="h-8 gap-1.5 self-end whitespace-nowrap text-xs sm:self-auto"
                     onClick={() => { setIsCreateDialogOpen(true); fetchProviderConfigOptions(newConfigProvider); }}
                   >
                     <Plus className="w-3.5 h-3.5" />

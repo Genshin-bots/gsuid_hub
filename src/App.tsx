@@ -11,6 +11,7 @@ import { LanguageProvider } from "@/contexts/LanguageContext";
 import { ConfigDirtyProvider } from "@/contexts/ConfigDirtyContext";
 import { AppLayout } from "@/components/layout/AppLayout";
 import Login from "@/pages/Login";
+import HomePage from "@/pages/HomePage";
 import Dashboard from "@/pages/Dashboard";
 import DatabasePage from "@/pages/DatabasePage";
 import DatabaseConfigPage from "@/pages/DatabaseConfigPage";
@@ -67,7 +68,7 @@ function AppRoutes() {
     <Routes>
       <Route
         path="/login"
-        element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />}
+        element={isAuthenticated ? <Navigate to="/home" replace /> : <Login />}
       />
       <Route
         path="/"
@@ -77,7 +78,8 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<Navigate to="/dashboard" replace />} />
+        <Route index element={<Navigate to="/home" replace />} />
+        <Route path="home" element={<HomePage />} />
         <Route path="dashboard" element={<Dashboard />} />
         <Route path="database" element={<DatabasePage />} />
         <Route path="plugins" element={<PluginsPage />} />

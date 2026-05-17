@@ -79,6 +79,7 @@
     "settingsApiHost": "Settings API Host"
   },
   "sidebar": {
+    "home": "Home",
     "dashboard": "Dashboard",
     "database": "Database Management",
     "databaseConfig": "Database Config",
@@ -648,7 +649,19 @@
     "noConfigItems": "This config group has no parameter items",
     "frameworkConfigUpdated": "Framework configuration updated",
     "loadFailed": "Unable to load framework configuration",
-    "saveFailed": "Failed to update framework configuration"
+    "saveFailed": "Failed to update framework configuration",
+    "configNames": {
+      "core": "Core Config",
+      "imageUpload": "Image Upload Config",
+      "database": "Database Config",
+      "state": "Status Config",
+      "misc": "Misc Config",
+      "verification": "Verification Config",
+      "imageSend": "Image Send Config",
+      "log": "Log Config",
+      "imageGeneration": "Image Generation Config",
+      "buttonMarkdown": "Button and Markdown Config"
+    }
   },
   "aiTools": {
     "title": "AI Tools",
@@ -1105,7 +1118,7 @@
   },
   "sessionManagement": {
     "title": "Session Management",
-    "description": "Manage AI session history, view and clear sessions",
+    "description": "Manage Bot message history, view and clear sessions, and send messages to a selected session",
     "searchPlaceholder": "Search session ID, user ID or group ID...",
     "privateChat": "Private Chat",
     "groupChat": "Group Chat",
@@ -1128,7 +1141,7 @@
     "view": "View",
     "chatMode": "Chat Mode",
     "textMode": "Text Mode",
-    "inputPlaceholder": "View only - cannot send messages...",
+    "inputPlaceholder": "Type text, or paste / drag / select images...",
     "selectSession": "Select a Session",
     "selectSessionDesc": "Select a session from the left to view history",
     "viewMode": {
@@ -1141,7 +1154,14 @@
     "clearSuccess": "History cleared for session \"{id}\"",
     "deleteSuccess": "Session \"{id}\" completely deleted",
     "clearFailed": "Failed to clear session history",
-    "deleteCompletely": "Delete session completely (free memory)"
+    "deleteCompletely": "Delete session completely (free memory)",
+    "send": "Send Message",
+    "sendSuccess": "Message sent successfully",
+    "sendFailed": "Failed to send message",
+    "sendHint": "Paste, drag, or select multiple images; Ctrl / Cmd + Enter to send",
+    "atSender": "@ target",
+    "selectImages": "Select images",
+    "removeImage": "Remove image"
   },
   "plugins": {
     "title": "Plugin Configuration",
@@ -1875,5 +1895,59 @@
     "noMemes": "No memes yet",
     "noMemesDesc": "Upload some memes to get started",
     "refresh": "Refresh"
+  },
+  "home": {
+    "greeting": {
+      "morning": "Good Morning",
+      "noon": "Good Afternoon",
+      "afternoon": "Good Afternoon",
+      "evening": "Good Evening",
+      "night": "Good Night",
+      "lateNight": "Late Night"
+    },
+    "greetingWithName": "{greeting}, {name}",
+    "welcomeMessage": "Welcome back to GsCore Admin Console",
+    "frontendVersion": "Frontend Version",
+    "backendVersion": "Backend Version",
+    "commitHash": "Commit Hash",
+    "systemInfo": "System Info",
+    "runtimeInfo": "Runtime Info",
+    "dependencies": "Core Dependencies",
+    "pythonVersion": "Python Version",
+    "pythonImpl": "Python Implementation",
+    "compiler": "Compiler",
+    "os": "Operating System",
+    "architecture": "Architecture",
+    "processor": "Processor",
+    "pid": "Process PID",
+    "executable": "Executable",
+    "quickNav": "Quick Navigation",
+    "projectLinks": "Project Links",
+    "frontendProject": "Frontend Project",
+    "backendProject": "Backend Project",
+    "goToDashboard": "Dashboard",
+    "goToDashboardDesc": "View key metrics and trends",
+    "goToPlugins": "Plugin Management",
+    "goToPluginsDesc": "Manage installed plugin settings",
+    "goToGitUpdate": "Update Management",
+    "goToGitUpdateDesc": "Check core and plugin updates",
+    "goToDatabase": "Database Management",
+    "goToDatabaseDesc": "Browse and maintain data tables",
+    "goToFrameworkConfig": "Framework Config",
+    "goToFrameworkConfigDesc": "Adjust framework runtime options",
+    "goToConsole": "Real-time Console",
+    "goToConsoleDesc": "Watch live log output",
+    "loadingVersion": "Loading version info...",
+    "loadVersionFailed": "Failed to load version info",
+    "activeBots": "Bot Connection Status",
+    "botCount": "Bot Count",
+    "connectedBots": "Connected",
+    "botId": "Bot ID",
+    "wsBotId": "WS Bot ID",
+    "connected": "Connected",
+    "disconnected": "Disconnected",
+    "noActiveBots": "No active Bot instances currently",
+    "loadBotsFailed": "Failed to load Bot info",
+    "retry": "Retry"
   }
 }

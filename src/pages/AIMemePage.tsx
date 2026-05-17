@@ -1046,24 +1046,24 @@ export default function AIMemePage() {
   // ============================================================================
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0 overflow-x-auto">
+          <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
+            <div className="w-10 h-10 shrink-0 rounded-xl bg-primary/10 flex items-center justify-center">
               <ImageIcon className="w-5 h-5 text-primary" />
             </div>
             {t('aiMeme.title')}
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">{t('aiMeme.description')}</p>
+          <p className="whitespace-nowrap text-sm text-muted-foreground mt-1">{t('aiMeme.description')}</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2 self-end sm:self-auto">
           <Button
             variant="outline"
             size="sm"
             onClick={() => { fetchMemes(); fetchStats(); }}
-            className="gap-1.5"
+            className="gap-1.5 whitespace-nowrap"
           >
             <RefreshCw className="w-4 h-4" />
             {t('aiMeme.refresh')}
@@ -1071,7 +1071,7 @@ export default function AIMemePage() {
           <Button
             size="sm"
             onClick={() => setUploadOpen(true)}
-            className="gap-1.5"
+            className="gap-1.5 whitespace-nowrap"
           >
             <Upload className="w-4 h-4" />
             {t('aiMeme.upload.title')}

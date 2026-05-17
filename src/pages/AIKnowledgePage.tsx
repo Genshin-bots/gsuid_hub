@@ -467,14 +467,14 @@ export default function AIKnowledgePage() {
   ];
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-6">
       {/* 页面标题 */}
-      <div>
-        <h1 className="text-3xl font-bold flex items-center gap-3">
-          <BookOpen className="w-8 h-8" />
+      <div className="min-w-0 overflow-x-auto">
+        <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
+          <BookOpen className="w-8 h-8 shrink-0" />
           {t('aiKnowledge.title')}
         </h1>
-        <p className="text-muted-foreground mt-1">{t('aiKnowledge.description')}</p>
+        <p className="whitespace-nowrap text-muted-foreground mt-1">{t('aiKnowledge.description')}</p>
       </div>
 
       {/* 筛选和操作栏 */}

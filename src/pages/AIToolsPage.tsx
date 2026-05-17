@@ -180,21 +180,21 @@ export default function AIToolsPage() {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-6">
       {/* 页面标题 */}
-      <div>
-        <h1 className="text-3xl font-bold flex items-center gap-3">
-          <Wrench className="w-8 h-8" />
+      <div className="min-w-0 overflow-x-auto">
+        <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
+          <Wrench className="w-8 h-8 shrink-0" />
           {t('aiTools.title')}
         </h1>
-        <p className="text-muted-foreground mt-1">{t('aiTools.description')}</p>
+        <p className="whitespace-nowrap text-muted-foreground mt-1">{t('aiTools.description')}</p>
       </div>
 
       {/* 筛选区域 */}
       {!isLoading && categories.length > 0 && (
         <div className="space-y-4">
           {/* 分类筛选 */}
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center">
             <span className="text-sm text-muted-foreground">{t('aiTools.category') || '分类'}：</span>
             <TabButtonGroup
               options={categoryList.map((category) => ({
@@ -211,7 +211,7 @@ export default function AIToolsPage() {
           </div>
 
           {/* 插件筛选 */}
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center">
             <span className="text-sm text-muted-foreground">{t('aiTools.plugin') || '插件'}：</span>
             <TabButtonGroup
               options={pluginList.map((plugin) => ({
@@ -228,14 +228,14 @@ export default function AIToolsPage() {
           </div>
 
           {/* 搜索筛选 */}
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center">
             <span className="text-sm text-muted-foreground">{t('aiTools.search')}：</span>
             <Input
               type="text"
               placeholder={t('aiTools.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="max-w-sm"
+              className="w-full sm:max-w-sm"
             />
           </div>
 

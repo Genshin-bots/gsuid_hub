@@ -125,6 +125,77 @@ function clearCommitsCache(pluginName?: string) {
   }
 }
 
+const KNOWN_GITHUB_MIRROR_OWNERS = new Set(['gscore-mirror', 'gsuid-mirror']);
+
+function cleanRepoName(repo: string) {
+  return repo.replace(/\.git$/i, '').replace(/\/$/, '');
+}
+
+function getGithubRepoPath(remoteUrl?: string, pluginName?: string): string | null {
+  const fallbackRepo = pluginName ? `Genshin-bots/${cleanRepoName(pluginName)}` : null;
+  if (!remoteUrl) return fallbackRepo;
+
+  const normalizedUrl = remoteUrl
+    .trim()
+    .replace(/^https?:\/\/ghproxy\.com\//i, '')
+    .replace(/^https?:\/\/gh-proxy\.com\//i, '');
+
+  const githubSshMatch = normalizedUrl.match(/ssh:\/\/git@(?:ssh\.)?github\.com(?::\d+)?\/([^/\s]+)\/([^/\s]+?)(?:\.git)?(?:[/?#]|$)/i);
+  if (githubSshMatch) {
+    return `${githubSshMatch[1]}/${cleanRepoName(githubSshMatch[2])}`;
+  }
+
+  const githubMatch = normalizedUrl.match(/github\.com[:/]([^/\s:]+)\/([^/\s]+?)(?:\.git)?(?:[/?#]|$)/i);
+  if (githubMatch) {
+    return `${githubMatch[1]}/${cleanRepoName(githubMatch[2])}`;
+  }
+
+  const mirrorMatch = normalizedUrl.match(/(?:gitcode\.com|cnb\.cool)\/([^/\s]+)\/([^/\s]+?)(?:\.git)?(?:[/?#]|$)/i);
+  if (mirrorMatch) {
+    const owner = mirrorMatch[1];
+    const repo = cleanRepoName(mirrorMatch[2]);
+    return KNOWN_GITHUB_MIRROR_OWNERS.has(owner.toLowerCase()) ? `Genshin-bots/${repo}` : `${owner}/${repo}`;
+  }
+
+  return fallbackRepo;
+}
+
+function CommitMessageWithIssueLinks({
+  message,
+  githubRepoPath,
+  className,
+}: {
+  message: string;
+  githubRepoPath?: string | null;
+  className?: string;
+}) {
+  if (!githubRepoPath) {
+    return <span className={className}>{message}</span>;
+  }
+
+  const parts = message.split(/(#\d+)/g);
+  return (
+    <span className={className}>
+      {parts.map((part, index) => {
+        const issueMatch = part.match(/^#(\d+)$/);
+        if (!issueMatch) return <span key={`${part}-${index}`}>{part}</span>;
+        return (
+          <a
+            key={`${part}-${index}`}
+            href={`https://github.com/${githubRepoPath}/issues/${issueMatch[1]}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary underline-offset-4 hover:underline"
+            onClick={(event) => event.stopPropagation()}
+          >
+            {part}
+          </a>
+        );
+      })}
+    </span>
+  );
+}
+
 // Memoized commit card for mobile
 const CommitCard = memo(function CommitCard({
   commit,
@@ -135,6 +206,7 @@ const CommitCard = memo(function CommitCard({
   t,
   isLocalCurrent,
   isRemoteLatest,
+  githubRepoPath,
 }: {
   commit: GitCommitInfo;
   isCurrent: boolean;
@@ -144,6 +216,7 @@ const CommitCard = memo(function CommitCard({
   t: (key: string) => string;
   isLocalCurrent?: boolean;
   isRemoteLatest?: boolean;
+  githubRepoPath?: string | null;
 }) {
   return (
     <Card className={`glass-card ${isLocalCurrent ? 'border-primary/50 bg-primary/5' : ''}`}>
@@ -180,7 +253,9 @@ const CommitCard = memo(function CommitCard({
             </Button>
           )}
         </div>
-        <p className="text-sm font-medium break-words leading-relaxed">{commit.message}</p>
+        <p className="text-sm font-medium break-words leading-relaxed">
+          <CommitMessageWithIssueLinks message={commit.message} githubRepoPath={githubRepoPath} />
+        </p>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
           <span className="flex items-center gap-1">
             <User className="w-3 h-3 shrink-0" />
@@ -206,6 +281,7 @@ const CommitRow = memo(function CommitRow({
   t,
   isLocalCurrent,
   isRemoteLatest,
+  githubRepoPath,
 }: {
   commit: GitCommitInfo;
   isCurrent: boolean;
@@ -215,6 +291,7 @@ const CommitRow = memo(function CommitRow({
   t: (key: string) => string;
   isLocalCurrent?: boolean;
   isRemoteLatest?: boolean;
+  githubRepoPath?: string | null;
 }) {
   return (
     <tr className={`border-b border-border/50 ${isLocalCurrent ? 'bg-primary/5' : ''}`}>
@@ -238,7 +315,9 @@ const CommitRow = memo(function CommitRow({
           )}
         </div>
       </td>
-      <td className="p-3 max-w-[400px] truncate">{commit.message}</td>
+      <td className="p-3 max-w-[400px] truncate">
+        <CommitMessageWithIssueLinks message={commit.message} githubRepoPath={githubRepoPath} />
+      </td>
       <td className="p-3 text-muted-foreground whitespace-nowrap">{commit.author}</td>
       <td className="p-3 text-muted-foreground text-sm whitespace-nowrap">{commit.date}</td>
       <td className="p-3 text-right">
@@ -589,6 +668,7 @@ export default function GitUpdatePage() {
   // Get current plugin status
   const currentPlugin = plugins.find(p => p.name === selectedPlugin);
   const currentMirrorInfo = gitPluginsMap[selectedPlugin?.toLowerCase()] || null;
+  const githubRepoPath = getGithubRepoPath(currentMirrorInfo?.remote_url, selectedPlugin);
 
   // Format plugin display name
   const getPluginDisplayName = (name: string) => {
@@ -903,6 +983,7 @@ export default function GitUpdatePage() {
                     t={t}
                     isLocalCurrent={runningCommit ? commit.short_hash === runningCommit : false}
                     isRemoteLatest={commit.hash === commitsData.current_hash}
+                    githubRepoPath={githubRepoPath}
                   />
                 ));
               })()}
@@ -948,6 +1029,7 @@ export default function GitUpdatePage() {
                         t={t}
                         isLocalCurrent={runningCommit ? commit.short_hash === runningCommit : false}
                         isRemoteLatest={commit.hash === commitsData.current_hash}
+                        githubRepoPath={githubRepoPath}
                       />
                     ));
                   })()}

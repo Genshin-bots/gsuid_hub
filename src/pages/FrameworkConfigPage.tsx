@@ -84,6 +84,28 @@ const convertToConfig = (config: Record<string, PluginConfigItem>): Record<strin
   return result;
 };
 
+const FRAMEWORK_CONFIG_NAME_I18N_KEYS: Record<string, string> = {
+  'GsCore': 'frameworkConfig.configNames.core',
+  '核心配置': 'frameworkConfig.configNames.core',
+  'GsCore图片上传': 'frameworkConfig.configNames.imageUpload',
+  '图片上传配置': 'frameworkConfig.configNames.imageUpload',
+  'GsCore数据库配置': 'frameworkConfig.configNames.database',
+  '数据库配置': 'frameworkConfig.configNames.database',
+  'GsCore状态配置': 'frameworkConfig.configNames.state',
+  '状态配置': 'frameworkConfig.configNames.state',
+  '杂项配置': 'frameworkConfig.configNames.misc',
+  '验证配置': 'frameworkConfig.configNames.verification',
+  '发送图片': 'frameworkConfig.configNames.imageSend',
+  '日志配置': 'frameworkConfig.configNames.log',
+  'GsCore日志配置': 'frameworkConfig.configNames.log',
+  '图片生成': 'frameworkConfig.configNames.imageGeneration',
+  '图片生成配置': 'frameworkConfig.configNames.imageGeneration',
+  'GsCore图片生成': 'frameworkConfig.configNames.imageGeneration',
+  'GsCore图片生成配置': 'frameworkConfig.configNames.imageGeneration',
+  '按钮和MD配置': 'frameworkConfig.configNames.buttonMarkdown',
+  '按钮和Markdown配置': 'frameworkConfig.configNames.buttonMarkdown',
+};
+
 export default function FrameworkConfigPage() {
   const { style } = useTheme();
   const isGlass = style === 'glassmorphism';
@@ -117,6 +139,20 @@ export default function FrameworkConfigPage() {
     window.addEventListener('resize', checkFit);
     return () => window.removeEventListener('resize', checkFit);
   }, [configList.length]);
+  
+  const getConfigDisplayName = useCallback((config: Pick<FrameworkConfigListItem, 'name' | 'full_name'> | Pick<LocalFrameworkConfig, 'name' | 'full_name'>) => {
+    const nameKey = FRAMEWORK_CONFIG_NAME_I18N_KEYS[config.name];
+    const fullNameKey = FRAMEWORK_CONFIG_NAME_I18N_KEYS[config.full_name];
+    if (nameKey) {
+      const translated = t(nameKey);
+      if (translated !== nameKey) return translated;
+    }
+    if (fullNameKey) {
+      const translated = t(fullNameKey);
+      if (translated !== fullNameKey) return translated;
+    }
+    return config.name;
+  }, [t]);
   
   // Get current selected config
   const selectedConfig = useMemo(() => {
@@ -258,15 +294,13 @@ export default function FrameworkConfigPage() {
   };
   
   return (
-    <div className="space-y-6 flex-1 overflow-auto p-6 h-full flex flex-col">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-3">
-            <Cpu className="w-8 h-8" />
-            {t('frameworkConfig.title')}
-          </h1>
-          <p className="text-muted-foreground mt-1">{t('frameworkConfig.description')}</p>
-        </div>
+    <div className="space-y-6 flex-1 overflow-auto p-4 sm:p-6 h-full flex flex-col">
+      <div className="min-w-0 overflow-visible">
+        <h1 className="break-words text-3xl font-bold leading-tight flex items-start gap-3">
+          <Cpu className="w-8 h-8 shrink-0" />
+          <span className="min-w-0 break-words">{t('frameworkConfig.title')}</span>
+        </h1>
+        <p className="break-words text-muted-foreground mt-1">{t('frameworkConfig.description')}</p>
       </div>
       
       <div ref={containerRef} className="flex items-center justify-between">
@@ -274,7 +308,7 @@ export default function FrameworkConfigPage() {
           <TabButtonGroup
             options={configList.map((config) => ({
               value: config.id,
-              label: config.name,
+              label: getConfigDisplayName(config),
               icon: <Settings className="w-4 h-4" />,
             }))}
             value={selectedConfigId}
@@ -300,7 +334,7 @@ export default function FrameworkConfigPage() {
                         <SelectItem key={config.id} value={config.id}>
                           <span className="flex items-center gap-2">
                             <Settings className="w-4 h-4" />
-                            {config.name}
+                            {getConfigDisplayName(config)}
                           </span>
                         </SelectItem>
                       ))}
@@ -342,7 +376,7 @@ export default function FrameworkConfigPage() {
         <Card className="glass-card">
           <CardContent className="p-6">
             <div className="text-center py-8 text-muted-foreground">
-              暂无框架配置
+              {t('frameworkConfig.noFrameworkConfig')}
             </div>
           </CardContent>
         </Card>
@@ -352,7 +386,7 @@ export default function FrameworkConfigPage() {
             <CardContent className="p-6">
               {Object.keys(selectedConfig.config).length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
-                  该配置组暂无参数配置项
+                  {t('frameworkConfig.noConfigItems')}
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

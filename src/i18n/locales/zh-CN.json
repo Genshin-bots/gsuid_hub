@@ -79,6 +79,7 @@
     "settingsApiHost": "设置 API Host"
   },
   "sidebar": {
+    "home": "主页",
     "dashboard": "数据看板",
     "database": "数据库管理",
     "databaseConfig": "数据库配置",
@@ -648,7 +649,19 @@
     "noConfigItems": "该配置组暂无参数配置项",
     "frameworkConfigUpdated": "框架配置已更新",
     "loadFailed": "无法加载框架配置",
-    "saveFailed": "更新框架配置失败"
+    "saveFailed": "更新框架配置失败",
+    "configNames": {
+      "core": "核心配置",
+      "imageUpload": "图片上传配置",
+      "database": "数据库配置",
+      "state": "状态配置",
+      "misc": "杂项配置",
+      "verification": "验证配置",
+      "imageSend": "发送图片配置",
+      "log": "日志配置",
+      "imageGeneration": "图片生成配置",
+      "buttonMarkdown": "按钮和 Markdown 配置"
+    }
   },
   "aiTools": {
     "title": "AI 工具",
@@ -1102,7 +1115,7 @@
   },
   "sessionManagement": {
     "title": "会话管理",
-    "description": "管理 AI 会话历史记录，查看和清空会话",
+    "description": "管理 Bot 消息历史记录，查看、清空会话并向指定会话发送消息",
     "searchPlaceholder": "搜索会话ID、用户ID或群ID...",
     "privateChat": "私聊",
     "groupChat": "群聊",
@@ -1125,7 +1138,7 @@
     "view": "查看",
     "chatMode": "聊天模式",
     "textMode": "文本模式",
-    "inputPlaceholder": "此处仅展示历史记录，无法发送消息...",
+    "inputPlaceholder": "输入文字，或粘贴 / 拖拽 / 点选上传图片...",
     "selectSession": "选择会话",
     "selectSessionDesc": "从左侧列表选择一个会话以查看历史记录",
     "viewMode": {
@@ -1138,7 +1151,14 @@
     "clearSuccess": "会话「{id}」的历史记录已清空",
     "deleteSuccess": "会话「{id}」已完全删除",
     "clearFailed": "清空会话历史记录失败",
-    "deleteCompletely": "完全删除会话（释放内存）"
+    "deleteCompletely": "完全删除会话（释放内存）",
+    "send": "发送消息",
+    "sendSuccess": "消息发送成功",
+    "sendFailed": "消息发送失败",
+    "sendHint": "支持粘贴、拖拽、点选多图；Ctrl / Cmd + Enter 发送",
+    "atSender": "@ 发送对象",
+    "selectImages": "选择图片",
+    "removeImage": "移除图片"
   },
   "plugins": {
     "title": "插件配置",
@@ -1872,5 +1892,59 @@
     "noMemes": "暂无表情包",
     "noMemesDesc": "上传一些表情包开始使用吧",
     "refresh": "刷新"
+  },
+  "home": {
+    "greeting": {
+      "morning": "早上好",
+      "noon": "中午好",
+      "afternoon": "下午好",
+      "evening": "傍晚好",
+      "night": "晚上好",
+      "lateNight": "凌晨好"
+    },
+    "greetingWithName": "{greeting}，{name}",
+    "welcomeMessage": "欢迎回到 GsCore 管理控制台",
+    "frontendVersion": "前端版本",
+    "backendVersion": "后端版本",
+    "commitHash": "提交哈希",
+    "systemInfo": "系统信息",
+    "runtimeInfo": "运行时信息",
+    "dependencies": "核心依赖",
+    "pythonVersion": "Python 版本",
+    "pythonImpl": "Python 实现",
+    "compiler": "编译器",
+    "os": "操作系统",
+    "architecture": "架构",
+    "processor": "处理器",
+    "pid": "进程 PID",
+    "executable": "可执行文件",
+    "quickNav": "快捷导航",
+    "projectLinks": "项目地址",
+    "frontendProject": "前端项目",
+    "backendProject": "后端项目",
+    "goToDashboard": "数据看板",
+    "goToDashboardDesc": "查看关键数据与趋势",
+    "goToPlugins": "插件管理",
+    "goToPluginsDesc": "管理已安装插件配置",
+    "goToGitUpdate": "更新管理",
+    "goToGitUpdateDesc": "检查核心与插件更新",
+    "goToDatabase": "数据库管理",
+    "goToDatabaseDesc": "浏览和维护数据表",
+    "goToFrameworkConfig": "框架配置",
+    "goToFrameworkConfigDesc": "调整框架运行参数",
+    "goToConsole": "实时控制台",
+    "goToConsoleDesc": "查看实时日志输出",
+    "loadingVersion": "正在加载版本信息...",
+    "loadVersionFailed": "加载版本信息失败",
+    "activeBots": "Bot 连接状态",
+    "botCount": "Bot 数量",
+    "connectedBots": "已连接",
+    "botId": "Bot ID",
+    "wsBotId": "WS Bot ID",
+    "connected": "已连接",
+    "disconnected": "已断开",
+    "noActiveBots": "当前暂无 Bot 实例",
+    "loadBotsFailed": "加载 Bot 信息失败",
+    "retry": "重试"
   }
 }

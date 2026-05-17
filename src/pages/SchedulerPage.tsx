@@ -181,13 +181,13 @@ export default function SchedulerPage() {
   };
 
   return (
-    <div className="space-y-6 flex-1 overflow-auto p-6">
-      <div>
-        <h1 className="text-3xl font-bold flex items-center gap-3">
-          <Calendar className="w-8 h-8" />
+    <div className="space-y-6 flex-1 overflow-auto p-4 sm:p-6">
+      <div className="min-w-0 overflow-x-auto">
+        <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
+          <Calendar className="w-8 h-8 shrink-0" />
           {t('scheduler.title')}
         </h1>
-        <p className="text-muted-foreground mt-1">{t('scheduler.description')}</p>
+        <p className="whitespace-nowrap text-muted-foreground mt-1">{t('scheduler.description')}</p>
       </div>
 
       {/* Stats Cards */}

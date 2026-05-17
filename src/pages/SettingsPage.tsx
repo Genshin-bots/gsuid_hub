@@ -158,15 +158,15 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="space-y-6 flex-1 overflow-auto p-6 h-full flex flex-col">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
+    <div className="space-y-6 flex-1 overflow-auto p-4 sm:p-6 h-full flex flex-col">
+      <div className="min-w-0 overflow-x-auto">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="w-10 h-10 shrink-0 rounded-lg bg-primary/20 flex items-center justify-center">
             <User className="w-5 h-5 text-primary" />
           </div>
-          <div>
-            <h1 className="text-3xl font-bold">{t('settings.title')}</h1>
-            <p className="text-muted-foreground mt-1">{t('settings.description')}</p>
+          <div className="min-w-0">
+            <h1 className="whitespace-nowrap text-3xl font-bold">{t('settings.title')}</h1>
+            <p className="whitespace-nowrap text-muted-foreground mt-1">{t('settings.description')}</p>
           </div>
         </div>
       </div>

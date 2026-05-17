@@ -284,8 +284,19 @@ function truncateText(text: string, maxLength: number): string {
 // ============================================================================
 
 // --- Large Graph Optimizations ---
-// Removed aggressive node/edge sampling; rely on Barnes-Hut + viewport culling + LOD
-const MAX_RENDER_EDGES_HARD_LIMIT = 20000;
+// Keep all loaded data searchable/clickable, but render with adaptive LOD, batching and idle drawing.
+const MAX_RENDER_EDGES_HARD_LIMIT = 12000;
+const CENTER_NODE_COUNT = 3;
+const CENTER_NODE_RING_RADIUS = 920;
+const HUB_SEPARATION_DISTANCE = 900;
+const NODE_COLLISION_PADDING = 10;
+const MAX_SIMULATION_EDGES = 1800;
+const MAX_ACTIVE_RENDER_EDGES = 2200;
+const LARGE_GRAPH_NODE_THRESHOLD = 1200;
+const HUGE_GRAPH_NODE_THRESHOLD = 5000;
+const MASSIVE_GRAPH_NODE_THRESHOLD = 10000;
+const MAX_VISIBLE_NODES_LOW_ZOOM = 1800;
+const MAX_VISIBLE_NODES_HUGE_LOW_ZOOM = 1200;
 
 interface Viewport {
   left: number; top: number; right: number; bottom: number;
@@ -426,6 +437,8 @@ interface GraphNode {
   vy: number;
   isSpeaker?: boolean;
   layer?: number;
+  degree: number;
+  centerRank?: number;
 }
 
 interface GraphEdge {
@@ -433,6 +446,60 @@ interface GraphEdge {
   target: string;
   label: string;
   invalid?: boolean;
+}
+
+// Uniform spatial hash grid for O(1)-ish viewport queries and hit-testing.
+// Simulation is disabled above HUGE_GRAPH_NODE_THRESHOLD, so node positions are
+// static once a huge graph's layout is fixed — a grid built once then keeps
+// pan/zoom/hover cost independent of the total entity count.
+const SPATIAL_GRID_CELL_SIZE = 260;
+
+class SpatialGrid {
+  private cell: number;
+  private buckets = new Map<string, GraphNode[]>();
+
+  constructor(nodes: GraphNode[], cell = SPATIAL_GRID_CELL_SIZE) {
+    this.cell = cell;
+    for (let i = 0; i < nodes.length; i++) {
+      const n = nodes[i];
+      const key = `${Math.floor(n.x / cell)},${Math.floor(n.y / cell)}`;
+      const bucket = this.buckets.get(key);
+      if (bucket) bucket.push(n);
+      else this.buckets.set(key, [n]);
+    }
+  }
+
+  // Candidate nodes whose cell overlaps the viewport (caller still does a precise test).
+  queryViewport(vp: Viewport, pad = 80): GraphNode[] {
+    const cell = this.cell;
+    const gx0 = Math.floor((vp.left - pad) / cell);
+    const gx1 = Math.floor((vp.right + pad) / cell);
+    const gy0 = Math.floor((vp.top - pad) / cell);
+    const gy1 = Math.floor((vp.bottom + pad) / cell);
+    const out: GraphNode[] = [];
+    for (let gx = gx0; gx <= gx1; gx++) {
+      for (let gy = gy0; gy <= gy1; gy++) {
+        const bucket = this.buckets.get(`${gx},${gy}`);
+        if (bucket) for (let i = 0; i < bucket.length; i++) out.push(bucket[i]);
+      }
+    }
+    return out;
+  }
+
+  // Candidate nodes in the 3x3 cell neighbourhood of a point (cell size >> node radius).
+  queryPoint(x: number, y: number): GraphNode[] {
+    const cell = this.cell;
+    const cgx = Math.floor(x / cell);
+    const cgy = Math.floor(y / cell);
+    const out: GraphNode[] = [];
+    for (let gx = cgx - 1; gx <= cgx + 1; gx++) {
+      for (let gy = cgy - 1; gy <= cgy + 1; gy++) {
+        const bucket = this.buckets.get(`${gx},${gy}`);
+        if (bucket) for (let i = 0; i < bucket.length; i++) out.push(bucket[i]);
+      }
+    }
+    return out;
+  }
 }
 
 function KnowledgeGraph({
@@ -462,10 +529,13 @@ function KnowledgeGraph({
   const nodesRef = useRef<GraphNode[]>([]);
   const animFrameRef = useRef<number>(0);
   const alphaRef = useRef(1.0);
-  const drawFrameRef = useRef<number>(0);
+  const drawFrameRef = useRef<number | null>(null);
   const needsRedrawRef = useRef(true);
+  const spatialGridRef = useRef<SpatialGrid | null>(null);
+  const importanceOrderRef = useRef<GraphNode[]>([]);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [, forceUpdate] = useState(0);
+  const [nodeSearchQuery, setNodeSearchQuery] = useState('');
+  const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null);
 
   // Build graph data from props
   const graphData = useMemo(() => {
@@ -473,11 +543,33 @@ function KnowledgeGraph({
     const cy = 300;
     const existingIds = new Set<string>();
     const nodes: GraphNode[] = [];
+    const degreeMap = new Map<string, number>();
+
+    for (const edge of edges) {
+      degreeMap.set(edge.source_entity_id, (degreeMap.get(edge.source_entity_id) || 0) + 1);
+      degreeMap.set(edge.target_entity_id, (degreeMap.get(edge.target_entity_id) || 0) + 1);
+    }
+
+    const centerRankMap = new Map<string, number>();
+    Array.from(degreeMap.entries())
+      .filter(([, degree]) => degree > 0)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, CENTER_NODE_COUNT)
+      .forEach(([id], index) => centerRankMap.set(id, index + 1));
+
+    const isHugeInitialGraph = entities.length > HUGE_GRAPH_NODE_THRESHOLD;
 
     entities.forEach((entity, i) => {
       existingIds.add(entity.id);
-      const angle = (2 * Math.PI * i) / Math.max(entities.length, 1);
-      const radius = 200 + Math.random() * 200;
+      const centerRank = centerRankMap.get(entity.id);
+      const angle = centerRank
+        ? (-Math.PI / 2) + ((2 * Math.PI * (centerRank - 1)) / Math.max(CENTER_NODE_COUNT, 1))
+        : (2 * Math.PI * i) / Math.max(entities.length, 1);
+      const radius = centerRank
+        ? CENTER_NODE_RING_RADIUS
+        : isHugeInitialGraph
+          ? 700 + (i % 19) * 58 + Math.floor(i / 19) * 3
+          : 320 + (i % 9) * 48 + Math.random() * 180;
       nodes.push({
         id: entity.id,
         label: entity.name,
@@ -487,6 +579,8 @@ function KnowledgeGraph({
         vx: 0,
         vy: 0,
         isSpeaker: entity.is_speaker,
+        degree: degreeMap.get(entity.id) || 0,
+        centerRank,
       });
     });
 
@@ -500,8 +594,15 @@ function KnowledgeGraph({
     let missingIdx = 0;
     for (const id of missingIds) {
       existingIds.add(id);
-      const angle = (2 * Math.PI * missingIdx) / Math.max(missingIds.size, 1) + Math.PI / 6;
-      const radius = 180 + Math.random() * 120;
+      const centerRank = centerRankMap.get(id);
+      const angle = centerRank
+        ? (-Math.PI / 2) + ((2 * Math.PI * (centerRank - 1)) / Math.max(CENTER_NODE_COUNT, 1))
+        : (2 * Math.PI * missingIdx) / Math.max(missingIds.size, 1) + Math.PI / 6;
+      const radius = centerRank
+        ? CENTER_NODE_RING_RADIUS
+        : isHugeInitialGraph
+          ? 720 + (missingIdx % 19) * 58 + Math.floor(missingIdx / 19) * 3
+          : 320 + (missingIdx % 9) * 48 + Math.random() * 140;
       nodes.push({
         id,
         label: id.slice(0, 8),
@@ -511,6 +612,8 @@ function KnowledgeGraph({
         vx: 0,
         vy: 0,
         isSpeaker: false,
+        degree: degreeMap.get(id) || 0,
+        centerRank,
       });
       missingIdx++;
     }
@@ -529,6 +632,15 @@ function KnowledgeGraph({
     return { nodes, edges: graphEdges };
   }, [entities, edges]);
 
+  const nodeSearchResults = useMemo(() => {
+    const query = nodeSearchQuery.trim().toLowerCase();
+    if (!query) return [];
+    return graphData.nodes
+      .filter((node) => node.label.toLowerCase().includes(query) || node.id.toLowerCase().includes(query))
+      .sort((a, b) => b.degree - a.degree)
+      .slice(0, 8);
+  }, [graphData.nodes, nodeSearchQuery]);
+
   // Build node index for O(1) lookup
   const nodeIndexRef = useRef<Map<string, number>>(new Map());
   useEffect(() => {
@@ -537,12 +649,75 @@ function KnowledgeGraph({
     nodeIndexRef.current = idx;
   }, [graphData]);
 
+  const drawGraphRef = useRef<(() => void) | null>(null);
+
+  const scheduleRedraw = useCallback(() => {
+    needsRedrawRef.current = true;
+    if (drawFrameRef.current !== null) return;
+    drawFrameRef.current = requestAnimationFrame(() => {
+      drawFrameRef.current = null;
+      if (!needsRedrawRef.current) return;
+      needsRedrawRef.current = false;
+      drawGraphRef.current?.();
+    });
+  }, []);
+
+  const focusNode = useCallback((nodeId: string, options?: { closeResults?: boolean }) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const idx = nodeIndexRef.current.get(nodeId);
+    if (idx === undefined) return;
+    const node = nodesRef.current[idx];
+    if (!node) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const targetZoom = Math.max(zoomRef.current, 1.25);
+    zoomRef.current = Math.min(targetZoom, 5);
+    offsetRef.current = {
+      x: rect.width / 2 - node.x * zoomRef.current,
+      y: rect.height / 2 - node.y * zoomRef.current,
+    };
+    hoveredNodeRef.current = nodeId;
+    setFocusedNodeId(nodeId);
+    if (options?.closeResults) setNodeSearchQuery('');
+    scheduleRedraw();
+  }, [scheduleRedraw]);
+
+  const handleSearchSubmit = useCallback((e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const firstResult = nodeSearchResults[0];
+    if (firstResult) focusNode(firstResult.id, { closeResults: true });
+  }, [focusNode, nodeSearchResults]);
+
+  const simulationEdges = useMemo(() => {
+    if (graphData.nodes.length > HUGE_GRAPH_NODE_THRESHOLD) return [];
+    if (graphData.edges.length <= MAX_SIMULATION_EDGES) return graphData.edges;
+    const step = Math.ceil(graphData.edges.length / MAX_SIMULATION_EDGES);
+    const sampled: GraphEdge[] = [];
+    for (let i = 0; i < graphData.edges.length && sampled.length < MAX_SIMULATION_EDGES; i += step) {
+      sampled.push(graphData.edges[i]);
+    }
+    return sampled;
+  }, [graphData.edges]);
+
   // Force simulation with Barnes-Hut and convergence detection
   useEffect(() => {
     nodesRef.current = graphData.nodes.map((n) => ({ ...n }));
-    alphaRef.current = 1.0;
+    // Pre-sorted importance list lets the low-zoom cap skip an O(n log n) sort per frame.
+    importanceOrderRef.current = [...nodesRef.current].sort(
+      (a, b) => (Number(!!b.centerRank) - Number(!!a.centerRank)) || (b.degree - a.degree)
+    );
+    const rebuildSpatialGrid = () => { spatialGridRef.current = new SpatialGrid(nodesRef.current); };
+    rebuildSpatialGrid();
+    const isHugeGraph = graphData.nodes.length > HUGE_GRAPH_NODE_THRESHOLD;
+    alphaRef.current = isHugeGraph ? 0 : 1.0;
+    if (isHugeGraph) {
+      scheduleRedraw();
+      return () => cancelAnimationFrame(animFrameRef.current);
+    }
     let running = true;
     let stableFrames = 0;
+    let frame = 0;
 
     const simulate = () => {
       if (!running) return;
@@ -563,13 +738,16 @@ function KnowledgeGraph({
         const size = Math.max(maxX - minX, maxY - minY, 100);
         const tree = new QuadTree(minX - 1, minY - 1, size + 2, size + 2);
         for (const node of nodes) tree.insert(node);
-        // Scale repulsion for large graphs to prevent overlap
-        const repulsion = Math.min(15000, 400000 / Math.max(1, nodes.length));
-        for (const node of nodes) tree.applyForce(node, alpha, repulsion);
+        // Scale repulsion for large graphs to prevent overlap; hubs get extra space
+        const repulsion = Math.min(22000, 520000 / Math.max(1, nodes.length));
+        for (const node of nodes) {
+          const hubMultiplier = node.centerRank ? 2.8 : 1 + Math.min(node.degree, 20) * 0.025;
+          tree.applyForce(node, alpha, repulsion * hubMultiplier);
+        }
 
-        // Attraction along edges
+        // Attraction along edges. High-degree centers use longer springs so their edge bundles spread out.
         const idx = nodeIndexRef.current;
-        for (const edge of graphData.edges) {
+        for (const edge of simulationEdges) {
           const si = idx.get(edge.source);
           const ti = idx.get(edge.target);
           if (si === undefined || ti === undefined) continue;
@@ -578,8 +756,11 @@ function KnowledgeGraph({
           const dx = target.x - source.x;
           const dy = target.y - source.y;
           const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-          const idealDist = nodes.length > 2000 ? 60 : 160;
-          const force = (dist - idealDist) * 0.015 * alpha;
+          const baseIdealDist = nodes.length > 2000 ? 90 : 180;
+          const centerBoost = source.centerRank || target.centerRank ? 190 : 0;
+          const degreeBoost = Math.min(Math.max(source.degree, target.degree), 30) * 4;
+          const idealDist = baseIdealDist + centerBoost + degreeBoost;
+          const force = (dist - idealDist) * 0.012 * alpha;
           const fx = (dx / dist) * force;
           const fy = (dy / dist) * force;
           source.vx += fx;
@@ -588,11 +769,86 @@ function KnowledgeGraph({
           target.vy -= fy;
         }
 
-        // Center gravity - weaker to allow more spread
-        const gravityStrength = nodes.length > 2000 ? 0.008 : 0.002;
+        // Explicitly keep top centers apart; this makes top1/top2/top3 visually distinguishable.
+        const centerNodes = nodes.filter((node) => node.centerRank);
+        for (let i = 0; i < centerNodes.length; i++) {
+          for (let j = i + 1; j < centerNodes.length; j++) {
+            const a = centerNodes[i];
+            const b = centerNodes[j];
+            const dx = b.x - a.x;
+            const dy = b.y - a.y;
+            const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+            if (dist >= HUB_SEPARATION_DISTANCE) continue;
+            const force = (HUB_SEPARATION_DISTANCE - dist) * 0.035 * alpha;
+            const fx = (dx / dist) * force;
+            const fy = (dy / dist) * force;
+            a.vx -= fx;
+            a.vy -= fy;
+            b.vx += fx;
+            b.vy += fy;
+          }
+        }
+
+        // Lightweight grid-based collision pass; skip frames on large graphs to keep interaction smooth.
+        if (nodes.length <= LARGE_GRAPH_NODE_THRESHOLD || frame % 3 === 0) {
+          const collisionCellSize = 72;
+          const collisionGrid = new Map<string, number[]>();
+          const getCollisionRadius = (node: GraphNode) =>
+            (node.type === 'category' ? 28 : (node.isSpeaker ? 24 : 20)) + (node.centerRank ? 8 : 0);
+          for (let i = 0; i < nodes.length; i++) {
+            const node = nodes[i];
+            const gx = Math.floor(node.x / collisionCellSize);
+            const gy = Math.floor(node.y / collisionCellSize);
+            const key = `${gx},${gy}`;
+            const bucket = collisionGrid.get(key);
+            if (bucket) bucket.push(i);
+            else collisionGrid.set(key, [i]);
+          }
+          for (let i = 0; i < nodes.length; i++) {
+            const a = nodes[i];
+            const ar = getCollisionRadius(a);
+            const gx = Math.floor(a.x / collisionCellSize);
+            const gy = Math.floor(a.y / collisionCellSize);
+            for (let ox = -1; ox <= 1; ox++) {
+              for (let oy = -1; oy <= 1; oy++) {
+                const bucket = collisionGrid.get(`${gx + ox},${gy + oy}`);
+                if (!bucket) continue;
+                for (const j of bucket) {
+                  if (j <= i) continue;
+                  const b = nodes[j];
+                  const br = getCollisionRadius(b);
+                  const minDist = ar + br + NODE_COLLISION_PADDING;
+                  const dx = b.x - a.x;
+                  const dy = b.y - a.y;
+                  const distSq = dx * dx + dy * dy;
+                  if (distSq <= 0 || distSq >= minDist * minDist) continue;
+                  const dist = Math.sqrt(distSq);
+                  const force = (minDist - dist) * 0.025 * alpha;
+                  const fx = (dx / dist) * force;
+                  const fy = (dy / dist) * force;
+                  a.vx -= fx;
+                  a.vy -= fy;
+                  b.vx += fx;
+                  b.vy += fy;
+                }
+              }
+            }
+          }
+        }
+
+        // Center gravity - weak global pull plus ring anchors for hubs to avoid center pile-up.
+        const gravityStrength = nodes.length > 2000 ? 0.004 : 0.0015;
         for (const node of nodes) {
-          node.vx += (400 - node.x) * gravityStrength * alpha;
-          node.vy += (300 - node.y) * gravityStrength * alpha;
+          if (node.centerRank) {
+            const anchorAngle = (-Math.PI / 2) + ((2 * Math.PI * (node.centerRank - 1)) / Math.max(CENTER_NODE_COUNT, 1));
+            const anchorX = 400 + CENTER_NODE_RING_RADIUS * Math.cos(anchorAngle);
+            const anchorY = 300 + CENTER_NODE_RING_RADIUS * Math.sin(anchorAngle);
+            node.vx += (anchorX - node.x) * 0.006 * alpha;
+            node.vy += (anchorY - node.y) * 0.006 * alpha;
+          } else {
+            node.vx += (400 - node.x) * gravityStrength * alpha;
+            node.vy += (300 - node.y) * gravityStrength * alpha;
+          }
         }
 
         // Apply velocity with damping, clamping and boundary limits
@@ -616,7 +872,8 @@ function KnowledgeGraph({
           totalMovement += Math.abs(node.vx) + Math.abs(node.vy);
         }
 
-        alphaRef.current *= 0.995;
+        frame++;
+        alphaRef.current *= nodes.length > LARGE_GRAPH_NODE_THRESHOLD ? 0.985 : 0.99;
 
         // Early stop if barely moving
         if (totalMovement < nodes.length * 0.005) {
@@ -626,7 +883,8 @@ function KnowledgeGraph({
           stableFrames = 0;
         }
 
-        needsRedrawRef.current = true;
+        rebuildSpatialGrid();
+        scheduleRedraw();
         animFrameRef.current = requestAnimationFrame(simulate);
       }
     };
@@ -636,7 +894,7 @@ function KnowledgeGraph({
       running = false;
       cancelAnimationFrame(animFrameRef.current);
     };
-  }, [graphData]);
+  }, [graphData, simulationEdges, scheduleRedraw]);
 
   // Theme-aware color palette
   const colors = useMemo(() => {
@@ -728,6 +986,7 @@ function KnowledgeGraph({
 
     const nodes = nodesRef.current;
     const hoveredNode = hoveredNodeRef.current;
+    const selectedNodeId = focusedNodeId;
     const c = colors;
     const zoom = zoomRef.current;
 
@@ -755,13 +1014,42 @@ function KnowledgeGraph({
       return 0.08;
     };
 
-    // LOD thresholds
-    const showEdgeLabels = zoom > 0.6;
-    const showNodeLabels = zoom > 0.3;
+    // LOD thresholds. Huge graphs avoid text and complex strokes until the user zooms in.
+    const isHugeGraph = nodes.length > HUGE_GRAPH_NODE_THRESHOLD;
+    const isMassiveGraph = nodes.length > MASSIVE_GRAPH_NODE_THRESHOLD;
+    const showEdgeLabels = !isHugeGraph && zoom > 0.6;
+    const showNodeLabels = zoom > (isHugeGraph ? 0.85 : 0.3);
     const minNodeRadius = zoom < 0.2 ? 2 : (zoom < 0.4 ? 4 : undefined);
 
-    // Pre-filter visible nodes
-    const visibleNodes = nodes.filter((n) => isNodeInViewport(n, vp, 40));
+    // Spatial-grid culling keeps this independent of total node count; the precise
+    // viewport test then trims candidates pulled from neighbouring cells.
+    const grid = spatialGridRef.current;
+    const culledCandidates = grid ? grid.queryViewport(vp) : nodes;
+    let visibleNodes = culledCandidates.filter((n) => isNodeInViewport(n, vp, 40));
+    const focusedOrHovered = new Set<string>([hoveredNode, selectedNodeId].filter(Boolean) as string[]);
+    const lowZoomVisibleLimit = isMassiveGraph ? MAX_VISIBLE_NODES_HUGE_LOW_ZOOM : MAX_VISIBLE_NODES_LOW_ZOOM;
+    if (!highlightedNodes && visibleNodes.length > lowZoomVisibleLimit && zoom < 0.75) {
+      // Walk the pre-sorted importance list instead of sorting the visible set each frame.
+      const order = importanceOrderRef.current;
+      if (order.length) {
+        const capped: GraphNode[] = [];
+        const seen = new Set<string>();
+        for (const id of focusedOrHovered) {
+          const idx = nodeIndexRef.current.get(id);
+          if (idx !== undefined) { capped.push(nodes[idx]); seen.add(id); }
+        }
+        for (let i = 0; i < order.length && capped.length < lowZoomVisibleLimit; i++) {
+          const n = order[i];
+          if (seen.has(n.id) || !isNodeInViewport(n, vp, 40)) continue;
+          capped.push(n);
+        }
+        visibleNodes = capped;
+      } else {
+        visibleNodes = visibleNodes
+          .sort((a, b) => (Number(!!focusedOrHovered.has(b.id)) - Number(!!focusedOrHovered.has(a.id))) || (Number(!!b.centerRank) - Number(!!a.centerRank)) || b.degree - a.degree)
+          .slice(0, lowZoomVisibleLimit);
+      }
+    }
     const visibleNodeSet = new Set(visibleNodes.map((n) => n.id));
 
     // For edge culling, use a much larger margin because edges can cross the viewport
@@ -780,7 +1068,18 @@ function KnowledgeGraph({
     let edgeLabelCount = 0;
     const maxEdgeLabels = 40;
 
-    for (const edge of graphData.edges) {
+    const activeSimulation = alphaRef.current > 0.02;
+    const maxRenderedEdges = isMassiveGraph ? 1200 : (isHugeGraph ? 2200 : MAX_ACTIVE_RENDER_EDGES);
+    const shouldCapEdges = (activeSimulation || isHugeGraph || zoom < 0.7) && graphData.edges.length > maxRenderedEdges;
+    const edgeStep = shouldCapEdges ? Math.ceil(graphData.edges.length / maxRenderedEdges) : 1;
+    const batchEdges = !highlightedNodes && !showEdgeLabels;
+    const normalEdgePath = batchEdges ? new Path2D() : null;
+    const invalidEdgePath = batchEdges ? new Path2D() : null;
+    let hasNormalEdgePath = false;
+    let hasInvalidEdgePath = false;
+
+    for (let edgeIndex = 0; edgeIndex < graphData.edges.length; edgeIndex += edgeStep) {
+      const edge = graphData.edges[edgeIndex];
       const si = nodeIndexRef.current.get(edge.source);
       const ti = nodeIndexRef.current.get(edge.target);
       if (si === undefined || ti === undefined) continue;
@@ -792,25 +1091,33 @@ function KnowledgeGraph({
 
       const edgeAlpha = getEdgeAlpha(edge.source, edge.target);
 
-      ctx.beginPath();
-      ctx.moveTo(source.x, source.y);
-      ctx.lineTo(target.x, target.y);
-      if (edgeAlpha < 1) {
-        ctx.globalAlpha = edgeAlpha;
-        ctx.strokeStyle = edge.invalid ? c.edgeInvalid : c.edgeNormal;
+      if (batchEdges) {
+        const path = edge.invalid ? invalidEdgePath! : normalEdgePath!;
+        path.moveTo(source.x, source.y);
+        path.lineTo(target.x, target.y);
+        if (edge.invalid) hasInvalidEdgePath = true;
+        else hasNormalEdgePath = true;
       } else {
+        ctx.beginPath();
+        ctx.moveTo(source.x, source.y);
+        ctx.lineTo(target.x, target.y);
+        if (edgeAlpha < 1) {
+          ctx.globalAlpha = edgeAlpha;
+          ctx.strokeStyle = edge.invalid ? c.edgeInvalid : c.edgeNormal;
+        } else {
+          ctx.globalAlpha = 1;
+          ctx.strokeStyle = edge.invalid ? c.edgeInvalid : (isDark ? 'rgba(148, 163, 184, 0.7)' : 'rgba(100, 116, 139, 0.7)');
+        }
+        ctx.lineWidth = edgeAlpha < 1 ? (edge.invalid ? 1 : 1.5) : (edge.invalid ? 1.5 : 2.5);
+        if (edge.invalid) ctx.setLineDash([4, 4]);
+        else ctx.setLineDash([]);
+        ctx.stroke();
+        ctx.setLineDash([]);
         ctx.globalAlpha = 1;
-        ctx.strokeStyle = edge.invalid ? c.edgeInvalid : (isDark ? 'rgba(148, 163, 184, 0.7)' : 'rgba(100, 116, 139, 0.7)');
       }
-      ctx.lineWidth = edgeAlpha < 1 ? (edge.invalid ? 1 : 1.5) : (edge.invalid ? 1.5 : 2.5);
-      if (edge.invalid) ctx.setLineDash([4, 4]);
-      else ctx.setLineDash([]);
-      ctx.stroke();
-      ctx.setLineDash([]);
-      ctx.globalAlpha = 1;
 
       // Edge label with LOD and count limit
-      if (showEdgeLabels && edgeAlpha > 0.5 && edgeLabelCount < maxEdgeLabels) {
+      if (!isHugeGraph && showEdgeLabels && edgeAlpha > 0.5 && edgeLabelCount < maxEdgeLabels) {
         const mx = (source.x + target.x) / 2;
         const my = (source.y + target.y) / 2;
         if (mx < vp.left || mx > vp.right || my < vp.top || my > vp.bottom) continue;
@@ -875,13 +1182,32 @@ function KnowledgeGraph({
       }
     }
 
+    if (batchEdges) {
+      ctx.globalAlpha = isMassiveGraph && zoom < 0.5 ? 0.45 : 0.75;
+      ctx.lineWidth = zoom < 0.35 ? 1 : 1.5;
+      ctx.setLineDash([]);
+      if (hasNormalEdgePath) {
+        ctx.strokeStyle = c.edgeNormal;
+        ctx.stroke(normalEdgePath!);
+      }
+      if (hasInvalidEdgePath) {
+        ctx.strokeStyle = c.edgeInvalid;
+        ctx.setLineDash([4, 4]);
+        ctx.stroke(invalidEdgePath!);
+        ctx.setLineDash([]);
+      }
+      ctx.globalAlpha = 1;
+    }
+
     // Draw nodes in batches by type to minimize state changes
     const drawNodeBatch = (nodeList: GraphNode[]) => {
       for (const node of nodeList) {
         if (!visibleNodeSet.has(node.id)) continue;
         const isHovered = hoveredNode === node.id;
+        const isFocused = selectedNodeId === node.id;
         const nodeAlpha = getNodeAlpha(node.id);
         let nodeRadius = node.type === 'category' ? 24 : (node.isSpeaker ? 20 : 16);
+        if (node.centerRank) nodeRadius += 7 - node.centerRank;
         if (minNodeRadius !== undefined && !isHovered) {
           nodeRadius = Math.max(minNodeRadius, nodeRadius * zoom);
         }
@@ -892,46 +1218,57 @@ function KnowledgeGraph({
           const w = nodeRadius * 2.2;
           const h = nodeRadius * 1.4;
           const rx = 6;
-          if (isHovered) {
+          if (isHovered || isFocused) {
             ctx.beginPath();
-            ctx.roundRect(node.x - w / 2 - 4, node.y - h / 2 - 4, w + 8, h + 8, rx + 2);
-            ctx.fillStyle = c.catGlow;
+            ctx.roundRect(node.x - w / 2 - 6, node.y - h / 2 - 6, w + 12, h + 12, rx + 3);
+            ctx.fillStyle = isFocused ? (isDark ? 'rgba(34, 211, 238, 0.18)' : 'rgba(14, 165, 233, 0.16)') : c.catGlow;
             ctx.fill();
           }
           ctx.beginPath();
           ctx.roundRect(node.x - w / 2, node.y - h / 2, w, h, rx);
-          ctx.fillStyle = isHovered ? c.catFillHover : c.catFill;
-          ctx.strokeStyle = isHovered ? c.catStrokeHover : c.catStroke;
-          ctx.lineWidth = isHovered ? 2.5 : 1.5;
+          ctx.fillStyle = isHovered || isFocused ? c.catFillHover : c.catFill;
+          ctx.strokeStyle = isFocused ? 'rgba(34, 211, 238, 0.95)' : (isHovered ? c.catStrokeHover : c.catStroke);
+          ctx.lineWidth = isFocused ? 3 : (isHovered ? 2.5 : 1.5);
           ctx.fill();
           ctx.stroke();
         } else {
-          if (isHovered) {
+          if (isHovered || isFocused) {
             ctx.beginPath();
-            ctx.arc(node.x, node.y, nodeRadius + 6, 0, Math.PI * 2);
-            ctx.fillStyle = node.isSpeaker ? c.speakerGlow : c.entityGlow;
+            ctx.arc(node.x, node.y, nodeRadius + (isFocused ? 11 : 6), 0, Math.PI * 2);
+            ctx.fillStyle = isFocused ? (isDark ? 'rgba(34, 211, 238, 0.2)' : 'rgba(14, 165, 233, 0.16)') : (node.isSpeaker ? c.speakerGlow : c.entityGlow);
+            ctx.fill();
+          }
+          if (node.centerRank) {
+            ctx.beginPath();
+            ctx.arc(node.x, node.y, nodeRadius + 9, 0, Math.PI * 2);
+            ctx.fillStyle = isDark ? 'rgba(250, 204, 21, 0.12)' : 'rgba(245, 158, 11, 0.12)';
             ctx.fill();
           }
           ctx.beginPath();
           ctx.arc(node.x, node.y, nodeRadius, 0, Math.PI * 2);
           if (node.isSpeaker) {
-            ctx.fillStyle = isHovered ? c.speakerFillHover : c.speakerFill;
-            ctx.strokeStyle = isHovered ? c.speakerStrokeHover : c.speakerStroke;
+            ctx.fillStyle = isHovered || isFocused ? c.speakerFillHover : c.speakerFill;
+            ctx.strokeStyle = isFocused ? 'rgba(34, 211, 238, 0.95)' : (node.centerRank ? 'rgba(250, 204, 21, 0.95)' : (isHovered ? c.speakerStrokeHover : c.speakerStroke));
           } else {
-            ctx.fillStyle = isHovered ? c.entityFillHover : c.entityFill;
-            ctx.strokeStyle = isHovered ? c.entityStrokeHover : c.entityStroke;
+            ctx.fillStyle = isHovered || isFocused ? c.entityFillHover : c.entityFill;
+            ctx.strokeStyle = isFocused ? 'rgba(34, 211, 238, 0.95)' : (node.centerRank ? 'rgba(250, 204, 21, 0.95)' : (isHovered ? c.entityStrokeHover : c.entityStroke));
           }
-          ctx.lineWidth = isHovered ? 2.5 : 1.5;
+          ctx.lineWidth = isFocused ? 3.5 : (node.centerRank ? 3 : (isHovered ? 2.5 : 1.5));
           ctx.fill();
           ctx.stroke();
         }
 
-        if (showNodeLabels || isHovered) {
-          ctx.font = `${isHovered ? 'bold ' : ''}12px system-ui`;
+        if ((!isHugeGraph || visibleNodes.length < 900 || node.centerRank) && (showNodeLabels || isHovered || node.centerRank || isFocused)) {
+          ctx.font = `${isHovered || node.centerRank || isFocused ? 'bold ' : ''}${node.centerRank || isFocused ? 13 : 12}px system-ui`;
           ctx.fillStyle = isHovered ? c.nodeLabelHover : c.nodeLabel;
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
-          ctx.fillText(truncateText(node.label, 12), node.x, node.y);
+          ctx.fillText(truncateText(node.label, node.centerRank ? 14 : 12), node.x, node.y);
+          if (node.centerRank && zoom > 0.25) {
+            ctx.font = 'bold 10px system-ui';
+            ctx.fillStyle = isDark ? 'rgba(250, 204, 21, 0.95)' : 'rgba(180, 83, 9, 0.95)';
+            ctx.fillText(`TOP ${node.centerRank} · ${node.degree}`, node.x, node.y + nodeRadius + 13);
+          }
         }
 
         ctx.globalAlpha = 1;
@@ -941,20 +1278,16 @@ function KnowledgeGraph({
     drawNodeBatch(visibleNodes);
 
     ctx.restore();
-  }, [graphData, colors, isDark, adjacencyMap]);
+  }, [graphData, colors, isDark, adjacencyMap, focusedNodeId]);
 
-  // Separate draw loop - only redraws when needed
   useEffect(() => {
-    const drawLoop = () => {
-      if (needsRedrawRef.current) {
-        needsRedrawRef.current = false;
-        drawGraph();
-      }
-      drawFrameRef.current = requestAnimationFrame(drawLoop);
-    };
-    drawFrameRef.current = requestAnimationFrame(drawLoop);
-    return () => cancelAnimationFrame(drawFrameRef.current);
-  }, [drawGraph]);
+    drawGraphRef.current = drawGraph;
+    scheduleRedraw();
+  }, [drawGraph, scheduleRedraw]);
+
+  useEffect(() => () => {
+    if (drawFrameRef.current !== null) cancelAnimationFrame(drawFrameRef.current);
+  }, []);
 
   // Wheel zoom handler - use useEffect with { passive: false } to avoid passive event listener error
   useEffect(() => {
@@ -973,12 +1306,11 @@ function KnowledgeGraph({
         y: mouseY - (mouseY - offsetRef.current.y) * scaleChange,
       };
       zoomRef.current = newZoom;
-      needsRedrawRef.current = true;
-      forceUpdate((v) => v + 1);
+      scheduleRedraw();
     };
     canvas.addEventListener('wheel', handleWheel, { passive: false });
     return () => canvas.removeEventListener('wheel', handleWheel);
-  }, []);
+  }, [scheduleRedraw]);
 
   const handleCanvasClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
@@ -987,16 +1319,21 @@ function KnowledgeGraph({
     const x = (e.clientX - rect.left - offsetRef.current.x) / zoomRef.current;
     const y = (e.clientY - rect.top - offsetRef.current.y) / zoomRef.current;
 
-    const nodes = nodesRef.current;
-    for (const node of nodes) {
+    const grid = spatialGridRef.current;
+    const candidates = grid ? grid.queryPoint(x, y) : nodesRef.current;
+    let best: GraphNode | null = null;
+    let bestDistSq = Infinity;
+    for (const node of candidates) {
       const dx = x - node.x;
       const dy = y - node.y;
-      const r = node.type === 'category' ? 26 : (node.isSpeaker ? 22 : 18);
-      if (dx * dx + dy * dy < r * r) {
-        onNodeClick(node.type, node.id);
-        return;
+      const r = node.type === 'category' ? 26 : (node.isSpeaker ? 22 : 18) + (node.centerRank ? 8 : 0);
+      const distSq = dx * dx + dy * dy;
+      if (distSq < r * r && distSq < bestDistSq) {
+        best = node;
+        bestDistSq = distSq;
       }
     }
+    if (best) onNodeClick(best.type, best.id);
   }, [onNodeClick]);
 
   const handleCanvasMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -1006,8 +1343,7 @@ function KnowledgeGraph({
         y: offsetRef.current.y + e.clientY - dragStartRef.current.y,
       };
       dragStartRef.current = { x: e.clientX, y: e.clientY };
-      needsRedrawRef.current = true;
-      forceUpdate((v) => v + 1);
+      scheduleRedraw();
       return;
     }
 
@@ -1023,35 +1359,40 @@ function KnowledgeGraph({
     if (nodes.length > 2000 && zoomRef.current < 0.6) {
       if (hoveredNodeRef.current !== null) {
         hoveredNodeRef.current = null;
-        needsRedrawRef.current = true;
+        scheduleRedraw();
       }
       canvas.style.cursor = 'grab';
       return;
     }
 
-    let found = false;
-    for (const node of nodes) {
+    const grid = spatialGridRef.current;
+    const candidates = grid ? grid.queryPoint(x, y) : nodes;
+    let foundId: string | null = null;
+    let bestDistSq = Infinity;
+    for (const node of candidates) {
       const dx = x - node.x;
       const dy = y - node.y;
-      const r = node.type === 'category' ? 26 : (node.isSpeaker ? 22 : 18);
-      if (dx * dx + dy * dy < r * r) {
-        if (hoveredNodeRef.current !== node.id) {
-          hoveredNodeRef.current = node.id;
-          needsRedrawRef.current = true;
-        }
-        canvas.style.cursor = 'pointer';
-        found = true;
-        break;
+      const r = node.type === 'category' ? 26 : (node.isSpeaker ? 22 : 18) + (node.centerRank ? 8 : 0);
+      const distSq = dx * dx + dy * dy;
+      if (distSq < r * r && distSq < bestDistSq) {
+        foundId = node.id;
+        bestDistSq = distSq;
       }
     }
-    if (!found) {
+    if (foundId) {
+      if (hoveredNodeRef.current !== foundId) {
+        hoveredNodeRef.current = foundId;
+        scheduleRedraw();
+      }
+      canvas.style.cursor = 'pointer';
+    } else {
       if (hoveredNodeRef.current !== null) {
         hoveredNodeRef.current = null;
-        needsRedrawRef.current = true;
+        scheduleRedraw();
       }
       canvas.style.cursor = isDraggingRef.current ? 'grabbing' : 'grab';
     }
-  }, []);
+  }, [scheduleRedraw]);
 
   // Fullscreen toggle
   const toggleFullscreen = useCallback(() => {
@@ -1060,25 +1401,25 @@ function KnowledgeGraph({
     if (!document.fullscreenElement) {
       container.requestFullscreen().then(() => {
         setIsFullscreen(true);
-        needsRedrawRef.current = true;
+        scheduleRedraw();
       }).catch(() => {});
     } else {
       document.exitFullscreen().then(() => {
         setIsFullscreen(false);
-        needsRedrawRef.current = true;
+        scheduleRedraw();
       }).catch(() => {});
     }
-  }, []);
+  }, [scheduleRedraw]);
 
   // Listen for fullscreen changes (e.g. user presses Escape)
   useEffect(() => {
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
-      needsRedrawRef.current = true;
+      scheduleRedraw();
     };
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
-  }, []);
+  }, [scheduleRedraw]);
 
   // Touch event handlers for mobile drag and pinch zoom
   const handleTouchStart = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
@@ -1119,8 +1460,7 @@ function KnowledgeGraph({
 
       lastPinchDistRef.current = dist;
       lastPinchCenterRef.current = { x: centerX, y: centerY };
-      needsRedrawRef.current = true;
-      forceUpdate((v) => v + 1);
+      scheduleRedraw();
       return;
     }
 
@@ -1131,10 +1471,9 @@ function KnowledgeGraph({
         y: offsetRef.current.y + e.touches[0].clientY - dragStartRef.current.y,
       };
       dragStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-      needsRedrawRef.current = true;
-      forceUpdate((v) => v + 1);
+      scheduleRedraw();
     }
-  }, []);
+  }, [scheduleRedraw]);
 
   const handleTouchEnd = useCallback(() => {
     isDraggingRef.current = false;
@@ -1165,17 +1504,59 @@ function KnowledgeGraph({
           dragStartRef.current = { x: e.clientX, y: e.clientY };
         }}
         onMouseUp={() => { isDraggingRef.current = false; }}
-        onMouseLeave={() => { isDraggingRef.current = false; hoveredNodeRef.current = null; needsRedrawRef.current = true; }}
+        onMouseLeave={() => { isDraggingRef.current = false; hoveredNodeRef.current = null; scheduleRedraw(); }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       />
+      {/* Search */}
+      <form
+        className="absolute top-3 left-3 w-[min(360px,calc(100%-88px))] rounded-lg border border-border/50 bg-background/90 p-2 shadow-sm backdrop-blur"
+        onSubmit={handleSearchSubmit}
+      >
+        <div className="flex items-center gap-2">
+          <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+          <Input
+            value={nodeSearchQuery}
+            onChange={(e) => setNodeSearchQuery(e.target.value)}
+            placeholder="搜索节点名称或 ID，回车定位"
+            className="h-8 bg-background/70"
+          />
+        </div>
+        {nodeSearchQuery.trim() && (
+          <div className="mt-2 max-h-56 overflow-auto rounded-md border border-border/40 bg-background/95">
+            {nodeSearchResults.length > 0 ? (
+              nodeSearchResults.map((node) => (
+                <button
+                  key={node.id}
+                  type="button"
+                  className={cn(
+                    'flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-accent/60',
+                    focusedNodeId === node.id && 'bg-accent/70'
+                  )}
+                  onClick={() => focusNode(node.id, { closeResults: true })}
+                >
+                  <span className="min-w-0">
+                    <span className="block truncate font-medium">{node.label}</span>
+                    <span className="block truncate text-xs text-muted-foreground">{node.id}</span>
+                  </span>
+                  <Badge variant={node.centerRank ? 'default' : 'outline'} className="shrink-0 text-[10px]">
+                    {node.centerRank ? `TOP ${node.centerRank}` : `${node.degree} 线`}
+                  </Badge>
+                </button>
+              ))
+            ) : (
+              <div className="px-3 py-2 text-sm text-muted-foreground">未找到匹配节点</div>
+            )}
+          </div>
+        )}
+      </form>
       {/* Controls */}
       <div className="absolute top-3 right-3 flex flex-col gap-1">
-        <Button variant="outline" size="icon" className="h-8 w-8 bg-background/80 backdrop-blur" onClick={() => { zoomRef.current = Math.min(zoomRef.current * 1.2, 5); needsRedrawRef.current = true; forceUpdate((v) => v + 1); }}>
+        <Button variant="outline" size="icon" className="h-8 w-8 bg-background/80 backdrop-blur" onClick={() => { zoomRef.current = Math.min(zoomRef.current * 1.2, 5); scheduleRedraw(); }}>
           <ZoomIn className="w-4 h-4" />
         </Button>
-        <Button variant="outline" size="icon" className="h-8 w-8 bg-background/80 backdrop-blur" onClick={() => { zoomRef.current = Math.max(zoomRef.current / 1.2, 0.1); needsRedrawRef.current = true; forceUpdate((v) => v + 1); }}>
+        <Button variant="outline" size="icon" className="h-8 w-8 bg-background/80 backdrop-blur" onClick={() => { zoomRef.current = Math.max(zoomRef.current / 1.2, 0.1); scheduleRedraw(); }}>
           <ZoomOut className="w-4 h-4" />
         </Button>
         <Button variant="outline" size="icon" className="h-8 w-8 bg-background/80 backdrop-blur" onClick={toggleFullscreen}>
@@ -1191,6 +1572,10 @@ function KnowledgeGraph({
         <span className="flex items-center gap-1.5">
           <span className="w-3 h-3 rounded-full border border-indigo-400/60 bg-indigo-400/10" />
           {useLanguage().t('aiMemory.legendEntity')}
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="w-3 h-3 rounded-full border-2 border-yellow-400/90 bg-yellow-400/10" />
+          中心节点 TOP3
         </span>
         <span className="flex items-center gap-1.5">
           <span className="w-5 h-0 border-t border-dashed border-red-400/60" />

@@ -1,10 +1,12 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import type { ClipboardEvent, DragEvent } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import {
@@ -23,9 +25,12 @@ import {
   Bot,
   ChevronLeft,
   MessageCircle,
-  FileText
+  FileText,
+  Image as ImageIcon,
+  Upload,
+  X
 } from 'lucide-react';
-import { historyApi, SessionInfo, SessionHistoryTextResponse, SessionHistoryJSONResponse, SessionPersonaResponse } from '@/lib/api';
+import { historyApi, SessionInfo, SessionHistoryTextResponse, SessionHistoryJSONResponse, SessionHistoryOpenAIResponse, SessionPersonaResponse } from '@/lib/api';
 import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -39,7 +44,7 @@ type ViewMode = 'text' | 'json' | 'messages';
 
 interface SessionDetail {
   session: SessionInfo;
-  history: SessionHistoryTextResponse | SessionHistoryJSONResponse | null;
+  history: SessionHistoryTextResponse | SessionHistoryJSONResponse | SessionHistoryOpenAIResponse | null;
   persona: SessionPersonaResponse | null;
 }
 
@@ -48,6 +53,12 @@ interface ChatMessage {
   content: string;
   user_name?: string | null;
   timestamp?: number;
+}
+
+interface PendingImage {
+  id: string;
+  file: File;
+  previewUrl: string;
 }
 
 // ============================================================================
@@ -104,10 +115,6 @@ const getBotId = (session: SessionInfo): string => {
   return match ? match[1] : '0';
 };
 
-const getSessionTypeLabel = (type: string, t: (key: string) => string): string => {
-  return type === 'private' ? t('sessionManagement.privateChat') : t('sessionManagement.groupChat');
-};
-
 // ============================================================================
 // Component
 // ============================================================================
@@ -127,6 +134,51 @@ export default function SessionManagementPage() {
   const [sessionToDelete, setSessionToDelete] = useState<SessionInfo | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteCompletely, setDeleteCompletely] = useState(false);
+  const [messageText, setMessageText] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  const [pendingImages, setPendingImages] = useState<PendingImage[]>([]);
+  const [isDraggingImages, setIsDraggingImages] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const pendingImagesRef = useRef<PendingImage[]>([]);
+
+  useEffect(() => {
+    pendingImagesRef.current = pendingImages;
+  }, [pendingImages]);
+
+  useEffect(() => {
+    return () => {
+      pendingImagesRef.current.forEach((image) => URL.revokeObjectURL(image.previewUrl));
+    };
+  }, []);
+
+  const addImageFiles = (files: FileList | File[]) => {
+    const imageFiles = Array.from(files).filter((file) => file.type.startsWith('image/'));
+    if (imageFiles.length === 0) return;
+
+    setPendingImages((prev) => [
+      ...prev,
+      ...imageFiles.map((file) => ({
+        id: `${file.name}-${file.size}-${file.lastModified}-${crypto.randomUUID?.() || Math.random().toString(36).slice(2)}`,
+        file,
+        previewUrl: URL.createObjectURL(file)
+      }))
+    ]);
+  };
+
+  const removePendingImage = (imageId: string) => {
+    setPendingImages((prev) => {
+      const image = prev.find((item) => item.id === imageId);
+      if (image) URL.revokeObjectURL(image.previewUrl);
+      return prev.filter((item) => item.id !== imageId);
+    });
+  };
+
+  const clearPendingImages = () => {
+    setPendingImages((prev) => {
+      prev.forEach((image) => URL.revokeObjectURL(image.previewUrl));
+      return [];
+    });
+  };
 
   // Fetch sessions
   const fetchSessions = useCallback(async () => {
@@ -163,6 +215,29 @@ export default function SessionManagementPage() {
     );
   }, [sessions, searchQuery]);
 
+  const loadSessionDetail = async (session: SessionInfo, mode: ViewMode = viewMode) => {
+    let historyData = null;
+    let personaData = null;
+
+    try {
+      historyData = await historyApi.getSessionHistory(session.session_id, mode);
+    } catch (historyError) {
+      console.log('History fetch error (may be normal for empty sessions):', historyError);
+    }
+
+    try {
+      personaData = await historyApi.getSessionPersona(session.session_id);
+    } catch (personaError) {
+      console.log('Persona fetch error (may be normal for sessions without persona):', personaError);
+    }
+
+    return {
+      session,
+      history: historyData,
+      persona: personaData
+    };
+  };
+
   // View session detail
   const handleSelectSession = async (session: SessionInfo) => {
     // 如果已经选中，则取消选中
@@ -173,27 +248,9 @@ export default function SessionManagementPage() {
     try {
       setIsLoadingDetail(true);
       
-      // Fetch history and persona in parallel (handle errors separately)
-      let historyData = null;
-      let personaData = null;
-      
-      try {
-        historyData = await historyApi.getSessionHistory(session.session_id, viewMode);
-      } catch (historyError) {
-        console.log('History fetch error (may be normal for empty sessions):', historyError);
-      }
-      
-      try {
-        personaData = await historyApi.getSessionPersona(session.session_id);
-      } catch (personaError) {
-        console.log('Persona fetch error (may be normal for sessions without persona):', personaError);
-      }
-
-      setSelectedSession({
-        session,
-        history: historyData,
-        persona: personaData
-      });
+      setSelectedSession(await loadSessionDetail(session));
+      setMessageText('');
+      clearPendingImages();
     } catch (error) {
       console.error('Failed to fetch session detail:', error);
       toast({
@@ -216,6 +273,38 @@ export default function SessionManagementPage() {
       setSelectedSession(prev => prev ? { ...prev, history: historyData } : null);
     } catch (error) {
       console.error('Failed to fetch history:', error);
+    }
+  };
+
+  const handleSendMessage = async () => {
+    if (!selectedSession || (!messageText.trim() && pendingImages.length === 0)) return;
+
+    try {
+      setIsSending(true);
+      await historyApi.sendSessionMessage(selectedSession.session.session_id, {
+        message: messageText.trim(),
+        images: pendingImages.map((image) => image.file),
+        at_sender: false
+      });
+
+      toast({
+        title: t('common.success'),
+        description: t('sessionManagement.sendSuccess')
+      });
+
+      setMessageText('');
+      clearPendingImages();
+      setSelectedSession(await loadSessionDetail(selectedSession.session, viewMode));
+      await fetchSessions();
+    } catch (error) {
+      console.error('Failed to send session message:', error);
+      toast({
+        title: t('common.error'),
+        description: error instanceof Error ? error.message : t('sessionManagement.sendFailed'),
+        variant: 'destructive'
+      });
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -253,6 +342,19 @@ export default function SessionManagementPage() {
       setSessionToDelete(null);
       setDeleteCompletely(false);
     }
+  };
+
+  const handlePasteImages = (event: ClipboardEvent<HTMLTextAreaElement>) => {
+    const files = Array.from(event.clipboardData.files).filter((file) => file.type.startsWith('image/'));
+    if (files.length > 0) {
+      addImageFiles(files);
+    }
+  };
+
+  const handleDropImages = (event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    setIsDraggingImages(false);
+    addImageFiles(event.dataTransfer.files);
   };
 
   // Parse messages for chat display
@@ -562,20 +664,93 @@ export default function SessionManagementPage() {
                       </div>
                     </ScrollArea>
                     
-                    {/* Input Area (Decorative) */}
+                    {/* Send Message Area */}
                     <div className={cn(
                       "p-2 sm:p-4 border-t",
                       isGlass ? "border-white/10 bg-background/30" : "border-border bg-muted/30"
                     )}>
-                      <div className="flex items-center gap-2 max-w-4xl mx-auto">
-                        <Input
-                          placeholder={t('sessionManagement.inputPlaceholder')}
-                          disabled
-                          className={cn("flex-1 h-9 sm:h-10 text-sm rounded-lg", isGlass && "glass-card")}
-                        />
-                        <Button size="icon" disabled className="h-9 w-9 sm:h-10 sm:w-10 shrink-0 rounded-lg">
-                          <Send className="w-4 h-4" />
-                        </Button>
+                      <div
+                        className={cn(
+                          "max-w-4xl mx-auto space-y-2 rounded-xl border border-dashed p-2 transition-colors",
+                          isDraggingImages ? "border-primary bg-primary/10" : "border-transparent"
+                        )}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          setIsDraggingImages(true);
+                        }}
+                        onDragLeave={() => setIsDraggingImages(false)}
+                        onDrop={handleDropImages}
+                      >
+                        {pendingImages.length > 0 && (
+                          <div className="flex flex-wrap gap-2">
+                            {pendingImages.map((image) => (
+                              <div key={image.id} className="relative group w-16 h-16 rounded-lg overflow-hidden border bg-muted">
+                                <img src={image.previewUrl} alt={image.file.name} className="w-full h-full object-cover" />
+                                <button
+                                  type="button"
+                                  onClick={() => removePendingImage(image.id)}
+                                  className="absolute top-1 right-1 w-5 h-5 rounded-full bg-background/90 text-foreground flex items-center justify-center opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity"
+                                  title={t('sessionManagement.removeImage')}
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        <div className="flex items-end gap-2">
+                          <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            className="hidden"
+                            onChange={(e) => {
+                              if (e.target.files) addImageFiles(e.target.files);
+                              e.target.value = '';
+                            }}
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            disabled={isSending}
+                            onClick={() => fileInputRef.current?.click()}
+                            className="h-11 w-11 shrink-0 rounded-lg"
+                            title={t('sessionManagement.selectImages')}
+                          >
+                            <ImageIcon className="w-4 h-4" />
+                          </Button>
+                          <Textarea
+                            placeholder={t('sessionManagement.inputPlaceholder')}
+                            value={messageText}
+                            onChange={(e) => setMessageText(e.target.value)}
+                            onPaste={handlePasteImages}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                                e.preventDefault();
+                                handleSendMessage();
+                              }
+                            }}
+                            disabled={isSending}
+                            className={cn("flex-1 min-h-[44px] max-h-28 text-sm rounded-lg resize-none", isGlass && "glass-card")}
+                          />
+                          <Button
+                            size="icon"
+                            disabled={isSending || (!messageText.trim() && pendingImages.length === 0)}
+                            onClick={handleSendMessage}
+                            className="h-11 w-11 shrink-0 rounded-lg"
+                            title={t('sessionManagement.send')}
+                          >
+                            {isSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                          </Button>
+                        </div>
+                        <div className="flex items-center justify-end gap-2 text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <Upload className="w-3 h-3" />
+                            {t('sessionManagement.sendHint')}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </>

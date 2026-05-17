@@ -275,14 +275,14 @@ export default function SystemPromptPage() {
   const displayTotal = showSearchResults && searchResults.length > 0 ? searchResults.length : total;
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-6">
       {/* 页面标题 */}
-      <div>
-        <h1 className="text-3xl font-bold flex items-center gap-3">
-          <MessageSquare className="w-8 h-8" />
+      <div className="min-w-0 overflow-x-auto">
+        <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
+          <MessageSquare className="w-8 h-8 shrink-0" />
           {t('systemPrompt.title')}
         </h1>
-        <p className="text-muted-foreground mt-1">{t('systemPrompt.description')}</p>
+        <p className="whitespace-nowrap text-muted-foreground mt-1">{t('systemPrompt.description')}</p>
       </div>
 
       {/* 搜索和操作栏 */}
@@ -322,7 +322,7 @@ export default function SystemPromptPage() {
             {t('systemPrompt.clearSearch')}
           </Button>
         )}
-        <Button onClick={handleOpenAddDialog} className="shrink-0">
+        <Button onClick={handleOpenAddDialog} className="shrink-0 whitespace-nowrap">
           <Plus className="w-4 h-4 mr-2" />
           {t('systemPrompt.add')}
         </Button>

@@ -277,22 +277,22 @@ export default function AIScheduledTasksPage() {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-6">
       {/* 页面标题 */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-3">
-            <Clock className="w-8 h-8" />
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0 overflow-x-auto">
+          <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
+            <Clock className="w-8 h-8 shrink-0" />
             {t('aiScheduledTasks.title')}
           </h1>
-          <p className="text-muted-foreground mt-1">{t('aiScheduledTasks.description')}</p>
+          <p className="whitespace-nowrap text-muted-foreground mt-1">{t('aiScheduledTasks.description')}</p>
         </div>
         <Button
           onClick={() => {
             resetForm();
             setCreateDialogOpen(true);
           }}
-          className="gap-2"
+          className="gap-2 whitespace-nowrap self-end sm:self-auto"
         >
           <Plus className="w-4 h-4" />
           {t('aiScheduledTasks.createTask')}
