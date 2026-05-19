@@ -264,7 +264,11 @@ export default function PluginsPage() {
     }
   }, [selectedPluginId, pluginList, plugins]);
 
-  // Update original state when selected plugin detail changes
+  // Update original state only when switching/loading a plugin detail.
+  // Do not depend on the whole selectedPlugin object here: editing config updates
+  // plugins state, which creates a new selectedPlugin object. If this effect runs
+  // on every edit, it overwrites originalConfig with the edited value and keeps
+  // the save button disabled.
   useEffect(() => {
     if (!selectedPlugin) return;
     
@@ -301,7 +305,8 @@ export default function PluginsPage() {
     } else {
       setSelectedConfigName(null);
     }
-  }, [selectedPlugin?.id, selectedPlugin, selectedConfigName]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedPlugin?.id]);
 
   const updateConfigValue = useCallback((pluginId: string, fieldKey: string, value: ConfigValue, groupName: string | null) => {
     setPlugins((prev) =>
