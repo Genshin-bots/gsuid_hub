@@ -1,0 +1,13 @@
+{
+  "title": "送信画像設定",
+  "description": "設定各プラットフォーム画像送信方式",
+  "notFound": "未找へ送信画像設定",
+  "loadFailed": "できません読込送信画像設定",
+  "saveFailed": "できません保存送信画像設定",
+  "configSaved": "送信画像設定保存",
+  "sendMethodHelp": "送信方式说明",
+  "linkDesc": "送信画像链接",
+  "base64Desc": "画像转にBase64送信",
+  "linkLocalDesc": "使用ローカルグラフ床サービス",
+  "linkRemoteDesc": "使用リモートグラフ床サービス"
+}

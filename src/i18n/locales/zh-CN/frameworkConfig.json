@@ -1,0 +1,23 @@
+{
+  "title": "框架配置",
+  "description": "管理和配置 GsCore 框架内置配置",
+  "selectConfig": "选择配置",
+  "noFrameworkConfig": "暂无框架配置",
+  "configParams": "配置参数",
+  "noConfigItems": "该配置组暂无参数配置项",
+  "frameworkConfigUpdated": "框架配置已更新",
+  "loadFailed": "无法加载框架配置",
+  "saveFailed": "更新框架配置失败",
+  "configNames": {
+    "core": "核心配置",
+    "imageUpload": "图片上传配置",
+    "database": "数据库配置",
+    "state": "状态配置",
+    "misc": "杂项配置",
+    "verification": "验证配置",
+    "imageSend": "发送图片配置",
+    "log": "日志配置",
+    "imageGeneration": "图片生成配置",
+    "buttonMarkdown": "按钮和 Markdown 配置"
+  }
+}

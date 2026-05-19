@@ -1,4 +1,4 @@
-import { Home, LayoutDashboard, Database, Settings, FileText, LogOut, Palette, Terminal, Calendar, Store, Cpu, HardDrive, PanelLeftClose, PanelLeft, Cog, Power, RotateCw, Globe, User, Brain, ChevronDown, ChevronRight, Wrench, Sparkles, BookOpen, MessageSquare, History, TrendingUp, Clock, Server, GitBranch, Image as ImageIcon, ScrollText } from 'lucide-react';
+import { Home, LayoutDashboard, Database, Settings, FileText, LogOut, Palette, Terminal, Calendar, Store, Cpu, HardDrive, PanelLeftClose, PanelLeft, Cog, Power, RotateCw, User, Brain, ChevronDown, ChevronRight, Wrench, Sparkles, BookOpen, MessageSquare, History, TrendingUp, Clock, Server, GitBranch, Image as ImageIcon, ScrollText } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -11,6 +11,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { LanguageFlag } from '@/components/ui/language-flag';
 import { cn } from '@/lib/utils';
 import React, { useState, useEffect, useRef, memo, useMemo } from 'react';
 import {
@@ -300,7 +301,7 @@ export function AppSidebar() {
               <div className="flex flex-col">
                 <div className="flex items-center gap-1">
                   <span className="font-bold text-lg">{t('sidebar.gsCore')}</span>
-                  <Badge variant="default" className="text-xs font-medium">v{import.meta.env.PACKAGE_VERSION || '0.0.10'}</Badge>
+                  <Badge variant="default" className="text-xs font-medium">v{import.meta.env.PACKAGE_VERSION || '0.0.11'}</Badge>
                 </div>
                 <span className="text-xs text-muted-foreground">​{t('sidebar.早柚核心')}</span>
               </div>
@@ -389,8 +390,11 @@ export function AppSidebar() {
                 isCollapsed ? "w-auto justify-center" : "w-full justify-start gap-2"
               )}
             >
-              <Globe className="w-4 h-4" />
-              {!isCollapsed && <span>{language === 'zh-CN' ? '中文' : 'English'}</span>}
+              {(() => {
+                const currentLanguage = availableLanguages.find((lang) => lang.code === language);
+                return currentLanguage ? <LanguageFlag code={currentLanguage.flagCode} /> : null;
+              })()}
+              {!isCollapsed && <span>{availableLanguages.find((lang) => lang.code === language)?.name ?? language}</span>}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
@@ -398,9 +402,10 @@ export function AppSidebar() {
               <DropdownMenuItem
                 key={lang.code}
                 onClick={() => setLanguage(lang.code)}
-                className={cn("cursor-pointer", language === lang.code && "bg-accent")}
+                className={cn("cursor-pointer gap-2", language === lang.code && "bg-accent")}
               >
-                {lang.name}
+                <LanguageFlag code={lang.flagCode} />
+                <span>{lang.name}</span>
               </DropdownMenuItem>
             ))}
           </DropdownMenuContent>

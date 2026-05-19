@@ -25,8 +25,21 @@
 
 ```
 src/i18n/locales/
-├── zh-CN.json   # 中文翻译
-└── en-US.json   # 英文翻译
+├── zh-CN/        # 中文翻译模块目录
+│   ├── common.json
+│   ├── sidebar.json
+│   ├── ...
+│   └── index.ts  # 聚合并导出完整中文 locale
+├── en-US/        # 英文翻译模块目录
+│   ├── common.json
+│   ├── sidebar.json
+│   ├── ...
+│   └── index.ts  # 聚合并导出完整英文 locale
+└── ja-JP/        # 日语翻译模块目录
+    ├── common.json
+    ├── sidebar.json
+    ├── ...
+    └── index.ts  # 聚合并导出完整日语 locale
 ```
 
 ### 2.2 翻译文件结构
@@ -68,10 +81,11 @@ function MyComponent() {
 
 ### 2.4 新增翻译 key 规则
 
-1. 在 `zh-CN.json` 中添加中文翻译
-2. 在 `en-US.json` 中添加对应英文翻译
-3. 遵循现有模块划分，保持 key 前缀与功能模块一致
-4. 变量使用 `{}` 包裹，如 `{total}`, `{current}`
+1. 在 `src/i18n/locales/zh-CN/` 下对应模块 JSON 文件中添加中文翻译
+2. 在 `src/i18n/locales/en-US/` 下同名模块 JSON 文件中添加对应英文翻译
+3. 在 `src/i18n/locales/ja-JP/` 下同名模块 JSON 文件中添加对应日语翻译
+4. 遵循现有模块划分，保持 key 前缀与文件名一致；如新增顶级模块，需要同时更新所有语言目录的 `index.ts` 聚合导出
+5. 变量使用 `{}` 包裹，如 `{total}`, `{current}`
 
 ### 2.5 语言切换
 
@@ -79,7 +93,7 @@ function MyComponent() {
 
 ```tsx
 const { setLanguage, language } = useLanguage();
-setLanguage('zh-CN'); // 或 'en-US'
+setLanguage('zh-CN'); // 或 'en-US' / 'ja-JP'
 ```
 
 ---
@@ -417,8 +431,9 @@ import { Save, Trash, Settings, Menu } from 'lucide-react';
 
 ### 8.3 新增翻译
 
-1. 在 `zh-CN.json` 和 `en-US.json` 中对应位置添加 key
+1. 在 `src/i18n/locales/zh-CN/<模块>.json`、`src/i18n/locales/en-US/<模块>.json` 和 `src/i18n/locales/ja-JP/<模块>.json` 中对应位置添加 key
 2. 使用 `t('模块.具体描述')` 方式调用
+3. 如新增 `<模块>.json`，必须在所有语言目录的 `index.ts` 中导入并加入 locale 对象
 
 ### 8.4 主题相关修改
 
@@ -840,8 +855,9 @@ export default function MyPage() {
 |------|------|
 | `src/contexts/LanguageContext.tsx` | i18n 上下文，提供 t() 函数 |
 | `src/contexts/ThemeContext.tsx` | 主题上下文，管理主题状态 |
-| `src/i18n/locales/zh-CN.json` | 中文翻译 |
-| `src/i18n/locales/en-US.json` | 英文翻译 |
+| `src/i18n/locales/zh-CN/` | 中文翻译模块目录，按顶级模块拆分 JSON |
+| `src/i18n/locales/en-US/` | 英文翻译模块目录，按顶级模块拆分 JSON |
+| `src/i18n/locales/ja-JP/` | 日语翻译模块目录，按顶级模块拆分 JSON |
 | `src/lib/utils.ts` | 工具函数，包含 cn() |
 | `src/lib/api.ts` | API 接口封装 |
 | `tailwind.config.ts` | Tailwind 配置 |
@@ -1758,5 +1774,5 @@ Switch 组件已在组件层面内置了主题色行为：
 
 ---
 
-*文档版本: 2.4*
+*文档版本: 2.6*
 *最后更新: 2026年*

@@ -1,0 +1,13 @@
+{
+  "title": "Image Send Configuration",
+  "description": "Configure image sending methods for each platform",
+  "notFound": "Image send configuration not found",
+  "loadFailed": "Failed to load image send configuration",
+  "saveFailed": "Failed to save image send configuration",
+  "configSaved": "Image send configuration saved",
+  "sendMethodHelp": "Send Method Description",
+  "linkDesc": "Send image link",
+  "base64Desc": "Convert image to Base64 and send",
+  "linkLocalDesc": "Use local image hosting service",
+  "linkRemoteDesc": "Use remote image hosting service"
+}

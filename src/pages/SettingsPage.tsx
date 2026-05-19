@@ -160,15 +160,11 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6 flex-1 overflow-auto p-4 sm:p-6 h-full flex flex-col">
       <div className="min-w-0 overflow-x-auto">
-        <div className="flex min-w-0 items-center gap-3">
-          <div className="w-10 h-10 shrink-0 rounded-lg bg-primary/20 flex items-center justify-center">
-            <User className="w-5 h-5 text-primary" />
-          </div>
-          <div className="min-w-0">
-            <h1 className="whitespace-nowrap text-3xl font-bold">{t('settings.title')}</h1>
-            <p className="whitespace-nowrap text-muted-foreground mt-1">{t('settings.description')}</p>
-          </div>
-        </div>
+        <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
+          <User className="w-8 h-8 shrink-0" />
+          {t('settings.title')}
+        </h1>
+        <p className="whitespace-nowrap text-muted-foreground mt-1">{t('settings.description')}</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

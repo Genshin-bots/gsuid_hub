@@ -1,0 +1,23 @@
+{
+  "title": "Framework Configuration",
+  "description": "Manage and configure GsCore framework built-in configurations",
+  "selectConfig": "Select Configuration",
+  "noFrameworkConfig": "No framework configuration available",
+  "configParams": "Configuration Parameters",
+  "noConfigItems": "This config group has no parameter items",
+  "frameworkConfigUpdated": "Framework configuration updated",
+  "loadFailed": "Unable to load framework configuration",
+  "saveFailed": "Failed to update framework configuration",
+  "configNames": {
+    "core": "Core Config",
+    "imageUpload": "Image Upload Config",
+    "database": "Database Config",
+    "state": "Status Config",
+    "misc": "Misc Config",
+    "verification": "Verification Config",
+    "imageSend": "Image Send Config",
+    "log": "Log Config",
+    "imageGeneration": "Image Generation Config",
+    "buttonMarkdown": "Button and Markdown Config"
+  }
+}

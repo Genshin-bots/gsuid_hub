@@ -1,0 +1,22 @@
+{
+  "title": "コア設定",
+  "description": "設定コア実行と自動更新関連設定",
+  "notFound": "未找へコア設定",
+  "loadFailed": "できません読込コア設定",
+  "saveFailed": "できません保存コア設定",
+  "configSaved": "コア設定保存",
+  "environment": "実行环境",
+  "environmentDesc": "設定コア実行の环境と再起動コマンド",
+  "startVenv": "启动环境ツール",
+  "autoUpdate": "自動更新",
+  "autoUpdateDesc": "設定自動更新Coreとプラグインの設定",
+  "updateTime": "更新実行時間",
+  "pluginsUpdateTime": "プラグイン更新実行時間",
+  "restartTime": "再起動実行時間",
+  "hour": "時",
+  "minute": "分",
+  "dependency": "プラグイン依存",
+  "dependencyDesc": "設定プラグイン依存の自動安装と更新",
+  "network": "ネット設定",
+  "networkDesc": "設定ネットプロキシ等関連設定"
+}

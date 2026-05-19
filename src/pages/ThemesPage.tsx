@@ -115,13 +115,13 @@ export default function ThemesPage() {
 
   return (
     <div className="space-y-6 flex-1 overflow-auto p-4 md:p-6 h-full flex flex-col min-w-0">
-      <div className="min-w-0 overflow-x-auto">
+      <header className="min-w-0 shrink-0 overflow-x-auto">
         <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
           <Palette className="w-8 h-8 shrink-0" />
-          {t('themes.title')}
+          <span>{t('themes.title')}</span>
         </h1>
         <p className="whitespace-nowrap text-muted-foreground mt-1">{t('themes.description')}</p>
-      </div>
+      </header>
 
       <div className="grid gap-4 md:gap-6 lg:grid-cols-2 min-w-0">
         {/* Color Mode */}

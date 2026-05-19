@@ -1,0 +1,22 @@
+{
+  "title": "核心配置",
+  "description": "配置核心运行和自动更新相关设置",
+  "notFound": "未找到核心配置",
+  "loadFailed": "无法加载核心配置",
+  "saveFailed": "无法保存核心配置",
+  "configSaved": "核心配置已保存",
+  "environment": "运行环境",
+  "environmentDesc": "配置核心运行的环境和重启命令",
+  "startVenv": "启动环境工具",
+  "autoUpdate": "自动更新",
+  "autoUpdateDesc": "配置自动更新Core和插件的设置",
+  "updateTime": "更新执行时间",
+  "pluginsUpdateTime": "插件更新执行时间",
+  "restartTime": "重启执行时间",
+  "hour": "时",
+  "minute": "分",
+  "dependency": "插件依赖",
+  "dependencyDesc": "配置插件依赖的自动安装和更新",
+  "network": "网络设置",
+  "networkDesc": "配置网络代理等相关设置"
+}

@@ -1,0 +1,14 @@
+{
+  "title": "验证設定",
+  "description": "設定验证とAPI関連設定",
+  "notFound": "未找へ验证設定",
+  "loadFailed": "できません読込验证設定",
+  "saveFailed": "できません保存验证設定",
+  "configSaved": "验证設定保存",
+  "warning": "注意事件",
+  "warningDesc": "以下选件可能有一定危险性、谨慎操作",
+  "api": "API 設定",
+  "apiDesc": "設定API関連設定",
+  "deprecated": "废弃",
+  "deprecatedDesc": "これらの选件废弃、可能有一定危险性"
+}

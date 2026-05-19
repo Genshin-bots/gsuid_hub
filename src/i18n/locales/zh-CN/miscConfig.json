@@ -1,0 +1,20 @@
+{
+  "title": "杂项配置",
+  "description": "配置帮助模式、黑名单等杂项设置",
+  "notFound": "未找到杂项配置",
+  "loadFailed": "无法加载杂项配置",
+  "saveFailed": "无法保存杂项配置",
+  "configSaved": "杂项配置已保存",
+  "display": "显示设置",
+  "displayDesc": "配置界面显示相关设置",
+  "lightMode": "浅色模式",
+  "darkMode": "深色模式",
+  "message": "消息设置",
+  "messageDesc": "配置消息发送相关设置",
+  "cooldown": "冷却时间",
+  "cooldownDesc": "配置命令触发冷却时间",
+  "disabled": "禁用",
+  "blackListPlaceholder": "输入用户ID或群ID",
+  "add": "添加",
+  "emptyBlackList": "暂无黑名单用户"
+}

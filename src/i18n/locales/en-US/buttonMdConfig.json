@@ -1,0 +1,12 @@
+{
+  "title": "Button and Markdown Configuration",
+  "description": "Configure button and Markdown sending platforms and styles",
+  "notFound": "Button and Markdown configuration not found",
+  "loadFailed": "Failed to load button and Markdown configuration",
+  "saveFailed": "Failed to save button and Markdown configuration",
+  "configSaved": "Button and Markdown configuration saved",
+  "platformSelection": "Platform Selection",
+  "platformSelectionDesc": "Select platforms to enable buttons and Markdown",
+  "buttonSettings": "Button Settings",
+  "buttonSettingsDesc": "Configure button style and behavior"
+}

@@ -1,19 +1,27 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react';
 import { useTheme } from './ThemeContext';
-import zhCN from '@/i18n/locales/zh-CN.json';
-import enUS from '@/i18n/locales/en-US.json';
+import zhCN from '@/i18n/locales/zh-CN';
+import enUS from '@/i18n/locales/en-US';
+import jaJP from '@/i18n/locales/ja-JP';
 
 // ============================================================================
 // 类型定义
 // ============================================================================
 
-export type Language = 'zh-CN' | 'en-US';
+export type Language = 'zh-CN' | 'en-US' | 'ja-JP';
+
+export interface LanguageOption {
+  code: Language;
+  name: string;
+  shortName: string;
+  flagCode: 'cn' | 'us' | 'jp';
+}
 
 interface LanguageContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
   t: (key: string, params?: Record<string, string | number>) => string;
-  availableLanguages: { code: Language; name: string }[];
+  availableLanguages: LanguageOption[];
 }
 
 // ============================================================================
@@ -23,11 +31,13 @@ interface LanguageContextType {
 const locales: Record<Language, Record<string, unknown>> = {
   'zh-CN': zhCN,
   'en-US': enUS,
+  'ja-JP': jaJP,
 };
 
-const availableLanguages: { code: Language; name: string }[] = [
-  { code: 'zh-CN', name: '简体中文' },
-  { code: 'en-US', name: 'English' },
+const availableLanguages: LanguageOption[] = [
+  { code: 'zh-CN', name: '简体中文', shortName: '中', flagCode: 'cn' },
+  { code: 'en-US', name: 'English', shortName: 'EN', flagCode: 'us' },
+  { code: 'ja-JP', name: '日本語', shortName: '日', flagCode: 'jp' },
 ];
 
 // 预定义的翻译函数（不在组件内部创建）
@@ -108,7 +118,7 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
     }
     // 从 localStorage 读取保存的语言设置
     const saved = localStorage.getItem(LANGUAGE_STORAGE_KEY);
-    if (saved === 'zh-CN' || saved === 'en-US') {
+    if (saved === 'zh-CN' || saved === 'en-US' || saved === 'ja-JP') {
       return saved;
     }
     // 默认使用中文

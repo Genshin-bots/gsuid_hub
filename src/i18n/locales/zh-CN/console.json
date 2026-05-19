@@ -1,0 +1,11 @@
+{
+  "title": "实时控制台",
+  "description": "实时日志监控与命令行交互",
+  "connected": "实时连接",
+  "disconnected": "已断开",
+  "autoScroll": "自动滚动",
+  "exportLogs": "导出日志",
+  "clear": "清空",
+  "commandPlaceholder": "输入命令...",
+  "commandFailed": "命令执行失败"
+}

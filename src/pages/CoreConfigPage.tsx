@@ -211,10 +211,8 @@ export default function CoreConfigPage() {
   return (
     <div className="space-y-6 flex-1 overflow-auto p-4 sm:p-6 h-full flex flex-col">
       <div className="min-w-0 overflow-visible">
-        <h1 className="break-words text-3xl font-bold leading-tight flex items-start gap-3">
-          <span className="w-10 h-10 shrink-0 rounded-lg bg-primary/20 flex items-center justify-center">
-            <Settings className="w-5 h-5 text-primary" />
-          </span>
+        <h1 className="break-words text-3xl font-bold leading-tight flex items-center gap-3">
+          <Settings className="w-8 h-8 shrink-0" />
           <span className="min-w-0 break-words">{t('coreConfig.title')}</span>
         </h1>
         <p className="break-words text-muted-foreground mt-1">{t('coreConfig.description')}</p>

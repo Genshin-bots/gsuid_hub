@@ -1394,7 +1394,7 @@ export interface ThemeConfig {
   background_image: string | null;
   blur_intensity: number;
   theme_preset: 'default' | 'shadcn' | 'custom';
-  language: 'zh-CN' | 'en-US';
+  language: 'zh-CN' | 'en-US' | 'ja-JP';
 }
 
 export interface ThemeConfigResponse {

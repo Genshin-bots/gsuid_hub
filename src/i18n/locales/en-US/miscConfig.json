@@ -1,0 +1,20 @@
+{
+  "title": "Miscellaneous Configuration",
+  "description": "Configure help mode, blacklist and other settings",
+  "notFound": "Miscellaneous configuration not found",
+  "loadFailed": "Failed to load miscellaneous configuration",
+  "saveFailed": "Failed to save miscellaneous configuration",
+  "configSaved": "Miscellaneous configuration saved",
+  "display": "Display Settings",
+  "displayDesc": "Configure interface display settings",
+  "lightMode": "Light Mode",
+  "darkMode": "Dark Mode",
+  "message": "Message Settings",
+  "messageDesc": "Configure message sending settings",
+  "cooldown": "Cooldown",
+  "cooldownDesc": "Configure command trigger cooldown",
+  "disabled": "Disabled",
+  "blackListPlaceholder": "Enter user ID or group ID",
+  "add": "Add",
+  "emptyBlackList": "No blacklisted users"
+}

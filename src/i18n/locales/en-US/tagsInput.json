@@ -1,0 +1,16 @@
+{
+  "more": "More",
+  "searchAdded": "Search or type to add new tags...",
+  "enterToAdd": "Press Enter to add",
+  "alreadyAdded": "Tag already added",
+  "addedTags": "Added Tags",
+  "noMatch": "No matching tags",
+  "noTags": "No tags yet",
+  "alreadyAddedTop": "already added above",
+  "copy": "Copy",
+  "delete": "Delete",
+  "optionalTags": "Optional Tags",
+  "noOptionMatch": "No matching options",
+  "allOptionsAdded": "All options have been added",
+  "enterTags": "Enter to add..."
+}

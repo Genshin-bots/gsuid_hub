@@ -1,0 +1,13 @@
+{
+  "title": "发送图片配置",
+  "description": "配置各平台图片发送方式",
+  "notFound": "未找到发送图片配置",
+  "loadFailed": "无法加载发送图片配置",
+  "saveFailed": "无法保存发送图片配置",
+  "configSaved": "发送图片配置已保存",
+  "sendMethodHelp": "发送方式说明",
+  "linkDesc": "发送图片链接",
+  "base64Desc": "将图片转为Base64发送",
+  "linkLocalDesc": "使用本地图床服务",
+  "linkRemoteDesc": "使用远程图床服务"
+}

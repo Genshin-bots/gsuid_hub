@@ -70,6 +70,21 @@ export function InputWithDropdown({
     });
   }, []);
 
+  const handleCommitInput = useCallback(() => {
+    const nextValue = searchValue.trim();
+    if (!nextValue) return;
+
+    onChange(nextValue);
+    setOpen(false);
+  }, [onChange, searchValue]);
+
+  const handleInputKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleCommitInput();
+    }
+  }, [handleCommitInput]);
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -99,6 +114,7 @@ export function InputWithDropdown({
             ref={inputRef}
             value={searchValue}
             onChange={(e) => setSearchValue(e.target.value)}
+            onKeyDown={handleInputKeyDown}
             placeholder={inputPlaceholder}
             className="h-9"
           />
@@ -127,7 +143,7 @@ export function InputWithDropdown({
         )}
         {searchValue.trim() && filteredOptions.length === 0 && (
           <div className="px-3 py-2 text-sm text-muted-foreground border-t">
-            无匹配选项
+            无匹配选项，按 Enter 使用当前输入
           </div>
         )}
       </PopoverContent>

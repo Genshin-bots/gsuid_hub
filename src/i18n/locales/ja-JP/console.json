@@ -1,0 +1,11 @@
+{
+  "title": "リアルタイムコンソール",
+  "description": "リアルタイムログ监控とコマンド行やり取り",
+  "connected": "リアルタイム接続",
+  "disconnected": "切断済み",
+  "autoScroll": "自動滚动",
+  "exportLogs": "エクスポートログ",
+  "clear": "クリア",
+  "commandPlaceholder": "入力コマンド...",
+  "commandFailed": "コマンド実行失敗"
+}

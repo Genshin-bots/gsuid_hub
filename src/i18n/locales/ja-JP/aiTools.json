@@ -1,0 +1,18 @@
+{
+  "title": "AI ツール",
+  "description": "AIで利用できるツール関数を表示・管理します。分類やプラグインで絞り込めます",
+  "loadFailed": "AIを読込 ツール失敗",
+  "noTools": "なし利用可の AI ツール",
+  "filterAll": "すべて",
+  "filterByCategory": "で分類",
+  "filterByPlugin": "でプラグイン",
+  "category": "分類",
+  "plugin": "プラグイン",
+  "allCategories": "すべて分類",
+  "allPlugins": "すべてプラグイン",
+  "selectCategory": "選択分類",
+  "selectPlugin": "選択プラグイン",
+  "toolCount": "表示 {count} / {total} 個ツール",
+  "search": "検索",
+  "searchPlaceholder": "入力ツール名前または説明主要词..."
+}

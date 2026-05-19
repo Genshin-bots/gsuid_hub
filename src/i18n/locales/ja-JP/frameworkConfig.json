@@ -1,0 +1,23 @@
+{
+  "title": "フレームワーク設定",
+  "description": "管理と設定 GsCore フレームワーク内置設定",
+  "selectConfig": "選択設定",
+  "noFrameworkConfig": "なしフレームワーク設定",
+  "configParams": "設定パラメータ",
+  "noConfigItems": "この設定组なしパラメータ設定件",
+  "frameworkConfigUpdated": "フレームワーク設定更新",
+  "loadFailed": "できません読込フレームワーク設定",
+  "saveFailed": "更新フレームワーク設定失敗",
+  "configNames": {
+    "core": "コア設定",
+    "imageUpload": "画像アップロード設定",
+    "database": "データDB設定",
+    "state": "状態設定",
+    "misc": "杂件設定",
+    "verification": "验证設定",
+    "imageSend": "送信画像設定",
+    "log": "ログ設定",
+    "imageGeneration": "画像生成設定",
+    "buttonMarkdown": "で钮と Markdown 設定"
+  }
+}

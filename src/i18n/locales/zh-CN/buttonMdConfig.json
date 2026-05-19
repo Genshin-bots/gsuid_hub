@@ -1,0 +1,12 @@
+{
+  "title": "按钮和MD配置",
+  "description": "配置按钮和Markdown的发送平台和样式",
+  "notFound": "未找到按钮和Markdown配置",
+  "loadFailed": "无法加载按钮和Markdown配置",
+  "saveFailed": "无法保存按钮和Markdown配置",
+  "configSaved": "按钮和Markdown配置已保存",
+  "platformSelection": "平台选择",
+  "platformSelectionDesc": "选择启用按钮和Markdown的平台",
+  "buttonSettings": "按钮设置",
+  "buttonSettingsDesc": "配置按钮样式和行为"
+}

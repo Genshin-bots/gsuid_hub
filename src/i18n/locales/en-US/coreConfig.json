@@ -1,0 +1,22 @@
+{
+  "title": "Core Configuration",
+  "description": "Configure core runtime and auto-update settings",
+  "notFound": "Core configuration not found",
+  "loadFailed": "Failed to load core configuration",
+  "saveFailed": "Failed to save core configuration",
+  "configSaved": "Core configuration saved",
+  "environment": "Runtime Environment",
+  "environmentDesc": "Configure core runtime environment and restart commands",
+  "startVenv": "Startup Environment Tool",
+  "autoUpdate": "Auto Update",
+  "autoUpdateDesc": "Configure auto-update settings for Core and plugins",
+  "updateTime": "Update Execution Time",
+  "pluginsUpdateTime": "Plugins Update Execution Time",
+  "restartTime": "Restart Execution Time",
+  "hour": "hour",
+  "minute": "min",
+  "dependency": "Plugin Dependencies",
+  "dependencyDesc": "Configure automatic installation and update of plugin dependencies",
+  "network": "Network Settings",
+  "networkDesc": "Configure network proxy and related settings"
+}

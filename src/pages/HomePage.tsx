@@ -29,7 +29,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import { versionApi, VersionInfo, ActiveBotsInfo } from '@/lib/api';
 
-const frontendVersion = PACKAGE_VERSION || '0.0.10';
+const frontendVersion = PACKAGE_VERSION || '0.0.11';
 
 const glassCardClass = 'relative overflow-hidden border border-white/15 bg-background/25 shadow-[0_4px_16px_-12px_hsl(var(--foreground)/0.30)] backdrop-blur-2xl dark:border-white/10 dark:bg-background/20';
 const subtlePanelClass = 'min-w-0 rounded-2xl border border-white/10 bg-white/10 p-3.5 backdrop-blur-xl transition-colors hover:bg-white/15 dark:bg-white/[0.045] dark:hover:bg-white/[0.07]';
@@ -134,7 +134,12 @@ export default function HomePage() {
               {t('home.greetingWithName', { greeting, name: displayName })}
             </h1>
             <p className="mt-3 max-w-2xl text-base text-muted-foreground sm:text-lg">
-              {t('home.welcomeMessage')}
+              {t('home.welcomeMessage').split('GsCore').map((part, index, parts) => (
+                <span key={index}>
+                  {part}
+                  {index < parts.length - 1 && <strong className="font-bold text-foreground">GsCore</strong>}
+                </span>
+              ))}
             </p>
             <div className="mt-5 flex flex-wrap gap-2">
               <Badge className="gap-1.5 rounded-full border-primary/20 bg-primary/10 px-3 py-1 text-sm text-primary hover:bg-primary/15" variant="outline">

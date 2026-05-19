@@ -394,9 +394,7 @@ export default function BackupPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0 overflow-x-auto">
           <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
-            <div className="shrink-0 p-2 rounded-lg bg-primary/10">
-              <HardDrive className="w-6 h-6 text-primary" />
-            </div>
+            <HardDrive className="w-8 h-8 shrink-0" />
             {t('backup.title')}
           </h1>
           <p className="whitespace-nowrap text-muted-foreground mt-1">{t('backup.description')}</p>

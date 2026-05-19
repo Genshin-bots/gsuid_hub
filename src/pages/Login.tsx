@@ -10,7 +10,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Loader2, LogIn, Eye, EyeOff, UserPlus, Settings, Globe, ChevronDown } from 'lucide-react';
+import { Loader2, LogIn, Eye, EyeOff, UserPlus, Settings, ChevronDown } from 'lucide-react';
+import { LanguageFlag } from '@/components/ui/language-flag';
 import { cn } from '@/lib/utils';
 import { getCustomApiHost, setCustomApiHost, authApi } from '@/lib/api';
 
@@ -191,9 +192,12 @@ export default function Login() {
               className="absolute top-4 right-14 z-20 gap-1.5 px-2"
               title={t('common.selectLanguage')}
             >
-              <Globe className="h-4 w-4" />
+              {(() => {
+                const currentLanguage = availableLanguages.find((lang) => lang.code === language);
+                return currentLanguage ? <LanguageFlag code={currentLanguage.flagCode} /> : null;
+              })()}
               <span className="text-xs font-medium">
-                {language === 'zh-CN' ? '中' : 'EN'}
+                {availableLanguages.find((lang) => lang.code === language)?.shortName ?? language}
               </span>
             </Button>
           </DropdownMenuTrigger>
@@ -203,11 +207,12 @@ export default function Login() {
                 key={lang.code}
                 onClick={() => setLanguage(lang.code)}
                 className={cn(
-                  "cursor-pointer",
+                  "cursor-pointer gap-2",
                   language === lang.code && "bg-accent"
                 )}
               >
-                {lang.name}
+                <LanguageFlag code={lang.flagCode} />
+                <span>{lang.name}</span>
               </DropdownMenuItem>
             ))}
           </DropdownMenuContent>

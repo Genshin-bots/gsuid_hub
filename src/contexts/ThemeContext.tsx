@@ -11,7 +11,7 @@ type ThemeStyle = 'solid' | 'glassmorphism';
 type ThemeColor = 'red' | 'orchid' | 'blue' | 'green' | 'orange' | 'pink';
 type ThemePreset = 'default' | 'shadcn';
 type IconColor = 'white' | 'black' | 'colored';
-type Language = 'zh-CN' | 'en-US';
+type Language = 'zh-CN' | 'en-US' | 'ja-JP';
 
 // Context类型定义 - 拆分为多个小context
 interface ThemeModeContextType {
@@ -260,7 +260,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
           if (config.theme_preset && ['default', 'shadcn'].includes(config.theme_preset)) {
             setThemePresetState(config.theme_preset as ThemePreset);
           }
-          if (config.language && ['zh-CN', 'en-US'].includes(config.language)) {
+          if (config.language && ['zh-CN', 'en-US', 'ja-JP'].includes(config.language)) {
             setLanguageState(config.language as Language);
           }
         }

@@ -1,0 +1,14 @@
+{
+  "title": "Verification Configuration",
+  "description": "Configure verification and API settings",
+  "notFound": "Verification configuration not found",
+  "loadFailed": "Failed to load verification configuration",
+  "saveFailed": "Failed to save verification configuration",
+  "configSaved": "Verification configuration saved",
+  "warning": "Warning",
+  "warningDesc": "The following options may be risky, please operate with caution",
+  "api": "API Settings",
+  "apiDesc": "Configure API related settings",
+  "deprecated": "Deprecated",
+  "deprecatedDesc": "These options are deprecated and may be risky"
+}

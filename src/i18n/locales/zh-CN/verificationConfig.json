@@ -1,0 +1,14 @@
+{
+  "title": "验证配置",
+  "description": "配置验证和API相关设置",
+  "notFound": "未找到验证配置",
+  "loadFailed": "无法加载验证配置",
+  "saveFailed": "无法保存验证配置",
+  "configSaved": "验证配置已保存",
+  "warning": "注意事项",
+  "warningDesc": "以下选项可能有一定危险性，请谨慎操作",
+  "api": "API 设置",
+  "apiDesc": "配置API相关设置",
+  "deprecated": "已废弃",
+  "deprecatedDesc": "这些选项已废弃，可能有一定危险性"
+}

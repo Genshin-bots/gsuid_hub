@@ -1,0 +1,16 @@
+{
+  "more": "更多",
+  "searchAdded": "搜索或者直接输入新增标签...",
+  "enterToAdd": "回车添加",
+  "alreadyAdded": "该标签已添加",
+  "addedTags": "已添加的标签",
+  "noMatch": "没有匹配的标签",
+  "noTags": "暂无标签",
+  "alreadyAddedTop": "已添加在上方",
+  "copy": "复制",
+  "delete": "删除",
+  "optionalTags": "可选标签",
+  "noOptionMatch": "没有匹配的可选值",
+  "allOptionsAdded": "所有选项都已添加",
+  "enterTags": "输入并回车添加..."
+}
