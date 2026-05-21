@@ -1,0 +1,72 @@
+{
+  "title": "能力エージェント",
+  "description": "長期タスクや複雑な多段階タスクを委任するための、人格を持たない実行プロファイルを管理します。",
+  "newProfile": "新規プロファイル",
+  "copyAsNew": "新規としてコピー",
+  "readonlyTip": "フレームワークまたはプラグインのプロファイルは表示のみです",
+  "searchPlaceholder": "名前、ID、用途、キーワード、プロンプトを検索...",
+  "empty": "一致する能力エージェントプロファイルはありません",
+  "loadFailed": "能力エージェントの読み込みに失敗しました",
+  "saveFailed": "能力エージェントの保存に失敗しました",
+  "deleteFailed": "能力エージェントの削除に失敗しました",
+  "createSuccess": "能力エージェントを作成しました",
+  "updateSuccess": "能力エージェントを更新しました",
+  "deleteSuccess": "能力エージェントを削除しました",
+  "deleting": "削除中...",
+  "noUsage": "使用場面が未設定です",
+  "toolCount": "{{count}} 個のツール",
+  "sources": {
+    "builtin": "内蔵 builtin",
+    "plugin": "プラグイン plugin",
+    "user": "自分の user"
+  },
+  "dialog": {
+    "createTitle": "能力エージェントプロファイルを作成",
+    "editTitle": "能力エージェントプロファイルを編集",
+    "viewTitle": "能力エージェントプロファイルを表示",
+    "description": "プロファイルは中立的なプロンプト、ツール許可リスト、マッチキーワードで構成され、人格や社交属性は含みません。",
+    "baseDesc": "{{base}} をテンプレートとして使用しています。作成時の空欄はバックエンドでコピーできます。"
+  },
+  "fields": {
+    "profileId": "Profile ID",
+    "displayName": "表示名",
+    "whenToUse": "使用場面",
+    "systemPrompt": "システムプロンプト",
+    "matchKeywords": "マッチキーワード",
+    "toolNames": "ツール許可リスト",
+    "toolQuery": "ツール補足クエリ",
+    "maxIterations": "最大反復回数",
+    "maxTokens": "最大 Token"
+  },
+  "placeholders": {
+    "displayName": "例：取引アシスタント",
+    "whenToUse": "このプロファイルに委任すべきタスクを説明します",
+    "systemPrompt": "中立的な Plan-and-Solve プロンプトを入力し、ロールプレイ表現は避けてください",
+    "matchKeywords": "Enter でキーワード追加、カンマ区切り対応",
+    "toolQuery": "例：株価 ポジション"
+  },
+  "preview": {
+    "title": "Markdown プレビュー",
+    "description": "長いプロンプトの構造を確認します。",
+    "empty": "システムプロンプトは未入力です。"
+  },
+  "tools": {
+    "description": "バックエンドに登録済みのツールから選択し、プラグインごとに表示します。",
+    "searchPlaceholder": "ツール名、説明、プラグイン、カテゴリを検索...",
+    "alwaysMounted": "基本ツールは実行時に自動マウントされるため、重複選択は不要です。",
+    "noSelected": "ツールはまだ選択されていません。",
+    "readonlyDisabled": "読み取り専用プロファイルではツール許可リストを変更できません",
+    "openDropdown": "ツール選択を開く（選択済み {count} 個）",
+    "noMatched": "一致するツールはありません",
+    "allPlugins": "すべてのプラグイン"
+  },
+  "validation": {
+    "profileId": "Profile ID は英字で始まり、英数字とアンダースコアのみ使用でき、最大 64 文字です。",
+    "displayName": "表示名を入力してください。",
+    "systemPrompt": "システムプロンプトを入力してください。"
+  },
+  "deleteDialog": {
+    "title": "能力エージェントを削除",
+    "description": "「{{name}}」のディスクファイルとメモリ登録情報を削除します。この操作は元に戻せません。"
+  }
+}

@@ -688,6 +688,13 @@ export default function GitUpdatePage() {
     setCheckoutDialog({ open: true, commit });
   }, []);
 
+  const checkoutDialogIsFuture = (() => {
+    if (!checkoutDialog.commit || !commitsData) return false;
+    const currentIdx = allCommits.findIndex(c => c.hash === commitsData.current_hash);
+    const targetIdx = allCommits.findIndex(c => c.hash === checkoutDialog.commit?.hash);
+    return currentIdx === -1 || (targetIdx !== -1 && targetIdx < currentIdx);
+  })();
+
   // Handle update all plugins - 打开确认对话框
   const handleUpdateAllClick = () => {
     setUpdateAllDialogOpen(true);
@@ -1065,10 +1072,14 @@ export default function GitUpdatePage() {
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <AlertTriangle className="w-5 h-5 text-yellow-500" />
-              {t('gitUpdate.checkoutConfirmTitle')}
+              {t(checkoutDialogIsFuture ? 'gitUpdate.updateConfirmTitle' : 'gitUpdate.checkoutConfirmTitle')}
             </AlertDialogTitle>
             <AlertDialogDescription className="text-left space-y-2">
-              <div>{t('gitUpdate.checkoutConfirmMessage', { plugin: getPluginDisplayName(selectedPlugin), hash: checkoutDialog.commit?.short_hash || '' })}</div>
+              <div>
+                {checkoutDialogIsFuture
+                  ? t('gitUpdate.updateConfirmDesc', { plugin: getPluginDisplayName(selectedPlugin), hash: checkoutDialog.commit?.short_hash || '', message: checkoutDialog.commit?.message || '' })
+                  : t('gitUpdate.checkoutConfirmMessage', { plugin: getPluginDisplayName(selectedPlugin), hash: checkoutDialog.commit?.short_hash || '' })}
+              </div>
               <div className="text-muted-foreground">
                 {t('gitUpdate.checkoutConfirmCommitInfo', { hash: checkoutDialog.commit?.short_hash || '', message: checkoutDialog.commit?.message || '' })}
               </div>

@@ -27,6 +27,7 @@ import CoreConfigPage from "@/pages/CoreConfigPage";
 import BackupPage from "@/pages/BackupPage";
 import AIConfigPage from "@/pages/AIConfigPage";
 import PersonaConfigPage from "@/pages/PersonaConfigPage";
+import AICapabilityAgentsPage from "@/pages/AICapabilityAgentsPage";
 import AIToolsPage from "@/pages/AIToolsPage";
 import AISkillsPage from "@/pages/AISkillsPage";
 import AIStatisticsPage from "@/pages/AIStatisticsPage";
@@ -37,6 +38,7 @@ import AIMemePage from "@/pages/AIMemePage";
 import SystemPromptPage from "@/pages/SystemPromptPage";
 import SessionManagementPage from "@/pages/SessionManagementPage";
 import AIHistoryPage from "@/pages/AIHistoryPage";
+import AILongTasksPage from "@/pages/AILongTasksPage";
 import MCPConfigPage from "@/pages/MCPConfigPage";
 import SettingsPage from "@/pages/SettingsPage";
 import NotFound from "@/pages/NotFound";
@@ -93,6 +95,7 @@ function AppRoutes() {
         <Route path="ai-config" element={<AIConfigPage />} />
         <Route path="persona-config" element={<PersonaConfigPage />} />
         <Route path="mcp-config" element={<MCPConfigPage />} />
+        <Route path="ai-capability-agents" element={<AICapabilityAgentsPage />} />
         <Route path="ai-tools" element={<AIToolsPage />} />
         <Route path="ai-skills" element={<AISkillsPage />} />
         <Route path="ai-statistics" element={<AIStatisticsPage />} />
@@ -103,6 +106,7 @@ function AppRoutes() {
         <Route path="system-prompt" element={<SystemPromptPage />} />
         <Route path="session-management" element={<SessionManagementPage />} />
         <Route path="ai-history" element={<AIHistoryPage />} />
+        <Route path="ai-long-tasks" element={<AILongTasksPage />} />
         <Route path="core-config" element={<CoreConfigPage />} />
         <Route path="database-config" element={<DatabaseConfigPage />} />
         <Route path="state-config" element={<StateConfigPage />} />

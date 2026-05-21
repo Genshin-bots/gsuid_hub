@@ -59,7 +59,7 @@ import {
   Maximize2,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { api } from '@/lib/api';
+import { api, agentDebugApi, AgentDebugMemoryConflict, AgentDebugMemoryEdge } from '@/lib/api';
 import Graph from 'graphology';
 import Sigma from 'sigma';
 import forceAtlas2 from 'graphology-layout-forceatlas2';
@@ -121,6 +121,9 @@ interface Edge {
   valid_at: string;
   invalid_at: string | null;
   created_at: string;
+  mention_count?: number;
+  decay_score?: number;
+  last_accessed?: string | null;
 }
 
 interface Category {
@@ -1122,7 +1125,13 @@ export default function AIMemoryPage() {
   const [selectedEdge, setSelectedEdge] = useState<{ source_entity: Entity; target_entity: Entity } & Edge | null>(null);
   const [selectedCategoryDetail, setSelectedCategoryDetail] = useState<(Category & { parent_categories: { id: string; name: string; layer: number }[]; child_categories: { id: string; name: string; layer: number }[]; member_entities: Entity[] }) | null>(null);
   const [activeTab, setActiveTab] = useState('graph');
+  const [debugEdges, setDebugEdges] = useState<AgentDebugMemoryEdge[]>([]);
+  const [debugConflicts, setDebugConflicts] = useState<AgentDebugMemoryConflict[]>([]);
+  const [includeInvalidEdges, setIncludeInvalidEdges] = useState(false);
+  const [isLoadingDebug, setIsLoadingDebug] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [pendingInvalidateEdge, setPendingInvalidateEdge] = useState<Pick<Edge, 'id' | 'fact' | 'source_entity_id' | 'target_entity_id'> | null>(null);
+  const [invalidateEdgeLoading, setInvalidateEdgeLoading] = useState(false);
   const [clearMemoryDialogOpen, setClearMemoryDialogOpen] = useState(false);
   const [clearMemoryLoading, setClearMemoryLoading] = useState(false);
   const [dialogType, setDialogType] = useState<'episode' | 'entity' | 'edge' | 'category'>('episode');
@@ -1241,6 +1250,53 @@ export default function AIMemoryPage() {
   };
 
 
+  const fetchDebugMemory = async (scopeOverride?: string) => {
+    const scope = scopeOverride ?? selectedScope;
+    if (!scope || scope === 'all') {
+      setDebugEdges([]);
+      setDebugConflicts([]);
+      return;
+    }
+    try {
+      setIsLoadingDebug(true);
+      const [edgeData, conflictData] = await Promise.all([
+        agentDebugApi.getMemoryEdges({ scope_key: scope, include_invalid: includeInvalidEdges, limit: 1000 }),
+        agentDebugApi.getMemoryConflicts({ scope_key: scope, limit: 500 }),
+      ]);
+      setDebugEdges(edgeData);
+      setDebugConflicts(conflictData);
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : '';
+      toast.error(errorMsg ? `加载调试记忆失败: ${errorMsg}` : '加载调试记忆失败');
+    } finally {
+      setIsLoadingDebug(false);
+    }
+  };
+
+  const requestInvalidateEdge = (edge: Pick<Edge, 'id' | 'fact' | 'source_entity_id' | 'target_entity_id'>) => {
+    setPendingInvalidateEdge(edge);
+  };
+
+  const confirmInvalidateEdge = async () => {
+    if (!pendingInvalidateEdge) return;
+    try {
+      setInvalidateEdgeLoading(true);
+      await agentDebugApi.invalidateMemoryEdge(pendingInvalidateEdge.id);
+      toast.success('Edge 已标记为失效');
+      setPendingInvalidateEdge(null);
+      await fetchEdges(edgePage);
+      if (selectedScope !== 'all') await fetchDebugMemory();
+      if (dialogType === 'edge' && selectedEdge?.id === pendingInvalidateEdge.id) {
+        setSelectedEdge({ ...selectedEdge, invalid_at: new Date().toISOString() });
+      }
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : '';
+      toast.error(errorMsg || 'Edge 失效失败');
+    } finally {
+      setInvalidateEdgeLoading(false);
+    }
+  };
+
   const handleScopeChange = (scope: string) => {
     setSelectedScope(scope);
     setEpisodePage(1); setEntityPage(1); setEdgePage(1); setCategoryPage(1);
@@ -1249,6 +1305,7 @@ export default function AIMemoryPage() {
     fetchEntities(1, scope);
     fetchEdges(1, scope);
     fetchCategories(1, scope);
+    if (activeTab === 'debug') fetchDebugMemory(scope);
   };
 
   const handleDeleteScope = async (scopeKey: string) => {
@@ -1344,6 +1401,18 @@ export default function AIMemoryPage() {
     }
   };
 
+  const selectedEntityConnectedEdges = useMemo(() => {
+    if (!selectedEntity) return [];
+    return edges
+      .filter((edge) => edge.source_entity_id === selectedEntity.id || edge.target_entity_id === selectedEntity.id)
+      .map((edge) => {
+        const connectedEntityId = edge.source_entity_id === selectedEntity.id ? edge.target_entity_id : edge.source_entity_id;
+        const connectedEntity = entities.find((entity) => entity.id === connectedEntityId);
+        const direction = edge.source_entity_id === selectedEntity.id ? 'out' : 'in';
+        return { edge, connectedEntityId, connectedEntity, direction };
+      });
+  }, [edges, entities, selectedEntity]);
+
   if (isLoading) {
     return <div className="flex items-center justify-center h-full"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
   }
@@ -1407,6 +1476,7 @@ export default function AIMemoryPage() {
           { value: 'entities', label: t('aiMemory.tabEntities'), icon: <Brain className="w-4 h-4" /> },
           { value: 'edges', label: t('aiMemory.tabEdges'), icon: <GitBranch className="w-4 h-4" /> },
           { value: 'categories', label: t('aiMemory.tabCategories'), icon: <FolderTree className="w-4 h-4" /> },
+          { value: 'debug', label: '调试视图', icon: <AlertCircle className="w-4 h-4" /> },
           { value: 'config', label: t('aiMemory.tabConfig'), icon: <Settings className="w-4 h-4" /> },
         ]}
       />
@@ -1660,6 +1730,121 @@ export default function AIMemoryPage() {
       </div>
       )}
 
+      {/* Agent Debug Tab */}
+      {activeTab === 'debug' && (
+        <div className="space-y-4">
+          <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><AlertCircle className="w-5 h-5 text-primary" />Memory Graph Debug</CardTitle>
+              <CardDescription>使用 Agent Debug API 查看指定 scope 的 Edge 与矛盾记录，并可软删除错误 Edge。</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                <div className="space-y-2">
+                  <Label>Scope Key</Label>
+                  <Select value={selectedScope} onValueChange={handleScopeChange}>
+                    <SelectTrigger className="w-[260px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">请选择具体范围</SelectItem>
+                      {scopes.map((s) => <SelectItem key={s.scope_key} value={s.scope_key}>{s.scope_key}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="flex items-center gap-2 rounded-md border border-border/50 px-3 py-2">
+                    <Switch checked={includeInvalidEdges} onCheckedChange={setIncludeInvalidEdges} />
+                    <Label className="text-sm">包含已失效 Edge</Label>
+                  </div>
+                  <Button onClick={() => fetchDebugMemory()} disabled={selectedScope === 'all' || isLoadingDebug}>
+                    {isLoadingDebug ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-2" />}
+                    查询调试数据
+                  </Button>
+                </div>
+              </div>
+              {selectedScope === 'all' && (
+                <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-600">
+                  Agent Debug 接口要求指定明确 scope_key，请先选择如 group:789012 的范围。
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+            <Card className={cn('xl:col-span-2', isGlass ? 'glass-card' : 'border border-border/50')}>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between gap-2">
+                  <span>Edge 列表</span>
+                  <Badge variant="outline">{debugEdges.length}</Badge>
+                </CardTitle>
+                <CardDescription>仅软删除 Edge，不会物理删除数据库记录。</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {isLoadingDebug ? (
+                  <div className="space-y-2">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 w-full" />)}</div>
+                ) : debugEdges.length === 0 ? (
+                  <div className="py-10 text-center text-muted-foreground">暂无 Edge 数据</div>
+                ) : (
+                  <div className="space-y-3 max-h-[640px] overflow-auto pr-1">
+                    {debugEdges.map((edge) => (
+                      <div key={edge.id} className={cn('rounded-lg border border-border/50 p-4', edge.invalid_at && 'opacity-60')}>
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0 space-y-2">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Badge variant={edge.invalid_at ? 'destructive' : 'default'}>{edge.invalid_at ? '已失效' : '有效'}</Badge>
+                              <span className="font-mono text-xs text-muted-foreground">{edge.id}</span>
+                            </div>
+                            <p className="text-sm whitespace-pre-wrap">{edge.fact}</p>
+                            <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+                              <span>源: {edge.source_entity_id}</span>
+                              <span>目标: {edge.target_entity_id}</span>
+                              <span>提及: {edge.mention_count ?? 0}</span>
+                              <span>评分: {typeof edge.decay_score === 'number' ? edge.decay_score.toFixed(3) : '-'}</span>
+                              <span>最近访问: {edge.last_accessed ? formatDate(edge.last_accessed) : '-'}</span>
+                            </div>
+                          </div>
+                          <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" disabled={!!edge.invalid_at} onClick={() => requestInvalidateEdge(edge)}>
+                            <Trash2 className="w-4 h-4 mr-1" />失效
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between gap-2">
+                  <span>记忆矛盾</span>
+                  <Badge variant="outline">{debugConflicts.length}</Badge>
+                </CardTitle>
+                <CardDescription>用于辅助定位冲突事实。</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {debugConflicts.length === 0 ? (
+                  <div className="py-10 text-center text-muted-foreground">暂无矛盾记录</div>
+                ) : (
+                  <div className="space-y-3 max-h-[640px] overflow-auto pr-1">
+                    {debugConflicts.map((conflict) => (
+                      <div key={conflict.id} className="rounded-lg border border-border/50 p-3 space-y-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <Badge variant="secondary">{conflict.fact_signature}</Badge>
+                          <span className="text-xs text-muted-foreground">{conflict.created_at ? formatDate(conflict.created_at) : '-'}</span>
+                        </div>
+                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{conflict.summary}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      )}
+
       {/* Config Tab */}
       {activeTab === 'config' && (
       <div className="space-y-4">
@@ -1744,17 +1929,66 @@ export default function AIMemoryPage() {
           )}
           {dialogType === 'entity' && selectedEntity && (
             <div className="space-y-4">
-              <div><Label className="text-muted-foreground">{t('aiMemory.scopeKey')}</Label><p className="font-mono text-sm">{selectedEntity.scope_key}</p></div>
-              <div><Label className="text-muted-foreground">{t('aiMemory.name')}</Label><p className="font-medium">{selectedEntity.name}</p></div>
-              {selectedEntity.summary && <div><Label className="text-muted-foreground">{t('aiMemory.summary')}</Label><p className="mt-1 p-2 bg-muted/50 rounded text-sm">{selectedEntity.summary}</p></div>}
-              {selectedEntity.tag.length > 0 && <div><Label className="text-muted-foreground">{t('aiMemory.tags')}</Label><div className="flex flex-wrap gap-2 mt-2">{selectedEntity.tag.map((tag) => <Badge key={tag} variant="outline">{tag}</Badge>)}</div></div>}
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div><Label className="text-muted-foreground">{t('aiMemory.isSpeaker')}</Label><p>{selectedEntity.is_speaker ? t('common.yes') : t('common.no')}</p></div>
-                {selectedEntity.user_id && <div><Label className="text-muted-foreground">{t('aiMemory.userId')}</Label><p className="font-mono">{selectedEntity.user_id}</p></div>}
+              <div className={cn('rounded-lg p-4', isGlass ? 'glass-card' : 'border border-border/50 bg-card')}>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 text-sm">
+                  <div><Label className="text-muted-foreground">{t('aiMemory.scopeKey')}</Label><p className="font-mono text-sm break-all">{selectedEntity.scope_key}</p></div>
+                  <div><Label className="text-muted-foreground">{t('aiMemory.name')}</Label><p className="font-medium">{selectedEntity.name}</p></div>
+                  <div><Label className="text-muted-foreground">{t('aiMemory.isSpeaker')}</Label><p>{selectedEntity.is_speaker ? t('common.yes') : t('common.no')}</p></div>
+                  {selectedEntity.user_id && <div><Label className="text-muted-foreground">{t('aiMemory.userId')}</Label><p className="font-mono">{selectedEntity.user_id}</p></div>}
+                  <div><Label className="text-muted-foreground">{t('aiMemory.createdAt')}</Label><p>{formatDate(selectedEntity.created_at)}</p></div>
+                  <div><Label className="text-muted-foreground">{t('aiMemory.updatedAt')}</Label><p>{formatDate(selectedEntity.updated_at)}</p></div>
+                </div>
+                {selectedEntity.summary && <div className="mt-4"><Label className="text-muted-foreground">{t('aiMemory.summary')}</Label><p className="mt-1 p-2 bg-muted/50 rounded text-sm whitespace-pre-wrap">{selectedEntity.summary}</p></div>}
+                {selectedEntity.tag.length > 0 && <div className="mt-4"><Label className="text-muted-foreground">{t('aiMemory.tags')}</Label><div className="flex flex-wrap gap-2 mt-2">{selectedEntity.tag.map((tag) => <Badge key={tag} variant="outline">{tag}</Badge>)}</div></div>}
               </div>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div><Label className="text-muted-foreground">{t('aiMemory.createdAt')}</Label><p>{formatDate(selectedEntity.created_at)}</p></div>
-                <div><Label className="text-muted-foreground">{t('aiMemory.updatedAt')}</Label><p>{formatDate(selectedEntity.updated_at)}</p></div>
+
+              <div className={cn('rounded-lg p-4', isGlass ? 'glass-card' : 'border border-border/50 bg-card')}>
+                <div className="mb-3 flex items-center justify-between gap-2">
+                  <div>
+                    <h3 className="font-semibold">相连实体与关系 Edge</h3>
+                    <p className="text-xs text-muted-foreground">展示所有与当前实体直接相连的实体，可对错误 Edge 标记失效。</p>
+                  </div>
+                  <Badge variant="outline">{selectedEntityConnectedEdges.length}</Badge>
+                </div>
+                {selectedEntityConnectedEdges.length === 0 ? (
+                  <div className="py-6 text-center text-sm text-muted-foreground">暂无直接相连实体</div>
+                ) : (
+                  <div className="space-y-3 max-h-[360px] overflow-auto pr-1">
+                    {selectedEntityConnectedEdges.map(({ edge, connectedEntity, connectedEntityId, direction }) => (
+                      <div key={edge.id} className={cn('rounded-lg border border-border/50 p-3', edge.invalid_at && 'opacity-60')}>
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0 space-y-2">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Badge variant={edge.invalid_at ? 'destructive' : 'default'}>{edge.invalid_at ? '已失效' : '有效'}</Badge>
+                              <Badge variant="outline">{direction === 'out' ? '当前实体 → 对方' : '对方 → 当前实体'}</Badge>
+                              <span className="font-mono text-xs text-muted-foreground">{edge.id}</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-sm">
+                              <span className="font-medium truncate">{selectedEntity.name}</span>
+                              <ChevronRight className={cn('h-4 w-4 text-primary/60', direction === 'in' && 'rotate-180')} />
+                              <button
+                                type="button"
+                                className="font-medium text-primary hover:underline truncate"
+                                onClick={() => openDetailDialog('entity', connectedEntityId)}
+                              >
+                                {connectedEntity?.name || connectedEntityId}
+                              </button>
+                            </div>
+                            <p className="text-sm text-muted-foreground whitespace-pre-wrap">{edge.fact}</p>
+                            <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+                              <span>生效: {edge.valid_at ? formatDate(edge.valid_at) : '-'}</span>
+                              <span>提及: {edge.mention_count ?? '-'}</span>
+                              <span>评分: {typeof edge.decay_score === 'number' ? edge.decay_score.toFixed(3) : '-'}</span>
+                            </div>
+                          </div>
+                          <Button variant="ghost" size="sm" className="shrink-0 text-destructive hover:text-destructive" disabled={!!edge.invalid_at} onClick={() => requestInvalidateEdge(edge)}>
+                            <Trash2 className="w-4 h-4 mr-1" />失效
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -1790,6 +2024,42 @@ export default function AIMemoryPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Edge Invalidate Confirmation Dialog */}
+      <AlertDialog open={!!pendingInvalidateEdge} onOpenChange={(open) => !open && !invalidateEdgeLoading && setPendingInvalidateEdge(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-destructive" />
+              确认标记 Edge 失效
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              这是软删除操作，只会设置 invalid_at，但会影响后续记忆检索结果。请确认该关系事实确实错误或不再适用。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {pendingInvalidateEdge && (
+            <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-sm">
+              <div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                <span className="font-mono">{pendingInvalidateEdge.id}</span>
+                <span>{pendingInvalidateEdge.source_entity_id}</span>
+                <ChevronRight className="h-3.5 w-3.5" />
+                <span>{pendingInvalidateEdge.target_entity_id}</span>
+              </div>
+              <p className="whitespace-pre-wrap">{pendingInvalidateEdge.fact}</p>
+            </div>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={invalidateEdgeLoading}>取消</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmInvalidateEdge}
+              disabled={invalidateEdgeLoading}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {invalidateEdgeLoading ? '处理中...' : '确认失效'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Clear Memory Confirmation Dialog */}
       <AlertDialog open={clearMemoryDialogOpen} onOpenChange={setClearMemoryDialogOpen}>

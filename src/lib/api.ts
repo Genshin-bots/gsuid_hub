@@ -472,6 +472,13 @@ class ApiClient {
     });
   }
 
+  patch<T>(endpoint: string, body?: unknown): Promise<T> {
+    return this.request<T>(endpoint, {
+      method: 'PATCH',
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  }
+
   delete<T>(endpoint: string): Promise<T> {
     return this.request<T>(endpoint, { method: 'DELETE' });
   }
@@ -1755,6 +1762,88 @@ export const aiToolsApi = {
 };
 
 // ===================
+// Capability Agents API
+// ===================
+
+export type CapabilityAgentSource = 'builtin' | 'plugin' | 'user';
+
+export interface CapabilityAgentProfile {
+  profile_id: string;
+  display_name: string;
+  when_to_use: string;
+  system_prompt: string;
+  match_keywords: string[];
+  tool_names: string[];
+  tool_query: string;
+  max_iterations: number;
+  max_tokens: number;
+  source: CapabilityAgentSource;
+}
+
+export interface CapabilityAgentListResponse {
+  count: number;
+  items: CapabilityAgentProfile[];
+}
+
+export interface CapabilityAgentTool {
+  name: string;
+  description: string;
+  category: string;
+  plugin: string;
+}
+
+export interface CapabilityAgentToolsResponse {
+  count: number;
+  items: CapabilityAgentTool[];
+}
+
+export interface CapabilityAgentCreateRequest {
+  profile_id: string;
+  display_name: string;
+  when_to_use?: string;
+  system_prompt: string;
+  match_keywords?: string[];
+  tool_names?: string[];
+  tool_query?: string;
+  max_iterations?: number;
+  max_tokens?: number;
+  base?: string;
+}
+
+export interface CapabilityAgentUpdateRequest {
+  display_name?: string;
+  when_to_use?: string;
+  system_prompt?: string;
+  match_keywords?: string[];
+  tool_names?: string[];
+  tool_query?: string;
+  max_iterations?: number;
+  max_tokens?: number;
+}
+
+export const capabilityAgentsApi = {
+  getList: (source?: CapabilityAgentSource) => {
+    const query = source ? `?source=${encodeURIComponent(source)}` : '';
+    return api.get<CapabilityAgentListResponse>(`/api/ai/capability-agents/list${query}`);
+  },
+
+  getDetail: (profileId: string) =>
+    api.get<CapabilityAgentProfile>(`/api/ai/capability-agents/${encodeURIComponent(profileId)}`),
+
+  create: (data: CapabilityAgentCreateRequest) =>
+    api.post<CapabilityAgentProfile>('/api/ai/capability-agents', data),
+
+  update: (profileId: string, data: CapabilityAgentUpdateRequest) =>
+    api.patch<CapabilityAgentProfile>(`/api/ai/capability-agents/${encodeURIComponent(profileId)}`, data),
+
+  delete: (profileId: string) =>
+    api.delete<{ profile_id: string }>(`/api/ai/capability-agents/${encodeURIComponent(profileId)}`),
+
+  getAvailableTools: () =>
+    api.get<CapabilityAgentToolsResponse>('/api/ai/capability-agents/_tools/available'),
+};
+
+// ===================
 // AI Knowledge Base API
 // ===================
 
@@ -2853,6 +2942,108 @@ export const aiSessionLogsApi = {
 // 获取日志统计概览
   getStatsOverview: () =>
     api.get<SessionLogStatsOverview>('/api/ai/session_logs/stats/overview'),
+};
+
+// ===================
+// Agent Debug API - /api/agent_debug
+// ===================
+
+export interface AgentDebugMemoryEdge {
+  id: string;
+  fact: string;
+  source_entity_id: string;
+  target_entity_id: string;
+  mention_count: number;
+  decay_score: number;
+  valid_at: string | null;
+  invalid_at: string | null;
+  last_accessed: string | null;
+}
+
+export interface AgentDebugMemoryConflict {
+  id: string;
+  fact_signature: string;
+  summary: string;
+  created_at: string | null;
+}
+
+export interface AgentDebugTaskListItem {
+  id: string;
+  ordinal: number;
+  display_name: string;
+  goal: string;
+  status: string;
+  owner_user_id: string | null;
+  updated_at: string | null;
+}
+
+export interface AgentDebugTask {
+  id: string;
+  ordinal: number;
+  display_name: string;
+  goal: string;
+  status: string;
+  review_notes: string | null;
+  broadcast_targets: string[] | null;
+}
+
+export interface AgentDebugTaskStep {
+  id: string;
+  seq: number;
+  description: string;
+  status: string;
+  schedule_kind: string | null;
+  result_summary: string | null;
+}
+
+export interface AgentDebugTaskLog {
+  event_type: string;
+  content: string;
+  timestamp: string | null;
+}
+
+export interface AgentDebugTaskDetail {
+  task: AgentDebugTask;
+  steps: AgentDebugTaskStep[];
+  logs: AgentDebugTaskLog[];
+}
+
+export const agentDebugApi = {
+  getMemoryEdges: (params: { scope_key: string; include_invalid?: boolean; limit?: number }) => {
+    const query = new URLSearchParams();
+    query.set('scope_key', params.scope_key);
+    if (params.include_invalid !== undefined) query.set('include_invalid', String(params.include_invalid));
+    if (params.limit !== undefined) query.set('limit', String(params.limit));
+    return api.get<AgentDebugMemoryEdge[]>(`/api/agent_debug/memory/edges?${query.toString()}`);
+  },
+
+  invalidateMemoryEdge: (edgeId: string) =>
+    api.post<{ edge_id: string }>(`/api/agent_debug/memory/edge/${encodeURIComponent(edgeId)}/invalidate`),
+
+  getMemoryConflicts: (params: { scope_key: string; limit?: number }) => {
+    const query = new URLSearchParams();
+    query.set('scope_key', params.scope_key);
+    if (params.limit !== undefined) query.set('limit', String(params.limit));
+    return api.get<AgentDebugMemoryConflict[]>(`/api/agent_debug/memory/conflicts?${query.toString()}`);
+  },
+
+  getTasks: (params: { status?: string; limit?: number } = {}) => {
+    const query = new URLSearchParams();
+    if (params.status) query.set('status', params.status);
+    if (params.limit !== undefined) query.set('limit', String(params.limit));
+    const queryStr = query.toString();
+    return api.get<AgentDebugTaskListItem[]>(`/api/agent_debug/tasks${queryStr ? `?${queryStr}` : ''}`);
+  },
+
+  getTaskDetail: (taskId: string) =>
+    api.get<AgentDebugTaskDetail>(`/api/agent_debug/tasks/${encodeURIComponent(taskId)}`),
+
+  updateTaskStep: (taskId: string, stepId: string, description: string) =>
+    api.post<{ step_id: string }>(`/api/agent_debug/tasks/${encodeURIComponent(taskId)}/step/${encodeURIComponent(stepId)}`, { description }),
+
+  abortTask: (taskId: string) =>
+    api.post<{ task_id: string }>(`/api/agent_debug/tasks/${encodeURIComponent(taskId)}/abort`),
+
 };
 
 // ===================

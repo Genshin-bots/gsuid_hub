@@ -14,6 +14,7 @@
   "basicConfig": "基本設定",
   "personaConfig": "ペルソナ設定",
   "mcpConfig": "MCP 設定",
+  "aiCapabilityAgents": "能力エージェント",
   "aiTools": "AI ツール",
   "aiSkills": "AI スキル",
   "aiStatistics": "AI 統計",

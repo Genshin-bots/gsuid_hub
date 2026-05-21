@@ -37,6 +37,7 @@ import module35 from './mcpConfig.json';
 import module36 from './gitUpdate.json';
 import module37 from './aiMeme.json';
 import module38 from './home.json';
+import module39 from './aiCapabilityAgents.json';
 
 const locale = {
   "common": module0,
@@ -78,6 +79,7 @@ const locale = {
   "gitUpdate": module36,
   "aiMeme": module37,
   "home": module38,
+  "aiCapabilityAgents": module39,
 } as const;
 
 export default locale;

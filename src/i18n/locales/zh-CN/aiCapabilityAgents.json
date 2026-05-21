@@ -1,0 +1,72 @@
+{
+  "title": "能力代理",
+  "description": "管理无人格的专职执行代理画像，用于长任务与复杂多步任务委派。",
+  "newProfile": "新建画像",
+  "copyAsNew": "复制为新画像",
+  "readonlyTip": "框架级或插件画像，仅可查看",
+  "searchPlaceholder": "搜索名称、ID、用途、关键词或提示词...",
+  "empty": "暂无匹配的能力代理画像",
+  "loadFailed": "加载能力代理失败",
+  "saveFailed": "保存能力代理失败",
+  "deleteFailed": "删除能力代理失败",
+  "createSuccess": "能力代理已创建",
+  "updateSuccess": "能力代理已更新",
+  "deleteSuccess": "能力代理已删除",
+  "deleting": "删除中...",
+  "noUsage": "未填写使用场景",
+  "toolCount": "{{count}} 个工具",
+  "sources": {
+    "builtin": "内置 builtin",
+    "plugin": "插件 plugin",
+    "user": "我的 user"
+  },
+  "dialog": {
+    "createTitle": "新建能力代理画像",
+    "editTitle": "编辑能力代理画像",
+    "viewTitle": "查看能力代理画像",
+    "description": "画像由中性提示词、工具白名单和匹配关键词组成，不包含人格或社交属性。",
+    "baseDesc": "当前以 {{base}} 为模板，新建时未填写字段可由后端回退复制。"
+  },
+  "fields": {
+    "profileId": "Profile ID",
+    "displayName": "展示名称",
+    "whenToUse": "使用场景",
+    "systemPrompt": "系统提示词",
+    "matchKeywords": "匹配关键词",
+    "toolNames": "工具白名单",
+    "toolQuery": "工具补充查询",
+    "maxIterations": "最大迭代轮数",
+    "maxTokens": "最大 Token"
+  },
+  "placeholders": {
+    "displayName": "例如：操盘助手",
+    "whenToUse": "描述什么任务应该交给这个画像执行",
+    "systemPrompt": "输入纯职能 Plan-and-Solve 提示词，避免角色化语言",
+    "matchKeywords": "输入关键词后回车，支持逗号分隔",
+    "toolQuery": "例如：股票行情 仓位"
+  },
+  "preview": {
+    "title": "Markdown 预览",
+    "description": "用于检查大段提示词结构。",
+    "empty": "尚未输入系统提示词。"
+  },
+  "tools": {
+    "description": "从后端枚举的已注册工具中选择，按插件分组展示。",
+    "searchPlaceholder": "搜索工具名称、描述、插件或分类...",
+    "alwaysMounted": "基础工具会在运行时自动挂载，无需重复选择。",
+    "noSelected": "尚未选择任何工具。",
+    "readonlyDisabled": "只读画像无法修改工具白名单",
+    "openDropdown": "打开工具选择器（已选 {count} 个）",
+    "noMatched": "没有匹配的工具",
+    "allPlugins": "全部插件"
+  },
+  "validation": {
+    "profileId": "Profile ID 必须以字母开头，仅包含字母、数字和下划线，最长 64 位。",
+    "displayName": "请填写展示名称。",
+    "systemPrompt": "请填写系统提示词。"
+  },
+  "deleteDialog": {
+    "title": "确认删除能力代理",
+    "description": "将删除「{{name}}」的磁盘文件与内存注册表条目，该操作不可撤销。"
+  }
+}
