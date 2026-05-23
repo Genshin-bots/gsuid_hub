@@ -47,6 +47,7 @@ import {
   Plus,
   Pause,
   Play,
+  ArchiveX,
   Trash2,
   Edit,
   RefreshCw,
@@ -88,6 +89,8 @@ export default function AIScheduledTasksPage() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [hardDeleteDialogOpen, setHardDeleteDialogOpen] = useState(false);
+  const [clearAllDialogOpen, setClearAllDialogOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<AIScheduledTask | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -191,7 +194,7 @@ export default function AIScheduledTasksPage() {
     }
   };
 
-  // 删除任务
+  // 软删除任务（取消任务）
   const handleDelete = async () => {
     if (!selectedTask) return;
     try {
@@ -204,6 +207,36 @@ export default function AIScheduledTasksPage() {
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : '';
       toast.error(errorMsg ? `${t('aiScheduledTasks.deleteFailed')}: ${errorMsg}` : t('aiScheduledTasks.deleteFailed'));
+    }
+  };
+
+  // 硬删除任务（彻底移除）
+  const handleHardDelete = async () => {
+    if (!selectedTask) return;
+    try {
+      await aiScheduledTasksApi.hardDeleteTask(selectedTask.task_id);
+      toast.success(t('aiScheduledTasks.hardDeleteSuccess'));
+      setHardDeleteDialogOpen(false);
+      setSelectedTask(null);
+      fetchTasks();
+      fetchStats();
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : '';
+      toast.error(errorMsg ? `${t('aiScheduledTasks.hardDeleteFailed')}: ${errorMsg}` : t('aiScheduledTasks.hardDeleteFailed'));
+    }
+  };
+
+  // 批量硬删除全部任务
+  const handleClearAll = async () => {
+    try {
+      const result = await aiScheduledTasksApi.clearTasks({ confirm: true });
+      toast.success(t('aiScheduledTasks.clearAllSuccess').replace('{count}', String(result.deleted)));
+      setClearAllDialogOpen(false);
+      fetchTasks();
+      fetchStats();
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : '';
+      toast.error(errorMsg ? `${t('aiScheduledTasks.clearAllFailed')}: ${errorMsg}` : t('aiScheduledTasks.clearAllFailed'));
     }
   };
 
@@ -463,6 +496,21 @@ export default function AIScheduledTasksPage() {
         </Card>
       ) : (
         <Card className={cn(isGlass ? "glass-card" : "border border-border/50")}>
+          <CardHeader className="flex flex-row items-center justify-between gap-4 space-y-0">
+            <div>
+              <CardTitle>{t('aiScheduledTasks.taskList')}</CardTitle>
+              <CardDescription>{t('aiScheduledTasks.taskListDescription')}</CardDescription>
+            </div>
+            <Button
+              variant="destructive"
+              size="sm"
+              className="gap-2 whitespace-nowrap"
+              onClick={() => setClearAllDialogOpen(true)}
+            >
+              <Trash2 className="w-4 h-4" />
+              {t('aiScheduledTasks.clearAll')}
+            </Button>
+          </CardHeader>
           <CardContent className="p-0">
             <Table>
               <TableHeader>
@@ -544,6 +592,18 @@ export default function AIScheduledTasksPage() {
                             setDeleteDialogOpen(true);
                           }}
                           title={t('aiScheduledTasks.delete')}
+                          className="text-orange-500 hover:text-orange-500"
+                        >
+                          <ArchiveX className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            setSelectedTask(task);
+                            setHardDeleteDialogOpen(true);
+                          }}
+                          title={t('aiScheduledTasks.hardDelete')}
                           className="text-destructive hover:text-destructive"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -839,12 +899,12 @@ export default function AIScheduledTasksPage() {
         </DialogContent>
       </Dialog>
 
-      {/* 删除确认弹窗 */}
+      {/* 软删除确认弹窗 */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
-              <Trash2 className="w-5 h-5" />
+              <ArchiveX className="w-5 h-5" />
               {t('aiScheduledTasks.confirmDelete')}
             </AlertDialogTitle>
             <AlertDialogDescription>
@@ -855,9 +915,57 @@ export default function AIScheduledTasksPage() {
             <AlertDialogCancel>{t('aiScheduledTasks.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-orange-500 text-white hover:bg-orange-600"
             >
               {t('aiScheduledTasks.delete')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* 硬删除确认弹窗 */}
+      <AlertDialog open={hardDeleteDialogOpen} onOpenChange={setHardDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Trash2 className="w-5 h-5" />
+              {t('aiScheduledTasks.confirmHardDelete')}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('aiScheduledTasks.confirmHardDeleteMessage')}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('aiScheduledTasks.cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleHardDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {t('aiScheduledTasks.hardDelete')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* 批量硬删除确认弹窗 */}
+      <AlertDialog open={clearAllDialogOpen} onOpenChange={setClearAllDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Trash2 className="w-5 h-5" />
+              {t('aiScheduledTasks.confirmClearAll')}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('aiScheduledTasks.confirmClearAllMessage')}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('aiScheduledTasks.cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleClearAll}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {t('aiScheduledTasks.clearAll')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

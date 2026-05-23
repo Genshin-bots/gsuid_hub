@@ -18,5 +18,6 @@
   "dependency": "插件依赖",
   "dependencyDesc": "配置插件依赖的自动安装和更新",
   "network": "网络设置",
-  "networkDesc": "配置网络代理等相关设置"
+  "networkDesc": "配置网络代理等相关设置",
+  "buffered_user_writes": "用户信息缓冲写入"
 }

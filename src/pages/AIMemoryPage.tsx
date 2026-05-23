@@ -11,13 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { InputWithDropdown } from '@/components/ui/input-with-dropdown';
 import {
   Dialog,
   DialogContent,
@@ -1088,6 +1082,36 @@ function CategoryLayerTree({
   );
 }
 
+function ScopeSelector({
+  value,
+  onChange,
+  scopes,
+  allLabel,
+  className,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  scopes: MemoryScope[];
+  allLabel: string;
+  className?: string;
+}) {
+  const options = useMemo(() => [allLabel, ...scopes.map((s) => s.scope_key)], [allLabel, scopes]);
+  const displayValue = value === 'all' ? allLabel : value;
+
+  return (
+    <InputWithDropdown
+      value={displayValue}
+      onChange={(val) => {
+        onChange(val === allLabel ? 'all' : val);
+      }}
+      options={options}
+      placeholder={allLabel}
+      className={className}
+      popoverWidth="w-[260px]"
+    />
+  );
+}
+
 // ============================================================================
 // Main Component
 // ============================================================================
@@ -1487,15 +1511,13 @@ export default function AIMemoryPage() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <p className="text-sm text-muted-foreground">{t('aiMemory.graphDescription')}</p>
             <div className="flex gap-2 items-center">
-              <Select value={selectedScope} onValueChange={handleScopeChange}>
-                <SelectTrigger className="w-[180px] h-9">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{t('aiMemory.allScopes')}</SelectItem>
-                  {scopes.map((s) => <SelectItem key={s.scope_key} value={s.scope_key}>{s.scope_key}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <ScopeSelector
+                value={selectedScope}
+                onChange={handleScopeChange}
+                scopes={scopes}
+                allLabel={t('aiMemory.allScopes')}
+                className="w-[180px] h-9"
+              />
               <Button variant="outline" size="sm" className="h-9" onClick={() => setClearMemoryDialogOpen(true)} disabled={selectedScope === 'all' || !selectedScope}>
                 <Trash2 className="w-4 h-4 mr-1" />{t('aiMemory.clearMemory')}
               </Button>
@@ -1550,15 +1572,13 @@ export default function AIMemoryPage() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <p className="text-sm text-muted-foreground">{t('aiMemory.episodeCount', { count: episodes.length, total: totalEpisodes })}</p>
             <div className="flex gap-2">
-              <Select value={selectedScope} onValueChange={handleScopeChange}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{t('aiMemory.allScopes')}</SelectItem>
-                  {scopes.map((s) => <SelectItem key={s.scope_key} value={s.scope_key}>{s.scope_key}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <ScopeSelector
+                value={selectedScope}
+                onChange={handleScopeChange}
+                scopes={scopes}
+                allLabel={t('aiMemory.allScopes')}
+                className="w-[180px]"
+              />
               <Button variant="outline" size="sm" onClick={() => fetchEpisodes(episodePage)}><RefreshCw className="w-4 h-4 mr-1" />{t('common.refresh')}</Button>
             </div>
           </div>
@@ -1608,15 +1628,13 @@ export default function AIMemoryPage() {
               <Button variant="outline" size="sm" onClick={() => fetchEntities(1)}>{t('common.search')}</Button>
             </div>
             <div className="flex gap-2">
-              <Select value={selectedScope} onValueChange={handleScopeChange}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{t('aiMemory.allScopes')}</SelectItem>
-                  {scopes.map((s) => <SelectItem key={s.scope_key} value={s.scope_key}>{s.scope_key}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <ScopeSelector
+                value={selectedScope}
+                onChange={handleScopeChange}
+                scopes={scopes}
+                allLabel={t('aiMemory.allScopes')}
+                className="w-[180px]"
+              />
               <Button variant="outline" size="sm" onClick={() => { setEntityFilterSpeaker(entityFilterSpeaker === undefined ? true : entityFilterSpeaker === true ? false : undefined); fetchEntities(1); }}>
                 <Users className="w-4 h-4 mr-1" />
                 {entityFilterSpeaker === true ? t('aiMemory.speakersOnly') : entityFilterSpeaker === false ? t('aiMemory.nonSpeakersOnly') : t('aiMemory.allUsers')}
@@ -1657,15 +1675,13 @@ export default function AIMemoryPage() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <p className="text-sm text-muted-foreground">{t('aiMemory.edgeCount', { count: edges.length, total: totalEdges })}</p>
             <div className="flex gap-2">
-              <Select value={selectedScope} onValueChange={handleScopeChange}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{t('aiMemory.allScopes')}</SelectItem>
-                  {scopes.map((s) => <SelectItem key={s.scope_key} value={s.scope_key}>{s.scope_key}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <ScopeSelector
+                value={selectedScope}
+                onChange={handleScopeChange}
+                scopes={scopes}
+                allLabel={t('aiMemory.allScopes')}
+                className="w-[180px]"
+              />
               <Button variant="outline" size="sm" onClick={() => fetchEdges(edgePage)}><RefreshCw className="w-4 h-4 mr-1" />{t('common.refresh')}</Button>
             </div>
           </div>
@@ -1701,15 +1717,13 @@ export default function AIMemoryPage() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <p className="text-sm text-muted-foreground">{t('aiMemory.categoryCount', { count: categories.length, total: totalCategories })}</p>
             <div className="flex gap-2">
-              <Select value={selectedScope} onValueChange={handleScopeChange}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{t('aiMemory.allScopes')}</SelectItem>
-                  {scopes.map((s) => <SelectItem key={s.scope_key} value={s.scope_key}>{s.scope_key}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <ScopeSelector
+                value={selectedScope}
+                onChange={handleScopeChange}
+                scopes={scopes}
+                allLabel={t('aiMemory.allScopes')}
+                className="w-[180px]"
+              />
               <Button variant="outline" size="sm" onClick={() => fetchCategories(categoryPage)}><RefreshCw className="w-4 h-4 mr-1" />{t('common.refresh')}</Button>
             </div>
           </div>
@@ -1742,15 +1756,13 @@ export default function AIMemoryPage() {
               <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                 <div className="space-y-2">
                   <Label>Scope Key</Label>
-                  <Select value={selectedScope} onValueChange={handleScopeChange}>
-                    <SelectTrigger className="w-[260px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">请选择具体范围</SelectItem>
-                      {scopes.map((s) => <SelectItem key={s.scope_key} value={s.scope_key}>{s.scope_key}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
+                  <ScopeSelector
+                    value={selectedScope}
+                    onChange={handleScopeChange}
+                    scopes={scopes}
+                    allLabel="请选择具体范围"
+                    className="w-[260px]"
+                  />
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
                   <div className="flex items-center gap-2 rounded-md border border-border/50 px-3 py-2">

@@ -38,6 +38,7 @@ import module36 from './gitUpdate.json';
 import module37 from './aiMeme.json';
 import module38 from './home.json';
 import module39 from './aiCapabilityAgents.json';
+import module40 from './aiKanban.json';
 
 const locale = {
   "common": module0,
@@ -80,6 +81,7 @@ const locale = {
   "aiMeme": module37,
   "home": module38,
   "aiCapabilityAgents": module39,
+  "aiKanban": module40,
 } as const;
 
 export default locale;

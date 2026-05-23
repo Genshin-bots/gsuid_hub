@@ -25,6 +25,7 @@
   "systemPrompt": "System Prompt",
   "sessionManagement": "Session Management",
   "aiHistory": "AI Call History",
+  "aiKanban": "Task Kanban",
   "plugins": "Plugin Settings",
   "pluginStore": "Plugin Store",
   "gitUpdate": "Update Management",

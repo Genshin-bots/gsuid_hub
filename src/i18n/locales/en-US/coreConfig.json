@@ -18,5 +18,6 @@
   "dependency": "Plugin Dependencies",
   "dependencyDesc": "Configure automatic installation and update of plugin dependencies",
   "network": "Network Settings",
-  "networkDesc": "Configure network proxy and related settings"
+  "networkDesc": "Configure network proxy and related settings",
+  "buffered_user_writes": "Buffered User Writes"
 }

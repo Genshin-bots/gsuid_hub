@@ -121,7 +121,7 @@ export function InputWithDropdown({
         </div>
         {filteredOptions.length > 0 && (
           <div
-            className="max-h-[200px] overflow-y-auto border-t"
+            className="max-h-[360px] overflow-y-auto border-t"
             onWheel={(e) => e.stopPropagation()}
           >
             {filteredOptions.map((option) => (

@@ -18,5 +18,6 @@
   "dependency": "プラグイン依存",
   "dependencyDesc": "設定プラグイン依存の自動安装と更新",
   "network": "ネット設定",
-  "networkDesc": "設定ネットプロキシ等関連設定"
+  "networkDesc": "設定ネットプロキシ等関連設定",
+  "buffered_user_writes": "ユーザー情報のバッファ書き込み"
 }

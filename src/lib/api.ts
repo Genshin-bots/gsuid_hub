@@ -2340,9 +2340,23 @@ export const aiScheduledTasksApi = {
   updateTask: (taskId: string, data: UpdateScheduledTaskRequest) =>
     api.put<{ status: number; msg: string }>(`/api/ai/scheduled_tasks/${encodeURIComponent(taskId)}`, data),
 
-  // 删除任务
+  // 删除任务（软删除/取消）
   deleteTask: (taskId: string) =>
     api.delete<{ status: number; msg: string }>(`/api/ai/scheduled_tasks/${encodeURIComponent(taskId)}`),
+
+  // 硬删除任务（彻底移除）
+  hardDeleteTask: (taskId: string) =>
+    api.delete<{ task_id: string }>(`/api/ai/scheduled_tasks/${encodeURIComponent(taskId)}/hard`),
+
+  // 批量清空任务（硬删除）
+  clearTasks: (params: { confirm: true; user_id?: string; status?: string; task_type?: string }) => {
+    const query = new URLSearchParams();
+    query.set('confirm', String(params.confirm));
+    if (params.user_id) query.set('user_id', params.user_id);
+    if (params.status) query.set('status', params.status);
+    if (params.task_type) query.set('task_type', params.task_type);
+    return api.delete<{ deleted: number; matched: number }>(`/api/ai/scheduled_tasks?${query.toString()}`);
+  },
 
   // 暂停任务
   pauseTask: (taskId: string) =>
@@ -2967,47 +2981,6 @@ export interface AgentDebugMemoryConflict {
   created_at: string | null;
 }
 
-export interface AgentDebugTaskListItem {
-  id: string;
-  ordinal: number;
-  display_name: string;
-  goal: string;
-  status: string;
-  owner_user_id: string | null;
-  updated_at: string | null;
-}
-
-export interface AgentDebugTask {
-  id: string;
-  ordinal: number;
-  display_name: string;
-  goal: string;
-  status: string;
-  review_notes: string | null;
-  broadcast_targets: string[] | null;
-}
-
-export interface AgentDebugTaskStep {
-  id: string;
-  seq: number;
-  description: string;
-  status: string;
-  schedule_kind: string | null;
-  result_summary: string | null;
-}
-
-export interface AgentDebugTaskLog {
-  event_type: string;
-  content: string;
-  timestamp: string | null;
-}
-
-export interface AgentDebugTaskDetail {
-  task: AgentDebugTask;
-  steps: AgentDebugTaskStep[];
-  logs: AgentDebugTaskLog[];
-}
-
 export const agentDebugApi = {
   getMemoryEdges: (params: { scope_key: string; include_invalid?: boolean; limit?: number }) => {
     const query = new URLSearchParams();
@@ -3027,23 +3000,270 @@ export const agentDebugApi = {
     return api.get<AgentDebugMemoryConflict[]>(`/api/agent_debug/memory/conflicts?${query.toString()}`);
   },
 
-  getTasks: (params: { status?: string; limit?: number } = {}) => {
+};
+
+// ===================
+// AI Kanban API - /api/ai/kanban
+// ===================
+
+export type AIKanbanColumnKey = 'target' | 'progress' | 'Done' | 'Blocked' | 'failed';
+export type AIKanbanTaskKind = 'root' | 'subtask';
+
+export interface AIKanbanCard {
+  kind: AIKanbanTaskKind;
+  id: string;
+  root_task_id: string;
+  parent_task_id: string | null;
+  ordinal: number;
+  display: string;
+  goal: string;
+  status: string;
+  kanban_column: AIKanbanColumnKey;
+  agent_profile: string;
+  persona_name: string;
+  dependency_task_ids: string[];
+  not_before: string | null;
+  respawn_count: number;
+  failure_reason: string | null;
+  input_artifact_ids: string[];
+  output_artifact_id: string | null;
+  workspace_path: string;
+  subtask_count: number;
+  subtask_done_count: number;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface AIKanbanBoardSummary {
+  task_count: number;
+  subtask_count: number;
+  updated_at: string | null;
+}
+
+export interface AIKanbanBoardResponse {
+  columns: Record<AIKanbanColumnKey, AIKanbanCard[]>;
+  summary: AIKanbanBoardSummary;
+}
+
+export interface AIKanbanTaskLog {
+  event_type: string;
+  content: string;
+  timestamp: string | null;
+  step_id?: string | null;
+}
+
+export interface AIKanbanArtifactBrief {
+  id: string;
+  kind?: string;
+  artifact_kind?: string;
+  summary: string;
+  mime: string;
+  size_bytes: number;
+  from_profile: string;
+  created_at: string | null;
+}
+
+export interface AIKanbanTaskDetail {
+  task: AIKanbanCard;
+  root: AIKanbanCard;
+  subtasks: AIKanbanCard[];
+  logs: AIKanbanTaskLog[];
+  artifacts: AIKanbanArtifactBrief[];
+}
+
+export interface AIKanbanCreateSubtaskRequest {
+  description: string;
+  agent_profile: string;
+  depends_on: number[];
+}
+
+export interface AIKanbanCreateTaskRequest {
+  goal: string;
+  persona_name: string;
+  bot_id?: string;
+  owner_user_id?: string;
+  interval_hours?: number;
+  subtasks: AIKanbanCreateSubtaskRequest[];
+}
+
+export interface AIKanbanCreateTaskResponse {
+  task: AIKanbanCard;
+  subtasks: AIKanbanCard[];
+}
+
+export interface AIKanbanPatchSubtaskRequest {
+  display_name?: string;
+  goal?: string;
+  agent_profile?: string;
+  dependency_task_ids?: string[];
+  not_before?: string | null;
+  params_override?: Record<string, unknown>;
+}
+
+export interface AIKanbanCapabilityCandidate {
+  profile_id: string;
+  display_name: string;
+  when_to_use: string;
+  match_keywords: string[];
+  tool_names: string[];
+  source: string;
+}
+
+export interface AIKanbanCapabilityCandidatesResponse {
+  count: number;
+  items: AIKanbanCapabilityCandidate[];
+}
+
+export interface AIKanbanSuggestedSubtask {
+  description: string;
+  required_capability: string;
+  agent_profile: string;
+  depends_on: number[];
+  not_before: string | null;
+  params_hint: Record<string, unknown>;
+}
+
+export interface AIKanbanEvaluateMeshResponse {
+  covered: boolean;
+  missing_capabilities: string[];
+  available_profiles: string[];
+  suggested_subtasks: AIKanbanSuggestedSubtask[];
+  risk_notes: string[];
+  summary: string;
+  owner_user_id: string;
+  user_goal: string;
+  created_at: number;
+}
+
+export interface AIArtifactItem {
+  id: string;
+  root_task_id: string;
+  task_id: string;
+  parent_task_id: string | null;
+  from_profile: string;
+  artifact_kind: string;
+  mime: string;
+  summary: string;
+  size_bytes: number;
+  has_inline: boolean;
+  has_payload_path: boolean;
+  payload_path: string;
+  created_at: string | null;
+  expires_at: string | null;
+}
+
+export interface AIArtifactListResponse {
+  count: number;
+  items: AIArtifactItem[];
+}
+
+export interface AIArtifactDetail extends AIArtifactItem {
+  payload_preview: string;
+}
+
+export interface AIWorkspaceFile {
+  path: string;
+  size_bytes: number;
+  modified_at: string | null;
+}
+
+export interface AIWorkspaceFilesResponse {
+  workspace: string;
+  files: AIWorkspaceFile[];
+}
+
+export const aiKanbanApi = {
+  getBoard: (params: { scope_key?: string; bot_id?: string; group_id?: string; owner_user_id?: string; include_children?: boolean; status?: string } = {}) => {
     const query = new URLSearchParams();
+    if (params.scope_key) query.set('scope_key', params.scope_key);
+    if (params.bot_id) query.set('bot_id', params.bot_id);
+    if (params.group_id) query.set('group_id', params.group_id);
+    if (params.owner_user_id) query.set('owner_user_id', params.owner_user_id);
+    if (params.include_children !== undefined) query.set('include_children', String(params.include_children));
     if (params.status) query.set('status', params.status);
-    if (params.limit !== undefined) query.set('limit', String(params.limit));
     const queryStr = query.toString();
-    return api.get<AgentDebugTaskListItem[]>(`/api/agent_debug/tasks${queryStr ? `?${queryStr}` : ''}`);
+    return api.get<AIKanbanBoardResponse>(`/api/ai/kanban/board${queryStr ? `?${queryStr}` : ''}`);
   },
 
-  getTaskDetail: (taskId: string) =>
-    api.get<AgentDebugTaskDetail>(`/api/agent_debug/tasks/${encodeURIComponent(taskId)}`),
+  getTaskDetail: (taskId: string, logLimit = 200) =>
+    api.get<AIKanbanTaskDetail>(`/api/ai/kanban/tasks/${encodeURIComponent(taskId)}?log_limit=${logLimit}`),
 
-  updateTaskStep: (taskId: string, stepId: string, description: string) =>
-    api.post<{ step_id: string }>(`/api/agent_debug/tasks/${encodeURIComponent(taskId)}/step/${encodeURIComponent(stepId)}`, { description }),
+  createTaskTree: (data: AIKanbanCreateTaskRequest) =>
+    api.post<AIKanbanCreateTaskResponse>('/api/ai/kanban/tasks', data),
 
-  abortTask: (taskId: string) =>
-    api.post<{ task_id: string }>(`/api/agent_debug/tasks/${encodeURIComponent(taskId)}/abort`),
+  pauseTask: (taskId: string) =>
+    api.post<{ task_id: string }>(`/api/ai/kanban/tasks/${encodeURIComponent(taskId)}/pause`),
 
+  resumeTask: (taskId: string) =>
+    api.post<{ task_id: string }>(`/api/ai/kanban/tasks/${encodeURIComponent(taskId)}/resume`),
+
+  failTask: (taskId: string, data: { reason: string; cascade?: boolean }) =>
+    api.post<{ task_id: string }>(`/api/ai/kanban/tasks/${encodeURIComponent(taskId)}/fail`, data),
+
+  hardDeleteTask: (taskId: string, options?: { delete_files?: boolean; include_instances?: boolean }) => {
+    const query = new URLSearchParams();
+    if (options?.delete_files !== undefined) query.set('delete_files', String(options.delete_files));
+    if (options?.include_instances !== undefined) query.set('include_instances', String(options.include_instances));
+    const queryStr = query.toString();
+    return api.delete<{
+      tasks_deleted: number;
+      logs_deleted: number;
+      artifacts_deleted: number;
+      files_deleted: number;
+      dirs_deleted: number;
+      unscheduled_jobs: number;
+    }>(`/api/ai/kanban/tasks/${encodeURIComponent(taskId)}/hard${queryStr ? `?${queryStr}` : ''}`);
+  },
+
+  respawnSubtask: (taskId: string, data: { new_description?: string; new_params?: Record<string, unknown>; new_agent_profile?: string }) =>
+    api.post<{ task_id: string }>(`/api/ai/kanban/subtasks/${encodeURIComponent(taskId)}/respawn`, data),
+
+  approveSubtask: (taskId: string, data: { approved: boolean; note?: string }) =>
+    api.post<{ task_id: string }>(`/api/ai/kanban/subtasks/${encodeURIComponent(taskId)}/approve`, data),
+
+  patchSubtask: (taskId: string, data: AIKanbanPatchSubtaskRequest) =>
+    api.patch<AIKanbanCard>(`/api/ai/kanban/subtasks/${encodeURIComponent(taskId)}`, data),
+
+  getCandidates: () =>
+    api.get<AIKanbanCapabilityCandidatesResponse>('/api/ai/capability-agents/kanban-candidates'),
+
+  evaluateMesh: (data: { user_goal: string; owner_user_id?: string; persona_name?: string }) =>
+    api.post<AIKanbanEvaluateMeshResponse>('/api/ai/capability-agents/evaluate-mesh', data),
+
+  getArtifacts: (params: { root_task_id?: string; task_id?: string }) => {
+    const query = new URLSearchParams();
+    if (params.root_task_id) query.set('root_task_id', params.root_task_id);
+    if (params.task_id) query.set('task_id', params.task_id);
+    return api.get<AIArtifactListResponse>(`/api/ai/artifacts?${query.toString()}`);
+  },
+
+  getArtifactDetail: (resId: string) =>
+    api.get<AIArtifactDetail>(`/api/ai/artifacts/${encodeURIComponent(resId)}`),
+
+  deleteArtifact: (resId: string) =>
+    api.delete<{ id: string }>(`/api/ai/artifacts/${encodeURIComponent(resId)}`),
+
+  extendArtifactTtl: (resId: string, days = 30) =>
+    api.post<{ id: string }>(`/api/ai/artifacts/${encodeURIComponent(resId)}/extend-ttl?days=${days}`),
+
+  downloadArtifactRaw: (resId: string) =>
+    api.downloadBlob(`/api/ai/artifacts/${encodeURIComponent(resId)}/raw`),
+
+  getWorkspaceFiles: (taskId: string) =>
+    api.get<AIWorkspaceFilesResponse>(`/api/ai/kanban/tasks/${encodeURIComponent(taskId)}/workspace/files`),
+
+  downloadWorkspaceFile: (taskId: string, path: string) =>
+    api.downloadBlob(`/api/ai/kanban/tasks/${encodeURIComponent(taskId)}/workspace/files/raw?path=${encodeURIComponent(path)}`),
+
+  importWorkspaceFile: (taskId: string, file: File, subPath?: string) => {
+    const formData = new FormData();
+    formData.append('upload', file);
+    const query = subPath ? `?sub_path=${encodeURIComponent(subPath)}` : '';
+    return api.postFormData<{ task_id: string; path: string; size_bytes: number; artifact_ids: string[] }>(`/api/ai/kanban/tasks/${encodeURIComponent(taskId)}/workspace/import${query}`, formData);
+  },
+
+  submitPatch: (taskId: string, data: { patch_text: string; summary: string; mime?: string }) =>
+    api.post<{ artifact_id: string; warning: string }>(`/api/ai/kanban/tasks/${encodeURIComponent(taskId)}/workspace/apply-patch`, data),
 };
 
 // ===================

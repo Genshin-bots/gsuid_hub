@@ -25,7 +25,7 @@
   "systemPrompt": "提示词管理",
   "sessionManagement": "会话管理",
   "aiHistory": "AI 历史调用",
-  "aiLongTasks": "长任务看板",
+  "aiKanban": "任务看板",
   "plugins": "插件配置",
   "pluginStore": "插件商城",
   "gitUpdate": "更新管理",

@@ -1,0 +1,153 @@
+{
+  "title": "任务看板",
+  "description": "面向 v2 多代理任务树的 Kanban 编排视图，支持根任务与子任务流转、审批、Artifact 与 Workspace 审查。",
+  "refresh": "刷新",
+  "progress": "子任务进度",
+  "notBefore": "计划时间",
+  "emptyColumn": "暂无任务，拖拽卡片到此列可触发对应状态操作。",
+  "emptyPreview": "暂无预览内容",
+  "defaultFailReason": "由管理端在任务看板手动终结",
+  "kind": {
+    "root": "根任务",
+    "subtask": "子任务"
+  },
+  "columns": {
+    "target": "目标池",
+    "progress": "推进中",
+    "Done": "已完成",
+    "Blocked": "阻塞/待审",
+    "failed": "失败/终止"
+  },
+  "filters": {
+    "scopeKey": "作用域 scope_key",
+    "botId": "Bot ID",
+    "groupId": "群号 group_id",
+    "ownerUserId": "发起人 owner_user_id",
+    "allStatus": "全部状态",
+    "search": "搜索任务 / 画像 / 原因",
+    "includeChildren": "展开子任务",
+    "onlyRoot": "只看根任务"
+  },
+  "summary": {
+    "root": "根任务",
+    "subtask": "子任务"
+  },
+  "fields": {
+    "status": "状态",
+    "agent": "代理画像",
+    "workspace": "工作区"
+  },
+  "actions": {
+    "detail": "详情",
+    "pause": "暂停",
+    "resume": "恢复",
+    "respawn": "重派",
+    "approve": "审批通过",
+    "reject": "审批拒绝",
+    "fail": "终结",
+    "hardDelete": "硬删除",
+    "failReason": "终结原因",
+    "newDescription": "新的任务描述",
+    "newAgent": "新的代理画像",
+    "approvalNote": "审批备注",
+    "preview": "预览",
+    "collapse": "收起",
+    "download": "下载",
+    "deleteArtifact": "删除 Artifact"
+  },
+  "confirm": {
+    "pause": "确认暂停「{name}」？暂停后任务会进入阻塞列，等待人工恢复。",
+    "resume": "确认恢复「{name}」？恢复会触发一次根任务调度。",
+    "respawn": "确认重派「{name}」？第 3 次重派后后端可能强制转为待审批。",
+    "approve": "确认审批通过「{name}」并继续调度？",
+    "failRoot": "确认终结整棵任务树「{name}」？该操作不可逆，并会级联终止未完成子任务。",
+    "failSubtask": "确认终结子任务「{name}」？根任务不会自动级联失败。",
+    "hardDelete": "确认硬删除任务树「{name}」？此操作不可逆，会彻底删除数据库记录、日志、Artifact 及工作区文件。",
+    "deleteArtifact": "确认删除 Artifact {id}？关联落盘文件也会被清理。"
+  },
+  "detail": {
+    "title": "任务详情",
+    "description": "查看任务树、事件日志、产物和工作区文件。",
+    "subtasks": "子任务列表",
+    "logs": "事件日志",
+    "artifacts": "Artifact",
+    "workspace": "Workspace",
+    "rootInfo": "根任务 / 当前节点",
+    "noSubtasks": "暂无子任务",
+    "noLogs": "暂无事件日志",
+    "noArtifacts": "暂无 Artifact",
+    "selectTask": "请选择一个任务卡片查看详情"
+  },
+  "workspace": {
+    "title": "工作区文件",
+    "upload": "上传输入文件",
+    "patch": "提交 Patch",
+    "empty": "工作区暂无文件",
+    "patchWarning": "Patch 只会登记为 artifact 待人工审查，不会自动 git apply。workspace_violation 日志代表代理尝试越界写入，应重点关注。"
+  },
+  "create": {
+    "title": "创建任务树",
+    "description": "管理端直接创建任务树用于演示 / 调试；生产建议先走能力评估。",
+    "goal": "目标",
+    "persona": "人格",
+    "owner": "发起人",
+    "bot": "Bot ID",
+    "interval": "间隔小时",
+    "subtasks": "子任务",
+    "subtaskDescription": "子任务描述",
+    "agent": "代理画像",
+    "selectAgent": "选择代理画像",
+    "dependsOn": "依赖下标，如 0,1",
+    "submit": "创建并调度",
+    "guideTitle": "创建引导",
+    "guideGoal": "先写清楚最终目标，保持可验证、可交付。",
+    "guideSubtasks": "再拆成 1 个以上子任务，并为每个子任务指定代理画像。",
+    "guideDepends": "有先后顺序时填写依赖下标，例如子任务 2 依赖 0,1。",
+    "useEvaluator": "先让系统评估",
+    "basicInfo": "基础信息",
+    "goalPlaceholder": "例如：每天收集本周热点，生成摘要并产出周报海报",
+    "personaPlaceholder": "例如：早柚",
+    "ownerPlaceholder": "可选：发起人 ID",
+    "optionalPlaceholder": "可选",
+    "subtasksHint": "每张卡片代表一个可独立执行的步骤。",
+    "subtaskCard": "子任务 {index}",
+    "subtaskCardHint": "描述产出物，选择最适合的执行代理。",
+    "subtaskPlaceholder": "例如：检索最近 24 小时的热点并输出结构化摘要",
+    "dependsPlaceholder": "例如：0,1；不依赖则留空"
+  },
+  "evaluate": {
+    "title": "测试评估覆盖",
+    "description": "调用 capability_evaluator 评估当前目标是否可由现有代理画像覆盖，并生成建议子任务。",
+    "goalPlaceholder": "例如：帮我每天拉本周热点并生成周报海报",
+    "submit": "开始评估",
+    "useResult": "使用建议创建任务"
+  },
+  "patch": {
+    "title": "提交 Patch Artifact",
+    "description": "Patch 将进入 Artifact Hub 等待人工审查，不会自动应用到仓库。",
+    "summary": "Patch 摘要",
+    "defaultSummary": "管理端提交的 patch",
+    "submit": "提交 Patch"
+  },
+  "messages": {
+    "loadBoardFailed": "加载看板失败",
+    "loadDetailFailed": "加载任务详情失败",
+    "actionSuccess": "操作已提交",
+    "actionFailed": "操作失败",
+    "doneDropUnsupported": "已完成列由后端执行结果决定，不能手动拖入。",
+    "createValidation": "请填写目标、人格，并至少提供一个包含描述和代理画像的子任务。",
+    "createSuccess": "任务树已创建并触发调度",
+    "createFailed": "创建任务树失败",
+    "evaluateValidation": "请先填写评估目标。",
+    "evaluateSuccess": "能力评估完成",
+    "evaluateFailed": "能力评估失败",
+    "artifactPreviewFailed": "加载 Artifact 预览失败",
+    "artifactDeleted": "Artifact 已删除",
+    "fileTooLarge": "上传文件建议不超过 20MB。",
+    "uploadSuccess": "文件已上传到工作区",
+    "uploadFailed": "上传工作区文件失败",
+    "patchSubmitted": "Patch 已登记为 Artifact",
+    "patchFailed": "提交 Patch 失败",
+    "hardDeleteSuccess": "任务树已硬删除"
+  }
+}

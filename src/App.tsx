@@ -38,8 +38,8 @@ import AIMemePage from "@/pages/AIMemePage";
 import SystemPromptPage from "@/pages/SystemPromptPage";
 import SessionManagementPage from "@/pages/SessionManagementPage";
 import AIHistoryPage from "@/pages/AIHistoryPage";
-import AILongTasksPage from "@/pages/AILongTasksPage";
 import MCPConfigPage from "@/pages/MCPConfigPage";
+import AIKanbanPage from "@/pages/AIKanbanPage";
 import SettingsPage from "@/pages/SettingsPage";
 import NotFound from "@/pages/NotFound";
 
@@ -106,7 +106,7 @@ function AppRoutes() {
         <Route path="system-prompt" element={<SystemPromptPage />} />
         <Route path="session-management" element={<SessionManagementPage />} />
         <Route path="ai-history" element={<AIHistoryPage />} />
-        <Route path="ai-long-tasks" element={<AILongTasksPage />} />
+        <Route path="ai-kanban" element={<AIKanbanPage />} />
         <Route path="core-config" element={<CoreConfigPage />} />
         <Route path="database-config" element={<DatabaseConfigPage />} />
         <Route path="state-config" element={<StateConfigPage />} />
