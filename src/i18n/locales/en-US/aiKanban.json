@@ -1,6 +1,10 @@
 {
   "title": "Task Kanban",
   "description": "Kanban orchestration for v2 multi-agent task trees, with root/subtask flow, approvals, Artifact and Workspace review.",
+  "mode": {
+    "kanban": "Kanban",
+    "data": "Data"
+  },
   "refresh": "Refresh",
   "progress": "Subtask progress",
   "notBefore": "Not before",
@@ -159,5 +163,49 @@
     "hardDeleteSuccess": "Task tree hard deleted",
     "bulkDeleteSuccess": "Bulk delete completed: {deleted} succeeded, {failed} failed",
     "bulkDeleteFailed": "Bulk delete failed"
+  },
+  "stateStore": {
+    "title": "Persistent State Browser",
+    "selectScope": "Scope",
+    "selectScopePlaceholder": "Select scope",
+    "selectScopeHint": "Select a scope first to view its persistent state keys.",
+    "prefixFilter": "Prefix",
+    "includeExpired": "Include expired",
+    "refreshKeys": "Refresh",
+    "keyCount": "Keys",
+    "selectedCount": "Selected",
+    "selectAll": "Select all ({count})",
+    "deselectAll": "Deselect all",
+    "version": "Version",
+    "updated": "Updated",
+    "expires": "Expires",
+    "valuePreview": "Value preview",
+    "noValue": "Unable to get value",
+    "recordCollection": "Record collection",
+    "noRecords": "No records",
+    "prevPage": "Prev",
+    "nextPage": "Next",
+    "noKeys": "No keys under this scope",
+    "deleteTitle": "Confirm Delete State Entry",
+    "deleteDescription": "About to delete key \"{key}\" under scope \"{scope}\". Agent personas may depend on this state for business logic; deletion may cause re-initialization or errors.",
+    "deleteWarning": "Deletion is irreversible. Please confirm this state is indeed stale or obsolete.",
+    "deleteConfirm": "Confirm Delete",
+    "batchDelete": {
+      "button": "Batch Delete",
+      "title": "Confirm Batch Delete State Entries",
+      "description": "About to delete {count} state entries under scope \"{scope}\". Agent personas may depend on these states; deletion may cause re-initialization or errors.",
+      "warning": "Batch deletion is irreversible. Please review each entry before confirming.",
+      "confirm": "Delete {count} entries"
+    },
+    "messages": {
+      "loadScopesFailed": "Failed to load scope list",
+      "loadKeysFailed": "Failed to load keys list",
+      "loadValueFailed": "Failed to load value",
+      "loadRecordsFailed": "Failed to load record collection",
+      "deleteSuccess": "State entry deleted",
+      "deleteFailed": "Failed to delete state entry",
+      "batchDeleteSuccess": "Batch delete completed: {deleted} deleted, {notFound} not found",
+      "batchDeleteFailed": "Batch delete failed"
+    }
   }
 }

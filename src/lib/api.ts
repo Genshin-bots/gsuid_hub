@@ -3262,6 +3262,129 @@ export const aiKanbanApi = {
 };
 
 // ===================
+// AI State Store API - /api/ai/state-store
+// ===================
+
+export interface AIStateStoreScope {
+  scope: string;
+  key_count: number;
+}
+
+export interface AIStateStoreScopesResponse {
+  scopes: AIStateStoreScope[];
+  count: number;
+}
+
+export interface AIStateStoreKeyItem {
+  scope: string;
+  state_key: string;
+  version: number;
+  size_bytes: number;
+  created_at: string | null;
+  updated_at: string | null;
+  expire_at: string | null;
+  value_type: string; // dict / list / scalar / null / string
+  is_record_collection: boolean;
+  record_collection_name: string | null;
+}
+
+export interface AIStateStoreKeysResponse {
+  items: AIStateStoreKeyItem[];
+  count: number;
+}
+
+export interface AIStateStoreGetValueResponse {
+  scope: string;
+  state_key: string;
+  version: number;
+  size_bytes: number;
+  value_type: string;
+  is_record_collection: boolean;
+  value: unknown;
+}
+
+export interface AIStateStoreRecordItem {
+  _rid: string;
+  [key: string]: unknown;
+}
+
+export interface AIStateStoreRecordsResponse {
+  records: AIStateStoreRecordItem[];
+  total: number;
+  limit: number;
+  offset: number;
+  collection: string;
+  scope: string;
+  warning?: string;
+}
+
+export interface AIStateStoreDeleteResponse {
+  scope: string;
+  state_key: string;
+}
+
+export interface AIStateStoreBatchDeleteEntry {
+  scope: string;
+  state_key: string;
+  deleted: boolean;
+  reason: string | null;
+}
+
+export interface AIStateStoreBatchDeleteResponse {
+  requested_count: number;
+  deleted_count: number;
+  not_found_count: number;
+  results: AIStateStoreBatchDeleteEntry[];
+}
+
+export const aiStateStoreApi = {
+  // 列出所有 scope
+  getScopes: () =>
+    api.get<AIStateStoreScopesResponse>('/api/ai/state-store/scopes'),
+
+  // 列出某 scope 下的 keys
+  getKeys: (params: { scope: string; prefix?: string; include_expired?: boolean }) => {
+    const query = new URLSearchParams();
+    query.set('scope', params.scope);
+    if (params.prefix) query.set('prefix', params.prefix);
+    if (params.include_expired !== undefined) query.set('include_expired', String(params.include_expired));
+    return api.get<AIStateStoreKeysResponse>(`/api/ai/state-store/keys?${query.toString()}`);
+  },
+
+  // 取单条 (scope, state_key) 的完整 value
+  getValue: (params: { scope: string; state_key: string }) => {
+    const query = new URLSearchParams();
+    query.set('scope', params.scope);
+    query.set('state_key', params.state_key);
+    return api.get<AIStateStoreGetValueResponse>(`/api/ai/state-store/get?${query.toString()}`);
+  },
+
+  // record_* 集合分页展开
+  getRecords: (params: { scope: string; collection: string; limit?: number; offset?: number; where_field?: string; where_value?: string }) => {
+    const query = new URLSearchParams();
+    query.set('scope', params.scope);
+    query.set('collection', params.collection);
+    if (params.limit !== undefined) query.set('limit', String(params.limit));
+    if (params.offset !== undefined) query.set('offset', String(params.offset));
+    if (params.where_field) query.set('where_field', params.where_field);
+    if (params.where_value) query.set('where_value', params.where_value);
+    return api.get<AIStateStoreRecordsResponse>(`/api/ai/state-store/records?${query.toString()}`);
+  },
+
+  // 删除单条 (scope, state_key)
+  deleteEntry: (params: { scope: string; state_key: string }) => {
+    const query = new URLSearchParams();
+    query.set('scope', params.scope);
+    query.set('state_key', params.state_key);
+    return api.delete<AIStateStoreDeleteResponse>(`/api/ai/state-store/entry?${query.toString()}`);
+  },
+
+  // 批量删除（模式 A: entries 列表; 模式 B: scope + state_keys）
+  batchDeleteEntries: (params: { entries?: Array<{ scope: string; state_key: string }>; scope?: string; state_keys?: string[] }) =>
+    api.post<AIStateStoreBatchDeleteResponse>('/api/ai/state-store/entries/batch-delete', params),
+};
+
+// ===================
 // AI Wizard APIs
 // ===================
 

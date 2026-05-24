@@ -1,6 +1,10 @@
 {
   "title": "任务看板",
   "description": "面向 v2 多代理任务树的 Kanban 编排视图，支持根任务与子任务流转、审批、产物与工作区审查。",
+  "mode": {
+    "kanban": "看板模式",
+    "data": "数据模式"
+  },
   "refresh": "刷新",
   "progress": "子任务进度",
   "notBefore": "计划时间",
@@ -179,5 +183,49 @@
     "hardDeleteSuccess": "任务树已硬删除",
     "bulkDeleteSuccess": "批量删除完成：成功 {deleted} 棵，失败 {failed} 棵",
     "bulkDeleteFailed": "批量删除失败"
+  },
+  "stateStore": {
+    "title": "持久化状态浏览器",
+    "selectScope": "Scope",
+    "selectScopePlaceholder": "选择 scope",
+    "selectScopeHint": "请先选择一个 scope 以查看其下的持久化状态键。",
+    "prefixFilter": "前缀",
+    "includeExpired": "包含已过期",
+    "refreshKeys": "刷新",
+    "keyCount": "Keys",
+    "selectedCount": "已选",
+    "selectAll": "全选 ({count})",
+    "deselectAll": "取消全选",
+    "version": "版本",
+    "updated": "更新时间",
+    "expires": "过期时间",
+    "valuePreview": "值预览",
+    "noValue": "无法获取值",
+    "recordCollection": "记录集合",
+    "noRecords": "暂无记录",
+    "prevPage": "上一页",
+    "nextPage": "下一页",
+    "noKeys": "该 scope 下暂无 keys",
+    "deleteTitle": "确认删除状态条目",
+    "deleteDescription": "即将删除 scope「{scope}」下的 key「{key}」。代理人格可能依赖此状态做业务推进，删除后可能导致代理重新初始化或报错。",
+    "deleteWarning": "删除后不可恢复，请确认该状态确实是脏数据或已废弃。",
+    "deleteConfirm": "确认删除",
+    "batchDelete": {
+      "button": "批量删除",
+      "title": "确认批量删除状态条目",
+      "description": "即将删除 scope「{scope}」下的 {count} 个状态条目。代理人格可能依赖这些状态做业务推进，删除后可能导致代理重新初始化或报错。",
+      "warning": "批量删除不可恢复，请逐条复核后再确认。",
+      "confirm": "确认删除 {count} 条"
+    },
+    "messages": {
+      "loadScopesFailed": "加载 scope 列表失败",
+      "loadKeysFailed": "加载 keys 列表失败",
+      "loadValueFailed": "加载值失败",
+      "loadRecordsFailed": "加载记录集合失败",
+      "deleteSuccess": "状态条目已删除",
+      "deleteFailed": "删除状态条目失败",
+      "batchDeleteSuccess": "批量删除完成：成功 {deleted} 条，未找到 {notFound} 条",
+      "batchDeleteFailed": "批量删除失败"
+    }
   }
 }

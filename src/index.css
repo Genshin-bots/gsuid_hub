@@ -195,6 +195,31 @@ All colors MUST be HSL.
     inset 0 1px 0 hsl(var(--primary) / 0.08);
 }
 
+/* Flat glass card variant - no backdrop-filter or box-shadow (safe inside overflow containers) */
+.glass-card-flat {
+  background: hsl(var(--card) / 0.25) !important;
+  border: 1px solid hsl(var(--border) / 0.4);
+  min-width: 0;
+}
+
+[data-style="glassmorphism"] .glass-card-flat {
+  /* No backdrop-filter to avoid clipping in overflow containers */
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.dark .glass-card-flat {
+  background: hsl(var(--card) / 0.2) !important;
+  border: 1px solid hsl(var(--border) / 0.3);
+}
+
+[data-style="solid"] .glass-card-flat {
+  background: hsl(var(--card)) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid hsl(var(--border));
+}
+
 /* Solid style card - use opaque background instead of glass effect */
 [data-style="solid"] .glass-card {
   background: hsl(var(--card)) !important;

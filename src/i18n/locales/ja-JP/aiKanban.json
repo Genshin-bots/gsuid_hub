@@ -1,6 +1,10 @@
 {
   "title": "タスク看板",
   "description": "v2 マルチエージェントタスクツリー向け Kanban 編成ビュー。ルート/サブタスクの流転、承認、成果物とワークスペースレビューに対応します。",
+  "mode": {
+    "kanban": "看板モード",
+    "data": "データモード"
+  },
   "refresh": "更新",
   "progress": "サブタスク進捗",
   "notBefore": "予定時刻",
@@ -163,5 +167,49 @@
     "hardDeleteSuccess": "タスクツリーをハード削除しました",
     "bulkDeleteSuccess": "一括削除完了: 成功 {deleted} 件、失敗 {failed} 件",
     "bulkDeleteFailed": "一括削除に失敗しました"
+  },
+  "stateStore": {
+    "title": "永続状態ブラウザ",
+    "selectScope": "スコープ",
+    "selectScopePlaceholder": "スコープを選択",
+    "selectScopeHint": "スコープを選択すると、永続状態キーを表示できます。",
+    "prefixFilter": "プレフィックス",
+    "includeExpired": "期限切れを含む",
+    "refreshKeys": "更新",
+    "keyCount": "キー数",
+    "selectedCount": "選択中",
+    "selectAll": "全選択 ({count})",
+    "deselectAll": "全選択解除",
+    "version": "バージョン",
+    "updated": "更新日時",
+    "expires": "有効期限",
+    "valuePreview": "値プレビュー",
+    "noValue": "値を取得できません",
+    "recordCollection": "レコードコレクション",
+    "noRecords": "レコードはありません",
+    "prevPage": "前へ",
+    "nextPage": "次へ",
+    "noKeys": "このスコープにはキーがありません",
+    "deleteTitle": "状態エントリの削除確認",
+    "deleteDescription": "スコープ「{scope}」のキー「{key}」を削除します。エージェントペルソナはこの状態に依存している可能性があり、削除すると再初期化やエラーが発生する場合があります。",
+    "deleteWarning": "削除は取り消せません。この状態が古いデータまたは廃止済みであることを確認してください。",
+    "deleteConfirm": "削除を確認",
+    "batchDelete": {
+      "button": "一括削除",
+      "title": "状態エントリの一括削除確認",
+      "description": "スコープ「{scope}」の {count} 件の状態エントリを削除します。エージェントペルソナはこれらの状態に依存している可能性があり、削除すると再初期化やエラーが発生する場合があります。",
+      "warning": "一括削除は取り消せません。各エントリを確認してから実行してください。",
+      "confirm": "{count} 件を削除"
+    },
+    "messages": {
+      "loadScopesFailed": "スコープ一覧の読み込みに失敗しました",
+      "loadKeysFailed": "キー一覧の読み込みに失敗しました",
+      "loadValueFailed": "値の読み込みに失敗しました",
+      "loadRecordsFailed": "レコードコレクションの読み込みに失敗しました",
+      "deleteSuccess": "状態エントリを削除しました",
+      "deleteFailed": "状態エントリの削除に失敗しました",
+      "batchDeleteSuccess": "一括削除完了: {deleted} 件削除、{notFound} 件未検出",
+      "batchDeleteFailed": "一括削除に失敗しました"
+    }
   }
 }

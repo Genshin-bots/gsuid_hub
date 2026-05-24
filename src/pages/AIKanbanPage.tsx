@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   ClipboardList,
   Clock,
+  Database,
   Download,
   Eye,
   FileCode2,
@@ -56,6 +57,7 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
+import StateStoreViewer, { StateStoreViewerHandle } from '@/components/StateStoreViewer';
 
 const COLUMN_KEYS: AIKanbanColumnKey[] = ['target', 'progress', 'Done', 'Blocked', 'failed'];
 const ALL_VALUE = '__all__';
@@ -199,6 +201,9 @@ function logClass(eventType: string) {
 export default function AIKanbanPage() {
   const { t } = useLanguage();
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
+  const stateStoreRef = useRef<StateStoreViewerHandle>(null);
+  const [viewMode, setViewMode] = useState<'kanban' | 'data'>('kanban');
+  const [stateStoreSelectedCount, setStateStoreSelectedCount] = useState(0);
 
   const [board, setBoard] = useState<AIKanbanBoardResponse>({ columns: emptyColumns, summary: { task_count: 0, subtask_count: 0, updated_at: null } });
   const [candidates, setCandidates] = useState<AIKanbanCapabilityCandidate[]>([]);
@@ -689,18 +694,41 @@ export default function AIKanbanPage() {
             {t('aiKanban.title')}
           </h1>
           <p className="text-muted-foreground mt-1">{t('aiKanban.description')}</p>
+          <div className="mt-3">
+            <TabButtonGroup
+              value={viewMode}
+              onValueChange={(v) => setViewMode(v as 'kanban' | 'data')}
+              options={[
+                { value: 'kanban', label: t('aiKanban.mode.kanban'), icon: <ClipboardList className="h-4 w-4" /> },
+                { value: 'data', label: t('aiKanban.mode.data'), icon: <Database className="h-4 w-4" /> },
+              ]}
+            />
+          </div>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
-          <Button variant="outline" onClick={() => setEvaluateOpen(true)} className="w-full gap-2 sm:w-auto"><Sparkles className="h-4 w-4" />{t('aiKanban.evaluate.title')}</Button>
-          <Button variant="outline" onClick={() => setCreateOpen(true)} className="w-full gap-2 sm:w-auto"><Plus className="h-4 w-4" />{t('aiKanban.create.title')}</Button>
-          <Button variant="outline" onClick={openBulkDeleteConfirm} className="w-full gap-2 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive sm:w-auto"><Trash2 className="h-4 w-4" />{t('aiKanban.bulkDelete.button')}</Button>
-          <Button onClick={loadBoard} disabled={isLoadingBoard} className="w-full gap-2 sm:w-auto">
-            {isLoadingBoard ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-            {t('common.refresh') || t('aiKanban.refresh')}
-          </Button>
+          {viewMode === 'kanban' ? (
+            <>
+              <Button variant="outline" onClick={() => setEvaluateOpen(true)} className="w-full gap-2 sm:w-auto"><Sparkles className="h-4 w-4" />{t('aiKanban.evaluate.title')}</Button>
+              <Button variant="outline" onClick={() => setCreateOpen(true)} className="w-full gap-2 sm:w-auto"><Plus className="h-4 w-4" />{t('aiKanban.create.title')}</Button>
+              <Button variant="outline" onClick={openBulkDeleteConfirm} className="w-full gap-2 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive sm:w-auto"><Trash2 className="h-4 w-4" />{t('aiKanban.bulkDelete.button')}</Button>
+              <Button onClick={loadBoard} disabled={isLoadingBoard} className="w-full gap-2 sm:w-auto">
+                {isLoadingBoard ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                {t('common.refresh') || t('aiKanban.refresh')}
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button variant="outline" onClick={() => stateStoreRef.current?.openBatchDelete()} disabled={stateStoreSelectedCount === 0} className="w-full gap-2 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive sm:w-auto"><Trash2 className="h-4 w-4" />{t('aiKanban.stateStore.batchDelete.button')}</Button>
+              <Button onClick={() => stateStoreRef.current?.refresh()} className="w-full gap-2 sm:w-auto">
+                <RefreshCw className="h-4 w-4" />
+                {t('common.refresh') || t('aiKanban.refresh')}
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
+      {viewMode === 'kanban' && (
       <Card className="glass-card shrink-0">
         <CardContent className="p-4 space-y-4">
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-6">
@@ -733,7 +761,9 @@ export default function AIKanbanPage() {
           </div>
         </CardContent>
       </Card>
+      )}
 
+      {viewMode === 'kanban' && (
       <div className="min-h-0 flex-1 overflow-x-auto overflow-y-hidden pb-2">
         <div className="flex h-full min-w-max gap-4">
         {COLUMN_KEYS.map((column) => (
@@ -762,6 +792,13 @@ export default function AIKanbanPage() {
         ))}
         </div>
       </div>
+      )}
+
+      {viewMode === 'data' && (
+        <div className="min-h-0 flex-1">
+          <StateStoreViewer ref={stateStoreRef} onSelectionChange={setStateStoreSelectedCount} />
+        </div>
+      )}
 
       <Sheet open={!!selectedTaskId} onOpenChange={(open) => !open && setSelectedTaskId(null)}>
         <SheetContent overlayClassName="bg-white/80 dark:bg-black/80" className="flex w-full flex-col overflow-hidden bg-background/95 p-0 sm:max-w-[1100px] glass-card">
