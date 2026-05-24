@@ -18,7 +18,6 @@ import module16 from './aiKnowledge.json';
 import module17 from './aiMemory.json';
 import module18 from './aiHistory.json';
 import module19 from './tagsInput.json';
-import module20 from './systemPrompt.json';
 import module21 from './sessionManagement.json';
 import module22 from './plugins.json';
 import module23 from './pluginStore.json';
@@ -61,7 +60,6 @@ const locale = {
   "aiMemory": module17,
   "aiHistory": module18,
   "tagsInput": module19,
-  "systemPrompt": module20,
   "sessionManagement": module21,
   "plugins": module22,
   "pluginStore": module23,

@@ -1,12 +1,36 @@
 {
   "title": "任务看板",
-  "description": "面向 v2 多代理任务树的 Kanban 编排视图，支持根任务与子任务流转、审批、Artifact 与 Workspace 审查。",
+  "description": "面向 v2 多代理任务树的 Kanban 编排视图，支持根任务与子任务流转、审批、产物与工作区审查。",
   "refresh": "刷新",
   "progress": "子任务进度",
   "notBefore": "计划时间",
   "emptyColumn": "暂无任务，拖拽卡片到此列可触发对应状态操作。",
   "emptyPreview": "暂无预览内容",
   "defaultFailReason": "由管理端在任务看板手动终结",
+  "bulkDelete": {
+    "button": "批量删除",
+    "title": "批量硬删除任务",
+    "description": "请选择要删除的任务分类。该操作会按当前筛选条件预估数量，并在下一步再次确认。",
+    "category": "删除分类",
+    "continue": "继续确认",
+    "confirm": "确认批量删除",
+    "secondTitle": "二次确认批量删除",
+    "secondDescription": "即将删除「{category}」中的约 {roots} 棵任务树。",
+    "irreversible": "这是不可逆操作，将删除数据库记录、日志、产物与工作区文件。",
+    "preview": "预计影响 {roots} 棵任务树、{cards} 张当前看板卡片，其中包含 {subtasks} 个子任务卡片。",
+    "activeFilters": "当前附加筛选",
+    "noExtraFilters": "未设置作用域、Bot、群号或发起人筛选；将仅按分类状态删除。",
+    "categories": {
+      "all": "全部任务",
+      "completed": "已完成任务",
+      "failed": "失败任务",
+      "running": "推进中任务",
+      "pending": "待处理任务",
+      "paused": "已暂停任务",
+      "waiting_approval": "待审批任务",
+      "cancelled": "已取消任务"
+    }
+  },
   "kind": {
     "root": "根任务",
     "subtask": "子任务"
@@ -53,7 +77,7 @@
     "preview": "预览",
     "collapse": "收起",
     "download": "下载",
-    "deleteArtifact": "删除 Artifact"
+    "deleteArtifact": "删除产物"
   },
   "confirm": {
     "pause": "确认暂停「{name}」？暂停后任务会进入阻塞列，等待人工恢复。",
@@ -62,20 +86,20 @@
     "approve": "确认审批通过「{name}」并继续调度？",
     "failRoot": "确认终结整棵任务树「{name}」？该操作不可逆，并会级联终止未完成子任务。",
     "failSubtask": "确认终结子任务「{name}」？根任务不会自动级联失败。",
-    "hardDelete": "确认硬删除任务树「{name}」？此操作不可逆，会彻底删除数据库记录、日志、Artifact 及工作区文件。",
-    "deleteArtifact": "确认删除 Artifact {id}？关联落盘文件也会被清理。"
+    "hardDelete": "确认硬删除任务树「{name}」？此操作不可逆，会彻底删除数据库记录、日志、产物及工作区文件。",
+    "deleteArtifact": "确认删除产物 {id}？关联落盘文件也会被清理。"
   },
   "detail": {
     "title": "任务详情",
     "description": "查看任务树、事件日志、产物和工作区文件。",
     "subtasks": "子任务列表",
     "logs": "事件日志",
-    "artifacts": "Artifact",
-    "workspace": "Workspace",
+    "artifacts": "产物",
+    "workspace": "工作区",
     "rootInfo": "根任务 / 当前节点",
     "noSubtasks": "暂无子任务",
     "noLogs": "暂无事件日志",
-    "noArtifacts": "暂无 Artifact",
+    "noArtifacts": "暂无产物",
     "selectTask": "请选择一个任务卡片查看详情"
   },
   "workspace": {
@@ -83,7 +107,10 @@
     "upload": "上传输入文件",
     "patch": "提交 Patch",
     "empty": "工作区暂无文件",
-    "patchWarning": "Patch 只会登记为 artifact 待人工审查，不会自动 git apply。workspace_violation 日志代表代理尝试越界写入，应重点关注。"
+    "patchWarning": "Patch 只会登记为产物待人工审查，不会自动 git apply。workspace_violation 日志代表代理尝试越界写入，应重点关注。"
+  },
+  "preview": {
+    "unsupported": "该文件类型暂不支持在线预览，请下载后查看。"
   },
   "create": {
     "title": "创建任务树",
@@ -123,8 +150,8 @@
     "useResult": "使用建议创建任务"
   },
   "patch": {
-    "title": "提交 Patch Artifact",
-    "description": "Patch 将进入 Artifact Hub 等待人工审查，不会自动应用到仓库。",
+    "title": "提交 Patch 产物",
+    "description": "Patch 将进入产物中心等待人工审查，不会自动应用到仓库。",
     "summary": "Patch 摘要",
     "defaultSummary": "管理端提交的 patch",
     "submit": "提交 Patch"
@@ -141,13 +168,16 @@
     "evaluateValidation": "请先填写评估目标。",
     "evaluateSuccess": "能力评估完成",
     "evaluateFailed": "能力评估失败",
-    "artifactPreviewFailed": "加载 Artifact 预览失败",
-    "artifactDeleted": "Artifact 已删除",
+    "artifactPreviewFailed": "加载产物预览失败",
+    "workspacePreviewFailed": "加载工作区文件预览失败",
+    "artifactDeleted": "产物已删除",
     "fileTooLarge": "上传文件建议不超过 20MB。",
     "uploadSuccess": "文件已上传到工作区",
     "uploadFailed": "上传工作区文件失败",
-    "patchSubmitted": "Patch 已登记为 Artifact",
+    "patchSubmitted": "Patch 已登记为产物",
     "patchFailed": "提交 Patch 失败",
-    "hardDeleteSuccess": "任务树已硬删除"
+    "hardDeleteSuccess": "任务树已硬删除",
+    "bulkDeleteSuccess": "批量删除完成：成功 {deleted} 棵，失败 {failed} 棵",
+    "bulkDeleteFailed": "批量删除失败"
   }
 }

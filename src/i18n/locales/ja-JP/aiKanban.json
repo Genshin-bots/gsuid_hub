@@ -1,12 +1,36 @@
 {
   "title": "タスク看板",
-  "description": "v2 マルチエージェントタスクツリー向け Kanban 編成ビュー。ルート/サブタスクの流転、承認、Artifact と Workspace レビューに対応します。",
+  "description": "v2 マルチエージェントタスクツリー向け Kanban 編成ビュー。ルート/サブタスクの流転、承認、成果物とワークスペースレビューに対応します。",
   "refresh": "更新",
   "progress": "サブタスク進捗",
   "notBefore": "予定時刻",
   "emptyColumn": "タスクはありません。カードをここへドラッグすると対応する状態操作を実行します。",
   "emptyPreview": "プレビュー内容はありません",
   "defaultFailReason": "管理画面のタスク看板から手動終了",
+  "bulkDelete": {
+    "button": "一括削除",
+    "title": "タスクを一括ハード削除",
+    "description": "削除するタスク分類を選択してください。現在のフィルターで件数を見積もり、次の手順でもう一度確認します。",
+    "category": "削除分類",
+    "continue": "確認へ進む",
+    "confirm": "一括削除を確認",
+    "secondTitle": "一括削除の二次確認",
+    "secondDescription": "「{category}」内の約 {roots} 件のタスクツリーを削除します。",
+    "irreversible": "この操作は元に戻せず、データベース記録、ログ、成果物、ワークスペースファイルを削除します。",
+    "preview": "見積もり: {roots} 件のタスクツリー、{cards} 件の表示カード（うち {subtasks} 件はサブタスクカード）。",
+    "activeFilters": "現在の追加フィルター",
+    "noExtraFilters": "scope、Bot、グループ、作成者フィルターは未設定です。分類状態のみで削除します。",
+    "categories": {
+      "all": "すべてのタスク",
+      "completed": "完了タスク",
+      "failed": "失敗タスク",
+      "running": "進行中タスク",
+      "pending": "保留タスク",
+      "paused": "一時停止タスク",
+      "waiting_approval": "承認待ちタスク",
+      "cancelled": "キャンセル済みタスク"
+    }
+  },
   "kind": { "root": "ルート", "subtask": "サブタスク" },
   "columns": { "target": "目標", "progress": "進行中", "Done": "完了", "Blocked": "ブロック/承認待ち", "failed": "失敗/終了" },
   "filters": {
@@ -29,6 +53,7 @@
     "approve": "承認",
     "reject": "拒否",
     "fail": "終了",
+    "hardDelete": "ハード削除",
     "failReason": "終了理由",
     "newDescription": "新しい説明",
     "newAgent": "新しいエージェント",
@@ -36,7 +61,7 @@
     "preview": "プレビュー",
     "collapse": "折りたたむ",
     "download": "ダウンロード",
-    "deleteArtifact": "Artifact を削除"
+    "deleteArtifact": "成果物を削除"
   },
   "confirm": {
     "pause": "「{name}」を一時停止しますか？ブロック列に移動し、再開待ちになります。",
@@ -45,19 +70,20 @@
     "approve": "「{name}」を承認してスケジュールを続行しますか？",
     "failRoot": "タスクツリー「{name}」全体を終了しますか？未完了サブタスクに級連し、元に戻せません。",
     "failSubtask": "サブタスク「{name}」を終了しますか？ルートタスクは自動的に失敗しません。",
-    "deleteArtifact": "Artifact {id} を削除しますか？関連ファイルも削除されます。"
+    "hardDelete": "タスクツリー「{name}」をハード削除しますか？この操作は元に戻せず、データベース記録、ログ、成果物、ワークスペースファイルを完全に削除します。",
+    "deleteArtifact": "成果物 {id} を削除しますか？関連ファイルも削除されます。"
   },
   "detail": {
     "title": "タスク詳細",
     "description": "タスクツリー、イベントログ、成果物、ワークスペースファイルを確認します。",
     "subtasks": "サブタスク",
     "logs": "イベントログ",
-    "artifacts": "Artifact",
-    "workspace": "Workspace",
+    "artifacts": "成果物",
+    "workspace": "ワークスペース",
     "rootInfo": "ルート / 現在ノード",
     "noSubtasks": "サブタスクはありません",
     "noLogs": "イベントログはありません",
-    "noArtifacts": "Artifact はありません",
+    "noArtifacts": "成果物はありません",
     "selectTask": "タスクカードを選択して詳細を表示"
   },
   "workspace": {
@@ -65,7 +91,10 @@
     "upload": "入力ファイルをアップロード",
     "patch": "Patch を提出",
     "empty": "ワークスペースにファイルはありません",
-    "patchWarning": "Patch は人間レビュー用 Artifact として登録され、自動で git apply されません。workspace_violation ログは越境書き込みの試行を示します。"
+    "patchWarning": "Patch は人間レビュー用の成果物として登録され、自動で git apply されません。workspace_violation ログは越境書き込みの試行を示します。"
+  },
+  "preview": {
+    "unsupported": "このファイル形式はオンラインプレビューに対応していません。ダウンロードして確認してください。"
   },
   "create": {
     "title": "タスクツリー作成",
@@ -105,8 +134,8 @@
     "useResult": "提案を使用"
   },
   "patch": {
-    "title": "Patch Artifact 提出",
-    "description": "Patch は人間レビュー用に Artifact Hub に保存され、自動適用されません。",
+    "title": "Patch 成果物を提出",
+    "description": "Patch は人間レビュー用に成果物ハブへ保存され、自動適用されません。",
     "summary": "Patch 概要",
     "defaultSummary": "管理画面から提出された patch",
     "submit": "Patch を提出"
@@ -123,12 +152,16 @@
     "evaluateValidation": "先に評価目標を入力してください。",
     "evaluateSuccess": "能力評価が完了しました",
     "evaluateFailed": "能力評価に失敗しました",
-    "artifactPreviewFailed": "Artifact プレビューの読み込みに失敗しました",
-    "artifactDeleted": "Artifact を削除しました",
+    "artifactPreviewFailed": "成果物プレビューの読み込みに失敗しました",
+    "workspacePreviewFailed": "ワークスペースファイルプレビューの読み込みに失敗しました",
+    "artifactDeleted": "成果物を削除しました",
     "fileTooLarge": "アップロードは 20MB 以下を推奨します。",
     "uploadSuccess": "ファイルをワークスペースへアップロードしました",
     "uploadFailed": "ワークスペースファイルのアップロードに失敗しました",
-    "patchSubmitted": "Patch を Artifact として登録しました",
-    "patchFailed": "Patch 提出に失敗しました"
+    "patchSubmitted": "Patch を成果物として登録しました",
+    "patchFailed": "Patch 提出に失敗しました",
+    "hardDeleteSuccess": "タスクツリーをハード削除しました",
+    "bulkDeleteSuccess": "一括削除完了: 成功 {deleted} 件、失敗 {failed} 件",
+    "bulkDeleteFailed": "一括削除に失敗しました"
   }
 }

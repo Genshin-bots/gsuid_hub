@@ -4,7 +4,8 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { ChevronDown } from 'lucide-react';
+import { Check, ChevronDown, Copy } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 // ============================================================================
 // 类型定义
@@ -27,6 +28,14 @@ export interface InputWithDropdownProps {
   className?: string;
   /** Popover 宽度，默认 400px */
   popoverWidth?: string;
+  /** 是否在弹出层显示当前值复制入口 */
+  showCopyValueAction?: boolean;
+  /** 复制按钮文案 */
+  copyValueLabel?: string;
+  /** 已复制按钮文案 */
+  copiedValueLabel?: string;
+  /** 无内容可复制时的文案 */
+  copyEmptyLabel?: string;
 }
 
 // ============================================================================
@@ -42,18 +51,37 @@ export function InputWithDropdown({
   disabled = false,
   className,
   popoverWidth = 'w-[400px]',
+  showCopyValueAction = true,
+  copyValueLabel,
+  copiedValueLabel,
+  copyEmptyLabel,
 }: InputWithDropdownProps) {
+  const { t } = useLanguage();
   // 搜索输入值（独立于选中值）
   const [searchValue, setSearchValue] = useState('');
+  const [isCopied, setIsCopied] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const copyTimerRef = useRef<number | null>(null);
+  const resolvedCopyValueLabel = copyValueLabel ?? t('common.copyCurrentValue');
+  const resolvedCopiedValueLabel = copiedValueLabel ?? t('common.copiedCurrentValue');
+  const resolvedCopyEmptyLabel = copyEmptyLabel ?? t('common.copyEmptyValue');
 
   // Popover 打开时重置搜索值
   const [open, setOpen] = useState(false);
   useEffect(() => {
     if (!open) {
       setSearchValue('');
+      setIsCopied(false);
     }
   }, [open]);
+
+  useEffect(() => {
+    return () => {
+      if (copyTimerRef.current) {
+        window.clearTimeout(copyTimerRef.current);
+      }
+    };
+  }, []);
 
   // 根据搜索值筛选列表
   const filteredOptions = useMemo(() => {
@@ -69,6 +97,39 @@ export function InputWithDropdown({
       inputRef.current?.focus();
     });
   }, []);
+
+  const copyTextToClipboard = useCallback(async (text: string) => {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      return;
+    }
+
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.left = '-9999px';
+    textarea.style.top = '-9999px';
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+    const success = document.execCommand('copy');
+    document.body.removeChild(textarea);
+    if (!success) {
+      throw new Error('execCommand copy failed');
+    }
+  }, []);
+
+  const handleCopyValue = useCallback(async () => {
+    const text = value.trim();
+    if (!text) return;
+
+    await copyTextToClipboard(text);
+    setIsCopied(true);
+    if (copyTimerRef.current) {
+      window.clearTimeout(copyTimerRef.current);
+    }
+    copyTimerRef.current = window.setTimeout(() => setIsCopied(false), 1500);
+  }, [copyTextToClipboard, value]);
 
   const handleCommitInput = useCallback(() => {
     const nextValue = searchValue.trim();
@@ -109,7 +170,22 @@ export function InputWithDropdown({
         onOpenAutoFocus={handleOpenAutoFocus}
         onWheel={(e) => e.stopPropagation()}
       >
-        <div className="p-2">
+        <div className="space-y-2 p-2">
+          {showCopyValueAction && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-8 w-full justify-start gap-2 px-2 text-xs"
+              disabled={!value.trim()}
+              onClick={handleCopyValue}
+            >
+              {isCopied ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
+              <span className="truncate">
+                {value.trim() ? (isCopied ? resolvedCopiedValueLabel : resolvedCopyValueLabel) : resolvedCopyEmptyLabel}
+              </span>
+            </Button>
+          )}
           <Input
             ref={inputRef}
             value={searchValue}

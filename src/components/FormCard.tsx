@@ -9,8 +9,6 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { cn } from '@/lib/utils';
 import { TagsInput } from '@/components/config/TagsInput';
 import {
-  FileText,
-  MessageSquare,
   Tag,
   AlignLeft,
   BookOpen,
@@ -58,32 +56,8 @@ export const knowledgeFormSections: FormSection[] = [
   },
 ];
 
-// 提示词管理表单字段配置
-export const systemPromptFormSections: FormSection[] = [
-  {
-    fields: [
-      { key: 'title', label: 'systemPrompt.titleField', icon: MessageSquare, required: true, type: 'input', placeholder: 'systemPrompt.titlePlaceholder' },
-    ]
-  },
-  {
-    fields: [
-      { key: 'desc', label: 'systemPrompt.descField', icon: FileText, type: 'input', placeholder: 'systemPrompt.descPlaceholder', helpText: 'systemPrompt.descHelp' },
-    ]
-  },
-  {
-    fields: [
-      { key: 'tags', label: 'systemPrompt.tagsField', icon: Tag, type: 'tags', placeholder: 'systemPrompt.tagsPlaceholder', helpText: 'systemPrompt.tagsHelp' },
-    ]
-  },
-  {
-    fields: [
-      { key: 'content', label: 'systemPrompt.contentField', icon: AlignLeft, required: true, type: 'textarea', placeholder: 'systemPrompt.contentPlaceholder', rows: 10 },
-    ]
-  },
-];
-
 interface FormCardProps {
-  type: 'knowledge' | 'systemPrompt';
+  type: 'knowledge';
   mode: 'edit' | 'view';
   data: Record<string, any>;
   onChange?: (key: string, value: any) => void;
@@ -92,14 +66,12 @@ interface FormCardProps {
 
 export function FormCard({ type, mode, data, onChange, showId = false }: FormCardProps) {
   const { t } = useLanguage();
-  const allSections = type === 'knowledge' ? knowledgeFormSections : systemPromptFormSections;
+  const allSections = knowledgeFormSections;
   // 根据 showId 过滤 sections
   const sections = allSections.map(section => ({
     ...section,
     fields: section.fields.filter(f => f.key !== 'id' || showId)
   }));
-  const icon = type === 'knowledge' ? BookOpen : MessageSquare;
-
   const renderField = (field: FormField, value: any, dataId?: string) => {
     const handleChange = (newValue: any) => {
       if (onChange) {
@@ -219,12 +191,12 @@ export function FormCard({ type, mode, data, onChange, showId = false }: FormCar
 // 详情 Dialog 头部组件
 interface DetailHeaderProps {
   title: string;
-  type: 'knowledge' | 'systemPrompt';
+  type: 'knowledge';
   subtitle?: string;
 }
 
 export function DetailHeader({ title, type, subtitle }: DetailHeaderProps) {
-  const icon = type === 'knowledge' ? BookOpen : MessageSquare;
+  const icon = BookOpen;
 
   return (
     <div className="space-y-2">

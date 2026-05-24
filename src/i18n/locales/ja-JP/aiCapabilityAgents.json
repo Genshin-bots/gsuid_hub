@@ -14,7 +14,7 @@
   "deleteSuccess": "能力エージェントを削除しました",
   "deleting": "削除中...",
   "noUsage": "使用場面が未設定です",
-  "toolCount": "{{count}} 個のツール",
+  "toolCount": "{count} 個のツール",
   "sources": {
     "builtin": "内蔵 builtin",
     "plugin": "プラグイン plugin",
@@ -25,7 +25,7 @@
     "editTitle": "能力エージェントプロファイルを編集",
     "viewTitle": "能力エージェントプロファイルを表示",
     "description": "プロファイルは中立的なプロンプト、ツール許可リスト、マッチキーワードで構成され、人格や社交属性は含みません。",
-    "baseDesc": "{{base}} をテンプレートとして使用しています。作成時の空欄はバックエンドでコピーできます。"
+    "baseDesc": "{base} をテンプレートとして使用しています。作成時の空欄はバックエンドでコピーできます。"
   },
   "fields": {
     "profileId": "Profile ID",
@@ -67,6 +67,6 @@
   },
   "deleteDialog": {
     "title": "能力エージェントを削除",
-    "description": "「{{name}}」のディスクファイルとメモリ登録情報を削除します。この操作は元に戻せません。"
+    "description": "「{name}」のディスクファイルとメモリ登録情報を削除します。この操作は元に戻せません。"
   }
 }

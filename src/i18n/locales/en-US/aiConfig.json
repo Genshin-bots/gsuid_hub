@@ -137,6 +137,8 @@
     "configManagement": "Configuration Management",
     "configManagementDesc": "Manage AI model configuration files",
     "baseUrlRequired": "Please enter API Base URL",
+    "baseUrlTrailingSlashWarning": "API Base URL must not end with /. Please remove the trailing slash",
+    "fetchingModels": "Fetching model list...",
     "modelRequired": "Please enter model name",
     "apiKeyRequired": "Please enter at least one API Key"
   },

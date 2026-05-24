@@ -44,5 +44,8 @@
   "page": "页",
   "of": "/",
   "totalRecords": "共 {total} 条记录",
-  "pageInfo": "第 {current} / {total} 页"
+  "pageInfo": "第 {current} / {total} 页",
+  "copyCurrentValue": "复制当前输入内容",
+  "copiedCurrentValue": "已复制当前输入内容",
+  "copyEmptyValue": "暂无内容可复制"
 }

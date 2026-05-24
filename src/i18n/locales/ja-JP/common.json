@@ -44,5 +44,8 @@
   "page": "ページ",
   "of": "/",
   "totalRecords": "全 {total} 件",
-  "pageInfo": "{current} / {total} ページ"
+  "pageInfo": "{current} / {total} ページ",
+  "copyCurrentValue": "現在の入力内容をコピー",
+  "copiedCurrentValue": "現在の入力内容をコピーしました",
+  "copyEmptyValue": "コピーできる内容がありません"
 }

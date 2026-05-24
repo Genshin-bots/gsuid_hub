@@ -7,6 +7,30 @@
   "emptyColumn": "No tasks. Drag cards here to trigger the matching status action.",
   "emptyPreview": "No preview content",
   "defaultFailReason": "Manually terminated from the admin Kanban board",
+  "bulkDelete": {
+    "button": "Bulk Delete",
+    "title": "Bulk Hard Delete Tasks",
+    "description": "Choose which task category to delete. The current filters are used for preview, then a second confirmation is required.",
+    "category": "Delete category",
+    "continue": "Continue",
+    "confirm": "Confirm Bulk Delete",
+    "secondTitle": "Second Confirmation",
+    "secondDescription": "About to delete around {roots} task trees in \"{category}\".",
+    "irreversible": "This is irreversible and removes database records, logs, artifacts and workspace files.",
+    "preview": "Estimated impact: {roots} task trees, {cards} visible board cards, including {subtasks} subtask cards.",
+    "activeFilters": "Active extra filters",
+    "noExtraFilters": "No scope, bot, group or owner filters are set; deletion will be limited by category status only.",
+    "categories": {
+      "all": "All tasks",
+      "completed": "Completed tasks",
+      "failed": "Failed tasks",
+      "running": "Running tasks",
+      "pending": "Pending tasks",
+      "paused": "Paused tasks",
+      "waiting_approval": "Waiting approval tasks",
+      "cancelled": "Cancelled tasks"
+    }
+  },
   "kind": { "root": "Root", "subtask": "Subtask" },
   "columns": { "target": "Target", "progress": "In Progress", "Done": "Done", "Blocked": "Blocked / Approval", "failed": "Failed / Cancelled" },
   "filters": {
@@ -132,6 +156,8 @@
     "uploadFailed": "Failed to upload workspace file",
     "patchSubmitted": "Patch registered as Artifact",
     "patchFailed": "Failed to submit patch",
-    "hardDeleteSuccess": "Task tree hard deleted"
+    "hardDeleteSuccess": "Task tree hard deleted",
+    "bulkDeleteSuccess": "Bulk delete completed: {deleted} succeeded, {failed} failed",
+    "bulkDeleteFailed": "Bulk delete failed"
   }
 }

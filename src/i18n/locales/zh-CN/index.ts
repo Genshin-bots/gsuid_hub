@@ -14,7 +14,6 @@ import module12 from './aiTools.json';
 import module13 from './aiSkills.json';
 import module14 from './aiScheduledTasks.json';
 import module15 from './aiStatistics.json';
-import module16 from './systemPrompt.json';
 import module17 from './aiKnowledge.json';
 import module18 from './aiMemory.json';
 import module19 from './aiHistory.json';
@@ -57,7 +56,6 @@ const locale = {
   "aiSkills": module13,
   "aiScheduledTasks": module14,
   "aiStatistics": module15,
-  "systemPrompt": module16,
   "aiKnowledge": module17,
   "aiMemory": module18,
   "aiHistory": module19,

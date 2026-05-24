@@ -137,6 +137,8 @@
     "configManagement": "設定ファイル管理",
     "configManagementDesc": "管理AIモデル設定ファイル",
     "baseUrlRequired": "入力API Base URL",
+    "baseUrlTrailingSlashWarning": "API Base URL は / で終わることはできません。末尾のスラッシュを削除してください",
+    "fetchingModels": "モデル一覧を取得中...",
     "modelRequired": "入力モデル名前",
     "apiKeyRequired": "入力至少1つのAPI Key"
   },

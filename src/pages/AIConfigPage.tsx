@@ -278,6 +278,10 @@ export default function AIConfigPage() {
   const [newConfigApiKeys, setNewConfigApiKeys] = useState<string[]>([]);
   const [newConfigEmbeddingModel, setNewConfigEmbeddingModel] = useState('text-embedding-3-small');
   const [newConfigModelSupport, setNewConfigModelSupport] = useState<string[]>(['text']);
+  const [newConfigFetchedModels, setNewConfigFetchedModels] = useState<string[]>([]);
+  const [editConfigFetchedModels, setEditConfigFetchedModels] = useState<string[]>([]);
+  const [isFetchingNewConfigModels, setIsFetchingNewConfigModels] = useState(false);
+  const [isFetchingEditConfigModels, setIsFetchingEditConfigModels] = useState(false);
 
   // Track original state
   const [originalConfig, setOriginalConfig] = useState<Record<string, any>>({});
@@ -297,6 +301,44 @@ export default function AIConfigPage() {
   const [isWizardLoading, setIsWizardLoading] = useState(false);
   const [wizardStatus, setWizardStatus] = useState<AIWizardStatusResponse | null>(null);
 
+  const baseUrlHasTrailingSlash = useCallback((baseUrl: string) => baseUrl.trim().endsWith('/'), []);
+
+  const getFirstApiKey = useCallback((apiKeys: string[]) => {
+    return apiKeys.find((key) => key.trim())?.trim() || '';
+  }, []);
+
+  const mergeModelOptions = useCallback((fetchedModels: string[], defaultModels: string[] = []) => {
+    return Array.from(new Set([...fetchedModels, ...defaultModels].filter(Boolean)));
+  }, []);
+
+  const fetchProviderModels = useCallback(async (
+    provider: string,
+    baseUrl: string,
+    apiKeys: string[],
+    onSuccess: (models: string[]) => void,
+    setLoading: (loading: boolean) => void,
+  ) => {
+    const trimmedBaseUrl = baseUrl.trim();
+    const apiKey = getFirstApiKey(apiKeys);
+    if (!trimmedBaseUrl || !apiKey || baseUrlHasTrailingSlash(trimmedBaseUrl)) {
+      onSuccess([]);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const models = provider === 'anthropic'
+        ? await providerConfigApi.fetchAnthropicModels(trimmedBaseUrl, apiKey)
+        : await providerConfigApi.fetchOpenAIModels(trimmedBaseUrl, apiKey);
+      onSuccess(models);
+    } catch (error) {
+      console.error(`Failed to fetch ${provider} models:`, error);
+      onSuccess([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [baseUrlHasTrailingSlash, getFirstApiKey]);
+
   // ============================================================================
   // Data Fetching
   // ============================================================================
@@ -310,6 +352,36 @@ export default function AIConfigPage() {
       setProviderConfigOptions(null);
     }
   }, []);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      fetchProviderModels(
+        newConfigProvider,
+        newConfigBaseUrl,
+        newConfigApiKeys,
+        setNewConfigFetchedModels,
+        setIsFetchingNewConfigModels,
+      );
+    }, 500);
+    return () => window.clearTimeout(timeout);
+  }, [fetchProviderModels, newConfigProvider, newConfigBaseUrl, newConfigApiKeys]);
+
+  useEffect(() => {
+    if (!openaiConfigData) {
+      setEditConfigFetchedModels([]);
+      return;
+    }
+    const timeout = window.setTimeout(() => {
+      fetchProviderModels(
+        editingConfigProvider,
+        openaiConfigData.base_url,
+        openaiConfigData.api_key || [],
+        setEditConfigFetchedModels,
+        setIsFetchingEditConfigModels,
+      );
+    }, 500);
+    return () => window.clearTimeout(timeout);
+  }, [fetchProviderModels, editingConfigProvider, openaiConfigData?.base_url, openaiConfigData?.api_key]);
 
   const fetchConfigDetailForEdit = useCallback(async (provider: string, configName: string) => {
     try {
@@ -644,6 +716,7 @@ export default function AIConfigPage() {
     setNewConfigApiKeys([]);
     setNewConfigEmbeddingModel('text-embedding-3-small');
     setNewConfigModelSupport(['text']);
+    setNewConfigFetchedModels([]);
   };
 
   const updateOpenaiConfigField = useCallback((field: keyof OpenAIConfigData, value: string | string[]) => {
@@ -1990,21 +2063,31 @@ export default function AIConfigPage() {
                 options={providerConfigOptions?.options?.base_url || []}
                 placeholder="选择或输入 API Base URL"
                 inputPlaceholder="https://api.openai.com/v1"
+                className={baseUrlHasTrailingSlash(newConfigBaseUrl) ? 'border-red-500 text-red-600 dark:text-red-400' : undefined}
               />
-            </div>
-            <div className="space-y-2">
-              <Label>{t('aiConfig.serviceProvider.apiModel')}</Label>
-              <InputWithDropdown
-                value={newConfigModel}
-                onChange={setNewConfigModel}
-                options={providerConfigOptions?.options?.model_name || []}
-                placeholder="选择或输入模型名称"
-                inputPlaceholder="gpt-4o-mini"
-              />
+              {baseUrlHasTrailingSlash(newConfigBaseUrl) && (
+                <p className="text-xs text-red-600 dark:text-red-400 flex items-center gap-1">
+                  <AlertTriangle className="w-3.5 h-3.5" />
+                  {t('aiConfig.openaiConfig.baseUrlTrailingSlashWarning')}
+                </p>
+              )}
             </div>
             <div className="space-y-2">
               <Label>{t('aiConfig.serviceProvider.apiKey')}</Label>
               <ConfigField fieldKey="api_key" field={{ type: 'tags', label: 'api_key', value: newConfigApiKeys, placeholder: '输入API密钥（支持多个）', description: '' }} showLabel={false} onChange={(k, v) => setNewConfigApiKeys(v as string[])} />
+            </div>
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                {t('aiConfig.serviceProvider.apiModel')}
+                {isFetchingNewConfigModels && <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />}
+              </Label>
+              <InputWithDropdown
+                value={newConfigModel}
+                onChange={setNewConfigModel}
+                options={mergeModelOptions(newConfigFetchedModels, providerConfigOptions?.options?.model_name || [])}
+                placeholder={isFetchingNewConfigModels ? t('aiConfig.openaiConfig.fetchingModels') : '选择或输入模型名称'}
+                inputPlaceholder="gpt-4o-mini"
+              />
             </div>
             <div className="space-y-2">
               <Label>{t('aiConfig.serviceProvider.modelCapabilities')}</Label>
@@ -2055,21 +2138,31 @@ export default function AIConfigPage() {
                   options={providerConfigOptions?.options?.base_url || []}
                   placeholder="选择或输入 API Base URL"
                   inputPlaceholder="输入或选择 API Base URL"
+                  className={baseUrlHasTrailingSlash(openaiConfigData.base_url) ? 'border-red-500 text-red-600 dark:text-red-400' : undefined}
                 />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-sm flex items-center gap-2"><Cpu className="w-4 h-4" />{t('aiConfig.serviceProvider.apiModel')}</Label>
-                <InputWithDropdown
-                  value={openaiConfigData.model_name}
-                  onChange={(val) => updateOpenaiConfigField('model_name', val)}
-                  options={providerConfigOptions?.options?.model_name || []}
-                  placeholder="选择或输入模型名称"
-                  inputPlaceholder="输入或选择模型名称"
-                />
+                {baseUrlHasTrailingSlash(openaiConfigData.base_url) && (
+                  <p className="text-xs text-red-600 dark:text-red-400 flex items-center gap-1">
+                    <AlertTriangle className="w-3.5 h-3.5" />
+                    {t('aiConfig.openaiConfig.baseUrlTrailingSlashWarning')}
+                  </p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label className="text-sm flex items-center gap-2"><Key className="w-4 h-4" />{t('aiConfig.serviceProvider.apiKey')}</Label>
                 <ConfigField fieldKey="api_key" field={{ type: 'tags', label: 'api_key', value: openaiConfigData.api_key || [], placeholder: '输入API密钥（支持多个）', description: '' }} showLabel={false} onChange={(k, v) => updateOpenaiConfigField('api_key', v as string[])} />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm flex items-center gap-2">
+                  <Cpu className="w-4 h-4" />{t('aiConfig.serviceProvider.apiModel')}
+                  {isFetchingEditConfigModels && <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />}
+                </Label>
+                <InputWithDropdown
+                  value={openaiConfigData.model_name}
+                  onChange={(val) => updateOpenaiConfigField('model_name', val)}
+                  options={mergeModelOptions(editConfigFetchedModels, providerConfigOptions?.options?.model_name || [])}
+                  placeholder={isFetchingEditConfigModels ? t('aiConfig.openaiConfig.fetchingModels') : '选择或输入模型名称'}
+                  inputPlaceholder="输入或选择模型名称"
+                />
               </div>
               <div className="space-y-2">
                 <Label className="text-sm flex items-center gap-2"><Sparkles className="w-4 h-4" />{t('aiConfig.serviceProvider.modelCapabilities')}</Label>

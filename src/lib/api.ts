@@ -974,6 +974,43 @@ export const providerConfigApi = {
       `/api/provider_config/task_config/low`,
       { config_name: configName, provider }
     ),
+
+  // 获取模型列表（OpenAI 兼容格式）
+  fetchOpenAIModels: async (baseUrl: string, apiKey: string): Promise<string[]> => {
+    const url = baseUrl.endsWith('/') ? `${baseUrl}models` : `${baseUrl}/models`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to fetch models: HTTP ${response.status}`);
+    }
+    const data = await response.json();
+    const models = (data.data || []) as Array<{ id?: string; name?: string }>;
+    return models.map((m) => m.id || m.name || '').filter(Boolean);
+  },
+
+  // 获取模型列表（Anthropic 格式）
+  fetchAnthropicModels: async (baseUrl: string, apiKey: string): Promise<string[]> => {
+    const url = baseUrl.endsWith('/') ? `${baseUrl}models` : `${baseUrl}/models`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'Content-Type': 'application/json',
+      },
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to fetch models: HTTP ${response.status}`);
+    }
+    const data = await response.json();
+    const models = (data.data || []) as Array<{ id?: string; name?: string }>;
+    return models.map((m) => m.id || m.name || '').filter(Boolean);
+  },
 };
 
 // ===================
@@ -2188,84 +2225,6 @@ export const historyApi = {
 };
 
 // ===================
-// System Prompt API - /api/ai/system_prompt
-// ===================
-
-export interface SystemPromptItem {
-  id: string;
-  title: string;
-  desc: string;
-  content: string;
-  tags: string[];
-}
-
-export interface SystemPromptListResponse {
-  list: SystemPromptItem[];
-  total: number;
-  offset: number;
-  limit: number;
-  page: number;
-  page_size: number;
-}
-
-export interface SystemPromptSearchResponse {
-  results: SystemPromptItem[];
-  count: number;
-  query: string;
-}
-
-export interface SystemPromptCreateRequest {
-  title: string;
-  desc: string;
-  content: string;
-  tags: string[];
-}
-
-export interface SystemPromptUpdateRequest {
-  title?: string;
-  desc?: string;
-  content?: string;
-  tags?: string[];
-}
-
-export const systemPromptApi = {
-  // 获取System Prompt列表（分页）
-  getSystemPromptList: (params: { offset?: number; limit?: number; page?: number } = {}) => {
-    const query = new URLSearchParams();
-    if (params.page !== undefined) query.set('page', String(params.page));
-    if (params.offset !== undefined) query.set('offset', String(params.offset));
-    if (params.limit !== undefined) query.set('limit', String(params.limit));
-    return api.get<SystemPromptListResponse>(`/api/ai/system_prompt/list?${query.toString()}`);
-  },
-
-  // 获取System Prompt详情
-  getSystemPromptDetail: (promptId: string) =>
-    api.get<SystemPromptItem>(`/api/ai/system_prompt/${encodeURIComponent(promptId)}`),
-
-  // 新增System Prompt
-  createSystemPrompt: (data: SystemPromptCreateRequest) =>
-    api.post<{ id: string; title: string }>('/api/ai/system_prompt', data),
-
-  // 更新System Prompt
-  updateSystemPrompt: (promptId: string, data: SystemPromptUpdateRequest) =>
-    api.put<{ id: string }>(`/api/ai/system_prompt/${encodeURIComponent(promptId)}`, data),
-
-  // 删除System Prompt
-  deleteSystemPrompt: (promptId: string) =>
-    api.delete<{ id: string }>(`/api/ai/system_prompt/${encodeURIComponent(promptId)}`),
-
-  // 搜索System Prompt
-  searchSystemPrompt: (query: string, options: { tags?: string; limit?: number; use_vector?: boolean } = {}) => {
-    const params = new URLSearchParams();
-    params.set('query', query);
-    if (options.tags) params.set('tags', options.tags);
-    if (options.limit !== undefined) params.set('limit', String(options.limit));
-    if (options.use_vector !== undefined) params.set('use_vector', String(options.use_vector));
-    return api.get<SystemPromptSearchResponse>(`/api/ai/system_prompt/search?${params.toString()}`);
-  },
-};
-
-// ===================
 // AI Scheduled Tasks API - /api/ai/scheduled_tasks
 // ===================
 
@@ -3172,6 +3131,30 @@ export interface AIWorkspaceFilesResponse {
   files: AIWorkspaceFile[];
 }
 
+export interface AIKanbanBulkDeleteParams {
+  scope_key?: string;
+  bot_id?: string;
+  group_id?: string;
+  owner_user_id?: string;
+  status?: string;
+  delete_files?: boolean;
+  include_instances?: boolean;
+}
+
+export interface AIKanbanBulkDeleteResponse {
+  deleted_count: number;
+  failed_count: number;
+  matched_count: number;
+  tasks_deleted: number;
+  logs_deleted: number;
+  artifacts_deleted: number;
+  files_deleted: number;
+  dirs_deleted: number;
+  unscheduled_jobs: number;
+  root_ids: string[];
+  failed_root_ids: string[];
+}
+
 export const aiKanbanApi = {
   getBoard: (params: { scope_key?: string; bot_id?: string; group_id?: string; owner_user_id?: string; include_children?: boolean; status?: string } = {}) => {
     const query = new URLSearchParams();
@@ -3213,6 +3196,18 @@ export const aiKanbanApi = {
       dirs_deleted: number;
       unscheduled_jobs: number;
     }>(`/api/ai/kanban/tasks/${encodeURIComponent(taskId)}/hard${queryStr ? `?${queryStr}` : ''}`);
+  },
+
+  bulkHardDeleteTasks: (params: AIKanbanBulkDeleteParams) => {
+    const query = new URLSearchParams();
+    if (params.scope_key) query.set('scope_key', params.scope_key);
+    if (params.bot_id) query.set('bot_id', params.bot_id);
+    if (params.group_id) query.set('group_id', params.group_id);
+    if (params.owner_user_id) query.set('owner_user_id', params.owner_user_id);
+    if (params.status) query.set('status', params.status);
+    if (params.delete_files !== undefined) query.set('delete_files', String(params.delete_files));
+    if (params.include_instances !== undefined) query.set('include_instances', String(params.include_instances));
+    return api.delete<AIKanbanBulkDeleteResponse>(`/api/ai/kanban/tasks?${query.toString()}`);
   },
 
   respawnSubtask: (taskId: string, data: { new_description?: string; new_params?: Record<string, unknown>; new_agent_profile?: string }) =>

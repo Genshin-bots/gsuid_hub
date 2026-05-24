@@ -7,7 +7,9 @@ import {
   ClipboardList,
   Clock,
   Download,
+  Eye,
   FileCode2,
+  FileImage,
   FileText,
   Loader2,
   MoreHorizontal,
@@ -51,8 +53,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Switch } from '@/components/ui/switch';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
+import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
 
 const COLUMN_KEYS: AIKanbanColumnKey[] = ['target', 'progress', 'Done', 'Blocked', 'failed'];
 const ALL_VALUE = '__all__';
@@ -67,10 +70,21 @@ interface PendingAction {
   destructive?: boolean;
 }
 
+type BulkDeleteCategory = 'all' | 'completed' | 'failed' | 'running' | 'pending' | 'paused' | 'waiting_approval' | 'cancelled';
+
+const BULK_DELETE_STATUS_OPTIONS: BulkDeleteCategory[] = ['all', 'completed', 'failed', 'running', 'pending', 'paused', 'waiting_approval', 'cancelled'];
+const BULK_DELETE_API_STATUSES: Exclude<BulkDeleteCategory, 'all'>[] = ['completed', 'failed', 'running', 'pending', 'paused', 'waiting_approval', 'cancelled'];
+
 interface CreateSubtaskDraft {
   description: string;
   agent_profile: string;
   depends_on: string;
+}
+
+interface FilePreviewState {
+  kind: 'text' | 'image' | 'unsupported';
+  content: string;
+  objectUrl?: string;
 }
 
 const emptyColumns: Record<AIKanbanColumnKey, AIKanbanCard[]> = {
@@ -105,6 +119,53 @@ function formatBytes(size?: number): string {
 function shortId(id?: string | null): string {
   if (!id) return '-';
   return id.length > 12 ? `${id.slice(0, 8)}…${id.slice(-4)}` : id;
+}
+
+function getBasename(path?: string | null): string {
+  if (!path) return '';
+  return path.split(/[\\/]/).filter(Boolean).pop() || '';
+}
+
+function extensionFromMime(mime?: string | null): string {
+  if (!mime) return '';
+  const normalized = mime.split(';')[0].trim().toLowerCase();
+  const map: Record<string, string> = {
+    'image/png': '.png',
+    'image/jpeg': '.jpg',
+    'image/jpg': '.jpg',
+    'image/gif': '.gif',
+    'image/webp': '.webp',
+    'image/svg+xml': '.svg',
+    'text/plain': '.txt',
+    'text/markdown': '.md',
+    'text/x-python': '.py',
+    'text/x-patch': '.patch',
+    'application/json': '.json',
+    'text/html': '.html',
+    'text/css': '.css',
+    'application/javascript': '.js',
+    'text/javascript': '.js',
+  };
+  return map[normalized] || '';
+}
+
+function getArtifactFilename(artifact: AIArtifactItem | AIKanbanArtifactBrief): string {
+  const payloadPath = 'payload_path' in artifact ? artifact.payload_path : '';
+  const base = getBasename(payloadPath) || getBasename(artifact.summary) || shortId(artifact.id);
+  if (base.includes('.')) return base;
+  return `${base}${extensionFromMime(artifact.mime)}`;
+}
+
+function isImageFile(mime?: string | null, filename?: string | null): boolean {
+  const normalized = mime?.split(';')[0].trim().toLowerCase() || '';
+  return normalized.startsWith('image/') || /\.(png|jpe?g|gif|webp|svg|bmp|ico|avif)$/i.test(filename || '');
+}
+
+function isTextFile(mime?: string | null, filename?: string | null): boolean {
+  const normalized = mime?.split(';')[0].trim().toLowerCase() || '';
+  return normalized.startsWith('text/')
+    || ['application/json', 'application/xml', 'application/javascript', 'application/typescript'].includes(normalized)
+    || /\.(txt|md|json|ya?ml|xml|html?|css|js|jsx|ts|tsx|py|java|c|cc|cpp|h|hpp|cs|go|rs|php|rb|sh|bat|cmd|ps1|sql|toml|ini|env|log|patch|diff)$/i.test(filename || '');
 }
 
 function statusClass(status: string) {
@@ -145,7 +206,11 @@ export default function AIKanbanPage() {
   const [detail, setDetail] = useState<AIKanbanTaskDetail | null>(null);
   const [artifacts, setArtifacts] = useState<AIArtifactItem[]>([]);
   const [workspaceFiles, setWorkspaceFiles] = useState<AIWorkspaceFile[]>([]);
-  const [artifactPreview, setArtifactPreview] = useState<Record<string, string>>({});
+  const [artifactPreview, setArtifactPreview] = useState<Record<string, FilePreviewState>>({});
+  const [workspacePreview, setWorkspacePreview] = useState<Record<string, FilePreviewState>>({});
+  const artifactPreviewRef = useRef<Record<string, FilePreviewState>>({});
+  const workspacePreviewRef = useRef<Record<string, FilePreviewState>>({});
+  const [detailTab, setDetailTab] = useState('subtasks');
   const [isLoadingBoard, setIsLoadingBoard] = useState(false);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [includeChildren, setIncludeChildren] = useState(true);
@@ -171,6 +236,10 @@ export default function AIKanbanPage() {
   const [patchOpen, setPatchOpen] = useState(false);
   const [patchDraft, setPatchDraft] = useState({ summary: '', patch_text: '' });
   const [isSubmittingPatch, setIsSubmittingPatch] = useState(false);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [bulkDeleteSecondConfirmOpen, setBulkDeleteSecondConfirmOpen] = useState(false);
+  const [bulkDeleteCategory, setBulkDeleteCategory] = useState<BulkDeleteCategory>('all');
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
 
   const loadBoard = useCallback(async () => {
     try {
@@ -203,6 +272,15 @@ export default function AIKanbanPage() {
   const loadTaskDetail = useCallback(async (taskId: string) => {
     try {
       setIsLoadingDetail(true);
+      setDetailTab('subtasks');
+      setArtifactPreview((prev) => {
+        Object.values(prev).forEach((item) => item.objectUrl && URL.revokeObjectURL(item.objectUrl));
+        return {};
+      });
+      setWorkspacePreview((prev) => {
+        Object.values(prev).forEach((item) => item.objectUrl && URL.revokeObjectURL(item.objectUrl));
+        return {};
+      });
       const data = await aiKanbanApi.getTaskDetail(taskId, 200);
       setDetail(data);
       const artifactData = await aiKanbanApi.getArtifacts({ root_task_id: data.root?.id || data.task.root_task_id });
@@ -247,6 +325,26 @@ export default function AIKanbanPage() {
 
   const candidateOptions = useMemo(() => candidates.map((item) => item.profile_id), [candidates]);
 
+  const allBoardCards = useMemo(() => COLUMN_KEYS.flatMap((column) => board.columns[column] || []), [board.columns]);
+
+  const bulkDeletePreview = useMemo(() => {
+    const cards = bulkDeleteCategory === 'all'
+      ? allBoardCards
+      : allBoardCards.filter((card) => card.status === bulkDeleteCategory);
+    const rootIds = new Set(cards.map((card) => card.kind === 'root' ? card.id : card.root_task_id));
+    const subtaskCount = cards.filter((card) => card.kind === 'subtask').length;
+    return { rootCount: rootIds.size, cardCount: cards.length, subtaskCount };
+  }, [allBoardCards, bulkDeleteCategory]);
+
+  const activeBulkFilterLabels = useMemo(() => {
+    const labels: string[] = [];
+    if (filters.scope_key.trim()) labels.push(`${t('aiKanban.filters.scopeKey')}: ${filters.scope_key.trim()}`);
+    if (filters.bot_id.trim()) labels.push(`${t('aiKanban.filters.botId')}: ${filters.bot_id.trim()}`);
+    if (filters.group_id.trim()) labels.push(`${t('aiKanban.filters.groupId')}: ${filters.group_id.trim()}`);
+    if (filters.owner_user_id.trim()) labels.push(`${t('aiKanban.filters.ownerUserId')}: ${filters.owner_user_id.trim()}`);
+    return labels;
+  }, [filters, t]);
+
   const openDetail = (task: AIKanbanCard) => {
     setSelectedTaskId(task.id);
   };
@@ -259,8 +357,8 @@ export default function AIKanbanPage() {
   };
 
   const runAction = async () => {
-    if (!pendingAction) return;
-    if (pendingAction.type === 'hardDelete' && !secondConfirmAction) {
+    if (!pendingAction && !secondConfirmAction) return;
+    if (pendingAction?.type === 'hardDelete' && !secondConfirmAction) {
       setSecondConfirmAction(pendingAction);
       setPendingAction(null);
       return;
@@ -373,16 +471,69 @@ export default function AIKanbanPage() {
     }
   };
 
+  const clearArtifactPreview = (artifactId: string) => {
+    setArtifactPreview((prev) => {
+      const current = prev[artifactId];
+      if (current?.objectUrl) URL.revokeObjectURL(current.objectUrl);
+      const next = { ...prev };
+      delete next[artifactId];
+      return next;
+    });
+  };
+
+  const clearWorkspacePreview = (path: string) => {
+    setWorkspacePreview((prev) => {
+      const current = prev[path];
+      if (current?.objectUrl) URL.revokeObjectURL(current.objectUrl);
+      const next = { ...prev };
+      delete next[path];
+      return next;
+    });
+  };
+
   const previewArtifact = async (artifact: AIArtifactItem | AIKanbanArtifactBrief) => {
     if (artifactPreview[artifact.id]) {
-      setArtifactPreview((prev) => ({ ...prev, [artifact.id]: '' }));
+      clearArtifactPreview(artifact.id);
       return;
     }
     try {
+      const filename = getArtifactFilename(artifact);
+      if (isImageFile(artifact.mime, filename) && 'has_payload_path' in artifact && artifact.has_payload_path) {
+        const blob = await aiKanbanApi.downloadArtifactRaw(artifact.id);
+        const objectUrl = URL.createObjectURL(blob);
+        setArtifactPreview((prev) => ({ ...prev, [artifact.id]: { kind: 'image', content: objectUrl, objectUrl } }));
+        return;
+      }
       const data = await aiKanbanApi.getArtifactDetail(artifact.id);
-      setArtifactPreview((prev) => ({ ...prev, [artifact.id]: data.payload_preview || t('aiKanban.emptyPreview') }));
+      setArtifactPreview((prev) => ({ ...prev, [artifact.id]: { kind: 'text', content: data.payload_preview || t('aiKanban.emptyPreview') } }));
     } catch (error) {
       toast.error(error instanceof Error ? error.message : t('aiKanban.messages.artifactPreviewFailed'));
+    }
+  };
+
+  const previewWorkspaceFile = async (file: AIWorkspaceFile) => {
+    if (!selectedTaskId) return;
+    if (workspacePreview[file.path]) {
+      clearWorkspacePreview(file.path);
+      return;
+    }
+    try {
+      const filename = getBasename(file.path) || file.path;
+      const blob = await aiKanbanApi.downloadWorkspaceFile(selectedTaskId, file.path);
+      const mime = blob.type;
+      if (isImageFile(mime, filename)) {
+        const objectUrl = URL.createObjectURL(blob);
+        setWorkspacePreview((prev) => ({ ...prev, [file.path]: { kind: 'image', content: objectUrl, objectUrl } }));
+        return;
+      }
+      if (isTextFile(mime, filename)) {
+        const content = await blob.text();
+        setWorkspacePreview((prev) => ({ ...prev, [file.path]: { kind: 'text', content: content || t('aiKanban.emptyPreview') } }));
+        return;
+      }
+      setWorkspacePreview((prev) => ({ ...prev, [file.path]: { kind: 'unsupported', content: t('aiKanban.preview.unsupported') } }));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t('aiKanban.messages.workspacePreviewFailed'));
     }
   };
 
@@ -390,8 +541,10 @@ export default function AIKanbanPage() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = filename;
+    link.download = filename || 'download';
+    document.body.appendChild(link);
     link.click();
+    link.remove();
     URL.revokeObjectURL(url);
   };
 
@@ -425,6 +578,38 @@ export default function AIKanbanPage() {
       toast.error(error instanceof Error ? error.message : t('aiKanban.messages.patchFailed'));
     } finally {
       setIsSubmittingPatch(false);
+    }
+  };
+
+  const openBulkDeleteConfirm = () => {
+    setBulkDeleteSecondConfirmOpen(false);
+    setBulkDeleteOpen(true);
+  };
+
+  const runBulkDelete = async () => {
+    try {
+      setIsBulkDeleting(true);
+      const baseParams = {
+        scope_key: filters.scope_key.trim() || undefined,
+        bot_id: filters.bot_id.trim() || undefined,
+        group_id: filters.group_id.trim() || undefined,
+        owner_user_id: filters.owner_user_id.trim() || undefined,
+        delete_files: true,
+        include_instances: false,
+      };
+      const targets = bulkDeleteCategory === 'all' ? BULK_DELETE_API_STATUSES : [bulkDeleteCategory];
+      const results = await Promise.all(targets.map((status) => aiKanbanApi.bulkHardDeleteTasks({ ...baseParams, status })));
+      const deletedCount = results.reduce((sum, item) => sum + (item.deleted_count || 0), 0);
+      const failedCount = results.reduce((sum, item) => sum + (item.failed_count || 0), 0);
+      toast.success(t('aiKanban.messages.bulkDeleteSuccess', { deleted: deletedCount, failed: failedCount }));
+      setBulkDeleteOpen(false);
+      setBulkDeleteSecondConfirmOpen(false);
+      setSelectedTaskId(null);
+      await loadBoard();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t('aiKanban.messages.bulkDeleteFailed'));
+    } finally {
+      setIsBulkDeleting(false);
     }
   };
 
@@ -472,8 +657,31 @@ export default function AIKanbanPage() {
     </div>
   );
 
+  useEffect(() => {
+    artifactPreviewRef.current = artifactPreview;
+  }, [artifactPreview]);
+
+  useEffect(() => {
+    workspacePreviewRef.current = workspacePreview;
+  }, [workspacePreview]);
+
+  useEffect(() => () => {
+    Object.values(artifactPreviewRef.current).forEach((item) => item.objectUrl && URL.revokeObjectURL(item.objectUrl));
+    Object.values(workspacePreviewRef.current).forEach((item) => item.objectUrl && URL.revokeObjectURL(item.objectUrl));
+  }, []);
+
+  const renderPreview = (preview: FilePreviewState) => {
+    if (preview.kind === 'image') {
+      return <div className="max-h-96 overflow-auto rounded-lg bg-muted/50 p-3"><img src={preview.content} alt={t('aiKanban.actions.preview')} className="max-h-80 max-w-full rounded-md object-contain" /></div>;
+    }
+    if (preview.kind === 'unsupported') {
+      return <div className="rounded-lg bg-muted/50 p-3 text-sm text-muted-foreground">{preview.content}</div>;
+    }
+    return <pre className="max-h-80 overflow-auto rounded-lg bg-muted/50 p-3 text-xs whitespace-pre-wrap">{preview.content}</pre>;
+  };
+
   return (
-    <div className="flex min-h-[calc(100dvh-4rem)] flex-col gap-4 overflow-hidden">
+    <div className="flex min-h-[calc(100dvh-4rem)] flex-col gap-4 overflow-hidden p-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-3">
@@ -482,10 +690,11 @@ export default function AIKanbanPage() {
           </h1>
           <p className="text-muted-foreground mt-1">{t('aiKanban.description')}</p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" onClick={() => setEvaluateOpen(true)} className="gap-2"><Sparkles className="h-4 w-4" />{t('aiKanban.evaluate.title')}</Button>
-          <Button variant="outline" onClick={() => setCreateOpen(true)} className="gap-2"><Plus className="h-4 w-4" />{t('aiKanban.create.title')}</Button>
-          <Button onClick={loadBoard} disabled={isLoadingBoard} className="gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
+          <Button variant="outline" onClick={() => setEvaluateOpen(true)} className="w-full gap-2 sm:w-auto"><Sparkles className="h-4 w-4" />{t('aiKanban.evaluate.title')}</Button>
+          <Button variant="outline" onClick={() => setCreateOpen(true)} className="w-full gap-2 sm:w-auto"><Plus className="h-4 w-4" />{t('aiKanban.create.title')}</Button>
+          <Button variant="outline" onClick={openBulkDeleteConfirm} className="w-full gap-2 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive sm:w-auto"><Trash2 className="h-4 w-4" />{t('aiKanban.bulkDelete.button')}</Button>
+          <Button onClick={loadBoard} disabled={isLoadingBoard} className="w-full gap-2 sm:w-auto">
             {isLoadingBoard ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
             {t('common.refresh') || t('aiKanban.refresh')}
           </Button>
@@ -532,7 +741,7 @@ export default function AIKanbanPage() {
             key={column}
             onDragOver={(event) => event.preventDefault()}
             onDrop={(event) => onDropToColumn(column, event.dataTransfer.getData('text/plain'))}
-            className={cn('flex h-full min-h-[560px] w-[320px] shrink-0 flex-col rounded-2xl border p-3 transition-colors xl:w-[340px]', columnClass(column))}
+            className={cn('flex h-full min-h-[460px] w-[min(82vw,320px)] shrink-0 flex-col rounded-2xl border p-3 transition-colors sm:w-[320px] xl:w-[340px]', columnClass(column))}
           >
             <div className="mb-3 flex items-center justify-between gap-2 px-1">
               <div className="flex items-center gap-2">
@@ -564,13 +773,19 @@ export default function AIKanbanPage() {
             {isLoadingDetail ? (
               <div className="flex items-center justify-center py-24 text-muted-foreground"><Loader2 className="mr-2 h-5 w-5 animate-spin" />{t('common.loading')}</div>
             ) : detail ? (
-              <Tabs defaultValue="subtasks" className="space-y-4">
-                <TabsList className="grid w-full grid-cols-4">
-                  <TabsTrigger value="subtasks"><Boxes className="mr-2 h-4 w-4" />{t('aiKanban.detail.subtasks')}</TabsTrigger>
-                  <TabsTrigger value="logs"><ShieldAlert className="mr-2 h-4 w-4" />{t('aiKanban.detail.logs')}</TabsTrigger>
-                  <TabsTrigger value="artifacts"><Archive className="mr-2 h-4 w-4" />{t('aiKanban.detail.artifacts')}</TabsTrigger>
-                  <TabsTrigger value="workspace"><FileCode2 className="mr-2 h-4 w-4" />{t('aiKanban.detail.workspace')}</TabsTrigger>
-                </TabsList>
+              <Tabs value={detailTab} onValueChange={setDetailTab} className="space-y-4">
+                <TabButtonGroup
+                  value={detailTab}
+                  onValueChange={setDetailTab}
+                  className="grid w-full grid-cols-2 md:grid-cols-4"
+                  buttonClassName="justify-center"
+                  options={[
+                    { value: 'subtasks', label: t('aiKanban.detail.subtasks'), icon: <Boxes className="h-4 w-4" /> },
+                    { value: 'logs', label: t('aiKanban.detail.logs'), icon: <ShieldAlert className="h-4 w-4" /> },
+                    { value: 'artifacts', label: t('aiKanban.detail.artifacts'), icon: <Archive className="h-4 w-4" /> },
+                    { value: 'workspace', label: t('aiKanban.detail.workspace'), icon: <FileCode2 className="h-4 w-4" /> },
+                  ]}
+                />
 
                 <TabsContent value="subtasks" className="space-y-4">
                   <Card className="glass-card">
@@ -612,12 +827,12 @@ export default function AIKanbanPage() {
                             <p className="text-xs text-muted-foreground">{artifact.from_profile || '-'} · {formatDate(artifact.created_at)}</p>
                           </div>
                           <div className="flex flex-wrap gap-2">
-                            <Button variant="outline" size="sm" onClick={() => previewArtifact(artifact)}>{artifactPreview[artifact.id] ? t('aiKanban.actions.collapse') : t('aiKanban.actions.preview')}</Button>
-                            {artifact.has_payload_path && <Button variant="outline" size="sm" onClick={async () => downloadBlob(await aiKanbanApi.downloadArtifactRaw(artifact.id), `${artifact.id}`)}><Download className="mr-1 h-4 w-4" />{t('aiKanban.actions.download')}</Button>}
+                            <Button variant="outline" size="sm" onClick={() => previewArtifact(artifact)}><Eye className="mr-1 h-4 w-4" />{artifactPreview[artifact.id] ? t('aiKanban.actions.collapse') : t('aiKanban.actions.preview')}</Button>
+                            {artifact.has_payload_path && <Button variant="outline" size="sm" onClick={async () => downloadBlob(await aiKanbanApi.downloadArtifactRaw(artifact.id), getArtifactFilename(artifact))}><Download className="mr-1 h-4 w-4" />{t('aiKanban.actions.download')}</Button>}
                             <Button variant="ghost" size="sm" className="text-destructive" onClick={() => openAction({ type: 'deleteArtifact', artifact, title: t('aiKanban.actions.deleteArtifact'), description: t('aiKanban.confirm.deleteArtifact', { id: artifact.id }), confirmLabel: t('common.delete'), destructive: true })}><Trash2 className="h-4 w-4" /></Button>
                           </div>
                         </div>
-                        {artifactPreview[artifact.id] && <pre className="max-h-80 overflow-auto rounded-lg bg-muted/50 p-3 text-xs whitespace-pre-wrap">{artifactPreview[artifact.id]}</pre>}
+                        {artifactPreview[artifact.id] && renderPreview(artifactPreview[artifact.id])}
                       </CardContent>
                     </Card>
                   ))}
@@ -640,9 +855,15 @@ export default function AIKanbanPage() {
                     </CardHeader>
                     <CardContent className="space-y-2">
                       {workspaceFiles.length === 0 ? <div className="py-10 text-center text-muted-foreground">{t('aiKanban.workspace.empty')}</div> : workspaceFiles.map((file) => (
-                        <div key={file.path} className="flex flex-col gap-2 rounded-lg border border-border/50 p-3 sm:flex-row sm:items-center sm:justify-between">
-                          <div className="min-w-0"><p className="truncate font-mono text-sm">{file.path}</p><p className="text-xs text-muted-foreground">{formatBytes(file.size_bytes)} · {formatDate(file.modified_at)}</p></div>
-                          <Button variant="outline" size="sm" onClick={async () => selectedTaskId && downloadBlob(await aiKanbanApi.downloadWorkspaceFile(selectedTaskId, file.path), file.path.split('/').pop() || 'workspace-file')}><Download className="mr-1 h-4 w-4" />{t('aiKanban.actions.download')}</Button>
+                        <div key={file.path} className="rounded-lg border border-border/50 p-3">
+                          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="min-w-0"><p className="truncate font-mono text-sm">{file.path}</p><p className="text-xs text-muted-foreground">{formatBytes(file.size_bytes)} · {formatDate(file.modified_at)}</p></div>
+                            <div className="flex flex-wrap gap-2">
+                              <Button variant="outline" size="sm" onClick={() => previewWorkspaceFile(file)}><FileImage className="mr-1 h-4 w-4" />{workspacePreview[file.path] ? t('aiKanban.actions.collapse') : t('aiKanban.actions.preview')}</Button>
+                              <Button variant="outline" size="sm" onClick={async () => selectedTaskId && downloadBlob(await aiKanbanApi.downloadWorkspaceFile(selectedTaskId, file.path), getBasename(file.path) || 'workspace-file')}><Download className="mr-1 h-4 w-4" />{t('aiKanban.actions.download')}</Button>
+                            </div>
+                          </div>
+                          {workspacePreview[file.path] && <div className="mt-3">{renderPreview(workspacePreview[file.path])}</div>}
                         </div>
                       ))}
                     </CardContent>
@@ -735,6 +956,52 @@ export default function AIKanbanPage() {
           <DialogFooter><Button variant="outline" onClick={() => setPatchOpen(false)}>{t('common.cancel')}</Button><Button onClick={submitPatch} disabled={isSubmittingPatch || !patchDraft.patch_text.trim()}>{isSubmittingPatch && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{t('aiKanban.patch.submit')}</Button></DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={bulkDeleteOpen} onOpenChange={(open) => !open && setBulkDeleteOpen(false)}>
+        <AlertDialogContent className="glass-card max-w-[92vw] sm:max-w-[560px]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive"><Trash2 className="h-5 w-5" />{t('aiKanban.bulkDelete.title')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('aiKanban.bulkDelete.description')}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>{t('aiKanban.bulkDelete.category')}</Label>
+              <Select value={bulkDeleteCategory} onValueChange={(value) => setBulkDeleteCategory(value as BulkDeleteCategory)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {BULK_DELETE_STATUS_OPTIONS.map((status) => <SelectItem key={status} value={status}>{t(`aiKanban.bulkDelete.categories.${status}`)}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+              <AlertTriangle className="mr-2 inline h-4 w-4" />
+              {t('aiKanban.bulkDelete.preview', { roots: bulkDeletePreview.rootCount, cards: bulkDeletePreview.cardCount, subtasks: bulkDeletePreview.subtaskCount })}
+            </div>
+            <div className="rounded-lg border border-border/50 bg-muted/30 p-3 text-xs text-muted-foreground">
+              <p className="font-medium text-foreground">{t('aiKanban.bulkDelete.activeFilters')}</p>
+              {activeBulkFilterLabels.length > 0 ? <ul className="mt-2 list-disc space-y-1 pl-5">{activeBulkFilterLabels.map((label) => <li key={label}>{label}</li>)}</ul> : <p className="mt-2">{t('aiKanban.bulkDelete.noExtraFilters')}</p>}
+            </div>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isBulkDeleting}>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { setBulkDeleteOpen(false); setBulkDeleteSecondConfirmOpen(true); }} disabled={isBulkDeleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">{t('aiKanban.bulkDelete.continue')}</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={bulkDeleteSecondConfirmOpen} onOpenChange={(open) => !open && setBulkDeleteSecondConfirmOpen(false)}>
+        <AlertDialogContent className="glass-card border-destructive/50 max-w-[92vw] sm:max-w-[560px]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive"><AlertTriangle className="h-5 w-5" />{t('aiKanban.bulkDelete.secondTitle')}</AlertDialogTitle>
+            <AlertDialogDescription className="font-medium text-destructive/90">{t('aiKanban.bulkDelete.secondDescription', { category: t(`aiKanban.bulkDelete.categories.${bulkDeleteCategory}`), roots: bulkDeletePreview.rootCount })}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">{t('aiKanban.bulkDelete.irreversible')}</div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isBulkDeleting} onClick={() => setBulkDeleteSecondConfirmOpen(false)}>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={runBulkDelete} disabled={isBulkDeleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">{isBulkDeleting ? t('common.loading') : t('aiKanban.bulkDelete.confirm')}</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={!!pendingAction} onOpenChange={(open) => !open && setPendingAction(null)}>
         <AlertDialogContent className="glass-card">

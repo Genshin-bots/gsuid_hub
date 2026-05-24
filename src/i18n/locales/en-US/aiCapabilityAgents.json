@@ -14,7 +14,7 @@
   "deleteSuccess": "Capability agent deleted",
   "deleting": "Deleting...",
   "noUsage": "No usage scenario provided",
-  "toolCount": "{{count}} tools",
+  "toolCount": "{count} tools",
   "sources": {
     "builtin": "Builtin",
     "plugin": "Plugin",
@@ -25,7 +25,7 @@
     "editTitle": "Edit Capability Agent Profile",
     "viewTitle": "View Capability Agent Profile",
     "description": "A profile consists of a neutral prompt, tool allowlist, and matching keywords. It has no persona or social attributes.",
-    "baseDesc": "Using {{base}} as a template. Empty fields can be copied by the backend on creation."
+    "baseDesc": "Using {base} as a template. Empty fields can be copied by the backend on creation."
   },
   "fields": {
     "profileId": "Profile ID",
@@ -67,6 +67,6 @@
   },
   "deleteDialog": {
     "title": "Delete Capability Agent",
-    "description": "This will remove the disk file and in-memory registry entry for {{name}}. This action cannot be undone."
+    "description": "This will remove the disk file and in-memory registry entry for {name}. This action cannot be undone."
   }
 }

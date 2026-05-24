@@ -44,5 +44,8 @@
   "page": "Page",
   "of": "/",
   "totalRecords": "Total {total} records",
-  "pageInfo": "Page {current} / {total}"
+  "pageInfo": "Page {current} / {total}",
+  "copyCurrentValue": "Copy current input",
+  "copiedCurrentValue": "Current input copied",
+  "copyEmptyValue": "Nothing to copy"
 }
