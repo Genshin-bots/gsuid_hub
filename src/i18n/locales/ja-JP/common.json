@@ -47,5 +47,6 @@
   "pageInfo": "{current} / {total} ページ",
   "copyCurrentValue": "現在の入力内容をコピー",
   "copiedCurrentValue": "現在の入力内容をコピーしました",
-  "copyEmptyValue": "コピーできる内容がありません"
+  "copyEmptyValue": "コピーできる内容がありません",
+  "required": "必須"
 }

@@ -7,7 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Save, Cpu, Play, RefreshCw, Clock, Package, Zap, GitBranch, AlertCircle } from 'lucide-react';
 import { frameworkConfigApi, FrameworkConfigListItem } from '@/lib/api';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useConfigDirty } from '@/contexts/ConfigDirtyContext';
 import { cn } from '@/lib/utils';
@@ -141,11 +141,7 @@ export default function CoreSettings() {
       }
     } catch (error) {
       console.error('Failed to fetch core config list:', error);
-      toast({
-        title: t('common.loadFailed'),
-        description: t('coreConfig.loadFailed') || 'Unable to load core configuration',
-        variant: 'destructive'
-      });
+      toast.error(t('coreConfig.loadFailed') || 'Unable to load core configuration');
     } finally {
       setIsLoading(false);
     }
@@ -247,11 +243,7 @@ export default function CoreSettings() {
       setOriginalConfig(JSON.parse(JSON.stringify(convertedConfig.config)));
     } catch (error) {
       console.error('Failed to fetch core config detail:', error);
-      toast({
-        title: t('common.loadFailed'),
-        description: t('coreConfig.loadFailed') || 'Unable to load core configuration',
-        variant: 'destructive'
-      });
+      toast.error(t('coreConfig.loadFailed') || 'Unable to load core configuration');
     } finally {
       setIsLoadingDetail(false);
     }
@@ -309,13 +301,9 @@ export default function CoreSettings() {
       await frameworkConfigApi.updateFrameworkConfig(currentConfig.full_name, configToSave);
       setOriginalConfig(JSON.parse(JSON.stringify(currentConfig.config)));
       setDirty(false);
-      toast({ title: t('common.success'), description: t('coreConfig.configSaved') });
+      toast.success(t('coreConfig.configSaved'));
     } catch (error) {
-      toast({
-        title: t('common.saveFailed'),
-        description: t('coreConfig.saveFailed') || 'Failed to update core configuration',
-        variant: 'destructive'
-      });
+      toast.error(t('coreConfig.saveFailed') || 'Failed to update core configuration');
     } finally {
       setIsSaving(false);
     }

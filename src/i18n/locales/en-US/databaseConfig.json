@@ -33,5 +33,6 @@
   "debugModeDesc": "Enable to output SQL statement logs",
   "customUrl": "Custom Connection",
   "customUrlDesc": "Use custom database connection URL",
-  "connectionUrl": "Connection URL"
+  "connectionUrl": "Connection URL",
+  "customUrlExample": "Example: mysql+aiomysql://user:password@localhost:3306/database"
 }

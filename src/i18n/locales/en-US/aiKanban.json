@@ -35,8 +35,17 @@
       "cancelled": "Cancelled tasks"
     }
   },
-  "kind": { "root": "Root", "subtask": "Subtask" },
-  "columns": { "target": "Target", "progress": "In Progress", "Done": "Done", "Blocked": "Blocked / Approval", "failed": "Failed / Cancelled" },
+  "kind": {
+    "root": "Root",
+    "subtask": "Subtask"
+  },
+  "columns": {
+    "target": "Target",
+    "progress": "In Progress",
+    "Done": "Done",
+    "Blocked": "Blocked / Approval",
+    "failed": "Failed / Cancelled"
+  },
   "filters": {
     "scopeKey": "scope_key",
     "botId": "Bot ID",
@@ -47,8 +56,15 @@
     "includeChildren": "Show subtasks",
     "onlyRoot": "Root tasks only"
   },
-  "summary": { "root": "Root tasks", "subtask": "Subtasks" },
-  "fields": { "status": "Status", "agent": "Agent profile", "workspace": "Workspace" },
+  "summary": {
+    "root": "Root tasks",
+    "subtask": "Subtasks"
+  },
+  "fields": {
+    "status": "Status",
+    "agent": "Agent profile",
+    "workspace": "Workspace"
+  },
   "actions": {
     "detail": "Details",
     "pause": "Pause",
@@ -162,7 +178,8 @@
     "patchFailed": "Failed to submit patch",
     "hardDeleteSuccess": "Task tree hard deleted",
     "bulkDeleteSuccess": "Bulk delete completed: {deleted} succeeded, {failed} failed",
-    "bulkDeleteFailed": "Bulk delete failed"
+    "bulkDeleteFailed": "Bulk delete failed",
+    "workspacePreviewFailed": "Failed to load workspace preview"
   },
   "stateStore": {
     "title": "Persistent State Browser",
@@ -207,5 +224,8 @@
       "batchDeleteSuccess": "Batch delete completed: {deleted} deleted, {notFound} not found",
       "batchDeleteFailed": "Batch delete failed"
     }
+  },
+  "preview": {
+    "unsupported": "Preview is not supported for this file type"
   }
 }

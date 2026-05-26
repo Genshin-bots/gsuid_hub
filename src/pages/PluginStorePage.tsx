@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Store, Search, Package, RefreshCw, Download, Trash2, DownloadCloud, GitBranch, FileText, ExternalLink, Grid3x3, Check, Sparkles, Wrench } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { pluginStoreApi, StorePlugin, gitMirrorApi, GitPluginInfo } from '@/lib/api';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -95,7 +95,6 @@ const markdownComponents: Components = {
 };
 
 export default function PluginStorePage() {
-  const { toast } = useToast();
   const { t } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('all');
@@ -153,11 +152,7 @@ export default function PluginStorePage() {
       setCachedData(PLUGIN_CACHE_KEY, data);
     } catch (error) {
       console.error('Failed to fetch plugins:', error);
-      toast({
-        title: t('pluginStore.loadFailed'),
-        description: t('pluginStore.loadPluginListFailed'),
-        variant: 'destructive'
-      });
+      toast.error(t('pluginStore.loadPluginListFailed'));
     } finally {
       setIsLoading(false);
     }
@@ -199,7 +194,7 @@ export default function PluginStorePage() {
     try {
       setActionLoading(pluginId);
       await pluginStoreApi.installPlugin(pluginId);
-      toast({ title: t('pluginStore.installSuccess'), description: t('pluginStore.installSuccess') });
+      toast.success(t('pluginStore.installSuccess'));
       // 直接更新本地状态，避免触发后端重新加载
       setPlugins(prev => prev.map(p =>
         p.id === pluginId ? { ...p, installed: true, hasUpdate: false } : p
@@ -208,11 +203,7 @@ export default function PluginStorePage() {
       localStorage.removeItem(PLUGIN_CACHE_KEY);
       localStorage.removeItem(GIT_MIRROR_CACHE_KEY);
     } catch (error) {
-      toast({
-        title: t('pluginStore.installFailed'),
-        description: t('pluginStore.installError'),
-        variant: 'destructive'
-      });
+      toast.error(t('pluginStore.installError'));
     } finally {
       setActionLoading(null);
     }
@@ -223,7 +214,7 @@ export default function PluginStorePage() {
     try {
       setActionLoading(pluginId);
       await pluginStoreApi.updatePlugin(pluginId);
-      toast({ title: t('pluginStore.updateSuccess'), description: t('pluginStore.updateSuccess') });
+      toast.success(t('pluginStore.updateSuccess'));
       // 直接更新本地状态，避免触发后端重新加载
       setPlugins(prev => prev.map(p =>
         p.id === pluginId ? { ...p, hasUpdate: false } : p
@@ -231,11 +222,7 @@ export default function PluginStorePage() {
       // 清除缓存，确保下次进入页面数据一致
       localStorage.removeItem(PLUGIN_CACHE_KEY);
     } catch (error) {
-      toast({
-        title: t('pluginStore.updateFailed'),
-        description: t('pluginStore.updateError'),
-        variant: 'destructive'
-      });
+      toast.error(t('pluginStore.updateError'));
     } finally {
       setActionLoading(null);
     }
@@ -247,7 +234,7 @@ export default function PluginStorePage() {
       try {
         setActionLoading(pluginId);
         await pluginStoreApi.uninstallPlugin(pluginId);
-        toast({ title: t('pluginStore.uninstallSuccess'), description: t('pluginStore.uninstallSuccess') });
+        toast.success(t('pluginStore.uninstallSuccess'));
         // 直接更新本地状态，避免触发后端重新加载
         setPlugins(prev => prev.map(p =>
           p.id === pluginId ? { ...p, installed: false, hasUpdate: false } : p
@@ -256,11 +243,7 @@ export default function PluginStorePage() {
         localStorage.removeItem(PLUGIN_CACHE_KEY);
         localStorage.removeItem(GIT_MIRROR_CACHE_KEY);
       } catch (error) {
-        toast({
-          title: t('pluginStore.uninstallFailed'),
-          description: t('pluginStore.uninstallError'),
-          variant: 'destructive'
-        });
+        toast.error(t('pluginStore.uninstallError'));
       } finally {
         setActionLoading(null);
       }

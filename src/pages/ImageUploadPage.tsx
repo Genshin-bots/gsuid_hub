@@ -7,7 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Image, Loader2, Save, Cloud, Server, HardDrive, Code, Globe, Trash2, Clock } from 'lucide-react';
 import { frameworkConfigApi, FrameworkConfigListItem } from '@/lib/api';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 
@@ -152,11 +152,7 @@ export default function ImageUploadPage() {
       }
     } catch (error) {
       console.error('Failed to fetch image upload config list:', error);
-      toast({
-        title: t('common.loadFailed'),
-        description: t('imageUpload.loadFailed') || 'Unable to load image upload configuration',
-        variant: 'destructive'
-      });
+      toast.error(t('imageUpload.loadFailed') || 'Unable to load image upload configuration');
     } finally {
       setIsLoading(false);
     }
@@ -264,11 +260,7 @@ export default function ImageUploadPage() {
       setOriginalConfig(JSON.parse(JSON.stringify(convertedConfig.config)));
     } catch (error) {
       console.error('Failed to fetch image upload config detail:', error);
-      toast({
-        title: t('common.loadFailed'),
-        description: t('imageUpload.loadFailed') || 'Unable to load image upload configuration',
-        variant: 'destructive'
-      });
+      toast.error(t('imageUpload.loadFailed') || 'Unable to load image upload configuration');
     } finally {
       setIsLoadingDetail(false);
     }
@@ -320,13 +312,9 @@ export default function ImageUploadPage() {
       
       await frameworkConfigApi.updateFrameworkConfig(imageUploadConfig.full_name, configToSave);
       setOriginalConfig(JSON.parse(JSON.stringify(imageUploadConfig.config)));
-      toast({ title: t('common.success'), description: t('imageUpload.configSaved') });
+      toast.success(t('imageUpload.configSaved'));
     } catch (error) {
-      toast({ 
-        title: t('common.saveFailed'), 
-        description: t('imageUpload.saveFailed') || 'Failed to update image upload configuration', 
-        variant: 'destructive' 
-      });
+      toast.error(t('imageUpload.saveFailed') || 'Failed to update image upload configuration');
     } finally {
       setIsSaving(false);
     }

@@ -65,5 +65,17 @@
   "saving": "保存中...",
   "filterByStatus": "で状態絞込",
   "filterByType": "でタイプ絞込",
-  "all": "すべて"
+  "all": "すべて",
+  "hardDelete": "完全削除",
+  "clearAll": "すべての定時タスクを削除",
+  "taskList": "タスクリスト",
+  "taskListDescription": "定時タスクの表示、編集、キャンセル、完全削除を行います",
+  "confirmHardDelete": "完全削除の確認",
+  "confirmHardDeleteMessage": "このタスクを完全に削除しますか？データベース記録とスケジュールジョブが削除され、復元できません。",
+  "confirmClearAll": "すべての定時タスク削除の確認",
+  "confirmClearAllMessage": "すべての定時タスクを完全に削除しますか？すべてのタスク記録とスケジュールジョブが削除され、復元できません。",
+  "hardDeleteSuccess": "タスクを完全に削除しました",
+  "hardDeleteFailed": "タスクの完全削除に失敗しました",
+  "clearAllSuccess": "{count} 件のタスクを完全に削除しました",
+  "clearAllFailed": "すべての定時タスク削除に失敗しました"
 }

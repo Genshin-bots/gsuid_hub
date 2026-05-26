@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ConfigField, ConfigFieldDefinition, ConfigValue } from './ConfigField';
 import { Save, RotateCcw, AlertTriangle, CheckCircle } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 export interface ConfigFormData {
@@ -53,14 +53,10 @@ export function ConfigForm({
       setIsSaving(true);
       try {
         await onSave(config);
-        toast({ title: '保存成功', description: '配置已成功保存' });
+        toast.success('配置已成功保存');
         setHasChanges(false);
       } catch (error) {
-        toast({ 
-          title: '保存失败', 
-          description: '保存配置时发生错误',
-          variant: 'destructive'
-        });
+        toast.error('保存配置时发生错误');
       } finally {
         setIsSaving(false);
       }
@@ -75,7 +71,7 @@ export function ConfigForm({
     }
     setHasChanges(false);
     onReset?.();
-    toast({ title: '重置成功', description: '配置已恢复' });
+    toast.success('配置已恢复');
   };
 
   const gridCols = {

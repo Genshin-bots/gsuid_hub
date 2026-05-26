@@ -19,5 +19,6 @@
     "log": "Log Config",
     "imageGeneration": "Image Generation Config",
     "buttonMarkdown": "Button and Markdown Config"
-  }
+  },
+  "configSaved": "Configuration saved"
 }

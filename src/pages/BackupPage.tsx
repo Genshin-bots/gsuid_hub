@@ -20,7 +20,7 @@ import {
 import { ConfigField, ConfigFieldDefinition, ConfigValue, ConfigFieldType } from '@/components/config';
 import { FileTreeSelector } from '@/components/backup/FileTreeSelector';
 import { backupApi, BackupFile, FileTreeNode } from '@/lib/api';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
@@ -100,9 +100,7 @@ function formatBytes(bytes: number): string {
 export default function BackupPage() {
   const { style } = useTheme();
   const isGlass = style === 'glassmorphism';
-  const { t } = useLanguage();
-  const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState<string>('settings');
+  const { t } = useLanguage();  const [activeTab, setActiveTab] = useState<string>('settings');
   const [config, setConfig] = useState<Record<string, ConfigFieldDefinition>>({});
   const [selectedPaths, setSelectedPaths] = useState<string[]>([
     'data', 'data/config', 'data/config/settings.json', 'data/config/users.json',
@@ -252,16 +250,9 @@ export default function BackupPage() {
       setOriginalConfig(updatedOriginal);
       
       setHasChanges(false);
-      toast({
-        title: t('common.success'),
-        description: t('backup.saveSuccess'),
-      });
+      toast.success(t('backup.saveSuccess'));
     } catch (error) {
-      toast({
-        title: t('common.saveFailed'),
-        description: t('backup.saveFailed') || 'Error saving backup configuration',
-        variant: "destructive",
-      });
+      toast.error(t('backup.saveFailed') || 'Error saving backup configuration');
     } finally {
       setIsSaving(false);
     }
@@ -281,16 +272,9 @@ export default function BackupPage() {
         status: 'completed',
       }));
       setBackupList(formattedFiles);
-      toast({
-        title: t('common.success'),
-        description: t('backup.backupSuccess'),
-      });
+      toast.success(t('backup.backupSuccess'));
     } catch (error) {
-      toast({
-        title: t('common.error'),
-        description: t('backup.backupFailed') || 'Error creating backup',
-        variant: "destructive",
-      });
+      toast.error(t('backup.backupFailed') || 'Error creating backup');
     } finally {
       setIsBackingUp(false);
     }
@@ -300,18 +284,11 @@ export default function BackupPage() {
     try {
       await backupApi.deleteFile(file.fileName);
       setBackupList(prev => prev.filter(b => b.fileName !== file.fileName));
-      toast({
-        title: t('common.success'),
-        description: t('backup.deleteSuccess'),
-      });
+      toast.success(t('backup.deleteSuccess'));
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : '';
       const baseMsg = t('backup.deleteFailed') || 'Error deleting backup file';
-      toast({
-        title: t('common.error'),
-        description: errorMsg ? `${baseMsg}: ${errorMsg}` : baseMsg,
-        variant: "destructive",
-      });
+      toast.error(errorMsg ? `${baseMsg}: ${errorMsg}` : baseMsg);
     }
     setDeleteTarget(null);
   };
@@ -330,11 +307,7 @@ export default function BackupPage() {
       URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Download failed:', error);
-      toast({
-        title: t('common.error'),
-        description: error instanceof Error ? error.message : String(error),
-        variant: 'destructive',
-      });
+      toast.error(error instanceof Error ? error.message : String(error));
     }
   };
 

@@ -33,5 +33,6 @@
   "debugModeDesc": "有効にすると SQL 文のログを出力します",
   "customUrl": "カスタム接続",
   "customUrlDesc": "使用カスタムデータDB接続 URL",
-  "connectionUrl": "接続地址"
+  "connectionUrl": "接続地址",
+  "customUrlExample": "例：mysql+aiomysql://user:password@localhost:3306/database"
 }

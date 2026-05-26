@@ -33,5 +33,6 @@
   "debugModeDesc": "启用后将输出 SQL 语句日志",
   "customUrl": "自定义连接",
   "customUrlDesc": "使用自定义数据库连接 URL",
-  "connectionUrl": "连接地址"
+  "connectionUrl": "连接地址",
+  "customUrlExample": "示例：mysql+aiomysql://user:password@localhost:3306/database"
 }

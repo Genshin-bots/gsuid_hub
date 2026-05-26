@@ -27,7 +27,7 @@ import {
   MCPToolFromServer,
   MCPToolDefinition,
 } from '@/lib/api';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -192,11 +192,7 @@ export default function MCPConfigPage() {
       const data = await mcpConfigApi.getList();
       setConfigs(data.configs);
     } catch (error) {
-      toast({
-        title: t('common.error'),
-        description: error instanceof Error ? error.message : t('common.loadFailed'),
-        variant: 'destructive',
-      });
+      toast.error(error instanceof Error ? error.message : t('common.loadFailed'));
     } finally {
       setIsLoading(false);
     }
@@ -208,11 +204,7 @@ export default function MCPConfigPage() {
       const data = await mcpConfigApi.getPresets();
       setPresets(data.presets);
     } catch (error) {
-      toast({
-        title: t('common.error'),
-        description: error instanceof Error ? error.message : t('mcpConfig.loadPresetsFailed'),
-        variant: 'destructive',
-      });
+      toast.error(error instanceof Error ? error.message : t('mcpConfig.loadPresetsFailed'));
     } finally {
       setIsLoadingPresets(false);
     }
@@ -231,17 +223,10 @@ export default function MCPConfigPage() {
       setIsReloading(true);
       const result = await mcpConfigApi.reload();
       setReloadResult(result);
-      toast({
-        title: t('mcpConfig.reloadSuccess'),
-        description: `${t('mcpConfig.oldToolCount')}: ${result.old_tool_count} → ${t('mcpConfig.newToolCount')}: ${result.new_tool_count}`,
-      });
+      toast.success(`${t('mcpConfig.oldToolCount')}: ${result.old_tool_count} → ${t('mcpConfig.newToolCount')}: ${result.new_tool_count}`);
       await loadConfigs();
     } catch (error) {
-      toast({
-        title: t('mcpConfig.reloadFailed'),
-        description: error instanceof Error ? error.message : '',
-        variant: 'destructive',
-      });
+      toast.error(error instanceof Error ? error.message : '');
     } finally {
       setIsReloading(false);
     }
@@ -307,16 +292,9 @@ export default function MCPConfigPage() {
 
       setDiscoveredTools(result.tools);
       setSelectedToolNames(new Set(result.tools.map(t => t.name)));
-      toast({
-        title: t('mcpConfig.discoverSuccess'),
-        description: `${t('mcpConfig.toolsCount', { count: result.count })}`,
-      });
+      toast.success(`${t('mcpConfig.toolsCount', { count: result.count })}`);
     } catch (error) {
-      toast({
-        title: t('mcpConfig.discoverFailed'),
-        description: error instanceof Error ? error.message : '',
-        variant: 'destructive',
-      });
+      toast.error(error instanceof Error ? error.message : '');
     } finally {
       setIsDiscovering(false);
     }
@@ -373,19 +351,11 @@ export default function MCPConfigPage() {
 
   const handleSubmit = async () => {
     if (!formData.name.trim()) {
-      toast({
-        title: t('common.error'),
-        description: t('mcpConfig.configName') + ' ' + t('common.required'),
-        variant: 'destructive',
-      });
+      toast.error(t('mcpConfig.configName') + ' ' + t('common.required'));
       return;
     }
     if (!formData.command.trim()) {
-      toast({
-        title: t('common.error'),
-        description: t('mcpConfig.command') + ' ' + t('common.required'),
-        variant: 'destructive',
-      });
+      toast.error(t('mcpConfig.command') + ' ' + t('common.required'));
       return;
     }
 
@@ -414,7 +384,7 @@ export default function MCPConfigPage() {
           tools,
           tool_permissions: formData.toolPermissions,
         });
-        toast({ title: t('mcpConfig.updateSuccess') });
+        toast.success(t('mcpConfig.updateSuccess'));
       } else {
         // Create
         await mcpConfigApi.create({
@@ -427,7 +397,7 @@ export default function MCPConfigPage() {
           tools,
           tool_permissions: formData.toolPermissions,
         });
-        toast({ title: t('mcpConfig.createSuccess') });
+        toast.success(t('mcpConfig.createSuccess'));
       }
 
       setFormDialogOpen(false);
@@ -435,11 +405,7 @@ export default function MCPConfigPage() {
       // Auto reload after create/update
       handleReload();
     } catch (error) {
-      toast({
-        title: editingConfig ? t('mcpConfig.updateFailed') : t('mcpConfig.createFailed'),
-        description: error instanceof Error ? error.message : '',
-        variant: 'destructive',
-      });
+      toast.error(error instanceof Error ? error.message : '');
     } finally {
       setIsSubmitting(false);
     }
@@ -460,18 +426,14 @@ export default function MCPConfigPage() {
     try {
       setIsDeleting(true);
       await mcpConfigApi.delete(deletingConfig.config_id);
-      toast({ title: t('mcpConfig.deleteSuccess') });
+      toast.success(t('mcpConfig.deleteSuccess'));
       setDeleteDialogOpen(false);
       setDeletingConfig(null);
       await loadConfigs();
       // Auto reload after delete
       handleReload();
     } catch (error) {
-      toast({
-        title: t('mcpConfig.deleteFailed'),
-        description: error instanceof Error ? error.message : '',
-        variant: 'destructive',
-      });
+      toast.error(error instanceof Error ? error.message : '');
     } finally {
       setIsDeleting(false);
     }
@@ -484,16 +446,12 @@ export default function MCPConfigPage() {
   const handleToggle = async (config: MCPConfig) => {
     try {
       await mcpConfigApi.toggle(config.config_id);
-      toast({ title: t('mcpConfig.toggleSuccess') });
+      toast.success(t('mcpConfig.toggleSuccess'));
       await loadConfigs();
       // Auto reload after toggle
       handleReload();
     } catch (error) {
-      toast({
-        title: t('mcpConfig.toggleFailed'),
-        description: error instanceof Error ? error.message : '',
-        variant: 'destructive',
-      });
+      toast.error(error instanceof Error ? error.message : '');
     }
   };
 
@@ -508,11 +466,7 @@ export default function MCPConfigPage() {
 
   const handleImportJson = async () => {
     if (!importJsonText.trim()) {
-      toast({
-        title: t('common.error'),
-        description: t('mcpConfig.invalidJsonFormat'),
-        variant: 'destructive',
-      });
+      toast.error(t('mcpConfig.invalidJsonFormat'));
       return;
     }
 
@@ -520,39 +474,24 @@ export default function MCPConfigPage() {
     try {
       const parsed = JSON.parse(importJsonText);
       if (!parsed.mcpServers) {
-        toast({
-          title: t('common.error'),
-          description: t('mcpConfig.unsupportedJsonFormat'),
-          variant: 'destructive',
-        });
+        toast.error(t('mcpConfig.unsupportedJsonFormat'));
         return;
       }
     } catch {
-      toast({
-        title: t('common.error'),
-        description: t('mcpConfig.invalidJsonFormat'),
-        variant: 'destructive',
-      });
+      toast.error(t('mcpConfig.invalidJsonFormat'));
       return;
     }
 
     try {
       setIsImporting(true);
       const result = await mcpConfigApi.importConfig({ json_config: importJsonText });
-      toast({
-        title: t('mcpConfig.importSuccess'),
-        description: `${result.name}: ${result.tool_names.join(', ')}`,
-      });
+      toast.success(`${result.name}: ${result.tool_names.join(', ')}`);
       setImportDialogOpen(false);
       setImportJsonText('');
       await loadConfigs();
       handleReload();
     } catch (error) {
-      toast({
-        title: t('mcpConfig.importFailed'),
-        description: error instanceof Error ? error.message : '',
-        variant: 'destructive',
-      });
+      toast.error(error instanceof Error ? error.message : '');
     } finally {
       setIsImporting(false);
     }

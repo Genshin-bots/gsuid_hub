@@ -42,7 +42,7 @@ import {
   Loader2,
   XCircle,
 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import {
@@ -338,9 +338,7 @@ const CommitRow = memo(function CommitRow({
   );
 });
 
-export default function GitUpdatePage() {
-  const { toast } = useToast();
-  const { t } = useLanguage();
+export default function GitUpdatePage() {  const { t } = useLanguage();
   const { style } = useTheme();
   const isGlass = style === 'glassmorphism';
   const isMobile = useIsMobile();
@@ -425,11 +423,7 @@ export default function GitUpdatePage() {
       } catch (error) {
         console.error('Failed to fetch git status:', error);
         if (!cancelled) {
-          toast({
-            title: t('common.error'),
-            description: t('gitUpdate.loadStatusFailed'),
-            variant: 'destructive',
-          });
+          toast.error(t('gitUpdate.loadStatusFailed'));
         }
       } finally {
         if (!cancelled) setIsLoadingStatus(false);
@@ -505,11 +499,7 @@ export default function GitUpdatePage() {
       } catch (error) {
         console.error('Failed to fetch commits:', error);
         if (!cancelled) {
-          toast({
-            title: t('common.error'),
-            description: t('gitUpdate.loadCommitsFailed'),
-            variant: 'destructive',
-          });
+          toast.error(t('gitUpdate.loadCommitsFailed'));
           setCommitsData(null);
         }
       } finally {
@@ -558,10 +548,7 @@ export default function GitUpdatePage() {
     try {
       setIsCheckingOut(true);
       await gitUpdateApi.checkout(selectedPlugin, checkoutDialog.commit.short_hash);
-      toast({
-        title: t('common.success'),
-        description: t('gitUpdate.checkoutSuccess', { hash: checkoutDialog.commit.short_hash }),
-      });
+      toast.success(t('gitUpdate.checkoutSuccess', { hash: checkoutDialog.commit.short_hash }));
       // 清除缓存并刷新 commits
       clearCommitsCache(selectedPlugin);
       localStorage.removeItem(GIT_STATUS_CACHE_KEY);
@@ -570,11 +557,7 @@ export default function GitUpdatePage() {
       setCachedData(GIT_COMMITS_CACHE_PREFIX + selectedPlugin, data);
     } catch (error) {
       console.error('Checkout failed:', error);
-      toast({
-        title: t('common.error'),
-        description: t('gitUpdate.checkoutFailed'),
-        variant: 'destructive',
-      });
+      toast.error(t('gitUpdate.checkoutFailed'));
     } finally {
       setIsCheckingOut(false);
       setCheckoutDialog({ open: false, commit: null });
@@ -589,18 +572,11 @@ export default function GitUpdatePage() {
       setIsForceUpdating(true);
       const result = await gitUpdateApi.update(selectedPlugin);
       if (result.status === 0) {
-        toast({
-          title: t('common.success'),
-          description: t('gitUpdate.updateSuccess', {
+        toast.success(t('gitUpdate.updateSuccess', {
             hash: result.data?.current_commit?.short_hash || '',
-          }),
-        });
+          }));
       } else {
-        toast({
-          title: t('common.error'),
-          description: result.msg || t('gitUpdate.updateFailed'),
-          variant: 'destructive',
-        });
+        toast.error(result.msg || t('gitUpdate.updateFailed'));
       }
       // 清除缓存并刷新
       clearCommitsCache(selectedPlugin);
@@ -613,11 +589,7 @@ export default function GitUpdatePage() {
       setPluginList(pluginListData);
     } catch (error) {
       console.error('Update failed:', error);
-      toast({
-        title: t('common.error'),
-        description: t('gitUpdate.updateFailed'),
-        variant: 'destructive',
-      });
+      toast.error(t('gitUpdate.updateFailed'));
     } finally {
       setIsForceUpdating(false);
     }
@@ -630,18 +602,11 @@ export default function GitUpdatePage() {
       setIsForceUpdating(true);
       const result = await gitUpdateApi.forceUpdate(selectedPlugin);
       if (result.status === 0) {
-        toast({
-          title: t('common.success'),
-          description: t('gitUpdate.forceUpdateSuccess', {
+        toast.success(t('gitUpdate.forceUpdateSuccess', {
             hash: result.data?.current_commit?.short_hash || '',
-          }),
-        });
+          }));
       } else {
-        toast({
-          title: t('common.error'),
-          description: result.msg || t('gitUpdate.forceUpdateFailed'),
-          variant: 'destructive',
-        });
+        toast.error(result.msg || t('gitUpdate.forceUpdateFailed'));
       }
       // 清除缓存并刷新
       clearCommitsCache(selectedPlugin);
@@ -654,11 +619,7 @@ export default function GitUpdatePage() {
       setPluginList(pluginListData);
     } catch (error) {
       console.error('Force update failed:', error);
-      toast({
-        title: t('common.error'),
-        description: t('gitUpdate.forceUpdateFailed'),
-        variant: 'destructive',
-      });
+      toast.error(t('gitUpdate.forceUpdateFailed'));
     } finally {
       setIsForceUpdating(false);
       setForceUpdateDialog(false);
@@ -759,16 +720,12 @@ export default function GitUpdatePage() {
     try {
       const result = await pluginsApi.reloadPlugin(selectedPlugin);
       if (result.status === 0) {
-        toast({ title: t('common.success'), description: t('plugins.reloadPluginSuccess', { name: selectedPlugin }) });
+        toast.success(t('plugins.reloadPluginSuccess', { name: selectedPlugin }));
       } else {
-        toast({ title: t('common.error'), description: result.msg, variant: 'destructive' });
+        toast.error(result.msg);
       }
     } catch (error) {
-      toast({
-        title: t('plugins.reloadPluginFailed', { name: selectedPlugin, error: '' }),
-        description: error instanceof Error ? error.message : String(error),
-        variant: 'destructive'
-      });
+      toast.error(error instanceof Error ? error.message : String(error));
     } finally {
       setIsReloadingPlugin(false);
     }

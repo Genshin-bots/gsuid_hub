@@ -61,7 +61,7 @@ import {
   Layers,
 } from 'lucide-react';
 import { memeApi, MemeRecord, MemeStatsData, MemeListParams } from '@/lib/api';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 // ============================================================================
 // Types
@@ -376,14 +376,10 @@ function MemeDetailDialog({
         custom_tags: editCustomTags,
         persona_hint: editPersonaHint,
       });
-      toast({ title: t('common.success'), description: t('aiMeme.detail.updateSuccess') });
+      toast.success(t('aiMeme.detail.updateSuccess'));
       onUpdate();
     } catch (error) {
-      toast({
-        title: t('common.error'),
-        description: t('aiMeme.detail.updateFailed'),
-        variant: 'destructive',
-      });
+      toast.error(t('aiMeme.detail.updateFailed'));
     } finally {
       setIsSaving(false);
     }
@@ -393,15 +389,11 @@ function MemeDetailDialog({
     try {
       setIsRetagging(true);
       await memeApi.retag(meme.meme_id);
-      toast({ title: t('common.success'), description: t('aiMeme.detail.retagSuccess') });
+      toast.success(t('aiMeme.detail.retagSuccess'));
       setShowRetagDialog(false);
       onUpdate();
     } catch (error) {
-      toast({
-        title: t('common.error'),
-        description: t('aiMeme.detail.retagFailed'),
-        variant: 'destructive',
-      });
+      toast.error(t('aiMeme.detail.retagFailed'));
     } finally {
       setIsRetagging(false);
     }
@@ -412,18 +404,11 @@ function MemeDetailDialog({
     try {
       setIsMoving(true);
       await memeApi.move(meme.meme_id, moveTarget.trim());
-      toast({
-        title: t('common.success'),
-        description: t('aiMeme.detail.moveSuccess', { folder: moveTarget }),
-      });
+      toast.success(t('aiMeme.detail.moveSuccess', { folder: moveTarget }));
       setShowMoveDialog(false);
       onUpdate();
     } catch (error) {
-      toast({
-        title: t('common.error'),
-        description: t('aiMeme.detail.moveFailed'),
-        variant: 'destructive',
-      });
+      toast.error(t('aiMeme.detail.moveFailed'));
     } finally {
       setIsMoving(false);
     }
@@ -432,15 +417,11 @@ function MemeDetailDialog({
   const handleDelete = async () => {
     try {
       await memeApi.delete(meme.meme_id);
-      toast({ title: t('common.success'), description: t('aiMeme.detail.deleteSuccess') });
+      toast.success(t('aiMeme.detail.deleteSuccess'));
       setShowDeleteDialog(false);
       onDelete();
     } catch (error) {
-      toast({
-        title: t('common.error'),
-        description: t('aiMeme.detail.deleteFailed'),
-        variant: 'destructive',
-      });
+      toast.error(t('aiMeme.detail.deleteFailed'));
     }
   };
 
@@ -733,11 +714,7 @@ function UploadDialog({
 
   const handleFileSelect = (selectedFile: File) => {
     if (!selectedFile.type.startsWith('image/')) {
-      toast({
-        title: t('common.error'),
-        description: '请选择图片文件',
-        variant: 'destructive',
-      });
+      toast.error('请选择图片文件');
       return;
     }
     setFile(selectedFile);
@@ -757,15 +734,11 @@ function UploadDialog({
     try {
       setIsUploading(true);
       await memeApi.upload(file, folder, autoTag);
-      toast({ title: t('common.success'), description: t('aiMeme.upload.uploadSuccess') });
+      toast.success(t('aiMeme.upload.uploadSuccess'));
       handleClose();
       onSuccess();
     } catch (error) {
-      toast({
-        title: t('common.error'),
-        description: t('aiMeme.upload.uploadFailed'),
-        variant: 'destructive',
-      });
+      toast.error(t('aiMeme.upload.uploadFailed'));
     } finally {
       setIsUploading(false);
     }
@@ -956,11 +929,7 @@ export default function AIMemePage() {
       setTotal(data.total);
     } catch (error) {
       console.error('Failed to fetch memes:', error);
-      toast({
-        title: t('common.error'),
-        description: t('aiMeme.loadFailed'),
-        variant: 'destructive',
-      });
+      toast.error(t('aiMeme.loadFailed'));
     } finally {
       setIsLoading(false);
     }

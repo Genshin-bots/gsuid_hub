@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { User, Lock, Camera, CheckCircle, Loader2 } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { authApi } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -34,21 +34,13 @@ export default function SettingsPage() {
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      toast({
-        title: t('common.error'),
-        description: t('settings.avatarInvalidType'),
-        variant: 'destructive',
-      });
+      toast.error(t('settings.avatarInvalidType'));
       return;
     }
 
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      toast({
-        title: t('common.error'),
-        description: t('settings.avatarTooLarge'),
-        variant: 'destructive',
-      });
+      toast.error(t('settings.avatarTooLarge'));
       return;
     }
 
@@ -57,18 +49,11 @@ export default function SettingsPage() {
       const result = await authApi.uploadAvatar(file);
       // Refresh user data
       await refreshUser();
-      toast({
-        title: t('common.success'),
-        description: t('settings.avatarUpdated'),
-      });
+      toast.success(t('settings.avatarUpdated'));
       // Force refresh to get new avatar
       window.location.reload();
     } catch (error) {
-      toast({
-        title: t('common.error'),
-        description: error instanceof Error ? error.message : t('settings.avatarUpdateFailed'),
-        variant: 'destructive',
-      });
+      toast.error(error instanceof Error ? error.message : t('settings.avatarUpdateFailed'));
     } finally {
       setIsUploadingAvatar(false);
       // Reset input
@@ -80,11 +65,7 @@ export default function SettingsPage() {
 
   const handleUpdateName = async () => {
     if (!name.trim()) {
-      toast({
-        title: t('common.error'),
-        description: t('settings.nameEmpty'),
-        variant: 'destructive',
-      });
+      toast.error(t('settings.nameEmpty'));
       return;
     }
 
@@ -93,16 +74,9 @@ export default function SettingsPage() {
       await authApi.updateName(name);
       // Refresh user data
       await refreshUser();
-      toast({
-        title: t('common.success'),
-        description: t('settings.nameUpdated'),
-      });
+      toast.success(t('settings.nameUpdated'));
     } catch (error) {
-      toast({
-        title: t('common.error'),
-        description: error instanceof Error ? error.message : t('settings.nameUpdateFailed'),
-        variant: 'destructive',
-      });
+      toast.error(error instanceof Error ? error.message : t('settings.nameUpdateFailed'));
     } finally {
       setIsUpdatingName(false);
     }
@@ -110,48 +84,29 @@ export default function SettingsPage() {
 
   const handleUpdatePassword = async () => {
     if (!oldPassword || !newPassword) {
-      toast({
-        title: t('common.error'),
-        description: t('settings.passwordEmpty'),
-        variant: 'destructive',
-      });
+      toast.error(t('settings.passwordEmpty'));
       return;
     }
 
     if (newPassword.length < 6) {
-      toast({
-        title: t('common.error'),
-        description: t('settings.passwordTooShort'),
-        variant: 'destructive',
-      });
+      toast.error(t('settings.passwordTooShort'));
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      toast({
-        title: t('common.error'),
-        description: t('login.passwordMismatch'),
-        variant: 'destructive',
-      });
+      toast.error(t('login.passwordMismatch'));
       return;
     }
 
     setIsUpdatingPassword(true);
     try {
       await authApi.updatePassword(oldPassword, newPassword);
-      toast({
-        title: t('common.success'),
-        description: t('settings.passwordUpdated'),
-      });
+      toast.success(t('settings.passwordUpdated'));
       setOldPassword('');
       setNewPassword('');
       setConfirmPassword('');
     } catch (error) {
-      toast({
-        title: t('common.error'),
-        description: error instanceof Error ? error.message : t('settings.passwordUpdateFailed'),
-        variant: 'destructive',
-      });
+      toast.error(error instanceof Error ? error.message : t('settings.passwordUpdateFailed'));
     } finally {
       setIsUpdatingPassword(false);
     }

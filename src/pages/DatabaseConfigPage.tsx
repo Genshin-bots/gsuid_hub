@@ -9,7 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Database, Settings, Loader2, Save, ChevronDown, ChevronUp, Server, Lock, Network, HardDrive } from 'lucide-react';
 import { frameworkConfigApi, PluginConfigItem, FrameworkConfigListItem, FrameworkConfigDetail } from '@/lib/api';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 
@@ -151,11 +151,7 @@ export default function DatabaseConfigPage() {
       }
     } catch (error) {
       console.error('Failed to fetch database config list:', error);
-      toast({
-        title: t('common.loadFailed'),
-        description: t('databaseConfig.loadFailed') || 'Unable to load database configuration',
-        variant: 'destructive'
-      });
+      toast.error(t('databaseConfig.loadFailed') || 'Unable to load database configuration');
     } finally {
       setIsLoading(false);
     }
@@ -256,11 +252,7 @@ export default function DatabaseConfigPage() {
       setOriginalConfig(JSON.parse(JSON.stringify(convertedConfig)));
     } catch (error) {
       console.error('Failed to fetch database config detail:', error);
-      toast({
-        title: t('common.loadFailed'),
-        description: t('databaseConfig.loadFailed') || 'Unable to load database configuration',
-        variant: 'destructive'
-      });
+      toast.error(t('databaseConfig.loadFailed') || 'Unable to load database configuration');
     } finally {
       setIsLoadingDetail(false);
     }
@@ -318,13 +310,9 @@ export default function DatabaseConfigPage() {
       
       await frameworkConfigApi.updateFrameworkConfig(databaseConfig.full_name, configToSave);
       setOriginalConfig(JSON.parse(JSON.stringify(databaseConfig.config)));
-      toast({ title: t('common.success'), description: t('databaseConfig.configSaved') });
+      toast.success(t('databaseConfig.configSaved'));
     } catch (error) {
-      toast({ 
-        title: t('common.saveFailed'), 
-        description: t('databaseConfig.saveFailed') || 'Failed to update database configuration', 
-        variant: 'destructive' 
-      });
+      toast.error(t('databaseConfig.saveFailed') || 'Failed to update database configuration');
     } finally {
       setIsSaving(false);
     }

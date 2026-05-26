@@ -34,7 +34,7 @@ import {
 import { format, addHours, addMinutes, addDays } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { schedulerApi } from '@/lib/api';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 interface ScheduledTask {
@@ -56,10 +56,7 @@ export default function SchedulerPage() {
   const [tasks, setTasks] = useState<ScheduledTask[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTask, setSelectedTask] = useState<ScheduledTask | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const { toast } = useToast();
-
-  // Fetch jobs from API
+  const [isLoading, setIsLoading] = useState(false);  // Fetch jobs from API
   const fetchJobs = async () => {
     setIsLoading(true);
     try {
@@ -81,11 +78,7 @@ export default function SchedulerPage() {
       setTasks(formattedJobs);
     } catch (error) {
       console.error('Failed to fetch scheduler jobs:', error);
-      toast({
-        title: t('common.loadFailed'),
-        description: t('scheduler.loadFailed') || 'Unable to load task scheduler list',
-        variant: 'destructive'
-      });
+      toast.error(t('scheduler.loadFailed') || 'Unable to load task scheduler list');
     } finally {
       setIsLoading(false);
     }
@@ -116,45 +109,28 @@ export default function SchedulerPage() {
     try {
       if (task.status === 'running') {
         await schedulerApi.pauseJob(taskId);
-        toast({
-          title: t('scheduler.taskPaused'),
-          description: `Task "${task.name}" paused`
-        });
+        toast.success(`Task "${task.name}" paused`);
       } else {
         await schedulerApi.resumeJob(taskId);
-        toast({
-          title: t('scheduler.taskStarted'),
-          description: `Task "${task.name}" started`
-        });
+        toast.success(`Task "${task.name}" started`);
       }
       // Refresh jobs list
       fetchJobs();
     } catch (error) {
       console.error('Failed to toggle task status:', error);
-      toast({
-        title: t('common.error'),
-        description: t('scheduler.operationFailed') || 'Unable to change task status',
-        variant: 'destructive'
-      });
+      toast.error(t('scheduler.operationFailed') || 'Unable to change task status');
     }
   };
 
   const runTaskNow = async (taskId: string) => {
     try {
       await schedulerApi.runJob(taskId);
-      toast({
-        title: t('scheduler.taskExecuted'),
-        description: t('scheduler.taskExecutedDesc') || 'Task triggered for execution'
-      });
+      toast.success(t('scheduler.taskExecutedDesc') || 'Task triggered for execution');
       // Refresh jobs list
       fetchJobs();
     } catch (error) {
       console.error('Failed to run job:', error);
-      toast({
-        title: t('common.error'),
-        description: t('scheduler.executionFailed') || 'Unable to trigger task execution',
-        variant: 'destructive'
-      });
+      toast.error(t('scheduler.executionFailed') || 'Unable to trigger task execution');
     }
   };
 

@@ -44,7 +44,7 @@ import {
   Link,
   ExternalLink,
 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 import {
@@ -151,9 +151,7 @@ function getMirrorOptionIcon(type: string) {
 // 组件定义
 // ============================================================================
 
-export default function GitMirrorDialog({ open, onOpenChange }: GitMirrorDialogProps) {
-  const { toast } = useToast();
-  const { t } = useLanguage();
+export default function GitMirrorDialog({ open, onOpenChange }: GitMirrorDialogProps) {  const { t } = useLanguage();
 
   const [loading, setLoading] = useState(true);
   const [mirrorInfo, setMirrorInfo] = useState<GitMirrorInfo | null>(null);
@@ -184,11 +182,7 @@ export default function GitMirrorDialog({ open, onOpenChange }: GitMirrorDialogP
       setSelectedMirror(toSelectValue(data.current_mirror));
     } catch (error) {
       console.error('Failed to fetch git mirror info:', error);
-      toast({
-        title: t('common.error'),
-        description: t('gitMirror.loadFailed'),
-        variant: 'destructive',
-      });
+      toast.error(t('gitMirror.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -205,22 +199,15 @@ export default function GitMirrorDialog({ open, onOpenChange }: GitMirrorDialogP
     try {
       setApplyAllLoading(true);
       const result = await gitMirrorApi.setAll(toMirrorValue(selectedMirror));
-      toast({
-        title: t('common.success'),
-        description: t('gitMirror.applyToAllSuccess', {
+      toast.success(t('gitMirror.applyToAllSuccess', {
           success: result.summary.success_count,
           fail: result.summary.fail_count,
-        }),
-      });
+        }));
       // 刷新数据
       await fetchMirrorInfo();
     } catch (error) {
       console.error('Failed to apply mirror to all plugins:', error);
-      toast({
-        title: t('common.error'),
-        description: t('gitMirror.applyToAllFailed'),
-        variant: 'destructive',
-      });
+      toast.error(t('gitMirror.applyToAllFailed'));
     } finally {
       setApplyAllLoading(false);
       setShowConfirmDialog(false);
@@ -232,17 +219,10 @@ export default function GitMirrorDialog({ open, onOpenChange }: GitMirrorDialogP
     try {
       setSaveConfigLoading(true);
       await gitMirrorApi.saveConfig(toMirrorValue(selectedMirror));
-      toast({
-        title: t('common.success'),
-        description: t('gitMirror.saveConfigSuccess'),
-      });
+      toast.success(t('gitMirror.saveConfigSuccess'));
     } catch (error) {
       console.error('Failed to save mirror config:', error);
-      toast({
-        title: t('common.error'),
-        description: t('gitMirror.saveConfigFailed'),
-        variant: 'destructive',
-      });
+      toast.error(t('gitMirror.saveConfigFailed'));
     } finally {
       setSaveConfigLoading(false);
     }
@@ -253,19 +233,12 @@ export default function GitMirrorDialog({ open, onOpenChange }: GitMirrorDialogP
     try {
       setPluginLoading(pluginName);
       await gitMirrorApi.setPlugin(pluginName, toMirrorValue(mirrorPrefix));
-      toast({
-        title: t('common.success'),
-        description: t('gitMirror.setPluginSuccess', { name: pluginName }),
-      });
+      toast.success(t('gitMirror.setPluginSuccess', { name: pluginName }));
       // 刷新数据
       await fetchMirrorInfo();
     } catch (error) {
       console.error(`Failed to switch mirror for plugin ${pluginName}:`, error);
-      toast({
-        title: t('common.error'),
-        description: t('gitMirror.setPluginFailed', { name: pluginName }),
-        variant: 'destructive',
-      });
+      toast.error(t('gitMirror.setPluginFailed', { name: pluginName }));
     } finally {
       setPluginLoading(null);
       setSwitchDialogPlugin(null);

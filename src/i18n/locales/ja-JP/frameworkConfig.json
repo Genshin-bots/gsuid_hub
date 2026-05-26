@@ -19,5 +19,6 @@
     "log": "ログ設定",
     "imageGeneration": "画像生成設定",
     "buttonMarkdown": "で钮と Markdown 設定"
-  }
+  },
+  "configSaved": "設定を保存しました"
 }

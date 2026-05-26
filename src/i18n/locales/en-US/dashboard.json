@@ -26,5 +26,13 @@
   "users": "Users",
   "groups": "Groups",
   "callCount": "Call Count",
-  "selectDate": "Select Date"
+  "selectDate": "Select Date",
+  "dauDesc": "Unique active users today",
+  "dagDesc": "Unique active groups today",
+  "retentionDesc": "User retention rate based on recent activity",
+  "newUsersDesc": "Users newly active today",
+  "churnedUsersDesc": "Users inactive after previous activity",
+  "mauDesc": "Unique active users this month",
+  "magDesc": "Unique active groups this month",
+  "dagMagRatioDesc": "Daily active groups / monthly active groups"
 }

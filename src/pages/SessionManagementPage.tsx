@@ -32,7 +32,7 @@ import {
 } from 'lucide-react';
 import { historyApi, SessionInfo, SessionHistoryTextResponse, SessionHistoryJSONResponse, SessionHistoryOpenAIResponse, SessionPersonaResponse } from '@/lib/api';
 import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 
@@ -190,11 +190,7 @@ export default function SessionManagementPage() {
       setSessions(sorted);
     } catch (error) {
       console.error('Failed to fetch sessions:', error);
-      toast({
-        title: t('common.loadFailed'),
-        description: t('sessionManagement.loadFailed'),
-        variant: 'destructive'
-      });
+      toast.error(t('sessionManagement.loadFailed'));
     } finally {
       setIsLoading(false);
     }
@@ -253,11 +249,7 @@ export default function SessionManagementPage() {
       clearPendingImages();
     } catch (error) {
       console.error('Failed to fetch session detail:', error);
-      toast({
-        title: t('common.loadFailed'),
-        description: t('sessionManagement.loadDetailFailed'),
-        variant: 'destructive'
-      });
+      toast.error(t('sessionManagement.loadDetailFailed'));
     } finally {
       setIsLoadingDetail(false);
     }
@@ -287,10 +279,7 @@ export default function SessionManagementPage() {
         at_sender: false
       });
 
-      toast({
-        title: t('common.success'),
-        description: t('sessionManagement.sendSuccess')
-      });
+      toast.success(t('sessionManagement.sendSuccess'));
 
       setMessageText('');
       clearPendingImages();
@@ -298,11 +287,7 @@ export default function SessionManagementPage() {
       await fetchSessions();
     } catch (error) {
       console.error('Failed to send session message:', error);
-      toast({
-        title: t('common.error'),
-        description: error instanceof Error ? error.message : t('sessionManagement.sendFailed'),
-        variant: 'destructive'
-      });
+      toast.error(error instanceof Error ? error.message : t('sessionManagement.sendFailed'));
     } finally {
       setIsSending(false);
     }
@@ -316,12 +301,9 @@ export default function SessionManagementPage() {
       setIsDeleting(true);
       await historyApi.clearSessionHistory(sessionToDelete.session_id, deleteCompletely);
       
-      toast({
-        title: t('common.success'),
-        description: deleteCompletely 
+      toast.success(deleteCompletely 
           ? t('sessionManagement.deleteSuccess', { id: sessionToDelete.session_id })
-          : t('sessionManagement.clearSuccess', { id: sessionToDelete.session_id })
-      });
+          : t('sessionManagement.clearSuccess', { id: sessionToDelete.session_id }));
       
       // Refresh list
       await fetchSessions();
@@ -332,11 +314,7 @@ export default function SessionManagementPage() {
       }
     } catch (error) {
       console.error('Failed to clear session:', error);
-      toast({
-        title: t('common.error'),
-        description: t('sessionManagement.clearFailed'),
-        variant: 'destructive'
-      });
+      toast.error(t('sessionManagement.clearFailed'));
     } finally {
       setIsDeleting(false);
       setSessionToDelete(null);

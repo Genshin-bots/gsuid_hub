@@ -14,7 +14,7 @@ import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Search, Plus, Pencil, Trash2, Filter, RefreshCw, ChevronLeft, ChevronRight, Database, X, PlusCircle, Package } from 'lucide-react';
 import { databaseApi, PluginDatabaseInfo, DatabaseTableInfo, DatabaseColumn, PaginatedData, getPluginIconUrl } from '@/lib/api';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTheme } from '@/contexts/ThemeContext';
 
@@ -77,15 +77,11 @@ export default function DatabasePage() {
       }
     } catch (error) {
       console.error('Failed to fetch plugins:', error);
-      toast({
-        title: t('common.loadFailed'),
-        description: t('database.loadPluginsFailed') || 'Unable to load plugin list',
-        variant: 'destructive'
-      });
+      toast.error(t('database.loadPluginsFailed') || 'Unable to load plugin list');
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     fetchPlugins();
@@ -215,11 +211,7 @@ export default function DatabasePage() {
       setCurrentPage(page);
     } catch (error) {
       console.error('Failed to fetch table data:', error);
-      toast({
-        title: t('database.loadFailed'),
-        description: t('database.loadDataFailed'),
-        variant: 'destructive'
-      });
+      toast.error(t('database.loadDataFailed'));
     } finally {
       setIsSearching(false);
     }
@@ -345,12 +337,12 @@ export default function DatabasePage() {
     try {
       if (isCreating) {
         await databaseApi.createRecord(activeTable, editingItem);
-        toast({ title: t('database.createSuccess'), description: t('database.recordCreated') });
+        toast.success(t('database.recordCreated'));
       } else {
         const pkName = tableMetadata?.pk_name || 'id';
         const recordId = editingItem[pkName];
         await databaseApi.updateRecord(activeTable, recordId as string | number, editingItem);
-        toast({ title: t('database.updateSuccess'), description: t('database.recordUpdated') });
+        toast.success(t('database.recordUpdated'));
       }
       fetchTableData(activeTable, currentPage, perPage);
       setIsDialogOpen(false);
@@ -358,11 +350,7 @@ export default function DatabasePage() {
       setIsCreating(false);
     } catch (error) {
       console.error('Failed to save record:', error);
-      toast({
-        title: t('database.saveFailed'),
-        description: t('database.saveRecordFailed'),
-        variant: 'destructive'
-      });
+      toast.error(t('database.saveRecordFailed'));
     }
   };
 
@@ -373,16 +361,12 @@ export default function DatabasePage() {
       const pkName = tableMetadata.pk_name || 'id';
       const recordId = item[pkName];
       await databaseApi.deleteRecord(activeTable, recordId as string | number);
-      toast({ title: t('database.deleteSuccess'), description: t('database.recordDeleted') });
+      toast.success(t('database.recordDeleted'));
       fetchTableData(activeTable, currentPage, perPage);
     } catch (error) {
       console.error('Failed to delete record:', error);
       const errorMsg = error instanceof Error ? error.message : '';
-      toast({
-        title: t('database.deleteFailed'),
-        description: errorMsg ? `${t('database.deleteRecordFailed')}: ${errorMsg}` : t('database.deleteRecordFailed'),
-        variant: 'destructive'
-      });
+      toast.error(errorMsg ? `${t('database.deleteRecordFailed')}: ${errorMsg}` : t('database.deleteRecordFailed'));
     }
   };
 
@@ -485,7 +469,7 @@ export default function DatabasePage() {
                         variant="outline"
                         size="sm"
                         onClick={addFilter}
-                        title="添加筛选"
+                        title={t('database.addFilter')}
                         className="h-10"
                       >
                         <PlusCircle className="h-4 w-4" />
@@ -613,7 +597,10 @@ export default function DatabasePage() {
             {data && data.total > 0 && (
               <div className="flex items-center justify-between mt-4">
                 <div className="text-sm text-muted-foreground">
-                  共 {data.total} 条记录，第 {currentPage} / {totalPages} 页
+                  {t('database.paginationInfo')
+                    .replace('{total}', String(data.total))
+                    .replace('{current}', String(currentPage))
+                    .replace('{totalPages}', String(totalPages))}
                 </div>
                 <div className="flex items-center gap-2">
                   <Button
@@ -642,7 +629,7 @@ export default function DatabasePage() {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{isCreating ? '新增记录' : '编辑记录'}</DialogTitle>
+            <DialogTitle>{isCreating ? t('database.addRecord') : t('database.editRecord')}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             {columns.map((col) => (
@@ -678,10 +665,10 @@ export default function DatabasePage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-              取消
+              {t('common.cancel')}
             </Button>
             <Button onClick={handleSave}>
-              保存
+              {t('common.save')}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -20,5 +20,15 @@
   "confirmDelete": "Confirm Delete",
   "deleteConfirmMessage": "Are you sure you want to delete this record? This action cannot be undone.",
   "loadPluginsFailed": "Unable to load plugin list",
-  "loadDataFailed": "Unable to load data"
+  "loadFailed": "Failed to load",
+  "loadDataFailed": "Unable to load data",
+  "recordCreated": "Record created",
+  "recordUpdated": "Record updated",
+  "recordDeleted": "Record deleted",
+  "saveRecordFailed": "Failed to save record",
+  "deleteRecordFailed": "Failed to delete record",
+  "yes": "Yes",
+  "no": "No",
+  "addFilter": "Add filter",
+  "paginationInfo": "Total {total} records, page {current} / {totalPages}"
 }

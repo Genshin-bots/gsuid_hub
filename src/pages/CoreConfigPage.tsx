@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ConfigField, ConfigFieldDefinition, ConfigValue } from '@/components/config/ConfigField';
 import { AlertTriangle, CheckCircle, Settings, X } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { configApi } from '@/lib/api';
 import { useLanguage } from '@/contexts/LanguageContext';
 
@@ -153,11 +153,7 @@ export default function CoreConfigPage() {
         setConfig(fieldConfig);
       } catch (error) {
         console.error('Failed to fetch config:', error);
-        toast({
-          title: t('common.loadFailed'),
-          description: t('coreConfig.loadFailed') || 'Unable to load core configuration',
-          variant: 'destructive'
-        });
+        toast.error(t('coreConfig.loadFailed') || 'Unable to load core configuration');
       } finally {
         setIsLoading(false);
       }
@@ -195,14 +191,10 @@ export default function CoreConfigPage() {
       }
       
       await configApi.setCoreConfig(configData);
-      toast({ title: t('common.success'), description: t('coreConfig.configSaved') });
+      toast.success(t('coreConfig.configSaved'));
       setHasChanges(false);
     } catch (error) {
-      toast({
-        title: t('common.saveFailed'),
-        description: t('coreConfig.saveFailed') || 'Error saving configuration',
-        variant: 'destructive'
-      });
+      toast.error(t('coreConfig.saveFailed') || 'Error saving configuration');
     } finally {
       setIsSaving(false);
     }

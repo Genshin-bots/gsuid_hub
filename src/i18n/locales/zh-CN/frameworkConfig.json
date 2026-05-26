@@ -19,5 +19,6 @@
     "log": "日志配置",
     "imageGeneration": "图片生成配置",
     "buttonMarkdown": "按钮和 Markdown 配置"
-  }
+  },
+  "configSaved": "配置已保存"
 }

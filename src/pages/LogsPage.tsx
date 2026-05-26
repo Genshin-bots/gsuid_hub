@@ -11,7 +11,7 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Search, RefreshCw, Download, ChevronDown, AlertCircle, AlertTriangle, Info, Bug, FileText, Calendar, Eye, ChevronUp, ChevronLeft, ChevronRight } from 'lucide-react';
 import { logsApi, LogContextLog, LogContextResponse } from '@/lib/api';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { StructuredDataViewer } from '@/components/StructuredDataViewer';
 import { useLanguage } from '@/contexts/LanguageContext';
 import React, { memo } from 'react';
@@ -257,11 +257,7 @@ export default function LogsPage() {
     } catch (error) {
       console.error('Failed to fetch logs:', error);
       const errorMessage = error instanceof Error ? error.message : t('common.loadFailed');
-      toast({
-        title: t('common.loadFailed'),
-        description: errorMessage,
-        variant: 'destructive'
-      });
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -341,7 +337,7 @@ export default function LogsPage() {
 
   const handleRefresh = () => {
     fetchLogs();
-    toast({ title: t('common.success'), description: t('logs.refreshSuccess') || 'Logs updated' });
+    toast.success(t('logs.refreshSuccess') || 'Logs updated');
   };
 
   const handleExport = () => {
@@ -357,7 +353,7 @@ export default function LogsPage() {
     a.click();
     URL.revokeObjectURL(url);
     
-    toast({ title: t('common.success'), description: t('logs.exportSuccess').replace('{count}', String(logs.length)) });
+    toast.success(t('logs.exportSuccess').replace('{count}', String(logs.length)));
   };
 
   const toggleExpand = (id: number) => {
@@ -375,11 +371,7 @@ export default function LogsPage() {
   // 查看日志上下文
   const handleViewContext = async (log: LogEntry) => {
     if (!log.log_id || !log.date) {
-      toast({
-        title: t('common.error'),
-        description: t('logs.contextNotAvailable') || 'Context not available for this log',
-        variant: 'destructive'
-      });
+      toast.error(t('logs.contextNotAvailable') || 'Context not available for this log');
       return;
     }
     
@@ -397,11 +389,7 @@ export default function LogsPage() {
       setContextData(data);
     } catch (error) {
       console.error('Failed to fetch log context:', error);
-      toast({
-        title: t('common.loadFailed'),
-        description: t('logs.contextLoadFailed') || 'Failed to load log context',
-        variant: 'destructive'
-      });
+      toast.error(t('logs.contextLoadFailed') || 'Failed to load log context');
       setContextOpen(false);
     } finally {
       setContextLoading(false);
@@ -446,11 +434,7 @@ export default function LogsPage() {
       }
     } catch (error) {
       console.error('Failed to load more context:', error);
-      toast({
-        title: t('common.loadFailed'),
-        description: t('logs.contextLoadFailed') || 'Failed to load more context',
-        variant: 'destructive'
-      });
+      toast.error(t('logs.contextLoadFailed') || 'Failed to load more context');
     }
   };
 

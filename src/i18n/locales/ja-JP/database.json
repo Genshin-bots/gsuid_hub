@@ -19,6 +19,16 @@
   "editRecord": "編集レコード",
   "confirmDelete": "確認削除",
   "deleteConfirmMessage": "本に削除この件レコードか?この操作できません取り消し。",
-  "loadPluginsFailed": "できません読込プラグインリスト",
-  "loadDataFailed": "できません読込データ"
+  "loadPluginsFailed": "プラグインリストを読み込めません",
+  "loadFailed": "読み込みに失敗しました",
+  "loadDataFailed": "データを読み込めません",
+  "recordCreated": "レコードを作成しました",
+  "recordUpdated": "レコードを更新しました",
+  "recordDeleted": "レコードを削除しました",
+  "saveRecordFailed": "レコードの保存に失敗しました",
+  "deleteRecordFailed": "レコードの削除に失敗しました",
+  "yes": "はい",
+  "no": "いいえ",
+  "addFilter": "フィルターを追加",
+  "paginationInfo": "全 {total} 件、{current} / {totalPages} ページ"
 }

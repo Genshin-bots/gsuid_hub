@@ -7,7 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Save, Settings, Shield, AlertTriangle, Key, Eye, EyeOff } from 'lucide-react';
 import { frameworkConfigApi, FrameworkConfigListItem } from '@/lib/api';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useConfigDirty } from '@/contexts/ConfigDirtyContext';
 import { cn } from '@/lib/utils';
@@ -79,11 +79,7 @@ export default function VerificationSettings() {
       }
     } catch (error) {
       console.error('Failed to fetch verification config list:', error);
-      toast({
-        title: t('common.loadFailed'),
-        description: t('verificationConfig.loadFailed') || 'Unable to load verification configuration',
-        variant: 'destructive'
-      });
+      toast.error(t('verificationConfig.loadFailed') || 'Unable to load verification configuration');
     } finally {
       setIsLoading(false);
     }
@@ -124,11 +120,7 @@ export default function VerificationSettings() {
       setOriginalConfig(JSON.parse(JSON.stringify(convertedConfig.config)));
     } catch (error) {
       console.error('Failed to fetch verification config detail:', error);
-      toast({
-        title: t('common.loadFailed'),
-        description: t('verificationConfig.loadFailed') || 'Unable to load verification configuration',
-        variant: 'destructive'
-      });
+      toast.error(t('verificationConfig.loadFailed') || 'Unable to load verification configuration');
     } finally {
       setIsLoadingDetail(false);
     }
@@ -185,13 +177,9 @@ export default function VerificationSettings() {
       await frameworkConfigApi.updateFrameworkConfig(verificationConfig.full_name, configToSave);
       setOriginalConfig(JSON.parse(JSON.stringify(verificationConfig.config)));
       setDirty(false);
-      toast({ title: t('common.success'), description: t('verificationConfig.configSaved') });
+      toast.success(t('verificationConfig.configSaved'));
     } catch (error) {
-      toast({
-        title: t('common.saveFailed'),
-        description: t('verificationConfig.saveFailed') || 'Failed to update verification configuration',
-        variant: 'destructive'
-      });
+      toast.error(t('verificationConfig.saveFailed') || 'Failed to update verification configuration');
     } finally {
       setIsSaving(false);
     }

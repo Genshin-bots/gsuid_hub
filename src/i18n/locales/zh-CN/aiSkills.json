@@ -31,5 +31,12 @@
   "saveSkill": "保存技能",
   "savingSkill": "保存中...",
   "saveSkillSuccess": "技能保存成功",
-  "saveSkillFailed": "技能保存失败"
+  "saveSkillFailed": "技能保存失败",
+  "markdown": "Markdown 内容",
+  "markdownContent": "Markdown 内容",
+  "save": "保存",
+  "saving": "保存中...",
+  "saveSuccess": "技能保存成功",
+  "saveFailed": "技能保存失败",
+  "cancel": "取消"
 }

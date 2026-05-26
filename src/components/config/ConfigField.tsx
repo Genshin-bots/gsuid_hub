@@ -25,7 +25,7 @@ import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { assetsApi } from '@/lib/api';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { TagsInput } from './TagsInput';
 
@@ -310,16 +310,9 @@ export function ConfigField({
             const targetFilename = field.filename && field.suffix ? `${field.filename}.${field.suffix}` : undefined;
             const data = await assetsApi.upload(file, field.upload_to, targetFilename);
             onChange(fieldKey, data.path);
-            toast({
-              title: "上传成功",
-              description: "图片已上传并更新配置",
-            });
+            toast.success("图片已上传并更新配置");
           } catch (error) {
-            toast({
-              title: "上传失败",
-              description: error instanceof Error ? error.message : "未知错误",
-              variant: "destructive",
-            });
+            toast.error(error instanceof Error ? error.message : "未知错误");
           } finally {
             setIsUploading(false);
             if (fileInputRef.current) fileInputRef.current.value = '';
@@ -335,17 +328,10 @@ export function ConfigField({
             try {
               await assetsApi.delete(value as string);
               onChange(fieldKey, '');
-              toast({
-                title: "删除成功",
-                description: "图片已从服务器删除",
-              });
+              toast.success("图片已从服务器删除");
             } catch (error) {
               const errorMsg = error instanceof Error ? error.message : '';
-              toast({
-                title: "删除失败",
-                description: errorMsg ? `无法删除图片: ${errorMsg}` : "无法删除图片，请稍后重试",
-                variant: "destructive",
-              });
+              toast.error(errorMsg ? `无法删除图片: ${errorMsg}` : "无法删除图片，请稍后重试");
             }
           } else {
             onChange(fieldKey, '');

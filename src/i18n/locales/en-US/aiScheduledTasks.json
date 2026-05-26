@@ -65,5 +65,17 @@
   "saving": "Saving...",
   "filterByStatus": "Filter by Status",
   "filterByType": "Filter by Type",
-  "all": "All"
+  "all": "All",
+  "hardDelete": "Hard Delete",
+  "clearAll": "Delete All Scheduled Tasks",
+  "taskList": "Task List",
+  "taskListDescription": "View, edit, cancel or hard delete scheduled tasks",
+  "confirmHardDelete": "Confirm Hard Delete",
+  "confirmHardDeleteMessage": "Are you sure you want to hard delete this task? This will remove database records and scheduled jobs and cannot be recovered.",
+  "confirmClearAll": "Confirm Delete All Scheduled Tasks",
+  "confirmClearAllMessage": "Are you sure you want to hard delete all scheduled tasks? This will clear all task records and scheduled jobs and cannot be recovered.",
+  "hardDeleteSuccess": "Task hard deleted",
+  "hardDeleteFailed": "Failed to hard delete task",
+  "clearAllSuccess": "Hard deleted {count} tasks",
+  "clearAllFailed": "Failed to delete all scheduled tasks"
 }

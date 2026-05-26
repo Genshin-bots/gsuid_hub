@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Loader2, Save, Settings, Sun, Moon, MessageSquare, UserX, Shield, Clock, ListFilter, HelpCircle, Cog } from 'lucide-react';
 import { frameworkConfigApi, FrameworkConfigListItem, PluginConfigItem } from '@/lib/api';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useConfigDirty } from '@/contexts/ConfigDirtyContext';
 import { cn } from '@/lib/utils';
@@ -106,11 +106,7 @@ export default function MiscSettings() {
       }
     } catch (error) {
       console.error('Failed to fetch misc config list:', error);
-      toast({
-        title: t('common.loadFailed'),
-        description: t('miscConfig.loadFailed') || 'Unable to load misc configuration',
-        variant: 'destructive'
-      });
+      toast.error(t('miscConfig.loadFailed') || 'Unable to load misc configuration');
     } finally {
       setIsLoading(false);
     }
@@ -169,11 +165,7 @@ export default function MiscSettings() {
       setOriginalRawConfig(JSON.parse(JSON.stringify(data.config)));
     } catch (error) {
       console.error('Failed to fetch misc config detail:', error);
-      toast({
-        title: t('common.loadFailed'),
-        description: t('miscConfig.loadFailed') || 'Unable to load misc configuration',
-        variant: 'destructive'
-      });
+      toast.error(t('miscConfig.loadFailed') || 'Unable to load misc configuration');
     } finally {
       setIsLoadingDetail(false);
     }
@@ -305,13 +297,9 @@ export default function MiscSettings() {
       setOriginalConfig(JSON.parse(JSON.stringify(miscConfig.config)));
       setOriginalRawConfig(JSON.parse(JSON.stringify(miscConfig.rawConfig)));
       setDirty(false);
-      toast({ title: t('common.success'), description: t('miscConfig.configSaved') });
+      toast.success(t('miscConfig.configSaved'));
     } catch (error) {
-      toast({
-        title: t('common.saveFailed'),
-        description: t('miscConfig.saveFailed') || 'Failed to update misc configuration',
-        variant: 'destructive'
-      });
+      toast.error(t('miscConfig.saveFailed') || 'Failed to update misc configuration');
     } finally {
       setIsSaving(false);
     }

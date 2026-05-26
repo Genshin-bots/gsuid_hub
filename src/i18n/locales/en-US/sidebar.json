@@ -65,5 +65,6 @@
   "confirmPauseTitle": "Are you sure you want to pause GsCore?",
   "confirmPauseDesc": "Your bot will stop running after clicking the button",
   "confirmResumeTitle": "Are you sure you want to resume GsCore?",
-  "confirmResumeDesc": "Your bot will continue running after clicking the button"
+  "confirmResumeDesc": "Your bot will continue running after clicking the button",
+  "settings": "Settings"
 }

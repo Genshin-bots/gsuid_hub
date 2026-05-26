@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Loader2, Save, Image, Globe, MessageSquare, Smartphone, MessageCircle, Send, Users, Building, Gamepad2, Cpu, Monitor, Link } from 'lucide-react';
 import { frameworkConfigApi, FrameworkConfigListItem } from '@/lib/api';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useConfigDirty } from '@/contexts/ConfigDirtyContext';
 import { cn } from '@/lib/utils';
@@ -165,11 +165,7 @@ export default function ImageSendSettings() {
       }
     } catch (error) {
       console.error('Failed to fetch image send config list:', error);
-      toast({
-        title: t('common.loadFailed'),
-        description: t('imageSendConfig.loadFailed') || 'Unable to load image send configuration',
-        variant: 'destructive'
-      });
+      toast.error(t('imageSendConfig.loadFailed') || 'Unable to load image send configuration');
     } finally {
       setIsLoading(false);
     }
@@ -283,11 +279,7 @@ export default function ImageSendSettings() {
       setOriginalConfig(JSON.parse(JSON.stringify(convertedConfig.config)));
     } catch (error) {
       console.error('Failed to fetch image send config detail:', error);
-      toast({
-        title: t('common.loadFailed'),
-        description: t('imageSendConfig.loadFailed') || 'Unable to load image send configuration',
-        variant: 'destructive'
-      });
+      toast.error(t('imageSendConfig.loadFailed') || 'Unable to load image send configuration');
     } finally {
       setIsLoadingDetail(false);
     }
@@ -344,13 +336,9 @@ export default function ImageSendSettings() {
       await frameworkConfigApi.updateFrameworkConfig(imageSendConfig.full_name, configToSave);
       setOriginalConfig(JSON.parse(JSON.stringify(imageSendConfig.config)));
       setDirty(false);
-      toast({ title: t('common.success'), description: t('imageSendConfig.configSaved') });
+      toast.success(t('imageSendConfig.configSaved'));
     } catch (error) {
-      toast({
-        title: t('common.saveFailed'),
-        description: t('imageSendConfig.saveFailed') || 'Failed to update image send configuration',
-        variant: 'destructive'
-      });
+      toast.error(t('imageSendConfig.saveFailed') || 'Failed to update image send configuration');
     } finally {
       setIsSaving(false);
     }

@@ -15,7 +15,7 @@ import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
 import { Settings, Loader2, Save, Cpu } from 'lucide-react';
 import { ConfigField, ConfigFieldDefinition, ConfigValue, ConfigFieldType } from '@/components/config';
 import { frameworkConfigApi, PluginConfigItem, FrameworkConfigListItem } from '@/lib/api';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import ImageUploadPage from '@/pages/ImageUploadPage';
 import DatabaseConfigPage from '@/pages/DatabaseConfigPage';
 import StateConfigPage from '@/pages/StateConfigPage';
@@ -187,11 +187,7 @@ export default function FrameworkConfigPage() {
       }
     } catch (error) {
       console.error('Failed to fetch framework config list:', error);
-      toast({
-        title: t('common.loadFailed'),
-        description: t('frameworkConfig.loadFailed') || 'Unable to load framework configuration',
-        variant: 'destructive'
-      });
+      toast.error(t('frameworkConfig.loadFailed') || 'Unable to load framework configuration');
     } finally {
       setIsLoading(false);
     }
@@ -219,11 +215,7 @@ export default function FrameworkConfigPage() {
       }
     } catch (error) {
       console.error('Failed to fetch framework config detail:', error);
-      toast({
-        title: t('common.loadFailed'),
-        description: t('frameworkConfig.loadFailed') || 'Unable to load framework configuration',
-        variant: 'destructive'
-      });
+      toast.error(t('frameworkConfig.loadFailed') || 'Unable to load framework configuration');
     } finally {
       setIsLoadingDetail(false);
     }
@@ -285,9 +277,9 @@ export default function FrameworkConfigPage() {
       await frameworkConfigApi.updateFrameworkConfig(currentConfig.full_name, configToSave);
       setOriginalConfig(JSON.parse(JSON.stringify(currentConfig.config)));
       setDirty(false);
-      toast({ title: t('common.success'), description: t('frameworkConfig.configSaved') });
+      toast.success(t('frameworkConfig.configSaved'));
     } catch (error) {
-      toast({ title: t('common.saveFailed'), description: t('frameworkConfig.saveFailed') || 'Failed to update framework configuration', variant: 'destructive' });
+      toast.error(t('frameworkConfig.saveFailed') || 'Failed to update framework configuration');
     } finally {
       setIsSaving(false);
     }

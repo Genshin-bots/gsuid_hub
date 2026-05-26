@@ -27,7 +27,7 @@ import { Settings, Loader2, ChevronDown, Save, Server, LayoutGrid, Users, Shield
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ConfigField, ConfigFieldDefinition, ConfigValue, ConfigFieldType } from '@/components/config';
 import { pluginsApi, gitUpdateApi, Plugin, ServiceConfig, SvItem, SvCommand, PluginConfigItem, PluginConfigGroup, PluginListItem, getPluginIconUrl } from '@/lib/api';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 // 带 fallback 的插件图标组件
 function PluginIcon({ pluginName, className = 'w-[18px] h-[18px]' }: { pluginName: string; className?: string }) {
@@ -167,11 +167,7 @@ export default function PluginsPage() {
       }
     } catch (error) {
       console.error('Failed to fetch plugin list:', error);
-      toast({
-        title: t('plugins.loadFailed'),
-        description: t('plugins.loadPluginListFailed'),
-        variant: 'destructive'
-      });
+      toast.error(t('plugins.loadPluginListFailed'));
     } finally {
       setIsLoading(false);
     }
@@ -231,11 +227,7 @@ export default function PluginsPage() {
       }
     } catch (error) {
       console.error('Failed to fetch plugin detail:', error);
-      toast({
-        title: t('plugins.loadFailed'),
-        description: t('plugins.loadPluginDetailFailed'),
-        variant: 'destructive'
-      });
+      toast.error(t('plugins.loadPluginDetailFailed'));
     } finally {
       // 只有当前请求ID匹配时才清除加载状态
       if (loadingPluginIdRef.current === requestId) {
@@ -363,13 +355,9 @@ export default function PluginsPage() {
         config: JSON.parse(JSON.stringify(selectedPlugin.config)),
         groups: JSON.parse(JSON.stringify(selectedPlugin.config_groups || []))
       });
-      toast({ title: t('plugins.saveSuccess'), description: t('plugins.pluginConfigUpdated') });
+      toast.success(t('plugins.pluginConfigUpdated'));
     } catch (error) {
-      toast({
-        title: t('plugins.saveFailed'),
-        description: t('plugins.updatePluginConfigFailed'),
-        variant: 'destructive'
-      });
+      toast.error(t('plugins.updatePluginConfigFailed'));
     } finally {
       setIsSavingConfig(false);
     }
@@ -399,13 +387,9 @@ export default function PluginsPage() {
       setOriginalSvList(JSON.parse(JSON.stringify(editedSvList)));
       setOriginalEnabled(editedEnabled);
 
-      toast({ title: t('plugins.saveSuccess'), description: t('plugins.serviceConfigUpdated') });
+      toast.success(t('plugins.serviceConfigUpdated'));
     } catch (error) {
-      toast({
-        title: t('plugins.saveFailed'),
-        description: t('plugins.updateServiceConfigFailed'),
-        variant: 'destructive'
-      });
+      toast.error(t('plugins.updateServiceConfigFailed'));
     } finally {
       setIsSavingService(false);
     }
@@ -418,16 +402,12 @@ export default function PluginsPage() {
     try {
       const result = await pluginsApi.reloadPlugin(selectedPlugin.name);
       if (result.status === 0) {
-        toast({ title: t('common.success'), description: t('plugins.reloadPluginSuccess', { name: selectedPlugin.name }) });
+        toast.success(t('plugins.reloadPluginSuccess', { name: selectedPlugin.name }));
       } else {
-        toast({ title: t('common.error'), description: result.msg, variant: 'destructive' });
+        toast.error(result.msg);
       }
     } catch (error) {
-      toast({
-        title: t('plugins.reloadPluginFailed', { name: selectedPlugin.name, error: '' }),
-        description: error instanceof Error ? error.message : String(error),
-        variant: 'destructive'
-      });
+      toast.error(error instanceof Error ? error.message : String(error));
     } finally {
       setIsReloadingPlugin(false);
     }

@@ -65,5 +65,6 @@
   "confirmPauseTitle": "是否确定暂停GsCore？",
   "confirmPauseDesc": "点击按钮后你的机器人将停止运行",
   "confirmResumeTitle": "是否确定继续GsCore？",
-  "confirmResumeDesc": "点击按钮后你的机器人将继续运行"
+  "confirmResumeDesc": "点击按钮后你的机器人将继续运行",
+  "settings": "设置"
 }

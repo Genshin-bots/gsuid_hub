@@ -7,7 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Save, Settings, Layout, FileText, List, Columns, ToggleLeft, ToggleRight, SplitSquareHorizontal, Cog } from 'lucide-react';
 import { frameworkConfigApi, FrameworkConfigListItem, PluginConfigItem } from '@/lib/api';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useConfigDirty } from '@/contexts/ConfigDirtyContext';
 import { cn } from '@/lib/utils';
@@ -137,11 +137,7 @@ export default function ButtonMarkdownSettings() {
       }
     } catch (error) {
       console.error('Failed to fetch button markdown config list:', error);
-      toast({
-        title: t('common.loadFailed'),
-        description: t('buttonMdConfig.loadFailed') || 'Unable to load button markdown configuration',
-        variant: 'destructive'
-      });
+      toast.error(t('buttonMdConfig.loadFailed') || 'Unable to load button markdown configuration');
     } finally {
       setIsLoading(false);
     }
@@ -217,11 +213,7 @@ export default function ButtonMarkdownSettings() {
       setOriginalRawConfig(JSON.parse(JSON.stringify(data.config)));
     } catch (error) {
       console.error('Failed to fetch button markdown config detail:', error);
-      toast({
-        title: t('common.loadFailed'),
-        description: t('buttonMdConfig.loadFailed') || 'Unable to load button markdown configuration',
-        variant: 'destructive'
-      });
+      toast.error(t('buttonMdConfig.loadFailed') || 'Unable to load button markdown configuration');
     } finally {
       setIsLoadingDetail(false);
     }
@@ -367,13 +359,9 @@ export default function ButtonMarkdownSettings() {
       setOriginalConfig(JSON.parse(JSON.stringify(buttonMdConfig.config)));
       setOriginalRawConfig(JSON.parse(JSON.stringify(buttonMdConfig.rawConfig)));
       setDirty(false);
-      toast({ title: t('common.success'), description: t('buttonMdConfig.configSaved') });
+      toast.success(t('buttonMdConfig.configSaved'));
     } catch (error) {
-      toast({
-        title: t('common.saveFailed'),
-        description: t('buttonMdConfig.saveFailed') || 'Failed to update button markdown configuration',
-        variant: 'destructive'
-      });
+      toast.error(t('buttonMdConfig.saveFailed') || 'Failed to update button markdown configuration');
     } finally {
       setIsSaving(false);
     }

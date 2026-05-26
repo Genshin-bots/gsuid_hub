@@ -47,5 +47,6 @@
   "pageInfo": "Page {current} / {total}",
   "copyCurrentValue": "Copy current input",
   "copiedCurrentValue": "Current input copied",
-  "copyEmptyValue": "Nothing to copy"
+  "copyEmptyValue": "Nothing to copy",
+  "required": "Required"
 }

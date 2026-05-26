@@ -44,7 +44,7 @@ import {
   AIWizardPersonaScope,
   personaApi,
 } from '@/lib/api';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { ConfigField, ConfigValue, ConfigFieldType, DynamicConfigPanel } from '@/components/config';
 import {
@@ -398,11 +398,7 @@ export default function AIConfigPage() {
       setEditingConfigProvider(provider);
     } catch (error) {
       console.error('Failed to fetch config detail:', error);
-      toast({
-        title: t('common.error'),
-        description: t('aiConfig.openaiConfig.loadFailed'),
-        variant: 'destructive',
-      });
+      toast.error(t('aiConfig.openaiConfig.loadFailed'));
     } finally {
       setIsLoadingOpenaiConfig(false);
     }
@@ -452,11 +448,7 @@ export default function AIConfigPage() {
       setEmbeddingOpenaiConfig(summary.openai_config || {});
     } catch (error) {
       console.error('Failed to fetch embedding config:', error);
-      toast({
-        title: t('common.error'),
-        description: t('aiConfig.serviceProvider.embeddingConfigLoadFailed'),
-        variant: 'destructive',
-      });
+      toast.error(t('aiConfig.serviceProvider.embeddingConfigLoadFailed'));
     } finally {
       setIsLoadingEmbeddingConfig(false);
     }
@@ -472,11 +464,7 @@ export default function AIConfigPage() {
       setConfigList(filteredData);
     } catch (error) {
       console.error('Failed to fetch AI config list:', error);
-      toast({
-        title: t('common.loadFailed'),
-        description: t('aiConfig.loadFailed'),
-        variant: 'destructive'
-      });
+      toast.error(t('aiConfig.loadFailed'));
     } finally {
       setIsLoading(false);
     }
@@ -550,20 +538,13 @@ export default function AIConfigPage() {
       // configFullName 是 provider++name 格式，直接传给后端
       await providerConfigApi.setHighLevelConfig(configFullName);
       setHighLevelConfig(configFullName);
-      toast({
-        title: t('common.success'),
-        description: t('aiConfig.providerConfig.setHighLevelSuccess', { name: configFullName }),
-      });
+      toast.success(t('aiConfig.providerConfig.setHighLevelSuccess', { name: configFullName }));
       // 高低级任务切换不涉及框架配置变更，刷新后同步 originalConfig
       await fetchAllConfigs();
       setOriginalConfig(JSON.parse(JSON.stringify(configs)));
     } catch (error) {
       console.error('Failed to set high level config:', error);
-      toast({
-        title: t('common.error'),
-        description: t('aiConfig.providerConfig.setFailed'),
-        variant: 'destructive',
-      });
+      toast.error(t('aiConfig.providerConfig.setFailed'));
     }
   }, [t, fetchAllConfigs, configs]);
 
@@ -572,20 +553,13 @@ export default function AIConfigPage() {
       // configFullName 是 provider++name 格式，直接传给后端
       await providerConfigApi.setLowLevelConfig(configFullName);
       setLowLevelConfig(configFullName);
-      toast({
-        title: t('common.success'),
-        description: t('aiConfig.providerConfig.setLowLevelSuccess', { name: configFullName }),
-      });
+      toast.success(t('aiConfig.providerConfig.setLowLevelSuccess', { name: configFullName }));
       // 高低级任务切换不涉及框架配置变更，刷新后同步 originalConfig
       await fetchAllConfigs();
       setOriginalConfig(JSON.parse(JSON.stringify(configs)));
     } catch (error) {
       console.error('Failed to set low level config:', error);
-      toast({
-        title: t('common.error'),
-        description: t('aiConfig.providerConfig.setFailed'),
-        variant: 'destructive',
-      });
+      toast.error(t('aiConfig.providerConfig.setFailed'));
     }
   }, [t, fetchAllConfigs, configs]);
 
@@ -601,18 +575,11 @@ export default function AIConfigPage() {
         model_support: { data: openaiConfigData.model_support },
       };
       await providerConfigApi.saveConfig(editingConfigProvider, editingConfigName, configData);
-      toast({
-        title: t('common.success'),
-        description: t('aiConfig.openaiConfig.saveSuccess'),
-      });
+      toast.success(t('aiConfig.openaiConfig.saveSuccess'));
       fetchAllConfigs();
     } catch (error) {
       console.error('Failed to save config:', error);
-      toast({
-        title: t('common.error'),
-        description: t('aiConfig.openaiConfig.saveFailed'),
-        variant: 'destructive',
-      });
+      toast.error(t('aiConfig.openaiConfig.saveFailed'));
     } finally {
       setIsSavingOpenaiConfig(false);
     }
@@ -620,19 +587,19 @@ export default function AIConfigPage() {
 
   const handleCreateOpenaiConfig = useCallback(async () => {
     if (!newConfigName.trim()) {
-      toast({ title: t('common.error'), description: t('aiConfig.openaiConfig.nameRequired'), variant: 'destructive' });
+      toast.error(t('aiConfig.openaiConfig.nameRequired'));
       return;
     }
     if (!newConfigBaseUrl.trim()) {
-      toast({ title: t('common.error'), description: t('aiConfig.openaiConfig.baseUrlRequired'), variant: 'destructive' });
+      toast.error(t('aiConfig.openaiConfig.baseUrlRequired'));
       return;
     }
     if (!newConfigModel.trim()) {
-      toast({ title: t('common.error'), description: t('aiConfig.openaiConfig.modelRequired'), variant: 'destructive' });
+      toast.error(t('aiConfig.openaiConfig.modelRequired'));
       return;
     }
     if (newConfigApiKeys.length === 0 || newConfigApiKeys.every(k => !k.trim())) {
-      toast({ title: t('common.error'), description: t('aiConfig.openaiConfig.apiKeyRequired'), variant: 'destructive' });
+      toast.error(t('aiConfig.openaiConfig.apiKeyRequired'));
       return;
     }
     try {
@@ -645,13 +612,13 @@ export default function AIConfigPage() {
         model_support: { data: newConfigModelSupport },
       };
       await providerConfigApi.saveConfig(newConfigProvider, configName, configData);
-      toast({ title: t('common.success'), description: t('aiConfig.openaiConfig.createSuccess', { name: configName }) });
+      toast.success(t('aiConfig.openaiConfig.createSuccess', { name: configName }));
       setIsCreateDialogOpen(false);
       resetNewConfigForm();
       await fetchAllConfigs();
     } catch (error) {
       console.error(`Failed to create ${newConfigProvider} config:`, error);
-      toast({ title: t('common.error'), description: t('aiConfig.openaiConfig.createFailed'), variant: 'destructive' });
+      toast.error(t('aiConfig.openaiConfig.createFailed'));
     }
   }, [newConfigName, newConfigBaseUrl, newConfigModel, newConfigApiKeys, newConfigEmbeddingModel, newConfigModelSupport, newConfigProvider, t, fetchAllConfigs]);
 
@@ -691,7 +658,7 @@ export default function AIConfigPage() {
       
       // 再删除配置文件
       await providerConfigApi.deleteConfig(editingConfigProvider, editingConfigName);
-      toast({ title: t('common.success'), description: t('aiConfig.openaiConfig.deleteSuccess', { name: editingConfigName }) });
+      toast.success(t('aiConfig.openaiConfig.deleteSuccess', { name: editingConfigName }));
       setIsDeleteDialogOpen(false);
       setEditingConfigName('');
       setHighLevelConfig(prev => prev === fullConfigName ? '' : prev);
@@ -700,11 +667,7 @@ export default function AIConfigPage() {
     } catch (error) {
       console.error('Failed to delete config:', error);
       const errorMsg = error instanceof Error ? error.message : '';
-      toast({
-        title: t('common.error'),
-        description: errorMsg ? `${t('aiConfig.openaiConfig.deleteFailed')}: ${errorMsg}` : t('aiConfig.openaiConfig.deleteFailed'),
-        variant: 'destructive'
-      });
+      toast.error(errorMsg ? `${t('aiConfig.openaiConfig.deleteFailed')}: ${errorMsg}` : t('aiConfig.openaiConfig.deleteFailed'));
     }
   }, [editingConfigName, editingConfigProvider, t, fetchAllConfigs, highLevelConfig, lowLevelConfig, allConfigs]);
 
@@ -727,19 +690,12 @@ export default function AIConfigPage() {
   const handleSwitchEmbeddingProvider = useCallback(async (provider: string) => {
     try {
       const response = await embeddingConfigApi.setProvider(provider);
-      toast({
-        title: t('common.success'),
-        description: response.msg || t('aiConfig.serviceProvider.embeddingProviderSwitched', { provider }),
-      });
+      toast.success(response.msg || t('aiConfig.serviceProvider.embeddingProviderSwitched', { provider }));
       // 刷新嵌入模型配置摘要
       await fetchEmbeddingConfig();
     } catch (error) {
       console.error('Failed to switch embedding provider:', error);
-      toast({
-        title: t('common.error'),
-        description: t('aiConfig.serviceProvider.embeddingProviderSwitchFailed'),
-        variant: 'destructive',
-      });
+      toast.error(t('aiConfig.serviceProvider.embeddingProviderSwitchFailed'));
     }
   }, [t, fetchEmbeddingConfig]);
 
@@ -768,17 +724,10 @@ export default function AIConfigPage() {
         configData[key] = field.data;
       });
       await embeddingConfigApi.saveLocalConfig(configData);
-      toast({
-        title: t('common.success'),
-        description: t('aiConfig.serviceProvider.embeddingConfigSaved'),
-      });
+      toast.success(t('aiConfig.serviceProvider.embeddingConfigSaved'));
     } catch (error) {
       console.error('Failed to save embedding local config:', error);
-      toast({
-        title: t('common.error'),
-        description: t('aiConfig.serviceProvider.embeddingConfigSaveFailed'),
-        variant: 'destructive',
-      });
+      toast.error(t('aiConfig.serviceProvider.embeddingConfigSaveFailed'));
     } finally {
       setIsSavingEmbeddingConfig(false);
     }
@@ -793,17 +742,10 @@ export default function AIConfigPage() {
         configData[key] = field.data;
       });
       await embeddingConfigApi.saveOpenaiConfig(configData);
-      toast({
-        title: t('common.success'),
-        description: t('aiConfig.serviceProvider.embeddingConfigSaved'),
-      });
+      toast.success(t('aiConfig.serviceProvider.embeddingConfigSaved'));
     } catch (error) {
       console.error('Failed to save embedding openai config:', error);
-      toast({
-        title: t('common.error'),
-        description: t('aiConfig.serviceProvider.embeddingConfigSaveFailed'),
-        variant: 'destructive',
-      });
+      toast.error(t('aiConfig.serviceProvider.embeddingConfigSaveFailed'));
     } finally {
       setIsSavingEmbeddingConfig(false);
     }
@@ -938,14 +880,10 @@ export default function AIConfigPage() {
     try {
       await frameworkConfigApi.updateFrameworkConfigItem(mcpToolsConfig.full_name, configKey, toolId);
       updateConfigValue(mcpToolsConfig.id, configKey, toolId);
-      toast({ title: t('aiConfig.mcpTool.selectSuccess') });
+      toast.success(t('aiConfig.mcpTool.selectSuccess'));
       setMcpToolDialogOpen(false);
     } catch (error) {
-      toast({
-        title: t('aiConfig.mcpTool.selectFailed'),
-        description: error instanceof Error ? error.message : '',
-        variant: 'destructive',
-      });
+      toast.error(error instanceof Error ? error.message : '');
     }
   }, [mcpToolsConfig, mcpToolDialogType, updateConfigValue, t]);
 
@@ -960,7 +898,7 @@ export default function AIConfigPage() {
       });
 
       if (changedConfigs.length === 0) {
-        toast({ title: t('common.success'), description: t('aiConfig.configSaved') });
+        toast.success(t('aiConfig.configSaved'));
       } else {
         for (const config of changedConfigs) {
           const configToSave: Record<string, any> = {};
@@ -972,14 +910,14 @@ export default function AIConfigPage() {
           await frameworkConfigApi.updateFrameworkConfig(config.full_name, configToSave);
         }
         setOriginalConfig(JSON.parse(JSON.stringify(configs)));
-        toast({ title: t('common.success'), description: t('aiConfig.configSaved') });
+        toast.success(t('aiConfig.configSaved'));
       }
 
       // 保存成功后调用向导 API 获取配置状态
       await fetchWizardChecklist();
     } catch (error) {
       console.error('Save error:', error);
-      toast({ title: t('common.saveFailed'), description: t('aiConfig.saveFailed'), variant: 'destructive' });
+      toast.error(t('aiConfig.saveFailed'));
     } finally {
       setIsSaving(false);
     }
@@ -1002,7 +940,7 @@ export default function AIConfigPage() {
       setIsWizardDialogOpen(true);
     } catch (error) {
       console.error('Failed to fetch wizard checklist:', error);
-      toast({ title: '获取配置状态失败', description: error instanceof Error ? error.message : '未知错误', variant: 'destructive' });
+      toast.error(error instanceof Error ? error.message : '未知错误');
     } finally {
       setIsWizardLoading(false);
     }

@@ -61,7 +61,7 @@ import {
   SessionLogStatsOverview,
   LinkedAgent,
 } from '@/lib/api';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 // ============================================================================
 // 工具函数
@@ -601,11 +601,7 @@ export default function AIHistoryPage() {
       setOffset(currentOffset);
     } catch (err) {
       console.error('Failed to fetch session logs:', err);
-      toast({
-        title: t('common.error'),
-        description: t('aiHistory.loadFailed'),
-        variant: 'destructive',
-      });
+      toast.error(t('aiHistory.loadFailed'));
     } finally {
       setIsLoading(false);
     }
@@ -622,11 +618,7 @@ export default function AIHistoryPage() {
       setSelectedLog(log);
     } catch (err) {
       console.error('Failed to fetch log detail:', err);
-      toast({
-        title: t('common.error'),
-        description: t('aiHistory.loadDetailFailed'),
-        variant: 'destructive',
-      });
+      toast.error(t('aiHistory.loadDetailFailed'));
     } finally {
       setIsLoadingDetail(false);
     }
@@ -641,11 +633,7 @@ export default function AIHistoryPage() {
       setSelectedLinkedAgent(agent);
     } catch (err) {
       console.error('Failed to fetch linked agent detail:', err);
-      toast({
-        title: t('common.error'),
-        description: t('aiHistory.loadDetailFailed'),
-        variant: 'destructive',
-      });
+      toast.error(t('aiHistory.loadDetailFailed'));
     } finally {
       setIsLoadingLinkedAgentDetail(false);
     }
@@ -685,7 +673,7 @@ export default function AIHistoryPage() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    toast({ title: '下载成功', description: '会话JSON已保存' });
+    toast.success('会话JSON已保存');
   }, [detail, linkedAgentDetail]);
 
   // 应用筛选

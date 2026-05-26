@@ -8,7 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { Loader2, Palette, Image, Type, Save, Bot } from 'lucide-react';
 import { ConfigField, ConfigFieldDefinition, ConfigValue, ConfigFieldType } from '@/components/config';
 import { frameworkConfigApi, PluginConfigItem } from '@/lib/api';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 // Convert API config to local config type
@@ -70,11 +70,7 @@ export default function StateConfigPage() {
         setOriginalConfig(JSON.parse(JSON.stringify(converted)));
       } catch (error) {
         console.error('Failed to fetch state config:', error);
-        toast({
-          title: t('common.loadFailed'),
-          description: '无法加载状态配置',
-          variant: 'destructive'
-        });
+        toast.error('无法加载状态配置');
       } finally {
         setIsLoading(false);
       }
@@ -103,9 +99,9 @@ export default function StateConfigPage() {
       await frameworkConfigApi.updateFrameworkConfig(configName, configToSave);
       setOriginalConfig(JSON.parse(JSON.stringify(config)));
       setIsDirty(false);
-      toast({ title: t('common.success'), description: '状态配置已保存' });
+      toast.success('状态配置已保存');
     } catch (error) {
-      toast({ title: t('common.saveFailed'), description: '保存状态配置失败', variant: 'destructive' });
+      toast.error('保存状态配置失败');
     } finally {
       setIsSaving(false);
     }
