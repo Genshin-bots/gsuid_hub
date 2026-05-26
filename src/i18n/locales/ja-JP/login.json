@@ -27,5 +27,7 @@
   "customHost": "カスタム Host",
   "customHostPlaceholder": "例如: 127.0.0.1:8765",
   "willUse": "使用:",
-  "settingsApiHost": "設定 API Host"
+  "settingsApiHost": "設定 API Host",
+  "registerCodeTooltip": "初回アクセス時に登録が必要です。登録コードは gsuid_core/data/config.json の REGISTER_CODE フィールドにあります。ユーザーごとに異なります。",
+  "registerCodeHelp": "ヘルプドキュメントを見る"
 }

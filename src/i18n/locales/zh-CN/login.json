@@ -27,5 +27,7 @@
   "customHost": "自定义 Host",
   "customHostPlaceholder": "例如: 127.0.0.1:8765",
   "willUse": "将使用:",
-  "settingsApiHost": "设置 API Host"
+  "settingsApiHost": "设置 API Host",
+  "registerCodeTooltip": "首次进入需要注册，注册码在 gsuid_core/data/config.json 中可以找到，字段为 REGISTER_CODE，每个人都不同",
+  "registerCodeHelp": "查看帮助文档"
 }

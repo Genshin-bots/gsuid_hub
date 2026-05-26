@@ -9,8 +9,9 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Loader2, LogIn, Eye, EyeOff, UserPlus, Settings, ChevronDown } from 'lucide-react';
+import { Loader2, LogIn, Eye, EyeOff, UserPlus, Settings, ChevronDown, HelpCircle } from 'lucide-react';
 import { LanguageFlag } from '@/components/ui/language-flag';
 import { cn } from '@/lib/utils';
 import { getCustomApiHost, setCustomApiHost, authApi } from '@/lib/api';
@@ -309,7 +310,26 @@ export default function Login() {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="registerCode">{t('login.registerCode')}</Label>
+                  <div className="flex items-center gap-1">
+                    <Label htmlFor="registerCode">{t('login.registerCode')}</Label>
+                    <TooltipProvider delayDuration={100}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <a
+                            href="https://docs.sayu-bot.com/Started/WebConsole.html"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+                          >
+                            <HelpCircle className="h-4 w-4" />
+                          </a>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-xs">
+                          <p>{t('login.registerCodeTooltip')}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
                   <Input
                     id="registerCode"
                     type="text"

@@ -27,5 +27,7 @@
   "customHost": "Custom Host",
   "customHostPlaceholder": "e.g., 127.0.0.1:8765",
   "willUse": "Will use:",
-  "settingsApiHost": "Settings API Host"
+  "settingsApiHost": "Settings API Host",
+  "registerCodeTooltip": "Registration is required on first access. You can find the registration code in gsuid_core/data/config.json, in the REGISTER_CODE field. It is unique for each user.",
+  "registerCodeHelp": "View help documentation"
 }
