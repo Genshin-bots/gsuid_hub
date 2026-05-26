@@ -29,7 +29,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import { versionApi, VersionInfo, ActiveBotsInfo } from '@/lib/api';
 
-const frontendVersion = PACKAGE_VERSION || '0.0.11';
+const frontendVersion = PACKAGE_VERSION || '0.0.12';
 
 const glassCardClass = 'relative overflow-hidden border border-white/15 bg-background/25 shadow-[0_4px_16px_-12px_hsl(var(--foreground)/0.30)] backdrop-blur-2xl dark:border-white/10 dark:bg-background/20';
 const subtlePanelClass = 'min-w-0 rounded-2xl border border-white/10 bg-white/10 p-3.5 backdrop-blur-xl transition-colors hover:bg-white/15 dark:bg-white/[0.045] dark:hover:bg-white/[0.07]';

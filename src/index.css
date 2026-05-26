@@ -497,10 +497,10 @@ All colors MUST be HSL.
     color: hsl(var(--muted-foreground) / 0.6) !important;
   }
 
-  /* Tag input inner input styling */
-  [class*="flex-wrap"] input,
-  [class*="tag-input"] input,
-  .flex.flex-wrap input {
+  /* Tag input inner input styling — scoped to explicit tag-input wrappers only.
+     Previously this also matched `.flex.flex-wrap input` and `[class*="flex-wrap"] input`,
+     which incorrectly shrunk inputs inside any flex-wrap toolbar. */
+  [class*="tag-input"] input {
     height: 1.5rem !important;
     padding: 0 0.5rem !important;
     margin: 0.25rem 0 !important;
@@ -647,4 +647,13 @@ button[role="switch"][data-state="unchecked"] span {
 
 [data-icon-color="black"] [data-sidebar="menu-button"] text {
   fill: black !important;
+}
+
+/* Hide scrollbar utility - keeps scroll functionality but hides the scrollbar track */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }

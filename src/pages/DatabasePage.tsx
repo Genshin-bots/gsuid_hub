@@ -1,5 +1,6 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -55,6 +56,13 @@ export default function DatabasePage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage, setPerPage] = useState(20);
 
+  // Floating horizontal scrollbar refs and state
+  const tableContainerRef = useRef<HTMLDivElement>(null);
+  const floatingScrollbarRef = useRef<HTMLDivElement>(null);
+  const [tableScrollWidth, setTableScrollWidth] = useState(0);
+  const [showFloatingBar, setShowFloatingBar] = useState(false);
+  const [floatingBarStyle, setFloatingBarStyle] = useState<React.CSSProperties>({});
+
   const selectedPlugin = useMemo(() => {
     return plugins.find(p => p.plugin_id === selectedPluginId);
   }, [plugins, selectedPluginId]);
@@ -105,6 +113,74 @@ export default function DatabasePage() {
       fetchTableData(activeTable, 1, perPage);
     }
   }, [activeTable]);
+
+  // Floating horizontal scrollbar: scroll sync handlers
+  const handleFloatingScroll = useCallback(() => {
+    if (floatingScrollbarRef.current && tableContainerRef.current) {
+      tableContainerRef.current.scrollLeft = floatingScrollbarRef.current.scrollLeft;
+    }
+  }, []);
+
+  const handleTableScroll = useCallback(() => {
+    if (tableContainerRef.current && floatingScrollbarRef.current) {
+      floatingScrollbarRef.current.scrollLeft = tableContainerRef.current.scrollLeft;
+    }
+  }, []);
+
+  // Measure table dimensions, detect horizontal scroll need, and update fixed bar position
+  useEffect(() => {
+    let rafId = 0;
+
+    const measure = () => {
+      const el = tableContainerRef.current;
+      if (!el) return;
+
+      const hasOverflow = el.scrollWidth > el.clientWidth;
+      const rect = el.getBoundingClientRect();
+      const inViewport = rect.bottom > 0 && rect.top < window.innerHeight;
+
+      // Whether the floating bar should be shown right now.
+      const shouldShow = hasOverflow && inViewport;
+      setShowFloatingBar(shouldShow);
+
+      if (shouldShow) {
+        setTableScrollWidth(el.scrollWidth);
+        setFloatingBarStyle({
+          position: 'fixed',
+          left: Math.max(rect.left, 0),
+          width: rect.width,
+          bottom: 12,
+          zIndex: 9999,
+        });
+      }
+    };
+
+    const schedule = () => {
+      if (rafId) return;
+      rafId = window.requestAnimationFrame(() => {
+        rafId = 0;
+        measure();
+      });
+    };
+
+    measure();
+
+    const observer = new ResizeObserver(schedule);
+    if (tableContainerRef.current) {
+      observer.observe(tableContainerRef.current);
+    }
+
+    const mainEl = tableContainerRef.current?.closest('main');
+    mainEl?.addEventListener('scroll', schedule, { passive: true });
+    window.addEventListener('resize', schedule, { passive: true });
+
+    return () => {
+      if (rafId) window.cancelAnimationFrame(rafId);
+      observer.disconnect();
+      mainEl?.removeEventListener('scroll', schedule);
+      window.removeEventListener('resize', schedule);
+    };
+  }, [activeTable, data]);
 
   const fetchTableMetadata = async (tableName: string) => {
     try {
@@ -323,7 +399,8 @@ export default function DatabasePage() {
   }
 
   return (
-    <div className="space-y-6 flex-1 overflow-auto p-6">
+    <>
+    <div className="space-y-6 p-6">
       <div>
         <h1 className="text-3xl font-bold flex items-center gap-3">
           <Database className="w-8 h-8" />
@@ -364,23 +441,7 @@ export default function DatabasePage() {
 
       {activeTable && tableMetadata && (
         <Card className="glass-card">
-          <CardHeader>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <CardTitle>{tableMetadata.label}</CardTitle>
-              <div className="flex flex-wrap gap-2">
-                <Button onClick={() => fetchTableData(activeTable, currentPage, perPage)} variant="outline" size="sm">
-                  <RefreshCw className="h-4 w-4 mr-1" />
-                  {t('database.refresh')}
-                </Button>
-                <Button onClick={handleCreate} size="sm">
-                  <Plus className="h-4 w-4 mr-1" />
-                  {t('database.addNew')}
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-          
-          <CardContent>
+          <CardContent className="pt-6">
             <div className="flex flex-wrap items-center gap-4 mb-4">
               {/* 全局搜索框 */}
               <div className="flex items-center gap-2">
@@ -400,7 +461,7 @@ export default function DatabasePage() {
                 <div className="flex items-center gap-2 flex-wrap">
                   <Filter className="h-4 w-4 text-muted-foreground" />
                   <Select value={filterColumn} onValueChange={setFilterColumn}>
-                    <SelectTrigger className="w-full sm:w-[150px]">
+                    <SelectTrigger className="h-10 w-full sm:w-[150px]">
                       <SelectValue placeholder={t('database.filterColumn')} />
                     </SelectTrigger>
                     <SelectContent>
@@ -425,6 +486,7 @@ export default function DatabasePage() {
                         size="sm"
                         onClick={addFilter}
                         title="添加筛选"
+                        className="h-10"
                       >
                         <PlusCircle className="h-4 w-4" />
                       </Button>
@@ -452,12 +514,12 @@ export default function DatabasePage() {
                   </div>
                 )}
 
-                {/* 搜索按钮 - 放在右侧 */}
+                {/* 搜索按钮 - 紧贴筛选区域 */}
                 <Button
                   onClick={handleSearch}
                   size="sm"
                   disabled={isSearching}
-                  className="ml-auto"
+                  className="h-10"
                 >
                   {isSearching ? (
                     <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
@@ -466,13 +528,29 @@ export default function DatabasePage() {
                   )}
                   {t('database.search')}
                 </Button>
+
+                {/* 刷新 + 新增按钮 - 推到最右 */}
+                <div className="flex flex-wrap gap-2 ml-auto">
+                  <Button onClick={() => fetchTableData(activeTable, currentPage, perPage)} variant="outline" size="sm" className="h-10">
+                    <RefreshCw className="h-4 w-4 mr-1" />
+                    {t('database.refresh')}
+                  </Button>
+                  <Button onClick={handleCreate} size="sm" className="h-10">
+                    <Plus className="h-4 w-4 mr-1" />
+                    {t('database.addNew')}
+                  </Button>
+                </div>
               </div>
             </div>
 
             <Separator className="my-2" />
 
-            <div className="overflow-x-auto">
-                <Table>
+            <div className="relative">
+              <Table
+                wrapperRef={tableContainerRef}
+                wrapperClassName="scrollbar-hide"
+                onWrapperScroll={handleTableScroll}
+              >
                   <TableHeader>
                     <TableRow>
                       {columns.map((col) => (
@@ -609,5 +687,19 @@ export default function DatabasePage() {
         </DialogContent>
       </Dialog>
     </div>
+    {/* Floating horizontal scrollbar rendered via Portal to body,
+        so position:fixed works correctly regardless of ancestor transforms */}
+    {showFloatingBar && createPortal(
+      <div
+        ref={floatingScrollbarRef}
+        className="overflow-x-auto h-3 bg-background/80 border border-border/60 shadow-md backdrop-blur-sm rounded-full"
+        onScroll={handleFloatingScroll}
+        style={floatingBarStyle}
+      >
+        <div style={{ width: tableScrollWidth, minWidth: '100%' }} className="h-px" />
+      </div>,
+      document.body
+    )}
+  </>
   );
 }
