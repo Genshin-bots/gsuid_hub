@@ -119,8 +119,8 @@ function SectionCard({ title, description, icon, iconBgClass, iconClass, childre
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className={cn(
-              "w-10 h-10 rounded-xl flex items-center justify-center transition-transform duration-300",
-              iconBgClass
+              "flex items-center justify-center transition-transform duration-300",
+              iconClass
             )}>
               {icon}
             </div>
@@ -175,12 +175,10 @@ function ToggleRow({ icon, iconColorClass, title, description, checked, onChecke
   return (
     <div className="flex items-center gap-4 p-3 rounded-lg transition-colors duration-200 hover:bg-muted/30">
       <div className={cn(
-        "w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 transition-all duration-300",
-        checked ? "bg-primary/10" : "bg-muted"
+        "flex items-center justify-center flex-shrink-0 transition-all duration-300",
+        checked ? iconColorClass : "text-muted-foreground"
       )}>
-        <div className={cn("w-5 h-5 transition-colors duration-300", checked ? iconColorClass : "text-muted-foreground")}>
-          {icon}
-        </div>
+        {icon}
       </div>
       <div className="flex-1 min-w-0">
         <p className="font-medium text-sm">{title}</p>
@@ -215,7 +213,7 @@ function PersonaAvatar({ name, isEnabled }: { name: string; isEnabled: boolean }
 function EmptyState({ icon, title, description }: { icon: React.ReactNode; title: string; description?: string }) {
   return (
     <div className="flex flex-col items-center justify-center py-10 text-center">
-      <div className="w-16 h-16 rounded-2xl bg-muted/50 flex items-center justify-center mb-4">
+      <div className="flex items-center justify-center mb-4 text-muted-foreground/50">
         {icon}
       </div>
       <p className="text-sm font-medium text-muted-foreground">{title}</p>
@@ -1055,10 +1053,10 @@ export default function AIConfigPage() {
             <CardContent className="p-6 relative z-10">
               <div className="flex items-center gap-5">
                 <div className={cn(
-                  "w-16 h-16 rounded-2xl flex items-center justify-center flex-shrink-0 transition-all duration-500",
-                  isAIEnabled ? "bg-primary/15 text-primary shadow-sm" : "bg-muted text-muted-foreground"
+                  "flex items-center justify-center flex-shrink-0 transition-all duration-500",
+                  isAIEnabled ? "text-primary" : "text-muted-foreground"
                 )}>
-                  <Brain className="w-8 h-8" />
+                  <Brain className="w-8 h-8" strokeWidth={1.5} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-3">
@@ -1094,8 +1092,8 @@ export default function AIConfigPage() {
                 {/* Section Header */}
                 <div className="flex flex-col gap-3 px-1 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex min-w-0 items-center gap-2.5 overflow-x-auto">
-                    <div className="w-8 h-8 shrink-0 rounded-lg bg-primary/10 flex items-center justify-center">
-                      <Wifi className="w-4 h-4 text-primary" />
+                    <div className="shrink-0 flex items-center justify-center text-primary">
+                      <Wifi className="w-5 h-5" strokeWidth={1.5} />
                     </div>
                     <div className="min-w-0">
                       <h2 className="whitespace-nowrap text-sm font-semibold text-foreground">{t('aiConfig.serviceProvider.title')}</h2>
@@ -1162,7 +1160,7 @@ export default function AIConfigPage() {
                   <SectionCard
                     title={t('aiConfig.providerConfig.highLevelTask') || '高级任务'}
                     description={t('aiConfig.providerConfig.highLevelTaskDesc') || '复杂推理、工具调用等需要强模型能力的任务'}
-                    icon={<Sparkles className="w-5 h-5 text-primary" />}
+                    icon={<Sparkles className="w-6 h-6 text-primary" strokeWidth={1.5} />}
                     iconBgClass="bg-primary/10"
                     iconClass="text-primary"
                     isGlass={isGlass}
@@ -1189,11 +1187,11 @@ export default function AIConfigPage() {
                             >
                               <div className="flex items-center gap-3 min-w-0 flex-1">
                                 <div className={cn(
-                                  "w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors",
-                                  isSelected ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"
+                                  "flex items-center justify-center flex-shrink-0 transition-colors",
+                                  isSelected ? "text-primary" : "text-muted-foreground"
                                 )}>
-                                  <FileText className="w-4 h-4" />
-                                </div>
+                                  <FileText className="w-5 h-5" />
+                                  </div>
                                 <div className="min-w-0">
                                   <span className="text-sm font-medium truncate block">{configItem.config_name}</span>
                                   <div className="flex items-center gap-1.5 mt-0.5">
@@ -1254,7 +1252,7 @@ export default function AIConfigPage() {
                   <SectionCard
                     title={t('aiConfig.providerConfig.lowLevelTask') || '低级任务'}
                     description={t('aiConfig.providerConfig.lowLevelTaskDesc') || '简单问答、快速响应等只需基础模型能力的任务'}
-                    icon={<Zap className="w-5 h-5 text-primary" />}
+                    icon={<Zap className="w-6 h-6 text-primary" strokeWidth={1.5} />}
                     iconBgClass="bg-primary/10"
                     iconClass="text-primary"
                     isGlass={isGlass}
@@ -1281,11 +1279,11 @@ export default function AIConfigPage() {
                             >
                               <div className="flex items-center gap-3 min-w-0 flex-1">
                                 <div className={cn(
-                                  "w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors",
-                                  isSelected ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"
+                                  "flex items-center justify-center flex-shrink-0 transition-colors",
+                                  isSelected ? "text-primary" : "text-muted-foreground"
                                 )}>
-                                  <FileText className="w-4 h-4" />
-                                </div>
+                                  <FileText className="w-5 h-5" />
+                                  </div>
                                 <div className="min-w-0">
                                   <span className="text-sm font-medium truncate block">{configItem.config_name}</span>
                                   <div className="flex items-center gap-1.5 mt-0.5">
@@ -1350,7 +1348,7 @@ export default function AIConfigPage() {
                 <SectionCard
                   title={t('aiConfig.serviceProvider.webSearchService')}
                   description={t('aiConfig.serviceProvider.webSearchServiceDesc') || '配置网络搜索能力'}
-                  icon={<Search className="w-5 h-5 text-primary" />}
+                  icon={<Search className="w-6 h-6 text-primary" strokeWidth={1.5} />}
                   iconBgClass="bg-primary/10"
                   iconClass="text-primary"
                   isGlass={isGlass}
@@ -1448,7 +1446,7 @@ export default function AIConfigPage() {
                 <SectionCard
                   title={t('aiConfig.imageUnderstand.title') || '图片理解服务'}
                   description={aiConfig.config.image_understand_provider?.desc || '当LLM模型不支持图片时，使用该服务将图片转述为文本'}
-                  icon={<Eye className="w-5 h-5 text-primary" />}
+                  icon={<Eye className="w-6 h-6 text-primary" strokeWidth={1.5} />}
                   iconBgClass="bg-primary/10"
                   iconClass="text-primary"
                   isGlass={isGlass}
@@ -1527,7 +1525,7 @@ export default function AIConfigPage() {
                 <SectionCard
                   title={t('aiConfig.voiceRecognition.title') || '语音识别服务'}
                   description={aiConfig.config.asr_provider?.desc || '指定语音识别（ASR）服务提供方'}
-                  icon={<Cpu className="w-5 h-5 text-primary" />}
+                  icon={<Cpu className="w-6 h-6 text-primary" strokeWidth={1.5} />}
                   iconBgClass="bg-primary/10"
                   iconClass="text-primary"
                   isGlass={isGlass}
@@ -1567,7 +1565,7 @@ export default function AIConfigPage() {
                 <SectionCard
                   title={t('aiConfig.documentExtract.title') || '文档提取服务'}
                   description={aiConfig.config.document_extract_provider?.desc || '指定文档内容提取服务提供方'}
-                  icon={<FileText className="w-5 h-5 text-primary" />}
+                  icon={<FileText className="w-6 h-6 text-primary" strokeWidth={1.5} />}
                   iconBgClass="bg-primary/10"
                   iconClass="text-primary"
                   isGlass={isGlass}
@@ -1610,7 +1608,7 @@ export default function AIConfigPage() {
                 <SectionCard
                   title={t('aiConfig.memorySettings.title') || '记忆配置'}
                   description={t('aiConfig.memorySettings.description') || '配置AI记忆系统'}
-                  icon={<MemoryStick className="w-5 h-5 text-primary" />}
+                  icon={<MemoryStick className="w-6 h-6 text-primary" strokeWidth={1.5} />}
                   iconBgClass="bg-primary/10"
                   iconClass="text-primary"
                   isGlass={isGlass}
@@ -1667,7 +1665,7 @@ export default function AIConfigPage() {
                       <Separator className="bg-border/30" />
                       <div className="space-y-2">
                         <ToggleRow
-                          icon={<CheckCircle className="w-5 h-5" />}
+                          icon={<CheckCircle className="w-6 h-6" strokeWidth={1.5} />}
                           iconColorClass="text-primary"
                           title={t('aiConfig.memorySettings.enableSystem2')}
                           description={t('aiConfig.memorySettings.enableSystem2Desc') || '提高检索精度但增加性能开销'}
@@ -1675,7 +1673,7 @@ export default function AIConfigPage() {
                           onCheckedChange={(checked) => updateConfigValue(memoryConfig.id, 'enable_system2', checked)}
                         />
                         <ToggleRow
-                          icon={<Sparkles className="w-5 h-5" />}
+                          icon={<Sparkles className="w-6 h-6" strokeWidth={1.5} />}
                           iconColorClass="text-primary"
                           title={t('aiConfig.memorySettings.evalMode')}
                           description={t('aiConfig.memorySettings.evalModeDesc') || '启用后无法使用 System-2 和 Rerank'}
@@ -1694,7 +1692,7 @@ export default function AIConfigPage() {
                   <SectionCard
                     title={t('aiConfig.memeSettings.title') || '表情包配置'}
                     description={t('aiConfig.memeSettings.description') || '配置表情包采集、打标和发送行为'}
-                    icon={<Smile className="w-5 h-5 text-primary" />}
+                    icon={<Smile className="w-6 h-6 text-primary" strokeWidth={1.5} />}
                     iconBgClass="bg-primary/10"
                     iconClass="text-primary"
                     isGlass={isGlass}
@@ -1709,7 +1707,7 @@ export default function AIConfigPage() {
                       <div className="space-y-5">
                         {/* 自动采集开关 */}
                         <ToggleRow
-                          icon={<Sparkles className="w-5 h-5" />}
+                          icon={<Sparkles className="w-6 h-6" strokeWidth={1.5} />}
                           iconColorClass="text-primary"
                           title={t('aiConfig.memeSettings.autoCollect')}
                           description={t('aiConfig.memeSettings.autoCollectDesc')}
@@ -1748,7 +1746,7 @@ export default function AIConfigPage() {
                 <SectionCard
                   title={t('aiConfig.serviceProvider.embeddingService')}
                   description={t('aiConfig.serviceProvider.embeddingServiceDesc') || '配置向量嵌入模型'}
-                  icon={<Database className="w-5 h-5 text-primary" />}
+                  icon={<Database className="w-6 h-6 text-primary" strokeWidth={1.5} />}
                   iconBgClass="bg-primary/10"
                   iconClass="text-primary"
                   isGlass={isGlass}
@@ -1886,7 +1884,7 @@ export default function AIConfigPage() {
                   {/* Rerank 配置 */}
                   <div className="pt-4 border-t border-border/30">
                     <ToggleRow
-                      icon={<CheckCircle className="w-5 h-5" />}
+                      icon={<CheckCircle className="w-6 h-6" strokeWidth={1.5} />}
                       iconColorClass="text-primary"
                       title={t('aiConfig.serviceProvider.enableRerank')}
                       description={t('aiConfig.serviceProvider.rerankQuality')}
@@ -1909,7 +1907,7 @@ export default function AIConfigPage() {
                 <SectionCard
                   title={t('aiConfig.advancedSettings.title') || '高级设置'}
                   description={t('aiConfig.advancedSettings.description') || '配置AI行为参数'}
-                  icon={<Settings className="w-5 h-5 text-primary" />}
+                  icon={<Settings className="w-6 h-6 text-primary" strokeWidth={1.5} />}
                   iconBgClass="bg-primary/10"
                   iconClass="text-primary"
                   isGlass={isGlass}

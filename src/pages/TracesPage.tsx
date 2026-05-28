@@ -242,22 +242,18 @@ export default function TracesPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="glass-card">
+        <Card className="glass-card border-l-4 border-l-primary">
           <CardContent className="p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
-              <ScrollText className="w-5 h-5 text-primary" />
-            </div>
+            <ScrollText className="w-7 h-7 text-primary shrink-0" strokeWidth={1.5} />
             <div>
               <p className="text-2xl font-bold">{traces.length}</p>
               <p className="text-xs text-muted-foreground">{t("traces.totalTraces") || "总追踪"}</p>
             </div>
           </CardContent>
         </Card>
-        <Card className="glass-card">
+        <Card className="glass-card border-l-4 border-l-blue-500">
           <CardContent className="p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
-              <Activity className="w-5 h-5 text-blue-500" />
-            </div>
+            <Activity className="w-7 h-7 text-blue-500 shrink-0" strokeWidth={1.5} />
             <div>
               <p className="text-2xl font-bold">
                 {traces.filter((t) => t.status === "running").length}
@@ -266,11 +262,9 @@ export default function TracesPage() {
             </div>
           </CardContent>
         </Card>
-        <Card className="glass-card">
+        <Card className="glass-card border-l-4 border-l-green-500">
           <CardContent className="p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center">
-              <Clock className="w-5 h-5 text-green-500" />
-            </div>
+            <Clock className="w-7 h-7 text-green-500 shrink-0" strokeWidth={1.5} />
             <div>
               <p className="text-2xl font-bold">
                 {traces.filter((t) => t.status === "completed").length}
@@ -279,11 +273,9 @@ export default function TracesPage() {
             </div>
           </CardContent>
         </Card>
-        <Card className="glass-card">
+        <Card className="glass-card border-l-4 border-l-purple-500">
           <CardContent className="p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
-              <Hash className="w-5 h-5 text-purple-500" />
-            </div>
+            <Hash className="w-7 h-7 text-purple-500 shrink-0" strokeWidth={1.5} />
             <div>
               <p className="text-2xl font-bold">
                 {traces.reduce((sum, t) => sum + (t.log_count || 0), 0).toLocaleString()}

@@ -534,7 +534,7 @@ export default function PluginsPage() {
         <Card key={selectedPlugin.id} className="glass-card">
           <div className="p-6 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center overflow-hidden">
+              <div className="flex items-center justify-center overflow-hidden">
                 <PluginIcon pluginName={selectedPlugin.name} className="w-10 h-10" />
               </div>
               <div>
@@ -552,8 +552,8 @@ export default function PluginsPage() {
               <CollapsibleTrigger asChild>
                 <div className="flex items-center justify-between mb-6 cursor-pointer hover:opacity-80 transition-opacity bg-background/50 rounded-xl p-4 border">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
-                      <Server className="w-5 h-5 text-primary" />
+                    <div className="flex items-center justify-center text-primary">
+                      <Server className="w-6 h-6" strokeWidth={1.5} />
                     </div>
                     <div>
                       <h3 className="text-xl font-bold">{t('plugins.serviceConfig')}</h3>
@@ -569,8 +569,8 @@ export default function PluginsPage() {
                   <CollapsibleTrigger asChild>
                     <div className="flex items-center justify-between mb-6 cursor-pointer hover:opacity-80 transition-opacity bg-muted/30 rounded-lg p-3 border">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                          <Server className="w-4 h-4 text-primary" />
+                        <div className="flex items-center justify-center text-primary">
+                          <Package className="w-5 h-5" strokeWidth={1.5} />
                         </div>
                         <div>
                           <h4 className="text-lg font-semibold">{t('plugins.pluginServiceConfig')}</h4>
@@ -830,8 +830,8 @@ export default function PluginsPage() {
                     <CollapsibleTrigger asChild>
                       <div className="flex items-center justify-between mb-6 cursor-pointer hover:opacity-80 transition-opacity bg-muted/30 rounded-lg p-3 border">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                            <Server className="w-4 h-4 text-primary" />
+                          <div className="flex items-center justify-center text-primary">
+                            <Command className="w-5 h-5" strokeWidth={1.5} />
                           </div>
                           <div>
                             <h4 className="text-lg font-semibold">SV 服务配置</h4>
@@ -1070,8 +1070,8 @@ export default function PluginsPage() {
               <CollapsibleTrigger asChild>
                 <div className="flex items-center justify-between mb-6 cursor-pointer hover:opacity-80 transition-opacity bg-background/50 rounded-xl p-4 border">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
-                      <Settings className="w-5 h-5 text-primary" />
+                    <div className="flex items-center justify-center text-primary">
+                      <Settings className="w-6 h-6" strokeWidth={1.5} />
                     </div>
                     <div>
                       <h3 className="text-xl font-bold">{t('plugins.configParams')}</h3>

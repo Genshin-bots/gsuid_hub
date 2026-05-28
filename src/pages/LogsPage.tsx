@@ -473,11 +473,9 @@ export default function LogsPage() {
 
       {/* Stats - 固定高度 */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4 shrink-0">
-        <Card className="glass-card">
+        <Card className="glass-card border-l-4 border-l-blue-500">
           <CardContent className="p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
-              <Info className="w-5 h-5 text-blue-500" />
-            </div>
+            <Info className="w-7 h-7 text-blue-500 shrink-0" strokeWidth={1.5} />
             <div>
               <p className="text-2xl font-bold">{totalCount.toLocaleString()}</p>
               <p className="text-xs text-muted-foreground">{t('logs.totalLogs')}</p>
@@ -485,11 +483,9 @@ export default function LogsPage() {
           </CardContent>
         </Card>
         
-        <Card className="glass-card">
+        <Card className="glass-card border-l-4 border-l-blue-500">
           <CardContent className="p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
-              <Info className="w-5 h-5 text-blue-500" />
-            </div>
+            <Info className="w-7 h-7 text-blue-500 shrink-0" strokeWidth={1.5} />
             <div>
               <p className="text-2xl font-bold">{infoCount}</p>
               <p className="text-xs text-muted-foreground">{t('logs.info')}</p>
@@ -497,11 +493,9 @@ export default function LogsPage() {
           </CardContent>
         </Card>
         
-        <Card className="glass-card">
+        <Card className="glass-card border-l-4 border-l-yellow-500">
           <CardContent className="p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-yellow-500/20 flex items-center justify-center">
-              <AlertTriangle className="w-5 h-5 text-yellow-500" />
-            </div>
+            <AlertTriangle className="w-7 h-7 text-yellow-500 shrink-0" strokeWidth={1.5} />
             <div>
               <p className="text-2xl font-bold">{warnCount}</p>
               <p className="text-xs text-muted-foreground">{t('logs.warn')}</p>
@@ -509,11 +503,9 @@ export default function LogsPage() {
           </CardContent>
         </Card>
         
-        <Card className="glass-card">
+        <Card className="glass-card border-l-4 border-l-red-500">
           <CardContent className="p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-red-500/20 flex items-center justify-center">
-              <AlertCircle className="w-5 h-5 text-red-500" />
-            </div>
+            <AlertCircle className="w-7 h-7 text-red-500 shrink-0" strokeWidth={1.5} />
             <div>
               <p className="text-2xl font-bold">{errorCount}</p>
               <p className="text-xs text-muted-foreground">{t('logs.errorLog')}</p>
@@ -521,11 +513,9 @@ export default function LogsPage() {
           </CardContent>
         </Card>
         
-        <Card className="glass-card">
+        <Card className="glass-card border-l-4 border-l-gray-500">
           <CardContent className="p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-gray-500/20 flex items-center justify-center">
-              <Bug className="w-5 h-5 text-gray-500" />
-            </div>
+            <Bug className="w-7 h-7 text-gray-500 shrink-0" strokeWidth={1.5} />
             <div>
               <p className="text-2xl font-bold">{debugCount}</p>
               <p className="text-xs text-muted-foreground">{t('logs.debug')}</p>

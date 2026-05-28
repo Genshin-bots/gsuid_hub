@@ -44,8 +44,11 @@
     "error": "Error",
     "nodeTransition": "Node Transition",
     "agentLinked": "Sub Agent",
-    "toolsList": "Tools List"
+    "toolsList": "Tools List",
+    "proactiveEmission": "Proactive Emission"
   },
   "filterTitle": "Filters",
-  "selectSession": "Select a session to view details"
+  "selectSession": "Select a session to view details",
+  "chatTypeGroup": "Group",
+  "chatTypePrivate": "Private"
 }

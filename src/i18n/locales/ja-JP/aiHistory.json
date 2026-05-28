@@ -44,8 +44,11 @@
     "error": "エラー",
     "nodeTransition": "ノード转换",
     "agentLinked": "子Agent",
-    "toolsList": "ツールリスト"
+    "toolsList": "ツールリスト",
+    "proactiveEmission": "主動発言"
   },
   "filterTitle": "絞込件件",
-  "selectSession": "選択セッション表示詳細"
+  "selectSession": "選択セッション表示詳細",
+  "chatTypeGroup": "グループ",
+  "chatTypePrivate": "プライベート"
 }

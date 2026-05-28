@@ -26,6 +26,7 @@ export default function ConsolePage() {
   // 数据存在 ref 中，避免 React 遍历大数组
   const allLogsRef = useRef<LogEntry[]>([]);
   const [logVersion, setLogVersion] = useState(0);
+  const [reconnectCount, setReconnectCount] = useState(0);
 
   const [input, setInput] = useState("");
   const [commandHistory, setCommandHistory] = useState<string[]>([]);
@@ -73,15 +74,13 @@ export default function ConsolePage() {
     });
   }, []);
 
-  // SSE stream for real-time logs
+  // SSE stream for real-time logs - 始终接收所有级别，前端通过 filteredLogs 控制显示
   useEffect(() => {
     const token = localStorage.getItem('auth_token');
     if (!token) return;
 
-    const authEventSource = new EventSource(
-      `/api/logs/stream?token=${encodeURIComponent(token)}`,
-      { withCredentials: true }
-    );
+    const url = `/api/logs/stream?token=${encodeURIComponent(token)}&level=all`;
+    const authEventSource = new EventSource(url, { withCredentials: true });
 
     authEventSource.onmessage = (event) => {
       try {
@@ -119,15 +118,16 @@ export default function ConsolePage() {
     authEventSource.onerror = (error) => {
       console.error("Log stream error:", error);
       authEventSource.close();
+      // 延迟后尝试重连
       setTimeout(() => {
-        window.location.reload();
+        setReconnectCount((c) => c + 1);
       }, 3000);
     };
 
     return () => {
       authEventSource.close();
     };
-  }, []);
+  }, [reconnectCount]);
 
   const addLogs = useCallback((entries: LogEntry[]) => {
     allLogsRef.current.push(...entries);

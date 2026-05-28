@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import {
   History,
@@ -52,6 +53,7 @@ interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   user_name?: string | null;
+  user_avatar?: string | null;
   timestamp?: number;
 }
 
@@ -346,6 +348,7 @@ export default function SessionManagementPage() {
           role: msg.role === 'assistant' ? 'assistant' : 'user',
           content: msg.content,
           user_name: msg.user_name,
+          user_avatar: msg.user_avatar,
           timestamp: msg.timestamp
         }));
       }
@@ -366,13 +369,28 @@ export default function SessionManagementPage() {
       )}>
         {/* Avatar */}
         <div className={cn(
-          "w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center shrink-0",
-          isUser ? "bg-primary/20" : "bg-muted"
+          "w-7 h-7 sm:w-8 sm:h-8 shrink-0 rounded-full flex items-center justify-center",
+          isUser
+            ? (msg.user_avatar ? "" : "bg-primary/20 text-primary")
+            : "bg-muted text-muted-foreground"
         )}>
-          {isUser ? (
-            <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" />
+          {isUser && msg.user_avatar ? (
+            <Avatar className="w-full h-full">
+              <AvatarImage src={msg.user_avatar} alt={msg.user_name || 'User'} />
+              <AvatarFallback className="bg-primary/20 text-primary text-[10px] sm:text-xs font-medium">
+                {msg.user_name ? msg.user_name.charAt(0).toUpperCase() : <User className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
+              </AvatarFallback>
+            </Avatar>
           ) : (
-            <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground" />
+            isUser ? (
+              msg.user_name ? (
+                <span className="text-[10px] sm:text-xs font-medium">{msg.user_name.charAt(0).toUpperCase()}</span>
+              ) : (
+                <User className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              )
+            ) : (
+              <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            )
           )}
         </div>
         
@@ -381,6 +399,13 @@ export default function SessionManagementPage() {
           "flex flex-col max-w-[80%] sm:max-w-[70%]",
           isUser ? "items-start" : "items-end"
         )}>
+          <span className={cn(
+            "text-[10px] sm:text-xs text-muted-foreground mb-0.5 sm:mb-1",
+            isUser ? "text-left" : "text-right"
+          )}>
+            {msg.user_name && <span className="mr-1 sm:mr-2">{msg.user_name}</span>}
+            {formatTime(msg.timestamp)}
+          </span>
           <div className={cn(
             "px-3 py-1.5 sm:px-4 sm:py-2 rounded-2xl text-sm",
             isUser
@@ -389,10 +414,6 @@ export default function SessionManagementPage() {
           )}>
             <p className="whitespace-pre-wrap break-words">{msg.content}</p>
           </div>
-          <span className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1">
-            {msg.user_name && <span className="mr-1 sm:mr-2">{msg.user_name}</span>}
-            {formatTime(msg.timestamp)}
-          </span>
         </div>
       </div>
     );
@@ -400,13 +421,13 @@ export default function SessionManagementPage() {
 
   return (
     <div className="flex-1 overflow-hidden h-full flex">
-      {/* Left Sidebar - Session List */}
-      <div className={cn(
-        "border-r flex flex-col shrink-0 rounded-l-xl",
-        "w-full absolute inset-0 z-10 sm:relative sm:w-72 md:w-80",
-        isGlass ? "border-white/10 glass-card" : "border-border bg-card",
-        selectedSession ? "hidden sm:flex" : "flex"
-      )}>
+    {/* Left Sidebar - Session List */}
+    <div className={cn(
+      "border-r flex flex-col shrink-0 rounded-l-xl",
+      "w-full absolute inset-0 z-10 sm:relative sm:w-72 md:w-80 lg:w-[340px]",
+      isGlass ? "border-white/10 glass-card" : "border-border bg-card",
+      selectedSession ? "hidden sm:flex" : "flex"
+    )}>
         {/* Sidebar Header */}
         <div className="p-3 sm:p-4 border-b border-border/50">
           <div className="flex items-center justify-between mb-3 sm:mb-4">
@@ -452,12 +473,13 @@ export default function SessionManagementPage() {
               {searchQuery ? t('sessionManagement.noSearchResults') : t('sessionManagement.noSessions')}
             </div>
           ) : (
-            <div className="p-1.5 sm:p-2 space-y-1">
+            <div className="p-1.5 sm:p-2 pr-2.5 sm:pr-3 space-y-1">
               {filteredSessions.map((session) => {
                 const isSelected = selectedSession?.session.session_id === session.session_id;
                 const displayId = getSessionDisplayId(session);
                 const botId = getBotId(session);
                 const isGroup = session.type === 'group';
+                const userAvatar = session.last_user?.user_avatar;
                 
                 return (
                   <button
@@ -469,18 +491,22 @@ export default function SessionManagementPage() {
                         isSelected && "bg-primary/10 hover:bg-primary/10 border-l-2 border-primary"
                       )}
                     >
-                    <div className="flex items-start gap-2.5 sm:gap-3">
+                    <div className="flex items-center gap-2.5 sm:gap-3">
                       {/* Avatar */}
-                      <div className={cn(
-                        "w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0",
-                        isGroup ? "bg-green-500/20" : "bg-blue-500/20"
-                      )}>
-                        {isGroup ? (
-                          <Users className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
-                        ) : (
-                          <User className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />
+                      <Avatar className="w-8 h-8 sm:w-10 sm:h-10 shrink-0">
+                        {!isGroup && userAvatar && (
+                          <AvatarImage src={userAvatar} alt={displayId} />
                         )}
-                      </div>
+                        <AvatarFallback className={cn(
+                          isGroup ? "bg-green-500/20" : "bg-blue-500/20"
+                        )}>
+                          {isGroup ? (
+                            <Users className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
+                          ) : (
+                            <User className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />
+                          )}
+                        </AvatarFallback>
+                      </Avatar>
                       
                       {/* Info */}
                       <div className="flex-1 min-w-0">
@@ -495,7 +521,16 @@ export default function SessionManagementPage() {
                             </Badge>
                           )}
                         </div>
-                        {/* Second row: Badge and Stats */}
+                        {/* Second row: Last user message preview */}
+                        {session.last_user?.message && (
+                          <p className="text-xs text-muted-foreground truncate mt-0.5">
+                            {session.last_user.user_name && (
+                              <span className="font-medium text-foreground/70">{session.last_user.user_name}: </span>
+                            )}
+                            {session.last_user.message}
+                          </p>
+                        )}
+                        {/* Third row: Badge and Stats */}
                         <div className="flex items-center gap-2 mt-1">
                           <Badge
                             variant="secondary"
@@ -551,16 +586,20 @@ export default function SessionManagementPage() {
                   <ChevronLeft className="w-5 h-5" />
                 </Button>
                 
-                <div className={cn(
-                  "w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0",
-                  selectedSession.session.type === 'group' ? "bg-green-500/20" : "bg-blue-500/20"
-                )}>
-                  {selectedSession.session.type === 'group' ? (
-                    <Users className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
-                  ) : (
-                    <User className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />
+                <Avatar key={selectedSession.session.session_id} className="w-8 h-8 sm:w-10 sm:h-10 shrink-0">
+                  {selectedSession.session.type !== 'group' && selectedSession.session.last_user?.user_avatar && (
+                    <AvatarImage src={selectedSession.session.last_user.user_avatar} alt={getSessionDisplayId(selectedSession.session)} />
                   )}
-                </div>
+                  <AvatarFallback className={cn(
+                    selectedSession.session.type === 'group' ? "bg-green-500/20" : "bg-blue-500/20"
+                  )}>
+                    {selectedSession.session.type === 'group' ? (
+                      <Users className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
+                    ) : (
+                      <User className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />
+                    )}
+                  </AvatarFallback>
+                </Avatar>
                 
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">

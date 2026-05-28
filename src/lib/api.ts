@@ -2159,6 +2159,13 @@ export const aiImageApi = {
 // History Manager API - /api/history
 // ===================
 
+export interface SessionLastUser {
+  user_id: string;
+  user_name: string | null;
+  user_avatar: string | null;
+  message: string;
+}
+
 export interface SessionInfo {
   session_id: string;
   session_key: string;
@@ -2168,6 +2175,7 @@ export interface SessionInfo {
   message_count: number;
   last_access: number | null;
   created_at: number | null;
+  last_user: SessionLastUser | null;
 }
 
 export interface SessionHistoryTextResponse {
@@ -2181,6 +2189,7 @@ export interface SessionHistoryMessage {
   content: string;
   user_id?: string;
   user_name?: string | null;
+  user_avatar?: string | null;
   timestamp?: number;
   metadata?: Record<string, unknown>;
 }
@@ -2857,7 +2866,9 @@ export type SessionLogEntryType =
   | 'error'
   | 'node_transition'
   | 'agent_linked'
-  | 'tools_list';
+  | 'tools_list'
+  | 'proactive_emission'
+  | (string & {}); // 允许后端新增类型，前端不崩溃
 
 export interface LinkedAgent {
   agent_type: string;

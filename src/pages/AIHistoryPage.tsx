@@ -49,6 +49,7 @@ import {
   Cpu,
   SlidersHorizontal,
   Download,
+  Users,
 } from 'lucide-react';
 import {
   aiSessionLogsApi,
@@ -105,6 +106,7 @@ function getEntryTypeLabel(type: SessionLogEntryType, t: (key: string) => string
     node_transition: t('aiHistory.entryType.nodeTransition'),
     agent_linked: t('aiHistory.entryType.agentLinked') || '子Agent',
     tools_list: t('aiHistory.entryType.toolsList') || '工具列表',
+    proactive_emission: t('aiHistory.entryType.proactiveEmission') || '主动发言',
   };
   return map[type] || type;
 }
@@ -127,6 +129,7 @@ function getEntryTypeIcon(type: SessionLogEntryType) {
     case 'node_transition': return <GitBranch className="w-4 h-4" />;
     case 'agent_linked': return <Bot className="w-4 h-4" />;
     case 'tools_list': return <Wrench className="w-4 h-4" />;
+    case 'proactive_emission': return <MessageSquare className="w-4 h-4" />;
     default: return <FileText className="w-4 h-4" />;
   }
 }
@@ -144,8 +147,27 @@ function getEntryTypeColor(type: SessionLogEntryType): string {
     case 'node_transition': return 'text-pink-500';
     case 'agent_linked': return 'text-violet-500';
     case 'tools_list': return 'text-cyan-500';
+    case 'proactive_emission': return 'text-pink-400';
     default: return 'text-muted-foreground';
   }
+}
+
+// 解析 session_id，提取显示名称和聊天类型
+// 格式: web:web:web-client-001:group:group_xxx 或 web:web:web-client-001:private:user_xxx
+function parseSessionId(sessionId: string | null | undefined): { displayName: string; chatType: 'group' | 'private' | null } {
+  if (!sessionId) return { displayName: '', chatType: null };
+  const parts = sessionId.split(':');
+  if (parts.length >= 5) {
+    const type = parts[3];
+    const name = parts[4];
+    if (type === 'group') {
+      return { displayName: name, chatType: 'group' };
+    }
+    if (type === 'private') {
+      return { displayName: name, chatType: 'private' };
+    }
+  }
+  return { displayName: sessionId, chatType: null };
 }
 
 // 工具徽章组件 - 显示工具名称和描述
@@ -205,6 +227,8 @@ function hasEntryContent(entry: SessionLogEntry): boolean {
       return !!(data.tools && (data.tools as unknown[]).length > 0);
     case 'agent_linked':
       return true;
+    case 'proactive_emission':
+      return !!data.content;
     case 'session_created':
     case 'session_ended':
     case 'run_start':
@@ -309,6 +333,20 @@ function EntryContent({ entry, t }: { entry: SessionLogEntry; t: (key: string) =
       <pre className="text-xs bg-muted/50 rounded-md p-2 overflow-x-auto whitespace-pre-wrap font-mono italic text-muted-foreground max-h-48 overflow-y-auto">
         {data.content as string}
       </pre>
+    );
+  }
+
+  if (type === 'proactive_emission') {
+    return (
+      <div className="space-y-1.5">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-[10px] text-muted-foreground">来源: {(data.source as string) || '-'}</span>
+          {data.trigger_reason && (
+            <span className="text-[10px] text-muted-foreground/70">触发: {data.trigger_reason as string}</span>
+          )}
+        </div>
+        <pre className="text-sm whitespace-pre-wrap font-sans leading-relaxed">{data.content as string}</pre>
+      </div>
     );
   }
 
@@ -442,7 +480,7 @@ function TimelineEntry({ entry, t, personaName, isLast, onAgentLinkedClick }: {
           >
             <Bot className="w-4 h-4" />
             <span className="font-medium">查看子Agent详情</span>
-            <span className="text-violet-400/70 ml-auto">{agentData.session_id}</span>
+            <span className="text-violet-400/70 ml-auto truncate max-w-[120px]">{parseSessionId(agentData.session_id).displayName}</span>
             <ChevronRight className="w-3 h-3 ml-1" />
           </button>
         </div>
@@ -451,7 +489,7 @@ function TimelineEntry({ entry, t, personaName, isLast, onAgentLinkedClick }: {
   }
 
   // 可折叠系统消息
-  const collapsibleTypes = ['thinking', 'tool_call', 'tool_return', 'system_prompt', 'error', 'tools_list'];
+  const collapsibleTypes = ['thinking', 'tool_call', 'tool_return', 'system_prompt', 'error', 'tools_list', 'proactive_emission'];
   const isCollapsible = collapsibleTypes.includes(type);
 
   if (isCollapsible && hasContent) {
@@ -843,7 +881,7 @@ export default function AIHistoryPage() {
             </div>
           ) : (
             <div className="p-2 space-y-1">
-              {logs.filter(log => !log.is_subagent).map((log) => {
+              {logs.filter(log => !log.is_subagent && log.session_id).map((log) => {
                 const isSelected = selectedLog?.session_uuid === log.session_uuid;
                 return (
                   <button
@@ -862,10 +900,30 @@ export default function AIHistoryPage() {
                         <FileCheck className="w-6 h-6 text-muted-foreground shrink-0 mt-0.5" />
                       )}
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="text-sm font-medium truncate">{log.session_id}</span>
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="text-sm font-medium truncate">{parseSessionId(log.session_id).displayName}</span>
+                          {(() => {
+                            const { chatType } = parseSessionId(log.session_id);
+                            if (chatType === 'group') {
+                              return (
+                                <Badge variant="secondary" className="text-[10px] h-4 px-1 shrink-0">
+                                  <Users className="w-2.5 h-2.5 mr-0.5" />
+                                  {t('aiHistory.chatTypeGroup')}
+                                </Badge>
+                              );
+                            }
+                            if (chatType === 'private') {
+                              return (
+                                <Badge variant="outline" className="text-[10px] h-4 px-1 shrink-0">
+                                  <User className="w-2.5 h-2.5 mr-0.5" />
+                                  {t('aiHistory.chatTypePrivate')}
+                                </Badge>
+                              );
+                            }
+                            return null;
+                          })()}
                           {log.is_active && (
-                            <Badge className="text-[10px] h-4 px-1 bg-green-500/10 text-green-600 border-green-500/20">
+                            <Badge className="text-[10px] h-4 px-1 bg-green-500/10 text-green-600 border-green-500/20 shrink-0">
                               {t('aiHistory.statusActive')}
                             </Badge>
                           )}
@@ -897,7 +955,8 @@ export default function AIHistoryPage() {
                               // 优先级：result 和 tool_call 置顶，user_input, text_output 置底
                               const priority: Record<string, number> = {
                                 result: 1, tool_call: 2,
-                                user_input: 3, text_output: 4,
+                                proactive_emission: 3,
+                                user_input: 4, text_output: 5,
                               };
                               
                               // 收集需要显示的条目
@@ -993,7 +1052,7 @@ export default function AIHistoryPage() {
                             >
                               <div className="flex items-center gap-2">
                                 <Bot className="w-4 h-4 text-violet-500 shrink-0" />
-                                <span className="font-medium truncate">{agent.session_id}</span>
+                                <span className="font-medium truncate">{parseSessionId(agent.session_id).displayName}</span>
                                 <Badge variant="outline" className="text-[10px] h-4 ml-auto">
                                   {agent.create_by}
                                 </Badge>
@@ -1138,7 +1197,29 @@ export default function AIHistoryPage() {
                   </AvatarFallback>
                 </Avatar>
                 <div className="min-w-0 flex-1">
-                  <h2 className="font-semibold text-sm truncate">{detail.session_id}</h2>
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <h2 className="font-semibold text-sm truncate">{parseSessionId(detail.session_id).displayName}</h2>
+                    {(() => {
+                      const { chatType } = parseSessionId(detail.session_id);
+                      if (chatType === 'group') {
+                        return (
+                          <Badge variant="secondary" className="text-[10px] h-4 px-1 shrink-0">
+                            <Users className="w-2.5 h-2.5 mr-0.5" />
+                            {t('aiHistory.chatTypeGroup')}
+                          </Badge>
+                        );
+                      }
+                      if (chatType === 'private') {
+                        return (
+                          <Badge variant="outline" className="text-[10px] h-4 px-1 shrink-0">
+                            <User className="w-2.5 h-2.5 mr-0.5" />
+                            {t('aiHistory.chatTypePrivate')}
+                          </Badge>
+                        );
+                      }
+                      return null;
+                    })()}
+                  </div>
                   <p className="text-xs text-muted-foreground truncate">
                     {personaName} · {detail.create_by} · {detail.entry_count} {t('aiHistory.entries')}
                   </p>
@@ -1198,7 +1279,7 @@ export default function AIHistoryPage() {
                     <div className="mb-4 p-3 rounded-lg bg-violet-500/10 border border-violet-500/20">
                       <div className="flex items-center gap-2">
                         <Bot className="w-5 h-5 text-violet-500" />
-                        <span className="font-medium text-sm">子Agent: {selectedLinkedAgent.session_id}</span>
+                        <span className="font-medium text-sm truncate">子Agent: {parseSessionId(selectedLinkedAgent.session_id).displayName}</span>
                       </div>
                       <div className="text-xs text-muted-foreground mt-1">
                         UUID: {selectedLinkedAgent.session_uuid} | 创建者: {selectedLinkedAgent.create_by}

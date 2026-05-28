@@ -1,4 +1,4 @@
-import { useRef, memo, forwardRef, useEffect } from "react";
+import { useRef, memo, forwardRef, useEffect, useCallback } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { StructuredDataViewer } from "@/components/StructuredDataViewer";
 import { cn } from "@/lib/utils";
@@ -109,6 +109,8 @@ export const ConsolePanel = function ConsolePanel({
   version,
 }: ConsolePanelProps) {
   const parentRef = useRef<HTMLDivElement>(null);
+  const isUserScrolledUpRef = useRef(false);
+  const hasUserInteractedRef = useRef(false);
 
   const virtualizer = useVirtualizer({
     count: logs.length,
@@ -122,11 +124,65 @@ export const ConsolePanel = function ConsolePanel({
         : undefined,
   });
 
+  // 检测用户是否手动滚动离开了底部（仅更新滚动位置状态，不标记用户交互）
+  const handleScroll = useCallback(() => {
+    const el = parentRef.current;
+    if (!el) return;
+    const threshold = 50; // 像素容差
+    const isAtBottom = el.scrollHeight - el.scrollTop - el.clientHeight < threshold;
+    isUserScrolledUpRef.current = !isAtBottom;
+  }, []);
+
+  // 只在用户真正主动交互（滚轮、触摸、键盘）时标记为"已交互"
+  const handleUserInteraction = useCallback(() => {
+    hasUserInteractedRef.current = true;
+  }, []);
+
+  // 挂载滚动和交互事件监听
   useEffect(() => {
-    if (autoScroll) {
-      virtualizer.scrollToIndex(logs.length - 1);
+    const el = parentRef.current;
+    if (!el) return;
+    el.addEventListener('scroll', handleScroll, { passive: true });
+    el.addEventListener('wheel', handleUserInteraction, { passive: true });
+    el.addEventListener('touchstart', handleUserInteraction, { passive: true });
+    el.addEventListener('keydown', handleUserInteraction, { passive: true });
+    return () => {
+      el.removeEventListener('scroll', handleScroll);
+      el.removeEventListener('wheel', handleUserInteraction);
+      el.removeEventListener('touchstart', handleUserInteraction);
+      el.removeEventListener('keydown', handleUserInteraction);
+    };
+  }, [handleScroll, handleUserInteraction]);
+
+  useEffect(() => {
+    if (logs.length === 0) return;
+
+    // 滚动到底部的函数，使用 virtualizer 的 scrollToIndex
+    const scrollToBottom = () => {
+      virtualizer.scrollToIndex(logs.length - 1, { align: 'end', behavior: 'auto' });
+    };
+
+    // 用户尚未手动操作时（初始加载阶段），始终滚动到底部
+    if (!hasUserInteractedRef.current) {
+      // 使用 setTimeout 确保虚拟器已完成尺寸计算
+      const timer = setTimeout(scrollToBottom, 50);
+      isUserScrolledUpRef.current = false;
+      return () => clearTimeout(timer);
+    }
+
+    // 用户已手动操作过，只有在 autoScroll 开启且用户没有手动上滑时才滚动
+    if (autoScroll && !isUserScrolledUpRef.current) {
+      scrollToBottom();
     }
   }, [logs.length, autoScroll, virtualizer, version]);
+
+  // 当用户开启 autoScroll 时，重置用户上滑状态，立即滚到底部
+  useEffect(() => {
+    if (autoScroll && logs.length > 0) {
+      isUserScrolledUpRef.current = false;
+      virtualizer.scrollToIndex(logs.length - 1, { align: 'end', behavior: 'auto' });
+    }
+  }, [autoScroll]);
 
   const virtualItems = virtualizer.getVirtualItems();
 

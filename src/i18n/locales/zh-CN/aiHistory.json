@@ -44,8 +44,11 @@
     "error": "错误",
     "nodeTransition": "节点转换",
     "agentLinked": "子Agent",
-    "toolsList": "工具列表"
+    "toolsList": "工具列表",
+    "proactiveEmission": "主动发言"
   },
   "filterTitle": "筛选条件",
-  "selectSession": "选择会话查看详情"
+  "selectSession": "选择会话查看详情",
+  "chatTypeGroup": "群聊",
+  "chatTypePrivate": "私聊"
 }
