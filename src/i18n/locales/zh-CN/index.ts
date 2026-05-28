@@ -24,6 +24,7 @@ import module23 from './pluginStore.json';
 import module24 from './gitMirror.json';
 import module25 from './backup.json';
 import module26 from './logs.json';
+import module27a from './traces.json';
 import module27 from './themes.json';
 import module28 from './imageUpload.json';
 import module29 from './coreConfig.json';
@@ -66,6 +67,7 @@ const locale = {
   "gitMirror": module24,
   "backup": module25,
   "logs": module26,
+  "traces": module27a,
   "themes": module27,
   "imageUpload": module28,
   "coreConfig": module29,

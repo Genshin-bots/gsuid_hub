@@ -1,0 +1,20 @@
+{
+  "title": "命令追跡",
+  "description": "コマンド実行追跡ログを表示",
+  "totalTraces": "総追跡",
+  "running": "実行中",
+  "completed": "完了",
+  "totalLogs": "総ログ数",
+  "traceList": "追跡リスト",
+  "noTraces": "追跡記録がありません",
+  "logs": "ログ",
+  "status": "状態",
+  "command": "コマンド",
+  "source": "ソース",
+  "duration": "所要時間",
+  "error": "エラー",
+  "traceId": "ID",
+  "private": "個人チャット",
+  "group": "グループチャット",
+  "downloadTrace": "追跡をダウンロード"
+}

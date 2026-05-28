@@ -1,0 +1,20 @@
+{
+  "title": "Command Traces",
+  "description": "View command execution trace logs",
+  "totalTraces": "Total Traces",
+  "running": "Running",
+  "completed": "Completed",
+  "totalLogs": "Total Logs",
+  "traceList": "Trace List",
+  "noTraces": "No trace records",
+  "logs": "logs",
+  "status": "Status",
+  "command": "Command",
+  "source": "Source",
+  "duration": "Duration",
+  "error": "Errors",
+  "traceId": "ID",
+  "private": "Private",
+  "group": "Group",
+  "downloadTrace": "Download Trace"
+}

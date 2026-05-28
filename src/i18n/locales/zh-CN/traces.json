@@ -1,0 +1,20 @@
+{
+  "title": "命令追踪",
+  "description": "查看命令执行追踪日志",
+  "totalTraces": "总追踪",
+  "running": "执行中",
+  "completed": "已完成",
+  "totalLogs": "总日志数",
+  "traceList": "追踪列表",
+  "noTraces": "暂无追踪记录",
+  "logs": "日志",
+  "status": "状态",
+  "command": "命令",
+  "source": "来源",
+  "duration": "耗时",
+  "error": "错误",
+  "traceId": "ID",
+  "private": "私聊",
+  "group": "群聊",
+  "downloadTrace": "下载追踪"
+}

@@ -7,5 +7,6 @@
   "exportLogs": "导出日志",
   "clear": "清空",
   "commandPlaceholder": "输入命令...",
-  "commandFailed": "命令执行失败"
+  "commandFailed": "命令执行失败",
+  "levelFilter": "日志级别"
 }

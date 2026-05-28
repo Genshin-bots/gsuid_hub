@@ -7,5 +7,6 @@
   "exportLogs": "エクスポートログ",
   "clear": "クリア",
   "commandPlaceholder": "入力コマンド...",
-  "commandFailed": "コマンド実行失敗"
+  "commandFailed": "コマンド実行失敗",
+  "levelFilter": "ログレベル"
 }

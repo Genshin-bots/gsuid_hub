@@ -30,6 +30,7 @@
   "gitUpdate": "Update Management",
   "logsView": "Logs View",
   "historyLogs": "History Logs",
+  "traces": "Command Traces",
   "consoleManagement": "Console Management",
   "themes": "Theme Settings",
   "accountSettings": "Account Settings",

@@ -7,5 +7,6 @@
   "exportLogs": "Export Logs",
   "clear": "Clear",
   "commandPlaceholder": "Enter command...",
-  "commandFailed": "Command execution failed"
+  "commandFailed": "Command execution failed",
+  "levelFilter": "Log Level"
 }

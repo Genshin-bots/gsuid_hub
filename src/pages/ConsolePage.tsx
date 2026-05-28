@@ -1,92 +1,22 @@
-import { useState, useRef, useEffect, useCallback, memo, forwardRef } from "react";
-import { useVirtualizer } from "@tanstack/react-virtual";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Terminal, Trash2, Download, Circle } from "lucide-react";
-import { StructuredDataViewer } from "@/components/StructuredDataViewer";
-import { remoteCommandApi } from "@/lib/api";
+import { remoteCommandApi, logsApi } from "@/lib/api";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { cn } from "@/lib/utils";
-
-interface LogEntry {
-  id: string;
-  type: "input" | "output" | "error" | "warning" | "info" | "debug" | "trace";
-  content: string;
-  timestamp: Date;
-}
+import { ConsolePanel, LogEntry } from "@/components/ConsolePanel";
 
 let logCounter = 0;
 
-function getLevelBadge(type: LogEntry["type"]) {
-  const badges = {
-    input: { label: "CMD", bg: "bg-blue-600", text: "text-white" },
-    output: { label: "OUT", bg: "bg-slate-600", text: "text-white" },
-    error: { label: "ERROR", bg: "bg-red-600", text: "text-white" },
-    warning: { label: "WARN", bg: "bg-yellow-500", text: "text-black" },
-    info: { label: "INFO", bg: "bg-emerald-600", text: "text-white" },
-    debug: { label: "DEBUG", bg: "bg-purple-600", text: "text-white" },
-    trace: { label: "TRACE", bg: "bg-gray-600", text: "text-white" },
-  };
-  return badges[type] || badges.info;
-}
+const LEVEL_ORDER = ["trace", "debug", "info", "success", "warning", "error", "critical"];
 
-function getLogColor(type: LogEntry["type"]) {
-  switch (type) {
-    case "input":
-      return "text-cyan-400";
-    case "output":
-      return "text-gray-200";
-    case "error":
-      return "text-red-400";
-    case "warning":
-      return "text-yellow-400";
-    case "info":
-      return "text-black dark:text-white";
-    case "debug":
-      return "text-purple-400";
-    case "trace":
-      return "text-gray-400";
-    default:
-      return "text-gray-200";
-  }
+function parseLogLevel(level: string): string {
+  return level.toLowerCase();
 }
-
-interface LogRowProps {
-  log: LogEntry;
-  style?: React.CSSProperties;
-  "data-index": number;
-}
-
-const LogRow = memo(
-  forwardRef<HTMLDivElement, LogRowProps>(
-    function LogRow({ log, style, "data-index": dataIndex }, ref) {
-      const badge = getLevelBadge(log.type);
-      return (
-        <div
-          ref={ref}
-          data-index={dataIndex}
-          style={style}
-          className="flex items-start gap-2 py-1"
-        >
-          <span className="text-muted-foreground text-xs shrink-0">
-            [{log.timestamp.toLocaleTimeString()}]
-          </span>
-          <span
-            className={`${badge.bg} ${badge.text} text-xs px-1.5 py-0.5 rounded font-semibold shrink-0 h-fit`}
-          >
-            {badge.label}
-          </span>
-          <div className={cn("whitespace-pre-wrap break-all", getLogColor(log.type))}>
-            <StructuredDataViewer data={log.content} />
-          </div>
-        </div>
-      );
-    }
-  )
-);
 
 export default function ConsolePage() {
   const { t } = useLanguage();
@@ -94,7 +24,7 @@ export default function ConsolePage() {
   const isGlass = style === 'glassmorphism';
 
   // 数据存在 ref 中，避免 React 遍历大数组
-  const logsRef = useRef<LogEntry[]>([]);
+  const allLogsRef = useRef<LogEntry[]>([]);
   const [logVersion, setLogVersion] = useState(0);
 
   const [input, setInput] = useState("");
@@ -102,27 +32,46 @@ export default function ConsolePage() {
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [autoScroll, setAutoScroll] = useState(false);
 
-  const parentRef = useRef<HTMLDivElement>(null);
+  const [availableLevels, setAvailableLevels] = useState<Array<{ label: string; value: string }>>([]);
+  const [visibleLevels, setVisibleLevels] = useState<Set<string>>(new Set([
+    'debug', 'info', 'error'
+  ]));
+
+  const filteredLogs = useMemo(() => {
+    if (!visibleLevels.size || visibleLevels.has('all')) {
+      return allLogsRef.current;
+    }
+    return allLogsRef.current.filter((log) => visibleLevels.has(log.type));
+  }, [logVersion, visibleLevels]);
+
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const virtualizer = useVirtualizer({
-    count: logsRef.current.length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => 28,
-    overscan: 10,
-    getItemKey: (index) => logsRef.current[index]?.id ?? index,
-    measureElement:
-      typeof window !== "undefined" && "ResizeObserver" in window
-        ? (element) => element.getBoundingClientRect().height
-        : undefined,
-  });
-
-  // Auto-scroll to bottom when enabled
+  // 获取可用日志级别
   useEffect(() => {
-    if (autoScroll) {
-      virtualizer.scrollToIndex(logsRef.current.length - 1);
-    }
-  }, [logVersion, autoScroll, virtualizer]);
+    logsApi.getLevels().then((levels) => {
+      setAvailableLevels(levels);
+      const defaults = new Set<string>();
+      levels.forEach((lv) => {
+        if (['debug', 'info', 'error'].includes(lv.value)) {
+          defaults.add(lv.value);
+        }
+      });
+      setVisibleLevels(defaults);
+    }).catch(() => {
+      // fallback
+      const fallback = [
+        { label: 'TRACE', value: 'trace' },
+        { label: 'DEBUG', value: 'debug' },
+        { label: 'INFO', value: 'info' },
+        { label: 'SUCCESS', value: 'success' },
+        { label: 'WARNING', value: 'warning' },
+        { label: 'ERROR', value: 'error' },
+        { label: 'CRITICAL', value: 'critical' },
+      ];
+      setAvailableLevels(fallback);
+      setVisibleLevels(new Set(['debug', 'info', 'error']));
+    });
+  }, []);
 
   // SSE stream for real-time logs
   useEffect(() => {
@@ -137,25 +86,29 @@ export default function ConsolePage() {
     authEventSource.onmessage = (event) => {
       try {
         const logData = JSON.parse(event.data);
+        const rawLevel = parseLogLevel(logData.level);
+
         let logType: LogEntry["type"] = "info";
-        switch (logData.level.toLowerCase()) {
+        switch (rawLevel) {
           case "error": logType = "error"; break;
           case "warning":
           case "warn": logType = "warning"; break;
           case "info": logType = "info"; break;
+          case "success": logType = "success"; break;
           case "debug": logType = "debug"; break;
           case "trace": logType = "trace"; break;
+          case "critical": logType = "critical"; break;
         }
 
-        logsRef.current.push({
+        allLogsRef.current.push({
           id: (++logCounter).toString(),
           type: logType,
           content: logData.message,
           timestamp: new Date(logData.timestamp),
         });
         // 限制最大条数
-        if (logsRef.current.length > 2000) {
-          logsRef.current = logsRef.current.slice(-2000);
+        if (allLogsRef.current.length > 2000) {
+          allLogsRef.current = allLogsRef.current.slice(-2000);
         }
         setLogVersion((v) => v + 1);
       } catch (e) {
@@ -177,9 +130,9 @@ export default function ConsolePage() {
   }, []);
 
   const addLogs = useCallback((entries: LogEntry[]) => {
-    logsRef.current.push(...entries);
-    if (logsRef.current.length > 2000) {
-      logsRef.current = logsRef.current.slice(-2000);
+    allLogsRef.current.push(...entries);
+    if (allLogsRef.current.length > 2000) {
+      allLogsRef.current = allLogsRef.current.slice(-2000);
     }
     setLogVersion((v) => v + 1);
   }, []);
@@ -203,7 +156,7 @@ export default function ConsolePage() {
       setInput("");
 
       if (command.toLowerCase() === "clear") {
-        logsRef.current = [];
+        allLogsRef.current = [];
         setLogVersion((v) => v + 1);
         return;
       }
@@ -264,12 +217,12 @@ export default function ConsolePage() {
   };
 
   const clearLogs = () => {
-    logsRef.current = [];
+    allLogsRef.current = [];
     setLogVersion((v) => v + 1);
   };
 
   const exportLogs = () => {
-    const content = logsRef.current
+    const content = allLogsRef.current
       .map((log) => `[${log.timestamp.toISOString()}] [${log.type.toUpperCase()}] ${log.content}`)
       .join("\n");
     const blob = new Blob([content], { type: "text/plain" });
@@ -281,7 +234,31 @@ export default function ConsolePage() {
     URL.revokeObjectURL(url);
   };
 
-  const virtualItems = virtualizer.getVirtualItems();
+  const toggleLevel = (value: string) => {
+    setVisibleLevels((prev) => {
+      const next = new Set(prev);
+      if (next.has(value)) {
+        next.delete(value);
+      } else {
+        next.add(value);
+      }
+      return next;
+    });
+  };
+
+  const levelBadgeStyle = (value: string, active: boolean) => {
+    const base = "text-xs px-2 py-1 rounded-md font-medium transition-colors border";
+    const styles: Record<string, string> = {
+      trace: active ? "bg-gray-500 text-white border-gray-500" : "bg-gray-100 text-gray-400 border-gray-200 dark:bg-gray-800 dark:text-gray-500 dark:border-gray-700",
+      debug: active ? "bg-purple-600 text-white border-purple-600" : "bg-purple-50 text-purple-300 border-purple-100 dark:bg-purple-950 dark:text-purple-700 dark:border-purple-900",
+      info: active ? "bg-emerald-600 text-white border-emerald-600" : "bg-emerald-50 text-emerald-300 border-emerald-100 dark:bg-emerald-950 dark:text-emerald-700 dark:border-emerald-900",
+      success: active ? "bg-green-600 text-white border-green-600" : "bg-green-50 text-green-300 border-green-100 dark:bg-green-950 dark:text-green-700 dark:border-green-900",
+      warning: active ? "bg-yellow-500 text-black border-yellow-500" : "bg-yellow-50 text-yellow-300 border-yellow-100 dark:bg-yellow-950 dark:text-yellow-700 dark:border-yellow-900",
+      error: active ? "bg-red-600 text-white border-red-600" : "bg-red-50 text-red-300 border-red-100 dark:bg-red-950 dark:text-red-700 dark:border-red-900",
+      critical: active ? "bg-rose-700 text-white border-rose-700" : "bg-rose-50 text-rose-300 border-rose-100 dark:bg-rose-950 dark:text-rose-700 dark:border-rose-900",
+    };
+    return cn(base, styles[value] || styles.info);
+  };
 
   return (
     <div className="space-y-6 flex-1 overflow-auto p-4 sm:p-6 h-full flex flex-col">
@@ -313,6 +290,31 @@ export default function ConsolePage() {
         </div>
       </div>
 
+      {/* 日志级别过滤 */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-sm text-muted-foreground whitespace-nowrap">{t('console.levelFilter') || '日志级别'}:</span>
+        {availableLevels
+          .filter((lv) => lv.value !== 'all')
+          .sort((a, b) => {
+            const idxA = LEVEL_ORDER.indexOf(a.value);
+            const idxB = LEVEL_ORDER.indexOf(b.value);
+            if (idxA === -1 && idxB === -1) return a.value.localeCompare(b.value);
+            if (idxA === -1) return 1;
+            if (idxB === -1) return -1;
+            return idxA - idxB;
+          })
+          .map((lv) => (
+            <button
+              key={lv.value}
+              type="button"
+              onClick={() => toggleLevel(lv.value)}
+              className={levelBadgeStyle(lv.value, visibleLevels.has(lv.value))}
+            >
+              {lv.label}
+            </button>
+          ))}
+      </div>
+
       <Card className={cn(
         "flex flex-col overflow-hidden h-[calc(100vh-130px)]",
         isGlass
@@ -330,43 +332,11 @@ export default function ConsolePage() {
         </div>
 
         {/* Terminal Content - Virtual Scroll */}
-        <div
-          ref={parentRef}
-          className="flex-1 p-4 bg-transparent overflow-y-auto font-mono text-sm relative"
-        >
-          <div
-            style={{
-              height: `${virtualizer.getTotalSize()}px`,
-              width: "100%",
-              position: "relative",
-            }}
-          >
-            <div
-              style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                width: "100%",
-              }}
-            >
-              {virtualItems.map((virtualItem) => (
-                <LogRow
-                  key={virtualItem.key}
-                  log={logsRef.current[virtualItem.index]}
-                  ref={virtualizer.measureElement}
-                  data-index={virtualItem.index}
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    width: "100%",
-                    transform: `translateY(${virtualItem.start}px)`,
-                  }}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
+        <ConsolePanel
+          logs={filteredLogs}
+          autoScroll={autoScroll}
+          version={logVersion}
+        />
 
         {/* Input */}
         <form onSubmit={handleSubmit} className="flex items-center gap-2 p-4 bg-background/50 border-t border-border/30">

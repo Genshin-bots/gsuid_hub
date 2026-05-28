@@ -1164,6 +1164,60 @@ export const logsApi = {
 
     return api.get<LogContextResponse>(`/api/logs/context?${query.toString()}`);
   },
+
+  getLevels: () =>
+    api.get<Array<{ label: string; value: string }>>('/api/logs/levels'),
+};
+
+// ===================
+// Trace Logs APIs
+// ===================
+
+export interface TraceLog {
+  timestamp: string;
+  level: string;
+  event: string;
+}
+
+export interface TraceItem {
+  trace_id: string;
+  command: string;
+  user_id: string;
+  group_id: string | null;
+  start_time: number;
+  duration_ms: number | null;
+  log_count: number;
+  error_count?: number;
+  status: 'running' | 'completed';
+}
+
+export interface TraceDetail {
+  trace_id: string;
+  command: string;
+  user_id: string;
+  group_id: string;
+  bot_id: string;
+  session_id: string;
+  start_time: number;
+  duration_ms: number | null;
+  log_count: number;
+  status: 'running' | 'completed';
+  logs: TraceLog[];
+}
+
+export const traceApi = {
+  getTraces: (params: { date?: string; limit?: number } = {}) => {
+    const query = new URLSearchParams();
+    if (params.date) query.set('date', params.date);
+    if (params.limit !== undefined) query.set('limit', String(params.limit));
+    return api.get<TraceItem[]>(`/api/traces?${query.toString()}`);
+  },
+
+  getTraceDetail: (traceId: string, params: { date?: string } = {}) => {
+    const query = new URLSearchParams();
+    if (params.date) query.set('date', params.date);
+    return api.get<TraceDetail>(`/api/traces/${encodeURIComponent(traceId)}?${query.toString()}`);
+  },
 };
 
 // ===================

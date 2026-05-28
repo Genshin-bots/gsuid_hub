@@ -30,6 +30,7 @@
   "gitUpdate": "更新管理",
   "logsView": "ログ表示",
   "historyLogs": "履歴ログ",
+  "traces": "命令追跡",
   "consoleManagement": "コンソール管理",
   "themes": "テーマ設定",
   "accountSettings": "账号設定",
