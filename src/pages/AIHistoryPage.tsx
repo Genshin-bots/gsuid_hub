@@ -47,7 +47,6 @@ import {
   ChevronRight,
   HardDrive,
   Cpu,
-  SlidersHorizontal,
   Download,
   Users,
 } from 'lucide-react';
@@ -598,7 +597,6 @@ export default function AIHistoryPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCreateBy, setFilterCreateBy] = useState<string>(DEFAULT_SELECT_VALUE);
   const [filterPersona, setFilterPersona] = useState<string>(DEFAULT_SELECT_VALUE);
-  const [filterStatus, setFilterStatus] = useState<string>(DEFAULT_SELECT_VALUE);
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo] = useState('');
 
@@ -628,7 +626,6 @@ export default function AIHistoryPage() {
         session_id: searchQuery || undefined,
         create_by: filterCreateBy !== DEFAULT_SELECT_VALUE ? filterCreateBy : undefined,
         persona_name: filterPersona !== DEFAULT_SELECT_VALUE ? filterPersona : undefined,
-        is_active: filterStatus !== DEFAULT_SELECT_VALUE ? filterStatus === 'active' : undefined,
         date_from: filterDateFrom || undefined,
         date_to: filterDateTo || undefined,
         limit,
@@ -643,7 +640,7 @@ export default function AIHistoryPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [searchQuery, filterCreateBy, filterPersona, filterStatus, filterDateFrom, filterDateTo, t]);
+  }, [searchQuery, filterCreateBy, filterPersona, filterDateFrom, filterDateTo, t]);
 
   // 获取详情
   const fetchDetail = useCallback(async (log: SessionLogSummary) => {
@@ -824,12 +821,8 @@ export default function AIHistoryPage() {
             />
           </div>
 
-          {/* 筛选 - 带标题和图标 */}
-          <div className="space-y-2">
-            <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-              <SlidersHorizontal className="w-3.5 h-3.5" />
-              <span>{t('aiHistory.filterTitle')}</span>
-            </div>
+          {/* 筛选 */}
+          <div>
             <div className="flex items-center gap-1.5 flex-wrap">
               <Select value={filterCreateBy} onValueChange={setFilterCreateBy}>
                 <SelectTrigger className="w-[100px] h-7 text-xs">
@@ -853,17 +846,7 @@ export default function AIHistoryPage() {
                   ))}
                 </SelectContent>
               </Select>
-              <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger className="w-[90px] h-7 text-xs">
-                  <SelectValue placeholder={t('aiHistory.filterStatus')} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={DEFAULT_SELECT_VALUE}>{t('aiHistory.filterAll')}</SelectItem>
-                  <SelectItem value="active">{t('aiHistory.filterActive')}</SelectItem>
-                  <SelectItem value="ended">{t('aiHistory.filterEnded')}</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button size="sm" onClick={handleApplyFilter} className="h-7 gap-1 text-xs">
+              <Button size="sm" onClick={handleApplyFilter} className="h-7 gap-1 text-xs ml-auto">
                 <Filter className="w-3 h-3" />
                 {t('common.filter')}
               </Button>
@@ -1046,8 +1029,12 @@ export default function AIHistoryPage() {
                           return (
                             <button
                               key={agentKey}
-                              onClick={(e) => {
+                              onClick={async (e) => {
                                 e.stopPropagation();
+                                // Ensure parent log is selected first
+                                if (!selectedLog || selectedLog.session_uuid !== log.session_uuid) {
+                                  await fetchDetail(log);
+                                }
                                 fetchLinkedAgentDetail(agent);
                               }}
                               className={cn(
