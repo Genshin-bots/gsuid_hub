@@ -662,6 +662,11 @@ export default function AIHistoryPage() {
     }
   }, [t]);
 
+  // 生成子Agent的唯一标识键
+  const getAgentKey = useCallback((agent: LinkedAgent): string => {
+    return `${agent.session_id}:${agent.session_uuid}:${agent.linked_at}`;
+  }, []);
+
   // 获取子Agent详情
   const fetchLinkedAgentDetail = useCallback(async (agent: LinkedAgent) => {
     try {
@@ -1036,10 +1041,11 @@ export default function AIHistoryPage() {
                     {log.linked_agents && log.linked_agents.length > 0 && (
                       <div className="pl-11 space-y-1 mt-1">
                         {log.linked_agents.map((agent) => {
-                          const isAgentSelected = selectedLinkedAgent?.session_uuid === agent.session_uuid;
+                          const agentKey = getAgentKey(agent);
+                          const isAgentSelected = selectedLinkedAgent ? getAgentKey(selectedLinkedAgent) === agentKey : false;
                           return (
                             <button
-                              key={agent.session_uuid}
+                              key={agentKey}
                               onClick={(e) => {
                                 e.stopPropagation();
                                 fetchLinkedAgentDetail(agent);

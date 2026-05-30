@@ -12,6 +12,7 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
   SelectContent,
@@ -59,6 +60,9 @@ import {
   AlertCircle,
   CheckCircle2,
   Layers,
+  Download,
+  CheckSquare,
+  FileUp,
 } from 'lucide-react';
 import { memeApi, MemeRecord, MemeStatsData, MemeListParams } from '@/lib/api';
 import { toast } from 'sonner';
@@ -133,10 +137,16 @@ function MemeCard({
   meme,
   onClick,
   isGlass,
+  selectable,
+  selected,
+  onToggleSelect,
 }: {
   meme: MemeRecord;
   onClick: () => void;
   isGlass: boolean;
+  selectable?: boolean;
+  selected?: boolean;
+  onToggleSelect?: () => void;
 }) {
   const { t } = useLanguage();
   const [imgLoaded, setImgLoaded] = useState(false);
@@ -180,13 +190,22 @@ function MemeCard({
     rejected: 'bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/20',
   };
 
+  const handleClick = () => {
+    if (selectable) {
+      onToggleSelect?.();
+    } else {
+      onClick();
+    }
+  };
+
   return (
     <Card
       className={cn(
         "group cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.02] overflow-hidden",
-        isGlass && "glass-card"
+        isGlass && "glass-card",
+        selectable && selected && "ring-2 ring-primary shadow-lg"
       )}
-      onClick={onClick}
+      onClick={handleClick}
     >
       {/* Image */}
       <div className="relative aspect-square bg-muted/30 overflow-hidden">
@@ -227,8 +246,23 @@ function MemeCard({
             {t(`aiMeme.status.${meme.status}`)}
           </Badge>
         </div>
+        {/* Selection checkbox overlay */}
+        {selectable && (
+          <div className="absolute top-2 right-2 z-10">
+            <div className={cn(
+              "w-5 h-5 rounded border-2 flex items-center justify-center transition-all duration-200",
+              selected
+                ? "bg-primary border-primary"
+                : "bg-white/80 dark:bg-black/60 border-white/60 dark:border-white/30 backdrop-blur-sm"
+            )}>
+              {selected && (
+                <CheckSquare className="w-3.5 h-3.5 text-primary-foreground" />
+              )}
+            </div>
+          </div>
+        )}
         {/* Use count overlay */}
-        {meme.use_count > 0 && (
+        {meme.use_count > 0 && !selectable && (
           <div className="absolute top-2 right-2">
             <Badge
               variant="secondary"
@@ -876,6 +910,190 @@ function UploadDialog({
 }
 
 // ============================================================================
+// Import Dialog
+// ============================================================================
+
+function ImportDialog({
+  open,
+  onClose,
+  onSuccess,
+  isGlass,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onSuccess: () => void;
+  isGlass: boolean;
+}) {
+  const { t } = useLanguage();
+  const [file, setFile] = useState<File | null>(null);
+  const [skipExisting, setSkipExisting] = useState(true);
+  const [autoTag, setAutoTag] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileSelect = (selectedFile: File) => {
+    if (!selectedFile.name.endsWith('.meme')) {
+      toast.error('请选择 .meme 格式文件');
+      return;
+    }
+    setFile(selectedFile);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    const droppedFile = e.dataTransfer.files[0];
+    if (droppedFile) handleFileSelect(droppedFile);
+  };
+
+  const handleImport = async () => {
+    if (!file) return;
+    try {
+      setIsImporting(true);
+      const result = await memeApi.importMemes(file, skipExisting, autoTag);
+      toast.success(
+        t('aiMeme.import.importSuccess', {
+          imported: result.imported_count,
+          skipped: result.skipped_count,
+        })
+      );
+      handleClose();
+      onSuccess();
+    } catch (error) {
+      toast.error(t('aiMeme.import.importFailed'));
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  const handleClose = () => {
+    setFile(null);
+    setSkipExisting(true);
+    setAutoTag(false);
+    onClose();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <FileUp className="w-5 h-5 text-primary" />
+            {t('aiMeme.import.title')}
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4 py-2">
+          {/* Drop Zone */}
+          <div
+            className={cn(
+              "relative border-2 border-dashed rounded-xl p-8 text-center transition-all duration-300 cursor-pointer",
+              isDragOver
+                ? "border-primary bg-primary/5 scale-[1.02]"
+                : "border-border/50 hover:border-primary/50 hover:bg-muted/30",
+              file && "p-4"
+            )}
+            onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+            onDragLeave={() => setIsDragOver(false)}
+            onDrop={handleDrop}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".meme"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) handleFileSelect(f);
+              }}
+            />
+            {file ? (
+              <div className="relative flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <FileUp className="w-6 h-6 text-primary" />
+                </div>
+                <div className="min-w-0 text-left">
+                  <p className="text-sm font-medium truncate">{file.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {(file.size / 1024 / 1024).toFixed(2)} MB
+                  </p>
+                </div>
+                <Button
+                  variant="destructive"
+                  size="icon"
+                  className="h-7 w-7 ml-auto flex-shrink-0"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setFile(null);
+                  }}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-3">
+                <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center">
+                  <FileUp className="w-7 h-7 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium">{t('aiMeme.import.dragDrop')}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{t('aiMeme.import.dragDropHint')}</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Skip Existing Toggle */}
+          <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
+            <div>
+              <p className="text-sm font-medium">{t('aiMeme.import.skipExisting')}</p>
+              <p className="text-xs text-muted-foreground">{t('aiMeme.import.skipExistingDesc')}</p>
+            </div>
+            <Switch
+              checked={skipExisting}
+              onCheckedChange={setSkipExisting}
+            />
+          </div>
+
+          {/* Auto Tag Toggle */}
+          <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
+            <div>
+              <p className="text-sm font-medium">{t('aiMeme.import.autoTag')}</p>
+              <p className="text-xs text-muted-foreground">{t('aiMeme.import.autoTagDesc')}</p>
+            </div>
+            <Switch
+              checked={autoTag}
+              onCheckedChange={setAutoTag}
+            />
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={handleClose}>
+            {t('common.cancel')}
+          </Button>
+          <Button onClick={handleImport} disabled={!file || isImporting}>
+            {isImporting ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin mr-1.5" />
+                {t('aiMeme.import.importing')}
+              </>
+            ) : (
+              <>
+                <FileUp className="w-4 h-4 mr-1.5" />
+                {t('aiMeme.import.selectFile')}
+              </>
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ============================================================================
 // Main Component
 // ============================================================================
 
@@ -904,6 +1122,14 @@ export default function AIMemePage() {
   const [selectedMeme, setSelectedMeme] = useState<MemeRecord | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+
+  // Selection mode
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isBatchDeleting, setIsBatchDeleting] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [showBatchDeleteDialog, setShowBatchDeleteDialog] = useState(false);
 
   // Search debounce
   const searchTimerRef = useRef<ReturnType<typeof setTimeout>>();
@@ -1005,6 +1231,83 @@ export default function AIMemePage() {
     fetchStats();
   };
 
+  // Selection handlers
+  const toggleSelectMode = () => {
+    setSelectMode(!selectMode);
+    setSelectedIds(new Set());
+  };
+
+  const toggleSelectMeme = (memeId: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(memeId)) next.delete(memeId);
+      else next.add(memeId);
+      return next;
+    });
+  };
+
+  const selectAllOnPage = () => {
+    setSelectedIds(new Set(memes.map((m) => m.meme_id)));
+  };
+
+  const deselectAll = () => {
+    setSelectedIds(new Set());
+  };
+
+  // Batch delete
+  const handleBatchDelete = async () => {
+    if (selectedIds.size === 0) return;
+    try {
+      setIsBatchDeleting(true);
+      const result = await memeApi.batchDelete(Array.from(selectedIds));
+      if (result.failed.length === 0) {
+        toast.success(t('aiMeme.batchDeleteSuccess', { count: result.success_count }));
+      } else {
+        toast.warning(
+          t('aiMeme.batchDeletePartial', {
+            success: result.success_count,
+            failed: result.failed.length,
+          })
+        );
+      }
+      setSelectedIds(new Set());
+      setShowBatchDeleteDialog(false);
+      fetchMemes();
+      fetchStats();
+    } catch (error) {
+      toast.error(t('aiMeme.batchDeleteFailed'));
+    } finally {
+      setIsBatchDeleting(false);
+    }
+  };
+
+  // Batch export
+  const handleBatchExport = async () => {
+    if (selectedIds.size === 0) {
+      toast.warning(t('aiMeme.batchExportNoSelection'));
+      return;
+    }
+    try {
+      setIsExporting(true);
+      const blob = await memeApi.exportMemes(Array.from(selectedIds));
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const now = new Date();
+      const ts = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
+      a.download = `memes_${ts}.meme`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success(t('aiMeme.batchExportSuccess'));
+    } catch (error) {
+      toast.error(t('aiMeme.batchExportFailed'));
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const totalPages = Math.ceil(total / pageSize);
 
   // Get unique folders from stats
@@ -1015,9 +1318,9 @@ export default function AIMemePage() {
   // ============================================================================
 
   return (
-    <div className="p-4 sm:p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-3">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0 overflow-x-auto">
           <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
             <ImageIcon className="w-8 h-8 shrink-0" />
@@ -1026,6 +1329,24 @@ export default function AIMemePage() {
           <p className="whitespace-nowrap text-sm text-muted-foreground mt-1">{t('aiMeme.description')}</p>
         </div>
         <div className="flex flex-wrap items-center justify-end gap-2 self-end sm:self-auto">
+          <Button
+            variant={selectMode ? "default" : "outline"}
+            size="sm"
+            onClick={toggleSelectMode}
+            className="gap-1.5 whitespace-nowrap"
+          >
+            <CheckSquare className="w-4 h-4" />
+            {selectMode ? t('aiMeme.exitSelectMode') : t('aiMeme.selectMode')}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setImportOpen(true)}
+            className="gap-1.5 whitespace-nowrap"
+          >
+            <FileUp className="w-4 h-4" />
+            {t('aiMeme.import.title')}
+          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -1045,6 +1366,70 @@ export default function AIMemePage() {
           </Button>
         </div>
       </div>
+
+      {/* Batch Action Bar */}
+      {selectMode && selectedIds.size > 0 && (
+        <Card className={cn(
+          "border-primary/30 bg-primary/5",
+          isGlass && "glass-card"
+        )}>
+          <CardContent className="py-2.5 px-4 flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-2">
+              <Checkbox
+                checked={selectedIds.size === memes.length && memes.length > 0}
+                onCheckedChange={(checked) => {
+                  if (checked) selectAllOnPage();
+                  else deselectAll();
+                }}
+              />
+              <span className="text-sm font-medium">
+                {t('aiMeme.selectedCount', { count: selectedIds.size })}
+              </span>
+            </div>
+            <Separator orientation="vertical" className="h-5" />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={selectAllOnPage}
+              className="h-7 text-xs gap-1"
+            >
+              {t('aiMeme.selectAll')}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={deselectAll}
+              className="h-7 text-xs gap-1"
+            >
+              {t('aiMeme.deselectAll')}
+            </Button>
+            <div className="flex-1" />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleBatchExport}
+              disabled={isExporting}
+              className="h-7 text-xs gap-1"
+            >
+              {isExporting ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Download className="w-3.5 h-3.5" />
+              )}
+              {t('aiMeme.batchExport')}
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => setShowBatchDeleteDialog(true)}
+              className="h-7 text-xs gap-1"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              {t('aiMeme.batchDelete')}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Stats Overview */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
@@ -1246,6 +1631,9 @@ export default function AIMemePage() {
                 meme={meme}
                 onClick={() => handleMemeClick(meme)}
                 isGlass={isGlass}
+                selectable={selectMode}
+                selected={selectedIds.has(meme.meme_id)}
+                onToggleSelect={() => toggleSelectMeme(meme.meme_id)}
               />
             ))}
           </div>
@@ -1315,6 +1703,37 @@ export default function AIMemePage() {
         onSuccess={handleUploadSuccess}
         isGlass={isGlass}
       />
+
+      {/* Import Dialog */}
+      <ImportDialog
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        onSuccess={handleUploadSuccess}
+        isGlass={isGlass}
+      />
+
+      {/* Batch Delete Confirm Dialog */}
+      <AlertDialog open={showBatchDeleteDialog} onOpenChange={setShowBatchDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('aiMeme.batchDeleteConfirm')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('aiMeme.batchDeleteConfirmDesc', { count: selectedIds.size })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBatchDelete}
+              disabled={isBatchDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isBatchDeleting && <Loader2 className="w-4 h-4 animate-spin mr-1.5" />}
+              {t('common.delete')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

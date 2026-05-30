@@ -483,6 +483,51 @@ class ApiClient {
     return this.request<T>(endpoint, { method: 'DELETE' });
   }
 
+  // POST request that returns raw Blob (for file downloads)
+  async postBlob(endpoint: string, body?: unknown): Promise<Blob> {
+    const url = `${this.baseUrl}${endpoint}`;
+
+    const token = getAuthToken();
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+      credentials: 'include',
+    });
+
+    // Handle 401 Unauthorized - redirect to login
+    if (response.status === 401) {
+      setAuthToken(null);
+      localStorage.removeItem('auth_user');
+      window.location.href = getLoginPath();
+      throw new Error('会话已过期，请重新登录');
+    }
+
+    if (!response.ok) {
+      let errorMessage = `下载失败: HTTP ${response.status}`;
+      try {
+        const text = await response.text();
+        try {
+          const errorData = JSON.parse(text);
+          if (errorData.msg) errorMessage = errorData.msg;
+        } catch {
+          if (text) errorMessage = text;
+        }
+      } catch { /* ignore */ }
+      throw new Error(errorMessage);
+    }
+
+    return response.blob();
+  }
+
   // Get raw response with status (for theme config which needs full response)
   async getRaw<T>(endpoint: string): Promise<ApiResponse<T>> {
     const url = `${this.baseUrl}${endpoint}`;
@@ -1849,7 +1894,7 @@ export const aiToolsApi = {
 
   // 获取指定工具详情
   getToolDetail: (toolName: string) =>
-    api.get<{ status: number; msg: string; data: AITool | null }>(`/api/ai/tools/${encodeURIComponent(toolName)}`),
+    api.get<AITool | null>(`/api/ai/tools/${encodeURIComponent(toolName)}`),
 };
 
 // ===================
@@ -2844,6 +2889,71 @@ export const memeApi = {
   // 统计概览
   getStats: () =>
     api.get<MemeStatsData>('/api/meme/stats'),
+
+  // 批量删除表情包
+  batchDelete: (memeIds: string[]) =>
+    api.post<{ success_count: number; failed: Array<{ meme_id: string; reason: string }> }>(
+      '/api/meme/batch_delete',
+      { meme_ids: memeIds }
+    ),
+
+  // 批量导出为 .meme 格式
+  exportMemes: async (memeIds?: string[], folder?: string): Promise<Blob> => {
+    const body: Record<string, unknown> = {};
+    if (memeIds && memeIds.length > 0) body.meme_ids = memeIds;
+    else if (folder) body.folder = folder;
+    return api.postBlob('/api/meme/export', body);
+  },
+
+  // 导入 .meme 格式文件
+  importMemes: async (
+    file: File,
+    skipExisting: boolean = true,
+    autoTag: boolean = false
+  ) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('skip_existing', String(skipExisting));
+    formData.append('auto_tag', String(autoTag));
+
+    const token = getAuthToken();
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const base = getCustomApiHost();
+    const response = await fetch(`${base}/api/meme/import`, {
+      method: 'POST',
+      headers,
+      body: formData,
+      credentials: 'include',
+    });
+
+    if (response.status === 401) {
+      setAuthToken(null);
+      localStorage.removeItem('auth_user');
+      window.location.href = getLoginPath();
+      throw new Error('会话已过期，请重新登录');
+    }
+
+    if (!response.ok) {
+      let errorMessage = `HTTP Error: ${response.status}`;
+      try {
+        const data = await response.json();
+        if (data.msg) errorMessage = data.msg;
+      } catch { /* ignore */ }
+      throw new Error(errorMessage);
+    }
+
+    const data: ApiResponse<{
+      imported_count: number;
+      skipped_count: number;
+      imported_ids: string[];
+      skipped_ids: string[];
+      failed: Array<{ meme_id: string; reason: string }>;
+    }> = await response.json();
+    if (data.status !== 0) throw new Error(data.msg || 'Import failed');
+    return data.data;
+  },
 };
 
 // ===================
