@@ -9,10 +9,10 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import {
   Cpu, Loader2, Save, Settings, Zap, Users, Ban, CheckCircle,
-  Sparkles, Search, Brain, Key, Globe, Clock, MessageSquare,
+  Sparkles, Search, Brain, Key, Globe, MessageSquare,
   Layers, MemoryStick, ChevronRight, Bot, Wifi, Database,
   Plus, Pencil, Trash2, Check, FileText,
-  Server, AlertTriangle, SlidersHorizontal, HelpCircle,
+  Server, AlertTriangle, ArrowUpDown, SlidersHorizontal, HelpCircle,
   Smile, Eye, Wrench
 } from 'lucide-react';
 import { ChipGroup } from '@/components/ui/MultiSelectChipGroup';
@@ -46,7 +46,7 @@ import {
 } from '@/lib/api';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { ConfigField, ConfigValue, ConfigFieldType, DynamicConfigPanel } from '@/components/config';
+import { ConfigField, ConfigValue, ConfigFieldType, DynamicConfigPanel, pluginConfigItemToFieldDef } from '@/components/config';
 import {
   Select,
   SelectContent,
@@ -256,15 +256,21 @@ export default function AIConfigPage() {
   // State - Embedding Config
   const [embeddingSummary, setEmbeddingSummary] = useState<EmbeddingConfigSummary | null>(null);
   const [isLoadingEmbeddingConfig, setIsLoadingEmbeddingConfig] = useState(false);
-  const [isSavingEmbeddingConfig, setIsSavingEmbeddingConfig] = useState(false);
   const [embeddingLocalConfig, setEmbeddingLocalConfig] = useState<Record<string, EmbeddingConfigField>>({});
   const [embeddingOpenaiConfig, setEmbeddingOpenaiConfig] = useState<Record<string, EmbeddingConfigField>>({});
+  // 用于追踪嵌入模型配置的原始状态（脏检查）
+  const [originalEmbeddingProvider, setOriginalEmbeddingProvider] = useState<string>('');
+  const [originalEmbeddingLocalConfig, setOriginalEmbeddingLocalConfig] = useState<Record<string, EmbeddingConfigField>>({});
+  const [originalEmbeddingOpenaiConfig, setOriginalEmbeddingOpenaiConfig] = useState<Record<string, EmbeddingConfigField>>({});
 
   // Dialog states
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  // Embedding save warning dialog
+  const [isEmbeddingWarningOpen, setIsEmbeddingWarningOpen] = useState(false);
+  const [pendingSaveAction, setPendingSaveAction] = useState<(() => void) | null>(null);
   const [newConfigName, setNewConfigName] = useState('');
   const [editingConfigName, setEditingConfigName] = useState('');
   const [editingConfigProvider, setEditingConfigProvider] = useState('openai');
@@ -442,8 +448,14 @@ export default function AIConfigPage() {
       setIsLoadingEmbeddingConfig(true);
       const summary = await embeddingConfigApi.getSummary();
       setEmbeddingSummary(summary);
-      setEmbeddingLocalConfig(summary.local_config || {});
-      setEmbeddingOpenaiConfig(summary.openai_config || {});
+      const localCfg = summary.local_config || {};
+      const openaiCfg = summary.openai_config || {};
+      setEmbeddingLocalConfig(localCfg);
+      setEmbeddingOpenaiConfig(openaiCfg);
+      // 记录原始状态用于脏检查
+      setOriginalEmbeddingProvider(summary.provider || '');
+      setOriginalEmbeddingLocalConfig(JSON.parse(JSON.stringify(localCfg)));
+      setOriginalEmbeddingOpenaiConfig(JSON.parse(JSON.stringify(openaiCfg)));
     } catch (error) {
       console.error('Failed to fetch embedding config:', error);
       toast.error(t('aiConfig.serviceProvider.embeddingConfigLoadFailed'));
@@ -684,18 +696,10 @@ export default function AIConfigPage() {
     setOpenaiConfigData(prev => prev ? { ...prev, [field]: value } : null);
   }, []);
 
-  // 嵌入模型配置 - 切换提供方
-  const handleSwitchEmbeddingProvider = useCallback(async (provider: string) => {
-    try {
-      const response = await embeddingConfigApi.setProvider(provider);
-      toast.success(response.msg || t('aiConfig.serviceProvider.embeddingProviderSwitched', { provider }));
-      // 刷新嵌入模型配置摘要
-      await fetchEmbeddingConfig();
-    } catch (error) {
-      console.error('Failed to switch embedding provider:', error);
-      toast.error(t('aiConfig.serviceProvider.embeddingProviderSwitchFailed'));
-    }
-  }, [t, fetchEmbeddingConfig]);
+  // 嵌入模型配置 - 切换提供方（仅更新本地状态，保存时统一提交）
+  const handleSwitchEmbeddingProvider = useCallback((provider: string) => {
+    setEmbeddingSummary(prev => prev ? { ...prev, provider } : null);
+  }, []);
 
   // 嵌入模型配置 - 更新本地配置字段
   const updateEmbeddingLocalField = useCallback((fieldKey: string, value: unknown) => {
@@ -712,42 +716,6 @@ export default function AIConfigPage() {
       [fieldKey]: { ...prev[fieldKey], data: value },
     }));
   }, []);
-
-  // 嵌入模型配置 - 保存本地配置
-  const handleSaveEmbeddingLocalConfig = useCallback(async () => {
-    try {
-      setIsSavingEmbeddingConfig(true);
-      const configData: Record<string, unknown> = {};
-      Object.entries(embeddingLocalConfig).forEach(([key, field]) => {
-        configData[key] = field.data;
-      });
-      await embeddingConfigApi.saveLocalConfig(configData);
-      toast.success(t('aiConfig.serviceProvider.embeddingConfigSaved'));
-    } catch (error) {
-      console.error('Failed to save embedding local config:', error);
-      toast.error(t('aiConfig.serviceProvider.embeddingConfigSaveFailed'));
-    } finally {
-      setIsSavingEmbeddingConfig(false);
-    }
-  }, [embeddingLocalConfig, t]);
-
-  // 嵌入模型配置 - 保存 OpenAI 配置
-  const handleSaveEmbeddingOpenaiConfig = useCallback(async () => {
-    try {
-      setIsSavingEmbeddingConfig(true);
-      const configData: Record<string, unknown> = {};
-      Object.entries(embeddingOpenaiConfig).forEach(([key, field]) => {
-        configData[key] = field.data;
-      });
-      await embeddingConfigApi.saveOpenaiConfig(configData);
-      toast.success(t('aiConfig.serviceProvider.embeddingConfigSaved'));
-    } catch (error) {
-      console.error('Failed to save embedding openai config:', error);
-      toast.error(t('aiConfig.serviceProvider.embeddingConfigSaveFailed'));
-    } finally {
-      setIsSavingEmbeddingConfig(false);
-    }
-  }, [embeddingOpenaiConfig, t]);
 
   const openDeleteDialog = (configName: string, provider: string) => {
     setEditingConfigName(configName); // 纯配置名
@@ -823,6 +791,7 @@ export default function AIConfigPage() {
 
   const isAIEnabled = aiConfig?.config.enable?.value as boolean ?? false;
   const isRerankEnabled = aiConfig?.config.enable_rerank?.value as boolean ?? false;
+  const rerankProvider = aiConfig?.config.rerank_provider?.value as string ?? 'local';
   const isMemoryEnabled = aiConfig?.config.enable_memory?.value as boolean ?? false;
   const websearchProvider = aiConfig?.config.websearch_provider?.value as string ?? 'Tavily';
   const imageUnderstandProvider = aiConfig?.config.image_understand_provider?.value as string ?? '';
@@ -852,9 +821,14 @@ export default function AIConfigPage() {
   }, []);
 
   const isConfigDirty = useMemo(() => {
-    if (Object.keys(originalConfig).length === 0) return false;
-    return JSON.stringify(configs) !== JSON.stringify(originalConfig);
-  }, [configs, originalConfig]);
+    // 框架配置脏检查
+    const configChanged = Object.keys(originalConfig).length > 0 && JSON.stringify(configs) !== JSON.stringify(originalConfig);
+    // 嵌入模型配置脏检查（提供方 + 字段配置）
+    const embeddingProviderChanged = embeddingSummary?.provider !== originalEmbeddingProvider;
+    const embeddingLocalChanged = JSON.stringify(embeddingLocalConfig) !== JSON.stringify(originalEmbeddingLocalConfig);
+    const embeddingOpenaiChanged = JSON.stringify(embeddingOpenaiConfig) !== JSON.stringify(originalEmbeddingOpenaiConfig);
+    return configChanged || embeddingProviderChanged || embeddingLocalChanged || embeddingOpenaiChanged;
+  }, [configs, originalConfig, embeddingSummary, originalEmbeddingProvider, embeddingLocalConfig, originalEmbeddingLocalConfig, embeddingOpenaiConfig, originalEmbeddingOpenaiConfig]);
 
   const updateConfigValue = useCallback((configId: string, fieldKey: string, value: ConfigValue) => {
     setConfigs(prev => {
@@ -885,31 +859,80 @@ export default function AIConfigPage() {
     }
   }, [mcpToolsConfig, mcpToolDialogType, updateConfigValue, t]);
 
-  const handleSaveConfig = async () => {
+  // 实际执行保存逻辑
+  const executeSave = async () => {
     try {
       setIsSaving(true);
-      // 只保存实际发生变化的配置，避免并发写入导致竞态条件
+
+      // 1. 保存框架配置（仅变化的部分）
       const changedConfigs = Object.values(configs).filter(config => {
         const original = originalConfig[config.id];
         if (!original) return true;
         return JSON.stringify(config.config) !== JSON.stringify(original.config);
       });
 
-      if (changedConfigs.length === 0) {
-        toast.success(t('aiConfig.configSaved'));
-      } else {
-        for (const config of changedConfigs) {
-          const configToSave: Record<string, any> = {};
-          Object.entries(config.config).forEach(([key, field]: [string, any]) => {
-            if (field && typeof field === 'object' && 'value' in field) {
-              configToSave[key] = field.value;
+      for (const config of changedConfigs) {
+        const configToSave: Record<string, any> = {};
+        Object.entries(config.config).forEach(([key, field]: [string, any]) => {
+          if (!field || typeof field !== 'object' || !('value' in field)) return;
+          const rawType = (field.type || '').toLowerCase();
+          let value = field.value;
+
+          // 根据后端原始类型还原正确的值类型
+          if (rawType === 'gsint') {
+            if (typeof value === 'string') value = parseInt(value, 10);
+          } else if (rawType === 'gsfloat') {
+            if (typeof value === 'string') value = parseFloat(value);
+          } else if (rawType === 'gsbool') {
+            if (typeof value === 'string') value = value === 'true';
+            else value = !!value;
+          } else if (rawType === 'gsdict') {
+            if (typeof value === 'string') {
+              try { value = JSON.parse(value); } catch { /* keep as string */ }
             }
-          });
-          await frameworkConfigApi.updateFrameworkConfig(config.full_name, configToSave);
-        }
-        setOriginalConfig(JSON.parse(JSON.stringify(configs)));
-        toast.success(t('aiConfig.configSaved'));
+          } else if (rawType === 'gslist') {
+            if (Array.isArray(value)) value = value.map(Number).filter((n: number) => !isNaN(n));
+          } else if (rawType === 'gsliststr') {
+            if (Array.isArray(value)) value = value.map(String);
+          } else if (rawType === 'gsdivider') {
+            return; // skip divider
+          }
+
+          configToSave[key] = value;
+        });
+        await frameworkConfigApi.updateFrameworkConfig(config.full_name, configToSave);
       }
+      if (changedConfigs.length > 0) {
+        setOriginalConfig(JSON.parse(JSON.stringify(configs)));
+      }
+
+      // 2. 保存嵌入模型配置
+      const currentProvider = embeddingSummary?.provider || '';
+      if (currentProvider !== originalEmbeddingProvider) {
+        const response = await embeddingConfigApi.setProvider(currentProvider);
+        toast.success(response.msg || t('aiConfig.serviceProvider.embeddingProviderSwitched', { provider: currentProvider }));
+        setOriginalEmbeddingProvider(currentProvider);
+      }
+      // 保存本地嵌入模型字段配置
+      if (JSON.stringify(embeddingLocalConfig) !== JSON.stringify(originalEmbeddingLocalConfig)) {
+        const localPayload: Record<string, unknown> = {};
+        Object.entries(embeddingLocalConfig).forEach(([key, field]) => {
+          localPayload[key] = field.data;
+        });
+        await embeddingConfigApi.saveLocalConfig(localPayload);
+        setOriginalEmbeddingLocalConfig(JSON.parse(JSON.stringify(embeddingLocalConfig)));
+      }
+      // 保存 OpenAI 嵌入模型字段配置
+      if (JSON.stringify(embeddingOpenaiConfig) !== JSON.stringify(originalEmbeddingOpenaiConfig)) {
+        const openaiPayload: Record<string, unknown> = {};
+        Object.entries(embeddingOpenaiConfig).forEach(([key, field]) => {
+          openaiPayload[key] = field.data;
+        });
+        await embeddingConfigApi.saveOpenaiConfig(openaiPayload);
+        setOriginalEmbeddingOpenaiConfig(JSON.parse(JSON.stringify(embeddingOpenaiConfig)));
+      }
+
+      toast.success(t('aiConfig.configSaved'));
 
       // 保存成功后调用向导 API 获取配置状态
       await fetchWizardChecklist();
@@ -918,6 +941,32 @@ export default function AIConfigPage() {
       toast.error(t('aiConfig.saveFailed'));
     } finally {
       setIsSaving(false);
+      setPendingSaveAction(null);
+    }
+  };
+
+  const handleSaveConfig = () => {
+    // 检查是否有嵌入模型配置变化
+    const currentProvider = embeddingSummary?.provider || '';
+    const hasEmbeddingChanges =
+      currentProvider !== originalEmbeddingProvider ||
+      JSON.stringify(embeddingLocalConfig) !== JSON.stringify(originalEmbeddingLocalConfig) ||
+      JSON.stringify(embeddingOpenaiConfig) !== JSON.stringify(originalEmbeddingOpenaiConfig);
+
+    if (hasEmbeddingChanges) {
+      // 有嵌入模型变化，弹出警告对话框
+      setPendingSaveAction(() => executeSave);
+      setIsEmbeddingWarningOpen(true);
+    } else {
+      // 无嵌入模型变化，直接保存
+      executeSave();
+    }
+  };
+
+  const handleConfirmEmbeddingSave = () => {
+    setIsEmbeddingWarningOpen(false);
+    if (pendingSaveAction) {
+      pendingSaveAction();
     }
   };
 
@@ -945,6 +994,7 @@ export default function AIConfigPage() {
   };
 
   const embeddingProviderOptions = (aiConfig?.config.embedding_provider?.options || ['local']) as string[];
+  const rerankProviderOptions = (aiConfig?.config.rerank_provider?.options || ['local']) as string[];
   const websearchProviderOptions = (aiConfig?.config.websearch_provider?.options || ['Tavily']) as string[];
 
   const allConfigsList = useMemo(() => {
@@ -1768,198 +1818,205 @@ export default function AIConfigPage() {
                     selectMode="single"
                     showRadioIndicator
                   />
-                  {/* 提供方描述 */}
-                  <p className="text-xs text-muted-foreground mt-1 px-1">
-                    {t('aiConfig.serviceProvider.embeddingProviderDesc')}
-                  </p>
-
                   {/* 嵌入模型配置 - 根据提供方显示不同表单 */}
                   {isLoadingEmbeddingConfig ? (
                     <div className="flex items-center justify-center py-6">
                       <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
                     </div>
                   ) : (
-                    <SubConfigPanel
-                      title={t('aiConfig.serviceProvider.embeddingConfig')}
-                      icon={<Layers className="w-3.5 h-3.5" />}
-                    >
-                      <div className="space-y-4">
-                        {/* 本地模型配置 */}
-                        {(embeddingSummary?.provider || aiConfig.config.embedding_provider?.value) === 'local' && (
-                          <div className="space-y-3">
-                            {Object.entries(embeddingLocalConfig).map(([key, field]) => (
-                              <div key={key} className="space-y-1.5">
-                                <Label className="text-sm font-medium">{field.title || key}</Label>
-                                {field.desc && <p className="text-xs text-muted-foreground">{field.desc}</p>}
+                    <div className="space-y-4 mt-4 pt-4 border-t border-border/30">
+                      {/* 本地模型配置 */}
+                      {(embeddingSummary?.provider || aiConfig.config.embedding_provider?.value) === 'local' && (
+                        <div className="space-y-3">
+                          {Object.entries(embeddingLocalConfig).map(([key, field]) => (
+                            <div key={key} className="space-y-1.5">
+                              <Label className="text-sm font-medium">{field.title || key}</Label>
+                              {field.desc && <p className="text-xs text-muted-foreground">{field.desc}</p>}
+                              <ConfigField
+                                fieldKey={key}
+                                field={{
+                                  type: (Array.isArray(field.options) && field.options.length > 0 ? 'select' : 'text') as ConfigFieldType,
+                                  label: field.title || key,
+                                  value: field.data as string,
+                                  options: field.options || [],
+                                  placeholder: '',
+                                  description: field.desc || '',
+                                }}
+                                showLabel={false}
+                                onChange={(k, v) => updateEmbeddingLocalField(k, v)}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* OpenAI 兼容配置 */}
+                      {(embeddingSummary?.provider || aiConfig.config.embedding_provider?.value) === 'openai' && (
+                        <div className="space-y-3">
+                          {Object.entries(embeddingOpenaiConfig).map(([key, field]) => (
+                            <div key={key} className="space-y-1.5">
+                              <Label className="text-sm font-medium flex items-center gap-2">
+                                {key === 'base_url' && <Globe className="w-3.5 h-3.5" />}
+                                {key === 'api_key' && <Key className="w-3.5 h-3.5" />}
+                                {key === 'embedding_model' && <Cpu className="w-3.5 h-3.5" />}
+                                {field.title || key}
+                              </Label>
+                              {field.desc && <p className="text-xs text-muted-foreground">{field.desc}</p>}
+                              {key === 'api_key' ? (
                                 <ConfigField
                                   fieldKey={key}
                                   field={{
-                                    type: (Array.isArray(field.options) && field.options.length > 0 ? 'select' : 'text') as ConfigFieldType,
+                                    type: 'tags',
                                     label: field.title || key,
-                                    value: field.data as string,
-                                    options: field.options || [],
-                                    placeholder: '',
+                                    value: (field.data as string[]) || [],
+                                    placeholder: '输入API密钥（支持多个）',
                                     description: field.desc || '',
                                   }}
                                   showLabel={false}
-                                  onChange={(k, v) => updateEmbeddingLocalField(k, v)}
+                                  onChange={(k, v) => updateEmbeddingOpenaiField(k, v)}
                                 />
-                              </div>
-                            ))}
-                            <div className="pt-2">
-                              <Button
-                                size="sm"
-                                onClick={handleSaveEmbeddingLocalConfig}
-                                disabled={isSavingEmbeddingConfig}
-                                className="gap-2"
-                              >
-                                {isSavingEmbeddingConfig ? (
-                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                ) : (
-                                  <Save className="w-3.5 h-3.5" />
-                                )}
-                                {t('common.save')}
-                              </Button>
+                              ) : (
+                                <InputWithDropdown
+                                  value={(field.data as string) || ''}
+                                  onChange={(val) => updateEmbeddingOpenaiField(key, val)}
+                                  options={field.options || []}
+                                  placeholder={`选择或输入${field.title || key}`}
+                                  inputPlaceholder={field.options?.[0] || ''}
+                                />
+                              )}
                             </div>
-                          </div>
-                        )}
-
-                        {/* OpenAI 兼容配置 */}
-                        {(embeddingSummary?.provider || aiConfig.config.embedding_provider?.value) === 'openai' && (
-                          <div className="space-y-3">
-                            {Object.entries(embeddingOpenaiConfig).map(([key, field]) => (
-                              <div key={key} className="space-y-1.5">
-                                <Label className="text-sm font-medium flex items-center gap-2">
-                                  {key === 'base_url' && <Globe className="w-3.5 h-3.5" />}
-                                  {key === 'api_key' && <Key className="w-3.5 h-3.5" />}
-                                  {key === 'embedding_model' && <Cpu className="w-3.5 h-3.5" />}
-                                  {field.title || key}
-                                </Label>
-                                {field.desc && <p className="text-xs text-muted-foreground">{field.desc}</p>}
-                                {key === 'api_key' ? (
-                                  <ConfigField
-                                    fieldKey={key}
-                                    field={{
-                                      type: 'tags',
-                                      label: field.title || key,
-                                      value: (field.data as string[]) || [],
-                                      placeholder: '输入API密钥（支持多个）',
-                                      description: field.desc || '',
-                                    }}
-                                    showLabel={false}
-                                    onChange={(k, v) => updateEmbeddingOpenaiField(k, v)}
-                                  />
-                                ) : (
-                                  <InputWithDropdown
-                                    value={(field.data as string) || ''}
-                                    onChange={(val) => updateEmbeddingOpenaiField(key, val)}
-                                    options={field.options || []}
-                                    placeholder={`选择或输入${field.title || key}`}
-                                    inputPlaceholder={field.options?.[0] || ''}
-                                  />
-                                )}
-                              </div>
-                            ))}
-                            <div className="pt-2">
-                              <Button
-                                size="sm"
-                                onClick={handleSaveEmbeddingOpenaiConfig}
-                                disabled={isSavingEmbeddingConfig}
-                                className="gap-2"
-                              >
-                                {isSavingEmbeddingConfig ? (
-                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                ) : (
-                                  <Save className="w-3.5 h-3.5" />
-                                )}
-                                {t('common.save')}
-                              </Button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </SubConfigPanel>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   )}
 
-                  {/* Rerank 配置 */}
-                  <div className="pt-4 border-t border-border/30">
-                    <ToggleRow
-                      icon={<CheckCircle className="w-6 h-6" strokeWidth={1.5} />}
-                      iconColorClass="text-primary"
-                      title={t('aiConfig.serviceProvider.enableRerank')}
-                      description={t('aiConfig.serviceProvider.rerankQuality')}
-                      checked={isRerankEnabled}
-                      onCheckedChange={(checked) => updateConfigValue(aiConfig.id, 'enable_rerank', checked)}
-                    />
-                    {isRerankEnabled && rerankConfig && (
-                      <div className="mt-3 pl-4 border-l-2 border-primary/20">
-                        <DynamicConfigPanel
-                          config={rerankConfig.config}
-                          configId={rerankConfig.id}
-                          onChange={updateConfigValue}
-                        />
-                      </div>
-                    )}
-                  </div>
                 </SectionCard>
 
-                {/* 高级设置 */}
+                {/* 重排序模型服务 */}
                 <SectionCard
-                  title={t('aiConfig.advancedSettings.title') || '高级设置'}
-                  description={t('aiConfig.advancedSettings.description') || '配置AI行为参数'}
-                  icon={<Settings className="w-6 h-6 text-primary" strokeWidth={1.5} />}
+                  title={t('aiConfig.serviceProvider.rerankService') || '重排序模型服务'}
+                  description={t('aiConfig.serviceProvider.rerankServiceDesc') || '配置Rerank重排序模型'}
+                  icon={<ArrowUpDown className="w-6 h-6 text-primary" strokeWidth={1.5} />}
                   iconBgClass="bg-primary/10"
                   iconClass="text-primary"
                   isGlass={isGlass}
-                >
-                  <div className="space-y-5">
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-muted-foreground" />
-                        <Label className="text-sm font-medium">{t('aiConfig.advancedSettings.thinkingRounds')}</Label>
-                        {aiConfig.config.multi_agent_lenth?.desc && (
-                          <TooltipProvider delayDuration={100}>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <button type="button" className="inline-flex items-center justify-center rounded-full p-0.5 hover:bg-primary/10 transition-colors focus:outline-none" onClick={(e) => e.preventDefault()}>
-                                  <HelpCircle className="w-3.5 h-3.5 text-muted-foreground/60 hover:text-primary cursor-help" />
-                                </button>
-                              </TooltipTrigger>
-                              <TooltipContent side="top" className="max-w-xs">
-                                <p>{aiConfig.config.multi_agent_lenth.desc}</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        )}
-                        <Badge variant="outline" className="text-[10px] font-normal h-5">{t('aiConfig.advancedSettings.tokenConsumption')}</Badge>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <ConfigField
-                          fieldKey="multi_agent_lenth"
-                          field={{
-                            type: 'select',
-                            label: 'multi_agent_lenth',
-                            value: String(aiConfig.config.multi_agent_lenth?.value || 12),
-                            options: ['9', '12', '20', '30'],
-                            placeholder: '',
-                            description: aiConfig.config.multi_agent_lenth?.desc || '',
-                          }}
-                          showLabel={false}
-                          onChange={(k, v) => updateConfigValue(aiConfig.id, k, typeof v === 'string' ? parseInt(v) : v)}
-                        />
-                        <span className="text-xs text-muted-foreground whitespace-nowrap">{t('aiConfig.advancedSettings.roundsHint')}</span>
-                      </div>
-                    </div>
-                    <Separator className="bg-border/30" />
-                    <DynamicConfigPanel
-                      config={aiConfig.config}
-                      configId={aiConfig.id}
-                      onChange={updateConfigValue}
-                      excludeKeys={['enable', 'enable_rerank', 'enable_memory', 'websearch_provider', 'image_understand_provider', 'embedding_provider', 'multi_agent_lenth', 'high_level_provider_config_name', 'low_level_provider_config_name', 'asr_provider', 'tts_provider', 'video_understand_provider', 'document_extract_provider']}
-                      layout={[['white_list', 'black_list']]}
+                  rightAction={
+                    <Switch
+                      checked={isRerankEnabled}
+                      onCheckedChange={(checked) => updateConfigValue(aiConfig.id, 'enable_rerank', checked)}
                     />
-                  </div>
+                  }
+                >
+                  {isRerankEnabled ? (
+                    <div className="space-y-4">
+                      <ChipGroup
+                        options={rerankProviderOptions.map(p => ({
+                          value: p,
+                          label: p === 'local' ? t('aiConfig.serviceProvider.localModel') : p === 'openai' ? t('aiConfig.serviceProvider.openaiModel') : p,
+                          icon: p === 'local' ? <Database className="w-3.5 h-3.5" /> : <Globe className="w-3.5 h-3.5" />,
+                        }))}
+                        value={[rerankProvider].filter(Boolean)}
+                        onValueChange={(newValue) => updateConfigValue(aiConfig.id, 'rerank_provider', newValue[0] || '')}
+                        selectMode="single"
+                        showRadioIndicator
+                      />
+                      {rerankProvider === 'openai' && rerankConfig && (
+                        <div className="mt-2 space-y-4">
+                          <DynamicConfigPanel
+                            config={rerankConfig.config}
+                            configId={rerankConfig.id}
+                            onChange={updateConfigValue}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground py-4 px-2">
+                      <ChevronRight className="w-4 h-4" />
+                      <span>{t('aiConfig.serviceProvider.rerankServiceDisabled') || '启用 Rerank 以提升 RAG 检索质量'}</span>
+                    </div>
+                  )}
                 </SectionCard>
+              </div>
+
+              {/* Section: 其他设置（模仿插件参数配置 3 列 grid 布局） */}
+              <div className="col-span-full space-y-4">
+                <div className="flex items-center gap-2 px-1">
+                  <SlidersHorizontal className="w-5 h-5 text-muted-foreground" />
+                  <h3 className="text-sm font-medium text-muted-foreground">
+                    {t('aiConfig.advancedSettings.title') || '其他设置'}
+                  </h3>
+                </div>
+                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                  {(() => {
+                    const excludeKeys = [
+                      'enable', 'enable_rerank', 'enable_memory',
+                      'websearch_provider', 'image_understand_provider',
+                      'embedding_provider', 'high_level_provider_config_name',
+                      'low_level_provider_config_name', 'asr_provider',
+                      'tts_provider', 'video_understand_provider',
+                      'document_extract_provider', 'rerank_provider'
+                    ];
+                    const entries = Object.entries(aiConfig.config).filter(
+                      ([key]) => !excludeKeys.includes(key)
+                    );
+                    if (entries.length === 0) {
+                      return (
+                        <div className="col-span-full py-12 text-center text-muted-foreground">
+                          <p>{t('plugins.noConfigItems') || '暂无配置项'}</p>
+                        </div>
+                      );
+                    }
+                    return entries.map(([key, item]) => {
+                      let fieldDef = pluginConfigItemToFieldDef(key, item);
+                      if (key === 'multi_agent_lenth') {
+                        fieldDef = {
+                          ...fieldDef,
+                          label: t('aiConfig.advancedSettings.thinkingRounds') || '思考轮数',
+                          type: 'select' as ConfigFieldType,
+                          options: ['9', '12', '20', '30'],
+                          value: String(fieldDef.value || '12'),
+                        };
+                      }
+                      const isDivider = fieldDef.type === 'divider';
+                      return (
+                        <div key={key} className={isDivider ? 'col-span-full' : undefined}>
+                          <ConfigField
+                            fieldKey={key}
+                            field={fieldDef}
+                            onChange={(fieldKey, value) => {
+                              const finalValue = fieldKey === 'multi_agent_lenth' && typeof value === 'string'
+                                ? parseInt(value)
+                                : value;
+                              updateConfigValue(aiConfig.id, fieldKey, finalValue);
+                            }}
+                          />
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
+              </div>
+
+              {/* 底部保存按钮 */}
+              <div className="flex items-center justify-end pt-2">
+                <Button
+                  onClick={handleSaveConfig}
+                  disabled={!isConfigDirty || isSaving}
+                  size="lg"
+                  className={cn(
+                    "gap-2 min-w-[160px] h-11 transition-all duration-300",
+                    isConfigDirty && "animate-in fade-in slide-in-from-bottom-2"
+                  )}
+                >
+                  {isSaving ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4" />
+                  )}
+                  {t('aiConfig.saveButton')}
+                </Button>
               </div>
             </div>
           )}
@@ -2384,6 +2441,29 @@ export default function AIConfigPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Embedding Save Warning Dialog */}
+      <AlertDialog open={isEmbeddingWarningOpen} onOpenChange={setIsEmbeddingWarningOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-amber-500" />
+              {t('aiConfig.serviceProvider.embeddingSaveWarningTitle') || '修改嵌入模型配置警告'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('aiConfig.serviceProvider.embeddingSaveWarningDesc') || '修改嵌入模型服务配置将导致大部分嵌入数据重构。建议先备份 data/ai_core 文件夹后再执行，配置保存后需要重启服务才能生效。'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setIsEmbeddingWarningOpen(false)}>
+              {t('common.cancel') || '取消'}
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmEmbeddingSave}>
+              {t('common.confirm') || '确认保存'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

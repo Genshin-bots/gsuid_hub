@@ -59,6 +59,7 @@ import {
   SessionLogEntry,
   SessionLogEntryType,
   SessionLogStatsOverview,
+  SessionLogCategory,
   LinkedAgent,
 } from '@/lib/api';
 import { toast } from 'sonner';
@@ -90,6 +91,7 @@ function formatTimeOnly(ts: number): string {
 function getEntryTypeLabel(type: SessionLogEntryType, t: (key: string) => string): string {
   const map: Record<string, string> = {
     session_created: t('aiHistory.entryType.sessionCreated'),
+    session_resumed: t('aiHistory.entryType.sessionResumed') || '会话续写',
     session_ended: t('aiHistory.entryType.sessionEnded'),
     system_prompt: t('aiHistory.entryType.systemPrompt'),
     run_start: t('aiHistory.entryType.runStart'),
@@ -113,6 +115,7 @@ function getEntryTypeLabel(type: SessionLogEntryType, t: (key: string) => string
 function getEntryTypeIcon(type: SessionLogEntryType) {
   switch (type) {
     case 'session_created': return <Clock className="w-4 h-4" />;
+    case 'session_resumed': return <Clock className="w-4 h-4" />;
     case 'session_ended': return <CheckCircle className="w-4 h-4" />;
     case 'system_prompt': return <Shield className="w-4 h-4" />;
     case 'run_start': return <Clock className="w-4 h-4" />;
@@ -176,8 +179,8 @@ function ToolBadge({ toolName }: { toolName: string }) {
   useEffect(() => {
     let mounted = true;
     aiToolsApi.getToolDetail(toolName).then(res => {
-      if (mounted && res.status === 0 && res.data) {
-        setDetails({ description: res.data.description, plugin: res.data.plugin });
+      if (mounted && res) {
+        setDetails({ description: res.description, plugin: res.plugin });
       }
     }).catch(() => {});
     return () => { mounted = false; };
@@ -229,6 +232,7 @@ function hasEntryContent(entry: SessionLogEntry): boolean {
     case 'proactive_emission':
       return !!data.content;
     case 'session_created':
+    case 'session_resumed':
     case 'session_ended':
     case 'run_start':
     case 'run_end':
@@ -447,7 +451,8 @@ function TimelineEntry({ entry, t, personaName, isLast, onAgentLinkedClick }: {
       session_id: string;
       session_uuid: string;
       persona_name: string | null;
-      create_by: string;
+      create_by: string | null;
+      log_file: string | null;
       linked_at: number;
     };
     
@@ -462,8 +467,13 @@ function TimelineEntry({ entry, t, personaName, isLast, onAgentLinkedClick }: {
       session_id: agentData.session_id,
       session_uuid: agentData.session_uuid,
       persona_name: agentData.persona_name,
-      create_by: agentData.create_by,
+      create_by: agentData.create_by || '',
+      log_file: agentData.log_file || null,
       linked_at: agentData.linked_at,
+      entry_count: 0,
+      type_counts: {},
+      is_active: null,
+      source: 'unavailable',
     };
     return (
       <div className="flex gap-3">
@@ -561,6 +571,7 @@ export default function AIHistoryPage() {
   const [stats, setStats] = useState<SessionLogStatsOverview | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingStats, setIsLoadingStats] = useState(false);
+  const [categories, setCategories] = useState<SessionLogCategory[]>([]);
 
   // 选中的详情
   const [selectedLog, setSelectedLog] = useState<SessionLogSummary | null>(null);
@@ -582,8 +593,8 @@ export default function AIHistoryPage() {
     }
     try {
       const res = await aiToolsApi.getToolDetail(toolName);
-      if (res.status === 0 && res.data) {
-        const details = { description: res.data.description, plugin: res.data.plugin };
+      if (res) {
+        const details = { description: res.description, plugin: res.plugin };
         setToolDetailsCache(prev => ({ ...prev, [toolName]: details }));
         return details;
       }
@@ -595,7 +606,7 @@ export default function AIHistoryPage() {
 
   // 筛选
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterCreateBy, setFilterCreateBy] = useState<string>(DEFAULT_SELECT_VALUE);
+  const [filterCreateBy, setFilterCreateBy] = useState<string>('Chat');
   const [filterPersona, setFilterPersona] = useState<string>(DEFAULT_SELECT_VALUE);
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo] = useState('');
@@ -615,6 +626,16 @@ export default function AIHistoryPage() {
       console.error('Failed to fetch session log stats:', err);
     } finally {
       setIsLoadingStats(false);
+    }
+  }, []);
+
+  // 获取分类列表（后端聚合）
+  const fetchCategories = useCallback(async () => {
+    try {
+      const data = await aiSessionLogsApi.getCategories();
+      setCategories(data.categories || []);
+    } catch (err) {
+      console.error('Failed to fetch session log categories:', err);
     }
   }, []);
 
@@ -642,13 +663,17 @@ export default function AIHistoryPage() {
     }
   }, [searchQuery, filterCreateBy, filterPersona, filterDateFrom, filterDateTo, t]);
 
-  // 获取详情
+  // 获取详情（使用查询参数版 API，避免路径参数中特殊字符导致的路由匹配问题）
   const fetchDetail = useCallback(async (log: SessionLogSummary) => {
     try {
       setIsLoadingDetail(true);
       setSelectedLinkedAgent(null);
       setLinkedAgentDetail(null);
-      const data = await aiSessionLogsApi.getLogDetail(log.session_id, log.session_uuid);
+      // 优先使用 file_name 的 stem 作为 session_id（对子 Agent 日志更可靠）
+      const sessionId = log.file_name
+        ? log.file_name.replace(/\.json$/, '')
+        : log.session_id;
+      const data = await aiSessionLogsApi.getLogDetail(sessionId, log.session_uuid);
       setDetail(data);
       setSelectedLog(log);
     } catch (err) {
@@ -664,11 +689,15 @@ export default function AIHistoryPage() {
     return `${agent.session_id}:${agent.session_uuid}:${agent.linked_at}`;
   }, []);
 
-  // 获取子Agent详情
+  // 获取子Agent详情（优先使用 log_file 的 stem 作为 session_id）
   const fetchLinkedAgentDetail = useCallback(async (agent: LinkedAgent) => {
     try {
       setIsLoadingLinkedAgentDetail(true);
-      const data = await aiSessionLogsApi.getLogDetail(agent.session_id, agent.session_uuid);
+      // 方式1（推荐）：使用 log_file 的 stem 作为 session_id
+      const sessionId = agent.log_file
+        ? agent.log_file.replace(/^.*[\\/]/, '').replace(/\.json$/, '')
+        : agent.session_id;
+      const data = await aiSessionLogsApi.getLogDetail(sessionId, agent.session_uuid);
       setLinkedAgentDetail(data);
       setSelectedLinkedAgent(agent);
     } catch (err) {
@@ -682,17 +711,19 @@ export default function AIHistoryPage() {
   // 初始加载
   useEffect(() => {
     fetchStats();
+    fetchCategories();
     fetchLogs(0);
-  }, [fetchStats, fetchLogs]);
+  }, [fetchStats, fetchCategories, fetchLogs]);
 
   // 刷新
   const handleRefresh = useCallback(() => {
     fetchStats();
+    fetchCategories();
     fetchLogs(0);
     if (selectedLog) {
       fetchDetail(selectedLog);
     }
-  }, [fetchStats, fetchLogs, selectedLog, fetchDetail]);
+  }, [fetchStats, fetchCategories, fetchLogs, selectedLog, fetchDetail]);
 
   // 下载当前会话JSON（含子Agent）
   const handleDownloadSession = useCallback(() => {
@@ -734,12 +765,7 @@ export default function AIHistoryPage() {
     }
   }, [offset, limit, total, fetchLogs]);
 
-  // 来源和人格列表
-  const createByOptions = useMemo(() => {
-    const set = new Set<string>();
-    logs.forEach(l => set.add(l.create_by));
-    return Array.from(set);
-  }, [logs]);
+  // 来源和人格列表（来源使用后端 categories 接口，不再从 logs 动态提取）
 
   const personaOptions = useMemo(() => {
     const set = new Set<string>();
@@ -825,13 +851,15 @@ export default function AIHistoryPage() {
           <div>
             <div className="flex items-center gap-1.5 flex-wrap">
               <Select value={filterCreateBy} onValueChange={setFilterCreateBy}>
-                <SelectTrigger className="w-[100px] h-7 text-xs">
+                <SelectTrigger className="w-[130px] h-7 text-xs">
                   <SelectValue placeholder={t('aiHistory.filterCreateBy')} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={DEFAULT_SELECT_VALUE}>{t('aiHistory.filterAll')}</SelectItem>
-                  {createByOptions.map((opt) => (
-                    <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat.create_by} value={cat.create_by}>
+                      {cat.label} ({cat.count})
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -869,7 +897,7 @@ export default function AIHistoryPage() {
             </div>
           ) : (
             <div className="p-2 space-y-1">
-              {logs.filter(log => !log.is_subagent && log.session_id).map((log) => {
+              {logs.filter(log => log.session_id).map((log) => {
                 const isSelected = selectedLog?.session_uuid === log.session_uuid;
                 return (
                   <button

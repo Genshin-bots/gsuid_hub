@@ -16,5 +16,8 @@
   "traceId": "ID",
   "private": "私聊",
   "group": "群聊",
-  "downloadTrace": "下载追踪"
+  "downloadTrace": "下载追踪",
+  "triggerUser": "触发者",
+  "triggerGroup": "触发群",
+  "triggerTime": "触发时间"
 }

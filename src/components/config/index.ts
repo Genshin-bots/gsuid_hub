@@ -3,4 +3,4 @@ export type { ConfigFieldType, ConfigValue, ConfigFieldDefinition } from './Conf
 export { ConfigForm, ConfigGrid } from './ConfigForm';
 export type { ConfigFormData } from './ConfigForm';
 export { TagsInput } from './TagsInput';
-export { DynamicConfigPanel } from './DynamicConfigPanel';
+export { DynamicConfigPanel, pluginConfigItemToFieldDef } from './DynamicConfigPanel';

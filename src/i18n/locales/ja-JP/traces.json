@@ -16,5 +16,8 @@
   "traceId": "ID",
   "private": "個人チャット",
   "group": "グループチャット",
-  "downloadTrace": "追跡をダウンロード"
+  "downloadTrace": "追跡をダウンロード",
+  "triggerUser": "トリガーユーザー",
+  "triggerGroup": "トリガーグループ",
+  "triggerTime": "トリガー時間"
 }

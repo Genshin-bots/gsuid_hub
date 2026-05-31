@@ -16,5 +16,8 @@
   "traceId": "ID",
   "private": "Private",
   "group": "Group",
-  "downloadTrace": "Download Trace"
+  "downloadTrace": "Download Trace",
+  "triggerUser": "Trigger User",
+  "triggerGroup": "Trigger Group",
+  "triggerTime": "Trigger Time"
 }

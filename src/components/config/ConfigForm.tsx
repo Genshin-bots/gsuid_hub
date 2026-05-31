@@ -100,14 +100,18 @@ export function ConfigForm({
       
       <CardContent className="space-y-6">
         <div className={cn("grid gap-6", gridCols[columns])}>
-          {Object.entries(config).map(([key, field]) => (
-            <ConfigField
-              key={key}
-              fieldKey={key}
-              field={field}
-              onChange={handleChange}
-            />
-          ))}
+          {Object.entries(config).map(([key, field]) => {
+            const isDivider = field.type === 'divider';
+            return (
+              <div key={key} className={isDivider ? 'col-span-full' : undefined}>
+                <ConfigField
+                  fieldKey={key}
+                  field={field}
+                  onChange={handleChange}
+                />
+              </div>
+            );
+          })}
         </div>
 
         {showActions && (
@@ -145,14 +149,18 @@ export function ConfigGrid({ config, onChange, columns = 3, className }: ConfigG
 
   return (
     <div className={cn("grid gap-6", gridCols[columns], className)}>
-      {Object.entries(config).map(([key, field]) => (
-        <ConfigField
-          key={key}
-          fieldKey={key}
-          field={field}
-          onChange={onChange}
-        />
-      ))}
+      {Object.entries(config).map(([key, field]) => {
+        const isDivider = field.type === 'divider';
+        return (
+          <div key={key} className={isDivider ? 'col-span-full' : undefined}>
+            <ConfigField
+              fieldKey={key}
+              field={field}
+              onChange={onChange}
+            />
+          </div>
+        );
+      })}
     </div>
   );
 }

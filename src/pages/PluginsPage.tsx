@@ -23,7 +23,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Settings, Loader2, ChevronDown, Save, Server, LayoutGrid, Users, Shield, Filter, Zap, MessageSquare, Key, Command, Package, RotateCw, Download } from 'lucide-react';
+import { Settings, Loader2, ChevronDown, Save, Server, LayoutGrid, Users, Shield, Filter, Zap, MessageSquare, Key, Command, Package, RotateCw, Download, Sliders, Cog, Database, Globe, Bell, Lock, Palette, FileText, Layers, Wrench } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ConfigField, ConfigFieldDefinition, ConfigValue, ConfigFieldType } from '@/components/config';
 import { pluginsApi, gitUpdateApi, Plugin, ServiceConfig, SvItem, SvCommand, PluginConfigItem, PluginConfigGroup, PluginListItem, getPluginIconUrl } from '@/lib/api';
@@ -45,6 +45,84 @@ function PluginIcon({ pluginName, className = 'w-[18px] h-[18px]' }: { pluginNam
   );
 }
 
+// 根据配置名称关键词智能分配图标
+const configNameIconMap: Record<string, React.ReactNode> = {
+  '基本': <Settings className="w-4 h-4" />,
+  '基础': <Settings className="w-4 h-4" />,
+  'basic': <Settings className="w-4 h-4" />,
+  'general': <Settings className="w-4 h-4" />,
+  '通用': <Settings className="w-4 h-4" />,
+  '高级': <Sliders className="w-4 h-4" />,
+  'advanced': <Sliders className="w-4 h-4" />,
+  '安全': <Shield className="w-4 h-4" />,
+  'security': <Shield className="w-4 h-4" />,
+  '权限': <Lock className="w-4 h-4" />,
+  'permission': <Lock className="w-4 h-4" />,
+  '消息': <MessageSquare className="w-4 h-4" />,
+  'message': <MessageSquare className="w-4 h-4" />,
+  '用户': <Users className="w-4 h-4" />,
+  'user': <Users className="w-4 h-4" />,
+  '服务': <Server className="w-4 h-4" />,
+  'service': <Server className="w-4 h-4" />,
+  '数据库': <Database className="w-4 h-4" />,
+  'database': <Database className="w-4 h-4" />,
+  '网络': <Globe className="w-4 h-4" />,
+  'network': <Globe className="w-4 h-4" />,
+  '通知': <Bell className="w-4 h-4" />,
+  'notification': <Bell className="w-4 h-4" />,
+  '外观': <Palette className="w-4 h-4" />,
+  'theme': <Palette className="w-4 h-4" />,
+  '过滤': <Filter className="w-4 h-4" />,
+  'filter': <Filter className="w-4 h-4" />,
+  '命令': <Command className="w-4 h-4" />,
+  'command': <Command className="w-4 h-4" />,
+  '快捷': <Zap className="w-4 h-4" />,
+  'hotkey': <Zap className="w-4 h-4" />,
+  '定时': <Key className="w-4 h-4" />,
+  'schedule': <Key className="w-4 h-4" />,
+  '配置': <Cog className="w-4 h-4" />,
+  'config': <Cog className="w-4 h-4" />,
+  '文件': <FileText className="w-4 h-4" />,
+  'file': <FileText className="w-4 h-4" />,
+  '分层': <Layers className="w-4 h-4" />,
+  'layer': <Layers className="w-4 h-4" />,
+  '工具': <Wrench className="w-4 h-4" />,
+  'tool': <Wrench className="w-4 h-4" />,
+};
+
+// 用于无法匹配关键词时的循环图标列表
+const fallbackConfigIcons = [
+  <Settings className="w-4 h-4" />,
+  <Cog className="w-4 h-4" />,
+  <Sliders className="w-4 h-4" />,
+  <Wrench className="w-4 h-4" />,
+  <Layers className="w-4 h-4" />,
+  <Database className="w-4 h-4" />,
+];
+
+// 简单哈希函数，用于根据名称生成稳定的索引
+function simpleHash(str: string): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash |= 0; // 转为32位整数
+  }
+  return Math.abs(hash);
+}
+
+function getConfigIcon(name: string, index: number): React.ReactNode {
+  const lowerName = name.toLowerCase();
+  // 尝试关键词匹配
+  for (const [keyword, icon] of Object.entries(configNameIconMap)) {
+    if (lowerName.includes(keyword.toLowerCase())) {
+      return icon;
+    }
+  }
+  // 无法匹配时，使用基于名称哈希的循环图标
+  return fallbackConfigIcons[simpleHash(name) % fallbackConfigIcons.length];
+}
+
 // Convert API plugin to local plugin type
 const convertToPlugin = (plugin: Plugin): any => {
   const processConfig = (configData: Record<string, any>) => {
@@ -54,10 +132,49 @@ const convertToPlugin = (plugin: Plugin): any => {
       let type: ConfigFieldType = 'text';
       const rawType = configItem.type?.toLowerCase() || '';
 
-      if (rawType.includes('bool')) type = 'boolean';
+      // 注意：匹配顺序很重要，更具体的类型要先匹配
+      if (rawType === 'gsdivider') type = 'divider';
+      else if (rawType === 'gscolor') type = 'color';
+      else if (rawType === 'gsfileupload') type = 'fileupload';
+      else if (rawType === 'gsfilesupload') type = 'filesupload';
+      else if (rawType === 'gstimerange') type = 'timerange';
+      else if (rawType === 'gsdate') type = 'date';
+      else if (rawType === 'gstimer') type = 'time';
+      else if (rawType === 'gstime') type = 'time'; // 已废弃但仍支持
+      else if (rawType === 'gsbool') type = 'boolean';
+      else if (rawType === 'gsint') {
+        // gsint: 有 options 时用下拉选择，否则用数字输入
+        if (configItem.options) {
+          type = 'select';
+          configItem.options = configItem.options.map(String);
+          // value 也需要转为字符串
+          configItem.value = String(configItem.value ?? '');
+        } else {
+          type = 'number';
+        }
+      }
+      else if (rawType === 'gsfloat') type = 'number';
+      else if (rawType === 'gsliststr') type = configItem.options ? 'multiselect' : 'tags';
+      else if (rawType === 'gslist') {
+        type = 'tags';
+        // 整数列表转字符串列表
+        if (Array.isArray(configItem.value)) {
+          configItem.value = configItem.value.map(String);
+        }
+      }
+      else if (rawType === 'gsdict') {
+        type = 'text';
+        if (typeof configItem.value === 'object' && configItem.value !== null) {
+          configItem.value = JSON.stringify(configItem.value, null, 2);
+        }
+      }
+      else if (rawType === 'gsimage') type = 'image';
+      else if (rawType === 'gsstr') type = configItem.options ? 'select' : 'text';
+      // 兜底：模糊匹配旧格式
+      else if (rawType.includes('bool')) type = 'boolean';
       else if (rawType.includes('int')) type = 'number';
+      else if (rawType.includes('float')) type = 'number';
       else if (rawType.includes('list') || rawType.includes('array')) type = configItem.options ? 'multiselect' : 'tags';
-      else if (rawType.includes('gstimer')) type = 'time';
       else if (rawType.includes('time') || rawType.includes('date')) type = 'date';
       else if (rawType.includes('str') || rawType.includes('string')) type = configItem.options ? 'select' : 'text';
       else if (rawType.includes('dict') || rawType.includes('object')) {
@@ -78,6 +195,14 @@ const convertToPlugin = (plugin: Plugin): any => {
         required: false,
         disabled: false,
         rawType: configItem.type,
+        // 新增字段透传
+        secret: configItem.secret,
+        regex: configItem.regex,
+        min_value: configItem.min_value,
+        max_value: configItem.max_value,
+        upload_to: configItem.upload_to,
+        filename: configItem.filename,
+        suffix: configItem.suffix,
       } as unknown as ConfigFieldDefinition;
     }
     return converted;
@@ -330,24 +455,96 @@ export default function PluginsPage() {
     );
   }, []);
 
+  // 校验所有配置项的 regex
+  const validateAllRegex = (): boolean => {
+    if (!selectedPlugin) return true;
+    const configsToCheck: Array<{ key: string; field: ConfigFieldDefinition }> = [];
+    
+    if (selectedPlugin.config_groups && selectedPlugin.config_groups.length > 0) {
+      for (const group of selectedPlugin.config_groups) {
+        for (const [key, field] of Object.entries(group.config)) {
+          configsToCheck.push({ key, field: field as unknown as ConfigFieldDefinition });
+        }
+      }
+    } else if (selectedPlugin.config) {
+      for (const [key, field] of Object.entries(selectedPlugin.config)) {
+        configsToCheck.push({ key, field: field as unknown as ConfigFieldDefinition });
+      }
+    }
+    
+    for (const { key, field } of configsToCheck) {
+      if (field.regex && (field.type === 'text' || field.type === 'password')) {
+        try {
+          const re = new RegExp(field.regex);
+          const val = String(field.value || '');
+          if (!re.test(val)) {
+            toast.error(`配置项"${field.label}"(${key})不符合格式要求: ${field.regex}`);
+            return false;
+          }
+        } catch {
+          // 无效正则，跳过
+        }
+      }
+    }
+    return true;
+  };
+
+  // 保存前对值进行类型特定的转换
+  const convertValueForSave = (key: string, field: ConfigFieldDefinition): { skip: boolean; value?: unknown } => {
+    const rawType = (field as any).rawType?.toLowerCase?.() || '';
+    
+    // divider 类型不需要保存
+    if (field.type === 'divider' || rawType === 'gsdivider') {
+      return { skip: true };
+    }
+    
+    // gsdict: 将 JSON 字符串转回对象
+    if (rawType === 'gsdict') {
+      try {
+        return { skip: false, value: JSON.parse(field.value as string) };
+      } catch {
+        return { skip: false, value: field.value };
+      }
+    }
+    
+    // gslist: 将字符串数组转为整数数组
+    if (rawType === 'gslist' && Array.isArray(field.value)) {
+      return { skip: false, value: (field.value as string[]).map(Number).filter(n => !isNaN(n)) };
+    }
+    
+    return { skip: false, value: field.value };
+  };
+
   const handleSaveConfig = async () => {
     if (!selectedPlugin) return;
+    
+    // 先校验 regex
+    if (!validateAllRegex()) return;
+    
     setIsSavingConfig(true);
     try {
       let payload: any = {};
+      
+      const buildConfigPayload = (config: Record<string, any>) => {
+        const entries: [string, unknown][] = [];
+        for (const [k, v] of Object.entries(config)) {
+          const result = convertValueForSave(k, v as ConfigFieldDefinition);
+          if (!result.skip) {
+            entries.push([k, result.value]);
+          }
+        }
+        return Object.fromEntries(entries);
+      };
+      
       if (selectedPlugin.config_groups && selectedPlugin.config_groups.length > 0) {
         payload = {
           config_groups: selectedPlugin.config_groups.map(g => ({
             config_name: g.config_name,
-            config: Object.fromEntries(
-              Object.entries(g.config).map(([k, v]) => [k, v.value])
-            )
+            config: buildConfigPayload(g.config)
           }))
         };
       } else {
-        payload = Object.fromEntries(
-          Object.entries(selectedPlugin.config).map(([k, v]) => [k, v.value])
-        );
+        payload = buildConfigPayload(selectedPlugin.config);
       }
       await pluginsApi.updatePlugin(selectedPlugin.name, payload);
 
@@ -1085,9 +1282,10 @@ export default function PluginsPage() {
                 {selectedPlugin.config_names && selectedPlugin.config_names.length > 1 && (
                   <div className="mb-4">
                     <TabButtonGroup
-                      options={selectedPlugin.config_names.map((name: string) => ({
+                      options={selectedPlugin.config_names.map((name: string, index: number) => ({
                         value: name,
                         label: name,
+                        icon: getConfigIcon(name, index),
                       }))}
                       value={selectedConfigName || ''}
                       onValueChange={(val) => val && setSelectedConfigName(val)}
@@ -1109,14 +1307,20 @@ export default function PluginsPage() {
                       );
                     }
 
-                    return entries.map(([key, field]) => (
-                      <ConfigField
-                        key={`${selectedConfigName}_${key}`}
-                        fieldKey={key}
-                        field={field as unknown as ConfigFieldDefinition}
-                        onChange={(fieldKey, value) => updateConfigValue(selectedPlugin.id, fieldKey, value, selectedConfigName)}
-                      />
-                    ));
+                    return entries.map(([key, field]) => {
+                      const fieldDef = field as unknown as ConfigFieldDefinition;
+                      // divider 类型需要占据整行
+                      const isDivider = fieldDef.type === 'divider';
+                      return (
+                        <div key={`${selectedConfigName}_${key}`} className={isDivider ? 'col-span-full' : undefined}>
+                          <ConfigField
+                            fieldKey={key}
+                            field={fieldDef}
+                            onChange={(fieldKey, value) => updateConfigValue(selectedPlugin.id, fieldKey, value, selectedConfigName)}
+                          />
+                        </div>
+                      );
+                    });
                   })()}
                 </div>
 

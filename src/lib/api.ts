@@ -174,6 +174,10 @@ export interface PluginConfigItem {
   upload_to?: string;
   filename?: string;
   suffix?: string;
+  secret?: boolean;
+  regex?: string;
+  min_value?: number;
+  max_value?: number;
 }
 
 export interface PluginConfigGroup {
@@ -2954,6 +2958,20 @@ export const memeApi = {
     if (data.status !== 0) throw new Error(data.msg || 'Import failed');
     return data.data;
   },
+
+  // 清除所有已拒绝的表情包
+  purgeRejected: () =>
+    api.post<{ purged_count: number; failed: Array<{ meme_id: string; reason: string }> }>(
+      '/api/meme/purge_rejected',
+      {}
+    ),
+
+  // 批量重新打标（待手动处理状态）
+  batchRetagPending: () =>
+    api.post<{ retag_count: number; failed: Array<{ meme_id: string; reason: string }> }>(
+      '/api/meme/batch_retag_pending',
+      {}
+    ),
 };
 
 // ===================
@@ -2962,6 +2980,7 @@ export const memeApi = {
 
 export type SessionLogEntryType =
   | 'session_created'
+  | 'session_resumed'
   | 'session_ended'
   | 'system_prompt'
   | 'run_start'
@@ -2981,18 +3000,17 @@ export type SessionLogEntryType =
   | (string & {}); // 允许后端新增类型，前端不崩溃
 
 export interface LinkedAgent {
-  agent_type: string;
+  agent_type: string; // "sub_agent" | "peer_agent" | "parent_agent" | "proactive_generator"
   session_id: string;
   session_uuid: string;
   persona_name: string | null;
-  create_by: string;
+  create_by: string | null;
+  log_file: string | null;
   linked_at: number;
-  entry_count?: number;
-  type_counts?: Record<string, number>;
-  is_active?: boolean;
-  created_at?: number;
-  ended_at?: number | null;
-  source?: 'memory' | 'disk';
+  entry_count: number;
+  type_counts: Record<string, number>;
+  is_active: boolean | null;
+  source: 'memory' | 'disk' | 'unavailable';
 }
 
 export interface SessionLogEntry {
@@ -3002,22 +3020,23 @@ export interface SessionLogEntry {
 }
 
 export interface SessionLogSummary {
-  file_name: string;
   session_id: string;
   session_uuid: string;
   persona_name: string;
   create_by: string;
+  is_subagent: boolean;
   created_at: number;
   created_at_str: string;
   updated_at: number;
+  updated_at_str: string;
   ended_at: number | null;
   ended_at_str: string | null;
-  duration_seconds: number;
+  duration_seconds: number | null;
   entry_count: number;
-  is_active: boolean;
-  is_subagent?: boolean;
-  source: 'memory' | 'disk';
   type_counts: Record<string, number>;
+  is_active: boolean;
+  source: 'memory' | 'disk';
+  file_name: string | null;
   linked_agents: LinkedAgent[];
   linked_agent_count: number;
 }
@@ -3034,6 +3053,7 @@ export interface SessionLogDetail {
   session_uuid: string;
   persona_name: string;
   create_by: string;
+  is_subagent: boolean;
   created_at: number;
   updated_at: number;
   ended_at: number | null;
@@ -3042,6 +3062,7 @@ export interface SessionLogDetail {
   linked_agents: LinkedAgent[];
   linked_agent_count: number;
   source: 'memory' | 'disk';
+  is_active: boolean;
 }
 
 export interface SessionLogStatsOverview {
@@ -3051,7 +3072,33 @@ export interface SessionLogStatsOverview {
   memory_count: number;
   disk_count: number;
   create_by_distribution: Record<string, number>;
+  linked_agent_total: number;
+  linked_agent_by_type: Record<string, number>;
   log_path: string;
+}
+
+export interface SessionLogCategory {
+  create_by: string;
+  label: string;
+  description: string;
+  group: string;
+  count: number;
+  active_count: number;
+  subagent_count: number;
+}
+
+export interface SessionLogCategoriesResponse {
+  categories: SessionLogCategory[];
+  groups: Record<string, number>;
+  total: number;
+}
+
+export interface LinkedAgentsResponse {
+  session_id: string;
+  session_uuid: string | null;
+  linked_agents: LinkedAgent[];
+  total: number;
+  by_type: Record<string, number>;
 }
 
 export const aiSessionLogsApi = {
@@ -3079,17 +3126,33 @@ export const aiSessionLogsApi = {
     return api.get<SessionLogListResponse>(`/api/ai/session_logs${queryStr ? `?${queryStr}` : ''}`);
   },
 
-  // 获取日志详情（按 session_id + session_uuid 精确定位）
-  getLogDetail: (sessionId: string, sessionUuid: string) =>
-    api.get<SessionLogDetail>(`/api/ai/session_logs/${encodeURIComponent(sessionId)}/${encodeURIComponent(sessionUuid)}/detail`),
+  // 获取日志详情（推荐：查询参数版，避免路径参数中特殊字符导致的路由匹配问题）
+  getLogDetail: (sessionId: string, sessionUuid?: string) => {
+    const query = new URLSearchParams();
+    query.set('session_id', sessionId);
+    if (sessionUuid) query.set('session_uuid', sessionUuid);
+    return api.get<SessionLogDetail>(`/api/ai/session_logs/detail?${query.toString()}`);
+  },
 
   // 按文件名读取磁盘日志（调试用）
   getFileLog: (fileName: string) =>
     api.get<SessionLogDetail>(`/api/ai/session_logs/file/${encodeURIComponent(fileName)}`),
 
-// 获取日志统计概览
+  // 获取会话关联 Agent 列表
+  getLinkedAgents: (sessionId: string, agentType?: string) => {
+    const query = new URLSearchParams();
+    if (agentType) query.set('agent_type', agentType);
+    const queryStr = query.toString();
+    return api.get<LinkedAgentsResponse>(`/api/ai/session_logs/${encodeURIComponent(sessionId)}/linked_agents${queryStr ? `?${queryStr}` : ''}`);
+  },
+
+  // 获取日志统计概览
   getStatsOverview: () =>
     api.get<SessionLogStatsOverview>('/api/ai/session_logs/stats/overview'),
+
+  // 获取日志分类（按会话来源聚合）
+  getCategories: () =>
+    api.get<SessionLogCategoriesResponse>('/api/ai/session_logs/categories'),
 };
 
 // ===================

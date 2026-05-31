@@ -6,7 +6,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { ConfigField, ConfigValue } from './ConfigField';
+import { ConfigField, ConfigValue, ConfigFieldType, ConfigFieldDefinition } from './ConfigField';
 import { PluginConfigItem } from '@/lib/api';
 
 // ============================================================================
@@ -16,12 +16,50 @@ import { PluginConfigItem } from '@/lib/api';
 function mapBackendTypeToFieldType(item: PluginConfigItem): string {
   const rawType = (item.type || '').toLowerCase();
 
+  // 精确匹配（优先）
+  if (rawType === 'gsdivider') return 'divider';
+  if (rawType === 'gscolor') return 'color';
+  if (rawType === 'gsfileupload') return 'fileupload';
+  if (rawType === 'gsfilesupload') return 'filesupload';
+  if (rawType === 'gstimerange') return 'timerange';
+  if (rawType === 'gsdate') return 'date';
+  if (rawType === 'gstimer') return 'time';
+  if (rawType === 'gstime') return 'time'; // 已废弃
+  if (rawType === 'gsbool') return 'boolean';
+  if (rawType === 'gsint') {
+    // gsint: 有 options 时用下拉选择
+    if (item.options && item.options.length > 0) {
+      item.options = item.options.map(String);
+      item.value = String(item.value ?? '');
+      return 'select';
+    }
+    return 'number';
+  }
+  if (rawType === 'gsfloat') return 'number';
+  if (rawType === 'gsliststr') return item.options ? 'multiselect' : 'tags';
+  if (rawType === 'gslist') {
+    // 整数列表转字符串列表
+    if (Array.isArray(item.value)) {
+      item.value = item.value.map(String);
+    }
+    return 'tags';
+  }
+  if (rawType === 'gsdict') {
+    // 字典转 JSON 字符串
+    if (typeof item.value === 'object' && item.value !== null) {
+      item.value = JSON.stringify(item.value, null, 2);
+    }
+    return 'text';
+  }
+  if (rawType === 'gsimage') return 'image';
+  if (rawType === 'gsstr') return item.options ? 'select' : 'text';
+
+  // 兜底：模糊匹配
   if (rawType.includes('bool')) return 'boolean';
   if (rawType.includes('int') || rawType.includes('float')) return 'number';
   if (rawType.includes('list') || rawType.includes('array')) {
     return item.options ? 'multiselect' : 'tags';
   }
-  if (rawType.includes('gstimer')) return 'time';
   if (rawType.includes('time') || rawType.includes('date')) return 'date';
   if (rawType.includes('str') || rawType.includes('string')) {
     return item.options ? 'select' : 'text';
@@ -50,6 +88,40 @@ function getFieldIcon(fieldKey: string) {
     return <Globe className="w-3 h-3" />;
   }
   return <Cog className="w-3 h-3" />;
+}
+
+export function pluginConfigItemToFieldDef(fieldKey: string, item: PluginConfigItem): ConfigFieldDefinition {
+  const fieldType = mapBackendTypeToFieldType(item);
+
+  let options: string[] | undefined;
+  if (fieldType === 'select' && item.options) {
+    options = item.options.map(String);
+  }
+
+  const value: ConfigValue = fieldType === 'tags'
+    ? (item.value as string[]) || []
+    : fieldType === 'number'
+    ? (item.value as number) || 0
+    : fieldType === 'boolean'
+    ? (item.value as boolean) ?? false
+    : String(item.value ?? '');
+
+  return {
+    type: fieldType as ConfigFieldType,
+    label: item.title || fieldKey,
+    value,
+    options,
+    placeholder: '',
+    description: item.desc || '',
+    secret: item.secret,
+    regex: item.regex,
+    min_value: item.min_value,
+    max_value: item.max_value,
+    upload_to: item.upload_to,
+    filename: item.filename,
+    suffix: item.suffix,
+    rawType: item.type,
+  };
 }
 
 // ============================================================================
@@ -92,6 +164,23 @@ export function DynamicConfigPanel({
   const renderField = (fieldKey: string, item: PluginConfigItem) => {
     const fieldType = mapBackendTypeToFieldType(item);
     const icon = getFieldIcon(fieldKey);
+
+    // divider 类型直接渲染，不需要 Label
+    if (fieldType === 'divider') {
+      return (
+        <ConfigField
+          key={fieldKey}
+          fieldKey={fieldKey}
+          field={{
+            type: 'divider',
+            label: item.title || fieldKey,
+            value: (typeof item.value === 'string' && item.value) ? item.value : null,
+            description: item.desc || '',
+          }}
+          onChange={(k, v) => onChange(configId, k, v)}
+        />
+      );
+    }
 
     // 构建 options（select 类型需要字符串数组）
     let options: string[] | undefined;
@@ -138,6 +227,14 @@ export function DynamicConfigPanel({
             options,
             placeholder: '',
             description: item.desc || '',
+            // 透传新字段
+            secret: item.secret,
+            regex: item.regex,
+            min_value: item.min_value,
+            max_value: item.max_value,
+            upload_to: item.upload_to,
+            filename: item.filename,
+            suffix: item.suffix,
           }}
           showLabel={false}
           onChange={(k, v) => onChange(configId, k, v)}

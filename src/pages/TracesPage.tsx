@@ -28,6 +28,14 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { ConsolePanel, LogEntry } from "@/components/ConsolePanel";
 
+function formatStartTime(seconds: number): string {
+  const totalSeconds = Math.floor(seconds % 86400);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const secs = totalSeconds % 60;
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+}
+
 function parseTraceTimestamp(ts: string, dateStr: string): Date {
   // ts: "05-28 10:01:30", dateStr: "2026-05-28"
   try {
@@ -99,6 +107,10 @@ export default function TracesPage() {
   useEffect(() => {
     fetchTraces();
   }, [fetchTraces]);
+
+  const sortedTraces = useMemo(() => {
+    return [...traces].sort((a, b) => b.start_time - a.start_time);
+  }, [traces]);
 
   const handleExpandTrace = async (trace: TraceItem) => {
     if (expandedTraceId === trace.trace_id) {
@@ -174,22 +186,20 @@ export default function TracesPage() {
 
   const isSlow = (ms: number | null) => ms !== null && ms > 7000;
 
-  const sourceLabel = (trace: TraceItem) => {
+  const sourceBadge = (trace: TraceItem) => {
     if (trace.group_id) {
       return (
-        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-          <Users className="w-3 h-3" />
-          <span>{t("traces.group") || "群聊"}</span>
-          <span className="font-mono text-[10px] opacity-70">{trace.user_id}</span>
-        </span>
+        <Badge variant="outline" className="text-xs bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-950 dark:text-blue-400 dark:border-blue-900">
+          <Users className="w-3 h-3 mr-1" />
+          {t("traces.group") || "群聊"}
+        </Badge>
       );
     }
     return (
-      <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-        <MessageCircle className="w-3 h-3" />
-        <span>{t("traces.private") || "私聊"}</span>
-        <span className="font-mono text-[10px] opacity-70">{trace.user_id}</span>
-      </span>
+      <Badge variant="outline" className="text-xs bg-purple-50 text-purple-600 border-purple-200 dark:bg-purple-950 dark:text-purple-400 dark:border-purple-900">
+        <MessageCircle className="w-3 h-3 mr-1" />
+        {t("traces.private") || "私聊"}
+      </Badge>
     );
   };
 
@@ -301,17 +311,20 @@ export default function TracesPage() {
           ) : (
             <div className="divide-y divide-border/30">
               {/* 表头 */}
-              <div className="hidden md:grid grid-cols-[92px_1fr_120px_90px_90px_80px_100px_44px] gap-3 px-4 py-2 text-xs text-muted-foreground bg-muted/30 border-b border-border/30">
+              <div className="hidden md:grid grid-cols-[92px_1fr_70px_110px_160px_80px_70px_56px_56px_80px_44px] gap-3 px-4 py-2 text-xs text-muted-foreground bg-muted/30 border-b border-border/30">
                 <div className="font-medium">{t("traces.status") || "状态"}</div>
                 <div className="font-medium">{t("traces.command") || "命令"}</div>
                 <div className="font-medium">{t("traces.source") || "来源"}</div>
+                <div className="font-medium hidden lg:flex">{t("traces.triggerUser") || "触发者"}</div>
+                <div className="font-medium hidden xl:flex">{t("traces.triggerGroup") || "触发群"}</div>
+                <div className="font-medium">{t("traces.triggerTime") || "触发时间"}</div>
                 <div className="font-medium">{t("traces.duration") || "耗时"}</div>
-                <div className="font-medium">{t("traces.logs") || "日志数"}</div>
-                <div className="font-medium">{t("traces.error") || "错误"}</div>
-                <div className="font-medium">{t("traces.traceId") || "ID"}</div>
+                <div className="font-medium hidden lg:flex">{t("traces.logs") || "日志数"}</div>
+                <div className="font-medium hidden xl:flex">{t("traces.error") || "错误"}</div>
+                <div className="font-medium hidden lg:flex">{t("traces.traceId") || "ID"}</div>
                 <div />
               </div>
-              {traces.map((trace) => {
+              {sortedTraces.map((trace) => {
                 const isExpanded = expandedTraceId === trace.trace_id;
                 return (
                   <div key={trace.trace_id} className="transition-colors">
@@ -319,7 +332,7 @@ export default function TracesPage() {
                     <button
                       type="button"
                       onClick={() => handleExpandTrace(trace)}
-                      className="hidden md:grid w-full text-left grid-cols-[92px_1fr_120px_90px_90px_80px_100px_44px] items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors"
+                      className="hidden md:grid w-full text-left grid-cols-[92px_1fr_70px_110px_160px_80px_70px_56px_56px_80px_44px] items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors"
                     >
                       {/* 状态 + 展开 */}
                       <div className="flex items-center gap-1">
@@ -337,8 +350,23 @@ export default function TracesPage() {
                       </div>
 
                       {/* 来源 */}
-                      <div className="truncate">
-                        {sourceLabel(trace)}
+                      <div>
+                        {sourceBadge(trace)}
+                      </div>
+
+                      {/* 触发者 */}
+                      <div className="text-xs text-muted-foreground font-mono truncate hidden lg:block">
+                        {trace.user_id}
+                      </div>
+
+                      {/* 触发群 */}
+                      <div className="text-xs text-muted-foreground font-mono truncate hidden xl:block">
+                        {trace.group_id || "—"}
+                      </div>
+
+                      {/* 触发时间 */}
+                      <div className="text-xs text-muted-foreground">
+                        {formatStartTime(trace.start_time)}
                       </div>
 
                       {/* 耗时 */}
@@ -352,12 +380,12 @@ export default function TracesPage() {
                       </div>
 
                       {/* 日志数 */}
-                      <div className="text-xs text-muted-foreground">
+                      <div className="text-xs text-muted-foreground hidden lg:block">
                         {trace.log_count}
                       </div>
 
                       {/* 错误数 */}
-                      <div>
+                      <div className="hidden xl:block">
                         {trace.error_count ? (
                           <Badge variant="outline" className="text-xs bg-red-50 text-red-600 border-red-200 dark:bg-red-950 dark:text-red-400 dark:border-red-900">
                             {trace.error_count}
@@ -368,7 +396,7 @@ export default function TracesPage() {
                       </div>
 
                       {/* trace_id */}
-                      <div className="font-mono text-xs text-muted-foreground truncate">
+                      <div className="font-mono text-xs text-muted-foreground truncate hidden lg:block">
                         {trace.trace_id.slice(0, 8)}
                       </div>
 
@@ -407,9 +435,12 @@ export default function TracesPage() {
                         </span>
                       </div>
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground pl-6">
+                        {sourceBadge(trace)}
+                        <span className="font-mono">{trace.user_id}</span>
+                        {trace.group_id && <span className="font-mono">{trace.group_id}</span>}
                         <span className="inline-flex items-center gap-1">
-                          {trace.group_id ? <Users className="w-3 h-3" /> : <MessageCircle className="w-3 h-3" />}
-                          {trace.group_id ? (t("traces.group") || "群聊") : (t("traces.private") || "私聊")} {trace.user_id}
+                          <Clock className="w-3 h-3" />
+                          {formatStartTime(trace.start_time)}
                         </span>
                         <span className={cn(isSlow(trace.duration_ms) && "text-red-600 dark:text-red-400 font-semibold")}>
                           {trace.duration_ms !== null ? `${trace.duration_ms}ms` : "—"}
