@@ -1837,8 +1837,8 @@ export default function AIConfigPage() {
                                 field={{
                                   type: (Array.isArray(field.options) && field.options.length > 0 ? 'select' : 'text') as ConfigFieldType,
                                   label: field.title || key,
-                                  value: field.data as string,
-                                  options: field.options || [],
+                                  value: field.data == null ? '' : String(field.data),
+                                  options: (field.options || []).map((o) => String(o)),
                                   placeholder: '',
                                   description: field.desc || '',
                                 }}
@@ -1877,11 +1877,11 @@ export default function AIConfigPage() {
                                 />
                               ) : (
                                 <InputWithDropdown
-                                  value={(field.data as string) || ''}
+                                  value={field.data == null ? '' : String(field.data)}
                                   onChange={(val) => updateEmbeddingOpenaiField(key, val)}
-                                  options={field.options || []}
+                                  options={(field.options || []).map((o) => String(o))}
                                   placeholder={`选择或输入${field.title || key}`}
-                                  inputPlaceholder={field.options?.[0] || ''}
+                                  inputPlaceholder={field.options?.[0] != null ? String(field.options[0]) : ''}
                                 />
                               )}
                             </div>

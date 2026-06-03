@@ -152,10 +152,15 @@ export function ConfigField({
   // 图片删除确认对话框状态
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
+  // 防御性转为字符串，避免后端返回非 string 类型时 .includes('.') 崩溃
+  const labelText = field.label == null ? '' : String(field.label);
+  const placeholderText = field.placeholder == null ? '' : String(field.placeholder);
+  const descriptionText = field.description == null ? '' : String(field.description);
+
   // Translate label if it's an i18n key (contains a dot), otherwise use as-is
-  const displayLabel = field.label.includes('.') ? t(field.label) : field.label;
-  const displayPlaceholder = field.placeholder?.includes('.') ? t(field.placeholder) : field.placeholder;
-  const displayDescription = field.description?.includes('.') ? t(field.description) : field.description;
+  const displayLabel = labelText.includes('.') ? t(labelText) : labelText;
+  const displayPlaceholder = placeholderText ? (placeholderText.includes('.') ? t(placeholderText) : placeholderText) : placeholderText;
+  const displayDescription = descriptionText ? (descriptionText.includes('.') ? t(descriptionText) : descriptionText) : descriptionText;
 
   // regex 校验
   const validateRegex = (val: string) => {

@@ -13,6 +13,20 @@ import { PluginConfigItem } from '@/lib/api';
 // 类型映射：后端 type → ConfigField type
 // ============================================================================
 
+// 归一化选项：所有元素转为字符串
+function normalizeOptions(options: unknown): string[] {
+  if (!Array.isArray(options)) return [];
+  return options.map((o) => (o == null ? '' : String(o)));
+}
+
+// 返回归一化后的 item（不修改原对象），避免下游 .trim()/.toLowerCase() 崩溃
+function normalizeItem(item: PluginConfigItem): PluginConfigItem {
+  return {
+    ...item,
+    options: normalizeOptions(item.options),
+  };
+}
+
 function mapBackendTypeToFieldType(item: PluginConfigItem): string {
   const rawType = (item.type || '').toLowerCase();
 
@@ -28,29 +42,13 @@ function mapBackendTypeToFieldType(item: PluginConfigItem): string {
   if (rawType === 'gsbool') return 'boolean';
   if (rawType === 'gsint') {
     // gsint: 有 options 时用下拉选择
-    if (item.options && item.options.length > 0) {
-      item.options = item.options.map(String);
-      item.value = String(item.value ?? '');
-      return 'select';
-    }
+    if (item.options && item.options.length > 0) return 'select';
     return 'number';
   }
   if (rawType === 'gsfloat') return 'number';
   if (rawType === 'gsliststr') return item.options ? 'multiselect' : 'tags';
-  if (rawType === 'gslist') {
-    // 整数列表转字符串列表
-    if (Array.isArray(item.value)) {
-      item.value = item.value.map(String);
-    }
-    return 'tags';
-  }
-  if (rawType === 'gsdict') {
-    // 字典转 JSON 字符串
-    if (typeof item.value === 'object' && item.value !== null) {
-      item.value = JSON.stringify(item.value, null, 2);
-    }
-    return 'text';
-  }
+  if (rawType === 'gslist') return 'tags';
+  if (rawType === 'gsdict') return 'text';
   if (rawType === 'gsimage') return 'image';
   if (rawType === 'gsstr') return item.options ? 'select' : 'text';
 
@@ -90,29 +88,61 @@ function getFieldIcon(fieldKey: string) {
   return <Cog className="w-3 h-3" />;
 }
 
-export function pluginConfigItemToFieldDef(fieldKey: string, item: PluginConfigItem): ConfigFieldDefinition {
-  const fieldType = mapBackendTypeToFieldType(item);
-
-  let options: string[] | undefined;
-  if (fieldType === 'select' && item.options) {
-    options = item.options.map(String);
+// 将后端返回的 item.value 转为适合对应 fieldType 的值
+function coerceValue(fieldType: string, rawType: string, rawValue: unknown): ConfigValue {
+  // gsdict: 字典序列化为 JSON 字符串
+  if (rawType === 'gsdict') {
+    if (typeof rawValue === 'string') return rawValue;
+    if (rawValue && typeof rawValue === 'object') {
+      try {
+        return JSON.stringify(rawValue, null, 2);
+      } catch {
+        return '';
+      }
+    }
+    return rawValue == null ? '' : String(rawValue);
   }
 
-  const value: ConfigValue = fieldType === 'tags'
-    ? (item.value as string[]) || []
-    : fieldType === 'number'
-    ? (item.value as number) || 0
-    : fieldType === 'boolean'
-    ? (item.value as boolean) ?? false
-    : String(item.value ?? '');
+  // gslist: 整数列表转为字符串列表
+  if (rawType === 'gslist') {
+    if (Array.isArray(rawValue)) return rawValue.map((v) => (v == null ? '' : String(v)));
+    return [];
+  }
+
+  if (fieldType === 'tags') {
+    if (Array.isArray(rawValue)) return rawValue.map((v) => (v == null ? '' : String(v)));
+    return [];
+  }
+  if (fieldType === 'number') {
+    if (typeof rawValue === 'number') return rawValue;
+    if (typeof rawValue === 'string' && rawValue.trim() !== '' && !isNaN(Number(rawValue))) {
+      return Number(rawValue);
+    }
+    return 0;
+  }
+  if (fieldType === 'boolean') return Boolean(rawValue);
+  return rawValue == null ? '' : String(rawValue);
+}
+
+export function pluginConfigItemToFieldDef(fieldKey: string, item: PluginConfigItem): ConfigFieldDefinition {
+  const fieldType = mapBackendTypeToFieldType(item);
+  const rawType = (item.type || '').toLowerCase();
+
+  // options 统一为字符串数组
+  const options: string[] | undefined =
+    fieldType === 'select' || fieldType === 'multiselect'
+      ? normalizeOptions(item.options)
+      : undefined;
+
+  const value = coerceValue(fieldType, rawType, item.value);
 
   return {
     type: fieldType as ConfigFieldType,
-    label: item.title || fieldKey,
+    label: item.title == null ? fieldKey : String(item.title),
     value,
     options,
     placeholder: '',
-    description: item.desc || '',
+    description: item.desc == null ? '' : String(item.desc),
     secret: item.secret,
     regex: item.regex,
     min_value: item.min_value,
@@ -163,36 +193,45 @@ export function DynamicConfigPanel({
 
   const renderField = (fieldKey: string, item: PluginConfigItem) => {
     const fieldType = mapBackendTypeToFieldType(item);
+    const rawType = (item.type || '').toLowerCase();
     const icon = getFieldIcon(fieldKey);
+    const safeTitle = item.title == null ? fieldKey : String(item.title);
+    const safeDesc = item.desc == null ? '' : String(item.desc);
 
     // divider 类型直接渲染，不需要 Label
     if (fieldType === 'divider') {
+      const dividerValue =
+        typeof item.value === 'string' && item.value
+          ? item.value
+          : null;
       return (
         <ConfigField
           key={fieldKey}
           fieldKey={fieldKey}
           field={{
             type: 'divider',
-            label: item.title || fieldKey,
-            value: (typeof item.value === 'string' && item.value) ? item.value : null,
-            description: item.desc || '',
+            label: safeTitle,
+            value: dividerValue,
+            description: safeDesc,
           }}
           onChange={(k, v) => onChange(configId, k, v)}
         />
       );
     }
 
-    // 构建 options（select 类型需要字符串数组）
-    let options: string[] | undefined;
-    if (fieldType === 'select' && item.options) {
-      options = item.options.map(String);
-    }
+    // 构建 options（select / multiselect 类型需要字符串数组）
+    const options: string[] | undefined =
+      fieldType === 'select' || fieldType === 'multiselect'
+        ? normalizeOptions(item.options)
+        : undefined;
+
+    const value = coerceValue(fieldType, rawType, item.value);
 
     return (
       <div key={fieldKey} className="space-y-2">
         <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
           {icon}
-          {item.title || fieldKey}
+          {safeTitle}
           {item.desc && (
             <TooltipProvider delayDuration={100}>
               <Tooltip>
@@ -206,7 +245,7 @@ export function DynamicConfigPanel({
                   </button>
                 </TooltipTrigger>
                 <TooltipContent side="top" className="max-w-xs">
-                  <p>{item.desc}</p>
+                  <p>{safeDesc}</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -217,16 +256,10 @@ export function DynamicConfigPanel({
           field={{
             type: fieldType as any,
             label: fieldKey,
-            value: fieldType === 'tags'
-              ? (item.value as string[]) || []
-              : fieldType === 'number'
-              ? (item.value as number) || 0
-              : fieldType === 'boolean'
-              ? (item.value as boolean) ?? false
-              : String(item.value ?? ''),
+            value,
             options,
             placeholder: '',
-            description: item.desc || '',
+            description: safeDesc,
             // 透传新字段
             secret: item.secret,
             regex: item.regex,
@@ -235,6 +268,7 @@ export function DynamicConfigPanel({
             upload_to: item.upload_to,
             filename: item.filename,
             suffix: item.suffix,
+            rawType: item.type,
           }}
           showLabel={false}
           onChange={(k, v) => onChange(configId, k, v)}

@@ -12,12 +12,12 @@ import { useLanguage } from '@/contexts/LanguageContext';
 // ============================================================================
 
 export interface InputWithDropdownProps {
-  /** 当前值 */
-  value: string;
+  /** 当前值（接受任意类型，内部统一转为字符串以保证健壮性） */
+  value: unknown;
   /** 值变化回调 */
   onChange: (value: string) => void;
-  /** 下拉选项列表 */
-  options: string[];
+  /** 下拉选项列表（接受任意类型元素，内部统一转为字符串） */
+  options: ReadonlyArray<unknown>;
   /** 占位文本 */
   placeholder?: string;
   /** 输入框占位文本 */
@@ -66,6 +66,14 @@ export function InputWithDropdown({
   const resolvedCopiedValueLabel = copiedValueLabel ?? t('common.copiedCurrentValue');
   const resolvedCopyEmptyLabel = copyEmptyLabel ?? t('common.copyEmptyValue');
 
+  // 统一将 value 安全转为字符串，避免外部传入 number/boolean/object 等触发 .trim() 崩溃
+  const safeValue = useMemo(() => (value == null ? '' : String(value)), [value]);
+  // 统一将 options 全部转为字符串数组，避免 number 等元素触发 .toLowerCase() 崩溃
+  const safeOptions = useMemo(
+    () => (options || []).map((o) => (o == null ? '' : String(o))),
+    [options],
+  );
+
   // Popover 打开时重置搜索值
   const [open, setOpen] = useState(false);
   useEffect(() => {
@@ -85,10 +93,10 @@ export function InputWithDropdown({
 
   // 根据搜索值筛选列表
   const filteredOptions = useMemo(() => {
-    if (!searchValue.trim()) return options;
+    if (!searchValue.trim()) return safeOptions;
     const lowerSearch = searchValue.toLowerCase();
-    return options.filter(option => option.toLowerCase().includes(lowerSearch));
-  }, [searchValue, options]);
+    return safeOptions.filter((option) => option.toLowerCase().includes(lowerSearch));
+  }, [searchValue, safeOptions]);
 
   const handleOpenAutoFocus = useCallback((e: Event) => {
     e.preventDefault();
@@ -120,7 +128,7 @@ export function InputWithDropdown({
   }, []);
 
   const handleCopyValue = useCallback(async () => {
-    const text = value.trim();
+    const text = safeValue.trim();
     if (!text) return;
 
     await copyTextToClipboard(text);
@@ -129,7 +137,7 @@ export function InputWithDropdown({
       window.clearTimeout(copyTimerRef.current);
     }
     copyTimerRef.current = window.setTimeout(() => setIsCopied(false), 1500);
-  }, [copyTextToClipboard, value]);
+  }, [copyTextToClipboard, safeValue]);
 
   const handleCommitInput = useCallback(() => {
     const nextValue = searchValue.trim();
@@ -159,7 +167,7 @@ export function InputWithDropdown({
           )}
         >
           <span className="truncate">
-            {value || <span className="text-muted-foreground">{placeholder}</span>}
+            {safeValue || <span className="text-muted-foreground">{placeholder}</span>}
           </span>
           <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
         </Button>
@@ -177,12 +185,12 @@ export function InputWithDropdown({
               variant="ghost"
               size="sm"
               className="h-8 w-full justify-start gap-2 px-2 text-xs"
-              disabled={!value.trim()}
+              disabled={!safeValue.trim()}
               onClick={handleCopyValue}
             >
               {isCopied ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
               <span className="truncate">
-                {value.trim() ? (isCopied ? resolvedCopiedValueLabel : resolvedCopyValueLabel) : resolvedCopyEmptyLabel}
+                {safeValue.trim() ? (isCopied ? resolvedCopiedValueLabel : resolvedCopyValueLabel) : resolvedCopyEmptyLabel}
               </span>
             </Button>
           )}
@@ -205,7 +213,7 @@ export function InputWithDropdown({
                 key={option}
                 className={cn(
                   'px-3 py-2 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground',
-                  value === option && 'bg-accent'
+                  safeValue === option && 'bg-accent'
                 )}
                 onClick={() => {
                   onChange(option);
