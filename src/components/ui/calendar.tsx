@@ -32,7 +32,7 @@ const defaultClassNames = {
   day_hidden: "invisible",
 };
 
-const Calendar = React.memo(function Calendar({ className, classNames, showOutsideDays = true, ...props }: CalendarProps) {
+const Calendar = React.memo(function Calendar({ className, classNames, showOutsideDays = true, components: userComponents, ...props }: CalendarProps) {
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
@@ -44,7 +44,8 @@ const Calendar = React.memo(function Calendar({ className, classNames, showOutsi
       components={{
         IconLeft: () => <ChevronLeft className="h-4 w-4" />,
         IconRight: () => <ChevronRight className="h-4 w-4" />,
-      }}
+        ...userComponents,
+      } as any}
       {...props}
     />
   );

@@ -8,6 +8,29 @@
   "saveFailed": "Error saving AI configuration",
   "saveButton": "Save Configuration",
   "checkConfig": "Check Configuration",
+  "manageConfig": "Manage Configs",
+  "manageConfigDesc": "Manage AI model configuration files used by high / low level tasks",
+  "taskConfig": {
+    "title": "Task Configuration",
+    "description": "Select AI model configs for high and low level tasks (sharing one config pool)",
+    "notSelectedWarning": "No config selected. This task cannot use AI — please select a configuration",
+    "emptyHint": "No config files yet. Click \"New Config\" to create one, then assign it to tasks"
+  },
+  "searchImage": {
+    "title": "Web Search / Image Understanding",
+    "description": "Configure web search and image understanding capabilities"
+  },
+  "vectorDb": {
+    "title": "Vector Database Service",
+    "description": "Configure Qdrant deployment, embedding and reranking models",
+    "switchWarning": "Switching the Qdrant deployment or embedding provider requires a service restart. Please back up the data/ai_core folder first; migrating historical data may take a long time.",
+    "qdrantProvider": "Qdrant Deployment",
+    "qdrantProviderDesc": "local uses an embedded Qdrant; remote connects to a remote Qdrant service (URL / API Key required)",
+    "qdrantLocal": "Local",
+    "qdrantRemote": "Remote",
+    "qdrantRecommendTip": "It is recommended to use a remote Qdrant service for better performance and stability. You can download Qdrant from GitHub Releases and run it directly, or use the Qdrant Cloud hosted service.",
+    "rerankWarning": "The reranking model service is heavy and increases latency and resource usage — enable it with caution."
+  },
   "wizard": {
     "title": "AI Configuration Status",
     "description": "Check your AI feature configuration status",
@@ -70,8 +93,8 @@
     "rerankService": "Rerank Model Service",
     "rerankServiceDesc": "Configure Rerank reranking model",
     "rerankServiceDisabled": "Enable Rerank to improve RAG retrieval quality",
-    "embeddingSaveWarningTitle": "Modify Embedding Model Configuration",
-    "embeddingSaveWarningDesc": "Modifying the embedding model service will require most embedding data to be rebuilt. It is recommended to back up the data/ai_core folder first, then restart to take effect.",
+    "embeddingSaveWarningTitle": "Modify Vector Database Configuration",
+    "embeddingSaveWarningDesc": "Modifying the embedding model service / Qdrant deployment will require historical vector data to be migrated and rebuilt. It is recommended to back up the data/ai_core folder first; a service restart is required after saving, and migration may take a long time.",
     "webSearchService": "Web Search Service",
     "webSearchServiceDesc": "Configure web search capability",
     "tavilyConfig": "Tavily Configuration",
@@ -174,7 +197,8 @@
     "title": "Image Understanding",
     "description": "Configure image understanding service provider",
     "provider": "Image Understanding Provider",
-    "providerDesc": "When LLM model doesn't support images, this service converts images to text"
+    "providerDesc": "When LLM model doesn't support images, this service converts images to text",
+    "modelNoImageWarning": "The selected high / low level task model does not support images. Configure an image understanding service, otherwise the AI cannot understand images."
   },
   "voiceRecognition": {
     "title": "Voice Recognition",

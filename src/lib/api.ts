@@ -1267,6 +1267,9 @@ export const traceApi = {
     if (params.date) query.set('date', params.date);
     return api.get<TraceDetail>(`/api/traces/${encodeURIComponent(traceId)}?${query.toString()}`);
   },
+
+  getDailyCounts: (days: number = 60) =>
+    api.get<Array<{ date: string; count: number }>>(`/api/traces/daily_counts?days=${days}`),
 };
 
 // ===================

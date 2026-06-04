@@ -620,6 +620,12 @@ All colors MUST be HSL.
   fill: hsl(var(--primary)) !important;
 }
 
+/* Sidebar alert icon - must always be red, override button inherit rule */
+[data-icon-color] button .lucide[data-alert-icon],
+[data-icon-color] button [data-alert-icon] .lucide {
+  color: #ef4444 !important;
+}
+
 /* Switch component theme styling */
 button[role="switch"][data-state="checked"] {
   background-color: hsl(var(--primary)) !important;

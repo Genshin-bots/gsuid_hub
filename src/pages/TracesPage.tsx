@@ -29,6 +29,11 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { ConsolePanel, LogEntry } from "@/components/ConsolePanel";
 
 function formatStartTime(seconds: number): string {
+  // New backend format: Unix timestamp in seconds
+  if (seconds > 1_000_000_000) {
+    return format(new Date(seconds * 1000), "HH:mm:ss");
+  }
+  // Legacy format: elapsed/perf_counter seconds (keep old behavior for compatibility)
   const totalSeconds = Math.floor(seconds % 86400);
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
@@ -68,6 +73,7 @@ function traceLogToLogEntry(log: TraceLog, index: number, dateStr: string): LogE
   };
 }
 
+
 export default function TracesPage() {
   const { t } = useLanguage();
   const { style } = useTheme();
@@ -85,11 +91,44 @@ export default function TracesPage() {
     duration_ms: number | null;
     log_count: number;
   } | null>(null);
+  const [dailyCounts, setDailyCounts] = useState<Record<string, number>>({});
+  const [countsLoading, setCountsLoading] = useState(false);
 
   const dateStr = useMemo(
-    () => selectedDate.toISOString().split("T")[0],
+    () => format(selectedDate, "yyyy-MM-dd"),
     [selectedDate]
   );
+
+  const disabledMatchers = useMemo(() => {
+    const dates = Object.keys(dailyCounts).sort();
+    if (dates.length === 0) return undefined;
+    const minDate = new Date(dates[0] + "T00:00:00");
+    const maxDate = new Date(dates[dates.length - 1] + "T00:00:00");
+    return [
+      { before: minDate },
+      { after: maxDate },
+    ];
+  }, [dailyCounts]);
+
+  const fetchDailyCounts = useCallback(async () => {
+    setCountsLoading(true);
+    try {
+      const data = await traceApi.getDailyCounts(60);
+      const record: Record<string, number> = {};
+      for (const item of data) {
+        record[item.date] = item.count;
+      }
+      setDailyCounts(record);
+    } catch (error) {
+      console.error("Failed to fetch daily counts:", error);
+    } finally {
+      setCountsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchDailyCounts();
+  }, [fetchDailyCounts]);
 
   const fetchTraces = useCallback(async () => {
     setIsLoading(true);
@@ -237,9 +276,29 @@ export default function TracesPage() {
                 onSelect={(date) => {
                   if (date) setSelectedDate(date);
                 }}
+                disabled={disabledMatchers}
                 defaultMonth={selectedDate}
                 initialFocus
                 className="pointer-events-auto"
+                components={{
+                  DayContent: ({ date: dayDate }: { date: Date }) => {
+                    const ds = format(dayDate, "yyyy-MM-dd");
+                    const count = dailyCounts[ds];
+                    const hasData = count !== undefined && count > 0;
+                    return (
+                      <div className="relative flex flex-col items-center justify-center w-full h-full">
+                        <span className={cn(!hasData && "text-muted-foreground opacity-50")}>
+                          {dayDate.getDate()}
+                        </span>
+                        {hasData && (
+                          <span className="absolute -bottom-0.5 text-[0.55rem] leading-none text-muted-foreground">
+                            {count}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  },
+                }}
               />
             </PopoverContent>
           </Popover>

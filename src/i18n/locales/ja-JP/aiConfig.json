@@ -8,6 +8,29 @@
   "saveFailed": "AI 設定の保存に失敗",
   "saveButton": "設定を保存",
   "checkConfig": "設定確認",
+  "manageConfig": "設定を管理",
+  "manageConfigDesc": "高レベル / 低レベルタスクで使用するAIモデル設定ファイルを管理します",
+  "taskConfig": {
+    "title": "タスク設定",
+    "description": "高レベルタスクと低レベルタスクのAIモデル設定をそれぞれ選択（同一の設定プールを共有）",
+    "notSelectedWarning": "設定が未選択です。このタスクはAIを利用できません。設定を選択してください",
+    "emptyHint": "設定ファイルがありません。「新規設定」で作成してからタスクに割り当ててください"
+  },
+  "searchImage": {
+    "title": "Web検索 / 画像理解",
+    "description": "Web検索と画像理解機能を設定します"
+  },
+  "vectorDb": {
+    "title": "ベクトルデータベースサービス",
+    "description": "Qdrantのデプロイ方式、埋め込みモデル、再ランキングモデルを設定します",
+    "switchWarning": "Qdrantのデプロイ方式または埋め込みプロバイダーを切り替えるにはサービスの再起動が必要です。先に data/ai_core データをバックアップしてください。履歴データの移行には時間がかかる場合があります。",
+    "qdrantProvider": "Qdrantデプロイ方式",
+    "qdrantProviderDesc": "local は組み込みQdrantをローカルで使用、remote はリモートQdrantサービスに接続（URL / API Key が必要）",
+    "qdrantLocal": "ローカル",
+    "qdrantRemote": "リモート",
+    "qdrantRecommendTip": "より良いパフォーマンスと安定性のために、リモートQdrantサービスの使用を推奨します。GitHub ReleasesからQdrantをダウンロードして直接実行するか、Qdrant Cloudマネージドサービスをご利用ください。",
+    "rerankWarning": "再ランキングモデルサービスは負荷が高く、応答遅延とリソース使用量が増加します。慎重に有効化してください。"
+  },
   "wizard": {
     "title": "AI 設定状態",
     "description": "AI機能の設定状態を確認",
@@ -70,8 +93,8 @@
     "rerankService": "Rerankモデルサービス",
     "rerankServiceDesc": "Rerank再ランクモデルを設定",
     "rerankServiceDisabled": "Rerank有効にしてRAG検索品質を向上",
-    "embeddingSaveWarningTitle": "埋め込みモデル設定を変更",
-    "embeddingSaveWarningDesc": "埋め込みモデルサービスを変更すると、ほとんどの埋め込みデータの再構築が必要になります。先に data/ai_core フォルダをバックアップし、再起動して有効化することを推奨します。",
+    "embeddingSaveWarningTitle": "ベクトルデータベース設定を変更",
+    "embeddingSaveWarningDesc": "埋め込みモデルサービス / Qdrantデプロイ方式を変更すると、履歴ベクトルデータの移行・再構築が必要になります。先に data/ai_core フォルダをバックアップし、保存後はサービスの再起動が必要です。移行には時間がかかる場合があります。",
     "webSearchService": "ネット検索サービス",
     "webSearchServiceDesc": "設定ネット検索機能",
     "tavilyConfig": "Tavily設定",
@@ -174,7 +197,8 @@
     "title": "画像理解サービス",
     "description": "設定画像理解サービスプロバイダー",
     "provider": "画像理解プロバイダー",
-    "providerDesc": "LLMモデル画像非対応時、使用このサービス画像変換にテキスト"
+    "providerDesc": "LLMモデル画像非対応時、使用このサービス画像変換にテキスト",
+    "modelNoImageWarning": "選択中の高レベル / 低レベルタスクモデルは画像に対応していません。画像理解サービスを設定しないと、AIは画像を理解できません。"
   },
   "voiceRecognition": {
     "title": "音声認識サービス",

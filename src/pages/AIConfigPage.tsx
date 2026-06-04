@@ -1,19 +1,20 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Cpu, Loader2, Save, Settings, Zap, Users, Ban, CheckCircle,
   Sparkles, Search, Brain, Key, Globe, MessageSquare,
-  Layers, MemoryStick, ChevronRight, Bot, Wifi, Database,
+  Layers, MemoryStick, ChevronRight, ChevronDown, Bot, Wifi, Database,
   Plus, Pencil, Trash2, Check, FileText,
   Server, AlertTriangle, ArrowUpDown, SlidersHorizontal, HelpCircle,
-  Smile, Eye, Wrench
+  Smile, Eye, Wrench, ListChecks, Image
 } from 'lucide-react';
 import { ChipGroup } from '@/components/ui/MultiSelectChipGroup';
 import {
@@ -46,7 +47,7 @@ import {
 } from '@/lib/api';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { ConfigField, ConfigValue, ConfigFieldType, DynamicConfigPanel, pluginConfigItemToFieldDef } from '@/components/config';
+import { ConfigField, ConfigValue, ConfigFieldType, DynamicConfigPanel, pluginConfigItemToFieldDef, ConfigSelectDropdown } from '@/components/config';
 import {
   Select,
   SelectContent,
@@ -95,72 +96,6 @@ const getModelCapabilities = (t: (key: string) => string) => [
 // ============================================================================
 // Sub-components
 // ============================================================================
-
-interface SectionCardProps {
-  title: string;
-  description?: string;
-  icon: React.ReactNode;
-  iconBgClass: string;
-  iconClass: string;
-  children: React.ReactNode;
-  isGlass: boolean;
-  rightAction?: React.ReactNode;
-  className?: string;
-}
-
-function SectionCard({ title, description, icon, iconBgClass, iconClass, children, isGlass, rightAction, className }: SectionCardProps) {
-  return (
-    <Card className={cn(
-      "transition-all duration-300 hover:shadow-md",
-      isGlass && "glass-card",
-      className
-    )}>
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className={cn(
-              "flex items-center justify-center transition-transform duration-300",
-              iconClass
-            )}>
-              {icon}
-            </div>
-            <div>
-              <CardTitle className="text-base font-semibold">{title}</CardTitle>
-              {description && <CardDescription className="text-xs mt-0.5">{description}</CardDescription>}
-            </div>
-          </div>
-          {rightAction}
-        </div>
-      </CardHeader>
-      <CardContent className="pt-0">
-        {children}
-      </CardContent>
-    </Card>
-  );
-}
-
-interface SubConfigPanelProps {
-  title: string;
-  icon: React.ReactNode;
-  children: React.ReactNode;
-  className?: string;
-}
-
-function SubConfigPanel({ title, icon, children, className }: SubConfigPanelProps) {
-  return (
-    <div className={cn(
-      "mt-4 p-5 rounded-xl border space-y-4",
-      "bg-muted/30 border-border/40",
-      className
-    )}>
-      <div className="flex items-center gap-2 text-muted-foreground">
-        {icon}
-        <span className="text-xs font-semibold uppercase tracking-wider">{title}</span>
-      </div>
-      {children}
-    </div>
-  );
-}
 
 interface ToggleRowProps {
   icon: React.ReactNode;
@@ -223,6 +158,74 @@ function EmptyState({ icon, title, description }: { icon: React.ReactNode; title
 }
 
 // ============================================================================
+// Sidebar Item
+// ============================================================================
+
+interface SidebarItemProps {
+  id: string;
+  activeSection: string;
+  icon: React.ReactNode;
+  title: string;
+  disabled?: boolean;
+  alert?: boolean;
+  collapsed?: boolean;
+  onClick: (id: string) => void;
+}
+
+function SidebarItem({ id, activeSection, icon, title, disabled, alert, collapsed, onClick }: SidebarItemProps) {
+  const isActive = activeSection === id;
+  const button = (
+    <button
+      onClick={() => !disabled && onClick(id)}
+      disabled={disabled}
+      title={collapsed ? title : undefined}
+      className={cn(
+        "w-full flex items-center rounded-lg text-sm transition-all duration-200 text-left",
+        collapsed ? "justify-center px-0 py-2" : "gap-2.5 px-2.5 py-2",
+        isActive
+          ? "bg-primary/10 text-primary shadow-sm"
+          : disabled
+            ? "text-muted-foreground/40 cursor-not-allowed"
+            : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+      )}
+    >
+      <div className={cn(
+        "flex items-center justify-center flex-shrink-0 transition-colors relative",
+        isActive ? "text-primary" : "text-muted-foreground/60"
+      )}>
+        {icon}
+        {collapsed && alert && (
+          <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-red-500" />
+        )}
+      </div>
+      {!collapsed && (
+        <>
+          <span className={cn("font-medium", isActive && "text-primary")}>{title}</span>
+          {alert && (
+            <span className="shrink-0 ml-auto text-red-500" data-alert-icon>
+              <AlertTriangle className="w-3.5 h-3.5" data-alert-icon />
+            </span>
+          )}
+        </>
+      )}
+    </button>
+  );
+
+  if (collapsed) {
+    return (
+      <TooltipProvider delayDuration={100}>
+        <Tooltip>
+          <TooltipTrigger asChild>{button}</TooltipTrigger>
+          <TooltipContent side="right"><p>{title}</p></TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
+
+  return button;
+}
+
+// ============================================================================
 // Main Component
 // ============================================================================
 
@@ -230,6 +233,10 @@ export default function AIConfigPage() {
   const { style } = useTheme();
   const isGlass = style === 'glassmorphism';
   const { t } = useLanguage();
+  const isMobile = useIsMobile();
+
+  // Active section for sidebar (default to taskConfig since serviceSwitch is now standalone)
+  const [activeSection, setActiveSection] = useState<string>('taskConfig');
 
   // State - Framework Config (AI基础配置)
   const [configList, setConfigList] = useState<FrameworkConfigListItem[]>([]);
@@ -244,6 +251,8 @@ export default function AIConfigPage() {
   const [allConfigs, setAllConfigs] = useState<AllConfigsSummary | null>(null);
   const [highLevelConfig, setHighLevelConfig] = useState<string>(''); // provider++name 格式
   const [lowLevelConfig, setLowLevelConfig] = useState<string>('');   // provider++name 格式
+  // 所选高/低级任务模型的能力（用于图片理解警告），key 为 provider++name
+  const [modelSupportMap, setModelSupportMap] = useState<Record<string, string[]>>({});
 
   // State - OpenAI Config
   const [openaiConfigData, setOpenaiConfigData] = useState<OpenAIConfigData | null>(null);
@@ -268,6 +277,7 @@ export default function AIConfigPage() {
   const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isManageConfigDialogOpen, setIsManageConfigDialogOpen] = useState(false);
   // Embedding save warning dialog
   const [isEmbeddingWarningOpen, setIsEmbeddingWarningOpen] = useState(false);
   const [pendingSaveAction, setPendingSaveAction] = useState<(() => void) | null>(null);
@@ -539,6 +549,25 @@ export default function AIConfigPage() {
     }
   }, [configs, configList, hasInitialized]);
 
+  // 拉取所选高/低级任务配置的 model_support（用于图片理解能力警告）
+  useEffect(() => {
+    const list = allConfigs?.configs || [];
+    const targets = [highLevelConfig, lowLevelConfig].filter(Boolean);
+    targets.forEach((fullName) => {
+      if (modelSupportMap[fullName] !== undefined) return; // 已缓存
+      const item = list.find((c) => c.name === fullName);
+      if (!item) return;
+      providerConfigApi.getConfigDetail(item.provider, item.config_name)
+        .then((detail) => {
+          const support = (detail.config?.model_support?.data as string[]) || ['text'];
+          setModelSupportMap((prev) => ({ ...prev, [fullName]: support }));
+        })
+        .catch((error) => {
+          console.error('Failed to fetch model_support:', error);
+        });
+    });
+  }, [highLevelConfig, lowLevelConfig, allConfigs, modelSupportMap]);
+
   // ============================================================================
   // Actions
   // ============================================================================
@@ -634,19 +663,19 @@ export default function AIConfigPage() {
 
   const handleDeleteConfig = useCallback(async () => {
     if (!editingConfigName || !editingConfigProvider) return;
-    
+
     const fullConfigName = `${editingConfigProvider}++${editingConfigName}`;
     const configsList = allConfigs?.configs || [];
-    
+
     try {
       // 如果删除的配置正在被使用，需要先处理任务配置
       const isUsedByHigh = highLevelConfig === fullConfigName;
       const isUsedByLow = lowLevelConfig === fullConfigName;
-      
+
       if (isUsedByHigh || isUsedByLow) {
         // 找到另一个可用的配置
         const otherConfig = configsList.find(c => c.name !== fullConfigName);
-        
+
         if (otherConfig) {
           // 有其他配置，切换到另一个配置
           if (isUsedByHigh) {
@@ -665,7 +694,7 @@ export default function AIConfigPage() {
           }
         }
       }
-      
+
       // 再删除配置文件
       await providerConfigApi.deleteConfig(editingConfigProvider, editingConfigName);
       toast.success(t('aiConfig.openaiConfig.deleteSuccess', { name: editingConfigName }));
@@ -789,12 +818,20 @@ export default function AIConfigPage() {
     );
   }, [configs]);
 
+  const qdrantConfig = useMemo(() => {
+    return Object.values(configs).find(c =>
+      c.name.includes('Qdrant') || c.full_name.includes('Qdrant')
+    );
+  }, [configs]);
+
   const isAIEnabled = aiConfig?.config.enable?.value as boolean ?? false;
   const isRerankEnabled = aiConfig?.config.enable_rerank?.value as boolean ?? false;
   const rerankProvider = aiConfig?.config.rerank_provider?.value as string ?? 'local';
   const isMemoryEnabled = aiConfig?.config.enable_memory?.value as boolean ?? false;
   const websearchProvider = aiConfig?.config.websearch_provider?.value as string ?? 'Tavily';
   const imageUnderstandProvider = aiConfig?.config.image_understand_provider?.value as string ?? '';
+  const qdrantProvider = aiConfig?.config.qdrant_provider?.value as string ?? 'local';
+  const embeddingProvider = (embeddingSummary?.provider || aiConfig?.config.embedding_provider?.value as string) ?? 'local';
 
   // Generate MCP tool options from MCP configs
   const mcpToolOptions = useMemo(() => {
@@ -812,8 +849,6 @@ export default function AIConfigPage() {
 
   const websearchMcpToolId = (mcpToolsConfig?.config.websearch_mcp_tool_id?.value as string) || '';
   const imageUnderstandMcpToolId = (mcpToolsConfig?.config.image_understand_mcp_tool_id?.value as string) || '';
-
-  // handleSelectMcpTool is defined after updateConfigValue below
 
   const openMcpToolDialog = useCallback((type: 'websearch' | 'image_understand') => {
     setMcpToolDialogType(type);
@@ -953,12 +988,18 @@ export default function AIConfigPage() {
       JSON.stringify(embeddingLocalConfig) !== JSON.stringify(originalEmbeddingLocalConfig) ||
       JSON.stringify(embeddingOpenaiConfig) !== JSON.stringify(originalEmbeddingOpenaiConfig);
 
-    if (hasEmbeddingChanges) {
-      // 有嵌入模型变化，弹出警告对话框
+    // 检查 Qdrant 部署方式是否变化（切换后需重启并迁移数据）
+    const aiConfigId = aiConfig?.id;
+    const originalQdrant = aiConfigId ? (originalConfig[aiConfigId]?.config?.qdrant_provider?.value) : undefined;
+    const currentQdrant = aiConfig?.config.qdrant_provider?.value;
+    const hasQdrantChange = originalQdrant !== undefined && currentQdrant !== originalQdrant;
+
+    if (hasEmbeddingChanges || hasQdrantChange) {
+      // 有向量库相关变化，弹出警告对话框
       setPendingSaveAction(() => executeSave);
       setIsEmbeddingWarningOpen(true);
     } else {
-      // 无嵌入模型变化，直接保存
+      // 无变化，直接保存
       executeSave();
     }
   };
@@ -1013,8 +1054,700 @@ export default function AIConfigPage() {
     return allConfigsList.some(c => c.name === lowLevelConfig);
   }, [lowLevelConfig, allConfigsList]);
 
+  // 所选高/低级任务模型是否缺少图片能力（已加载 model_support 且不含 image 时才警告）
+  const taskModelLacksImage = useMemo(() => {
+    const lacks = (fullName: string) => {
+      if (!fullName) return false;
+      const support = modelSupportMap[fullName];
+      if (!support) return false; // 未加载完成，暂不警告
+      return !support.includes('image');
+    };
+    return lacks(highLevelConfig) || lacks(lowLevelConfig);
+  }, [highLevelConfig, lowLevelConfig, modelSupportMap]);
+
+  const qdrantProviderOptions = (aiConfig?.config.qdrant_provider?.options || ['local', 'remote']) as string[];
+
   // ============================================================================
-  // Render
+  // Render Helpers
+  // ============================================================================
+
+
+  // 嵌入模型字段渲染（本地 / OpenAI 兼容），用于「向量数据库服务」卡片
+  const renderEmbeddingFields = () => {
+    if (isLoadingEmbeddingConfig) {
+      return (
+        <div className="flex items-center justify-center py-6">
+          <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+        </div>
+      );
+    }
+    if (embeddingProvider === 'local') {
+      return (
+        <div className="space-y-3">
+          {Object.entries(embeddingLocalConfig).map(([key, field]) => (
+            <div key={key} className="space-y-1.5">
+              <Label className="text-sm font-medium">{field.title || key}</Label>
+              {field.desc && <p className="text-xs text-muted-foreground">{field.desc}</p>}
+              <ConfigField
+                fieldKey={key}
+                field={{
+                  type: (Array.isArray(field.options) && field.options.length > 0 ? 'select' : 'text') as ConfigFieldType,
+                  label: field.title || key,
+                  value: field.data == null ? '' : String(field.data),
+                  options: (field.options || []).map((o) => String(o)),
+                  placeholder: '',
+                  description: field.desc || '',
+                }}
+                showLabel={false}
+                onChange={(k, v) => updateEmbeddingLocalField(k, v)}
+              />
+            </div>
+          ))}
+        </div>
+      );
+    }
+    return (
+      <div className="space-y-3">
+        {Object.entries(embeddingOpenaiConfig).map(([key, field]) => (
+          <div key={key} className="space-y-1.5">
+            <Label className="text-sm font-medium flex items-center gap-2">
+              {key === 'base_url' && <Globe className="w-3.5 h-3.5" />}
+              {key === 'api_key' && <Key className="w-3.5 h-3.5" />}
+              {key === 'embedding_model' && <Cpu className="w-3.5 h-3.5" />}
+              {field.title || key}
+            </Label>
+            {field.desc && <p className="text-xs text-muted-foreground">{field.desc}</p>}
+            {key === 'api_key' ? (
+              <ConfigField
+                fieldKey={key}
+                field={{
+                  type: 'tags',
+                  label: field.title || key,
+                  value: (field.data as string[]) || [],
+                  placeholder: '输入API密钥（支持多个）',
+                  description: field.desc || '',
+                }}
+                showLabel={false}
+                onChange={(k, v) => updateEmbeddingOpenaiField(k, v)}
+              />
+            ) : (
+              <InputWithDropdown
+                value={field.data == null ? '' : String(field.data)}
+                onChange={(val) => updateEmbeddingOpenaiField(key, val)}
+                options={(field.options || []).map((o) => String(o))}
+                placeholder={`选择或输入${field.title || key}`}
+                inputPlaceholder={field.options?.[0] != null ? String(field.options[0]) : ''}
+              />
+            )}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  // ============================================================================
+  // Section Renderers
+  // ============================================================================
+
+  const renderServiceSwitchSection = () => (
+    <div className="space-y-5">
+      <div>
+        <h2 className="text-lg font-semibold flex items-center gap-2 mb-1">
+          <Bot className="w-5 h-5 text-primary" />
+          {t('aiConfig.serviceSwitch.title')}
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          {isAIEnabled ? t('aiConfig.serviceSwitch.enabledDesc') : t('aiConfig.serviceSwitch.disabledDesc')}
+        </p>
+      </div>
+
+      <div className="flex items-center gap-5 p-5 rounded-xl border-2 border-border/40 bg-card/50">
+        <div className={cn(
+          "flex items-center justify-center flex-shrink-0 transition-all duration-500",
+          isAIEnabled ? "text-primary" : "text-muted-foreground"
+        )}>
+          <Brain className="w-8 h-8" strokeWidth={1.5} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-3">
+            <span className="text-base font-semibold">{t('aiConfig.serviceSwitch.title')}</span>
+            <Badge
+              variant={isAIEnabled ? "default" : "secondary"}
+              className={cn(
+                "text-xs font-medium",
+                isAIEnabled && "bg-primary/15 text-primary hover:bg-primary/20 border-primary/20"
+              )}
+            >
+              {isAIEnabled ? t('common.enabled') : t('common.disabled')}
+            </Badge>
+          </div>
+          <p className="text-sm text-muted-foreground mt-1">
+            {isAIEnabled ? t('aiConfig.serviceSwitch.enabledDesc') : t('aiConfig.serviceSwitch.disabledDesc')}
+          </p>
+        </div>
+        <Switch
+          checked={isAIEnabled}
+          onCheckedChange={(checked) => updateConfigValue(aiConfig!.id, 'enable', checked)}
+          className="scale-110"
+        />
+      </div>
+    </div>
+  );
+
+  const renderTaskConfigSection = () => (
+    <div className="space-y-5">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-semibold flex items-center gap-2 mb-1">
+            <ListChecks className="w-5 h-5 text-primary" />
+            {t('aiConfig.taskConfig.title')}
+          </h2>
+          <p className="text-sm text-muted-foreground">{t('aiConfig.taskConfig.description')}</p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-8 gap-1.5 whitespace-nowrap text-xs"
+          onClick={() => setIsManageConfigDialogOpen(true)}
+        >
+          <Settings className="w-3.5 h-3.5" />
+          {t('aiConfig.manageConfig')}
+        </Button>
+      </div>
+
+      {allConfigsList.length === 0 ? (
+        <div className={cn(
+          "rounded-xl p-4",
+          isGlass
+            ? "border border-red-500/50 bg-red-500/10 dark:bg-red-950/50 dark:border-red-800/60"
+            : "border border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-950"
+        )}>
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-red-500 dark:text-red-400 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-red-600 dark:text-red-400">
+                {t('aiConfig.providerConfig.noConfigFileTitle')}
+              </p>
+              <p className="text-xs text-red-600/80 dark:text-red-400/80 mt-1">
+                {t('aiConfig.taskConfig.emptyHint')}
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-3 h-8 gap-1.5 text-xs"
+                onClick={() => setIsManageConfigDialogOpen(true)}
+              >
+                <Plus className="w-3.5 h-3.5" />
+                {t('aiConfig.openaiConfig.createNew')}
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-5">
+          {/* 高级任务 */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-primary" />
+              <Label className="text-sm font-semibold">{t('aiConfig.providerConfig.highLevelTask')}</Label>
+            </div>
+            <p className="text-xs text-muted-foreground">{t('aiConfig.providerConfig.highLevelTaskDesc')}</p>
+            <ConfigSelectDropdown
+              items={allConfigsList}
+              selectedName={highLevelConfig}
+              onSelect={handleSetHighLevelConfig}
+            />
+            {!isHighLevelConfigValid && (
+              <p className="text-xs text-red-600 dark:text-red-400 flex items-center gap-1.5">
+                <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                {t('aiConfig.taskConfig.notSelectedWarning')}
+              </p>
+            )}
+          </div>
+          <Separator className="bg-border/30" />
+          {/* 低级任务 */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Zap className="w-4 h-4 text-primary" />
+              <Label className="text-sm font-semibold">{t('aiConfig.providerConfig.lowLevelTask')}</Label>
+            </div>
+            <p className="text-xs text-muted-foreground">{t('aiConfig.providerConfig.lowLevelTaskDesc')}</p>
+            <ConfigSelectDropdown
+              items={allConfigsList}
+              selectedName={lowLevelConfig}
+              onSelect={handleSetLowLevelConfig}
+            />
+            {!isLowLevelConfigValid && (
+              <p className="text-xs text-red-600 dark:text-red-400 flex items-center gap-1.5">
+                <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                {t('aiConfig.taskConfig.notSelectedWarning')}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  const renderWebSearchSection = () => (
+    <div className="space-y-5">
+      <div>
+        <h2 className="text-lg font-semibold flex items-center gap-2 mb-1">
+          <Search className="w-5 h-5 text-primary" />
+          {t('aiConfig.serviceProvider.webSearchService')}
+        </h2>
+        <p className="text-sm text-muted-foreground">{t('aiConfig.searchImage.description')}</p>
+      </div>
+
+      <ChipGroup
+        options={websearchProviderOptions.map(p => ({ value: p, label: p, icon: <Search className="w-3.5 h-3.5" /> }))}
+        value={[websearchProvider]}
+        onValueChange={(newValue) => updateConfigValue(aiConfig!.id, 'websearch_provider', newValue[0] || '')}
+        selectMode="single"
+        showRadioIndicator
+      />
+      {websearchProvider === 'Tavily' && tavilyConfig && (
+        <div className="pt-3 border-t border-border/30">
+          <DynamicConfigPanel config={tavilyConfig.config} configId={tavilyConfig.id} onChange={updateConfigValue} layout={[['api_key'], ['max_results', 'search_depth']]} />
+        </div>
+      )}
+      {websearchProvider === 'Exa' && exaConfig && (
+        <div className="pt-3 border-t border-border/30">
+          <DynamicConfigPanel config={exaConfig.config} configId={exaConfig.id} onChange={updateConfigValue} layout={[['api_key'], ['max_results', 'search_type']]} />
+        </div>
+      )}
+      {websearchProvider === 'MiniMax' && miniMaxConfig && (
+        <div className="pt-3 border-t border-border/30">
+          <DynamicConfigPanel config={miniMaxConfig.config} configId={miniMaxConfig.id} onChange={updateConfigValue} layout={[['api_key'], ['api_host', 'resource_mode']]} />
+        </div>
+      )}
+      {websearchProvider === 'MCP' && (
+        <div className="pt-3 border-t border-border/30 flex items-center justify-between gap-2">
+          {websearchMcpToolId ? (
+            <Badge variant="outline" className="text-xs font-mono">
+              <Wrench className="h-3 w-3 mr-1" />
+              {websearchMcpToolId}
+            </Badge>
+          ) : (
+            <p className="text-xs text-muted-foreground">{t('aiConfig.mcpTool.noToolAssociated')}</p>
+          )}
+          <Button variant="ghost" size="sm" className="text-xs text-primary h-7 shrink-0" onClick={() => openMcpToolDialog('websearch')}>
+            {websearchMcpToolId ? t('aiConfig.mcpTool.selectTool') : t('aiConfig.mcpTool.goAssociate')}
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+
+  const renderImageUnderstandSection = () => (
+    <div className="space-y-5">
+      <div>
+        <h2 className="text-lg font-semibold flex items-center gap-2 mb-1">
+          <Eye className="w-5 h-5 text-primary" />
+          {t('aiConfig.imageUnderstand.title')}
+        </h2>
+        <p className="text-sm text-muted-foreground">{aiConfig?.config.image_understand_provider?.desc || t('aiConfig.imageUnderstand.providerDesc')}</p>
+      </div>
+
+      {taskModelLacksImage && !imageUnderstandProvider && (
+        <div className={cn(
+          "rounded-lg p-3 flex items-start gap-2",
+          isGlass ? "border border-red-500/50 bg-red-500/10" : "border border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-950"
+        )}>
+          <AlertTriangle className="w-4 h-4 text-red-500 dark:text-red-400 shrink-0 mt-0.5" />
+          <p className="text-xs text-red-600 dark:text-red-400">{t('aiConfig.imageUnderstand.modelNoImageWarning')}</p>
+        </div>
+      )}
+      <ChipGroup
+        options={((aiConfig?.config.image_understand_provider?.options || ['MCP']) as string[]).map(p => ({ value: p, label: p, icon: <Eye className="w-3.5 h-3.5" /> }))}
+        value={[aiConfig?.config.image_understand_provider?.value as string].filter(Boolean)}
+        onValueChange={(newValue) => updateConfigValue(aiConfig!.id, 'image_understand_provider', newValue[0] || '')}
+        selectMode="single"
+        showRadioIndicator
+      />
+      {imageUnderstandProvider === 'MCP' && (
+        <div className="pt-3 border-t border-border/30 flex items-center justify-between gap-2">
+          {imageUnderstandMcpToolId ? (
+            <Badge variant="outline" className="text-xs font-mono">
+              <Wrench className="h-3 w-3 mr-1" />
+              {imageUnderstandMcpToolId}
+            </Badge>
+          ) : (
+            <p className="text-xs text-muted-foreground">{t('aiConfig.mcpTool.noToolAssociated')}</p>
+          )}
+          <Button variant="ghost" size="sm" className="text-xs text-primary h-7 shrink-0" onClick={() => openMcpToolDialog('image_understand')}>
+            {imageUnderstandMcpToolId ? t('aiConfig.mcpTool.selectTool') : t('aiConfig.mcpTool.goAssociate')}
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+
+  const renderVectorDbSection = () => (
+    <div className="space-y-5">
+      <div>
+        <h2 className="text-lg font-semibold flex items-center gap-2 mb-1">
+          <Database className="w-5 h-5 text-primary" />
+          {t('aiConfig.vectorDb.title')}
+        </h2>
+        <p className="text-sm text-muted-foreground">{t('aiConfig.vectorDb.description')}</p>
+      </div>
+
+      {/* 切换警告（常驻） */}
+      <div className={cn(
+        "rounded-lg p-3 flex items-start gap-2",
+        isGlass ? "border border-amber-500/40 bg-amber-500/10" : "border border-amber-300 bg-amber-50 dark:border-amber-800/60 dark:bg-amber-950/40"
+      )}>
+        <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+        <p className="text-xs text-amber-700 dark:text-amber-400">{t('aiConfig.vectorDb.switchWarning')}</p>
+      </div>
+
+      {/* 1. Qdrant 部署方式 */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Server className="w-4 h-4 text-primary" />
+          <Label className="text-sm font-semibold">{t('aiConfig.vectorDb.qdrantProvider')}</Label>
+        </div>
+        <p className="text-xs text-muted-foreground">{aiConfig?.config.qdrant_provider?.desc || t('aiConfig.vectorDb.qdrantProviderDesc')}</p>
+        <ChipGroup
+          options={qdrantProviderOptions.map(p => ({ value: p, label: p === 'local' ? t('aiConfig.vectorDb.qdrantLocal') : p === 'remote' ? t('aiConfig.vectorDb.qdrantRemote') : p, icon: p === 'local' ? <Database className="w-3.5 h-3.5" /> : <Globe className="w-3.5 h-3.5" /> }))}
+          value={[qdrantProvider].filter(Boolean)}
+          onValueChange={(newValue) => updateConfigValue(aiConfig!.id, 'qdrant_provider', newValue[0] || '')}
+          selectMode="single"
+          showRadioIndicator
+        />
+        {qdrantProvider !== 'remote' && (
+        <div className={cn(
+          "rounded-lg p-3 flex items-start gap-2",
+          isGlass ? "border border-blue-500/40 bg-blue-500/10" : "border border-blue-200 bg-blue-50 dark:border-blue-800/60 dark:bg-blue-950/40"
+        )}>
+          <HelpCircle className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
+          <div className="text-xs text-blue-700 dark:text-blue-400 space-y-1.5">
+            <p>{t('aiConfig.vectorDb.qdrantRecommendTip')}</p>
+            <div className="flex flex-wrap gap-2">
+              <a
+                href="https://github.com/qdrant/qdrant/releases"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 underline underline-offset-2 hover:text-blue-600 dark:hover:text-blue-300 transition-colors"
+              >
+                GitHub Releases
+              </a>
+              <span className="text-blue-400 dark:text-blue-600">·</span>
+              <a
+                href="https://cloud.qdrant.io/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 underline underline-offset-2 hover:text-blue-600 dark:hover:text-blue-300 transition-colors"
+              >
+                Qdrant Cloud
+              </a>
+            </div>
+          </div>
+        </div>
+        )}
+        {qdrantProvider === 'remote' && qdrantConfig && (
+          <div className="pt-3 border-t border-border/30">
+            <DynamicConfigPanel config={qdrantConfig.config} configId={qdrantConfig.id} onChange={updateConfigValue} layout={[['url'], ['api_key']]} />
+          </div>
+        )}
+      </div>
+
+      <Separator className="bg-border/30" />
+
+      {/* 2. 嵌入模型提供方 */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Cpu className="w-4 h-4 text-primary" />
+          <Label className="text-sm font-semibold">{t('aiConfig.serviceProvider.embeddingService')}</Label>
+        </div>
+        <ChipGroup
+          options={(embeddingSummary?.available_providers || embeddingProviderOptions).map(p => ({ value: p, label: p === 'local' ? t('aiConfig.serviceProvider.localModel') : p === 'openai' ? t('aiConfig.serviceProvider.openaiModel') : p, icon: p === 'local' ? <Database className="w-3.5 h-3.5" /> : <Globe className="w-3.5 h-3.5" /> }))}
+          value={[embeddingProvider].filter(Boolean)}
+          onValueChange={(newValue) => { const np = newValue[0] || ''; updateConfigValue(aiConfig!.id, 'embedding_provider', np); handleSwitchEmbeddingProvider(np); }}
+          selectMode="single"
+          showRadioIndicator
+        />
+        <div className="pt-3 border-t border-border/30">
+          {renderEmbeddingFields()}
+        </div>
+      </div>
+
+      <Separator className="bg-border/30" />
+
+      {/* 3. 重排序模型 */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <ArrowUpDown className="w-4 h-4 text-primary" />
+            <Label className="text-sm font-semibold">{t('aiConfig.serviceProvider.rerankService')}</Label>
+          </div>
+          <Switch checked={isRerankEnabled} onCheckedChange={(checked) => updateConfigValue(aiConfig!.id, 'enable_rerank', checked)} />
+        </div>
+        <div className={cn(
+          "rounded-lg p-3 flex items-start gap-2",
+          isGlass ? "border border-amber-500/40 bg-amber-500/10" : "border border-amber-300 bg-amber-50 dark:border-amber-800/60 dark:bg-amber-950/40"
+        )}>
+          <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+          <p className="text-xs text-amber-700 dark:text-amber-400">{t('aiConfig.vectorDb.rerankWarning')}</p>
+        </div>
+        {isRerankEnabled && (
+          <>
+            <ChipGroup
+              options={rerankProviderOptions.map(p => ({ value: p, label: p === 'local' ? t('aiConfig.serviceProvider.localModel') : p === 'openai' ? t('aiConfig.serviceProvider.openaiModel') : p, icon: p === 'local' ? <Database className="w-3.5 h-3.5" /> : <Globe className="w-3.5 h-3.5" /> }))}
+              value={[rerankProvider].filter(Boolean)}
+              onValueChange={(newValue) => updateConfigValue(aiConfig!.id, 'rerank_provider', newValue[0] || '')}
+              selectMode="single"
+              showRadioIndicator
+            />
+            {rerankConfig && (
+              <div className="pt-3 border-t border-border/30">
+                <DynamicConfigPanel
+                  config={rerankConfig.config}
+                  configId={rerankConfig.id}
+                  onChange={updateConfigValue}
+                  excludeKeys={rerankProvider === 'openai' ? [] : ['base_url', 'api_key']}
+                />
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+
+  const renderVoiceRecognitionSection = () => (
+    <div className="space-y-5">
+      <div>
+        <h2 className="text-lg font-semibold flex items-center gap-2 mb-1">
+          <Cpu className="w-5 h-5 text-primary" />
+          {t('aiConfig.voiceRecognition.title')}
+        </h2>
+        <p className="text-sm text-muted-foreground">{aiConfig?.config.asr_provider?.desc || t('aiConfig.voiceRecognition.providerDesc')}</p>
+      </div>
+      <ChipGroup
+        options={((aiConfig?.config.asr_provider?.options || ['MCP']) as string[]).map(p => ({ value: p, label: p, icon: <Cpu className="w-3.5 h-3.5" /> }))}
+        value={[aiConfig?.config.asr_provider?.value as string].filter(Boolean)}
+        onValueChange={(newValue) => updateConfigValue(aiConfig!.id, 'asr_provider', newValue[0] || '')}
+        selectMode="single"
+        showRadioIndicator
+      />
+    </div>
+  );
+
+  const renderDocumentExtractSection = () => (
+    <div className="space-y-5">
+      <div>
+        <h2 className="text-lg font-semibold flex items-center gap-2 mb-1">
+          <FileText className="w-5 h-5 text-primary" />
+          {t('aiConfig.documentExtract.title')}
+        </h2>
+        <p className="text-sm text-muted-foreground">{aiConfig?.config.document_extract_provider?.desc || t('aiConfig.documentExtract.providerDesc')}</p>
+      </div>
+      <ChipGroup
+        options={((aiConfig?.config.document_extract_provider?.options || ['MCP']) as string[]).map(p => ({ value: p, label: p, icon: <FileText className="w-3.5 h-3.5" /> }))}
+        value={[aiConfig?.config.document_extract_provider?.value as string].filter(Boolean)}
+        onValueChange={(newValue) => updateConfigValue(aiConfig!.id, 'document_extract_provider', newValue[0] || '')}
+        selectMode="single"
+        showRadioIndicator
+      />
+    </div>
+  );
+
+  const renderMemorySettingsSection = () => (
+    <div className="space-y-5">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-semibold flex items-center gap-2 mb-1">
+            <MemoryStick className="w-5 h-5 text-primary" />
+            {t('aiConfig.memorySettings.title')}
+          </h2>
+          <p className="text-sm text-muted-foreground">{t('aiConfig.memorySettings.description')}</p>
+        </div>
+        <Switch checked={isMemoryEnabled} onCheckedChange={(checked) => updateConfigValue(aiConfig!.id, 'enable_memory', checked)} />
+      </div>
+
+      {!isMemoryEnabled ? (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground p-4 rounded-lg border border-border/30 bg-muted/20">
+          <ChevronRight className="w-4 h-4" />
+          <span>{t('aiConfig.memorySettings.disabledDesc')}</span>
+        </div>
+      ) : memoryConfig ? (
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Brain className="w-4 h-4 text-muted-foreground" />
+              <Label className="text-sm font-medium">{t('aiConfig.memorySettings.memoryMode')}</Label>
+              {memoryConfig.config.memory_mode?.desc && (
+                <TooltipProvider delayDuration={100}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button type="button" className="inline-flex items-center justify-center rounded-full p-0.5 hover:bg-primary/10 transition-colors focus:outline-none" onClick={(e) => e.preventDefault()}>
+                        <HelpCircle className="w-3.5 h-3.5 text-muted-foreground/60 hover:text-primary cursor-help" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-xs"><p>{memoryConfig.config.memory_mode.desc}</p></TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+            </div>
+            <ChipGroup
+              options={(memoryConfig.config.memory_mode?.options || ['被动感知', '主动会话']).map((p: string) => ({ value: p, label: p, icon: <Brain className="w-3.5 h-3.5" /> }))}
+              value={(memoryConfig.config.memory_mode?.value as string[]) || []}
+              onValueChange={(newValue) => updateConfigValue(memoryConfig.id, 'memory_mode', newValue)}
+            />
+          </div>
+
+          <div className="pt-2">
+            <DynamicConfigPanel
+              config={memoryConfig.config}
+              configId={memoryConfig.id}
+              onChange={updateConfigValue}
+              excludeKeys={['memory_mode', 'enable_system2', 'eval_mode']}
+              layout={[['memory_session', 'retrieval_top_k']]}
+            />
+          </div>
+
+          <div className="space-y-2 pt-2 border-t border-border/20">
+            <ToggleRow
+              icon={<CheckCircle className="w-5 h-5" strokeWidth={1.5} />}
+              iconColorClass="text-primary"
+              title={t('aiConfig.memorySettings.enableSystem2')}
+              description={t('aiConfig.memorySettings.enableSystem2Desc') || '提高检索精度但增加延迟'}
+              checked={(memoryConfig.config.enable_system2?.value as boolean) ?? true}
+              onCheckedChange={(checked) => updateConfigValue(memoryConfig.id, 'enable_system2', checked)}
+            />
+            <ToggleRow
+              icon={<Sparkles className="w-5 h-5" strokeWidth={1.5} />}
+              iconColorClass="text-primary"
+              title={t('aiConfig.memorySettings.evalMode')}
+              description={t('aiConfig.memorySettings.evalModeDesc') || '启用后无法使用 System-2 和 Rerank'}
+              checked={(memoryConfig.config.eval_mode?.value as boolean) ?? false}
+              onCheckedChange={(checked) => updateConfigValue(memoryConfig.id, 'eval_mode', checked)}
+            />
+          </div>
+        </div>
+      ) : (
+        <div className="text-sm text-muted-foreground p-4 rounded-lg border border-border/30 bg-muted/20">{t('aiConfig.memorySettings.noConfig')}</div>
+      )}
+    </div>
+  );
+
+  const renderMemeSettingsSection = () => {
+    if (!memeConfig) return null;
+    return (
+      <div className="space-y-5">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold flex items-center gap-2 mb-1">
+              <Smile className="w-5 h-5 text-primary" />
+              {t('aiConfig.memeSettings.title')}
+            </h2>
+            <p className="text-sm text-muted-foreground">{t('aiConfig.memeSettings.description')}</p>
+          </div>
+          <Switch checked={(memeConfig.config.meme_enable?.value as boolean) ?? false} onCheckedChange={(checked) => updateConfigValue(memeConfig.id, 'meme_enable', checked)} />
+        </div>
+
+        {(memeConfig.config.meme_enable?.value as boolean) ? (
+          <div className="space-y-4">
+            <div className="p-3 rounded-lg border border-border/30 bg-muted/20">
+              <ToggleRow
+                icon={<Sparkles className="w-5 h-5" strokeWidth={1.5} />}
+                iconColorClass="text-primary"
+                title={t('aiConfig.memeSettings.autoCollect')}
+                description={t('aiConfig.memeSettings.autoCollectDesc')}
+                checked={(memeConfig.config.meme_auto_collect?.value as boolean) ?? false}
+                onCheckedChange={(checked) => updateConfigValue(memeConfig.id, 'meme_auto_collect', checked)}
+              />
+            </div>
+            <DynamicConfigPanel
+              config={memeConfig.config}
+              configId={memeConfig.id}
+              onChange={updateConfigValue}
+              excludeKeys={['meme_enable', 'meme_auto_collect']}
+              layout={[
+                ['meme_max_file_kb', 'meme_daily_collect_limit'],
+                ['meme_min_width', 'meme_min_height'],
+                ['meme_vlm_semaphore', 'meme_tag_interval_sec'],
+                ['meme_nsfw_threshold', 'meme_send_cooldown_sec'],
+                ['meme_recent_exclude_count'],
+              ]}
+            />
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground p-4 rounded-lg border border-border/30 bg-muted/20">
+            <ChevronRight className="w-4 h-4" />
+            <span>{t('aiConfig.memeSettings.enableMemeDesc')}</span>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderAdvancedSettingsSection = () => (
+    <div className="space-y-5">
+      <div>
+        <h2 className="text-lg font-semibold flex items-center gap-2 mb-1">
+          <SlidersHorizontal className="w-5 h-5 text-muted-foreground" />
+          {t('aiConfig.advancedSettings.title')}
+        </h2>
+        <p className="text-sm text-muted-foreground">{t('aiConfig.advancedSettings.description')}</p>
+      </div>
+
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {(() => {
+          const excludeKeys = [
+            'enable', 'enable_rerank', 'enable_memory',
+            'websearch_provider', 'image_understand_provider',
+            'embedding_provider', 'qdrant_provider', 'high_level_provider_config_name',
+            'low_level_provider_config_name', 'asr_provider',
+            'tts_provider', 'video_understand_provider',
+            'document_extract_provider', 'rerank_provider'
+          ];
+          const entries = Object.entries(aiConfig!.config).filter(
+            ([key]) => !excludeKeys.includes(key)
+          );
+          if (entries.length === 0) {
+            return (
+              <div className="col-span-full py-12 text-center text-muted-foreground">
+                <p>{t('plugins.noConfigItems') || '暂无配置项'}</p>
+              </div>
+            );
+          }
+          return entries.map(([key, item]) => {
+            let fieldDef = pluginConfigItemToFieldDef(key, item);
+            if (key === 'multi_agent_lenth') {
+              fieldDef = {
+                ...fieldDef,
+                label: t('aiConfig.advancedSettings.thinkingRounds') || '思考轮数',
+                type: 'select' as ConfigFieldType,
+                options: ['9', '12', '20', '30'],
+                value: String(fieldDef.value || '12'),
+              };
+            }
+            const isDivider = fieldDef.type === 'divider';
+            return (
+              <div key={key} className={isDivider ? 'col-span-full' : undefined}>
+                <ConfigField
+                  fieldKey={key}
+                  field={fieldDef}
+                  onChange={(fieldKey, value) => {
+                    const finalValue = fieldKey === 'multi_agent_lenth' && typeof value === 'string'
+                      ? parseInt(value)
+                      : value;
+                    updateConfigValue(aiConfig!.id, fieldKey, finalValue);
+                  }}
+                />
+              </div>
+            );
+          });
+        })()}
+      </div>
+    </div>
+  );
+
+  // ============================================================================
+  // Main Render
   // ============================================================================
 
   if (isLoading) {
@@ -1036,992 +1769,236 @@ export default function AIConfigPage() {
     );
   }
 
+  // Sidebar menu definition (serviceSwitch removed - now standalone at top)
+  const sidebarItems = [
+    { id: 'taskConfig', title: t('aiConfig.taskConfig.title'), icon: <ListChecks className="w-5 h-5" />, disabled: !isAIEnabled },
+    { id: 'vectorDb', title: t('aiConfig.vectorDb.title'), icon: <Database className="w-5 h-5" />, disabled: !isAIEnabled },
+    { id: 'webSearch', title: t('aiConfig.serviceProvider.webSearchService'), icon: <Search className="w-5 h-5" />, disabled: !isAIEnabled },
+    { id: 'imageUnderstand', title: t('aiConfig.imageUnderstand.title'), icon: <Eye className="w-5 h-5" />, disabled: !isAIEnabled, alert: isAIEnabled && taskModelLacksImage && !imageUnderstandProvider },
+    { id: 'voiceRecognition', title: t('aiConfig.voiceRecognition.title'), icon: <Cpu className="w-5 h-5" />, disabled: !isAIEnabled },
+    { id: 'documentExtract', title: t('aiConfig.documentExtract.title'), icon: <FileText className="w-5 h-5" />, disabled: !isAIEnabled },
+    { id: 'memorySettings', title: t('aiConfig.memorySettings.title'), icon: <MemoryStick className="w-5 h-5" />, disabled: !isAIEnabled },
+    ...(memeConfig ? [{ id: 'memeSettings', title: t('aiConfig.memeSettings.title'), icon: <Smile className="w-5 h-5" />, disabled: !isAIEnabled }] : []),
+    { id: 'advancedSettings', title: t('aiConfig.advancedSettings.title'), icon: <SlidersHorizontal className="w-5 h-5" />, disabled: !isAIEnabled },
+  ];
+
+  const renderActiveSection = () => {
+    switch (activeSection) {
+      case 'taskConfig': return renderTaskConfigSection();
+      case 'webSearch': return renderWebSearchSection();
+      case 'imageUnderstand': return renderImageUnderstandSection();
+      case 'vectorDb': return renderVectorDbSection();
+      case 'voiceRecognition': return renderVoiceRecognitionSection();
+      case 'documentExtract': return renderDocumentExtractSection();
+      case 'memorySettings': return renderMemorySettingsSection();
+      case 'memeSettings': return renderMemeSettingsSection();
+      case 'advancedSettings': return renderAdvancedSettingsSection();
+      default: return renderTaskConfigSection();
+    }
+  };
+
   return (
-    <div className="p-4 sm:p-6 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0 overflow-x-auto">
-          <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
-            <Bot className="w-8 h-8 shrink-0" />
-            {t('aiConfig.title')}
-          </h1>
-          <p className="whitespace-nowrap text-muted-foreground mt-1">{t('aiConfig.description')}</p>
-        </div>
-        <div className="flex flex-wrap items-center justify-end gap-2 self-end sm:self-auto">
-          <Button
-            onClick={() => fetchWizardChecklist()}
-            disabled={isWizardLoading}
-            size="sm"
-            variant="outline"
-            className="gap-2 whitespace-nowrap"
-          >
-            {isWizardLoading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Sparkles className="w-4 h-4" />
-            )}
-            {t('aiConfig.checkConfig')}
-          </Button>
-          <Button
-            onClick={handleSaveConfig}
-            disabled={!isConfigDirty || isSaving}
-            size="sm"
-            className={cn(
-              "gap-2 whitespace-nowrap transition-all duration-300",
-              isConfigDirty && "animate-in fade-in slide-in-from-bottom-2"
-            )}
-          >
-            {isSaving ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Save className="w-4 h-4" />
-            )}
-            {t('aiConfig.saveButton')}
-          </Button>
+    <div className="h-full flex flex-col">
+      {/* Header - matches PersonaConfigPage style */}
+      <div className="shrink-0 px-3 sm:px-6 pt-3 sm:pt-6 pb-2">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0 overflow-x-auto">
+            <h1 className="whitespace-nowrap text-xl sm:text-3xl font-bold flex items-center gap-2 sm:gap-3">
+              <Bot className="w-6 h-6 sm:w-8 sm:h-8 shrink-0" />
+              {t('aiConfig.title')}
+            </h1>
+            <p className="whitespace-nowrap text-muted-foreground mt-1 text-xs sm:text-sm">{t('aiConfig.description')}</p>
+          </div>
+          <div className="flex flex-wrap items-center justify-end gap-2 self-end sm:self-auto">
+            <Button
+              onClick={() => fetchWizardChecklist()}
+              disabled={isWizardLoading}
+              size="sm"
+              variant="outline"
+              className="gap-1.5 sm:gap-2 whitespace-nowrap text-xs sm:text-sm"
+            >
+              {isWizardLoading ? (
+                <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" />
+              ) : (
+                <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              )}
+              {t('aiConfig.checkConfig')}
+            </Button>
+            <Button
+              onClick={handleSaveConfig}
+              disabled={!isConfigDirty || isSaving}
+              size="sm"
+              className={cn(
+                "gap-1.5 sm:gap-2 whitespace-nowrap transition-all duration-300 text-xs sm:text-sm",
+                isConfigDirty && "animate-in fade-in slide-in-from-bottom-2"
+              )}
+            >
+              {isSaving ? (
+                <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" />
+              ) : (
+                <Save className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              )}
+              {t('aiConfig.saveButton')}
+            </Button>
+          </div>
         </div>
       </div>
 
-      {isLoadingDetail && Object.keys(configs).length === 0 ? (
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="w-8 h-8 animate-spin" />
-        </div>
-      ) : (
-        <div className="space-y-6">
-          {/* Hero: AI Service Master Switch */}
-          <Card className={cn(
-            "overflow-hidden transition-all duration-500 border-2 relative",
-            isAIEnabled ? "border-primary/20 shadow-lg shadow-primary/5" : "border-border/40",
-            isGlass && "glass-card"
+      {/* AI Service Master Switch - standalone above sidebar layout */}
+      <div className="shrink-0 px-3 sm:px-6 pt-2 pb-3 sm:pb-4">
+        <div className="flex items-center gap-3 sm:gap-5 p-3 sm:p-5 rounded-xl border-2 border-border/40 bg-card/50">
+          <div className={cn(
+            "flex items-center justify-center flex-shrink-0 transition-all duration-500",
+            isAIEnabled ? "text-primary" : "text-muted-foreground"
           )}>
-            <div className={cn(
-              "absolute inset-0 transition-opacity duration-700 pointer-events-none",
-              isAIEnabled ? "opacity-100" : "opacity-0"
-            )}>
-              <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-              <div className="absolute bottom-0 left-0 w-48 h-48 bg-primary/3 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
-            </div>
-            <CardContent className="p-6 relative z-10">
-              <div className="flex items-center gap-5">
-                <div className={cn(
-                  "flex items-center justify-center flex-shrink-0 transition-all duration-500",
-                  isAIEnabled ? "text-primary" : "text-muted-foreground"
-                )}>
-                  <Brain className="w-8 h-8" strokeWidth={1.5} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-3">
-                    <h2 className="text-lg font-semibold">{t('aiConfig.serviceSwitch.title')}</h2>
-                    <Badge
-                      variant={isAIEnabled ? "default" : "secondary"}
-                      className={cn(
-                        "text-xs font-medium transition-colors duration-300",
-                        isAIEnabled && "bg-primary/15 text-primary hover:bg-primary/20 border-primary/20"
-                      )}
-                    >
-                      {isAIEnabled ? t('common.enabled') : t('common.disabled')}
-                    </Badge>
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {isAIEnabled ? t('aiConfig.serviceSwitch.enabledDesc') : t('aiConfig.serviceSwitch.disabledDesc')}
-                  </p>
-                </div>
-                <Switch
-                  checked={isAIEnabled}
-                  onCheckedChange={(checked) => updateConfigValue(aiConfig.id, 'enable', checked)}
-                  className="scale-110"
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* AI启用后的配置 */}
-          {isAIEnabled && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              {/* Section: 模型配置 */}
-              <div className="space-y-4">
-                {/* Section Header */}
-                <div className="flex flex-col gap-3 px-1 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex min-w-0 items-center gap-2.5 overflow-x-auto">
-                    <div className="shrink-0 flex items-center justify-center text-primary">
-                      <Wifi className="w-5 h-5" strokeWidth={1.5} />
-                    </div>
-                    <div className="min-w-0">
-                      <h2 className="whitespace-nowrap text-sm font-semibold text-foreground">{t('aiConfig.serviceProvider.title')}</h2>
-                      <p className="whitespace-nowrap text-xs text-muted-foreground">{t('aiConfig.serviceProvider.subtitle') || '管理AI服务提供方和模型配置'}</p>
-                    </div>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-8 gap-1.5 self-end whitespace-nowrap text-xs sm:self-auto"
-                    onClick={() => { setIsCreateDialogOpen(true); fetchProviderConfigOptions(newConfigProvider); }}
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    {t('aiConfig.openaiConfig.createNew')}
-                  </Button>
-                </div>
-
-                {/* 未激活配置警告 */}
-                {allConfigsList.length === 0 ? (
-                  <Card className={cn(
-                    isGlass
-                      ? "glass-card border-red-500/50 bg-red-500/10 dark:bg-red-950/50 dark:border-red-800/60"
-                      : "border border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-950"
-                  )}>
-                    <CardContent className="p-4">
-                      <div className="flex items-start gap-3">
-                        <AlertTriangle className="w-5 h-5 text-red-500 dark:text-red-400 flex-shrink-0 mt-0.5" />
-                        <div>
-                          <p className="text-sm font-medium text-red-600 dark:text-red-400">
-                            {t('aiConfig.providerConfig.noConfigFileTitle') || '暂无配置文件'}
-                          </p>
-                          <p className="text-xs text-red-600/80 dark:text-red-400/80 mt-1">
-                            {t('aiConfig.providerConfig.noConfigFileWarning') || '请先点击右上角「新建配置」添加一个配置文件，然后再为高级任务和低级任务选择对应的配置'}
-                          </p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ) : (!isHighLevelConfigValid && !isLowLevelConfigValid) && (
-                  <Card className={cn(
-                    isGlass
-                      ? "glass-card border-red-500/50 bg-red-500/10 dark:bg-red-950/50 dark:border-red-800/60"
-                      : "border border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-950"
-                  )}>
-                    <CardContent className="p-4">
-                      <div className="flex items-start gap-3">
-                        <AlertTriangle className="w-5 h-5 text-red-500 dark:text-red-400 flex-shrink-0 mt-0.5" />
-                        <div>
-                          <p className="text-sm font-medium text-red-600 dark:text-red-400">
-                            {t('aiConfig.providerConfig.noActiveConfigTitle')}
-                          </p>
-                          <p className="text-xs text-red-600/80 dark:text-red-400/80 mt-1">
-                            {t('aiConfig.providerConfig.noActiveConfigWarning')}
-                          </p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+            <Brain className="w-6 h-6 sm:w-8 sm:h-8" strokeWidth={1.5} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <span className="text-sm sm:text-base font-semibold">{t('aiConfig.serviceSwitch.title')}</span>
+              <Badge
+                variant={isAIEnabled ? "default" : "secondary"}
+                className={cn(
+                  "text-xs font-medium",
+                  isAIEnabled && "bg-primary/15 text-primary hover:bg-primary/20 border-primary/20"
                 )}
-
-                {/* 配置文件选择 - 两列布局 */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  {/* 高级任务配置卡片 */}
-                  <SectionCard
-                    title={t('aiConfig.providerConfig.highLevelTask') || '高级任务'}
-                    description={t('aiConfig.providerConfig.highLevelTaskDesc') || '复杂推理、工具调用等需要强模型能力的任务'}
-                    icon={<Sparkles className="w-6 h-6 text-primary" strokeWidth={1.5} />}
-                    iconBgClass="bg-primary/10"
-                    iconClass="text-primary"
-                    isGlass={isGlass}
-                  >
-                    {allConfigsList.length === 0 ? (
-                      <EmptyState
-                        icon={<Server className="w-6 h-6 text-muted-foreground/50" />}
-                        title={t('aiConfig.openaiConfig.noConfig')}
-                        description={t('aiConfig.openaiConfig.noConfigDesc') || '点击右上角创建新配置'}
-                      />
-                    ) : (
-                      <div className="space-y-2">
-                        {allConfigsList.map((configItem) => {
-                          // configItem.name 是 provider++name 格式，highLevelConfig 也是 provider++name 格式
-                          const isSelected = configItem.name === highLevelConfig;
-                          return (
-                            <div
-                              key={`high-${configItem.name}`}
-                              className={cn(
-                                "group flex items-center justify-between p-3 rounded-xl border transition-all duration-200 cursor-pointer",
-                                isSelected ? "border-primary/40 bg-primary/5 shadow-sm" : "border-border/50 bg-card/50 hover:border-primary/20"
-                              )}
-                              onClick={() => handleSetHighLevelConfig(configItem.name)}
-                            >
-                              <div className="flex items-center gap-3 min-w-0 flex-1">
-                                <div className={cn(
-                                  "flex items-center justify-center flex-shrink-0 transition-colors",
-                                  isSelected ? "text-primary" : "text-muted-foreground"
-                                )}>
-                                  <FileText className="w-5 h-5" />
-                                  </div>
-                                <div className="min-w-0">
-                                  <span className="text-sm font-medium truncate block">{configItem.config_name}</span>
-                                  <div className="flex items-center gap-1.5 mt-0.5">
-                                    <Badge
-                                      variant="outline"
-                                      className={cn(
-                                        "text-[10px] h-4 px-1.5",
-                                        configItem.provider === 'openai' ? "border-primary/40 text-primary bg-primary/10" : "border-orange-500/40 text-orange-600 bg-orange-500/10"
-                                      )}
-                                    >
-                                      {configItem.provider === 'openai' ? 'OpenAI' : configItem.provider === 'anthropic' ? 'Anthropic' : configItem.provider}
-                                    </Badge>
-                                    <span className="text-[10px] text-muted-foreground truncate">{configItem.model_name}</span>
-                                  </div>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-1 shrink-0">
-                                {isSelected && (
-                                  <div className="w-6 h-6 rounded-full bg-primary/15 flex items-center justify-center">
-                                    <Check className="w-3.5 h-3.5 text-primary" />
-                                  </div>
-                                )}
-                                <TooltipProvider delayDuration={200}>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button
-                                        variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                                        onClick={(e) => { e.stopPropagation(); openEditDialog(configItem.config_name, configItem.provider); }}
-                                      >
-                                        <Settings className="w-3.5 h-3.5" />
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent><p>{t('common.edit')}</p></TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                                <TooltipProvider delayDuration={200}>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button
-                                        variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive"
-                                        onClick={(e) => { e.stopPropagation(); openDeleteDialog(configItem.config_name, configItem.provider); }}
-                                      >
-                                        <Trash2 className="w-3.5 h-3.5" />
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent><p>{t('common.delete')}</p></TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </SectionCard>
-
-                  {/* 低级任务配置卡片 */}
-                  <SectionCard
-                    title={t('aiConfig.providerConfig.lowLevelTask') || '低级任务'}
-                    description={t('aiConfig.providerConfig.lowLevelTaskDesc') || '简单问答、快速响应等只需基础模型能力的任务'}
-                    icon={<Zap className="w-6 h-6 text-primary" strokeWidth={1.5} />}
-                    iconBgClass="bg-primary/10"
-                    iconClass="text-primary"
-                    isGlass={isGlass}
-                  >
-                    {allConfigsList.length === 0 ? (
-                      <EmptyState
-                        icon={<Server className="w-6 h-6 text-muted-foreground/50" />}
-                        title={t('aiConfig.openaiConfig.noConfig')}
-                        description={t('aiConfig.openaiConfig.noConfigDesc') || '点击右上角创建新配置'}
-                      />
-                    ) : (
-                      <div className="space-y-2">
-                        {allConfigsList.map((configItem) => {
-                          // configItem.name 是 provider++name 格式，lowLevelConfig 也是 provider++name 格式
-                          const isSelected = configItem.name === lowLevelConfig;
-                          return (
-                            <div
-                              key={`low-${configItem.name}`}
-                              className={cn(
-                                "group flex items-center justify-between p-3 rounded-xl border transition-all duration-200 cursor-pointer",
-                                isSelected ? "border-primary/40 bg-primary/5 shadow-sm" : "border-border/50 bg-card/50 hover:border-primary/20"
-                              )}
-                              onClick={() => handleSetLowLevelConfig(configItem.name)}
-                            >
-                              <div className="flex items-center gap-3 min-w-0 flex-1">
-                                <div className={cn(
-                                  "flex items-center justify-center flex-shrink-0 transition-colors",
-                                  isSelected ? "text-primary" : "text-muted-foreground"
-                                )}>
-                                  <FileText className="w-5 h-5" />
-                                  </div>
-                                <div className="min-w-0">
-                                  <span className="text-sm font-medium truncate block">{configItem.config_name}</span>
-                                  <div className="flex items-center gap-1.5 mt-0.5">
-                                    <Badge
-                                      variant="outline"
-                                      className={cn(
-                                        "text-[10px] h-4 px-1.5",
-                                        configItem.provider === 'openai' ? "border-primary/40 text-primary bg-primary/10" : "border-orange-500/40 text-orange-600 bg-orange-500/10"
-                                      )}
-                                    >
-                                      {configItem.provider === 'openai' ? 'OpenAI' : configItem.provider === 'anthropic' ? 'Anthropic' : configItem.provider}
-                                    </Badge>
-                                    <span className="text-[10px] text-muted-foreground truncate">{configItem.model_name}</span>
-                                  </div>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-1 shrink-0">
-                                {isSelected && (
-                                  <div className="w-6 h-6 rounded-full bg-primary/15 flex items-center justify-center">
-                                    <Check className="w-3.5 h-3.5 text-primary" />
-                                  </div>
-                                )}
-                                <TooltipProvider delayDuration={200}>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button
-                                        variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                                        onClick={(e) => { e.stopPropagation(); openEditDialog(configItem.config_name, configItem.provider); }}
-                                      >
-                                        <Settings className="w-3.5 h-3.5" />
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent><p>{t('common.edit')}</p></TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                                <TooltipProvider delayDuration={200}>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button
-                                        variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive"
-                                        onClick={(e) => { e.stopPropagation(); openDeleteDialog(configItem.config_name, configItem.provider); }}
-                                      >
-                                        <Trash2 className="w-3.5 h-3.5" />
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent><p>{t('common.delete')}</p></TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </SectionCard>
-                </div>
-              </div>
-
-              {/* Section: 网络搜索服务 & 图片理解服务 */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {/* 网络搜索服务 */}
-                <SectionCard
-                  title={t('aiConfig.serviceProvider.webSearchService')}
-                  description={t('aiConfig.serviceProvider.webSearchServiceDesc') || '配置网络搜索能力'}
-                  icon={<Search className="w-6 h-6 text-primary" strokeWidth={1.5} />}
-                  iconBgClass="bg-primary/10"
-                  iconClass="text-primary"
-                  isGlass={isGlass}
-                >
-                  <ChipGroup
-                    options={websearchProviderOptions.map(p => ({
-                      value: p,
-                      label: p,
-                      icon: <Search className="w-3.5 h-3.5" />,
-                    }))}
-                    value={[websearchProvider]}
-                    onValueChange={(newValue) => updateConfigValue(aiConfig.id, 'websearch_provider', newValue[0] || '')}
-                    selectMode="single"
-                    showRadioIndicator
-                  />
-                  {websearchProvider === 'Tavily' && tavilyConfig && (
-                    <SubConfigPanel
-                      title={t('aiConfig.serviceProvider.tavilyConfig')}
-                      icon={<Key className="w-3.5 h-3.5" />}
-                    >
-                      <DynamicConfigPanel
-                        config={tavilyConfig.config}
-                        configId={tavilyConfig.id}
-                        onChange={updateConfigValue}
-                        layout={[['api_key'], ['max_results', 'search_depth']]}
-                      />
-                    </SubConfigPanel>
-                  )}
-                  {websearchProvider === 'Exa' && exaConfig && (
-                    <SubConfigPanel
-                      title={t('aiConfig.serviceProvider.exaConfig')}
-                      icon={<Key className="w-3.5 h-3.5" />}
-                    >
-                      <DynamicConfigPanel
-                        config={exaConfig.config}
-                        configId={exaConfig.id}
-                        onChange={updateConfigValue}
-                        layout={[['api_key'], ['max_results', 'search_type']]}
-                      />
-                    </SubConfigPanel>
-                  )}
-                  {websearchProvider === 'MiniMax' && miniMaxConfig && (
-                    <SubConfigPanel
-                      title={t('aiConfig.serviceProvider.miniMaxConfig')}
-                      icon={<Key className="w-3.5 h-3.5" />}
-                    >
-                      <DynamicConfigPanel
-                        config={miniMaxConfig.config}
-                        configId={miniMaxConfig.id}
-                        onChange={updateConfigValue}
-                        layout={[['api_key'], ['api_host', 'resource_mode']]}
-                      />
-                    </SubConfigPanel>
-                  )}
-                  {websearchProvider === 'MCP' && (
-                    <SubConfigPanel
-                      title={t('aiConfig.mcpTool.title')}
-                      icon={<Wrench className="w-3.5 h-3.5" />}
-                    >
-                      {websearchMcpToolId ? (
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="text-xs font-mono">
-                              <Wrench className="h-3 w-3 mr-1" />
-                              {websearchMcpToolId}
-                            </Badge>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-xs text-primary h-7"
-                            onClick={() => openMcpToolDialog('websearch')}
-                          >
-                            {t('aiConfig.mcpTool.selectTool')}
-                          </Button>
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-between">
-                          <p className="text-xs text-muted-foreground">{t('aiConfig.mcpTool.noToolAssociated')}</p>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-xs text-primary h-7"
-                            onClick={() => openMcpToolDialog('websearch')}
-                          >
-                            {t('aiConfig.mcpTool.goAssociate')}
-                          </Button>
-                        </div>
-                      )}
-                    </SubConfigPanel>
-                  )}
-                </SectionCard>
-
-                {/* 图片理解服务 */}
-                <SectionCard
-                  title={t('aiConfig.imageUnderstand.title') || '图片理解服务'}
-                  description={aiConfig.config.image_understand_provider?.desc || '当LLM模型不支持图片时，使用该服务将图片转述为文本'}
-                  icon={<Eye className="w-6 h-6 text-primary" strokeWidth={1.5} />}
-                  iconBgClass="bg-primary/10"
-                  iconClass="text-primary"
-                  isGlass={isGlass}
-                  rightAction={
-                    aiConfig.config.image_understand_provider?.desc ? (
-                      <TooltipProvider delayDuration={100}>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <button type="button" className="inline-flex items-center justify-center rounded-full p-0.5 hover:bg-primary/10 transition-colors focus:outline-none" onClick={(e) => e.preventDefault()}>
-                              <HelpCircle className="w-3.5 h-3.5 text-muted-foreground/60 hover:text-primary cursor-help" />
-                            </button>
-                          </TooltipTrigger>
-                          <TooltipContent side="top" className="max-w-xs">
-                            <p>{aiConfig.config.image_understand_provider.desc}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    ) : null
-                  }
-                >
-                  <div className="space-y-3">
-                    <ChipGroup
-                      options={((aiConfig.config.image_understand_provider?.options || ['MiniMax']) as string[]).map(p => ({
-                        value: p,
-                        label: p,
-                        icon: <Eye className="w-3.5 h-3.5" />,
-                      }))}
-                      value={[aiConfig.config.image_understand_provider?.value as string].filter(Boolean)}
-                      onValueChange={(newValue) => updateConfigValue(aiConfig.id, 'image_understand_provider', newValue[0] || '')}
-                      selectMode="single"
-                      showRadioIndicator
-                    />
-                    {imageUnderstandProvider === 'MCP' && (
-                      <div className="mt-3 p-4 rounded-xl border bg-muted/30 border-border/40 space-y-2">
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          <Wrench className="w-3.5 h-3.5" />
-                          <span className="text-xs font-semibold uppercase tracking-wider">{t('aiConfig.mcpTool.title')}</span>
-                        </div>
-                        {imageUnderstandMcpToolId ? (
-                          <div className="flex items-center justify-between">
-                            <Badge variant="outline" className="text-xs font-mono">
-                              <Wrench className="h-3 w-3 mr-1" />
-                              {imageUnderstandMcpToolId}
-                            </Badge>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-xs text-primary h-7"
-                              onClick={() => openMcpToolDialog('image_understand')}
-                            >
-                              {t('aiConfig.mcpTool.selectTool')}
-                            </Button>
-                          </div>
-                        ) : (
-                          <div className="flex items-center justify-between">
-                            <p className="text-xs text-muted-foreground">{t('aiConfig.mcpTool.noToolAssociated')}</p>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-xs text-primary h-7"
-                              onClick={() => openMcpToolDialog('image_understand')}
-                            >
-                              {t('aiConfig.mcpTool.goAssociate')}
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </SectionCard>
-              </div>
-
-              {/* Section: 语音识别服务 & 文档提取服务 */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {/* 语音识别服务 */}
-                <SectionCard
-                  title={t('aiConfig.voiceRecognition.title') || '语音识别服务'}
-                  description={aiConfig.config.asr_provider?.desc || '指定语音识别（ASR）服务提供方'}
-                  icon={<Cpu className="w-6 h-6 text-primary" strokeWidth={1.5} />}
-                  iconBgClass="bg-primary/10"
-                  iconClass="text-primary"
-                  isGlass={isGlass}
-                  rightAction={
-                    aiConfig.config.asr_provider?.desc ? (
-                      <TooltipProvider delayDuration={100}>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <button type="button" className="inline-flex items-center justify-center rounded-full p-0.5 hover:bg-primary/10 transition-colors focus:outline-none" onClick={(e) => e.preventDefault()}>
-                              <HelpCircle className="w-3.5 h-3.5 text-muted-foreground/60 hover:text-primary cursor-help" />
-                            </button>
-                          </TooltipTrigger>
-                          <TooltipContent side="top" className="max-w-xs">
-                            <p>{aiConfig.config.asr_provider.desc}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    ) : null
-                  }
-                >
-                  <div className="space-y-3">
-                    <ChipGroup
-                      options={((aiConfig.config.asr_provider?.options || ['MCP']) as string[]).map(p => ({
-                        value: p,
-                        label: p,
-                        icon: <Cpu className="w-3.5 h-3.5" />,
-                      }))}
-                      value={[aiConfig.config.asr_provider?.value as string].filter(Boolean)}
-                      onValueChange={(newValue) => updateConfigValue(aiConfig.id, 'asr_provider', newValue[0] || '')}
-                      selectMode="single"
-                      showRadioIndicator
-                    />
-                  </div>
-                </SectionCard>
-
-                {/* 文档提取服务 */}
-                <SectionCard
-                  title={t('aiConfig.documentExtract.title') || '文档提取服务'}
-                  description={aiConfig.config.document_extract_provider?.desc || '指定文档内容提取服务提供方'}
-                  icon={<FileText className="w-6 h-6 text-primary" strokeWidth={1.5} />}
-                  iconBgClass="bg-primary/10"
-                  iconClass="text-primary"
-                  isGlass={isGlass}
-                  rightAction={
-                    aiConfig.config.document_extract_provider?.desc ? (
-                      <TooltipProvider delayDuration={100}>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <button type="button" className="inline-flex items-center justify-center rounded-full p-0.5 hover:bg-primary/10 transition-colors focus:outline-none" onClick={(e) => e.preventDefault()}>
-                              <HelpCircle className="w-3.5 h-3.5 text-muted-foreground/60 hover:text-primary cursor-help" />
-                            </button>
-                          </TooltipTrigger>
-                          <TooltipContent side="top" className="max-w-xs">
-                            <p>{aiConfig.config.document_extract_provider.desc}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    ) : null
-                  }
-                >
-                  <div className="space-y-3">
-                    <ChipGroup
-                      options={((aiConfig.config.document_extract_provider?.options || ['MCP']) as string[]).map(p => ({
-                        value: p,
-                        label: p,
-                        icon: <FileText className="w-3.5 h-3.5" />,
-                      }))}
-                      value={[aiConfig.config.document_extract_provider?.value as string].filter(Boolean)}
-                      onValueChange={(newValue) => updateConfigValue(aiConfig.id, 'document_extract_provider', newValue[0] || '')}
-                      selectMode="single"
-                      showRadioIndicator
-                    />
-                  </div>
-                </SectionCard>
-              </div>
-
-              {/* Section: 记忆配置 & 表情包配置 */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {/* 记忆配置 */}
-                <SectionCard
-                  title={t('aiConfig.memorySettings.title') || '记忆配置'}
-                  description={t('aiConfig.memorySettings.description') || '配置AI记忆系统'}
-                  icon={<MemoryStick className="w-6 h-6 text-primary" strokeWidth={1.5} />}
-                  iconBgClass="bg-primary/10"
-                  iconClass="text-primary"
-                  isGlass={isGlass}
-                  rightAction={
-                    <Switch
-                      checked={isMemoryEnabled}
-                      onCheckedChange={(checked) => updateConfigValue(aiConfig.id, 'enable_memory', checked)}
-                    />
-                  }
-                >
-                  {!isMemoryEnabled ? (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground py-4 px-2">
-                      <ChevronRight className="w-4 h-4" />
-                      <span>{t('aiConfig.memorySettings.disabledDesc')}</span>
-                    </div>
-                  ) : memoryConfig ? (
-                    <div className="space-y-5">
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <Brain className="w-4 h-4 text-muted-foreground" />
-                          <Label className="text-sm font-medium">{t('aiConfig.memorySettings.memoryMode')}</Label>
-                          {memoryConfig.config.memory_mode?.desc && (
-                            <TooltipProvider delayDuration={100}>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <button type="button" className="inline-flex items-center justify-center rounded-full p-0.5 hover:bg-primary/10 transition-colors focus:outline-none" onClick={(e) => e.preventDefault()}>
-                                    <HelpCircle className="w-3.5 h-3.5 text-muted-foreground/60 hover:text-primary cursor-help" />
-                                  </button>
-                                </TooltipTrigger>
-                                <TooltipContent side="top" className="max-w-xs">
-                                  <p>{memoryConfig.config.memory_mode.desc}</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          )}
-                        </div>
-                        <ChipGroup
-                          options={(memoryConfig.config.memory_mode?.options || ['被动感知', '主动会话']).map((p: string) => ({
-                            value: p,
-                            label: p,
-                            icon: <Brain className="w-3.5 h-3.5" />,
-                          }))}
-                          value={(memoryConfig.config.memory_mode?.value as string[]) || []}
-                          onValueChange={(newValue) => updateConfigValue(memoryConfig.id, 'memory_mode', newValue)}
-                        />
-                      </div>
-                      <DynamicConfigPanel
-                        config={memoryConfig.config}
-                        configId={memoryConfig.id}
-                        onChange={updateConfigValue}
-                        excludeKeys={['memory_mode', 'enable_system2', 'eval_mode']}
-                        layout={[['memory_session', 'retrieval_top_k']]}
-                      />
-                      <Separator className="bg-border/30" />
-                      <div className="space-y-2">
-                        <ToggleRow
-                          icon={<CheckCircle className="w-6 h-6" strokeWidth={1.5} />}
-                          iconColorClass="text-primary"
-                          title={t('aiConfig.memorySettings.enableSystem2')}
-                          description={t('aiConfig.memorySettings.enableSystem2Desc') || '提高检索精度但增加性能开销'}
-                          checked={(memoryConfig.config.enable_system2?.value as boolean) ?? true}
-                          onCheckedChange={(checked) => updateConfigValue(memoryConfig.id, 'enable_system2', checked)}
-                        />
-                        <ToggleRow
-                          icon={<Sparkles className="w-6 h-6" strokeWidth={1.5} />}
-                          iconColorClass="text-primary"
-                          title={t('aiConfig.memorySettings.evalMode')}
-                          description={t('aiConfig.memorySettings.evalModeDesc') || '启用后无法使用 System-2 和 Rerank'}
-                          checked={(memoryConfig.config.eval_mode?.value as boolean) ?? false}
-                          onCheckedChange={(checked) => updateConfigValue(memoryConfig.id, 'eval_mode', checked)}
-                        />
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-sm text-muted-foreground py-4 px-2">{t('aiConfig.memorySettings.noConfig') || '记忆配置加载中...'}</div>
-                  )}
-                </SectionCard>
-
-                {/* 表情包配置 */}
-                {memeConfig && (
-                  <SectionCard
-                    title={t('aiConfig.memeSettings.title') || '表情包配置'}
-                    description={t('aiConfig.memeSettings.description') || '配置表情包采集、打标和发送行为'}
-                    icon={<Smile className="w-6 h-6 text-primary" strokeWidth={1.5} />}
-                    iconBgClass="bg-primary/10"
-                    iconClass="text-primary"
-                    isGlass={isGlass}
-                    rightAction={
-                      <Switch
-                        checked={(memeConfig.config.meme_enable?.value as boolean) ?? false}
-                        onCheckedChange={(checked) => updateConfigValue(memeConfig.id, 'meme_enable', checked)}
-                      />
-                    }
-                  >
-                    {(memeConfig.config.meme_enable?.value as boolean) ? (
-                      <div className="space-y-5">
-                        {/* 自动采集开关 */}
-                        <ToggleRow
-                          icon={<Sparkles className="w-6 h-6" strokeWidth={1.5} />}
-                          iconColorClass="text-primary"
-                          title={t('aiConfig.memeSettings.autoCollect')}
-                          description={t('aiConfig.memeSettings.autoCollectDesc')}
-                          checked={(memeConfig.config.meme_auto_collect?.value as boolean) ?? false}
-                          onCheckedChange={(checked) => updateConfigValue(memeConfig.id, 'meme_auto_collect', checked)}
-                        />
-                        <Separator className="bg-border/30" />
-                        {/* 动态配置面板 - 采集参数 */}
-                        <DynamicConfigPanel
-                          config={memeConfig.config}
-                          configId={memeConfig.id}
-                          onChange={updateConfigValue}
-                          excludeKeys={['meme_enable', 'meme_auto_collect']}
-                          layout={[
-                            ['meme_max_file_kb', 'meme_daily_collect_limit'],
-                            ['meme_min_width', 'meme_min_height'],
-                            ['meme_vlm_semaphore', 'meme_tag_interval_sec'],
-                            ['meme_nsfw_threshold', 'meme_send_cooldown_sec'],
-                            ['meme_recent_exclude_count'],
-                          ]}
-                        />
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground py-4 px-2">
-                        <ChevronRight className="w-4 h-4" />
-                        <span>{t('aiConfig.memeSettings.enableMemeDesc')}</span>
-                      </div>
-                    )}
-                  </SectionCard>
-                )}
-              </div>
-
-              {/* Section: 嵌入模型服务 & 高级设置 */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {/* 嵌入模型服务 */}
-                <SectionCard
-                  title={t('aiConfig.serviceProvider.embeddingService')}
-                  description={t('aiConfig.serviceProvider.embeddingServiceDesc') || '配置向量嵌入模型'}
-                  icon={<Database className="w-6 h-6 text-primary" strokeWidth={1.5} />}
-                  iconBgClass="bg-primary/10"
-                  iconClass="text-primary"
-                  isGlass={isGlass}
-                >
-                  {/* 嵌入模型提供方选择 */}
-                  <ChipGroup
-                    options={(embeddingSummary?.available_providers || embeddingProviderOptions).map(p => ({
-                      value: p,
-                      label: p === 'local' ? t('aiConfig.serviceProvider.localModel') : p === 'openai' ? t('aiConfig.serviceProvider.openaiModel') : p,
-                      icon: p === 'local' ? <Database className="w-3.5 h-3.5" /> : <Globe className="w-3.5 h-3.5" />,
-                    }))}
-                    value={[embeddingSummary?.provider || aiConfig.config.embedding_provider?.value as string].filter(Boolean)}
-                    onValueChange={(newValue) => {
-                      const newProvider = newValue[0] || '';
-                      // 同时更新 aiConfig 中的 embedding_provider 和调用 API 切换
-                      updateConfigValue(aiConfig.id, 'embedding_provider', newProvider);
-                      handleSwitchEmbeddingProvider(newProvider);
-                    }}
-                    selectMode="single"
-                    showRadioIndicator
-                  />
-                  {/* 嵌入模型配置 - 根据提供方显示不同表单 */}
-                  {isLoadingEmbeddingConfig ? (
-                    <div className="flex items-center justify-center py-6">
-                      <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-                    </div>
-                  ) : (
-                    <div className="space-y-4 mt-4 pt-4 border-t border-border/30">
-                      {/* 本地模型配置 */}
-                      {(embeddingSummary?.provider || aiConfig.config.embedding_provider?.value) === 'local' && (
-                        <div className="space-y-3">
-                          {Object.entries(embeddingLocalConfig).map(([key, field]) => (
-                            <div key={key} className="space-y-1.5">
-                              <Label className="text-sm font-medium">{field.title || key}</Label>
-                              {field.desc && <p className="text-xs text-muted-foreground">{field.desc}</p>}
-                              <ConfigField
-                                fieldKey={key}
-                                field={{
-                                  type: (Array.isArray(field.options) && field.options.length > 0 ? 'select' : 'text') as ConfigFieldType,
-                                  label: field.title || key,
-                                  value: field.data == null ? '' : String(field.data),
-                                  options: (field.options || []).map((o) => String(o)),
-                                  placeholder: '',
-                                  description: field.desc || '',
-                                }}
-                                showLabel={false}
-                                onChange={(k, v) => updateEmbeddingLocalField(k, v)}
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      {/* OpenAI 兼容配置 */}
-                      {(embeddingSummary?.provider || aiConfig.config.embedding_provider?.value) === 'openai' && (
-                        <div className="space-y-3">
-                          {Object.entries(embeddingOpenaiConfig).map(([key, field]) => (
-                            <div key={key} className="space-y-1.5">
-                              <Label className="text-sm font-medium flex items-center gap-2">
-                                {key === 'base_url' && <Globe className="w-3.5 h-3.5" />}
-                                {key === 'api_key' && <Key className="w-3.5 h-3.5" />}
-                                {key === 'embedding_model' && <Cpu className="w-3.5 h-3.5" />}
-                                {field.title || key}
-                              </Label>
-                              {field.desc && <p className="text-xs text-muted-foreground">{field.desc}</p>}
-                              {key === 'api_key' ? (
-                                <ConfigField
-                                  fieldKey={key}
-                                  field={{
-                                    type: 'tags',
-                                    label: field.title || key,
-                                    value: (field.data as string[]) || [],
-                                    placeholder: '输入API密钥（支持多个）',
-                                    description: field.desc || '',
-                                  }}
-                                  showLabel={false}
-                                  onChange={(k, v) => updateEmbeddingOpenaiField(k, v)}
-                                />
-                              ) : (
-                                <InputWithDropdown
-                                  value={field.data == null ? '' : String(field.data)}
-                                  onChange={(val) => updateEmbeddingOpenaiField(key, val)}
-                                  options={(field.options || []).map((o) => String(o))}
-                                  placeholder={`选择或输入${field.title || key}`}
-                                  inputPlaceholder={field.options?.[0] != null ? String(field.options[0]) : ''}
-                                />
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                </SectionCard>
-
-                {/* 重排序模型服务 */}
-                <SectionCard
-                  title={t('aiConfig.serviceProvider.rerankService') || '重排序模型服务'}
-                  description={t('aiConfig.serviceProvider.rerankServiceDesc') || '配置Rerank重排序模型'}
-                  icon={<ArrowUpDown className="w-6 h-6 text-primary" strokeWidth={1.5} />}
-                  iconBgClass="bg-primary/10"
-                  iconClass="text-primary"
-                  isGlass={isGlass}
-                  rightAction={
-                    <Switch
-                      checked={isRerankEnabled}
-                      onCheckedChange={(checked) => updateConfigValue(aiConfig.id, 'enable_rerank', checked)}
-                    />
-                  }
-                >
-                  {isRerankEnabled ? (
-                    <div className="space-y-4">
-                      <ChipGroup
-                        options={rerankProviderOptions.map(p => ({
-                          value: p,
-                          label: p === 'local' ? t('aiConfig.serviceProvider.localModel') : p === 'openai' ? t('aiConfig.serviceProvider.openaiModel') : p,
-                          icon: p === 'local' ? <Database className="w-3.5 h-3.5" /> : <Globe className="w-3.5 h-3.5" />,
-                        }))}
-                        value={[rerankProvider].filter(Boolean)}
-                        onValueChange={(newValue) => updateConfigValue(aiConfig.id, 'rerank_provider', newValue[0] || '')}
-                        selectMode="single"
-                        showRadioIndicator
-                      />
-                      {rerankProvider === 'openai' && rerankConfig && (
-                        <div className="mt-2 space-y-4">
-                          <DynamicConfigPanel
-                            config={rerankConfig.config}
-                            configId={rerankConfig.id}
-                            onChange={updateConfigValue}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground py-4 px-2">
-                      <ChevronRight className="w-4 h-4" />
-                      <span>{t('aiConfig.serviceProvider.rerankServiceDisabled') || '启用 Rerank 以提升 RAG 检索质量'}</span>
-                    </div>
-                  )}
-                </SectionCard>
-              </div>
-
-              {/* Section: 其他设置（模仿插件参数配置 3 列 grid 布局） */}
-              <div className="col-span-full space-y-4">
-                <div className="flex items-center gap-2 px-1">
-                  <SlidersHorizontal className="w-5 h-5 text-muted-foreground" />
-                  <h3 className="text-sm font-medium text-muted-foreground">
-                    {t('aiConfig.advancedSettings.title') || '其他设置'}
-                  </h3>
-                </div>
-                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                  {(() => {
-                    const excludeKeys = [
-                      'enable', 'enable_rerank', 'enable_memory',
-                      'websearch_provider', 'image_understand_provider',
-                      'embedding_provider', 'high_level_provider_config_name',
-                      'low_level_provider_config_name', 'asr_provider',
-                      'tts_provider', 'video_understand_provider',
-                      'document_extract_provider', 'rerank_provider'
-                    ];
-                    const entries = Object.entries(aiConfig.config).filter(
-                      ([key]) => !excludeKeys.includes(key)
-                    );
-                    if (entries.length === 0) {
-                      return (
-                        <div className="col-span-full py-12 text-center text-muted-foreground">
-                          <p>{t('plugins.noConfigItems') || '暂无配置项'}</p>
-                        </div>
-                      );
-                    }
-                    return entries.map(([key, item]) => {
-                      let fieldDef = pluginConfigItemToFieldDef(key, item);
-                      if (key === 'multi_agent_lenth') {
-                        fieldDef = {
-                          ...fieldDef,
-                          label: t('aiConfig.advancedSettings.thinkingRounds') || '思考轮数',
-                          type: 'select' as ConfigFieldType,
-                          options: ['9', '12', '20', '30'],
-                          value: String(fieldDef.value || '12'),
-                        };
-                      }
-                      const isDivider = fieldDef.type === 'divider';
-                      return (
-                        <div key={key} className={isDivider ? 'col-span-full' : undefined}>
-                          <ConfigField
-                            fieldKey={key}
-                            field={fieldDef}
-                            onChange={(fieldKey, value) => {
-                              const finalValue = fieldKey === 'multi_agent_lenth' && typeof value === 'string'
-                                ? parseInt(value)
-                                : value;
-                              updateConfigValue(aiConfig.id, fieldKey, finalValue);
-                            }}
-                          />
-                        </div>
-                      );
-                    });
-                  })()}
-                </div>
-              </div>
-
-              {/* 底部保存按钮 */}
-              <div className="flex items-center justify-end pt-2">
-                <Button
-                  onClick={handleSaveConfig}
-                  disabled={!isConfigDirty || isSaving}
-                  size="lg"
-                  className={cn(
-                    "gap-2 min-w-[160px] h-11 transition-all duration-300",
-                    isConfigDirty && "animate-in fade-in slide-in-from-bottom-2"
-                  )}
-                >
-                  {isSaving ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Save className="h-4 w-4" />
-                  )}
-                  {t('aiConfig.saveButton')}
-                </Button>
-              </div>
+              >
+                {isAIEnabled ? t('common.enabled') : t('common.disabled')}
+              </Badge>
             </div>
-          )}
+            <p className="text-sm text-muted-foreground mt-1">
+              {isAIEnabled ? t('aiConfig.serviceSwitch.enabledDesc') : t('aiConfig.serviceSwitch.disabledDesc')}
+            </p>
+          </div>
+          <Switch
+            checked={isAIEnabled}
+            onCheckedChange={(checked) => updateConfigValue(aiConfig!.id, 'enable', checked)}
+            className="scale-110"
+          />
         </div>
-      )}
+      </div>
+
+      {/* Main Content Area - sidebar + content */}
+      <div className="flex-1 flex overflow-hidden px-3 sm:px-6 gap-2 sm:gap-0">
+        {/* Sidebar */}
+        <div className={cn("border-r border-border/40 flex flex-col shrink-0", isMobile ? "w-14" : "w-60")}>
+          <ScrollArea className="flex-1 px-1 pb-2 pt-2 sm:px-2">
+            <div className="space-y-0.5">
+              {sidebarItems.map((item) => (
+                <SidebarItem
+                  key={item.id}
+                  id={item.id}
+                  activeSection={activeSection}
+                  icon={item.icon}
+                  title={item.title}
+                  disabled={item.disabled}
+                  alert={item.alert}
+                  collapsed={isMobile}
+                  onClick={setActiveSection}
+                />
+              ))}
+            </div>
+          </ScrollArea>
+        </div>
+
+        {/* Right Content */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="p-3 sm:p-6">
+            {isLoadingDetail && Object.keys(configs).length === 0 ? (
+              <div className="flex items-center justify-center h-64">
+                <Loader2 className="w-8 h-8 animate-spin" />
+              </div>
+            ) : (
+              renderActiveSection()
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Manage Config Dialog */}
+      <Dialog open={isManageConfigDialogOpen} onOpenChange={setIsManageConfigDialogOpen}>
+        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Settings className="w-5 h-5" />
+              {t('aiConfig.manageConfig')}
+            </DialogTitle>
+            <DialogDescription>{t('aiConfig.manageConfigDesc')}</DialogDescription>
+          </DialogHeader>
+
+          <div className="flex items-center justify-end">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 gap-1.5 text-xs"
+              onClick={() => { setIsCreateDialogOpen(true); fetchProviderConfigOptions(newConfigProvider); }}
+            >
+              <Plus className="w-3.5 h-3.5" />
+              {t('aiConfig.openaiConfig.createNew')}
+            </Button>
+          </div>
+
+          <div className="space-y-2 py-2 max-h-[55vh] overflow-y-auto">
+            {allConfigsList.length === 0 ? (
+              <EmptyState
+                icon={<Server className="w-8 h-8 text-muted-foreground/50" />}
+                title={t('aiConfig.openaiConfig.noConfig')}
+                description={t('aiConfig.taskConfig.emptyHint')}
+              />
+            ) : (
+              allConfigsList.map((configItem) => {
+                const usedByHigh = configItem.name === highLevelConfig;
+                const usedByLow = configItem.name === lowLevelConfig;
+                return (
+                  <div
+                    key={`manage-${configItem.name}`}
+                    className="flex items-center justify-between gap-2 p-3 rounded-xl border border-border/50 bg-card/50"
+                  >
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <FileText className="w-5 h-5 text-muted-foreground shrink-0" />
+                      <div className="min-w-0">
+                        <span className="text-sm font-medium truncate block">{configItem.config_name}</span>
+                        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "text-[10px] h-4 px-1.5",
+                              configItem.provider === 'openai' ? "border-primary/40 text-primary bg-primary/10" : "border-orange-500/40 text-orange-600 bg-orange-500/10"
+                            )}
+                          >
+                            {configItem.provider === 'openai' ? 'OpenAI' : configItem.provider === 'anthropic' ? 'Anthropic' : configItem.provider}
+                          </Badge>
+                          <span className="text-[10px] text-muted-foreground truncate">{configItem.model_name}</span>
+                          {usedByHigh && <Badge variant="secondary" className="text-[10px] h-4 px-1.5">{t('aiConfig.providerConfig.highLevel')}</Badge>}
+                          {usedByLow && <Badge variant="secondary" className="text-[10px] h-4 px-1.5">{t('aiConfig.providerConfig.lowLevel')}</Badge>}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Button
+                        variant="ghost" size="icon" className="h-8 w-8"
+                        onClick={() => openEditDialog(configItem.config_name, configItem.provider)}
+                      >
+                        <Settings className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive"
+                        onClick={() => openDeleteDialog(configItem.config_name, configItem.provider)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsManageConfigDialogOpen(false)}>{t('common.close')}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Create Config Dialog */}
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
