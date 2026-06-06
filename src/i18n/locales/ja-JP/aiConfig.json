@@ -10,6 +10,7 @@
   "checkConfig": "設定確認",
   "manageConfig": "設定を管理",
   "manageConfigDesc": "高レベル / 低レベルタスクで使用するAIモデル設定ファイルを管理します",
+  "aiHistory": "AI履歴",
   "taskConfig": {
     "title": "タスク設定",
     "description": "高レベルタスクと低レベルタスクのAIモデル設定をそれぞれ選択（同一の設定プールを共有）",
@@ -23,12 +24,14 @@
   "vectorDb": {
     "title": "ベクトルデータベースサービス",
     "description": "Qdrantのデプロイ方式、埋め込みモデル、再ランキングモデルを設定します",
-    "switchWarning": "Qdrantのデプロイ方式または埋め込みプロバイダーを切り替えるにはサービスの再起動が必要です。先に data/ai_core データをバックアップしてください。履歴データの移行には時間がかかる場合があります。",
+    "switchWarning": "Qdrantのデプロイ方式または埋め込みプロバイダーを切り替えるには **サービスの再起動が必要です**。先に data/ai_core データをバックアップしてください。履歴データの移行には時間がかかる場合があります。",
     "qdrantProvider": "Qdrantデプロイ方式",
     "qdrantProviderDesc": "local は組み込みQdrantをローカルで使用、remote はリモートQdrantサービスに接続（URL / API Key が必要）",
     "qdrantLocal": "ローカル",
     "qdrantRemote": "リモート",
     "qdrantRecommendTip": "より良いパフォーマンスと安定性のために、リモートQdrantサービスの使用を推奨します。GitHub ReleasesからQdrantをダウンロードして直接実行するか、Qdrant Cloudマネージドサービスをご利用ください。",
+    "switchWarningTitle": "デプロイ方式切替の確認",
+    "switchConfirm": "了解しました。切り替えを続行します",
     "rerankWarning": "再ランキングモデルサービスは負荷が高く、応答遅延とリソース使用量が増加します。慎重に有効化してください。"
   },
   "wizard": {
@@ -49,9 +52,29 @@
     "memoryWarningTip": "全グループのメモリを処理するため、トークン消費が増える場合があります"
   },
   "serviceSwitch": {
+  "checkConfigPendingRestart": "AIサービスを有効にした後は、まずコアの再起動が必要です。",
+  "restartRequiredTitle": "コアの再起動が必要",
+  "restartRequiredDesc": "AI設定が変更されましたが、バックエンドのAIコアはまだロードされていません。左下の「GsCoreを再起動」ボタンをクリックして反映してください。",
     "title": "AIサービスを有効化",
     "enabledDesc": "AIサービスは有効です",
-    "disabledDesc": "有効にするとAI会話や検索を利用できます"
+    "disabledDesc": "有効にするとAI会話や検索を利用できます",
+    "usageHelp": "使い方ヘルプ",
+    "enableDialog": {
+      "title": "AI機能の有効化に関するお知らせ",
+      "confirm": "了解しました。有効化を続行します",
+      "line1": "AI機能を有効にすると、Agentの不安定な動作を受け入れることになります。有効化後はコアを再起動してください。システムは**約200MBのメモリ**を消費する依存関係を読み込みます。再起動後に設定を続行し、AI機能を利用するには**ペルソナの設定**も必要です。",
+      "line2": "トークン消費を抑えるため、ペルソナの適用範囲をすべてのグループチャットに広げないでください。",
+      "line3": "**記憶機能**の**受動的知覚**は大量のトークンを消費します。すべてのメッセージがバックグラウンドで分析キューに登録され、記憶グラフが生成されるためです。",
+      "line4": "エージェントが最新情報を取得するために、**Web検索サービス**を必ず設定してください。",
+      "line5": "**詳細設定**のブラックリスト/ホワイトリスト機能はグローバルに有効で、ペルソナ設定より優先されます。",
+      "line6": "このお知らせを再度表示するには、右上の**使い方ヘルプ**ボタンをクリックしてください。",
+      "line7": "より良いパフォーマンスと安定性のために、**リモートQdrantサービス**の使用を推奨します。[GitHub Releases](https://github.com/qdrant/qdrant/releases)からQdrantをダウンロードして直接実行するか、[Qdrant Cloud](https://cloud.qdrant.io/)マネージドサービスをご利用ください。"
+    },
+    "disableDialog": {
+      "title": "AI機能の無効化に関するお知らせ",
+      "confirm": "了解しました。無効化を続行します",
+      "line1": "AI機能のリソース使用を完全に解放するには、無効化後にすぐにコアを再起動することをお勧めします。"
+    }
   },
   "serviceProvider": {
     "title": "サービスプロバイダー",

@@ -196,7 +196,7 @@ function McpParamMappingRow({
       {mcpParamName ? (
         <span
           className={cn(
-            'h-7 px-2 text-xs font-mono rounded-md border border-border/30 bg-muted/30 flex items-center shrink-0 max-w-[120px] truncate',
+            'h-7 px-2 text-xs font-mono rounded-md border border-border/30 bg-muted/30 flex items-center shrink-0 w-[120px] truncate',
             mode === 'skip' && 'line-through'
           )}
           title={mcpParamName}

@@ -10,6 +10,7 @@
   "checkConfig": "检查配置",
   "manageConfig": "管理配置",
   "manageConfigDesc": "管理用于高级 / 低级任务的 AI 模型配置文件",
+  "aiHistory": "AI历史调用",
   "taskConfig": {
     "title": "任务配置",
     "description": "为高级任务与低级任务分别选择 AI 模型配置（共用同一配置池）",
@@ -23,12 +24,14 @@
   "vectorDb": {
     "title": "向量数据库服务",
     "description": "配置 Qdrant 向量库部署方式、嵌入模型与重排序模型",
-    "switchWarning": "切换 Qdrant 部署方式或嵌入模型提供方需要重启服务生效；请提前备份 data/ai_core 数据，历史数据迁移可能耗时较久。",
+    "switchWarning": "切换 Qdrant 部署方式或嵌入模型提供方 **需要重启服务生效**；请提前备份 data/ai_core 数据，历史数据迁移可能耗时较久。",
     "qdrantProvider": "Qdrant 部署方式",
     "qdrantProviderDesc": "local 使用本地嵌入式 Qdrant；remote 连接远程 Qdrant 服务（需填写 URL / API Key）",
     "qdrantLocal": "本地",
     "qdrantRemote": "远程",
     "qdrantRecommendTip": "建议尽可能使用远程 Qdrant 服务以获得更好的性能和稳定性。您可以从 GitHub Releases 下载 Qdrant 直接运行，也可以使用 Qdrant Cloud 托管服务。",
+    "switchWarningTitle": "切换部署方式确认",
+    "switchConfirm": "我已了解，继续切换",
     "rerankWarning": "重排序模型服务较重，会增加响应延迟与资源占用，建议谨慎启用。"
   },
   "wizard": {
@@ -49,9 +52,29 @@
     "memoryWarningTip": "全部群聊模式会处理所有群聊的记忆，可能占用较多 Token"
   },
   "serviceSwitch": {
+  "checkConfigPendingRestart": "启用AI服务后，需先执行核心重启。",
+  "restartRequiredTitle": "需要重启核心服务",
+  "restartRequiredDesc": "AI 配置已变更，后端 AI 核心尚未加载。点击左下角「重启 GsCore」按钮以完成生效。",
     "title": "启用AI服务",
     "enabledDesc": "AI服务已启用，用户可以使用AI功能",
-    "disabledDesc": "开启后，用户可以使用AI对话、搜索等功能"
+    "disabledDesc": "开启后，用户可以使用AI对话、搜索等功能",
+    "usageHelp": "使用帮助",
+    "enableDialog": {
+      "title": "启用 AI 功能提示",
+      "confirm": "我已了解，继续开启",
+      "line1": "启用AI功能代表你接受Agent可能的不稳定行为。开启后请务必重启核心，系统将加载**大约200MB内存占用**的依赖。重启后请继续完成相关配置，你还需要**配置人格**才能使用AI功能。",
+      "line2": "为了节省Token消耗，请不要将人格的范围扩展到全部群聊。",
+      "line3": "**记忆功能**中的**被动感知**将会消耗大量token，因为会在后台将全部消息纳入分析队列并生成相关记忆图谱。",
+      "line4": "请务必配置**网络搜索服务**，用于Agent的最新消息获取。",
+      "line5": "**高级设置**中的黑名单白名单功能全局生效，优先于人格配置。",
+      "line6": "如想再次查看本提示，请点击右上角的**使用帮助**按钮重新浏览。",
+      "line7": "建议尽可能使用**远程 Qdrant 服务**以获得更好的性能和稳定性。您可以从 [GitHub Releases](https://github.com/qdrant/qdrant/releases) 下载 Qdrant 直接运行，也可以使用 [Qdrant Cloud](https://cloud.qdrant.io/) 托管服务。"
+    },
+    "disableDialog": {
+      "title": "关闭 AI 功能提示",
+      "confirm": "我已了解，继续关闭",
+      "line1": "为了彻底关闭AI功能的占用，建议你立即重启核心以完成关闭。"
+    }
   },
   "serviceProvider": {
     "title": "服务提供方",

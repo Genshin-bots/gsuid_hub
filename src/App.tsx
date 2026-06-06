@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { ConfigDirtyProvider } from "@/contexts/ConfigDirtyContext";
+import { AIStatusProvider } from "@/contexts/AIStatusContext";
 import { AppLayout } from "@/components/layout/AppLayout";
 import Login from "@/pages/Login";
 import HomePage from "@/pages/HomePage";
@@ -123,12 +124,14 @@ const App = () => (
       <LanguageProvider>
         <AuthProvider>
           <ConfigDirtyProvider>
-            <TooltipProvider>
-              <Sonner />
-              <HashRouter>
-                <AppRoutes />
-              </HashRouter>
-            </TooltipProvider>
+            <AIStatusProvider>
+              <TooltipProvider>
+                <Sonner />
+                <HashRouter>
+                  <AppRoutes />
+                </HashRouter>
+              </TooltipProvider>
+            </AIStatusProvider>
           </ConfigDirtyProvider>
         </AuthProvider>
       </LanguageProvider>

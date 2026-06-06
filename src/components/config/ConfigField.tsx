@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { InputWithDropdown } from '@/components/ui/input-with-dropdown';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { TooltipProvider } from '@/components/ui/tooltip';
+import { MarkdownTooltip } from './MarkdownTooltip';
 import { TimePicker } from '@/components/ui/time-picker';
 import {
   AlertDialog,
@@ -768,20 +769,7 @@ export function ConfigField({
               </span>
             )}
             {displayDescription && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    className="inline-flex items-center justify-center rounded-full p-0.5 hover:bg-primary/10 transition-colors focus:outline-none"
-                    onClick={(e) => e.preventDefault()}
-                  >
-                    <HelpCircle className="w-3.5 h-3.5 text-muted-foreground/60 hover:text-primary cursor-help" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side="top" className="max-w-xs">
-                  <p>{displayDescription}</p>
-                </TooltipContent>
-              </Tooltip>
+              <MarkdownTooltip content={displayDescription} side="top" className="max-w-xs" />
             )}
           </Label>
         )}

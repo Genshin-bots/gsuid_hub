@@ -10,6 +10,7 @@
   "checkConfig": "Check Configuration",
   "manageConfig": "Manage Configs",
   "manageConfigDesc": "Manage AI model configuration files used by high / low level tasks",
+  "aiHistory": "AI History",
   "taskConfig": {
     "title": "Task Configuration",
     "description": "Select AI model configs for high and low level tasks (sharing one config pool)",
@@ -23,12 +24,14 @@
   "vectorDb": {
     "title": "Vector Database Service",
     "description": "Configure Qdrant deployment, embedding and reranking models",
-    "switchWarning": "Switching the Qdrant deployment or embedding provider requires a service restart. Please back up the data/ai_core folder first; migrating historical data may take a long time.",
+    "switchWarning": "Switching the Qdrant deployment or embedding provider **requires a service restart**. Please back up the data/ai_core folder first; migrating historical data may take a long time.",
     "qdrantProvider": "Qdrant Deployment",
     "qdrantProviderDesc": "local uses an embedded Qdrant; remote connects to a remote Qdrant service (URL / API Key required)",
     "qdrantLocal": "Local",
     "qdrantRemote": "Remote",
     "qdrantRecommendTip": "It is recommended to use a remote Qdrant service for better performance and stability. You can download Qdrant from GitHub Releases and run it directly, or use the Qdrant Cloud hosted service.",
+    "switchWarningTitle": "Confirm Deployment Switch",
+    "switchConfirm": "I understand, continue switching",
     "rerankWarning": "The reranking model service is heavy and increases latency and resource usage — enable it with caution."
   },
   "wizard": {
@@ -49,9 +52,29 @@
     "memoryWarningTip": "All groups mode processes memory for all groups, which may consume more tokens"
   },
   "serviceSwitch": {
+  "checkConfigPendingRestart": "After enabling the AI service, a core restart is required first.",
+  "restartRequiredTitle": "Core Restart Required",
+  "restartRequiredDesc": "AI configuration has been changed, but the backend AI core is not yet loaded. Click the \"Restart GsCore\" button in the bottom-left to apply.",
     "title": "Enable AI Service",
     "enabledDesc": "AI service is enabled, users can use AI features",
-    "disabledDesc": "Enable to allow users to use AI chat, search and other features"
+    "disabledDesc": "Enable to allow users to use AI chat, search and other features",
+    "usageHelp": "Usage Help",
+    "enableDialog": {
+      "title": "Enable AI Feature Notice",
+      "confirm": "I understand, continue enabling",
+      "line1": "Enabling AI features means you accept potentially unstable Agent behavior. After enabling, please restart the core — the system will load dependencies using **approximately 200MB of memory**. After restart, continue with configuration; you must also **configure a persona** before using AI features.",
+      "line2": "To save token consumption, do not extend the persona scope to all group chats.",
+      "line3": "**Passive Perception** in **Memory Settings** will consume a large number of tokens, as all messages are analyzed in the background to generate a memory graph.",
+      "line4": "You must configure a **web search service** for the Agent to retrieve the latest information.",
+      "line5": "The blacklist/whitelist in **Advanced Settings** takes effect globally and takes priority over persona configuration.",
+      "line6": "To view this notice again, click the **Usage Help** button in the top right corner.",
+      "line7": "It is recommended to use a **remote Qdrant service** for better performance and stability. You can download Qdrant from [GitHub Releases](https://github.com/qdrant/qdrant/releases) and run it directly, or use the [Qdrant Cloud](https://cloud.qdrant.io/) hosted service."
+    },
+    "disableDialog": {
+      "title": "Disable AI Feature Notice",
+      "confirm": "I understand, continue disabling",
+      "line1": "To fully release AI feature resource usage, it is recommended to restart the core immediately after disabling."
+    }
   },
   "serviceProvider": {
     "title": "Service Providers",

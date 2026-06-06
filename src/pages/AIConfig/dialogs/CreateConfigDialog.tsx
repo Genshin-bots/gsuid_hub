@@ -205,8 +205,8 @@ export function CreateConfigDialog(props: CreateConfigDialogProps) {
                 new Set([
                   ...fetchedModels,
                   ...(providerConfigOptions?.options?.model_name || []),
-                ]).filter(Boolean),
-              )}
+                ]),
+              ).filter((m): m is string => Boolean(m))}
               placeholder={
                 isFetching
                   ? t('aiConfig.openaiConfig.fetchingModels')

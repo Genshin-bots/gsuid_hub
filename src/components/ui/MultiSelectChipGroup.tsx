@@ -109,9 +109,9 @@ export function ChipGroup({
             disabled={isDisabled}
             className={cn(
               "p-2.5 rounded-lg border-2 transition-all flex items-center gap-2",
-              "hover:shadow-sm active:scale-[0.98]",
+              "active:scale-[0.98]",
               isSelected
-                ? "border-primary bg-primary/10 shadow-sm"
+                ? "border-primary bg-primary/10"
                 : "border-border hover:border-primary/50",
               isDisabled && "opacity-50 cursor-not-allowed hover:border-border",
               chipClassName

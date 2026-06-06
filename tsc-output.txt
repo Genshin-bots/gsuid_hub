@@ -9,3 +9,5 @@ src/components/charts/EChartsWrapper.tsx(107,7): error TS2322: Type '{ axisLine:
       The types of 'splitLine.lineStyle.type' are incompatible between these types.
         Type 'string' is not assignable to type 'ZRLineType'.
 src/components/ui/use-toast.ts(1,33): error TS2307: Cannot find module '@/hooks/use-toast' or its corresponding type declarations.
+src/pages/AIConfig/index.ts(48,10): error TS2305: Module '"./dialogs/EditConfigDialog"' has no exported member 'EditConfigDialog'.
+src/pages/AIConfig/index.ts(49,15): error TS2305: Module '"./dialogs/EditConfigDialog"' has no exported member 'EditConfigDialogProps'.

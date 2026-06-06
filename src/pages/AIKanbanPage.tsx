@@ -625,8 +625,8 @@ export default function AIKanbanPage() {
       onDragStart={(event) => event.dataTransfer.setData('text/plain', task.id)}
       onClick={() => openDetail(task)}
       className={cn(
-        'group relative cursor-pointer rounded-xl border bg-card/95 p-3 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-md',
-        task.kind === 'subtask' && 'before:absolute before:left-0 before:top-0 before:h-0 before:w-0 before:border-l-[14px] before:border-t-[14px] before:border-l-primary/40 before:border-t-transparent',
+        'group glass-card-flat relative cursor-pointer rounded-xl p-3 shadow-[0_2px_10px_hsl(0_0%_0%/0.04)] transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[0_10px_30px_hsl(0_0%_0%/0.10)]',
+        task.kind === 'subtask' && 'pl-4 before:absolute before:inset-y-3 before:left-1.5 before:w-1 before:rounded-full before:bg-primary/40',
       )}
     >
       <div className="flex items-start justify-between gap-2">
@@ -729,7 +729,7 @@ export default function AIKanbanPage() {
       </div>
 
       {viewMode === 'kanban' && (
-      <Card className="glass-card shrink-0">
+      <Card className="glass-card shrink-0 !shadow-[0_2px_14px_hsl(0_0%_0%/0.05)] dark:!shadow-[0_4px_18px_hsl(0_0%_0%/0.16)]">
         <CardContent className="p-4 space-y-4">
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-6">
             <Input value={filters.scope_key} onChange={(event) => setFilters((prev) => ({ ...prev, scope_key: event.target.value }))} placeholder={t('aiKanban.filters.scopeKey')} />

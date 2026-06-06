@@ -42,7 +42,7 @@ export function TabButtonGroup({
           className={cn(
             'relative px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 flex items-center gap-2 whitespace-nowrap',
             value === option.value
-              ? 'bg-primary text-primary-foreground shadow-sm'
+              ? 'bg-primary text-primary-foreground'
               : 'text-muted-foreground hover:text-foreground hover:bg-muted/80',
             buttonClassName
           )}

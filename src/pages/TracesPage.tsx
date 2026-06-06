@@ -94,6 +94,31 @@ export default function TracesPage() {
   const [dailyCounts, setDailyCounts] = useState<Record<string, number>>({});
   const [countsLoading, setCountsLoading] = useState(false);
 
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const styleId = "traces-calendar-overrides";
+    if (document.getElementById(styleId)) return;
+    const el = document.createElement("style");
+    el.id = styleId;
+    el.textContent = `
+      .traces-date-calendar .rdp-day,
+      .traces-date-calendar .rdp-day_button {
+        overflow: visible !important;
+        border-radius: 8px !important;
+      }
+      .traces-date-calendar .rdp-day,
+      .traces-date-calendar .rdp-day_button,
+      .traces-date-calendar .rdp-cell {
+        width: 2.75rem !important;
+        height: 2.75rem !important;
+      }
+      .traces-date-calendar .rdp-day_button {
+        font-size: 0.875rem !important;
+      }
+    `;
+    document.head.appendChild(el);
+  }, []);
+
   const dateStr = useMemo(
     () => format(selectedDate, "yyyy-MM-dd"),
     [selectedDate]
@@ -270,36 +295,57 @@ export default function TracesPage() {
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start" side="bottom" sideOffset={8}>
-              <CalendarComponent
-                mode="single"
-                selected={selectedDate}
-                onSelect={(date) => {
-                  if (date) setSelectedDate(date);
-                }}
-                disabled={disabledMatchers}
-                defaultMonth={selectedDate}
-                initialFocus
-                className="pointer-events-auto"
-                components={{
-                  DayContent: ({ date: dayDate }: { date: Date }) => {
-                    const ds = format(dayDate, "yyyy-MM-dd");
-                    const count = dailyCounts[ds];
-                    const hasData = count !== undefined && count > 0;
-                    return (
-                      <div className="relative flex flex-col items-center justify-center w-full h-full">
-                        <span className={cn(!hasData && "text-muted-foreground opacity-50")}>
-                          {dayDate.getDate()}
-                        </span>
-                        {hasData && (
-                          <span className="absolute -bottom-0.5 text-[0.55rem] leading-none text-muted-foreground">
-                            {count}
+              <div className="traces-date-calendar">
+                <CalendarComponent
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={(date) => {
+                    if (date) setSelectedDate(date);
+                  }}
+                  disabled={disabledMatchers}
+                  defaultMonth={selectedDate}
+                  initialFocus
+                  className="pointer-events-auto"
+                  components={{
+                    DayContent: ({
+                      date: dayDate,
+                      activeModifiers,
+                    }: {
+                      date: Date;
+                      activeModifiers: { selected?: boolean };
+                    }) => {
+                      const ds = format(dayDate, "yyyy-MM-dd");
+                      const count = dailyCounts[ds];
+                      const hasData = count !== undefined && count > 0;
+                      const isSelected = !!activeModifiers?.selected;
+                      return (
+                        <div className="flex flex-col items-center justify-center w-full h-full leading-none">
+                          <span
+                            className={cn(
+                              "text-[0.85rem]",
+                              !hasData && "text-muted-foreground opacity-50"
+                            )}
+                          >
+                            {dayDate.getDate()}
                           </span>
-                        )}
-                      </div>
-                    );
-                  },
-                }}
-              />
+                          {hasData && (
+                            <span
+                              className={cn(
+                                "text-[0.55rem] mt-0.5",
+                                isSelected
+                                  ? "text-primary-foreground"
+                                  : "text-muted-foreground"
+                              )}
+                            >
+                              {count}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    },
+                  }}
+                />
+              </div>
             </PopoverContent>
           </Popover>
           <Button variant="outline" onClick={fetchTraces} disabled={isLoading} className="whitespace-nowrap">

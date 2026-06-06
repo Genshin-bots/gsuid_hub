@@ -1,3 +1,4 @@
+import { useState, useRef, useEffect } from 'react';
 import {
   ArrowUpDown,
   Cpu,
@@ -14,8 +15,19 @@ import { ChipGroup } from '@/components/ui/MultiSelectChipGroup';
 import { DynamicConfigPanel, ConfigField, type ConfigFieldType, type ConfigValue } from '@/components/config';
 import { InputWithDropdown } from '@/components/ui/input-with-dropdown';
 import { cn } from '@/lib/utils';
+import { renderRichText } from '../shared/renderRichText';
 import type { PluginConfigItem } from '@/lib/api';
 import type { EmbeddingConfigField } from '../constants';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 export interface VectorDbSectionProps {
   t: (key: string) => string;
@@ -77,6 +89,66 @@ export function VectorDbSection({
   onUpdateEmbeddingLocalField,
   onUpdateEmbeddingOpenaiField,
 }: VectorDbSectionProps) {
+  // —— 记录初始值，用于判断是否真正发生了变更 ——
+  const initialQdrantRef = useRef(qdrantProvider);
+  const initialEmbeddingRef = useRef(embeddingProvider);
+  useEffect(() => { initialQdrantRef.current = qdrantProvider; }, []);
+  useEffect(() => { initialEmbeddingRef.current = embeddingProvider; }, []);
+
+  // —— Qdrant 部署方式切换确认弹窗 ——
+  const [isQdrantSwitchDialogOpen, setIsQdrantSwitchDialogOpen] = useState(false);
+  const [pendingQdrantValue, setPendingQdrantValue] = useState('');
+  const [qdrantChanged, setQdrantChanged] = useState(false);
+
+  // —— 嵌入模型提供方切换确认弹窗 ——
+  const [isEmbeddingSwitchDialogOpen, setIsEmbeddingSwitchDialogOpen] = useState(false);
+  const [pendingEmbeddingValue, setPendingEmbeddingValue] = useState('');
+  const [embeddingChanged, setEmbeddingChanged] = useState(false);
+
+  const handleQdrantProviderChange = (newValue: string[]) => {
+    const target = newValue[0] || '';
+    if (target && target !== qdrantProvider) {
+      // 切回原值：不弹窗，直接应用，隐藏警告
+      if (target === initialQdrantRef.current) {
+        setQdrantChanged(false);
+        onUpdateConfig(aiConfigId, 'qdrant_provider', target);
+      } else {
+        // 切到新值：弹窗确认
+        setPendingQdrantValue(target);
+        setIsQdrantSwitchDialogOpen(true);
+      }
+    }
+  };
+
+  const handleConfirmQdrantSwitch = () => {
+    setIsQdrantSwitchDialogOpen(false);
+    setQdrantChanged(true);
+    onUpdateConfig(aiConfigId, 'qdrant_provider', pendingQdrantValue);
+  };
+
+  const handleEmbeddingProviderChange = (newValue: string[]) => {
+    const np = newValue[0] || '';
+    if (np && np !== embeddingProvider) {
+      // 切回原值：不弹窗，直接应用，隐藏警告
+      if (np === initialEmbeddingRef.current) {
+        setEmbeddingChanged(false);
+        onUpdateConfig(aiConfigId, 'embedding_provider', np);
+        onSwitchEmbeddingProvider(np);
+      } else {
+        // 切到新值：弹窗确认
+        setPendingEmbeddingValue(np);
+        setIsEmbeddingSwitchDialogOpen(true);
+      }
+    }
+  };
+
+  const handleConfirmEmbeddingSwitch = () => {
+    setIsEmbeddingSwitchDialogOpen(false);
+    setEmbeddingChanged(true);
+    onUpdateConfig(aiConfigId, 'embedding_provider', pendingEmbeddingValue);
+    onSwitchEmbeddingProvider(pendingEmbeddingValue);
+  };
+
   return (
     <div className="space-y-5">
       <div>
@@ -86,21 +158,6 @@ export function VectorDbSection({
         </h2>
         <p className="text-sm text-muted-foreground">
           {t('aiConfig.vectorDb.description')}
-        </p>
-      </div>
-
-      {/* 切换警告（常驻） */}
-      <div
-        className={cn(
-          'rounded-lg p-3 flex items-start gap-2',
-          isGlass
-            ? 'border border-amber-500/40 bg-amber-500/10'
-            : 'border border-amber-300 bg-amber-50 dark:border-amber-800/60 dark:bg-amber-950/40',
-        )}
-      >
-        <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-        <p className="text-xs text-amber-700 dark:text-amber-400">
-          {t('aiConfig.vectorDb.switchWarning')}
         </p>
       </div>
 
@@ -132,12 +189,25 @@ export function VectorDbSection({
               ),
           }))}
           value={qdrantProvider ? [qdrantProvider] : []}
-          onValueChange={(newValue) =>
-            onUpdateConfig(aiConfigId, 'qdrant_provider', newValue[0] || '')
-          }
+          onValueChange={handleQdrantProviderChange}
           selectMode="single"
           showRadioIndicator
         />
+        {qdrantChanged && (
+          <div
+            className={cn(
+              'rounded-lg p-3 flex items-start gap-2',
+              isGlass
+                ? 'border border-amber-500/40 bg-amber-500/10'
+                : 'border border-amber-300 bg-amber-50 dark:border-amber-800/60 dark:bg-amber-950/40',
+            )}
+          >
+            <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+            <p className="text-xs text-amber-700 dark:text-amber-400">
+              {renderRichText(t('aiConfig.vectorDb.switchWarning'))}
+            </p>
+          </div>
+        )}
         {qdrantProvider !== 'remote' && (
           <div
             className={cn(
@@ -211,14 +281,25 @@ export function VectorDbSection({
               ),
           }))}
           value={embeddingProvider ? [embeddingProvider] : []}
-          onValueChange={(newValue) => {
-            const np = newValue[0] || '';
-            onUpdateConfig(aiConfigId, 'embedding_provider', np);
-            onSwitchEmbeddingProvider(np);
-          }}
+          onValueChange={handleEmbeddingProviderChange}
           selectMode="single"
           showRadioIndicator
         />
+        {embeddingChanged && (
+          <div
+            className={cn(
+              'rounded-lg p-3 flex items-start gap-2',
+              isGlass
+                ? 'border border-amber-500/40 bg-amber-500/10'
+                : 'border border-amber-300 bg-amber-50 dark:border-amber-800/60 dark:bg-amber-950/40',
+            )}
+          >
+            <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+            <p className="text-xs text-amber-700 dark:text-amber-400">
+              {renderRichText(t('aiConfig.vectorDb.switchWarning'))}
+            </p>
+          </div>
+        )}
         <div className="pt-3 border-t border-border/30">
           {isLoadingEmbeddingConfig ? (
             <div className="flex items-center justify-center py-6">
@@ -369,6 +450,58 @@ export function VectorDbSection({
           </>
         )}
       </div>
+
+      {/* Qdrant 部署方式切换确认弹窗 */}
+      <AlertDialog open={isQdrantSwitchDialogOpen} onOpenChange={setIsQdrantSwitchDialogOpen}>
+        <AlertDialogContent className="max-w-[500px]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-amber-500" />
+              {t('aiConfig.vectorDb.switchWarningTitle') || '切换 Qdrant 部署方式'}
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="text-sm leading-relaxed text-foreground/90 rounded-md bg-amber-500/5 border border-amber-500/20 p-3 flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0 text-amber-500" />
+                <span>{renderRichText(t('aiConfig.vectorDb.switchWarning'))}</span>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setIsQdrantSwitchDialogOpen(false)}>
+              {t('common.cancel') || '取消'}
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmQdrantSwitch}>
+              {t('aiConfig.vectorDb.switchConfirm') || '我已了解，继续切换'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* 嵌入模型提供方切换确认弹窗 */}
+      <AlertDialog open={isEmbeddingSwitchDialogOpen} onOpenChange={setIsEmbeddingSwitchDialogOpen}>
+        <AlertDialogContent className="max-w-[500px]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-amber-500" />
+              {t('aiConfig.vectorDb.switchWarningTitle') || '切换嵌入模型提供方'}
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="text-sm leading-relaxed text-foreground/90 rounded-md bg-amber-500/5 border border-amber-500/20 p-3 flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0 text-amber-500" />
+                <span>{renderRichText(t('aiConfig.vectorDb.switchWarning'))}</span>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setIsEmbeddingSwitchDialogOpen(false)}>
+              {t('common.cancel') || '取消'}
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmEmbeddingSwitch}>
+              {t('aiConfig.vectorDb.switchConfirm') || '我已了解，继续切换'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

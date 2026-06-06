@@ -819,15 +819,19 @@ export default function AIHistoryPage() {
 
           {/* 统计概览 - 带图标 */}
           <div className="grid grid-cols-2 gap-3 mb-4">
-            <div className="bg-card border rounded-xl p-3 flex items-center gap-3 shadow-sm">
-              <HardDrive className="w-7 h-7 text-blue-500 shrink-0" />
+            <div className="bg-card/50 border border-border/30 rounded-2xl p-3 flex items-center gap-3">
+              <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-blue-500/10 text-blue-500 shrink-0">
+                <HardDrive className="w-4.5 h-4.5" />
+              </div>
               <div className="min-w-0">
                 <p className="text-[11px] text-muted-foreground leading-tight">{t('aiHistory.statsTotalFiles')}</p>
                 <p className="text-lg font-bold leading-tight mt-0.5">{stats?.disk_count ?? '-'}</p>
               </div>
             </div>
-            <div className="bg-card border rounded-xl p-3 flex items-center gap-3 shadow-sm">
-              <Cpu className="w-7 h-7 text-green-500 shrink-0" />
+            <div className="bg-card/50 border border-border/30 rounded-2xl p-3 flex items-center gap-3">
+              <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-green-500/10 text-green-500 shrink-0">
+                <Cpu className="w-4.5 h-4.5" />
+              </div>
               <div className="min-w-0">
                 <p className="text-[11px] text-muted-foreground leading-tight">{t('aiHistory.statsActiveSessions')}</p>
                 <p className="text-lg font-bold leading-tight mt-0.5">{stats?.memory_count ?? '-'}</p>
@@ -843,7 +847,7 @@ export default function AIHistoryPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleApplyFilter()}
-              className={cn("pl-9 h-8 text-sm", isGlass && "glass-card")}
+              className={cn("pl-9 h-8 text-sm border-border/40 bg-card/50 focus-visible:ring-1 focus-visible:ring-primary/30", isGlass && "glass-card")}
             />
           </div>
 

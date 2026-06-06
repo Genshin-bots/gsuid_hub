@@ -5,6 +5,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useAIStatus } from '@/contexts/AIStatusContext';
 import { Button } from '@/components/ui/button';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -62,61 +63,71 @@ const ICON_MAP: Record<string, React.ElementType> = {
 };
 
 // 导航项配置
-const getNavItems = (t: (key: string) => string): NavItem[] => [
-  { title: t('sidebar.home'), url: '/home', icon: Home },
-  { title: t('sidebar.dashboard'), url: '/dashboard', icon: LayoutDashboard },
-  { title: t('sidebar.database'), url: '/database', icon: Database },
-  {
-    title: t('sidebar.adminCore'),
-    icon: Cog,
-    children: [
-      { title: t('sidebar.coreConfig'), url: '/core-config', icon: Cog },
-      { title: t('sidebar.frameworkConfig'), url: '/framework-config', icon: Cpu },
-      { title: t('sidebar.backup'), url: '/backup', icon: HardDrive },
-      { title: t('sidebar.scheduler'), url: '/scheduler', icon: Calendar }
-    ]
-  },
-  {
-    title: t('sidebar.logsView'),
-    icon: FileText,
-    children: [
-      { title: t('sidebar.console'), url: '/console', icon: Terminal },
-      { title: t('sidebar.historyLogs'), url: '/logs', icon: FileText },
-      { title: t('sidebar.traces'), url: '/traces', icon: Activity },
-      { title: t('sidebar.sessionManagement'), url: '/session-management', icon: History }
-    ]
-  },
-  {
-    title: t('sidebar.aiConfig'),
-    icon: Brain,
-    children: [
-      { title: t('sidebar.basicConfig'), url: '/ai-config', icon: Cog },
-      { title: t('sidebar.personaConfig'), url: '/persona-config', icon: User },
-      { title: t('sidebar.mcpConfig'), url: '/mcp-config', icon: Server },
-      { title: t('sidebar.aiCapabilityAgents'), url: '/ai-capability-agents', icon: Layers },
-      { title: t('sidebar.aiTools'), url: '/ai-tools', icon: Wrench },
-      { title: t('sidebar.aiSkills'), url: '/ai-skills', icon: Sparkles },
-      { title: t('sidebar.aiStatistics'), url: '/ai-statistics', icon: TrendingUp },
-      { title: t('sidebar.aiScheduledTasks'), url: '/ai-scheduled-tasks', icon: Clock },
-      { title: t('sidebar.aiKnowledge'), url: '/ai-knowledge', icon: BookOpen },
-      { title: t('sidebar.aiMeme'), url: '/ai-meme', icon: ImageIcon },
-      { title: t('sidebar.aiMemory'), url: '/ai-memory', icon: Brain },
-      { title: t('sidebar.aiHistory'), url: '/ai-history', icon: ScrollText },
-      { title: t('sidebar.aiKanban'), url: '/ai-kanban', icon: ClipboardList }
-    ]
-  },
-  { title: t('sidebar.plugins'), url: '/plugins', icon: Settings },
-  { title: t('sidebar.pluginStore'), url: '/plugin-store', icon: Store },
-  { title: t('sidebar.gitUpdate'), url: '/git-update', icon: GitBranch },
-  {
-    title: t('sidebar.consoleManagement'),
-    icon: Settings,
-    children: [
-      { title: t('sidebar.themes'), url: '/themes', icon: Palette },
-      { title: t('sidebar.accountSettings'), url: '/settings', icon: User }
-    ]
-  }
-];
+const getNavItems = (t: (key: string) => string, isAIEnabled: boolean): NavItem[] => {
+  // AI 配置的子菜单：未启用 AI 时只保留 基础配置 / AI历史调用
+  const aiConfigChildren: NavItem[] = isAIEnabled
+    ? [
+        { title: t('sidebar.basicConfig'), url: '/ai-config', icon: Cog },
+        { title: t('sidebar.personaConfig'), url: '/persona-config', icon: User },
+        { title: t('sidebar.mcpConfig'), url: '/mcp-config', icon: Server },
+        { title: t('sidebar.aiCapabilityAgents'), url: '/ai-capability-agents', icon: Layers },
+        { title: t('sidebar.aiTools'), url: '/ai-tools', icon: Wrench },
+        { title: t('sidebar.aiSkills'), url: '/ai-skills', icon: Sparkles },
+        { title: t('sidebar.aiStatistics'), url: '/ai-statistics', icon: TrendingUp },
+        { title: t('sidebar.aiScheduledTasks'), url: '/ai-scheduled-tasks', icon: Clock },
+        { title: t('sidebar.aiKnowledge'), url: '/ai-knowledge', icon: BookOpen },
+        { title: t('sidebar.aiMeme'), url: '/ai-meme', icon: ImageIcon },
+        { title: t('sidebar.aiMemory'), url: '/ai-memory', icon: Brain },
+        { title: t('sidebar.aiHistory'), url: '/ai-history', icon: ScrollText },
+        { title: t('sidebar.aiKanban'), url: '/ai-kanban', icon: ClipboardList },
+      ]
+    : [
+        { title: t('sidebar.basicConfig'), url: '/ai-config', icon: Cog },
+        { title: t('sidebar.aiHistory'), url: '/ai-history', icon: ScrollText },
+      ];
+
+  return [
+    { title: t('sidebar.home'), url: '/home', icon: Home },
+    { title: t('sidebar.dashboard'), url: '/dashboard', icon: LayoutDashboard },
+    { title: t('sidebar.database'), url: '/database', icon: Database },
+    {
+      title: t('sidebar.adminCore'),
+      icon: Cog,
+      children: [
+        { title: t('sidebar.coreConfig'), url: '/core-config', icon: Cog },
+        { title: t('sidebar.frameworkConfig'), url: '/framework-config', icon: Cpu },
+        { title: t('sidebar.backup'), url: '/backup', icon: HardDrive },
+        { title: t('sidebar.scheduler'), url: '/scheduler', icon: Calendar }
+      ]
+    },
+    {
+      title: t('sidebar.logsView'),
+      icon: FileText,
+      children: [
+        { title: t('sidebar.console'), url: '/console', icon: Terminal },
+        { title: t('sidebar.historyLogs'), url: '/logs', icon: FileText },
+        { title: t('sidebar.traces'), url: '/traces', icon: Activity },
+        { title: t('sidebar.sessionManagement'), url: '/session-management', icon: History }
+      ]
+    },
+    {
+      title: t('sidebar.aiConfig'),
+      icon: Brain,
+      children: aiConfigChildren,
+    },
+    { title: t('sidebar.plugins'), url: '/plugins', icon: Settings },
+    { title: t('sidebar.pluginStore'), url: '/plugin-store', icon: Store },
+    { title: t('sidebar.gitUpdate'), url: '/git-update', icon: GitBranch },
+    {
+      title: t('sidebar.consoleManagement'),
+      icon: Settings,
+      children: [
+        { title: t('sidebar.themes'), url: '/themes', icon: Palette },
+        { title: t('sidebar.accountSettings'), url: '/settings', icon: User }
+      ]
+    }
+  ];
+};
 
 // 使用memo优化NavItem渲染
 interface NavItemProps {
@@ -222,8 +233,9 @@ export function AppSidebar() {
   const { state: sidebarState, toggleSidebar } = useSidebar();
   const { style: themeStyle, iconColor } = useTheme();
   const { t, language, setLanguage, availableLanguages } = useLanguage();
+  const { isAIEnabled, refresh: refreshAIStatus } = useAIStatus();
   
-  const navItems = useMemo(() => getNavItems(t), [t]);
+  const navItems = useMemo(() => getNavItems(t, isAIEnabled), [t, isAIEnabled]);
   const isCollapsed = sidebarState === 'collapsed';
   const isGlassmorphism = themeStyle === 'glassmorphism';
 
@@ -248,6 +260,13 @@ export function AppSidebar() {
   // 展开/收起状态管理
   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
   const location = useLocation();
+
+  // 路由进入 /ai-config 页面后，从后端同步最新 AI 启用状态
+  useEffect(() => {
+    if (location.pathname === '/ai-config') {
+      refreshAIStatus();
+    }
+  }, [location.pathname, refreshAIStatus]);
   const isInitialMount = useRef(true);
 
   const toggleExpanded = (title: string) => {
