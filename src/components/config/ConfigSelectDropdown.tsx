@@ -6,7 +6,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { useState } from 'react';
 
 export interface ConfigSelectItem {
@@ -110,8 +109,9 @@ export function ConfigSelectDropdown({
         className="w-[--radix-popover-trigger-width] p-1"
         align="start"
         sideOffset={4}
+        onWheel={(e) => e.stopPropagation()}
       >
-        <ScrollArea className="max-h-64">
+        <div className="max-h-64 overflow-y-auto">
           <div className="space-y-0.5">
             {items.map((item) => {
               const isSelected = item.name === selectedName;
@@ -153,7 +153,7 @@ export function ConfigSelectDropdown({
               );
             })}
           </div>
-        </ScrollArea>
+        </div>
       </PopoverContent>
     </Popover>
   );
