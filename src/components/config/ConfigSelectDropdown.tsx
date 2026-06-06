@@ -66,8 +66,8 @@ export function ConfigSelectDropdown({
           aria-expanded={open}
           tabIndex={0}
           className={cn(
-            "flex items-center justify-between p-3 rounded-xl border transition-all duration-200 cursor-pointer",
-            "border-primary/40 bg-primary/5 shadow-sm hover:shadow-md",
+            "flex items-center justify-between p-3 rounded-2xl border transition-all duration-200 cursor-pointer",
+            "border-primary/30 bg-primary/5",
             className,
           )}
           onKeyDown={(e) => {

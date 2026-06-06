@@ -12,7 +12,7 @@ import {
   Cpu, Loader2, Save, Settings, Zap, Users, Ban, CheckCircle,
   Sparkles, Search, Brain, Key, Globe, MessageSquare,
   Layers, MemoryStick, ChevronRight, ChevronDown, Bot, Wifi, Database,
-  Plus, Pencil, Trash2, Check, FileText,
+  Plus, Pencil, Trash2, Check, FileText, X,
   Server, AlertTriangle, ArrowUpDown, SlidersHorizontal, HelpCircle,
   Smile, Eye, Wrench, ListChecks, Image
 } from 'lucide-react';
@@ -39,6 +39,7 @@ import {
   EmbeddingConfigField,
   mcpConfigApi,
   MCPConfig,
+  MCPToolsConfigItem,
   aiWizardApi,
   AIWizardChecklistItem,
   AIWizardStatusResponse,
@@ -47,7 +48,7 @@ import {
 } from '@/lib/api';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { ConfigField, ConfigValue, ConfigFieldType, DynamicConfigPanel, pluginConfigItemToFieldDef, ConfigSelectDropdown } from '@/components/config';
+import { ConfigField, ConfigValue, ConfigFieldType, DynamicConfigPanel, pluginConfigItemToFieldDef, ConfigSelectDropdown, McpParamMappingEditor, MCP_SERVICE_TOOLS_CONFIG_KEY_MAP, McpServiceType } from '@/components/config';
 import {
   Select,
   SelectContent,
@@ -271,6 +272,9 @@ export default function AIConfigPage() {
   const [originalEmbeddingProvider, setOriginalEmbeddingProvider] = useState<string>('');
   const [originalEmbeddingLocalConfig, setOriginalEmbeddingLocalConfig] = useState<Record<string, EmbeddingConfigField>>({});
   const [originalEmbeddingOpenaiConfig, setOriginalEmbeddingOpenaiConfig] = useState<Record<string, EmbeddingConfigField>>({});
+  // 用于追踪 MCP 工具配置的原始状态（脏检查）
+  const [originalMcpToolsConfigs, setOriginalMcpToolsConfigs] = useState<Record<string, MCPToolsConfigItem>>({});
+  const [originalMcpDetails, setOriginalMcpDetails] = useState<Record<string, Record<string, string | number | boolean | null>>>({});
 
   // Dialog states
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -304,7 +308,11 @@ export default function AIConfigPage() {
   // State - MCP Configs
   const [mcpConfigs, setMcpConfigs] = useState<MCPConfig[]>([]);
   const [mcpToolDialogOpen, setMcpToolDialogOpen] = useState(false);
-  const [mcpToolDialogType, setMcpToolDialogType] = useState<'websearch' | 'image_understand'>('websearch');
+  const [mcpToolDialogType, setMcpToolDialogType] = useState<McpServiceType>('websearch');
+
+  // State - MCP Tools Config (参数映射)
+  const [mcpToolsConfigs, setMcpToolsConfigs] = useState<Record<string, MCPToolsConfigItem>>({});
+  const [mcpDetailsEditing, setMcpDetailsEditing] = useState<Record<string, Record<string, string | number | boolean | null>>>({});
 
   // State - AI Wizard
   const [isWizardDialogOpen, setIsWizardDialogOpen] = useState(false);
@@ -516,6 +524,26 @@ export default function AIConfigPage() {
       setMcpConfigs(data.configs);
     } catch (error) {
       console.error('Failed to fetch MCP configs:', error);
+    }
+    // Also fetch MCP tools config (参数映射)
+    try {
+      const toolsConfigData = await mcpConfigApi.getToolsConfigList();
+      const configMap: Record<string, MCPToolsConfigItem> = {};
+      for (const item of toolsConfigData.items) {
+        configMap[item.key] = item;
+      }
+      setMcpToolsConfigs(configMap);
+      // Initialize local editing state from server data
+      const detailsMap: Record<string, Record<string, string | number | boolean | null>> = {};
+      for (const item of toolsConfigData.items) {
+        detailsMap[item.key] = { ...item.details };
+      }
+      setMcpDetailsEditing(detailsMap);
+      // Initialize original state for dirty check
+      setOriginalMcpToolsConfigs(JSON.parse(JSON.stringify(configMap)));
+      setOriginalMcpDetails(JSON.parse(JSON.stringify(detailsMap)));
+    } catch (error) {
+      console.error('Failed to fetch MCP tools config:', error);
     }
   }, []);
 
@@ -833,14 +861,17 @@ export default function AIConfigPage() {
   const qdrantProvider = aiConfig?.config.qdrant_provider?.value as string ?? 'local';
   const embeddingProvider = (embeddingSummary?.provider || aiConfig?.config.embedding_provider?.value as string) ?? 'local';
 
-  // Generate MCP tool options from MCP configs
+  // Generate MCP tool options from MCP configs (with rich metadata)
   const mcpToolOptions = useMemo(() => {
-    const options: { value: string; label: string }[] = [];
+    const options: { value: string; label: string; description: string; serverName: string; toolName: string }[] = [];
     for (const config of mcpConfigs) {
       for (const tool of config.tools) {
         options.push({
           value: `${config.config_id} - ${tool.name}`,
-          label: `${config.name} - ${tool.name}`,
+          label: `${config.name} / ${tool.name}`,
+          description: tool.description || '',
+          serverName: config.name,
+          toolName: tool.name,
         });
       }
     }
@@ -849,8 +880,51 @@ export default function AIConfigPage() {
 
   const websearchMcpToolId = (mcpToolsConfig?.config.websearch_mcp_tool_id?.value as string) || '';
   const imageUnderstandMcpToolId = (mcpToolsConfig?.config.image_understand_mcp_tool_id?.value as string) || '';
+  const asrMcpToolId = (mcpToolsConfig?.config.asr_mcp_tool_id?.value as string) || '';
+  const documentExtractMcpToolId = (mcpToolsConfig?.config.document_extract_mcp_tool_id?.value as string) || '';
+  const videoExtractMcpToolId = (mcpToolsConfig?.config.video_extract_mcp_tool_id?.value as string) || '';
+  const videoUnderstandMcpToolId = (mcpToolsConfig?.config.video_understand_mcp_tool_id?.value as string) || '';
 
-  const openMcpToolDialog = useCallback((type: 'websearch' | 'image_understand') => {
+  // 根据 serviceType 获取对应的 mcpToolId
+  const getMcpToolIdByType = useCallback((type: McpServiceType): string => {
+    const configKey = MCP_SERVICE_TOOLS_CONFIG_KEY_MAP[type];
+    return (mcpToolsConfig?.config[configKey]?.value as string) || '';
+  }, [mcpToolsConfig]);
+
+  // 当前对话框对应的已选工具ID
+  const currentDialogMcpToolId = useMemo(() => getMcpToolIdByType(mcpToolDialogType), [getMcpToolIdByType, mcpToolDialogType]);
+
+  // 当前已选工具的详细信息
+  const selectedMcpToolInfo = useMemo(() => {
+    if (!currentDialogMcpToolId) return null;
+    return mcpToolOptions.find(opt => opt.value === currentDialogMcpToolId) || null;
+  }, [currentDialogMcpToolId, mcpToolOptions]);
+
+  // 图片理解已选工具详细信息
+  const imageUnderstandToolInfo = useMemo(() => {
+    if (!imageUnderstandMcpToolId) return null;
+    return mcpToolOptions.find(opt => opt.value === imageUnderstandMcpToolId) || null;
+  }, [imageUnderstandMcpToolId, mcpToolOptions]);
+
+  // 网络搜索已选工具详细信息
+  const websearchToolInfo = useMemo(() => {
+    if (!websearchMcpToolId) return null;
+    return mcpToolOptions.find(opt => opt.value === websearchMcpToolId) || null;
+  }, [websearchMcpToolId, mcpToolOptions]);
+
+  // ASR 已选工具详细信息
+  const asrToolInfo = useMemo(() => {
+    if (!asrMcpToolId) return null;
+    return mcpToolOptions.find(opt => opt.value === asrMcpToolId) || null;
+  }, [asrMcpToolId, mcpToolOptions]);
+
+  // 文档提取已选工具详细信息
+  const documentExtractToolInfo = useMemo(() => {
+    if (!documentExtractMcpToolId) return null;
+    return mcpToolOptions.find(opt => opt.value === documentExtractMcpToolId) || null;
+  }, [documentExtractMcpToolId, mcpToolOptions]);
+
+  const openMcpToolDialog = useCallback((type: McpServiceType) => {
     setMcpToolDialogType(type);
     setMcpToolDialogOpen(true);
   }, []);
@@ -862,8 +936,11 @@ export default function AIConfigPage() {
     const embeddingProviderChanged = embeddingSummary?.provider !== originalEmbeddingProvider;
     const embeddingLocalChanged = JSON.stringify(embeddingLocalConfig) !== JSON.stringify(originalEmbeddingLocalConfig);
     const embeddingOpenaiChanged = JSON.stringify(embeddingOpenaiConfig) !== JSON.stringify(originalEmbeddingOpenaiConfig);
-    return configChanged || embeddingProviderChanged || embeddingLocalChanged || embeddingOpenaiChanged;
-  }, [configs, originalConfig, embeddingSummary, originalEmbeddingProvider, embeddingLocalConfig, originalEmbeddingLocalConfig, embeddingOpenaiConfig, originalEmbeddingOpenaiConfig]);
+    // MCP 工具配置脏检查（data 或 details 变化）
+    const mcpToolsChanged = JSON.stringify(mcpToolsConfigs) !== JSON.stringify(originalMcpToolsConfigs)
+      || JSON.stringify(mcpDetailsEditing) !== JSON.stringify(originalMcpDetails);
+    return configChanged || embeddingProviderChanged || embeddingLocalChanged || embeddingOpenaiChanged || mcpToolsChanged;
+  }, [configs, originalConfig, embeddingSummary, originalEmbeddingProvider, embeddingLocalConfig, originalEmbeddingLocalConfig, embeddingOpenaiConfig, originalEmbeddingOpenaiConfig, mcpToolsConfigs, originalMcpToolsConfigs, mcpDetailsEditing, originalMcpDetails]);
 
   const updateConfigValue = useCallback((configId: string, fieldKey: string, value: ConfigValue) => {
     setConfigs(prev => {
@@ -881,18 +958,141 @@ export default function AIConfigPage() {
     });
   }, []);
 
-  const handleSelectMcpTool = useCallback(async (toolId: string) => {
+  // 获取 MCP 工具的参数名列表（从 mcpConfigs 中查找）
+  const getMcpToolParams = useCallback((toolId: string): string[] => {
+    if (!toolId) return [];
+    // toolId 格式为 "config_id - tool_name"
+    const parts = toolId.split(' - ');
+    if (parts.length < 2) return [];
+    const [, ...toolNameParts] = parts;
+    const toolName = toolNameParts.join(' - '); // handle tool names that contain " - "
+    const configId = parts[0];
+    const config = mcpConfigs.find(c => c.config_id === configId);
+    if (!config) return [];
+    const tool = config.tools.find(t => t.name === toolName);
+    if (!tool || !tool.parameters) return [];
+    return Object.keys(tool.parameters);
+  }, [mcpConfigs]);
+
+  // 选择 MCP 工具（仅更新本地状态，保存时统一提交）
+  const handleSelectMcpTool = useCallback((toolId: string) => {
     if (!mcpToolsConfig) return;
-    const configKey = mcpToolDialogType === 'websearch' ? 'websearch_mcp_tool_id' : 'image_understand_mcp_tool_id';
-    try {
-      await frameworkConfigApi.updateFrameworkConfigItem(mcpToolsConfig.full_name, configKey, toolId);
-      updateConfigValue(mcpToolsConfig.id, configKey, toolId);
-      toast.success(t('aiConfig.mcpTool.selectSuccess'));
-      setMcpToolDialogOpen(false);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : '');
+    const configKey = MCP_SERVICE_TOOLS_CONFIG_KEY_MAP[mcpToolDialogType];
+    const mcpToolsConfigKey = configKey;
+    const currentToolId = (mcpToolsConfig.config[configKey]?.value as string) || '';
+    // 如果点击的是已选中的工具，则清空
+    const finalValue = currentToolId === toolId ? '' : toolId;
+
+    // 仅更新本地状态，不调用 API
+    updateConfigValue(mcpToolsConfig.id, configKey, finalValue);
+
+    if (finalValue) {
+      // 选中新工具：自动生成默认参数映射
+      const paramNames = getMcpToolParams(finalValue);
+      const autoDetails: Record<string, string> = {};
+      for (const paramName of paramNames) {
+        autoDetails[paramName] = `params - ${paramName}`;
+      }
+      // 更新本地 mcpToolsConfigs 和 mcpDetailsEditing 状态
+      setMcpToolsConfigs(prev => ({
+        ...prev,
+        [mcpToolsConfigKey]: {
+          ...prev[mcpToolsConfigKey],
+          key: mcpToolsConfigKey,
+          data: finalValue,
+          details: autoDetails,
+        } as MCPToolsConfigItem,
+      }));
+      setMcpDetailsEditing(prev => ({
+        ...prev,
+        [mcpToolsConfigKey]: { ...autoDetails },
+      }));
+    } else {
+      // 清空工具：同时清空参数映射
+      setMcpToolsConfigs(prev => ({
+        ...prev,
+        [mcpToolsConfigKey]: {
+          ...prev[mcpToolsConfigKey],
+          key: mcpToolsConfigKey,
+          data: '',
+          details: {},
+        } as MCPToolsConfigItem,
+      }));
+      setMcpDetailsEditing(prev => ({
+        ...prev,
+        [mcpToolsConfigKey]: {},
+      }));
     }
-  }, [mcpToolsConfig, mcpToolDialogType, updateConfigValue, t]);
+
+    setMcpToolDialogOpen(false);
+  }, [mcpToolsConfig, mcpToolDialogType, updateConfigValue, getMcpToolParams]);
+
+  // 清空 MCP 工具（仅更新本地状态，保存时统一提交）
+  const handleClearMcpTool = useCallback((type: McpServiceType) => {
+    if (!mcpToolsConfig) return;
+    const configKey = MCP_SERVICE_TOOLS_CONFIG_KEY_MAP[type];
+    // 仅更新本地状态，不调用 API
+    updateConfigValue(mcpToolsConfig.id, configKey, '');
+
+    setMcpToolsConfigs(prev => ({
+      ...prev,
+      [configKey]: {
+        ...prev[configKey],
+        key: configKey,
+        data: '',
+        details: {},
+      } as MCPToolsConfigItem,
+    }));
+    setMcpDetailsEditing(prev => ({
+      ...prev,
+      [configKey]: {},
+    }));
+  }, [mcpToolsConfig, updateConfigValue]);
+
+  // 更新单个参数映射值（本地状态）
+  const updateMcpDetailValue = useCallback((configKey: string, mcpParamName: string, value: string | number | boolean | null) => {
+    setMcpDetailsEditing(prev => ({
+      ...prev,
+      [configKey]: {
+        ...prev[configKey],
+        [mcpParamName]: value,
+      },
+    }));
+  }, []);
+
+  // 重命名 MCP 参数名
+  const renameMcpDetailKey = useCallback((configKey: string, oldName: string, newName: string) => {
+    setMcpDetailsEditing(prev => {
+      const details = { ...prev[configKey] };
+      const val = details[oldName];
+      delete details[oldName];
+      details[newName] = val;
+      return { ...prev, [configKey]: details };
+    });
+  }, []);
+
+  // 添加新的参数映射行
+  const addMcpDetailRow = useCallback((configKey: string) => {
+    setMcpDetailsEditing(prev => ({
+      ...prev,
+      [configKey]: {
+        ...prev[configKey],
+        '': 'params - ',
+      },
+    }));
+  }, []);
+
+  // 删除参数映射行
+  const removeMcpDetailRow = useCallback((configKey: string, mcpParamName: string) => {
+    setMcpDetailsEditing(prev => {
+      const newDetails = { ...prev[configKey] };
+      delete newDetails[mcpParamName];
+      return {
+        ...prev,
+        [configKey]: newDetails,
+      };
+    });
+  }, []);
 
   // 实际执行保存逻辑
   const executeSave = async () => {
@@ -965,6 +1165,31 @@ export default function AIConfigPage() {
         });
         await embeddingConfigApi.saveOpenaiConfig(openaiPayload);
         setOriginalEmbeddingOpenaiConfig(JSON.parse(JSON.stringify(embeddingOpenaiConfig)));
+      }
+
+      // 3. 保存 MCP 工具参数映射配置
+      const mcpToolsChanged = JSON.stringify(mcpToolsConfigs) !== JSON.stringify(originalMcpToolsConfigs)
+        || JSON.stringify(mcpDetailsEditing) !== JSON.stringify(originalMcpDetails);
+      if (mcpToolsChanged) {
+        // 遍历所有 configKey，比较当前值与原始值，只提交变化的
+        const allKeys = new Set([
+          ...Object.keys(mcpToolsConfigs),
+          ...Object.keys(originalMcpToolsConfigs),
+        ]);
+        for (const key of allKeys) {
+          const currentData = mcpToolsConfigs[key]?.data ?? '';
+          const currentDetails = mcpDetailsEditing[key] ?? {};
+          const origData = originalMcpToolsConfigs[key]?.data ?? '';
+          const origDetails = originalMcpDetails[key] ?? {};
+          if (currentData !== origData || JSON.stringify(currentDetails) !== JSON.stringify(origDetails)) {
+            await mcpConfigApi.updateToolsConfig(key, {
+              data: currentData,
+              details: currentDetails,
+            });
+          }
+        }
+        setOriginalMcpToolsConfigs(JSON.parse(JSON.stringify(mcpToolsConfigs)));
+        setOriginalMcpDetails(JSON.parse(JSON.stringify(mcpDetailsEditing)));
       }
 
       toast.success(t('aiConfig.configSaved'));
@@ -1161,7 +1386,7 @@ export default function AIConfigPage() {
         </p>
       </div>
 
-      <div className="flex items-center gap-5 p-5 rounded-xl border-2 border-border/40 bg-card/50">
+      <div className="flex items-center gap-5 p-5 rounded-2xl border border-border/30 bg-card/30">
         <div className={cn(
           "flex items-center justify-center flex-shrink-0 transition-all duration-500",
           isAIEnabled ? "text-primary" : "text-muted-foreground"
@@ -1322,18 +1547,52 @@ export default function AIConfigPage() {
         </div>
       )}
       {websearchProvider === 'MCP' && (
-        <div className="pt-3 border-t border-border/30 flex items-center justify-between gap-2">
-          {websearchMcpToolId ? (
-            <Badge variant="outline" className="text-xs font-mono">
-              <Wrench className="h-3 w-3 mr-1" />
-              {websearchMcpToolId}
-            </Badge>
-          ) : (
-            <p className="text-xs text-muted-foreground">{t('aiConfig.mcpTool.noToolAssociated')}</p>
+        <div className="pt-3 border-t border-border/30 space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              {websearchToolInfo ? (
+                <>
+                  <div className="flex items-center justify-center flex-shrink-0 w-6 h-6 rounded-md bg-primary/10 text-primary">
+                    <Wrench className="w-3 h-3" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm font-medium truncate">{websearchToolInfo.toolName}</span>
+                      <Badge variant="outline" className="text-[10px] h-4 px-1 border-primary/20 text-primary bg-primary/5 shrink-0">
+                        {websearchToolInfo.serverName}
+                      </Badge>
+                    </div>
+                    {websearchToolInfo.description && (
+                      <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">{websearchToolInfo.description}</p>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <p className="text-xs text-muted-foreground">{t('aiConfig.mcpTool.noToolAssociated')}</p>
+              )}
+            </div>
+            <div className="flex items-center gap-1 shrink-0">
+              {websearchMcpToolId && (
+                <Button variant="outline" size="sm" className="text-xs h-7 text-muted-foreground hover:text-destructive hover:border-destructive/30" onClick={() => handleClearMcpTool('websearch')}>
+                  {t('common.cancel')}
+                </Button>
+              )}
+              <Button variant="outline" size="sm" className="text-xs h-7 gap-1" onClick={() => openMcpToolDialog('websearch')}>
+                {websearchMcpToolId ? t('aiConfig.mcpTool.switchTool') : t('aiConfig.mcpTool.goAssociate')}
+              </Button>
+            </div>
+          </div>
+          {/* 参数映射配置 */}
+          {websearchMcpToolId && (
+            <McpParamMappingEditor
+              configKey="websearch_mcp_tool_id"
+              details={mcpDetailsEditing['websearch_mcp_tool_id'] || {}}
+              onDetailValueChange={(mcpParamName, value) => updateMcpDetailValue('websearch_mcp_tool_id', mcpParamName, value)}
+              onMcpParamNameChange={(oldName, newName) => renameMcpDetailKey('websearch_mcp_tool_id', oldName, newName)}
+              onAddRow={() => addMcpDetailRow('websearch_mcp_tool_id')}
+              onRemoveRow={(mcpParamName) => removeMcpDetailRow('websearch_mcp_tool_id', mcpParamName)}
+            />
           )}
-          <Button variant="ghost" size="sm" className="text-xs text-primary h-7 shrink-0" onClick={() => openMcpToolDialog('websearch')}>
-            {websearchMcpToolId ? t('aiConfig.mcpTool.selectTool') : t('aiConfig.mcpTool.goAssociate')}
-          </Button>
         </div>
       )}
     </div>
@@ -1366,18 +1625,52 @@ export default function AIConfigPage() {
         showRadioIndicator
       />
       {imageUnderstandProvider === 'MCP' && (
-        <div className="pt-3 border-t border-border/30 flex items-center justify-between gap-2">
-          {imageUnderstandMcpToolId ? (
-            <Badge variant="outline" className="text-xs font-mono">
-              <Wrench className="h-3 w-3 mr-1" />
-              {imageUnderstandMcpToolId}
-            </Badge>
-          ) : (
-            <p className="text-xs text-muted-foreground">{t('aiConfig.mcpTool.noToolAssociated')}</p>
+        <div className="pt-3 border-t border-border/30 space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              {imageUnderstandToolInfo ? (
+                <>
+                  <div className="flex items-center justify-center flex-shrink-0 w-6 h-6 rounded-md bg-primary/10 text-primary">
+                    <Wrench className="w-3 h-3" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm font-medium truncate">{imageUnderstandToolInfo.toolName}</span>
+                      <Badge variant="outline" className="text-[10px] h-4 px-1 border-primary/20 text-primary bg-primary/5 shrink-0">
+                        {imageUnderstandToolInfo.serverName}
+                      </Badge>
+                    </div>
+                    {imageUnderstandToolInfo.description && (
+                      <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">{imageUnderstandToolInfo.description}</p>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <p className="text-xs text-muted-foreground">{t('aiConfig.mcpTool.noToolAssociated')}</p>
+              )}
+            </div>
+            <div className="flex items-center gap-1 shrink-0">
+              {imageUnderstandMcpToolId && (
+                <Button variant="outline" size="sm" className="text-xs h-7 text-muted-foreground hover:text-destructive hover:border-destructive/30" onClick={() => handleClearMcpTool('image_understand')}>
+                  {t('common.cancel')}
+                </Button>
+              )}
+              <Button variant="outline" size="sm" className="text-xs h-7 gap-1" onClick={() => openMcpToolDialog('image_understand')}>
+                {imageUnderstandMcpToolId ? t('aiConfig.mcpTool.switchTool') : t('aiConfig.mcpTool.goAssociate')}
+              </Button>
+            </div>
+          </div>
+          {/* 参数映射配置 */}
+          {imageUnderstandMcpToolId && (
+            <McpParamMappingEditor
+              configKey="image_understand_mcp_tool_id"
+              details={mcpDetailsEditing['image_understand_mcp_tool_id'] || {}}
+              onDetailValueChange={(mcpParamName, value) => updateMcpDetailValue('image_understand_mcp_tool_id', mcpParamName, value)}
+              onMcpParamNameChange={(oldName, newName) => renameMcpDetailKey('image_understand_mcp_tool_id', oldName, newName)}
+              onAddRow={() => addMcpDetailRow('image_understand_mcp_tool_id')}
+              onRemoveRow={(mcpParamName) => removeMcpDetailRow('image_understand_mcp_tool_id', mcpParamName)}
+            />
           )}
-          <Button variant="ghost" size="sm" className="text-xs text-primary h-7 shrink-0" onClick={() => openMcpToolDialog('image_understand')}>
-            {imageUnderstandMcpToolId ? t('aiConfig.mcpTool.selectTool') : t('aiConfig.mcpTool.goAssociate')}
-          </Button>
         </div>
       )}
     </div>
@@ -1516,6 +1809,9 @@ export default function AIConfigPage() {
     </div>
   );
 
+  const asrProvider = aiConfig?.config.asr_provider?.value as string ?? '';
+  const documentExtractProvider = aiConfig?.config.document_extract_provider?.value as string ?? '';
+
   const renderVoiceRecognitionSection = () => (
     <div className="space-y-5">
       <div>
@@ -1527,11 +1823,60 @@ export default function AIConfigPage() {
       </div>
       <ChipGroup
         options={((aiConfig?.config.asr_provider?.options || ['MCP']) as string[]).map(p => ({ value: p, label: p, icon: <Cpu className="w-3.5 h-3.5" /> }))}
-        value={[aiConfig?.config.asr_provider?.value as string].filter(Boolean)}
+        value={[asrProvider].filter(Boolean)}
         onValueChange={(newValue) => updateConfigValue(aiConfig!.id, 'asr_provider', newValue[0] || '')}
         selectMode="single"
         showRadioIndicator
       />
+      {asrProvider === 'MCP' && (
+        <div className="pt-3 border-t border-border/30 space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              {asrToolInfo ? (
+                <>
+                  <div className="flex items-center justify-center flex-shrink-0 w-6 h-6 rounded-md bg-primary/10 text-primary">
+                    <Wrench className="w-3 h-3" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm font-medium truncate">{asrToolInfo.toolName}</span>
+                      <Badge variant="outline" className="text-[10px] h-4 px-1 border-primary/20 text-primary bg-primary/5 shrink-0">
+                        {asrToolInfo.serverName}
+                      </Badge>
+                    </div>
+                    {asrToolInfo.description && (
+                      <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">{asrToolInfo.description}</p>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <p className="text-xs text-muted-foreground">{t('aiConfig.mcpTool.noToolAssociated')}</p>
+              )}
+            </div>
+            <div className="flex items-center gap-1 shrink-0">
+              {asrMcpToolId && (
+                <Button variant="outline" size="sm" className="text-xs h-7 text-muted-foreground hover:text-destructive hover:border-destructive/30" onClick={() => handleClearMcpTool('asr')}>
+                  {t('common.cancel')}
+                </Button>
+              )}
+              <Button variant="outline" size="sm" className="text-xs h-7 gap-1" onClick={() => openMcpToolDialog('asr')}>
+                {asrMcpToolId ? t('aiConfig.mcpTool.switchTool') : t('aiConfig.mcpTool.goAssociate')}
+              </Button>
+            </div>
+          </div>
+          {/* 参数映射配置 */}
+          {asrMcpToolId && (
+            <McpParamMappingEditor
+              configKey="asr_mcp_tool_id"
+              details={mcpDetailsEditing['asr_mcp_tool_id'] || {}}
+              onDetailValueChange={(mcpParamName, value) => updateMcpDetailValue('asr_mcp_tool_id', mcpParamName, value)}
+              onMcpParamNameChange={(oldName, newName) => renameMcpDetailKey('asr_mcp_tool_id', oldName, newName)}
+              onAddRow={() => addMcpDetailRow('asr_mcp_tool_id')}
+              onRemoveRow={(mcpParamName) => removeMcpDetailRow('asr_mcp_tool_id', mcpParamName)}
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 
@@ -1546,11 +1891,60 @@ export default function AIConfigPage() {
       </div>
       <ChipGroup
         options={((aiConfig?.config.document_extract_provider?.options || ['MCP']) as string[]).map(p => ({ value: p, label: p, icon: <FileText className="w-3.5 h-3.5" /> }))}
-        value={[aiConfig?.config.document_extract_provider?.value as string].filter(Boolean)}
+        value={[documentExtractProvider].filter(Boolean)}
         onValueChange={(newValue) => updateConfigValue(aiConfig!.id, 'document_extract_provider', newValue[0] || '')}
         selectMode="single"
         showRadioIndicator
       />
+      {documentExtractProvider === 'MCP' && (
+        <div className="pt-3 border-t border-border/30 space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              {documentExtractToolInfo ? (
+                <>
+                  <div className="flex items-center justify-center flex-shrink-0 w-6 h-6 rounded-md bg-primary/10 text-primary">
+                    <Wrench className="w-3 h-3" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm font-medium truncate">{documentExtractToolInfo.toolName}</span>
+                      <Badge variant="outline" className="text-[10px] h-4 px-1 border-primary/20 text-primary bg-primary/5 shrink-0">
+                        {documentExtractToolInfo.serverName}
+                      </Badge>
+                    </div>
+                    {documentExtractToolInfo.description && (
+                      <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">{documentExtractToolInfo.description}</p>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <p className="text-xs text-muted-foreground">{t('aiConfig.mcpTool.noToolAssociated')}</p>
+              )}
+            </div>
+            <div className="flex items-center gap-1 shrink-0">
+              {documentExtractMcpToolId && (
+                <Button variant="outline" size="sm" className="text-xs h-7 text-muted-foreground hover:text-destructive hover:border-destructive/30" onClick={() => handleClearMcpTool('document_extract')}>
+                  {t('common.cancel')}
+                </Button>
+              )}
+              <Button variant="outline" size="sm" className="text-xs h-7 gap-1" onClick={() => openMcpToolDialog('document_extract')}>
+                {documentExtractMcpToolId ? t('aiConfig.mcpTool.switchTool') : t('aiConfig.mcpTool.goAssociate')}
+              </Button>
+            </div>
+          </div>
+          {/* 参数映射配置 */}
+          {documentExtractMcpToolId && (
+            <McpParamMappingEditor
+              configKey="document_extract_mcp_tool_id"
+              details={mcpDetailsEditing['document_extract_mcp_tool_id'] || {}}
+              onDetailValueChange={(mcpParamName, value) => updateMcpDetailValue('document_extract_mcp_tool_id', mcpParamName, value)}
+              onMcpParamNameChange={(oldName, newName) => renameMcpDetailKey('document_extract_mcp_tool_id', oldName, newName)}
+              onAddRow={() => addMcpDetailRow('document_extract_mcp_tool_id')}
+              onRemoveRow={(mcpParamName) => removeMcpDetailRow('document_extract_mcp_tool_id', mcpParamName)}
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 
@@ -1846,7 +2240,7 @@ export default function AIConfigPage() {
 
       {/* AI Service Master Switch - standalone above sidebar layout */}
       <div className="shrink-0 px-3 sm:px-6 pt-2 pb-3 sm:pb-4">
-        <div className="flex items-center gap-3 sm:gap-5 p-3 sm:p-5 rounded-xl border-2 border-border/40 bg-card/50">
+        <div className="flex items-center gap-3 sm:gap-5 p-3 sm:p-5 rounded-2xl border border-border/30 bg-card/30">
           <div className={cn(
             "flex items-center justify-center flex-shrink-0 transition-all duration-500",
             isAIEnabled ? "text-primary" : "text-muted-foreground"
@@ -1926,19 +2320,7 @@ export default function AIConfigPage() {
             <DialogDescription>{t('aiConfig.manageConfigDesc')}</DialogDescription>
           </DialogHeader>
 
-          <div className="flex items-center justify-end">
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 gap-1.5 text-xs"
-              onClick={() => { setIsCreateDialogOpen(true); fetchProviderConfigOptions(newConfigProvider); }}
-            >
-              <Plus className="w-3.5 h-3.5" />
-              {t('aiConfig.openaiConfig.createNew')}
-            </Button>
-          </div>
-
-          <div className="space-y-2 py-2 max-h-[55vh] overflow-y-auto">
+          <div className="space-y-2 py-2 max-h-[60vh] overflow-y-auto">
             {allConfigsList.length === 0 ? (
               <EmptyState
                 icon={<Server className="w-8 h-8 text-muted-foreground/50" />}
@@ -1994,8 +2376,20 @@ export default function AIConfigPage() {
             )}
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsManageConfigDialogOpen(false)}>{t('common.close')}</Button>
+          <DialogFooter className="flex items-center justify-between">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 gap-1.5 text-xs"
+              onClick={() => { setIsCreateDialogOpen(true); fetchProviderConfigOptions(newConfigProvider); }}
+            >
+              <Plus className="w-3.5 h-3.5" />
+              {t('aiConfig.openaiConfig.createNew')}
+            </Button>
+            <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => setIsManageConfigDialogOpen(false)}>
+              <X className="w-3.5 h-3.5" />
+              {t('common.close')}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -2184,21 +2578,56 @@ export default function AIConfigPage() {
 
       {/* MCP Tool Selection Dialog */}
       <Dialog open={mcpToolDialogOpen} onOpenChange={setMcpToolDialogOpen}>
-        <DialogContent className="sm:max-w-[560px] max-h-[70vh] glass-card">
+        <DialogContent className="sm:max-w-[560px] max-h-[80vh] glass-card">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Wrench className="w-5 h-5" />
               {t('aiConfig.mcpTool.selectTool')}
             </DialogTitle>
             <DialogDescription>
-              {mcpToolDialogType === 'websearch'
-                ? t('aiConfig.mcpTool.webSearchMcpTool')
-                : t('aiConfig.mcpTool.imageUnderstandMcpTool')
-              }
+              {mcpToolDialogType === 'websearch' && t('aiConfig.mcpTool.webSearchMcpTool')}
+              {mcpToolDialogType === 'image_understand' && t('aiConfig.mcpTool.imageUnderstandMcpTool')}
+              {mcpToolDialogType === 'asr' && t('aiConfig.mcpTool.asrMcpTool')}
+              {mcpToolDialogType === 'document_extract' && t('aiConfig.mcpTool.documentExtractMcpTool')}
+              {mcpToolDialogType === 'video_extract' && t('aiConfig.mcpTool.videoExtractMcpTool')}
+              {mcpToolDialogType === 'video_understand' && t('aiConfig.mcpTool.videoUnderstandMcpTool')}
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-2 py-2 max-h-[50vh] overflow-y-auto">
+          {/* Current selection preview + clear */}
+          {currentDialogMcpToolId && selectedMcpToolInfo && (
+            <div className="rounded-xl border border-primary/20 bg-primary/5 p-3">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="flex items-center justify-center flex-shrink-0 w-7 h-7 rounded-lg bg-primary/10 text-primary">
+                    <Wrench className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm font-semibold truncate">{selectedMcpToolInfo.toolName}</span>
+                      <Badge variant="outline" className="text-[10px] h-4 px-1.5 border-primary/20 text-primary bg-primary/5">
+                        {selectedMcpToolInfo.serverName}
+                      </Badge>
+                    </div>
+                    {selectedMcpToolInfo.description && (
+                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{selectedMcpToolInfo.description}</p>
+                    )}
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs text-muted-foreground hover:text-destructive h-7 px-2 shrink-0 gap-1"
+                  onClick={() => { handleClearMcpTool(mcpToolDialogType); setMcpToolDialogOpen(false); }}
+                >
+                  <Ban className="h-3 w-3" />
+                  {t('aiConfig.mcpTool.clearTool')}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-1 max-h-[50vh] overflow-y-auto">
             {mcpConfigs.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-10 text-center">
                 <Server className="h-8 w-8 text-muted-foreground/50 mb-2" />
@@ -2212,28 +2641,51 @@ export default function AIConfigPage() {
                 <p className="text-xs text-muted-foreground/70 mt-1">{t('aiConfig.mcpTool.noToolAssociatedDesc')}</p>
               </div>
             ) : (
-              mcpToolOptions.map((option) => {
-                const currentToolId = mcpToolDialogType === 'websearch' ? websearchMcpToolId : imageUnderstandMcpToolId;
-                const isSelected = currentToolId === option.value;
+              // Group tools by server
+              mcpConfigs.map((config) => {
+                const configTools = config.tools;
+                if (configTools.length === 0) return null;
                 return (
-                  <div
-                    key={option.value}
-                    className={cn(
-                      "p-3 rounded-lg border cursor-pointer transition-colors",
-                      isSelected
-                        ? "bg-primary/5 border-primary/30"
-                        : "border-border/50 hover:bg-muted/50"
-                    )}
-                    onClick={() => handleSelectMcpTool(option.value)}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <Wrench className={cn("h-4 w-4 shrink-0", isSelected ? "text-primary" : "text-muted-foreground")} />
-                        <span className="text-sm font-medium truncate">{option.label}</span>
-                      </div>
-                      {isSelected && (
-                        <Check className="h-4 w-4 text-primary shrink-0" />
-                      )}
+                  <div key={config.config_id} className="pb-2">
+                    <div className="flex items-center gap-1.5 px-1 py-1.5">
+                      <Server className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span className="text-xs font-semibold text-muted-foreground">{config.name}</span>
+                      <Badge variant="outline" className="text-[9px] h-3.5 px-1 border-border/40 text-muted-foreground">
+                        {configTools.length}
+                      </Badge>
+                    </div>
+                    <div className="space-y-1">
+                      {configTools.map((tool) => {
+                        const toolValue = `${config.config_id} - ${tool.name}`;
+                        const isSelected = currentDialogMcpToolId === toolValue;
+                        return (
+                          <div
+                            key={toolValue}
+                            className={cn(
+                              "p-2.5 rounded-lg border cursor-pointer transition-all",
+                              isSelected
+                                ? "bg-primary/5 border-primary/30 ring-1 ring-primary/10"
+                                : "border-border/30 hover:bg-muted/50 hover:border-border/50"
+                            )}
+                            onClick={() => handleSelectMcpTool(toolValue)}
+                          >
+                            <div className="flex items-start gap-2">
+                              <Wrench className={cn("h-3.5 w-3.5 shrink-0 mt-0.5", isSelected ? "text-primary" : "text-muted-foreground")} />
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between gap-2">
+                                  <span className={cn("text-sm truncate", isSelected ? "font-semibold text-primary" : "font-medium")}>{tool.name}</span>
+                                  {isSelected && (
+                                    <Check className="h-3.5 w-3.5 text-primary shrink-0" />
+                                  )}
+                                </div>
+                                {tool.description && (
+                                  <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{tool.description}</p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 );
@@ -2243,7 +2695,7 @@ export default function AIConfigPage() {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setMcpToolDialogOpen(false)}>
-              {t('common.cancel')}
+              {t('common.confirm')}
             </Button>
           </DialogFooter>
         </DialogContent>

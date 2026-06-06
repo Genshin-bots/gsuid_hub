@@ -2518,6 +2518,7 @@ export const gitMirrorApi = {
 
 export interface MCPToolParameter {
   type: string;
+  description?: string;
   required: boolean;
 }
 
@@ -2525,6 +2526,12 @@ export interface MCPToolDefinition {
   name: string;
   description: string;
   parameters?: Record<string, MCPToolParameter>;
+  input_schema?: {
+    type: string;
+    properties: Record<string, { type: string; title?: string; description?: string }>;
+    required?: string[];
+    title?: string;
+  };
 }
 
 export interface MCPToolFromServer {
@@ -2532,17 +2539,22 @@ export interface MCPToolFromServer {
   description: string;
   input_schema?: {
     type: string;
-    properties: Record<string, { type: string }>;
+    properties: Record<string, { type: string; title?: string; description?: string }>;
     required?: string[];
+    title?: string;
   };
+  parameters?: Record<string, MCPToolParameter>;
 }
 
 export interface MCPConfig {
   config_id: string;
   name: string;
+  transport?: 'stdio' | 'sse';
   command: string;
   args: string[];
   env: Record<string, string>;
+  url?: string;
+  headers?: Record<string, string>;
   enabled: boolean;
   register_as_ai_tools: boolean;
   tools: MCPToolDefinition[];
@@ -2556,9 +2568,12 @@ export interface MCPConfigListResponse {
 
 export interface MCPConfigCreateData {
   name: string;
-  command: string;
+  transport?: 'stdio' | 'sse';
+  command?: string;
   args?: string[];
   env?: Record<string, string>;
+  url?: string;
+  headers?: Record<string, string>;
   enabled?: boolean;
   register_as_ai_tools?: boolean;
   tools?: MCPToolDefinition[];
@@ -2567,9 +2582,12 @@ export interface MCPConfigCreateData {
 
 export interface MCPConfigUpdateData {
   name?: string;
+  transport?: 'stdio' | 'sse';
   command?: string;
   args?: string[];
   env?: Record<string, string>;
+  url?: string;
+  headers?: Record<string, string>;
   enabled?: boolean;
   register_as_ai_tools?: boolean;
   tools?: MCPToolDefinition[];
@@ -2601,16 +2619,46 @@ export interface MCPImportResponse {
 
 export interface MCPPreset {
   name: string;
-  description: string;
-  command: string;
-  args: string[];
-  env_template: Record<string, string>;
-  default_tools: Array<{ name: string; description: string }>;
+  description?: string;
+  transport?: 'stdio' | 'sse';
+  command?: string;
+  args?: string[];
+  env?: Record<string, string>;
+  env_template?: Record<string, string>;
+  url?: string;
+  headers?: Record<string, string>;
+  default_tools?: Array<{ name: string; description: string }>;
 }
 
 export interface MCPPresetsResponse {
-  presets: MCPPreset[];
+  presets: Record<string, MCPPreset>;
   count: number;
+}
+
+// MCP Tools Config (参数映射配置)
+export interface MCPToolsConfigItem {
+  key: string;
+  title: string;
+  desc: string;
+  data: string;
+  details: Record<string, string | number | boolean | null>;
+}
+
+export interface MCPToolsConfigListResponse {
+  items: MCPToolsConfigItem[];
+  count: number;
+}
+
+export interface MCPToolsConfigUpdateRequest {
+  data?: string;
+  details?: Record<string, string | number | boolean | null>;
+}
+
+export interface MCPToolsConfigUpdateResponse {
+  key: string;
+  updated_fields: string[];
+  data: string;
+  details: Record<string, string | number | boolean | null>;
 }
 
 export const mcpConfigApi = {
@@ -2647,7 +2695,15 @@ export const mcpConfigApi = {
     api.get<MCPDiscoverToolsResponse>(`/api/ai/mcp/${encodeURIComponent(configId)}/tools`),
 
   // 从临时配置发现工具（不保存）
-  discoverToolsFromConfig: (data: { name: string; command: string; args?: string[]; env?: Record<string, string> }) =>
+  discoverToolsFromConfig: (data: {
+    name: string;
+    transport?: 'stdio' | 'sse';
+    command?: string;
+    args?: string[];
+    env?: Record<string, string>;
+    url?: string;
+    headers?: Record<string, string>;
+  }) =>
     api.post<MCPDiscoverToolsResponse>('/api/ai/mcp/tools/discover', data),
 
   // 从 JSON 导入 MCP 配置
@@ -2657,6 +2713,22 @@ export const mcpConfigApi = {
   // 获取 MCP 预设列表
   getPresets: () =>
     api.get<MCPPresetsResponse>('/api/ai/mcp/presets'),
+
+  // ===================
+  // MCP 工具参数映射配置 (mcp-tools-config)
+  // ===================
+
+  // 获取 MCP 工具配置列表
+  getToolsConfigList: () =>
+    api.get<MCPToolsConfigListResponse>('/api/ai/mcp-tools-config/list'),
+
+  // 获取指定 MCP 工具配置详情
+  getToolsConfigDetail: (itemKey: string) =>
+    api.get<MCPToolsConfigItem>(`/api/ai/mcp-tools-config/${encodeURIComponent(itemKey)}`),
+
+  // 更新 MCP 工具配置（含 details 参数映射）
+  updateToolsConfig: (itemKey: string, data: MCPToolsConfigUpdateRequest) =>
+    api.put<MCPToolsConfigUpdateResponse>(`/api/ai/mcp-tools-config/${encodeURIComponent(itemKey)}`, data),
 };
 
 // ===================

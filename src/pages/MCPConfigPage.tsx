@@ -11,7 +11,8 @@ import {
   Server, Loader2, Plus, Pencil, Trash2, RefreshCw,
   ChevronDown, ChevronRight, AlertTriangle, CheckCircle,
   X, HelpCircle, Download, FileJson, Search, Wrench,
-  Settings2, ListChecks, Package
+  Settings2, ListChecks, Package, Globe, Terminal,
+  Tag, ArrowLeftRight, Braces, Key, Shield
 } from 'lucide-react';
 import {
   Tooltip,
@@ -57,7 +58,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
 // ============================================================================
 // Types
@@ -68,11 +69,19 @@ interface EnvVar {
   value: string;
 }
 
+interface HeaderVar {
+  key: string;
+  value: string;
+}
+
 interface FormData {
   name: string;
+  transport: 'stdio' | 'sse';
   command: string;
   argsText: string;
   envVars: EnvVar[];
+  url: string;
+  headerVars: HeaderVar[];
   enabled: boolean;
   registerAsAiTools: boolean;
   toolPermissions: Record<string, number>;
@@ -120,12 +129,29 @@ function varsToEnv(vars: EnvVar[]): Record<string, string> {
   return env;
 }
 
+function headersToVars(headers: Record<string, string>): HeaderVar[] {
+  return Object.entries(headers).map(([key, value]) => ({ key, value }));
+}
+
+function varsToHeaders(vars: HeaderVar[]): Record<string, string> {
+  const headers: Record<string, string> = {};
+  for (const v of vars) {
+    if (v.key.trim()) {
+      headers[v.key.trim()] = v.value;
+    }
+  }
+  return headers;
+}
+
 function getEmptyFormData(): FormData {
   return {
     name: '',
+    transport: 'stdio',
     command: '',
     argsText: '',
     envVars: [],
+    url: '',
+    headerVars: [],
     enabled: true,
     registerAsAiTools: false,
     toolPermissions: {},
@@ -181,6 +207,7 @@ export default function MCPConfigPage() {
 
   // Preset dialog
   const [presetDialogOpen, setPresetDialogOpen] = useState(false);
+  const [presetSearchText, setPresetSearchText] = useState('');
 
   // ============================================================================
   // Data Loading
@@ -202,7 +229,9 @@ export default function MCPConfigPage() {
     try {
       setIsLoadingPresets(true);
       const data = await mcpConfigApi.getPresets();
-      setPresets(data.presets);
+      // Backend returns presets as an object (dict), convert to array
+      const presetsArray = Object.values(data.presets);
+      setPresets(presetsArray);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : t('mcpConfig.loadPresetsFailed'));
     } finally {
@@ -237,24 +266,42 @@ export default function MCPConfigPage() {
   // ============================================================================
 
   const handleOpenPresetDialog = () => {
+    setPresetSearchText('');
     loadPresets();
     setPresetDialogOpen(true);
   };
 
+  const filteredPresets = useMemo(() => {
+    if (!presetSearchText.trim()) return presets;
+    const keyword = presetSearchText.trim().toLowerCase();
+    return presets.filter(preset => {
+      const name = (preset.name || '').toLowerCase();
+      const desc = (preset.description || '').toLowerCase();
+      const command = (preset.command || '').toLowerCase();
+      const url = (preset.url || '').toLowerCase();
+      const toolNames = (preset.default_tools || []).map(t => (t.name || '').toLowerCase()).join(' ');
+      return name.includes(keyword) || desc.includes(keyword) || command.includes(keyword) || url.includes(keyword) || toolNames.includes(keyword);
+    });
+  }, [presets, presetSearchText]);
+
   const handleSelectPreset = (preset: MCPPreset) => {
     setConnectionMethod('preset');
     setSelectedPresetName(preset.name);
+    const transport = preset.transport || (preset.url ? 'sse' : 'stdio');
     setFormData({
       name: preset.name,
-      command: preset.command,
-      argsText: argsToText(preset.args),
-      envVars: envToVars(preset.env_template),
+      transport,
+      command: preset.command || '',
+      argsText: argsToText(preset.args || []),
+      envVars: envToVars(preset.env_template || preset.env || {}),
+      url: preset.url || '',
+      headerVars: headersToVars(preset.headers || {}),
       enabled: true,
       registerAsAiTools: false,
       toolPermissions: {},
     });
     // Pre-populate discovered tools from preset defaults
-    const presetTools: MCPToolFromServer[] = preset.default_tools.map(dt => ({
+    const presetTools: MCPToolFromServer[] = (preset.default_tools || []).map(dt => ({
       name: dt.name,
       description: dt.description,
     }));
@@ -282,11 +329,15 @@ export default function MCPConfigPage() {
         // Discover from temporary config
         const args = parseArgsText(formData.argsText);
         const env = varsToEnv(formData.envVars);
+        const headers = varsToHeaders(formData.headerVars);
         result = await mcpConfigApi.discoverToolsFromConfig({
           name: formData.name.trim(),
-          command: formData.command.trim(),
-          args,
-          env,
+          transport: formData.transport,
+          command: formData.transport === 'stdio' ? formData.command.trim() : undefined,
+          args: formData.transport === 'stdio' ? args : undefined,
+          env: formData.transport === 'stdio' ? env : undefined,
+          url: formData.transport === 'sse' ? formData.url.trim() : undefined,
+          headers: formData.transport === 'sse' ? headers : undefined,
         });
       }
 
@@ -328,21 +379,27 @@ export default function MCPConfigPage() {
 
   const openEditDialog = (config: MCPConfig) => {
     setEditingConfig(config);
+    const transport = config.transport || (config.url ? 'sse' : 'stdio');
     setFormData({
       name: config.name,
-      command: config.command,
-      argsText: argsToText(config.args),
-      envVars: envToVars(config.env),
+      transport,
+      command: config.command || '',
+      argsText: argsToText(config.args || []),
+      envVars: envToVars(config.env || {}),
+      url: config.url || '',
+      headerVars: headersToVars(config.headers || {}),
       enabled: config.enabled,
       registerAsAiTools: config.register_as_ai_tools,
       toolPermissions: config.tool_permissions || {},
     });
     setConnectionMethod('manual');
     setSelectedPresetName('');
-    // Pre-populate tools from config
+    // Pre-populate tools from config (preserve parameters and input_schema)
     const configTools: MCPToolFromServer[] = config.tools.map(t => ({
       name: t.name,
       description: t.description,
+      ...(t.parameters && { parameters: t.parameters }),
+      ...(t.input_schema && { input_schema: t.input_schema }),
     }));
     setDiscoveredTools(configTools);
     setSelectedToolNames(new Set(config.tools.map(t => t.name)));
@@ -354,8 +411,14 @@ export default function MCPConfigPage() {
       toast.error(t('mcpConfig.configName') + ' ' + t('common.required'));
       return;
     }
-    if (!formData.command.trim()) {
-      toast.error(t('mcpConfig.command') + ' ' + t('common.required'));
+
+    // Validate based on transport type
+    if (formData.transport === 'stdio' && !formData.command.trim()) {
+      toast.error(t('mcpConfig.commandRequired'));
+      return;
+    }
+    if (formData.transport === 'sse' && !formData.url.trim()) {
+      toast.error(t('mcpConfig.urlRequired'));
       return;
     }
 
@@ -363,22 +426,29 @@ export default function MCPConfigPage() {
       setIsSubmitting(true);
       const args = parseArgsText(formData.argsText);
       const env = varsToEnv(formData.envVars);
+      const headers = varsToHeaders(formData.headerVars);
 
       // Build tools list from selected discovered tools
+      // Include parameters and input_schema from discover response
       const tools: MCPToolDefinition[] = discoveredTools
         .filter(dt => selectedToolNames.has(dt.name))
         .map(dt => ({
           name: dt.name,
           description: dt.description,
+          ...(dt.parameters && { parameters: dt.parameters }),
+          ...(dt.input_schema && { input_schema: dt.input_schema }),
         }));
 
       if (editingConfig) {
         // Update
         await mcpConfigApi.update(editingConfig.config_id, {
           name: formData.name.trim(),
-          command: formData.command.trim(),
-          args,
-          env,
+          transport: formData.transport,
+          command: formData.transport === 'stdio' ? formData.command.trim() : '',
+          args: formData.transport === 'stdio' ? args : [],
+          env: formData.transport === 'stdio' ? env : {},
+          url: formData.transport === 'sse' ? formData.url.trim() : '',
+          headers: formData.transport === 'sse' ? headers : {},
           enabled: formData.enabled,
           register_as_ai_tools: formData.registerAsAiTools,
           tools,
@@ -389,9 +459,12 @@ export default function MCPConfigPage() {
         // Create
         await mcpConfigApi.create({
           name: formData.name.trim(),
-          command: formData.command.trim(),
-          args,
-          env,
+          transport: formData.transport,
+          command: formData.transport === 'stdio' ? formData.command.trim() : '',
+          args: formData.transport === 'stdio' ? args : [],
+          env: formData.transport === 'stdio' ? env : {},
+          url: formData.transport === 'sse' ? formData.url.trim() : '',
+          headers: formData.transport === 'sse' ? headers : {},
           enabled: formData.enabled,
           register_as_ai_tools: formData.registerAsAiTools,
           tools,
@@ -519,6 +592,33 @@ export default function MCPConfigPage() {
     setFormData(prev => ({
       ...prev,
       envVars: prev.envVars.map((v, i) =>
+        i === index ? { ...v, [field]: value } : v
+      ),
+    }));
+  };
+
+  // ============================================================================
+  // Header Vars Management (SSE mode)
+  // ============================================================================
+
+  const addHeaderVar = () => {
+    setFormData(prev => ({
+      ...prev,
+      headerVars: [...prev.headerVars, { key: '', value: '' }],
+    }));
+  };
+
+  const removeHeaderVar = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      headerVars: prev.headerVars.filter((_, i) => i !== index),
+    }));
+  };
+
+  const updateHeaderVar = (index: number, field: 'key' | 'value', value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      headerVars: prev.headerVars.map((v, i) =>
         i === index ? { ...v, [field]: value } : v
       ),
     }));
@@ -657,6 +757,12 @@ export default function MCPConfigPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                         <p className="font-medium text-sm truncate max-w-full">{config.name}</p>
+                        <Badge variant="outline" className="text-xs shrink-0">
+                          {(config.transport === 'sse' || (!config.transport && config.url))
+                            ? <><Globe className="h-3 w-3 mr-1" />SSE</>
+                            : <><Terminal className="h-3 w-3 mr-1" />stdio</>
+                          }
+                        </Badge>
                         <Badge variant={config.enabled ? "default" : "secondary"} className="text-xs shrink-0">
                           {config.enabled ? t('mcpConfig.enabled') : t('mcpConfig.disabled')}
                         </Badge>
@@ -672,18 +778,25 @@ export default function MCPConfigPage() {
                           </Badge>
                         )}
                       </div>
-                      <p className="text-xs text-muted-foreground mt-0.5 break-all">
-                        <code className="bg-muted px-1 py-0.5 rounded text-[10px]">{config.command}</code>
-                        {config.args.length > 0 && (
-                          <span className="ml-1">
-                            {config.args.map((arg, i) => (
-                              <span key={i}>
-                                <code className="bg-muted px-1 py-0.5 rounded text-[10px] ml-1">{arg}</code>
-                              </span>
-                            ))}
-                          </span>
-                        )}
-                      </p>
+                      {(config.transport === 'sse' || (!config.transport && config.url)) ? (
+                        <p className="text-xs text-muted-foreground mt-0.5 break-all">
+                          <Globe className="h-3 w-3 inline mr-1" />
+                          <code className="bg-muted px-1 py-0.5 rounded text-[10px]">{config.url}</code>
+                        </p>
+                      ) : (
+                        <p className="text-xs text-muted-foreground mt-0.5 break-all">
+                          <code className="bg-muted px-1 py-0.5 rounded text-[10px]">{config.command}</code>
+                          {config.args.length > 0 && (
+                            <span className="ml-1">
+                              {config.args.map((arg, i) => (
+                                <span key={i}>
+                                  <code className="bg-muted px-1 py-0.5 rounded text-[10px] ml-1">{arg}</code>
+                                </span>
+                              ))}
+                            </span>
+                          )}
+                        </p>
+                      )}
                     </div>
 
                     {/* Actions */}
@@ -745,33 +858,81 @@ export default function MCPConfigPage() {
                           <p className="text-sm"><code className="bg-muted px-1.5 py-0.5 rounded">{config.config_id}</code></p>
                         </div>
                         <div>
-                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">{t('mcpConfig.command')}</p>
-                          <p className="text-sm"><code className="bg-muted px-1.5 py-0.5 rounded">{config.command}</code></p>
+                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">{t('mcpConfig.transport')}</p>
+                          <p className="text-sm">
+                            {(config.transport === 'sse' || (!config.transport && config.url)) ? (
+                              <Badge variant="outline" className="text-xs">
+                                <Globe className="h-3 w-3 mr-1" />
+                                {t('mcpConfig.transportSse')}
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-xs">
+                                <Terminal className="h-3 w-3 mr-1" />
+                                {t('mcpConfig.transportStdio')}
+                              </Badge>
+                            )}
+                          </p>
                         </div>
                       </div>
-                      {config.args.length > 0 && (
-                        <div>
-                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">{t('mcpConfig.args')}</p>
-                          <div className="flex flex-wrap gap-1">
-                            {config.args.map((arg, i) => (
-                              <Badge key={i} variant="outline" className="text-xs font-mono">{arg}</Badge>
-                            ))}
+
+                      {/* stdio mode details */}
+                      {(config.transport !== 'sse' && !(config.url && !config.transport)) && (
+                        <>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">{t('mcpConfig.command')}</p>
+                              <p className="text-sm"><code className="bg-muted px-1.5 py-0.5 rounded">{config.command}</code></p>
+                            </div>
                           </div>
-                        </div>
-                      )}
-                      {Object.keys(config.env).length > 0 && (
-                        <div>
-                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">{t('mcpConfig.env')}</p>
-                          <div className="space-y-1">
-                            {Object.entries(config.env).map(([key, value]) => (
-                              <div key={key} className="flex items-center gap-2 text-xs">
-                                <code className="bg-muted px-1.5 py-0.5 rounded font-mono">{key}</code>
-                                <span className="text-muted-foreground">=</span>
-                                <code className="bg-muted px-1.5 py-0.5 rounded font-mono">***</code>
+                          {config.args.length > 0 && (
+                            <div>
+                              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">{t('mcpConfig.args')}</p>
+                              <div className="flex flex-wrap gap-1">
+                                {config.args.map((arg, i) => (
+                                  <Badge key={i} variant="outline" className="text-xs font-mono">{arg}</Badge>
+                                ))}
                               </div>
-                            ))}
+                            </div>
+                          )}
+                          {Object.keys(config.env).length > 0 && (
+                            <div>
+                              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">{t('mcpConfig.env')}</p>
+                              <div className="space-y-1">
+                                {Object.entries(config.env).map(([key, value]) => (
+                                  <div key={key} className="flex items-center gap-2 text-xs">
+                                    <code className="bg-muted px-1.5 py-0.5 rounded font-mono">{key}</code>
+                                    <span className="text-muted-foreground">=</span>
+                                    <code className="bg-muted px-1.5 py-0.5 rounded font-mono">***</code>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      )}
+
+                      {/* sse mode details */}
+                      {(config.transport === 'sse' || (!config.transport && config.url)) && (
+                        <>
+                          <div>
+                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">{t('mcpConfig.url')}</p>
+                            <p className="text-sm break-all"><code className="bg-muted px-1.5 py-0.5 rounded">{config.url}</code></p>
                           </div>
-                        </div>
+                          {config.headers && Object.keys(config.headers).length > 0 && (
+                            <div>
+                              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">{t('mcpConfig.headers')}</p>
+                              <div className="space-y-1">
+                                {Object.entries(config.headers).map(([key, value]) => (
+                                  <div key={key} className="flex items-center gap-2 text-xs">
+                                    <code className="bg-muted px-1.5 py-0.5 rounded font-mono">{key}</code>
+                                    <span className="text-muted-foreground">:</span>
+                                    <code className="bg-muted px-1.5 py-0.5 rounded font-mono">***</code>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </>
                       )}
 
                       {/* Register as AI Tools */}
@@ -835,25 +996,32 @@ export default function MCPConfigPage() {
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-4 py-2">
+            <div className="space-y-5 py-2">
               {/* Connection Method (only for create) */}
               {!editingConfig && (
                 <div className="space-y-2">
-                  <Label>{t('mcpConfig.connectionMethod')}</Label>
-                  <RadioGroup
+                  <Label className="flex items-center gap-1.5">
+                    <ArrowLeftRight className="h-3.5 w-3.5 text-muted-foreground" />
+                    {t('mcpConfig.connectionMethod')}
+                  </Label>
+                  <ToggleGroup
+                    type="single"
                     value={connectionMethod}
-                    onValueChange={(v) => setConnectionMethod(v as ConnectionMethod)}
-                    className="flex gap-4"
+                    onValueChange={(v) => {
+                      if (v) setConnectionMethod(v as ConnectionMethod);
+                    }}
+                    variant="outline"
+                    className="justify-start"
                   >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="manual" id="method-manual" />
-                      <Label htmlFor="method-manual" className="font-normal cursor-pointer">{t('mcpConfig.manualFill')}</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="preset" id="method-preset" />
-                      <Label htmlFor="method-preset" className="font-normal cursor-pointer">{t('mcpConfig.selectPreset')}</Label>
-                    </div>
-                  </RadioGroup>
+                    <ToggleGroupItem value="manual" className="flex items-center gap-1.5 px-4">
+                      <Pencil className="h-3.5 w-3.5" />
+                      {t('mcpConfig.manualFill')}
+                    </ToggleGroupItem>
+                    <ToggleGroupItem value="preset" className="flex items-center gap-1.5 px-4">
+                      <Package className="h-3.5 w-3.5" />
+                      {t('mcpConfig.selectPreset')}
+                    </ToggleGroupItem>
+                  </ToggleGroup>
 
                   {connectionMethod === 'preset' && (
                     <Button
@@ -874,7 +1042,8 @@ export default function MCPConfigPage() {
 
               {/* Name */}
               <div className="space-y-2">
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1.5">
+                  <Tag className="h-3.5 w-3.5 text-muted-foreground" />
                   <Label htmlFor="mcp-name">{t('mcpConfig.configName')} *</Label>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -893,107 +1062,243 @@ export default function MCPConfigPage() {
                 />
               </div>
 
-              {/* Command */}
+              {/* Transport Type */}
               <div className="space-y-2">
-                <div className="flex items-center gap-1">
-                  <Label htmlFor="mcp-command">{t('mcpConfig.command')} *</Label>
+                <div className="flex items-center gap-1.5">
+                  <Settings2 className="h-3.5 w-3.5 text-muted-foreground" />
+                  <Label>{t('mcpConfig.transport')}</Label>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>{t('mcpConfig.commandHelp')}</p>
+                      <p>{t('mcpConfig.transportHelp')}</p>
                     </TooltipContent>
                   </Tooltip>
                 </div>
-                <Input
-                  id="mcp-command"
-                  placeholder={t('mcpConfig.commandPlaceholder')}
-                  value={formData.command}
-                  onChange={e => setFormData(prev => ({ ...prev, command: e.target.value }))}
-                />
+                <ToggleGroup
+                  type="single"
+                  value={formData.transport}
+                  onValueChange={(v) => {
+                    if (v) setFormData(prev => ({ ...prev, transport: v as 'stdio' | 'sse' }));
+                  }}
+                  variant="outline"
+                  className="justify-start"
+                >
+                  <ToggleGroupItem value="stdio" className="flex items-center gap-1.5 px-4">
+                    <Terminal className="h-3.5 w-3.5" />
+                    {t('mcpConfig.transportStdio')}
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="sse" className="flex items-center gap-1.5 px-4">
+                    <Globe className="h-3.5 w-3.5" />
+                    {t('mcpConfig.transportSse')}
+                  </ToggleGroupItem>
+                </ToggleGroup>
               </div>
 
-              {/* Args */}
-              <div className="space-y-2">
-                <div className="flex items-center gap-1">
-                  <Label htmlFor="mcp-args">{t('mcpConfig.args')}</Label>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>{t('mcpConfig.argsHelp')}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
-                <Textarea
-                  id="mcp-args"
-                  placeholder={t('mcpConfig.argsPlaceholder')}
-                  value={formData.argsText}
-                  onChange={e => setFormData(prev => ({ ...prev, argsText: e.target.value }))}
-                  rows={3}
-                  className="font-mono text-sm"
-                />
-              </div>
-
-              {/* Environment Variables */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1">
-                    <Label>{t('mcpConfig.env')}</Label>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>{t('mcpConfig.envHelp')}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={addEnvVar}
-                    className="h-7 text-xs"
-                  >
-                    <Plus className="h-3 w-3 mr-1" />
-                    {t('mcpConfig.addEnvVar')}
-                  </Button>
-                </div>
-                {formData.envVars.length > 0 && (
+              {/* stdio mode fields */}
+              {formData.transport === 'stdio' && (
+                <>
+                  {/* Command */}
                   <div className="space-y-2">
-                    {formData.envVars.map((envVar, index) => (
-                      <div key={index} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                        <Input
-                          placeholder={t('mcpConfig.envKeyPlaceholder')}
-                          value={envVar.key}
-                          onChange={e => updateEnvVar(index, 'key', e.target.value)}
-                          className="flex-1 font-mono text-sm"
-                        />
-                        <span className="text-muted-foreground hidden sm:inline">=</span>
-                        <Input
-                          placeholder={t('mcpConfig.envValuePlaceholder')}
-                          value={envVar.value}
-                          onChange={e => updateEnvVar(index, 'value', e.target.value)}
-                          className="flex-1 font-mono text-sm"
-                          type="password"
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 shrink-0 text-destructive hover:text-destructive self-end sm:self-auto"
-                          onClick={() => removeEnvVar(index)}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
+                    <div className="flex items-center gap-1.5">
+                      <Terminal className="h-3.5 w-3.5 text-muted-foreground" />
+                      <Label htmlFor="mcp-command">{t('mcpConfig.command')} *</Label>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{t('mcpConfig.commandHelp')}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                    <Input
+                      id="mcp-command"
+                      placeholder={t('mcpConfig.commandPlaceholder')}
+                      value={formData.command}
+                      onChange={e => setFormData(prev => ({ ...prev, command: e.target.value }))}
+                    />
                   </div>
-                )}
-              </div>
+
+                  {/* Args */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-1.5">
+                      <Braces className="h-3.5 w-3.5 text-muted-foreground" />
+                      <Label htmlFor="mcp-args">{t('mcpConfig.args')}</Label>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{t('mcpConfig.argsHelp')}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                    <Textarea
+                      id="mcp-args"
+                      placeholder={t('mcpConfig.argsPlaceholder')}
+                      value={formData.argsText}
+                      onChange={e => setFormData(prev => ({ ...prev, argsText: e.target.value }))}
+                      rows={3}
+                      className="font-mono text-sm"
+                    />
+                    {!formData.argsText.trim() && (
+                      <p className="text-xs text-muted-foreground/60 italic">{t('mcpConfig.noArgs')}</p>
+                    )}
+                  </div>
+
+                  {/* Environment Variables */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <Key className="h-3.5 w-3.5 text-muted-foreground" />
+                        <Label>{t('mcpConfig.env')}</Label>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{t('mcpConfig.envHelp')}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={addEnvVar}
+                        className="h-7 text-xs"
+                      >
+                        <Plus className="h-3 w-3 mr-1" />
+                        {t('mcpConfig.addEnvVar')}
+                      </Button>
+                    </div>
+                    {formData.envVars.length > 0 ? (
+                      <div className="space-y-2">
+                        {formData.envVars.map((envVar, index) => (
+                          <div key={index} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                            <Input
+                              placeholder={t('mcpConfig.envKeyPlaceholder')}
+                              value={envVar.key}
+                              onChange={e => updateEnvVar(index, 'key', e.target.value)}
+                              className="flex-1 font-mono text-sm"
+                            />
+                            <span className="text-muted-foreground hidden sm:inline">=</span>
+                            <Input
+                              placeholder={t('mcpConfig.envValuePlaceholder')}
+                              value={envVar.value}
+                              onChange={e => updateEnvVar(index, 'value', e.target.value)}
+                              className="flex-1 font-mono text-sm"
+                              type="password"
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 shrink-0 text-destructive hover:text-destructive self-end sm:self-auto"
+                              onClick={() => removeEnvVar(index)}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground/60 italic">{t('mcpConfig.noEnvVars')}</p>
+                    )}
+                  </div>
+                </>
+              )}
+
+              {/* sse mode fields */}
+              {formData.transport === 'sse' && (
+                <>
+                  {/* URL */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-1.5">
+                      <Globe className="h-3.5 w-3.5 text-muted-foreground" />
+                      <Label htmlFor="mcp-url">{t('mcpConfig.url')} *</Label>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{t('mcpConfig.urlHelp')}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                    <Input
+                      id="mcp-url"
+                      placeholder={t('mcpConfig.urlPlaceholder')}
+                      value={formData.url}
+                      onChange={e => setFormData(prev => ({ ...prev, url: e.target.value }))}
+                      className="font-mono text-sm"
+                    />
+                  </div>
+
+                  {/* HTTP Headers */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <Shield className="h-3.5 w-3.5 text-muted-foreground" />
+                        <Label>{t('mcpConfig.headers')}</Label>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{t('mcpConfig.headersHelp')}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={addHeaderVar}
+                        className="h-7 text-xs"
+                      >
+                        <Plus className="h-3 w-3 mr-1" />
+                        {t('mcpConfig.addHeader')}
+                      </Button>
+                    </div>
+                    {formData.headerVars.length > 0 ? (
+                      <div className="space-y-2">
+                        {formData.headerVars.map((headerVar, index) => (
+                          <div key={index} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                            <Input
+                              placeholder={t('mcpConfig.headersKeyPlaceholder')}
+                              value={headerVar.key}
+                              onChange={e => updateHeaderVar(index, 'key', e.target.value)}
+                              className="flex-1 font-mono text-sm"
+                            />
+                            <span className="text-muted-foreground hidden sm:inline">:</span>
+                            <Input
+                              placeholder={t('mcpConfig.headersValuePlaceholder')}
+                              value={headerVar.value}
+                              onChange={e => updateHeaderVar(index, 'value', e.target.value)}
+                              className="flex-1 font-mono text-sm"
+                              type="password"
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 shrink-0 text-destructive hover:text-destructive self-end sm:self-auto"
+                              onClick={() => removeHeaderVar(index)}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground/60 italic">{t('mcpConfig.noHeaders')}</p>
+                    )}
+                  </div>
+                </>
+              )}
 
               <Separator />
 
@@ -1002,7 +1307,7 @@ export default function MCPConfigPage() {
                 <Button
                   variant="outline"
                   onClick={handleDiscoverTools}
-                  disabled={isDiscovering || !formData.name.trim() || !formData.command.trim()}
+                  disabled={isDiscovering || !formData.name.trim() || (formData.transport === 'stdio' && !formData.command.trim()) || (formData.transport === 'sse' && !formData.url.trim())}
                   className="w-full"
                 >
                   {isDiscovering ? (
@@ -1016,7 +1321,7 @@ export default function MCPConfigPage() {
                 {/* Discovered Tools */}
                 {discoveredTools.length > 0 && (
                   <div className="space-y-2">
-                    <Label className="flex items-center gap-1">
+                    <Label className="flex items-center gap-1.5">
                       <ListChecks className="h-4 w-4" />
                       {t('mcpConfig.discoveredTools')}
                     </Label>
@@ -1168,12 +1473,26 @@ export default function MCPConfigPage() {
               <Button variant="outline" onClick={() => setFormDialogOpen(false)}>
                 {t('common.cancel')}
               </Button>
-              <Button onClick={handleSubmit} disabled={isSubmitting}>
-                {isSubmitting ? (
-                  <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                ) : null}
-                {editingConfig ? t('common.save') : t('common.confirm')}
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span>
+                    <Button
+                      onClick={handleSubmit}
+                      disabled={isSubmitting || (!editingConfig && discoveredTools.length === 0)}
+                    >
+                      {isSubmitting ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                      ) : null}
+                      {editingConfig ? t('common.save') : t('common.confirm')}
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                {!editingConfig && discoveredTools.length === 0 && (
+                  <TooltipContent>
+                    <p>{t('mcpConfig.discoverBeforeSubmit')}</p>
+                  </TooltipContent>
+                )}
+              </Tooltip>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -1231,6 +1550,13 @@ export default function MCPConfigPage() {
       "env": {
         "MINIMAX_API_KEY": "your_key"
       }
+    },
+    "ZhihuSearch": {
+      "transport": "sse",
+      "url": "https://developer.zhihu.com/api/mcp/zhihu_search/v1/sse",
+      "headers": {
+        "Authorization": "Bearer your_access_secret"
+      }
     }
   }
 }`}
@@ -1270,7 +1596,21 @@ export default function MCPConfigPage() {
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-2 py-2 max-h-[50vh] overflow-y-auto">
+            <div className="space-y-3 py-2">
+              {/* Search Input */}
+              {!isLoadingPresets && presets.length > 0 && (
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder={t('mcpConfig.presetSearchPlaceholder')}
+                    value={presetSearchText}
+                    onChange={e => setPresetSearchText(e.target.value)}
+                    className="pl-8"
+                  />
+                </div>
+              )}
+
+              <div className="max-h-[45vh] overflow-y-auto space-y-2">
               {isLoadingPresets ? (
                 <div className="flex items-center justify-center py-10">
                   <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -1280,41 +1620,68 @@ export default function MCPConfigPage() {
                   <Package className="h-8 w-8 text-muted-foreground/50 mb-2" />
                   <p className="text-sm text-muted-foreground">{t('mcpConfig.noConfigs')}</p>
                 </div>
+              ) : filteredPresets.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-10 text-center">
+                  <Search className="h-8 w-8 text-muted-foreground/50 mb-2" />
+                  <p className="text-sm text-muted-foreground">{t('mcpConfig.noPresetSearchResult')}</p>
+                </div>
               ) : (
-                presets.map((preset, i) => (
-                  <div
-                    key={i}
-                    className="p-4 rounded-lg border border-border/50 hover:bg-muted/50 cursor-pointer transition-colors"
-                    onClick={() => handleSelectPreset(preset)}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0 flex-1">
-                        <p className="font-medium text-sm">{preset.name}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">{preset.description}</p>
-                        <div className="flex flex-wrap items-center gap-2 mt-2">
-                          <code className="text-[10px] bg-muted px-1.5 py-0.5 rounded font-mono">{preset.command}</code>
-                          {preset.args.map((arg, j) => (
-                            <code key={j} className="text-[10px] bg-muted px-1.5 py-0.5 rounded font-mono">{arg}</code>
-                          ))}
-                        </div>
-                        {preset.default_tools.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mt-2">
-                            {preset.default_tools.map((tool, j) => (
-                              <Badge key={j} variant="outline" className="text-[10px]">
-                                <Wrench className="h-2.5 w-2.5 mr-0.5" />
-                                {tool.name}
-                              </Badge>
-                            ))}
+                filteredPresets.map((preset, i) => {
+                  const presetTransport = preset.transport || (preset.url ? 'sse' : 'stdio');
+                  return (
+                    <div
+                      key={i}
+                      className="p-4 rounded-lg border border-border/50 hover:bg-muted/50 cursor-pointer transition-colors"
+                      onClick={() => handleSelectPreset(preset)}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5">
+                            <p className="font-medium text-sm">{preset.name}</p>
+                            <Badge variant="outline" className="text-[10px] shrink-0">
+                              {presetTransport === 'sse' ? (
+                                <><Globe className="h-2.5 w-2.5 mr-0.5" />SSE</>
+                              ) : (
+                                <><Terminal className="h-2.5 w-2.5 mr-0.5" />stdio</>
+                              )}
+                            </Badge>
                           </div>
-                        )}
+                          {preset.description && (
+                            <p className="text-xs text-muted-foreground mt-0.5">{preset.description}</p>
+                          )}
+                          {presetTransport === 'stdio' && preset.command && (
+                            <div className="flex flex-wrap items-center gap-2 mt-2">
+                              <code className="text-[10px] bg-muted px-1.5 py-0.5 rounded font-mono">{preset.command}</code>
+                              {(preset.args || []).map((arg, j) => (
+                                <code key={j} className="text-[10px] bg-muted px-1.5 py-0.5 rounded font-mono">{arg}</code>
+                              ))}
+                            </div>
+                          )}
+                          {presetTransport === 'sse' && preset.url && (
+                            <div className="mt-2">
+                              <code className="text-[10px] bg-muted px-1.5 py-0.5 rounded font-mono break-all">{preset.url}</code>
+                            </div>
+                          )}
+                          {(preset.default_tools || []).length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-2">
+                              {preset.default_tools!.map((tool, j) => (
+                                <Badge key={j} variant="outline" className="text-[10px]">
+                                  <Wrench className="h-2.5 w-2.5 mr-0.5" />
+                                  {tool.name}
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+                          <Plus className="h-4 w-4" />
+                        </Button>
                       </div>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
-                        <Plus className="h-4 w-4" />
-                      </Button>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
+              </div>
             </div>
 
             <DialogFooter>
