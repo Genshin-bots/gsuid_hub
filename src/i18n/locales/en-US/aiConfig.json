@@ -191,7 +191,10 @@
     "baseUrlTrailingSlashWarning": "API Base URL must not end with /. Please remove the trailing slash",
     "fetchingModels": "Fetching model list...",
     "modelRequired": "Please enter model name",
-    "apiKeyRequired": "Please enter at least one API Key"
+    "apiKeyRequired": "Please enter at least one API Key",
+    "presetList": "Preset List",
+    "discoveredModels": "Discovered Models",
+    "noDiscoveredModels": "The API provider has not provided any models yet"
   },
   "providerConfig": {
     "title": "Provider Configuration",

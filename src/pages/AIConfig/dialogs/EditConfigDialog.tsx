@@ -18,6 +18,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { InputWithDropdown } from '@/components/ui/input-with-dropdown';
+import { ModelSelectDropdown } from '@/components/ui/model-select-dropdown';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { getModelCapabilities, type ModelCapability } from '../constants';
@@ -117,15 +118,14 @@ export function EditConfigDialog({
               <Label className="text-sm flex items-center gap-2">
                 <Cpu className="w-4 h-4" />
                 {t('aiConfig.serviceProvider.apiModel')}
-                {isFetching && <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />}
               </Label>
-              <InputWithDropdown
+              <ModelSelectDropdown
                 value={data.model_name}
                 onChange={(val) => onChangeField('model_name', val)}
-                options={Array.from(
-                  new Set([...fetchedModels, ...(providerConfigOptions?.options?.model_name || [])]),
-                ).filter((m): m is string => Boolean(m))}
-                placeholder={isFetching ? t('aiConfig.openaiConfig.fetchingModels') : '选择或输入模型名称'}
+                presetOptions={providerConfigOptions?.options?.model_name || []}
+                discoveredModels={fetchedModels}
+                isFetching={isFetching}
+                placeholder="选择或输入模型名称"
                 inputPlaceholder="输入或选择模型名称"
               />
             </div>

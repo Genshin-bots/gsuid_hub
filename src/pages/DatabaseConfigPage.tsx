@@ -416,8 +416,8 @@ export default function DatabaseConfigPage() {
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center">
-                  <HardDrive className="w-5 h-5 text-green-500" />
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center text-muted-foreground">
+                  <HardDrive className="w-5 h-5" />
                 </div>
                 <div>
                   <p className="font-medium">{t('databaseConfig.sqliteDefault')}</p>
@@ -426,7 +426,7 @@ export default function DatabaseConfigPage() {
                   </p>
                 </div>
               </div>
-              <Badge variant="secondary" className="bg-green-500/20 text-green-600">
+              <Badge variant="secondary">
                 {t('databaseConfig.recommended')}
               </Badge>
             </div>
@@ -610,8 +610,8 @@ export default function DatabaseConfigPage() {
                 <Separator />
                 <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
-                      <Settings className="w-5 h-5 text-blue-500" />
+                    <div className="w-10 h-10 rounded-lg flex items-center justify-center text-muted-foreground">
+                      <Settings className="w-5 h-5" />
                     </div>
                     <div>
                       <p className="font-medium">{t('databaseConfig.debugMode')}</p>
@@ -767,8 +767,8 @@ export default function DatabaseConfigPage() {
                 <Separator />
                 <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
-                      <Settings className="w-5 h-5 text-blue-500" />
+                    <div className="w-10 h-10 rounded-lg flex items-center justify-center text-muted-foreground">
+                      <Settings className="w-5 h-5" />
                     </div>
                     <div>
                       <p className="font-medium">{t('databaseConfig.debugMode')}</p>

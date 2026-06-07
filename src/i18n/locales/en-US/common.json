@@ -48,5 +48,7 @@
   "copyCurrentValue": "Copy current input",
   "copiedCurrentValue": "Current input copied",
   "copyEmptyValue": "Nothing to copy",
-  "required": "Required"
+  "required": "Required",
+  "show": "Show",
+  "hide": "Hide"
 }

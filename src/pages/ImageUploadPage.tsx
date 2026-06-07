@@ -362,14 +362,8 @@ export default function ImageUploadPage() {
         <CardContent>
           <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
             <div className="flex items-center gap-3">
-              <div className={cn(
-                "w-10 h-10 rounded-lg flex items-center justify-center",
-                isPicSrvEnabled ? "bg-green-500/20" : "bg-muted"
-              )}>
-                <Globe className={cn(
-                  "w-5 h-5",
-                  isPicSrvEnabled ? "text-green-500" : "text-muted-foreground"
-                )} />
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center text-muted-foreground">
+                <Globe className="w-5 h-5" />
               </div>
               <div>
                 <p className="font-medium">{t('imageUpload.enablePicSrv')}</p>
@@ -398,14 +392,8 @@ export default function ImageUploadPage() {
         <CardContent>
           <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
             <div className="flex items-center gap-3">
-              <div className={cn(
-                "w-10 h-10 rounded-lg flex items-center justify-center",
-                uploadConfig.AutoDelete.value ? "bg-orange-500/20" : "bg-muted"
-              )}>
-                <Trash2 className={cn(
-                  "w-5 h-5",
-                  uploadConfig.AutoDelete.value ? "text-orange-500" : "text-muted-foreground"
-                )} />
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center text-muted-foreground">
+                <Trash2 className="w-5 h-5" />
               </div>
               <div>
                 <p className="font-medium">{t('imageUpload.autoDeleteTitle')}</p>
@@ -594,8 +582,8 @@ export default function ImageUploadPage() {
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg mb-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
-                    <HardDrive className="w-5 h-5 text-blue-500" />
+                  <div className="w-10 h-10 rounded-lg flex items-center justify-center text-muted-foreground">
+                    <HardDrive className="w-5 h-5" />
                   </div>
                   <div>
                     <p className="font-medium">{t('imageUpload.localDefault')}</p>
@@ -604,7 +592,7 @@ export default function ImageUploadPage() {
                     </p>
                   </div>
                 </div>
-                <Badge variant="secondary" className="bg-blue-500/20 text-blue-600">
+                <Badge variant="secondary">
                   {t('imageUpload.local')}
                 </Badge>
               </div>
@@ -638,14 +626,8 @@ export default function ImageUploadPage() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
                   <div className="flex items-center gap-3">
-                    <div className={cn(
-                      "w-10 h-10 rounded-lg flex items-center justify-center",
-                      uploadConfig.EnableCleanPicSrv.value ? "bg-purple-500/20" : "bg-muted"
-                    )}>
-                      <Clock className={cn(
-                        "w-5 h-5",
-                        uploadConfig.EnableCleanPicSrv.value ? "text-purple-500" : "text-muted-foreground"
-                      )} />
+                    <div className="w-10 h-10 rounded-lg flex items-center justify-center text-muted-foreground">
+                      <Clock className="w-5 h-5" />
                     </div>
                     <div>
                       <p className="font-medium">{t('imageUpload.enableScheduledClean')}</p>

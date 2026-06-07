@@ -548,14 +548,11 @@ export default function ButtonMarkdownSettings() {
             {/* Try Template For QQ */}
             <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
               <div className="flex items-center gap-3">
-                <div className={cn(
-                  "w-10 h-10 rounded-lg flex items-center justify-center",
-                  config.TryTemplateForQQ.value ? "bg-blue-500/20" : "bg-muted"
-                )}>
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center text-muted-foreground">
                   {config.TryTemplateForQQ.value ? (
-                    <ToggleRight className="w-5 h-5 text-blue-500" />
+                    <ToggleRight className="w-5 h-5" />
                   ) : (
-                    <ToggleLeft className="w-5 h-5 text-muted-foreground" />
+                    <ToggleLeft className="w-5 h-5" />
                   )}
                 </div>
                 <div>
@@ -572,14 +569,8 @@ export default function ButtonMarkdownSettings() {
             {/* Force Send MD */}
             <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
               <div className="flex items-center gap-3">
-                <div className={cn(
-                  "w-10 h-10 rounded-lg flex items-center justify-center",
-                  config.ForceSendMD.value ? "bg-red-500/20" : "bg-muted"
-                )}>
-                  <FileText className={cn(
-                    "w-5 h-5",
-                    config.ForceSendMD.value ? "text-red-500" : "text-muted-foreground"
-                  )} />
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center text-muted-foreground">
+                  <FileText className="w-5 h-5" />
                 </div>
                 <div>
                   <p className="font-medium">{config.ForceSendMD.title}</p>
@@ -595,14 +586,8 @@ export default function ButtonMarkdownSettings() {
             {/* Use CRLF Replace LF */}
             <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
               <div className="flex items-center gap-3">
-                <div className={cn(
-                  "w-10 h-10 rounded-lg flex items-center justify-center",
-                  config.UseCRLFReplaceLFForMD.value ? "bg-green-500/20" : "bg-muted"
-                )}>
-                  <ToggleRight className={cn(
-                    "w-5 h-5",
-                    config.UseCRLFReplaceLFForMD.value ? "text-green-500" : "text-muted-foreground"
-                  )} />
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center text-muted-foreground">
+                  <ToggleRight className="w-5 h-5" />
                 </div>
                 <div>
                   <p className="font-medium">{config.UseCRLFReplaceLFForMD.title}</p>
@@ -618,14 +603,8 @@ export default function ButtonMarkdownSettings() {
             {/* Split MD And Buttons */}
             <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
               <div className="flex items-center gap-3">
-                <div className={cn(
-                  "w-10 h-10 rounded-lg flex items-center justify-center",
-                  config.SplitMDAndButtons.value ? "bg-purple-500/20" : "bg-muted"
-                )}>
-                  <SplitSquareHorizontal className={cn(
-                    "w-5 h-5",
-                    config.SplitMDAndButtons.value ? "text-purple-500" : "text-muted-foreground"
-                  )} />
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center text-muted-foreground">
+                  <SplitSquareHorizontal className="w-5 h-5" />
                 </div>
                 <div>
                   <p className="font-medium">{config.SplitMDAndButtons.title}</p>

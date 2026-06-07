@@ -820,7 +820,7 @@ export default function AIHistoryPage() {
           {/* 统计概览 - 带图标 */}
           <div className="grid grid-cols-2 gap-3 mb-4">
             <div className="bg-card/50 border border-border/30 rounded-2xl p-3 flex items-center gap-3">
-              <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-blue-500/10 text-blue-500 shrink-0">
+              <div className="flex items-center justify-center w-9 h-9 rounded-xl text-muted-foreground shrink-0">
                 <HardDrive className="w-4.5 h-4.5" />
               </div>
               <div className="min-w-0">
@@ -829,7 +829,7 @@ export default function AIHistoryPage() {
               </div>
             </div>
             <div className="bg-card/50 border border-border/30 rounded-2xl p-3 flex items-center gap-3">
-              <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-green-500/10 text-green-500 shrink-0">
+              <div className="flex items-center justify-center w-9 h-9 rounded-xl text-muted-foreground shrink-0">
                 <Cpu className="w-4.5 h-4.5" />
               </div>
               <div className="min-w-0">

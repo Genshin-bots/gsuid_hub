@@ -12,7 +12,8 @@ import {
   ChevronDown, ChevronRight, AlertTriangle, CheckCircle,
   X, HelpCircle, Download, FileJson, Search, Wrench,
   Settings2, ListChecks, Package, Globe, Terminal,
-  Tag, ArrowLeftRight, Braces, Key, Shield
+  Tag, ArrowLeftRight, Braces, Key, Shield,
+  Eye, EyeOff
 } from 'lucide-react';
 import {
   Tooltip,
@@ -204,6 +205,21 @@ export default function MCPConfigPage() {
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [importJsonText, setImportJsonText] = useState('');
   const [isImporting, setIsImporting] = useState(false);
+
+  // Visibility toggles for env/header value inputs (key: `env-${index}` / `header-${index}`)
+  const [visibleSecrets, setVisibleSecrets] = useState<Set<string>>(new Set());
+
+  const toggleSecretVisibility = (key: string) => {
+    setVisibleSecrets(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  };
 
   // Preset dialog
   const [presetDialogOpen, setPresetDialogOpen] = useState(false);
@@ -1185,13 +1201,30 @@ export default function MCPConfigPage() {
                               className="flex-1 font-mono text-sm"
                             />
                             <span className="text-muted-foreground hidden sm:inline">=</span>
-                            <Input
-                              placeholder={t('mcpConfig.envValuePlaceholder')}
-                              value={envVar.value}
-                              onChange={e => updateEnvVar(index, 'value', e.target.value)}
-                              className="flex-1 font-mono text-sm"
-                              type="password"
-                            />
+                            <div className="relative flex-1">
+                              <Input
+                                placeholder={t('mcpConfig.envValuePlaceholder')}
+                                value={envVar.value}
+                                onChange={e => updateEnvVar(index, 'value', e.target.value)}
+                                className="flex-1 font-mono text-sm pr-9"
+                                type={visibleSecrets.has(`env-${index}`) ? 'text' : 'password'}
+                              />
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="absolute right-0 top-0 h-full w-9 px-0 hover:bg-transparent text-muted-foreground hover:text-foreground"
+                                onClick={() => toggleSecretVisibility(`env-${index}`)}
+                                aria-label={visibleSecrets.has(`env-${index}`) ? t('common.hide') : t('common.show')}
+                                title={visibleSecrets.has(`env-${index}`) ? t('common.hide') : t('common.show')}
+                              >
+                                {visibleSecrets.has(`env-${index}`) ? (
+                                  <EyeOff className="h-4 w-4" />
+                                ) : (
+                                  <Eye className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </div>
                             <Button
                               type="button"
                               variant="ghost"
@@ -1274,13 +1307,30 @@ export default function MCPConfigPage() {
                               className="flex-1 font-mono text-sm"
                             />
                             <span className="text-muted-foreground hidden sm:inline">:</span>
-                            <Input
-                              placeholder={t('mcpConfig.headersValuePlaceholder')}
-                              value={headerVar.value}
-                              onChange={e => updateHeaderVar(index, 'value', e.target.value)}
-                              className="flex-1 font-mono text-sm"
-                              type="password"
-                            />
+                            <div className="relative flex-1">
+                              <Input
+                                placeholder={t('mcpConfig.headersValuePlaceholder')}
+                                value={headerVar.value}
+                                onChange={e => updateHeaderVar(index, 'value', e.target.value)}
+                                className="flex-1 font-mono text-sm pr-9"
+                                type={visibleSecrets.has(`header-${index}`) ? 'text' : 'password'}
+                              />
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="absolute right-0 top-0 h-full w-9 px-0 hover:bg-transparent text-muted-foreground hover:text-foreground"
+                                onClick={() => toggleSecretVisibility(`header-${index}`)}
+                                aria-label={visibleSecrets.has(`header-${index}`) ? t('common.hide') : t('common.show')}
+                                title={visibleSecrets.has(`header-${index}`) ? t('common.hide') : t('common.show')}
+                              >
+                                {visibleSecrets.has(`header-${index}`) ? (
+                                  <EyeOff className="h-4 w-4" />
+                                ) : (
+                                  <Eye className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </div>
                             <Button
                               type="button"
                               variant="ghost"

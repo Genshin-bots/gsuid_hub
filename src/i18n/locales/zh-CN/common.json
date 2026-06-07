@@ -48,5 +48,7 @@
   "copyCurrentValue": "复制当前输入内容",
   "copiedCurrentValue": "已复制当前输入内容",
   "copyEmptyValue": "暂无内容可复制",
-  "required": "必填"
+  "required": "必填",
+  "show": "显示",
+  "hide": "隐藏"
 }

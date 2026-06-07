@@ -191,7 +191,10 @@
     "baseUrlTrailingSlashWarning": "API Base URL は / で終わることはできません。末尾のスラッシュを削除してください",
     "fetchingModels": "モデル一覧を取得中...",
     "modelRequired": "入力モデル名前",
-    "apiKeyRequired": "入力至少1つのAPI Key"
+    "apiKeyRequired": "入力至少1つのAPI Key",
+    "presetList": "プリセット一覧",
+    "discoveredModels": "発見モデル",
+    "noDiscoveredModels": "APIプロバイダーはモデルを提供していません"
   },
   "providerConfig": {
     "title": "Provider 設定",

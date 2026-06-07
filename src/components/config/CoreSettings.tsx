@@ -369,14 +369,8 @@ export default function CoreSettings() {
           {/* Custom Restart Command */}
           <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
             <div className="flex items-center gap-3">
-              <div className={cn(
-                "w-10 h-10 rounded-lg flex items-center justify-center",
-                config.is_use_custom_restart_command.value ? "bg-blue-500/20" : "bg-muted"
-              )}>
-                <RefreshCw className={cn(
-                  "w-5 h-5",
-                  config.is_use_custom_restart_command.value ? "text-blue-500" : "text-muted-foreground"
-                )} />
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center text-muted-foreground">
+                <RefreshCw className="w-5 h-5" />
               </div>
               <div>
                 <p className="font-medium">{config.is_use_custom_restart_command.title}</p>
@@ -417,14 +411,8 @@ export default function CoreSettings() {
           {/* Auto Update Core */}
           <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
             <div className="flex items-center gap-3">
-              <div className={cn(
-                "w-10 h-10 rounded-lg flex items-center justify-center",
-                config.AutoUpdateCore.value ? "bg-green-500/20" : "bg-muted"
-              )}>
-                <Zap className={cn(
-                  "w-5 h-5",
-                  config.AutoUpdateCore.value ? "text-green-500" : "text-muted-foreground"
-                )} />
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center text-muted-foreground">
+                <Zap className="w-5 h-5" />
               </div>
               <div>
                 <p className="font-medium">{config.AutoUpdateCore.title}</p>
@@ -470,14 +458,8 @@ export default function CoreSettings() {
           {/* Auto Update Plugins */}
           <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
             <div className="flex items-center gap-3">
-              <div className={cn(
-                "w-10 h-10 rounded-lg flex items-center justify-center",
-                config.AutoUpdatePlugins.value ? "bg-purple-500/20" : "bg-muted"
-              )}>
-                <Package className={cn(
-                  "w-5 h-5",
-                  config.AutoUpdatePlugins.value ? "text-purple-500" : "text-muted-foreground"
-                )} />
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center text-muted-foreground">
+                <Package className="w-5 h-5" />
               </div>
               <div>
                 <p className="font-medium">{config.AutoUpdatePlugins.title}</p>
@@ -523,14 +505,8 @@ export default function CoreSettings() {
           {/* Auto Restart Core */}
           <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
             <div className="flex items-center gap-3">
-              <div className={cn(
-                "w-10 h-10 rounded-lg flex items-center justify-center",
-                config.AutoRestartCore.value ? "bg-orange-500/20" : "bg-muted"
-              )}>
-                <Clock className={cn(
-                  "w-5 h-5",
-                  config.AutoRestartCore.value ? "text-orange-500" : "text-muted-foreground"
-                )} />
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center text-muted-foreground">
+                <Clock className="w-5 h-5" />
               </div>
               <div>
                 <p className="font-medium">{config.AutoRestartCore.title}</p>
@@ -576,14 +552,8 @@ export default function CoreSettings() {
           {/* Auto Update Notify */}
           <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
             <div className="flex items-center gap-3">
-              <div className={cn(
-                "w-10 h-10 rounded-lg flex items-center justify-center",
-                config.AutoUpdateNotify.value ? "bg-blue-500/20" : "bg-muted"
-              )}>
-                <Zap className={cn(
-                  "w-5 h-5",
-                  config.AutoUpdateNotify.value ? "text-blue-500" : "text-muted-foreground"
-                )} />
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center text-muted-foreground">
+                <Zap className="w-5 h-5" />
               </div>
               <div>
                 <p className="font-medium">{config.AutoUpdateNotify.title}</p>
@@ -611,14 +581,8 @@ export default function CoreSettings() {
           {/* Auto Install Dep */}
           <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
             <div className="flex items-center gap-3">
-              <div className={cn(
-                "w-10 h-10 rounded-lg flex items-center justify-center",
-                config.AutoInstallDep.value ? "bg-green-500/20" : "bg-muted"
-              )}>
-                <Package className={cn(
-                  "w-5 h-5",
-                  config.AutoInstallDep.value ? "text-green-500" : "text-muted-foreground"
-                )} />
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center text-muted-foreground">
+                <Package className="w-5 h-5" />
               </div>
               <div>
                 <p className="font-medium">{config.AutoInstallDep.title}</p>
@@ -634,14 +598,8 @@ export default function CoreSettings() {
           {/* Auto Update Dep */}
           <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
             <div className="flex items-center gap-3">
-              <div className={cn(
-                "w-10 h-10 rounded-lg flex items-center justify-center",
-                config.AutoUpdateDep.value ? "bg-purple-500/20" : "bg-muted"
-              )}>
-                <RefreshCw className={cn(
-                  "w-5 h-5",
-                  config.AutoUpdateDep.value ? "text-purple-500" : "text-muted-foreground"
-                )} />
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center text-muted-foreground">
+                <RefreshCw className="w-5 h-5" />
               </div>
               <div>
                 <p className="font-medium">{config.AutoUpdateDep.title}</p>
@@ -657,14 +615,8 @@ export default function CoreSettings() {
           {/* Auto Reload Plugins */}
           <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
             <div className="flex items-center gap-3">
-              <div className={cn(
-                "w-10 h-10 rounded-lg flex items-center justify-center",
-                config.AutoReloadPlugins.value ? "bg-blue-500/20" : "bg-muted"
-              )}>
-                <Zap className={cn(
-                  "w-5 h-5",
-                  config.AutoReloadPlugins.value ? "text-blue-500" : "text-muted-foreground"
-                )} />
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center text-muted-foreground">
+                <Zap className="w-5 h-5" />
               </div>
               <div>
                 <p className="font-medium">{config.AutoReloadPlugins.title}</p>

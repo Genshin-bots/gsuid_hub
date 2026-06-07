@@ -112,19 +112,19 @@ interface LocalImageSendConfig {
 const PLATFORM_OPTIONS = ['link', 'base64', 'link_local', 'link_remote'];
 
 const PLATFORMS = [
-  { key: 'onebot', label: 'OneBot', icon: MessageSquare, color: 'bg-green-500' },
-  { key: 'onebot_v12', label: 'OneBot V12', icon: Send, color: 'bg-green-600' },
-  { key: 'red', label: 'Red', icon: Smartphone, color: 'bg-red-500' },
-  { key: 'qqguild', label: 'QQ Guild', icon: Building, color: 'bg-blue-500' },
-  { key: 'qqgroup', label: 'QQ Group', icon: Users, color: 'bg-blue-600' },
-  { key: 'telegram', label: 'Telegram', icon: Send, color: 'bg-sky-500' },
-  { key: 'discord', label: 'Discord', icon: MessageCircle, color: 'bg-indigo-500' },
-  { key: 'kook', label: 'KOOK', icon: MessageSquare, color: 'bg-pink-500' },
-  { key: 'dodo', label: 'DoDo', icon: MessageCircle, color: 'bg-purple-500' },
-  { key: 'feishu', label: '飞书', icon: Building, color: 'bg-orange-500' },
-  { key: 'ntchat', label: 'NtChat', icon: Smartphone, color: 'bg-cyan-500' },
-  { key: 'villa', label: '米游社大别野', icon: Gamepad2, color: 'bg-yellow-500' },
-  { key: 'console', label: '本地Console', icon: Monitor, color: 'bg-gray-500' },
+  { key: 'onebot', label: 'OneBot', icon: MessageSquare },
+  { key: 'onebot_v12', label: 'OneBot V12', icon: Send },
+  { key: 'red', label: 'Red', icon: Smartphone },
+  { key: 'qqguild', label: 'QQ Guild', icon: Building },
+  { key: 'qqgroup', label: 'QQ Group', icon: Users },
+  { key: 'telegram', label: 'Telegram', icon: Send },
+  { key: 'discord', label: 'Discord', icon: MessageCircle },
+  { key: 'kook', label: 'KOOK', icon: MessageSquare },
+  { key: 'dodo', label: 'DoDo', icon: MessageCircle },
+  { key: 'feishu', label: '飞书', icon: Building },
+  { key: 'ntchat', label: 'NtChat', icon: Smartphone },
+  { key: 'villa', label: '米游社大别野', icon: Gamepad2 },
+  { key: 'console', label: '本地Console', icon: Monitor },
 ] as const;
 
 export default function ImageSendSettings() {
@@ -425,8 +425,8 @@ export default function ImageSendSettings() {
             <Card key={platform.key} className="glass-card">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-3 text-base">
-                  <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center", platform.color)}>
-                    <Icon className="w-5 h-5 text-white" />
+                  <div className="w-10 h-10 rounded-lg flex items-center justify-center text-muted-foreground">
+                    <Icon className="w-5 h-5" />
                   </div>
                   <div>
                     <div className="text-base font-medium">{platform.label}</div>

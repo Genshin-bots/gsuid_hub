@@ -696,6 +696,8 @@ export default function AIConfigPage() {
   const openEditDialog = (configName: string, provider: string) => {
     setEditingConfigName(configName);
     setEditingConfigProvider(provider);
+    setOpenaiConfigData(null);
+    setEditConfigFetchedModels([]);
     fetchConfigDetailForEdit(provider, configName);
     fetchProviderConfigOptions(provider);
     setIsEditDialogOpen(true);
@@ -1767,7 +1769,13 @@ export default function AIConfigPage() {
         fetchedModels={editConfigFetchedModels}
         isFetching={isFetchingEditConfigModels}
         baseUrlHasTrailingSlash={baseUrlHasTrailingSlash}
-        onOpenChange={setIsEditDialogOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            setOpenaiConfigData(null);
+            setEditConfigFetchedModels([]);
+          }
+          setIsEditDialogOpen(open);
+        }}
         onChangeField={updateOpenaiConfigField}
         onToggleCapability={(cap) => {
           setOpenaiConfigData((prev) => {

@@ -100,7 +100,8 @@ function formatBytes(bytes: number): string {
 export default function BackupPage() {
   const { style } = useTheme();
   const isGlass = style === 'glassmorphism';
-  const { t } = useLanguage();  const [activeTab, setActiveTab] = useState<string>('settings');
+  const { t } = useLanguage();
+  const [activeTab, setActiveTab] = useState<string>('settings');
   const [config, setConfig] = useState<Record<string, ConfigFieldDefinition>>({});
   const [selectedPaths, setSelectedPaths] = useState<string[]>([
     'data', 'data/config', 'data/config/settings.json', 'data/config/users.json',
@@ -465,7 +466,7 @@ export default function BackupPage() {
                 items={convertedFileTree}
                 selectedPaths={selectedPaths}
                 onSelectionChange={setSelectedPaths}
-                className="max-h-80 overflow-auto"
+                className="max-h-[600px] overflow-auto"
               />
               <p className="text-sm text-muted-foreground mt-3">
                 {t('backup.selectBackupItems', { count: selectedPaths.length })}

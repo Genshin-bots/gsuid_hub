@@ -3,7 +3,6 @@ import {
   AlertTriangle,
   Brain,
   Cpu,
-  Loader2,
   Plus,
   Server,
   Sparkles,
@@ -19,6 +18,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { InputWithDropdown } from '@/components/ui/input-with-dropdown';
+import { ModelSelectDropdown } from '@/components/ui/model-select-dropdown';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { getModelCapabilities, type ModelCapability } from '../constants';
@@ -192,26 +192,14 @@ export function CreateConfigDialog(props: CreateConfigDialogProps) {
             />
           </div>
           <div className="space-y-2">
-            <Label className="flex items-center gap-2">
-              {t('aiConfig.serviceProvider.apiModel')}
-              {isFetching && (
-                <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />
-              )}
-            </Label>
-            <InputWithDropdown
+            <Label>{t('aiConfig.serviceProvider.apiModel')}</Label>
+            <ModelSelectDropdown
               value={model}
               onChange={onChangeModel}
-              options={Array.from(
-                new Set([
-                  ...fetchedModels,
-                  ...(providerConfigOptions?.options?.model_name || []),
-                ]),
-              ).filter((m): m is string => Boolean(m))}
-              placeholder={
-                isFetching
-                  ? t('aiConfig.openaiConfig.fetchingModels')
-                  : '选择或输入模型名称'
-              }
+              presetOptions={providerConfigOptions?.options?.model_name || []}
+              discoveredModels={fetchedModels}
+              isFetching={isFetching}
+              placeholder="选择或输入模型名称"
               inputPlaceholder="gpt-4o-mini"
             />
           </div>
