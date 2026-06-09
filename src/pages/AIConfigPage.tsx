@@ -1,15 +1,16 @@
 /**
  * AIConfigPage - 顶层路由组件
  *
- * 该文件是整个 AI 配置页面的状态枢纽：
- * - 维护所有 useState / useMemo / useCallback
- * - 集中调用 frameworkConfigApi / providerConfigApi / mcpConfigApi / embeddingConfigApi / aiWizardApi
- * - 计算 isConfigDirty / taskModelLacksImage 等派生值
+ * 该文件是整个 AI 配置页面的"装配中心"：
+ * - 调用 6 个领域 hook（useFrameworkConfig / useProviderConfig / useEmbeddingConfig
+ *   / useMcpToolsConfig / useAIWizard / useAIServiceSwitch）拿到全部状态与回调
+ * - 计算 aiConfig / 各 provider config 等派生字段
+ * - 计算 isConfigDirty 等保存流派生值
  * - 把数据与回调通过 props 注入到 ./AIConfig 下各个纯渲染 section / dialog
  *
  * 详见 ./AIConfig/README.md 中的"状态 / 事件流向"图。
  */
-import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAIStatus } from '@/contexts/AIStatusContext';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -44,36 +45,15 @@ import {
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import {
-  frameworkConfigApi,
-  providerConfigApi,
   embeddingConfigApi,
+  frameworkConfigApi,
   mcpConfigApi,
-  aiWizardApi,
   type PluginConfigItem,
-  type FrameworkConfigListItem,
-  type OpenAIConfigData,
-  type ProviderInfo,
-  type AllConfigsSummary,
-  type AllConfigItem,
-  type ProviderConfigOptions,
-  type EmbeddingConfigSummary,
-  type EmbeddingConfigField,
-  type MCPToolsConfigItem,
-  type MCPConfig,
-  type AIWizardChecklistItem,
-  type AIWizardStatusResponse,
 } from '@/lib/api';
 import {
-  ConfigField,
-  type ConfigValue,
-  type ConfigFieldType,
-  ConfigSelectDropdown,
-  DynamicConfigPanel,
-  pluginConfigItemToFieldDef,
   MCP_SERVICE_TOOLS_CONFIG_KEY_MAP,
   type McpServiceType,
 } from '@/components/config';
-import { ChipGroup } from '@/components/ui/MultiSelectChipGroup';
 import { EmptyState } from './AIConfig/shared/EmptyState';
 import { SidebarItem } from './AIConfig/shared/SidebarItem';
 import {
@@ -95,15 +75,15 @@ import {
   EmbeddingWarningDialog,
   AIServiceSwitchDialog,
   WizardDialog,
-  type McpToolInfo,
-  type EmbeddingConfigField as EmbeddingConfigFieldUI,
 } from './AIConfig';
-import type { LocalFrameworkConfig } from './AIConfig/types';
-
-const baseUrlHasTrailingSlash = (baseUrl: string) => baseUrl.trim().endsWith('/');
-
-const getFirstApiKey = (apiKeys: string[]) =>
-  apiKeys.find((key) => key.trim())?.trim() || '';
+import {
+  useFrameworkConfig,
+  useProviderConfig,
+  useEmbeddingConfig,
+  useMcpToolsConfig,
+  useAIWizard,
+  useAIServiceSwitch,
+} from './AIConfig/hooks';
 
 export default function AIConfigPage() {
   const { style } = useTheme();
@@ -115,600 +95,24 @@ export default function AIConfigPage() {
   const [activeSection, setActiveSection] = useState<string>('taskConfig');
 
   // ====================== Framework Config (AI基础配置) ======================
-  const [configList, setConfigList] = useState<FrameworkConfigListItem[]>([]);
-  const [configs, setConfigs] = useState<Record<string, LocalFrameworkConfig>>({});
-  const [isLoading, setIsLoading] = useState(true);
-  const [isLoadingDetail, setIsLoadingDetail] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  const {
+    configs,
+    isLoading,
+    isLoadingDetail,
+    isSaving,
+    originalConfig,
+    setIsSaving,
+    updateConfigValue,
+    markSaved: markConfigsSaved,
+  } = useFrameworkConfig();
 
-  // ====================== Provider Config ======================
-  const [providers, setProviders] = useState<ProviderInfo[]>([]);
-  const [currentProvider, setCurrentProvider] = useState<string>('openai');
-  const [allConfigs, setAllConfigs] = useState<AllConfigsSummary | null>(null);
-  const [highLevelConfig, setHighLevelConfig] = useState<string>('');
-  const [lowLevelConfig, setLowLevelConfig] = useState<string>('');
-  const [modelSupportMap, setModelSupportMap] = useState<Record<string, string[]>>({});
-
-  // ====================== OpenAI Config ======================
-  const [openaiConfigData, setOpenaiConfigData] = useState<OpenAIConfigData | null>(null);
-  const [isLoadingOpenaiConfig, setIsLoadingOpenaiConfig] = useState(false);
-  const [isSavingOpenaiConfig, setIsSavingOpenaiConfig] = useState(false);
-
-  // ====================== Provider Config Options ======================
-  const [providerConfigOptions, setProviderConfigOptions] = useState<ProviderConfigOptions | null>(null);
+  // ====================== Provider / OpenAI Config ======================
+  const provider = useProviderConfig();
 
   // ====================== Embedding Config ======================
-  const [embeddingSummary, setEmbeddingSummary] = useState<EmbeddingConfigSummary | null>(null);
-  const [isLoadingEmbeddingConfig, setIsLoadingEmbeddingConfig] = useState(false);
-  const [embeddingLocalConfig, setEmbeddingLocalConfig] = useState<Record<string, EmbeddingConfigFieldUI>>({});
-  const [embeddingOpenaiConfig, setEmbeddingOpenaiConfig] = useState<Record<string, EmbeddingConfigFieldUI>>({});
-  const [originalEmbeddingProvider, setOriginalEmbeddingProvider] = useState<string>('');
-  const [originalEmbeddingLocalConfig, setOriginalEmbeddingLocalConfig] = useState<Record<string, EmbeddingConfigFieldUI>>({});
-  const [originalEmbeddingOpenaiConfig, setOriginalEmbeddingOpenaiConfig] = useState<Record<string, EmbeddingConfigFieldUI>>({});
+  const embedding = useEmbeddingConfig();
 
-  // ====================== MCP tools details (脏检查) ======================
-  const [originalMcpToolsConfigs, setOriginalMcpToolsConfigs] = useState<Record<string, MCPToolsConfigItem>>({});
-  const [originalMcpDetails, setOriginalMcpDetails] = useState<Record<string, Record<string, string | number | boolean | null>>>({});
-
-  // ====================== Dialog states ======================
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [isManageConfigDialogOpen, setIsManageConfigDialogOpen] = useState(false);
-  const [isEmbeddingWarningOpen, setIsEmbeddingWarningOpen] = useState(false);
-  const [pendingSaveAction, setPendingSaveAction] = useState<(() => void) | null>(null);
-  const [newConfigName, setNewConfigName] = useState('');
-  const [editingConfigName, setEditingConfigName] = useState('');
-  const [editingConfigProvider, setEditingConfigProvider] = useState('openai');
-
-  // ====================== New config form state ======================
-  const [newConfigProvider, setNewConfigProvider] = useState('openai');
-  const [newConfigBaseUrl, setNewConfigBaseUrl] = useState('');
-  const [newConfigModel, setNewConfigModel] = useState('');
-  const [newConfigApiKeys, setNewConfigApiKeys] = useState<string[]>([]);
-  const [newConfigEmbeddingModel] = useState('text-embedding-3-small');
-  const [newConfigModelSupport, setNewConfigModelSupport] = useState<string[]>(['text']);
-  const [newConfigFetchedModels, setNewConfigFetchedModels] = useState<string[]>([]);
-  const [editConfigFetchedModels, setEditConfigFetchedModels] = useState<string[]>([]);
-  const [isFetchingNewConfigModels, setIsFetchingNewConfigModels] = useState(false);
-  const [isFetchingEditConfigModels, setIsFetchingEditConfigModels] = useState(false);
-
-  // ====================== Track original state ======================
-  const [originalConfig, setOriginalConfig] = useState<Record<string, any>>({});
-  const [hasInitialized, setHasInitialized] = useState(false);
-
-  // ====================== MCP Configs ======================
-  const [mcpConfigs, setMcpConfigs] = useState<MCPConfig[]>([]);
-  const [mcpToolDialogOpen, setMcpToolDialogOpen] = useState(false);
-  const [mcpToolDialogType, setMcpToolDialogType] = useState<McpServiceType>('websearch');
-
-  // ====================== MCP Tools Config ======================
-  const [mcpToolsConfigs, setMcpToolsConfigs] = useState<Record<string, MCPToolsConfigItem>>({});
-  const [mcpDetailsEditing, setMcpDetailsEditing] = useState<Record<string, Record<string, string | number | boolean | null>>>({});
-
-  // ====================== AI Wizard ======================
-  // AI 服务总开关刚刚被切换，需要重启核心服务才能使检查配置生效
-  const [isPendingRestart, setIsPendingRestart] = useState(false);
-  // 后端还未重启（/api/ai/wizard/status 返回 404）
-  const [isBackendPendingRestart, setIsBackendPendingRestart] = useState(false);
-  const [isWizardDialogOpen, setIsWizardDialogOpen] = useState(false);
-
-  // 启动时检测后端 AI 服务是否已就绪（/api/ai/wizard/status 是否存在）
-  useEffect(() => {
-    let cancelled = false;
-    const checkBackendStatus = async () => {
-      try {
-        const res = await fetch('/api/ai/wizard/status', { credentials: 'include' });
-        if (cancelled) return;
-        // 404 意味着后端还未加载 AI 核心，需要重启
-        setIsBackendPendingRestart(res.status === 404);
-      } catch {
-        if (!cancelled) setIsBackendPendingRestart(false);
-      }
-    };
-    checkBackendStatus();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-  const [wizardChecklist, setWizardChecklist] = useState<AIWizardChecklistItem[]>([]);
-  const [wizardOverallStatus, setWizardOverallStatus] = useState<'overall_ok' | 'overall_warning' | 'overall_error'>('overall_ok');
-  const [wizardUsable, setWizardUsable] = useState(false);
-  const [wizardSummary, setWizardSummary] = useState({ total: 0, ok: 0, warning: 0, error: 0 });
-  const [isWizardLoading, setIsWizardLoading] = useState(false);
-  const [wizardStatus, setWizardStatus] = useState<AIWizardStatusResponse | null>(null);
-
-  // ====================== AI Service Switch Dialog ======================
-  const [isAISwitchDialogOpen, setIsAISwitchDialogOpen] = useState(false);
-  const [pendingAISwitchValue, setPendingAISwitchValue] = useState<boolean>(false);
-  const [isHelpOnly, setIsHelpOnly] = useState(false);
-
-  // ============================================================================
-  // Data Fetching helpers
-  // ============================================================================
-
-  const fetchProviderConfigOptions = useCallback(async (provider: string) => {
-    try {
-      const response = await providerConfigApi.getConfigOptions(provider);
-      setProviderConfigOptions(response);
-    } catch (error) {
-      console.error(`Failed to fetch provider config options for ${provider}:`, error);
-      setProviderConfigOptions(null);
-    }
-  }, []);
-
-  const fetchProviderModels = useCallback(
-    async (
-      provider: string,
-      baseUrl: string,
-      apiKeys: string[],
-      onSuccess: (models: string[]) => void,
-      setLoading: (loading: boolean) => void,
-    ) => {
-      const trimmedBaseUrl = baseUrl.trim();
-      const apiKey = getFirstApiKey(apiKeys);
-      if (!trimmedBaseUrl || !apiKey || baseUrlHasTrailingSlash(trimmedBaseUrl)) {
-        onSuccess([]);
-        return;
-      }
-
-      try {
-        setLoading(true);
-        const models = provider === 'anthropic'
-          ? await providerConfigApi.fetchAnthropicModels(trimmedBaseUrl, apiKey)
-          : await providerConfigApi.fetchOpenAIModels(trimmedBaseUrl, apiKey);
-        onSuccess(models);
-      } catch (error) {
-        console.error(`Failed to fetch ${provider} models:`, error);
-        onSuccess([]);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [],
-  );
-
-  const fetchConfigDetailForEdit = useCallback(async (provider: string, configName: string) => {
-    try {
-      setIsLoadingOpenaiConfig(true);
-      const response = await providerConfigApi.getConfigDetail(provider, configName);
-      const configData: OpenAIConfigData = {
-        base_url: (response.config.base_url?.data as string) || '',
-        api_key: (response.config.api_key?.data as string[]) || [],
-        model_name: (response.config.model_name?.data as string) || '',
-        embedding_model: (response.config.embedding_model?.data as string) || 'text-embedding-3-small',
-        model_support: (response.config.model_support?.data as string[]) || ['text'],
-      };
-      setOpenaiConfigData(configData);
-      setEditingConfigProvider(provider);
-    } catch (error) {
-      console.error('Failed to fetch config detail:', error);
-      toast.error(t('aiConfig.openaiConfig.loadFailed'));
-    } finally {
-      setIsLoadingOpenaiConfig(false);
-    }
-  }, [t]);
-
-  const fetchProviderList = useCallback(async () => {
-    try {
-      const response = await providerConfigApi.getProviders();
-      setProviders(response.providers);
-      setCurrentProvider(response.current);
-    } catch (error) {
-      console.error('Failed to fetch provider list:', error);
-    }
-  }, []);
-
-  const normalizeConfigName = useCallback(
-    (name: string, configs: AllConfigItem[]): string => {
-      if (!name) return '';
-      if (name.includes('++')) return name;
-      const match = configs.find((c) => c.config_name === name);
-      if (match) return match.name;
-      return `openai++${name}`;
-    },
-    [],
-  );
-
-  const fetchAllConfigs = useCallback(async () => {
-    try {
-      const response = await providerConfigApi.getAllConfigs();
-      setAllConfigs(response);
-      const configList = response.configs || [];
-      setHighLevelConfig(normalizeConfigName(response.high_level_config || '', configList));
-      setLowLevelConfig(normalizeConfigName(response.low_level_config || '', configList));
-    } catch (error) {
-      console.error('Failed to fetch all configs:', error);
-    }
-  }, [normalizeConfigName]);
-
-  const fetchEmbeddingConfig = useCallback(async () => {
-    try {
-      setIsLoadingEmbeddingConfig(true);
-      const summary = await embeddingConfigApi.getSummary();
-      setEmbeddingSummary(summary);
-      const localCfg = (summary.local_config || {}) as Record<string, EmbeddingConfigFieldUI>;
-      const openaiCfg = (summary.openai_config || {}) as Record<string, EmbeddingConfigFieldUI>;
-      setEmbeddingLocalConfig(localCfg);
-      setEmbeddingOpenaiConfig(openaiCfg);
-      setOriginalEmbeddingProvider(summary.provider || '');
-      setOriginalEmbeddingLocalConfig(JSON.parse(JSON.stringify(localCfg)));
-      setOriginalEmbeddingOpenaiConfig(JSON.parse(JSON.stringify(openaiCfg)));
-    } catch (error) {
-      console.error('Failed to fetch embedding config:', error);
-      toast.error(t('aiConfig.serviceProvider.embeddingConfigLoadFailed'));
-    } finally {
-      setIsLoadingEmbeddingConfig(false);
-    }
-  }, [t]);
-
-  const fetchConfigList = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      const data = await frameworkConfigApi.getFrameworkConfigList('GsCore AI');
-      const filteredData = data.filter(
-        (config) => !config.name.toLowerCase().includes('人设'),
-      );
-      setConfigList(filteredData);
-    } catch (error) {
-      console.error('Failed to fetch AI config list:', error);
-      toast.error(t('aiConfig.loadFailed'));
-    } finally {
-      setIsLoading(false);
-    }
-  }, [t]);
-
-  const fetchConfigDetail = useCallback(async (configName: string) => {
-    try {
-      setIsLoadingDetail(true);
-      const data = await frameworkConfigApi.getFrameworkConfig(configName);
-      setConfigs((prev) => ({
-        ...prev,
-        [data.id]: {
-          id: data.id,
-          name: data.name,
-          full_name: data.full_name,
-          config: data.config as Record<string, PluginConfigItem>,
-        },
-      }));
-    } catch (error) {
-      console.error('Failed to fetch AI config detail:', error);
-    } finally {
-      setIsLoadingDetail(false);
-    }
-  }, []);
-
-  const fetchMcpConfigs = useCallback(async () => {
-    try {
-      const data = await mcpConfigApi.getList();
-      setMcpConfigs(data.configs);
-    } catch (error) {
-      console.error('Failed to fetch MCP configs:', error);
-    }
-    try {
-      const toolsConfigData = await mcpConfigApi.getToolsConfigList();
-      const configMap: Record<string, MCPToolsConfigItem> = {};
-      for (const item of toolsConfigData.items) {
-        configMap[item.key] = item;
-      }
-      setMcpToolsConfigs(configMap);
-      const detailsMap: Record<string, Record<string, string | number | boolean | null>> = {};
-      for (const item of toolsConfigData.items) {
-        detailsMap[item.key] = { ...item.details };
-      }
-      setMcpDetailsEditing(detailsMap);
-      setOriginalMcpToolsConfigs(JSON.parse(JSON.stringify(configMap)));
-      setOriginalMcpDetails(JSON.parse(JSON.stringify(detailsMap)));
-    } catch (error) {
-      console.error('Failed to fetch MCP tools config:', error);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchConfigList();
-    fetchProviderList();
-    fetchAllConfigs();
-    fetchEmbeddingConfig();
-    fetchMcpConfigs();
-  }, [fetchConfigList, fetchProviderList, fetchAllConfigs, fetchEmbeddingConfig, fetchMcpConfigs]);
-
-  const fetchedConfigNamesRef = useRef<Set<string>>(new Set());
-
-  useEffect(() => {
-    if (configList.length > 0) {
-      configList.forEach((config) => {
-        if (!configs[config.id] && !fetchedConfigNamesRef.current.has(config.full_name)) {
-          fetchedConfigNamesRef.current.add(config.full_name);
-          fetchConfigDetail(config.full_name);
-        }
-      });
-    }
-  }, [configList, configs, fetchConfigDetail]);
-
-  useEffect(() => {
-    if (
-      configList.length > 0 &&
-      Object.keys(configs).length >= configList.length &&
-      !hasInitialized
-    ) {
-      setOriginalConfig(JSON.parse(JSON.stringify(configs)));
-      setHasInitialized(true);
-    }
-  }, [configs, configList, hasInitialized]);
-
-  // 拉取所选高/低级任务配置的 model_support（用于图片理解能力警告）
-  useEffect(() => {
-    const list = allConfigs?.configs || [];
-    const targets = [highLevelConfig, lowLevelConfig].filter(Boolean);
-    targets.forEach((fullName) => {
-      if (modelSupportMap[fullName] !== undefined) return;
-      const item = list.find((c) => c.name === fullName);
-      if (!item) return;
-      providerConfigApi
-        .getConfigDetail(item.provider, item.config_name)
-        .then((detail) => {
-          const support = (detail.config?.model_support?.data as string[]) || ['text'];
-          setModelSupportMap((prev) => ({ ...prev, [fullName]: support }));
-        })
-        .catch((error) => {
-          console.error('Failed to fetch model_support:', error);
-        });
-    });
-  }, [highLevelConfig, lowLevelConfig, allConfigs, modelSupportMap]);
-
-  // 实时拉取 CreateConfigDialog 中的 model 列表
-  useEffect(() => {
-    const timeout = window.setTimeout(() => {
-      fetchProviderModels(
-        newConfigProvider,
-        newConfigBaseUrl,
-        newConfigApiKeys,
-        setNewConfigFetchedModels,
-        setIsFetchingNewConfigModels,
-      );
-    }, 500);
-    return () => window.clearTimeout(timeout);
-  }, [fetchProviderModels, newConfigProvider, newConfigBaseUrl, newConfigApiKeys]);
-
-  useEffect(() => {
-    if (!openaiConfigData) {
-      setEditConfigFetchedModels([]);
-      return;
-    }
-    const timeout = window.setTimeout(() => {
-      fetchProviderModels(
-        editingConfigProvider,
-        openaiConfigData.base_url,
-        openaiConfigData.api_key || [],
-        setEditConfigFetchedModels,
-        setIsFetchingEditConfigModels,
-      );
-    }, 500);
-    return () => window.clearTimeout(timeout);
-  }, [fetchProviderModels, editingConfigProvider, openaiConfigData?.base_url, openaiConfigData?.api_key]);
-
-  // ============================================================================
-  // Actions
-  // ============================================================================
-
-  const handleSetHighLevelConfig = useCallback(
-    async (configFullName: string) => {
-      try {
-        await providerConfigApi.setHighLevelConfig(configFullName);
-        setHighLevelConfig(configFullName);
-        toast.success(t('aiConfig.providerConfig.setHighLevelSuccess', { name: configFullName }));
-        await fetchAllConfigs();
-        setOriginalConfig(JSON.parse(JSON.stringify(configs)));
-      } catch (error) {
-        console.error('Failed to set high level config:', error);
-        toast.error(t('aiConfig.providerConfig.setFailed'));
-      }
-    },
-    [t, fetchAllConfigs, configs],
-  );
-
-  const handleSetLowLevelConfig = useCallback(
-    async (configFullName: string) => {
-      try {
-        await providerConfigApi.setLowLevelConfig(configFullName);
-        setLowLevelConfig(configFullName);
-        toast.success(t('aiConfig.providerConfig.setLowLevelSuccess', { name: configFullName }));
-        await fetchAllConfigs();
-        setOriginalConfig(JSON.parse(JSON.stringify(configs)));
-      } catch (error) {
-        console.error('Failed to set low level config:', error);
-        toast.error(t('aiConfig.providerConfig.setFailed'));
-      }
-    },
-    [t, fetchAllConfigs, configs],
-  );
-
-  const handleSaveOpenaiConfig = useCallback(async () => {
-    if (!openaiConfigData || !editingConfigName || !editingConfigProvider) return;
-    try {
-      setIsSavingOpenaiConfig(true);
-      const configData: Record<string, { data: unknown }> = {
-        base_url: { data: openaiConfigData.base_url },
-        api_key: { data: openaiConfigData.api_key },
-        model_name: { data: openaiConfigData.model_name },
-        embedding_model: { data: openaiConfigData.embedding_model },
-        model_support: { data: openaiConfigData.model_support },
-      };
-      await providerConfigApi.saveConfig(editingConfigProvider, editingConfigName, configData);
-      toast.success(t('aiConfig.openaiConfig.saveSuccess'));
-      fetchAllConfigs();
-    } catch (error) {
-      console.error('Failed to save config:', error);
-      toast.error(t('aiConfig.openaiConfig.saveFailed'));
-    } finally {
-      setIsSavingOpenaiConfig(false);
-    }
-  }, [openaiConfigData, editingConfigName, editingConfigProvider, t, fetchAllConfigs]);
-
-  const handleCreateOpenaiConfig = useCallback(async () => {
-    if (!newConfigName.trim()) {
-      toast.error(t('aiConfig.openaiConfig.nameRequired'));
-      return;
-    }
-    if (!newConfigBaseUrl.trim()) {
-      toast.error(t('aiConfig.openaiConfig.baseUrlRequired'));
-      return;
-    }
-    if (!newConfigModel.trim()) {
-      toast.error(t('aiConfig.openaiConfig.modelRequired'));
-      return;
-    }
-    if (newConfigApiKeys.length === 0 || newConfigApiKeys.every((k) => !k.trim())) {
-      toast.error(t('aiConfig.openaiConfig.apiKeyRequired'));
-      return;
-    }
-    try {
-      const configName = newConfigName.trim();
-      const configData: Record<string, { data: unknown }> = {
-        base_url: { data: newConfigBaseUrl.trim() },
-        api_key: { data: newConfigApiKeys.filter((k) => k.trim()) },
-        model_name: { data: newConfigModel.trim() },
-        embedding_model: { data: newConfigEmbeddingModel },
-        model_support: { data: newConfigModelSupport },
-      };
-      await providerConfigApi.saveConfig(newConfigProvider, configName, configData);
-      toast.success(t('aiConfig.openaiConfig.createSuccess', { name: configName }));
-      setIsCreateDialogOpen(false);
-      resetNewConfigForm();
-      await fetchAllConfigs();
-    } catch (error) {
-      console.error(`Failed to create ${newConfigProvider} config:`, error);
-      toast.error(t('aiConfig.openaiConfig.createFailed'));
-    }
-  }, [
-    newConfigName,
-    newConfigBaseUrl,
-    newConfigModel,
-    newConfigApiKeys,
-    newConfigEmbeddingModel,
-    newConfigModelSupport,
-    newConfigProvider,
-    t,
-    fetchAllConfigs,
-  ]);
-
-  const handleDeleteConfig = useCallback(async () => {
-    if (!editingConfigName || !editingConfigProvider) return;
-    const fullConfigName = `${editingConfigProvider}++${editingConfigName}`;
-    const configsList = allConfigs?.configs || [];
-    try {
-      const isUsedByHigh = highLevelConfig === fullConfigName;
-      const isUsedByLow = lowLevelConfig === fullConfigName;
-
-      if (isUsedByHigh || isUsedByLow) {
-        const otherConfig = configsList.find((c) => c.name !== fullConfigName);
-        if (otherConfig) {
-          if (isUsedByHigh) {
-            await providerConfigApi.setHighLevelConfig(otherConfig.name);
-          }
-          if (isUsedByLow) {
-            await providerConfigApi.setLowLevelConfig(otherConfig.name);
-          }
-        } else {
-          if (isUsedByHigh) {
-            await providerConfigApi.clearTaskConfig('high');
-          }
-          if (isUsedByLow) {
-            await providerConfigApi.clearTaskConfig('low');
-          }
-        }
-      }
-
-      await providerConfigApi.deleteConfig(editingConfigProvider, editingConfigName);
-      toast.success(t('aiConfig.openaiConfig.deleteSuccess', { name: editingConfigName }));
-      setIsDeleteDialogOpen(false);
-      setEditingConfigName('');
-      setHighLevelConfig((prev) => (prev === fullConfigName ? '' : prev));
-      setLowLevelConfig((prev) => (prev === fullConfigName ? '' : prev));
-      await fetchAllConfigs();
-    } catch (error) {
-      console.error('Failed to delete config:', error);
-      const errorMsg = error instanceof Error ? error.message : '';
-      toast.error(
-        errorMsg
-          ? `${t('aiConfig.openaiConfig.deleteFailed')}: ${errorMsg}`
-          : t('aiConfig.openaiConfig.deleteFailed'),
-      );
-    }
-  }, [
-    editingConfigName,
-    editingConfigProvider,
-    t,
-    fetchAllConfigs,
-    highLevelConfig,
-    lowLevelConfig,
-    allConfigs,
-  ]);
-
-  const resetNewConfigForm = () => {
-    setNewConfigProvider('openai');
-    setNewConfigName('');
-    setNewConfigBaseUrl('');
-    setNewConfigModel('');
-    setNewConfigApiKeys([]);
-    setNewConfigModelSupport(['text']);
-    setNewConfigFetchedModels([]);
-  };
-
-  const updateOpenaiConfigField = useCallback(
-    (field: keyof OpenAIConfigData, value: string | string[]) => {
-      setOpenaiConfigData((prev) => (prev ? { ...prev, [field]: value } : null));
-    },
-    [],
-  );
-
-  const handleSwitchEmbeddingProvider = useCallback((provider: string) => {
-    setEmbeddingSummary((prev) => (prev ? { ...prev, provider } : null));
-  }, []);
-
-  const updateEmbeddingLocalField = useCallback(
-    (fieldKey: string, value: unknown) => {
-      setEmbeddingLocalConfig((prev) => ({
-        ...prev,
-        [fieldKey]: { ...prev[fieldKey], data: value },
-      }));
-    },
-    [],
-  );
-
-  const updateEmbeddingOpenaiField = useCallback(
-    (fieldKey: string, value: unknown) => {
-      setEmbeddingOpenaiConfig((prev) => ({
-        ...prev,
-        [fieldKey]: { ...prev[fieldKey], data: value },
-      }));
-    },
-    [],
-  );
-
-  const openDeleteDialog = (configName: string, provider: string) => {
-    setEditingConfigName(configName);
-    setEditingConfigProvider(provider);
-    setIsDeleteDialogOpen(true);
-  };
-
-  const openEditDialog = (configName: string, provider: string) => {
-    setEditingConfigName(configName);
-    setEditingConfigProvider(provider);
-    setOpenaiConfigData(null);
-    setEditConfigFetchedModels([]);
-    fetchConfigDetailForEdit(provider, configName);
-    fetchProviderConfigOptions(provider);
-    setIsEditDialogOpen(true);
-  };
-
-  // ============================================================================
-  // AI Service Switch Dialog
-  // ============================================================================
-  // Framework Config Helpers
-  // ============================================================================
-
+  // ====================== 派生：当前 configs 中各具名配置 ======================
   const aiConfig = useMemo(
     () =>
       Object.values(configs).find(
@@ -730,7 +134,8 @@ export default function AIConfigPage() {
     () =>
       Object.values(configs).find(
         (c) =>
-          c.name.includes('Rerank模型配置') || c.full_name.includes('Rerank模型配置'),
+          c.name.includes('Rerank模型配置') ||
+          c.full_name.includes('Rerank模型配置'),
       ),
     [configs],
   );
@@ -738,7 +143,8 @@ export default function AIConfigPage() {
   const tavilyConfig = useMemo(
     () =>
       Object.values(configs).find(
-        (c) => c.name.includes('Tavily搜索配置') || c.full_name.includes('Tavily搜索配置'),
+        (c) =>
+          c.name.includes('Tavily搜索配置') || c.full_name.includes('Tavily搜索配置'),
       ),
     [configs],
   );
@@ -746,7 +152,8 @@ export default function AIConfigPage() {
   const exaConfig = useMemo(
     () =>
       Object.values(configs).find(
-        (c) => c.name.includes('Exa搜索配置') || c.full_name.includes('Exa搜索配置'),
+        (c) =>
+          c.name.includes('Exa搜索配置') || c.full_name.includes('Exa搜索配置'),
       ),
     [configs],
   );
@@ -754,7 +161,9 @@ export default function AIConfigPage() {
   const miniMaxConfig = useMemo(
     () =>
       Object.values(configs).find(
-        (c) => c.name.includes('MiniMax搜索配置') || c.full_name.includes('MiniMax搜索配置'),
+        (c) =>
+          c.name.includes('MiniMax搜索配置') ||
+          c.full_name.includes('MiniMax搜索配置'),
       ),
     [configs],
   );
@@ -770,7 +179,8 @@ export default function AIConfigPage() {
   const memeConfig = useMemo(
     () =>
       Object.values(configs).find(
-        (c) => c.name.includes('表情包配置') || c.full_name.includes('表情包配置'),
+        (c) =>
+          c.name.includes('表情包配置') || c.full_name.includes('表情包配置'),
       ),
     [configs],
   );
@@ -778,7 +188,8 @@ export default function AIConfigPage() {
   const mcpToolsConfig = useMemo(
     () =>
       Object.values(configs).find(
-        (c) => c.name.includes('MCP 工具配置') || c.full_name.includes('MCP 工具配置'),
+        (c) =>
+          c.name.includes('MCP 工具配置') || c.full_name.includes('MCP 工具配置'),
       ),
     [configs],
   );
@@ -792,44 +203,28 @@ export default function AIConfigPage() {
   );
 
   const isAIEnabled = (aiConfig?.config.enable?.value as boolean) ?? false;
-
-  // 同步 AI 启用状态到全局 context，供 AppSidebar 消费
-  const { setAIEnabled: setGlobalAIEnabled } = useAIStatus();
-  useEffect(() => {
-    setGlobalAIEnabled(isAIEnabled);
-  }, [isAIEnabled, setGlobalAIEnabled]);
-  const isRerankEnabled = (aiConfig?.config.enable_rerank?.value as boolean) ?? false;
-  const rerankProvider = (aiConfig?.config.rerank_provider?.value as string) ?? 'local';
-  const isMemoryEnabled = (aiConfig?.config.enable_memory?.value as boolean) ?? false;
+  const isRerankEnabled =
+    (aiConfig?.config.enable_rerank?.value as boolean) ?? false;
+  const rerankProvider =
+    (aiConfig?.config.rerank_provider?.value as string) ?? 'local';
+  const isMemoryEnabled =
+    (aiConfig?.config.enable_memory?.value as boolean) ?? false;
   const websearchProvider =
     (aiConfig?.config.websearch_provider?.value as string) ?? 'Tavily';
   const imageUnderstandProvider =
     (aiConfig?.config.image_understand_provider?.value as string) ?? '';
-  const qdrantProvider = (aiConfig?.config.qdrant_provider?.value as string) ?? 'local';
+  const qdrantProvider =
+    (aiConfig?.config.qdrant_provider?.value as string) ?? 'local';
   const embeddingProvider =
-    (embeddingSummary?.provider ||
+    (embedding.embeddingSummary?.provider ||
       (aiConfig?.config.embedding_provider?.value as string)) ??
     'local';
   const asrProvider = (aiConfig?.config.asr_provider?.value as string) ?? '';
   const documentExtractProvider =
     (aiConfig?.config.document_extract_provider?.value as string) ?? '';
 
-  // Build MCP tool options from MCP configs (with rich metadata)
-  const mcpToolOptions: McpToolInfo[] = useMemo(() => {
-    const options: McpToolInfo[] = [];
-    for (const config of mcpConfigs) {
-      for (const tool of config.tools) {
-        options.push({
-          value: `${config.config_id} - ${tool.name}`,
-          label: `${config.name} / ${tool.name}`,
-          description: tool.description || '',
-          serverName: config.name,
-          toolName: tool.name,
-        });
-      }
-    }
-    return options;
-  }, [mcpConfigs]);
+  // ====================== MCP tools ======================
+  const mcp = useMcpToolsConfig({ mcpToolsConfig, updateConfigValue });
 
   const websearchMcpToolId =
     (mcpToolsConfig?.config.websearch_mcp_tool_id?.value as string) || '';
@@ -840,77 +235,99 @@ export default function AIConfigPage() {
   const documentExtractMcpToolId =
     (mcpToolsConfig?.config.document_extract_mcp_tool_id?.value as string) || '';
 
-  const getMcpToolIdByType = useCallback(
-    (type: McpServiceType): string => {
-      const configKey = MCP_SERVICE_TOOLS_CONFIG_KEY_MAP[type];
-      return (mcpToolsConfig?.config[configKey]?.value as string) || '';
-    },
-    [mcpToolsConfig],
-  );
-
-  const currentDialogMcpToolId = useMemo(
-    () => getMcpToolIdByType(mcpToolDialogType),
-    [getMcpToolIdByType, mcpToolDialogType],
-  );
-
-  const selectedMcpToolInfo = useMemo(
-    () =>
-      currentDialogMcpToolId
-        ? mcpToolOptions.find((opt) => opt.value === currentDialogMcpToolId) || null
-        : null,
-    [currentDialogMcpToolId, mcpToolOptions],
-  );
-
   const imageUnderstandToolInfo = useMemo(
     () =>
       imageUnderstandMcpToolId
-        ? mcpToolOptions.find((opt) => opt.value === imageUnderstandMcpToolId) || null
+        ? mcp.mcpToolOptions.find(
+            (opt) => opt.value === imageUnderstandMcpToolId,
+          ) || null
         : null,
-    [imageUnderstandMcpToolId, mcpToolOptions],
+    [imageUnderstandMcpToolId, mcp.mcpToolOptions],
   );
 
   const websearchToolInfo = useMemo(
     () =>
       websearchMcpToolId
-        ? mcpToolOptions.find((opt) => opt.value === websearchMcpToolId) || null
+        ? mcp.mcpToolOptions.find((opt) => opt.value === websearchMcpToolId) ||
+          null
         : null,
-    [websearchMcpToolId, mcpToolOptions],
+    [websearchMcpToolId, mcp.mcpToolOptions],
   );
 
   const asrToolInfo = useMemo(
     () =>
       asrMcpToolId
-        ? mcpToolOptions.find((opt) => opt.value === asrMcpToolId) || null
+        ? mcp.mcpToolOptions.find((opt) => opt.value === asrMcpToolId) || null
         : null,
-    [asrMcpToolId, mcpToolOptions],
+    [asrMcpToolId, mcp.mcpToolOptions],
   );
 
   const documentExtractToolInfo = useMemo(
     () =>
       documentExtractMcpToolId
-        ? mcpToolOptions.find((opt) => opt.value === documentExtractMcpToolId) || null
+        ? mcp.mcpToolOptions.find(
+            (opt) => opt.value === documentExtractMcpToolId,
+          ) || null
         : null,
-    [documentExtractMcpToolId, mcpToolOptions],
+    [documentExtractMcpToolId, mcp.mcpToolOptions],
   );
 
-  const openMcpToolDialog = useCallback((type: McpServiceType) => {
-    setMcpToolDialogType(type);
-    setMcpToolDialogOpen(true);
-  }, []);
+  // ====================== AI Status (global context for sidebar) ======================
+  const { setAIEnabled: setGlobalAIEnabled } = useAIStatus();
+  useEffect(() => {
+    setGlobalAIEnabled(isAIEnabled);
+  }, [isAIEnabled, setGlobalAIEnabled]);
 
+  // ====================== AI Wizard ======================
+  const wizard = useAIWizard();
+
+  // ====================== AI Service Switch ======================
+  const aiSwitch = useAIServiceSwitch({
+    aiConfig,
+    updateConfigValue,
+    isAIEnabled,
+    setGlobalAIEnabled,
+    setPendingRestart: wizard.setIsPendingRestart,
+  });
+
+  // ====================== Options (枚举) ======================
+  const embeddingProviderOptions =
+    (aiConfig?.config.embedding_provider?.options || ['local']) as string[];
+  const rerankProviderOptions =
+    (aiConfig?.config.rerank_provider?.options || ['local']) as string[];
+  const websearchProviderOptions =
+    (aiConfig?.config.websearch_provider?.options || ['Tavily']) as string[];
+  const qdrantProviderOptions =
+    (aiConfig?.config.qdrant_provider?.options || [
+      'local',
+      'remote',
+    ]) as string[];
+  const imageUnderstandProviderOptions =
+    (aiConfig?.config.image_understand_provider?.options || ['MCP']) as string[];
+  const asrProviderOptions =
+    (aiConfig?.config.asr_provider?.options || ['MCP']) as string[];
+  const documentExtractProviderOptions =
+    (aiConfig?.config.document_extract_provider?.options || ['MCP']) as string[];
+
+  // ====================== Dirty check + 保存流 ======================
   const isConfigDirty = useMemo(() => {
     const configChanged =
       Object.keys(originalConfig).length > 0 &&
       JSON.stringify(configs) !== JSON.stringify(originalConfig);
     const embeddingProviderChanged =
-      embeddingSummary?.provider !== originalEmbeddingProvider;
+      embedding.embeddingSummary?.provider !==
+      embedding.originalEmbeddingProvider;
     const embeddingLocalChanged =
-      JSON.stringify(embeddingLocalConfig) !== JSON.stringify(originalEmbeddingLocalConfig);
+      JSON.stringify(embedding.embeddingLocalConfig) !==
+      JSON.stringify(embedding.originalEmbeddingLocalConfig);
     const embeddingOpenaiChanged =
-      JSON.stringify(embeddingOpenaiConfig) !== JSON.stringify(originalEmbeddingOpenaiConfig);
+      JSON.stringify(embedding.embeddingOpenaiConfig) !==
+      JSON.stringify(embedding.originalEmbeddingOpenaiConfig);
     const mcpToolsChanged =
-      JSON.stringify(mcpToolsConfigs) !== JSON.stringify(originalMcpToolsConfigs) ||
-      JSON.stringify(mcpDetailsEditing) !== JSON.stringify(originalMcpDetails);
+      JSON.stringify(mcp.mcpToolsConfigs) !==
+        JSON.stringify(mcp.originalMcpToolsConfigs) ||
+      JSON.stringify(mcp.mcpDetailsEditing) !==
+        JSON.stringify(mcp.originalMcpDetails);
     return (
       configChanged ||
       embeddingProviderChanged ||
@@ -921,218 +338,26 @@ export default function AIConfigPage() {
   }, [
     configs,
     originalConfig,
-    embeddingSummary,
-    originalEmbeddingProvider,
-    embeddingLocalConfig,
-    originalEmbeddingLocalConfig,
-    embeddingOpenaiConfig,
-    originalEmbeddingOpenaiConfig,
-    mcpToolsConfigs,
-    originalMcpToolsConfigs,
-    mcpDetailsEditing,
-    originalMcpDetails,
+    embedding.embeddingSummary,
+    embedding.originalEmbeddingProvider,
+    embedding.embeddingLocalConfig,
+    embedding.originalEmbeddingLocalConfig,
+    embedding.embeddingOpenaiConfig,
+    embedding.originalEmbeddingOpenaiConfig,
+    mcp.mcpToolsConfigs,
+    mcp.originalMcpToolsConfigs,
+    mcp.mcpDetailsEditing,
+    mcp.originalMcpDetails,
   ]);
 
-  const updateConfigValue = useCallback(
-    (configId: string, fieldKey: string, value: ConfigValue) => {
-      setConfigs((prev) => {
-        if (!prev[configId]) return prev;
-        return {
-          ...prev,
-          [configId]: {
-            ...prev[configId],
-            config: {
-              ...prev[configId].config,
-              [fieldKey]: { ...prev[configId].config[fieldKey], value },
-            },
-          },
-        };
-      });
-    },
-    [],
-  );
-
-  // ============================================================================
-
-  /**
-   * 处理 AI 服务总开关的切换。
-   * 当开关状态改变时，显示确认对话框而不是直接更新。
-   */
-  const handleAISwitchChange = useCallback((checked: boolean) => {
-    setPendingAISwitchValue(checked);
-    setIsHelpOnly(false);
-    setIsAISwitchDialogOpen(true);
-  }, []);
-
-  /**
-   * 确认 AI 服务开关的切换，实际更新配置。
-   */
-  const handleConfirmAISwitch = useCallback(() => {
-    setIsAISwitchDialogOpen(false);
-    if (aiConfig) {
-      updateConfigValue(aiConfig.id, 'enable', pendingAISwitchValue);
-      // 同步侧边栏 AI 状态
-      setGlobalAIEnabled(pendingAISwitchValue);
-      // 标记需要重启核心服务后才能执行检查配置
-      setIsPendingRestart(true);
-    }
-  }, [aiConfig, pendingAISwitchValue, updateConfigValue, setGlobalAIEnabled]);
-
-  /**
-   * 打开使用帮助（重新显示 AI 服务开关确认对话框）
-   */
-  const handleOpenHelp = useCallback(() => {
-    if (isAIEnabled) {
-      setPendingAISwitchValue(true);
-      setIsHelpOnly(true);
-      setIsAISwitchDialogOpen(true);
-    }
-  }, [isAIEnabled]);
-
-  // ============================================================================
-
-  const getMcpToolParams = useCallback(
-    (toolId: string): string[] => {
-      if (!toolId) return [];
-      const parts = toolId.split(' - ');
-      if (parts.length < 2) return [];
-      const [, ...toolNameParts] = parts;
-      const toolName = toolNameParts.join(' - ');
-      const configId = parts[0];
-      const config = mcpConfigs.find((c) => c.config_id === configId);
-      if (!config) return [];
-      const tool = config.tools.find((t) => t.name === toolName);
-      if (!tool || !tool.parameters) return [];
-      return Object.keys(tool.parameters);
-    },
-    [mcpConfigs],
-  );
-
-  const handleSelectMcpTool = useCallback(
-    (toolId: string) => {
-      if (!mcpToolsConfig) return;
-      const configKey = MCP_SERVICE_TOOLS_CONFIG_KEY_MAP[mcpToolDialogType];
-      const mcpToolsConfigKey = configKey;
-      const currentToolId = (mcpToolsConfig.config[configKey]?.value as string) || '';
-      const finalValue = currentToolId === toolId ? '' : toolId;
-
-      updateConfigValue(mcpToolsConfig.id, configKey, finalValue);
-
-      if (finalValue) {
-        const paramNames = getMcpToolParams(finalValue);
-        const autoDetails: Record<string, string> = {};
-        for (const paramName of paramNames) {
-          autoDetails[paramName] = `params - ${paramName}`;
-        }
-        setMcpToolsConfigs((prev) => ({
-          ...prev,
-          [mcpToolsConfigKey]: {
-            ...prev[mcpToolsConfigKey],
-            key: mcpToolsConfigKey,
-            data: finalValue,
-            details: autoDetails,
-          } as MCPToolsConfigItem,
-        }));
-        setMcpDetailsEditing((prev) => ({
-          ...prev,
-          [mcpToolsConfigKey]: { ...autoDetails },
-        }));
-      } else {
-        setMcpToolsConfigs((prev) => ({
-          ...prev,
-          [mcpToolsConfigKey]: {
-            ...prev[mcpToolsConfigKey],
-            key: mcpToolsConfigKey,
-            data: '',
-            details: {},
-          } as MCPToolsConfigItem,
-        }));
-        setMcpDetailsEditing((prev) => ({
-          ...prev,
-          [mcpToolsConfigKey]: {},
-        }));
-      }
-
-      setMcpToolDialogOpen(false);
-    },
-    [mcpToolsConfig, mcpToolDialogType, updateConfigValue, getMcpToolParams],
-  );
-
-  const handleClearMcpTool = useCallback(
-    (type: McpServiceType) => {
-      if (!mcpToolsConfig) return;
-      const configKey = MCP_SERVICE_TOOLS_CONFIG_KEY_MAP[type];
-      updateConfigValue(mcpToolsConfig.id, configKey, '');
-
-      setMcpToolsConfigs((prev) => ({
-        ...prev,
-        [configKey]: {
-          ...prev[configKey],
-          key: configKey,
-          data: '',
-          details: {},
-        } as MCPToolsConfigItem,
-      }));
-      setMcpDetailsEditing((prev) => ({
-        ...prev,
-        [configKey]: {},
-      }));
-    },
-    [mcpToolsConfig, updateConfigValue],
-  );
-
-  const updateMcpDetailValue = useCallback(
-    (configKey: string, mcpParamName: string, value: string | number | boolean | null) => {
-      setMcpDetailsEditing((prev) => ({
-        ...prev,
-        [configKey]: {
-          ...prev[configKey],
-          [mcpParamName]: value,
-        },
-      }));
-    },
-    [],
-  );
-
-  const renameMcpDetailKey = useCallback(
-    (configKey: string, oldName: string, newName: string) => {
-      setMcpDetailsEditing((prev) => {
-        const details = { ...prev[configKey] };
-        const val = details[oldName];
-        delete details[oldName];
-        details[newName] = val;
-        return { ...prev, [configKey]: details };
-      });
-    },
-    [],
-  );
-
-  const addMcpDetailRow = useCallback((configKey: string) => {
-    setMcpDetailsEditing((prev) => ({
-      ...prev,
-      [configKey]: {
-        ...prev[configKey],
-        '': 'params - ',
-      },
-    }));
-  }, []);
-
-  const removeMcpDetailRow = useCallback(
-    (configKey: string, mcpParamName: string) => {
-      setMcpDetailsEditing((prev) => {
-        const newDetails = { ...prev[configKey] };
-        delete newDetails[mcpParamName];
-        return {
-          ...prev,
-          [configKey]: newDetails,
-        };
-      });
-    },
-    [],
-  );
+  // pendingSaveAction / EmbeddingWarningDialog 状态
+  const [isEmbeddingWarningOpen, setIsEmbeddingWarningOpen] = useState(false);
+  const [pendingSaveAction, setPendingSaveAction] = useState<
+    (() => void) | null
+  >(null);
 
   // 实际执行保存逻辑
-  const executeSave = async () => {
+  const executeSave = useCallback(async () => {
     try {
       setIsSaving(true);
 
@@ -1140,91 +365,121 @@ export default function AIConfigPage() {
       const changedConfigs = Object.values(configs).filter((config) => {
         const original = originalConfig[config.id];
         if (!original) return true;
-        return JSON.stringify(config.config) !== JSON.stringify(original.config);
+        return (
+          JSON.stringify(config.config) !== JSON.stringify(original.config)
+        );
       });
 
       for (const config of changedConfigs) {
-        const configToSave: Record<string, any> = {};
-        Object.entries(config.config).forEach(([key, field]: [string, any]) => {
-          if (!field || typeof field !== 'object' || !('value' in field)) return;
-          const rawType = (field.type || '').toLowerCase();
-          let value = field.value;
+        const configToSave: Record<string, unknown> = {};
+        Object.entries(config.config).forEach(
+          ([key, field]: [string, PluginConfigItem]) => {
+            if (
+              !field ||
+              typeof field !== 'object' ||
+              !('value' in field)
+            )
+              return;
+            const rawType = (field.type || '').toLowerCase();
+            let value: unknown = field.value;
 
-          if (rawType === 'gsint') {
-            if (typeof value === 'string') value = parseInt(value, 10);
-          } else if (rawType === 'gsfloat') {
-            if (typeof value === 'string') value = parseFloat(value);
-          } else if (rawType === 'gsbool') {
-            if (typeof value === 'string') value = value === 'true';
-            else value = !!value;
-          } else if (rawType === 'gsdict') {
-            if (typeof value === 'string') {
-              try {
-                value = JSON.parse(value);
-              } catch {
-                /* keep as string */
+            if (rawType === 'gsint') {
+              if (typeof value === 'string') value = parseInt(value, 10);
+            } else if (rawType === 'gsfloat') {
+              if (typeof value === 'string') value = parseFloat(value);
+            } else if (rawType === 'gsbool') {
+              if (typeof value === 'string') value = value === 'true';
+              else value = !!value;
+            } else if (rawType === 'gsdict') {
+              if (typeof value === 'string') {
+                try {
+                  value = JSON.parse(value);
+                } catch {
+                  /* keep as string */
+                }
               }
+            } else if (rawType === 'gslist') {
+              if (Array.isArray(value))
+                value = value
+                  .map(Number)
+                  .filter((n: number) => !isNaN(n));
+            } else if (rawType === 'gsliststr') {
+              if (Array.isArray(value)) value = value.map(String);
+            } else if (rawType === 'gsdivider') {
+              return;
             }
-          } else if (rawType === 'gslist') {
-            if (Array.isArray(value))
-              value = value.map(Number).filter((n: number) => !isNaN(n));
-          } else if (rawType === 'gsliststr') {
-            if (Array.isArray(value)) value = value.map(String);
-          } else if (rawType === 'gsdivider') {
-            return;
-          }
 
-          configToSave[key] = value;
-        });
-        await frameworkConfigApi.updateFrameworkConfig(config.full_name, configToSave);
+            configToSave[key] = value;
+          },
+        );
+        await frameworkConfigApi.updateFrameworkConfig(
+          config.full_name,
+          configToSave,
+        );
       }
       if (changedConfigs.length > 0) {
-        setOriginalConfig(JSON.parse(JSON.stringify(configs)));
+        markConfigsSaved(configs);
       }
 
       // 2. 保存嵌入模型配置
-      const currentProviderValue = embeddingSummary?.provider || '';
-      if (currentProviderValue !== originalEmbeddingProvider) {
-        const response = await embeddingConfigApi.setProvider(currentProviderValue);
+      const currentProviderValue =
+        embedding.embeddingSummary?.provider || '';
+      if (currentProviderValue !== embedding.originalEmbeddingProvider) {
+        const response =
+          await embeddingConfigApi.setProvider(currentProviderValue);
         toast.success(
           response.msg ||
             t('aiConfig.serviceProvider.embeddingProviderSwitched', {
               provider: currentProviderValue,
             }),
         );
-        setOriginalEmbeddingProvider(currentProviderValue);
       }
-      if (JSON.stringify(embeddingLocalConfig) !== JSON.stringify(originalEmbeddingLocalConfig)) {
+      if (
+        JSON.stringify(embedding.embeddingLocalConfig) !==
+        JSON.stringify(embedding.originalEmbeddingLocalConfig)
+      ) {
         const localPayload: Record<string, unknown> = {};
-        Object.entries(embeddingLocalConfig).forEach(([key, field]) => {
-          localPayload[key] = field.data;
-        });
+        Object.entries(embedding.embeddingLocalConfig).forEach(
+          ([key, field]) => {
+            localPayload[key] = field.data;
+          },
+        );
         await embeddingConfigApi.saveLocalConfig(localPayload);
-        setOriginalEmbeddingLocalConfig(JSON.parse(JSON.stringify(embeddingLocalConfig)));
       }
-      if (JSON.stringify(embeddingOpenaiConfig) !== JSON.stringify(originalEmbeddingOpenaiConfig)) {
+      if (
+        JSON.stringify(embedding.embeddingOpenaiConfig) !==
+        JSON.stringify(embedding.originalEmbeddingOpenaiConfig)
+      ) {
         const openaiPayload: Record<string, unknown> = {};
-        Object.entries(embeddingOpenaiConfig).forEach(([key, field]) => {
-          openaiPayload[key] = field.data;
-        });
+        Object.entries(embedding.embeddingOpenaiConfig).forEach(
+          ([key, field]) => {
+            openaiPayload[key] = field.data;
+          },
+        );
         await embeddingConfigApi.saveOpenaiConfig(openaiPayload);
-        setOriginalEmbeddingOpenaiConfig(JSON.parse(JSON.stringify(embeddingOpenaiConfig)));
       }
+      embedding.markSaved(
+        currentProviderValue,
+        embedding.embeddingLocalConfig,
+        embedding.embeddingOpenaiConfig,
+      );
 
       // 3. 保存 MCP 工具参数映射配置
       const mcpToolsChanged =
-        JSON.stringify(mcpToolsConfigs) !== JSON.stringify(originalMcpToolsConfigs) ||
-        JSON.stringify(mcpDetailsEditing) !== JSON.stringify(originalMcpDetails);
+        JSON.stringify(mcp.mcpToolsConfigs) !==
+          JSON.stringify(mcp.originalMcpToolsConfigs) ||
+        JSON.stringify(mcp.mcpDetailsEditing) !==
+          JSON.stringify(mcp.originalMcpDetails);
       if (mcpToolsChanged) {
         const allKeys = new Set([
-          ...Object.keys(mcpToolsConfigs),
-          ...Object.keys(originalMcpToolsConfigs),
+          ...Object.keys(mcp.mcpToolsConfigs),
+          ...Object.keys(mcp.originalMcpToolsConfigs),
         ]);
         for (const key of allKeys) {
-          const currentData = mcpToolsConfigs[key]?.data ?? '';
-          const currentDetails = mcpDetailsEditing[key] ?? {};
-          const origData = originalMcpToolsConfigs[key]?.data ?? '';
-          const origDetails = originalMcpDetails[key] ?? {};
+          const currentData = mcp.mcpToolsConfigs[key]?.data ?? '';
+          const currentDetails = mcp.mcpDetailsEditing[key] ?? {};
+          const origData = mcp.originalMcpToolsConfigs[key]?.data ?? '';
+          const origDetails = mcp.originalMcpDetails[key] ?? {};
           if (
             currentData !== origData ||
             JSON.stringify(currentDetails) !== JSON.stringify(origDetails)
@@ -1235,8 +490,7 @@ export default function AIConfigPage() {
             });
           }
         }
-        setOriginalMcpToolsConfigs(JSON.parse(JSON.stringify(mcpToolsConfigs)));
-        setOriginalMcpDetails(JSON.parse(JSON.stringify(mcpDetailsEditing)));
+        mcp.markSaved(mcp.mcpToolsConfigs, mcp.mcpDetailsEditing);
       }
 
       toast.success(t('aiConfig.configSaved'));
@@ -1247,14 +501,24 @@ export default function AIConfigPage() {
       setIsSaving(false);
       setPendingSaveAction(null);
     }
-  };
+  }, [
+    setIsSaving,
+    configs,
+    originalConfig,
+    markConfigsSaved,
+    embedding,
+    mcp,
+    t,
+  ]);
 
-  const handleSaveConfig = () => {
-    const currentProviderValue = embeddingSummary?.provider || '';
+  const handleSaveConfig = useCallback(() => {
+    const currentProviderValue = embedding.embeddingSummary?.provider || '';
     const hasEmbeddingChanges =
-      currentProviderValue !== originalEmbeddingProvider ||
-      JSON.stringify(embeddingLocalConfig) !== JSON.stringify(originalEmbeddingLocalConfig) ||
-      JSON.stringify(embeddingOpenaiConfig) !== JSON.stringify(originalEmbeddingOpenaiConfig);
+      currentProviderValue !== embedding.originalEmbeddingProvider ||
+      JSON.stringify(embedding.embeddingLocalConfig) !==
+        JSON.stringify(embedding.originalEmbeddingLocalConfig) ||
+      JSON.stringify(embedding.embeddingOpenaiConfig) !==
+        JSON.stringify(embedding.originalEmbeddingOpenaiConfig);
 
     const aiConfigId = aiConfig?.id;
     const originalQdrant = aiConfigId
@@ -1270,77 +534,14 @@ export default function AIConfigPage() {
     } else {
       executeSave();
     }
-  };
+  }, [embedding, aiConfig, originalConfig, executeSave]);
 
-  const handleConfirmEmbeddingSave = () => {
+  const handleConfirmEmbeddingSave = useCallback(() => {
     setIsEmbeddingWarningOpen(false);
     if (pendingSaveAction) {
       pendingSaveAction();
     }
-  };
-
-  const fetchWizardChecklist = async () => {
-    try {
-      setIsWizardLoading(true);
-      const [checklistResponse, statusResponse] = await Promise.all([
-        aiWizardApi.getChecklist(),
-        aiWizardApi.getStatus(),
-      ]);
-      console.log('Wizard checklist:', checklistResponse);
-      console.log('Wizard status:', statusResponse);
-      setWizardChecklist(checklistResponse.items);
-      setWizardOverallStatus(checklistResponse.overall_status);
-      setWizardUsable(checklistResponse.usable);
-      setWizardSummary(checklistResponse.summary);
-      setWizardStatus(statusResponse);
-      setIsWizardDialogOpen(true);
-    } catch (error) {
-      console.error('Failed to fetch wizard checklist:', error);
-      toast.error(error instanceof Error ? error.message : '未知错误');
-    } finally {
-      setIsWizardLoading(false);
-    }
-  };
-
-  const embeddingProviderOptions =
-    (aiConfig?.config.embedding_provider?.options || ['local']) as string[];
-  const rerankProviderOptions =
-    (aiConfig?.config.rerank_provider?.options || ['local']) as string[];
-  const websearchProviderOptions =
-    (aiConfig?.config.websearch_provider?.options || ['Tavily']) as string[];
-  const qdrantProviderOptions =
-    (aiConfig?.config.qdrant_provider?.options || ['local', 'remote']) as string[];
-  const imageUnderstandProviderOptions =
-    (aiConfig?.config.image_understand_provider?.options || ['MCP']) as string[];
-  const asrProviderOptions =
-    (aiConfig?.config.asr_provider?.options || ['MCP']) as string[];
-  const documentExtractProviderOptions =
-    (aiConfig?.config.document_extract_provider?.options || ['MCP']) as string[];
-
-  const allConfigsList = useMemo<AllConfigItem[]>(
-    () => (allConfigs ? allConfigs.configs || [] : []),
-    [allConfigs],
-  );
-
-  const isHighLevelConfigValid = useMemo(
-    () => !!highLevelConfig && allConfigsList.some((c) => c.name === highLevelConfig),
-    [highLevelConfig, allConfigsList],
-  );
-
-  const isLowLevelConfigValid = useMemo(
-    () => !!lowLevelConfig && allConfigsList.some((c) => c.name === lowLevelConfig),
-    [lowLevelConfig, allConfigsList],
-  );
-
-  const taskModelLacksImage = useMemo(() => {
-    const lacks = (fullName: string) => {
-      if (!fullName) return false;
-      const support = modelSupportMap[fullName];
-      if (!support) return false;
-      return !support.includes('image');
-    };
-    return lacks(highLevelConfig) || lacks(lowLevelConfig);
-  }, [highLevelConfig, lowLevelConfig, modelSupportMap]);
+  }, [pendingSaveAction]);
 
   // ============================================================================
   // Render
@@ -1367,15 +568,57 @@ export default function AIConfigPage() {
 
   // ====================== 侧边栏菜单项 ======================
   const sidebarItems = [
-    { id: 'taskConfig', title: t('aiConfig.taskConfig.title'), icon: <ListChecks className="w-5 h-5" /> },
-    { id: 'vectorDb', title: t('aiConfig.vectorDb.title'), icon: <Database className="w-5 h-5" /> },
-    { id: 'webSearch', title: t('aiConfig.serviceProvider.webSearchService'), icon: <Search className="w-5 h-5" /> },
-    { id: 'imageUnderstand', title: t('aiConfig.imageUnderstand.title'), icon: <Eye className="w-5 h-5" />, alert: taskModelLacksImage && !imageUnderstandProvider },
-    { id: 'voiceRecognition', title: t('aiConfig.voiceRecognition.title'), icon: <Cpu className="w-5 h-5" /> },
-    { id: 'documentExtract', title: t('aiConfig.documentExtract.title'), icon: <FileText className="w-5 h-5" /> },
-    { id: 'memorySettings', title: t('aiConfig.memorySettings.title'), icon: <MemoryStick className="w-5 h-5" /> },
-    ...(memeConfig ? [{ id: 'memeSettings', title: t('aiConfig.memeSettings.title'), icon: <Smile className="w-5 h-5" /> }] : []),
-    { id: 'advancedSettings', title: t('aiConfig.advancedSettings.title'), icon: <SlidersHorizontal className="w-5 h-5" /> },
+    {
+      id: 'taskConfig',
+      title: t('aiConfig.taskConfig.title'),
+      icon: <ListChecks className="w-5 h-5" />,
+    },
+    {
+      id: 'vectorDb',
+      title: t('aiConfig.vectorDb.title'),
+      icon: <Database className="w-5 h-5" />,
+    },
+    {
+      id: 'webSearch',
+      title: t('aiConfig.serviceProvider.webSearchService'),
+      icon: <Search className="w-5 h-5" />,
+    },
+    {
+      id: 'imageUnderstand',
+      title: t('aiConfig.imageUnderstand.title'),
+      icon: <Eye className="w-5 h-5" />,
+      alert:
+        provider.taskModelLacksImage && !imageUnderstandProvider,
+    },
+    {
+      id: 'voiceRecognition',
+      title: t('aiConfig.voiceRecognition.title'),
+      icon: <Cpu className="w-5 h-5" />,
+    },
+    {
+      id: 'documentExtract',
+      title: t('aiConfig.documentExtract.title'),
+      icon: <FileText className="w-5 h-5" />,
+    },
+    {
+      id: 'memorySettings',
+      title: t('aiConfig.memorySettings.title'),
+      icon: <MemoryStick className="w-5 h-5" />,
+    },
+    ...(memeConfig
+      ? [
+          {
+            id: 'memeSettings',
+            title: t('aiConfig.memeSettings.title'),
+            icon: <Smile className="w-5 h-5" />,
+          },
+        ]
+      : []),
+    {
+      id: 'advancedSettings',
+      title: t('aiConfig.advancedSettings.title'),
+      icon: <SlidersHorizontal className="w-5 h-5" />,
+    },
   ];
 
   const renderActiveSection = () => {
@@ -1385,14 +628,16 @@ export default function AIConfigPage() {
           <TaskConfigSection
             t={t}
             isGlass={isGlass}
-            allConfigsList={allConfigsList}
-            highLevelConfig={highLevelConfig}
-            lowLevelConfig={lowLevelConfig}
-            isHighLevelConfigValid={isHighLevelConfigValid}
-            isLowLevelConfigValid={isLowLevelConfigValid}
-            onSetHighLevelConfig={handleSetHighLevelConfig}
-            onSetLowLevelConfig={handleSetLowLevelConfig}
-            onOpenManageDialog={() => setIsManageConfigDialogOpen(true)}
+            allConfigsList={provider.allConfigsList}
+            highLevelConfig={provider.highLevelConfig}
+            lowLevelConfig={provider.lowLevelConfig}
+            isHighLevelConfigValid={provider.isHighLevelConfigValid}
+            isLowLevelConfigValid={provider.isLowLevelConfigValid}
+            onSetHighLevelConfig={provider.handleSetHighLevelConfig}
+            onSetLowLevelConfig={provider.handleSetLowLevelConfig}
+            onOpenManageDialog={() =>
+              provider.setIsManageConfigDialogOpen(true)
+            }
           />
         );
       case 'webSearch':
@@ -1407,15 +652,25 @@ export default function AIConfigPage() {
             miniMaxConfig={miniMaxConfig}
             websearchMcpToolId={websearchMcpToolId}
             websearchToolInfo={websearchToolInfo}
-            mcpDetails={mcpDetailsEditing['websearch_mcp_tool_id'] || {}}
-            onChangeProvider={(v) => updateConfigValue(aiConfig.id, 'websearch_provider', v)}
+            mcpDetails={mcp.mcpDetailsEditing['websearch_mcp_tool_id'] || {}}
+            onChangeProvider={(v) =>
+              updateConfigValue(aiConfig.id, 'websearch_provider', v)
+            }
             onUpdateConfig={updateConfigValue}
-            onOpenMcpToolDialog={() => openMcpToolDialog('websearch')}
-            onClearMcpTool={() => handleClearMcpTool('websearch')}
-            onDetailValueChange={(name, val) => updateMcpDetailValue('websearch_mcp_tool_id', name, val)}
-            onMcpParamNameChange={(oldN, newN) => renameMcpDetailKey('websearch_mcp_tool_id', oldN, newN)}
-            onAddMcpDetailRow={() => addMcpDetailRow('websearch_mcp_tool_id')}
-            onRemoveMcpDetailRow={(name) => removeMcpDetailRow('websearch_mcp_tool_id', name)}
+            onOpenMcpToolDialog={() => mcp.openMcpToolDialog('websearch')}
+            onClearMcpTool={() => mcp.handleClearMcpTool('websearch')}
+            onDetailValueChange={(name, val) =>
+              mcp.updateMcpDetailValue('websearch_mcp_tool_id', name, val)
+            }
+            onMcpParamNameChange={(oldN, newN) =>
+              mcp.renameMcpDetailKey('websearch_mcp_tool_id', oldN, newN)
+            }
+            onAddMcpDetailRow={() =>
+              mcp.addMcpDetailRow('websearch_mcp_tool_id')
+            }
+            onRemoveMcpDetailRow={(name) =>
+              mcp.removeMcpDetailRow('websearch_mcp_tool_id', name)
+            }
           />
         );
       case 'imageUnderstand':
@@ -1425,18 +680,38 @@ export default function AIConfigPage() {
             isGlass={isGlass}
             imageUnderstandProvider={imageUnderstandProvider}
             imageUnderstandProviderOptions={imageUnderstandProviderOptions}
-            taskModelLacksImage={taskModelLacksImage}
+            taskModelLacksImage={provider.taskModelLacksImage}
             providerDesc={aiConfig?.config.image_understand_provider?.desc}
             imageUnderstandMcpToolId={imageUnderstandMcpToolId}
             imageUnderstandToolInfo={imageUnderstandToolInfo}
-            mcpDetails={mcpDetailsEditing['image_understand_mcp_tool_id'] || {}}
-            onChangeProvider={(v) => updateConfigValue(aiConfig.id, 'image_understand_provider', v)}
-            onOpenMcpToolDialog={() => openMcpToolDialog('image_understand')}
-            onClearMcpTool={() => handleClearMcpTool('image_understand')}
-            onDetailValueChange={(name, val) => updateMcpDetailValue('image_understand_mcp_tool_id', name, val)}
-            onMcpParamNameChange={(oldN, newN) => renameMcpDetailKey('image_understand_mcp_tool_id', oldN, newN)}
-            onAddMcpDetailRow={() => addMcpDetailRow('image_understand_mcp_tool_id')}
-            onRemoveMcpDetailRow={(name) => removeMcpDetailRow('image_understand_mcp_tool_id', name)}
+            mcpDetails={
+              mcp.mcpDetailsEditing['image_understand_mcp_tool_id'] || {}
+            }
+            onChangeProvider={(v) =>
+              updateConfigValue(aiConfig.id, 'image_understand_provider', v)
+            }
+            onOpenMcpToolDialog={() =>
+              mcp.openMcpToolDialog('image_understand')
+            }
+            onClearMcpTool={() =>
+              mcp.handleClearMcpTool('image_understand')
+            }
+            onDetailValueChange={(name, val) =>
+              mcp.updateMcpDetailValue('image_understand_mcp_tool_id', name, val)
+            }
+            onMcpParamNameChange={(oldN, newN) =>
+              mcp.renameMcpDetailKey(
+                'image_understand_mcp_tool_id',
+                oldN,
+                newN,
+              )
+            }
+            onAddMcpDetailRow={() =>
+              mcp.addMcpDetailRow('image_understand_mcp_tool_id')
+            }
+            onRemoveMcpDetailRow={(name) =>
+              mcp.removeMcpDetailRow('image_understand_mcp_tool_id', name)
+            }
           />
         );
       case 'vectorDb':
@@ -1451,18 +726,18 @@ export default function AIConfigPage() {
             qdrantConfig={qdrantConfig}
             embeddingProvider={embeddingProvider}
             embeddingProviderOptions={embeddingProviderOptions}
-            availableProviders={embeddingSummary?.available_providers}
-            isLoadingEmbeddingConfig={isLoadingEmbeddingConfig}
-            embeddingLocalConfig={embeddingLocalConfig}
-            embeddingOpenaiConfig={embeddingOpenaiConfig}
+            availableProviders={embedding.embeddingSummary?.available_providers}
+            isLoadingEmbeddingConfig={embedding.isLoadingEmbeddingConfig}
+            embeddingLocalConfig={embedding.embeddingLocalConfig}
+            embeddingOpenaiConfig={embedding.embeddingOpenaiConfig}
             isRerankEnabled={isRerankEnabled}
             rerankProvider={rerankProvider}
             rerankProviderOptions={rerankProviderOptions}
             rerankConfig={rerankConfig}
             onUpdateConfig={updateConfigValue}
-            onSwitchEmbeddingProvider={handleSwitchEmbeddingProvider}
-            onUpdateEmbeddingLocalField={updateEmbeddingLocalField}
-            onUpdateEmbeddingOpenaiField={updateEmbeddingOpenaiField}
+            onSwitchEmbeddingProvider={embedding.handleSwitchEmbeddingProvider}
+            onUpdateEmbeddingLocalField={embedding.updateEmbeddingLocalField}
+            onUpdateEmbeddingOpenaiField={embedding.updateEmbeddingOpenaiField}
           />
         );
       case 'voiceRecognition':
@@ -1475,14 +750,22 @@ export default function AIConfigPage() {
             asrProviderDesc={aiConfig?.config.asr_provider?.desc}
             asrMcpToolId={asrMcpToolId}
             asrToolInfo={asrToolInfo}
-            mcpDetails={mcpDetailsEditing['asr_mcp_tool_id'] || {}}
-            onChangeProvider={(v) => updateConfigValue(aiConfig.id, 'asr_provider', v)}
-            onOpenMcpToolDialog={() => openMcpToolDialog('asr')}
-            onClearMcpTool={() => handleClearMcpTool('asr')}
-            onDetailValueChange={(name, val) => updateMcpDetailValue('asr_mcp_tool_id', name, val)}
-            onMcpParamNameChange={(oldN, newN) => renameMcpDetailKey('asr_mcp_tool_id', oldN, newN)}
-            onAddMcpDetailRow={() => addMcpDetailRow('asr_mcp_tool_id')}
-            onRemoveMcpDetailRow={(name) => removeMcpDetailRow('asr_mcp_tool_id', name)}
+            mcpDetails={mcp.mcpDetailsEditing['asr_mcp_tool_id'] || {}}
+            onChangeProvider={(v) =>
+              updateConfigValue(aiConfig.id, 'asr_provider', v)
+            }
+            onOpenMcpToolDialog={() => mcp.openMcpToolDialog('asr')}
+            onClearMcpTool={() => mcp.handleClearMcpTool('asr')}
+            onDetailValueChange={(name, val) =>
+              mcp.updateMcpDetailValue('asr_mcp_tool_id', name, val)
+            }
+            onMcpParamNameChange={(oldN, newN) =>
+              mcp.renameMcpDetailKey('asr_mcp_tool_id', oldN, newN)
+            }
+            onAddMcpDetailRow={() => mcp.addMcpDetailRow('asr_mcp_tool_id')}
+            onRemoveMcpDetailRow={(name) =>
+              mcp.removeMcpDetailRow('asr_mcp_tool_id', name)
+            }
           />
         );
       case 'documentExtract':
@@ -1492,17 +775,43 @@ export default function AIConfigPage() {
             aiConfigId={aiConfig.id}
             documentExtractProvider={documentExtractProvider}
             documentExtractProviderOptions={documentExtractProviderOptions}
-            documentExtractProviderDesc={aiConfig?.config.document_extract_provider?.desc}
+            documentExtractProviderDesc={
+              aiConfig?.config.document_extract_provider?.desc
+            }
             documentExtractMcpToolId={documentExtractMcpToolId}
             documentExtractToolInfo={documentExtractToolInfo}
-            mcpDetails={mcpDetailsEditing['document_extract_mcp_tool_id'] || {}}
-            onChangeProvider={(v) => updateConfigValue(aiConfig.id, 'document_extract_provider', v)}
-            onOpenMcpToolDialog={() => openMcpToolDialog('document_extract')}
-            onClearMcpTool={() => handleClearMcpTool('document_extract')}
-            onDetailValueChange={(name, val) => updateMcpDetailValue('document_extract_mcp_tool_id', name, val)}
-            onMcpParamNameChange={(oldN, newN) => renameMcpDetailKey('document_extract_mcp_tool_id', oldN, newN)}
-            onAddMcpDetailRow={() => addMcpDetailRow('document_extract_mcp_tool_id')}
-            onRemoveMcpDetailRow={(name) => removeMcpDetailRow('document_extract_mcp_tool_id', name)}
+            mcpDetails={
+              mcp.mcpDetailsEditing['document_extract_mcp_tool_id'] || {}
+            }
+            onChangeProvider={(v) =>
+              updateConfigValue(aiConfig.id, 'document_extract_provider', v)
+            }
+            onOpenMcpToolDialog={() =>
+              mcp.openMcpToolDialog('document_extract')
+            }
+            onClearMcpTool={() =>
+              mcp.handleClearMcpTool('document_extract')
+            }
+            onDetailValueChange={(name, val) =>
+              mcp.updateMcpDetailValue(
+                'document_extract_mcp_tool_id',
+                name,
+                val,
+              )
+            }
+            onMcpParamNameChange={(oldN, newN) =>
+              mcp.renameMcpDetailKey(
+                'document_extract_mcp_tool_id',
+                oldN,
+                newN,
+              )
+            }
+            onAddMcpDetailRow={() =>
+              mcp.addMcpDetailRow('document_extract_mcp_tool_id')
+            }
+            onRemoveMcpDetailRow={(name) =>
+              mcp.removeMcpDetailRow('document_extract_mcp_tool_id', name)
+            }
           />
         );
       case 'memorySettings':
@@ -1513,7 +822,9 @@ export default function AIConfigPage() {
             isMemoryEnabled={isMemoryEnabled}
             memoryConfig={memoryConfig}
             onUpdateConfig={updateConfigValue}
-            onToggleMemory={(checked) => updateConfigValue(aiConfig.id, 'enable_memory', checked)}
+            onToggleMemory={(checked) =>
+              updateConfigValue(aiConfig.id, 'enable_memory', checked)
+            }
           />
         );
       case 'memeSettings':
@@ -1557,7 +868,7 @@ export default function AIConfigPage() {
           <div className="flex flex-wrap items-center justify-end gap-2 self-end sm:self-auto">
             {isAIEnabled && (
               <Button
-                onClick={handleOpenHelp}
+                onClick={aiSwitch.handleOpenHelp}
                 size="sm"
                 variant="outline"
                 className="gap-1.5 sm:gap-2 whitespace-nowrap text-xs sm:text-sm"
@@ -1569,13 +880,15 @@ export default function AIConfigPage() {
             {(() => {
               const checkConfigBtn = (
                 <Button
-                  onClick={() => fetchWizardChecklist()}
-                  disabled={isWizardLoading || isPendingRestart}
+                  onClick={() => wizard.fetchWizardChecklist()}
+                  disabled={
+                    wizard.isWizardLoading || wizard.isPendingRestart
+                  }
                   size="sm"
                   variant="outline"
                   className="gap-1.5 sm:gap-2 whitespace-nowrap text-xs sm:text-sm"
                 >
-                  {isWizardLoading ? (
+                  {wizard.isWizardLoading ? (
                     <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" />
                   ) : (
                     <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -1584,7 +897,7 @@ export default function AIConfigPage() {
                 </Button>
               );
               // 只有按钮被禁用时才显示提示 tooltip
-              if (isPendingRestart) {
+              if (wizard.isPendingRestart) {
                 return (
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -1622,12 +935,16 @@ export default function AIConfigPage() {
 
       {/* AI Service Master Switch */}
       <div className="shrink-0 px-3 sm:px-6 pt-2 pb-3 sm:pb-4">
-        {isBackendPendingRestart && (
+        {wizard.isBackendPendingRestart && (
           <div className="mb-3 flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-amber-700 dark:text-amber-400">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
             <div className="text-xs sm:text-sm">
-              <p className="font-medium">{t('aiConfig.serviceSwitch.restartRequiredTitle')}</p>
-              <p className="mt-1 opacity-90">{t('aiConfig.serviceSwitch.restartRequiredDesc')}</p>
+              <p className="font-medium">
+                {t('aiConfig.serviceSwitch.restartRequiredTitle')}
+              </p>
+              <p className="mt-1 opacity-90">
+                {t('aiConfig.serviceSwitch.restartRequiredDesc')}
+              </p>
             </div>
           </div>
         )}
@@ -1664,48 +981,50 @@ export default function AIConfigPage() {
           </div>
           <Switch
             checked={isAIEnabled}
-            onCheckedChange={handleAISwitchChange}
+            onCheckedChange={aiSwitch.handleAISwitchChange}
             className="scale-110"
           />
         </div>
       </div>
 
       {/* Main Content Area - sidebar + content */}
-      <div className="flex-1 flex overflow-hidden px-3 sm:px-6 gap-2 sm:gap-0">
-        <div
-          className={cn(
-            'border-r border-border/40 flex flex-col shrink-0',
-            isMobile ? 'w-14' : 'w-60',
-          )}
-        >
-          <ScrollArea className="flex-1 px-1 pb-2 pt-2 sm:px-2">
-            <div className="space-y-0.5">
-              {sidebarItems.map((item) => (
-                <SidebarItem
-                  key={item.id}
-                  id={item.id}
-                  activeSection={activeSection}
-                  icon={item.icon}
-                  title={item.title}
-                  disabled={false}
-                  alert={'alert' in item ? item.alert : false}
-                  collapsed={isMobile}
-                  onClick={setActiveSection}
-                />
-              ))}
-            </div>
-          </ScrollArea>
-        </div>
-
-        <div className="flex-1 overflow-y-auto">
-          <div className="p-3 sm:p-6">
-            {isLoadingDetail && Object.keys(configs).length === 0 ? (
-              <div className="flex items-center justify-center h-64">
-                <Loader2 className="w-8 h-8 animate-spin" />
-              </div>
-            ) : (
-              renderActiveSection()
+      <div className="flex-1 px-3 sm:px-6 pb-3 sm:pb-6 min-h-0">
+        <div className="h-full glass-card rounded-2xl overflow-hidden flex">
+          <div
+            className={cn(
+              'border-r border-border/40 flex flex-col shrink-0',
+              isMobile ? 'w-14' : 'w-60',
             )}
+          >
+            <ScrollArea className="flex-1 px-1 pb-2 pt-2 sm:px-2">
+              <div className="space-y-0.5">
+                {sidebarItems.map((item) => (
+                  <SidebarItem
+                    key={item.id}
+                    id={item.id}
+                    activeSection={activeSection}
+                    icon={item.icon}
+                    title={item.title}
+                    disabled={false}
+                    alert={'alert' in item ? item.alert : false}
+                    collapsed={isMobile}
+                    onClick={setActiveSection}
+                  />
+                ))}
+              </div>
+            </ScrollArea>
+          </div>
+
+          <div className="flex-1 overflow-y-auto">
+            <div className="p-3 sm:p-6">
+              {isLoadingDetail && Object.keys(configs).length === 0 ? (
+                <div className="flex items-center justify-center h-64">
+                  <Loader2 className="w-8 h-8 animate-spin" />
+                </div>
+              ) : (
+                renderActiveSection()
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -1713,104 +1032,92 @@ export default function AIConfigPage() {
       {/* ====================== Dialogs ====================== */}
 
       <ManageConfigDialog
-        open={isManageConfigDialogOpen}
+        open={provider.isManageConfigDialogOpen}
         t={t}
-        allConfigsList={allConfigsList}
-        highLevelConfig={highLevelConfig}
-        lowLevelConfig={lowLevelConfig}
-        onOpenChange={setIsManageConfigDialogOpen}
+        allConfigsList={provider.allConfigsList}
+        highLevelConfig={provider.highLevelConfig}
+        lowLevelConfig={provider.lowLevelConfig}
+        onOpenChange={provider.setIsManageConfigDialogOpen}
         onOpenCreate={() => {
-          setIsCreateDialogOpen(true);
-          fetchProviderConfigOptions(newConfigProvider);
+          provider.setIsCreateDialogOpen(true);
+          provider.fetchProviderConfigOptions(provider.newConfigProvider);
         }}
-        onOpenEdit={openEditDialog}
-        onOpenDelete={openDeleteDialog}
+        onOpenEdit={provider.openEditDialog}
+        onOpenDelete={provider.openDeleteDialog}
       />
 
       <CreateConfigDialog
-        open={isCreateDialogOpen}
+        open={provider.isCreateDialogOpen}
         t={t}
-        provider={newConfigProvider}
-        configName={newConfigName}
-        baseUrl={newConfigBaseUrl}
-        apiKeys={newConfigApiKeys}
-        model={newConfigModel}
-        embeddingModel={newConfigEmbeddingModel}
-        modelSupport={newConfigModelSupport}
-        fetchedModels={newConfigFetchedModels}
-        isFetching={isFetchingNewConfigModels}
-        providerConfigOptions={providerConfigOptions}
-        baseUrlHasTrailingSlash={baseUrlHasTrailingSlash}
-        onOpenChange={setIsCreateDialogOpen}
-        onChangeProvider={setNewConfigProvider}
-        onFetchProviderConfigOptions={fetchProviderConfigOptions}
-        onChangeConfigName={setNewConfigName}
-        onChangeBaseUrl={setNewConfigBaseUrl}
-        onChangeApiKeys={setNewConfigApiKeys}
-        onChangeModel={setNewConfigModel}
+        provider={provider.newConfigProvider}
+        configName={provider.newConfigName}
+        baseUrl={provider.newConfigBaseUrl}
+        apiKeys={provider.newConfigApiKeys}
+        model={provider.newConfigModel}
+        embeddingModel={provider.newConfigEmbeddingModel}
+        modelSupport={provider.newConfigModelSupport}
+        fetchedModels={provider.newConfigFetchedModels}
+        isFetching={provider.isFetchingNewConfigModels}
+        providerConfigOptions={provider.providerConfigOptions}
+        baseUrlHasTrailingSlash={provider.baseUrlHasTrailingSlash}
+        onOpenChange={provider.setIsCreateDialogOpen}
+        onChangeProvider={provider.setNewConfigProvider}
+        onFetchProviderConfigOptions={provider.fetchProviderConfigOptions}
+        onChangeConfigName={provider.setNewConfigName}
+        onChangeBaseUrl={provider.setNewConfigBaseUrl}
+        onChangeApiKeys={provider.setNewConfigApiKeys}
+        onChangeModel={provider.setNewConfigModel}
         onChangeEmbeddingModel={() => {}}
-        onToggleCapability={(cap) => {
-          setNewConfigModelSupport((prev) =>
-            prev.includes(cap) ? prev.filter((v) => v !== cap) : [...prev, cap],
-          );
-        }}
-        onReset={resetNewConfigForm}
-        onSubmit={handleCreateOpenaiConfig}
+        onToggleCapability={provider.toggleNewConfigCapability}
+        onReset={provider.resetNewConfigForm}
+        onSubmit={provider.handleCreateOpenaiConfig}
       />
 
       <EditConfigDialog
-        open={isEditDialogOpen}
+        open={provider.isEditDialogOpen}
         t={t}
-        configName={editingConfigName}
-        data={openaiConfigData}
-        isLoading={isLoadingOpenaiConfig}
-        isSaving={isSavingOpenaiConfig}
-        providerConfigOptions={providerConfigOptions}
-        fetchedModels={editConfigFetchedModels}
-        isFetching={isFetchingEditConfigModels}
-        baseUrlHasTrailingSlash={baseUrlHasTrailingSlash}
+        configName={provider.editingConfigName}
+        data={provider.openaiConfigData}
+        isLoading={provider.isLoadingOpenaiConfig}
+        isSaving={provider.isSavingOpenaiConfig}
+        providerConfigOptions={provider.providerConfigOptions}
+        fetchedModels={provider.editConfigFetchedModels}
+        isFetching={provider.isFetchingEditConfigModels}
+        baseUrlHasTrailingSlash={provider.baseUrlHasTrailingSlash}
         onOpenChange={(open) => {
           if (!open) {
-            setOpenaiConfigData(null);
-            setEditConfigFetchedModels([]);
+            provider.clearOpenaiConfigData();
           }
-          setIsEditDialogOpen(open);
+          provider.setIsEditDialogOpen(open);
         }}
-        onChangeField={updateOpenaiConfigField}
+        onChangeField={(field, value) =>
+          provider.setOpenaiConfigDataField(field, value)
+        }
         onToggleCapability={(cap) => {
-          setOpenaiConfigData((prev) => {
-            if (!prev) return prev;
-            const current = Array.isArray(prev.model_support)
-              ? prev.model_support
-              : ['text'];
-            const next = current.includes(cap)
-              ? current.filter((v) => v !== cap)
-              : [...current, cap];
-            return { ...prev, model_support: next };
-          });
+          provider.toggleOpenaiConfigCapability(cap);
         }}
-        onSave={handleSaveOpenaiConfig}
+        onSave={provider.handleSaveOpenaiConfig}
       />
 
       <DeleteConfigDialog
-        open={isDeleteDialogOpen}
+        open={provider.isDeleteDialogOpen}
         t={t}
-        configName={editingConfigName}
-        onOpenChange={setIsDeleteDialogOpen}
-        onConfirm={handleDeleteConfig}
+        configName={provider.editingConfigName}
+        onOpenChange={provider.setIsDeleteDialogOpen}
+        onConfirm={provider.handleDeleteConfig}
       />
 
       <McpToolDialog
-        open={mcpToolDialogOpen}
+        open={mcp.mcpToolDialogOpen}
         t={t}
-        serviceType={mcpToolDialogType}
-        mcpConfigs={mcpConfigs}
-        mcpToolOptions={mcpToolOptions}
-        currentDialogMcpToolId={currentDialogMcpToolId}
-        selectedMcpToolInfo={selectedMcpToolInfo}
-        onOpenChange={setMcpToolDialogOpen}
-        onSelect={handleSelectMcpTool}
-        onClear={() => handleClearMcpTool(mcpToolDialogType)}
+        serviceType={mcp.mcpToolDialogType}
+        mcpConfigs={mcp.mcpConfigs}
+        mcpToolOptions={mcp.mcpToolOptions}
+        currentDialogMcpToolId={mcp.currentDialogMcpToolId}
+        selectedMcpToolInfo={mcp.selectedMcpToolInfo}
+        onOpenChange={mcp.setMcpToolDialogOpen}
+        onSelect={mcp.handleSelectMcpTool}
+        onClear={() => mcp.handleClearMcpTool(mcp.mcpToolDialogType)}
       />
 
       <EmbeddingWarningDialog
@@ -1821,25 +1128,26 @@ export default function AIConfigPage() {
       />
 
       <AIServiceSwitchDialog
-        open={isAISwitchDialogOpen}
-        mode={pendingAISwitchValue ? 'enable' : 'disable'}
+        open={aiSwitch.isAISwitchDialogOpen}
+        mode={aiSwitch.pendingAISwitchValue ? 'enable' : 'disable'}
         t={t}
-        onOpenChange={setIsAISwitchDialogOpen}
-        onConfirm={handleConfirmAISwitch}
-        helpOnly={isHelpOnly}
+        onOpenChange={aiSwitch.setIsAISwitchDialogOpen}
+        onConfirm={aiSwitch.handleConfirmAISwitch}
+        helpOnly={aiSwitch.isHelpOnly}
       />
 
       <WizardDialog
-        open={isWizardDialogOpen}
+        open={wizard.isWizardDialogOpen}
         t={t}
-        isLoading={isWizardLoading}
-        overallStatus={wizardOverallStatus}
-        usable={wizardUsable}
-        summary={wizardSummary}
-        checklist={wizardChecklist}
-        status={wizardStatus}
-        onOpenChange={setIsWizardDialogOpen}
+        isLoading={wizard.isWizardLoading}
+        overallStatus={wizard.wizardOverallStatus}
+        usable={wizard.wizardUsable}
+        summary={wizard.wizardSummary}
+        checklist={wizard.wizardChecklist}
+        status={wizard.wizardStatus}
+        onOpenChange={wizard.setIsWizardDialogOpen}
       />
     </div>
   );
 }
+

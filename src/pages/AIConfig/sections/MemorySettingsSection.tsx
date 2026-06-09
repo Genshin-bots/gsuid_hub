@@ -1,15 +1,18 @@
-import { Brain, CheckCircle, ChevronRight, HelpCircle, MemoryStick, Sparkles } from 'lucide-react';
+import { Brain, ChevronRight, HelpCircle, MemoryStick } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { ChipGroup } from '@/components/ui/MultiSelectChipGroup';
-import { DynamicConfigPanel, type ConfigValue } from '@/components/config';
+import {
+  ConfigField,
+  pluginConfigItemToFieldDef,
+  type ConfigValue,
+} from '@/components/config';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { ToggleRow } from '../shared/ToggleRow';
 import type { PluginConfigItem } from '@/lib/api';
 
 export interface MemorySettingsSectionProps {
@@ -27,8 +30,8 @@ export interface MemorySettingsSectionProps {
 /**
  * 「记忆设置」Section：
  * - 总开关：是否启用记忆（写入 aiConfig.enable_memory）
- * - 记忆模式：被动感知 / 主动会话（多选）
- * - 通过 DynamicConfigPanel 渲染其余字段，并附带 System-2 / Eval-Mode 两个 ToggleRow
+ * - 记忆模式（记忆路径）：保留原有 ChipGroup 多选样式
+ * - 其余配置项：复用 pluginConfigItemToFieldDef + ConfigField 三列网格布局
  */
 export function MemorySettingsSection({
   t,
@@ -38,6 +41,11 @@ export function MemorySettingsSection({
   onUpdateConfig,
   onToggleMemory,
 }: MemorySettingsSectionProps) {
+  // 获取除 memory_mode（记忆路径）以外的所有配置项
+  const otherEntries = memoryConfig
+    ? Object.entries(memoryConfig.config).filter(([key]) => key !== 'memory_mode')
+    : [];
+
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
@@ -63,6 +71,7 @@ export function MemorySettingsSection({
         </div>
       ) : memoryConfig ? (
         <div className="space-y-4">
+          {/* 记忆模式（记忆路径）- 保留原有 ChipGroup 多选样式 */}
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <Brain className="w-4 h-4 text-muted-foreground" />
@@ -103,48 +112,26 @@ export function MemorySettingsSection({
             />
           </div>
 
-          <div className="pt-2">
-            <DynamicConfigPanel
-              config={memoryConfig.config}
-              configId={memoryConfig.id}
-              onChange={onUpdateConfig}
-              excludeKeys={['memory_mode', 'enable_system2', 'eval_mode']}
-              layout={[['memory_session', 'retrieval_top_k']]}
-            />
-          </div>
-
-          <div className="space-y-2 pt-2 border-t border-border/20">
-            <ToggleRow
-              icon={<CheckCircle className="w-5 h-5" strokeWidth={1.5} />}
-              iconColorClass="text-primary"
-              title={t('aiConfig.memorySettings.enableSystem2')}
-              description={
-                t('aiConfig.memorySettings.enableSystem2Desc') ||
-                '提高检索精度但增加延迟'
-              }
-              checked={
-                (memoryConfig.config.enable_system2?.value as boolean) ?? true
-              }
-              onCheckedChange={(checked) =>
-                onUpdateConfig(memoryConfig.id, 'enable_system2', checked)
-              }
-            />
-            <ToggleRow
-              icon={<Sparkles className="w-5 h-5" strokeWidth={1.5} />}
-              iconColorClass="text-primary"
-              title={t('aiConfig.memorySettings.evalMode')}
-              description={
-                t('aiConfig.memorySettings.evalModeDesc') ||
-                '启用后无法使用 System-2 和 Rerank'
-              }
-              checked={
-                (memoryConfig.config.eval_mode?.value as boolean) ?? false
-              }
-              onCheckedChange={(checked) =>
-                onUpdateConfig(memoryConfig.id, 'eval_mode', checked)
-              }
-            />
-          </div>
+          {/* 其余配置项 - 复用三列网格布局，与高级设置/插件参数配置一致 */}
+          {otherEntries.length > 0 && (
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 pt-2">
+              {otherEntries.map(([key, item]) => {
+                const fieldDef = pluginConfigItemToFieldDef(key, item);
+                const isDivider = fieldDef.type === 'divider';
+                return (
+                  <div key={key} className={isDivider ? 'col-span-full' : undefined}>
+                    <ConfigField
+                      fieldKey={key}
+                      field={fieldDef}
+                      onChange={(fieldKey, value) =>
+                        onUpdateConfig(memoryConfig.id, fieldKey, value)
+                      }
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       ) : (
         <div className="text-sm text-muted-foreground p-4 rounded-lg border border-border/30 bg-muted/20">

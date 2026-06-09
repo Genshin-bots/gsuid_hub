@@ -59,6 +59,9 @@ export type { AIServiceSwitchDialogProps } from './dialogs/AIServiceSwitchDialog
 export { WizardDialog } from './dialogs/WizardDialog';
 export type { WizardDialogProps } from './dialogs/WizardDialog';
 
+// hooks
+export * from './hooks';
+
 // types & constants
 export type { LocalFrameworkConfig, ConfigFileItem, ProviderType } from './types';
 export {

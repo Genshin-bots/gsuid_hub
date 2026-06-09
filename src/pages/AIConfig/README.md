@@ -19,9 +19,9 @@
 
 ## 拆分原则
 
-- **状态留在主页面**：`AIConfigPage` 仍然是状态的唯一拥有者，section / dialog 通过 props 接收所需数据与回调。
+- **状态按领域下钻到 hooks**：`AIConfigPage` 不再直接维护所有 `useState`，而是调用 6 个领域 hook（`useFrameworkConfig` / `useProviderConfig` / `useEmbeddingConfig` / `useMcpToolsConfig` / `useAIWizard` / `useAIServiceSwitch`）。
 - **子组件纯渲染**：所有 section 与 dialog 都是"展示型组件"，业务逻辑由父级注入。
-- **可独立测试**：每个 section 文件可以独立 mock 父级回调，无需启动整个页面。
+- **可独立测试**：每个 hook / section 文件可以独立 mock 依赖，无需启动整个页面。
 - **保持原行为不变**：拆分不引入新功能或修改 UI，所有 `t(...)` 文案与原有 i18n key 一致。
 
 ## 目录结构
@@ -29,15 +29,24 @@
 ```
 src/pages/AIConfig/
 ├── README.md                    ← 本文件
-├── index.ts                     ← 桶导出
+├── index.ts                     ← 桶导出（sections / dialogs / shared / hooks / types / constants）
 ├── types.ts                     ← 与后端字段对应的纯类型
 ├── constants.ts                 ← getModelCapabilities 等工厂函数
+├── hooks/                       ← 按领域拆分的状态 + 副作用 hook（6 个）
+│   ├── index.ts                 ← hooks 桶导出
+│   ├── useFrameworkConfig.ts    ← AI 基础配置列表 / 详情 / 脏检查快照
+│   ├── useProviderConfig.ts     ← Provider / OpenAI 配置 + 新建/编辑/删除/管理 Dialog 状态与动作
+│   ├── useEmbeddingConfig.ts    ← 嵌入模型配置（summary / local / openai）
+│   ├── useMcpToolsConfig.ts     ← MCP 服务列表 / 工具映射 / 参数详情
+│   ├── useAIWizard              ← AI 配置体检（wizard checklist / status）
+│   └── useAIServiceSwitch.ts    ← AI 服务总开关（确认 dialog + pending restart）
 ├── shared/                      ← 与具体 section 解耦的通用组件
 │   ├── ToggleRow.tsx
 │   ├── PersonaAvatar.tsx
 │   ├── EmptyState.tsx
-│   └── SidebarItem.tsx
-├── sections/                    ← 页面右侧的 9 个 section
+│   ├── SidebarItem.tsx
+│   └── renderRichText.tsx
+├── sections/                    ← 页面右侧的 10 个 section
 │   ├── ServiceSwitchSection.tsx
 │   ├── TaskConfigSection.tsx
 │   ├── WebSearchSection.tsx
@@ -48,30 +57,43 @@ src/pages/AIConfig/
 │   ├── MemorySettingsSection.tsx
 │   ├── MemeSettingsSection.tsx
 │   └── AdvancedSettingsSection.tsx
-└── dialogs/                     ← 6 个对话框
+└── dialogs/                     ← 8 个对话框
     ├── ManageConfigDialog.tsx
     ├── CreateConfigDialog.tsx
     ├── EditConfigDialog.tsx
     ├── DeleteConfigDialog.tsx
     ├── McpToolDialog.tsx
     ├── EmbeddingWarningDialog.tsx
+    ├── AIServiceSwitchDialog.tsx
     └── WizardDialog.tsx
 ```
 
-入口 `src/pages/AIConfigPage.tsx` 现在 **只剩 1 个文件**，
-它从 `./AIConfig` 引入子组件并维护所有状态。
+入口 `src/pages/AIConfigPage.tsx`（约 **1150 行**，相比原 1846 行减少 ~38%）现在是"装配中心"：
+- 调用 6 个 hook 拿到全部状态与回调
+- 计算 `aiConfig` / 各 provider config 等派生字段
+- 计算 `isConfigDirty` 等保存流派生值
+- 把数据与回调通过 props 注入到各个纯渲染 section / dialog
 
-## 每个文件的职责
+## 每个 Hook 的职责
 
-### `AIConfigPage.tsx`（顶层路由）
+| Hook | 状态量 | 关键 API | 说明 |
+| --- | --- | --- | --- |
+| [`useFrameworkConfig`](src/pages/AIConfig/hooks/useFrameworkConfig.ts) | `configList` / `configs` / `originalConfig` / `isLoading` / `isLoadingDetail` / `isSaving` / `hasInitialized` | `frameworkConfigApi.getFrameworkConfigList` / `getFrameworkConfig` | AI 基础配置的列表 + 详情，以及 `updateConfigValue` 字段更新。首次加载后自动初始化脏检查快照 |
+| [`useProviderConfig`](src/pages/AIConfig/hooks/useProviderConfig.ts) | `providers` / `allConfigs` / `highLevelConfig` / `lowLevelConfig` / `openaiConfigData` / 新建表单 / 4 个 Dialog open | `providerConfigApi.*` | Provider / OpenAI 配置全生命周期，包含新建/编辑/删除/管理 Dialog 的状态与提交逻辑 |
+| [`useEmbeddingConfig`](src/pages/AIConfig/hooks/useEmbeddingConfig.ts) | `embeddingSummary` / `embeddingLocalConfig` / `embeddingOpenaiConfig` + 3 个 original 快照 | `embeddingConfigApi.*` | 嵌入模型配置（provider 切换 / local / openai 字段编辑） |
+| [`useMcpToolsConfig`](src/pages/AIConfig/hooks/useMcpToolsConfig.ts) | `mcpConfigs` / `mcpToolsConfigs` / `mcpDetailsEditing` + original 快照 / dialog 状态 | `mcpConfigApi.*` | MCP 服务列表 + 工具映射 + 参数详情编辑。通过参数接收外部 `mcpToolsConfig`（来自 `useFrameworkConfig`）以同步 framework config 的 `*_mcp_tool_id` 字段 |
+| [`useAIWizard`](src/pages/AIConfig/hooks/useAIWizard.ts) | `wizardChecklist` / `wizardStatus` / `isBackendPendingRestart` / `isPendingRestart` | `aiWizardApi.*` + 启动时 `fetch('/api/ai/wizard/status')` | AI 配置体检状态 |
+| [`useAIServiceSwitch`](src/pages/AIConfig/hooks/useAIServiceSwitch.ts) | `isAISwitchDialogOpen` / `pendingAISwitchValue` / `isHelpOnly` | 无直接 API（通过 `updateConfigValue` 写入 framework config） | AI 服务总开关确认 dialog |
 
-> ⚠️ **本文件是整个页面的"状态枢纽"**。所有 useState / useEffect / useMemo 仍在此处维护。
+## 每个渲染组件的职责
 
-- 状态：configs / providers / mcpConfigs / embeddingSummary / wizardStatus / 各种 dialog open
-- 副作用：从 `frameworkConfigApi` / `providerConfigApi` / `mcpConfigApi` / `embeddingConfigApi` / `aiWizardApi` 拉取数据
-- 派生：`isConfigDirty` / `taskModelLacksImage` / `mcpToolOptions` 等
-- 回调：handleSetHighLevelConfig / handleCreateOpenaiConfig / handleSaveConfig / executeSave 等
-- 渲染：Header + ServiceSwitch + Sidebar + 右侧激活 Section + 6 个 Dialog
+### `AIConfigPage.tsx`（顶层路由 / 装配中心）
+
+> 调用 6 个 hook → 计算派生 → 渲染
+
+- **派生**：`aiConfig` / `embeddingConfig` / `rerankConfig` / `tavilyConfig` / `exaConfig` / `miniMaxConfig` / `memoryConfig` / `memeConfig` / `mcpToolsConfig` / `qdrantConfig` / `isAIEnabled` / `websearchProvider` / `imageUnderstandProvider` / `embeddingProvider` / `asrProvider` / `documentExtractProvider` / `*ProviderOptions` / `isConfigDirty`
+- **保存流**：`executeSave` / `handleSaveConfig` / `handleConfirmEmbeddingSave` + `EmbeddingWarningDialog` 逻辑
+- **渲染**：Header + AI 总开关 + Sidebar + 右侧激活 Section + 8 个 Dialog
 
 ### sections
 
@@ -98,6 +120,7 @@ src/pages/AIConfig/
 | `DeleteConfigDialog` | `ManageConfigDialog` → 删除 | 二次确认 |
 | `McpToolDialog` | 各 section 中 MCP 关联按钮 | 按 MCP 服务分组列出所有工具 |
 | `EmbeddingWarningDialog` | 保存前检测到 Embedding / Qdrant 变更 | 重构向量数据前确认 |
+| `AIServiceSwitchDialog` | AI 总开关切换 | 启用/禁用确认 + 使用帮助 |
 | `WizardDialog` | 顶部「检查配置」按钮 | AI Wizard 状态总览 |
 
 ### shared
@@ -108,29 +131,35 @@ src/pages/AIConfig/
 | `PersonaAvatar` | 角色头像：远程 + 失败回退 + 禁用置灰 |
 | `EmptyState` | 居中图标 + 标题 + 副标题 |
 | `SidebarItem` | 桌面 / 移动（折叠）双形态 |
+| `renderRichText` | 富文本渲染（Markdown → JSX） |
 
 ## 状态 / 事件流向
 
 ```
-AIConfigPage (state owner)
+AIConfigPage (装配中心，~1150 行)
     │
-    ├── Sidebar  ── 切 activeSection
+    ├── useFrameworkConfig() ─── configs / updateConfigValue / markSaved / isSaving
     │
-    ├── ServiceSwitchSection  ── onToggle(checked)  →  updateConfigValue(aiConfigId, 'enable', v)
+    ├── useProviderConfig()  ─── providers / allConfigs / highLevel|lowLevel / openaiConfigData
+    │     └── 4 个 Dialog 动作: handleCreate|Save|Delete|SetHigh|SetLow
     │
-    ├── <activeSection>  ── 由 renderActiveSection() 决定
-    │     │
-    │     ├── TaskConfigSection      ── onSet{High,Low}LevelConfig(name)
-    │     ├── WebSearchSection       ── onChangeProvider / onUpdateConfig / onOpenMcpToolDialog
-    │     ├── ImageUnderstandSection ── 同上
-    │     ├── VectorDbSection        ── onSwitchEmbeddingProvider / onUpdateEmbedding{Local,Openai}Field
-    │     ├── VoiceRecognitionSection
-    │     ├── DocumentExtractSection
-    │     ├── MemorySettingsSection  ── onToggleMemory / onUpdateConfig
-    │     ├── MemeSettingsSection    ── onUpdateConfig
-    │     └── AdvancedSettingsSection── onUpdateConfig
+    ├── useEmbeddingConfig() ─── embeddingSummary / local|openai configs + markSaved
     │
-    └── 6 Dialogs  ── 各自接收 props + onXxx 回调
+    ├── useMcpToolsConfig({mcpToolsConfig, updateConfigValue}) ─── mcpConfigs / mcpToolsConfigs / mcpDetailsEditing
+    │
+    ├── useAIWizard()        ─── wizardChecklist / wizardStatus / isBackendPendingRestart
+    │
+    ├── useAIServiceSwitch({aiConfig, updateConfigValue, setPendingRestart})  ─── dialog + confirm
+    │
+    ├── 派生: aiConfig / 各 provider config / isConfigDirty
+    │
+    ├── 保存流: executeSave / handleSaveConfig / handleConfirmEmbeddingSave
+    │
+    └── 渲染
+         ├── Header + AI 总开关 + 检查配置 + 保存按钮
+         ├── Sidebar
+         ├── renderActiveSection()  →  10 个 section
+         └── 8 个 Dialog
 ```
 
 ## 添加新 Section 的步骤
@@ -139,7 +168,7 @@ AIConfigPage (state owner)
 2. 在 `sections/...` 中 `export interface MyNewSectionProps` 列出所有依赖
 3. 在 `index.ts` 中添加 re-export
 4. 在 `AIConfigPage.tsx` 中：
-   - 添加对应的 `useState` / `useEffect` / handler
+   - 如需新状态：在对应 hook 中添加（或新建 hook）
    - 在 `renderActiveSection()` 的 `switch` 中增加一个 `case`
    - 在 `sidebarItems` 数组中增加一个条目
 5. 在 i18n 中补充 `aiConfig.myNew.*` 翻译键
@@ -150,21 +179,30 @@ AIConfigPage (state owner)
 2. 定义 props（包含 `open` / `onOpenChange` / 必要数据 / 回调）
 3. `index.ts` 中 re-export
 4. `AIConfigPage.tsx` 中：
-   - 添加 `[isMyNewOpen, setIsMyNewOpen] = useState(false)`
-   - 渲染 `<MyNewDialog open={isMyNewOpen} onOpenChange={setIsMyNewOpen} ... />`
+   - 如需新状态：在对应 hook 或 `useAIServiceSwitch` 中添加
+   - 渲染 `<MyNewDialog open={...} onOpenChange={...} ... />`
+
+## 添加新 Hook 的步骤
+
+1. 在 `hooks/` 下新建 `useMyNewDomain.ts`
+2. `hooks/index.ts` 中 re-export
+3. `index.ts`（桶文件）中 `export * from './hooks'` 已涵盖，无需额外修改
+4. 在 `AIConfigPage.tsx` 中调用并解构所需状态与回调
 
 ## 已知约定
 
 - **i18n 路径**：`aiConfig.*`，请在 `src/i18n/locales/{zh-CN,en-US,ja-JP}/aiConfig.json` 维护。
 - **样式 token**：使用 Tailwind 主题色（`text-primary` / `bg-muted/30` 等），与项目其它页面保持一致。
 - **玻璃态**：`isGlass` prop 来自 `useTheme().style === 'glassmorphism'`，用于在玻璃主题下切换边框与背景透明度。
-- **API 调用**：`@/lib/api` 中的 `frameworkConfigApi` / `providerConfigApi` / `mcpConfigApi` / `embeddingConfigApi` / `aiWizardApi`。所有调用都集中在 `AIConfigPage.tsx`，子组件只接收最终结果。
+- **API 调用**：`@/lib/api` 中的 `frameworkConfigApi` / `providerConfigApi` / `mcpConfigApi` / `embeddingConfigApi` / `aiWizardApi`。API 调用已下沉到各 hooks，子组件只接收最终结果。
+- **脏检查**：`useFrameworkConfig` 维护 `originalConfig` 快照；`useEmbeddingConfig` 维护 `originalEmbedding*` 快照；`useMcpToolsConfig` 维护 `originalMcp*` 快照。三者汇总到 `AIConfigPage` 的 `isConfigDirty` 计算中。
 
 ## 未来优化方向
 
-- 把状态管理下沉到 `useReducer` 或 `@/hooks/useAIConfig.ts`，进一步解耦主页面
-- 将 6 个 dialog 改为 `useDialogState` hook 集中管理 open 状态
-- 给每个 section 写最小测试（mock props + 断言关键交互）
+- 方案 B：抽取 `useSaveController` hook + `normalizeConfigValue` 工具函数，进一步缩短 `AIConfigPage`
+- 方案 C：抽取 `SectionsRouter` / `ConfigPageHeader` / `SidebarMenu` 渲染组件
+- 方案 D：把 `aiConfig / tavilyConfig / ...` 等具名配置查找抽到 `useDerivedConfigs` hook
+- 给每个 hook / section 写最小测试（mock 依赖 + 断言关键交互）
 
 ---
 

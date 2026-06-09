@@ -3813,11 +3813,11 @@ export interface AIWizardStatusResponse {
 export const aiWizardApi = {
   // 获取 AI 配置检查清单
   getChecklist: () =>
-    api.get<AIWizardChecklistResponse>('/api/ai/wizard/checklist'),
+    api.get<AIWizardChecklistResponse>(`/api/ai/wizard/checklist?_t=${Date.now()}`),
 
   // 获取 AI 配置详细状态（包含人格范围信息）
   getStatus: () =>
-    api.get<AIWizardStatusResponse>('/api/ai/wizard/status'),
+    api.get<AIWizardStatusResponse>(`/api/ai/wizard/status?_t=${Date.now()}`),
 };
 
 // ===================
