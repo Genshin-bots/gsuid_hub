@@ -49,6 +49,7 @@ export interface UseProviderConfigReturn {
   newConfigApiKeys: string[];
   newConfigEmbeddingModel: string;
   newConfigModelSupport: string[];
+  newConfigModelEffort: string;
   newConfigFetchedModels: string[];
   isFetchingNewConfigModels: boolean;
 
@@ -70,6 +71,7 @@ export interface UseProviderConfigReturn {
   setNewConfigBaseUrl: (v: string) => void;
   setNewConfigModel: (v: string) => void;
   setNewConfigApiKeys: (v: string[]) => void;
+  setNewConfigModelEffort: (v: string) => void;
   toggleNewConfigCapability: (cap: string) => void;
   resetNewConfigForm: () => void;
   setIsCreateDialogOpen: (open: boolean) => void;
@@ -152,6 +154,7 @@ export function useProviderConfig(): UseProviderConfigReturn {
   const [newConfigModelSupport, setNewConfigModelSupport] = useState<string[]>([
     'text',
   ]);
+  const [newConfigModelEffort, setNewConfigModelEffort] = useState('enable');
   const [newConfigFetchedModels, setNewConfigFetchedModels] = useState<string[]>([]);
   const [editConfigFetchedModels, setEditConfigFetchedModels] = useState<string[]>(
     [],
@@ -257,6 +260,7 @@ export function useProviderConfig(): UseProviderConfigReturn {
             (response.config.embedding_model?.data as string) ||
             'text-embedding-3-small',
           model_support: (response.config.model_support?.data as string[]) || ['text'],
+          model_effort: (response.config.model_effort?.data as string) || 'enable',
         };
         setOpenaiConfigData(configData);
         setEditingConfigProvider(provider);
@@ -410,6 +414,7 @@ export function useProviderConfig(): UseProviderConfigReturn {
         model_name: { data: openaiConfigData.model_name },
         embedding_model: { data: openaiConfigData.embedding_model },
         model_support: { data: openaiConfigData.model_support },
+        model_effort: { data: openaiConfigData.model_effort || 'enable' },
       };
       await providerConfigApi.saveConfig(
         editingConfigProvider,
@@ -434,6 +439,7 @@ export function useProviderConfig(): UseProviderConfigReturn {
     setNewConfigModel('');
     setNewConfigApiKeys([]);
     setNewConfigModelSupport(['text']);
+    setNewConfigModelEffort('enable');
     setNewConfigFetchedModels([]);
   }, []);
 
@@ -465,6 +471,7 @@ export function useProviderConfig(): UseProviderConfigReturn {
         model_name: { data: newConfigModel.trim() },
         embedding_model: { data: newConfigEmbeddingModel },
         model_support: { data: newConfigModelSupport },
+        model_effort: { data: newConfigModelEffort },
       };
       await providerConfigApi.saveConfig(newConfigProvider, configName, configData);
       toast.success(t('aiConfig.openaiConfig.createSuccess', { name: configName }));
@@ -482,6 +489,7 @@ export function useProviderConfig(): UseProviderConfigReturn {
     newConfigApiKeys,
     newConfigEmbeddingModel,
     newConfigModelSupport,
+    newConfigModelEffort,
     newConfigProvider,
     t,
     fetchAllConfigs,
@@ -637,6 +645,7 @@ export function useProviderConfig(): UseProviderConfigReturn {
     newConfigApiKeys,
     newConfigEmbeddingModel,
     newConfigModelSupport,
+    newConfigModelEffort,
     newConfigFetchedModels,
     isFetchingNewConfigModels,
 
@@ -658,6 +667,7 @@ export function useProviderConfig(): UseProviderConfigReturn {
     setNewConfigBaseUrl,
     setNewConfigModel,
     setNewConfigApiKeys,
+    setNewConfigModelEffort,
     toggleNewConfigCapability,
     resetNewConfigForm,
     setIsCreateDialogOpen,

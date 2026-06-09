@@ -1,6 +1,7 @@
 import {
   AlertTriangle,
   Cpu,
+  Gauge,
   Globe,
   Key,
   Loader2,
@@ -38,6 +39,7 @@ export interface EditConfigDialogProps {
   onOpenChange: (open: boolean) => void;
   onChangeField: (field: keyof OpenAIConfigData, value: string | string[]) => void;
   onToggleCapability: (cap: string) => void;
+  onChangeModelEffort: (val: string) => void;
   onSave: () => void;
 }
 
@@ -55,6 +57,7 @@ export function EditConfigDialog({
   onOpenChange,
   onChangeField,
   onToggleCapability,
+  onChangeModelEffort,
   onSave,
 }: EditConfigDialogProps) {
   const capabilities: ModelCapability[] = getModelCapabilities(t);
@@ -157,6 +160,27 @@ export function EditConfigDialog({
                   );
                 })}
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm flex items-center gap-2">
+                <Gauge className="w-4 h-4" />
+                {t('aiConfig.serviceProvider.modelEffort')}
+              </Label>
+              <InputWithDropdown
+                value={data.model_effort || 'enable'}
+                onChange={(val) => onChangeModelEffort(val)}
+                options={[
+                  'enable',
+                  'disable',
+                  'minimal',
+                  'low',
+                  'medium',
+                  'high',
+                  'xhigh',
+                ]}
+                placeholder="选择思考等级"
+                inputPlaceholder="选择思考等级"
+              />
             </div>
           </div>
         ) : (

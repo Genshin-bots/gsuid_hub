@@ -87,6 +87,7 @@
     "apiModel": "调用模型",
     "apiKey": "API密钥",
     "modelCapabilities": "模型支持能力",
+    "modelEffort": "思考等级",
     "capabilityText": "文本对话",
     "capabilityImage": "图片理解",
     "capabilityAudio": "语音处理",

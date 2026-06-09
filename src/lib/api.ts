@@ -795,6 +795,7 @@ export interface OpenAIConfigOptions {
   model_name: string[];
   embedding_model: string[];
   model_support: string[];
+  model_effort: string[];
 }
 
 export interface OpenAIConfigData {
@@ -803,6 +804,7 @@ export interface OpenAIConfigData {
   model_name: string;
   embedding_model: string;
   model_support: string[];
+  model_effort: string;
 }
 
 export interface OpenAIConfigDetail {
@@ -916,6 +918,7 @@ export interface ProviderConfigOptions {
     model_name: string[];
     embedding_model: string[];
     model_support: string[];
+    model_effort: string[];
   };
 }
 
@@ -3818,6 +3821,231 @@ export const aiWizardApi = {
   // 获取 AI 配置详细状态（包含人格范围信息）
   getStatus: () =>
     api.get<AIWizardStatusResponse>(`/api/ai/wizard/status?_t=${Date.now()}`),
+};
+
+// ===================
+// AI Statistics API - /api/ai/statistics
+// ===================
+
+export interface TokenByModelItem {
+  model: string;
+  input_tokens: number;
+  output_tokens: number;
+  cache_read_tokens: number;
+  cache_write_tokens: number;
+}
+
+export interface TokenByTypeItem {
+  type: string;
+  input_tokens: number;
+  output_tokens: number;
+  cache_read_tokens: number;
+  cache_write_tokens: number;
+}
+
+export interface TokenUsageData {
+  total_input_tokens: number;
+  total_output_tokens: number;
+  total_cache_read_tokens: number;
+  total_cache_write_tokens: number;
+  by_model: TokenByModelItem[];
+  by_type: TokenByTypeItem[];
+}
+
+export interface LatencyData {
+  avg: number;
+  p95: number;
+}
+
+export interface IntentDistributionData {
+  [key: string]: { count: number; percentage: number };
+}
+
+export interface TriggerDistributionData {
+  [key: string]: { count: number; percentage: number };
+}
+
+export interface ErrorStatsData {
+  timeout: number;
+  rate_limit: number;
+  network_error: number;
+  usage_limit: number;
+  agent_error: number;
+  api_529_error: number;
+  total: number;
+}
+
+export interface HeartbeatStatsData {
+  should_speak_true: number;
+  should_speak_false: number;
+  conversion_rate: number;
+}
+
+export interface RagStatsData {
+  hit_count: number;
+  miss_count: number;
+  hit_rate: number;
+}
+
+export interface RagDocumentItem {
+  document_name: string;
+  hit_count: number;
+}
+
+export interface MemoryStatsData {
+  observations: number;
+  ingestions: number;
+  ingestion_errors: number;
+  retrievals: number;
+  entities_created: number;
+  edges_created: number;
+  episodes_created: number;
+}
+
+export interface ActiveUserItem {
+  group_id: string;
+  user_id: string;
+  ai_interaction: number;
+  message_count: number;
+}
+
+export interface StatisticsSummaryData {
+  date: string;
+  token_usage: TokenUsageData;
+  latency: LatencyData;
+  intent_distribution: IntentDistributionData;
+  errors: ErrorStatsData;
+  heartbeat: HeartbeatStatsData;
+  trigger_distribution: TriggerDistributionData;
+  rag: RagStatsData;
+  memory: MemoryStatsData;
+  active_users: ActiveUserItem[];
+}
+
+export const aiStatisticsApi = {
+  getSummary: (date?: string) => {
+    const query = new URLSearchParams();
+    if (date) query.set('date', date);
+    const queryStr = query.toString();
+    return api.get<StatisticsSummaryData>(`/api/ai/statistics/summary${queryStr ? `?${queryStr}` : ''}`);
+  },
+
+  getTokenByModel: (date?: string) => {
+    const query = new URLSearchParams();
+    if (date) query.set('date', date);
+    const queryStr = query.toString();
+    return api.get<TokenByModelItem[]>(`/api/ai/statistics/token-by-model${queryStr ? `?${queryStr}` : ''}`);
+  },
+
+  getActiveUsers: (date?: string, limit: number = 20) => {
+    const query = new URLSearchParams();
+    if (date) query.set('date', date);
+    query.set('limit', String(limit));
+    return api.get<ActiveUserItem[]>(`/api/ai/statistics/active-users?${query.toString()}`);
+  },
+
+  getTriggerDistribution: (date?: string) => {
+    const query = new URLSearchParams();
+    if (date) query.set('date', date);
+    const queryStr = query.toString();
+    return api.get<TriggerDistributionData>(`/api/ai/statistics/trigger-distribution${queryStr ? `?${queryStr}` : ''}`);
+  },
+
+  getIntentDistribution: (date?: string) => {
+    const query = new URLSearchParams();
+    if (date) query.set('date', date);
+    const queryStr = query.toString();
+    return api.get<IntentDistributionData>(`/api/ai/statistics/intent-distribution${queryStr ? `?${queryStr}` : ''}`);
+  },
+
+  getErrors: (date?: string) => {
+    const query = new URLSearchParams();
+    if (date) query.set('date', date);
+    const queryStr = query.toString();
+    return api.get<ErrorStatsData>(`/api/ai/statistics/errors${queryStr ? `?${queryStr}` : ''}`);
+  },
+
+  getHeartbeat: (date?: string) => {
+    const query = new URLSearchParams();
+    if (date) query.set('date', date);
+    const queryStr = query.toString();
+    return api.get<HeartbeatStatsData>(`/api/ai/statistics/heartbeat${queryStr ? `?${queryStr}` : ''}`);
+  },
+
+  getRag: (date?: string) => {
+    const query = new URLSearchParams();
+    if (date) query.set('date', date);
+    const queryStr = query.toString();
+    return api.get<RagStatsData>(`/api/ai/statistics/rag${queryStr ? `?${queryStr}` : ''}`);
+  },
+
+  getRagDocuments: () =>
+    api.get<RagDocumentItem[]>('/api/ai/statistics/rag/documents'),
+
+  getHistory: (days: number = 7) =>
+    api.get<Array<{ date: string }>>(`/api/ai/statistics/history?days=${days}`),
+};
+
+// ===================
+// AI Performance API - /api/ai/performance
+// ===================
+
+export interface HourlyPerformanceProvider {
+  provider: string;
+  model: string;
+  request_count: number;
+  ttft_min_ms: number;
+  ttft_max_ms: number;
+  ttft_avg_ms: number;
+  tps_min: number;
+  tps_max: number;
+  tps_avg: number;
+  input_tokens: number;
+  output_tokens: number;
+  cache_read_tokens: number;
+  cache_write_tokens: number;
+  tool_call_count: number;
+}
+
+export interface HourlyPerformanceItem {
+  hour: number;
+  providers: HourlyPerformanceProvider[];
+}
+
+export interface HourlyPerformanceRangeItem {
+  date: string;
+  hour: number;
+  provider: string;
+  model: string;
+  request_count: number;
+  ttft_min_ms: number;
+  ttft_max_ms: number;
+  ttft_avg_ms: number;
+  tps_min: number;
+  tps_max: number;
+  tps_avg: number;
+  input_tokens: number;
+  output_tokens: number;
+  cache_read_tokens: number;
+  cache_write_tokens: number;
+  tool_call_count: number;
+}
+
+export const aiPerformanceApi = {
+  getHourly: (date?: string) => {
+    const query = new URLSearchParams();
+    if (date) query.set('date', date);
+    const queryStr = query.toString();
+    return api.get<HourlyPerformanceItem[]>(`/api/ai/performance/hourly${queryStr ? `?${queryStr}` : ''}`);
+  },
+
+  getHourlyRange: (startDate?: string, endDate?: string) => {
+    const query = new URLSearchParams();
+    if (startDate) query.set('start_date', startDate);
+    if (endDate) query.set('end_date', endDate);
+    const queryStr = query.toString();
+    return api.get<HourlyPerformanceRangeItem[]>(`/api/ai/performance/hourly/range${queryStr ? `?${queryStr}` : ''}`);
+  },
 };
 
 // ===================

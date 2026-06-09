@@ -2,7 +2,8 @@ import { useState, useEffect, useMemo } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
-import { api } from '@/lib/api';
+import { aiStatisticsApi, aiPerformanceApi } from '@/lib/api';
+import type { HourlyPerformanceItem } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
@@ -21,6 +22,8 @@ import {
   RefreshCw,
   TrendingUp,
   Calendar as CalendarIcon,
+  Gauge,
+  HardDrive,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -29,12 +32,14 @@ import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 
 // ============================================================================
-// 类型定义
+// 类型定义 (兼容旧接口 + 新缓存字段)
 // ============================================================================
 
 interface TokenUsage {
   total_input_tokens: number;
   total_output_tokens: number;
+  total_cache_read_tokens?: number;
+  total_cache_write_tokens?: number;
   by_model: TokenByModel[];
   by_type: TokenByType[];
 }
@@ -43,12 +48,16 @@ interface TokenByModel {
   model: string;
   input_tokens: number;
   output_tokens: number;
+  cache_read_tokens?: number;
+  cache_write_tokens?: number;
 }
 
 interface TokenByType {
   type: string;
   input_tokens: number;
   output_tokens: number;
+  cache_read_tokens?: number;
+  cache_write_tokens?: number;
 }
 
 interface Latency {
@@ -101,13 +110,6 @@ interface MemoryStats {
   episodes_created: number;
 }
 
-interface PersonaLeaderboard {
-  persona: string;
-  mention: number;
-  proactive: number;
-  response: number;
-}
-
 interface ActiveUser {
   group_id: string;
   user_id: string;
@@ -125,7 +127,6 @@ interface StatisticsSummary {
   trigger_distribution: TriggerDistribution;
   rag: RagStats;
   memory: MemoryStats;
-  persona_leaderboard: PersonaLeaderboard[];
   active_users: ActiveUser[];
 }
 
@@ -134,26 +135,34 @@ interface StatisticsSummary {
 // ============================================================================
 
 async function fetchStatisticsSummary(date?: string): Promise<StatisticsSummary> {
-  const params = new URLSearchParams();
-  if (date) params.set('date', date);
-  return api.get<StatisticsSummary>(`/api/ai/statistics/summary?${params.toString()}`);
+  return aiStatisticsApi.getSummary(date);
 }
 
 async function fetchTokenByModel(date?: string): Promise<TokenByModel[]> {
-  const params = new URLSearchParams();
-  if (date) params.set('date', date);
-  return api.get<TokenByModel[]>(`/api/ai/statistics/token-by-model?${params.toString()}`);
+  return aiStatisticsApi.getTokenByModel(date);
 }
 
 async function fetchActiveUsers(date?: string, limit: number = 20): Promise<ActiveUser[]> {
-  const params = new URLSearchParams();
-  if (date) params.set('date', date);
-  params.set('limit', limit.toString());
-  return api.get<ActiveUser[]>(`/api/ai/statistics/active-users?${params.toString()}`);
+  return aiStatisticsApi.getActiveUsers(date, limit);
 }
 
 async function fetchRagDocuments(): Promise<RagDocument[]> {
-  return api.get<RagDocument[]>(`/api/ai/statistics/rag/documents`);
+  return aiStatisticsApi.getRagDocuments();
+}
+
+async function fetchPerformanceHourly(date?: string): Promise<HourlyPerformanceItem[]> {
+  return aiPerformanceApi.getHourly(date);
+}
+
+// ============================================================================
+// 工具函数
+// ============================================================================
+
+function formatCompactNumber(num: number): string {
+  if (num >= 1_000_000_000) return `${(num / 1_000_000_000).toFixed(2)}B`;
+  if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(2)}M`;
+  if (num >= 1_000) return `${(num / 1_000).toFixed(2)}K`;
+  return num.toLocaleString();
 }
 
 // ============================================================================
@@ -220,6 +229,7 @@ export default function AIStatisticsPage() {
   const [tokenByType, setTokenByType] = useState<TokenByType[]>([]);
   const [activeUsers, setActiveUsers] = useState<ActiveUser[]>([]);
   const [ragDocuments, setRagDocuments] = useState<RagDocument[]>([]);
+  const [performanceData, setPerformanceData] = useState<HourlyPerformanceItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -232,11 +242,12 @@ export default function AIStatisticsPage() {
       setError(null);
 
       const dateStr = format(selectedDate, 'yyyy-MM-dd');
-      const [summaryData, tokenData, usersData, ragData] = await Promise.all([
+      const [summaryData, tokenData, usersData, ragData, perfData] = await Promise.all([
         fetchStatisticsSummary(dateStr).catch(() => null),
         fetchTokenByModel(dateStr).catch(() => []),
         fetchActiveUsers(dateStr, 20).catch(() => []),
         fetchRagDocuments().catch(() => []),
+        fetchPerformanceHourly(dateStr).catch(() => []),
       ]);
 
       setSummary(summaryData);
@@ -244,6 +255,7 @@ export default function AIStatisticsPage() {
       setTokenByType(summaryData?.token_usage?.by_type ?? []);
       setActiveUsers(usersData);
       setRagDocuments(ragData);
+      setPerformanceData(perfData);
     } catch (err) {
       setError(err instanceof Error ? err.message : t('common.loadFailed'));
       toast.error(err instanceof Error ? err.message : t('common.loadFailed'));
@@ -277,12 +289,16 @@ export default function AIStatisticsPage() {
     name: item.model ?? 'Unknown',
     input: item.input_tokens ?? 0,
     output: item.output_tokens ?? 0,
+    cacheRead: item.cache_read_tokens ?? 0,
+    cacheWrite: item.cache_write_tokens ?? 0,
   }));
 
   const tokenTypeChartData = tokenByType.map((item) => ({
     name: item.type ?? 'Unknown',
     input: item.input_tokens ?? 0,
     output: item.output_tokens ?? 0,
+    cacheRead: item.cache_read_tokens ?? 0,
+    cacheWrite: item.cache_write_tokens ?? 0,
   }));
 
   // ============================================================================
@@ -378,11 +394,11 @@ export default function AIStatisticsPage() {
     ],
   }), [triggerChartData]);
 
-  // Token by Model - 分组柱状图
+  // Token by Model - 分组柱状图 (含缓存)
   const tokenModelOption = useMemo<EChartsOption>(() => ({
     animationDuration: 800,
     animationEasing: 'cubicOut' as const,
-    grid: { left: '3%', right: '4%', bottom: '12%', top: '15%', containLabel: true },
+    grid: { left: '3%', right: '4%', bottom: '15%', top: '15%', containLabel: true },
     xAxis: {
       type: 'category',
       data: tokenModelChartData.map(d => d.name),
@@ -394,15 +410,18 @@ export default function AIStatisticsPage() {
       data: [
         { name: t('aiStatistics.inputTokens'), icon: 'roundRect' },
         { name: t('aiStatistics.outputTokens'), icon: 'roundRect' },
+        { name: t('aiStatistics.cacheReadTokens'), icon: 'roundRect' },
+        { name: t('aiStatistics.cacheWriteTokens'), icon: 'roundRect' },
       ],
       bottom: 0,
+      textStyle: { fontSize: 11 },
     },
     series: [
       {
         name: t('aiStatistics.inputTokens'),
         type: 'bar',
         data: tokenModelChartData.map(d => d.input),
-        barMaxWidth: 30,
+        barMaxWidth: 24,
         itemStyle: { borderRadius: [4, 4, 0, 0] },
         emphasis: { focus: 'series' },
       },
@@ -410,18 +429,34 @@ export default function AIStatisticsPage() {
         name: t('aiStatistics.outputTokens'),
         type: 'bar',
         data: tokenModelChartData.map(d => d.output),
-        barMaxWidth: 30,
+        barMaxWidth: 24,
         itemStyle: { borderRadius: [4, 4, 0, 0] },
+        emphasis: { focus: 'series' },
+      },
+      {
+        name: t('aiStatistics.cacheReadTokens'),
+        type: 'bar',
+        data: tokenModelChartData.map(d => d.cacheRead),
+        barMaxWidth: 24,
+        itemStyle: { borderRadius: [4, 4, 0, 0], color: '#10b981' },
+        emphasis: { focus: 'series' },
+      },
+      {
+        name: t('aiStatistics.cacheWriteTokens'),
+        type: 'bar',
+        data: tokenModelChartData.map(d => d.cacheWrite),
+        barMaxWidth: 24,
+        itemStyle: { borderRadius: [4, 4, 0, 0], color: '#f59e0b' },
         emphasis: { focus: 'series' },
       },
     ],
   }), [tokenModelChartData, t]);
 
-  // Token by Type - 分组柱状图
+  // Token by Type - 分组柱状图 (含缓存)
   const tokenTypeOption = useMemo<EChartsOption>(() => ({
     animationDuration: 800,
     animationEasing: 'cubicOut' as const,
-    grid: { left: '3%', right: '4%', bottom: '12%', top: '15%', containLabel: true },
+    grid: { left: '3%', right: '4%', bottom: '15%', top: '15%', containLabel: true },
     xAxis: {
       type: 'category',
       data: tokenTypeChartData.map(d => d.name),
@@ -433,15 +468,18 @@ export default function AIStatisticsPage() {
       data: [
         { name: t('aiStatistics.inputTokens'), icon: 'roundRect' },
         { name: t('aiStatistics.outputTokens'), icon: 'roundRect' },
+        { name: t('aiStatistics.cacheReadTokens'), icon: 'roundRect' },
+        { name: t('aiStatistics.cacheWriteTokens'), icon: 'roundRect' },
       ],
       bottom: 0,
+      textStyle: { fontSize: 11 },
     },
     series: [
       {
         name: t('aiStatistics.inputTokens'),
         type: 'bar',
         data: tokenTypeChartData.map(d => d.input),
-        barMaxWidth: 30,
+        barMaxWidth: 24,
         itemStyle: { borderRadius: [4, 4, 0, 0] },
         emphasis: { focus: 'series' },
       },
@@ -449,12 +487,162 @@ export default function AIStatisticsPage() {
         name: t('aiStatistics.outputTokens'),
         type: 'bar',
         data: tokenTypeChartData.map(d => d.output),
-        barMaxWidth: 30,
+        barMaxWidth: 24,
         itemStyle: { borderRadius: [4, 4, 0, 0] },
+        emphasis: { focus: 'series' },
+      },
+      {
+        name: t('aiStatistics.cacheReadTokens'),
+        type: 'bar',
+        data: tokenTypeChartData.map(d => d.cacheRead),
+        barMaxWidth: 24,
+        itemStyle: { borderRadius: [4, 4, 0, 0], color: '#10b981' },
+        emphasis: { focus: 'series' },
+      },
+      {
+        name: t('aiStatistics.cacheWriteTokens'),
+        type: 'bar',
+        data: tokenTypeChartData.map(d => d.cacheWrite),
+        barMaxWidth: 24,
+        itemStyle: { borderRadius: [4, 4, 0, 0], color: '#f59e0b' },
         emphasis: { focus: 'series' },
       },
     ],
   }), [tokenTypeChartData, t]);
+
+  // 性能 - TTFT 按小时折线图
+  const perfTTFTOption = useMemo<EChartsOption>(() => {
+    const hours = performanceData.map(d => `${d.hour}:00`);
+    const series = performanceData.flatMap(hourItem =>
+      hourItem.providers.map((p, idx) => ({
+        name: `${p.provider}-${p.model}`,
+        type: 'line' as const,
+        smooth: true,
+        data: performanceData.map(h => {
+          const found = h.providers.find(pp => pp.provider === p.provider && pp.model === p.model);
+          return found ? found.ttft_avg_ms : 0;
+        }),
+        itemStyle: { color: CHART_PALETTE[idx % CHART_PALETTE.length] },
+      }))
+    );
+    // 去重
+    const seen = new Set<string>();
+    const uniqueSeries = series.filter(s => {
+      if (seen.has(s.name)) return false;
+      seen.add(s.name);
+      return true;
+    });
+
+    return {
+      animationDuration: 800,
+      animationEasing: 'cubicOut' as const,
+      grid: { left: '3%', right: '4%', bottom: '15%', top: '15%', containLabel: true },
+      xAxis: {
+        type: 'category',
+        data: hours,
+        axisLabel: { fontSize: 11 },
+      },
+      yAxis: {
+        type: 'value',
+        name: 'ms',
+        axisLabel: { fontSize: 11 },
+      },
+      tooltip: { trigger: 'axis' },
+      legend: {
+        data: uniqueSeries.map(s => s.name),
+        bottom: 0,
+        textStyle: { fontSize: 10 },
+      },
+      series: uniqueSeries,
+    };
+  }, [performanceData]);
+
+  // 性能 - TPS 按小时折线图
+  const perfTPSOption = useMemo<EChartsOption>(() => {
+    const hours = performanceData.map(d => `${d.hour}:00`);
+    const series = performanceData.flatMap(hourItem =>
+      hourItem.providers.map((p, idx) => ({
+        name: `${p.provider}-${p.model}`,
+        type: 'line' as const,
+        smooth: true,
+        data: performanceData.map(h => {
+          const found = h.providers.find(pp => pp.provider === p.provider && pp.model === p.model);
+          return found ? found.tps_avg : 0;
+        }),
+        itemStyle: { color: CHART_PALETTE[idx % CHART_PALETTE.length] },
+      }))
+    );
+    const seen = new Set<string>();
+    const uniqueSeries = series.filter(s => {
+      if (seen.has(s.name)) return false;
+      seen.add(s.name);
+      return true;
+    });
+
+    return {
+      animationDuration: 800,
+      animationEasing: 'cubicOut' as const,
+      grid: { left: '3%', right: '4%', bottom: '15%', top: '15%', containLabel: true },
+      xAxis: {
+        type: 'category',
+        data: hours,
+        axisLabel: { fontSize: 11 },
+      },
+      yAxis: {
+        type: 'value',
+        name: 'tokens/s',
+        axisLabel: { fontSize: 11 },
+      },
+      tooltip: { trigger: 'axis' },
+      legend: {
+        data: uniqueSeries.map(s => s.name),
+        bottom: 0,
+        textStyle: { fontSize: 10 },
+      },
+      series: uniqueSeries,
+    };
+  }, [performanceData]);
+
+  // 性能 - 请求数按小时柱状图
+  const perfRequestOption = useMemo<EChartsOption>(() => {
+    const hours = performanceData.map(d => `${d.hour}:00`);
+    const series = performanceData.flatMap(hourItem =>
+      hourItem.providers.map((p, idx) => ({
+        name: `${p.provider}-${p.model}`,
+        type: 'bar' as const,
+        data: performanceData.map(h => {
+          const found = h.providers.find(pp => pp.provider === p.provider && pp.model === p.model);
+          return found ? found.request_count : 0;
+        }),
+        itemStyle: { color: CHART_PALETTE[idx % CHART_PALETTE.length] },
+      }))
+    );
+    const seen = new Set<string>();
+    const uniqueSeries = series.filter(s => {
+      if (seen.has(s.name)) return false;
+      seen.add(s.name);
+      return true;
+    });
+
+    return {
+      animationDuration: 800,
+      animationEasing: 'cubicOut' as const,
+      grid: { left: '3%', right: '4%', bottom: '15%', top: '15%', containLabel: true },
+      xAxis: {
+        type: 'category',
+        data: hours,
+        axisLabel: { fontSize: 11 },
+      },
+      yAxis: { type: 'value', axisLabel: { fontSize: 11 } },
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+      legend: {
+        data: uniqueSeries.map(s => s.name),
+        bottom: 0,
+        textStyle: { fontSize: 10 },
+      },
+      series: uniqueSeries,
+    };
+  }, [performanceData]);
 
   return (
     <div className="space-y-6">
@@ -513,8 +701,8 @@ export default function AIStatisticsPage() {
 
       {/* 加载状态 */}
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 px-6">
-          {Array.from({ length: 4 }).map((_, i) => (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 px-6">
+          {Array.from({ length: 6 }).map((_, i) => (
             <Card key={i} className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <Skeleton className="h-4 w-24" />
@@ -529,17 +717,27 @@ export default function AIStatisticsPage() {
         </div>
       ) : summary ? (
         <>
-          {/* 概览统计卡片 */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 px-6">
+          {/* 概览统计卡片 - 一行6列 */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 px-6">
             <StatCard
               title={t('aiStatistics.inputTokens')}
-              value={(summary.token_usage?.total_input_tokens ?? 0).toLocaleString()}
+              value={formatCompactNumber(summary.token_usage?.total_input_tokens ?? 0)}
               icon={Coins}
             />
             <StatCard
               title={t('aiStatistics.outputTokens')}
-              value={(summary.token_usage?.total_output_tokens ?? 0).toLocaleString()}
+              value={formatCompactNumber(summary.token_usage?.total_output_tokens ?? 0)}
               icon={Coins}
+            />
+            <StatCard
+              title={t('aiStatistics.cacheReadTokens')}
+              value={formatCompactNumber(summary.token_usage?.total_cache_read_tokens ?? 0)}
+              icon={HardDrive}
+            />
+            <StatCard
+              title={t('aiStatistics.cacheWriteTokens')}
+              value={formatCompactNumber(summary.token_usage?.total_cache_write_tokens ?? 0)}
+              icon={HardDrive}
             />
             <StatCard
               title={t('aiStatistics.latency')}
@@ -738,6 +936,8 @@ export default function AIStatisticsPage() {
                           <th className="text-left py-2 px-3 font-medium text-muted-foreground">{t('aiStatistics.model')}</th>
                           <th className="text-left py-2 px-3 font-medium text-muted-foreground">{t('aiStatistics.inputTokens')}</th>
                           <th className="text-left py-2 px-3 font-medium text-muted-foreground">{t('aiStatistics.outputTokens')}</th>
+                          <th className="text-left py-2 px-3 font-medium text-muted-foreground">{t('aiStatistics.cacheReadTokens')}</th>
+                          <th className="text-left py-2 px-3 font-medium text-muted-foreground">{t('aiStatistics.cacheWriteTokens')}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -746,6 +946,8 @@ export default function AIStatisticsPage() {
                             <td className="py-2 px-3">{item.model ?? '-'}</td>
                             <td className="py-2 px-3">{(item.input_tokens ?? 0).toLocaleString()}</td>
                             <td className="py-2 px-3">{(item.output_tokens ?? 0).toLocaleString()}</td>
+                            <td className="py-2 px-3">{(item.cache_read_tokens ?? 0).toLocaleString()}</td>
+                            <td className="py-2 px-3">{(item.cache_write_tokens ?? 0).toLocaleString()}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -767,6 +969,8 @@ export default function AIStatisticsPage() {
                           <th className="text-left py-2 px-3 font-medium text-muted-foreground">{t('aiStatistics.type')}</th>
                           <th className="text-left py-2 px-3 font-medium text-muted-foreground">{t('aiStatistics.inputTokens')}</th>
                           <th className="text-left py-2 px-3 font-medium text-muted-foreground">{t('aiStatistics.outputTokens')}</th>
+                          <th className="text-left py-2 px-3 font-medium text-muted-foreground">{t('aiStatistics.cacheReadTokens')}</th>
+                          <th className="text-left py-2 px-3 font-medium text-muted-foreground">{t('aiStatistics.cacheWriteTokens')}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -775,6 +979,8 @@ export default function AIStatisticsPage() {
                             <td className="py-2 px-3">{item.type ?? '-'}</td>
                             <td className="py-2 px-3">{(item.input_tokens ?? 0).toLocaleString()}</td>
                             <td className="py-2 px-3">{(item.output_tokens ?? 0).toLocaleString()}</td>
+                            <td className="py-2 px-3">{(item.cache_read_tokens ?? 0).toLocaleString()}</td>
+                            <td className="py-2 px-3">{(item.cache_write_tokens ?? 0).toLocaleString()}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -788,41 +994,96 @@ export default function AIStatisticsPage() {
           {/* 性能 Tab */}
           {activeTab === 'performance' && (
             <div className="space-y-4 px-6">
+              {/* 性能概览卡片 */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {performanceData.length > 0 && (() => {
+                  const totalRequests = performanceData.reduce((sum, h) => sum + h.providers.reduce((s, p) => s + p.request_count, 0), 0);
+                  const avgTTFT = performanceData.reduce((sum, h) => sum + h.providers.reduce((s, p) => s + p.ttft_avg_ms, 0), 0) /
+                    performanceData.reduce((sum, h) => sum + h.providers.length, 0) || 0;
+                  const avgTPS = performanceData.reduce((sum, h) => sum + h.providers.reduce((s, p) => s + p.tps_avg, 0), 0) /
+                    performanceData.reduce((sum, h) => sum + h.providers.length, 0) || 0;
+                  return (
+                    <>
+                      <StatCard
+                        title={t('aiStatistics.requestCount')}
+                        value={totalRequests.toLocaleString()}
+                        icon={Gauge}
+                      />
+                      <StatCard
+                        title={t('aiStatistics.ttftAvg')}
+                        value={`${avgTTFT.toFixed(1)} ms`}
+                        icon={Clock}
+                      />
+                      <StatCard
+                        title={t('aiStatistics.tpsAvg')}
+                        value={`${avgTPS.toFixed(1)} tokens/s`}
+                        icon={Zap}
+                      />
+                    </>
+                  );
+                })()}
+              </div>
+
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {/* Memory 统计 */}
+                {/* TTFT 趋势 */}
                 <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <Database className="w-5 h-5" />
-                      {t('aiStatistics.memory')}
+                      <Clock className="w-5 h-5" />
+                      {t('aiStatistics.ttft')}
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="p-4 rounded-lg bg-primary/10">
-                        <p className="text-2xl font-bold">{summary.memory?.observations ?? 0}</p>
-                        <p className="text-sm text-muted-foreground">{t('aiStatistics.observations')}</p>
-                      </div>
-                      <div className="p-4 rounded-lg bg-primary/10">
-                        <p className="text-2xl font-bold">{summary.memory?.ingestions ?? 0}</p>
-                        <p className="text-sm text-muted-foreground">{t('aiStatistics.ingestions')}</p>
-                      </div>
-                      <div className="p-4 rounded-lg bg-primary/10">
-                        <p className="text-2xl font-bold">{summary.memory?.retrievals ?? 0}</p>
-                        <p className="text-sm text-muted-foreground">{t('aiStatistics.retrievals')}</p>
-                      </div>
-                      <div className="p-4 rounded-lg bg-primary/10">
-                        <p className="text-2xl font-bold">{summary.memory?.entities_created ?? 0}</p>
-                        <p className="text-sm text-muted-foreground">{t('aiStatistics.entitiesCreated')}</p>
-                      </div>
-                      <div className="p-4 rounded-lg bg-primary/10">
-                        <p className="text-2xl font-bold">{summary.memory?.edges_created ?? 0}</p>
-                        <p className="text-sm text-muted-foreground">{t('aiStatistics.edgesCreated')}</p>
-                      </div>
-                      <div className="p-4 rounded-lg bg-primary/10">
-                        <p className="text-2xl font-bold">{summary.memory?.episodes_created ?? 0}</p>
-                        <p className="text-sm text-muted-foreground">{t('aiStatistics.episodesCreated')}</p>
-                      </div>
+                  <CardContent>
+                    <div className="h-[300px]">
+                      {performanceData.length > 0 ? (
+                        <EChartsWrapper option={perfTTFTOption} height={300} />
+                      ) : (
+                        <div className="flex items-center justify-center h-full text-muted-foreground">
+                          {t('common.noData')}
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* TPS 趋势 */}
+                <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Zap className="w-5 h-5" />
+                      {t('aiStatistics.tps')}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-[300px]">
+                      {performanceData.length > 0 ? (
+                        <EChartsWrapper option={perfTPSOption} height={300} />
+                      ) : (
+                        <div className="flex items-center justify-center h-full text-muted-foreground">
+                          {t('common.noData')}
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* 请求数趋势 */}
+                <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Gauge className="w-5 h-5" />
+                      {t('aiStatistics.requestCount')}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-[300px]">
+                      {performanceData.length > 0 ? (
+                        <EChartsWrapper option={perfRequestOption} height={300} />
+                      ) : (
+                        <div className="flex items-center justify-center h-full text-muted-foreground">
+                          {t('common.noData')}
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -847,6 +1108,56 @@ export default function AIStatisticsPage() {
                   </CardContent>
                 </Card>
               </div>
+
+              {/* 性能详情表格 */}
+              <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Gauge className="w-5 h-5" />
+                    {t('aiStatistics.hourlyPerformance')}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-border/50">
+                          <th className="text-left py-2 px-3 font-medium text-muted-foreground">{t('aiStatistics.hour')}</th>
+                          <th className="text-left py-2 px-3 font-medium text-muted-foreground">{t('aiStatistics.provider')}</th>
+                          <th className="text-left py-2 px-3 font-medium text-muted-foreground">{t('aiStatistics.model')}</th>
+                          <th className="text-left py-2 px-3 font-medium text-muted-foreground">{t('aiStatistics.requestCount')}</th>
+                          <th className="text-left py-2 px-3 font-medium text-muted-foreground">{t('aiStatistics.ttftAvg')}</th>
+                          <th className="text-left py-2 px-3 font-medium text-muted-foreground">{t('aiStatistics.tpsAvg')}</th>
+                          <th className="text-left py-2 px-3 font-medium text-muted-foreground">{t('aiStatistics.inputTokens')}</th>
+                          <th className="text-left py-2 px-3 font-medium text-muted-foreground">{t('aiStatistics.outputTokens')}</th>
+                          <th className="text-left py-2 px-3 font-medium text-muted-foreground">{t('aiStatistics.cacheReadTokens')}</th>
+                          <th className="text-left py-2 px-3 font-medium text-muted-foreground">{t('aiStatistics.cacheWriteTokens')}</th>
+                          <th className="text-left py-2 px-3 font-medium text-muted-foreground">{t('aiStatistics.toolCalls')}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {performanceData.flatMap(hourItem =>
+                          hourItem.providers.map((p, idx) => (
+                            <tr key={`${hourItem.hour}-${idx}`} className="border-b border-border/30">
+                              <td className="py-2 px-3">{hourItem.hour}:00</td>
+                              <td className="py-2 px-3">{p.provider}</td>
+                              <td className="py-2 px-3">{p.model}</td>
+                              <td className="py-2 px-3">{p.request_count.toLocaleString()}</td>
+                              <td className="py-2 px-3">{p.ttft_avg_ms.toFixed(1)} ms</td>
+                              <td className="py-2 px-3">{p.tps_avg.toFixed(1)}</td>
+                              <td className="py-2 px-3">{p.input_tokens.toLocaleString()}</td>
+                              <td className="py-2 px-3">{p.output_tokens.toLocaleString()}</td>
+                              <td className="py-2 px-3">{p.cache_read_tokens.toLocaleString()}</td>
+                              <td className="py-2 px-3">{p.cache_write_tokens.toLocaleString()}</td>
+                              <td className="py-2 px-3">{p.tool_call_count.toLocaleString()}</td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           )}
 

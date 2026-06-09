@@ -1059,6 +1059,7 @@ export default function AIConfigPage() {
         model={provider.newConfigModel}
         embeddingModel={provider.newConfigEmbeddingModel}
         modelSupport={provider.newConfigModelSupport}
+        modelEffort={provider.newConfigModelEffort}
         fetchedModels={provider.newConfigFetchedModels}
         isFetching={provider.isFetchingNewConfigModels}
         providerConfigOptions={provider.providerConfigOptions}
@@ -1071,6 +1072,7 @@ export default function AIConfigPage() {
         onChangeApiKeys={provider.setNewConfigApiKeys}
         onChangeModel={provider.setNewConfigModel}
         onChangeEmbeddingModel={() => {}}
+        onChangeModelEffort={provider.setNewConfigModelEffort}
         onToggleCapability={provider.toggleNewConfigCapability}
         onReset={provider.resetNewConfigForm}
         onSubmit={provider.handleCreateOpenaiConfig}
@@ -1095,6 +1097,9 @@ export default function AIConfigPage() {
         }}
         onChangeField={(field, value) =>
           provider.setOpenaiConfigDataField(field, value)
+        }
+        onChangeModelEffort={(val) =>
+          provider.setOpenaiConfigDataField('model_effort', val)
         }
         onToggleCapability={(cap) => {
           provider.toggleOpenaiConfigCapability(cap);

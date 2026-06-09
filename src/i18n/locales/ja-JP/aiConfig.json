@@ -87,6 +87,7 @@
     "apiModel": "呼び出しモデル",
     "apiKey": "APIキー",
     "modelCapabilities": "モデル機能",
+    "modelEffort": "思考レベル",
     "capabilityText": "テキスト会話",
     "capabilityImage": "画像理解",
     "capabilityAudio": "音声処理",

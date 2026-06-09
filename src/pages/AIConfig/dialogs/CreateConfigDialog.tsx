@@ -3,6 +3,7 @@ import {
   AlertTriangle,
   Brain,
   Cpu,
+  Gauge,
   Plus,
   Server,
   Sparkles,
@@ -35,6 +36,7 @@ export interface CreateConfigDialogProps {
   model: string;
   embeddingModel: string;
   modelSupport: string[];
+  modelEffort: string;
   fetchedModels: string[];
   isFetching: boolean;
 
@@ -50,6 +52,7 @@ export interface CreateConfigDialogProps {
   onChangeApiKeys: (v: string[]) => void;
   onChangeModel: (v: string) => void;
   onChangeEmbeddingModel: (v: string) => void;
+  onChangeModelEffort: (v: string) => void;
   onToggleCapability: (cap: string) => void;
   onReset: () => void;
   onSubmit: () => void;
@@ -71,6 +74,7 @@ export function CreateConfigDialog(props: CreateConfigDialogProps) {
     apiKeys,
     model,
     modelSupport,
+    modelEffort,
     fetchedModels,
     isFetching,
     providerConfigOptions,
@@ -82,6 +86,7 @@ export function CreateConfigDialog(props: CreateConfigDialogProps) {
     onChangeBaseUrl,
     onChangeApiKeys,
     onChangeModel,
+    onChangeModelEffort,
     onToggleCapability,
     onReset,
     onSubmit,
@@ -227,6 +232,24 @@ export function CreateConfigDialog(props: CreateConfigDialogProps) {
                 );
               })}
             </div>
+          </div>
+          <div className="space-y-2">
+            <Label>{t('aiConfig.serviceProvider.modelEffort')}</Label>
+            <InputWithDropdown
+              value={modelEffort}
+              onChange={onChangeModelEffort}
+              options={[
+                'enable',
+                'disable',
+                'minimal',
+                'low',
+                'medium',
+                'high',
+                'xhigh',
+              ]}
+              placeholder="选择思考等级"
+              inputPlaceholder="选择思考等级"
+            />
           </div>
         </div>
         <DialogFooter>

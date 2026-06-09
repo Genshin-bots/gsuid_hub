@@ -87,6 +87,7 @@
     "apiModel": "Model",
     "apiKey": "API Key",
     "modelCapabilities": "Model Capabilities",
+    "modelEffort": "Thinking Level",
     "capabilityText": "Text Chat",
     "capabilityImage": "Image Understanding",
     "capabilityAudio": "Audio Processing",
