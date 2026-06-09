@@ -417,6 +417,7 @@ export function useProviderConfig(): UseProviderConfigReturn {
         configData,
       );
       toast.success(t('aiConfig.openaiConfig.saveSuccess'));
+      setIsEditDialogOpen(false);
       fetchAllConfigs();
     } catch (error) {
       console.error('Failed to save config:', error);

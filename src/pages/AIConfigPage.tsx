@@ -933,97 +933,100 @@ export default function AIConfigPage() {
         </div>
       </div>
 
-      {/* AI Service Master Switch */}
-      <div className="shrink-0 px-3 sm:px-6 pt-2 pb-3 sm:pb-4">
-        {wizard.isBackendPendingRestart && (
-          <div className="mb-3 flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-amber-700 dark:text-amber-400">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-            <div className="text-xs sm:text-sm">
-              <p className="font-medium">
-                {t('aiConfig.serviceSwitch.restartRequiredTitle')}
-              </p>
-              <p className="mt-1 opacity-90">
-                {t('aiConfig.serviceSwitch.restartRequiredDesc')}
-              </p>
-            </div>
-          </div>
-        )}
-        <div className="flex items-center gap-3 sm:gap-5 p-3 sm:p-5 rounded-2xl border border-border/30 bg-card/30">
-          <div
-            className={cn(
-              'flex items-center justify-center flex-shrink-0 transition-all duration-500',
-              isAIEnabled ? 'text-primary' : 'text-muted-foreground',
+      {/* Main Content Area - banner + sidebar + content in unified glass-card */}
+      <div className="flex-1 flex flex-col pb-3 sm:pb-6 min-h-0">
+        <div className="flex-1 min-h-0 glass-card rounded-2xl overflow-hidden flex flex-col mx-3 sm:mx-6 mt-2 sm:mt-3">
+          {/* AI Service Master Switch Banner */}
+          <div className="shrink-0 px-3 sm:px-5 pt-3 sm:pt-5 pb-2">
+            {wizard.isBackendPendingRestart && (
+              <div className="mb-3 flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-amber-700 dark:text-amber-400">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                <div className="text-xs sm:text-sm">
+                  <p className="font-medium">
+                    {t('aiConfig.serviceSwitch.restartRequiredTitle')}
+                  </p>
+                  <p className="mt-1 opacity-90">
+                    {t('aiConfig.serviceSwitch.restartRequiredDesc')}
+                  </p>
+                </div>
+              </div>
             )}
-          >
-            <Brain className="w-6 h-6 sm:w-8 sm:h-8" strokeWidth={1.5} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <span className="text-sm sm:text-base font-semibold">
-                {t('aiConfig.serviceSwitch.title')}
-              </span>
-              <Badge
-                variant={isAIEnabled ? 'default' : 'secondary'}
+            <div className="flex items-center gap-3 sm:gap-5 p-3 sm:p-5 rounded-2xl border border-border/30 bg-card/30">
+              <div
                 className={cn(
-                  'text-xs font-medium',
-                  isAIEnabled &&
-                    'bg-primary/15 text-primary hover:bg-primary/20 border-primary/20',
+                  'flex items-center justify-center flex-shrink-0 transition-all duration-500',
+                  isAIEnabled ? 'text-primary' : 'text-muted-foreground',
                 )}
               >
-                {isAIEnabled ? t('common.enabled') : t('common.disabled')}
-              </Badge>
-            </div>
-            <p className="text-sm text-muted-foreground mt-1">
-              {isAIEnabled
-                ? t('aiConfig.serviceSwitch.enabledDesc')
-                : t('aiConfig.serviceSwitch.disabledDesc')}
-            </p>
-          </div>
-          <Switch
-            checked={isAIEnabled}
-            onCheckedChange={aiSwitch.handleAISwitchChange}
-            className="scale-110"
-          />
-        </div>
-      </div>
-
-      {/* Main Content Area - sidebar + content */}
-      <div className="flex-1 px-3 sm:px-6 pb-3 sm:pb-6 min-h-0">
-        <div className="h-full glass-card rounded-2xl overflow-hidden flex">
-          <div
-            className={cn(
-              'border-r border-border/40 flex flex-col shrink-0',
-              isMobile ? 'w-14' : 'w-60',
-            )}
-          >
-            <ScrollArea className="flex-1 px-1 pb-2 pt-2 sm:px-2">
-              <div className="space-y-0.5">
-                {sidebarItems.map((item) => (
-                  <SidebarItem
-                    key={item.id}
-                    id={item.id}
-                    activeSection={activeSection}
-                    icon={item.icon}
-                    title={item.title}
-                    disabled={false}
-                    alert={'alert' in item ? item.alert : false}
-                    collapsed={isMobile}
-                    onClick={setActiveSection}
-                  />
-                ))}
+                <Brain className="w-6 h-6 sm:w-8 sm:h-8" strokeWidth={1.5} />
               </div>
-            </ScrollArea>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <span className="text-sm sm:text-base font-semibold">
+                    {t('aiConfig.serviceSwitch.title')}
+                  </span>
+                  <Badge
+                    variant={isAIEnabled ? 'default' : 'secondary'}
+                    className={cn(
+                      'text-xs font-medium',
+                      isAIEnabled &&
+                        'bg-primary/15 text-primary hover:bg-primary/20 border-primary/20',
+                    )}
+                  >
+                    {isAIEnabled ? t('common.enabled') : t('common.disabled')}
+                  </Badge>
+                </div>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {isAIEnabled
+                    ? t('aiConfig.serviceSwitch.enabledDesc')
+                    : t('aiConfig.serviceSwitch.disabledDesc')}
+                </p>
+              </div>
+              <Switch
+                checked={isAIEnabled}
+                onCheckedChange={aiSwitch.handleAISwitchChange}
+                className="scale-110"
+              />
+            </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto">
-            <div className="p-3 sm:p-6">
-              {isLoadingDetail && Object.keys(configs).length === 0 ? (
-                <div className="flex items-center justify-center h-64">
-                  <Loader2 className="w-8 h-8 animate-spin" />
-                </div>
-              ) : (
-                renderActiveSection()
+          {/* Sidebar + Content */}
+          <div className="flex-1 flex min-h-0 border-t border-border/40">
+            <div
+              className={cn(
+                'border-r border-border/40 flex flex-col shrink-0',
+                isMobile ? 'w-14' : 'w-60',
               )}
+            >
+              <ScrollArea className="flex-1 px-1 pb-2 pt-2 sm:px-2">
+                <div className="space-y-0.5">
+                  {sidebarItems.map((item) => (
+                    <SidebarItem
+                      key={item.id}
+                      id={item.id}
+                      activeSection={activeSection}
+                      icon={item.icon}
+                      title={item.title}
+                      disabled={false}
+                      alert={'alert' in item ? item.alert : false}
+                      collapsed={isMobile}
+                      onClick={setActiveSection}
+                    />
+                  ))}
+                </div>
+              </ScrollArea>
+            </div>
+
+            <div className="flex-1 overflow-y-auto">
+              <div className="p-3 sm:p-6">
+                {isLoadingDetail && Object.keys(configs).length === 0 ? (
+                  <div className="flex items-center justify-center h-64">
+                    <Loader2 className="w-8 h-8 animate-spin" />
+                  </div>
+                ) : (
+                  renderActiveSection()
+                )}
+              </div>
             </div>
           </div>
         </div>
