@@ -1,0 +1,16 @@
+src/components/charts/EChartsWrapper.tsx(104,7): error TS2322: Type '{ axisLine: { lineStyle: { color: string; }; }; axisTick: { lineStyle: { color: string; }; }; axisLabel: { color: string; }; splitLine: { lineStyle: { color: string; type: string; }; }; }' is not assignable to type 'XAXisOption | XAXisOption[]'.
+  Type '{ axisLine: { lineStyle: { color: string; }; }; axisTick: { lineStyle: { color: string; }; }; axisLabel: { color: string; }; splitLine: { lineStyle: { color: string; type: string; }; }; }' is not assignable to type 'TimeAxisBaseOption & { gridIndex?: number; gridId?: string; position?: CartesianAxisPosition; offset?: number; categorySortInfo?: OrdinalSortInfo; } & { ...; }'.
+    Type '{ axisLine: { lineStyle: { color: string; }; }; axisTick: { lineStyle: { color: string; }; }; axisLabel: { color: string; }; splitLine: { lineStyle: { color: string; type: string; }; }; }' is not assignable to type 'TimeAxisBaseOption'.
+      The types of 'splitLine.lineStyle.type' are incompatible between these types.
+        Type 'string' is not assignable to type 'ZRLineType'.
+src/components/charts/EChartsWrapper.tsx(107,7): error TS2322: Type '{ axisLine: { lineStyle: { color: string; }; }; axisTick: { lineStyle: { color: string; }; }; axisLabel: { color: string; }; splitLine: { lineStyle: { color: string; type: string; }; }; }' is not assignable to type 'YAXisOption | YAXisOption[]'.
+  Type '{ axisLine: { lineStyle: { color: string; }; }; axisTick: { lineStyle: { color: string; }; }; axisLabel: { color: string; }; splitLine: { lineStyle: { color: string; type: string; }; }; }' is not assignable to type 'TimeAxisBaseOption & { gridIndex?: number; gridId?: string; position?: CartesianAxisPosition; offset?: number; categorySortInfo?: OrdinalSortInfo; } & { ...; }'.
+    Type '{ axisLine: { lineStyle: { color: string; }; }; axisTick: { lineStyle: { color: string; }; }; axisLabel: { color: string; }; splitLine: { lineStyle: { color: string; type: string; }; }; }' is not assignable to type 'TimeAxisBaseOption'.
+      The types of 'splitLine.lineStyle.type' are incompatible between these types.
+        Type 'string' is not assignable to type 'ZRLineType'.
+src/components/ui/use-toast.ts(1,33): error TS2307: Cannot find module '@/hooks/use-toast' or its corresponding type declarations.
+npm notice
+npm notice New minor version of npm available! 11.5.1 -> 11.16.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.16.0
+npm notice To update run: npm install -g npm@11.16.0
+npm notice

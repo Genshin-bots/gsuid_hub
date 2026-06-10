@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -51,47 +51,25 @@ function setCachedData<T>(key: string, data: T): void {
 }
 
 
-// Custom components for react-markdown
-const markdownComponents: Components = {
-  pre: ({ children }) => (
-    <pre className="bg-muted p-4 rounded-lg overflow-x-auto my-4 text-sm font-mono">
-      {children}
-    </pre>
-  ),
-  code: ({ className, children, ...props }) => {
-    const isInline = !className;
-    if (isInline) {
-      return (
-        <code className="bg-muted px-1.5 py-0.5 rounded text-sm font-mono text-foreground" {...props}>
-          {children}
-        </code>
-      );
-    }
-    return (
-      <code className={className} {...props}>
-        {children}
-      </code>
-    );
-  },
-  table: ({ children }) => (
-    <div className="overflow-x-auto my-4">
-      <table className="min-w-full divide-y divide-border border border-border">
-        {children}
-      </table>
-    </div>
-  ),
-  thead: ({ children }) => (
-    <thead className="bg-muted/50">{children}</thead>
-  ),
-  th: ({ children }) => (
-    <th className="px-4 py-2 text-left text-sm font-semibold text-foreground">{children}</th>
-  ),
-  td: ({ children }) => (
-    <td className="px-4 py-2 text-sm text-foreground/90">{children}</td>
-  ),
-  tr: ({ children }) => (
-    <tr className="even:bg-muted/30">{children}</tr>
-  ),
+// 根据 README 中图片 src 拼出 raw URL；处理 main / master 分支回退
+const buildRawUrl = (
+  owner: string,
+  repo: string,
+  path: string,
+  branch: 'main' | 'master',
+  mirror: string,
+): string => {
+  switch (mirror) {
+    case 'cnb':
+      return `https://cnb.cool/${owner}/${repo}/-/git/raw/${branch}/${path}`;
+    case 'gitcode':
+      return `https://raw.gitcode.com/${owner}/${repo}/raw/${branch}/${path}`;
+    case 'ghproxy':
+      return `https://ghproxy.com/https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${path}`;
+    case 'github':
+    default:
+      return `https://raw.githubusercontent.com/${owner}/${repo}/refs/heads/${branch}/${path}`;
+  }
 };
 
 export default function PluginStorePage() {
@@ -116,6 +94,95 @@ export default function PluginStorePage() {
   const isDeprecated = (plugin: StorePlugin) => {
     return plugin.type === 'danger' && plugin.content === t('pluginStore.deprecated');
   };
+
+  // 使用 ref 避免重建 components 对象时造成不必要的重渲染，
+  // 同时让 img 组件可以访问当前打开的插件与镜像信息
+  const selectedPluginRef = useRef<StorePlugin | null>(null);
+  const gitPluginsMapRef = useRef<Record<string, GitPluginInfo>>({});
+  selectedPluginRef.current = selectedPlugin;
+  gitPluginsMapRef.current = gitPluginsMap;
+
+  // 根据当前打开的插件与镜像信息构造 react-markdown components
+  // 其中 img 会将 README 内的相对路径（如 ./ICON.png）转换为对应镜像的 raw URL
+  const markdownComponents: Components = useMemo(() => ({
+    pre: ({ children }) => (
+      <pre className="bg-muted p-4 rounded-lg overflow-x-auto my-4 text-sm font-mono">
+        {children}
+      </pre>
+    ),
+    code: ({ className, children, ...props }) => {
+      const isInline = !className;
+      if (isInline) {
+        return (
+          <code className="bg-muted px-1.5 py-0.5 rounded text-sm font-mono text-foreground" {...props}>
+            {children}
+          </code>
+        );
+      }
+      return (
+        <code className={className} {...props}>
+          {children}
+        </code>
+      );
+    },
+    table: ({ children }) => (
+      <div className="overflow-x-auto my-4">
+        <table className="min-w-full divide-y divide-border border border-border">
+          {children}
+        </table>
+      </div>
+    ),
+    thead: ({ children }) => (
+      <thead className="bg-muted/50">{children}</thead>
+    ),
+    th: ({ children }) => (
+      <th className="px-4 py-2 text-left text-sm font-semibold text-foreground">{children}</th>
+    ),
+    td: ({ children }) => (
+      <td className="px-4 py-2 text-sm text-foreground/90">{children}</td>
+    ),
+    tr: ({ children }) => (
+      <tr className="even:bg-muted/30">{children}</tr>
+    ),
+    img: ({ src, alt, ...props }) => {
+      const srcStr = typeof src === 'string' ? src : '';
+      const plugin = selectedPluginRef.current;
+      const gitInfo = plugin ? gitPluginsMapRef.current[plugin.id.toLowerCase()] : undefined;
+      const remoteUrl = gitInfo?.remote_url || plugin?.link || (plugin ? `https://github.com/${plugin.id}` : '');
+
+      let resolved = srcStr;
+      // 仅处理相对路径（不带协议 / 非 data URI）
+      if (srcStr && !/^(https?:)?\/\//i.test(srcStr) && !srcStr.startsWith('data:')) {
+        const match = remoteUrl.match(/github\.com[/:]([^/]+)\/([^/.]+)/);
+        if (match) {
+          const [, owner, repo] = match;
+          const mirror = gitInfo?.mirror || 'github';
+          const path = srcStr.replace(/^\.?\//, '');
+          // 默认走 main 分支；若加载失败会回退到 master
+          resolved = buildRawUrl(owner, repo, path, 'main', mirror);
+          // 通过 dataset 携带 master 回退信息
+          return (
+            <img
+              src={resolved}
+              alt={alt || ''}
+              data-fallback-master={buildRawUrl(owner, repo, path, 'master', mirror)}
+              data-asset-resolved="1"
+              onError={(e) => {
+                const target = e.currentTarget;
+                if (target.dataset.fallbackTried !== '1') {
+                  target.dataset.fallbackTried = '1';
+                  target.src = target.dataset.fallbackMaster || target.src;
+                }
+              }}
+              {...props}
+            />
+          );
+        }
+      }
+
+      return <img src={resolved} alt={alt || ''} {...props} />;
+    },
+  }), []);
 
   // Fetch plugin list（支持缓存）
   const fetchPlugins = async (forceRefresh = false) => {
