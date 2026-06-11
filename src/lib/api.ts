@@ -158,7 +158,7 @@ export interface Plugin {
   icon?: string;
   config: Record<string, PluginConfigItem>;
   config_groups?: PluginConfigGroup[];
-  config_names?: string[];  // 配置名称列表，用于判断是否需要显示 toggle group
+  config_names?: string[];  // 配置名称列表，用于判断是否需要显�?toggle group
   service_config?: ServiceConfig;
   sv_list?: SvItem[];
 }
@@ -696,7 +696,7 @@ export interface PluginStoreListResponse {
 }
 
 export const pluginsApi = {
-  // 获取插件列表（轻量级接口）
+  // 获取插件列表（轻量级接口�?
   getPluginList: () =>
     api.get<PluginListItem[]>(`/api/plugins/list?_t=${Date.now()}`),
 
@@ -765,7 +765,7 @@ export interface FrameworkConfig {
 }
 
 export const frameworkConfigApi = {
-  // 获取框架配置列表（轻量级接口）
+  // 获取框架配置列表（轻量级接口�?
   getFrameworkConfigList: (prefix: string = 'GsCore') =>
     api.get<FrameworkConfigListItem[]>(`/api/framework-config/list?prefix=${prefix}`),
 
@@ -773,7 +773,7 @@ export const frameworkConfigApi = {
   getFrameworkConfig: (configName: string) =>
     api.get<FrameworkConfigDetail>(`/api/framework-config/${configName}`),
 
-  // 兼容旧接口 - 获取所有框架配置
+  // 兼容旧接�?- 获取所有框架配�?
   getFrameworkConfigs: () =>
     api.get<FrameworkConfig[]>('/api/framework-config'),
 
@@ -781,7 +781,7 @@ export const frameworkConfigApi = {
   updateFrameworkConfig: (configName: string, config: Record<string, unknown>) =>
     api.post<{ status: number; msg: string }>(`/api/framework-config/${configName}`, config),
 
-  // 更新单个框架配置项
+  // 更新单个框架配置�?
   updateFrameworkConfigItem: (configName: string, itemName: string, value: unknown) =>
     api.post<{ status: number; msg: string }>(`/api/framework-config/${configName}/item/${itemName}`, { value }),
 };
@@ -826,11 +826,11 @@ export const openaiConfigApi = {
   getConfig: (configName: string) =>
     api.get<OpenAIConfigDetail>(`/api/openai_config/${configName}`),
 
-  // 创建或更新 OpenAI 配置文件
+  // 创建或更�?OpenAI 配置文件
   saveConfig: (configName: string, config: OpenAIConfigData) =>
     api.post<{ status: number; msg: string; data: { name: string } }>(`/api/openai_config/${configName}`, { config }),
 
-  // 创建默认配置的 OpenAI 配置文件
+  // 创建默认配置�?OpenAI 配置文件
   createDefault: (configName: string) =>
     api.post<{ status: number; msg: string }>(`/api/openai_config/${configName}/create_default`),
 
@@ -838,7 +838,7 @@ export const openaiConfigApi = {
   deleteConfig: (configName: string) =>
     api.delete<{ status: number; msg: string }>(`/api/openai_config/${configName}`),
 
-  // 重命名 OpenAI 配置文件
+  // 重命�?OpenAI 配置文件
   renameConfig: (oldName: string, newName: string) =>
     api.post<{ status: number; msg: string; data: { old_name: string; new_name: string } }>(
       `/api/openai_config/${oldName}/rename?new_name=${encodeURIComponent(newName)}`
@@ -848,7 +848,7 @@ export const openaiConfigApi = {
   getCurrentConfig: () =>
     api.get<OpenAIConfigDetail>('/api/openai_config/current'),
 
-  // 切换 OpenAI 配置文件（热切换）
+  // 切换 OpenAI 配置文件（热切换�?
   switchConfig: (configName: string) =>
     api.post<{ status: number; msg: string; data: { name: string } }>(`/api/openai_config/${configName}/switch`),
 
@@ -950,7 +950,7 @@ export const providerConfigApi = {
       `/api/provider_config/task_config/${taskLevel}`
     ),
 
-  // 获取所有配置摘要
+  // 获取所有配置摘�?
   getAllConfigs: () =>
     api.get<AllConfigsSummary>('/api/provider_config/all_configs'),
 
@@ -960,7 +960,7 @@ export const providerConfigApi = {
       `/api/provider_config/config/${provider}/${configName}`
     ),
 
-  // 创建或更新配置
+  // 创建或更新配�?
   saveConfig: (provider: string, configName: string, config: Record<string, { data: unknown }>) =>
     api.post<{ status: number; msg: string; data: { name: string; provider: string; config_name: string } }>(
       `/api/provider_config/config/${provider}/${configName}`,
@@ -979,9 +979,9 @@ export const providerConfigApi = {
       `/api/provider_config/config/${provider}/${configName}`
     ),
 
-  // 重命名配置（通过创建新配置+删除旧配置实现）
+  // 重命名配置（通过创建新配�?删除旧配置实现）
   renameConfig: async (provider: string, oldName: string, newName: string, apiClient: typeof api): Promise<{ status: number; msg: string }> => {
-    // 1. 获取旧配置详情
+    // 1. 获取旧配置详�?
     const detail = await apiClient.get<{ name: string; provider: string; config_name: string; config: Record<string, ProviderConfigField> }>(
       `/api/provider_config/config/${provider}/${oldName}`
     );
@@ -994,7 +994,7 @@ export const providerConfigApi = {
       `/api/provider_config/config/${provider}/${newName}`,
       { config: configData }
     );
-    // 3. 删除旧配置
+    // 3. 删除旧配�?
     return apiClient.delete<{ status: number; msg: string }>(
       `/api/provider_config/config/${provider}/${oldName}`
     );
@@ -1004,7 +1004,7 @@ export const providerConfigApi = {
   getConfigOptions: (provider: string) =>
     api.get<ProviderConfigOptions>(`/api/provider_config/config/${provider}/options`),
 
-  // --- 兼容旧接口 ---
+  // --- 兼容旧接�?---
   // 获取高级任务配置 (兼容旧版)
   getHighLevelConfig: () =>
     api.get<TaskConfigResponse>('/api/provider_config/task_config/high'),
@@ -1027,7 +1027,7 @@ export const providerConfigApi = {
       { config_name: configName, provider }
     ),
 
-  // 获取模型列表（OpenAI 兼容格式）
+  // 获取模型列表（OpenAI 兼容格式�?
   fetchOpenAIModels: async (baseUrl: string, apiKey: string): Promise<string[]> => {
     const url = baseUrl.endsWith('/') ? `${baseUrl}models` : `${baseUrl}/models`;
     const response = await fetch(url, {
@@ -1045,7 +1045,7 @@ export const providerConfigApi = {
     return models.map((m) => m.id || m.name || '').filter(Boolean);
   },
 
-  // 获取模型列表（Anthropic 格式）
+  // 获取模型列表（Anthropic 格式�?
   fetchAnthropicModels: async (baseUrl: string, apiKey: string): Promise<string[]> => {
     const url = baseUrl.endsWith('/') ? `${baseUrl}models` : `${baseUrl}/models`;
     const response = await fetch(url, {
@@ -1089,11 +1089,11 @@ export interface EmbeddingConfigSummary {
 }
 
 export const embeddingConfigApi = {
-  // 获取当前嵌入模型提供方
+  // 获取当前嵌入模型提供�?
   getProvider: () =>
     api.get<EmbeddingProviderData>('/api/embedding_config/provider'),
 
-  // 设置嵌入模型提供方
+  // 设置嵌入模型提供�?
   setProvider: (provider: string) =>
     api.post<{ status: number; msg: string; data: { provider: string } }>(
       '/api/embedding_config/provider',
@@ -1417,7 +1417,7 @@ export const authApi = {
   getCurrentUser: () =>
     api.get<User>('/api/auth/me'),
 
-  // 检查是否已存在管理员账号
+  // 检查是否已存在管理员账�?
   checkAdminExists: () =>
     api.get<{ is_admin_exist: boolean }>('/api/auth/admin/exists'),
 
@@ -1492,7 +1492,7 @@ export const assetsApi = {
       const encodedPath = btoa(binString);
 
       const token = getAuthToken();
-      // 添加时间戳参数防止浏览器缓存，确保新上传图片能立即显示
+      // 添加时间戳参数防止浏览器缓存，确保新上传图片能立即显�?
       const timestamp = Date.now();
       const baseUrl = `${getCustomApiHost()}/api/assets/preview?path=${encodedPath}&t=${timestamp}`;
       return token ? `${baseUrl}&token=${token}` : baseUrl;
@@ -1548,6 +1548,8 @@ export interface ThemeConfig {
   blur_intensity: number;
   theme_preset: 'default' | 'shadcn' | 'custom';
   language: 'zh-CN' | 'en-US' | 'ja-JP';
+  /** Card opacity percentage (0-100). Applies to both solid and glassmorphism styles. */
+  card_opacity?: number;
 }
 
 export interface ThemeConfigResponse {
@@ -1649,8 +1651,8 @@ export interface PersonaConfig {
   ai_mode: AIMode[];
   scope: PersonaScope;
   target_groups: string[];
-  inspect_interval?: number; // 定时巡检间隔（分钟）：5, 10, 15, 30, 60
-  keywords?: string[]; // 触发关键词列表（用于提及应答模式）
+  inspect_interval?: number; // 定时巡检间隔（分钟）�?, 10, 15, 30, 60
+  keywords?: string[]; // 触发关键词列表（用于提及应答模式�?
 }
 
 export interface PersonaConfigResponse {
@@ -1694,7 +1696,7 @@ export const personaApi = {
   getPersona: (personaName: string) =>
     api.get<PersonaInfo>(`/api/persona/${encodeURIComponent(personaName)}`),
 
-  // 创建新角色
+  // 创建新角�?
   createPersona: (data: PersonaCreateRequest) =>
     api.post<PersonaCreateResponse>('/api/persona/create', data),
 
@@ -1748,10 +1750,10 @@ export const personaApi = {
     return params.toString() ? `${baseUrl}?${params.toString()}` : baseUrl;
   },
 
-  // 支持的音频格式
+  // 支持的音频格�?
   supportedAudioFormats: ['mp3', 'ogg', 'wav', 'm4a', 'flac'],
 
-  // 获取音频格式优先级
+  // 获取音频格式优先�?
   getAudioFormatPriority: () => ['mp3', 'ogg', 'wav', 'm4a', 'flac'],
 
   // 获取人格框架配置
@@ -1773,11 +1775,11 @@ export const personaApi = {
       { content }
     ),
 
-  // 获取全局启用的角色
+  // 获取全局启用的角�?
   getGlobalPersona: () =>
     api.get<string | null>('/api/persona/config/global'),
 
-  // 获取所有角色配置
+  // 获取所有角色配�?
   getAllPersonaConfigs: () =>
     api.get<Record<string, PersonaConfig>>('/api/persona/config/all'),
 };
@@ -1842,30 +1844,30 @@ export interface AISkillCloneResponse {
 }
 
 export const aiSkillsApi = {
-  // 获取 AI 技能列表
+  // 获取 AI 技能列�?
   getSkillsList: () =>
     api.get<AISkillsListResponse>('/api/ai/skills/list'),
 
-  // 获取指定技能详情
+  // 获取指定技能详�?
   getSkillDetail: (skillName: string) =>
     api.get<AISkillDetail>(`/api/ai/skills/${encodeURIComponent(skillName)}`),
 
-  // 删除 AI 技能
+  // 删除 AI 技�?
   deleteSkill: (skillName: string) =>
     api.delete<{ msg: string }>(`/api/ai/skills/${encodeURIComponent(skillName)}`),
 
-  // 从 Git 克隆 AI 技能
+  // �?Git 克隆 AI 技�?
   cloneSkill: (gitUrl: string, skillName?: string) =>
     api.post<AISkillCloneResponse>('/api/ai/skills/clone', {
       git_url: gitUrl,
       skill_name: skillName,
     }),
 
-  // 获取 AI 技能 Markdown 内容
+  // 获取 AI 技�?Markdown 内容
   getSkillMarkdown: (skillName: string) =>
     api.get<AISkillMarkdownResponse>(`/api/ai/skills/${encodeURIComponent(skillName)}/markdown`),
 
-  // 更新 AI 技能 Markdown 内容
+  // 更新 AI 技�?Markdown 内容
   updateSkillMarkdown: (skillName: string, content: string) =>
     api.put<{ msg: string }>(`/api/ai/skills/${encodeURIComponent(skillName)}/markdown`, {
       content,
@@ -2032,7 +2034,7 @@ export interface AIKnowledgeUpdateRequest {
 }
 
 export const aiKnowledgeApi = {
-  // 获取知识库列表（分页）
+  // 获取知识库列表（分页�?
   getKnowledgeList: (params: { offset?: number; limit?: number; source?: string; page?: number } = {}) => {
     const query = new URLSearchParams();
     if (params.page !== undefined) query.set('page', String(params.page));
@@ -2201,7 +2203,7 @@ export const aiImageApi = {
     return api.get<AIImageSearchResponse>(`/api/ai/images/search?${params.toString()}`);
   },
 
-  // 获取最佳匹配图片路径
+  // 获取最佳匹配图片路�?
   getBestImagePath: (query: string, plugin?: string) => {
     const params = new URLSearchParams();
     params.set('query', query);
@@ -2306,27 +2308,27 @@ export interface HistoryStats {
 }
 
 export const historyApi = {
-  // 获取所有 Session 列表
+  // 获取所�?Session 列表
   getSessions: () =>
     api.get<SessionInfo[]>('/api/history/sessions'),
 
-  // 获取指定 Session 的历史记录
+  // 获取指定 Session 的历史记�?
   getSessionHistory: (sessionId: string, formatType: 'text' | 'json' | 'messages' = 'text') =>
     api.get<SessionHistoryTextResponse | SessionHistoryJSONResponse | SessionHistoryOpenAIResponse>(
       `/api/history/${encodeURIComponent(sessionId)}?format_type=${formatType}`
     ),
 
-  // 清空指定 Session 的历史记录
+  // 清空指定 Session 的历史记�?
   clearSessionHistory: (sessionId: string, deleteSession: boolean = false) =>
     api.delete<ClearHistoryResponse>(
       `/api/history/${encodeURIComponent(sessionId)}?delete_session=${deleteSession}`
     ),
 
-  // 获取指定 Session 的 Persona 内容
+  // 获取指定 Session �?Persona 内容
   getSessionPersona: (sessionId: string) =>
     api.get<SessionPersonaResponse>(`/api/history/${encodeURIComponent(sessionId)}/persona`),
 
-  // 向指定 Session 发送消息（multipart/form-data，支持文本与多图）
+  // 向指�?Session 发送消息（multipart/form-data，支持文本与多图�?
   sendSessionMessage: (sessionId: string, data: SendSessionMessageRequest) => {
     const formData = new FormData();
     formData.append('message', data.message || '');
@@ -2337,7 +2339,7 @@ export const historyApi = {
     return api.postFormData<SendSessionMessageResponse>(`/api/history/${encodeURIComponent(sessionId)}/send`, formData);
   },
 
-  // 获取历史管理器统计信息
+  // 获取历史管理器统计信�?
   getStats: () =>
     api.get<HistoryStats>('/api/history/stats'),
 };
@@ -2417,15 +2419,15 @@ export const aiScheduledTasksApi = {
   updateTask: (taskId: string, data: UpdateScheduledTaskRequest) =>
     api.put<{ status: number; msg: string }>(`/api/ai/scheduled_tasks/${encodeURIComponent(taskId)}`, data),
 
-  // 删除任务（软删除/取消）
+  // 删除任务（软删除/取消�?
   deleteTask: (taskId: string) =>
     api.delete<{ status: number; msg: string }>(`/api/ai/scheduled_tasks/${encodeURIComponent(taskId)}`),
 
-  // 硬删除任务（彻底移除）
+  // 硬删除任务（彻底移除�?
   hardDeleteTask: (taskId: string) =>
     api.delete<{ task_id: string }>(`/api/ai/scheduled_tasks/${encodeURIComponent(taskId)}/hard`),
 
-  // 批量清空任务（硬删除）
+  // 批量清空任务（硬删除�?
   clearTasks: (params: { confirm: true; user_id?: string; status?: string; task_type?: string }) => {
     const query = new URLSearchParams();
     query.set('confirm', String(params.confirm));
@@ -2498,7 +2500,7 @@ export const gitMirrorApi = {
   getInfo: () =>
     api.get<GitMirrorInfo>('/api/git-mirror/info'),
 
-  // 批量设置所有插件的镜像源（同时更新配置）
+  // 批量设置所有插件的镜像源（同时更新配置�?
   setAll: (mirrorPrefix: string) =>
     api.post<GitMirrorSetAllResponse>('/api/git-mirror/set-all', { mirror_prefix: mirrorPrefix }),
 
@@ -2506,7 +2508,7 @@ export const gitMirrorApi = {
   setPlugin: (pluginName: string, mirrorPrefix: string) =>
     api.post<GitMirrorSetPluginResponse>(`/api/git-mirror/set-plugin/${encodeURIComponent(pluginName)}`, { mirror_prefix: mirrorPrefix }),
 
-  // 获取可用镜像源列表
+  // 获取可用镜像源列�?
   getAvailable: () =>
     api.get<GitMirrorOption[]>('/api/git-mirror/available'),
 
@@ -2685,15 +2687,15 @@ export const mcpConfigApi = {
   delete: (configId: string) =>
     api.delete<{ config_id: string }>(`/api/ai/mcp/${encodeURIComponent(configId)}`),
 
-  // 切换启用/禁用状态
+  // 切换启用/禁用状�?
   toggle: (configId: string) =>
     api.post<{ config_id: string; enabled: boolean }>(`/api/ai/mcp/${encodeURIComponent(configId)}/toggle`),
 
-  // 热重载所有配置
+  // 热重载所有配�?
   reload: () =>
     api.post<MCPReloadResponse>('/api/ai/mcp/reload'),
 
-  // 从已配置的 MCP 服务器发现工具
+  // 从已配置�?MCP 服务器发现工�?
   discoverTools: (configId: string) =>
     api.get<MCPDiscoverToolsResponse>(`/api/ai/mcp/${encodeURIComponent(configId)}/tools`),
 
@@ -2709,7 +2711,7 @@ export const mcpConfigApi = {
   }) =>
     api.post<MCPDiscoverToolsResponse>('/api/ai/mcp/tools/discover', data),
 
-  // 从 JSON 导入 MCP 配置
+  // �?JSON 导入 MCP 配置
   importConfig: (data: MCPImportRequest) =>
     api.post<MCPImportResponse>('/api/ai/mcp/tools/import', data),
 
@@ -2729,7 +2731,7 @@ export const mcpConfigApi = {
   getToolsConfigDetail: (itemKey: string) =>
     api.get<MCPToolsConfigItem>(`/api/ai/mcp-tools-config/${encodeURIComponent(itemKey)}`),
 
-  // 更新 MCP 工具配置（含 details 参数映射）
+  // 更新 MCP 工具配置（含 details 参数映射�?
   updateToolsConfig: (itemKey: string, data: MCPToolsConfigUpdateRequest) =>
     api.put<MCPToolsConfigUpdateResponse>(`/api/ai/mcp-tools-config/${encodeURIComponent(itemKey)}`, data),
 };
@@ -2781,11 +2783,11 @@ export interface GitForceUpdateResponse {
 }
 
 export const gitUpdateApi = {
-  // 获取所有插件的 Git 状态
+  // 获取所有插件的 Git 状�?
   getStatus: () =>
     api.get<GitPluginStatus[]>('/api/git-update/status'),
 
-  // 获取单个插件的 Git 状态
+  // 获取单个插件�?Git 状�?
   getPluginStatus: (pluginName: string) =>
     api.get<GitPluginStatus>(`/api/git-update/status/${encodeURIComponent(pluginName)}`),
 
@@ -2801,15 +2803,15 @@ export const gitUpdateApi = {
     return api.get<GitLocalCommitListResponse>(`/api/git-update/local-commits/${encodeURIComponent(pluginName)}${query}`);
   },
 
-  // 回退到指定 Commit
+  // 回退到指�?Commit
   checkout: (pluginName: string, commitHash: string) =>
     api.post<GitCheckoutResponse>(`/api/git-update/checkout/${encodeURIComponent(pluginName)}`, { commit_hash: commitHash }),
 
-  // 普通更新（git fetch + git pull）
+  // 普通更新（git fetch + git pull�?
   update: (pluginName: string) =>
     api.post<ApiResponse<GitForceUpdateResponse>>(`/api/git-update/update/${encodeURIComponent(pluginName)}`),
 
-  // 强制更新（git reset --hard + git pull）
+  // 强制更新（git reset --hard + git pull�?
   forceUpdate: (pluginName: string) =>
     api.post<ApiResponse<GitForceUpdateResponse>>(`/api/git-update/force-update/${encodeURIComponent(pluginName)}`),
 
@@ -2911,18 +2913,18 @@ export const memeApi = {
   update: (memeId: string, data: MemeUpdateData) =>
     api.put<null>(`/api/meme/${memeId}`, data),
 
-  // 移动表情包到目标文件夹
+  // 移动表情包到目标文件�?
   move: (memeId: string, targetFolder: string) => {
     const formData = new URLSearchParams();
     formData.set('target_folder', targetFolder);
     return api.post<null>(`/api/meme/${memeId}/move`, Object.fromEntries(formData));
   },
 
-  // 删除表情包
+  // 删除表情�?
   delete: (memeId: string) =>
     api.delete<null>(`/api/meme/${memeId}`),
 
-  // 手动上传表情包
+  // 手动上传表情�?
   upload: async (file: File, folder: string = 'common', autoTag: boolean = true) => {
     const formData = new FormData();
     formData.append('file', file);
@@ -2972,14 +2974,14 @@ export const memeApi = {
   getStats: () =>
     api.get<MemeStatsData>('/api/meme/stats'),
 
-  // 批量删除表情包
+  // 批量删除表情�?
   batchDelete: (memeIds: string[]) =>
     api.post<{ success_count: number; failed: Array<{ meme_id: string; reason: string }> }>(
       '/api/meme/batch_delete',
       { meme_ids: memeIds }
     ),
 
-  // 批量导出为 .meme 格式
+  // 批量导出�?.meme 格式
   exportMemes: async (memeIds?: string[], folder?: string): Promise<Blob> => {
     const body: Record<string, unknown> = {};
     if (memeIds && memeIds.length > 0) body.meme_ids = memeIds;
@@ -3180,7 +3182,7 @@ export interface LinkedAgentsResponse {
 }
 
 export const aiSessionLogsApi = {
-  // 获取统一日志列表（合并内存活跃 + 磁盘持久化）
+  // 获取统一日志列表（合并内存活�?+ 磁盘持久化）
   getLogs: (params: {
     session_id?: string;
     create_by?: string;
@@ -3204,7 +3206,7 @@ export const aiSessionLogsApi = {
     return api.get<SessionLogListResponse>(`/api/ai/session_logs${queryStr ? `?${queryStr}` : ''}`);
   },
 
-  // 获取日志详情（推荐：查询参数版，避免路径参数中特殊字符导致的路由匹配问题）
+  // 获取日志详情（推荐：查询参数版，避免路径参数中特殊字符导致的路由匹配问题�?
   getLogDetail: (sessionId: string, sessionUuid?: string) => {
     const query = new URLSearchParams();
     query.set('session_id', sessionId);
@@ -3212,7 +3214,7 @@ export const aiSessionLogsApi = {
     return api.get<SessionLogDetail>(`/api/ai/session_logs/detail?${query.toString()}`);
   },
 
-  // 按文件名读取磁盘日志（调试用）
+  // 按文件名读取磁盘日志（调试用�?
   getFileLog: (fileName: string) =>
     api.get<SessionLogDetail>(`/api/ai/session_logs/file/${encodeURIComponent(fileName)}`),
 
@@ -3228,7 +3230,7 @@ export const aiSessionLogsApi = {
   getStatsOverview: () =>
     api.get<SessionLogStatsOverview>('/api/ai/session_logs/stats/overview'),
 
-  // 获取日志分类（按会话来源聚合）
+  // 获取日志分类（按会话来源聚合�?
   getCategories: () =>
     api.get<SessionLogCategoriesResponse>('/api/ai/session_logs/categories'),
 };
@@ -3654,11 +3656,11 @@ export interface AIStateStoreBatchDeleteResponse {
 }
 
 export const aiStateStoreApi = {
-  // 列出所有 scope
+  // 列出所�?scope
   getScopes: () =>
     api.get<AIStateStoreScopesResponse>('/api/ai/state-store/scopes'),
 
-  // 列出某 scope 下的 keys
+  // 列出�?scope 下的 keys
   getKeys: (params: { scope: string; prefix?: string; include_expired?: boolean }) => {
     const query = new URLSearchParams();
     query.set('scope', params.scope);
@@ -3667,7 +3669,7 @@ export const aiStateStoreApi = {
     return api.get<AIStateStoreKeysResponse>(`/api/ai/state-store/keys?${query.toString()}`);
   },
 
-  // 取单条 (scope, state_key) 的完整 value
+  // 取单�?(scope, state_key) 的完�?value
   getValue: (params: { scope: string; state_key: string }) => {
     const query = new URLSearchParams();
     query.set('scope', params.scope);
@@ -3695,7 +3697,7 @@ export const aiStateStoreApi = {
     return api.delete<AIStateStoreDeleteResponse>(`/api/ai/state-store/entry?${query.toString()}`);
   },
 
-  // 批量删除（模式 A: entries 列表; 模式 B: scope + state_keys）
+  // 批量删除（模�?A: entries 列表; 模式 B: scope + state_keys�?
   batchDeleteEntries: (params: { entries?: Array<{ scope: string; state_key: string }>; scope?: string; state_keys?: string[] }) =>
     api.post<AIStateStoreBatchDeleteResponse>('/api/ai/state-store/entries/batch-delete', params),
 };
@@ -3814,11 +3816,11 @@ export interface AIWizardStatusResponse {
 }
 
 export const aiWizardApi = {
-  // 获取 AI 配置检查清单
+  // 获取 AI 配置检查清�?
   getChecklist: () =>
     api.get<AIWizardChecklistResponse>(`/api/ai/wizard/checklist?_t=${Date.now()}`),
 
-  // 获取 AI 配置详细状态（包含人格范围信息）
+  // 获取 AI 配置详细状态（包含人格范围信息�?
   getStatus: () =>
     api.get<AIWizardStatusResponse>(`/api/ai/wizard/status?_t=${Date.now()}`),
 };
@@ -4053,11 +4055,11 @@ export const aiPerformanceApi = {
 // ===================
 
 export const versionApi = {
-  // 获取框架版本与后端环境信息
+  // 获取框架版本与后端环境信�?
   getVersion: () =>
     api.get<VersionInfo>('/api/version'),
 
-  // 获取当前 active_bot 列表与数量
+  // 获取当前 active_bot 列表与数�?
   getBots: () =>
     api.get<ActiveBotsInfo>('/api/version/bots'),
 
@@ -4069,3 +4071,4 @@ export const versionApi = {
   getBotNames: () =>
     api.get<{ names: string[] }>('/api/version/bots/names'),
 };
+

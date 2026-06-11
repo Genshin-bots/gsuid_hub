@@ -78,5 +78,11 @@
   "animeStreet": "Blue Street",
   "animeRail": "Star Rail",
   "randomWife": "Random Wife",
-  "ruinsGirl": "Ruins Girl"
+  "ruinsGirl": "Ruins Girl",
+  "cardOpacity": "Card Opacity",
+  "cardOpacityDesc": "Adjust card background opacity (applies to both solid and glassmorphism styles)",
+  "cardOpacityValue": "Card Opacity",
+  "transparent": "Transparent",
+  "standardOpacity": "Standard",
+  "opaque": "Opaque"
 }

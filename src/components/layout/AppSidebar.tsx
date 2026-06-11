@@ -310,7 +310,7 @@ export function AppSidebar() {
     <Sidebar 
       variant="sidebar" 
       collapsible="icon" 
-      className={cn("border-0", isGlassmorphism ? "floating-sidebar" : "bg-sidebar shadow-lg")}
+      className={cn("border-0", "floating-sidebar")}
     >
       <SidebarHeader className={cn("p-4", isCollapsed && "flex flex-col items-center")}>
         <div className={cn("flex items-center w-full", isCollapsed ? "justify-center" : "justify-between")}>

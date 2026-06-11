@@ -175,9 +175,11 @@ interface StatCardProps {
   subtitle?: string;
   icon: React.ElementType;
   className?: string;
+  /** 追加在主数字后面同行显示的小字(如 P95) */
+  inlineSuffix?: React.ReactNode;
 }
 
-function StatCard({ title, value, subtitle, icon: Icon, className }: StatCardProps) {
+function StatCard({ title, value, subtitle, icon: Icon, className, inlineSuffix }: StatCardProps) {
   const { style } = useTheme();
   const isGlass = style === 'glassmorphism';
 
@@ -188,8 +190,13 @@ function StatCard({ title, value, subtitle, icon: Icon, className }: StatCardPro
         <Icon className="w-4 h-4 text-muted-foreground" />
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
-        {subtitle && <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>}
+        <div className="text-2xl font-bold flex items-baseline gap-2 whitespace-nowrap">
+          <span>{value}</span>
+          {inlineSuffix && (
+            <span className="text-xs font-normal text-muted-foreground">{inlineSuffix}</span>
+          )}
+        </div>
+        {subtitle && <p className="text-xs text-muted-foreground mt-1 whitespace-nowrap">{subtitle}</p>}
       </CardContent>
     </Card>
   );
@@ -510,28 +517,37 @@ export default function AIStatisticsPage() {
     ],
   }), [tokenTypeChartData, t]);
 
+  // 性能 - 唯一 provider-model 列表(稳定分配颜色)
+  const perfModelList = useMemo(() => {
+    const map = new Map<string, { provider: string; model: string }>();
+    for (const hourItem of performanceData) {
+      for (const p of hourItem.providers) {
+        const key = `${p.provider}-${p.model}`;
+        if (!map.has(key)) {
+          map.set(key, { provider: p.provider, model: p.model });
+        }
+      }
+    }
+    return Array.from(map.values());
+  }, [performanceData]);
+
   // 性能 - TTFT 按小时折线图
   const perfTTFTOption = useMemo<EChartsOption>(() => {
     const hours = performanceData.map(d => `${d.hour}:00`);
-    const series = performanceData.flatMap(hourItem =>
-      hourItem.providers.map((p, idx) => ({
-        name: `${p.provider}-${p.model}`,
-        type: 'line' as const,
-        smooth: true,
-        data: performanceData.map(h => {
-          const found = h.providers.find(pp => pp.provider === p.provider && pp.model === p.model);
-          return found ? found.ttft_avg_ms : 0;
-        }),
-        itemStyle: { color: CHART_PALETTE[idx % CHART_PALETTE.length] },
-      }))
-    );
-    // 去重
-    const seen = new Set<string>();
-    const uniqueSeries = series.filter(s => {
-      if (seen.has(s.name)) return false;
-      seen.add(s.name);
-      return true;
-    });
+    const series = perfModelList.map((pm, idx) => ({
+      name: `${pm.provider}-${pm.model}`,
+      type: 'line' as const,
+      smooth: true,
+      connectNulls: false,
+      data: performanceData.map(h => {
+        const found = h.providers.find(pp => pp.provider === pm.provider && pp.model === pm.model);
+        if (!found) return null;
+        const v = found.ttft_avg_ms;
+        return v > 0 ? v : null;
+      }),
+      itemStyle: { color: CHART_PALETTE[idx % CHART_PALETTE.length] },
+      lineStyle: { color: CHART_PALETTE[idx % CHART_PALETTE.length] },
+    }));
 
     return {
       animationDuration: 800,
@@ -549,35 +565,31 @@ export default function AIStatisticsPage() {
       },
       tooltip: { trigger: 'axis' },
       legend: {
-        data: uniqueSeries.map(s => s.name),
+        data: series.map(s => s.name),
         bottom: 0,
         textStyle: { fontSize: 10 },
       },
-      series: uniqueSeries,
+      series,
     };
-  }, [performanceData]);
+  }, [performanceData, perfModelList]);
 
   // 性能 - TPS 按小时折线图
   const perfTPSOption = useMemo<EChartsOption>(() => {
     const hours = performanceData.map(d => `${d.hour}:00`);
-    const series = performanceData.flatMap(hourItem =>
-      hourItem.providers.map((p, idx) => ({
-        name: `${p.provider}-${p.model}`,
-        type: 'line' as const,
-        smooth: true,
-        data: performanceData.map(h => {
-          const found = h.providers.find(pp => pp.provider === p.provider && pp.model === p.model);
-          return found ? found.tps_avg : 0;
-        }),
-        itemStyle: { color: CHART_PALETTE[idx % CHART_PALETTE.length] },
-      }))
-    );
-    const seen = new Set<string>();
-    const uniqueSeries = series.filter(s => {
-      if (seen.has(s.name)) return false;
-      seen.add(s.name);
-      return true;
-    });
+    const series = perfModelList.map((pm, idx) => ({
+      name: `${pm.provider}-${pm.model}`,
+      type: 'line' as const,
+      smooth: true,
+      connectNulls: false,
+      data: performanceData.map(h => {
+        const found = h.providers.find(pp => pp.provider === pm.provider && pp.model === pm.model);
+        if (!found) return null;
+        const v = found.tps_avg;
+        return v > 0 ? v : null;
+      }),
+      itemStyle: { color: CHART_PALETTE[idx % CHART_PALETTE.length] },
+      lineStyle: { color: CHART_PALETTE[idx % CHART_PALETTE.length] },
+    }));
 
     return {
       animationDuration: 800,
@@ -595,34 +607,28 @@ export default function AIStatisticsPage() {
       },
       tooltip: { trigger: 'axis' },
       legend: {
-        data: uniqueSeries.map(s => s.name),
+        data: series.map(s => s.name),
         bottom: 0,
         textStyle: { fontSize: 10 },
       },
-      series: uniqueSeries,
+      series,
     };
-  }, [performanceData]);
+  }, [performanceData, perfModelList]);
 
   // 性能 - 请求数按小时柱状图
   const perfRequestOption = useMemo<EChartsOption>(() => {
     const hours = performanceData.map(d => `${d.hour}:00`);
-    const series = performanceData.flatMap(hourItem =>
-      hourItem.providers.map((p, idx) => ({
-        name: `${p.provider}-${p.model}`,
-        type: 'bar' as const,
-        data: performanceData.map(h => {
-          const found = h.providers.find(pp => pp.provider === p.provider && pp.model === p.model);
-          return found ? found.request_count : 0;
-        }),
-        itemStyle: { color: CHART_PALETTE[idx % CHART_PALETTE.length] },
-      }))
-    );
-    const seen = new Set<string>();
-    const uniqueSeries = series.filter(s => {
-      if (seen.has(s.name)) return false;
-      seen.add(s.name);
-      return true;
-    });
+    const series = perfModelList.map((pm, idx) => ({
+      name: `${pm.provider}-${pm.model}`,
+      type: 'bar' as const,
+      data: performanceData.map(h => {
+        const found = h.providers.find(pp => pp.provider === pm.provider && pp.model === pm.model);
+        if (!found) return null;
+        const v = found.request_count;
+        return v > 0 ? v : null;
+      }),
+      itemStyle: { color: CHART_PALETTE[idx % CHART_PALETTE.length] },
+    }));
 
     return {
       animationDuration: 800,
@@ -636,13 +642,13 @@ export default function AIStatisticsPage() {
       yAxis: { type: 'value', axisLabel: { fontSize: 11 } },
       tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
       legend: {
-        data: uniqueSeries.map(s => s.name),
+        data: series.map(s => s.name),
         bottom: 0,
         textStyle: { fontSize: 10 },
       },
-      series: uniqueSeries,
+      series,
     };
-  }, [performanceData]);
+  }, [performanceData, perfModelList]);
 
   return (
     <div className="space-y-6">
@@ -742,15 +748,33 @@ export default function AIStatisticsPage() {
             <StatCard
               title={t('aiStatistics.latency')}
               value={`${(summary.latency?.avg ?? 0).toFixed(2)}s`}
-              subtitle={`P95: ${(summary.latency?.p95 ?? 0).toFixed(2)}s`}
+              inlineSuffix={`P95: ${(summary.latency?.p95 ?? 0).toFixed(2)}s`}
               icon={Clock}
             />
-            <StatCard
-              title={t('aiStatistics.errors')}
-              value={summary.errors?.total ?? 0}
-              subtitle={`Timeout: ${summary.errors?.timeout ?? 0} | Rate Limit: ${summary.errors?.rate_limit ?? 0}`}
-              icon={AlertTriangle}
-            />
+            {(() => {
+              const err = summary.errors ?? ({} as ErrorStats);
+              const errEntries: { key: keyof ErrorStats; label: string; value: number }[] = [
+                { key: 'timeout', label: t('aiStatistics.timeout'), value: err.timeout ?? 0 },
+                { key: 'rate_limit', label: t('aiStatistics.rateLimit'), value: err.rate_limit ?? 0 },
+                { key: 'network_error', label: t('aiStatistics.networkError'), value: err.network_error ?? 0 },
+                { key: 'usage_limit', label: t('aiStatistics.usageLimit'), value: err.usage_limit ?? 0 },
+                { key: 'agent_error', label: t('aiStatistics.agentError'), value: err.agent_error ?? 0 },
+                { key: 'api_529_error', label: t('aiStatistics.api529Error'), value: err.api_529_error ?? 0 },
+              ];
+              const topErr = errEntries.reduce<typeof errEntries[number] | null>(
+                (acc, cur) => (acc == null || cur.value > acc.value ? cur : acc),
+                null
+              );
+              const errSuffix = topErr && topErr.value > 0 ? `${topErr.label}: ${topErr.value}` : null;
+              return (
+                <StatCard
+                  title={t('aiStatistics.errors')}
+                  value={err.total ?? 0}
+                  inlineSuffix={errSuffix ?? undefined}
+                  icon={AlertTriangle}
+                />
+              );
+            })()}
           </div>
 
           {/* Tabs 容器 */}

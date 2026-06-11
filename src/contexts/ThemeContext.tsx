@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo, useRef } from 'react';
+﻿import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo, useRef } from 'react';
 import { themeApi, ThemeConfigResponse } from '@/lib/api';
 import { toast } from 'sonner';
 
@@ -36,6 +36,9 @@ interface ThemeBackgroundContextType {
   setBackgroundImage: (url: string | null, autoSave?: boolean) => void;
   blurIntensity: number;
   setBlurIntensity: (value: number, autoSave?: boolean) => void;
+  /** Card opacity percentage (0-100). Applies to both solid and glassmorphism styles. */
+  cardOpacity: number;
+  setCardOpacity: (value: number, autoSave?: boolean) => void;
 }
 
 interface ThemeIconColorContextType {
@@ -206,24 +209,25 @@ const ThemeLanguageContext = createContext<ThemeLanguageContextType | undefined>
 // ============================================================================
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  // 主题状态
+  // 主题状�?
   const [mode, setModeState] = useState<ThemeMode>('dark');
   const [style, setStyleState] = useState<ThemeStyle>('glassmorphism');
   const [color, setColorState] = useState<ThemeColor>('red');
   const [backgroundImage, setBackgroundImageState] = useState<string | null>(null);
   const [blurIntensity, setBlurIntensityState] = useState<number>(12);
+  const [cardOpacity, setCardOpacityState] = useState<number>(25);
   const [iconColor, setIconColorState] = useState<IconColor>('colored');
   const [themePreset, setThemePresetState] = useState<ThemePreset>('default');
   const [language, setLanguageState] = useState<Language>('zh-CN');
   const [isInitialized, setIsInitialized] = useState(false);
   
-  // 使用ref存储配置，用于自动保存
-  const configRef = useRef({ mode, style, color, iconColor, backgroundImage, blurIntensity, themePreset, language });
+  // 使用ref存储配置，用于自动保�?
+  const configRef = useRef({ mode, style, color, iconColor, backgroundImage, blurIntensity, cardOpacity, themePreset, language });
 
   // 更新ref
   useEffect(() => {
-    configRef.current = { mode, style, color, iconColor, backgroundImage, blurIntensity, themePreset, language };
-  }, [mode, style, color, iconColor, backgroundImage, blurIntensity, themePreset, language]);
+    configRef.current = { mode, style, color, iconColor, backgroundImage, blurIntensity, cardOpacity, themePreset, language };
+  }, [mode, style, color, iconColor, backgroundImage, blurIntensity, cardOpacity, themePreset, language]);
 
   // 计算当前主题颜色
   const themeColors = useMemo(
@@ -231,7 +235,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     [mode, color, themePreset]
   );
 
-  // 初始化
+  // 初始�?
   useEffect(() => {
     const initTheme = async () => {
       try {
@@ -253,6 +257,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
           }
           if (config.blur_intensity !== undefined) {
             setBlurIntensityState(config.blur_intensity);
+          }
+          if (config.card_opacity !== undefined && config.card_opacity !== null) {
+            setCardOpacityState(config.card_opacity);
           }
           if (config.icon_color && ['white', 'black', 'colored'].includes(config.icon_color)) {
             setIconColorState(config.icon_color as IconColor);
@@ -280,6 +287,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       const savedColor = localStorage.getItem('theme_color') as ThemeColor;
       const savedBg = localStorage.getItem('theme_bg');
       const savedBlur = localStorage.getItem('theme_blur');
+    const savedCardOpacity = localStorage.getItem('theme_card_opacity');
       const savedIconColor = localStorage.getItem('theme_icon_color') as IconColor;
       const savedPreset = localStorage.getItem('theme_preset') as ThemePreset;
       const savedLanguage = localStorage.getItem('theme_language') as Language;
@@ -289,6 +297,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       if (savedColor) setColorState(savedColor);
       if (savedBg) setBackgroundImageState(savedBg);
       if (savedBlur) setBlurIntensityState(parseInt(savedBlur, 10));
+      if (savedCardOpacity) setCardOpacityState(parseInt(savedCardOpacity, 10));
       if (savedIconColor) setIconColorState(savedIconColor);
       if (savedPreset) setThemePresetState(savedPreset);
       if (savedLanguage) setLanguageState(savedLanguage);
@@ -326,6 +335,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       
       localStorage.setItem('theme_blur', blurIntensity.toString());
       document.documentElement.style.setProperty('--blur-intensity', `${blurIntensity}px`);
+
+      localStorage.setItem('theme_card_opacity', cardOpacity.toString());
+      document.documentElement.style.setProperty('--card-opacity', String(cardOpacity / 100));
       
       localStorage.setItem('theme_icon_color', iconColor);
       document.documentElement.setAttribute('data-icon-color', iconColor);
@@ -333,7 +345,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     
     // 使用requestAnimationFrame确保批量执行
     requestAnimationFrame(applyTheme);
-  }, [themeColors, mode, style, color, themePreset, backgroundImage, blurIntensity, iconColor, isInitialized]);
+  }, [themeColors, mode, style, color, themePreset, backgroundImage, blurIntensity, cardOpacity, iconColor, isInitialized]);
 
   // 保存到后端的统一方法
   const saveToBackend = useCallback(async (overrides?: Partial<typeof configRef.current>) => {
@@ -346,6 +358,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         icon_color: config.iconColor,
         background_image: config.backgroundImage,
         blur_intensity: config.blurIntensity,
+        card_opacity: config.cardOpacity,
         theme_preset: config.themePreset,
         language: config.language,
       });
@@ -404,6 +417,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     }
   }, [isInitialized, saveToBackend]);
 
+  const setCardOpacity = useCallback((value: number, autoSave?: boolean) => {
+    setCardOpacityState(value);
+    if (autoSave && isInitialized) {
+      saveToBackend({ cardOpacity: value });
+    }
+  }, [isInitialized, saveToBackend]);
+
   const setLanguage = useCallback((lang: Language) => {
     setLanguageState(lang);
     localStorage.setItem('theme_language', lang);
@@ -416,7 +436,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const modeContext = useMemo(() => ({ mode, setMode }), [mode, setMode]);
   const styleContext = useMemo(() => ({ style, setStyle }), [style, setStyle]);
   const colorContext = useMemo(() => ({ color, setColor, themePreset, setThemePreset }), [color, setColor, themePreset, setThemePreset]);
-  const backgroundContext = useMemo(() => ({ backgroundImage, setBackgroundImage, blurIntensity, setBlurIntensity }), [backgroundImage, setBackgroundImage, blurIntensity, setBlurIntensity]);
+  const backgroundContext = useMemo(() => ({ backgroundImage, setBackgroundImage, blurIntensity, setBlurIntensity, cardOpacity, setCardOpacity }), [backgroundImage, setBackgroundImage, blurIntensity, setBlurIntensity, cardOpacity, setCardOpacity]);
   const iconColorContext = useMemo(() => ({ iconColor, setIconColor }), [iconColor, setIconColor]);
   const languageContext = useMemo(() => ({ language, setLanguage }), [language, setLanguage]);
 
@@ -460,6 +480,7 @@ export function useTheme() {
     color: colorContext.color,
     backgroundImage: backgroundContext.backgroundImage,
     blurIntensity: backgroundContext.blurIntensity,
+    cardOpacity: backgroundContext.cardOpacity,
     iconColor: iconColorContext.iconColor,
     themePreset: colorContext.themePreset,
     language: languageContext.language,
@@ -468,6 +489,7 @@ export function useTheme() {
     setColor: colorContext.setColor,
     setBackgroundImage: backgroundContext.setBackgroundImage,
     setBlurIntensity: backgroundContext.setBlurIntensity,
+    setCardOpacity: backgroundContext.setCardOpacity,
     setIconColor: iconColorContext.setIconColor,
     setThemePreset: colorContext.setThemePreset,
     setLanguage: languageContext.setLanguage,

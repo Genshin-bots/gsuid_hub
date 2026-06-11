@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback } from 'react';
+﻿import { useRef, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Sun, Moon, Palette, Image, Sparkles, Check, Upload, Link, X, Blend, Contrast, Paintbrush, Layers } from 'lucide-react';
+import { Sun, Moon, Palette, Image, Sparkles, Check, Upload, Link, X, Blend, Contrast, Paintbrush, Layers, Droplet } from 'lucide-react';
 import { toast } from 'sonner';
 
 const themeColors = [
@@ -54,9 +54,9 @@ const iconColorOptions = [
 export default function ThemesPage() {
   const { t } = useLanguage();
   const {
-    mode, style, color, backgroundImage, blurIntensity,
+    mode, style, color, backgroundImage, blurIntensity, cardOpacity,
     iconColor, themePreset,
-    setMode, setStyle, setColor, setBackgroundImage, setBlurIntensity,
+    setMode, setStyle, setColor, setBackgroundImage, setBlurIntensity, setCardOpacity,
     setIconColor, setThemePreset
   } = useTheme();
   const [customUrl, setCustomUrl] = useState('');
@@ -357,6 +357,68 @@ export default function ThemesPage() {
             </CardContent>
           </Card>
         )}
+
+        {/* Card Opacity - Always visible */}
+        <Card className="glass-card">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Droplet className="w-5 h-5" />
+              {t('themes.cardOpacity')}
+            </CardTitle>
+            <CardDescription>{t('themes.cardOpacityDesc')}</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">{t('themes.cardOpacityValue')}</span>
+                <span className="text-sm font-medium bg-primary/10 text-primary px-2 py-0.5 rounded">
+                  {cardOpacity}%
+                </span>
+              </div>
+              <Slider
+                value={[cardOpacity]}
+                onValueChange={(value) => setCardOpacity(value[0])}
+                min={0}
+                max={100}
+                step={1}
+                className="w-full"
+              />
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>{t('themes.transparent')}</span>
+                <span>{t('themes.standardOpacity')}</span>
+                <span>{t('themes.opaque')}</span>
+              </div>
+            </div>
+
+            {/* Quick presets */}
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCardOpacity(15)}
+                className={cardOpacity === 15 ? 'border-primary' : ''}
+              >
+                {t('themes.slight')}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCardOpacity(50)}
+                className={cardOpacity === 50 ? 'border-primary' : ''}
+              >
+                {t('themes.standard')}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCardOpacity(85)}
+                className={cardOpacity === 85 ? 'border-primary' : ''}
+              >
+                {t('themes.strong')}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Background Settings */}
         <Card className="glass-card lg:col-span-2">

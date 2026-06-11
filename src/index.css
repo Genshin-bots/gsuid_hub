@@ -168,7 +168,7 @@ All colors MUST be HSL.
 /* Glass morphism effects - refined with dynamic blur */
 /* Only apply backdrop-filter in glassmorphism mode for better performance */
 .glass-card {
-  background: hsl(var(--card) / 0.25) !important;
+  background: hsl(var(--card) / var(--card-opacity, 0.25)) !important;
   border: 1px solid hsl(var(--border) / 0.4);
   box-shadow:
     0 8px 32px hsl(0 0% 0% / 0.08),
@@ -188,7 +188,7 @@ All colors MUST be HSL.
 
 /* Dark mode optimization - avoid bright white glare */
 .dark .glass-card {
-  background: hsl(var(--card) / 0.2) !important;
+  background: hsl(var(--card) / var(--card-opacity, 0.2)) !important;
   border: 1px solid hsl(var(--border) / 0.3);
   box-shadow:
     0 8px 32px hsl(0 0% 0% / 0.15),
@@ -197,7 +197,7 @@ All colors MUST be HSL.
 
 /* Flat glass card variant - no backdrop-filter or box-shadow (safe inside overflow containers) */
 .glass-card-flat {
-  background: hsl(var(--card) / 0.25) !important;
+  background: hsl(var(--card) / var(--card-opacity, 0.25)) !important;
   border: 1px solid hsl(var(--border) / 0.4);
   min-width: 0;
 }
@@ -209,20 +209,20 @@ All colors MUST be HSL.
 }
 
 .dark .glass-card-flat {
-  background: hsl(var(--card) / 0.2) !important;
+  background: hsl(var(--card) / var(--card-opacity, 0.2)) !important;
   border: 1px solid hsl(var(--border) / 0.3);
 }
 
 [data-style="solid"] .glass-card-flat {
-  background: hsl(var(--card)) !important;
+  background: hsl(var(--card) / var(--card-opacity, 1)) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   border: 1px solid hsl(var(--border));
 }
 
-/* Solid style card - use opaque background instead of glass effect */
+/* Solid style card - opacity controllable via --card-opacity (default 1 = fully opaque) */
 [data-style="solid"] .glass-card {
-  background: hsl(var(--card)) !important;
+  background: hsl(var(--card) / var(--card-opacity, 1)) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   border: 1px solid hsl(var(--border));
@@ -272,7 +272,7 @@ All colors MUST be HSL.
 
 [data-style="solid"] .glass-sidebar,
 [data-style="solid"] .floating-sidebar {
-  background: hsl(var(--sidebar)) !important;
+  background: hsl(var(--sidebar) / var(--card-opacity, 1)) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   border-right: 1px solid hsl(var(--border));
@@ -300,7 +300,7 @@ All colors MUST be HSL.
 }
 
 .glass-sidebar {
-  background: hsl(var(--sidebar) / 0.2) !important;
+  background: hsl(var(--sidebar) / var(--card-opacity, 0.2)) !important;
   border-right: 1px solid hsl(var(--border) / 0.3);
   box-shadow:
     4px 0 24px hsl(0 0% 0% / 0.06),
@@ -324,7 +324,7 @@ All colors MUST be HSL.
 
 /* Floating sidebar specific styles */
 .floating-sidebar {
-  background: hsl(var(--sidebar) / 0.25) !important;
+  background: hsl(var(--sidebar) / var(--card-opacity, 0.25)) !important;
   border: 1px solid hsl(var(--border) / 0.3);
   box-shadow:
     0 8px 32px hsl(0 0% 0% / 0.1),

@@ -25,3 +25,6 @@ dist-ssr
 
 .yarn
 .claude
+
+# eslint_output.txt
+# ts_output.txt

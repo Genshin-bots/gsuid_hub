@@ -78,5 +78,11 @@
   "animeStreet": "蓝色街道",
   "animeRail": "星穹铁道",
   "randomWife": "随机老婆",
-  "ruinsGirl": "废墟少女"
+  "ruinsGirl": "废墟少女",
+  "cardOpacity": "卡片透明度",
+  "cardOpacityDesc": "调整卡片背景的不透明度（同时作用于纯色和毛玻璃风格）",
+  "cardOpacityValue": "卡片不透明度",
+  "transparent": "完全透明",
+  "standardOpacity": "标准",
+  "opaque": "完全不透明"
 }

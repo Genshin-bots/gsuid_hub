@@ -37,6 +37,9 @@
     - [错误响应](#错误响应)
   - [状态码说明](#状态码说明)
   - [配置类型说明](#配置类型说明)
+  - [主题配置 APIs](#主题配置-apis)
+    - [获取主题配置](#获取主题配置)
+    - [保存主题配置](#保存主题配置)
 
 ---
 
@@ -1115,3 +1118,142 @@ Authorization: Bearer <token>
 | gsimage | 图片类型（支持上传） |
 | list | 列表类型 |
 | dict | 字典类型 |
+
+
+---
+
+## 主题配置 APIs
+
+主题配置接口用于读取/保存前端主题设置（明暗、纯色/毛玻璃、主题色、毛玻璃强度、卡片透明度、背景图、图标色、主题预设、语言）。
+
+### 字段说明
+
+| 字段 | 类型 | 必填 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| `mode` | string | 是 | `dark` | 颜色模式：`light` / `dark` |
+| `style` | string | 是 | `glassmorphism` | 界面风格：`solid` / `glassmorphism` |
+| `color` | string | 是 | `red` | 主题色：`red` / `orchid` / `blue` / `green` / `orange` / `pink` |
+| `icon_color` | string | 是 | `colored` | 图标色：`white` / `black` / `colored` |
+| `background_image` | string | null | 是 | `null` | 背景图 URL 或 dataURL，`null` 表示无背景 |
+| `blur_intensity` | number | 是 | `12` | 毛玻璃模糊强度（像素，0-24） |
+| `card_opacity` | number | **是（新增）** | `25` | 卡片不透明度（百分比 0-100），同时作用于纯色/毛玻璃 |
+| `theme_preset` | string | 是 | `default` | 主题预设：`default` / `shadcn` |
+| `language` | string | 是 | `zh-CN` | 前端语言：`zh-CN` / `en-US` / `ja-JP` |
+
+> ⚠️ **后端需新增字段 `card_opacity`**（number，范围 0-100，可选；缺省时回退到 25）。前端 `/api/theme/config` 持久化时已带该字段，缺它将导致前端透明度无法跨设备/会话保留。
+
+### 获取主题配置
+
+读取当前主题设置。
+
+**请求**
+
+- 方法：`GET`
+- 路径：`/api/theme/config`
+- 认证：需要
+
+**响应示例**
+
+```json
+{
+  "status": 0,
+  "msg": "ok",
+  "data": {
+    "mode": "dark",
+    "style": "glassmorphism",
+    "color": "red",
+    "icon_color": "colored",
+    "background_image": null,
+    "blur_intensity": 12,
+    "card_opacity": 25,
+    "theme_preset": "default",
+    "language": "zh-CN"
+  }
+}
+```
+
+**Python（Pydantic）实现示例（gs_core 后端）**
+
+```python
+from typing import Literal, Optional
+from pydantic import BaseModel, Field
+
+ThemeMode = Literal["light", "dark"]
+ThemeStyle = Literal["solid", "glassmorphism"]
+ThemeColor = Literal["red", "orchid", "blue", "green", "orange", "pink"]
+IconColor = Literal["white", "black", "colored"]
+ThemePreset = Literal["default", "shadcn", "custom"]
+Language = Literal["zh-CN", "en-US", "ja-JP"]
+
+class ThemeConfig(BaseModel):
+    mode: ThemeMode = "dark"
+    style: ThemeStyle = "glassmorphism"
+    color: ThemeColor = "red"
+    icon_color: IconColor = "colored"
+    background_image: Optional[str] = None
+    blur_intensity: int = Field(default=12, ge=0, le=24)
+    card_opacity: int = Field(default=25, ge=0, le=100)   # ★ 新增
+    theme_preset: ThemePreset = "default"
+    language: Language = "zh-CN"
+```
+
+### 保存主题配置
+
+保存主题设置（全量覆盖，未传的字段会使用默认值）。
+
+**请求**
+
+- 方法：`POST`
+- 路径：`/api/theme/config`
+- 认证：需要
+- Content-Type：`application/json`
+
+**请求体**
+
+```json
+{
+  "mode": "dark",
+  "style": "glassmorphism",
+  "color": "blue",
+  "icon_color": "colored",
+  "background_image": null,
+  "blur_intensity": 16,
+  "card_opacity": 50,
+  "theme_preset": "default",
+  "language": "zh-CN"
+}
+```
+
+**响应示例**
+
+```json
+{ "status": 0, "msg": "ok" }
+```
+
+**Python（FastAPI 路由）实现示例**
+
+```python
+from fastapi import APIRouter, Depends
+from pydantic import BaseModel
+
+router = APIRouter()
+
+@router.get("/api/theme/config")
+async def get_theme_config() -> dict:
+    cfg = await load_theme_config_from_db_or_file()  # 你自己的存储实现
+    return {"status": 0, "msg": "ok", "data": cfg}
+
+@router.post("/api/theme/config")
+async def save_theme_config(cfg: ThemeConfig) -> dict:
+    await persist_theme_config(cfg)                  # 你自己的持久化实现
+    return {"status": 0, "msg": "ok"}
+```
+
+### 兼容性说明
+
+- **新增字段**：仅 `card_opacity`。建议后端：
+  1. 读取时若存储中没有该字段，返回时补默认值 `25`，避免前端拿到 `undefined` 触发回退逻辑。
+  2. 写入时将 `card_opacity` 持久化到现有主题配置存储（建议与 `blur_intensity` 一同存放为 `int`）。
+  3. 验证范围 0-100（前端会做夹紧，但建议后端也校验）。
+- **不破坏旧客户端**：老版本前端不传 `card_opacity`，后端应在持久化时使用默认值 `25`。
+- **CORS/认证**：与其他配置 API 一致即可，无特殊要求。

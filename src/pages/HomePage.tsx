@@ -26,13 +26,20 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { cn } from '@/lib/utils';
 import { versionApi, VersionInfo, ActiveBotsInfo } from '@/lib/api';
 
 const frontendVersion = PACKAGE_VERSION || '0.0.14';
 
-const glassCardClass = 'relative overflow-hidden border border-white/15 bg-background/25 shadow-[0_4px_16px_-12px_hsl(var(--foreground)/0.30)] backdrop-blur-2xl dark:border-white/10 dark:bg-background/20';
-const subtlePanelClass = 'min-w-0 rounded-2xl border border-white/10 bg-white/10 p-3.5 backdrop-blur-xl transition-colors hover:bg-white/15 dark:bg-white/[0.045] dark:hover:bg-white/[0.07]';
+// Build HomePage card classes that follow the global theme:
+// - `glass-card` (theme system: opacity + blur intensity, dark/light)
+// - `backdrop-blur-2xl` is provided by `glass-card` in glassmorphism mode and removed in solid mode
+const buildGlassCardClass = (extra = '') =>
+  `glass-card relative overflow-hidden shadow-[0_4px_16px_-12px_hsl(var(--foreground)/0.30)] ${extra}`.trim();
+
+const buildSubtlePanelClass = (extra = '') =>
+  `glass-card-flat min-w-0 rounded-2xl p-3.5 transition-colors hover:!bg-white/15 dark:hover:!bg-white/[0.07] ${extra}`.trim();
 const titleIconClass = 'h-5 w-5 shrink-0 text-primary';
 
 function getGreetingKey(hour: number) {
@@ -56,7 +63,7 @@ function InfoItem({
   className?: string;
 }) {
   return (
-    <div className={cn(subtlePanelClass, className)}>
+    <div className={cn(buildSubtlePanelClass(), className)}>
       <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
         {Icon && <Icon className="h-3.5 w-3.5 shrink-0 text-primary" />}
         <span className="truncate">{label}</span>
@@ -69,6 +76,19 @@ function InfoItem({
 export default function HomePage() {
   const { t } = useLanguage();
   const { user } = useAuth();
+  const { style, blurIntensity, cardOpacity } = useTheme();
+
+  // HomePage cards follow the global theme system (opacity + blur intensity).
+  // `glass-card` CSS class handles opacity via --card-opacity and applies backdrop-filter
+  // in glassmorphism mode (and removes it in solid mode). The inline style ensures
+  // the dynamic --blur-intensity from theme settings is honored.
+  const glassCardClass = buildGlassCardClass();
+
+  // Inline style for the main hero section that has its own custom background layers.
+  const heroStyle = {
+    ['--card-opacity' as string]: style === 'solid' ? 1 : (cardOpacity / 100).toString(),
+    ['--blur-intensity' as string]: `${blurIntensity}px`,
+  } as React.CSSProperties;
   const [versionInfo, setVersionInfo] = useState<VersionInfo | null>(null);
   const [botsInfo, setBotsInfo] = useState<ActiveBotsInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -120,7 +140,7 @@ export default function HomePage() {
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 pb-6 sm:gap-6">
-      <section className={cn(glassCardClass, 'rounded-[2rem] p-5 sm:p-7 lg:p-8')}>
+      <section className={cn(glassCardClass, 'rounded-[2rem] p-5 sm:p-7 lg:p-8')} style={heroStyle}>
         <div className="pointer-events-none absolute -right-24 -top-28 h-72 w-72 rounded-full bg-primary/15 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-28 -left-20 h-72 w-72 rounded-full bg-primary/10 blur-3xl" />
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,hsl(var(--primary)/0.10),transparent_34%),linear-gradient(135deg,hsl(var(--background)/0.18),transparent)]" />
@@ -157,7 +177,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="rounded-3xl border border-white/10 bg-white/10 p-4 shadow-sm backdrop-blur-2xl dark:bg-white/[0.045] sm:p-5">
+          <div className={cn('glass-card-flat rounded-3xl p-4 shadow-sm sm:p-5')} style={heroStyle}>
             {isLoading ? (
               <div className="space-y-3">
                 <Skeleton className="h-5 w-40 bg-white/15" />
@@ -201,7 +221,7 @@ export default function HomePage() {
             <Link
               key={item.href}
               to={item.href}
-              className="group relative flex min-h-24 items-center gap-3 rounded-2xl border border-border/70 bg-white/15 p-4 text-left shadow-[0_3px_12px_-10px_hsl(var(--foreground)/0.28)] backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:border-primary/55 hover:bg-primary/10 hover:shadow-[0_4px_14px_-10px_hsl(var(--primary)/0.28)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45 dark:border-white/20 dark:bg-white/[0.065] dark:hover:bg-primary/10"
+              className={cn('glass-card-flat group relative flex min-h-24 items-center gap-3 rounded-2xl p-4 text-left shadow-[0_3px_12px_-10px_hsl(var(--foreground)/0.28)] transition-all hover:-translate-y-0.5 hover:!border-primary/55 hover:!bg-primary/10 hover:shadow-[0_4px_14px_-10px_hsl(var(--primary)/0.28)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45 dark:hover:!bg-primary/10', 'border border-border/70')}
             >
               <item.icon className="h-5 w-5 shrink-0 self-center text-primary transition-transform group-hover:scale-110" />
               <span className="flex min-w-0 flex-1 flex-col justify-center gap-1 self-center">
@@ -289,7 +309,7 @@ export default function HomePage() {
             ) : botsInfo?.bots.length ? (
               <div className="space-y-2">
                 {botsInfo.bots.map((bot) => (
-                  <div key={bot.ws_bot_id} className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/10 p-3 backdrop-blur-xl dark:bg-white/[0.045]">
+                  <div key={bot.ws_bot_id} className={cn('glass-card-flat flex items-center justify-between gap-3 rounded-2xl p-3')}>
                     <div className="min-w-0">
                       <div className="truncate text-sm font-semibold text-foreground" title={bot.name}>{bot.name}</div>
                       <div className="truncate text-xs text-muted-foreground" title={bot.bot_id}>{bot.bot_id || '-'}</div>
@@ -306,7 +326,7 @@ export default function HomePage() {
                 ))}
               </div>
             ) : (
-              <div className="rounded-2xl border border-white/10 bg-white/10 p-4 text-center text-sm text-muted-foreground backdrop-blur-xl dark:bg-white/[0.045]">
+              <div className={cn('glass-card-flat rounded-2xl p-4 text-center text-sm text-muted-foreground')}>
                 {t('home.noActiveBots')}
               </div>
             )}
@@ -322,7 +342,7 @@ export default function HomePage() {
               href={item.href}
               target="_blank"
               rel="noreferrer"
-              className="group flex min-w-0 items-center gap-3 rounded-2xl border border-white/10 bg-white/10 p-3 backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:border-primary/25 hover:bg-primary/10 dark:bg-white/[0.045] dark:hover:bg-primary/10"
+              className={cn('glass-card-flat group flex min-w-0 items-center gap-3 rounded-2xl p-3 transition-all hover:-translate-y-0.5 hover:!border-primary/25 hover:!bg-primary/10 dark:hover:!bg-primary/10')}
             >
               <Github className="h-4 w-4 shrink-0 text-primary transition-transform group-hover:scale-110" />
               <div className="min-w-0 flex-1">
