@@ -315,6 +315,7 @@ export default function ThemesPage() {
                 <Slider
                   value={[blurIntensity]}
                   onValueChange={(value) => setBlurIntensity(value[0])}
+                  onValueCommit={(value) => setBlurIntensity(value[0], true)}
                   min={0}
                   max={24}
                   step={1}
@@ -332,7 +333,7 @@ export default function ThemesPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setBlurIntensity(4)}
+                  onClick={() => setBlurIntensity(4, true)}
                   className={blurIntensity === 4 ? 'border-primary' : ''}
                 >
                   {t('themes.slight')}
@@ -340,7 +341,7 @@ export default function ThemesPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setBlurIntensity(12)}
+                  onClick={() => setBlurIntensity(12, true)}
                   className={blurIntensity === 12 ? 'border-primary' : ''}
                 >
                   {t('themes.standard')}
@@ -348,7 +349,7 @@ export default function ThemesPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setBlurIntensity(20)}
+                  onClick={() => setBlurIntensity(20, true)}
                   className={blurIntensity === 20 ? 'border-primary' : ''}
                 >
                   {t('themes.strong')}
@@ -378,6 +379,7 @@ export default function ThemesPage() {
               <Slider
                 value={[cardOpacity]}
                 onValueChange={(value) => setCardOpacity(value[0])}
+                onValueCommit={(value) => setCardOpacity(value[0], true)}
                 min={0}
                 max={100}
                 step={1}
@@ -395,7 +397,7 @@ export default function ThemesPage() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setCardOpacity(15)}
+                onClick={() => setCardOpacity(15, true)}
                 className={cardOpacity === 15 ? 'border-primary' : ''}
               >
                 {t('themes.slight')}
@@ -403,7 +405,7 @@ export default function ThemesPage() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setCardOpacity(50)}
+                onClick={() => setCardOpacity(50, true)}
                 className={cardOpacity === 50 ? 'border-primary' : ''}
               >
                 {t('themes.standard')}
@@ -411,7 +413,7 @@ export default function ThemesPage() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setCardOpacity(85)}
+                onClick={() => setCardOpacity(85, true)}
                 className={cardOpacity === 85 ? 'border-primary' : ''}
               >
                 {t('themes.strong')}
