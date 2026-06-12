@@ -15,6 +15,7 @@ export interface SidebarItemProps {
   disabled?: boolean;
   alert?: boolean;
   collapsed?: boolean;
+  disabledTooltip?: string;
   onClick: (id: string) => void;
 }
 
@@ -31,9 +32,11 @@ export function SidebarItem({
   disabled,
   alert,
   collapsed,
+  disabledTooltip,
   onClick,
 }: SidebarItemProps) {
   const isActive = activeSection === id;
+  const showDisabledTooltip = !!disabled && !!disabledTooltip;
 
   const button = (
     <button
@@ -76,13 +79,13 @@ export function SidebarItem({
     </button>
   );
 
-  if (collapsed) {
+  if (collapsed || showDisabledTooltip) {
     return (
       <TooltipProvider delayDuration={100}>
         <Tooltip>
           <TooltipTrigger asChild>{button}</TooltipTrigger>
           <TooltipContent side="right">
-            <p>{title}</p>
+            <p>{showDisabledTooltip ? disabledTooltip : title}</p>
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>

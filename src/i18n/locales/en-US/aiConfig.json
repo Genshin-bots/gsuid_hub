@@ -59,6 +59,7 @@
     "enabledDesc": "AI service is enabled, users can use AI features",
     "disabledDesc": "Enable to allow users to use AI chat, search and other features",
     "usageHelp": "Usage Help",
+    "sectionsLockedHint": "All configurations below are locked. Enable the AI service and wait for the backend core to be ready before editing.",
     "enableDialog": {
       "title": "Enable AI Feature Notice",
       "confirm": "I understand, continue enabling",

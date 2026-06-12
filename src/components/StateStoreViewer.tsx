@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { cn } from '@/lib/utils';
 import {
   aiStateStoreApi,
@@ -68,6 +69,8 @@ interface StateStoreViewerProps {
 
 const StateStoreViewer = forwardRef<StateStoreViewerHandle, StateStoreViewerProps>(function StateStoreViewer(props, ref) {
   const { t } = useLanguage();
+  const { style, cardOpacity, blurIntensity } = useTheme();
+  const isGlass = style === 'glassmorphism';
   const { onSelectionChange } = props;
 
   const [scopes, setScopes] = useState<AIStateStoreScope[]>([]);
@@ -413,10 +416,14 @@ const StateStoreViewer = forwardRef<StateStoreViewerHandle, StateStoreViewerProp
             <Card
               key={keyItem.state_key}
               className={cn(
-                'glass-card-flat shadow-none transition-all',
-                expandedKey === keyItem.state_key && 'border-primary/40',
-                selectedKeys.has(keyItem.state_key) && 'border-destructive/30 bg-destructive/5',
+                'glass-card shadow-none transition-all',
+                expandedKey === keyItem.state_key && '!border-primary/60',
+                selectedKeys.has(keyItem.state_key) && '!border-destructive/50',
               )}
+              style={{
+                ['--card-opacity' as string]: (cardOpacity / 100).toString(),
+                ['--blur-intensity' as string]: `${blurIntensity}px`,
+              }}
             >
               <CardContent className="p-4">
                 {/* Key header row */}

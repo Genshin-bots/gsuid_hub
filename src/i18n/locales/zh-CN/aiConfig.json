@@ -59,6 +59,7 @@
     "enabledDesc": "AI服务已启用，用户可以使用AI功能",
     "disabledDesc": "开启后，用户可以使用AI对话、搜索等功能",
     "usageHelp": "使用帮助",
+    "sectionsLockedHint": "下方所有配置已被锁定。请先开启 AI 服务并等待后端核心就绪后即可修改。",
     "enableDialog": {
       "title": "启用 AI 功能提示",
       "confirm": "我已了解，继续开启",

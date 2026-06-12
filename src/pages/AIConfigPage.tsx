@@ -290,6 +290,14 @@ export default function AIConfigPage() {
     setPendingRestart: wizard.setIsPendingRestart,
   });
 
+  // ====================== 下方所有配置的锁定状态 ======================
+  // 锁定条件:AI 服务未启用 或 后端核心尚未加载(wizard 接口 404)。
+  // 在该状态下,侧边栏 + 内容区都应置灰且不可交互。
+  const isSectionsLocked = !isAIEnabled || wizard.isBackendPendingRestart;
+  const sectionsLockedTooltip = t(
+    'aiConfig.serviceSwitch.sectionsLockedHint',
+  );
+
   // ====================== Options (枚举) ======================
   const embeddingProviderOptions =
     (aiConfig?.config.embedding_provider?.options || ['local']) as string[];
@@ -915,7 +923,7 @@ export default function AIConfigPage() {
             })()}
             <Button
               onClick={handleSaveConfig}
-              disabled={!isConfigDirty || isSaving}
+              disabled={!isConfigDirty || isSaving || isSectionsLocked}
               size="sm"
               className={cn(
                 'gap-1.5 sm:gap-2 whitespace-nowrap transition-all duration-300 text-xs sm:text-sm',
@@ -1007,7 +1015,10 @@ export default function AIConfigPage() {
                       activeSection={activeSection}
                       icon={item.icon}
                       title={item.title}
-                      disabled={false}
+                      disabled={isSectionsLocked}
+                      disabledTooltip={
+                        isSectionsLocked ? sectionsLockedTooltip : undefined
+                      }
                       alert={'alert' in item ? item.alert : false}
                       collapsed={isMobile}
                       onClick={setActiveSection}
@@ -1018,7 +1029,14 @@ export default function AIConfigPage() {
             </div>
 
             <div className="flex-1 overflow-y-auto">
-              <div className="p-3 sm:p-6">
+              <div
+                className={cn(
+                  'p-3 sm:p-6 transition-opacity duration-200',
+                  isSectionsLocked &&
+                    'pointer-events-none opacity-50 select-none',
+                )}
+                aria-disabled={isSectionsLocked}
+              >
                 {isLoadingDetail && Object.keys(configs).length === 0 ? (
                   <div className="flex items-center justify-center h-64">
                     <Loader2 className="w-8 h-8 animate-spin" />

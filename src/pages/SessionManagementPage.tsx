@@ -142,6 +142,25 @@ export default function SessionManagementPage() {
   const [isDraggingImages, setIsDraggingImages] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pendingImagesRef = useRef<PendingImage[]>([]);
+  const chatScrollRef = useRef<HTMLDivElement>(null);
+  const textScrollRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // 自动滚动到底部：进入会话 / 视图模式切换 / 消息更新时触发
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = 'auto') => {
+    // 1) 优先使用 messagesEndRef 锚点（chat mode）
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior, block: 'end' });
+      return;
+    }
+    // 2) 兜底：通过 chatScrollRef 找到 Radix 的 viewport 并滚动到底
+    const viewport = chatScrollRef.current?.querySelector<HTMLElement>(
+      '[data-radix-scroll-area-viewport]'
+    );
+    if (viewport) {
+      viewport.scrollTop = viewport.scrollHeight;
+    }
+  }, []);
 
   useEffect(() => {
     pendingImagesRef.current = pendingImages;
@@ -152,6 +171,28 @@ export default function SessionManagementPage() {
       pendingImagesRef.current.forEach((image) => URL.revokeObjectURL(image.previewUrl));
     };
   }, []);
+
+  // 选中会话 / 视图模式切换 / 消息更新后，自动滚动到底部
+  useEffect(() => {
+    if (!selectedSession) return;
+
+    if (viewMode === 'json' || viewMode === 'messages') {
+      // 需要等消息渲染完成后再滚动
+      const timer = window.setTimeout(() => {
+        scrollToBottom('auto');
+      }, 0);
+      return () => window.clearTimeout(timer);
+    }
+
+    if (viewMode === 'text') {
+      const viewport = textScrollRef.current?.querySelector<HTMLElement>(
+        '[data-radix-scroll-area-viewport]'
+      );
+      if (viewport) {
+        viewport.scrollTop = viewport.scrollHeight;
+      }
+    }
+  }, [selectedSession, viewMode, selectedSession?.history, scrollToBottom]);
 
   const addImageFiles = (files: FileList | File[]) => {
     const imageFiles = Array.from(files).filter((file) => file.type.startsWith('image/'));
@@ -668,7 +709,7 @@ export default function SessionManagementPage() {
                   </div>
                 ) : viewMode === 'json' ? (
                   <>
-                    <ScrollArea className="flex-1 p-4">
+                    <ScrollArea ref={chatScrollRef} className="flex-1 p-4">
                       <div className="space-y-2">
                         {getChatMessages().length > 0 ? (
                           getChatMessages().map((msg, idx) => renderChatMessage(msg, idx))
@@ -678,6 +719,7 @@ export default function SessionManagementPage() {
                             <p>{t('sessionManagement.noHistory')}</p>
                           </div>
                         )}
+                        <div ref={messagesEndRef} />
                       </div>
                     </ScrollArea>
                     
@@ -773,7 +815,7 @@ export default function SessionManagementPage() {
                   </>
                 ) : (
                   // Text Mode
-                  <ScrollArea className="flex-1 p-4">
+                  <ScrollArea ref={textScrollRef} className="flex-1 p-4">
                     <div className="max-w-4xl mx-auto">
                       {selectedSession.history ? (
                         <pre className="text-sm whitespace-pre-wrap font-mono leading-relaxed bg-muted/50 p-4 rounded-lg">

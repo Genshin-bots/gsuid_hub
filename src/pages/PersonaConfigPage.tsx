@@ -67,7 +67,6 @@ import {
   Target,
   HelpCircle,
 } from 'lucide-react';
-
 // 支持的音频格式
 const SUPPORTED_AUDIO_FORMATS = ['mp3', 'ogg', 'wav', 'm4a', 'flac'];
 const SUPPORTED_AUDIO_MIME_TYPES = [
@@ -89,18 +88,15 @@ import {
   AIMode,
 } from '@/lib/api';
 import { toast } from 'sonner';
-
 // ============================================================================
 // 类型定义
 // ============================================================================
-
 interface PersonaCardData extends PersonaListItem {
   enabled: boolean;
   groups: string[];
   content: string;
   config?: PersonaConfig;
 }
-
 // AI 模式选项
 const AI_MODE_OPTIONS: { value: AIMode; label: string; icon: React.ReactNode; description: string; disabled?: boolean }[] = [
   { value: '提及应答', label: '提及应答', icon: <MessageSquare className="w-4 h-4" />, description: '被@时自动回复' },
@@ -108,18 +104,15 @@ const AI_MODE_OPTIONS: { value: AIMode; label: string; icon: React.ReactNode; de
   { value: '趣向捕捉(暂不可用)', label: '趣向捕捉', icon: <Target className="w-4 h-4" />, description: '识别响应特定内容', disabled: true },
   { value: '困境救场(暂不可用)', label: '困境救场', icon: <HelpCircle className="w-4 h-4" />, description: '群友遇困时帮助', disabled: true },
 ];
-
 // 启用范围选项
 const SCOPE_OPTIONS: { value: PersonaScope; label: string; icon: React.ReactNode; description: string; color: string }[] = [
   { value: 'disabled', label: '不启用', icon: <PowerOff className="w-4 h-4" />, description: '不对任何群聊启用', color: 'gray' },
   { value: 'global', label: '全局启用', icon: <Globe className="w-4 h-4" />, description: '对所有群/角色启用', color: 'blue' },
   { value: 'specific', label: '特定启用', icon: <Users className="w-4 h-4" />, description: '仅对指定群聊启用', color: 'green' },
 ];
-
 // ============================================================================
 // 工具函数
 // ============================================================================
-
 // 截取 markdown 文本的预览内容
 function getMarkdownPreview(content: string, maxLength: number = 100): string {
   if (!content) return '';
@@ -130,11 +123,9 @@ function getMarkdownPreview(content: string, maxLength: number = 100): string {
     .replace(/`(.*?)`/g, '$1')
     .replace(/\[(.*?)\]\(.*?\)/g, '$1')
     .trim();
-
   if (cleaned.length <= maxLength) return cleaned;
   return cleaned.substring(0, maxLength) + '...';
 }
-
 // 将文件转换为 base64
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -144,7 +135,6 @@ function fileToBase64(file: File): Promise<string> {
     reader.readAsDataURL(file);
   });
 }
-
 // 获取范围标签样式
 function getScopeBadgeStyle(scope: PersonaScope, isGlass: boolean) {
   switch (scope) {
@@ -157,7 +147,6 @@ function getScopeBadgeStyle(scope: PersonaScope, isGlass: boolean) {
       return 'bg-gray-500/20 text-gray-600 hover:bg-gray-500/30 border-gray-500/30';
   }
 }
-
 // 获取范围标签文本
 function getScopeLabel(scope: PersonaScope, t: (key: string) => string) {
   switch (scope) {
@@ -170,16 +159,13 @@ function getScopeLabel(scope: PersonaScope, t: (key: string) => string) {
       return t('personaConfig.scopeDisabled');
   }
 }
-
 // ============================================================================
 // 组件定义
 // ============================================================================
-
 export default function PersonaConfigPage() {
-  const { style } = useTheme();
+  const { style, cardOpacity, blurIntensity } = useTheme();
   const { t } = useLanguage();
   const isGlass = style === 'glassmorphism';
-
   // 状态
   const [personaList, setPersonaList] = useState<PersonaListItem[]>([]);
   const [personaDetails, setPersonaDetails] = useState<Record<string, PersonaCardData>>({});
@@ -191,16 +177,13 @@ export default function PersonaConfigPage() {
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isSavingConfig, setIsSavingConfig] = useState(false);
-
   // AI 创建对话框状态
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [newPersonaName, setNewPersonaName] = useState('');
   const [newPersonaQuery, setNewPersonaQuery] = useState('');
-
   // 手动创建对话框状态
   const [createManuallyDialogOpen, setCreateManuallyDialogOpen] = useState(false);
   const [newPersonaContent, setNewPersonaContent] = useState('');
-
   // 编辑对话框状态
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingPersona, setEditingPersona] = useState<PersonaCardData | null>(null);
@@ -211,46 +194,37 @@ export default function PersonaConfigPage() {
   const [editingInspectInterval, setEditingInspectInterval] = useState<number>(10);
   const [editingKeywords, setEditingKeywords] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState('markdown');
-
   // 音频播放状态
   const [playingAudio, setPlayingAudio] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-
   // 文件上传状态
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isUploadingAudio, setIsUploadingAudio] = useState(false);
-
   // 二次确认对话框状态
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [saveConfirmOpen, setSaveConfirmOpen] = useState(false);
   const [scopeChangeConfirmOpen, setScopeChangeConfirmOpen] = useState(false);
   const [pendingScopeChange, setPendingScopeChange] = useState<{ personaName: string; newScope: PersonaScope } | null>(null);
-
   // 图片预览对话框
   const [imagePreviewOpen, setImagePreviewOpen] = useState(false);
   const [previewImageUrl, setPreviewImageUrl] = useState('');
   const [previewImageTitle, setPreviewImageTitle] = useState('');
-
   // 统一文件上传引用和状态
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadTargetPersona, setUploadTargetPersona] = useState<string | null>(null);
   const [uploadType, setUploadType] = useState<'avatar' | 'image' | 'audio'>('avatar');
-
   // 资源刷新时间戳 - 用于强制刷新图片缓存
   const [resourceTimestamp, setResourceTimestamp] = useState<number>(Date.now());
-
   // 获取启用人格列表
   const enabledPersonas = useMemo(() => {
     return frameworkConfig?.config.enable_persona.value || [];
   }, [frameworkConfig]);
-
   // 获取人格对应的群聊映射
   const personaGroupsMap = useMemo(() => {
     return frameworkConfig?.config.persona_for_session.value || {};
   }, [frameworkConfig]);
-
   // 获取所有人格卡片数据
   const personaCards = useMemo(() => {
     return personaList.map((item) => {
@@ -264,24 +238,20 @@ export default function PersonaConfigPage() {
       };
     });
   }, [personaList, enabledPersonas, personaGroupsMap, personaDetails, personaConfigs]);
-
   // 加载人格列表和框架配置
   const loadData = useCallback(async () => {
     try {
       setIsLoading(true);
-
       const [listData, frameworkData, allConfigs, globalPersonaData] = await Promise.all([
         personaApi.getPersonaList(),
         personaApi.getFrameworkConfig(),
         personaApi.getAllPersonaConfigs().catch(() => ({} as Record<string, PersonaConfig>)),
         personaApi.getGlobalPersona().catch(() => null),
       ]);
-
       setPersonaList(listData);
       setFrameworkConfig(frameworkData);
       setPersonaConfigs(allConfigs);
       setGlobalPersona(globalPersonaData);
-
       // 加载每个人格的详情
       const detailsMap: Record<string, PersonaCardData> = {};
       await Promise.all(
@@ -313,7 +283,6 @@ export default function PersonaConfigPage() {
           }
         })
       );
-
       setPersonaDetails(detailsMap);
     } catch (error) {
       console.error('Failed to load persona data:', error);
@@ -322,11 +291,9 @@ export default function PersonaConfigPage() {
       setIsLoading(false);
     }
   }, [t, enabledPersonas, personaGroupsMap]);
-
   useEffect(() => {
     loadData();
   }, []);
-
   // 清理音频资源
   useEffect(() => {
     return () => {
@@ -336,7 +303,6 @@ export default function PersonaConfigPage() {
       }
     };
   }, []);
-
   // 更新框架配置到后端
   const updateFrameworkConfig = useCallback(
     async (configName: string, config: Record<string, unknown>) => {
@@ -351,7 +317,6 @@ export default function PersonaConfigPage() {
     },
     [t]
   );
-
   // 创建新人格
   const handleCreatePersona = async () => {
     if (!newPersonaName.trim()) {
@@ -362,19 +327,16 @@ export default function PersonaConfigPage() {
       toast.error(t('common.error'));
       return;
     }
-
     try {
       setIsCreating(true);
       await personaApi.createPersona({
         name: newPersonaName.trim(),
         query: newPersonaQuery.trim(),
       });
-
       toast.success(t('personaConfig.createSuccess'));
       setCreateDialogOpen(false);
       setNewPersonaName('');
       setNewPersonaQuery('');
-
       await loadData();
     } catch (error) {
       console.error('Failed to create persona:', error);
@@ -384,7 +346,6 @@ export default function PersonaConfigPage() {
       setIsCreating(false);
     }
   };
-
   // 手动创建新人格
   const handleAddPersona = async () => {
     if (!newPersonaName.trim()) {
@@ -395,19 +356,16 @@ export default function PersonaConfigPage() {
       toast.error(t('common.error'));
       return;
     }
-
     try {
       setIsCreating(true);
       await personaApi.addPersona({
         name: newPersonaName.trim(),
         content: newPersonaContent.trim(),
       });
-
       toast.success(t('personaConfig.createSuccess'));
       setCreateManuallyDialogOpen(false);
       setNewPersonaName('');
       setNewPersonaContent('');
-
       await loadData();
     } catch (error) {
       console.error('Failed to add persona:', error);
@@ -417,26 +375,21 @@ export default function PersonaConfigPage() {
       setIsCreating(false);
     }
   };
-
   // 切换人格启用状态（旧版兼容）
   const handleToggleEnabled = async (personaName: string, enabled: boolean) => {
     if (!frameworkConfig) return;
-
     try {
       const newEnabledList = enabled
         ? [...enabledPersonas, personaName]
         : enabledPersonas.filter((n) => n !== personaName);
-
       await updateFrameworkConfig(frameworkConfig.full_name, {
         enable_persona: newEnabledList,
       });
-
       await loadData();
     } catch (error) {
       console.error('Failed to toggle persona:', error);
     }
   };
-
   // 处理范围变更
   const handleScopeChange = async (personaName: string, newScope: PersonaScope) => {
     // 如果要设置为全局启用，检查是否已有其他人格全局启用
@@ -445,10 +398,8 @@ export default function PersonaConfigPage() {
       setScopeChangeConfirmOpen(true);
       return;
     }
-
     await applyScopeChange(personaName, newScope);
   };
-
   // 应用范围变更
   const applyScopeChange = async (personaName: string, newScope: PersonaScope) => {
     try {
@@ -459,7 +410,6 @@ export default function PersonaConfigPage() {
         ...currentConfig,
         scope: newScope,
       });
-
       toast.success(t('personaConfig.configUpdated'));
       await loadData();
     } catch (error) {
@@ -470,7 +420,6 @@ export default function PersonaConfigPage() {
       setPendingScopeChange(null);
     }
   };
-
   // 确认切换全局启用
   const handleConfirmScopeChange = async () => {
     if (!pendingScopeChange) return;
@@ -494,7 +443,6 @@ export default function PersonaConfigPage() {
         ...currentConfig,
         scope: pendingScopeChange.newScope,
       });
-
       toast.success(t('personaConfig.configUpdated'));
       await loadData();
     } catch (error) {
@@ -506,7 +454,6 @@ export default function PersonaConfigPage() {
       setScopeChangeConfirmOpen(false);
     }
   };
-
   // 处理 AI 模式变更
   const handleAIModesChange = async (personaName: string, newModes: AIMode[]) => {
     try {
@@ -517,7 +464,6 @@ export default function PersonaConfigPage() {
         ...currentConfig,
         ai_mode: newModes,
       });
-
       toast.success(t('personaConfig.configUpdated'));
       await loadData();
     } catch (error) {
@@ -527,7 +473,6 @@ export default function PersonaConfigPage() {
       setIsSavingConfig(false);
     }
   };
-
   // 打开编辑对话框（点击卡片）
   const handleCardClick = (persona: PersonaCardData) => {
     setEditingPersona(persona);
@@ -540,7 +485,6 @@ export default function PersonaConfigPage() {
     setActiveTab('markdown');
     setEditDialogOpen(true);
   };
-
   // 点击头像上传 - 直接触发文件选择
   const handleAvatarClick = (e: React.MouseEvent, persona: PersonaCardData) => {
     e.stopPropagation();
@@ -551,7 +495,6 @@ export default function PersonaConfigPage() {
       fileInputRef.current?.click();
     }, 0);
   };
-
   // 点击立绘上传 - 直接触发文件选择
   const handleImageClick = (e: React.MouseEvent, persona: PersonaCardData) => {
     e.stopPropagation();
@@ -561,7 +504,6 @@ export default function PersonaConfigPage() {
       fileInputRef.current?.click();
     }, 0);
   };
-
   // 点击音频上传 - 直接触发文件选择
   const handleAudioClick = (e: React.MouseEvent, persona: PersonaCardData) => {
     e.stopPropagation();
@@ -571,12 +513,10 @@ export default function PersonaConfigPage() {
       fileInputRef.current?.click();
     }, 0);
   };
-
   // 统一处理文件上传
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !uploadTargetPersona) return;
-
     try {
       if (uploadType === 'avatar') {
         // 验证文件类型
@@ -668,24 +608,19 @@ export default function PersonaConfigPage() {
       }
     }
   };
-
   // 保存编辑（群聊关联）
   const handleSaveEdit = async () => {
     if (!editingPersona || !frameworkConfig) return;
-
     try {
       setIsSaving(true);
-
       // 保存群聊关联
       const updatedPersonaForSession = {
         ...personaGroupsMap,
         [editingPersona.name]: editingGroups,
       };
-
       await updateFrameworkConfig(frameworkConfig.full_name, {
         persona_for_session: updatedPersonaForSession,
       });
-
       // 保存 AI 模式和启用范围配置
       await personaApi.updatePersonaConfig(editingPersona.name, {
         ai_mode: editingAIModes,
@@ -694,12 +629,10 @@ export default function PersonaConfigPage() {
         inspect_interval: editingInspectInterval,
         keywords: editingKeywords,
       });
-
       // 保存 Markdown 内容（仅在内容发生变化时）
       if (editContent !== editingPersona.content) {
         await personaApi.updatePersonaContent(editingPersona.name, editContent);
       }
-
       toast.success(t('personaConfig.saveSuccess'));
       setEditDialogOpen(false);
       setEditingPersona(null);
@@ -707,7 +640,6 @@ export default function PersonaConfigPage() {
       setEditingGroups([]);
       setEditingAIModes([]);
       setEditingScope('disabled');
-
       await loadData();
     } catch (error) {
       console.error('Failed to save persona:', error);
@@ -716,18 +648,15 @@ export default function PersonaConfigPage() {
       setIsSaving(false);
     }
   };
-
   // 打开删除确认
   const handleDeleteClick = (e: React.MouseEvent, personaName: string) => {
     e.stopPropagation();
     setDeleteTarget(personaName);
     setDeleteConfirmOpen(true);
   };
-
   // 处理卡片上的群聊标签变化（直接保存）
   const handleGroupsChange = async (personaName: string, groups: string[]) => {
     if (!frameworkConfig) return;
-
     try {
       const currentConfig = personaConfigs[personaName] || { ai_mode: [], scope: 'disabled', target_groups: [] };
       
@@ -735,7 +664,6 @@ export default function PersonaConfigPage() {
         ...currentConfig,
         target_groups: groups,
       });
-
       // 重新加载数据以更新显示
       await loadData();
     } catch (error) {
@@ -743,18 +671,15 @@ export default function PersonaConfigPage() {
       toast.error(t('common.saveFailed'));
     }
   };
-
   // 确认删除
   const handleConfirmDelete = async () => {
     if (!deleteTarget) return;
-
     try {
       setIsDeleting(deleteTarget);
       await personaApi.deletePersona(deleteTarget);
       toast.success(t('personaConfig.deleteSuccess'));
       setDeleteConfirmOpen(false);
       setDeleteTarget(null);
-
       await loadData();
     } catch (error) {
       console.error('Failed to delete persona:', error);
@@ -764,11 +689,9 @@ export default function PersonaConfigPage() {
       setIsDeleting(null);
     }
   };
-
   // 播放/暂停音频
   const toggleAudioPlayback = (personaName: string) => {
     const audioUrl = personaApi.getAudioUrl(personaName);
-
     if (playingAudio === personaName) {
       // 暂停当前播放
       if (audioRef.current) {
@@ -795,14 +718,12 @@ export default function PersonaConfigPage() {
       setPlayingAudio(personaName);
     }
   };
-
   // 打开图片预览
   const openImagePreview = (url: string, title: string) => {
     setPreviewImageUrl(url);
     setPreviewImageTitle(title);
     setImagePreviewOpen(true);
   };
-
   // 渲染人格卡片 - 美观的卡片设计，带红色主题和毛玻璃效果
   const renderPersonaCard = (persona: PersonaCardData) => {
     const preview = getMarkdownPreview(persona.content);
@@ -812,7 +733,6 @@ export default function PersonaConfigPage() {
     const scope = persona.config?.scope || 'disabled';
     const aiModes = persona.config?.ai_mode || [];
     const inspectInterval = persona.config?.inspect_interval;
-
     return (
       <Card
         key={persona.name}
@@ -850,7 +770,6 @@ export default function PersonaConfigPage() {
             )} />
           </div>
         )}
-
         <CardContent className="relative z-10 p-4 flex flex-col h-full gap-3">
           {/* === 区域1: 头像和基本信息 === */}
           <div className="flex items-center gap-3">
@@ -878,7 +797,6 @@ export default function PersonaConfigPage() {
                 <Upload className="w-5 h-5 text-primary/60" />
               )}
             </div>
-
             {/* 名称和状态 */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between gap-2">
@@ -917,12 +835,10 @@ export default function PersonaConfigPage() {
               </div>
             </div>
           </div>
-
           {/* === 区域2: 内容预览 === */}
           <p className="text-xs text-muted-foreground line-clamp-2 break-words whitespace-pre-wrap min-h-[32px]">
             {preview || t('common.noData')}
           </p>
-
           {/* === 区域3: 资源状态（胶囊按钮） === */}
           <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
             {[
@@ -950,7 +866,6 @@ export default function PersonaConfigPage() {
               </button>
             ))}
           </div>
-
           {/* === 区域4: 启用范围选择（分隔线 + 胶囊按钮） === */}
           <div className="pt-3 border-t border-primary/10" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center gap-1 mb-2">
@@ -978,7 +893,6 @@ export default function PersonaConfigPage() {
               ))}
             </div>
           </div>
-
           {/* === 区域5: AI 模式选择（胶囊按钮） === */}
           <div onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center gap-1 mb-2">
@@ -1021,7 +935,6 @@ export default function PersonaConfigPage() {
               })}
             </div>
           </div>
-
           {/* === 区域6: 关联群聊（仅特定模式） === */}
           {scope === 'specific' && (
             <div className="pt-3 border-t border-primary/10" onClick={(e) => e.stopPropagation()}>
@@ -1040,7 +953,6 @@ export default function PersonaConfigPage() {
       </Card>
     );
   };
-
   return (
     <>
       {/* 隐藏的文件输入框 - 用于所有上传 */}
@@ -1055,7 +967,6 @@ export default function PersonaConfigPage() {
             : 'image/png,image/jpeg,image/jpg'
         }
       />
-
     <div className="p-4 sm:p-6 space-y-6">
       {/* 页面标题和操作 */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -1066,7 +977,6 @@ export default function PersonaConfigPage() {
           </h1>
           <p className="whitespace-nowrap text-muted-foreground mt-1">{t('personaConfig.description')}</p>
         </div>
-
         <div className="flex flex-wrap items-center justify-end gap-2 self-end sm:self-auto">
           {/* AI 生成按钮 */}
           <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
@@ -1086,7 +996,6 @@ export default function PersonaConfigPage() {
                   {t('personaConfig.createNewDesc')}
                 </DialogDescription>
               </DialogHeader>
-
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
                   <Label htmlFor="persona-name">
@@ -1099,7 +1008,6 @@ export default function PersonaConfigPage() {
                     onChange={(e) => setNewPersonaName(e.target.value)}
                   />
                 </div>
-
                 <div className="space-y-2">
                   <Label htmlFor="persona-query">
                     {t('personaConfig.personaQuery')}
@@ -1113,7 +1021,6 @@ export default function PersonaConfigPage() {
                   />
                 </div>
               </div>
-
               <DialogFooter>
                 <Button
                   variant="outline"
@@ -1144,7 +1051,6 @@ export default function PersonaConfigPage() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
-
           {/* 手动创建按钮 */}
           <Dialog open={createManuallyDialogOpen} onOpenChange={setCreateManuallyDialogOpen}>
             <DialogTrigger asChild>
@@ -1163,7 +1069,6 @@ export default function PersonaConfigPage() {
                   {t('personaConfig.createNewManuallyDesc')}
                 </DialogDescription>
               </DialogHeader>
-
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
                   <Label htmlFor="persona-name-manual">
@@ -1176,7 +1081,6 @@ export default function PersonaConfigPage() {
                     onChange={(e) => setNewPersonaName(e.target.value)}
                   />
                 </div>
-
                 <div className="space-y-2">
                   <Label htmlFor="persona-content-manual">
                     {t('personaConfig.personaContent')}
@@ -1190,7 +1094,6 @@ export default function PersonaConfigPage() {
                   />
                 </div>
               </div>
-
               <DialogFooter>
                 <Button
                   variant="outline"
@@ -1223,7 +1126,6 @@ export default function PersonaConfigPage() {
           </Dialog>
         </div>
       </div>
-
       {/* 全局启用提示 */}
       {globalPersona && (
         <div className={cn(
@@ -1234,24 +1136,30 @@ export default function PersonaConfigPage() {
           <span>{t('personaConfig.globalEnabledHint', { name: globalPersona })}</span>
         </div>
       )}
-
       {/* 无启用人格警告 */}
       {!globalPersona && !personaCards.some(p => p.config?.scope === 'specific') && personaCards.length > 0 && (
         <div className={cn(
-          "flex items-center gap-2 p-3 rounded-lg text-sm",
-          "bg-amber-500/10 text-amber-600 border border-amber-500/30"
-        )}>
+                  "flex items-center gap-2 p-3 rounded-lg text-sm glass-card",
+                  "border border-amber-500/40 dark:border-amber-400/40 text-amber-700 dark:text-amber-300"
+        )} style={{
+          ["--card-opacity" as string]: (cardOpacity / 100).toString(),
+          ["--blur-intensity" as string]: `${blurIntensity}px`,
+        }}
+        >
           <AlertCircle className="w-4 h-4" />
           <span>{t('personaConfig.noPersonaEnabledWarning')}</span>
         </div>
       )}
-
       {/* 仅特定群聊启用警告 */}
       {!globalPersona && personaCards.some(p => p.config?.scope === 'specific') && (
         <div className={cn(
-          "flex items-center gap-2 p-3 rounded-lg text-sm",
-          "bg-amber-500/10 text-amber-600 border border-amber-500/30"
-        )}>
+                  "flex items-center gap-2 p-3 rounded-lg text-sm glass-card",
+                  "border border-amber-500/40 dark:border-amber-400/40 text-amber-700 dark:text-amber-300"
+        )} style={{
+          ["--card-opacity" as string]: (cardOpacity / 100).toString(),
+          ["--blur-intensity" as string]: `${blurIntensity}px`,
+        }}
+        >
           <AlertCircle className="w-4 h-4" />
           <span>{t('personaConfig.specificOnlyWarning', {
             groups: personaCards
@@ -1261,7 +1169,6 @@ export default function PersonaConfigPage() {
           })}</span>
         </div>
       )}
-
       {/* 人格列表 - 响应式网格布局 */}
       {isLoading ? (
         <div className="flex items-center justify-center h-64">
@@ -1271,9 +1178,13 @@ export default function PersonaConfigPage() {
         <>
           {/* 无人格警告 */}
           <div className={cn(
-            "flex items-center gap-2 p-3 rounded-lg text-sm",
-            "bg-amber-500/10 text-amber-600 border border-amber-500/30"
-          )}>
+                    "flex items-center gap-2 p-3 rounded-lg text-sm glass-card",
+                    "border border-amber-500/40 dark:border-amber-400/40 text-amber-700 dark:text-amber-300"
+          )} style={{
+            ["--card-opacity" as string]: (cardOpacity / 100).toString(),
+            ["--blur-intensity" as string]: `${blurIntensity}px`,
+          }}
+          >
             <AlertCircle className="w-4 h-4" />
             <span>{t('personaConfig.noPersonaAtAllWarning')}</span>
           </div>
@@ -1296,7 +1207,6 @@ export default function PersonaConfigPage() {
           {personaCards.map(renderPersonaCard)}
         </div>
       )}
-
       {/* 编辑对话框 */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
         <DialogContent className="sm:max-w-[900px] max-h-[90vh] flex flex-col">
@@ -1306,7 +1216,6 @@ export default function PersonaConfigPage() {
               {t('personaConfig.editPersona')}: {editingPersona?.name}
             </DialogTitle>
           </DialogHeader>
-
           <Tabs
             value={activeTab}
             onValueChange={setActiveTab}
@@ -1334,7 +1243,6 @@ export default function PersonaConfigPage() {
                 {t('personaConfig.audio')}
               </TabsTrigger>
             </TabsList>
-
             {/* 自述文档 Tab */}
             <TabsContent
               value="markdown"
@@ -1356,7 +1264,6 @@ export default function PersonaConfigPage() {
                 </div>
               </div>
             </TabsContent>
-
             {/* 配置 Tab */}
             <TabsContent
               value="config"
@@ -1406,7 +1313,6 @@ export default function PersonaConfigPage() {
                     </div>
                   )}
                 </div>
-
                 {/* AI 模式配置 */}
                 <div className="space-y-3">
                   <Label className="flex items-center gap-2 text-base">
@@ -1456,7 +1362,6 @@ export default function PersonaConfigPage() {
                     ))}
                   </div>
                 </div>
-
                 {/* 关联群聊 - 仅在 specific 模式下显示 */}
                 {editingScope === 'specific' && (
                   <div className="space-y-3">
@@ -1471,7 +1376,6 @@ export default function PersonaConfigPage() {
                     />
                   </div>
                 )}
-
                 {/* 定时巡检间隔 - 仅在选择"定时巡检"模式时显示 */}
                 {editingAIModes.includes('定时巡检') && (
                   <div className="space-y-3">
@@ -1496,7 +1400,6 @@ export default function PersonaConfigPage() {
                     </Select>
                   </div>
                 )}
-
                 {/* 触发关键词 - 仅在选择"提及应答"模式时显示 */}
                 {editingAIModes.includes('提及应答') && (
                   <div className="space-y-3">
@@ -1516,7 +1419,6 @@ export default function PersonaConfigPage() {
                 )}
               </div>
             </TabsContent>
-
             {/* 头像 Tab */}
             <TabsContent
               value="avatar"
@@ -1551,7 +1453,6 @@ export default function PersonaConfigPage() {
                       : t('personaConfig.uploadAvatar')}
                   </Button>
                 </div>
-
                 <div className="flex items-center justify-center p-8 bg-muted/30 rounded-lg min-h-[300px]">
                   {editingPersona?.has_avatar ? (
                     <div className="relative group">
@@ -1588,7 +1489,6 @@ export default function PersonaConfigPage() {
                 </div>
               </div>
             </TabsContent>
-
             {/* 立绘 Tab */}
             <TabsContent
               value="image"
@@ -1623,7 +1523,6 @@ export default function PersonaConfigPage() {
                       : t('personaConfig.uploadImage')}
                   </Button>
                 </div>
-
                 <div className="flex items-center justify-center p-8 bg-muted/30 rounded-lg min-h-[300px]">
                   {editingPersona?.has_image ? (
                     <div className="relative group">
@@ -1660,7 +1559,6 @@ export default function PersonaConfigPage() {
                 </div>
               </div>
             </TabsContent>
-
             {/* 音频 Tab */}
             <TabsContent
               value="audio"
@@ -1695,7 +1593,6 @@ export default function PersonaConfigPage() {
                       : t('personaConfig.uploadAudio')}
                   </Button>
                 </div>
-
                 <div className="flex items-center justify-center p-8 bg-muted/30 rounded-lg min-h-[200px]">
                   {editingPersona?.has_audio ? (
                     <div className="flex items-center gap-4">
@@ -1738,7 +1635,6 @@ export default function PersonaConfigPage() {
               </div>
             </TabsContent>
           </Tabs>
-
           <DialogFooter className="mt-4">
             <Button
               variant="outline"
@@ -1762,7 +1658,6 @@ export default function PersonaConfigPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
       {/* 图片预览对话框 */}
       <Dialog open={imagePreviewOpen} onOpenChange={setImagePreviewOpen}>
         <DialogContent className="sm:max-w-[800px] sm:max-h-[80vh]">
@@ -1789,7 +1684,6 @@ export default function PersonaConfigPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
       {/* 保存二次确认 */}
       <AlertDialog open={saveConfirmOpen} onOpenChange={setSaveConfirmOpen}>
         <AlertDialogContent>
@@ -1809,7 +1703,6 @@ export default function PersonaConfigPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
       {/* 全局启用冲突确认 */}
       <AlertDialog open={scopeChangeConfirmOpen} onOpenChange={setScopeChangeConfirmOpen}>
         <AlertDialogContent>
@@ -1835,7 +1728,6 @@ export default function PersonaConfigPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
       {/* 删除二次确认 */}
       <AlertDialog
         open={deleteConfirmOpen}

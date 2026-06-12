@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { cn } from '@/lib/utils';
 import {
   aiKanbanApi,
@@ -179,12 +180,16 @@ function statusClass(status: string) {
   return 'bg-muted text-muted-foreground border-border/50';
 }
 
-function columnClass(column: AIKanbanColumnKey) {
-  if (column === 'target') return 'border-slate-500/30 bg-slate-500/5';
-  if (column === 'progress') return 'border-blue-500/30 bg-blue-500/5';
-  if (column === 'Done') return 'border-green-500/30 bg-green-500/5';
-  if (column === 'Blocked') return 'border-amber-500/30 bg-amber-500/5';
-  return 'border-red-500/30 bg-red-500/5';
+// Returns a Tailwind class for the per-column colored border stroke.
+// Card surface (glassmorphism vs solid) and transparency are handled by
+// the global `glass-card` style and the `--card-opacity` CSS variable so
+// every column follows the active theme.
+function columnAccentClass(column: AIKanbanColumnKey) {
+  if (column === 'target') return 'border-slate-500/40 dark:border-slate-400/30';
+  if (column === 'progress') return 'border-blue-500/40 dark:border-blue-400/30';
+  if (column === 'Done') return 'border-green-500/40 dark:border-green-400/30';
+  if (column === 'Blocked') return 'border-amber-500/40 dark:border-amber-400/30';
+  return 'border-red-500/40 dark:border-red-400/30';
 }
 
 function logClass(eventType: string) {
@@ -200,6 +205,8 @@ function logClass(eventType: string) {
 
 export default function AIKanbanPage() {
   const { t } = useLanguage();
+  const { style, cardOpacity, blurIntensity } = useTheme();
+  const isGlass = style === 'glassmorphism';
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
   const stateStoreRef = useRef<StateStoreViewerHandle>(null);
   const [viewMode, setViewMode] = useState<'kanban' | 'data'>('kanban');
@@ -771,7 +778,14 @@ export default function AIKanbanPage() {
             key={column}
             onDragOver={(event) => event.preventDefault()}
             onDrop={(event) => onDropToColumn(column, event.dataTransfer.getData('text/plain'))}
-            className={cn('flex h-full min-h-[460px] w-[min(82vw,320px)] shrink-0 flex-col rounded-2xl border p-3 transition-colors sm:w-[320px] xl:w-[340px]', columnClass(column))}
+            className={cn(
+              'flex h-full min-h-[460px] w-[min(82vw,320px)] shrink-0 flex-col rounded-2xl border p-3 transition-colors sm:w-[320px] xl:w-[340px] glass-card',
+              columnAccentClass(column),
+            )}
+            style={{
+              ['--card-opacity' as string]: (cardOpacity / 100).toString(),
+              ['--blur-intensity' as string]: `${blurIntensity}px`,
+            }}
           >
             <div className="mb-3 flex items-center justify-between gap-2 px-1">
               <div className="flex items-center gap-2">

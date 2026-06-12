@@ -59,6 +59,7 @@
     "enabledDesc": "AIサービスは有効です",
     "disabledDesc": "有効にするとAI会話や検索を利用できます",
     "usageHelp": "使い方ヘルプ",
+    "sectionsLockedHint": "以下のすべての設定はロックされています。AIサービスを有効化し、バックエンドコアの準備が完了するまで編集できません。",
     "enableDialog": {
       "title": "AI機能の有効化に関するお知らせ",
       "confirm": "了解しました。有効化を続行します",
