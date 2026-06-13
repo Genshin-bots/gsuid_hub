@@ -13,13 +13,16 @@
   "filter": {
     "allFolders": "全部文件夹",
     "allStatus": "全部状态",
+    "allPersonas": "全部人格",
+    "persona": "按人格筛选",
     "searchPlaceholder": "搜索表情描述或标签...",
     "sortBy": "排序方式",
     "createdAtDesc": "最新上传",
     "useCountDesc": "使用次数（高→低）",
     "useCountAsc": "使用次数（低→高）",
     "folder": "文件夹",
-    "status": "状态"
+    "status": "状态",
+    "commonPersona": "公共"
   },
   "status": {
     "pending": "待打标",
@@ -74,6 +77,8 @@
     "dragDrop": "拖拽文件到此处，或点击选择文件",
     "dragDropHint": "支持 JPG、PNG、GIF、WebP 图片和 .meme 压缩包",
     "folder": "目标文件夹",
+    "targetPersona": "目标人格",
+    "targetPersonaDesc": "默认 common（公共）。从已有列表中选择。如需新建人格，请先在“角色”页创建后再回到此处选择。导入 .meme 时该选择会覆盖压缩包内的原始分类。",
     "autoTag": "自动打标",
     "autoTagDesc": "上传后自动触发 VLM 智能打标",
     "uploading": "上传中...",

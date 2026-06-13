@@ -65,7 +65,7 @@ import {
   Eraser,
   RotateCw,
 } from 'lucide-react';
-import { memeApi, MemeRecord, MemeStatsData, MemeListParams } from '@/lib/api';
+import { memeApi, MemeRecord, MemeStatsData, MemeListParams, MemePersona } from '@/lib/api';
 import { toast } from 'sonner';
 
 // ============================================================================
@@ -874,15 +874,21 @@ function UploadDialog({
   onClose,
   onSuccess,
   isGlass,
+  personas,
 }: {
   open: boolean;
   onClose: () => void;
   onSuccess: () => void;
   isGlass: boolean;
+  personas: MemePersona[];
 }) {
   const { t } = useLanguage();
   const [files, setFiles] = useState<File[]>([]);
-  const [folder, setFolder] = useState('common');
+  // Target persona for this upload. We store the literal `persona_hint` value
+  // (`'common'` or any real persona name) directly; the `<Select>` it feeds
+  // uses unique non-empty string values, so no Radix sentinel dance is needed
+  // here. Defaults to `common` (public).
+  const [personaHint, setPersonaHint] = useState('common');
   const [autoTag, setAutoTag] = useState(true);
   const [skipExisting, setSkipExisting] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
@@ -925,20 +931,31 @@ function UploadDialog({
     let success = 0;
     let failed = 0;
 
-    // Upload images one by one
+    // Normalize the persona value the user picked. We never send an empty
+    // string to the backend - empty means "no preference" for image upload
+    // (the original backend behaviour when `folder` is omitted) and is
+    // handled accordingly below.
+    const persona = personaHint.trim();
+
+    // Upload images one by one. For images the backend takes a `folder`
+    // parameter; we map our persona selection onto it (folder ↔ persona_hint
+    // is bijective on the server side).
     for (const f of imageFiles) {
       try {
-        await memeApi.upload(f, folder, autoTag);
+        await memeApi.upload(f, persona || 'common', autoTag);
         success++;
       } catch {
         failed++;
       }
     }
 
-    // Import .meme files one by one
+    // Import .meme files one by one. Pass the persona hint through to the
+    // import endpoint so all memes in the archive land in the chosen
+    // persona's folder. An empty `persona` leaves backend behaviour intact
+    // (use the original metadata.json folder / persona_hint).
     for (const f of memeFiles) {
       try {
-        await memeApi.importMemes(f, skipExisting, autoTag);
+        await memeApi.importMemes(f, skipExisting, autoTag, persona || undefined);
         success++;
       } catch {
         failed++;
@@ -958,7 +975,7 @@ function UploadDialog({
 
   const handleClose = () => {
     setFiles([]);
-    setFolder('common');
+    setPersonaHint('common');
     setAutoTag(true);
     setSkipExisting(true);
     onClose();
@@ -1040,16 +1057,42 @@ function UploadDialog({
             )}
           </div>
 
-          {/* Folder (only for images) */}
-          {imageFiles.length > 0 && (
+          {/* Target Persona - shown for both image and .meme uploads. The
+              default `common` means "public memes". Users can pick from the
+              existing personas (provided by /api/meme/personas) or type a
+              brand-new persona name; the backend creates the folder on demand
+              and keeps folder ↔ persona_hint bijective. The `common` entry is
+              deduplicated against the personas list so the dropdown only shows
+              it once even when the backend reports it as the top result. */}
+          {(imageFiles.length > 0 || hasMeme) && (
             <div className="space-y-2">
-              <Label className="text-sm">{t('aiMeme.upload.folder')}</Label>
-              <Input
-                value={folder}
-                onChange={(e) => setFolder(e.target.value)}
-                placeholder="common"
-                className="h-9"
-              />
+              <Label className="text-sm flex items-center gap-1.5">
+                <Users className="w-3.5 h-3.5 text-muted-foreground" />
+                {t('aiMeme.upload.targetPersona')}
+              </Label>
+              <Select value={personaHint} onValueChange={setPersonaHint}>
+                <SelectTrigger className="w-full h-9 text-sm">
+                  <SelectValue placeholder={t('aiMeme.upload.targetPersona')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="common">{t('aiMeme.filter.commonPersona')}</SelectItem>
+                  {personas
+                    .filter((p) => p.persona_hint !== 'common')
+                    .map((p) => (
+                      <SelectItem key={p.persona_hint} value={p.persona_hint}>
+                        <span className="flex items-center gap-2">
+                          <span className="truncate max-w-[200px]">{p.persona_hint}</span>
+                          <span className="text-[10px] text-muted-foreground tabular-nums">
+                            {p.count}
+                          </span>
+                        </span>
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[10px] text-muted-foreground">
+                {t('aiMeme.upload.targetPersonaDesc')}
+              </p>
             </div>
           )}
 
@@ -1120,6 +1163,14 @@ export default function AIMemePage() {
   const [stats, setStats] = useState<MemeStatsData | null>(null);
   const [isLoadingStats, setIsLoadingStats] = useState(true);
 
+  // Persona filter
+  const [personas, setPersonas] = useState<MemePersona[]>([]);
+  // Radix Select disallows empty-string values on <SelectItem>, so we use a
+  // sentinel value and translate it back to '' (== "no persona filter") when
+  // building the request.
+  const PERSONA_ALL = '__all__';
+  const [filterPersona, setFilterPersona] = useState<string>(PERSONA_ALL);
+
   // Filters
   const [filterFolder, setFilterFolder] = useState<string>('');
   const [filterStatus, setFilterStatus] = useState<string>('tagged');
@@ -1162,6 +1213,7 @@ export default function AIMemePage() {
       if (filterFolder) params.folder = filterFolder;
       if (filterStatus) params.status = filterStatus;
       if (searchQuery) params.q = searchQuery;
+      if (filterPersona && filterPersona !== PERSONA_ALL) params.persona_hint = filterPersona;
 
       const data = await memeApi.getList(params);
       setMemes(data.records);
@@ -1172,7 +1224,7 @@ export default function AIMemePage() {
     } finally {
       setIsLoading(false);
     }
-  }, [page, pageSize, sortBy, filterFolder, filterStatus, searchQuery, t]);
+  }, [page, pageSize, sortBy, filterFolder, filterStatus, searchQuery, filterPersona, t]);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -1186,6 +1238,15 @@ export default function AIMemePage() {
     }
   }, []);
 
+  const fetchPersonas = useCallback(async () => {
+    try {
+      const data = await memeApi.getPersonas();
+      setPersonas(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Failed to fetch meme personas:', error);
+    }
+  }, []);
+
   useEffect(() => {
     fetchMemes();
   }, [fetchMemes]);
@@ -1193,6 +1254,21 @@ export default function AIMemePage() {
   useEffect(() => {
     fetchStats();
   }, [fetchStats]);
+
+  useEffect(() => {
+    fetchPersonas();
+  }, [fetchPersonas]);
+
+  // If the currently selected persona disappears (deleted/moved), reset filter.
+  useEffect(() => {
+    if (
+      filterPersona &&
+      filterPersona !== PERSONA_ALL &&
+      !personas.some((p) => p.persona_hint === filterPersona)
+    ) {
+      setFilterPersona(PERSONA_ALL);
+    }
+  }, [personas, filterPersona]);
 
   // Debounce search
   const handleSearchChange = (value: string) => {
@@ -1207,7 +1283,7 @@ export default function AIMemePage() {
   // Reset page when filters change
   useEffect(() => {
     setPage(1);
-  }, [filterFolder, filterStatus, sortBy]);
+  }, [filterFolder, filterStatus, filterPersona, sortBy]);
 
   // ============================================================================
   // Handlers
@@ -1226,6 +1302,7 @@ export default function AIMemePage() {
   const handleDetailUpdate = () => {
     fetchMemes();
     fetchStats();
+    fetchPersonas();
     // Refresh selected meme
     if (selectedMeme) {
       memeApi.getDetail(selectedMeme.meme_id).then(setSelectedMeme).catch(() => {});
@@ -1237,11 +1314,13 @@ export default function AIMemePage() {
     setSelectedMeme(null);
     fetchMemes();
     fetchStats();
+    fetchPersonas();
   };
 
   const handleUploadSuccess = () => {
     fetchMemes();
     fetchStats();
+    fetchPersonas();
   };
 
   // Selection handlers
@@ -1282,6 +1361,7 @@ export default function AIMemePage() {
       setShowBatchDeleteDialog(false);
       fetchMemes();
       fetchStats();
+      fetchPersonas();
     } catch (error) {
       toast.error(t('aiMeme.batchDeleteFailed'));
     } finally {
@@ -1331,6 +1411,7 @@ export default function AIMemePage() {
       setShowPurgeDialog(false);
       fetchMemes();
       fetchStats();
+      fetchPersonas();
     } catch (error) {
       toast.error(t('aiMeme.purgeRejectedFailed'));
     } finally {
@@ -1353,6 +1434,7 @@ export default function AIMemePage() {
       setShowRetagPendingDialog(false);
       fetchMemes();
       fetchStats();
+      fetchPersonas();
     } catch (error) {
       toast.error(t('aiMeme.batchRetagPendingFailed'));
     } finally {
@@ -1404,7 +1486,7 @@ export default function AIMemePage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => { fetchMemes(); fetchStats(); }}
+            onClick={() => { fetchMemes(); fetchStats(); fetchPersonas(); }}
             className="gap-1.5 whitespace-nowrap"
           >
             <RefreshCw className="w-4 h-4" />
@@ -1590,6 +1672,38 @@ export default function AIMemePage() {
           )}
         </div>
 
+        {/* Persona Filter - drop-down of all personas the library has ever seen,
+            ordered by count desc. Empty value = "all personas". */}
+        <div className={cn(
+          "rounded-lg border border-border/40 overflow-hidden transition-all duration-200",
+          isGlass ? "glass-card" : "bg-muted/50"
+        )}>
+          <Select
+            value={filterPersona}
+            onValueChange={(v) => setFilterPersona(v)}
+          >
+            <SelectTrigger className="w-auto min-w-[180px] max-w-[260px] h-11 text-sm whitespace-nowrap bg-transparent border-0 rounded-none shadow-none focus:ring-0 focus:ring-offset-0">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <Users className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+                <SelectValue placeholder={t('aiMeme.filter.persona')} />
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={PERSONA_ALL}>{t('aiMeme.filter.allPersonas')}</SelectItem>
+              {personas.map((p) => (
+                <SelectItem key={p.persona_hint} value={p.persona_hint}>
+                  <span className="flex items-center gap-2">
+                    <span className="truncate max-w-[160px]">{p.persona_hint}</span>
+                    <span className="text-[10px] text-muted-foreground tabular-nums">
+                      {p.count}
+                    </span>
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
         {/* Sort Select */}
         <div className={cn(
           "rounded-lg border border-border/40 overflow-hidden transition-all duration-200",
@@ -1729,6 +1843,7 @@ export default function AIMemePage() {
         onClose={() => setUploadOpen(false)}
         onSuccess={handleUploadSuccess}
         isGlass={isGlass}
+        personas={personas}
       />
 
       {/* Batch Delete Confirm Dialog */}

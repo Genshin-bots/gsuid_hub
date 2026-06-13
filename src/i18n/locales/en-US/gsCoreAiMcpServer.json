@@ -1,0 +1,36 @@
+{
+  "title": "As MCP Server",
+  "description": "Expose the GsCore framework's to_ai triggers as an MCP Server, allowing external MCP clients to connect via SSE/stdio and invoke all trigger tools.",
+  "configCard": {
+    "title": "Server Configuration",
+    "description": "Edit the «GsCore AI MCP Server» configuration items; changes take effect immediately after saving without restarting."
+  },
+  "apiKeyCard": {
+    "title": "Authentication Header Example",
+    "description": "The Authorization header that external MCP clients must include when using SSE mode.",
+    "empty": "(No API Key configured; authentication is disabled.)"
+  },
+  "status": {
+    "enable": "Service Status",
+    "transport": "Transport",
+    "auth": "Authentication",
+    "endpoints": "Connection",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "authEnabled": "Enabled",
+    "authDisabled": "Disabled"
+  },
+  "banner": {
+    "activeTitle": "MCP Server is currently enabled",
+    "activeDesc": "External MCP clients can connect through the transport and port shown above. If you change the transport or API key, click Save before using them."
+  },
+  "actions": {
+    "refresh": "Refresh"
+  },
+  "empty": "GsCore AI MCP Server configuration was not found. Please make sure the backend has loaded this configuration.",
+  "noChanges": "No configuration changes detected; nothing to save.",
+  "loadFailed": "Failed to load the GsCore AI MCP Server configuration",
+  "saveSuccess": "GsCore AI MCP Server configuration saved",
+  "saveFailed": "Failed to save the GsCore AI MCP Server configuration",
+  "footnote": "Note: When the transport is stdio, the port and API Key settings do not take effect. The MCP client will communicate with the GsCore process via standard input/output."
+}

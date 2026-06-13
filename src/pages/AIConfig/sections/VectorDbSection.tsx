@@ -16,7 +16,7 @@ import { DynamicConfigPanel, ConfigField, type ConfigFieldType, type ConfigValue
 import { InputWithDropdown } from '@/components/ui/input-with-dropdown';
 import { cn } from '@/lib/utils';
 import { renderRichText } from '../shared/renderRichText';
-import type { PluginConfigItem } from '@/lib/api';
+import type { EmbeddingExtraProviderConfig, PluginConfigItem } from '@/lib/api';
 import type { EmbeddingConfigField } from '../constants';
 import {
   AlertDialog,
@@ -47,6 +47,8 @@ export interface VectorDbSectionProps {
   isLoadingEmbeddingConfig: boolean;
   embeddingLocalConfig: Record<string, EmbeddingConfigField>;
   embeddingOpenaiConfig: Record<string, EmbeddingConfigField>;
+  /** 插件注册的第三方嵌入模型提供方（key=provider 名） */
+  extraProviders?: Record<string, EmbeddingExtraProviderConfig>;
 
   // Rerank
   isRerankEnabled: boolean;
@@ -64,6 +66,9 @@ export interface VectorDbSectionProps {
  * 「向量数据库服务」Section。
  * 包含三大块：Qdrant 部署方式 / 嵌入模型提供方 / 重排序模型。
  *
+ * 嵌入模型支持 local / openai 内置以及插件注册的第三方 provider。
+ * 第三方 provider 的配置以前端只读方式展示，修改走插件管理页（`/api/plugins`）。
+ *
  * 重排序的字段渲染使用 `DynamicConfigPanel`，但当 provider 为 local 时排除 base_url/api_key。
  */
 export function VectorDbSection({
@@ -80,6 +85,7 @@ export function VectorDbSection({
   isLoadingEmbeddingConfig,
   embeddingLocalConfig,
   embeddingOpenaiConfig,
+  extraProviders,
   isRerankEnabled,
   rerankProvider,
   rerankProviderOptions,
@@ -148,6 +154,9 @@ export function VectorDbSection({
     onUpdateConfig(aiConfigId, 'embedding_provider', pendingEmbeddingValue);
     onSwitchEmbeddingProvider(pendingEmbeddingValue);
   };
+
+  // —— 嵌入模型当前是否为插件注册的第三方 provider ——
+  const currentExtraProvider = extraProviders?.[embeddingProvider];
 
   return (
     <div className="space-y-5">
@@ -265,21 +274,24 @@ export function VectorDbSection({
           </Label>
         </div>
         <ChipGroup
-          options={(availableProviders || embeddingProviderOptions).map((p) => ({
-            value: p,
-            label:
-              p === 'local'
-                ? t('aiConfig.serviceProvider.localModel')
-                : p === 'openai'
-                  ? t('aiConfig.serviceProvider.openaiModel')
-                  : p,
-            icon:
-              p === 'local' ? (
-                <Database className="w-3.5 h-3.5" />
-              ) : (
-                <Globe className="w-3.5 h-3.5" />
-              ),
-          }))}
+          options={(availableProviders || embeddingProviderOptions).map((p) => {
+            const extra = extraProviders?.[p];
+            return {
+              value: p,
+              label: extra?.display_name
+                ? extra.display_name
+                : p === 'local'
+                  ? t('aiConfig.serviceProvider.localModel')
+                  : p === 'openai'
+                    ? t('aiConfig.serviceProvider.openaiModel')
+                    : p,
+              icon: extra
+                ? <Globe className="w-3.5 h-3.5" />
+                : p === 'local'
+                  ? <Database className="w-3.5 h-3.5" />
+                  : <Globe className="w-3.5 h-3.5" />,
+            };
+          })}
           value={embeddingProvider ? [embeddingProvider] : []}
           onValueChange={handleEmbeddingProviderChange}
           selectMode="single"
@@ -304,6 +316,46 @@ export function VectorDbSection({
           {isLoadingEmbeddingConfig ? (
             <div className="flex items-center justify-center py-6">
               <span className="text-xs text-muted-foreground">...</span>
+            </div>
+          ) : currentExtraProvider ? (
+            /* 插件注册的第三方 provider：只读展示 */
+            <div className="space-y-3">
+              <div
+                className={cn(
+                  'rounded-lg p-3 flex items-start gap-2',
+                  isGlass
+                    ? 'border border-violet-500/40 bg-violet-500/10'
+                    : 'border border-violet-300 bg-violet-50 dark:border-violet-800/60 dark:bg-violet-950/40',
+                )}
+              >
+                <Globe className="w-4 h-4 text-violet-500 shrink-0 mt-0.5" />
+                <div className="text-xs text-violet-700 dark:text-violet-300 space-y-1">
+                  <p className="font-medium">
+                    {renderRichText(
+                      t('aiConfig.vectorDb.extraProviderBanner')
+                        .replace('{displayName}', currentExtraProvider.display_name)
+                        .replace('{plugin}', currentExtraProvider.plugin)
+                        .replace('{kind}', currentExtraProvider.kind),
+                    )}
+                  </p>
+                  <p className="text-violet-500 dark:text-violet-400">
+                    {t('aiConfig.vectorDb.extraProviderHint')}
+                  </p>
+                </div>
+              </div>
+              {Object.entries(currentExtraProvider.config || {}).map(([key, field]) => (
+                <div key={key} className="space-y-1.5">
+                  <Label className="text-sm font-medium">
+                    {field.title || key}
+                  </Label>
+                  {field.desc && (
+                    <p className="text-xs text-muted-foreground">{field.desc}</p>
+                  )}
+                  <div className="text-sm px-3 py-2 rounded-md border border-dashed border-border/60 bg-muted/30 text-muted-foreground">
+                    {formatExtraProviderFieldData(field.data)}
+                  </div>
+                </div>
+              ))}
             </div>
           ) : embeddingProvider === 'local' ? (
             <div className="space-y-3">
@@ -504,4 +556,16 @@ export function VectorDbSection({
       </AlertDialog>
     </div>
   );
+}
+
+/** 格式化第三方 provider 配置字段的只读展示值 */
+function formatExtraProviderFieldData(data: unknown): string {
+  if (data == null) return '—';
+  if (Array.isArray(data)) {
+    if (data.length === 0) return '（空）';
+    return data.map((v) => String(v)).join(', ');
+  }
+  if (typeof data === 'boolean') return data ? 'true' : 'false';
+  const s = String(data);
+  return s || '—';
 }

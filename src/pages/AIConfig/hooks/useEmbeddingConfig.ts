@@ -2,12 +2,16 @@
  * useEmbeddingConfig
  *
  * 负责「嵌入模型配置」相关的状态与副作用：
- * - embeddingSummary：来自 embeddingConfigApi.getSummary
+ * - embeddingSummary：来自 embeddingConfigApi.getSummary（含 provider / available_providers /
+ *   local_config / openai_config / extra_providers）
  * - embeddingLocalConfig / embeddingOpenaiConfig：当前编辑值
  * - originalEmbeddingProvider / originalEmbeddingLocalConfig / originalEmbeddingOpenaiConfig：保存前快照
  * - isLoadingEmbeddingConfig：加载标志
  * - 3 个 setter：handleSwitchEmbeddingProvider / updateEmbeddingLocalField / updateEmbeddingOpenaiField
  * - markSaved：保存成功后刷新快照
+ *
+ * 插件注册的第三方 provider 信息通过 `embeddingSummary.extra_providers` 暴露，
+ * 该类 provider 的配置由前端以只读方式展示，修改走插件管理页（`/api/plugins`）。
  *
  * 由 [`src/pages/AIConfigPage.tsx`](src/pages/AIConfigPage.tsx) 调用。
  */
@@ -23,7 +27,7 @@ import type { EmbeddingConfigField as EmbeddingConfigFieldUI } from '../index';
 export type EmbeddingFieldMap = Record<string, EmbeddingConfigFieldUI>;
 
 export interface UseEmbeddingConfigReturn {
-  /** 后端 summary（含 provider / available_providers / local_config / openai_config） */
+  /** 后端 summary（含 provider / available_providers / local_config / openai_config / extra_providers） */
   embeddingSummary: EmbeddingConfigSummary | null;
   /** 当前正在编辑的 local 字段 */
   embeddingLocalConfig: EmbeddingFieldMap;

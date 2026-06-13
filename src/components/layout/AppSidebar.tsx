@@ -269,11 +269,21 @@ export function AppSidebar() {
   }, [location.pathname, refreshAIStatus]);
   const isInitialMount = useRef(true);
 
+  // AI 配置菜单的翻译键（用于在展开时主动校验 AI 是否启用）
+  const AI_CONFIG_TITLE_KEY = 'sidebar.aiConfig';
+  const aiConfigTitle = t(AI_CONFIG_TITLE_KEY);
+
   const toggleExpanded = (title: string) => {
+    const willExpand = !expandedItems[title];
     setExpandedItems(prev => ({
       ...prev,
-      [title]: !prev[title]
+      [title]: willExpand
     }));
+    // 展开 AI 配置菜单时，重新从后端校验 AI 是否启动，
+    // 以保证未点击 /ai-config 时也能显示完整的 AI 子菜单
+    if (willExpand && title === aiConfigTitle) {
+      refreshAIStatus();
+    }
   };
 
   // 首次加载时根据当前路由自动展开对应的一级菜单

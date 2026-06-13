@@ -32,7 +32,9 @@
     "qdrantRecommendTip": "建议尽可能使用远程 Qdrant 服务以获得更好的性能和稳定性。您可以从 GitHub Releases 下载 Qdrant 直接运行，也可以使用 Qdrant Cloud 托管服务。",
     "switchWarningTitle": "切换部署方式确认",
     "switchConfirm": "我已了解，继续切换",
-    "rerankWarning": "重排序模型服务较重，会增加响应延迟与资源占用，建议谨慎启用。"
+    "rerankWarning": "重排序模型服务较重，会增加响应延迟与资源占用，建议谨慎启用。",
+    "extraProviderBanner": "当前使用由插件 **{plugin}** 注册的嵌入模型提供方 **{displayName}**（{kind} 模式）。",
+    "extraProviderHint": "如需修改配置，请前往「插件管理」页面操作。"
   },
   "wizard": {
     "title": "AI 配置状态",
@@ -52,9 +54,9 @@
     "memoryWarningTip": "全部群聊模式会处理所有群聊的记忆，可能占用较多 Token"
   },
   "serviceSwitch": {
-  "checkConfigPendingRestart": "启用AI服务后，需先执行核心重启。",
-  "restartRequiredTitle": "需要重启核心服务",
-  "restartRequiredDesc": "AI 配置已变更，后端 AI 核心尚未加载。点击左下角「重启 GsCore」按钮以完成生效。",
+    "checkConfigPendingRestart": "启用AI服务后，需先执行核心重启。",
+    "restartRequiredTitle": "需要重启核心服务",
+    "restartRequiredDesc": "AI 配置已变更，后端 AI 核心尚未加载。点击左下角「重启 GsCore」按钮以完成生效。",
     "title": "启用AI服务",
     "enabledDesc": "AI服务已启用，用户可以使用AI功能",
     "disabledDesc": "开启后，用户可以使用AI对话、搜索等功能",

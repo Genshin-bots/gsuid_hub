@@ -41,6 +41,7 @@ import {
   Smile,
   Sparkles,
   HelpCircle,
+  Server,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -67,6 +68,7 @@ import {
   MemorySettingsSection,
   MemeSettingsSection,
   AdvancedSettingsSection,
+  GsCoreAiMcpServerSection,
   ManageConfigDialog,
   CreateConfigDialog,
   EditConfigDialog,
@@ -623,6 +625,11 @@ export default function AIConfigPage() {
         ]
       : []),
     {
+      id: 'gsCoreAiMcpServer',
+      title: t('gsCoreAiMcpServer.title'),
+      icon: <Server className="w-5 h-5" />,
+    },
+    {
       id: 'advancedSettings',
       title: t('aiConfig.advancedSettings.title'),
       icon: <SlidersHorizontal className="w-5 h-5" />,
@@ -735,6 +742,7 @@ export default function AIConfigPage() {
             embeddingProvider={embeddingProvider}
             embeddingProviderOptions={embeddingProviderOptions}
             availableProviders={embedding.embeddingSummary?.available_providers}
+            extraProviders={embedding.embeddingSummary?.extra_providers}
             isLoadingEmbeddingConfig={embedding.isLoadingEmbeddingConfig}
             embeddingLocalConfig={embedding.embeddingLocalConfig}
             embeddingOpenaiConfig={embedding.embeddingOpenaiConfig}
@@ -841,6 +849,13 @@ export default function AIConfigPage() {
             t={t}
             memeConfig={memeConfig}
             onUpdateConfig={updateConfigValue}
+          />
+        );
+      case 'gsCoreAiMcpServer':
+        return (
+          <GsCoreAiMcpServerSection
+            t={t}
+            isGlass={isGlass}
           />
         );
       case 'advancedSettings':

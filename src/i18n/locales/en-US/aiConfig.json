@@ -32,7 +32,9 @@
     "qdrantRecommendTip": "It is recommended to use a remote Qdrant service for better performance and stability. You can download Qdrant from GitHub Releases and run it directly, or use the Qdrant Cloud hosted service.",
     "switchWarningTitle": "Confirm Deployment Switch",
     "switchConfirm": "I understand, continue switching",
-    "rerankWarning": "The reranking model service is heavy and increases latency and resource usage — enable it with caution."
+    "rerankWarning": "The reranking model service is heavy and increases latency and resource usage — enable it with caution.",
+    "extraProviderBanner": "Currently using embedding provider **{displayName}** registered by plugin **{plugin}** ({kind} mode).",
+    "extraProviderHint": "To modify configuration, please go to the Plugin Management page."
   },
   "wizard": {
     "title": "AI Configuration Status",
@@ -52,9 +54,9 @@
     "memoryWarningTip": "All groups mode processes memory for all groups, which may consume more tokens"
   },
   "serviceSwitch": {
-  "checkConfigPendingRestart": "After enabling the AI service, a core restart is required first.",
-  "restartRequiredTitle": "Core Restart Required",
-  "restartRequiredDesc": "AI configuration has been changed, but the backend AI core is not yet loaded. Click the \"Restart GsCore\" button in the bottom-left to apply.",
+    "checkConfigPendingRestart": "After enabling the AI service, a core restart is required first.",
+    "restartRequiredTitle": "Core Restart Required",
+    "restartRequiredDesc": "AI configuration has been changed, but the backend AI core is not yet loaded. Click the \"Restart GsCore\" button in the bottom-left to apply.",
     "title": "Enable AI Service",
     "enabledDesc": "AI service is enabled, users can use AI features",
     "disabledDesc": "Enable to allow users to use AI chat, search and other features",

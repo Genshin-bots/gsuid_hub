@@ -1081,11 +1081,31 @@ export interface EmbeddingProviderData {
   available_providers: string[];
 }
 
+export interface EmbeddingExtraProviderConfig {
+  /** 插件注册的第三方嵌入模型提供方信息。 */
+  display_name: string;
+  /** 来源插件名 */
+  plugin: string;
+  /** `"local"` 本地推理 / `"remote"` 远程 API */
+  kind: 'local' | 'remote' | string;
+  /**
+   * 该 provider 的配置项，结构与 `local_config` / `openai_config` 同构。
+   * 前端仅做只读展示，修改走插件管理页（`/api/plugins`）。
+   */
+  config: Record<string, EmbeddingConfigField>;
+}
+
 export interface EmbeddingConfigSummary {
   provider: string;
   available_providers: string[];
   local_config: Record<string, EmbeddingConfigField>;
   openai_config: Record<string, EmbeddingConfigField>;
+  /**
+   * 插件注册的第三方 provider 配置。
+   * 前端未跟进时可静默忽略；前端跟进后应使用此字段渲染第三方 provider
+   * 的下拉选项与只读配置面板。
+   */
+  extra_providers?: Record<string, EmbeddingExtraProviderConfig>;
 }
 
 export const embeddingConfigApi = {
@@ -2868,6 +2888,12 @@ export interface MemeStatsData {
   }[];
 }
 
+export interface MemePersona {
+  persona_hint: string;
+  count: number;
+  folder: string;
+}
+
 export interface MemeListParams {
   folder?: string;
   status?: string;
@@ -2875,6 +2901,7 @@ export interface MemeListParams {
   page?: number;
   page_size?: number;
   q?: string;
+  persona_hint?: string;
 }
 
 export interface MemeUpdateData {
@@ -2895,9 +2922,13 @@ export const memeApi = {
     if (params.page) searchParams.set('page', String(params.page));
     if (params.page_size) searchParams.set('page_size', String(params.page_size));
     if (params.q) searchParams.set('q', params.q);
+    if (params.persona_hint) searchParams.set('persona_hint', params.persona_hint);
     const query = searchParams.toString();
     return api.get<MemeListResponse>(`/api/meme/list${query ? `?${query}` : ''}`);
   },
+
+  // 获取所有出现过的 persona_hint 及数量（按数量降序）
+  getPersonas: () => api.get<MemePersona[]>('/api/meme/personas'),
 
   // 获取单条记录详情
   getDetail: (memeId: string) =>
@@ -2990,15 +3021,25 @@ export const memeApi = {
   },
 
   // 导入 .meme 格式文件
+  // - persona_hint: 指定导入后的人格分类（默认 `common`）。后端会保证
+  //   folder <-> persona_hint 双向一致，传 `common` 进通用 folder，
+  //   传 `<persona 名>` 进 `persona_<persona 名>` folder。
+  //   传空字符串 / undefined 则不传，沿用 metadata.json 中原有的值。
   importMemes: async (
     file: File,
     skipExisting: boolean = true,
-    autoTag: boolean = false
+    autoTag: boolean = false,
+    personaHint?: string
   ) => {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('skip_existing', String(skipExisting));
     formData.append('auto_tag', String(autoTag));
+    // Only append when the caller explicitly chose a persona (incl. `common`).
+    // An empty string here would mean "no preference" - fall through to backend default.
+    if (personaHint && personaHint.length > 0) {
+      formData.append('persona_hint', personaHint);
+    }
 
     const token = getAuthToken();
     const headers: Record<string, string> = {};

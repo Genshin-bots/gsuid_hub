@@ -1,0 +1,36 @@
+{
+  "title": "作为 MCP 服务",
+  "description": "将 GsCore 框架的 to_ai 触发器对外暴露为 MCP Server，允许外部 MCP 客户端通过 SSE/stdio 协议连接并调用所有触发器工具。",
+  "configCard": {
+    "title": "服务配置",
+    "description": "编辑「GsCore AI MCP Server」配置项；保存后立即生效，无需重启。"
+  },
+  "apiKeyCard": {
+    "title": "认证请求头示例",
+    "description": "SSE 模式下，外部 MCP 客户端在请求时需携带的 Authorization 头。",
+    "empty": "（当前未配置 API Key，不启用认证）"
+  },
+  "status": {
+    "enable": "服务状态",
+    "transport": "传输协议",
+    "auth": "认证",
+    "endpoints": "连接信息",
+    "enabled": "已启用",
+    "disabled": "已停用",
+    "authEnabled": "已启用",
+    "authDisabled": "未启用"
+  },
+  "banner": {
+    "activeTitle": "MCP Server 当前处于启用状态",
+    "activeDesc": "外部 MCP 客户端可通过上述协议与端口连接；如修改了传输协议或认证密钥，请点击「保存」后再使用。"
+  },
+  "actions": {
+    "refresh": "刷新"
+  },
+  "empty": "暂未找到 GsCore AI MCP Server 配置，请确认后端已正确加载该配置。",
+  "noChanges": "配置未发生变化，无需保存。",
+  "loadFailed": "无法加载 GsCore AI MCP Server 配置",
+  "saveSuccess": "GsCore AI MCP Server 配置已保存",
+  "saveFailed": "保存 GsCore AI MCP Server 配置失败",
+  "footnote": "提示：当传输协议为 stdio 时，端口与 API Key 配置不生效；MCP 客户端将以标准输入/输出方式与 GsCore 进程通信。"
+}

@@ -8,5 +8,7 @@
   "clear": "Clear",
   "commandPlaceholder": "Enter command...",
   "commandFailed": "Command execution failed",
-  "levelFilter": "Log Level"
+  "levelFilter": "Log Level",
+  "selectAll": "Select All",
+  "deselectAll": "Deselect All"
 }

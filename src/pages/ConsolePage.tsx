@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Terminal, Trash2, Download, Circle } from "lucide-react";
+import { Terminal, Trash2, Download, Circle, Check, Minus } from "lucide-react";
 import { remoteCommandApi, logsApi } from "@/lib/api";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -14,16 +14,45 @@ let logCounter = 0;
 
 const LEVEL_ORDER = ["trace", "debug", "info", "success", "warning", "error", "critical"];
 
+const VISIBLE_LEVELS_STORAGE_KEY = "console_visible_levels";
+
+// 持久化读�?写入：使�?localStorage 实现跨刷新记�?
+function loadVisibleLevelsFromStorage(): string[] | null {
+  try {
+    const raw = localStorage.getItem(VISIBLE_LEVELS_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      return parsed.filter((v): v is string => typeof v === "string");
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function saveVisibleLevelsToStorage(levels: Set<string>) {
+  try {
+    localStorage.setItem(
+      VISIBLE_LEVELS_STORAGE_KEY,
+      JSON.stringify(Array.from(levels)),
+    );
+  } catch {
+    /* ignore quota errors */
+  }
+}
+
 function parseLogLevel(level: string): string {
   return level.toLowerCase();
 }
 
 export default function ConsolePage() {
   const { t } = useLanguage();
-  const { style } = useTheme();
+  const { style, mode } = useTheme();
   const isGlass = style === 'glassmorphism';
+  const isDark = mode === 'dark';
 
-  // 数据存在 ref 中，避免 React 遍历大数组
+  // 数据存在 ref 中，避免 React 遍历大数�?
   const allLogsRef = useRef<LogEntry[]>([]);
   const [logVersion, setLogVersion] = useState(0);
   const [reconnectCount, setReconnectCount] = useState(0);
@@ -34,9 +63,11 @@ export default function ConsolePage() {
   const [autoScroll, setAutoScroll] = useState(false);
 
   const [availableLevels, setAvailableLevels] = useState<Array<{ label: string; value: string }>>([]);
-  const [visibleLevels, setVisibleLevels] = useState<Set<string>>(new Set([
-    'debug', 'info', 'error'
-  ]));
+  const [visibleLevels, setVisibleLevels] = useState<Set<string>>(
+    () => new Set<string>(['debug', 'info', 'error']),
+  );
+  // 标记是否已应用过持久化数据，避免在拿到后�?levels 后被默认值覆�?
+  const initializedRef = useRef(false);
 
   const filteredLogs = useMemo(() => {
     if (!visibleLevels.size || visibleLevels.has('all')) {
@@ -49,30 +80,60 @@ export default function ConsolePage() {
 
   // 获取可用日志级别
   useEffect(() => {
-    logsApi.getLevels().then((levels) => {
+    const fallback = [
+      { label: 'TRACE', value: 'trace' },
+      { label: 'DEBUG', value: 'debug' },
+      { label: 'INFO', value: 'info' },
+      { label: 'SUCCESS', value: 'success' },
+      { label: 'WARNING', value: 'warning' },
+      { label: 'ERROR', value: 'error' },
+      { label: 'CRITICAL', value: 'critical' },
+    ];
+
+    const applyLevels = (levels: Array<{ label: string; value: string }>) => {
       setAvailableLevels(levels);
+
+      // 1) 优先尝试 localStorage 中的持久化选择
+      const persisted = loadVisibleLevelsFromStorage();
+      if (persisted && persisted.length > 0) {
+        // 仅保留后端实际提供的级别，防止新�?删除级别后出现幽灵选项
+        const validValues = new Set(levels.map((lv) => lv.value));
+        const filtered = persisted.filter((v) => validValues.has(v) && v !== 'all');
+        if (filtered.length > 0) {
+          setVisibleLevels(new Set(filtered));
+          initializedRef.current = true;
+          return;
+        }
+      }
+
+      // 2) 没有持久化或持久化内容失效：使用默认 [debug, info, error]
       const defaults = new Set<string>();
       levels.forEach((lv) => {
         if (['debug', 'info', 'error'].includes(lv.value)) {
           defaults.add(lv.value);
         }
       });
+      if (defaults.size === 0 && levels.length > 0) {
+        // 后端未提供默认三档时，至少选中第一�?
+        defaults.add(levels[0].value);
+      }
       setVisibleLevels(defaults);
-    }).catch(() => {
-      // fallback
-      const fallback = [
-        { label: 'TRACE', value: 'trace' },
-        { label: 'DEBUG', value: 'debug' },
-        { label: 'INFO', value: 'info' },
-        { label: 'SUCCESS', value: 'success' },
-        { label: 'WARNING', value: 'warning' },
-        { label: 'ERROR', value: 'error' },
-        { label: 'CRITICAL', value: 'critical' },
-      ];
-      setAvailableLevels(fallback);
-      setVisibleLevels(new Set(['debug', 'info', 'error']));
-    });
+      initializedRef.current = true;
+    };
+
+    logsApi
+      .getLevels()
+      .then(applyLevels)
+      .catch(() => {
+        applyLevels(fallback);
+      });
   }, []);
+
+  // 持久化：visibleLevels 变化时写�?localStorage
+  useEffect(() => {
+    if (!initializedRef.current) return;
+    saveVisibleLevelsToStorage(visibleLevels);
+  }, [visibleLevels]);
 
   // SSE stream for real-time logs - 始终接收所有级别，前端通过 filteredLogs 控制显示
   useEffect(() => {
@@ -105,7 +166,7 @@ export default function ConsolePage() {
           content: logData.message,
           timestamp: new Date(logData.timestamp),
         });
-        // 限制最大条数
+        // 限制最大条�?
         if (allLogsRef.current.length > 2000) {
           allLogsRef.current = allLogsRef.current.slice(-2000);
         }
@@ -118,7 +179,7 @@ export default function ConsolePage() {
     authEventSource.onerror = (error) => {
       console.error("Log stream error:", error);
       authEventSource.close();
-      // 延迟后尝试重连
+      // 延迟后尝试重�?
       setTimeout(() => {
         setReconnectCount((c) => c + 1);
       }, 3000);
@@ -246,19 +307,122 @@ export default function ConsolePage() {
     });
   };
 
-  const levelBadgeStyle = (value: string, active: boolean) => {
-    const base = "text-xs px-2 py-1 rounded-md font-medium transition-colors border";
-    const styles: Record<string, string> = {
-      trace: active ? "bg-gray-500 text-white border-gray-500" : "bg-gray-100 text-gray-400 border-gray-200 dark:bg-gray-800 dark:text-gray-500 dark:border-gray-700",
-      debug: active ? "bg-purple-600 text-white border-purple-600" : "bg-purple-50 text-purple-300 border-purple-100 dark:bg-purple-950 dark:text-purple-700 dark:border-purple-900",
-      info: active ? "bg-emerald-600 text-white border-emerald-600" : "bg-emerald-50 text-emerald-300 border-emerald-100 dark:bg-emerald-950 dark:text-emerald-700 dark:border-emerald-900",
-      success: active ? "bg-green-600 text-white border-green-600" : "bg-green-50 text-green-300 border-green-100 dark:bg-green-950 dark:text-green-700 dark:border-green-900",
-      warning: active ? "bg-yellow-500 text-black border-yellow-500" : "bg-yellow-50 text-yellow-300 border-yellow-100 dark:bg-yellow-950 dark:text-yellow-700 dark:border-yellow-900",
-      error: active ? "bg-red-600 text-white border-red-600" : "bg-red-50 text-red-300 border-red-100 dark:bg-red-950 dark:text-red-700 dark:border-red-900",
-      critical: active ? "bg-rose-700 text-white border-rose-700" : "bg-rose-50 text-rose-300 border-rose-100 dark:bg-rose-950 dark:text-rose-700 dark:border-rose-900",
-    };
-    return cn(base, styles[value] || styles.info);
+  const enableAllLevels = () => {
+    setVisibleLevels(
+      new Set(
+        availableLevels
+          .filter((lv) => lv.value !== 'all')
+          .map((lv) => lv.value),
+      ),
+    );
   };
+
+  const disableAllLevels = () => {
+    setVisibleLevels(new Set());
+  };
+
+  /**
+   * 主题�?Badge 样式�?
+   * - 不再硬编�?bg-purple-600 / bg-emerald-600 �?Tailwind 颜色
+   * - 激活态：使用主题�?--primary 渐变 + 高对比前景色 + 阴影
+   * - 非激活态：低饱和度背景 + 主题色边�?+ 主题色文字（�?color-mix 让色阶跟随明暗）
+   * - 玻璃风格下叠�?backdrop-blur
+   */
+  const levelBadgeStyle = (value: string, active: boolean) => {
+    const base =
+      "group inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full " +
+      "font-medium transition-all duration-200 border select-none " +
+      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1";
+
+    // 激活态：实心主题�?+ 微阴�?
+    if (active) {
+      return cn(
+        base,
+        "shadow-sm hover:shadow-md hover:-translate-y-px",
+        isGlass && "backdrop-blur-sm",
+      );
+    }
+
+    // 非激活态：低饱和度背景 + 主题色细�?
+    return cn(
+      base,
+      "hover:-translate-y-px",
+      isGlass && "backdrop-blur-sm",
+    );
+  };
+
+  // 渲染 badge：根据激活态应用不同主题变�?
+  const renderLevelBadge = (
+    lv: { label: string; value: string },
+    active: boolean,
+  ) => {
+    // 通过 CSS 自定义属性把主题色直接注�?inline style，避免硬编码 Tailwind 颜色
+    const activeStyle: React.CSSProperties = active
+      ? {
+          backgroundColor: 'hsl(var(--primary) / 0.95)',
+          color: 'hsl(var(--primary-foreground))',
+          borderColor: 'hsl(var(--primary))',
+          boxShadow: isGlass
+            ? '0 4px 14px hsl(var(--primary) / 0.25)'
+            : '0 1px 3px hsl(var(--primary) / 0.35)',
+        }
+      : {
+          // 非激活：背景用极淡的主题色，边框/文字用主题色
+          backgroundColor: isGlass
+            ? 'hsl(var(--primary) / 0.08)'
+            : isDark
+              ? 'hsl(var(--primary) / 0.08)'
+              : 'hsl(var(--primary) / 0.06)',
+          color: isDark
+            ? 'hsl(var(--primary) / 0.85)'
+            : 'hsl(var(--primary) / 0.75)',
+          borderColor: 'hsl(var(--primary) / 0.25)',
+        };
+
+    return (
+      <button
+        key={lv.value}
+        type="button"
+        onClick={() => toggleLevel(lv.value)}
+        aria-pressed={active}
+        className={levelBadgeStyle(lv.value, active)}
+        style={activeStyle}
+      >
+        <span
+          className={cn(
+            "inline-flex items-center justify-center w-3.5 h-3.5 rounded-full border transition-colors",
+            active
+              ? "bg-primary-foreground/20 border-primary-foreground/40"
+              : "border-current/50 bg-current/10",
+          )}
+          aria-hidden="true"
+        >
+          {active ? <Check className="w-2.5 h-2.5" /> : <Minus className="w-2.5 h-2.5 opacity-70 group-hover:opacity-100 transition-opacity" />}
+        </span>
+        {lv.label}
+      </button>
+    );
+  };
+
+  // 可用级别（剔�?'all'�?
+  const renderableLevels = useMemo(
+    () =>
+      availableLevels
+        .filter((lv) => lv.value !== 'all')
+        .sort((a, b) => {
+          const idxA = LEVEL_ORDER.indexOf(a.value);
+          const idxB = LEVEL_ORDER.indexOf(b.value);
+          if (idxA === -1 && idxB === -1) return a.value.localeCompare(b.value);
+          if (idxA === -1) return 1;
+          if (idxB === -1) return -1;
+          return idxA - idxB;
+        }),
+    [availableLevels],
+  );
+
+  const allActive =
+    renderableLevels.length > 0 &&
+    renderableLevels.every((lv) => visibleLevels.has(lv.value));
 
   return (
     <div className="space-y-6 flex-1 overflow-auto p-4 sm:p-6 h-full flex flex-col">
@@ -291,28 +455,34 @@ export default function ConsolePage() {
       </div>
 
       {/* 日志级别过滤 */}
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-sm text-muted-foreground whitespace-nowrap">{t('console.levelFilter') || '日志级别'}:</span>
-        {availableLevels
-          .filter((lv) => lv.value !== 'all')
-          .sort((a, b) => {
-            const idxA = LEVEL_ORDER.indexOf(a.value);
-            const idxB = LEVEL_ORDER.indexOf(b.value);
-            if (idxA === -1 && idxB === -1) return a.value.localeCompare(b.value);
-            if (idxA === -1) return 1;
-            if (idxB === -1) return -1;
-            return idxA - idxB;
-          })
-          .map((lv) => (
-            <button
-              key={lv.value}
-              type="button"
-              onClick={() => toggleLevel(lv.value)}
-              className={levelBadgeStyle(lv.value, visibleLevels.has(lv.value))}
-            >
-              {lv.label}
-            </button>
-          ))}
+      <div
+        className={cn(
+          "flex flex-wrap items-center gap-2 p-3 rounded-xl border",
+          isGlass
+            ? "bg-white/5 border-white/15 backdrop-blur-sm"
+            : "bg-card/40 border-border/50",
+        )}
+        style={{
+          // 注入一个很淡的主题色背景渐变，让整个过滤器与主题联�?
+          backgroundImage:
+            'linear-gradient(90deg, hsl(var(--primary) / 0.04), transparent 60%)',
+        }}
+      >
+        <span className="text-sm font-medium text-muted-foreground whitespace-nowrap mr-1">
+          {t('console.levelFilter') || '日志级别'}:
+        </span>
+        {renderableLevels.map((lv) => renderLevelBadge(lv, visibleLevels.has(lv.value)))}
+        <div className="ml-auto flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2 text-xs"
+            onClick={allActive ? disableAllLevels : enableAllLevels}
+            aria-label={allActive ? t('console.deselectAll') : t('console.selectAll')}
+          >
+            {allActive ? t('console.deselectAll') : t('console.selectAll')}
+          </Button>
+        </div>
       </div>
 
       <Card className={cn(

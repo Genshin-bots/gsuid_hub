@@ -1,0 +1,36 @@
+{
+  "title": "MCP サービスとして",
+  "description": "GsCore フレームワークの to_ai トリガーを MCP Server として外部に公開し、外部 MCP クライアントが SSE/stdio プロトコル経由で接続してすべてのトリガーツールを呼び出せるようにします。",
+  "configCard": {
+    "title": "サーバー設定",
+    "description": "「GsCore AI MCP Server」設定項目を編集します。保存後すぐに有効になり、再起動は不要です。"
+  },
+  "apiKeyCard": {
+    "title": "認証ヘッダー例",
+    "description": "SSE モードを利用する場合に、外部 MCP クライアントがリクエストに含める必要がある Authorization ヘッダーです。",
+    "empty": "（現在 API Key は設定されていないため、認証は無効です）"
+  },
+  "status": {
+    "enable": "サービス状態",
+    "transport": "通信プロトコル",
+    "auth": "認証",
+    "endpoints": "接続情報",
+    "enabled": "有効",
+    "disabled": "無効",
+    "authEnabled": "有効",
+    "authDisabled": "無効"
+  },
+  "banner": {
+    "activeTitle": "MCP Server は現在有効です",
+    "activeDesc": "外部 MCP クライアントは上記のプロトコルとポートで接続できます。通信プロトコルや API Key を変更した後は、必ず「保存」をクリックしてから使用してください。"
+  },
+  "actions": {
+    "refresh": "更新"
+  },
+  "empty": "GsCore AI MCP Server 設定が見つかりません。バックエンドがこの設定を正しく読み込んでいるか確認してください。",
+  "noChanges": "設定に変更がないため、保存する必要はありません。",
+  "loadFailed": "GsCore AI MCP Server 設定の読み込みに失敗しました",
+  "saveSuccess": "GsCore AI MCP Server 設定を保存しました",
+  "saveFailed": "GsCore AI MCP Server 設定の保存に失敗しました",
+  "footnote": "注意：通信プロトコルが stdio の場合、ポートと API Key は無効になります。MCP クライアントは GsCore プロセスと標準入出力で通信します。"
+}

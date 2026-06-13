@@ -8,5 +8,7 @@
   "clear": "クリア",
   "commandPlaceholder": "入力コマンド...",
   "commandFailed": "コマンド実行失敗",
-  "levelFilter": "ログレベル"
+  "levelFilter": "ログレベル",
+  "selectAll": "すべて選択",
+  "deselectAll": "すべて解除"
 }
