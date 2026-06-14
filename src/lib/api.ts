@@ -2,10 +2,25 @@
  * API Client for GsCore Backend
  * Provides typed API calls for the frontend
  */
+import {
+  encryptAuthPayload,
+  fetchAuthPubkey,
+  clearAuthPubkeyCache,
+  probeAuthEncryption,
+  type EncryptedPayload,
+} from './authCrypto';
 
 // Base URL - empty string means relative to current origin
 // Can be customized by user in settings (e.g., 127.0.0.1:8765)
 let API_BASE = '';
+
+// ===================
+// Auth encryption support
+// ===================
+// 探测后端是否支持加密认证。`null` 表示尚未探测，
+// 第一次认证请求时会先尝试加密，失败再回落到明文，
+// 同时缓存探测结果以决定后续走加密还是明文。
+let authEncryptionSupported: boolean | null = null;
 
 // Initialize API_BASE from localStorage
 if (typeof window !== 'undefined') {
@@ -31,6 +46,9 @@ export function setCustomApiHost(host: string): void {
   API_BASE = host;
   // Update the api instance's baseUrl
   api.setBaseUrl(host);
+  // 切换后端地址时，把认证加密相关缓存清掉，避免复用旧公钥
+  clearAuthPubkeyCache();
+  authEncryptionSupported = null;
   if (host) {
     localStorage.setItem('custom_api_host', host);
   } else {
@@ -1424,12 +1442,95 @@ export const databaseApi = {
 // Auth APIs
 // ===================
 
+/**
+ * 发送认证请求的统一入口。
+ *
+ * 行为（对齐后端 §1「加密是强制的、无开关、无明文兼容」）：
+ *  1. 取服务端公钥（5 分钟内复用缓存）。
+ *  2. 用 X25519 ECDH + HKDF-SHA256 派生 AES 密钥，加密 payload。
+ *  3. POST 加密信封到 `endpoint`。
+ *  4. **任何**失败（业务拒绝 / 公钥轮换撞空窗 / 时钟漂移 / 网络）：
+ *     清缓存 + 强制重拉公钥 + 重新加密 + 重试**一次**。
+ *  5. 重试仍失败时**抛出错误**，把后端返回的真实 `msg`（如「注册码错误」、
+ *     「请校准系统时间」等）原样透传到 UI。
+ *
+ *  ⚠️ **绝不**回退到明文：后端已强制不接受任何明文认证报文；前端
+ *     若再发一次明文既浪费一次限流配额、又会让 DevTools 里出现
+ *     「明文 = 没加密」的误导观感。
+ *
+ *  `authEncryptionSupported` 仅作为「上一次加密是否成功」的诊断标记保留
+ *  （成功置 `true`，失败置 `false`），不再用作是否走明文的判据。
+ */
+async function postAuthRequest<T>(
+  endpoint: string,
+  payload: Record<string, unknown>
+): Promise<T> {
+  // 第一次尝试：使用（可能缓存的）公钥
+  let firstReason: string;
+  try {
+    const { key } = await fetchAuthPubkey(getCustomApiHost());
+    const encPayload: EncryptedPayload = encryptAuthPayload(payload, key);
+    const result = await api.post<T>(
+      endpoint,
+      encPayload as unknown as Record<string, unknown>,
+    );
+    authEncryptionSupported = true;
+    return result;
+  } catch (err) {
+    firstReason = err instanceof Error ? err.message : String(err);
+  }
+
+  // 重试一次：清缓存 + 强制重拉公钥 + 重新加密
+  // 用以应对后端密钥轮换撞空窗、公钥陈旧等情况。
+  try {
+    const { key } = await fetchAuthPubkey(getCustomApiHost(), true);
+    const encPayload: EncryptedPayload = encryptAuthPayload(payload, key);
+    const result = await api.post<T>(
+      endpoint,
+      encPayload as unknown as Record<string, unknown>,
+    );
+    authEncryptionSupported = true;
+    return result;
+  } catch (retryErr) {
+    const retryReason = retryErr instanceof Error ? retryErr.message : String(retryErr);
+    authEncryptionSupported = false;
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[authCrypto] Encrypted auth request to ${endpoint} failed ` +
+        `(first: ${firstReason}; retry: ${retryReason}); ` +
+        `not falling back to plaintext because backend mandates encryption.`,
+    );
+    // 抛出最后一次的错误，保持错误信息透明（业务拒绝的 msg / 时钟漂移提示等）
+    throw retryErr instanceof Error ? retryErr : new Error(retryReason);
+  }
+}
+
 export const authApi = {
   login: (email: string, password: string) =>
-    api.post<{ user: User; token: string }>('/api/auth/login', { email, password }),
+    postAuthRequest<{ user: User; token: string }>('/api/auth/login', {
+      email,
+      password,
+    }),
 
-  register: (name: string, email: string, password: string, registerCode: string = '', isAdmin: boolean = false) =>
-    api.post<{ user: User; token: string; status: number; msg: string }>('/api/auth/register', { name, email, password, register_code: registerCode, is_admin: isAdmin }),
+  register: (
+    name: string,
+    email: string,
+    password: string,
+    registerCode: string = '',
+    isAdmin: boolean = false
+  ) =>
+    postAuthRequest<{
+      user: User;
+      token: string;
+      status: number;
+      msg: string;
+    }>('/api/auth/register', {
+      name,
+      email,
+      password,
+      register_code: registerCode,
+      is_admin: isAdmin,
+    }),
 
   logout: () =>
     api.post<void>('/api/auth/logout'),
@@ -1472,8 +1573,21 @@ export const authApi = {
     api.post<{ name: string }>('/api/auth/name', { name }),
 
   updatePassword: (oldPassword: string, newPassword: string) =>
-    api.post<void>('/api/auth/password', { old_password: oldPassword, new_password: newPassword }),
+    postAuthRequest<void>('/api/auth/password', {
+      old_password: oldPassword,
+      new_password: newPassword,
+    }),
 };
+
+/**
+ * 暴露给 UI 层的诊断能力。
+ * 返回当前后端是否支持加密认证（探测一次并缓存结果）。
+ */
+export async function probeBackendAuthEncryption(): Promise<boolean> {
+  if (authEncryptionSupported !== null) return authEncryptionSupported;
+  authEncryptionSupported = await probeAuthEncryption(getCustomApiHost());
+  return authEncryptionSupported;
+}
 
 // ===================
 // Assets APIs
@@ -2053,14 +2167,65 @@ export interface AIKnowledgeUpdateRequest {
   tags?: string[];
 }
 
+// ===================
+// Bulk Import / Doc-level APIs
+// ===================
+
+export interface AIKnowledgeBulkItem {
+  content: string;
+}
+
+export interface AIKnowledgeBulkRequest {
+  title: string;
+  doc_id?: string;
+  full_text?: string;
+  items?: AIKnowledgeBulkItem[];
+  tags?: string[];
+  plugin?: string;
+  chunk_size?: number;
+  chunk_overlap?: number;
+  replace?: boolean;
+}
+
+export interface AIKnowledgeBulkResponse {
+  doc_id: string;
+  total_chunks: number;
+  written: number;
+  skipped: number;
+}
+
+export interface AIKnowledgeDocDeleteResponse {
+  doc_id: string;
+  deleted_chunks: number;
+}
+
+export interface AIKnowledgeBackupRecord {
+  id?: string;
+  doc_id?: string;
+  chunk_index?: number;
+  plugin?: string;
+  title?: string;
+  content: string;
+  tags?: string[];
+  source?: string;
+}
+
+export interface AIKnowledgeBackupResponse {
+  total: number;
+  written: number;
+  skipped: number;
+}
+
+
 export const aiKnowledgeApi = {
   // 获取知识库列表（分页�?
-  getKnowledgeList: (params: { offset?: number; limit?: number; source?: string; page?: number } = {}) => {
+  getKnowledgeList: (params: { offset?: number; limit?: number; source?: string; page?: number; doc_id?: string } = {}) => {
     const query = new URLSearchParams();
     if (params.page !== undefined) query.set('page', String(params.page));
     if (params.offset !== undefined) query.set('offset', String(params.offset));
     if (params.limit !== undefined) query.set('limit', String(params.limit));
     if (params.source) query.set('source', params.source);
+    if (params.doc_id) query.set('doc_id', params.doc_id);
     return api.get<AIKnowledgeListResponse>(`/api/ai/knowledge/list?${query.toString()}`);
   },
 
@@ -2088,6 +2253,47 @@ export const aiKnowledgeApi = {
     params.set('source', source);
     return api.get<AIKnowledgeSearchResponse>(`/api/ai/knowledge/search?${params.toString()}`);
   },
+
+  // 批量导入（服务端自动分片）
+  bulkImport: (data: AIKnowledgeBulkRequest) =>
+    api.post<AIKnowledgeBulkResponse>('/api/ai/knowledge/bulk', data),
+
+  // 删除整篇文档（按 doc_id）
+  deleteDoc: (docId: string) =>
+    api.delete<AIKnowledgeDocDeleteResponse>(
+      `/api/ai/knowledge/doc/${encodeURIComponent(docId)}`
+    ),
+
+  // 导出全部手动知识（JSONL 文件下载）
+  exportBackup: async (): Promise<Blob> => {
+    const url = `${getCustomApiHost()}/api/ai/knowledge/backup/export`;
+    const token = getAuthToken();
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      let msg = `HTTP Error: ${response.status}`;
+      try {
+        const txt = await response.text();
+        try {
+          const j = JSON.parse(txt);
+          if (j && j.msg) msg = j.msg;
+        } catch {
+          if (txt) msg = txt;
+        }
+      } catch {
+        /* ignore */
+      }
+      throw new Error(msg);
+    }
+    return response.blob();
+  },
+
+  // 导入恢复（从备份 records 或 jsonl）
+  importBackup: (data: { records?: AIKnowledgeBackupRecord[]; jsonl?: string }) =>
+    api.post<AIKnowledgeBackupResponse>('/api/ai/knowledge/backup/import', data),
 };
 
 // ===================

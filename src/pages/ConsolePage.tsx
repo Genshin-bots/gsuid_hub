@@ -8,15 +8,23 @@ import { remoteCommandApi, logsApi } from "@/lib/api";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { cn } from "@/lib/utils";
-import { ConsolePanel, LogEntry } from "@/components/ConsolePanel";
+import { ConsolePanel, LogEntry, buildLogAnchor, computeLineCount } from "@/components/ConsolePanel";
 
 let logCounter = 0;
+
+/**
+ * setLogVersion 节流间隔（毫秒）。
+ * 限频的目的不是丢日志（ref 依然全部保留），
+ * 而是避免 SSE 高频推送时每帧都触发 React 重渲染，
+ * 导致虚拟化器反复重测、DOM 重建、鼠标 hover / 选区丢失。
+ */
+const LOG_VERSION_THROTTLE_MS = 100;
 
 const LEVEL_ORDER = ["trace", "debug", "info", "success", "warning", "error", "critical"];
 
 const VISIBLE_LEVELS_STORAGE_KEY = "console_visible_levels";
 
-// 持久化读�?写入：使�?localStorage 实现跨刷新记�?
+// 持久化读�?写入：使�?localStorage 实现跨刷新记�?
 function loadVisibleLevelsFromStorage(): string[] | null {
   try {
     const raw = localStorage.getItem(VISIBLE_LEVELS_STORAGE_KEY);
@@ -52,10 +60,40 @@ export default function ConsolePage() {
   const isGlass = style === 'glassmorphism';
   const isDark = mode === 'dark';
 
-  // 数据存在 ref 中，避免 React 遍历大数�?
+  // 数据存在 ref 中，避免 React 遍历大数�?
   const allLogsRef = useRef<LogEntry[]>([]);
   const [logVersion, setLogVersion] = useState(0);
   const [reconnectCount, setReconnectCount] = useState(0);
+
+  // 节流：避免高额 SSE 推送每帧都触发重渲染。
+  // - logs 始终存在 allLogsRef 里，不会丢失
+  // - 只有在间隔期满后，才通过 logVersion 通知 React 重新计算 filteredLogs
+  const pendingVersionFlushRef = useRef<number | null>(null);
+  const lastVersionFlushAtRef = useRef<number>(0);
+  const scheduleLogVersionFlush = useCallback(() => {
+    const now = Date.now();
+    const sinceLast = now - lastVersionFlushAtRef.current;
+    if (sinceLast >= LOG_VERSION_THROTTLE_MS) {
+      lastVersionFlushAtRef.current = now;
+      setLogVersion((v) => v + 1);
+      return;
+    }
+    if (pendingVersionFlushRef.current != null) return;
+    pendingVersionFlushRef.current = window.setTimeout(() => {
+      pendingVersionFlushRef.current = null;
+      lastVersionFlushAtRef.current = Date.now();
+      setLogVersion((v) => v + 1);
+    }, LOG_VERSION_THROTTLE_MS - sinceLast);
+  }, []);
+  // 卸载时清理节流定时器
+  useEffect(() => {
+    return () => {
+      if (pendingVersionFlushRef.current != null) {
+        clearTimeout(pendingVersionFlushRef.current);
+        pendingVersionFlushRef.current = null;
+      }
+    };
+  }, []);
 
   const [input, setInput] = useState("");
   const [commandHistory, setCommandHistory] = useState<string[]>([]);
@@ -66,7 +104,7 @@ export default function ConsolePage() {
   const [visibleLevels, setVisibleLevels] = useState<Set<string>>(
     () => new Set<string>(['debug', 'info', 'error']),
   );
-  // 标记是否已应用过持久化数据，避免在拿到后�?levels 后被默认值覆�?
+  // 标记是否已应用过持久化数据，避免在拿到后�?levels 后被默认值覆�?
   const initializedRef = useRef(false);
 
   const filteredLogs = useMemo(() => {
@@ -75,6 +113,12 @@ export default function ConsolePage() {
     }
     return allLogsRef.current.filter((log) => visibleLevels.has(log.type));
   }, [logVersion, visibleLevels]);
+
+  // 注意：
+  // - filteredLogs 每次 useMemo 都是新数组引用，
+  //   但 ConsolePanel 内部靠 anchor key 能复用 DOM，鼠标位置不会丢。
+  // - ConsolePanel 会根据前后 anchor 集合差集判断是否发生了“真正过滤”，
+  //   只有在过滤时才暂存顶部 anchor 并恢复，避免干扰 autoScroll 滚到底。
 
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -96,7 +140,7 @@ export default function ConsolePage() {
       // 1) 优先尝试 localStorage 中的持久化选择
       const persisted = loadVisibleLevelsFromStorage();
       if (persisted && persisted.length > 0) {
-        // 仅保留后端实际提供的级别，防止新�?删除级别后出现幽灵选项
+        // 仅保留后端实际提供的级别，防止新�?删除级别后出现幽灵选项
         const validValues = new Set(levels.map((lv) => lv.value));
         const filtered = persisted.filter((v) => validValues.has(v) && v !== 'all');
         if (filtered.length > 0) {
@@ -114,7 +158,7 @@ export default function ConsolePage() {
         }
       });
       if (defaults.size === 0 && levels.length > 0) {
-        // 后端未提供默认三档时，至少选中第一�?
+        // 后端未提供默认三档时，至少选中第一�?
         defaults.add(levels[0].value);
       }
       setVisibleLevels(defaults);
@@ -129,7 +173,7 @@ export default function ConsolePage() {
       });
   }, []);
 
-  // 持久化：visibleLevels 变化时写�?localStorage
+  // 持久化：visibleLevels 变化时写�?localStorage
   useEffect(() => {
     if (!initializedRef.current) return;
     saveVisibleLevelsToStorage(visibleLevels);
@@ -160,17 +204,23 @@ export default function ConsolePage() {
           case "critical": logType = "critical"; break;
         }
 
+        const ts = new Date(logData.timestamp);
+        const content = logData.message;
         allLogsRef.current.push({
           id: (++logCounter).toString(),
           type: logType,
-          content: logData.message,
-          timestamp: new Date(logData.timestamp),
+          content,
+          timestamp: ts,
+          anchor: buildLogAnchor(ts, content),
+          // 预算行数（按 \n 拆分），让虚拟化器初次布局就拿到正确行高
+          lineCount: computeLineCount(content),
         });
-        // 限制最大条�?
+        // 限制最大条�?
         if (allLogsRef.current.length > 2000) {
           allLogsRef.current = allLogsRef.current.slice(-2000);
         }
-        setLogVersion((v) => v + 1);
+        // 节流后通知 React，不要每条都重渲染
+        scheduleLogVersionFlush();
       } catch (e) {
         console.error("Failed to parse log message:", e);
       }
@@ -179,7 +229,7 @@ export default function ConsolePage() {
     authEventSource.onerror = (error) => {
       console.error("Log stream error:", error);
       authEventSource.close();
-      // 延迟后尝试重�?
+      // 延迟后尝试重�?
       setTimeout(() => {
         setReconnectCount((c) => c + 1);
       }, 3000);
@@ -191,12 +241,24 @@ export default function ConsolePage() {
   }, [reconnectCount]);
 
   const addLogs = useCallback((entries: LogEntry[]) => {
-    allLogsRef.current.push(...entries);
+    if (entries.length === 0) return;
+    // 补齐 anchor 与 lineCount：
+    // - anchor：用于过滤切换 / 新日志到达时精确定位
+    // - lineCount：用于虚拟化器在初次布局时预估多行内容的行高，
+    //   避免多行日志（异常堆栈 / 多行输出）与下一条日志重叠
+    const stamped = entries.map((e) => {
+      const lineCount =
+        e.lineCount ?? (typeof e.content === 'string' ? computeLineCount(e.content) : 1);
+      return e.anchor
+        ? { ...e, lineCount }
+        : { ...e, anchor: buildLogAnchor(e.timestamp, e.content), lineCount };
+    });
+    allLogsRef.current.push(...stamped);
     if (allLogsRef.current.length > 2000) {
       allLogsRef.current = allLogsRef.current.slice(-2000);
     }
-    setLogVersion((v) => v + 1);
-  }, []);
+    scheduleLogVersionFlush();
+  }, [scheduleLogVersionFlush]);
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
@@ -218,7 +280,7 @@ export default function ConsolePage() {
 
       if (command.toLowerCase() === "clear") {
         allLogsRef.current = [];
-        setLogVersion((v) => v + 1);
+        scheduleLogVersionFlush();
         return;
       }
 
@@ -279,7 +341,8 @@ export default function ConsolePage() {
 
   const clearLogs = () => {
     allLogsRef.current = [];
-    setLogVersion((v) => v + 1);
+    // 清空后仍走节流通知 React，避免其他竞态写入被压制
+    scheduleLogVersionFlush();
   };
 
   const exportLogs = () => {
@@ -322,11 +385,11 @@ export default function ConsolePage() {
   };
 
   /**
-   * 主题�?Badge 样式�?
-   * - 不再硬编�?bg-purple-600 / bg-emerald-600 �?Tailwind 颜色
-   * - 激活态：使用主题�?--primary 渐变 + 高对比前景色 + 阴影
-   * - 非激活态：低饱和度背景 + 主题色边�?+ 主题色文字（�?color-mix 让色阶跟随明暗）
-   * - 玻璃风格下叠�?backdrop-blur
+   * 主题�?Badge 样式�?
+   * - 不再硬编�?bg-purple-600 / bg-emerald-600 �?Tailwind 颜色
+   * - 激活态：使用主题�?--primary 渐变 + 高对比前景色 + 阴影
+   * - 非激活态：低饱和度背景 + 主题色边�?+ 主题色文字（�?color-mix 让色阶跟随明暗）
+   * - 玻璃风格下叠�?backdrop-blur
    */
   const levelBadgeStyle = (value: string, active: boolean) => {
     const base =
@@ -334,7 +397,7 @@ export default function ConsolePage() {
       "font-medium transition-all duration-200 border select-none " +
       "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1";
 
-    // 激活态：实心主题�?+ 微阴�?
+    // 激活态：实心主题�?+ 微阴�?
     if (active) {
       return cn(
         base,
@@ -343,7 +406,7 @@ export default function ConsolePage() {
       );
     }
 
-    // 非激活态：低饱和度背景 + 主题色细�?
+    // 非激活态：低饱和度背景 + 主题色细�?
     return cn(
       base,
       "hover:-translate-y-px",
@@ -351,12 +414,12 @@ export default function ConsolePage() {
     );
   };
 
-  // 渲染 badge：根据激活态应用不同主题变�?
+  // 渲染 badge：根据激活态应用不同主题变�?
   const renderLevelBadge = (
     lv: { label: string; value: string },
     active: boolean,
   ) => {
-    // 通过 CSS 自定义属性把主题色直接注�?inline style，避免硬编码 Tailwind 颜色
+    // 通过 CSS 自定义属性把主题色直接注�?inline style，避免硬编码 Tailwind 颜色
     const activeStyle: React.CSSProperties = active
       ? {
           backgroundColor: 'hsl(var(--primary) / 0.95)',
@@ -404,7 +467,7 @@ export default function ConsolePage() {
     );
   };
 
-  // 可用级别（剔�?'all'�?
+  // 可用级别（剔�?'all'�?
   const renderableLevels = useMemo(
     () =>
       availableLevels
@@ -463,7 +526,7 @@ export default function ConsolePage() {
             : "bg-card/40 border-border/50",
         )}
         style={{
-          // 注入一个很淡的主题色背景渐变，让整个过滤器与主题联�?
+          // 注入一个很淡的主题色背景渐变，让整个过滤器与主题联�?
           backgroundImage:
             'linear-gradient(90deg, hsl(var(--primary) / 0.04), transparent 60%)',
         }}

@@ -6,13 +6,10 @@
   "filterAll": "すべて",
   "filterByCategory": "で分類",
   "filterByPlugin": "でプラグイン",
-  "category": "分類",
-  "plugin": "プラグイン",
   "allCategories": "すべて分類",
   "allPlugins": "すべてプラグイン",
   "selectCategory": "選択分類",
   "selectPlugin": "選択プラグイン",
   "toolCount": "表示 {count} / {total} 個ツール",
-  "search": "検索",
   "searchPlaceholder": "入力ツール名前または説明主要词..."
 }

@@ -12,6 +12,14 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { InputWithDropdown } from '@/components/ui/input-with-dropdown';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   Dialog,
   DialogContent,
@@ -51,6 +59,11 @@ import {
   ZoomIn,
   ZoomOut,
   Maximize2,
+  ListChecks,
+  Pencil,
+  Save,
+  Power,
+  X,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { api, agentDebugApi, AgentDebugMemoryConflict, AgentDebugMemoryEdge } from '@/lib/api';
@@ -172,6 +185,22 @@ interface PaginatedResponse<T> {
   page_size: number;
 }
 
+interface Preference {
+  id: string;
+  scope_key: string;
+  user_id: string;
+  target_context: string;
+  preference_rule: string;
+  polarity: 'do' | 'dont';
+  is_correction: boolean;
+  is_active: boolean;
+  mention_count: number;
+  source_episode_id: string | null;
+  created_at: string;
+  updated_at: string;
+  last_applied_at: string | null;
+}
+
 // ============================================================================
 // API
 // ============================================================================
@@ -254,6 +283,35 @@ const memoryApi = {
       deleted_edges: number;
       deleted_categories: number;
     }>('/api/ai/memory/clear', params),
+  getPreferences: (params: {
+    scope_key?: string;
+    user_id?: string;
+    target_context?: string;
+    is_correction?: boolean;
+    polarity?: 'do' | 'dont';
+    is_active?: boolean;
+    all_scopes?: boolean;
+    page?: number;
+    page_size?: number;
+  }) => {
+    const query = new URLSearchParams();
+    if (params.scope_key) query.set('scope_key', params.scope_key);
+    if (params.user_id) query.set('user_id', params.user_id);
+    if (params.target_context) query.set('target_context', params.target_context);
+    if (params.is_correction !== undefined) query.set('is_correction', String(params.is_correction));
+    if (params.polarity) query.set('polarity', params.polarity);
+    if (params.is_active !== undefined) query.set('is_active', String(params.is_active));
+    if (params.all_scopes) query.set('all_scopes', 'true');
+    if (params.page) query.set('page', String(params.page));
+    if (params.page_size) query.set('page_size', String(params.page_size));
+    return api.get<PaginatedResponse<Preference>>(`/api/ai/memory/preferences?${query.toString()}`);
+  },
+  getPreferenceDetail: (prefId: string) =>
+    api.get<Preference>(`/api/ai/memory/preferences/${prefId}`),
+  updatePreference: (prefId: string, data: Partial<Pick<Preference, 'preference_rule' | 'polarity' | 'target_context' | 'is_active'>>) =>
+    api.patch<Preference>(`/api/ai/memory/preferences/${prefId}`, data),
+  deletePreference: (prefId: string) =>
+    api.delete<null>(`/api/ai/memory/preferences/${prefId}`),
 };
 
 // ============================================================================
@@ -1160,6 +1218,19 @@ export default function AIMemoryPage() {
   const [clearMemoryLoading, setClearMemoryLoading] = useState(false);
   const [dialogType, setDialogType] = useState<'episode' | 'entity' | 'edge' | 'category'>('episode');
 
+  // Preferences state
+  const [preferences, setPreferences] = useState<Preference[]>([]);
+  const [totalPreferences, setTotalPreferences] = useState(0);
+  const [preferencePage, setPreferencePage] = useState(1);
+  const [isLoadingPreferences, setIsLoadingPreferences] = useState(false);
+  const [preferenceFilter, setPreferenceFilter] = useState<'all' | 'active' | 'inactive' | 'correction'>('all');
+  const [preferencePolarityFilter, setPreferencePolarityFilter] = useState<'all' | 'do' | 'dont'>('all');
+  const [editingPreference, setEditingPreference] = useState<Preference | null>(null);
+  const [editingPreferenceDraft, setEditingPreferenceDraft] = useState<{ preference_rule: string; polarity: 'do' | 'dont'; target_context: string; is_active: boolean } | null>(null);
+  const [savingPreference, setSavingPreference] = useState(false);
+  const [deletingPreference, setDeletingPreference] = useState<Preference | null>(null);
+  const [deletingPreferenceLoading, setDeletingPreferenceLoading] = useState(false);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -1330,7 +1401,16 @@ export default function AIMemoryPage() {
     fetchEdges(1, scope);
     fetchCategories(1, scope);
     if (activeTab === 'debug') fetchDebugMemory(scope);
+    if (activeTab === 'preferences') fetchPreferences(1, scope);
   };
+
+  // Lazy-load preferences when entering the tab so initial mount stays cheap
+  useEffect(() => {
+    if (activeTab === 'preferences' && preferences.length === 0 && !isLoadingPreferences) {
+      fetchPreferences(1);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
 
   const handleDeleteScope = async (scopeKey: string) => {
     if (!confirm(t('aiMemory.confirmDeleteScope'))) return;
@@ -1375,6 +1455,108 @@ export default function AIMemoryPage() {
       const statsData = await memoryApi.getStats();
       if (statsData) setStats(statsData);
     } catch (error) { const errorMsg = error instanceof Error ? error.message : ''; toast.error(errorMsg ? `${t('aiMemory.deleteFailed')}: ${errorMsg}` : t('aiMemory.deleteFailed')); }
+  };
+
+  const fetchPreferences = async (page = 1, scopeOverride?: string) => {
+    try {
+      setIsLoadingPreferences(true);
+      const scope = scopeOverride ?? selectedScope;
+      const params: {
+        page: number;
+        page_size: number;
+        scope_key?: string;
+        all_scopes?: boolean;
+        is_active?: boolean;
+        is_correction?: boolean;
+        polarity?: 'do' | 'dont';
+      } = { page, page_size: 20 };
+      if (scope !== 'all') {
+        params.scope_key = scope;
+      } else {
+        params.all_scopes = true;
+      }
+      if (preferenceFilter === 'active') params.is_active = true;
+      if (preferenceFilter === 'inactive') params.is_active = false;
+      if (preferenceFilter === 'correction') params.is_correction = true;
+      if (preferencePolarityFilter !== 'all') params.polarity = preferencePolarityFilter;
+      const data = await memoryApi.getPreferences(params);
+      setPreferences(data.items);
+      setTotalPreferences(data.total);
+      setPreferencePage(page);
+    } catch {
+      toast.error(t('aiMemory.loadPreferencesFailed'));
+    } finally {
+      setIsLoadingPreferences(false);
+    }
+  };
+
+  const startEditPreference = (pref: Preference) => {
+    setEditingPreference(pref);
+    setEditingPreferenceDraft({
+      preference_rule: pref.preference_rule,
+      polarity: pref.polarity,
+      target_context: pref.target_context,
+      is_active: pref.is_active,
+    });
+  };
+
+  const cancelEditPreference = () => {
+    setEditingPreference(null);
+    setEditingPreferenceDraft(null);
+  };
+
+  const saveEditPreference = async () => {
+    if (!editingPreference || !editingPreferenceDraft) return;
+    try {
+      setSavingPreference(true);
+      const updated = await memoryApi.updatePreference(editingPreference.id, editingPreferenceDraft);
+      toast.success(t('aiMemory.preferenceUpdated'));
+      setEditingPreference(updated);
+      setEditingPreferenceDraft({
+        preference_rule: updated.preference_rule,
+        polarity: updated.polarity,
+        target_context: updated.target_context,
+        is_active: updated.is_active,
+      });
+      await fetchPreferences(preferencePage);
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : '';
+      toast.error(errorMsg ? `${t('aiMemory.preferenceUpdateFailed')}: ${errorMsg}` : t('aiMemory.preferenceUpdateFailed'));
+    } finally {
+      setSavingPreference(false);
+    }
+  };
+
+  const togglePreferenceActive = async (pref: Preference) => {
+    try {
+      const updated = await memoryApi.updatePreference(pref.id, { is_active: !pref.is_active });
+      toast.success(t('aiMemory.preferenceUpdated'));
+      // Reflect change in local list immediately
+      setPreferences((prev) => prev.map((p) => (p.id === pref.id ? updated : p)));
+      if (editingPreference?.id === pref.id) {
+        setEditingPreference(updated);
+        setEditingPreferenceDraft((d) => (d ? { ...d, is_active: updated.is_active } : d));
+      }
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : '';
+      toast.error(errorMsg ? `${t('aiMemory.preferenceUpdateFailed')}: ${errorMsg}` : t('aiMemory.preferenceUpdateFailed'));
+    }
+  };
+
+  const confirmDeletePreference = async () => {
+    if (!deletingPreference) return;
+    try {
+      setDeletingPreferenceLoading(true);
+      await memoryApi.deletePreference(deletingPreference.id);
+      toast.success(t('aiMemory.preferenceDeleted'));
+      setDeletingPreference(null);
+      await fetchPreferences(preferencePage);
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : '';
+      toast.error(errorMsg ? `${t('aiMemory.deleteFailed')}: ${errorMsg}` : t('aiMemory.deleteFailed'));
+    } finally {
+      setDeletingPreferenceLoading(false);
+    }
   };
 
   const openDetailDialog = async (type: 'episode' | 'entity' | 'edge' | 'category', id: string) => {
@@ -1495,6 +1677,7 @@ export default function AIMemoryPage() {
         onValueChange={setActiveTab}
         options={[
           { value: 'graph', label: t('aiMemory.tabGraph'), icon: <Network className="w-4 h-4" /> },
+          { value: 'preferences', label: t('aiMemory.tabPreferences'), icon: <ListChecks className="w-4 h-4" /> },
           { value: 'scopes', label: t('aiMemory.tabScopes'), icon: <Globe className="w-4 h-4" /> },
           { value: 'episodes', label: t('aiMemory.tabEpisodes'), icon: <MessageSquare className="w-4 h-4" /> },
           { value: 'entities', label: t('aiMemory.tabEntities'), icon: <Brain className="w-4 h-4" /> },
@@ -1543,6 +1726,189 @@ export default function AIMemoryPage() {
               onNodeClick={(type, id) => openDetailDialog(type, id)}
             />
           )}
+      </div>
+      )}
+
+      {/* Preferences Tab */}
+      {activeTab === 'preferences' && (
+      <div className="space-y-4">
+        <div className={cn('rounded-lg p-3 text-sm', isGlass ? 'glass-card' : 'border border-border/50 bg-card')}>
+          <div className="flex items-start gap-2">
+            <ListChecks className="w-4 h-4 mt-0.5 text-primary shrink-0" />
+            <div className="space-y-1">
+              <p className="font-medium">{t('aiMemory.tabPreferences')}</p>
+              <p className="text-muted-foreground">{t('aiMemory.preferencesDescription')}</p>
+              <p className="text-xs text-muted-foreground">{t('aiMemory.preferencesHint')}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <p className="text-sm text-muted-foreground">{t('aiMemory.preferenceCount', { count: preferences.length, total: totalPreferences })}</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <ScopeSelector
+              value={selectedScope}
+              onChange={handleScopeChange}
+              scopes={scopes}
+              allLabel={t('aiMemory.preferenceScopeAll')}
+              className="w-[180px] h-9"
+            />
+            <Select value={preferenceFilter} onValueChange={(v) => { setPreferenceFilter(v as typeof preferenceFilter); setPreferencePage(1); setTimeout(() => fetchPreferences(1), 0); }}>
+              <SelectTrigger className="h-9 w-[140px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t('aiMemory.preferenceFilterAll')}</SelectItem>
+                <SelectItem value="active">{t('aiMemory.preferenceFilterActive')}</SelectItem>
+                <SelectItem value="inactive">{t('aiMemory.preferenceFilterInactive')}</SelectItem>
+                <SelectItem value="correction">{t('aiMemory.preferenceFilterCorrection')}</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={preferencePolarityFilter} onValueChange={(v) => { setPreferencePolarityFilter(v as typeof preferencePolarityFilter); setPreferencePage(1); setTimeout(() => fetchPreferences(1), 0); }}>
+              <SelectTrigger className="h-9 w-[120px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t('aiMemory.preferenceFilterAll')}</SelectItem>
+                <SelectItem value="do">{t('aiMemory.preferenceFilterDo')}</SelectItem>
+                <SelectItem value="dont">{t('aiMemory.preferenceFilterDont')}</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button variant="outline" size="sm" className="h-9" onClick={() => fetchPreferences(preferencePage)}>
+              <RefreshCw className="w-4 h-4 mr-1" />{t('common.refresh')}
+            </Button>
+          </div>
+        </div>
+
+        {isLoadingPreferences ? (
+          <div className="space-y-2">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-24 w-full" />)}</div>
+        ) : preferences.length === 0 ? (
+          <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
+            <CardContent className="flex flex-col items-center justify-center p-8 text-muted-foreground">
+              <ListChecks className="w-12 h-12 mb-4 opacity-50" />
+              <p>{t('aiMemory.noPreferences')}</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-2">
+            {preferences.map((pref) => {
+              const isEditing = editingPreference?.id === pref.id;
+              const draft = isEditing ? editingPreferenceDraft : null;
+              const ruleText = draft?.preference_rule ?? pref.preference_rule;
+              const polarity = draft?.polarity ?? pref.polarity;
+              const ctx = draft?.target_context ?? pref.target_context;
+              const active = draft?.is_active ?? pref.is_active;
+              return (
+                <Card key={pref.id} className={cn('transition-all', isGlass ? 'glass-card' : 'border border-border/50', !pref.is_active && 'opacity-70')}>
+                  <CardContent className="p-4 space-y-3">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="flex flex-wrap items-center gap-2 min-w-0">
+                        <Badge variant={pref.is_correction ? 'default' : 'secondary'}>
+                          {pref.is_correction ? t('aiMemory.preferenceCorrection') : polarity === 'do' ? t('aiMemory.preferencePolarityDo') : t('aiMemory.preferencePolarityDont')}
+                        </Badge>
+                        <Badge variant={pref.is_active ? 'outline' : 'destructive'}>
+                          {pref.is_active ? t('aiMemory.preferenceActive') : t('aiMemory.preferenceInactive')}
+                        </Badge>
+                        <Badge variant="outline" className="font-mono text-xs">{pref.target_context}</Badge>
+                        <span className="font-mono text-xs text-muted-foreground truncate">{pref.id}</span>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-1 shrink-0">
+                        <Button variant="ghost" size="sm" onClick={() => togglePreferenceActive(pref)} title={pref.is_active ? t('aiMemory.preferenceDisable') : t('aiMemory.preferenceEnable')}>
+                          <Power className={cn('w-4 h-4', pref.is_active ? 'text-amber-500' : 'text-emerald-500')} />
+                        </Button>
+                        {isEditing ? (
+                          <>
+                            <Button variant="default" size="sm" disabled={savingPreference} onClick={saveEditPreference}>
+                              {savingPreference ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Save className="w-4 h-4 mr-1" />}{t('common.save')}
+                            </Button>
+                            <Button variant="ghost" size="sm" disabled={savingPreference} onClick={cancelEditPreference}>
+                              <X className="w-4 h-4 mr-1" />{t('common.cancel')}
+                            </Button>
+                          </>
+                        ) : (
+                          <Button variant="ghost" size="sm" onClick={() => startEditPreference(pref)} title={t('aiMemory.preferenceEdit')}>
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                        )}
+                        <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => setDeletingPreference(pref)} title={t('common.delete')}>
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    {isEditing && draft ? (
+                      <div className="space-y-3 rounded-md border border-border/50 p-3 bg-muted/30">
+                        <div className="space-y-1">
+                          <Label>{t('aiMemory.preferenceRule')}</Label>
+                          <Textarea
+                            value={draft.preference_rule}
+                            onChange={(e) => setEditingPreferenceDraft({ ...draft, preference_rule: e.target.value })}
+                            placeholder={t('aiMemory.preferenceRulePlaceholder')}
+                            rows={3}
+                            maxLength={2000}
+                          />
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <Label>{t('aiMemory.preferencePolarity')}</Label>
+                            <Select value={draft.polarity} onValueChange={(v) => setEditingPreferenceDraft({ ...draft, polarity: v as 'do' | 'dont' })}>
+                              <SelectTrigger><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="do">{t('aiMemory.preferencePolarityDo')}</SelectItem>
+                                <SelectItem value="dont">{t('aiMemory.preferencePolarityDont')}</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-1">
+                            <Label>{t('aiMemory.preferenceContext')}</Label>
+                            <Input
+                              value={draft.target_context}
+                              onChange={(e) => setEditingPreferenceDraft({ ...draft, target_context: e.target.value })}
+                              placeholder={t('aiMemory.preferenceContextPlaceholder')}
+                              maxLength={128}
+                            />
+                            <p className="text-xs text-muted-foreground">{t('aiMemory.preferenceContextHelp')}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between rounded-md border border-border/50 px-3 py-2">
+                          <div>
+                            <Label className="text-sm">{t('aiMemory.preferenceIsActive')}</Label>
+                          </div>
+                          <Switch checked={draft.is_active} onCheckedChange={(v) => setEditingPreferenceDraft({ ...draft, is_active: v })} />
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-sm whitespace-pre-wrap break-words">{ruleText}</p>
+                    )}
+
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1"><Users className="w-3 h-3" />{pref.user_id}</span>
+                      <span className="flex items-center gap-1"><Layers className="w-3 h-3" />{pref.scope_key}</span>
+                      <span className="flex items-center gap-1"><Zap className="w-3 h-3" />{t('aiMemory.preferenceMentionCount')}: {pref.mention_count}</span>
+                      {pref.source_episode_id && (
+                        <span className="flex items-center gap-1 font-mono truncate max-w-[200px]" title={pref.source_episode_id}>
+                          <GitBranch className="w-3 h-3" />{pref.source_episode_id}
+                        </span>
+                      )}
+                      <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{t('aiMemory.updatedAt')}: {formatDate(pref.updated_at)}</span>
+                      {pref.last_applied_at && (
+                        <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{t('aiMemory.preferenceLastApplied')}: {formatDate(pref.last_applied_at)}</span>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+
+        {totalPreferences > 20 && (
+          <div className="flex justify-center gap-2">
+            <Button variant="outline" size="sm" disabled={preferencePage <= 1} onClick={() => fetchPreferences(preferencePage - 1)}>{t('common.previousPage')}</Button>
+            <span className="flex items-center text-sm text-muted-foreground">{preferencePage} / {Math.ceil(totalPreferences / 20)}</span>
+            <Button variant="outline" size="sm" disabled={preferencePage >= Math.ceil(totalPreferences / 20)} onClick={() => fetchPreferences(preferencePage + 1)}>{t('common.nextPage')}</Button>
+          </div>
+        )}
       </div>
       )}
 
@@ -2119,6 +2485,39 @@ export default function AIMemoryPage() {
               disabled={clearMemoryLoading}
             >
               {clearMemoryLoading ? t('common.loading') : t('common.confirm')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Preference Confirmation Dialog */}
+      <AlertDialog open={!!deletingPreference} onOpenChange={(open) => !open && !deletingPreferenceLoading && setDeletingPreference(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-destructive" />
+              {t('common.confirm')}
+            </AlertDialogTitle>
+            <AlertDialogDescription>{t('aiMemory.confirmDeletePreference')}</AlertDialogDescription>
+          </AlertDialogHeader>
+          {deletingPreference && (
+            <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-sm space-y-1">
+              <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                <Badge variant={deletingPreference.is_correction ? 'default' : 'secondary'}>{deletingPreference.polarity}</Badge>
+                <Badge variant="outline">{deletingPreference.target_context}</Badge>
+                <span className="font-mono">{deletingPreference.id}</span>
+              </div>
+              <p className="whitespace-pre-wrap">{deletingPreference.preference_rule}</p>
+            </div>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deletingPreferenceLoading}>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeletePreference}
+              disabled={deletingPreferenceLoading}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deletingPreferenceLoading ? t('common.loading') : t('common.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

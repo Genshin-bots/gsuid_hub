@@ -59,11 +59,28 @@ import {
   Image,
   Upload,
   Eye,
+  Files,
+  Download,
+  FileUp,
+  FolderOpen,
+  ScrollText,
+  FilePlus,
 } from 'lucide-react';
-import { aiKnowledgeApi, AIKnowledgeItem, aiImageApi, AIImageItem, AIImageUploadResponse } from '@/lib/api';
+import {
+  aiKnowledgeApi,
+  AIKnowledgeItem,
+  AIKnowledgeBulkRequest,
+  AIKnowledgeBulkResponse,
+  AIKnowledgeBackupResponse,
+  AIKnowledgeDocDeleteResponse,
+  aiImageApi,
+  AIImageItem,
+  AIImageUploadResponse,
+  assetsApi,
+} from '@/lib/api';
 import { toast } from 'sonner';
 import { TagsInput } from '@/components/config/TagsInput';
-import { assetsApi } from '@/lib/api';
+
 
 // ============================================================================
 // 类型定义
@@ -149,6 +166,41 @@ export default function AIKnowledgePage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+
+  // 批量导入（服务端分片）
+  const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
+  const [bulkFiles, setBulkFiles] = useState<File[]>([]);
+  const [bulkText, setBulkText] = useState('');
+  const [bulkDocId, setBulkDocId] = useState('');
+  const [bulkDocTitle, setBulkDocTitle] = useState('');
+  const [bulkTags, setBulkTags] = useState<string[]>([]);
+  const [bulkChunkSize, setBulkChunkSize] = useState(400);
+  const [bulkChunkOverlap, setBulkChunkOverlap] = useState(60);
+  const [bulkReplace, setBulkReplace] = useState(true);
+  const [bulkPlugin, setBulkPlugin] = useState('manual');
+  const [bulkOneDocPerFile, setBulkOneDocPerFile] = useState(true);
+  const [bulkImporting, setBulkImporting] = useState(false);
+  const [bulkImportResult, setBulkImportResult] = useState<
+    { doc_id: string; total_chunks: number; written: number; skipped: number } | null
+  >(null);
+  const [isBulkDragging, setIsBulkDragging] = useState(false);
+
+  // 文档级浏览（按 doc_id）
+  const [docViewerOpen, setDocViewerOpen] = useState(false);
+  const [docViewerDocId, setDocViewerDocId] = useState('');
+  const [docViewerTitle, setDocViewerTitle] = useState('');
+  const [docViewerChunks, setDocViewerChunks] = useState<AIKnowledgeItem[]>([]);
+  const [docViewerLoading, setDocViewerLoading] = useState(false);
+  const [docViewerTotal, setDocViewerTotal] = useState(0);
+  const [docViewerPage, setDocViewerPage] = useState(1);
+  const [docViewerLimit] = useState(20);
+  const [deletingDoc, setDeletingDoc] = useState<{ doc_id: string; title: string } | null>(null);
+
+  // 备份导入/导出
+  const [backupDialogOpen, setBackupDialogOpen] = useState(false);
+  const [backupFile, setBackupFile] = useState<File | null>(null);
+  const [backupImporting, setBackupImporting] = useState(false);
+
 
   // 删除确认 Dialog
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -398,6 +450,257 @@ export default function AIKnowledgePage() {
     setPreviewDialogOpen(true);
   };
 
+  // ===================== 批量导入（服务端分片） =====================
+  const MAX_FILE_BYTES = 50 * 1024 * 1024; // 50MB / 单文件软上限（服务端无硬限制）
+
+  const resetBulkDialog = () => {
+    setBulkFiles([]);
+    setBulkText('');
+    setBulkDocId('');
+    setBulkDocTitle('');
+    setBulkTags([]);
+    setBulkChunkSize(400);
+    setBulkChunkOverlap(60);
+    setBulkReplace(true);
+    setBulkPlugin('manual');
+    setBulkOneDocPerFile(true);
+    setBulkImportResult(null);
+  };
+
+  const ACCEPTED_TEXT_EXT = ['.txt', '.md', '.markdown', '.rst', '.log', '.json', '.jsonl', '.csv', '.html', '.htm', '.xml', '.yaml', '.yml', '.ini', '.conf', '.tex'];
+
+  const isAcceptedTextFile = (f: File) => {
+    const name = f.name.toLowerCase();
+    if (name.endsWith('.txt') || name.endsWith('.md') || name.endsWith('.markdown')) return true;
+    return ACCEPTED_TEXT_EXT.some((ext) => name.endsWith(ext));
+  };
+
+  const handleBulkDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsBulkDragging(false);
+    const list = Array.from(e.dataTransfer.files || []).filter(isAcceptedTextFile);
+    if (list.length === 0) {
+      toast.error(t('aiKnowledge.bulkNoValidFiles'));
+      return;
+    }
+    setBulkFiles((prev) => [...prev, ...list]);
+    // 自动用第一个文件名作为默认 doc_id / title（仅在用户尚未手动填写时）
+    setBulkDocTitle((cur) => (cur ? cur : list[0].name.replace(/\.[^.]+$/, '')));
+    setBulkDocId((cur) => (cur ? cur : list[0].name.replace(/\.[^.]+$/, '').replace(/\s+/g, '_').toLowerCase()));
+  };
+
+  const handleBulkPickFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const list = Array.from(e.target.files || []).filter(isAcceptedTextFile);
+    if (list.length === 0) {
+      toast.error(t('aiKnowledge.bulkNoValidFiles'));
+      return;
+    }
+    setBulkFiles((prev) => [...prev, ...list]);
+    setBulkDocTitle((cur) => (cur ? cur : list[0].name.replace(/\.[^.]+$/, '')));
+    setBulkDocId((cur) => (cur ? cur : list[0].name.replace(/\.[^.]+$/, '').replace(/\s+/g, '_').toLowerCase()));
+    e.target.value = '';
+  };
+
+  const removeBulkFile = (idx: number) => {
+    setBulkFiles((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const formatBytes = (n: number) => {
+    if (n < 1024) return `${n} B`;
+    if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+    return `${(n / 1024 / 1024).toFixed(2)} MB`;
+  };
+
+  const readFileAsText = (f: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ''));
+      reader.onerror = () => reject(reader.error || new Error('read failed'));
+      reader.readAsText(f, 'utf-8');
+    });
+
+  const handleBulkImport = async () => {
+    if (bulkFiles.length === 0 && !bulkText.trim()) {
+      toast.error(t('aiKnowledge.bulkNoContent'));
+      return;
+    }
+    if (!bulkDocTitle.trim()) {
+      toast.error(t('aiKnowledge.bulkTitleRequired'));
+      return;
+    }
+
+    setBulkImporting(true);
+    setBulkImportResult(null);
+    try {
+      // 读取文件
+      const fileContents: { name: string; text: string }[] = [];
+      for (const f of bulkFiles) {
+        if (f.size > MAX_FILE_BYTES) {
+          toast.error(t('aiKnowledge.bulkFileTooLarge', { name: f.name }));
+          setBulkImporting(false);
+          return;
+        }
+        const text = await readFileAsText(f);
+        fileContents.push({ name: f.name, text });
+      }
+
+      const aggregate: { doc_id: string; total_chunks: number; written: number; skipped: number } = {
+        doc_id: '',
+        total_chunks: 0,
+        written: 0,
+        skipped: 0,
+      };
+
+      if (bulkOneDocPerFile) {
+        // 每个文件一个 doc_id
+        for (let i = 0; i < fileContents.length; i++) {
+          const fc = fileContents[i];
+          const baseId = (bulkDocId || fc.name).replace(/\.[^.]+$/, '').replace(/\s+/g, '_').toLowerCase();
+          const docId = fileContents.length === 1 ? baseId : `${baseId}_${i + 1}`;
+          const title = fileContents.length === 1 ? bulkDocTitle : `${bulkDocTitle} - ${fc.name}`;
+          const req: AIKnowledgeBulkRequest = {
+            title,
+            doc_id: docId,
+            full_text: fc.text,
+            tags: bulkTags,
+            plugin: bulkPlugin,
+            chunk_size: bulkChunkSize,
+            chunk_overlap: bulkChunkOverlap,
+            replace: bulkReplace,
+          };
+          const resp = await aiKnowledgeApi.bulkImport(req);
+          aggregate.total_chunks += resp.total_chunks;
+          aggregate.written += resp.written;
+          aggregate.skipped += resp.skipped;
+        }
+        if (fileContents.length > 0) {
+          const baseId = (bulkDocId || fileContents[0].name).replace(/\.[^.]+$/, '').replace(/\s+/g, '_').toLowerCase();
+          aggregate.doc_id = fileContents.length === 1 ? baseId : `${baseId}_1 ... ${fileContents.length}`;
+        }
+      } else {
+        // 合并为单个 doc_id（按文件顺序，添加文件头分隔）
+        const fullText = fileContents
+          .map((fc) => `\n\n===== FILE: ${fc.name} =====\n\n${fc.text}`)
+          .join('\n');
+        const req: AIKnowledgeBulkRequest = {
+          title: bulkDocTitle,
+          doc_id: bulkDocId || undefined,
+          full_text: bulkText.trim() ? `${bulkText}\n${fullText}` : fullText,
+          tags: bulkTags,
+          plugin: bulkPlugin,
+          chunk_size: bulkChunkSize,
+          chunk_overlap: bulkChunkOverlap,
+          replace: bulkReplace,
+        };
+        const resp = await aiKnowledgeApi.bulkImport(req);
+        aggregate.doc_id = resp.doc_id;
+        aggregate.total_chunks = resp.total_chunks;
+        aggregate.written = resp.written;
+        aggregate.skipped = resp.skipped;
+      }
+
+      setBulkImportResult(aggregate);
+      toast.success(t('aiKnowledge.bulkImportSuccess'));
+      fetchKnowledgeList();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t('aiKnowledge.bulkImportFailed'));
+    } finally {
+      setBulkImporting(false);
+    }
+  };
+
+  // ===================== 文档级浏览 =====================
+  const openDocViewer = async (docId: string, title?: string) => {
+    setDocViewerDocId(docId);
+    setDocViewerTitle(title || docId);
+    setDocViewerPage(1);
+    setDocViewerChunks([]);
+    setDocViewerOpen(true);
+    await loadDocChunks(docId, 1);
+  };
+
+  const loadDocChunks = async (docId: string, pageNum: number) => {
+    try {
+      setDocViewerLoading(true);
+      const data = await aiKnowledgeApi.getKnowledgeList({
+        source: 'manual',
+        doc_id: docId,
+        page: pageNum,
+        limit: docViewerLimit,
+      });
+      setDocViewerChunks(data.list || []);
+      setDocViewerTotal(data.total || 0);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t('common.loadFailed'));
+    } finally {
+      setDocViewerLoading(false);
+    }
+  };
+
+  const handleDeleteDoc = async () => {
+    if (!deletingDoc) return;
+    try {
+      setIsDeleting(true);
+      const resp: AIKnowledgeDocDeleteResponse = await aiKnowledgeApi.deleteDoc(deletingDoc.doc_id);
+      toast.success(t('aiKnowledge.bulkDeleteDocSuccess', { count: resp.deleted_chunks }));
+      setDeletingDoc(null);
+      if (docViewerOpen) {
+        setDocViewerOpen(false);
+      }
+      fetchKnowledgeList();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t('common.delete'));
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // ===================== 备份导出/导入 =====================
+  const handleExportBackup = async () => {
+    try {
+      const blob = await aiKnowledgeApi.exportBackup();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'manual_knowledge.jsonl';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success(t('aiKnowledge.backupExportSuccess'));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t('aiKnowledge.backupExportFailed'));
+    }
+  };
+
+  const handlePickBackupFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (f) setBackupFile(f);
+    e.target.value = '';
+  };
+
+  const handleImportBackup = async () => {
+    if (!backupFile) {
+      toast.error(t('aiKnowledge.backupFileRequired'));
+      return;
+    }
+    try {
+      setBackupImporting(true);
+      const jsonl = await backupFile.text();
+      const resp: AIKnowledgeBackupResponse = await aiKnowledgeApi.importBackup({ jsonl });
+      toast.success(t('aiKnowledge.backupImportSuccess', { total: resp.total, written: resp.written }));
+      setBackupDialogOpen(false);
+      setBackupFile(null);
+      fetchKnowledgeList();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t('aiKnowledge.backupImportFailed'));
+    } finally {
+      setBackupImporting(false);
+    }
+  };
+
+
   // 点击行打开编辑
   const handleOpenEdit = async (item: AIKnowledgeItem | AIImageItem) => {
     if (knowledgeType === 'text') {
@@ -520,6 +823,38 @@ export default function AIKnowledgePage() {
           <Button onClick={handleSearch} disabled={isSearching}>
             {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
           </Button>
+          <Button
+            onClick={() => {
+              setKnowledgeType('text');
+              setSourceFilter('manual');
+              resetBulkDialog();
+              setBulkDialogOpen(true);
+            }}
+            variant="outline"
+            className="shrink-0"
+            title={t('aiKnowledge.bulkImport')}
+          >
+            <FileUp className="h-4 w-4" />
+            <span className="hidden md:inline ml-1">{t('aiKnowledge.bulkImport')}</span>
+          </Button>
+          <Button
+            onClick={handleExportBackup}
+            variant="outline"
+            className="shrink-0"
+            title={t('aiKnowledge.exportBackup')}
+          >
+            <Download className="h-4 w-4" />
+            <span className="hidden md:inline ml-1">{t('aiKnowledge.exportBackup')}</span>
+          </Button>
+          <Button
+            onClick={() => { setBackupFile(null); setBackupDialogOpen(true); }}
+            variant="outline"
+            className="shrink-0"
+            title={t('aiKnowledge.importBackup')}
+          >
+            <FolderOpen className="h-4 w-4" />
+            <span className="hidden md:inline ml-1">{t('aiKnowledge.importBackup')}</span>
+          </Button>
           <Button onClick={handleOpenAddDialog} size="icon" className="shrink-0">
             <Plus className="h-4 w-4" />
           </Button>
@@ -603,6 +938,20 @@ export default function AIKnowledgePage() {
                         </TableCell>
                         <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                           <div className="flex justify-end gap-2">
+                            {(() => {
+                              const docKey = item.id.includes('#') ? item.id.split('#')[0] : '';
+                              if (!docKey) return null;
+                              return (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  title={t('aiKnowledge.viewDoc', { docId: docKey })}
+                                  onClick={() => openDocViewer(docKey, item.title.replace(/\s*-\s*第\d+段\s*$/, '').trim())}
+                                >
+                                  <ScrollText className="h-4 w-4" />
+                                </Button>
+                              );
+                            })()}
                             <Button
                               variant="ghost"
                               size="icon"
@@ -971,28 +1320,346 @@ export default function AIKnowledgePage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* 图片预览 Dialog */}
-      <Dialog open={previewDialogOpen} onOpenChange={setPreviewDialogOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh]">
+      {/* 批量导入（服务端分片）Dialog */}
+      <Dialog
+        open={bulkDialogOpen}
+        onOpenChange={(o) => {
+          if (!bulkImporting) setBulkDialogOpen(o);
+        }}
+      >
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Image className="w-5 h-5" />
-              {t('aiKnowledge.imagePreview')}
+              <FileUp className="w-5 h-5" />
+              {t('aiKnowledge.bulkImportTitle')}
             </DialogTitle>
+            <p className="text-sm text-muted-foreground">
+              {t('aiKnowledge.bulkImportHint')}
+            </p>
           </DialogHeader>
-          <div className="flex items-center justify-center p-4">
-            <img 
-              src={previewImageUrl} 
-              alt="Preview"
-              className="max-w-full max-h-[60vh] object-contain rounded-lg"
-              onError={(e) => {
-                toast.error(t('aiKnowledge.imageLoadFailed'));
-                setPreviewDialogOpen(false);
-              }}
-            />
+
+          <div className="space-y-4 py-2">
+            {/* 拖入区 */}
+            <div
+              className={cn(
+                'border-2 border-dashed rounded-lg p-6 text-center transition-colors',
+                isBulkDragging ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/50'
+              )}
+              onDragOver={(e) => { e.preventDefault(); setIsBulkDragging(true); }}
+              onDragLeave={() => setIsBulkDragging(false)}
+              onDrop={handleBulkDrop}
+            >
+              <input
+                type="file"
+                accept=".txt,.md,.markdown,.rst,.log,.json,.jsonl,.csv,.html,.htm,.xml,.yaml,.yml,.ini,.conf,.tex"
+                multiple
+                onChange={handleBulkPickFiles}
+                className="hidden"
+                id="bulk-file-input"
+                disabled={bulkImporting}
+              />
+              <label htmlFor="bulk-file-input" className="cursor-pointer flex flex-col items-center gap-2">
+                <Files className="w-10 h-10 text-muted-foreground" />
+                <span className="text-sm font-medium">{t('aiKnowledge.bulkDropOrClick')}</span>
+                <span className="text-xs text-muted-foreground">{t('aiKnowledge.bulkSupportedExts')}</span>
+              </label>
+            </div>
+
+            {/* 已选文件 */}
+            {bulkFiles.length > 0 && (
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">{t('aiKnowledge.bulkSelectedFiles', { count: bulkFiles.length })}</Label>
+                <div className="max-h-40 overflow-y-auto space-y-1 rounded border p-2 bg-muted/30">
+                  {bulkFiles.map((f, i) => (
+                    <div key={i} className="flex items-center justify-between text-sm">
+                      <span className="truncate flex-1 flex items-center gap-2">
+                        <FileText className="w-3 h-3 shrink-0" />
+                        <span className="truncate">{f.name}</span>
+                        <span className="text-xs text-muted-foreground shrink-0">({formatBytes(f.size)})</span>
+                      </span>
+                      <Button variant="ghost" size="icon" onClick={() => removeBulkFile(i)} disabled={bulkImporting}>
+                        <X className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 或直接粘贴文本 */}
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">{t('aiKnowledge.bulkOrPasteText')}</Label>
+              <Textarea
+                value={bulkText}
+                onChange={(e) => setBulkText(e.target.value)}
+                rows={4}
+                placeholder={t('aiKnowledge.bulkPastePlaceholder')}
+                disabled={bulkImporting}
+                className="font-mono text-xs"
+              />
+            </div>
+
+            {/* 元信息 */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>{t('aiKnowledge.bulkDocTitle')} <span className="text-destructive">*</span></Label>
+                <Input
+                  value={bulkDocTitle}
+                  onChange={(e) => setBulkDocTitle(e.target.value)}
+                  placeholder={t('aiKnowledge.bulkDocTitlePlaceholder')}
+                  disabled={bulkImporting}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>{t('aiKnowledge.bulkDocId')}</Label>
+                <Input
+                  value={bulkDocId}
+                  onChange={(e) => setBulkDocId(e.target.value)}
+                  placeholder={t('aiKnowledge.bulkDocIdPlaceholder')}
+                  disabled={bulkImporting}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>{t('aiKnowledge.bulkPlugin')}</Label>
+                <Input
+                  value={bulkPlugin}
+                  onChange={(e) => setBulkPlugin(e.target.value)}
+                  disabled={bulkImporting}
+                  placeholder="manual"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>{t('aiKnowledge.bulkTags')}</Label>
+                <TagsInput
+                  value={bulkTags}
+                  onChange={setBulkTags}
+                  placeholder={t('aiKnowledge.bulkTagsPlaceholder')}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>{t('aiKnowledge.bulkChunkSize')}</Label>
+                <Input
+                  type="number"
+                  min={50}
+                  max={4000}
+                  value={bulkChunkSize}
+                  onChange={(e) => setBulkChunkSize(Math.max(50, Math.min(4000, Number(e.target.value) || 400)))}
+                  disabled={bulkImporting}
+                />
+                <p className="text-xs text-muted-foreground">{t('aiKnowledge.bulkChunkSizeHelp')}</p>
+              </div>
+              <div className="space-y-2">
+                <Label>{t('aiKnowledge.bulkChunkOverlap')}</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={4000}
+                  value={bulkChunkOverlap}
+                  onChange={(e) => setBulkChunkOverlap(Math.max(0, Math.min(4000, Number(e.target.value) || 0)))}
+                  disabled={bulkImporting}
+                />
+                <p className="text-xs text-muted-foreground">{t('aiKnowledge.bulkChunkOverlapHelp')}</p>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={bulkOneDocPerFile}
+                  onChange={(e) => setBulkOneDocPerFile(e.target.checked)}
+                  disabled={bulkImporting}
+                />
+                {t('aiKnowledge.bulkOneDocPerFile')}
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={bulkReplace}
+                  onChange={(e) => setBulkReplace(e.target.checked)}
+                  disabled={bulkImporting}
+                />
+                {t('aiKnowledge.bulkReplace')}
+              </label>
+            </div>
+
+            {bulkImportResult && (
+              <div className="rounded-md border bg-muted/40 p-3 text-sm">
+                <div className="font-medium text-foreground mb-1">{t('aiKnowledge.bulkImportResultTitle')}</div>
+                <div>doc_id: <span className="font-mono">{bulkImportResult.doc_id || '-'}</span></div>
+                <div>{t('aiKnowledge.bulkImportResultTotal', { n: bulkImportResult.total_chunks })}</div>
+                <div>{t('aiKnowledge.bulkImportResultWritten', { n: bulkImportResult.written })}</div>
+                {bulkImportResult.skipped > 0 && (
+                  <div className="text-amber-600">{t('aiKnowledge.bulkImportResultSkipped', { n: bulkImportResult.skipped })}</div>
+                )}
+              </div>
+            )}
           </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBulkDialogOpen(false)} disabled={bulkImporting}>
+              {t('common.cancel')}
+            </Button>
+            <Button onClick={handleBulkImport} disabled={bulkImporting}>
+              {bulkImporting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {t('aiKnowledge.bulkImport')}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* 文档级浏览 Dialog（按 doc_id） */}
+      <Dialog open={docViewerOpen} onOpenChange={setDocViewerOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ScrollText className="w-5 h-5" />
+              {t('aiKnowledge.docViewerTitle', { docId: docViewerDocId })}
+            </DialogTitle>
+            <p className="text-sm text-muted-foreground">{t('aiKnowledge.docViewerSubtitle', { title: docViewerTitle })}</p>
+          </DialogHeader>
+
+          {docViewerLoading ? (
+            <div className="flex items-center justify-center py-8 text-muted-foreground">
+              <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+              {t('common.loading')}
+            </div>
+          ) : docViewerChunks.length === 0 ? (
+            <div className="py-8 text-center text-muted-foreground">{t('common.noData')}</div>
+          ) : (
+            <div className="space-y-2">
+              <div className="text-xs text-muted-foreground">{t('aiKnowledge.docViewerTotalChunks', { total: docViewerTotal })}</div>
+              <div className="space-y-2 max-h-[55vh] overflow-y-auto">
+                {docViewerChunks.map((chunk) => {
+                  const m = /#(\d+)$/.exec(chunk.id);
+                  const idx = m ? m[1] : '?';
+                  return (
+                    <div key={chunk.id} className="border rounded-md p-3 bg-muted/30">
+                      <div className="flex items-center justify-between mb-1">
+                        <Badge variant="secondary" className="text-xs">#{idx}</Badge>
+                        <span className="text-xs text-muted-foreground truncate ml-2 font-mono">{chunk.id}</span>
+                      </div>
+                      <pre className="whitespace-pre-wrap text-xs font-mono leading-relaxed text-foreground/80 max-h-40 overflow-y-auto">{chunk.content}</pre>
+                    </div>
+                  );
+                })}
+              </div>
+              {docViewerTotal > docViewerLimit && (
+                <div className="flex items-center justify-center gap-2 pt-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={docViewerPage <= 1}
+                    onClick={() => { const np = docViewerPage - 1; setDocViewerPage(np); loadDocChunks(docViewerDocId, np); }}
+                  >
+                    {t('aiKnowledge.docViewerPrev')}
+                  </Button>
+                  <span className="text-sm text-muted-foreground">
+                    {docViewerPage} / {Math.ceil(docViewerTotal / docViewerLimit)}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={docViewerPage >= Math.ceil(docViewerTotal / docViewerLimit)}
+                    onClick={() => { const np = docViewerPage + 1; setDocViewerPage(np); loadDocChunks(docViewerDocId, np); }}
+                  >
+                    {t('aiKnowledge.docViewerNext')}
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              variant="destructive"
+              onClick={() => setDeletingDoc({ doc_id: docViewerDocId, title: docViewerTitle })}
+              disabled={docViewerLoading || docViewerTotal === 0}
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              {t('aiKnowledge.deleteWholeDoc')}
+            </Button>
+            <Button variant="outline" onClick={() => setDocViewerOpen(false)}>
+              {t('common.close')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 备份导入 Dialog（JSONL） */}
+      <Dialog open={backupDialogOpen} onOpenChange={(o) => { if (!backupImporting) setBackupDialogOpen(o); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FolderOpen className="w-5 h-5" />
+              {t('aiKnowledge.importBackupTitle')}
+            </DialogTitle>
+            <p className="text-sm text-muted-foreground">{t('aiKnowledge.importBackupHint')}</p>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
+              <input
+                type="file"
+                accept=".jsonl,.json,.txt"
+                onChange={handlePickBackupFile}
+                className="hidden"
+                id="backup-file-input"
+                disabled={backupImporting}
+              />
+              <label htmlFor="backup-file-input" className="cursor-pointer flex flex-col items-center gap-2">
+                <FilePlus className="w-8 h-8 text-muted-foreground" />
+                <span className="text-sm font-medium">{backupFile ? backupFile.name : t('aiKnowledge.backupPickFile')}</span>
+                {backupFile && <span className="text-xs text-muted-foreground">{formatBytes(backupFile.size)}</span>}
+              </label>
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {t('aiKnowledge.importBackupNote')}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBackupDialogOpen(false)} disabled={backupImporting}>
+              {t('common.cancel')}
+            </Button>
+            <Button onClick={handleImportBackup} disabled={backupImporting || !backupFile}>
+              {backupImporting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {t('aiKnowledge.importBackup')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 删除整篇文档确认 */}
+      <AlertDialog open={!!deletingDoc} onOpenChange={(o) => { if (!o) setDeletingDoc(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('aiKnowledge.deleteWholeDocConfirmTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('aiKnowledge.deleteWholeDocConfirm', { docId: deletingDoc?.doc_id })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeletingDoc(null)}>
+              {t('common.cancel')}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteDoc}
+              disabled={isDeleting}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              {isDeleting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {t('aiKnowledge.deleteWholeDoc')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { useRef, memo, forwardRef, useEffect, useCallback } from "react";
+import { useRef, memo, forwardRef, useEffect, useCallback, useLayoutEffect } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { StructuredDataViewer } from "@/components/StructuredDataViewer";
 import { cn } from "@/lib/utils";
@@ -19,6 +19,71 @@ export interface LogEntry {
   type: LogEntryType;
   content: string;
   timestamp: Date;
+  /**
+   * 锚点签名：基于"时间戳 + 内容前 N 个字符"派生，
+   * 用于在过滤切换 / 新日志到达时精确定位同一条日志，
+   * 保证虚拟化 key 与滚动位置在过滤前后稳定。
+   * 可选：未提供时由 ConsolePage / ConsolePanel 在使用时补齐。
+   */
+  anchor?: string;
+  /**
+   * 视觉行数（按 \n 拆分得到）。
+   * 由 ConsolePage 在写入日志时预算好行数并写入，
+   * 虚拟化器据此在初次布局时就能给出正确的预估高度，
+   * 避免多行内容（异常堆栈 / 多行命令输出 / 结构化文本）
+   * 把行撑高后与下一条日志重叠。
+   *
+   * - 单行内容也可能因容器宽度自动换行，但 wrap 行数无法预判，
+   *   这部分仍由 measureElement 在挂载后动态修正。
+   */
+  lineCount?: number;
+}
+
+// ---- 行高 / 换行估算常量（与 text-sm + py-1 的真实盒模型对齐）----
+// 一次性纵向内边距（py-1 的上下 0.25rem = 8px），整行只计一次
+const ROW_BASE = 8;
+// text-sm 的单行行盒高度 ≈ 20px（行高 1.25 * 16px）
+const LINE_HEIGHT = 20;
+// 单字符宽度：按 CJK 偏宽估算（14px），保证估算行数 >= 真实行数，
+// 宁可初次布局短暂留白也不要重叠，measureElement 会随后收紧到真实高度。
+const AVG_CHAR_WIDTH = 14;
+// 内容区之外的预留宽度：时间戳 + badge + gap + 容器 p-4 内边距
+const RESERVED_WIDTH = 210;
+
+/**
+ * 根据内容计算视觉行数（按 \n 拆分）。
+ * - 空内容按 1 行算，保证虚拟化器不会给出 0 高度
+ * - 首尾多余的 \n 不计入行数：它们在 whitespace-pre-wrap 下会渲染成
+ *   一个可见的空行并在日志之间制造异常空白，且预存的 lineCount 也会
+ *   因此偏大、把行高估高。三处（预存、estimateSize、渲染）都基于
+ *   同一份"去噪后"的内容，保持口径一致。
+ */
+export function computeLineCount(content: string): number {
+  if (!content) return 1;
+  const normalized = content.replace(/^[\r\n]+|[\r\n]+$/g, "");
+  if (!normalized) return 1;
+  return normalized.split("\n").length;
+}
+
+/**
+ * 渲染前对日志内容做同样的首尾换行去噪。
+ * 仅裁掉首尾的噪声换行，保留中间的结构（空行、缩进、异常堆栈的排版），
+ * 不影响有意的内容布局。
+ */
+function normalizeLogContent(content: unknown): string {
+  const text = typeof content === "string" ? content : String(content ?? "");
+  return text.replace(/^[\r\n]+|[\r\n]+$/g, "");
+}
+
+/**
+ * 从时间戳与内容派生稳定锚点签名。
+ * - 时间戳精确到毫秒，足以定位唯一一行
+ * - 拼接内容前 16 个可见字符，避免极少数时间戳冲突的情况
+ */
+export function buildLogAnchor(timestamp: Date, content: string): string {
+  const ts = timestamp instanceof Date ? timestamp.getTime() : Number(timestamp);
+  const head = (typeof content === "string" ? content : String(content ?? "")).slice(0, 16);
+  return `${ts}::${head}`;
 }
 
 function getLevelBadge(type: LogEntryType) {
@@ -86,8 +151,8 @@ const LogRow = memo(
           >
             {badge.label}
           </span>
-          <div className={cn("whitespace-pre-wrap break-all", getLogColor(log.type))}>
-            <StructuredDataViewer data={typeof log.content === 'string' ? log.content : JSON.stringify(log.content)} />
+          <div className={cn("min-w-0 whitespace-pre-wrap break-all", getLogColor(log.type))}>
+            <StructuredDataViewer data={normalizeLogContent(log.content)} />
           </div>
         </div>
       );
@@ -112,19 +177,43 @@ export const ConsolePanel = function ConsolePanel({
   const isUserScrolledUpRef = useRef(false);
   const hasUserInteractedRef = useRef(false);
 
+  // 缓存"上次 logs 的引用"，避免依赖 logs.length 触发额外 effect
+  const lastLogsRef = useRef<LogEntry[] | null>(null);
+  // 记录“logs 变化前需要恢复滚动位置的 id”（用 log.id，不用 anchor —— 唯一性）
+  const pendingScrollIdRef = useRef<string | null>(null);
+
   const virtualizer = useVirtualizer({
     count: logs.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 28,
+    // 行高预估：基于显式换行行数（lineCount）给一个“下限”，
+    // 真实高度由 measureElement 在挂载后动态测量并接管。
+    // 不再做基于字符宽度的自动 wrap 行数估算 —— 那种启发式在
+    // ASCII / CJK / JSON 混排下既脆弱又会与测量值抢话。
+    estimateSize: (index) => {
+      const log = logs[index];
+      if (!log) return ROW_BASE + LINE_HEIGHT;
+      const lines = Math.max(1, log.lineCount ?? 1);
+      return ROW_BASE + LINE_HEIGHT * lines;
+    },
     overscan: 10,
-    getItemKey: (index) => logs[index]?.id ?? index,
+    // key 必须保证唯一：anchor 派生自"毫秒时间戳 + 前 16 字符"，
+    // 在高频重复日志（同毫秒同前缀）下会大量冲突，导致 React / Virtualizer
+    // 行为不可预测 —— 同一条 DOM 节点被多个 item 共享，结果是 N 条
+    // 日志全部绘制在同一 Y 位置 + 互相压住，看起来就是"重叠 + 大段空白"。
+    // log.id 由调用方通过全局计数器（logCounter）生成，保证唯一，
+    // 跨过滤/跨追加也都稳定，因此用它作 key。
+    getItemKey: (index) => {
+      const log = logs[index];
+      if (!log || !log.id) return `__missing_${index}`;
+      return log.id;
+    },
     measureElement:
       typeof window !== "undefined" && "ResizeObserver" in window
         ? (element) => element.getBoundingClientRect().height
         : undefined,
   });
 
-  // 检测用户是否手动滚动离开了底部（仅更新滚动位置状态，不标记用户交互）
+  // 检测用户是否手动滚动离开了底部
   const handleScroll = useCallback(() => {
     const el = parentRef.current;
     if (!el) return;
@@ -133,7 +222,7 @@ export const ConsolePanel = function ConsolePanel({
     isUserScrolledUpRef.current = !isAtBottom;
   }, []);
 
-  // 只在用户真正主动交互（滚轮、触摸、键盘）时标记为"已交互"
+  // 只在用户真正主动交互时标记为"已交互"
   const handleUserInteraction = useCallback(() => {
     hasUserInteractedRef.current = true;
   }, []);
@@ -154,35 +243,93 @@ export const ConsolePanel = function ConsolePanel({
     };
   }, [handleScroll, handleUserInteraction]);
 
+  /**
+   * 核心：
+   * 1) 第一次进入 / logs 引用首次变化时记录"顶部 anchor"
+   * 2) 当 logs 引用变化（过滤 / 新增）时，根据 anchor 找出该行在新数组中的索引，
+   *    用 virtualizer.scrollToIndex 保持可视位置不变。
+   * 3) 只有在 autoScroll 开启且用户未上滑时，才追加新日志后滚到底部。
+   */
+  useLayoutEffect(() => {
+    const el = parentRef.current;
+    if (!el || logs.length === 0) {
+      lastLogsRef.current = logs;
+      return;
+    }
+
+    const prevLogs = lastLogsRef.current;
+    const isFirstMount = prevLogs === null || (prevLogs.length === 0 && logs.length > 0);
+
+    // 1) 首次挂载：滚到底部（让用户看到最新日志）
+    if (isFirstMount) {
+      virtualizer.scrollToIndex(logs.length - 1, { align: 'end', behavior: 'auto' });
+      isUserScrolledUpRef.current = false;
+      lastLogsRef.current = logs;
+      return;
+    }
+
+    // 2) 过滤判断：拿前后两个数组中"所有行 id 集合"做差集。
+    //    - 如果只是追加（prev id ⊂ new id），不触发滚动恢复，避免干扰 autoScroll
+    //    - 如果 id 集合发生了真正的增减（部分旧日志被过滤掉），才保存顶部 id
+    if (prevLogs && prevLogs.length > 0) {
+      const prevIds = new Set(prevLogs.map((l) => l.id));
+      const newIds = new Set(logs.map((l) => l.id));
+
+      let removedSome = false;
+      for (const id of prevIds) {
+        if (!newIds.has(id)) {
+          removedSome = true;
+          break;
+        }
+      }
+
+      if (removedSome) {
+        const visibleItems = virtualizer.getVirtualItems();
+        const topId =
+          visibleItems.length > 0
+            ? prevLogs[visibleItems[0].index]?.id ?? null
+            : null;
+        if (topId) {
+          pendingScrollIdRef.current = topId;
+        }
+      }
+    }
+
+    lastLogsRef.current = logs;
+  }, [logs, virtualizer]);
+
+  // 在 logs 变化且 virtualizer 重新测量后，恢复顶部 id 对应的滚动位置
+  useLayoutEffect(() => {
+    const id = pendingScrollIdRef.current;
+    if (!id) return;
+    pendingScrollIdRef.current = null;
+
+    const idx = logs.findIndex((l) => l.id === id);
+    if (idx >= 0) {
+      // 使用 'start' 对齐，把那一行钉在容器顶部，鼠标位置不会偏移
+      virtualizer.scrollToIndex(idx, { align: 'start', behavior: 'auto' });
+    }
+  }, [logs, virtualizer]);
+
+  // 自动滚动到底部：仅在 autoScroll 开启 且 用户未上滑 且 logs 增长时执行
+  // 依赖 version 让父组件能精确控制何时尝试滚到底部
   useEffect(() => {
     if (logs.length === 0) return;
-
-    // 滚动到底部的函数，使用 virtualizer 的 scrollToIndex
-    const scrollToBottom = () => {
-      virtualizer.scrollToIndex(logs.length - 1, { align: 'end', behavior: 'auto' });
-    };
-
-    // 用户尚未手动操作时（初始加载阶段），始终滚动到底部
-    if (!hasUserInteractedRef.current) {
-      // 使用 setTimeout 确保虚拟器已完成尺寸计算
-      const timer = setTimeout(scrollToBottom, 50);
-      isUserScrolledUpRef.current = false;
-      return () => clearTimeout(timer);
-    }
-
-    // 用户已手动操作过，只有在 autoScroll 开启且用户没有手动上滑时才滚动
-    if (autoScroll && !isUserScrolledUpRef.current) {
-      scrollToBottom();
-    }
-  }, [logs.length, autoScroll, virtualizer, version]);
+    if (!autoScroll) return;
+    if (isUserScrolledUpRef.current) return;
+    virtualizer.scrollToIndex(logs.length - 1, { align: 'end', behavior: 'auto' });
+  }, [logs.length, autoScroll, version, virtualizer]);
 
   // 当用户开启 autoScroll 时，重置用户上滑状态，立即滚到底部
   useEffect(() => {
     if (autoScroll && logs.length > 0) {
       isUserScrolledUpRef.current = false;
-      virtualizer.scrollToIndex(logs.length - 1, { align: 'end', behavior: 'auto' });
+      // 让下一次 layoutEffect 有机会滚到底部
+      requestAnimationFrame(() => {
+        virtualizer.scrollToIndex(logs.length - 1, { align: 'end', behavior: 'auto' });
+      });
     }
-  }, [autoScroll]);
+  }, [autoScroll, virtualizer, logs.length]);
 
   const virtualItems = virtualizer.getVirtualItems();
 

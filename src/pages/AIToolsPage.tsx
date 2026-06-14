@@ -194,50 +194,41 @@ export default function AIToolsPage() {
       {!isLoading && categories.length > 0 && (
         <div className="space-y-4">
           {/* 分类筛选 */}
-          <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center">
-            <span className="text-sm text-muted-foreground">{t('aiTools.category') || '分类'}：</span>
-            <TabButtonGroup
-              options={categoryList.map((category) => ({
-                value: category,
-                label: category === 'all'
-                  ? (t('aiTools.allCategories') || '全部分类')
-                  : `${category} (${toolsByCategory[category]?.length || 0})`,
-                icon: <Wrench className="w-4 h-4" />,
-              }))}
-              value={selectedCategory}
-              onValueChange={setSelectedCategory}
-              glassClassName={isGlass ? 'glass-card' : 'border border-border/50'}
-            />
-          </div>
+          <TabButtonGroup
+            options={categoryList.map((category) => ({
+              value: category,
+              label: category === 'all'
+                ? (t('aiTools.allCategories') || '全部分类')
+                : `${category} (${toolsByCategory[category]?.length || 0})`,
+              icon: <Wrench className="w-4 h-4" />,
+            }))}
+            value={selectedCategory}
+            onValueChange={setSelectedCategory}
+            glassClassName={isGlass ? 'glass-card' : 'border border-border/50'}
+          />
 
           {/* 插件筛选 */}
-          <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center">
-            <span className="text-sm text-muted-foreground">{t('aiTools.plugin') || '插件'}：</span>
-            <TabButtonGroup
-              options={pluginList.map((plugin) => ({
-                value: plugin,
-                label: plugin === 'all'
-                  ? (t('aiTools.allPlugins') || '全部插件')
-                  : `${plugin} (${toolsByPlugin[plugin]?.length || 0})`,
-                icon: <Wrench className="w-4 h-4" />,
-              }))}
-              value={selectedPlugin}
-              onValueChange={setSelectedPlugin}
-              glassClassName={isGlass ? 'glass-card' : 'border border-border/50'}
-            />
-          </div>
+          <TabButtonGroup
+            options={pluginList.map((plugin) => ({
+              value: plugin,
+              label: plugin === 'all'
+                ? (t('aiTools.allPlugins') || '全部插件')
+                : `${plugin} (${toolsByPlugin[plugin]?.length || 0})`,
+              icon: <Wrench className="w-4 h-4" />,
+            }))}
+            value={selectedPlugin}
+            onValueChange={setSelectedPlugin}
+            glassClassName={isGlass ? 'glass-card' : 'border border-border/50'}
+          />
 
           {/* 搜索筛选 */}
-          <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center">
-            <span className="text-sm text-muted-foreground">{t('aiTools.search')}：</span>
-            <Input
-              type="text"
-              placeholder={t('aiTools.searchPlaceholder')}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full sm:max-w-sm"
-            />
-          </div>
+          <Input
+            type="text"
+            placeholder={t('aiTools.searchPlaceholder')}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full sm:max-w-sm"
+          />
 
           {/* 工具统计 */}
           <p className="text-sm text-muted-foreground">
@@ -341,11 +332,7 @@ export default function AIToolsPage() {
           </DialogHeader>
           <div className="mt-4 space-y-2">
             <div className="flex items-center gap-2 text-sm">
-              <span className="text-muted-foreground">{t('aiTools.category') || '分类'}：</span>
               <span className="px-2 py-0.5 rounded bg-secondary">{selectedTool?.category}</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm">
-              <span className="text-muted-foreground">{t('aiTools.plugin') || '插件'}：</span>
               <span className="px-2 py-0.5 rounded bg-primary/10 text-primary">{selectedTool?.plugin}</span>
             </div>
             <pre className="whitespace-pre-wrap text-sm font-mono bg-muted/50 p-4 rounded-md overflow-x-auto">
