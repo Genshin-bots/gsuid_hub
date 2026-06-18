@@ -45,6 +45,19 @@ function PluginIcon({ pluginName, className = 'w-[18px] h-[18px]' }: { pluginNam
   );
 }
 
+// 命令类型颜色映射 - 提取为模块级常量，避免每次渲染重建
+const CMD_TYPE_COLORS: Record<string, string> = {
+  command: 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900 dark:text-blue-300 dark:border-blue-700',
+  prefix: 'bg-green-100 text-green-800 border-green-300 dark:bg-green-900 dark:text-green-300 dark:border-green-700',
+  suffix: 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-900 dark:text-emerald-300 dark:border-emerald-700',
+  keyword: 'bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-900 dark:text-yellow-300 dark:border-yellow-700',
+  fullmatch: 'bg-orange-100 text-orange-800 border-orange-300 dark:bg-orange-900 dark:text-orange-300 dark:border-orange-700',
+  regex: 'bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-900 dark:text-purple-300 dark:border-purple-700',
+  file: 'bg-pink-100 text-pink-800 border-pink-300 dark:bg-pink-900 dark:text-pink-300 dark:border-pink-700',
+  message: 'bg-indigo-100 text-indigo-800 border-indigo-300 dark:bg-indigo-900 dark:text-indigo-300 dark:border-indigo-700',
+};
+const CMD_TYPE_DEFAULT_COLOR = 'bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600';
+
 // 根据配置名称关键词智能分配图标
 const configNameIconMap: Record<string, React.ReactNode> = {
   '基本': <Settings className="w-4 h-4" />,
@@ -99,6 +112,138 @@ const fallbackConfigIcons = [
   <Layers className="w-4 h-4" />,
   <Database className="w-4 h-4" />,
 ];
+
+/**
+ * 简化正则命令关键字用于显示。
+ * 算法：
+ * 1. 剥离字符类 [...], 转义序列(\d \w \uXXXX 等), 量词({1,15} + *)
+ * 2. 递归解析分组(含命名、非捕获等)，多选项优先选中文最多的
+ * 3. 拼接分组间的字面文本
+ *
+ * 示例：
+ *   "^(?P<kind>删除全部)(?P<char>[\u4e00-...]{1,15})(?P<type>面板|面包|bg)图$"
+ *   → "删除全部面板图"
+ *   "^(?P<waves_id>\d{9})?(?P<char>[\u4e00-...]{1,15})(权重|qz)$"
+ *   → "权重"
+ *   "^(?:第?(?P<period_pre>\d+|下期|下下期|...)期?...)$"
+ *   → "第下期期矩阵信息"
+ */
+const _regexSimplifyCache = new Map<string, string>();
+
+/** 用 O(n) 扫描剥离字符类 [...]，避免灾难性回溯 */
+function stripCharClass(s: string): string {
+  let out = '', i = 0;
+  while (i < s.length) {
+    if (s[i] === '[' && (i === 0 || s[i - 1] !== '\\')) {
+      i++; // skip '['
+      while (i < s.length && !(s[i] === ']' && s[i - 1] !== '\\')) i++;
+      i++; // skip ']'
+    } else {
+      out += s[i];
+      i++;
+    }
+  }
+  return out;
+}
+
+/** 用 O(n) 扫描剥离常见正则元字符和转义序列 */
+function stripEscapeMeta(s: string): string {
+  let out = '', i = 0;
+  while (i < s.length) {
+    if (s[i] === '\\' && i + 1 < s.length) {
+      const c = s[i + 1];
+      if ('dwWsSbDBntrfv'.includes(c)) { i += 2; continue; }
+      if (c === 'u' && i + 5 < s.length && /^[\da-fA-F]{4}$/.test(s.slice(i + 2, i + 6))) { i += 6; continue; }
+      if (c === 'U' && i + 9 < s.length && /^[\da-fA-F]{8}$/.test(s.slice(i + 2, i + 10))) { i += 10; continue; }
+      if (c === 'x' && i + 3 < s.length && /^[\da-fA-F]{2}$/.test(s.slice(i + 2, i + 4))) { i += 4; continue; }
+      if (c === '{') {
+        let j = i + 2;
+        while (j < s.length && s[j] !== '}') j++;
+        i = j + 1; continue;
+      }
+      out += s[i]; i++;
+    } else if (s[i] === '{') {
+      i++;
+      while (i < s.length && s[i] !== '}') i++;
+      i++; continue;
+    } else if ('*+^$'.includes(s[i])) {
+      i++; continue;
+    } else {
+      out += s[i]; i++;
+    }
+  }
+  return out;
+}
+
+/** 计算字符串中可读字符(CJK×10 + 字母数字×1)的权重 */
+function countReadableScore(s: string): number {
+  let cjk = 0, alpha = 0;
+  for (let i = 0; i < s.length; i++) {
+    const c = s.charCodeAt(i);
+    if (c >= 0x4e00 && c <= 0x9fa5) cjk++;
+    else if ((c >= 65 && c <= 90) || (c >= 97 && c <= 122) || (c >= 48 && c <= 57)) alpha++;
+  }
+  return cjk * 10 + alpha;
+}
+
+/**
+ * 快速简化正则命令关键字用于显示（非递归版）。
+ * 算法：
+ * 1. O(n) 扫描剥离字符类 [...] 和转义序列
+ * 2. 剥离分组前缀 (?P<name>, ?:, ?=, ?!, 等)
+ * 3. 迭代简化最内层分组：从内到外逐层处理 (…)，
+ *    对 | 多选项选可读性最高的
+ * 4. 剥离剩余元字符，提取可读文本，截断至 20 字符
+ *
+ * 相比旧递归版 extractReadable → processGroupBody → extractReadable，
+ * 此版本无递归调用，对 500+ 正则的处理速度大幅提升。
+ */
+function simplifyRegexKeyword(keyword: string): string {
+  if (!keyword) return keyword;
+  const cached = _regexSimplifyCache.get(keyword);
+  if (cached !== undefined) return cached;
+
+  // Step 1: O(n) 扫描剥离字符类和转义序列
+  let s = stripEscapeMeta(stripCharClass(keyword));
+
+  // Step 2: 剥离分组前缀
+  s = s.replace(/\?P<[^>]+>/g, '');
+  s = s.replace(/\?[=:!]/g, '');
+  s = s.replace(/\?<[=!]/g, '');
+
+  // Step 3: 迭代简化最内层分组 — 从内到外逐层处理
+  // 每次只匹配不含嵌套括号的最内层 (...)，选择 | 多选项中可读性最高的
+  let prev = '';
+  let maxIter = 10;
+  while (prev !== s && maxIter-- > 0) {
+    prev = s;
+    s = s.replace(/\(([^()]*)\)/g, (_match: string, content: string) => {
+      const alts = content.split('|');
+      if (alts.length > 1) {
+        let best = alts[0];
+        let bestScore = countReadableScore(best);
+        for (const alt of alts) {
+          const score = countReadableScore(alt);
+          if (score > bestScore) { best = alt; bestScore = score; }
+        }
+        return best;
+      }
+      return content;
+    });
+  }
+
+  // Step 4: 剥离剩余元字符，反转义
+  s = s.replace(/[()|*+?]/g, '');
+  s = s.replace(/\\(.)/g, '$1');
+  s = s.trim();
+
+  // Step 5: 提取可读文本序列，截断
+  const readable = s.match(/[\u4e00-\u9fa5]+|[a-zA-Z]{2,}|[a-zA-Z0-9]+/g) || [];
+  const result = readable.join('').slice(0, 20) || s.slice(0, 20) || keyword.slice(0, 20);
+
+  _regexSimplifyCache.set(keyword, result);
+  return result;
+}
 
 // 简单哈希函数，用于根据名称生成稳定的索引
 function simpleHash(str: string): number {
@@ -258,6 +403,19 @@ export default function PluginsPage() {
   const [editedEnabled, setEditedEnabled] = useState<boolean>(true);
 
   const selectedPlugin = plugins.find((p) => p.id === selectedPluginId);
+
+  // 预计算所有 SV 命令的去重汇总列表
+  const allCommands = useMemo(() => {
+    if (!editedSvList || editedSvList.length === 0) return [];
+    const map = new Map<string, SvCommand>();
+    editedSvList.forEach(sv => {
+      sv.commands?.forEach(cmd => {
+        const key = `${cmd.type}:${cmd.keyword}`;
+        if (!map.has(key)) map.set(key, cmd);
+      });
+    });
+    return Array.from(map.values());
+  }, [editedSvList]);
 
   const isConfigDirty = useMemo(() => {
     if (!selectedPlugin || !originalConfig) return false;
@@ -745,7 +903,7 @@ export default function PluginsPage() {
             <Separator />
 
             {/* 服务配置区域 - 重新设计为与Core配置一致的风格 */}
-            <Collapsible defaultOpen={false}>
+            <Collapsible defaultOpen={false} className="group/service">
               <CollapsibleTrigger asChild>
                 <div className="flex items-center justify-between mb-6 cursor-pointer hover:opacity-80 transition-opacity bg-background/50 rounded-xl p-4 border">
                   <div className="flex items-center gap-3">
@@ -757,12 +915,12 @@ export default function PluginsPage() {
                       <p className="text-muted-foreground text-sm mt-1">{t('plugins.serviceConfigDesc')}</p>
                     </div>
                   </div>
-                  <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                  <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform duration-200 group-data-[state=open]/service:rotate-180" />
                 </div>
               </CollapsibleTrigger>
               <CollapsibleContent>
                 {/* Plugin服务配置 - 独立可折叠 */}
-                <Collapsible defaultOpen={true}>
+                <Collapsible defaultOpen={true} className="group/plugin">
                   <CollapsibleTrigger asChild>
                     <div className="flex items-center justify-between mb-6 cursor-pointer hover:opacity-80 transition-opacity bg-muted/30 rounded-lg p-3 border">
                       <div className="flex items-center gap-3">
@@ -774,43 +932,27 @@ export default function PluginsPage() {
                           <p className="text-muted-foreground text-sm">{t('plugins.pluginServiceConfigDesc')}</p>
                         </div>
                       </div>
-                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform duration-200 group-data-[state=open]/plugin:rotate-180" />
                     </div>
                   </CollapsibleTrigger>
                   <CollapsibleContent className="px-10">
-                    {/* 汇总所有SV命令Tags - 单独一行，放在Plugin服务配置内最上方 */}
-                    {editedSvList && editedSvList.length > 0 && (() => {
-                      const allCommands = new Map<string, SvCommand>();
-                      editedSvList.forEach(sv => {
-                        sv.commands?.forEach(cmd => {
-                          const key = `${cmd.type}:${cmd.keyword}`;
-                          if (!allCommands.has(key)) {
-                            allCommands.set(key, cmd);
-                          }
-                        });
-                      });
-                      const uniqueCommands = Array.from(allCommands.values());
-                      
-                      return (
-                        <div className="mb-6 pb-4 border-b">
-                          <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2 mb-3">
-                            <Command className="w-4 h-4" />
-                            {t('plugins.allCommands')} ({uniqueCommands.length})
-                          </Label>
-                          <div className="flex flex-wrap items-center gap-1.5">
+                    {/* 汇总所有SV命令Tags - 默认折叠，展开时才渲染 */}
+                    {allCommands.length > 0 && (
+                      <Collapsible defaultOpen={false} className="group/allCmds mb-6">
+                        <CollapsibleTrigger asChild>
+                          <div className="flex items-center justify-between cursor-pointer hover:opacity-80 transition-opacity py-2">
+                            <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                              <Command className="w-4 h-4" />
+                              {t('plugins.allCommands')} ({allCommands.length})
+                            </Label>
+                            <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform duration-200 group-data-[state=open]/allCmds:rotate-180" />
+                          </div>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                          <div className="flex flex-wrap items-center gap-1.5 pb-4 border-b">
                             <TooltipProvider delayDuration={300}>
-                              {uniqueCommands.map((cmd: SvCommand, cmdIndex: number) => {
-                                const typeColors: Record<string, string> = {
-                                  command: 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900 dark:text-blue-300 dark:border-blue-700',
-                                  prefix: 'bg-green-100 text-green-800 border-green-300 dark:bg-green-900 dark:text-green-300 dark:border-green-700',
-                                  suffix: 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-900 dark:text-emerald-300 dark:border-emerald-700',
-                                  keyword: 'bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-900 dark:text-yellow-300 dark:border-yellow-700',
-                                  fullmatch: 'bg-orange-100 text-orange-800 border-orange-300 dark:bg-orange-900 dark:text-orange-300 dark:border-orange-700',
-                                  regex: 'bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-900 dark:text-purple-300 dark:border-purple-700',
-                                  file: 'bg-pink-100 text-pink-800 border-pink-300 dark:bg-pink-900 dark:text-pink-300 dark:border-pink-700',
-                                  message: 'bg-indigo-100 text-indigo-800 border-indigo-300 dark:bg-indigo-900 dark:text-indigo-300 dark:border-indigo-700',
-                                };
-                                const colorClass = typeColors[cmd.type] || 'bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600';
+                              {allCommands.map((cmd: SvCommand, cmdIndex: number) => {
+                                const colorClass = CMD_TYPE_COLORS[cmd.type] || CMD_TYPE_DEFAULT_COLOR;
                                 
                                 return (
                                   <Tooltip key={cmdIndex}>
@@ -818,7 +960,7 @@ export default function PluginsPage() {
                                       <span
                                         className={`inline-flex items-center rounded-full border px-1.5 py-0.5 text-xs cursor-pointer transition-colors ${colorClass}`}
                                       >
-                                        {cmd.keyword}
+                                        {cmd.type === 'regex' ? simplifyRegexKeyword(cmd.keyword) : cmd.keyword}
                                       </span>
                                     </TooltipTrigger>
                                     <TooltipContent side="top" className="max-w-xs z-50 bg-white dark:bg-gray-900 border shadow-lg">
@@ -841,9 +983,9 @@ export default function PluginsPage() {
                               })}
                             </TooltipProvider>
                           </div>
-                        </div>
-                      );
-                    })()}
+                        </CollapsibleContent>
+                      </Collapsible>
+                    )}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-5">
                 {/* 插件状态 */}
                 <div className="space-y-2">
@@ -1023,7 +1165,7 @@ export default function PluginsPage() {
 
                 {/* SV 服务列表配置 - 独立可折叠 */}
                 {editedSvList && editedSvList.length > 0 && (
-                  <Collapsible defaultOpen={false} className="mt-8">
+                  <Collapsible defaultOpen={false} className="group/svConfig mt-8">
                     <CollapsibleTrigger asChild>
                       <div className="flex items-center justify-between mb-6 cursor-pointer hover:opacity-80 transition-opacity bg-muted/30 rounded-lg p-3 border">
                         <div className="flex items-center gap-3">
@@ -1035,7 +1177,7 @@ export default function PluginsPage() {
                             <p className="text-muted-foreground text-sm">管理单个服务的详细配置</p>
                           </div>
                         </div>
-                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                        <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform duration-200 group-data-[state=open]/svConfig:rotate-180" />
                       </div>
                     </CollapsibleTrigger>
                     <CollapsibleContent className="px-10">
@@ -1175,67 +1317,64 @@ export default function PluginsPage() {
                             </div>
                           </div>
 
-                          {/* 命令Tags */}
-                          <div className="space-y-2">
-                            <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                              <Command className="w-4 h-4" />
-                              命令
-                            </Label>
-                            <div className="flex flex-wrap items-center gap-1.5 min-h-[32px]">
-                              {sv.commands && sv.commands.length > 0 ? (
-                                <TooltipProvider delayDuration={300}>
-                                  {sv.commands.slice(0, 10).map((cmd: SvCommand, cmdIndex: number) => {
-                                    // 根据type确定颜色
-                                    const typeColors: Record<string, string> = {
-                                      command: 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900 dark:text-blue-300 dark:border-blue-700',
-                                      prefix: 'bg-green-100 text-green-800 border-green-300 dark:bg-green-900 dark:text-green-300 dark:border-green-700',
-                                      suffix: 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-900 dark:text-emerald-300 dark:border-emerald-700',
-                                      keyword: 'bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-900 dark:text-yellow-300 dark:border-yellow-700',
-                                      fullmatch: 'bg-orange-100 text-orange-800 border-orange-300 dark:bg-orange-900 dark:text-orange-300 dark:border-orange-700',
-                                      regex: 'bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-900 dark:text-purple-300 dark:border-purple-700',
-                                      file: 'bg-pink-100 text-pink-800 border-pink-300 dark:bg-pink-900 dark:text-pink-300 dark:border-pink-700',
-                                      message: 'bg-indigo-100 text-indigo-800 border-indigo-300 dark:bg-indigo-900 dark:text-indigo-300 dark:border-indigo-700',
-                                    };
-                                    const colorClass = typeColors[cmd.type] || 'bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600';
-                                    
-                                    return (
-                                      <Tooltip key={cmdIndex}>
-                                        <TooltipTrigger asChild>
-                                          <span
-                                            className={`inline-flex items-center rounded-full border px-1.5 py-0.5 text-xs cursor-pointer transition-colors ${colorClass}`}
-                                          >
-                                            {cmd.keyword}
-                                          </span>
-                                        </TooltipTrigger>
-                                        <TooltipContent side="top" className="max-w-xs z-50 bg-white dark:bg-gray-900 border shadow-lg">
-                                          <div className="space-y-1">
-                                            <p className="font-medium text-gray-900 dark:text-gray-100">{t('plugins.commandTrigger')}</p>
-                                            <div className="grid grid-cols-[auto_1fr] gap-x-2 text-xs text-gray-700 dark:text-gray-300">
-                                              <span className="text-gray-500 dark:text-gray-400">{t('plugins.commandType')}:</span>
-                                              <span className="text-gray-900 dark:text-gray-100">{t(`plugins.triggerTypes.${cmd.type}`) || cmd.type}</span>
-                                              <span className="text-gray-500 dark:text-gray-400">{t('plugins.commandKeyword')}:</span>
-                                              <span className="font-mono break-all text-gray-900 dark:text-gray-100">{cmd.keyword}</span>
-                                              <span className="text-gray-500 dark:text-gray-400">{t('plugins.commandBlock')}:</span>
-                                              <span className="text-gray-900 dark:text-gray-100">{cmd.block ? '✓' : '✗'}</span>
-                                              <span className="text-gray-500 dark:text-gray-400">{t('plugins.commandToMe')}:</span>
-                                              <span className="text-gray-900 dark:text-gray-100">{cmd.to_me ? '✓' : '✗'}</span>
+                          {/* 命令Tags - 默认折叠 */}
+                          {sv.commands && sv.commands.length > 0 ? (
+                            <Collapsible defaultOpen={false} className="group/cmds">
+                              <CollapsibleTrigger asChild>
+                                <div className="flex items-center justify-between cursor-pointer hover:opacity-80 transition-opacity">
+                                  <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                                    <Command className="w-4 h-4" />
+                                    命令 ({sv.commands.length})
+                                  </Label>
+                                  <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform duration-200 group-data-[state=open]/cmds:rotate-180" />
+                                </div>
+                              </CollapsibleTrigger>
+                              <CollapsibleContent>
+                                <div className="flex flex-wrap items-center gap-1.5 pt-2">
+                                  <TooltipProvider delayDuration={300}>
+                                    {sv.commands.map((cmd: SvCommand, cmdIndex: number) => {
+                                      const colorClass = CMD_TYPE_COLORS[cmd.type] || CMD_TYPE_DEFAULT_COLOR;
+                                      const displayText = cmd.type === 'regex' ? simplifyRegexKeyword(cmd.keyword) : cmd.keyword;
+                                      return (
+                                        <Tooltip key={cmdIndex}>
+                                          <TooltipTrigger asChild>
+                                            <span
+                                              className={`inline-flex items-center rounded-full border px-1.5 py-0.5 text-xs cursor-pointer transition-colors ${colorClass}`}
+                                            >
+                                              {displayText}
+                                            </span>
+                                          </TooltipTrigger>
+                                          <TooltipContent side="top" className="max-w-xs z-50 bg-white dark:bg-gray-900 border shadow-lg">
+                                            <div className="space-y-1">
+                                              <p className="font-medium text-gray-900 dark:text-gray-100">{t('plugins.commandTrigger')}</p>
+                                              <div className="grid grid-cols-[auto_1fr] gap-x-2 text-xs text-gray-700 dark:text-gray-300">
+                                                <span className="text-gray-500 dark:text-gray-400">{t('plugins.commandType')}:</span>
+                                                <span className="text-gray-900 dark:text-gray-100">{t(`plugins.triggerTypes.${cmd.type}`) || cmd.type}</span>
+                                                <span className="text-gray-500 dark:text-gray-400">{t('plugins.commandKeyword')}:</span>
+                                                <span className="font-mono break-all text-gray-900 dark:text-gray-100">{cmd.keyword}</span>
+                                                <span className="text-gray-500 dark:text-gray-400">{t('plugins.commandBlock')}:</span>
+                                                <span className="text-gray-900 dark:text-gray-100">{cmd.block ? '✓' : '✗'}</span>
+                                                <span className="text-gray-500 dark:text-gray-400">{t('plugins.commandToMe')}:</span>
+                                                <span className="text-gray-900 dark:text-gray-100">{cmd.to_me ? '✓' : '✗'}</span>
+                                              </div>
                                             </div>
-                                          </div>
-                                        </TooltipContent>
-                                      </Tooltip>
-                                    );
-                                  })}
-                                </TooltipProvider>
-                              ) : (
-                                <span className="text-xs text-muted-foreground">无</span>
-                              )}
-                              {sv.commands && sv.commands.length > 10 && (
-                                <Badge variant="secondary" className="text-xs">
-                                  +{sv.commands.length - 10}
-                                </Badge>
-                              )}
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      );
+                                    })}
+                                  </TooltipProvider>
+                                </div>
+                              </CollapsibleContent>
+                            </Collapsible>
+                          ) : (
+                            <div className="space-y-2">
+                              <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                                <Command className="w-4 h-4" />
+                                命令
+                              </Label>
+                              <span className="text-xs text-muted-foreground">无</span>
                             </div>
-                          </div>
+                          )}
                         </CardContent>
                       </Card>
                     ))}
@@ -1263,7 +1402,7 @@ export default function PluginsPage() {
             <Separator />
 
             {/* 参数配置区域 - 默认展开 */}
-            <Collapsible defaultOpen={true}>
+            <Collapsible defaultOpen={true} className="group/config">
               <CollapsibleTrigger asChild>
                 <div className="flex items-center justify-between mb-6 cursor-pointer hover:opacity-80 transition-opacity bg-background/50 rounded-xl p-4 border">
                   <div className="flex items-center gap-3">
@@ -1275,7 +1414,7 @@ export default function PluginsPage() {
                       <p className="text-muted-foreground text-sm mt-1">{t('plugins.configParamsDesc')}</p>
                     </div>
                   </div>
-                  <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                  <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform duration-200 group-data-[state=open]/config:rotate-180" />
                 </div>
               </CollapsibleTrigger>
               <CollapsibleContent className="px-10">
