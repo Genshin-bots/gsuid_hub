@@ -204,13 +204,15 @@ export default function AIConfigPage() {
     [configs],
   );
 
-  const isAIEnabled = (aiConfig?.config.enable?.value as boolean) ?? false;
-  const isRerankEnabled =
-    (aiConfig?.config.enable_rerank?.value as boolean) ?? false;
+  /** 安全地将 unknown 解析为 boolean（处理后端可能返回字符串 "true"/"false" 的情况） */
+  const toBool = (v: unknown): boolean =>
+    v === true || v === 'true' || v === 1;
+
+  const isAIEnabled = toBool(aiConfig?.config.enable?.value);
+  const isRerankEnabled = toBool(aiConfig?.config.enable_rerank?.value);
   const rerankProvider =
     (aiConfig?.config.rerank_provider?.value as string) ?? 'local';
-  const isMemoryEnabled =
-    (aiConfig?.config.enable_memory?.value as boolean) ?? false;
+  const isMemoryEnabled = toBool(aiConfig?.config.enable_memory?.value);
   const websearchProvider =
     (aiConfig?.config.websearch_provider?.value as string) ?? 'Tavily';
   const imageUnderstandProvider =
@@ -322,8 +324,9 @@ export default function AIConfigPage() {
   // ====================== Dirty check + 保存流 ======================
   const isConfigDirty = useMemo(() => {
     const configChanged =
-      Object.keys(originalConfig).length > 0 &&
-      JSON.stringify(configs) !== JSON.stringify(originalConfig);
+      Object.keys(originalConfig).length === 0
+        ? Object.keys(configs).length > 0
+        : JSON.stringify(configs) !== JSON.stringify(originalConfig);
     const embeddingProviderChanged =
       embedding.embeddingSummary?.provider !==
       embedding.originalEmbeddingProvider;
@@ -938,7 +941,7 @@ export default function AIConfigPage() {
             })()}
             <Button
               onClick={handleSaveConfig}
-              disabled={!isConfigDirty || isSaving || isSectionsLocked}
+              disabled={!isConfigDirty || isSaving}
               size="sm"
               className={cn(
                 'gap-1.5 sm:gap-2 whitespace-nowrap transition-all duration-300 text-xs sm:text-sm',

@@ -30,7 +30,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { cn } from '@/lib/utils';
 import { versionApi, VersionInfo, ActiveBotsInfo } from '@/lib/api';
 
-const frontendVersion = PACKAGE_VERSION || '0.0.14';
+const frontendVersion = PACKAGE_VERSION || '0.0.15';
 
 // Build HomePage card classes that follow the global theme:
 // - `glass-card` (theme system: opacity + blur intensity, dark/light)

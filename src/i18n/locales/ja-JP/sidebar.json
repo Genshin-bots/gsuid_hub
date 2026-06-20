@@ -25,6 +25,7 @@
   "sessionManagement": "セッション管理",
   "aiHistory": "AI 履歴呼び出し",
   "aiKanban": "タスク看板",
+  "aiBudget": "AI 予算",
   "plugins": "プラグイン設定",
   "pluginStore": "プラグイン商城",
   "gitUpdate": "更新管理",

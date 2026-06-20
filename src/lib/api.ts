@@ -4298,6 +4298,220 @@ export const aiPerformanceApi = {
 };
 
 // ===================
+// AI Budget API
+// ===================
+
+export interface AIBudgetConfig {
+  enable: boolean;
+  count_mode: 'input_output' | 'total_with_cache' | 'output_only';
+  count_exempt_usage: boolean;
+  exempt_masters: boolean;
+  notify_on_block: boolean;
+  notify_cooldown: number;
+  block_message: string;
+}
+
+export interface AIBudgetRule {
+  id: number;
+  name: string;
+  scope_type: 'global' | 'group' | 'member' | 'user';
+  scope_id: string;
+  member_id: string;
+  bot_id: string;
+  enabled: boolean;
+  priority: number;
+  period_mode: 'rolling' | 'fixed';
+  short_window_hours: number;
+  limit_short: number;
+  limit_day: number;
+  limit_week: number;
+  note: string;
+  created_at: number;
+  updated_at: number;
+  usage?: AIBudgetRuleUsage;
+}
+
+export interface AIBudgetWindowUsage {
+  window: 'short' | 'day' | 'week';
+  window_seconds: number;
+  limit: number;
+  used: number;
+  remaining: number;
+  over: boolean;
+  reset_at: number | null;
+}
+
+export interface AIBudgetRuleUsage {
+  rule_id: number;
+  rule_name: string;
+  scope_type: string;
+  scope_label: string;
+  period_mode: string;
+  blocked: boolean;
+  windows: AIBudgetWindowUsage[];
+}
+
+export interface AIBudgetWhitelistEntry {
+  id: number;
+  user_id: string;
+  group_id: string;
+  bot_id: string;
+  enabled: boolean;
+  note: string;
+  created_at: number;
+}
+
+export interface AIBudgetOverview {
+  enabled: boolean;
+  rule_count: number;
+  enabled_rule_count: number;
+  whitelist_count: number;
+  total_tokens_24h: number;
+  blocked_rules: { rule_id: number; scope_label: string; blocked: boolean; windows: AIBudgetWindowUsage[] }[];
+  top_groups_24h: { group_id: string; total_tokens: number }[];
+  top_users_24h: { user_id: string; total_tokens: number }[];
+}
+
+export interface AIBudgetCheckResult {
+  allowed: boolean;
+  enabled: boolean;
+  exempt: boolean;
+  exempt_reason: string;
+  rule_statuses: {
+    rule_id: number;
+    rule_name: string;
+    scope_type: string;
+    scope_label: string;
+    period_mode: string;
+    blocked: boolean;
+    windows: AIBudgetWindowUsage[];
+  }[];
+  block_rule_id: number | null;
+  block_scope_label: string;
+  block_window: AIBudgetWindowUsage | null;
+  message: string;
+  notify: boolean;
+}
+
+export interface AIBudgetUsageTopItem {
+  group_id?: string;
+  user_id?: string;
+  total_tokens: number;
+}
+
+export interface AIBudgetUsageTopResult {
+  dimension: string;
+  window: string;
+  since_ts: number;
+  items: AIBudgetUsageTopItem[];
+}
+
+export interface AIBudgetScopeUsage {
+  scope_type: string;
+  scope_id: string;
+  member_id: string;
+  enabled: boolean;
+  exempt: boolean;
+  exempt_reason: string;
+  rules: { rule_id: number; scope_label: string; blocked: boolean; windows: AIBudgetWindowUsage[] }[];
+}
+
+export const aiBudgetApi = {
+  // 41.1 获取全局配置
+  getConfig: () =>
+    api.get<AIBudgetConfig>('/api/ai/budget/config'),
+
+  // 41.2 更新全局配置
+  updateConfig: (data: Partial<AIBudgetConfig>) =>
+    api.put<AIBudgetConfig>('/api/ai/budget/config', data),
+
+  // 41.3 规则列表
+  getRules: (params: { scope_type?: string; enabled?: string; q?: string; with_usage?: boolean } = {}) => {
+    const query = new URLSearchParams();
+    if (params.scope_type) query.set('scope_type', params.scope_type);
+    if (params.enabled) query.set('enabled', params.enabled);
+    if (params.q) query.set('q', params.q);
+    if (params.with_usage) query.set('with_usage', 'true');
+    const queryStr = query.toString();
+    return api.get<AIBudgetRule[]>(`/api/ai/budget/rules${queryStr ? `?${queryStr}` : ''}`);
+  },
+
+  // 41.4 创建规则
+  createRule: (data: Partial<AIBudgetRule>) =>
+    api.post<AIBudgetRule>('/api/ai/budget/rules', data),
+
+  // 41.5 规则详情（含实时用量）
+  getRule: (ruleId: number) =>
+    api.get<AIBudgetRule>(`/api/ai/budget/rules/${ruleId}`),
+
+  // 41.6 更新规则
+  updateRule: (ruleId: number, data: Partial<AIBudgetRule>) =>
+    api.put<AIBudgetRule>(`/api/ai/budget/rules/${ruleId}`, data),
+
+  // 41.7 启用/停用规则
+  toggleRule: (ruleId: number) =>
+    api.post<{ id: number; enabled: boolean }>(`/api/ai/budget/rules/${ruleId}/toggle`, {}),
+
+  // 41.8 删除规则
+  deleteRule: (ruleId: number) =>
+    api.delete<{ id: number }>(`/api/ai/budget/rules/${ruleId}`),
+
+  // 41.9 白名单列表
+  getWhitelist: (params: { user_id?: string; group_id?: string } = {}) => {
+    const query = new URLSearchParams();
+    if (params.user_id) query.set('user_id', params.user_id);
+    if (params.group_id) query.set('group_id', params.group_id);
+    const queryStr = query.toString();
+    return api.get<AIBudgetWhitelistEntry[]>(`/api/ai/budget/whitelist${queryStr ? `?${queryStr}` : ''}`);
+  },
+
+  // 41.10 新增白名单
+  createWhitelistEntry: (data: Partial<AIBudgetWhitelistEntry>) =>
+    api.post<AIBudgetWhitelistEntry>('/api/ai/budget/whitelist', data),
+
+  // 41.11 更新白名单
+  updateWhitelistEntry: (entryId: number, data: Partial<AIBudgetWhitelistEntry>) =>
+    api.put<AIBudgetWhitelistEntry>(`/api/ai/budget/whitelist/${entryId}`, data),
+
+  // 41.11 删除白名单
+  deleteWhitelistEntry: (entryId: number) =>
+    api.delete<{ id: number }>(`/api/ai/budget/whitelist/${entryId}`),
+
+  // 41.12 用量排行
+  getUsageTop: (params: { dimension: string; window: string; limit?: number; bot_id?: string; include_exempt?: boolean }) => {
+    const query = new URLSearchParams();
+    query.set('dimension', params.dimension);
+    query.set('window', params.window);
+    if (params.limit) query.set('limit', String(params.limit));
+    if (params.bot_id) query.set('bot_id', params.bot_id);
+    if (params.include_exempt !== undefined) query.set('include_exempt', String(params.include_exempt));
+    return api.get<AIBudgetUsageTopResult>(`/api/ai/budget/usage?${query.toString()}`);
+  },
+
+  // 41.13 查看 scope 逐窗口用量
+  getScopeUsage: (params: { scope_type: string; scope_id: string; member_id?: string; bot_id?: string }) => {
+    const query = new URLSearchParams();
+    query.set('scope_type', params.scope_type);
+    query.set('scope_id', params.scope_id);
+    if (params.member_id) query.set('member_id', params.member_id);
+    if (params.bot_id) query.set('bot_id', params.bot_id);
+    return api.get<AIBudgetScopeUsage>(`/api/ai/budget/usage/scope?${query.toString()}`);
+  },
+
+  // 41.14 干跑预演
+  check: (data: { user_id: string; group_id?: string; bot_id?: string }) =>
+    api.post<AIBudgetCheckResult>('/api/ai/budget/check', data),
+
+  // 41.15 手动放行
+  reset: (data: { scope_type: string; scope_id: string; member_id?: string; bot_id?: string; window?: string }) =>
+    api.post<{ deleted: number }>('/api/ai/budget/reset', data),
+
+  // 41.16 看板汇总
+  getOverview: () =>
+    api.get<AIBudgetOverview>('/api/ai/budget/overview'),
+};
+
+// ===================
 // Version API
 // ===================
 

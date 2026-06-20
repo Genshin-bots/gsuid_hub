@@ -25,6 +25,7 @@
   "sessionManagement": "Session Management",
   "aiHistory": "AI Call History",
   "aiKanban": "Task Kanban",
+  "aiBudget": "AI Budget",
   "plugins": "Plugin Settings",
   "pluginStore": "Plugin Store",
   "gitUpdate": "Update Management",

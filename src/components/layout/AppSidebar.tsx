@@ -1,4 +1,4 @@
-import { Home, LayoutDashboard, Database, Settings, FileText, LogOut, Palette, Terminal, Calendar, Store, Cpu, HardDrive, PanelLeftClose, PanelLeft, Cog, Power, RotateCw, User, Brain, ChevronDown, ChevronRight, Wrench, Sparkles, BookOpen, History, TrendingUp, Clock, Server, GitBranch, Image as ImageIcon, ScrollText, Layers, ClipboardList, Activity } from 'lucide-react';
+import { Home, LayoutDashboard, Database, Settings, FileText, LogOut, Palette, Terminal, Calendar, Store, Cpu, HardDrive, PanelLeftClose, PanelLeft, Cog, Power, RotateCw, User, Brain, ChevronDown, ChevronRight, Wrench, Sparkles, BookOpen, History, TrendingUp, Clock, Server, GitBranch, Image as ImageIcon, ScrollText, Layers, ClipboardList, Activity, Wallet } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -32,6 +32,8 @@ import { useSystemControl } from '@/hooks/useSystemControl';
 
 // 导航项类型定义
 interface NavItem {
+  // 稳定标识符，不随语言变化，用于追踪展开/选中状态
+  id: string;
   title: string;
   url?: string;
   icon?: React.ElementType;
@@ -60,6 +62,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   User,
   Server,
   GitBranch,
+  Wallet,
 };
 
 // 导航项配置
@@ -67,63 +70,68 @@ const getNavItems = (t: (key: string) => string, isAIEnabled: boolean): NavItem[
   // AI 配置的子菜单：未启用 AI 时只保留 基础配置 / AI历史调用
   const aiConfigChildren: NavItem[] = isAIEnabled
     ? [
-        { title: t('sidebar.basicConfig'), url: '/ai-config', icon: Cog },
-        { title: t('sidebar.personaConfig'), url: '/persona-config', icon: User },
-        { title: t('sidebar.mcpConfig'), url: '/mcp-config', icon: Server },
-        { title: t('sidebar.aiCapabilityAgents'), url: '/ai-capability-agents', icon: Layers },
-        { title: t('sidebar.aiTools'), url: '/ai-tools', icon: Wrench },
-        { title: t('sidebar.aiSkills'), url: '/ai-skills', icon: Sparkles },
-        { title: t('sidebar.aiStatistics'), url: '/ai-statistics', icon: TrendingUp },
-        { title: t('sidebar.aiScheduledTasks'), url: '/ai-scheduled-tasks', icon: Clock },
-        { title: t('sidebar.aiKnowledge'), url: '/ai-knowledge', icon: BookOpen },
-        { title: t('sidebar.aiMeme'), url: '/ai-meme', icon: ImageIcon },
-        { title: t('sidebar.aiMemory'), url: '/ai-memory', icon: Brain },
-        { title: t('sidebar.aiHistory'), url: '/ai-history', icon: ScrollText },
-        { title: t('sidebar.aiKanban'), url: '/ai-kanban', icon: ClipboardList },
+        { id: 'ai-basicConfig', title: t('sidebar.basicConfig'), url: '/ai-config', icon: Cog },
+        { id: 'ai-budget', title: t('sidebar.aiBudget'), url: '/ai-budget', icon: Wallet },
+        { id: 'ai-personaConfig', title: t('sidebar.personaConfig'), url: '/persona-config', icon: User },
+        { id: 'ai-mcpConfig', title: t('sidebar.mcpConfig'), url: '/mcp-config', icon: Server },
+        { id: 'ai-capabilityAgents', title: t('sidebar.aiCapabilityAgents'), url: '/ai-capability-agents', icon: Layers },
+        { id: 'ai-tools', title: t('sidebar.aiTools'), url: '/ai-tools', icon: Wrench },
+        { id: 'ai-skills', title: t('sidebar.aiSkills'), url: '/ai-skills', icon: Sparkles },
+        { id: 'ai-statistics', title: t('sidebar.aiStatistics'), url: '/ai-statistics', icon: TrendingUp },
+        { id: 'ai-scheduledTasks', title: t('sidebar.aiScheduledTasks'), url: '/ai-scheduled-tasks', icon: Clock },
+        { id: 'ai-knowledge', title: t('sidebar.aiKnowledge'), url: '/ai-knowledge', icon: BookOpen },
+        { id: 'ai-meme', title: t('sidebar.aiMeme'), url: '/ai-meme', icon: ImageIcon },
+        { id: 'ai-memory', title: t('sidebar.aiMemory'), url: '/ai-memory', icon: Brain },
+        { id: 'ai-history', title: t('sidebar.aiHistory'), url: '/ai-history', icon: ScrollText },
+        { id: 'ai-kanban', title: t('sidebar.aiKanban'), url: '/ai-kanban', icon: ClipboardList },
       ]
     : [
-        { title: t('sidebar.basicConfig'), url: '/ai-config', icon: Cog },
-        { title: t('sidebar.aiHistory'), url: '/ai-history', icon: ScrollText },
+        { id: 'ai-basicConfig', title: t('sidebar.basicConfig'), url: '/ai-config', icon: Cog },
+        { id: 'ai-history', title: t('sidebar.aiHistory'), url: '/ai-history', icon: ScrollText },
       ];
 
   return [
-    { title: t('sidebar.home'), url: '/home', icon: Home },
-    { title: t('sidebar.dashboard'), url: '/dashboard', icon: LayoutDashboard },
-    { title: t('sidebar.database'), url: '/database', icon: Database },
+    { id: 'home', title: t('sidebar.home'), url: '/home', icon: Home },
+    { id: 'dashboard', title: t('sidebar.dashboard'), url: '/dashboard', icon: LayoutDashboard },
+    { id: 'database', title: t('sidebar.database'), url: '/database', icon: Database },
     {
+      id: 'adminCore',
       title: t('sidebar.adminCore'),
       icon: Cog,
       children: [
-        { title: t('sidebar.coreConfig'), url: '/core-config', icon: Cog },
-        { title: t('sidebar.frameworkConfig'), url: '/framework-config', icon: Cpu },
-        { title: t('sidebar.backup'), url: '/backup', icon: HardDrive },
-        { title: t('sidebar.scheduler'), url: '/scheduler', icon: Calendar }
+        { id: 'coreConfig', title: t('sidebar.coreConfig'), url: '/core-config', icon: Cog },
+        { id: 'frameworkConfig', title: t('sidebar.frameworkConfig'), url: '/framework-config', icon: Cpu },
+        { id: 'backup', title: t('sidebar.backup'), url: '/backup', icon: HardDrive },
+        { id: 'scheduler', title: t('sidebar.scheduler'), url: '/scheduler', icon: Calendar }
       ]
     },
     {
+      id: 'logsView',
       title: t('sidebar.logsView'),
       icon: FileText,
       children: [
-        { title: t('sidebar.console'), url: '/console', icon: Terminal },
-        { title: t('sidebar.historyLogs'), url: '/logs', icon: FileText },
-        { title: t('sidebar.traces'), url: '/traces', icon: Activity },
-        { title: t('sidebar.sessionManagement'), url: '/session-management', icon: History }
+        { id: 'console', title: t('sidebar.console'), url: '/console', icon: Terminal },
+        { id: 'historyLogs', title: t('sidebar.historyLogs'), url: '/logs', icon: FileText },
+        { id: 'traces', title: t('sidebar.traces'), url: '/traces', icon: Activity },
+        { id: 'sessionManagement', title: t('sidebar.sessionManagement'), url: '/session-management', icon: History }
       ]
     },
     {
+      id: 'aiConfig',
       title: t('sidebar.aiConfig'),
       icon: Brain,
       children: aiConfigChildren,
     },
-    { title: t('sidebar.plugins'), url: '/plugins', icon: Settings },
-    { title: t('sidebar.pluginStore'), url: '/plugin-store', icon: Store },
-    { title: t('sidebar.gitUpdate'), url: '/git-update', icon: GitBranch },
+    { id: 'plugins', title: t('sidebar.plugins'), url: '/plugins', icon: Settings },
+    { id: 'pluginStore', title: t('sidebar.pluginStore'), url: '/plugin-store', icon: Store },
+    { id: 'gitUpdate', title: t('sidebar.gitUpdate'), url: '/git-update', icon: GitBranch },
     {
+      id: 'consoleManagement',
       title: t('sidebar.consoleManagement'),
       icon: Settings,
       children: [
-        { title: t('sidebar.themes'), url: '/themes', icon: Palette },
-        { title: t('sidebar.accountSettings'), url: '/settings', icon: User }
+        { id: 'themes', title: t('sidebar.themes'), url: '/themes', icon: Palette },
+        { id: 'accountSettings', title: t('sidebar.accountSettings'), url: '/settings', icon: User }
       ]
     }
   ];
@@ -158,8 +166,8 @@ const MemoizedNavItem = memo(function MemoizedNavItem({
       >
         <SidebarMenuItem className="w-full">
           <CollapsibleTrigger asChild>
-            <SidebarMenuButton 
-              tooltip={item.title} 
+            <SidebarMenuButton
+              tooltip={item.title}
               className={cn(
                 "flex items-center rounded-lg transition-all cursor-pointer",
                 isCollapsed ? "justify-center w-10 h-10 p-0" : "gap-3 px-3 py-2.5 w-full",
@@ -170,8 +178,8 @@ const MemoizedNavItem = memo(function MemoizedNavItem({
               {!isCollapsed && (
                 <>
                   <span className="flex-1 text-left">{item.title}</span>
-                  {isExpanded 
-                    ? React.createElement(ChevronDown, { className: iconClass, style: iconStyle }) 
+                  {isExpanded
+                    ? React.createElement(ChevronDown, { className: iconClass, style: iconStyle })
                     : React.createElement(ChevronRight, { className: iconClass, style: iconStyle })}
                 </>
               )}
@@ -181,15 +189,15 @@ const MemoizedNavItem = memo(function MemoizedNavItem({
             <CollapsibleContent>
               <SidebarMenu className="ml-2 mt-1 border-l-2 border-primary/20 pl-2">
                 {item.children?.map(child => (
-                  <SidebarMenuItem key={child.title} className="w-full">
+                  <SidebarMenuItem key={child.id} className="w-full">
                     <SidebarMenuButton asChild tooltip={child.title}>
-                      <NavLink 
-                        to={child.url || '#'} 
+                      <NavLink
+                        to={child.url || '#'}
                         className={cn(
                           "flex items-center rounded-lg transition-all",
                           "gap-3 px-3 py-2",
                           "hover:bg-primary/10"
-                        )} 
+                        )}
                         activeClassName="bg-primary/20 text-primary font-medium shadow-sm"
                       >
                         {child.icon && <child.icon className="w-4 h-4 shrink-0" style={iconStyle} />}
@@ -209,13 +217,13 @@ const MemoizedNavItem = memo(function MemoizedNavItem({
   return (
     <SidebarMenuItem className={cn(isCollapsed ? "w-auto" : "w-full")}>
       <SidebarMenuButton asChild tooltip={item.title}>
-        <NavLink 
-          to={item.url || '#'} 
+        <NavLink
+          to={item.url || '#'}
           className={cn(
             "flex items-center rounded-lg transition-all",
             isCollapsed ? "justify-center w-10 h-10 p-0" : "gap-3 px-3 py-2.5",
             "hover:bg-primary/10"
-          )} 
+          )}
           activeClassName="bg-primary/20 text-primary font-medium shadow-sm"
         >
           {item.icon && <item.icon className="w-5 h-5 shrink-0" style={iconStyle} />}
@@ -234,7 +242,7 @@ export function AppSidebar() {
   const { style: themeStyle, iconColor } = useTheme();
   const { t, language, setLanguage, availableLanguages } = useLanguage();
   const { isAIEnabled, refresh: refreshAIStatus } = useAIStatus();
-  
+
   const navItems = useMemo(() => getNavItems(t, isAIEnabled), [t, isAIEnabled]);
   const isCollapsed = sidebarState === 'collapsed';
   const isGlassmorphism = themeStyle === 'glassmorphism';
@@ -257,7 +265,7 @@ export function AppSidebar() {
     handleResume,
   } = useSystemControl();
 
-  // 展开/收起状态管理
+  // 展开/收起状态管理 - 使用稳定的 id 作为 key，避免切换语言后状态丢失
   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
   const location = useLocation();
 
@@ -269,19 +277,18 @@ export function AppSidebar() {
   }, [location.pathname, refreshAIStatus]);
   const isInitialMount = useRef(true);
 
-  // AI 配置菜单的翻译键（用于在展开时主动校验 AI 是否启用）
-  const AI_CONFIG_TITLE_KEY = 'sidebar.aiConfig';
-  const aiConfigTitle = t(AI_CONFIG_TITLE_KEY);
+  // AI 配置菜单的稳定 id
+  const AI_CONFIG_ID = 'aiConfig';
 
-  const toggleExpanded = (title: string) => {
-    const willExpand = !expandedItems[title];
+  const toggleExpanded = (id: string) => {
+    const willExpand = !expandedItems[id];
     setExpandedItems(prev => ({
       ...prev,
-      [title]: willExpand
+      [id]: willExpand
     }));
     // 展开 AI 配置菜单时，重新从后端校验 AI 是否启动，
     // 以保证未点击 /ai-config 时也能显示完整的 AI 子菜单
-    if (willExpand && title === aiConfigTitle) {
+    if (willExpand && id === AI_CONFIG_ID) {
       refreshAIStatus();
     }
   };
@@ -294,10 +301,10 @@ export function AppSidebar() {
       navItems.forEach(item => {
         if (item.children) {
           const hasActiveChild = item.children.some(child =>
-            currentPath === child.url || currentPath.startsWith(child.url + '/')
+            currentPath === child.url || currentPath.startsWith((child.url || '') + '/')
           );
           if (hasActiveChild) {
-            setExpandedItems(prev => ({ ...prev, [item.title]: true }));
+            setExpandedItems(prev => ({ ...prev, [item.id]: true }));
           }
         }
       });
@@ -317,9 +324,9 @@ export function AppSidebar() {
   const iconClass = "w-5 h-5 shrink-0";
 
   return (
-    <Sidebar 
-      variant="sidebar" 
-      collapsible="icon" 
+    <Sidebar
+      variant="sidebar"
+      collapsible="icon"
       className={cn("border-0", "floating-sidebar")}
     >
       <SidebarHeader className={cn("p-4", isCollapsed && "flex flex-col items-center")}>
@@ -332,16 +339,16 @@ export function AppSidebar() {
               <div className="flex flex-col">
                 <div className="flex items-center gap-1">
                   <span className="font-bold text-lg">{t('sidebar.gsCore')}</span>
-                  <Badge variant="default" className="text-xs font-medium">v{import.meta.env.PACKAGE_VERSION || '0.0.14'}</Badge>
+                  <Badge variant="default" className="text-xs font-medium">v{import.meta.env.PACKAGE_VERSION || '0.0.15'}</Badge>
                 </div>
                 <span className="text-xs text-muted-foreground">​{t('sidebar.早柚核心')}</span>
               </div>
             )}
           </div>
           {!isCollapsed && (
-            <button 
-              onClick={toggleSidebar} 
-              className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-primary/10 transition-colors text-muted-foreground hover:text-foreground" 
+            <button
+              onClick={toggleSidebar}
+              className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-primary/10 transition-colors text-muted-foreground hover:text-foreground"
               aria-label={t('sidebar.collapseSidebar')}
             >
               <PanelLeftClose className="w-4 h-4" />
@@ -349,9 +356,9 @@ export function AppSidebar() {
           )}
         </div>
         {isCollapsed && (
-          <button 
-            onClick={toggleSidebar} 
-            className="mt-2 h-8 w-8 flex items-center justify-center rounded-lg hover:bg-primary/10 transition-colors text-muted-foreground hover:text-foreground" 
+          <button
+            onClick={toggleSidebar}
+            className="mt-2 h-8 w-8 flex items-center justify-center rounded-lg hover:bg-primary/10 transition-colors text-muted-foreground hover:text-foreground"
             aria-label={t('sidebar.expandSidebar')}
           >
             <PanelLeft className="w-4 h-4" />
@@ -372,11 +379,11 @@ export function AppSidebar() {
             <SidebarMenu className={cn(isCollapsed && "items-center")}>
               {navItems.map(item => (
                 <MemoizedNavItem
-                  key={item.title}
+                  key={item.id}
                   item={item}
                   isCollapsed={isCollapsed}
-                  isExpanded={expandedItems[item.title] ?? false}
-                  onToggle={() => toggleExpanded(item.title)}
+                  isExpanded={expandedItems[item.id] ?? false}
+                  onToggle={() => toggleExpanded(item.id)}
                   iconStyle={iconStyle}
                   iconClass={iconClass}
                 />
@@ -413,11 +420,11 @@ export function AppSidebar() {
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button 
-              variant="ghost" 
-              size={isCollapsed ? 'icon' : 'default'} 
+            <Button
+              variant="ghost"
+              size={isCollapsed ? 'icon' : 'default'}
               className={cn(
-                "text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors", 
+                "text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors",
                 isCollapsed ? "w-auto justify-center" : "w-full justify-start gap-2"
               )}
             >
@@ -442,13 +449,13 @@ export function AppSidebar() {
           </DropdownMenuContent>
         </DropdownMenu>
 
-        <Button 
-          variant="ghost" 
-          size={isCollapsed ? 'icon' : 'default'} 
-          onClick={() => setShowPauseDialog(true)} 
-          title={isPaused ? t('sidebar.resumeGsCore') : t('sidebar.pauseGsCore')} 
+        <Button
+          variant="ghost"
+          size={isCollapsed ? 'icon' : 'default'}
+          onClick={() => setShowPauseDialog(true)}
+          title={isPaused ? t('sidebar.resumeGsCore') : t('sidebar.pauseGsCore')}
           className={cn(
-            "text-muted-foreground hover:text-yellow-500 hover:bg-yellow-500/10 transition-colors", 
+            "text-muted-foreground hover:text-yellow-500 hover:bg-yellow-500/10 transition-colors",
             isCollapsed ? "w-auto justify-center" : "w-full justify-start gap-2"
           )}
         >
@@ -456,13 +463,13 @@ export function AppSidebar() {
           {!isCollapsed && <span>{isPaused ? t('sidebar.resumeGsCore') : t('sidebar.pauseGsCore')}</span>}
         </Button>
 
-        <Button 
-          variant="ghost" 
-          size={isCollapsed ? 'icon' : 'default'} 
-          onClick={() => setShowRestartDialog(true)} 
-          title={t('sidebar.restartGsCore')} 
+        <Button
+          variant="ghost"
+          size={isCollapsed ? 'icon' : 'default'}
+          onClick={() => setShowRestartDialog(true)}
+          title={t('sidebar.restartGsCore')}
           className={cn(
-            "text-muted-foreground hover:text-orange-500 hover:bg-orange-500/10 transition-colors", 
+            "text-muted-foreground hover:text-orange-500 hover:bg-orange-500/10 transition-colors",
             isCollapsed ? "w-auto justify-center" : "w-full justify-start gap-2"
           )}
         >
@@ -470,12 +477,12 @@ export function AppSidebar() {
           {!isCollapsed && <span>{t('sidebar.restartGsCore')}</span>}
         </Button>
 
-        <Button 
-          variant="ghost" 
-          size={isCollapsed ? 'icon' : 'default'} 
-          onClick={logout} 
+        <Button
+          variant="ghost"
+          size={isCollapsed ? 'icon' : 'default'}
+          onClick={logout}
           className={cn(
-            "text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors", 
+            "text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors",
             isCollapsed ? "w-auto justify-center" : "w-full justify-start gap-2"
           )}
         >
