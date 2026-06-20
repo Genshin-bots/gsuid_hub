@@ -424,7 +424,7 @@ export function AppSidebar() {
               variant="ghost"
               size={isCollapsed ? 'icon' : 'default'}
               className={cn(
-                "text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors",
+                "hover:text-primary hover:bg-primary/10 transition-colors",
                 isCollapsed ? "w-auto justify-center" : "w-full justify-start gap-2"
               )}
             >
@@ -455,7 +455,7 @@ export function AppSidebar() {
           onClick={() => setShowPauseDialog(true)}
           title={isPaused ? t('sidebar.resumeGsCore') : t('sidebar.pauseGsCore')}
           className={cn(
-            "text-muted-foreground hover:text-yellow-500 hover:bg-yellow-500/10 transition-colors",
+            "hover:text-yellow-500 hover:bg-yellow-500/10 transition-colors",
             isCollapsed ? "w-auto justify-center" : "w-full justify-start gap-2"
           )}
         >
@@ -469,7 +469,7 @@ export function AppSidebar() {
           onClick={() => setShowRestartDialog(true)}
           title={t('sidebar.restartGsCore')}
           className={cn(
-            "text-muted-foreground hover:text-orange-500 hover:bg-orange-500/10 transition-colors",
+            "hover:text-orange-500 hover:bg-orange-500/10 transition-colors",
             isCollapsed ? "w-auto justify-center" : "w-full justify-start gap-2"
           )}
         >
@@ -482,7 +482,7 @@ export function AppSidebar() {
           size={isCollapsed ? 'icon' : 'default'}
           onClick={logout}
           className={cn(
-            "text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors",
+            "hover:text-destructive hover:bg-destructive/10 transition-colors",
             isCollapsed ? "w-auto justify-center" : "w-full justify-start gap-2"
           )}
         >

@@ -28,3 +28,5 @@ dist-ssr
 
 eslint_output.txt
 ts_output.txt
+tsc_out.txt
+tsc_err.txt

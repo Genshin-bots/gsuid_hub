@@ -1,6 +1,5 @@
 ﻿import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo, useRef } from 'react';
-import { themeApi, ThemeConfigResponse } from '@/lib/api';
-import { toast } from 'sonner';
+import { themeApi, ThemeConfig } from '@/lib/api';
 
 // ============================================================================
 // 类型定义
@@ -49,6 +48,13 @@ interface ThemeIconColorContextType {
 interface ThemeLanguageContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
+}
+
+interface ThemeActionsContextType {
+  /** Snapshot the current theme as a `ThemeConfig` (for saving a preset). */
+  getThemeConfig: () => ThemeConfig;
+  /** Apply a full theme config to the live UI without re-persisting to the backend. */
+  applyThemeConfig: (config: Partial<ThemeConfig>) => void;
 }
 
 // ============================================================================
@@ -203,6 +209,7 @@ const ThemeColorContext = createContext<ThemeColorContextType | undefined>(undef
 const ThemeBackgroundContext = createContext<ThemeBackgroundContextType | undefined>(undefined);
 const ThemeIconColorContext = createContext<ThemeIconColorContextType | undefined>(undefined);
 const ThemeLanguageContext = createContext<ThemeLanguageContextType | undefined>(undefined);
+const ThemeActionsContext = createContext<ThemeActionsContextType | undefined>(undefined);
 
 // ============================================================================
 // Provider组件
@@ -432,6 +439,54 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     }
   }, [isInitialized, saveToBackend]);
 
+  // 把当前主题快照成后端 ThemeConfig 结构（用于保存预设）
+  const getThemeConfig = useCallback((): ThemeConfig => {
+    const c = configRef.current;
+    return {
+      mode: c.mode,
+      style: c.style,
+      color: c.color,
+      icon_color: c.iconColor,
+      background_image: c.backgroundImage,
+      blur_intensity: c.blurIntensity,
+      card_opacity: c.cardOpacity,
+      theme_preset: c.themePreset,
+      language: c.language,
+    };
+  }, []);
+
+  // 应用一份完整主题配置到 UI（不再回写后端：应用预设时后端已落盘）。
+  // 字段逐项校验，非法值忽略，与 initTheme 的容错逻辑保持一致。
+  const applyThemeConfig = useCallback((config: Partial<ThemeConfig>) => {
+    if (config.mode && ['light', 'dark'].includes(config.mode)) {
+      setModeState(config.mode as ThemeMode);
+    }
+    if (config.style && ['solid', 'glassmorphism'].includes(config.style)) {
+      setStyleState(config.style as ThemeStyle);
+    }
+    if (config.color && ['red', 'orchid', 'blue', 'green', 'orange', 'pink'].includes(config.color)) {
+      setColorState(config.color as ThemeColor);
+    }
+    if (config.background_image !== undefined) {
+      setBackgroundImageState(config.background_image);
+    }
+    if (typeof config.blur_intensity === 'number') {
+      setBlurIntensityState(Math.max(0, Math.min(24, config.blur_intensity)));
+    }
+    if (typeof config.card_opacity === 'number') {
+      setCardOpacityState(Math.max(0, Math.min(100, config.card_opacity)));
+    }
+    if (config.icon_color && ['white', 'black', 'colored'].includes(config.icon_color)) {
+      setIconColorState(config.icon_color as IconColor);
+    }
+    if (config.theme_preset && ['default', 'shadcn'].includes(config.theme_preset)) {
+      setThemePresetState(config.theme_preset as ThemePreset);
+    }
+    if (config.language && ['zh-CN', 'en-US', 'ja-JP'].includes(config.language)) {
+      setLanguageState(config.language as Language);
+    }
+  }, []);
+
   // Context values
   const modeContext = useMemo(() => ({ mode, setMode }), [mode, setMode]);
   const styleContext = useMemo(() => ({ style, setStyle }), [style, setStyle]);
@@ -439,6 +494,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const backgroundContext = useMemo(() => ({ backgroundImage, setBackgroundImage, blurIntensity, setBlurIntensity, cardOpacity, setCardOpacity }), [backgroundImage, setBackgroundImage, blurIntensity, setBlurIntensity, cardOpacity, setCardOpacity]);
   const iconColorContext = useMemo(() => ({ iconColor, setIconColor }), [iconColor, setIconColor]);
   const languageContext = useMemo(() => ({ language, setLanguage }), [language, setLanguage]);
+  const actionsContext = useMemo(() => ({ getThemeConfig, applyThemeConfig }), [getThemeConfig, applyThemeConfig]);
 
   return (
     <ThemeModeContext.Provider value={modeContext}>
@@ -447,7 +503,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
           <ThemeBackgroundContext.Provider value={backgroundContext}>
             <ThemeIconColorContext.Provider value={iconColorContext}>
               <ThemeLanguageContext.Provider value={languageContext}>
-                {children}
+                <ThemeActionsContext.Provider value={actionsContext}>
+                  {children}
+                </ThemeActionsContext.Provider>
               </ThemeLanguageContext.Provider>
             </ThemeIconColorContext.Provider>
           </ThemeBackgroundContext.Provider>
@@ -468,8 +526,9 @@ export function useTheme() {
   const backgroundContext = useContext(ThemeBackgroundContext);
   const iconColorContext = useContext(ThemeIconColorContext);
   const languageContext = useContext(ThemeLanguageContext);
+  const actionsContext = useContext(ThemeActionsContext);
 
-  if (modeContext === undefined) {
+  if (modeContext === undefined || actionsContext === undefined) {
     throw new Error('useTheme must be used within a ThemeProvider');
   }
 
@@ -493,6 +552,8 @@ export function useTheme() {
     setIconColor: iconColorContext.setIconColor,
     setThemePreset: colorContext.setThemePreset,
     setLanguage: languageContext.setLanguage,
+    getThemeConfig: actionsContext.getThemeConfig,
+    applyThemeConfig: actionsContext.applyThemeConfig,
   };
 }
 

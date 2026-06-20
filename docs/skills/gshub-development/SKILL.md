@@ -70,6 +70,7 @@ description: >
 ## 关键概念速记（先看这一段再决定读哪一章）
 
 - **页面共享同一套排版骨架**：所有页面根容器统一 `p-6 space-y-6`，**不得**加 `max-w-7xl mx-auto`；标题统一 `text-3xl font-bold` + 内联图标 `w-8 h-8`（**不加**背景容器），副标题 `text-muted-foreground mt-1`（**不加** `text-sm`）。参考页 `AISkillsPage` / `AIMemoryPage`。详见 [§04](./references/04-page-layout-spec.md)。
+- **页面级操作按钮的摆放 ★★**：①首选——页面有 button group（`TabButtonGroup`/二级切换）时，把按钮**移出 Header**、与 button group **同行平齐**（`sm:items-center`、`justify-between`）；②否则放 Header 右侧、与**副标题底边对齐**（`sm:items-end`）。两种都**禁止**在 Header 内用 `items-center`（会让按钮浮在 H1 与副标题之间、与副标题错位）。详见 [§04 §4.2](./references/04-page-layout-spec.md)。
 - **一行筛选控件高度必须统一 h-9**：`Input` 默认 `h-10`、`SelectTrigger` 默认 `h-9`、`Button` 默认 `h-10`——同行并排不显式 `h-9` 就会高低不齐（搜索框+下拉+按钮的工具栏是重灾区）。详见 [§05](./references/05-components-and-form-controls.md)。
 - **`glass-card` 始终应用，不要 `isGlass &&`**：`glass-card` 已按 `[data-style]` 自动适配纯色/毛玻璃/亮暗。正确写法是直接 `className="glass-card"`。详见 [§03](./references/03-theme-and-styling.md)、[§10 P-2](./references/10-pitfalls-and-performance.md)。
 - **强制复用封装组件，禁止手搓**：输入框+下拉用 `InputWithDropdown`；标签用 `TagsInput`；多选/单选 Chip 用 `ChipGroup`；切换用 `TabButtonGroup`；后端字段动态渲染用 `DynamicConfigPanel`/`ConfigField`。详见 [§06](./references/06-reusable-component-catalog.md)。
@@ -81,6 +82,7 @@ description: >
 - **双态 UI 三处同步分支**：暂停/恢复、创建/编辑等场景，动作、图标、文案三者都要按同一条件分支，别只分支动作而把文案写死。详见 [§08](./references/08-page-patterns.md)、[§10 P-4](./references/10-pitfalls-and-performance.md)。
 - **三元 + 字符串拼接要加括号**：`a ? x : y + z` 因 `?:` 优先级低于 `+` 会解析成 `a ? x : (y+z)`。详见 [§10 P-1](./references/10-pitfalls-and-performance.md)。
 - **API 统一在 `src/lib/api.ts`**：所有请求经封装，类型同文件定义；401 统一用 `getLoginPath()` 跳登录（兼容开发 `/login` 与生产 `/app/login`）。详见 [§01](./references/01-architecture-and-conventions.md)。
+- **错误提示必须回显后端消息 ★**：后端错误有封套 `{status,msg}` 与 FastAPI `{detail}`（字符串/校验数组）两类，**只读 `msg` 会漏掉 `detail`**、导致 toast 与真实原因无关。统一用 `getApiErrorMessage(err/res, fallback)` 解析，本地化文案只兜底。详见 [§01 §1.5](./references/01-architecture-and-conventions.md)、[§10 P-13](./references/10-pitfalls-and-performance.md)。
 
 ## 关联文档（同仓库其他位置）
 

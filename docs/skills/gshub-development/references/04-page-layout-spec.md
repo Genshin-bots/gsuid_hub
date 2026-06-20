@@ -42,27 +42,63 @@
 ## 4.2 页面标题区域（Header）
 
 ```tsx
-<div className="flex items-center justify-between">
-  <div>
+{/* 有右侧操作按钮时：底部对齐（items-end），并做移动端响应式堆叠 */}
+<div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+  <div className="min-w-0">
     <h1 className="text-3xl font-bold flex items-center gap-3">
-      <Wallet className="w-8 h-8" />
+      <Wallet className="w-8 h-8 shrink-0" />
       {t('aiBudget.title')}
     </h1>
     <p className="text-muted-foreground mt-1">{t('aiBudget.description')}</p>
   </div>
   {/* 右侧操作区（可选）：保存/刷新/新建按钮等 */}
+  <Button className="self-start sm:self-auto shrink-0">…</Button>
 </div>
 ```
 
 | 元素 | 固定规范 |
 |------|----------|
-| 容器 | `flex items-center justify-between`（标题左、操作区右） |
+| 容器 | `flex items-end justify-between`（标题左、操作区右）。**只有标题、无右侧操作时**可退化为 `flex items-center justify-between` |
 | 标题 H1 | `text-3xl font-bold`，且 `flex items-center gap-3` 内联图标 |
 | 标题图标 | **直接用图标组件** `className="w-8 h-8"`，**不加**任何背景容器（`rounded-xl bg-primary/10` 等） |
 | 副标题 | `<p className="text-muted-foreground mt-1">`，**不加** `text-sm`（继承默认字号） |
 | 右侧操作区 | 放页面级动作按钮；与 Tab 联动时按 `activeTab` 条件渲染 |
 
-> Header 容器在标题/操作区高度不一致时，也可用 `flex items-end justify-between` 让二者底部对齐——但**默认用 `items-center`**，仅在确有视觉需要时改 `items-end`。
+### 页面级操作按钮的放置：优先与 button group 平齐，否则与副标题底边对齐 ★★
+
+页面级操作按钮（保存/新建/刷新等）有**两种**合规摆放位置，按以下优先级选择：
+
+**① 首选——与 button group 同行平齐**（页面在标题下方紧跟 `TabButtonGroup` / 二级切换时）：
+把操作按钮**从 Header 移出**，与 button group 放在**同一行**、垂直居中（`items-center`、`justify-between`）。这样按钮顶到 Tab 行、不占额外竖向空间，视觉更紧凑统一。**仅在 button group 那一行有足够横向空间、不挤压 Tab 时**采用。
+
+```tsx
+{/* 标题块：纯 H1 + 副标题，无右侧操作 */}
+<div className="min-w-0">
+  <h1 className="text-3xl font-bold flex items-center gap-3"><Palette className="w-8 h-8 shrink-0" />{t('…title')}</h1>
+  <p className="text-muted-foreground mt-1">{t('…description')}</p>
+</div>
+
+{/* button group 与操作按钮同行平齐 */}
+<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+  <TabButtonGroup options={tabOptions} value={tab} onValueChange={…} />
+  <Button className="self-start sm:self-auto shrink-0">{t('…action')}</Button>
+</div>
+```
+
+**② 退路——放在 Header，与副标题底边对齐**（页面**没有** button group，或那一行放不下/会挤压 Tab 时）：
+按钮放回 Header 右侧，容器用底部对齐 `items-end`（响应式 `sm:items-end`），让**按钮底边与副标题（`<p>`）底边落在同一条水平线上**。
+
+```tsx
+// ✅ 正确：按钮底边与副标题底边对齐
+<div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+  <div><h1 …/><p className="text-muted-foreground mt-1">…</p></div>
+  <Button className="self-start sm:self-auto shrink-0">保存</Button>
+</div>
+```
+
+> **共同禁忌**：标题块是「H1 + 副标题」两行，高度大于单行按钮。在 Header 里用 `items-center` 会让按钮**垂直居中**到 H1 与副标题之间，「浮在半空」、与副标题错位——**禁止**。
+> - 响应式统一：移动端堆叠用 `flex-col` + 按钮 `self-start`；`sm:` 起恢复 `sm:flex-row` + 按钮 `sm:self-auto`。
+> - 仅当 Header **没有**右侧操作区（纯标题块）时，Header 对齐方式才无所谓，可用 `items-center`。
 
 ## 4.3 反面示例（禁止使用）
 
@@ -169,7 +205,7 @@ if (items.length === 0) return <EmptyState icon={…} />;      // 空态：居�
 - [ ] 根容器 `p-6 space-y-6`，**无** `max-w-*` / 响应式页边距
 - [ ] 标题 `text-3xl font-bold` + 内联图标 `w-8 h-8`（无背景容器）
 - [ ] 副标题 `text-muted-foreground mt-1`（无 `text-sm`）
-- [ ] Header 用 `flex items-center justify-between`
+- [ ] 页面级操作按钮：有 button group 时与其同行平齐（`sm:items-center`）；否则放 Header 与副标题底边对齐（`sm:items-end`）。**禁止** Header 内 `items-center` 让按钮浮在两行之间
 - [ ] 卡片一律 `className="glass-card"`
 - [ ] 卡片/弹窗分区标题带 `w-5 h-5` 图标；列表项小标题不带
 - [ ] loading / error / empty 三态齐全

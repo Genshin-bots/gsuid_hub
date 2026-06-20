@@ -368,7 +368,7 @@ function WindowProgressBar({ window: w }: { window: AIBudgetWindowUsage }) {
     <div className="flex items-center gap-3 text-sm">
       <span className="w-16 font-medium">{windowLabel}</span>
       <div className="flex-1">
-        <Progress value={pct} className={cn("h-2", isOver && "[&>div]:bg-red-500")} />
+        <Progress value={pct} className={cn("h-3", isOver && "[&>div]:bg-red-500")} />
       </div>
       <span className={cn("font-mono text-xs whitespace-nowrap", isOver ? "text-red-500" : "text-muted-foreground")}>
         {formatTokens(w.used)}/{formatTokens(w.limit)}
@@ -926,32 +926,26 @@ function RuleCard({ rule, onToggle, onEdit, onDelete, onViewDetail }: {
     <Card className={cn("glass-card", rule.enabled ? "" : "opacity-60")}>
       <CardContent className="py-3">
         <div className="flex items-start justify-between gap-4">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="font-medium truncate">{rule.name || t('aiBudget.common.globalScope')}</span>
-              <Badge variant="outline" className="text-xs">{scopeTypeLabel}</Badge>
-              {rule.scope_id && <span className="text-xs font-mono text-muted-foreground">{rule.scope_id}</span>}
-              {rule.member_id && <span className="text-xs font-mono text-muted-foreground">→{rule.member_id}</span>}
-              <Badge variant="secondary" className="text-xs">{periodModeLabel}</Badge>
-              {!rule.enabled && <Badge variant="outline" className="text-xs text-muted-foreground">{t('aiBudget.common.disabled')}</Badge>}
-            </div>
-            <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-              <span>{t('aiBudget.rules.columns.priority')}: {rule.priority}</span>
-              {rule.limit_short > 0 && <span>S:{formatTokens(rule.limit_short)}</span>}
-              {rule.limit_day > 0 && <span>D:{formatTokens(rule.limit_day)}</span>}
-              {rule.limit_week > 0 && <span>W:{formatTokens(rule.limit_week)}</span>}
-            </div>
-            {/* Inline usage bars */}
-            {rule.usage && rule.usage.windows.length > 0 && (
-              <div className="mt-2 space-y-1">
-                {rule.usage.windows.map(w => (
-                  <WindowProgressBar key={w.window} window={w} />
-                ))}
+          <div className="flex-1 min-w-0 flex items-center gap-2">
+            <Switch checked={rule.enabled} onCheckedChange={onToggle} />
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="font-medium truncate">{rule.name || t('aiBudget.common.globalScope')}</span>
+                <Badge variant="outline" className="text-xs">{scopeTypeLabel}</Badge>
+                {rule.scope_id && <span className="text-xs font-mono text-muted-foreground">{rule.scope_id}</span>}
+                {rule.member_id && <span className="text-xs font-mono text-muted-foreground">→{rule.member_id}</span>}
+                <Badge variant="secondary" className="text-xs">{periodModeLabel}</Badge>
+                {!rule.enabled && <Badge variant="outline" className="text-xs text-muted-foreground">{t('aiBudget.common.disabled')}</Badge>}
               </div>
-            )}
+              <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                <span>{t('aiBudget.rules.columns.priority')}: {rule.priority}</span>
+                {rule.limit_short > 0 && <span>S:{formatTokens(rule.limit_short)}</span>}
+                {rule.limit_day > 0 && <span>D:{formatTokens(rule.limit_day)}</span>}
+                {rule.limit_week > 0 && <span>W:{formatTokens(rule.limit_week)}</span>}
+              </div>
+            </div>
           </div>
           <div className="flex items-center gap-1 shrink-0">
-            <Switch checked={rule.enabled} onCheckedChange={onToggle} />
             <Button variant="ghost" size="icon" onClick={onViewDetail}>
               <Eye className="w-4 h-4" />
             </Button>
@@ -963,6 +957,14 @@ function RuleCard({ rule, onToggle, onEdit, onDelete, onViewDetail }: {
             </Button>
           </div>
         </div>
+        {/* Full-width usage bars aligned with toolbar right edge */}
+        {rule.usage && rule.usage.windows.length > 0 && (
+          <div className="mt-4 space-y-2">
+            {rule.usage.windows.map(w => (
+              <WindowProgressBar key={w.window} window={w} />
+            ))}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -1617,19 +1619,34 @@ function DiagnosticTab() {
               <Input value={checkUserId} onChange={e => setCheckUserId(e.target.value)} placeholder={t('aiBudget.diagnostic.userIdPlaceholder')} />
             </div>
             <div className="space-y-2">
-              <Label>{t('aiBudget.diagnostic.groupId')}</Label>
+              <div className="flex items-center gap-1.5">
+                <Label>{t('aiBudget.diagnostic.groupId')}</Label>
+                <TooltipProvider delayDuration={200}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="inline-flex text-muted-foreground cursor-help" tabIndex={0}>
+                        <HelpCircle className="w-3.5 h-3.5" />
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">
+                      {t('aiBudget.diagnostic.groupIdHint')}
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
               <Input value={checkGroupId} onChange={e => setCheckGroupId(e.target.value)} placeholder={t('aiBudget.diagnostic.groupIdPlaceholder')} />
-              <p className="text-xs text-muted-foreground">{t('aiBudget.diagnostic.groupIdHint')}</p>
             </div>
             <div className="space-y-2">
               <Label>{t('aiBudget.diagnostic.botId')}</Label>
               <Input value={checkBotId} onChange={e => setCheckBotId(e.target.value)} placeholder={t('aiBudget.diagnostic.botIdPlaceholder')} />
             </div>
           </div>
-          <Button onClick={handleCheck} disabled={checking}>
-            {checking ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Search className="w-4 h-4 mr-2" />}
-            {checking ? t('aiBudget.diagnostic.checking') : t('aiBudget.diagnostic.runCheck')}
-          </Button>
+          <div className="flex justify-end">
+            <Button onClick={handleCheck} disabled={checking}>
+              {checking ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Search className="w-4 h-4 mr-2" />}
+              {checking ? t('aiBudget.diagnostic.checking') : t('aiBudget.diagnostic.runCheck')}
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
@@ -1769,10 +1786,12 @@ function DiagnosticTab() {
               </Select>
             </div>
           </div>
-          <Button variant="destructive" onClick={() => setResetConfirmOpen(true)} disabled={resetting}>
-            {resetting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-2" />}
-            {t('aiBudget.diagnostic.resetBtn')}
-          </Button>
+          <div className="flex justify-end">
+            <Button variant="destructive" onClick={() => setResetConfirmOpen(true)} disabled={resetting}>
+              {resetting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-2" />}
+              {t('aiBudget.diagnostic.resetBtn')}
+            </Button>
+          </div>
         </CardContent>
       </Card>
 

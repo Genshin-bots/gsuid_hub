@@ -127,6 +127,45 @@ export const aiBudgetApi = {
 
 页面侧只 `import { aiBudgetApi, AIBudgetConfig } from '@/lib/api'`。
 
+### 错误提示必须回显后端返回的消息（禁止丢弃 detail）★★
+
+> **铁律**：toast / 错误态展示的文案要**尽量用后端返回的消息**，本地化文案只作**兜底**。
+
+后端有**两类**错误响应，前端解析时**都要覆盖**：
+
+| 来源 | 形状 | HTTP |
+|------|------|------|
+| 业务封套 | `{ "status": 1, "msg": "..." }` | 200 |
+| FastAPI 异常 | `{ "detail": "..." }` 或校验数组 `{ "detail": [{ "loc", "msg", "type" }] }` | 4xx/5xx |
+
+只读 `msg` 会漏掉 FastAPI 的 `detail`（例如保存主题预设名非法时后端返回
+`{"detail":"预设名称仅支持字母/数字/中横线/下划线/点号/空格，长度 1-64"}`），导致 toast 只显示笼统兜底文案、与真实原因无关。
+
+**统一用 `getApiErrorMessage(source, fallback)`**（`@/lib/api` 导出）提取消息，解析顺序
+`msg → detail(字符串) → detail(数组逐条拼接) → Error.message → fallback`：
+
+```ts
+import { getApiErrorMessage } from '@/lib/api';
+
+// 1) 抛错型调用（api.get/post/put/delete）：封装层已把 msg/detail 塞进 Error.message
+try {
+  await themeApi.applyPreset(name);
+} catch (e) {
+  toast.error(getApiErrorMessage(e, t('themes.applyPresetFailed')));   // ✅
+  // toast.error(e instanceof Error ? e.message : fallback);           // 可，但不如 helper 统一
+}
+
+// 2) 原始响应型调用（api.getRaw/postRaw，需要自行判 status）：直接对响应体取消息
+const res = await themeApi.savePreset({ name, overwrite, config });
+if (res.status !== 0) {
+  toast.error(getApiErrorMessage(res, t('themes.savePresetFailed')));  // ✅ 能取到 res.detail
+  // toast.error(res.msg || fallback);                                 // ❌ 丢掉 detail，提示与 API 无关
+}
+```
+
+封装层（`ApiClient.request/postFormData/postBlob`）的非 2xx 分支也已统一走 `getApiErrorMessage`，
+所以**抛错型调用拿到的 `Error.message` 已是后端消息**，页面直接回显即可。
+
 ## 1.6 401 认证失败处理
 
 401 由封装层（`ApiClient.request()` / `getRaw()` 等）**统一**处理并跳登录，页面不要各自判断。跳转用 `getLoginPath()`：

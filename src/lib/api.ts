@@ -75,6 +75,43 @@ export interface User {
 }
 
 // ===================
+// Error message extraction
+// ===================
+
+/**
+ * 从后端错误响应中提取可展示的消息，供 toast / 错误态回显。
+ *
+ * 后端存在两类错误响应，必须都能解析：
+ *  - 业务封套：`{ status: 1, msg: "..." }`（HTTP 200）
+ *  - FastAPI 异常：`{ detail: "..." }` 或校验错误数组 `{ detail: [{ loc, msg, type }] }`（HTTP 4xx/5xx）
+ *
+ * 解析顺序：`msg` → `detail`(字符串) → `detail`(数组逐条 msg 拼接) → `Error.message` → `fallback`。
+ * 永远不要直接写死本地化兜底文案而丢弃后端返回的 `detail`/`msg`。
+ */
+export function getApiErrorMessage(source: unknown, fallback = 'Request failed'): string {
+  if (source == null) return fallback;
+  if (typeof source === 'string') return source.trim() || fallback;
+  if (source instanceof Error) return source.message || fallback;
+  if (typeof source === 'object') {
+    const obj = source as Record<string, unknown>;
+    if (typeof obj.msg === 'string' && obj.msg.trim()) return obj.msg;
+    const detail = obj.detail;
+    if (typeof detail === 'string' && detail.trim()) return detail;
+    if (Array.isArray(detail)) {
+      const msgs = detail
+        .map((d) =>
+          d && typeof d === 'object' && typeof (d as Record<string, unknown>).msg === 'string'
+            ? ((d as Record<string, unknown>).msg as string)
+            : null
+        )
+        .filter((m): m is string => !!m);
+      if (msgs.length) return msgs.join('; ');
+    }
+  }
+  return fallback;
+}
+
+// ===================
 // Token Management
 // ===================
 
@@ -388,18 +425,13 @@ class ApiClient {
 
     // Handle non-OK responses
     if (!response.ok) {
-      // Try to parse error message from response
+      // Try to parse error message from response（封套 msg 与 FastAPI detail 都要回显）
       let errorMessage = `HTTP Error: ${response.status}`;
       try {
         const text = await response.text();
-        // Try to parse as JSON first
         try {
           const errorData = JSON.parse(text);
-          if (errorData.msg) {
-            errorMessage = errorData.msg;
-          } else if (typeof errorData === 'string') {
-            errorMessage = text;
-          }
+          errorMessage = getApiErrorMessage(errorData, errorMessage);
         } catch {
           // Not JSON, use raw text if available
           if (text) {
@@ -415,7 +447,7 @@ class ApiClient {
     const data: ApiResponse<T> = await response.json();
 
     if (data.status !== 0) {
-      throw new Error(data.msg || 'API request failed');
+      throw new Error(getApiErrorMessage(data, 'API request failed'));
     }
 
     return data.data;
@@ -462,11 +494,7 @@ class ApiClient {
         const text = await response.text();
         try {
           const errorData = JSON.parse(text);
-          if (errorData.msg) {
-            errorMessage = errorData.msg;
-          } else if (typeof errorData === 'string') {
-            errorMessage = text;
-          }
+          errorMessage = getApiErrorMessage(errorData, errorMessage);
         } catch {
           if (text) {
             errorMessage = text;
@@ -481,7 +509,7 @@ class ApiClient {
     const data: ApiResponse<T> = await response.json();
 
     if (data.status !== 0) {
-      throw new Error(data.msg || 'API request failed');
+      throw new Error(getApiErrorMessage(data, 'API request failed'));
     }
 
     return data.data;
@@ -539,7 +567,7 @@ class ApiClient {
         const text = await response.text();
         try {
           const errorData = JSON.parse(text);
-          if (errorData.msg) errorMessage = errorData.msg;
+          errorMessage = getApiErrorMessage(errorData, errorMessage);
         } catch {
           if (text) errorMessage = text;
         }
@@ -566,6 +594,40 @@ class ApiClient {
     const response = await fetch(url, {
       method: 'GET',
       headers,
+      credentials: 'include',
+    });
+
+    // Handle 401 Unauthorized - redirect to login
+    if (response.status === 401) {
+      setAuthToken(null);
+      localStorage.removeItem('auth_user');
+      window.location.href = getLoginPath();
+      throw new Error('会话已过期，请重新登录');
+    }
+
+    const data: ApiResponse<T> = await response.json();
+    return data;
+  }
+
+  // POST request returning the raw {status, msg, data} envelope without
+  // throwing on status !== 0 (for flows where status=1 is an expected signal,
+  // e.g. saving a theme preset that already exists and needs overwrite confirm).
+  async postRaw<T>(endpoint: string, body?: unknown): Promise<ApiResponse<T>> {
+    const url = `${this.baseUrl}${endpoint}`;
+
+    const token = getAuthToken();
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
       credentials: 'include',
     });
 
@@ -1692,12 +1754,70 @@ export interface ThemeConfigResponse {
   data: ThemeConfig;
 }
 
+// ---- Theme presets (saved named theme configs) ----
+
+export interface ThemePresetItem {
+  name: string;
+  filename: string;
+  size_bytes: number;
+  /** Last modified time as a unix timestamp (seconds). */
+  mtime: number;
+  /** Whether this preset matches the currently active theme config. */
+  is_active: boolean;
+  /** Whether the preset JSON could be parsed; invalid presets are still listed. */
+  valid: boolean;
+  /**
+   * The preset's stored theme config. Optional: the list endpoint may omit it.
+   * When present, the frontend renders a real background/theme preview; when
+   * absent it falls back to a neutral placeholder.
+   */
+  config?: ThemeConfig;
+}
+
+export interface ThemePresetsData {
+  /** Absolute path of the presets directory (for debugging panels). */
+  path: string;
+  presets: ThemePresetItem[];
+}
+
+export interface SavePresetPayload {
+  name: string;
+  /** Overwrite an existing preset with the same name. Defaults to false. */
+  overwrite?: boolean;
+  /** Config to persist; omit to snapshot the current active theme config. */
+  config?: ThemeConfig;
+}
+
+export interface SavePresetResult {
+  name: string;
+  filename: string;
+}
+
+export interface ApplyPresetResult {
+  name: string;
+  config: ThemeConfig;
+}
+
 export const themeApi = {
   getConfig: () =>
     api.getRaw<ThemeConfig>('/api/theme/config'),
 
   saveConfig: (config: ThemeConfig) =>
     api.post<{ status: number; msg: string }>('/api/theme/config', config),
+
+  // 主题预设：列表（公开）/ 保存 / 应用 / 删除
+  getPresets: () =>
+    api.getRaw<ThemePresetsData>('/api/theme/presets'),
+
+  // 用 postRaw 取回原始 {status,msg,data}，以便区分「同名需覆盖」(status=1) 等非异常分支
+  savePreset: (payload: SavePresetPayload) =>
+    api.postRaw<SavePresetResult>('/api/theme/presets/save', payload),
+
+  applyPreset: (name: string) =>
+    api.post<ApplyPresetResult>('/api/theme/presets/apply', { name }),
+
+  deletePreset: (name: string) =>
+    api.delete<{ name: string }>(`/api/theme/presets/${encodeURIComponent(name)}`),
 };
 
 // ===================

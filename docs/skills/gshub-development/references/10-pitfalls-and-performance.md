@@ -58,6 +58,14 @@ Radix Tooltip 的 `data-state` 覆盖 Switch 的 `data-state`。用 `<span>` 再
 - 依赖 `configs` 的 effect 会在请求完成后重复触发；用 `ref` 记录已请求项去重。
 - 事件处理用 `useCallback`、复杂计算用 `useMemo`，避免 render 内新建函数/对象。
 
+### P-13 错误 toast 丢弃后端 `detail`，提示与真实原因无关 ★
+
+错误响应有两类：业务封套 `{status,msg}` 与 FastAPI 异常 `{detail}`（字符串或校验数组）。只写
+`toast.error(res.msg || fallback)` / `e.message` 时，遇到 FastAPI 的 `{detail}`（如保存预设名非法返回
+`{"detail":"预设名称仅支持字母/数字/中横线/下划线/点号/空格，长度 1-64"}`）会漏读，只显示笼统兜底文案。
+统一用 `getApiErrorMessage(err/res, fallback)`（`@/lib/api`），解析 `msg → detail → Error.message → fallback`。
+详见 [§01 §1.5](./01-architecture-and-conventions.md)。
+
 ### P-12 类型/构建注意
 
 - `tsconfig` 的 `noUnusedLocals`/`noUnusedParameters` 为 `false`，未使用变量不会构建报错，但应清理。
