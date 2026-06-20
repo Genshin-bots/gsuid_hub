@@ -420,10 +420,12 @@ export default function ConsolePage() {
     active: boolean,
   ) => {
     // 通过 CSS 自定义属性把主题色直接注�?inline style，避免硬编码 Tailwind 颜色
+    // 激活态：根据明暗主题直接使用固定前景色，避免依赖 --primary-foreground 变量
+    // （该变量在不同主题下深浅不一，无法保证 --primary 背景上的可读性）。
     const activeStyle: React.CSSProperties = active
       ? {
           backgroundColor: 'hsl(var(--primary) / 0.95)',
-          color: 'hsl(var(--primary-foreground))',
+          color: isDark ? '#ffffff' : '#000000',
           borderColor: 'hsl(var(--primary))',
           boxShadow: isGlass
             ? '0 4px 14px hsl(var(--primary) / 0.25)'
@@ -454,8 +456,9 @@ export default function ConsolePage() {
         <span
           className={cn(
             "inline-flex items-center justify-center w-3.5 h-3.5 rounded-full border transition-colors",
+            // 激活态：圆点描边/背景继承父级文字色，确保深色主题下与白色文字一致
             active
-              ? "bg-primary-foreground/20 border-primary-foreground/40"
+              ? "bg-current/20 border-current/40"
               : "border-current/50 bg-current/10",
           )}
           aria-hidden="true"
