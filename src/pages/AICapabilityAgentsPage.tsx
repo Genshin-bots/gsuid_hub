@@ -448,7 +448,7 @@ export default function AICapabilityAgentsPage() {
             options={sourceOptions}
             value={activeSource}
             onValueChange={(value) => setActiveSource(value as CapabilityAgentSource)}
-            className={cn('w-max', isGlass && 'bg-background/35 backdrop-blur-md')}
+            className="w-max"
           />
         </div>
         <div className="relative w-full xl:max-w-md">

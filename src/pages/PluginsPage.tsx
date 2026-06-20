@@ -875,7 +875,6 @@ export default function PluginsPage() {
         }))}
         value={selectedPluginId}
         onValueChange={setSelectedPluginId}
-        glassClassName={isGlass ? 'glass-card' : 'border border-border/50'}
       />
 
       {isLoading || isLoadingDetail ? (
@@ -1428,7 +1427,6 @@ export default function PluginsPage() {
                       }))}
                       value={selectedConfigName || ''}
                       onValueChange={(val) => val && setSelectedConfigName(val)}
-                      glassClassName={isGlass ? 'glass-card' : 'border border-border/50'}
                     />
                   </div>
                 )}

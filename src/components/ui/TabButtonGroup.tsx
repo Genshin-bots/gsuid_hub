@@ -14,7 +14,6 @@ interface TabButtonGroupProps {
   className?: string;
   buttonClassName?: string;
   disabled?: boolean;
-  glassClassName?: string;
 }
 
 export function TabButtonGroup({
@@ -24,13 +23,11 @@ export function TabButtonGroup({
   className,
   buttonClassName,
   disabled = false,
-  glassClassName,
 }: TabButtonGroupProps) {
   return (
     <div
       className={cn(
-        'inline-flex flex-wrap gap-1 p-1 bg-muted/50 rounded-lg border border-border/40',
-        glassClassName,
+        'inline-flex flex-wrap gap-1 p-1 rounded-lg glass-card',
         className
       )}
     >

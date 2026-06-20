@@ -674,7 +674,6 @@ export default function SessionManagementPage() {
                     ]}
                     value={viewMode}
                     onValueChange={(value) => handleViewModeChange(value as ViewMode)}
-                    glassClassName={isGlass ? 'glass-card' : 'border border-border/50'}
                   />
                 </div>
                 

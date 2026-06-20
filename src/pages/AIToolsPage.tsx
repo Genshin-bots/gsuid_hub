@@ -204,7 +204,6 @@ export default function AIToolsPage() {
             }))}
             value={selectedCategory}
             onValueChange={setSelectedCategory}
-            glassClassName={isGlass ? 'glass-card' : 'border border-border/50'}
           />
 
           {/* 插件筛选 */}
@@ -218,7 +217,6 @@ export default function AIToolsPage() {
             }))}
             value={selectedPlugin}
             onValueChange={setSelectedPlugin}
-            glassClassName={isGlass ? 'glass-card' : 'border border-border/50'}
           />
 
           {/* 搜索筛选 */}

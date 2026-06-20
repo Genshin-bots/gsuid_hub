@@ -338,7 +338,8 @@ const CommitRow = memo(function CommitRow({
   );
 });
 
-export default function GitUpdatePage() {  const { t } = useLanguage();
+export default function GitUpdatePage() {
+  const { t } = useLanguage();
   const { style } = useTheme();
   const isGlass = style === 'glassmorphism';
   const isMobile = useIsMobile();
@@ -801,7 +802,6 @@ export default function GitUpdatePage() {  const { t } = useLanguage();
           }))}
           value={selectedPlugin}
           onValueChange={setSelectedPlugin}
-          glassClassName={isGlass ? 'glass-card' : 'border border-border/50'}
         />
       )}
 

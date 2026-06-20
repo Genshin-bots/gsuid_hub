@@ -739,9 +739,8 @@ function KnowledgeGraph({
       <div
         ref={containerRef}
         className={cn(
-          'w-full h-full',
+          'w-full h-full glass-card',
           isFullscreen ? '' : 'rounded-lg',
-          isGlass ? 'glass-card' : 'border border-border/50',
         )}
         style={{ cursor: 'grab' }}
       />

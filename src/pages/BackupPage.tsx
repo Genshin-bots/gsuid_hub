@@ -393,7 +393,6 @@ export default function BackupPage() {
           ]}
           value={activeTab}
           onValueChange={setActiveTab}
-          glassClassName={isGlass ? 'glass-card' : 'border border-border/50'}
         />
 
         {activeTab === 'settings' && (

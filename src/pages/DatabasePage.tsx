@@ -404,7 +404,6 @@ export default function DatabasePage() {
           }))}
           value={selectedPluginId}
           onValueChange={setSelectedPluginId}
-          glassClassName={isGlass ? 'glass-card' : 'border border-border/50'}
         />
       </div>
 
@@ -418,7 +417,6 @@ export default function DatabasePage() {
             }))}
             value={activeTable}
             onValueChange={setActiveTable}
-            glassClassName={isGlass ? 'glass-card' : 'border border-border/50'}
           />
         </div>
       )}

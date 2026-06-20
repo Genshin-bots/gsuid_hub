@@ -794,7 +794,6 @@ export default function AIKnowledgePage() {
               setSearchQuery('');
             }}
             className="shrink-0"
-            glassClassName={isGlass ? 'glass-card' : 'border border-border/50'}
           />
           <TabButtonGroup
             options={sourceOptions}
@@ -804,7 +803,6 @@ export default function AIKnowledgePage() {
               setPage(1);
             }}
             className="shrink-0"
-            glassClassName={isGlass ? 'glass-card' : 'border border-border/50'}
           />
         </div>
         

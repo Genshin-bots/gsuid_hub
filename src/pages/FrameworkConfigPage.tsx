@@ -306,7 +306,6 @@ export default function FrameworkConfigPage() {
             value={selectedConfigId}
             onValueChange={setSelectedConfigId}
             disabled={isLoading}
-            glassClassName={isGlass ? 'glass-card' : 'border border-border/50'}
           />
         ) : (
           <Card className="glass-card w-full sm:w-fit">

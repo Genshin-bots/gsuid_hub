@@ -789,7 +789,6 @@ export default function AIStatisticsPage() {
               ]}
               value={activeTab}
               onValueChange={setActiveTab}
-              glassClassName={isGlass ? 'glass-card' : undefined}
             />
           </div>
 

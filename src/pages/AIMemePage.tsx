@@ -1639,7 +1639,6 @@ export default function AIMemePage() {
           value={filterStatus}
           onValueChange={(v) => setFilterStatus(v)}
           className="shrink-0"
-          glassClassName={cn(isGlass ? 'glass-card' : '')}
           options={[
             { value: 'tagged', label: t('aiMeme.status.tagged'), icon: <CheckCircle2 className="w-4 h-4" /> },
             { value: 'pending', label: t('aiMeme.status.pending'), icon: <Clock className="w-4 h-4" /> },
