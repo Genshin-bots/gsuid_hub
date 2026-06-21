@@ -749,6 +749,7 @@ export default function AIConfigPage() {
             isLoadingEmbeddingConfig={embedding.isLoadingEmbeddingConfig}
             embeddingLocalConfig={embedding.embeddingLocalConfig}
             embeddingOpenaiConfig={embedding.embeddingOpenaiConfig}
+            embeddingConfig={embeddingConfig}
             isRerankEnabled={isRerankEnabled}
             rerankProvider={rerankProvider}
             rerankProviderOptions={rerankProviderOptions}
@@ -1109,7 +1110,7 @@ export default function AIConfigPage() {
         onChangeModel={provider.setNewConfigModel}
         onChangeEmbeddingModel={() => {}}
         onChangeModelEffort={provider.setNewConfigModelEffort}
-        onToggleCapability={provider.toggleNewConfigCapability}
+        onChangeModelSupport={provider.setNewConfigModelSupport}
         onReset={provider.resetNewConfigForm}
         onSubmit={provider.handleCreateOpenaiConfig}
       />
@@ -1137,9 +1138,6 @@ export default function AIConfigPage() {
         onChangeModelEffort={(val) =>
           provider.setOpenaiConfigDataField('model_effort', val)
         }
-        onToggleCapability={(cap) => {
-          provider.toggleOpenaiConfigCapability(cap);
-        }}
         onSave={provider.handleSaveOpenaiConfig}
       />
 

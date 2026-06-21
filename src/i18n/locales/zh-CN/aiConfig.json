@@ -34,7 +34,12 @@
     "switchConfirm": "我已了解，继续切换",
     "rerankWarning": "重排序模型服务较重，会增加响应延迟与资源占用，建议谨慎启用。",
     "extraProviderBanner": "当前使用由插件 **{plugin}** 注册的嵌入模型提供方 **{displayName}**（{kind} 模式）。",
-    "extraProviderHint": "如需修改配置，请前往「插件管理」页面操作。"
+    "extraProviderHint": "如需修改配置，请前往「插件管理」页面操作。",
+    "embeddingModalities": "嵌入模型支持的模态",
+    "embeddingModalityText": "文本",
+    "embeddingModalityImage": "图片",
+    "embeddingModalityAudio": "音频",
+    "embeddingModalityVideo": "视频"
   },
   "wizard": {
     "title": "AI 配置状态",

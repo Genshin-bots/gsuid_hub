@@ -72,7 +72,7 @@ export interface UseProviderConfigReturn {
   setNewConfigModel: (v: string) => void;
   setNewConfigApiKeys: (v: string[]) => void;
   setNewConfigModelEffort: (v: string) => void;
-  toggleNewConfigCapability: (cap: string) => void;
+  setNewConfigModelSupport: (v: string[]) => void;
   resetNewConfigForm: () => void;
   setIsCreateDialogOpen: (open: boolean) => void;
   setIsEditDialogOpen: (open: boolean) => void;
@@ -85,8 +85,6 @@ export interface UseProviderConfigReturn {
     field: keyof OpenAIConfigData,
     value: string | string[],
   ) => void;
-  /** 切换 model_support 中的某项能力 */
-  toggleOpenaiConfigCapability: (cap: string) => void;
 
   // --- 异步动作 ---
   fetchProviderConfigOptions: (provider: string) => Promise<void>;
@@ -588,19 +586,6 @@ export function useProviderConfig(): UseProviderConfigReturn {
     [],
   );
 
-  const toggleOpenaiConfigCapability = useCallback((cap: string) => {
-    setOpenaiConfigData((prev) => {
-      if (!prev) return prev;
-      const current = Array.isArray(prev.model_support)
-        ? prev.model_support
-        : ['text'];
-      const next = current.includes(cap)
-        ? current.filter((v) => v !== cap)
-        : [...current, cap];
-      return { ...prev, model_support: next };
-    });
-  }, []);
-
   // ============================================================================
   // 派生
   // ============================================================================
@@ -668,7 +653,7 @@ export function useProviderConfig(): UseProviderConfigReturn {
     setNewConfigModel,
     setNewConfigApiKeys,
     setNewConfigModelEffort,
-    toggleNewConfigCapability,
+    setNewConfigModelSupport,
     resetNewConfigForm,
     setIsCreateDialogOpen,
     setIsEditDialogOpen,
@@ -676,7 +661,6 @@ export function useProviderConfig(): UseProviderConfigReturn {
     setIsManageConfigDialogOpen,
     clearOpenaiConfigData,
     setOpenaiConfigDataField,
-    toggleOpenaiConfigCapability,
 
     // async actions
     fetchProviderConfigOptions,

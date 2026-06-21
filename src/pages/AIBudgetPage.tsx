@@ -1615,11 +1615,13 @@ function DiagnosticTab() {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label>{t('aiBudget.diagnostic.userId')} *</Label>
+              <div className="flex items-center gap-1.5 min-h-[20px]">
+                <Label>{t('aiBudget.diagnostic.userId')} *</Label>
+              </div>
               <Input value={checkUserId} onChange={e => setCheckUserId(e.target.value)} placeholder={t('aiBudget.diagnostic.userIdPlaceholder')} />
             </div>
             <div className="space-y-2">
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 min-h-[20px]">
                 <Label>{t('aiBudget.diagnostic.groupId')}</Label>
                 <TooltipProvider delayDuration={200}>
                   <Tooltip>
@@ -1637,7 +1639,9 @@ function DiagnosticTab() {
               <Input value={checkGroupId} onChange={e => setCheckGroupId(e.target.value)} placeholder={t('aiBudget.diagnostic.groupIdPlaceholder')} />
             </div>
             <div className="space-y-2">
-              <Label>{t('aiBudget.diagnostic.botId')}</Label>
+              <div className="flex items-center gap-1.5 min-h-[20px]">
+                <Label>{t('aiBudget.diagnostic.botId')}</Label>
+              </div>
               <Input value={checkBotId} onChange={e => setCheckBotId(e.target.value)} placeholder={t('aiBudget.diagnostic.botIdPlaceholder')} />
             </div>
           </div>

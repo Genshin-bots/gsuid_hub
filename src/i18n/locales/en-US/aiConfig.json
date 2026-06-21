@@ -34,7 +34,12 @@
     "switchConfirm": "I understand, continue switching",
     "rerankWarning": "The reranking model service is heavy and increases latency and resource usage — enable it with caution.",
     "extraProviderBanner": "Currently using embedding provider **{displayName}** registered by plugin **{plugin}** ({kind} mode).",
-    "extraProviderHint": "To modify configuration, please go to the Plugin Management page."
+    "extraProviderHint": "To modify configuration, please go to the Plugin Management page.",
+    "embeddingModalities": "Embedding Modalities",
+    "embeddingModalityText": "Text",
+    "embeddingModalityImage": "Image",
+    "embeddingModalityAudio": "Audio",
+    "embeddingModalityVideo": "Video"
   },
   "wizard": {
     "title": "AI Configuration Status",

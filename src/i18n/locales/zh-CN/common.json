@@ -50,5 +50,6 @@
   "copyEmptyValue": "暂无内容可复制",
   "required": "必填",
   "show": "显示",
-  "hide": "隐藏"
+  "hide": "隐藏",
+  "pageTitle": "网页控制台"
 }

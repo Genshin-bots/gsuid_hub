@@ -31,7 +31,7 @@ src/pages/AIConfig/
 ├── README.md                    ← 本文件
 ├── index.ts                     ← 桶导出（sections / dialogs / shared / hooks / types / constants）
 ├── types.ts                     ← 与后端字段对应的纯类型
-├── constants.ts                 ← getModelCapabilities 等工厂函数
+├── constants.tsx                ← getModelCapabilities / getEmbeddingModalities 等工厂函数
 ├── hooks/                       ← 按领域拆分的状态 + 副作用 hook（6 个）
 │   ├── index.ts                 ← hooks 桶导出
 │   ├── useFrameworkConfig.ts    ← AI 基础配置列表 / 详情 / 脏检查快照

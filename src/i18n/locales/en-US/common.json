@@ -50,5 +50,6 @@
   "copyEmptyValue": "Nothing to copy",
   "required": "Required",
   "show": "Show",
-  "hide": "Hide"
+  "hide": "Hide",
+  "pageTitle": "Web Console"
 }

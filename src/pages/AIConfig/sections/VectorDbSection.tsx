@@ -1,23 +1,34 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, type ReactNode } from 'react';
 import {
   ArrowUpDown,
   Cpu,
   Database,
   Globe,
   HelpCircle,
+  Key,
+  Search,
   Server,
   AlertTriangle,
+  Sparkles,
+  Cog,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { ChipGroup } from '@/components/ui/MultiSelectChipGroup';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { DynamicConfigPanel, ConfigField, type ConfigFieldType, type ConfigValue } from '@/components/config';
 import { InputWithDropdown } from '@/components/ui/input-with-dropdown';
 import { cn } from '@/lib/utils';
 import { renderRichText } from '../shared/renderRichText';
 import type { EmbeddingExtraProviderConfig, PluginConfigItem } from '@/lib/api';
-import type { EmbeddingConfigField } from '../constants';
+import { type EmbeddingConfigField, getEmbeddingModalities } from '../constants.tsx';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -47,6 +58,13 @@ export interface VectorDbSectionProps {
   isLoadingEmbeddingConfig: boolean;
   embeddingLocalConfig: Record<string, EmbeddingConfigField>;
   embeddingOpenaiConfig: Record<string, EmbeddingConfigField>;
+  /**
+   * 来自 framework-config 的「OpenAI 嵌入模型配置」（id 通常为 "GsCore AI OpenAI嵌入模型配置"）。
+   * 与 `embeddingOpenaiConfig` 来自不同 API：前者是 framework-config 接口，后者是
+   * `/api/embedding_config/openai`；目前 `embedding_modalities` 等「能力/模态」字段
+   * 只在 framework-config 中下发，因此这里需要单独接收。
+   */
+  embeddingConfig?: { id: string; config: Record<string, PluginConfigItem> };
   /** 插件注册的第三方嵌入模型提供方（key=provider 名） */
   extraProviders?: Record<string, EmbeddingExtraProviderConfig>;
 
@@ -85,6 +103,7 @@ export function VectorDbSection({
   isLoadingEmbeddingConfig,
   embeddingLocalConfig,
   embeddingOpenaiConfig,
+  embeddingConfig,
   extraProviders,
   isRerankEnabled,
   rerankProvider,
@@ -345,12 +364,11 @@ export function VectorDbSection({
               </div>
               {Object.entries(currentExtraProvider.config || {}).map(([key, field]) => (
                 <div key={key} className="space-y-1.5">
-                  <Label className="text-sm font-medium">
-                    {field.title || key}
-                  </Label>
-                  {field.desc && (
-                    <p className="text-xs text-muted-foreground">{field.desc}</p>
-                  )}
+                  <FieldLabel
+                    icon={getProviderFieldIcon(key)}
+                    title={field.title || key}
+                    desc={field.desc}
+                  />
                   <div className="text-sm px-3 py-2 rounded-md border border-dashed border-border/60 bg-muted/30 text-muted-foreground">
                     {formatExtraProviderFieldData(field.data)}
                   </div>
@@ -359,14 +377,17 @@ export function VectorDbSection({
             </div>
           ) : embeddingProvider === 'local' ? (
             <div className="space-y-3">
-              {Object.entries(embeddingLocalConfig).map(([key, field]) => (
+              {Object.entries(embeddingLocalConfig)
+                // 「嵌入模型支持的模态」是 framework-config 的全局字段，
+                // 会在本节末尾用 ChipGroup 渲染，这里跳过避免重复。
+                .filter(([key]) => key !== 'embedding_modalities')
+                .map(([key, field]) => (
                 <div key={key} className="space-y-1.5">
-                  <Label className="text-sm font-medium">
-                    {field.title || key}
-                  </Label>
-                  {field.desc && (
-                    <p className="text-xs text-muted-foreground">{field.desc}</p>
-                  )}
+                  <FieldLabel
+                    icon={getProviderFieldIcon(key)}
+                    title={field.title || key}
+                    desc={field.desc}
+                  />
                   <ConfigField
                     fieldKey={key}
                     field={{
@@ -389,17 +410,17 @@ export function VectorDbSection({
             </div>
           ) : (
             <div className="space-y-3">
-              {Object.entries(embeddingOpenaiConfig).map(([key, field]) => (
+              {Object.entries(embeddingOpenaiConfig)
+                // 「嵌入模型支持的模态」是 framework-config 的全局字段，
+                // 会在本节末尾用 ChipGroup 渲染，这里跳过避免重复 + 错误的单值下拉。
+                .filter(([key]) => key !== 'embedding_modalities')
+                .map(([key, field]) => (
                 <div key={key} className="space-y-1.5">
-                  <Label className="text-sm font-medium flex items-center gap-2">
-                    {key === 'base_url' && <Globe className="w-3.5 h-3.5" />}
-                    {key === 'api_key' && <HelpCircle className="w-3.5 h-3.5" />}
-                    {key === 'embedding_model' && <Cpu className="w-3.5 h-3.5" />}
-                    {field.title || key}
-                  </Label>
-                  {field.desc && (
-                    <p className="text-xs text-muted-foreground">{field.desc}</p>
-                  )}
+                  <FieldLabel
+                    icon={getProviderFieldIcon(key)}
+                    title={field.title || key}
+                    desc={field.desc}
+                  />
                   {key === 'api_key' ? (
                     <ConfigField
                       fieldKey={key}
@@ -429,6 +450,33 @@ export function VectorDbSection({
             </div>
           )}
         </div>
+        {/*
+          「嵌入模型支持的模态」字段来自 framework-config（id="GsCore AI OpenAI嵌入模型配置"），
+          是独立于 provider 的全局设置，因此放在所有 provider-specific 字段之后。
+          切换 local / openai / 第三方 provider 都能看到并修改。
+        */}
+        {embeddingConfig?.config.embedding_modalities && (() => {
+          const item = embeddingConfig.config.embedding_modalities;
+          const value = Array.isArray(item.value)
+            ? (item.value as string[])
+            : [];
+          return (
+            <div className="space-y-1.5">
+              <FieldLabel
+                icon={<Sparkles className="w-3 h-3" />}
+                title={item.title || t('aiConfig.vectorDb.embeddingModalities')}
+                desc={item.desc}
+              />
+              <ChipGroup
+                options={getEmbeddingModalities(t)}
+                value={value}
+                onValueChange={(v) =>
+                  onUpdateConfig(embeddingConfig.id, 'embedding_modalities', v)
+                }
+              />
+            </div>
+          );
+        })()}
       </div>
 
       <Separator className="bg-border/30" />
@@ -568,4 +616,67 @@ function formatExtraProviderFieldData(data: unknown): string {
   if (typeof data === 'boolean') return data ? 'true' : 'false';
   const s = String(data);
   return s || '—';
+}
+
+/**
+ * 根据字段 key 推断一个 lucide 小图标（w-3 h-3）。
+ * 用于 local / openai / extra provider 三个分支的字段 label 前面。
+ */
+function getProviderFieldIcon(fieldKey: string) {
+  const lower = fieldKey.toLowerCase();
+  if (lower.includes('api_key') || lower.includes('apikey') || lower === 'key') {
+    return <Key className="w-3 h-3" />;
+  }
+  if (lower.includes('base_url') || lower.includes('host') || lower.includes('url')) {
+    return <Globe className="w-3 h-3" />;
+  }
+  if (lower.includes('model')) {
+    return <Cpu className="w-3 h-3" />;
+  }
+  if (lower.includes('dimension') || lower.includes('dim')) {
+    return <SlidersHorizontal className="w-3 h-3" />;
+  }
+  if (lower.includes('search') || lower.includes('type')) {
+    return <Search className="w-3 h-3" />;
+  }
+  return <Cog className="w-3 h-3" />;
+}
+
+/**
+ * 统一的字段标题：左侧 lucide 小图标 + 标题文字 + 右侧悬浮提示（带 desc 时显示 ? 按钮）。
+ * 与 `DynamicConfigPanel` 的字段 label 风格保持一致。
+ */
+function FieldLabel({
+  icon,
+  title,
+  desc,
+}: {
+  icon: ReactNode;
+  title: string;
+  desc?: string;
+}) {
+  return (
+    <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+      <span className="text-muted-foreground/80">{icon}</span>
+      <span>{title}</span>
+      {desc && (
+        <TooltipProvider delayDuration={100}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                className="inline-flex items-center justify-center rounded-full p-0.5 hover:bg-primary/10 transition-colors focus:outline-none"
+                onClick={(e) => e.preventDefault()}
+              >
+                <HelpCircle className="w-3.5 h-3.5 text-muted-foreground/60 hover:text-primary cursor-help" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="max-w-xs">
+              <p>{desc}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      )}
+    </Label>
+  );
 }

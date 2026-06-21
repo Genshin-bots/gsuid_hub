@@ -4632,6 +4632,82 @@ export const aiBudgetApi = {
 };
 
 // ===================
+// Brand API
+// ===================
+
+export interface BrandDefaultInfo {
+  icon: string;
+  title: string;
+  subtitle: string;
+}
+
+export interface BrandInfo {
+  title: string;
+  subtitle: string;
+  icon_url: string;
+  icon_source: 'user' | 'default';
+  default: BrandDefaultInfo;
+}
+
+export interface BrandUploadResponse {
+  icon_url: string;
+  icon_source: 'user' | 'default';
+  size_bytes: number;
+}
+
+/**
+ * 构建品牌 ICON 图片 URL。
+ * 后端 /api/brand/icon 是公开接口，<img src> 可直接使用。
+ * 同时加一个时间戳参数，避免代理/浏览器缓存导致换图不立即可见。
+ */
+export function getBrandIconUrl(timestamp?: number): string {
+  const base = `${getCustomApiHost()}/api/brand/icon`;
+  const ts = timestamp ?? Date.now();
+  return `${base}?t=${ts}`;
+}
+
+export const brandApi = {
+  // 42.1 获取品牌信息（公开）
+  getBrand: () =>
+    api.getRaw<BrandInfo>('/api/brand'),
+
+  // 42.2 更新品牌标题/副标题
+  updateBrand: (data: { title?: string; subtitle?: string }) =>
+    api.post<{ title: string; subtitle: string }>('/api/brand', data),
+
+  // 42.3 上传品牌 ICON（multipart/form-data）
+  uploadIcon: async (file: File): Promise<BrandUploadResponse> => {
+    const formData = new FormData();
+    formData.append('icon', file);
+
+    const token = getAuthToken();
+    const response = await fetch(`${getCustomApiHost()}/api/brand/icon`, {
+      method: 'POST',
+      headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+      body: formData,
+      credentials: 'include',
+    });
+
+    if (response.status === 401) {
+      setAuthToken(null);
+      localStorage.removeItem('auth_user');
+      window.location.href = getLoginPath();
+      throw new Error('会话已过期，请重新登录');
+    }
+
+    const data: ApiResponse<BrandUploadResponse> = await response.json();
+    if (data.status !== 0) {
+      throw new Error(data.msg || '上传失败');
+    }
+    return data.data;
+  },
+
+  // 42.4 删除品牌 ICON（回退到默认）
+  deleteIcon: () =>
+    api.delete<{ icon_source: 'default' }>('/api/brand/icon'),
+};
+
+// ===================
 // Version API
 // ===================
 

@@ -21,8 +21,8 @@ import {
 import { InputWithDropdown } from '@/components/ui/input-with-dropdown';
 import { ModelSelectDropdown } from '@/components/ui/model-select-dropdown';
 import { Label } from '@/components/ui/label';
-import { cn } from '@/lib/utils';
-import { getModelCapabilities, type ModelCapability } from '../constants';
+import { ChipGroup } from '@/components/ui/MultiSelectChipGroup';
+import { getModelCapabilities } from '../constants.tsx';
 import type { OpenAIConfigData, ProviderConfigOptions } from '@/lib/api';
 
 export interface EditConfigDialogProps {
@@ -38,7 +38,6 @@ export interface EditConfigDialogProps {
   baseUrlHasTrailingSlash: (url: string) => boolean;
   onOpenChange: (open: boolean) => void;
   onChangeField: (field: keyof OpenAIConfigData, value: string | string[]) => void;
-  onToggleCapability: (cap: string) => void;
   onChangeModelEffort: (val: string) => void;
   onSave: () => void;
 }
@@ -56,11 +55,10 @@ export function EditConfigDialog({
   baseUrlHasTrailingSlash,
   onOpenChange,
   onChangeField,
-  onToggleCapability,
   onChangeModelEffort,
   onSave,
 }: EditConfigDialogProps) {
-  const capabilities: ModelCapability[] = getModelCapabilities(t);
+  const capabilities = getModelCapabilities(t);
   const showBaseUrlWarning = data ? baseUrlHasTrailingSlash(data.base_url) : false;
 
   return (
@@ -137,29 +135,11 @@ export function EditConfigDialog({
                 <Sparkles className="w-4 h-4" />
                 {t('aiConfig.serviceProvider.modelCapabilities')}
               </Label>
-              <div className="flex flex-wrap gap-2">
-                {capabilities.map((cap) => {
-                  const modelSupport = Array.isArray(data.model_support) ? data.model_support : ['text'];
-                  const isSelected = modelSupport.includes(cap.value);
-                  const Icon = cap.icon;
-                  return (
-                    <button
-                      key={cap.value}
-                      type="button"
-                      onClick={() => onToggleCapability(cap.value)}
-                      className={cn(
-                        'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm border transition-all',
-                        isSelected
-                          ? 'border-primary bg-primary/10 text-primary'
-                          : 'border-border hover:border-primary/30 text-muted-foreground',
-                      )}
-                    >
-                      <Icon className="w-4 h-4" />
-                      {cap.label}
-                    </button>
-                  );
-                })}
-              </div>
+              <ChipGroup
+                options={capabilities}
+                value={Array.isArray(data.model_support) ? data.model_support : ['text']}
+                onValueChange={(v) => onChangeField('model_support', v)}
+              />
             </div>
             <div className="space-y-2">
               <Label className="text-sm flex items-center gap-2">

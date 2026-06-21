@@ -68,7 +68,8 @@ export * from './hooks';
 export type { LocalFrameworkConfig, ConfigFileItem, ProviderType } from './types';
 export {
   getModelCapabilities,
+  getEmbeddingModalities,
   type ModelCapability,
   type EmbeddingConfigField,
   type EmbeddingProvider,
-} from './constants';
+} from './constants.tsx';

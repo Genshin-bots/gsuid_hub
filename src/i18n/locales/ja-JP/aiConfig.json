@@ -34,7 +34,12 @@
     "switchConfirm": "了解しました。切り替えを続行します",
     "rerankWarning": "再ランキングモデルサービスは負荷が高く、応答遅延とリソース使用量が増加します。慎重に有効化してください。",
     "extraProviderBanner": "プラグイン **{plugin}** が登録した埋め込みプロバイダー **{displayName}**（{kind} モード）を使用中です。",
-    "extraProviderHint": "設定を変更するには、プラグイン管理ページに移動してください。"
+    "extraProviderHint": "設定を変更するには、プラグイン管理ページに移動してください。",
+    "embeddingModalities": "埋め込みモデル対応モダリティ",
+    "embeddingModalityText": "テキスト",
+    "embeddingModalityImage": "画像",
+    "embeddingModalityAudio": "音声",
+    "embeddingModalityVideo": "動画"
   },
   "wizard": {
     "title": "AI 設定状態",

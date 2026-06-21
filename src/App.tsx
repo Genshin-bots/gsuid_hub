@@ -9,6 +9,7 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { ConfigDirtyProvider } from "@/contexts/ConfigDirtyContext";
 import { AIStatusProvider } from "@/contexts/AIStatusContext";
+import { BrandProvider } from "@/contexts/BrandContext";
 import { AppLayout } from "@/components/layout/AppLayout";
 import Login from "@/pages/Login";
 import HomePage from "@/pages/HomePage";
@@ -124,18 +125,22 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
       <LanguageProvider>
-        <AuthProvider>
-          <ConfigDirtyProvider>
-            <AIStatusProvider>
-              <TooltipProvider>
-                <Sonner />
-                <HashRouter>
-                  <AppRoutes />
-                </HashRouter>
-              </TooltipProvider>
-            </AIStatusProvider>
-          </ConfigDirtyProvider>
-        </AuthProvider>
+        {/* BrandProvider 放在 AuthProvider 之上，因为 /api/brand 是公开接口，
+            登录页加载就需要展示品牌信息 */}
+        <BrandProvider>
+          <AuthProvider>
+            <ConfigDirtyProvider>
+              <AIStatusProvider>
+                <TooltipProvider>
+                  <Sonner />
+                  <HashRouter>
+                    <AppRoutes />
+                  </HashRouter>
+                </TooltipProvider>
+              </AIStatusProvider>
+            </ConfigDirtyProvider>
+          </AuthProvider>
+        </BrandProvider>
       </LanguageProvider>
     </ThemeProvider>
   </QueryClientProvider>

@@ -1,4 +1,4 @@
-import { Home, LayoutDashboard, Database, Settings, FileText, LogOut, Palette, Terminal, Calendar, Store, Cpu, HardDrive, PanelLeftClose, PanelLeft, Cog, Power, RotateCw, User, Brain, ChevronDown, ChevronRight, Wrench, Sparkles, BookOpen, History, TrendingUp, Clock, Server, GitBranch, Image as ImageIcon, ScrollText, Layers, ClipboardList, Activity, Wallet } from 'lucide-react';
+import { Home, LayoutDashboard, Database, Settings, FileText, LogOut, Palette, Terminal, Calendar, Store, Cpu, HardDrive, PanelLeftClose, Cog, Power, RotateCw, User, Brain, ChevronDown, ChevronRight, Wrench, Sparkles, BookOpen, History, TrendingUp, Clock, Server, GitBranch, Image as ImageIcon, ScrollText, Layers, ClipboardList, Activity, Wallet } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAIStatus } from '@/contexts/AIStatusContext';
+import { useBrand } from '@/contexts/BrandContext';
 import { Button } from '@/components/ui/button';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -13,6 +14,7 @@ import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { LanguageFlag } from '@/components/ui/language-flag';
+import { BrandSettingsDialog } from '@/components/brand/BrandSettingsDialog';
 import { cn } from '@/lib/utils';
 import React, { useState, useEffect, useRef, memo, useMemo } from 'react';
 import {
@@ -155,14 +157,76 @@ const MemoizedNavItem = memo(function MemoizedNavItem({
   iconStyle,
   iconClass
 }: NavItemProps) {
+  const location = useLocation();
   const hasChildren = item.children && item.children.length > 0;
 
+  // 判断当前菜单项是否处于激活态（用于显示激活高亮）
+  // - 有子菜单时：当前路径匹配任一子菜单的 URL（精确匹配或前缀匹配）
+  // - 这样在收起状态下访问子页面时，父级 icon 也能正确高亮
+  const isItemActive = useMemo(() => {
+    if (!hasChildren || !item.children) return false;
+    const currentPath = location.pathname;
+    return item.children.some(child => {
+      if (!child.url) return false;
+      return currentPath === child.url || currentPath.startsWith(child.url + '/');
+    });
+  }, [location.pathname, item.children, hasChildren]);
+
   if (hasChildren) {
+    // 收起状态下：点击 icon 弹出二级菜单浮层
+    // 浮层直接展示父级标题与子菜单项，子菜单项是真正的可点击 NavLink
+    // 这样既保持了侧边栏的紧凑，又能让用户在不展开侧边栏的情况下访问二级菜单
+    if (isCollapsed) {
+      return (
+        <SidebarMenuItem className="w-auto">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <SidebarMenuButton
+                tooltip={item.title}
+                className={cn(
+                  "flex items-center rounded-lg transition-all cursor-pointer",
+                  "justify-center w-10 h-10 p-0",
+                  "hover:bg-primary/10",
+                  // 父菜单处于激活态时（任一子菜单被激活），使用与子菜单激活态一致的明显样式
+                  isItemActive && "bg-primary/20 text-primary font-medium shadow-sm"
+                )}
+              >
+                {item.icon && React.createElement(item.icon, { className: iconClass, style: iconStyle })}
+              </SidebarMenuButton>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              side="right"
+              align="start"
+              sideOffset={8}
+              className="min-w-[200px]"
+            >
+              <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground border-b border-border/50 mb-1">
+                {item.title}
+              </div>
+              {item.children?.map(child => (
+                <DropdownMenuItem key={child.id} asChild>
+                  <NavLink
+                    to={child.url || '#'}
+                    className="cursor-pointer flex items-center gap-2 py-2"
+                    activeClassName="bg-accent text-accent-foreground font-medium"
+                  >
+                    {child.icon && <child.icon className="w-4 h-4 shrink-0" style={iconStyle} />}
+                    <span>{child.title}</span>
+                  </NavLink>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </SidebarMenuItem>
+      );
+    }
+
+    // 展开状态：使用 Collapsible 正常显示子菜单
     return (
       <Collapsible
         open={isExpanded}
         onOpenChange={onToggle}
-        className={cn(isCollapsed ? "w-auto" : "w-full")}
+        className="w-full"
       >
         <SidebarMenuItem className="w-full">
           <CollapsibleTrigger asChild>
@@ -170,45 +234,39 @@ const MemoizedNavItem = memo(function MemoizedNavItem({
               tooltip={item.title}
               className={cn(
                 "flex items-center rounded-lg transition-all cursor-pointer",
-                isCollapsed ? "justify-center w-10 h-10 p-0" : "gap-3 px-3 py-2.5 w-full",
+                "gap-3 px-3 py-2.5 w-full",
                 "hover:bg-primary/10"
               )}
             >
               {item.icon && React.createElement(item.icon, { className: iconClass, style: iconStyle })}
-              {!isCollapsed && (
-                <>
-                  <span className="flex-1 text-left">{item.title}</span>
-                  {isExpanded
-                    ? React.createElement(ChevronDown, { className: iconClass, style: iconStyle })
-                    : React.createElement(ChevronRight, { className: iconClass, style: iconStyle })}
-                </>
-              )}
+              <span className="flex-1 text-left">{item.title}</span>
+              {isExpanded
+                ? React.createElement(ChevronDown, { className: iconClass, style: iconStyle })
+                : React.createElement(ChevronRight, { className: iconClass, style: iconStyle })}
             </SidebarMenuButton>
           </CollapsibleTrigger>
-          {!isCollapsed && (
-            <CollapsibleContent>
-              <SidebarMenu className="ml-2 mt-1 border-l-2 border-primary/20 pl-2">
-                {item.children?.map(child => (
-                  <SidebarMenuItem key={child.id} className="w-full">
-                    <SidebarMenuButton asChild tooltip={child.title}>
-                      <NavLink
-                        to={child.url || '#'}
-                        className={cn(
-                          "flex items-center rounded-lg transition-all",
-                          "gap-3 px-3 py-2",
-                          "hover:bg-primary/10"
-                        )}
-                        activeClassName="bg-primary/20 text-primary font-medium shadow-sm"
-                      >
-                        {child.icon && <child.icon className="w-4 h-4 shrink-0" style={iconStyle} />}
-                        <span>{child.title}</span>
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </CollapsibleContent>
-          )}
+          <CollapsibleContent>
+            <SidebarMenu className="ml-2 mt-1 border-l-2 border-primary/20 pl-2">
+              {item.children?.map(child => (
+                <SidebarMenuItem key={child.id} className="w-full">
+                  <SidebarMenuButton asChild tooltip={child.title}>
+                    <NavLink
+                      to={child.url || '#'}
+                      className={cn(
+                        "flex items-center rounded-lg transition-all",
+                        "gap-3 px-3 py-2",
+                        "hover:bg-primary/10"
+                      )}
+                      activeClassName="bg-primary/20 text-primary font-medium shadow-sm"
+                    >
+                      {child.icon && <child.icon className="w-4 h-4 shrink-0" style={iconStyle} />}
+                      <span>{child.title}</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </CollapsibleContent>
         </SidebarMenuItem>
       </Collapsible>
     );
@@ -238,14 +296,20 @@ const MemoizedNavItem = memo(function MemoizedNavItem({
 export function AppSidebar() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  const { state: sidebarState, toggleSidebar } = useSidebar();
+  const { state: sidebarState, toggleSidebar, isMobile } = useSidebar();
   const { style: themeStyle, iconColor } = useTheme();
   const { t, language, setLanguage, availableLanguages } = useLanguage();
   const { isAIEnabled, refresh: refreshAIStatus } = useAIStatus();
+  const { title: brandTitle, subtitle: brandSubtitle, iconUrl: brandIconUrl } = useBrand();
 
   const navItems = useMemo(() => getNavItems(t, isAIEnabled), [t, isAIEnabled]);
-  const isCollapsed = sidebarState === 'collapsed';
+  // 移动端模式下侧边栏总是展开（抽屉打开后需要展示完整菜单，而不是仅 icon）
+  // 桌面端才遵循用户的收起/展开偏好
+  const isCollapsed = !isMobile && sidebarState === 'collapsed';
   const isGlassmorphism = themeStyle === 'glassmorphism';
+
+  // 品牌设置对话框开关
+  const [showBrandDialog, setShowBrandDialog] = useState(false);
 
   // 使用系统控制hook
   const {
@@ -330,40 +394,64 @@ export function AppSidebar() {
       className={cn("border-0", "floating-sidebar")}
     >
       <SidebarHeader className={cn("p-4", isCollapsed && "flex flex-col items-center")}>
-        <div className={cn("flex items-center w-full", isCollapsed ? "justify-center" : "justify-between")}>
-          <div className={cn("flex items-center", isCollapsed ? "justify-center" : "gap-3")}>
-            <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center shrink-0 shadow-inner overflow-hidden">
-              <img src="ICON.png" alt="GsCore" className="w-8 h-8 object-contain" />
-            </div>
-            {!isCollapsed && (
-              <div className="flex flex-col">
-                <div className="flex items-center gap-1">
-                  <span className="font-bold text-lg">{t('sidebar.gsCore')}</span>
-                  <Badge variant="default" className="text-xs font-medium">v{import.meta.env.PACKAGE_VERSION || '0.0.15'}</Badge>
-                </div>
-                <span className="text-xs text-muted-foreground">​{t('sidebar.早柚核心')}</span>
-              </div>
+        <div className={cn("flex items-center w-full", isCollapsed ? "justify-center" : "justify-between gap-2")}>
+          <button
+            type="button"
+            // 收起时：点击 ICON = 展开侧边栏
+            // 展开时：点击 ICON = 打开品牌配置
+            onClick={isCollapsed ? toggleSidebar : () => setShowBrandDialog(true)}
+            className={cn(
+              "flex items-center group/brand rounded-lg p-1 -ml-1 transition-colors hover:bg-primary/10 shrink-0 min-w-0 text-left",
+              isCollapsed ? "justify-center" : "gap-3"
             )}
-          </div>
-          {!isCollapsed && (
-            <button
-              onClick={toggleSidebar}
-              className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-primary/10 transition-colors text-muted-foreground hover:text-foreground"
-              aria-label={t('sidebar.collapseSidebar')}
+            // 收起时 hover 提示改为"展开侧边栏"，与新职责一致
+            title={isCollapsed ? t('sidebar.expandSidebar') : t('brand.editBrand')}
+            aria-label={isCollapsed ? t('sidebar.expandSidebar') : t('brand.editBrand')}
+          >
+            {/* 收起时 ICON 缩小到 75%（40 → 30 px），留出 hover 热区 */}
+            <div
+              className={cn(
+                "flex items-center justify-center shrink-0 overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
+                isCollapsed ? "w-[30px] h-[30px]" : "w-10 h-10"
+              )}
             >
-              <PanelLeftClose className="w-4 h-4" />
-            </button>
-          )}
-        </div>
-        {isCollapsed && (
+              <img
+                src={brandIconUrl}
+                alt={brandTitle}
+                className={cn(
+                  "object-contain transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
+                  isCollapsed ? "w-[30px] h-[30px]" : "w-10 h-10"
+                )}
+                key={brandIconUrl}
+              />
+            </div>
+            {/* 标题/副标题：收起时折叠为宽度 0 + 透明，与 sidebar 宽度动画同步淡出 */}
+            <div
+              className={cn(
+                "flex flex-col items-start min-w-0 overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
+                isCollapsed ? "max-w-0 opacity-0 ml-0" : "max-w-[200px] opacity-100"
+              )}
+            >
+              <div className="flex items-center gap-1 whitespace-nowrap">
+                <span className="font-bold text-lg">{brandTitle}</span>
+                <Badge variant="default" className="text-xs font-medium shrink-0">v{import.meta.env.PACKAGE_VERSION || '0.0.15'}</Badge>
+              </div>
+              <span className="text-xs text-muted-foreground whitespace-nowrap">{brandSubtitle}</span>
+            </div>
+          </button>
+          {/* 折叠按钮：宽度/透明度同步过渡，避免突然消失 */}
           <button
             onClick={toggleSidebar}
-            className="mt-2 h-8 w-8 flex items-center justify-center rounded-lg hover:bg-primary/10 transition-colors text-muted-foreground hover:text-foreground"
-            aria-label={t('sidebar.expandSidebar')}
+            className={cn(
+              "h-8 flex items-center justify-center rounded-lg hover:bg-primary/10 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] text-muted-foreground hover:text-foreground shrink-0 overflow-hidden",
+              isCollapsed ? "w-0 opacity-0 pointer-events-none" : "w-8 opacity-100"
+            )}
+            aria-label={t('sidebar.collapseSidebar')}
+            tabIndex={isCollapsed ? -1 : 0}
           >
-            <PanelLeft className="w-4 h-4" />
+            <PanelLeftClose className="w-4 h-4" />
           </button>
-        )}
+        </div>
       </SidebarHeader>
 
       <Separator className="opacity-30 mx-2" />
@@ -614,6 +702,9 @@ export function AppSidebar() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* 品牌信息配置对话框 */}
+      <BrandSettingsDialog open={showBrandDialog} onOpenChange={setShowBrandDialog} />
     </Sidebar>
   );
 }

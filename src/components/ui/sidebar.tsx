@@ -204,9 +204,10 @@ const Sidebar = React.forwardRef<
       data-variant={variant}
       data-side={side}
     >
-      {/* Spacer - no transition, instant width change */}
+      {/* Spacer - 平滑过渡宽度，让右侧主内容跟随 sidebar 一起滑动
+          （之前刻意 instant，导致主内容瞬移造成卡顿） */}
       <div
-        className="relative h-svh bg-transparent"
+        className="relative h-svh bg-transparent transition-[width] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] will-change-[width]"
         style={{
           width: isCollapsed
             ? collapsedIconWidth
@@ -220,7 +221,7 @@ const Sidebar = React.forwardRef<
           hasFloatingPadding && "p-3",
           side === "left" ? "left-0" : "right-0",
           // GPU-accelerated transform animation
-          "transition-transform duration-200 ease-out will-change-transform transform-gpu",
+          "transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] will-change-transform transform-gpu",
         )}
         style={{
           width: expandedWidth,
@@ -237,10 +238,11 @@ const Sidebar = React.forwardRef<
           className={cn(
             "flex h-full flex-col overflow-hidden",
             variant === "floating" && "rounded-2xl",
-            // Smooth clip animation for icon mode - 使用transform代替width动画
-            "transition-transform duration-200 ease-out will-change-transform",
-            className?.includes('floating-sidebar') || className?.includes('glass-sidebar') 
-              ? '' 
+            // 同时过渡 width 与 transform：icon 模式宽度变化时跟随平滑动画，
+            // offcanvas 模式仍由 transform 主导
+            "transition-[width,transform] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] will-change-[width,transform]",
+            className?.includes('floating-sidebar') || className?.includes('glass-sidebar')
+              ? ''
               : 'bg-sidebar group-data-[variant=floating]:shadow-xl group-data-[variant=floating]:border group-data-[variant=floating]:border-sidebar-border',
             className,
           )}

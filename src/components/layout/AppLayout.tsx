@@ -6,6 +6,7 @@ import { SidebarProvider, SidebarInset, useSidebar } from '@/components/ui/sideb
 import { AppSidebar } from './AppSidebar';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
+import { useBrand } from '@/contexts/BrandContext';
 import { cn } from '@/lib/utils';
 import { Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -16,6 +17,7 @@ function LayoutHeader() {
   const { toggleSidebar } = useSidebar();
   const isMobile = useIsMobile();
   const { user } = useAuth();
+  const { title: brandTitle, iconUrl: brandIconUrl } = useBrand();
   const navigate = useNavigate();
   
   if (!isMobile) return null;
@@ -27,10 +29,15 @@ function LayoutHeader() {
           <Menu className="h-5 w-5" />
         </Button>
         <div className="flex items-center gap-1">
-          <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center shrink-0 overflow-hidden">
-            <img src="ICON.png" alt="GsCore" className="w-6 h-6 object-contain" />
+          <div className="w-8 h-8 flex items-center justify-center shrink-0 overflow-hidden">
+            <img
+              src={brandIconUrl}
+              alt={brandTitle}
+              className="w-8 h-8 object-contain"
+              key={brandIconUrl}
+            />
           </div>
-          <span className="font-semibold">GsCore</span>
+          <span className="font-semibold">{brandTitle}</span>
           <Badge variant="default" className="text-xs font-medium ml-1">v{import.meta.env.PACKAGE_VERSION || '0.0.15'}</Badge>
         </div>
       </div>

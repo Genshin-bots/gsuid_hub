@@ -2,11 +2,9 @@ import { useEffect, useState } from 'react';
 import {
   AlertTriangle,
   Brain,
-  Cpu,
   Gauge,
   Plus,
   Server,
-  Sparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ConfigField } from '@/components/config';
@@ -21,8 +19,8 @@ import { Input } from '@/components/ui/input';
 import { InputWithDropdown } from '@/components/ui/input-with-dropdown';
 import { ModelSelectDropdown } from '@/components/ui/model-select-dropdown';
 import { Label } from '@/components/ui/label';
-import { cn } from '@/lib/utils';
-import { getModelCapabilities, type ModelCapability } from '../constants';
+import { ChipGroup } from '@/components/ui/MultiSelectChipGroup';
+import { getModelCapabilities } from '../constants.tsx';
 import type { ProviderConfigOptions } from '@/lib/api';
 
 export interface CreateConfigDialogProps {
@@ -53,7 +51,7 @@ export interface CreateConfigDialogProps {
   onChangeModel: (v: string) => void;
   onChangeEmbeddingModel: (v: string) => void;
   onChangeModelEffort: (v: string) => void;
-  onToggleCapability: (cap: string) => void;
+  onChangeModelSupport: (v: string[]) => void;
   onReset: () => void;
   onSubmit: () => void;
 }
@@ -87,7 +85,7 @@ export function CreateConfigDialog(props: CreateConfigDialogProps) {
     onChangeApiKeys,
     onChangeModel,
     onChangeModelEffort,
-    onToggleCapability,
+    onChangeModelSupport,
     onReset,
     onSubmit,
   } = props;
@@ -98,7 +96,7 @@ export function CreateConfigDialog(props: CreateConfigDialogProps) {
     setConfigName(props.configName);
   }, [props.configName]);
 
-  const capabilities: ModelCapability[] = getModelCapabilities(t);
+  const capabilities = getModelCapabilities(t);
   const showBaseUrlWarning = baseUrlHasTrailingSlash(baseUrl);
 
   return (
@@ -210,28 +208,11 @@ export function CreateConfigDialog(props: CreateConfigDialogProps) {
           </div>
           <div className="space-y-2">
             <Label>{t('aiConfig.serviceProvider.modelCapabilities')}</Label>
-            <div className="flex flex-wrap gap-2">
-              {capabilities.map((cap) => {
-                const isSelected = modelSupport.includes(cap.value);
-                const Icon = cap.icon;
-                return (
-                  <button
-                    key={cap.value}
-                    type="button"
-                    onClick={() => onToggleCapability(cap.value)}
-                    className={cn(
-                      'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm border transition-all',
-                      isSelected
-                        ? 'border-primary bg-primary/10 text-primary'
-                        : 'border-border hover:border-primary/30 text-muted-foreground',
-                    )}
-                  >
-                    <Icon className="w-4 h-4" />
-                    {cap.label}
-                  </button>
-                );
-              })}
-            </div>
+            <ChipGroup
+              options={capabilities}
+              value={modelSupport}
+              onValueChange={onChangeModelSupport}
+            />
           </div>
           <div className="space-y-2">
             <Label>{t('aiConfig.serviceProvider.modelEffort')}</Label>
@@ -268,6 +249,3 @@ export function CreateConfigDialog(props: CreateConfigDialogProps) {
     </Dialog>
   );
 }
-
-// Re-export for callers that need to use Cpu/Sparkles etc.
-export { Cpu, Sparkles };
