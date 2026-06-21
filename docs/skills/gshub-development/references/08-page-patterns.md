@@ -72,6 +72,59 @@ const toMirrorValue  = (v: string) => v === DEFAULT_MIRROR_VALUE ? '' : v;  // S
 - 底部 `DialogFooter`：取消（`variant="outline"`）+ 主操作；保存中 `<Loader2 className="animate-spin" />`。
 - 创建/编辑共用同一弹窗组件时，`open` 变化时按 `mode` 重置/回填表单（`useEffect([open, mode, entity])`）。
 
+### 无障碍：每个 `DialogContent` 都必须包含 `DialogTitle` + `DialogDescription` ★★
+
+Radix UI 在 dev 模式下会对**缺少** `DialogTitle` 或 `DialogDescription` 的 `DialogContent` 刷出警告（屏幕阅读器无障碍要求）。**别只看 Title 缺失就完事**——`Description` 缺失同样会有警告（"Missing `Description` or `aria-describedby={undefined}`"）。
+
+#### 三种合规写法（任选其一）
+
+```tsx
+// ① 视觉可见 + 屏幕阅读器可读（推荐用于正常有上下文的弹窗）
+<DialogContent>
+  <DialogHeader>
+    <DialogTitle>编辑人格：{name}</DialogTitle>
+    <DialogDescription>编辑该人格的描述、配置与媒体资源</DialogDescription>
+  </DialogHeader>
+  …
+</DialogContent>
+
+// ② 仅给屏幕阅读器（适合弹窗已经有可见 UI 说明的场景）
+<DialogContent>
+  <DialogHeader>
+    <DialogTitle>移动表情包</DialogTitle>
+    <DialogDescription className="sr-only">
+      {t('aiMeme.detail.targetFolder')}
+    </DialogDescription>
+  </DialogHeader>
+  …
+</DialogContent>
+
+// ③ 自定义标题结构（如 PluginStorePage 的 README 弹窗，原本用 <h2><p>）
+//    把视觉占位的 <h2>/<p> 替换为 <DialogTitle>/<DialogDescription>，
+//    保留 className 以维持视觉样式不变。
+<DialogContent>
+  <div className="px-6 py-4 border-b">
+    <DialogTitle className="text-lg font-semibold truncate">
+      {selectedPlugin?.id}
+    </DialogTitle>
+    <DialogDescription className="text-sm text-muted-foreground">
+      {selectedPlugin?.description}
+    </DialogDescription>
+  </div>
+  …
+</DialogContent>
+```
+
+#### 新建/补全 Dialog 的四步走
+1. **找位置**：每个 DialogContent 的 children（通常是 DialogHeader 内）都必须有 `DialogTitle`。
+2. **加 Description**：补一个 `DialogDescription`；若不想让视觉多一行文本就加 `className="sr-only"`。
+3. **加 i18n key**：用 `*AriaDesc` 后缀（避免与可见文案混淆），三语言 JSON 同步（见 [§02](./02-i18n.md)）。
+4. **全量自检**：跑一遍 grep `<DialogContent` → 逐个核对，避免漏改。
+
+#### 为什么不要让 `DialogTitle` 条件渲染为 null
+
+Radix 的 `DialogContent` 在 mount 时会立刻检查 `titleId`，如果初始 render 时为 null 就刷警告（之后即使 Title 加上也已刷出）。所有 DialogTitle 都必须**稳定地**渲染一个非空元素，包括三元分支、map 列表——每个分支都返回 `DialogTitle`。AppSidebar 重启/暂停弹窗里那个三目嵌套（`completed ? A : restarting ? B : C`）三个分支都要带 `<DialogTitle>`，参见 [§10 P-18](./10-pitfalls-and-performance.md)。
+
 ### 双态 UI 必须三处同步分支 ★
 确认弹窗等双态场景（暂停/恢复、创建/编辑），**动作、图标、文案三者都要按同一条件分支**，不要只分支动作而把文案写死：
 

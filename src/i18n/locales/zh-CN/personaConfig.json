@@ -19,6 +19,8 @@
   "deleteSuccess": "人格删除成功",
   "deleteFailed": "人格删除失败",
   "editPersona": "编辑人格",
+  "editPersonaAriaDesc": "编辑该人格的描述、配置与媒体资源",
+  "imagePreviewAriaDesc": "在新窗口中查看图片大图",
   "savePersona": "保存人格",
   "cancelEdit": "取消编辑",
   "preview": "预览",

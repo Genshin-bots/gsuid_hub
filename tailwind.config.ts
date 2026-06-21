@@ -136,7 +136,15 @@ export default {
   				'Courier New',
   				'monospace'
   			]
-  		}
+  		},
+  		// 自定义 transition-timing-function。
+  		// 之前直接在 className 中写 `ease-[cubic-bezier(0.4,0,0.2,1)]` 会被
+  		// Tailwind v3.4 的内容扫描器判定为 "ambiguous class"，刷出警告：
+  		//   warn - The class `ease-[cubic-bezier(0.4,0,0.2,1)]` is ambiguous
+  		// 这里提供一个语义化的命名 ease `ease-out-soft` 替代之。
+  		transitionTimingFunction: {
+  			'out-soft': 'cubic-bezier(0.4, 0, 0.2, 1)',
+  		},
   	}
   },
   plugins: [require("tailwindcss-animate"), require("@tailwindcss/typography")],

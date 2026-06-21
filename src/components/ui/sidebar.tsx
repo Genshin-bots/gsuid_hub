@@ -138,7 +138,10 @@ const Sidebar = React.forwardRef<
   }
 >(({ side = "left", variant = "sidebar", collapsible = "offcanvas", className, children, ...props }, ref) => {
   const { isMobile, state, openMobile, setOpenMobile } = useSidebar();
-  const { mode } = useTheme();
+  // ⚠️ Hooks 必须按相同顺序在每次渲染中调用：这里在条件分支之前统一读取，
+  // 避免在不同 `collapsible` / `isMobile` 分支中重复调用 `useTheme()`，
+  // 否则 React 会报 "change in the order of Hooks called" 警告。
+  const { mode, style: themeStyle } = useTheme();
 
   if (collapsible === "none") {
     return (
@@ -153,10 +156,9 @@ const Sidebar = React.forwardRef<
   }
 
   if (isMobile) {
-    const { style: themeStyle } = useTheme();
     const overlayClassName = mode === 'dark' ? 'bg-black/80' : 'bg-white/80';
     const isGlassmorphism = themeStyle === 'glassmorphism';
-    
+
     return (
       <Sheet open={openMobile} onOpenChange={setOpenMobile} {...props}>
         <SheetContent
@@ -207,7 +209,7 @@ const Sidebar = React.forwardRef<
       {/* Spacer - 平滑过渡宽度，让右侧主内容跟随 sidebar 一起滑动
           （之前刻意 instant，导致主内容瞬移造成卡顿） */}
       <div
-        className="relative h-svh bg-transparent transition-[width] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] will-change-[width]"
+        className="relative h-svh bg-transparent transition-[width] duration-300 ease-out-soft will-change-[width]"
         style={{
           width: isCollapsed
             ? collapsedIconWidth
@@ -221,7 +223,7 @@ const Sidebar = React.forwardRef<
           hasFloatingPadding && "p-3",
           side === "left" ? "left-0" : "right-0",
           // GPU-accelerated transform animation
-          "transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] will-change-transform transform-gpu",
+          "transition-transform duration-300 ease-out-soft will-change-transform transform-gpu",
         )}
         style={{
           width: expandedWidth,
@@ -240,7 +242,7 @@ const Sidebar = React.forwardRef<
             variant === "floating" && "rounded-2xl",
             // 同时过渡 width 与 transform：icon 模式宽度变化时跟随平滑动画，
             // offcanvas 模式仍由 transform 主导
-            "transition-[width,transform] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] will-change-[width,transform]",
+            "transition-[width,transform] duration-300 ease-out-soft will-change-[width,transform]",
             className?.includes('floating-sidebar') || className?.includes('glass-sidebar')
               ? ''
               : 'bg-sidebar group-data-[variant=floating]:shadow-xl group-data-[variant=floating]:border group-data-[variant=floating]:border-sidebar-border',

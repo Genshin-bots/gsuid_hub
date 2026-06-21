@@ -19,6 +19,8 @@
   "deleteSuccess": "ペルソナ削除成功",
   "deleteFailed": "ペルソナ削除失敗",
   "editPersona": "編集ペルソナ",
+  "editPersonaAriaDesc": "ペルソナの説明・設定・メディアを編集します",
+  "imagePreviewAriaDesc": "拡大画像をポップアップで表示します",
   "savePersona": "保存ペルソナ",
   "cancelEdit": "キャンセル編集",
   "preview": "プレビュー",

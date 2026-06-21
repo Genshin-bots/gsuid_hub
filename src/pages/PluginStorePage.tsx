@@ -10,7 +10,7 @@ import { pluginStoreApi, StorePlugin, gitMirrorApi, GitPluginInfo } from '@/lib/
 import { Skeleton } from '@/components/ui/skeleton';
 import GitMirrorDialog, { getMirrorBadge } from '@/components/GitMirrorDialog';
 import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import remarkGfm from 'remark-gfm';
@@ -724,7 +724,11 @@ export default function PluginStorePage() {
             <div className="flex items-center justify-between pr-8">
               <div className="flex items-center gap-2 min-w-0">
                 <FileText className="w-5 h-5 text-muted-foreground shrink-0" />
-                <h2 className="text-lg font-semibold truncate">{selectedPlugin?.id}</h2>
+                {/* 用 DialogTitle 替代普通 h2：保留原有视觉样式，但能被屏幕阅读器
+                    与 Radix Dialog 正确识别为对话框标题。 */}
+                <DialogTitle className="text-lg font-semibold leading-none tracking-tight truncate">
+                  {selectedPlugin?.id}
+                </DialogTitle>
               </div>
               {selectedPlugin && (
                 <a
@@ -739,9 +743,11 @@ export default function PluginStorePage() {
                 </a>
               )}
             </div>
-            <p className="text-sm text-muted-foreground mt-1 pr-8">
+            {/* 用 DialogDescription 替代普通 p：保留原有视觉样式，但能被屏幕阅读器
+                与 Radix Dialog 正确识别为对话框描述。 */}
+            <DialogDescription className="text-sm text-muted-foreground mt-1 pr-8">
               {selectedPlugin?.description}
-            </p>
+            </DialogDescription>
           </div>
           
           {/* Scrollable Content */}

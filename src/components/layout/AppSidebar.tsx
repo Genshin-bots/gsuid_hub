@@ -411,7 +411,7 @@ export function AppSidebar() {
             {/* 收起时 ICON 缩小到 75%（40 → 30 px），留出 hover 热区 */}
             <div
               className={cn(
-                "flex items-center justify-center shrink-0 overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
+                "flex items-center justify-center shrink-0 overflow-hidden transition-all duration-300 ease-out-soft",
                 isCollapsed ? "w-[30px] h-[30px]" : "w-10 h-10"
               )}
             >
@@ -419,7 +419,7 @@ export function AppSidebar() {
                 src={brandIconUrl}
                 alt={brandTitle}
                 className={cn(
-                  "object-contain transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
+                  "object-contain transition-all duration-300 ease-out-soft",
                   isCollapsed ? "w-[30px] h-[30px]" : "w-10 h-10"
                 )}
                 key={brandIconUrl}
@@ -428,7 +428,7 @@ export function AppSidebar() {
             {/* 标题/副标题：收起时折叠为宽度 0 + 透明，与 sidebar 宽度动画同步淡出 */}
             <div
               className={cn(
-                "flex flex-col items-start min-w-0 overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
+                "flex flex-col items-start min-w-0 overflow-hidden transition-all duration-300 ease-out-soft",
                 isCollapsed ? "max-w-0 opacity-0 ml-0" : "max-w-[200px] opacity-100"
               )}
             >
@@ -443,7 +443,7 @@ export function AppSidebar() {
           <button
             onClick={toggleSidebar}
             className={cn(
-              "h-8 flex items-center justify-center rounded-lg hover:bg-primary/10 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] text-muted-foreground hover:text-foreground shrink-0 overflow-hidden",
+              "h-8 flex items-center justify-center rounded-lg hover:bg-primary/10 transition-all duration-300 ease-out-soft text-muted-foreground hover:text-foreground shrink-0 overflow-hidden",
               isCollapsed ? "w-0 opacity-0 pointer-events-none" : "w-8 opacity-100"
             )}
             aria-label={t('sidebar.collapseSidebar')}

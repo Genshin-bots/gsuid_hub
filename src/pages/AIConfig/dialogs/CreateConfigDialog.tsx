@@ -11,6 +11,7 @@ import { ConfigField } from '@/components/config';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -113,6 +114,9 @@ export function CreateConfigDialog(props: CreateConfigDialogProps) {
             <Plus className="w-5 h-5" />
             {t('aiConfig.openaiConfig.createNew')}
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            {t('aiConfig.openaiConfig.createConfigAriaDesc')}
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="space-y-2">

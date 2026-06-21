@@ -23,6 +23,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
@@ -2291,6 +2292,9 @@ export default function AIMemoryPage() {
               {dialogType === 'edge' && t('aiMemory.edgeDetail')}
               {dialogType === 'category' && t('aiMemory.categoryDetail')}
             </DialogTitle>
+            <DialogDescription className="sr-only">
+              {t('aiMemory.detailAriaDesc')}
+            </DialogDescription>
           </DialogHeader>
           {dialogType === 'episode' && selectedEpisode && (
             <div className="space-y-4">

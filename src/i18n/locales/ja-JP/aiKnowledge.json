@@ -27,6 +27,7 @@
   "path": "パス",
   "addText": "追加テキスト知识",
   "editText": "編集テキスト知识",
+  "formAriaDesc": "ナレッジベース項目を追加または編集します",
   "addImage": "追加画像知识",
   "editImage": "編集画像知识",
   "imageFile": "画像ファイル",

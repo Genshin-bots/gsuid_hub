@@ -1215,6 +1215,9 @@ export default function PersonaConfigPage() {
               <Brain className="h-5 w-5 text-primary" />
               {t('personaConfig.editPersona')}: {editingPersona?.name}
             </DialogTitle>
+            <DialogDescription className="sr-only">
+              {t('personaConfig.editPersonaAriaDesc')}
+            </DialogDescription>
           </DialogHeader>
           <Tabs
             value={activeTab}
@@ -1666,6 +1669,9 @@ export default function PersonaConfigPage() {
               <Eye className="h-5 w-5" />
               {previewImageTitle}
             </DialogTitle>
+            <DialogDescription className="sr-only">
+              {t('personaConfig.imagePreviewAriaDesc')}
+            </DialogDescription>
           </DialogHeader>
           <div className="flex items-center justify-center p-4">
             <img

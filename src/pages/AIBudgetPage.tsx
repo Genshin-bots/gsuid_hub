@@ -891,6 +891,9 @@ function RulesTab() {
               <Eye className="w-5 h-5" />
               {detailRule ? detailRule.name : t('aiBudget.rules.title')}
             </DialogTitle>
+            <DialogDescription className="sr-only">
+              {t('aiBudget.rules.ruleDetailAriaDesc')}
+            </DialogDescription>
           </DialogHeader>
           {detailLoading ? (
             <div className="py-8 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto" /></div>
@@ -1109,6 +1112,9 @@ function RuleFormDialog({ open, onOpenChange, mode, rule, onSuccess }: {
       <DialogContent className={cn("max-w-2xl max-h-[80vh] overflow-y-auto", "glass-card")}>
         <DialogHeader>
           <DialogTitle>{mode === 'create' ? t('aiBudget.rules.createRule') : t('aiBudget.rules.editRule')}</DialogTitle>
+          <DialogDescription className="sr-only">
+            {t('aiBudget.rules.ruleFormAriaDesc')}
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
@@ -1484,6 +1490,9 @@ function WhitelistFormDialog({ open, onOpenChange, mode, entry, onSuccess }: {
       <DialogContent className={cn("max-w-lg", "glass-card")}>
         <DialogHeader>
           <DialogTitle>{mode === 'create' ? t('aiBudget.whitelist.createEntry') : t('aiBudget.whitelist.editEntry')}</DialogTitle>
+          <DialogDescription className="sr-only">
+            {t('aiBudget.whitelist.whitelistFormAriaDesc')}
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div className="space-y-2">

@@ -4,6 +4,7 @@
   "selectPlugin": "選択プラグイン",
   "currentStatus": "現在状態",
   "updateAll": "更新すべてプラグイン",
+  "updateAllAriaDesc": "プラグイン一括更新の進捗と結果を表示します",
   "branch": "分支",
   "commit": "Commit",
   "author": "作者",

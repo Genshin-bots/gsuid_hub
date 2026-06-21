@@ -57,6 +57,7 @@
   "entityDetail": "实体详情",
   "edgeDetail": "关系详情",
   "categoryDetail": "分类详情",
+  "detailAriaDesc": "查看记忆条目的完整内容、关系与相关实体",
   "scopeKey": "范围键",
   "content": "内容",
   "mentionedEntities": "提及的实体",

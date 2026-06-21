@@ -19,6 +19,8 @@
   "deleteSuccess": "Persona deleted successfully",
   "deleteFailed": "Persona deletion failed",
   "editPersona": "Edit Persona",
+  "editPersonaAriaDesc": "Edit this persona's description, configuration and media assets",
+  "imagePreviewAriaDesc": "View full-size image in a popup window",
   "savePersona": "Save Persona",
   "cancelEdit": "Cancel Edit",
   "preview": "Preview",

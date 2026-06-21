@@ -27,6 +27,7 @@
   "path": "路径",
   "addText": "添加文本知识",
   "editText": "编辑文本知识",
+  "formAriaDesc": "添加或编辑知识库条目",
   "addImage": "添加图片知识",
   "editImage": "编辑图片知识",
   "imageFile": "图片文件",

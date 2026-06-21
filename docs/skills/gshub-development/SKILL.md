@@ -83,6 +83,10 @@ description: >
 - **三元 + 字符串拼接要加括号**：`a ? x : y + z` 因 `?:` 优先级低于 `+` 会解析成 `a ? x : (y+z)`。详见 [§10 P-1](./references/10-pitfalls-and-performance.md)。
 - **API 统一在 `src/lib/api.ts`**：所有请求经封装，类型同文件定义；401 统一用 `getLoginPath()` 跳登录（兼容开发 `/login` 与生产 `/app/login`）。详见 [§01](./references/01-architecture-and-conventions.md)。
 - **错误提示必须回显后端消息 ★**：后端错误有封套 `{status,msg}` 与 FastAPI `{detail}`（字符串/校验数组）两类，**只读 `msg` 会漏掉 `detail`**、导致 toast 与真实原因无关。统一用 `getApiErrorMessage(err/res, fallback)` 解析，本地化文案只兜底。详见 [§01 §1.5](./references/01-architecture-and-conventions.md)、[§10 P-13](./references/10-pitfalls-and-performance.md)。
+- **Radix Dialog 无障碍 ★★**：每个 `DialogContent` 都必须包含 `DialogTitle` + `DialogDescription`（描述可 `className="sr-only"` 隐藏）。任意一个缺，dev 模式都会刷屏警告。详见 [§08 §8.3](./references/08-page-patterns.md)、[§10 P-16 / P-18](./references/10-pitfalls-and-performance.md)。
+- **Hooks 永远在最顶层调用 ★★★**：在 `if` / 三元 / `&&` 分支里调用 `useTheme()` 等会导致"Hooks 顺序变化"警告 + Context 取错值。所有 Hook 在分支前一次性调用，分支内只解构使用。详见 [§10 P-14](./references/10-pitfalls-and-performance.md)。
+- **Tailwind 任意值类名歧义**：带 `(` `)` 的 `ease-[cubic-bezier(...)]` 会触发 v3.4 内容扫描器"ambiguous class"误报警告。把 timing function 提到 `tailwind.config.ts` 命名为 `ease-out-soft` 等再引用。详见 [§10 P-15](./references/10-pitfalls-and-performance.md)。
+- **后端版本不匹配别误报为前端 bug ★**：调用仅新版后端支持的端点时，识别后端特有错误文案（如"预保留路径名"），降级为 `console.warn` 并提示"请升级 gsuid_core"。详见 [§01 §1.5.1](./references/01-architecture-and-conventions.md)、[§10 P-17](./references/10-pitfalls-and-performance.md)。
 
 ## 关联文档（同仓库其他位置）
 

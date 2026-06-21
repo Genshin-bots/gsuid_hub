@@ -21,6 +21,7 @@
   "endDate": "End Date",
   "newLogsAvailable": "New logs available, click to refresh",
   "contextTitle": "Log Context",
+  "contextAriaDesc": "View log entries surrounding the selected record",
   "contextNotAvailable": "Context not available for this log",
   "contextLoadFailed": "Failed to load log context",
   "loadMoreBefore": "Load earlier logs",

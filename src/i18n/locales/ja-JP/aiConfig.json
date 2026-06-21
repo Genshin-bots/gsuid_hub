@@ -169,6 +169,7 @@
     "selectConfig": "選択設定ファイル",
     "selectConfigPlaceholder": "選択1つの設定ファイル...",
     "createNew": "新規設定",
+    "createConfigAriaDesc": "新しい AI サービス設定を入力して保存します",
     "configName": "設定名",
     "configNamePlaceholder": "入力設定名",
     "newName": "新設定名",

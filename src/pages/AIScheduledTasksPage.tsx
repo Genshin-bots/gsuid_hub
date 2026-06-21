@@ -730,6 +730,9 @@ export default function AIScheduledTasksPage() {
               <Edit className="w-5 h-5" />
               {t('aiScheduledTasks.editTask')}
             </DialogTitle>
+            <DialogDescription className="sr-only">
+              {t('aiScheduledTasks.editTaskAriaDesc')}
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
@@ -774,6 +777,9 @@ export default function AIScheduledTasksPage() {
               <Clock className="w-5 h-5" />
               {t('aiScheduledTasks.view')}
             </DialogTitle>
+            <DialogDescription className="sr-only">
+              {t('aiScheduledTasks.taskDetailAriaDesc')}
+            </DialogDescription>
           </DialogHeader>
           {selectedTask && (
             <div className="space-y-4">

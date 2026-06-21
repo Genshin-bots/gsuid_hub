@@ -19,6 +19,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -1143,6 +1144,9 @@ export default function GitUpdatePage() {
               <Download className="w-5 h-5" />
               {t('gitUpdate.updateAll')}
             </DialogTitle>
+            <DialogDescription className="sr-only">
+              {t('gitUpdate.updateAllAriaDesc')}
+            </DialogDescription>
           </DialogHeader>
           <div className="border rounded-lg overflow-auto flex-1">
             <Table className="min-w-[400px]">

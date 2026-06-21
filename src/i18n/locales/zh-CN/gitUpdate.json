@@ -4,6 +4,7 @@
   "selectPlugin": "选择插件",
   "currentStatus": "当前状态",
   "updateAll": "更新全部插件",
+  "updateAllAriaDesc": "查看本次批量更新插件的进度与结果",
   "branch": "分支",
   "commit": "Commit",
   "author": "作者",

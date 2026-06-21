@@ -4,6 +4,7 @@
   "selectPlugin": "Select Plugin",
   "currentStatus": "Current Status",
   "updateAll": "Update All Plugins",
+  "updateAllAriaDesc": "View progress and results of batch plugin update",
   "branch": "Branch",
   "commit": "Commit",
   "author": "Author",

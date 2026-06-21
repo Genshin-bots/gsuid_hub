@@ -57,6 +57,7 @@
   "entityDetail": "エンティティ詳細",
   "edgeDetail": "関係詳細",
   "categoryDetail": "分類詳細",
+  "detailAriaDesc": "メモリ項目の完全な内容・関係・関連エンティティを表示します",
   "scopeKey": "範囲键",
   "content": "内容",
   "mentionedEntities": "提およびのエンティティ",

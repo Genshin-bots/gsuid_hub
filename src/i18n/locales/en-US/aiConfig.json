@@ -169,6 +169,7 @@
     "selectConfig": "Select Configuration",
     "selectConfigPlaceholder": "Select a configuration...",
     "createNew": "New Configuration",
+    "createConfigAriaDesc": "Fill in and save a new AI service configuration",
     "configName": "Configuration Name",
     "configNamePlaceholder": "Enter configuration name",
     "newName": "New Configuration Name",

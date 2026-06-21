@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Search, RefreshCw, Download, ChevronDown, AlertCircle, AlertTriangle, Info, Bug, FileText, Calendar, Eye, ChevronUp, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -750,6 +750,9 @@ export default function LogsPage() {
               <Eye className="w-5 h-5" />
               {t('logs.contextTitle') || '日志上下文'}
             </DialogTitle>
+            <DialogDescription className="sr-only">
+              {t('logs.contextAriaDesc')}
+            </DialogDescription>
           </DialogHeader>
           
           {contextLoading ? (

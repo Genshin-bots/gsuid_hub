@@ -21,6 +21,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -1097,6 +1098,9 @@ export default function AIKnowledgePage() {
                 </>
               )}
             </DialogTitle>
+            <DialogDescription className="sr-only">
+              {t('aiKnowledge.formAriaDesc')}
+            </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4 py-4">
@@ -1331,9 +1335,9 @@ export default function AIKnowledgePage() {
               <FileUp className="w-5 h-5" />
               {t('aiKnowledge.bulkImportTitle')}
             </DialogTitle>
-            <p className="text-sm text-muted-foreground">
+            <DialogDescription className="sr-only">
               {t('aiKnowledge.bulkImportHint')}
-            </p>
+            </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-2">
@@ -1520,7 +1524,9 @@ export default function AIKnowledgePage() {
               <ScrollText className="w-5 h-5" />
               {t('aiKnowledge.docViewerTitle', { docId: docViewerDocId })}
             </DialogTitle>
-            <p className="text-sm text-muted-foreground">{t('aiKnowledge.docViewerSubtitle', { title: docViewerTitle })}</p>
+            <DialogDescription className="sr-only">
+              {t('aiKnowledge.docViewerSubtitle', { title: docViewerTitle })}
+            </DialogDescription>
           </DialogHeader>
 
           {docViewerLoading ? (
@@ -1598,7 +1604,9 @@ export default function AIKnowledgePage() {
               <FolderOpen className="w-5 h-5" />
               {t('aiKnowledge.importBackupTitle')}
             </DialogTitle>
-            <p className="text-sm text-muted-foreground">{t('aiKnowledge.importBackupHint')}</p>
+            <DialogDescription className="sr-only">
+              {t('aiKnowledge.importBackupHint')}
+            </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-2">

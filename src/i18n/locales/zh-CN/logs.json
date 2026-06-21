@@ -21,6 +21,7 @@
   "endDate": "结束日期",
   "newLogsAvailable": "有新日志可用，点击刷新查看",
   "contextTitle": "日志上下文",
+  "contextAriaDesc": "查看所选日志条目前后相邻的日志记录",
   "contextNotAvailable": "该日志暂不支持查看上下文",
   "contextLoadFailed": "加载日志上下文失败",
   "loadMoreBefore": "加载更早的日志",

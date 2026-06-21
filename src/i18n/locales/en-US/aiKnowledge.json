@@ -27,6 +27,7 @@
   "path": "Path",
   "addText": "Add Text Knowledge",
   "editText": "Edit Text Knowledge",
+  "formAriaDesc": "Add or edit a knowledge base entry",
   "addImage": "Add Image Knowledge",
   "editImage": "Edit Image Knowledge",
   "imageFile": "Image File",

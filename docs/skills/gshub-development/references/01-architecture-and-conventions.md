@@ -166,6 +166,39 @@ if (res.status !== 0) {
 封装层（`ApiClient.request/postFormData/postBlob`）的非 2xx 分支也已统一走 `getApiErrorMessage`，
 所以**抛错型调用拿到的 `Error.message` 已是后端消息**，页面直接回显即可。
 
+### 1.5.1 后端版本不匹配：识别特定错误并降级日志级别 ★
+
+前端调一个**仅新版后端支持的端点**时，旧版后端会返回后端特有的错误文案（如"预保留路径名"、"路由未注册"）。这种情况下前端 URL 是**正确的**，不是前端 bug，**不要**用 `console.error` 让用户每次进页面都被红色日志骚扰。
+
+正确模式：捕获错误后匹配后端特有文案，降级 `console.warn` 并说明根因 + 修复路径：
+
+```tsx
+const fetchStats = useCallback(async () => {
+  try {
+    const data = await memeApi.getStats();              // /api/meme/stats 仅新版支持
+    setStats(data);
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    if (msg.includes('预保留路径名')) {                  // 后端特有的文案
+      console.warn(
+        '[AIMemePage] /api/meme/stats 不可用：当前 gsuid_core 版本过旧，' +
+        '缺少独立的统计端点。统计概览区域将保持为空，请升级 gsuid_core。',
+        msg,
+      );
+    } else {
+      console.warn('Failed to fetch meme stats:', msg);
+    }
+  }
+}, []);
+```
+
+判断启发式：
+- **后端固定文案**（"预保留路径名"、"reserved path"、404 等）→ 后端问题。
+- **JS 异常**（TypeError、undefined.xxx）→ 前端问题。
+- **不确定**先 `console.warn` + UI 优雅降级（空状态/Skeleton），比 `console.error` 友好得多。
+
+完整讨论见 [§10 P-17](./10-pitfalls-and-performance.md)。
+
 ## 1.6 401 认证失败处理
 
 401 由封装层（`ApiClient.request()` / `getRaw()` 等）**统一**处理并跳登录，页面不要各自判断。跳转用 `getLoginPath()`：

@@ -801,6 +801,9 @@ function MemeDetailDialog({
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>{t('aiMeme.detail.moveToFolder')}</DialogTitle>
+            <DialogDescription>
+              {t('aiMeme.detail.targetFolder')}
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-2">
             <Label>{t('aiMeme.detail.targetFolder')}</Label>
@@ -993,6 +996,9 @@ function UploadDialog({
             <Upload className="w-5 h-5 text-primary" />
             {t('aiMeme.upload.title')}
           </DialogTitle>
+          <DialogDescription>
+            {t('aiMeme.upload.dragDropHint')}
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
@@ -1232,7 +1238,22 @@ export default function AIMemePage() {
       const data = await memeApi.getStats();
       setStats(data);
     } catch (error) {
-      console.error('Failed to fetch meme stats:', error);
+      // ⚠️ 注意：当前错误通常是 gsuid_core 后端版本不匹配导致的。
+      // 旧版 backend 没有注册独立的 `/api/meme/stats` 端点，请求会被
+      // `/api/meme/{meme_id}` 兜底匹配，又因 `stats` 是预保留的 meme_id
+      // 而抛出 "预保留路径名" 错误。前端 URL（`/api/meme/stats`）本身
+      // 是正确的，升级 gsuid_core 即可恢复正常。这里使用 warn 而非 error，
+      // 因为这并非前端 bug，不应作为红色错误频繁刷出。
+      const msg = error instanceof Error ? error.message : String(error);
+      if (msg.includes('预保留路径名')) {
+        console.warn(
+          '[AIMemePage] /api/meme/stats 不可用：当前 gsuid_core 版本过旧，' +
+          '缺少独立的统计端点。统计概览区域将保持为空，请升级 gsuid_core。',
+          msg,
+        );
+      } else {
+        console.warn('Failed to fetch meme stats:', msg);
+      }
     } finally {
       setIsLoadingStats(false);
     }

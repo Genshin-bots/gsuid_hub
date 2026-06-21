@@ -57,6 +57,7 @@
   "entityDetail": "Entity Detail",
   "edgeDetail": "Edge Detail",
   "categoryDetail": "Category Detail",
+  "detailAriaDesc": "View full memory entry, relations and related entities",
   "scopeKey": "Scope Key",
   "content": "Content",
   "mentionedEntities": "Mentioned Entities",
