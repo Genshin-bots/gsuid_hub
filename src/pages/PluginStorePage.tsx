@@ -441,7 +441,7 @@ export default function PluginStorePage() {
 
   return (
     <div className="space-y-6 flex-1 overflow-auto p-6 h-full flex flex-col">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-3">
             <Store className="w-8 h-8" />

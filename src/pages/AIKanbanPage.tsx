@@ -694,24 +694,25 @@ export default function AIKanbanPage() {
 
   return (
     <div className="flex min-h-[calc(100dvh-4rem)] flex-col gap-4 overflow-hidden p-6">
+{/* 页面标题块：纯 H1 + 副标题，无右侧操作（按钮已移至下方 button group 同行） */}
+      <div>
+        <h1 className="text-3xl font-bold flex items-center gap-3">
+          <ClipboardList className="w-8 h-8" />
+          {t('aiKanban.title')}
+        </h1>
+        <p className="text-muted-foreground mt-1">{t('aiKanban.description')}</p>
+      </div>
+
+      {/* TabButtonGroup 与操作按钮同行平齐（垂直居中） */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-3">
-            <ClipboardList className="w-8 h-8" />
-            {t('aiKanban.title')}
-          </h1>
-          <p className="text-muted-foreground mt-1">{t('aiKanban.description')}</p>
-          <div className="mt-3">
-            <TabButtonGroup
-              value={viewMode}
-              onValueChange={(v) => setViewMode(v as 'kanban' | 'data')}
-              options={[
-                { value: 'kanban', label: t('aiKanban.mode.kanban'), icon: <ClipboardList className="h-4 w-4" /> },
-                { value: 'data', label: t('aiKanban.mode.data'), icon: <Database className="h-4 w-4" /> },
-              ]}
-            />
-          </div>
-        </div>
+        <TabButtonGroup
+          value={viewMode}
+          onValueChange={(v) => setViewMode(v as 'kanban' | 'data')}
+          options={[
+            { value: 'kanban', label: t('aiKanban.mode.kanban'), icon: <ClipboardList className="h-4 h-4" /> },
+            { value: 'data', label: t('aiKanban.mode.data'), icon: <Database className="h-4 h-4" /> },
+          ]}
+        />
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
           {viewMode === 'kanban' ? (
             <>

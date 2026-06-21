@@ -882,7 +882,7 @@ export default function AIConfigPage() {
     <div className="h-full flex flex-col">
       {/* Header */}
       <div className="shrink-0 px-3 sm:px-6 pt-3 sm:pt-6 pb-2">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0 overflow-x-auto">
             <h1 className="whitespace-nowrap text-xl sm:text-3xl font-bold flex items-center gap-2 sm:gap-3">
               <Bot className="w-6 h-6 sm:w-8 sm:h-8 shrink-0" />

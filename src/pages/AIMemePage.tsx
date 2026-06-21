@@ -1452,7 +1452,7 @@ export default function AIMemePage() {
   return (
     <div className="p-4 sm:p-6 space-y-3">
       {/* Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0 overflow-x-auto">
           <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
             <ImageIcon className="w-8 h-8 shrink-0" />

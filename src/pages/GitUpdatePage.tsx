@@ -735,7 +735,7 @@ export default function GitUpdatePage() {
   return (
     <div className="space-y-4 flex-1 overflow-auto p-4 sm:p-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-3">
             <GitBranch className="w-7 h-7 sm:w-8 sm:h-8" />

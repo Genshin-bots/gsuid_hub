@@ -653,7 +653,7 @@ export default function AIStatisticsPage() {
   return (
     <div className="space-y-6">
       {/* 页面标题 */}
-      <div className="flex flex-col gap-4 px-4 pt-4 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:pt-6">
+      <div className="flex flex-col gap-4 px-4 pt-4 sm:flex-row sm:items-end sm:justify-between sm:px-6 sm:pt-6">
         <div className="min-w-0 overflow-x-auto">
           <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
             <TrendingUp className="w-8 h-8 shrink-0" />
