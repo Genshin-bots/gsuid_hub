@@ -9,6 +9,9 @@ import {
   probeAuthEncryption,
   type EncryptedPayload,
 } from './authCrypto';
+// Demo 模式：<img src> 不走 fetch（mockServer 拦不到），故图片 URL 构造函数在 VITE_DEMO 下
+// 直接返回内置 SVG 占位图，避免一墙裂图。普通构建下分支为 dead code，import 会被 tree-shake。
+import { demoPlaceholderImage } from './demoMock';
 
 // Base URL - empty string means relative to current origin
 // Can be customized by user in settings (e.g., 127.0.0.1:8765)
@@ -3262,6 +3265,7 @@ export const memeApi = {
 
   // 获取原始图片 URL
   getImageUrl: (memeId: string) => {
+    if (import.meta.env.VITE_DEMO) return demoPlaceholderImage(memeId);
     const base = getCustomApiHost();
     return `${base}/api/meme/image/${memeId}`;
   },
@@ -4661,6 +4665,7 @@ export interface BrandUploadResponse {
  * 同时加一个时间戳参数，避免代理/浏览器缓存导致换图不立即可见。
  */
 export function getBrandIconUrl(timestamp?: number): string {
+  if (import.meta.env.VITE_DEMO) return demoPlaceholderImage('gscore-brand');
   const base = `${getCustomApiHost()}/api/brand/icon`;
   const ts = timestamp ?? Date.now();
   return `${base}?t=${ts}`;

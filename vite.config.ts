@@ -9,10 +9,26 @@ const packageJsonPath = path.resolve(__dirname, "package.json");
 const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf-8"));
 
 // https://vitejs.dev/config/
-export default defineConfig(({ mode }) => ({
-  base: mode === "development" ? "/" : "/app/",
+export default defineConfig(({ command, mode }) => {
+  // ─── Demo 模式（VITE_DEMO）──────────────────────────────────────────────
+  // `vite --mode demo` / `vite build --mode demo` 触发。用于 GenshinUID-docs
+  // 主页内嵌「可交互控制台」：免登录 + Mock 数据 + 纯静态产物。
+  //  · base：dev serve 用 "/"（便于 iframe 直连 http://localhost:8080/#/…）；
+  //          build 用 "/hub/"（同源烤进 docs 的 /hub/ 下，HashRouter 深链开箱即用）。
+  //  · 产物落到 dist-demo/，再由 docs 的 scripts/hub.mjs 拷进 public/hub/。
+  const isDemo = mode === "demo";
+  return {
+  base: isDemo
+    ? command === "serve"
+      ? "/"
+      : "/hub/"
+    : mode === "development"
+      ? "/"
+      : "/app/",
   define: {
     PACKAGE_VERSION: JSON.stringify(packageJson.version),
+    // 编译期常量：只有 demo 模式为 true，普通 build 下为 undefined → 分支被 tree-shake。
+    "import.meta.env.VITE_DEMO": JSON.stringify(isDemo),
   },
   server: {
     port: 8080,
@@ -47,8 +63,8 @@ export default defineConfig(({ mode }) => ({
           mode: mode,
         };
         
-        // 写入 version.json 到 dist 目录
-        const distPath = path.resolve(__dirname, "dist");
+        // 写入 version.json 到产物目录（demo 模式落到 dist-demo）
+        const distPath = path.resolve(__dirname, isDemo ? "dist-demo" : "dist");
         fs.writeFileSync(
           path.join(distPath, "version.json"),
           JSON.stringify(versionInfo, null, 2),
@@ -64,7 +80,7 @@ export default defineConfig(({ mode }) => ({
     },
   },
   build: {
-    outDir: "dist",
+    outDir: isDemo ? "dist-demo" : "dist",
     emptyOutDir: true,
     // 启用tree-shaking优化
     rollupOptions: {
@@ -103,4 +119,5 @@ export default defineConfig(({ mode }) => ({
     // 资源内联阈值（小于4KB的资源内联为base64）
     assetsInlineLimit: 4096,
   },
-}));
+  };
+});

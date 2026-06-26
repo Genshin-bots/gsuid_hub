@@ -673,3 +673,19 @@ button[role="switch"][data-state="unchecked"] span {
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
+
+/* ───────────────────────────────────────────────────────────────────────────
+ * Demo 嵌入锁定（docs 主页 iframe，以 ?embed=1 加载）
+ * 侧边栏「可见但不可点击」——满足需求：展示完整布局（含侧边栏），但禁止从侧边栏
+ * 导航切走到别的页面，让每个内嵌面板稳定停留在其深链页。
+ * 仅 demo + embed 生效；直接访问 /hub/#/home 的完整演示不受影响（仍可自由导航）。
+ * ─────────────────────────────────────────────────────────────────────────── */
+.demo-embed [data-sidebar="sidebar"],
+.demo-embed [data-sidebar="rail"],
+.demo-embed [data-sidebar="trigger"] {
+  pointer-events: none !important;
+}
+/* 锁定态给侧边栏一点「只读」暗示 */
+.demo-embed [data-sidebar="sidebar"] {
+  cursor: default;
+}
