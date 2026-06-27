@@ -73,6 +73,26 @@ export default defineConfig(({ command, mode }) => {
         console.log(`[generate-version-json] Generated version.json:`, versionInfo);
       },
     },
+    // 仅 demo 模式：把演示用静态资源拷进产物根目录。
+    // 这些资源（demo-memes / demo-plugin-icons / demo-themes，约 2.5M）只有 GenshinUID-docs
+    // 的内嵌「可交互控制台」Demo 用到，故移出 public/——否则普通 `vite build`（后端部署用）
+    // 也会被 Vite 原样带上，白白增重。改由本插件按 mode 条件拷贝：
+    //   · `vite build --mode demo` → 拷进 dist-demo/，运行时 URL 仍是 `${BASE_URL}demo-*/…`（不变）。
+    //   · 普通 `vite build` → 不触发，dist/ 不含这些资源。
+    isDemo && {
+      name: "copy-demo-assets",
+      closeBundle() {
+        const srcDir = path.resolve(__dirname, "demo-assets");
+        const destDir = path.resolve(__dirname, "dist-demo");
+        if (!fs.existsSync(srcDir)) {
+          console.warn(`[copy-demo-assets] 跳过：未找到 ${srcDir}`);
+          return;
+        }
+        // cpSync 把 srcDir 的子项拷进 destDir（dist-demo/demo-memes/… 等），与原 public/ 路径一致。
+        fs.cpSync(srcDir, destDir, { recursive: true });
+        console.log(`[copy-demo-assets] 已将 demo-assets/ 拷入 dist-demo/`);
+      },
+    },
   ].filter(Boolean),
   resolve: {
     alias: {

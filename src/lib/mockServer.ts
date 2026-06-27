@@ -30,6 +30,10 @@ import {
   generatePluginDetail,
   generateThemeConfig,
   generateThemePresets,
+  applyThemePreset,
+  generateDatabasePlugins,
+  generateTableMetadata,
+  generateTableData,
   generateMemoryScopes,
   generateMemoryStats,
   generateMemoryEntities,
@@ -38,6 +42,7 @@ import {
   generateMemeList,
   generateMemePersonas,
   generateMemeStats,
+  generateMemeDetail,
 } from './demoMock';
 
 type Ctx = { url: URL; method: string; body: unknown };
@@ -81,6 +86,17 @@ const routes: Route[] = [
   // ── Tier 1 · 主题 ──
   { m: 'GET', re: /^\/api\/theme\/config$/, h: () => generateThemeConfig() },
   { m: 'GET', re: /^\/api\/theme\/presets$/, h: () => generateThemePresets() },
+  // 应用预设：返回 { name, config } → ThemesPage 调 applyThemeConfig 真正切换主题
+  { m: 'POST', re: /^\/api\/theme\/presets\/apply$/, h: ({ body }) => applyThemePreset((body as { name?: string })?.name ?? '') },
+  { m: 'POST', re: /^\/api\/theme\/presets\/save$/, h: ({ body }) => { const n = (body as { name?: string })?.name ?? 'preset'; return { name: n, filename: `${n}.json` }; } },
+
+  // ── Tier 1 · 插件数据库（DatabasePage）──
+  // 注意顺序：更具体的 `/table/:name/data` 必须排在 `/table/:name` 之前。
+  { m: 'GET', re: /^\/api\/database\/plugins$/, h: () => generateDatabasePlugins() },
+  { m: 'GET', re: /^\/api\/database\/tables$/, h: () => [] },
+  { m: 'GET', re: /^\/api\/database\/table\/([^/]+)\/data$/, h: ({ url }) => generateTableData(decodeURIComponent(url.pathname.match(/\/table\/([^/]+)\/data$/)![1]), url.searchParams) },
+  { m: 'GET', re: /^\/api\/database\/table\/([^/]+)$/, h: ({ url }) => generateTableMetadata(decodeURIComponent(url.pathname.split('/').pop()!)) },
+  { m: 'GET', re: /^\/api\/database\/([^/]+)\/tables$/, h: ({ url }) => { const id = decodeURIComponent(url.pathname.match(/\/database\/([^/]+)\/tables$/)![1]); return generateDatabasePlugins().find((p) => p.plugin_id === id) ?? null; } },
 
   // ── Tier 1 · AI 记忆图谱（/api/ai/memory/*）──
   { m: 'GET', re: /^\/api\/ai\/memory\/scopes$/, h: () => generateMemoryScopes() },
@@ -97,6 +113,8 @@ const routes: Route[] = [
   { m: 'GET', re: /^\/api\/meme\/list$/, h: ({ url }) => generateMemeList(url.searchParams) },
   { m: 'GET', re: /^\/api\/meme\/personas$/, h: () => generateMemePersonas() },
   { m: 'GET', re: /^\/api\/meme\/stats$/, h: () => generateMemeStats() },
+  // 单条详情（点击表情打开详情弹窗）——必须放在上面三条「具体路径」之后，避免误吞 list/personas/stats。
+  { m: 'GET', re: /^\/api\/meme\/([^/]+)$/, h: ({ url }) => generateMemeDetail(decodeURIComponent(url.pathname.split('/').pop()!)) },
 ];
 
 const MEMORY_CONFIG = {

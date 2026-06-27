@@ -44,10 +44,13 @@ GsCore 网页控制台前端项目。该项目为 [gsuid_core](https://github.co
 │   ├── API_DOC.md
 │   └── skills/
 │       └── gshub-development/     # 前端开发规范 SKILL（排版/组件/i18n/主题/已知坑）
-├── public/                       # 静态资源
+├── public/                       # 静态资源（任何构建都会原样打包）
 │   ├── ICON.png
 │   ├── placeholder.svg
 │   └── robots.txt
+├── demo-assets/                  # 仅「演示模式」用的较大静态资源（普通构建不打包，详见下文）
+│   ├── demo-memes/               # 演示用真实表情包图片
+│   └── demo-plugin-icons/        # 演示用真实插件图标
 ├── src/
 │   ├── components/               # 通用组件
 │   │   ├── backup/               # 备份文件树等组件
@@ -61,7 +64,7 @@ GsCore 网页控制台前端项目。该项目为 [gsuid_core](https://github.co
 │   │   ├── zh-CN/
 │   │   ├── en-US/
 │   │   └── ja-JP/
-│   ├── lib/                      # API 客户端、模拟数据、工具函数
+│   ├── lib/                      # API 客户端、演示 Mock（demoMock / mockServer / demoMemeMeta）、工具函数
 │   ├── pages/                    # 页面组件
 │   ├── App.tsx                   # 应用入口与路由定义
 │   ├── main.tsx                  # React 挂载入口
@@ -235,6 +238,48 @@ npm run preview
 npm run lint
 ```
 
+## 演示模式（Demo Mode）
+
+`gsuid_hub` 内置一套**演示模式**：免登录、纯前端 Mock 数据、可独立静态部署。它专为 [GenshinUID-docs](https://github.com/KimigaiiWuyi/GenshinUID-docs) 首页内嵌的「可交互控制台」设计——访客无需后端即可直接体验控制台的真实交互。
+
+### 启动与构建
+
+| 命令 | 用途 | 基础路径 | 产物 |
+| --- | --- | --- | --- |
+| `npm run dev:demo` | 演示模式开发（端口 `8080`，无需后端） | `/` | — |
+| `npm run build:demo` | 演示模式构建（纯静态产物） | `/hub/` | `dist-demo/` |
+
+> 普通 `npm run dev` / `npm run build` **不会**进入演示模式，且需要真实后端（代理 `/api`、`/ws` 到 `http://localhost:8765`）。
+
+### 工作原理（编译期开关）
+
+演示模式由 Vite 的 `--mode demo` 触发，是**编译期常量**而非运行时开关：
+
+- `vite.config.ts` 据此设 `isDemo`，并通过 `define` 注入 `import.meta.env.VITE_DEMO`。
+- 所有演示逻辑都包在 `if (import.meta.env.VITE_DEMO)` 内。普通构建下该常量为 `undefined`，相关分支与 Mock 代码会被 **tree-shake 移除——零体积、零影响**。
+- **没有任何运行时入口**（URL 参数 / localStorage / Host 等）能切入演示模式。
+
+演示模式开启后（见 `src/main.tsx`）：
+
+- 安装 **Mock Server**（`src/lib/mockServer.ts`）：覆写 `window.fetch`，接管全部 `/api/*` 请求，返回 `src/lib/demoMock.ts` 内置的拟真数据。
+- 写入假 Token（`demo-token`），跳过登录。
+- 用「内存版」localStorage 顶替真实存储：每次刷新都是干净初始状态，多个内嵌 iframe 互不串台。
+- 当以 `?embed=1` 加载时，给 `<html>` 加 `demo-embed` 类，锁定侧边栏（可见但不可点击），防止访客切走到别的页面。
+
+### 演示静态资源（`demo-assets/`）
+
+演示用到的较大静态资源（真实表情包图片、插件图标，约 2MB）放在仓库根的 **`demo-assets/`**，而非 `public/`：
+
+- Vite 会把 `public/` 整目录无条件拷进**任何**构建产物。若把这些只在演示用的资源放 `public/`，普通 `npm run build`（后端部署用的 `dist/`）也会白白增重约 2MB。
+- 为此 `vite.config.ts` 增加了 `copy-demo-assets` 插件：**仅当 `isDemo`** 时把 `demo-assets/` 拷进 `dist-demo/` 根目录（运行时 URL 仍是 `${BASE_URL}demo-*/…`，与放在 `public/` 时一致）。
+- 结果：`npm run build:demo` 携带演示资源；普通 `npm run build` 的 `dist/` 不含它们。
+
+主题预设不依赖本地图片：演示模式把 `gsuid_core/webconsole/themes_builtin/*.json` 的预设**内联**进 `demoMock.ts`，其背景图均为在线 URL，故无需打包任何主题图片。
+
+### 在 GenshinUID-docs 中的接入
+
+GenshinUID-docs 通过其 `scripts/hub.mjs` 自动执行 `build:demo`，再把 `dist-demo/` 拷入文档站的 `public/hub/`，以同源 iframe（`/hub/…`）内嵌——无需任何独立端口或服务。
+
 ## Vite 配置要点
 
 - 开发基础路径：`/`
@@ -243,6 +288,8 @@ npm run lint
 - 版本注入：从 `package.json` 读取版本并注入 `PACKAGE_VERSION`
 - 构建优化：按 React、Radix UI、Recharts、TanStack Virtual 等依赖拆分 chunk
 - 生产构建：使用 esbuild 压缩，移除 `console` 与 `debugger`
+- 演示模式（`--mode demo`）：注入 `import.meta.env.VITE_DEMO`；基础路径 dev `/`、build `/hub/`；产物输出 `dist-demo/`（详见「演示模式」）
+- `copy-demo-assets` 插件：仅演示构建把 `demo-assets/` 拷入产物，普通构建不携带
 - 路径别名：`@` 指向 `src`
 
 示例：

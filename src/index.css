@@ -689,3 +689,8 @@ button[role="switch"][data-state="unchecked"] span {
 .demo-embed [data-sidebar="sidebar"] {
   cursor: default;
 }
+/* 嵌入态隐藏侧边栏右侧的「收起 rail」把手——它本就不可点（已锁定），
+ * 半截把手贴在缩放边缘会显得「收起标识展示不完整」，直接移除更干净。 */
+.demo-embed [data-sidebar="rail"] {
+  display: none !important;
+}
