@@ -7,6 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "build:dev": "vite build --mode development",
+    "dev:demo": "vite --mode demo --port 8080 --strictPort",
+    "build:demo": "vite build --mode demo",
     "lint": "eslint .",
     "preview": "vite preview"
   },

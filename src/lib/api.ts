@@ -9,6 +9,9 @@ import {
   probeAuthEncryption,
   type EncryptedPayload,
 } from './authCrypto';
+// Demo 模式：<img src> 不走 fetch（mockServer 拦不到），故图片 URL 构造函数在 VITE_DEMO 下
+// 直接返回内置 SVG 占位图，避免一墙裂图。普通构建下分支为 dead code，import 会被 tree-shake。
+import { demoPlaceholderImage, demoPluginIcon, demoMemeImageUrl } from './demoMock';
 
 // Base URL - empty string means relative to current origin
 // Can be customized by user in settings (e.g., 127.0.0.1:8765)
@@ -812,6 +815,8 @@ export const pluginsApi = {
  * @returns 图标 URL，可直接用于 <img src>
  */
 export function getPluginIconUrl(pluginName: string): string {
+  // Demo：插件图标接口 <img> 拦不到，返回内置「字母图标」占位（彩色，避免按钮组/列表发素）。
+  if (import.meta.env.VITE_DEMO) return demoPluginIcon(pluginName);
   const token = getAuthToken();
   const baseUrl = `${getCustomApiHost()}/api/plugins/icon/${encodeURIComponent(pluginName)}`;
   return token ? `${baseUrl}?token=${token}` : baseUrl;
@@ -3262,6 +3267,7 @@ export const memeApi = {
 
   // 获取原始图片 URL
   getImageUrl: (memeId: string) => {
+    if (import.meta.env.VITE_DEMO) return demoMemeImageUrl(memeId);
     const base = getCustomApiHost();
     return `${base}/api/meme/image/${memeId}`;
   },
@@ -4661,6 +4667,8 @@ export interface BrandUploadResponse {
  * 同时加一个时间戳参数，避免代理/浏览器缓存导致换图不立即可见。
  */
 export function getBrandIconUrl(timestamp?: number): string {
+  // Demo：用 hub 自带真实 PNG（public/ICON.png → /hub/ICON.png），而非 emoji 占位图。
+  if (import.meta.env.VITE_DEMO) return `${import.meta.env.BASE_URL}ICON.png`;
   const base = `${getCustomApiHost()}/api/brand/icon`;
   const ts = timestamp ?? Date.now();
   return `${base}?t=${ts}`;
