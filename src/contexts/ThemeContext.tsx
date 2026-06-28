@@ -279,7 +279,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
           }
         }
       } catch {
-        loadFromLocalStorage();
+        loadFromSessionStorage();
       }
       setIsInitialized(true);
     };
@@ -287,17 +287,17 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     initTheme();
   }, []);
 
-  const loadFromLocalStorage = () => {
+  const loadFromSessionStorage = () => {
     try {
-      const savedMode = localStorage.getItem('theme_mode') as ThemeMode;
-      const savedStyle = localStorage.getItem('theme_style') as ThemeStyle;
-      const savedColor = localStorage.getItem('theme_color') as ThemeColor;
-      const savedBg = localStorage.getItem('theme_bg');
-      const savedBlur = localStorage.getItem('theme_blur');
-    const savedCardOpacity = localStorage.getItem('theme_card_opacity');
-      const savedIconColor = localStorage.getItem('theme_icon_color') as IconColor;
-      const savedPreset = localStorage.getItem('theme_preset') as ThemePreset;
-      const savedLanguage = localStorage.getItem('theme_language') as Language;
+      const savedMode = sessionStorage.getItem('theme_mode') as ThemeMode;
+      const savedStyle = sessionStorage.getItem('theme_style') as ThemeStyle;
+      const savedColor = sessionStorage.getItem('theme_color') as ThemeColor;
+      const savedBg = sessionStorage.getItem('theme_bg');
+      const savedBlur = sessionStorage.getItem('theme_blur');
+    const savedCardOpacity = sessionStorage.getItem('theme_card_opacity');
+      const savedIconColor = sessionStorage.getItem('theme_icon_color') as IconColor;
+      const savedPreset = sessionStorage.getItem('theme_preset') as ThemePreset;
+      const savedLanguage = sessionStorage.getItem('theme_language') as Language;
 
       if (savedMode) setModeState(savedMode);
       if (savedStyle) setStyleState(savedStyle);
@@ -309,7 +309,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       if (savedPreset) setThemePresetState(savedPreset);
       if (savedLanguage) setLanguageState(savedLanguage);
     } catch (e) {
-      console.error('Failed to load theme from localStorage:', e);
+      console.error('Failed to load theme from sessionStorage:', e);
     }
   };
 
@@ -323,30 +323,30 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       applyThemeToDOM(themeColors);
       
       // 应用模式
-      localStorage.setItem('theme_mode', mode);
+      sessionStorage.setItem('theme_mode', mode);
       document.documentElement.classList.toggle('dark', mode === 'dark');
       
       // 应用风格
-      localStorage.setItem('theme_style', style);
+      sessionStorage.setItem('theme_style', style);
       document.documentElement.setAttribute('data-style', style);
       
-      // 保存其他设置到localStorage
-      localStorage.setItem('theme_color', color);
-      localStorage.setItem('theme_preset', themePreset);
+      // 保存其他设置到sessionStorage
+      sessionStorage.setItem('theme_color', color);
+      sessionStorage.setItem('theme_preset', themePreset);
       
       if (backgroundImage) {
-        localStorage.setItem('theme_bg', backgroundImage);
+        sessionStorage.setItem('theme_bg', backgroundImage);
       } else {
-        localStorage.removeItem('theme_bg');
+        sessionStorage.removeItem('theme_bg');
       }
       
-      localStorage.setItem('theme_blur', blurIntensity.toString());
+      sessionStorage.setItem('theme_blur', blurIntensity.toString());
       document.documentElement.style.setProperty('--blur-intensity', `${blurIntensity}px`);
 
-      localStorage.setItem('theme_card_opacity', cardOpacity.toString());
+      sessionStorage.setItem('theme_card_opacity', cardOpacity.toString());
       document.documentElement.style.setProperty('--card-opacity', String(cardOpacity / 100));
       
-      localStorage.setItem('theme_icon_color', iconColor);
+      sessionStorage.setItem('theme_icon_color', iconColor);
       document.documentElement.setAttribute('data-icon-color', iconColor);
     };
     
@@ -433,7 +433,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   const setLanguage = useCallback((lang: Language) => {
     setLanguageState(lang);
-    localStorage.setItem('theme_language', lang);
+    sessionStorage.setItem('theme_language', lang);
     if (isInitialized) {
       saveToBackend({ language: lang });
     }

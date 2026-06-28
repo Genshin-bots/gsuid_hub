@@ -694,3 +694,12 @@ button[role="switch"][data-state="unchecked"] span {
 .demo-embed [data-sidebar="rail"] {
   display: none !important;
 }
+
+/* 离屏暂停：docs 主页通报本面板已滚出视口时，<html> 被打上 `embed-hidden`。
+ * 暂停所有 CSS 动画/过渡，省下离屏 SPA 的动画开销（配合 docs 端 content-visibility，
+ * 让翻页时只有在屏面板参与绘制与动画）。回到视口去掉类即恢复。 */
+.embed-hidden *,
+.embed-hidden *::before,
+.embed-hidden *::after {
+  animation-play-state: paused !important;
+}

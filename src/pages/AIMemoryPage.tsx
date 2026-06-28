@@ -687,6 +687,18 @@ function KnowledgeGraph({
     }
   }, []);
 
+  // 内嵌(docs 主页)面板滚出视口时，停掉力导图——它的 worker 会持续回传坐标并触发
+  // sigma 重绘，离屏时是纯浪费且会拖累在屏面板的滚动。docs 端通过 postMessage→
+  // main.tsx 派发 `gshub-embed-visibility` 事件。
+  useEffect(() => {
+    const onVis = (e: Event) => {
+      const visible = (e as CustomEvent<{ visible: boolean }>).detail?.visible;
+      if (visible === false) stopLayout();
+    };
+    window.addEventListener('gshub-embed-visibility', onVis);
+    return () => window.removeEventListener('gshub-embed-visibility', onVis);
+  }, [stopLayout]);
+
   const focusNode = useCallback((nodeId: string, options?: { closeResults?: boolean }) => {
     const renderer = sigmaRef.current;
     const graph = graphRef.current;

@@ -9,15 +9,17 @@ import { setAuthToken } from "./lib/api";
 // 并写入假 token，再渲染 <App/>。普通构建下 import.meta.env.VITE_DEMO 为 undefined，
 // 整个分支与 mockServer 引用被 tree-shake，零影响。
 if (import.meta.env.VITE_DEMO) {
-  // 演示模式：用「内存版」localStorage 顶替真实 localStorage。
-  // 6 个内嵌面板同源（都在 /hub/），原本会共享同一份 localStorage —— 于是在一个面板里改主题，
-  // 会被写进 localStorage 并跨刷新残留、还会「串台」影响其它面板。改成内存版后：
+  // 演示模式：用「内存版」storage 顶替真实的 localStorage / sessionStorage。
+  // 6 个内嵌面板同源（都在 /hub/），原本会共享同一份 storage —— 在一个面板里改主题，
+  // 会被写进 storage 并跨刷新残留、还会「串台」影响其它面板。改成内存版后：
   //   · 每次刷新都是干净的初始状态（主题等不持久化，始终由 Mock 的默认配置决定）；
   //   · 每个 iframe 各自独立，互不影响。
-  // 必须在 installMockServer / 任何 Context 读取之前安装。仅 demo 生效，对生产零影响。
-  try {
+  // 注意：主题已改用 sessionStorage 持久化，但 sessionStorage 在「同一标签页 + 同源」下
+  //   仍会被多个 iframe 共享、且跨刷新存活，所以这里必须把 localStorage 与 sessionStorage
+  //   一并顶替为内存版。必须在 installMockServer / 任何 Context 读取之前安装。仅 demo 生效。
+  const makeMemStorage = (): Storage => {
     const mem = new Map<string, string>();
-    const memStorage = {
+    return {
       get length() { return mem.size; },
       clear() { mem.clear(); },
       getItem(k: string) { return mem.has(k) ? mem.get(k)! : null; },
@@ -25,14 +27,20 @@ if (import.meta.env.VITE_DEMO) {
       removeItem(k: string) { mem.delete(k); },
       setItem(k: string, v: string) { mem.set(k, String(v)); },
     } as Storage;
-    Object.defineProperty(window, "localStorage", { configurable: true, value: memStorage });
-  } catch {
-    // 退而求其次：至少清掉主题相关键，避免跨刷新残留。
+  };
+  const THEME_KEYS = [
+    "theme_mode", "theme_style", "theme_color", "theme_bg", "theme_blur",
+    "theme_card_opacity", "theme_icon_color", "theme_preset", "theme_language",
+  ];
+  for (const name of ["localStorage", "sessionStorage"] as const) {
     try {
-      ["theme_mode", "theme_style", "theme_color", "theme_bg", "theme_blur",
-        "theme_card_opacity", "theme_icon_color", "theme_preset", "theme_language"]
-        .forEach((k) => localStorage.removeItem(k));
-    } catch { /* ignore */ }
+      Object.defineProperty(window, name, { configurable: true, value: makeMemStorage() });
+    } catch {
+      // 退而求其次：至少清掉主题相关键，避免跨刷新残留。
+      try {
+        THEME_KEYS.forEach((k) => window[name].removeItem(k));
+      } catch { /* ignore */ }
+    }
   }
 
   installMockServer();
@@ -41,6 +49,19 @@ if (import.meta.env.VITE_DEMO) {
   // 由 index.css 把侧边栏置为「可见但不可点击」，避免访客点侧边栏切走到别的页面（见用户反馈）。
   if (new URLSearchParams(location.search).get("embed") === "1") {
     document.documentElement.classList.add("demo-embed");
+
+    // 可见性联动：docs 主页按面板是否在视口 postMessage 过来。离屏时给 <html> 打
+    // `embed-hidden` 类 → index.css 暂停所有 CSS 动画；同时派发事件供重型组件
+    // （如 AI 记忆力导图）停掉自己的 JS 动画，避免离屏面板抢主线程拖累滚动。
+    window.addEventListener("message", (ev) => {
+      const d = ev.data;
+      if (!d || d.source !== "gshub-docs" || d.type !== "embed-visibility") return;
+      const hidden = d.visible === false;
+      document.documentElement.classList.toggle("embed-hidden", hidden);
+      window.dispatchEvent(
+        new CustomEvent("gshub-embed-visibility", { detail: { visible: !hidden } }),
+      );
+    });
   }
 }
 
