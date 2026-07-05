@@ -878,18 +878,48 @@ export const frameworkConfigApi = {
 export interface OpenAIConfigOptions {
   base_url: string[];
   model_name: string[];
-  embedding_model: string[];
   model_support: string[];
   model_effort: string[];
+  /**
+   * 最大输出 Token 上限的离散候选值。后端 Anthropic 等 provider 会返回，
+   * UI 用数字下拉框渲染。OpenAI 兼容 provider 通常不返回该字段。
+   */
+  max_tokens: string[];
+  /**
+   * 使用量统计模式候选值。后端 OpenAI 系列返回，
+   * Anthropic 不返回该字段。
+   */
+  usage_stats_mode: string[];
+  /**
+   * 请求方式候选值（chat_completions / responses）。
+   * 仅 OpenAI 系列支持，Anthropic 等并不存在这种配置。
+   */
+  request_method: string[];
 }
 
 export interface OpenAIConfigData {
   base_url: string;
   api_key: string[];
   model_name: string;
-  embedding_model: string;
   model_support: string[];
   model_effort: string;
+  /** 单个配置允许的最大并发请求数（1~10）。 */
+  max_concurrency: number;
+  /**
+   * 最大输出 Token 上限。**仅 Anthropic 等 provider 才有此字段**，
+   * UI 在 `provider === 'anthropic'` 时渲染。
+   */
+  max_tokens?: string;
+  /**
+   * 使用量统计模式。**仅 OpenAI 系列才有此字段**：
+   * `auto / incremental / cumulative` 三选一。
+   */
+  usage_stats_mode?: string;
+  /**
+   * 请求方式。**仅 OpenAI 系列才有此字段**：
+   * `chat_completions / responses` 二选一。
+   */
+  request_method?: string;
 }
 
 export interface OpenAIConfigDetail {
@@ -1000,10 +1030,22 @@ export interface ProviderConfigOptions {
   provider: string;
   options: {
     base_url: string[];
+    /** 可选 API key 前缀（如 `sk-`）；用于在 UI 上提示用户格式。 */
+    api_key: string[];
     model_name: string[];
-    embedding_model: string[];
     model_support: string[];
     model_effort: string[];
+    /** 最大输出 Token 的离散候选值。Anthropic 等 provider 会返回。 */
+    max_tokens: string[];
+    /**
+     * 最大并发数候选值。后端返回一系列离散整数（如 `1 / 2 / 3 / ... / 10`），
+     * UI 用数字下拉框渲染。
+     */
+    max_concurrency: number[];
+    /** 使用量统计模式候选值。仅 OpenAI 系列会返回。 */
+    usage_stats_mode: string[];
+    /** 请求方式候选值（chat_completions / responses）。仅 OpenAI 系列会返回。 */
+    request_method: string[];
   };
 }
 
@@ -4267,6 +4309,34 @@ export interface RagDocumentItem {
   hit_count: number;
 }
 
+// 时间段 Token 消耗统计 (/api/ai/statistics/token-by-range)
+// 四类 Token 互不重叠:input_tokens 非缓存输入,
+// cache_read_tokens / cache_write_tokens 为提示词缓存读写,直接相加。
+export interface TokenRangeBucket {
+  input_tokens: number;
+  output_tokens: number;
+  cache_read_tokens: number;
+  cache_write_tokens: number;
+  total_tokens: number;
+}
+
+export interface TokenRangeDailyItem extends TokenRangeBucket {
+  date: string; // YYYY-MM-DD
+}
+
+export interface TokenRangeByModelItem extends TokenRangeBucket {
+  model: string;
+}
+
+export interface TokenRangeData {
+  start_date: string;
+  end_date: string;
+  days: number;
+  total: TokenRangeBucket;
+  daily: TokenRangeDailyItem[];
+  by_model: TokenRangeByModelItem[];
+}
+
 export interface MemoryStatsData {
   observations: number;
   ingestions: number;
@@ -4359,6 +4429,18 @@ export const aiStatisticsApi = {
 
   getHistory: (days: number = 7) =>
     api.get<Array<{ date: string }>>(`/api/ai/statistics/history?days=${days}`),
+
+  // 时间段 Token 消耗统计:[start_date, end_date] 闭区间逐日聚合
+  // 默认 6 天前 ~ 今天(共 7 天);start_date > end_date 时后端自动交换。
+  getTokenByRange: (start_date?: string, end_date?: string) => {
+    const query = new URLSearchParams();
+    if (start_date) query.set('start_date', start_date);
+    if (end_date) query.set('end_date', end_date);
+    const queryStr = query.toString();
+    return api.get<TokenRangeData>(
+      `/api/ai/statistics/token-by-range${queryStr ? `?${queryStr}` : ''}`,
+    );
+  },
 };
 
 // ===================

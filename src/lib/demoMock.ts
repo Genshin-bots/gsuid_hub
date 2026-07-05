@@ -268,18 +268,19 @@ export const generatePluginDetail = (name: string) => {
  *  （与其余预设一样走 URL，不再本地内置，省体积；联网加载）。 */
 const DEMO_AYAKA_BG = 'https://files.seeusercontent.com/2026/06/20/Jth9/aeb070e9498a448d60e76caddd36432b.jpg';
 
-/** 默认演示主题：直接加载「绫华」预设（玻璃拟态 + 兰花紫 + 绫华壁纸）——
- *  比纯色 shadcn 更能展示主题能力（见用户反馈：希望默认就是绫华预设）。 */
+/** 默认演示主题：直接加载「纯色质感」预设（light + 玻璃拟态 + 蓝色 + 透明磨砂卡片 + 透出底层装饰）——
+ *  比带壁纸的预设更适合做首屏展示，不会喧宾夺主盖住内嵌面板的布局；
+ *  也避免了某个动画背景在窄屏里被裁切的问题（见用户反馈：希望默认就是纯色质感）。 */
 const THEME_CONFIG = {
   mode: 'light' as const,
   style: 'glassmorphism' as const,
-  color: 'orchid',
+  color: 'blue',
   icon_color: 'colored' as const,
-  background_image: DEMO_AYAKA_BG,
-  blur_intensity: 8,
-  theme_preset: 'default' as const,
+  background_image: null,
+  blur_intensity: 7,
+  theme_preset: 'shadcn' as const,
   language: 'zh-CN' as const,
-  card_opacity: 26,
+  card_opacity: 55,
 };
 
 export const generateThemeConfig = () => ({ ...THEME_CONFIG });
@@ -306,7 +307,7 @@ export const generateThemePresets = () => {
       filename: `${p.name}.json`,
       size_bytes: 280 + i * 9,
       mtime: now - i * 86400,
-      is_active: p.name === '绫华', // 默认主题即绫华预设 → 预设页高亮「已应用」
+      is_active: p.name === '纯色质感', // 默认主题即纯色质感预设 → 预设页高亮「已应用」
       valid: true,
       config: p.config,
     })),

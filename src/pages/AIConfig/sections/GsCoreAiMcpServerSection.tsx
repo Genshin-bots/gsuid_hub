@@ -155,7 +155,7 @@ export function GsCoreAiMcpServerSection({
     <div className="space-y-5">
       {/* 标题 */}
       <div>
-        <h2 className="text-lg font-semibold flex items-center gap-2 mb-1">
+        <h2 className="text-lg font-bold flex items-center gap-2 mb-1">
           <Server className="w-5 h-5 text-muted-foreground" />
           {t('gsCoreAiMcpServer.title')}
         </h2>
@@ -238,7 +238,7 @@ export function GsCoreAiMcpServerSection({
         >
           <AlertTriangle className="w-4 h-4 mt-0.5 text-blue-600 dark:text-blue-400 shrink-0" />
           <div className="space-y-1">
-            <p className="font-medium">
+            <p className="font-semibold">
               {t('gsCoreAiMcpServer.banner.activeTitle')}
             </p>
             <p className="text-muted-foreground">

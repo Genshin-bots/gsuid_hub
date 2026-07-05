@@ -13,7 +13,7 @@
   "aiHistory": "AI履歴",
   "taskConfig": {
     "title": "タスク設定",
-    "description": "高レベルタスクと低レベルタスクのAIモデル設定をそれぞれ選択（同一の設定プールを共有）",
+    "description": "高レベルタスクと低レベルタスクのAIモデル設定をそれぞれ選択（同一の設定プールを共有）。メイン設定は通常のリクエストに使用され、予備設定はメイン設定の失敗やレート制限時にバックエンドが自動的に切り替えます。",
     "notSelectedWarning": "設定が未選択です。このタスクはAIを利用できません。設定を選択してください",
     "emptyHint": "設定ファイルがありません。「新規設定」で作成してからタスクに割り当ててください"
   },
@@ -94,8 +94,35 @@
     "apiBaseUrl": "API Base URL",
     "apiModel": "呼び出しモデル",
     "apiKey": "APIキー",
+    "apiKeyHint": "（推奨プレフィックス：{prefixes}）",
     "modelCapabilities": "モデル機能",
     "modelEffort": "思考レベル",
+    "modelEffortOptions": {
+      "enable": "有効",
+      "disable": "無効",
+      "minimal": "最小",
+      "low": "低",
+      "medium": "中",
+      "high": "高",
+      "xhigh": "超高"
+    },
+    "maxConcurrency": "最大同時実行数",
+    "maxTokens": "最大出力トークン",
+    "usageStatsMode": "利用量統計モード",
+    "usageStatsModeOptions": {
+      "auto": "自動",
+      "incremental": "増分",
+      "cumulative": "累積"
+    },
+    "requestMethod": "リクエスト方式",
+    "requestMethodOptions": {
+      "chat_completions": "Chat Completions（標準の対話補完）",
+      "responses": "Responses（統合 API：ツール呼び出し + 構造化出力）"
+    },
+    "requestMethodDescription": {
+      "chat_completions": "OpenAI 標準の /chat/completions エンドポイント。ほぼ全ての互換プロバイダでサポートされ、messages 配列でモデルに送信します。",
+      "responses": "OpenAI の新しい /responses エンドポイント。複数ターンのツール呼び出し、ファイル参照、構造化出力を統合。モデルとプロキシ両方の対応が必要です。"
+    },
     "capabilityText": "テキスト会話",
     "capabilityImage": "画像理解",
     "capabilityAudio": "音声処理",
@@ -211,8 +238,12 @@
     "provider": "Provider タイプ",
     "highLevelTask": "高レベルタスク",
     "highLevelTaskDesc": "複雑推理、ツール呼び出し等必要强モデル機能のタスク",
+    "highLevelTask2nd": "予備設定",
+    "highLevelTask2ndDesc": "メイン設定の失敗やレート制限時にバックエンドが自動的に切り替えてサービスの可用性を確保します。単一障害点を避けるため、メイン設定と異なる provider の選択を推奨します",
     "lowLevelTask": "低レベルタスク",
     "lowLevelTaskDesc": "簡単応答、快速応答等のみ需基本モデル機能のタスク",
+    "lowLevelTask2nd": "予備設定",
+    "lowLevelTask2ndDesc": "メイン設定の失敗やレート制限時にバックエンドが自動的に切り替えてサービスの可用性を確保します。単一障害点を避けるため、メイン設定と異なる provider の選択を推奨します",
     "highLevel": "高レベル",
     "lowLevel": "低レベル",
     "selectConfigPlaceholder": "選択設定...",
@@ -220,6 +251,8 @@
     "switchFailed": "切替 Provider 失敗",
     "setHighLevelSuccess": "詳細タスク設定設定に: {name}",
     "setLowLevelSuccess": "低レベルタスク設定設定に: {name}",
+    "setHighLevel2ndSuccess": "高レベル予備設定設定に: {name}",
+    "setLowLevel2ndSuccess": "低レベル予備設定設定に: {name}",
     "setFailed": "設定設定失敗",
     "config": "設定ファイル",
     "setHighLevel": "设に詳細",

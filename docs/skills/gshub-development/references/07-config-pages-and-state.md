@@ -160,3 +160,93 @@ const configChanged =
 6. **消除重复标签**：独立 `<Label>` 显示标题，`ConfigField` 设 `showLabel={false}`。
 
 后续注意：复杂配置页考虑 `useReducer` 替代多个 `useState`；避免深层嵌套的 `useCallback` 依赖链；`PluginConfigItem` 从 `@/lib/api` 导出复用，勿重复定义。
+
+## 7.6 任务配置：主备双配置（Primary + Backup）★
+
+任务配置页（`TaskConfigSection`）展示 **2 个区块**：
+- 高级任务（含主配置 + 备用配置）
+- 低级任务（含主配置 + 备用配置）
+
+每个区块内的备用配置通过左侧的细竖线 (`border-l-2 border-primary/20 ml-1`) 视觉上
+弱化（图标/文字色用 `text-muted-foreground`），让用户一眼看出主备层级关系。
+**不要把主备拆成 4 个独立区块**——会破坏"一个任务一组配置"的语义，导致用户
+找不到归属。
+
+### 字段命名与持久化位置
+
+| 字段 key | 来源 | 类型 | 说明 |
+|----------|------|------|------|
+| `high_level_provider_config_name` | `aiConfig.config.*` | string | 高级任务主配置 |
+| `high_level_2nd_provider_config_name` | `aiConfig.config.*` | string | 高级任务备用配置 |
+| `low_level_provider_config_name` | `aiConfig.config.*` | string | 低级任务主配置 |
+| `low_level_2nd_provider_config_name` | `aiConfig.config.*` | string | 低级任务备用配置 |
+
+存储的是 `provider++config_name` 形式的 full name（与 `AllConfigItem.name` 同源）。
+真实数据来自 `GET /api/framework-config/GsCore AI AI配置`。
+
+### 主备双配置语义
+
+- **主配置**：正常请求使用。
+- **备用配置**：主配置失败或触发限流时由后端自动切换，确保服务可用。
+- 建议备用配置选**不同 provider**（避免单点故障）。
+
+### 读写路径——两套并存，**不要混用**
+
+⚠️ **重要**：主配置和备用配置**走两条不同的保存路径**，原因是历史原因：
+后端的 `provider_config` 系列接口只接受 `'high' | 'low'` 作为 task level（参见 `src/lib/api.ts:1064-1078`），
+不支持 `'high_2nd' | 'low_2nd'`。
+
+| 配置 | 读 | 写 |
+|------|-----|-----|
+| **主** high/low | `useProviderConfig.allConfigs.high_level_config / low_level_config`（来自 `providerConfigApi.getAllConfigs()`） | `providerConfigApi.setHighLevelConfig(...) / setLowLevelConfig(...)`（自动同步 framework-config） |
+| **备用** 2nd | `aiConfig.config.high_level_2nd_provider_config_name?.value`（直接读 framework-config） | `updateConfigValue(aiConfig.id, 'high_level_2nd_provider_config_name', v)`（与其它 framework-config 字段走同一保存流） |
+
+**踩坑记录**：曾尝试给 `providerConfigApi.setTaskConfig` 加上 `'high_2nd' | 'low_2nd'` 后端
+参数，**未确认后端支持前不要这么改**——可能 404。当前实现走 framework-config 路径，
+绕过 `providerConfigApi` 限制，跟现有 `websearch_provider` / `image_understand_provider` 等
+枚举型字段走的是同一条路。
+
+### 派生校验
+
+页面侧需要校验「选中的备用配置是否仍然存在」——避免出现「配置被删除但 framework-config
+字段还指向它」的悬挂引用：
+
+```tsx
+const isHighLevel2ndConfigValid =
+  !!highLevel2ndConfigValue &&
+  provider.allConfigsList.some((c) => c.name === highLevel2ndConfigValue);
+```
+
+不通过时显示红色 `notSelectedWarning`（复用现有 key），行为与主配置一致。
+
+### AdvancedSettingsSection 必须排除
+
+`AdvancedSettingsSection` 通过遍历 `aiConfig.config` 渲染"其它"字段，所以新加的 4 个 key
+**必须** 加进 `EXCLUDED_KEYS` 数组，否则会和 TaskConfigSection 重复展示：
+
+```ts
+const EXCLUDED_KEYS: string[] = [
+  // ...
+  'high_level_provider_config_name',
+  'low_level_provider_config_name',
+  'high_level_2nd_provider_config_name',
+  'low_level_2nd_provider_config_name',
+  // ...
+];
+```
+
+### i18n 同步点（参考 §02）
+
+每个语言文件需要同步：
+- `aiConfig.providerConfig.highLevelTask2nd` / `highLevelTask2ndDesc`
+- `aiConfig.providerConfig.lowLevelTask2nd` / `lowLevelTask2ndDesc`
+- `aiConfig.providerConfig.setHighLevel2ndSuccess` / `setLowLevel2ndSuccess`
+
+修改 `taskConfig.description` 时建议把「主备双配置语义」写进去，避免用户疑惑为什么要选
+两套配置。
+
+### 备用配置 UI 标签的措辞
+
+备用配置的 i18n key 文案**不要再带"高级 / 低级"前缀**（如"高级任务（备用）"），
+因为它已经被包裹在"高级任务"区块内，加前缀会重复并显得累赘。
+直接用「备用配置 / Backup Config / 予備設定」即可。

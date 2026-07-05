@@ -1,5 +1,4 @@
-import { Brain, ChevronRight, HelpCircle, MemoryStick } from 'lucide-react';
-import { Label } from '@/components/ui/label';
+import { Brain, ChevronRight, MemoryStick } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { ChipGroup } from '@/components/ui/MultiSelectChipGroup';
 import {
@@ -7,12 +6,7 @@ import {
   pluginConfigItemToFieldDef,
   type ConfigValue,
 } from '@/components/config';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { LabelWithHelp } from '../shared';
 import type { PluginConfigItem } from '@/lib/api';
 
 export interface MemorySettingsSectionProps {
@@ -50,7 +44,7 @@ export function MemorySettingsSection({
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold flex items-center gap-2 mb-1">
+          <h2 className="text-lg font-bold flex items-center gap-2 mb-1">
             <MemoryStick className="w-5 h-5 text-primary" />
             {t('aiConfig.memorySettings.title')}
           </h2>
@@ -73,30 +67,11 @@ export function MemorySettingsSection({
         <div className="space-y-4">
           {/* 记忆模式（记忆路径）- 保留原有 ChipGroup 多选样式 */}
           <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Brain className="w-4 h-4 text-muted-foreground" />
-              <Label className="text-sm font-medium">
-                {t('aiConfig.memorySettings.memoryMode')}
-              </Label>
-              {memoryConfig.config.memory_mode?.desc && (
-                <TooltipProvider delayDuration={100}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        type="button"
-                        className="inline-flex items-center justify-center rounded-full p-0.5 hover:bg-primary/10 transition-colors focus:outline-none"
-                        onClick={(e) => e.preventDefault()}
-                      >
-                        <HelpCircle className="w-3.5 h-3.5 text-muted-foreground/60 hover:text-primary cursor-help" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent side="top" className="max-w-xs">
-                      <p>{memoryConfig.config.memory_mode.desc}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              )}
-            </div>
+            <LabelWithHelp
+              icon={<Brain className="w-4 h-4 text-muted-foreground" />}
+              label={t('aiConfig.memorySettings.memoryMode')}
+              description={memoryConfig.config.memory_mode?.desc}
+            />
             <ChipGroup
               options={(
                 memoryConfig.config.memory_mode?.options || ['被动感知', '主动会话']

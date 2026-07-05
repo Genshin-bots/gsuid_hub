@@ -227,6 +227,22 @@ export default function AIConfigPage() {
   const documentExtractProvider =
     (aiConfig?.config.document_extract_provider?.value as string) ?? '';
 
+  // 主备双配置：备用配置由后端在主配置失败/限流时切换使用。
+  // 这两个字段持久化在 aiConfig（framework-config: `GsCore AI AI配置`）
+  // 下，类型为字符串（保存的也是 provider++name 形式），与主配置同源。
+  const highLevel2ndConfigValue =
+    (aiConfig?.config.high_level_2nd_provider_config_name?.value as string) ??
+    '';
+  const lowLevel2ndConfigValue =
+    (aiConfig?.config.low_level_2nd_provider_config_name?.value as string) ??
+    '';
+  const isHighLevel2ndConfigValid =
+    !!highLevel2ndConfigValue &&
+    provider.allConfigsList.some((c) => c.name === highLevel2ndConfigValue);
+  const isLowLevel2ndConfigValid =
+    !!lowLevel2ndConfigValue &&
+    provider.allConfigsList.some((c) => c.name === lowLevel2ndConfigValue);
+
   // ====================== MCP tools ======================
   const mcp = useMcpToolsConfig({ mcpToolsConfig, updateConfigValue });
 
@@ -649,10 +665,20 @@ export default function AIConfigPage() {
             allConfigsList={provider.allConfigsList}
             highLevelConfig={provider.highLevelConfig}
             lowLevelConfig={provider.lowLevelConfig}
+            highLevel2ndConfig={highLevel2ndConfigValue}
+            lowLevel2ndConfig={lowLevel2ndConfigValue}
             isHighLevelConfigValid={provider.isHighLevelConfigValid}
             isLowLevelConfigValid={provider.isLowLevelConfigValid}
+            isHighLevel2ndConfigValid={isHighLevel2ndConfigValid}
+            isLowLevel2ndConfigValid={isLowLevel2ndConfigValid}
             onSetHighLevelConfig={provider.handleSetHighLevelConfig}
             onSetLowLevelConfig={provider.handleSetLowLevelConfig}
+            onSetHighLevel2ndConfig={(v) =>
+              updateConfigValue(aiConfig.id, 'high_level_2nd_provider_config_name', v)
+            }
+            onSetLowLevel2ndConfig={(v) =>
+              updateConfigValue(aiConfig.id, 'low_level_2nd_provider_config_name', v)
+            }
             onOpenManageDialog={() =>
               provider.setIsManageConfigDialogOpen(true)
             }
@@ -969,7 +995,7 @@ export default function AIConfigPage() {
               <div className="mb-3 flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-amber-700 dark:text-amber-400">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
                 <div className="text-xs sm:text-sm">
-                  <p className="font-medium">
+                  <p className="font-semibold">
                     {t('aiConfig.serviceSwitch.restartRequiredTitle')}
                   </p>
                   <p className="mt-1 opacity-90">
@@ -1094,9 +1120,12 @@ export default function AIConfigPage() {
         baseUrl={provider.newConfigBaseUrl}
         apiKeys={provider.newConfigApiKeys}
         model={provider.newConfigModel}
-        embeddingModel={provider.newConfigEmbeddingModel}
         modelSupport={provider.newConfigModelSupport}
         modelEffort={provider.newConfigModelEffort}
+        maxConcurrency={provider.newConfigMaxConcurrency}
+        maxTokens={provider.newConfigMaxTokens}
+        usageStatsMode={provider.newConfigUsageStatsMode}
+        requestMethod={provider.newConfigRequestMethod}
         fetchedModels={provider.newConfigFetchedModels}
         isFetching={provider.isFetchingNewConfigModels}
         providerConfigOptions={provider.providerConfigOptions}
@@ -1108,9 +1137,12 @@ export default function AIConfigPage() {
         onChangeBaseUrl={provider.setNewConfigBaseUrl}
         onChangeApiKeys={provider.setNewConfigApiKeys}
         onChangeModel={provider.setNewConfigModel}
-        onChangeEmbeddingModel={() => {}}
         onChangeModelEffort={provider.setNewConfigModelEffort}
         onChangeModelSupport={provider.setNewConfigModelSupport}
+        onChangeMaxConcurrency={provider.setNewConfigMaxConcurrency}
+        onChangeMaxTokens={provider.setNewConfigMaxTokens}
+        onChangeUsageStatsMode={provider.setNewConfigUsageStatsMode}
+        onChangeRequestMethod={provider.setNewConfigRequestMethod}
         onReset={provider.resetNewConfigForm}
         onSubmit={provider.handleCreateOpenaiConfig}
       />
@@ -1119,6 +1151,7 @@ export default function AIConfigPage() {
         open={provider.isEditDialogOpen}
         t={t}
         configName={provider.editingConfigName}
+        editingConfigProvider={provider.editingConfigProvider}
         data={provider.openaiConfigData}
         isLoading={provider.isLoadingOpenaiConfig}
         isSaving={provider.isSavingOpenaiConfig}

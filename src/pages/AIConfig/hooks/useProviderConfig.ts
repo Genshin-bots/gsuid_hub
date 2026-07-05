@@ -47,9 +47,15 @@ export interface UseProviderConfigReturn {
   newConfigBaseUrl: string;
   newConfigModel: string;
   newConfigApiKeys: string[];
-  newConfigEmbeddingModel: string;
   newConfigModelSupport: string[];
   newConfigModelEffort: string;
+  newConfigMaxConcurrency: number;
+  /** 仅 Anthropic 等 provider 在 UI 暴露 */
+  newConfigMaxTokens: string;
+  /** 仅 OpenAI 系列在 UI 暴露 */
+  newConfigUsageStatsMode: string;
+  /** 仅 OpenAI 系列在 UI 暴露（Anthropic 没有请求方式这一说） */
+  newConfigRequestMethod: string;
   newConfigFetchedModels: string[];
   isFetchingNewConfigModels: boolean;
 
@@ -73,6 +79,10 @@ export interface UseProviderConfigReturn {
   setNewConfigApiKeys: (v: string[]) => void;
   setNewConfigModelEffort: (v: string) => void;
   setNewConfigModelSupport: (v: string[]) => void;
+  setNewConfigMaxConcurrency: (v: number) => void;
+  setNewConfigMaxTokens: (v: string) => void;
+  setNewConfigUsageStatsMode: (v: string) => void;
+  setNewConfigRequestMethod: (v: string) => void;
   resetNewConfigForm: () => void;
   setIsCreateDialogOpen: (open: boolean) => void;
   setIsEditDialogOpen: (open: boolean) => void;
@@ -80,11 +90,14 @@ export interface UseProviderConfigReturn {
   setIsManageConfigDialogOpen: (open: boolean) => void;
   clearOpenaiConfigData: () => void;
 
-  /** 直接更新 openaiConfigData 某个字段（受 EditConfigDialog 表单约束） */
-  setOpenaiConfigDataField: (
-    field: keyof OpenAIConfigData,
-    value: string | string[],
-  ) => void;
+  /**
+   * 直接更新 openaiConfigData 某个字段（受 EditConfigDialog 表单约束）。
+   *
+   * 因为 `max_concurrency` 是数字而后两个枚举是字符串，签名统一放宽到
+   * `unknown`：调用方传入什么类型 hook 都原样塞回去，仅在字段不存在时
+   * 跳过。
+   */
+  setOpenaiConfigDataField: (field: keyof OpenAIConfigData, value: unknown) => void;
 
   // --- 异步动作 ---
   fetchProviderConfigOptions: (provider: string) => Promise<void>;
@@ -148,11 +161,19 @@ export function useProviderConfig(): UseProviderConfigReturn {
   const [newConfigBaseUrl, setNewConfigBaseUrl] = useState('');
   const [newConfigModel, setNewConfigModel] = useState('');
   const [newConfigApiKeys, setNewConfigApiKeys] = useState<string[]>([]);
-  const [newConfigEmbeddingModel] = useState('text-embedding-3-small');
   const [newConfigModelSupport, setNewConfigModelSupport] = useState<string[]>([
     'text',
   ]);
   const [newConfigModelEffort, setNewConfigModelEffort] = useState('enable');
+  // 三个 provider 相关字段：缺省值与后端 options 中的常见代表值对齐
+  const [newConfigMaxConcurrency, setNewConfigMaxConcurrency] = useState(2);
+  // 仅 Anthropic：默认 8K tokens
+  const [newConfigMaxTokens, setNewConfigMaxTokens] = useState('8192');
+  // 仅 OpenAI 系列
+  const [newConfigUsageStatsMode, setNewConfigUsageStatsMode] = useState('auto');
+  const [newConfigRequestMethod, setNewConfigRequestMethod] = useState(
+    'chat_completions',
+  );
   const [newConfigFetchedModels, setNewConfigFetchedModels] = useState<string[]>([]);
   const [editConfigFetchedModels, setEditConfigFetchedModels] = useState<string[]>(
     [],
@@ -250,15 +271,25 @@ export function useProviderConfig(): UseProviderConfigReturn {
       try {
         setIsLoadingOpenaiConfig(true);
         const response = await providerConfigApi.getConfigDetail(provider, configName);
+        const cfg = response.config;
+        // 后端对 anthropic / openai 返回的字段集不一致：
+        //  - 共有：base_url / api_key / model_name / model_support / model_effort /
+        //          max_concurrency
+        //  - 仅 Anthropic：max_tokens
+        //  - 仅 OpenAI 系列：usage_stats_mode / request_method
+        // 没有的字段用 `undefined` 占位，UI / save 时按 provider 再处理。
         const configData: OpenAIConfigData = {
-          base_url: (response.config.base_url?.data as string) || '',
-          api_key: (response.config.api_key?.data as string[]) || [],
-          model_name: (response.config.model_name?.data as string) || '',
-          embedding_model:
-            (response.config.embedding_model?.data as string) ||
-            'text-embedding-3-small',
-          model_support: (response.config.model_support?.data as string[]) || ['text'],
-          model_effort: (response.config.model_effort?.data as string) || 'enable',
+          base_url: (cfg.base_url?.data as string) || '',
+          api_key: (cfg.api_key?.data as string[]) || [],
+          model_name: (cfg.model_name?.data as string) || '',
+          model_support: (cfg.model_support?.data as string[]) || ['text'],
+          model_effort: (cfg.model_effort?.data as string) || 'enable',
+          max_concurrency:
+            (cfg.max_concurrency?.data as number | undefined) ?? 2,
+          // 以下三个都是「按 provider 可选」
+          max_tokens: cfg.max_tokens?.data as string | undefined,
+          usage_stats_mode: cfg.usage_stats_mode?.data as string | undefined,
+          request_method: cfg.request_method?.data as string | undefined,
         };
         setOpenaiConfigData(configData);
         setEditingConfigProvider(provider);
@@ -406,14 +437,29 @@ export function useProviderConfig(): UseProviderConfigReturn {
     if (!openaiConfigData || !editingConfigName || !editingConfigProvider) return;
     try {
       setIsSavingOpenaiConfig(true);
+      // 共有字段：所有 provider 都要带
       const configData: Record<string, { data: unknown }> = {
         base_url: { data: openaiConfigData.base_url },
         api_key: { data: openaiConfigData.api_key },
         model_name: { data: openaiConfigData.model_name },
-        embedding_model: { data: openaiConfigData.embedding_model },
         model_support: { data: openaiConfigData.model_support },
         model_effort: { data: openaiConfigData.model_effort || 'enable' },
+        max_concurrency: { data: openaiConfigData.max_concurrency },
       };
+      // 按 provider 增删字段，避免 backend 报「未知字段」
+      if (editingConfigProvider === 'anthropic') {
+        if (openaiConfigData.max_tokens) {
+          configData.max_tokens = { data: openaiConfigData.max_tokens };
+        }
+      } else {
+        // 其他类型一律走 OpenAI 系列字段；将来新增 provider 在此分支扩展
+        configData.usage_stats_mode = {
+          data: openaiConfigData.usage_stats_mode || 'auto',
+        };
+        configData.request_method = {
+          data: openaiConfigData.request_method || 'chat_completions',
+        };
+      }
       await providerConfigApi.saveConfig(
         editingConfigProvider,
         editingConfigName,
@@ -438,6 +484,10 @@ export function useProviderConfig(): UseProviderConfigReturn {
     setNewConfigApiKeys([]);
     setNewConfigModelSupport(['text']);
     setNewConfigModelEffort('enable');
+    setNewConfigMaxConcurrency(2);
+    setNewConfigMaxTokens('8192');
+    setNewConfigUsageStatsMode('auto');
+    setNewConfigRequestMethod('chat_completions');
     setNewConfigFetchedModels([]);
   }, []);
 
@@ -463,14 +513,21 @@ export function useProviderConfig(): UseProviderConfigReturn {
     }
     try {
       const configName = newConfigName.trim();
+      // 共有字段
       const configData: Record<string, { data: unknown }> = {
         base_url: { data: newConfigBaseUrl.trim() },
         api_key: { data: newConfigApiKeys.filter((k) => k.trim()) },
         model_name: { data: newConfigModel.trim() },
-        embedding_model: { data: newConfigEmbeddingModel },
         model_support: { data: newConfigModelSupport },
         model_effort: { data: newConfigModelEffort },
+        max_concurrency: { data: newConfigMaxConcurrency },
       };
+      if (newConfigProvider === 'anthropic') {
+        configData.max_tokens = { data: newConfigMaxTokens };
+      } else {
+        configData.usage_stats_mode = { data: newConfigUsageStatsMode };
+        configData.request_method = { data: newConfigRequestMethod };
+      }
       await providerConfigApi.saveConfig(newConfigProvider, configName, configData);
       toast.success(t('aiConfig.openaiConfig.createSuccess', { name: configName }));
       setIsCreateDialogOpen(false);
@@ -485,9 +542,12 @@ export function useProviderConfig(): UseProviderConfigReturn {
     newConfigBaseUrl,
     newConfigModel,
     newConfigApiKeys,
-    newConfigEmbeddingModel,
     newConfigModelSupport,
     newConfigModelEffort,
+    newConfigMaxConcurrency,
+    newConfigMaxTokens,
+    newConfigUsageStatsMode,
+    newConfigRequestMethod,
     newConfigProvider,
     t,
     fetchAllConfigs,
@@ -580,8 +640,13 @@ export function useProviderConfig(): UseProviderConfigReturn {
   }, []);
 
   const setOpenaiConfigDataField = useCallback(
-    (field: keyof OpenAIConfigData, value: string | string[]) => {
-      setOpenaiConfigData((prev) => (prev ? { ...prev, [field]: value } : null));
+    (field: keyof OpenAIConfigData, value: unknown) => {
+      // 由于 `max_concurrency` 是 number、模型名称是 string、model_support 是 string[]，
+      // 这里统一放宽到 unknown：调用方按字段类型传值即可。
+      setOpenaiConfigData((prev) => {
+        if (!prev) return prev;
+        return { ...prev, [field]: value } as OpenAIConfigData;
+      });
     },
     [],
   );
@@ -628,9 +693,12 @@ export function useProviderConfig(): UseProviderConfigReturn {
     newConfigBaseUrl,
     newConfigModel,
     newConfigApiKeys,
-    newConfigEmbeddingModel,
     newConfigModelSupport,
     newConfigModelEffort,
+    newConfigMaxConcurrency,
+    newConfigMaxTokens,
+    newConfigUsageStatsMode,
+    newConfigRequestMethod,
     newConfigFetchedModels,
     isFetchingNewConfigModels,
 
@@ -654,6 +722,10 @@ export function useProviderConfig(): UseProviderConfigReturn {
     setNewConfigApiKeys,
     setNewConfigModelEffort,
     setNewConfigModelSupport,
+    setNewConfigMaxConcurrency,
+    setNewConfigMaxTokens,
+    setNewConfigUsageStatsMode,
+    setNewConfigRequestMethod,
     resetNewConfigForm,
     setIsCreateDialogOpen,
     setIsEditDialogOpen,

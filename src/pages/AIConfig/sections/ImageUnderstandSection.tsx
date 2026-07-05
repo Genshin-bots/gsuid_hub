@@ -61,7 +61,7 @@ export function ImageUnderstandSection({
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-lg font-semibold flex items-center gap-2 mb-1">
+        <h2 className="text-lg font-bold flex items-center gap-2 mb-1">
           <Eye className="w-5 h-5 text-primary" />
           {t('aiConfig.imageUnderstand.title')}
         </h2>

@@ -17,6 +17,10 @@ export { EmptyState } from './shared/EmptyState';
 export type { EmptyStateProps } from './shared/EmptyState';
 export { SidebarItem } from './shared/SidebarItem';
 export type { SidebarItemProps } from './shared/SidebarItem';
+export { HeadingWithHelp } from './shared/HeadingWithHelp';
+export type { HeadingWithHelpProps } from './shared/HeadingWithHelp';
+export { LabelWithHelp } from './shared/LabelWithHelp';
+export type { LabelWithHelpProps } from './shared/LabelWithHelp';
 export { renderRichText } from './shared/renderRichText';
 
 // sections
@@ -69,6 +73,11 @@ export type { LocalFrameworkConfig, ConfigFileItem, ProviderType } from './types
 export {
   getModelCapabilities,
   getEmbeddingModalities,
+  getEnumLabel,
+  getModelEffortLabel,
+  getUsageStatsModeLabel,
+  getRequestMethodLabel,
+  getRequestMethodDescription,
   type ModelCapability,
   type EmbeddingConfigField,
   type EmbeddingProvider,

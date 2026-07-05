@@ -5,7 +5,7 @@ import {
   pluginConfigItemToFieldDef,
   type ConfigValue,
 } from '@/components/config';
-import { ToggleRow } from '../shared/ToggleRow';
+import { ToggleRow } from '../shared';
 import type { PluginConfigItem } from '@/lib/api';
 
 export interface MemeSettingsSectionProps {
@@ -42,7 +42,7 @@ export function MemeSettingsSection({
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold flex items-center gap-2 mb-1">
+          <h2 className="text-lg font-bold flex items-center gap-2 mb-1">
             <Smile className="w-5 h-5 text-primary" />
             {t('aiConfig.memeSettings.title')}
           </h2>

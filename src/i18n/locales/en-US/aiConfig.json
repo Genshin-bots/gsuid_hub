@@ -13,7 +13,7 @@
   "aiHistory": "AI History",
   "taskConfig": {
     "title": "Task Configuration",
-    "description": "Select AI model configs for high and low level tasks (sharing one config pool)",
+    "description": "Select AI model configs for high and low level tasks (sharing one config pool). The primary config is used by default; the backup config is automatically switched to by the backend when the primary fails or hits rate limits.",
     "notSelectedWarning": "No config selected. This task cannot use AI — please select a configuration",
     "emptyHint": "No config files yet. Click \"New Config\" to create one, then assign it to tasks"
   },
@@ -94,8 +94,35 @@
     "apiBaseUrl": "API Base URL",
     "apiModel": "Model",
     "apiKey": "API Key",
+    "apiKeyHint": "(recommended prefixes: {prefixes})",
     "modelCapabilities": "Model Capabilities",
     "modelEffort": "Thinking Level",
+    "modelEffortOptions": {
+      "enable": "Enable",
+      "disable": "Disable",
+      "minimal": "Minimal",
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High",
+      "xhigh": "Extra High"
+    },
+    "maxConcurrency": "Max Concurrency",
+    "maxTokens": "Max Output Tokens",
+    "usageStatsMode": "Usage Stats Mode",
+    "usageStatsModeOptions": {
+      "auto": "Auto",
+      "incremental": "Incremental",
+      "cumulative": "Cumulative"
+    },
+    "requestMethod": "Request Method",
+    "requestMethodOptions": {
+      "chat_completions": "Chat Completions (Standard chat completion)",
+      "responses": "Responses (Unified API: tool calls + structured output)"
+    },
+    "requestMethodDescription": {
+      "chat_completions": "OpenAI's standard /chat/completions endpoint, supported by virtually all chat-compatible providers. Sends a messages array to the model.",
+      "responses": "OpenAI's newer /responses endpoint that unifies multi-turn tool calls, file references and structured output. Requires the model and proxy to both support it."
+    },
     "capabilityText": "Text Chat",
     "capabilityImage": "Image Understanding",
     "capabilityAudio": "Audio Processing",
@@ -211,8 +238,12 @@
     "provider": "Provider",
     "highLevelTask": "High Level",
     "highLevelTaskDesc": "Complex reasoning, tool calling, etc. requiring strong model capability",
+    "highLevelTask2nd": "Backup Config",
+    "highLevelTask2ndDesc": "Automatically used by the backend when the primary config fails or hits rate limits, ensuring service availability. Recommended to pick a different provider from the primary to avoid a single point of failure",
     "lowLevelTask": "Low Level",
     "lowLevelTaskDesc": "Simple Q&A, quick response, etc. requiring basic model capability",
+    "lowLevelTask2nd": "Backup Config",
+    "lowLevelTask2ndDesc": "Automatically used by the backend when the primary config fails or hits rate limits, ensuring service availability. Recommended to pick a different provider from the primary to avoid a single point of failure",
     "highLevel": "High",
     "lowLevel": "Low",
     "selectConfigPlaceholder": "Select config...",
@@ -220,6 +251,8 @@
     "switchFailed": "Failed to switch Provider",
     "setHighLevelSuccess": "High level task config set to: {name}",
     "setLowLevelSuccess": "Low level task config set to: {name}",
+    "setHighLevel2ndSuccess": "High level backup config set to: {name}",
+    "setLowLevel2ndSuccess": "Low level backup config set to: {name}",
     "setFailed": "Failed to set configuration",
     "config": "Config File",
     "setHighLevel": "Set High",

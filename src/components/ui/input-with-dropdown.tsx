@@ -36,6 +36,14 @@ export interface InputWithDropdownProps {
   copiedValueLabel?: string;
   /** 无内容可复制时的文案 */
   copyEmptyLabel?: string;
+  /**
+   * 可选：用于把每个枚举值（如 `incremental`）映射成本地化标签。
+   *
+   * 仅影响 *显示层*：触发器文案 / 下拉候选项 / 搜索匹配都会使用这个函数
+   * 的返回值；保存或回传时依旧是传入的原始 `value`，不会再走这里转换。
+   * 不传则按原值渲染，保持向后兼容。
+   */
+  formatLabel?: (rawValue: string) => string;
 }
 
 // ============================================================================
@@ -55,6 +63,7 @@ export function InputWithDropdown({
   copyValueLabel,
   copiedValueLabel,
   copyEmptyLabel,
+  formatLabel,
 }: InputWithDropdownProps) {
   const { t } = useLanguage();
   // 搜索输入值（独立于选中值）
@@ -72,6 +81,11 @@ export function InputWithDropdown({
   const safeOptions = useMemo(
     () => (options || []).map((o) => (o == null ? '' : String(o))),
     [options],
+  );
+  // 把枚举原文渲染成本地化标签；缺失则原样返回
+  const renderLabel = useCallback(
+    (raw: string) => (formatLabel ? formatLabel(raw) : raw),
+    [formatLabel],
   );
 
   // Popover 打开时重置搜索值
@@ -91,12 +105,17 @@ export function InputWithDropdown({
     };
   }, []);
 
-  // 根据搜索值筛选列表
+  // 根据搜索值筛选列表：同时匹配原文与本地化标签，避免输入中文/英文都失效
   const filteredOptions = useMemo(() => {
     if (!searchValue.trim()) return safeOptions;
     const lowerSearch = searchValue.toLowerCase();
-    return safeOptions.filter((option) => option.toLowerCase().includes(lowerSearch));
-  }, [searchValue, safeOptions]);
+    return safeOptions.filter((option) => {
+      const rawMatch = option.toLowerCase().includes(lowerSearch);
+      if (rawMatch) return true;
+      const labelMatch = renderLabel(option).toLowerCase().includes(lowerSearch);
+      return labelMatch;
+    });
+  }, [searchValue, safeOptions, renderLabel]);
 
   const handleOpenAutoFocus = useCallback((e: Event) => {
     e.preventDefault();
@@ -167,7 +186,11 @@ export function InputWithDropdown({
           )}
         >
           <span className="truncate">
-            {safeValue || <span className="text-muted-foreground">{placeholder}</span>}
+            {safeValue ? (
+              renderLabel(safeValue)
+            ) : (
+              <span className="text-muted-foreground">{placeholder}</span>
+            )}
           </span>
           <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
         </Button>
@@ -220,7 +243,7 @@ export function InputWithDropdown({
                   setOpen(false);
                 }}
               >
-                {option}
+                {renderLabel(option)}
               </div>
             ))}
           </div>

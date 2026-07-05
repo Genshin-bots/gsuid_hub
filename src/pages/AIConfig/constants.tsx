@@ -99,3 +99,65 @@ export const getEmbeddingModalities = (
     icon: <Zap className="w-3.5 h-3.5" />,
   },
 ];
+
+// ============================================================================
+// 枚举选项的本地化标签
+//
+// 后端枚举值（`incremental` / `cumulative` 等）是技术字符串，落库 / 网络
+// 传输都保持原样；UI 为了让不同语言使用者都能看懂，把它映射成本地化标签。
+// 约定：
+//   • `keyPrefix`：i18n key 前缀，例如 `aiConfig.serviceProvider.usageStatsModeOptions`
+//   • 期望 i18n 文件中在该前缀下挂一个对象，键是枚举原文，值是对应语言的标签
+//   • 找不到翻译时回落到原文本身，避免显示空白
+// ============================================================================
+
+/**
+ * 在给定的 i18n 前缀下查找枚举值的本地化标签。找不到则返回原值。
+ *
+ * 实现思路：调用 `t(prefix.raw)`；现有 i18n 实现里 key 缺失时会原样把
+ * key 字符串返回（见 `LanguageContext` 的 `defaultT`），用这个特征即可
+ * 判定是否命中翻译。判断全程不依赖任何 i18n 库内部 API。
+ */
+export const getEnumLabel = (
+  t: (key: string) => string,
+  keyPrefix: string,
+  raw: string,
+): string => {
+  const key = `${keyPrefix}.${raw}`;
+  const translated = t(key);
+  // t() 找不到 key 时返回 key 自身；这时回落原文
+  return translated === key ? raw : translated;
+};
+
+/** `model_effort`：`enable / disable / minimal / low / medium / high / xhigh` */
+export const getModelEffortLabel = (
+  t: (key: string) => string,
+  raw: string,
+): string =>
+  getEnumLabel(t, 'aiConfig.serviceProvider.modelEffortOptions', raw);
+
+/** `usage_stats_mode`：`auto / incremental / cumulative` */
+export const getUsageStatsModeLabel = (
+  t: (key: string) => string,
+  raw: string,
+): string =>
+  getEnumLabel(t, 'aiConfig.serviceProvider.usageStatsModeOptions', raw);
+
+/** `request_method`：`chat_completions / responses` */
+export const getRequestMethodLabel = (
+  t: (key: string) => string,
+  raw: string,
+): string =>
+  getEnumLabel(t, 'aiConfig.serviceProvider.requestMethodOptions', raw);
+
+/**
+ * `request_method` 每个端点的端点级描述。用于在「编辑/新建」对话框下显示一行
+ * 说明：当用户切换选项时，下方说明文字会跟着变。原始 `raw` 落库不变。
+ *
+ * 与 `getRequestMethodLabel` 不同，这里的 i18n value 是长句说明，不是简短标签。
+ */
+export const getRequestMethodDescription = (
+  t: (key: string) => string,
+  raw: string,
+): string =>
+  getEnumLabel(t, 'aiConfig.serviceProvider.requestMethodDescription', raw);

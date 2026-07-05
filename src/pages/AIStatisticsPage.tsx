@@ -1,9 +1,9 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
-import { aiStatisticsApi, aiPerformanceApi } from '@/lib/api';
-import type { HourlyPerformanceItem } from '@/lib/api';
+import { aiStatisticsApi, aiPerformanceApi, getApiErrorMessage } from '@/lib/api';
+import type { HourlyPerformanceItem, TokenRangeData } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
@@ -22,14 +22,19 @@ import {
   RefreshCw,
   TrendingUp,
   Calendar as CalendarIcon,
+  CalendarDays,
   Gauge,
   HardDrive,
+  ArrowRight,
+  Sparkles,
+  BarChart3,
+  Pencil,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
-import { format } from 'date-fns';
+import { format, subDays, startOfDay } from 'date-fns';
 
 // ============================================================================
 // 类型定义 (兼容旧接口 + 新缓存字段)
@@ -154,6 +159,42 @@ async function fetchPerformanceHourly(date?: string): Promise<HourlyPerformanceI
   return aiPerformanceApi.getHourly(date);
 }
 
+async function fetchTokenByRange(start_date?: string, end_date?: string): Promise<TokenRangeData> {
+  return aiStatisticsApi.getTokenByRange(start_date, end_date);
+}
+
+/** 预设范围类型 */
+type RangePreset = '7d' | '14d' | '30d' | '90d' | 'custom';
+
+const PRESET_DAYS: Record<Exclude<RangePreset, 'custom'>, number> = {
+  '7d': 7,
+  '14d': 14,
+  '30d': 30,
+  '90d': 90,
+};
+
+/** 根据 preset 计算起止日期(YYYY-MM-DD) */
+function computeRangeDates(
+  preset: RangePreset,
+  start?: Date,
+  end?: Date,
+): { start_date?: string; end_date?: string } {
+  const today = startOfDay(new Date());
+  if (preset === 'custom') {
+    return {
+      start_date: start ? format(start, 'yyyy-MM-dd') : undefined,
+      end_date: end ? format(end, 'yyyy-MM-dd') : undefined,
+    };
+  }
+  const days = PRESET_DAYS[preset];
+  // 后端闭区间 [start, end];今天为 end,往前 (days-1) 天作为 start,合计 days 天
+  const startDate = subDays(today, days - 1);
+  return {
+    start_date: format(startDate, 'yyyy-MM-dd'),
+    end_date: format(today, 'yyyy-MM-dd'),
+  };
+}
+
 // ============================================================================
 // 工具函数
 // ============================================================================
@@ -221,6 +262,142 @@ function ProgressItem({ label, value, percentage }: ProgressItemProps) {
   );
 }
 
+/** 快速预览区:单个面板内左右两个可点击的"时间段"块(7d/30d),点击跳转 range tab */
+interface QuickPreviewProps {
+  isGlass: boolean;
+  loading7d: boolean;
+  loading30d: boolean;
+  data7d: TokenRangeData | null;
+  data30d: TokenRangeData | null;
+  error: string | null;
+  onSelectPreset: (preset: RangePreset) => void;
+  t: (key: string) => string;
+}
+
+function QuickPreviewPanel({
+  isGlass,
+  loading7d,
+  loading30d,
+  data7d,
+  data30d,
+  error,
+  onSelectPreset,
+  t,
+}: QuickPreviewProps) {
+  return (
+    <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50', 'overflow-hidden')}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-border/50">
+        <QuickPreviewItem
+          title={t('aiStatistics.last7Days')}
+          icon={<CalendarDays className="w-4 h-4" />}
+          loading={loading7d}
+          data={data7d}
+          error={error}
+          onClick={() => onSelectPreset('7d')}
+          t={t}
+        />
+        <QuickPreviewItem
+          title={t('aiStatistics.last30Days')}
+          icon={<BarChart3 className="w-4 h-4" />}
+          loading={loading30d}
+          data={data30d}
+          error={error}
+          onClick={() => onSelectPreset('30d')}
+          t={t}
+        />
+      </div>
+    </Card>
+  );
+}
+
+/** 单个时间段预览块(无 Card 容器,只在面板内作为可点击单元格) */
+interface QuickPreviewItemProps {
+  title: string;
+  icon: React.ReactNode;
+  loading: boolean;
+  data: TokenRangeData | null;
+  error: string | null;
+  onClick: () => void;
+  t: (key: string) => string;
+}
+
+function QuickPreviewItem({ title, icon, loading, data, error, onClick, t }: QuickPreviewItemProps) {
+  return (
+    <div
+      className="group cursor-pointer p-4 transition-colors hover:bg-accent/30 focus-visible:bg-accent/40 outline-none"
+      onClick={onClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick();
+        }
+      }}
+    >
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+          <span className="text-primary/70">{icon}</span>
+          <span>{title}</span>
+        </div>
+        <ArrowRight className="w-3.5 h-3.5 text-muted-foreground opacity-0 -translate-x-1 transition-all group-hover:opacity-100 group-hover:translate-x-0" />
+      </div>
+      {loading ? (
+        <div className="space-y-2">
+          <Skeleton className="h-8 w-28" />
+          <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
+            <Skeleton className="h-3 w-16" />
+            <Skeleton className="h-3 w-16" />
+            <Skeleton className="h-3 w-16" />
+            <Skeleton className="h-3 w-16" />
+          </div>
+        </div>
+      ) : error && !data ? (
+        <div className="text-sm text-muted-foreground">{error}</div>
+      ) : data ? (
+        <div className="space-y-2.5">
+          <div className="flex items-baseline gap-2">
+            <span className="text-3xl font-bold tabular-nums leading-none">
+              {formatCompactNumber(data.total.total_tokens)}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              {t('aiStatistics.totalTokens')}
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs">
+            <div className="flex items-baseline justify-between gap-2 min-w-0">
+              <span className="text-muted-foreground truncate">{t('aiStatistics.inputTokens')}</span>
+              <span className="tabular-nums font-medium">
+                {formatCompactNumber(data.total.input_tokens)}
+              </span>
+            </div>
+            <div className="flex items-baseline justify-between gap-2 min-w-0">
+              <span className="text-muted-foreground truncate">{t('aiStatistics.outputTokens')}</span>
+              <span className="tabular-nums font-medium">
+                {formatCompactNumber(data.total.output_tokens)}
+              </span>
+            </div>
+            <div className="flex items-baseline justify-between gap-2 min-w-0">
+              <span className="text-muted-foreground truncate">{t('aiStatistics.cacheReadTokens')}</span>
+              <span className="tabular-nums font-medium">
+                {formatCompactNumber(data.total.cache_read_tokens)}
+              </span>
+            </div>
+            <div className="flex items-baseline justify-between gap-2 min-w-0">
+              <span className="text-muted-foreground truncate">{t('aiStatistics.cacheWriteTokens')}</span>
+              <span className="tabular-nums font-medium">
+                {formatCompactNumber(data.total.cache_write_tokens)}
+              </span>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="text-sm text-muted-foreground">{t('common.noData')}</div>
+      )}
+    </div>
+  );
+}
+
 // ============================================================================
 // 主组件
 // ============================================================================
@@ -241,6 +418,20 @@ export default function AIStatisticsPage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [activeTab, setActiveTab] = useState<string>('overview');
+
+  // 时间段 Token 统计相关状态
+  const [rangeData, setRangeData] = useState<TokenRangeData | null>(null);
+  const [rangeLoading, setRangeLoading] = useState(false);
+  const [rangeError, setRangeError] = useState<string | null>(null);
+  const [rangePreset, setRangePreset] = useState<RangePreset>('7d');
+  const [rangeStartDate, setRangeStartDate] = useState<Date | undefined>(undefined);
+  const [rangeEndDate, setRangeEndDate] = useState<Date | undefined>(undefined);
+
+  // 顶部快速预览(7天/30天)
+  const [quick7d, setQuick7d] = useState<TokenRangeData | null>(null);
+  const [quick30d, setQuick30d] = useState<TokenRangeData | null>(null);
+  const [quickLoading, setQuickLoading] = useState(true);
+  const [quickError, setQuickError] = useState<string | null>(null);
 
   // 加载数据
   const loadData = async () => {
@@ -274,6 +465,70 @@ export default function AIStatisticsPage() {
   useEffect(() => {
     loadData();
   }, [selectedDate, t]);
+
+  // 时间段 Token 统计 - 拉取数据
+  const fetchRangeData = useCallback(async () => {
+    try {
+      setRangeLoading(true);
+      setRangeError(null);
+      const { start_date, end_date } = computeRangeDates(
+        rangePreset,
+        rangeStartDate,
+        rangeEndDate,
+      );
+      const data = await fetchTokenByRange(start_date, end_date);
+      setRangeData(data);
+    } catch (err) {
+      const msg = getApiErrorMessage(err, t('aiStatistics.loadFailed'));
+      setRangeError(msg);
+      setRangeData(null);
+    } finally {
+      setRangeLoading(false);
+    }
+  }, [rangePreset, rangeStartDate, rangeEndDate, t]);
+
+  useEffect(() => {
+    // 仅在切到 range tab 或日期变化时拉取,减少不必要请求
+    if (activeTab === 'range') {
+      fetchRangeData();
+    }
+  }, [activeTab, fetchRangeData]);
+
+  // 顶部快速预览(7天/30天) - 独立请求,静默失败
+  const fetchQuickPreview = useCallback(async () => {
+    try {
+      setQuickLoading(true);
+      const today = startOfDay(new Date());
+      const start7 = format(subDays(today, 6), 'yyyy-MM-dd');
+      const start30 = format(subDays(today, 29), 'yyyy-MM-dd');
+      const end = format(today, 'yyyy-MM-dd');
+      const [d7, d30] = await Promise.all([
+        fetchTokenByRange(start7, end).catch(() => null),
+        fetchTokenByRange(start30, end).catch(() => null),
+      ]);
+      setQuick7d(d7);
+      setQuick30d(d30);
+      if (!d7 && !d30) {
+        setQuickError(t('aiStatistics.loadFailed'));
+      } else {
+        setQuickError(null);
+      }
+    } catch (err) {
+      // 后端版本过旧可能没有此端点,降级为 warn 而不是 error
+      const msg = err instanceof Error ? err.message : String(err);
+      console.warn(
+        '[AIStatisticsPage] /api/ai/statistics/token-by-range 不可用,顶部快速预览保持为空。请升级 gsuid_core。',
+        msg,
+      );
+      setQuickError(null);
+    } finally {
+      setQuickLoading(false);
+    }
+  }, [t]);
+
+  useEffect(() => {
+    fetchQuickPreview();
+  }, [fetchQuickPreview]);
 
   // 准备图表数据
   const intentChartData = summary
@@ -650,6 +905,178 @@ export default function AIStatisticsPage() {
     };
   }, [performanceData, perfModelList]);
 
+  // ============================================================================
+  // 时间段统计 - 图表配置
+  // ============================================================================
+
+  // 按天趋势 - 多系列堆叠折线图(输入/输出/缓存读/缓存写/总量)
+  const rangeTrendOption = useMemo<EChartsOption>(() => {
+    const days = rangeData?.daily ?? [];
+    const dates = days.map(d => d.date);
+    return {
+      animationDuration: 800,
+      animationEasing: 'cubicOut' as const,
+      grid: { left: '3%', right: '4%', bottom: '15%', top: '15%', containLabel: true },
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: { type: 'cross' },
+      },
+      legend: {
+        data: [
+          { name: t('aiStatistics.inputTokens') },
+          { name: t('aiStatistics.outputTokens') },
+          { name: t('aiStatistics.cacheReadTokens') },
+          { name: t('aiStatistics.cacheWriteTokens') },
+          { name: t('aiStatistics.totalTokens') },
+        ],
+        bottom: 0,
+        textStyle: { fontSize: 11 },
+      },
+      xAxis: {
+        type: 'category',
+        data: dates,
+        axisLabel: { fontSize: 11 },
+      },
+      yAxis: {
+        type: 'value',
+        axisLabel: { fontSize: 11, formatter: (v: number) => formatCompactNumber(v) },
+      },
+      series: [
+        {
+          name: t('aiStatistics.totalTokens'),
+          type: 'line',
+          smooth: true,
+          symbol: 'circle',
+          symbolSize: 6,
+          data: days.map(d => d.total_tokens),
+          lineStyle: { width: 3 },
+          itemStyle: { color: '#6366f1' },
+          emphasis: { focus: 'series' },
+          areaStyle: {
+            color: {
+              type: 'linear',
+              x: 0, y: 0, x2: 0, y2: 1,
+              colorStops: [
+                { offset: 0, color: 'rgba(99, 102, 241, 0.25)' },
+                { offset: 1, color: 'rgba(99, 102, 241, 0.02)' },
+              ],
+            },
+          },
+        },
+        {
+          name: t('aiStatistics.inputTokens'),
+          type: 'line',
+          smooth: true,
+          symbol: 'circle',
+          symbolSize: 5,
+          data: days.map(d => d.input_tokens),
+          itemStyle: { color: '#3b82f6' },
+          emphasis: { focus: 'series' },
+        },
+        {
+          name: t('aiStatistics.outputTokens'),
+          type: 'line',
+          smooth: true,
+          symbol: 'circle',
+          symbolSize: 5,
+          data: days.map(d => d.output_tokens),
+          itemStyle: { color: '#a855f7' },
+          emphasis: { focus: 'series' },
+        },
+        {
+          name: t('aiStatistics.cacheReadTokens'),
+          type: 'line',
+          smooth: true,
+          symbol: 'circle',
+          symbolSize: 5,
+          data: days.map(d => d.cache_read_tokens),
+          itemStyle: { color: '#10b981' },
+          emphasis: { focus: 'series' },
+        },
+        {
+          name: t('aiStatistics.cacheWriteTokens'),
+          type: 'line',
+          smooth: true,
+          symbol: 'circle',
+          symbolSize: 5,
+          data: days.map(d => d.cache_write_tokens),
+          itemStyle: { color: '#f59e0b' },
+          emphasis: { focus: 'series' },
+        },
+      ],
+    };
+  }, [rangeData, t]);
+
+  // 按模型分布 - 环形饼图(按 total_tokens)
+  const rangeModelPieOption = useMemo<EChartsOption>(() => {
+    const models = rangeData?.by_model ?? [];
+    return {
+      animationDuration: 800,
+      animationEasing: 'cubicOut' as const,
+      tooltip: {
+        trigger: 'item',
+        formatter: (params: any) => {
+          const v = Number(params.value ?? 0);
+          return `${params.name}<br/>${formatCompactNumber(v)} (${params.percent}%)`;
+        },
+      },
+      legend: {
+        orient: 'vertical',
+        right: '2%',
+        top: 'center',
+        textStyle: { fontSize: 11 },
+        itemGap: 8,
+      },
+      series: [
+        {
+          type: 'pie',
+          radius: ['40%', '65%'],
+          center: ['35%', '50%'],
+          avoidLabelOverlap: false,
+          itemStyle: {
+            borderRadius: 6,
+            borderColor: 'transparent',
+            borderWidth: 2,
+          },
+          label: {
+            show: false,
+            position: 'center',
+          },
+          labelLine: { show: false },
+          emphasis: {
+            scale: true,
+            scaleSize: 8,
+            label: {
+              show: true,
+              fontSize: 13,
+              fontWeight: 'bold',
+              formatter: '{b}\n{d}%',
+            },
+            itemStyle: {
+              shadowBlur: 10,
+              shadowOffsetX: 0,
+              shadowColor: 'rgba(0, 0, 0, 0.2)',
+            },
+          },
+          data: models.map((m, i) => ({
+            name: m.model || 'Unknown',
+            value: m.total_tokens,
+            itemStyle: { color: CHART_PALETTE[i % CHART_PALETTE.length] },
+          })),
+        },
+      ],
+    };
+  }, [rangeData]);
+
+  // 时间段统计是否全部为 0(用于空态判定)
+  const isRangeEmpty = useMemo(() => {
+    if (!rangeData) return true;
+    if (rangeData.daily.length === 0) return true;
+    return rangeData.daily.every(
+      d => d.total_tokens === 0 && d.input_tokens === 0 && d.output_tokens === 0,
+    );
+  }, [rangeData]);
+
   return (
     <div className="space-y-6">
       {/* 页面标题 */}
@@ -723,6 +1150,23 @@ export default function AIStatisticsPage() {
         </div>
       ) : summary ? (
         <>
+          {/* 时间段快速预览 - 7天/30天(单面板双块对比) */}
+          <div className="px-6">
+            <QuickPreviewPanel
+              isGlass={isGlass}
+              loading7d={quickLoading}
+              loading30d={quickLoading}
+              data7d={quick7d}
+              data30d={quick30d}
+              error={quickError}
+              onSelectPreset={(preset) => {
+                setRangePreset(preset);
+                setActiveTab('range');
+              }}
+              t={t}
+            />
+          </div>
+
           {/* 概览统计卡片 - 一行6列 */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 px-6">
             <StatCard
@@ -783,6 +1227,7 @@ export default function AIStatisticsPage() {
               options={[
                 { value: 'overview', label: t('aiStatistics.overview'), icon: <TrendingUp className="w-4 h-4" /> },
                 { value: 'tokens', label: t('aiStatistics.tokenAnalysis'), icon: <Coins className="w-4 h-4" /> },
+                { value: 'range', label: t('aiStatistics.tokenRange'), icon: <CalendarDays className="w-4 h-4" /> },
                 { value: 'performance', label: t('aiStatistics.performance'), icon: <Activity className="w-4 h-4" /> },
                 { value: 'rag', label: t('aiStatistics.ragEffect'), icon: <Database className="w-4 h-4" /> },
                 { value: 'users', label: t('aiStatistics.users'), icon: <Users className="w-4 h-4" /> },
@@ -1259,6 +1704,249 @@ export default function AIStatisticsPage() {
                   </CardContent>
                 </Card>
               </div>
+            </div>
+          )}
+
+          {/* 时间段统计 Tab */}
+          {activeTab === 'range' && (
+            <div className="space-y-4 px-6">
+              {/* 工具栏:快捷预设 + 自定义日期范围 */}
+              <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
+                <CardContent className="py-3">
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-sm text-muted-foreground shrink-0">
+                        {t('aiStatistics.queryRange')}:
+                      </span>
+                      <TabButtonGroup
+                        options={[
+                          { value: '7d', label: t('aiStatistics.preset7d'), icon: <Sparkles className="w-4 h-4" /> },
+                          { value: '14d', label: t('aiStatistics.preset14d'), icon: <Zap className="w-4 h-4" /> },
+                          { value: '30d', label: t('aiStatistics.preset30d'), icon: <BarChart3 className="w-4 h-4" /> },
+                          { value: '90d', label: t('aiStatistics.preset90d'), icon: <TrendingUp className="w-4 h-4" /> },
+                          { value: 'custom', label: t('aiStatistics.customRange'), icon: <Pencil className="w-4 h-4" /> },
+                        ]}
+                        value={rangePreset}
+                        onValueChange={(v) => setRangePreset(v as RangePreset)}
+                      />
+                    </div>
+                    {rangePreset === 'custom' && (
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className={cn(
+                                'h-9 gap-2 justify-start font-normal',
+                                !rangeStartDate && 'text-muted-foreground',
+                              )}
+                            >
+                              <CalendarIcon className="h-4 w-4" />
+                              {rangeStartDate
+                                ? format(rangeStartDate, 'yyyy-MM-dd')
+                                : t('aiStatistics.rangeStart')}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="end">
+                            <CalendarComponent
+                              mode="single"
+                              selected={rangeStartDate}
+                              onSelect={setRangeStartDate}
+                              defaultMonth={rangeStartDate}
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className={cn(
+                                'h-9 gap-2 justify-start font-normal',
+                                !rangeEndDate && 'text-muted-foreground',
+                              )}
+                            >
+                              <CalendarIcon className="h-4 w-4" />
+                              {rangeEndDate
+                                ? format(rangeEndDate, 'yyyy-MM-dd')
+                                : t('aiStatistics.rangeEnd')}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="end">
+                            <CalendarComponent
+                              mode="single"
+                              selected={rangeEndDate}
+                              onSelect={setRangeEndDate}
+                              defaultMonth={rangeEndDate}
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* 错误提示 */}
+              {rangeError && !rangeLoading && (
+                <Card className={cn('border-destructive/50', isGlass ? 'glass-card' : 'border border-border/50')}>
+                  <CardContent className="flex items-center gap-3 p-4 text-destructive">
+                    <AlertTriangle className="w-5 h-5" />
+                    <span className="flex-1">{rangeError}</span>
+                    <Button size="sm" variant="outline" onClick={fetchRangeData} className="h-9">
+                      <RefreshCw className="w-4 h-4 mr-1" />
+                      {t('aiStatistics.refresh')}
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* 加载骨架屏 */}
+              {rangeLoading ? (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Card key={i} className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
+                        <CardHeader className="flex flex-row items-center justify-between pb-2">
+                          <Skeleton className="h-4 w-20" />
+                          <Skeleton className="w-4 h-4" />
+                        </CardHeader>
+                        <CardContent>
+                          <Skeleton className="h-8 w-24" />
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
+                      <CardHeader><Skeleton className="h-5 w-32" /></CardHeader>
+                      <CardContent><Skeleton className="h-[300px] w-full" /></CardContent>
+                    </Card>
+                    <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
+                      <CardHeader><Skeleton className="h-5 w-32" /></CardHeader>
+                      <CardContent><Skeleton className="h-[300px] w-full" /></CardContent>
+                    </Card>
+                  </div>
+                </div>
+              ) : rangeData && !isRangeEmpty ? (
+                <>
+                  {/* 概览统计卡片 - 五类Token */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+                    <StatCard
+                      title={t('aiStatistics.inputTokens')}
+                      value={formatCompactNumber(rangeData.total.input_tokens)}
+                      icon={Coins}
+                    />
+                    <StatCard
+                      title={t('aiStatistics.outputTokens')}
+                      value={formatCompactNumber(rangeData.total.output_tokens)}
+                      icon={Coins}
+                    />
+                    <StatCard
+                      title={t('aiStatistics.cacheReadTokens')}
+                      value={formatCompactNumber(rangeData.total.cache_read_tokens)}
+                      icon={HardDrive}
+                    />
+                    <StatCard
+                      title={t('aiStatistics.cacheWriteTokens')}
+                      value={formatCompactNumber(rangeData.total.cache_write_tokens)}
+                      icon={HardDrive}
+                    />
+                    <StatCard
+                      title={t('aiStatistics.totalTokens')}
+                      value={formatCompactNumber(rangeData.total.total_tokens)}
+                      icon={TrendingUp}
+                      className="ring-1 ring-primary/30"
+                    />
+                  </div>
+
+                  {/* 折线图 + 饼图 */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    {/* 按天趋势 */}
+                    <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Activity className="w-5 h-5" />
+                          {t('aiStatistics.dailyTrend')}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="h-[320px]">
+                          <EChartsWrapper option={rangeTrendOption} height={320} />
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* 模型分布 */}
+                    <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Brain className="w-5 h-5" />
+                          {t('aiStatistics.modelDistribution')}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="h-[320px]">
+                          {rangeData.by_model.length > 0 ? (
+                            <EChartsWrapper option={rangeModelPieOption} height={320} />
+                          ) : (
+                            <div className="flex items-center justify-center h-full text-muted-foreground">
+                              {t('common.noData')}
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* 模型 Token 详情表 */}
+                  <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Coins className="w-5 h-5" />
+                        {t('aiStatistics.modelDistribution')}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b border-border/50">
+                              <th className="text-left py-2 px-3 font-medium text-muted-foreground">{t('aiStatistics.model')}</th>
+                              <th className="text-right py-2 px-3 font-medium text-muted-foreground">{t('aiStatistics.inputTokens')}</th>
+                              <th className="text-right py-2 px-3 font-medium text-muted-foreground">{t('aiStatistics.outputTokens')}</th>
+                              <th className="text-right py-2 px-3 font-medium text-muted-foreground">{t('aiStatistics.cacheReadTokens')}</th>
+                              <th className="text-right py-2 px-3 font-medium text-muted-foreground">{t('aiStatistics.cacheWriteTokens')}</th>
+                              <th className="text-right py-2 px-3 font-medium text-muted-foreground">{t('aiStatistics.totalTokens')}</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {rangeData.by_model.map((item, i) => (
+                              <tr key={i} className="border-b border-border/30">
+                                <td className="py-2 px-3">{item.model ?? '-'}</td>
+                                <td className="py-2 px-3 text-right tabular-nums">{(item.input_tokens ?? 0).toLocaleString()}</td>
+                                <td className="py-2 px-3 text-right tabular-nums">{(item.output_tokens ?? 0).toLocaleString()}</td>
+                                <td className="py-2 px-3 text-right tabular-nums">{(item.cache_read_tokens ?? 0).toLocaleString()}</td>
+                                <td className="py-2 px-3 text-right tabular-nums">{(item.cache_write_tokens ?? 0).toLocaleString()}</td>
+                                <td className="py-2 px-3 text-right tabular-nums font-medium">{(item.total_tokens ?? 0).toLocaleString()}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </>
+              ) : (
+                <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
+                  <CardContent className="flex flex-col items-center justify-center p-8 text-muted-foreground">
+                    <CalendarDays className="w-12 h-12 mb-4 opacity-50" />
+                    <p>{t('aiStatistics.noDataInRange')}</p>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           )}
         </>

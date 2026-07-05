@@ -17,16 +17,11 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { ChipGroup } from '@/components/ui/MultiSelectChipGroup';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
 import { DynamicConfigPanel, ConfigField, type ConfigFieldType, type ConfigValue } from '@/components/config';
 import { InputWithDropdown } from '@/components/ui/input-with-dropdown';
 import { cn } from '@/lib/utils';
 import { renderRichText } from '../shared/renderRichText';
+import { LabelWithHelp } from '../shared';
 import type { EmbeddingExtraProviderConfig, PluginConfigItem } from '@/lib/api';
 import { type EmbeddingConfigField, getEmbeddingModalities } from '../constants.tsx';
 import {
@@ -180,7 +175,7 @@ export function VectorDbSection({
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-lg font-semibold flex items-center gap-2 mb-1">
+        <h2 className="text-lg font-bold flex items-center gap-2 mb-1">
           <Database className="w-5 h-5 text-primary" />
           {t('aiConfig.vectorDb.title')}
         </h2>
@@ -191,15 +186,11 @@ export function VectorDbSection({
 
       {/* 1. Qdrant 部署方式 */}
       <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <Server className="w-4 h-4 text-primary" />
-          <Label className="text-sm font-semibold">
-            {t('aiConfig.vectorDb.qdrantProvider')}
-          </Label>
-        </div>
-        <p className="text-xs text-muted-foreground">
-          {qdrantProviderDesc || t('aiConfig.vectorDb.qdrantProviderDesc')}
-        </p>
+        <LabelWithHelp
+          icon={<Server className="w-4 h-4 text-primary" />}
+          label={t('aiConfig.vectorDb.qdrantProvider')}
+          description={qdrantProviderDesc || t('aiConfig.vectorDb.qdrantProviderDesc')}
+        />
         <ChipGroup
           options={qdrantProviderOptions.map((p) => ({
             value: p,
@@ -349,7 +340,7 @@ export function VectorDbSection({
               >
                 <Globe className="w-4 h-4 text-violet-500 shrink-0 mt-0.5" />
                 <div className="text-xs text-violet-700 dark:text-violet-300 space-y-1">
-                  <p className="font-medium">
+                  <p className="font-semibold">
                     {renderRichText(
                       t('aiConfig.vectorDb.extraProviderBanner')
                         .replace('{displayName}', currentExtraProvider.display_name)
@@ -644,7 +635,8 @@ function getProviderFieldIcon(fieldKey: string) {
 
 /**
  * 统一的字段标题：左侧 lucide 小图标 + 标题文字 + 右侧悬浮提示（带 desc 时显示 ? 按钮）。
- * 与 `DynamicConfigPanel` 的字段 label 风格保持一致。
+ * 与 `DynamicConfigPanel` 的字段 label 风格保持一致。复用 `LabelWithHelp`，
+ * 仅用 `className` 覆盖成更小、更暗的内嵌字段样式。
  */
 function FieldLabel({
   icon,
@@ -656,27 +648,11 @@ function FieldLabel({
   desc?: string;
 }) {
   return (
-    <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
-      <span className="text-muted-foreground/80">{icon}</span>
-      <span>{title}</span>
-      {desc && (
-        <TooltipProvider delayDuration={100}>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                type="button"
-                className="inline-flex items-center justify-center rounded-full p-0.5 hover:bg-primary/10 transition-colors focus:outline-none"
-                onClick={(e) => e.preventDefault()}
-              >
-                <HelpCircle className="w-3.5 h-3.5 text-muted-foreground/60 hover:text-primary cursor-help" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="top" className="max-w-xs">
-              <p>{desc}</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      )}
-    </Label>
+    <LabelWithHelp
+      icon={<span className="text-muted-foreground/80">{icon}</span>}
+      label={title}
+      description={desc}
+      className="text-xs font-normal text-muted-foreground gap-1.5"
+    />
   );
 }

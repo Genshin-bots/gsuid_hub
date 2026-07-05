@@ -13,7 +13,7 @@
   "aiHistory": "AI历史调用",
   "taskConfig": {
     "title": "任务配置",
-    "description": "为高级任务与低级任务分别选择 AI 模型配置（共用同一配置池）",
+    "description": "为高级任务与低级任务分别选择 AI 模型配置（共用同一配置池）。主配置用于正常请求，备用配置在主配置失败或限流时由后端策略自动切换。",
     "notSelectedWarning": "尚未选择配置，该任务将无法使用 AI，请选择一个配置",
     "emptyHint": "暂无配置文件，请点击「新增配置」创建后再为任务选择配置"
   },
@@ -94,8 +94,35 @@
     "apiBaseUrl": "API基础URL",
     "apiModel": "调用模型",
     "apiKey": "API密钥",
+    "apiKeyHint": "（推荐前缀：{prefixes}）",
     "modelCapabilities": "模型支持能力",
     "modelEffort": "思考等级",
+    "modelEffortOptions": {
+      "enable": "启用",
+      "disable": "禁用",
+      "minimal": "极简",
+      "low": "低",
+      "medium": "中",
+      "high": "高",
+      "xhigh": "极高"
+    },
+    "maxConcurrency": "最大并发数",
+    "maxTokens": "最大输出 Token",
+    "usageStatsMode": "使用量统计模式",
+    "usageStatsModeOptions": {
+      "auto": "自动",
+      "incremental": "增量",
+      "cumulative": "累计"
+    },
+    "requestMethod": "请求方式",
+    "requestMethodOptions": {
+      "chat_completions": "Chat Completions（标准对话补全）",
+      "responses": "Responses（统一接口，工具调用 + 结构化输出）"
+    },
+    "requestMethodDescription": {
+      "chat_completions": "OpenAI 标准的 /chat/completions 端点，几乎所有兼容厂商都支持；按 message 数组发送模型参数。",
+      "responses": "OpenAI 新版 /responses 端点，统一管理多轮工具调用、文件引用与结构化输出；需要模型与代理同时支持。"
+    },
     "capabilityText": "文本对话",
     "capabilityImage": "图片理解",
     "capabilityAudio": "语音处理",
@@ -211,8 +238,12 @@
     "provider": "Provider 类型",
     "highLevelTask": "高级任务",
     "highLevelTaskDesc": "复杂推理、工具调用等需要强模型能力的任务",
+    "highLevelTask2nd": "备用配置",
+    "highLevelTask2ndDesc": "主配置失败或触发限流时，后端自动切换到此配置以保证服务可用性。建议选择与主配置不同的 provider 以避免单点故障",
     "lowLevelTask": "低级任务",
     "lowLevelTaskDesc": "简单问答、快速响应等只需基础模型能力的任务",
+    "lowLevelTask2nd": "备用配置",
+    "lowLevelTask2ndDesc": "主配置失败或触发限流时，后端自动切换到此配置以保证服务可用性。建议选择与主配置不同的 provider 以避免单点故障",
     "highLevel": "高级",
     "lowLevel": "低级",
     "selectConfigPlaceholder": "选择配置...",
@@ -220,6 +251,8 @@
     "switchFailed": "切换 Provider 失败",
     "setHighLevelSuccess": "高级任务配置已设置为：{name}",
     "setLowLevelSuccess": "低级任务配置已设置为：{name}",
+    "setHighLevel2ndSuccess": "高级任务备用配置已设置为：{name}",
+    "setLowLevel2ndSuccess": "低级任务备用配置已设置为：{name}",
     "setFailed": "设置配置失败",
     "config": "配置文件",
     "setHighLevel": "设为高级",

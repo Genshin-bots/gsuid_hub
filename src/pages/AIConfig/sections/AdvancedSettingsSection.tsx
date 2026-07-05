@@ -31,8 +31,12 @@ const EXCLUDED_KEYS: string[] = [
   'image_understand_provider',
   'embedding_provider',
   'qdrant_provider',
+  // 主备双配置：以下 4 个 key 均由 TaskConfigSection 专属渲染。
+  // 保留在 EXCLUDED_KEYS 中是为了不与「任务配置」页面里的下拉框重复展示。
   'high_level_provider_config_name',
   'low_level_provider_config_name',
+  'high_level_2nd_provider_config_name',
+  'low_level_2nd_provider_config_name',
   'asr_provider',
   'tts_provider',
   'video_understand_provider',
@@ -48,7 +52,7 @@ export function AdvancedSettingsSection({
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-lg font-semibold flex items-center gap-2 mb-1">
+        <h2 className="text-lg font-bold flex items-center gap-2 mb-1">
           <SlidersHorizontal className="w-5 h-5 text-muted-foreground" />
           {t('aiConfig.advancedSettings.title')}
         </h2>
