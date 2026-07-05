@@ -40,5 +40,19 @@
   "install": "安装",
   "details": "详情",
   "noReadme": "暂无 README 内容",
-  "readmeLoadFailed": "加载 README 失败"
+  "readmeLoadFailed": "加载 README 失败",
+  "installFromUrl": "从 URL 安装",
+  "installFromUrlTitle": "从 URL 安装插件",
+  "installFromUrlDesc": "粘贴任意 git 仓库 URL 来安装未在插件商店上架的插件（例如自建 / 第三方仓库）。",
+  "urlLabel": "仓库 URL",
+  "urlPlaceholder": "https://github.com/owner/MyPlugin.git",
+  "branchLabel": "分支",
+  "branchPlaceholder": "留空使用默认分支（main / master）",
+  "branchOptional": "可选",
+  "urlProtocolHint": "支持 http://、https://、ssh://、git@ 开头的 git 仓库",
+  "urlInvalid": "请输入有效的 URL",
+  "urlProtocolInvalid": "仅支持 http(s) / ssh / git@ 开头的 URL",
+  "urlRequired": "请填写仓库 URL",
+  "cancel": "取消",
+  "installing": "安装中..."
 }

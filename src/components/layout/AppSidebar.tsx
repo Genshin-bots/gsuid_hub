@@ -434,7 +434,7 @@ export function AppSidebar() {
             >
               <div className="flex items-center gap-1 whitespace-nowrap">
                 <span className="font-bold text-lg">{brandTitle}</span>
-                <Badge variant="default" className="text-xs font-medium shrink-0">v{import.meta.env.PACKAGE_VERSION || '0.0.15'}</Badge>
+                <Badge variant="default" className="text-xs font-medium shrink-0">v{import.meta.env.PACKAGE_VERSION || '0.0.16'}</Badge>
               </div>
               <span className="text-xs text-muted-foreground whitespace-nowrap">{brandSubtitle}</span>
             </div>

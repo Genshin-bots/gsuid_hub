@@ -361,5 +361,30 @@
     "sendCooldownSecDesc": "同一会话两次发送表情包之间的最小间隔",
     "recentExcludeCount": "排除最近N张已发图",
     "recentExcludeCountDesc": "发送表情包时排除最近 N 张已发送的图片"
+  },
+  "commandExecutor": {
+    "title": "命令执行器",
+    "description": "配置 AI 在用户授权下执行 shell 命令的能力，包括授权用户、白/黑名单、审批策略、网络与下载、审计留痕等。所有修改保存后即时生效。",
+    "notFound": "未找到「命令执行器」配置，请确认后端已正确加载该配置（prefix=GsCore AI）。",
+    "dangerTitle": "当前命令执行器已开启高风险能力",
+    "dangerDesc": "已开启联网命令或自动安装工具。请确认已正确设置白名单/审批策略/审计，并仅信任的环境中启用。",
+    "disabledHint": "命令执行器已关闭。开启总开关后即可在此编辑授权、审批与执行限制等详细配置。",
+    "enableDesc": "总开关；关闭后 run_command 直接拒绝。",
+    "configCard": {
+      "title": "执行器配置",
+      "description": "编辑「GsCore AI 命令执行器配置」的全部配置项。",
+      "enableLabel": "启用命令执行器"
+    },
+    "approvalMode": {
+      "all": "全部审批",
+      "smart": "智能审批",
+      "auto": "自动放行"
+    },
+    "pathArgPolicy": {
+      "approval": "转审批",
+      "deny": "直接拒绝",
+      "off": "不检查"
+    },
+    "footnote": "提示：所有修改通过「保存配置」按钮提交到后端，仅保存变化字段。gsdict 类型（如自动安装镜像源）以 JSON 文本编辑。"
   }
 }

@@ -3,14 +3,15 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Store, Search, Package, RefreshCw, Download, Trash2, DownloadCloud, GitBranch, FileText, ExternalLink, Grid3x3, Check, Sparkles, Wrench } from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import { Store, Search, Package, RefreshCw, Download, Trash2, DownloadCloud, GitBranch, FileText, ExternalLink, Grid3x3, Check, Sparkles, Wrench, Link2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { pluginStoreApi, StorePlugin, gitMirrorApi, GitPluginInfo } from '@/lib/api';
+import { pluginStoreApi, StorePlugin, gitMirrorApi, GitPluginInfo, getApiErrorMessage } from '@/lib/api';
 import { Skeleton } from '@/components/ui/skeleton';
 import GitMirrorDialog, { getMirrorBadge } from '@/components/GitMirrorDialog';
 import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogFooter, DialogTitle } from '@/components/ui/dialog';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import remarkGfm from 'remark-gfm';
@@ -83,12 +84,18 @@ export default function PluginStorePage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [gitMirrorOpen, setGitMirrorOpen] = useState(false);
   const [gitPluginsMap, setGitPluginsMap] = useState<Record<string, GitPluginInfo>>({});
-  
+
   // README dialog state
   const [readmeDialogOpen, setReadmeDialogOpen] = useState(false);
   const [selectedPlugin, setSelectedPlugin] = useState<StorePlugin | null>(null);
   const [readmeContent, setReadmeContent] = useState<string>('');
   const [readmeLoading, setReadmeLoading] = useState(false);
+
+  // Install by URL dialog state
+  const [installByUrlOpen, setInstallByUrlOpen] = useState(false);
+  const [installByUrlUrl, setInstallByUrlUrl] = useState('');
+  const [installByUrlBranch, setInstallByUrlBranch] = useState('');
+  const [installByUrlLoading, setInstallByUrlLoading] = useState(false);
 
   // 判断插件是否为"停止维护"
   const isDeprecated = (plugin: StorePlugin) => {
@@ -317,6 +324,61 @@ export default function PluginStorePage() {
     }
   };
 
+  // Install plugin by git repo URL - 对应后端 POST /api/plugin-store/install-url
+  // 安装成功/失败后由后端 msg 字段直接 toast 回显，清缓存并刷新列表
+  const handleInstallByUrl = async () => {
+    const url = installByUrlUrl.trim();
+    const branch = installByUrlBranch.trim();
+
+    // 前端校验：URL 非空 + 协议前缀合法（与后端限制保持一致）
+    if (!url) {
+      toast.error(t('pluginStore.urlRequired'));
+      return;
+    }
+    if (!/^(https?:\/\/|ssh:\/\/|git@)/i.test(url)) {
+      toast.error(t('pluginStore.urlProtocolInvalid'));
+      return;
+    }
+    try {
+      // 仅作格式校验，try 内避免与下面 installByUrl 抛错混淆
+      const parsed = url.startsWith('git@')
+        ? new URL(`https://${url}`)
+        : new URL(url);
+      void parsed;
+    } catch {
+      toast.error(t('pluginStore.urlInvalid'));
+      return;
+    }
+
+    try {
+      setInstallByUrlLoading(true);
+      // 注意：installByUrl 后端响应是 `{status, msg}`（没有 data 字段），所以
+      // API 层走的是 api.postRaw 拿到的完整信封。成功 / 失败都从 res.msg 读。
+      const res = await pluginStoreApi.installByUrl(url, branch);
+      if (res.status === 0) {
+        // 后端返回的 msg 已经过友好处理（含 emoji），直接展示
+        toast.success(res.msg || t('pluginStore.installSuccess'));
+        // 关闭弹窗 + 清空表单
+        setInstallByUrlOpen(false);
+        setInstallByUrlUrl('');
+        setInstallByUrlBranch('');
+        // 清除缓存并刷新列表，使新插件立即出现在已安装列表
+        localStorage.removeItem(PLUGIN_CACHE_KEY);
+        localStorage.removeItem(GIT_MIRROR_CACHE_KEY);
+        fetchPlugins(true);
+        fetchGitMirrorInfo(true);
+      } else {
+        // 非 0 状态：postRaw 不会抛错，需手动 toast 后端错误
+        toast.error(getApiErrorMessage(res, t('pluginStore.installError')));
+      }
+    } catch (error) {
+      // 既回显后端 msg（包含具体错误，如 FastAPI detail），又兜底本地化文案
+      toast.error(getApiErrorMessage(error, t('pluginStore.installError')));
+    } finally {
+      setInstallByUrlLoading(false);
+    }
+  };
+
   // Filter plugins based on tab and search
   const filteredPlugins = useMemo(() => {
     let filtered = [...plugins];
@@ -457,6 +519,14 @@ export default function PluginStorePage() {
           >
             <GitBranch className="w-4 h-4" />
             {t('gitMirror.title')}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setInstallByUrlOpen(true)}
+            className="gap-2"
+          >
+            <Link2 className="w-4 h-4" />
+            {t('pluginStore.installFromUrl')}
           </Button>
           <Button
             variant="outline"
@@ -787,6 +857,102 @@ export default function PluginStorePage() {
               </div>
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Install by URL Dialog */}
+      <Dialog
+        open={installByUrlOpen}
+        onOpenChange={(open) => {
+          // 关闭时由 DialogContent 自身的 DialogClose 处理；
+          // 这里若在加载中不强制关闭，避免请求中按 ESC 留下脏表单
+          if (!open && installByUrlLoading) return;
+          setInstallByUrlOpen(open);
+          if (!open) {
+            setInstallByUrlUrl('');
+            setInstallByUrlBranch('');
+          }
+        }}
+      >
+        <DialogContent className="glass-card sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Link2 className="w-5 h-5" />
+              {t('pluginStore.installFromUrlTitle')}
+            </DialogTitle>
+            <DialogDescription>
+              {t('pluginStore.installFromUrlDesc')}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="install-url" className="flex items-center gap-1">
+                {t('pluginStore.urlLabel')}
+                <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="install-url"
+                value={installByUrlUrl}
+                onChange={(e) => setInstallByUrlUrl(e.target.value)}
+                placeholder={t('pluginStore.urlPlaceholder')}
+                className="h-9 font-mono text-sm"
+                disabled={installByUrlLoading}
+                autoComplete="off"
+                spellCheck={false}
+              />
+              <p className="text-xs text-muted-foreground">
+                {t('pluginStore.urlProtocolHint')}
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="install-branch" className="flex items-center gap-2">
+                {t('pluginStore.branchLabel')}
+                <span className="text-xs text-muted-foreground font-normal">
+                  {t('pluginStore.branchOptional')}
+                </span>
+              </Label>
+              <Input
+                id="install-branch"
+                value={installByUrlBranch}
+                onChange={(e) => setInstallByUrlBranch(e.target.value)}
+                placeholder={t('pluginStore.branchPlaceholder')}
+                className="h-9 font-mono text-sm"
+                disabled={installByUrlLoading}
+                autoComplete="off"
+                spellCheck={false}
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setInstallByUrlOpen(false)}
+              disabled={installByUrlLoading}
+              className="h-9"
+            >
+              {t('pluginStore.cancel')}
+            </Button>
+            <Button
+              onClick={handleInstallByUrl}
+              disabled={installByUrlLoading}
+              className="h-9"
+            >
+              {installByUrlLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  {t('pluginStore.installing')}
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4" />
+                  {t('pluginStore.install')}
+                </>
+              )}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

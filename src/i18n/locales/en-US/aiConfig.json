@@ -361,5 +361,30 @@
     "sendCooldownSecDesc": "Minimum interval between sending memes in the same session",
     "recentExcludeCount": "Exclude Recent N Sent Images",
     "recentExcludeCountDesc": "Exclude the most recent N sent images when sending memes"
+  },
+  "commandExecutor": {
+    "title": "Command Executor",
+    "description": "Configure the AI's ability to execute shell commands under user authorization, including authorized users, allow/deny lists, approval policies, networking & provisioning, and audit retention. All changes take effect immediately on save.",
+    "notFound": "The Command Executor configuration was not found. Please confirm the backend has loaded it (prefix=GsCore AI).",
+    "dangerTitle": "High-risk capabilities are currently enabled",
+    "dangerDesc": "Network commands or auto-install tools are enabled. Make sure the allowlist / approval / audit settings are correct, and only enable these in trusted environments.",
+    "disabledHint": "The command executor is disabled. Toggle the master switch to edit authorization, approval and execution limits below.",
+    "enableDesc": "Master switch; when off, run_command is rejected outright.",
+    "configCard": {
+      "title": "Executor Configuration",
+      "description": "Edit every field of the «GsCore AI Command Executor Configuration» entry.",
+      "enableLabel": "Enable Command Executor"
+    },
+    "approvalMode": {
+      "all": "Approve All",
+      "smart": "Smart Approval",
+      "auto": "Auto-Allow"
+    },
+    "pathArgPolicy": {
+      "approval": "Escalate to Approval",
+      "deny": "Reject",
+      "off": "No Check"
+    },
+    "footnote": "Note: all changes are committed through the «Save Configuration» button; only changed fields are sent. gsdict fields (e.g. auto-install mirror sources) are edited as JSON text."
   }
 }

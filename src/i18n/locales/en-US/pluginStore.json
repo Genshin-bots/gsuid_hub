@@ -40,5 +40,19 @@
   "install": "Install",
   "details": "Details",
   "noReadme": "No README content available",
-  "readmeLoadFailed": "Failed to load README"
+  "readmeLoadFailed": "Failed to load README",
+  "installFromUrl": "Install from URL",
+  "installFromUrlTitle": "Install Plugin from URL",
+  "installFromUrlDesc": "Paste any git repository URL to install a plugin that is not listed in the store (e.g. self-hosted or third-party repos).",
+  "urlLabel": "Repository URL",
+  "urlPlaceholder": "https://github.com/owner/MyPlugin.git",
+  "branchLabel": "Branch",
+  "branchPlaceholder": "Leave empty to use the default branch (main / master)",
+  "branchOptional": "Optional",
+  "urlProtocolHint": "Supports git repos starting with http://, https://, ssh://, or git@",
+  "urlInvalid": "Please enter a valid URL",
+  "urlProtocolInvalid": "Only http(s) / ssh / git@ URLs are supported",
+  "urlRequired": "Please provide a repository URL",
+  "cancel": "Cancel",
+  "installing": "Installing..."
 }

@@ -1279,6 +1279,21 @@ export const pluginStoreApi = {
   installPlugin: (pluginId: string, repoUrl?: string) =>
     api.post<{ status: number; msg: string }>(`/api/plugin-store/install/${pluginId}`, { repo_url: repoUrl || '' }),
 
+  /**
+   * 通过 git 仓库 URL 安装任意插件（不必在插件商店白名单内）。
+   * 对应后端 `POST /api/plugin-store/install-url`，body: `{ url, branch? }`。
+   * 后端会从 URL 末段推导插件目录名、git clone 后自动 reload。
+   *
+   * 注意：使用 `api.postRaw` 而非 `api.post`，因为该接口响应**没有** `data`
+   * 顶层字段（响应就是 `{status, msg}`）。`api.post<T>` 会解包并只返回
+   * `data.data`，会把后端的成功 `msg` 丢掉，导致前端无法展示。
+   */
+  installByUrl: (url: string, branch?: string) =>
+    api.postRaw<unknown>('/api/plugin-store/install-url', {
+      url,
+      branch: branch || '',
+    }),
+
   updatePlugin: (pluginId: string) =>
     api.post<{ status: number; msg: string }>(`/api/plugin-store/update/${pluginId}`),
 

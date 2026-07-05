@@ -42,6 +42,7 @@ import {
   Sparkles,
   HelpCircle,
   Server,
+  Terminal,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -69,6 +70,7 @@ import {
   MemeSettingsSection,
   AdvancedSettingsSection,
   GsCoreAiMcpServerSection,
+  CommandExecutorSection,
   ManageConfigDialog,
   CreateConfigDialog,
   EditConfigDialog,
@@ -200,6 +202,16 @@ export default function AIConfigPage() {
     () =>
       Object.values(configs).find(
         (c) => c.name.includes('Qdrant') || c.full_name.includes('Qdrant'),
+      ),
+    [configs],
+  );
+
+  const commandExecutorConfig = useMemo(
+    () =>
+      Object.values(configs).find(
+        (c) =>
+          c.name.includes('命令执行器') ||
+          c.full_name.includes('命令执行器'),
       ),
     [configs],
   );
@@ -649,6 +661,11 @@ export default function AIConfigPage() {
       icon: <Server className="w-5 h-5" />,
     },
     {
+      id: 'commandExecutor',
+      title: t('aiConfig.commandExecutor.title'),
+      icon: <Terminal className="w-5 h-5" />,
+    },
+    {
       id: 'advancedSettings',
       title: t('aiConfig.advancedSettings.title'),
       icon: <SlidersHorizontal className="w-5 h-5" />,
@@ -886,6 +903,14 @@ export default function AIConfigPage() {
           <GsCoreAiMcpServerSection
             t={t}
             isGlass={isGlass}
+          />
+        );
+      case 'commandExecutor':
+        return (
+          <CommandExecutorSection
+            t={t}
+            commandExecutorConfig={commandExecutorConfig}
+            onUpdateConfig={updateConfigValue}
           />
         );
       case 'advancedSettings':

@@ -46,6 +46,8 @@ export { AdvancedSettingsSection } from './sections/AdvancedSettingsSection';
 export type { AdvancedSettingsSectionProps } from './sections/AdvancedSettingsSection';
 export { GsCoreAiMcpServerSection } from './sections/GsCoreAiMcpServerSection';
 export type { GsCoreAiMcpServerSectionProps } from './sections/GsCoreAiMcpServerSection';
+export { CommandExecutorSection } from './sections/CommandExecutorSection';
+export type { CommandExecutorSectionProps } from './sections/CommandExecutorSection';
 
 // dialogs
 export { ManageConfigDialog } from './dialogs/ManageConfigDialog';
