@@ -606,6 +606,9 @@ export default function AIHistoryPage() {
 
   // 筛选
   const [searchQuery, setSearchQuery] = useState('');
+  // 搜索防抖值:输入框实时更新 searchQuery,防抖后同步到 debouncedSearch,
+  // 只有它变化才会真正发起后端请求,避免每敲一个字符打一次全量搜索。
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [filterCreateBy, setFilterCreateBy] = useState<string>('Chat');
   const [filterPersona, setFilterPersona] = useState<string>(DEFAULT_SELECT_VALUE);
   const [filterDateFrom, setFilterDateFrom] = useState('');
@@ -644,7 +647,7 @@ export default function AIHistoryPage() {
     try {
       setIsLoading(true);
       const data = await aiSessionLogsApi.getLogs({
-        session_id: searchQuery || undefined,
+        search: debouncedSearch || undefined,
         create_by: filterCreateBy !== DEFAULT_SELECT_VALUE ? filterCreateBy : undefined,
         persona_name: filterPersona !== DEFAULT_SELECT_VALUE ? filterPersona : undefined,
         date_from: filterDateFrom || undefined,
@@ -661,7 +664,7 @@ export default function AIHistoryPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [searchQuery, filterCreateBy, filterPersona, filterDateFrom, filterDateTo, t]);
+  }, [debouncedSearch, filterCreateBy, filterPersona, filterDateFrom, filterDateTo, t]);
 
   // 获取详情（使用查询参数版 API，避免路径参数中特殊字符导致的路由匹配问题）
   const fetchDetail = useCallback(async (log: SessionLogSummary) => {
@@ -708,12 +711,22 @@ export default function AIHistoryPage() {
     }
   }, [t]);
 
-  // 初始加载
+  // 搜索防抖:输入停止 400ms 后才把 searchQuery 同步到 debouncedSearch
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedSearch(searchQuery), 400);
+    return () => clearTimeout(id);
+  }, [searchQuery]);
+
+  // 统计/分类只在首次挂载(及手动刷新)时拉取,避免搜索/筛选时被反复重算
   useEffect(() => {
     fetchStats();
     fetchCategories();
+  }, [fetchStats, fetchCategories]);
+
+  // 日志列表:防抖后的搜索词或筛选条件变化时重新拉取(回到第一页)
+  useEffect(() => {
     fetchLogs(0);
-  }, [fetchStats, fetchCategories, fetchLogs]);
+  }, [fetchLogs]);
 
   // 刷新
   const handleRefresh = useCallback(() => {
@@ -747,10 +760,11 @@ export default function AIHistoryPage() {
     toast.success('会话JSON已保存');
   }, [detail, linkedAgentDetail]);
 
-  // 应用筛选
+  // 应用筛选:立即把当前输入同步为防抖值(跳过 400ms 等待),
+  // 由列表 effect 感知 debouncedSearch 变化后拉取;值未变则无需重复请求。
   const handleApplyFilter = useCallback(() => {
-    fetchLogs(0);
-  }, [fetchLogs]);
+    setDebouncedSearch(searchQuery);
+  }, [searchQuery]);
 
   // 分页
   const handlePrevPage = useCallback(() => {

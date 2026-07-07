@@ -3663,6 +3663,7 @@ export const aiSessionLogsApi = {
   // 获取统一日志列表（合并内存活�?+ 磁盘持久化）
   getLogs: (params: {
     session_id?: string;
+    search?: string;
     create_by?: string;
     persona_name?: string;
     is_active?: boolean;
@@ -3673,6 +3674,7 @@ export const aiSessionLogsApi = {
   } = {}) => {
     const query = new URLSearchParams();
     if (params.session_id) query.set('session_id', params.session_id);
+    if (params.search) query.set('search', params.search);
     if (params.create_by) query.set('create_by', params.create_by);
     if (params.persona_name) query.set('persona_name', params.persona_name);
     if (params.is_active !== undefined) query.set('is_active', String(params.is_active));
