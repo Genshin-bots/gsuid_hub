@@ -42,6 +42,7 @@ import module40 from './aiKanban.json';
 import module41 from './gsCoreAiMcpServer.json';
 import module42 from './aiBudget.json';
 import module43 from './brand.json';
+import module44 from './aiApprovals.json';
 
 const locale = {
   "common": module0,
@@ -87,7 +88,8 @@ const locale = {
   "aiKanban": module40,
   "gsCoreAiMcpServer": module41,
   "aiBudget": module42,
-  "brand": module43
+  "brand": module43,
+  "aiApprovals": module44
 } as const;
 
 export default locale;

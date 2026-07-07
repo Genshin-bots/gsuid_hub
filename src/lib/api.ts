@@ -1969,6 +1969,8 @@ export interface PersonaConfig {
   target_groups: string[];
   inspect_interval?: number; // 定时巡检间隔（分钟）�?, 10, 15, 30, 60
   keywords?: string[]; // 触发关键词列表（用于提及应答模式�?
+  tool_packs?: string[]; // 工具能力族（dynamic / task_basics / capability_domain 族名）
+  tool_names?: string[]; // 显式工具白名单（并入保底池）
 }
 
 export interface PersonaConfigResponse {
@@ -1983,6 +1985,8 @@ export interface PersonaConfigUpdateRequest {
   target_groups?: string[];
   inspect_interval?: number;
   keywords?: string[];
+  tool_packs?: string[];
+  tool_names?: string[];
 }
 
 export interface PersonaConfigUpdateResponse {
@@ -2226,27 +2230,30 @@ export const aiToolsApi = {
 };
 
 // ===================
-// Capability Agents API
+// Capability Agents API（AgentNode v2：profile_id→node_id、system_prompt→prompt，
+// 预算字段移除，新增 tool_packs / prompt_style / boundary_override，来源新增 persona）
 // ===================
 
-export type CapabilityAgentSource = 'builtin' | 'plugin' | 'user';
+export type AgentNodeSource = 'builtin' | 'plugin' | 'user' | 'persona';
 
-export interface CapabilityAgentProfile {
-  profile_id: string;
+export interface AgentNodeItem {
+  node_id: string;
   display_name: string;
   when_to_use: string;
-  system_prompt: string;
+  prompt: string;
+  prompt_style: 'roleplay' | 'plain';
   match_keywords: string[];
+  tool_packs: string[];
   tool_names: string[];
   tool_query: string;
-  max_iterations: number;
-  max_tokens: number;
-  source: CapabilityAgentSource;
+  boundary_override: string;
+  source: AgentNodeSource;
+  version: number;
 }
 
-export interface CapabilityAgentListResponse {
+export interface AgentNodeListResponse {
   count: number;
-  items: CapabilityAgentProfile[];
+  items: AgentNodeItem[];
 }
 
 export interface CapabilityAgentTool {
@@ -2261,50 +2268,91 @@ export interface CapabilityAgentToolsResponse {
   items: CapabilityAgentTool[];
 }
 
-export interface CapabilityAgentCreateRequest {
-  profile_id: string;
+export interface AgentNodeCreateRequest {
+  node_id: string;
   display_name: string;
   when_to_use?: string;
-  system_prompt: string;
+  prompt: string;
   match_keywords?: string[];
+  tool_packs?: string[];
   tool_names?: string[];
   tool_query?: string;
-  max_iterations?: number;
-  max_tokens?: number;
+  boundary_override?: string;
   base?: string;
 }
 
-export interface CapabilityAgentUpdateRequest {
+export interface AgentNodeUpdateRequest {
   display_name?: string;
   when_to_use?: string;
-  system_prompt?: string;
+  prompt?: string;
   match_keywords?: string[];
+  tool_packs?: string[];
   tool_names?: string[];
   tool_query?: string;
-  max_iterations?: number;
-  max_tokens?: number;
+  boundary_override?: string;
 }
 
 export const capabilityAgentsApi = {
-  getList: (source?: CapabilityAgentSource) => {
+  getList: (source?: AgentNodeSource) => {
     const query = source ? `?source=${encodeURIComponent(source)}` : '';
-    return api.get<CapabilityAgentListResponse>(`/api/ai/capability-agents/list${query}`);
+    return api.get<AgentNodeListResponse>(`/api/ai/capability-agents/list${query}`);
   },
 
-  getDetail: (profileId: string) =>
-    api.get<CapabilityAgentProfile>(`/api/ai/capability-agents/${encodeURIComponent(profileId)}`),
+  getDetail: (nodeId: string) =>
+    api.get<AgentNodeItem>(`/api/ai/capability-agents/${encodeURIComponent(nodeId)}`),
 
-  create: (data: CapabilityAgentCreateRequest) =>
-    api.post<CapabilityAgentProfile>('/api/ai/capability-agents', data),
+  create: (data: AgentNodeCreateRequest) =>
+    api.post<AgentNodeItem>('/api/ai/capability-agents', data),
 
-  update: (profileId: string, data: CapabilityAgentUpdateRequest) =>
-    api.patch<CapabilityAgentProfile>(`/api/ai/capability-agents/${encodeURIComponent(profileId)}`, data),
+  update: (nodeId: string, data: AgentNodeUpdateRequest) =>
+    api.patch<AgentNodeItem>(`/api/ai/capability-agents/${encodeURIComponent(nodeId)}`, data),
 
-  delete: (profileId: string) =>
-    api.delete<{ profile_id: string }>(`/api/ai/capability-agents/${encodeURIComponent(profileId)}`),
+  delete: (nodeId: string) =>
+    api.delete<{ node_id: string }>(`/api/ai/capability-agents/${encodeURIComponent(nodeId)}`),
 
   getAvailableTools: () =>
     api.get<CapabilityAgentToolsResponse>('/api/ai/capability-agents/_tools/available'),
+};
+
+// ===================
+// AI Approvals API（统一审批中心）
+// ===================
+
+export type AIApprovalStatus = 'pending' | 'approved' | 'rejected' | 'expired' | 'auto_approved';
+
+export interface AIApprovalItem {
+  request_id: string;
+  short_id: string;
+  interaction: 'approval' | 'question';
+  audience: 'user' | 'master';
+  category: string;
+  ref_key: string;
+  origin_session_id: string;
+  operator_user_id: string;
+  title: string;
+  status: AIApprovalStatus;
+  resolved_by: string;
+  resolved_note: string;
+  resolved_via: string;
+  created_at: number;
+  resolved_at: number;
+}
+
+export interface AIApprovalListResponse {
+  count: number;
+  items: AIApprovalItem[];
+}
+
+export const aiApprovalsApi = {
+  getList: (status: 'pending' | 'all' = 'pending') =>
+    api.get<AIApprovalListResponse>(`/api/ai/approvals/list?status=${status}`),
+
+  // postRaw：resolve 的人类可读结果在顶层 msg 里（如"✅ 已批准 #ab12…"），post 会丢掉它
+  resolve: (requestId: string, approved: boolean, note = '') =>
+    api.postRaw<AIApprovalItem>(
+      `/api/ai/approvals/${encodeURIComponent(requestId)}/resolve`,
+      { approved, note },
+    ),
 };
 
 // ===================
@@ -3808,7 +3856,7 @@ export interface AIKanbanPatchSubtaskRequest {
 }
 
 export interface AIKanbanCapabilityCandidate {
-  profile_id: string;
+  node_id: string;
   display_name: string;
   when_to_use: string;
   match_keywords: string[];

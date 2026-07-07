@@ -1,0 +1,32 @@
+{
+  "title": "Approval Center",
+  "description": "Unified approval ledger: command execution, Kanban subtasks (incl. plugin installs), tool-call grants, and agent-initiated requests.",
+  "loadFailed": "Failed to load approvals",
+  "resolveFailed": "Failed to resolve the request",
+  "resolveSuccess": "Request resolved",
+  "emptyPending": "No pending approval requests",
+  "emptyAll": "No approval records yet",
+  "approve": "Approve",
+  "reject": "Reject",
+  "approveDialogTitle": "Confirm approving this request",
+  "rejectDialogTitle": "Confirm rejecting this request",
+  "noteLabel": "Note (optional)",
+  "notePlaceholder": "A note for the requester, recorded in the approval ledger",
+  "resolvedBy": "Resolved by {by} via {via}",
+  "interactionQuestion": "Q&A",
+  "tabs": {
+    "pending": "Pending",
+    "all": "Recent"
+  },
+  "audience": {
+    "user": "User-level",
+    "master": "Master-level"
+  },
+  "status": {
+    "pending": "Pending",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "expired": "Expired",
+    "auto_approved": "Auto-approved"
+  }
+}

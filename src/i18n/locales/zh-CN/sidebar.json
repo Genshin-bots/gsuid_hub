@@ -25,6 +25,7 @@
   "sessionManagement": "会话管理",
   "aiHistory": "AI 历史调用",
   "aiKanban": "任务看板",
+  "aiApprovals": "审批中心",
   "aiBudget": "AI 预算",
   "plugins": "插件配置",
   "pluginStore": "插件商城",

@@ -66,6 +66,8 @@ import {
   Clock,
   Target,
   HelpCircle,
+  Package,
+  Wrench,
 } from 'lucide-react';
 // 支持的音频格式
 const SUPPORTED_AUDIO_FORMATS = ['mp3', 'ogg', 'wav', 'm4a', 'flac'];
@@ -193,6 +195,8 @@ export default function PersonaConfigPage() {
   const [editingScope, setEditingScope] = useState<PersonaScope>('disabled');
   const [editingInspectInterval, setEditingInspectInterval] = useState<number>(10);
   const [editingKeywords, setEditingKeywords] = useState<string[]>([]);
+  const [editingToolPacks, setEditingToolPacks] = useState<string[]>(['dynamic']);
+  const [editingToolNames, setEditingToolNames] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState('markdown');
   // 音频播放状态
   const [playingAudio, setPlayingAudio] = useState<string | null>(null);
@@ -482,6 +486,8 @@ export default function PersonaConfigPage() {
     setEditingScope(persona.config?.scope || 'disabled');
     setEditingInspectInterval(persona.config?.inspect_interval || 10);
     setEditingKeywords(persona.config?.keywords || []);
+    setEditingToolPacks(persona.config?.tool_packs || ['dynamic']);
+    setEditingToolNames(persona.config?.tool_names || []);
     setActiveTab('markdown');
     setEditDialogOpen(true);
   };
@@ -628,6 +634,8 @@ export default function PersonaConfigPage() {
         target_groups: editingGroups,
         inspect_interval: editingInspectInterval,
         keywords: editingKeywords,
+        tool_packs: editingToolPacks,
+        tool_names: editingToolNames,
       });
       // 保存 Markdown 内容（仅在内容发生变化时）
       if (editContent !== editingPersona.content) {
@@ -1420,6 +1428,36 @@ export default function PersonaConfigPage() {
                     </p>
                   </div>
                 )}
+                {/* 工具能力族（AgentNode 同构：dynamic / task_basics / capability_domain 族名） */}
+                <div className="space-y-3">
+                  <Label className="flex items-center gap-2 text-base">
+                    <Package className="h-4 w-4" />
+                    {t('personaConfig.toolPacks')}
+                  </Label>
+                  <TagsInput
+                    value={editingToolPacks}
+                    onChange={setEditingToolPacks}
+                    placeholder={t('personaConfig.toolPacksPlaceholder')}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {t('personaConfig.toolPacksHint')}
+                  </p>
+                </div>
+                {/* 显式工具白名单（并入保底池，不经向量检索） */}
+                <div className="space-y-3">
+                  <Label className="flex items-center gap-2 text-base">
+                    <Wrench className="h-4 w-4" />
+                    {t('personaConfig.toolNames')}
+                  </Label>
+                  <TagsInput
+                    value={editingToolNames}
+                    onChange={setEditingToolNames}
+                    placeholder={t('personaConfig.toolNamesPlaceholder')}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {t('personaConfig.toolNamesHint')}
+                  </p>
+                </div>
               </div>
             </TabsContent>
             {/* 头像 Tab */}

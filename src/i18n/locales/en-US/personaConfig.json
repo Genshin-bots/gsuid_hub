@@ -98,6 +98,12 @@
   "triggerKeywords": "Trigger Keywords",
   "keywordsPlaceholder": "Enter keyword and press Enter to add",
   "keywordsHint": "When group messages contain these keywords, mention response mode will be triggered",
+  "toolPacks": "Tool Packs",
+  "toolPacksPlaceholder": "Press Enter to add a pack name, e.g. dynamic / task_basics",
+  "toolPacksHint": "dynamic = five-layer runtime auto-assembly (default); task_basics = task basics pack; capability_domain pack names declared via @ai_tools are also accepted",
+  "toolNames": "Tool Allowlist",
+  "toolNamesPlaceholder": "Press Enter to add a tool name, e.g. send_stock_info",
+  "toolNamesHint": "These tools are always merged into this persona's baseline tool pool without vector retrieval",
   "minutesUnit": "m",
   "keywordsCountSuffix": ""
 }

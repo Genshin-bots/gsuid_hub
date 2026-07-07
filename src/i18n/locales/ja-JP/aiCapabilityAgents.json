@@ -1,72 +1,76 @@
 {
   "title": "能力エージェント",
-  "description": "長期タスクや複雑な多段階タスクを委任するための、人格を持たない実行プロファイルを管理します。",
-  "newProfile": "新規プロファイル",
+  "description": "統一 AgentNode 定義（能力エージェント / ペルソナ投影）を管理し、長期タスクや複雑な多段階タスクを委任します。",
+  "newProfile": "新規ノード",
   "copyAsNew": "新規としてコピー",
-  "readonlyTip": "フレームワークまたはプラグインのプロファイルは表示のみです",
+  "readonlyTip": "フレームワーク・プラグイン・ペルソナ投影ノードは表示のみです",
   "searchPlaceholder": "名前、ID、用途、キーワード、プロンプトを検索...",
-  "empty": "一致する能力エージェントプロファイルはありません",
+  "empty": "一致するノードはありません",
   "loadFailed": "能力エージェントの読み込みに失敗しました",
   "saveFailed": "能力エージェントの保存に失敗しました",
   "deleteFailed": "能力エージェントの削除に失敗しました",
-  "createSuccess": "能力エージェントを作成しました",
-  "updateSuccess": "能力エージェントを更新しました",
-  "deleteSuccess": "能力エージェントを削除しました",
+  "createSuccess": "ノードを作成しました",
+  "updateSuccess": "ノードを更新しました",
+  "deleteSuccess": "ノードを削除しました",
   "deleting": "削除中...",
   "noUsage": "使用場面が未設定です",
   "toolCount": "{count} 個のツール",
+  "toolPacksHint": "dynamic＝実行時の五層自動アセンブル；task_basics＝タスク基礎パック；capability_domain パック名（例：「定時タスク」）も指定できます。",
   "sources": {
     "builtin": "内蔵 builtin",
     "plugin": "プラグイン plugin",
-    "user": "自分の user"
+    "user": "自分の user",
+    "persona": "ペルソナ persona"
   },
   "dialog": {
-    "createTitle": "能力エージェントプロファイルを作成",
-    "editTitle": "能力エージェントプロファイルを編集",
-    "viewTitle": "能力エージェントプロファイルを表示",
-    "description": "プロファイルは中立的なプロンプト、ツール許可リスト、マッチキーワードで構成され、人格や社交属性は含みません。",
+    "createTitle": "Agent ノードを作成",
+    "editTitle": "Agent ノードを編集",
+    "viewTitle": "Agent ノードを表示",
+    "description": "ノードはアイデンティティプロンプト、ツールパック、ツール許可リスト、マッチキーワードで構成されます。task モードではフレームワークが納品境界を自動付加します。",
     "baseDesc": "{base} をテンプレートとして使用しています。作成時の空欄はバックエンドでコピーできます。"
   },
   "fields": {
-    "profileId": "Profile ID",
+    "nodeId": "Node ID",
     "displayName": "表示名",
     "whenToUse": "使用場面",
-    "systemPrompt": "システムプロンプト",
+    "prompt": "アイデンティティプロンプト",
     "matchKeywords": "マッチキーワード",
+    "toolPacks": "ツールパック",
     "toolNames": "ツール許可リスト",
     "toolQuery": "ツール補足クエリ",
-    "maxIterations": "最大反復回数",
-    "maxTokens": "最大 Token"
+    "boundaryOverride": "納品境界の上書き"
   },
   "placeholders": {
     "displayName": "例：取引アシスタント",
-    "whenToUse": "このプロファイルに委任すべきタスクを説明します",
-    "systemPrompt": "中立的な Plan-and-Solve プロンプトを入力し、ロールプレイ表現は避けてください",
+    "whenToUse": "このノードに委任すべきタスクを説明します",
+    "prompt": "中立的な Plan-and-Solve プロンプトを入力してください。ロールプレイ表現や納品境界の手書きは避けてください",
     "matchKeywords": "Enter でキーワード追加、カンマ区切り対応",
-    "toolQuery": "例：株価 ポジション"
+    "toolPacks": "Enter で capability_domain パック名を追加",
+    "toolQuery": "例：株価 ポジション",
+    "boundaryOverride": "空欄の場合はフレームワーク既定の納品境界を使用します。特殊なノードのみ上書きしてください"
   },
   "preview": {
     "title": "Markdown プレビュー",
     "description": "長いプロンプトの構造を確認します。",
-    "empty": "システムプロンプトは未入力です。"
+    "empty": "アイデンティティプロンプトは未入力です。"
   },
   "tools": {
     "description": "バックエンドに登録済みのツールから選択し、プラグインごとに表示します。",
     "searchPlaceholder": "ツール名、説明、プラグイン、カテゴリを検索...",
-    "alwaysMounted": "基本ツールは実行時に自動マウントされるため、重複選択は不要です。",
+    "alwaysMounted": "task_basics パック（artifact/state/record/検索など）は上のツールパックでマウントされるため、ここで再選択は不要です。",
     "noSelected": "ツールはまだ選択されていません。",
-    "readonlyDisabled": "読み取り専用プロファイルではツール許可リストを変更できません",
+    "readonlyDisabled": "読み取り専用ノードではツール許可リストを変更できません",
     "openDropdown": "ツール選択を開く（選択済み {count} 個）",
     "noMatched": "一致するツールはありません",
     "allPlugins": "すべてのプラグイン"
   },
   "validation": {
-    "profileId": "Profile ID は英字で始まり、英数字とアンダースコアのみ使用でき、最大 64 文字です。",
+    "nodeId": "Node ID は英字で始まり、英数字とアンダースコアのみ使用でき、最大 64 文字です。",
     "displayName": "表示名を入力してください。",
-    "systemPrompt": "システムプロンプトを入力してください。"
+    "prompt": "アイデンティティプロンプトを入力してください。"
   },
   "deleteDialog": {
-    "title": "能力エージェントを削除",
+    "title": "ノードを削除",
     "description": "「{name}」のディスクファイルとメモリ登録情報を削除します。この操作は元に戻せません。"
   }
 }

@@ -98,6 +98,12 @@
   "triggerKeywords": "トリガー主要词",
   "keywordsPlaceholder": "入力主要词後で回车追加",
   "keywordsHint": "グループメッセージ包含これらの主要词時、トリガー提および応答モード",
+  "toolPacks": "ツールパック",
+  "toolPacksPlaceholder": "Enter でパック名を追加（例：dynamic / task_basics）",
+  "toolPacksHint": "dynamic＝実行時の五層自動アセンブル（既定）；task_basics＝タスク基礎パック；@ai_tools で宣言した capability_domain パック名も指定可能",
+  "toolNames": "ツール許可リスト",
+  "toolNamesPlaceholder": "Enter でツール名を追加（例：send_stock_info）",
+  "toolNamesHint": "これらのツールはベクトル検索を経ずに、このペルソナの基本ツールプールへ常時マージされます",
   "minutesUnit": "分钟",
   "keywordsCountSuffix": "個"
 }

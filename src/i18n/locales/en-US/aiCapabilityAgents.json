@@ -1,72 +1,76 @@
 {
   "title": "Capability Agents",
-  "description": "Manage persona-less execution profiles for delegated long-running and complex multi-step tasks.",
-  "newProfile": "New Profile",
+  "description": "Manage unified AgentNode definitions (capability agents / persona projections) for delegated long-running and complex multi-step tasks.",
+  "newProfile": "New Node",
   "copyAsNew": "Copy as New",
-  "readonlyTip": "Framework or plugin profile, view only",
+  "readonlyTip": "Framework, plugin, or persona-projection node, view only",
   "searchPlaceholder": "Search name, ID, usage, keywords, or prompt...",
-  "empty": "No matching capability agent profiles",
+  "empty": "No matching nodes",
   "loadFailed": "Failed to load capability agents",
   "saveFailed": "Failed to save capability agent",
   "deleteFailed": "Failed to delete capability agent",
-  "createSuccess": "Capability agent created",
-  "updateSuccess": "Capability agent updated",
-  "deleteSuccess": "Capability agent deleted",
+  "createSuccess": "Node created",
+  "updateSuccess": "Node updated",
+  "deleteSuccess": "Node deleted",
   "deleting": "Deleting...",
   "noUsage": "No usage scenario provided",
   "toolCount": "{count} tools",
+  "toolPacksHint": "dynamic = five-layer runtime auto-assembly; task_basics = task basics pack; capability_domain pack names (e.g. \"scheduling\") are also accepted.",
   "sources": {
     "builtin": "Builtin",
     "plugin": "Plugin",
-    "user": "Mine"
+    "user": "Mine",
+    "persona": "Persona"
   },
   "dialog": {
-    "createTitle": "Create Capability Agent Profile",
-    "editTitle": "Edit Capability Agent Profile",
-    "viewTitle": "View Capability Agent Profile",
-    "description": "A profile consists of a neutral prompt, tool allowlist, and matching keywords. It has no persona or social attributes.",
+    "createTitle": "Create Agent Node",
+    "editTitle": "Edit Agent Node",
+    "viewTitle": "View Agent Node",
+    "description": "A node consists of an identity prompt, tool packs, a tool allowlist, and matching keywords. The framework appends the delivery boundary automatically in task mode.",
     "baseDesc": "Using {base} as a template. Empty fields can be copied by the backend on creation."
   },
   "fields": {
-    "profileId": "Profile ID",
+    "nodeId": "Node ID",
     "displayName": "Display Name",
     "whenToUse": "When to Use",
-    "systemPrompt": "System Prompt",
+    "prompt": "Identity Prompt",
     "matchKeywords": "Match Keywords",
+    "toolPacks": "Tool Packs",
     "toolNames": "Tool Allowlist",
     "toolQuery": "Tool Query",
-    "maxIterations": "Max Iterations",
-    "maxTokens": "Max Tokens"
+    "boundaryOverride": "Delivery Boundary Override"
   },
   "placeholders": {
     "displayName": "e.g. Trading Assistant",
-    "whenToUse": "Describe which tasks should be delegated to this profile",
-    "systemPrompt": "Enter a neutral Plan-and-Solve prompt and avoid role-play language",
+    "whenToUse": "Describe which tasks should be delegated to this node",
+    "prompt": "Enter a neutral Plan-and-Solve prompt; avoid role-play language and do not hand-write the delivery boundary",
     "matchKeywords": "Press Enter to add keywords, comma separated is supported",
-    "toolQuery": "e.g. stock quotes position sizing"
+    "toolPacks": "Press Enter to add a capability_domain pack name",
+    "toolQuery": "e.g. stock quotes position sizing",
+    "boundaryOverride": "Leave empty to use the framework default delivery boundary; only special nodes need an override"
   },
   "preview": {
     "title": "Markdown Preview",
     "description": "Preview the structure of the long prompt.",
-    "empty": "No system prompt yet."
+    "empty": "No identity prompt yet."
   },
   "tools": {
     "description": "Select from registered backend tools, grouped by plugin.",
     "searchPlaceholder": "Search tool name, description, plugin, or category...",
-    "alwaysMounted": "Base tools are mounted automatically at runtime and do not need to be selected.",
+    "alwaysMounted": "The task_basics pack (artifact/state/record/search, etc.) is mounted via the tool packs above and does not need to be selected here.",
     "noSelected": "No tools selected yet.",
-    "readonlyDisabled": "Tool allowlist cannot be changed for read-only profiles",
+    "readonlyDisabled": "Tool allowlist cannot be changed for read-only nodes",
     "openDropdown": "Open tool selector ({count} selected)",
     "noMatched": "No matching tools",
     "allPlugins": "All plugins"
   },
   "validation": {
-    "profileId": "Profile ID must start with a letter, contain only letters, numbers, and underscores, and be at most 64 characters.",
+    "nodeId": "Node ID must start with a letter, contain only letters, numbers, and underscores, and be at most 64 characters.",
     "displayName": "Please enter a display name.",
-    "systemPrompt": "Please enter a system prompt."
+    "prompt": "Please enter an identity prompt."
   },
   "deleteDialog": {
-    "title": "Delete Capability Agent",
+    "title": "Delete Node",
     "description": "This will remove the disk file and in-memory registry entry for {name}. This action cannot be undone."
   }
 }

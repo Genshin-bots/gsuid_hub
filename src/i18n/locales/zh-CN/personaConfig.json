@@ -98,6 +98,12 @@
   "triggerKeywords": "触发关键词",
   "keywordsPlaceholder": "输入关键词后按回车添加",
   "keywordsHint": "当群聊消息包含这些关键词时，将触发提及应答模式",
+  "toolPacks": "工具能力族",
+  "toolPacksPlaceholder": "输入能力族名后回车，如 dynamic / task_basics",
+  "toolPacksHint": "dynamic=运行时五层自动装配（默认）；task_basics=任务基础族；也可填 @ai_tools 声明的 capability_domain 族名",
+  "toolNames": "显式工具白名单",
+  "toolNamesPlaceholder": "输入工具名后回车，如 send_stock_info",
+  "toolNamesHint": "这些工具将常驻并入该人格的保底工具池，不经向量检索",
   "minutesUnit": " 分钟",
   "keywordsCountSuffix": "个"
 }

@@ -1,0 +1,32 @@
+{
+  "title": "承認センター",
+  "description": "統一承認台帳：コマンド実行、Kanban サブタスク（プラグインインストール含む）、ツール呼び出し許可、Agent からのリクエスト。",
+  "loadFailed": "承認リストの読み込みに失敗しました",
+  "resolveFailed": "裁決に失敗しました",
+  "resolveSuccess": "裁決が完了しました",
+  "emptyPending": "承認待ちのリクエストはありません",
+  "emptyAll": "承認記録はまだありません",
+  "approve": "承認",
+  "reject": "拒否",
+  "approveDialogTitle": "このリクエストを承認しますか",
+  "rejectDialogTitle": "このリクエストを拒否しますか",
+  "noteLabel": "備考（任意）",
+  "notePlaceholder": "リクエスト元への備考。承認台帳に記録されます",
+  "resolvedBy": "{by} が {via} 経由で裁決",
+  "interactionQuestion": "確認質問",
+  "tabs": {
+    "pending": "承認待ち",
+    "all": "最近すべて"
+  },
+  "audience": {
+    "user": "ユーザーレベル",
+    "master": "マスターレベル"
+  },
+  "status": {
+    "pending": "承認待ち",
+    "approved": "承認済み",
+    "rejected": "拒否済み",
+    "expired": "期限切れ",
+    "auto_approved": "自動承認"
+  }
+}

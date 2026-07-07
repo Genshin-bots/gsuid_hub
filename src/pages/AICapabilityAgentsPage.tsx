@@ -7,8 +7,8 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { cn } from '@/lib/utils';
 import {
   capabilityAgentsApi,
-  CapabilityAgentProfile,
-  CapabilityAgentSource,
+  AgentNodeItem,
+  AgentNodeSource,
   CapabilityAgentTool,
 } from '@/lib/api';
 import { Badge } from '@/components/ui/badge';
@@ -25,43 +25,46 @@ import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
-const SOURCES: CapabilityAgentSource[] = ['builtin', 'plugin', 'user'];
-const PROFILE_ID_PATTERN = /^[a-zA-Z][a-zA-Z0-9_]{0,63}$/;
+const SOURCES: AgentNodeSource[] = ['builtin', 'plugin', 'user', 'persona'];
+const NODE_ID_PATTERN = /^[a-zA-Z][a-zA-Z0-9_]{0,63}$/;
+// 框架内置能力族；capability_domain 族名可自由追加，故 TagInput 不做白名单限制
+const BUILTIN_TOOL_PACKS = ['task_basics', 'dynamic'];
 
 const EMPTY_FORM = {
-  profile_id: '',
+  node_id: '',
   display_name: '',
   when_to_use: '',
-  system_prompt: '',
+  prompt: '',
   match_keywords: [] as string[],
+  tool_packs: ['task_basics'] as string[],
   tool_names: [] as string[],
   tool_query: '',
-  max_iterations: 20,
-  max_tokens: 35000,
+  boundary_override: '',
   base: '',
 };
 
 type FormState = typeof EMPTY_FORM;
 type DialogMode = 'create' | 'edit' | 'view';
 
-function sourceClass(source: CapabilityAgentSource) {
+function sourceClass(source: AgentNodeSource) {
   if (source === 'builtin') return 'bg-blue-500/15 text-blue-600 border-blue-500/30';
   if (source === 'plugin') return 'bg-violet-500/15 text-violet-600 border-violet-500/30';
+  if (source === 'persona') return 'bg-amber-500/15 text-amber-600 border-amber-500/30';
   return 'bg-emerald-500/15 text-emerald-600 border-emerald-500/30';
 }
 
-function toForm(profile?: CapabilityAgentProfile | null, base?: string): FormState {
-  if (!profile) return { ...EMPTY_FORM, match_keywords: [], tool_names: [], base: base || '' };
+function toForm(node?: AgentNodeItem | null, base?: string): FormState {
+  if (!node) return { ...EMPTY_FORM, match_keywords: [], tool_packs: ['task_basics'], tool_names: [], base: base || '' };
   return {
-    profile_id: profile.profile_id,
-    display_name: profile.display_name,
-    when_to_use: profile.when_to_use || '',
-    system_prompt: profile.system_prompt || '',
-    match_keywords: profile.match_keywords || [],
-    tool_names: profile.tool_names || [],
-    tool_query: profile.tool_query || '',
-    max_iterations: profile.max_iterations || 20,
-    max_tokens: profile.max_tokens || 35000,
+    node_id: node.node_id,
+    display_name: node.display_name,
+    when_to_use: node.when_to_use || '',
+    prompt: node.prompt || '',
+    match_keywords: node.match_keywords || [],
+    tool_packs: node.tool_packs || [],
+    tool_names: node.tool_names || [],
+    tool_query: node.tool_query || '',
+    boundary_override: node.boundary_override || '',
     base: base || '',
   };
 }
@@ -273,8 +276,8 @@ export default function AICapabilityAgentsPage() {
   const { style } = useTheme();
   const isGlass = style === 'glassmorphism';
 
-  const [activeSource, setActiveSource] = useState<CapabilityAgentSource>('builtin');
-  const [profiles, setProfiles] = useState<CapabilityAgentProfile[]>([]);
+  const [activeSource, setActiveSource] = useState<AgentNodeSource>('builtin');
+  const [profiles, setProfiles] = useState<AgentNodeItem[]>([]);
   const [tools, setTools] = useState<CapabilityAgentTool[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -282,8 +285,8 @@ export default function AICapabilityAgentsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<DialogMode>('view');
-  const [form, setForm] = useState<FormState>(() => ({ ...EMPTY_FORM, match_keywords: [], tool_names: [] }));
-  const [deleteTarget, setDeleteTarget] = useState<CapabilityAgentProfile | null>(null);
+  const [form, setForm] = useState<FormState>(() => ({ ...EMPTY_FORM, match_keywords: [], tool_packs: ['task_basics'], tool_names: [] }));
+  const [deleteTarget, setDeleteTarget] = useState<AgentNodeItem | null>(null);
 
   const loadData = useCallback(async () => {
     try {
@@ -307,10 +310,10 @@ export default function AICapabilityAgentsPage() {
   }, [loadData]);
 
   const sourceCounts = useMemo(() => {
-    return profiles.reduce<Record<CapabilityAgentSource, number>>((acc, profile) => {
+    return profiles.reduce<Record<AgentNodeSource, number>>((acc, profile) => {
       acc[profile.source] += 1;
       return acc;
-    }, { builtin: 0, plugin: 0, user: 0 });
+    }, { builtin: 0, plugin: 0, user: 0, persona: 0 });
   }, [profiles]);
 
   const sourceOptions = useMemo(() => SOURCES.map((source) => ({
@@ -320,7 +323,9 @@ export default function AICapabilityAgentsPage() {
       ? <Package className="h-4 w-4" />
       : source === 'plugin'
         ? <Puzzle className="h-4 w-4" />
-        : <UserRound className="h-4 w-4" />,
+        : source === 'persona'
+          ? <Sparkles className="h-4 w-4" />
+          : <UserRound className="h-4 w-4" />,
   })), [sourceCounts, t]);
 
   const filteredProfiles = useMemo(() => {
@@ -328,17 +333,17 @@ export default function AICapabilityAgentsPage() {
     return profiles.filter((profile) => {
       if (profile.source !== activeSource) return false;
       if (!query) return true;
-      return [profile.profile_id, profile.display_name, profile.when_to_use, profile.system_prompt, ...(profile.match_keywords || [])]
+      return [profile.node_id, profile.display_name, profile.when_to_use, profile.prompt, ...(profile.match_keywords || [])]
         .join('\n')
         .toLowerCase()
         .includes(query);
     });
   }, [activeSource, profiles, searchQuery]);
 
-  const openDialog = (mode: DialogMode, profile?: CapabilityAgentProfile, base?: string) => {
+  const openDialog = (mode: DialogMode, profile?: AgentNodeItem, base?: string) => {
     setDialogMode(mode);
     if (mode === 'create' && profile) {
-      setForm({ ...toForm(profile, base || profile.profile_id), profile_id: '', display_name: '', base: base || profile.profile_id });
+      setForm({ ...toForm(profile, base || profile.node_id), node_id: '', display_name: '', base: base || profile.node_id });
     } else {
       setForm(toForm(profile, base));
     }
@@ -350,16 +355,16 @@ export default function AICapabilityAgentsPage() {
   };
 
   const validateForm = () => {
-    if (dialogMode === 'create' && !PROFILE_ID_PATTERN.test(form.profile_id.trim())) {
-      toast.error(t('aiCapabilityAgents.validation.profileId'));
+    if (dialogMode === 'create' && !NODE_ID_PATTERN.test(form.node_id.trim())) {
+      toast.error(t('aiCapabilityAgents.validation.nodeId'));
       return false;
     }
     if (!form.display_name.trim()) {
       toast.error(t('aiCapabilityAgents.validation.displayName'));
       return false;
     }
-    if (!form.system_prompt.trim()) {
-      toast.error(t('aiCapabilityAgents.validation.systemPrompt'));
+    if (!form.prompt.trim()) {
+      toast.error(t('aiCapabilityAgents.validation.prompt'));
       return false;
     }
     return true;
@@ -372,18 +377,18 @@ export default function AICapabilityAgentsPage() {
       const payload = {
         display_name: form.display_name.trim(),
         when_to_use: form.when_to_use.trim(),
-        system_prompt: form.system_prompt.trim(),
+        prompt: form.prompt.trim(),
         match_keywords: form.match_keywords,
+        tool_packs: form.tool_packs,
         tool_names: form.tool_names,
         tool_query: form.tool_query.trim(),
-        max_iterations: Number(form.max_iterations) || 20,
-        max_tokens: Number(form.max_tokens) || 35000,
+        boundary_override: form.boundary_override.trim(),
       };
       if (dialogMode === 'create') {
-        await capabilityAgentsApi.create({ ...payload, profile_id: form.profile_id.trim(), base: form.base || undefined });
+        await capabilityAgentsApi.create({ ...payload, node_id: form.node_id.trim(), base: form.base || undefined });
         toast.success(t('aiCapabilityAgents.createSuccess'));
       } else {
-        await capabilityAgentsApi.update(form.profile_id, payload);
+        await capabilityAgentsApi.update(form.node_id, payload);
         toast.success(t('aiCapabilityAgents.updateSuccess'));
       }
       setDialogOpen(false);
@@ -401,7 +406,7 @@ export default function AICapabilityAgentsPage() {
     if (!deleteTarget) return;
     try {
       setIsDeleting(true);
-      await capabilityAgentsApi.delete(deleteTarget.profile_id);
+      await capabilityAgentsApi.delete(deleteTarget.node_id);
       toast.success(t('aiCapabilityAgents.deleteSuccess'));
       setDeleteTarget(null);
       await loadData();
@@ -447,7 +452,7 @@ export default function AICapabilityAgentsPage() {
           <TabButtonGroup
             options={sourceOptions}
             value={activeSource}
-            onValueChange={(value) => setActiveSource(value as CapabilityAgentSource)}
+            onValueChange={(value) => setActiveSource(value as AgentNodeSource)}
             className="w-max"
           />
         </div>
@@ -473,7 +478,7 @@ export default function AICapabilityAgentsPage() {
           {filteredProfiles.map((profile) => {
             const locked = profile.source !== 'user';
             return (
-              <Card key={profile.profile_id} className={cn('group transition-all hover:border-primary/50 hover:shadow-md', isGlass ? 'glass-card' : 'border border-border/50')}>
+              <Card key={profile.node_id} className={cn('group transition-all hover:border-primary/50 hover:shadow-md', isGlass ? 'glass-card' : 'border border-border/50')}>
                 <CardHeader className="space-y-3">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 space-y-1">
@@ -481,7 +486,7 @@ export default function AICapabilityAgentsPage() {
                         <Sparkles className="h-5 w-5 shrink-0 text-primary" />
                         <span className="truncate">{profile.display_name}</span>
                       </CardTitle>
-                      <CardDescription className="font-mono text-xs">{profile.profile_id}</CardDescription>
+                      <CardDescription className="font-mono text-xs">{profile.node_id}</CardDescription>
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge variant="outline" className={sourceClass(profile.source)}>{profile.source}</Badge>
@@ -501,6 +506,9 @@ export default function AICapabilityAgentsPage() {
                   <div className="flex flex-wrap gap-2">
                     <Badge variant="secondary" className="gap-1"><Wrench className="h-3 w-3" />{t('aiCapabilityAgents.toolCount', { count: profile.tool_names?.length || 0 })}</Badge>
                     <Badge variant="secondary" className="gap-1"><Tags className="h-3 w-3" />{profile.match_keywords?.length || 0}</Badge>
+                    {(profile.tool_packs || []).map((pack) => (
+                      <Badge key={pack} variant="outline" className="gap-1 text-[10px]"><Package className="h-3 w-3" />{pack}</Badge>
+                    ))}
                   </div>
                   {profile.match_keywords?.length > 0 && (
                     <div className="flex flex-wrap gap-1.5">
@@ -511,7 +519,7 @@ export default function AICapabilityAgentsPage() {
                   <div className="flex flex-wrap justify-end gap-2 pt-2">
                     <Button variant="outline" size="sm" onClick={() => openDialog('view', profile)} className="gap-1.5"><Eye className="h-4 w-4" />{t('common.view') || '查看'}</Button>
                     {profile.source === 'user' && <Button variant="outline" size="sm" onClick={() => openDialog('edit', profile)}>{t('common.edit')}</Button>}
-                    <Button variant="outline" size="sm" onClick={() => openDialog('create', profile, profile.profile_id)} className="gap-1.5"><Copy className="h-4 w-4" />{t('aiCapabilityAgents.copyAsNew')}</Button>
+                    <Button variant="outline" size="sm" onClick={() => openDialog('create', profile, profile.node_id)} className="gap-1.5"><Copy className="h-4 w-4" />{t('aiCapabilityAgents.copyAsNew')}</Button>
                     {profile.source === 'user' && <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => setDeleteTarget(profile)}><Trash2 className="h-4 w-4" /></Button>}
                   </div>
                 </CardContent>
@@ -532,8 +540,8 @@ export default function AICapabilityAgentsPage() {
               <div className="space-y-5">
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label>{t('aiCapabilityAgents.fields.profileId')}</Label>
-                    <Input value={form.profile_id} onChange={(event) => updateForm('profile_id', event.target.value)} disabled={dialogMode !== 'create'} placeholder="finance_agent" />
+                    <Label>{t('aiCapabilityAgents.fields.nodeId')}</Label>
+                    <Input value={form.node_id} onChange={(event) => updateForm('node_id', event.target.value)} disabled={dialogMode !== 'create'} placeholder="finance_agent" />
                   </div>
                   <div className="space-y-2">
                     <Label>{t('aiCapabilityAgents.fields.displayName')}</Label>
@@ -545,26 +553,46 @@ export default function AICapabilityAgentsPage() {
                   <Textarea value={form.when_to_use} onChange={(event) => updateForm('when_to_use', event.target.value)} disabled={isReadOnly} rows={3} placeholder={t('aiCapabilityAgents.placeholders.whenToUse')} />
                 </div>
                 <div className="space-y-2">
-                  <Label>{t('aiCapabilityAgents.fields.systemPrompt')}</Label>
-                  <Textarea value={form.system_prompt} onChange={(event) => updateForm('system_prompt', event.target.value)} disabled={isReadOnly} rows={12} placeholder={t('aiCapabilityAgents.placeholders.systemPrompt')} />
+                  <Label>{t('aiCapabilityAgents.fields.prompt')}</Label>
+                  <Textarea value={form.prompt} onChange={(event) => updateForm('prompt', event.target.value)} disabled={isReadOnly} rows={12} placeholder={t('aiCapabilityAgents.placeholders.prompt')} />
                 </div>
                 <div className="space-y-2">
                   <Label>{t('aiCapabilityAgents.fields.matchKeywords')}</Label>
                   <TagInput value={form.match_keywords} onChange={(value) => updateForm('match_keywords', value)} placeholder={t('aiCapabilityAgents.placeholders.matchKeywords')} />
                 </div>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label>{t('aiCapabilityAgents.fields.maxIterations')}</Label>
-                    <Input type="number" min={1} value={form.max_iterations} onChange={(event) => updateForm('max_iterations', Number(event.target.value))} disabled={isReadOnly} />
+                <div className="space-y-2">
+                  <Label>{t('aiCapabilityAgents.fields.toolPacks')}</Label>
+                  <p className="text-xs text-muted-foreground">{t('aiCapabilityAgents.toolPacksHint')}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {BUILTIN_TOOL_PACKS.map((pack) => {
+                      const active = form.tool_packs.includes(pack);
+                      return (
+                        <Button
+                          key={pack}
+                          type="button"
+                          size="sm"
+                          variant={active ? 'default' : 'outline'}
+                          disabled={isReadOnly}
+                          onClick={() => updateForm('tool_packs', active ? form.tool_packs.filter((item) => item !== pack) : [...form.tool_packs, pack])}
+                        >
+                          {pack}
+                        </Button>
+                      );
+                    })}
                   </div>
-                  <div className="space-y-2">
-                    <Label>{t('aiCapabilityAgents.fields.maxTokens')}</Label>
-                    <Input type="number" min={1000} value={form.max_tokens} onChange={(event) => updateForm('max_tokens', Number(event.target.value))} disabled={isReadOnly} />
-                  </div>
+                  <TagInput
+                    value={form.tool_packs.filter((pack) => !BUILTIN_TOOL_PACKS.includes(pack))}
+                    onChange={(value) => updateForm('tool_packs', [...form.tool_packs.filter((pack) => BUILTIN_TOOL_PACKS.includes(pack)), ...value])}
+                    placeholder={t('aiCapabilityAgents.placeholders.toolPacks')}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>{t('aiCapabilityAgents.fields.toolQuery')}</Label>
                   <Input value={form.tool_query} onChange={(event) => updateForm('tool_query', event.target.value)} disabled={isReadOnly} placeholder={t('aiCapabilityAgents.placeholders.toolQuery')} />
+                </div>
+                <div className="space-y-2">
+                  <Label>{t('aiCapabilityAgents.fields.boundaryOverride')}</Label>
+                  <Textarea value={form.boundary_override} onChange={(event) => updateForm('boundary_override', event.target.value)} disabled={isReadOnly} rows={3} placeholder={t('aiCapabilityAgents.placeholders.boundaryOverride')} />
                 </div>
               </div>
 
@@ -576,7 +604,7 @@ export default function AICapabilityAgentsPage() {
                   </CardHeader>
                   <CardContent>
                     <div className="prose prose-sm max-w-none rounded-lg bg-muted/40 p-4 text-foreground dark:prose-invert max-h-64 overflow-auto">
-                      <ReactMarkdown>{form.system_prompt || t('aiCapabilityAgents.preview.empty')}</ReactMarkdown>
+                      <ReactMarkdown>{form.prompt || t('aiCapabilityAgents.preview.empty')}</ReactMarkdown>
                     </div>
                   </CardContent>
                 </Card>
@@ -610,7 +638,7 @@ export default function AICapabilityAgentsPage() {
           <DialogFooter className="shrink-0 border-t bg-background px-6 py-4">
             <Button variant="outline" onClick={() => setDialogOpen(false)}>{t('common.cancel')}</Button>
             {dialogMode !== 'view' && <Button onClick={saveProfile} disabled={isSaving} className="gap-2">{isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}{t('common.save')}</Button>}
-            {dialogMode !== 'create' && <Button variant="secondary" onClick={() => openDialog('create', profiles.find((item) => item.profile_id === form.profile_id), form.profile_id)} className="gap-2"><Copy className="h-4 w-4" />{t('aiCapabilityAgents.copyAsNew')}</Button>}
+            {dialogMode !== 'create' && <Button variant="secondary" onClick={() => openDialog('create', profiles.find((item) => item.node_id === form.node_id), form.node_id)} className="gap-2"><Copy className="h-4 w-4" />{t('aiCapabilityAgents.copyAsNew')}</Button>}
           </DialogFooter>
         </DialogContent>
       </Dialog>

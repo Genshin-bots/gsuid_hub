@@ -1,4 +1,4 @@
-import { Home, LayoutDashboard, Database, Settings, FileText, LogOut, Palette, Terminal, Calendar, Store, Cpu, HardDrive, PanelLeftClose, Cog, Power, RotateCw, User, Brain, ChevronDown, ChevronRight, Wrench, Sparkles, BookOpen, History, TrendingUp, Clock, Server, GitBranch, Image as ImageIcon, ScrollText, Layers, ClipboardList, Activity, Wallet } from 'lucide-react';
+import { Home, LayoutDashboard, Database, Settings, FileText, LogOut, Palette, Terminal, Calendar, Store, Cpu, HardDrive, PanelLeftClose, Cog, Power, RotateCw, User, Brain, ChevronDown, ChevronRight, Wrench, Sparkles, BookOpen, History, TrendingUp, Clock, Server, GitBranch, Image as ImageIcon, ScrollText, Layers, ClipboardList, Activity, Wallet, ShieldCheck } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -86,6 +86,7 @@ const getNavItems = (t: (key: string) => string, isAIEnabled: boolean): NavItem[
         { id: 'ai-memory', title: t('sidebar.aiMemory'), url: '/ai-memory', icon: Brain },
         { id: 'ai-history', title: t('sidebar.aiHistory'), url: '/ai-history', icon: ScrollText },
         { id: 'ai-kanban', title: t('sidebar.aiKanban'), url: '/ai-kanban', icon: ClipboardList },
+        { id: 'ai-approvals', title: t('sidebar.aiApprovals'), url: '/ai-approvals', icon: ShieldCheck },
       ]
     : [
         { id: 'ai-basicConfig', title: t('sidebar.basicConfig'), url: '/ai-config', icon: Cog },
@@ -434,7 +435,7 @@ export function AppSidebar() {
             >
               <div className="flex items-center gap-1 whitespace-nowrap">
                 <span className="font-bold text-lg">{brandTitle}</span>
-                <Badge variant="default" className="text-xs font-medium shrink-0">v{import.meta.env.PACKAGE_VERSION || '0.0.16'}</Badge>
+                <Badge variant="default" className="text-xs font-medium shrink-0">v{import.meta.env.PACKAGE_VERSION || '0.0.17'}</Badge>
               </div>
               <span className="text-xs text-muted-foreground whitespace-nowrap">{brandSubtitle}</span>
             </div>

@@ -335,7 +335,7 @@ export default function AIKanbanPage() {
     }, { ...emptyColumns });
   }, [board.columns, searchQuery]);
 
-  const candidateOptions = useMemo(() => candidates.map((item) => item.profile_id), [candidates]);
+  const candidateOptions = useMemo(() => candidates.map((item) => item.node_id), [candidates]);
 
   const allBoardCards = useMemo(() => COLUMN_KEYS.flatMap((column) => board.columns[column] || []), [board.columns]);
 

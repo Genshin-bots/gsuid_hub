@@ -1,0 +1,32 @@
+{
+  "title": "审批中心",
+  "description": "统一审批账本：命令执行、Kanban 子任务（含插件安装）、工具调用授权、Agent 主动请求。",
+  "loadFailed": "加载审批列表失败",
+  "resolveFailed": "裁决失败",
+  "resolveSuccess": "已完成裁决",
+  "emptyPending": "当前没有待审批请求",
+  "emptyAll": "暂无审批记录",
+  "approve": "批准",
+  "reject": "拒绝",
+  "approveDialogTitle": "确认批准该请求",
+  "rejectDialogTitle": "确认拒绝该请求",
+  "noteLabel": "附加说明（可选）",
+  "notePlaceholder": "写给发起方的备注，会记录在审批账本中",
+  "resolvedBy": "由 {by} 经 {via} 裁决",
+  "interactionQuestion": "澄清问答",
+  "tabs": {
+    "pending": "待审批",
+    "all": "近期全部"
+  },
+  "audience": {
+    "user": "用户级",
+    "master": "主人级"
+  },
+  "status": {
+    "pending": "待审批",
+    "approved": "已批准",
+    "rejected": "已拒绝",
+    "expired": "已过期",
+    "auto_approved": "自动放行"
+  }
+}
