@@ -5,6 +5,7 @@ export interface TabButtonOption {
   value: string;
   label: string;
   icon?: React.ReactNode;
+  disabled?: boolean;
 }
 
 interface TabButtonGroupProps {
@@ -35,12 +36,13 @@ export function TabButtonGroup({
         <button
           key={option.value}
           onClick={() => onValueChange(option.value)}
-          disabled={disabled}
+          disabled={disabled || option.disabled}
           className={cn(
             'relative px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 flex items-center gap-2 whitespace-nowrap',
             value === option.value
               ? 'bg-primary text-primary-foreground'
               : 'text-muted-foreground hover:text-foreground hover:bg-muted/80',
+            (disabled || option.disabled) && 'opacity-40 cursor-not-allowed pointer-events-none hover:text-muted-foreground hover:bg-transparent',
             buttonClassName
           )}
         >

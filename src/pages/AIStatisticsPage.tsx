@@ -358,7 +358,8 @@ function QuickPreviewItem({ title, icon, loading, data, error, onClick, t }: Qui
         <div className="space-y-2.5">
           <div className="flex items-baseline gap-2">
             <span className="text-3xl font-bold tabular-nums leading-none">
-              {formatCompactNumber(data.total.total_tokens)}
+              {/* 缓存 Token 属于输入的一部分,总计仅取 输入+输出,避免与缓存重复累加 */}
+              {formatCompactNumber(data.total.input_tokens + data.total.output_tokens)}
             </span>
             <span className="text-xs text-muted-foreground">
               {t('aiStatistics.totalTokens')}

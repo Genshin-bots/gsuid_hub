@@ -6,7 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
-import { Wrench, AlertCircle } from 'lucide-react';
+import { Wrench, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { aiToolsApi, AITool } from '@/lib/api';
 import { toast } from 'sonner';
 import {
@@ -76,6 +77,24 @@ function parseToolDescription(tool: AITool, language: string): ParsedTool {
   };
 }
 
+// 每页展示的工具数量
+const PAGE_SIZE = 100;
+
+// 生成分页页码列表:始终包含首尾页、当前页及其相邻页,其余以省略号折叠
+function getPageNumbers(current: number, total: number): (number | 'ellipsis')[] {
+  if (total <= 7) {
+    return Array.from({ length: total }, (_, i) => i + 1);
+  }
+  const pages: (number | 'ellipsis')[] = [1];
+  const start = Math.max(2, current - 1);
+  const end = Math.min(total - 1, current + 1);
+  if (start > 2) pages.push('ellipsis');
+  for (let p = start; p <= end; p++) pages.push(p);
+  if (end < total - 1) pages.push('ellipsis');
+  pages.push(total);
+  return pages;
+}
+
 // ============================================================================
 // 组件定义
 // ============================================================================
@@ -87,8 +106,6 @@ export default function AIToolsPage() {
 
   // 状态
   const [tools, setTools] = useState<AITool[]>([]);
-  const [toolsByCategory, setToolsByCategory] = useState<Record<string, AITool[]>>({});
-  const [toolsByPlugin, setToolsByPlugin] = useState<Record<string, AITool[]>>({});
   const [categories, setCategories] = useState<string[]>([]);
   const [plugins, setPlugins] = useState<string[]>([]);
   const [totalCount, setTotalCount] = useState(0);
@@ -101,6 +118,9 @@ export default function AIToolsPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedPlugin, setSelectedPlugin] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
+
+  // 当前页码（每页 PAGE_SIZE 个工具）
+  const [page, setPage] = useState(1);
 
   // 获取所有插件列表（core 放在最后）
   const pluginList = useMemo(() => {
@@ -121,33 +141,64 @@ export default function AIToolsPage() {
     return ['all', ...sortedCategories];
   }, [categories]);
 
+  // 搜索匹配函数
+  const matchesSearch = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    return (tool: AITool) =>
+      !query ||
+      tool.name.toLowerCase().includes(query) ||
+      tool.description.toLowerCase().includes(query);
+  }, [searchQuery]);
+
   // 按筛选条件过滤后的工具列表
   const filteredTools = useMemo(() => {
-    let result = tools;
-    
-    if (selectedCategory !== 'all') {
-      result = result.filter(tool => tool.category === selectedCategory);
+    return tools.filter(tool =>
+      (selectedCategory === 'all' || tool.category === selectedCategory) &&
+      (selectedPlugin === 'all' || tool.plugin === selectedPlugin) &&
+      matchesSearch(tool)
+    );
+  }, [tools, selectedCategory, selectedPlugin, matchesSearch]);
+
+  // 分类计数:统计在「当前所选插件 + 搜索」条件下,每个分类还有多少工具
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: 0 };
+    for (const tool of tools) {
+      if (selectedPlugin !== 'all' && tool.plugin !== selectedPlugin) continue;
+      if (!matchesSearch(tool)) continue;
+      counts[tool.category] = (counts[tool.category] || 0) + 1;
+      counts.all += 1;
     }
-    
-    if (selectedPlugin !== 'all') {
-      result = result.filter(tool => tool.plugin === selectedPlugin);
+    return counts;
+  }, [tools, selectedPlugin, matchesSearch]);
+
+  // 插件计数:统计在「当前所选分类 + 搜索」条件下,每个插件还有多少工具
+  const pluginCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: 0 };
+    for (const tool of tools) {
+      if (selectedCategory !== 'all' && tool.category !== selectedCategory) continue;
+      if (!matchesSearch(tool)) continue;
+      counts[tool.plugin] = (counts[tool.plugin] || 0) + 1;
+      counts.all += 1;
     }
-    
-    if (searchQuery.trim()) {
-      const query = searchQuery.trim().toLowerCase();
-      result = result.filter(tool =>
-        tool.name.toLowerCase().includes(query) ||
-        tool.description.toLowerCase().includes(query)
-      );
-    }
-    
-    return result;
-  }, [tools, selectedCategory, selectedPlugin, searchQuery]);
+    return counts;
+  }, [tools, selectedCategory, matchesSearch]);
 
   // 解析后的工具列表
   const parsedTools = useMemo(() => {
     return filteredTools.map(tool => parseToolDescription(tool, language));
-  }, [filteredTools]);
+  }, [filteredTools, language]);
+
+  // 分页:筛选条件变化时回到第 1 页
+  useEffect(() => {
+    setPage(1);
+  }, [selectedCategory, selectedPlugin, searchQuery]);
+
+  const totalPages = Math.max(1, Math.ceil(parsedTools.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pagedTools = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return parsedTools.slice(start, start + PAGE_SIZE);
+  }, [parsedTools, currentPage]);
 
   // 加载工具列表
   useEffect(() => {
@@ -157,8 +208,6 @@ export default function AIToolsPage() {
         setError(null);
         const data = await aiToolsApi.getToolsList();
         setTools(data.tools || []);
-        setToolsByCategory(data.by_category || {});
-        setToolsByPlugin(data.by_plugin || {});
         setCategories(data.categories || []);
         setPlugins(data.plugins || []);
         setTotalCount(data.total_count || 0);
@@ -198,9 +247,13 @@ export default function AIToolsPage() {
             options={categoryList.map((category) => ({
               value: category,
               label: category === 'all'
-                ? (t('aiTools.allCategories') || '全部分类')
-                : `${category} (${toolsByCategory[category]?.length || 0})`,
+                ? `${t('aiTools.allCategories') || '全部分类'} (${categoryCounts.all || 0})`
+                : `${category} (${categoryCounts[category] || 0})`,
               icon: <Wrench className="w-4 h-4" />,
+              // 当前筛选下数量为 0 的分类置灰(全部/已选中的除外)
+              disabled: category !== 'all'
+                && category !== selectedCategory
+                && (categoryCounts[category] || 0) === 0,
             }))}
             value={selectedCategory}
             onValueChange={setSelectedCategory}
@@ -211,9 +264,13 @@ export default function AIToolsPage() {
             options={pluginList.map((plugin) => ({
               value: plugin,
               label: plugin === 'all'
-                ? (t('aiTools.allPlugins') || '全部插件')
-                : `${plugin} (${toolsByPlugin[plugin]?.length || 0})`,
+                ? `${t('aiTools.allPlugins') || '全部插件'} (${pluginCounts.all || 0})`
+                : `${plugin} (${pluginCounts[plugin] || 0})`,
               icon: <Wrench className="w-4 h-4" />,
+              // 当前筛选下数量为 0 的插件置灰(全部/已选中的除外)
+              disabled: plugin !== 'all'
+                && plugin !== selectedPlugin
+                && (pluginCounts[plugin] || 0) === 0,
             }))}
             value={selectedPlugin}
             onValueChange={setSelectedPlugin}
@@ -275,8 +332,9 @@ export default function AIToolsPage() {
           </CardContent>
         </Card>
       ) : (
+        <>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {parsedTools.map((tool) => (
+          {pagedTools.map((tool) => (
             <Card
               key={tool.name}
               className={cn(
@@ -314,6 +372,45 @@ export default function AIToolsPage() {
             </Card>
           ))}
         </div>
+
+        {/* 分页控件 */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-2 pt-2">
+            <Button
+              variant="outline"
+              size="icon"
+              disabled={currentPage <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              aria-label="Previous page"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            {getPageNumbers(currentPage, totalPages).map((p, i) =>
+              p === 'ellipsis' ? (
+                <span key={`e${i}`} className="px-2 text-muted-foreground">…</span>
+              ) : (
+                <Button
+                  key={p}
+                  variant={p === currentPage ? 'default' : 'outline'}
+                  size="icon"
+                  onClick={() => setPage(p)}
+                >
+                  {p}
+                </Button>
+              ),
+            )}
+            <Button
+              variant="outline"
+              size="icon"
+              disabled={currentPage >= totalPages}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              aria-label="Next page"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
+        )}
+        </>
       )}
 
       {/* 工具详情弹窗 */}
