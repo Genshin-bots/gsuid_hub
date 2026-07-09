@@ -235,7 +235,10 @@ export function ConfigField({
   const renderField = () => {
     // Divider 类型
     if (field.type === 'divider') {
-      const dividerTitle = (typeof value === 'string' && value) ? value : null;
+      // 分割线标题：优先用后端提供的 value；value 为空(如 "")时回退到 title(label)，
+      // 两者都为空才渲染纯分割线
+      const dividerTitle =
+        typeof value === 'string' && value ? value : displayLabel || null;
       if (dividerTitle) {
         // 带标题的分割线：标题样式突出
         return (

@@ -66,8 +66,12 @@
     "userInput": "ユーザー入力",
     "result": "結果",
     "proactive": "自発発言",
+    "proactiveGenerator": "生成プロセス",
+    "triggerReason": "トリガー",
     "loadingSubAgent": "サブエージェントのトレースを読み込み中…",
     "toolNoInfo": "このツールの情報はありません",
+    "expandAll": "すべて展開",
+    "collapseAll": "すべて折りたたむ",
     "reset": {
       "title": "履歴リセット",
       "userClear": "会話クリア",

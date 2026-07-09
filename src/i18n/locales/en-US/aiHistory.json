@@ -66,8 +66,12 @@
     "userInput": "User Input",
     "result": "Result",
     "proactive": "Proactive",
+    "proactiveGenerator": "Generation",
+    "triggerReason": "Trigger",
     "loadingSubAgent": "Loading sub-agent trace…",
     "toolNoInfo": "No info for this tool",
+    "expandAll": "Expand All",
+    "collapseAll": "Collapse All",
     "reset": {
       "title": "History Reset",
       "userClear": "Cleared",

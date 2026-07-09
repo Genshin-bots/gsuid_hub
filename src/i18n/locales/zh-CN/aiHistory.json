@@ -66,8 +66,12 @@
     "userInput": "用户输入",
     "result": "结果",
     "proactive": "主动发言",
+    "proactiveGenerator": "生成过程",
+    "triggerReason": "触发原因",
     "loadingSubAgent": "加载子 Agent 轨迹…",
     "toolNoInfo": "暂无该工具的信息",
+    "expandAll": "全部展开",
+    "collapseAll": "全部收起",
     "reset": {
       "title": "历史重置",
       "userClear": "清空会话",

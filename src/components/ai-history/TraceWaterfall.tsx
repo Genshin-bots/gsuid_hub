@@ -1,5 +1,15 @@
-import { useMemo, useState, useCallback, useEffect, createContext, useContext, Fragment } from 'react';
-import { cn } from '@/lib/utils';
+import {
+  useMemo,
+  useState,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  forwardRef,
+  createContext,
+  useContext,
+  Fragment,
+} from 'react';
+import { cn, formatTokens } from '@/lib/utils';
 import type { SessionLogEntry, HistoryResetReason, AITool } from '@/lib/api';
 import { aiToolsApi } from '@/lib/api';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -20,8 +30,8 @@ import {
   UserCog,
   Scissors,
   Loader2,
-  CornerDownRight,
   AlignLeft,
+  Sparkles,
 } from 'lucide-react';
 
 // 工具名 → 元数据（description/plugin/category）。由顶层 TraceWaterfall 拉一次 /api/ai/tools/list
@@ -30,8 +40,10 @@ const ToolInfoContext = createContext<Record<string, AITool>>({});
 
 // 行缩进步长（须与下方 paddingLeft: depth*INDENT / marginLeft 对齐）
 const INDENT = 14;
-// 首层层级竖线的水平位置：时间列 64 + gap 8 + 图标半宽 ~8
+// 层级竖线基准：时间列 64 + gap 8 + 展开控件（w-4）半宽 8
 const RAIL_LEFT = 80;
+// 时间列宽 64 + gap 8：内容面板/子 trace 的左缩进要越过时间列
+const TIME_COL = 72;
 
 // ============================================================================
 // Trace 模型：把扁平 entries 重建为 span 树（run → chat / tool / subagent 子 span）
@@ -201,7 +213,11 @@ function buildTrace(entries: SessionLogEntry[]): TraceSpan[] {
         break;
       }
       case 'agent_linked': {
-        if (asStr(d.agent_type) !== 'sub_agent') break; // 仅可见 sub_agent
+        // sub_agent：主 Agent 派生的子 Agent；proactive_generator：主动消息的决策/生成子 Agent，
+        // 其日志即「主动发言」背后的思考来源——两者都作可展开的 subagent span 暴露出来
+        // （proactive_generator 之前被过滤掉，导致主动发言看起来"只有输出没有思考"）。
+        const at = asStr(d.agent_type);
+        if (at !== 'sub_agent' && at !== 'proactive_generator') break;
         addToRun({ id: nid(), kind: 'subagent', start: ts, end: ts, entry: e, agentData: d, children: [] });
         break;
       }
@@ -302,6 +318,48 @@ function buildTrace(entries: SessionLogEntry[]): TraceSpan[] {
 }
 
 // ============================================================================
+// 顶层分块：logfire 式「堆叠卡片」——每个 run 一张卡（局部时间窗），
+// 主动发言/重置/模式切换/会话生命周期各自成独立分隔块，散落行归并为无头卡片。
+// ============================================================================
+
+type Block =
+  | { key: string; type: 'run' | 'proactive' | 'reset' | 'mode' | 'lifecycle'; sp: TraceSpan }
+  | { key: string; type: 'loose'; spans: TraceSpan[] };
+
+const LIFECYCLE_TYPES = new Set(['session_created', 'session_resumed', 'session_ended']);
+
+function groupBlocks(roots: TraceSpan[]): Block[] {
+  const blocks: Block[] = [];
+  let loose: TraceSpan[] = [];
+  const flush = () => {
+    if (loose.length > 0) blocks.push({ key: `loose-${loose[0].id}`, type: 'loose', spans: loose });
+    loose = [];
+  };
+  for (const sp of roots) {
+    if (sp.kind === 'run') {
+      flush();
+      blocks.push({ key: sp.id, type: 'run', sp });
+    } else if (sp.kind === 'proactive') {
+      flush();
+      blocks.push({ key: sp.id, type: 'proactive', sp });
+    } else if (sp.kind === 'event' && sp.resetReason) {
+      flush();
+      blocks.push({ key: sp.id, type: 'reset', sp });
+    } else if (sp.kind === 'event' && sp.modeChange) {
+      flush();
+      blocks.push({ key: sp.id, type: 'mode', sp });
+    } else if (sp.kind === 'system' && LIFECYCLE_TYPES.has(sp.entry?.type || '')) {
+      flush();
+      blocks.push({ key: sp.id, type: 'lifecycle', sp });
+    } else {
+      loose.push(sp);
+    }
+  }
+  flush();
+  return blocks;
+}
+
+// ============================================================================
 // 展示辅助
 // ============================================================================
 
@@ -318,13 +376,6 @@ function formatDuration(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = Math.round(seconds % 60);
   return `${m}m${s > 0 ? ` ${s}s` : ''}`;
-}
-
-function formatTokens(n: number): string {
-  if (n < 1000) return String(n);
-  if (n < 10000) return `${(n / 1000).toFixed(2)}K`;
-  if (n < 1_000_000) return `${(n / 1000).toFixed(1)}K`;
-  return `${(n / 1_000_000).toFixed(2)}M`;
 }
 
 type TFunc = (key: string, opts?: Record<string, unknown>) => string;
@@ -380,7 +431,11 @@ function kindIcon(sp: TraceSpan) {
     case 'tool':
       return <Wrench className="w-3.5 h-3.5" />;
     case 'subagent':
-      return <Bot className="w-3.5 h-3.5" />;
+      return sp.agentData?.agent_type === 'proactive_generator' ? (
+        <Sparkles className="w-3.5 h-3.5" />
+      ) : (
+        <Bot className="w-3.5 h-3.5" />
+      );
     case 'user':
       return <User className="w-3.5 h-3.5" />;
     case 'result':
@@ -412,6 +467,9 @@ function kindColor(sp: TraceSpan): { icon: string; bar: string; text: string } {
     case 'tool':
       return { icon: 'text-amber-500', bar: 'bg-amber-400/70', text: 'text-amber-700 dark:text-amber-300' };
     case 'subagent':
+      // 主动消息的生成子 Agent 用 proactive 同色系（粉），与普通子 Agent（紫）区分
+      if (sp.agentData?.agent_type === 'proactive_generator')
+        return { icon: 'text-pink-500', bar: 'bg-pink-400/70', text: 'text-pink-700 dark:text-pink-300' };
       return { icon: 'text-violet-500', bar: 'bg-violet-400/70', text: 'text-violet-700 dark:text-violet-300' };
     case 'user':
       return { icon: 'text-blue-500', bar: 'bg-blue-400/60', text: 'text-blue-700 dark:text-blue-300' };
@@ -439,10 +497,17 @@ function spanLabel(sp: TraceSpan, t: TFunc): string {
     case 'run':
       return t('aiHistory.waterfall.agentRun');
     case 'chat':
-      return sp.model ? `${t('aiHistory.waterfall.chat')} ${sp.model}` : t('aiHistory.waterfall.chat');
+      // 模型名不并入标签（由行内独立的 model 芯片展示），保持标签短而可扫读
+      return t('aiHistory.waterfall.chat');
     case 'tool':
       return sp.toolName || t('aiHistory.waterfall.tool');
     case 'subagent':
+      if (sp.agentData?.agent_type === 'proactive_generator') {
+        // 主动消息的决策/生成子 Agent：标为「生成过程」，点开即这条主动发言的思考轨迹
+        return asStr(sp.agentData?.persona_name)
+          ? `${t('aiHistory.waterfall.proactiveGenerator')} · ${asStr(sp.agentData?.persona_name)}`
+          : t('aiHistory.waterfall.proactiveGenerator');
+      }
       return asStr(sp.agentData?.persona_name) || t('aiHistory.waterfall.subAgent');
     case 'user':
       return t('aiHistory.waterfall.userInput');
@@ -477,6 +542,46 @@ function spanLabel(sp: TraceSpan, t: TFunc): string {
       return map[et] ? t(map[et]) : et;
     }
   }
+}
+
+// 行内单行内容预览：不展开也能扫读「用户说了什么 / AI 回了什么 / 工具传了什么」。
+// 展开后行下方会有完整内容面板，预览随之隐藏（避免同屏重复）。
+function spanPreview(sp: TraceSpan): string {
+  const e = sp.entry;
+  if (!e) return '';
+  const d = (e.data || {}) as Record<string, unknown>;
+  let s = '';
+  switch (e.type) {
+    case 'tool_call':
+      s = asStr(d.args);
+      break;
+    case 'tool_return':
+      s = asStr(d.content);
+      break;
+    case 'thinking':
+    case 'text_output':
+    case 'system_prompt':
+    case 'proactive_emission':
+      s = asStr(d.content);
+      break;
+    case 'user_input':
+      s = asStr(d.content) || asStr(d.user_message);
+      break;
+    case 'result':
+      s = asStr(d.output);
+      break;
+    case 'error':
+      s = asStr(d.message) || asStr(d.error_type);
+      break;
+    case 'tools_list': {
+      const tools = Array.isArray(d.tools) ? (d.tools as string[]) : [];
+      s = tools.join(' · ');
+      break;
+    }
+    default:
+      s = '';
+  }
+  return s.replace(/\s+/g, ' ').trim().slice(0, 200);
 }
 
 // span 是否可展开（有子 span、有附属内容、或有可读主内容）
@@ -629,8 +734,16 @@ function EntryBlock({ entry, t, showLabel = true }: { entry: SessionLogEntry; t:
             {t('aiHistory.waterfall.proactive')}
             {source && <span className="font-mono opacity-80">· {source}</span>}
           </span>
-          {trigger && <span className="text-[11px] text-muted-foreground truncate">{trigger}</span>}
         </div>
+        {trigger && (
+          // 起因（触发原因）：整段换行展示，别一行截断——它是「AI 为什么此刻主动发言」的关键
+          <div className="text-xs text-muted-foreground [overflow-wrap:anywhere]">
+            <span className="text-[10px] uppercase tracking-wide text-muted-foreground/70 mr-1">
+              {t('aiHistory.waterfall.triggerReason')}
+            </span>
+            {trigger}
+          </div>
+        )}
         {asStr(d.content) && (
           <pre className="text-sm whitespace-pre-wrap font-sans leading-relaxed break-words [overflow-wrap:anywhere]">
             {asStr(d.content)}
@@ -662,14 +775,14 @@ function TokenBadges({ sp }: { sp: TraceSpan }) {
 }
 
 // ============================================================================
-// 行渲染
+// 行渲染（块内：树行 + 局部时间轴）
 // ============================================================================
 
-interface RowProps {
-  sp: TraceSpan;
-  depth: number;
+// 一个块内所有行共享的上下文：局部时间窗（甘特条相对块起点定位）+ 展开态 + 子 Agent 懒加载
+interface RowCtx {
   windowStart: number;
   windowSpan: number;
+  showTimeline: boolean;
   expanded: Set<string>;
   toggle: (id: string) => void;
   t: TFunc;
@@ -678,63 +791,44 @@ interface RowProps {
   requestSub: (id: string, agentData: Record<string, unknown>) => void;
 }
 
-function SpanRow(props: RowProps) {
-  const { sp, depth, windowStart, windowSpan, expanded, toggle, t, subCache, requestSub, loadSubAgent } = props;
+type RowBase = Omit<RowCtx, 'windowStart' | 'windowSpan' | 'showTimeline'>;
+
+// 局部时间轴单元格：条的位置/宽度相对所在块的时间窗，hover 显示墙钟时刻 + 相对偏移 + 时长
+function TimelineCell({ sp, ctx, strong }: { sp: TraceSpan; ctx: RowCtx; strong?: boolean }) {
+  if (!ctx.showTimeline) return null;
+  const dur = sp.end - sp.start;
+  const rawLeft = ctx.windowSpan > 0 ? ((sp.start - ctx.windowStart) / ctx.windowSpan) * 100 : 0;
+  const leftPct = Math.min(Math.max(rawLeft, 0), 98.5);
+  const rawWidth = ctx.windowSpan > 0 ? (dur / ctx.windowSpan) * 100 : 0;
+  const widthPct = Math.min(Math.max(rawWidth, 1.5), 100 - leftPct);
+  const offset = sp.start - ctx.windowStart;
+  const color = kindColor(sp);
+  return (
+    <div
+      className="hidden md:block relative h-5 w-40 lg:w-56 xl:w-72 shrink-0"
+      title={`${formatTimeOnly(sp.start)} · +${formatDuration(offset) || '0ms'}${dur > 0 ? ` · ${formatDuration(dur)}` : ''}`}
+    >
+      {/* 四分位参考线：给"条在窗口内的位置"提供刻度感 */}
+      {[25, 50, 75].map((p) => (
+        <span key={p} aria-hidden className="absolute inset-y-1 w-px bg-border/50" style={{ left: `${p}%` }} />
+      ))}
+      <span
+        className={cn('absolute top-1/2 -translate-y-1/2 rounded-full', strong ? 'h-2' : 'h-[5px]', color.bar)}
+        style={{ left: `${leftPct}%`, width: `${widthPct}%` }}
+      />
+    </div>
+  );
+}
+
+function SpanRow({ sp, depth, ctx }: { sp: TraceSpan; depth: number; ctx: RowCtx }) {
+  const { expanded, toggle, t, subCache, requestSub, loadSubAgent } = ctx;
   const isOpen = expanded.has(sp.id);
   const expandable = spanExpandable(sp);
   const color = kindColor(sp);
   const dur = sp.end - sp.start;
   const childCount = sp.children.length;
-
-  // 甘特条位置（相对全局时间窗）
-  const leftPct = windowSpan > 0 ? ((sp.start - windowStart) / windowSpan) * 100 : 0;
-  const widthPct = windowSpan > 0 ? Math.max((dur / windowSpan) * 100, 0.6) : 0;
-
-  // history_reset：整行渲染成醒目分隔色块
-  if (sp.kind === 'event' && sp.resetReason) {
-    const style = RESET_STYLE[sp.resetReason] || RESET_STYLE.auto_compact;
-    return (
-      <div className="flex items-stretch gap-2 py-0.5">
-        <span className="w-16 shrink-0 text-[11px] text-muted-foreground/60 font-mono tabular-nums pt-1.5">
-          {formatTimeOnly(sp.start)}
-        </span>
-        <div style={{ marginLeft: depth * INDENT }} className="flex-1 min-w-0">
-          <div className={cn('flex items-center gap-2 rounded-md border px-2.5 py-1 text-xs font-medium', style.border, style.bg, style.text)}>
-            {style.icon}
-            <span>{t(style.key)}</span>
-            {typeof sp.entry?.data?.before === 'number' && typeof sp.entry?.data?.after === 'number' && (
-              <span className="font-mono opacity-70">
-                {sp.entry?.data?.before as number} → {sp.entry?.data?.after as number}
-              </span>
-            )}
-            {typeof sp.entry?.data?.persona_name === 'string' && (
-              <span className="font-mono opacity-70">→ {sp.entry?.data?.persona_name as string}</span>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // 交互模式变化：主动发言 ↔ 被动聊天 的分隔 tag（居中细条，比 reset 更轻）
-  if (sp.kind === 'event' && sp.modeChange) {
-    const style = MODE_STYLE[sp.modeChange];
-    return (
-      <div className="flex items-center gap-2 py-1">
-        <span className="w-16 shrink-0 text-[11px] text-muted-foreground/60 font-mono tabular-nums">
-          {formatTimeOnly(sp.start)}
-        </span>
-        <div className="flex-1 flex items-center gap-2 min-w-0">
-          <span className={cn('h-px flex-1', style.border, 'border-t border-dashed')} />
-          <span className={cn('inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium shrink-0', style.border, style.bg, style.text)}>
-            {style.icon}
-            {t(style.key)}
-          </span>
-          <span className={cn('h-px flex-1', style.border, 'border-t border-dashed')} />
-        </div>
-      </div>
-    );
-  }
+  // 展开后完整内容就在行下方，预览隐藏避免重复
+  const preview = isOpen ? '' : spanPreview(sp);
 
   const handleClick = () => {
     if (!expandable) return;
@@ -773,48 +867,45 @@ function SpanRow(props: RowProps) {
           />
         ))}
 
-        {/* 时间 */}
-        <span className="w-16 shrink-0 text-[11px] text-muted-foreground/60 font-mono tabular-nums">
+        {/* 墙钟时间：每行发生时刻（局部时间轴表达相对位置，这里补绝对时间） */}
+        <span className="w-16 shrink-0 text-[11px] text-muted-foreground/50 font-mono tabular-nums">
           {formatTimeOnly(sp.start)}
         </span>
 
-        {/* 缩进 + 展开控件 + 图标 + 标签 */}
+        {/* 缩进 + 展开控件 + 图标 + 标签 + 预览 */}
         <div className="flex items-center gap-1.5 min-w-0 flex-1" style={{ paddingLeft: depth * INDENT }}>
           <span className="w-4 shrink-0 flex items-center justify-center text-muted-foreground/50">
             {expandable ? (
               isOpen ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />
             ) : (
-              <CornerDownRight className="w-3 h-3 opacity-30" />
+              <span className="w-1 h-1 rounded-full bg-muted-foreground/40" />
             )}
           </span>
           <span className={cn('shrink-0', color.icon)}>{kindIcon(sp)}</span>
-          <span className={cn('truncate text-[13px]', color.text, sp.kind === 'run' ? 'font-semibold' : 'font-medium')}>
+          <span className={cn('shrink-0 truncate max-w-[45%] text-sm font-semibold', color.text)}>
             {spanLabel(sp, t)}
           </span>
           {childCount > 0 && (
             <span className="shrink-0 text-[10px] font-mono px-1 rounded bg-primary/10 text-primary">{childCount}</span>
           )}
           {sp.kind === 'chat' && sp.model && (
-            <span className="hidden lg:inline-flex shrink-0 text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground border border-border/40">
-              pydantic-ai
+            <span className="hidden lg:inline-block shrink-0 max-w-44 truncate text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-muted/70 text-muted-foreground border border-border/40">
+              {sp.model}
             </span>
           )}
+          {preview && (
+            <span className="flex-1 min-w-0 truncate text-xs text-muted-foreground/60">{preview}</span>
+          )}
+          <span className="ml-auto shrink-0">
+            <TokenBadges sp={sp} />
+          </span>
         </div>
 
-        {/* token 徽章 */}
-        <TokenBadges sp={sp} />
-
-        {/* 甘特条 */}
-        <div className="hidden sm:block w-28 lg:w-40 shrink-0 h-4 relative">
-          <div className="absolute inset-y-0 inset-x-0 my-auto h-1.5 rounded-full bg-muted/40" />
-          <div
-            className={cn('absolute inset-y-0 my-auto h-1.5 rounded-full', color.bar)}
-            style={{ left: `${leftPct}%`, width: `${widthPct}%` }}
-          />
-        </div>
+        {/* 局部时间轴（相对所在 run 块的时间窗） */}
+        <TimelineCell sp={sp} ctx={ctx} />
 
         {/* 时长 */}
-        <span className="w-14 shrink-0 text-right text-[11px] text-muted-foreground font-mono tabular-nums">
+        <span className="w-14 shrink-0 text-right text-[11px] text-muted-foreground/70 font-mono tabular-nums">
           {dur > 0 ? formatDuration(dur) : ''}
         </span>
       </div>
@@ -823,19 +914,22 @@ function SpanRow(props: RowProps) {
       {isOpen && expandable && (
         <div>
           {(sp.entry || (sp.contentEntries && sp.contentEntries.length > 0)) && (
-            <div style={{ marginLeft: 64 + depth * INDENT + 22 }} className="mr-2 mb-1 rounded-lg bg-muted/30 p-2.5">
+            <div
+              style={{ marginLeft: TIME_COL + depth * INDENT + 22 }}
+              className="mr-1 my-1 rounded-lg border border-border/30 bg-muted/30 p-2.5"
+            >
               <SpanContent sp={sp} t={t} />
             </div>
           )}
 
           {/* 子 span */}
           {sp.children.map((c) => (
-            <SpanRow key={c.id} {...props} sp={c} depth={depth + 1} />
+            <SpanRow key={c.id} sp={c} depth={depth + 1} ctx={ctx} />
           ))}
 
           {/* subagent 子 trace */}
           {sp.kind === 'subagent' && (
-            <div style={{ marginLeft: 64 + depth * INDENT + 22 }} className="mr-2 mb-1">
+            <div style={{ marginLeft: TIME_COL + depth * INDENT + 22 }} className="mr-1 my-1">
               {subState === 'loading' && (
                 <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -846,7 +940,7 @@ function SpanRow(props: RowProps) {
                 <div className="text-xs text-red-500 py-2">{t('aiHistory.loadDetailFailed')}</div>
               )}
               {Array.isArray(subState) && subState.length > 0 && loadSubAgent && (
-                <div className="rounded-lg border border-violet-500/20 bg-violet-500/[0.03] p-1.5">
+                <div className="border-l-2 border-violet-500/25 pl-2">
                   <TraceWaterfallInner entries={subState} t={t} loadSubAgent={loadSubAgent} />
                 </div>
               )}
@@ -862,6 +956,187 @@ function SpanRow(props: RowProps) {
 }
 
 // ============================================================================
+// 块渲染：run 卡片 / 主动发言卡片 / 各类分隔条 / 散落行卡片
+// ============================================================================
+
+// 一次 Agent 运行 = 一段可折叠块：头部是带主题色左竖条的着色条带（醒目、不靠边框盒子），
+// 展开体用延续的左侧细轨线表达归属。头部：起始墙钟 + 模型 + Σtoken + 全宽主条 + 总时长；
+// 内部行的甘特条都相对本 run 的时间窗定位——这正是 logfire 里"单个 trace"的尺度。
+function RunBlock({ sp, base }: { sp: TraceSpan; base: RowBase }) {
+  const { expanded, toggle, t } = base;
+  const isOpen = expanded.has(sp.id);
+  const ctx: RowCtx = { ...base, windowStart: sp.start, windowSpan: Math.max(sp.end - sp.start, 0.001), showTimeline: true };
+  const dur = sp.end - sp.start;
+  return (
+    <div>
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={() => toggle(sp.id)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            toggle(sp.id);
+          }
+        }}
+        className="flex items-center gap-2 rounded-lg border-l-[3px] border-primary/70 bg-primary/5 hover:bg-primary/10 px-2.5 py-1.5 cursor-pointer select-none transition-colors"
+      >
+        <div className="flex items-center gap-1.5 min-w-0 flex-1">
+          <span className="w-4 shrink-0 flex items-center justify-center text-muted-foreground/50">
+            {isOpen ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+          </span>
+          <Play className="w-3.5 h-3.5 text-primary shrink-0" />
+          <span className="text-sm font-bold truncate">{t('aiHistory.waterfall.agentRun')}</span>
+          {sp.children.length > 0 && (
+            <span className="shrink-0 text-[10px] font-mono px-1 rounded bg-primary/10 text-primary">
+              {sp.children.length}
+            </span>
+          )}
+          {sp.model && (
+            <span className="hidden lg:inline-block shrink-0 max-w-44 truncate text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-muted/70 text-muted-foreground border border-border/40">
+              {sp.model}
+            </span>
+          )}
+          <TokenBadges sp={sp} />
+          <span className="ml-auto shrink-0 pl-2 text-[11px] text-muted-foreground/60 font-mono tabular-nums">
+            {formatTimeOnly(sp.start)}
+          </span>
+        </div>
+        <TimelineCell sp={sp} ctx={ctx} strong />
+        <span className="w-14 shrink-0 text-right text-xs font-medium text-foreground/80 font-mono tabular-nums">
+          {dur > 0 ? formatDuration(dur) : ''}
+        </span>
+      </div>
+      {isOpen && sp.children.length > 0 && (
+        <div className="mt-1 ml-[5px] border-l-2 border-primary/15 pl-2">
+          {sp.children.map((c) => (
+            <SpanRow key={c.id} sp={c} depth={0} ctx={ctx} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// 主动发言：AI 主动产出的消息本体，直接完整展示（来源 + 触发原因 + 正文），不需要点开。
+// 与 run 块同构：粉色着色条带头 + 左轨线内容体。
+function ProactiveBlock({ sp, t }: { sp: TraceSpan; t: TFunc }) {
+  const d = (sp.entry?.data || {}) as Record<string, unknown>;
+  const source = asStr(d.source);
+  const trigger = asStr(d.trigger_reason);
+  const content = asStr(d.content);
+  return (
+    <div>
+      <div className="flex items-center gap-2 rounded-lg border-l-[3px] border-pink-500/70 bg-pink-500/[0.06] px-2.5 py-1.5">
+        <Radio className="w-3.5 h-3.5 text-pink-500 shrink-0" />
+        <span className="text-sm font-bold text-pink-700 dark:text-pink-300">
+          {t('aiHistory.waterfall.proactive')}
+        </span>
+        {source && (
+          <span className="shrink-0 text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-pink-500/10 text-pink-600 dark:text-pink-400 border border-pink-500/30">
+            {source}
+          </span>
+        )}
+        <span className="ml-auto shrink-0 text-[11px] text-muted-foreground/60 font-mono tabular-nums">
+          {formatTimeOnly(sp.start)}
+        </span>
+      </div>
+      <div className="mt-1 ml-[5px] border-l-2 border-pink-500/20 pl-3 py-0.5 space-y-1.5">
+        {trigger && (
+          <div className="text-xs text-muted-foreground [overflow-wrap:anywhere]">
+            <span className="text-[10px] uppercase tracking-wide text-muted-foreground/70 mr-1">
+              {t('aiHistory.waterfall.triggerReason')}
+            </span>
+            {trigger}
+          </div>
+        )}
+        {content && (
+          <pre className="text-sm whitespace-pre-wrap font-sans leading-relaxed break-words [overflow-wrap:anywhere]">
+            {content}
+          </pre>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// 历史重置分隔条（清空 / 人格切换 / 压缩）：全宽醒目色条 + 时刻
+function ResetDivider({ sp, t }: { sp: TraceSpan; t: TFunc }) {
+  const style = RESET_STYLE[sp.resetReason || 'auto_compact'] || RESET_STYLE.auto_compact;
+  const d = (sp.entry?.data || {}) as Record<string, unknown>;
+  return (
+    <div className={cn('flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-medium', style.border, style.bg, style.text)}>
+      {style.icon}
+      <span>{t(style.key)}</span>
+      {typeof d.before === 'number' && typeof d.after === 'number' && (
+        <span className="font-mono opacity-70">
+          {d.before} → {d.after}
+        </span>
+      )}
+      {typeof d.persona_name === 'string' && <span className="font-mono opacity-70">→ {d.persona_name}</span>}
+      <span className="ml-auto font-mono opacity-50 tabular-nums">{formatTimeOnly(sp.start)}</span>
+    </div>
+  );
+}
+
+// 交互模式切换分隔条：主动发言 ↔ 被动聊天 边界的居中 tag（带时刻）
+function ModeDivider({ sp, t }: { sp: TraceSpan; t: TFunc }) {
+  const style = MODE_STYLE[sp.modeChange || 'to_reactive'];
+  return (
+    <div className="flex items-center gap-2 py-0.5">
+      <span className={cn('h-px flex-1 border-t border-dashed', style.border)} />
+      <span
+        className={cn(
+          'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-medium shrink-0',
+          style.border,
+          style.bg,
+          style.text,
+        )}
+      >
+        {style.icon}
+        {t(style.key)}
+        <span className="font-mono opacity-60 tabular-nums">{formatTimeOnly(sp.start)}</span>
+      </span>
+      <span className={cn('h-px flex-1 border-t border-dashed', style.border)} />
+    </div>
+  );
+}
+
+// 会话生命周期（创建/续写/结束）：极轻量的居中分隔文本
+function LifecycleDivider({ sp, t }: { sp: TraceSpan; t: TFunc }) {
+  const et = sp.entry?.type || '';
+  const map: Record<string, string> = {
+    session_created: 'aiHistory.entryType.sessionCreated',
+    session_resumed: 'aiHistory.entryType.sessionResumed',
+    session_ended: 'aiHistory.entryType.sessionEnded',
+  };
+  return (
+    <div className="flex items-center gap-2 py-0.5">
+      <span className="h-px flex-1 bg-border/50" />
+      <span className="shrink-0 text-[10px] text-muted-foreground/60 font-medium tabular-nums">
+        {map[et] ? t(map[et]) : et} · {formatTimeOnly(sp.start)}
+      </span>
+      <span className="h-px flex-1 bg-border/50" />
+    </div>
+  );
+}
+
+// 散落在 run 之外的顶层行（system_prompt / 无 run 包裹的残留 entry）：直接平铺为行，
+// 不加盒子。这类行彼此间没有有意义的时间跨度，不画时间轴。
+function LooseBlock({ spans, base }: { spans: TraceSpan[]; base: RowBase }) {
+  const lo = Math.min(...spans.map((s) => s.start));
+  const hi = Math.max(...spans.map((s) => s.end));
+  const ctx: RowCtx = { ...base, windowStart: lo, windowSpan: Math.max(hi - lo, 0.001), showTimeline: false };
+  return (
+    <div>
+      {spans.map((sp) => (
+        <SpanRow key={sp.id} sp={sp} depth={0} ctx={ctx} />
+      ))}
+    </div>
+  );
+}
+
+// ============================================================================
 // 组件
 // ============================================================================
 
@@ -871,17 +1146,29 @@ interface TraceWaterfallProps {
   loadSubAgent?: (agentData: Record<string, unknown>) => Promise<SessionLogEntry[] | null>;
 }
 
-function TraceWaterfallInner({ entries, t, loadSubAgent }: TraceWaterfallProps) {
+// 供页面头部的「全部展开 / 全部收起」按钮调用（控件常驻详情头部，不随内容滚走）
+export interface TraceWaterfallHandle {
+  expandAll: () => void;
+  collapseAll: () => void;
+}
+
+const TraceWaterfallInner = forwardRef<TraceWaterfallHandle, TraceWaterfallProps>(function TraceWaterfallInner(
+  { entries, t, loadSubAgent },
+  ref,
+) {
   const roots = useMemo(() => buildTrace(entries), [entries]);
+  const blocks = useMemo(() => groupBlocks(roots), [roots]);
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
   const [subCache, setSubCache] = useState<Record<string, SessionLogEntry[] | 'loading' | 'error'>>({});
 
-  // 数据变化时默认展开所有 run 与 chat，让「对话 → 思考过程/文本输出」的层级一进来就可见；
+  // 数据变化时默认展开：容器 run/chat（用于抵达文本输出）+ 每条「文本输出(text_output)」自身，
+  // 让 AI 的文本回复一进来就完整可读；思考(thinking)/工具/系统等其余节点保持折叠（仅显示为行，不展开内容）。
   // 子 Agent（subagent）不自动展开——其 trace 是点击时才懒加载的，避免一次性打一堆请求。
   useEffect(() => {
     const ids = new Set<string>();
     const walk = (sp: TraceSpan) => {
       if (sp.kind === 'run' || sp.kind === 'chat') ids.add(sp.id);
+      if (sp.kind === 'generic' && sp.entry?.type === 'text_output') ids.add(sp.id);
       sp.children.forEach(walk);
     };
     roots.forEach(walk);
@@ -908,43 +1195,44 @@ function TraceWaterfallInner({ entries, t, loadSubAgent }: TraceWaterfallProps) 
     [loadSubAgent],
   );
 
-  const { windowStart, windowSpan } = useMemo(() => {
-    if (roots.length === 0) return { windowStart: 0, windowSpan: 0 };
-    let lo = Infinity;
-    let hi = -Infinity;
-    for (const r of roots) {
-      lo = Math.min(lo, r.start);
-      hi = Math.max(hi, r.end);
-    }
-    return { windowStart: lo, windowSpan: Math.max(hi - lo, 0.001) };
+  // 全部展开：除 subagent 外的所有可展开节点（subagent 的子 trace 是点击时才懒加载的，
+  // 批量展开会一次性打一堆请求且面板为空，故跳过）。全部收起 = 只留 run 卡片头，一行一次运行，
+  // 正好是整个会话的时间线总览。
+  const expandAll = useCallback(() => {
+    const ids = new Set<string>();
+    const walk = (sp: TraceSpan) => {
+      if (sp.kind !== 'subagent' && (sp.kind === 'run' || spanExpandable(sp))) ids.add(sp.id);
+      sp.children.forEach(walk);
+    };
+    roots.forEach(walk);
+    setExpanded(ids);
   }, [roots]);
+  const collapseAll = useCallback(() => setExpanded(new Set()), []);
+
+  useImperativeHandle(ref, () => ({ expandAll, collapseAll }), [expandAll, collapseAll]);
 
   if (roots.length === 0) {
     return null;
   }
 
   return (
-    <div className="flex flex-col">
-      {roots.map((r) => (
-        <SpanRow
-          key={r.id}
-          sp={r}
-          depth={0}
-          windowStart={windowStart}
-          windowSpan={windowSpan}
-          expanded={expanded}
-          toggle={toggle}
-          t={t}
-          loadSubAgent={loadSubAgent}
-          subCache={subCache}
-          requestSub={requestSub}
-        />
-      ))}
+    <div className="flex flex-col gap-3">
+      {blocks.map((b) => {
+        if (b.type === 'run')
+          return <RunBlock key={b.key} sp={b.sp} base={{ expanded, toggle, t, loadSubAgent, subCache, requestSub }} />;
+        if (b.type === 'proactive') return <ProactiveBlock key={b.key} sp={b.sp} t={t} />;
+        if (b.type === 'reset') return <ResetDivider key={b.key} sp={b.sp} t={t} />;
+        if (b.type === 'mode') return <ModeDivider key={b.key} sp={b.sp} t={t} />;
+        if (b.type === 'lifecycle') return <LifecycleDivider key={b.key} sp={b.sp} t={t} />;
+        return (
+          <LooseBlock key={b.key} spans={b.spans} base={{ expanded, toggle, t, loadSubAgent, subCache, requestSub }} />
+        );
+      })}
     </div>
   );
-}
+});
 
-export default function TraceWaterfall(props: TraceWaterfallProps) {
+const TraceWaterfall = forwardRef<TraceWaterfallHandle, TraceWaterfallProps>(function TraceWaterfall(props, ref) {
   // 顶层拉一次全量工具元数据（含子 Agent 的嵌套瀑布：其 TraceWaterfallInner 在本 Provider 之内，
   // 共用同一份 map，不重复请求）。失败静默——tooltip 退化为只显工具名。
   const [toolInfo, setToolInfo] = useState<Record<string, AITool>>({});
@@ -969,8 +1257,10 @@ export default function TraceWaterfall(props: TraceWaterfallProps) {
   return (
     <ToolInfoContext.Provider value={toolInfo}>
       <TooltipProvider delayDuration={150}>
-        <TraceWaterfallInner {...props} />
+        <TraceWaterfallInner {...props} ref={ref} />
       </TooltipProvider>
     </ToolInfoContext.Provider>
   );
-}
+});
+
+export default TraceWaterfall;
