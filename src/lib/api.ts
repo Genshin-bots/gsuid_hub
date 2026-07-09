@@ -236,6 +236,8 @@ export interface PluginConfigItem {
   regex?: string;
   min_value?: number;
   max_value?: number;
+  // gsrepeatgroup 专用：template 描述每个子字段(可再嵌套), value 为各组的值列表
+  template?: Record<string, PluginConfigItem>;
 }
 
 export interface PluginConfigGroup {

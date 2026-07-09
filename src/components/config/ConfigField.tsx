@@ -29,7 +29,7 @@ import {
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { assetsApi } from '@/lib/api';
+import { assetsApi, PluginConfigItem } from '@/lib/api';
 import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { TagsInput } from './TagsInput';
@@ -97,7 +97,8 @@ export type ConfigFieldType =
   | 'color'
   | 'fileupload'
   | 'filesupload'
-  | 'timerange';
+  | 'timerange'
+  | 'repeatgroup';
 
 export type ConfigValue = string | number | boolean | string[] | [number, number] | [[number, number], [number, number]] | null;
 
@@ -119,6 +120,8 @@ export interface ConfigFieldDefinition {
   min_value?: number;
   max_value?: number;
   rawType?: string; // 原始后端类型标识，用于保存时的类型转换
+  // gsrepeatgroup 专用：子字段描述(供 RepeatGroupField 渲染)
+  template?: Record<string, PluginConfigItem>;
 }
 
 interface ConfigFieldProps {

@@ -1,4 +1,11 @@
 {
+  "repeatGroup": {
+    "add": "Add item",
+    "addRow": "Add",
+    "item": "Item",
+    "remove": "Remove",
+    "empty": "No items yet."
+  },
   "save": "Save",
   "cancel": "Cancel",
   "clear": "Clear Settings",

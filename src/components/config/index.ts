@@ -4,6 +4,8 @@ export { ConfigForm, ConfigGrid } from './ConfigForm';
 export type { ConfigFormData } from './ConfigForm';
 export { TagsInput } from './TagsInput';
 export { DynamicConfigPanel, pluginConfigItemToFieldDef } from './DynamicConfigPanel';
+export { RepeatGroupField } from './RepeatGroupField';
+export type { RepeatGroupItem } from './RepeatGroupField';
 export { ConfigSelectDropdown } from './ConfigSelectDropdown';
 export type { ConfigSelectItem } from './ConfigSelectDropdown';
 export { McpParamMappingEditor, MCP_SERVICE_TOOLS_CONFIG_KEY_MAP, MCP_INTERNAL_PARAMS_MAP } from './McpParamMappingEditor';

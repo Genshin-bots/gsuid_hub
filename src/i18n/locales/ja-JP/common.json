@@ -1,4 +1,11 @@
 {
+  "repeatGroup": {
+    "add": "項目を追加",
+    "addRow": "追加",
+    "item": "項目",
+    "remove": "削除",
+    "empty": "項目がありません。"
+  },
   "save": "保存",
   "cancel": "キャンセル",
   "clear": "設定クリア",

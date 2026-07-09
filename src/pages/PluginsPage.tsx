@@ -25,7 +25,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Settings, Loader2, ChevronDown, Save, Server, LayoutGrid, Users, Shield, Filter, Zap, MessageSquare, Key, Command, Package, RotateCw, Download, Sliders, Cog, Database, Globe, Bell, Lock, Palette, FileText, Layers, Wrench } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { ConfigField, ConfigFieldDefinition, ConfigValue, ConfigFieldType } from '@/components/config';
+import { ConfigField, ConfigFieldDefinition, ConfigValue, ConfigFieldType, RepeatGroupField, RepeatGroupItem } from '@/components/config';
 import { pluginsApi, gitUpdateApi, Plugin, ServiceConfig, SvItem, SvCommand, PluginConfigItem, PluginConfigGroup, PluginListItem, getPluginIconUrl } from '@/lib/api';
 import { toast } from 'sonner';
 
@@ -278,7 +278,8 @@ const convertToPlugin = (plugin: Plugin): any => {
       const rawType = configItem.type?.toLowerCase() || '';
 
       // 注意：匹配顺序很重要，更具体的类型要先匹配
-      if (rawType === 'gsdivider') type = 'divider';
+      if (rawType === 'gsrepeatgroup') type = 'repeatgroup';
+      else if (rawType === 'gsdivider') type = 'divider';
       else if (rawType === 'gscolor') type = 'color';
       else if (rawType === 'gsfileupload') type = 'fileupload';
       else if (rawType === 'gsfilesupload') type = 'filesupload';
@@ -348,6 +349,8 @@ const convertToPlugin = (plugin: Plugin): any => {
         upload_to: configItem.upload_to,
         filename: configItem.filename,
         suffix: configItem.suffix,
+        // gsrepeatgroup: 透传 template 供 RepeatGroupField 渲染各子字段
+        template: configItem.template,
       } as unknown as ConfigFieldDefinition;
     }
     return converted;
@@ -583,7 +586,7 @@ export default function PluginsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPlugin?.id]);
 
-  const updateConfigValue = useCallback((pluginId: string, fieldKey: string, value: ConfigValue, groupName: string | null) => {
+  const updateConfigValue = useCallback((pluginId: string, fieldKey: string, value: ConfigValue | RepeatGroupItem[], groupName: string | null) => {
     setPlugins((prev) =>
       prev.map((p) => {
         if (p.id !== pluginId) return p;
@@ -1446,10 +1449,25 @@ export default function PluginsPage() {
 
                     return entries.map(([key, field]) => {
                       const fieldDef = field as unknown as ConfigFieldDefinition;
-                      // divider 类型需要占据整行
-                      const isDivider = fieldDef.type === 'divider';
+                      // divider / repeatgroup 类型需要占据整行
+                      const isFullWidth = fieldDef.type === 'divider' || fieldDef.type === 'repeatgroup';
+                      if (fieldDef.type === 'repeatgroup') {
+                        const groupValue = Array.isArray(fieldDef.value) ? (fieldDef.value as unknown as RepeatGroupItem[]) : [];
+                        return (
+                          <div key={`${selectedConfigName}_${key}`} className="col-span-full">
+                            <RepeatGroupField
+                              fieldKey={key}
+                              template={fieldDef.template || {}}
+                              value={groupValue}
+                              onChange={(fieldKey, value) => updateConfigValue(selectedPlugin.id, fieldKey, value, selectedConfigName)}
+                              title={fieldDef.label}
+                              description={fieldDef.description}
+                            />
+                          </div>
+                        );
+                      }
                       return (
-                        <div key={`${selectedConfigName}_${key}`} className={isDivider ? 'col-span-full' : undefined}>
+                        <div key={`${selectedConfigName}_${key}`} className={isFullWidth ? 'col-span-full' : undefined}>
                           <ConfigField
                             fieldKey={key}
                             field={fieldDef}

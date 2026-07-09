@@ -1,4 +1,11 @@
 {
+  "repeatGroup": {
+    "add": "新增一项",
+    "addRow": "添加",
+    "item": "配置项",
+    "remove": "删除",
+    "empty": "暂无配置项。"
+  },
   "save": "保存",
   "cancel": "取消",
   "clear": "清除设置",

@@ -7,6 +7,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { ConfigField, ConfigValue, ConfigFieldType, ConfigFieldDefinition } from './ConfigField';
+import { RepeatGroupField, RepeatGroupItem } from './RepeatGroupField';
 import { PluginConfigItem } from '@/lib/api';
 
 // ============================================================================
@@ -31,6 +32,7 @@ function mapBackendTypeToFieldType(item: PluginConfigItem): string {
   const rawType = (item.type || '').toLowerCase();
 
   // 精确匹配（优先）
+  if (rawType === 'gsrepeatgroup') return 'repeatgroup';
   if (rawType === 'gsdivider') return 'divider';
   if (rawType === 'gscolor') return 'color';
   if (rawType === 'gsfileupload') return 'fileupload';
@@ -215,6 +217,22 @@ export function DynamicConfigPanel({
             description: safeDesc,
           }}
           onChange={(k, v) => onChange(configId, k, v)}
+        />
+      );
+    }
+
+    // gsrepeatgroup: 用 RepeatGroupField 渲染可增删的配置组列表
+    if (fieldType === 'repeatgroup') {
+      const groupValue = Array.isArray(item.value) ? (item.value as RepeatGroupItem[]) : [];
+      return (
+        <RepeatGroupField
+          key={fieldKey}
+          fieldKey={fieldKey}
+          template={item.template || {}}
+          value={groupValue}
+          onChange={(k, v) => onChange(configId, k, v as unknown as ConfigValue)}
+          title={safeTitle}
+          description={safeDesc}
         />
       );
     }
