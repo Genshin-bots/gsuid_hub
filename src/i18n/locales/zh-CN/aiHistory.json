@@ -30,6 +30,7 @@
   "sourceDisk": "磁盘",
   "entryType": {
     "sessionCreated": "会话创建",
+    "sessionResumed": "会话续写",
     "sessionEnded": "会话结束",
     "systemPrompt": "系统提示词",
     "runStart": "运行开始",
@@ -49,6 +50,33 @@
   },
   "filterTitle": "筛选条件",
   "selectSession": "选择会话查看详情",
+  "selectSessionHint": "点击左侧会话查看详情",
   "chatTypeGroup": "群聊",
-  "chatTypePrivate": "私聊"
+  "chatTypePrivate": "私聊",
+  "segmentsCount": "{count} 段",
+  "subAgentsCount": "{count} 子Agent",
+  "loadEarlierSegments": "加载更早的 {count} 个分段",
+  "downloadSession": "下载会话 JSON",
+  "downloadSuccess": "会话 JSON 已保存",
+  "waterfall": {
+    "agentRun": "Agent 运行",
+    "chat": "对话",
+    "tool": "工具",
+    "subAgent": "子 Agent",
+    "userInput": "用户输入",
+    "result": "结果",
+    "proactive": "主动发言",
+    "loadingSubAgent": "加载子 Agent 轨迹…",
+    "toolNoInfo": "暂无该工具的信息",
+    "reset": {
+      "title": "历史重置",
+      "userClear": "清空会话",
+      "personaSwitch": "人格切换",
+      "autoCompact": "历史压缩"
+    },
+    "mode": {
+      "toReactive": "进入被动聊天",
+      "toProactive": "转为主动发言"
+    }
+  }
 }

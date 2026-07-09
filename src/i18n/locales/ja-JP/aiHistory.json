@@ -30,6 +30,7 @@
   "sourceDisk": "磁盘",
   "entryType": {
     "sessionCreated": "セッション作成",
+    "sessionResumed": "セッション再開",
     "sessionEnded": "セッション结束",
     "systemPrompt": "システムプロンプト",
     "runStart": "実行開始",
@@ -49,6 +50,33 @@
   },
   "filterTitle": "絞込件件",
   "selectSession": "選択セッション表示詳細",
+  "selectSessionHint": "左のセッションをクリックして詳細を表示",
   "chatTypeGroup": "グループ",
-  "chatTypePrivate": "プライベート"
+  "chatTypePrivate": "プライベート",
+  "segmentsCount": "{count} セグメント",
+  "subAgentsCount": "{count} サブエージェント",
+  "loadEarlierSegments": "以前の {count} セグメントを読み込む",
+  "downloadSession": "セッション JSON をダウンロード",
+  "downloadSuccess": "セッション JSON を保存しました",
+  "waterfall": {
+    "agentRun": "エージェント実行",
+    "chat": "チャット",
+    "tool": "ツール",
+    "subAgent": "サブエージェント",
+    "userInput": "ユーザー入力",
+    "result": "結果",
+    "proactive": "自発発言",
+    "loadingSubAgent": "サブエージェントのトレースを読み込み中…",
+    "toolNoInfo": "このツールの情報はありません",
+    "reset": {
+      "title": "履歴リセット",
+      "userClear": "会話クリア",
+      "personaSwitch": "人格切替",
+      "autoCompact": "履歴圧縮"
+    },
+    "mode": {
+      "toReactive": "受動チャットへ",
+      "toProactive": "AIから発話"
+    }
+  }
 }

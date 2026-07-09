@@ -3555,7 +3555,15 @@ export type SessionLogEntryType =
   | 'agent_linked'
   | 'tools_list'
   | 'proactive_emission'
+  | 'history_reset'
+  | 'mode_change'
   | (string & {}); // 允许后端新增类型，前端不崩溃
+
+// history_reset entry 的 data.reason 子类型（前端按其画不同色块）
+export type HistoryResetReason = 'user_clear' | 'persona_switch' | 'auto_compact' | (string & {});
+
+// mode_change entry 的 data.mode 子类型（reactive=被动/用户发话，proactive=主动/AI 发言）
+export type InteractionMode = 'reactive' | 'proactive' | (string & {});
 
 export interface LinkedAgent {
   agent_type: string; // "sub_agent" | "peer_agent" | "parent_agent" | "proactive_generator"
@@ -3577,12 +3585,29 @@ export interface SessionLogEntry {
   data: Record<string, unknown>;
 }
 
+// 逻辑会话链中单个分段的轻量元数据（供前端按 segment_index 顺序懒加载各分段详情）
+export interface SegmentMeta {
+  segment_index: number;
+  session_uuid: string | null;
+  session_id: string;
+  file_name: string | null;
+  entry_count: number;
+  created_at: number;
+  updated_at: number;
+  ended_at: number | null;
+  is_active: boolean;
+  source: 'memory' | 'disk';
+}
+
 export interface SessionLogSummary {
   session_id: string;
   session_uuid: string;
   persona_name: string;
   create_by: string;
   is_subagent: boolean;
+  // 逻辑会话链身份：一条会话窗口内多物理分段共享 chain_id，列表按此归并成一张卡片
+  chain_id: string;
+  segment_index: number;
   created_at: number;
   created_at_str: string;
   updated_at: number;
@@ -3597,6 +3622,9 @@ export interface SessionLogSummary {
   file_name: string | null;
   linked_agents: LinkedAgent[];
   linked_agent_count: number;
+  // 链卡片专有：分段数与各分段有序元数据（单分段会话 segment_count===1）
+  segment_count?: number;
+  segments?: SegmentMeta[];
 }
 
 export interface SessionLogListResponse {
@@ -3612,6 +3640,9 @@ export interface SessionLogDetail {
   persona_name: string;
   create_by: string;
   is_subagent: boolean;
+  chain_id?: string;
+  segment_index?: number;
+  prev_segment?: string | null;
   created_at: number;
   updated_at: number;
   ended_at: number | null;

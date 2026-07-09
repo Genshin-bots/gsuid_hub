@@ -30,6 +30,7 @@
   "sourceDisk": "Disk",
   "entryType": {
     "sessionCreated": "Session Created",
+    "sessionResumed": "Session Resumed",
     "sessionEnded": "Session Ended",
     "systemPrompt": "System Prompt",
     "runStart": "Run Start",
@@ -49,6 +50,33 @@
   },
   "filterTitle": "Filters",
   "selectSession": "Select a session to view details",
+  "selectSessionHint": "Click a session on the left to view details",
   "chatTypeGroup": "Group",
-  "chatTypePrivate": "Private"
+  "chatTypePrivate": "Private",
+  "segmentsCount": "{count} segments",
+  "subAgentsCount": "{count} sub-agents",
+  "loadEarlierSegments": "Load {count} earlier segment(s)",
+  "downloadSession": "Download session JSON",
+  "downloadSuccess": "Session JSON saved",
+  "waterfall": {
+    "agentRun": "Agent Run",
+    "chat": "Chat",
+    "tool": "Tool",
+    "subAgent": "Sub-Agent",
+    "userInput": "User Input",
+    "result": "Result",
+    "proactive": "Proactive",
+    "loadingSubAgent": "Loading sub-agent trace…",
+    "toolNoInfo": "No info for this tool",
+    "reset": {
+      "title": "History Reset",
+      "userClear": "Cleared",
+      "personaSwitch": "Persona Switch",
+      "autoCompact": "Compacted"
+    },
+    "mode": {
+      "toReactive": "User message · reactive",
+      "toProactive": "AI proactive message"
+    }
+  }
 }

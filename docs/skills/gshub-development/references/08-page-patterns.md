@@ -179,3 +179,13 @@ function isSshUrl(url: string): boolean {
 - **仅保存配置 vs 批量应用**：区分"保存配置（影响后续新安装）"与"一键应用（同时切换已安装）"两种操作。
 - 用 `frameworkConfigApi.updateFrameworkConfigItem` 保存单个配置项，避免覆盖其他配置。
 - **静默失败**：非关键数据获取（如 git mirror info）应静默失败，不影响主页面。
+
+## 8.7 Trace 瀑布详情页（AI 历史 `/ai-history`，2026-07-08 重构）
+
+`src/pages/AIHistoryPage.tsx` + `src/components/ai-history/TraceWaterfall.tsx`。左「会话列表」+ 右「Trace 瀑布」详情，是「列表 + 二级详情」的一个变体，几处专有约定：
+
+- **详情不是聊天气泡，是 Logfire 式 Trace 瀑布**：`buildTrace()` 把后端**扁平** `entries` 重建成 span 树——`run_start`→`run_end` = 一个「Agent 运行」span，内含 `ModelRequestNode`=「对话 <model>」span、`tool_call`+`tool_return`（按 `tool_call_id` 配对）= 工具 span、`sub_agent` 的 `agent_linked` = **可展开懒加载**的子 Agent 子瀑布。每行密排：`时间 · 缩进+展开+子数 · 图标+标签 · token 徽章(Σ↗↙) · 甘特条 · 时长`。甘特条相对全局时间窗定位。
+- **列表按 `chain_id` 归并**：一条逻辑会话（可能多物理分段）= 一张卡片，key 用 `chain_id`（不是 `session_uuid`）。`segment_count > 1` 显示分段徽章；选中先加载**最新分段**，「加载更早分段」按 `segment_index` 升序拼接。取某分段详情：`source==='memory'` 用真实 `session_id`+`uuid`（实时），`disk` 用 `file_name` 去 `.json` 的 stem 作 `session_id`（O(1)）。
+- **`history_reset` 画独立色块（reason 分色）**：`user_clear` 红 / `persona_switch` 紫 / `auto_compact` 灰——三类「历史重置」行为视觉必须可区分。色用 tailwind 颜色 + `dark:` 变体（`darkMode:["class"]`），亮暗都可读。
+- **i18n**：文案在 `aiHistory.waterfall.*`（含 `reset.*`）与 `aiHistory.segmentsCount/subAgentsCount/loadEarlierSegments/...`，三语言同步。
+- 对接后端契约见 gsuid_core `webconsole/docs/23-ai-session-logs.md`。
