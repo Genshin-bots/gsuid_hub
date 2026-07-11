@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useBrand } from '@/contexts/BrandContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -37,6 +38,7 @@ export default function Login() {
   const { login, register } = useAuth();
   const { style, backgroundImage, blurIntensity } = useTheme();
   const { t, language, setLanguage, availableLanguages } = useLanguage();
+  const { iconUrl: brandIconUrl, title: brandTitle } = useBrand();
   const navigate = useNavigate();
 
   // Load theme config and custom host on mount
@@ -168,61 +170,74 @@ export default function Login() {
         </div>
       )}
       
-      <Card className={cn(
-        "w-full max-w-md relative z-10",
-        isGlassmorphism ? "glass-card border-border/50 shadow-2xl" : "border-border/50 shadow-2xl"
-      )}>
-        {/* Settings Button */}
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className="absolute top-4 right-4 z-20"
-          onClick={() => setShowSettings(true)}
-          title={t('login.settingsApiHost')}
+      {/* 仅卡片参与垂直居中；工具栏绝对定位在卡片上方，避免把卡片挤离正中 */}
+      <div className="w-full max-w-md relative z-10">
+        {/* 与下方登录卡片共用 glass-card / bg-card 材质，形成呼应 */}
+        <div
+          className={cn(
+            "absolute bottom-full left-1/2 -translate-x-1/2 mb-3",
+            "inline-flex items-center h-9 rounded-full overflow-hidden",
+            isGlassmorphism
+              ? "glass-card border-border/50 shadow-2xl"
+              : "bg-card border border-border/50 shadow-2xl"
+          )}
         >
-          <Settings className="h-5 w-5" />
-        </Button>
-
-        {/* Language Switcher */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              type="button"
-              variant="ghost"
-              className="absolute top-4 right-14 z-20 gap-1.5 px-2"
-              title={t('common.selectLanguage')}
-            >
-              {(() => {
-                const currentLanguage = availableLanguages.find((lang) => lang.code === language);
-                return currentLanguage ? <LanguageFlag code={currentLanguage.flagCode} /> : null;
-              })()}
-              <span className="text-xs font-medium">
-                {availableLanguages.find((lang) => lang.code === language)?.shortName ?? language}
-              </span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {availableLanguages.map((lang) => (
-              <DropdownMenuItem
-                key={lang.code}
-                onClick={() => setLanguage(lang.code)}
-                className={cn(
-                  "cursor-pointer gap-2",
-                  language === lang.code && "bg-accent"
-                )}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="inline-flex h-full items-center gap-1.5 px-4 text-sm font-medium text-card-foreground transition-colors hover:bg-foreground/[0.06] focus-visible:outline-none focus-visible:bg-foreground/[0.06]"
+                title={t('common.selectLanguage')}
               >
-                <LanguageFlag code={lang.flagCode} />
-                <span>{lang.name}</span>
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-        
+                {(() => {
+                  const currentLanguage = availableLanguages.find((lang) => lang.code === language);
+                  return currentLanguage ? <LanguageFlag code={currentLanguage.flagCode} /> : null;
+                })()}
+                <span className="text-xs font-medium">
+                  {availableLanguages.find((lang) => lang.code === language)?.shortName ?? language}
+                </span>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="center">
+              {availableLanguages.map((lang) => (
+                <DropdownMenuItem
+                  key={lang.code}
+                  onClick={() => setLanguage(lang.code)}
+                  className={cn(
+                    "cursor-pointer gap-2",
+                    language === lang.code && "bg-accent"
+                  )}
+                >
+                  <LanguageFlag code={lang.flagCode} />
+                  <span>{lang.name}</span>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <div className="h-4 w-px shrink-0 bg-border/50" aria-hidden />
+
+          <button
+            type="button"
+            className="inline-flex h-full w-9 items-center justify-center text-card-foreground transition-colors hover:bg-foreground/[0.06] focus-visible:outline-none focus-visible:bg-foreground/[0.06]"
+            onClick={() => setShowSettings(true)}
+            title={t('login.settingsApiHost')}
+          >
+            <Settings className="h-4 w-4" />
+          </button>
+        </div>
+
+        <Card className={cn(
+          "w-full",
+          isGlassmorphism ? "glass-card border-border/50 shadow-2xl" : "border-border/50 shadow-2xl"
+        )}>
         <CardHeader className="text-center space-y-2">
-          <div className="mx-auto w-16 h-16 rounded-2xl bg-primary/20 flex items-center justify-center mb-4">
-            <LogIn className="w-8 h-8 text-primary" />
-          </div>
+          <img
+            src={brandIconUrl}
+            alt={brandTitle}
+            className="mx-auto w-24 h-24 object-contain mb-4"
+            key={brandIconUrl}
+          />
           <CardTitle className="text-2xl font-bold">
             {isRegisterMode ? t('login.registerTitle') : t('login.title')}
           </CardTitle>
@@ -386,6 +401,7 @@ export default function Login() {
           </form>
         </CardContent>
       </Card>
+      </div>
       
       {/* Settings Dialog for Custom API Host */}
       <Dialog open={showSettings} onOpenChange={setShowSettings}>

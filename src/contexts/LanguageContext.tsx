@@ -107,36 +107,61 @@ interface LanguageProviderProps {
 }
 
 export function LanguageProvider({ children }: LanguageProviderProps) {
-  // 使用 ThemeContext 保存语言到后端
+  // 使用 ThemeContext 保存语言到后端（已登录时）/ sessionStorage
   const themeContext = useTheme();
   
-  // 同步本地状态与 ThemeContext
+  // 浏览器 localStorage 为 UI 语言的主来源；Theme 默认 zh-CN 不应抢先覆盖用户偏好
   const [language, setLanguageState] = useState<Language>(() => {
-    // 优先使用 ThemeContext 中已初始化的语言
-    if (themeContext.language) {
+    try {
+      const saved = localStorage.getItem(LANGUAGE_STORAGE_KEY);
+      if (saved === 'zh-CN' || saved === 'en-US' || saved === 'ja-JP') {
+        return saved;
+      }
+    } catch {
+      // ignore
+    }
+    if (themeContext.language === 'zh-CN' || themeContext.language === 'en-US' || themeContext.language === 'ja-JP') {
       return themeContext.language;
     }
-    // 从 localStorage 读取保存的语言设置
-    const saved = localStorage.getItem(LANGUAGE_STORAGE_KEY);
-    if (saved === 'zh-CN' || saved === 'en-US' || saved === 'ja-JP') {
-      return saved;
-    }
-    // 默认使用中文
     return 'zh-CN';
   });
 
-  // 同步语言变化到 ThemeContext
+  // 主题侧语言变化时同步到 UI（例如应用主题预设，会同步写入 localStorage）。
+  // 若本地已有用户偏好，以本地为准，避免 getConfig 的默认中文覆盖登录页的选择。
   useEffect(() => {
-    if (themeContext.language && themeContext.language !== language) {
-      setLanguageState(themeContext.language);
-    }
-  }, [themeContext.language]);
+    if (!themeContext.language) return;
 
-  // 保存语言设置到 localStorage 和后端
+    let stored: string | null = null;
+    try {
+      stored = localStorage.getItem(LANGUAGE_STORAGE_KEY);
+    } catch {
+      // ignore
+    }
+    if (stored === 'zh-CN' || stored === 'en-US' || stored === 'ja-JP') {
+      if (stored !== language) {
+        setLanguageState(stored);
+      }
+      return;
+    }
+
+    if (themeContext.language !== language) {
+      setLanguageState(themeContext.language);
+      try {
+        localStorage.setItem(LANGUAGE_STORAGE_KEY, themeContext.language);
+      } catch {
+        // ignore
+      }
+    }
+  }, [themeContext.language, language]);
+
+  // 保存语言设置到 localStorage；ThemeContext 负责 session / 后端（仅已登录）
   const setLanguage = useCallback((lang: Language) => {
     setLanguageState(lang);
-    localStorage.setItem(LANGUAGE_STORAGE_KEY, lang);
-    // 调用 ThemeContext 保存到后端
+    try {
+      localStorage.setItem(LANGUAGE_STORAGE_KEY, lang);
+    } catch {
+      // ignore
+    }
     themeContext.setLanguage(lang);
   }, [themeContext.setLanguage]);
 

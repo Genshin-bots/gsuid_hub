@@ -1,5 +1,24 @@
 ﻿import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo, useRef } from 'react';
-import { themeApi, ThemeConfig } from '@/lib/api';
+import { themeApi, ThemeConfig, getAuthToken } from '@/lib/api';
+
+/** 与 LanguageContext 共用：浏览器侧语言偏好（登录前也可持久） */
+const LANGUAGE_STORAGE_KEY = 'gsuid_hub_language';
+
+function readStoredLanguage(): Language | null {
+  try {
+    const saved = localStorage.getItem(LANGUAGE_STORAGE_KEY);
+    if (saved === 'zh-CN' || saved === 'en-US' || saved === 'ja-JP') {
+      return saved;
+    }
+    const sessionSaved = sessionStorage.getItem('theme_language');
+    if (sessionSaved === 'zh-CN' || sessionSaved === 'en-US' || sessionSaved === 'ja-JP') {
+      return sessionSaved;
+    }
+  } catch {
+    // ignore storage access errors
+  }
+  return null;
+}
 
 // ============================================================================
 // 类型定义
@@ -225,7 +244,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [cardOpacity, setCardOpacityState] = useState<number>(25);
   const [iconColor, setIconColorState] = useState<IconColor>('colored');
   const [themePreset, setThemePresetState] = useState<ThemePreset>('default');
-  const [language, setLanguageState] = useState<Language>('zh-CN');
+  // 优先读浏览器已保存的语言，避免未登录时被默认 zh-CN 覆盖
+  const [language, setLanguageState] = useState<Language>(() => readStoredLanguage() ?? 'zh-CN');
   const [isInitialized, setIsInitialized] = useState(false);
   
   // 使用ref存储配置，用于自动保�?
@@ -274,7 +294,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
           if (config.theme_preset && ['default', 'shadcn'].includes(config.theme_preset)) {
             setThemePresetState(config.theme_preset as ThemePreset);
           }
-          if (config.language && ['zh-CN', 'en-US', 'ja-JP'].includes(config.language)) {
+          // 语言：浏览器本地偏好优先（登录页切换后刷新不应被服务端默认中文覆盖）
+          const storedLang = readStoredLanguage();
+          if (storedLang) {
+            setLanguageState(storedLang);
+          } else if (config.language && ['zh-CN', 'en-US', 'ja-JP'].includes(config.language)) {
             setLanguageState(config.language as Language);
           }
         }
@@ -297,7 +321,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const savedCardOpacity = sessionStorage.getItem('theme_card_opacity');
       const savedIconColor = sessionStorage.getItem('theme_icon_color') as IconColor;
       const savedPreset = sessionStorage.getItem('theme_preset') as ThemePreset;
-      const savedLanguage = sessionStorage.getItem('theme_language') as Language;
+      const savedLanguage = readStoredLanguage();
 
       if (savedMode) setModeState(savedMode);
       if (savedStyle) setStyleState(savedStyle);
@@ -433,8 +457,15 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   const setLanguage = useCallback((lang: Language) => {
     setLanguageState(lang);
-    sessionStorage.setItem('theme_language', lang);
-    if (isInitialized) {
+    try {
+      sessionStorage.setItem('theme_language', lang);
+      localStorage.setItem(LANGUAGE_STORAGE_KEY, lang);
+    } catch {
+      // ignore storage access errors
+    }
+    // 未登录时保存主题会 401，api 层会整页跳转登录页，导致语言被重置。
+    // 登录前只写本地存储；登录后再同步到后端。
+    if (isInitialized && getAuthToken()) {
       saveToBackend({ language: lang });
     }
   }, [isInitialized, saveToBackend]);
@@ -484,6 +515,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     }
     if (config.language && ['zh-CN', 'en-US', 'ja-JP'].includes(config.language)) {
       setLanguageState(config.language as Language);
+      try {
+        localStorage.setItem(LANGUAGE_STORAGE_KEY, config.language);
+        sessionStorage.setItem('theme_language', config.language);
+      } catch {
+        // ignore
+      }
     }
   }, []);
 
