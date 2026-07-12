@@ -282,9 +282,9 @@ const THEME_CONFIG = {
   language: 'zh-CN' as const,
   card_opacity: 55,
   sidebar_layout: 'floating' as const,
-  border_radius: 24,
-  ui_scale: 100,
-  shadow_intensity: 100,
+  border_radius: 8,
+  ui_scale: 97,
+  shadow_intensity: 55,
   sidebar_default_collapsed: false,
 };
 

@@ -49,8 +49,8 @@ All colors MUST be HSL.
     --input: 240 4% 83%;
     --ring: 333 71% 50%;
 
-    /* 圆角基准：主题杂项 border_radius 会以 px 覆盖此值；默认 24px ≈ 原 1.5rem */
-    --radius: 24px;
+    /* 圆角基准：主题杂项 border_radius 会以 px 覆盖此值；默认 8px（与后端 DEFAULT_THEME_CONFIG 一致） */
+    --radius: 8px;
 
     /*
      * 布局外边距：
@@ -63,8 +63,8 @@ All colors MUST be HSL.
     --layout-page-top: 2.75rem;
     /* 圆角阴影外溢安全距：overflow 容器内侧至少留这么多 */
     --shadow-bleed: 0.75rem;
-    /* 阴影强度系数：主题杂项 shadow_intensity(0-200%) 写入 0-2；表面类阴影 alpha 乘以它 */
-    --shadow-strength: 1;
+    /* 阴影强度系数：主题杂项 shadow_intensity(0-200%) 写入 0-2；表面类阴影 alpha 乘以它。默认 55% */
+    --shadow-strength: 0.55;
 
     --sidebar-background: 0 0% 98%;
 

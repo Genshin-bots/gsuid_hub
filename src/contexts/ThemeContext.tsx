@@ -37,13 +37,14 @@ const SIDEBAR_LAYOUTS: readonly SidebarLayout[] = ['floating', 'docked', 'line']
 
 const BORDER_RADIUS_MIN = 0;
 const BORDER_RADIUS_MAX = 32;
-const BORDER_RADIUS_DEFAULT = 24;
+// 默认值需与后端 theme_api.py 的 DEFAULT_THEME_CONFIG 保持一致
+const BORDER_RADIUS_DEFAULT = 8;
 const UI_SCALE_MIN = 85;
 const UI_SCALE_MAX = 120;
-const UI_SCALE_DEFAULT = 100;
+const UI_SCALE_DEFAULT = 97;
 const SHADOW_INTENSITY_MIN = 0;
 const SHADOW_INTENSITY_MAX = 200;
-const SHADOW_INTENSITY_DEFAULT = 100;
+const SHADOW_INTENSITY_DEFAULT = 55;
 
 function clampInt(n: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, Math.round(n)));

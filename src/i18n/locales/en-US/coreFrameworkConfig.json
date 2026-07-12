@@ -26,5 +26,7 @@
   "saveFailed": "Error saving configuration",
   "registerCode": "Web Console Registration Code",
   "language": "Framework Language",
-  "languageDesc": "Language of GsCore framework logs and system messages (for the deployer); zh-cn = Simplified Chinese, en = English. GsCore restart required after change."
+  "languageDesc": "Language of GsCore framework logs and system messages (for the deployer); zh-cn = Simplified Chinese, en = English. GsCore restart required after change.",
+  "webMaxSessions": "Max Concurrent Sessions per Account",
+  "webMaxSessionsDesc": "Maps to the web_max_sessions config entry: how many devices/browsers can stay logged in with the same account. 1 = single sign-on (a new login kicks out the oldest session); increase for multi-device access. Login stays valid for 48 hours and survives backend restarts."
 }

@@ -832,9 +832,9 @@ export default function ThemesPage() {
               <div className="flex flex-wrap gap-2">
                 {[
                   { v: 0, l: 'themes.radiusNone' },
-                  { v: 8, l: 'themes.slight' },
+                  { v: 8, l: 'themes.radiusDefault' },
                   { v: 16, l: 'themes.standard' },
-                  { v: 24, l: 'themes.radiusDefault' },
+                  { v: 24, l: 'themes.radiusMedium' },
                   { v: 32, l: 'themes.radiusLarge' },
                 ].map((p) => (
                   <Button
@@ -890,15 +890,15 @@ export default function ThemesPage() {
                 />
                 <div className="flex justify-between text-xs text-muted-foreground">
                   <span>{t('themes.shadowNone')}</span>
-                  <span>{t('themes.scaleDefault')}</span>
+                  <span>{t('themes.standard')}</span>
                   <span>{t('themes.shadowStrong')}</span>
                 </div>
               </div>
               <div className="flex flex-wrap gap-2">
                 {[
                   { v: 0, l: 'themes.shadowNone' },
-                  { v: 50, l: 'themes.shadowLight' },
-                  { v: 100, l: 'themes.scaleDefault' },
+                  { v: 55, l: 'themes.scaleDefault' },
+                  { v: 100, l: 'themes.standard' },
                   { v: 150, l: 'themes.shadowStrong' },
                 ].map((p) => (
                   <Button
@@ -961,7 +961,8 @@ export default function ThemesPage() {
               <div className="flex flex-wrap gap-2">
                 {[
                   { v: 90, l: 'themes.scaleSmall' },
-                  { v: 100, l: 'themes.scaleDefault' },
+                  { v: 97, l: 'themes.scaleDefault' },
+                  { v: 100, l: 'themes.standard' },
                   { v: 110, l: 'themes.scaleLarge' },
                 ].map((p) => (
                   <Button

@@ -45,12 +45,14 @@ const fieldLabelKeys: Record<string, string> = {
   superusers: 'coreFrameworkConfig.superusers',
   misfire_grace_time: 'coreFrameworkConfig.misfireGraceTime',
   enable_empty_start: 'coreFrameworkConfig.emptyStart',
-  command_start: 'coreFrameworkConfig.commandPrefix'
+  command_start: 'coreFrameworkConfig.commandPrefix',
+  web_max_sessions: 'coreFrameworkConfig.webMaxSessions'
 };
 
-// 枚举类字段的描述文案 key（仅 UI 说明，静态、不随可选值增减而变）
-const optionFieldDescKeys: Record<string, string> = {
+// 字段的描述文案 key（仅 UI 说明，静态、不随可选值增减而变）
+const fieldDescKeys: Record<string, string> = {
   LANGUAGE: 'coreFrameworkConfig.languageDesc',
+  web_max_sessions: 'coreFrameworkConfig.webMaxSessionsDesc',
 };
 
 // Convert API config to field definition
@@ -75,7 +77,7 @@ const apiConfigToFieldDefinition = (
         : String(value ?? meta.options[0]),
       options: meta.options,
       optionLabels: meta.labels,
-      description: optionFieldDescKeys[key],
+      description: fieldDescKeys[key],
     };
   }
 
@@ -93,7 +95,7 @@ const apiConfigToFieldDefinition = (
     return { type: 'boolean', label: labelKey, value };
   }
   if (typeof value === 'number') {
-    return { type: 'number', label: labelKey, value, placeholder: 'coreFrameworkConfig.enterValue' };
+    return { type: 'number', label: labelKey, value, placeholder: 'coreFrameworkConfig.enterValue', description: fieldDescKeys[key] };
   }
   if (Array.isArray(value)) {
     return { type: 'tags', label: labelKey, value, placeholder: 'coreFrameworkConfig.enterTags' };

@@ -26,5 +26,7 @@
   "saveFailed": "保存配置时发生错误",
   "registerCode": "网页控制台注册码",
   "language": "框架文案语言",
-  "languageDesc": "GsCore 框架日志与系统文案的语言（服务于部署者）；zh-cn = 简体中文，en = English。切换后需重启 GsCore 生效。"
+  "languageDesc": "GsCore 框架日志与系统文案的语言（服务于部署者）；zh-cn = 简体中文，en = English。切换后需重启 GsCore 生效。",
+  "webMaxSessions": "同账号最大在线会话数",
+  "webMaxSessionsDesc": "对应配置项 web_max_sessions：同一账号可同时保持登录的设备/浏览器数量。1 = 单点登录（新登录会踢掉最旧会话），调大可多端同时在线。登录有效期固定 48 小时，后端重启不掉线。"
 }
