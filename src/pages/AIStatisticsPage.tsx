@@ -285,7 +285,7 @@ function QuickPreviewPanel({
   t,
 }: QuickPreviewProps) {
   return (
-    <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50', 'overflow-hidden')}>
+    <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
       <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-border/50">
         <QuickPreviewItem
           title={t('aiStatistics.last7Days')}
@@ -1081,7 +1081,7 @@ export default function AIStatisticsPage() {
   return (
     <div className="space-y-6">
       {/* 页面标题 */}
-      <div className="flex flex-col gap-4 px-4 pt-4 sm:flex-row sm:items-end sm:justify-between sm:px-6 sm:pt-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0 overflow-x-auto">
           <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
             <TrendingUp className="w-8 h-8 shrink-0" />
@@ -1241,7 +1241,7 @@ export default function AIStatisticsPage() {
           {/* 概览 Tab */}
           {activeTab === 'overview' && (
             <div className="space-y-4 px-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="glass-card-grid grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* 意图分布 */}
                 <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
                   <CardHeader>
@@ -1348,7 +1348,7 @@ export default function AIStatisticsPage() {
           {/* Token 分析 Tab */}
           {activeTab === 'tokens' && (
             <div className="space-y-4 px-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="glass-card-grid grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* Token 消耗图表 */}
                 <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
                   <CardHeader>
@@ -1493,7 +1493,7 @@ export default function AIStatisticsPage() {
                 })()}
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="glass-card-grid grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* TTFT 趋势 */}
                 <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
                   <CardHeader>
@@ -1820,7 +1820,7 @@ export default function AIStatisticsPage() {
                       </Card>
                     ))}
                   </div>
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <div className="glass-card-grid grid grid-cols-1 lg:grid-cols-2 gap-4">
                     <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
                       <CardHeader><Skeleton className="h-5 w-32" /></CardHeader>
                       <CardContent><Skeleton className="h-[300px] w-full" /></CardContent>
@@ -1864,7 +1864,7 @@ export default function AIStatisticsPage() {
                   </div>
 
                   {/* 折线图 + 饼图 */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <div className="glass-card-grid grid grid-cols-1 lg:grid-cols-2 gap-4">
                     {/* 按天趋势 */}
                     <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
                       <CardHeader>

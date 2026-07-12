@@ -31,6 +31,8 @@ if (import.meta.env.VITE_DEMO) {
   const THEME_KEYS = [
     "theme_mode", "theme_style", "theme_color", "theme_bg", "theme_blur",
     "theme_card_opacity", "theme_icon_color", "theme_preset", "theme_language",
+    "theme_sidebar_layout", "theme_border_radius", "theme_ui_scale",
+    "theme_sidebar_default_collapsed",
   ];
   for (const name of ["localStorage", "sessionStorage"] as const) {
     try {

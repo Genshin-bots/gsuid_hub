@@ -281,6 +281,10 @@ const THEME_CONFIG = {
   theme_preset: 'shadcn' as const,
   language: 'zh-CN' as const,
   card_opacity: 55,
+  sidebar_layout: 'floating' as const,
+  border_radius: 24,
+  ui_scale: 100,
+  sidebar_default_collapsed: false,
 };
 
 export const generateThemeConfig = () => ({ ...THEME_CONFIG });

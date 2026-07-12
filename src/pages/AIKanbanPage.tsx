@@ -693,7 +693,7 @@ export default function AIKanbanPage() {
   };
 
   return (
-    <div className="flex min-h-[calc(100dvh-4rem)] flex-col gap-4 overflow-hidden p-6">
+    <div className="flex flex-1 min-h-0 flex-col gap-4 overflow-hidden">
 {/* 页面标题块：纯 H1 + 副标题，无右侧操作（按钮已移至下方 button group 同行） */}
       <div>
         <h1 className="text-3xl font-bold flex items-center gap-3">
@@ -816,7 +816,7 @@ export default function AIKanbanPage() {
       )}
 
       <Sheet open={!!selectedTaskId} onOpenChange={(open) => !open && setSelectedTaskId(null)}>
-        <SheetContent overlayClassName="bg-white/80 dark:bg-black/80" className="flex w-full flex-col overflow-hidden bg-background/95 p-0 sm:max-w-[1100px] glass-card">
+        <SheetContent overlayClassName="bg-white/80 dark:bg-black/80" className="flex w-full flex-col bg-background/95 p-0 sm:max-w-[1100px] glass-card">
           <SheetHeader className="shrink-0 border-b px-6 py-4 text-left">
             <SheetTitle className="flex items-center gap-2"><ClipboardList className="h-5 w-5 text-primary" />{detail?.task.display || t('aiKanban.detail.title')}</SheetTitle>
             <SheetDescription>{detail?.task.goal || t('aiKanban.detail.description')}</SheetDescription>
@@ -931,7 +931,7 @@ export default function AIKanbanPage() {
       </Sheet>
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="flex max-h-[92vh] flex-col overflow-hidden p-0 sm:max-w-[1040px] glass-card">
+        <DialogContent className="flex max-h-[92vh] flex-col p-0 sm:max-w-[1040px] glass-card">
           <DialogHeader className="border-b px-6 py-4">
             <DialogTitle className="flex items-center gap-2"><Rocket className="h-5 w-5 text-primary" />{t('aiKanban.create.title')}</DialogTitle>
             <DialogDescription>{t('aiKanban.create.description')}</DialogDescription>

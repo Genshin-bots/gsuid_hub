@@ -110,8 +110,10 @@ export function RepeatGroupField({ fieldKey, template, value, onChange, disabled
             ? String(item[titleKey])
             : `${t('common.repeatGroup.item')} ${i + 1}`;
         const subtitle = summarize(item, entries, skip);
+        // !rounded：glass-card-flat 类自带 --radius 圆角，须 important 压回 3px；
+        // flat 无阴影，overflow-hidden 安全，用来裁顶部色条
         return (
-          <div key={i} className="glass-card-flat shadow-sm rounded-[3px] overflow-hidden">
+          <div key={i} className="glass-card-flat !rounded-[3px] overflow-hidden">
             {/* 顶部主题色细线：卡片的一部分(被 rounded/overflow 裁切贴合) */}
             <div className="h-[5px] bg-primary/60" />
             <div

@@ -309,7 +309,7 @@ const MemeCard = memo(function MemeCard({
     <Card
       ref={cardRef}
       className={cn(
-        "group cursor-pointer transition-[transform,box-shadow] duration-300 hover:shadow-lg hover:scale-[1.02] overflow-hidden",
+        "group cursor-pointer transition-[transform,box-shadow] duration-300 hover:shadow-lg hover:scale-[1.02]",
         // glass-card-flat: keeps the translucent look but drops the per-card
         // backdrop-filter blur, which is very expensive across a 24-item grid.
         isGlass && "glass-card-flat",
@@ -320,7 +320,8 @@ const MemeCard = memo(function MemeCard({
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* Image - lazy render via IntersectionObserver for GIF performance */}
-      <div className="relative aspect-square bg-muted/30 overflow-hidden">
+      {/* rounded-t-[inherit]：Card 不再 overflow-hidden，图片区需自己贴合卡片上圆角 */}
+      <div className="relative aspect-square bg-muted/30 overflow-hidden rounded-t-[inherit]">
         {!hasEntered ? (
           <div className="absolute inset-0 bg-muted/30 flex items-center justify-center">
             <Skeleton className="w-full h-full absolute" />
@@ -1471,7 +1472,7 @@ export default function AIMemePage() {
   // ============================================================================
 
   return (
-    <div className="p-4 sm:p-6 space-y-3">
+    <div className="space-y-3">
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0 overflow-x-auto">
@@ -1672,7 +1673,7 @@ export default function AIMemePage() {
 
         {/* Search */}
         <div className={cn(
-          "relative w-52 rounded-lg border border-border/40 overflow-hidden transition-all duration-200",
+          "relative w-52 rounded-lg border border-border/40 transition-all duration-200",
           isGlass ? "glass-card" : "bg-muted/50"
         )}>
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none z-10" />
@@ -1695,7 +1696,7 @@ export default function AIMemePage() {
         {/* Persona Filter - drop-down of all personas the library has ever seen,
             ordered by count desc. Empty value = "all personas". */}
         <div className={cn(
-          "rounded-lg border border-border/40 overflow-hidden transition-all duration-200",
+          "rounded-lg border border-border/40 transition-all duration-200",
           isGlass ? "glass-card" : "bg-muted/50"
         )}>
           <Select
@@ -1726,7 +1727,7 @@ export default function AIMemePage() {
 
         {/* Sort Select */}
         <div className={cn(
-          "rounded-lg border border-border/40 overflow-hidden transition-all duration-200",
+          "rounded-lg border border-border/40 transition-all duration-200",
           isGlass ? "glass-card" : "bg-muted/50"
         )}>
           <Select
@@ -1752,7 +1753,7 @@ export default function AIMemePage() {
       {isLoading ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
           {Array.from({ length: 12 }).map((_, i) => (
-            <Card key={i} className={cn("overflow-hidden", isGlass && "glass-card")}>
+            <Card key={i} className={cn(isGlass && "glass-card")}>
               <Skeleton className="aspect-square w-full" />
               <CardContent className="p-3 space-y-2">
                 <Skeleton className="h-3 w-full" />

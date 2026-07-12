@@ -598,7 +598,7 @@ export default function AIConfigPage() {
 
   if (!aiConfig) {
     return (
-      <div className="space-y-6 flex-1 overflow-auto p-6 h-full flex flex-col">
+      <div className="space-y-6">
         <EmptyState
           icon={<Bot className="w-8 h-8 text-muted-foreground" />}
           title={t('aiConfig.noAIConfig')}
@@ -930,9 +930,9 @@ export default function AIConfigPage() {
   };
 
   return (
-    <div className="h-full flex flex-col">
-      {/* Header */}
-      <div className="shrink-0 px-3 sm:px-6 pt-3 sm:pt-6 pb-2">
+    <div className="flex-1 min-h-0 flex flex-col">
+      {/* Header（外边距由 AppLayout --layout-gutter 统一提供） */}
+      <div className="shrink-0 pb-3">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0 overflow-x-auto">
             <h1 className="whitespace-nowrap text-xl sm:text-3xl font-bold flex items-center gap-2 sm:gap-3">
@@ -1012,8 +1012,9 @@ export default function AIConfigPage() {
       </div>
 
       {/* Main Content Area - banner + sidebar + content in unified glass-card */}
-      <div className="flex-1 flex flex-col pb-3 sm:pb-6 min-h-0">
-        <div className="flex-1 min-h-0 glass-card rounded-2xl overflow-hidden flex flex-col mx-3 sm:mx-6 mt-2 sm:mt-3">
+      <div className="flex-1 flex flex-col min-h-0">
+        <div className="flex-1 min-h-0 glass-card rounded-2xl flex flex-col">
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[inherit]">
           {/* AI Service Master Switch Banner */}
           <div className="shrink-0 px-3 sm:px-5 pt-3 sm:pt-5 pb-2">
             {wizard.isBackendPendingRestart && (
@@ -1116,6 +1117,7 @@ export default function AIConfigPage() {
                 )}
               </div>
             </div>
+          </div>
           </div>
         </div>
       </div>

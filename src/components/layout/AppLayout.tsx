@@ -1,6 +1,6 @@
 import { Outlet } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { SidebarProvider, SidebarInset, useSidebar } from '@/components/ui/sidebar';
 import { AppSidebar } from './AppSidebar';
@@ -58,7 +58,6 @@ function LayoutHeader() {
 
 function LayoutContent() {
   const { style, backgroundImage, blurIntensity } = useTheme();
-  const isMobile = useIsMobile();
 
   const isGradient = backgroundImage?.startsWith('linear-gradient');
   const isImage = backgroundImage && !isGradient;
@@ -153,8 +152,16 @@ function LayoutContent() {
         )}
       >
         <LayoutHeader />
-        <main className="flex-1 p-4 md:p-6 overflow-auto">
-          <Outlet />
+        {/*
+          滚动容器与内边距拆开：
+          - main 只负责 overflow，避免 padding+overflow 把卡片阴影竖直裁切
+          - .layout-page-inner：标题页用 page-top 呼吸距；左右下为 gutter
+          - .page-fill（ai-history 等）：上下与悬浮侧栏对齐，标题页不要加
+        */}
+        <main className="flex-1 min-h-0 flex flex-col overflow-auto">
+          <div className="layout-page-inner">
+            <Outlet />
+          </div>
         </main>
       </SidebarInset>
     </>
@@ -162,8 +169,16 @@ function LayoutContent() {
 }
 
 export function AppLayout() {
+  const { sidebarDefaultCollapsed } = useTheme();
+  // 受控 open：主题「默认收起」偏好驱动初始态；用户手动折叠/展开走 onOpenChange
+  const [open, setOpen] = useState(() => !sidebarDefaultCollapsed);
+
+  useEffect(() => {
+    setOpen(!sidebarDefaultCollapsed);
+  }, [sidebarDefaultCollapsed]);
+
   return (
-    <SidebarProvider className="h-dvh overflow-hidden">
+    <SidebarProvider open={open} onOpenChange={setOpen} className="h-dvh overflow-hidden">
       <LayoutContent />
     </SidebarProvider>
   );

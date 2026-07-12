@@ -2,7 +2,7 @@
 name: gshub-development
 description: >
   当用户要求"开发/维护 GsCore Web 控制台前端（gsuid_hub）"、"新增一个页面 / 配置页 / Tab"、
-  "页面排版应该怎么写 / 标题/副标题/图标/页边距怎么排 / p-6 space-y-6 是什么"、
+  "页面排版应该怎么写 / 标题/副标题/图标/页边距怎么排 / 上边距和侧边栏怎么对齐 / page-fill 是什么"、
   "主题怎么适配 / glass-card 怎么用 / 毛玻璃 vs 纯色"、"i18n 怎么加翻译 / 三语言怎么同步 /
   index.ts 怎么改 / t() 插值"、"侧边栏怎么加菜单项 / 子菜单 / 展开状态丢失"、
   "Input 和下拉框高度不一致 / 一行筛选组件怎么对齐 / h-9"、
@@ -16,8 +16,9 @@ description: >
   面向 **GsCore Web 控制台（gsuid_hub，前端 React 项目）开发者与维护者**的系统级开发规范指南。
   与后端框架 SKILL（`gscore-development` 等，位于 gsuid_core 仓库）不同，本 SKILL 讲的是
   **前端工程自身的设计约束与组件契约**：技术栈与目录结构、路由、API 层封装与 401、i18n 三语言同步、
-  主题系统（ThemeContext / CSS HSL 变量 / glass-card 自动适配）、页面排版铁律（页面解剖学：
-  p-6 space-y-6 / text-3xl 标题 / 内联 w-8 h-8 图标 / 副标题 / 间距标尺 / 三态）、表单与筛选控件
+  主题系统（ThemeContext / CSS HSL 变量 / glass-card 自动适配 / 侧栏三布局 / 圆角与 UI 缩放）、
+  页面排版铁律（页面解剖学：layout-gutter/page-top 边距体系 / page-fill 全高卡片页 /
+  text-3xl 标题 / 内联 w-8 h-8 图标 / 副标题 / 间距标尺 / 三态）、表单与筛选控件
   统一规范（统一 h-9、Radix Select 哨兵、Tooltip 字段说明、Switch UX）、强制复用的封装组件目录
   （TabButtonGroup / InputWithDropdown / TagsInput / ChipGroup / DynamicConfigPanel）、渐进式配置页
   与脏检查竞态、几类页面模式（卡片列表 / 表格详情 / Dialog / 移动端）、侧边栏多级菜单与稳定 id，
@@ -56,7 +57,7 @@ description: >
 | 七 | 配置页与状态管理（渐进式配置页 + `EXPECTED_CONFIG_KEYS`/`rawConfig`、双重 dirty 检查、保存竞态、AIConfig 设计、**任务配置主备双配置**） | [references/07-config-pages-and-state.md](./references/07-config-pages-and-state.md) |
 | 八 | 页面模式与 Dialog 规范（卡片列表页 / 表格详情 / Dialog/Modal / 双态 UI / 移动端 / SSH URL / API 设计经验） | [references/08-page-patterns.md](./references/08-page-patterns.md) |
 | 九 | 侧边栏与导航（`getNavItems`、稳定 `id` 作 key、`ICON_MAP`、AI 启用态条件子菜单、自动展开） | [references/09-sidebar-navigation.md](./references/09-sidebar-navigation.md) |
-| 十 | 已知坑 + 性能 + 落地清单（P-1~P-12 坑、性能优化、新页面落地自查清单总表） | [references/10-pitfalls-and-performance.md](./references/10-pitfalls-and-performance.md) |
+| 十 | 已知坑 + 性能 + 落地清单（P-1~P-22 坑、性能优化、新页面落地自查清单总表） | [references/10-pitfalls-and-performance.md](./references/10-pitfalls-and-performance.md) |
 
 ## 推荐阅读顺序（按需跳转）
 
@@ -69,7 +70,8 @@ description: >
 
 ## 关键概念速记（先看这一段再决定读哪一章）
 
-- **页面共享同一套排版骨架**：所有页面根容器统一 `p-6 space-y-6`，**不得**加 `max-w-7xl mx-auto`；标题统一 `text-3xl font-bold` + 内联图标 `w-8 h-8`（**不加**背景容器），副标题 `text-muted-foreground mt-1`（**不加** `text-sm`）。参考页 `AISkillsPage` / `AIMemoryPage`。详见 [§04](./references/04-page-layout-spec.md)。
+- **页面共享同一套排版骨架**：页边距由 AppLayout 统一提供——标题页根容器只写 `space-y-6`（**不得**写 `p-6` / `overflow-auto` / `max-w-7xl mx-auto`）；全高单卡片页（/ai-history 等）根容器 `page-fill flex glass-card`，四边与悬浮侧栏对齐。标题统一 `text-3xl font-bold` + 内联图标 `w-8 h-8`（**不加**背景容器），副标题 `text-muted-foreground mt-1`（**不加** `text-sm`）。参考页 `AISkillsPage` / `AIHistoryPage`。详见 [§04](./references/04-page-layout-spec.md)。
+- **glass-card 宿主禁止 `overflow-hidden`**：阴影/毛玻璃靠宿主 `overflow: visible` + `::before`；裁切放内层 `rounded-[inherit]`，卡片网格加 `glass-card-grid` 防阴影被切。详见 [§04 §4.1.2/4.1.3](./references/04-page-layout-spec.md)、[§10 P-19](./references/10-pitfalls-and-performance.md)。
 - **页面级操作按钮的摆放 ★★**：①首选——页面有 button group（`TabButtonGroup`/二级切换）时，把按钮**移出 Header**、与 button group **同行平齐**（`sm:items-center`、`justify-between`）；②否则放 Header 右侧、与**副标题底边对齐**（`sm:items-end`）。两种都**禁止**在 Header 内用 `items-center`（会让按钮浮在 H1 与副标题之间、与副标题错位）。详见 [§04 §4.2](./references/04-page-layout-spec.md)。
 - **一行筛选控件高度必须统一 h-9**：`Input` 默认 `h-10`、`SelectTrigger` 默认 `h-9`、`Button` 默认 `h-10`——同行并排不显式 `h-9` 就会高低不齐（搜索框+下拉+按钮的工具栏是重灾区）。详见 [§05](./references/05-components-and-form-controls.md)。
 - **`glass-card` 始终应用，不要 `isGlass &&`**：`glass-card` 已按 `[data-style]` 自动适配纯色/毛玻璃/亮暗。正确写法是直接 `className="glass-card"`。详见 [§03](./references/03-theme-and-styling.md)、[§10 P-2](./references/10-pitfalls-and-performance.md)。

@@ -1810,6 +1810,19 @@ export interface ThemeConfig {
   language: 'zh-CN' | 'en-US' | 'ja-JP';
   /** Card opacity percentage (0-100). Applies to both solid and glassmorphism styles. */
   card_opacity?: number;
+  /**
+   * Sidebar layout:
+   * - `floating`: card-like floating sidebar with outer padding/gap
+   * - `docked`: classic edge-flush split pane (glass panel)
+   * - `line`: no card chrome; only a vertical divider from main content
+   */
+  sidebar_layout?: 'floating' | 'docked' | 'line';
+  /** Global corner radius in px (CSS `--radius`). 0 = square, 24 ≈ default. */
+  border_radius?: number;
+  /** UI font scale percentage (html font-size). 100 = browser default. */
+  ui_scale?: number;
+  /** Whether the sidebar should start collapsed (icon mode). */
+  sidebar_default_collapsed?: boolean;
 }
 
 export interface ThemeConfigResponse {

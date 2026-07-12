@@ -516,7 +516,7 @@ export default function Dashboard() {
   }, [commandTypeList, handleLegendSelectChanged]);
 
   return (
-    <div className="space-y-6 flex-1 overflow-auto p-6 h-full flex flex-col">
+    <div className="space-y-6">
       {/* Header with Bot Selector */}
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
@@ -544,8 +544,8 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Key Metrics Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {/* Key Metrics Grid — glass-card-grid 给四角阴影留溢出空间 */}
+      <div className="glass-card-grid grid grid-cols-2 md:grid-cols-4 gap-4">
         {metricCards.map((metric) => (
           <Card key={metric.title} className="glass-card">
             <CardContent className="p-4">

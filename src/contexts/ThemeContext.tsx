@@ -30,6 +30,44 @@ type ThemeColor = 'red' | 'orchid' | 'blue' | 'green' | 'orange' | 'pink';
 type ThemePreset = 'default' | 'shadcn';
 type IconColor = 'white' | 'black' | 'colored';
 type Language = 'zh-CN' | 'en-US' | 'ja-JP';
+/** 侧边栏布局：悬浮卡片 / 贴边分栏（玻璃面板）/ 仅分割线 */
+type SidebarLayout = 'floating' | 'docked' | 'line';
+
+const SIDEBAR_LAYOUTS: readonly SidebarLayout[] = ['floating', 'docked', 'line'] as const;
+
+const BORDER_RADIUS_MIN = 0;
+const BORDER_RADIUS_MAX = 32;
+const BORDER_RADIUS_DEFAULT = 24;
+const UI_SCALE_MIN = 85;
+const UI_SCALE_MAX = 120;
+const UI_SCALE_DEFAULT = 100;
+
+function clampInt(n: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, Math.round(n)));
+}
+
+function readSessionBool(key: string): boolean | null {
+  try {
+    const v = sessionStorage.getItem(key);
+    if (v === '1' || v === 'true') return true;
+    if (v === '0' || v === 'false') return false;
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
+function readSessionInt(key: string, min: number, max: number): number | null {
+  try {
+    const raw = sessionStorage.getItem(key);
+    if (raw == null || raw === '') return null;
+    const n = parseInt(raw, 10);
+    if (Number.isFinite(n)) return clampInt(n, min, max);
+  } catch {
+    // ignore
+  }
+  return null;
+}
 
 // Context类型定义 - 拆分为多个小context
 interface ThemeModeContextType {
@@ -67,6 +105,21 @@ interface ThemeIconColorContextType {
 interface ThemeLanguageContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
+}
+
+interface ThemeMiscContextType {
+  /** 侧边栏布局：floating=悬浮卡片 / docked=贴边分栏 / line=仅分割线 */
+  sidebarLayout: SidebarLayout;
+  setSidebarLayout: (layout: SidebarLayout, autoSave?: boolean) => void;
+  /** 全局圆角强度（px → CSS --radius） */
+  borderRadius: number;
+  setBorderRadius: (value: number, autoSave?: boolean) => void;
+  /** UI 字号缩放百分比（html font-size） */
+  uiScale: number;
+  setUiScale: (value: number, autoSave?: boolean) => void;
+  /** 侧边栏默认是否收起 */
+  sidebarDefaultCollapsed: boolean;
+  setSidebarDefaultCollapsed: (value: boolean, autoSave?: boolean) => void;
 }
 
 interface ThemeActionsContextType {
@@ -228,6 +281,7 @@ const ThemeColorContext = createContext<ThemeColorContextType | undefined>(undef
 const ThemeBackgroundContext = createContext<ThemeBackgroundContextType | undefined>(undefined);
 const ThemeIconColorContext = createContext<ThemeIconColorContextType | undefined>(undefined);
 const ThemeLanguageContext = createContext<ThemeLanguageContextType | undefined>(undefined);
+const ThemeMiscContext = createContext<ThemeMiscContextType | undefined>(undefined);
 const ThemeActionsContext = createContext<ThemeActionsContextType | undefined>(undefined);
 
 // ============================================================================
@@ -246,15 +300,32 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [themePreset, setThemePresetState] = useState<ThemePreset>('default');
   // 优先读浏览器已保存的语言，避免未登录时被默认 zh-CN 覆盖
   const [language, setLanguageState] = useState<Language>(() => readStoredLanguage() ?? 'zh-CN');
+  const [sidebarLayout, setSidebarLayoutState] = useState<SidebarLayout>('floating');
+  // 杂项：优先读 session，避免首屏闪回默认值
+  const [borderRadius, setBorderRadiusState] = useState<number>(
+    () => readSessionInt('theme_border_radius', BORDER_RADIUS_MIN, BORDER_RADIUS_MAX) ?? BORDER_RADIUS_DEFAULT
+  );
+  const [uiScale, setUiScaleState] = useState<number>(
+    () => readSessionInt('theme_ui_scale', UI_SCALE_MIN, UI_SCALE_MAX) ?? UI_SCALE_DEFAULT
+  );
+  const [sidebarDefaultCollapsed, setSidebarDefaultCollapsedState] = useState<boolean>(
+    () => readSessionBool('theme_sidebar_default_collapsed') ?? false
+  );
   const [isInitialized, setIsInitialized] = useState(false);
   
-  // 使用ref存储配置，用于自动保�?
-  const configRef = useRef({ mode, style, color, iconColor, backgroundImage, blurIntensity, cardOpacity, themePreset, language });
+  // 使用ref存储配置，用于自动保存
+  const configRef = useRef({
+    mode, style, color, iconColor, backgroundImage, blurIntensity, cardOpacity,
+    themePreset, language, sidebarLayout, borderRadius, uiScale, sidebarDefaultCollapsed,
+  });
 
   // 更新ref
   useEffect(() => {
-    configRef.current = { mode, style, color, iconColor, backgroundImage, blurIntensity, cardOpacity, themePreset, language };
-  }, [mode, style, color, iconColor, backgroundImage, blurIntensity, cardOpacity, themePreset, language]);
+    configRef.current = {
+      mode, style, color, iconColor, backgroundImage, blurIntensity, cardOpacity,
+      themePreset, language, sidebarLayout, borderRadius, uiScale, sidebarDefaultCollapsed,
+    };
+  }, [mode, style, color, iconColor, backgroundImage, blurIntensity, cardOpacity, themePreset, language, sidebarLayout, borderRadius, uiScale, sidebarDefaultCollapsed]);
 
   // 计算当前主题颜色
   const themeColors = useMemo(
@@ -301,6 +372,18 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
           } else if (config.language && ['zh-CN', 'en-US', 'ja-JP'].includes(config.language)) {
             setLanguageState(config.language as Language);
           }
+          if (config.sidebar_layout && (SIDEBAR_LAYOUTS as readonly string[]).includes(config.sidebar_layout)) {
+            setSidebarLayoutState(config.sidebar_layout as SidebarLayout);
+          }
+          if (typeof config.border_radius === 'number') {
+            setBorderRadiusState(clampInt(config.border_radius, BORDER_RADIUS_MIN, BORDER_RADIUS_MAX));
+          }
+          if (typeof config.ui_scale === 'number') {
+            setUiScaleState(clampInt(config.ui_scale, UI_SCALE_MIN, UI_SCALE_MAX));
+          }
+          if (typeof config.sidebar_default_collapsed === 'boolean') {
+            setSidebarDefaultCollapsedState(config.sidebar_default_collapsed);
+          }
         }
       } catch {
         loadFromSessionStorage();
@@ -318,10 +401,14 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       const savedColor = sessionStorage.getItem('theme_color') as ThemeColor;
       const savedBg = sessionStorage.getItem('theme_bg');
       const savedBlur = sessionStorage.getItem('theme_blur');
-    const savedCardOpacity = sessionStorage.getItem('theme_card_opacity');
+      const savedCardOpacity = sessionStorage.getItem('theme_card_opacity');
       const savedIconColor = sessionStorage.getItem('theme_icon_color') as IconColor;
       const savedPreset = sessionStorage.getItem('theme_preset') as ThemePreset;
       const savedLanguage = readStoredLanguage();
+      const savedSidebarLayout = sessionStorage.getItem('theme_sidebar_layout') as SidebarLayout;
+      const savedBorderRadius = readSessionInt('theme_border_radius', BORDER_RADIUS_MIN, BORDER_RADIUS_MAX);
+      const savedUiScale = readSessionInt('theme_ui_scale', UI_SCALE_MIN, UI_SCALE_MAX);
+      const savedSidebarCollapsed = readSessionBool('theme_sidebar_default_collapsed');
 
       if (savedMode) setModeState(savedMode);
       if (savedStyle) setStyleState(savedStyle);
@@ -332,10 +419,23 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       if (savedIconColor) setIconColorState(savedIconColor);
       if (savedPreset) setThemePresetState(savedPreset);
       if (savedLanguage) setLanguageState(savedLanguage);
+      if (savedSidebarLayout && (SIDEBAR_LAYOUTS as readonly string[]).includes(savedSidebarLayout)) {
+        setSidebarLayoutState(savedSidebarLayout);
+      }
+      if (savedBorderRadius != null) setBorderRadiusState(savedBorderRadius);
+      if (savedUiScale != null) setUiScaleState(savedUiScale);
+      if (savedSidebarCollapsed != null) setSidebarDefaultCollapsedState(savedSidebarCollapsed);
     } catch (e) {
       console.error('Failed to load theme from sessionStorage:', e);
     }
   };
+
+  // 圆角 / 字号 / 侧栏布局：可在后端配置返回前用 session 初值先落地，减少首屏闪回
+  useEffect(() => {
+    document.documentElement.style.setProperty('--radius', `${borderRadius}px`);
+    document.documentElement.style.fontSize = uiScale === 100 ? '' : `${uiScale}%`;
+    document.documentElement.setAttribute('data-sidebar-layout', sidebarLayout);
+  }, [borderRadius, uiScale, sidebarLayout]);
 
   // 批量应用所有主题设置到DOM - 合并为单一effect减少重绘
   useEffect(() => {
@@ -372,11 +472,23 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       
       sessionStorage.setItem('theme_icon_color', iconColor);
       document.documentElement.setAttribute('data-icon-color', iconColor);
+
+      sessionStorage.setItem('theme_sidebar_layout', sidebarLayout);
+      document.documentElement.setAttribute('data-sidebar-layout', sidebarLayout);
+
+      sessionStorage.setItem('theme_border_radius', String(borderRadius));
+      document.documentElement.style.setProperty('--radius', `${borderRadius}px`);
+
+      sessionStorage.setItem('theme_ui_scale', String(uiScale));
+      // 100% = 浏览器默认；通过 html font-size 缩放全部 rem 字号与间距
+      document.documentElement.style.fontSize = uiScale === 100 ? '' : `${uiScale}%`;
+
+      sessionStorage.setItem('theme_sidebar_default_collapsed', sidebarDefaultCollapsed ? '1' : '0');
     };
     
     // 使用requestAnimationFrame确保批量执行
     requestAnimationFrame(applyTheme);
-  }, [themeColors, mode, style, color, themePreset, backgroundImage, blurIntensity, cardOpacity, iconColor, isInitialized]);
+  }, [themeColors, mode, style, color, themePreset, backgroundImage, blurIntensity, cardOpacity, iconColor, sidebarLayout, borderRadius, uiScale, sidebarDefaultCollapsed, isInitialized]);
 
   // 保存到后端的统一方法
   const saveToBackend = useCallback(async (overrides?: Partial<typeof configRef.current>) => {
@@ -392,6 +504,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         card_opacity: config.cardOpacity,
         theme_preset: config.themePreset,
         language: config.language,
+        sidebar_layout: config.sidebarLayout,
+        border_radius: config.borderRadius,
+        ui_scale: config.uiScale,
+        sidebar_default_collapsed: config.sidebarDefaultCollapsed,
       });
     } catch (error) {
       console.error('Failed to save theme to backend:', error);
@@ -470,6 +586,36 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     }
   }, [isInitialized, saveToBackend]);
 
+  const setSidebarLayout = useCallback((layout: SidebarLayout, autoSave?: boolean) => {
+    setSidebarLayoutState(layout);
+    if (autoSave && isInitialized) {
+      saveToBackend({ sidebarLayout: layout });
+    }
+  }, [isInitialized, saveToBackend]);
+
+  const setBorderRadius = useCallback((value: number, autoSave?: boolean) => {
+    const next = clampInt(value, BORDER_RADIUS_MIN, BORDER_RADIUS_MAX);
+    setBorderRadiusState(next);
+    if (autoSave && isInitialized) {
+      saveToBackend({ borderRadius: next });
+    }
+  }, [isInitialized, saveToBackend]);
+
+  const setUiScale = useCallback((value: number, autoSave?: boolean) => {
+    const next = clampInt(value, UI_SCALE_MIN, UI_SCALE_MAX);
+    setUiScaleState(next);
+    if (autoSave && isInitialized) {
+      saveToBackend({ uiScale: next });
+    }
+  }, [isInitialized, saveToBackend]);
+
+  const setSidebarDefaultCollapsed = useCallback((value: boolean, autoSave?: boolean) => {
+    setSidebarDefaultCollapsedState(value);
+    if (autoSave && isInitialized) {
+      saveToBackend({ sidebarDefaultCollapsed: value });
+    }
+  }, [isInitialized, saveToBackend]);
+
   // 把当前主题快照成后端 ThemeConfig 结构（用于保存预设）
   const getThemeConfig = useCallback((): ThemeConfig => {
     const c = configRef.current;
@@ -483,6 +629,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       card_opacity: c.cardOpacity,
       theme_preset: c.themePreset,
       language: c.language,
+      sidebar_layout: c.sidebarLayout,
+      border_radius: c.borderRadius,
+      ui_scale: c.uiScale,
+      sidebar_default_collapsed: c.sidebarDefaultCollapsed,
     };
   }, []);
 
@@ -522,6 +672,18 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         // ignore
       }
     }
+    if (config.sidebar_layout && (SIDEBAR_LAYOUTS as readonly string[]).includes(config.sidebar_layout)) {
+      setSidebarLayoutState(config.sidebar_layout as SidebarLayout);
+    }
+    if (typeof config.border_radius === 'number') {
+      setBorderRadiusState(clampInt(config.border_radius, BORDER_RADIUS_MIN, BORDER_RADIUS_MAX));
+    }
+    if (typeof config.ui_scale === 'number') {
+      setUiScaleState(clampInt(config.ui_scale, UI_SCALE_MIN, UI_SCALE_MAX));
+    }
+    if (typeof config.sidebar_default_collapsed === 'boolean') {
+      setSidebarDefaultCollapsedState(config.sidebar_default_collapsed);
+    }
   }, []);
 
   // Context values
@@ -531,6 +693,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const backgroundContext = useMemo(() => ({ backgroundImage, setBackgroundImage, blurIntensity, setBlurIntensity, cardOpacity, setCardOpacity }), [backgroundImage, setBackgroundImage, blurIntensity, setBlurIntensity, cardOpacity, setCardOpacity]);
   const iconColorContext = useMemo(() => ({ iconColor, setIconColor }), [iconColor, setIconColor]);
   const languageContext = useMemo(() => ({ language, setLanguage }), [language, setLanguage]);
+  const miscContext = useMemo(() => ({
+    sidebarLayout, setSidebarLayout,
+    borderRadius, setBorderRadius,
+    uiScale, setUiScale,
+    sidebarDefaultCollapsed, setSidebarDefaultCollapsed,
+  }), [sidebarLayout, setSidebarLayout, borderRadius, setBorderRadius, uiScale, setUiScale, sidebarDefaultCollapsed, setSidebarDefaultCollapsed]);
   const actionsContext = useMemo(() => ({ getThemeConfig, applyThemeConfig }), [getThemeConfig, applyThemeConfig]);
 
   return (
@@ -540,9 +708,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
           <ThemeBackgroundContext.Provider value={backgroundContext}>
             <ThemeIconColorContext.Provider value={iconColorContext}>
               <ThemeLanguageContext.Provider value={languageContext}>
-                <ThemeActionsContext.Provider value={actionsContext}>
-                  {children}
-                </ThemeActionsContext.Provider>
+                <ThemeMiscContext.Provider value={miscContext}>
+                  <ThemeActionsContext.Provider value={actionsContext}>
+                    {children}
+                  </ThemeActionsContext.Provider>
+                </ThemeMiscContext.Provider>
               </ThemeLanguageContext.Provider>
             </ThemeIconColorContext.Provider>
           </ThemeBackgroundContext.Provider>
@@ -563,9 +733,10 @@ export function useTheme() {
   const backgroundContext = useContext(ThemeBackgroundContext);
   const iconColorContext = useContext(ThemeIconColorContext);
   const languageContext = useContext(ThemeLanguageContext);
+  const miscContext = useContext(ThemeMiscContext);
   const actionsContext = useContext(ThemeActionsContext);
 
-  if (modeContext === undefined || actionsContext === undefined) {
+  if (modeContext === undefined || actionsContext === undefined || miscContext === undefined) {
     throw new Error('useTheme must be used within a ThemeProvider');
   }
 
@@ -580,6 +751,10 @@ export function useTheme() {
     iconColor: iconColorContext.iconColor,
     themePreset: colorContext.themePreset,
     language: languageContext.language,
+    sidebarLayout: miscContext.sidebarLayout,
+    borderRadius: miscContext.borderRadius,
+    uiScale: miscContext.uiScale,
+    sidebarDefaultCollapsed: miscContext.sidebarDefaultCollapsed,
     setMode: modeContext.setMode,
     setStyle: styleContext.setStyle,
     setColor: colorContext.setColor,
@@ -589,6 +764,10 @@ export function useTheme() {
     setIconColor: iconColorContext.setIconColor,
     setThemePreset: colorContext.setThemePreset,
     setLanguage: languageContext.setLanguage,
+    setSidebarLayout: miscContext.setSidebarLayout,
+    setBorderRadius: miscContext.setBorderRadius,
+    setUiScale: miscContext.setUiScale,
+    setSidebarDefaultCollapsed: miscContext.setSidebarDefaultCollapsed,
     getThemeConfig: actionsContext.getThemeConfig,
     applyThemeConfig: actionsContext.applyThemeConfig,
   };
@@ -643,4 +822,12 @@ export function useThemeLanguage() {
   return context;
 }
 
-export type { ThemeMode, ThemeStyle, ThemeColor, ThemePreset, IconColor };
+export function useThemeMisc() {
+  const context = useContext(ThemeMiscContext);
+  if (context === undefined) {
+    throw new Error('useThemeMisc must be used within a ThemeProvider');
+  }
+  return context;
+}
+
+export type { ThemeMode, ThemeStyle, ThemeColor, ThemePreset, IconColor, SidebarLayout };

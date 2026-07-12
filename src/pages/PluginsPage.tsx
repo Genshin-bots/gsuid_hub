@@ -817,7 +817,7 @@ export default function PluginsPage() {
   };
 
   return (
-    <div className="space-y-6 flex-1 overflow-auto p-4 sm:p-6 h-full flex flex-col">
+    <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0 overflow-x-auto">
           <h1 className="whitespace-nowrap text-3xl font-bold tracking-tight flex items-center gap-3">

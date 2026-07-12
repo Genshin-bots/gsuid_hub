@@ -49,7 +49,20 @@ All colors MUST be HSL.
     --input: 240 4% 83%;
     --ring: 333 71% 50%;
 
-    --radius: 1.5rem;
+    /* 圆角基准：主题杂项 border_radius 会以 px 覆盖此值；默认 24px ≈ 原 1.5rem */
+    --radius: 24px;
+
+    /*
+     * 布局外边距：
+     * - --layout-gutter：悬浮侧栏四边；主内容左/右/下
+     * - --layout-page-top：普通「标题页」顶部呼吸距（大于 gutter，不与侧栏顶对齐）
+     * - 普通页中缝 ≈ 侧栏右 gutter + main 左 gutter
+     * - .page-fill 全高单卡片页：上下与悬浮侧栏对齐（同为 gutter）
+     */
+    --layout-gutter: 1.5rem;
+    --layout-page-top: 2.75rem;
+    /* 圆角阴影外溢安全距：overflow 容器内侧至少留这么多 */
+    --shadow-bleed: 0.75rem;
 
     --sidebar-background: 0 0% 98%;
 
@@ -175,118 +188,198 @@ All colors MUST be HSL.
   }
 }
 
-/* Glass morphism effects - refined with dynamic blur */
-/* Only apply backdrop-filter in glassmorphism mode for better performance */
+/*
+ * Glass / elevated surfaces
+ *
+ * 关键因：Chrome 等浏览器在「同一元素」上同时使用 backdrop-filter + box-shadow 时，
+ * 阴影常按矩形层合成，出现圆角卡片 + 竖直/直角截断阴影。
+ *
+ * 解法：宿主只负责圆角 + 阴影；背景/毛玻璃画在 ::before（同样 inherit 圆角）。
+ * 不要 transform / isolation / will-change:backdrop-filter，以免再引入合成脏边。
+ */
 .glass-card {
-  background: hsl(var(--card) / var(--card-opacity, 0.25)) !important;
+  /* z-index:0 建立层叠上下文，使 ::before 的 z-index:-1 仍落在卡片内部、内容之下；
+     切勿对子元素强制 position:relative（会破坏 absolute 装饰层，Home 英雄区曾因此被撑高） */
+  position: relative;
+  z-index: 0;
   border: 1px solid hsl(var(--border) / 0.4);
+  border-radius: var(--radius);
+  /* 背景透明：真实填充在 ::before，避免宿主矩形底把阴影「方化」 */
+  background: transparent !important;
+  /* 头两项透传 Tailwind ring-*（ring 也走 box-shadow），否则 !important 会把选中态 ring 杀掉 */
   box-shadow:
-    0 8px 32px hsl(0 0% 0% / 0.08),
-    inset 0 1px 0 hsl(var(--primary) / 0.06);
+    var(--tw-ring-offset-shadow, 0 0 #0000),
+    var(--tw-ring-shadow, 0 0 #0000),
+    0 2px 6px hsl(0 0% 0% / 0.04),
+    0 8px 24px -4px hsl(0 0% 0% / 0.1) !important;
   min-width: 0;
-  /* GPU加速提示 - 仅在毛玻璃模式下生效 */
-  will-change: auto;
+  overflow: visible;
 }
 
-/* Apply backdrop-filter only in glassmorphism mode */
-[data-style="glassmorphism"] .glass-card {
+.glass-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: hsl(var(--card) / var(--card-opacity, 0.25));
+  pointer-events: none;
+}
+
+[data-style="glassmorphism"] .glass-card::before {
   backdrop-filter: blur(var(--blur-intensity, 12px));
   -webkit-backdrop-filter: blur(var(--blur-intensity, 12px));
-  /* 提示浏览器优化backdrop-filter渲染 */
-  will-change: backdrop-filter;
 }
 
-/* Dark mode optimization - avoid bright white glare */
 .dark .glass-card {
-  background: hsl(var(--card) / var(--card-opacity, 0.2)) !important;
-  border: 1px solid hsl(var(--border) / 0.3);
+  border-color: hsl(var(--border) / 0.3);
   box-shadow:
-    0 8px 32px hsl(0 0% 0% / 0.15),
-    inset 0 1px 0 hsl(var(--primary) / 0.08);
+    var(--tw-ring-offset-shadow, 0 0 #0000),
+    var(--tw-ring-shadow, 0 0 #0000),
+    0 2px 8px hsl(0 0% 0% / 0.18),
+    0 12px 32px -6px hsl(0 0% 0% / 0.28) !important;
 }
 
-/* Flat glass card variant - no backdrop-filter or box-shadow (safe inside overflow containers) */
+.dark .glass-card::before {
+  background: hsl(var(--card) / var(--card-opacity, 0.2));
+}
+
+/* Flat glass card：无阴影/无毛玻璃，供 overflow 容器内嵌使用 */
 .glass-card-flat {
-  background: hsl(var(--card) / var(--card-opacity, 0.25)) !important;
+  position: relative;
+  z-index: 0;
+  background: transparent !important;
   border: 1px solid hsl(var(--border) / 0.4);
+  border-radius: var(--radius);
   min-width: 0;
+  /* 无投影，但保留 ring-* / hover:shadow-*（非 !important，:hover 态可覆盖） */
+  box-shadow:
+    var(--tw-ring-offset-shadow, 0 0 #0000),
+    var(--tw-ring-shadow, 0 0 #0000);
 }
 
-[data-style="glassmorphism"] .glass-card-flat {
-  /* No backdrop-filter to avoid clipping in overflow containers */
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
+.glass-card-flat::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: hsl(var(--card) / var(--card-opacity, 0.25));
+  pointer-events: none;
 }
 
-.dark .glass-card-flat {
-  background: hsl(var(--card) / var(--card-opacity, 0.2)) !important;
-  border: 1px solid hsl(var(--border) / 0.3);
+.dark .glass-card-flat::before {
+  background: hsl(var(--card) / var(--card-opacity, 0.2));
+}
+
+[data-style="solid"] .glass-card-flat::before {
+  background: hsl(var(--card) / var(--card-opacity, 1));
 }
 
 [data-style="solid"] .glass-card-flat {
-  background: hsl(var(--card) / var(--card-opacity, 1)) !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
   border: 1px solid hsl(var(--border));
 }
 
-/* Solid style card - opacity controllable via --card-opacity (default 1 = fully opaque) */
+/* Solid style card */
 [data-style="solid"] .glass-card {
-  background: hsl(var(--card) / var(--card-opacity, 1)) !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
   border: 1px solid hsl(var(--border));
-  box-shadow: 0 4px 16px hsl(0 0% 0% / 0.1);
-}
-
-/* Glass card with red/danger tint for warning banners */
-.glass-card-danger {
-  background: rgba(239, 68, 68, 0.25) !important;
-  border: 1px solid rgba(239, 68, 68, 0.6) !important;
   box-shadow:
-    0 8px 32px rgba(239, 68, 68, 0.15),
-    inset 0 1px 0 rgba(239, 68, 68, 0.2);
-  min-width: 0;
+    var(--tw-ring-offset-shadow, 0 0 #0000),
+    var(--tw-ring-shadow, 0 0 #0000),
+    0 2px 6px hsl(0 0% 0% / 0.05),
+    0 8px 20px -4px hsl(0 0% 0% / 0.08) !important;
 }
 
-[data-style="glassmorphism"] .glass-card-danger {
+[data-style="solid"] .glass-card::before {
+  background: hsl(var(--card) / var(--card-opacity, 1));
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* Glass card with red/danger tint */
+.glass-card-danger {
+  position: relative;
+  z-index: 0;
+  background: transparent !important;
+  border: 1px solid rgba(239, 68, 68, 0.6) !important;
+  border-radius: var(--radius);
+  box-shadow:
+    0 2px 6px rgba(239, 68, 68, 0.08),
+    0 10px 28px -6px rgba(239, 68, 68, 0.16) !important;
+  min-width: 0;
+  overflow: visible;
+}
+
+.glass-card-danger::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: rgba(239, 68, 68, 0.25);
+  pointer-events: none;
+}
+
+[data-style="glassmorphism"] .glass-card-danger::before {
   backdrop-filter: blur(var(--blur-intensity, 12px));
   -webkit-backdrop-filter: blur(var(--blur-intensity, 12px));
-  will-change: backdrop-filter;
 }
 
-/* Dark mode - glassmorphism */
 .dark .glass-card-danger {
-  background: rgba(80, 15, 15, 0.6) !important;
-  border: 1px solid rgba(160, 35, 35, 0.45) !important;
+  border-color: rgba(160, 35, 35, 0.45) !important;
   box-shadow:
-    0 8px 32px rgba(80, 15, 15, 0.3),
-    inset 0 1px 0 rgba(160, 35, 35, 0.12);
+    0 2px 8px rgba(0, 0, 0, 0.2),
+    0 12px 32px -6px rgba(80, 15, 15, 0.35) !important;
 }
 
-/* Solid style - light */
+.dark .glass-card-danger::before {
+  background: rgba(80, 15, 15, 0.6);
+}
+
 [data-style="solid"] .glass-card-danger {
-  background: hsl(0, 84%, 95%) !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
   border: 1px solid hsl(0, 84%, 82%) !important;
-  box-shadow: 0 4px 16px hsl(0, 84%, 80% / 0.3);
+  box-shadow:
+    0 2px 6px hsl(0, 84%, 50% / 0.08),
+    0 8px 20px -4px hsl(0, 84%, 50% / 0.12) !important;
 }
 
-/* Solid style - dark */
+[data-style="solid"] .glass-card-danger::before {
+  background: hsl(0, 84%, 95%);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
 [data-style="solid"] .dark .glass-card-danger {
-  background: hsl(0, 40%, 12%) !important;
   border: 1px solid hsl(0, 50%, 30%) !important;
-  box-shadow: 0 4px 16px hsl(0, 50%, 20% / 0.3);
+  box-shadow:
+    0 2px 6px hsl(0, 50%, 10% / 0.2),
+    0 10px 24px -4px hsl(0, 50%, 10% / 0.28) !important;
 }
 
-[data-style="solid"] .glass-sidebar,
-[data-style="solid"] .floating-sidebar {
+[data-style="solid"] .dark .glass-card-danger::before {
+  background: hsl(0, 40%, 12%);
+}
+
+[data-style="solid"] .glass-sidebar {
   background: hsl(var(--sidebar) / var(--card-opacity, 1)) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   border-right: 1px solid hsl(var(--border));
-  box-shadow: 4px 0 16px hsl(0 0% 0% / 0.08);
+  box-shadow: 2px 0 12px hsl(0 0% 0% / 0.06);
+}
+
+/* Solid floating sidebar */
+[data-style="solid"] .floating-sidebar {
+  border: 1px solid hsl(var(--border));
+  box-shadow:
+    0 2px 6px hsl(0 0% 0% / 0.05),
+    0 8px 20px -4px hsl(0 0% 0% / 0.08) !important;
+}
+
+[data-style="solid"] .floating-sidebar::before {
+  background: hsl(var(--sidebar) / var(--card-opacity, 1));
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 /* Glass effect for badge and tag elements - only apply in glassmorphism mode */
@@ -313,16 +406,15 @@ All colors MUST be HSL.
   background: hsl(var(--sidebar) / var(--card-opacity, 0.2)) !important;
   border-right: 1px solid hsl(var(--border) / 0.3);
   box-shadow:
-    4px 0 24px hsl(0 0% 0% / 0.06),
+    2px 0 12px hsl(0 0% 0% / 0.04),
+    6px 0 28px -4px hsl(0 0% 0% / 0.06),
     inset 0 1px 0 hsl(var(--primary) / 0.05);
-  will-change: auto;
 }
 
 /* Apply backdrop-filter only in glassmorphism mode */
 [data-style="glassmorphism"] .glass-sidebar {
   backdrop-filter: blur(var(--blur-intensity, 12px));
   -webkit-backdrop-filter: blur(var(--blur-intensity, 12px));
-  will-change: backdrop-filter;
 }
 
 /* 移动端模式下毛玻璃侧边栏使用直角 */
@@ -332,22 +424,163 @@ All colors MUST be HSL.
   }
 }
 
-/* Floating sidebar specific styles */
-.floating-sidebar {
-  background: hsl(var(--sidebar) / var(--card-opacity, 0.25)) !important;
-  border: 1px solid hsl(var(--border) / 0.3);
-  box-shadow:
-    0 8px 32px hsl(0 0% 0% / 0.1),
-    0 4px 16px hsl(0 0% 0% / 0.06),
-    inset 0 1px 0 hsl(var(--primary) / 0.06);
-  will-change: auto;
+/*
+ * 仅分割线模式：无卡片底、无阴影/毛玻璃，只靠右侧 1px 分割线与主内容区分。
+ */
+.line-sidebar {
+  background: transparent !important;
+  border: none !important;
+  border-right: 1px solid hsl(var(--border) / 0.45) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
-/* Apply backdrop-filter only in glassmorphism mode */
-[data-style="glassmorphism"] .floating-sidebar {
+.line-sidebar::before {
+  display: none !important;
+}
+
+.dark .line-sidebar {
+  border-right-color: hsl(var(--border) / 0.4) !important;
+}
+
+[data-style="solid"] .line-sidebar {
+  background: transparent !important;
+  border-right: 1px solid hsl(var(--border)) !important;
+  box-shadow: none !important;
+}
+
+@media (max-width: 768px) {
+  .line-sidebar {
+    /* 抽屉全高时仍用底色可读，仅保留右边分割语义 */
+    background: hsl(var(--background) / 0.92) !important;
+    border-right: 1px solid hsl(var(--border) / 0.45) !important;
+  }
+}
+
+/* Floating sidebar：同样采用 ::before 分离毛玻璃与阴影 */
+.floating-sidebar {
+  position: relative;
+  z-index: 0;
+  background: transparent !important;
+  border: 1px solid hsl(var(--border) / 0.4);
+  border-radius: var(--radius);
+  box-shadow:
+    0 2px 6px hsl(0 0% 0% / 0.04),
+    0 8px 24px -4px hsl(0 0% 0% / 0.1) !important;
+  overflow: visible;
+}
+
+.floating-sidebar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: hsl(var(--sidebar) / var(--card-opacity, 0.25));
+  pointer-events: none;
+}
+
+.dark .floating-sidebar {
+  border-color: hsl(var(--border) / 0.3);
+  box-shadow:
+    0 2px 8px hsl(0 0% 0% / 0.18),
+    0 12px 32px -6px hsl(0 0% 0% / 0.28) !important;
+}
+
+.dark .floating-sidebar::before {
+  background: hsl(var(--sidebar) / var(--card-opacity, 0.25));
+}
+
+[data-style="glassmorphism"] .floating-sidebar::before {
   backdrop-filter: blur(var(--blur-intensity, 12px));
   -webkit-backdrop-filter: blur(var(--blur-intensity, 12px));
-  will-change: backdrop-filter;
+}
+
+/*
+ * 主内容内框：
+ * - 默认（标题页）：顶部 --layout-page-top 呼吸距，不与侧栏顶对齐
+ * - 含 .page-fill（全高单卡片）：上下改为 gutter，与悬浮侧栏对齐
+ */
+.layout-page-inner {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: min-content;
+  width: 100%;
+  padding-top: var(--layout-page-top);
+  padding-right: var(--layout-gutter);
+  padding-bottom: var(--layout-gutter);
+  padding-left: var(--layout-gutter);
+}
+
+/* 全高卡片页：上下边距与悬浮侧栏同为 gutter */
+main:has(.page-fill) {
+  overflow: hidden; /* 内层自己滚，避免 main 再裁一刀 */
+}
+
+main:has(.page-fill) .layout-page-inner {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+  padding-top: var(--layout-gutter);
+  padding-bottom: var(--layout-gutter);
+}
+
+/*
+ * 横向滚动容器（标题 nowrap / TabButtonGroup 等）在 CSS 规范下会把 overflow-y
+ * 也变成 auto，从而竖直裁切 glass-card 阴影（button group 四角被切）。
+ * 用内边距给阴影留空间，负 margin 抵消布局位移。
+ */
+.layout-page-inner .overflow-x-auto,
+.layout-page-inner .overflow-x-scroll {
+  padding: var(--shadow-bleed);
+  margin: calc(var(--shadow-bleed) * -1);
+}
+
+/*
+ * 卡片网格：只在竖直方向留阴影安全区。
+ * 水平不加负 margin，避免与下方 TabButtonGroup 等全宽控件右边对不齐。
+ * （页面左右已有 --layout-gutter，足够吃掉左右阴影）
+ */
+.glass-card-grid {
+  margin-block: calc(var(--shadow-bleed) * -1);
+  padding-block: var(--shadow-bleed);
+  margin-inline: 0;
+  padding-inline: 0;
+}
+
+/*
+ * 任意需要阴影安全区的容器：同样仅竖直方向，保证与网格/卡片右缘对齐。
+ */
+.shadow-safe {
+  margin-block: calc(var(--shadow-bleed) * -1);
+  padding-block: var(--shadow-bleed);
+  margin-inline: 0;
+  padding-inline: 0;
+}
+
+/*
+ * 全高单卡片（/ai-history、会话管理等）填满 layout-page-inner 的内容区。
+ * 上下边距由 main:has(.page-fill) .layout-page-inner 的 gutter padding 保证，
+ * 与悬浮侧栏顶底对齐；标题页不加 .page-fill，继续用 page-top。
+ */
+.page-fill {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+  max-width: none;
+}
+
+/* 悬浮：取消左侧 gutter，中缝 = 侧栏右 gutter（与侧栏左右外距一致）。
+   仅桌面生效——移动端侧栏是抽屉（hidden md:flex），负 margin 会让卡片左边贴死视口 */
+@media (min-width: 768px) {
+  html[data-sidebar-layout="floating"] .page-fill {
+    margin-left: calc(var(--layout-gutter) * -1);
+    width: calc(100% + var(--layout-gutter));
+  }
 }
 
 /* Solid mode - remove glass effect from dropdown/popover elements */

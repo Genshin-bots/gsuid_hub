@@ -461,12 +461,12 @@ export default function SessionManagementPage() {
   };
 
   return (
-    <div className="flex-1 overflow-hidden h-full flex">
+    <div className="page-fill flex glass-card">
+    <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden rounded-[inherit]">
     {/* Left Sidebar - Session List */}
     <div className={cn(
-      "border-r flex flex-col shrink-0 rounded-l-xl",
+      "border-r border-border/40 flex flex-col shrink-0",
       "w-full absolute inset-0 z-10 sm:relative sm:w-72 md:w-80 lg:w-[340px]",
-      isGlass ? "border-white/10 glass-card" : "border-border bg-card",
       selectedSession ? "hidden sm:flex" : "flex"
     )}>
         {/* Sidebar Header */}
@@ -868,6 +868,7 @@ export default function SessionManagementPage() {
             </Card>
           </div>
         )}
+      </div>
       </div>
 
       {/* Clear Confirmation Dialog */}

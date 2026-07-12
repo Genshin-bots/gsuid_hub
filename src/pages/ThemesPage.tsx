@@ -32,7 +32,8 @@ import { themeApi, ThemePresetItem, ThemeConfig, getApiErrorMessage } from '@/li
 import {
   Sun, Moon, Palette, Image, Sparkles, Check, Upload, Link, X, Blend, Paintbrush,
   Layers, Droplet, Bookmark, Save, Trash2, Loader2, RefreshCw, CheckCircle2,
-  AlertTriangle, FolderOpen,
+  AlertTriangle, FolderOpen, SlidersHorizontal, PanelLeft, SquareStack,
+  CornerDownRight, Type, PanelLeftClose, PanelLeftOpen, SeparatorVertical,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -194,15 +195,16 @@ function BgThumb({ active, onClick, label, children }: BgThumbProps) {
 // 页面组件
 // ============================================================================
 
-type ThemeTab = 'appearance' | 'background' | 'presets';
+type ThemeTab = 'appearance' | 'background' | 'presets' | 'misc';
 
 export default function ThemesPage() {
   const { t } = useLanguage();
   const {
     mode, style, color, backgroundImage, blurIntensity, cardOpacity,
-    iconColor, themePreset,
+    iconColor, themePreset, sidebarLayout, borderRadius, uiScale, sidebarDefaultCollapsed,
     setMode, setStyle, setColor, setBackgroundImage, setBlurIntensity, setCardOpacity,
-    setIconColor, setThemePreset, getThemeConfig, applyThemeConfig,
+    setIconColor, setThemePreset, setSidebarLayout, setBorderRadius, setUiScale,
+    setSidebarDefaultCollapsed, getThemeConfig, applyThemeConfig,
   } = useTheme();
 
   const [tab, setTab] = useState<ThemeTab>('appearance');
@@ -366,10 +368,11 @@ export default function ThemesPage() {
     { value: 'appearance', label: t('themes.tabAppearance'), icon: <Palette className="w-4 h-4" /> },
     { value: 'background', label: t('themes.tabBackground'), icon: <Image className="w-4 h-4" /> },
     { value: 'presets', label: t('themes.tabPresets'), icon: <Bookmark className="w-4 h-4" /> },
+    { value: 'misc', label: t('themes.tabMisc'), icon: <SlidersHorizontal className="w-4 h-4" /> },
   ];
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6">
       {/* 标题区 */}
       <div className="min-w-0">
         <h1 className="text-3xl font-bold flex items-center gap-3">
@@ -394,7 +397,7 @@ export default function ThemesPage() {
 
       {/* ============================ 外观 Tab ============================ */}
       {tab === 'appearance' && (
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className="glass-card-grid grid gap-4 lg:grid-cols-2">
           {/* 颜色模式 */}
           <Card className="glass-card">
             <CardHeader>
@@ -722,6 +725,200 @@ export default function ThemesPage() {
         </Card>
       )}
 
+      {/* ============================ 杂项 Tab ============================ */}
+      {tab === 'misc' && (
+        <div className="glass-card-grid grid gap-4 lg:grid-cols-2">
+          {/* 侧边栏布局 */}
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <PanelLeft className="w-5 h-5" />
+                {t('themes.sidebarLayout')}
+              </CardTitle>
+              <CardDescription>{t('themes.sidebarLayoutDesc')}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex flex-wrap gap-3">
+                <SelectTile
+                  active={sidebarLayout === 'floating'}
+                  onClick={() => setSidebarLayout('floating', true)}
+                  icon={<SquareStack />}
+                  label={t('themes.sidebarFloating')}
+                />
+                <SelectTile
+                  active={sidebarLayout === 'docked'}
+                  onClick={() => setSidebarLayout('docked', true)}
+                  icon={<PanelLeft />}
+                  label={t('themes.sidebarDocked')}
+                />
+                <SelectTile
+                  active={sidebarLayout === 'line'}
+                  onClick={() => setSidebarLayout('line', true)}
+                  icon={<SeparatorVertical />}
+                  label={t('themes.sidebarLine')}
+                />
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {sidebarLayout === 'floating'
+                  ? t('themes.sidebarFloatingDesc')
+                  : sidebarLayout === 'line'
+                    ? t('themes.sidebarLineDesc')
+                    : t('themes.sidebarDockedDesc')}
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* 侧边栏默认收起 */}
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <PanelLeftClose className="w-5 h-5" />
+                {t('themes.sidebarDefaultState')}
+              </CardTitle>
+              <CardDescription>{t('themes.sidebarDefaultStateDesc')}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex gap-3">
+                <SelectTile
+                  active={!sidebarDefaultCollapsed}
+                  onClick={() => setSidebarDefaultCollapsed(false, true)}
+                  icon={<PanelLeftOpen />}
+                  label={t('themes.sidebarExpanded')}
+                />
+                <SelectTile
+                  active={sidebarDefaultCollapsed}
+                  onClick={() => setSidebarDefaultCollapsed(true, true)}
+                  icon={<PanelLeftClose />}
+                  label={t('themes.sidebarCollapsed')}
+                />
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {sidebarDefaultCollapsed
+                  ? t('themes.sidebarCollapsedDesc')
+                  : t('themes.sidebarExpandedDesc')}
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* 圆角强度 */}
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CornerDownRight className="w-5 h-5" />
+                {t('themes.borderRadius')}
+              </CardTitle>
+              <CardDescription>{t('themes.borderRadiusDesc')}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">{t('themes.borderRadiusValue')}</span>
+                  <span className="text-sm font-medium bg-primary/10 text-primary px-2 py-0.5 rounded">{borderRadius}px</span>
+                </div>
+                <Slider
+                  value={[borderRadius]}
+                  onValueChange={(value) => setBorderRadius(value[0])}
+                  onValueCommit={(value) => setBorderRadius(value[0], true)}
+                  min={0}
+                  max={32}
+                  step={1}
+                />
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>{t('themes.radiusNone')}</span>
+                  <span>{t('themes.radiusMedium')}</span>
+                  <span>{t('themes.radiusLarge')}</span>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { v: 0, l: 'themes.radiusNone' },
+                  { v: 8, l: 'themes.slight' },
+                  { v: 16, l: 'themes.standard' },
+                  { v: 24, l: 'themes.radiusDefault' },
+                  { v: 32, l: 'themes.radiusLarge' },
+                ].map((p) => (
+                  <Button
+                    key={p.v}
+                    variant="outline"
+                    size="sm"
+                    className={cn('h-8', borderRadius === p.v && 'border-primary text-primary')}
+                    onClick={() => setBorderRadius(p.v, true)}
+                  >
+                    {t(p.l)}
+                  </Button>
+                ))}
+              </div>
+              {/* 实时预览块 */}
+              <div className="flex items-end gap-3 pt-1">
+                {[0.5, 0.75, 1].map((scale) => (
+                  <div
+                    key={scale}
+                    className="bg-primary/15 border border-primary/30 transition-[border-radius]"
+                    style={{
+                      width: `${2 + scale * 2}rem`,
+                      height: `${1.5 + scale}rem`,
+                      borderRadius: `calc(var(--radius) * ${scale})`,
+                    }}
+                  />
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 字体缩放 */}
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Type className="w-5 h-5" />
+                {t('themes.uiScale')}
+              </CardTitle>
+              <CardDescription>{t('themes.uiScaleDesc')}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">{t('themes.uiScaleValue')}</span>
+                  <span className="text-sm font-medium bg-primary/10 text-primary px-2 py-0.5 rounded">{uiScale}%</span>
+                </div>
+                <Slider
+                  value={[uiScale]}
+                  onValueChange={(value) => setUiScale(value[0])}
+                  onValueCommit={(value) => setUiScale(value[0], true)}
+                  min={85}
+                  max={120}
+                  step={1}
+                />
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>85%</span>
+                  <span>100%</span>
+                  <span>120%</span>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { v: 90, l: 'themes.scaleSmall' },
+                  { v: 100, l: 'themes.scaleDefault' },
+                  { v: 110, l: 'themes.scaleLarge' },
+                ].map((p) => (
+                  <Button
+                    key={p.v}
+                    variant="outline"
+                    size="sm"
+                    className={cn('h-8', uiScale === p.v && 'border-primary text-primary')}
+                    onClick={() => setUiScale(p.v, true)}
+                  >
+                    {t(p.l)}
+                  </Button>
+                ))}
+              </div>
+              <p className="text-sm text-muted-foreground" style={{ fontSize: '1rem' }}>
+                {t('themes.uiScalePreview')}
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {/* ============================ 预设 Tab ============================ */}
       {tab === 'presets' && (
         <Card className="glass-card">
@@ -747,7 +944,7 @@ export default function ThemesPage() {
           </CardHeader>
           <CardContent>
             {presetsLoading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+              <div className="glass-card-grid grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                 {Array.from({ length: 3 }).map((_, i) => (
                   <Skeleton key={i} className="h-40 rounded-lg" />
                 ))}
@@ -772,7 +969,7 @@ export default function ThemesPage() {
                 </Button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+              <div className="glass-card-grid grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                 {presets.map((preset) => (
                   <div
                     key={preset.name}
@@ -880,6 +1077,13 @@ export default function ThemesPage() {
                 <Badge variant="secondary">{style === 'glassmorphism' ? t('themes.glassStyle') : t('themes.solidStyle')}</Badge>
                 {currentColorName && <Badge variant="secondary">{t(currentColorName)}</Badge>}
                 <Badge variant="secondary">{themePreset === 'shadcn' ? t('themes.shadcnStyle') : t('themes.defaultStyle')}</Badge>
+                <Badge variant="secondary">
+                  {sidebarLayout === 'floating'
+                    ? t('themes.sidebarFloating')
+                    : sidebarLayout === 'line'
+                      ? t('themes.sidebarLine')
+                      : t('themes.sidebarDocked')}
+                </Badge>
               </div>
             </div>
           </div>

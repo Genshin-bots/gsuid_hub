@@ -56,7 +56,8 @@ export default function SchedulerPage() {
   const [tasks, setTasks] = useState<ScheduledTask[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTask, setSelectedTask] = useState<ScheduledTask | null>(null);
-  const [isLoading, setIsLoading] = useState(false);  // Fetch jobs from API
+  const [isLoading, setIsLoading] = useState(false);
+  // Fetch jobs from API
   const fetchJobs = async () => {
     setIsLoading(true);
     try {
@@ -157,7 +158,7 @@ export default function SchedulerPage() {
   };
 
   return (
-    <div className="space-y-6 flex-1 overflow-auto p-4 sm:p-6">
+    <div className="space-y-6">
       <div className="min-w-0 overflow-x-auto">
         <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
           <Calendar className="w-8 h-8 shrink-0" />
@@ -230,7 +231,7 @@ export default function SchedulerPage() {
       </Card>
 
       {/* Tasks Table */}
-      <Card className="glass-card overflow-hidden">
+      <Card className="glass-card">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Clock className="w-5 h-5" />

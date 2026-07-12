@@ -119,7 +119,7 @@ export default function AIBudgetPage() {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-end justify-between">
         <div>
@@ -218,7 +218,7 @@ function OverviewTab() {
       </Card>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="glass-card-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           icon={<Wallet className="w-5 h-5" />}
           title={t('aiBudget.overview.ruleCount')}
@@ -387,7 +387,7 @@ function OverviewSkeleton() {
   return (
     <div className="space-y-6">
       <Skeleton className="h-16 w-full rounded-lg" />
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="glass-card-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[1,2,3,4].map(i => <Skeleton key={i} className="h-16 rounded-lg" />)}
       </div>
       <Skeleton className="h-48 w-full rounded-lg" />

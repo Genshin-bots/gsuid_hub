@@ -176,7 +176,7 @@ export default function Login() {
         <div
           className={cn(
             "absolute bottom-full left-1/2 -translate-x-1/2 mb-3",
-            "inline-flex items-center h-9 rounded-full overflow-hidden",
+            "inline-flex items-center h-9 rounded-full",
             isGlassmorphism
               ? "glass-card border-border/50 shadow-2xl"
               : "bg-card border border-border/50 shadow-2xl"
@@ -186,7 +186,7 @@ export default function Login() {
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="inline-flex h-full items-center gap-1.5 px-4 text-sm font-medium text-card-foreground transition-colors hover:bg-foreground/[0.06] focus-visible:outline-none focus-visible:bg-foreground/[0.06]"
+                className="inline-flex h-full items-center gap-1.5 rounded-l-full px-4 text-sm font-medium text-card-foreground transition-colors hover:bg-foreground/[0.06] focus-visible:outline-none focus-visible:bg-foreground/[0.06]"
                 title={t('common.selectLanguage')}
               >
                 {(() => {
@@ -219,7 +219,7 @@ export default function Login() {
 
           <button
             type="button"
-            className="inline-flex h-full w-9 items-center justify-center text-card-foreground transition-colors hover:bg-foreground/[0.06] focus-visible:outline-none focus-visible:bg-foreground/[0.06]"
+            className="inline-flex h-full w-9 items-center justify-center rounded-r-full text-card-foreground transition-colors hover:bg-foreground/[0.06] focus-visible:outline-none focus-visible:bg-foreground/[0.06]"
             onClick={() => setShowSettings(true)}
             title={t('login.settingsApiHost')}
           >

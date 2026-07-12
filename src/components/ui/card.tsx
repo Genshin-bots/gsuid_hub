@@ -3,7 +3,8 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(({ className, ...props }, ref) => (
-  <div ref={ref} className={cn("rounded-lg border bg-card text-card-foreground shadow-sm", className)} {...props} />
+  /* shadow 由 .glass-card 统一提供柔和圆角阴影；此处不再叠 shadow-sm 以免直角脏边 */
+  <div ref={ref} className={cn("rounded-lg border bg-card text-card-foreground shadow-none", className)} {...props} />
 ));
 Card.displayName = "Card";
 

@@ -734,7 +734,7 @@ export default function GitUpdatePage() {
   };
 
   return (
-    <div className="space-y-4 flex-1 overflow-auto p-4 sm:p-6">
+    <div className="space-y-4">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
@@ -808,7 +808,7 @@ export default function GitUpdatePage() {
 
       {/* Current Status */}
       {currentPlugin && currentPlugin.current_commit && (
-        <Card className="glass-card overflow-hidden">
+        <Card className="glass-card">
           <CardHeader className="pb-3">
             <CardTitle className="text-base sm:text-lg flex items-center gap-2">
               <CheckCircle2 className="w-5 h-5 text-primary" />

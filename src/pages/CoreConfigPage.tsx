@@ -201,7 +201,7 @@ export default function CoreConfigPage() {
   };
 
   return (
-    <div className="space-y-6 flex-1 overflow-auto p-4 sm:p-6 h-full flex flex-col">
+    <div className="space-y-6">
       <div className="min-w-0 overflow-visible">
         <h1 className="break-words text-3xl font-bold leading-tight flex items-center gap-3">
           <Settings className="w-8 h-8 shrink-0" />
@@ -211,7 +211,8 @@ export default function CoreConfigPage() {
       </div>
 
       <Card className="glass-card">
-        <CardContent className="p-6 space-y-6">
+        {/* 无 CardHeader 时需显式 pt-6，否则默认 pt-0 会把顶部提醒贴在卡片顶边 */}
+        <CardContent className="space-y-6 pt-6">
           {/* Warning Alert */}
           {showWarning && (
             <Alert variant="destructive" className="border-orange-500/50 bg-orange-500/10 relative">

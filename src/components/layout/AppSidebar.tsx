@@ -298,7 +298,7 @@ export function AppSidebar() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { state: sidebarState, toggleSidebar, isMobile } = useSidebar();
-  const { style: themeStyle, iconColor } = useTheme();
+  const { style: themeStyle, iconColor, sidebarLayout } = useTheme();
   const { t, language, setLanguage, availableLanguages } = useLanguage();
   const { isAIEnabled, refresh: refreshAIStatus } = useAIStatus();
   const { title: brandTitle, subtitle: brandSubtitle, iconUrl: brandIconUrl } = useBrand();
@@ -388,11 +388,20 @@ export function AppSidebar() {
 
   const iconClass = "w-5 h-5 shrink-0";
 
+  // 侧边栏布局：floating=悬浮卡片 / docked=贴边玻璃面板 / line=仅分割线
+  const sidebarVariant = sidebarLayout === 'floating' ? 'floating' : 'sidebar';
+  const sidebarChromeClass =
+    sidebarLayout === 'floating'
+      ? 'floating-sidebar'
+      : sidebarLayout === 'line'
+        ? 'line-sidebar'
+        : 'glass-sidebar';
+
   return (
     <Sidebar
-      variant="sidebar"
+      variant={sidebarVariant}
       collapsible="icon"
-      className={cn("border-0", "floating-sidebar")}
+      className={sidebarChromeClass}
     >
       <SidebarHeader className={cn("p-4", isCollapsed && "flex flex-col items-center")}>
         <div className={cn("flex items-center w-full", isCollapsed ? "justify-center" : "justify-between gap-2")}>

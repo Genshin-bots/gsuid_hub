@@ -286,7 +286,7 @@ export default function FrameworkConfigPage() {
   };
   
   return (
-    <div className="space-y-6 flex-1 overflow-auto p-4 sm:p-6 h-full flex flex-col">
+    <div className="space-y-6">
       <div className="min-w-0 overflow-visible">
         <h1 className="break-words text-3xl font-bold leading-tight flex items-start gap-3">
           <Cpu className="w-8 h-8 shrink-0" />

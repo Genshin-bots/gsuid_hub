@@ -499,7 +499,9 @@ export default function AIHistoryPage() {
     <TooltipProvider>
       {/* 页面唯一的表面层：glass-card 按 [data-style] 自动适配（毛玻璃=模糊半透明卡底、
           纯色=不透明卡片），保证内容在任意壁纸/暗色下可读；内部不再嵌套盒子 */}
-      <div className="flex-1 overflow-hidden h-full flex glass-card rounded-xl">
+      {/* overflow 必须在阴影宿主内部：宿主 glass-card 保持 overflow:visible，阴影才能贴合圆角 */}
+      <div className="page-fill flex glass-card">
+        <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden rounded-[inherit]">
         {/* ── 左侧：链列表 ── */}
         <div
           className={cn(
@@ -848,6 +850,7 @@ export default function AIHistoryPage() {
               <p className="text-xs text-muted-foreground/60 mt-1">{t('aiHistory.selectSessionHint')}</p>
             </div>
           )}
+        </div>
         </div>
       </div>
     </TooltipProvider>

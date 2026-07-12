@@ -746,7 +746,7 @@ export default function PersonaConfigPage() {
         key={persona.name}
         onClick={() => handleCardClick(persona)}
         className={cn(
-          'relative overflow-hidden transition-all duration-300 cursor-pointer group',
+          'relative transition-all duration-300 cursor-pointer group',
           'hover:shadow-xl hover:scale-[1.02]',
           // 毛玻璃效果 + 红色主题边框
           isGlass
@@ -975,7 +975,7 @@ export default function PersonaConfigPage() {
             : 'image/png,image/jpeg,image/jpg'
         }
       />
-    <div className="p-4 sm:p-6 space-y-6">
+    <div className="space-y-6">
       {/* 页面标题和操作 */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0 overflow-x-auto">

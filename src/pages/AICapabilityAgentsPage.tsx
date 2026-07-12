@@ -426,7 +426,7 @@ export default function AICapabilityAgentsPage() {
       : t('aiCapabilityAgents.dialog.viewTitle');
 
   return (
-    <div className="p-4 sm:p-6 space-y-6">
+    <div className="space-y-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div className="min-w-0 overflow-x-auto">
           <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
@@ -474,7 +474,7 @@ export default function AICapabilityAgentsPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3">
+        <div className="glass-card-grid grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3">
           {filteredProfiles.map((profile) => {
             const locked = profile.source !== 'user';
             return (

@@ -15,9 +15,15 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 
 const SIDEBAR_COOKIE_NAME = "sidebar:state";
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
-const SIDEBAR_WIDTH = "16rem";
+/** Expanded card content width (inner rail). Floating padding is added on top of this. */
+const SIDEBAR_WIDTH = "17rem";
 const SIDEBAR_WIDTH_MOBILE = "18rem";
 const SIDEBAR_WIDTH_ICON = "3rem";
+/**
+ * 悬浮侧栏四周空隙，与主内容 `--layout-gutter` 同一变量，
+ * 保证：左空隙 = 侧栏↔内容中缝 = 右空隙 = 上下边距。
+ */
+const SIDEBAR_FLOATING_PAD = "var(--layout-gutter)";
 const SIDEBAR_KEYBOARD_SHORTCUT = "b";
 
 type SidebarContext = {
@@ -187,13 +193,28 @@ const Sidebar = React.forwardRef<
   const isIconMode = collapsible === "icon";
   const isOffcanvas = collapsible === "offcanvas";
   const hasFloatingPadding = variant === "floating" || variant === "inset";
-  
-  // Fixed widths - no animation on these, they set the final state immediately
-  const collapsedIconWidth = hasFloatingPadding 
-    ? "calc(var(--sidebar-width-icon) + 24px)" 
+
+  // Floating: --sidebar-width is the card width; equal gutters sit outside the card.
+  // Total footprint = card + gutter*2（与主内容区共用 --layout-gutter，中缝不再额外加宽）
+  const floatingChrome = `${SIDEBAR_FLOATING_PAD} * 2`;
+  const collapsedIconWidth = hasFloatingPadding
+    ? `calc(var(--sidebar-width-icon) + ${floatingChrome})`
     : "var(--sidebar-width-icon)";
-  const expandedWidth = "var(--sidebar-width)";
-  
+  const expandedWidth = hasFloatingPadding
+    ? `calc(var(--sidebar-width) + ${floatingChrome})`
+    : "var(--sidebar-width)";
+
+  // 四边等 gutter：左/上/下 = 视口边距；右 = 侧栏↔主内容中缝的一半
+  // （普通页中缝 = 侧栏右 gutter + 页面左 gutter；.page-fill 桌面端用负 margin 收回页面左 gutter）
+  const floatingPaddingStyle: React.CSSProperties | undefined = hasFloatingPadding
+    ? {
+        paddingTop: SIDEBAR_FLOATING_PAD,
+        paddingBottom: SIDEBAR_FLOATING_PAD,
+        paddingLeft: SIDEBAR_FLOATING_PAD,
+        paddingRight: SIDEBAR_FLOATING_PAD,
+      }
+    : undefined;
+
   // For icon mode: use fixed expanded width container, animate inner content with transform
   // For offcanvas: use transform to slide entire sidebar
 
@@ -220,41 +241,50 @@ const Sidebar = React.forwardRef<
       <div
         className={cn(
           "fixed inset-y-0 z-10 hidden h-svh md:flex",
-          hasFloatingPadding && "p-3",
           side === "left" ? "left-0" : "right-0",
-          // GPU-accelerated transform animation
-          "transition-transform duration-300 ease-out-soft will-change-transform transform-gpu",
+          // GPU-accelerated transform / width animation
+          hasFloatingPadding
+            ? "transition-[width,transform] duration-300 ease-out-soft will-change-[width,transform] transform-gpu"
+            : "transition-transform duration-300 ease-out-soft will-change-transform transform-gpu",
         )}
         style={{
-          width: expandedWidth,
-          // Use transform for GPU acceleration - offcanvas slides out, icon mode doesn't need container transform
+          // Icon collapse: shrink fixed shell so empty area doesn't steal clicks
+          width: isCollapsed && isIconMode ? collapsedIconWidth : expandedWidth,
+          // Use transform for GPU acceleration - offcanvas slides out
           transform: isCollapsed && isOffcanvas
             ? `translateX(${side === "left" ? "-100%" : "100%"})`
             : "translateX(0)",
+          ...floatingPaddingStyle,
         }}
         {...props}
       >
-        {/* Inner sidebar - for icon mode, this clips and transforms */}
+        {/*
+          阴影宿主不要 overflow:hidden（会裁成直角/竖直截断阴影）。
+          裁切滚动内容放到内层，圆角 inherit。
+        */}
         <div
           data-sidebar="sidebar"
           className={cn(
-            "flex h-full flex-col overflow-hidden",
-            variant === "floating" && "rounded-2xl",
-            // 同时过渡 width 与 transform：icon 模式宽度变化时跟随平滑动画，
-            // offcanvas 模式仍由 transform 主导
+            "flex h-full flex-col overflow-visible",
             "transition-[width,transform] duration-300 ease-out-soft will-change-[width,transform]",
-            className?.includes('floating-sidebar') || className?.includes('glass-sidebar')
+            className?.includes('floating-sidebar')
+              || className?.includes('glass-sidebar')
+              || className?.includes('line-sidebar')
               ? ''
-              : 'bg-sidebar group-data-[variant=floating]:shadow-xl group-data-[variant=floating]:border group-data-[variant=floating]:border-sidebar-border',
+              : 'bg-sidebar group-data-[variant=floating]:shadow-md group-data-[variant=floating]:border group-data-[variant=floating]:border-sidebar-border',
             className,
           )}
           style={{
             width: isCollapsed && isIconMode
               ? "var(--sidebar-width-icon)"
-              : "100%",
+              : hasFloatingPadding
+                ? "var(--sidebar-width)"
+                : "100%",
           }}
         >
-          {children}
+          <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden rounded-[inherit]">
+            {children}
+          </div>
         </div>
       </div>
     </div>

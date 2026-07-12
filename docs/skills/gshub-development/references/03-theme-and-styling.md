@@ -14,9 +14,28 @@ const {
   color,       // 'red' | 'orchid' | 'blue' | 'green' | 'orange' | 'pink'
   iconColor,   // 'white' | 'black' | 'colored'
   themePreset, // 'default' | 'shadcn'
-  setMode, setStyle, setColor,
+  sidebarLayout, // 'floating' | 'docked' | 'line'（仅分割线、无卡片底）
+  borderRadius,  // 0–32 px → CSS --radius（全局圆角）
+  uiScale,       // 85–120 % → html font-size
+  sidebarDefaultCollapsed, // 侧边栏默认收起
+  setMode, setStyle, setColor, setSidebarLayout,
+  setBorderRadius, setUiScale, setSidebarDefaultCollapsed,
 } = useTheme();
 ```
+
+侧边栏布局 class：`floating-sidebar` / `glass-sidebar` / `line-sidebar`（`line` 无卡片/阴影，仅 `border-right`）。
+
+「杂项」四项均持久化到后端 `ThemeConfig`（`sidebar_layout` / `border_radius` / `ui_scale` / `sidebar_default_collapsed`），并镜像到 sessionStorage（`theme_sidebar_layout` 等）供首屏防闪；新增字段要同步 `api.ts` 的 `ThemeConfig` 接口、`demoMock.ts` 的 `THEME_CONFIG` 和 `main.tsx` 的 `THEME_KEYS` 清理列表。
+
+圆角实现约定：
+
+- 唯一真相源是 CSS 变量 `--radius`（主题杂项写入，单位 px；默认 24px）。
+- Tailwind `rounded-sm/md/lg/xl/2xl/3xl` 全部挂到 `--radius`（见 `tailwind.config.ts`）。
+- `rounded-full` 与显式 `rounded-[Npx]` 不随主题变。
+- 新组件优先用 `rounded-lg` / `rounded-md` 等语义 token，**禁止**再硬编码与主题无关的大圆角。
+- ⚠️ `.glass-card` / `.glass-card-flat` **类自身**声明了 `border-radius: var(--radius)`，且规则在 utilities 之后——要在表面类上用**更小**的自定义圆角必须加 important：`!rounded-[3px]`（例：RepeatGroupField）。
+
+`ui_scale` 通过 `html { font-size: N% }` 缩放，一切 rem 尺寸（含 `--layout-gutter`）同步缩放——**新代码尺寸一律用 rem/Tailwind 刻度，不要写 px 字号**，否则不吃缩放。
 
 ## 3.2 CSS 变量系统（HSL）
 
@@ -78,12 +97,32 @@ const isGlass = style === 'glassmorphism';
 
 > 现状：全站绝大多数页面已是「始终 `glass-card`」写法。**新代码一律用始终应用写法**；遇到旧的 `isGlass && / isGlass ?` 条件写法应顺手改正。详见 [§10 已知坑 P-2](./10-pitfalls-and-performance.md)。
 
-## 3.5 布局背景
+### 3.4.1 表面类的实现结构与硬约束 ★★
+
+`.glass-card` / `.glass-card-flat` / `.glass-card-danger` / `.floating-sidebar` 共用同一结构：**宿主只画边框 + 圆角 + 阴影，真实底色/毛玻璃画在 `::before`（`z-index: -1`，`border-radius: inherit`）**。这是为了绕开 Chrome「同一元素 backdrop-filter + box-shadow 合成出直角阴影」的 bug。由此派生的硬约束：
+
+| 约束 | 原因 |
+|------|------|
+| 宿主**禁止** `overflow-hidden`（flat 除外） | 会重新触发直角/截断阴影脏边；裁切放内层 `rounded-[inherit]` 包一层（见 [§04 §4.1.3](./04-page-layout-spec.md)） |
+| **禁止**对子元素强制 `position: relative` | 会破坏子级 absolute 装饰层的定位参照（Home 英雄区曾被撑高） |
+| 宿主上 `shadow-*` 工具类无效 | 表面类阴影为 `!important` 统一投影，不允许每张卡自定阴影 |
+| `ring-*` 依然可用 | 表面类阴影头部透传 `var(--tw-ring-offset-shadow)/var(--tw-ring-shadow)`——改这些 box-shadow 时**必须保留这两项**，否则全站选中态 ring 消失 |
+| 覆盖类默认圆角需 `!rounded-*` | 类自带 `border-radius: var(--radius)` 且声明在 utilities 之后 |
+| `glass-card-flat`：无阴影无 blur | 供 overflow 容器内嵌 / 长列表项使用；`overflow-hidden` 安全；`hover:shadow-*` 可用（:hover 特异性更高） |
+
+## 3.5 布局背景与 gutter
 
 `AppLayout.tsx` 负责整页背景渲染：
 
 - **solid 模式**：纯色或图片背景。
 - **glassmorphism 模式**：毛玻璃 + 渐变/图片背景。
+
+布局外边距（`--layout-gutter`，默认 `1.5rem`）：
+
+- 悬浮侧栏四边 padding 与主内容区共用该变量。
+- `.layout-page-inner` 四边始终有 padding：左/右/下 = gutter，顶 = `--layout-page-top`（`.page-fill` 页顶/底改为 gutter）。
+- 悬浮桌面下 `.page-fill` 用负 `margin-left` 收回一个 gutter，使中缝 = 侧栏右 gutter（仅 `min-width: 768px` 生效，移动端侧栏是抽屉，不收）。
+- 页面根 **禁止** 再写 `p-6`（见 [§04 页面排版](./04-page-layout-spec.md)）。
 
 `backdrop-filter` 是 GPU 密集操作，低端设备性能敏感，**避免在长列表的每一项上叠加毛玻璃**（见 [§10 性能](./10-pitfalls-and-performance.md)）。
 

@@ -217,6 +217,35 @@ const fetchStats = useCallback(async () => {
 
 任何分支为 `null` 或只渲染 `DialogDescription` 不渲染 `DialogTitle`，都会触发 Radix 警告（甚至运行时警告比正常 Title 渲染早一帧——一旦初始 render 是 null，警告就刷了，之后再加 Title 也来不及）。
 
+### P-19 glass-card 宿主写 `overflow-hidden` / 全出血子元素戳出圆角 ★★
+
+`.glass-card` 宿主必须 `overflow: visible`（阴影/合成需要），因此：
+
+- **不要**在 glass-card 上写 `overflow-hidden`（写了也会被类内 `overflow: visible` 压掉，等于死代码 + 误导）。
+- 顶到卡片边缘的方角子元素（图片头、表格、色条）会**戳出圆角**，需自己贴合：图片区 `overflow-hidden rounded-t-[inherit]`；卡内滚动区内层加 `rounded-[inherit]`。详见 [§04 §4.1.3](./04-page-layout-spec.md)。
+- 非 glass-card 的普通容器不受此限制，照常 `overflow-hidden`。
+
+### P-20 Tailwind `ring-*` 是 box-shadow：写死 box-shadow 会杀掉 ring ★★
+
+`ring-1/ring-2`、`focus-visible:ring` 全部编译成 `box-shadow`。任何「统一投影」的 CSS（如表面类的 `box-shadow: … !important`）都必须在**阴影列表头部**透传：
+
+```css
+box-shadow:
+  var(--tw-ring-offset-shadow, 0 0 #0000),
+  var(--tw-ring-shadow, 0 0 #0000),
+  0 2px 6px …;
+```
+
+漏掉这两项的症状：卡片选中态 `ring-2 ring-primary`、`hover:ring-*` 全部无声失效。
+
+### P-21 表面类自带 `--radius` 圆角，小圆角要 `!rounded-[Npx]` ★
+
+`.glass-card` / `.glass-card-flat` 声明了 `border-radius: var(--radius)` 且位于 utilities 之后，普通 `rounded-[3px]` 会被压掉（同特异性、后者胜）。需要更小圆角时用 `!rounded-[3px]`。`rounded-lg/xl/2xl/3xl` 本就等于 `var(--radius)`，无冲突。
+
+### P-22 JSX `return (` 与根元素之间不能插 `{/* 注释 */}`
+
+`return (\n {/* … */}\n <div>…)` 会让 esbuild 报 `Expected ")"`——JSX 注释也是表达式，等于 return 了两个子节点。注释写成 `//` 放在 `return` 之前，或放到根元素**内部**。
+
 ## B. 性能优化
 
 ### B.1 图片
@@ -250,7 +279,8 @@ const fetchStats = useCallback(async () => {
 
 ## C. 新页面落地自查清单（总）
 
-- [ ] 根容器 `p-6 space-y-6`，**无** `max-w-*` / 响应式页边距（[§04](./04-page-layout-spec.md)）
+- [ ] 根容器：标题页 `space-y-6`（**无** `p-6` / `overflow-auto` / `max-w-*`，页边距由 AppLayout 提供）；全高单卡片页 `page-fill flex glass-card` + 内层 clip（[§04](./04-page-layout-spec.md)）
+- [ ] 卡片网格加 `glass-card-grid`；glass-card 宿主无 `overflow-hidden`（P-19）
 - [ ] 标题 `text-3xl font-bold` + 内联图标 `w-8 h-8`（无背景容器）；副标题 `text-muted-foreground mt-1`（无 `text-sm`）
 - [ ] 卡片/弹窗一律 `className="glass-card"`（**不**用 `isGlass &&`）（[§03](./03-theme-and-styling.md)）
 - [ ] 每个筛选行的 `Input`/`Select`/`Button` 都 `h-9`，高度齐平（[§05](./05-components-and-form-controls.md)）

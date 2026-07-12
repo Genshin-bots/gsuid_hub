@@ -491,7 +491,7 @@ export default function ConsolePage() {
     renderableLevels.every((lv) => visibleLevels.has(lv.value));
 
   return (
-    <div className="space-y-6 flex-1 overflow-auto p-4 sm:p-6 h-full flex flex-col">
+    <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0 overflow-x-auto">
           <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
@@ -552,6 +552,7 @@ export default function ConsolePage() {
       </div>
 
       <Card className={cn(
+        // 非 glass-card 宿主，overflow-hidden 安全；用于裁终端头/输入条的直角底色
         "flex flex-col overflow-hidden h-[calc(100vh-130px)]",
         isGlass
           ? "backdrop-blur-md bg-white/10 dark:bg-black/10 border border-white/20 dark:border-black/20 shadow-lg"

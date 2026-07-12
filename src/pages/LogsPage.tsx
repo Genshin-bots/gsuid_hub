@@ -448,7 +448,7 @@ export default function LogsPage() {
   };
 
   return (
-   <div className="space-y-4 flex-1 overflow-auto p-4 sm:p-6">
+   <div className="space-y-4">
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0 overflow-x-auto">

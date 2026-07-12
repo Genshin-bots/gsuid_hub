@@ -36,7 +36,8 @@ const frontendVersion = PACKAGE_VERSION || '0.0.17';
 // - `glass-card` (theme system: opacity + blur intensity, dark/light)
 // - `backdrop-blur-2xl` is provided by `glass-card` in glassmorphism mode and removed in solid mode
 const buildGlassCardClass = (extra = '') =>
-  `glass-card relative overflow-hidden shadow-[0_4px_16px_-12px_hsl(var(--foreground)/0.30)] ${extra}`.trim();
+  /* 勿在 glass-card 上写 overflow-hidden：会裁切圆角阴影 */
+  `glass-card relative ${extra}`.trim();
 
 const buildSubtlePanelClass = (extra = '') =>
   `glass-card-flat min-w-0 rounded-2xl p-3.5 transition-colors hover:!bg-white/15 dark:hover:!bg-white/[0.07] ${extra}`.trim();
@@ -139,11 +140,14 @@ export default function HomePage() {
   const connectedBotCount = botsInfo?.bots.filter((bot) => bot.connected).length ?? 0;
 
   return (
-    <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 pb-6 sm:gap-6">
-      <section className={cn(glassCardClass, 'rounded-[2rem] p-5 sm:p-7 lg:p-8')} style={heroStyle}>
-        <div className="pointer-events-none absolute -right-24 -top-28 h-72 w-72 rounded-full bg-primary/15 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-28 -left-20 h-72 w-72 rounded-full bg-primary/10 blur-3xl" />
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,hsl(var(--primary)/0.10),transparent_34%),linear-gradient(135deg,hsl(var(--background)/0.18),transparent)]" />
+    <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 sm:gap-6">
+      <section className={cn(glassCardClass, 'rounded-3xl p-5 sm:p-7 lg:p-8')} style={heroStyle}>
+        {/* 装饰层单独裁剪，不写在 glass-card 宿主上，避免裁阴影 / 破坏 absolute */}
+        <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[inherit]" aria-hidden="true">
+          <div className="absolute -right-24 -top-28 h-72 w-72 rounded-full bg-primary/15 blur-3xl" />
+          <div className="absolute -bottom-28 -left-20 h-72 w-72 rounded-full bg-primary/10 blur-3xl" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,hsl(var(--primary)/0.10),transparent_34%),linear-gradient(135deg,hsl(var(--background)/0.18),transparent)]" />
+        </div>
         <div className="relative grid gap-6 lg:grid-cols-[1fr_360px] lg:items-center">
           <div className="min-w-0">
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-sm font-medium text-primary backdrop-blur-xl">
@@ -177,7 +181,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className={cn('glass-card-flat rounded-3xl p-4 shadow-sm sm:p-5')} style={heroStyle}>
+          <div className={cn('glass-card-flat rounded-3xl p-4 sm:p-5')} style={heroStyle}>
             {isLoading ? (
               <div className="space-y-3">
                 <Skeleton className="h-5 w-40 bg-white/15" />
@@ -216,12 +220,12 @@ export default function HomePage() {
             {t('home.quickNav')}
           </CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        <CardContent className="glass-card-grid grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           {quickNavItems.map((item) => (
             <Link
               key={item.href}
               to={item.href}
-              className={cn('glass-card-flat group relative flex min-h-24 items-center gap-3 rounded-2xl p-4 text-left shadow-[0_3px_12px_-10px_hsl(var(--foreground)/0.28)] transition-all hover:-translate-y-0.5 hover:!border-primary/55 hover:!bg-primary/10 hover:shadow-[0_4px_14px_-10px_hsl(var(--primary)/0.28)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45 dark:hover:!bg-primary/10', 'border border-border/70')}
+              className={cn('glass-card-flat group relative flex min-h-24 items-center gap-3 rounded-2xl p-4 text-left transition-all hover:-translate-y-0.5 hover:!border-primary/55 hover:!bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45 dark:hover:!bg-primary/10', 'border border-border/70')}
             >
               <item.icon className="h-5 w-5 shrink-0 self-center text-primary transition-transform group-hover:scale-110" />
               <span className="flex min-w-0 flex-1 flex-col justify-center gap-1 self-center">

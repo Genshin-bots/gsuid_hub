@@ -502,7 +502,7 @@ export default function PluginStorePage() {
   ];
 
   return (
-    <div className="space-y-6 flex-1 overflow-auto p-6 h-full flex flex-col">
+    <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-3">
@@ -564,8 +564,8 @@ export default function PluginStorePage() {
           {isLoading ? (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
-                <Card key={i} className="glass-card overflow-hidden">
-                  <div className="h-32 bg-muted/50">
+                <Card key={i} className="glass-card">
+                  <div className="h-32 bg-muted/50 overflow-hidden rounded-t-[inherit]">
                     <Skeleton className="h-full w-full" />
                   </div>
                   <CardHeader>
@@ -608,7 +608,7 @@ export default function PluginStorePage() {
                 return (
                   <Card
                     key={plugin.id}
-                    className={`glass-card flex flex-col overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all ${deprecated ? 'opacity-60' : ''} ${plugin.installed ? 'ring-1 ring-green-500/30' : ''}`}
+                    className={`glass-card flex flex-col cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all ${deprecated ? 'opacity-60' : ''} ${plugin.installed ? 'ring-1 ring-green-500/30' : ''}`}
                     onClick={() => handleCardClick(plugin)}
                   >
                     {/* 卡片内容区域 */}

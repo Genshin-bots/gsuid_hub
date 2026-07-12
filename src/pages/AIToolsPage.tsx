@@ -229,7 +229,7 @@ export default function AIToolsPage() {
   };
 
   return (
-    <div className="p-4 sm:p-6 space-y-6">
+    <div className="space-y-6">
       {/* 页面标题 */}
       <div className="min-w-0 overflow-x-auto">
         <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
@@ -307,7 +307,7 @@ export default function AIToolsPage() {
 
       {/* 工具列表 */}
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="glass-card-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {Array.from({ length: 6 }).map((_, i) => (
             <Card key={i} className={cn(
               isGlass ? "glass-card" : "border border-border/50"
@@ -333,7 +333,7 @@ export default function AIToolsPage() {
         </Card>
       ) : (
         <>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="glass-card-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {pagedTools.map((tool) => (
             <Card
               key={tool.name}

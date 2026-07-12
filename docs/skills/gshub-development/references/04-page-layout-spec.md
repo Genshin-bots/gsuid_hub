@@ -7,37 +7,87 @@
 ## 4.0 一张图看懂页面骨架
 
 ```
-┌─ <div className="p-6 space-y-6"> ──────────────────────────────┐  ← 根容器：固定 p-6 + space-y-6
-│                                                                  │
-│  ┌─ Header（flex items-center justify-between）───────────────┐  │
-│  │  <Icon w-8 h-8>  H1(text-3xl font-bold)        [操作按钮]   │  │  ← 标题区
-│  │  P(text-muted-foreground mt-1)  ← 副标题                    │  │
-│  └────────────────────────────────────────────────────────────┘  │
-│                                                                  │
-│  ┌─ TabButtonGroup（可选，多 Tab 页面）─────────────────────┐  │  ← 二级切换
-│  └────────────────────────────────────────────────────────────┘  │
-│                                                                  │
-│  ┌─ 工具栏 / 筛选行（可选）── Input(h-9) Select(h-9) Btn(h-9) ┐  │  ← 控件统一 h-9
-│  └────────────────────────────────────────────────────────────┘  │
-│                                                                  │
-│  ┌─ Card.glass-card ──┐  ┌─ Card.glass-card ──┐                  │  ← 内容卡片区
-│  │ CardHeader/Title    │  │  …                 │                  │
-│  │ CardContent         │  │                    │                  │
-│  └─────────────────────┘  └────────────────────┘                  │
-└──────────────────────────────────────────────────────────────────┘
+┌─ AppLayout <main overflow-auto> ───────────────────────────────┐
+│  ┌─ .layout-page-inner ─────────────────────────────────────┐  │
+│  │  pt: --layout-page-top（大于侧栏 gutter，顶部呼吸距）       │  │
+│  │  px/pb: --layout-gutter                                   │  │
+│  │  ┌─ space-y-6 普通页 ──────────────────────────────────┐  │  │
+│  │  │  Header / Cards …                                    │  │  │
+│  │  └──────────────────────────────────────────────────────┘  │  │
+│  │  ┌─ .page-fill.glass-card 全高单卡片 ───────────────────┐  │  │
+│  │  │  （负 margin 拉回与侧栏外框对齐；overflow 在内层）     │  │  │
+│  │  └──────────────────────────────────────────────────────┘  │  │
+│  └──────────────────────────────────────────────────────────┘  │
+└────────────────────────────────────────────────────────────────┘
 ```
 
-## 4.1 页面根容器（固定写法，无例外）
+## 4.1 页面根容器
 
 ```tsx
-<div className="p-6 space-y-6">
+{/* 普通多卡片页：顶部呼吸距由 layout-page-inner 提供 */}
+<div className="space-y-6">
   {/* 页面内容 */}
+</div>
+
+{/* 全高单卡片：阴影宿主不要 overflow-hidden */}
+<div className="page-fill flex glass-card">
+  <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden rounded-[inherit]">
+    {/* 列表 + 详情 */}
+  </div>
 </div>
 ```
 
-- 页边距统一 `p-6`（24px）—— **不得**用 `p-4 md:p-6` 这类响应式页边距。
-- 块间距统一 `space-y-6`。
-- **禁止** `max-w-7xl mx-auto`、`container` 等任何宽度限制，页面占满内容区全宽。
+- **普通页顶部**用 `--layout-page-top`（默认 `2.75rem`），**不要**与侧栏顶对齐。
+- **中缝**约 `2×gutter` 呼吸距；`.page-fill` 在悬浮模式下拉回 `1×gutter` 与侧栏对齐。
+- **阴影**：`.glass-card` 用 `::before`（`z-index: -1`）画毛玻璃，宿主只画圆角阴影；**禁止**在 glass-card 宿主上写 `overflow-hidden`，也**禁止**对子元素强制 `position: relative`（会破坏 absolute 装饰层）。
+- **卡片网格**外圈加 `glass-card-grid`；紧凑控件（`TabButtonGroup`）自带 `shadow-safe`。
+- CSS 已对 `.layout-page-inner .overflow-x-auto` 注入 `--shadow-bleed` 内边距（因 `overflow-x` 会连带裁切竖直阴影）。
+- **全高单卡片**根节点加 `.page-fill`：`main:has(.page-fill)` 会把上下 padding 收成 gutter，与悬浮侧栏顶底对齐；**标题页不要**加 `page-fill`（保持 `--layout-page-top`）。
+- 页面根 **禁止** 再写 `p-6` / `overflow-auto`（滚动交给 AppLayout main）。
+
+### 4.1.1 两类页面的边距设计语言 ★★★
+
+全站页面按外框形态分**两类**，边距各有对齐目标，这是「视觉统一感」的来源：
+
+| 页面类型 | 例子 | 上边距 | 下/左/右 | 对齐目标 |
+|---------|------|--------|---------|---------|
+| **标题页**（H1 + 多卡片流） | /plugins、/ai-skills | `--layout-page-top`（2.75rem） | `--layout-gutter`（1.5rem） | 标题上方留足呼吸距，**不**与侧栏顶平齐（平齐会显得顶死） |
+| **全高单卡片页**（`.page-fill`） | /ai-history、会话管理 | `--layout-gutter` | `--layout-gutter` | 卡片外框**四边与悬浮侧栏卡片对齐**：顶=侧栏顶、底=侧栏底、中缝=侧栏左右外距 |
+
+判定标准：页面唯一的表面层就是一张撑满视口的大卡片（内部自己分栏/滚动）→ 用 `.page-fill`；页面是「标题 + 若干卡片往下排、整页滚动」→ 标题页，什么都不用加。
+
+新增页面时的取值全部走 CSS 变量（`src/index.css` `:root`），**不要**在页面里写死 px/rem：
+
+- `--layout-gutter: 1.5rem` — 悬浮侧栏四边、内容区左右下、page-fill 四边。
+- `--layout-page-top: 2.75rem` — 标题页顶部呼吸距。
+- `--shadow-bleed: 0.75rem` — 阴影安全区（见下）。
+
+### 4.1.2 阴影不被裁切的三件套 ★★
+
+`.glass-card` 阴影会外溢约 8–12px，任何 `overflow` 容器都会把它切成直角。三个工具：
+
+1. **`glass-card-grid`**：卡片网格外圈加，竖直方向负 margin + padding 留出阴影位（水平不加，保证与下方全宽控件右缘对齐）。
+2. **`shadow-safe`**：任意需要竖直阴影安全区的容器（TabButtonGroup 已内置）。
+3. **`.layout-page-inner .overflow-x-auto` 自动注入**：标题行 `min-w-0 overflow-x-auto` 这类横滚容器免手工处理。
+
+### 4.1.3 glass-card 内的全出血子元素（图片头/表格/色条） ★★
+
+glass-card 宿主不裁切（`overflow: visible`），所以**顶到卡片边缘的方角子元素要自己贴合圆角**：
+
+```tsx
+{/* 卡片顶部图片区：自己继承上圆角 */}
+<Card className="glass-card">
+  <div className="relative aspect-square overflow-hidden rounded-t-[inherit]">…</div>
+</Card>
+
+{/* 卡片内滚动表格：滚动裁切放内层并继承圆角 */}
+<div className="rounded-lg glass-card">
+  <div className="overflow-auto max-h-[400px] rounded-[inherit]">…</div>
+</div>
+```
+
+- 非 glass-card 的普通容器（终端卡、日志框等）**照常用 `overflow-hidden`**，该约束只针对带阴影的 `.glass-card` / `.floating-sidebar` 宿主。
+- `.glass-card-flat` 无阴影，`overflow-hidden` 安全，可直接加（如 RepeatGroupField 裁顶部色条）。
 
 ## 4.2 页面标题区域（Header）
 
@@ -107,15 +157,17 @@
 <div className="w-10 h-10 rounded-xl bg-primary/10">         {/* ❌ 图标带背景容器 */}
   <Icon className="w-5 h-5 text-primary" /></div>
 <p className="text-muted-foreground mt-1 text-sm">           {/* ❌ 副标题加了 text-sm */}
-<div className="p-6 space-y-6 max-w-7xl mx-auto">            {/* ❌ 根容器加宽度限制 */}
-<div className="space-y-6 p-4 md:p-6">                       {/* ❌ 响应式页边距 */}
+<div className="p-6 space-y-6 max-w-7xl mx-auto">            {/* ❌ 根容器写页边距 / 加宽度限制 */}
+<div className="space-y-6 p-4 md:p-6">                       {/* ❌ 根容器写页边距（已由 AppLayout 提供） */}
+<div className="space-y-6 flex-1 overflow-auto h-full">      {/* ❌ 根容器自己滚动（滚动在 AppLayout main） */}
+<Card className="glass-card overflow-hidden">                {/* ❌ glass-card 宿主裁切（阴影/圆角脏边） */}
 ```
 
 ## 4.4 间距 / 尺寸标尺（统一记忆）
 
 | 场景 | 类 |
 |------|-----|
-| 页面根容器内边距 | `p-6` |
+| 页面根容器内边距 | **不写**（由 AppLayout `.layout-page-inner` 统一提供） |
 | 页面块间距 | `space-y-6` |
 | 卡片网格间距 | `gap-4` |
 | 表单字段组内间距 | `space-y-2`（Label + 控件）；分组 `space-y-4` |
@@ -202,7 +254,8 @@ if (items.length === 0) return <EmptyState icon={…} />;      // 空态：居�
 
 ## 4.8 落地自查（页面骨架部分）
 
-- [ ] 根容器 `p-6 space-y-6`，**无** `max-w-*` / 响应式页边距
+- [ ] 根容器：标题页 `space-y-6`（**无** `p-6` / `overflow-auto` / `max-w-*`）；全高单卡片页 `page-fill flex glass-card` + 内层 clip
+- [ ] 卡片网格加 `glass-card-grid`；glass-card 宿主无 `overflow-hidden`，全出血子元素 `rounded-t-[inherit]`
 - [ ] 标题 `text-3xl font-bold` + 内联图标 `w-8 h-8`（无背景容器）
 - [ ] 副标题 `text-muted-foreground mt-1`（无 `text-sm`）
 - [ ] 页面级操作按钮：有 button group 时与其同行平齐（`sm:items-center`）；否则放 Header 与副标题底边对齐（`sm:items-end`）。**禁止** Header 内 `items-center` 让按钮浮在两行之间

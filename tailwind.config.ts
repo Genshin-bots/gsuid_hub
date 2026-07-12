@@ -66,11 +66,18 @@ export default {
   				ring: 'hsl(var(--sidebar-ring))'
   			}
   		},
-  		borderRadius: {
-  			lg: 'var(--radius)',
-  			md: 'calc(var(--radius) - 2px)',
-  			sm: 'calc(var(--radius) - 4px)'
-  		},
+		// 全部圆角 token 挂到 CSS 变量 --radius，由主题杂项「圆角强度」统一驱动。
+		// 默认 --radius=24px 时：lg/3xl 等同当前观感；sm/md 略小一档。
+		// rounded-full 仍为胶囊/圆形，不受此控制。
+		borderRadius: {
+			sm: 'max(0px, calc(var(--radius) - 4px))',
+			DEFAULT: 'max(0px, calc(var(--radius) - 2px))',
+			md: 'max(0px, calc(var(--radius) - 2px))',
+			lg: 'var(--radius)',
+			xl: 'var(--radius)',
+			'2xl': 'var(--radius)',
+			'3xl': 'var(--radius)',
+		},
   		keyframes: {
   			'accordion-down': {
   				from: {

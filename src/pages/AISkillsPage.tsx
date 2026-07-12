@@ -240,7 +240,7 @@ export default function AISkillsPage() {
   };
 
   return (
-    <div className="p-4 sm:p-6 space-y-6">
+    <div className="space-y-6">
       {/* 页面标题 */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0 overflow-x-auto">
@@ -272,7 +272,7 @@ export default function AISkillsPage() {
 
       {/* 技能列表 */}
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="glass-card-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {Array.from({ length: 6 }).map((_, i) => (
             <Card key={i} className={cn(
               isGlass ? "glass-card" : "border border-border/50"
@@ -297,12 +297,12 @@ export default function AISkillsPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="glass-card-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {parsedSkills.map((skill) => (
             <Card 
               key={skill.name} 
               className={cn(
-                "relative overflow-hidden transition-colors hover:border-primary/50",
+                "relative transition-colors hover:border-primary/50",
                 isGlass ? "glass-card" : "border border-border/50"
               )}
               onClick={() => handleSkillClick(skill)}

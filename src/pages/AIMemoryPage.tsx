@@ -1636,7 +1636,7 @@ export default function AIMemoryPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6">
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold flex items-center gap-3"><Brain className="w-8 h-8" />{t('aiMemory.title')}</h1>
@@ -1651,9 +1651,9 @@ export default function AIMemoryPage() {
         </Card>
       )}
 
-      {/* Stats - Unified color scheme */}
+      {/* Stats：8 卡固定两行四列（大屏不再挤成一行） */}
       {stats && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+        <div className="glass-card-grid grid grid-cols-2 sm:grid-cols-4 gap-3">
           <StatsCard title={t('aiMemory.statsEpisodes')} value={stats.episode_count} icon={MessageSquare} isGlass={isGlass} />
           <StatsCard title={t('aiMemory.statsEntities')} value={stats.entity_count} icon={Brain} isGlass={isGlass} />
           <StatsCard title={t('aiMemory.statsEdges')} value={stats.edge_count} icon={GitBranch} isGlass={isGlass} />
@@ -1683,42 +1683,65 @@ export default function AIMemoryPage() {
         </Card>
       )}
 
-      {/* Tabs */}
-      <TabButtonGroup
-        value={activeTab}
-        onValueChange={setActiveTab}
-        options={[
-          { value: 'graph', label: t('aiMemory.tabGraph'), icon: <Network className="w-4 h-4" /> },
-          { value: 'preferences', label: t('aiMemory.tabPreferences'), icon: <ListChecks className="w-4 h-4" /> },
-          { value: 'scopes', label: t('aiMemory.tabScopes'), icon: <Globe className="w-4 h-4" /> },
-          { value: 'episodes', label: t('aiMemory.tabEpisodes'), icon: <MessageSquare className="w-4 h-4" /> },
-          { value: 'entities', label: t('aiMemory.tabEntities'), icon: <Brain className="w-4 h-4" /> },
-          { value: 'edges', label: t('aiMemory.tabEdges'), icon: <GitBranch className="w-4 h-4" /> },
-          { value: 'categories', label: t('aiMemory.tabCategories'), icon: <FolderTree className="w-4 h-4" /> },
-          { value: 'debug', label: '调试视图', icon: <AlertCircle className="w-4 h-4" /> },
-          { value: 'config', label: t('aiMemory.tabConfig'), icon: <Settings className="w-4 h-4" /> },
-        ]}
-      />
+      {/* Tabs：与上方统计卡同宽，避免 shadow 负边距导致右边不齐 */}
+      <div className="w-full min-w-0">
+        <TabButtonGroup
+          value={activeTab}
+          onValueChange={setActiveTab}
+          className="w-full max-w-full"
+          options={[
+            { value: 'graph', label: t('aiMemory.tabGraph'), icon: <Network className="w-4 h-4" /> },
+            { value: 'preferences', label: t('aiMemory.tabPreferences'), icon: <ListChecks className="w-4 h-4" /> },
+            { value: 'scopes', label: t('aiMemory.tabScopes'), icon: <Globe className="w-4 h-4" /> },
+            { value: 'episodes', label: t('aiMemory.tabEpisodes'), icon: <MessageSquare className="w-4 h-4" /> },
+            { value: 'entities', label: t('aiMemory.tabEntities'), icon: <Brain className="w-4 h-4" /> },
+            { value: 'edges', label: t('aiMemory.tabEdges'), icon: <GitBranch className="w-4 h-4" /> },
+            { value: 'categories', label: t('aiMemory.tabCategories'), icon: <FolderTree className="w-4 h-4" /> },
+            { value: 'debug', label: '调试视图', icon: <AlertCircle className="w-4 h-4" /> },
+            { value: 'config', label: t('aiMemory.tabConfig'), icon: <Settings className="w-4 h-4" /> },
+          ]}
+        />
+      </div>
 
       {/* Knowledge Graph Tab */}
       {activeTab === 'graph' && (
       <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div className="space-y-3">
             <p className="text-sm text-muted-foreground">{t('aiMemory.graphDescription')}</p>
-            <div className="flex gap-2 items-center">
+            {/* 移动端：左 scope 列表，右两个操作按钮；桌面同理保持一行 */}
+            <div className="flex w-full min-w-0 items-center gap-2">
               <ScopeSelector
                 value={selectedScope}
                 onChange={handleScopeChange}
                 scopes={scopes}
                 allLabel={t('aiMemory.allScopes')}
-                className="w-[180px] h-9"
+                className="h-9 min-w-0 flex-1 sm:max-w-[220px] sm:flex-none sm:w-[180px]"
               />
-              <Button variant="outline" size="sm" className="h-9" onClick={() => setClearMemoryDialogOpen(true)} disabled={selectedScope === 'all' || !selectedScope}>
-                <Trash2 className="w-4 h-4 mr-1" />{t('aiMemory.clearMemory')}
-              </Button>
-              <Button variant="outline" size="sm" className="h-9" onClick={() => { fetchEntities(1); fetchEdges(1); fetchCategories(1); }}>
-                <RefreshCw className="w-4 h-4 mr-1" />{t('common.refresh')}
-              </Button>
+              <div className="ml-auto flex shrink-0 items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-9 px-2.5 sm:px-3"
+                  onClick={() => setClearMemoryDialogOpen(true)}
+                  disabled={selectedScope === 'all' || !selectedScope}
+                  title={t('aiMemory.clearMemory')}
+                  aria-label={t('aiMemory.clearMemory')}
+                >
+                  <Trash2 className="w-4 h-4 sm:mr-1" />
+                  <span className="hidden sm:inline">{t('aiMemory.clearMemory')}</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-9 px-2.5 sm:px-3"
+                  onClick={() => { fetchEntities(1); fetchEdges(1); fetchCategories(1); }}
+                  title={t('common.refresh')}
+                  aria-label={t('common.refresh')}
+                >
+                  <RefreshCw className="w-4 h-4 sm:mr-1" />
+                  <span className="hidden sm:inline">{t('common.refresh')}</span>
+                </Button>
+              </div>
             </div>
           </div>
           {entities.length === 0 && edges.length === 0 && categories.length === 0 ? (
@@ -1933,7 +1956,7 @@ export default function AIMemoryPage() {
               <RefreshCw className="w-4 h-4 mr-1" />{t('common.refresh')}
             </Button>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="glass-card-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {scopes.map((scope) => <ScopeCard key={scope.scope_key} scope={scope} isGlass={isGlass} onDelete={() => handleDeleteScope(scope.scope_key)} onSelect={() => handleScopeChange(scope.scope_key)} />)}
           </div>
           {scopes.length === 0 && (
@@ -2022,13 +2045,13 @@ export default function AIMemoryPage() {
           </div>
           <p className="text-sm text-muted-foreground">{t('aiMemory.entityCount', { count: entities.length, total: totalEntities })}</p>
           {isLoadingData ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-32 w-full" />)}</div>
+            <div className="glass-card-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-32 w-full" />)}</div>
           ) : entities.length === 0 ? (
             <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
               <CardContent className="flex flex-col items-center justify-center p-8 text-muted-foreground"><Brain className="w-12 h-12 mb-4 opacity-50" /><p>{t('aiMemory.noEntities')}</p></CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="glass-card-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {entities.map((entity) => (
                 <div key={entity.id} className="relative group">
                   <EntityNode entity={entity} isGlass={isGlass} onClick={() => openDetailDialog('entity', entity.id)} />

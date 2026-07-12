@@ -151,7 +151,8 @@ function getMirrorOptionIcon(type: string) {
 // 组件定义
 // ============================================================================
 
-export default function GitMirrorDialog({ open, onOpenChange }: GitMirrorDialogProps) {  const { t } = useLanguage();
+export default function GitMirrorDialog({ open, onOpenChange }: GitMirrorDialogProps) {
+  const { t } = useLanguage();
 
   const [loading, setLoading] = useState(true);
   const [mirrorInfo, setMirrorInfo] = useState<GitMirrorInfo | null>(null);
@@ -337,8 +338,9 @@ export default function GitMirrorDialog({ open, onOpenChange }: GitMirrorDialogP
               </div>
 
               {/* 插件列表 - 移动端卡片布局，桌面端表格布局 */}
-              <div className="flex-1 overflow-hidden rounded-lg glass-card">
-                <div className="overflow-auto max-h-[400px]">
+              <div className="flex-1 rounded-lg glass-card">
+                {/* 滚动裁切放内层并继承圆角，表格四角才不会戳出卡片 */}
+                <div className="overflow-auto max-h-[400px] rounded-[inherit]">
                   {mirrorInfo.plugins.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">
                       {t('gitMirror.noPlugins')}
