@@ -25,15 +25,17 @@ export function TabButtonGroup({
   buttonClassName,
   disabled = false,
 }: TabButtonGroupProps) {
-  const fullWidth = typeof className === 'string' && /\bw-full\b/.test(className);
+  // className 作用在按钮容器（内层）上——调用方会传 grid/w-full 等布局类改写整条布局。
+  // 外层只负责阴影安全区（shadow-safe 竖直负边距），并按内层是否铺满/禁缩镜像自身尺寸行为。
+  const fullWidth = typeof className === 'string' && /\b(?:w-full|grid)\b/.test(className);
+  const noShrink = typeof className === 'string' && /\bshrink-0\b/.test(className);
 
   return (
-    // shadow-safe 仅竖直方向；w-full 时铺满与上方卡片网格右缘对齐
-    <div className={cn(fullWidth ? 'flex w-full' : 'inline-flex', 'max-w-full shadow-safe', className)}>
+    <div className={cn(fullWidth ? 'flex w-full' : 'inline-flex', noShrink && 'shrink-0', 'max-w-full shadow-safe')}>
       <div
         className={cn(
           'inline-flex min-w-0 flex-wrap gap-1 rounded-lg p-1 glass-card',
-          fullWidth && 'w-full',
+          className,
         )}
       >
         {options.map((option) => (

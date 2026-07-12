@@ -284,6 +284,7 @@ const THEME_CONFIG = {
   sidebar_layout: 'floating' as const,
   border_radius: 24,
   ui_scale: 100,
+  shadow_intensity: 100,
   sidebar_default_collapsed: false,
 };
 

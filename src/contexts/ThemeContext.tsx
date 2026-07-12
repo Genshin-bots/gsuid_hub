@@ -41,6 +41,9 @@ const BORDER_RADIUS_DEFAULT = 24;
 const UI_SCALE_MIN = 85;
 const UI_SCALE_MAX = 120;
 const UI_SCALE_DEFAULT = 100;
+const SHADOW_INTENSITY_MIN = 0;
+const SHADOW_INTENSITY_MAX = 200;
+const SHADOW_INTENSITY_DEFAULT = 100;
 
 function clampInt(n: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, Math.round(n)));
@@ -117,6 +120,9 @@ interface ThemeMiscContextType {
   /** UI 字号缩放百分比（html font-size） */
   uiScale: number;
   setUiScale: (value: number, autoSave?: boolean) => void;
+  /** 阴影强度百分比（0-200 → CSS --shadow-strength 0-2） */
+  shadowIntensity: number;
+  setShadowIntensity: (value: number, autoSave?: boolean) => void;
   /** 侧边栏默认是否收起 */
   sidebarDefaultCollapsed: boolean;
   setSidebarDefaultCollapsed: (value: boolean, autoSave?: boolean) => void;
@@ -308,6 +314,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [uiScale, setUiScaleState] = useState<number>(
     () => readSessionInt('theme_ui_scale', UI_SCALE_MIN, UI_SCALE_MAX) ?? UI_SCALE_DEFAULT
   );
+  const [shadowIntensity, setShadowIntensityState] = useState<number>(
+    () => readSessionInt('theme_shadow_intensity', SHADOW_INTENSITY_MIN, SHADOW_INTENSITY_MAX) ?? SHADOW_INTENSITY_DEFAULT
+  );
   const [sidebarDefaultCollapsed, setSidebarDefaultCollapsedState] = useState<boolean>(
     () => readSessionBool('theme_sidebar_default_collapsed') ?? false
   );
@@ -316,16 +325,16 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   // 使用ref存储配置，用于自动保存
   const configRef = useRef({
     mode, style, color, iconColor, backgroundImage, blurIntensity, cardOpacity,
-    themePreset, language, sidebarLayout, borderRadius, uiScale, sidebarDefaultCollapsed,
+    themePreset, language, sidebarLayout, borderRadius, uiScale, shadowIntensity, sidebarDefaultCollapsed,
   });
 
   // 更新ref
   useEffect(() => {
     configRef.current = {
       mode, style, color, iconColor, backgroundImage, blurIntensity, cardOpacity,
-      themePreset, language, sidebarLayout, borderRadius, uiScale, sidebarDefaultCollapsed,
+      themePreset, language, sidebarLayout, borderRadius, uiScale, shadowIntensity, sidebarDefaultCollapsed,
     };
-  }, [mode, style, color, iconColor, backgroundImage, blurIntensity, cardOpacity, themePreset, language, sidebarLayout, borderRadius, uiScale, sidebarDefaultCollapsed]);
+  }, [mode, style, color, iconColor, backgroundImage, blurIntensity, cardOpacity, themePreset, language, sidebarLayout, borderRadius, uiScale, shadowIntensity, sidebarDefaultCollapsed]);
 
   // 计算当前主题颜色
   const themeColors = useMemo(
@@ -381,6 +390,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
           if (typeof config.ui_scale === 'number') {
             setUiScaleState(clampInt(config.ui_scale, UI_SCALE_MIN, UI_SCALE_MAX));
           }
+          if (typeof config.shadow_intensity === 'number') {
+            setShadowIntensityState(clampInt(config.shadow_intensity, SHADOW_INTENSITY_MIN, SHADOW_INTENSITY_MAX));
+          }
           if (typeof config.sidebar_default_collapsed === 'boolean') {
             setSidebarDefaultCollapsedState(config.sidebar_default_collapsed);
           }
@@ -408,6 +420,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       const savedSidebarLayout = sessionStorage.getItem('theme_sidebar_layout') as SidebarLayout;
       const savedBorderRadius = readSessionInt('theme_border_radius', BORDER_RADIUS_MIN, BORDER_RADIUS_MAX);
       const savedUiScale = readSessionInt('theme_ui_scale', UI_SCALE_MIN, UI_SCALE_MAX);
+      const savedShadowIntensity = readSessionInt('theme_shadow_intensity', SHADOW_INTENSITY_MIN, SHADOW_INTENSITY_MAX);
       const savedSidebarCollapsed = readSessionBool('theme_sidebar_default_collapsed');
 
       if (savedMode) setModeState(savedMode);
@@ -424,6 +437,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       }
       if (savedBorderRadius != null) setBorderRadiusState(savedBorderRadius);
       if (savedUiScale != null) setUiScaleState(savedUiScale);
+      if (savedShadowIntensity != null) setShadowIntensityState(savedShadowIntensity);
       if (savedSidebarCollapsed != null) setSidebarDefaultCollapsedState(savedSidebarCollapsed);
     } catch (e) {
       console.error('Failed to load theme from sessionStorage:', e);
@@ -434,8 +448,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     document.documentElement.style.setProperty('--radius', `${borderRadius}px`);
     document.documentElement.style.fontSize = uiScale === 100 ? '' : `${uiScale}%`;
+    document.documentElement.style.setProperty('--shadow-strength', String(shadowIntensity / 100));
     document.documentElement.setAttribute('data-sidebar-layout', sidebarLayout);
-  }, [borderRadius, uiScale, sidebarLayout]);
+  }, [borderRadius, uiScale, shadowIntensity, sidebarLayout]);
 
   // 批量应用所有主题设置到DOM - 合并为单一effect减少重绘
   useEffect(() => {
@@ -483,12 +498,15 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       // 100% = 浏览器默认；通过 html font-size 缩放全部 rem 字号与间距
       document.documentElement.style.fontSize = uiScale === 100 ? '' : `${uiScale}%`;
 
+      sessionStorage.setItem('theme_shadow_intensity', String(shadowIntensity));
+      document.documentElement.style.setProperty('--shadow-strength', String(shadowIntensity / 100));
+
       sessionStorage.setItem('theme_sidebar_default_collapsed', sidebarDefaultCollapsed ? '1' : '0');
     };
     
     // 使用requestAnimationFrame确保批量执行
     requestAnimationFrame(applyTheme);
-  }, [themeColors, mode, style, color, themePreset, backgroundImage, blurIntensity, cardOpacity, iconColor, sidebarLayout, borderRadius, uiScale, sidebarDefaultCollapsed, isInitialized]);
+  }, [themeColors, mode, style, color, themePreset, backgroundImage, blurIntensity, cardOpacity, iconColor, sidebarLayout, borderRadius, uiScale, shadowIntensity, sidebarDefaultCollapsed, isInitialized]);
 
   // 保存到后端的统一方法
   const saveToBackend = useCallback(async (overrides?: Partial<typeof configRef.current>) => {
@@ -507,6 +525,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         sidebar_layout: config.sidebarLayout,
         border_radius: config.borderRadius,
         ui_scale: config.uiScale,
+        shadow_intensity: config.shadowIntensity,
         sidebar_default_collapsed: config.sidebarDefaultCollapsed,
       });
     } catch (error) {
@@ -609,6 +628,14 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     }
   }, [isInitialized, saveToBackend]);
 
+  const setShadowIntensity = useCallback((value: number, autoSave?: boolean) => {
+    const next = clampInt(value, SHADOW_INTENSITY_MIN, SHADOW_INTENSITY_MAX);
+    setShadowIntensityState(next);
+    if (autoSave && isInitialized) {
+      saveToBackend({ shadowIntensity: next });
+    }
+  }, [isInitialized, saveToBackend]);
+
   const setSidebarDefaultCollapsed = useCallback((value: boolean, autoSave?: boolean) => {
     setSidebarDefaultCollapsedState(value);
     if (autoSave && isInitialized) {
@@ -632,6 +659,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       sidebar_layout: c.sidebarLayout,
       border_radius: c.borderRadius,
       ui_scale: c.uiScale,
+      shadow_intensity: c.shadowIntensity,
       sidebar_default_collapsed: c.sidebarDefaultCollapsed,
     };
   }, []);
@@ -681,6 +709,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     if (typeof config.ui_scale === 'number') {
       setUiScaleState(clampInt(config.ui_scale, UI_SCALE_MIN, UI_SCALE_MAX));
     }
+    if (typeof config.shadow_intensity === 'number') {
+      setShadowIntensityState(clampInt(config.shadow_intensity, SHADOW_INTENSITY_MIN, SHADOW_INTENSITY_MAX));
+    }
     if (typeof config.sidebar_default_collapsed === 'boolean') {
       setSidebarDefaultCollapsedState(config.sidebar_default_collapsed);
     }
@@ -697,8 +728,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     sidebarLayout, setSidebarLayout,
     borderRadius, setBorderRadius,
     uiScale, setUiScale,
+    shadowIntensity, setShadowIntensity,
     sidebarDefaultCollapsed, setSidebarDefaultCollapsed,
-  }), [sidebarLayout, setSidebarLayout, borderRadius, setBorderRadius, uiScale, setUiScale, sidebarDefaultCollapsed, setSidebarDefaultCollapsed]);
+  }), [sidebarLayout, setSidebarLayout, borderRadius, setBorderRadius, uiScale, setUiScale, shadowIntensity, setShadowIntensity, sidebarDefaultCollapsed, setSidebarDefaultCollapsed]);
   const actionsContext = useMemo(() => ({ getThemeConfig, applyThemeConfig }), [getThemeConfig, applyThemeConfig]);
 
   return (
@@ -754,6 +786,7 @@ export function useTheme() {
     sidebarLayout: miscContext.sidebarLayout,
     borderRadius: miscContext.borderRadius,
     uiScale: miscContext.uiScale,
+    shadowIntensity: miscContext.shadowIntensity,
     sidebarDefaultCollapsed: miscContext.sidebarDefaultCollapsed,
     setMode: modeContext.setMode,
     setStyle: styleContext.setStyle,
@@ -767,6 +800,7 @@ export function useTheme() {
     setSidebarLayout: miscContext.setSidebarLayout,
     setBorderRadius: miscContext.setBorderRadius,
     setUiScale: miscContext.setUiScale,
+    setShadowIntensity: miscContext.setShadowIntensity,
     setSidebarDefaultCollapsed: miscContext.setSidebarDefaultCollapsed,
     getThemeConfig: actionsContext.getThemeConfig,
     applyThemeConfig: actionsContext.applyThemeConfig,

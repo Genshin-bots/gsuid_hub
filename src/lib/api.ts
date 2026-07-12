@@ -1821,6 +1821,8 @@ export interface ThemeConfig {
   border_radius?: number;
   /** UI font scale percentage (html font-size). 100 = browser default. */
   ui_scale?: number;
+  /** Shadow intensity percentage (0-200 → CSS --shadow-strength 0-2). 100 = default. */
+  shadow_intensity?: number;
   /** Whether the sidebar should start collapsed (icon mode). */
   sidebar_default_collapsed?: boolean;
 }

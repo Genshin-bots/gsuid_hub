@@ -192,6 +192,39 @@ function columnAccentClass(column: AIKanbanColumnKey) {
   return 'border-red-500/40 dark:border-red-400/30';
 }
 
+// 列头视觉：每个类目一个小图标 + 专属颜色（标题与数字 badge 同色系，与列边框色呼应）
+const COLUMN_HEADER_META: Record<AIKanbanColumnKey, {
+  Icon: typeof ClipboardList;
+  titleClass: string;
+  badgeClass: string;
+}> = {
+  target: {
+    Icon: Rocket,
+    titleClass: 'text-slate-600 dark:text-slate-300',
+    badgeClass: 'bg-slate-500/15 text-slate-600 dark:text-slate-300',
+  },
+  progress: {
+    Icon: PlayCircle,
+    titleClass: 'text-blue-600 dark:text-blue-400',
+    badgeClass: 'bg-blue-500/15 text-blue-600 dark:text-blue-400',
+  },
+  Done: {
+    Icon: CheckCircle2,
+    titleClass: 'text-green-600 dark:text-green-400',
+    badgeClass: 'bg-green-500/15 text-green-600 dark:text-green-400',
+  },
+  Blocked: {
+    Icon: PauseCircle,
+    titleClass: 'text-amber-600 dark:text-amber-400',
+    badgeClass: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
+  },
+  failed: {
+    Icon: XCircle,
+    titleClass: 'text-red-600 dark:text-red-400',
+    badgeClass: 'bg-red-500/15 text-red-600 dark:text-red-400',
+  },
+};
+
 function logClass(eventType: string) {
   const lower = eventType.toLowerCase();
   if (['workspace_violation', 'approval', 'step_failed', 'failed', 'error'].some((key) => lower.includes(key))) {
@@ -692,8 +725,10 @@ export default function AIKanbanPage() {
     return <pre className="max-h-80 overflow-auto rounded-lg bg-muted/50 p-3 text-xs whitespace-pre-wrap">{preview.content}</pre>;
   };
 
+  // page-viewport：整页高度锁定视口（main 不再竖直滚动），看板列内滚 + 底部横向滚动条
+  // 始终贴视口底端；不要 overflow-hidden（会裁掉筛选卡与看板列的阴影）
   return (
-    <div className="flex flex-1 min-h-0 flex-col gap-4 overflow-hidden">
+    <div className="page-viewport flex flex-1 min-h-0 flex-col gap-4">
 {/* 页面标题块：纯 H1 + 副标题，无右侧操作（按钮已移至下方 button group 同行） */}
       <div>
         <h1 className="text-3xl font-bold flex items-center gap-3">
@@ -737,7 +772,7 @@ export default function AIKanbanPage() {
       </div>
 
       {viewMode === 'kanban' && (
-      <Card className="glass-card shrink-0 !shadow-[0_2px_14px_hsl(0_0%_0%/0.05)] dark:!shadow-[0_4px_18px_hsl(0_0%_0%/0.16)]">
+      <Card className="glass-card shrink-0">
         <CardContent className="p-4 space-y-4">
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-6">
             <Input value={filters.scope_key} onChange={(event) => setFilters((prev) => ({ ...prev, scope_key: event.target.value }))} placeholder={t('aiKanban.filters.scopeKey')} />
@@ -771,8 +806,11 @@ export default function AIKanbanPage() {
       </Card>
       )}
 
+      {/* 横滚容器：.layout-page-inner .overflow-x-auto 会注入 --shadow-bleed 内边距/负边距，
+          这里加大到 1.5rem 才装得下列卡片的大阴影（尤其暗色）。列自身 h-full、任务列表内滚；
+          纵向平时不滚（列高恰好填满），仅当视口矮于列 min-h 时兜底出现纵向滚动 */}
       {viewMode === 'kanban' && (
-      <div className="min-h-0 flex-1 overflow-x-auto overflow-y-hidden pb-2">
+      <div className="min-h-0 flex-1 overflow-x-auto [--shadow-bleed:1.5rem]">
         <div className="flex h-full min-w-max gap-4">
         {COLUMN_KEYS.map((column) => (
           <div
@@ -780,7 +818,8 @@ export default function AIKanbanPage() {
             onDragOver={(event) => event.preventDefault()}
             onDrop={(event) => onDropToColumn(column, event.dataTransfer.getData('text/plain'))}
             className={cn(
-              'flex h-full min-h-[460px] w-[min(82vw,320px)] shrink-0 flex-col rounded-2xl border p-3 transition-colors sm:w-[320px] xl:w-[340px] glass-card',
+              // 移动端页面整体可滚（page-viewport 仅桌面锁高），列高用 70dvh 封顶、任务列表内滚
+              'flex h-full min-h-[460px] max-h-[70dvh] md:max-h-none w-[min(82vw,320px)] shrink-0 flex-col rounded-2xl border p-3 transition-colors sm:w-[320px] xl:w-[340px] glass-card',
               columnAccentClass(column),
             )}
             style={{
@@ -790,8 +829,16 @@ export default function AIKanbanPage() {
           >
             <div className="mb-3 flex items-center justify-between gap-2 px-1">
               <div className="flex items-center gap-2">
-                <span className="font-semibold">{t(`aiKanban.columns.${column}`)}</span>
-                <Badge variant="secondary">{filteredColumns[column]?.length || 0}</Badge>
+                {(() => {
+                  const meta = COLUMN_HEADER_META[column];
+                  return (
+                    <>
+                      <meta.Icon className={cn('h-4 w-4 shrink-0', meta.titleClass)} />
+                      <span className={cn('font-semibold', meta.titleClass)}>{t(`aiKanban.columns.${column}`)}</span>
+                      <Badge variant="secondary" className={cn('border-transparent', meta.badgeClass)}>{filteredColumns[column]?.length || 0}</Badge>
+                    </>
+                  );
+                })()}
               </div>
             </div>
             <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
@@ -846,7 +893,7 @@ export default function AIKanbanPage() {
                       <CardDescription className="font-mono">{detail.root?.id}</CardDescription>
                     </CardHeader>
                     <CardContent className="grid grid-cols-1 gap-3 md:grid-cols-3">
-                      <div className="rounded-lg bg-muted/40 p-3"><Label className="text-muted-foreground">{t('aiKanban.fields.status')}</Label><p><Badge className={statusClass(detail.task.status)}>{detail.task.status}</Badge></p></div>
+                      <div className="rounded-lg bg-muted/40 p-3"><Label className="text-muted-foreground">{t('aiKanban.fields.status')}</Label>{/* Badge 是 div，不能作为 <p> 子元素（validateDOMNesting） */}<div><Badge className={statusClass(detail.task.status)}>{detail.task.status}</Badge></div></div>
                       <div className="rounded-lg bg-muted/40 p-3"><Label className="text-muted-foreground">{t('aiKanban.fields.agent')}</Label><p>{detail.task.agent_profile || '-'}</p></div>
                       <div className="rounded-lg bg-muted/40 p-3"><Label className="text-muted-foreground">{t('aiKanban.fields.workspace')}</Label><p className="break-all font-mono text-xs">{detail.task.workspace_path || '-'}</p></div>
                     </CardContent>
@@ -873,12 +920,12 @@ export default function AIKanbanPage() {
                     <Card key={artifact.id} className="glass-card">
                       <CardContent className="p-4 space-y-3">
                         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                          <div className="min-w-0 space-y-2">
+                          <div className="min-w-0 space-y-2 lg:flex-1">
                             <div className="flex flex-wrap items-center gap-2"><Badge variant="outline">{shortId(artifact.id)}</Badge><Badge variant="secondary">{artifact.artifact_kind}</Badge><Badge variant="outline">{artifact.mime}</Badge><Badge variant="outline">{formatBytes(artifact.size_bytes)}</Badge></div>
                             <p className="font-medium">{artifact.summary || '-'}</p>
                             <p className="text-xs text-muted-foreground">{artifact.from_profile || '-'} · {formatDate(artifact.created_at)}</p>
                           </div>
-                          <div className="flex flex-wrap gap-2">
+                          <div className="flex shrink-0 flex-wrap items-start gap-2">
                             <Button variant="outline" size="sm" onClick={() => previewArtifact(artifact)}><Eye className="mr-1 h-4 w-4" />{artifactPreview[artifact.id] ? t('aiKanban.actions.collapse') : t('aiKanban.actions.preview')}</Button>
                             {artifact.has_payload_path && <Button variant="outline" size="sm" onClick={async () => downloadBlob(await aiKanbanApi.downloadArtifactRaw(artifact.id), getArtifactFilename(artifact))}><Download className="mr-1 h-4 w-4" />{t('aiKanban.actions.download')}</Button>}
                             <Button variant="ghost" size="sm" className="text-destructive" onClick={() => openAction({ type: 'deleteArtifact', artifact, title: t('aiKanban.actions.deleteArtifact'), description: t('aiKanban.confirm.deleteArtifact', { id: artifact.id }), confirmLabel: t('common.delete'), destructive: true })}><Trash2 className="h-4 w-4" /></Button>
@@ -894,11 +941,12 @@ export default function AIKanbanPage() {
                   <Card className="glass-card">
                     <CardHeader>
                       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                        <div>
+                        {/* 左侧 min-w-0 让长路径换行收缩；右侧 shrink-0 保证两个按钮同行不被挤成竖排 */}
+                        <div className="min-w-0 lg:flex-1">
                           <CardTitle className="text-base">{t('aiKanban.workspace.title')}</CardTitle>
                           <CardDescription className="break-all font-mono">{detail.task.workspace_path || '-'}</CardDescription>
                         </div>
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex shrink-0 flex-wrap items-start gap-2">
                           <input ref={uploadInputRef} type="file" className="hidden" onChange={(event) => uploadWorkspaceFile(event.target.files?.[0])} />
                           <Button variant="outline" onClick={() => uploadInputRef.current?.click()}><Upload className="mr-2 h-4 w-4" />{t('aiKanban.workspace.upload')}</Button>
                           <Button variant="outline" onClick={() => setPatchOpen(true)}><FileCode2 className="mr-2 h-4 w-4" />{t('aiKanban.workspace.patch')}</Button>
@@ -909,8 +957,8 @@ export default function AIKanbanPage() {
                       {workspaceFiles.length === 0 ? <div className="py-10 text-center text-muted-foreground">{t('aiKanban.workspace.empty')}</div> : workspaceFiles.map((file) => (
                         <div key={file.path} className="rounded-lg border border-border/50 p-3">
                           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                            <div className="min-w-0"><p className="truncate font-mono text-sm">{file.path}</p><p className="text-xs text-muted-foreground">{formatBytes(file.size_bytes)} · {formatDate(file.modified_at)}</p></div>
-                            <div className="flex flex-wrap gap-2">
+                            <div className="min-w-0 sm:flex-1"><p className="truncate font-mono text-sm">{file.path}</p><p className="text-xs text-muted-foreground">{formatBytes(file.size_bytes)} · {formatDate(file.modified_at)}</p></div>
+                            <div className="flex shrink-0 flex-wrap gap-2">
                               <Button variant="outline" size="sm" onClick={() => previewWorkspaceFile(file)}><FileImage className="mr-1 h-4 w-4" />{workspacePreview[file.path] ? t('aiKanban.actions.collapse') : t('aiKanban.actions.preview')}</Button>
                               <Button variant="outline" size="sm" onClick={async () => selectedTaskId && downloadBlob(await aiKanbanApi.downloadWorkspaceFile(selectedTaskId, file.path), getBasename(file.path) || 'workspace-file')}><Download className="mr-1 h-4 w-4" />{t('aiKanban.actions.download')}</Button>
                             </div>

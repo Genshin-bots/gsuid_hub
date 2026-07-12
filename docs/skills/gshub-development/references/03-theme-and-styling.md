@@ -25,7 +25,16 @@ const {
 
 侧边栏布局 class：`floating-sidebar` / `glass-sidebar` / `line-sidebar`（`line` 无卡片/阴影，仅 `border-right`）。
 
-「杂项」四项均持久化到后端 `ThemeConfig`（`sidebar_layout` / `border_radius` / `ui_scale` / `sidebar_default_collapsed`），并镜像到 sessionStorage（`theme_sidebar_layout` 等）供首屏防闪；新增字段要同步 `api.ts` 的 `ThemeConfig` 接口、`demoMock.ts` 的 `THEME_CONFIG` 和 `main.tsx` 的 `THEME_KEYS` 清理列表。
+「杂项」各项均持久化到后端 `ThemeConfig`（`sidebar_layout` / `border_radius` / `ui_scale` / `shadow_intensity` / `sidebar_default_collapsed`），并镜像到 sessionStorage（`theme_sidebar_layout` 等）供首屏防闪。**新增杂项字段的完整同步清单**（缺一处都会出 bug）：
+
+1. 前端 `ThemeContext.tsx`：常量/state/早期 effect/applyTheme/saveToBackend/setter/getThemeConfig/applyThemeConfig/miscContext/useTheme 十处；
+2. `api.ts` 的 `ThemeConfig` 接口；
+3. `demoMock.ts` 的 `THEME_CONFIG`；
+4. `main.tsx` 的 `THEME_KEYS` 清理列表；
+5. 后端 `gsuid_core/webconsole/theme_api.py`：`DEFAULT_THEME_CONFIG` + `ThemeConfigRequest`（Pydantic 校验）+ `_clamp_config_dict`（二次夹紧）；
+6. 三语言 `themes.json` + ThemesPage 杂项 Tab UI。
+
+阴影强度（`shadow_intensity`，0–200%，默认 100）：写入 CSS `--shadow-strength`（0–2）。表面类（`glass-card` 家族 / 侧栏）的阴影 alpha 全部写成 `calc(基准 * var(--shadow-strength))`——**新增表面类阴影时也要照此接入**，否则不吃该配置。作用范围是主题表面类的投影；零散的 Tailwind `shadow-*` 工具类不受控（也不应再新增，见 §3.4.1）。
 
 圆角实现约定：
 
@@ -108,6 +117,8 @@ const isGlass = style === 'glassmorphism';
 | 宿主上 `shadow-*` 工具类无效 | 表面类阴影为 `!important` 统一投影，不允许每张卡自定阴影 |
 | `ring-*` 依然可用 | 表面类阴影头部透传 `var(--tw-ring-offset-shadow)/var(--tw-ring-shadow)`——改这些 box-shadow 时**必须保留这两项**，否则全站选中态 ring 消失 |
 | 覆盖类默认圆角需 `!rounded-*` | 类自带 `border-radius: var(--radius)` 且声明在 utilities 之后 |
+| 定位/层级声明必须走 `:where(...)`（零特异性） | 表面类默认 `relative + z-index:0`；若写成普通类声明会压掉 Dialog/Sheet 的 `fixed`/`z-50` 工具类——弹层失去定位、沉到遮罩下面，症状是"点开只剩遮罩没内容" |
+| 弹层上的 glass-card 无描边 | `.glass-card[role="dialog"/"alertdialog"]` 已统一 `border: none`——半透明 1px 边框叠在深色遮罩上会混成黑色描边线，弹层靠阴影分层即可 |
 | `glass-card-flat`：无阴影无 blur | 供 overflow 容器内嵌 / 长列表项使用；`overflow-hidden` 安全；`hover:shadow-*` 可用（:hover 特异性更高） |
 
 ## 3.5 布局背景与 gutter

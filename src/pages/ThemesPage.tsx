@@ -33,7 +33,7 @@ import {
   Sun, Moon, Palette, Image, Sparkles, Check, Upload, Link, X, Blend, Paintbrush,
   Layers, Droplet, Bookmark, Save, Trash2, Loader2, RefreshCw, CheckCircle2,
   AlertTriangle, FolderOpen, SlidersHorizontal, PanelLeft, SquareStack,
-  CornerDownRight, Type, PanelLeftClose, PanelLeftOpen, SeparatorVertical,
+  CornerDownRight, Type, PanelLeftClose, PanelLeftOpen, SeparatorVertical, CloudFog,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -201,9 +201,9 @@ export default function ThemesPage() {
   const { t } = useLanguage();
   const {
     mode, style, color, backgroundImage, blurIntensity, cardOpacity,
-    iconColor, themePreset, sidebarLayout, borderRadius, uiScale, sidebarDefaultCollapsed,
+    iconColor, themePreset, sidebarLayout, borderRadius, uiScale, shadowIntensity, sidebarDefaultCollapsed,
     setMode, setStyle, setColor, setBackgroundImage, setBlurIntensity, setCardOpacity,
-    setIconColor, setThemePreset, setSidebarLayout, setBorderRadius, setUiScale,
+    setIconColor, setThemePreset, setSidebarLayout, setBorderRadius, setUiScale, setShadowIntensity,
     setSidebarDefaultCollapsed, getThemeConfig, applyThemeConfig,
   } = useTheme();
 
@@ -858,6 +858,70 @@ export default function ThemesPage() {
                       width: `${2 + scale * 2}rem`,
                       height: `${1.5 + scale}rem`,
                       borderRadius: `calc(var(--radius) * ${scale})`,
+                    }}
+                  />
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 阴影强度 */}
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CloudFog className="w-5 h-5" />
+                {t('themes.shadowIntensity')}
+              </CardTitle>
+              <CardDescription>{t('themes.shadowIntensityDesc')}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">{t('themes.shadowIntensityValue')}</span>
+                  <span className="text-sm font-medium bg-primary/10 text-primary px-2 py-0.5 rounded">{shadowIntensity}%</span>
+                </div>
+                <Slider
+                  value={[shadowIntensity]}
+                  onValueChange={(value) => setShadowIntensity(value[0])}
+                  onValueCommit={(value) => setShadowIntensity(value[0], true)}
+                  min={0}
+                  max={200}
+                  step={5}
+                />
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>{t('themes.shadowNone')}</span>
+                  <span>{t('themes.scaleDefault')}</span>
+                  <span>{t('themes.shadowStrong')}</span>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { v: 0, l: 'themes.shadowNone' },
+                  { v: 50, l: 'themes.shadowLight' },
+                  { v: 100, l: 'themes.scaleDefault' },
+                  { v: 150, l: 'themes.shadowStrong' },
+                ].map((p) => (
+                  <Button
+                    key={p.v}
+                    variant="outline"
+                    size="sm"
+                    className={cn('h-8', shadowIntensity === p.v && 'border-primary text-primary')}
+                    onClick={() => setShadowIntensity(p.v, true)}
+                  >
+                    {t(p.l)}
+                  </Button>
+                ))}
+              </div>
+              {/* 实时预览块：直接吃 --shadow-strength */}
+              <div className="flex items-end gap-4 pt-1 pb-2">
+                {[0.5, 1, 1.5].map((scale) => (
+                  <div
+                    key={scale}
+                    className="rounded-lg border border-border/40 bg-card/60"
+                    style={{
+                      width: `${2.5 + scale}rem`,
+                      height: `${2 + scale * 0.5}rem`,
+                      boxShadow: `0 2px 6px hsl(0 0% 0% / calc(0.06 * var(--shadow-strength) * ${scale})), 0 8px 24px -4px hsl(0 0% 0% / calc(0.14 * var(--shadow-strength) * ${scale}))`,
                     }}
                   />
                 ))}

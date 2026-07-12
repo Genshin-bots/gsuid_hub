@@ -63,6 +63,8 @@ All colors MUST be HSL.
     --layout-page-top: 2.75rem;
     /* 圆角阴影外溢安全距：overflow 容器内侧至少留这么多 */
     --shadow-bleed: 0.75rem;
+    /* 阴影强度系数：主题杂项 shadow_intensity(0-200%) 写入 0-2；表面类阴影 alpha 乘以它 */
+    --shadow-strength: 1;
 
     --sidebar-background: 0 0% 98%;
 
@@ -197,11 +199,20 @@ All colors MUST be HSL.
  * 解法：宿主只负责圆角 + 阴影；背景/毛玻璃画在 ::before（同样 inherit 圆角）。
  * 不要 transform / isolation / will-change:backdrop-filter，以免再引入合成脏边。
  */
-.glass-card {
-  /* z-index:0 建立层叠上下文，使 ::before 的 z-index:-1 仍落在卡片内部、内容之下；
-     切勿对子元素强制 position:relative（会破坏 absolute 装饰层，Home 英雄区曾因此被撑高） */
+/*
+ * 定位/层级用 :where() 降为零特异性：
+ * - 无定位工具类的普通卡片 → relative + z-index:0（建立层叠上下文，让 ::before 的
+ *   z-index:-1 落在卡片内部、内容之下）；
+ * - Dialog/Sheet 等弹层（fixed + z-50 工具类）→ 工具类照常获胜。
+ *   若写成普通 .glass-card 声明会压掉 fixed/z-50，弹层只剩遮罩、内容沉底。
+ * 切勿对子元素强制 position:relative（会破坏 absolute 装饰层，Home 英雄区曾因此被撑高）
+ */
+:where(.glass-card, .glass-card-flat, .glass-card-danger, .floating-sidebar) {
   position: relative;
   z-index: 0;
+}
+
+.glass-card {
   border: 1px solid hsl(var(--border) / 0.4);
   border-radius: var(--radius);
   /* 背景透明：真实填充在 ::before，避免宿主矩形底把阴影「方化」 */
@@ -210,8 +221,8 @@ All colors MUST be HSL.
   box-shadow:
     var(--tw-ring-offset-shadow, 0 0 #0000),
     var(--tw-ring-shadow, 0 0 #0000),
-    0 2px 6px hsl(0 0% 0% / 0.04),
-    0 8px 24px -4px hsl(0 0% 0% / 0.1) !important;
+    0 2px 6px hsl(0 0% 0% / calc(0.04 * var(--shadow-strength))),
+    0 8px 24px -4px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength))) !important;
   min-width: 0;
   overflow: visible;
 }
@@ -231,13 +242,22 @@ All colors MUST be HSL.
   -webkit-backdrop-filter: blur(var(--blur-intensity, 12px));
 }
 
+/*
+ * 弹层（Dialog/Sheet/AlertDialog，Radix 都带 role）上的 glass-card 不要描边：
+ * 半透明 1px 边框叠在深色遮罩上会混成一圈黑色描边线，靠阴影分层即可。
+ */
+.glass-card[role="dialog"],
+.glass-card[role="alertdialog"] {
+  border: none !important;
+}
+
 .dark .glass-card {
   border-color: hsl(var(--border) / 0.3);
   box-shadow:
     var(--tw-ring-offset-shadow, 0 0 #0000),
     var(--tw-ring-shadow, 0 0 #0000),
-    0 2px 8px hsl(0 0% 0% / 0.18),
-    0 12px 32px -6px hsl(0 0% 0% / 0.28) !important;
+    0 2px 8px hsl(0 0% 0% / calc(0.18 * var(--shadow-strength))),
+    0 12px 32px -6px hsl(0 0% 0% / calc(0.28 * var(--shadow-strength))) !important;
 }
 
 .dark .glass-card::before {
@@ -246,8 +266,6 @@ All colors MUST be HSL.
 
 /* Flat glass card：无阴影/无毛玻璃，供 overflow 容器内嵌使用 */
 .glass-card-flat {
-  position: relative;
-  z-index: 0;
   background: transparent !important;
   border: 1px solid hsl(var(--border) / 0.4);
   border-radius: var(--radius);
@@ -286,8 +304,8 @@ All colors MUST be HSL.
   box-shadow:
     var(--tw-ring-offset-shadow, 0 0 #0000),
     var(--tw-ring-shadow, 0 0 #0000),
-    0 2px 6px hsl(0 0% 0% / 0.05),
-    0 8px 20px -4px hsl(0 0% 0% / 0.08) !important;
+    0 2px 6px hsl(0 0% 0% / calc(0.05 * var(--shadow-strength))),
+    0 8px 20px -4px hsl(0 0% 0% / calc(0.08 * var(--shadow-strength))) !important;
 }
 
 [data-style="solid"] .glass-card::before {
@@ -298,14 +316,12 @@ All colors MUST be HSL.
 
 /* Glass card with red/danger tint */
 .glass-card-danger {
-  position: relative;
-  z-index: 0;
   background: transparent !important;
   border: 1px solid rgba(239, 68, 68, 0.6) !important;
   border-radius: var(--radius);
   box-shadow:
-    0 2px 6px rgba(239, 68, 68, 0.08),
-    0 10px 28px -6px rgba(239, 68, 68, 0.16) !important;
+    0 2px 6px rgba(239, 68, 68, calc(0.08 * var(--shadow-strength))),
+    0 10px 28px -6px rgba(239, 68, 68, calc(0.16 * var(--shadow-strength))) !important;
   min-width: 0;
   overflow: visible;
 }
@@ -328,8 +344,8 @@ All colors MUST be HSL.
 .dark .glass-card-danger {
   border-color: rgba(160, 35, 35, 0.45) !important;
   box-shadow:
-    0 2px 8px rgba(0, 0, 0, 0.2),
-    0 12px 32px -6px rgba(80, 15, 15, 0.35) !important;
+    0 2px 8px rgba(0, 0, 0, calc(0.2 * var(--shadow-strength))),
+    0 12px 32px -6px rgba(80, 15, 15, calc(0.35 * var(--shadow-strength))) !important;
 }
 
 .dark .glass-card-danger::before {
@@ -338,9 +354,10 @@ All colors MUST be HSL.
 
 [data-style="solid"] .glass-card-danger {
   border: 1px solid hsl(0, 84%, 82%) !important;
+  /* 注意用空格语法 hsl(h s% l% / a)：逗号语法 + 斜杠 alpha 是非法 CSS */
   box-shadow:
-    0 2px 6px hsl(0, 84%, 50% / 0.08),
-    0 8px 20px -4px hsl(0, 84%, 50% / 0.12) !important;
+    0 2px 6px hsl(0 84% 50% / calc(0.08 * var(--shadow-strength))),
+    0 8px 20px -4px hsl(0 84% 50% / calc(0.12 * var(--shadow-strength))) !important;
 }
 
 [data-style="solid"] .glass-card-danger::before {
@@ -352,8 +369,8 @@ All colors MUST be HSL.
 [data-style="solid"] .dark .glass-card-danger {
   border: 1px solid hsl(0, 50%, 30%) !important;
   box-shadow:
-    0 2px 6px hsl(0, 50%, 10% / 0.2),
-    0 10px 24px -4px hsl(0, 50%, 10% / 0.28) !important;
+    0 2px 6px hsl(0 50% 10% / calc(0.2 * var(--shadow-strength))),
+    0 10px 24px -4px hsl(0 50% 10% / calc(0.28 * var(--shadow-strength))) !important;
 }
 
 [data-style="solid"] .dark .glass-card-danger::before {
@@ -365,15 +382,15 @@ All colors MUST be HSL.
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   border-right: 1px solid hsl(var(--border));
-  box-shadow: 2px 0 12px hsl(0 0% 0% / 0.06);
+  box-shadow: 2px 0 12px hsl(0 0% 0% / calc(0.06 * var(--shadow-strength)));
 }
 
 /* Solid floating sidebar */
 [data-style="solid"] .floating-sidebar {
   border: 1px solid hsl(var(--border));
   box-shadow:
-    0 2px 6px hsl(0 0% 0% / 0.05),
-    0 8px 20px -4px hsl(0 0% 0% / 0.08) !important;
+    0 2px 6px hsl(0 0% 0% / calc(0.05 * var(--shadow-strength))),
+    0 8px 20px -4px hsl(0 0% 0% / calc(0.08 * var(--shadow-strength))) !important;
 }
 
 [data-style="solid"] .floating-sidebar::before {
@@ -406,8 +423,8 @@ All colors MUST be HSL.
   background: hsl(var(--sidebar) / var(--card-opacity, 0.2)) !important;
   border-right: 1px solid hsl(var(--border) / 0.3);
   box-shadow:
-    2px 0 12px hsl(0 0% 0% / 0.04),
-    6px 0 28px -4px hsl(0 0% 0% / 0.06),
+    2px 0 12px hsl(0 0% 0% / calc(0.04 * var(--shadow-strength))),
+    6px 0 28px -4px hsl(0 0% 0% / calc(0.06 * var(--shadow-strength))),
     inset 0 1px 0 hsl(var(--primary) / 0.05);
 }
 
@@ -461,14 +478,12 @@ All colors MUST be HSL.
 
 /* Floating sidebar：同样采用 ::before 分离毛玻璃与阴影 */
 .floating-sidebar {
-  position: relative;
-  z-index: 0;
   background: transparent !important;
   border: 1px solid hsl(var(--border) / 0.4);
   border-radius: var(--radius);
   box-shadow:
-    0 2px 6px hsl(0 0% 0% / 0.04),
-    0 8px 24px -4px hsl(0 0% 0% / 0.1) !important;
+    0 2px 6px hsl(0 0% 0% / calc(0.04 * var(--shadow-strength))),
+    0 8px 24px -4px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength))) !important;
   overflow: visible;
 }
 
@@ -485,8 +500,8 @@ All colors MUST be HSL.
 .dark .floating-sidebar {
   border-color: hsl(var(--border) / 0.3);
   box-shadow:
-    0 2px 8px hsl(0 0% 0% / 0.18),
-    0 12px 32px -6px hsl(0 0% 0% / 0.28) !important;
+    0 2px 8px hsl(0 0% 0% / calc(0.18 * var(--shadow-strength))),
+    0 12px 32px -6px hsl(0 0% 0% / calc(0.28 * var(--shadow-strength))) !important;
 }
 
 .dark .floating-sidebar::before {
@@ -514,6 +529,27 @@ All colors MUST be HSL.
   padding-right: var(--layout-gutter);
   padding-bottom: var(--layout-gutter);
   padding-left: var(--layout-gutter);
+}
+
+/*
+ * 视口锁定标题页（.page-viewport）：保留 --layout-page-top 的标题呼吸距，
+ * 但整页不再竖直滚动——页面内部自己管理滚动（如看板列内滚 + 底部横向滚动条）。
+ * 与 .page-fill 的区别：page-fill 是"无标题全高单卡片"（上下边距收成 gutter），
+ * page-viewport 是"有标题但高度锁死"的页面。
+ *
+ * 仅桌面（≥768px）生效：移动端标题/筛选区堆叠后高度轻易超过视口，
+ * 锁死 main 会导致整页无法滚动，故移动端退回普通滚动页。
+ */
+@media (min-width: 768px) {
+  main:has(.page-viewport) {
+    overflow: hidden;
+  }
+
+  main:has(.page-viewport) .layout-page-inner {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: 100%;
+  }
 }
 
 /* 全高卡片页：上下边距与悬浮侧栏同为 gutter */

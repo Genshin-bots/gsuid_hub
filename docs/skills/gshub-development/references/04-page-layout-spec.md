@@ -56,6 +56,26 @@
 
 判定标准：页面唯一的表面层就是一张撑满视口的大卡片（内部自己分栏/滚动）→ 用 `.page-fill`；页面是「标题 + 若干卡片往下排、整页滚动」→ 标题页，什么都不用加。
 
+**第三种：视口锁定标题页（`.page-viewport`）**，如 `/ai-kanban`：有标题但整页高度锁死视口、**main 不再竖直滚动**，滚动全部发生在页面内部（看板列内滚、底部横向滚动条始终贴视口底端）。写法：
+
+```tsx
+<div className="page-viewport flex flex-1 min-h-0 flex-col gap-4">
+  <div>{/* H1 + 副标题 */}</div>
+  <Card className="glass-card shrink-0">{/* 筛选区 */}</Card>
+  {/* 横滚容器：flex-1 吃掉剩余高度 → 横向滚动条落在视口底端；
+      加大 --shadow-bleed 给列卡片阴影留位 */}
+  <div className="min-h-0 flex-1 overflow-x-auto [--shadow-bleed:1.5rem]">
+    <div className="flex h-full min-w-max gap-4">
+      {/* 每列：h-full 定高，任务列表 min-h-0 flex-1 overflow-y-auto 内滚 */}
+    </div>
+  </div>
+</div>
+```
+
+要点：`main:has(.page-viewport)` 会锁 main 滚动并把 `.layout-page-inner` 撑满高度（保留 `--layout-page-top` 顶距）；页面内所有中间层都要 `min-h-0` 才能把高度约束传到内滚容器；列表/看板列**固定高度 + 内部滚动**，不要让内容无限撑长页面。
+
+⚠️ **视口锁定仅桌面（≥768px）生效**：移动端标题/筛选区堆叠后极易超出视口高度，锁死 main 会让整页无法滚动。CSS 已把 `main:has(.page-viewport)` 规则包在 `@media (min-width: 768px)` 内——移动端自动退回普通滚动页，此时内滚区域要自己给**移动端高度上限**（如看板列 `max-h-[70dvh] md:max-h-none`），否则 `h-full` 对 auto 高度父级不生效、内容会无限撑长。
+
 新增页面时的取值全部走 CSS 变量（`src/index.css` `:root`），**不要**在页面里写死 px/rem：
 
 - `--layout-gutter: 1.5rem` — 悬浮侧栏四边、内容区左右下、page-fill 四边。
