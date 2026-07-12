@@ -74,9 +74,19 @@ interface PendingAction {
 }
 
 type BulkDeleteCategory = 'all' | 'completed' | 'failed' | 'running' | 'pending' | 'paused' | 'waiting_approval' | 'cancelled';
+type BulkDeleteStatus = Exclude<BulkDeleteCategory, 'all'>;
 
 const BULK_DELETE_STATUS_OPTIONS: BulkDeleteCategory[] = ['all', 'completed', 'failed', 'running', 'pending', 'paused', 'waiting_approval', 'cancelled'];
-const BULK_DELETE_API_STATUSES: Exclude<BulkDeleteCategory, 'all'>[] = ['completed', 'failed', 'running', 'pending', 'paused', 'waiting_approval', 'cancelled'];
+const BULK_DELETE_API_STATUSES: BulkDeleteStatus[] = ['completed', 'failed', 'running', 'pending', 'paused', 'waiting_approval', 'cancelled'];
+
+// 看板列 → 批量硬删除 API 的 status 参数（与后端列归类一致；一列可对应多状态）
+const COLUMN_TO_BULK_STATUSES: Record<AIKanbanColumnKey, BulkDeleteStatus[]> = {
+  target: ['pending'],
+  progress: ['running'],
+  Done: ['completed'],
+  Blocked: ['paused', 'waiting_approval'],
+  failed: ['failed', 'cancelled'],
+};
 
 interface CreateSubtaskDraft {
   description: string;
@@ -242,6 +252,8 @@ export default function AIKanbanPage() {
   const isGlass = style === 'glassmorphism';
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
   const stateStoreRef = useRef<StateStoreViewerHandle>(null);
+  /** 第一层确认 → 第二层确认 时跳过清列状态 */
+  const bulkDeleteAdvancingRef = useRef(false);
   const [viewMode, setViewMode] = useState<'kanban' | 'data'>('kanban');
   const [stateStoreSelectedCount, setStateStoreSelectedCount] = useState(0);
 
@@ -284,6 +296,8 @@ export default function AIKanbanPage() {
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [bulkDeleteSecondConfirmOpen, setBulkDeleteSecondConfirmOpen] = useState(false);
   const [bulkDeleteCategory, setBulkDeleteCategory] = useState<BulkDeleteCategory>('all');
+  /** 从列头发起时锁定列；从页顶发起时为 null（手动选分类） */
+  const [bulkDeleteColumn, setBulkDeleteColumn] = useState<AIKanbanColumnKey | null>(null);
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
 
   const loadBoard = useCallback(async () => {
@@ -372,14 +386,26 @@ export default function AIKanbanPage() {
 
   const allBoardCards = useMemo(() => COLUMN_KEYS.flatMap((column) => board.columns[column] || []), [board.columns]);
 
+  const bulkDeleteStatusTargets = useMemo((): BulkDeleteStatus[] => {
+    if (bulkDeleteColumn) return COLUMN_TO_BULK_STATUSES[bulkDeleteColumn];
+    if (bulkDeleteCategory === 'all') return BULK_DELETE_API_STATUSES;
+    return [bulkDeleteCategory];
+  }, [bulkDeleteColumn, bulkDeleteCategory]);
+
   const bulkDeletePreview = useMemo(() => {
-    const cards = bulkDeleteCategory === 'all'
-      ? allBoardCards
-      : allBoardCards.filter((card) => card.status === bulkDeleteCategory);
-    const rootIds = new Set(cards.map((card) => card.kind === 'root' ? card.id : card.root_task_id));
+    const cards = bulkDeleteColumn
+      ? (board.columns[bulkDeleteColumn] || [])
+      : bulkDeleteCategory === 'all'
+        ? allBoardCards
+        : allBoardCards.filter((card) => card.status === bulkDeleteCategory);
+    const rootIds = new Set(cards.map((card) => (card.kind === 'root' ? card.id : card.root_task_id)));
     const subtaskCount = cards.filter((card) => card.kind === 'subtask').length;
     return { rootCount: rootIds.size, cardCount: cards.length, subtaskCount };
-  }, [allBoardCards, bulkDeleteCategory]);
+  }, [allBoardCards, board.columns, bulkDeleteCategory, bulkDeleteColumn]);
+
+  const bulkDeleteCategoryLabel = bulkDeleteColumn
+    ? t(`aiKanban.columns.${bulkDeleteColumn}`)
+    : t(`aiKanban.bulkDelete.categories.${bulkDeleteCategory}`);
 
   const activeBulkFilterLabels = useMemo(() => {
     const labels: string[] = [];
@@ -627,8 +653,21 @@ export default function AIKanbanPage() {
   };
 
   const openBulkDeleteConfirm = () => {
+    setBulkDeleteColumn(null);
     setBulkDeleteSecondConfirmOpen(false);
     setBulkDeleteOpen(true);
+  };
+
+  const openColumnBulkDelete = (column: AIKanbanColumnKey) => {
+    setBulkDeleteColumn(column);
+    setBulkDeleteSecondConfirmOpen(false);
+    setBulkDeleteOpen(true);
+  };
+
+  const closeBulkDeleteDialogs = () => {
+    setBulkDeleteOpen(false);
+    setBulkDeleteSecondConfirmOpen(false);
+    setBulkDeleteColumn(null);
   };
 
   const runBulkDelete = async () => {
@@ -642,13 +681,12 @@ export default function AIKanbanPage() {
         delete_files: true,
         include_instances: false,
       };
-      const targets = bulkDeleteCategory === 'all' ? BULK_DELETE_API_STATUSES : [bulkDeleteCategory];
+      const targets = bulkDeleteStatusTargets;
       const results = await Promise.all(targets.map((status) => aiKanbanApi.bulkHardDeleteTasks({ ...baseParams, status })));
       const deletedCount = results.reduce((sum, item) => sum + (item.deleted_count || 0), 0);
       const failedCount = results.reduce((sum, item) => sum + (item.failed_count || 0), 0);
       toast.success(t('aiKanban.messages.bulkDeleteSuccess', { deleted: deletedCount, failed: failedCount }));
-      setBulkDeleteOpen(false);
-      setBulkDeleteSecondConfirmOpen(false);
+      closeBulkDeleteDialogs();
       setSelectedTaskId(null);
       await loadBoard();
     } catch (error) {
@@ -828,18 +866,33 @@ export default function AIKanbanPage() {
             }}
           >
             <div className="mb-3 flex items-center justify-between gap-2 px-1">
-              <div className="flex items-center gap-2">
+              <div className="flex min-w-0 items-center gap-2">
                 {(() => {
                   const meta = COLUMN_HEADER_META[column];
                   return (
                     <>
                       <meta.Icon className={cn('h-4 w-4 shrink-0', meta.titleClass)} />
-                      <span className={cn('font-semibold', meta.titleClass)}>{t(`aiKanban.columns.${column}`)}</span>
+                      <span className={cn('truncate font-semibold', meta.titleClass)}>{t(`aiKanban.columns.${column}`)}</span>
                       <Badge variant="secondary" className={cn('border-transparent', meta.badgeClass)}>{filteredColumns[column]?.length || 0}</Badge>
                     </>
                   );
                 })()}
               </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                title={t('aiKanban.bulkDelete.columnButton')}
+                aria-label={t('aiKanban.bulkDelete.columnButton')}
+                disabled={isBulkDeleting || (board.columns[column]?.length || 0) === 0}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  openColumnBulkDelete(column);
+                }}
+                className="h-7 w-7 shrink-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
             </div>
             <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
               {isLoadingBoard ? (
@@ -1057,48 +1110,132 @@ export default function AIKanbanPage() {
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={bulkDeleteOpen} onOpenChange={(open) => !open && setBulkDeleteOpen(false)}>
+      <AlertDialog
+        open={bulkDeleteOpen}
+        onOpenChange={(open) => {
+          if (open) return;
+          setBulkDeleteOpen(false);
+          // 进入二次确认时也会 close，此时保留 bulkDeleteColumn
+          if (bulkDeleteAdvancingRef.current) {
+            bulkDeleteAdvancingRef.current = false;
+            return;
+          }
+          setBulkDeleteColumn(null);
+        }}
+      >
         <AlertDialogContent className="glass-card max-w-[92vw] sm:max-w-[560px]">
           <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2 text-destructive"><Trash2 className="h-5 w-5" />{t('aiKanban.bulkDelete.title')}</AlertDialogTitle>
-            <AlertDialogDescription>{t('aiKanban.bulkDelete.description')}</AlertDialogDescription>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="h-5 w-5" />
+              {bulkDeleteColumn
+                ? t('aiKanban.bulkDelete.columnTitle', { column: bulkDeleteCategoryLabel })
+                : t('aiKanban.bulkDelete.title')}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {bulkDeleteColumn
+                ? t('aiKanban.bulkDelete.columnHint', { column: bulkDeleteCategoryLabel })
+                : t('aiKanban.bulkDelete.description')}
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>{t('aiKanban.bulkDelete.category')}</Label>
-              <Select value={bulkDeleteCategory} onValueChange={(value) => setBulkDeleteCategory(value as BulkDeleteCategory)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {BULK_DELETE_STATUS_OPTIONS.map((status) => <SelectItem key={status} value={status}>{t(`aiKanban.bulkDelete.categories.${status}`)}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
+            {bulkDeleteColumn ? (
+              <div className="rounded-lg border border-border/50 bg-muted/30 p-3 text-xs text-muted-foreground">
+                <p className="font-medium text-foreground">{t('aiKanban.bulkDelete.columnStatuses')}</p>
+                <p className="mt-2 font-mono">
+                  {bulkDeleteStatusTargets.map((status) => t(`aiKanban.bulkDelete.categories.${status}`)).join(' · ')}
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label>{t('aiKanban.bulkDelete.category')}</Label>
+                <Select value={bulkDeleteCategory} onValueChange={(value) => setBulkDeleteCategory(value as BulkDeleteCategory)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {BULK_DELETE_STATUS_OPTIONS.map((status) => (
+                      <SelectItem key={status} value={status}>{t(`aiKanban.bulkDelete.categories.${status}`)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
               <AlertTriangle className="mr-2 inline h-4 w-4" />
-              {t('aiKanban.bulkDelete.preview', { roots: bulkDeletePreview.rootCount, cards: bulkDeletePreview.cardCount, subtasks: bulkDeletePreview.subtaskCount })}
+              {t('aiKanban.bulkDelete.preview', {
+                roots: bulkDeletePreview.rootCount,
+                cards: bulkDeletePreview.cardCount,
+                subtasks: bulkDeletePreview.subtaskCount,
+              })}
             </div>
             <div className="rounded-lg border border-border/50 bg-muted/30 p-3 text-xs text-muted-foreground">
               <p className="font-medium text-foreground">{t('aiKanban.bulkDelete.activeFilters')}</p>
-              {activeBulkFilterLabels.length > 0 ? <ul className="mt-2 list-disc space-y-1 pl-5">{activeBulkFilterLabels.map((label) => <li key={label}>{label}</li>)}</ul> : <p className="mt-2">{t('aiKanban.bulkDelete.noExtraFilters')}</p>}
+              {activeBulkFilterLabels.length > 0 ? (
+                <ul className="mt-2 list-disc space-y-1 pl-5">
+                  {activeBulkFilterLabels.map((label) => <li key={label}>{label}</li>)}
+                </ul>
+              ) : (
+                <p className="mt-2">{t('aiKanban.bulkDelete.noExtraFilters')}</p>
+              )}
             </div>
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isBulkDeleting}>{t('common.cancel')}</AlertDialogCancel>
-            <AlertDialogAction onClick={() => { setBulkDeleteOpen(false); setBulkDeleteSecondConfirmOpen(true); }} disabled={isBulkDeleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">{t('aiKanban.bulkDelete.continue')}</AlertDialogAction>
+            <AlertDialogAction
+              onClick={() => {
+                bulkDeleteAdvancingRef.current = true;
+                setBulkDeleteOpen(false);
+                setBulkDeleteSecondConfirmOpen(true);
+              }}
+              disabled={isBulkDeleting || bulkDeletePreview.rootCount === 0}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {t('aiKanban.bulkDelete.continue')}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={bulkDeleteSecondConfirmOpen} onOpenChange={(open) => !open && setBulkDeleteSecondConfirmOpen(false)}>
+      <AlertDialog
+        open={bulkDeleteSecondConfirmOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            setBulkDeleteSecondConfirmOpen(false);
+            setBulkDeleteColumn(null);
+          }
+        }}
+      >
         <AlertDialogContent className="glass-card border-destructive/50 max-w-[92vw] sm:max-w-[560px]">
           <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2 text-destructive"><AlertTriangle className="h-5 w-5" />{t('aiKanban.bulkDelete.secondTitle')}</AlertDialogTitle>
-            <AlertDialogDescription className="font-medium text-destructive/90">{t('aiKanban.bulkDelete.secondDescription', { category: t(`aiKanban.bulkDelete.categories.${bulkDeleteCategory}`), roots: bulkDeletePreview.rootCount })}</AlertDialogDescription>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              {t('aiKanban.bulkDelete.secondTitle')}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="font-medium text-destructive/90">
+              {t('aiKanban.bulkDelete.secondDescription', {
+                category: bulkDeleteCategoryLabel,
+                roots: bulkDeletePreview.rootCount,
+              })}
+            </AlertDialogDescription>
           </AlertDialogHeader>
-          <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">{t('aiKanban.bulkDelete.irreversible')}</div>
+          <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+            {t('aiKanban.bulkDelete.irreversible')}
+          </div>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isBulkDeleting} onClick={() => setBulkDeleteSecondConfirmOpen(false)}>{t('common.cancel')}</AlertDialogCancel>
-            <AlertDialogAction onClick={runBulkDelete} disabled={isBulkDeleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">{isBulkDeleting ? t('common.loading') : t('aiKanban.bulkDelete.confirm')}</AlertDialogAction>
+            <AlertDialogCancel
+              disabled={isBulkDeleting}
+              onClick={() => {
+                setBulkDeleteSecondConfirmOpen(false);
+                setBulkDeleteColumn(null);
+              }}
+            >
+              {t('common.cancel')}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={runBulkDelete}
+              disabled={isBulkDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isBulkDeleting ? t('common.loading') : t('aiKanban.bulkDelete.confirm')}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

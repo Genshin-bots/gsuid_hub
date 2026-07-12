@@ -13,6 +13,10 @@
   "defaultFailReason": "管理画面のタスク看板から手動終了",
   "bulkDelete": {
     "button": "一括削除",
+    "columnButton": "この列を一括削除",
+    "columnTitle": "「{column}」を一括削除",
+    "columnHint": "右上の一括ハード削除と同じ API を、この列に対応する状態と現在のフィルターで呼び出します。",
+    "columnStatuses": "この列で削除される状態",
     "title": "タスクを一括ハード削除",
     "description": "削除するタスク分類を選択してください。現在のフィルターで件数を見積もり、次の手順でもう一度確認します。",
     "category": "削除分類",

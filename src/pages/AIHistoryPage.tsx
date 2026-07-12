@@ -801,8 +801,8 @@ export default function AIHistoryPage() {
               </div>
 
               {/* 瀑布内容 */}
-              <ScrollArea className="flex-1">
-                <div className="px-3 sm:px-5 pt-3 pb-8">
+              <ScrollArea className="flex-1 min-w-0">
+                <div className="min-w-0 max-w-full px-3 sm:px-5 pt-3 pb-8">
                   {/* 加载更早分段 */}
                   {hasEarlier && (
                     <div className="mb-2 flex justify-center">

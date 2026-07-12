@@ -13,6 +13,10 @@
   "defaultFailReason": "由管理端在任务看板手动终结",
   "bulkDelete": {
     "button": "批量删除",
+    "columnButton": "批量删除本列",
+    "columnTitle": "批量删除「{column}」",
+    "columnHint": "将按本列对应状态调用与右上角相同的批量硬删除接口，并沿用当前页面筛选条件。",
+    "columnStatuses": "本列对应删除状态",
     "title": "批量硬删除任务",
     "description": "请选择要删除的任务分类。该操作会按当前筛选条件预估数量，并在下一步再次确认。",
     "category": "删除分类",

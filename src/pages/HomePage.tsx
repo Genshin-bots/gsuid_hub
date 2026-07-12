@@ -30,7 +30,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { cn } from '@/lib/utils';
 import { versionApi, VersionInfo, ActiveBotsInfo } from '@/lib/api';
 
-const frontendVersion = PACKAGE_VERSION || '0.0.17';
+const frontendVersion = PACKAGE_VERSION || '0.0.18';
 
 // Build HomePage card classes that follow the global theme:
 // - `glass-card` (theme system: opacity + blur intensity, dark/light)
@@ -140,7 +140,7 @@ export default function HomePage() {
   const connectedBotCount = botsInfo?.bots.filter((bot) => bot.connected).length ?? 0;
 
   return (
-    <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 sm:gap-6">
+    <div className="flex w-full min-w-0 flex-col gap-5 sm:gap-6">
       <section className={cn(glassCardClass, 'rounded-3xl p-5 sm:p-7 lg:p-8')} style={heroStyle}>
         {/* 装饰层单独裁剪，不写在 glass-card 宿主上，避免裁阴影 / 破坏 absolute */}
         <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[inherit]" aria-hidden="true">

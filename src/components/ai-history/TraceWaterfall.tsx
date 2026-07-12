@@ -612,13 +612,21 @@ function SpanContent({ sp, t }: { sp: TraceSpan; t: TFunc }) {
   // → 隐藏；多 entry 的 span（tool 的 call+return）才保留小标题以区分。
   const showLabel = parts.length > 1;
   return (
-    <div className="space-y-2">
+    <div className="min-w-0 max-w-full space-y-2">
       {parts.map((e, i) => (
         <EntryBlock key={i} entry={e} t={t} showLabel={showLabel} />
       ))}
     </div>
   );
 }
+
+// 长无空格串（URL / base64 / JSON）必须在容器宽度内硬换行，避免撑破瀑布布局
+const WRAP_TEXT = 'min-w-0 max-w-full whitespace-pre-wrap break-words [overflow-wrap:anywhere]';
+const CODE_BLOCK = cn(
+  'text-xs bg-muted/50 rounded-md p-2 font-mono',
+  WRAP_TEXT,
+);
+const PLAIN_BLOCK = cn('text-sm font-sans leading-relaxed', WRAP_TEXT);
 
 function EntryBlock({ entry, t, showLabel = true }: { entry: SessionLogEntry; t: TFunc; showLabel?: boolean }) {
   const d = (entry.data || {}) as Record<string, unknown>;
@@ -628,29 +636,25 @@ function EntryBlock({ entry, t, showLabel = true }: { entry: SessionLogEntry; t:
 
   if (entry.type === 'tool_call') {
     return (
-      <div>
+      <div className="min-w-0 max-w-full">
         {label('aiHistory.entryType.toolCall')}
-        <pre className="text-xs bg-muted/50 rounded-md p-2 overflow-x-auto font-mono whitespace-pre-wrap [overflow-wrap:anywhere]">
-          {asStr(d.args)}
-        </pre>
+        <pre className={CODE_BLOCK}>{asStr(d.args)}</pre>
       </div>
     );
   }
   if (entry.type === 'tool_return') {
     return (
-      <div>
+      <div className="min-w-0 max-w-full">
         {label('aiHistory.entryType.toolReturn')}
-        <pre className="text-xs bg-muted/50 rounded-md p-2 overflow-x-auto font-mono whitespace-pre-wrap [overflow-wrap:anywhere]">
-          {asStr(d.content)}
-        </pre>
+        <pre className={CODE_BLOCK}>{asStr(d.content)}</pre>
       </div>
     );
   }
   if (entry.type === 'thinking') {
     return (
-      <div>
+      <div className="min-w-0 max-w-full">
         {label('aiHistory.entryType.thinking')}
-        <pre className="text-xs bg-muted/50 rounded-md p-2 overflow-x-auto whitespace-pre-wrap font-mono italic text-muted-foreground max-h-64 overflow-y-auto">
+        <pre className={cn(CODE_BLOCK, 'italic text-muted-foreground max-h-64 overflow-y-auto')}>
           {asStr(d.content)}
         </pre>
       </div>
@@ -658,11 +662,9 @@ function EntryBlock({ entry, t, showLabel = true }: { entry: SessionLogEntry; t:
   }
   if (entry.type === 'system_prompt') {
     return (
-      <div>
+      <div className="min-w-0 max-w-full">
         {label('aiHistory.entryType.systemPrompt')}
-        <pre className="text-xs bg-muted/50 rounded-md p-2 overflow-x-auto whitespace-pre-wrap font-mono max-h-64 overflow-y-auto">
-          {asStr(d.content)}
-        </pre>
+        <pre className={cn(CODE_BLOCK, 'max-h-64 overflow-y-auto')}>{asStr(d.content)}</pre>
       </div>
     );
   }
@@ -671,35 +673,35 @@ function EntryBlock({ entry, t, showLabel = true }: { entry: SessionLogEntry; t:
   }
   if (entry.type === 'error') {
     return (
-      <div>
-        <p className="text-sm font-medium text-red-500">{asStr(d.error_type)}</p>
-        <p className="text-sm text-red-500/80 whitespace-pre-wrap">{asStr(d.message)}</p>
+      <div className="min-w-0 max-w-full">
+        <p className={cn('text-sm font-medium text-red-500', WRAP_TEXT)}>{asStr(d.error_type)}</p>
+        <p className={cn('text-sm text-red-500/80', WRAP_TEXT)}>{asStr(d.message)}</p>
       </div>
     );
   }
   if (entry.type === 'tools_list') {
     const tools = Array.isArray(d.tools) ? (d.tools as string[]) : [];
     return (
-      <div className="flex flex-wrap gap-1">
+      <div className="flex flex-wrap gap-1 min-w-0 max-w-full">
         {tools.map((tool, i) => {
           const info = toolInfo[tool];
           const meta = [info?.plugin, info?.category].filter(Boolean).join(' · ');
           return (
             <Tooltip key={i}>
               <TooltipTrigger asChild>
-                <span className="inline-flex items-center gap-1 cursor-help text-[10px] font-mono px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border/50 hover:bg-accent hover:text-foreground transition-colors">
+                <span className="inline-flex max-w-full items-center gap-1 cursor-help text-[10px] font-mono px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border/50 hover:bg-accent hover:text-foreground transition-colors [overflow-wrap:anywhere]">
                   <Wrench className="w-2.5 h-2.5 shrink-0 opacity-60" />
-                  {tool}
+                  <span className="min-w-0 break-all">{tool}</span>
                 </span>
               </TooltipTrigger>
               <TooltipContent className="max-w-sm">
-                <p className="text-xs font-mono font-medium">{tool}</p>
+                <p className="text-xs font-mono font-medium break-all">{tool}</p>
                 {info?.description ? (
-                  <p className="mt-1 text-xs text-muted-foreground whitespace-pre-wrap">{info.description}</p>
+                  <p className={cn('mt-1 text-xs text-muted-foreground', WRAP_TEXT)}>{info.description}</p>
                 ) : (
                   <p className="mt-1 text-xs text-muted-foreground/70 italic">{t('aiHistory.waterfall.toolNoInfo')}</p>
                 )}
-                {meta && <p className="mt-1 text-[10px] text-muted-foreground/70">{meta}</p>}
+                {meta && <p className="mt-1 text-[10px] text-muted-foreground/70 break-all">{meta}</p>}
               </TooltipContent>
             </Tooltip>
           );
@@ -712,12 +714,14 @@ function EntryBlock({ entry, t, showLabel = true }: { entry: SessionLogEntry; t:
     const before = d.before as number | undefined;
     const after = d.after as number | undefined;
     return (
-      <div className="text-xs text-muted-foreground space-y-0.5">
-        <div>{t(RESET_STYLE[reason]?.key || 'aiHistory.waterfall.reset.title')}</div>
+      <div className="text-xs text-muted-foreground space-y-0.5 min-w-0 max-w-full">
+        <div className={WRAP_TEXT}>{t(RESET_STYLE[reason]?.key || 'aiHistory.waterfall.reset.title')}</div>
         {typeof before === 'number' && typeof after === 'number' && (
           <div className="font-mono">{before} → {after}</div>
         )}
-        {typeof d.persona_name === 'string' && <div className="font-mono">→ {d.persona_name}</div>}
+        {typeof d.persona_name === 'string' && (
+          <div className={cn('font-mono', WRAP_TEXT)}>→ {d.persona_name}</div>
+        )}
       </div>
     );
   }
@@ -727,37 +731,31 @@ function EntryBlock({ entry, t, showLabel = true }: { entry: SessionLogEntry; t:
     const source = asStr(d.source);
     const trigger = asStr(d.trigger_reason);
     return (
-      <div className="space-y-1.5">
+      <div className="space-y-1.5 min-w-0 max-w-full">
         <div className="flex items-center gap-1.5 flex-wrap">
           <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded bg-pink-500/10 text-pink-600 dark:text-pink-400 border border-pink-500/30">
             <Radio className="w-2.5 h-2.5" />
             {t('aiHistory.waterfall.proactive')}
-            {source && <span className="font-mono opacity-80">· {source}</span>}
+            {source && <span className="font-mono opacity-80 break-all">· {source}</span>}
           </span>
         </div>
         {trigger && (
           // 起因（触发原因）：整段换行展示，别一行截断——它是「AI 为什么此刻主动发言」的关键
-          <div className="text-xs text-muted-foreground [overflow-wrap:anywhere]">
+          <div className={cn('text-xs text-muted-foreground', WRAP_TEXT)}>
             <span className="text-[10px] uppercase tracking-wide text-muted-foreground/70 mr-1">
               {t('aiHistory.waterfall.triggerReason')}
             </span>
             {trigger}
           </div>
         )}
-        {asStr(d.content) && (
-          <pre className="text-sm whitespace-pre-wrap font-sans leading-relaxed break-words [overflow-wrap:anywhere]">
-            {asStr(d.content)}
-          </pre>
-        )}
+        {asStr(d.content) && <pre className={PLAIN_BLOCK}>{asStr(d.content)}</pre>}
       </div>
     );
   }
   // user_input / text_output / result → 纯文本
   const content = asStr(d.content) || asStr(d.output) || asStr(d.user_message);
   if (!content) return null;
-  return (
-    <pre className="text-sm whitespace-pre-wrap font-sans leading-relaxed break-words [overflow-wrap:anywhere]">{content}</pre>
-  );
+  return <pre className={PLAIN_BLOCK}>{content}</pre>;
 }
 
 // token 徽章（chat：↗in ↙out；run：Σ 合计）
@@ -915,8 +913,12 @@ function SpanRow({ sp, depth, ctx }: { sp: TraceSpan; depth: number; ctx: RowCtx
         <div>
           {(sp.entry || (sp.contentEntries && sp.contentEntries.length > 0)) && (
             <div
-              style={{ marginLeft: TIME_COL + depth * INDENT + 22 }}
-              className="mr-1 my-1 rounded-lg border border-border/30 bg-muted/30 p-2.5"
+              // marginLeft 缩进后宽度必须扣掉缩进，否则 max-w-full 仍按父宽 100% 计算，总宽会溢出
+              style={{
+                marginLeft: TIME_COL + depth * INDENT + 22,
+                maxWidth: `calc(100% - ${TIME_COL + depth * INDENT + 22}px - 0.25rem)`,
+              }}
+              className="mr-1 my-1 min-w-0 overflow-hidden rounded-lg border border-border/30 bg-muted/30 p-2.5"
             >
               <SpanContent sp={sp} t={t} />
             </div>
@@ -929,7 +931,13 @@ function SpanRow({ sp, depth, ctx }: { sp: TraceSpan; depth: number; ctx: RowCtx
 
           {/* subagent 子 trace */}
           {sp.kind === 'subagent' && (
-            <div style={{ marginLeft: TIME_COL + depth * INDENT + 22 }} className="mr-1 my-1">
+            <div
+              style={{
+                marginLeft: TIME_COL + depth * INDENT + 22,
+                maxWidth: `calc(100% - ${TIME_COL + depth * INDENT + 22}px - 0.25rem)`,
+              }}
+              className="mr-1 my-1 min-w-0"
+            >
               {subState === 'loading' && (
                 <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -1008,7 +1016,7 @@ function RunBlock({ sp, base }: { sp: TraceSpan; base: RowBase }) {
         </span>
       </div>
       {isOpen && sp.children.length > 0 && (
-        <div className="mt-1 ml-[5px] border-l-2 border-primary/15 pl-2">
+        <div className="mt-1 ml-[5px] min-w-0 max-w-full border-l-2 border-primary/15 pl-2">
           {sp.children.map((c) => (
             <SpanRow key={c.id} sp={c} depth={0} ctx={ctx} />
           ))}
@@ -1041,20 +1049,16 @@ function ProactiveBlock({ sp, t }: { sp: TraceSpan; t: TFunc }) {
           {formatTimeOnly(sp.start)}
         </span>
       </div>
-      <div className="mt-1 ml-[5px] border-l-2 border-pink-500/20 pl-3 py-0.5 space-y-1.5">
+      <div className="mt-1 ml-[5px] min-w-0 max-w-full border-l-2 border-pink-500/20 pl-3 py-0.5 space-y-1.5">
         {trigger && (
-          <div className="text-xs text-muted-foreground [overflow-wrap:anywhere]">
+          <div className={cn('text-xs text-muted-foreground', WRAP_TEXT)}>
             <span className="text-[10px] uppercase tracking-wide text-muted-foreground/70 mr-1">
               {t('aiHistory.waterfall.triggerReason')}
             </span>
             {trigger}
           </div>
         )}
-        {content && (
-          <pre className="text-sm whitespace-pre-wrap font-sans leading-relaxed break-words [overflow-wrap:anywhere]">
-            {content}
-          </pre>
-        )}
+        {content && <pre className={PLAIN_BLOCK}>{content}</pre>}
       </div>
     </div>
   );
@@ -1216,7 +1220,7 @@ const TraceWaterfallInner = forwardRef<TraceWaterfallHandle, TraceWaterfallProps
   }
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex min-w-0 max-w-full flex-col gap-3">
       {blocks.map((b) => {
         if (b.type === 'run')
           return <RunBlock key={b.key} sp={b.sp} base={{ expanded, toggle, t, loadSubAgent, subCache, requestSub }} />;

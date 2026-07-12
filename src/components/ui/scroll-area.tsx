@@ -8,7 +8,14 @@ const ScrollArea = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof ScrollAreaPrimitive.Root>
 >(({ className, children, ...props }, ref) => (
   <ScrollAreaPrimitive.Root ref={ref} className={cn("relative overflow-hidden", className)} {...props}>
-    <ScrollAreaPrimitive.Viewport className="h-full w-full rounded-[inherit]">{children}</ScrollAreaPrimitive.Viewport>
+    {/*
+      Radix Viewport 内层默认 display:table + minWidth:100%，长无空格字符串会把表格撑出视口宽度，
+      文本即使设了 overflow-wrap 也换不了行。改为 block + min-w-0，让内容以视口宽度为约束正常换行。
+      需要横向滚动的宽内容请在子元素上自管 overflow-x-auto。
+    */}
+    <ScrollAreaPrimitive.Viewport className="h-full w-full rounded-[inherit] [&>div]:!block [&>div]:!min-w-0">
+      {children}
+    </ScrollAreaPrimitive.Viewport>
     <ScrollBar />
     <ScrollAreaPrimitive.Corner />
   </ScrollAreaPrimitive.Root>

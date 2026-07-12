@@ -13,6 +13,10 @@
   "defaultFailReason": "Manually terminated from the admin Kanban board",
   "bulkDelete": {
     "button": "Bulk Delete",
+    "columnButton": "Bulk delete this column",
+    "columnTitle": "Bulk delete \"{column}\"",
+    "columnHint": "Uses the same bulk hard-delete API as the top-right action, scoped to this column's statuses and the current page filters.",
+    "columnStatuses": "Statuses deleted for this column",
     "title": "Bulk Hard Delete Tasks",
     "description": "Choose which task category to delete. The current filters are used for preview, then a second confirmation is required.",
     "category": "Delete category",
