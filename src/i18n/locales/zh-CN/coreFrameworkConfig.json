@@ -24,5 +24,7 @@
   "configSaved": "核心配置已成功保存，需要重启 GsCore 生效",
   "loadFailed": "无法加载核心配置",
   "saveFailed": "保存配置时发生错误",
-  "registerCode": "网页控制台注册码"
+  "registerCode": "网页控制台注册码",
+  "language": "框架文案语言",
+  "languageDesc": "GsCore 框架日志与系统文案的语言（服务于部署者）；zh-cn = 简体中文，en = English。切换后需重启 GsCore 生效。"
 }

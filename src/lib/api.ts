@@ -720,12 +720,23 @@ export const dashboardApi = {
 // Core Config APIs
 // ===================
 
+// 后端下发的「枚举类」核心配置项元数据（控件类型 + 可选值 + 展示标签）。
+// 前端据此渲染严格下拉，新增可选值只需改后端、无需重新构建前端。
+export interface CoreConfigOptionMeta {
+  type?: string;
+  options: string[];
+  labels?: Record<string, string>;
+}
+
 export const configApi = {
   getCoreConfig: () =>
     api.get<CoreConfig>('/api/core/config'),
 
   setCoreConfig: (config: CoreConfig) =>
     api.post<{ status: number; msg: string }>('/api/core/config', config),
+
+  getCoreConfigOptions: () =>
+    api.get<Record<string, CoreConfigOptionMeta>>('/api/core/config/options'),
 };
 
 // ===================

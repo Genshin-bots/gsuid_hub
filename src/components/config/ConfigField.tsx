@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { InputWithDropdown } from '@/components/ui/input-with-dropdown';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { MarkdownTooltip } from './MarkdownTooltip';
 import { TimePicker } from '@/components/ui/time-picker';
@@ -84,6 +85,7 @@ export type ConfigFieldType =
   | 'number'
   | 'boolean'
   | 'select'
+  | 'strictselect'
   | 'multiselect'
   | 'list'
   | 'tags'
@@ -107,6 +109,8 @@ export interface ConfigFieldDefinition {
   label: string;
   value: ConfigValue;
   options?: string[];
+  // strictselect 专用：把枚举原值映射成展示标签（如 zh-cn -> 简体中文），保存仍用原值
+  optionLabels?: Record<string, string>;
   placeholder?: string;
   description?: string;
   required?: boolean;
@@ -387,6 +391,29 @@ export function ConfigField({
             disabled={field.disabled}
             className="bg-background h-10"
           />
+        );
+
+      // ----------------------------------------------------------
+      // 严格下拉：只能选 options 中的值，不允许自由输入
+      // ----------------------------------------------------------
+      case 'strictselect':
+        return (
+          <Select
+            value={String(value ?? '')}
+            onValueChange={(val) => onChange(fieldKey, val)}
+            disabled={field.disabled}
+          >
+            <SelectTrigger className="bg-background h-10">
+              <SelectValue placeholder={displayPlaceholder || t('common.pleaseSelect')} />
+            </SelectTrigger>
+            <SelectContent>
+              {(field.options ?? []).map((option) => (
+                <SelectItem key={option} value={option}>
+                  {field.optionLabels?.[option] ?? option}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         );
 
       // ----------------------------------------------------------

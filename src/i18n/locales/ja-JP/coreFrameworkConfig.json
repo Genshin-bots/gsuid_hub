@@ -24,5 +24,7 @@
   "configSaved": "コア設定成功保存、必要再起動 GsCore 有効",
   "loadFailed": "できません読込コア設定",
   "saveFailed": "保存設定時発生エラー",
-  "registerCode": "Webコンソール登録コード"
+  "registerCode": "Webコンソール登録コード",
+  "language": "フレームワーク言語",
+  "languageDesc": "GsCore フレームワークのログとシステム文案の言語（デプロイ者向け）；zh-cn = 簡体中文、en = English。切替後は GsCore の再起動が必要です。"
 }

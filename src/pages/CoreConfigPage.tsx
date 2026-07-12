@@ -2,10 +2,10 @@ import { useState, useCallback, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { ConfigField, ConfigFieldDefinition, ConfigValue } from '@/components/config/ConfigField';
+import { ConfigField, ConfigFieldDefinition, ConfigFieldType, ConfigValue } from '@/components/config/ConfigField';
 import { AlertTriangle, CheckCircle, Settings, X } from 'lucide-react';
 import { toast } from 'sonner';
-import { configApi } from '@/lib/api';
+import { configApi, CoreConfigOptionMeta } from '@/lib/api';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 // Define types for core config
@@ -39,6 +39,7 @@ const fieldLabelKeys: Record<string, string> = {
   ENABLE_HTTP: 'coreFrameworkConfig.enableHttp',
   WS_TOKEN: 'coreFrameworkConfig.wsToken',
   REGISTER_CODE: 'coreFrameworkConfig.registerCode',
+  LANGUAGE: 'coreFrameworkConfig.language',
   TRUSTED_IPS: 'coreFrameworkConfig.trustedIps',
   masters: 'coreFrameworkConfig.masters',
   superusers: 'coreFrameworkConfig.superusers',
@@ -47,10 +48,37 @@ const fieldLabelKeys: Record<string, string> = {
   command_start: 'coreFrameworkConfig.commandPrefix'
 };
 
+// 枚举类字段的描述文案 key（仅 UI 说明，静态、不随可选值增减而变）
+const optionFieldDescKeys: Record<string, string> = {
+  LANGUAGE: 'coreFrameworkConfig.languageDesc',
+};
+
 // Convert API config to field definition
-const apiConfigToFieldDefinition = (key: string, value: unknown): ConfigFieldDefinition => {
+const apiConfigToFieldDefinition = (
+  key: string,
+  value: unknown,
+  optionsMeta?: Record<string, CoreConfigOptionMeta>
+): ConfigFieldDefinition => {
   const labelKey = fieldLabelKeys[key] || `coreConfig.${key}`;
-  
+
+  // 后端下发的枚举元数据优先：按后端声明的控件类型 + 可选值 + 标签渲染。
+  // 这样新增语言 / 日志级别等只需改后端声明，前端无需重新构建即可适配。
+  const meta = optionsMeta?.[key];
+  if (meta && Array.isArray(meta.options) && meta.options.length > 0) {
+    const metaType = (meta.type as ConfigFieldType) || 'strictselect';
+    return {
+      type: metaType,
+      label: labelKey,
+      // multiselect 的值是数组，不能被 String() 压扁
+      value: metaType === 'multiselect'
+        ? (Array.isArray(value) ? (value as string[]) : [])
+        : String(value ?? meta.options[0]),
+      options: meta.options,
+      optionLabels: meta.labels,
+      description: optionFieldDescKeys[key],
+    };
+  }
+
   if (key === 'default_bg') {
     return {
       type: 'image',
@@ -135,21 +163,25 @@ export default function CoreConfigPage() {
   useEffect(() => {
     const fetchConfig = async () => {
       try {
-        const data = await configApi.getCoreConfig() as CoreConfig;
+        // 并行拉取配置值与枚举元数据；元数据接口不可用（旧后端）时降级为空，字段回落文本框
+        const [data, optionsMeta] = await Promise.all([
+          configApi.getCoreConfig() as Promise<CoreConfig>,
+          configApi.getCoreConfigOptions().catch(() => ({} as Record<string, CoreConfigOptionMeta>)),
+        ]);
         const fieldConfig: Record<string, ConfigFieldDefinition> = {};
-        
+
         // Process nested log object
         if (data.log && typeof data.log === 'object') {
-          fieldConfig['log_level'] = apiConfigToFieldDefinition('log_level', data.log.level);
-          fieldConfig['log_output'] = apiConfigToFieldDefinition('log_output', data.log.output);
-          fieldConfig['log_module'] = apiConfigToFieldDefinition('log_module', data.log.module);
+          fieldConfig['log_level'] = apiConfigToFieldDefinition('log_level', data.log.level, optionsMeta);
+          fieldConfig['log_output'] = apiConfigToFieldDefinition('log_output', data.log.output, optionsMeta);
+          fieldConfig['log_module'] = apiConfigToFieldDefinition('log_module', data.log.module, optionsMeta);
           delete data.log;
         }
-        
+
         for (const [key, value] of Object.entries(data)) {
-          fieldConfig[key] = apiConfigToFieldDefinition(key, value);
+          fieldConfig[key] = apiConfigToFieldDefinition(key, value, optionsMeta);
         }
-        
+
         setConfig(fieldConfig);
       } catch (error) {
         console.error('Failed to fetch config:', error);

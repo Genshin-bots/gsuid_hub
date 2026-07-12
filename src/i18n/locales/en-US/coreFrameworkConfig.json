@@ -24,5 +24,7 @@
   "configSaved": "Core config saved successfully, GsCore restart required",
   "loadFailed": "Unable to load core configuration",
   "saveFailed": "Error saving configuration",
-  "registerCode": "Web Console Registration Code"
+  "registerCode": "Web Console Registration Code",
+  "language": "Framework Language",
+  "languageDesc": "Language of GsCore framework logs and system messages (for the deployer); zh-cn = Simplified Chinese, en = English. GsCore restart required after change."
 }
