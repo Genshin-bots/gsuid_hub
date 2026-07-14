@@ -64,6 +64,9 @@ export default function ConsolePage() {
   const allLogsRef = useRef<LogEntry[]>([]);
   const [logVersion, setLogVersion] = useState(0);
   const [reconnectCount, setReconnectCount] = useState(0);
+  // 断点续传：onerror 里是 close() + 新建 EventSource，浏览器不会带 Last-Event-ID 头（只有
+  // 它自己重连才带），必须显式回传，否则后端重放整个缓冲、而 allLogsRef 不清空 = 刷屏重复。
+  const lastEventIdRef = useRef<string | null>(null);
 
   // 节流：避免高额 SSE 推送每帧都触发重渲染。
   // - logs 始终存在 allLogsRef 里，不会丢失
@@ -184,11 +187,18 @@ export default function ConsolePage() {
     const token = localStorage.getItem('auth_token');
     if (!token) return;
 
-    const url = `/api/logs/stream?token=${encodeURIComponent(token)}&level=all`;
+    const resumeFrom = lastEventIdRef.current;
+    const url =
+      `/api/logs/stream?token=${encodeURIComponent(token)}&level=all` +
+      (resumeFrom ? `&last_event_id=${encodeURIComponent(resumeFrom)}` : '');
     const authEventSource = new EventSource(url, { withCredentials: true });
 
     authEventSource.onmessage = (event) => {
       try {
+        // 记录断点：event.lastEventId 即后端随每条日志下发的 id:（log_seq 序号）
+        if (event.lastEventId) {
+          lastEventIdRef.current = event.lastEventId;
+        }
         const logData = JSON.parse(event.data);
         const rawLevel = parseLogLevel(logData.level);
 
