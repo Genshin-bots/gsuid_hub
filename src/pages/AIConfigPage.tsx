@@ -1153,6 +1153,7 @@ export default function AIConfigPage() {
         maxTokens={provider.newConfigMaxTokens}
         usageStatsMode={provider.newConfigUsageStatsMode}
         requestMethod={provider.newConfigRequestMethod}
+        sendBackThinking={provider.newConfigSendBackThinking}
         fetchedModels={provider.newConfigFetchedModels}
         isFetching={provider.isFetchingNewConfigModels}
         providerConfigOptions={provider.providerConfigOptions}
@@ -1170,6 +1171,7 @@ export default function AIConfigPage() {
         onChangeMaxTokens={provider.setNewConfigMaxTokens}
         onChangeUsageStatsMode={provider.setNewConfigUsageStatsMode}
         onChangeRequestMethod={provider.setNewConfigRequestMethod}
+        onChangeSendBackThinking={provider.setNewConfigSendBackThinking}
         onReset={provider.resetNewConfigForm}
         onSubmit={provider.handleCreateOpenaiConfig}
       />

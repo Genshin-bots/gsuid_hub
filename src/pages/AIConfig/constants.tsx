@@ -150,6 +150,13 @@ export const getRequestMethodLabel = (
 ): string =>
   getEnumLabel(t, 'aiConfig.serviceProvider.requestMethodOptions', raw);
 
+/** `send_back_thinking`：`auto / off`（思考回传） */
+export const getSendBackThinkingLabel = (
+  t: (key: string) => string,
+  raw: string,
+): string =>
+  getEnumLabel(t, 'aiConfig.serviceProvider.sendBackThinkingOptions', raw);
+
 /**
  * `request_method` 每个端点的端点级描述。用于在「编辑/新建」对话框下显示一行
  * 说明：当用户切换选项时，下方说明文字会跟着变。原始 `raw` 落库不变。

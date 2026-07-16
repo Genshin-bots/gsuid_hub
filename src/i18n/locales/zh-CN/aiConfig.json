@@ -123,6 +123,11 @@
       "chat_completions": "OpenAI 标准的 /chat/completions 端点，几乎所有兼容厂商都支持；按 message 数组发送模型参数。",
       "responses": "OpenAI 新版 /responses 端点，统一管理多轮工具调用、文件引用与结构化输出；需要模型与代理同时支持。"
     },
+    "sendBackThinking": "思考回传",
+    "sendBackThinkingOptions": {
+      "auto": "自动（pydantic_ai 默认，回发历史思考）",
+      "off": "关闭（不回传思考，兼容性最好）"
+    },
     "capabilityText": "文本对话",
     "capabilityImage": "图片理解",
     "capabilityAudio": "语音处理",

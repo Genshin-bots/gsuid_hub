@@ -908,6 +908,10 @@ export interface OpenAIConfigOptions {
    * 仅 OpenAI 系列支持，Anthropic 等并不存在这种配置。
    */
   request_method: string[];
+  /**
+   * 思考回传候选值（auto / off）。仅 OpenAI 系列支持。
+   */
+  send_back_thinking?: string[];
 }
 
 export interface OpenAIConfigData {
@@ -933,6 +937,12 @@ export interface OpenAIConfigData {
    * `chat_completions / responses` 二选一。
    */
   request_method?: string;
+  /**
+   * 思考回传。**仅 OpenAI 系列才有此字段**：
+   * `auto`（pydantic_ai 默认，历史思考以 <think> 标签/厂商字段回发）/
+   * `off`（完全不回传思考内容，网关兼容性最好）。
+   */
+  send_back_thinking?: string;
 }
 
 export interface OpenAIConfigDetail {
@@ -1059,6 +1069,8 @@ export interface ProviderConfigOptions {
     usage_stats_mode: string[];
     /** 请求方式候选值（chat_completions / responses）。仅 OpenAI 系列会返回。 */
     request_method: string[];
+    /** 思考回传候选值（auto / off）。仅 OpenAI 系列会返回。 */
+    send_back_thinking?: string[];
   };
 }
 

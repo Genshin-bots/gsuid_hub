@@ -123,6 +123,11 @@
       "chat_completions": "OpenAI's standard /chat/completions endpoint, supported by virtually all chat-compatible providers. Sends a messages array to the model.",
       "responses": "OpenAI's newer /responses endpoint that unifies multi-turn tool calls, file references and structured output. Requires the model and proxy to both support it."
     },
+    "sendBackThinking": "Send Back Thinking",
+    "sendBackThinkingOptions": {
+      "auto": "Auto (pydantic_ai default, resend history thinking)",
+      "off": "Off (never resend thinking, best compatibility)"
+    },
     "capabilityText": "Text Chat",
     "capabilityImage": "Image Understanding",
     "capabilityAudio": "Audio Processing",

@@ -33,6 +33,7 @@ import {
   getUsageStatsModeLabel,
   getRequestMethodLabel,
   getRequestMethodDescription,
+  getSendBackThinkingLabel,
 } from '../constants.tsx';
 import type { ProviderConfigOptions } from '@/lib/api';
 
@@ -55,6 +56,8 @@ export interface CreateConfigDialogProps {
   usageStatsMode: string;
   /** 仅 OpenAI 系列：请求方式（Anthropic 不存在） */
   requestMethod: string;
+  /** 仅 OpenAI 系列：思考回传 auto/off */
+  sendBackThinking: string;
   fetchedModels: string[];
   isFetching: boolean;
 
@@ -78,6 +81,8 @@ export interface CreateConfigDialogProps {
   onChangeUsageStatsMode: (v: string) => void;
   /** 仅 OpenAI 系列 */
   onChangeRequestMethod: (v: string) => void;
+  /** 仅 OpenAI 系列 */
+  onChangeSendBackThinking: (v: string) => void;
   onReset: () => void;
   onSubmit: () => void;
 }
@@ -104,6 +109,7 @@ export function CreateConfigDialog(props: CreateConfigDialogProps) {
     maxTokens,
     usageStatsMode,
     requestMethod,
+    sendBackThinking,
     fetchedModels,
     isFetching,
     providerConfigOptions,
@@ -121,6 +127,7 @@ export function CreateConfigDialog(props: CreateConfigDialogProps) {
     onChangeMaxTokens,
     onChangeUsageStatsMode,
     onChangeRequestMethod,
+    onChangeSendBackThinking,
     onReset,
     onSubmit,
   } = props;
@@ -158,6 +165,10 @@ export function CreateConfigDialog(props: CreateConfigDialogProps) {
     options?.request_method && options.request_method.length > 0
       ? options.request_method
       : ['chat_completions', 'responses'];
+  const sendBackThinkingOptions =
+    options?.send_back_thinking && options.send_back_thinking.length > 0
+      ? options.send_back_thinking
+      : ['auto', 'off'];
 
   return (
     <Dialog
@@ -391,6 +402,20 @@ export function CreateConfigDialog(props: CreateConfigDialogProps) {
                     </span>
                   </p>
                 )}
+              </div>
+              <div className="space-y-2">
+                <Label className="font-semibold flex items-center gap-2">
+                  <Brain className="w-4 h-4" />
+                  {t('aiConfig.serviceProvider.sendBackThinking')}
+                </Label>
+                <InputWithDropdown
+                  value={sendBackThinking}
+                  onChange={onChangeSendBackThinking}
+                  options={sendBackThinkingOptions}
+                  formatLabel={(raw) => getSendBackThinkingLabel(t, raw)}
+                  placeholder={t('aiConfig.serviceProvider.sendBackThinking')}
+                  inputPlaceholder={t('aiConfig.serviceProvider.sendBackThinking')}
+                />
               </div>
             </>
           )}

@@ -32,6 +32,7 @@ import {
   getUsageStatsModeLabel,
   getRequestMethodLabel,
   getRequestMethodDescription,
+  getSendBackThinkingLabel,
 } from '../constants.tsx';
 import type { OpenAIConfigData, ProviderConfigOptions } from '@/lib/api';
 
@@ -116,6 +117,10 @@ export function EditConfigDialog({
     options?.request_method && options.request_method.length > 0
       ? options.request_method
       : ['chat_completions', 'responses'];
+  const sendBackThinkingOptions =
+    options?.send_back_thinking && options.send_back_thinking.length > 0
+      ? options.send_back_thinking
+      : ['auto', 'off'];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -294,6 +299,20 @@ export function EditConfigDialog({
                       </span>
                     </p>
                   )}
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold flex items-center gap-2">
+                    <Sparkles className="w-4 h-4" />
+                    {t('aiConfig.serviceProvider.sendBackThinking')}
+                  </Label>
+                  <InputWithDropdown
+                    value={data.send_back_thinking || 'auto'}
+                    onChange={(val) => onChangeField('send_back_thinking', val)}
+                    options={sendBackThinkingOptions}
+                    formatLabel={(raw) => getSendBackThinkingLabel(t, raw)}
+                    placeholder={t('aiConfig.serviceProvider.sendBackThinking')}
+                    inputPlaceholder={t('aiConfig.serviceProvider.sendBackThinking')}
+                  />
                 </div>
               </>
             )}

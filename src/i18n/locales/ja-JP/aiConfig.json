@@ -123,6 +123,11 @@
       "chat_completions": "OpenAI 標準の /chat/completions エンドポイント。ほぼ全ての互換プロバイダでサポートされ、messages 配列でモデルに送信します。",
       "responses": "OpenAI の新しい /responses エンドポイント。複数ターンのツール呼び出し、ファイル参照、構造化出力を統合。モデルとプロキシ両方の対応が必要です。"
     },
+    "sendBackThinking": "思考の再送信",
+    "sendBackThinkingOptions": {
+      "auto": "自動（pydantic_ai 既定、履歴の思考を再送信）",
+      "off": "オフ（思考を再送信しない、互換性最良）"
+    },
     "capabilityText": "テキスト会話",
     "capabilityImage": "画像理解",
     "capabilityAudio": "音声処理",
