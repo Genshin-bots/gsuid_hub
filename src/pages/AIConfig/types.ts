@@ -23,7 +23,7 @@ export interface ConfigFileItem {
 }
 
 /** 服务提供方 provider 类型 */
-export type ProviderType = 'openai' | 'anthropic' | string;
+export type ProviderType = 'openai' | 'anthropic' | 'gemini' | string;
 
 /** OpenAI / 兼容格式的配置数据（与后端 OpenAIConfigData 一致） */
 export type { OpenAIConfigData };

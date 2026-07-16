@@ -254,7 +254,9 @@ export function useProviderConfig(): UseProviderConfigReturn {
         const models =
           provider === 'anthropic'
             ? await providerConfigApi.fetchAnthropicModels(trimmedBaseUrl, apiKey)
-            : await providerConfigApi.fetchOpenAIModels(trimmedBaseUrl, apiKey);
+            : provider === 'gemini'
+              ? await providerConfigApi.fetchGeminiModels(trimmedBaseUrl, apiKey)
+              : await providerConfigApi.fetchOpenAIModels(trimmedBaseUrl, apiKey);
         onSuccess(models);
       } catch (error) {
         console.error(`Failed to fetch ${provider} models:`, error);
@@ -451,6 +453,8 @@ export function useProviderConfig(): UseProviderConfigReturn {
         if (openaiConfigData.max_tokens) {
           configData.max_tokens = { data: openaiConfigData.max_tokens };
         }
+      } else if (editingConfigProvider === 'gemini') {
+        // Gemini 只有公共字段，无 max_tokens / usage_stats_mode / request_method
       } else {
         // 其他类型一律走 OpenAI 系列字段；将来新增 provider 在此分支扩展
         configData.usage_stats_mode = {
@@ -524,6 +528,8 @@ export function useProviderConfig(): UseProviderConfigReturn {
       };
       if (newConfigProvider === 'anthropic') {
         configData.max_tokens = { data: newConfigMaxTokens };
+      } else if (newConfigProvider === 'gemini') {
+        // Gemini 只有公共字段
       } else {
         configData.usage_stats_mode = { data: newConfigUsageStatsMode };
         configData.request_method = { data: newConfigRequestMethod };

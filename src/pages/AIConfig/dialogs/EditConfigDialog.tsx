@@ -40,10 +40,11 @@ export interface EditConfigDialogProps {
   t: (key: string, params?: Record<string, string | number>) => string;
   configName: string;
   /**
-   * 当前正在编辑的配置所属的 provider（`openai` / `anthropic` 等）。
+   * 当前正在编辑的配置所属的 provider（`openai` / `anthropic` / `gemini` 等）。
    * 用来决定渲染哪些 provider-specific 字段：
    *  - `anthropic` → 展示 `max_tokens`，隐藏 `usage_stats_mode` / `request_method`
-   *  - 其它（OpenAI 系列）→ 反之
+   *  - `gemini` → 两组都隐藏（只有公共字段）
+   *  - 其它（OpenAI 系列）→ 展示 `usage_stats_mode` / `request_method`
    */
   editingConfigProvider: string;
   data: OpenAIConfigData | null;
@@ -91,7 +92,8 @@ export function EditConfigDialog({
   const options = providerConfigOptions?.options;
   const showBaseUrlWarning = data ? baseUrlHasTrailingSlash(data.base_url) : false;
   const isAnthropic = editingConfigProvider === 'anthropic';
-  const isOpenAISeries = !isAnthropic;
+  const isGemini = editingConfigProvider === 'gemini';
+  const isOpenAISeries = !isAnthropic && !isGemini;
 
   // `model_effort` 选项优先取后端返回,缺省时回落到固定的 7 档兜底
   const modelEffortOptions =

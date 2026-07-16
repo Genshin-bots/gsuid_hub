@@ -1203,6 +1203,25 @@ export const providerConfigApi = {
     const models = (data.data || []) as Array<{ id?: string; name?: string }>;
     return models.map((m) => m.id || m.name || '').filter(Boolean);
   },
+
+  // 获取模型列表（Gemini 原生格式：GET {base}/v1beta/models?key=API_KEY）
+  fetchGeminiModels: async (baseUrl: string, apiKey: string): Promise<string[]> => {
+    const base = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+    const url = `${base}/v1beta/models?key=${encodeURIComponent(apiKey)}&pageSize=200`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to fetch models: HTTP ${response.status}`);
+    }
+    const data = await response.json();
+    const models = (data.models || []) as Array<{ name?: string }>;
+    // name 形如 "models/gemini-2.5-flash"，去掉前缀取模型 id
+    return models
+      .map((m) => (m.name || '').replace(/^models\//, ''))
+      .filter(Boolean);
+  },
 };
 
 // ===================

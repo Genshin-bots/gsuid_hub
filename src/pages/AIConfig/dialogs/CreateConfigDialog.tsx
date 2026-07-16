@@ -9,6 +9,7 @@ import {
   Plus,
   Plug2,
   Server,
+  Sparkles,
   TrendingUp,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -39,7 +40,7 @@ export interface CreateConfigDialogProps {
   open: boolean;
   t: (key: string, params?: Record<string, string | number>) => string;
 
-  /** 当前选中的 provider 类型 ('openai' / 'anthropic') */
+  /** 当前选中的 provider 类型 ('openai' / 'anthropic' / 'gemini') */
   provider: string;
   configName: string;
   baseUrl: string;
@@ -84,10 +85,10 @@ export interface CreateConfigDialogProps {
 /**
  * 「新建配置文件」Dialog。
  *
- * provider 切换 OpenAI / Anthropic 时，后端并不下发的字段会自动隐藏：
+ * provider 切换 OpenAI / Anthropic / Gemini 时，后端并不下发的字段会自动隐藏：
  *  - `embedding_model`：后端不下发，整体移除
  *  - `max_tokens`：仅 Anthropic 等 provider 暴露
- *  - `usage_stats_mode` / `request_method`：仅 OpenAI 系列暴露
+ *  - `usage_stats_mode` / `request_method`：仅 OpenAI 系列暴露（Gemini 也没有）
  */
 export function CreateConfigDialog(props: CreateConfigDialogProps) {
   const {
@@ -133,7 +134,8 @@ export function CreateConfigDialog(props: CreateConfigDialogProps) {
   const capabilities = getModelCapabilities(t);
   const showBaseUrlWarning = baseUrlHasTrailingSlash(baseUrl);
   const isAnthropic = provider === 'anthropic';
-  const isOpenAISeries = !isAnthropic;
+  const isGemini = provider === 'gemini';
+  const isOpenAISeries = !isAnthropic && !isGemini;
 
   const options = providerConfigOptions?.options;
   const modelEffortOptions =
@@ -202,6 +204,18 @@ export function CreateConfigDialog(props: CreateConfigDialogProps) {
                 }}
               >
                 <Brain className="w-4 h-4" />Anthropic 格式
+              </Button>
+              <Button
+                type="button"
+                variant={provider === 'gemini' ? 'default' : 'outline'}
+                size="sm"
+                className="flex-1 gap-2"
+                onClick={() => {
+                  onChangeProvider('gemini');
+                  onFetchProviderConfigOptions('gemini');
+                }}
+              >
+                <Sparkles className="w-4 h-4" />Gemini 格式
               </Button>
             </div>
           </div>

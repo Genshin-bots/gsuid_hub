@@ -27,6 +27,7 @@ function getProviderLabel(provider: string): string {
   switch (provider) {
     case 'openai': return 'OpenAI';
     case 'anthropic': return 'Anthropic';
+    case 'gemini': return 'Gemini';
     default: return provider;
   }
 }
@@ -37,6 +38,8 @@ function getProviderBadgeClass(provider: string): string {
       return 'border-primary/40 text-primary bg-primary/10';
     case 'anthropic':
       return 'border-orange-500/40 text-orange-600 bg-orange-500/10';
+    case 'gemini':
+      return 'border-blue-500/40 text-blue-600 bg-blue-500/10';
     default:
       return 'border-border/60 text-muted-foreground bg-muted/30';
   }

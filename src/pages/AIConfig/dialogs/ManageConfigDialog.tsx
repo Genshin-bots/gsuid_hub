@@ -84,14 +84,18 @@ export function ManageConfigDialog({
                             'text-[10px] h-4 px-1.5',
                             configItem.provider === 'openai'
                               ? 'border-primary/40 text-primary bg-primary/10'
-                              : 'border-orange-500/40 text-orange-600 bg-orange-500/10',
+                              : configItem.provider === 'gemini'
+                                ? 'border-blue-500/40 text-blue-600 bg-blue-500/10'
+                                : 'border-orange-500/40 text-orange-600 bg-orange-500/10',
                           )}
                         >
                           {configItem.provider === 'openai'
                             ? 'OpenAI'
                             : configItem.provider === 'anthropic'
                               ? 'Anthropic'
-                              : configItem.provider}
+                              : configItem.provider === 'gemini'
+                                ? 'Gemini'
+                                : configItem.provider}
                         </Badge>
                         <span className="text-[10px] text-muted-foreground truncate">
                           {configItem.model_name}
