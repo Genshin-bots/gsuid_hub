@@ -68,6 +68,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { api, agentDebugApi, AgentDebugMemoryConflict, AgentDebugMemoryEdge } from '@/lib/api';
+import { PinnedPage } from '@/components/layout/PinnedPage';
 import Graph from 'graphology';
 import Sigma from 'sigma';
 import forceAtlas2 from 'graphology-layout-forceatlas2';
@@ -1636,13 +1637,15 @@ export default function AIMemoryPage() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold flex items-center gap-3"><Brain className="w-8 h-8" />{t('aiMemory.title')}</h1>
-        <p className="text-muted-foreground mt-1">{t('aiMemory.description')}</p>
-      </div>
-
+    <PinnedPage
+      header={
+        /* Header */
+        <div>
+          <h1 className="text-3xl font-bold flex items-center gap-3"><Brain className="w-8 h-8" />{t('aiMemory.title')}</h1>
+          <p className="text-muted-foreground mt-1">{t('aiMemory.description')}</p>
+        </div>
+      }
+    >
       {error && (
         <Card className={cn('border-destructive/50', isGlass ? 'glass-card' : 'border border-border/50')}>
           <CardContent className="flex items-center gap-3 p-4 text-destructive">
@@ -2560,6 +2563,6 @@ export default function AIMemoryPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PinnedPage>
   );
 }

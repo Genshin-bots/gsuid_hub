@@ -11,6 +11,7 @@ import {
   AgentNodeSource,
   CapabilityAgentTool,
 } from '@/lib/api';
+import { PinnedPage } from '@/components/layout/PinnedPage';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -426,42 +427,46 @@ export default function AICapabilityAgentsPage() {
       : t('aiCapabilityAgents.dialog.viewTitle');
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div className="min-w-0 overflow-x-auto">
-          <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
-            <Bot className="w-8 h-8 shrink-0" />
-            {t('aiCapabilityAgents.title')}
-          </h1>
-          <p className="whitespace-nowrap text-muted-foreground mt-1">{t('aiCapabilityAgents.description')}</p>
+    <PinnedPage
+      header={
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="min-w-0 overflow-x-auto">
+            <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
+              <Bot className="w-8 h-8 shrink-0" />
+              {t('aiCapabilityAgents.title')}
+            </h1>
+            <p className="whitespace-nowrap text-muted-foreground mt-1">{t('aiCapabilityAgents.description')}</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 self-end lg:self-auto">
+            <Button variant="outline" onClick={loadData} disabled={isLoading} className="gap-2">
+              {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+              {t('common.refresh') || '刷新'}
+            </Button>
+            <Button onClick={() => openDialog('create')} className="gap-2">
+              <Plus className="w-4 h-4" />
+              {t('aiCapabilityAgents.newProfile')}
+            </Button>
+          </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2 self-end lg:self-auto">
-          <Button variant="outline" onClick={loadData} disabled={isLoading} className="gap-2">
-            {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-            {t('common.refresh') || '刷新'}
-          </Button>
-          <Button onClick={() => openDialog('create')} className="gap-2">
-            <Plus className="w-4 h-4" />
-            {t('aiCapabilityAgents.newProfile')}
-          </Button>
+      }
+      toolbar={
+        /* 来源筛选 + 搜索 */
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+          <div className="min-w-0 overflow-x-auto">
+            <TabButtonGroup
+              options={sourceOptions}
+              value={activeSource}
+              onValueChange={(value) => setActiveSource(value as AgentNodeSource)}
+              className="w-max"
+            />
+          </div>
+          <div className="relative w-full xl:max-w-md">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder={t('aiCapabilityAgents.searchPlaceholder')} className="pl-9" />
+          </div>
         </div>
-      </div>
-
-      <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-        <div className="min-w-0 overflow-x-auto">
-          <TabButtonGroup
-            options={sourceOptions}
-            value={activeSource}
-            onValueChange={(value) => setActiveSource(value as AgentNodeSource)}
-            className="w-max"
-          />
-        </div>
-        <div className="relative w-full xl:max-w-md">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder={t('aiCapabilityAgents.searchPlaceholder')} className="pl-9" />
-        </div>
-      </div>
-
+      }
+    >
       {isLoading ? (
         <div className="flex items-center justify-center py-24 text-muted-foreground">
           <Loader2 className="mr-2 h-5 w-5 animate-spin" />{t('common.loading') || 'Loading...'}
@@ -657,6 +662,6 @@ export default function AICapabilityAgentsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PinnedPage>
   );
 }

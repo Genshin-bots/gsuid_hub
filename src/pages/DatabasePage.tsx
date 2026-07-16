@@ -17,6 +17,7 @@ import { databaseApi, PluginDatabaseInfo, DatabaseTableInfo, DatabaseColumn, Pag
 import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import { PinnedPage } from '@/components/layout/PinnedPage';
 
 // 带 fallback 的插件图标组件
 function PluginIcon({ pluginName, className = 'w-[18px] h-[18px]' }: { pluginName: string; className?: string }) {
@@ -384,43 +385,50 @@ export default function DatabasePage() {
 
   return (
     <>
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold flex items-center gap-3">
-          <Database className="w-8 h-8" />
-          {t('database.title')}
-        </h1>
-        <p className="text-muted-foreground mt-1">{t('database.description')}</p>
-      </div>
-
-      <div>
-        <TabButtonGroup
-          options={plugins.map((plugin) => ({
-            value: plugin.plugin_id,
-            label: plugin.plugin_name,
-            icon: (
-              <PluginIcon pluginName={plugin.plugin_name === '核心功能' ? 'gsuid_core' : plugin.plugin_name} />
-            ),
-          }))}
-          value={selectedPluginId}
-          onValueChange={setSelectedPluginId}
-        />
-      </div>
-
-      {selectedPlugin && selectedPlugin.tables.length > 0 && (
+    <PinnedPage
+      header={
         <div>
-          <TabButtonGroup
-            options={selectedPlugin.tables.map((table) => ({
-              value: table.table_name,
-              label: table.label,
-              icon: <Database className="w-4 h-4" />,
-            }))}
-            value={activeTable}
-            onValueChange={setActiveTable}
-          />
+          <h1 className="text-3xl font-bold flex items-center gap-3">
+            <Database className="w-8 h-8" />
+            {t('database.title')}
+          </h1>
+          <p className="text-muted-foreground mt-1">{t('database.description')}</p>
         </div>
-      )}
+      }
+      toolbar={
+        /* 插件选择 + 数据表选择：两级导航控件，随标题常驻。
+           两者原本是 space-y-6 的兄弟，故这里用 space-y-6 保持同样的行距 */
+        <div className="space-y-6">
+          <div>
+            <TabButtonGroup
+              options={plugins.map((plugin) => ({
+                value: plugin.plugin_id,
+                label: plugin.plugin_name,
+                icon: (
+                  <PluginIcon pluginName={plugin.plugin_name === '核心功能' ? 'gsuid_core' : plugin.plugin_name} />
+                ),
+              }))}
+              value={selectedPluginId}
+              onValueChange={setSelectedPluginId}
+            />
+          </div>
 
+          {selectedPlugin && selectedPlugin.tables.length > 0 && (
+            <div>
+              <TabButtonGroup
+                options={selectedPlugin.tables.map((table) => ({
+                  value: table.table_name,
+                  label: table.label,
+                  icon: <Database className="w-4 h-4" />,
+                }))}
+                value={activeTable}
+                onValueChange={setActiveTable}
+              />
+            </div>
+          )}
+        </div>
+      }
+    >
       {activeTable && tableMetadata && (
         <Card className="glass-card">
           <CardContent className="pt-6">
@@ -671,7 +679,7 @@ export default function DatabasePage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </PinnedPage>
     {/* Floating horizontal scrollbar rendered via Portal to body,
         so position:fixed works correctly regardless of ancestor transforms */}
     {showFloatingBar && createPortal(

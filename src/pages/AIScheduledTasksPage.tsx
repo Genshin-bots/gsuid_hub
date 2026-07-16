@@ -63,6 +63,7 @@ import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { aiScheduledTasksApi, AIScheduledTask, AIScheduledTaskStats, CreateScheduledTaskRequest } from '@/lib/api';
 import { toast } from 'sonner';
+import { PinnedPage } from '@/components/layout/PinnedPage';
 
 // ============================================================================
 // 组件定义
@@ -310,28 +311,30 @@ export default function AIScheduledTasksPage() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* 页面标题 */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="min-w-0 overflow-x-auto">
-          <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
-            <Clock className="w-8 h-8 shrink-0" />
-            {t('aiScheduledTasks.title')}
-          </h1>
-          <p className="whitespace-nowrap text-muted-foreground mt-1">{t('aiScheduledTasks.description')}</p>
+    <PinnedPage
+      header={
+        /* 页面标题 */
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0 overflow-x-auto">
+            <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
+              <Clock className="w-8 h-8 shrink-0" />
+              {t('aiScheduledTasks.title')}
+            </h1>
+            <p className="whitespace-nowrap text-muted-foreground mt-1">{t('aiScheduledTasks.description')}</p>
+          </div>
+          <Button
+            onClick={() => {
+              resetForm();
+              setCreateDialogOpen(true);
+            }}
+            className="gap-2 whitespace-nowrap self-end sm:self-auto"
+          >
+            <Plus className="w-4 h-4" />
+            {t('aiScheduledTasks.createTask')}
+          </Button>
         </div>
-        <Button
-          onClick={() => {
-            resetForm();
-            setCreateDialogOpen(true);
-          }}
-          className="gap-2 whitespace-nowrap self-end sm:self-auto"
-        >
-          <Plus className="w-4 h-4" />
-          {t('aiScheduledTasks.createTask')}
-        </Button>
-      </div>
-
+      }
+    >
       {/* 统计卡片 */}
       {stats && (
         <div className="glass-card-grid grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
@@ -976,6 +979,6 @@ export default function AIScheduledTasksPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PinnedPage>
   );
 }

@@ -27,6 +27,7 @@ import { toast } from "sonner";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { ConsolePanel, LogEntry } from "@/components/ConsolePanel";
+import { PinnedPage } from '@/components/layout/PinnedPage';
 
 function formatStartTime(seconds: number): string {
   // New backend format: Unix timestamp in seconds
@@ -268,93 +269,96 @@ export default function TracesPage() {
   };
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="min-w-0 overflow-x-auto">
-          <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
-            <Terminal className="w-8 h-8 shrink-0" />
-            {t("traces.title") || "命令追踪"}
-          </h1>
-          <p className="whitespace-nowrap text-muted-foreground mt-1">
-            {t("traces.description") || "查看命令执行追踪日志"}
-          </p>
-        </div>
-        <div className="flex flex-wrap justify-end gap-2 self-end sm:self-auto">
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className={cn(
-                  "justify-start text-left font-normal",
-                  !selectedDate && "text-muted-foreground"
-                )}
-              >
-                <Calendar className="mr-2 h-4 w-4" />
-                {selectedDate ? format(selectedDate, "yyyy-MM-dd") : t("logs.selectDate")}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start" side="bottom" sideOffset={8}>
-              <div className="traces-date-calendar">
-                <CalendarComponent
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={(date) => {
-                    if (date) setSelectedDate(date);
-                  }}
-                  disabled={disabledMatchers}
-                  defaultMonth={selectedDate}
-                  initialFocus
-                  className="pointer-events-auto"
-                  components={{
-                    DayContent: ({
-                      date: dayDate,
-                      activeModifiers,
-                    }: {
-                      date: Date;
-                      activeModifiers: { selected?: boolean };
-                    }) => {
-                      const ds = format(dayDate, "yyyy-MM-dd");
-                      const count = dailyCounts[ds];
-                      const hasData = count !== undefined && count > 0;
-                      const isSelected = !!activeModifiers?.selected;
-                      return (
-                        <div className="flex flex-col items-center justify-center w-full h-full leading-none">
-                          <span
-                            className={cn(
-                              "text-[0.85rem]",
-                              !hasData && "text-muted-foreground opacity-50"
-                            )}
-                          >
-                            {dayDate.getDate()}
-                          </span>
-                          {hasData && (
+    <PinnedPage
+      className="gap-4"
+      bodyClassName="space-y-4"
+      header={
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0 overflow-x-auto">
+            <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
+              <Terminal className="w-8 h-8 shrink-0" />
+              {t("traces.title") || "命令追踪"}
+            </h1>
+            <p className="whitespace-nowrap text-muted-foreground mt-1">
+              {t("traces.description") || "查看命令执行追踪日志"}
+            </p>
+          </div>
+          <div className="flex flex-wrap justify-end gap-2 self-end sm:self-auto">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "justify-start text-left font-normal",
+                    !selectedDate && "text-muted-foreground"
+                  )}
+                >
+                  <Calendar className="mr-2 h-4 w-4" />
+                  {selectedDate ? format(selectedDate, "yyyy-MM-dd") : t("logs.selectDate")}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start" side="bottom" sideOffset={8}>
+                <div className="traces-date-calendar">
+                  <CalendarComponent
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={(date) => {
+                      if (date) setSelectedDate(date);
+                    }}
+                    disabled={disabledMatchers}
+                    defaultMonth={selectedDate}
+                    initialFocus
+                    className="pointer-events-auto"
+                    components={{
+                      DayContent: ({
+                        date: dayDate,
+                        activeModifiers,
+                      }: {
+                        date: Date;
+                        activeModifiers: { selected?: boolean };
+                      }) => {
+                        const ds = format(dayDate, "yyyy-MM-dd");
+                        const count = dailyCounts[ds];
+                        const hasData = count !== undefined && count > 0;
+                        const isSelected = !!activeModifiers?.selected;
+                        return (
+                          <div className="flex flex-col items-center justify-center w-full h-full leading-none">
                             <span
                               className={cn(
-                                "text-[0.55rem] mt-0.5",
-                                isSelected
-                                  ? "text-primary-foreground"
-                                  : "text-muted-foreground"
+                                "text-[0.85rem]",
+                                !hasData && "text-muted-foreground opacity-50"
                               )}
                             >
-                              {count}
+                              {dayDate.getDate()}
                             </span>
-                          )}
-                        </div>
-                      );
-                    },
-                  }}
-                />
-              </div>
-            </PopoverContent>
-          </Popover>
-          <Button variant="outline" onClick={fetchTraces} disabled={isLoading} className="whitespace-nowrap">
-            <RefreshCw className={cn("w-4 h-4 mr-2", isLoading && "animate-spin")} />
-            {t("logs.refresh")}
-          </Button>
+                            {hasData && (
+                              <span
+                                className={cn(
+                                  "text-[0.55rem] mt-0.5",
+                                  isSelected
+                                    ? "text-primary-foreground"
+                                    : "text-muted-foreground"
+                                )}
+                              >
+                                {count}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      },
+                    }}
+                  />
+                </div>
+              </PopoverContent>
+            </Popover>
+            <Button variant="outline" onClick={fetchTraces} disabled={isLoading} className="whitespace-nowrap">
+              <RefreshCw className={cn("w-4 h-4 mr-2", isLoading && "animate-spin")} />
+              {t("logs.refresh")}
+            </Button>
+          </div>
         </div>
-      </div>
-
+      }
+    >
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="glass-card border-l-4 border-l-primary">
@@ -603,6 +607,6 @@ export default function TracesPage() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </PinnedPage>
   );
 }

@@ -552,6 +552,97 @@ All colors MUST be HSL.
   }
 }
 
+/*
+ * 固定标题页（.page-pinned）：标题区常驻视口，只有下方内容滚动。
+ * 面向最常见的「H1 + 副标题 + 竖向内容流」标题页（/ai-tools、/ai-meme 等），
+ * 由 <PinnedPage>（src/components/layout/PinnedPage.tsx）统一渲染，不要手搓。
+ *
+ * 三类页面骨架的分工：
+ * - .page-fill     ：无标题的全高单卡片（/ai-history），四边与悬浮侧栏对齐。
+ * - .page-viewport ：有标题但页面内部自管滚动（/ai-kanban 的横向看板）。
+ * - .page-pinned   ：有标题 + 竖向内容流，标题固定、内容单列滚动。← 本节
+ *
+ * 桌面（≥768px）：锁死 main 的竖直滚动，.page-pinned-header 与 .page-pinned-toolbar 常驻，
+ *   .page-pinned-body 成为页面唯一的滚动容器。
+ * 移动端（<768px）：整块退化为普通流式布局，标题随内容一起滚走——
+ *   移动端竖向空间稀缺（标题块堆叠后约 150px，占 667px 屏的 ~22%），
+ *   且锁死 main 会让整页无法滚动（与 .page-viewport 的既定约定一致）。
+ *
+ * 结构是**扁平单层 flex column**：header / toolbar / body 三者同级，共用根容器的
+ * 同一个 gap，因此间距节奏与迁移前的 `space-y-6`（三者同为 space-y 兄弟）完全一致。
+ *
+ * 注意：display/flex-direction/gap 一律由组件侧的 Tailwind 工具类提供
+ * （本段 CSS 位于 @tailwind utilities 之后，在此写 gap 会压掉页面传入的 gap-*）。
+ */
+.page-pinned {
+  /* 移动端也需要：否则内容超长时 flex item 不会收缩 */
+  min-height: 0;
+}
+
+/* 两段固定区：不参与伸缩，永远保持内容高度 */
+.page-pinned-header,
+.page-pinned-toolbar {
+  flex: none;
+}
+
+/*
+ * flex item 默认 min-width:auto（不肯窄于自身 min-content），过宽的控件行会把
+ * flex item 本身撑出容器。这里恢复成「宽度跟随容器、内容自己溢出」的块级行为，
+ * 与全站 `min-w-0` 的惯例一致，也是 .page-pinned-toolbar 的 overflow-x 能生效的前提。
+ */
+.page-pinned-header,
+.page-pinned-toolbar,
+.page-pinned-body {
+  min-width: 0;
+}
+
+@media (min-width: 768px) {
+  main:has(.page-pinned) {
+    overflow: hidden; /* 滚动权交给 .page-pinned-body */
+  }
+
+  main:has(.page-pinned) .layout-page-inner {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: 100%;
+  }
+
+  .page-pinned {
+    flex: 1 1 auto;
+    height: 100%;
+  }
+
+  /*
+   * 页面唯一滚动容器。overflow 容器会把 glass-card 外溢的圆角阴影切成直角，
+   * 故用 --shadow-bleed 内边距给阴影留位，再用等量负 margin 抵消布局位移：
+   * 左右各溢出 0.75rem 到 1.5rem 的 gutter 里，内容净位移为 0，
+   * 滚动条落在距视口边 0.75rem 处（仍在 gutter 内）。
+   */
+  .page-pinned-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    margin: calc(var(--shadow-bleed) * -1);
+    padding: var(--shadow-bleed);
+  }
+
+  /*
+   * 控件行自己兜横向溢出 ★
+   * main 在桌面已 overflow:hidden，过宽的控件行（如 /ai-knowledge 在 xl 断点处的
+   * 「切换 + 搜索 + 5 个按钮」一行）不再能靠 main 的横向滚动够到，会被直接裁掉、
+   * 右侧按钮永远点不到。这里让它自己横向滚动。
+   *
+   * overflow-x:auto 会把 overflow-y 也算成 auto（CSS 规范），从而竖直裁掉
+   * TabButtonGroup 的 glass-card 阴影，故同样上下留 --shadow-bleed。
+   * 负 margin 与内边距相抵后，「标题 ↔ 控件行 ↔ 内容」仍是 1.5rem 节奏（净位移 0）。
+   */
+  .page-pinned-toolbar {
+    overflow-x: auto;
+    margin: calc(var(--shadow-bleed) * -1);
+    padding: var(--shadow-bleed);
+  }
+}
+
 /* 全高卡片页：上下边距与悬浮侧栏同为 gutter */
 main:has(.page-fill) {
   overflow: hidden; /* 内层自己滚，避免 main 再裁一刀 */

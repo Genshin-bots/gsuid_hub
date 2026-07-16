@@ -80,6 +80,7 @@ import {
   assetsApi,
 } from '@/lib/api';
 import { toast } from 'sonner';
+import { PinnedPage } from '@/components/layout/PinnedPage';
 import { TagsInput } from '@/components/config/TagsInput';
 
 
@@ -771,95 +772,98 @@ export default function AIKnowledgePage() {
   ];
 
   return (
-    <div className="space-y-6">
-      {/* 页面标题 */}
-      <div className="min-w-0 overflow-x-auto">
-        <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
-          <BookOpen className="w-8 h-8 shrink-0" />
-          {t('aiKnowledge.title')}
-        </h1>
-        <p className="whitespace-nowrap text-muted-foreground mt-1">{t('aiKnowledge.description')}</p>
-      </div>
-
-      {/* 筛选和操作栏 */}
-      <div className="flex flex-col xl:flex-row gap-4 items-start xl:items-center justify-between">
-        {/* 左侧：知识类型和来源筛选 */}
-        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-          <TabButtonGroup
-            options={knowledgeTypeOptions}
-            value={knowledgeType}
-            onValueChange={(value) => {
-              setKnowledgeType(value as KnowledgeType);
-              setPage(1);
-              setShowSearchResults(false);
-              setSearchQuery('');
-            }}
-            className="shrink-0"
-          />
-          <TabButtonGroup
-            options={sourceOptions}
-            value={sourceFilter}
-            onValueChange={(value) => {
-              setSourceFilter(value as SourceFilter);
-              setPage(1);
-            }}
-            className="shrink-0"
-          />
+    <PinnedPage
+      header={
+        /* 页面标题 */
+        <div className="min-w-0 overflow-x-auto">
+          <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
+            <BookOpen className="w-8 h-8 shrink-0" />
+            {t('aiKnowledge.title')}
+          </h1>
+          <p className="whitespace-nowrap text-muted-foreground mt-1">{t('aiKnowledge.description')}</p>
         </div>
-        
-        {/* 右侧：搜索和添加按钮 */}
-        <div className="flex gap-2 w-full xl:w-auto">
-          <div className="relative flex-1 xl:flex-none xl:w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder={knowledgeType === 'text' ? t('aiKnowledge.searchPlaceholder') : t('aiKnowledge.searchImagePlaceholder')}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              className="pl-9"
+      }
+      toolbar={
+        /* 筛选和操作栏 */
+        <div className="flex flex-col xl:flex-row gap-4 items-start xl:items-center justify-between">
+          {/* 左侧：知识类型和来源筛选 */}
+          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+            <TabButtonGroup
+              options={knowledgeTypeOptions}
+              value={knowledgeType}
+              onValueChange={(value) => {
+                setKnowledgeType(value as KnowledgeType);
+                setPage(1);
+                setShowSearchResults(false);
+                setSearchQuery('');
+              }}
+              className="shrink-0"
+            />
+            <TabButtonGroup
+              options={sourceOptions}
+              value={sourceFilter}
+              onValueChange={(value) => {
+                setSourceFilter(value as SourceFilter);
+                setPage(1);
+              }}
+              className="shrink-0"
             />
           </div>
-          <Button onClick={handleSearch} disabled={isSearching}>
-            {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-          </Button>
-          <Button
-            onClick={() => {
-              setKnowledgeType('text');
-              setSourceFilter('manual');
-              resetBulkDialog();
-              setBulkDialogOpen(true);
-            }}
-            variant="outline"
-            className="shrink-0"
-            title={t('aiKnowledge.bulkImport')}
-          >
-            <FileUp className="h-4 w-4" />
-            <span className="hidden md:inline ml-1">{t('aiKnowledge.bulkImport')}</span>
-          </Button>
-          <Button
-            onClick={handleExportBackup}
-            variant="outline"
-            className="shrink-0"
-            title={t('aiKnowledge.exportBackup')}
-          >
-            <Download className="h-4 w-4" />
-            <span className="hidden md:inline ml-1">{t('aiKnowledge.exportBackup')}</span>
-          </Button>
-          <Button
-            onClick={() => { setBackupFile(null); setBackupDialogOpen(true); }}
-            variant="outline"
-            className="shrink-0"
-            title={t('aiKnowledge.importBackup')}
-          >
-            <FolderOpen className="h-4 w-4" />
-            <span className="hidden md:inline ml-1">{t('aiKnowledge.importBackup')}</span>
-          </Button>
-          <Button onClick={handleOpenAddDialog} size="icon" className="shrink-0">
-            <Plus className="h-4 w-4" />
-          </Button>
+        
+          {/* 右侧：搜索和添加按钮 */}
+          <div className="flex gap-2 w-full xl:w-auto">
+            <div className="relative flex-1 xl:flex-none xl:w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder={knowledgeType === 'text' ? t('aiKnowledge.searchPlaceholder') : t('aiKnowledge.searchImagePlaceholder')}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                className="pl-9"
+              />
+            </div>
+            <Button onClick={handleSearch} disabled={isSearching}>
+              {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+            </Button>
+            <Button
+              onClick={() => {
+                setKnowledgeType('text');
+                setSourceFilter('manual');
+                resetBulkDialog();
+                setBulkDialogOpen(true);
+              }}
+              variant="outline"
+              className="shrink-0"
+              title={t('aiKnowledge.bulkImport')}
+            >
+              <FileUp className="h-4 w-4" />
+              <span className="hidden md:inline ml-1">{t('aiKnowledge.bulkImport')}</span>
+            </Button>
+            <Button
+              onClick={handleExportBackup}
+              variant="outline"
+              className="shrink-0"
+              title={t('aiKnowledge.exportBackup')}
+            >
+              <Download className="h-4 w-4" />
+              <span className="hidden md:inline ml-1">{t('aiKnowledge.exportBackup')}</span>
+            </Button>
+            <Button
+              onClick={() => { setBackupFile(null); setBackupDialogOpen(true); }}
+              variant="outline"
+              className="shrink-0"
+              title={t('aiKnowledge.importBackup')}
+            >
+              <FolderOpen className="h-4 w-4" />
+              <span className="hidden md:inline ml-1">{t('aiKnowledge.importBackup')}</span>
+            </Button>
+            <Button onClick={handleOpenAddDialog} size="icon" className="shrink-0">
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
-      </div>
-
+      }
+    >
       {/* 搜索结果提示 */}
       {showSearchResults && displayList.length > 0 && (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -1666,6 +1670,6 @@ export default function AIKnowledgePage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PinnedPage>
   );
 }

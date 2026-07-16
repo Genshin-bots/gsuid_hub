@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import { StructuredDataViewer } from '@/components/StructuredDataViewer';
 import { useLanguage } from '@/contexts/LanguageContext';
 import React, { memo } from 'react';
+import { PinnedPage } from '@/components/layout/PinnedPage';
 
 type LogLevel = 'info' | 'warn' | 'error' | 'debug' | 'all';
 type DateMode = 'single' | 'range';
@@ -448,29 +449,33 @@ export default function LogsPage() {
   };
 
   return (
-   <div className="space-y-4">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="min-w-0 overflow-x-auto">
-          <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
-            <FileText className="w-8 h-8 shrink-0" />
-            {t('logs.title')}
-          </h1>
-          <p className="whitespace-nowrap text-muted-foreground mt-1">{t('logs.description')}</p>
-        </div>
-        
-        <div className="flex flex-wrap justify-end gap-2 self-end sm:self-auto">
-          <Button variant="outline" onClick={handleRefresh} disabled={isLoading} className="whitespace-nowrap">
-            <RefreshCw className={cn("w-4 h-4 mr-2", isLoading && "animate-spin")} />
-            {t('logs.refresh')}
-          </Button>
-          <Button variant="outline" onClick={handleExport} className="whitespace-nowrap">
-            <Download className="w-4 h-4 mr-2" />
-            {t('logs.export')}
-          </Button>
-        </div>
-      </div>
+    <PinnedPage
+      className="gap-4"
+      bodyClassName="space-y-4"
+      header={
+        /* Header */
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0 overflow-x-auto">
+            <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
+              <FileText className="w-8 h-8 shrink-0" />
+              {t('logs.title')}
+            </h1>
+            <p className="whitespace-nowrap text-muted-foreground mt-1">{t('logs.description')}</p>
+          </div>
 
+          <div className="flex flex-wrap justify-end gap-2 self-end sm:self-auto">
+            <Button variant="outline" onClick={handleRefresh} disabled={isLoading} className="whitespace-nowrap">
+              <RefreshCw className={cn("w-4 h-4 mr-2", isLoading && "animate-spin")} />
+              {t('logs.refresh')}
+            </Button>
+            <Button variant="outline" onClick={handleExport} className="whitespace-nowrap">
+              <Download className="w-4 h-4 mr-2" />
+              {t('logs.export')}
+            </Button>
+          </div>
+        </div>
+      }
+    >
       {/* Stats - 固定高度 */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4 shrink-0">
         <Card className="glass-card border-l-4 border-l-blue-500">
@@ -816,6 +821,6 @@ export default function LogsPage() {
           ) : null}
         </DialogContent>
       </Dialog>
-    </div>
+    </PinnedPage>
   );
 }

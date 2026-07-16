@@ -24,6 +24,7 @@ import MiscSettings from '@/components/config/MiscSettings';
 import VerificationSettings from '@/components/config/VerificationSettings';
 import ImageSendSettings from '@/components/config/ImageSendSettings';
 import ButtonMarkdownSettings from '@/components/config/ButtonMarkdownSettings';
+import { PinnedPage } from '@/components/layout/PinnedPage';
 
 // Local config type with converted fields
 interface LocalFrameworkConfig {
@@ -286,58 +287,62 @@ export default function FrameworkConfigPage() {
   };
   
   return (
-    <div className="space-y-6">
-      <div className="min-w-0 overflow-visible">
-        <h1 className="break-words text-3xl font-bold leading-tight flex items-start gap-3">
-          <Cpu className="w-8 h-8 shrink-0" />
-          <span className="min-w-0 break-words">{t('frameworkConfig.title')}</span>
-        </h1>
-        <p className="break-words text-muted-foreground mt-1">{t('frameworkConfig.description')}</p>
-      </div>
-      
-      <div ref={containerRef} className="flex items-center justify-between">
-        {canFitTabs ? (
-          <TabButtonGroup
-            options={configList.map((config) => ({
-              value: config.id,
-              label: getConfigDisplayName(config),
-              icon: <Settings className="w-4 h-4" />,
-            }))}
-            value={selectedConfigId}
-            onValueChange={setSelectedConfigId}
-            disabled={isLoading}
-          />
-        ) : (
-          <Card className="glass-card w-full sm:w-fit">
-            <CardContent className="p-4">
-              <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                  <Settings className="w-4 h-4" />
-                  <span>{t('frameworkConfig.selectConfig')}</span>
+    <PinnedPage
+      header={
+        <div className="min-w-0 overflow-visible">
+          <h1 className="break-words text-3xl font-bold leading-tight flex items-start gap-3">
+            <Cpu className="w-8 h-8 shrink-0" />
+            <span className="min-w-0 break-words">{t('frameworkConfig.title')}</span>
+          </h1>
+          <p className="break-words text-muted-foreground mt-1">{t('frameworkConfig.description')}</p>
+        </div>
+      }
+      toolbar={
+        /* 配置选择：窄屏放不下 Tab 时降级为下拉（containerRef 供 useLayoutEffect 测宽） */
+        <div ref={containerRef} className="flex items-center justify-between">
+          {canFitTabs ? (
+            <TabButtonGroup
+              options={configList.map((config) => ({
+                value: config.id,
+                label: getConfigDisplayName(config),
+                icon: <Settings className="w-4 h-4" />,
+              }))}
+              value={selectedConfigId}
+              onValueChange={setSelectedConfigId}
+              disabled={isLoading}
+            />
+          ) : (
+            <Card className="glass-card w-full sm:w-fit">
+              <CardContent className="p-4">
+                <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                  <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                    <Settings className="w-4 h-4" />
+                    <span>{t('frameworkConfig.selectConfig')}</span>
+                  </div>
+                  <div className="flex-1 w-full">
+                    <Select value={selectedConfigId} onValueChange={setSelectedConfigId}>
+                      <SelectTrigger className="w-full sm:w-[300px] bg-background/50">
+                        <SelectValue placeholder={t('frameworkConfig.selectConfig')} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {configList.map((config) => (
+                          <SelectItem key={config.id} value={config.id}>
+                            <span className="flex items-center gap-2">
+                              <Settings className="w-4 h-4" />
+                              {getConfigDisplayName(config)}
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-                <div className="flex-1 w-full">
-                  <Select value={selectedConfigId} onValueChange={setSelectedConfigId}>
-                    <SelectTrigger className="w-full sm:w-[300px] bg-background/50">
-                      <SelectValue placeholder={t('frameworkConfig.selectConfig')} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {configList.map((config) => (
-                        <SelectItem key={config.id} value={config.id}>
-                          <span className="flex items-center gap-2">
-                            <Settings className="w-4 h-4" />
-                            {getConfigDisplayName(config)}
-                          </span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-      </div>
-      
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      }
+    >
       {isLoading ? (
         <div className="flex items-center justify-center h-64">
           <Loader2 className="w-8 h-8 animate-spin" />
@@ -410,6 +415,6 @@ export default function FrameworkConfigPage() {
           </div>
         </>
       )}
-    </div>
+    </PinnedPage>
   );
 }

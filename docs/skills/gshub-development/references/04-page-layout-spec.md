@@ -11,8 +11,9 @@
 │  ┌─ .layout-page-inner ─────────────────────────────────────┐  │
 │  │  pt: --layout-page-top（大于侧栏 gutter，顶部呼吸距）       │  │
 │  │  px/pb: --layout-gutter                                   │  │
-│  │  ┌─ space-y-6 普通页 ──────────────────────────────────┐  │  │
-│  │  │  Header / Cards …                                    │  │  │
+│  │  ┌─ <PinnedPage> 标题页（默认，占全站 26 个页面）───────┐  │  │
+│  │  │  .page-pinned-header  ← 桌面常驻，永不滚动           │  │  │
+│  │  │  .page-pinned-body    ← 桌面唯一滚动容器             │  │  │
 │  │  └──────────────────────────────────────────────────────┘  │  │
 │  │  ┌─ .page-fill.glass-card 全高单卡片 ───────────────────┐  │  │
 │  │  │  （负 margin 拉回与侧栏外框对齐；overflow 在内层）     │  │  │
@@ -23,11 +24,14 @@
 
 ## 4.1 页面根容器
 
+**「H1 + 副标题 + 竖向内容流」的标题页一律用 `<PinnedPage>`**（见 [§4.1.0](#410-pinnedpage--固定标题页默认骨架-)），
+不要再手写 `<div className="space-y-6">` 根容器：
+
 ```tsx
-{/* 普通多卡片页：顶部呼吸距由 layout-page-inner 提供 */}
-<div className="space-y-6">
-  {/* 页面内容 */}
-</div>
+{/* 标题页（默认）：标题区桌面常驻，只有下方内容滚动 */}
+<PinnedPage header={<div>{/* H1 + 副标题 + 同行按钮 */}</div>}>
+  {/* 筛选区、卡片、列表…… */}
+</PinnedPage>
 
 {/* 全高单卡片：阴影宿主不要 overflow-hidden */}
 <div className="page-fill flex glass-card">
@@ -37,6 +41,90 @@
 </div>
 ```
 
+### 4.1.0 PinnedPage —— 固定标题页（默认骨架）★★★
+
+位置：[`src/components/layout/PinnedPage.tsx`](../../../../src/components/layout/PinnedPage.tsx)，
+CSS 机制在 `src/index.css` 的 `.page-pinned` 段落。
+
+**行为**：
+- **桌面（≥768px）**：`main` 的竖直滚动被锁死，标题区（H1 + 副标题 + **与标题同行**的右侧按钮）常驻视口，
+  只有 `.page-pinned-body` 滚动。页面只有一条滚动条。
+- **移动端（<768px）**：整块退化为普通流式布局，标题随内容一起滚走（`main` 恢复 `overflow: auto`）。
+  移动端竖向空间稀缺——标题块堆叠后约 150px，占 667px 屏的 ~22%，常驻不划算；且锁死 `main`
+  会让整页无法滚动（与 `.page-viewport` 的既定约定一致）。
+
+```tsx
+import { PinnedPage } from '@/components/layout/PinnedPage';
+
+<PinnedPage
+  header={
+    /* 固定区一：标题块 + 与标题同行的右侧操作按钮 */
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div className="min-w-0 overflow-x-auto">
+        <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
+          <Wrench className="w-8 h-8 shrink-0" />
+          {t('aiTools.title')}
+        </h1>
+        <p className="whitespace-nowrap text-muted-foreground mt-1">{t('aiTools.description')}</p>
+      </div>
+      <Button className="self-start sm:self-auto shrink-0">{t('…action')}</Button>
+    </div>
+  }
+  toolbar={
+    /* 固定区二（可选）：紧贴标题下方的操作控件行 */
+    <TabButtonGroup options={tabOptions} value={tab} onValueChange={setTab} />
+  }
+>
+  {/* 滚动区：卡片、列表、Dialog…… */}
+</PinnedPage>
+```
+
+| Prop | 作用 |
+|------|------|
+| `header` | **固定区一**。只放标题块 + 与标题**同行**的右侧按钮 |
+| `toolbar` | **固定区二（可选）**。紧贴标题下方的**操作控件行**——判定标准见下 |
+| `children` | 滚动区内容 |
+| `bodyClassName` | 滚动区布局类，默认 `space-y-6`。原来是 `space-y-3` / `space-y-4` 的页面原样传入 |
+| `className` | 根容器附加类，默认 `gap-6`——**同时**决定「标题↔控件行↔内容」三段间距。传 `gap-3`/`gap-4` 覆盖（`cn` 用 tailwind-merge，后传的赢） |
+
+#### toolbar 放什么：「操作控件」进，「数据展示」留 ★★★
+
+紧贴标题下方那一块，按**它是不是操作控件**决定去留——这是全站一致性的关键判断：
+
+| 放进 `toolbar`（随标题常驻） | 留在 `children`（跟着滚） |
+|---------------------------|------------------------|
+| `TabButtonGroup` / 二级切换（/ai-knowledge 的「文本知识 / 图片知识」） | 统计卡片 / 数据看板（/ai-memory、/dashboard、/scheduler 的 Stats） |
+| 筛选 + 搜索栏（/ai-capability-agents 的来源筛选 + 搜索） | 提示 banner / 错误提示（/persona-config 的全局启用提示、/ai-skills 的错误卡） |
+| 与控件行同行的操作按钮（/themes 的「保存为预设」） | 结果展示（/mcp-config 的 Reload Result） |
+| 两级导航控件（/database 的插件选择 + 数据表选择） | 表单卡片、列表、详情（/core-config、/settings） |
+
+当前 **13 个**页面有 `toolbar`：`/ai-knowledge`、`/ai-capability-agents`、`/ai-approvals`、`/ai-budget`、
+`/ai-tools`、`/backup`、`/console`、`/database`、`/framework-config`、`/git-update`、`/plugin-store`、
+`/plugins`、`/themes`；其余 13 个标题页下方是数据展示，不传 `toolbar`。
+
+**要点**：
+- `toolbar` 可直接传条件表达式，falsy 时整段不渲染、**也不会多出一段 gap**：
+  `toolbar={!isLoading && cats.length > 0 && <div>…</div>}`（/ai-tools 即如此）。
+- 多个控件行要**自己包一层**给间距（`toolbar={<div className="space-y-6">…</div>}`），
+  因为 `.page-pinned-toolbar` 只是个普通容器（/database、/plugin-store 是例子）。
+- 结构是**扁平单层 flex column**：header / toolbar / body 三者同级、共用根容器的同一个 `gap`，
+  因此间距节奏与迁移前的 `space-y-6`（三者同为 space-y 兄弟）逐像素一致，不需要给控件行单开 gap 属性。
+
+**迁移口诀**：原 `<div className="space-y-N">` → `<PinnedPage bodyClassName="space-y-N" className="gap-N">`；
+第一个子元素（标题块）挪进 `header={…}`；若紧随其后的是**操作控件行**，再把它挪进 `toolbar={…}`；
+根闭合 `</div>` → `</PinnedPage>`。`children` 的缩进不变，只有 header / toolbar 块 +2。
+
+⚠️ **`header={…}` / `toolbar={…}` 里的注释要用 `/* */` 而非 `{/* */}`**：它们是 JS 表达式上下文，
+写 `{/* Header */}` 等于塞了两个表达式 → 语法错误。
+
+**哪些页面不套 PinnedPage**（三个例外，见 [§4.1.1](#411-两类页面的边距设计语言-)）：
+- 无标题的全高单卡片页（`/ai-history`、`/session-management`）→ `.page-fill`；
+- 有标题但页面内部自管滚动（`/ai-kanban` 横向看板）→ `.page-viewport`；
+- 首页 `/home`：H1 是 hero 大标题（`text-3xl font-black … lg:text-5xl`）而非页面 Header，不属于标题页；
+- `/ai-config`：自带 `flex-1 min-h-0 flex flex-col` + `shrink-0` 头部的全高卡片布局，**已经**是固定标题，
+  但它是「隐式」锁高（靠 `.layout-page-inner` 撑满）且**没有做移动端 media 降级**——属于历史遗留，
+  改动前先读懂它的 ScrollArea 结构，不要盲目套 PinnedPage。
+
 - **普通页顶部**用 `--layout-page-top`（默认 `2.75rem`），**不要**与侧栏顶对齐。
 - **中缝**约 `2×gutter` 呼吸距；`.page-fill` 在悬浮模式下拉回 `1×gutter` 与侧栏对齐。
 - **阴影**：`.glass-card` 用 `::before`（`z-index: -1`）画毛玻璃，宿主只画圆角阴影；**禁止**在 glass-card 宿主上写 `overflow-hidden`，也**禁止**对子元素强制 `position: relative`（会破坏 absolute 装饰层）。
@@ -45,16 +133,22 @@
 - **全高单卡片**根节点加 `.page-fill`：`main:has(.page-fill)` 会把上下 padding 收成 gutter，与悬浮侧栏顶底对齐；**标题页不要**加 `page-fill`（保持 `--layout-page-top`）。
 - 页面根 **禁止** 再写 `p-6` / `overflow-auto`（滚动交给 AppLayout main）。
 
-### 4.1.1 两类页面的边距设计语言 ★★★
+### 4.1.1 三类页面的边距设计语言 ★★★
 
-全站页面按外框形态分**两类**，边距各有对齐目标，这是「视觉统一感」的来源：
+全站页面按外框形态分**三类**，边距各有对齐目标，这是「视觉统一感」的来源：
 
 | 页面类型 | 例子 | 上边距 | 下/左/右 | 对齐目标 |
 |---------|------|--------|---------|---------|
-| **标题页**（H1 + 多卡片流） | /plugins、/ai-skills | `--layout-page-top`（2.75rem） | `--layout-gutter`（1.5rem） | 标题上方留足呼吸距，**不**与侧栏顶平齐（平齐会显得顶死） |
+| **标题页**（`<PinnedPage>`，H1 + 内容流） | /plugins、/ai-skills、/ai-tools | `--layout-page-top`（2.75rem） | `--layout-gutter`（1.5rem） | 标题上方留足呼吸距，**不**与侧栏顶平齐（平齐会显得顶死） |
 | **全高单卡片页**（`.page-fill`） | /ai-history、会话管理 | `--layout-gutter` | `--layout-gutter` | 卡片外框**四边与悬浮侧栏卡片对齐**：顶=侧栏顶、底=侧栏底、中缝=侧栏左右外距 |
+| **视口锁定标题页**（`.page-viewport`） | /ai-kanban | `--layout-page-top` | `--layout-gutter` | 有标题但页面内部自管滚动（横向看板） |
 
-判定标准：页面唯一的表面层就是一张撑满视口的大卡片（内部自己分栏/滚动）→ 用 `.page-fill`；页面是「标题 + 若干卡片往下排、整页滚动」→ 标题页，什么都不用加。
+判定标准：
+- 页面是「标题 + 若干卡片往下排」→ **标题页**，用 `<PinnedPage>`（默认选择，占全站绝大多数）。
+- 页面唯一的表面层就是一张撑满视口的大卡片（内部自己分栏/滚动）→ `.page-fill`。
+- 有标题、但滚动形态特殊（横向看板、列内滚）→ `.page-viewport`。
+
+三者的 CSS 都靠 `main:has(.xxx)` 选择器锁 `main` 的滚动，**互斥、不要叠加**。
 
 **第三种：视口锁定标题页（`.page-viewport`）**，如 `/ai-kanban`：有标题但整页高度锁死视口、**main 不再竖直滚动**，滚动全部发生在页面内部（看板列内滚、底部横向滚动条始终贴视口底端）。写法：
 
@@ -179,8 +273,30 @@ glass-card 宿主不裁切（`overflow: visible`），所以**顶到卡片边缘
 <p className="text-muted-foreground mt-1 text-sm">           {/* ❌ 副标题加了 text-sm */}
 <div className="p-6 space-y-6 max-w-7xl mx-auto">            {/* ❌ 根容器写页边距 / 加宽度限制 */}
 <div className="space-y-6 p-4 md:p-6">                       {/* ❌ 根容器写页边距（已由 AppLayout 提供） */}
-<div className="space-y-6 flex-1 overflow-auto h-full">      {/* ❌ 根容器自己滚动（滚动在 AppLayout main） */}
+<div className="space-y-6 flex-1 overflow-auto h-full">      {/* ❌ 根容器自己滚动（滚动在 PinnedPage body / AppLayout main） */}
 <Card className="glass-card overflow-hidden">                {/* ❌ glass-card 宿主裁切（阴影/圆角脏边） */}
+
+{/* ❌ 标题页手写根容器：标题不会固定，与全站 26 个页面不一致 */}
+<div className="space-y-6">
+  <div><h1 …/><p …/></div>
+  …
+</div>
+
+{/* ❌ header/toolbar 里用 JSX 注释：它们是 JS 表达式上下文 → 语法错误 */}
+<PinnedPage header={ {/* Header */} <div …/> }>
+
+{/* ❌ 把控件行塞进 header：会和标题挤在同一段，破坏 Header 的对齐规范。
+       控件行有专门的 toolbar 槽 */}
+<PinnedPage header={<><div><h1 …/></div><TabButtonGroup … /></>}>
+
+{/* ❌ 把统计卡 / 看板塞进 toolbar：数据展示应该跟着滚，常驻会白吃视口高度 */}
+<PinnedPage toolbar={<div className="grid grid-cols-4 gap-4"><StatsCard …/></div>}>
+
+{/* ❌ 控件行留在 children：滚两下切换器就不见了，只固定标题等于半个功能 */}
+<PinnedPage header={<div><h1 …/></div>}>
+  <TabButtonGroup … />
+  …
+</PinnedPage>
 ```
 
 ## 4.4 间距 / 尺寸标尺（统一记忆）
@@ -274,7 +390,11 @@ if (items.length === 0) return <EmptyState icon={…} />;      // 空态：居�
 
 ## 4.8 落地自查（页面骨架部分）
 
-- [ ] 根容器：标题页 `space-y-6`（**无** `p-6` / `overflow-auto` / `max-w-*`）；全高单卡片页 `page-fill flex glass-card` + 内层 clip
+- [ ] 根容器：标题页用 `<PinnedPage>`（**无** `p-6` / `overflow-auto` / `max-w-*`）；全高单卡片页 `page-fill flex glass-card` + 内层 clip
+- [ ] `header={…}` 只放标题块 + 同行按钮
+- [ ] 标题下方若是**操作控件行**（TabButtonGroup / 筛选搜索）→ 放 `toolbar={…}`；若是**数据展示**（统计卡/看板/提示 banner）→ 留在 `children`
+- [ ] 原 `space-y-N` / 间距不是 6 的页面，把 `bodyClassName="space-y-N"` + `className="gap-N"` 传全
+- [ ] `header={…}` / `toolbar={…}` 内注释用 `/* */`，不是 `{/* */}`
 - [ ] 卡片网格加 `glass-card-grid`；glass-card 宿主无 `overflow-hidden`，全出血子元素 `rounded-t-[inherit]`
 - [ ] 标题 `text-3xl font-bold` + 内联图标 `w-8 h-8`（无背景容器）
 - [ ] 副标题 `text-muted-foreground mt-1`（无 `text-sm`）

@@ -3,6 +3,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 import { aiStatisticsApi, aiPerformanceApi, getApiErrorMessage } from '@/lib/api';
+import { PinnedPage } from '@/components/layout/PinnedPage';
 import type { HourlyPerformanceItem, TokenRangeData } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -1079,48 +1080,50 @@ export default function AIStatisticsPage() {
   }, [rangeData]);
 
   return (
-    <div className="space-y-6">
-      {/* 页面标题 */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="min-w-0 overflow-x-auto">
-          <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
-            <TrendingUp className="w-8 h-8 shrink-0" />
-            {t('aiStatistics.title')}
-          </h1>
-          <p className="whitespace-nowrap text-muted-foreground mt-1">{t('aiStatistics.description')}</p>
+    <PinnedPage
+      header={
+        /* 页面标题 */
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0 overflow-x-auto">
+            <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
+              <TrendingUp className="w-8 h-8 shrink-0" />
+              {t('aiStatistics.title')}
+            </h1>
+            <p className="whitespace-nowrap text-muted-foreground mt-1">{t('aiStatistics.description')}</p>
+          </div>
+          <div className="flex flex-wrap items-center justify-end gap-2 self-end sm:self-auto">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2 whitespace-nowrap">
+                  <CalendarIcon className="h-4 w-4" />
+                  {format(selectedDate, 'yyyy-MM-dd')}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <CalendarComponent
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={(date) => date && setSelectedDate(date)}
+                  defaultMonth={selectedDate}
+                />
+              </PopoverContent>
+            </Popover>
+            <button
+              onClick={loadData}
+              disabled={isLoading}
+              className={cn(
+                'flex items-center gap-2 whitespace-nowrap px-4 py-2 rounded-md text-sm transition-colors',
+                'bg-primary text-primary-foreground hover:bg-primary/90',
+                'disabled:opacity-50'
+              )}
+            >
+              <RefreshCw className={cn('w-4 h-4', isLoading && 'animate-spin')} />
+              {t('common.refresh')}
+            </button>
+          </div>
         </div>
-        <div className="flex flex-wrap items-center justify-end gap-2 self-end sm:self-auto">
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-2 whitespace-nowrap">
-                <CalendarIcon className="h-4 w-4" />
-                {format(selectedDate, 'yyyy-MM-dd')}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="end">
-              <CalendarComponent
-                mode="single"
-                selected={selectedDate}
-                onSelect={(date) => date && setSelectedDate(date)}
-                defaultMonth={selectedDate}
-              />
-            </PopoverContent>
-          </Popover>
-          <button
-            onClick={loadData}
-            disabled={isLoading}
-            className={cn(
-              'flex items-center gap-2 whitespace-nowrap px-4 py-2 rounded-md text-sm transition-colors',
-              'bg-primary text-primary-foreground hover:bg-primary/90',
-              'disabled:opacity-50'
-            )}
-          >
-            <RefreshCw className={cn('w-4 h-4', isLoading && 'animate-spin')} />
-            {t('common.refresh')}
-          </button>
-        </div>
-      </div>
-
+      }
+    >
       {/* 错误提示 */}
       {error && (
         <div className="px-6">
@@ -1961,6 +1964,6 @@ export default function AIStatisticsPage() {
           </Card>
         </div>
       )}
-    </div>
+    </PinnedPage>
   );
 }

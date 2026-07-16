@@ -28,6 +28,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { ConfigField, ConfigFieldDefinition, ConfigValue, ConfigFieldType, RepeatGroupField, RepeatGroupItem } from '@/components/config';
 import { pluginsApi, gitUpdateApi, Plugin, ServiceConfig, SvItem, SvCommand, PluginConfigItem, PluginConfigGroup, PluginListItem, getPluginIconUrl } from '@/lib/api';
 import { toast } from 'sonner';
+import { PinnedPage } from '@/components/layout/PinnedPage';
 
 // 带 fallback 的插件图标组件
 function PluginIcon({ pluginName, className = 'w-[18px] h-[18px]' }: { pluginName: string; className?: string }) {
@@ -817,69 +818,73 @@ export default function PluginsPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="min-w-0 overflow-x-auto">
-          <h1 className="whitespace-nowrap text-3xl font-bold tracking-tight flex items-center gap-3">
-            <Settings className="h-8 w-8 shrink-0" />
-            {t('plugins.title')}
-          </h1>
-          <p className="whitespace-nowrap text-muted-foreground">{t('plugins.description')}</p>
+    <PinnedPage
+      header={
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0 overflow-x-auto">
+            <h1 className="whitespace-nowrap text-3xl font-bold tracking-tight flex items-center gap-3">
+              <Settings className="h-8 w-8 shrink-0" />
+              {t('plugins.title')}
+            </h1>
+            <p className="whitespace-nowrap text-muted-foreground">{t('plugins.description')}</p>
+          </div>
+          <div className="flex flex-wrap items-center justify-end gap-2 self-end sm:self-auto">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleUpdateAllClick}
+                    disabled={isLoading || pluginList.length === 0}
+                    className="gap-2 whitespace-nowrap"
+                  >
+                    <Download className="w-4 h-4" />
+                    {t('plugins.updateAllPlugins')}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{t('plugins.updateAllPluginsDesc')}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleReloadPlugin}
+                    disabled={!selectedPlugin || isReloadingPlugin}
+                    className="gap-2 whitespace-nowrap"
+                  >
+                    <RotateCw className={`w-4 h-4 ${isReloadingPlugin ? 'animate-spin' : ''}`} />
+                    {t('plugins.reloadPlugin')}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{t('plugins.reloadPlugin')}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
         </div>
-        <div className="flex flex-wrap items-center justify-end gap-2 self-end sm:self-auto">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleUpdateAllClick}
-                  disabled={isLoading || pluginList.length === 0}
-                  className="gap-2 whitespace-nowrap"
-                >
-                  <Download className="w-4 h-4" />
-                  {t('plugins.updateAllPlugins')}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>{t('plugins.updateAllPluginsDesc')}</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleReloadPlugin}
-                  disabled={!selectedPlugin || isReloadingPlugin}
-                  className="gap-2 whitespace-nowrap"
-                >
-                  <RotateCw className={`w-4 h-4 ${isReloadingPlugin ? 'animate-spin' : ''}`} />
-                  {t('plugins.reloadPlugin')}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>{t('plugins.reloadPlugin')}</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
-      </div>
-
-      <TabButtonGroup
-        options={pluginList.map((plugin) => ({
-          value: plugin.id,
-          label: plugin.name,
-          icon: (
-            <PluginIcon pluginName={plugin.name} />
-          ),
-        }))}
-        value={selectedPluginId}
-        onValueChange={setSelectedPluginId}
-      />
-
+      }
+      toolbar={
+        /* 插件选择：随标题常驻 */
+        <TabButtonGroup
+          options={pluginList.map((plugin) => ({
+            value: plugin.id,
+            label: plugin.name,
+            icon: (
+              <PluginIcon pluginName={plugin.name} />
+            ),
+          }))}
+          value={selectedPluginId}
+          onValueChange={setSelectedPluginId}
+        />
+      }
+    >
       {isLoading || isLoadingDetail ? (
         <Card className="glass-card">
           <CardContent className="py-12 text-center">
@@ -1583,6 +1588,6 @@ export default function PluginsPage() {
           </CardContent>
         </Card>
       )}
-    </div>
+    </PinnedPage>
   );
 }

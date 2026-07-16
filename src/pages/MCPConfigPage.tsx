@@ -60,6 +60,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { PinnedPage } from '@/components/layout/PinnedPage';
 
 // ============================================================================
 // Types
@@ -646,48 +647,52 @@ export default function MCPConfigPage() {
 
   return (
     <TooltipProvider>
-      <div className="space-y-4 sm:space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2 sm:gap-3">
-              <Server className="w-6 h-6 sm:w-8 sm:h-8" />
-              {t('mcpConfig.title')}
-            </h1>
-            <p className="text-muted-foreground mt-1 text-sm sm:text-base">{t('mcpConfig.description')}</p>
+      <PinnedPage
+        className="gap-4 sm:gap-6"
+        bodyClassName="space-y-4 sm:space-y-6"
+        header={
+          /* Header */
+          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2 sm:gap-3">
+                <Server className="w-6 h-6 sm:w-8 sm:h-8" />
+                {t('mcpConfig.title')}
+              </h1>
+              <p className="text-muted-foreground mt-1 text-sm sm:text-base">{t('mcpConfig.description')}</p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleReload}
+                    disabled={isReloading}
+                  >
+                    {isReloading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-4 w-4" />
+                    )}
+                    <span className="ml-1">{t('mcpConfig.reload')}</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{t('mcpConfig.reload')} - {t('mcpConfig.description')}</p>
+                </TooltipContent>
+              </Tooltip>
+              <Button variant="outline" size="sm" onClick={handleOpenImportDialog}>
+                <FileJson className="h-4 w-4 mr-1" />
+                {t('mcpConfig.importJson')}
+              </Button>
+              <Button size="sm" onClick={openCreateDialog}>
+                <Plus className="h-4 w-4 mr-1" />
+                {t('mcpConfig.addConfig')}
+              </Button>
+            </div>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleReload}
-                  disabled={isReloading}
-                >
-                  {isReloading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <RefreshCw className="h-4 w-4" />
-                  )}
-                  <span className="ml-1">{t('mcpConfig.reload')}</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>{t('mcpConfig.reload')} - {t('mcpConfig.description')}</p>
-              </TooltipContent>
-            </Tooltip>
-            <Button variant="outline" size="sm" onClick={handleOpenImportDialog}>
-              <FileJson className="h-4 w-4 mr-1" />
-              {t('mcpConfig.importJson')}
-            </Button>
-            <Button size="sm" onClick={openCreateDialog}>
-              <Plus className="h-4 w-4 mr-1" />
-              {t('mcpConfig.addConfig')}
-            </Button>
-          </div>
-        </div>
-
+        }
+      >
         {/* Reload Result */}
         {reloadResult && (
           <Card className="glass-card">
@@ -1741,7 +1746,7 @@ export default function MCPConfigPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </div>
+      </PinnedPage>
     </TooltipProvider>
   );
 }

@@ -66,6 +66,7 @@ import {
   RotateCw,
 } from 'lucide-react';
 import { memeApi, MemeRecord, MemeStatsData, MemeListParams, MemePersona } from '@/lib/api';
+import { PinnedPage } from '@/components/layout/PinnedPage';
 import { toast } from 'sonner';
 
 // ============================================================================
@@ -1472,59 +1473,63 @@ export default function AIMemePage() {
   // ============================================================================
 
   return (
-    <div className="space-y-3">
-      {/* Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div className="min-w-0 overflow-x-auto">
-          <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
-            <ImageIcon className="w-8 h-8 shrink-0" />
-            {t('aiMeme.title')}
-          </h1>
-          <p className="whitespace-nowrap text-sm text-muted-foreground mt-1">{t('aiMeme.description')}</p>
-        </div>
-        <div className="flex flex-wrap items-center justify-end gap-2 self-end sm:self-auto">
-          {filterStatus === 'rejected' && (
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => setShowPurgeDialog(true)}
-              className="gap-1.5 whitespace-nowrap"
-            >
-              <Eraser className="w-4 h-4" />
-              {t('aiMeme.purgeRejected')}
-            </Button>
-          )}
-          {filterStatus === 'pending_manual' && (
+    <PinnedPage
+      className="gap-3"
+      bodyClassName="space-y-3"
+      header={
+        /* Header（固定区：标题 + 同行右侧操作按钮） */
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0 overflow-x-auto">
+            <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
+              <ImageIcon className="w-8 h-8 shrink-0" />
+              {t('aiMeme.title')}
+            </h1>
+            <p className="whitespace-nowrap text-sm text-muted-foreground mt-1">{t('aiMeme.description')}</p>
+          </div>
+          <div className="flex flex-wrap items-center justify-end gap-2 self-end sm:self-auto">
+            {filterStatus === 'rejected' && (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => setShowPurgeDialog(true)}
+                className="gap-1.5 whitespace-nowrap"
+              >
+                <Eraser className="w-4 h-4" />
+                {t('aiMeme.purgeRejected')}
+              </Button>
+            )}
+            {filterStatus === 'pending_manual' && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowRetagPendingDialog(true)}
+                className="gap-1.5 whitespace-nowrap"
+              >
+                <RotateCw className="w-4 h-4" />
+                {t('aiMeme.batchRetagPending')}
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setShowRetagPendingDialog(true)}
+              onClick={() => { fetchMemes(); fetchStats(); fetchPersonas(); }}
               className="gap-1.5 whitespace-nowrap"
             >
-              <RotateCw className="w-4 h-4" />
-              {t('aiMeme.batchRetagPending')}
+              <RefreshCw className="w-4 h-4" />
+              {t('aiMeme.refresh')}
             </Button>
-          )}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => { fetchMemes(); fetchStats(); fetchPersonas(); }}
-            className="gap-1.5 whitespace-nowrap"
-          >
-            <RefreshCw className="w-4 h-4" />
-            {t('aiMeme.refresh')}
-          </Button>
-          <Button
-            size="sm"
-            onClick={() => setUploadOpen(true)}
-            className="gap-1.5 whitespace-nowrap"
-          >
-            <Upload className="w-4 h-4" />
-            {t('aiMeme.upload.title')}
-          </Button>
+            <Button
+              size="sm"
+              onClick={() => setUploadOpen(true)}
+              className="gap-1.5 whitespace-nowrap"
+            >
+              <Upload className="w-4 h-4" />
+              {t('aiMeme.upload.title')}
+            </Button>
+          </div>
         </div>
-      </div>
-
+      }
+    >
       {/* Batch Action Bar - shown when any items are selected */}
       {selectedIds.size > 0 && (
         <Card className={cn(
@@ -1934,6 +1939,6 @@ export default function AIMemePage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PinnedPage>
   );
 }

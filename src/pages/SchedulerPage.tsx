@@ -36,6 +36,7 @@ import { zhCN } from 'date-fns/locale';
 import { schedulerApi } from '@/lib/api';
 import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { PinnedPage } from '@/components/layout/PinnedPage';
 
 interface ScheduledTask {
   id: string;
@@ -158,15 +159,17 @@ export default function SchedulerPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="min-w-0 overflow-x-auto">
-        <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
-          <Calendar className="w-8 h-8 shrink-0" />
-          {t('scheduler.title')}
-        </h1>
-        <p className="whitespace-nowrap text-muted-foreground mt-1">{t('scheduler.description')}</p>
-      </div>
-
+    <PinnedPage
+      header={
+        <div className="min-w-0 overflow-x-auto">
+          <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
+            <Calendar className="w-8 h-8 shrink-0" />
+            {t('scheduler.title')}
+          </h1>
+          <p className="whitespace-nowrap text-muted-foreground mt-1">{t('scheduler.description')}</p>
+        </div>
+      }
+    >
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="glass-card">
@@ -405,6 +408,6 @@ export default function SchedulerPage() {
           )}
         </DialogContent>
       </Dialog>
-    </div>
+    </PinnedPage>
   );
 }

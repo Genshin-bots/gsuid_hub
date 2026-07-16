@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Check, Clock, Loader2, RefreshCw, ShieldCheck, User, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { PinnedPage } from '@/components/layout/PinnedPage';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { cn } from '@/lib/utils';
@@ -86,31 +87,35 @@ export default function AIApprovalsPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+    <PinnedPage
+      header={
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="min-w-0 overflow-x-auto">
+            <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
+              <ShieldCheck className="w-8 h-8 shrink-0" />
+              {t('aiApprovals.title')}
+            </h1>
+            <p className="whitespace-nowrap text-muted-foreground mt-1">{t('aiApprovals.description')}</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 self-end lg:self-auto">
+            <Button variant="outline" onClick={() => loadData(viewMode)} disabled={isLoading} className="gap-2">
+              {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+              {t('common.refresh') || '刷新'}
+            </Button>
+          </div>
+        </div>
+      }
+      toolbar={
         <div className="min-w-0 overflow-x-auto">
-          <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
-            <ShieldCheck className="w-8 h-8 shrink-0" />
-            {t('aiApprovals.title')}
-          </h1>
-          <p className="whitespace-nowrap text-muted-foreground mt-1">{t('aiApprovals.description')}</p>
+          <TabButtonGroup
+            options={viewOptions}
+            value={viewMode}
+            onValueChange={(value) => setViewMode(value as ViewMode)}
+            className="w-max"
+          />
         </div>
-        <div className="flex flex-wrap items-center gap-2 self-end lg:self-auto">
-          <Button variant="outline" onClick={() => loadData(viewMode)} disabled={isLoading} className="gap-2">
-            {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-            {t('common.refresh') || '刷新'}
-          </Button>
-        </div>
-      </div>
-
-      <div className="min-w-0 overflow-x-auto">
-        <TabButtonGroup
-          options={viewOptions}
-          value={viewMode}
-          onValueChange={(value) => setViewMode(value as ViewMode)}
-          className="w-max"
-        />
-      </div>
+      }
+    >
 
       {isLoading ? (
         <div className="flex items-center justify-center py-24 text-muted-foreground">
@@ -197,6 +202,6 @@ export default function AIApprovalsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </PinnedPage>
   );
 }

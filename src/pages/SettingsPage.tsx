@@ -11,6 +11,7 @@ import { authApi } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
+import { PinnedPage } from '@/components/layout/PinnedPage';
 
 export default function SettingsPage() {
   const { t } = useLanguage();
@@ -113,15 +114,17 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="min-w-0 overflow-x-auto">
-        <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
-          <User className="w-8 h-8 shrink-0" />
-          {t('settings.title')}
-        </h1>
-        <p className="whitespace-nowrap text-muted-foreground mt-1">{t('settings.description')}</p>
-      </div>
-
+    <PinnedPage
+      header={
+        <div className="min-w-0 overflow-x-auto">
+          <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
+            <User className="w-8 h-8 shrink-0" />
+            {t('settings.title')}
+          </h1>
+          <p className="whitespace-nowrap text-muted-foreground mt-1">{t('settings.description')}</p>
+        </div>
+      }
+    >
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Avatar & Name Section */}
         <Card className="glass-card">
@@ -260,6 +263,6 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </PinnedPage>
   );
 }

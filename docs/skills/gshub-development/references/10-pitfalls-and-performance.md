@@ -246,6 +246,166 @@ box-shadow:
 
 `return (\n {/* … */}\n <div>…)` 会让 esbuild 报 `Expected ")"`——JSX 注释也是表达式，等于 return 了两个子节点。注释写成 `//` 放在 `return` 之前，或放到根元素**内部**。
 
+### P-23 页面里有**两层嵌套 `<main>`**，`document.querySelector('main')` 拿到的是外层 ★★
+
+**症状**：写调试脚本 / E2E 时测「main 是否在滚动」，永远得到 `overflow: hidden`、`scrollHeight === clientHeight`，
+误判成「滚动容器坏了」。
+
+**根因**：`SidebarInset`（`src/components/ui/sidebar.tsx`）**自己就渲染成 `<main>`**，
+而 `AppLayout` 又在它内部放了真正的滚动 `<main className="flex-1 min-h-0 flex flex-col overflow-auto">`：
+
+```
+<main (SidebarInset) class="flex flex-col overflow-hidden">   ← querySelector('main') 命中这个
+  <LayoutHeader/>
+  <main class="flex-1 min-h-0 overflow-auto">                 ← 真正的滚动容器
+    <div class="layout-page-inner">…</div>
+  </main>
+</main>
+```
+
+**正确取法**：`document.querySelector('.layout-page-inner').parentElement`。
+
+> 顺带：嵌套 `<main>` 本身不符合 HTML 语义（一个文档应只有一个 `main`），属历史遗留。
+> `main:has(.page-fill/.page-viewport/.page-pinned)` 这类选择器会**同时命中内外两层**，
+> 目前无害（外层本来就 `overflow: hidden`），但改这块 CSS 时要意识到它匹配了两个节点。
+
+### P-24 `overflow` 滚动容器会裁掉 glass-card 阴影——负 margin + padding 抵消 ★★
+
+`.page-pinned-body` 是页面唯一滚动容器；`overflow-y: auto` 会让 `overflow-x` 计算值也变成 `auto`（CSS 规范），
+于是卡片的四向外溢阴影被切成直角。修复模式（`src/index.css` `.page-pinned-body`）：
+
+```css
+margin: calc(var(--shadow-bleed) * -1);   /* -0.75rem：向四周溢出到 gutter 里 */
+padding: var(--shadow-bleed);             /*  0.75rem：把内容推回原位 */
+```
+
+盒模型账要算清楚，否则会平移半个 gutter：
+- 左右：gutter 1.5rem > bleed 0.75rem，溢出后仍在页面留白内，**内容净位移 0**，滚动条落在距视口边 0.75rem 处。
+- 上下：flex `gap-6` 与 `margin-top:-0.75rem` + `padding-top:0.75rem` 相抵，
+  header 底边到首张卡片仍是 **1.5rem**（与旧 `space-y-6` 完全一致）。
+
+同类既有机制：`.glass-card-grid`、`.shadow-safe`、`.layout-page-inner .overflow-x-auto` 自动注入（见 [§04 §4.1.2](./04-page-layout-spec.md)）。
+
+### P-25 自定义 CSS 在 `@tailwind utilities` 之后——别在里面写 `gap`/`display` ★★
+
+`src/index.css` 的 `.page-fill` / `.page-pinned` 等段落位于 `@tailwind utilities`（第 16 行）**之后**，
+同特异性下**后者胜**。所以在 `.page-pinned { gap: 1.5rem }` 里写死 gap，会把调用方传的 `gap-3` 压掉（和 [P-21](#p-21-表面类自带---radius-圆角小圆角要-roundednpx-) 同源）。
+
+**分工原则**：
+- CSS 段落只写 Tailwind **做不到**的东西：`main:has(…)` 选择器、media query 内的 `overflow` 锁定。
+- `display` / `flex-direction` / `gap` 一律由组件侧的**工具类**提供（`PinnedPage` 上的 `flex flex-col gap-6`），
+  这样 `cn()`（tailwind-merge）能让调用方的 `gap-4` 正常覆盖。
+
+### P-26 demo 模式的页面崩溃 ≠ 你改坏了 ★
+
+`npm run dev:demo` 的 Mock Server（`src/lib/mockServer.ts`）**只覆盖了部分 `/api/*`**，未匹配的请求会
+穿透到 `originalFetch` → 404 → 页面拿到 `undefined` 字段后崩溃。当前已知在 demo 模式下**必崩**的页面
+（在**未改动的 HEAD 代码**上同样复现，与前端改动无关）：
+
+| 路由 | 报错 | 缺失的 mock |
+|------|------|------------|
+| `/logs` | `Cannot read properties of undefined (reading 'toLocaleString')` | `/api/logs/*` |
+| `/persona-config` | `… (reading 'enable_persona')` | 人格配置 |
+| `/mcp-config` | `… (reading 'length')` | MCP 配置 |
+| `/ai-statistics` | `tokenByModel.map is not a function` | 统计 |
+| `/ai-budget` | `… (reading 'length')` | 预算 |
+| `/backup` | `nodes.map is not a function` | 备份树 |
+| `/ai-kanban` | `… (reading 'task_count')` | 看板 |
+| `/ai-config` | `mcpConfigs is not iterable` | AI 配置 |
+
+**判定方法**（别凭感觉甩锅，用这招取证）：把可疑页面临时换成 HEAD 版本再复现一次——
+
+```bash
+git show HEAD:src/pages/XxxPage.tsx > /tmp/Xxx.HEAD.tsx
+cp src/pages/XxxPage.tsx /tmp/Xxx.mine.tsx      # 先备份自己的改动！
+cp /tmp/Xxx.HEAD.tsx src/pages/XxxPage.tsx      # 临时回退
+# …复现…
+cp /tmp/Xxx.mine.tsx src/pages/XxxPage.tsx      # 一定要还原
+```
+
+同样的错、同样的行 → 是既有问题（demo 数据缺口），不是你的改动。
+⚠️ 工作区可能有**用户未提交的改动**（如 AIBudgetPage），务必先备份再回退，`git checkout` 会直接丢掉它们。
+
+### P-27 Git Bash 会把 `/ai-meme` 这种参数改写成 Windows 路径 ★
+
+**症状**：给脚本传路由 `/ai-meme`，脚本里收到 `C:/Program Files/Git/ai-meme`，页面渲染成 404。
+
+**根因**：MSYS/Git-Bash 的 POSIX 路径转换会把「看起来像绝对路径」的参数自动转成 Windows 路径。
+
+**修复**：`MSYS_NO_PATHCONV=1 node script.mjs /ai-meme`，或参数不带前导 `/`（在脚本里再拼）。
+
+### P-28 固定区（header/toolbar）过宽会被**永久裁掉、够不着** ★★
+
+**症状**：桌面端某个宽控件行（如 `/ai-knowledge` 在 xl 断点处的「切换 + 搜索 + 5 个按钮」一行）
+右侧按钮被切掉，且**没有任何办法滚到**——鼠标怎么拖都出不来。
+
+**根因**：`main:has(.page-pinned)` 在桌面把 `main` 设成了 `overflow: hidden`。迁移前 `main` 是
+`overflow: auto`，内容太宽时会给出**页面级横向滚动条**兜底；锁死之后这条退路没了。
+而 `.page-pinned-body` 因为自带 `overflow-y:auto`（连带 `overflow-x:auto`）能自己横向滚，
+**只有 header / toolbar 这两个普通容器会被硬裁**。
+
+**修复**（已内置在 `src/index.css`）：让固定区自己兜横向溢出——
+
+```css
+.page-pinned-toolbar {
+  overflow-x: auto;                          /* 自己横向滚，不再依赖 main */
+  margin: calc(var(--shadow-bleed) * -1);    /* overflow-x:auto 连带裁竖直阴影 → 上下留位 */
+  padding: var(--shadow-bleed);              /* 负 margin 与内边距相抵，净位移 0 */
+}
+.page-pinned-header,
+.page-pinned-toolbar,
+.page-pinned-body {
+  min-width: 0;   /* flex item 默认 min-width:auto，会拒绝窄于 min-content */
+}
+```
+
+**启示**：**任何**把滚动容器从 `main` 挪到页面内部的改动，都要重新检查「原本靠 main 兜底的溢出
+现在谁来兜」。自检：`document.querySelector('.layout-page-inner')` 的 `scrollWidth - clientWidth`
+在桌面必须为 `0`——大于 0 就意味着有内容被 `main: overflow:hidden` 裁掉且不可达。
+
+### P-29 `Badge` 自带 `whitespace-nowrap`——放进 flex 行会把兄弟挤成「单字列」★★
+
+**症状**（/ai-budget 看板曾如此）：移动端一行里的状态文案被压成**每行一个字**的竖条，
+同行的按钮被顶出屏幕右侧、点不到。
+
+**根因**：`src/components/ui/badge.tsx` 的基类含 **`whitespace-nowrap`**，所以 Badge 的
+min-content 宽 = 整句话的宽度，**永不收缩**。把它塞进 `flex items-center` 且外层
+`justify-between`、又没有 `flex-wrap` 时：
+
+- Badge 抢走一整行宽度；
+- 兄弟 `<span>` 是可换行文本，min-content 只有**一个字**（中文尤其致命）→ 被压成单字列；
+- 按钮没有 `shrink-0`，被挤出容器。
+
+`en-US` / `ja-JP` 的文案通常比中文长得多（本例 en 的提示 ~2 倍长），**只按中文目测会漏掉**。
+
+```tsx
+// ❌ 一行硬排：Badge 不换行 + 无 flex-wrap + 按钮无 shrink-0
+<div className="flex items-center justify-between">
+  <div className="flex items-center gap-3">
+    <AlertTriangle className="w-5 h-5" />
+    <span className="font-medium">{t('…statusOff')}</span>
+    <Badge variant="outline">{t('…tipOff')}</Badge>
+  </div>
+  <Button size="sm">{t('…refresh')}</Button>
+</div>
+
+// ✅ 移动端堆叠 + 状态组可换行 + Badge 允许折行 + 按钮不缩
+<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+  <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
+    <AlertTriangle className="w-5 h-5 shrink-0" />
+    <span className="font-medium">{t('…statusOff')}</span>
+    <Badge variant="outline" className="max-w-full whitespace-normal">{t('…tipOff')}</Badge>
+  </div>
+  <Button size="sm" className="shrink-0 self-start sm:self-auto">{t('…refresh')}</Button>
+</div>
+```
+
+**四件套**：`flex-col sm:flex-row` 堆叠 ／ 内层 `flex-wrap` ／ Badge `whitespace-normal max-w-full`
+／ 按钮 `shrink-0 self-start sm:self-auto`；图标一律 `shrink-0`。
+
+**自检**：窄屏（390 / 360）下遍历 DOM，任何元素的 `getBoundingClientRect().right` 都不应超过
+`.layout-page-inner` 的右边界；同时留意某个文本节点的**高度异常大**（= 被挤成竖条）。
+
 ## B. 性能优化
 
 ### B.1 图片
@@ -279,7 +439,8 @@ box-shadow:
 
 ## C. 新页面落地自查清单（总）
 
-- [ ] 根容器：标题页 `space-y-6`（**无** `p-6` / `overflow-auto` / `max-w-*`，页边距由 AppLayout 提供）；全高单卡片页 `page-fill flex glass-card` + 内层 clip（[§04](./04-page-layout-spec.md)）
+- [ ] 根容器：标题页用 `<PinnedPage>`（**无** `p-6` / `overflow-auto` / `max-w-*`，页边距由 AppLayout 提供）；全高单卡片页 `page-fill flex glass-card` + 内层 clip（[§04](./04-page-layout-spec.md)）
+- [ ] `PinnedPage` 的 `header={…}` 只放标题 + 同行按钮；`bodyClassName`/`className` 跟随原页面间距；注释用 `/* */`（[§04 §4.1.0](./04-page-layout-spec.md)）
 - [ ] 卡片网格加 `glass-card-grid`；glass-card 宿主无 `overflow-hidden`（P-19）
 - [ ] 标题 `text-3xl font-bold` + 内联图标 `w-8 h-8`（无背景容器）；副标题 `text-muted-foreground mt-1`（无 `text-sm`）
 - [ ] 卡片/弹窗一律 `className="glass-card"`（**不**用 `isGlass &&`）（[§03](./03-theme-and-styling.md)）

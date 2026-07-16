@@ -7,6 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Sparkles, AlertCircle, Plus, Trash2, Edit2, GitBranch, FileText, ScrollText, Link, FileCode, FolderOpen, Loader2 } from 'lucide-react';
 import { aiSkillsApi, AISkill, AISkillDetail } from '@/lib/api';
 import { toast } from 'sonner';
+import { PinnedPage } from '@/components/layout/PinnedPage';
 import {
   Dialog,
   DialogContent,
@@ -240,23 +241,25 @@ export default function AISkillsPage() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* 页面标题 */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="min-w-0 overflow-x-auto">
-          <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
-            <Sparkles className="w-8 h-8 shrink-0" />
-            {t('aiSkills.title')}
-          </h1>
-          <p className="whitespace-nowrap text-muted-foreground mt-1">{t('aiSkills.description')}</p>
+    <PinnedPage
+      header={
+        /* 页面标题 */
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0 overflow-x-auto">
+            <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
+              <Sparkles className="w-8 h-8 shrink-0" />
+              {t('aiSkills.title')}
+            </h1>
+            <p className="whitespace-nowrap text-muted-foreground mt-1">{t('aiSkills.description')}</p>
+          </div>
+          {/* 新增技能按钮 */}
+          <Button onClick={() => setAddDialogOpen(true)} className="gap-2 whitespace-nowrap self-end sm:self-auto">
+            <Plus className="h-4 w-4" />
+            {t('aiSkills.addSkill')}
+          </Button>
         </div>
-        {/* 新增技能按钮 */}
-        <Button onClick={() => setAddDialogOpen(true)} className="gap-2 whitespace-nowrap self-end sm:self-auto">
-          <Plus className="h-4 w-4" />
-          {t('aiSkills.addSkill')}
-        </Button>
-      </div>
-
+      }
+    >
       {/* 错误提示 */}
       {error && (
         <Card className={cn(
@@ -578,6 +581,6 @@ export default function AISkillsPage() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </PinnedPage>
   );
 }

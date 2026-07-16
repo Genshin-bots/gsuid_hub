@@ -16,6 +16,7 @@ import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import remarkGfm from 'remark-gfm';
 import type { Components } from 'react-markdown';
+import { PinnedPage } from '@/components/layout/PinnedPage';
 
 // 缓存相关常量
 const PLUGIN_CACHE_KEY = 'pluginStore_cache';
@@ -502,64 +503,70 @@ export default function PluginStorePage() {
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-3">
-            <Store className="w-8 h-8" />
-            {t('pluginStore.title')}
-          </h1>
-          <p className="text-muted-foreground mt-1">{t('pluginStore.description')}</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Button
-            variant="outline"
-            onClick={() => setGitMirrorOpen(true)}
-            className="gap-2"
-          >
-            <GitBranch className="w-4 h-4" />
-            {t('gitMirror.title')}
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => setInstallByUrlOpen(true)}
-            className="gap-2"
-          >
-            <Link2 className="w-4 h-4" />
-            {t('pluginStore.installFromUrl')}
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => { fetchPlugins(true); fetchGitMirrorInfo(true); }}
-            disabled={isLoading}
-            className="gap-2"
-          >
-            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-            {t('pluginStore.refresh')}
-          </Button>
-        </div>
-      </div>
-
-      <Card className="glass-card">
-        <CardContent className="p-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder={t('pluginStore.searchPlugin')}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
+    <PinnedPage
+      header={
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold flex items-center gap-3">
+              <Store className="w-8 h-8" />
+              {t('pluginStore.title')}
+            </h1>
+            <p className="text-muted-foreground mt-1">{t('pluginStore.description')}</p>
           </div>
-        </CardContent>
-      </Card>
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              onClick={() => setGitMirrorOpen(true)}
+              className="gap-2"
+            >
+              <GitBranch className="w-4 h-4" />
+              {t('gitMirror.title')}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setInstallByUrlOpen(true)}
+              className="gap-2"
+            >
+              <Link2 className="w-4 h-4" />
+              {t('pluginStore.installFromUrl')}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => { fetchPlugins(true); fetchGitMirrorInfo(true); }}
+              disabled={isLoading}
+              className="gap-2"
+            >
+              <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+              {t('pluginStore.refresh')}
+            </Button>
+          </div>
+        </div>
+      }
+      toolbar={
+        /* 搜索 + 分类切换：两者原本是 space-y-6 的兄弟，用 space-y-6 保持同样行距 */
+        <div className="space-y-6">
+          <Card className="glass-card">
+            <CardContent className="p-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder={t('pluginStore.searchPlugin')}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </CardContent>
+          </Card>
 
-      <TabButtonGroup
-        options={tabOptions}
-        value={activeTab}
-        onValueChange={setActiveTab}
-      />
-
+          <TabButtonGroup
+            options={tabOptions}
+            value={activeTab}
+            onValueChange={setActiveTab}
+          />
+        </div>
+      }
+    >
       <div className="mt-6">
           {isLoading ? (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -955,6 +962,6 @@ export default function PluginStorePage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </PinnedPage>
   );
 }

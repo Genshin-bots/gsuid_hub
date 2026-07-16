@@ -24,6 +24,7 @@ import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
+import { PinnedPage } from '@/components/layout/PinnedPage';
 
 // Define types for backend response
 interface BackupConfigItem {
@@ -364,28 +365,29 @@ export default function BackupPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="min-w-0 overflow-x-auto">
-          <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
-            <HardDrive className="w-8 h-8 shrink-0" />
-            {t('backup.title')}
-          </h1>
-          <p className="whitespace-nowrap text-muted-foreground mt-1">{t('backup.description')}</p>
+    <PinnedPage
+      header={
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0 overflow-x-auto">
+            <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
+              <HardDrive className="w-8 h-8 shrink-0" />
+              {t('backup.title')}
+            </h1>
+            <p className="whitespace-nowrap text-muted-foreground mt-1">{t('backup.description')}</p>
+          </div>
+          <div className="flex flex-wrap justify-end gap-2 self-end sm:self-auto">
+            <Button onClick={handleSaveSettings} disabled={!hasChanges || isSaving} className="whitespace-nowrap">
+              <Save className="w-4 h-4 mr-2" />
+              {isSaving ? t('backup.saving') : t('backup.saveSettings')}
+            </Button>
+            <Button onClick={handleBackupNow} disabled={isBackingUp} className="whitespace-nowrap">
+              <Play className="w-4 h-4 mr-2" />
+              {isBackingUp ? t('backup.backingUp') : t('backup.backupNow')}
+            </Button>
+          </div>
         </div>
-        <div className="flex flex-wrap justify-end gap-2 self-end sm:self-auto">
-          <Button onClick={handleSaveSettings} disabled={!hasChanges || isSaving} className="whitespace-nowrap">
-            <Save className="w-4 h-4 mr-2" />
-            {isSaving ? t('backup.saving') : t('backup.saveSettings')}
-          </Button>
-          <Button onClick={handleBackupNow} disabled={isBackingUp} className="whitespace-nowrap">
-            <Play className="w-4 h-4 mr-2" />
-            {isBackingUp ? t('backup.backingUp') : t('backup.backupNow')}
-          </Button>
-        </div>
-      </div>
-
-      <div className="space-y-4">
+      }
+      toolbar={
         <TabButtonGroup
           options={[
             { value: 'settings', label: t('backup.backupSettings'), icon: <Archive className="w-4 h-4" /> },
@@ -394,7 +396,9 @@ export default function BackupPage() {
           value={activeTab}
           onValueChange={setActiveTab}
         />
-
+      }
+    >
+      <div className="space-y-4">
         {activeTab === 'settings' && (
           <div className="space-y-4">
           <Card className="glass-card">
@@ -562,6 +566,6 @@ export default function BackupPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PinnedPage>
   );
 }

@@ -3,6 +3,44 @@
 > 返回 [SKILL 主入口](../SKILL.md)。这些组件是全站交互一致性的载体，**遇到对应需求必须复用，禁止手搓**。
 > 规则与高度统一见 [§05](./05-components-and-form-controls.md)。
 
+## 6.0 PinnedPage —— 固定标题页骨架 ★★★
+
+位置：`src/components/layout/PinnedPage.tsx`。**所有「H1 + 副标题 + 内容流」的标题页都用它当根容器**，
+不要再手写 `<div className="space-y-6">`。桌面端标题（+ 操作控件行）常驻、只滚内容；移动端退回普通滚动。
+
+```ts
+interface PinnedPageProps {
+  header: React.ReactNode;      // 固定区一：标题块 + 与标题同行的右侧按钮
+  toolbar?: React.ReactNode;    // 固定区二（可选）：紧贴标题下方的操作控件行
+  children: React.ReactNode;    // 滚动区
+  bodyClassName?: string;       // 滚动区布局类，默认 'space-y-6'
+  className?: string;           // 根容器附加类，默认 'gap-6'（同时决定三段间距）
+}
+```
+
+```tsx
+<PinnedPage
+  bodyClassName="space-y-4"   // 原页面是 space-y-4 就原样传
+  className="gap-4"           // 标题↔控件行↔内容 三段间距一起改
+  header={
+    /* 注意：这里是 JS 表达式上下文，注释用 /* *\/ 而非 {/* *\/} */
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div className="min-w-0"><h1 …/><p …/></div>
+      <Button className="self-start sm:self-auto shrink-0">…</Button>
+    </div>
+  }
+  toolbar={<TabButtonGroup options={tabOptions} value={tab} onValueChange={setTab} />}
+>
+  {/* 卡片 / 列表 / Dialog 都放这里 */}
+</PinnedPage>
+```
+
+**`toolbar` 的判定标准（重要）**：紧贴标题下方那一块，**操作控件**（TabButtonGroup / 二级切换 /
+筛选搜索栏 / 与之同行的按钮）→ 放 `toolbar`，随标题常驻；**数据展示**（统计卡 / 看板 / 提示 banner）
+→ 留在 `children` 跟着滚。全站 13 个页面有 `toolbar`、13 个没有。
+
+完整机制、对照表、迁移口诀与 4 个例外页面见 [§04 §4.1.0](./04-page-layout-spec.md#410-pinnedpage--固定标题页默认骨架-)。
+
 ## 6.1 TabButtonGroup —— 分段切换按钮
 
 位置：`src/components/ui/TabButtonGroup.tsx`。用于替代散落的 ToggleGroup / 自定义按钮组，提供统一的标签切换样式。

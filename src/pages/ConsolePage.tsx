@@ -9,6 +9,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { cn } from "@/lib/utils";
 import { ConsolePanel, LogEntry, buildLogAnchor, computeLineCount } from "@/components/ConsolePanel";
+import { PinnedPage } from '@/components/layout/PinnedPage';
 
 let logCounter = 0;
 
@@ -501,66 +502,69 @@ export default function ConsolePage() {
     renderableLevels.every((lv) => visibleLevels.has(lv.value));
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="min-w-0 overflow-x-auto">
-          <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
-            <Terminal className="w-8 h-8 shrink-0" />
-            {t('console.title')}
-          </h1>
-          <p className="whitespace-nowrap text-muted-foreground mt-1">{t('console.description')}</p>
-        </div>
-        <div className="flex flex-wrap items-center justify-end gap-2 self-end sm:self-auto">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground whitespace-nowrap">
-            <Circle className="w-2 h-2 fill-green-500 text-green-500 animate-pulse" />
-            {t('console.connected')}
+    <PinnedPage
+      header={
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0 overflow-x-auto">
+            <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
+              <Terminal className="w-8 h-8 shrink-0" />
+              {t('console.title')}
+            </h1>
+            <p className="whitespace-nowrap text-muted-foreground mt-1">{t('console.description')}</p>
           </div>
-          <div className="flex items-center gap-2 whitespace-nowrap">
-            <span className="text-sm text-muted-foreground">{t('console.autoScroll')}</span>
-            <Switch checked={autoScroll} onCheckedChange={setAutoScroll} />
+          <div className="flex flex-wrap items-center justify-end gap-2 self-end sm:self-auto">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground whitespace-nowrap">
+              <Circle className="w-2 h-2 fill-green-500 text-green-500 animate-pulse" />
+              {t('console.connected')}
+            </div>
+            <div className="flex items-center gap-2 whitespace-nowrap">
+              <span className="text-sm text-muted-foreground">{t('console.autoScroll')}</span>
+              <Switch checked={autoScroll} onCheckedChange={setAutoScroll} />
+            </div>
+            <Button variant="outline" size="sm" onClick={exportLogs} className="whitespace-nowrap">
+              <Download className="w-4 h-4 mr-2" />
+              {t('console.exportLogs')}
+            </Button>
+            <Button variant="outline" size="sm" onClick={clearLogs} className="whitespace-nowrap">
+              <Trash2 className="w-4 h-4 mr-2" />
+              {t('console.clear')}
+            </Button>
           </div>
-          <Button variant="outline" size="sm" onClick={exportLogs} className="whitespace-nowrap">
-            <Download className="w-4 h-4 mr-2" />
-            {t('console.exportLogs')}
-          </Button>
-          <Button variant="outline" size="sm" onClick={clearLogs} className="whitespace-nowrap">
-            <Trash2 className="w-4 h-4 mr-2" />
-            {t('console.clear')}
-          </Button>
         </div>
-      </div>
-
-      {/* 日志级别过滤 */}
-      <div
-        className={cn(
-          "flex flex-wrap items-center gap-2 p-3 rounded-xl border",
-          isGlass
-            ? "bg-white/5 border-white/15 backdrop-blur-sm"
-            : "bg-card/40 border-border/50",
-        )}
-        style={{
-          // 注入一个很淡的主题色背景渐变，让整个过滤器与主题联�?
-          backgroundImage:
-            'linear-gradient(90deg, hsl(var(--primary) / 0.04), transparent 60%)',
-        }}
-      >
-        <span className="text-sm font-medium text-muted-foreground whitespace-nowrap mr-1">
-          {t('console.levelFilter') || '日志级别'}:
-        </span>
-        {renderableLevels.map((lv) => renderLevelBadge(lv, visibleLevels.has(lv.value)))}
-        <div className="ml-auto flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 px-2 text-xs"
-            onClick={allActive ? disableAllLevels : enableAllLevels}
-            aria-label={allActive ? t('console.deselectAll') : t('console.selectAll')}
-          >
-            {allActive ? t('console.deselectAll') : t('console.selectAll')}
-          </Button>
+      }
+      toolbar={
+        /* 日志级别过滤 */
+        <div
+          className={cn(
+            "flex flex-wrap items-center gap-2 p-3 rounded-xl border",
+            isGlass
+              ? "bg-white/5 border-white/15 backdrop-blur-sm"
+              : "bg-card/40 border-border/50",
+          )}
+          style={{
+            // 注入一个很淡的主题色背景渐变，让整个过滤器与主题联动
+            backgroundImage:
+              'linear-gradient(90deg, hsl(var(--primary) / 0.04), transparent 60%)',
+          }}
+        >
+          <span className="text-sm font-medium text-muted-foreground whitespace-nowrap mr-1">
+            {t('console.levelFilter') || '日志级别'}:
+          </span>
+          {renderableLevels.map((lv) => renderLevelBadge(lv, visibleLevels.has(lv.value)))}
+          <div className="ml-auto flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 text-xs"
+              onClick={allActive ? disableAllLevels : enableAllLevels}
+              aria-label={allActive ? t('console.deselectAll') : t('console.selectAll')}
+            >
+              {allActive ? t('console.deselectAll') : t('console.selectAll')}
+            </Button>
+          </div>
         </div>
-      </div>
-
+      }
+    >
       <Card className={cn(
         // 非 glass-card 宿主，overflow-hidden 安全；用于裁终端头/输入条的直角底色
         "flex flex-col overflow-hidden h-[calc(100vh-130px)]",
@@ -599,6 +603,6 @@ export default function ConsolePage() {
           />
         </form>
       </Card>
-    </div>
+    </PinnedPage>
   );
 }

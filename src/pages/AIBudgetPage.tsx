@@ -74,6 +74,7 @@ import {
   AIBudgetCheckResult,
   AIBudgetWindowUsage,
 } from '@/lib/api';
+import { PinnedPage } from '@/components/layout/PinnedPage';
 
 // ============================================================================
 // Helpers
@@ -119,36 +120,39 @@ export default function AIBudgetPage() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-end justify-between">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-3"><Wallet className="w-8 h-8" />{t('aiBudget.title')}</h1>
-          <p className="text-muted-foreground mt-1">{t('aiBudget.description')}</p>
+    <PinnedPage
+      header={
+        /* Header */
+        <div className="flex items-end justify-between">
+          <div>
+            <h1 className="text-3xl font-bold flex items-center gap-3"><Wallet className="w-8 h-8" />{t('aiBudget.title')}</h1>
+            <p className="text-muted-foreground mt-1">{t('aiBudget.description')}</p>
+          </div>
+          {activeTab === 'config' && (
+            <Button onClick={handleConfigSave} disabled={!configDirty || configSaving}>
+              {configSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+              {t('aiBudget.config.save')}
+            </Button>
+          )}
         </div>
-        {activeTab === 'config' && (
-          <Button onClick={handleConfigSave} disabled={!configDirty || configSaving}>
-            {configSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-            {t('aiBudget.config.save')}
-          </Button>
-        )}
-      </div>
-
-      {/* Tab Navigation */}
-      <TabButtonGroup
-        options={tabOptions}
-        value={activeTab}
-        onValueChange={setActiveTab}
-        className="w-full justify-start"
-      />
-
+      }
+      toolbar={
+        /* Tab Navigation */
+        <TabButtonGroup
+          options={tabOptions}
+          value={activeTab}
+          onValueChange={setActiveTab}
+          className="w-full justify-start"
+        />
+      }
+    >
       {/* Tab Content */}
       {activeTab === 'overview' && <OverviewTab />}
       {activeTab === 'config' && <ConfigTab onDirtyChange={setConfigDirty} onSavingChange={setConfigSaving} saveRef={configSaveRef} />}
       {activeTab === 'rules' && <RulesTab />}
       {activeTab === 'whitelist' && <WhitelistTab />}
       {activeTab === 'diagnostic' && <DiagnosticTab />}
-    </div>
+    </PinnedPage>
   );
 }
 
@@ -193,24 +197,27 @@ function OverviewTab() {
 
   return (
     <div className="space-y-6">
-      {/* Status Banner */}
+      {/* Status Banner
+          移动端：整行堆叠、状态组允许换行——否则 Badge 自带 whitespace-nowrap 会独占宽度，
+          把状态文案挤成一列单字，并把刷新按钮顶出屏幕（en-US 的 tipOff 更长，更容易触发） */}
       <Card className="glass-card">
         <CardContent className="py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
               {overview.enabled
-                ? <CheckCircle2 className="w-5 h-5 text-green-500" />
-                : <AlertTriangle className="w-5 h-5 text-yellow-500" />}
+                ? <CheckCircle2 className="w-5 h-5 shrink-0 text-green-500" />
+                : <AlertTriangle className="w-5 h-5 shrink-0 text-yellow-500" />}
               <span className="font-medium">
                 {overview.enabled ? t('aiBudget.overview.statusOn') : t('aiBudget.overview.statusOff')}
               </span>
               {!overview.enabled && (
-                <Badge variant="outline" className="text-yellow-500 border-yellow-500/30">
+                // 覆盖 Badge 默认的 whitespace-nowrap：窄屏放不下时在药丸内换行，而不是撑爆一行
+                <Badge variant="outline" className="max-w-full whitespace-normal text-yellow-500 border-yellow-500/30">
                   {t('aiBudget.overview.tipOff')}
                 </Badge>
               )}
             </div>
-            <Button variant="outline" size="sm" onClick={fetchOverview}>
+            <Button variant="outline" size="sm" onClick={fetchOverview} className="shrink-0 self-start sm:self-auto">
               <RefreshCw className="w-4 h-4 mr-2" /> {t('aiBudget.overview.refresh')}
             </Button>
           </div>
@@ -1109,15 +1116,15 @@ function RuleFormDialog({ open, onOpenChange, mode, rule, onSuccess }: {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={cn("max-w-2xl max-h-[80vh] overflow-y-auto", "glass-card")}>
-        <DialogHeader>
+      <DialogContent className={cn("max-w-2xl max-h-[80vh] flex flex-col", "glass-card")}>
+        <DialogHeader className="shrink-0">
           <DialogTitle>{mode === 'create' ? t('aiBudget.rules.createRule') : t('aiBudget.rules.editRule')}</DialogTitle>
           <DialogDescription className="sr-only">
             {t('aiBudget.rules.ruleFormAriaDesc')}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-2">
+        <div className="min-h-0 flex-1 overflow-y-auto space-y-4 py-2 pr-1">
           {/* Scope Type */}
           <div className="space-y-2">
             <Label className="font-medium">{t('aiBudget.rules.form.scopeType')}</Label>
@@ -1237,7 +1244,7 @@ function RuleFormDialog({ open, onOpenChange, mode, rule, onSuccess }: {
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="shrink-0">
           <Button variant="outline" onClick={() => onOpenChange(false)}>{t('aiBudget.common.cancel')}</Button>
           <Button onClick={handleSave} disabled={saving}>
             {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}

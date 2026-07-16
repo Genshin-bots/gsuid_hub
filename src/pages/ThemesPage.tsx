@@ -36,6 +36,7 @@ import {
   CornerDownRight, Type, PanelLeftClose, PanelLeftOpen, SeparatorVertical, CloudFog,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { PinnedPage } from '@/components/layout/PinnedPage';
 
 // ============================================================================
 // 静态预设数据
@@ -372,29 +373,32 @@ export default function ThemesPage() {
   ];
 
   return (
-    <div className="space-y-6">
-      {/* 标题区 */}
-      <div className="min-w-0">
-        <h1 className="text-3xl font-bold flex items-center gap-3">
-          <Palette className="w-8 h-8 shrink-0" />
-          {t('themes.title')}
-        </h1>
-        <p className="text-muted-foreground mt-1">{t('themes.description')}</p>
-      </div>
-
-      {/* 二级切换 + 页面级操作：按钮与 button group 同行平齐（垂直居中） */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <TabButtonGroup
-          options={tabOptions}
-          value={tab}
-          onValueChange={(v) => setTab(v as ThemeTab)}
-        />
-        <Button onClick={openSaveDialog} className="gap-2 self-start sm:self-auto shrink-0">
-          <Save className="w-4 h-4" />
-          {t('themes.saveAsPreset')}
-        </Button>
-      </div>
-
+    <PinnedPage
+      header={
+        /* 标题区 */
+        <div className="min-w-0">
+          <h1 className="text-3xl font-bold flex items-center gap-3">
+            <Palette className="w-8 h-8 shrink-0" />
+            {t('themes.title')}
+          </h1>
+          <p className="text-muted-foreground mt-1">{t('themes.description')}</p>
+        </div>
+      }
+      toolbar={
+        /* 二级切换 + 页面级操作：按钮与 button group 同行平齐（垂直居中） */
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <TabButtonGroup
+            options={tabOptions}
+            value={tab}
+            onValueChange={(v) => setTab(v as ThemeTab)}
+          />
+          <Button onClick={openSaveDialog} className="gap-2 self-start sm:self-auto shrink-0">
+            <Save className="w-4 h-4" />
+            {t('themes.saveAsPreset')}
+          </Button>
+        </div>
+      }
+    >
       {/* ============================ 外观 Tab ============================ */}
       {tab === 'appearance' && (
         <div className="glass-card-grid grid gap-4 lg:grid-cols-2">
@@ -1184,6 +1188,6 @@ export default function ThemesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PinnedPage>
   );
 }

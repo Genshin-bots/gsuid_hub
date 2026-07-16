@@ -21,6 +21,7 @@ import { commandColors } from '@/lib/mockData';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { EChartsWrapper } from '@/components/charts';
 import type { EChartsOption } from 'echarts';
+import { PinnedPage } from '@/components/layout/PinnedPage';
 
 export default function Dashboard() {
   const { t } = useLanguage();
@@ -516,34 +517,36 @@ export default function Dashboard() {
   }, [commandTypeList, handleLegendSelectChanged]);
 
   return (
-    <div className="space-y-6">
-      {/* Header with Bot Selector */}
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-3">
-            <LayoutGrid className="w-8 h-8" />
-            {t('dashboard.title')}
-          </h1>
-          <p className="text-muted-foreground mt-1">{t('dashboard.description')}</p>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          <Bot className="w-5 h-5 text-muted-foreground" />
-          <Select value={selectedBot} onValueChange={setSelectedBot}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder={t('dashboard.selectBot')} />
-            </SelectTrigger>
-            <SelectContent>
-              {botList.map((bot) => (
-                <SelectItem key={bot.id} value={bot.id}>
-                  {bot.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+    <PinnedPage
+      header={
+        /* Header with Bot Selector */
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold flex items-center gap-3">
+              <LayoutGrid className="w-8 h-8" />
+              {t('dashboard.title')}
+            </h1>
+            <p className="text-muted-foreground mt-1">{t('dashboard.description')}</p>
+          </div>
 
+          <div className="flex items-center gap-2">
+            <Bot className="w-5 h-5 text-muted-foreground" />
+            <Select value={selectedBot} onValueChange={setSelectedBot}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder={t('dashboard.selectBot')} />
+              </SelectTrigger>
+              <SelectContent>
+                {botList.map((bot) => (
+                  <SelectItem key={bot.id} value={bot.id}>
+                    {bot.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      }
+    >
       {/* Key Metrics Grid — glass-card-grid 给四角阴影留溢出空间 */}
       <div className="glass-card-grid grid grid-cols-2 md:grid-cols-4 gap-4">
         {metricCards.map((metric) => (
@@ -678,6 +681,6 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </PinnedPage>
   );
 }

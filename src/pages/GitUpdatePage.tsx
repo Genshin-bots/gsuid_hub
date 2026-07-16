@@ -57,6 +57,7 @@ import {
   getPluginIconUrl,
 } from '@/lib/api';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { PinnedPage } from '@/components/layout/PinnedPage';
 
 const PAGE_SIZE = 20;
 
@@ -734,78 +735,83 @@ export default function GitUpdatePage() {
   };
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-3">
-            <GitBranch className="w-7 h-7 sm:w-8 sm:h-8" />
-            {t('gitUpdate.title')}
-          </h1>
-          <p className="text-muted-foreground mt-1 text-sm sm:text-base">
-            {t('gitUpdate.description')}
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() => setGitMirrorOpen(true)}
-            className="gap-2 self-start sm:self-auto"
-          >
-            <GitBranch className="w-4 h-4" />
-            {t('gitMirror.title')}
-          </Button>
-          <Button
-            variant="default"
-            onClick={handleUpdateAllClick}
-            disabled={isLoadingStatus || isForceUpdating}
-            className="gap-2 self-start sm:self-auto"
-          >
-            <Download className="w-4 h-4" />
-            {t('gitUpdate.updateAll')}
-          </Button>
-          {selectedPlugin && selectedPlugin.toLowerCase() !== 'gsuid_core' && !selectedPlugin.startsWith('_') && (
+    <PinnedPage
+      className="gap-4"
+      bodyClassName="space-y-4"
+      header={
+        /* Header */
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-3">
+              <GitBranch className="w-7 h-7 sm:w-8 sm:h-8" />
+              {t('gitUpdate.title')}
+            </h1>
+            <p className="text-muted-foreground mt-1 text-sm sm:text-base">
+              {t('gitUpdate.description')}
+            </p>
+          </div>
+          <div className="flex gap-2">
             <Button
               variant="outline"
-              onClick={handleReloadPlugin}
-              disabled={!selectedPlugin || isReloadingPlugin}
+              onClick={() => setGitMirrorOpen(true)}
               className="gap-2 self-start sm:self-auto"
             >
-              <RotateCcw className={`w-4 h-4 ${isReloadingPlugin ? 'animate-spin' : ''}`} />
-              {t('plugins.reloadPlugin')}
+              <GitBranch className="w-4 h-4" />
+              {t('gitMirror.title')}
             </Button>
-          )}
-          <Button
-            variant="outline"
-            onClick={handleRefresh}
-            disabled={isLoadingStatus || isLoadingCommits}
-            className="gap-2 self-start sm:self-auto"
-          >
-            <RefreshCw className={`w-4 h-4 ${(isLoadingStatus || isLoadingCommits) ? 'animate-spin' : ''}`} />
-            {t('gitUpdate.refresh')}
-          </Button>
+            <Button
+              variant="default"
+              onClick={handleUpdateAllClick}
+              disabled={isLoadingStatus || isForceUpdating}
+              className="gap-2 self-start sm:self-auto"
+            >
+              <Download className="w-4 h-4" />
+              {t('gitUpdate.updateAll')}
+            </Button>
+            {selectedPlugin && selectedPlugin.toLowerCase() !== 'gsuid_core' && !selectedPlugin.startsWith('_') && (
+              <Button
+                variant="outline"
+                onClick={handleReloadPlugin}
+                disabled={!selectedPlugin || isReloadingPlugin}
+                className="gap-2 self-start sm:self-auto"
+              >
+                <RotateCcw className={`w-4 h-4 ${isReloadingPlugin ? 'animate-spin' : ''}`} />
+                {t('plugins.reloadPlugin')}
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              onClick={handleRefresh}
+              disabled={isLoadingStatus || isLoadingCommits}
+              className="gap-2 self-start sm:self-auto"
+            >
+              <RefreshCw className={`w-4 h-4 ${(isLoadingStatus || isLoadingCommits) ? 'animate-spin' : ''}`} />
+              {t('gitUpdate.refresh')}
+            </Button>
+          </div>
         </div>
-      </div>
-
-      {/* Plugin Selector - TabButtonGroup style */}
-      {isLoadingStatus ? (
-        <div className="flex flex-nowrap gap-1 p-1 bg-muted/50 rounded-lg border border-border/40 overflow-x-auto">
-          {[1, 2, 3].map(i => (
-            <Skeleton key={i} className="h-9 w-24 rounded-md shrink-0" />
-          ))}
-        </div>
-      ) : (
-        <TabButtonGroup
-          options={plugins.map(plugin => ({
-            value: plugin.name,
-            label: getPluginDisplayName(plugin.name),
-            icon: <PluginIcon pluginName={plugin.name} />,
-          }))}
-          value={selectedPlugin}
-          onValueChange={setSelectedPlugin}
-        />
-      )}
-
+      }
+      toolbar={
+        /* Plugin Selector - TabButtonGroup style */
+        isLoadingStatus ? (
+          <div className="flex flex-nowrap gap-1 p-1 bg-muted/50 rounded-lg border border-border/40 overflow-x-auto">
+            {[1, 2, 3].map(i => (
+              <Skeleton key={i} className="h-9 w-24 rounded-md shrink-0" />
+            ))}
+          </div>
+        ) : (
+          <TabButtonGroup
+            options={plugins.map(plugin => ({
+              value: plugin.name,
+              label: getPluginDisplayName(plugin.name),
+              icon: <PluginIcon pluginName={plugin.name} />,
+            }))}
+            value={selectedPlugin}
+            onValueChange={setSelectedPlugin}
+          />
+        )
+      }
+    >
       {/* Current Status */}
       {currentPlugin && currentPlugin.current_commit && (
         <Card className="glass-card">
@@ -1227,6 +1233,6 @@ export default function GitUpdatePage() {
         open={gitMirrorOpen}
         onOpenChange={setGitMirrorOpen}
       />
-    </div>
+    </PinnedPage>
   );
 }

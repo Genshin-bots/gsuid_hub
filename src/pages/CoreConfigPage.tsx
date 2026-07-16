@@ -7,6 +7,7 @@ import { AlertTriangle, CheckCircle, Settings, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { configApi, CoreConfigOptionMeta } from '@/lib/api';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { PinnedPage } from '@/components/layout/PinnedPage';
 
 // Define types for core config
 interface CoreConfig {
@@ -235,15 +236,17 @@ export default function CoreConfigPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="min-w-0 overflow-visible">
-        <h1 className="break-words text-3xl font-bold leading-tight flex items-center gap-3">
-          <Settings className="w-8 h-8 shrink-0" />
-          <span className="min-w-0 break-words">{t('coreConfig.title')}</span>
-        </h1>
-        <p className="break-words text-muted-foreground mt-1">{t('coreConfig.description')}</p>
-      </div>
-
+    <PinnedPage
+      header={
+        <div className="min-w-0 overflow-visible">
+          <h1 className="break-words text-3xl font-bold leading-tight flex items-center gap-3">
+            <Settings className="w-8 h-8 shrink-0" />
+            <span className="min-w-0 break-words">{t('coreConfig.title')}</span>
+          </h1>
+          <p className="break-words text-muted-foreground mt-1">{t('coreConfig.description')}</p>
+        </div>
+      }
+    >
       <Card className="glass-card">
         {/* 无 CardHeader 时需显式 pt-6，否则默认 pt-0 会把顶部提醒贴在卡片顶边 */}
         <CardContent className="space-y-6 pt-6">
@@ -289,6 +292,6 @@ export default function CoreConfigPage() {
           </div>
         </CardContent>
       </Card>
-    </div>
+    </PinnedPage>
   );
 }

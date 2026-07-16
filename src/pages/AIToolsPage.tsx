@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
+import { PinnedPage } from '@/components/layout/PinnedPage';
 import { Wrench, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { aiToolsApi, AITool } from '@/lib/api';
@@ -229,69 +230,73 @@ export default function AIToolsPage() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* 页面标题 */}
-      <div className="min-w-0 overflow-x-auto">
-        <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
-          <Wrench className="w-8 h-8 shrink-0" />
-          {t('aiTools.title')}
-        </h1>
-        <p className="whitespace-nowrap text-muted-foreground mt-1">{t('aiTools.description')}</p>
-      </div>
-
-      {/* 筛选区域 */}
-      {!isLoading && categories.length > 0 && (
-        <div className="space-y-4">
-          {/* 分类筛选 */}
-          <TabButtonGroup
-            options={categoryList.map((category) => ({
-              value: category,
-              label: category === 'all'
-                ? `${t('aiTools.allCategories') || '全部分类'} (${categoryCounts.all || 0})`
-                : `${category} (${categoryCounts[category] || 0})`,
-              icon: <Wrench className="w-4 h-4" />,
-              // 当前筛选下数量为 0 的分类置灰(全部/已选中的除外)
-              disabled: category !== 'all'
-                && category !== selectedCategory
-                && (categoryCounts[category] || 0) === 0,
-            }))}
-            value={selectedCategory}
-            onValueChange={setSelectedCategory}
-          />
-
-          {/* 插件筛选 */}
-          <TabButtonGroup
-            options={pluginList.map((plugin) => ({
-              value: plugin,
-              label: plugin === 'all'
-                ? `${t('aiTools.allPlugins') || '全部插件'} (${pluginCounts.all || 0})`
-                : `${plugin} (${pluginCounts[plugin] || 0})`,
-              icon: <Wrench className="w-4 h-4" />,
-              // 当前筛选下数量为 0 的插件置灰(全部/已选中的除外)
-              disabled: plugin !== 'all'
-                && plugin !== selectedPlugin
-                && (pluginCounts[plugin] || 0) === 0,
-            }))}
-            value={selectedPlugin}
-            onValueChange={setSelectedPlugin}
-          />
-
-          {/* 搜索筛选 */}
-          <Input
-            type="text"
-            placeholder={t('aiTools.searchPlaceholder')}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full sm:max-w-sm"
-          />
-
-          {/* 工具统计 */}
-          <p className="text-sm text-muted-foreground">
-            {t('aiTools.toolCount', { count: filteredTools.length, total: totalCount })}
-          </p>
+    <PinnedPage
+      header={
+        /* 页面标题（固定区） */
+        <div className="min-w-0 overflow-x-auto">
+          <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
+            <Wrench className="w-8 h-8 shrink-0" />
+            {t('aiTools.title')}
+          </h1>
+          <p className="whitespace-nowrap text-muted-foreground mt-1">{t('aiTools.description')}</p>
         </div>
-      )}
+      }
+      toolbar={
+        /* 筛选区域：分类/插件切换 + 搜索 + 结果计数，随标题常驻。
+           条件为 false 时 PinnedPage 不渲染 toolbar，也不会多出一段 gap */
+        !isLoading && categories.length > 0 && (
+          <div className="space-y-4">
+            {/* 分类筛选 */}
+            <TabButtonGroup
+              options={categoryList.map((category) => ({
+                value: category,
+                label: category === 'all'
+                  ? `${t('aiTools.allCategories') || '全部分类'} (${categoryCounts.all || 0})`
+                  : `${category} (${categoryCounts[category] || 0})`,
+                icon: <Wrench className="w-4 h-4" />,
+                // 当前筛选下数量为 0 的分类置灰(全部/已选中的除外)
+                disabled: category !== 'all'
+                  && category !== selectedCategory
+                  && (categoryCounts[category] || 0) === 0,
+              }))}
+              value={selectedCategory}
+              onValueChange={setSelectedCategory}
+            />
 
+            {/* 插件筛选 */}
+            <TabButtonGroup
+              options={pluginList.map((plugin) => ({
+                value: plugin,
+                label: plugin === 'all'
+                  ? `${t('aiTools.allPlugins') || '全部插件'} (${pluginCounts.all || 0})`
+                  : `${plugin} (${pluginCounts[plugin] || 0})`,
+                icon: <Wrench className="w-4 h-4" />,
+                // 当前筛选下数量为 0 的插件置灰(全部/已选中的除外)
+                disabled: plugin !== 'all'
+                  && plugin !== selectedPlugin
+                  && (pluginCounts[plugin] || 0) === 0,
+              }))}
+              value={selectedPlugin}
+              onValueChange={setSelectedPlugin}
+            />
+
+            {/* 搜索筛选 */}
+            <Input
+              type="text"
+              placeholder={t('aiTools.searchPlaceholder')}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full sm:max-w-sm"
+            />
+
+            {/* 工具统计 */}
+            <p className="text-sm text-muted-foreground">
+              {t('aiTools.toolCount', { count: filteredTools.length, total: totalCount })}
+            </p>
+          </div>
+        )
+      }
+    >
       {/* 错误提示 */}
       {error && (
         <Card className={cn(
@@ -436,6 +441,6 @@ export default function AIToolsPage() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </PinnedPage>
   );
 }
