@@ -178,7 +178,7 @@ export function CreateConfigDialog(props: CreateConfigDialogProps) {
         onOpenChange(next);
       }}
     >
-      <DialogContent className="sm:max-w-[520px] max-h-[80vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Plus className="w-5 h-5" />
