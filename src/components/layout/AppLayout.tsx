@@ -39,7 +39,7 @@ function LayoutHeader() {
           </div>
           <span className="font-semibold">{brandTitle}</span>
           {/* rounded-md 挂 --radius，与侧栏版本号一致随主题圆角强度变化 */}
-          <Badge variant="default" className="rounded-md text-xs font-medium ml-1">v{import.meta.env.PACKAGE_VERSION || '0.0.18'}</Badge>
+          <Badge variant="default" className="rounded-md text-xs font-medium ml-1">v{import.meta.env.PACKAGE_VERSION || '0.0.19'}</Badge>
         </div>
       </div>
       <button onClick={() => navigate('/settings')} className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity">

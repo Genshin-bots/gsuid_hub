@@ -15,9 +15,6 @@ import {
   Tag, ArrowLeftRight, Braces, Key, Shield,
   Eye, EyeOff
 } from 'lucide-react';
-import {
-  McpModelContextProtocol,
-} from '@thesvg/react';
 import { AutoBrandIcon } from '@/components/ui/mcp-icon-lookup';
 import {
   Tooltip,
@@ -71,14 +68,16 @@ import { PinnedPage } from '@/components/layout/PinnedPage';
 // ============================================================================
 
 /**
- * MCP 预设 / 配置 共用的品牌图标组件。
+ * MCP 预设 / 配置 共用的品牌图标组件（占位）。
  *
- * 内部走 `AutoBrandIcon`：
- * 1. 先用手动小表（MANUAL_RULES）命中像「Email / SMTP / IMAP → Gmail」这种特殊映射；
- * 2. 拿不到再自动在 `@thesvg/react` 整个图标库里按 slug 模糊匹配；
- * 3. 都没有就回退到 MCP 官方 Logo（McpModelContextProtocol）。
+ * 当前实现永远渲染 lucide 的 `<Server />` 占位——`/mcp-config` 不再展示
+ * 具体厂商的品牌图标，避免把整库的 brand icon 拉进 bundle。
  *
- * 命中到的话，会从库里懒加载对应厂商的图标（同一 slug 只 import 一次）。
+ * `hints` 仍保留以匹配调用方签名：`name`、`command`、`url` 都会传过去，
+ * 但 `AutoBrandIcon` 内部已经把品牌匹配停用，所以这些字段没有渲染作用。
+ *
+ * 想恢复品牌图标 → `git revert` 一下 `src/components/ui/mcp-icon-lookup.tsx`
+ * 即可（旧实现 + 自动匹配都还在 git log 里）。
  */
 interface McpBrandIconProps {
   /** 服务器 / 预设名称（必传，主要匹配源） */
@@ -91,11 +90,15 @@ interface McpBrandIconProps {
 }
 
 function McpBrandIcon({ name, command, url, className }: McpBrandIconProps) {
+  // /mcp-config 决定不再展示具体厂商 brand icon，统一由 AutoBrandIcon
+  // 渲染 lucide 的 <Server /> 占位。这里只需要把提示文本透传过去即可。
+  void name;
+  void command;
+  void url;
   return (
     <AutoBrandIcon
       hints={[name, command, url]}
       className={cn('inline-block shrink-0', className)}
-      fallback={McpModelContextProtocol as unknown as Parameters<typeof AutoBrandIcon>[0]['fallback']}
     />
   );
 }
@@ -693,10 +696,9 @@ export default function MCPConfigPage() {
           <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2 sm:gap-3">
-                <McpModelContextProtocol
+                <Server
                   width={32}
                   height={32}
-                  variant="mono"
                   className="text-foreground"
                 />
                 {t('mcpConfig.title')}
