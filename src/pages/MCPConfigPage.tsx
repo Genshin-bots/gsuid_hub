@@ -16,6 +16,10 @@ import {
   Eye, EyeOff
 } from 'lucide-react';
 import {
+  McpModelContextProtocol,
+} from '@thesvg/react';
+import { AutoBrandIcon } from '@/components/ui/mcp-icon-lookup';
+import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
@@ -61,6 +65,40 @@ import {
 } from '@/components/ui/select';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { PinnedPage } from '@/components/layout/PinnedPage';
+
+// ============================================================================
+// MCP Server -> Brand Icon (auto-resolver wrapper)
+// ============================================================================
+
+/**
+ * MCP 预设 / 配置 共用的品牌图标组件。
+ *
+ * 内部走 `AutoBrandIcon`：
+ * 1. 先用手动小表（MANUAL_RULES）命中像「Email / SMTP / IMAP → Gmail」这种特殊映射；
+ * 2. 拿不到再自动在 `@thesvg/react` 整个图标库里按 slug 模糊匹配；
+ * 3. 都没有就回退到 MCP 官方 Logo（McpModelContextProtocol）。
+ *
+ * 命中到的话，会从库里懒加载对应厂商的图标（同一 slug 只 import 一次）。
+ */
+interface McpBrandIconProps {
+  /** 服务器 / 预设名称（必传，主要匹配源） */
+  name: string;
+  /** stdio 命令（可选，用于匹配包名） */
+  command?: string;
+  /** sse URL（可选，用于匹配域名） */
+  url?: string;
+  className?: string;
+}
+
+function McpBrandIcon({ name, command, url, className }: McpBrandIconProps) {
+  return (
+    <AutoBrandIcon
+      hints={[name, command, url]}
+      className={cn('inline-block shrink-0', className)}
+      fallback={McpModelContextProtocol as unknown as Parameters<typeof AutoBrandIcon>[0]['fallback']}
+    />
+  );
+}
 
 // ============================================================================
 // Types
@@ -655,7 +693,12 @@ export default function MCPConfigPage() {
           <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2 sm:gap-3">
-                <Server className="w-6 h-6 sm:w-8 sm:h-8" />
+                <McpModelContextProtocol
+                  width={32}
+                  height={32}
+                  variant="mono"
+                  className="text-foreground"
+                />
                 {t('mcpConfig.title')}
               </h1>
               <p className="text-muted-foreground mt-1 text-sm sm:text-base">{t('mcpConfig.description')}</p>
@@ -768,10 +811,15 @@ export default function MCPConfigPage() {
                       "hidden sm:flex w-10 h-10 rounded-xl items-center justify-center flex-shrink-0 transition-all duration-300",
                       config.enabled ? "bg-primary/10" : "bg-muted"
                     )}>
-                      <Server className={cn(
-                        "w-5 h-5 transition-colors duration-300",
-                        config.enabled ? "text-primary" : "text-muted-foreground"
-                      )} />
+                      <McpBrandIcon
+                        name={config.name}
+                        command={config.command}
+                        url={config.url}
+                        className={cn(
+                          "w-5 h-5 transition-colors duration-300",
+                          config.enabled ? "text-primary" : "text-muted-foreground"
+                        )}
+                      />
                     </div>
 
                     {/* Info */}
@@ -1003,10 +1051,27 @@ export default function MCPConfigPage() {
 
         {/* Create/Edit Dialog */}
         <Dialog open={formDialogOpen} onOpenChange={setFormDialogOpen}>
-          <DialogContent className="w-[95vw] max-w-[600px] max-h-[85vh] overflow-y-auto glass-card">
-            <DialogHeader>
+          <DialogContent className="w-[95vw] max-w-[600px] max-h-[85vh] flex flex-col overflow-hidden p-0 glass-card">
+            <DialogHeader className="px-6 pt-6 pb-2 shrink-0">
               <DialogTitle className="flex items-center gap-2">
-                <Server className="w-5 h-5" />
+                {(() => {
+                  // 编辑现有配置：用 editingConfig；新建且选了预设：用 formData；
+                  // 新建且未填名：兜底到 MCP 官方 logo。
+                  const headerName = editingConfig?.name ?? formData.name;
+                  const headerCommand = editingConfig?.command ?? formData.command;
+                  const headerUrl = editingConfig?.url ?? formData.url;
+                  if (!headerName?.trim()) {
+                    return <McpBrandIcon name="mcp" className="w-5 h-5" />;
+                  }
+                  return (
+                    <McpBrandIcon
+                      name={headerName}
+                      command={headerCommand}
+                      url={headerUrl}
+                      className="w-5 h-5"
+                    />
+                  );
+                })()}
                 {editingConfig ? t('mcpConfig.editConfig') : t('mcpConfig.addConfig')}
               </DialogTitle>
               <DialogDescription>
@@ -1017,7 +1082,7 @@ export default function MCPConfigPage() {
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-5 py-2">
+            <div className="space-y-5 py-2 px-6 flex-1 min-h-0 overflow-y-auto">
               {/* Connection Method (only for create) */}
               {!editingConfig && (
                 <div className="space-y-2">
@@ -1524,7 +1589,7 @@ export default function MCPConfigPage() {
               )}
             </div>
 
-            <DialogFooter>
+            <DialogFooter className="px-6 pb-6 pt-2 shrink-0 border-t bg-background">
               <Button variant="outline" onClick={() => setFormDialogOpen(false)}>
                 {t('common.cancel')}
               </Button>
@@ -1584,8 +1649,8 @@ export default function MCPConfigPage() {
 
         {/* JSON Import Dialog */}
         <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
-          <DialogContent className="w-[95vw] max-w-[560px] glass-card">
-            <DialogHeader>
+          <DialogContent className="w-[95vw] max-w-[560px] max-h-[85vh] flex flex-col overflow-hidden p-0 glass-card">
+            <DialogHeader className="px-6 pt-6 pb-2 shrink-0">
               <DialogTitle className="flex items-center gap-2">
                 <FileJson className="w-5 h-5" />
                 {t('mcpConfig.importJson')}
@@ -1595,7 +1660,7 @@ export default function MCPConfigPage() {
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-4 py-2">
+            <div className="space-y-4 py-2 px-6 flex-1 min-h-0 overflow-y-auto">
               <Textarea
                 placeholder={`{
   "mcpServers": {
@@ -1622,7 +1687,7 @@ export default function MCPConfigPage() {
               />
             </div>
 
-            <DialogFooter>
+            <DialogFooter className="px-6 pb-6 pt-2 shrink-0 border-t bg-background">
               <Button variant="outline" onClick={() => setImportDialogOpen(false)}>
                 {t('common.cancel')}
               </Button>
@@ -1640,7 +1705,7 @@ export default function MCPConfigPage() {
 
         {/* Preset Selection Dialog */}
         <Dialog open={presetDialogOpen} onOpenChange={setPresetDialogOpen}>
-          <DialogContent className="w-[95vw] max-w-[560px] max-h-[70vh] glass-card">
+          <DialogContent className="w-[95vw] max-w-[560px] max-h-[70vh] flex flex-col overflow-hidden glass-card">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Package className="w-5 h-5" />
@@ -1651,10 +1716,10 @@ export default function MCPConfigPage() {
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-3 py-2">
+            <div className="space-y-3 py-2 flex-1 min-h-0 flex flex-col">
               {/* Search Input */}
               {!isLoadingPresets && presets.length > 0 && (
-                <div className="relative">
+                <div className="relative shrink-0">
                   <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder={t('mcpConfig.presetSearchPlaceholder')}
@@ -1665,7 +1730,7 @@ export default function MCPConfigPage() {
                 </div>
               )}
 
-              <div className="max-h-[45vh] overflow-y-auto space-y-2">
+              <div className="flex-1 min-h-0 overflow-y-auto space-y-2 pr-1">
               {isLoadingPresets ? (
                 <div className="flex items-center justify-center py-10">
                   <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -1689,7 +1754,16 @@ export default function MCPConfigPage() {
                       className="p-4 rounded-lg border border-border/50 hover:bg-muted/50 cursor-pointer transition-colors"
                       onClick={() => handleSelectPreset(preset)}
                     >
-                      <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start gap-3">
+                        {/* 预设品牌图标（按 name / command / url 智能识别） */}
+                        <div className="hidden sm:flex w-10 h-10 rounded-xl bg-primary/10 items-center justify-center flex-shrink-0 text-primary">
+                          <McpBrandIcon
+                            name={preset.name}
+                            command={preset.command}
+                            url={preset.url}
+                            className="w-5 h-5"
+                          />
+                        </div>
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1.5">
                             <p className="font-medium text-sm">{preset.name}</p>

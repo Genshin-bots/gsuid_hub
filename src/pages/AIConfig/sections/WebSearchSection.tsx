@@ -4,6 +4,34 @@ import { ChipGroup } from '@/components/ui/MultiSelectChipGroup';
 import { DynamicConfigPanel, McpParamMappingEditor, type ConfigValue } from '@/components/config';
 import type { PluginConfigItem } from '@/lib/api';
 import { Search, Wrench } from 'lucide-react';
+import {
+  Tavily,
+  Exa,
+  McpModelContextProtocol,
+  Minimax,
+} from '@thesvg/react';
+
+/**
+ * 网络搜索提供方 -> 品牌图标 的映射表。
+ *
+ * 与 ModelBrandIcon 的设计思路一致：
+ * 1. 已知 provider 关键字映射到 @thesvg/react 的官方 Logo；
+ * 2. 命中不到时回退到 lucide `Search`（保持旧行为）。
+ *
+ * icon className 由 ChipGroup 控制为 `w-3.5 h-3.5`，所有图标
+ * 走 `mono` variant 以保证 currentColor 主题适配。
+ */
+function getSearchProviderIcon(provider: string) {
+  const key = provider.trim().toLowerCase();
+  if (key === 'tavily') return <Tavily width={14} height={14} variant="mono" />;
+  if (key === 'exa') return <Exa width={14} height={14} variant="mono" />;
+  if (key === 'mcp' || key === 'modelcontextprotocol' || key === 'model_context_protocol') {
+    return <McpModelContextProtocol width={14} height={14} variant="mono" />;
+  }
+  if (key === 'MiniMax') return <Minimax width={14} height={14} variant="light" />;
+  // 兜底
+  return <Search className="w-3.5 h-3.5" />;
+}
 
 export interface WebSearchSectionProps {
   t: (key: string) => string;
@@ -80,7 +108,7 @@ export function WebSearchSection({
         options={websearchProviderOptions.map((p) => ({
           value: p,
           label: p,
-          icon: <Search className="w-3.5 h-3.5" />,
+          icon: getSearchProviderIcon(p),
         }))}
         value={[websearchProvider]}
         onValueChange={(newValue) => onChangeProvider(newValue[0] || '')}

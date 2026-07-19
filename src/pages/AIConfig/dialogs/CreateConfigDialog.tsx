@@ -9,7 +9,6 @@ import {
   Plus,
   Plug2,
   Server,
-  Sparkles,
   TrendingUp,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -27,6 +26,7 @@ import { InputWithDropdown } from '@/components/ui/input-with-dropdown';
 import { ModelSelectDropdown } from '@/components/ui/model-select-dropdown';
 import { Label } from '@/components/ui/label';
 import { ChipGroup } from '@/components/ui/MultiSelectChipGroup';
+import { ProviderBrandIcon } from '@/components/ui/model-brand-icon';
 import { getModelCapabilities } from '../constants.tsx';
 import {
   getModelEffortLabel,
@@ -202,7 +202,8 @@ export function CreateConfigDialog(props: CreateConfigDialogProps) {
                   onFetchProviderConfigOptions('openai');
                 }}
               >
-                <Server className="w-4 h-4" />OpenAI 兼容格式
+                <ProviderBrandIcon provider="openai" size={16} className="text-current" />
+                OpenAI 兼容格式
               </Button>
               <Button
                 type="button"
@@ -214,7 +215,8 @@ export function CreateConfigDialog(props: CreateConfigDialogProps) {
                   onFetchProviderConfigOptions('anthropic');
                 }}
               >
-                <Brain className="w-4 h-4" />Anthropic 格式
+                <ProviderBrandIcon provider="anthropic" size={16} className="text-current" />
+                Anthropic 格式
               </Button>
               <Button
                 type="button"
@@ -226,7 +228,8 @@ export function CreateConfigDialog(props: CreateConfigDialogProps) {
                   onFetchProviderConfigOptions('gemini');
                 }}
               >
-                <Sparkles className="w-4 h-4" />Gemini 格式
+                <ProviderBrandIcon provider="gemini" size={16} className="text-current" />
+                Gemini 格式
               </Button>
             </div>
           </div>

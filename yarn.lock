@@ -1271,6 +1271,11 @@
   resolved "https://registry.npmjs.org/@tanstack/virtual-core/-/virtual-core-3.14.0.tgz"
   integrity sha512-JLANqGy/D6k4Ujmh8Tr25lGimuOXNiaVyXaCAZS0W+1390sADdGnyUdSWNIfd49gebtIxGMij4IktRVzrdr12Q==
 
+"@thesvg/react@^3.2.8":
+  version "3.2.8"
+  resolved "https://registry.yarnpkg.com/@thesvg/react/-/react-3.2.8.tgz#2b1e2a284484d3f05a49ea925c995c8c4f59fcd2"
+  integrity sha512-8tjizRKOka38EgCFyjbrFs8dHpxcOhy++9SjepSI4e/4rcNi2nGpIrZ43BuhvddwY6e6uWzqh834V+TD0Lhw+Q==
+
 "@types/d3-array@^3.0.3":
   version "3.2.1"
   resolved "https://registry.npmjs.org/@types/d3-array/-/d3-array-3.2.1.tgz"

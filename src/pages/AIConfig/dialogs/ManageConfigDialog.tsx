@@ -1,4 +1,4 @@
-import { FileText, Plus, Settings, Trash2, X } from 'lucide-react';
+import { Plus, Settings, Trash2, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,6 +12,10 @@ import {
 import { EmptyState } from '../shared/EmptyState';
 import { cn } from '@/lib/utils';
 import { Server } from 'lucide-react';
+import {
+  ModelBrandIcon,
+  ProviderBrandIcon,
+} from '@/components/ui/model-brand-icon';
 import type { AllConfigItem } from '@/lib/api';
 
 export interface ManageConfigDialogProps {
@@ -72,7 +76,12 @@ export function ManageConfigDialog({
                   className="flex items-center justify-between gap-2 p-3 rounded-xl border border-border/50 bg-card/50"
                 >
                   <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <FileText className="w-5 h-5 text-muted-foreground shrink-0" />
+                    <ModelBrandIcon
+                      modelName={configItem.model_name}
+                      provider={configItem.provider}
+                      size={20}
+                      className="text-muted-foreground"
+                    />
                     <div className="min-w-0">
                       <span className="text-sm font-medium truncate block">
                         {configItem.config_name}
@@ -81,7 +90,7 @@ export function ManageConfigDialog({
                         <Badge
                           variant="outline"
                           className={cn(
-                            'text-[10px] h-4 px-1.5',
+                            'text-[10px] h-4 px-1.5 gap-1',
                             configItem.provider === 'openai'
                               ? 'border-primary/40 text-primary bg-primary/10'
                               : configItem.provider === 'gemini'
@@ -89,6 +98,11 @@ export function ManageConfigDialog({
                                 : 'border-orange-500/40 text-orange-600 bg-orange-500/10',
                           )}
                         >
+                          <ProviderBrandIcon
+                            provider={configItem.provider}
+                            size={10}
+                            className="shrink-0"
+                          />
                           {configItem.provider === 'openai'
                             ? 'OpenAI'
                             : configItem.provider === 'anthropic'

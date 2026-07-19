@@ -6,6 +6,10 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import {
+  ModelBrandIcon,
+  ProviderBrandIcon,
+} from '@/components/ui/model-brand-icon';
 import { useState } from 'react';
 
 export interface ConfigSelectItem {
@@ -45,6 +49,43 @@ function getProviderBadgeClass(provider: string): string {
   }
 }
 
+/**
+ * 配置文件前的「文件 ICON」—— 根据 `model_name` 自动匹配厂商 Logo。
+ * 如果匹配不到，回退到 lucide `FileText`（与原行为一致）。
+ */
+function ConfigFileIcon({
+  modelName,
+  provider,
+  className,
+}: {
+  modelName: string;
+  provider: string;
+  className?: string;
+}) {
+  const matched = modelName?.trim();
+  if (!matched) {
+    return <FileText className={className} />;
+  }
+  // 用 modelName 决定厂商；如果匹配不到任何规则，resolveBrandRule 会回退
+  // 到 provider 对应的通用图标，而不是 lucide 的 FallbackBrandIcon。
+  // 这里如果仍想保底展示一个「文件」造型，就走 FallbackBrandIcon 之外的 FileText。
+  return (
+    <ModelBrandIcon
+      modelName={matched}
+      provider={provider}
+      size={20}
+      className={className}
+    />
+  );
+}
+
+/**
+ * 通用「文件占位」—— 用于下拉框未选择项时的展示，避免空白。
+ */
+function PlaceholderFileIcon({ className }: { className?: string }) {
+  return <FileText className={className} />;
+}
+
 export function ConfigSelectDropdown({
   items,
   selectedName,
@@ -82,15 +123,24 @@ export function ConfigSelectDropdown({
           {selectedItem ? (
             <div className="flex items-center gap-3 min-w-0 flex-1">
               <div className="text-primary flex items-center justify-center flex-shrink-0">
-                <FileText className="w-5 h-5" />
+                <ConfigFileIcon
+                  modelName={selectedItem.model_name}
+                  provider={selectedItem.provider}
+                  className="w-5 h-5"
+                />
               </div>
               <div className="min-w-0">
                 <span className="text-sm font-medium truncate block">{selectedItem.config_name}</span>
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <Badge
                     variant="outline"
-                    className={cn("text-[10px] h-4 px-1.5", getProviderBadgeClass(selectedItem.provider))}
+                    className={cn("text-[10px] h-4 px-1.5 gap-1", getProviderBadgeClass(selectedItem.provider))}
                   >
+                    <ProviderBrandIcon
+                      provider={selectedItem.provider}
+                      size={10}
+                      className="shrink-0"
+                    />
                     {getProviderLabel(selectedItem.provider)}
                   </Badge>
                   <span className="text-[10px] text-muted-foreground truncate">{selectedItem.model_name}</span>
@@ -100,7 +150,7 @@ export function ConfigSelectDropdown({
           ) : (
             <div className="flex items-center gap-3">
               <div className="text-muted-foreground flex items-center justify-center flex-shrink-0">
-                <FileText className="w-5 h-5" />
+                <PlaceholderFileIcon className="w-5 h-5" />
               </div>
               <span className="text-sm text-muted-foreground">{placeholder}</span>
             </div>
@@ -133,15 +183,24 @@ export function ConfigSelectDropdown({
                     "flex items-center justify-center flex-shrink-0",
                     isSelected ? "text-primary" : "text-muted-foreground",
                   )}>
-                    <FileText className="w-4 h-4" />
+                    <ConfigFileIcon
+                      modelName={item.model_name}
+                      provider={item.provider}
+                      className="w-4 h-4"
+                    />
                   </div>
                   <div className="min-w-0 flex-1">
                     <span className="text-sm font-medium truncate block">{item.config_name}</span>
                     <div className="flex items-center gap-1.5 mt-0.5">
                       <Badge
                         variant="outline"
-                        className={cn("text-[10px] h-4 px-1.5", getProviderBadgeClass(item.provider))}
+                        className={cn("text-[10px] h-4 px-1.5 gap-1", getProviderBadgeClass(item.provider))}
                       >
+                        <ProviderBrandIcon
+                          provider={item.provider}
+                          size={10}
+                          className="shrink-0"
+                        />
                         {getProviderLabel(item.provider)}
                       </Badge>
                       <span className="text-[10px] text-muted-foreground truncate">{item.model_name}</span>
