@@ -99,5 +99,13 @@
   "backupExportSuccess": "バックアップのダウンロードを開始しました",
   "backupExportFailed": "バックアップ書き出しに失敗しました",
   "backupImportSuccess": "{total} 件復元（書き込み {written}）",
-  "backupImportFailed": "バックアップ取り込みに失敗しました"
+  "backupImportFailed": "バックアップ取り込みに失敗しました",
+  "reconcile": "深さ対賬",
+  "reconcileConfirm": "SQL 真値とベクトルストアを対賬しますか？数十秒かかる可能性があります",
+  "reconcileTotal": "総件数",
+  "reconcileMatched": "一致",
+  "reconcileMissingInVector": "ベクトル欠落",
+  "reconcileMissingInSql": "SQL 欠落",
+  "reconcileReEmbedded": "再埋め込み済み",
+  "reconcileFailed": "対賬失敗"
 }

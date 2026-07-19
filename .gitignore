@@ -32,3 +32,5 @@ ts_output.txt
 tsc_out.txt
 tsc_err.txt
 nul
+
+.commandcode

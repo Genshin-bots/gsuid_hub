@@ -1,0 +1,42 @@
+{
+  "title": "AI Artifacts",
+  "description": "Browse intermediate / final artifacts produced by Agent tasks. Delete or extend TTL supported.",
+  "toolbar": {
+    "filterRoot": "Filter by root_task_id",
+    "filterRootAll": "All",
+    "includeExpired": "Include expired",
+    "refresh": "Refresh"
+  },
+  "table": {
+    "kind": "Kind",
+    "summary": "Summary",
+    "task": "Task",
+    "profile": "From",
+    "size": "Size",
+    "expiresAt": "Expires",
+    "actions": "Actions",
+    "noData": "No data"
+  },
+  "detail": {
+    "payloadTitle": "Payload preview",
+    "payloadEmpty": "(no inline / on-disk payload)"
+  },
+  "actions": {
+    "open": "View",
+    "delete": "Delete",
+    "extend30": "Extend +30d",
+    "extend90": "Extend +90d",
+    "download": "Download raw"
+  },
+  "messages": {
+    "deleted": "Deleted",
+    "deletedFail": "Delete failed",
+    "extended": "TTL extended",
+    "extendedFail": "Extend failed",
+    "loadFail": "Load failed",
+    "filterNeeded": "Provide a root_task_id (or use \"All\" to browse globally)"
+  },
+  "modeAll": "global",
+  "modeRoot": "root_task_id = {root}",
+  "confirmDelete": "Delete artifact {id}?"
+}

@@ -1,0 +1,301 @@
+# GsCore Web Console (gsuid_hub) — README & 能力对照索引
+
+> 本文件是 `docs/skills/gshub-development/` 的**主索引与能力全景**，给第一次接触本仓库的人 /
+> 准备扩前端控制台的人**一张完整的鸟瞰图**。
+> 它与同目录 `SKILL.md` 的分工是：
+> - **`SKILL.md` + `references/` 01–10**：开发规范与已知坑（**怎么写**一个页面/组件）
+> - **本 `README.md`**：功能全景与跟后端能力的对照、**当前前端覆盖了哪些、还差哪些**
+>
+> **更新原则**：本文档描述的是**前端控制台当前已实现的能力**，并通过"→ 对应后端 API"链接回 gsuid_core。
+> 任何新前端能力、改名/改路由、增加 API 调用前，请同步更新本文件。
+
+---
+
+## 一、项目与本控制台定位
+
+`gsuid_hub` 是 [gsuid_core](https://github.com/Genshin-bots/gsuid_core) 的网页控制台前端，定位与目标用户：
+
+- **单页 React 应用**，由后端在 `/app/`（生产）或 `/`（开发）挂载，提供一套**远程管理** UI。
+- **三类使用场景**：
+  1. **日常运维**：登录 → 看看板 → 处理审批 → 调度任务。
+  2. **AI 调优**：配置 Provider / 人格 / 知识 / 记忆 / MCP / 工具 / 技能，调试会话，回看历史。
+  3. **首次部署**：初始化管理员 → 上传品牌 → 安装插件 → 启用 AI。
+- **目标体验**：与日常 SaaS 控制台同级的视觉与交互一致性，全亮/暗 + 纯色/毛玻璃，三语言。
+
+实现细节见仓库根 `README.md`，开发规范见同目录 [`SKILL.md`](./SKILL.md) 与 `references/01–10`。
+
+---
+
+## 二、当前实现的页面与对应后端能力
+
+> 路由与页面组件：`src/App.tsx`、`src/pages/`。
+> 与后端 API 的对接细节见 `gsuid_core/gsuid_core/webconsole/docs/` 的同号文件。
+
+### 2.1 概览与运维
+
+| 前端路由 | 页面组件 | 主要功能 | 后端 API 群（gsuid_core 端点） |
+|---|---|---|---|
+| `/login` | `Login.tsx` | RSA 公钥加密登录、初始化管理员、记住自定义 API Host | `auth_api.py`（`/api/auth/{login,register,admin/exists,me,pubkey}`） |
+| `/home` | `HomePage.tsx` | Hero 大标题、Bot 数、版本号、快捷入口 | `version_api.py`（`/api/version`）、`dashboard_api.py::bots` |
+| `/dashboard` | `Dashboard.tsx` | 关键指标、命令趋势、用户/群活跃、Bot 列表 | `dashboard_api.py`（`/api/dashboard/{metrics,commands,users-groups,daily/*,bots}`） |
+| `/database` | `DatabasePage.tsx` | 跨插件浏览表结构与数据，单条 CRUD | `database_api.py`（`/api/database/*`） |
+| `/console` | `ConsolePage.tsx` | WebSocket 实时控制台 + 远程命令 + 日志级别筛选 | `web_api.py`（WS）、`system_api.py`（`/api/system/{info,health,restart,stop,resume}`）、`remote_command` |
+| `/logs` | `LogsPage.tsx` | 按日期 / 等级 / 来源 / 关键词分页查日志、上下文窗 | `logs_api.py`（`/api/logs*`，含 `/stream` SSE 与 `/config`） |
+| `/traces` | `TracesPage.tsx` | 命令执行追踪链（按 trace_id 聚合逐条事件） | `trace_api.py`（`/api/traces`） |
+| `/scheduler` | `SchedulerPage.tsx` | APScheduler 任务列表 / 立即运行 / 暂停 / 恢复 / 删除 | `scheduler_api.py`（`/api/scheduler/jobs*`） |
+| `/backup` | `BackupPage.tsx` | 备份文件树 / 创建 / 下载 / 删除 / 配置 | `backup_api.py`（`/api/backup*`） |
+| `/themes` | `ThemesPage.tsx` | 主题配置 (mode/style/color) + 背景图 + 圆角 + 阴影 + 缩放 + 字体 + 预设管理 | `theme_api.py`（`/api/theme*`）+ `assets_api.py` |
+| `/settings` | `SettingsPage.tsx` | 头像、用户名、密码、API Host、语言 | `auth_api.py`（`/api/auth/{avatar,name,password}`） |
+
+### 2.2 配置管理
+
+| 前端路由 | 页面组件 | 主要功能 | 后端 API 群 |
+|---|---|---|---|
+| `/core-config` | `CoreConfigPage.tsx` | `CoreConfig` 顶层配置项编辑 | `core_config_api.py`（`/api/core/config*`） |
+| `/framework-config` | `FrameworkConfigPage.tsx` | 框架级配置（GsCore AI/…）分组浏览 + 动态字段渲染 | `plugins_api.py`（`/api/framework-config*`） |
+| `/database-config` | `DatabaseConfigPage.tsx` | 各插件数据库 URL/DSN 配置 | `plugins_api.py` 插件 DB 元数据 + `framework-config` |
+| `/state-config` | `StateConfigPage.tsx` | 全局 state、StateStoreViewer 浏览 | `state_store_api.py`（`/api/ai/state-store/*`） |
+| `/core-config` | `CoreConfigPage.tsx` | 核心配置 | `core_config_api.py` |
+
+### 2.3 插件与市场
+
+| 前端路由 | 页面组件 | 主要功能 | 后端 API 群 |
+|---|---|---|---|
+| `/plugins` | `PluginsPage.tsx` | 本地插件的启用/禁用/重载/配置/SV | `plugins_api.py`（`/api/plugins*`） |
+| `/plugin-store` | `PluginStorePage.tsx` | 插件市场白名单浏览、安装（含 URL 安装）、更新、卸载、README 全文 | `plugins_api.py`（`/api/plugin-store*`） |
+| `/git-update` | `GitUpdatePage.tsx` | 多插件 Git 状态、远程 Commit、本地历史、回退、强制更新、一键更新全部 | `git_update_api.py`（`/api/git-update*`） + `git_mirror_api.py`（`/api/git-mirror*`） |
+
+### 2.4 AI 能力子系统（重点）
+
+| 前端路由 | 页面组件 | 主要功能 | 后端 API 群 | 关键 SKILL 章节 |
+|---|---|---|---|---|
+| `/ai-config` | `AIConfigPage.tsx` (`AIConfig/`) | Provider / 模型高低级任务（含主备）/ Embedding / Web Search / Rerank 配置 + AI 配置向导 | `provider_config_api.py`、`embedding_config_api.py`、`ai_wizard_api.py` | [§07 §7.5–7.6](./SKILL.md)、[§01 §1.5](./references/01-architecture-and-conventions.md) |
+| `/persona-config` | `PersonaConfigPage.tsx` | 多 Persona 卡片列表 + 头像/立绘/音频上传 + Markdown 编辑 + 作用范围 | `persona_api.py`（`/api/persona/*`） | [§08 §8.1](./references/08-page-patterns.md) |
+| `/mcp-config` | `MCPConfigPage.tsx` | MCP 服务器 CRUD、环境变量、工具发现、JSON 导入、预设、热重载、工具参数映射 | `mcp_config_api.py`（`/api/ai/mcp*`、`/api/ai/mcp-tools-config/*`） | [§03 主题](./references/03-theme-and-styling.md)、[§10 P-26](./references/10-pitfalls-and-performance.md) |
+| `/ai-capability-agents` | `AICapabilityAgentsPage.tsx` | Capability Agent 节点列表 + 工具挂载 + 关键词 + 编辑/删除 | `capability_agents_api.py`（`/api/ai/capability-agents*`） | [§09 侧边栏](./references/09-sidebar-navigation.md) |
+| `/ai-tools` | `AIToolsPage.tsx` | 工具列表 + 分类 + 详情 | `ai_tools_api.py`（`/api/ai/tools*`） | [§04 排版参考页](./references/04-page-layout-spec.md) |
+| `/ai-skills` | `AISkillsPage.tsx` | 技能列表 + 详情 + Git 克隆安装 + Markdown 编辑 + 删除 | `ai_skills_api.py`（`/api/ai/skills*`） | [§04 排版参考页](./references/04-page-layout-spec.md) |
+| `/ai-knowledge` | `AIKnowledgePage.tsx` | 文本/图片知识库分页、搜索、批量导入、文档管理、Image RAG | `knowledge_base_api.py`（`/api/ai/knowledge*`）+ `image_rag_api.py`（`/api/ai/images*`） | [§07 渐进式配置](./references/07-config-pages-and-state.md) |
+| `/ai-memory` | `AIMemoryPage.tsx` | Episode / Entity / Edge / Category / Preference / Scope / Hiergraph / Stats 完整管理 | `ai_memory_api.py`（`/api/ai/memory*`） | [§07 §7.1 渐进式](./references/07-config-pages-and-state.md)、[§10 P-26](./references/10-pitfalls-and-performance.md) |
+| `/ai-meme` | `AIMemePage.tsx` | 表情包素材：上传 / VLM 打标 / 标签 / 文件夹 / 检索 | `meme_api.py`（`/api/meme*`） | [§10 P-17](./references/10-pitfalls-and-performance.md) |
+| `/ai-scheduled-tasks` | `AIScheduledTasksPage.tsx` | 内部定时任务 CRUD、暂停/恢复、统计 | `ai_scheduled_task_api.py` | — |
+| `/ai-kanban` | `AIKanbanPage.tsx` | 长任务五列看板、任务详情、Artifacts、Workspace 文件、approve/reject、评估能力代理 | `kanban_api.py`（`/api/ai/kanban*`、`/api/ai/artifacts*`、`/api/ai/kanban/...workspace*`） | [§04 §4.1.1 page-viewport](./references/04-page-layout-spec.md) |
+| `/ai-approvals` | `AIApprovalsPage.tsx` | 高危操作审批中心 / 通过或拒绝 | `approvals_api.py`（`/api/ai/approvals/list`、`/resolve`） | — |
+| `/ai-budget` | `AIBudgetPage.tsx` | AI 预算规则、白名单、用量排行、scope 窗口、check 干跑预览、reset | `budget_api.py`（`/api/ai/budget*`） | [§05 §5.7 控件规范](./references/05-components-and-form-controls.md) |
+| `/ai-statistics` | `AIStatisticsPage.tsx` | Token 用量（按模型/按类型/按区间）+ 活跃用户/群 + 触发/意图分布 + 错误 + Heartbeat + RAG + 历史 + **小时级性能** | `ai_statistics_api.py`、`ai_performance_api.py` | [§10 P-26](./references/10-pitfalls-and-performance.md) |
+| `/ai-history` | `AIHistoryPage.tsx` | AI Session 列表 / Trace 瀑布图（链 ↔ 分段 ↔ 子 agent）/ 统计 | `ai_session_logs_api.py`（`/api/ai/session_logs*`）+ `history_api.py`（`/api/history*`） | [§08 §8.7 Trace 瀑布](./references/08-page-patterns.md) |
+| `/session-management` | `SessionManagementPage.tsx` | Session 列表 + 历史对话 + Persona + 给 Session 发消息 | `history_api.py` | [§04 §4.1.1 page-fill](./references/04-page-layout-spec.md) |
+
+### 2.5 当前 API 全景（`src/lib/api.ts`，已实现，共 ~50 个 ApiGroup）
+
+按字母顺序与领域分组：
+
+| 领域 | 数量 | 命名（ApiGroup） | 后端对应 |
+|---|---|---|---|
+| 总览与系统 | 5 | `dashboardApi`、`databaseApi`、`versionApi`、`brandApi`、`systemApi` | `dashboard_api.py` / `database_api.py` / `version_api.py` / `brand_api.py` / `system_api.py` |
+| 认证与账户 | 1 | `authApi`（含头像上传、用户名、密码） | `auth_api.py` |
+| 配置 | 3 | `configApi`、`frameworkConfigApi`、`openaiConfigApi` | `core_config_api.py` / `plugins_api.py` / `provider_config_api.py` |
+| Provider / Embedding / Wizard | 4 | `providerConfigApi`、`embeddingConfigApi`、`aiWizardApi`、`openaiConfigApi` | `provider_config_api.py` / `embedding_config_api.py` / `ai_wizard_api.py` |
+| 插件 | 4 | `pluginsApi`、`pluginStoreApi`、`gitMirrorApi`、`gitUpdateApi` | `plugins_api.py` / `plugin_icon_api.py` |
+| 运维 | 5 | `logsApi`、`traceApi`、`remoteCommandApi`、`schedulerApi`、`backupApi` | 同名 |
+| 主题与资源 | 2 | `themeApi`、`assetsApi` | `theme_api.py` / `assets_api.py` |
+| AI 能力 | 8 | `personaApi`、`mcpConfigApi`、`capabilityAgentsApi`、`aiKnowledgeApi`、`aiImageApi`、`memeApi`、`aiToolsApi`、`aiSkillsApi` | 同名 |
+| AI 运行 | 6 | `historyApi`、`aiSessionLogsApi`、`agentDebugApi`、`aiScheduledTasksApi`、`aiKanbanApi`、`aiApprovalsApi`、`aiStateStoreApi` | 同名 |
+| AI 度量 | 3 | `aiStatisticsApi`、`aiPerformanceApi`、`aiBudgetApi` | 同名 |
+| 新增（2026-07-20 盘点） | 4 | `aiArtifactsApi`、`batchPushApi`、`brandSettingsApi`（= `brandApi` facade）、`logsConfigApi` | `artifacts_api.py` / `message_api.py` / `brand_api.py` / `logs_api.py` |
+
+---
+
+## 二点五、2026-07-20 完整补全清单
+
+> 历史快照。下方二节的"已完整实现 / 部分实现 / 完全空缺"分区**已根据此轮补全重新评估**。
+> 此处仅作存档；新增/改动如下：
+
+| 改动类型 | 路径 | 说明 |
+|---|---|---|
+| 新页面 | `src/pages/BrandSettingsPage.tsx` | `/brand-settings` 标题/副标题/ICON 编辑与实时预览 |
+| 新页面 | `src/pages/BatchPushPage.tsx` | `/batch-push` HTML 推文 + bot/group/user 多选 + ALL* 宏 |
+| 新页面 | `src/pages/AIDebugPage.tsx` | `/ai-debug` 三 Tab（记忆图谱 / Agent 任务 / self_model） |
+| 新页面 | `src/pages/AIArtifactsPage.tsx` | `/ai-artifacts` 全局浏览 + TTL 延长 + 下载 |
+| 新组件 | `src/components/memory/MemorySettingsDialog.tsx` | AIMemoryPage 弹窗：记忆子系统 14 个常用字段 + HierGraph 重建 |
+| 新组件 | `src/components/logs/LogsConfigDialog.tsx` | LogsPage 弹窗：保留 / 轮转 / 黑名单 |
+| 增强 (frontend) | `src/lib/api.ts` | 新增 `aiArtifactsApi` / `batchPushApi` / `brandSettingsApi` / `memorySettingsApi` / `logsConfigApi`；`agentDebugApi` 补 listTasks / getTask / abortTask / getSelfModel / setSelfModel |
+| 增强 (frontend) | `src/lib/demoMock.ts` + `src/lib/mockServer.ts` | 补 36 个 mock 端点（让 8 个 demo 必崩页面不崩） |
+| 增强 (backend) | `gsuid_core/webconsole/message_api.py` | 新增 `/api/BatchPush/targets`；修复 ALLGROUP 分支 `group_sends[bot_id]` typo bug |
+| 增强 (backend) | `gsuid_core/webconsole/artifacts_api.py` | 扩展 list endpoint 支持**全量浏览**（不传 task/root 时返回最新 N 条）+ `?include_expired=` 参数 |
+| 增强 (frontend) | `src/App.tsx` + `AppSidebar.tsx` | 注册 4 个新路由与导航项 |
+| i18n | `src/i18n/locales/{zh-CN,en-US,ja-JP}` | 新增 `brandSettings.json` / `batchPush.json` / `aiDebug.json` / `aiArtifacts.json`；为已有 aiKnowledge / aiMeme / sidebar 补新 key；三 index.ts 注册新模块 |
+| 触发器增强 | `src/pages/AIKnowledgePage.tsx` | toolbar 新增「深度对账」按钮（POST `/api/ai/knowledge/reconcile`），并 toast 返回 5 项统计 |
+| 触发器增强 | `src/pages/AIMemePage.tsx` | toolbar 新增「导出 .meme」「导入 .meme」按钮 + 导入 Dialog（persona hint / skip / auto tag） |
+| 触发器增强 | `src/pages/AIMemoryPage.tsx` | header 右侧新增「记忆设置」按钮 → 打开 MemorySettingsDialog |
+| 触发器增强 | `src/pages/LogsPage.tsx` | header 右侧新增「控制台配置」按钮 → 打开 LogsConfigDialog |
+
+---
+
+## 三、后端已具备但前端尚未覆盖 / 覆盖薄弱的板块（"待补"清单）
+
+> 这是 2026-07-20 一次盘点结果。**与 gsuid_core 后端端点的对照**（46 个 API 文件、约 250 端点）。
+> 加 ★ 的表示**完全没有对应页面**或对应 UI 调用，纯空白。
+
+### 3.1 完全没有前端页面的子系统
+
+| 后端模块 | 端点数 | 前端空缺描述 | 建议页面 |
+|---|---|---|---|
+| **agent_debug_api**（Agent 可视化调试台） | 8 | `Memory Graph View`、`Orchestration Board`、`Persona Evolution Inspector` 三个面板**全部缺**。`AIKanbanPage` 只覆盖了部分 Orchestration；`AIMemoryPage` 只覆盖了基础浏览，缺 Edge 软删除/合并、`memory/conflicts` 解决、`agent_debug/self_model` 修正。 | 新增 `/ai-debug` 路由 / 拆 3 个 Tab |
+| **artifacts_api**（AI 产出物） | 5 | `AIKanbanPage` 内已调用 artifacts 列表/详情/下载/删除/TTL 延长，但**没有独立页面**做资源全局浏览。 | 新增 `/ai-artifacts` |
+| **workspace_api**（Kanban 任务工作区） | 4 | workspace 文件列表、上传、下载、apply-patch 仅在 Kanban 任务详情 Dialog 部分暴露，缺全局浏览。 | AIKanban 详情弹窗 + 全局工作区 |
+| **state_store_api**（State 状态存储） | 6 | 只在 `StateConfigPage` 有非常基础浏览，缺 scope/key/批量清理/record_* 集合的完整管理。 | 扩 `/state-config` |
+| **brand_api**（品牌信息） | 5 | 仅 `BrandContext` 读 `GET /api/brand` 在登录页/布局展示，**完全没有 UI 编辑**。 | 新增 `/brand-settings` |
+| **message_api::BatchPush** | 1 | 完全无入口（批量给某人/群推消息）。 | 新增 `/batch-push` |
+| **plugin_icon_api** | 1 | `/api/plugins/icon/{name}` 缓存层有声明；前端 `PluginsPage` 直接走 `bot_root/icon/...`，未走该接口（影响跨安装部署）。 | 接入统一 icon |
+| **ai_skills_api** `/api/ai/skills/...` 中 clip/install/market actions | — | 当前只覆盖 list/detail/clone/markdown；缺**已克隆技能的更新/卸载** UI。 | AISkillsPage |
+
+### 3.2 API 已封装（`src/lib/api.ts` 有函数）但前端无调用入口 / 调用不全
+
+| API 函数 | 前端页面是否调用 | 问题与建议 |
+|---|---|---|
+| `aiKnowledgeApi.backupExport` / `backupImport` | **无调用** | `AIKnowledgePage` 没有 "导出 JSONL 备份" 与 "从备份导入" 按钮。 |
+| `aiKnowledgeApi.reconcile`（深度对账） | **无调用** | 同上，缺乏运维入口。 |
+| `aiKnowledgeApi.bulk`（批量导入） | **有** | 仅是表层调用，建议加进度条（后端在切片）。 |
+| `aiKnowledgeApi.deleteDocument`（整篇文档删除） | **有，部分** | 推荐在 AIKnowledgePage 加"按文档聚合"的二级视图。 |
+| `memeApi.purgeRejected` / `batchRetagPending` / `export` / `import` | **全部无 UI** | `AIMemePage` 缺几个批量维护按钮，stats 显示也缺（旧版后端 P-17）。 |
+| `mcpConfigApi.getToolsConfigList` / `update` | 部分内嵌 | mcp_tools_config 工具参数映射有 API 但 UI 入口弱。 |
+| `aiMemoryApi.getConfig` / `updateConfig`（记忆子系统配置） | **无独立页** | 已内嵌 `aiMemory.page` 内部；建议单开"记忆设置" tab 或下钻。 |
+| `aiMemoryApi.rebuildHierGraph` | **无调用** | "重建分层语义图"按钮缺。 |
+| `aiMemoryApi.getPreferences` / `update` / `delete` | 部分内嵌 | **"偏好记忆规则"管理页**独立出来价值更大（Procedural Memory 纠偏）。 |
+| `aiMemoryApi.getCategories` / `getHierGraphStatus` | 部分 | 推荐在 AI Memory 页加"分类浏览" + "HierGraph 状态卡片"。 |
+| `aiKanbanApi.evaluateMesh` / `kanbanCandidates` | 部分调用 | 看板选中任务的"自动重试/能力匹配"按钮需提升可视性。 |
+| `aiKanbanApi.workspaceFiles` / `applyPatch` | 部分 | 任务详情里的工作区管理 UI 偏弱。 |
+| `aiKanbanApi.deleteArtifact` / `extendTtl` | 部分 | TTL 延长按钮缺。 |
+| `aiSessionLogsApi` 的分段合并 | **有** | 已实现，但分段合并加载与"加载更早分段"逻辑需复核。 |
+| `openaiConfigApi` | **有** | `AIConfigPage` 有 OpenAI 兼容层；高级功能（rerank 统计、月度配额）未完整。 |
+| `versionApi.bots` / `botCount` / `botNames` | 部分 | Home 与 Dashboard 有，建议加 `/system/bots` 详情页（运行时长、所属适配器、最后心跳）。 |
+| `logsApi.stream` SSE | **待复核** | `LogsPage` 是否真的用了 SSE？还是要加"实时"tab。 |
+| `logsApi.config` GET/PUT | **无独立页** | 日志控制台自身的轮转/级别策略配置页缺失。 |
+| `authApi.password` POST | 部分 | SettingsPage 有；找回密码/改密强度校验建议显式化。 |
+
+### 3.3 demo 模式必崩的页面（P-26 已知）
+
+`npm run dev:demo` 因 Mock Server 缺端点，下表中的路由**无论改没改都会崩**（来自
+[`SKILL.md §10 P-26`](./references/10-pitfalls-and-performance.md)）：
+
+| 路由 | 缺失 mock | 症状 |
+|---|---|---|
+| `/logs` | `/api/logs*` | `Cannot read properties of undefined (reading 'toLocaleString')` |
+| `/persona-config` | `/api/persona*` | `Cannot read properties of undefined (reading 'enable_persona')` |
+| `/mcp-config` | `/api/ai/mcp*` | `Cannot read properties of undefined (reading 'length')` |
+| `/ai-statistics` | `/api/ai/statistics/*` | `tokenByModel.map is not a function` |
+| `/ai-budget` | `/api/ai/budget/*` | `Cannot read properties of undefined (reading 'length')` |
+| `/backup` | `/api/backup/file-tree` | `nodes.map is not a function` |
+| `/ai-kanban` | `/api/ai/kanban/*` | `Cannot read properties of undefined (reading 'task_count')` |
+| `/ai-config` | `/api/ai/mcp*` | `mcpConfigs is not iterable` |
+
+修 `mockServer.ts` + `demoMock.ts` 补齐即可（这是 Mock 数据缺口，**不是**前端代码 bug）。
+
+---
+
+## 四、整体能力对照概览（"前后端交叉表"）
+
+下面这张表按"控制台期望覆盖的能力"列出，与后端 API 是否提供、前端是否实现交叉对照。
+**TODO 标记**：⬛ 未做 / 🟨 部分实现 / 🟩 完整实现 / 🟦 仅后端有。
+
+| 能力板块 | 后端 API 群 | 前端覆盖 |
+|---|---|---|
+| 登录 / 注册 / 管理员初始化 | `auth_api` | 🟩 Login/Auth |
+| Bot 列表与活跃度 | `dashboard_api` + `version_api` | 🟩 Dashboard + Home |
+| 命令 / 触发 / 用户 / 群统计 | `dashboard_api` | 🟩 Dashboard |
+| 系统信息 / 健康 / 启停 | `system_api` | 🟩 Console + Sidebar |
+| 历史日志查询 / 上下文 / 流 | `logs_api` | 🟩 LogsPage（流待复核） |
+| 日志控制台轮转配置 | `logs_api::config` | ⬛ 缺独立页 |
+| 命令追踪 / 链路 | `trace_api` | 🟩 TracesPage |
+| 调度任务 | `scheduler_api` | 🟩 SchedulerPage |
+| 备份 | `backup_api` | 🟩 BackupPage |
+| 主题与背景 | `theme_api` + `assets_api` | 🟩 ThemesPage |
+| 账户（头像 / 用户名 / 密码） | `auth_api` | 🟩 SettingsPage |
+| 核心 / 框架 / 数据库配置 | `core_config_api` + `framework-config` | 🟩 CoreConfig/FrameworkConfig/DatabaseConfig |
+| 状态配置 | `state_store_api` | 🟨 弱（StateConfigPage 仅基础） |
+| 插件启用 / 禁用 / 重载 / 配置 / SV | `plugins_api` | 🟩 PluginsPage |
+| 插件市场（白名单 + URL 安装） | `plugins_api::plugin-store` | 🟩 PluginStorePage |
+| Git 镜像与更新 | `git_mirror_api` + `git_update_api` | 🟩 GitUpdatePage |
+| Provider 模型高低级（含主备） | `provider_config_api` | 🟩 AIConfigPage |
+| OpenAI 兼容 / Embedding | `embedding_config_api` + `openai_config` | 🟩 AIConfigPage |
+| Web Search / Rerank | `provider_config_api` 字段 | 🟩 AIConfigPage |
+| AI 配置向导 | `ai_wizard_api` | 🟩 AIConfigPage 内嵌 Dialog |
+| Persona CRUD + 媒体 | `persona_api` | 🟩 PersonaConfigPage |
+| MCP 服务器 + 工具发现 + 热重载 | `mcp_config_api` | 🟩 MCPConfigPage |
+| MCP 工具参数映射 | `mcp_config_api::tools-config` | 🟨 UI 入口弱 |
+| Capability Agent 节点 | `capability_agents_api` | 🟩 AICapabilityAgentsPage |
+| AI 工具与分类 | `ai_tools_api` | 🟩 AIToolsPage |
+| AI 技能（克隆 / 编辑） | `ai_skills_api` | 🟩 AISkillsPage |
+| AI 知识库文本/图片 + Image RAG | `knowledge_base_api` + `image_rag_api` | 🟩 AIKnowledgePage |
+| AI 知识备份导入/导出/对账 | 同上（`backup/*`、`reconcile`） | ⬛ 缺 UI |
+| AI 记忆 Episode / Entity / Edge | `ai_memory_api` | 🟩 AIMemoryPage |
+| AI 记忆 Category / HierGraph | `ai_memory_api` | 🟨 仅基础 |
+| AI 偏好记忆 Procedural 规则 | `ai_memory_api::preferences` | 🟨 部分，需独立管理 |
+| AI 记忆子系统配置 | `ai_memory_api::config` | ⬛ 无独立页 |
+| AI 表情包素材 | `meme_api` | 🟩 AIMemePage（stats 部分需降级兼容） |
+| AI 表情批量维护 | `meme_api`（`batch_*`、`export`、`import`） | ⬛ 缺 UI |
+| AI 内部定时任务 | `ai_scheduled_task_api` | 🟩 AIScheduledTasksPage |
+| AI Kanban 长任务 + 能力代理 | `kanban_api` | 🟩 AIKanbanPage |
+| AI Kanban 工作区文件 | `workspace_api` | 🟨 任务详情有，全局无 |
+| AI Artifacts 全局浏览 | `artifacts_api` | ⬛ 无独立页（仅在 Kanban 详情） |
+| AI 高危操作审批中心 | `approvals_api` | 🟩 AIApprovalsPage |
+| AI 预算规则 / 白名单 / 用量 | `budget_api` | 🟩 AIBudgetPage |
+| AI 统计（Token / 触发 / 错误 / RAG） | `ai_statistics_api` | 🟩 AIStatisticsPage |
+| AI 小时级性能 | `ai_performance_api` | 🟩 AIStatisticsPage 内嵌 |
+| AI Session 历史与 Trace 瀑布 | `ai_session_logs_api` | 🟩 AIHistoryPage |
+| Session 实时收发 / 历史回放 | `history_api` | 🟩 SessionManagementPage |
+| Agent 可视化调试台 | `agent_debug_api` | ⬛ 整个缺失 |
+| State Store 状态存储 | `state_store_api` | 🟨 偏弱 |
+| 品牌信息 | `brand_api` | ⬛ 无独立编辑页 |
+| 批量推送 | `message_api::BatchPush` | ⬛ 无入口 |
+| 插件图标统一缓存 | `plugin_icon_api` | 🟨 用了但未走接口 |
+| 数据库浏览与 CRUD | `database_api` | 🟩 DatabasePage |
+| 实时 WebSocket 控制台 | `web_api` | 🟩 ConsolePage |
+| 远程命令 | `remote_command`（`system_api` + RPC） | 🟩 ConsolePage |
+| 资源（图片 / 文件预览 / 上传） | `assets_api` | 🟩 主题背景图 + 备份图标 |
+
+**汇总**：
+- 🟩 已完整实现：**24 个** 能力板块
+- 🟨 部分实现：**6 个**（mcp_tools_config、StateConfigPage、HierGraph、Preferences、Meme stats、工作区、plugin icon 等）
+- ⬛ 完全空缺：**8 个**（Agent Debug、Artifacts 全局、品牌设置、BatchPush、知识备份导入导出、Meme 批量维护、日志控制台配置、记忆子系统配置）
+
+---
+
+## 五、推荐路线（按价值 / 工作量排序）
+
+如果下一步有人力投入，建议按下面的优先级补齐"空缺"：
+
+1. **品牌信息页**（`/brand-settings`，半天）— 全站 brand 与登录页即时变化，零门槛。
+2. **Meme 批量维护 / 表情 .meme 导入导出**（1–2 天）— 已封 API，UI 接一套对话框 + 进度条即可。
+3. **Knowledge 备份导入/导出 + 对账按钮**（半天）— 同上，已封 API。
+4. **AI 记忆子系统配置独立页 + Hiergraph 重建按钮**（1 天）— 让管理员"动"记忆而不只是浏览。
+5. **偏好记忆规则（Procedural Memory）独立管理页**（1–2 天）— 训练 AI 行为。
+6. **Agent 可视化调试台**（3–5 天）— 拆三页（Memory Graph / Orchestration / self_model），对接 8 个端点。
+7. **Artifacts 全局管理页**（1–2 天）— 一张资源表 + TTL + 下载。
+8. **State Store 状态存储完整管理**（2 天）— 看板与能力代理用得到。
+9. **看板任务工作区 / apply-patch 全局浏览**（1 天）— Kanban 详情扩展。
+10. **批量推送 `/batch-push`**（1 天）— 平台层测试与运维直发消息。
+11. **/ai-kanban/...workspace 全局视图**（与 AIKanbanPage 共用数据源）。
+12. **日志控制台自身配置页**（1 天）— 轮转策略 / 黑名单来源。
+13. **拆分主备配置可视化**：让用户看清当前任务在用哪个 provider（来自 `provider_config_api::all_configs`）。
+14. **AI 子 Agent 链路搜索 / 过滤 / 收藏**（2 天）— `AIHistoryPage` 增强。
+
+---
+
+## 六、文档维护约定
+
+- **新页面**：在 `src/pages/XXXPage.tsx` 与 `src/App.tsx` 注册后，**必须**回填本文档 §二 的表格行（路由 / 功能 / 后端 API 群）。
+- **新后端 API**：一旦在 `gsuid_core` 落地、若 30 天内前端未对接，应在 §三 "待补清单"登记一行，避免成为隐性债务。
+- **新封装组件**：在 `references/06-reusable-component-catalog.md` 加章节，并在 `SKILL.md` 速记表里加一行。
+- **新踩坑**：`references/10-pitfalls-and-performance.md` 加 `P-NN` 章节，必要时 `SKILL.md` 速记区同步。
+
+---
+
+## 七、关联文档（同仓库）
+
+- [`SKILL.md`](./SKILL.md) — 主入口与开发规范（必读）
+- [`references/01-architecture-and-conventions.md`](./references/01-architecture-and-conventions.md) 起按章节读
+- 仓库根 [`README.md`](../../../../README.md) — 项目总览
+- `gsuid_core` 仓库 `docs/skills/gscore-development/` — 后端框架规范
+- `gsuid_core/gsuid_core/webconsole/docs/` — 后端接口契约（按编号 01–43 阅读）

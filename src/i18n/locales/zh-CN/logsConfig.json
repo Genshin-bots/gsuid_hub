@@ -1,0 +1,19 @@
+{
+  "title": "日志控制台配置",
+  "subtitle": "控制日志保留期 / 轮转 / 黑名单。修改后立即生效。",
+  "saveSuccess": "日志控制台配置已保存",
+  "saveFailed": "保存失败",
+  "loadFailed": "加载日志控制台配置失败",
+  "cancel": "取消",
+  "save": "保存",
+  "fields": {
+    "retentionDays": "保留天数",
+    "rotationSizeMb": "轮转大小 (MB)",
+    "maxSizePerFile": "单文件最大 (MB)",
+    "enableFileCompression": "启用压缩",
+    "includeDebug": "含 DEBUG 级",
+    "blacklistedSources": "黑名单来源（每行一个）",
+    "blacklistedModules": "黑名单模块（每行一个）"
+  },
+  "toolbar": "控制台配置"
+}

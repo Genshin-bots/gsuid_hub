@@ -1,0 +1,49 @@
+{
+  "title": "Agent 可视化调试台",
+  "description": "三合一的管理员调试面板：记忆图谱、Agent 任务、Persona 自我模型修正",
+  "tabs": {
+    "memoryGraph": "记忆图谱",
+    "orchestration": "Agent 任务",
+    "selfModel": "自我模型"
+  },
+  "memoryGraph": {
+    "pickScope": "选择 scope",
+    "includeInvalid": "含已软删除边",
+    "edgesTitle": "记忆边 (Edges)",
+    "edgesDesc": "对话中沉淀的「事实」三元组。每条边代表两个实体间的一次断言。点「软删除」可让该边 `invalid_at` 被设值并不再被检索。",
+    "softDelete": "软删除",
+    "softDeleteConfirm": "确认软删除该边？只是标记 `invalid_at`，不会物理删除。",
+    "conflictsTitle": "记忆冲突 (Conflicts)",
+    "conflictsDesc": "C11 矛盾检测记录的事实对，与偏好的双向冲突",
+    "noConflicts": "当前 scope 没有冲突记录",
+    "noEdges": "没有可显示的边",
+    "loadEdgesFailed": "加载记忆边失败",
+    "loadConflictsFailed": "加载记忆冲突失败"
+  },
+  "orchestration": {
+    "tasksTitle": "Agent 任务",
+    "tasksDesc": "列出所有长任务（与 Kanban 同源），仅用于管理员调试观察",
+    "taskId": "任务 ID",
+    "noTaskId": "请输入任务 ID 以查看详情",
+    "killTask": "中止任务",
+    "killConfirm": "确认中止任务 {id} ?",
+    "taskDetailTitle": "任务详情",
+    "logsTitle": "事件日志",
+    "noLogs": "暂无日志",
+    "loadDetailFailed": "加载任务详情失败",
+    "loadTasksFailed": "加载任务列表失败",
+    "abortSuccess": "任务已中止"
+  },
+  "selfModel": {
+    "selfModelTitle": "Persona 自我模型 (self_model)",
+    "selfModelDesc": "Persona 的承诺、偏好、知识层等；管理员可在此对自我演化作人工修正",
+    "personaLabel": "Persona",
+    "load": "加载",
+    "contentLabel": "self_model JSON 内容",
+    "save": "保存修正",
+    "savedSuccess": "自我模型已更新",
+    "noContent": "(暂无内容)",
+    "loadFailed": "加载自我模型失败",
+    "saveFailed": "保存自我模型失败"
+  }
+}

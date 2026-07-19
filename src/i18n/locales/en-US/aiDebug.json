@@ -1,0 +1,49 @@
+{
+  "title": "Agent Visual Debugger",
+  "description": "Admin debug panel: memory graph, agent tasks, persona self-model fixes",
+  "tabs": {
+    "memoryGraph": "Memory Graph",
+    "orchestration": "Agent Tasks",
+    "selfModel": "Self-model"
+  },
+  "memoryGraph": {
+    "pickScope": "Pick scope",
+    "includeInvalid": "Include invalidated edges",
+    "edgesTitle": "Edges",
+    "edgesDesc": "Fact triples extracted from conversations. Soft-deleting will set invalid_at and exclude from retrieval.",
+    "softDelete": "Soft delete",
+    "softDeleteConfirm": "Soft-delete this edge? Just sets invalid_at; not physical delete.",
+    "conflictsTitle": "Conflicts",
+    "conflictsDesc": "C11 contradiction pairs vs preferences",
+    "noConflicts": "No conflicts in this scope",
+    "noEdges": "No edges to display",
+    "loadEdgesFailed": "Failed to load edges",
+    "loadConflictsFailed": "Failed to load conflicts"
+  },
+  "orchestration": {
+    "tasksTitle": "Agent tasks",
+    "tasksDesc": "All long-running tasks (same source as Kanban) for admin debug",
+    "taskId": "Task ID",
+    "noTaskId": "Enter a task ID to view details",
+    "killTask": "Abort task",
+    "killConfirm": "Abort task {id}?",
+    "taskDetailTitle": "Task detail",
+    "logsTitle": "Event log",
+    "noLogs": "No logs",
+    "loadDetailFailed": "Failed to load task detail",
+    "loadTasksFailed": "Failed to load tasks",
+    "abortSuccess": "Task aborted"
+  },
+  "selfModel": {
+    "selfModelTitle": "Persona self_model",
+    "selfModelDesc": "Persona commitments / preferences / knowledge. Admin can override self-evolution here.",
+    "personaLabel": "Persona",
+    "load": "Load",
+    "contentLabel": "self_model JSON",
+    "save": "Save override",
+    "savedSuccess": "self_model saved",
+    "noContent": "(no content)",
+    "loadFailed": "Failed to load self_model",
+    "saveFailed": "Failed to save self_model"
+  }
+}

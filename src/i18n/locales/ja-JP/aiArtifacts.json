@@ -1,0 +1,42 @@
+{
+  "title": "AI 成果物",
+  "description": "Agent タスクの中間成果物 / 最終成果をブラウズ。削除・TTL 延長に対応します",
+  "toolbar": {
+    "filterRoot": "root_task_id でフィルタ",
+    "filterRootAll": "全て",
+    "includeExpired": "期限切れを含む",
+    "refresh": "再読込"
+  },
+  "table": {
+    "kind": "種別",
+    "summary": "概要",
+    "task": "Task",
+    "profile": "From",
+    "size": "サイズ",
+    "expiresAt": "有効期限",
+    "actions": "操作",
+    "noData": "データなし"
+  },
+  "detail": {
+    "payloadTitle": "ペイロードプレビュー",
+    "payloadEmpty": "(inline / on-disk payload なし)"
+  },
+  "actions": {
+    "open": "表示",
+    "delete": "削除",
+    "extend30": "TTL +30 日延長",
+    "extend90": "TTL +90 日延長",
+    "download": "raw ダウンロード"
+  },
+  "messages": {
+    "deleted": "削除しました",
+    "deletedFail": "削除失敗",
+    "extended": "TTL を延長しました",
+    "extendedFail": "延長失敗",
+    "loadFail": "読込失敗",
+    "filterNeeded": "root_task_id を指定してください（「全て」で全体表示）"
+  },
+  "modeAll": "グローバル",
+  "modeRoot": "root_task_id = {root}",
+  "confirmDelete": "artifact {id} を削除しますか？"
+}

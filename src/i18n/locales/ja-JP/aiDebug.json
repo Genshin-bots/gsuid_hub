@@ -1,0 +1,49 @@
+{
+  "title": "Agent 可視化デバッガ",
+  "description": "管理者向けデバッグパネル：記憶グラフ、Agent タスク、Persona 自己モデル修正",
+  "tabs": {
+    "memoryGraph": "記憶グラフ",
+    "orchestration": "Agent タスク",
+    "selfModel": "自己モデル"
+  },
+  "memoryGraph": {
+    "pickScope": "スコープ選択",
+    "includeInvalid": "無効化された辺も含む",
+    "edgesTitle": "記憶辺（Edges）",
+    "edgesDesc": "会話から抽出された事実の三つ組。「無効化」を押すと invalid_at が設定され、検索から除外されます",
+    "softDelete": "無効化",
+    "softDeleteConfirm": "この辺を無効化しますか？invalid_at を設定するだけで物理削除ではありません",
+    "conflictsTitle": "記憶コンフリクト",
+    "conflictsDesc": "C11 矛盾検出による事実ペア",
+    "noConflicts": "このスコープにコンフリクトはありません",
+    "noEdges": "表示可能な辺がありません",
+    "loadEdgesFailed": "辺の読込失敗",
+    "loadConflictsFailed": "コンフリクトの読込失敗"
+  },
+  "orchestration": {
+    "tasksTitle": "Agent タスク",
+    "tasksDesc": "全長時間タスク（Kanban と同源）のデバッグ表示",
+    "taskId": "タスク ID",
+    "noTaskId": "詳細を見るタスク ID を入力してください",
+    "killTask": "タスク中止",
+    "killConfirm": "タスク {id} を中止しますか？",
+    "taskDetailTitle": "タスク詳細",
+    "logsTitle": "イベントログ",
+    "noLogs": "ログはありません",
+    "loadDetailFailed": "タスク詳細の読込失敗",
+    "loadTasksFailed": "タスク一覧の読込失敗",
+    "abortSuccess": "タスクを中止しました"
+  },
+  "selfModel": {
+    "selfModelTitle": "Persona 自己モデル (self_model)",
+    "selfModelDesc": "Persona のコミットメント・好み・知識層。管理者が自己進化をここで上書きできます",
+    "personaLabel": "Persona",
+    "load": "読み込み",
+    "contentLabel": "self_model JSON",
+    "save": "上書き保存",
+    "savedSuccess": "self_model を保存しました",
+    "noContent": "(コンテンツなし)",
+    "loadFailed": "self_model 読込失敗",
+    "saveFailed": "self_model 保存失敗"
+  }
+}

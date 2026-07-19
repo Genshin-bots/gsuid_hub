@@ -1,4 +1,4 @@
-import { Home, LayoutDashboard, Database, Settings, FileText, LogOut, Palette, Terminal, Calendar, Store, Cpu, HardDrive, PanelLeftClose, Cog, Power, RotateCw, User, Brain, ChevronDown, ChevronRight, Wrench, Sparkles, BookOpen, History, TrendingUp, Clock, Server, GitBranch, Image as ImageIcon, ScrollText, Layers, ClipboardList, Activity, Wallet, ShieldCheck } from 'lucide-react';
+import { Home, LayoutDashboard, Database, Settings, FileText, LogOut, Palette, Terminal, Calendar, Store, Cpu, HardDrive, PanelLeftClose, Cog, Power, RotateCw, User, Brain, ChevronDown, ChevronRight, Wrench, Sparkles, BookOpen, History, TrendingUp, Clock, Server, GitBranch, Image as ImageIcon, ScrollText, Layers, ClipboardList, Activity, Wallet, ShieldCheck, Bug, PackageOpen, Send } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -87,6 +87,8 @@ const getNavItems = (t: (key: string) => string, isAIEnabled: boolean): NavItem[
         { id: 'ai-history', title: t('sidebar.aiHistory'), url: '/ai-history', icon: ScrollText },
         { id: 'ai-kanban', title: t('sidebar.aiKanban'), url: '/ai-kanban', icon: ClipboardList },
         { id: 'ai-approvals', title: t('sidebar.aiApprovals'), url: '/ai-approvals', icon: ShieldCheck },
+        { id: 'ai-debug', title: t('sidebar.aiDebug'), url: '/ai-debug', icon: Bug },
+        { id: 'ai-artifacts', title: t('sidebar.aiArtifacts'), url: '/ai-artifacts', icon: PackageOpen },
       ]
     : [
         { id: 'ai-basicConfig', title: t('sidebar.basicConfig'), url: '/ai-config', icon: Cog },
@@ -116,7 +118,8 @@ const getNavItems = (t: (key: string) => string, isAIEnabled: boolean): NavItem[
         { id: 'console', title: t('sidebar.console'), url: '/console', icon: Terminal },
         { id: 'historyLogs', title: t('sidebar.historyLogs'), url: '/logs', icon: FileText },
         { id: 'traces', title: t('sidebar.traces'), url: '/traces', icon: Activity },
-        { id: 'sessionManagement', title: t('sidebar.sessionManagement'), url: '/session-management', icon: History }
+        { id: 'sessionManagement', title: t('sidebar.sessionManagement'), url: '/session-management', icon: History },
+        { id: 'batchPush', title: t('sidebar.batchPush'), url: '/batch-push', icon: Send }
       ]
     },
     {
@@ -134,6 +137,7 @@ const getNavItems = (t: (key: string) => string, isAIEnabled: boolean): NavItem[
       icon: Settings,
       children: [
         { id: 'themes', title: t('sidebar.themes'), url: '/themes', icon: Palette },
+        { id: 'brandSettings', title: t('sidebar.brandSettings'), url: '/brand-settings', icon: ImageIcon },
         { id: 'accountSettings', title: t('sidebar.accountSettings'), url: '/settings', icon: User }
       ]
     }

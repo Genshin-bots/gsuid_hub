@@ -368,8 +368,8 @@ const StateStoreViewer = forwardRef<StateStoreViewerHandle, StateStoreViewerProp
         </CardContent>
       </Card>
 
-      {/* Keys list - scrollable area with padding for shadow breathing room */}
-      <div className="min-h-0 flex-1 overflow-y-auto p-2">
+      {/* Keys list - scrollable area；仅竖直留 p-2 给阴影/间距，水平贴齐上方筛选卡外缘 */}
+      <div className="min-h-0 flex-1 overflow-y-auto py-2 px-0">
       {!selectedScope ? (
         <Card className="glass-card-flat shadow-none">
           <CardContent className="py-12 text-center text-muted-foreground">

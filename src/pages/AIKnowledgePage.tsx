@@ -702,6 +702,32 @@ export default function AIKnowledgePage() {
     }
   };
 
+  // ===================== 深度对账 =====================
+  const [reconciling, setReconciling] = useState(false);
+  const handleReconcile = async () => {
+    if (!window.confirm(t('aiKnowledge.reconcileConfirm') ?? '')) return;
+    try {
+      setReconciling(true);
+      const resp = await aiKnowledgeApi.reconcile();
+      const summary = [
+        `${t('aiKnowledge.reconcileTotal')}: ${resp.total ?? 0}`,
+        `${t('aiKnowledge.reconcileMatched')}: ${resp.matched ?? 0}`,
+        `${t('aiKnowledge.reconcileMissingInVector')}: ${resp.missing_in_vector ?? 0}`,
+        `${t('aiKnowledge.reconcileMissingInSql')}: ${resp.missing_in_sql ?? 0}`,
+        `${t('aiKnowledge.reconcileReEmbedded')}: ${resp.re_embedded ?? 0}`,
+      ].join('\n');
+      toast.success(
+        `${t('aiKnowledge.reconcile')}: \n${summary}`,
+        { duration: 8000 },
+      );
+      fetchKnowledgeList();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t('aiKnowledge.reconcileFailed'));
+    } finally {
+      setReconciling(false);
+    }
+  };
+
 
   // 点击行打开编辑
   const handleOpenEdit = async (item: AIKnowledgeItem | AIImageItem) => {
@@ -856,6 +882,22 @@ export default function AIKnowledgePage() {
             >
               <FolderOpen className="h-4 w-4" />
               <span className="hidden md:inline ml-1">{t('aiKnowledge.importBackup')}</span>
+            </Button>
+            <Button
+              onClick={handleReconcile}
+              variant="outline"
+              className="shrink-0"
+              title={t('aiKnowledge.reconcile') ?? ''}
+              disabled={reconciling}
+            >
+              {reconciling ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Sparkles className="h-4 w-4" />
+              )}
+              <span className="hidden md:inline ml-1">
+                {t('aiKnowledge.reconcile')}
+              </span>
             </Button>
             <Button onClick={handleOpenAddDialog} size="icon" className="shrink-0">
               <Plus className="h-4 w-4" />

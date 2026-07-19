@@ -69,6 +69,7 @@ import {
 import { toast } from 'sonner';
 import { api, agentDebugApi, AgentDebugMemoryConflict, AgentDebugMemoryEdge } from '@/lib/api';
 import { PinnedPage } from '@/components/layout/PinnedPage';
+import MemorySettingsDialog from '@/components/memory/MemorySettingsDialog';
 import Graph from 'graphology';
 import Sigma from 'sigma';
 import forceAtlas2 from 'graphology-layout-forceatlas2';
@@ -1196,6 +1197,8 @@ export default function AIMemoryPage() {
   const [stats, setStats] = useState<MemoryStats | null>(null);
   const [scopes, setScopes] = useState<MemoryScope[]>([]);
   const [hierGraphStatus, setHierGraphStatus] = useState<HierGraphStatus | null>(null);
+  const [memorySettingsOpen, setMemorySettingsOpen] = useState(false);
+  const [, setMemorySettingsVersion] = useState(0);
   const [config, setConfig] = useState<MemoryConfig | null>(null);
   const [episodes, setEpisodes] = useState<Episode[]>([]);
   const [entities, setEntities] = useState<Entity[]>([]);
@@ -1640,12 +1643,28 @@ export default function AIMemoryPage() {
     <PinnedPage
       header={
         /* Header */
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-3"><Brain className="w-8 h-8" />{t('aiMemory.title')}</h1>
-          <p className="text-muted-foreground mt-1">{t('aiMemory.description')}</p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold flex items-center gap-3"><Brain className="w-8 h-8" />{t('aiMemory.title')}</h1>
+            <p className="text-muted-foreground mt-1">{t('aiMemory.description')}</p>
+          </div>
+          <Button
+            variant="outline"
+            className="h-9 self-start sm:self-auto shrink-0"
+            onClick={() => setMemorySettingsOpen(true)}
+          >
+            <Brain className="w-4 h-4" />
+            {t('memorySettings.title')}
+          </Button>
         </div>
       }
     >
+      <MemorySettingsDialog
+        open={memorySettingsOpen}
+        onOpenChange={setMemorySettingsOpen}
+        scopeKey={scopes[0]?.scope_key ?? undefined}
+        onAfterSave={() => setMemorySettingsVersion(v => v + 1)}
+      />
       {error && (
         <Card className={cn('border-destructive/50', isGlass ? 'glass-card' : 'border border-border/50')}>
           <CardContent className="flex items-center gap-3 p-4 text-destructive">

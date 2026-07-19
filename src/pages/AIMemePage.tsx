@@ -62,6 +62,7 @@ import {
   Layers,
   Download,
   FileUp,
+  FileDown,
   Eraser,
   RotateCw,
 } from 'lucide-react';
@@ -1202,6 +1203,13 @@ export default function AIMemePage() {
   const [isRetaggingPending, setIsRetaggingPending] = useState(false);
   const [showPurgeDialog, setShowPurgeDialog] = useState(false);
   const [showRetagPendingDialog, setShowRetagPendingDialog] = useState(false);
+  // === .meme 导入对话框状态 ===
+  const [showImportDotMemeDialog, setShowImportDotMemeDialog] = useState(false);
+  const [importDotMemeFile, setImportDotMemeFile] = useState<File | null>(null);
+  const [importDotMemePersonaHint, setImportDotMemePersonaHint] = useState<string>('');
+  const [importDotMemeSkip, setImportDotMemeSkip] = useState(true);
+  const [importDotMemeAutoTag, setImportDotMemeAutoTag] = useState(false);
+  const [importingDotMeme, setImportingDotMeme] = useState(false);
 
   // Search debounce
   const searchTimerRef = useRef<ReturnType<typeof setTimeout>>();
@@ -1307,6 +1315,61 @@ export default function AIMemePage() {
   useEffect(() => {
     setPage(1);
   }, [filterFolder, filterStatus, filterPersona, sortBy]);
+
+  // Export current filter view (or selection) to .meme archive
+  const handleExportDotMeme = async () => {
+    const ids = selectedIds.size > 0 ? Array.from(selectedIds) : undefined;
+    const folder = ids ? undefined : filterFolder || undefined;
+    try {
+      setIsExporting(true);
+      const blob = await memeApi.exportMemes(ids, folder);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+      a.download = `memes_${stamp}.meme`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success(t('aiMeme.exportDotMemeSuccess'));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : t('aiMeme.exportDotMemeFailed'));
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleImportDotMeme = async () => {
+    if (!importDotMemeFile) {
+      toast.warning(t('aiMeme.importDotMemeFileRequired'));
+      return;
+    }
+    try {
+      setImportingDotMeme(true);
+      const result = await memeApi.importMemes(
+        importDotMemeFile,
+        importDotMemeSkip,
+        importDotMemeAutoTag,
+        importDotMemePersonaHint || undefined,
+      );
+      toast.success(
+        t('aiMeme.importDotMemeSuccess', {
+          imported: result.imported_count,
+          skipped: result.skipped_count,
+        }),
+      );
+      setShowImportDotMemeDialog(false);
+      setImportDotMemeFile(null);
+      fetchMemes();
+      fetchStats();
+      fetchPersonas();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : t('aiMeme.importDotMemeFailed'));
+    } finally {
+      setImportingDotMeme(false);
+    }
+  };
 
   // ============================================================================
   // Handlers
@@ -1525,6 +1588,27 @@ export default function AIMemePage() {
             >
               <Upload className="w-4 h-4" />
               {t('aiMeme.upload.title')}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowImportDotMemeDialog(true)}
+              className="gap-1.5 whitespace-nowrap"
+              title={t('aiMeme.importDotMeme')}
+            >
+              <FileDown className="w-4 h-4" />
+              <span className="hidden xl:inline">{t('aiMeme.importDotMeme')}</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportDotMeme}
+              className="gap-1.5 whitespace-nowrap"
+              title={t('aiMeme.exportDotMeme')}
+              disabled={memes.length === 0}
+            >
+              <FileUp className="w-4 h-4" />
+              <span className="hidden xl:inline">{t('aiMeme.exportDotMeme')}</span>
             </Button>
           </div>
         </div>
@@ -1939,6 +2023,54 @@ export default function AIMemePage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* .meme 导入对话框 */}
+      <Dialog open={showImportDotMemeDialog} onOpenChange={setShowImportDotMemeDialog}>
+        <DialogContent className="glass-card">
+          <DialogHeader>
+            <DialogTitle>{t('aiMeme.importDotMemeTitle')}</DialogTitle>
+            <DialogDescription>{t('aiMeme.importDotMemeDesc')}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <Input
+              type="file"
+              accept=".meme,.zip,application/octet-stream,application/zip"
+              onChange={(e) => setImportDotMemeFile(e.target.files?.[0] ?? null)}
+            />
+            <Input
+              className="h-9"
+              placeholder={t('aiMeme.importDotMemePersonaHint') ?? ''}
+              value={importDotMemePersonaHint}
+              onChange={(e) => setImportDotMemePersonaHint(e.target.value)}
+            />
+            <div className="flex items-center gap-4">
+              <label className="flex items-center gap-2 text-sm">
+                <Switch
+                  checked={importDotMemeSkip}
+                  onCheckedChange={setImportDotMemeSkip}
+                />
+                {t('aiMeme.importDotMemeSkipExisting')}
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <Switch
+                  checked={importDotMemeAutoTag}
+                  onCheckedChange={setImportDotMemeAutoTag}
+                />
+                {t('aiMeme.importDotMemeAutoTag')}
+              </label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowImportDotMemeDialog(false)}>
+              {t('common.cancel')}
+            </Button>
+            <Button onClick={handleImportDotMeme} disabled={importingDotMeme}>
+              {importingDotMeme && <Loader2 className="w-4 h-4 animate-spin mr-1.5" />}
+              {t('aiMeme.importDotMemeSubmit')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PinnedPage>
   );
 }

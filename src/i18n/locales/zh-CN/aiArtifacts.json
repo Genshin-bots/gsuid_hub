@@ -1,0 +1,42 @@
+{
+  "title": "AI 产出物",
+  "description": "Agent 任务产生的中间产物 / 最终成品的全局浏览。支持删除与延长 TTL。",
+  "toolbar": {
+    "filterRoot": "按 root_task_id 过滤",
+    "filterRootAll": "全部",
+    "includeExpired": "含已过期",
+    "refresh": "刷新"
+  },
+  "table": {
+    "kind": "类型",
+    "summary": "摘要",
+    "task": "Task",
+    "profile": "From",
+    "size": "大小",
+    "expiresAt": "过期时间",
+    "actions": "操作",
+    "noData": "暂无数据"
+  },
+  "detail": {
+    "payloadTitle": "Payload 预览",
+    "payloadEmpty": "(该 artifact 没有 inline / on-disk payload)"
+  },
+  "actions": {
+    "open": "查看",
+    "delete": "删除",
+    "extend30": "延长 TTL +30 天",
+    "extend90": "延长 TTL +90 天",
+    "download": "下载原 payload"
+  },
+  "messages": {
+    "deleted": "已删除",
+    "deletedFail": "删除失败",
+    "extended": "TTL 已延长",
+    "extendedFail": "延长失败",
+    "loadFail": "加载失败",
+    "filterNeeded": "请提供 root_task_id（仅展示该任务树下的产出物；查看全局请勾选「全部」）"
+  },
+  "modeAll": "global",
+  "modeRoot": "root_task_id = {root}",
+  "confirmDelete": "确认删除 artifact {id}?"
+}

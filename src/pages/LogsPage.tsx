@@ -11,6 +11,7 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Search, RefreshCw, Download, ChevronDown, AlertCircle, AlertTriangle, Info, Bug, FileText, Calendar, Eye, ChevronUp, ChevronLeft, ChevronRight } from 'lucide-react';
 import { logsApi, LogContextLog, LogContextResponse } from '@/lib/api';
+import LogsConfigDialog from '@/components/logs/LogsConfigDialog';
 import { toast } from 'sonner';
 import { StructuredDataViewer } from '@/components/StructuredDataViewer';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -178,6 +179,7 @@ export default function LogsPage() {
   const [perPage] = useState(100);
   const [searchTerm, setSearchTerm] = useState('');
   const [levelFilter, setLevelFilter] = useState<LogLevel>('all');
+  const [logsConfigOpen, setLogsConfigOpen] = useState(false);
   const [dateMode, setDateMode] = useState<DateMode>('single');
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
@@ -472,10 +474,15 @@ export default function LogsPage() {
               <Download className="w-4 h-4 mr-2" />
               {t('logs.export')}
             </Button>
+            <Button variant="outline" onClick={() => setLogsConfigOpen(true)} className="whitespace-nowrap">
+              <FileText className="w-4 h-4 mr-2" />
+              {t('logsConfig.toolbar')}
+            </Button>
           </div>
         </div>
       }
     >
+      <LogsConfigDialog open={logsConfigOpen} onOpenChange={setLogsConfigOpen} />
       {/* Stats - 固定高度 */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4 shrink-0">
         <Card className="glass-card border-l-4 border-l-blue-500">

@@ -722,3 +722,710 @@ export const generateTableData = (tableName: string, params: URLSearchParams) =>
   const start = (page - 1) * perPage;
   return { items: rows.slice(start, start + perPage), total: rows.length, page, per_page: perPage };
 };
+
+// ===================
+// Tier 2 · 补漏洞：让 demo 模式必崩页面也能正常打开
+// ===================
+// 详见 `docs/skills/gshub-development/references/10-pitfalls-and-performance.md` P-26。
+// 这里集中给 /logs /persona-config /mcp-config /ai-statistics /ai-budget /backup /ai-kanban /ai-config
+// 这些页面所必需的 mock 数据，让 `npm run dev:demo` 全跑通。
+
+// ---- Logs（LogsPage） ----
+const DEMO_LOG_SOURCES = ['onebot-114514', 'tg-sayu', 'dc-sayu', 'gsuid_core', 'GsCoreAI'];
+const DEMO_LOG_MODULES = ['handle_event', 'ai_core.handle_ai', 'mcp.loader', 'plugin.loader', 'web'];
+const DEMO_LOG_MESSAGES = [
+  '收到消息 用户 114514 在群 10086',
+  'plugin.match_trigger 命中 gs_help',
+  'AI Session 已恢复 session_uuid=8d8e',
+  'tool_call to_ai took 0.92s',
+  '记忆 ingestion flush 12 episodes',
+  'MCP server openai-tools reloaded',
+  'heartbeat persona sayu check 1/3 groups',
+  'kanban task task-2026-07-20-001 progress',
+  'plugin SayuStock.update_available',
+  'gsuid_core.scheduler tick at 12:00:00',
+];
+export const generateLogEntries = (params: URLSearchParams) => {
+  const date = params.get('date') ?? new Date().toISOString().split('T')[0];
+  const level = params.get('level') ?? '';
+  const source = params.get('source') ?? '';
+  const page = Number(params.get('page') ?? 1);
+  const pageSize = Number(params.get('page_size') ?? 50);
+  const rng = makeRng(hashSeed(`logs:${date}`));
+  const levels = ['DEBUG', 'INFO', 'INFO', 'INFO', 'WARNING', 'ERROR'];
+  const items: Array<Record<string, unknown>> = [];
+  const total = 320;
+  for (let i = 0; i < total; i++) {
+    items.push({
+      id: `log-${i}`,
+      timestamp: `${date}T${String(randInt(rng, 0, 23)).padStart(2, '0')}:${String(randInt(rng, 0, 59)).padStart(2, '0')}:${String(randInt(rng, 0, 59)).padStart(2, '0')}.${randInt(rng, 100, 999)}`,
+      level: pick(rng, levels),
+      source: pick(rng, DEMO_LOG_SOURCES),
+      module: pick(rng, DEMO_LOG_MODULES),
+      message: pick(rng, DEMO_LOG_MESSAGES),
+      bot_id: pick(rng, ['onebot-114514', 'tg-sayu', 'dc-sayu']),
+    });
+  }
+  const filtered = items.filter(
+    (it) => (!level || it.level === level) && (!source || it.source === source),
+  );
+  const start = (page - 1) * pageSize;
+  return { items: filtered.slice(start, start + pageSize), total: filtered.length, page, page_size: pageSize };
+};
+export const generateLogDates = () => {
+  const today = new Date();
+  return Array.from({ length: 7 }).map((_, i) => {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    return d.toISOString().split('T')[0];
+  });
+};
+export const generateLogSources = () => [
+  { name: 'onebot-114514', count: 124 },
+  { name: 'tg-sayu', count: 64 },
+  { name: 'dc-sayu', count: 31 },
+  ...DEMO_LOG_SOURCES.filter((s) => !['onebot-114514', 'tg-sayu', 'dc-sayu'].includes(s)).map((s) => ({ name: s, count: 24 })),
+];
+export const generateLogLevels = () => ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'];
+export const generateLogStats = () => ({
+  total_entries: 1842,
+  by_level: { DEBUG: 512, INFO: 1043, WARNING: 224, ERROR: 58, CRITICAL: 5 },
+  by_source: Object.fromEntries(DEMO_LOG_SOURCES.map((s) => [s, Math.floor(80 + Math.random() * 400)])),
+  busiest_date: new Date().toISOString().split('T')[0],
+});
+export const generateLogConfig = () => ({
+  retention_days: 30,
+  rotation_size_mb: 100,
+  enable_file_compression: true,
+  include_debug: false,
+  blacklisted_sources: ['plugin.noisy'],
+  blacklisted_modules: [],
+  max_size_per_file: 50,
+});
+
+// ---- Persona（PersonaConfigPage） ----
+const DEMO_PERSONAS = [
+  {
+    name: '早柚',
+    description: 'Wind Spirit. 是一只来自璃月的小风精灵，活泼可爱，喜欢早安问候与小憩。',
+    enabled: true,
+    scope: 'global' as const,
+    target_groups: [] as string[],
+    ai_mode: ['mention'],
+    avatar: demoPlaceholderImage('persona-sayu', '早柚'),
+    bound_groups_count: 0,
+    is_default: false,
+  },
+  {
+    name: '可莉',
+    description: '嘟嘟可大魔王. 西风骑士团火花骑士，热爱炸鱼与画画。',
+    enabled: true,
+    scope: 'specific' as const,
+    target_groups: ['114514', '1919810'],
+    ai_mode: ['mention', 'inspect'],
+    avatar: demoPlaceholderImage('persona-klee', '可莉'),
+    bound_groups_count: 2,
+    is_default: false,
+  },
+  {
+    name: '钟离',
+    description: '岩神. 来自璃月的神明，沉稳渊博，对人类与历史充满兴趣。',
+    enabled: false,
+    scope: 'disabled' as const,
+    target_groups: [],
+    ai_mode: ['mention'],
+    avatar: demoPlaceholderImage('persona-zhongli', '钟离'),
+    bound_groups_count: 0,
+    is_default: false,
+  },
+  {
+    name: '派蒙',
+    description: '应急食品. 最好的旅伴。',
+    enabled: true,
+    scope: 'specific' as const,
+    target_groups: ['10086'],
+    ai_mode: ['mention'],
+    avatar: demoPlaceholderImage('persona-paimon', '派蒙'),
+    bound_groups_count: 1,
+    is_default: true,
+  },
+];
+export const generatePersonaList = () =>
+  DEMO_PERSONAS.map((p) => ({
+    name: p.name,
+    description: p.description,
+    enabled: p.enabled,
+    scope: p.scope,
+    target_groups: p.target_groups,
+    ai_mode: p.ai_mode,
+    avatar: p.avatar,
+    is_default: p.is_default,
+    bound_groups_count: p.bound_groups_count,
+    has_audio: false,
+  }));
+export const generatePersonaDetail = (name: string) => {
+  const found = DEMO_PERSONAS.find((p) => p.name === name) ?? DEMO_PERSONAS[0];
+  return {
+    ...found,
+    content_md: `# ${found.name}\n\n${found.description}\n\n## 行为准则\n- 礼貌回应，称呼对方为「旅行者」\n- 不讨论实时新闻\n- 当涉及战斗话题时，给出角色向建议\n`,
+    audio: null,
+    image: null,
+    has_audio: false,
+    config: {
+      enable_persona: found.enabled,
+      ai_mode: found.ai_mode,
+      scope: found.scope,
+      target_groups: found.target_groups,
+      inspect_interval: 30,
+      trigger_words: ['早柚', '小风'],
+    },
+  };
+};
+export const generatePersonaConfigAll = () =>
+  DEMO_PERSONAS.map((p) => ({
+    name: p.name,
+    enable_persona: p.enabled,
+    ai_mode: p.ai_mode,
+    scope: p.scope,
+    target_groups: p.target_groups,
+  }));
+export const generateGlobalPersonaConfig = () => {
+  const enabled = DEMO_PERSONAS.filter((p) => p.enabled);
+  return {
+    enabled_personas: enabled.map((p) => p.name),
+    default_persona: enabled[0]?.name ?? '早柚',
+  };
+};
+
+// ---- MCP（MCPConfigPage） ----
+const DEMO_MCP_CONFIGS = [
+  {
+    config_id: 'mcp-openai-tools',
+    name: 'OpenAI Tools MCP',
+    description: '由 OpenAI 官方维护的计算与文件处理 MCP',
+    transport: 'stdio',
+    command: 'npx -y @modelcontextprotocol/server-openai',
+    env_keys: ['OPENAI_API_KEY'],
+    args: [],
+    enabled: true,
+    tools_count: 6,
+    last_loaded_at: new Date(Date.now() - 600_000).toISOString(),
+  },
+  {
+    config_id: 'mcp-brave-search',
+    name: 'Brave Search MCP',
+    description: 'Brave 搜索 MCP，支持实时网页搜索',
+    transport: 'stdio',
+    command: 'npx -y @modelcontextprotocol/server-brave-search',
+    env_keys: ['BRAVE_API_KEY'],
+    args: [],
+    enabled: true,
+    tools_count: 2,
+    last_loaded_at: new Date(Date.now() - 1800_000).toISOString(),
+  },
+  {
+    config_id: 'mcp-filesystem',
+    name: 'Filesystem MCP',
+    description: '受限访问工作区与产物目录的文件 MCP',
+    transport: 'stdio',
+    command: 'mcp-server-filesystem',
+    env_keys: ['ALLOWED_DIRS'],
+    args: ['/data/kanban_workspace'],
+    enabled: false,
+    tools_count: 0,
+    last_loaded_at: null,
+  },
+];
+export const generateMCPConfigList = () =>
+  DEMO_MCP_CONFIGS.map((c) => ({
+    config_id: c.config_id,
+    name: c.name,
+    description: c.description,
+    transport: c.transport,
+    command: c.command,
+    args: c.args,
+    env_keys: c.env_keys,
+    enabled: c.enabled,
+    tools_count: c.tools_count,
+    last_loaded_at: c.last_loaded_at,
+  }));
+export const generateMCPConfigDetail = (configId: string) => {
+  const c = DEMO_MCP_CONFIGS.find((x) => x.config_id === configId) ?? DEMO_MCP_CONFIGS[0];
+  return {
+    ...c,
+    env: Object.fromEntries(c.env_keys.map((k) => [k, '••••••••'])),
+    tools: [
+      { name: `${c.name.split(' ')[0].toLowerCase()}_search`, description: '搜索并返回结果', input_schema: { type: 'object', properties: { q: { type: 'string' } } } },
+      { name: `${c.name.split(' ')[0].toLowerCase()}_summarize`, description: '对输入文本做摘要', input_schema: { type: 'object', properties: { text: { type: 'string' } } } },
+    ],
+  };
+};
+export const generateMCPPresets = () => [
+  { name: 'OpenAI Tools', description: 'OpenAI 官方维护的 MCP，包含计算器与文件处理工具' },
+  { name: 'Brave Search', description: 'Brave Search 官方 MCP，提供实时搜索能力' },
+  { name: 'Filesystem (受限)', description: '限制到 Kanban Workspace 的文件系统 MCP' },
+  { name: 'Puppeteer', description: 'Puppeteer 浏览器自动化' },
+];
+
+// ---- AI Statistics（AIStatisticsPage） ----
+export const generateAIStatisticsSummary = () => ({
+  total_tokens: 1_842_311,
+  input_tokens: 612_309,
+  output_tokens: 933_120,
+  cache_read_tokens: 280_000,
+  cache_write_tokens: 16_882,
+  total_requests: 12_482,
+  total_errors: 92,
+  total_sessions: 384,
+  active_users: 64,
+  active_groups: 21,
+});
+export const generateTokenByModel = () => [
+  { model: 'anthropic/claude-opus-4-8', total_tokens: 1_122_000, input_tokens: 360_000, output_tokens: 762_000, requests: 3_120 },
+  { model: 'anthropic/claude-haiku-4-5', total_tokens: 482_000, input_tokens: 200_000, output_tokens: 120_000, requests: 7_801 },
+  { model: 'openai/gpt-4o-mini', total_tokens: 210_311, input_tokens: 52_309, output_tokens: 51_120, requests: 1_461 },
+  { model: 'local/embedding-bge-m3', total_tokens: 28_000, input_tokens: 0, output_tokens: 0, requests: 100 },
+];
+export const generateTokenByType = () => [
+  { type: 'chat', total_tokens: 1_500_000, requests: 9_000 },
+  { type: 'tool_call', total_tokens: 220_000, requests: 2_800 },
+  { type: 'embedding', total_tokens: 110_000, requests: 600 },
+  { type: 'rerank', total_tokens: 12_311, requests: 82 },
+];
+export const generateActiveUsers = () => [
+  { user_id: '10086', display_name: '旅行者-夜兰', interactions: 412, kind: 'user' },
+  { user_id: '1919810', display_name: '可莉的团长', interactions: 318, kind: 'user' },
+  { user_id: 'group:114514', display_name: '原神内鬼群', interactions: 1_240, kind: 'group' },
+  { user_id: 'group:10086', display_name: '日常吹水', interactions: 982, kind: 'group' },
+];
+export const generateTriggerDistribution = () => [
+  { trigger: 'mention', count: 6_120, ratio: 0.49 },
+  { trigger: 'command', count: 4_812, ratio: 0.385 },
+  { trigger: 'inspect', count: 1_122, ratio: 0.09 },
+  { trigger: 'auto', count: 428, ratio: 0.035 },
+];
+export const generateIntentDistribution = () => [
+  { intent: '闲聊', count: 5_320 },
+  { intent: '角色互动', count: 2_812 },
+  { intent: '数据查询', count: 1_120 },
+  { intent: '其它', count: 628 },
+];
+export const generateErrorStats = () => [
+  { code: 'rate_limit', count: 32, last_seen_at: new Date(Date.now() - 600_000).toISOString() },
+  { code: 'timeout', count: 18, last_seen_at: new Date(Date.now() - 1200_000).toISOString() },
+  { code: 'bad_request', count: 12, last_seen_at: new Date(Date.now() - 3600_000).toISOString() },
+  { code: 'auth_error', count: 4, last_seen_at: new Date(Date.now() - 7200_000).toISOString() },
+];
+export const generateHeartbeatStats = () => ({
+  inspected_groups: 12,
+  raised_alerts: 3,
+  total_rounds: 168,
+  avg_round_seconds: 4.2,
+});
+export const generateRAGStats = () => ({
+  total_queries: 982,
+  hit_count: 720,
+  hit_rate: 0.733,
+  top_docs: [
+    { doc_id: 'doc-001', title: '原神角色图鉴', hit_count: 312 },
+    { doc_id: 'doc-013', title: '七圣召唤规则', hit_count: 192 },
+    { doc_id: 'doc-029', title: '深渊配队攻略', hit_count: 99 },
+  ],
+});
+export const generateTokenByRange = () => ({
+  start: new Date(Date.now() - 6 * 86400_000).toISOString().split('T')[0],
+  end: new Date().toISOString().split('T')[0],
+  total: { total_tokens: 1_842_311, requests: 12_482 },
+  daily: Array.from({ length: 7 }).map((_, i) => ({
+    date: new Date(Date.now() - (6 - i) * 86400_000).toISOString().split('T')[0],
+    total_tokens: 200_000 + i * 35_421 + Math.floor(Math.random() * 30_000),
+    requests: 1_200 + i * 80 + Math.floor(Math.random() * 200),
+  })),
+  by_model: [
+    { model: 'anthropic/claude-opus-4-8', total_tokens: 1_122_000, requests: 3_120 },
+    { model: 'anthropic/claude-haiku-4-5', total_tokens: 482_000, requests: 7_801 },
+  ],
+});
+export const generatePerformanceHourly = () => {
+  const date = new Date().toISOString().split('T')[0];
+  return Array.from({ length: 24 }).map((_, i) => ({
+    hour: i,
+    avg_latency_ms: 800 + Math.floor(Math.random() * 600),
+    p95_latency_ms: 1_400 + Math.floor(Math.random() * 800),
+    error_count: Math.floor(Math.random() * 12),
+    request_count: 200 + Math.floor(Math.random() * 400),
+  }));
+};
+export const generatePerformanceHourlyRange = () => {
+  const days = Array.from({ length: 7 }).map((_, i) => {
+    const d = new Date(Date.now() - (6 - i) * 86400_000);
+    return {
+      date: d.toISOString().split('T')[0],
+      hours: Array.from({ length: 24 }).map((_, h) => ({
+        hour: h,
+        avg_latency_ms: 800 + Math.floor(Math.random() * 600),
+        p95_latency_ms: 1_400 + Math.floor(Math.random() * 800),
+        error_count: Math.floor(Math.random() * 12),
+        request_count: 200 + Math.floor(Math.random() * 400),
+      })),
+    };
+  });
+  return days;
+};
+
+// ---- AI Budget（AIBudgetPage） ----
+const DEMO_BUDGET_RULES = [
+  {
+    rule_id: 'rule-global-5h',
+    name: '全局 5h 限额',
+    scope_type: 'global',
+    window: '5h',
+    token_limit: 200_000,
+    enabled: true,
+  },
+  {
+    rule_id: 'rule-group-114514',
+    name: '原神内鬼群 每天限额',
+    scope_type: 'group',
+    scope_id: '114514',
+    window: 'daily',
+    token_limit: 80_000,
+    enabled: true,
+  },
+  {
+    rule_id: 'rule-member-10086',
+    name: '夜兰 个人每周限额',
+    scope_type: 'member',
+    scope_id: '10086',
+    window: 'weekly',
+    token_limit: 30_000,
+    enabled: false,
+  },
+];
+export const generateBudgetConfig = () => ({
+  enable: true,
+  count_mode: 'input_output',
+  exemption_admins: true,
+  notify_on_block: true,
+});
+export const generateBudgetRules = (params: URLSearchParams) => {
+  const scope = params.get('scope_type');
+  const rules = scope ? DEMO_BUDGET_RULES.filter((r) => r.scope_type === scope) : DEMO_BUDGET_RULES;
+  return rules.map((r) => ({
+    ...r,
+    current_usage: Math.floor(Math.random() * (r.token_limit * 0.4)),
+    usage_ratio: Math.random() * 0.4,
+    last_check_at: new Date(Date.now() - 300_000).toISOString(),
+  }));
+};
+export const generateBudgetWhitelist = () => [
+  { entry_id: 'wl-1', scope_type: 'user', scope_id: '10086', note: '群主' },
+  { entry_id: 'wl-2', scope_type: 'group', scope_id: '114514', note: '' },
+];
+export const generateBudgetOverview = () => ({
+  today_total: { tokens: 31_421, requests: 192 },
+  week_total: { tokens: 211_840, requests: 1_212 },
+  hit_count_today: 4,
+  hit_count_week: 18,
+  top_consumers: [
+    { scope_type: 'group', scope_id: '114514', tokens_today: 9_124, requests_today: 58 },
+    { scope_type: 'user', scope_id: '10086', tokens_today: 5_812, requests_today: 32 },
+  ],
+});
+
+// ---- Backup（BackupPage） ----
+export const generateBackupFileTree = () => ({
+  root: {
+    name: 'backups',
+    path: '',
+    type: 'directory',
+    children: [
+      {
+        name: '2026-07-19',
+        path: '2026-07-19',
+        type: 'directory',
+        children: [
+          { name: 'database.zip', path: '2026-07-19/database.zip', type: 'file', size_bytes: 1_482_311 },
+          { name: 'config.zip', path: '2026-07-19/config.zip', type: 'file', size_bytes: 218_422 },
+        ],
+      },
+      {
+        name: '2026-07-20',
+        path: '2026-07-20',
+        type: 'directory',
+        children: [
+          { name: 'database.zip', path: '2026-07-20/database.zip', type: 'file', size_bytes: 1_511_882 },
+          { name: 'config.zip', path: '2026-07-20/config.zip', type: 'file', size_bytes: 224_121 },
+          { name: 'workspace.zip', path: '2026-07-20/workspace.zip', type: 'file', size_bytes: 91_222_311 },
+        ],
+      },
+    ],
+  },
+});
+export const generateBackupFiles = () => [
+  { file_id: 'bf-20260719-db', name: 'database.zip', size_bytes: 1_482_311, created_at: '2026-07-19T03:00:12Z' },
+  { file_id: 'bf-20260719-cfg', name: 'config.zip', size_bytes: 218_422, created_at: '2026-07-19T03:00:13Z' },
+  { file_id: 'bf-20260720-db', name: 'database.zip', size_bytes: 1_511_882, created_at: '2026-07-20T03:00:11Z' },
+  { file_id: 'bf-20260720-cfg', name: 'config.zip', size_bytes: 224_121, created_at: '2026-07-20T03:00:12Z' },
+];
+export const generateBackupConfig = () => ({
+  schedule: 'daily',
+  retention_count: 14,
+  auto_upload: false,
+  upload_target: null,
+});
+
+// ---- AI Kanban（AIKanbanPage） ----
+export const generateKanbanBoard = () => {
+  const makeCard = (column: string, display: string, kind: 'root' | 'subtask') => ({
+    id: `${column}-${Math.random().toString(36).slice(2, 9)}`,
+    root_task_id: 'demo-root-001',
+    parent_task_id: kind === 'root' ? null : 'demo-root-001',
+    ordinal: 0,
+    display,
+    goal: '完成该任务的预期输出',
+    status: 'pending',
+    kanban_column: column as 'target' | 'progress' | 'Done' | 'Blocked' | 'failed',
+    agent_profile: kind === 'root' ? 'root_planner' : 'coder_agent',
+    persona_name: '早柚',
+    dependency_task_ids: [],
+    not_before: null,
+    respawn_count: 0,
+    failure_reason: null,
+    input_artifact_ids: [],
+    output_artifact_id: null,
+    workspace_path: '/data/kanban_workspace',
+    subtask_count: 0,
+    subtask_done_count: 0,
+    created_at: new Date(Date.now() - 3600_000).toISOString(),
+    updated_at: new Date(Date.now() - 600_000).toISOString(),
+  });
+  return {
+    columns: {
+      target: [makeCard('target', '整理本月看板演示任务', 'root')],
+      progress: [
+        makeCard('progress', '收集原神角色数据', 'subtask'),
+        makeCard('progress', '写作 README.md', 'subtask'),
+      ],
+      Done: [makeCard('Done', '调试 MCP Server 连接', 'subtask')],
+      Blocked: [],
+      failed: [makeCard('failed', '尝试加载网络字体（被 GFW 拦截）', 'subtask')],
+    },
+    summary: { task_count: 5, subtask_count: 4, updated_at: new Date().toISOString() },
+  };
+};
+export const generateKanbanTaskDetail = () => {
+  const root = {
+    id: 'demo-root-001',
+    root_task_id: 'demo-root-001',
+    parent_task_id: null,
+    ordinal: 0,
+    display: '整理本月看板演示任务',
+    goal: '展示看板页结构',
+    status: 'pending',
+    kanban_column: 'target' as const,
+    agent_profile: 'root_planner',
+    persona_name: '早柚',
+    dependency_task_ids: [],
+    not_before: null,
+    respawn_count: 0,
+    failure_reason: null,
+    input_artifact_ids: [],
+    output_artifact_id: null,
+    workspace_path: '/data/kanban_workspace',
+    subtask_count: 4,
+    subtask_done_count: 1,
+    created_at: new Date(Date.now() - 3600_000).toISOString(),
+    updated_at: new Date(Date.now() - 600_000).toISOString(),
+  };
+  return {
+    task: root,
+    root,
+    subtasks: [
+      { ...root, id: 'demo-sub-1', display: '收集原神角色数据', kanban_column: 'progress' as const, status: 'pending', subtask_count: 0, subtask_done_count: 0 },
+      { ...root, id: 'demo-sub-2', display: '写作 README.md', kanban_column: 'progress' as const, status: 'pending', subtask_count: 0, subtask_done_count: 0 },
+      { ...root, id: 'demo-sub-3', display: '调试 MCP Server 连接', kanban_column: 'Done' as const, status: 'done', subtask_count: 0, subtask_done_count: 0 },
+      { ...root, id: 'demo-sub-4', display: '尝试加载网络字体', kanban_column: 'failed' as const, status: 'failed', failure_reason: 'GFW', subtask_count: 0, subtask_done_count: 0 },
+    ],
+    logs: [
+      { event_type: 'run_start', content: 'task started', timestamp: new Date(Date.now() - 600_000).toISOString() },
+      { event_type: 'tool_call', content: 'websearch 关键字 原神', timestamp: new Date(Date.now() - 540_000).toISOString() },
+      { event_type: 'tool_return', content: 'ok', timestamp: new Date(Date.now() - 540_000).toISOString() },
+    ],
+    artifacts: [
+      {
+        id: 'demo-art-1',
+        kind: 'text',
+        artifact_kind: 'markdown',
+        summary: '原神角色名 + 元素 + 武器类型的小结',
+        mime: 'text/markdown',
+        size_bytes: 1_204,
+        from_profile: 'researcher',
+        created_at: new Date(Date.now() - 600_000).toISOString(),
+      },
+    ],
+  };
+};
+export const generateKanbanArtifacts = () => ({
+  items: [
+    {
+      id: 'demo-art-1',
+      root_task_id: 'demo-root-001',
+      task_id: 'demo-sub-1',
+      parent_task_id: 'demo-root-001',
+      from_profile: 'researcher',
+      artifact_kind: 'markdown',
+      mime: 'text/markdown',
+      summary: '原神角色名 + 元素 + 武器类型的小结',
+      size_bytes: 1_204,
+      has_inline: true,
+      has_payload_path: false,
+      payload_path: null,
+      created_at: new Date(Date.now() - 600_000).toISOString(),
+      expires_at: new Date(Date.now() + 7 * 86400_000).toISOString(),
+    },
+    {
+      id: 'demo-art-2',
+      root_task_id: 'demo-root-001',
+      task_id: 'demo-sub-2',
+      parent_task_id: 'demo-root-001',
+      from_profile: 'writer',
+      artifact_kind: 'markdown',
+      mime: 'text/markdown',
+      summary: 'README v2 初稿',
+      size_bytes: 8_211,
+      has_inline: true,
+      has_payload_path: false,
+      payload_path: null,
+      created_at: new Date(Date.now() - 300_000).toISOString(),
+      expires_at: new Date(Date.now() + 7 * 86400_000).toISOString(),
+    },
+  ],
+  count: 2,
+});
+export const generateKanbanCandidates = () => ({
+  candidates: [
+    { node_id: 'cap-researcher', display_name: '研究员', when_to_use: '需要做联网搜索或资料检索', match_keywords: ['搜索', '资料'], tool_names: ['websearch', 'fetch_url'], source: 'builtin' },
+    { node_id: 'cap-writer', display_name: '写作者', when_to_use: '需要写长文、文档', match_keywords: ['写作', '文档'], tool_names: ['file_write', 'compose_text'], source: 'builtin' },
+  ],
+});
+export const generateKanbanWorkspaceFiles = () => ({
+  task_id: 'demo-root-001',
+  files: [
+    { path: 'input/characters.json', size_bytes: 1_204, mime: 'application/json', updated_at: new Date(Date.now() - 600_000).toISOString() },
+    { path: 'output/README.md', size_bytes: 8_211, mime: 'text/markdown', updated_at: new Date(Date.now() - 300_000).toISOString() },
+  ],
+});
+
+// ---- AI Config（AIConfigPage） ----
+const DEMO_PROVIDERS = [
+  { provider: 'anthropic', display_name: 'Anthropic', enabled: true, presets: ['claude-opus-4-8', 'claude-haiku-4-5'] },
+  { provider: 'openai', display_name: 'OpenAI', enabled: true, presets: ['gpt-4o', 'gpt-4o-mini'] },
+  { provider: 'gemini', display_name: 'Gemini', enabled: true, presets: ['gemini-2.5-pro', 'gemini-2.5-flash'] },
+  { provider: 'local', display_name: '本机服务 (Ollama / vLLM / SGLang)', enabled: false, presets: [] },
+];
+export const generateProviderList = () => ({
+  providers: DEMO_PROVIDERS,
+  default_provider: 'anthropic',
+});
+export const generateTaskConfig = (task: string) => {
+  const all = DEMO_PROVIDERS.flatMap((p) => p.presets.map((m) => ({ provider: p.provider, model_name: m })));
+  return {
+    task_level: task,
+    provider_config_name: `${task}-main`,
+    provider: 'anthropic',
+    model_name: task === 'high' ? 'claude-opus-4-8' : 'claude-haiku-4-5',
+    fallback_provider_config_name: null,
+    '2nd_provider_config_name': `${task}-backup`,
+  };
+};
+export const generateProviderConfigsSummary = () => ({
+  providers: DEMO_PROVIDERS.filter((p) => p.enabled),
+  all_configs: [
+    { name: 'high-main', provider: 'anthropic', model_name: 'claude-opus-4-8' },
+    { name: 'high-backup', provider: 'openai', model_name: 'gpt-4o-mini' },
+    { name: 'low-main', provider: 'anthropic', model_name: 'claude-haiku-4-5' },
+    { name: 'low-backup', provider: 'gemini', model_name: 'gemini-2.5-flash' },
+  ],
+});
+export const generateProviderConfigDetail = (provider: string) => ({
+  provider,
+  display_name: DEMO_PROVIDERS.find((p) => p.provider === provider)?.display_name ?? provider,
+  config_options: {
+    base_url: 'https://api.example.com/v1',
+    api_key_secret: true,
+    model_name: 'gpt-4o-mini',
+    timeout_seconds: 30,
+    max_retries: 2,
+    proxy: '',
+    custom_headers: '',
+  },
+  advanced_options: {
+    stream_chunk_size: 64,
+    response_cache: true,
+    usage_stats_mode: 'auto',
+  },
+});
+export const generateProviderOptions = () => ({
+  providers: DEMO_PROVIDERS.map((p) => p.provider),
+  presets_by_provider: Object.fromEntries(DEMO_PROVIDERS.map((p) => [p.provider, p.presets])),
+  usage_stats_modes: ['auto', 'incremental', 'cumulative'],
+});
+export const generateEmbeddingProvider = () => ({
+  provider: 'openai',
+  available: ['openai', 'local', 'voyage'],
+  current_config: { model_name: 'text-embedding-3-small', batch_size: 64 },
+});
+export const generateEmbeddingLocal = () => ({
+  enabled: false,
+  model_name: 'BAAI/bge-m3',
+  device: 'cpu',
+  max_seq_length: 512,
+  cache_dir: '/data/embedding_cache',
+});
+export const generateEmbeddingOpenAI = () => ({
+  enabled: true,
+  base_url: 'https://api.openai.com/v1',
+  api_key_set: true,
+  model_name: 'text-embedding-3-small',
+  batch_size: 64,
+});
+export const generateEmbeddingSummary = () => ({
+  active: 'openai',
+  available: ['openai', 'local'],
+  issue_count: 0,
+});
+export const generateMCPToolsConfigList = () => ({
+  items: [
+    { item_key: 'web_search', display_name: 'Brave Search', enabled: true, tool_name: 'brave_search', details: { max_results: 5 } },
+    { item_key: 'echo', display_name: 'Echo', enabled: false, tool_name: 'mcp_echo', details: {} },
+  ],
+});
+
+// ---- Batch Push (BatchPushPage) ----
+const DEMO_PUSH_BOT_NAMES = ['OneBot V11', 'Telegram', 'Discord'];
+export const generateBatchPushTargets = () => ({
+  bots: DEMO_PUSH_BOT_NAMES.map((name) => ({ bot_id: name.toLowerCase().replace(/\s+/g, '-'), name })),
+  groups: [
+    { label: '全部群 (ALLGROUP)', value: 'ALLGROUP' },
+    { bot_id: 'onebot-v11', label: 'OneBot · 原神内鬼群', value: 'g:114514' },
+    { bot_id: 'onebot-v11', label: 'OneBot · 日常吹水', value: 'g:10086' },
+    { bot_id: 'telegram', label: 'Telegram · sayu_chat', value: 'g:tg-1' },
+  ],
+  users: [
+    { label: '全部用户 (ALLUSER)', value: 'ALLUSER' },
+    { bot_id: 'onebot-v11', label: 'OneBot · 旅行者-夜兰 (10086)', value: 'u:10086' },
+    { bot_id: 'discord', label: 'Discord · klee#9527', value: 'u:klee#9527' },
+  ],
+});
+
+// ---- Knowledge 备份 ----
+export const generateKnowledgeBackupExport = () => 'documents';
+export const generateMemeExportName = () => `memes-${new Date().toISOString().split('T')[0]}.meme`;
+
+// ---- AI Artifacts 全局列表（按 root_task_id 列）----
+export const generateAllArtifacts = (params: URLSearchParams) => ({
+  items: (generateKanbanArtifacts().items as any[]).map((a) => ({ ...a })),
+  count: 2,
+});
+

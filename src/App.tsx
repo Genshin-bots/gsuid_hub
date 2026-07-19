@@ -45,6 +45,10 @@ import AIApprovalsPage from "@/pages/AIApprovalsPage";
 import AIBudgetPage from "@/pages/AIBudgetPage";
 import SettingsPage from "@/pages/SettingsPage";
 import NotFound from "@/pages/NotFound";
+import BrandSettingsPage from "@/pages/BrandSettingsPage";
+import BatchPushPage from "@/pages/BatchPushPage";
+import AIDebugPage from "@/pages/AIDebugPage";
+import AIArtifactsPage from "@/pages/AIArtifactsPage";
 
 const queryClient = new QueryClient();
 
@@ -117,6 +121,10 @@ function AppRoutes() {
         <Route path="state-config" element={<StateConfigPage />} />
         <Route path="backup" element={<BackupPage />} />
         <Route path="settings" element={<SettingsPage />} />
+        <Route path="brand-settings" element={<BrandSettingsPage />} />
+        <Route path="batch-push" element={<BatchPushPage />} />
+        <Route path="ai-debug" element={<AIDebugPage />} />
+        <Route path="ai-artifacts" element={<AIArtifactsPage />} />
       </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>

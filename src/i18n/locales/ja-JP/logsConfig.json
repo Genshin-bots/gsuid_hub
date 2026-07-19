@@ -1,0 +1,19 @@
+{
+  "title": "ログコンソール設定",
+  "subtitle": "ログの保持期間 / ローテーション / ブラックリストを制御します。変更は即時反映されます。",
+  "saveSuccess": "ログコンソール設定を保存しました",
+  "saveFailed": "保存失敗",
+  "loadFailed": "ログコンソール設定の読込に失敗",
+  "cancel": "キャンセル",
+  "save": "保存",
+  "fields": {
+    "retentionDays": "保持日数",
+    "rotationSizeMb": "ローテーションサイズ (MB)",
+    "maxSizePerFile": "単一ファイル最大 (MB)",
+    "enableFileCompression": "圧縮を有効化",
+    "includeDebug": "DEBUG レベルを含む",
+    "blacklistedSources": "ブラックリストソース（1 行に 1 件）",
+    "blacklistedModules": "ブラックリストモジュール（1 行に 1 件）"
+  },
+  "toolbar": "コンソール設定"
+}

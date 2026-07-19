@@ -1,0 +1,28 @@
+{
+  "title": "記憶サブシステム設定",
+  "scopeGlobal": "グローバル",
+  "saveSuccess": "記憶設定を保存しました",
+  "saveFailed": "保存失敗",
+  "loadFailed": "記憶設定の読込に失敗",
+  "rebuildTriggered": "HierGraph 再構築を開始",
+  "rebuildFailed": "再構築失敗",
+  "cancel": "キャンセル",
+  "save": "保存",
+  "rebuildHierGraph": "HierGraph 再構築",
+  "fields": {
+    "observerEnabled": "Observer を有効化",
+    "ingestionEnabled": "Ingestion を有効化",
+    "enableRetrieval": "Retrieval を有効化",
+    "enableSystem2": "System-2 内省を有効化",
+    "enableUserGlobalMemory": "ユーザー全体記憶を有効化",
+    "enableHeartbeatMemory": "Heartbeat 記憶を有効化",
+    "retrievalTopK": "Retrieval top_k",
+    "batchMaxSize": "バッチ最大サイズ",
+    "dedupSimilarityThreshold": "重複排除しきい値",
+    "edgeConflictThreshold": "エッジ競合しきい値",
+    "minChildrenPerCategory": "カテゴリ毎の最小子ノード数",
+    "maxLayers": "最大階層",
+    "hiergraphRebuildRatio": "HierGraph 再構築トリガ比率",
+    "hiergraphRebuildIntervalSeconds": "HierGraph 再構築間隔(秒)"
+  }
+}

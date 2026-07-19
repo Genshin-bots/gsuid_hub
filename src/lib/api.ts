@@ -2583,6 +2583,17 @@ export const aiKnowledgeApi = {
   // 导入恢复（从备份 records 或 jsonl）
   importBackup: (data: { records?: AIKnowledgeBackupRecord[]; jsonl?: string }) =>
     api.post<AIKnowledgeBackupResponse>('/api/ai/knowledge/backup/import', data),
+
+  // 深度对账（运维用，把 SQL 真值源与向量存储对账）
+  reconcile: () =>
+    api.post<{
+      total: number;
+      matched: number;
+      missing_in_vector: number;
+      missing_in_sql: number;
+      re_embedded: number;
+      details?: unknown[];
+    }>('/api/ai/knowledge/reconcile', {}),
 };
 
 // ===================
@@ -3828,6 +3839,26 @@ export interface AgentDebugMemoryConflict {
   created_at: string | null;
 }
 
+export interface AgentDebugTaskListItem {
+  id: string;
+  ordinal: number;
+  node_kind: string;
+  root_task_id: string;
+  display_name: string;
+  goal: string;
+  status: string;
+  owner_user_id: string | null;
+  agent_profile: string;
+  updated_at: string | null;
+}
+
+export interface AgentDebugTaskDetail {
+  task: Record<string, unknown>;
+  root: Record<string, unknown> | null;
+  subtasks: Array<Record<string, unknown>>;
+  logs: Array<{ event_type: string; content: string; timestamp: string | null }>;
+}
+
 export const agentDebugApi = {
   getMemoryEdges: (params: { scope_key: string; include_invalid?: boolean; limit?: number }) => {
     const query = new URLSearchParams();
@@ -3847,6 +3878,31 @@ export const agentDebugApi = {
     return api.get<AgentDebugMemoryConflict[]>(`/api/agent_debug/memory/conflicts?${query.toString()}`);
   },
 
+  // ── Orchestration Board ──
+  listTasks: (params: { status?: string; limit?: number } = {}) => {
+    const query = new URLSearchParams();
+    if (params.status) query.set('status', params.status);
+    if (params.limit !== undefined) query.set('limit', String(params.limit));
+    const qs = query.toString();
+    return api.get<AgentDebugTaskListItem[]>(`/api/agent_debug/tasks${qs ? `?${qs}` : ''}`);
+  },
+
+  getTask: (taskId: string) =>
+    api.get<AgentDebugTaskDetail>(
+      `/api/agent_debug/tasks/${encodeURIComponent(taskId)}`,
+    ),
+
+  abortTask: (taskId: string) =>
+    api.post<{ task_id: string }>(
+      `/api/agent_debug/tasks/${encodeURIComponent(taskId)}/abort`,
+    ),
+
+  // ── Persona Evolution Inspector ──
+  getSelfModel: (botId = 'default') =>
+    api.get<Record<string, unknown>>(`/api/agent_debug/self_model?bot_id=${encodeURIComponent(botId)}`),
+
+  setSelfModel: (data: { bot_id?: string; field: string; items: string[] }) =>
+    api.post<{ field: string; count: number }>(`/api/agent_debug/self_model`, data),
 };
 
 // ===================
@@ -4133,20 +4189,154 @@ export const aiKanbanApi = {
     api.downloadBlob(`/api/ai/artifacts/${encodeURIComponent(resId)}/raw`),
 
   getWorkspaceFiles: (taskId: string) =>
-    api.get<AIWorkspaceFilesResponse>(`/api/ai/kanban/tasks/${encodeURIComponent(taskId)}/workspace/files`),
+    api.get<AIWorkspaceFilesResponse>(
+      `/api/ai/kanban/tasks/${encodeURIComponent(taskId)}/workspace/files`,
+    ),
 
   downloadWorkspaceFile: (taskId: string, path: string) =>
-    api.downloadBlob(`/api/ai/kanban/tasks/${encodeURIComponent(taskId)}/workspace/files/raw?path=${encodeURIComponent(path)}`),
+    api.downloadBlob(
+      `/api/ai/kanban/tasks/${encodeURIComponent(taskId)}/workspace/files/raw?path=${encodeURIComponent(path)}`,
+    ),
 
   importWorkspaceFile: (taskId: string, file: File, subPath?: string) => {
     const formData = new FormData();
     formData.append('upload', file);
     const query = subPath ? `?sub_path=${encodeURIComponent(subPath)}` : '';
-    return api.postFormData<{ task_id: string; path: string; size_bytes: number; artifact_ids: string[] }>(`/api/ai/kanban/tasks/${encodeURIComponent(taskId)}/workspace/import${query}`, formData);
+    return api.postFormData<{
+      task_id: string;
+      path: string;
+      size_bytes: number;
+      artifact_ids: string[];
+    }>(
+      `/api/ai/kanban/tasks/${encodeURIComponent(taskId)}/workspace/import${query}`,
+      formData,
+    );
   },
 
   submitPatch: (taskId: string, data: { patch_text: string; summary: string; mime?: string }) =>
-    api.post<{ artifact_id: string; warning: string }>(`/api/ai/kanban/tasks/${encodeURIComponent(taskId)}/workspace/apply-patch`, data),
+    api.post<{ artifact_id: string; warning: string }>(
+      `/api/ai/kanban/tasks/${encodeURIComponent(taskId)}/workspace/apply-patch`,
+      data,
+    ),
+};
+
+/**
+ * AI Artifacts 全局浏览（/ai-artifacts 页面专用）。
+ * 后端 `artifacts_api.list_artifacts`：
+ * - 不传 `root_task_id` / `task_id` 时按 `created_at desc` 全量浏览（最新 N 条）
+ * - 支持 `?limit=` 与 `?include_expired=` 参数
+ */
+export const aiArtifactsApi = {
+  listByRoot: (rootTaskId: string, opts?: { includeExpired?: boolean; limit?: number }) => {
+    const query = new URLSearchParams();
+    if (rootTaskId) query.set('root_task_id', rootTaskId);
+    if (opts?.includeExpired) query.set('include_expired', 'true');
+    if (opts?.limit !== undefined) query.set('limit', String(opts.limit));
+    const qs = query.toString();
+    return api.get<AIArtifactListResponse>(
+      `/api/ai/artifacts${qs ? `?${qs}` : ''}`,
+    );
+  },
+  listByTask: (taskId: string, opts?: { includeExpired?: boolean; limit?: number }) => {
+    const query = new URLSearchParams();
+    query.set('task_id', taskId);
+    if (opts?.includeExpired) query.set('include_expired', 'true');
+    if (opts?.limit !== undefined) query.set('limit', String(opts.limit));
+    return api.get<AIArtifactListResponse>(
+      `/api/ai/artifacts?${query.toString()}`,
+    );
+  },
+  getDetail: (resId: string) =>
+    api.get<AIArtifactDetail>(`/api/ai/artifacts/${encodeURIComponent(resId)}`),
+  delete: (resId: string) =>
+    api.delete<{ res_id: string }>(`/api/ai/artifacts/${encodeURIComponent(resId)}`),
+  extendTtl: (resId: string, days = 30) =>
+    api.post<{ res_id: string; expires_at: string }>(
+      `/api/ai/artifacts/${encodeURIComponent(resId)}/extend-ttl?days=${days}`,
+    ),
+  downloadRaw: (resId: string) =>
+    api.downloadBlob(`/api/ai/artifacts/${encodeURIComponent(resId)}/raw`),
+};
+
+/**
+ * Batch Push（/batch-push 页面专用）。
+ * 后端 `/api/BatchPush` 走 `push_text`/`push_tag`/`push_bot` 三段结构；
+ * 前端需要先拉一批可选的 bot / group / user 列表 —— 见下方 `/api/BatchPush/targets`。
+ * 后端实现请见 gsuid_core/webconsole/message_api.py，目前并未实现 targets 端点，
+ * 前端在缺该端点时降级为「手填 target」并把 target_value 拼成 `g:<id>|<bot_id>` 或 `u:<id>|<bot_id>`。
+ */
+export const batchPushApi = {
+  // 可选的推送目标（bot 列表 + 群列表 + 用户列表）；后端新加的端点，未上线时降级返回 []
+  getTargets: () =>
+    api.get<{
+      bots: { bot_id: string; name: string }[];
+      groups: { bot_id: string; label: string; value: string }[];
+      users: { bot_id: string; label: string; value: string }[];
+    }>('/api/BatchPush/targets'),
+
+  // 实际推送
+  push: (data: { push_text: string; push_tag: string; push_bot: string }) =>
+    api.postRaw<string>('/api/BatchPush', data),
+};
+
+/**
+ * Brand 设置（/brand-settings 页面专用）。
+ * 复用 brandApi 中的 updateBrand / uploadIcon / deleteIcon；
+ * 当前额外暴露一个 reset to default 便捷方法（仅前端 setState 用）。
+ */
+export const brandSettingsApi = {
+  get: () => brandApi.getBrand(),
+  update: (data: { title?: string; subtitle?: string }) => brandApi.updateBrand(data),
+  uploadIcon: (file: File) => brandApi.uploadIcon(file),
+  deleteIcon: () => brandApi.deleteIcon(),
+};
+
+/**
+ * 记忆子系统 API（2026-07-20 补全，导出后多个页面共用）。
+ *
+ * 历史：原本这是 AIMemoryPage 内私有 const，现在提到 api.ts 让
+ * /ai-debug / 记忆设置 Dialog 等都能复用。
+ */
+export const memoryApi = {
+  getStats: (params?: { group_id?: string; scope_key?: string }) => {
+    const query = new URLSearchParams();
+    if (params?.group_id) query.set('group_id', params.group_id);
+    if (params?.scope_key) query.set('scope_key', params.scope_key);
+    const qs = query.toString();
+    return api.get(`/api/ai/memory/stats${qs ? `?${qs}` : ''}`);
+  },
+  getScopes: () => api.get('/api/ai/memory/scopes'),
+  getConfig: () => api.get<Record<string, unknown>>('/api/ai/memory/config'),
+  updateConfig: (data: Record<string, unknown>) =>
+    api.put<Record<string, unknown>>('/api/ai/memory/config', data),
+  getHierGraphStatus: (scopeKey?: string) =>
+    scopeKey
+      ? api.get(`/api/ai/memory/hiergraph/status?scope_key=${encodeURIComponent(scopeKey)}`)
+      : api.get('/api/ai/memory/hiergraph/status'),
+  rebuildHierGraph: (scopeKey?: string) =>
+    api.post(
+      '/api/ai/memory/hiergraph/rebuild',
+      scopeKey ? { scope_key: scopeKey } : {},
+    ),
+};
+
+/**
+ * 记忆子系统设置 facade（/ai-memory 页面「记忆设置」弹窗专用）。
+ * hiergraph 相关方法复用 memoryApi，避免重复实现。
+ */
+export const memorySettingsApi = {
+  getConfig: () => memoryApi.getConfig(),
+  updateConfig: (data: Record<string, unknown>) => memoryApi.updateConfig(data),
+  getHierGraphStatus: (scopeKey?: string) => memoryApi.getHierGraphStatus(scopeKey),
+  rebuildHierGraph: (scopeKey?: string) => memoryApi.rebuildHierGraph(scopeKey),
+};
+
+/**
+ * 日志控制台配置（/logs 页面「控制台配置」Tab 专用）。
+ */
+export const logsConfigApi = {
+  get: () => api.get('/api/logs/config'),
+  update: (data: Record<string, unknown>) => api.put('/api/logs/config', data),
 };
 
 // ===================

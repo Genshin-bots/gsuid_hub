@@ -1,0 +1,28 @@
+{
+  "title": "记忆子系统设置",
+  "scopeGlobal": "全局",
+  "saveSuccess": "记忆配置已保存",
+  "saveFailed": "保存失败",
+  "loadFailed": "加载记忆配置失败",
+  "rebuildTriggered": "已触发分层图重建",
+  "rebuildFailed": "重建失败",
+  "cancel": "取消",
+  "save": "保存",
+  "rebuildHierGraph": "重建分层图",
+  "fields": {
+    "observerEnabled": "Observer 启用",
+    "ingestionEnabled": "Ingestion 启用",
+    "enableRetrieval": "Retrieval 启用",
+    "enableSystem2": "System-2 反思启用",
+    "enableUserGlobalMemory": "用户全局记忆启用",
+    "enableHeartbeatMemory": "Heartbeat 记忆启用",
+    "retrievalTopK": "检索 top_k",
+    "batchMaxSize": "批最大 size",
+    "dedupSimilarityThreshold": "去重相似度阈值",
+    "edgeConflictThreshold": "边冲突阈值",
+    "minChildrenPerCategory": "最小分类子节点",
+    "maxLayers": "最大层数",
+    "hiergraphRebuildRatio": "HierGraph 重建触发比例",
+    "hiergraphRebuildIntervalSeconds": "HierGraph 重建间隔(秒)"
+  }
+}

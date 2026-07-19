@@ -1,0 +1,28 @@
+{
+  "title": "Memory subsystem settings",
+  "scopeGlobal": "global",
+  "saveSuccess": "Memory config saved",
+  "saveFailed": "Save failed",
+  "loadFailed": "Failed to load memory config",
+  "rebuildTriggered": "HierGraph rebuild triggered",
+  "rebuildFailed": "Rebuild failed",
+  "cancel": "Cancel",
+  "save": "Save",
+  "rebuildHierGraph": "Rebuild HierGraph",
+  "fields": {
+    "observerEnabled": "Enable Observer",
+    "ingestionEnabled": "Enable Ingestion",
+    "enableRetrieval": "Enable Retrieval",
+    "enableSystem2": "Enable System-2 reflection",
+    "enableUserGlobalMemory": "Enable user global memory",
+    "enableHeartbeatMemory": "Enable Heartbeat memory",
+    "retrievalTopK": "Retrieval top_k",
+    "batchMaxSize": "Batch max size",
+    "dedupSimilarityThreshold": "Dedup similarity threshold",
+    "edgeConflictThreshold": "Edge conflict threshold",
+    "minChildrenPerCategory": "Min children per category",
+    "maxLayers": "Max layers",
+    "hiergraphRebuildRatio": "HierGraph rebuild trigger ratio",
+    "hiergraphRebuildIntervalSeconds": "HierGraph rebuild interval (s)"
+  }
+}

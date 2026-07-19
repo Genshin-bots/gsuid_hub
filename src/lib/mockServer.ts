@@ -43,6 +43,56 @@ import {
   generateMemePersonas,
   generateMemeStats,
   generateMemeDetail,
+  // Tier 2 · 补 demo 必崩页面所需 mock
+  generateLogEntries,
+  generateLogDates,
+  generateLogSources,
+  generateLogLevels,
+  generateLogStats,
+  generateLogConfig,
+  generatePersonaList,
+  generatePersonaDetail,
+  generatePersonaConfigAll,
+  generateGlobalPersonaConfig,
+  generateMCPConfigList,
+  generateMCPConfigDetail,
+  generateMCPPresets,
+  generateAIStatisticsSummary,
+  generateTokenByModel,
+  generateTokenByType,
+  generateActiveUsers,
+  generateTriggerDistribution,
+  generateIntentDistribution,
+  generateErrorStats,
+  generateHeartbeatStats,
+  generateRAGStats,
+  generateTokenByRange,
+  generatePerformanceHourly,
+  generatePerformanceHourlyRange,
+  generateBudgetConfig,
+  generateBudgetRules,
+  generateBudgetWhitelist,
+  generateBudgetOverview,
+  generateBackupFileTree,
+  generateBackupFiles,
+  generateBackupConfig,
+  generateKanbanBoard,
+  generateKanbanTaskDetail,
+  generateKanbanArtifacts,
+  generateKanbanCandidates,
+  generateKanbanWorkspaceFiles,
+  generateProviderList,
+  generateTaskConfig,
+  generateProviderConfigsSummary,
+  generateProviderConfigDetail,
+  generateProviderOptions,
+  generateEmbeddingProvider,
+  generateEmbeddingLocal,
+  generateEmbeddingOpenAI,
+  generateEmbeddingSummary,
+  generateMCPToolsConfigList,
+  generateBatchPushTargets,
+  generateAllArtifacts,
 } from './demoMock';
 
 type Ctx = { url: URL; method: string; body: unknown };
@@ -115,6 +165,74 @@ const routes: Route[] = [
   { m: 'GET', re: /^\/api\/meme\/stats$/, h: () => generateMemeStats() },
   // 单条详情（点击表情打开详情弹窗）——必须放在上面三条「具体路径」之后，避免误吞 list/personas/stats。
   { m: 'GET', re: /^\/api\/meme\/([^/]+)$/, h: ({ url }) => generateMemeDetail(decodeURIComponent(url.pathname.split('/').pop()!)) },
+
+  // ── Tier 2 · 让 demo 必崩页面也可以打开 ──
+  // /logs
+  { m: 'GET', re: /^\/api\/logs$/, h: ({ url }) => generateLogEntries(url.searchParams) },
+  { m: 'GET', re: /^\/api\/logs\/available-dates$/, h: () => generateLogDates() },
+  { m: 'GET', re: /^\/api\/logs\/sources$/, h: () => generateLogSources() },
+  { m: 'GET', re: /^\/api\/logs\/levels$/, h: () => generateLogLevels() },
+  { m: 'GET', re: /^\/api\/logs\/stats$/, h: () => generateLogStats() },
+  { m: 'GET', re: /^\/api\/logs\/config$/, h: () => generateLogConfig() },
+
+  // /persona-config
+  { m: 'GET', re: /^\/api\/persona\/list$/, h: () => generatePersonaList() },
+  { m: 'GET', re: /^\/api\/persona\/config\/all$/, h: () => generatePersonaConfigAll() },
+  { m: 'GET', re: /^\/api\/persona\/config\/global$/, h: () => generateGlobalPersonaConfig() },
+  { m: 'GET', re: /^\/api\/persona\/([^/]+)$/, h: ({ url }) => generatePersonaDetail(decodeURIComponent(url.pathname.split('/').pop()!)) },
+
+  // /mcp-config
+  { m: 'GET', re: /^\/api\/ai\/mcp\/list$/, h: () => generateMCPConfigList() },
+  { m: 'GET', re: /^\/api\/ai\/mcp\/presets$/, h: () => generateMCPPresets() },
+  { m: 'GET', re: /^\/api\/ai\/mcp-tools-config\/list$/, h: () => generateMCPToolsConfigList() },
+  { m: 'GET', re: /^\/api\/ai\/mcp\/([^/]+)$/, h: ({ url }) => generateMCPConfigDetail(decodeURIComponent(url.pathname.match(/\/mcp\/([^/]+)$/)![1])) },
+  { m: 'GET', re: /^\/api\/ai\/mcp\/([^/]+)\/tools$/, h: () => ({ tools: [] }) },
+
+  // /ai-statistics
+  { m: 'GET', re: /^\/api\/ai\/statistics\/summary$/, h: () => generateAIStatisticsSummary() },
+  { m: 'GET', re: /^\/api\/ai\/statistics\/token-by-model$/, h: () => generateTokenByModel() },
+  { m: 'GET', re: /^\/api\/ai\/statistics\/token-by-type$/, h: () => generateTokenByType() },
+  { m: 'GET', re: /^\/api\/ai\/statistics\/token-by-range$/, h: () => generateTokenByRange() },
+  { m: 'GET', re: /^\/api\/ai\/statistics\/active-users$/, h: () => generateActiveUsers() },
+  { m: 'GET', re: /^\/api\/ai\/statistics\/trigger-distribution$/, h: () => generateTriggerDistribution() },
+  { m: 'GET', re: /^\/api\/ai\/statistics\/intent-distribution$/, h: () => generateIntentDistribution() },
+  { m: 'GET', re: /^\/api\/ai\/statistics\/errors$/, h: () => generateErrorStats() },
+  { m: 'GET', re: /^\/api\/ai\/statistics\/heartbeat$/, h: () => generateHeartbeatStats() },
+  { m: 'GET', re: /^\/api\/ai\/statistics\/rag$/, h: () => generateRAGStats() },
+  { m: 'GET', re: /^\/api\/ai\/performance\/hourly$/, h: () => generatePerformanceHourly() },
+  { m: 'GET', re: /^\/api\/ai\/performance\/hourly\/range$/, h: () => generatePerformanceHourlyRange() },
+
+  // /ai-budget
+  { m: 'GET', re: /^\/api\/ai\/budget\/config$/, h: () => generateBudgetConfig() },
+  { m: 'GET', re: /^\/api\/ai\/budget\/rules$/, h: ({ url }) => generateBudgetRules(url.searchParams) },
+  { m: 'GET', re: /^\/api\/ai\/budget\/whitelist$/, h: () => generateBudgetWhitelist() },
+  { m: 'GET', re: /^\/api\/ai\/budget\/overview$/, h: () => generateBudgetOverview() },
+
+  // /backup
+  { m: 'GET', re: /^\/api\/backup\/files$/, h: () => generateBackupFiles() },
+  { m: 'GET', re: /^\/api\/backup\/file-tree$/, h: () => generateBackupFileTree() },
+  { m: 'GET', re: /^\/api\/backup\/config$/, h: () => generateBackupConfig() },
+
+  // /ai-kanban
+  { m: 'GET', re: /^\/api\/ai\/kanban\/board$/, h: () => generateKanbanBoard() },
+  { m: 'GET', re: /^\/api\/ai\/kanban\/tasks\/([^/]+)$/, h: ({ url }) => generateKanbanTaskDetail() },
+  { m: 'GET', re: /^\/api\/ai\/artifacts$/, h: ({ url }) => generateAllArtifacts(url.searchParams) },
+  { m: 'GET', re: /^\/api\/ai\/kanban\/tasks\/([^/]+)\/workspace\/files$/, h: () => generateKanbanWorkspaceFiles() },
+  { m: 'GET', re: /^\/api\/ai\/capability-agents\/kanban-candidates$/, h: () => generateKanbanCandidates() },
+
+  // /ai-config (Provider/Embedding/Wizard)
+  { m: 'GET', re: /^\/api\/provider_config\/providers$/, h: () => generateProviderList() },
+  { m: 'GET', re: /^\/api\/provider_config\/task_config\/(high|low)$/, h: ({ url }) => generateTaskConfig(decodeURIComponent(url.pathname.split('/').pop()!)) },
+  { m: 'GET', re: /^\/api\/provider_config\/all_configs$/, h: () => generateProviderConfigsSummary() },
+  { m: 'GET', re: /^\/api\/provider_config\/config\/([^/]+)\/options$/, h: ({ url }) => generateProviderOptions() },
+  { m: 'GET', re: /^\/api\/provider_config\/config\/([^/]+)\/[^/]+$/, h: ({ url }) => generateProviderConfigDetail(decodeURIComponent(url.pathname.split('/').slice(-2, -1)[0])) },
+  { m: 'GET', re: /^\/api\/embedding_config\/provider$/, h: () => generateEmbeddingProvider() },
+  { m: 'GET', re: /^\/api\/embedding_config\/local$/, h: () => generateEmbeddingLocal() },
+  { m: 'GET', re: /^\/api\/embedding_config\/openai$/, h: () => generateEmbeddingOpenAI() },
+  { m: 'GET', re: /^\/api\/embedding_config\/summary$/, h: () => generateEmbeddingSummary() },
+
+  // /batch-push（前端联调用 GET /api/BatchPush/targets 获取可选 bot/group/user）
+  { m: 'GET', re: /^\/api\/BatchPush\/targets$/, h: () => generateBatchPushTargets() },
 ];
 
 const MEMORY_CONFIG = {
