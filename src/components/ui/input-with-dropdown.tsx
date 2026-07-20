@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Check, ChevronDown, Copy } from 'lucide-react';
+import { Check, ChevronDown, Copy, X } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 // ============================================================================
@@ -36,6 +36,10 @@ export interface InputWithDropdownProps {
   copiedValueLabel?: string;
   /** 无内容可复制时的文案 */
   copyEmptyLabel?: string;
+  /** 是否在弹出层显示「清空当前值」入口（紧贴复制按钮右侧）。 */
+  showClearValueAction?: boolean;
+  /** 清空按钮的 tooltip / aria-label 文案 */
+  clearValueLabel?: string;
   /**
    * 可选：用于把每个枚举值（如 `incremental`）映射成本地化标签。
    *
@@ -63,6 +67,8 @@ export function InputWithDropdown({
   copyValueLabel,
   copiedValueLabel,
   copyEmptyLabel,
+  showClearValueAction = true,
+  clearValueLabel,
   formatLabel,
 }: InputWithDropdownProps) {
   const { t } = useLanguage();
@@ -74,6 +80,7 @@ export function InputWithDropdown({
   const resolvedCopyValueLabel = copyValueLabel ?? t('common.copyCurrentValue');
   const resolvedCopiedValueLabel = copiedValueLabel ?? t('common.copiedCurrentValue');
   const resolvedCopyEmptyLabel = copyEmptyLabel ?? t('common.copyEmptyValue');
+  const resolvedClearValueLabel = clearValueLabel ?? t('common.clearCurrentValue');
 
   // 统一将 value 安全转为字符串，避免外部传入 number/boolean/object 等触发 .trim() 崩溃
   const safeValue = useMemo(() => (value == null ? '' : String(value)), [value]);
@@ -158,6 +165,14 @@ export function InputWithDropdown({
     copyTimerRef.current = window.setTimeout(() => setIsCopied(false), 1500);
   }, [copyTextToClipboard, safeValue]);
 
+  // 清空当前值：直接 onChange('') + 关弹层 + 触发器会自然回到 placeholder
+  // 无需与 useEffect on [open] 联动，那里已经会在关闭时清掉搜索/复制态。
+  const handleClearValue = useCallback(() => {
+    if (!safeValue.trim()) return;
+    onChange('');
+    setOpen(false);
+  }, [onChange, safeValue]);
+
   const handleCommitInput = useCallback(() => {
     const nextValue = searchValue.trim();
     if (!nextValue) return;
@@ -202,20 +217,41 @@ export function InputWithDropdown({
         onWheel={(e) => e.stopPropagation()}
       >
         <div className="space-y-2 p-2">
-          {showCopyValueAction && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-8 w-full justify-start gap-2 px-2 text-xs"
-              disabled={!safeValue.trim()}
-              onClick={handleCopyValue}
-            >
-              {isCopied ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
-              <span className="truncate">
-                {safeValue.trim() ? (isCopied ? resolvedCopiedValueLabel : resolvedCopyValueLabel) : resolvedCopyEmptyLabel}
-              </span>
-            </Button>
+          {(showCopyValueAction || showClearValueAction) && (
+            // 按钮组：复制（icon+文字，flex-1 占主）+ 清空（右侧 icon-only X）
+            // 复制按钮全宽会让清空只能放到下一行，破坏「同排视觉关联」，
+            // 因此这里用 flex 容器把两个独立按钮并排，按钮之间共享 hit area 但互不干扰。
+            <div className="flex items-center gap-1">
+              {showCopyValueAction && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 flex-1 justify-start gap-2 px-2 text-xs"
+                  disabled={!safeValue.trim()}
+                  onClick={handleCopyValue}
+                >
+                  {isCopied ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
+                  <span className="truncate">
+                    {safeValue.trim() ? (isCopied ? resolvedCopiedValueLabel : resolvedCopyValueLabel) : resolvedCopyEmptyLabel}
+                  </span>
+                </Button>
+              )}
+              {showClearValueAction && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
+                  disabled={!safeValue.trim()}
+                  onClick={handleClearValue}
+                  aria-label={resolvedClearValueLabel}
+                  title={resolvedClearValueLabel}
+                >
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              )}
+            </div>
           )}
           <Input
             ref={inputRef}

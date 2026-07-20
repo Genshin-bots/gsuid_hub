@@ -18,8 +18,15 @@
     "noData": "暂无数据"
   },
   "detail": {
+    "tabOverview": "概览",
+    "tabPayload": "Payload",
     "payloadTitle": "Payload 预览",
-    "payloadEmpty": "(该 artifact 没有 inline / on-disk payload)"
+    "payloadEmpty": "(该 artifact 没有 inline / on-disk payload)",
+    "summaryTitle": "摘要",
+    "metadataTitle": "元数据",
+    "expiresAt": "过期 {time}",
+    "copied": "已复制",
+    "copyFailed": "复制失败"
   },
   "actions": {
     "open": "查看",

@@ -4225,11 +4225,19 @@ export const aiKanbanApi = {
  * 后端 `artifacts_api.list_artifacts`：
  * - 不传 `root_task_id` / `task_id` 时按 `created_at desc` 全量浏览（最新 N 条）
  * - 支持 `?limit=` 与 `?include_expired=` 参数
+ *
+ * `scope='all'` 用于显式告诉后端走「全局浏览」分支，否则后端会返回
+ * status=1 的 require_filter 错误。传空 rootTaskId + scope='all' 即
+ * 「按时间倒序拉最近 N 条」的语义，与后端契约对齐。
  */
 export const aiArtifactsApi = {
-  listByRoot: (rootTaskId: string, opts?: { includeExpired?: boolean; limit?: number }) => {
+  listByRoot: (
+    rootTaskId: string,
+    opts?: { includeExpired?: boolean; limit?: number; scope?: string },
+  ) => {
     const query = new URLSearchParams();
     if (rootTaskId) query.set('root_task_id', rootTaskId);
+    if (opts?.scope) query.set('scope', opts.scope);
     if (opts?.includeExpired) query.set('include_expired', 'true');
     if (opts?.limit !== undefined) query.set('limit', String(opts.limit));
     const qs = query.toString();
@@ -4264,15 +4272,49 @@ export const aiArtifactsApi = {
  * 前端需要先拉一批可选的 bot / group / user 列表 —— 见下方 `/api/BatchPush/targets`。
  * 后端实现请见 gsuid_core/webconsole/message_api.py，目前并未实现 targets 端点，
  * 前端在缺该端点时降级为「手填 target」并把 target_value 拼成 `g:<id>|<bot_id>` 或 `u:<id>|<bot_id>`。
+ *
+ * targets 端点从 v2026-07 起改为分页 + 筛选：
+ * - 不再一次性返回所有 group/user，而是按 limit/offset 分页
+ * - 支持 `bot_id` / `kind`（all|group|user） / `q`（模糊搜索 label 或 value）
+ * - 宏（ALLGROUP/ALLUSER）只在第一页 + 未指定 bot_id 时返回一次
+ * - 返回结构：`{ bots, items: [...], total, limit, offset, has_more }`
  */
+export interface BatchPushTargetItem {
+  kind: 'group' | 'user' | 'macro';
+  bot_id: string;
+  label: string;
+  value: string;
+}
+
+export interface BatchPushTargetsResponse {
+  bots: { bot_id: string; name: string }[];
+  items: BatchPushTargetItem[];
+  total: number;
+  limit: number;
+  offset: number;
+  has_more: boolean;
+}
+
 export const batchPushApi = {
-  // 可选的推送目标（bot 列表 + 群列表 + 用户列表）；后端新加的端点，未上线时降级返回 []
-  getTargets: () =>
-    api.get<{
-      bots: { bot_id: string; name: string }[];
-      groups: { bot_id: string; label: string; value: string }[];
-      users: { bot_id: string; label: string; value: string }[];
-    }>('/api/BatchPush/targets'),
+  // 可选的推送目标（分页 + 筛选）。未传参数时等价于第一页全集。
+  getTargets: (opts?: {
+    bot_id?: string;
+    kind?: 'all' | 'group' | 'user';
+    q?: string;
+    limit?: number;
+    offset?: number;
+  }) => {
+    const query = new URLSearchParams();
+    if (opts?.bot_id) query.set('bot_id', opts.bot_id);
+    if (opts?.kind && opts.kind !== 'all') query.set('kind', opts.kind);
+    if (opts?.q) query.set('q', opts.q);
+    if (opts?.limit !== undefined) query.set('limit', String(opts.limit));
+    if (opts?.offset !== undefined) query.set('offset', String(opts.offset));
+    const qs = query.toString();
+    return api.get<BatchPushTargetsResponse>(
+      `/api/BatchPush/targets${qs ? `?${qs}` : ''}`,
+    );
+  },
 
   // 实际推送
   push: (data: { push_text: string; push_tag: string; push_bot: string }) =>

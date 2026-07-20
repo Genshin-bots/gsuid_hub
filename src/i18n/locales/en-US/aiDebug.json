@@ -7,7 +7,7 @@
     "selfModel": "Self-model"
   },
   "memoryGraph": {
-    "pickScope": "Pick scope",
+    "searchScope": "Search scope_key",
     "includeInvalid": "Include invalidated edges",
     "edgesTitle": "Edges",
     "edgesDesc": "Fact triples extracted from conversations. Soft-deleting will set invalid_at and exclude from retrieval.",

@@ -18,17 +18,17 @@ import {
  * 1. 已知 provider 关键字映射到 @thesvg/react 的官方 Logo；
  * 2. 命中不到时回退到 lucide `Search`（保持旧行为）。
  *
- * icon className 由 ChipGroup 控制为 `w-3.5 h-3.5`，所有图标
- * 走 `mono` variant 以保证 currentColor 主题适配。
+ * icon className 由 ChipGroup 控制为 `w-3.5 h-3.5`，所有图标统一走
+ * `default` variant（官方彩版，主题无关），与 model-brand-icon.tsx 保持一致。
  */
 function getSearchProviderIcon(provider: string) {
   const key = provider.trim().toLowerCase();
-  if (key === 'tavily') return <Tavily width={14} height={14} variant="mono" />;
-  if (key === 'exa') return <Exa width={14} height={14} variant="mono" />;
+  if (key === 'tavily') return <Tavily width={14} height={14} variant="default" />;
+  if (key === 'exa') return <Exa width={14} height={14} variant="default" />;
   if (key === 'mcp' || key === 'modelcontextprotocol' || key === 'model_context_protocol') {
-    return <McpModelContextProtocol width={14} height={14} variant="mono" />;
+    return <McpModelContextProtocol width={14} height={14} variant="default" />;
   }
-  if (key === 'MiniMax') return <Minimax width={14} height={14} variant="light" />;
+  if (key === 'MiniMax') return <Minimax width={14} height={14} variant="default" />;
   // 兜底
   return <Search className="w-3.5 h-3.5" />;
 }

@@ -18,8 +18,15 @@
     "noData": "No data"
   },
   "detail": {
+    "tabOverview": "Overview",
+    "tabPayload": "Payload",
     "payloadTitle": "Payload preview",
-    "payloadEmpty": "(no inline / on-disk payload)"
+    "payloadEmpty": "(no inline / on-disk payload)",
+    "summaryTitle": "Summary",
+    "metadataTitle": "Metadata",
+    "expiresAt": "Expires {time}",
+    "copied": "Copied",
+    "copyFailed": "Copy failed"
   },
   "actions": {
     "open": "View",

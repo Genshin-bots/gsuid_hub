@@ -1404,20 +1404,90 @@ export const generateMCPToolsConfigList = () => ({
 
 // ---- Batch Push (BatchPushPage) ----
 const DEMO_PUSH_BOT_NAMES = ['OneBot V11', 'Telegram', 'Discord'];
-export const generateBatchPushTargets = () => ({
-  bots: DEMO_PUSH_BOT_NAMES.map((name) => ({ bot_id: name.toLowerCase().replace(/\s+/g, '-'), name })),
-  groups: [
-    { label: '全部群 (ALLGROUP)', value: 'ALLGROUP' },
-    { bot_id: 'onebot-v11', label: 'OneBot · 原神内鬼群', value: 'g:114514' },
-    { bot_id: 'onebot-v11', label: 'OneBot · 日常吹水', value: 'g:10086' },
-    { bot_id: 'telegram', label: 'Telegram · sayu_chat', value: 'g:tg-1' },
-  ],
-  users: [
-    { label: '全部用户 (ALLUSER)', value: 'ALLUSER' },
-    { bot_id: 'onebot-v11', label: 'OneBot · 旅行者-夜兰 (10086)', value: 'u:10086' },
-    { bot_id: 'discord', label: 'Discord · klee#9527', value: 'u:klee#9527' },
-  ],
-});
+const DEMO_PUSH_BOTS = DEMO_PUSH_BOT_NAMES.map((name) => ({
+  bot_id: name.toLowerCase().replace(/\s+/g, '-'),
+  name,
+}));
+
+/**
+ * 模拟一个数据集：每个 bot 下挂若干群/用户，用于演示分页 + 筛选。
+ * 体量刻意做大（每 bot 60 群 + 80 用户 = 420 条），便于看到分页/筛选效果。
+ */
+const DEMO_PUSH_RAW_GROUPS: { bot_id: string; group_id: string }[] = DEMO_PUSH_BOTS.flatMap(
+  (b) =>
+    Array.from({ length: 60 }, (_, i) => ({
+      bot_id: b.bot_id,
+      group_id: `${b.bot_id}-g${i + 1}`,
+    })),
+);
+const DEMO_PUSH_RAW_USERS: { bot_id: string; user_id: string }[] = DEMO_PUSH_BOTS.flatMap(
+  (b) =>
+    Array.from({ length: 80 }, (_, i) => ({
+      bot_id: b.bot_id,
+      user_id: `${b.bot_id}-u${i + 1}`,
+    })),
+);
+
+export const generateBatchPushTargets = (params?: URLSearchParams) => {
+  const bot_id = params?.get('bot_id') || undefined;
+  const kind = params?.get('kind') || 'all';
+  const q = (params?.get('q') || '').toLowerCase();
+  const limit = Math.max(1, Math.min(1000, parseInt(params?.get('limit') || '50', 10)));
+  const offset = Math.max(0, parseInt(params?.get('offset') || '0', 10));
+
+  const matchesQ = (label: string, value: string) =>
+    !q || label.toLowerCase().includes(q) || value.toLowerCase().includes(q);
+
+  const allGroupLabel = '全部群 (ALLGROUP)';
+  const allUserLabel = '全部用户 (ALLUSER)';
+
+  const macros: { kind: 'macro'; bot_id: ''; label: string; value: 'ALLGROUP' | 'ALLUSER' }[] = [];
+  if (!bot_id && offset === 0) {
+    if ((kind === 'all' || kind === 'group') && matchesQ(allGroupLabel, 'ALLGROUP')) {
+      macros.push({ kind: 'macro', bot_id: '', label: allGroupLabel, value: 'ALLGROUP' });
+    }
+    if ((kind === 'all' || kind === 'user') && matchesQ(allUserLabel, 'ALLUSER')) {
+      macros.push({ kind: 'macro', bot_id: '', label: allUserLabel, value: 'ALLUSER' });
+    }
+  }
+
+  const buildGroupItems = () =>
+    DEMO_PUSH_RAW_GROUPS.filter((g) => !bot_id || g.bot_id === bot_id)
+      .map((g) => {
+        const label = `${g.bot_id} · ${g.group_id}`;
+        const value = `g:${g.group_id}|${g.bot_id}`;
+        return { kind: 'group' as const, bot_id: g.bot_id, label, value };
+      })
+      .filter((it) => matchesQ(it.label, it.value))
+      .sort((a, b) => (a.bot_id === b.bot_id ? a.value.localeCompare(b.value) : a.bot_id.localeCompare(b.bot_id)));
+
+  const buildUserItems = () =>
+    DEMO_PUSH_RAW_USERS.filter((u) => !bot_id || u.bot_id === bot_id)
+      .map((u) => {
+        const label = `${u.bot_id} · ${u.user_id}`;
+        const value = `u:${u.user_id}|${u.bot_id}`;
+        return { kind: 'user' as const, bot_id: u.bot_id, label, value };
+      })
+      .filter((it) => matchesQ(it.label, it.value))
+      .sort((a, b) => (a.bot_id === b.bot_id ? a.value.localeCompare(b.value) : a.bot_id.localeCompare(b.bot_id)));
+
+  const groupItems = kind === 'user' ? [] : buildGroupItems();
+  const userItems = kind === 'group' ? [] : buildUserItems();
+
+  const all = [...macros, ...groupItems, ...userItems];
+  const total = all.length;
+  const items = all.slice(offset, offset + limit);
+  const has_more = offset + limit < total;
+
+  return {
+    bots: DEMO_PUSH_BOTS,
+    items,
+    total,
+    limit,
+    offset,
+    has_more,
+  };
+};
 
 // ---- Knowledge 备份 ----
 export const generateKnowledgeBackupExport = () => 'documents';

@@ -231,8 +231,8 @@ const routes: Route[] = [
   { m: 'GET', re: /^\/api\/embedding_config\/openai$/, h: () => generateEmbeddingOpenAI() },
   { m: 'GET', re: /^\/api\/embedding_config\/summary$/, h: () => generateEmbeddingSummary() },
 
-  // /batch-push（前端联调用 GET /api/BatchPush/targets 获取可选 bot/group/user）
-  { m: 'GET', re: /^\/api\/BatchPush\/targets$/, h: () => generateBatchPushTargets() },
+  // /batch-push（前端联调用 GET /api/BatchPush/targets 获取可选 bot/group/user；演示模式）
+  { m: 'GET', re: /^\/api\/BatchPush\/targets(\?.*)?$/, h: (ctx) => generateBatchPushTargets(ctx.url.searchParams) },
 ];
 
 const MEMORY_CONFIG = {

@@ -100,17 +100,29 @@ function stripThesvgVariantsPlugin() {
       const variants = parseVariants(code);
       if (!variants) return null;
 
-      // 优先 mono → default → 第一个有的 variant
+      // 优先 default → mono → 第一个有的 variant
+      // （业务侧统一用官方彩版 default，见 model-brand-icon.tsx）
       const picked =
-        variants.mono ||
         variants.default ||
+        variants.mono ||
         variants.light ||
         variants.color ||
         variants.dark ||
         Object.values(variants)[0];
       if (!picked) return null;
 
-      const slimmed = { mono: picked };
+      // 白色根 fill 改成 currentColor：部分厂商（Qwen / Anthropic 等）的 default
+      // variant 根 `<svg fill="#ffff">` 是为深色背景准备的官方彩版，直接放浅色
+      // 主题会隐形。把白色根 fill 替换成 currentColor，让这类图标跟随主题文字色
+      // 可见；真正彩色的硬编码 fill（如 Claude #D97757 / MiniMax #E73562 / Gemini
+      // 多色 path）原样保留，这才是「官方彩版」的本意。
+      const WHITES = new Set(["#fff", "#ffff", "#ffffff", "#ffffff00", "white", "#FFF", "#FFFF", "#FFFFFF", "White"]);
+      const normalized = JSON.parse(JSON.stringify(picked));
+      if (typeof normalized === "object" && normalized && WHITES.has(String(normalized.fill))) {
+        normalized.fill = "currentColor";
+      }
+
+      const slimmed = { default: normalized };
       const identifier = findExportIdentifier(code, slug);
       if (!identifier) return null;
 
@@ -119,8 +131,8 @@ function stripThesvgVariantsPlugin() {
       return [
         `import { forwardRef, createElement } from 'react';`,
         `const _variants = ${JSON.stringify(slimmed)};`,
-        `const ${identifier} = forwardRef(function ${identifier}({ variant = 'mono', viewBox, ...props }, ref) {`,
-        `  const _v = _variants[variant] || _variants.mono;`,
+        `const ${identifier} = forwardRef(function ${identifier}({ variant = 'default', viewBox, ...props }, ref) {`,
+        `  const _v = _variants[variant] || _variants.default;`,
         `  return createElement(`,
         `    'svg',`,
         `    Object.assign({ ref, viewBox: viewBox || _v.viewBox, fill: _v.fill, stroke: _v.stroke, xmlns: 'http://www.w3.org/2000/svg' }, props),`,

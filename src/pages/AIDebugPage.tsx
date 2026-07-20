@@ -38,6 +38,7 @@ import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { InputWithDropdown } from '@/components/ui/input-with-dropdown';
 import { Textarea } from '@/components/ui/textarea';
 import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
 import { PinnedPage } from '@/components/layout/PinnedPage';
@@ -286,25 +287,27 @@ export default function AIDebugPage() {
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap items-end gap-3">
-                <div className="space-y-1">
-                  <Label>{t('aiDebug.memoryGraph.pickScope')}</Label>
-                  <Tabs value={scopeKey} onValueChange={setScopeKey}>
-                    <TabsList>
-                      {scopes.length === 0 ? (
-                        <TabsTrigger value={SCOPE_SENTINEL} disabled>
-                          {t('aiDebug.memoryGraph.noEdges')}
-                        </TabsTrigger>
-                      ) : (
-                        scopes.map((s) => (
-                          <TabsTrigger key={s.scope_key} value={s.scope_key}>
-                            {s.scope_key}
-                          </TabsTrigger>
-                        ))
-                      )}
-                    </TabsList>
-                  </Tabs>
-                </div>
-                <div className="flex items-center gap-2">
+                {/* scope picker：触发器内的选中值/placeholder 已经自解释（"group:..." /
+                    "没有可显示的边"），外面再套 Label 是冗余信息，删掉让一行紧凑。
+                    上百个 scope 切换体验：
+                    - 触发区固定宽度，长 scope_key 也能放下
+                    - 弹层顶部带搜索框（onChange 时内部过滤），百级也能秒定位
+                    - 现有 sentinel 「未选中」逻辑保持不变
+                    - 不需要复制/清空按钮（这是 picker，不是 config value） */}
+                <InputWithDropdown
+                  value={scopeKey === SCOPE_SENTINEL ? '' : scopeKey}
+                  onChange={(v) => setScopeKey(v || SCOPE_SENTINEL)}
+                  options={scopes.map((s) => s.scope_key)}
+                  placeholder={t('aiDebug.memoryGraph.noEdges') ?? ''}
+                  inputPlaceholder={t('aiDebug.memoryGraph.searchScope') ?? ''}
+                  showCopyValueAction={false}
+                  showClearValueAction={false}
+                  className="h-9 w-[280px] font-mono text-xs"
+                />
+                {/* h-9 与左侧 InputWithDropdown 触发器同高，
+                    items-end 已让两列底对齐 → 视觉中心也对齐。
+                    不加 h-9 时 Switch 行默认 ~24px 高，Switch 中心比 Select 中心高 6px。 */}
+                <div className="flex items-center gap-2 h-9">
                   <Switch
                     checked={includeInvalid}
                     onCheckedChange={setIncludeInvalid}

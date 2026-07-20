@@ -7,7 +7,7 @@
     "selfModel": "自我模型"
   },
   "memoryGraph": {
-    "pickScope": "选择 scope",
+    "searchScope": "搜索 scope_key",
     "includeInvalid": "含已软删除边",
     "edgesTitle": "记忆边 (Edges)",
     "edgesDesc": "对话中沉淀的「事实」三元组。每条边代表两个实体间的一次断言。点「软删除」可让该边 `invalid_at` 被设值并不再被检索。",

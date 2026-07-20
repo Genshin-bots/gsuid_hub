@@ -7,7 +7,7 @@
     "selfModel": "自己モデル"
   },
   "memoryGraph": {
-    "pickScope": "スコープ選択",
+    "searchScope": "scope_key を検索",
     "includeInvalid": "無効化された辺も含む",
     "edgesTitle": "記憶辺（Edges）",
     "edgesDesc": "会話から抽出された事実の三つ組。「無効化」を押すと invalid_at が設定され、検索から除外されます",

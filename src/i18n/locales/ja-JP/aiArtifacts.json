@@ -18,8 +18,15 @@
     "noData": "データなし"
   },
   "detail": {
+    "tabOverview": "概要",
+    "tabPayload": "ペイロード",
     "payloadTitle": "ペイロードプレビュー",
-    "payloadEmpty": "(inline / on-disk payload なし)"
+    "payloadEmpty": "(inline / on-disk payload なし)",
+    "summaryTitle": "概要",
+    "metadataTitle": "メタデータ",
+    "expiresAt": "有効期限 {time}",
+    "copied": "コピーしました",
+    "copyFailed": "コピー失敗"
   },
   "actions": {
     "open": "表示",
