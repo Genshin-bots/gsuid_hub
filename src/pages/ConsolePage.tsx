@@ -103,6 +103,9 @@ export default function ConsolePage() {
   const [commandHistory, setCommandHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [autoScroll, setAutoScroll] = useState(false);
+  // ref 镜像：让 SSE handler / addLogs 等闭包内能读到最新值
+  const autoScrollRef = useRef(autoScroll);
+  autoScrollRef.current = autoScroll;
 
   const [availableLevels, setAvailableLevels] = useState<Array<{ label: string; value: string }>>([]);
   const [visibleLevels, setVisibleLevels] = useState<Set<string>>(
@@ -196,9 +199,24 @@ export default function ConsolePage() {
 
     authEventSource.onmessage = (event) => {
       try {
-        // 记录断点：event.lastEventId 即后端随每条日志下发的 id:（log_seq 序号）
+        // 断点续传去重：重连后后端可能重放缓冲中已收过的日志，
+        // 跳过 event id <= 已知最大 id 的条目，避免重复日志冲刷数组。
+        // 若后端重启（log_seq 归零），新 id 会远小于旧 id（差值 > 缓冲上限 2000），
+        // 此时重置跟踪并接受新序列。
         if (event.lastEventId) {
-          lastEventIdRef.current = event.lastEventId;
+          const eventId = parseInt(event.lastEventId, 10);
+          const lastId = lastEventIdRef.current ? parseInt(lastEventIdRef.current, 10) : -1;
+          if (lastId >= 0 && eventId <= lastId) {
+            if (lastId - eventId > 2000) {
+              // 后端重启，log_seq 归零——接受新序列
+              lastEventIdRef.current = event.lastEventId;
+            } else {
+              // 缓冲重放的重复日志，跳过
+              return;
+            }
+          } else {
+            lastEventIdRef.current = event.lastEventId;
+          }
         }
         const logData = JSON.parse(event.data);
         const rawLevel = parseLogLevel(logData.level);
@@ -226,9 +244,19 @@ export default function ConsolePage() {
           // 预算行数（按 \n 拆分），让虚拟化器初次布局就拿到正确行高
           lineCount: computeLineCount(content),
         });
-        // 限制最大条�?
-        if (allLogsRef.current.length > 2000) {
-          allLogsRef.current = allLogsRef.current.slice(-2000);
+        // 限制最大条数：
+        // - autoScroll 开启时用户在底部，从头部裁剪不影响可视区域
+        // - autoScroll 关闭时用户可能在看旧日志，从头部裁剪会导致视口内容逐行消失，
+        //   因此使用更高的上限兜底内存，不做逐条头部裁剪
+        const cap = autoScrollRef.current ? 2000 : 10000;
+        if (allLogsRef.current.length > cap) {
+          if (autoScrollRef.current) {
+            allLogsRef.current = allLogsRef.current.slice(-cap);
+          } else {
+            // 非自动滚动模式下仅在超出高水位时从头部批量裁剪（避免每条都触发），
+            // 一次性裁掉 2000 条，减少虚拟化器重布局频率
+            allLogsRef.current = allLogsRef.current.slice(-(cap - 2000));
+          }
         }
         // 节流后通知 React，不要每条都重渲染
         scheduleLogVersionFlush();
@@ -265,8 +293,13 @@ export default function ConsolePage() {
         : { ...e, anchor: buildLogAnchor(e.timestamp, e.content), lineCount };
     });
     allLogsRef.current.push(...stamped);
-    if (allLogsRef.current.length > 2000) {
-      allLogsRef.current = allLogsRef.current.slice(-2000);
+    const cap = autoScrollRef.current ? 2000 : 10000;
+    if (allLogsRef.current.length > cap) {
+      if (autoScrollRef.current) {
+        allLogsRef.current = allLogsRef.current.slice(-cap);
+      } else {
+        allLogsRef.current = allLogsRef.current.slice(-(cap - 2000));
+      }
     }
     scheduleLogVersionFlush();
   }, [scheduleLogVersionFlush]);
