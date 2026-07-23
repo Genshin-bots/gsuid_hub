@@ -23,6 +23,15 @@
     "minChildrenPerCategory": "最小分类子节点",
     "maxLayers": "最大层数",
     "hiergraphRebuildRatio": "HierGraph 重建触发比例",
-    "hiergraphRebuildIntervalSeconds": "HierGraph 重建间隔(秒)"
-  }
+    "hiergraphRebuildIntervalSeconds": "HierGraph 重建间隔(秒)",
+    "batchIntervalSeconds": "批处理间隔(秒)",
+    "idleFlushSeconds": "静默落库(秒)",
+    "llmSemaphoreLimit": "LLM 并发上限",
+    "observerBlacklist": "Observer 黑名单群",
+    "observerBlacklistPlaceholder": "输入群 ID 后回车",
+    "enablePreferenceMemory": "偏好记忆",
+    "enableFamiliarityRouting": "RF-Mem 熟悉度路由",
+    "enableRecollectionPath": "RF-Mem 回忆路径"
+  },
+  "readonlyHint": "以下项来自 MEMORY_CONFIG 框架配置，此处只读展示；请在「框架配置」中修改。"
 }

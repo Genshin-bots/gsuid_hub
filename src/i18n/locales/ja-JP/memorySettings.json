@@ -23,6 +23,15 @@
     "minChildrenPerCategory": "カテゴリ毎の最小子ノード数",
     "maxLayers": "最大階層",
     "hiergraphRebuildRatio": "HierGraph 再構築トリガ比率",
-    "hiergraphRebuildIntervalSeconds": "HierGraph 再構築間隔(秒)"
-  }
+    "hiergraphRebuildIntervalSeconds": "HierGraph 再構築間隔(秒)",
+    "batchIntervalSeconds": "バッチ間隔(秒)",
+    "idleFlushSeconds": "アイドル flush(秒)",
+    "llmSemaphoreLimit": "LLM 同時数",
+    "observerBlacklist": "Observer ブラックリスト",
+    "observerBlacklistPlaceholder": "群 ID を入力して Enter",
+    "enablePreferenceMemory": "好み記憶",
+    "enableFamiliarityRouting": "RF-Mem 熟悉度",
+    "enableRecollectionPath": "RF-Mem 回想"
+  },
+  "readonlyHint": "以下は MEMORY_CONFIG の読み取り専用反映です。フレームワーク設定で変更してください。"
 }

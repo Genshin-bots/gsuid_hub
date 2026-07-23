@@ -1,0 +1,92 @@
+{
+  "title": "AI 运维诊断中心",
+  "description": "回答：为什么进/不进 AI、为什么出/不出话；以及门禁与配置备份。",
+  "loadFailed": "加载失败",
+  "saveFailed": "保存失败",
+  "saved": "已保存",
+  "tabs": {
+    "trigger": "触发回放",
+    "access": "黑白名单",
+    "output": "输出试跑",
+    "security": "安全策略",
+    "snapshot": "配置快照"
+  },
+  "status": {
+    "bots": "Bot 在线",
+    "sessions": "存活 Session",
+    "followup": "续聊窗口",
+    "refresh": "刷新状态",
+    "hint": "点击徽章展开明细。Bot / Session / 续聊为进程内运行态，重启后清空。"
+  },
+  "bots": {
+    "total": "总数",
+    "connected": "在线",
+    "offline": "离线",
+    "online": "在线",
+    "empty": "当前无 active_bot"
+  },
+  "sessions": {
+    "count": "共 {count} 个",
+    "empty": "无存活 AI Session",
+    "active": "活跃",
+    "idle": "空闲",
+    "unknown": "未知"
+  },
+  "followup": {
+    "empty": "当前无活跃续聊窗口"
+  },
+  "access": {
+    "title": "AI 黑白名单",
+    "desc": "入口门禁：即时落盘。白名单非空时仅名单内可进 AI。",
+    "blackList": "黑名单",
+    "whiteList": "白名单",
+    "blackHint": "命中用户或群 ID 则不进 AI",
+    "whiteHint": "非空时仅名单内可进 AI"
+  },
+  "security": {
+    "title": "安全与续聊策略",
+    "desc": "只保留与门禁出口、续聊窗口直接相关的项；markdown 出图 / 工具召回等请到 AI 基础配置。",
+    "advancedHint": "其它字段去哪了？",
+    "advancedBody": "工具召回、长文出图、历史合并窗口等仍在后端 security-output 快照中，前端已收敛到本页核心项。完整键值可在「配置快照」导出后查看，或在 AI 基础配置中修改对应字段。",
+    "fields": {
+      "content_guard_enable": "内容守卫",
+      "output_firewall_enable": "出戏防火墙",
+      "follow_up_window": "续聊窗口(秒)",
+      "follow_up_max_total": "续聊天花板(秒)",
+      "output_firewall_extra_terms": "防火墙补充禁词",
+      "memory_sensitive_extra_terms": "隐私记忆敏感词"
+    }
+  },
+  "trigger": {
+    "title": "触发路径回放",
+    "desc": "干跑：enable → 黑白名单 → persona → 提及/关键词/续聊。不调 LLM、不发消息。",
+    "placeholder": "消息文本…",
+    "run": "干跑",
+    "failed": "回放失败",
+    "wouldEnterAi": "将进入 AI",
+    "blocked": "被拦截",
+    "noResponse": "不应答",
+    "unknown": "未知"
+  },
+  "output": {
+    "title": "OOC / 输出归一化试跑",
+    "desc": "模拟待发送文本经过防火墙与归一化后的结果，排查「说了但发出去变样」。",
+    "userText": "用户来话（影响身份逼问门）",
+    "aiText": "AI 待发送文本",
+    "run": "试跑",
+    "failed": "试跑失败"
+  },
+  "snapshot": {
+    "title": "配置快照导入导出",
+    "desc": "导出 AI 相关配置用于灾备/换机；导入会即时写回（生产请谨慎）。",
+    "export": "导出",
+    "import": "导入",
+    "exported": "已导出",
+    "exportFailed": "导出失败",
+    "imported": "已应用 {count} 项",
+    "importFailed": "导入失败",
+    "invalidJson": "JSON 无效",
+    "invalidSnapshot": "不是合法快照",
+    "applyMemory": "同时应用 memory_config（慎用）"
+  }
+}

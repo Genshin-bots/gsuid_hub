@@ -69,7 +69,10 @@ export type ProviderName =
   | 'gemini'
   | string;
 
-type IconComponent = ComponentType<SVGProps<SVGSVGElement>>;
+// 各厂商 SVG 的 variant 联合类型互不相同（含 dark/wordmark/color…），
+// 这里用宽松组件类型 + 渲染时透传 variant，避免 BrandRule 被 propTypes 拖垮。
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type IconComponent = ComponentType<any>;
 
 interface BrandRule {
   /** 用于匹配模型名（不区分大小写）的子串/正则 */
@@ -80,7 +83,7 @@ interface BrandRule {
    * 该厂商图标用哪个 variant。统一使用 `default`（官方彩版，主题无关）。
    * 保留该字段是为了 API 兼容；值恒为 `'default'`。
    */
-  variant?: 'light' | 'mono' | 'default';
+  variant?: string;
 }
 
 /**
@@ -188,11 +191,12 @@ export function ModelBrandIcon({
   const Icon = rule.Component;
 
   // 统一使用 `default`（官方彩版），主题无关，不依赖 currentColor。
+  // variant 为 thesvg 扩展 prop，各厂商联合类型不同，见上方 IconComponent 注释。
   return (
     <Icon
       width={size}
       height={size}
-      variant={rule.variant}
+      variant={rule.variant ?? 'default'}
       className={cn('inline-block shrink-0', className)}
       aria-hidden="true"
     />

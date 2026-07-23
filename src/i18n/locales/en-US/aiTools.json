@@ -11,5 +11,40 @@
   "selectCategory": "Select Category",
   "selectPlugin": "Select Plugin",
   "toolCount": "Showing {count} / {total} tools",
-  "searchPlaceholder": "Enter tool name or description keywords..."
+  "searchPlaceholder": "Enter tool name or description keywords...",
+  "tabs": {
+    "tools": "Tools",
+    "assemble": "Assemble Preview",
+    "entityIndex": "Entity Index"
+  },
+  "diagnostics": {
+    "ok": "OK",
+    "emptyDescription": "Empty description",
+    "meta": "meta",
+    "filterAll": "All",
+    "filterIssues": "Issues",
+    "filterEmpty": "Empty description"
+  },
+  "assemble": {
+    "title": "Tool assemble preview",
+    "description": "Preview seeds and pool that a query would assemble",
+    "query": "Query",
+    "queryPlaceholder": "e.g. look up character panel",
+    "queryRequired": "Please enter a query",
+    "run": "Preview",
+    "failed": "Assemble preview failed",
+    "seeds": "Seeds",
+    "pool": "Pool",
+    "toolNoInfo": "No tool description available"
+  },
+  "entityIndex": {
+    "title": "Entity identity index",
+    "description": "L0 routing surface forms and plugin mappings",
+    "searchPlaceholder": "Search surface or plugin…",
+    "surface": "Surface",
+    "plugins": "Plugins",
+    "ambiguous": "Ambiguous",
+    "failed": "Failed to load entity index",
+    "yes": "Yes"
+  }
 }

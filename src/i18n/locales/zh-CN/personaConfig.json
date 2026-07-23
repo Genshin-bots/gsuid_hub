@@ -105,5 +105,10 @@
   "toolNamesPlaceholder": "输入工具名后回车，如 send_stock_info",
   "toolNamesHint": "这些工具将常驻并入该人格的保底工具池，不经向量检索",
   "minutesUnit": " 分钟",
-  "keywordsCountSuffix": "个"
+  "keywordsCountSuffix": "个",
+  "heartbeatStatus": "巡检状态",
+  "jobRegistered": "Job 已注册",
+  "jobMissing": "Job 未注册",
+  "heartbeatEnabled": "已启用巡检",
+  "heartbeatDisabled": "未启用巡检"
 }

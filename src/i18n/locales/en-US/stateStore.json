@@ -1,0 +1,5 @@
+{
+  "title": "State Store",
+  "description": "Browse and clean AI persistent state (state_store)",
+  "batchDelete": "Batch delete"
+}

@@ -34,5 +34,8 @@
   "saveSuccess": "Skill saved successfully",
   "saveFailed": "Failed to save skill",
   "cancel": "Cancel",
-  "markdown": "Markdown Content"
+  "markdown": "Markdown Content",
+  "updateExisting": "Update if exists",
+  "updateHint": "Overwrite existing skill",
+  "reinstall": "Update from source"
 }

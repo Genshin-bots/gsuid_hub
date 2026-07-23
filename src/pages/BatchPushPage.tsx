@@ -26,12 +26,15 @@ import {
   ChevronDown,
   Eraser,
   History,
+  ImagePlus,
   Info,
+  LayoutList,
   ListChecks,
   Loader2,
   RefreshCw,
   Search,
   Send,
+  User,
   Users,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -64,6 +67,60 @@ import {
   getApiErrorMessage,
   type BatchPushTargetItem,
 } from '@/lib/api';
+import {
+  type BatchPushImageAsset,
+  buildBatchPushImagePlaceholder,
+  collectImageFilesFromDataTransfer,
+  expandBatchPushBody,
+  insertTextAt,
+  isImageFile,
+  makeBatchPushImageId,
+  normalizeBatchPushBodyImages,
+  pruneBatchPushImageAssets,
+} from '@/lib/featureUtils';
+import { cn } from '@/lib/utils';
+
+/** Max dimension edge when encoding (keep payload reasonable; backend still gets width/height). */
+const IMAGE_MAX_EDGE = 4096;
+const IMAGE_ACCEPT = 'image/png,image/jpeg,image/jpg,image/gif,image/webp,image/bmp';
+
+/** Read File → asset + short editor placeholder (base64 never enters the textarea). */
+function readImageFileAsPlaceholder(file: File): Promise<{
+  id: string;
+  placeholder: string;
+  asset: BatchPushImageAsset;
+}> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('read_failed'));
+    reader.onload = () => {
+      const dataUrl = String(reader.result ?? '');
+      if (!dataUrl.startsWith('data:image/')) {
+        reject(new Error('not_image_data_url'));
+        return;
+      }
+      const img = new Image();
+      img.onload = () => {
+        let w = img.naturalWidth || 1;
+        let h = img.naturalHeight || 1;
+        if (w > IMAGE_MAX_EDGE || h > IMAGE_MAX_EDGE) {
+          const scale = IMAGE_MAX_EDGE / Math.max(w, h);
+          w = Math.max(1, Math.round(w * scale));
+          h = Math.max(1, Math.round(h * scale));
+        }
+        const id = makeBatchPushImageId();
+        resolve({
+          id,
+          placeholder: buildBatchPushImagePlaceholder(id, w, h),
+          asset: { dataUrl, width: w, height: h },
+        });
+      };
+      img.onerror = () => reject(new Error('decode_failed'));
+      img.src = dataUrl;
+    };
+    reader.readAsDataURL(file);
+  });
+}
 
 const ALL_BOT_SENTINEL = '__all__';
 const TYPE_ALL = 'all';
@@ -107,6 +164,15 @@ export default function BatchPushPage() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [bot, setBot] = useState<string>(ALL_BOT_SENTINEL);
   const [submitting, setSubmitting] = useState(false);
+  const [bodyDragging, setBodyDragging] = useState(false);
+  const [insertingImage, setInsertingImage] = useState(false);
+  /** Base64 lives here — never in the textarea value. */
+  const [imageAssets, setImageAssets] = useState<Record<string, BatchPushImageAsset>>({});
+  const textAreaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const dragDepthRef = useRef(0);
+  const imageAssetsRef = useRef(imageAssets);
+  imageAssetsRef.current = imageAssets;
 
   // ---- 目标列表状态：分页累积 + 顶部元信息 ----
   const [bots, setBots] = useState<BotOption[]>([]);
@@ -226,6 +292,122 @@ export default function BatchPushPage() {
 
   const clearSelection = () => setSelectedTargets(new Set());
 
+  /**
+   * 读图 → 内存存 base64；正文只插入短占位：
+   *   `<img data-bp-id="..." width height alt="image" />`
+   * 提交时再 expand 成带 data URL 的标签给后端。
+   */
+  const insertImageFiles = useCallback(
+    async (files: File[]) => {
+      const images = files.filter(isImageFile);
+      if (images.length === 0) {
+        toast.error(t('batchPush.imageNotImage'));
+        return;
+      }
+      setInsertingImage(true);
+      try {
+        const placeholders: string[] = [];
+        const nextAssets: Record<string, BatchPushImageAsset> = {};
+        for (const file of images) {
+          try {
+            const { id, placeholder, asset } = await readImageFileAsPlaceholder(file);
+            placeholders.push(placeholder);
+            nextAssets[id] = asset;
+          } catch {
+            toast.error(t('batchPush.imageReadFailed', { name: file.name || 'image' }));
+          }
+        }
+        if (placeholders.length === 0) return;
+        setImageAssets((prev) => ({ ...prev, ...nextAssets }));
+        let caretAfter = 0;
+        setText((prev) => {
+          const el = textAreaRef.current;
+          const start = el?.selectionStart ?? prev.length;
+          const end = el?.selectionEnd ?? prev.length;
+          const needLeadingNl = start > 0 && prev[start - 1] !== '\n';
+          const insert = (needLeadingNl ? '\n' : '') + placeholders.join('\n') + '\n';
+          const { next, caret } = insertTextAt(prev, insert, start, end);
+          caretAfter = caret;
+          return next;
+        });
+        requestAnimationFrame(() => {
+          const ta = textAreaRef.current;
+          if (!ta) return;
+          ta.focus();
+          ta.setSelectionRange(caretAfter, caretAfter);
+        });
+        toast.success(t('batchPush.imageInserted', { count: placeholders.length }));
+      } finally {
+        setInsertingImage(false);
+      }
+    },
+    [t],
+  );
+
+  /** Keep textarea free of huge base64; prune deleted image assets. */
+  const onBodyTextChange = useCallback((raw: string) => {
+    if (raw.includes('data:image')) {
+      const { text: next, assets, extracted } = normalizeBatchPushBodyImages(
+        raw,
+        imageAssetsRef.current,
+      );
+      setImageAssets(pruneBatchPushImageAssets(next, assets));
+      setText(next);
+      if (extracted > 0) {
+        toast.success(t('batchPush.imageInserted', { count: extracted }));
+      }
+      return;
+    }
+    setText(raw);
+    setImageAssets((prev) => pruneBatchPushImageAssets(raw, prev));
+  }, [t]);
+
+  const onBodyPaste = useCallback(
+    (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+      const files = collectImageFilesFromDataTransfer(e.clipboardData);
+      if (files.length === 0) return;
+      e.preventDefault();
+      void insertImageFiles(files);
+    },
+    [insertImageFiles],
+  );
+
+  const onBodyDragEnter = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragDepthRef.current += 1;
+    if (e.dataTransfer?.types?.includes('Files')) setBodyDragging(true);
+  }, []);
+
+  const onBodyDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+    if (dragDepthRef.current === 0) setBodyDragging(false);
+  }, []);
+
+  const onBodyDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
+  }, []);
+
+  const onBodyDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dragDepthRef.current = 0;
+      setBodyDragging(false);
+      const files = collectImageFilesFromDataTransfer(e.dataTransfer);
+      if (files.length === 0) {
+        toast.error(t('batchPush.imageNotImage'));
+        return;
+      }
+      void insertImageFiles(files);
+    },
+    [insertImageFiles, t],
+  );
+
   // ---------------------------------------------------------------------------
   // 虚拟化（参考 src/components/ConsolePanel.tsx 既有用法）
   // ---------------------------------------------------------------------------
@@ -255,8 +437,10 @@ export default function BatchPushPage() {
     }
     setSubmitting(true);
     try {
+      // Expand placeholders → full base64 img tags only at submit time.
+      const push_text = expandBatchPushBody(text, imageAssets);
       await batchPushApi.push({
-        push_text: text,
+        push_text,
         push_tag: Array.from(selectedTargets).join(','),
         push_bot: bot === ALL_BOT_SENTINEL ? '' : bot,
       });
@@ -268,25 +452,61 @@ export default function BatchPushPage() {
     }
   };
 
-  // Preview: 用 DOMParser 解析 HTML 为 [元素,文本]
-  const previewLines = useMemo(() => {
-    if (typeof window === 'undefined' || !text) return [] as string[];
+  // Preview: expand placeholders then render real images (textarea stays light).
+  const previewBlocks = useMemo(() => {
+    if (typeof window === 'undefined' || !text) {
+      return [] as Array<{ type: 'text' | 'image'; content: string; w?: string; h?: string }>;
+    }
+    const expanded = expandBatchPushBody(text, imageAssets);
     const wrap = document.createElement('div');
-    wrap.innerHTML = text;
-    const out: string[] = [];
-    wrap.querySelectorAll('p').forEach((p) => out.push(p.textContent || ''));
-    wrap.querySelectorAll('img').forEach((img) => {
-      const src = img.getAttribute('src') ?? '';
-      out.push(`[image ${img.getAttribute('width') ?? ''}x${img.getAttribute('height') ?? ''} ${src.slice(0, 24)}…]`);
-    });
-    return out.filter(Boolean);
-  }, [text]);
+    wrap.innerHTML = expanded;
+    const out: Array<{ type: 'text' | 'image'; content: string; w?: string; h?: string }> = [];
+    const walk = (node: Node) => {
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        const el = node as HTMLElement;
+        if (el.tagName === 'IMG') {
+          const bpId = el.getAttribute('data-bp-id');
+          const fromAsset = bpId ? imageAssets[bpId] : undefined;
+          out.push({
+            type: 'image',
+            content: fromAsset?.dataUrl || el.getAttribute('src') || '',
+            w: el.getAttribute('width') ?? (fromAsset ? String(fromAsset.width) : undefined),
+            h: el.getAttribute('height') ?? (fromAsset ? String(fromAsset.height) : undefined),
+          });
+          return;
+        }
+        el.childNodes.forEach(walk);
+        return;
+      }
+      if (node.nodeType === Node.TEXT_NODE) {
+        const txt = (node.textContent || '').trim();
+        if (txt) out.push({ type: 'text', content: txt });
+      }
+    };
+    wrap.childNodes.forEach(walk);
+    if (out.length === 0 && text.trim()) {
+      out.push({ type: 'text', content: text });
+    }
+    return out;
+  }, [text, imageAssets]);
 
   const typeFilterOptions = useMemo(
     () => [
-      { value: TYPE_ALL, label: t('batchPush.tabAll') },
-      { value: TYPE_GROUP, label: t('batchPush.targetTypeGroup') },
-      { value: TYPE_USER, label: t('batchPush.targetTypeUser') },
+      {
+        value: TYPE_ALL,
+        label: t('batchPush.tabAll'),
+        icon: <LayoutList className="w-4 h-4" />,
+      },
+      {
+        value: TYPE_GROUP,
+        label: t('batchPush.targetTypeGroup'),
+        icon: <Users className="w-4 h-4" />,
+      },
+      {
+        value: TYPE_USER,
+        label: t('batchPush.targetTypeUser'),
+        icon: <User className="w-4 h-4" />,
+      },
     ],
     [t],
   );
@@ -336,14 +556,69 @@ export default function BatchPushPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                <Label htmlFor="push-text">{t('batchPush.pushTextLabel')}</Label>
-                <Textarea
-                  id="push-text"
-                  className="min-h-[160px] font-mono text-sm"
-                  placeholder={t('batchPush.pushTextPlaceholder') ?? ''}
-                  value={text}
-                  onChange={(e) => setText(e.target.value)}
-                />
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <Label htmlFor="push-text">{t('batchPush.pushTextLabel')}</Label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept={IMAGE_ACCEPT}
+                      multiple
+                      className="hidden"
+                      onChange={(e) => {
+                        const list = e.target.files;
+                        if (list && list.length > 0) {
+                          void insertImageFiles(Array.from(list));
+                        }
+                        // allow re-selecting the same file
+                        e.target.value = '';
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="h-9"
+                      disabled={insertingImage}
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      {insertingImage ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <ImagePlus className="w-4 h-4" />
+                      )}
+                      {t('batchPush.insertImage')}
+                    </Button>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">{t('batchPush.imageHint')}</p>
+                <div
+                  className={cn(
+                    'relative rounded-md transition-colors',
+                    bodyDragging && 'ring-2 ring-primary/60 bg-primary/5',
+                  )}
+                  onDragEnter={onBodyDragEnter}
+                  onDragLeave={onBodyDragLeave}
+                  onDragOver={onBodyDragOver}
+                  onDrop={onBodyDrop}
+                >
+                  <Textarea
+                    ref={textAreaRef}
+                    id="push-text"
+                    className="min-h-[160px] font-mono text-sm"
+                    placeholder={t('batchPush.pushTextPlaceholder') ?? ''}
+                    value={text}
+                    onChange={(e) => onBodyTextChange(e.target.value)}
+                    onPaste={onBodyPaste}
+                  />
+                  {bodyDragging && (
+                    <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-md border-2 border-dashed border-primary/50 bg-background/70 text-sm font-medium text-primary">
+                      <span className="flex items-center gap-2">
+                        <ImagePlus className="w-5 h-5" />
+                        {t('batchPush.imageDropHint')}
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -359,33 +634,46 @@ export default function BatchPushPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* 行 1：Bot 选择 + 刷新（手动重拉 targets） */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>{t('batchPush.botsLabel')}</Label>
-                  <Select value={bot} onValueChange={setBot}>
-                    <SelectTrigger className="h-9">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={ALL_BOT_SENTINEL}>
-                        {t('batchPush.botsAll')}
-                      </SelectItem>
-                      {bots.map((b) => (
-                        <SelectItem key={b.bot_id} value={b.bot_id}>
-                          {b.name}
+              {/* 一行：Bot 选择 + 类型筛选 Tab + 刷新；三者统一 h-9 垂直居中对齐 */}
+              <div className="space-y-2">
+                <Label>{t('batchPush.botsLabel')}</Label>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3">
+                  <div className="min-w-0 flex-1">
+                    <Select value={bot} onValueChange={setBot}>
+                      <SelectTrigger className="h-9 w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={ALL_BOT_SENTINEL}>
+                          {t('batchPush.botsAll')}
                         </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  {/* 占位 Label，与左侧 Select 视觉对齐；按钮放在这格方便误触刷新 */}
-                  <Label className="invisible">.</Label>
+                        {bots.map((b) => (
+                          <SelectItem key={b.bot_id} value={b.bot_id}>
+                            {b.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {/*
+                    三控件统一视觉高度 h-9：
+                    - SelectTrigger / Button 原生 h-9
+                    - Tab 外壳 h-9 + p-0.5，内钮 h-8
+                    - 压掉 TabButtonGroup 外层 shadow-safe 的竖直 margin/padding，避免整行被顶歪
+                  */}
+                  <div className="flex h-9 shrink-0 items-center [&_.shadow-safe]:!my-0 [&_.shadow-safe]:!py-0">
+                    <TabButtonGroup
+                      options={typeFilterOptions}
+                      value={typeFilter}
+                      onValueChange={setTypeFilter}
+                      className="box-border h-9 shrink-0 items-center gap-0.5 p-0.5"
+                      buttonClassName="box-border h-8 px-3 py-0 leading-none"
+                    />
+                  </div>
                   <Button
                     type="button"
                     variant="outline"
-                    className="h-9 w-full"
+                    className="h-9 w-full shrink-0 sm:w-auto"
                     onClick={() => loadPage(true)}
                     disabled={initialLoading}
                   >
@@ -395,17 +683,7 @@ export default function BatchPushPage() {
                 </div>
               </div>
 
-              {/* 行 2：类型筛选 Tabs（混选后必须能切"只看群/只看用户"以快速收敛） */}
-              <div className="space-y-2">
-                <Label>{t('batchPush.targetsLabel')}</Label>
-                <TabButtonGroup
-                  options={typeFilterOptions}
-                  value={typeFilter}
-                  onValueChange={setTypeFilter}
-                />
-              </div>
-
-              {/* 行 3：搜索框（label + value 双字段模糊匹配） */}
+              {/* 搜索框（label + value 双字段模糊匹配） */}
               <div className="relative">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
                 <Input
@@ -586,16 +864,32 @@ export default function BatchPushPage() {
             </CardHeader>
             <CardContent>
               <div className="border border-border/40 rounded-lg p-3 min-h-[160px] space-y-2 bg-background/50">
-                {previewLines.length === 0 ? (
+                {previewBlocks.length === 0 ? (
                   <p className="text-xs text-muted-foreground">
                     {t('batchPush.previewEmpty')}
                   </p>
                 ) : (
-                  previewLines.map((line, i) => (
-                    <p key={i} className="text-sm whitespace-pre-wrap leading-6">
-                      {line}
-                    </p>
-                  ))
+                  previewBlocks.map((block, i) =>
+                    block.type === 'image' ? (
+                      <div key={i} className="space-y-1">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={block.content}
+                          alt=""
+                          width={block.w ? Number(block.w) : undefined}
+                          height={block.h ? Number(block.h) : undefined}
+                          className="max-h-48 max-w-full rounded border border-border/40 object-contain"
+                        />
+                        <p className="text-[10px] text-muted-foreground font-mono">
+                          {block.w && block.h ? `${block.w}×${block.h}` : 'image'} · base64
+                        </p>
+                      </div>
+                    ) : (
+                      <p key={i} className="text-sm whitespace-pre-wrap leading-6">
+                        {block.content}
+                      </p>
+                    ),
+                  )
                 )}
               </div>
               <Input

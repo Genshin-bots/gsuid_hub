@@ -1228,9 +1228,17 @@ const TraceWaterfallInner = forwardRef<TraceWaterfallHandle, TraceWaterfallProps
         if (b.type === 'reset') return <ResetDivider key={b.key} sp={b.sp} t={t} />;
         if (b.type === 'mode') return <ModeDivider key={b.key} sp={b.sp} t={t} />;
         if (b.type === 'lifecycle') return <LifecycleDivider key={b.key} sp={b.sp} t={t} />;
-        return (
-          <LooseBlock key={b.key} spans={b.spans} base={{ expanded, toggle, t, loadSubAgent, subCache, requestSub }} />
-        );
+        // 显式收窄到 'loose'，避免联合类型上访问 spans 报错
+        if (b.type === 'loose') {
+          return (
+            <LooseBlock
+              key={b.key}
+              spans={b.spans}
+              base={{ expanded, toggle, t, loadSubAgent, subCache, requestSub }}
+            />
+          );
+        }
+        return null;
       })}
     </div>
   );

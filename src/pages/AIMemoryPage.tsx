@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
+import MemorySearchPanel from '@/components/memory/MemorySearchPanel';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -1713,6 +1714,7 @@ export default function AIMemoryPage() {
           className="w-full max-w-full"
           options={[
             { value: 'graph', label: t('aiMemory.tabGraph'), icon: <Network className="w-4 h-4" /> },
+            { value: 'search', label: t('aiMemory.tabSearch'), icon: <Search className="w-4 h-4" /> },
             { value: 'preferences', label: t('aiMemory.tabPreferences'), icon: <ListChecks className="w-4 h-4" /> },
             { value: 'scopes', label: t('aiMemory.tabScopes'), icon: <Globe className="w-4 h-4" /> },
             { value: 'episodes', label: t('aiMemory.tabEpisodes'), icon: <MessageSquare className="w-4 h-4" /> },
@@ -1724,6 +1726,12 @@ export default function AIMemoryPage() {
           ]}
         />
       </div>
+
+      {activeTab === 'search' && (
+        <div className="space-y-4">
+          <MemorySearchPanel />
+        </div>
+      )}
 
       {/* Knowledge Graph Tab */}
       {activeTab === 'graph' && (

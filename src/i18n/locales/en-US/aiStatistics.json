@@ -99,5 +99,17 @@
   "preset14d": "14 Days",
   "preset30d": "30 Days",
   "preset90d": "90 Days",
-  "noDataInRange": "No data in selected range"
+  "noDataInRange": "No data in selected range",
+  "historyTrend": "History trend",
+  "memoryPipeline": "Memory pipeline",
+  "memoryHealth": "Pipeline health",
+  "healthy": "Healthy",
+  "degraded": "Degraded",
+  "empty": "Empty",
+  "days7": "7 days",
+  "days14": "14 days",
+  "days30": "30 days",
+  "perfRange": "Range performance",
+  "singleDay": "Single day",
+  "rangeMode": "Range"
 }

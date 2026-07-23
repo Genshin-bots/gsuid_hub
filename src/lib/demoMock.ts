@@ -527,8 +527,36 @@ const memeRecords = () => (memeCache ??= buildMemeRecords());
 
 /** 单条详情：MemeDetailDialog 点击表情时调用 GET /api/meme/{id}。
  *  必须返回完整记录——否则 `[...meme.emotion_tags]` 等会因字段缺失而抛错白屏（见用户反馈）。 */
-export const generateMemeDetail = (memeId: string) =>
-  memeRecords().find((r) => r.meme_id === memeId) ?? memeRecords()[0];
+export const generateMemeDetail = (memeId: string) => {
+  const all = memeRecords();
+  if (!all.length) {
+    // 极端兜底：无素材时仍返回合法空记录，避免前端展开 undefined
+    return {
+      meme_id: memeId || 'demo-empty',
+      file_path: 'common/placeholder.png',
+      file_size: 0,
+      file_mime: 'image/png',
+      width: 0,
+      height: 0,
+      source_group: '',
+      folder: 'common',
+      persona_hint: 'common',
+      emotion_tags: [] as string[],
+      scene_tags: [] as string[],
+      description: '',
+      custom_tags: [] as string[],
+      status: 'tagged' as const,
+      nsfw_score: 0,
+      use_count: 0,
+      last_used_at: null as string | null,
+      last_used_group: '',
+      created_at: new Date().toISOString(),
+      tagged_at: null as string | null,
+      updated_at: new Date().toISOString(),
+    };
+  }
+  return all.find((r) => r.meme_id === memeId) ?? all[0];
+};
 
 export const generateMemeList = (params: URLSearchParams) => {
   let records = memeRecords();
@@ -969,16 +997,51 @@ export const generateMCPPresets = () => [
 
 // ---- AI Statistics（AIStatisticsPage） ----
 export const generateAIStatisticsSummary = () => ({
-  total_tokens: 1_842_311,
-  input_tokens: 612_309,
-  output_tokens: 933_120,
-  cache_read_tokens: 280_000,
-  cache_write_tokens: 16_882,
-  total_requests: 12_482,
-  total_errors: 92,
-  total_sessions: 384,
-  active_users: 64,
-  active_groups: 21,
+  date: new Date().toISOString().split('T')[0],
+  token_usage: {
+    total_input_tokens: 612_309,
+    total_output_tokens: 933_120,
+    total_cache_read_tokens: 280_000,
+    total_cache_write_tokens: 16_882,
+    by_model: [],
+    by_type: [],
+  },
+  latency: { avg: 1.24, p95: 3.8 },
+  intent_distribution: {
+    闲聊: { count: 120, percentage: 45 },
+    角色互动: { count: 80, percentage: 30 },
+    数据查询: { count: 66, percentage: 25 },
+  },
+  errors: {
+    timeout: 4,
+    rate_limit: 2,
+    network_error: 1,
+    usage_limit: 0,
+    agent_error: 1,
+    api_529_error: 0,
+    total: 8,
+  },
+  heartbeat: {
+    should_speak_true: 18,
+    should_speak_false: 42,
+    conversion_rate: 30,
+  },
+  trigger_distribution: {
+    mention: { count: 100, percentage: 50 },
+    command: { count: 60, percentage: 30 },
+    inspect: { count: 40, percentage: 20 },
+  },
+  rag: { hit_count: 72, miss_count: 28, hit_rate: 72 },
+  memory: {
+    observations: 240,
+    ingestions: 210,
+    ingestion_errors: 3,
+    retrievals: 180,
+    entities_created: 42,
+    edges_created: 65,
+    episodes_created: 88,
+  },
+  active_users: [],
 });
 export const generateTokenByModel = () => [
   { model: 'anthropic/claude-opus-4-8', total_tokens: 1_122_000, input_tokens: 360_000, output_tokens: 762_000, requests: 3_120 },
@@ -1035,42 +1098,112 @@ export const generateRAGStats = () => ({
 export const generateTokenByRange = () => ({
   start: new Date(Date.now() - 6 * 86400_000).toISOString().split('T')[0],
   end: new Date().toISOString().split('T')[0],
-  total: { total_tokens: 1_842_311, requests: 12_482 },
-  daily: Array.from({ length: 7 }).map((_, i) => ({
-    date: new Date(Date.now() - (6 - i) * 86400_000).toISOString().split('T')[0],
-    total_tokens: 200_000 + i * 35_421 + Math.floor(Math.random() * 30_000),
-    requests: 1_200 + i * 80 + Math.floor(Math.random() * 200),
-  })),
+  total: {
+    input_tokens: 612_309,
+    output_tokens: 933_120,
+    cache_read_tokens: 280_000,
+    cache_write_tokens: 16_882,
+    total_tokens: 1_545_429,
+  },
+  daily: Array.from({ length: 7 }).map((_, i) => {
+    const input = 70_000 + i * 5_000;
+    const output = 90_000 + i * 4_000;
+    return {
+      date: new Date(Date.now() - (6 - i) * 86400_000).toISOString().split('T')[0],
+      input_tokens: input,
+      output_tokens: output,
+      cache_read_tokens: Math.floor(input * 0.2),
+      cache_write_tokens: Math.floor(input * 0.03),
+      total_tokens: input + output,
+    };
+  }),
   by_model: [
-    { model: 'anthropic/claude-opus-4-8', total_tokens: 1_122_000, requests: 3_120 },
-    { model: 'anthropic/claude-haiku-4-5', total_tokens: 482_000, requests: 7_801 },
+    {
+      model: 'anthropic/claude-opus-4-8',
+      input_tokens: 360_000,
+      output_tokens: 762_000,
+      cache_read_tokens: 100_000,
+      cache_write_tokens: 8_000,
+      total_tokens: 1_122_000,
+    },
+    {
+      model: 'anthropic/claude-haiku-4-5',
+      input_tokens: 200_000,
+      output_tokens: 120_000,
+      cache_read_tokens: 80_000,
+      cache_write_tokens: 4_000,
+      total_tokens: 320_000,
+    },
   ],
 });
 export const generatePerformanceHourly = () => {
-  const date = new Date().toISOString().split('T')[0];
   return Array.from({ length: 24 }).map((_, i) => ({
     hour: i,
-    avg_latency_ms: 800 + Math.floor(Math.random() * 600),
-    p95_latency_ms: 1_400 + Math.floor(Math.random() * 800),
-    error_count: Math.floor(Math.random() * 12),
-    request_count: 200 + Math.floor(Math.random() * 400),
+    providers: [
+      {
+        provider: 'anthropic',
+        model: 'claude-haiku-4-5',
+        request_count: 20 + Math.floor(Math.random() * 40),
+        ttft_min_ms: 200,
+        ttft_max_ms: 1200,
+        ttft_avg_ms: 400 + Math.floor(Math.random() * 300),
+        tps_min: 20,
+        tps_max: 90,
+        tps_avg: 35 + Math.random() * 20,
+        input_tokens: 5000 + Math.floor(Math.random() * 3000),
+        output_tokens: 3000 + Math.floor(Math.random() * 2000),
+        cache_read_tokens: 800,
+        cache_write_tokens: 120,
+        tool_call_count: 2 + Math.floor(Math.random() * 6),
+      },
+    ],
   }));
 };
 export const generatePerformanceHourlyRange = () => {
-  const days = Array.from({ length: 7 }).map((_, i) => {
+  // Flat rows matching HourlyPerformanceRangeItem for aggregatePerformanceByDate
+  const rows: Array<{
+    date: string;
+    hour: number;
+    provider: string;
+    model: string;
+    request_count: number;
+    ttft_min_ms: number;
+    ttft_max_ms: number;
+    ttft_avg_ms: number;
+    tps_min: number;
+    tps_max: number;
+    tps_avg: number;
+    input_tokens: number;
+    output_tokens: number;
+    cache_read_tokens: number;
+    cache_write_tokens: number;
+    tool_call_count: number;
+  }> = [];
+  for (let i = 0; i < 7; i++) {
     const d = new Date(Date.now() - (6 - i) * 86400_000);
-    return {
-      date: d.toISOString().split('T')[0],
-      hours: Array.from({ length: 24 }).map((_, h) => ({
-        hour: h,
-        avg_latency_ms: 800 + Math.floor(Math.random() * 600),
-        p95_latency_ms: 1_400 + Math.floor(Math.random() * 800),
-        error_count: Math.floor(Math.random() * 12),
-        request_count: 200 + Math.floor(Math.random() * 400),
-      })),
-    };
-  });
-  return days;
+    const date = d.toISOString().split('T')[0];
+    for (const hour of [9, 12, 18, 21]) {
+      rows.push({
+        date,
+        hour,
+        provider: 'anthropic',
+        model: 'claude-haiku-4-5',
+        request_count: 80 + Math.floor(Math.random() * 40),
+        ttft_min_ms: 200,
+        ttft_max_ms: 1200,
+        ttft_avg_ms: 450 + Math.floor(Math.random() * 200),
+        tps_min: 20,
+        tps_max: 80,
+        tps_avg: 40 + Math.random() * 15,
+        input_tokens: 12_000,
+        output_tokens: 8_000,
+        cache_read_tokens: 2_000,
+        cache_write_tokens: 400,
+        tool_call_count: 10 + Math.floor(Math.random() * 8),
+      });
+    }
+  }
+  return rows;
 };
 
 // ---- AI Budget（AIBudgetPage） ----

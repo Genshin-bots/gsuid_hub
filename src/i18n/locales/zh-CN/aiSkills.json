@@ -38,5 +38,8 @@
   "saving": "保存中...",
   "saveSuccess": "技能保存成功",
   "saveFailed": "技能保存失败",
-  "cancel": "取消"
+  "cancel": "取消",
+  "updateExisting": "同名则更新",
+  "updateHint": "覆盖安装已存在技能",
+  "reinstall": "从源更新"
 }

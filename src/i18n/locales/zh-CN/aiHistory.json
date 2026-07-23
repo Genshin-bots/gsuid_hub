@@ -82,5 +82,7 @@
       "toReactive": "进入被动聊天",
       "toProactive": "转为主动发言"
     }
-  }
+  },
+  "linkedAgents": "关联 Agent",
+  "loadLinkedFailed": "加载关联 Agent 失败"
 }

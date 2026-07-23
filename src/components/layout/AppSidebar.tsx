@@ -1,4 +1,4 @@
-import { Home, LayoutDashboard, Database, Settings, FileText, LogOut, Palette, Terminal, Calendar, Store, Cpu, HardDrive, PanelLeftClose, Cog, Power, RotateCw, User, Brain, ChevronDown, ChevronRight, Wrench, Sparkles, BookOpen, History, TrendingUp, Clock, Server, GitBranch, Image as ImageIcon, ScrollText, Layers, ClipboardList, Activity, Wallet, ShieldCheck, Bug, PackageOpen, Send } from 'lucide-react';
+import { Home, LayoutDashboard, Database, Settings, FileText, LogOut, Palette, Terminal, Calendar, Store, Cpu, HardDrive, PanelLeftClose, Cog, Power, RotateCw, User, Brain, ChevronDown, ChevronRight, Wrench, Sparkles, BookOpen, History, TrendingUp, Clock, Server, GitBranch, Image as ImageIcon, ScrollText, Layers, ClipboardList, Activity, Wallet, ShieldCheck, Bug, PackageOpen, Send, Users } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -86,8 +86,11 @@ const getNavItems = (t: (key: string) => string, isAIEnabled: boolean): NavItem[
         { id: 'ai-memory', title: t('sidebar.aiMemory'), url: '/ai-memory', icon: Brain },
         { id: 'ai-history', title: t('sidebar.aiHistory'), url: '/ai-history', icon: ScrollText },
         { id: 'ai-kanban', title: t('sidebar.aiKanban'), url: '/ai-kanban', icon: ClipboardList },
+        { id: 'ai-stateStore', title: t('sidebar.stateStore'), url: '/state-store', icon: HardDrive },
+        { id: 'ai-groupProfile', title: t('sidebar.groupProfile'), url: '/group-profile', icon: Users },
         { id: 'ai-approvals', title: t('sidebar.aiApprovals'), url: '/ai-approvals', icon: ShieldCheck },
         { id: 'ai-debug', title: t('sidebar.aiDebug'), url: '/ai-debug', icon: Bug },
+        { id: 'ai-ops', title: t('sidebar.aiOps'), url: '/ai-ops', icon: Activity },
         { id: 'ai-artifacts', title: t('sidebar.aiArtifacts'), url: '/ai-artifacts', icon: PackageOpen },
       ]
     : [

@@ -25,6 +25,7 @@ dist-ssr
 *.sw?
 
 .yarn
+.pnp.*
 .claude
 
 eslint_output.txt
@@ -35,3 +36,6 @@ nul
 
 .commandcode
 .zcode
+puppeteer-core-23.11.1.tgz
+.tmp-demo-serve
+.tmp-puppeteer

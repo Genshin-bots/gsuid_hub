@@ -1,15 +1,40 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
 import { PinnedPage } from '@/components/layout/PinnedPage';
-import { Wrench, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+  Wrench,
+  AlertCircle,
+  AlertTriangle,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  Search,
+  Network,
+  Boxes,
+  LayoutList,
+  FileWarning,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { aiToolsApi, AITool } from '@/lib/api';
+import {
+  aiToolsApi,
+  getApiErrorMessage,
+  type AITool,
+  type AIToolAssemblePreviewResponse,
+  type AIEntityIndexResponse,
+} from '@/lib/api';
+import {
+  countToolDiagnostics,
+  diagnoseTool,
+  filterToolsByDiagnostic,
+} from '@/lib/featureUtils';
 import { toast } from 'sonner';
 import {
   Dialog,
@@ -18,10 +43,67 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 // ============================================================================
 // 类型定义
 // ============================================================================
+
+/** Assemble seed/pool chip with hover tooltip (same pattern as AI History tools_list). */
+function AssembleToolChip({
+  name,
+  plugin,
+  variant,
+  toolMeta,
+  noInfoLabel,
+}: {
+  name: string;
+  plugin?: string;
+  variant: 'outline' | 'secondary';
+  toolMeta?: AITool | null;
+  noInfoLabel: string;
+}) {
+  const description = (toolMeta?.description ?? '').trim();
+  const category = toolMeta?.category;
+  const metaLine = [plugin || toolMeta?.plugin, category].filter(Boolean).join(' · ');
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Badge
+          variant={variant}
+          className="font-mono text-xs cursor-help max-w-full hover:bg-accent hover:text-foreground transition-colors"
+        >
+          <span className="inline-flex items-center gap-1 min-w-0">
+            <Wrench className="w-3 h-3 shrink-0 opacity-60" />
+            <span className="truncate">
+              {name}
+              {plugin ? ` · ${plugin}` : ''}
+            </span>
+          </span>
+        </Badge>
+      </TooltipTrigger>
+      <TooltipContent className="max-w-sm">
+        <p className="text-xs font-mono font-medium break-all">{name}</p>
+        {description ? (
+          <p className="mt-1 text-xs text-muted-foreground whitespace-pre-wrap break-words">
+            {description.split('\n')[0]}
+          </p>
+        ) : (
+          <p className="mt-1 text-xs text-muted-foreground/70 italic">{noInfoLabel}</p>
+        )}
+        {metaLine ? (
+          <p className="mt-1 text-[10px] text-muted-foreground/70 break-all">{metaLine}</p>
+        ) : null}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
 
 interface ParsedTool {
   name: string;
@@ -38,8 +120,8 @@ interface ParsedTool {
 // ============================================================================
 
 function parseToolDescription(tool: AITool, language: string): ParsedTool {
-  const lines = tool.description.split('\n');
-  const firstLine = lines[0].trim();
+  const lines = (tool.description ?? '').split('\n');
+  const firstLine = (lines[0] ?? '').trim();
   
   let title: string;
   let subtitle: string;
@@ -119,9 +201,21 @@ export default function AIToolsPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedPlugin, setSelectedPlugin] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [diagnosticFilter, setDiagnosticFilter] = useState<'all' | 'issues' | 'empty_description'>('all');
+  const [pageTab, setPageTab] = useState<'tools' | 'assemble' | 'entity'>('tools');
 
   // 当前页码（每页 PAGE_SIZE 个工具）
   const [page, setPage] = useState(1);
+
+  // Assemble preview
+  const [assembleQuery, setAssembleQuery] = useState('');
+  const [assembleLoading, setAssembleLoading] = useState(false);
+  const [assembleResult, setAssembleResult] = useState<AIToolAssemblePreviewResponse | null>(null);
+
+  // Entity index
+  const [entityIndex, setEntityIndex] = useState<AIEntityIndexResponse | null>(null);
+  const [entityLoading, setEntityLoading] = useState(false);
+  const [entitySearch, setEntitySearch] = useState('');
 
   // 获取所有插件列表（core 放在最后）
   const pluginList = useMemo(() => {
@@ -148,17 +242,20 @@ export default function AIToolsPage() {
     return (tool: AITool) =>
       !query ||
       tool.name.toLowerCase().includes(query) ||
-      tool.description.toLowerCase().includes(query);
+      (tool.description ?? '').toLowerCase().includes(query);
   }, [searchQuery]);
 
+  const diagnosticCounts = useMemo(() => countToolDiagnostics(tools), [tools]);
+
   // 按筛选条件过滤后的工具列表
-  const filteredTools = useMemo(() => {
-    return tools.filter(tool =>
+  const filteredTools = useMemo((): AITool[] => {
+    const base = tools.filter(tool =>
       (selectedCategory === 'all' || tool.category === selectedCategory) &&
       (selectedPlugin === 'all' || tool.plugin === selectedPlugin) &&
       matchesSearch(tool)
     );
-  }, [tools, selectedCategory, selectedPlugin, matchesSearch]);
+    return filterToolsByDiagnostic(base, diagnosticFilter) as AITool[];
+  }, [tools, selectedCategory, selectedPlugin, matchesSearch, diagnosticFilter]);
 
   // 分类计数:统计在「当前所选插件 + 搜索」条件下,每个分类还有多少工具
   const categoryCounts = useMemo(() => {
@@ -192,7 +289,55 @@ export default function AIToolsPage() {
   // 分页:筛选条件变化时回到第 1 页
   useEffect(() => {
     setPage(1);
-  }, [selectedCategory, selectedPlugin, searchQuery]);
+  }, [selectedCategory, selectedPlugin, searchQuery, diagnosticFilter]);
+
+  const runAssemblePreview = useCallback(async () => {
+    const q = assembleQuery.trim();
+    if (!q) {
+      toast.error(t('aiTools.assemble.queryRequired'));
+      return;
+    }
+    setAssembleLoading(true);
+    try {
+      const data = await aiToolsApi.assemblePreview(q);
+      setAssembleResult(data);
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, t('aiTools.assemble.failed')));
+      setAssembleResult(null);
+    } finally {
+      setAssembleLoading(false);
+    }
+  }, [assembleQuery, t]);
+
+  const loadEntityIndex = useCallback(async () => {
+    setEntityLoading(true);
+    try {
+      const data = await aiToolsApi.getEntityIndex();
+      setEntityIndex(data);
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, t('aiTools.entityIndex.failed')));
+      setEntityIndex(null);
+    } finally {
+      setEntityLoading(false);
+    }
+  }, [t]);
+
+  useEffect(() => {
+    if (pageTab === 'entity' && !entityIndex && !entityLoading) {
+      void loadEntityIndex();
+    }
+  }, [pageTab, entityIndex, entityLoading, loadEntityIndex]);
+
+  const filteredEntities = useMemo(() => {
+    const entries = entityIndex?.entries ?? [];
+    const q = entitySearch.trim().toLowerCase();
+    if (!q) return entries;
+    return entries.filter(
+      (e) =>
+        e.surface.toLowerCase().includes(q) ||
+        e.plugins.some((p) => p.toLowerCase().includes(q)),
+    );
+  }, [entityIndex, entitySearch]);
 
   const totalPages = Math.max(1, Math.ceil(parsedTools.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
@@ -242,63 +387,111 @@ export default function AIToolsPage() {
         </div>
       }
       toolbar={
-        /* 筛选区域：分类/插件切换 + 搜索 + 结果计数，随标题常驻。
-           条件为 false 时 PinnedPage 不渲染 toolbar，也不会多出一段 gap */
-        !isLoading && categories.length > 0 && (
-          <div className="space-y-4">
-            {/* 分类筛选 */}
-            <TabButtonGroup
-              options={categoryList.map((category) => ({
-                value: category,
-                label: category === 'all'
-                  ? `${t('aiTools.allCategories') || '全部分类'} (${categoryCounts.all || 0})`
-                  : `${category} (${categoryCounts[category] || 0})`,
-                icon: <Wrench className="w-4 h-4" />,
-                // 当前筛选下数量为 0 的分类置灰(全部/已选中的除外)
-                disabled: category !== 'all'
-                  && category !== selectedCategory
-                  && (categoryCounts[category] || 0) === 0,
-              }))}
-              value={selectedCategory}
-              onValueChange={setSelectedCategory}
-            />
+        <div className="space-y-4">
+          <TabButtonGroup
+            options={[
+              { value: 'tools', label: t('aiTools.tabs.tools'), icon: <Wrench className="w-4 h-4" /> },
+              { value: 'assemble', label: t('aiTools.tabs.assemble'), icon: <Boxes className="w-4 h-4" /> },
+              { value: 'entity', label: t('aiTools.tabs.entityIndex'), icon: <Network className="w-4 h-4" /> },
+            ]}
+            value={pageTab}
+            onValueChange={(v) => setPageTab(v as 'tools' | 'assemble' | 'entity')}
+          />
 
-            {/* 插件筛选 */}
-            <TabButtonGroup
-              options={pluginList.map((plugin) => ({
-                value: plugin,
-                label: plugin === 'all'
-                  ? `${t('aiTools.allPlugins') || '全部插件'} (${pluginCounts.all || 0})`
-                  : `${plugin} (${pluginCounts[plugin] || 0})`,
-                icon: <Wrench className="w-4 h-4" />,
-                // 当前筛选下数量为 0 的插件置灰(全部/已选中的除外)
-                disabled: plugin !== 'all'
-                  && plugin !== selectedPlugin
-                  && (pluginCounts[plugin] || 0) === 0,
-              }))}
-              value={selectedPlugin}
-              onValueChange={setSelectedPlugin}
-            />
+          {pageTab === 'tools' && !isLoading && categories.length > 0 && (
+            <div className="space-y-4">
+              {!isLoading && diagnosticCounts.total > 0 && (
+                <div className="flex flex-wrap items-center gap-2 text-xs">
+                  <Badge variant="secondary">
+                    {t('aiTools.diagnostics.ok')}: {diagnosticCounts.ok}
+                  </Badge>
+                  {diagnosticCounts.emptyDescription > 0 && (
+                    <Badge variant="destructive">
+                      {t('aiTools.diagnostics.emptyDescription')}: {diagnosticCounts.emptyDescription}
+                    </Badge>
+                  )}
+                  {diagnosticCounts.meta > 0 && (
+                    <Badge className="bg-amber-500/15 text-amber-700 hover:bg-amber-500/20 dark:text-amber-300">
+                      {t('aiTools.diagnostics.meta')}: {diagnosticCounts.meta}
+                    </Badge>
+                  )}
+                </div>
+              )}
 
-            {/* 搜索筛选 */}
-            <Input
-              type="text"
-              placeholder={t('aiTools.searchPlaceholder')}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full sm:max-w-sm"
-            />
+              <TabButtonGroup
+                options={[
+                  {
+                    value: 'all',
+                    label: t('aiTools.diagnostics.filterAll'),
+                    icon: <LayoutList className="w-4 h-4" />,
+                  },
+                  {
+                    value: 'issues',
+                    label: `${t('aiTools.diagnostics.filterIssues')} (${diagnosticCounts.emptyDescription + diagnosticCounts.meta})`,
+                    icon: <AlertTriangle className="w-4 h-4" />,
+                  },
+                  {
+                    value: 'empty_description',
+                    label: `${t('aiTools.diagnostics.filterEmpty')} (${diagnosticCounts.emptyDescription})`,
+                    icon: <FileWarning className="w-4 h-4" />,
+                  },
+                ]}
+                value={diagnosticFilter}
+                onValueChange={(v) => setDiagnosticFilter(v as typeof diagnosticFilter)}
+              />
 
-            {/* 工具统计 */}
-            <p className="text-sm text-muted-foreground">
-              {t('aiTools.toolCount', { count: filteredTools.length, total: totalCount })}
-            </p>
-          </div>
-        )
+              {/* 分类筛选 */}
+              <TabButtonGroup
+                options={categoryList.map((category) => ({
+                  value: category,
+                  label: category === 'all'
+                    ? `${t('aiTools.allCategories') || '全部分类'} (${categoryCounts.all || 0})`
+                    : `${category} (${categoryCounts[category] || 0})`,
+                  icon: <Wrench className="w-4 h-4" />,
+                  disabled: category !== 'all'
+                    && category !== selectedCategory
+                    && (categoryCounts[category] || 0) === 0,
+                }))}
+                value={selectedCategory}
+                onValueChange={setSelectedCategory}
+              />
+
+              {/* 插件筛选 */}
+              <TabButtonGroup
+                options={pluginList.map((plugin) => ({
+                  value: plugin,
+                  label: plugin === 'all'
+                    ? `${t('aiTools.allPlugins') || '全部插件'} (${pluginCounts.all || 0})`
+                    : `${plugin} (${pluginCounts[plugin] || 0})`,
+                  icon: <Wrench className="w-4 h-4" />,
+                  disabled: plugin !== 'all'
+                    && plugin !== selectedPlugin
+                    && (pluginCounts[plugin] || 0) === 0,
+                }))}
+                value={selectedPlugin}
+                onValueChange={setSelectedPlugin}
+              />
+
+              {/* 搜索筛选 */}
+              <Input
+                type="text"
+                placeholder={t('aiTools.searchPlaceholder')}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full sm:max-w-sm h-9"
+              />
+
+              {/* 工具统计 */}
+              <p className="text-sm text-muted-foreground">
+                {t('aiTools.toolCount', { count: filteredTools.length, total: totalCount })}
+              </p>
+            </div>
+          )}
+        </div>
       }
     >
       {/* 错误提示 */}
-      {error && (
+      {error && pageTab === 'tools' && (
         <Card className={cn(
           "border-destructive/50",
           isGlass ? "glass-card" : "border border-border/50"
@@ -310,8 +503,186 @@ export default function AIToolsPage() {
         </Card>
       )}
 
+      {pageTab === 'assemble' && (
+        <div className="space-y-4">
+          <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Boxes className="w-4 h-4" />
+                {t('aiTools.assemble.title')}
+              </CardTitle>
+              <CardDescription>{t('aiTools.assemble.description')}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="space-y-1.5">
+                <Label>{t('aiTools.assemble.query')}</Label>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Input
+                    className="h-9 flex-1"
+                    value={assembleQuery}
+                    onChange={(e) => setAssembleQuery(e.target.value)}
+                    placeholder={t('aiTools.assemble.queryPlaceholder')}
+                    onKeyDown={(e) => e.key === 'Enter' && void runAssemblePreview()}
+                  />
+                  <Button className="h-9" onClick={() => void runAssemblePreview()} disabled={assembleLoading}>
+                    {assembleLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                    {t('aiTools.assemble.run')}
+                  </Button>
+                </div>
+              </div>
+              {assembleResult && (
+                <TooltipProvider delayDuration={150}>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                    <div className="rounded-lg border border-border/50 p-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-sm font-medium">{t('aiTools.assemble.seeds')}</h4>
+                        <Badge variant="secondary">{assembleResult.seeds?.length ?? 0}</Badge>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {(assembleResult.seeds ?? []).length === 0 && (
+                          <span className="text-xs text-muted-foreground">{t('common.noData')}</span>
+                        )}
+                        {(assembleResult.seeds ?? []).map((s) => (
+                          <AssembleToolChip
+                            key={`seed-${s.name}`}
+                            name={s.name}
+                            plugin={s.plugin}
+                            variant="outline"
+                            toolMeta={tools.find((x) => x.name === s.name)}
+                            noInfoLabel={t('aiTools.assemble.toolNoInfo')}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                    <div className="rounded-lg border border-border/50 p-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-sm font-medium">{t('aiTools.assemble.pool')}</h4>
+                        <Badge variant="secondary">{assembleResult.pool?.length ?? 0}</Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        core={assembleResult.core_pool_size ?? 0} · recall={assembleResult.recall ?? 0} · max_extra=
+                        {assembleResult.max_extra ?? 0}
+                      </p>
+                      <div className="flex flex-wrap gap-1.5 max-h-48 overflow-auto">
+                        {(assembleResult.pool ?? []).length === 0 && (
+                          <span className="text-xs text-muted-foreground">{t('common.noData')}</span>
+                        )}
+                        {(assembleResult.pool ?? []).map((s) => (
+                          <AssembleToolChip
+                            key={`pool-${s.name}`}
+                            name={s.name}
+                            plugin={s.plugin}
+                            variant="secondary"
+                            toolMeta={tools.find((x) => x.name === s.name)}
+                            noInfoLabel={t('aiTools.assemble.toolNoInfo')}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </TooltipProvider>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {pageTab === 'entity' && (
+        <div className="space-y-4">
+          <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
+            <CardHeader className="pb-3">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <div>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Network className="w-4 h-4" />
+                    {t('aiTools.entityIndex.title')}
+                  </CardTitle>
+                  <CardDescription>
+                    {t('aiTools.entityIndex.description')}
+                    {entityIndex ? ` · ${entityIndex.count}` : ''}
+                  </CardDescription>
+                </div>
+                <Button variant="outline" className="h-9" onClick={() => void loadEntityIndex()} disabled={entityLoading}>
+                  {entityLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                  {t('common.refresh')}
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Input
+                className="h-9 max-w-md"
+                value={entitySearch}
+                onChange={(e) => setEntitySearch(e.target.value)}
+                placeholder={t('aiTools.entityIndex.searchPlaceholder')}
+              />
+              {entityLoading ? (
+                <div className="space-y-2">
+                  <Skeleton className="h-8 w-full" />
+                  <Skeleton className="h-8 w-full" />
+                  <Skeleton className="h-8 w-2/3" />
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  {/* 列表正文与上方 CardDescription 同为系统 UI 字体（不用 mono），字号/颜色对齐 subtitle */}
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border/50">
+                        <th className="text-left py-2 px-2 font-medium text-muted-foreground">
+                          {t('aiTools.entityIndex.surface')}
+                        </th>
+                        <th className="text-left py-2 px-2 font-medium text-muted-foreground">
+                          {t('aiTools.entityIndex.plugins')}
+                        </th>
+                        <th className="text-left py-2 px-2 font-medium text-muted-foreground">
+                          {t('aiTools.entityIndex.ambiguous')}
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredEntities.length === 0 ? (
+                        <tr>
+                          <td colSpan={3} className="py-8 text-center text-sm text-muted-foreground">
+                            {t('common.noData')}
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredEntities.map((entry) => (
+                          <tr key={entry.surface} className="border-b border-border/30">
+                            <td className="py-2 px-2 text-sm text-muted-foreground">
+                              {entry.surface}
+                            </td>
+                            <td className="py-2 px-2">
+                              <div className="flex flex-wrap gap-1">
+                                {entry.plugins.map((p) => (
+                                  <Badge key={p} variant="outline" className="text-xs font-normal">
+                                    {p}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </td>
+                            <td className="py-2 px-2">
+                              {entry.ambiguous ? (
+                                <Badge variant="destructive" className="text-xs font-normal">
+                                  {t('aiTools.entityIndex.yes')}
+                                </Badge>
+                              ) : (
+                                <span className="text-sm text-muted-foreground">—</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {/* 工具列表 */}
-      {isLoading ? (
+      {pageTab === 'tools' && (isLoading ? (
         <div className="glass-card-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {Array.from({ length: 6 }).map((_, i) => (
             <Card key={i} className={cn(
@@ -339,12 +710,16 @@ export default function AIToolsPage() {
       ) : (
         <>
         <div className="glass-card-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {pagedTools.map((tool) => (
+          {pagedTools.map((tool) => {
+            const diag = diagnoseTool(tools.find((x) => x.name === tool.name) ?? tool);
+            return (
             <Card
               key={tool.name}
               className={cn(
                 "cursor-pointer transition-colors hover:border-primary/50",
-                isGlass ? "glass-card" : "border border-border/50"
+                isGlass ? "glass-card" : "border border-border/50",
+                diag.level === 'error' && 'border-destructive/40',
+                diag.level === 'warn' && 'border-amber-500/40',
               )}
               onClick={() => handleToolClick(tool)}
             >
@@ -355,6 +730,18 @@ export default function AIToolsPage() {
                     <span className="text-lg">{tool.title}</span>
                   </CardTitle>
                   <div className="flex flex-col gap-1 items-end">
+                    {diag.reasons.includes('empty_description') && (
+                      <Badge variant="destructive" className="text-[10px] gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        {t('aiTools.diagnostics.emptyDescription')}
+                      </Badge>
+                    )}
+                    {diag.reasons.includes('meta_not_vector_searchable') && (
+                      <Badge className="text-[10px] gap-1 bg-amber-500/15 text-amber-700 dark:text-amber-300">
+                        <AlertTriangle className="w-3 h-3" />
+                        meta
+                      </Badge>
+                    )}
                     {tool.plugin && tool.plugin !== 'core' && (
                       <span className="text-xs px-2 py-0.5 rounded bg-primary/10 text-primary">
                         {tool.plugin}
@@ -375,7 +762,8 @@ export default function AIToolsPage() {
                 </p>
               </CardContent>
             </Card>
-          ))}
+            );
+          })}
         </div>
 
         {/* 分页控件 */}
@@ -416,7 +804,7 @@ export default function AIToolsPage() {
           </div>
         )}
         </>
-      )}
+      ))}
 
       {/* 工具详情弹窗 */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

@@ -141,6 +141,18 @@ export function getAuthToken(): string | null {
   return authToken;
 }
 
+/** 401：清 token；非 demo 才整页跳登录。demo 下跳 /hub/login（无 hash）会白屏。 */
+function handleUnauthorized(): never {
+  setAuthToken(null);
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('auth_user');
+    if (!import.meta.env.VITE_DEMO) {
+      window.location.href = getLoginPath();
+    }
+  }
+  throw new Error('会话已过期，请重新登录');
+}
+
 export interface KeyMetrics {
   dau: number;
   dag: number;
@@ -420,12 +432,9 @@ class ApiClient {
       credentials: 'include', // Include cookies for authentication
     });
 
-    // Handle 401 Unauthorized - redirect to login
+    // Handle 401 Unauthorized - redirect to login（demo 不整页跳，见 handleUnauthorized）
     if (response.status === 401) {
-      setAuthToken(null);
-      localStorage.removeItem('auth_user');
-      window.location.href = getLoginPath();
-      throw new Error('会话已过期，请重新登录');
+      handleUnauthorized();
     }
 
     // Handle non-OK responses
@@ -487,10 +496,7 @@ class ApiClient {
     });
 
     if (response.status === 401) {
-      setAuthToken(null);
-      localStorage.removeItem('auth_user');
-      window.location.href = getLoginPath();
-      throw new Error('会话已过期，请重新登录');
+      handleUnauthorized();
     }
 
     if (!response.ok) {
@@ -558,12 +564,9 @@ class ApiClient {
       credentials: 'include',
     });
 
-    // Handle 401 Unauthorized - redirect to login
+    // Handle 401 Unauthorized - redirect to login（demo 不整页跳，见 handleUnauthorized）
     if (response.status === 401) {
-      setAuthToken(null);
-      localStorage.removeItem('auth_user');
-      window.location.href = getLoginPath();
-      throw new Error('会话已过期，请重新登录');
+      handleUnauthorized();
     }
 
     if (!response.ok) {
@@ -602,12 +605,9 @@ class ApiClient {
       credentials: 'include',
     });
 
-    // Handle 401 Unauthorized - redirect to login
+    // Handle 401 Unauthorized - redirect to login（demo 不整页跳，见 handleUnauthorized）
     if (response.status === 401) {
-      setAuthToken(null);
-      localStorage.removeItem('auth_user');
-      window.location.href = getLoginPath();
-      throw new Error('会话已过期，请重新登录');
+      handleUnauthorized();
     }
 
     const data: ApiResponse<T> = await response.json();
@@ -636,12 +636,9 @@ class ApiClient {
       credentials: 'include',
     });
 
-    // Handle 401 Unauthorized - redirect to login
+    // Handle 401 Unauthorized - redirect to login（demo 不整页跳，见 handleUnauthorized）
     if (response.status === 401) {
-      setAuthToken(null);
-      localStorage.removeItem('auth_user');
-      window.location.href = getLoginPath();
-      throw new Error('会话已过期，请重新登录');
+      handleUnauthorized();
     }
 
     const data: ApiResponse<T> = await response.json();
@@ -665,12 +662,9 @@ class ApiClient {
       credentials: 'include',
     });
 
-    // Handle 401 Unauthorized - redirect to login
+    // Handle 401 Unauthorized - redirect to login（demo 不整页跳，见 handleUnauthorized）
     if (response.status === 401) {
-      setAuthToken(null);
-      localStorage.removeItem('auth_user');
-      window.location.href = getLoginPath();
-      throw new Error('会话已过期，请重新登录');
+      handleUnauthorized();
     }
 
     if (!response.ok) {
@@ -711,6 +705,12 @@ export const dashboardApi = {
 
   getDailyPersonalTriggers: (date: string, botId: string = 'all') =>
     api.get<any[]>(`/api/dashboard/daily/personal-triggers?date=${date}&bot_id=${botId}`),
+
+  /** 近 N 天每日命令总数（日历选择器；count==0 应禁用） */
+  getDailyCommandCounts: (days: number = 60, botId: string = 'all') =>
+    api.get<Array<{ date: string; count: number }>>(
+      `/api/dashboard/daily/command-counts?days=${days}&bot_id=${encodeURIComponent(botId)}`,
+    ),
 
   getBots: () =>
     api.get<BotItem[]>('/api/dashboard/bots'),
@@ -1722,12 +1722,9 @@ export const authApi = {
       credentials: 'include',
     });
 
-    // Handle 401 Unauthorized - redirect to login
+    // Handle 401 Unauthorized - redirect to login（demo 不整页跳，见 handleUnauthorized）
     if (response.status === 401) {
-      setAuthToken(null);
-      localStorage.removeItem('auth_user');
-      window.location.href = getLoginPath();
-      throw new Error('会话已过期，请重新登录');
+      handleUnauthorized();
     }
 
     const data: ApiResponse<{ avatar: string }> = await response.json();
@@ -2067,6 +2064,20 @@ export interface GlobalPersonaResponse {
 }
 
 export const personaApi = {
+  /** Heartbeat 巡检运行态（每 persona job 是否注册） */
+  getHeartbeatStatus: () =>
+    api.get<{
+      inspector_running: boolean;
+      items: Array<{
+        persona_name: string;
+        enabled: boolean;
+        inspect_interval: number | null;
+        job_registered: boolean;
+        job_id: string | null;
+      }>;
+      count: number;
+    }>('/api/persona/heartbeat/status'),
+
   // 获取角色列表
   getPersonaList: () =>
     api.get<PersonaListItem[]>('/api/persona/list'),
@@ -2235,11 +2246,12 @@ export const aiSkillsApi = {
   deleteSkill: (skillName: string) =>
     api.delete<{ msg: string }>(`/api/ai/skills/${encodeURIComponent(skillName)}`),
 
-  // �?Git 克隆 AI 技�?
-  cloneSkill: (gitUrl: string, skillName?: string) =>
+  // 从 Git / 直链安装技能；update=true 时覆盖同名技能
+  cloneSkill: (gitUrl: string, skillName?: string, update = false) =>
     api.post<AISkillCloneResponse>('/api/ai/skills/clone', {
       git_url: gitUrl,
       skill_name: skillName,
+      update,
     }),
 
   // 获取 AI 技�?Markdown 内容
@@ -2269,6 +2281,20 @@ export interface AIToolCategoriesResponse {
   data: Array<{ name: string; count: number }>;
 }
 
+export interface AIToolAssemblePreviewResponse {
+  query: string;
+  seeds: Array<{ name: string; plugin: string }>;
+  pool: Array<{ name: string; plugin: string }>;
+  core_pool_size: number;
+  recall: number;
+  max_extra: number;
+}
+
+export interface AIEntityIndexResponse {
+  count: number;
+  entries: Array<{ surface: string; plugins: string[]; ambiguous: boolean }>;
+}
+
 export const aiToolsApi = {
   // 获取 AI 工具列表
   getToolsList: (params?: { category?: string; plugin?: string }) => {
@@ -2286,6 +2312,14 @@ export const aiToolsApi = {
   // 获取指定工具详情
   getToolDetail: (toolName: string) =>
     api.get<AITool | null>(`/api/ai/tools/${encodeURIComponent(toolName)}`),
+
+  /** 预览 query 会装配出哪些工具（需鉴权） */
+  assemblePreview: (query: string) =>
+    api.post<AIToolAssemblePreviewResponse>('/api/ai/tools/assemble_preview', { query }),
+
+  /** 导出实体身份索引（L0 路由） */
+  getEntityIndex: () =>
+    api.get<AIEntityIndexResponse>('/api/ai/entity_index'),
 };
 
 // ===================
@@ -2659,10 +2693,7 @@ export const aiImageApi = {
     });
 
     if (response.status === 401) {
-      setAuthToken(null);
-      localStorage.removeItem('auth_user');
-      window.location.href = getLoginPath();
-      throw new Error('会话已过期，请重新登录');
+      handleUnauthorized();
     }
 
     const data: ApiResponse<AIImageUploadResponse> = await response.json();
@@ -2703,10 +2734,7 @@ export const aiImageApi = {
     });
 
     if (response.status === 401) {
-      setAuthToken(null);
-      localStorage.removeItem('auth_user');
-      window.location.href = getLoginPath();
-      throw new Error('会话已过期，请重新登录');
+      handleUnauthorized();
     }
 
     const result: ApiResponse<{ id: string; path: string; tags: string[] }> = await response.json();
@@ -3484,10 +3512,7 @@ export const memeApi = {
     });
 
     if (response.status === 401) {
-      setAuthToken(null);
-      localStorage.removeItem('auth_user');
-      window.location.href = getLoginPath();
-      throw new Error('会话已过期，请重新登录');
+      handleUnauthorized();
     }
 
     if (!response.ok) {
@@ -3561,10 +3586,7 @@ export const memeApi = {
     });
 
     if (response.status === 401) {
-      setAuthToken(null);
-      localStorage.removeItem('auth_user');
-      window.location.href = getLoginPath();
-      throw new Error('会话已过期，请重新登录');
+      handleUnauthorized();
     }
 
     if (!response.ok) {
@@ -4339,6 +4361,34 @@ export const brandSettingsApi = {
  * 历史：原本这是 AIMemoryPage 内私有 const，现在提到 api.ts 让
  * /ai-debug / 记忆设置 Dialog 等都能复用。
  */
+export interface MemorySearchRequest {
+  query: string;
+  group_id: string;
+  user_id?: string | null;
+  top_k?: number;
+  enable_system2?: boolean;
+  enable_user_global?: boolean;
+}
+
+export interface MemorySearchResultItem {
+  id?: string;
+  content?: string;
+  name?: string;
+  summary?: string;
+  fact?: string;
+  score?: number;
+  valid_at?: string;
+  [key: string]: unknown;
+}
+
+export interface MemorySearchResponse {
+  episodes: MemorySearchResultItem[];
+  entities: MemorySearchResultItem[];
+  edges: MemorySearchResultItem[];
+  preferences?: MemorySearchResultItem[];
+  retrieval_meta?: Record<string, unknown>;
+}
+
 export const memoryApi = {
   getStats: (params?: { group_id?: string; scope_key?: string }) => {
     const query = new URLSearchParams();
@@ -4360,6 +4410,9 @@ export const memoryApi = {
       '/api/ai/memory/hiergraph/rebuild',
       scopeKey ? { scope_key: scopeKey } : {},
     ),
+  /** 双路检索试跑 */
+  search: (body: MemorySearchRequest) =>
+    api.post<MemorySearchResponse>('/api/ai/memory/search', body),
 };
 
 /**
@@ -4769,6 +4822,17 @@ export const aiStatisticsApi = {
     return api.get<TokenByModelItem[]>(`/api/ai/statistics/token-by-model${queryStr ? `?${queryStr}` : ''}`);
   },
 
+  /** 近 N 天每日 token（日历：展示 input_tokens 压缩文案，0 可禁用） */
+  getDailyTokenCounts: (days: number = 60) =>
+    api.get<
+      Array<{
+        date: string;
+        input_tokens: number;
+        output_tokens: number;
+        total_tokens: number;
+      }>
+    >(`/api/ai/statistics/daily-token-counts?days=${days}`),
+
   getActiveUsers: (date?: string, limit: number = 20) => {
     const query = new URLSearchParams();
     if (date) query.set('date', date);
@@ -4815,7 +4879,27 @@ export const aiStatisticsApi = {
     api.get<RagDocumentItem[]>('/api/ai/statistics/rag/documents'),
 
   getHistory: (days: number = 7) =>
-    api.get<Array<{ date: string }>>(`/api/ai/statistics/history?days=${days}`),
+    api.get<
+      Array<{
+        date: string;
+        data?: {
+          token_usage?: {
+            total_input_tokens?: number;
+            total_output_tokens?: number;
+            total_cache_read_tokens?: number;
+            total_cache_write_tokens?: number;
+          };
+          memory?: {
+            observations?: number;
+            ingestions?: number;
+            ingestion_errors?: number;
+            retrievals?: number;
+          };
+          errors?: { total?: number };
+          heartbeat?: { conversion_rate?: number };
+        };
+      }>
+    >(`/api/ai/statistics/history?days=${days}`),
 
   // 时间段 Token 消耗统计:[start_date, end_date] 闭区间逐日聚合
   // 默认 6 天前 ~ 今天(共 7 天);start_date > end_date 时后端自动交换。
@@ -5166,10 +5250,7 @@ export const brandApi = {
     });
 
     if (response.status === 401) {
-      setAuthToken(null);
-      localStorage.removeItem('auth_user');
-      window.location.href = getLoginPath();
-      throw new Error('会话已过期，请重新登录');
+      handleUnauthorized();
     }
 
     const data: ApiResponse<BrandUploadResponse> = await response.json();
@@ -5206,3 +5287,172 @@ export const versionApi = {
     api.get<{ names: string[] }>('/api/version/bots/names'),
 };
 
+
+// ===================
+// Ops Diagnostics API - /api/ops/*
+// ===================
+
+export const opsApi = {
+  getBots: () =>
+    api.get<{
+      count: number;
+      connected_count: number;
+      items: Array<{
+        ws_bot_id: string;
+        bot_id: string;
+        bot_self_id?: string | null;
+        connected: boolean;
+        has_ws: boolean;
+      }>;
+      ts: number;
+    }>('/api/ops/bots'),
+
+  getSessions: () =>
+    api.get<{
+      count: number;
+      idle_threshold: number;
+      max_ai_history: number;
+      items: Array<{
+        session_id: string;
+        persona_name?: string | null;
+        create_by?: string | null;
+        history_length: number;
+        model_config_name?: string | null;
+        last_access?: number | null;
+        idle_seconds?: number | null;
+      }>;
+      ts: number;
+    }>('/api/ops/sessions'),
+
+  getFollowup: () =>
+    api.get<{
+      window_seconds: number;
+      max_total_seconds: number;
+      active_count: number;
+      items: Array<{
+        session_id: string;
+        user_id: string;
+        burst_start: number;
+        last_hard_ts: number;
+        age_since_hard: number;
+        age_since_burst: number;
+        remaining_window: number;
+        remaining_ceiling: number;
+        active: boolean;
+      }>;
+      ts: number;
+    }>('/api/ops/followup'),
+
+  getMultimodal: () =>
+    api.get<{
+      queue_size: number;
+      queue_max: number;
+      queue_utilization: number;
+      worker_running: boolean;
+      understand_concurrency: number;
+      rate_window_seconds: number;
+      rate_max_per_window: number;
+      tracked_scopes: number;
+      recent_url_scopes: number;
+      min_desc_len: number;
+      ts?: number;
+    }>('/api/ops/multimodal'),
+
+  getLifecycle: () =>
+    api.get<{ report: Record<string, unknown> | null; ts: number }>('/api/ops/lifecycle'),
+
+  runLifecycle: () =>
+    api.post<{ report: Record<string, unknown> | null; ts: number }>('/api/ops/lifecycle/run', {}),
+
+  classifyIntent: (text: string) =>
+    api.post<{ text?: string; intent?: string; conf?: number; reason?: string }>(
+      '/api/ops/intent',
+      { text },
+    ),
+
+  triggerReplay: (body: {
+    text: string;
+    user_id?: string;
+    group_id?: string | null;
+    bot_id?: string;
+    bot_self_id?: string;
+    is_tome?: boolean;
+    is_private?: boolean;
+    at_list?: string[];
+    persona_name?: string | null;
+  }) =>
+    api.post<{
+      outcome: string;
+      trigger_type?: string;
+      soft_triggered?: boolean;
+      persona_name?: string | null;
+      session_id?: string;
+      intent?: unknown;
+      steps: Array<{ step: string; pass: boolean; detail?: unknown }>;
+      reason?: string;
+    }>('/api/ops/trigger-replay', body),
+
+  outputPreview: (body: { text: string; user_text?: string; tier?: string }) =>
+    api.post<{
+      firewall_enabled: boolean;
+      ooc_hit: { category: string; matched: string[] } | null;
+      stages: Record<string, string>;
+      final: string;
+    }>('/api/ops/output-preview', body),
+
+  getToolTopology: (personaName?: string) => {
+    const q = personaName ? `?persona_name=${encodeURIComponent(personaName)}` : '';
+    return api.get<{
+      persona_name?: string | null;
+      tool_packs: string[];
+      tool_names: string[];
+      core_pool: Array<{ name: string; plugin?: string | null }>;
+      core_pool_size: number;
+      category_counts: Record<string, number>;
+      tool_search_recall?: number;
+      tool_extra_pool_max?: number;
+      tool_context_window?: number;
+      ts: number;
+    }>(`/api/ops/tool-topology${q}`);
+  },
+
+  exportSnapshot: () => api.get<Record<string, unknown>>('/api/ops/config-snapshot'),
+
+  importSnapshot: (body: {
+    snapshot: Record<string, unknown>;
+    apply_ai_config?: boolean;
+    apply_access?: boolean;
+    apply_security?: boolean;
+    apply_memory?: boolean;
+  }) =>
+    api.post<{ applied: string[]; skipped: string[]; applied_count: number }>(
+      '/api/ops/config-snapshot/import',
+      body,
+    ),
+
+  getAccess: () =>
+    api.get<{ black_list: string[]; white_list: string[] }>('/api/ops/access'),
+
+  setAccess: (body: { black_list?: string[]; white_list?: string[] }) =>
+    api.put<{ black_list: string[]; white_list: string[] }>('/api/ops/access', body),
+
+  getSecurityOutput: () => api.get<Record<string, unknown>>('/api/ops/security-output'),
+
+  setSecurityOutput: (values: Record<string, unknown>) =>
+    api.put<Record<string, unknown>>('/api/ops/security-output', { values }),
+
+  getPluginsDiagnostics: () =>
+    api.get<{
+      plugin_count: number;
+      module_cache_size: number;
+      active_bots: string[];
+      items: Array<{
+        name: string;
+        enabled: boolean;
+        sv_count: number;
+        has_config: boolean;
+        keys: string[];
+      }>;
+      ts: number;
+    }>('/api/ops/plugins-diagnostics'),
+};

@@ -99,5 +99,17 @@
   "preset14d": "14 天",
   "preset30d": "30 天",
   "preset90d": "90 天",
-  "noDataInRange": "所选时间段内暂无数据"
+  "noDataInRange": "所选时间段内暂无数据",
+  "historyTrend": "历史趋势",
+  "memoryPipeline": "记忆管道",
+  "memoryHealth": "管道健康",
+  "healthy": "健康",
+  "degraded": "降级",
+  "empty": "空闲",
+  "days7": "近7日",
+  "days14": "近14日",
+  "days30": "近30日",
+  "perfRange": "跨日性能",
+  "singleDay": "单日",
+  "rangeMode": "范围"
 }

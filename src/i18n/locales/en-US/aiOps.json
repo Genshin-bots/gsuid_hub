@@ -1,0 +1,92 @@
+{
+  "title": "AI Ops Diagnostics",
+  "description": "Why enter/skip AI, why outbound text changes, access control, and config backup.",
+  "loadFailed": "Load failed",
+  "saveFailed": "Save failed",
+  "saved": "Saved",
+  "tabs": {
+    "trigger": "Trigger replay",
+    "access": "Access lists",
+    "output": "Output preview",
+    "security": "Security policy",
+    "snapshot": "Config snapshot"
+  },
+  "status": {
+    "bots": "Bots online",
+    "sessions": "Live sessions",
+    "followup": "Follow-up windows",
+    "refresh": "Refresh",
+    "hint": "Click a badge to expand details. Bot / session / follow-up state is in-process memory and clears on restart."
+  },
+  "bots": {
+    "total": "Total",
+    "connected": "Online",
+    "offline": "Offline",
+    "online": "Online",
+    "empty": "No active bots"
+  },
+  "sessions": {
+    "count": "{count} total",
+    "empty": "No live AI sessions",
+    "active": "Active",
+    "idle": "Idle",
+    "unknown": "Unknown"
+  },
+  "followup": {
+    "empty": "No active follow-up windows"
+  },
+  "access": {
+    "title": "AI black / white lists",
+    "desc": "Entry gate; saved immediately. Non-empty whitelist restricts AI to listed IDs only.",
+    "blackList": "Blacklist",
+    "whiteList": "Whitelist",
+    "blackHint": "Matching user/group IDs never enter AI",
+    "whiteHint": "When non-empty, only listed IDs may enter AI"
+  },
+  "security": {
+    "title": "Security & follow-up policy",
+    "desc": "Only gate/exit and follow-up knobs. Markdown image render / tool recall live under AI basic config.",
+    "advancedHint": "Where did other fields go?",
+    "advancedBody": "Tool recall, long-markdown-as-image, history merge window, etc. remain in the backend security-output snapshot. Use Config Snapshot export or AI basic config for full keys.",
+    "fields": {
+      "content_guard_enable": "Content guard",
+      "output_firewall_enable": "OOC firewall",
+      "follow_up_window": "Follow-up window (s)",
+      "follow_up_max_total": "Follow-up ceiling (s)",
+      "output_firewall_extra_terms": "Extra firewall terms",
+      "memory_sensitive_extra_terms": "Memory sensitive terms"
+    }
+  },
+  "trigger": {
+    "title": "Trigger path replay",
+    "desc": "Dry-run: enable → access lists → persona → mention/keyword/follow-up. No LLM call, no send.",
+    "placeholder": "Message text…",
+    "run": "Dry-run",
+    "failed": "Replay failed",
+    "wouldEnterAi": "Would enter AI",
+    "blocked": "Blocked",
+    "noResponse": "No response",
+    "unknown": "Unknown"
+  },
+  "output": {
+    "title": "OOC / output normalize preview",
+    "desc": "Simulate outbound text through firewall and normalization.",
+    "userText": "User utterance (identity-probe gate)",
+    "aiText": "AI draft text",
+    "run": "Preview",
+    "failed": "Preview failed"
+  },
+  "snapshot": {
+    "title": "Config snapshot export / import",
+    "desc": "Export AI-related config for backup/migration; import writes immediately (be careful in prod).",
+    "export": "Export",
+    "import": "Import",
+    "exported": "Exported",
+    "exportFailed": "Export failed",
+    "imported": "Applied {count} item(s)",
+    "importFailed": "Import failed",
+    "invalidJson": "Invalid JSON",
+    "invalidSnapshot": "Not a valid snapshot",
+    "applyMemory": "Also apply memory_config (careful)"
+  }
+}

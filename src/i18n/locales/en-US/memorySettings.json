@@ -23,6 +23,15 @@
     "minChildrenPerCategory": "Min children per category",
     "maxLayers": "Max layers",
     "hiergraphRebuildRatio": "HierGraph rebuild trigger ratio",
-    "hiergraphRebuildIntervalSeconds": "HierGraph rebuild interval (s)"
-  }
+    "hiergraphRebuildIntervalSeconds": "HierGraph rebuild interval (s)",
+    "batchIntervalSeconds": "Batch interval (s)",
+    "idleFlushSeconds": "Idle flush (s)",
+    "llmSemaphoreLimit": "LLM concurrency",
+    "observerBlacklist": "Observer blacklist groups",
+    "observerBlacklistPlaceholder": "Enter group id and press Enter",
+    "enablePreferenceMemory": "Preference memory",
+    "enableFamiliarityRouting": "RF-Mem familiarity routing",
+    "enableRecollectionPath": "RF-Mem recollection path"
+  },
+  "readonlyHint": "The following are read-only reflections from MEMORY_CONFIG. Edit them under Framework Config."
 }

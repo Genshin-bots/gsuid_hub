@@ -99,5 +99,17 @@
   "preset14d": "14 日間",
   "preset30d": "30 日間",
   "preset90d": "90 日間",
-  "noDataInRange": "選択期間内データなし"
+  "noDataInRange": "選択期間内データなし",
+  "historyTrend": "履歴トレンド",
+  "memoryPipeline": "記憶パイプライン",
+  "memoryHealth": "健全性",
+  "healthy": "健全",
+  "degraded": "劣化",
+  "empty": "空",
+  "days7": "7日",
+  "days14": "14日",
+  "days30": "30日",
+  "perfRange": "範囲パフォーマンス",
+  "singleDay": "単日",
+  "rangeMode": "範囲"
 }

@@ -28,14 +28,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
-import {
-  memoryApi,
-  memorySettingsApi,
-  getApiErrorMessage,
-} from '@/lib/api';
+import { TagsInput } from '@/components/config/TagsInput';
+import { memoryApi, memorySettingsApi, getApiErrorMessage } from '@/lib/api';
 
 interface MemoryConfig {
   observer_enabled?: boolean;
+  observer_blacklist?: string[];
   ingestion_enabled?: boolean;
   enable_retrieval?: boolean;
   enable_system2?: boolean;
@@ -43,12 +41,20 @@ interface MemoryConfig {
   enable_heartbeat_memory?: boolean;
   retrieval_top_k?: number;
   batch_max_size?: number;
+  batch_interval_seconds?: number;
+  idle_flush_seconds?: number;
+  llm_semaphore_limit?: number;
   dedup_similarity_threshold?: number;
   edge_conflict_threshold?: number;
   min_children_per_category?: number;
   max_layers?: number;
   hiergraph_rebuild_ratio?: number;
   hiergraph_rebuild_interval_seconds?: number;
+  // read-only reflections from MEMORY_CONFIG
+  enable_preference_memory?: boolean;
+  enable_familiarity_routing?: boolean;
+  enable_recollection_path?: boolean;
+  preference_max_inject?: number;
   [k: string]: unknown;
 }
 
@@ -72,8 +78,6 @@ export default function MemorySettingsDialog({
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [rebuilding, setRebuilding] = useState(false);
-  const [hierStatus, setHierStatus] = useState<unknown>(null);
-
   useEffect(() => {
     if (!open) return;
     (async () => {
@@ -81,29 +85,19 @@ export default function MemorySettingsDialog({
       try {
         const data = (await memorySettingsApi.getConfig()) as MemoryConfig;
         setCfg(data);
-        if (scopeKey) {
-          try {
-            setHierStatus(await memoryApi.getHierGraphStatus(scopeKey));
-          } catch {
-            /* ignore */
-          }
-        }
       } catch (e) {
         toast.error(getApiErrorMessage(e, t('memorySettings.loadFailed')));
       } finally {
         setLoading(false);
       }
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, scopeKey]);
+  }, [open, scopeKey, t]);
 
   const onSwitch = (k: keyof MemoryConfig, v: boolean) => {
     setCfg((prev) => (prev ? { ...prev, [k]: v } : prev));
   };
   const onNumber = (k: keyof MemoryConfig, v: number) => {
-    setCfg((prev) =>
-      prev ? { ...prev, [k]: Number.isFinite(v) ? v : undefined } : prev,
-    );
+    setCfg((prev) => (prev ? { ...prev, [k]: Number.isFinite(v) ? v : undefined } : prev));
   };
 
   const onSave = async () => {
@@ -142,9 +136,7 @@ export default function MemorySettingsDialog({
             {t('memorySettings.title')}
           </DialogTitle>
           <DialogDescription>
-            {scopeKey
-              ? `scope: ${scopeKey}`
-              : t('memorySettings.scopeGlobal')}
+            {scopeKey ? `scope: ${scopeKey}` : t('memorySettings.scopeGlobal')}
           </DialogDescription>
         </DialogHeader>
 
@@ -202,6 +194,27 @@ export default function MemorySettingsDialog({
               max={500}
             />
             <NumberRow
+              label={t('memorySettings.fields.batchIntervalSeconds')}
+              value={cfg.batch_interval_seconds ?? 7200}
+              onChange={(v) => onNumber('batch_interval_seconds', v)}
+              min={60}
+              max={86400}
+            />
+            <NumberRow
+              label={t('memorySettings.fields.idleFlushSeconds')}
+              value={cfg.idle_flush_seconds ?? 180}
+              onChange={(v) => onNumber('idle_flush_seconds', v)}
+              min={0}
+              max={86400}
+            />
+            <NumberRow
+              label={t('memorySettings.fields.llmSemaphoreLimit')}
+              value={cfg.llm_semaphore_limit ?? 3}
+              onChange={(v) => onNumber('llm_semaphore_limit', v)}
+              min={1}
+              max={10}
+            />
+            <NumberRow
               label={t('memorySettings.fields.dedupSimilarityThreshold')}
               value={cfg.dedup_similarity_threshold ?? 0.86}
               onChange={(v) => onNumber('dedup_similarity_threshold', v)}
@@ -246,6 +259,41 @@ export default function MemorySettingsDialog({
               min={60}
               max={86400}
             />
+
+            <div className="md:col-span-2 space-y-1.5">
+              <Label>{t('memorySettings.fields.observerBlacklist')}</Label>
+              <TagsInput
+                value={cfg.observer_blacklist ?? []}
+                onChange={(tags) =>
+                  setCfg((prev) => (prev ? { ...prev, observer_blacklist: tags } : prev))
+                }
+                placeholder={t('memorySettings.fields.observerBlacklistPlaceholder')}
+              />
+            </div>
+
+            <div className="md:col-span-2 rounded-md border border-border/50 p-3 space-y-2 bg-muted/20">
+              <p className="text-xs text-muted-foreground">{t('memorySettings.readonlyHint')}</p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm">
+                <div>
+                  <span className="text-muted-foreground">
+                    {t('memorySettings.fields.enablePreferenceMemory')}:{' '}
+                  </span>
+                  {cfg.enable_preference_memory ? 'ON' : 'OFF'}
+                </div>
+                <div>
+                  <span className="text-muted-foreground">
+                    {t('memorySettings.fields.enableFamiliarityRouting')}:{' '}
+                  </span>
+                  {cfg.enable_familiarity_routing ? 'ON' : 'OFF'}
+                </div>
+                <div>
+                  <span className="text-muted-foreground">
+                    {t('memorySettings.fields.enableRecollectionPath')}:{' '}
+                  </span>
+                  {cfg.enable_recollection_path ? 'ON' : 'OFF'}
+                </div>
+              </div>
+            </div>
           </div>
         )}
 

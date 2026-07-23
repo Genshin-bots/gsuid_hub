@@ -82,5 +82,7 @@
       "toReactive": "受動チャットへ",
       "toProactive": "AIから発話"
     }
-  }
+  },
+  "linkedAgents": "関連 Agent",
+  "loadLinkedFailed": "関連 Agent の読込失敗"
 }

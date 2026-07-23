@@ -1,0 +1,5 @@
+{
+  "title": "状态存储",
+  "description": "浏览与清理 AI 持久状态（state_store），支持 scope/key 查看与批量删除",
+  "batchDelete": "批量删除"
+}

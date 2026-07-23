@@ -4,7 +4,12 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 import { aiStatisticsApi, aiPerformanceApi, getApiErrorMessage } from '@/lib/api';
 import { PinnedPage } from '@/components/layout/PinnedPage';
-import type { HourlyPerformanceItem, TokenRangeData } from '@/lib/api';
+import type { HourlyPerformanceItem, HourlyPerformanceRangeItem, TokenRangeData } from '@/lib/api';
+import {
+  aggregatePerformanceByDate,
+  extractHistoryTokenSeries,
+  memoryIngestHealth,
+} from '@/lib/featureUtils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
@@ -35,7 +40,12 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
-import { format, subDays, startOfDay } from 'date-fns';
+import { format, subDays, startOfDay, parse } from 'date-fns';
+import { MetricDayCalendar } from '@/components/ui/metric-day-calendar';
+import {
+  formatCompactMetric,
+  latestDateWithMetric,
+} from '@/lib/featureUtils';
 
 // ============================================================================
 // 类型定义 (兼容旧接口 + 新缓存字段)
@@ -419,6 +429,8 @@ export default function AIStatisticsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  /** yyyy-MM-dd → 当日 input_tokens（日历角标） */
+  const [dailyInputTokens, setDailyInputTokens] = useState<Record<string, number>>({});
   const [activeTab, setActiveTab] = useState<string>('overview');
 
   // 时间段 Token 统计相关状态
@@ -434,6 +446,20 @@ export default function AIStatisticsPage() {
   const [quick30d, setQuick30d] = useState<TokenRangeData | null>(null);
   const [quickLoading, setQuickLoading] = useState(true);
   const [quickError, setQuickError] = useState<string | null>(null);
+
+  // 历史趋势 (getHistory)
+  const [historyDays, setHistoryDays] = useState<7 | 14 | 30>(7);
+  const [historySeries, setHistorySeries] = useState<
+    Array<{ date: string; input: number; output: number; total: number }>
+  >([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState<string | null>(null);
+
+  // 性能: 单日 / 日期范围
+  const [perfMode, setPerfMode] = useState<'day' | 'range'>('day');
+  const [perfRangePreset, setPerfRangePreset] = useState<Exclude<RangePreset, 'custom'>>('7d');
+  const [perfRangeRows, setPerfRangeRows] = useState<HourlyPerformanceRangeItem[]>([]);
+  const [perfRangeLoading, setPerfRangeLoading] = useState(false);
 
   // 加载数据
   const loadData = async () => {
@@ -467,6 +493,39 @@ export default function AIStatisticsPage() {
   useEffect(() => {
     loadData();
   }, [selectedDate, t]);
+
+  // 日历：近 60 天每日 input token
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const rows = await aiStatisticsApi.getDailyTokenCounts(60);
+        if (cancelled) return;
+        const record: Record<string, number> = {};
+        for (const item of rows ?? []) {
+          record[item.date] = item.input_tokens ?? 0;
+        }
+        setDailyInputTokens(record);
+        const cur = format(selectedDate, 'yyyy-MM-dd');
+        if ((record[cur] ?? 0) <= 0) {
+          const latest = latestDateWithMetric(record);
+          if (latest) {
+            setSelectedDate(parse(latest, 'yyyy-MM-dd', new Date()));
+          }
+        }
+      } catch (err) {
+        console.warn(
+          '[AIStatisticsPage] /api/ai/statistics/daily-token-counts 不可用，日历无角标。请升级 gsuid_core。',
+          err,
+        );
+      }
+    };
+    void load();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- load once on mount
+  }, []);
 
   // 时间段 Token 统计 - 拉取数据
   const fetchRangeData = useCallback(async () => {
@@ -531,6 +590,47 @@ export default function AIStatisticsPage() {
   useEffect(() => {
     fetchQuickPreview();
   }, [fetchQuickPreview]);
+
+  // 历史趋势
+  const fetchHistory = useCallback(async () => {
+    try {
+      setHistoryLoading(true);
+      setHistoryError(null);
+      const rows = await aiStatisticsApi.getHistory(historyDays);
+      setHistorySeries(extractHistoryTokenSeries(rows ?? []));
+    } catch (err) {
+      setHistoryError(getApiErrorMessage(err, t('aiStatistics.loadFailed')));
+      setHistorySeries([]);
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, [historyDays, t]);
+
+  useEffect(() => {
+    if (activeTab === 'history') {
+      void fetchHistory();
+    }
+  }, [activeTab, fetchHistory]);
+
+  // 性能日期范围
+  const fetchPerfRange = useCallback(async () => {
+    try {
+      setPerfRangeLoading(true);
+      const { start_date, end_date } = computeRangeDates(perfRangePreset);
+      const rows = await aiPerformanceApi.getHourlyRange(start_date, end_date);
+      setPerfRangeRows(rows ?? []);
+    } catch {
+      setPerfRangeRows([]);
+    } finally {
+      setPerfRangeLoading(false);
+    }
+  }, [perfRangePreset]);
+
+  useEffect(() => {
+    if (activeTab === 'performance' && perfMode === 'range') {
+      void fetchPerfRange();
+    }
+  }, [activeTab, perfMode, fetchPerfRange]);
 
   // 准备图表数据
   const intentChartData = summary
@@ -907,6 +1007,110 @@ export default function AIStatisticsPage() {
     };
   }, [performanceData, perfModelList]);
 
+  const perfRangeAggregated = useMemo(
+    () => aggregatePerformanceByDate(perfRangeRows),
+    [perfRangeRows],
+  );
+
+  const historyTrendOption = useMemo<EChartsOption>(() => ({
+    animationDuration: 800,
+    animationEasing: 'cubicOut' as const,
+    grid: { left: '3%', right: '4%', bottom: '15%', top: '12%', containLabel: true },
+    tooltip: { trigger: 'axis' },
+    legend: {
+      data: [
+        t('aiStatistics.inputTokens'),
+        t('aiStatistics.outputTokens'),
+        t('aiStatistics.totalTokens'),
+      ],
+      bottom: 0,
+      textStyle: { fontSize: 11 },
+    },
+    xAxis: {
+      type: 'category',
+      data: historySeries.map((d) => d.date),
+      axisLabel: { fontSize: 11 },
+    },
+    yAxis: {
+      type: 'value',
+      axisLabel: { fontSize: 11, formatter: (v: number) => formatCompactNumber(v) },
+    },
+    series: [
+      {
+        name: t('aiStatistics.totalTokens'),
+        type: 'line',
+        smooth: true,
+        data: historySeries.map((d) => d.total),
+        itemStyle: { color: '#6366f1' },
+        areaStyle: { color: 'rgba(99, 102, 241, 0.12)' },
+      },
+      {
+        name: t('aiStatistics.inputTokens'),
+        type: 'line',
+        smooth: true,
+        data: historySeries.map((d) => d.input),
+        itemStyle: { color: '#3b82f6' },
+      },
+      {
+        name: t('aiStatistics.outputTokens'),
+        type: 'line',
+        smooth: true,
+        data: historySeries.map((d) => d.output),
+        itemStyle: { color: '#a855f7' },
+      },
+    ],
+  }), [historySeries, t]);
+
+  const perfRangeTrendOption = useMemo<EChartsOption>(() => ({
+    animationDuration: 800,
+    animationEasing: 'cubicOut' as const,
+    grid: { left: '3%', right: '4%', bottom: '15%', top: '12%', containLabel: true },
+    tooltip: { trigger: 'axis' },
+    legend: {
+      data: [
+        t('aiStatistics.requestCount'),
+        t('aiStatistics.ttftAvg'),
+        t('aiStatistics.tpsAvg'),
+      ],
+      bottom: 0,
+      textStyle: { fontSize: 11 },
+    },
+    xAxis: {
+      type: 'category',
+      data: perfRangeAggregated.map((d) => d.date),
+      axisLabel: { fontSize: 11 },
+    },
+    yAxis: [
+      { type: 'value', name: t('aiStatistics.requestCount'), axisLabel: { fontSize: 11 } },
+      { type: 'value', name: 'ms / tps', axisLabel: { fontSize: 11 } },
+    ],
+    series: [
+      {
+        name: t('aiStatistics.requestCount'),
+        type: 'bar',
+        data: perfRangeAggregated.map((d) => d.requests),
+        itemStyle: { color: '#6366f1' },
+        barMaxWidth: 28,
+      },
+      {
+        name: t('aiStatistics.ttftAvg'),
+        type: 'line',
+        yAxisIndex: 1,
+        smooth: true,
+        data: perfRangeAggregated.map((d) => Number(d.ttftAvg.toFixed(1))),
+        itemStyle: { color: '#f59e0b' },
+      },
+      {
+        name: t('aiStatistics.tpsAvg'),
+        type: 'line',
+        yAxisIndex: 1,
+        smooth: true,
+        data: perfRangeAggregated.map((d) => Number(d.tpsAvg.toFixed(1))),
+        itemStyle: { color: '#10b981' },
+      },
+    ],
+  }), [perfRangeAggregated, t]);
+
   // ============================================================================
   // 时间段统计 - 图表配置
   // ============================================================================
@@ -1097,14 +1301,20 @@ export default function AIStatisticsPage() {
                 <Button variant="outline" size="sm" className="gap-2 whitespace-nowrap">
                   <CalendarIcon className="h-4 w-4" />
                   {format(selectedDate, 'yyyy-MM-dd')}
+                  {(dailyInputTokens[format(selectedDate, 'yyyy-MM-dd')] ?? 0) > 0 && (
+                    <span className="text-xs text-muted-foreground tabular-nums">
+                      in {formatCompactMetric(dailyInputTokens[format(selectedDate, 'yyyy-MM-dd')])}
+                    </span>
+                  )}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="end">
-                <CalendarComponent
-                  mode="single"
+              <PopoverContent className="w-auto p-0" align="end" sideOffset={8}>
+                <MetricDayCalendar
                   selected={selectedDate}
-                  onSelect={(date) => date && setSelectedDate(date)}
-                  defaultMonth={selectedDate}
+                  onSelect={setSelectedDate}
+                  metrics={dailyInputTokens}
+                  disableEmpty
+                  formatMetric={formatCompactMetric}
                 />
               </PopoverContent>
             </Popover>
@@ -1232,6 +1442,7 @@ export default function AIStatisticsPage() {
                 { value: 'overview', label: t('aiStatistics.overview'), icon: <TrendingUp className="w-4 h-4" /> },
                 { value: 'tokens', label: t('aiStatistics.tokenAnalysis'), icon: <Coins className="w-4 h-4" /> },
                 { value: 'range', label: t('aiStatistics.tokenRange'), icon: <CalendarDays className="w-4 h-4" /> },
+                { value: 'history', label: t('aiStatistics.historyTrend'), icon: <BarChart3 className="w-4 h-4" /> },
                 { value: 'performance', label: t('aiStatistics.performance'), icon: <Activity className="w-4 h-4" /> },
                 { value: 'rag', label: t('aiStatistics.ragEffect'), icon: <Database className="w-4 h-4" /> },
                 { value: 'users', label: t('aiStatistics.users'), icon: <Users className="w-4 h-4" /> },
@@ -1345,6 +1556,111 @@ export default function AIStatisticsPage() {
                   </CardContent>
                 </Card>
               </div>
+
+              {/* Memory 管线 7 指标 */}
+              <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2">
+                    <Brain className="w-5 h-5" />
+                    {t('aiStatistics.memory')}
+                    {(() => {
+                      const health = memoryIngestHealth(summary.memory);
+                      return (
+                        <span
+                          className={cn(
+                            'ml-2 text-xs font-normal px-2 py-0.5 rounded-full',
+                            health.label === 'healthy' && 'bg-emerald-500/15 text-emerald-600',
+                            health.label === 'degraded' && 'bg-amber-500/15 text-amber-600',
+                            health.label === 'empty' && 'bg-muted text-muted-foreground',
+                          )}
+                        >
+                          {t(`aiStatistics.${health.label}`)}
+                        </span>
+                      );
+                    })()}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
+                    {([
+                      ['observations', summary.memory?.observations ?? 0],
+                      ['ingestions', summary.memory?.ingestions ?? 0],
+                      ['ingestionErrors', summary.memory?.ingestion_errors ?? 0],
+                      ['retrievals', summary.memory?.retrievals ?? 0],
+                      ['entitiesCreated', summary.memory?.entities_created ?? 0],
+                      ['edgesCreated', summary.memory?.edges_created ?? 0],
+                      ['episodesCreated', summary.memory?.episodes_created ?? 0],
+                    ] as const).map(([key, value]) => (
+                      <div
+                        key={key}
+                        className="rounded-lg border border-border/40 bg-muted/20 px-3 py-2.5"
+                      >
+                        <p className="text-xs text-muted-foreground truncate">
+                          {t(`aiStatistics.${key}`)}
+                        </p>
+                        <p className="text-xl font-bold tabular-nums mt-1">
+                          {formatCompactNumber(value)}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* 历史趋势 Tab */}
+          {activeTab === 'history' && (
+            <div className="space-y-4 px-6">
+              <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
+                <CardContent className="py-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm text-muted-foreground shrink-0">
+                      {t('aiStatistics.queryRange')}:
+                    </span>
+                    <TabButtonGroup
+                      options={[
+                        { value: '7', label: t('aiStatistics.preset7d') },
+                        { value: '14', label: t('aiStatistics.preset14d') },
+                        { value: '30', label: t('aiStatistics.preset30d') },
+                      ]}
+                      value={String(historyDays)}
+                      onValueChange={(v) => setHistoryDays(Number(v) as 7 | 14 | 30)}
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-9 gap-2"
+                      onClick={() => void fetchHistory()}
+                      disabled={historyLoading}
+                    >
+                      <RefreshCw className={cn('w-4 h-4', historyLoading && 'animate-spin')} />
+                      {t('common.refresh')}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <BarChart3 className="w-5 h-5" />
+                    {t('aiStatistics.historyTrend')}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {historyError ? (
+                    <div className="text-sm text-destructive py-8 text-center">{historyError}</div>
+                  ) : historyLoading ? (
+                    <Skeleton className="h-[320px] w-full" />
+                  ) : historySeries.length === 0 ? (
+                    <div className="flex items-center justify-center h-[320px] text-muted-foreground">
+                      {t('common.noData')}
+                    </div>
+                  ) : (
+                    <EChartsWrapper option={historyTrendOption} height={320} />
+                  )}
+                </CardContent>
+              </Card>
             </div>
           )}
 
@@ -1466,6 +1782,104 @@ export default function AIStatisticsPage() {
           {/* 性能 Tab */}
           {activeTab === 'performance' && (
             <div className="space-y-4 px-6">
+              <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
+                <CardContent className="py-3">
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                    <TabButtonGroup
+                      options={[
+                        { value: 'day', label: t('aiStatistics.singleDay'), icon: <Clock className="w-4 h-4" /> },
+                        { value: 'range', label: t('aiStatistics.dateRangePerformance'), icon: <CalendarDays className="w-4 h-4" /> },
+                      ]}
+                      value={perfMode}
+                      onValueChange={(v) => setPerfMode(v as 'day' | 'range')}
+                    />
+                    {perfMode === 'range' && (
+                      <TabButtonGroup
+                        options={[
+                          { value: '7d', label: t('aiStatistics.preset7d') },
+                          { value: '14d', label: t('aiStatistics.preset14d') },
+                          { value: '30d', label: t('aiStatistics.preset30d') },
+                          { value: '90d', label: t('aiStatistics.preset90d') },
+                        ]}
+                        value={perfRangePreset}
+                        onValueChange={(v) => setPerfRangePreset(v as Exclude<RangePreset, 'custom'>)}
+                      />
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {perfMode === 'range' ? (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {perfRangeAggregated.length > 0 && (() => {
+                      const totalRequests = perfRangeAggregated.reduce((s, d) => s + d.requests, 0);
+                      const avgTTFT =
+                        perfRangeAggregated.reduce((s, d) => s + d.ttftAvg, 0) /
+                          perfRangeAggregated.length || 0;
+                      const avgTPS =
+                        perfRangeAggregated.reduce((s, d) => s + d.tpsAvg, 0) /
+                          perfRangeAggregated.length || 0;
+                      return (
+                        <>
+                          <StatCard title={t('aiStatistics.requestCount')} value={totalRequests.toLocaleString()} icon={Gauge} />
+                          <StatCard title={t('aiStatistics.ttftAvg')} value={`${avgTTFT.toFixed(1)} ms`} icon={Clock} />
+                          <StatCard title={t('aiStatistics.tpsAvg')} value={`${avgTPS.toFixed(1)} tokens/s`} icon={Zap} />
+                        </>
+                      );
+                    })()}
+                  </div>
+                  <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Activity className="w-5 h-5" />
+                        {t('aiStatistics.dateRangePerformance')}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {perfRangeLoading ? (
+                        <Skeleton className="h-[320px] w-full" />
+                      ) : perfRangeAggregated.length === 0 ? (
+                        <div className="flex items-center justify-center h-[320px] text-muted-foreground">
+                          {t('common.noData')}
+                        </div>
+                      ) : (
+                        <EChartsWrapper option={perfRangeTrendOption} height={320} />
+                      )}
+                    </CardContent>
+                  </Card>
+                  <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
+                    <CardHeader>
+                      <CardTitle>{t('aiStatistics.dateRangePerformance')}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b border-border/50">
+                              <th className="text-left py-2 px-3 font-medium text-muted-foreground">{t('aiStatistics.date')}</th>
+                              <th className="text-left py-2 px-3 font-medium text-muted-foreground">{t('aiStatistics.requestCount')}</th>
+                              <th className="text-left py-2 px-3 font-medium text-muted-foreground">{t('aiStatistics.ttftAvg')}</th>
+                              <th className="text-left py-2 px-3 font-medium text-muted-foreground">{t('aiStatistics.tpsAvg')}</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {perfRangeAggregated.map((row) => (
+                              <tr key={row.date} className="border-b border-border/30">
+                                <td className="py-2 px-3">{row.date}</td>
+                                <td className="py-2 px-3">{row.requests.toLocaleString()}</td>
+                                <td className="py-2 px-3">{row.ttftAvg.toFixed(1)} ms</td>
+                                <td className="py-2 px-3">{row.tpsAvg.toFixed(1)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </>
+              ) : (
+              <>
               {/* 性能概览卡片 */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {performanceData.length > 0 && (() => {
@@ -1630,6 +2044,8 @@ export default function AIStatisticsPage() {
                   </div>
                 </CardContent>
               </Card>
+              </>
+              )}
             </div>
           )}
 

@@ -73,5 +73,8 @@
   "confirmPauseDesc": "点击按钮后你的机器人将停止运行",
   "confirmResumeTitle": "是否确定继续GsCore？",
   "confirmResumeDesc": "点击按钮后你的机器人将继续运行",
-  "settings": "设置"
+  "settings": "设置",
+  "stateStore": "状态存储",
+  "groupProfile": "群组画像",
+  "aiOps": "AI 运维中心"
 }

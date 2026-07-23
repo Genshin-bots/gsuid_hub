@@ -38,5 +38,8 @@
   "saving": "保存中...",
   "saveSuccess": "スキルを保存しました",
   "saveFailed": "スキルの保存に失敗しました",
-  "cancel": "キャンセル"
+  "cancel": "キャンセル",
+  "updateExisting": "同名なら更新",
+  "updateHint": "既存スキルを上書き",
+  "reinstall": "ソースから更新"
 }

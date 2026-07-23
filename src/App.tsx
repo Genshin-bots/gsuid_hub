@@ -15,8 +15,6 @@ import Login from "@/pages/Login";
 import HomePage from "@/pages/HomePage";
 import Dashboard from "@/pages/Dashboard";
 import DatabasePage from "@/pages/DatabasePage";
-import DatabaseConfigPage from "@/pages/DatabaseConfigPage";
-import StateConfigPage from "@/pages/StateConfigPage";
 import PluginsPage from "@/pages/PluginsPage";
 import LogsPage from "@/pages/LogsPage";
 import TracesPage from "@/pages/TracesPage";
@@ -49,6 +47,9 @@ import BrandSettingsPage from "@/pages/BrandSettingsPage";
 import BatchPushPage from "@/pages/BatchPushPage";
 import AIDebugPage from "@/pages/AIDebugPage";
 import AIArtifactsPage from "@/pages/AIArtifactsPage";
+import StateStorePage from "@/pages/StateStorePage";
+import GroupProfilePage from "@/pages/GroupProfilePage";
+import AIOpsPage from "@/pages/AIOpsPage";
 
 const queryClient = new QueryClient();
 
@@ -117,13 +118,14 @@ function AppRoutes() {
         <Route path="ai-approvals" element={<AIApprovalsPage />} />
         <Route path="ai-budget" element={<AIBudgetPage />} />
         <Route path="core-config" element={<CoreConfigPage />} />
-        <Route path="database-config" element={<DatabaseConfigPage />} />
-        <Route path="state-config" element={<StateConfigPage />} />
+        <Route path="state-store" element={<StateStorePage />} />
+        <Route path="group-profile" element={<GroupProfilePage />} />
         <Route path="backup" element={<BackupPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="brand-settings" element={<BrandSettingsPage />} />
         <Route path="batch-push" element={<BatchPushPage />} />
         <Route path="ai-debug" element={<AIDebugPage />} />
+        <Route path="ai-ops" element={<AIOpsPage />} />
         <Route path="ai-artifacts" element={<AIArtifactsPage />} />
       </Route>
       <Route path="*" element={<NotFound />} />

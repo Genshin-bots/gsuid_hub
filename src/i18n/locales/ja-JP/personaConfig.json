@@ -105,5 +105,10 @@
   "toolNamesPlaceholder": "Enter でツール名を追加（例：send_stock_info）",
   "toolNamesHint": "これらのツールはベクトル検索を経ずに、このペルソナの基本ツールプールへ常時マージされます",
   "minutesUnit": "分钟",
-  "keywordsCountSuffix": "個"
+  "keywordsCountSuffix": "個",
+  "heartbeatStatus": "巡回状態",
+  "jobRegistered": "Job 登録済",
+  "jobMissing": "Job 未登録",
+  "heartbeatEnabled": "巡回 ON",
+  "heartbeatDisabled": "巡回 OFF"
 }

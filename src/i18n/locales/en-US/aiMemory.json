@@ -150,5 +150,25 @@
   "preferenceFilterDo": "Do Only",
   "preferenceFilterDont": "Don't Only",
   "preferenceDisable": "Soft Disable",
-  "preferenceEnable": "Enable"
+  "preferenceEnable": "Enable",
+  "tabSearch": "Search",
+  "search": {
+    "title": "Dual-route memory search",
+    "query": "Query",
+    "queryPlaceholder": "Text to retrieve…",
+    "groupId": "Group ID",
+    "userId": "User ID",
+    "userIdOptional": "Optional",
+    "topK": "top_k",
+    "run": "Search",
+    "failed": "Search failed",
+    "episodes": "Episodes",
+    "entities": "Entities",
+    "edges": "Edges",
+    "errors": {
+      "empty_query": "Query is required",
+      "empty_group": "Group ID is required",
+      "bad_top_k": "top_k must be 1–50"
+    }
+  }
 }

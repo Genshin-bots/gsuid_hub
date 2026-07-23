@@ -1,0 +1,13 @@
+{
+  "title": "グループ像",
+  "description": "群コンテキストタグ・語彙マッピング・メンバー呼称（読み取り専用）",
+  "scopes": "グループ scope",
+  "empty": "データなし",
+  "selectHint": "左からグループを選択",
+  "lastUpdated": "最終更新",
+  "tags": "コンテキストタグ",
+  "termMappings": "語彙マッピング",
+  "memberAliases": "メンバー呼称",
+  "loadFailed": "一覧の読込に失敗",
+  "loadDetailFailed": "詳細の読込に失敗"
+}

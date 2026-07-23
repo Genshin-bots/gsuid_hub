@@ -231,5 +231,10 @@
   },
   "preview": {
     "unsupported": "Preview is not supported for this file type"
-  }
+  },
+  "applyPatch": "Apply patch",
+  "patchText": "Patch text",
+  "patchSummary": "Summary",
+  "patchSuccess": "Patch submitted",
+  "patchFailed": "Patch failed"
 }

@@ -219,28 +219,30 @@ import { PinnedPage } from '@/components/layout/PinnedPage';
 ### 环境要求
 
 - Node.js 18+
-- npm / yarn / bun 任选其一
+- [pnpm](https://pnpm.io/) 9+（推荐通过 Corepack：`corepack enable`）
 
-> 项目当前同时存在 `yarn.lock` 与 `bun.lockb`。协作开发时建议团队统一包管理器，避免锁文件冲突。
+> 本项目统一使用 **pnpm** 管理依赖，请勿再使用 npm / yarn / bun 安装，以免产生冲突的锁文件。
 
 ### 常用命令
 
 | 命令 | 用途 |
 | --- | --- |
-| `npm run dev` | 开发服务器（端口 `8080`，需后端） |
-| `npm run dev:demo` | 演示模式开发（端口 `8080`，免登录、无需后端） |
-| `npm run build` | 生产构建 → `dist/`（基础路径 `/app/`） |
-| `npm run build:dev` | 开发模式构建 |
-| `npm run build:demo` | 演示模式构建 → `dist-demo/`（基础路径 `/hub/`） |
-| `npm run preview` | 预览生产构建 |
-| `npm run lint` | ESLint 检查 |
-| `npx tsc --noEmit -p tsconfig.app.json` | 类型检查 |
+| `pnpm install` | 安装依赖 |
+| `pnpm dev` | 开发服务器（端口 `8080`，需后端） |
+| `pnpm dev:demo` | 演示模式开发（端口 `8080`，免登录、无需后端） |
+| `pnpm build` | 生产构建 → `dist/`（基础路径 `/app/`） |
+| `pnpm build:dev` | 开发模式构建 |
+| `pnpm build:demo` | 演示模式构建 → `dist-demo/`（基础路径 `/hub/`） |
+| `pnpm start` / `pnpm preview` | 预览生产构建 |
+| `pnpm lint` | ESLint 检查 |
+| `pnpm test` | 单元测试（Vitest） |
+| `pnpm check` / `pnpm format` | Biome 检查 / 格式化 |
+| `pnpm exec tsc --noEmit -p tsconfig.app.json` | 类型检查 |
 
 开发时 Vite 会把 `/api` 与 `/ws` 代理到 `http://localhost:8765`，因此通常需要先启动 `gsuid_core` 后端。
 构建结束后会生成 `version.json`（版本号、构建时间、构建模式）。
 
-> **类型检查基线**：仓库存在**历史遗留** `tsc` 报错（`EChartsWrapper.tsx`、`use-toast.ts`、`TraceWaterfall.tsx`，共 4 条）。
-> 核对自己的改动时要**与基线做差集**，不要误当成新引入的问题。
+> 更完整的变更说明见 [`docs/CHANGELOG-2026-07.md`](docs/CHANGELOG-2026-07.md)。
 
 ### 开发规范（必读）
 
@@ -267,10 +269,10 @@ import { PinnedPage } from '@/components/layout/PinnedPage';
 
 | 命令 | 用途 | 基础路径 | 产物 |
 | --- | --- | --- | --- |
-| `npm run dev:demo` | 演示模式开发（端口 `8080`，无需后端） | `/` | — |
-| `npm run build:demo` | 演示模式构建（纯静态产物） | `/hub/` | `dist-demo/` |
+| `pnpm dev:demo` | 演示模式开发（端口 `8080`，无需后端） | `/` | — |
+| `pnpm build:demo` | 演示模式构建（纯静态产物） | `/hub/` | `dist-demo/` |
 
-> 普通 `npm run dev` / `npm run build` **不会**进入演示模式，且需要真实后端（代理 `/api`、`/ws` 到 `http://localhost:8765`）。
+> 普通 `pnpm dev` / `pnpm build` **不会**进入演示模式，且需要真实后端（代理 `/api`、`/ws` 到 `http://localhost:8765`）。
 
 ### 工作原理（编译期开关）
 
@@ -295,9 +297,9 @@ import { PinnedPage } from '@/components/layout/PinnedPage';
 
 演示用到的较大静态资源（真实表情包图片、插件图标，约 2MB）放在仓库根的 **`demo-assets/`**，而非 `public/`：
 
-- Vite 会把 `public/` 整目录无条件拷进**任何**构建产物。若把这些只在演示用的资源放 `public/`，普通 `npm run build`（后端部署用的 `dist/`）也会白白增重约 2MB。
+- Vite 会把 `public/` 整目录无条件拷进**任何**构建产物。若把这些只在演示用的资源放 `public/`，普通 `pnpm build`（后端部署用的 `dist/`）也会白白增重约 2MB。
 - 为此 `vite.config.ts` 增加了 `copy-demo-assets` 插件：**仅当 `isDemo`** 时把 `demo-assets/` 拷进 `dist-demo/` 根目录（运行时 URL 仍是 `${BASE_URL}demo-*/…`，与放在 `public/` 时一致）。
-- 结果：`npm run build:demo` 携带演示资源；普通 `npm run build` 的 `dist/` 不含它们。
+- 结果：`pnpm build:demo` 携带演示资源；普通 `pnpm build` 的 `dist/` 不含它们。
 
 主题预设不依赖本地图片：演示模式把 `gsuid_core/webconsole/themes_builtin/*.json` 的预设**内联**进 `demoMock.ts`，其背景图均为在线 URL，故无需打包任何主题图片。
 

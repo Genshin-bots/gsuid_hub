@@ -298,7 +298,7 @@ padding: var(--shadow-bleed);             /*  0.75rem：把内容推回原位 */
 
 ### P-26 demo 模式的页面崩溃 ≠ 你改坏了 ★
 
-`npm run dev:demo` 的 Mock Server（`src/lib/mockServer.ts`）**只覆盖了部分 `/api/*`**，未匹配的请求会
+`pnpm dev:demo` 的 Mock Server（`src/lib/mockServer.ts`）**只覆盖了部分 `/api/*`**，未匹配的请求会
 穿透到 `originalFetch` → 404 → 页面拿到 `undefined` 字段后崩溃。当前已知在 demo 模式下**必崩**的页面
 （在**未改动的 HEAD 代码**上同样复现，与前端改动无关）：
 

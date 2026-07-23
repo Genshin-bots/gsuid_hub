@@ -52,10 +52,8 @@
 | 前端路由 | 页面组件 | 主要功能 | 后端 API 群 |
 |---|---|---|---|
 | `/core-config` | `CoreConfigPage.tsx` | `CoreConfig` 顶层配置项编辑 | `core_config_api.py`（`/api/core/config*`） |
-| `/framework-config` | `FrameworkConfigPage.tsx` | 框架级配置（GsCore AI/…）分组浏览 + 动态字段渲染 | `plugins_api.py`（`/api/framework-config*`） |
-| `/database-config` | `DatabaseConfigPage.tsx` | 各插件数据库 URL/DSN 配置 | `plugins_api.py` 插件 DB 元数据 + `framework-config` |
-| `/state-config` | `StateConfigPage.tsx` | 全局 state、StateStoreViewer 浏览 | `state_store_api.py`（`/api/ai/state-store/*`） |
-| `/core-config` | `CoreConfigPage.tsx` | 核心配置 | `core_config_api.py` |
+| `/framework-config` | `FrameworkConfigPage.tsx` | 框架级配置分组浏览 + 动态字段；**数据库配置 / 状态配置**在选中对应条目时内嵌 `DatabaseConfigPage` / `StateConfigPage`（无独立路由） | `/api/framework-config*` |
+| `/state-store` | `StateStorePage.tsx` | AI 持久状态（state_store）scope/key 浏览与批量删除 | `state_store_api.py` |
 
 ### 2.3 插件与市场
 
@@ -85,8 +83,12 @@
 | `/ai-statistics` | `AIStatisticsPage.tsx` | Token 用量（按模型/按类型/按区间）+ 活跃用户/群 + 触发/意图分布 + 错误 + Heartbeat + RAG + 历史 + **小时级性能** | `ai_statistics_api.py`、`ai_performance_api.py` | [§10 P-26](./references/10-pitfalls-and-performance.md) |
 | `/ai-history` | `AIHistoryPage.tsx` | AI Session 列表 / Trace 瀑布图（链 ↔ 分段 ↔ 子 agent）/ 统计 | `ai_session_logs_api.py`（`/api/ai/session_logs*`）+ `history_api.py`（`/api/history*`） | [§08 §8.7 Trace 瀑布](./references/08-page-patterns.md) |
 | `/session-management` | `SessionManagementPage.tsx` | Session 列表 + 历史对话 + Persona + 给 Session 发消息 | `history_api.py` | [§04 §4.1.1 page-fill](./references/04-page-layout-spec.md) |
+| `/ai-ops` | `AIOpsPage.tsx` | **运维诊断中心（收敛版）**：顶栏 Bot/Session/续聊状态 + 5 Tab（触发回放 / 黑白名单 / 输出试跑 / 安全策略 / 配置快照）。工具拓扑·意图·生命周期·多模态·插件诊断仅保留后端 API | `ops_diagnostics_api.py`（`/api/ops/*`） | 见 [`docs/CHANGELOG-2026-07.md`](../../CHANGELOG-2026-07.md) §四 |
+| `/group-profile` | `GroupProfilePage.tsx` | 群组画像只读（标签/词汇映射/称呼） | state_store `__gscore_group_profile__` | — |
+| `/ai-debug` | `AIDebugPage.tsx` | 记忆图谱 / 编排任务 / self_model | `agent_debug_api.py` | — |
+| `/ai-artifacts` | `AIArtifactsPage.tsx` | Artifact 全局浏览 | `artifacts_api.py` | — |
 
-### 2.5 当前 API 全景（`src/lib/api.ts`，已实现，共 ~50 个 ApiGroup）
+### 2.5 当前 API 全景（`src/lib/api.ts`）
 
 按字母顺序与领域分组：
 
@@ -102,7 +104,10 @@
 | AI 能力 | 8 | `personaApi`、`mcpConfigApi`、`capabilityAgentsApi`、`aiKnowledgeApi`、`aiImageApi`、`memeApi`、`aiToolsApi`、`aiSkillsApi` | 同名 |
 | AI 运行 | 6 | `historyApi`、`aiSessionLogsApi`、`agentDebugApi`、`aiScheduledTasksApi`、`aiKanbanApi`、`aiApprovalsApi`、`aiStateStoreApi` | 同名 |
 | AI 度量 | 3 | `aiStatisticsApi`、`aiPerformanceApi`、`aiBudgetApi` | 同名 |
-| 新增（2026-07-20 盘点） | 4 | `aiArtifactsApi`、`batchPushApi`、`brandSettingsApi`（= `brandApi` facade）、`logsConfigApi` | `artifacts_api.py` / `message_api.py` / `brand_api.py` / `logs_api.py` |
+| 运维诊断 | 1 | **`opsApi`** | `ops_diagnostics_api.py` |
+| 其它 | — | `aiArtifactsApi`、`batchPushApi`、`brandSettingsApi`、`logsConfigApi`、`memoryApi` / `memorySettingsApi` | 见 CHANGELOG |
+
+> **完整变更纪要（pnpm、P0–P2、AI Ops、路由清理）**：[`docs/CHANGELOG-2026-07.md`](../../CHANGELOG-2026-07.md)。
 
 ---
 
@@ -144,7 +149,7 @@
 | **agent_debug_api**（Agent 可视化调试台） | 8 | `Memory Graph View`、`Orchestration Board`、`Persona Evolution Inspector` 三个面板**全部缺**。`AIKanbanPage` 只覆盖了部分 Orchestration；`AIMemoryPage` 只覆盖了基础浏览，缺 Edge 软删除/合并、`memory/conflicts` 解决、`agent_debug/self_model` 修正。 | 新增 `/ai-debug` 路由 / 拆 3 个 Tab |
 | **artifacts_api**（AI 产出物） | 5 | `AIKanbanPage` 内已调用 artifacts 列表/详情/下载/删除/TTL 延长，但**没有独立页面**做资源全局浏览。 | 新增 `/ai-artifacts` |
 | **workspace_api**（Kanban 任务工作区） | 4 | workspace 文件列表、上传、下载、apply-patch 仅在 Kanban 任务详情 Dialog 部分暴露，缺全局浏览。 | AIKanban 详情弹窗 + 全局工作区 |
-| **state_store_api**（State 状态存储） | 6 | 只在 `StateConfigPage` 有非常基础浏览，缺 scope/key/批量清理/record_* 集合的完整管理。 | 扩 `/state-config` |
+| **state_store_api**（State 状态存储） | 6 | ~~缺独立页~~ → 已有 `/state-store`（`StateStorePage` + `StateStoreViewer`） | — |
 | **brand_api**（品牌信息） | 5 | 仅 `BrandContext` 读 `GET /api/brand` 在登录页/布局展示，**完全没有 UI 编辑**。 | 新增 `/brand-settings` |
 | **message_api::BatchPush** | 1 | 完全无入口（批量给某人/群推消息）。 | 新增 `/batch-push` |
 | **plugin_icon_api** | 1 | `/api/plugins/icon/{name}` 缓存层有声明；前端 `PluginsPage` 直接走 `bot_root/icon/...`，未走该接口（影响跨安装部署）。 | 接入统一 icon |
@@ -176,7 +181,7 @@
 
 ### 3.3 demo 模式必崩的页面（P-26 已知）
 
-`npm run dev:demo` 因 Mock Server 缺端点，下表中的路由**无论改没改都会崩**（来自
+`pnpm dev:demo` 因 Mock Server 缺端点，下表中的路由**无论改没改都会崩**（来自
 [`SKILL.md §10 P-26`](./references/10-pitfalls-and-performance.md)）：
 
 | 路由 | 缺失 mock | 症状 |
@@ -212,8 +217,9 @@
 | 备份 | `backup_api` | 🟩 BackupPage |
 | 主题与背景 | `theme_api` + `assets_api` | 🟩 ThemesPage |
 | 账户（头像 / 用户名 / 密码） | `auth_api` | 🟩 SettingsPage |
-| 核心 / 框架 / 数据库配置 | `core_config_api` + `framework-config` | 🟩 CoreConfig/FrameworkConfig/DatabaseConfig |
-| 状态配置 | `state_store_api` | 🟨 弱（StateConfigPage 仅基础） |
+| 核心 / 框架配置 | `core_config_api` + `framework-config` | 🟩 CoreConfig + FrameworkConfig（库/状态专项 UI 内嵌） |
+| AI State Store | `state_store_api` | 🟩 `/state-store` |
+| AI 运维诊断 | `ops_diagnostics_api` | 🟩 `/ai-ops` |
 | 插件启用 / 禁用 / 重载 / 配置 / SV | `plugins_api` | 🟩 PluginsPage |
 | 插件市场（白名单 + URL 安装） | `plugins_api::plugin-store` | 🟩 PluginStorePage |
 | Git 镜像与更新 | `git_mirror_api` + `git_update_api` | 🟩 GitUpdatePage |
@@ -257,29 +263,18 @@
 
 **汇总**：
 - 🟩 已完整实现：**24 个** 能力板块
-- 🟨 部分实现：**6 个**（mcp_tools_config、StateConfigPage、HierGraph、Preferences、Meme stats、工作区、plugin icon 等）
-- ⬛ 完全空缺：**8 个**（Agent Debug、Artifacts 全局、品牌设置、BatchPush、知识备份导入导出、Meme 批量维护、日志控制台配置、记忆子系统配置）
+- 🟨 / ⬛ 旧「待补」表（§三、§五）**大量过时**（2026-07-20 快照）；以 [`CHANGELOG-2026-07.md`](../../CHANGELOG-2026-07.md) 与当前代码为准。
 
 ---
 
-## 五、推荐路线（按价值 / 工作量排序）
+## 五、推荐路线（精简）
 
-如果下一步有人力投入，建议按下面的优先级补齐"空缺"：
+多数 2026-07-20 清单项已落地。`/ai-ops` 已按「独有 + 排障」收敛为顶栏状态 + 5 Tab。可选增强：
 
-1. **品牌信息页**（`/brand-settings`，半天）— 全站 brand 与登录页即时变化，零门槛。
-2. **Meme 批量维护 / 表情 .meme 导入导出**（1–2 天）— 已封 API，UI 接一套对话框 + 进度条即可。
-3. **Knowledge 备份导入/导出 + 对账按钮**（半天）— 同上，已封 API。
-4. **AI 记忆子系统配置独立页 + Hiergraph 重建按钮**（1 天）— 让管理员"动"记忆而不只是浏览。
-5. **偏好记忆规则（Procedural Memory）独立管理页**（1–2 天）— 训练 AI 行为。
-6. **Agent 可视化调试台**（3–5 天）— 拆三页（Memory Graph / Orchestration / self_model），对接 8 个端点。
-7. **Artifacts 全局管理页**（1–2 天）— 一张资源表 + TTL + 下载。
-8. **State Store 状态存储完整管理**（2 天）— 看板与能力代理用得到。
-9. **看板任务工作区 / apply-patch 全局浏览**（1 天）— Kanban 详情扩展。
-10. **批量推送 `/batch-push`**（1 天）— 平台层测试与运维直发消息。
-11. **/ai-kanban/...workspace 全局视图**（与 AIKanbanPage 共用数据源）。
-12. **日志控制台自身配置页**（1 天）— 轮转策略 / 黑名单来源。
-13. **拆分主备配置可视化**：让用户看清当前任务在用哪个 provider（来自 `provider_config_api::all_configs`）。
-14. **AI 子 Agent 链路搜索 / 过滤 / 收藏**（2 天）— `AIHistoryPage` 增强。
+1. 配置快照差分预览与导入确认（危险字段高亮）。  
+2. 触发回放扩展「命令优先」路径与步骤时间线导出。  
+3. 记忆页挂「生命周期立即维护」；插件页挂诊断摘要（复用现有 `/api/ops/*`）。  
+4. 主备 Provider「当前实际生效」拓扑可视化（放 `/ai-tools` 或 AI 配置，不塞回 ops 大杂烩）。
 
 ---
 

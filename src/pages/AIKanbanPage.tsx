@@ -33,15 +33,16 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { cn } from '@/lib/utils';
 import {
   aiKanbanApi,
-  AIArtifactItem,
-  AIKanbanArtifactBrief,
-  AIKanbanBoardResponse,
-  AIKanbanCapabilityCandidate,
-  AIKanbanCard,
-  AIKanbanColumnKey,
-  AIKanbanEvaluateMeshResponse,
-  AIKanbanTaskDetail,
-  AIWorkspaceFile,
+  getApiErrorMessage,
+  type AIArtifactItem,
+  type AIKanbanArtifactBrief,
+  type AIKanbanBoardResponse,
+  type AIKanbanCapabilityCandidate,
+  type AIKanbanCard,
+  type AIKanbanColumnKey,
+  type AIKanbanEvaluateMeshResponse,
+  type AIKanbanTaskDetail,
+  type AIWorkspaceFile,
 } from '@/lib/api';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
@@ -640,13 +641,17 @@ export default function AIKanbanPage() {
     if (!selectedTaskId || !patchDraft.patch_text.trim()) return;
     try {
       setIsSubmittingPatch(true);
-      const data = await aiKanbanApi.submitPatch(selectedTaskId, { patch_text: patchDraft.patch_text, summary: patchDraft.summary || t('aiKanban.patch.defaultSummary'), mime: 'text/x-patch' });
+      const data = await aiKanbanApi.submitPatch(selectedTaskId, {
+        patch_text: patchDraft.patch_text,
+        summary: patchDraft.summary || t('aiKanban.patch.defaultSummary'),
+        mime: 'text/x-patch',
+      });
       toast.success(data.warning || t('aiKanban.messages.patchSubmitted'));
       setPatchOpen(false);
       setPatchDraft({ summary: '', patch_text: '' });
       await loadTaskDetail(selectedTaskId);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : t('aiKanban.messages.patchFailed'));
+      toast.error(getApiErrorMessage(error, t('aiKanban.messages.patchFailed')));
     } finally {
       setIsSubmittingPatch(false);
     }

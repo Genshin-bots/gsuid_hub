@@ -119,6 +119,176 @@ const routes: Route[] = [
   { m: 'GET', re: /^\/api\/version\/bots\/count$/, h: () => ({ count: 3 }) },
   { m: 'GET', re: /^\/api\/version\/bots\/names$/, h: () => ({ names: generateActiveBots().names }) },
 
+  // ── Ops diagnostics (/ai-ops) ──
+  {
+    m: 'GET',
+    re: /^\/api\/ops\/bots$/,
+    h: () => ({
+      count: 1,
+      connected_count: 1,
+      items: [{ ws_bot_id: 'ws-demo', bot_id: 'onebot', connected: true, has_ws: true }],
+      ts: Date.now() / 1000,
+    }),
+  },
+  {
+    m: 'GET',
+    re: /^\/api\/ops\/sessions$/,
+    h: () => ({
+      count: 1,
+      idle_threshold: 1800,
+      max_ai_history: 30,
+      items: [
+        {
+          session_id: 'demo:group:1',
+          persona_name: '早柚',
+          history_length: 4,
+          idle_seconds: 12,
+        },
+      ],
+      ts: Date.now() / 1000,
+    }),
+  },
+  {
+    m: 'GET',
+    re: /^\/api\/ops\/followup$/,
+    h: () => ({
+      window_seconds: 120,
+      max_total_seconds: 600,
+      active_count: 0,
+      items: [],
+      ts: Date.now() / 1000,
+    }),
+  },
+  {
+    m: 'GET',
+    re: /^\/api\/ops\/multimodal$/,
+    h: () => ({
+      queue_size: 0,
+      queue_max: 2000,
+      queue_utilization: 0,
+      worker_running: true,
+      understand_concurrency: 2,
+      rate_window_seconds: 300,
+      rate_max_per_window: 12,
+      tracked_scopes: 0,
+      recent_url_scopes: 0,
+      min_desc_len: 15,
+    }),
+  },
+  { m: 'GET', re: /^\/api\/ops\/lifecycle$/, h: () => ({ report: null, ts: Date.now() / 1000 }) },
+  {
+    m: 'POST',
+    re: /^\/api\/ops\/lifecycle\/run$/,
+    h: () => ({ report: { ok: true, consolidated: 0, forgotten: 0 }, ts: Date.now() / 1000 }),
+  },
+  {
+    m: 'POST',
+    re: /^\/api\/ops\/intent$/,
+    h: ({ body }) => ({
+      text: (body as { text?: string })?.text,
+      intent: '闲聊',
+      conf: 0.9,
+      reason: 'Demo',
+    }),
+  },
+  {
+    m: 'POST',
+    re: /^\/api\/ops\/trigger-replay$/,
+    h: () => ({
+      outcome: 'would_enter_ai',
+      trigger_type: 'mention',
+      persona_name: '早柚',
+      steps: [
+        { step: 'enable_ai', pass: true, detail: true },
+        { step: 'mention_mode', pass: true, detail: { should_respond: true } },
+      ],
+    }),
+  },
+  {
+    m: 'POST',
+    re: /^\/api\/ops\/output-preview$/,
+    h: ({ body }) => {
+      const text = String((body as { text?: string })?.text ?? '');
+      return { firewall_enabled: true, ooc_hit: null, stages: { raw: text, final: text }, final: text };
+    },
+  },
+  {
+    m: 'GET',
+    re: /^\/api\/ops\/tool-topology/,
+    h: () => ({
+      tool_packs: ['dynamic'],
+      tool_names: [],
+      core_pool: [{ name: 'search_knowledge', plugin: 'core' }],
+      core_pool_size: 1,
+      category_counts: { buildin: 5, self: 2 },
+      ts: Date.now() / 1000,
+    }),
+  },
+  {
+    m: 'GET',
+    re: /^\/api\/ops\/config-snapshot$/,
+    h: () => ({
+      version: 1,
+      exported_at: Date.now() / 1000,
+      ai_config: { enable: true },
+      access: { black_list: [], white_list: [] },
+    }),
+  },
+  {
+    m: 'POST',
+    re: /^\/api\/ops\/config-snapshot\/import$/,
+    h: () => ({ applied: ['ai_config.enable'], skipped: [], applied_count: 1 }),
+  },
+  { m: 'GET', re: /^\/api\/ops\/access$/, h: () => ({ black_list: [], white_list: [] }) },
+  {
+    m: 'PUT',
+    re: /^\/api\/ops\/access$/,
+    h: ({ body }) => ({
+      black_list: (body as { black_list?: string[] })?.black_list ?? [],
+      white_list: (body as { white_list?: string[] })?.white_list ?? [],
+    }),
+  },
+  {
+    m: 'GET',
+    re: /^\/api\/ops\/security-output$/,
+    h: () => ({
+      content_guard_enable: true,
+      output_firewall_enable: true,
+      render_long_markdown_as_image: true,
+      history_merge_window: 120,
+      follow_up_window: 90,
+      follow_up_max_total: 600,
+    }),
+  },
+  {
+    m: 'PUT',
+    re: /^\/api\/ops\/security-output$/,
+    h: ({ body }) => (body as { values?: Record<string, unknown> })?.values ?? {},
+  },
+  {
+    m: 'GET',
+    re: /^\/api\/ops\/plugins-diagnostics$/,
+    h: () => ({
+      plugin_count: 2,
+      module_cache_size: 10,
+      active_bots: ['ws-demo'],
+      items: [{ name: 'GenshinUID', enabled: true, sv_count: 3, has_config: true, keys: ['enabled'] }],
+      ts: Date.now() / 1000,
+    }),
+  },
+  {
+    m: 'POST',
+    re: /^\/api\/ai\/memory\/search$/,
+    h: ({ body }) => {
+      const q = String((body as { query?: string })?.query ?? '');
+      return {
+        episodes: q ? [{ id: 'ep-1', content: q, score: 0.9 }] : [],
+        entities: [],
+        edges: [],
+      };
+    },
+  },
+
   // ── Tier 1 · 看板 ──
   { m: 'GET', re: /^\/api\/dashboard\/bots$/, h: () => generateDashboardBots() },
   { m: 'GET', re: /^\/api\/dashboard\/metrics$/, h: ({ url }) => generateKeyMetrics(botOf(url)) },
@@ -127,6 +297,24 @@ const routes: Route[] = [
   { m: 'GET', re: /^\/api\/dashboard\/daily\/commands$/, h: ({ url }) => generateDailyCommandUsage(botOf(url), dateOf(url)) },
   { m: 'GET', re: /^\/api\/dashboard\/daily\/group-triggers$/, h: ({ url }) => generateDailyGroupCommandTriggers(botOf(url), dateOf(url)) },
   { m: 'GET', re: /^\/api\/dashboard\/daily\/personal-triggers$/, h: ({ url }) => generateDailyPersonalCommandTriggers(botOf(url), dateOf(url)) },
+  {
+    m: 'GET',
+    re: /^\/api\/dashboard\/daily\/command-counts$/,
+    h: ({ url }) => {
+      const days = Math.min(366, Math.max(1, Number(new URL(url, 'http://x').searchParams.get('days') || 60)));
+      const today = new Date();
+      const out: Array<{ date: string; count: number }> = [];
+      for (let i = days - 1; i >= 0; i -= 1) {
+        const d = new Date(today);
+        d.setDate(d.getDate() - i);
+        const date = d.toISOString().slice(0, 10);
+        // 约一半日期有数据，便于测禁用
+        const count = i % 3 === 0 ? 0 : Math.floor(Math.random() * 200) + 1;
+        out.push({ date, count });
+      }
+      return out;
+    },
+  },
 
   // ── Tier 1 · 插件库 / 配置 ──
   { m: 'GET', re: /^\/api\/plugins\/list$/, h: () => generatePluginList() },
@@ -164,7 +352,12 @@ const routes: Route[] = [
   { m: 'GET', re: /^\/api\/meme\/personas$/, h: () => generateMemePersonas() },
   { m: 'GET', re: /^\/api\/meme\/stats$/, h: () => generateMemeStats() },
   // 单条详情（点击表情打开详情弹窗）——必须放在上面三条「具体路径」之后，避免误吞 list/personas/stats。
-  { m: 'GET', re: /^\/api\/meme\/([^/]+)$/, h: ({ url }) => generateMemeDetail(decodeURIComponent(url.pathname.split('/').pop()!)) },
+  // 兼容尾斜杠；返回完整 MemeRecord，缺字段会让 AIMemePage 展开 tags 白屏。
+  { m: 'GET', re: /^\/api\/meme\/([^/]+)\/?$/, h: ({ url }) => {
+    const segs = url.pathname.split('/').filter(Boolean);
+    const id = decodeURIComponent(segs[segs.length - 1] || '');
+    return generateMemeDetail(id);
+  }},
 
   // ── Tier 2 · 让 demo 必崩页面也可以打开 ──
   // /logs
@@ -193,6 +386,34 @@ const routes: Route[] = [
   { m: 'GET', re: /^\/api\/ai\/statistics\/token-by-model$/, h: () => generateTokenByModel() },
   { m: 'GET', re: /^\/api\/ai\/statistics\/token-by-type$/, h: () => generateTokenByType() },
   { m: 'GET', re: /^\/api\/ai\/statistics\/token-by-range$/, h: () => generateTokenByRange() },
+  {
+    m: 'GET',
+    re: /^\/api\/ai\/statistics\/daily-token-counts$/,
+    h: ({ url }) => {
+      const days = Math.min(366, Math.max(1, Number(new URL(url, 'http://x').searchParams.get('days') || 60)));
+      const today = new Date();
+      const out: Array<{
+        date: string;
+        input_tokens: number;
+        output_tokens: number;
+        total_tokens: number;
+      }> = [];
+      for (let i = days - 1; i >= 0; i -= 1) {
+        const d = new Date(today);
+        d.setDate(d.getDate() - i);
+        const date = d.toISOString().slice(0, 10);
+        const input_tokens = i % 4 === 0 ? 0 : Math.floor(Math.random() * 5_000_000) + 1000;
+        const output_tokens = input_tokens === 0 ? 0 : Math.floor(input_tokens * 0.3);
+        out.push({
+          date,
+          input_tokens,
+          output_tokens,
+          total_tokens: input_tokens + output_tokens,
+        });
+      }
+      return out;
+    },
+  },
   { m: 'GET', re: /^\/api\/ai\/statistics\/active-users$/, h: () => generateActiveUsers() },
   { m: 'GET', re: /^\/api\/ai\/statistics\/trigger-distribution$/, h: () => generateTriggerDistribution() },
   { m: 'GET', re: /^\/api\/ai\/statistics\/intent-distribution$/, h: () => generateIntentDistribution() },

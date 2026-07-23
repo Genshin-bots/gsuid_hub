@@ -39,8 +39,17 @@
       "cancelled": "キャンセル済みタスク"
     }
   },
-  "kind": { "root": "ルート", "subtask": "サブタスク" },
-  "columns": { "target": "目標", "progress": "進行中", "Done": "完了", "Blocked": "ブロック/承認待ち", "failed": "失敗/終了" },
+  "kind": {
+    "root": "ルート",
+    "subtask": "サブタスク"
+  },
+  "columns": {
+    "target": "目標",
+    "progress": "進行中",
+    "Done": "完了",
+    "Blocked": "ブロック/承認待ち",
+    "failed": "失敗/終了"
+  },
   "filters": {
     "scopeKey": "scope_key",
     "botId": "Bot ID",
@@ -51,8 +60,15 @@
     "includeChildren": "サブタスクを表示",
     "onlyRoot": "ルートのみ"
   },
-  "summary": { "root": "ルートタスク", "subtask": "サブタスク" },
-  "fields": { "status": "状態", "agent": "エージェントプロファイル", "workspace": "ワークスペース" },
+  "summary": {
+    "root": "ルートタスク",
+    "subtask": "サブタスク"
+  },
+  "fields": {
+    "status": "状態",
+    "agent": "エージェントプロファイル",
+    "workspace": "ワークスペース"
+  },
   "actions": {
     "detail": "詳細",
     "pause": "一時停止",
@@ -215,5 +231,10 @@
       "batchDeleteSuccess": "一括削除完了: {deleted} 件削除、{notFound} 件未検出",
       "batchDeleteFailed": "一括削除に失敗しました"
     }
-  }
+  },
+  "applyPatch": "パッチ適用",
+  "patchText": "パッチ本文",
+  "patchSummary": "要約",
+  "patchSuccess": "パッチ送信済",
+  "patchFailed": "パッチ失敗"
 }

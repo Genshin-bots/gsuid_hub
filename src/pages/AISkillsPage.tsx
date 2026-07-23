@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Sparkles, AlertCircle, Plus, Trash2, Edit2, GitBranch, FileText, ScrollText, Link, FileCode, FolderOpen, Loader2 } from 'lucide-react';
-import { aiSkillsApi, AISkill, AISkillDetail } from '@/lib/api';
+import { aiSkillsApi, getApiErrorMessage, type AISkill, type AISkillDetail } from '@/lib/api';
 import { toast } from 'sonner';
 import { PinnedPage } from '@/components/layout/PinnedPage';
 import {
@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -95,6 +96,7 @@ export default function AISkillsPage() {
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [gitUrl, setGitUrl] = useState('');
   const [skillName, setSkillName] = useState('');
+  const [updateIfExists, setUpdateIfExists] = useState(false);
   const [isCloning, setIsCloning] = useState(false);
 
   // 删除确认弹窗状态
@@ -156,16 +158,17 @@ export default function AISkillsPage() {
 
     setIsCloning(true);
     try {
-      await aiSkillsApi.cloneSkill(gitUrl.trim(), skillName.trim() || undefined);
+      await aiSkillsApi.cloneSkill(gitUrl.trim(), skillName.trim() || undefined, updateIfExists);
       toast.success(t('aiSkills.cloneSuccess'));
       setAddDialogOpen(false);
       setGitUrl('');
       setSkillName('');
+      setUpdateIfExists(false);
       // 刷新列表
       const data = await aiSkillsApi.getSkillsList();
       setSkills(data.skills || []);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t('aiSkills.cloneFailed'));
+      toast.error(getApiErrorMessage(err, t('aiSkills.cloneFailed')));
     } finally {
       setIsCloning(false);
     }
@@ -500,12 +503,24 @@ export default function AISkillsPage() {
                 onChange={(e) => setSkillName(e.target.value)}
               />
             </div>
+            <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+              <Checkbox
+                checked={updateIfExists}
+                onCheckedChange={(v) => setUpdateIfExists(v === true)}
+              />
+              <span>{t('aiSkills.updateExisting')}</span>
+            </label>
+            <p className="text-xs text-muted-foreground -mt-2">{t('aiSkills.updateHint')}</p>
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setAddDialogOpen(false)}>
                 {t('aiSkills.cancel')}
               </Button>
               <Button onClick={handleAddSkill} disabled={isCloning}>
-                {isCloning ? t('aiSkills.cloning') : t('aiSkills.clone')}
+                {isCloning
+                  ? t('aiSkills.cloning')
+                  : updateIfExists
+                    ? t('aiSkills.reinstall')
+                    : t('aiSkills.clone')}
               </Button>
             </div>
           </div>

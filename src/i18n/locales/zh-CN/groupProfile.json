@@ -1,0 +1,13 @@
+{
+  "title": "群组画像",
+  "description": "查看 state_store 中的群语境标签、词汇映射与成员称呼（只读）",
+  "scopes": "群 scope 列表",
+  "empty": "暂无群画像数据",
+  "selectHint": "选择左侧群组查看详情",
+  "lastUpdated": "上次更新",
+  "tags": "语境标签",
+  "termMappings": "词汇映射",
+  "memberAliases": "成员称呼",
+  "loadFailed": "加载群画像列表失败",
+  "loadDetailFailed": "加载群画像详情失败"
+}

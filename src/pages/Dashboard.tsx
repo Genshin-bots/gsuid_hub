@@ -13,11 +13,15 @@ import {
 } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
-import { Calendar as CalendarComponent } from '@/components/ui/calendar';
-import { format } from 'date-fns';
+import { format, parse } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { dashboardApi, DailyCommandData, BotItem } from '@/lib/api';
-import { commandColors } from '@/lib/mockData';
+import {
+  collectCommandKeysFromTriggerRows,
+  getCommandColor,
+  latestDateWithMetric,
+} from '@/lib/featureUtils';
+import { MetricDayCalendar } from '@/components/ui/metric-day-calendar';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { EChartsWrapper } from '@/components/charts';
 import type { EChartsOption } from 'echarts';
@@ -118,10 +122,44 @@ export default function Dashboard() {
   });
   const [groupTriggerVisibility, setGroupTriggerVisibility] = useState<Record<string, boolean>>({});
   const [personalTriggerVisibility, setPersonalTriggerVisibility] = useState<Record<string, boolean>>({});
-  
+  /** yyyy-MM-dd → 当日命令总数（日历角标 + 禁用无数据日） */
+  const [dailyCommandCounts, setDailyCommandCounts] = useState<Record<string, number>>({});
+
   const dateStr = format(selectedDate, 'yyyy-MM-dd');
-  
-  // Fetch daily data when date or bot changes
+
+  // 日历：近 60 天每日命令总数（随 bot 变化）
+  useEffect(() => {
+    let cancelled = false;
+    const loadCounts = async () => {
+      try {
+        const rows = await dashboardApi.getDailyCommandCounts(60, selectedBot);
+        if (cancelled) return;
+        const record: Record<string, number> = {};
+        for (const item of rows ?? []) {
+          record[item.date] = item.count ?? 0;
+        }
+        setDailyCommandCounts(record);
+        // 当前选中日若无数据，跳到最近有命令的一天
+        const cur = format(selectedDate, 'yyyy-MM-dd');
+        if ((record[cur] ?? 0) <= 0) {
+          const latest = latestDateWithMetric(record);
+          if (latest) {
+            setSelectedDate(parse(latest, 'yyyy-MM-dd', new Date()));
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch daily command counts:', error);
+      }
+    };
+    void loadCounts();
+    return () => {
+      cancelled = true;
+    };
+    // selectedDate 不进 deps：避免跳转后重复拉 counts；bot 变才重拉
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional
+  }, [selectedBot]);
+
+  // Fetch daily charts when date or bot changes
   useEffect(() => {
     const fetchDailyData = async () => {
       setIsLoadingDaily(true);
@@ -131,32 +169,25 @@ export default function Dashboard() {
           dashboardApi.getDailyGroupTriggers(dateStr, selectedBot),
           dashboardApi.getDailyPersonalTriggers(dateStr, selectedBot),
         ]);
-        
-        const today = new Date();
-        const isToday = selectedDate.getDate() === today.getDate() &&
-                        selectedDate.getMonth() === today.getMonth() &&
-                        selectedDate.getFullYear() === today.getFullYear();
-                        
-        if (isToday && commands.length === 0 && groupTriggers.length === 0 && personalTriggers.length === 0) {
-          const yesterday = new Date(today);
-          yesterday.setDate(yesterday.getDate() - 1);
-          setSelectedDate(yesterday);
-          return;
-        }
-        
+
         setDailyCommandUsage(commands);
         setDailyGroupTriggers(groupTriggers);
         setDailyPersonalTriggers(personalTriggers);
-        
-        if (groupTriggers.length > 0) {
-          const firstItem = groupTriggers[0];
-          const cmds = Object.keys(firstItem).filter(k => k !== 'group');
-          setCommandTypeList(cmds);
-          const visibility: Record<string, boolean> = {};
-          cmds.forEach(cmd => { visibility[cmd] = true; });
-          setGroupTriggerVisibility(visibility);
-          setPersonalTriggerVisibility(visibility);
+
+        const cmds = collectCommandKeysFromTriggerRows(
+          [...groupTriggers, ...personalTriggers] as Array<Record<string, unknown>>,
+          ['group', 'user'],
+        );
+        for (const row of commands) {
+          if (row?.command && !cmds.includes(row.command)) cmds.push(row.command);
         }
+        setCommandTypeList(cmds);
+        const visibility: Record<string, boolean> = {};
+        cmds.forEach((cmd) => {
+          visibility[cmd] = true;
+        });
+        setGroupTriggerVisibility(visibility);
+        setPersonalTriggerVisibility(visibility);
       } catch (error) {
         console.error('Failed to fetch daily data:', error);
         setDailyCommandUsage([]);
@@ -166,8 +197,8 @@ export default function Dashboard() {
         setIsLoadingDaily(false);
       }
     };
-    fetchDailyData();
-  }, [selectedBot, selectedDate]);
+    void fetchDailyData();
+  }, [selectedBot, selectedDate, dateStr]);
 
   const metricCards = [
     { title: 'DAU', value: keyMetrics.dau.toLocaleString(), icon: Users, color: 'text-blue-500', desc: t('dashboard.dauDesc') },
@@ -312,7 +343,7 @@ export default function Dashboard() {
     ],
   }), [monthlyUserGroupData, monthlyUserGroupVisibility, t]);
 
-  // 命令使用量 - 水平柱状图
+  // 命令使用量 - 水平柱状图（每条命令独立配色）
   const commandUsageOption = useMemo<EChartsOption>(() => ({
     animationDuration: 800,
     animationEasing: 'cubicOut' as const,
@@ -320,7 +351,7 @@ export default function Dashboard() {
     xAxis: { type: 'value' },
     yAxis: {
       type: 'category',
-      data: dailyCommandUsage.map(d => d.command),
+      data: dailyCommandUsage.map((d) => d.command),
       axisLabel: { fontSize: 11 },
     },
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
@@ -335,9 +366,14 @@ export default function Dashboard() {
       {
         name: t('dashboard.callCount'),
         type: 'bar',
-        data: dailyCommandUsage.map(d => d.count),
+        data: dailyCommandUsage.map((d) => ({
+          value: d.count,
+          itemStyle: {
+            color: getCommandColor(d.command),
+            borderRadius: [0, 6, 6, 0],
+          },
+        })),
         barMaxWidth: 24,
-        itemStyle: { borderRadius: [0, 6, 6, 0] },
         emphasis: { focus: 'series' },
       },
     ],
@@ -392,10 +428,10 @@ export default function Dashboard() {
       name: cmd,
       type: 'bar' as const,
       stack: 'total',
-      data: dailyGroupTriggers.map(d => d[cmd] || 0),
+      data: dailyGroupTriggers.map((d) => d[cmd] || 0),
       barMaxWidth: 20,
       itemStyle: {
-        color: commandColors[cmd] || '#6b7280',
+        color: getCommandColor(cmd),
         borderRadius: index === commandTypeList.length - 1 ? [0, 6, 6, 0] : undefined,
       },
       emphasis: { focus: 'series' as const },
@@ -451,10 +487,10 @@ export default function Dashboard() {
       name: cmd,
       type: 'bar' as const,
       stack: 'total',
-      data: dailyPersonalTriggers.map(d => d[cmd] || 0),
+      data: dailyPersonalTriggers.map((d) => d[cmd] || 0),
       barMaxWidth: 20,
       itemStyle: {
-        color: commandColors[cmd] || '#6b7280',
+        color: getCommandColor(cmd),
         borderRadius: index === commandTypeList.length - 1 ? [0, 6, 6, 0] : undefined,
       },
       emphasis: { focus: 'series' as const },
@@ -599,30 +635,36 @@ export default function Dashboard() {
         </CardContent>
       </Card>
 
-      {/* Date Selector */}
-      <div className="flex items-center gap-4">
+      {/* Date Selector — 角标为当日命令数；0 禁用（样式对齐 /traces） */}
+      <div className="flex flex-wrap items-center gap-4">
         <h2 className="text-xl font-semibold">{t('dashboard.dateDetails')}</h2>
         <Popover>
           <PopoverTrigger asChild>
             <Button
               variant="outline"
               className={cn(
-                "w-[240px] justify-start text-left font-normal",
-                !selectedDate && "text-muted-foreground"
+                'w-[260px] justify-start text-left font-normal',
+                !selectedDate && 'text-muted-foreground',
               )}
             >
-              <Calendar className="mr-2 h-4 w-4" />
-              {selectedDate ? format(selectedDate, "yyyy-MM-dd") : t('dashboard.selectDate')}
+              <Calendar className="mr-2 h-4 w-4 shrink-0" />
+              <span className="truncate">
+                {selectedDate ? format(selectedDate, 'yyyy-MM-dd') : t('dashboard.selectDate')}
+              </span>
+              {(dailyCommandCounts[dateStr] ?? 0) > 0 && (
+                <span className="ml-auto pl-2 text-xs text-muted-foreground tabular-nums">
+                  {dailyCommandCounts[dateStr]}
+                </span>
+              )}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="start" side="bottom" sideOffset={8}>
-            <CalendarComponent
-              mode="single"
+            <MetricDayCalendar
               selected={selectedDate}
-              onSelect={(date) => date && setSelectedDate(date)}
-              defaultMonth={selectedDate}
-              initialFocus
-              className="pointer-events-auto"
+              onSelect={setSelectedDate}
+              metrics={dailyCommandCounts}
+              disableEmpty
+              formatMetric={(n) => String(n)}
             />
           </PopoverContent>
         </Popover>

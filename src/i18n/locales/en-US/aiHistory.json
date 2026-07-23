@@ -82,5 +82,7 @@
       "toReactive": "User message · reactive",
       "toProactive": "AI proactive message"
     }
-  }
+  },
+  "linkedAgents": "Linked agents",
+  "loadLinkedFailed": "Failed to load linked agents"
 }

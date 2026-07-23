@@ -150,5 +150,25 @@
   "preferenceFilterDo": "のみ do",
   "preferenceFilterDont": "のみ dont",
   "preferenceDisable": "ソフト無効化",
-  "preferenceEnable": "有効化"
+  "preferenceEnable": "有効化",
+  "tabSearch": "検索試行",
+  "search": {
+    "title": "二経路記憶検索",
+    "query": "クエリ",
+    "queryPlaceholder": "検索テキスト…",
+    "groupId": "グループ ID",
+    "userId": "ユーザー ID",
+    "userIdOptional": "任意",
+    "topK": "top_k",
+    "run": "検索",
+    "failed": "検索失敗",
+    "episodes": "Episodes",
+    "entities": "Entities",
+    "edges": "Edges",
+    "errors": {
+      "empty_query": "クエリを入力",
+      "empty_group": "グループ ID を入力",
+      "bad_top_k": "top_k は 1–50"
+    }
+  }
 }

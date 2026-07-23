@@ -1,0 +1,92 @@
+{
+  "title": "AI 運用診断",
+  "description": "なぜ AI に入る/入らないか、なぜ送信文が変わるか、アクセス制御と設定バックアップ。",
+  "loadFailed": "読込失敗",
+  "saveFailed": "保存失敗",
+  "saved": "保存しました",
+  "tabs": {
+    "trigger": "トリガー再生",
+    "access": "アクセス",
+    "output": "出力試行",
+    "security": "セキュリティ",
+    "snapshot": "スナップショット"
+  },
+  "status": {
+    "bots": "Bot オンライン",
+    "sessions": "生存 Session",
+    "followup": "続聊ウィンドウ",
+    "refresh": "状態更新",
+    "hint": "バッジをクリックして詳細を展開。Bot / Session / 続聊はプロセス内状態で、再起動で消えます。"
+  },
+  "bots": {
+    "total": "合計",
+    "connected": "オンライン",
+    "offline": "オフライン",
+    "online": "オンライン",
+    "empty": "active_bot なし"
+  },
+  "sessions": {
+    "count": "全 {count} 件",
+    "empty": "生存 AI Session なし",
+    "active": "アクティブ",
+    "idle": "アイドル",
+    "unknown": "不明"
+  },
+  "followup": {
+    "empty": "アクティブな続聊ウィンドウなし"
+  },
+  "access": {
+    "title": "AI ブラック / ホワイトリスト",
+    "desc": "入口ゲート。即時保存。ホワイトリストが非空のとき、リスト内のみ AI 可。",
+    "blackList": "ブラックリスト",
+    "whiteList": "ホワイトリスト",
+    "blackHint": "一致する user/group は AI に入らない",
+    "whiteHint": "非空時はリスト内のみ AI 可"
+  },
+  "security": {
+    "title": "セキュリティと続聊ポリシー",
+    "desc": "入口/出口と続聊に直結する項目のみ。markdown 画像化やツール召回は AI 基本設定へ。",
+    "advancedHint": "他のフィールドは？",
+    "advancedBody": "ツール召回・長文画像化・履歴マージ窓などはバックエンド security-output スナップショットに残ります。設定スナップショットのエクスポート、または AI 基本設定で確認してください。",
+    "fields": {
+      "content_guard_enable": "コンテンツガード",
+      "output_firewall_enable": "OOC ファイアウォール",
+      "follow_up_window": "続聊ウィンドウ(秒)",
+      "follow_up_max_total": "続聊上限(秒)",
+      "output_firewall_extra_terms": "FW 追加禁止語",
+      "memory_sensitive_extra_terms": "記憶センシティブ語"
+    }
+  },
+  "trigger": {
+    "title": "トリガー経路再生",
+    "desc": "ドライラン: enable → アクセス → persona → メンション/キーワード/続聊。LLM 呼び出しなし・送信なし。",
+    "placeholder": "メッセージ本文…",
+    "run": "ドライラン",
+    "failed": "再生失敗",
+    "wouldEnterAi": "AI に入る",
+    "blocked": "ブロック",
+    "noResponse": "無応答",
+    "unknown": "不明"
+  },
+  "output": {
+    "title": "OOC / 出力正規化の試行",
+    "desc": "送信前テキストがファイアウォールと正規化を通った結果をシミュレート。",
+    "userText": "ユーザー発話（身元質問ゲート用）",
+    "aiText": "AI 下書き",
+    "run": "試行",
+    "failed": "試行失敗"
+  },
+  "snapshot": {
+    "title": "設定スナップショット 入出力",
+    "desc": "AI 関連設定のバックアップ/移行用。インポートは即時書き込み（本番は注意）。",
+    "export": "エクスポート",
+    "import": "インポート",
+    "exported": "エクスポート済み",
+    "exportFailed": "エクスポート失敗",
+    "imported": "{count} 項目を適用",
+    "importFailed": "インポート失敗",
+    "invalidJson": "JSON が無効",
+    "invalidSnapshot": "スナップショットではありません",
+    "applyMemory": "memory_config も適用（注意）"
+  }
+}

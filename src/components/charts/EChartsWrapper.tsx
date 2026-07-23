@@ -93,18 +93,21 @@ export default function EChartsWrapper({
     };
 
     // 仅当用户 option 包含轴配置时，才注入轴主题样式
+    // `type: 'dashed' as const` — ECharts ZRLineType 不能收宽成 string
     const axisTheme = {
       axisLine: { lineStyle: { color: themeColors.axisLineColor } },
       axisTick: { lineStyle: { color: themeColors.axisLineColor } },
       axisLabel: { color: themeColors.textColor },
-      splitLine: { lineStyle: { color: themeColors.splitLineColor, type: 'dashed' } },
+      splitLine: {
+        lineStyle: { color: themeColors.splitLineColor, type: 'dashed' as const },
+      },
     };
 
     if (option.xAxis) {
-      baseOption.xAxis = axisTheme;
+      baseOption.xAxis = axisTheme as EChartsOption['xAxis'];
     }
     if (option.yAxis) {
-      baseOption.yAxis = axisTheme;
+      baseOption.yAxis = axisTheme as EChartsOption['yAxis'];
     }
 
     // Deep merge - user option takes precedence

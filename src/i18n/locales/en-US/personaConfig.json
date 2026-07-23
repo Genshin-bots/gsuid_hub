@@ -105,5 +105,10 @@
   "toolNamesPlaceholder": "Press Enter to add a tool name, e.g. send_stock_info",
   "toolNamesHint": "These tools are always merged into this persona's baseline tool pool without vector retrieval",
   "minutesUnit": "m",
-  "keywordsCountSuffix": ""
+  "keywordsCountSuffix": "",
+  "heartbeatStatus": "Heartbeat status",
+  "jobRegistered": "Job registered",
+  "jobMissing": "Job missing",
+  "heartbeatEnabled": "Heartbeat on",
+  "heartbeatDisabled": "Heartbeat off"
 }

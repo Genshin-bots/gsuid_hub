@@ -74,17 +74,12 @@ export const commandTypes = [
   '全天候', '删除自选', '加入自选', '我的自选', 'mr', '添加自选', '信息', '其他命令'
 ];
 
-// Command colors for stacked bars
-export const commandColors: Record<string, string> = {
-  '全天候': '#3b82f6',
-  '删除自选': '#ef4444',
-  '加入自选': '#22c55e',
-  '我的自选': '#f59e0b',
-  'mr': '#8b5cf6',
-  '添加自选': '#06b6d4',
-  '信息': '#ec4899',
-  '其他命令': '#6b7280',
-};
+/**
+ * @deprecated Prefer `getCommandColor` from `@/lib/featureUtils`.
+ * Kept for mock generators; Dashboard no longer uses this map as a sole source
+ * (unknown real command names used to fall back to gray #6b7280).
+ */
+export { COMMAND_COLOR_OVERRIDES as commandColors, getCommandColor } from '@/lib/featureUtils';
 
 // #TODO: Fetch daily group command triggers from backend API
 // Returns stacked data format for different commands per group

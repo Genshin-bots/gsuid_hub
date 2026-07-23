@@ -1,0 +1,5 @@
+{
+  "title": "状態ストア",
+  "description": "AI 永続状態（state_store）の閲覧と削除",
+  "batchDelete": "一括削除"
+}

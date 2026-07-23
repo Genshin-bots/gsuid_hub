@@ -83,11 +83,11 @@ const SUPPORTED_AUDIO_MIME_TYPES = [
 import {
   personaApi,
   frameworkConfigApi,
-  PersonaListItem,
-  PersonaFrameworkConfig,
-  PersonaConfig,
-  PersonaScope,
-  AIMode,
+  type PersonaListItem,
+  type PersonaFrameworkConfig,
+  type PersonaConfig,
+  type PersonaScope,
+  type AIMode,
 } from '@/lib/api';
 import { toast } from 'sonner';
 import { PinnedPage } from '@/components/layout/PinnedPage';
@@ -173,6 +173,12 @@ export default function PersonaConfigPage() {
   const [personaList, setPersonaList] = useState<PersonaListItem[]>([]);
   const [personaDetails, setPersonaDetails] = useState<Record<string, PersonaCardData>>({});
   const [personaConfigs, setPersonaConfigs] = useState<Record<string, PersonaConfig>>({});
+  const [heartbeatStatus, setHeartbeatStatus] = useState<
+    Record<
+      string,
+      { enabled: boolean; job_registered: boolean; inspect_interval: number | null; job_id: string | null }
+    >
+  >({});
   const [frameworkConfig, setFrameworkConfig] = useState<PersonaFrameworkConfig | null>(null);
   const [globalPersona, setGlobalPersona] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -247,16 +253,29 @@ export default function PersonaConfigPage() {
   const loadData = useCallback(async () => {
     try {
       setIsLoading(true);
-      const [listData, frameworkData, allConfigs, globalPersonaData] = await Promise.all([
+      const [listData, frameworkData, allConfigs, globalPersonaData, hbStatus] = await Promise.all([
         personaApi.getPersonaList(),
         personaApi.getFrameworkConfig(),
         personaApi.getAllPersonaConfigs().catch(() => ({} as Record<string, PersonaConfig>)),
         personaApi.getGlobalPersona().catch(() => null),
+        personaApi.getHeartbeatStatus().catch(() => null),
       ]);
       setPersonaList(listData);
       setFrameworkConfig(frameworkData);
       setPersonaConfigs(allConfigs);
       setGlobalPersona(globalPersonaData);
+      if (hbStatus?.items) {
+        const map: typeof heartbeatStatus = {};
+        for (const item of hbStatus.items) {
+          map[item.persona_name] = {
+            enabled: item.enabled,
+            job_registered: item.job_registered,
+            inspect_interval: item.inspect_interval,
+            job_id: item.job_id,
+          };
+        }
+        setHeartbeatStatus(map);
+      }
       // 加载每个人格的详情
       const detailsMap: Record<string, PersonaCardData> = {};
       await Promise.all(
@@ -742,6 +761,7 @@ export default function PersonaConfigPage() {
     const scope = persona.config?.scope || 'disabled';
     const aiModes = persona.config?.ai_mode || [];
     const inspectInterval = persona.config?.inspect_interval;
+    const hb = heartbeatStatus[persona.name];
     return (
       <Card
         key={persona.name}
@@ -824,6 +844,38 @@ export default function PersonaConfigPage() {
                   )}
                 </Button>
               </div>
+              {/* Heartbeat 运行态 */}
+              {hb && (
+                <div className="flex flex-wrap items-center gap-1 mt-1.5">
+                  <Badge
+                    variant={hb.enabled ? 'default' : 'secondary'}
+                    className="text-[10px] h-5 px-1.5"
+                  >
+                    {hb.enabled
+                      ? t('personaConfig.heartbeatEnabled')
+                      : t('personaConfig.heartbeatDisabled')}
+                  </Badge>
+                  <Badge
+                    variant={hb.job_registered ? 'default' : 'outline'}
+                    className={cn(
+                      'text-[10px] h-5 px-1.5',
+                      hb.job_registered
+                        ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20'
+                        : '',
+                    )}
+                  >
+                    {hb.job_registered
+                      ? t('personaConfig.jobRegistered')
+                      : t('personaConfig.jobMissing')}
+                  </Badge>
+                  {hb.inspect_interval != null && (
+                    <Badge variant="outline" className="text-[10px] h-5 px-1.5 font-mono">
+                      {t('personaConfig.inspectInterval')}: {hb.inspect_interval}
+                      {t('personaConfig.minutesUnit')}
+                    </Badge>
+                  )}
+                </div>
+              )}
               {/* 状态标签行 - 胶囊样式 */}
               <div className="flex items-center gap-2 mt-1.5">
                 <Badge

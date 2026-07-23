@@ -116,6 +116,42 @@ function formatDateTime(dateStr: string | null): string {
   }
 }
 
+/** 把列表项 / 详情接口可能缺字段的记录补成 MemeDetailDialog 可安全渲染的形状。
+ *  demo 下若 mock 未命中会返回 emptyFor 空对象，直接 `[...meme.emotion_tags]` 会抛错白屏。 */
+function normalizeMemeRecord(raw: Partial<MemeRecord> | null | undefined, fallback?: MemeRecord | null): MemeRecord | null {
+  if (!raw || typeof raw !== 'object') return fallback ?? null;
+  const base = fallback ?? null;
+  const asStringArray = (v: unknown, fb: string[] = []): string[] =>
+    Array.isArray(v) ? v.map(String) : fb;
+  const memeId = typeof raw.meme_id === 'string' && raw.meme_id
+    ? raw.meme_id
+    : base?.meme_id;
+  if (!memeId) return base;
+  return {
+    meme_id: memeId,
+    file_path: typeof raw.file_path === 'string' ? raw.file_path : (base?.file_path ?? ''),
+    file_size: typeof raw.file_size === 'number' ? raw.file_size : (base?.file_size ?? 0),
+    file_mime: typeof raw.file_mime === 'string' ? raw.file_mime : (base?.file_mime ?? 'image/png'),
+    width: typeof raw.width === 'number' ? raw.width : (base?.width ?? 0),
+    height: typeof raw.height === 'number' ? raw.height : (base?.height ?? 0),
+    source_group: typeof raw.source_group === 'string' ? raw.source_group : (base?.source_group ?? ''),
+    folder: typeof raw.folder === 'string' ? raw.folder : (base?.folder ?? 'common'),
+    persona_hint: typeof raw.persona_hint === 'string' ? raw.persona_hint : (base?.persona_hint ?? ''),
+    emotion_tags: asStringArray(raw.emotion_tags, base?.emotion_tags ?? []),
+    scene_tags: asStringArray(raw.scene_tags, base?.scene_tags ?? []),
+    description: typeof raw.description === 'string' ? raw.description : (base?.description ?? ''),
+    custom_tags: asStringArray(raw.custom_tags, base?.custom_tags ?? []),
+    status: (raw.status as MemeRecord['status']) || base?.status || 'tagged',
+    nsfw_score: typeof raw.nsfw_score === 'number' ? raw.nsfw_score : (base?.nsfw_score ?? 0),
+    use_count: typeof raw.use_count === 'number' ? raw.use_count : (base?.use_count ?? 0),
+    last_used_at: (raw.last_used_at as string | null | undefined) ?? base?.last_used_at ?? null,
+    last_used_group: typeof raw.last_used_group === 'string' ? raw.last_used_group : (base?.last_used_group ?? ''),
+    created_at: typeof raw.created_at === 'string' ? raw.created_at : (base?.created_at ?? ''),
+    tagged_at: (raw.tagged_at as string | null | undefined) ?? base?.tagged_at ?? null,
+    updated_at: typeof raw.updated_at === 'string' ? raw.updated_at : (base?.updated_at ?? ''),
+  };
+}
+
 // ============================================================================
 // Sub-components
 // ============================================================================
@@ -436,7 +472,7 @@ const MemeCard = memo(function MemeCard({
           >
             {formatImageType(meme.file_mime)}
           </Badge>
-          {meme.emotion_tags.slice(0, 3).map((tag) => (
+          {(Array.isArray(meme.emotion_tags) ? meme.emotion_tags : []).slice(0, 3).map((tag) => (
             <Badge
               key={tag}
               variant="secondary"
@@ -445,7 +481,7 @@ const MemeCard = memo(function MemeCard({
               {tag}
             </Badge>
           ))}
-          {meme.emotion_tags.length > 3 && (
+          {Array.isArray(meme.emotion_tags) && meme.emotion_tags.length > 3 && (
             <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-5">
               +{meme.emotion_tags.length - 3}
             </Badge>
@@ -500,11 +536,12 @@ function MemeDetailDialog({
   useEffect(() => {
     if (meme) {
       setEditDescription(meme.description || '');
-      setEditEmotionTags([...meme.emotion_tags]);
-      setEditSceneTags([...meme.scene_tags]);
-      setEditCustomTags([...meme.custom_tags]);
+      // 始终用 Array.isArray 兜底，避免缺字段时展开抛错导致整页白屏
+      setEditEmotionTags(Array.isArray(meme.emotion_tags) ? [...meme.emotion_tags] : []);
+      setEditSceneTags(Array.isArray(meme.scene_tags) ? [...meme.scene_tags] : []);
+      setEditCustomTags(Array.isArray(meme.custom_tags) ? [...meme.custom_tags] : []);
       setEditPersonaHint(meme.persona_hint || '');
-      setMoveTarget(meme.folder);
+      setMoveTarget(meme.folder || '');
     }
   }, [meme]);
 
@@ -1232,8 +1269,13 @@ export default function AIMemePage() {
       if (filterPersona && filterPersona !== PERSONA_ALL) params.persona_hint = filterPersona;
 
       const data = await memeApi.getList(params);
-      setMemes(data.records);
-      setTotal(data.total);
+      const records = Array.isArray(data?.records) ? data.records : [];
+      setMemes(
+        records
+          .map((r) => normalizeMemeRecord(r))
+          .filter((r): r is MemeRecord => r != null),
+      );
+      setTotal(typeof data?.total === 'number' ? data.total : records.length);
     } catch (error) {
       console.error('Failed to fetch memes:', error);
       toast.error(t('aiMeme.loadFailed'));
@@ -1376,13 +1418,19 @@ export default function AIMemePage() {
   // ============================================================================
 
   const handleMemeClick = useCallback(async (meme: MemeRecord) => {
+    // 先用列表项立刻打开弹窗（已规范化），避免等详情时空白；详情返回后再覆盖。
+    const safeListItem = normalizeMemeRecord(meme);
+    if (safeListItem) {
+      setSelectedMeme(safeListItem);
+      setDetailOpen(true);
+    }
     try {
       const detail = await memeApi.getDetail(meme.meme_id);
-      setSelectedMeme(detail);
+      const safe = normalizeMemeRecord(detail, safeListItem);
+      if (safe) setSelectedMeme(safe);
     } catch {
-      setSelectedMeme(meme);
+      // 列表项已展示，详情失败时保持列表数据即可
     }
-    setDetailOpen(true);
   }, []);
 
   const handleDetailUpdate = () => {
@@ -1391,7 +1439,13 @@ export default function AIMemePage() {
     fetchPersonas();
     // Refresh selected meme
     if (selectedMeme) {
-      memeApi.getDetail(selectedMeme.meme_id).then(setSelectedMeme).catch(() => {});
+      memeApi
+        .getDetail(selectedMeme.meme_id)
+        .then((detail) => {
+          const safe = normalizeMemeRecord(detail, selectedMeme);
+          if (safe) setSelectedMeme(safe);
+        })
+        .catch(() => {});
     }
   };
 

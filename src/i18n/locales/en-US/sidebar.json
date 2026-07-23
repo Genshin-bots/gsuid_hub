@@ -73,5 +73,8 @@
   "confirmPauseDesc": "Your bot will stop running after clicking the button",
   "confirmResumeTitle": "Are you sure you want to resume GsCore?",
   "confirmResumeDesc": "Your bot will continue running after clicking the button",
-  "settings": "Settings"
+  "settings": "Settings",
+  "stateStore": "State Store",
+  "groupProfile": "Group Profile",
+  "aiOps": "AI Ops Center"
 }

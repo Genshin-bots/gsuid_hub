@@ -231,5 +231,10 @@
       "batchDeleteSuccess": "批量删除完成：成功 {deleted} 条，未找到 {notFound} 条",
       "batchDeleteFailed": "批量删除失败"
     }
-  }
+  },
+  "applyPatch": "应用补丁",
+  "patchText": "补丁内容",
+  "patchSummary": "补丁摘要",
+  "patchSuccess": "补丁已提交",
+  "patchFailed": "补丁提交失败"
 }

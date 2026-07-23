@@ -1,0 +1,13 @@
+{
+  "title": "Group Profile",
+  "description": "View group context tags, term mappings, and member aliases (read-only)",
+  "scopes": "Group scopes",
+  "empty": "No group profiles",
+  "selectHint": "Select a group on the left",
+  "lastUpdated": "Last updated",
+  "tags": "Context tags",
+  "termMappings": "Term mappings",
+  "memberAliases": "Member aliases",
+  "loadFailed": "Failed to load group profiles",
+  "loadDetailFailed": "Failed to load profile detail"
+}

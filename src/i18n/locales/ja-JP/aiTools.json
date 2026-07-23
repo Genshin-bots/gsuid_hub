@@ -1,15 +1,50 @@
 {
   "title": "AI ツール",
   "description": "AIで利用できるツール関数を表示・管理します。分類やプラグインで絞り込めます",
-  "loadFailed": "AIを読込 ツール失敗",
-  "noTools": "なし利用可の AI ツール",
+  "loadFailed": "AIツールの読込に失敗",
+  "noTools": "利用可能な AI ツールがありません",
   "filterAll": "すべて",
-  "filterByCategory": "で分類",
-  "filterByPlugin": "でプラグイン",
-  "allCategories": "すべて分類",
-  "allPlugins": "すべてプラグイン",
-  "selectCategory": "選択分類",
-  "selectPlugin": "選択プラグイン",
-  "toolCount": "表示 {count} / {total} 個ツール",
-  "searchPlaceholder": "入力ツール名前または説明主要词..."
+  "filterByCategory": "分類",
+  "filterByPlugin": "プラグイン",
+  "allCategories": "すべての分類",
+  "allPlugins": "すべてのプラグイン",
+  "selectCategory": "分類を選択",
+  "selectPlugin": "プラグインを選択",
+  "toolCount": "{count} / {total} ツールを表示",
+  "searchPlaceholder": "ツール名または説明のキーワード…",
+  "tabs": {
+    "tools": "ツール一覧",
+    "assemble": "組立プレビュー",
+    "entityIndex": "エンティティ索引"
+  },
+  "diagnostics": {
+    "ok": "正常",
+    "emptyDescription": "説明なし",
+    "meta": "meta",
+    "filterAll": "すべて",
+    "filterIssues": "問題あり",
+    "filterEmpty": "説明なし"
+  },
+  "assemble": {
+    "title": "ツール組立プレビュー",
+    "description": "クエリで組み立てられる seeds と pool をプレビュー",
+    "query": "クエリ",
+    "queryPlaceholder": "例: キャラクターパネルを調べる",
+    "queryRequired": "クエリを入力してください",
+    "run": "プレビュー",
+    "failed": "プレビューに失敗",
+    "seeds": "Seeds",
+    "pool": "Pool",
+    "toolNoInfo": "ツール説明がありません"
+  },
+  "entityIndex": {
+    "title": "エンティティ索引",
+    "description": "L0 ルーティング用 surface とプラグイン対応",
+    "searchPlaceholder": "surface またはプラグインを検索…",
+    "surface": "Surface",
+    "plugins": "プラグイン",
+    "ambiguous": "曖昧",
+    "failed": "索引の読込に失敗",
+    "yes": "はい"
+  }
 }

@@ -150,5 +150,25 @@
   "preferenceFilterDo": "仅 do",
   "preferenceFilterDont": "仅 dont",
   "preferenceDisable": "软停用",
-  "preferenceEnable": "启用"
+  "preferenceEnable": "启用",
+  "tabSearch": "检索试跑",
+  "search": {
+    "title": "双路检索试跑",
+    "query": "查询文本",
+    "queryPlaceholder": "输入要检索的记忆内容…",
+    "groupId": "群组 ID",
+    "userId": "用户 ID",
+    "userIdOptional": "可选",
+    "topK": "top_k",
+    "run": "执行检索",
+    "failed": "检索失败",
+    "episodes": "Episodes",
+    "entities": "Entities",
+    "edges": "Edges",
+    "errors": {
+      "empty_query": "请输入查询文本",
+      "empty_group": "请输入群组 ID",
+      "bad_top_k": "top_k 需在 1–50"
+    }
+  }
 }

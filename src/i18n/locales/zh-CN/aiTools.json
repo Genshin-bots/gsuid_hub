@@ -11,5 +11,40 @@
   "selectCategory": "选择分类",
   "selectPlugin": "选择插件",
   "toolCount": "显示 {count} / {total} 个工具",
-  "searchPlaceholder": "输入工具名称或描述关键词..."
+  "searchPlaceholder": "输入工具名称或描述关键词...",
+  "tabs": {
+    "tools": "工具列表",
+    "assemble": "装配预览",
+    "entityIndex": "实体索引"
+  },
+  "diagnostics": {
+    "ok": "正常",
+    "emptyDescription": "空描述",
+    "meta": "meta",
+    "filterAll": "全部",
+    "filterIssues": "有问题",
+    "filterEmpty": "空描述"
+  },
+  "assemble": {
+    "title": "工具装配预览",
+    "description": "输入查询预览会装配出的 seeds 与 pool",
+    "query": "查询",
+    "queryPlaceholder": "例如：查询原神角色面板",
+    "queryRequired": "请输入查询内容",
+    "run": "预览",
+    "failed": "装配预览失败",
+    "seeds": "Seeds",
+    "pool": "Pool",
+    "toolNoInfo": "暂无工具描述"
+  },
+  "entityIndex": {
+    "title": "实体身份索引",
+    "description": "L0 路由实体表面形式与插件映射",
+    "searchPlaceholder": "搜索 surface 或插件...",
+    "surface": "Surface",
+    "plugins": "插件",
+    "ambiguous": "歧义",
+    "failed": "加载实体索引失败",
+    "yes": "是"
+  }
 }

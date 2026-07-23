@@ -50,6 +50,9 @@ import module48 from './aiArtifacts.json';
 import module49 from './memorySettings.json';
 import module50 from './logsConfig.json';
 
+import module_stateStore from './stateStore.json';
+import module_groupProfile from './groupProfile.json';
+import module_aiOps from './aiOps.json';
 const locale = {
   "common": module0,
   "login": module1,
@@ -101,7 +104,10 @@ const locale = {
   "aiDebug": module47,
   "aiArtifacts": module48,
   "memorySettings": module49,
-  "logsConfig": module50
+  "logsConfig": module50,
+  "groupProfile": module_groupProfile,
+  "stateStore": module_stateStore,
+  "aiOps": module_aiOps
 } as const;
 
 export default locale;
