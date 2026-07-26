@@ -98,3 +98,20 @@ const aiConfigChildren: NavItem[] = isAIEnabled
 2. 新图标 → `import` + 加入 `ICON_MAP`。
 3. 三语言 `sidebar.json` 加 `xxx` 文案（见 [§02](./02-i18n.md)）。
 4. `App.tsx` 注册路由、创建页面（见 [§01](./01-architecture-and-conventions.md)、[§04](./04-page-layout-spec.md)）。
+
+## 9.7 运维分组中的 Live Chat 示例
+
+`/live-chat` 挂在运维相关子菜单（与会话管理、批量推送并列），登记方式：
+
+```tsx
+// AppSidebar.tsx — getNavItems 子项
+{ id: 'liveChat', title: t('sidebar.liveChat'), url: '/live-chat', icon: MessageCircle },
+
+// ICON_MAP
+MessageCircle,
+
+// sidebar.json（三语言）
+"liveChat": "实时聊天" | "Live Chat" | "リアルタイムチャット"
+```
+
+页面与协议细节见 [§11](./11-live-chat.md)；`App.tsx` 路由：`path="live-chat"`。

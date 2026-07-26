@@ -66,9 +66,10 @@ import {
   Eraser,
   RotateCw,
 } from 'lucide-react';
-import { memeApi, MemeRecord, MemeStatsData, MemeListParams, MemePersona } from '@/lib/api';
+import { memeApi, MemeRecord, MemeStatsData, MemeListParams, MemePersona, getApiErrorMessage } from '@/lib/api';
 import { PinnedPage } from '@/components/layout/PinnedPage';
 import { toast } from 'sonner';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 // ============================================================================
 // Types
@@ -1240,6 +1241,10 @@ export default function AIMemePage() {
   const [isRetaggingPending, setIsRetaggingPending] = useState(false);
   const [showPurgeDialog, setShowPurgeDialog] = useState(false);
   const [showRetagPendingDialog, setShowRetagPendingDialog] = useState(false);
+  // 按条件清空（全部 / 当前筛选）
+  const [showPurgeAllDialog, setShowPurgeAllDialog] = useState(false);
+  const [purgeScope, setPurgeScope] = useState<'filtered' | 'all'>('filtered');
+  const [isPurgingAll, setIsPurgingAll] = useState(false);
   // === .meme 导入对话框状态 ===
   const [showImportDotMemeDialog, setShowImportDotMemeDialog] = useState(false);
   const [importDotMemeFile, setImportDotMemeFile] = useState<File | null>(null);
@@ -1553,9 +1558,64 @@ export default function AIMemePage() {
       fetchStats();
       fetchPersonas();
     } catch (error) {
-      toast.error(t('aiMeme.purgeRejectedFailed'));
+      toast.error(getApiErrorMessage(error, t('aiMeme.purgeRejectedFailed')));
     } finally {
       setIsPurging(false);
+    }
+  };
+
+  // 按条件清空：全部(purge_all) 或 当前筛选（status / folder / persona；不含语义搜索）
+  const handlePurgeAll = async () => {
+    try {
+      setIsPurgingAll(true);
+
+      const params: {
+        confirm: true;
+        purge_all?: boolean;
+        status?: string;
+        folder?: string;
+        persona_hint?: string;
+      } = { confirm: true };
+
+      if (purgeScope === 'all') {
+        params.purge_all = true;
+      } else {
+        if (filterStatus) params.status = filterStatus;
+        if (filterFolder) {
+          params.folder = filterFolder;
+        } else if (filterPersona && filterPersona !== PERSONA_ALL) {
+          params.persona_hint = filterPersona;
+        }
+        if (!params.status && !params.folder && !params.persona_hint) {
+          toast.error(t('aiMeme.purgeFilteredNoFilter'));
+          return;
+        }
+      }
+
+      toast.info(t('aiMeme.purgeAllWorking'));
+      const result = await memeApi.purge(params);
+      if (result.purged_count === 0) {
+        toast.info(t('aiMeme.purgeAllNone'));
+      } else if (!result.failed?.length) {
+        toast.success(t('aiMeme.purgeAllSuccess', { count: result.purged_count }));
+      } else {
+        toast.warning(
+          t('aiMeme.purgeAllPartial', {
+            success: result.purged_count,
+            failed: result.failed.length,
+          }),
+        );
+      }
+      setShowPurgeAllDialog(false);
+      setSelectedIds(new Set());
+      setPage(1);
+      fetchMemes();
+      fetchStats();
+      fetchPersonas();
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, t('aiMeme.purgeAllFailed')));
+    } finally {
+      setIsPurgingAll(false);
     }
   };
 
@@ -1624,6 +1684,21 @@ export default function AIMemePage() {
               >
                 <RotateCw className="w-4 h-4" />
                 {t('aiMeme.batchRetagPending')}
+              </Button>
+            )}
+            {(stats?.total ?? total) > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setPurgeScope('filtered');
+                  setShowPurgeAllDialog(true);
+                }}
+                disabled={isPurgingAll}
+                className="gap-1.5 whitespace-nowrap border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+              >
+                <Trash2 className="w-4 h-4" />
+                {t('aiMeme.purgeAll')}
               </Button>
             )}
             <Button
@@ -2050,6 +2125,51 @@ export default function AIMemePage() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {isPurging && <Loader2 className="w-4 h-4 animate-spin mr-1.5" />}
+              {t('common.confirm')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Purge All / Filtered Confirm Dialog */}
+      <AlertDialog open={showPurgeAllDialog} onOpenChange={(open) => !isPurgingAll && setShowPurgeAllDialog(open)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('aiMeme.purgeAllConfirm')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('aiMeme.purgeAllConfirmDesc')}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <RadioGroup
+            value={purgeScope}
+            onValueChange={(v) => setPurgeScope(v as 'filtered' | 'all')}
+            className="gap-3 py-2"
+            disabled={isPurgingAll}
+          >
+            <label className="flex items-start gap-3 rounded-md border border-border p-3 cursor-pointer hover:bg-muted/40">
+              <RadioGroupItem value="filtered" id="purge-scope-filtered" className="mt-0.5" />
+              <span className="text-sm leading-snug">
+                {t('aiMeme.purgeScopeFiltered', { count: total })}
+              </span>
+            </label>
+            <label className="flex items-start gap-3 rounded-md border border-border p-3 cursor-pointer hover:bg-muted/40">
+              <RadioGroupItem value="all" id="purge-scope-all" className="mt-0.5" />
+              <span className="text-sm leading-snug">
+                {t('aiMeme.purgeScopeAll', { count: stats?.total ?? total })}
+              </span>
+            </label>
+          </RadioGroup>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isPurgingAll}>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                void handlePurgeAll();
+              }}
+              disabled={isPurgingAll}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isPurgingAll && <Loader2 className="w-4 h-4 animate-spin mr-1.5" />}
               {t('common.confirm')}
             </AlertDialogAction>
           </AlertDialogFooter>

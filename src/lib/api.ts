@@ -740,6 +740,54 @@ export const configApi = {
 };
 
 // ===================
+// Live Chat（控制台实时聊天状态，持久化到 core data 目录）
+// ===================
+
+export interface LiveChatIdentityDto {
+  userId: string;
+  nickname: string;
+  avatar: string;
+  botSelfId: string;
+}
+
+export interface LiveChatConversationDto {
+  id: string;
+  type: 'group' | 'direct' | string;
+  targetId: string;
+  name: string;
+  messages: unknown[];
+  updatedAt: number;
+  lastPreview?: string | null;
+}
+
+export interface LiveChatStateDto {
+  identity: LiveChatIdentityDto;
+  conversations: LiveChatConversationDto[];
+  activeId?: string | null;
+}
+
+export const liveChatApi = {
+  /** 组装完整状态（identity + index + 各会话文件） */
+  getState: () => api.get<LiveChatStateDto>('/api/live-chat/state'),
+  /** 整包拆分写入多文件 */
+  putState: (state: LiveChatStateDto) =>
+    api.put<LiveChatStateDto>('/api/live-chat/state', state),
+  putIdentity: (identity: LiveChatIdentityDto) =>
+    api.put<LiveChatIdentityDto>('/api/live-chat/identity', identity),
+  putIndex: (index: {
+    activeId?: string | null;
+    conversations: Array<Omit<LiveChatConversationDto, 'messages'>>;
+  }) => api.put('/api/live-chat/index', index),
+  putConversation: (conv: LiveChatConversationDto) =>
+    api.put<LiveChatConversationDto>(
+      `/api/live-chat/conversations/${encodeURIComponent(conv.id)}`,
+      conv,
+    ),
+  deleteConversation: (id: string) =>
+    api.delete(`/api/live-chat/conversations/${encodeURIComponent(id)}`),
+};
+
+// ===================
 // Plugins APIs (New - separate list and detail endpoints)
 // ===================
 
@@ -3609,7 +3657,20 @@ export const memeApi = {
     return data.data;
   },
 
-  // 清除所有已拒绝的表情包
+  // 按条件批量清空：全库须 purge_all=true；条件清空须 status/folder/persona_hint 之一
+  purge: (params: {
+    confirm: true;
+    purge_all?: boolean;
+    status?: string;
+    folder?: string;
+    persona_hint?: string;
+  }) =>
+    api.post<{ purged_count: number; failed: Array<{ meme_id: string; reason: string }> }>(
+      '/api/meme/purge',
+      params
+    ),
+
+  // 清除所有已拒绝的表情包（兼容旧接口）
   purgeRejected: () =>
     api.post<{ purged_count: number; failed: Array<{ meme_id: string; reason: string }> }>(
       '/api/meme/purge_rejected',

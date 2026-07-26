@@ -53,6 +53,7 @@ import module50 from './logsConfig.json';
 import module_stateStore from './stateStore.json';
 import module_groupProfile from './groupProfile.json';
 import module_aiOps from './aiOps.json';
+import module_liveChat from './liveChat.json';
 const locale = {
   "common": module0,
   "login": module1,
@@ -107,7 +108,8 @@ const locale = {
   "logsConfig": module50,
   "groupProfile": module_groupProfile,
   "stateStore": module_stateStore,
-  "aiOps": module_aiOps
+  "aiOps": module_aiOps,
+  "liveChat": module_liveChat
 } as const;
 
 export default locale;

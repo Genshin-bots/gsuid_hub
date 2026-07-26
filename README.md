@@ -18,7 +18,7 @@ GsCore 网页控制台前端项目。该项目为 [gsuid_core](https://github.co
 | **配置管理** | 核心 / 框架 / 数据库 / 状态 / 图片上传与发送配置 | `/core-config`、`/framework-config`、`/database-config`、`/state-config` |
 | **插件生态** | 本地插件、商城、安装更新卸载、Git 镜像与更新 | `/plugins`、`/plugin-store`、`/git-update` |
 | **AI 能力** | 提供方与模型、人格、MCP、能力代理、工具、技能、知识、记忆、表情、定时任务、看板、审批、预算、统计、会话与运行日志 | `/ai-*`、`/persona-config`、`/mcp-config`、`/session-management` |
-| **运维与设置** | 实时控制台、历史日志、命令追踪、调度、备份、主题、账户 | `/console`、`/logs`、`/traces`、`/scheduler`、`/backup`、`/themes`、`/settings` |
+| **运维与设置** | 实时控制台、**实时聊天（控制台适配器）**、历史日志、命令追踪、调度、备份、主题、账户 | `/console`、`/live-chat`、`/logs`、`/traces`、`/scheduler`、`/backup`、`/themes`、`/settings` |
 
 ## 技术栈
 
@@ -33,7 +33,7 @@ GsCore 网页控制台前端项目。该项目为 [gsuid_core](https://github.co
 | 图表与可视化 | Recharts、ECharts、echarts-for-react、Graphology、Sigma |
 | Markdown | react-markdown、remark-gfm、rehype-raw、react-syntax-highlighter |
 | 主题 | CSS Variables、Tailwind、内置亮/暗色与毛玻璃主题系统 |
-| 国际化 | 自定义 i18n，上下文驱动，支持 `zh-CN` / `en-US` / `ja-JP`（每种语言按模块拆分为 45 个 JSON） |
+| 国际化 | 自定义 i18n，上下文驱动，支持 `zh-CN` / `en-US` / `ja-JP`（每种语言按模块拆分为独立 JSON，含 `liveChat` 等） |
 | 通知 | shadcn toast、sonner |
 
 ## 项目结构
@@ -55,11 +55,12 @@ GsCore 网页控制台前端项目。该项目为 [gsuid_core](https://github.co
 │   │   ├── charts/               # 图表封装（EChartsWrapper 等）
 │   │   ├── config/               # 配置表单、动态配置面板、配置字段组件
 │   │   ├── layout/               # AppLayout / AppSidebar / PinnedPage
+│   │   ├── live-chat/            # Live Chat UI（气泡 / 侧栏 / 输入 / 连接徽章）
 │   │   └── ui/                   # shadcn/ui 与项目扩展 UI 组件
 │   ├── contexts/                 # Auth / Theme / Language / ConfigDirty / AIStatus / Brand
 │   ├── hooks/                    # use-mobile、useSystemControl
 │   ├── i18n/locales/             # 多语言资源（zh-CN / en-US / ja-JP）
-│   ├── lib/                      # API 客户端、演示 Mock、工具函数
+│   ├── lib/                      # API 客户端、liveChat 协议/WS、演示 Mock、工具函数
 │   ├── pages/                    # 页面组件（复杂页面拆子目录，如 AIConfig/）
 │   ├── App.tsx                   # 应用入口与路由定义
 │   ├── main.tsx                  # React 挂载入口
@@ -89,6 +90,7 @@ GsCore 网页控制台前端项目。该项目为 [gsuid_core](https://github.co
 | `/logs` | LogsPage | 历史日志查询、过滤与上下文查看 |
 | `/traces` | TracesPage | 命令执行追踪日志与链路详情 |
 | `/console` | ConsolePage | 实时控制台与远程命令执行 |
+| `/live-chat` | LiveChatPage | 控制台内嵌适配器：经 WS 完整对接早柚协议（文本/媒体/按钮/引用/@/戳一戳/echo） |
 | `/scheduler` | SchedulerPage | 调度任务查看、执行、暂停与删除 |
 | `/themes` | ThemesPage | 主题、背景、颜色与风格配置 |
 | `/settings` | SettingsPage | 账户、头像、用户名与密码设置 |
@@ -105,7 +107,7 @@ GsCore 网页控制台前端项目。该项目为 [gsuid_core](https://github.co
 | `/ai-skills` | AISkillsPage | AI 技能列表、详情、克隆、编辑与删除 |
 | `/ai-knowledge` | AIKnowledgePage | AI 知识库分页、搜索、批量导入与文档管理 |
 | `/ai-memory` | AIMemoryPage | AI 记忆浏览、知识图谱与记忆刷新/删除 |
-| `/ai-meme` | AIMemePage | AI 表情包素材管理、上传、打标、移动与删除 |
+| `/ai-meme` | AIMemePage | AI 表情包素材管理、上传、打标、移动、按条件清空与删除 |
 | `/ai-scheduled-tasks` | AIScheduledTasksPage | AI 定时任务创建、暂停、恢复与删除 |
 | `/ai-kanban` | AIKanbanPage | AI 长任务看板（列内滚动 + 横向滚动） |
 | `/ai-approvals` | AIApprovalsPage | AI 高危操作审批中心 |
@@ -122,7 +124,7 @@ GsCore 网页控制台前端项目。该项目为 [gsuid_core](https://github.co
 | 骨架 | 用法 | 行为 | 例子 |
 | --- | --- | --- | --- |
 | **`<PinnedPage>`**（默认，26 个页面） | `src/components/layout/PinnedPage.tsx` | 桌面（≥768px）标题区、同行按钮与**操作控件行**（`toolbar`）**常驻视口**，只有下方内容滚动；移动端（<768px）退回普通滚动 | `/ai-tools`、`/ai-meme`、`/plugins` |
-| **`.page-fill`** | 根容器 `page-fill flex glass-card` | 无标题的全高单卡片，四边与悬浮侧栏对齐，内部自己分栏滚动 | `/ai-history`、`/session-management` |
+| **`.page-fill`** | 根容器 `page-fill flex glass-card` | 无标题的全高单卡片，四边与悬浮侧栏对齐，内部自己分栏滚动 | `/ai-history`、`/session-management`、`/live-chat` |
 | **`.page-viewport`** | 根容器加 `page-viewport` | 有标题但页面内部自管滚动（横向看板） | `/ai-kanban` |
 
 ```tsx
@@ -187,10 +189,19 @@ import { PinnedPage } from '@/components/layout/PinnedPage';
 - 能力代理：节点工具包、关键词匹配、工具选择与边界覆盖。
 - 工具与技能：工具浏览、技能详情、Git 克隆、Markdown 编辑。
 - 知识与记忆：文本/图片知识库、批量分片导入、记忆数据库与图谱可视化。
-- 表情包管理：素材上传、VLM 打标、标签编辑、使用统计与文件夹管理。
+- 表情包管理：素材上传、VLM 打标、标签编辑、使用统计、文件夹管理与**按条件清空**（筛选/全部）。
 - 长任务与审批：任务看板、高危操作审批中心。
 - 预算与统计：预算规则/白名单/用量诊断、Token 与费用统计。
 - 会话与日志：历史会话、OpenAI 格式消息、运行事件日志、子 Agent 链路与统计。
+
+### 实时聊天（Live Chat · 控制台内嵌适配器）
+
+- 路由 `/live-chat`：浏览器扮演 GsCore 平台适配器，经 WebSocket `/ws/webconsole_livechat` 上报
+  `MessageReceive`、接收 `MessageSend`（二进制 JSON 帧）。
+- 支持文本、图片、语音、视频、文件、@、引用回复、Markdown、按钮、合并转发、戳一戳、echo 回执与撤回控制包。
+- 会话与身份经 `/api/live-chat/*` 持久化到后端（localStorage 仅作兜底与迁移）；同会话发送有等待锁，避免 core 约 8s 队列 TTL 丢包。
+- 实现分层：`src/lib/liveChat/`（协议 / WS / 存储 / 媒体）+ `src/components/live-chat/`（UI）+ `LiveChatPage`（编排）。
+- 开发与维护约定见 [`docs/skills/gshub-development/references/11-live-chat.md`](docs/skills/gshub-development/references/11-live-chat.md)。
 
 ### 日志、调度与维护
 
@@ -259,7 +270,8 @@ import { PinnedPage } from '@/components/layout/PinnedPage';
 | [七](docs/skills/gshub-development/references/07-config-pages-and-state.md) | 配置页与脏检查竞态 |
 | [八](docs/skills/gshub-development/references/08-page-patterns.md) | 页面模式与 Dialog 无障碍 |
 | [九](docs/skills/gshub-development/references/09-sidebar-navigation.md) | 侧边栏与导航 |
-| [十](docs/skills/gshub-development/references/10-pitfalls-and-performance.md) | **已知坑（P-1 ~ P-27）+ 性能 + 落地清单** |
+| [十](docs/skills/gshub-development/references/10-pitfalls-and-performance.md) | **已知坑（P-1 ~ P-32）+ 性能 + 落地清单** |
+| [十一](docs/skills/gshub-development/references/11-live-chat.md) | **Live Chat**（早柚协议、WS 适配器、状态持久化、发送等待锁） |
 
 ## 演示模式（Demo Mode）
 

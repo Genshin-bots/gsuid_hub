@@ -406,6 +406,57 @@ min-content 宽 = 整句话的宽度，**永不收缩**。把它塞进 `flex ite
 **自检**：窄屏（390 / 360）下遍历 DOM，任何元素的 `getBoundingClientRect().right` 都不应超过
 `.layout-page-inner` 的右边界；同时留意某个文本节点的**高度异常大**（= 被挤成竖条）。
 
+### P-30 Live Chat / 长连接：handler 进 useEffect 依赖 → WS 断连风暴 ★★★
+
+**症状**：改昵称、切会话、语言切换后「消息发出去了但 AI 从不回复」；Network 里 WS 反复
+close/open；core 日志出现请求被丢弃。
+
+**根因**：把 `onMessage` 闭包或 `identity` / `conversations` / `t` 放进「建连」的
+`useEffect` 依赖 → 每次状态更新都 `disconnect` + 新建 socket。Core 适配器队列里的未完成
+请求超过 **STALE_CHAT_REQUEST_TTL ≈ 8s** 会被当作陈旧请求丢弃。
+
+**修法**：
+
+```tsx
+const handleIncomingRef = useRef<(msg: MessageSend) => void>(() => {});
+handleIncomingRef.current = (msg) => { /* 读 identityRef / activeIdRef / tRef */ };
+
+useEffect(() => {
+  if (!coreLoaded) return;
+  const client = new LiveChatWsClient({ token: wsToken, … });
+  client.setHandlers({ onMessage: (m) => handleIncomingRef.current(m) });
+  client.connect();
+  return () => client.disconnect();
+}, [coreLoaded, wsToken]); // 仅建连相关；禁止 identity / conversations / t
+```
+
+同类长连接（Console 日志 WS 等）同样适用。详见 [§11 §11.4](./11-live-chat.md)。
+
+### P-31 Live Chat：同会话连发被 8s 队列 TTL 丢弃 ★★
+
+**症状**：用户快速连发两条，只有第一条有回复，或两条都没回复；后端侧请求「进了队列又没了」。
+
+**根因**：GsCore 对适配器未完成 chat 请求有约 **8 秒** 陈旧 TTL。同一会话在上一轮 AI 还在跑时
+再上报，后发请求可能在队列里等到超时被丢。
+
+**修法**（`LiveChatPage` 已实现）：
+
+- `awaitingByConv[convId]`：发送成功置 true；收到 `role==='bot'` 或 120s 保险超时后清 false；
+- 发送 / +1 / 重试前若 awaiting → `toast.message(t('liveChat.waitForReply'))` 并 return；
+- 空下发（TTL 丢弃导致 content 无有效段）**不要画气泡**，但仍要处理 `echo` 回执。
+
+详见 [§11 §11.6](./11-live-chat.md)。
+
+### P-32 早柚协议历史 typo 字段不要「纠正」★
+
+后端 / 协议里长期存在：
+
+- `ButtonData.permisson`（应为 permission）
+- `excute_delete_message` / `excute_ban_user`（应为 execute_…）
+
+前端 `types.ts` / `protocol.ts` **必须原样对齐**。改成正确拼写会导致按钮权限与撤回/禁言
+控制包全部失效。若后端某天正式改名，再做兼容双读。
+
 ## B. 性能优化
 
 ### B.1 图片
@@ -457,4 +508,6 @@ min-content 宽 = 整句话的宽度，**永不收缩**。把它塞进 `flex ite
 - [ ] 配置页脏检查同时比 `config` 与 `rawConfig`，原始快照等全部加载完再设（[§07](./07-config-pages-and-state.md)）
 - [ ] 双态 UI 的动作/图标/文案都按同一条件分支（P-4）
 - [ ] 三元 + 字符串拼接整体加括号（P-1）
+- [ ] Live Chat / 长连接：WS handler 用 ref，建连 effect 不依赖业务 state（P-30）；同会话防连发（P-31）
+- [ ] 协议 typo 字段保持兼容（P-32）；详见 [§11](./11-live-chat.md)
 - [ ] `npx tsc --noEmit -p tsconfig.app.json` 不新增报错

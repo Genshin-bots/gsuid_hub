@@ -12,7 +12,9 @@ description: >
   "Switch 主题色 / Switch 被 Tooltip 包裹失效"、"Radix Select 空值报错"、
   "渐进式配置页 / EXPECTED_CONFIG_KEYS / rawConfig / 预料之外配置项"、
   "保存按钮误亮 / dirty 检查 / originalConfig 竞态"、"卡片列表页 / 表格详情页 / Dialog 弹窗 / 移动端适配"、
-  "API 怎么封装 / 401 跳登录 / getLoginPath"、"改前端要注意什么 / 有哪些已知坑 / 性能优化"时触发此 SKILL。
+  "API 怎么封装 / 401 跳登录 / getLoginPath"、"改前端要注意什么 / 有哪些已知坑 / 性能优化"、
+  "Live Chat / 实时聊天 / webconsole_livechat / MessageReceive / MessageSend / 早柚协议 /
+  控制台适配器 / WS 二进制帧 / echo 回执 / STALE_CHAT_REQUEST_TTL / awaitingByConv"时触发此 SKILL。
   凡是改动 `src/`（React + TS 前端控制台）的任务都应优先读取此 SKILL。
 
   面向 **GsCore Web 控制台（gsuid_hub，前端 React 项目）开发者与维护者**的系统级开发规范指南。
@@ -24,7 +26,8 @@ description: >
   text-3xl 标题 / 内联 w-8 h-8 图标 / 副标题 / 间距标尺 / 三态）、表单与筛选控件
   统一规范（统一 h-9、Radix Select 哨兵、Tooltip 字段说明、Switch UX）、强制复用的封装组件目录
   （TabButtonGroup / InputWithDropdown / TagsInput / ChipGroup / DynamicConfigPanel）、渐进式配置页
-  与脏检查竞态、几类页面模式（卡片列表 / 表格详情 / Dialog / 移动端）、侧边栏多级菜单与稳定 id，
+  与脏检查竞态、几类页面模式（卡片列表 / 表格详情 / Dialog / 移动端）、侧边栏多级菜单与稳定 id、
+  **Live Chat 控制台内嵌适配器**（早柚协议 WS、段解析、状态持久化、8s 队列 TTL）、
   以及一份**前端已知坑 + 性能 + 落地清单**。**源码永远是唯一事实源**，本 SKILL 是设计意图与规范的沉淀。
 ---
 
@@ -60,7 +63,8 @@ description: >
 | 七 | 配置页与状态管理（渐进式配置页 + `EXPECTED_CONFIG_KEYS`/`rawConfig`、双重 dirty 检查、保存竞态、AIConfig 设计、**任务配置主备双配置**） | [references/07-config-pages-and-state.md](./references/07-config-pages-and-state.md) |
 | 八 | 页面模式与 Dialog 规范（卡片列表页 / 表格详情 / Dialog/Modal / 双态 UI / 移动端 / SSH URL / API 设计经验） | [references/08-page-patterns.md](./references/08-page-patterns.md) |
 | 九 | 侧边栏与导航（`getNavItems`、稳定 `id` 作 key、`ICON_MAP`、AI 启用态条件子菜单、自动展开） | [references/09-sidebar-navigation.md](./references/09-sidebar-navigation.md) |
-| 十 | 已知坑 + 性能 + 落地清单（P-1~P-22 坑、性能优化、新页面落地自查清单总表） | [references/10-pitfalls-and-performance.md](./references/10-pitfalls-and-performance.md) |
+| 十 | 已知坑 + 性能 + 落地清单（P-1~P-32 坑、性能优化、新页面落地自查清单总表） | [references/10-pitfalls-and-performance.md](./references/10-pitfalls-and-performance.md) |
+| 十一 | **Live Chat**（控制台内嵌适配器：早柚协议、WS 二进制帧、段解析、状态持久化、发送等待锁） | [references/11-live-chat.md](./references/11-live-chat.md) |
 
 ## 推荐阅读顺序（按需跳转）
 
@@ -69,13 +73,15 @@ description: >
 3. **做配置类页面**：重点看 [七、配置页与状态](./references/07-config-pages-and-state.md)（dirty 检查竞态是最容易踩的坑）。
 4. **做列表/详情/弹窗类页面**：看 [八、页面模式](./references/08-page-patterns.md)。
 5. **改主题/样式**：看 [三、主题与样式](./references/03-theme-and-styling.md)。
-6. **动手前必读**：[十、已知坑 + 性能 + 落地清单](./references/10-pitfalls-and-performance.md)——这一章是"别人替你踩过的坑"，写代码前过一遍能省大量返工。
+6. **改 Live Chat / 早柚协议 / 控制台 WS 适配器**：看 [十一、Live Chat](./references/11-live-chat.md)（协议分层、echo、8s TTL、handler ref）。
+7. **动手前必读**：[十、已知坑 + 性能 + 落地清单](./references/10-pitfalls-and-performance.md)——这一章是"别人替你踩过的坑"，写代码前过一遍能省大量返工。
 
 ## 关键概念速记（先看这一段再决定读哪一章）
 
 - **标题页一律用 `<PinnedPage>` ★★★**：「H1 + 副标题 + 内容流」的页面（全站 26 个）根容器是 `<PinnedPage header={…} toolbar={…}>`，**不要**再手写 `<div className="space-y-6">`。桌面（≥768px）标题区 + 同行按钮 + **操作控件行**常驻视口、只有内容滚；移动端（<768px）退回普通滚动（标题跟着滚走——移动端竖向空间稀缺）。详见 [§04 §4.1.0](./references/04-page-layout-spec.md)、[§06 §6.0](./references/06-reusable-component-catalog.md)。
 - **`toolbar` 的取舍：操作控件进、数据展示留 ★★**：紧贴标题下方那一块，是 `TabButtonGroup` / 二级切换 / 筛选搜索栏（如 /ai-knowledge 的「文本知识 / 图片知识」、/ai-capability-agents 的来源筛选）→ 放 `toolbar={…}` 随标题常驻；是统计卡 / 看板 / 提示 banner（如 /ai-memory、/dashboard）→ 留在 `children` 跟着滚。全站 13 个页面有 `toolbar`、13 个没有。详见 [§04 §4.1.0](./references/04-page-layout-spec.md)。
-- **页面共享同一套排版骨架**：页边距由 AppLayout 统一提供（**不得**写 `p-6` / `overflow-auto` / `max-w-7xl mx-auto`）。三类骨架互斥：`<PinnedPage>`（标题页，默认）/ `.page-fill`（无标题全高单卡片，如 /ai-history）/ `.page-viewport`（有标题但内部自管滚动，如 /ai-kanban）。标题统一 `text-3xl font-bold` + 内联图标 `w-8 h-8`（**不加**背景容器），副标题 `text-muted-foreground mt-1`（**不加** `text-sm`）。参考页 `AIToolsPage` / `AIHistoryPage`。详见 [§04](./references/04-page-layout-spec.md)。
+- **页面共享同一套排版骨架**：页边距由 AppLayout 统一提供（**不得**写 `p-6` / `overflow-auto` / `max-w-7xl mx-auto`）。三类骨架互斥：`<PinnedPage>`（标题页，默认）/ `.page-fill`（无标题全高单卡片，如 /ai-history、/session-management、**/live-chat**）/ `.page-viewport`（有标题但内部自管滚动，如 /ai-kanban）。标题统一 `text-3xl font-bold` + 内联图标 `w-8 h-8`（**不加**背景容器），副标题 `text-muted-foreground mt-1`（**不加** `text-sm`）。参考页 `AIToolsPage` / `AIHistoryPage`。详见 [§04](./references/04-page-layout-spec.md)。
+- **Live Chat = 控制台内嵌适配器，不是 Session UI ★★**：`/live-chat` 经 WS `/ws/webconsole_livechat` 完整对接早柚 `MessageReceive`/`MessageSend`。协议解析与媒体在 `src/lib/liveChat/`，页面只编排。WS handler 必须挂 ref（避免重连风暴）；同会话发送要 `awaitingByConv` 防 8s 队列 TTL 丢包；`echo` 空包也要回执。详见 [§11](./references/11-live-chat.md)、[§10 P-30/P-31](./references/10-pitfalls-and-performance.md)。
 - **glass-card 宿主禁止 `overflow-hidden`**：阴影/毛玻璃靠宿主 `overflow: visible` + `::before`；裁切放内层 `rounded-[inherit]`，卡片网格加 `glass-card-grid` 防阴影被切。详见 [§04 §4.1.2/4.1.3](./references/04-page-layout-spec.md)、[§10 P-19](./references/10-pitfalls-and-performance.md)。
 - **页面级操作按钮的摆放 ★★**：①首选——页面有 button group（`TabButtonGroup`/二级切换）时，把按钮**移出 Header**、与 button group **同行平齐**（`sm:items-center`、`justify-between`）；②否则放 Header 右侧、与**副标题底边对齐**（`sm:items-end`）。两种都**禁止**在 Header 内用 `items-center`（会让按钮浮在 H1 与副标题之间、与副标题错位）。详见 [§04 §4.2](./references/04-page-layout-spec.md)。
 - **一行筛选控件高度必须统一 h-9**：`Input` 默认 `h-10`、`SelectTrigger` 默认 `h-9`、`Button` 默认 `h-10`——同行并排不显式 `h-9` 就会高低不齐（搜索框+下拉+按钮的工具栏是重灾区）。详见 [§05](./references/05-components-and-form-controls.md)。

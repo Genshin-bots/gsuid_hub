@@ -3,7 +3,7 @@
 > 本文件是 `docs/skills/gshub-development/` 的**主索引与能力全景**，给第一次接触本仓库的人 /
 > 准备扩前端控制台的人**一张完整的鸟瞰图**。
 > 它与同目录 `SKILL.md` 的分工是：
-> - **`SKILL.md` + `references/` 01–10**：开发规范与已知坑（**怎么写**一个页面/组件）
+> - **`SKILL.md` + `references/` 01–11**：开发规范与已知坑（**怎么写**一个页面/组件；§11 为 Live Chat）
 > - **本 `README.md`**：功能全景与跟后端能力的对照、**当前前端覆盖了哪些、还差哪些**
 >
 > **更新原则**：本文档描述的是**前端控制台当前已实现的能力**，并通过"→ 对应后端 API"链接回 gsuid_core。
@@ -22,7 +22,7 @@
   3. **首次部署**：初始化管理员 → 上传品牌 → 安装插件 → 启用 AI。
 - **目标体验**：与日常 SaaS 控制台同级的视觉与交互一致性，全亮/暗 + 纯色/毛玻璃，三语言。
 
-实现细节见仓库根 `README.md`，开发规范见同目录 [`SKILL.md`](./SKILL.md) 与 `references/01–10`。
+实现细节见仓库根 `README.md`，开发规范见同目录 [`SKILL.md`](./SKILL.md) 与 `references/01–11`。
 
 ---
 
@@ -40,6 +40,7 @@
 | `/dashboard` | `Dashboard.tsx` | 关键指标、命令趋势、用户/群活跃、Bot 列表 | `dashboard_api.py`（`/api/dashboard/{metrics,commands,users-groups,daily/*,bots}`） |
 | `/database` | `DatabasePage.tsx` | 跨插件浏览表结构与数据，单条 CRUD | `database_api.py`（`/api/database/*`） |
 | `/console` | `ConsolePage.tsx` | WebSocket 实时控制台 + 远程命令 + 日志级别筛选 | `web_api.py`（WS）、`system_api.py`（`/api/system/{info,health,restart,stop,resume}`）、`remote_command` |
+| `/live-chat` | `LiveChatPage.tsx` | **控制台内嵌适配器**（见 [§11](./references/11-live-chat.md)）：WS 早柚协议上报/下发、会话持久化、图文音视文件/按钮/引用/@/戳一戳/echo 回执 | WS `/ws/webconsole_livechat` + REST `/api/live-chat/*` |
 | `/logs` | `LogsPage.tsx` | 按日期 / 等级 / 来源 / 关键词分页查日志、上下文窗 | `logs_api.py`（`/api/logs*`，含 `/stream` SSE 与 `/config`） |
 | `/traces` | `TracesPage.tsx` | 命令执行追踪链（按 trace_id 聚合逐条事件） | `trace_api.py`（`/api/traces`） |
 | `/scheduler` | `SchedulerPage.tsx` | APScheduler 任务列表 / 立即运行 / 暂停 / 恢复 / 删除 | `scheduler_api.py`（`/api/scheduler/jobs*`） |
@@ -75,7 +76,7 @@
 | `/ai-skills` | `AISkillsPage.tsx` | 技能列表 + 详情 + Git 克隆安装 + Markdown 编辑 + 删除 | `ai_skills_api.py`（`/api/ai/skills*`） | [§04 排版参考页](./references/04-page-layout-spec.md) |
 | `/ai-knowledge` | `AIKnowledgePage.tsx` | 文本/图片知识库分页、搜索、批量导入、文档管理、Image RAG | `knowledge_base_api.py`（`/api/ai/knowledge*`）+ `image_rag_api.py`（`/api/ai/images*`） | [§07 渐进式配置](./references/07-config-pages-and-state.md) |
 | `/ai-memory` | `AIMemoryPage.tsx` | Episode / Entity / Edge / Category / Preference / Scope / Hiergraph / Stats 完整管理 | `ai_memory_api.py`（`/api/ai/memory*`） | [§07 §7.1 渐进式](./references/07-config-pages-and-state.md)、[§10 P-26](./references/10-pitfalls-and-performance.md) |
-| `/ai-meme` | `AIMemePage.tsx` | 表情包素材：上传 / VLM 打标 / 标签 / 文件夹 / 检索 | `meme_api.py`（`/api/meme*`） | [§10 P-17](./references/10-pitfalls-and-performance.md) |
+| `/ai-meme` | `AIMemePage.tsx` | 表情包素材：上传 / VLM 打标 / 标签 / 文件夹 / 检索；**按条件清空**（筛选/全部，`memeApi.purge`） | `meme_api.py`（`/api/meme*`） | [§10 P-17](./references/10-pitfalls-and-performance.md)、[§11.9](./references/11-live-chat.md) |
 | `/ai-scheduled-tasks` | `AIScheduledTasksPage.tsx` | 内部定时任务 CRUD、暂停/恢复、统计 | `ai_scheduled_task_api.py` | — |
 | `/ai-kanban` | `AIKanbanPage.tsx` | 长任务五列看板、任务详情、Artifacts、Workspace 文件、approve/reject、评估能力代理 | `kanban_api.py`（`/api/ai/kanban*`、`/api/ai/artifacts*`、`/api/ai/kanban/...workspace*`） | [§04 §4.1.1 page-viewport](./references/04-page-layout-spec.md) |
 | `/ai-approvals` | `AIApprovalsPage.tsx` | 高危操作审批中心 / 通过或拒绝 | `approvals_api.py`（`/api/ai/approvals/list`、`/resolve`） | — |
@@ -99,7 +100,7 @@
 | 配置 | 3 | `configApi`、`frameworkConfigApi`、`openaiConfigApi` | `core_config_api.py` / `plugins_api.py` / `provider_config_api.py` |
 | Provider / Embedding / Wizard | 4 | `providerConfigApi`、`embeddingConfigApi`、`aiWizardApi`、`openaiConfigApi` | `provider_config_api.py` / `embedding_config_api.py` / `ai_wizard_api.py` |
 | 插件 | 4 | `pluginsApi`、`pluginStoreApi`、`gitMirrorApi`、`gitUpdateApi` | `plugins_api.py` / `plugin_icon_api.py` |
-| 运维 | 5 | `logsApi`、`traceApi`、`remoteCommandApi`、`schedulerApi`、`backupApi` | 同名 |
+| 运维 | 6 | `logsApi`、`traceApi`、`remoteCommandApi`、`schedulerApi`、`backupApi`、**`liveChatApi`** | 同名 + live-chat REST；消息通道为 WS `/ws/webconsole_livechat` |
 | 主题与资源 | 2 | `themeApi`、`assetsApi` | `theme_api.py` / `assets_api.py` |
 | AI 能力 | 8 | `personaApi`、`mcpConfigApi`、`capabilityAgentsApi`、`aiKnowledgeApi`、`aiImageApi`、`memeApi`、`aiToolsApi`、`aiSkillsApi` | 同名 |
 | AI 运行 | 6 | `historyApi`、`aiSessionLogsApi`、`agentDebugApi`、`aiScheduledTasksApi`、`aiKanbanApi`、`aiApprovalsApi`、`aiStateStoreApi` | 同名 |
@@ -137,6 +138,21 @@
 
 ---
 
+## 二点六、2026-07 Live Chat + 表情清空
+
+| 改动类型 | 路径 | 说明 |
+|---|---|---|
+| 新页面 | `src/pages/LiveChatPage.tsx` | `/live-chat`：控制台内嵌 GsCore 适配器（page-fill 左右分栏） |
+| 新模块 | `src/lib/liveChat/*` | 协议解析 / 媒体 / WS 客户端 / 后端状态持久化 |
+| 新组件 | `src/components/live-chat/*` | ConnectionBadge / ConversationSidebar / MessageBubble / MessageComposer |
+| API | `src/lib/api.ts` → `liveChatApi` | `GET/PUT /api/live-chat/state` 等 |
+| 路由 / 导航 | `App.tsx` + `AppSidebar.tsx` | `live-chat` 路由；侧栏 id=`liveChat`；图标 `MessageCircle` |
+| i18n | `liveChat.json` + `sidebar.liveChat` + 三语言 `index.ts` | 新建模块并注册 |
+| 增强 | `AIMemePage` + `memeApi.purge` | 「清空表情」：全部 / 当前筛选；`getApiErrorMessage` |
+| 规范文档 | `docs/skills/gshub-development/references/11-live-chat.md` | 分层、协议、P-30/P-31/P-32 |
+
+---
+
 ## 三、后端已具备但前端尚未覆盖 / 覆盖薄弱的板块（"待补"清单）
 
 > 这是 2026-07-20 一次盘点结果。**与 gsuid_core 后端端点的对照**（46 个 API 文件、约 250 端点）。
@@ -163,7 +179,7 @@
 | `aiKnowledgeApi.reconcile`（深度对账） | **无调用** | 同上，缺乏运维入口。 |
 | `aiKnowledgeApi.bulk`（批量导入） | **有** | 仅是表层调用，建议加进度条（后端在切片）。 |
 | `aiKnowledgeApi.deleteDocument`（整篇文档删除） | **有，部分** | 推荐在 AIKnowledgePage 加"按文档聚合"的二级视图。 |
-| `memeApi.purgeRejected` / `batchRetagPending` / `export` / `import` | **全部无 UI** | `AIMemePage` 缺几个批量维护按钮，stats 显示也缺（旧版后端 P-17）。 |
+| `memeApi.purgeRejected` / `batchRetagPending` / `export` / `import` | **已有 UI**（导出/导入/清已拒绝/重打标）；`memeApi.purge` **已有**（清空全部/筛选） | stats 在旧版后端仍需 P-17 降级兼容。 |
 | `mcpConfigApi.getToolsConfigList` / `update` | 部分内嵌 | mcp_tools_config 工具参数映射有 API 但 UI 入口弱。 |
 | `aiMemoryApi.getConfig` / `updateConfig`（记忆子系统配置） | **无独立页** | 已内嵌 `aiMemory.page` 内部；建议单开"记忆设置" tab 或下钻。 |
 | `aiMemoryApi.rebuildHierGraph` | **无调用** | "重建分层语义图"按钮缺。 |
@@ -240,7 +256,7 @@
 | AI 偏好记忆 Procedural 规则 | `ai_memory_api::preferences` | 🟨 部分，需独立管理 |
 | AI 记忆子系统配置 | `ai_memory_api::config` | ⬛ 无独立页 |
 | AI 表情包素材 | `meme_api` | 🟩 AIMemePage（stats 部分需降级兼容） |
-| AI 表情批量维护 | `meme_api`（`batch_*`、`export`、`import`） | ⬛ 缺 UI |
+| AI 表情批量维护 | `meme_api`（`batch_*`、`export`、`import`、`purge`） | 🟩 导出/导入/清已拒绝/重打标/按条件清空 |
 | AI 内部定时任务 | `ai_scheduled_task_api` | 🟩 AIScheduledTasksPage |
 | AI Kanban 长任务 + 能力代理 | `kanban_api` | 🟩 AIKanbanPage |
 | AI Kanban 工作区文件 | `workspace_api` | 🟨 任务详情有，全局无 |
@@ -258,6 +274,7 @@
 | 插件图标统一缓存 | `plugin_icon_api` | 🟨 用了但未走接口 |
 | 数据库浏览与 CRUD | `database_api` | 🟩 DatabasePage |
 | 实时 WebSocket 控制台 | `web_api` | 🟩 ConsolePage |
+| **Live Chat 控制台适配器** | WS `webconsole_livechat` + `/api/live-chat/*` | 🟩 LiveChatPage（[§11](./references/11-live-chat.md)） |
 | 远程命令 | `remote_command`（`system_api` + RPC） | 🟩 ConsolePage |
 | 资源（图片 / 文件预览 / 上传） | `assets_api` | 🟩 主题背景图 + 备份图标 |
 
@@ -284,13 +301,14 @@
 - **新后端 API**：一旦在 `gsuid_core` 落地、若 30 天内前端未对接，应在 §三 "待补清单"登记一行，避免成为隐性债务。
 - **新封装组件**：在 `references/06-reusable-component-catalog.md` 加章节，并在 `SKILL.md` 速记表里加一行。
 - **新踩坑**：`references/10-pitfalls-and-performance.md` 加 `P-NN` 章节，必要时 `SKILL.md` 速记区同步。
+- **Live Chat / 协议适配器改动**：同步 [§11](./references/11-live-chat.md) 与本文档 §二 `/live-chat` 行。
 
 ---
 
 ## 七、关联文档（同仓库）
 
 - [`SKILL.md`](./SKILL.md) — 主入口与开发规范（必读）
-- [`references/01-architecture-and-conventions.md`](./references/01-architecture-and-conventions.md) 起按章节读
+- [`references/01-architecture-and-conventions.md`](./references/01-architecture-and-conventions.md) 起按章节读（至 [§11 Live Chat](./references/11-live-chat.md)）
 - 仓库根 [`README.md`](../../../../README.md) — 项目总览
 - `gsuid_core` 仓库 `docs/skills/gscore-development/` — 后端框架规范
 - `gsuid_core/gsuid_core/webconsole/docs/` — 后端接口契约（按编号 01–43 阅读）

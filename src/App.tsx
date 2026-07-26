@@ -50,6 +50,7 @@ import AIArtifactsPage from "@/pages/AIArtifactsPage";
 import StateStorePage from "@/pages/StateStorePage";
 import GroupProfilePage from "@/pages/GroupProfilePage";
 import AIOpsPage from "@/pages/AIOpsPage";
+import LiveChatPage from "@/pages/LiveChatPage";
 
 const queryClient = new QueryClient();
 
@@ -113,6 +114,7 @@ function AppRoutes() {
         <Route path="ai-meme" element={<AIMemePage />} />
         <Route path="ai-memory" element={<AIMemoryPage />} />
         <Route path="session-management" element={<SessionManagementPage />} />
+        <Route path="live-chat" element={<LiveChatPage />} />
         <Route path="ai-history" element={<AIHistoryPage />} />
         <Route path="ai-kanban" element={<AIKanbanPage />} />
         <Route path="ai-approvals" element={<AIApprovalsPage />} />

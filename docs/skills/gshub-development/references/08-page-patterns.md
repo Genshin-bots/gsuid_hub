@@ -189,3 +189,14 @@ function isSshUrl(url: string): boolean {
 - **`history_reset` 画独立色块（reason 分色）**：`user_clear` 红 / `persona_switch` 紫 / `auto_compact` 灰——三类「历史重置」行为视觉必须可区分。色用 tailwind 颜色 + `dark:` 变体（`darkMode:["class"]`），亮暗都可读。
 - **i18n**：文案在 `aiHistory.waterfall.*`（含 `reset.*`）与 `aiHistory.segmentsCount/subAgentsCount/loadEarlierSegments/...`，三语言同步。
 - 对接后端契约见 gsuid_core `webconsole/docs/23-ai-session-logs.md`。
+
+## 8.8 Live Chat（控制台内嵌适配器，`/live-chat`）
+
+完整分层、协议、WS、持久化与坑点见 **[§11 Live Chat](./11-live-chat.md)**。此处只记页面模式要点：
+
+- **骨架**：`.page-fill flex glass-card` + 内层 `overflow-hidden rounded-[inherit]` 左右分栏（与 Session 管理同族，**不是** `PinnedPage`）。
+- **左会话 / 右消息**：移动端互斥全屏（`showChatOnMobile`）；桌面固定宽侧栏。
+- **协议与传输不进页面**：`src/lib/liveChat/*`；UI 在 `src/components/live-chat/*`；`LiveChatPage` 只编排。
+- **连接态**：顶栏/侧栏 `ConnectionBadge`；demo 模式不建连。
+- **危险操作**：删除会话 / 清空消息用 `AlertDialog`；身份设置用 `Dialog`（Title + Description 齐全）。
+- **与相近页分工**：Live Chat = 模拟适配器调试协议；Session 管理 = 已有 Session 的 HTTP 历史；AI 历史 = Trace 瀑布只读；`/console` = 系统日志 WS。

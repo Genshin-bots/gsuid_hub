@@ -28,7 +28,8 @@ src/
 │   │   ├── TabButtonGroup.tsx          # 分段切换按钮
 │   │   ├── input-with-dropdown.tsx     # 输入框 + 下拉
 │   │   └── MultiSelectChipGroup.tsx    # 多选/单选 Chip
-│   ├── layout/             # AppLayout.tsx / AppSidebar.tsx
+│   ├── layout/             # AppLayout.tsx / AppSidebar.tsx / PinnedPage.tsx
+│   ├── live-chat/          # Live Chat UI（气泡 / 侧栏 / 输入 / 连接徽章）
 │   ├── config/             # ConfigField / TagsInput / DynamicConfigPanel
 │   ├── backup/             # 备份相关
 │   └── charts/             # 图表封装
@@ -37,6 +38,7 @@ src/
 ├── i18n/locales/           # zh-CN / en-US / ja-JP 三语言目录
 └── lib/
     ├── api.ts              # 所有 API 封装 + 类型定义（唯一出入口）
+    ├── liveChat/           # Live Chat 协议 / WS / 存储 / 媒体（见 §11）
     └── utils.ts            # cn() 等工具
 ```
 
@@ -199,6 +201,26 @@ const fetchStats = useCallback(async () => {
 
 完整讨论见 [§10 P-17](./10-pitfalls-and-performance.md)。
 
+### 1.5.2 Live Chat REST（`liveChatApi`）
+
+控制台内嵌适配器的**状态**走 HTTP，**消息**走 WebSocket（见 [§11](./11-live-chat.md)）。
+
+```ts
+export const liveChatApi = {
+  getState: () => api.get<LiveChatStateDto>('/api/live-chat/state'),
+  putState: (state: LiveChatStateDto) => api.put('/api/live-chat/state', state),
+  putIdentity: (identity) => api.put('/api/live-chat/identity', identity),
+  putIndex: (index) => api.put('/api/live-chat/index', index),
+  putConversation: (conv) =>
+    api.put(`/api/live-chat/conversations/${encodeURIComponent(conv.id)}`, conv),
+  deleteConversation: (id) =>
+    api.delete(`/api/live-chat/conversations/${encodeURIComponent(id)}`),
+};
+```
+
+页面主路径用 `loadLiveChatState` / `saveLiveChatState`（`src/lib/liveChat/storage.ts`），
+不要在页面里直接拼 path。WS 建连与帧协议**不**走 `api.ts`，见 `LiveChatWsClient`。
+
 ## 1.6 401 认证失败处理
 
 401 由封装层（`ApiClient.request()` / `getRaw()` 等）**统一**处理并跳登录，页面不要各自判断。跳转用 `getLoginPath()`：
@@ -222,11 +244,14 @@ window.location.href = getLoginPath();  // 开发 → /login，生产 → /app/l
 | `src/contexts/LanguageContext.tsx` | i18n 上下文，提供 `t()` 函数 |
 | `src/contexts/ThemeContext.tsx` | 主题上下文，管理主题状态 |
 | `src/i18n/locales/{zh-CN,en-US,ja-JP}/` | 三语言翻译模块目录，按顶级模块拆 JSON |
-| `src/lib/api.ts` | 所有 API 接口封装 + 类型 |
+| `src/lib/api.ts` | 所有 API 接口封装 + 类型（含 `liveChatApi`） |
+| `src/lib/liveChat/` | Live Chat 协议 / WS 客户端 / 持久化 / 媒体（见 [§11](./11-live-chat.md)） |
 | `src/lib/utils.ts` | 工具函数（含 `cn()`） |
 | `tailwind.config.ts` | Tailwind 配置 / 颜色映射 |
 | `src/components/ui/` | shadcn/ui 与项目封装组件库 |
 | `src/components/layout/AppSidebar.tsx` | 侧边栏导航（`getNavItems` / `ICON_MAP`） |
+| `src/components/live-chat/` | Live Chat 展示组件 |
+| `src/pages/LiveChatPage.tsx` | Live Chat 编排页（`/live-chat`，page-fill） |
 | `src/pages/AISkillsPage.tsx` `AIMemoryPage.tsx` | **排版标准参考页**（见 [§04](./04-page-layout-spec.md)） |
 
 ## 1.9 新增页面标准步骤
