@@ -1620,9 +1620,9 @@ export default function AIStatisticsPage() {
                     </span>
                     <TabButtonGroup
                       options={[
-                        { value: '7', label: t('aiStatistics.preset7d') },
-                        { value: '14', label: t('aiStatistics.preset14d') },
-                        { value: '30', label: t('aiStatistics.preset30d') },
+                        { value: '7', label: t('aiStatistics.preset7d'), icon: <Sparkles className="w-4 h-4" /> },
+                        { value: '14', label: t('aiStatistics.preset14d'), icon: <Zap className="w-4 h-4" /> },
+                        { value: '30', label: t('aiStatistics.preset30d'), icon: <BarChart3 className="w-4 h-4" /> },
                       ]}
                       value={String(historyDays)}
                       onValueChange={(v) => setHistoryDays(Number(v) as 7 | 14 | 30)}

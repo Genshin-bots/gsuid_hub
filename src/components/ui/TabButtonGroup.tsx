@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
+import { asHoverIcon, hoverIconGroupClass } from '@/components/layout/SidebarHoverIcon';
 
 export interface TabButtonOption {
   value: string;
@@ -16,6 +17,19 @@ interface TabButtonGroupProps {
   buttonClassName?: string;
   disabled?: boolean;
 }
+
+/**
+ * 与默认高度的 TabButtonGroup 同行对齐用。
+ * 默认 group 外壳 ≈ 44–46px（p-1 + 内钮 py-2 + 22px 图标），
+ * 同行 Input / Select / Button 统一 `h-11`（44px），icon 按钮 `h-11 w-11`。
+ * **禁止** 再把 TabButtonGroup 压成 h-8 / h-9 的矮版。
+ */
+export const tabToolbarControlClass = 'h-11';
+export const tabToolbarIconButtonClass = 'h-11 w-11';
+
+/** 压掉 shadow-safe 竖直 bleed，便于与同行控件 items-center 齐平 */
+export const tabToolbarGroupWrapClass =
+  'flex shrink-0 items-center [&_.shadow-safe]:!my-0 [&_.shadow-safe]:!py-0';
 
 export function TabButtonGroup({
   options,
@@ -45,6 +59,7 @@ export function TabButtonGroup({
             onClick={() => onValueChange(option.value)}
             disabled={disabled || option.disabled}
             className={cn(
+              hoverIconGroupClass,
               'relative px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 flex items-center gap-2 whitespace-nowrap',
               value === option.value
                 ? 'bg-primary text-primary-foreground'
@@ -54,7 +69,7 @@ export function TabButtonGroup({
             )}
           >
             <span className="w-[22px] h-[22px] flex-shrink-0 flex items-center justify-center">
-              {option.icon}
+              {asHoverIcon(option.icon)}
             </span>
             {option.label}
           </button>

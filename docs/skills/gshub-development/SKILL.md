@@ -7,7 +7,7 @@ description: >
   固定标题栏的移动端怎么办"、
   "主题怎么适配 / glass-card 怎么用 / 毛玻璃 vs 纯色"、"i18n 怎么加翻译 / 三语言怎么同步 /
   index.ts 怎么改 / t() 插值"、"侧边栏怎么加菜单项 / 子菜单 / 展开状态丢失"、
-  "Input 和下拉框高度不一致 / 一行筛选组件怎么对齐 / h-9"、
+  "Input 和下拉框高度不一致 / 一行筛选组件怎么对齐 / h-9 / TabButtonGroup 同行 h-11"、
   "InputWithDropdown / TagsInput / ChipGroup / TabButtonGroup / DynamicConfigPanel / ConfigField 怎么用"、
   "Switch 主题色 / Switch 被 Tooltip 包裹失效"、"Radix Select 空值报错"、
   "渐进式配置页 / EXPECTED_CONFIG_KEYS / rawConfig / 预料之外配置项"、
@@ -24,7 +24,7 @@ description: >
   页面排版铁律（页面解剖学：layout-gutter/page-top 边距体系 / PinnedPage 固定标题页 /
   page-fill 全高卡片页 / page-viewport 视口锁定页 /
   text-3xl 标题 / 内联 w-8 h-8 图标 / 副标题 / 间距标尺 / 三态）、表单与筛选控件
-  统一规范（统一 h-9、Radix Select 哨兵、Tooltip 字段说明、Switch UX）、强制复用的封装组件目录
+  统一规范（筛选行 h-9 / 含 Tab 行 h-11、Radix Select 哨兵、Tooltip 字段说明、Switch UX）、强制复用的封装组件目录
   （TabButtonGroup / InputWithDropdown / TagsInput / ChipGroup / DynamicConfigPanel）、渐进式配置页
   与脏检查竞态、几类页面模式（卡片列表 / 表格详情 / Dialog / 移动端）、侧边栏多级菜单与稳定 id、
   **Live Chat 控制台内嵌适配器**（早柚协议 WS、段解析、状态持久化、8s 队列 TTL）、
@@ -58,7 +58,7 @@ description: >
 | 二 | i18n 国际化（三语言目录、嵌套键、新增 key 的四处同步、t() 插值、自查命令、稳定 id） | [references/02-i18n.md](./references/02-i18n.md) |
 | 三 | 主题与样式（ThemeContext、CSS HSL 变量、颜色/状态色、`glass-card` 始终应用、响应式） | [references/03-theme-and-styling.md](./references/03-theme-and-styling.md) |
 | 四 | **页面排版铁律（页面解剖学）**——根容器/标题/图标/副标题/间距标尺/卡片分区/列表详情/三态 | [references/04-page-layout-spec.md](./references/04-page-layout-spec.md) |
-| 五 | 组件复用与表单/筛选控件规范（cn/CVA、**一行统一 h-9**、Select 哨兵、Tooltip 字段说明、Switch UX） | [references/05-components-and-form-controls.md](./references/05-components-and-form-controls.md) |
+| 五 | 组件复用与表单/筛选控件规范（cn/CVA、**一行高度：无 Tab→h-9 / 有 Tab→h-11**、Select 哨兵、Tooltip 字段说明、Switch UX） | [references/05-components-and-form-controls.md](./references/05-components-and-form-controls.md) |
 | 六 | 封装组件目录（完整接口）——TabButtonGroup / InputWithDropdown / TagsInput / ChipGroup / DynamicConfigPanel / ConfigField | [references/06-reusable-component-catalog.md](./references/06-reusable-component-catalog.md) |
 | 七 | 配置页与状态管理（渐进式配置页 + `EXPECTED_CONFIG_KEYS`/`rawConfig`、双重 dirty 检查、保存竞态、AIConfig 设计、**任务配置主备双配置**） | [references/07-config-pages-and-state.md](./references/07-config-pages-and-state.md) |
 | 八 | 页面模式与 Dialog 规范（卡片列表页 / 表格详情 / Dialog/Modal / 双态 UI / 移动端 / SSH URL / API 设计经验） | [references/08-page-patterns.md](./references/08-page-patterns.md) |
@@ -84,7 +84,7 @@ description: >
 - **Live Chat = 控制台内嵌适配器，不是 Session UI ★★**：`/live-chat` 经 WS `/ws/webconsole_livechat` 完整对接早柚 `MessageReceive`/`MessageSend`。协议解析与媒体在 `src/lib/liveChat/`，页面只编排。WS handler 必须挂 ref（避免重连风暴）；同会话发送要 `awaitingByConv` 防 8s 队列 TTL 丢包；`echo` 空包也要回执。详见 [§11](./references/11-live-chat.md)、[§10 P-30/P-31](./references/10-pitfalls-and-performance.md)。
 - **glass-card 宿主禁止 `overflow-hidden`**：阴影/毛玻璃靠宿主 `overflow: visible` + `::before`；裁切放内层 `rounded-[inherit]`，卡片网格加 `glass-card-grid` 防阴影被切。详见 [§04 §4.1.2/4.1.3](./references/04-page-layout-spec.md)、[§10 P-19](./references/10-pitfalls-and-performance.md)。
 - **页面级操作按钮的摆放 ★★**：①首选——页面有 button group（`TabButtonGroup`/二级切换）时，把按钮**移出 Header**、与 button group **同行平齐**（`sm:items-center`、`justify-between`）；②否则放 Header 右侧、与**副标题底边对齐**（`sm:items-end`）。两种都**禁止**在 Header 内用 `items-center`（会让按钮浮在 H1 与副标题之间、与副标题错位）。详见 [§04 §4.2](./references/04-page-layout-spec.md)。
-- **一行筛选控件高度必须统一 h-9**：`Input` 默认 `h-10`、`SelectTrigger` 默认 `h-9`、`Button` 默认 `h-10`——同行并排不显式 `h-9` 就会高低不齐（搜索框+下拉+按钮的工具栏是重灾区）。详见 [§05](./references/05-components-and-form-controls.md)。
+- **一行筛选控件高度分两档 ★★**：无 `TabButtonGroup` 时统一 `h-9`；**有** `TabButtonGroup` 时保持默认 group 高度、同行 `Input`/`Select`/`Button` 用 `tabToolbarControlClass`（`h-11`），**禁止**把 group 压成 h-8/h-9 矮版。详见 [§05 §5.4](./references/05-components-and-form-controls.md)、[§06 §6.1](./references/06-reusable-component-catalog.md)。
 - **`glass-card` 始终应用，不要 `isGlass &&`**：`glass-card` 已按 `[data-style]` 自动适配纯色/毛玻璃/亮暗。正确写法是直接 `className="glass-card"`。详见 [§03](./references/03-theme-and-styling.md)、[§10 P-2](./references/10-pitfalls-and-performance.md)。
 - **强制复用封装组件，禁止手搓**：标题页骨架用 `PinnedPage`；输入框+下拉用 `InputWithDropdown`；标签用 `TagsInput`；多选/单选 Chip 用 `ChipGroup`；切换用 `TabButtonGroup`；后端字段动态渲染用 `DynamicConfigPanel`/`ConfigField`。详见 [§06](./references/06-reusable-component-catalog.md)。
 - **自定义 CSS 位于 `@tailwind utilities` 之后 ★★**：`src/index.css` 里的 `.page-pinned` / `.glass-card` 等段落会**压掉同特异性的工具类**。所以 CSS 段落只写 Tailwind 做不到的（`main:has(…)`、media 内 overflow 锁定），`display`/`gap` 等交给组件的工具类，否则调用方的 `gap-4` 会失效。详见 [§10 P-25](./references/10-pitfalls-and-performance.md)、[§10 P-21](./references/10-pitfalls-and-performance.md)。

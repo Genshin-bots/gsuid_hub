@@ -53,6 +53,18 @@ const flagMap: Record<LanguageFlagCode, () => JSX.Element> = {
 
 export function LanguageFlag({ code, className }: LanguageFlagProps) {
   const Flag = flagMap[code];
+  // code 缺失/非法时不要渲染 undefined 组件（否则 React 报 Element type is invalid）
+  if (!Flag) {
+    return (
+      <span
+        className={cn(
+          'inline-flex h-4 w-6 shrink-0 rounded-[4px] border border-border/60 bg-muted',
+          className,
+        )}
+        aria-hidden="true"
+      />
+    );
+  }
 
   return (
     <span

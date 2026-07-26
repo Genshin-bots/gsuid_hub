@@ -29,6 +29,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { cn } from '@/lib/utils';
 import { versionApi, VersionInfo, ActiveBotsInfo } from '@/lib/api';
+import {
+  SidebarHoverIcon,
+  hoverIconGroupClass,
+} from '@/components/layout/SidebarHoverIcon';
 
 const frontendVersion = PACKAGE_VERSION || '0.0.19';
 
@@ -225,9 +229,16 @@ export default function HomePage() {
             <Link
               key={item.href}
               to={item.href}
-              className={cn('glass-card-flat group relative flex min-h-24 items-center gap-3 rounded-2xl p-4 text-left transition-all hover:-translate-y-0.5 hover:!border-primary/55 hover:!bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45 dark:hover:!bg-primary/10', 'border border-border/70')}
+              className={cn(
+                hoverIconGroupClass,
+                'glass-card-flat relative flex min-h-24 items-center gap-3 rounded-2xl p-4 text-left transition-all hover:-translate-y-0.5 hover:!border-primary/55 hover:!bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45 dark:hover:!bg-primary/10',
+                'border border-border/70',
+              )}
             >
-              <item.icon className="h-5 w-5 shrink-0 self-center text-primary transition-transform group-hover:scale-110" />
+              <SidebarHoverIcon
+                icon={item.icon}
+                className="h-5 w-5 shrink-0 self-center text-primary"
+              />
               <span className="flex min-w-0 flex-1 flex-col justify-center gap-1 self-center">
                 <span className="block text-sm font-semibold leading-snug text-foreground">{item.label}</span>
                 <span className="block text-xs leading-snug text-muted-foreground">{item.description}</span>

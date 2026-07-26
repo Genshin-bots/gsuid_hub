@@ -39,7 +39,11 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { TagsInput } from '@/components/config/TagsInput';
-import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
+import {
+  TabButtonGroup,
+  tabToolbarControlClass,
+  tabToolbarGroupWrapClass,
+} from '@/components/ui/TabButtonGroup';
 import {
   Image as ImageIcon,
   Search,
@@ -1872,22 +1876,24 @@ export default function AIMemePage() {
         ) : null}
       </div>
 
-      {/* Filter Bar - single row: TabButtonGroup + Search + Sort */}
+      {/* Filter Bar - single row: TabButtonGroup + Search + Sort；同行控件 h-11 对齐默认 group 高度 */}
       <div className="flex flex-wrap items-center gap-3">
         {/* Status Tab Filter */}
-        <TabButtonGroup
-          value={filterStatus}
-          onValueChange={(v) => setFilterStatus(v)}
-          className="shrink-0"
-          options={[
-            { value: 'tagged', label: t('aiMeme.status.tagged'), icon: <CheckCircle2 className="w-4 h-4" /> },
-            { value: 'pending', label: t('aiMeme.status.pending'), icon: <Clock className="w-4 h-4" /> },
-            { value: 'pending_manual', label: t('aiMeme.status.pendingManual'), icon: <AlertCircle className="w-4 h-4" /> },
-            { value: 'manual', label: t('aiMeme.status.manual'), icon: <Sparkles className="w-4 h-4" /> },
-            { value: 'rejected', label: t('aiMeme.status.rejected'), icon: <X className="w-4 h-4" /> },
-            { value: '', label: t('aiMeme.filter.allStatus'), icon: <Layers className="w-4 h-4" /> },
-          ]}
-        />
+        <div className={tabToolbarGroupWrapClass}>
+          <TabButtonGroup
+            value={filterStatus}
+            onValueChange={(v) => setFilterStatus(v)}
+            className="shrink-0"
+            options={[
+              { value: 'tagged', label: t('aiMeme.status.tagged'), icon: <CheckCircle2 className="w-4 h-4" /> },
+              { value: 'pending', label: t('aiMeme.status.pending'), icon: <Clock className="w-4 h-4" /> },
+              { value: 'pending_manual', label: t('aiMeme.status.pendingManual'), icon: <AlertCircle className="w-4 h-4" /> },
+              { value: 'manual', label: t('aiMeme.status.manual'), icon: <Sparkles className="w-4 h-4" /> },
+              { value: 'rejected', label: t('aiMeme.status.rejected'), icon: <X className="w-4 h-4" /> },
+              { value: '', label: t('aiMeme.filter.allStatus'), icon: <Layers className="w-4 h-4" /> },
+            ]}
+          />
+        </div>
 
         {/* Search */}
         <div className={cn(
@@ -1899,7 +1905,7 @@ export default function AIMemePage() {
             value={searchInput}
             onChange={(e) => handleSearchChange(e.target.value)}
             placeholder={t('aiMeme.filter.searchPlaceholder')}
-            className="h-11 pl-10 pr-9 text-sm bg-transparent border-0 rounded-none shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+            className={cn(tabToolbarControlClass, 'pl-10 pr-9 text-sm bg-transparent border-0 rounded-none shadow-none focus-visible:ring-0 focus-visible:ring-offset-0')}
           />
           {searchInput && (
             <button
@@ -1921,7 +1927,7 @@ export default function AIMemePage() {
             value={filterPersona}
             onValueChange={(v) => setFilterPersona(v)}
           >
-            <SelectTrigger className="w-auto min-w-[180px] max-w-[260px] h-11 text-sm whitespace-nowrap bg-transparent border-0 rounded-none shadow-none focus:ring-0 focus:ring-offset-0">
+            <SelectTrigger className={cn(tabToolbarControlClass, 'w-auto min-w-[180px] max-w-[260px] text-sm whitespace-nowrap bg-transparent border-0 rounded-none shadow-none focus:ring-0 focus:ring-offset-0')}>
               <div className="flex items-center gap-1.5 min-w-0">
                 <Users className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
                 <SelectValue placeholder={t('aiMeme.filter.persona')} />
@@ -1952,7 +1958,7 @@ export default function AIMemePage() {
             value={sortBy}
             onValueChange={(v) => setSortBy(v as SortOption)}
           >
-            <SelectTrigger className="w-auto min-w-[160px] h-11 text-sm whitespace-nowrap bg-transparent border-0 rounded-none shadow-none focus:ring-0 focus:ring-offset-0">
+            <SelectTrigger className={cn(tabToolbarControlClass, 'w-auto min-w-[160px] text-sm whitespace-nowrap bg-transparent border-0 rounded-none shadow-none focus:ring-0 focus:ring-offset-0')}>
               <div className="flex items-center gap-1.5">
                 <TrendingUp className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
                 <SelectValue placeholder={t('aiMeme.filter.sortBy')} />

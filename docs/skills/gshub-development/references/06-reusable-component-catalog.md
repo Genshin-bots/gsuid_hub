@@ -50,24 +50,35 @@ export interface TabButtonOption {
   value: string;
   label: string;
   icon?: React.ReactNode;
+  disabled?: boolean;
 }
 interface TabButtonGroupProps {
   options: TabButtonOption[];
   value: string;
   onValueChange: (value: string) => void;
-  className?: string;
-  buttonClassName?: string;
+  className?: string;        // 作用在内层 glass-card 容器
+  buttonClassName?: string;  // 作用在每个分段按钮
   disabled?: boolean;
-  glassClassName?: string;   // 毛玻璃/主题专用样式
 }
+
+// 同行对齐常量（导出）
+export const tabToolbarControlClass = 'h-11';
+export const tabToolbarIconButtonClass = 'h-11 w-11';
+export const tabToolbarGroupWrapClass =
+  'flex shrink-0 items-center [&_.shadow-safe]:!my-0 [&_.shadow-safe]:!py-0';
 ```
 
 用法：
 
 ```tsx
-const { style } = useTheme();
-const isGlass = style === 'glassmorphism';
+import {
+  TabButtonGroup,
+  tabToolbarControlClass,
+  tabToolbarGroupWrapClass,
+  tabToolbarIconButtonClass,
+} from '@/components/ui/TabButtonGroup';
 
+// 单独使用（页内主 Tab）
 <TabButtonGroup
   options={[
     { value: 'overview', label: t('aiBudget.tabs.overview'), icon: <Gauge className="w-4 h-4" /> },
@@ -75,17 +86,30 @@ const isGlass = style === 'glassmorphism';
   ]}
   value={activeTab}
   onValueChange={setActiveTab}
-  glassClassName={isGlass ? 'glass-card' : 'border border-border/50'}
 />
+
+// 与 Input / Button 同行：保持默认 group 高度，同行控件 h-11
+<div className="flex flex-wrap items-center gap-2">
+  <div className={tabToolbarGroupWrapClass}>
+    <TabButtonGroup options={…} value={…} onValueChange={…} className="shrink-0" />
+  </div>
+  <Input className={cn(tabToolbarControlClass, 'pl-9 w-64')} … />
+  <Button className={tabToolbarControlClass} variant="outline">…</Button>
+  <Button size="icon" className={cn(tabToolbarIconButtonClass, 'shrink-0')}>
+    <Plus className="h-4 w-4" />
+  </Button>
+</div>
 ```
 
 注意事项：
-1. **不要加 `w-full`**——组件默认 `inline-flex` 自适应内容宽度（确需占满才传 `className="w-full justify-start"`）。
+1. **不要加 `w-full`**——组件默认 `inline-flex` 自适应内容宽度（确需占满才传 `className="w-full"`）。
 2. 按钮过多自动 `flex-wrap` 换行。
-3. icon 自动被包进 `w-5 h-5 flex-shrink-0` 容器统一尺寸，图标本身用 `w-4 h-4`。
-4. 需主题适配时 `glassClassName` 必传，否则切换主题样式不一致。
+3. icon 经 `asHoverIcon` 包装，外层固定 `w-[22px] h-[22px]` 槽位；图标本身用 `w-4 h-4`。
+4. 外壳已带 `glass-card`，会按 `[data-style]` 自动适配毛玻璃/纯色，**不要再传主题分支 class**。
+5. **禁止压矮**：不要写 `className="h-9 p-0.5"` / `buttonClassName="h-8 py-0"` 之类把默认高度砍掉；同行对齐用 `tabToolbarControlClass`（`h-11`）。详见 [§05 §5.4](./05-components-and-form-controls.md)。
+6. 与同行控件 `items-center` 时，用 `tabToolbarGroupWrapClass` 包一层，压掉外层 `shadow-safe` 的竖直 bleed，避免整行被顶歪。
 
-已用页面：AIConfigPage / AIToolsPage / FrameworkConfigPage / PluginsPage / BackupPage / AIBudgetPage。
+参考页：`/ai-knowledge`、`/batch-push`、`/ai-meme`、`/ai-budget`、`/ai-statistics` 等。
 
 ## 6.2 InputWithDropdown —— 输入框 + 下拉
 

@@ -22,7 +22,12 @@ toast.error((mode === 'create' ? t('…createFailed') : t('…updateFailed')) + 
 
 ### P-3 一行筛选/表单控件高度不统一 ★★
 
-`Input`(h-10) + `SelectTrigger`(h-9) + `Button`(h-10) 并排不显式统一 `h-9` → 高低不齐。详见 [§05](./05-components-and-form-controls.md)。
+`Input`(h-10) + `SelectTrigger`(h-9) + `Button`(h-10) 并排不显式统一高度 → 高低不齐。
+
+- **无 TabButtonGroup**：统一 `h-9`。
+- **有 TabButtonGroup**：保持默认 group 高度，同行用 `tabToolbarControlClass`（`h-11`）；**禁止**把 group 压成 `h-8`/`h-9` 矮版。
+
+详见 [§05 §5.4](./05-components-and-form-controls.md)、[§06 §6.1](./06-reusable-component-catalog.md)。
 
 ### P-4 条件渲染里把分支文案写死 ★
 
@@ -495,7 +500,7 @@ useEffect(() => {
 - [ ] 卡片网格加 `glass-card-grid`；glass-card 宿主无 `overflow-hidden`（P-19）
 - [ ] 标题 `text-3xl font-bold` + 内联图标 `w-8 h-8`（无背景容器）；副标题 `text-muted-foreground mt-1`（无 `text-sm`）
 - [ ] 卡片/弹窗一律 `className="glass-card"`（**不**用 `isGlass &&`）（[§03](./03-theme-and-styling.md)）
-- [ ] 每个筛选行的 `Input`/`Select`/`Button` 都 `h-9`，高度齐平（[§05](./05-components-and-form-controls.md)）
+- [ ] 筛选行高度齐平：无 Tab → `h-9`；有 TabButtonGroup → 默认高度 + 同行 `h-11`（`tabToolbarControlClass`），禁止压矮 group（[§05](./05-components-and-form-controls.md)）
 - [ ] `Select` 的"全部"用 `__all__`，非空串
 - [ ] 字段说明用 Tooltip + `HelpCircle`，不用独立文字行
 - [ ] 输入+下拉用 `InputWithDropdown`、标签用 `TagsInput`、切换用 `TabButtonGroup`、后端字段用 `DynamicConfigPanel`（不手搓）（[§06](./06-reusable-component-catalog.md)）

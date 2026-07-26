@@ -3,6 +3,11 @@ import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/utils";
+import {
+  asHoverIcon,
+  hoverIconGroupClass,
+  SidebarHoverIcon,
+} from "@/components/layout/SidebarHoverIcon";
 
 const buttonVariants = cva(
   "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
@@ -34,51 +39,118 @@ export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
   asChild?: boolean;
+  /**
+   * 是否给 lucide 子图标加 hover 微动效。默认 true。
+   */
+  iconMotion?: boolean;
+}
+
+const REACT_FORWARD_REF =
+  typeof Symbol === "function" && Symbol.for
+    ? Symbol.for("react.forward_ref")
+    : 0xead0;
+
+/**
+ * 只把 lucide-react 图标（forwardRef + PascalCase displayName）当图标。
+ * LanguageFlag 等普通 function 组件绝不匹配——避免 asHoverIcon 丢掉 code 白屏。
+ */
+function isLucideIconElement(child: React.ReactElement): boolean {
+  if (child.type === SidebarHoverIcon) return true;
+
+  const props = child.props as { className?: string; children?: React.ReactNode };
+  const className = typeof props.className === "string" ? props.className : "";
+  if (className.includes("lucide")) return true;
+
+  if (typeof child.type === "string") return child.type === "svg";
+
+  const type = child.type as {
+    $$typeof?: symbol | number;
+    displayName?: string;
+    name?: string;
+  };
+
+  if (type.$$typeof !== REACT_FORWARD_REF) return false;
+
+  const name = type.displayName || "";
+  if (!name || !/^[A-Z][A-Za-z0-9]*$/.test(name)) return false;
+  if (/Flag|Avatar|Badge|Language|Provider|Context|Trigger|Content|Portal/i.test(name)) {
+    return false;
+  }
+  if (props.children != null && props.children !== false) return false;
+  return true;
+}
+
+function hasContinuousAnimation(className?: string): boolean {
+  if (!className) return false;
+  return /\banimate-(spin|pulse|bounce|ping)\b/.test(className);
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
+  ({ className, variant, size, asChild = false, iconMotion = true, children, ...props }, ref) => {
     const Comp = asChild ? Slot : "button";
-    
-    // Process children to force icon colors to inherit using inline styles (highest priority)
-    const processChildren = (children: React.ReactNode): React.ReactNode => {
-      return React.Children.map(children, (child) => {
-        if (React.isValidElement(child)) {
-          // Check if it's an icon component
-          const isIcon =
-            (child.props.className && child.props.className.includes('lucide')) ||
-            typeof child.type === 'function' && child.type.name &&
-            (child.type.name.startsWith('Lucide') || child.type.name.match(/[A-Z][a-z]+/));
-          
-          if (isIcon) {
-            // Force color: inherit with inline style (highest priority)
-            return React.cloneElement(child as React.ReactElement, {
-              style: {
-                ...(child as React.ReactElement).props.style,
-                color: 'inherit',
-              },
-            });
+
+    const processChildren = (nodes: React.ReactNode): React.ReactNode => {
+      return React.Children.map(nodes, (child) => {
+        if (!React.isValidElement(child)) return child;
+
+        const childProps = child.props as {
+          className?: string;
+          style?: React.CSSProperties;
+          children?: React.ReactNode;
+        };
+
+        if (isLucideIconElement(child)) {
+          const nextStyle: React.CSSProperties = {
+            ...childProps.style,
+            color: "inherit",
+          };
+
+          // 已包装 / 持续动画 / 关闭动效：只补颜色
+          if (
+            !iconMotion ||
+            hasContinuousAnimation(childProps.className) ||
+            child.type === SidebarHoverIcon
+          ) {
+            return React.cloneElement(
+              child as React.ReactElement<{ style?: React.CSSProperties }>,
+              { style: nextStyle },
+            );
           }
-          // Recursively process nested children
-          if (child.props.children) {
-            return React.cloneElement(child as React.ReactElement, {
-              children: processChildren(child.props.children),
-            });
-          }
+
+          // asHoverIcon：给图标挂上 group-hover/hovericon:animate-*（经验证有效的路径）
+          const withColor = React.cloneElement(
+            child as React.ReactElement<{ style?: React.CSSProperties }>,
+            { style: nextStyle },
+          );
+          return asHoverIcon(withColor);
         }
+
+        // 只对 DOM / Fragment 递归；不进 LanguageFlag 等业务组件内部
+        if (
+          childProps.children != null &&
+          (typeof child.type === "string" || child.type === React.Fragment)
+        ) {
+          return React.cloneElement(
+            child as React.ReactElement<{ children?: React.ReactNode }>,
+            { children: processChildren(childProps.children) },
+          );
+        }
+
         return child;
       });
     };
-    
-    const processedChildren = processChildren(props.children);
-    
+
     return (
       <Comp
-        className={cn(buttonVariants({ variant, size, className }))}
+        className={cn(
+          buttonVariants({ variant, size, className }),
+          iconMotion && hoverIconGroupClass,
+        )}
         ref={ref}
         {...props}
-        children={processedChildren}
-      />
+      >
+        {processChildren(children)}
+      </Comp>
     );
   },
 );

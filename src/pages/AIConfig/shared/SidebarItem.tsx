@@ -6,6 +6,11 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+import {
+  asHoverIcon,
+  hoverIconGroupClass,
+  SidebarHoverIcon,
+} from '@/components/layout/SidebarHoverIcon';
 
 export interface SidebarItemProps {
   id: string;
@@ -23,6 +28,7 @@ export interface SidebarItemProps {
  * AIConfig 页面侧边栏中的单个条目。
  * - 折叠态（移动端）：仅图标 + Tooltip 悬浮显示标题
  * - 展开态（桌面端）：图标 + 标题 + 警告标记
+ * - 图标默认静止，整行 hover 时播放一次微动效（与主侧栏 / TabButtonGroup 一致）
  */
 export function SidebarItem({
   id,
@@ -44,6 +50,7 @@ export function SidebarItem({
       disabled={disabled}
       title={collapsed ? title : undefined}
       className={cn(
+        hoverIconGroupClass,
         'w-full flex items-center rounded-lg text-sm transition-all duration-200 text-left',
         collapsed ? 'justify-center px-0 py-2' : 'gap-2.5 px-2.5 py-2',
         isActive
@@ -59,7 +66,7 @@ export function SidebarItem({
           isActive ? 'text-primary' : 'text-muted-foreground/60',
         )}
       >
-        {icon}
+        {asHoverIcon(icon)}
         {collapsed && alert && (
           <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-red-500" />
         )}
@@ -71,7 +78,7 @@ export function SidebarItem({
           </span>
           {alert && (
             <span className="shrink-0 ml-auto text-red-500" data-alert-icon>
-              <AlertTriangle className="w-3.5 h-3.5" data-alert-icon />
+              <SidebarHoverIcon icon={AlertTriangle} className="w-3.5 h-3.5" />
             </span>
           )}
         </>

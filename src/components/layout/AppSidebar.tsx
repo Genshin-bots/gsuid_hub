@@ -31,6 +31,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { useSystemControl } from '@/hooks/useSystemControl';
+import { SidebarHoverIcon, sidebarNavItemGroupClass } from '@/components/layout/SidebarHoverIcon';
 
 // 导航项类型定义
 interface NavItem {
@@ -194,6 +195,7 @@ const MemoizedNavItem = memo(function MemoizedNavItem({
               <SidebarMenuButton
                 tooltip={item.title}
                 className={cn(
+                  sidebarNavItemGroupClass,
                   "flex items-center rounded-lg transition-all cursor-pointer",
                   "justify-center w-10 h-10 p-0",
                   "hover:bg-primary/10",
@@ -201,7 +203,9 @@ const MemoizedNavItem = memo(function MemoizedNavItem({
                   isItemActive && "bg-primary/20 text-primary font-medium shadow-sm"
                 )}
               >
-                {item.icon && React.createElement(item.icon, { className: iconClass, style: iconStyle })}
+                {item.icon && (
+                  <SidebarHoverIcon icon={item.icon} className={iconClass} style={iconStyle} />
+                )}
               </SidebarMenuButton>
             </DropdownMenuTrigger>
             <DropdownMenuContent
@@ -217,10 +221,12 @@ const MemoizedNavItem = memo(function MemoizedNavItem({
                 <DropdownMenuItem key={child.id} asChild>
                   <NavLink
                     to={child.url || '#'}
-                    className="cursor-pointer flex items-center gap-2 py-2"
+                    className={cn(sidebarNavItemGroupClass, "cursor-pointer flex items-center gap-2 py-2")}
                     activeClassName="bg-accent text-accent-foreground font-medium"
                   >
-                    {child.icon && <child.icon className="w-4 h-4 shrink-0" style={iconStyle} />}
+                    {child.icon && (
+                      <SidebarHoverIcon icon={child.icon} className="w-4 h-4 shrink-0" style={iconStyle} />
+                    )}
                     <span>{child.title}</span>
                   </NavLink>
                 </DropdownMenuItem>
@@ -243,16 +249,19 @@ const MemoizedNavItem = memo(function MemoizedNavItem({
             <SidebarMenuButton
               tooltip={item.title}
               className={cn(
+                sidebarNavItemGroupClass,
                 "flex items-center rounded-lg transition-all cursor-pointer",
                 "gap-3 px-3 py-2.5 w-full",
                 "hover:bg-primary/10"
               )}
             >
-              {item.icon && React.createElement(item.icon, { className: iconClass, style: iconStyle })}
+              {item.icon && (
+                <SidebarHoverIcon icon={item.icon} className={iconClass} style={iconStyle} />
+              )}
               <span className="flex-1 text-left">{item.title}</span>
               {isExpanded
-                ? React.createElement(ChevronDown, { className: iconClass, style: iconStyle })
-                : React.createElement(ChevronRight, { className: iconClass, style: iconStyle })}
+                ? <SidebarHoverIcon icon={ChevronDown} className={iconClass} style={iconStyle} />
+                : <SidebarHoverIcon icon={ChevronRight} className={iconClass} style={iconStyle} />}
             </SidebarMenuButton>
           </CollapsibleTrigger>
           <CollapsibleContent>
@@ -263,13 +272,16 @@ const MemoizedNavItem = memo(function MemoizedNavItem({
                     <NavLink
                       to={child.url || '#'}
                       className={cn(
+                        sidebarNavItemGroupClass,
                         "flex items-center rounded-lg transition-all",
                         "gap-3 px-3 py-2",
                         "hover:bg-primary/10"
                       )}
                       activeClassName="bg-primary/20 text-primary font-medium shadow-sm"
                     >
-                      {child.icon && <child.icon className="w-4 h-4 shrink-0" style={iconStyle} />}
+                      {child.icon && (
+                        <SidebarHoverIcon icon={child.icon} className="w-4 h-4 shrink-0" style={iconStyle} />
+                      )}
                       <span>{child.title}</span>
                     </NavLink>
                   </SidebarMenuButton>
@@ -288,13 +300,16 @@ const MemoizedNavItem = memo(function MemoizedNavItem({
         <NavLink
           to={item.url || '#'}
           className={cn(
+            sidebarNavItemGroupClass,
             "flex items-center rounded-lg transition-all",
             isCollapsed ? "justify-center w-10 h-10 p-0" : "gap-3 px-3 py-2.5",
             "hover:bg-primary/10"
           )}
           activeClassName="bg-primary/20 text-primary font-medium shadow-sm"
         >
-          {item.icon && <item.icon className="w-5 h-5 shrink-0" style={iconStyle} />}
+          {item.icon && (
+            <SidebarHoverIcon icon={item.icon} className="w-5 h-5 shrink-0" style={iconStyle} />
+          )}
           {!isCollapsed && <span>{item.title}</span>}
         </NavLink>
       </SidebarMenuButton>
@@ -463,13 +478,14 @@ export function AppSidebar() {
           <button
             onClick={toggleSidebar}
             className={cn(
+              sidebarNavItemGroupClass,
               "h-8 flex items-center justify-center rounded-lg hover:bg-primary/10 transition-all duration-300 ease-out-soft text-muted-foreground hover:text-foreground shrink-0 overflow-hidden",
               isCollapsed ? "w-0 opacity-0 pointer-events-none" : "w-8 opacity-100"
             )}
             aria-label={t('sidebar.collapseSidebar')}
             tabIndex={isCollapsed ? -1 : 0}
           >
-            <PanelLeftClose className="w-4 h-4" />
+            <SidebarHoverIcon icon={PanelLeftClose} className="w-4 h-4" />
           </button>
         </div>
       </SidebarHeader>
@@ -563,11 +579,14 @@ export function AppSidebar() {
           onClick={() => setShowPauseDialog(true)}
           title={isPaused ? t('sidebar.resumeGsCore') : t('sidebar.pauseGsCore')}
           className={cn(
+            sidebarNavItemGroupClass,
             "hover:text-yellow-500 hover:bg-yellow-500/10 transition-colors",
             isCollapsed ? "w-auto justify-center" : "w-full justify-start gap-2"
           )}
         >
-          {isPaused ? <RotateCw className="w-4 h-4" /> : <Power className="w-4 h-4" />}
+          {isPaused
+            ? <SidebarHoverIcon icon={RotateCw} className="w-4 h-4" />
+            : <SidebarHoverIcon icon={Power} className="w-4 h-4" />}
           {!isCollapsed && <span>{isPaused ? t('sidebar.resumeGsCore') : t('sidebar.pauseGsCore')}</span>}
         </Button>
 
@@ -577,11 +596,12 @@ export function AppSidebar() {
           onClick={() => setShowRestartDialog(true)}
           title={t('sidebar.restartGsCore')}
           className={cn(
+            sidebarNavItemGroupClass,
             "hover:text-orange-500 hover:bg-orange-500/10 transition-colors",
             isCollapsed ? "w-auto justify-center" : "w-full justify-start gap-2"
           )}
         >
-          <Power className="w-4 h-4" />
+          <SidebarHoverIcon icon={Power} className="w-4 h-4" />
           {!isCollapsed && <span>{t('sidebar.restartGsCore')}</span>}
         </Button>
 
@@ -590,11 +610,12 @@ export function AppSidebar() {
           size={isCollapsed ? 'icon' : 'default'}
           onClick={logout}
           className={cn(
+            sidebarNavItemGroupClass,
             "hover:text-destructive hover:bg-destructive/10 transition-colors",
             isCollapsed ? "w-auto justify-center" : "w-full justify-start gap-2"
           )}
         >
-          <LogOut className="w-4 h-4" />
+          <SidebarHoverIcon icon={LogOut} className="w-4 h-4" />
           {!isCollapsed && <span>{t('sidebar.logout')}</span>}
         </Button>
       </SidebarFooter>

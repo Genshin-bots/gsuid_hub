@@ -59,7 +59,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
+import {
+  TabButtonGroup,
+  tabToolbarControlClass,
+  tabToolbarGroupWrapClass,
+} from '@/components/ui/TabButtonGroup';
 import { Textarea } from '@/components/ui/textarea';
 import { PinnedPage } from '@/components/layout/PinnedPage';
 import {
@@ -634,13 +638,13 @@ export default function BatchPushPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* 一行：Bot 选择 + 类型筛选 Tab + 刷新；三者统一 h-9 垂直居中对齐 */}
+              {/* 一行：Bot 选择 + 类型筛选 Tab + 刷新；以默认高度 TabButtonGroup 为基准，同行 h-11 */}
               <div className="space-y-2">
                 <Label>{t('batchPush.botsLabel')}</Label>
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3">
                   <div className="min-w-0 flex-1">
                     <Select value={bot} onValueChange={setBot}>
-                      <SelectTrigger className="h-9 w-full">
+                      <SelectTrigger className={cn(tabToolbarControlClass, 'w-full')}>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -655,25 +659,18 @@ export default function BatchPushPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                  {/*
-                    三控件统一视觉高度 h-9：
-                    - SelectTrigger / Button 原生 h-9
-                    - Tab 外壳 h-9 + p-0.5，内钮 h-8
-                    - 压掉 TabButtonGroup 外层 shadow-safe 的竖直 margin/padding，避免整行被顶歪
-                  */}
-                  <div className="flex h-9 shrink-0 items-center [&_.shadow-safe]:!my-0 [&_.shadow-safe]:!py-0">
+                  <div className={tabToolbarGroupWrapClass}>
                     <TabButtonGroup
                       options={typeFilterOptions}
                       value={typeFilter}
                       onValueChange={setTypeFilter}
-                      className="box-border h-9 shrink-0 items-center gap-0.5 p-0.5"
-                      buttonClassName="box-border h-8 px-3 py-0 leading-none"
+                      className="shrink-0"
                     />
                   </div>
                   <Button
                     type="button"
                     variant="outline"
-                    className="h-9 w-full shrink-0 sm:w-auto"
+                    className={cn(tabToolbarControlClass, 'w-full shrink-0 sm:w-auto')}
                     onClick={() => loadPage(true)}
                     disabled={initialLoading}
                   >

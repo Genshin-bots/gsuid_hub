@@ -59,11 +59,40 @@ const buttonVariants = cva(
 
 使用：`<Button variant="destructive" size="sm"><Trash className="h-4 w-4" />删除</Button>`。
 
-## 5.4 一行筛选/表单控件高度必须统一 `h-9` ★★
+### Button 子图标 hover 微动效（默认开启）
 
-默认高度不一致：`Input` = **h-10**(40px)、`SelectTrigger` = **h-9**(36px)、`Button` 默认 = **h-10**、`Button size="sm"` = **h-9**、`Button size="icon"` = **h-10 w-10**。
+`Button` 对**直接子节点**中的 lucide 图标（`forwardRef` + PascalCase `displayName`）
+自动 `asHoverIcon` 包装，hover 时按图标类型播一次微动效。
 
-规则：**同一行/同一区域并排时，所有控件显式统一为 `h-9`**。
+**安全门**：普通 function 组件（如 `LanguageFlag`）**绝不**包装，避免丢掉 `code` 等 props 白屏。
+`asHoverIcon` 自身也有同样门禁。
+
+```tsx
+// ✅ lucide 图标：hover 自动动
+<Button><Plus className="h-4 w-4" />新建</Button>
+<Button size="icon"><RefreshCw className="h-4 w-4" /></Button>
+
+// ✅ 业务组件：原样渲染，不受影响
+<Button><LanguageFlag code="cn" />中文</Button>
+
+// 持续转圈：有 animate-spin 时跳过 hover 动效
+<Button disabled><Loader2 className="h-4 w-4 animate-spin" />保存中</Button>
+
+// 个别按钮关闭动效
+<Button iconMotion={false}><Settings className="h-4 w-4" />设置</Button>
+```
+
+非 `Button` 的可点击卡片（如 `/home` 快捷导航）自行加 `hoverIconGroupClass` + `SidebarHoverIcon`。
+
+## 5.4 一行筛选/表单控件高度必须统一 ★★
+
+默认高度不一致：`Input` = **h-10**(40px)、`SelectTrigger` = **h-9**(36px)、`Button` 默认 = **h-10**、`Button size="sm"` = **h-9**、`Button size="icon"` = **h-10 w-10**、`TabButtonGroup` 默认外壳 ≈ **h-11**(44px，`p-1` + 内钮 `py-2` + 22px 图标)。
+
+按「这一行有没有 TabButtonGroup」分两档，**禁止混用**：
+
+### A. 没有 TabButtonGroup → 统一 `h-9`
+
+搜索框 + 下拉 + 按钮的纯筛选行：
 
 ```tsx
 // ✅ 正确：工具栏所有控件 h-9 对齐
@@ -86,9 +115,43 @@ const buttonVariants = cva(
 <Button>新建</Button>
 ```
 
+### B. 有 TabButtonGroup → 以 **默认高度 group** 为基准，同行控件 `h-11` ★★★
+
+`TabButtonGroup` 默认高度是视觉主锚，**不要压矮**（禁止 `h-8` / `h-9` 外壳、禁止 `buttonClassName="h-8 py-0"` 一类矮版）。
+
+同行 `Input` / `SelectTrigger` / `Button` 用组件导出的常量对齐：
+
+```tsx
+import {
+  TabButtonGroup,
+  tabToolbarControlClass,      // 'h-11'
+  tabToolbarIconButtonClass,   // 'h-11 w-11'
+  tabToolbarGroupWrapClass,    // 压掉 shadow-safe 竖直 bleed，便于 items-center
+} from '@/components/ui/TabButtonGroup';
+
+<div className="flex flex-wrap items-center gap-2">
+  <div className={tabToolbarGroupWrapClass}>
+    <TabButtonGroup options={…} value={…} onValueChange={…} className="shrink-0" />
+  </div>
+  <Input className={cn(tabToolbarControlClass, 'pl-9 w-64')} … />
+  <Button className={tabToolbarControlClass} variant="outline">…</Button>
+  <Button size="icon" className={cn(tabToolbarIconButtonClass, 'shrink-0')}>
+    <Plus className="h-4 w-4" />
+  </Button>
+</div>
+```
+
+| 场景 | 高度 | 说明 |
+|------|------|------|
+| 纯筛选行（无 Tab） | `h-9` | Input / Select / Button 显式 `h-9` |
+| 含默认 `TabButtonGroup` | `h-11` | 用 `tabToolbarControlClass` / `tabToolbarIconButtonClass` |
+| `TabButtonGroup` 本身 | **保持默认** | 禁止压成矮版 |
+
+参考页：`/ai-knowledge` 工具栏、`/batch-push` 目标行、`/ai-meme` 筛选行。
+
 补充：
 - 单独使用的 `Input`（不与其他控件并排）可用默认高度。
-- 搜索框 `Input` 与旁边的 `Select` 对齐时必须 `h-9`。
+- 搜索框 `Input` 与旁边的 `Select` 对齐时，按上面 A/B 规则取同一档。
 
 ## 5.5 Radix Select 空值哨兵
 

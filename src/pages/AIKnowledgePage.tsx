@@ -7,7 +7,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
+import {
+  TabButtonGroup,
+  tabToolbarControlClass,
+  tabToolbarGroupWrapClass,
+  tabToolbarIconButtonClass,
+} from '@/components/ui/TabButtonGroup';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -810,45 +815,49 @@ export default function AIKnowledgePage() {
         </div>
       }
       toolbar={
-        /* 筛选和操作栏 */
-        <div className="flex flex-col xl:flex-row gap-4 items-start xl:items-center justify-between">
-          {/* 左侧：知识类型和来源筛选 */}
-          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-            <TabButtonGroup
-              options={knowledgeTypeOptions}
-              value={knowledgeType}
-              onValueChange={(value) => {
-                setKnowledgeType(value as KnowledgeType);
-                setPage(1);
-                setShowSearchResults(false);
-                setSearchQuery('');
-              }}
-              className="shrink-0"
-            />
-            <TabButtonGroup
-              options={sourceOptions}
-              value={sourceFilter}
-              onValueChange={(value) => {
-                setSourceFilter(value as SourceFilter);
-                setPage(1);
-              }}
-              className="shrink-0"
-            />
+        /* 筛选和操作栏：以默认高度 TabButtonGroup 为基准，同行控件统一 h-11 */
+        <div className="flex flex-col xl:flex-row gap-3 items-start xl:items-center justify-between">
+          {/* 左侧：知识类型和来源筛选（保持默认高度，不压矮） */}
+          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+            <div className={tabToolbarGroupWrapClass}>
+              <TabButtonGroup
+                options={knowledgeTypeOptions}
+                value={knowledgeType}
+                onValueChange={(value) => {
+                  setKnowledgeType(value as KnowledgeType);
+                  setPage(1);
+                  setShowSearchResults(false);
+                  setSearchQuery('');
+                }}
+                className="shrink-0"
+              />
+            </div>
+            <div className={tabToolbarGroupWrapClass}>
+              <TabButtonGroup
+                options={sourceOptions}
+                value={sourceFilter}
+                onValueChange={(value) => {
+                  setSourceFilter(value as SourceFilter);
+                  setPage(1);
+                }}
+                className="shrink-0"
+              />
+            </div>
           </div>
-        
-          {/* 右侧：搜索和添加按钮 */}
-          <div className="flex gap-2 w-full xl:w-auto">
-            <div className="relative flex-1 xl:flex-none xl:w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+
+          {/* 右侧：搜索和操作按钮，h-11 与默认 TabButtonGroup 外壳齐平 */}
+          <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto">
+            <div className="relative flex-1 min-w-[12rem] xl:flex-none xl:w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
               <Input
                 placeholder={knowledgeType === 'text' ? t('aiKnowledge.searchPlaceholder') : t('aiKnowledge.searchImagePlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                className="pl-9"
+                className={cn(tabToolbarControlClass, 'pl-9')}
               />
             </div>
-            <Button onClick={handleSearch} disabled={isSearching}>
+            <Button className={tabToolbarControlClass} onClick={handleSearch} disabled={isSearching}>
               {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
             </Button>
             <Button
@@ -859,7 +868,7 @@ export default function AIKnowledgePage() {
                 setBulkDialogOpen(true);
               }}
               variant="outline"
-              className="shrink-0"
+              className={cn(tabToolbarControlClass, 'shrink-0')}
               title={t('aiKnowledge.bulkImport')}
             >
               <FileUp className="h-4 w-4" />
@@ -868,7 +877,7 @@ export default function AIKnowledgePage() {
             <Button
               onClick={handleExportBackup}
               variant="outline"
-              className="shrink-0"
+              className={cn(tabToolbarControlClass, 'shrink-0')}
               title={t('aiKnowledge.exportBackup')}
             >
               <Download className="h-4 w-4" />
@@ -877,7 +886,7 @@ export default function AIKnowledgePage() {
             <Button
               onClick={() => { setBackupFile(null); setBackupDialogOpen(true); }}
               variant="outline"
-              className="shrink-0"
+              className={cn(tabToolbarControlClass, 'shrink-0')}
               title={t('aiKnowledge.importBackup')}
             >
               <FolderOpen className="h-4 w-4" />
@@ -886,7 +895,7 @@ export default function AIKnowledgePage() {
             <Button
               onClick={handleReconcile}
               variant="outline"
-              className="shrink-0"
+              className={cn(tabToolbarControlClass, 'shrink-0')}
               title={t('aiKnowledge.reconcile') ?? ''}
               disabled={reconciling}
             >
@@ -899,7 +908,11 @@ export default function AIKnowledgePage() {
                 {t('aiKnowledge.reconcile')}
               </span>
             </Button>
-            <Button onClick={handleOpenAddDialog} size="icon" className="shrink-0">
+            <Button
+              onClick={handleOpenAddDialog}
+              size="icon"
+              className={cn(tabToolbarIconButtonClass, 'shrink-0')}
+            >
               <Plus className="h-4 w-4" />
             </Button>
           </div>
