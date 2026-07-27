@@ -367,6 +367,7 @@ const routes: Route[] = [
   { m: 'GET', re: /^\/api\/logs\/levels$/, h: () => generateLogLevels() },
   { m: 'GET', re: /^\/api\/logs\/stats$/, h: () => generateLogStats() },
   { m: 'GET', re: /^\/api\/logs\/config$/, h: () => generateLogConfig() },
+  { m: 'PUT', re: /^\/api\/logs\/config$/, h: () => ({ status: 0, msg: 'ok' }) },
 
   // /persona-config
   { m: 'GET', re: /^\/api\/persona\/list$/, h: () => generatePersonaList() },

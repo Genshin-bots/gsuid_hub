@@ -830,7 +830,7 @@ export default function AIKanbanPage() {
               </SelectContent>
             </Select>
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder={t('aiKanban.filters.search')} className="pl-9" />
             </div>
           </div>

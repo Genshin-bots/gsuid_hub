@@ -55,6 +55,40 @@ function parseLogLevel(level: string): string {
   return level.toLowerCase();
 }
 
+/**
+ * 从 SSE 载荷解析 plugin，并尽量把正文里残留的 `plugin=...` 清掉
+ *（兼容尚未升级、仍把 plugin 塞进 message 的旧后端）。
+ */
+function resolvePluginAndContent(
+  message: unknown,
+  pluginField: unknown,
+): { plugin?: string; content: string } {
+  let content = typeof message === "string" ? message : String(message ?? "");
+  let plugin =
+    typeof pluginField === "string" && pluginField.trim()
+      ? pluginField.trim()
+      : undefined;
+
+  // 旧后端：plugin 落在正文 extras 行，例如 "plugin=WutheringWavesUID, pathname=..."
+  if (!plugin) {
+    const m = content.match(/(?:^|[\n,]\s*)plugin=([^\n,]+)/i);
+    if (m?.[1]) {
+      plugin = m[1].trim();
+    }
+  }
+
+  if (plugin) {
+    // 去掉 plugin=xxx 键值（单独一段或夹在逗号列表里）
+    content = content
+      .replace(/(?:^|\n)\s*plugin=[^\n,]*(?:,\s*)?/gi, "\n")
+      .replace(/,\s*plugin=[^\n,]*/gi, "")
+      .replace(/\n{3,}/g, "\n\n")
+      .replace(/^\n+|\n+$/g, "");
+  }
+
+  return { plugin, content };
+}
+
 export default function ConsolePage() {
   const { t } = useLanguage();
   const { style, mode } = useTheme();
@@ -234,11 +268,15 @@ export default function ConsolePage() {
         }
 
         const ts = new Date(logData.timestamp);
-        const content = logData.message;
+        const { plugin, content } = resolvePluginAndContent(
+          logData.message,
+          logData.plugin,
+        );
         allLogsRef.current.push({
           id: (++logCounter).toString(),
           type: logType,
           content,
+          plugin,
           timestamp: ts,
           anchor: buildLogAnchor(ts, content),
           // 预算行数（按 \n 拆分），让虚拟化器初次布局就拿到正确行高
@@ -391,7 +429,10 @@ export default function ConsolePage() {
 
   const exportLogs = () => {
     const content = allLogsRef.current
-      .map((log) => `[${log.timestamp.toISOString()}] [${log.type.toUpperCase()}] ${log.content}`)
+      .map((log) => {
+        const pluginTag = log.plugin ? ` {${log.plugin}}` : "";
+        return `[${log.timestamp.toISOString()}] [${log.type.toUpperCase()}]${pluginTag} ${log.content}`;
+      })
       .join("\n");
     const blob = new Blob([content], { type: "text/plain" });
     const url = URL.createObjectURL(blob);

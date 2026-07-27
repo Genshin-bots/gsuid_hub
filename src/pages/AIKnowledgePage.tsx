@@ -848,7 +848,7 @@ export default function AIKnowledgePage() {
           {/* 右侧：搜索和操作按钮，h-11 与默认 TabButtonGroup 外壳齐平 */}
           <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto">
             <div className="relative flex-1 min-w-[12rem] xl:flex-none xl:w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder={knowledgeType === 'text' ? t('aiKnowledge.searchPlaceholder') : t('aiKnowledge.searchImagePlaceholder')}
                 value={searchQuery}

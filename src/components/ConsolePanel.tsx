@@ -20,6 +20,11 @@ export interface LogEntry {
   content: string;
   timestamp: Date;
   /**
+   * 日志来源插件（后端 SSE 字段 `plugin`，如 SayuCore / GenshinUID / canvas_backend）。
+   * 渲染在等级 badge 之后，不同插件使用稳定哈希配色。
+   */
+  plugin?: string;
+  /**
    * 锚点签名：基于"时间戳 + 内容前 N 个字符"派生，
    * 用于在过滤切换 / 新日志到达时精确定位同一条日志，
    * 保证虚拟化 key 与滚动位置在过滤前后稳定。
@@ -47,8 +52,52 @@ const LINE_HEIGHT = 20;
 // 单字符宽度：按 CJK 偏宽估算（14px），保证估算行数 >= 真实行数，
 // 宁可初次布局短暂留白也不要重叠，measureElement 会随后收紧到真实高度。
 const AVG_CHAR_WIDTH = 14;
-// 内容区之外的预留宽度：时间戳 + badge + gap + 容器 p-4 内边距
-const RESERVED_WIDTH = 210;
+// 内容区之外的预留宽度：时间戳 + level badge + plugin badge + gap + 容器 p-4 内边距
+const RESERVED_WIDTH = 320;
+
+/** 与后端 _CORE_ORIGIN_LABEL 对齐的框架本体名 */
+const CORE_PLUGIN_LABELS = new Set(["sayucore", "core", "gscore"]);
+
+/**
+ * 插件 badge 色板（与后端 _PLUGIN_FORE_PALETTE 思路一致：按名哈希稳定取色）。
+ * 用 bg-* 实体色保证亮/暗主题下都清晰可读。
+ */
+const PLUGIN_BADGE_PALETTE: Array<{ bg: string; text: string }> = [
+  { bg: "bg-cyan-600", text: "text-white" },
+  { bg: "bg-blue-600", text: "text-white" },
+  { bg: "bg-green-600", text: "text-white" },
+  { bg: "bg-fuchsia-600", text: "text-white" },
+  { bg: "bg-amber-500", text: "text-black" },
+  { bg: "bg-sky-500", text: "text-white" },
+  { bg: "bg-indigo-600", text: "text-white" },
+  { bg: "bg-lime-600", text: "text-white" },
+  { bg: "bg-pink-600", text: "text-white" },
+  { bg: "bg-yellow-500", text: "text-black" },
+  { bg: "bg-teal-600", text: "text-white" },
+  { bg: "bg-violet-600", text: "text-white" },
+];
+
+const CORE_PLUGIN_BADGE = { bg: "bg-slate-500", text: "text-white" };
+
+/** 简易字符串哈希（稳定、无依赖），用于插件名 → 色板下标 */
+function hashPluginName(name: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < name.length; i++) {
+    h ^= name.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+function getPluginBadge(plugin: string): { label: string; bg: string; text: string } {
+  const label = plugin.trim() || "SayuCore";
+  const key = label.toLowerCase().replace(/[\s-]+/g, "");
+  if (CORE_PLUGIN_LABELS.has(key) || key === "sayucore") {
+    return { label, ...CORE_PLUGIN_BADGE };
+  }
+  const idx = hashPluginName(label) % PLUGIN_BADGE_PALETTE.length;
+  return { label, ...PLUGIN_BADGE_PALETTE[idx] };
+}
 
 /**
  * 根据内容计算视觉行数（按 \n 拆分）。
@@ -86,7 +135,40 @@ export function buildLogAnchor(timestamp: Date, content: string): string {
   return `${ts}::${head}`;
 }
 
+/**
+ * 行布局用 CSS Grid 固定列宽 + baseline 对齐：
+ * 时间 / 等级 / 插件 / 正文首行共用 text-xs + leading-5，文字基线一致，
+ * 避免「badge 小字号 flex 居中 + 正文 text-sm」造成的上下错落。
+ *
+ * time | level | plugin | message
+ */
+const LOG_ROW_GRID_CLASS =
+  "grid grid-cols-[4.75rem_4.25rem_7.5rem_minmax(0,1fr)] gap-x-1.5 items-baseline py-0.5";
+
+/** 时间列：与正文同字号行高，参与 baseline */
+const TIME_CELL_CLASS =
+  "min-w-0 font-mono text-xs tabular-nums leading-5 text-muted-foreground";
+
+/**
+ * badge：不用固定 h-* / flex 居中（会脱离文字基线）。
+ * 与正文同 text-xs leading-5，仅左右 padding，高度 = 行高，与首行齐平。
+ */
+const BADGE_CELL_CLASS =
+  "box-border w-full min-w-0 font-mono text-xs leading-5 font-semibold " +
+  "text-center px-1 rounded truncate whitespace-nowrap select-none";
+
+/** 固定 HH:MM:SS，避免 toLocaleTimeString 在不同 locale 下长短不一 */
+function formatLogTime(ts: Date): string {
+  const d = ts instanceof Date ? ts : new Date(ts);
+  if (Number.isNaN(d.getTime())) return "--:--:--";
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  const ss = String(d.getSeconds()).padStart(2, "0");
+  return `${hh}:${mm}:${ss}`;
+}
+
 function getLevelBadge(type: LogEntryType) {
+  // 短标签（最长 SUCCESS=7）适配 4.25rem 列；完整语义见 title
   const badges: Record<LogEntryType, { label: string; bg: string; text: string }> = {
     input: { label: "CMD", bg: "bg-blue-600", text: "text-white" },
     output: { label: "OUT", bg: "bg-slate-600", text: "text-white" },
@@ -135,23 +217,45 @@ interface LogRowProps {
 const LogRow = memo(
   forwardRef<HTMLDivElement, LogRowProps>(
     function LogRow({ log, style, "data-index": dataIndex }, ref) {
+      // 列宽由 LOG_ROW_GRID_CLASS 固定，不再使用 padBadgeLabel
       const badge = getLevelBadge(log.type);
+      const pluginBadge = log.plugin ? getPluginBadge(log.plugin) : null;
       return (
         <div
           ref={ref}
           data-index={dataIndex}
           style={style}
-          className="flex items-start gap-2 py-1"
+          className={LOG_ROW_GRID_CLASS}
         >
-          <span className="text-muted-foreground text-xs shrink-0">
-            [{log.timestamp.toLocaleTimeString()}]
+          <span className={TIME_CELL_CLASS}>
+            [{formatLogTime(log.timestamp)}]
           </span>
           <span
-            className={`${badge.bg} ${badge.text} text-xs px-1.5 py-0.5 rounded font-semibold shrink-0 h-fit`}
+            className={cn(BADGE_CELL_CLASS, badge.bg, badge.text)}
+            title={badge.label}
           >
             {badge.label}
           </span>
-          <div className={cn("min-w-0 whitespace-pre-wrap break-all", getLogColor(log.type))}>
+          {pluginBadge ? (
+            <span
+              className={cn(BADGE_CELL_CLASS, pluginBadge.bg, pluginBadge.text)}
+              title={pluginBadge.label}
+            >
+              {pluginBadge.label}
+            </span>
+          ) : (
+            // 占位保持列宽；用同 leading 的空白字符参与 baseline，避免列塌陷错位
+            <span aria-hidden className="font-mono text-xs leading-5">
+              {"\u00a0"}
+            </span>
+          )}
+          {/* 与左侧同 text-xs leading-5，首行基线对齐；多行仍向下延展 */}
+          <div
+            className={cn(
+              "min-w-0 whitespace-pre-wrap break-all font-mono text-xs leading-5",
+              getLogColor(log.type),
+            )}
+          >
             <StructuredDataViewer data={normalizeLogContent(log.content)} />
           </div>
         </div>

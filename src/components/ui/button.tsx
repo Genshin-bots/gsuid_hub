@@ -89,56 +89,74 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, asChild = false, iconMotion = true, children, ...props }, ref) => {
     const Comp = asChild ? Slot : "button";
 
-    const processChildren = (nodes: React.ReactNode): React.ReactNode => {
-      return React.Children.map(nodes, (child) => {
-        if (!React.isValidElement(child)) return child;
+    /**
+     * 处理单个 React 元素（图标动效 / 递归进 DOM·Fragment 子树）。
+     * 必须返回「单个元素」而不是数组——asChild 时 Slot 只接受单一 React element。
+     */
+    const processElement = (child: React.ReactElement): React.ReactNode => {
+      const childProps = child.props as {
+        className?: string;
+        style?: React.CSSProperties;
+        children?: React.ReactNode;
+      };
 
-        const childProps = child.props as {
-          className?: string;
-          style?: React.CSSProperties;
-          children?: React.ReactNode;
+      if (isLucideIconElement(child)) {
+        const nextStyle: React.CSSProperties = {
+          ...childProps.style,
+          color: "inherit",
         };
 
-        if (isLucideIconElement(child)) {
-          const nextStyle: React.CSSProperties = {
-            ...childProps.style,
-            color: "inherit",
-          };
-
-          // 已包装 / 持续动画 / 关闭动效：只补颜色
-          if (
-            !iconMotion ||
-            hasContinuousAnimation(childProps.className) ||
-            child.type === SidebarHoverIcon
-          ) {
-            return React.cloneElement(
-              child as React.ReactElement<{ style?: React.CSSProperties }>,
-              { style: nextStyle },
-            );
-          }
-
-          // asHoverIcon：给图标挂上 group-hover/hovericon:animate-*（经验证有效的路径）
-          const withColor = React.cloneElement(
+        // 已包装 / 持续动画 / 关闭动效：只补颜色
+        if (
+          !iconMotion ||
+          hasContinuousAnimation(childProps.className) ||
+          child.type === SidebarHoverIcon
+        ) {
+          return React.cloneElement(
             child as React.ReactElement<{ style?: React.CSSProperties }>,
             { style: nextStyle },
           );
-          return asHoverIcon(withColor);
         }
 
-        // 只对 DOM / Fragment 递归；不进 LanguageFlag 等业务组件内部
-        if (
-          childProps.children != null &&
-          (typeof child.type === "string" || child.type === React.Fragment)
-        ) {
-          return React.cloneElement(
-            child as React.ReactElement<{ children?: React.ReactNode }>,
-            { children: processChildren(childProps.children) },
-          );
-        }
+        // asHoverIcon：给图标挂上 group-hover/hovericon:animate-*（经验证有效的路径）
+        const withColor = React.cloneElement(
+          child as React.ReactElement<{ style?: React.CSSProperties }>,
+          { style: nextStyle },
+        );
+        return asHoverIcon(withColor);
+      }
 
-        return child;
+      // 只对 DOM / Fragment 递归；不进 LanguageFlag 等业务组件内部
+      if (
+        childProps.children != null &&
+        (typeof child.type === "string" || child.type === React.Fragment)
+      ) {
+        return React.cloneElement(
+          child as React.ReactElement<{ children?: React.ReactNode }>,
+          { children: processChildren(childProps.children) },
+        );
+      }
+
+      return child;
+    };
+
+    const processChildren = (nodes: React.ReactNode): React.ReactNode => {
+      return React.Children.map(nodes, (child) => {
+        if (!React.isValidElement(child)) return child;
+        return processElement(child);
       });
     };
+
+    // Slot (asChild) 要求 children 是「单个 React 元素」。
+    // React.Children.map 即便只有一个子节点也会返回数组，导致 Slot 抛：
+    // "Slot failed to slot onto its children. Expected a single React element child or `Slottable`."
+    // 因此 asChild 时直接处理唯一子元素，禁止包一层 map 数组。
+    let content: React.ReactNode;
+    if (asChild) {
+      content = React.isValidElement(children) ? processElement(children) : children;
+    } else {
+      content = processChildren(children);
+    }
 
     return (
       <Comp
@@ -149,7 +167,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         {...props}
       >
-        {processChildren(children)}
+        {content}
       </Comp>
     );
   },

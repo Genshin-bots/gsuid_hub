@@ -200,7 +200,7 @@ function ToolMultiSelectDropdown({ tools, value, onChange, disabled, t }: ToolMu
             <div className="border-b p-3">
               <div className="grid gap-2 sm:grid-cols-[1fr_220px]">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t('aiCapabilityAgents.tools.searchPlaceholder')} className="pl-9" />
                 </div>
                 <Select value={pluginFilter} onValueChange={setPluginFilter}>
@@ -461,7 +461,7 @@ export default function AICapabilityAgentsPage() {
             />
           </div>
           <div className="relative w-full xl:max-w-md">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder={t('aiCapabilityAgents.searchPlaceholder')} className="pl-9" />
           </div>
         </div>

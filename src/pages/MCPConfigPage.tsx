@@ -1722,7 +1722,7 @@ export default function MCPConfigPage() {
               {/* Search Input */}
               {!isLoadingPresets && presets.length > 0 && (
                 <div className="relative shrink-0">
-                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Search className="pointer-events-none absolute left-2.5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     placeholder={t('mcpConfig.presetSearchPlaceholder')}
                     value={presetSearchText}
