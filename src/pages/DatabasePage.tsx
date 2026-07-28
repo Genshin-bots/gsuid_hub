@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
@@ -14,9 +14,9 @@ import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Search, Plus, Pencil, Trash2, Filter, RefreshCw, ChevronLeft, ChevronRight, Database, X, PlusCircle, Package } from 'lucide-react';
 import { databaseApi, PluginDatabaseInfo, DatabaseTableInfo, DatabaseColumn, PaginatedData, getPluginIconUrl } from '@/lib/api';
+import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { useTheme } from '@/contexts/ThemeContext';
 import { PinnedPage } from '@/components/layout/PinnedPage';
 
 // 带 fallback 的插件图标组件
@@ -37,8 +37,6 @@ function PluginIcon({ pluginName, className = 'w-[18px] h-[18px]' }: { pluginNam
 
 export default function DatabasePage() {
   const { t } = useLanguage();
-  const { style } = useTheme();
-  const isGlass = style === 'glassmorphism';
   const [plugins, setPlugins] = useState<PluginDatabaseInfo[]>([]);
   const [selectedPluginId, setSelectedPluginId] = useState<string>('');
   const [activeTable, setActiveTable] = useState<string>('');
@@ -63,6 +61,10 @@ export default function DatabasePage() {
   const [tableScrollWidth, setTableScrollWidth] = useState(0);
   const [showFloatingBar, setShowFloatingBar] = useState(false);
   const [floatingBarStyle, setFloatingBarStyle] = useState<React.CSSProperties>({});
+  // 右侧是否还有隐藏列（scrollLeft < maxScroll）：此时有内容滑在固定操作列下方，
+  // 固定列左侧的渐变遮罩 + 分层阴影据此一并切换，提示用户「这边还有更多列」；
+  // 有溢出时初始 scrollLeft=0 也为 true——正是最需要提示的时刻，滚到最右后自动退场
+  const [hasMoreRight, setHasMoreRight] = useState(false);
 
   const selectedPlugin = useMemo(() => {
     return plugins.find(p => p.plugin_id === selectedPluginId);
@@ -119,9 +121,15 @@ export default function DatabasePage() {
   }, []);
 
   const handleTableScroll = useCallback(() => {
-    if (tableContainerRef.current && floatingScrollbarRef.current) {
-      floatingScrollbarRef.current.scrollLeft = tableContainerRef.current.scrollLeft;
+    const el = tableContainerRef.current;
+    if (!el) return;
+    if (floatingScrollbarRef.current) {
+      floatingScrollbarRef.current.scrollLeft = el.scrollLeft;
     }
+    // 同步「右侧还有隐藏列」状态（同值 setState 会被 React 跳过，不会造成额外重渲染；
+    // 1px 容差消化缩放/HiDPI 的亚像素舍入）
+    const canRight = el.scrollLeft < el.scrollWidth - el.clientWidth - 1;
+    setHasMoreRight((prev) => (prev === canRight ? prev : canRight));
   }, []);
 
   // Measure table dimensions, detect horizontal scroll need, and update fixed bar position
@@ -135,6 +143,11 @@ export default function DatabasePage() {
       const hasOverflow = el.scrollWidth > el.clientWidth;
       const rect = el.getBoundingClientRect();
       const inViewport = rect.bottom > 0 && rect.top < window.innerHeight;
+
+      // 切表 / 数据刷新 / 窗口缩放后 scrollLeft 可能被浏览器重置或截断，
+      // 在这里同步固定列的遮罩/阴影状态，避免残留（无溢出时 canRight 恒为 false）
+      const canRight = el.scrollLeft < el.scrollWidth - el.clientWidth - 1;
+      setHasMoreRight((prev) => (prev === canRight ? prev : canRight));
 
       // Whether the floating bar should be shown right now.
       const shouldShow = hasOverflow && inViewport;
@@ -559,7 +572,16 @@ export default function DatabasePage() {
                           )}
                         </TableHead>
                       ))}
-                      <TableHead className="w-[100px] whitespace-nowrap">{t('database.actions')}</TableHead>
+                      {/* 操作列固定在表格右缘，不随横向滚动（.table-sticky-right 见 index.css）；
+                          右侧还有隐藏列时加渐变遮罩 + 分层阴影，提示「还有更多列」 */}
+                      <TableHead
+                        className={cn(
+                          'w-[100px] whitespace-nowrap table-sticky-right',
+                          hasMoreRight && 'table-sticky-fade table-sticky-shadow'
+                        )}
+                      >
+                        {t('database.actions')}
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -583,7 +605,7 @@ export default function DatabasePage() {
                               )}
                             </TableCell>
                           ))}
-                          <TableCell>
+                          <TableCell className={cn('table-sticky-right', hasMoreRight && 'table-sticky-fade table-sticky-shadow')}>
                             <div className="flex gap-1">
                               <Button variant="ghost" size="icon" onClick={() => handleEdit(item)}>
                                 <Pencil className="h-4 w-4" />
@@ -633,42 +655,74 @@ export default function DatabasePage() {
       )}
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        {/* 三段式 flex：header / 可滚动字段区 / footer——长表单只滚中间，
+            取消/保存按钮常驻可见（此前 overflow-y-auto 挂在 DialogContent 上，按钮会被滚走） */}
+        <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col overflow-hidden">
           <DialogHeader>
             <DialogTitle>{isCreating ? t('database.addRecord') : t('database.editRecord')}</DialogTitle>
+            {/* Radix 无障碍要求 DialogTitle + DialogDescription 成对（P-16/P-18）；
+                顺带展示「哪张表 / 哪条记录」的上下文 */}
+            <DialogDescription>
+              {isCreating
+                ? t('database.addRecordDescription').replace('{table}', tableMetadata?.label || activeTable)
+                : t('database.editRecordDescription')
+                    .replace('{table}', tableMetadata?.label || activeTable)
+                    .replace('{pk}', tableMetadata?.pk_name || 'id')
+                    .replace('{id}', String(editingItem?.[tableMetadata?.pk_name || 'id'] ?? ''))}
+            </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            {columns.map((col) => (
-              <div key={col.name} className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor={col.name} className="text-right">
-                  {col.title}
-                </Label>
-                {col.type === 'bool' ? (
-                  <div className="col-span-3 flex items-center">
-                    <Switch
-                      checked={Boolean(editingItem?.[col.name])}
-                      onCheckedChange={(checked) => handleInputChange(col.name, checked)}
-                    />
+
+          <div className="grow min-h-0 overflow-y-auto py-2">
+            {/* 字段名置于输入框上方（旧版 25% 右对齐标签列会把长字段名挤成竖条）；
+                标签区预留两行高并底对齐（min-h-10 + justify-end）：同行字段一长一短时，
+                下方输入框仍水平对齐，多出的空隙留在标签上方、不挤压输入框；
+                line-clamp-2 兜底超长标签（全文悬停 title 可见），杜绝三行破对齐；
+                桌面双列压缩表单高度，移动端退回单列；bool 字段内联 Switch，高度与 Input 对齐 */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-5">
+              {columns.map((col) => {
+                const isNumber = col.type === 'int' || col.type === 'float';
+                // 编辑时主键只读：handleSave 用 editingItem[pk] 定位记录，
+                // 若允许改主键，保存会指向一条不存在的记录
+                const pkLocked = !isCreating && col.name === (tableMetadata?.pk_name || 'id');
+                return (
+                  <div key={col.name} className="flex flex-col gap-2">
+                    <div className="flex flex-col justify-end min-h-10">
+                      <Label htmlFor={col.name} title={col.title} className="text-muted-foreground leading-snug line-clamp-2">
+                        {col.title}
+                      </Label>
+                    </div>
+                    {col.type === 'bool' ? (
+                      <div className="flex items-center h-10 px-3 rounded-md border border-border/60">
+                        <Switch
+                          id={col.name}
+                          checked={Boolean(editingItem?.[col.name])}
+                          onCheckedChange={(checked) => handleInputChange(col.name, checked)}
+                        />
+                      </div>
+                    ) : (
+                      <Input
+                        id={col.name}
+                        type={isNumber ? 'number' : 'text'}
+                        value={String(editingItem?.[col.name] ?? '')}
+                        onChange={(e) =>
+                          handleInputChange(
+                            col.name,
+                            isNumber
+                              ? (col.type === 'int' ? parseInt(e.target.value) || 0 : parseFloat(e.target.value) || 0)
+                              : e.target.value
+                          )
+                        }
+                        readOnly={pkLocked}
+                        title={pkLocked ? t('database.pkEditHint') : undefined}
+                        className={pkLocked ? 'bg-muted/40 cursor-not-allowed' : undefined}
+                      />
+                    )}
                   </div>
-                ) : col.type === 'int' || col.type === 'float' ? (
-                  <Input
-                    id={col.name}
-                    type="number"
-                    value={String(editingItem?.[col.name] ?? '')}
-                    onChange={(e) => handleInputChange(col.name, col.type === 'int' ? parseInt(e.target.value) || 0 : parseFloat(e.target.value) || 0)}
-                    className="col-span-3"
-                  />
-                ) : (
-                  <Input
-                    id={col.name}
-                    value={String(editingItem?.[col.name] ?? '')}
-                    onChange={(e) => handleInputChange(col.name, e.target.value)}
-                    className="col-span-3"
-                  />
-                )}
-              </div>
-            ))}
+                );
+              })}
+            </div>
           </div>
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
               {t('common.cancel')}

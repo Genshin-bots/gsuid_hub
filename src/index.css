@@ -1035,6 +1035,96 @@ button[role="switch"][data-state="unchecked"] span {
 }
 
 /* ───────────────────────────────────────────────────────────────────────────
+ * 横向滚动表格 · 右侧固定列（/database「操作」列）
+ *
+ * 单元格用 position: sticky 挂在滚动容器右缘：表格横向滚动时操作列
+ *（修改/删除）始终可见，不必滚到最右侧。
+ *
+ * 1) 固定列必须自带背景，否则滚到下方的内容会透出来：
+ *    底色取「卡片底色 + 额外不透明度」盖住底下文字；glassmorphism 下再叠
+ *    更强的背景模糊（@supports 渐进增强，不支持时退化为近不透明底色）。
+ *    不透明度统一收进 --sticky-bg-alpha（基于用户在主题杂项里调的
+ *    --card-opacity），左侧渐变遮罩的终点色复用它，保证遮罩与列底无缝衔接。
+ * 2) 行悬停同步：TableRow 的 hover:bg-muted/50 是 tr 上的半透明色，会被
+ *    固定列自身背景盖住，故用 ::after 面纱 + opacity 过渡复刻同款悬停感
+ *    （150ms 对齐 transition-colors）。pointer-events: none 保证按钮可点。
+ * 3) 行分隔线用 inset box-shadow 模拟：collapse 边框模型下 tr 的 border-b
+ *    会被 sticky 单元格盖住（定位元素绘制层级更高），而单元格自身 border
+ *    不随 sticky 移动；box-shadow 跟着元素走，正好补上这条线。
+ * 4) 「右边还有隐藏列」的两件提示（JS 一并切换，滚到最右后一并退场）：
+ *    - 左侧渐变遮罩 .table-sticky-fade::before：把滑到固定列下方的内容渐隐，
+ *      暗示「这边还有更多列」；
+ *    - 左侧分层阴影 .table-sticky-shadow：alpha 乘 --shadow-strength，与表面类一致。
+ *    触发条件是 scrollLeft < maxScroll——有溢出时初始 scrollLeft=0 也满足，
+ *    那正是最需要「还有列」提示的时刻（固定列此时已压住右侧数据列）。
+ * ─────────────────────────────────────────────────────────────────────────── */
+.table-sticky-right {
+  position: sticky;
+  right: 0;
+  z-index: 10;
+  --sticky-bg-alpha: calc(var(--card-opacity, 0.25) + 0.65);
+  background-color: hsl(var(--card) / var(--sticky-bg-alpha));
+  box-shadow: inset 0 -1px 0 0 hsl(var(--border));
+  transition: box-shadow 0.25s ease;
+}
+
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  [data-style="glassmorphism"] .table-sticky-right {
+    --sticky-bg-alpha: calc(var(--card-opacity, 0.25) + 0.5);
+    -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.5));
+    backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.5));
+  }
+}
+
+/* 左侧渐变遮罩：始终挂在固定格左缘（right: 100%，随 sticky 移动），
+   由 JS 加 .table-sticky-fade 启用；终点色与列底共用 --sticky-bg-alpha */
+.table-sticky-right::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 100%;
+  width: 2rem;
+  background: linear-gradient(
+    to right,
+    hsl(var(--card) / 0),
+    hsl(var(--card) / var(--sticky-bg-alpha))
+  );
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  pointer-events: none;
+}
+.table-sticky-right.table-sticky-fade::before {
+  opacity: 1;
+}
+
+/* 行悬停面纱：与 hover:bg-muted/50 同色 */
+.table-sticky-right::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-color: hsl(var(--muted) / 0.5);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+}
+tbody tr:hover .table-sticky-right::after {
+  opacity: 1;
+}
+
+/* 左侧分层阴影：与渐变遮罩同进退（JS 一并切换） */
+.table-sticky-right.table-sticky-shadow {
+  box-shadow:
+    inset 0 -1px 0 0 hsl(var(--border)),
+    -16px 0 24px -16px hsl(0 0% 0% / calc(0.4 * var(--shadow-strength, 1)));
+}
+.dark .table-sticky-right.table-sticky-shadow {
+  box-shadow:
+    inset 0 -1px 0 0 hsl(var(--border)),
+    -16px 0 24px -16px hsl(0 0% 0% / calc(0.8 * var(--shadow-strength, 1)));
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
  * Demo 嵌入锁定（docs 主页 iframe，以 ?embed=1 加载）
  * 侧边栏「可见但不可点击」——满足需求：展示完整布局（含侧边栏），但禁止从侧边栏
  * 导航切走到别的页面，让每个内嵌面板稳定停留在其深链页。

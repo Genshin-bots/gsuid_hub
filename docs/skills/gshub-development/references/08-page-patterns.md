@@ -51,6 +51,8 @@
 
 见 [§04 §4.6](./04-page-layout-spec.md)：点击任意行打开详情；操作按钮 `e.stopPropagation()` 防冒泡；详情/弹窗标题带 `w-5 h-5` 图标，字段按逻辑分组（`Separator`/`border-b`）。
 
+**横向长表格的操作列要固定在右缘**（/database 二三十列的表，修改/删除不能要用户滚到头才够得到）：给操作列 `th`/`td` 加 `.table-sticky-right`（`index.css`，含主题自适应背景、行悬停面纱、行分隔线补线）。光固定不够——固定列会被误认为「最后一列」，所以 JS 侧在「右侧还有隐藏列」（`scrollLeft < maxScroll`，**有溢出时初始 scrollLeft=0 也满足**）时一并切换 `.table-sticky-fade`（左侧渐变遮罩，`::before` 挂在固定格左缘）+ `.table-sticky-shadow`（分层阴影），滚到最右后一并退场；同值 setState 防重渲染。实现要点见 `index.css` 该段注释：固定列必须自带背景（glassmorphism 下叠 backdrop-filter，`@supports` 降级；不透明度收进 `--sticky-bg-alpha`，遮罩终点色复用它无缝衔接）；行分隔线用 inset box-shadow 而非 border（collapse 边框模型下 sticky 单元格不带走 tr 的 border-b）。
+
 ## 8.3 Dialog/Modal 规范
 
 ### Radix Select 空值
