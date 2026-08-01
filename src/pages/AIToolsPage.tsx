@@ -8,6 +8,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { PinnedPage } from '@/components/layout/PinnedPage';
 import {
   Wrench,
@@ -19,8 +26,6 @@ import {
   Search,
   Network,
   Boxes,
-  LayoutList,
-  FileWarning,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -387,7 +392,8 @@ export default function AIToolsPage() {
         </div>
       }
       toolbar={
-        <div className="space-y-4">
+        /* 主 Tab 常驻；工具列表的多维筛选压成单行 Select + 搜索，避免 4 组 ButtonGroup 占满视口 */
+        <div className="space-y-3">
           <TabButtonGroup
             options={[
               { value: 'tools', label: t('aiTools.tabs.tools'), icon: <Wrench className="w-4 h-4" /> },
@@ -399,92 +405,76 @@ export default function AIToolsPage() {
           />
 
           {pageTab === 'tools' && !isLoading && categories.length > 0 && (
-            <div className="space-y-4">
-              {!isLoading && diagnosticCounts.total > 0 && (
-                <div className="flex flex-wrap items-center gap-2 text-xs">
-                  <Badge variant="secondary">
-                    {t('aiTools.diagnostics.ok')}: {diagnosticCounts.ok}
-                  </Badge>
-                  {diagnosticCounts.emptyDescription > 0 && (
-                    <Badge variant="destructive">
-                      {t('aiTools.diagnostics.emptyDescription')}: {diagnosticCounts.emptyDescription}
-                    </Badge>
-                  )}
-                  {diagnosticCounts.meta > 0 && (
-                    <Badge className="bg-amber-500/15 text-amber-700 hover:bg-amber-500/20 dark:text-amber-300">
-                      {t('aiTools.diagnostics.meta')}: {diagnosticCounts.meta}
-                    </Badge>
-                  )}
-                </div>
-              )}
+            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+              <div className="relative w-full sm:flex-1 sm:min-w-[200px] sm:max-w-sm">
+                <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder={t('aiTools.searchPlaceholder')}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="h-9 w-full pl-9"
+                />
+              </div>
 
-              <TabButtonGroup
-                options={[
-                  {
-                    value: 'all',
-                    label: t('aiTools.diagnostics.filterAll'),
-                    icon: <LayoutList className="w-4 h-4" />,
-                  },
-                  {
-                    value: 'issues',
-                    label: `${t('aiTools.diagnostics.filterIssues')} (${diagnosticCounts.emptyDescription + diagnosticCounts.meta})`,
-                    icon: <AlertTriangle className="w-4 h-4" />,
-                  },
-                  {
-                    value: 'empty_description',
-                    label: `${t('aiTools.diagnostics.filterEmpty')} (${diagnosticCounts.emptyDescription})`,
-                    icon: <FileWarning className="w-4 h-4" />,
-                  },
-                ]}
+              <Select
                 value={diagnosticFilter}
                 onValueChange={(v) => setDiagnosticFilter(v as typeof diagnosticFilter)}
-              />
+              >
+                <SelectTrigger className="h-9 w-full sm:w-[170px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t('aiTools.diagnostics.filterAll')}</SelectItem>
+                  <SelectItem value="issues">
+                    {t('aiTools.diagnostics.filterIssues')} (
+                    {diagnosticCounts.emptyDescription + diagnosticCounts.meta})
+                  </SelectItem>
+                  <SelectItem value="empty_description">
+                    {t('aiTools.diagnostics.filterEmpty')} ({diagnosticCounts.emptyDescription})
+                  </SelectItem>
+                </SelectContent>
+              </Select>
 
-              {/* 分类筛选 */}
-              <TabButtonGroup
-                options={categoryList.map((category) => ({
-                  value: category,
-                  label: category === 'all'
-                    ? `${t('aiTools.allCategories') || '全部分类'} (${categoryCounts.all || 0})`
-                    : `${category} (${categoryCounts[category] || 0})`,
-                  icon: <Wrench className="w-4 h-4" />,
-                  disabled: category !== 'all'
-                    && category !== selectedCategory
-                    && (categoryCounts[category] || 0) === 0,
-                }))}
-                value={selectedCategory}
-                onValueChange={setSelectedCategory}
-              />
+              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                <SelectTrigger className="h-9 w-full sm:w-[180px]">
+                  <SelectValue placeholder={t('aiTools.selectCategory')} />
+                </SelectTrigger>
+                <SelectContent>
+                  {categoryList.map((category) => {
+                    const count = categoryCounts[category] || 0;
+                    const disabled =
+                      category !== 'all' && category !== selectedCategory && count === 0;
+                    return (
+                      <SelectItem key={category} value={category} disabled={disabled}>
+                        {category === 'all'
+                          ? `${t('aiTools.allCategories')} (${categoryCounts.all || 0})`
+                          : `${category} (${count})`}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
 
-              {/* 插件筛选 */}
-              <TabButtonGroup
-                options={pluginList.map((plugin) => ({
-                  value: plugin,
-                  label: plugin === 'all'
-                    ? `${t('aiTools.allPlugins') || '全部插件'} (${pluginCounts.all || 0})`
-                    : `${plugin} (${pluginCounts[plugin] || 0})`,
-                  icon: <Wrench className="w-4 h-4" />,
-                  disabled: plugin !== 'all'
-                    && plugin !== selectedPlugin
-                    && (pluginCounts[plugin] || 0) === 0,
-                }))}
-                value={selectedPlugin}
-                onValueChange={setSelectedPlugin}
-              />
-
-              {/* 搜索筛选 */}
-              <Input
-                type="text"
-                placeholder={t('aiTools.searchPlaceholder')}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full sm:max-w-sm h-9"
-              />
-
-              {/* 工具统计 */}
-              <p className="text-sm text-muted-foreground">
-                {t('aiTools.toolCount', { count: filteredTools.length, total: totalCount })}
-              </p>
+              <Select value={selectedPlugin} onValueChange={setSelectedPlugin}>
+                <SelectTrigger className="h-9 w-full sm:w-[180px]">
+                  <SelectValue placeholder={t('aiTools.selectPlugin')} />
+                </SelectTrigger>
+                <SelectContent>
+                  {pluginList.map((plugin) => {
+                    const count = pluginCounts[plugin] || 0;
+                    const disabled =
+                      plugin !== 'all' && plugin !== selectedPlugin && count === 0;
+                    return (
+                      <SelectItem key={plugin} value={plugin} disabled={disabled}>
+                        {plugin === 'all'
+                          ? `${t('aiTools.allPlugins')} (${pluginCounts.all || 0})`
+                          : `${plugin} (${count})`}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
             </div>
           )}
         </div>
@@ -501,6 +491,34 @@ export default function AIToolsPage() {
             <span>{error}</span>
           </CardContent>
         </Card>
+      )}
+
+      {/* 诊断徽章 + 工具计数：数据展示，随列表滚动，不占固定 toolbar 高度 */}
+      {pageTab === 'tools' && !isLoading && !error && (
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          {diagnosticCounts.total > 0 ? (
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              <Badge variant="secondary">
+                {t('aiTools.diagnostics.ok')}: {diagnosticCounts.ok}
+              </Badge>
+              {diagnosticCounts.emptyDescription > 0 && (
+                <Badge variant="destructive">
+                  {t('aiTools.diagnostics.emptyDescription')}: {diagnosticCounts.emptyDescription}
+                </Badge>
+              )}
+              {diagnosticCounts.meta > 0 && (
+                <Badge className="bg-amber-500/15 text-amber-700 hover:bg-amber-500/20 dark:text-amber-300">
+                  {t('aiTools.diagnostics.meta')}: {diagnosticCounts.meta}
+                </Badge>
+              )}
+            </div>
+          ) : (
+            <span />
+          )}
+          <p className="text-sm text-muted-foreground shrink-0">
+            {t('aiTools.toolCount', { count: filteredTools.length, total: totalCount })}
+          </p>
+        </div>
       )}
 
       {pageTab === 'assemble' && (
