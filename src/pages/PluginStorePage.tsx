@@ -737,22 +737,50 @@ export default function PluginStorePage() {
                           {t('pluginStore.stopMaintenance')}
                         </Button>
                       ) : plugin.installed ? (
-                        <Button
-                          size="sm"
-                          className="w-full gap-1 text-xs"
-                          variant="destructive"
-                          onClick={() => handleUninstall(plugin.id)}
-                          disabled={actionLoading === plugin.id}
-                        >
-                          <Trash2 className="w-3 h-3" />
-                          {t('pluginStore.uninstall')}
-                        </Button>
+                        <div className="flex gap-1.5 w-full">
+                          <Button
+                            size="sm"
+                            className="flex-1 gap-1 text-xs"
+                            variant="destructive"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleUninstall(plugin.id);
+                            }}
+                            disabled={actionLoading === plugin.id}
+                          >
+                            {actionLoading === plugin.id ? (
+                              <RefreshCw className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <Trash2 className="w-3 h-3" />
+                            )}
+                            {t('pluginStore.uninstall')}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="flex-1 gap-1 text-xs"
+                            asChild
+                          >
+                            <a
+                              href={pluginLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <DownloadCloud className="w-3 h-3" />
+                              {t('pluginStore.details')}
+                            </a>
+                          </Button>
+                        </div>
                       ) : (
                         <div className="flex gap-1.5 w-full">
                           <Button
                             size="sm"
                             className="flex-1 gap-1 text-xs"
-                            onClick={() => handleInstall(plugin.id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleInstall(plugin.id);
+                            }}
                             disabled={actionLoading === plugin.id}
                           >
                             {actionLoading === plugin.id ? (

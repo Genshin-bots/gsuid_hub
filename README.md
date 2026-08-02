@@ -1,4 +1,4 @@
-# GsCore Frontend / gsuid_hub v0.0.19
+# GsCore Frontend / gsuid_hub v0.1.0
 
 GsCore 网页控制台前端项目。该项目为 [gsuid_core](https://github.com/Genshin-bots/gsuid_core) 提供一套现代化、响应式、可国际化的 Web 管理控制台，用于管理核心配置、插件、日志、数据库、AI 能力与运行状态。
 

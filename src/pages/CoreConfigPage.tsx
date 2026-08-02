@@ -252,14 +252,18 @@ export default function CoreConfigPage() {
         <CardContent className="space-y-6 pt-6">
           {/* Warning Alert */}
           {showWarning && (
-            <Alert variant="destructive" className="border-orange-500/50 bg-orange-500/10 relative">
-              <AlertTriangle className="h-4 w-4 text-orange-500" />
-              <AlertDescription className="text-orange-600 dark:text-orange-400 pr-8">
+            <Alert
+              variant="destructive"
+              className="relative flex items-center gap-3 border-orange-500/50 bg-orange-500/10 [&>svg]:static [&>svg]:left-auto [&>svg]:top-auto [&>svg]:translate-y-0 [&>svg+div]:translate-y-0 [&>svg~*]:pl-0"
+            >
+              <AlertTriangle className="h-4 w-4 shrink-0 text-orange-500" />
+              <AlertDescription className="flex-1 pr-6 text-orange-600 dark:text-orange-400">
                 {t('coreFrameworkConfig.warning')}
               </AlertDescription>
-              <button 
+              <button
+                type="button"
                 onClick={() => setShowWarning(false)}
-                className="absolute right-3 top-3 text-orange-500 hover:text-orange-700"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-orange-500 hover:text-orange-700"
               >
                 <X className="h-4 w-4" />
               </button>

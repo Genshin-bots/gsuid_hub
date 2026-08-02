@@ -544,6 +544,16 @@ function spanLabel(sp: TraceSpan, t: TFunc): string {
   }
 }
 
+// 用户输入整段 prompt 很长（说话人标注 / 记忆 / 口吻…），缩略时只取「--- 消息 ---」后的
+// 真正用户正文那一行，避免行上灰字从「[用户发言]…」起截到 200 字却看不到说了什么。
+// 仅影响 spanPreview；展开面板仍展示完整 content。
+const USER_MESSAGE_BODY_RE = /---\s*消息\s*---\s*\r?\n([^\r\n]+)/;
+function userInputPreview(raw: string): string {
+  const m = raw.match(USER_MESSAGE_BODY_RE);
+  const body = m?.[1]?.trim();
+  return body || raw;
+}
+
 // 行内单行内容预览：不展开也能扫读「用户说了什么 / AI 回了什么 / 工具传了什么」。
 // 展开后行下方会有完整内容面板，预览随之隐藏（避免同屏重复）。
 function spanPreview(sp: TraceSpan): string {
@@ -565,7 +575,7 @@ function spanPreview(sp: TraceSpan): string {
       s = asStr(d.content);
       break;
     case 'user_input':
-      s = asStr(d.content) || asStr(d.user_message);
+      s = userInputPreview(asStr(d.content) || asStr(d.user_message));
       break;
     case 'result':
       s = asStr(d.output);
@@ -948,7 +958,7 @@ function SpanRow({ sp, depth, ctx }: { sp: TraceSpan; depth: number; ctx: RowCtx
                 <div className="text-xs text-red-500 py-2">{t('aiHistory.loadDetailFailed')}</div>
               )}
               {Array.isArray(subState) && subState.length > 0 && loadSubAgent && (
-                <div className="border-l-2 border-violet-500/25 pl-2">
+                <div>
                   <TraceWaterfallInner entries={subState} t={t} loadSubAgent={loadSubAgent} />
                 </div>
               )}
@@ -967,8 +977,8 @@ function SpanRow({ sp, depth, ctx }: { sp: TraceSpan; depth: number; ctx: RowCtx
 // 块渲染：run 卡片 / 主动发言卡片 / 各类分隔条 / 散落行卡片
 // ============================================================================
 
-// 一次 Agent 运行 = 一段可折叠块：头部是带主题色左竖条的着色条带（醒目、不靠边框盒子），
-// 展开体用延续的左侧细轨线表达归属。头部：起始墙钟 + 模型 + Σtoken + 全宽主条 + 总时长；
+// 一次 Agent 运行 = 一段可折叠块：头部是主题色浅底着色条带（醒目、不靠边框盒子 / 左竖线）。
+// 头部：起始墙钟 + 模型 + Σtoken + 全宽主条 + 总时长；
 // 内部行的甘特条都相对本 run 的时间窗定位——这正是 logfire 里"单个 trace"的尺度。
 function RunBlock({ sp, base }: { sp: TraceSpan; base: RowBase }) {
   const { expanded, toggle, t } = base;
@@ -987,7 +997,7 @@ function RunBlock({ sp, base }: { sp: TraceSpan; base: RowBase }) {
             toggle(sp.id);
           }
         }}
-        className="flex items-center gap-2 rounded-lg border-l-[3px] border-primary/70 bg-primary/5 hover:bg-primary/10 px-2.5 py-1.5 cursor-pointer select-none transition-colors"
+        className="flex items-center gap-2 rounded-lg bg-primary/5 hover:bg-primary/10 px-2.5 py-1.5 cursor-pointer select-none transition-colors"
       >
         <div className="flex items-center gap-1.5 min-w-0 flex-1">
           <span className="w-4 shrink-0 flex items-center justify-center text-muted-foreground/50">
@@ -1016,7 +1026,7 @@ function RunBlock({ sp, base }: { sp: TraceSpan; base: RowBase }) {
         </span>
       </div>
       {isOpen && sp.children.length > 0 && (
-        <div className="mt-1 ml-[5px] min-w-0 max-w-full border-l-2 border-primary/15 pl-2">
+        <div className="mt-1 min-w-0 max-w-full">
           {sp.children.map((c) => (
             <SpanRow key={c.id} sp={c} depth={0} ctx={ctx} />
           ))}
@@ -1027,7 +1037,7 @@ function RunBlock({ sp, base }: { sp: TraceSpan; base: RowBase }) {
 }
 
 // 主动发言：AI 主动产出的消息本体，直接完整展示（来源 + 触发原因 + 正文），不需要点开。
-// 与 run 块同构：粉色着色条带头 + 左轨线内容体。
+// 与 run 块同构：粉色浅底着色条带头 + 下方内容体（无左竖线）。
 function ProactiveBlock({ sp, t }: { sp: TraceSpan; t: TFunc }) {
   const d = (sp.entry?.data || {}) as Record<string, unknown>;
   const source = asStr(d.source);
@@ -1035,7 +1045,7 @@ function ProactiveBlock({ sp, t }: { sp: TraceSpan; t: TFunc }) {
   const content = asStr(d.content);
   return (
     <div>
-      <div className="flex items-center gap-2 rounded-lg border-l-[3px] border-pink-500/70 bg-pink-500/[0.06] px-2.5 py-1.5">
+      <div className="flex items-center gap-2 rounded-lg bg-pink-500/[0.06] px-2.5 py-1.5">
         <Radio className="w-3.5 h-3.5 text-pink-500 shrink-0" />
         <span className="text-sm font-bold text-pink-700 dark:text-pink-300">
           {t('aiHistory.waterfall.proactive')}
@@ -1049,7 +1059,7 @@ function ProactiveBlock({ sp, t }: { sp: TraceSpan; t: TFunc }) {
           {formatTimeOnly(sp.start)}
         </span>
       </div>
-      <div className="mt-1 ml-[5px] min-w-0 max-w-full border-l-2 border-pink-500/20 pl-3 py-0.5 space-y-1.5">
+      <div className="mt-1 min-w-0 max-w-full py-0.5 space-y-1.5">
         {trigger && (
           <div className={cn('text-xs text-muted-foreground', WRAP_TEXT)}>
             <span className="text-[10px] uppercase tracking-wide text-muted-foreground/70 mr-1">
