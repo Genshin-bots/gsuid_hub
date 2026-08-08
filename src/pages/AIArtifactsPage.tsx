@@ -104,14 +104,28 @@ export default function AIArtifactsPage() {
   const [loading, setLoading] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
   const [detail, setDetail] = useState<{
-    item: AIArtifactItem;
+    item: AIArtifactItem & {
+      payload_kind?: string;
+      raw_url?: string | null;
+    };
     payloadPreview: string | null;
+    payloadKind: 'text' | 'image' | string;
   } | null>(null);
+  const [imageObjectUrl, setImageObjectUrl] = useState<string | null>(null);
+  const imageObjectUrlRef = useRef<string | null>(null);
 
   // 仅在「手动切换模式」时跳过下一次自动加载：
   // 用户点「全部」按钮切到 filter 模式时 rootTaskId 还是空的，
   // 此时不应该立即弹「请提供 root_task_id」toast，保留输入框给用户填写。
   const skipNextAutoLoad = useRef(false);
+
+  const revokeImageUrl = () => {
+    if (imageObjectUrlRef.current) {
+      URL.revokeObjectURL(imageObjectUrlRef.current);
+      imageObjectUrlRef.current = null;
+    }
+    setImageObjectUrl(null);
+  };
 
   const load = async () => {
     if (!useAll && !rootTaskId.trim()) {
@@ -169,9 +183,29 @@ export default function AIArtifactsPage() {
 
   const openDetail = async (id: string) => {
     setOpenId(id);
+    revokeImageUrl();
+    setDetail(null);
     try {
       const data = await aiArtifactsApi.getDetail(id);
-      setDetail({ item: data, payloadPreview: data.payload_preview ?? null });
+      const kind =
+        data.payload_kind ||
+        (data.mime?.startsWith('image/') ? 'image' : 'text');
+      setDetail({
+        item: data,
+        payloadPreview: data.payload_preview ?? null,
+        payloadKind: kind,
+      });
+      // 图片：鉴权拉 raw blob，勿把二进制当 UTF-8 塞进 <pre>
+      if (kind === 'image' && data.has_payload_path) {
+        try {
+          const blob = await aiArtifactsApi.downloadRaw(id);
+          const url = URL.createObjectURL(blob);
+          imageObjectUrlRef.current = url;
+          setImageObjectUrl(url);
+        } catch (imgErr) {
+          console.warn('[AIArtifacts] image preview failed', imgErr);
+        }
+      }
     } catch (e) {
       toast.error(getApiErrorMessage(e, t('aiArtifacts.messages.loadFail')));
       setDetail(null);
@@ -180,12 +214,15 @@ export default function AIArtifactsPage() {
 
   const [payloadCopied, setPayloadCopied] = useState(false);
   const payloadCopyTimerRef = useRef<number | null>(null);
-  // 切换 / 关闭 dialog 时重置 copied 反馈
+  // 切换 / 关闭 dialog 时重置 copied 反馈与图片 blob URL
   useEffect(() => {
-    if (!openId && payloadCopyTimerRef.current) {
-      window.clearTimeout(payloadCopyTimerRef.current);
-      payloadCopyTimerRef.current = null;
-      setPayloadCopied(false);
+    if (!openId) {
+      revokeImageUrl();
+      if (payloadCopyTimerRef.current) {
+        window.clearTimeout(payloadCopyTimerRef.current);
+        payloadCopyTimerRef.current = null;
+        setPayloadCopied(false);
+      }
     }
     return () => {
       if (payloadCopyTimerRef.current) {
@@ -408,7 +445,15 @@ export default function AIArtifactsPage() {
         </CardContent>
       </Card>
 
-      <Dialog open={!!openId} onOpenChange={(o) => !o && setOpenId(null)}>
+      <Dialog
+        open={!!openId}
+        onOpenChange={(o) => {
+          if (!o) {
+            setOpenId(null);
+            revokeImageUrl();
+          }
+        }}
+      >
         {/* max-w-4xl + max-h-[95vh]：
             - 默认 max-w-lg=512px 对长 ID + 代码块太窄
             - 改 Tabs 后元数据 / 摘要不再抢占 payload 空间，给 max-h 加到 95vh 让 payload 尽可能占满视口
@@ -525,32 +570,80 @@ export default function AIArtifactsPage() {
                 <section className="flex-1 min-h-0 flex flex-col">
                   <div className="flex items-center justify-between mb-2 shrink-0">
                     <h4 className="text-xs font-medium text-muted-foreground">
-                      {t('aiArtifacts.detail.payloadTitle')}
+                      {detail.payloadKind === 'image'
+                        ? t('aiArtifacts.detail.imageTitle')
+                        : t('aiArtifacts.detail.payloadTitle')}
                     </h4>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      className="h-7 text-xs"
-                      onClick={handleCopyPayload}
-                      disabled={!detail.payloadPreview}
-                    >
-                      {payloadCopied ? (
-                        <Check className="w-3.5 h-3.5 text-green-500" />
-                      ) : (
-                        <Copy className="w-3.5 h-3.5" />
-                      )}
-                      {payloadCopied
-                        ? t('aiArtifacts.detail.copied')
-                        : t('common.copy')}
-                    </Button>
+                    {detail.payloadKind === 'image' ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 text-xs"
+                        onClick={async () => {
+                          try {
+                            const blob = await aiArtifactsApi.downloadRaw(
+                              detail.item.id,
+                            );
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = `${detail.item.id}.png`;
+                            a.click();
+                            URL.revokeObjectURL(url);
+                          } catch (e) {
+                            toast.error(
+                              getApiErrorMessage(
+                                e,
+                                t('aiArtifacts.messages.loadFail'),
+                              ),
+                            );
+                          }
+                        }}
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        {t('aiArtifacts.actions.download')}
+                      </Button>
+                    ) : (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 text-xs"
+                        onClick={handleCopyPayload}
+                        disabled={!detail.payloadPreview}
+                      >
+                        {payloadCopied ? (
+                          <Check className="w-3.5 h-3.5 text-green-500" />
+                        ) : (
+                          <Copy className="w-3.5 h-3.5" />
+                        )}
+                        {payloadCopied
+                          ? t('aiArtifacts.detail.copied')
+                          : t('common.copy')}
+                      </Button>
+                    )}
                   </div>
-                  {/* flex-1 + min-h-0：拿到 Payload tab body 剩余高度；overflow-auto 让超长
-                      payload 走 pre 内部滚动。短 payload（<10 行）时 pre 高度仍能撑到 flex-1
-                      给到的全部空间，不会像 max-h 那样留白也不会像 shrink 那样被压扁。 */}
-                  <pre className="flex-1 min-h-0 bg-muted rounded-md p-3 text-sm font-mono overflow-auto whitespace-pre-wrap leading-relaxed">
-                    {detail.payloadPreview ?? t('aiArtifacts.detail.payloadEmpty')}
-                  </pre>
+                  {detail.payloadKind === 'image' ? (
+                    <div className="flex-1 min-h-0 overflow-auto rounded-md bg-muted/40 p-3 flex items-center justify-center">
+                      {imageObjectUrl ? (
+                        <img
+                          src={imageObjectUrl}
+                          alt={detail.item.summary || detail.item.id}
+                          className="max-w-full max-h-[70vh] object-contain rounded-md shadow-sm"
+                        />
+                      ) : (
+                        <p className="text-sm text-muted-foreground">
+                          {t('aiArtifacts.detail.imageLoading')}
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <pre className="flex-1 min-h-0 bg-muted rounded-md p-3 text-sm font-mono overflow-auto whitespace-pre-wrap leading-relaxed">
+                      {detail.payloadPreview ??
+                        t('aiArtifacts.detail.payloadEmpty')}
+                    </pre>
+                  )}
                 </section>
               ) : (
                 <Skeleton className="h-full w-full rounded-md" />

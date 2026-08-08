@@ -30,6 +30,7 @@
   "aiBudget": "AI 预算",
   "aiDebug": "Agent 调试台",
   "aiArtifacts": "AI 产出物",
+  "aiToolOutputs": "工具落盘",
   "batchPush": "批量推送",
   "brandSettings": "品牌信息",
   "plugins": "插件配置",

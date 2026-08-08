@@ -244,4 +244,6 @@ import { HelpCircle } from 'lucide-react';
 | 标签/关键词输入 | `TagsInput` |
 | 多选/单选 Chip 组 | `ChipGroup`（`MultiSelectChipGroup`） |
 | 标签页/分段切换按钮 | `TabButtonGroup` |
+| **主 Tab + 二级筛选下拉**（点主区=全部，点 ▾ 才展开） | `TabButtonGroup` 的 `option.dropdown`（见 [§06 §6.1](./06-reusable-component-catalog.md)） |
+| 插件 ICON（列表/Tab/下拉子项） | `PluginIcon` + `getPluginIconUrl`（见 [§06 §6.7](./06-reusable-component-catalog.md)） |
 | 按后端 `PluginConfigItem.type` 动态渲染字段 | `DynamicConfigPanel` / `ConfigField` |

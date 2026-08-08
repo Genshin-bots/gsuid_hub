@@ -1,9 +1,9 @@
 {
   "title": "能力代理",
-  "description": "管理统一 AgentNode 节点（能力代理 / 人格投影），用于长任务与复杂多步任务委派。",
+  "description": "管理统一 AgentNode 节点（能力代理），用于长任务与复杂多步任务委派。",
   "newProfile": "新建节点",
   "copyAsNew": "复制为新节点",
-  "readonlyTip": "框架级、插件或人格投影节点，仅可查看",
+  "readonlyTip": "框架级或插件节点，仅可查看",
   "searchPlaceholder": "搜索名称、ID、用途、关键词或提示词...",
   "empty": "暂无匹配的节点",
   "loadFailed": "加载能力代理失败",
@@ -19,9 +19,10 @@
   "sources": {
     "builtin": "内置 builtin",
     "plugin": "插件 plugin",
-    "user": "我的 user",
-    "persona": "人格 persona"
+    "user": "我的 user"
   },
+  "allPlugins": "全部插件",
+  "pluginFilterLabel": "{name} {count}",
   "dialog": {
     "createTitle": "新建 Agent 节点",
     "editTitle": "编辑 Agent 节点",

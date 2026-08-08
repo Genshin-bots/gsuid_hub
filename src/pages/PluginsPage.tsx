@@ -26,25 +26,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Settings, Loader2, ChevronDown, Save, Server, LayoutGrid, Users, Shield, Filter, Zap, MessageSquare, Key, Command, Package, RotateCw, Download, Sliders, Cog, Database, Globe, Bell, Lock, Palette, FileText, Layers, Wrench } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ConfigField, ConfigFieldDefinition, ConfigValue, ConfigFieldType, RepeatGroupField, RepeatGroupItem } from '@/components/config';
-import { pluginsApi, gitUpdateApi, Plugin, ServiceConfig, SvItem, SvCommand, PluginConfigItem, PluginConfigGroup, PluginListItem, getPluginIconUrl } from '@/lib/api';
+import { pluginsApi, gitUpdateApi, Plugin, ServiceConfig, SvItem, SvCommand, PluginConfigItem, PluginConfigGroup, PluginListItem } from '@/lib/api';
 import { toast } from 'sonner';
 import { PinnedPage } from '@/components/layout/PinnedPage';
-
-// 带 fallback 的插件图标组件
-function PluginIcon({ pluginName, className = 'w-[18px] h-[18px]' }: { pluginName: string; className?: string }) {
-  const [imgError, setImgError] = useState(false);
-  if (imgError) {
-    return <Package className={`${className} text-muted-foreground/50`} />;
-  }
-  return (
-    <img
-      src={getPluginIconUrl(pluginName)}
-      className={`${className} rounded-sm object-contain`}
-      alt=""
-      onError={() => setImgError(true)}
-    />
-  );
-}
+import { PluginIcon } from '@/components/ui/plugin-icon';
 
 // 命令类型颜色映射 - 提取为模块级常量，避免每次渲染重建
 const CMD_TYPE_COLORS: Record<string, string> = {

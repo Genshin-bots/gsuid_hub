@@ -1,9 +1,9 @@
 {
   "title": "Capability Agents",
-  "description": "Manage unified AgentNode definitions (capability agents / persona projections) for delegated long-running and complex multi-step tasks.",
+  "description": "Manage unified AgentNode definitions (capability agents) for delegated long-running and complex multi-step tasks.",
   "newProfile": "New Node",
   "copyAsNew": "Copy as New",
-  "readonlyTip": "Framework, plugin, or persona-projection node, view only",
+  "readonlyTip": "Framework or plugin node, view only",
   "searchPlaceholder": "Search name, ID, usage, keywords, or prompt...",
   "empty": "No matching nodes",
   "loadFailed": "Failed to load capability agents",
@@ -19,9 +19,10 @@
   "sources": {
     "builtin": "Builtin",
     "plugin": "Plugin",
-    "user": "Mine",
-    "persona": "Persona"
+    "user": "Mine"
   },
+  "allPlugins": "All plugins",
+  "pluginFilterLabel": "{name} {count}",
   "dialog": {
     "createTitle": "Create Agent Node",
     "editTitle": "Edit Agent Node",

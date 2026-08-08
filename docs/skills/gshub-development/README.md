@@ -60,7 +60,7 @@
 
 | 前端路由 | 页面组件 | 主要功能 | 后端 API 群 |
 |---|---|---|---|
-| `/plugins` | `PluginsPage.tsx` | 本地插件的启用/禁用/重载/配置/SV | `plugins_api.py`（`/api/plugins*`） |
+| `/plugins` | `PluginsPage.tsx` | 本地插件的启用/禁用/重载/配置/SV；图标统一 `PluginIcon`（`core_command` → `public/ICON.png`） | `plugins_api.py` + `plugin_icon_api`（`getPluginIconUrl`） |
 | `/plugin-store` | `PluginStorePage.tsx` | 插件市场白名单浏览、安装（含 URL 安装）、更新、卸载、README 全文 | `plugins_api.py`（`/api/plugin-store*`） |
 | `/git-update` | `GitUpdatePage.tsx` | 多插件 Git 状态、远程 Commit、本地历史、回退、强制更新、一键更新全部 | `git_update_api.py`（`/api/git-update*`） + `git_mirror_api.py`（`/api/git-mirror*`） |
 
@@ -71,7 +71,8 @@
 | `/ai-config` | `AIConfigPage.tsx` (`AIConfig/`) | Provider / 模型高低级任务（含主备）/ Embedding / Web Search / Rerank 配置 + AI 配置向导 | `provider_config_api.py`、`embedding_config_api.py`、`ai_wizard_api.py` | [§07 §7.5–7.6](./SKILL.md)、[§01 §1.5](./references/01-architecture-and-conventions.md) |
 | `/persona-config` | `PersonaConfigPage.tsx` | 多 Persona 卡片列表 + 头像/立绘/音频上传 + Markdown 编辑 + 作用范围 | `persona_api.py`（`/api/persona/*`） | [§08 §8.1](./references/08-page-patterns.md) |
 | `/mcp-config` | `MCPConfigPage.tsx` | MCP 服务器 CRUD、环境变量、工具发现、JSON 导入、预设、热重载、工具参数映射 | `mcp_config_api.py`（`/api/ai/mcp*`、`/api/ai/mcp-tools-config/*`） | [§03 主题](./references/03-theme-and-styling.md)、[§10 P-26](./references/10-pitfalls-and-performance.md) |
-| `/ai-capability-agents` | `AICapabilityAgentsPage.tsx` | Capability Agent 节点列表 + 工具挂载 + 关键词 + 编辑/删除 | `capability_agents_api.py`（`/api/ai/capability-agents*`） | [§09 侧边栏](./references/09-sidebar-navigation.md) |
+| `/ai-capability-agents` | `AICapabilityAgentsPage.tsx` | 能力代理节点（**builtin / plugin / user**，不含 persona）；plugin Tab 用 **TabButtonGroup dropdown** 按 `plugin` 字段筛选；工具挂载 + 关键词 + 编辑/删除 | `capability_agents_api.py`（`/api/ai/capability-agents*`） | [§06 §6.1 dropdown](./references/06-reusable-component-catalog.md)、[§09](./references/09-sidebar-navigation.md) |
+| `/ai-tool-outputs` | `AIToolOutputsPage.tsx` | FileOS 工具落盘（`to_`/`sa_` 等）浏览、筛选、预览、批量删除 | `tool_outputs_api.py`（`/api/ai/tool-outputs*`） | — |
 | `/ai-tools` | `AIToolsPage.tsx` | 工具列表 + 分类 + 详情 | `ai_tools_api.py`（`/api/ai/tools*`） | [§04 排版参考页](./references/04-page-layout-spec.md) |
 | `/ai-skills` | `AISkillsPage.tsx` | 技能列表 + 详情 + Git 克隆安装 + Markdown 编辑 + 删除 | `ai_skills_api.py`（`/api/ai/skills*`） | [§04 排版参考页](./references/04-page-layout-spec.md) |
 | `/ai-knowledge` | `AIKnowledgePage.tsx` | 文本/图片知识库分页、搜索、批量导入、文档管理、Image RAG | `knowledge_base_api.py`（`/api/ai/knowledge*`）+ `image_rag_api.py`（`/api/ai/images*`） | [§07 渐进式配置](./references/07-config-pages-and-state.md) |
@@ -87,7 +88,7 @@
 | `/ai-ops` | `AIOpsPage.tsx` | **运维诊断中心（收敛版）**：顶栏 Bot/Session/续聊状态 + 5 Tab（触发回放 / 黑白名单 / 输出试跑 / 安全策略 / 配置快照）。工具拓扑·意图·生命周期·多模态·插件诊断仅保留后端 API | `ops_diagnostics_api.py`（`/api/ops/*`） | 见 [`docs/CHANGELOG-2026-07.md`](../../CHANGELOG-2026-07.md) §四 |
 | `/group-profile` | `GroupProfilePage.tsx` | 群组画像只读（标签/词汇映射/称呼） | state_store `__gscore_group_profile__` | — |
 | `/ai-debug` | `AIDebugPage.tsx` | 记忆图谱 / 编排任务 / self_model | `agent_debug_api.py` | — |
-| `/ai-artifacts` | `AIArtifactsPage.tsx` | Artifact 全局浏览 | `artifacts_api.py` | — |
+| `/ai-artifacts` | `AIArtifactsPage.tsx` | Artifact 全局浏览（TTL / 下载 / 过期筛选） | `artifacts_api.py` | — |
 
 ### 2.5 当前 API 全景（`src/lib/api.ts`）
 
@@ -103,10 +104,10 @@
 | 运维 | 6 | `logsApi`、`traceApi`、`remoteCommandApi`、`schedulerApi`、`backupApi`、**`liveChatApi`** | 同名 + live-chat REST；消息通道为 WS `/ws/webconsole_livechat` |
 | 主题与资源 | 2 | `themeApi`、`assetsApi` | `theme_api.py` / `assets_api.py` |
 | AI 能力 | 8 | `personaApi`、`mcpConfigApi`、`capabilityAgentsApi`、`aiKnowledgeApi`、`aiImageApi`、`memeApi`、`aiToolsApi`、`aiSkillsApi` | 同名 |
-| AI 运行 | 6 | `historyApi`、`aiSessionLogsApi`、`agentDebugApi`、`aiScheduledTasksApi`、`aiKanbanApi`、`aiApprovalsApi`、`aiStateStoreApi` | 同名 |
+| AI 运行 | 7 | `historyApi`、`aiSessionLogsApi`、`agentDebugApi`、`aiScheduledTasksApi`、`aiKanbanApi`、`aiApprovalsApi`、`aiStateStoreApi` | 同名 |
 | AI 度量 | 3 | `aiStatisticsApi`、`aiPerformanceApi`、`aiBudgetApi` | 同名 |
 | 运维诊断 | 1 | **`opsApi`** | `ops_diagnostics_api.py` |
-| 其它 | — | `aiArtifactsApi`、`batchPushApi`、`brandSettingsApi`、`logsConfigApi`、`memoryApi` / `memorySettingsApi` | 见 CHANGELOG |
+| 其它 | — | `aiArtifactsApi`、`aiToolOutputsApi`、`batchPushApi`、`brandSettingsApi`、`logsConfigApi`、`memoryApi` / `memorySettingsApi` | 见 CHANGELOG；图标 `getPluginIconUrl` |
 
 > **完整变更纪要（pnpm、P0–P2、AI Ops、路由清理）**：[`docs/CHANGELOG-2026-07.md`](../../CHANGELOG-2026-07.md)。
 
@@ -153,6 +154,45 @@
 
 ---
 
+## 二点七、2026-08 TabButtonGroup 下拉 + PluginIcon + 能力代理筛选
+
+> 本次前端组件与体验更新（版本 **v0.1.1**）。规范正文见 [§06 §6.1 / §6.7](./references/06-reusable-component-catalog.md)。
+
+| 改动类型 | 路径 | 说明 |
+|---|---|---|
+| **增强组件** | `src/components/ui/TabButtonGroup.tsx` | 可选 `option.dropdown`：**拆分按钮**——点主区 = 主 Tab + 二级重置 `allValue`；**仅右侧 ▾** 展开菜单；子项支持 `icon` + 选中 ✓ |
+| **新组件** | `src/components/ui/plugin-icon.tsx` | 统一插件 ICON；失败回退 Package；切换 name 重置错误态 |
+| **API 工具** | `getPluginIconUrl` + `PROJECT_LOGO_PLUGIN_NAMES` | `core_command` → `` `${BASE_URL}ICON.png` ``（`public/ICON.png`）；其它走 `/api/plugins/icon/{name}` 或 demo 图 |
+| **页面** | `AICapabilityAgentsPage.tsx` | ① 去掉 **persona** Tab/列表（人格归 `/persona-config`）② plugin 用 dropdown 按 list 的 `plugin` 字段筛选 ③ 下拉子项与主 Tab 挂 `PluginIcon` |
+| **复用收敛** | `PluginsPage` / `GitUpdatePage` / `DatabasePage` | 删除页内重复 `PluginIcon`，改 import 共享组件 |
+| **类型** | `AgentNodeItem.plugin?` | list 接口插件来源字段，供二级筛选 |
+| **i18n** | `aiCapabilityAgents.json`（zh/en/ja） | `allPlugins` / `pluginFilterLabel`；文案去掉人格投影表述 |
+| **规范文档** | `SKILL.md`、`references/05`、`06`、`01`、本文 | 补全 dropdown 交互契约、PluginIcon 解析顺序、全站使用面表 |
+| 版本 | `package.json` / `README.md` | **v0.1.0 → v0.1.1** |
+
+### 交互契约速查（TabButtonGroup.dropdown）
+
+```
+┌──────────────────┬─────┐
+│ 📦 插件 plugin 12│  ▾  │   ← 同一 option，视觉一体
+└────────┬─────────┴──┬──┘
+         │            │
+    点主区          点箭头
+         │            │
+  主 Tab=plugin    打开菜单
+  二级=__all__     （可保留当前二级）
+                      │
+                 点某插件名
+                      │
+              二级=该 plugin
+```
+
+- 哨兵：`__all__` 表示「全部」，**禁止空字符串**。
+- 禁止整钮 `DropdownMenuTrigger`；禁止为同需求再手搓 Select 行。
+- 完整 props / 反模式 / 参考代码：[§06 §6.1](./references/06-reusable-component-catalog.md)。
+
+---
+
 ## 三、后端已具备但前端尚未覆盖 / 覆盖薄弱的板块（"待补"清单）
 
 > 这是 2026-07-20 一次盘点结果。**与 gsuid_core 后端端点的对照**（46 个 API 文件、约 250 端点）。
@@ -168,7 +208,7 @@
 | **state_store_api**（State 状态存储） | 6 | ~~缺独立页~~ → 已有 `/state-store`（`StateStorePage` + `StateStoreViewer`） | — |
 | **brand_api**（品牌信息） | 5 | 仅 `BrandContext` 读 `GET /api/brand` 在登录页/布局展示，**完全没有 UI 编辑**。 | 新增 `/brand-settings` |
 | **message_api::BatchPush** | 1 | 完全无入口（批量给某人/群推消息）。 | 新增 `/batch-push` |
-| **plugin_icon_api** | 1 | `/api/plugins/icon/{name}` 缓存层有声明；前端 `PluginsPage` 直接走 `bot_root/icon/...`，未走该接口（影响跨安装部署）。 | 接入统一 icon |
+| **plugin_icon_api** | 1 | ~~未走接口~~ → 已通过 `getPluginIconUrl` / `PluginIcon` 统一接入；`core_command` 用项目 `ICON.png` | — |
 | **ai_skills_api** `/api/ai/skills/...` 中 clip/install/market actions | — | 当前只覆盖 list/detail/clone/markdown；缺**已克隆技能的更新/卸载** UI。 | AISkillsPage |
 
 ### 3.2 API 已封装（`src/lib/api.ts` 有函数）但前端无调用入口 / 调用不全
@@ -246,7 +286,8 @@
 | Persona CRUD + 媒体 | `persona_api` | 🟩 PersonaConfigPage |
 | MCP 服务器 + 工具发现 + 热重载 | `mcp_config_api` | 🟩 MCPConfigPage |
 | MCP 工具参数映射 | `mcp_config_api::tools-config` | 🟨 UI 入口弱 |
-| Capability Agent 节点 | `capability_agents_api` | 🟩 AICapabilityAgentsPage |
+| Capability Agent 节点 | `capability_agents_api` | 🟩 AICapabilityAgentsPage（builtin/plugin/user + plugin 下拉筛选） |
+| AI 工具落盘 Tool Outputs | `tool_outputs_api` | 🟩 `/ai-tool-outputs` |
 | AI 工具与分类 | `ai_tools_api` | 🟩 AIToolsPage |
 | AI 技能（克隆 / 编辑） | `ai_skills_api` | 🟩 AISkillsPage |
 | AI 知识库文本/图片 + Image RAG | `knowledge_base_api` + `image_rag_api` | 🟩 AIKnowledgePage |
@@ -260,7 +301,7 @@
 | AI 内部定时任务 | `ai_scheduled_task_api` | 🟩 AIScheduledTasksPage |
 | AI Kanban 长任务 + 能力代理 | `kanban_api` | 🟩 AIKanbanPage |
 | AI Kanban 工作区文件 | `workspace_api` | 🟨 任务详情有，全局无 |
-| AI Artifacts 全局浏览 | `artifacts_api` | ⬛ 无独立页（仅在 Kanban 详情） |
+| AI Artifacts 全局浏览 | `artifacts_api` | 🟩 `/ai-artifacts` |
 | AI 高危操作审批中心 | `approvals_api` | 🟩 AIApprovalsPage |
 | AI 预算规则 / 白名单 / 用量 | `budget_api` | 🟩 AIBudgetPage |
 | AI 统计（Token / 触发 / 错误 / RAG） | `ai_statistics_api` | 🟩 AIStatisticsPage |
@@ -271,7 +312,7 @@
 | State Store 状态存储 | `state_store_api` | 🟨 偏弱 |
 | 品牌信息 | `brand_api` | ⬛ 无独立编辑页 |
 | 批量推送 | `message_api::BatchPush` | ⬛ 无入口 |
-| 插件图标统一缓存 | `plugin_icon_api` | 🟨 用了但未走接口 |
+| 插件图标统一缓存 | `plugin_icon_api` | 🟩 `PluginIcon` + `getPluginIconUrl`（含 core_command→ICON.png） |
 | 数据库浏览与 CRUD | `database_api` | 🟩 DatabasePage |
 | 实时 WebSocket 控制台 | `web_api` | 🟩 ConsolePage |
 | **Live Chat 控制台适配器** | WS `webconsole_livechat` + `/api/live-chat/*` | 🟩 LiveChatPage（[§11](./references/11-live-chat.md)） |
@@ -300,6 +341,7 @@
 - **新页面**：在 `src/pages/XXXPage.tsx` 与 `src/App.tsx` 注册后，**必须**回填本文档 §二 的表格行（路由 / 功能 / 后端 API 群）。
 - **新后端 API**：一旦在 `gsuid_core` 落地、若 30 天内前端未对接，应在 §三 "待补清单"登记一行，避免成为隐性债务。
 - **新封装组件**：在 `references/06-reusable-component-catalog.md` 加章节，并在 `SKILL.md` 速记表里加一行。
+- **TabButtonGroup / PluginIcon 行为变更**：同步 [§06 §6.1 / §6.7](./references/06-reusable-component-catalog.md) 与本文 §二点七。
 - **新踩坑**：`references/10-pitfalls-and-performance.md` 加 `P-NN` 章节，必要时 `SKILL.md` 速记区同步。
 - **Live Chat / 协议适配器改动**：同步 [§11](./references/11-live-chat.md) 与本文档 §二 `/live-chat` 行。
 

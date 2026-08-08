@@ -36,7 +36,6 @@ import {
   AlertTriangle,
   CheckCircle2,
   ChevronDown,
-  Package,
   MessageSquare,
   Link,
   Globe,
@@ -54,28 +53,12 @@ import {
   GitCommitInfo,
   GitCommitListResponse,
   GitPluginInfo,
-  getPluginIconUrl,
 } from '@/lib/api';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { PinnedPage } from '@/components/layout/PinnedPage';
+import { PluginIcon } from '@/components/ui/plugin-icon';
 
 const PAGE_SIZE = 20;
-
-// 带 fallback 的插件图标组件
-function PluginIcon({ pluginName, className = 'w-[18px] h-[18px]' }: { pluginName: string; className?: string }) {
-  const [imgError, setImgError] = useState(false);
-  if (imgError) {
-    return <Package className={`${className} text-muted-foreground/50`} />;
-  }
-  return (
-    <img
-      src={getPluginIconUrl(pluginName)}
-      className={`${className} rounded-sm object-contain`}
-      alt=""
-      onError={() => setImgError(true)}
-    />
-  );
-}
 
 // 缓存相关常量
 const GIT_STATUS_CACHE_KEY = 'gitUpdate_status_cache';

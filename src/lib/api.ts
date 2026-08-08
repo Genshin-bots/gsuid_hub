@@ -870,12 +870,22 @@ export const pluginsApi = {
 };
 
 /**
+ * 无独立插件 ICON 目录、应复用 hub 项目 LOGO（public/ICON.png）的插件名。
+ * 与 getBrandIconUrl / DEMO_BRAND_ICON 同源资源：`${BASE_URL}ICON.png`。
+ */
+const PROJECT_LOGO_PLUGIN_NAMES = new Set(['core_command']);
+
+/**
  * 构建插件 ICON 图片 URL
  * 使用后端 /api/plugins/icon/{plugin_name} 接口获取插件图标
  * @param pluginName 插件名称
  * @returns 图标 URL，可直接用于 <img src>
  */
 export function getPluginIconUrl(pluginName: string): string {
+  // 核心命令等框架内置插件：无 plugins/<name>/ICON.png，直接用前端 public/ICON.png
+  if (PROJECT_LOGO_PLUGIN_NAMES.has(pluginName.trim().toLowerCase())) {
+    return `${import.meta.env.BASE_URL}ICON.png`;
+  }
   // Demo：插件图标接口 <img> 拦不到，返回内置「字母图标」占位（彩色，避免按钮组/列表发素）。
   if (import.meta.env.VITE_DEMO) return demoPluginIcon(pluginName);
   const token = getAuthToken();
@@ -2389,6 +2399,8 @@ export interface AgentNodeItem {
   tool_query: string;
   boundary_override: string;
   source: AgentNodeSource;
+  /** 插件来源节点所属插件名；builtin/user/persona 通常为空 */
+  plugin?: string | null;
   version: number;
 }
 
@@ -4144,7 +4156,10 @@ export interface AIArtifactListResponse {
 }
 
 export interface AIArtifactDetail extends AIArtifactItem {
-  payload_preview: string;
+  payload_preview: string | null;
+  /** text | image — 图片勿当文本预览 */
+  payload_kind?: 'text' | 'image' | string;
+  raw_url?: string | null;
 }
 
 export interface AIWorkspaceFile {
@@ -4301,6 +4316,87 @@ export const aiKanbanApi = {
       `/api/ai/kanban/tasks/${encodeURIComponent(taskId)}/workspace/apply-patch`,
       data,
     ),
+};
+
+/** FileOS 工具落盘（/ai-tool-outputs）：SQL 真身 + 可选磁盘 + Qdrant 索引。 */
+export interface AIToolOutputItem {
+  id: string;
+  tool_name: string;
+  profile: string;
+  summary: string;
+  owner_user_id: string;
+  scope_key: string;
+  session_id: string;
+  task_id: string;
+  root_task_id: string;
+  date_str: string;
+  res_handle: string;
+  size_bytes: number;
+  has_inline: boolean;
+  has_payload_path: boolean;
+  payload_path: string;
+  content_hash: string;
+  created_at: string | null;
+  expires_at: string | null;
+}
+
+export interface AIToolOutputListResponse {
+  items: AIToolOutputItem[];
+  count: number;
+  total: number;
+  limit: number;
+  offset: number;
+  has_more: boolean;
+}
+
+export interface AIToolOutputDetail extends AIToolOutputItem {
+  payload_preview: string | null;
+  payload_truncated: boolean;
+  payload_full_chars: number;
+}
+
+export const aiToolOutputsApi = {
+  list: (opts?: {
+    tool_name?: string;
+    owner_user_id?: string;
+    scope_key?: string;
+    session_id?: string;
+    keyword?: string;
+    include_expired?: boolean;
+    limit?: number;
+    offset?: number;
+  }) => {
+    const query = new URLSearchParams();
+    if (opts?.tool_name) query.set('tool_name', opts.tool_name);
+    if (opts?.owner_user_id) query.set('owner_user_id', opts.owner_user_id);
+    if (opts?.scope_key) query.set('scope_key', opts.scope_key);
+    if (opts?.session_id) query.set('session_id', opts.session_id);
+    if (opts?.keyword) query.set('keyword', opts.keyword);
+    if (opts?.include_expired) query.set('include_expired', 'true');
+    if (opts?.limit !== undefined) query.set('limit', String(opts.limit));
+    if (opts?.offset !== undefined) query.set('offset', String(opts.offset));
+    const qs = query.toString();
+    return api.get<AIToolOutputListResponse>(
+      `/api/ai/tool-outputs${qs ? `?${qs}` : ''}`,
+    );
+  },
+  toolNames: () =>
+    api.get<{ tool_names: string[] }>('/api/ai/tool-outputs/meta/tool-names'),
+  getDetail: (id: string, previewChars = 12000) =>
+    api.get<AIToolOutputDetail>(
+      `/api/ai/tool-outputs/${encodeURIComponent(id)}?preview_chars=${previewChars}`,
+    ),
+  delete: (id: string) =>
+    api.delete<{ id: string; deleted: number }>(
+      `/api/ai/tool-outputs/${encodeURIComponent(id)}`,
+    ),
+  batchDelete: (ids: string[]) =>
+    api.post<{ deleted: number; ids: string[] }>(
+      '/api/ai/tool-outputs/batch-delete',
+      { ids },
+    ),
+  downloadRaw: (id: string) =>
+    api.downloadBlob(`/api/ai/tool-outputs/${encodeURIComponent(id)}/raw`),
 };
 
 /**

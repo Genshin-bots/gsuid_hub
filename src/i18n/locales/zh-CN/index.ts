@@ -49,6 +49,7 @@ import module47 from './aiDebug.json';
 import module48 from './aiArtifacts.json';
 import module49 from './memorySettings.json';
 import module50 from './logsConfig.json';
+import module_aiToolOutputs from './aiToolOutputs.json';
 
 import module_stateStore from './stateStore.json';
 import module_groupProfile from './groupProfile.json';
@@ -106,6 +107,7 @@ const locale = {
   "aiArtifacts": module48,
   "memorySettings": module49,
   "logsConfig": module50,
+  "aiToolOutputs": module_aiToolOutputs,
   "groupProfile": module_groupProfile,
   "stateStore": module_stateStore,
   "aiOps": module_aiOps,

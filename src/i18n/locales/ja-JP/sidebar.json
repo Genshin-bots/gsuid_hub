@@ -30,6 +30,7 @@
   "aiBudget": "AI 予算",
   "aiDebug": "Agent デバッガ",
   "aiArtifacts": "AI 成果物",
+  "aiToolOutputs": "ツール落盤",
   "batchPush": "一括プッシュ",
   "brandSettings": "ブランド情報",
   "plugins": "プラグイン設定",

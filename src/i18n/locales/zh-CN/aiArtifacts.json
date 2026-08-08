@@ -21,6 +21,8 @@
     "tabOverview": "概览",
     "tabPayload": "Payload",
     "payloadTitle": "Payload 预览",
+    "imageTitle": "图片预览",
+    "imageLoading": "图片加载中…",
     "payloadEmpty": "(该 artifact 没有 inline / on-disk payload)",
     "summaryTitle": "摘要",
     "metadataTitle": "元数据",

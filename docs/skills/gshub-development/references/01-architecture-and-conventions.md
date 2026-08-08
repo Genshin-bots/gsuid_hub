@@ -25,7 +25,8 @@ src/
 ├── components/
 │   ├── ui/                 # shadcn/ui 基础组件 + 项目封装组件
 │   │   ├── button.tsx  dialog.tsx  card.tsx  switch.tsx …
-│   │   ├── TabButtonGroup.tsx          # 分段切换按钮
+│   │   ├── TabButtonGroup.tsx          # 分段切换（可选 dropdown 拆分按钮）
+│   │   ├── plugin-icon.tsx             # 插件 ICON（getPluginIconUrl）
 │   │   ├── input-with-dropdown.tsx     # 输入框 + 下拉
 │   │   └── MultiSelectChipGroup.tsx    # 多选/单选 Chip
 │   ├── layout/             # AppLayout.tsx / AppSidebar.tsx / PinnedPage.tsx

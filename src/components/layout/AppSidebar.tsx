@@ -1,4 +1,4 @@
-import { Home, LayoutDashboard, Database, Settings, FileText, LogOut, Palette, Terminal, Calendar, Store, Cpu, HardDrive, PanelLeftClose, Cog, Power, RotateCw, User, Brain, ChevronDown, ChevronRight, Wrench, Sparkles, BookOpen, History, TrendingUp, Clock, Server, GitBranch, Image as ImageIcon, ScrollText, Layers, ClipboardList, Activity, Wallet, ShieldCheck, Bug, PackageOpen, Send, Users, MessageCircle } from 'lucide-react';
+import { Home, LayoutDashboard, Database, Settings, FileText, LogOut, Palette, Terminal, Calendar, Store, Cpu, HardDrive, PanelLeftClose, Cog, Power, RotateCw, User, Brain, ChevronDown, ChevronRight, Wrench, Sparkles, BookOpen, History, TrendingUp, Clock, Server, GitBranch, Image as ImageIcon, ScrollText, Layers, ClipboardList, Activity, Wallet, ShieldCheck, Bug, PackageOpen, Send, Users, MessageCircle, FileSearch } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -94,6 +94,7 @@ const getNavItems = (t: (key: string) => string, isAIEnabled: boolean): NavItem[
         { id: 'ai-debug', title: t('sidebar.aiDebug'), url: '/ai-debug', icon: Bug },
         { id: 'ai-ops', title: t('sidebar.aiOps'), url: '/ai-ops', icon: Activity },
         { id: 'ai-artifacts', title: t('sidebar.aiArtifacts'), url: '/ai-artifacts', icon: PackageOpen },
+        { id: 'ai-tool-outputs', title: t('sidebar.aiToolOutputs'), url: '/ai-tool-outputs', icon: FileSearch },
       ]
     : [
         { id: 'ai-basicConfig', title: t('sidebar.basicConfig'), url: '/ai-config', icon: Cog },
@@ -469,7 +470,7 @@ export function AppSidebar() {
               <div className="flex items-center gap-1 whitespace-nowrap">
                 <span className="font-bold text-lg">{brandTitle}</span>
                 {/* rounded-md 挂 --radius，随主题杂项「圆角强度」变化；覆盖 Badge 默认的 rounded-full */}
-                <Badge variant="default" className="rounded-md text-xs font-medium shrink-0">v{import.meta.env.PACKAGE_VERSION || '0.1.0'}</Badge>
+                <Badge variant="default" className="rounded-md text-xs font-medium shrink-0">v{import.meta.env.PACKAGE_VERSION || '0.1.1'}</Badge>
               </div>
               <span className="text-xs text-muted-foreground whitespace-nowrap">{brandSubtitle}</span>
             </div>

@@ -23,10 +23,12 @@ import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
+import { PluginIcon } from '@/components/ui/plugin-icon';
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
-const SOURCES: AgentNodeSource[] = ['builtin', 'plugin', 'user', 'persona'];
+/** 能力代理页仅展示 builtin / plugin / user；persona 走人格配置页 */
+const SOURCES: AgentNodeSource[] = ['builtin', 'plugin', 'user'];
 const NODE_ID_PATTERN = /^[a-zA-Z][a-zA-Z0-9_]{0,63}$/;
 // 框架内置能力族；capability_domain 族名可自由追加，故 TagInput 不做白名单限制
 const BUILTIN_TOOL_PACKS = ['task_basics', 'dynamic'];
@@ -50,7 +52,6 @@ type DialogMode = 'create' | 'edit' | 'view';
 function sourceClass(source: AgentNodeSource) {
   if (source === 'builtin') return 'bg-blue-500/15 text-blue-600 border-blue-500/30';
   if (source === 'plugin') return 'bg-violet-500/15 text-violet-600 border-violet-500/30';
-  if (source === 'persona') return 'bg-amber-500/15 text-amber-600 border-amber-500/30';
   return 'bg-emerald-500/15 text-emerald-600 border-emerald-500/30';
 }
 
@@ -278,6 +279,8 @@ export default function AICapabilityAgentsPage() {
   const isGlass = style === 'glassmorphism';
 
   const [activeSource, setActiveSource] = useState<AgentNodeSource>('builtin');
+  /** 插件 Tab 二级筛选：`__all__` = 全部插件；其它值为 list 接口里的 plugin 字段 */
+  const [selectedPlugin, setSelectedPlugin] = useState<string>('__all__');
   const [profiles, setProfiles] = useState<AgentNodeItem[]>([]);
   const [tools, setTools] = useState<CapabilityAgentTool[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -311,35 +314,112 @@ export default function AICapabilityAgentsPage() {
   }, [loadData]);
 
   const sourceCounts = useMemo(() => {
-    return profiles.reduce<Record<AgentNodeSource, number>>((acc, profile) => {
-      acc[profile.source] += 1;
-      return acc;
-    }, { builtin: 0, plugin: 0, user: 0, persona: 0 });
+    return profiles.reduce(
+      (acc, profile) => {
+        if (profile.source === 'builtin' || profile.source === 'plugin' || profile.source === 'user') {
+          acc[profile.source] += 1;
+        }
+        return acc;
+      },
+      { builtin: 0, plugin: 0, user: 0 } as Record<'builtin' | 'plugin' | 'user', number>,
+    );
   }, [profiles]);
 
-  const sourceOptions = useMemo(() => SOURCES.map((source) => ({
-    value: source,
-    label: `${t(`aiCapabilityAgents.sources.${source}`)} ${sourceCounts[source]}`,
-    icon: source === 'builtin'
-      ? <Package className="h-4 w-4" />
-      : source === 'plugin'
-        ? <Puzzle className="h-4 w-4" />
-        : source === 'persona'
-          ? <Sparkles className="h-4 w-4" />
+  /** 按 list 接口每项的 plugin 字段聚合（仅 source=plugin） */
+  const pluginFilterMeta = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const profile of profiles) {
+      if (profile.source !== 'plugin') continue;
+      const name = (profile.plugin || '').trim();
+      if (!name) continue;
+      counts.set(name, (counts.get(name) || 0) + 1);
+    }
+    const names = Array.from(counts.keys()).sort((a, b) => a.localeCompare(b));
+    return { names, counts };
+  }, [profiles]);
+
+  // 列表刷新后若当前选中的插件已不存在，回退到「全部」
+  useEffect(() => {
+    if (selectedPlugin === '__all__') return;
+    if (!pluginFilterMeta.counts.has(selectedPlugin)) {
+      setSelectedPlugin('__all__');
+    }
+  }, [pluginFilterMeta, selectedPlugin]);
+
+  const sourceOptions = useMemo(() => SOURCES.map((source) => {
+    if (source !== 'plugin') {
+      return {
+        value: source,
+        label: `${t(`aiCapabilityAgents.sources.${source}`)} ${sourceCounts[source]}`,
+        icon: source === 'builtin'
+          ? <Package className="h-4 w-4" />
           : <UserRound className="h-4 w-4" />,
-  })), [sourceCounts, t]);
+      };
+    }
+
+    const isAll = selectedPlugin === '__all__';
+    const pluginCount = isAll
+      ? sourceCounts.plugin
+      : (pluginFilterMeta.counts.get(selectedPlugin) || 0);
+    const label = isAll
+      ? `${t('aiCapabilityAgents.sources.plugin')} ${pluginCount}`
+      : t('aiCapabilityAgents.pluginFilterLabel', { name: selectedPlugin, count: pluginCount });
+
+    return {
+      value: source,
+      label,
+      // 选中具体插件时，主 Tab 也展示该插件 ICON
+      icon: isAll
+        ? <Puzzle className="h-4 w-4" />
+        : <PluginIcon pluginName={selectedPlugin} className="h-4 w-4" />,
+      dropdown: {
+        value: selectedPlugin,
+        onValueChange: setSelectedPlugin,
+        allValue: '__all__',
+        align: 'start' as const,
+        items: [
+          {
+            value: '__all__',
+            label: `${t('aiCapabilityAgents.allPlugins')} (${sourceCounts.plugin})`,
+            icon: <Puzzle className="h-4 w-4 shrink-0" />,
+          },
+          ...pluginFilterMeta.names.map((name) => ({
+            value: name,
+            label: `${name} (${pluginFilterMeta.counts.get(name) || 0})`,
+            icon: <PluginIcon pluginName={name} className="h-4 w-4" />,
+          })),
+        ],
+      },
+    };
+  }), [pluginFilterMeta, selectedPlugin, sourceCounts, t]);
 
   const filteredProfiles = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
     return profiles.filter((profile) => {
+      // 能力代理页不展示 persona 投影节点
+      if (profile.source === 'persona') return false;
       if (profile.source !== activeSource) return false;
+      if (
+        activeSource === 'plugin'
+        && selectedPlugin !== '__all__'
+        && (profile.plugin || '').trim() !== selectedPlugin
+      ) {
+        return false;
+      }
       if (!query) return true;
-      return [profile.node_id, profile.display_name, profile.when_to_use, profile.prompt, ...(profile.match_keywords || [])]
+      return [
+        profile.node_id,
+        profile.display_name,
+        profile.when_to_use,
+        profile.prompt,
+        profile.plugin,
+        ...(profile.match_keywords || []),
+      ]
         .join('\n')
         .toLowerCase()
         .includes(query);
     });
-  }, [activeSource, profiles, searchQuery]);
+  }, [activeSource, profiles, searchQuery, selectedPlugin]);
 
   const openDialog = (mode: DialogMode, profile?: AgentNodeItem, base?: string) => {
     setDialogMode(mode);

@@ -1,9 +1,9 @@
 {
   "title": "能力エージェント",
-  "description": "統一 AgentNode 定義（能力エージェント / ペルソナ投影）を管理し、長期タスクや複雑な多段階タスクを委任します。",
+  "description": "統一 AgentNode 定義（能力エージェント）を管理し、長期タスクや複雑な多段階タスクを委任します。",
   "newProfile": "新規ノード",
   "copyAsNew": "新規としてコピー",
-  "readonlyTip": "フレームワーク・プラグイン・ペルソナ投影ノードは表示のみです",
+  "readonlyTip": "フレームワークまたはプラグインノードは表示のみです",
   "searchPlaceholder": "名前、ID、用途、キーワード、プロンプトを検索...",
   "empty": "一致するノードはありません",
   "loadFailed": "能力エージェントの読み込みに失敗しました",
@@ -19,9 +19,10 @@
   "sources": {
     "builtin": "内蔵 builtin",
     "plugin": "プラグイン plugin",
-    "user": "自分の user",
-    "persona": "ペルソナ persona"
+    "user": "自分の user"
   },
+  "allPlugins": "すべてのプラグイン",
+  "pluginFilterLabel": "{name} {count}",
   "dialog": {
     "createTitle": "Agent ノードを作成",
     "editTitle": "Agent ノードを編集",

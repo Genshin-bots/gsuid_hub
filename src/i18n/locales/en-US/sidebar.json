@@ -30,6 +30,7 @@
   "aiBudget": "AI Budget",
   "aiDebug": "Agent Debugger",
   "aiArtifacts": "AI Artifacts",
+  "aiToolOutputs": "Tool Outputs",
   "batchPush": "Batch Push",
   "brandSettings": "Brand",
   "plugins": "Plugin Settings",

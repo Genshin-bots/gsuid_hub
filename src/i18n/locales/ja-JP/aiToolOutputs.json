@@ -1,0 +1,47 @@
+{
+  "title": "ツール落盤",
+  "description": "FileOS アーカイブ（web 検索など長いツール戻り値）を閲覧。絞り込み・検索・プレビュー・一括削除。",
+  "toolbar": {
+    "keyword": "検索",
+    "keywordPlaceholder": "要約 / id / ツール / session",
+    "toolName": "ツール",
+    "toolAll": "すべてのツール",
+    "search": "検索",
+    "includeExpired": "期限切れを含む",
+    "refresh": "更新",
+    "batchDelete": "選択を削除 ({count})"
+  },
+  "table": {
+    "tool": "ツール",
+    "summary": "要約",
+    "owner": "所有者",
+    "size": "サイズ",
+    "createdAt": "作成日時",
+    "actions": "操作",
+    "noData": "落盤レコードがありません"
+  },
+  "detail": {
+    "tabOverview": "概要",
+    "tabPayload": "本文",
+    "payloadTitle": "本文プレビュー",
+    "payloadTruncated": "本文プレビュー（全文約 {chars} 文字・切り詰め）",
+    "payloadEmpty": "（本文なし）",
+    "copied": "コピー済み",
+    "copyFailed": "コピー失敗"
+  },
+  "pagination": {
+    "label": "{from}–{to} / 全 {total} 件",
+    "prev": "前へ",
+    "next": "次へ"
+  },
+  "modeSummary": "{from}–{to} / 全 {total} 件を表示",
+  "confirmDelete": "落盤レコード {id} を削除しますか？ディスクとベクトル索引も削除されます。",
+  "confirmBatchDelete": "{count} 件を一括削除しますか？",
+  "messages": {
+    "loadFail": "読み込み失敗",
+    "deleted": "削除しました",
+    "deletedFail": "削除失敗",
+    "batchDeleted": "{count} 件削除しました",
+    "downloadFail": "ダウンロード失敗"
+  }
+}

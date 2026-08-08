@@ -12,28 +12,13 @@ import { Switch } from '@/components/ui/switch';
 import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Search, Plus, Pencil, Trash2, Filter, RefreshCw, ChevronLeft, ChevronRight, Database, X, PlusCircle, Package } from 'lucide-react';
-import { databaseApi, PluginDatabaseInfo, DatabaseTableInfo, DatabaseColumn, PaginatedData, getPluginIconUrl } from '@/lib/api';
+import { Search, Plus, Pencil, Trash2, Filter, RefreshCw, ChevronLeft, ChevronRight, Database, X, PlusCircle } from 'lucide-react';
+import { databaseApi, PluginDatabaseInfo, DatabaseTableInfo, DatabaseColumn, PaginatedData } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { PinnedPage } from '@/components/layout/PinnedPage';
-
-// 带 fallback 的插件图标组件
-function PluginIcon({ pluginName, className = 'w-[18px] h-[18px]' }: { pluginName: string; className?: string }) {
-  const [imgError, setImgError] = useState(false);
-  if (imgError) {
-    return <Package className={`${className} text-muted-foreground/50`} />;
-  }
-  return (
-    <img
-      src={getPluginIconUrl(pluginName)}
-      className={`${className} rounded-sm object-contain`}
-      alt=""
-      onError={() => setImgError(true)}
-    />
-  );
-}
+import { PluginIcon } from '@/components/ui/plugin-icon';
 
 export default function DatabasePage() {
   const { t } = useLanguage();

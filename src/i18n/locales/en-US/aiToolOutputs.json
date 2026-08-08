@@ -1,0 +1,47 @@
+{
+  "title": "Tool Outputs",
+  "description": "Browse FileOS archives (long tool returns such as web search). Filter, search, preview, and bulk delete.",
+  "toolbar": {
+    "keyword": "Search",
+    "keywordPlaceholder": "summary / id / tool / session",
+    "toolName": "Tool",
+    "toolAll": "All tools",
+    "search": "Apply",
+    "includeExpired": "Include expired",
+    "refresh": "Refresh",
+    "batchDelete": "Delete selected ({count})"
+  },
+  "table": {
+    "tool": "Tool",
+    "summary": "Summary",
+    "owner": "Owner",
+    "size": "Size",
+    "createdAt": "Created",
+    "actions": "Actions",
+    "noData": "No archived tool outputs"
+  },
+  "detail": {
+    "tabOverview": "Overview",
+    "tabPayload": "Payload",
+    "payloadTitle": "Payload preview",
+    "payloadTruncated": "Payload preview (~{chars} chars, truncated)",
+    "payloadEmpty": "(empty)",
+    "copied": "Copied",
+    "copyFailed": "Copy failed"
+  },
+  "pagination": {
+    "label": "{from}–{to} of {total}",
+    "prev": "Previous",
+    "next": "Next"
+  },
+  "modeSummary": "Showing {from}–{to} of {total}",
+  "confirmDelete": "Delete FileOS record {id}? Disk file and vector index will be removed.",
+  "confirmBatchDelete": "Delete {count} selected records?",
+  "messages": {
+    "loadFail": "Failed to load",
+    "deleted": "Deleted",
+    "deletedFail": "Delete failed",
+    "batchDeleted": "Deleted {count} item(s)",
+    "downloadFail": "Download failed"
+  }
+}

@@ -26,7 +26,9 @@
     "metadataTitle": "メタデータ",
     "expiresAt": "有効期限 {time}",
     "copied": "コピーしました",
-    "copyFailed": "コピー失敗"
+    "copyFailed": "コピー失敗",
+    "imageTitle": "画像プレビュー",
+    "imageLoading": "画像を読み込み中…"
   },
   "actions": {
     "open": "表示",

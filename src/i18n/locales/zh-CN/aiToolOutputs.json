@@ -1,0 +1,47 @@
+{
+  "title": "工具落盘",
+  "description": "浏览 FileOS 存档（web 搜索等较长工具返回）。可筛选、搜索、预览与批量删除。",
+  "toolbar": {
+    "keyword": "搜索",
+    "keywordPlaceholder": "摘要 / id / 工具名 / session",
+    "toolName": "工具",
+    "toolAll": "全部工具",
+    "search": "查询",
+    "includeExpired": "含已过期",
+    "refresh": "刷新",
+    "batchDelete": "删除所选 ({count})"
+  },
+  "table": {
+    "tool": "工具",
+    "summary": "摘要",
+    "owner": "所有者",
+    "size": "大小",
+    "createdAt": "创建时间",
+    "actions": "操作",
+    "noData": "暂无落盘记录"
+  },
+  "detail": {
+    "tabOverview": "概览",
+    "tabPayload": "正文",
+    "payloadTitle": "正文预览",
+    "payloadTruncated": "正文预览（全文约 {chars} 字，已截断）",
+    "payloadEmpty": "（无正文）",
+    "copied": "已复制",
+    "copyFailed": "复制失败"
+  },
+  "pagination": {
+    "label": "第 {from}–{to} 条 / 共 {total} 条",
+    "prev": "上一页",
+    "next": "下一页"
+  },
+  "modeSummary": "显示 {from}–{to} / 共 {total} 条",
+  "confirmDelete": "确认删除落盘记录 {id}？将同步清理磁盘与向量索引。",
+  "confirmBatchDelete": "确认批量删除 {count} 条记录？",
+  "messages": {
+    "loadFail": "加载失败",
+    "deleted": "已删除",
+    "deletedFail": "删除失败",
+    "batchDeleted": "已删除 {count} 条",
+    "downloadFail": "下载失败"
+  }
+}

@@ -94,7 +94,7 @@ import { PinnedPage } from '@/components/layout/PinnedPage';
 | 放进 `toolbar`（随标题常驻） | 留在 `children`（跟着滚） |
 |---------------------------|------------------------|
 | `TabButtonGroup` / 二级切换（/ai-knowledge 的「文本知识 / 图片知识」） | 统计卡片 / 数据看板（/ai-memory、/dashboard、/scheduler 的 Stats） |
-| 筛选 + 搜索栏（/ai-capability-agents 的来源筛选 + 搜索） | 提示 banner / 错误提示（/persona-config 的全局启用提示、/ai-skills 的错误卡） |
+| 筛选 + 搜索栏（/ai-capability-agents 的来源 Tab，含 plugin **dropdown** 二级筛选 + 搜索） | 提示 banner / 错误提示（/persona-config 的全局启用提示、/ai-skills 的错误卡） |
 | 与控件行同行的操作按钮（/themes 的「保存为预设」） | 结果展示（/mcp-config 的 Reload Result） |
 | 两级导航控件（/database 的插件选择 + 数据表选择） | 表单卡片、列表、详情（/core-config、/settings） |
 

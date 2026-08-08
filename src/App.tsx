@@ -47,6 +47,7 @@ import BrandSettingsPage from "@/pages/BrandSettingsPage";
 import BatchPushPage from "@/pages/BatchPushPage";
 import AIDebugPage from "@/pages/AIDebugPage";
 import AIArtifactsPage from "@/pages/AIArtifactsPage";
+import AIToolOutputsPage from "@/pages/AIToolOutputsPage";
 import StateStorePage from "@/pages/StateStorePage";
 import GroupProfilePage from "@/pages/GroupProfilePage";
 import AIOpsPage from "@/pages/AIOpsPage";
@@ -129,6 +130,7 @@ function AppRoutes() {
         <Route path="ai-debug" element={<AIDebugPage />} />
         <Route path="ai-ops" element={<AIOpsPage />} />
         <Route path="ai-artifacts" element={<AIArtifactsPage />} />
+        <Route path="ai-tool-outputs" element={<AIToolOutputsPage />} />
       </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>
