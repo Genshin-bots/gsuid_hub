@@ -739,16 +739,23 @@ export default function PluginsPage() {
     }
   };
 
-  // 重载当前插件
+  // 重载当前插件（reloadPlugin 走 postRaw，看顶层 status/msg，勿用 api.post 解包 data）
   const handleReloadPlugin = async () => {
     if (!selectedPlugin) return;
+    const name = selectedPlugin.name;
     setIsReloadingPlugin(true);
     try {
-      const result = await pluginsApi.reloadPlugin(selectedPlugin.name);
-      if (result.status === 0) {
-        toast.success(t('plugins.reloadPluginSuccess', { name: selectedPlugin.name }));
+      const result = await pluginsApi.reloadPlugin(name);
+      if (result?.status === 0) {
+        toast.success(result.msg || t('plugins.reloadPluginSuccess', { name }));
+        // 重载会重建 SL：清本地详情缓存并刷新列表/详情
+        setPlugins((prev) => prev.filter((p) => p.name !== name && p.id !== selectedPlugin.id));
+        await fetchPluginList();
+        await fetchPluginDetail(name);
       } else {
-        toast.error(result.msg);
+        toast.error(
+          result?.msg || t('plugins.reloadPluginFailed', { name, error: '' }),
+        );
       }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : String(error));

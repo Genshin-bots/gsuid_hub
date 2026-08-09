@@ -698,17 +698,19 @@ export default function GitUpdatePage() {
     setReloadDialogOpen(true);
   };
 
-  // 重载当前插件 - 确认执行
+  // 重载当前插件 - 确认执行（reloadPlugin 走 postRaw，看顶层 status/msg）
   const handleReloadPluginConfirm = async () => {
     if (!selectedPlugin) return;
     setReloadDialogOpen(false);
     setIsReloadingPlugin(true);
     try {
       const result = await pluginsApi.reloadPlugin(selectedPlugin);
-      if (result.status === 0) {
-        toast.success(t('plugins.reloadPluginSuccess', { name: selectedPlugin }));
+      if (result?.status === 0) {
+        toast.success(result.msg || t('plugins.reloadPluginSuccess', { name: selectedPlugin }));
       } else {
-        toast.error(result.msg);
+        toast.error(
+          result?.msg || t('plugins.reloadPluginFailed', { name: selectedPlugin, error: '' }),
+        );
       }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : String(error));

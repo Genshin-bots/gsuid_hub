@@ -864,9 +864,15 @@ export const pluginsApi = {
   updateSvConfig: (pluginName: string, svName: string, config: Record<string, unknown>) =>
     api.post<{ status: number; msg: string }>(`/api/plugins/${pluginName}/sv/${svName}`, config),
 
-  // 重新加载插件
+  /**
+   * 重新加载插件。
+   * 必须用 postRaw：接口响应是 `{status, msg, data?}`，业务成败看顶层 status/msg。
+   * 若走 api.post 会只返回 data；旧后端无 data 时为 undefined，页面再读 `.status` 会 TypeError。
+   */
   reloadPlugin: (pluginName: string) =>
-    api.post<{ status: number; msg: string }>(`/api/plugins/${pluginName}/reload`),
+    api.postRaw<{ plugin_name?: string; ok?: boolean }>(
+      `/api/plugins/${encodeURIComponent(pluginName)}/reload`,
+    ),
 };
 
 /**
