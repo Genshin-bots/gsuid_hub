@@ -111,5 +111,20 @@
   "days30": "30 days",
   "perfRange": "Range performance",
   "singleDay": "Single day",
-  "rangeMode": "Range"
+  "rangeMode": "Range",
+  "efficiency": "Efficiency",
+  "tokenMetering": "Token metering",
+  "efficiencyTitle": "Token efficiency",
+  "efficiencyHint": "Volume scales with users; efficiency shows cost per task. User turns include nested subagents.",
+  "userTurnCount": "User turns",
+  "agentRunCount": "Agent runs",
+  "rootAgentRuns": "Root runs",
+  "nestedAgentRuns": "Nested runs",
+  "avgTokensPerUserTurn": "Avg tokens / turn",
+  "avgTokensPerAgentRun": "Avg tokens / run",
+  "avgAgentRunsPerUserTurn": "Avg runs / turn",
+  "avgInputPerUserTurn": "Avg input / turn",
+  "avgOutputPerUserTurn": "Avg output / turn",
+  "efficiencyTrend": "Efficiency trend",
+  "userTurnTokens": "User-turn tokens"
 }

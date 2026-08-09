@@ -118,13 +118,43 @@ export function memoryIngestHealth(stats: Partial<MemoryPipelineStats> | null | 
 export function extractHistoryTokenSeries(
   history: Array<{
     date: string;
-    data?: { token_usage?: { total_input_tokens?: number; total_output_tokens?: number } };
+    data?: {
+      token_usage?: { total_input_tokens?: number; total_output_tokens?: number };
+      efficiency?: {
+        user_turn_count?: number;
+        agent_run_count?: number;
+        avg_tokens_per_user_turn?: number;
+        avg_tokens_per_agent_run?: number;
+        avg_agent_runs_per_user_turn?: number;
+      };
+    };
   }>,
-): Array<{ date: string; input: number; output: number; total: number }> {
+): Array<{
+  date: string;
+  input: number;
+  output: number;
+  total: number;
+  userTurns: number;
+  agentRuns: number;
+  avgPerTurn: number;
+  avgPerRun: number;
+  avgRunsPerTurn: number;
+}> {
   return history.map((row) => {
     const input = row.data?.token_usage?.total_input_tokens ?? 0;
     const output = row.data?.token_usage?.total_output_tokens ?? 0;
-    return { date: row.date, input, output, total: input + output };
+    const eff = row.data?.efficiency;
+    return {
+      date: row.date,
+      input,
+      output,
+      total: input + output,
+      userTurns: eff?.user_turn_count ?? 0,
+      agentRuns: eff?.agent_run_count ?? 0,
+      avgPerTurn: eff?.avg_tokens_per_user_turn ?? 0,
+      avgPerRun: eff?.avg_tokens_per_agent_run ?? 0,
+      avgRunsPerTurn: eff?.avg_agent_runs_per_user_turn ?? 0,
+    };
   });
 }
 

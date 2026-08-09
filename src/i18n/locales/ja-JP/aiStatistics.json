@@ -111,5 +111,20 @@
   "days30": "30日",
   "perfRange": "範囲パフォーマンス",
   "singleDay": "単日",
-  "rangeMode": "範囲"
+  "rangeMode": "範囲",
+  "efficiency": "効率",
+  "tokenMetering": "Token 計量",
+  "efficiencyTitle": "Token 効率",
+  "efficiencyHint": "総量は利用人数で変動します。効率は1タスクあたりのコストです。ユーザーターンは同期サブエージェントを含みます。",
+  "userTurnCount": "ユーザーターン",
+  "agentRunCount": "エージェント実行",
+  "rootAgentRuns": "Root 実行",
+  "nestedAgentRuns": "ネスト実行",
+  "avgTokensPerUserTurn": "ターン平均 Token",
+  "avgTokensPerAgentRun": "実行平均 Token",
+  "avgAgentRunsPerUserTurn": "ターン平均実行数",
+  "avgInputPerUserTurn": "ターン平均入力",
+  "avgOutputPerUserTurn": "ターン平均出力",
+  "efficiencyTrend": "効率トレンド",
+  "userTurnTokens": "ユーザーターン Token"
 }

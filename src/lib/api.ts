@@ -4919,10 +4919,46 @@ export interface TokenRangeBucket {
 
 export interface TokenRangeDailyItem extends TokenRangeBucket {
   date: string; // YYYY-MM-DD
+  user_turn_count?: number;
+  agent_run_count?: number;
+  user_turn_agent_run_count?: number;
+  avg_tokens_per_user_turn?: number;
+  avg_tokens_per_agent_run?: number;
+  avg_agent_runs_per_user_turn?: number;
 }
 
 export interface TokenRangeByModelItem extends TokenRangeBucket {
   model: string;
+}
+
+/** User Turn / Agent Run 效率（省 Token 主指标） */
+export interface EfficiencyStatsData {
+  date?: string;
+  user_turn_count: number;
+  agent_run_count: number;
+  root_agent_run_count: number;
+  nested_agent_run_count: number;
+  user_turn_agent_run_count: number;
+  user_turn_input_tokens: number;
+  user_turn_output_tokens: number;
+  user_turn_cache_read_tokens: number;
+  user_turn_cache_write_tokens: number;
+  avg_tokens_per_user_turn: number;
+  avg_input_tokens_per_user_turn: number;
+  avg_output_tokens_per_user_turn: number;
+  avg_tokens_per_agent_run: number;
+  avg_input_tokens_per_agent_run: number;
+  avg_output_tokens_per_agent_run: number;
+  avg_agent_runs_per_user_turn: number;
+}
+
+export interface TokenRangeEfficiency {
+  user_turn_count: number;
+  agent_run_count: number;
+  user_turn_agent_run_count: number;
+  avg_tokens_per_user_turn: number;
+  avg_tokens_per_agent_run: number;
+  avg_agent_runs_per_user_turn: number;
 }
 
 export interface TokenRangeData {
@@ -4932,6 +4968,7 @@ export interface TokenRangeData {
   total: TokenRangeBucket;
   daily: TokenRangeDailyItem[];
   by_model: TokenRangeByModelItem[];
+  efficiency?: TokenRangeEfficiency;
 }
 
 export interface MemoryStatsData {
@@ -4961,6 +4998,7 @@ export interface StatisticsSummaryData {
   trigger_distribution: TriggerDistributionData;
   rag: RagStatsData;
   memory: MemoryStatsData;
+  efficiency?: EfficiencyStatsData;
   active_users: ActiveUserItem[];
 }
 
@@ -5046,6 +5084,7 @@ export const aiStatisticsApi = {
             total_cache_read_tokens?: number;
             total_cache_write_tokens?: number;
           };
+          efficiency?: EfficiencyStatsData;
           memory?: {
             observations?: number;
             ingestions?: number;
@@ -5067,6 +5106,16 @@ export const aiStatisticsApi = {
     const queryStr = query.toString();
     return api.get<TokenRangeData>(
       `/api/ai/statistics/token-by-range${queryStr ? `?${queryStr}` : ''}`,
+    );
+  },
+
+  /** User Turn / Agent Run 效率（与 summary.efficiency 同源） */
+  getEfficiency: (date?: string) => {
+    const query = new URLSearchParams();
+    if (date) query.set('date', date);
+    const queryStr = query.toString();
+    return api.get<EfficiencyStatsData>(
+      `/api/ai/statistics/efficiency${queryStr ? `?${queryStr}` : ''}`,
     );
   },
 };

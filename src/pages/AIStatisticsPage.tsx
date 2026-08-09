@@ -4,7 +4,11 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 import { aiStatisticsApi, aiPerformanceApi, getApiErrorMessage } from '@/lib/api';
 import { PinnedPage } from '@/components/layout/PinnedPage';
-import type { HourlyPerformanceItem, HourlyPerformanceRangeItem, TokenRangeData } from '@/lib/api';
+import type {
+  HourlyPerformanceItem,
+  HourlyPerformanceRangeItem,
+  TokenRangeData,
+} from '@/lib/api';
 import {
   aggregatePerformanceByDate,
   extractHistoryTokenSeries,
@@ -35,6 +39,9 @@ import {
   Sparkles,
   BarChart3,
   Pencil,
+  Layers,
+  GitBranch,
+  Target,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -133,6 +140,25 @@ interface ActiveUser {
   message_count: number;
 }
 
+interface EfficiencyStats {
+  user_turn_count: number;
+  agent_run_count: number;
+  root_agent_run_count: number;
+  nested_agent_run_count: number;
+  user_turn_agent_run_count: number;
+  user_turn_input_tokens: number;
+  user_turn_output_tokens: number;
+  user_turn_cache_read_tokens?: number;
+  user_turn_cache_write_tokens?: number;
+  avg_tokens_per_user_turn: number;
+  avg_input_tokens_per_user_turn: number;
+  avg_output_tokens_per_user_turn: number;
+  avg_tokens_per_agent_run: number;
+  avg_input_tokens_per_agent_run: number;
+  avg_output_tokens_per_agent_run: number;
+  avg_agent_runs_per_user_turn: number;
+}
+
 interface StatisticsSummary {
   date: string;
   token_usage: TokenUsage;
@@ -143,8 +169,26 @@ interface StatisticsSummary {
   trigger_distribution: TriggerDistribution;
   rag: RagStats;
   memory: MemoryStats;
+  efficiency?: EfficiencyStats;
   active_users: ActiveUser[];
 }
+
+const EMPTY_EFFICIENCY: EfficiencyStats = {
+  user_turn_count: 0,
+  agent_run_count: 0,
+  root_agent_run_count: 0,
+  nested_agent_run_count: 0,
+  user_turn_agent_run_count: 0,
+  user_turn_input_tokens: 0,
+  user_turn_output_tokens: 0,
+  avg_tokens_per_user_turn: 0,
+  avg_input_tokens_per_user_turn: 0,
+  avg_output_tokens_per_user_turn: 0,
+  avg_tokens_per_agent_run: 0,
+  avg_input_tokens_per_agent_run: 0,
+  avg_output_tokens_per_agent_run: 0,
+  avg_agent_runs_per_user_turn: 0,
+};
 
 // ============================================================================
 // API 函数
@@ -450,7 +494,17 @@ export default function AIStatisticsPage() {
   // 历史趋势 (getHistory)
   const [historyDays, setHistoryDays] = useState<7 | 14 | 30>(7);
   const [historySeries, setHistorySeries] = useState<
-    Array<{ date: string; input: number; output: number; total: number }>
+    Array<{
+      date: string;
+      input: number;
+      output: number;
+      total: number;
+      userTurns: number;
+      agentRuns: number;
+      avgPerTurn: number;
+      avgPerRun: number;
+      avgRunsPerTurn: number;
+    }>
   >([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState<string | null>(null);
@@ -669,6 +723,38 @@ export default function AIStatisticsPage() {
   // ECharts 配置
   // ============================================================================
 
+  // 动态 series 过多时：底部单行滚动图例，预留 grid 空间，避免换行盖住绘图区
+  const scrollBottomLegend = useCallback((
+    names: string[],
+    textFontSize = 10,
+  ): EChartsOption['legend'] => ({
+    type: 'scroll',
+    orient: 'horizontal',
+    data: names,
+    bottom: 0,
+    left: 'center',
+    width: '92%',
+    itemWidth: 12,
+    itemHeight: 10,
+    itemGap: 10,
+    pageIconSize: 12,
+    pageButtonGap: 6,
+    pageButtonItemGap: 4,
+    textStyle: { fontSize: textFontSize },
+  }), []);
+
+  // 饼图右侧竖向滚动图例（项数多时不溢出盖住饼图）
+  const scrollRightLegend = useCallback((): EChartsOption['legend'] => ({
+    type: 'scroll',
+    orient: 'vertical',
+    right: '2%',
+    top: 'middle',
+    height: '80%',
+    textStyle: { fontSize: 11 },
+    itemGap: 8,
+    pageIconSize: 12,
+  }), []);
+
   // 意图分布 - 环形图
   const intentPieOption = useMemo<EChartsOption>(() => ({
     animationDuration: 1000,
@@ -677,13 +763,7 @@ export default function AIStatisticsPage() {
       trigger: 'item',
       formatter: '{b}: {c} ({d}%)',
     },
-    legend: {
-      orient: 'vertical',
-      right: '2%',
-      top: 'center',
-      textStyle: { fontSize: 11 },
-      itemGap: 8,
-    },
+    legend: scrollRightLegend(),
     series: [
       {
         type: 'pie',
@@ -724,8 +804,7 @@ export default function AIStatisticsPage() {
         })),
       },
     ],
-  }), [intentChartData]);
-
+  }), [intentChartData, scrollRightLegend]);
   // 触发方式分布 - 水平柱状图
   const triggerBarOption = useMemo<EChartsOption>(() => ({
     animationDuration: 800,
@@ -762,7 +841,7 @@ export default function AIStatisticsPage() {
   const tokenModelOption = useMemo<EChartsOption>(() => ({
     animationDuration: 800,
     animationEasing: 'cubicOut' as const,
-    grid: { left: '3%', right: '4%', bottom: '15%', top: '15%', containLabel: true },
+    grid: { left: '3%', right: '4%', bottom: 48, top: '12%', containLabel: true },
     xAxis: {
       type: 'category',
       data: tokenModelChartData.map(d => d.name),
@@ -771,6 +850,7 @@ export default function AIStatisticsPage() {
     yAxis: { type: 'value' },
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
     legend: {
+      type: 'scroll',
       data: [
         { name: t('aiStatistics.inputTokens'), icon: 'roundRect' },
         { name: t('aiStatistics.outputTokens'), icon: 'roundRect' },
@@ -778,6 +858,8 @@ export default function AIStatisticsPage() {
         { name: t('aiStatistics.cacheWriteTokens'), icon: 'roundRect' },
       ],
       bottom: 0,
+      left: 'center',
+      width: '92%',
       textStyle: { fontSize: 11 },
     },
     series: [
@@ -820,7 +902,7 @@ export default function AIStatisticsPage() {
   const tokenTypeOption = useMemo<EChartsOption>(() => ({
     animationDuration: 800,
     animationEasing: 'cubicOut' as const,
-    grid: { left: '3%', right: '4%', bottom: '15%', top: '15%', containLabel: true },
+    grid: { left: '3%', right: '4%', bottom: 48, top: '12%', containLabel: true },
     xAxis: {
       type: 'category',
       data: tokenTypeChartData.map(d => d.name),
@@ -829,6 +911,7 @@ export default function AIStatisticsPage() {
     yAxis: { type: 'value' },
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
     legend: {
+      type: 'scroll',
       data: [
         { name: t('aiStatistics.inputTokens'), icon: 'roundRect' },
         { name: t('aiStatistics.outputTokens'), icon: 'roundRect' },
@@ -836,6 +919,8 @@ export default function AIStatisticsPage() {
         { name: t('aiStatistics.cacheWriteTokens'), icon: 'roundRect' },
       ],
       bottom: 0,
+      left: 'center',
+      width: '92%',
       textStyle: { fontSize: 11 },
     },
     series: [
@@ -909,7 +994,8 @@ export default function AIStatisticsPage() {
     return {
       animationDuration: 800,
       animationEasing: 'cubicOut' as const,
-      grid: { left: '3%', right: '4%', bottom: '15%', top: '15%', containLabel: true },
+      // 模型系列动态增长：预留底部单行 scroll 图例空间
+      grid: { left: '3%', right: '4%', bottom: 48, top: 24, containLabel: true },
       xAxis: {
         type: 'category',
         data: hours,
@@ -921,14 +1007,10 @@ export default function AIStatisticsPage() {
         axisLabel: { fontSize: 11 },
       },
       tooltip: { trigger: 'axis' },
-      legend: {
-        data: series.map(s => s.name),
-        bottom: 0,
-        textStyle: { fontSize: 10 },
-      },
+      legend: scrollBottomLegend(series.map(s => s.name)),
       series,
     };
-  }, [performanceData, perfModelList]);
+  }, [performanceData, perfModelList, scrollBottomLegend]);
 
   // 性能 - TPS 按小时折线图
   const perfTPSOption = useMemo<EChartsOption>(() => {
@@ -951,7 +1033,7 @@ export default function AIStatisticsPage() {
     return {
       animationDuration: 800,
       animationEasing: 'cubicOut' as const,
-      grid: { left: '3%', right: '4%', bottom: '15%', top: '15%', containLabel: true },
+      grid: { left: '3%', right: '4%', bottom: 48, top: 24, containLabel: true },
       xAxis: {
         type: 'category',
         data: hours,
@@ -963,14 +1045,10 @@ export default function AIStatisticsPage() {
         axisLabel: { fontSize: 11 },
       },
       tooltip: { trigger: 'axis' },
-      legend: {
-        data: series.map(s => s.name),
-        bottom: 0,
-        textStyle: { fontSize: 10 },
-      },
+      legend: scrollBottomLegend(series.map(s => s.name)),
       series,
     };
-  }, [performanceData, perfModelList]);
+  }, [performanceData, perfModelList, scrollBottomLegend]);
 
   // 性能 - 请求数按小时柱状图
   const perfRequestOption = useMemo<EChartsOption>(() => {
@@ -990,7 +1068,7 @@ export default function AIStatisticsPage() {
     return {
       animationDuration: 800,
       animationEasing: 'cubicOut' as const,
-      grid: { left: '3%', right: '4%', bottom: '15%', top: '15%', containLabel: true },
+      grid: { left: '3%', right: '4%', bottom: 48, top: 24, containLabel: true },
       xAxis: {
         type: 'category',
         data: hours,
@@ -998,14 +1076,10 @@ export default function AIStatisticsPage() {
       },
       yAxis: { type: 'value', axisLabel: { fontSize: 11 } },
       tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-      legend: {
-        data: series.map(s => s.name),
-        bottom: 0,
-        textStyle: { fontSize: 10 },
-      },
+      legend: scrollBottomLegend(series.map(s => s.name)),
       series,
     };
-  }, [performanceData, perfModelList]);
+  }, [performanceData, perfModelList, scrollBottomLegend]);
 
   const perfRangeAggregated = useMemo(
     () => aggregatePerformanceByDate(perfRangeRows),
@@ -1015,15 +1089,18 @@ export default function AIStatisticsPage() {
   const historyTrendOption = useMemo<EChartsOption>(() => ({
     animationDuration: 800,
     animationEasing: 'cubicOut' as const,
-    grid: { left: '3%', right: '4%', bottom: '15%', top: '12%', containLabel: true },
+    grid: { left: '3%', right: '4%', bottom: 48, top: '12%', containLabel: true },
     tooltip: { trigger: 'axis' },
     legend: {
+      type: 'scroll',
       data: [
         t('aiStatistics.inputTokens'),
         t('aiStatistics.outputTokens'),
         t('aiStatistics.totalTokens'),
       ],
       bottom: 0,
+      left: 'center',
+      width: '92%',
       textStyle: { fontSize: 11 },
     },
     xAxis: {
@@ -1061,18 +1138,177 @@ export default function AIStatisticsPage() {
     ],
   }), [historySeries, t]);
 
+  const efficiency = summary?.efficiency ?? EMPTY_EFFICIENCY;
+
+  // 效率：Root vs Nested 运行占比
+  const efficiencyNestPieOption = useMemo<EChartsOption>(() => {
+    const root = efficiency.root_agent_run_count ?? 0;
+    const nested = efficiency.nested_agent_run_count ?? 0;
+    const data = [
+      { name: t('aiStatistics.rootAgentRuns'), value: root, itemStyle: { color: CHART_PALETTE[0] } },
+      { name: t('aiStatistics.nestedAgentRuns'), value: nested, itemStyle: { color: CHART_PALETTE[2] } },
+    ].filter((d) => d.value > 0);
+    return {
+      animationDuration: 800,
+      tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+      legend: scrollRightLegend(),
+      series: [
+        {
+          type: 'pie',
+          radius: ['40%', '65%'],
+          center: ['35%', '50%'],
+          data: data.length
+            ? data
+            : [{ name: t('aiStatistics.noData'), value: 1, itemStyle: { color: '#94a3b8' } }],
+          label: { show: false },
+          emphasis: {
+            scale: true,
+            label: { show: true, fontSize: 12, fontWeight: 'bold', formatter: '{b}\n{d}%' },
+          },
+        },
+      ],
+    };
+  }, [efficiency, t, scrollRightLegend]);
+
+  // 历史效率趋势：回合均耗 / 运行均耗
+  const efficiencyHistoryOption = useMemo<EChartsOption>(() => ({
+    animationDuration: 800,
+    grid: { left: '3%', right: '4%', bottom: 48, top: '12%', containLabel: true },
+    tooltip: { trigger: 'axis' },
+    legend: {
+      type: 'scroll',
+      data: [
+        t('aiStatistics.avgTokensPerUserTurn'),
+        t('aiStatistics.avgTokensPerAgentRun'),
+        t('aiStatistics.avgAgentRunsPerUserTurn'),
+      ],
+      bottom: 0,
+      left: 'center',
+      width: '92%',
+      textStyle: { fontSize: 11 },
+    },
+    xAxis: {
+      type: 'category',
+      data: historySeries.map((d) => d.date),
+      axisLabel: { fontSize: 11 },
+    },
+    yAxis: [
+      {
+        type: 'value',
+        name: 'tokens',
+        axisLabel: { fontSize: 11, formatter: (v: number) => formatCompactNumber(v) },
+      },
+      {
+        type: 'value',
+        name: 'runs',
+        splitLine: { show: false },
+        axisLabel: { fontSize: 11 },
+      },
+    ],
+    series: [
+      {
+        name: t('aiStatistics.avgTokensPerUserTurn'),
+        type: 'line',
+        smooth: true,
+        data: historySeries.map((d) => d.avgPerTurn),
+        itemStyle: { color: '#6366f1' },
+        areaStyle: { color: 'rgba(99, 102, 241, 0.1)' },
+      },
+      {
+        name: t('aiStatistics.avgTokensPerAgentRun'),
+        type: 'line',
+        smooth: true,
+        data: historySeries.map((d) => d.avgPerRun),
+        itemStyle: { color: '#10b981' },
+      },
+      {
+        name: t('aiStatistics.avgAgentRunsPerUserTurn'),
+        type: 'bar',
+        yAxisIndex: 1,
+        data: historySeries.map((d) => d.avgRunsPerTurn),
+        itemStyle: { color: 'rgba(245, 158, 11, 0.65)', borderRadius: [4, 4, 0, 0] },
+        barMaxWidth: 20,
+      },
+    ],
+  }), [historySeries, t]);
+
+  // 时间段效率趋势（range tab 的 daily 字段）
+  const rangeEfficiencyOption = useMemo<EChartsOption>(() => {
+    const days = rangeData?.daily ?? [];
+    return {
+      animationDuration: 800,
+      grid: { left: '3%', right: '4%', bottom: 48, top: '12%', containLabel: true },
+      tooltip: { trigger: 'axis' },
+      legend: {
+        type: 'scroll',
+        data: [
+          t('aiStatistics.avgTokensPerUserTurn'),
+          t('aiStatistics.avgTokensPerAgentRun'),
+          t('aiStatistics.userTurnCount'),
+        ],
+        bottom: 0,
+        left: 'center',
+        width: '92%',
+        textStyle: { fontSize: 11 },
+      },
+      xAxis: {
+        type: 'category',
+        data: days.map((d) => d.date),
+        axisLabel: { fontSize: 11 },
+      },
+      yAxis: [
+        {
+          type: 'value',
+          axisLabel: { fontSize: 11, formatter: (v: number) => formatCompactNumber(v) },
+        },
+        {
+          type: 'value',
+          splitLine: { show: false },
+          axisLabel: { fontSize: 11 },
+        },
+      ],
+      series: [
+        {
+          name: t('aiStatistics.avgTokensPerUserTurn'),
+          type: 'line',
+          smooth: true,
+          data: days.map((d) => d.avg_tokens_per_user_turn ?? 0),
+          itemStyle: { color: '#6366f1' },
+        },
+        {
+          name: t('aiStatistics.avgTokensPerAgentRun'),
+          type: 'line',
+          smooth: true,
+          data: days.map((d) => d.avg_tokens_per_agent_run ?? 0),
+          itemStyle: { color: '#10b981' },
+        },
+        {
+          name: t('aiStatistics.userTurnCount'),
+          type: 'bar',
+          yAxisIndex: 1,
+          data: days.map((d) => d.user_turn_count ?? 0),
+          itemStyle: { color: 'rgba(59, 130, 246, 0.55)', borderRadius: [4, 4, 0, 0] },
+          barMaxWidth: 18,
+        },
+      ],
+    };
+  }, [rangeData, t]);
+
   const perfRangeTrendOption = useMemo<EChartsOption>(() => ({
     animationDuration: 800,
     animationEasing: 'cubicOut' as const,
-    grid: { left: '3%', right: '4%', bottom: '15%', top: '12%', containLabel: true },
+    grid: { left: '3%', right: '4%', bottom: 48, top: '12%', containLabel: true },
     tooltip: { trigger: 'axis' },
     legend: {
+      type: 'scroll',
       data: [
         t('aiStatistics.requestCount'),
         t('aiStatistics.ttftAvg'),
         t('aiStatistics.tpsAvg'),
       ],
       bottom: 0,
+      left: 'center',
+      width: '92%',
       textStyle: { fontSize: 11 },
     },
     xAxis: {
@@ -1122,12 +1358,13 @@ export default function AIStatisticsPage() {
     return {
       animationDuration: 800,
       animationEasing: 'cubicOut' as const,
-      grid: { left: '3%', right: '4%', bottom: '15%', top: '15%', containLabel: true },
+      grid: { left: '3%', right: '4%', bottom: 48, top: '12%', containLabel: true },
       tooltip: {
         trigger: 'axis',
         axisPointer: { type: 'cross' },
       },
       legend: {
+        type: 'scroll',
         data: [
           { name: t('aiStatistics.inputTokens') },
           { name: t('aiStatistics.outputTokens') },
@@ -1136,6 +1373,8 @@ export default function AIStatisticsPage() {
           { name: t('aiStatistics.totalTokens') },
         ],
         bottom: 0,
+        left: 'center',
+        width: '92%',
         textStyle: { fontSize: 11 },
       },
       xAxis: {
@@ -1226,13 +1465,7 @@ export default function AIStatisticsPage() {
           return `${params.name}<br/>${formatCompactNumber(v)} (${params.percent}%)`;
         },
       },
-      legend: {
-        orient: 'vertical',
-        right: '2%',
-        top: 'center',
-        textStyle: { fontSize: 11 },
-        itemGap: 8,
-      },
+      legend: scrollRightLegend(),
       series: [
         {
           type: 'pie',
@@ -1272,7 +1505,7 @@ export default function AIStatisticsPage() {
         },
       ],
     };
-  }, [rangeData]);
+  }, [rangeData, scrollRightLegend]);
 
   // 时间段统计是否全部为 0(用于空态判定)
   const isRangeEmpty = useMemo(() => {
@@ -1381,58 +1614,116 @@ export default function AIStatisticsPage() {
             />
           </div>
 
-          {/* 概览统计卡片 - 一行6列 */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 px-6">
-            <StatCard
-              title={t('aiStatistics.inputTokens')}
-              value={formatCompactNumber(summary.token_usage?.total_input_tokens ?? 0)}
-              icon={Coins}
-            />
-            <StatCard
-              title={t('aiStatistics.outputTokens')}
-              value={formatCompactNumber(summary.token_usage?.total_output_tokens ?? 0)}
-              icon={Coins}
-            />
-            <StatCard
-              title={t('aiStatistics.cacheReadTokens')}
-              value={formatCompactNumber(summary.token_usage?.total_cache_read_tokens ?? 0)}
-              icon={HardDrive}
-            />
-            <StatCard
-              title={t('aiStatistics.cacheWriteTokens')}
-              value={formatCompactNumber(summary.token_usage?.total_cache_write_tokens ?? 0)}
-              icon={HardDrive}
-            />
-            <StatCard
-              title={t('aiStatistics.latency')}
-              value={`${(summary.latency?.avg ?? 0).toFixed(2)}s`}
-              inlineSuffix={`P95: ${(summary.latency?.p95 ?? 0).toFixed(2)}s`}
-              icon={Clock}
-            />
-            {(() => {
-              const err = summary.errors ?? ({} as ErrorStats);
-              const errEntries: { key: keyof ErrorStats; label: string; value: number }[] = [
-                { key: 'timeout', label: t('aiStatistics.timeout'), value: err.timeout ?? 0 },
-                { key: 'rate_limit', label: t('aiStatistics.rateLimit'), value: err.rate_limit ?? 0 },
-                { key: 'network_error', label: t('aiStatistics.networkError'), value: err.network_error ?? 0 },
-                { key: 'usage_limit', label: t('aiStatistics.usageLimit'), value: err.usage_limit ?? 0 },
-                { key: 'agent_error', label: t('aiStatistics.agentError'), value: err.agent_error ?? 0 },
-                { key: 'api_529_error', label: t('aiStatistics.api529Error'), value: err.api_529_error ?? 0 },
-              ];
-              const topErr = errEntries.reduce<typeof errEntries[number] | null>(
-                (acc, cur) => (acc == null || cur.value > acc.value ? cur : acc),
-                null
-              );
-              const errSuffix = topErr && topErr.value > 0 ? `${topErr.label}: ${topErr.value}` : null;
-              return (
-                <StatCard
-                  title={t('aiStatistics.errors')}
-                  value={err.total ?? 0}
-                  inlineSuffix={errSuffix ?? undefined}
-                  icon={AlertTriangle}
-                />
-              );
-            })()}
+          {/* Token 计量：概览统计卡片 - 一行6列 */}
+          <div className="px-6 space-y-2">
+            <h2 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <Coins className="w-4 h-4" />
+              {t('aiStatistics.tokenMetering')}
+            </h2>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+              <StatCard
+                title={t('aiStatistics.inputTokens')}
+                value={formatCompactNumber(summary.token_usage?.total_input_tokens ?? 0)}
+                icon={Coins}
+              />
+              <StatCard
+                title={t('aiStatistics.outputTokens')}
+                value={formatCompactNumber(summary.token_usage?.total_output_tokens ?? 0)}
+                icon={Coins}
+              />
+              <StatCard
+                title={t('aiStatistics.cacheReadTokens')}
+                value={formatCompactNumber(summary.token_usage?.total_cache_read_tokens ?? 0)}
+                icon={HardDrive}
+              />
+              <StatCard
+                title={t('aiStatistics.cacheWriteTokens')}
+                value={formatCompactNumber(summary.token_usage?.total_cache_write_tokens ?? 0)}
+                icon={HardDrive}
+              />
+              <StatCard
+                title={t('aiStatistics.latency')}
+                value={`${(summary.latency?.avg ?? 0).toFixed(2)}s`}
+                inlineSuffix={`P95: ${(summary.latency?.p95 ?? 0).toFixed(2)}s`}
+                icon={Clock}
+              />
+              {(() => {
+                const err = summary.errors ?? ({} as ErrorStats);
+                const errEntries: { key: keyof ErrorStats; label: string; value: number }[] = [
+                  { key: 'timeout', label: t('aiStatistics.timeout'), value: err.timeout ?? 0 },
+                  { key: 'rate_limit', label: t('aiStatistics.rateLimit'), value: err.rate_limit ?? 0 },
+                  { key: 'network_error', label: t('aiStatistics.networkError'), value: err.network_error ?? 0 },
+                  { key: 'usage_limit', label: t('aiStatistics.usageLimit'), value: err.usage_limit ?? 0 },
+                  { key: 'agent_error', label: t('aiStatistics.agentError'), value: err.agent_error ?? 0 },
+                  { key: 'api_529_error', label: t('aiStatistics.api529Error'), value: err.api_529_error ?? 0 },
+                ];
+                const topErr = errEntries.reduce<typeof errEntries[number] | null>(
+                  (acc, cur) => (acc == null || cur.value > acc.value ? cur : acc),
+                  null
+                );
+                const errSuffix = topErr && topErr.value > 0 ? `${topErr.label}: ${topErr.value}` : null;
+                return (
+                  <StatCard
+                    title={t('aiStatistics.errors')}
+                    value={err.total ?? 0}
+                    inlineSuffix={errSuffix ?? undefined}
+                    icon={AlertTriangle}
+                  />
+                );
+              })()}
+            </div>
+          </div>
+
+          {/* Token 效率：User Turn / Agent Run */}
+          <div className="px-6 space-y-2">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <h2 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <Target className="w-4 h-4" />
+                {t('aiStatistics.efficiencyTitle')}
+              </h2>
+              <p className="text-xs text-muted-foreground max-w-2xl">
+                {t('aiStatistics.efficiencyHint')}
+              </p>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+              <StatCard
+                title={t('aiStatistics.userTurnCount')}
+                value={efficiency.user_turn_count ?? 0}
+                subtitle={t('aiStatistics.userTurnTokens') + ': ' + formatCompactNumber(
+                  (efficiency.user_turn_input_tokens ?? 0) + (efficiency.user_turn_output_tokens ?? 0),
+                )}
+                icon={Layers}
+              />
+              <StatCard
+                title={t('aiStatistics.agentRunCount')}
+                value={efficiency.agent_run_count ?? 0}
+                subtitle={`${t('aiStatistics.rootAgentRuns')} ${efficiency.root_agent_run_count ?? 0} · ${t('aiStatistics.nestedAgentRuns')} ${efficiency.nested_agent_run_count ?? 0}`}
+                icon={GitBranch}
+              />
+              <StatCard
+                title={t('aiStatistics.avgTokensPerUserTurn')}
+                value={formatCompactNumber(efficiency.avg_tokens_per_user_turn ?? 0)}
+                subtitle={`${t('aiStatistics.avgInputPerUserTurn')} ${formatCompactNumber(efficiency.avg_input_tokens_per_user_turn ?? 0)}`}
+                icon={Target}
+              />
+              <StatCard
+                title={t('aiStatistics.avgTokensPerAgentRun')}
+                value={formatCompactNumber(efficiency.avg_tokens_per_agent_run ?? 0)}
+                subtitle={`${t('aiStatistics.avgOutputPerUserTurn')} ${formatCompactNumber(efficiency.avg_output_tokens_per_user_turn ?? 0)}`}
+                icon={Gauge}
+              />
+              <StatCard
+                title={t('aiStatistics.avgAgentRunsPerUserTurn')}
+                value={(efficiency.avg_agent_runs_per_user_turn ?? 0).toFixed(2)}
+                icon={Activity}
+              />
+              <StatCard
+                title={t('aiStatistics.nestedAgentRuns')}
+                value={efficiency.nested_agent_run_count ?? 0}
+                subtitle={`${t('aiStatistics.rootAgentRuns')}: ${efficiency.root_agent_run_count ?? 0}`}
+                icon={GitBranch}
+              />
+            </div>
           </div>
 
           {/* Tabs 容器 */}
@@ -1456,6 +1747,34 @@ export default function AIStatisticsPage() {
           {activeTab === 'overview' && (
             <div className="space-y-4 px-6">
               <div className="glass-card-grid grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* 效率：Root vs Nested */}
+                <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <GitBranch className="w-5 h-5" />
+                      {t('aiStatistics.efficiencyTitle')}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-[260px]">
+                      <EChartsWrapper option={efficiencyNestPieOption} height={260} />
+                    </div>
+                    <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                      <div>
+                        {t('aiStatistics.avgTokensPerUserTurn')}:{' '}
+                        <span className="font-medium text-foreground tabular-nums">
+                          {formatCompactNumber(efficiency.avg_tokens_per_user_turn ?? 0)}
+                        </span>
+                      </div>
+                      <div>
+                        {t('aiStatistics.avgTokensPerAgentRun')}:{' '}
+                        <span className="font-medium text-foreground tabular-nums">
+                          {formatCompactNumber(efficiency.avg_tokens_per_agent_run ?? 0)}
+                        </span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
                 {/* 意图分布 */}
                 <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
                   <CardHeader>
@@ -1658,6 +1977,27 @@ export default function AIStatisticsPage() {
                     </div>
                   ) : (
                     <EChartsWrapper option={historyTrendOption} height={320} />
+                  )}
+                </CardContent>
+              </Card>
+              <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Target className="w-5 h-5" />
+                    {t('aiStatistics.efficiencyTrend')}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {historyError ? (
+                    <div className="text-sm text-destructive py-8 text-center">{historyError}</div>
+                  ) : historyLoading ? (
+                    <Skeleton className="h-[320px] w-full" />
+                  ) : historySeries.length === 0 ? (
+                    <div className="flex items-center justify-center h-[320px] text-muted-foreground">
+                      {t('common.noData')}
+                    </div>
+                  ) : (
+                    <EChartsWrapper option={efficiencyHistoryOption} height={320} />
                   )}
                 </CardContent>
               </Card>
@@ -2320,6 +2660,47 @@ export default function AIStatisticsPage() {
                       </CardContent>
                     </Card>
                   </div>
+
+                  {/* 区间效率趋势 */}
+                  <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Target className="w-5 h-5" />
+                        {t('aiStatistics.efficiencyTrend')}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="mb-3 flex flex-wrap gap-4 text-sm text-muted-foreground">
+                        <span>
+                          {t('aiStatistics.userTurnCount')}:{' '}
+                          <strong className="text-foreground tabular-nums">
+                            {rangeData.efficiency?.user_turn_count ?? 0}
+                          </strong>
+                        </span>
+                        <span>
+                          {t('aiStatistics.agentRunCount')}:{' '}
+                          <strong className="text-foreground tabular-nums">
+                            {rangeData.efficiency?.agent_run_count ?? 0}
+                          </strong>
+                        </span>
+                        <span>
+                          {t('aiStatistics.avgTokensPerUserTurn')}:{' '}
+                          <strong className="text-foreground tabular-nums">
+                            {formatCompactNumber(rangeData.efficiency?.avg_tokens_per_user_turn ?? 0)}
+                          </strong>
+                        </span>
+                        <span>
+                          {t('aiStatistics.avgTokensPerAgentRun')}:{' '}
+                          <strong className="text-foreground tabular-nums">
+                            {formatCompactNumber(rangeData.efficiency?.avg_tokens_per_agent_run ?? 0)}
+                          </strong>
+                        </span>
+                      </div>
+                      <div className="h-[320px]">
+                        <EChartsWrapper option={rangeEfficiencyOption} height={320} />
+                      </div>
+                    </CardContent>
+                  </Card>
 
                   {/* 模型 Token 详情表 */}
                   <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>

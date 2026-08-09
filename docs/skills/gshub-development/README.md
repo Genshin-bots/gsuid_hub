@@ -82,7 +82,7 @@
 | `/ai-kanban` | `AIKanbanPage.tsx` | 长任务五列看板、任务详情、Artifacts、Workspace 文件、approve/reject、评估能力代理 | `kanban_api.py`（`/api/ai/kanban*`、`/api/ai/artifacts*`、`/api/ai/kanban/...workspace*`） | [§04 §4.1.1 page-viewport](./references/04-page-layout-spec.md) |
 | `/ai-approvals` | `AIApprovalsPage.tsx` | 高危操作审批中心 / 通过或拒绝 | `approvals_api.py`（`/api/ai/approvals/list`、`/resolve`） | — |
 | `/ai-budget` | `AIBudgetPage.tsx` | AI 预算规则、白名单、用量排行、scope 窗口、check 干跑预览、reset | `budget_api.py`（`/api/ai/budget*`） | [§05 §5.7 控件规范](./references/05-components-and-form-controls.md) |
-| `/ai-statistics` | `AIStatisticsPage.tsx` | Token 用量（按模型/按类型/按区间）+ 活跃用户/群 + 触发/意图分布 + 错误 + Heartbeat + RAG + 历史 + **小时级性能** | `ai_statistics_api.py`、`ai_performance_api.py` | [§10 P-26](./references/10-pitfalls-and-performance.md) |
+| `/ai-statistics` | `AIStatisticsPage.tsx` | Token 用量（按模型/按类型/按区间）+ **User Turn / Agent Run 效率**（回合均耗、运行均耗、嵌套占比）+ 活跃用户/群 + 触发/意图分布 + 错误 + Heartbeat + RAG + 历史 + **小时级性能** | `ai_statistics_api.py`、`ai_performance_api.py` | [§10 P-26](./references/10-pitfalls-and-performance.md) |
 | `/ai-history` | `AIHistoryPage.tsx` | AI Session 列表 / Trace 瀑布图（链 ↔ 分段 ↔ 子 agent）/ 统计 | `ai_session_logs_api.py`（`/api/ai/session_logs*`）+ `history_api.py`（`/api/history*`） | [§08 §8.7 Trace 瀑布](./references/08-page-patterns.md) |
 | `/session-management` | `SessionManagementPage.tsx` | Session 列表 + 历史对话 + Persona + 给 Session 发消息 | `history_api.py` | [§04 §4.1.1 page-fill](./references/04-page-layout-spec.md) |
 | `/ai-ops` | `AIOpsPage.tsx` | **运维诊断中心（收敛版）**：顶栏 Bot/Session/续聊状态 + 5 Tab（触发回放 / 黑白名单 / 输出试跑 / 安全策略 / 配置快照）。工具拓扑·意图·生命周期·多模态·插件诊断仅保留后端 API | `ops_diagnostics_api.py`（`/api/ops/*`） | 见 [`docs/CHANGELOG-2026-07.md`](../../CHANGELOG-2026-07.md) §四 |

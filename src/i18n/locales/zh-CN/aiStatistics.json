@@ -111,5 +111,20 @@
   "days30": "近30日",
   "perfRange": "跨日性能",
   "singleDay": "单日",
-  "rangeMode": "范围"
+  "rangeMode": "范围",
+  "efficiency": "效率",
+  "tokenMetering": "Token 计量",
+  "efficiencyTitle": "Token 效率",
+  "efficiencyHint": "体量随活跃人数变；效率看单次是否更省。用户回合含同步委派子代理。",
+  "userTurnCount": "用户回合",
+  "agentRunCount": "代理运行",
+  "rootAgentRuns": "Root 运行",
+  "nestedAgentRuns": "嵌套运行",
+  "avgTokensPerUserTurn": "回合均耗 Token",
+  "avgTokensPerAgentRun": "运行均耗 Token",
+  "avgAgentRunsPerUserTurn": "回合均运行数",
+  "avgInputPerUserTurn": "回合均输入",
+  "avgOutputPerUserTurn": "回合均输出",
+  "efficiencyTrend": "效率趋势",
+  "userTurnTokens": "用户回合 Token"
 }

@@ -113,7 +113,7 @@ describe('dates and stats', () => {
       },
       { date: '2026-07-02', data: {} },
     ]);
-    expect(series[0]).toEqual({ date: '2026-07-01', input: 1, output: 2, total: 3 });
+    expect(series[0]).toMatchObject({ date: '2026-07-01', input: 1, output: 2, total: 3, userTurns: 0 });
     expect(series[1].total).toBe(0);
   });
 
