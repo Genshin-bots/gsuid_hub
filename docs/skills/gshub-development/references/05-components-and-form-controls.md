@@ -169,9 +169,11 @@ if (scopeFilter !== '__all__') params.scope_type = scopeFilter;
 
 同理后端 GitHub 镜像等"默认/空"场景用哨兵 `__github_default__`，并提供 `toSelectValue`/`toMirrorValue` 互转。
 
-## 5.6 字段说明用 Tooltip + HelpCircle
+## 5.6 字段说明用 Tooltip + HelpCircle / LabelWithHelp
 
-字段补充说明放 Label 右侧的悬浮 Tooltip，而非独立一行文字（省空间、减视觉噪音）：
+字段补充说明放 Label 右侧的悬浮 Tooltip，而非独立一行文字（省空间、减视觉噪音）。
+
+### 通用手搓（简单一行文案）
 
 ```tsx
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -190,6 +192,28 @@ import { HelpCircle } from 'lucide-react';
 </div>
 <Input className="h-9" … />
 ```
+
+### AIConfig：优先 `LabelWithHelp`（支持 Markdown）
+
+位置：`src/pages/AIConfig/shared/LabelWithHelp.tsx`（与 `HeadingWithHelp` 对称，用于子表单字段）。
+
+- `description` 为 **string** → 轻量 Markdown（`**加粗**`、段落、列表；heading 压成加粗段落）；
+- 为 ReactNode → 原样展示；
+- 可选前置 `icon`。
+
+```tsx
+import { LabelWithHelp } from '../shared';
+
+// i18n 可写多行 Markdown，例如多源策略说明
+<LabelWithHelp
+  icon={<GitBranch className="w-3.5 h-3.5 text-muted-foreground" />}
+  label={t('aiConfig.serviceProvider.lbStrategy')}
+  description={t('aiConfig.serviceProvider.lbStrategyDesc')}
+  className="text-xs font-medium text-muted-foreground"
+/>
+```
+
+**不要**在 AIConfig section 里再手搓一套 Label+HelpCircle，除非该字段不在 AIConfig 模块。
 
 ## 5.7 Switch 组件 UX 规范
 

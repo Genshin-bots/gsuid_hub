@@ -44,18 +44,23 @@ src/pages/AIConfig/
 │   ├── ToggleRow.tsx
 │   ├── PersonaAvatar.tsx
 │   ├── EmptyState.tsx
+│   ├── LabelWithHelp.tsx        ← 字段标签 + Markdown 帮助 tooltip
+│   ├── HeadingWithHelp.tsx
 │   ├── SidebarItem.tsx
 │   └── renderRichText.tsx
-├── sections/                    ← 页面右侧的 10 个 section
+├── sections/                    ← 页面右侧 section（含搜索/抓取多源）
 │   ├── ServiceSwitchSection.tsx
 │   ├── TaskConfigSection.tsx
-│   ├── WebSearchSection.tsx
+│   ├── WebSearchSection.tsx     ← 网络搜索：主用 + 多源策略 + 备用分区
+│   ├── WebFetchSection.tsx      ← 网页抓取：Jina / local 同构 UI
 │   ├── ImageUnderstandSection.tsx
 │   ├── VectorDbSection.tsx
 │   ├── VoiceRecognitionSection.tsx
 │   ├── DocumentExtractSection.tsx
 │   ├── MemorySettingsSection.tsx
 │   ├── MemeSettingsSection.tsx
+│   ├── CommandExecutorSection.tsx
+│   ├── GsCoreAiMcpServerSection.tsx
 │   └── AdvancedSettingsSection.tsx
 └── dialogs/                     ← 8 个对话框
     ├── ManageConfigDialog.tsx
@@ -101,7 +106,8 @@ src/pages/AIConfig/
 | --- | --- | --- |
 | `ServiceSwitchSection` | `isAIEnabled` | AI 总开关（也独立渲染在页面顶部） |
 | `TaskConfigSection` | `allConfigsList` / `highLevelConfig` / `lowLevelConfig` | 高级/低级任务模型选择 |
-| `WebSearchSection` | `websearchProvider` / `tavilyConfig` / `exaConfig` / `miniMaxConfig` / MCP 工具 | 网络搜索服务提供方 |
+| `WebSearchSection` | `websearchProvider` / `websearchLbStrategy` / `websearchFallbackOrder` / jina·tavily·exa / MCP | 网络搜索：默认 Jina；多源策略 + 主备配置分区（见 gshub §07.7） |
+| `WebFetchSection` | `webfetchProvider` / `webfetchLb*` / `jinaConfig` / `webFetchConfig` | 网页抓取：默认 Jina Reader + 备用 local |
 | `ImageUnderstandSection` | `imageUnderstandProvider` / MCP 工具 | 图片理解服务提供方 |
 | `VectorDbSection` | Qdrant / Embedding / Rerank 三大子段 | 向量数据库服务 |
 | `VoiceRecognitionSection` | `asrProvider` / MCP 工具 | 语音识别 |
@@ -128,6 +134,8 @@ src/pages/AIConfig/
 | 组件 | 用途 |
 | --- | --- |
 | `ToggleRow` | 「图标 + 标题 + 描述 + Switch」通用行 |
+| `LabelWithHelp` | 字段 Label + `?`；string description 按 Markdown 渲染 |
+| `HeadingWithHelp` | section 标题 + 帮助 |
 | `PersonaAvatar` | 角色头像：远程 + 失败回退 + 禁用置灰 |
 | `EmptyState` | 居中图标 + 标题 + 副标题 |
 | `SidebarItem` | 桌面 / 移动（折叠）双形态 |

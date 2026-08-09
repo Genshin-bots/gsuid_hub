@@ -25,3 +25,5 @@ export { SidebarItem } from './SidebarItem';
 export type { SidebarItemProps } from './SidebarItem';
 
 export { renderRichText } from './renderRichText';
+
+export { sameProviderId, filterOutPrimaryProvider } from './providerId';

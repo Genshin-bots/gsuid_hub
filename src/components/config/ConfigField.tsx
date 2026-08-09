@@ -304,7 +304,7 @@ export function ConfigField({
       // ----------------------------------------------------------
       // 数字
       // ----------------------------------------------------------
-      case 'number':
+      case 'number': {
         const numValue = value as number;
         const increment = () => {
           const next = (numValue || 0) + 1;
@@ -352,6 +352,7 @@ export function ConfigField({
             </div>
           </div>
         );
+      }
 
       // ----------------------------------------------------------
       // 布尔开关
@@ -477,7 +478,7 @@ export function ConfigField({
       // ----------------------------------------------------------
       // 时间范围选择器（两个 TimePicker 组合）
       // ----------------------------------------------------------
-      case 'timerange':
+      case 'timerange': {
         const timeRange = (Array.isArray(value) && value.length === 2) 
           ? value as [[number, number], [number, number]]
           : [[0, 0], [23, 59]] as [[number, number], [number, number]];
@@ -501,6 +502,7 @@ export function ConfigField({
             </div>
           </div>
         );
+      }
 
       // ----------------------------------------------------------
       // 标签输入
@@ -519,7 +521,7 @@ export function ConfigField({
       // ----------------------------------------------------------
       // 颜色选择器（主题化 Popover）
       // ----------------------------------------------------------
-      case 'color':
+      case 'color': {
         const hexValue = (typeof value === 'string' && value) ? value : '#000000';
         const displayColor = hexValue.length >= 7 ? hexValue.substring(0, 7) : hexValue;
 
@@ -573,12 +575,13 @@ export function ConfigField({
             </PopoverContent>
           </Popover>
         );
+      }
 
       // ----------------------------------------------------------
       // 文件上传（紧凑单行布局，与其他 input 框高度一致）
       // ----------------------------------------------------------
       case 'fileupload':
-      case 'filesupload':
+      case 'filesupload': {
         const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
           const files = e.target.files;
           if (!files || files.length === 0) return;
@@ -650,13 +653,14 @@ export function ConfigField({
             </Button>
           </>
         );
+      }
 
       // ----------------------------------------------------------
       // 图片上传
       // ----------------------------------------------------------
       // 图片上传（紧凑单行布局）
       // ----------------------------------------------------------
-      case 'image':
+      case 'image': {
         const previewUrl = assetsApi.getPreviewUrl(value as string);
         
         const handleImageFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -762,6 +766,7 @@ export function ConfigField({
             </AlertDialog>
           </>
         );
+      }
 
       // ----------------------------------------------------------
       // 默认兜底

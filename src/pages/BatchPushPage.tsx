@@ -2,15 +2,15 @@
  * /batch-push — 批量推送页（运维 / 主动通告）
  *
  * 来源：docs/skills/gshub-development/README.md §3.1「完全空缺」第 2 项
- * 后端对应：message_api.py (`/api/BatchPush` + 新增的 `/api/BatchPush/targets`)
+ * 后端对应：message_api.py (`/api/BatchPush` + `/api/BatchPush/targets`)
  *
  * 设计：
- * - 三段式：正文（HTML）、目标（群/用户混选，可搜索/可类型筛选）、目标 Bot
- * - 目标列表通过后端分页 + 前端虚拟化双重优化：单次只拉 limit=200 条，
- *   渲染层只挂载 ~20 行 DOM，撑得住几万级体量
- * - 选中状态用 `Set<string>` 持有，确保 `has()` 是 O(1)，提交时 `Array.from().join(',')`
- * - Bot Select 同时驱动 push recipient 和 target list 的 server-side 筛选
- * - 实时把推文渲染到 <div> 当作预览（用 CSS 把 <p>/<img> 转成块）
+ * - 正文（HTML）+ 目标（群/用户混选）+ 目标 Bot（WS 连接）+ 机器人账号（bot_self_id）
+ * - 精准四维：push_bot（WS）/ 平台 bot_id（tag）/ bot_self_id / 人·群
+ * - 目标列表：后端分页 + 前端虚拟化；选中用 `Set<string>` O(1)
+ * - targets?bot_id= **只按平台**过滤（与 WS Select 无关）；WS 仅映射到提交时的 push_bot
+ * - bot_self_id：列表（统计库+历史）可选，也可用 InputWithDropdown 手填；
+ *   解析出平台时筛目标，提交带 push_bot_self_id，非宏 tag 追加第三段
  * - 提交流程统一走 batchPushApi.push，错误回显用 getApiErrorMessage
  *
  * 涉及的 SKILL 章节：
@@ -64,11 +64,13 @@ import {
   tabToolbarControlClass,
   tabToolbarGroupWrapClass,
 } from '@/components/ui/TabButtonGroup';
+import { InputWithDropdown } from '@/components/ui/input-with-dropdown';
 import { Textarea } from '@/components/ui/textarea';
 import { PinnedPage } from '@/components/layout/PinnedPage';
 import {
   batchPushApi,
   getApiErrorMessage,
+  type BatchPushBotSelfOption,
   type BatchPushTargetItem,
 } from '@/lib/api';
 import {
@@ -147,6 +149,15 @@ interface PageInfo {
 interface BotOption {
   bot_id: string;
   name: string;
+  ws_bot_id?: string;
+  connected?: boolean;
+}
+
+/** 解析后的机器人账号：来自下拉匹配或用户手填 */
+interface ResolvedBotSelf {
+  bot_self_id: string;
+  /** 已知/手填时的平台 bot_id；纯手填 self_id 时可能为空 */
+  bot_id?: string;
 }
 
 /**
@@ -158,6 +169,108 @@ function badgeLabelForKind(kind: TargetKind, tGroup: string, tUser: string): str
   return tUser;
 }
 
+/**
+ * 为非宏 tag 追加 `|{bot_self_id}` 第三段（已有第三段则不改）。
+ * 宏 ALLUSER/ALLGROUP 仅靠全局 push_bot_self_id 指定账号。
+ */
+function enrichTagWithBotSelfId(tag: string, botSelfId: string): string {
+  if (!botSelfId) return tag;
+  if (tag === 'ALLUSER' || tag === 'ALLGROUP') return tag;
+  const parts = tag.split('|');
+  if (parts.length === 2 && parts[0] && parts[1]) {
+    return `${tag}|${botSelfId}`;
+  }
+  return tag;
+}
+
+/** 从 push_tag 解析平台 bot_id（第二段）；宏返回 null */
+function platformFromTag(tag: string): string | null {
+  if (tag === 'ALLUSER' || tag === 'ALLGROUP') return null;
+  const parts = tag.split('|');
+  return parts[1]?.trim() || null;
+}
+
+/** 从 push_tag 粗分 kind */
+function kindFromTag(tag: string): 'macro' | 'group' | 'user' {
+  if (tag === 'ALLUSER' || tag === 'ALLGROUP') return 'macro';
+  if (tag.startsWith('g:')) return 'group';
+  if (tag.startsWith('u:')) return 'user';
+  return 'user';
+}
+
+/**
+ * 解析 bot_self 输入：
+ * - 空 → null（不指定账号）
+ * - 命中列表 id / label / 唯一 bot_self_id → 带平台
+ * - 手填 `self_id:platform`（与 Dashboard id 一致）或 `self_id (platform)` → 拆分
+ * - 其它纯文本 → 仅 bot_self_id（不筛平台）
+ */
+function resolveBotSelfInput(
+  raw: string,
+  options: BatchPushBotSelfOption[],
+): ResolvedBotSelf | null {
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+
+  const byId = options.find((o) => o.id === trimmed);
+  if (byId) return { bot_self_id: byId.bot_self_id, bot_id: byId.bot_id };
+
+  const byLabel = options.find((o) => o.label === trimmed);
+  if (byLabel) return { bot_self_id: byLabel.bot_self_id, bot_id: byLabel.bot_id };
+
+  const bySelf = options.filter((o) => o.bot_self_id === trimmed);
+  if (bySelf.length === 1) {
+    return { bot_self_id: bySelf[0].bot_self_id, bot_id: bySelf[0].bot_id };
+  }
+  if (bySelf.length > 1) {
+    // 多平台同 self_id：只锁定账号，不猜平台
+    return { bot_self_id: trimmed };
+  }
+
+  // 优先：以已知 option.id 匹配（self 可含冒号时仍可靠）
+  const byIdPrefix = options.find(
+    (o) =>
+      trimmed === o.id ||
+      (trimmed.startsWith(`${o.bot_self_id}:`) &&
+        trimmed.slice(o.bot_self_id.length + 1) === o.bot_id),
+  );
+  if (byIdPrefix) {
+    return { bot_self_id: byIdPrefix.bot_self_id, bot_id: byIdPrefix.bot_id };
+  }
+
+  // 手填 label 形：`3399214199 (onebot)`
+  const labelMatch = trimmed.match(/^(.+?)\s*\(([^)]+)\)\s*$/);
+  if (labelMatch) {
+    const selfId = labelMatch[1].trim();
+    const platform = labelMatch[2].trim();
+    if (selfId && platform) return { bot_self_id: selfId, bot_id: platform };
+  }
+
+  // 手填 Dashboard id 形：优先已知平台名后缀，再 lastIndexOf(':')
+  const knownPlatforms = new Set(options.map((o) => o.bot_id));
+  for (const platform of knownPlatforms) {
+    const suffix = `:${platform}`;
+    if (trimmed.endsWith(suffix) && trimmed.length > suffix.length) {
+      const selfId = trimmed.slice(0, -suffix.length).trim();
+      if (selfId && !/\s/.test(platform)) {
+        return { bot_self_id: selfId, bot_id: platform };
+      }
+    }
+  }
+
+  const colon = trimmed.lastIndexOf(':');
+  if (colon > 0 && colon < trimmed.length - 1) {
+    const selfId = trimmed.slice(0, colon).trim();
+    const platform = trimmed.slice(colon + 1).trim();
+    // 平台段不含空格，避免把普通文案误拆
+    if (selfId && platform && !/\s/.test(platform)) {
+      return { bot_self_id: selfId, bot_id: platform };
+    }
+  }
+
+  return { bot_self_id: trimmed };
+}
+
 export default function BatchPushPage() {
   const { t } = useLanguage();
   const [text, setText] = useState(t('batchPush.defaultBody'));
@@ -166,7 +279,15 @@ export default function BatchPushPage() {
   const [typeFilter, setTypeFilter] = useState<string>(TYPE_ALL);
   const [searchInput, setSearchInput] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  /** WS 连接（push_bot）；哨兵 = 全部 active */
   const [bot, setBot] = useState<string>(ALL_BOT_SENTINEL);
+  /**
+   * 机器人账号输入（可选可填）：
+   * - 空 = 不指定
+   * - 下拉选中时为 option.id（`bot_self_id:bot_id`）
+   * - 手填可为纯 self_id、`self:platform` 或 `self (platform)`
+   */
+  const [botSelfInput, setBotSelfInput] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [bodyDragging, setBodyDragging] = useState(false);
   const [insertingImage, setInsertingImage] = useState(false);
@@ -180,10 +301,37 @@ export default function BatchPushPage() {
 
   // ---- 目标列表状态：分页累积 + 顶部元信息 ----
   const [bots, setBots] = useState<BotOption[]>([]);
+  const [botSelfOptions, setBotSelfOptions] = useState<BatchPushBotSelfOption[]>([]);
   const [items, setItems] = useState<BatchPushTargetItem[]>([]);
   const [pageInfo, setPageInfo] = useState<PageInfo>({ total: 0, hasMore: false });
   const [initialLoading, setInitialLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+
+  const resolvedBotSelf = useMemo(
+    () => resolveBotSelfInput(botSelfInput, botSelfOptions),
+    [botSelfInput, botSelfOptions],
+  );
+  /** 目标列表平台筛选：解析出平台 bot_id 时启用 */
+  const platformFilter = resolvedBotSelf?.bot_id;
+  /** 提交用的 bot_self_id（手填或列表） */
+  const resolvedBotSelfId = resolvedBotSelf?.bot_self_id?.trim() || '';
+
+  /** InputWithDropdown 选项：用 id 作 value，显示 label */
+  const botSelfDropdownOptions = useMemo(
+    () => botSelfOptions.map((o) => o.id),
+    [botSelfOptions],
+  );
+  const formatBotSelfLabel = useCallback(
+    (raw: string) => {
+      const hit = botSelfOptions.find((o) => o.id === raw);
+      if (hit) return hit.label;
+      // 手填值：尽量展示为 label 形
+      const resolved = resolveBotSelfInput(raw, botSelfOptions);
+      if (resolved?.bot_id) return `${resolved.bot_self_id} (${resolved.bot_id})`;
+      return raw;
+    },
+    [botSelfOptions],
+  );
 
   // 搜索框防抖：连打字不每次都重新请求。
   useEffect(() => {
@@ -204,10 +352,14 @@ export default function BatchPushPage() {
         limit: PAGE_SIZE,
         offset: reset ? 0 : items.length,
       };
-      // 「全部 Bot」哨兵 → 不传 bot_id；选中具体 bot → 走服务端筛选，
-      // 减少跨 bot 的噪音，让目标列表与 push recipient 保持一致
-      if (bot !== ALL_BOT_SENTINEL) {
-        params.bot_id = bot;
+      // targets?bot_id= 只接受**平台** bot_id（onebot / telegram / …），见后端
+      // message_api.batch_push_targets 与 docs/10-batch-push.md。
+      // WS 连接 id（push_bot）与平台 id 是不同维度，绝不可把 WS Select 的值当 bot_id 过滤，
+      // 否则生产/demo 都会得到空列表，且宏 ALL* 在带 bot_id 时被后端隐藏。
+      // 注意：也不要把 bot_self_id 传给 targets——否则返回的 bot_self_ids 会被缩成单项，
+      // 下拉无法再切换其它账号。
+      if (platformFilter) {
+        params.bot_id = platformFilter;
       }
       try {
         const data = await batchPushApi.getTargets(params);
@@ -224,8 +376,11 @@ export default function BatchPushPage() {
           });
         }
         setPageInfo({ total: data.total, hasMore: data.has_more });
-        // bots 在分页过程中会保持稳定，但第一页会顺便带回最新列表
-        if (reset && data.bots) setBots(data.bots);
+        // bots / bot_self_ids 在分页过程中保持稳定，第一页顺便刷新
+        if (reset) {
+          if (data.bots) setBots(data.bots);
+          if (data.bot_self_ids) setBotSelfOptions(data.bot_self_ids);
+        }
       } catch (e) {
         if (reset) {
           console.warn(t('batchPush.targetsFallbackWarn'), e);
@@ -237,10 +392,10 @@ export default function BatchPushPage() {
         throw e; // 让调用方感知失败，避免重复触发
       }
     },
-    [bot, typeFilter, debouncedSearch, items.length, t],
+    [platformFilter, typeFilter, debouncedSearch, items.length, t],
   );
 
-  // 筛选条件变化时重置 items 并拉首页
+  // 筛选条件变化时重置 items 并拉首页（WS bot 不影响 targets 列表，不列入）
   useEffect(() => {
     let cancelled = false;
     setInitialLoading(true);
@@ -251,8 +406,46 @@ export default function BatchPushPage() {
       cancelled = true;
     };
     // loadPage 已通过 deps 涵盖全部筛选条件；显式列出便于阅读
+    // platformFilter 随 botSelfInput 解析结果变化，用于按平台筛目标
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bot, typeFilter, debouncedSearch]);
+  }, [platformFilter, typeFilter, debouncedSearch]);
+
+  /**
+   * 平台 / 类型筛选变化时，剪掉与当前筛选不兼容的已选项，
+   * 避免跨平台 tag 被新 bot_self_id 错误 enrich 后提交。
+   * 搜索词与 WS bot 变化不剪枝（WS 只影响提交时的 push_bot）。
+   */
+  useEffect(() => {
+    setSelectedTargets((prev) => {
+      if (prev.size === 0) return prev;
+      let removed = 0;
+      const next = new Set<string>();
+      for (const tag of prev) {
+        const kind = kindFromTag(tag);
+        if (typeFilter === TYPE_GROUP && (kind === 'user' || tag === 'ALLUSER')) {
+          removed += 1;
+          continue;
+        }
+        if (typeFilter === TYPE_USER && (kind === 'group' || tag === 'ALLGROUP')) {
+          removed += 1;
+          continue;
+        }
+        const tagPlatform = platformFromTag(tag);
+        if (platformFilter && tagPlatform && tagPlatform !== platformFilter) {
+          removed += 1;
+          continue;
+        }
+        next.add(tag);
+      }
+      if (removed > 0) {
+        // setState 外 toast，避免严格模式下重复触发
+        queueMicrotask(() => {
+          toast.info(t('batchPush.selectionPruned', { count: removed }));
+        });
+      }
+      return next.size === prev.size ? prev : next;
+    });
+  }, [platformFilter, typeFilter, t]);
 
   const loadMore = useCallback(async () => {
     if (loadingMore || !pageInfo.hasMore) return;
@@ -274,7 +467,7 @@ export default function BatchPushPage() {
       parentRef.current.scrollTop = 0;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bot, typeFilter, debouncedSearch]);
+  }, [platformFilter, typeFilter, debouncedSearch]);
 
   const toggle = (v: string, checked: boolean) => {
     setSelectedTargets((prev) => {
@@ -443,10 +636,18 @@ export default function BatchPushPage() {
     try {
       // Expand placeholders → full base64 img tags only at submit time.
       const push_text = expandBatchPushBody(text, imageAssets);
+      const botSelfId = resolvedBotSelfId;
+      // 非宏 tag 追加第三段 bot_self_id，与全局 push_bot_self_id 双保险
+      const push_tag = Array.from(selectedTargets)
+        .map((tag) => enrichTagWithBotSelfId(tag, botSelfId))
+        .join(',');
+      // push_bot：WS 连接；空 = 全部 active。push_bot_self_id 仅在有值时附带（省略空串，
+      // 与后端「缺省 / 空 = 不限制」一致，避免部分校验把 "" 当显式值）。
       await batchPushApi.push({
         push_text,
-        push_tag: Array.from(selectedTargets).join(','),
+        push_tag,
         push_bot: bot === ALL_BOT_SENTINEL ? '' : bot,
+        ...(botSelfId ? { push_bot_self_id: botSelfId } : {}),
       });
       toast.success(t('batchPush.submitSuccess'));
     } catch (e) {
@@ -515,10 +716,11 @@ export default function BatchPushPage() {
     [t],
   );
 
-  const selectedTagString = useMemo(
-    () => Array.from(selectedTargets).join(','),
-    [selectedTargets],
-  );
+  const selectedTagString = useMemo(() => {
+    return Array.from(selectedTargets)
+      .map((tag) => enrichTagWithBotSelfId(tag, resolvedBotSelfId))
+      .join(',');
+  }, [selectedTargets, resolvedBotSelfId]);
 
   return (
     <PinnedPage
@@ -638,46 +840,64 @@ export default function BatchPushPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* 一行：Bot 选择 + 类型筛选 Tab + 刷新；以默认高度 TabButtonGroup 为基准，同行 h-11 */}
-              <div className="space-y-2">
-                <Label>{t('batchPush.botsLabel')}</Label>
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3">
-                  <div className="min-w-0 flex-1">
-                    <Select value={bot} onValueChange={setBot}>
-                      <SelectTrigger className={cn(tabToolbarControlClass, 'w-full')}>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value={ALL_BOT_SENTINEL}>
-                          {t('batchPush.botsAll')}
+              {/* 行 1：WS Bot + 机器人账号（bot_self_id） */}
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="space-y-2 min-w-0">
+                  <Label>{t('batchPush.botsLabel')}</Label>
+                  <Select value={bot} onValueChange={setBot}>
+                    <SelectTrigger className={cn(tabToolbarControlClass, 'w-full')}>
+                      <SelectValue placeholder={t('batchPush.botsAll') ?? ''} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={ALL_BOT_SENTINEL}>
+                        {t('batchPush.botsAll')}
+                      </SelectItem>
+                      {bots.map((b) => (
+                        <SelectItem key={b.bot_id} value={b.bot_id}>
+                          {b.name}
+                          {b.connected === false ? ` · ${t('batchPush.botDisconnected')}` : ''}
                         </SelectItem>
-                        {bots.map((b) => (
-                          <SelectItem key={b.bot_id} value={b.bot_id}>
-                            {b.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className={tabToolbarGroupWrapClass}>
-                    <TabButtonGroup
-                      options={typeFilterOptions}
-                      value={typeFilter}
-                      onValueChange={setTypeFilter}
-                      className="shrink-0"
-                    />
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className={cn(tabToolbarControlClass, 'w-full shrink-0 sm:w-auto')}
-                    onClick={() => loadPage(true)}
-                    disabled={initialLoading}
-                  >
-                    <RefreshCw className={initialLoading ? 'w-4 h-4 animate-spin' : 'w-4 h-4'} />
-                    {t('batchPush.refresh')}
-                  </Button>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">{t('batchPush.botsHint')}</p>
                 </div>
+                <div className="space-y-2 min-w-0">
+                  <Label>{t('batchPush.botSelfLabel')}</Label>
+                  <InputWithDropdown
+                    value={botSelfInput}
+                    onChange={setBotSelfInput}
+                    options={botSelfDropdownOptions}
+                    formatLabel={formatBotSelfLabel}
+                    placeholder={t('batchPush.botSelfPlaceholder') ?? ''}
+                    inputPlaceholder={t('batchPush.botSelfInputPlaceholder') ?? ''}
+                    className={cn(tabToolbarControlClass, 'w-full')}
+                    popoverWidth="w-[var(--radix-popover-trigger-width)] min-w-[280px]"
+                  />
+                  <p className="text-xs text-muted-foreground">{t('batchPush.botSelfHint')}</p>
+                </div>
+              </div>
+
+              {/* 行 2：类型筛选 Tab + 刷新；以默认高度 TabButtonGroup 为基准，同行 h-11 */}
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3">
+                <div className={tabToolbarGroupWrapClass}>
+                  <TabButtonGroup
+                    options={typeFilterOptions}
+                    value={typeFilter}
+                    onValueChange={setTypeFilter}
+                    className="shrink-0"
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className={cn(tabToolbarControlClass, 'w-full shrink-0 sm:w-auto sm:ml-auto')}
+                  onClick={() => loadPage(true)}
+                  disabled={initialLoading}
+                >
+                  <RefreshCw className={initialLoading ? 'w-4 h-4 animate-spin' : 'w-4 h-4'} />
+                  {t('batchPush.refresh')}
+                </Button>
               </div>
 
               {/* 搜索框（label + value 双字段模糊匹配） */}
@@ -845,6 +1065,7 @@ export default function BatchPushPage() {
               <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
                 <li>{t('batchPush.note1')}</li>
                 <li>{t('batchPush.note2')}</li>
+                <li>{t('batchPush.note3')}</li>
               </ul>
             </CardContent>
           </Card>
@@ -869,7 +1090,6 @@ export default function BatchPushPage() {
                   previewBlocks.map((block, i) =>
                     block.type === 'image' ? (
                       <div key={i} className="space-y-1">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={block.content}
                           alt=""

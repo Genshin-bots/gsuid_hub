@@ -5,6 +5,7 @@ import {
   Sensenova,
   Longcat,
   Minimax,
+  JinaAi,
   XiaomiMimo,
   Antgroup,
   Qwen,
@@ -49,11 +50,9 @@ import { cn } from '@/lib/utils';
  *   因为很多 config 的 provider 是 `openai`（OpenAI 兼容格式），
  *   但底层调用的是第三方厂商的模型（LongCat / SenseNova / MiniMax / 日日新 / Yi / Baichuan...），
  *   此时用模型名匹配能拿到更准确的厂商 Logo。
- * - **统一官方彩版**：所有厂商图标一律使用 `default` variant（官方彩色 Logo，
- *   主题无关）。无论 `icon_color` 主题为何值，品牌图标都保持各自的官方配色，
- *   既避免浅色背景下 currentColor 图标「看不见」的问题，也消除 dev / build
- *   产物之间的渲染差异（`vite.config.ts` 的 `strip-thesvg-variants` 插件已
- *   同步调整为 `default` 优先）。
+ * - **统一官方彩版**：多数厂商图标使用 `default` variant（官方彩色 Logo）。
+ *   **OpenAI 例外**：官方 path 硬编码白标，浅色主题会隐形；渲染时强制
+ *   `path` 走 currentColor，并套 `text-black dark:text-white` 适配亮/暗。
  * - **回退**：找不到匹配厂商时回退到 lucide 的 `Bot` 图标。
  *
  * 添加新的厂商识别时，只需要在 `BRAND_RULES` 里加一条 `{ pattern, Component }` 即可。
@@ -95,31 +94,33 @@ interface BrandRule {
  */
 const BRAND_RULES: BrandRule[] = [
   // ----- Anthropic / Claude -----
-  { pattern: /(^|[\-_./])(claude|anthropic)/i, Component: Claude, variant: 'default' },
+  { pattern: /(^|[-_./])(claude|anthropic)/i, Component: Claude, variant: 'default' },
   // ----- OpenAI -----
-  { pattern: /(^|[\-_./])(gpt|openai|o1|o3|o4|chatgpt|sora|dall[\-_ ]?e|whisper)/i, Component: Openai, variant: 'default' },
+  { pattern: /(^|[-_./])(gpt|openai|o1|o3|o4|chatgpt|sora|dall[-_ ]?e|whisper)/i, Component: Openai, variant: 'default' },
   // ----- Google Gemini -----
-  { pattern: /(^|[\-_./])gemini/i, Component: Gemini, variant: 'default' },
+  { pattern: /(^|[-_./])gemini/i, Component: Gemini, variant: 'default' },
 
   // ====== 国产 / 中文厂商（冷门优先） ======
   // ----- 零一万物 Yi / 01.AI（注意别让下面 antgroup / ant 误吃） -----
-  { pattern: /(^|[\-_./])yi|01[\-_.]?ai|zeroone[\-_ ]?ai|wanzhi|万知/i, Component: Yi, variant: 'default' },
+  { pattern: /(^|[-_./])yi|01[-_.]?ai|zeroone[-_ ]?ai|wanzhi|万知/i, Component: Yi, variant: 'default' },
   // ----- 百川智能 Baichuan -----
-  { pattern: /(^|[\-_./])baichuan|百川/i, Component: Baichuan, variant: 'default' },
+  { pattern: /(^|[-_./])baichuan|百川/i, Component: Baichuan, variant: 'default' },
   // ----- 智谱 AI / ChatGLM -----
   { pattern: /zhipu|chatglm|智谱|glm-/i, Component: Zhipu, variant: 'default' },
   // ----- 商汤 SenseNova / 日日新 / SenseChat -----
-  { pattern: /sensenova|sensechat|sense[\-_ ]?(nova|chat)|日日新|商汤/i, Component: Sensenova, variant: 'default' },
+  { pattern: /sensenova|sensechat|sense[-_ ]?(nova|chat)|日日新|商汤/i, Component: Sensenova, variant: 'default' },
   // ----- 美团 LongCat -----
   { pattern: /longcat/i, Component: Longcat, variant: 'default' },
   // ----- MiniMax -----
   { pattern: /minimax/i, Component: Minimax, variant: 'default' },
+  // ----- Jina AI（嵌入 / Rerank / Reader） -----
+  { pattern: /jina/i, Component: JinaAi, variant: 'default' },
   // ----- 小米 MiMo -----
   { pattern: /mimo/i, Component: XiaomiMimo, variant: 'default' },
   // ----- 阿里 Qwen / 通义千问 / QwQ -----
   { pattern: /qwen|tongyi|qwq/i, Component: Qwen, variant: 'default' },
   // ----- 字节 Doubao / 豆包 -----
-  { pattern: /doubao|[\-_ ]?豆包/i, Component: Doubao, variant: 'default' },
+  { pattern: /doubao|[-_ ]?豆包/i, Component: Doubao, variant: 'default' },
   // ----- Moonshot Kimi -----
   { pattern: /kimi|moonshot/i, Component: Kimi, variant: 'default' },
   // ----- 腾讯 Hunyuan / 混元 -----
@@ -136,30 +137,30 @@ const BRAND_RULES: BrandRule[] = [
   // ----- 百度 文心一言 / ERNIE -----
   { pattern: /ernie|wenxin|baidu|文心/i, Component: Baidu, variant: 'default' },
   // ----- 蚂蚁集团 Ling / inclusionAI -----
-  { pattern: /(^|[\-_./])ling|inclusionai|inclusion[\-_ ]?ai/i, Component: Antgroup, variant: 'default' },
+  { pattern: /(^|[-_./])ling|inclusionai|inclusion[-_ ]?ai/i, Component: Antgroup, variant: 'default' },
   // ----- DeepSeek -----
   { pattern: /deepseek/i, Component: Deepseek, variant: 'default' },
 
   // ====== 海外厂商 ======
   // ----- xAI Grok -----
-  { pattern: /(^|[\-_./])(grok|xai)/i, Component: GrokXai, variant: 'default' },
+  { pattern: /(^|[-_./])(grok|xai)/i, Component: GrokXai, variant: 'default' },
   // ----- Mistral -----
-  { pattern: /(^|[\-_./])mistral|mixtral/i, Component: Mistral, variant: 'default' },
+  { pattern: /(^|[-_./])mistral|mixtral/i, Component: Mistral, variant: 'default' },
   // ----- Cohere -----
-  { pattern: /(^|[\-_./])(cohere|command[\-_ ]?r)/i, Component: Cohere, variant: 'default' },
+  { pattern: /(^|[-_./])(cohere|command[-_ ]?r)/i, Component: Cohere, variant: 'default' },
   // ----- Perplexity / Replicate / Hugging Face -----
   { pattern: /perplexity/i, Component: Cohere, variant: 'default' }, // perplexity 没专属图标，借 cohere 风格 placeholder
-  { pattern: /hugging[\-_ ]?face|hf[\-_ ]?/i, Component: HuggingFace, variant: 'default' },
+  { pattern: /hugging[-_ ]?face|hf[-_ ]?/i, Component: HuggingFace, variant: 'default' },
   { pattern: /replicate/i, Component: Replicate, variant: 'default' },
   // ----- Groq -----
-  { pattern: /(^|[\-_./])groq/i, Component: Groq, variant: 'default' },
+  { pattern: /(^|[-_./])groq/i, Component: Groq, variant: 'default' },
 
   // ====== 框架 / 工具（有些「模型」实际是本地训练框架） ======
   { pattern: /pytorch|torch/i, Component: Pytorch, variant: 'default' },
-  { pattern: /tensorflow|tf[\-_ ]?(keras|lite|js)|tf2/i, Component: Tensorflow, variant: 'default' },
+  { pattern: /tensorflow|tf[-_ ]?(keras|lite|js)|tf2/i, Component: Tensorflow, variant: 'default' },
   { pattern: /keras/i, Component: Keras, variant: 'default' },
-  { pattern: /(^|[\-_./])pandas|pd[\-_ ]?/i, Component: Pandas, variant: 'default' },
-  { pattern: /numpy|np[\-_ ]?/i, Component: Numpy, variant: 'default' },
+  { pattern: /(^|[-_./])pandas|pd[-_ ]?/i, Component: Pandas, variant: 'default' },
+  { pattern: /numpy|np[-_ ]?/i, Component: Numpy, variant: 'default' },
 ];
 
 export interface ModelBrandIconProps {
@@ -181,6 +182,17 @@ export interface ModelBrandIconProps {
  *   <ModelBrandIcon modelName="Ling-2.6-flash" provider="openai" />
  *   <ModelBrandIcon modelName="claude-opus-4-6" provider="openai" />
  */
+/**
+ * OpenAI 官方 default path 硬编码 fill=#fff（白标），浅色主题会看不见。
+ * 强制 path 走 currentColor，并由 text-black / dark:text-white 适配亮暗。
+ */
+const OPENAI_THEME_CLASS =
+  '[&_path]:!fill-current text-black dark:text-white';
+
+function isOpenAiIcon(Component: IconComponent): boolean {
+  return Component === Openai;
+}
+
 export function ModelBrandIcon({
   modelName,
   provider,
@@ -189,15 +201,20 @@ export function ModelBrandIcon({
 }: ModelBrandIconProps) {
   const rule = resolveBrandRule(modelName, provider);
   const Icon = rule.Component;
+  const openAiTheme = isOpenAiIcon(Icon);
 
-  // 统一使用 `default`（官方彩版），主题无关，不依赖 currentColor。
+  // 统一使用 `default`（官方彩版）；OpenAI 单独做亮/暗单色适配。
   // variant 为 thesvg 扩展 prop，各厂商联合类型不同，见上方 IconComponent 注释。
   return (
     <Icon
       width={size}
       height={size}
       variant={rule.variant ?? 'default'}
-      className={cn('inline-block shrink-0', className)}
+      className={cn(
+        'inline-block shrink-0',
+        openAiTheme && OPENAI_THEME_CLASS,
+        className,
+      )}
       aria-hidden="true"
     />
   );
@@ -282,7 +299,11 @@ export function ProviderBrandIcon({
           width={size}
           height={size}
           variant="default"
-          className={cn('inline-block shrink-0', className)}
+          className={cn(
+            'inline-block shrink-0',
+            OPENAI_THEME_CLASS,
+            className,
+          )}
           aria-hidden="true"
         />
       );

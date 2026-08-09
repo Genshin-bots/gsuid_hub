@@ -522,7 +522,9 @@ const StateStoreViewer = forwardRef<StateStoreViewerHandle, StateStoreViewerProp
                             disabled={collectionOffset <= 0 || isLoadingRecords}
                             onClick={() => {
                               const newOffset = Math.max(0, collectionOffset - 50);
-                              keyItem.record_collection_name && loadRecords(keyItem.record_collection_name, newOffset);
+                              if (keyItem.record_collection_name) {
+                                loadRecords(keyItem.record_collection_name, newOffset);
+                              }
                             }}
                           >
                             {t('aiKanban.stateStore.prevPage')}
@@ -536,7 +538,9 @@ const StateStoreViewer = forwardRef<StateStoreViewerHandle, StateStoreViewerProp
                             disabled={collectionOffset + 50 >= collectionTotal || isLoadingRecords}
                             onClick={() => {
                               const newOffset = collectionOffset + 50;
-                              keyItem.record_collection_name && loadRecords(keyItem.record_collection_name, newOffset);
+                              if (keyItem.record_collection_name) {
+                                loadRecords(keyItem.record_collection_name, newOffset);
+                              }
                             }}
                           >
                             {t('aiKanban.stateStore.nextPage')}

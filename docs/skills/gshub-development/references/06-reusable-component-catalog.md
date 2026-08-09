@@ -321,7 +321,13 @@ interface ChipOption {
   label: string;
   icon?: React.ReactNode;
   color?: string;
+  /**
+   * 禁用「新选中」。多选模式下若该项**已选中**，仍允许点掉取消
+   * （用于「主用源出现在备用列表中」：可见、不能再勾上）。
+   */
   disabled?: boolean;
+  /** 冲突态（如主用又在备用里）— 红色边框提示 */
+  conflict?: boolean;
 }
 interface ChipGroupProps {
   options: ChipOption[];
@@ -333,6 +339,7 @@ interface ChipGroupProps {
   allowEmpty?: boolean;
   selectMode?: 'multiple' | 'single';   // 默认 multiple
   showRadioIndicator?: boolean;          // 单选模式显示单选指示器
+  showOrderIndex?: boolean;              // 多选：已选 chip 显示 1-based 顺序（优先级）
 }
 ```
 
@@ -350,7 +357,29 @@ interface ChipGroupProps {
   value={['openai']} onValueChange={(v) => setProvider(v[0])}
   selectMode="single" showRadioIndicator
 />
+// 主用禁用 + 有序备用（网络搜索/抓取）：主用可见不可勾选；value 不含主用；showOrderIndex
+<ChipGroup
+  options={providers.map((p) => ({
+    value: p,
+    label: p === primary ? `${p} (主用)` : p,
+    disabled: p === primary,
+  }))}
+  value={fallbackOrder.filter((p) => p !== primary)}
+  onValueChange={(visible) => onChangeFallback(visible.filter((p) => p !== primary))}
+  selectMode="multiple"
+  allowEmpty
+  showOrderIndex
+/>
 ```
+
+**disabled 契约（2026-08）**：
+
+| 模式 | `option.disabled` 且未选中 | `option.disabled` 且已选中 |
+|------|---------------------------|---------------------------|
+| multiple | 不可勾选 | **仍可点掉取消** |
+| single | 不可选 | 不可操作 |
+
+仅显式 `option.conflict` 走冲突边框样式（`disabled` 已选不自动标红）。参考：`WebSearchSection` / `WebFetchSection` 备用源 Chip。
 
 ## 6.5 DynamicConfigPanel —— 后端配置项自动渲染
 
@@ -444,3 +473,23 @@ import { PluginIcon } from '@/components/ui/plugin-icon';
 
 组件行为：加载失败 → `Package` 兜底；切换 `pluginName` 时重置错误态。  
 若需为其它无 ICON 的内置插件复用项目 LOGO，只需在 `PROJECT_LOGO_PLUGIN_NAMES` 追加小写名（**不要**在各页面写死路径）。
+
+## 6.8 ModelBrandIcon / ProviderBrandIcon —— 厂商品牌图标
+
+位置：`src/components/ui/model-brand-icon.tsx`。唯一从 `@thesvg/react` 拉 **LLM 厂商** 图标的入口（MCP 页已不再展示品牌图）。
+
+| 组件 | 用途 |
+|------|------|
+| `ModelBrandIcon` | 优先按**模型名**匹配厂商；`provider` 仅兜底（因很多配置 `provider=openai` 实为兼容层） |
+| `ProviderBrandIcon` | 按协议/厂商类型选图标，不解析模型名 |
+
+要点：
+
+- 规则表 `BRAND_RULES`：匹配到后用官方 `default` 彩版。
+- **OpenAI 例外**：官方 path 硬编码白标，浅色主题会隐形 → 渲染强制 `path` 走 `currentColor`，并套 `text-black dark:text-white` 适配亮/暗。
+- 网络搜索/抓取 section 的 Jina/Tavily/Exa/MCP 图标在 section 内直接 `import { JinaAi, Tavily, … } from '@thesvg/react'`，**不**走 ModelBrandIcon（那是模型配置专用）。
+
+## 6.9 LabelWithHelp —— AIConfig 字段标签 + Markdown 帮助
+
+位置：`src/pages/AIConfig/shared/LabelWithHelp.tsx`。契约见 [§05 §5.6](./05-components-and-form-controls.md)。  
+长说明（多源策略、主备语义）用 **i18n Markdown 字符串**，勿塞超长纯文本进 JSX。

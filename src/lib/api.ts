@@ -4447,26 +4447,58 @@ export const aiArtifactsApi = {
 
 /**
  * Batch Push（/batch-push 页面专用）。
- * 后端 `/api/BatchPush` 走 `push_text`/`push_tag`/`push_bot` 三段结构；
- * 前端需要先拉一批可选的 bot / group / user 列表 —— 见下方 `/api/BatchPush/targets`。
- * 后端实现请见 gsuid_core/webconsole/message_api.py，目前并未实现 targets 端点，
- * 前端在缺该端点时降级为「手填 target」并把 target_value 拼成 `g:<id>|<bot_id>` 或 `u:<id>|<bot_id>`。
+ * 后端 `/api/BatchPush` 走 `push_text` / `push_tag` / `push_bot` / `push_bot_self_id`；
+ * 前端需要先拉一批可选的 bot / bot_self_id / group / user —— 见 `/api/BatchPush/targets`。
  *
- * targets 端点从 v2026-07 起改为分页 + 筛选：
- * - 不再一次性返回所有 group/user，而是按 limit/offset 分页
- * - 支持 `bot_id` / `kind`（all|group|user） / `q`（模糊搜索 label 或 value）
+ * 精准推送四维：
+ * - `push_bot`：WS 连接（gss.active_bot key）；空 = 全部 active
+ * - tag 中的平台 `bot_id`：如 onebot / telegram
+ * - `push_bot_self_id`（或 tag 第三段）：机器人账号 ID
+ * - tag 中的 g:/u:/ALL*：发送对象
+ *
+ * targets 端点从 v2026-07 起分页 + 筛选；v2026-08 起额外返回 `bot_self_ids`：
+ * - 支持 `bot_id`（**平台** id，非 WS key）/ `bot_self_id` / `kind`（all|group|user） / `q`
  * - 宏（ALLGROUP/ALLUSER）只在第一页 + 未指定 bot_id 时返回一次
- * - 返回结构：`{ bots, items: [...], total, limit, offset, has_more }`
+ * - 返回：`{ bots, bot_self_ids, items, total, limit, offset, has_more }`
+ * - 注意：`bots[].bot_id` 是 WS 连接 key，与 query `bot_id`（平台）不是同一维度
+ *
+ * push_tag 格式：
+ * - `ALLUSER` / `ALLGROUP`
+ * - `g:<id>|<bot_id>` / `u:<id>|<bot_id>`
+ * - `g:<id>|<bot_id>|<bot_self_id>` / `u:<id>|<bot_id>|<bot_self_id>`（单条覆盖 self_id）
  */
 export interface BatchPushTargetItem {
   kind: 'group' | 'user' | 'macro';
   bot_id: string;
+  /** 目标表本身通常无 self_id；字段预留，宏/列表项可能为空串 */
+  bot_self_id?: string;
   label: string;
   value: string;
 }
 
+/** active WS 连接（用于 push_bot） */
+export interface BatchPushBotOption {
+  bot_id: string;
+  name: string;
+  ws_bot_id?: string;
+  connected?: boolean;
+}
+
+/**
+ * 已知机器人账号实例（平台 bot_id + bot_self_id）。
+ * `id` 形如 `bot_self_id:bot_id`，与 Dashboard 选择器一致。
+ */
+export interface BatchPushBotSelfOption {
+  id: string;
+  bot_id: string;
+  bot_self_id: string;
+  label: string;
+}
+
 export interface BatchPushTargetsResponse {
-  bots: { bot_id: string; name: string }[];
+  bots: BatchPushBotOption[];
+  /** 后端 v2026-08+；旧后端可能缺省 */
+  bot_self_ids?: BatchPushBotSelfOption[];
   items: BatchPushTargetItem[];
   total: number;
   limit: number;
@@ -4477,7 +4509,9 @@ export interface BatchPushTargetsResponse {
 export const batchPushApi = {
   // 可选的推送目标（分页 + 筛选）。未传参数时等价于第一页全集。
   getTargets: (opts?: {
+    /** 平台 bot_id（onebot/telegram/…），不是 WS 连接 key */
     bot_id?: string;
+    bot_self_id?: string;
     kind?: 'all' | 'group' | 'user';
     q?: string;
     limit?: number;
@@ -4485,6 +4519,7 @@ export const batchPushApi = {
   }) => {
     const query = new URLSearchParams();
     if (opts?.bot_id) query.set('bot_id', opts.bot_id);
+    if (opts?.bot_self_id) query.set('bot_self_id', opts.bot_self_id);
     if (opts?.kind && opts.kind !== 'all') query.set('kind', opts.kind);
     if (opts?.q) query.set('q', opts.q);
     if (opts?.limit !== undefined) query.set('limit', String(opts.limit));
@@ -4496,8 +4531,13 @@ export const batchPushApi = {
   },
 
   // 实际推送
-  push: (data: { push_text: string; push_tag: string; push_bot: string }) =>
-    api.postRaw<string>('/api/BatchPush', data),
+  push: (data: {
+    push_text: string;
+    push_tag: string;
+    push_bot: string;
+    /** 可选；精准指定机器人账号（bot_self_id），逗号分隔多值 */
+    push_bot_self_id?: string;
+  }) => api.postRaw<string>('/api/BatchPush', data),
 };
 
 /**

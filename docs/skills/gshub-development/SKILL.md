@@ -60,9 +60,9 @@ description: >
 | 二 | i18n 国际化（三语言目录、嵌套键、新增 key 的四处同步、t() 插值、自查命令、稳定 id） | [references/02-i18n.md](./references/02-i18n.md) |
 | 三 | 主题与样式（ThemeContext、CSS HSL 变量、颜色/状态色、`glass-card` 始终应用、响应式） | [references/03-theme-and-styling.md](./references/03-theme-and-styling.md) |
 | 四 | **页面排版铁律（页面解剖学）**——根容器/标题/图标/副标题/间距标尺/卡片分区/列表详情/三态 | [references/04-page-layout-spec.md](./references/04-page-layout-spec.md) |
-| 五 | 组件复用与表单/筛选控件规范（cn/CVA、**一行高度：无 Tab→h-9 / 有 Tab→h-11**、Select 哨兵、Tooltip 字段说明、Switch UX） | [references/05-components-and-form-controls.md](./references/05-components-and-form-controls.md) |
-| 六 | 封装组件目录（完整接口）——**TabButtonGroup（含 dropdown 拆分按钮）** / **PluginIcon** / InputWithDropdown / TagsInput / ChipGroup / DynamicConfigPanel / ConfigField | [references/06-reusable-component-catalog.md](./references/06-reusable-component-catalog.md) |
-| 七 | 配置页与状态管理（渐进式配置页 + `EXPECTED_CONFIG_KEYS`/`rawConfig`、双重 dirty 检查、保存竞态、AIConfig 设计、**任务配置主备双配置**） | [references/07-config-pages-and-state.md](./references/07-config-pages-and-state.md) |
+| 五 | 组件复用与表单/筛选控件规范（cn/CVA、**一行高度：无 Tab→h-9 / 有 Tab→h-11**、Select 哨兵、Tooltip / **LabelWithHelp Markdown**、Switch UX） | [references/05-components-and-form-controls.md](./references/05-components-and-form-controls.md) |
+| 六 | 封装组件目录——**TabButtonGroup dropdown** / **PluginIcon** / InputWithDropdown / TagsInput / **ChipGroup（disabled 可取消）** / DynamicConfigPanel / **ModelBrandIcon** / LabelWithHelp | [references/06-reusable-component-catalog.md](./references/06-reusable-component-catalog.md) |
+| 七 | 配置页与状态（渐进式 + dirty 竞态、AIConfig、**任务主备**、**网络搜索/网页抓取多源主备 UI**） | [references/07-config-pages-and-state.md](./references/07-config-pages-and-state.md) |
 | 八 | 页面模式与 Dialog 规范（卡片列表页 / 表格详情 / Dialog/Modal / 双态 UI / 移动端 / SSH URL / API 设计经验） | [references/08-page-patterns.md](./references/08-page-patterns.md) |
 | 九 | 侧边栏与导航（`getNavItems`、稳定 `id` 作 key、`ICON_MAP`、AI 启用态条件子菜单、自动展开） | [references/09-sidebar-navigation.md](./references/09-sidebar-navigation.md) |
 | 十 | 已知坑 + 性能 + 落地清单（P-1~P-32 坑、性能优化、新页面落地自查清单总表） | [references/10-pitfalls-and-performance.md](./references/10-pitfalls-and-performance.md) |
@@ -106,6 +106,9 @@ description: >
 - **API 统一在 `src/lib/api.ts`**：所有请求经封装，类型同文件定义；401 统一用 `getLoginPath()` 跳登录（兼容开发 `/login` 与生产 `/app/login`）。详见 [§01](./references/01-architecture-and-conventions.md)。
 - **错误提示必须回显后端消息 ★**：后端错误有封套 `{status,msg}` 与 FastAPI `{detail}`（字符串/校验数组）两类，**只读 `msg` 会漏掉 `detail`**、导致 toast 与真实原因无关。统一用 `getApiErrorMessage(err/res, fallback)` 解析，本地化文案只兜底。详见 [§01 §1.5](./references/01-architecture-and-conventions.md)、[§10 P-13](./references/10-pitfalls-and-performance.md)。
 - **任务配置主备双配置 ★★**：高级 / 低级任务各 2 个字段（主 + 备用），但**读写路径不同**——主配置走 `providerConfigApi.setHighLevelConfig(...)`（仅接受 `'high' | 'low'`）；备用配置走 framework-config 的 `updateConfigValue(aiConfig.id, 'high_level_2nd_provider_config_name', v)`。详见 [§07 §7.6](./references/07-config-pages-and-state.md)。
+- **网络搜索 / 网页抓取多源 UI ★★**：`WebSearchSection` / `WebFetchSection`——主用 Chip + 策略（none/error_switch/auto_balance）+ 备用有序多选（`showOrderIndex`）；默认主用 **Jina**；策略非 none 才显示备用。主用在备用列表中 **disabled 展示、不写入 fallback 字段**；切换主用时静默剔除；保存时兜底剥离「备用含主用」并用 `applyConfigsAndMarkSaved` 原子同步。字段说明用 `LabelWithHelp`（Markdown tooltip）。详见 [§07 §7.7](./references/07-config-pages-and-state.md)、[§06 §6.4](./references/06-reusable-component-catalog.md)。
+- **ChipGroup `disabled` 多选可取消 ★**：`option.disabled` 禁止**新勾选**，已选中仍可点掉；用于主用源占位。详见 [§06 §6.4](./references/06-reusable-component-catalog.md)。
+- **批量推送 bot_self_id ★**：`/batch-push` 用 `InputWithDropdown` 选手填机器人账号；提交 `push_bot_self_id`，非宏 tag 追加第三段。后端契约见 `webconsole/docs/10-batch-push.md`。
 - **Radix Dialog 无障碍 ★★**：每个 `DialogContent` 都必须包含 `DialogTitle` + `DialogDescription`（描述可 `className="sr-only"` 隐藏）。任意一个缺，dev 模式都会刷屏警告。详见 [§08 §8.3](./references/08-page-patterns.md)、[§10 P-16 / P-18](./references/10-pitfalls-and-performance.md)。
 - **Hooks 永远在最顶层调用 ★★★**：在 `if` / 三元 / `&&` 分支里调用 `useTheme()` 等会导致"Hooks 顺序变化"警告 + Context 取错值。所有 Hook 在分支前一次性调用，分支内只解构使用。详见 [§10 P-14](./references/10-pitfalls-and-performance.md)。
 - **Tailwind 任意值类名歧义**：带 `(` `)` 的 `ease-[cubic-bezier(...)]` 会触发 v3.4 内容扫描器"ambiguous class"误报警告。把 timing function 提到 `tailwind.config.ts` 命名为 `ease-out-soft` 等再引用。详见 [§10 P-15](./references/10-pitfalls-and-performance.md)。

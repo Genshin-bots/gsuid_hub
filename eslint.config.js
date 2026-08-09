@@ -21,6 +21,8 @@ export default tseslint.config(
       ...reactHooks.configs.recommended.rules,
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
       "@typescript-eslint/no-unused-vars": "off",
+      // 历史债：全仓大量 API/动态表单边界使用 any；渐进收紧为 warn，不阻断 lint 门禁
+      "@typescript-eslint/no-explicit-any": "warn",
     },
   },
 );

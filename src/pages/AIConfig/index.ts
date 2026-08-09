@@ -30,6 +30,8 @@ export { TaskConfigSection } from './sections/TaskConfigSection';
 export type { TaskConfigSectionProps } from './sections/TaskConfigSection';
 export { WebSearchSection } from './sections/WebSearchSection';
 export type { WebSearchSectionProps } from './sections/WebSearchSection';
+export { WebFetchSection } from './sections/WebFetchSection';
+export type { WebFetchSectionProps } from './sections/WebFetchSection';
 export { ImageUnderstandSection } from './sections/ImageUnderstandSection';
 export type { ImageUnderstandSectionProps } from './sections/ImageUnderstandSection';
 export { VectorDbSection } from './sections/VectorDbSection';

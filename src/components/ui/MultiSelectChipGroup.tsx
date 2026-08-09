@@ -6,7 +6,13 @@ export interface ChipOption {
   label: string;
   icon?: React.ReactNode;
   color?: string;
+  /**
+   * 禁用「新选中」。多选模式下若该项已选中，仍允许点掉取消
+   * （用于「主用源出现在备用列表中」：可见、标冲突，但不能再勾选上）。
+   */
   disabled?: boolean;
+  /** 冲突态（如主用又在备用里）— 红色边框提示 */
+  conflict?: boolean;
 }
 
 export interface ChipGroupProps {
@@ -24,6 +30,11 @@ export interface ChipGroupProps {
   selectMode?: 'multiple' | 'single';
   /** Show radio-like indicator for single selection mode */
   showRadioIndicator?: boolean;
+  /**
+   * Multi-select only: show 1-based order index on selected chips
+   * (selection order = priority, e.g. fallback lists).
+   */
+  showOrderIndex?: boolean;
 }
 
 /**
@@ -68,28 +79,31 @@ export function ChipGroup({
   allowEmpty = false,
   selectMode = 'multiple',
   showRadioIndicator = false,
+  showOrderIndex = false,
 }: ChipGroupProps) {
   const toggleOption = React.useCallback((optionValue: string) => {
     if (disabled) return;
-    
+
+    const option = options.find((o) => o.value === optionValue);
     const isSelected = value.includes(optionValue);
-    
+
+    // option.disabled：禁止未选中时勾选；已选中仍可取消
+    if (option?.disabled && !isSelected) return;
+
     if (selectMode === 'single') {
-      // Single selection mode - always replace with new value
+      if (option?.disabled) return;
       onValueChange([optionValue]);
     } else {
-      // Multi selection mode (default)
       if (isSelected) {
-        // Don't allow deselecting if allowEmpty is false and this is the last selected item
         if (!allowEmpty && value.length === 1) {
           return;
         }
-        onValueChange(value.filter(v => v !== optionValue));
+        onValueChange(value.filter((v) => v !== optionValue));
       } else {
         onValueChange([...value, optionValue]);
       }
     }
-  }, [value, onValueChange, disabled, allowEmpty, selectMode]);
+  }, [value, onValueChange, disabled, allowEmpty, selectMode, options]);
 
   return (
     <div
@@ -100,23 +114,57 @@ export function ChipGroup({
     >
       {options.map((option) => {
         const isSelected = value.includes(option.value);
-        const isDisabled = disabled || option.disabled;
-        
+        // 未选中且 disabled → 不可点；已选中的 disabled 仍可点掉
+        const lockSelect = option.disabled && !isSelected;
+        const isHardDisabled = disabled || lockSelect;
+        // 仅显式 conflict 走冲突样式；disabled+selected 用于「主用可见不可勾选」等场景，不应误标红
+        const isConflict = Boolean(option.conflict);
+        const orderIndex =
+          showOrderIndex && selectMode === 'multiple' && isSelected
+            ? value.indexOf(option.value) + 1
+            : 0;
+
         return (
           <button
             key={option.value}
+            type="button"
             onClick={() => toggleOption(option.value)}
-            disabled={isDisabled}
+            disabled={isHardDisabled}
+            aria-disabled={option.disabled || disabled || undefined}
+            title={
+              option.disabled && !isSelected
+                ? option.label
+                : option.conflict || isConflict
+                  ? option.label
+                  : orderIndex > 0
+                    ? `#${orderIndex}`
+                    : undefined
+            }
             className={cn(
               "p-2.5 rounded-lg border-2 transition-all flex items-center gap-2",
               "active:scale-[0.98]",
               isSelected
-                ? "border-primary bg-primary/10"
+                ? isConflict
+                  ? "border-destructive bg-destructive/10"
+                  : "border-primary bg-primary/10"
                 : "border-border hover:border-primary/50",
-              isDisabled && "opacity-50 cursor-not-allowed hover:border-border",
+              isHardDisabled && "opacity-50 cursor-not-allowed hover:border-border",
+              isConflict && isSelected && "opacity-100",
               chipClassName
             )}
           >
+            {orderIndex > 0 && (
+              <span
+                className={cn(
+                  "inline-flex items-center justify-center min-w-[1.125rem] h-[1.125rem] px-1 rounded text-[10px] font-semibold tabular-nums",
+                  isConflict
+                    ? "bg-destructive/20 text-destructive"
+                    : "bg-primary/20 text-primary",
+                )}
+              >
+                {orderIndex}
+              </span>
+            )}
             {option.color && (
               <div 
                 className={cn(
@@ -133,14 +181,20 @@ export function ChipGroup({
             )}
             <span className={cn(
               "text-sm font-medium",
-              isSelected && "text-primary"
+              isSelected && (isConflict ? "text-destructive" : "text-primary")
             )}>
               {option.label}
             </span>
-            {/* Multi-select indicator */}
-            {selectMode === 'multiple' && isSelected && (
-              <span className="ml-1 w-4 h-4 rounded-full bg-primary/20 flex items-center justify-center">
-                <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+            {/* Multi-select indicator (hidden when order index already shows priority) */}
+            {selectMode === 'multiple' && isSelected && !showOrderIndex && (
+              <span className={cn(
+                "ml-1 w-4 h-4 rounded-full flex items-center justify-center",
+                isConflict ? "bg-destructive/20" : "bg-primary/20",
+              )}>
+                <span className={cn(
+                  "w-1.5 h-1.5 rounded-full",
+                  isConflict ? "bg-destructive" : "bg-primary",
+                )} />
               </span>
             )}
             {/* Single-select radio indicator */}

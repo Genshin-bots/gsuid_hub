@@ -32,6 +32,7 @@ import {
   Database,
   Eye,
   FileText,
+  Globe,
   ListChecks,
   Loader2,
   MemoryStick,
@@ -58,10 +59,12 @@ import {
 } from '@/components/config';
 import { EmptyState } from './AIConfig/shared/EmptyState';
 import { SidebarItem } from './AIConfig/shared/SidebarItem';
+import { filterOutPrimaryProvider } from './AIConfig/shared/providerId';
 import {
   ServiceSwitchSection,
   TaskConfigSection,
   WebSearchSection,
+  WebFetchSection,
   ImageUnderstandSection,
   VectorDbSection,
   VoiceRecognitionSection,
@@ -108,6 +111,7 @@ export default function AIConfigPage() {
     setIsSaving,
     updateConfigValue,
     markSaved: markConfigsSaved,
+    applyConfigsAndMarkSaved,
   } = useFrameworkConfig();
 
   // ====================== Provider / OpenAI Config ======================
@@ -172,6 +176,37 @@ export default function AIConfigPage() {
     [configs],
   );
 
+  const jinaConfig = useMemo(
+    () =>
+      Object.values(configs).find((c) => {
+        const name = `${c.name} ${c.full_name}`;
+        // 优先完整中文名；回退仅当名称同时含 Jina 与搜索/抓取语义，避免误匹配其它插件
+        if (
+          c.name.includes('Jina搜索抓取配置') ||
+          c.full_name.includes('Jina搜索抓取配置')
+        ) {
+          return true;
+        }
+        return (
+          /jina/i.test(name) &&
+          (name.includes('搜索') ||
+            name.includes('抓取') ||
+            /search|fetch|reader/i.test(name))
+        );
+      }),
+    [configs],
+  );
+
+  const webFetchConfig = useMemo(
+    () =>
+      Object.values(configs).find(
+        (c) =>
+          c.name.includes('WebFetch抓取配置') ||
+          c.full_name.includes('WebFetch抓取配置'),
+      ),
+    [configs],
+  );
+
   const memoryConfig = useMemo(
     () =>
       Object.values(configs).find(
@@ -226,7 +261,24 @@ export default function AIConfigPage() {
     (aiConfig?.config.rerank_provider?.value as string) ?? 'local';
   const isMemoryEnabled = toBool(aiConfig?.config.enable_memory?.value);
   const websearchProvider =
-    (aiConfig?.config.websearch_provider?.value as string) ?? 'Tavily';
+    (aiConfig?.config.websearch_provider?.value as string) ?? 'Jina';
+  const websearchLbStrategy =
+    (aiConfig?.config.websearch_lb_strategy?.value as string) ?? 'error_switch';
+  const websearchFallbackOrder = useMemo(() => {
+    const raw = aiConfig?.config.websearch_fallback_order?.value;
+    if (Array.isArray(raw)) return raw.map(String);
+    return [] as string[];
+  }, [aiConfig?.config.websearch_fallback_order?.value]);
+  const webfetchProvider =
+    (aiConfig?.config.webfetch_provider?.value as string) ?? 'Jina';
+  const webfetchLbStrategy =
+    (aiConfig?.config.webfetch_lb_strategy?.value as string) ?? 'error_switch';
+  const webfetchFallbackOrder = useMemo(() => {
+    const raw = aiConfig?.config.webfetch_fallback_order?.value;
+    // 尊重用户清空（[]）；字段缺失时也用 []（与后端默认对齐，不在前端合成未落盘值）
+    if (Array.isArray(raw)) return raw.map(String);
+    return [] as string[];
+  }, [aiConfig?.config.webfetch_fallback_order?.value]);
   const imageUnderstandProvider =
     (aiConfig?.config.image_understand_provider?.value as string) ?? '';
   const qdrantProvider =
@@ -336,7 +388,33 @@ export default function AIConfigPage() {
   const rerankProviderOptions =
     (aiConfig?.config.rerank_provider?.options || ['local']) as string[];
   const websearchProviderOptions =
-    (aiConfig?.config.websearch_provider?.options || ['Tavily']) as string[];
+    (aiConfig?.config.websearch_provider?.options || [
+      'Jina',
+      'Tavily',
+      'Exa',
+      'MiniMax',
+      'MCP',
+    ]) as string[];
+  const websearchLbStrategyOptions =
+    (aiConfig?.config.websearch_lb_strategy?.options || [
+      'none',
+      'error_switch',
+      'auto_balance',
+    ]) as string[];
+  const websearchFallbackOptions =
+    (aiConfig?.config.websearch_fallback_order?.options ||
+      websearchProviderOptions) as string[];
+  const webfetchProviderOptions =
+    (aiConfig?.config.webfetch_provider?.options || ['Jina', 'local']) as string[];
+  const webfetchLbStrategyOptions =
+    (aiConfig?.config.webfetch_lb_strategy?.options || [
+      'none',
+      'error_switch',
+      'auto_balance',
+    ]) as string[];
+  const webfetchFallbackOptions =
+    (aiConfig?.config.webfetch_fallback_order?.options ||
+      webfetchProviderOptions) as string[];
   const qdrantProviderOptions =
     (aiConfig?.config.qdrant_provider?.options || [
       'local',
@@ -411,6 +489,13 @@ export default function AIConfigPage() {
         );
       });
 
+      /** 备用列表里若含主用，保存时剔除并稍后 toast + 回写 UI */
+      let fallbackPrimaryConflict = false;
+      const uiSyncFallback: {
+        websearch?: string[];
+        webfetch?: string[];
+      } = {};
+
       for (const config of changedConfigs) {
         const configToSave: Record<string, unknown> = {};
         Object.entries(config.config).forEach(
@@ -450,6 +535,42 @@ export default function AIConfigPage() {
               return;
             }
 
+            // 网络搜索 / 网页抓取：备用列表不得含主用源（大小写不敏感）
+            if (
+              key === 'websearch_fallback_order' &&
+              Array.isArray(value)
+            ) {
+              const primary = String(
+                config.config.websearch_provider?.value ?? '',
+              );
+              const next = filterOutPrimaryProvider(
+                value as string[],
+                primary,
+              );
+              if (next.length !== (value as string[]).length) {
+                fallbackPrimaryConflict = true;
+                uiSyncFallback.websearch = next;
+                value = next;
+              }
+            }
+            if (
+              key === 'webfetch_fallback_order' &&
+              Array.isArray(value)
+            ) {
+              const primary = String(
+                config.config.webfetch_provider?.value ?? '',
+              );
+              const next = filterOutPrimaryProvider(
+                value as string[],
+                primary,
+              );
+              if (next.length !== (value as string[]).length) {
+                fallbackPrimaryConflict = true;
+                uiSyncFallback.webfetch = next;
+                value = next;
+              }
+            }
+
             configToSave[key] = value;
           },
         );
@@ -459,7 +580,48 @@ export default function AIConfigPage() {
         );
       }
       if (changedConfigs.length > 0) {
-        markConfigsSaved(configs);
+        // 若剔除了「备用=主用」冲突，原子同步 configs + original，避免双 setState 不一致
+        if (
+          aiConfig?.id &&
+          (uiSyncFallback.websearch || uiSyncFallback.webfetch)
+        ) {
+          const id = aiConfig.id;
+          const base = configs[id];
+          if (base) {
+            const nextConfig = { ...base.config };
+            if (
+              uiSyncFallback.websearch &&
+              nextConfig.websearch_fallback_order
+            ) {
+              nextConfig.websearch_fallback_order = {
+                ...nextConfig.websearch_fallback_order,
+                value: uiSyncFallback.websearch,
+              };
+            }
+            if (
+              uiSyncFallback.webfetch &&
+              nextConfig.webfetch_fallback_order
+            ) {
+              nextConfig.webfetch_fallback_order = {
+                ...nextConfig.webfetch_fallback_order,
+                value: uiSyncFallback.webfetch,
+              };
+            }
+            applyConfigsAndMarkSaved({
+              ...configs,
+              [id]: { ...base, config: nextConfig },
+            });
+          } else {
+            markConfigsSaved(configs);
+          }
+        } else {
+          markConfigsSaved(configs);
+        }
+      }
+      if (fallbackPrimaryConflict) {
+        toast.warning(
+          t('aiConfig.serviceProvider.fallbackPrimaryStrippedOnSave'),
+        );
       }
 
       // 2. 保存嵌入模型配置
@@ -547,9 +709,11 @@ export default function AIConfigPage() {
     configs,
     originalConfig,
     markConfigsSaved,
+    applyConfigsAndMarkSaved,
     embedding,
     mcp,
     t,
+    aiConfig?.id,
   ]);
 
   const handleSaveConfig = useCallback(() => {
@@ -623,6 +787,11 @@ export default function AIConfigPage() {
       id: 'webSearch',
       title: t('aiConfig.serviceProvider.webSearchService'),
       icon: <Search className="w-5 h-5" />,
+    },
+    {
+      id: 'webFetch',
+      title: t('aiConfig.webFetch.title'),
+      icon: <Globe className="w-5 h-5" />,
     },
     {
       id: 'imageUnderstand',
@@ -705,17 +874,36 @@ export default function AIConfigPage() {
         return (
           <WebSearchSection
             t={t}
-            aiConfigId={aiConfig.id}
             websearchProvider={websearchProvider}
             websearchProviderOptions={websearchProviderOptions}
+            websearchLbStrategy={websearchLbStrategy}
+            websearchLbStrategyOptions={websearchLbStrategyOptions}
+            websearchFallbackOrder={websearchFallbackOrder}
+            websearchFallbackOptions={websearchFallbackOptions}
             tavilyConfig={tavilyConfig}
             exaConfig={exaConfig}
+            jinaConfig={jinaConfig}
             miniMaxConfig={miniMaxConfig}
             websearchMcpToolId={websearchMcpToolId}
             websearchToolInfo={websearchToolInfo}
             mcpDetails={mcp.mcpDetailsEditing['websearch_mcp_tool_id'] || {}}
-            onChangeProvider={(v) =>
-              updateConfigValue(aiConfig.id, 'websearch_provider', v)
+            onChangeProvider={(v) => {
+              updateConfigValue(aiConfig.id, 'websearch_provider', v);
+              // 静默从备用列表剔除新主用，避免保存时误报 toast
+              const next = filterOutPrimaryProvider(websearchFallbackOrder, v);
+              if (next.length !== websearchFallbackOrder.length) {
+                updateConfigValue(
+                  aiConfig.id,
+                  'websearch_fallback_order',
+                  next,
+                );
+              }
+            }}
+            onChangeLbStrategy={(v) =>
+              updateConfigValue(aiConfig.id, 'websearch_lb_strategy', v)
+            }
+            onChangeFallbackOrder={(order) =>
+              updateConfigValue(aiConfig.id, 'websearch_fallback_order', order)
             }
             onUpdateConfig={updateConfigValue}
             onOpenMcpToolDialog={() => mcp.openMcpToolDialog('websearch')}
@@ -732,6 +920,38 @@ export default function AIConfigPage() {
             onRemoveMcpDetailRow={(name) =>
               mcp.removeMcpDetailRow('websearch_mcp_tool_id', name)
             }
+          />
+        );
+      case 'webFetch':
+        return (
+          <WebFetchSection
+            t={t}
+            webfetchProvider={webfetchProvider}
+            webfetchProviderOptions={webfetchProviderOptions}
+            webfetchLbStrategy={webfetchLbStrategy}
+            webfetchLbStrategyOptions={webfetchLbStrategyOptions}
+            webfetchFallbackOrder={webfetchFallbackOrder}
+            webfetchFallbackOptions={webfetchFallbackOptions}
+            webFetchConfig={webFetchConfig}
+            jinaConfig={jinaConfig}
+            onChangeProvider={(v) => {
+              updateConfigValue(aiConfig.id, 'webfetch_provider', v);
+              const next = filterOutPrimaryProvider(webfetchFallbackOrder, v);
+              if (next.length !== webfetchFallbackOrder.length) {
+                updateConfigValue(
+                  aiConfig.id,
+                  'webfetch_fallback_order',
+                  next,
+                );
+              }
+            }}
+            onChangeLbStrategy={(v) =>
+              updateConfigValue(aiConfig.id, 'webfetch_lb_strategy', v)
+            }
+            onChangeFallbackOrder={(order) =>
+              updateConfigValue(aiConfig.id, 'webfetch_fallback_order', order)
+            }
+            onUpdateConfig={updateConfigValue}
           />
         );
       case 'imageUnderstand':

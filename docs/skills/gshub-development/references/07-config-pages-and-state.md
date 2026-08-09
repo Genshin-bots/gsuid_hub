@@ -250,3 +250,57 @@ const EXCLUDED_KEYS: string[] = [
 备用配置的 i18n key 文案**不要再带"高级 / 低级"前缀**（如"高级任务（备用）"），
 因为它已经被包裹在"高级任务"区块内，加前缀会重复并显得累赘。
 直接用「备用配置 / Backup Config / 予備設定」即可。
+
+## 7.7 网络搜索 / 网页抓取：多源主备 UI ★★
+
+位置：`AIConfig/sections/WebSearchSection.tsx`、`WebFetchSection.tsx`；装配于
+`AIConfigPage.tsx`。对应后端 `ai_config` 字段 `websearch_*` / `webfetch_*`（热读，**无需重启**）。
+
+### 字段与默认
+
+| 字段 | 默认 | 说明 |
+|------|------|------|
+| `websearch_provider` | `Jina` | 主用：Jina / Tavily / Exa / MCP |
+| `websearch_lb_strategy` | `error_switch` | `none` / `error_switch` / `auto_balance` |
+| `websearch_fallback_order` | `[]` | 备用有序列表（不含主用语义）；空=后端自动收集已配置源 |
+| `webfetch_provider` | `Jina` | 主用：Jina / local |
+| `webfetch_lb_strategy` | `error_switch` | 同搜索 |
+| `webfetch_fallback_order` | `[]`（字段缺失时 UI 也显示空） | 空=后端默认（通常含 local）；**勿在前端合成未落盘默认值** |
+
+密钥配置独立 StringConfig：`jina_config`（搜索+抓取共用）、`tavily_config`、`exa_config`、
+`web_fetch_config`（local）。Jina 搜索 **Key 必填**；Jina 抓取 **Key 可选**。
+
+### UI 结构（两 section 同构）
+
+1. **主用源** `ChipGroup` 单选（`selectMode="single"` + 品牌图标 `@thesvg/react`）。
+2. **多源策略** 单选 Chip：无 / 错误切换 / 自动分流；文案用 `LabelWithHelp` + **Markdown 多行 tooltip**。
+3. **备用顺序** 仅当策略为 `error_switch` | `auto_balance` 时显示（`none` 时整块隐藏）：
+   - 多选 Chip，`allowEmpty` + **`showOrderIndex`**（选中 chip 显示 1-based 优先级）；
+   - **主用项仍展示**，但 `disabled: true`，标签可标「主用」；
+   - **value 与数据层均不含主用**（不写入 `*_fallback_order`）；
+   - **切换主用时**在 `AIConfigPage` 静默从 fallback 剔除新主用（无 toast）；
+     **无 soft-memory**——旧主用不会自动回到备用勾选，需用户再次点选；
+   - provider 身份用 `sameProviderId`（trim + 大小写不敏感）比较；
+   - `onValueChange` 只写回可见选中（已过滤主用）。
+4. **配置分区**：主用块 `border-primary/30 bg-primary/5` + 实心 Badge；备用块虚线边框 + 仅渲染
+   `effectiveFallbacks`（过滤掉主用）的配置面板；**无备用勾选则不渲染备用配置区**。
+
+### 保存时剥离「备用=主用」
+
+`executeSave` 写入 `websearch_fallback_order` / `webfetch_fallback_order` 前，从数组剔除当前
+主用（`filterOutPrimaryProvider`，兜底后端脏数据 / 大小写漂移）；若发生剔除则 toast 警告，
+并用 **`applyConfigsAndMarkSaved`** 原子同步 `configs` + `originalConfig`，避免 dirty 状态与后端不一致。
+
+### AdvancedSettingsSection 排除
+
+下列 key 必须进 `EXCLUDED_KEYS`，避免与 WebSearch/WebFetch section 重复：
+
+```ts
+'websearch_provider', 'websearch_lb_strategy', 'websearch_fallback_order',
+'webfetch_provider', 'webfetch_lb_strategy', 'webfetch_fallback_order',
+```
+
+### 后端契约
+
+详见 gsuid_core：`docs/skills/gscore-ai-core-api/references/11-mcp-image-search-and-meme.md` §11.3 / §11.3b、
+`docs/skills/gscore-deploy/references/13-ai.md`。

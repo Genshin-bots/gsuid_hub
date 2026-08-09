@@ -95,13 +95,13 @@ GsCore 网页控制台前端项目。该项目为 [gsuid_core](https://github.co
 | `/themes` | ThemesPage | 主题、背景、颜色与风格配置 |
 | `/settings` | SettingsPage | 账户、头像、用户名与密码设置 |
 | `/brand-settings` | BrandSettingsPage | 品牌标题 / 副标题 / ICON 编辑与预览 |
-| `/batch-push` | BatchPushPage | 批量推送（Bot / 群 / 用户，含 ALL* 宏） |
+| `/batch-push` | BatchPushPage | 批量推送（WS Bot / 机器人账号 bot_self_id 可选手填 / 群与用户 / ALL* 宏） |
 | `/backup` | BackupPage | 备份文件、备份策略与下载 |
 | `/core-config` | CoreConfigPage | 核心配置 |
 | `/framework-config` | FrameworkConfigPage | 框架配置与动态配置表单（库/状态配置内嵌） |
 | `/state-store` | StateStorePage | AI 持久状态（state_store）浏览与批量删除 |
 | `/group-profile` | GroupProfilePage | 群组画像（标签 / 词汇 / 称呼）只读 |
-| `/ai-config` | AIConfigPage | AI 基础配置、模型提供方、嵌入、搜索、记忆等 |
+| `/ai-config` | AIConfigPage | AI 基础配置、模型提供方、嵌入、网络搜索/网页抓取（Jina 多源）、记忆等 |
 | `/persona-config` | PersonaConfigPage | AI 人格创建、编辑、资源与启用范围管理 |
 | `/mcp-config` | MCPConfigPage | MCP 服务器、工具发现、导入与热重载 |
 | `/ai-capability-agents` | AICapabilityAgentsPage | 能力代理（**builtin / plugin / user**；plugin 下拉按插件筛选；工具包/关键词/边界） |

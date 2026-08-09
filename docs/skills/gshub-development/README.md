@@ -68,7 +68,7 @@
 
 | 前端路由 | 页面组件 | 主要功能 | 后端 API 群 | 关键 SKILL 章节 |
 |---|---|---|---|---|
-| `/ai-config` | `AIConfigPage.tsx` (`AIConfig/`) | Provider / 模型高低级任务（含主备）/ Embedding / Web Search / Rerank 配置 + AI 配置向导 | `provider_config_api.py`、`embedding_config_api.py`、`ai_wizard_api.py` | [§07 §7.5–7.6](./SKILL.md)、[§01 §1.5](./references/01-architecture-and-conventions.md) |
+| `/ai-config` | `AIConfigPage.tsx` (`AIConfig/`) | Provider / 高低级任务主备 / Embedding / **网络搜索（Jina 默认 + 多源策略）** / **网页抓取（Jina+local）** / Rerank + AI 向导 | `framework-config` + `provider_config_api` / `embedding_config_api` / `ai_wizard_api` | [§07 §7.5–7.7](./references/07-config-pages-and-state.md) |
 | `/persona-config` | `PersonaConfigPage.tsx` | 多 Persona 卡片列表 + 头像/立绘/音频上传 + Markdown 编辑 + 作用范围 | `persona_api.py`（`/api/persona/*`） | [§08 §8.1](./references/08-page-patterns.md) |
 | `/mcp-config` | `MCPConfigPage.tsx` | MCP 服务器 CRUD、环境变量、工具发现、JSON 导入、预设、热重载、工具参数映射 | `mcp_config_api.py`（`/api/ai/mcp*`、`/api/ai/mcp-tools-config/*`） | [§03 主题](./references/03-theme-and-styling.md)、[§10 P-26](./references/10-pitfalls-and-performance.md) |
 | `/ai-capability-agents` | `AICapabilityAgentsPage.tsx` | 能力代理节点（**builtin / plugin / user**，不含 persona）；plugin Tab 用 **TabButtonGroup dropdown** 按 `plugin` 字段筛选；工具挂载 + 关键词 + 编辑/删除 | `capability_agents_api.py`（`/api/ai/capability-agents*`） | [§06 §6.1 dropdown](./references/06-reusable-component-catalog.md)、[§09](./references/09-sidebar-navigation.md) |
@@ -121,7 +121,7 @@
 | 改动类型 | 路径 | 说明 |
 |---|---|---|
 | 新页面 | `src/pages/BrandSettingsPage.tsx` | `/brand-settings` 标题/副标题/ICON 编辑与实时预览 |
-| 新页面 | `src/pages/BatchPushPage.tsx` | `/batch-push` HTML 推文 + bot/group/user 多选 + ALL* 宏 |
+| 新页面 | `src/pages/BatchPushPage.tsx` | `/batch-push` HTML 推文 + WS bot / **bot_self_id 可选手填** / 群用户多选 + ALL* 宏 |
 | 新页面 | `src/pages/AIDebugPage.tsx` | `/ai-debug` 三 Tab（记忆图谱 / Agent 任务 / self_model） |
 | 新页面 | `src/pages/AIArtifactsPage.tsx` | `/ai-artifacts` 全局浏览 + TTL 延长 + 下载 |
 | 新组件 | `src/components/memory/MemorySettingsDialog.tsx` | AIMemoryPage 弹窗：记忆子系统 14 个常用字段 + HierGraph 重建 |
@@ -156,7 +156,7 @@
 
 ## 二点七、2026-08 TabButtonGroup 下拉 + PluginIcon + 能力代理筛选
 
-> 本次前端组件与体验更新（版本 **v0.1.1**）。规范正文见 [§06 §6.1 / §6.7](./references/06-reusable-component-catalog.md)。
+> 前端组件与体验更新（版本 **v0.1.1**）。规范正文见 [§06 §6.1 / §6.7](./references/06-reusable-component-catalog.md)。
 
 | 改动类型 | 路径 | 说明 |
 |---|---|---|
@@ -193,6 +193,39 @@
 
 ---
 
+## 二点八、2026-08 网络搜索/抓取多源 + 批量推送 bot_self_id
+
+> 与 gsuid_core 后端 Jina 默认主用、多源 failover、BatchPush 精准账号同轮落地。规范见 [§07 §7.7](./references/07-config-pages-and-state.md)、后端 `webconsole/docs/10-batch-push.md` + `gscore-ai-core-api` §11.3/§11.3b。
+
+| 改动类型 | 路径 | 说明 |
+|---|---|---|
+| **Section** | `AIConfig/sections/WebSearchSection.tsx` | 主用 Jina/Tavily/Exa/MCP；策略 none/error_switch/auto_balance；备用有序 Chip；主用/备用配置分区；`@thesvg` 品牌图标 |
+| **Section** | `AIConfig/sections/WebFetchSection.tsx` | 「网页抓取服务」：主用 Jina/local；同构多源 UI；Jina Key 可选 |
+| **装配** | `AIConfigPage.tsx` | 派生 `websearch_*` / `webfetch_*`；保存时剥离备用含主用并 toast |
+| **组件** | `MultiSelectChipGroup.tsx` | `disabled`：禁新选、已选可取消；`conflict` 样式 |
+| **组件** | `LabelWithHelp.tsx` | string description → Markdown tooltip（多行策略说明） |
+| **组件** | `model-brand-icon.tsx` | OpenAI path → currentColor + 亮/暗文字色 |
+| **页面** | `BatchPushPage.tsx` | `InputWithDropdown` 机器人账号（列表+手填）→ `push_bot_self_id`；非宏 tag 追加 `\|{bot_self_id}`；**WS bot 只写 push_bot，不写 targets?bot_id** |
+| **API** | `batchPushApi` / targets | 消费 `bot_self_ids`；`push_bot` 空=全部 active；`targets?bot_id=`=平台 id |
+| **i18n** | `aiConfig` / `batchPush`（zh/en/ja） | 多源策略 Markdown 文案、抓取服务标题、账号选择器 |
+| **规范文档** | `SKILL` / `05` / `06` / `07` / 本文 | 见对应章节 |
+
+### 备用 Chip 交互速查
+
+```
+主用 Chip: [ Jina ● ] [ Tavily ] [ Exa ] [ MCP ]
+策略 Chip: [ 无 ] [ 错误切换 ● ] [ 自动分流 ]
+备用 Chip: [ Jina (主用) 禁用 ] [ Tavily ✓ ] [ Exa ] …
+              ↑ 可见不选中          ↑ 已选配置区展示
+```
+
+- 策略=`none`：整块备用 UI + 备用配置区隐藏。
+- 无任何备用勾选：不渲染备用配置面板。
+- **切换主用时静默从 fallback 剔除新主用**（无 soft-memory：旧主用不会自动回到备用勾选；需用户再点）。
+- 落库前再兜底剥离「备用含主用」；provider 比较 **trim + 大小写不敏感**。
+
+---
+
 ## 三、后端已具备但前端尚未覆盖 / 覆盖薄弱的板块（"待补"清单）
 
 > 这是 2026-07-20 一次盘点结果。**与 gsuid_core 后端端点的对照**（46 个 API 文件、约 250 端点）。
@@ -207,7 +240,7 @@
 | **workspace_api**（Kanban 任务工作区） | 4 | workspace 文件列表、上传、下载、apply-patch 仅在 Kanban 任务详情 Dialog 部分暴露，缺全局浏览。 | AIKanban 详情弹窗 + 全局工作区 |
 | **state_store_api**（State 状态存储） | 6 | ~~缺独立页~~ → 已有 `/state-store`（`StateStorePage` + `StateStoreViewer`） | — |
 | **brand_api**（品牌信息） | 5 | 仅 `BrandContext` 读 `GET /api/brand` 在登录页/布局展示，**完全没有 UI 编辑**。 | 新增 `/brand-settings` |
-| **message_api::BatchPush** | 1 | 完全无入口（批量给某人/群推消息）。 | 新增 `/batch-push` |
+| **message_api::BatchPush** | 1 | ~~完全无入口~~ → 已有 `/batch-push`（含 `bot_self_id` 手填） | — |
 | **plugin_icon_api** | 1 | ~~未走接口~~ → 已通过 `getPluginIconUrl` / `PluginIcon` 统一接入；`core_command` 用项目 `ICON.png` | — |
 | **ai_skills_api** `/api/ai/skills/...` 中 clip/install/market actions | — | 当前只覆盖 list/detail/clone/markdown；缺**已克隆技能的更新/卸载** UI。 | AISkillsPage |
 
@@ -281,7 +314,8 @@
 | Git 镜像与更新 | `git_mirror_api` + `git_update_api` | 🟩 GitUpdatePage |
 | Provider 模型高低级（含主备） | `provider_config_api` | 🟩 AIConfigPage |
 | OpenAI 兼容 / Embedding | `embedding_config_api` + `openai_config` | 🟩 AIConfigPage |
-| Web Search / Rerank | `provider_config_api` 字段 | 🟩 AIConfigPage |
+| Web Search / Web Fetch / Rerank | `ai_config` 字段（`websearch_*` / `webfetch_*`）+ 各源 StringConfig | 🟩 AIConfigPage（Jina 默认 + 多源策略） |
+| 批量推送（含 bot_self_id） | `message_api::BatchPush` + `/targets` | 🟩 BatchPushPage |
 | AI 配置向导 | `ai_wizard_api` | 🟩 AIConfigPage 内嵌 Dialog |
 | Persona CRUD + 媒体 | `persona_api` | 🟩 PersonaConfigPage |
 | MCP 服务器 + 工具发现 + 热重载 | `mcp_config_api` | 🟩 MCPConfigPage |
@@ -311,7 +345,7 @@
 | Agent 可视化调试台 | `agent_debug_api` | ⬛ 整个缺失 |
 | State Store 状态存储 | `state_store_api` | 🟨 偏弱 |
 | 品牌信息 | `brand_api` | ⬛ 无独立编辑页 |
-| 批量推送 | `message_api::BatchPush` | ⬛ 无入口 |
+| 批量推送 | `message_api::BatchPush` | 🟩 BatchPushPage（bot_self_id） |
 | 插件图标统一缓存 | `plugin_icon_api` | 🟩 `PluginIcon` + `getPluginIconUrl`（含 core_command→ICON.png） |
 | 数据库浏览与 CRUD | `database_api` | 🟩 DatabasePage |
 | 实时 WebSocket 控制台 | `web_api` | 🟩 ConsolePage |
@@ -342,6 +376,7 @@
 - **新后端 API**：一旦在 `gsuid_core` 落地、若 30 天内前端未对接，应在 §三 "待补清单"登记一行，避免成为隐性债务。
 - **新封装组件**：在 `references/06-reusable-component-catalog.md` 加章节，并在 `SKILL.md` 速记表里加一行。
 - **TabButtonGroup / PluginIcon 行为变更**：同步 [§06 §6.1 / §6.7](./references/06-reusable-component-catalog.md) 与本文 §二点七。
+- **网络搜索/抓取 / 批量推送账号**：同步 [§07 §7.7](./references/07-config-pages-and-state.md) 与本文 §二点八；后端契约同步 gsuid_core 对应 docs。
 - **新踩坑**：`references/10-pitfalls-and-performance.md` 加 `P-NN` 章节，必要时 `SKILL.md` 速记区同步。
 - **Live Chat / 协议适配器改动**：同步 [§11](./references/11-live-chat.md) 与本文档 §二 `/live-chat` 行。
 

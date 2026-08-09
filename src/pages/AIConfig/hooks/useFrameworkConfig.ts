@@ -41,8 +41,18 @@ export interface UseFrameworkConfigReturn {
   refresh: () => Promise<void>;
   /** 更新某个字段 value（不会触发重新拉取） */
   updateConfigValue: (configId: string, fieldKey: string, value: ConfigValue) => void;
-  /** 用新的 configs 重置 originalConfig 快照（保存成功后由调用方触发） */
+  /**
+   * 用新的 configs 重置 originalConfig 快照（保存成功后由调用方触发）。
+   * 仅更新快照，不改动当前编辑态 configs。
+   */
   markSaved: (nextConfigs: Record<string, LocalFrameworkConfig>) => void;
+  /**
+   * 原子地同步 configs 与 originalConfig（保存时剥离冲突字段后使用，
+   * 避免 updateConfigValue + markSaved 双 setState 不一致）。
+   */
+  applyConfigsAndMarkSaved: (
+    nextConfigs: Record<string, LocalFrameworkConfig>,
+  ) => void;
   /** 手动设置 isSaving（保存流使用） */
   setIsSaving: (saving: boolean) => void;
 }
@@ -155,6 +165,18 @@ export function useFrameworkConfig(): UseFrameworkConfigReturn {
     [],
   );
 
+  const applyConfigsAndMarkSaved = useCallback(
+    (nextConfigs: Record<string, LocalFrameworkConfig>) => {
+      const cloned = JSON.parse(JSON.stringify(nextConfigs)) as Record<
+        string,
+        LocalFrameworkConfig
+      >;
+      setConfigs(cloned);
+      setOriginalConfig(JSON.parse(JSON.stringify(cloned)));
+    },
+    [],
+  );
+
   const refresh = useCallback(async () => {
     await fetchConfigList();
     fetchedConfigNamesRef.current.clear();
@@ -173,6 +195,7 @@ export function useFrameworkConfig(): UseFrameworkConfigReturn {
     refresh,
     updateConfigValue,
     markSaved,
+    applyConfigsAndMarkSaved,
     setIsSaving,
   };
 }

@@ -1554,33 +1554,47 @@ export const generateMCPToolsConfigList = () => ({
 });
 
 // ---- Batch Push (BatchPushPage) ----
-const DEMO_PUSH_BOT_NAMES = ['OneBot V11', 'Telegram', 'Discord'];
-const DEMO_PUSH_BOTS = DEMO_PUSH_BOT_NAMES.map((name) => ({
-  bot_id: name.toLowerCase().replace(/\s+/g, '-'),
-  name,
-}));
+// 四维与后端 message_api 一致：
+// - bots[].bot_id = WS 连接 key（仅用于 push_bot；**不可**当作 targets?bot_id=）
+// - items / bot_self_ids 的 bot_id = 平台 id（onebot / telegram / …）
+// - targets?bot_id= 只按平台过滤群/用户；选中 WS 连接不应清空目标列表
+const DEMO_PUSH_BOTS = [
+  { bot_id: 'ws-onebot-a', name: 'ws-onebot-a (OneBot)', ws_bot_id: 'ws-onebot-a', connected: true },
+  { bot_id: 'ws-telegram', name: 'ws-telegram (Telegram)', ws_bot_id: 'ws-telegram', connected: true },
+  { bot_id: 'ws-discord', name: 'ws-discord (Discord)', ws_bot_id: 'ws-discord', connected: false },
+];
+/** 演示：onebot 平台挂 3 个不同 bot_self_id，精准推送时必须选中其一 */
+const DEMO_PUSH_BOT_SELF_IDS = [
+  { id: '10001:onebot', bot_id: 'onebot', bot_self_id: '10001', label: '10001 (onebot)' },
+  { id: '10002:onebot', bot_id: 'onebot', bot_self_id: '10002', label: '10002 (onebot)' },
+  { id: '10003:onebot', bot_id: 'onebot', bot_self_id: '10003', label: '10003 (onebot)' },
+  { id: 'tg-bot:telegram', bot_id: 'telegram', bot_self_id: 'tg-bot', label: 'tg-bot (telegram)' },
+  { id: 'dc-bot:discord', bot_id: 'discord', bot_self_id: 'dc-bot', label: 'dc-bot (discord)' },
+];
+const DEMO_PUSH_PLATFORMS = ['onebot', 'telegram', 'discord'];
 
 /**
- * 模拟一个数据集：每个 bot 下挂若干群/用户，用于演示分页 + 筛选。
- * 体量刻意做大（每 bot 60 群 + 80 用户 = 420 条），便于看到分页/筛选效果。
+ * 模拟一个数据集：每个平台下挂若干群/用户，用于演示分页 + 筛选。
+ * 体量刻意做大（每平台 60 群 + 80 用户），便于看到分页/筛选效果。
  */
-const DEMO_PUSH_RAW_GROUPS: { bot_id: string; group_id: string }[] = DEMO_PUSH_BOTS.flatMap(
-  (b) =>
+const DEMO_PUSH_RAW_GROUPS: { bot_id: string; group_id: string }[] = DEMO_PUSH_PLATFORMS.flatMap(
+  (platform) =>
     Array.from({ length: 60 }, (_, i) => ({
-      bot_id: b.bot_id,
-      group_id: `${b.bot_id}-g${i + 1}`,
+      bot_id: platform,
+      group_id: `${platform}-g${i + 1}`,
     })),
 );
-const DEMO_PUSH_RAW_USERS: { bot_id: string; user_id: string }[] = DEMO_PUSH_BOTS.flatMap(
-  (b) =>
+const DEMO_PUSH_RAW_USERS: { bot_id: string; user_id: string }[] = DEMO_PUSH_PLATFORMS.flatMap(
+  (platform) =>
     Array.from({ length: 80 }, (_, i) => ({
-      bot_id: b.bot_id,
-      user_id: `${b.bot_id}-u${i + 1}`,
+      bot_id: platform,
+      user_id: `${platform}-u${i + 1}`,
     })),
 );
 
 export const generateBatchPushTargets = (params?: URLSearchParams) => {
   const bot_id = params?.get('bot_id') || undefined;
+  const bot_self_id = params?.get('bot_self_id') || undefined;
   const kind = params?.get('kind') || 'all';
   const q = (params?.get('q') || '').toLowerCase();
   const limit = Math.max(1, Math.min(1000, parseInt(params?.get('limit') || '50', 10)));
@@ -1592,13 +1606,31 @@ export const generateBatchPushTargets = (params?: URLSearchParams) => {
   const allGroupLabel = '全部群 (ALLGROUP)';
   const allUserLabel = '全部用户 (ALLUSER)';
 
-  const macros: { kind: 'macro'; bot_id: ''; label: string; value: 'ALLGROUP' | 'ALLUSER' }[] = [];
+  const macros: {
+    kind: 'macro';
+    bot_id: '';
+    bot_self_id: '';
+    label: string;
+    value: 'ALLGROUP' | 'ALLUSER';
+  }[] = [];
   if (!bot_id && offset === 0) {
     if ((kind === 'all' || kind === 'group') && matchesQ(allGroupLabel, 'ALLGROUP')) {
-      macros.push({ kind: 'macro', bot_id: '', label: allGroupLabel, value: 'ALLGROUP' });
+      macros.push({
+        kind: 'macro',
+        bot_id: '',
+        bot_self_id: '',
+        label: allGroupLabel,
+        value: 'ALLGROUP',
+      });
     }
     if ((kind === 'all' || kind === 'user') && matchesQ(allUserLabel, 'ALLUSER')) {
-      macros.push({ kind: 'macro', bot_id: '', label: allUserLabel, value: 'ALLUSER' });
+      macros.push({
+        kind: 'macro',
+        bot_id: '',
+        bot_self_id: '',
+        label: allUserLabel,
+        value: 'ALLUSER',
+      });
     }
   }
 
@@ -1607,20 +1639,36 @@ export const generateBatchPushTargets = (params?: URLSearchParams) => {
       .map((g) => {
         const label = `${g.bot_id} · ${g.group_id}`;
         const value = `g:${g.group_id}|${g.bot_id}`;
-        return { kind: 'group' as const, bot_id: g.bot_id, label, value };
+        return {
+          kind: 'group' as const,
+          bot_id: g.bot_id,
+          bot_self_id: '',
+          label,
+          value,
+        };
       })
       .filter((it) => matchesQ(it.label, it.value))
-      .sort((a, b) => (a.bot_id === b.bot_id ? a.value.localeCompare(b.value) : a.bot_id.localeCompare(b.bot_id)));
+      .sort((a, b) =>
+        a.bot_id === b.bot_id ? a.value.localeCompare(b.value) : a.bot_id.localeCompare(b.bot_id),
+      );
 
   const buildUserItems = () =>
     DEMO_PUSH_RAW_USERS.filter((u) => !bot_id || u.bot_id === bot_id)
       .map((u) => {
         const label = `${u.bot_id} · ${u.user_id}`;
         const value = `u:${u.user_id}|${u.bot_id}`;
-        return { kind: 'user' as const, bot_id: u.bot_id, label, value };
+        return {
+          kind: 'user' as const,
+          bot_id: u.bot_id,
+          bot_self_id: '',
+          label,
+          value,
+        };
       })
       .filter((it) => matchesQ(it.label, it.value))
-      .sort((a, b) => (a.bot_id === b.bot_id ? a.value.localeCompare(b.value) : a.bot_id.localeCompare(b.bot_id)));
+      .sort((a, b) =>
+        a.bot_id === b.bot_id ? a.value.localeCompare(b.value) : a.bot_id.localeCompare(b.bot_id),
+      );
 
   const groupItems = kind === 'user' ? [] : buildGroupItems();
   const userItems = kind === 'group' ? [] : buildUserItems();
@@ -1630,8 +1678,13 @@ export const generateBatchPushTargets = (params?: URLSearchParams) => {
   const items = all.slice(offset, offset + limit);
   const has_more = offset + limit < total;
 
+  // bot_self_ids 始终返回全集（仅显式 bot_self_id 时收窄），与后端一致
+  let bot_self_ids = DEMO_PUSH_BOT_SELF_IDS;
+  if (bot_self_id) bot_self_ids = bot_self_ids.filter((x) => x.bot_self_id === bot_self_id);
+
   return {
     bots: DEMO_PUSH_BOTS,
+    bot_self_ids,
     items,
     total,
     limit,

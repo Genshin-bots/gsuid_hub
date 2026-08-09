@@ -27,7 +27,14 @@ const EXCLUDED_KEYS: string[] = [
   'enable',
   'enable_rerank',
   'enable_memory',
+  // 网络搜索：WebSearchSection 专属
   'websearch_provider',
+  'websearch_lb_strategy',
+  'websearch_fallback_order',
+  // 网页抓取：WebFetchSection 专属
+  'webfetch_provider',
+  'webfetch_lb_strategy',
+  'webfetch_fallback_order',
   'image_understand_provider',
   'embedding_provider',
   'qdrant_provider',
