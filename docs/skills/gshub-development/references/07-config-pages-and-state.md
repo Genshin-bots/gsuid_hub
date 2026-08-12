@@ -251,6 +251,36 @@ const EXCLUDED_KEYS: string[] = [
 因为它已经被包裹在"高级任务"区块内，加前缀会重复并显得累赘。
 直接用「备用配置 / Backup Config / 予備設定」即可。
 
+## 7.6b OpenAI Provider：终端用户标识（`forward_end_user_id`）★
+
+位置：`AIConfig/dialogs/CreateConfigDialog.tsx`、`EditConfigDialog.tsx`；仅 **openai**
+provider 的创建 / 编辑弹窗展示。
+
+### 字段
+
+| UI / 表单 | 后端字段 | 类型 | 说明 |
+|-----------|----------|------|------|
+| 终端用户标识模式 | `forward_end_user_id` | `off` / `hashed` / `raw` | 是否向请求体携带 OpenAI `user` 字段 |
+| 摘要盐值 | `end_user_id_salt` | secret string | `hashed` 模式专用；WebConsole 打码 |
+
+选项列表来自 `GET /api/provider_config/options` 的 `forward_end_user_id` 数组（与后端
+`FORWARD_MODES` 同源）。`constants.tsx` 中 `FORWARD_END_USER_ID_OPTIONS` 附带各模式说明文案。
+
+### 读写
+
+- 创建：`useProviderConfig.createConfig` 把 `forward_end_user_id`、`end_user_id_salt` 写入
+  openai profile JSON。
+- 编辑：`EditConfigDialog` 通过 `onChangeField` 更新；盐值空串表示清除。
+
+### i18n
+
+`aiConfig.serviceProvider.forwardEndUserId*`、`endUserIdSalt*` — 三语
+`src/i18n/locales/{zh-CN,en-US,ja-JP}/aiConfig.json`。
+
+> 自建网关按人鉴权时，通常将该 profile 设为 `raw` 或 `hashed`，并在账号侧配置
+> `ACCOUNT_LLM_CREDENTIAL_CONFIGS`；详见 gsuid_core `24-provider-config.md` 与部署文档
+> `13-ai.md` §13.3.1。
+
 ## 7.7 网络搜索 / 网页抓取：多源主备 UI ★★
 
 位置：`AIConfig/sections/WebSearchSection.tsx`、`WebFetchSection.tsx`；装配于

@@ -1374,6 +1374,8 @@ export default function AIConfigPage() {
         usageStatsMode={provider.newConfigUsageStatsMode}
         requestMethod={provider.newConfigRequestMethod}
         sendBackThinking={provider.newConfigSendBackThinking}
+        forwardEndUserId={provider.newConfigForwardEndUserId}
+        endUserIdSalt={provider.newConfigEndUserIdSalt}
         fetchedModels={provider.newConfigFetchedModels}
         isFetching={provider.isFetchingNewConfigModels}
         providerConfigOptions={provider.providerConfigOptions}
@@ -1392,6 +1394,8 @@ export default function AIConfigPage() {
         onChangeUsageStatsMode={provider.setNewConfigUsageStatsMode}
         onChangeRequestMethod={provider.setNewConfigRequestMethod}
         onChangeSendBackThinking={provider.setNewConfigSendBackThinking}
+        onChangeForwardEndUserId={provider.setNewConfigForwardEndUserId}
+        onChangeEndUserIdSalt={provider.setNewConfigEndUserIdSalt}
         onReset={provider.resetNewConfigForm}
         onSubmit={provider.handleCreateOpenaiConfig}
       />

@@ -84,6 +84,8 @@ export function MemorySettingsSection({
               onValueChange={(newValue) =>
                 onUpdateConfig(memoryConfig.id, 'memory_mode', newValue)
               }
+              // 记忆路径支持全部关闭或按需开启任意子集（设计允许空数组）
+              allowEmpty
             />
           </div>
 

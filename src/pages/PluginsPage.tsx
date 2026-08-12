@@ -787,20 +787,30 @@ export default function PluginsPage() {
       ));
       
       try {
-        // 使用 gitUpdateApi.forceUpdate 来更新单个插件
+        // api.post 已解包：返回 GitForceUpdateResponse（{ success, message, current_commit }）
         const result = await gitUpdateApi.forceUpdate(plugin.name);
-        if (result.status === 0) {
+        if (result?.success) {
           setPluginUpdateList(prev => prev.map(p =>
-            p.name === plugin.name ? { ...p, status: 'success', message: result.msg } : p
+            p.name === plugin.name
+              ? { ...p, status: 'success', message: result.message }
+              : p
           ));
         } else {
           setPluginUpdateList(prev => prev.map(p =>
-            p.name === plugin.name ? { ...p, status: 'failed', message: result.msg } : p
+            p.name === plugin.name
+              ? { ...p, status: 'failed', message: result?.message || t('plugins.updateFailed') }
+              : p
           ));
         }
       } catch (error) {
         setPluginUpdateList(prev => prev.map(p =>
-          p.name === plugin.name ? { ...p, status: 'failed', message: error instanceof Error ? error.message : String(error) } : p
+          p.name === plugin.name
+            ? {
+                ...p,
+                status: 'failed',
+                message: error instanceof Error ? error.message : String(error),
+              }
+            : p
         ));
       }
     });

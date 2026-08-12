@@ -976,6 +976,11 @@ export interface OpenAIConfigOptions {
    * 思考回传候选值（auto / off）。仅 OpenAI 系列支持。
    */
   send_back_thinking?: string[];
+  /**
+   * 终端用户标识透传候选值（off / hashed / raw）。仅 OpenAI 系列支持
+   * （`user` 是 OpenAI 协议字段，Anthropic / Gemini 无对等标准字段）。
+   */
+  forward_end_user_id?: string[];
 }
 
 export interface OpenAIConfigData {
@@ -1007,6 +1012,17 @@ export interface OpenAIConfigData {
    * `off`（完全不回传思考内容，网关兼容性最好）。
    */
   send_back_thinking?: string;
+  /**
+   * 终端用户标识透传。**仅 OpenAI 系列才有此字段**：
+   * `off`（不携带，默认）/ `hashed`（携带加盐摘要）/ `raw`（携带原始标识）。
+   * 携带的是 OpenAI 协议标准的 `user` 字段，供上游网关按调用方聚合用量与日志。
+   */
+  forward_end_user_id?: string;
+  /**
+   * `hashed` 模式计算摘要用的盐值。**仅 OpenAI 系列才有此字段**，后端标记为
+   * secret；留空即无密钥摘要（标识空间小时可被枚举反查，只起混淆作用）。
+   */
+  end_user_id_salt?: string;
 }
 
 export interface OpenAIConfigDetail {
@@ -1135,6 +1151,8 @@ export interface ProviderConfigOptions {
     request_method: string[];
     /** 思考回传候选值（auto / off）。仅 OpenAI 系列会返回。 */
     send_back_thinking?: string[];
+    /** 终端用户标识透传候选值（off / hashed / raw）。仅 OpenAI 系列会返回。 */
+    forward_end_user_id?: string[];
   };
 }
 
@@ -3427,13 +3445,14 @@ export const gitUpdateApi = {
   checkout: (pluginName: string, commitHash: string) =>
     api.post<GitCheckoutResponse>(`/api/git-update/checkout/${encodeURIComponent(pluginName)}`, { commit_hash: commitHash }),
 
-  // 普通更新（git fetch + git pull�?
+  // 普通更新（git fetch + git pull）
+  // 注意：api.post 已解包信封，返回的是内层 data（GitForceUpdateResponse），不是 {status,msg,data}
   update: (pluginName: string) =>
-    api.post<ApiResponse<GitForceUpdateResponse>>(`/api/git-update/update/${encodeURIComponent(pluginName)}`),
+    api.post<GitForceUpdateResponse>(`/api/git-update/update/${encodeURIComponent(pluginName)}`),
 
-  // 强制更新（git reset --hard + git pull�?
+  // 强制更新（git reset --hard + git pull）
   forceUpdate: (pluginName: string) =>
-    api.post<ApiResponse<GitForceUpdateResponse>>(`/api/git-update/force-update/${encodeURIComponent(pluginName)}`),
+    api.post<GitForceUpdateResponse>(`/api/git-update/force-update/${encodeURIComponent(pluginName)}`),
 
   // 更新全部插件
   updateAll: () =>

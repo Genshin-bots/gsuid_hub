@@ -157,6 +157,13 @@ export const getSendBackThinkingLabel = (
 ): string =>
   getEnumLabel(t, 'aiConfig.serviceProvider.sendBackThinkingOptions', raw);
 
+/** `forward_end_user_id`：`off / hashed / raw`（终端用户标识透传） */
+export const getForwardEndUserIdLabel = (
+  t: (key: string) => string,
+  raw: string,
+): string =>
+  getEnumLabel(t, 'aiConfig.serviceProvider.forwardEndUserIdOptions', raw);
+
 /**
  * `request_method` 每个端点的端点级描述。用于在「编辑/新建」对话框下显示一行
  * 说明：当用户切换选项时，下方说明文字会跟着变。原始 `raw` 落库不变。
@@ -168,3 +175,13 @@ export const getRequestMethodDescription = (
   raw: string,
 ): string =>
   getEnumLabel(t, 'aiConfig.serviceProvider.requestMethodDescription', raw);
+
+/**
+ * `forward_end_user_id` 每个模式的说明。三种模式的隐私与可观测性权衡差别很大
+ * （raw 会把原始标识发到上游），必须逐项说明，写法同 `getRequestMethodDescription`。
+ */
+export const getForwardEndUserIdDescription = (
+  t: (key: string) => string,
+  raw: string,
+): string =>
+  getEnumLabel(t, 'aiConfig.serviceProvider.forwardEndUserIdDescription', raw);

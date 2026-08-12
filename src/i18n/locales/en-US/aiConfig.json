@@ -128,6 +128,20 @@
       "auto": "Auto (pydantic_ai default, resend history thinking)",
       "off": "Off (never resend thinking, best compatibility)"
     },
+    "forwardEndUserId": "Forward Caller Identity",
+    "forwardEndUserIdOptions": {
+      "off": "Off (never sent, default)",
+      "hashed": "Salted digest (send an irreversible digest)",
+      "raw": "Raw identity (send in plain text)"
+    },
+    "forwardEndUserIdDescription": {
+      "off": "Requests carry no caller identity, so upstream only sees usage aggregated for this config as a whole. This is the default.",
+      "hashed": "Sends a salted digest of the caller identity in OpenAI's standard user field. Upstream can group usage and logs per caller without ever seeing the original identity.",
+      "raw": "Sends the caller identity verbatim in OpenAI's standard user field. Only recommended for trusted upstreams such as your own gateway — never for third-party official endpoints."
+    },
+    "endUserIdSalt": "Digest Salt",
+    "endUserIdSaltPlaceholder": "Leave empty for an unkeyed digest",
+    "endUserIdSaltHint": "An empty salt means an unkeyed digest: when the identity space is small (numeric account IDs), it can be brute-forced back, so it only obfuscates. Changing the salt orphans every previously sent digest and breaks upstream per-caller history.",
     "capabilityText": "Text Chat",
     "capabilityImage": "Image Understanding",
     "capabilityAudio": "Audio Processing",

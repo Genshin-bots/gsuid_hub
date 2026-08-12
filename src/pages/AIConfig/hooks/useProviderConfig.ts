@@ -58,6 +58,10 @@ export interface UseProviderConfigReturn {
   newConfigRequestMethod: string;
   /** 仅 OpenAI 系列在 UI 暴露：思考回传 auto/off */
   newConfigSendBackThinking: string;
+  /** 仅 OpenAI 系列在 UI 暴露：终端用户标识透传 off/hashed/raw */
+  newConfigForwardEndUserId: string;
+  /** 仅 OpenAI 系列在 UI 暴露：`hashed` 模式的盐值 */
+  newConfigEndUserIdSalt: string;
   newConfigFetchedModels: string[];
   isFetchingNewConfigModels: boolean;
 
@@ -86,6 +90,8 @@ export interface UseProviderConfigReturn {
   setNewConfigUsageStatsMode: (v: string) => void;
   setNewConfigRequestMethod: (v: string) => void;
   setNewConfigSendBackThinking: (v: string) => void;
+  setNewConfigForwardEndUserId: (v: string) => void;
+  setNewConfigEndUserIdSalt: (v: string) => void;
   resetNewConfigForm: () => void;
   setIsCreateDialogOpen: (open: boolean) => void;
   setIsEditDialogOpen: (open: boolean) => void;
@@ -178,6 +184,9 @@ export function useProviderConfig(): UseProviderConfigReturn {
     'chat_completions',
   );
   const [newConfigSendBackThinking, setNewConfigSendBackThinking] = useState('auto');
+  // 默认 off：透传终端用户标识属于要显式打开的行为，不能默认外发
+  const [newConfigForwardEndUserId, setNewConfigForwardEndUserId] = useState('off');
+  const [newConfigEndUserIdSalt, setNewConfigEndUserIdSalt] = useState('');
   const [newConfigFetchedModels, setNewConfigFetchedModels] = useState<string[]>([]);
   const [editConfigFetchedModels, setEditConfigFetchedModels] = useState<string[]>(
     [],
@@ -297,6 +306,8 @@ export function useProviderConfig(): UseProviderConfigReturn {
           usage_stats_mode: cfg.usage_stats_mode?.data as string | undefined,
           request_method: cfg.request_method?.data as string | undefined,
           send_back_thinking: cfg.send_back_thinking?.data as string | undefined,
+          forward_end_user_id: cfg.forward_end_user_id?.data as string | undefined,
+          end_user_id_salt: cfg.end_user_id_salt?.data as string | undefined,
         };
         setOpenaiConfigData(configData);
         setEditingConfigProvider(provider);
@@ -471,6 +482,13 @@ export function useProviderConfig(): UseProviderConfigReturn {
         configData.send_back_thinking = {
           data: openaiConfigData.send_back_thinking || 'auto',
         };
+        configData.forward_end_user_id = {
+          data: openaiConfigData.forward_end_user_id || 'off',
+        };
+        // 盐值允许为空串（无密钥摘要），所以不能用 `||` 兜底成默认值
+        configData.end_user_id_salt = {
+          data: openaiConfigData.end_user_id_salt ?? '',
+        };
       }
       await providerConfigApi.saveConfig(
         editingConfigProvider,
@@ -501,6 +519,8 @@ export function useProviderConfig(): UseProviderConfigReturn {
     setNewConfigUsageStatsMode('auto');
     setNewConfigRequestMethod('chat_completions');
     setNewConfigSendBackThinking('auto');
+    setNewConfigForwardEndUserId('off');
+    setNewConfigEndUserIdSalt('');
     setNewConfigFetchedModels([]);
   }, []);
 
@@ -543,6 +563,8 @@ export function useProviderConfig(): UseProviderConfigReturn {
         configData.usage_stats_mode = { data: newConfigUsageStatsMode };
         configData.request_method = { data: newConfigRequestMethod };
         configData.send_back_thinking = { data: newConfigSendBackThinking };
+        configData.forward_end_user_id = { data: newConfigForwardEndUserId };
+        configData.end_user_id_salt = { data: newConfigEndUserIdSalt };
       }
       await providerConfigApi.saveConfig(newConfigProvider, configName, configData);
       toast.success(t('aiConfig.openaiConfig.createSuccess', { name: configName }));
@@ -565,6 +587,8 @@ export function useProviderConfig(): UseProviderConfigReturn {
     newConfigUsageStatsMode,
     newConfigRequestMethod,
     newConfigSendBackThinking,
+    newConfigForwardEndUserId,
+    newConfigEndUserIdSalt,
     newConfigProvider,
     t,
     fetchAllConfigs,
@@ -717,6 +741,8 @@ export function useProviderConfig(): UseProviderConfigReturn {
     newConfigUsageStatsMode,
     newConfigRequestMethod,
     newConfigSendBackThinking,
+    newConfigForwardEndUserId,
+    newConfigEndUserIdSalt,
     newConfigFetchedModels,
     isFetchingNewConfigModels,
 
@@ -745,6 +771,8 @@ export function useProviderConfig(): UseProviderConfigReturn {
     setNewConfigUsageStatsMode,
     setNewConfigRequestMethod,
     setNewConfigSendBackThinking,
+    setNewConfigForwardEndUserId,
+    setNewConfigEndUserIdSalt,
     resetNewConfigForm,
     setIsCreateDialogOpen,
     setIsEditDialogOpen,

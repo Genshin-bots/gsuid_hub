@@ -556,13 +556,16 @@ export default function GitUpdatePage() {
     setUpdateDialog(false);
     try {
       setIsForceUpdating(true);
+      // api.post 已解包：返回 GitForceUpdateResponse，不是 {status,msg,data}
       const result = await gitUpdateApi.update(selectedPlugin);
-      if (result.status === 0) {
-        toast.success(t('gitUpdate.updateSuccess', {
-            hash: result.data?.current_commit?.short_hash || '',
-          }));
+      if (result?.success) {
+        toast.success(
+          t('gitUpdate.updateSuccess', {
+            hash: result.current_commit?.short_hash || '',
+          }),
+        );
       } else {
-        toast.error(result.msg || t('gitUpdate.updateFailed'));
+        toast.error(result?.message || t('gitUpdate.updateFailed'));
       }
       // 清除缓存并刷新
       clearCommitsCache(selectedPlugin);
@@ -586,13 +589,16 @@ export default function GitUpdatePage() {
     if (!selectedPlugin) return;
     try {
       setIsForceUpdating(true);
+      // api.post 已解包：返回 GitForceUpdateResponse，不是 {status,msg,data}
       const result = await gitUpdateApi.forceUpdate(selectedPlugin);
-      if (result.status === 0) {
-        toast.success(t('gitUpdate.forceUpdateSuccess', {
-            hash: result.data?.current_commit?.short_hash || '',
-          }));
+      if (result?.success) {
+        toast.success(
+          t('gitUpdate.forceUpdateSuccess', {
+            hash: result.current_commit?.short_hash || '',
+          }),
+        );
       } else {
-        toast.error(result.msg || t('gitUpdate.forceUpdateFailed'));
+        toast.error(result?.message || t('gitUpdate.forceUpdateFailed'));
       }
       // 清除缓存并刷新
       clearCommitsCache(selectedPlugin);
@@ -667,19 +673,30 @@ export default function GitUpdatePage() {
         ));
         
         try {
+          // api.post 已解包：返回 GitForceUpdateResponse
           const result = await gitUpdateApi.update(plugin.name);
-          if (result.data?.success === true) {
+          if (result?.success) {
             setPluginUpdateList(prev => prev.map(p =>
-              p.name === plugin.name ? { ...p, status: 'success', message: result.data?.message || result.msg } : p
+              p.name === plugin.name
+                ? { ...p, status: 'success', message: result.message }
+                : p
             ));
           } else {
             setPluginUpdateList(prev => prev.map(p =>
-              p.name === plugin.name ? { ...p, status: 'failed', message: result.data?.message || result.msg } : p
+              p.name === plugin.name
+                ? { ...p, status: 'failed', message: result?.message || t('gitUpdate.updateFailed') }
+                : p
             ));
           }
         } catch (error) {
           setPluginUpdateList(prev => prev.map(p =>
-            p.name === plugin.name ? { ...p, status: 'failed', message: error instanceof Error ? error.message : String(error) } : p
+            p.name === plugin.name
+              ? {
+                  ...p,
+                  status: 'failed',
+                  message: error instanceof Error ? error.message : String(error),
+                }
+              : p
           ));
         }
       });

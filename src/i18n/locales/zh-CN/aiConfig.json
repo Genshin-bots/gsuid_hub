@@ -128,6 +128,20 @@
       "auto": "自动（pydantic_ai 默认，回发历史思考）",
       "off": "关闭（不回传思考，兼容性最好）"
     },
+    "forwardEndUserId": "调用方标识透传",
+    "forwardEndUserIdOptions": {
+      "off": "关闭（不携带，默认）",
+      "hashed": "加盐摘要（携带不可逆摘要）",
+      "raw": "原始标识（携带明文）"
+    },
+    "forwardEndUserIdDescription": {
+      "off": "请求里不带任何调用方标识，上游只能看到这个配置整体的用量。默认值。",
+      "hashed": "把调用方标识做加盐摘要后放进 OpenAI 标准 user 字段，上游能按调用方聚合用量与日志，但拿不到原始标识。",
+      "raw": "把调用方标识原样放进 OpenAI 标准 user 字段。仅建议发给自建网关等可信上游，第三方官方端点请勿使用。"
+    },
+    "endUserIdSalt": "摘要盐值",
+    "endUserIdSaltPlaceholder": "留空即无密钥摘要",
+    "endUserIdSaltHint": "留空时摘要不带密钥：标识空间小（纯数字账号）时可被枚举反查，只起混淆作用。改动盐值会让此前的摘要全部失去对应关系，上游按调用方的历史聚合会断裂。",
     "capabilityText": "文本对话",
     "capabilityImage": "图片理解",
     "capabilityAudio": "语音处理",
