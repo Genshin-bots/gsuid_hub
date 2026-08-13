@@ -934,7 +934,9 @@ const DEMO_MCP_CONFIGS = [
     transport: 'stdio',
     command: 'npx -y @modelcontextprotocol/server-openai',
     env_keys: ['OPENAI_API_KEY'],
-    args: [],
+    args: [] as string[],
+    url: '',
+    headers: {} as Record<string, string>,
     enabled: true,
     tools_count: 6,
     last_loaded_at: new Date(Date.now() - 600_000).toISOString(),
@@ -946,7 +948,9 @@ const DEMO_MCP_CONFIGS = [
     transport: 'stdio',
     command: 'npx -y @modelcontextprotocol/server-brave-search',
     env_keys: ['BRAVE_API_KEY'],
-    args: [],
+    args: [] as string[],
+    url: '',
+    headers: {} as Record<string, string>,
     enabled: true,
     tools_count: 2,
     last_loaded_at: new Date(Date.now() - 1800_000).toISOString(),
@@ -959,9 +963,25 @@ const DEMO_MCP_CONFIGS = [
     command: 'mcp-server-filesystem',
     env_keys: ['ALLOWED_DIRS'],
     args: ['/data/kanban_workspace'],
+    url: '',
+    headers: {} as Record<string, string>,
     enabled: false,
     tools_count: 0,
     last_loaded_at: null,
+  },
+  {
+    config_id: 'mcp-remote-http',
+    name: 'Remote HTTP MCP',
+    description: '通过 Streamable HTTP 连接的远程 MCP',
+    transport: 'streamable_http',
+    command: '',
+    env_keys: [],
+    args: [],
+    url: 'https://example.com/mcp',
+    headers: { Authorization: 'Bearer ••••••••' },
+    enabled: true,
+    tools_count: 3,
+    last_loaded_at: new Date(Date.now() - 300_000).toISOString(),
   },
 ];
 export const generateMCPConfigList = () =>
@@ -972,9 +992,16 @@ export const generateMCPConfigList = () =>
     transport: c.transport,
     command: c.command,
     args: c.args,
-    env_keys: c.env_keys,
+    env: Object.fromEntries((c.env_keys ?? []).map((k) => [k, '••••••••'])),
+    url: c.url,
+    headers: c.headers,
     enabled: c.enabled,
-    tools_count: c.tools_count,
+    register_as_ai_tools: false,
+    tools: Array.from({ length: c.tools_count }, (_, i) => ({
+      name: `tool_${i + 1}`,
+      description: 'demo tool',
+    })),
+    tool_permissions: {},
     last_loaded_at: c.last_loaded_at,
   }));
 export const generateMCPConfigDetail = (configId: string) => {
@@ -989,10 +1016,15 @@ export const generateMCPConfigDetail = (configId: string) => {
   };
 };
 export const generateMCPPresets = () => [
-  { name: 'OpenAI Tools', description: 'OpenAI 官方维护的 MCP，包含计算器与文件处理工具' },
-  { name: 'Brave Search', description: 'Brave Search 官方 MCP，提供实时搜索能力' },
-  { name: 'Filesystem (受限)', description: '限制到 Kanban Workspace 的文件系统 MCP' },
-  { name: 'Puppeteer', description: 'Puppeteer 浏览器自动化' },
+  { name: 'OpenAI Tools', description: 'OpenAI 官方维护的 MCP，包含计算器与文件处理工具', transport: 'stdio' },
+  { name: 'Brave Search', description: 'Brave Search 官方 MCP，提供实时搜索能力', transport: 'stdio' },
+  { name: 'Filesystem (受限)', description: '限制到 Kanban Workspace 的文件系统 MCP', transport: 'stdio' },
+  {
+    name: 'Remote HTTP',
+    description: '通过 Streamable HTTP 连接的远程 MCP',
+    transport: 'streamable_http',
+    url: 'https://example.com/mcp',
+  },
 ];
 
 // ---- AI Statistics（AIStatisticsPage） ----

@@ -70,7 +70,7 @@
 |---|---|---|---|---|
 | `/ai-config` | `AIConfigPage.tsx` (`AIConfig/`) | Provider / 高低级任务主备 / Embedding / **网络搜索（Jina 默认 + 多源策略）** / **网页抓取（Jina+local）** / Rerank + AI 向导 | `framework-config` + `provider_config_api` / `embedding_config_api` / `ai_wizard_api` | [§07 §7.5–7.7](./references/07-config-pages-and-state.md) |
 | `/persona-config` | `PersonaConfigPage.tsx` | 多 Persona 卡片列表 + 头像/立绘/音频上传 + Markdown 编辑 + 作用范围 | `persona_api.py`（`/api/persona/*`） | [§08 §8.1](./references/08-page-patterns.md) |
-| `/mcp-config` | `MCPConfigPage.tsx` | MCP 服务器 CRUD、环境变量、工具发现、JSON 导入、预设、热重载、工具参数映射 | `mcp_config_api.py`（`/api/ai/mcp*`、`/api/ai/mcp-tools-config/*`） | [§03 主题](./references/03-theme-and-styling.md)、[§10 P-26](./references/10-pitfalls-and-performance.md) |
+| `/mcp-config` | `MCPConfigPage.tsx` | MCP 服务器 CRUD、**stdio / SSE / Streamable HTTP** 三传输、环境变量、工具发现、JSON 导入（含 `type: "http"`）、预设、热重载、工具参数映射 | `mcp_config_api.py`（`/api/ai/mcp*`、`/api/ai/mcp-tools-config/*`） | [§03 主题](./references/03-theme-and-styling.md)、[§07 §7.8](./references/07-config-pages-and-state.md)、[§10 P-26](./references/10-pitfalls-and-performance.md) |
 | `/ai-capability-agents` | `AICapabilityAgentsPage.tsx` | 能力代理节点（**builtin / plugin / user**，不含 persona）；plugin Tab 用 **TabButtonGroup dropdown** 按 `plugin` 字段筛选；工具挂载 + 关键词 + 编辑/删除 | `capability_agents_api.py`（`/api/ai/capability-agents*`） | [§06 §6.1 dropdown](./references/06-reusable-component-catalog.md)、[§09](./references/09-sidebar-navigation.md) |
 | `/ai-tool-outputs` | `AIToolOutputsPage.tsx` | FileOS 工具落盘（`to_`/`sa_` 等）浏览、筛选、预览、批量删除 | `tool_outputs_api.py`（`/api/ai/tool-outputs*`） | — |
 | `/ai-tools` | `AIToolsPage.tsx` | 工具列表 + 分类 + 详情 | `ai_tools_api.py`（`/api/ai/tools*`） | [§04 排版参考页](./references/04-page-layout-spec.md) |
@@ -318,7 +318,7 @@
 | 批量推送（含 bot_self_id） | `message_api::BatchPush` + `/targets` | 🟩 BatchPushPage |
 | AI 配置向导 | `ai_wizard_api` | 🟩 AIConfigPage 内嵌 Dialog |
 | Persona CRUD + 媒体 | `persona_api` | 🟩 PersonaConfigPage |
-| MCP 服务器 + 工具发现 + 热重载 | `mcp_config_api` | 🟩 MCPConfigPage |
+| MCP 服务器 + 工具发现 + 热重载（stdio / SSE / Streamable HTTP） | `mcp_config_api` | 🟩 MCPConfigPage |
 | MCP 工具参数映射 | `mcp_config_api::tools-config` | 🟨 UI 入口弱 |
 | Capability Agent 节点 | `capability_agents_api` | 🟩 AICapabilityAgentsPage（builtin/plugin/user + plugin 下拉筛选） |
 | AI 工具落盘 Tool Outputs | `tool_outputs_api` | 🟩 `/ai-tool-outputs` |

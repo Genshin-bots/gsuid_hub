@@ -3189,18 +3189,20 @@ export interface MCPToolFromServer {
   parameters?: Record<string, MCPToolParameter>;
 }
 
+export type MCPTransport = 'stdio' | 'sse' | 'streamable_http';
+
 export interface MCPConfig {
   config_id: string;
   name: string;
-  transport?: 'stdio' | 'sse';
-  command: string;
-  args: string[];
-  env: Record<string, string>;
+  transport?: MCPTransport | string;
+  command?: string;
+  args?: string[];
+  env?: Record<string, string>;
   url?: string;
   headers?: Record<string, string>;
   enabled: boolean;
   register_as_ai_tools: boolean;
-  tools: MCPToolDefinition[];
+  tools?: MCPToolDefinition[];
   tool_permissions?: Record<string, number>;
 }
 
@@ -3211,7 +3213,7 @@ export interface MCPConfigListResponse {
 
 export interface MCPConfigCreateData {
   name: string;
-  transport?: 'stdio' | 'sse';
+  transport?: MCPTransport;
   command?: string;
   args?: string[];
   env?: Record<string, string>;
@@ -3225,7 +3227,7 @@ export interface MCPConfigCreateData {
 
 export interface MCPConfigUpdateData {
   name?: string;
-  transport?: 'stdio' | 'sse';
+  transport?: MCPTransport;
   command?: string;
   args?: string[];
   env?: Record<string, string>;
@@ -3263,7 +3265,7 @@ export interface MCPImportResponse {
 export interface MCPPreset {
   name: string;
   description?: string;
-  transport?: 'stdio' | 'sse';
+  transport?: MCPTransport | string;
   command?: string;
   args?: string[];
   env?: Record<string, string>;
@@ -3340,7 +3342,7 @@ export const mcpConfigApi = {
   // 从临时配置发现工具（不保存）
   discoverToolsFromConfig: (data: {
     name: string;
-    transport?: 'stdio' | 'sse';
+    transport?: MCPTransport;
     command?: string;
     args?: string[];
     env?: Record<string, string>;

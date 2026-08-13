@@ -11,7 +11,7 @@ import {
   Server, Loader2, Plus, Pencil, Trash2, RefreshCw,
   ChevronDown, ChevronRight, AlertTriangle, CheckCircle,
   X, HelpCircle, Download, FileJson, Search, Wrench,
-  Settings2, ListChecks, Package, Globe, Terminal,
+  Settings2, ListChecks, Package, Globe, Terminal, Network,
   Tag, ArrowLeftRight, Braces, Key, Shield,
   Eye, EyeOff
 } from 'lucide-react';
@@ -25,6 +25,7 @@ import {
 import {
   mcpConfigApi,
   MCPConfig,
+  MCPTransport,
   MCPReloadResponse,
   MCPPreset,
   MCPToolFromServer,
@@ -84,7 +85,7 @@ interface McpBrandIconProps {
   name: string;
   /** stdio 命令（可选，用于匹配包名） */
   command?: string;
-  /** sse URL（可选，用于匹配域名） */
+  /** 远程 URL（可选，用于匹配域名） */
   url?: string;
   className?: string;
 }
@@ -119,7 +120,7 @@ interface HeaderVar {
 
 interface FormData {
   name: string;
-  transport: 'stdio' | 'sse';
+  transport: MCPTransport;
   command: string;
   argsText: string;
   envVars: EnvVar[];
@@ -184,6 +185,41 @@ function varsToHeaders(vars: HeaderVar[]): Record<string, string> {
     }
   }
   return headers;
+}
+
+function normalizeMcpTransport(raw?: string, url?: string): MCPTransport {
+  const t = (raw || '').trim().toLowerCase().replace(/-/g, '_');
+  if (t === 'stdio' || t === 'sse' || t === 'streamable_http') return t;
+  if (t === 'http' || t === 'streamablehttp') return 'streamable_http';
+  if (url) {
+    try {
+      const pathname = new URL(url).pathname.replace(/\/+$/, '');
+      if (pathname === '/sse' || pathname.endsWith('/sse')) return 'sse';
+    } catch {
+      const path = url.split('?')[0].replace(/\/+$/, '');
+      if (path.endsWith('/sse')) return 'sse';
+    }
+    if (url.startsWith('http')) return 'streamable_http';
+  }
+  return 'stdio';
+}
+
+function isHttpMcpTransport(transport: MCPTransport): boolean {
+  return transport === 'sse' || transport === 'streamable_http';
+}
+
+function transportMeta(transport: MCPTransport): {
+  Icon: typeof Globe;
+  labelKey: 'mcpConfig.transportStdio' | 'mcpConfig.transportSse' | 'mcpConfig.transportStreamableHttp';
+  short: string;
+} {
+  if (transport === 'streamable_http') {
+    return { Icon: Network, labelKey: 'mcpConfig.transportStreamableHttp', short: 'HTTP' };
+  }
+  if (transport === 'sse') {
+    return { Icon: Globe, labelKey: 'mcpConfig.transportSse', short: 'SSE' };
+  }
+  return { Icon: Terminal, labelKey: 'mcpConfig.transportStdio', short: 'stdio' };
 }
 
 function getEmptyFormData(): FormData {
@@ -345,7 +381,7 @@ export default function MCPConfigPage() {
   const handleSelectPreset = (preset: MCPPreset) => {
     setConnectionMethod('preset');
     setSelectedPresetName(preset.name);
-    const transport = preset.transport || (preset.url ? 'sse' : 'stdio');
+    const transport = normalizeMcpTransport(preset.transport, preset.url);
     setFormData({
       name: preset.name,
       transport,
@@ -394,8 +430,8 @@ export default function MCPConfigPage() {
           command: formData.transport === 'stdio' ? formData.command.trim() : undefined,
           args: formData.transport === 'stdio' ? args : undefined,
           env: formData.transport === 'stdio' ? env : undefined,
-          url: formData.transport === 'sse' ? formData.url.trim() : undefined,
-          headers: formData.transport === 'sse' ? headers : undefined,
+          url: isHttpMcpTransport(formData.transport) ? formData.url.trim() : undefined,
+          headers: isHttpMcpTransport(formData.transport) ? headers : undefined,
         });
       }
 
@@ -437,7 +473,7 @@ export default function MCPConfigPage() {
 
   const openEditDialog = (config: MCPConfig) => {
     setEditingConfig(config);
-    const transport = config.transport || (config.url ? 'sse' : 'stdio');
+    const transport = normalizeMcpTransport(config.transport, config.url);
     setFormData({
       name: config.name,
       transport,
@@ -453,14 +489,15 @@ export default function MCPConfigPage() {
     setConnectionMethod('manual');
     setSelectedPresetName('');
     // Pre-populate tools from config (preserve parameters and input_schema)
-    const configTools: MCPToolFromServer[] = config.tools.map(t => ({
+    const existingTools = config.tools ?? [];
+    const configTools: MCPToolFromServer[] = existingTools.map(t => ({
       name: t.name,
       description: t.description,
       ...(t.parameters && { parameters: t.parameters }),
       ...(t.input_schema && { input_schema: t.input_schema }),
     }));
     setDiscoveredTools(configTools);
-    setSelectedToolNames(new Set(config.tools.map(t => t.name)));
+    setSelectedToolNames(new Set(existingTools.map(t => t.name)));
     setFormDialogOpen(true);
   };
 
@@ -475,7 +512,7 @@ export default function MCPConfigPage() {
       toast.error(t('mcpConfig.commandRequired'));
       return;
     }
-    if (formData.transport === 'sse' && !formData.url.trim()) {
+    if (isHttpMcpTransport(formData.transport) && !formData.url.trim()) {
       toast.error(t('mcpConfig.urlRequired'));
       return;
     }
@@ -505,8 +542,8 @@ export default function MCPConfigPage() {
           command: formData.transport === 'stdio' ? formData.command.trim() : '',
           args: formData.transport === 'stdio' ? args : [],
           env: formData.transport === 'stdio' ? env : {},
-          url: formData.transport === 'sse' ? formData.url.trim() : '',
-          headers: formData.transport === 'sse' ? headers : {},
+          url: isHttpMcpTransport(formData.transport) ? formData.url.trim() : '',
+          headers: isHttpMcpTransport(formData.transport) ? headers : {},
           enabled: formData.enabled,
           register_as_ai_tools: formData.registerAsAiTools,
           tools,
@@ -521,8 +558,8 @@ export default function MCPConfigPage() {
           command: formData.transport === 'stdio' ? formData.command.trim() : '',
           args: formData.transport === 'stdio' ? args : [],
           env: formData.transport === 'stdio' ? env : {},
-          url: formData.transport === 'sse' ? formData.url.trim() : '',
-          headers: formData.transport === 'sse' ? headers : {},
+          url: isHttpMcpTransport(formData.transport) ? formData.url.trim() : '',
+          headers: isHttpMcpTransport(formData.transport) ? headers : {},
           enabled: formData.enabled,
           register_as_ai_tools: formData.registerAsAiTools,
           tools,
@@ -782,7 +819,14 @@ export default function MCPConfigPage() {
           </Card>
         ) : (
           <div className="space-y-3">
-            {configs.map(config => (
+            {configs.map(config => {
+              const itemTransport = normalizeMcpTransport(config.transport, config.url);
+              const itemHttp = isHttpMcpTransport(itemTransport);
+              const itemTools = config.tools ?? [];
+              const itemArgs = config.args ?? [];
+              const itemEnv = config.env ?? {};
+              const itemMeta = transportMeta(itemTransport);
+              return (
               <Card
                 key={config.config_id}
                 className={cn(
@@ -829,10 +873,7 @@ export default function MCPConfigPage() {
                       <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                         <p className="font-medium text-sm truncate max-w-full">{config.name}</p>
                         <Badge variant="outline" className="text-xs shrink-0">
-                          {(config.transport === 'sse' || (!config.transport && config.url))
-                            ? <><Globe className="h-3 w-3 mr-1" />SSE</>
-                            : <><Terminal className="h-3 w-3 mr-1" />stdio</>
-                          }
+                          <itemMeta.Icon className="h-3 w-3 mr-1" />{itemMeta.short}
                         </Badge>
                         <Badge variant={config.enabled ? "default" : "secondary"} className="text-xs shrink-0">
                           {config.enabled ? t('mcpConfig.enabled') : t('mcpConfig.disabled')}
@@ -842,14 +883,14 @@ export default function MCPConfigPage() {
                             AI Tools
                           </Badge>
                         )}
-                        {config.tools.length > 0 && (
+                        {itemTools.length > 0 && (
                           <Badge variant="outline" className="text-xs shrink-0">
                             <Wrench className="h-3 w-3 mr-1" />
-                            {t('mcpConfig.toolsCount', { count: config.tools.length })}
+                            {t('mcpConfig.toolsCount', { count: itemTools.length })}
                           </Badge>
                         )}
                       </div>
-                      {(config.transport === 'sse' || (!config.transport && config.url)) ? (
+                      {itemHttp ? (
                         <p className="text-xs text-muted-foreground mt-0.5 break-all">
                           <Globe className="h-3 w-3 inline mr-1" />
                           <code className="bg-muted px-1 py-0.5 rounded text-[10px]">{config.url}</code>
@@ -857,9 +898,9 @@ export default function MCPConfigPage() {
                       ) : (
                         <p className="text-xs text-muted-foreground mt-0.5 break-all">
                           <code className="bg-muted px-1 py-0.5 rounded text-[10px]">{config.command}</code>
-                          {config.args.length > 0 && (
+                          {itemArgs.length > 0 && (
                             <span className="ml-1">
-                              {config.args.map((arg, i) => (
+                              {itemArgs.map((arg, i) => (
                                 <span key={i}>
                                   <code className="bg-muted px-1 py-0.5 rounded text-[10px] ml-1">{arg}</code>
                                 </span>
@@ -931,23 +972,16 @@ export default function MCPConfigPage() {
                         <div>
                           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">{t('mcpConfig.transport')}</p>
                           <p className="text-sm">
-                            {(config.transport === 'sse' || (!config.transport && config.url)) ? (
-                              <Badge variant="outline" className="text-xs">
-                                <Globe className="h-3 w-3 mr-1" />
-                                {t('mcpConfig.transportSse')}
-                              </Badge>
-                            ) : (
-                              <Badge variant="outline" className="text-xs">
-                                <Terminal className="h-3 w-3 mr-1" />
-                                {t('mcpConfig.transportStdio')}
-                              </Badge>
-                            )}
+                            <Badge variant="outline" className="text-xs">
+                              <itemMeta.Icon className="h-3 w-3 mr-1" />
+                              {t(itemMeta.labelKey)}
+                            </Badge>
                           </p>
                         </div>
                       </div>
 
                       {/* stdio mode details */}
-                      {(config.transport !== 'sse' && !(config.url && !config.transport)) && (
+                      {!itemHttp && (
                         <>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div>
@@ -955,21 +989,21 @@ export default function MCPConfigPage() {
                               <p className="text-sm"><code className="bg-muted px-1.5 py-0.5 rounded">{config.command}</code></p>
                             </div>
                           </div>
-                          {config.args.length > 0 && (
+                          {itemArgs.length > 0 && (
                             <div>
                               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">{t('mcpConfig.args')}</p>
                               <div className="flex flex-wrap gap-1">
-                                {config.args.map((arg, i) => (
+                                {itemArgs.map((arg, i) => (
                                   <Badge key={i} variant="outline" className="text-xs font-mono">{arg}</Badge>
                                 ))}
                               </div>
                             </div>
                           )}
-                          {Object.keys(config.env).length > 0 && (
+                          {Object.keys(itemEnv).length > 0 && (
                             <div>
                               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">{t('mcpConfig.env')}</p>
                               <div className="space-y-1">
-                                {Object.entries(config.env).map(([key, value]) => (
+                                {Object.entries(itemEnv).map(([key, value]) => (
                                   <div key={key} className="flex items-center gap-2 text-xs">
                                     <code className="bg-muted px-1.5 py-0.5 rounded font-mono">{key}</code>
                                     <span className="text-muted-foreground">=</span>
@@ -982,8 +1016,8 @@ export default function MCPConfigPage() {
                         </>
                       )}
 
-                      {/* sse mode details */}
-                      {(config.transport === 'sse' || (!config.transport && config.url)) && (
+                      {/* remote HTTP details */}
+                      {itemHttp && (
                         <>
                           <div>
                             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">{t('mcpConfig.url')}</p>
@@ -1015,11 +1049,11 @@ export default function MCPConfigPage() {
                       </div>
 
                       {/* Tools List */}
-                      {config.tools.length > 0 && (
+                      {itemTools.length > 0 && (
                         <div>
                           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{t('mcpConfig.tools')}</p>
                           <div className="space-y-2">
-                            {config.tools.map((tool, i) => (
+                            {itemTools.map((tool, i) => (
                               <div key={i} className="flex items-start gap-2 p-2 rounded-lg bg-background/50 border border-border/30">
                                 <Wrench className="h-4 w-4 text-primary mt-0.5 shrink-0" />
                                 <div className="min-w-0">
@@ -1047,7 +1081,8 @@ export default function MCPConfigPage() {
                   )}
                 </CardContent>
               </Card>
-            ))}
+              );
+            })}
           </div>
         )}
 
@@ -1168,16 +1203,20 @@ export default function MCPConfigPage() {
                   type="single"
                   value={formData.transport}
                   onValueChange={(v) => {
-                    if (v) setFormData(prev => ({ ...prev, transport: v as 'stdio' | 'sse' }));
+                    if (v) setFormData(prev => ({ ...prev, transport: v as MCPTransport }));
                   }}
                   variant="outline"
-                  className="justify-start"
+                  className="justify-start flex-wrap"
                 >
-                  <ToggleGroupItem value="stdio" className="flex items-center gap-1.5 px-4">
+                  <ToggleGroupItem value="stdio" className="flex items-center gap-1.5 px-3">
                     <Terminal className="h-3.5 w-3.5" />
                     {t('mcpConfig.transportStdio')}
                   </ToggleGroupItem>
-                  <ToggleGroupItem value="sse" className="flex items-center gap-1.5 px-4">
+                  <ToggleGroupItem value="streamable_http" className="flex items-center gap-1.5 px-3">
+                    <Network className="h-3.5 w-3.5" />
+                    {t('mcpConfig.transportStreamableHttp')}
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="sse" className="flex items-center gap-1.5 px-3">
                     <Globe className="h-3.5 w-3.5" />
                     {t('mcpConfig.transportSse')}
                   </ToggleGroupItem>
@@ -1316,8 +1355,8 @@ export default function MCPConfigPage() {
                 </>
               )}
 
-              {/* sse mode fields */}
-              {formData.transport === 'sse' && (
+              {/* remote HTTP fields (sse / streamable_http) */}
+              {isHttpMcpTransport(formData.transport) && (
                 <>
                   {/* URL */}
                   <div className="space-y-2">
@@ -1429,7 +1468,7 @@ export default function MCPConfigPage() {
                 <Button
                   variant="outline"
                   onClick={handleDiscoverTools}
-                  disabled={isDiscovering || !formData.name.trim() || (formData.transport === 'stdio' && !formData.command.trim()) || (formData.transport === 'sse' && !formData.url.trim())}
+                  disabled={isDiscovering || !formData.name.trim() || (formData.transport === 'stdio' && !formData.command.trim()) || (isHttpMcpTransport(formData.transport) && !formData.url.trim())}
                   className="w-full"
                 >
                   {isDiscovering ? (
@@ -1673,9 +1712,9 @@ export default function MCPConfigPage() {
         "MINIMAX_API_KEY": "your_key"
       }
     },
-    "ZhihuSearch": {
-      "transport": "sse",
-      "url": "https://developer.zhihu.com/api/mcp/zhihu_search/v1/sse",
+    "ExampleHTTP": {
+      "type": "http",
+      "url": "https://example.com/mcp",
       "headers": {
         "Authorization": "Bearer your_access_secret"
       }
@@ -1749,7 +1788,8 @@ export default function MCPConfigPage() {
                 </div>
               ) : (
                 filteredPresets.map((preset, i) => {
-                  const presetTransport = preset.transport || (preset.url ? 'sse' : 'stdio');
+                  const presetTransport = normalizeMcpTransport(preset.transport, preset.url);
+                  const presetMeta = transportMeta(presetTransport);
                   return (
                     <div
                       key={i}
@@ -1770,11 +1810,8 @@ export default function MCPConfigPage() {
                           <div className="flex items-center gap-1.5">
                             <p className="font-medium text-sm">{preset.name}</p>
                             <Badge variant="outline" className="text-[10px] shrink-0">
-                              {presetTransport === 'sse' ? (
-                                <><Globe className="h-2.5 w-2.5 mr-0.5" />SSE</>
-                              ) : (
-                                <><Terminal className="h-2.5 w-2.5 mr-0.5" />stdio</>
-                              )}
+                              <presetMeta.Icon className="h-2.5 w-2.5 mr-0.5" />
+                              {presetMeta.short}
                             </Badge>
                           </div>
                           {preset.description && (
@@ -1788,7 +1825,7 @@ export default function MCPConfigPage() {
                               ))}
                             </div>
                           )}
-                          {presetTransport === 'sse' && preset.url && (
+                          {isHttpMcpTransport(presetTransport) && preset.url && (
                             <div className="mt-2">
                               <code className="text-[10px] bg-muted px-1.5 py-0.5 rounded font-mono break-all">{preset.url}</code>
                             </div>

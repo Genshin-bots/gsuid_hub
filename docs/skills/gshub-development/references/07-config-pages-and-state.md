@@ -334,3 +334,30 @@ provider 的创建 / 编辑弹窗展示。
 
 详见 gsuid_core：`docs/skills/gscore-ai-core-api/references/11-mcp-image-search-and-meme.md` §11.3 / §11.3b、
 `docs/skills/gscore-deploy/references/13-ai.md`。
+
+## 7.8 `/mcp-config` 传输方式：stdio / SSE / Streamable HTTP ★
+
+位置：`src/pages/MCPConfigPage.tsx` + `src/lib/api.ts` 的 `MCPTransport`。
+后端契约：`gsuid_core/webconsole/docs/26-mcp-config.md`。
+
+### 三种传输
+
+| `transport` | 含义 | 表单字段 | 何时用 |
+|-------------|------|----------|--------|
+| `stdio` | 本地子进程 | `command` / `args` / `env` | 默认；`uvx` / `npx` 启动本地 MCP |
+| `streamable_http` | Streamable HTTP（当前推荐远程传输） | `url` / `headers` | 远程 MCP，URL 多为 `…/mcp` |
+| `sse` | 旧版 HTTP+SSE | `url` / `headers` | 仅当服务端仍只提供 `/sse` |
+
+类型别名：`http` / `streamable-http` / 官方 JSON 的 `type: "http"` 一律归一为 `streamable_http`。
+未写 `transport` 时：URL 路径以 `/sse` 结尾 → `sse`；其它 http(s) URL → `streamable_http`；否则 → `stdio`。
+
+### UI 约束
+
+- 表单用 `ToggleGroup` 三选一，`flex-wrap`，**不要**再做成 stdio/sse 两档。
+- `sse` 与 `streamable_http` **共用** URL + headers 区块（`isHttpMcpTransport`），不要复制两套表单。
+- 列表 Badge 短文案：`stdio` / `SSE` / `HTTP`；展开详情用完整 i18n。
+- 列表渲染必须兜底：`config.tools ?? []`、`config.args ?? []`、`config.env ?? {}`。远程配置的 `to_dict` 会省略空 `args`，直接 `.length` 会崩（P-26）。
+
+### i18n
+
+三语 `mcpConfig.json` 同步：`transportHelp` / `transportStdio` / `transportSse` / `transportStreamableHttp` / `url*` / `headersHelp`。
