@@ -6,6 +6,7 @@ import {
   type ConfigValue,
 } from '@/components/config';
 import type { PluginConfigItem } from '@/lib/api';
+import { isKitSlotConfigKey, RUNTIME_EXCLUDED_KEYS } from '../runtimeConfigKeys';
 
 /**
  * 「高级设置」Section。
@@ -49,6 +50,7 @@ const EXCLUDED_KEYS: string[] = [
   'video_understand_provider',
   'document_extract_provider',
   'rerank_provider',
+  ...RUNTIME_EXCLUDED_KEYS,
 ];
 
 export function AdvancedSettingsSection({
@@ -71,7 +73,7 @@ export function AdvancedSettingsSection({
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {(() => {
           const entries = Object.entries(aiConfig.config).filter(
-            ([key]) => !EXCLUDED_KEYS.includes(key),
+            ([key]) => !EXCLUDED_KEYS.includes(key) && !isKitSlotConfigKey(key),
           );
           if (entries.length === 0) {
             return (

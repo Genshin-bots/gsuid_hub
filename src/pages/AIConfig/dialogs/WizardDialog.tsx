@@ -199,6 +199,10 @@ export function WizardDialog({
                         <Badge variant="default" className="text-[10px]">
                           {persona.scope === 'global' &&
                             t('aiConfig.wizard.scopeGlobal')}
+                          {persona.scope === 'global_group' &&
+                            t('aiConfig.wizard.scopeGlobalGroup')}
+                          {persona.scope === 'global_private' &&
+                            t('aiConfig.wizard.scopeGlobalPrivate')}
                           {persona.scope === 'specific' &&
                             t('aiConfig.wizard.scopeSpecific')}
                           {persona.scope === 'disabled' &&

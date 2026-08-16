@@ -1,4 +1,5 @@
 ﻿import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
@@ -58,6 +59,7 @@ import {
   Clock,
   Zap,
   Globe,
+  BookOpen,
   ZoomIn,
   ZoomOut,
   Maximize2,
@@ -68,7 +70,18 @@ import {
   X,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { api, agentDebugApi, AgentDebugMemoryConflict, AgentDebugMemoryEdge } from '@/lib/api';
+import { api, agentDebugApi, cognitionApi, AgentDebugMemoryConflict, AgentDebugMemoryEdge, type CognitionAttachment, type CognitionNode } from '@/lib/api';
+import { CognitionArticlePreview } from '@/components/cognition/CognitionArticlePreview';
+import { CognitionAttachments } from '@/components/cognition/CognitionAttachments';
+import { WorldHubGraph } from '@/components/cognition/WorldHubGraph';
+import {
+  hubForEntity,
+  isCognitionBackendMissing,
+  isWorldHub,
+  mergeCognitionNodes,
+  pluginFromWorldRef,
+  worldGraphId,
+} from '@/lib/cognition';
 import { PinnedPage } from '@/components/layout/PinnedPage';
 import MemorySettingsDialog from '@/components/memory/MemorySettingsDialog';
 import Graph from 'graphology';
@@ -902,7 +915,18 @@ function ScopeCard({ scope, isGlass, onDelete, onSelect }: { scope: MemoryScope;
   );
 }
 
-function EntityNode({ entity, isGlass, onClick }: { entity: Entity; isGlass: boolean; onClick: () => void }) {
+function EntityNode({
+  entity,
+  isGlass,
+  onClick,
+  worldHub,
+}: {
+  entity: Entity;
+  isGlass: boolean;
+  onClick: () => void;
+  worldHub?: CognitionNode | null;
+}) {
+  const articleCount = worldHub?.attachments?.length ?? 0;
   return (
     <Card className={cn('cursor-pointer transition-all hover:shadow-md hover:border-primary/50', isGlass ? 'glass-card' : 'border border-border/50', entity.is_speaker && 'border-l-4 border-l-primary/60')} onClick={onClick}>
       <CardContent className="p-4">
@@ -913,9 +937,16 @@ function EntityNode({ entity, isGlass, onClick }: { entity: Entity; isGlass: boo
           </div>
           {entity.is_speaker && <Badge variant="secondary" className="shrink-0">Speaker</Badge>}
         </div>
-        {entity.tag.length > 0 && (
+        {(entity.tag.length > 0 || worldHub) && (
           <div className="flex flex-wrap gap-1 mt-2">
-            {entity.tag.slice(0, 3).map((t) => <Badge key={t} variant="outline" className="text-xs">{t}</Badge>)}
+            {entity.tag.slice(0, 3).map((tag) => <Badge key={tag} variant="outline" className="text-xs">{tag}</Badge>)}
+            {worldHub && (
+              <Badge variant="outline" className="text-xs gap-1">
+                <Globe className="w-3 h-3" />
+                {worldHub.title || worldHub.ref}
+                {articleCount > 0 ? ` · ${articleCount}` : ''}
+              </Badge>
+            )}
           </div>
         )}
       </CardContent>
@@ -1233,7 +1264,10 @@ export default function AIMemoryPage() {
   const [invalidateEdgeLoading, setInvalidateEdgeLoading] = useState(false);
   const [clearMemoryDialogOpen, setClearMemoryDialogOpen] = useState(false);
   const [clearMemoryLoading, setClearMemoryLoading] = useState(false);
-  const [dialogType, setDialogType] = useState<'episode' | 'entity' | 'edge' | 'category'>('episode');
+  const [dialogType, setDialogType] = useState<'episode' | 'entity' | 'edge' | 'category' | 'world'>('episode');
+  const [cognitionNodes, setCognitionNodes] = useState<CognitionNode[]>([]);
+  const [selectedWorldHub, setSelectedWorldHub] = useState<CognitionNode | null>(null);
+  const [previewArticle, setPreviewArticle] = useState<CognitionAttachment | null>(null);
 
   // Preferences state
   const [preferences, setPreferences] = useState<Preference[]>([]);
@@ -1278,6 +1312,7 @@ export default function AIMemoryPage() {
           fetchEntities(1, targetScope),
           fetchEdges(1, targetScope),
           fetchCategories(1, targetScope),
+          fetchCognition(targetScope),
         ]);
       } catch (err) {
         setError(err instanceof Error ? err.message : t('aiMemory.loadFailed'));
@@ -1342,6 +1377,28 @@ export default function AIMemoryPage() {
     finally { setIsLoadingData(false); }
   };
 
+
+  const fetchCognition = async (scopeOverride?: string) => {
+    const scope = scopeOverride ?? selectedScope;
+    try {
+      const [publicData, scopedData] = await Promise.all([
+        cognitionApi.getNodes({ limit: 100 }),
+        scope && scope !== 'all'
+          ? cognitionApi.getNodes({ scope_key: scope, limit: 100 })
+          : Promise.resolve({ nodes: [] as CognitionNode[] }),
+      ]);
+      setCognitionNodes(mergeCognitionNodes(publicData.nodes, scopedData.nodes));
+    } catch (error) {
+      if (isCognitionBackendMissing(error)) {
+        console.warn('[AIMemoryPage] /api/cognition/nodes 不可用：请升级 gsuid_core。', error);
+      } else {
+        console.warn('[AIMemoryPage] load cognition overlay failed:', error);
+      }
+      setCognitionNodes([]);
+    }
+  };
+
+  const worldHubs = useMemo(() => cognitionNodes.filter(isWorldHub), [cognitionNodes]);
 
   const fetchCategories = async (page = 1, scopeOverride?: string) => {
     try {
@@ -1417,6 +1474,7 @@ export default function AIMemoryPage() {
     fetchEntities(1, scope);
     fetchEdges(1, scope);
     fetchCategories(1, scope);
+    fetchCognition(scope);
     if (activeTab === 'debug') fetchDebugMemory(scope);
     if (activeTab === 'preferences') fetchPreferences(1, scope);
   };
@@ -1576,9 +1634,33 @@ export default function AIMemoryPage() {
     }
   };
 
-  const openDetailDialog = async (type: 'episode' | 'entity' | 'edge' | 'category', id: string) => {
+  const hydrateWorldHub = async (hub: CognitionNode) => {
+    setSelectedWorldHub(hub);
+    if (hub.id == null) return;
+    if ((hub.attachments?.length ?? 0) > 0) return;
+    try {
+      const detail = await cognitionApi.getNode(hub.id, {
+        scope_key: selectedScope !== 'all' ? selectedScope : undefined,
+      });
+      setSelectedWorldHub(detail);
+    } catch {
+      // keep the list payload
+    }
+  };
+
+  const openDetailDialog = async (type: 'episode' | 'entity' | 'edge' | 'category' | 'world', id: string) => {
     setDialogType(type);
     setDialogOpen(true);
+    if (type === 'world') {
+      const hub = worldHubs.find((h) => worldGraphId(h) === id)
+        ?? cognitionNodes.find((n) => worldGraphId(n) === id);
+      if (!hub) {
+        setDialogOpen(false);
+        return;
+      }
+      await hydrateWorldHub(hub);
+      return;
+    }
     try {
       switch (type) {
         case 'episode': { const data = await memoryApi.getEpisodeDetail(id); setSelectedEpisode(data); break; }
@@ -1674,6 +1756,20 @@ export default function AIMemoryPage() {
         </Card>
       )}
 
+      <Card className="glass-card">
+        <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-muted-foreground min-w-0">
+            {t('aiMemory.cognitionIndexHint')}
+          </p>
+          <Button variant="outline" size="sm" className="h-9 shrink-0 self-start sm:self-auto" asChild>
+            <Link to="/ai-runtime?tab=cognition">
+              <Globe className="w-4 h-4" />
+              {t('aiMemory.cognitionIndexLink')}
+            </Link>
+          </Button>
+        </CardContent>
+      </Card>
+
       {/* Stats：8 卡固定两行四列（大屏不再挤成一行） */}
       {stats && (
         <div className="glass-card-grid grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -1714,6 +1810,7 @@ export default function AIMemoryPage() {
           className="w-full max-w-full"
           options={[
             { value: 'graph', label: t('aiMemory.tabGraph'), icon: <Network className="w-4 h-4" /> },
+            { value: 'world', label: t('aiMemory.tabWorld'), icon: <BookOpen className="w-4 h-4" /> },
             { value: 'search', label: t('aiMemory.tabSearch'), icon: <Search className="w-4 h-4" /> },
             { value: 'preferences', label: t('aiMemory.tabPreferences'), icon: <ListChecks className="w-4 h-4" /> },
             { value: 'scopes', label: t('aiMemory.tabScopes'), icon: <Globe className="w-4 h-4" /> },
@@ -1764,7 +1861,7 @@ export default function AIMemoryPage() {
                   variant="outline"
                   size="sm"
                   className="h-9 px-2.5 sm:px-3"
-                  onClick={() => { fetchEntities(1); fetchEdges(1); fetchCategories(1); }}
+                  onClick={() => { fetchEntities(1); fetchEdges(1); fetchCategories(1); fetchCognition(); }}
                   title={t('common.refresh')}
                   aria-label={t('common.refresh')}
                 >
@@ -1774,7 +1871,7 @@ export default function AIMemoryPage() {
               </div>
             </div>
           </div>
-          {entities.length === 0 && edges.length === 0 && categories.length === 0 ? (
+          {entities.length === 0 && edges.length === 0 ? (
             <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
               <CardContent className="flex flex-col items-center justify-center p-8 text-muted-foreground">
                 <Network className="w-12 h-12 mb-4 opacity-50" />
@@ -1791,6 +1888,33 @@ export default function AIMemoryPage() {
               onNodeClick={(type, id) => openDetailDialog(type, id)}
             />
           )}
+      </div>
+      )}
+
+      {activeTab === 'world' && (
+      <div className="space-y-4">
+        <div className="flex w-full min-w-0 items-center gap-2">
+          <p className="text-sm text-muted-foreground min-w-0 flex-1">{t('aiMemory.worldTabDescription')}</p>
+          <Button variant="outline" size="sm" className="h-9 shrink-0" onClick={() => fetchCognition()}>
+            <RefreshCw className="w-4 h-4 sm:mr-1" />
+            <span className="hidden sm:inline">{t('common.refresh')}</span>
+          </Button>
+        </div>
+        {worldHubs.length === 0 ? (
+          <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
+            <CardContent className="flex flex-col items-center justify-center p-8 text-muted-foreground">
+              <Globe className="w-12 h-12 mb-4 opacity-50" />
+              <p>{t('aiMemory.noWorldHubs')}</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <WorldHubGraph
+            hubs={worldHubs}
+            isDark={isDark}
+            onHubClick={(hub) => openDetailDialog('world', worldGraphId(hub))}
+            onArticleClick={setPreviewArticle}
+          />
+        )}
       </div>
       )}
 
@@ -2084,7 +2208,12 @@ export default function AIMemoryPage() {
             <div className="glass-card-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {entities.map((entity) => (
                 <div key={entity.id} className="relative group">
-                  <EntityNode entity={entity} isGlass={isGlass} onClick={() => openDetailDialog('entity', entity.id)} />
+                  <EntityNode
+                    entity={entity}
+                    isGlass={isGlass}
+                    worldHub={hubForEntity(entity.id, entity.name, cognitionNodes)}
+                    onClick={() => openDetailDialog('entity', entity.id)}
+                  />
                   <Button variant="ghost" size="sm" className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); handleDeleteEntity(entity.id); }}><Trash2 className="w-4 h-4" /></Button>
                 </div>
               ))}
@@ -2347,6 +2476,8 @@ export default function AIMemoryPage() {
       </div>
       )}
 
+      <CognitionArticlePreview article={previewArticle} onClose={() => setPreviewArticle(null)} />
+
       {/* Detail Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
@@ -2356,6 +2487,7 @@ export default function AIMemoryPage() {
               {dialogType === 'entity' && t('aiMemory.entityDetail')}
               {dialogType === 'edge' && t('aiMemory.edgeDetail')}
               {dialogType === 'category' && t('aiMemory.categoryDetail')}
+              {dialogType === 'world' && t('aiMemory.worldHubDetail')}
             </DialogTitle>
             <DialogDescription className="sr-only">
               {t('aiMemory.detailAriaDesc')}
@@ -2386,6 +2518,40 @@ export default function AIMemoryPage() {
                 </div>
                 {selectedEntity.summary && <div className="mt-4"><Label className="text-muted-foreground">{t('aiMemory.summary')}</Label><p className="mt-1 p-2 bg-muted/50 rounded text-sm whitespace-pre-wrap">{selectedEntity.summary}</p></div>}
                 {selectedEntity.tag.length > 0 && <div className="mt-4"><Label className="text-muted-foreground">{t('aiMemory.tags')}</Label><div className="flex flex-wrap gap-2 mt-2">{selectedEntity.tag.map((tag) => <Badge key={tag} variant="outline">{tag}</Badge>)}</div></div>}
+                {(() => {
+                  const hub = hubForEntity(selectedEntity.id, selectedEntity.name, cognitionNodes);
+                  if (!hub) return null;
+                  const articles = hub.attachments ?? [];
+                  return (
+                    <div className="mt-4 space-y-2">
+                      <Label className="text-muted-foreground">{t('aiMemory.worldKnowledge')}</Label>
+                      <button
+                        type="button"
+                        className="flex w-full items-center justify-between gap-2 rounded-md border border-border/50 p-3 text-left hover:bg-accent/40"
+                        onClick={() => openDetailDialog('world', worldGraphId(hub))}
+                      >
+                        <span className="min-w-0">
+                          <span className="flex items-center gap-2 font-medium">
+                            <Globe className="w-4 h-4 shrink-0" />
+                            <span className="truncate">{hub.title || hub.ref}</span>
+                          </span>
+                          <span className="mt-1 block font-mono text-xs text-muted-foreground break-all">{hub.ref}</span>
+                        </span>
+                        <Badge variant="secondary" className="shrink-0">
+                          {t('aiMemory.articleCount', { count: articles.length })}
+                        </Badge>
+                      </button>
+                      {articles.length > 0 && (
+                        <CognitionAttachments
+                          attachments={articles}
+                          openLabel={t('aiMemory.openArticle')}
+                          writableLabel={t('aiMemory.articleWritable')}
+                          readonlyLabel={t('aiMemory.articleReadonly')}
+                        />
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
 
               <div className={cn('rounded-lg p-4', isGlass ? 'glass-card' : 'border border-border/50 bg-card')}>
@@ -2449,6 +2615,48 @@ export default function AIMemoryPage() {
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div><Label className="text-muted-foreground">{t('aiMemory.validAt')}</Label><p>{formatDate(selectedEdge.valid_at)}</p></div>
                 {selectedEdge.invalid_at && <div><Label className="text-muted-foreground">{t('aiMemory.invalidAt')}</Label><p className="text-destructive">{formatDate(selectedEdge.invalid_at)}</p></div>}
+              </div>
+            </div>
+          )}
+          {dialogType === 'world' && selectedWorldHub && (
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge className="gap-1">
+                  <Globe className="w-3 h-3" />
+                  {t('aiMemory.legendWorld')}
+                </Badge>
+                {selectedWorldHub.source && <Badge variant="outline">{selectedWorldHub.source}</Badge>}
+                {pluginFromWorldRef(selectedWorldHub.ref) && (
+                  <Badge variant="secondary">{pluginFromWorldRef(selectedWorldHub.ref)}</Badge>
+                )}
+              </div>
+              <div>
+                <Label className="text-muted-foreground">{t('aiMemory.name')}</Label>
+                <p className="font-medium">{selectedWorldHub.title || selectedWorldHub.ref}</p>
+              </div>
+              <div>
+                <Label className="text-muted-foreground">ref</Label>
+                <p className="font-mono text-sm break-all">{selectedWorldHub.ref}</p>
+              </div>
+              {selectedWorldHub.summary && (
+                <div>
+                  <Label className="text-muted-foreground">{t('aiMemory.summary')}</Label>
+                  <p className="mt-1 p-2 bg-muted/50 rounded text-sm whitespace-pre-wrap">{selectedWorldHub.summary}</p>
+                </div>
+              )}
+              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                <span>{t('aiMemory.scopeKey')}: {selectedWorldHub.scope_key || t('aiMemory.publicWorldScope')}</span>
+                {selectedWorldHub.as_of && <span>as_of={selectedWorldHub.as_of}</span>}
+              </div>
+              <div className="space-y-2">
+                <Label className="text-muted-foreground">{t('aiMemory.attachedArticles')}</Label>
+                <CognitionAttachments
+                  attachments={selectedWorldHub.attachments ?? []}
+                  emptyText={t('aiMemory.noAttachments')}
+                  openLabel={t('aiMemory.openArticle')}
+                  writableLabel={t('aiMemory.articleWritable')}
+                  readonlyLabel={t('aiMemory.articleReadonly')}
+                />
               </div>
             </div>
           )}

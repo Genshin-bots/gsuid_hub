@@ -428,11 +428,11 @@ handleIncomingRef.current = (msg) => { /* 读 identityRef / activeIdRef / tRef *
 
 useEffect(() => {
   if (!coreLoaded) return;
-  const client = new LiveChatWsClient({ token: wsToken, … });
+  const client = new LiveChatWsClient({ token: getAuthToken() || '', … });
   client.setHandlers({ onMessage: (m) => handleIncomingRef.current(m) });
   client.connect();
   return () => client.disconnect();
-}, [coreLoaded, wsToken]); // 仅建连相关；禁止 identity / conversations / t
+}, [coreLoaded]); // 仅建连相关；禁止 identity / conversations / t
 ```
 
 同类长连接（Console 日志 WS 等）同样适用。详见 [§11 §11.4](./11-live-chat.md)。

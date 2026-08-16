@@ -33,10 +33,13 @@ import {
   Eye,
   FileText,
   Globe,
+  Heart,
   ListChecks,
   Loader2,
   MemoryStick,
+  Puzzle,
   Save,
+  ScanSearch,
   Search,
   SlidersHorizontal,
   Smile,
@@ -71,6 +74,9 @@ import {
   DocumentExtractSection,
   MemorySettingsSection,
   MemeSettingsSection,
+  RelationshipSettingsSection,
+  AgentKitsSettingsSection,
+  CognitionSettingsSection,
   AdvancedSettingsSection,
   GsCoreAiMcpServerSection,
   CommandExecutorSection,
@@ -835,6 +841,21 @@ export default function AIConfigPage() {
       icon: <Terminal className="w-5 h-5" />,
     },
     {
+      id: 'relationshipSettings',
+      title: t('aiConfig.relationshipSettings.title'),
+      icon: <Heart className="w-5 h-5" />,
+    },
+    {
+      id: 'agentKitsSettings',
+      title: t('aiConfig.agentKitsSettings.title'),
+      icon: <Puzzle className="w-5 h-5" />,
+    },
+    {
+      id: 'cognitionSettings',
+      title: t('aiConfig.cognitionSettings.title'),
+      icon: <ScanSearch className="w-5 h-5" />,
+    },
+    {
       id: 'advancedSettings',
       title: t('aiConfig.advancedSettings.title'),
       icon: <SlidersHorizontal className="w-5 h-5" />,
@@ -1130,6 +1151,30 @@ export default function AIConfigPage() {
           <CommandExecutorSection
             t={t}
             commandExecutorConfig={commandExecutorConfig}
+            onUpdateConfig={updateConfigValue}
+          />
+        );
+      case 'relationshipSettings':
+        return (
+          <RelationshipSettingsSection
+            t={t}
+            aiConfig={aiConfig}
+            onUpdateConfig={updateConfigValue}
+          />
+        );
+      case 'agentKitsSettings':
+        return (
+          <AgentKitsSettingsSection
+            t={t}
+            aiConfig={aiConfig}
+            onUpdateConfig={updateConfigValue}
+          />
+        );
+      case 'cognitionSettings':
+        return (
+          <CognitionSettingsSection
+            t={t}
+            aiConfig={aiConfig}
             onUpdateConfig={updateConfigValue}
           />
         );

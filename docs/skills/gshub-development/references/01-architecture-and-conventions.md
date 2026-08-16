@@ -31,6 +31,7 @@ src/
 │   │   └── MultiSelectChipGroup.tsx    # 多选/单选 Chip
 │   ├── layout/             # AppLayout.tsx / AppSidebar.tsx / PinnedPage.tsx
 │   ├── live-chat/          # Live Chat UI（气泡 / 侧栏 / 输入 / 连接徽章）
+│   ├── cognition/          # 认知挂文列表（世界枢纽详情复用）
 │   ├── config/             # ConfigField / TagsInput / DynamicConfigPanel
 │   ├── backup/             # 备份相关
 │   └── charts/             # 图表封装
@@ -39,6 +40,7 @@ src/
 ├── i18n/locales/           # zh-CN / en-US / ja-JP 三语言目录
 └── lib/
     ├── api.ts              # 所有 API 封装 + 类型定义（唯一出入口）
+    ├── cognition.ts        # 世界枢纽 / 挂文句柄 / 旧后端降级（见 §12）
     ├── liveChat/           # Live Chat 协议 / WS / 存储 / 媒体（见 §11）
     └── utils.ts            # cn() 等工具
 ```
@@ -208,6 +210,7 @@ const fetchStats = useCallback(async () => {
 
 ```ts
 export const liveChatApi = {
+  getBootstrap: () => api.get<LiveChatBootstrapDto>('/api/live-chat/bootstrap'),
   getState: () => api.get<LiveChatStateDto>('/api/live-chat/state'),
   putState: (state: LiveChatStateDto) => api.put('/api/live-chat/state', state),
   putIdentity: (identity) => api.put('/api/live-chat/identity', identity),
@@ -221,6 +224,8 @@ export const liveChatApi = {
 
 页面主路径用 `loadLiveChatState` / `saveLiveChatState`（`src/lib/liveChat/storage.ts`），
 不要在页面里直接拼 path。WS 建连与帧协议**不**走 `api.ts`，见 `LiveChatWsClient`。
+`?token=` 用 `getAuthToken()`（登录会话），**不是**核心 `WS_TOKEN`。
+`masters` 用 `getBootstrap()`，不要为 Live Chat 去拉 `/api/core/config`。
 
 ## 1.6 401 认证失败处理
 

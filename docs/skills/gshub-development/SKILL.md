@@ -16,7 +16,8 @@ description: >
   "保存按钮误亮 / dirty 检查 / originalConfig 竞态"、"卡片列表页 / 表格详情页 / Dialog 弹窗 / 移动端适配"、
   "API 怎么封装 / 401 跳登录 / getLoginPath"、"改前端要注意什么 / 有哪些已知坑 / 性能优化"、
   "Live Chat / 实时聊天 / webconsole_livechat / MessageReceive / MessageSend / 早柚协议 /
-  控制台适配器 / WS 二进制帧 / echo 回执 / STALE_CHAT_REQUEST_TTL / awaitingByConv"时触发此 SKILL。
+  控制台适配器 / WS 二进制帧 / echo 回执 / STALE_CHAT_REQUEST_TTL / awaitingByConv"、
+  "记忆图谱 / world 知识 / 世界枢纽 / 节点挂文 / attach_article / cognition 挂载"时触发此 SKILL。
   凡是改动 `src/`（React + TS 前端控制台）的任务都应优先读取此 SKILL。
 
   面向 **GsCore Web 控制台（gsuid_hub，前端 React 项目）开发者与维护者**的系统级开发规范指南。
@@ -27,9 +28,10 @@ description: >
   page-fill 全高卡片页 / page-viewport 视口锁定页 /
   text-3xl 标题 / 内联 w-8 h-8 图标 / 副标题 / 间距标尺 / 三态）、表单与筛选控件
   统一规范（筛选行 h-9 / 含 Tab 行 h-11、Radix Select 哨兵、Tooltip 字段说明、Switch UX）、强制复用的封装组件目录
-  （TabButtonGroup 含 dropdown 拆分按钮 / PluginIcon / InputWithDropdown / TagsInput / ChipGroup / DynamicConfigPanel）、渐进式配置页
+  （TabButtonGroup 含 dropdown 拆分按钮 / PluginIcon / InputWithDropdown / TagsInput / ChipGroup / DynamicConfigPanel / CognitionAttachments）、渐进式配置页
   与脏检查竞态、几类页面模式（卡片列表 / 表格详情 / Dialog / 移动端）、侧边栏多级菜单与稳定 id、
   **Live Chat 控制台内嵌适配器**（早柚协议 WS、段解析、状态持久化、8s 队列 TTL）、
+  **记忆图谱与世界知识**（scope 隔离的记忆图 + 公共 `world:` 枢纽 + 节点挂文）、
   以及一份**前端已知坑 + 性能 + 落地清单**。**源码永远是唯一事实源**，本 SKILL 是设计意图与规范的沉淀。
 ---
 
@@ -67,6 +69,7 @@ description: >
 | 九 | 侧边栏与导航（`getNavItems`、稳定 `id` 作 key、`ICON_MAP`、AI 启用态条件子菜单、自动展开） | [references/09-sidebar-navigation.md](./references/09-sidebar-navigation.md) |
 | 十 | 已知坑 + 性能 + 落地清单（P-1~P-32 坑、性能优化、新页面落地自查清单总表） | [references/10-pitfalls-and-performance.md](./references/10-pitfalls-and-performance.md) |
 | 十一 | **Live Chat**（控制台内嵌适配器：早柚协议、WS 二进制帧、段解析、状态持久化、发送等待锁） | [references/11-live-chat.md](./references/11-live-chat.md) |
+| 十二 | **记忆图谱与世界知识**（scope 记忆图 / `world:` 枢纽 / 节点挂文 / `cognitionApi`） | [references/12-memory-graph-and-cognition.md](./references/12-memory-graph-and-cognition.md) |
 
 ## 推荐阅读顺序（按需跳转）
 
@@ -76,7 +79,8 @@ description: >
 4. **做列表/详情/弹窗类页面**：看 [八、页面模式](./references/08-page-patterns.md)。
 5. **改主题/样式**：看 [三、主题与样式](./references/03-theme-and-styling.md)。
 6. **改 Live Chat / 早柚协议 / 控制台 WS 适配器**：看 [十一、Live Chat](./references/11-live-chat.md)（协议分层、echo、8s TTL、handler ref）。
-7. **动手前必读**：[十、已知坑 + 性能 + 落地清单](./references/10-pitfalls-and-performance.md)——这一章是"别人替你踩过的坑"，写代码前过一遍能省大量返工。
+7. **改记忆图谱 / 世界知识 / 节点挂文**：看 [十二、记忆图谱与世界知识](./references/12-memory-graph-and-cognition.md)（两层模型、叠层约定、`cognitionApi`）。
+8. **动手前必读**：[十、已知坑 + 性能 + 落地清单](./references/10-pitfalls-and-performance.md)——这一章是"别人替你踩过的坑"，写代码前过一遍能省大量返工。
 
 ## 关键概念速记（先看这一段再决定读哪一章）
 
@@ -85,12 +89,13 @@ description: >
 - **`TabButtonGroup` 可选 dropdown 拆分按钮 ★★**：某一 `option` 可挂 `dropdown`——**点主区 = 选中主 Tab + 二级回到「全部」**；**仅右侧 ▾ 展开菜单**选子项。子项支持 `icon`（插件用 `PluginIcon`）。参考页 `/ai-capability-agents`（plugin 按 list 的 `plugin` 字段过滤）。**禁止**整钮触发菜单、禁止再手搓 Select+Button。详见 [§06 §6.1](./references/06-reusable-component-catalog.md)。
 - **插件 ICON 统一 `PluginIcon` ★**：走 `getPluginIconUrl`；`core_command` 等无独立 ICON 的内置插件映射到 `public/ICON.png`。详见 [§06 §6.7](./references/06-reusable-component-catalog.md)。
 - **页面共享同一套排版骨架**：页边距由 AppLayout 统一提供（**不得**写 `p-6` / `overflow-auto` / `max-w-7xl mx-auto`）。三类骨架互斥：`<PinnedPage>`（标题页，默认）/ `.page-fill`（无标题全高单卡片，如 /ai-history、/session-management、**/live-chat**）/ `.page-viewport`（有标题但内部自管滚动，如 /ai-kanban）。标题统一 `text-3xl font-bold` + 内联图标 `w-8 h-8`（**不加**背景容器），副标题 `text-muted-foreground mt-1`（**不加** `text-sm`）。参考页 `AIToolsPage` / `AIHistoryPage`。详见 [§04](./references/04-page-layout-spec.md)。
-- **Live Chat = 控制台内嵌适配器，不是 Session UI ★★**：`/live-chat` 经 WS `/ws/webconsole_livechat` 完整对接早柚 `MessageReceive`/`MessageSend`。协议解析与媒体在 `src/lib/liveChat/`，页面只编排。WS handler 必须挂 ref（避免重连风暴）；同会话发送要 `awaitingByConv` 防 8s 队列 TTL 丢包；`echo` 空包也要回执。详见 [§11](./references/11-live-chat.md)、[§10 P-30/P-31](./references/10-pitfalls-and-performance.md)。
+- **Live Chat = 控制台内嵌适配器，不是 Session UI ★★**：`/live-chat` 经 WS `/ws/webconsole_livechat` 完整对接早柚 `MessageReceive`/`MessageSend`。`?token=` 用登录会话（`getAuthToken()`），**不是**核心 `WS_TOKEN`；`masters` 用 `liveChatApi.getBootstrap()`。协议解析与媒体在 `src/lib/liveChat/`，页面只编排。WS handler 必须挂 ref（避免重连风暴）；同会话发送要 `awaitingByConv` 防 8s 队列 TTL 丢包；`echo` 空包也要回执。详见 [§11](./references/11-live-chat.md)、[§10 P-30/P-31](./references/10-pitfalls-and-performance.md)。
+- **记忆图谱 ≠ 世界知识 ★★**：`/ai-memory` 的 Sigma 底图只画分 scope 的 Entity/Edge。世界知识在独立的「世界枢纽」页签，本身也是一张 Sigma 图（青绿枢纽 + 琥珀挂文）。点枢纽看详情，点挂文就地预览。环境实体只在完整命中一颗枢纽时连 `canon`。共享逻辑在 `src/lib/cognition.ts` + `WorldHubGraph`。详见 [§12](./references/12-memory-graph-and-cognition.md)。
 - **glass-card 宿主禁止 `overflow-hidden`**：阴影/毛玻璃靠宿主 `overflow: visible` + `::before`；裁切放内层 `rounded-[inherit]`，卡片网格加 `glass-card-grid` 防阴影被切。详见 [§04 §4.1.2/4.1.3](./references/04-page-layout-spec.md)、[§10 P-19](./references/10-pitfalls-and-performance.md)。
 - **页面级操作按钮的摆放 ★★**：①首选——页面有 button group（`TabButtonGroup`/二级切换）时，把按钮**移出 Header**、与 button group **同行平齐**（`sm:items-center`、`justify-between`）；②否则放 Header 右侧、与**副标题底边对齐**（`sm:items-end`）。两种都**禁止**在 Header 内用 `items-center`（会让按钮浮在 H1 与副标题之间、与副标题错位）。详见 [§04 §4.2](./references/04-page-layout-spec.md)。
 - **一行筛选控件高度分两档 ★★**：无 `TabButtonGroup` 时统一 `h-9`；**有** `TabButtonGroup` 时保持默认 group 高度、同行 `Input`/`Select`/`Button` 用 `tabToolbarControlClass`（`h-11`），**禁止**把 group 压成 h-8/h-9 矮版。详见 [§05 §5.4](./references/05-components-and-form-controls.md)、[§06 §6.1](./references/06-reusable-component-catalog.md)。
 - **`glass-card` 始终应用，不要 `isGlass &&`**：`glass-card` 已按 `[data-style]` 自动适配纯色/毛玻璃/亮暗。正确写法是直接 `className="glass-card"`。详见 [§03](./references/03-theme-and-styling.md)、[§10 P-2](./references/10-pitfalls-and-performance.md)。
-- **强制复用封装组件，禁止手搓**：标题页骨架用 `PinnedPage`；输入框+下拉用 `InputWithDropdown`；标签用 `TagsInput`；多选/单选 Chip 用 `ChipGroup`；切换用 `TabButtonGroup`（主分类+二级筛选用 `dropdown`）；插件图用 `PluginIcon`；后端字段动态渲染用 `DynamicConfigPanel`/`ConfigField`。详见 [§06](./references/06-reusable-component-catalog.md)。
+- **强制复用封装组件，禁止手搓**：标题页骨架用 `PinnedPage`；输入框+下拉用 `InputWithDropdown`；标签用 `TagsInput`；多选/单选 Chip 用 `ChipGroup`；切换用 `TabButtonGroup`（主分类+二级筛选用 `dropdown`）；插件图用 `PluginIcon`；后端字段动态渲染用 `DynamicConfigPanel`/`ConfigField`；节点挂文用 `CognitionAttachments`。详见 [§06](./references/06-reusable-component-catalog.md)。
 - **自定义 CSS 位于 `@tailwind utilities` 之后 ★★**：`src/index.css` 里的 `.page-pinned` / `.glass-card` 等段落会**压掉同特异性的工具类**。所以 CSS 段落只写 Tailwind 做不到的（`main:has(…)`、media 内 overflow 锁定），`display`/`gap` 等交给组件的工具类，否则调用方的 `gap-4` 会失效。详见 [§10 P-25](./references/10-pitfalls-and-performance.md)、[§10 P-21](./references/10-pitfalls-and-performance.md)。
 - **页面里有两层嵌套 `<main>` ★**：`SidebarInset` 自身渲染成 `<main>`，真正的滚动容器是它内部那个。调试/E2E 里取滚动容器要用 `document.querySelector('.layout-page-inner').parentElement`。详见 [§10 P-23](./references/10-pitfalls-and-performance.md)。
 - **固定区过宽会被永久裁掉、够不着 ★★**：桌面 `main` 已 `overflow: hidden`，header/toolbar 不再有「页面级横向滚动条」兜底。自检：桌面下 `.layout-page-inner` 的 `scrollWidth - clientWidth` 必须为 `0`。详见 [§10 P-28](./references/10-pitfalls-and-performance.md)。

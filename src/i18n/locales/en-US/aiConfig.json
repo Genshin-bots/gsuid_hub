@@ -54,6 +54,8 @@
     "whitelistNote": "Only these users can use:",
     "blacklistNote": "These users cannot use:",
     "scopeGlobal": "Global",
+    "scopeGlobalGroup": "Groups Only",
+    "scopeGlobalPrivate": "DMs Only",
     "scopeSpecific": "Specific",
     "scopeDisabled": "Disabled",
     "memoryWarningTip": "All groups mode processes memory for all groups, which may consume more tokens"
@@ -221,6 +223,28 @@
     "jinaHint": "Read via r.jina.ai; API key optional (higher quota when set). Default primary.",
     "configNotLoaded": "Web fetch service config not loaded. Ensure the backend is running and WebFetch config is registered",
     "jinaConfigNotLoaded": "Jina config not loaded; ensure backend registered Jina search/fetch settings"
+  },
+  "relationshipSettings": {
+    "title": "Relationship",
+    "description": "Favorability is the persona's long-term temperature toward this person, driven by interaction quality — not message count.",
+    "empty": "The backend has not published relationship fields yet. Please upgrade gsuid_core.",
+    "openRuntime": "Look up a user's relationship"
+  },
+  "agentKitsSettings": {
+    "title": "Agent kits",
+    "description": "Product capabilities mount on slots. Turning a slot off unregisters that capability. Closing a sealed slot opens the safety surface.",
+    "allowReplaceSealedWarn": "Sealed slots carry outbound speech and the identity anchor. Replacing them is unsafe unless you know the consequences.",
+    "sealedOff": "A sealed slot is currently empty. The safety surface is open.",
+    "slotsTitle": "Kit slots",
+    "empty": "The backend has not published kit-slot fields yet. Please upgrade gsuid_core.",
+    "openRuntime": "Inspect slot and hook health"
+  },
+  "cognitionSettings": {
+    "title": "Cognition federation",
+    "description": "Memory, knowledge, tool dumps, and task artifacts share one retrieval surface. World knowledge lives on public world: hubs; nodes can carry articles.",
+    "prefetchHint": "Cognition prefetch is off by default. Enable it only after a gray release.",
+    "empty": "The backend has not published cognition fields yet. Please upgrade gsuid_core.",
+    "openRuntime": "Browse the cognition index"
   },
   "advancedSettings": {
     "title": "Advanced Settings",

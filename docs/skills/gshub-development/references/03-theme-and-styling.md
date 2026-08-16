@@ -23,6 +23,10 @@ const {
 } = useTheme();
 ```
 
+`iconColor` 通过 `html[data-icon-color]` 全局给 `.lucide` 上色。`Badge`（`data-slot="badge"`）、
+`bg-primary` 选中 Tab、以及 `button` 内的图标必须 **inherit 文字色**，否则浅色主题 + 图标色「黑色」
+时，黑底 Badge / 选中 Tab 上的 ICON 会看不见。覆盖规则在 `index.css` 末尾，改全局着色时不要削弱它。
+
 侧边栏布局 class：`floating-sidebar` / `glass-sidebar` / `line-sidebar`（`line` 无卡片/阴影，仅 `border-right`）。
 
 「杂项」各项均持久化到后端 `ThemeConfig`（`sidebar_layout` / `border_radius` / `ui_scale` / `shadow_intensity` / `sidebar_default_collapsed`），并镜像到 sessionStorage（`theme_sidebar_layout` 等）供首屏防闪。**新增杂项字段的完整同步清单**（缺一处都会出 bug）：

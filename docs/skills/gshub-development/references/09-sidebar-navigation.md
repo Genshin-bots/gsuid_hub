@@ -4,7 +4,7 @@
 
 ## 9.1 导航配置 `getNavItems`
 
-侧边栏导航在 `getNavItems(t, isAIEnabled)` 中构造，`NavItem` 同时支持一级项与含 `children` 的二级菜单：
+侧边栏导航在 `getNavItems(t, isAIEnabled, isAdmin)` 中构造，`NavItem` 同时支持一级项与含 `children` 的二级菜单：
 
 ```tsx
 interface NavItem {
@@ -13,15 +13,16 @@ interface NavItem {
   url?: string;
   icon?: React.ElementType;
   children?: NavItem[];
+  adminOnly?: boolean; // 后端整页 require_admin 时打标，非 admin 侧栏隐藏
 }
 
-const getNavItems = (t, isAIEnabled): NavItem[] => [
+const getNavItems = (t, isAIEnabled, isAdmin): NavItem[] => [
   { id: 'home', title: t('sidebar.home'), url: '/home', icon: Home },
   { id: 'dashboard', title: t('sidebar.dashboard'), url: '/dashboard', icon: LayoutDashboard },
   {
     id: 'adminCore', title: t('sidebar.adminCore'), icon: Cog,
     children: [
-      { id: 'coreConfig', title: t('sidebar.coreConfig'), url: '/core-config', icon: Cog },
+      { id: 'coreConfig', title: t('sidebar.coreConfig'), url: '/core-config', icon: Cog, adminOnly: true },
       // …
     ],
   },
@@ -31,6 +32,11 @@ const getNavItems = (t, isAIEnabled): NavItem[] => [
   },
 ];
 ```
+
+`filterAdminNav` 在 `getNavItems` 末尾按 `isAdmin` 去掉 `adminOnly` 项；空分组一并去掉。
+整页 admin 的路由还要包 `AdminRoute`（直链 `/core-config` 等会回首页）：`/core-config`、`/backup`、`/database`、`/batch-push`。
+读写分离的页（框架配置、插件、调度、git 更新）侧栏仍对普通用户可见，写接口 403 由页面 toast。
+重启 / 暂停按钮仅 `user.role === 'admin'` 显示。
 
 ## 9.2 用稳定 `id` 作 key / 状态键（不要用 `title`）★★
 
@@ -86,7 +92,7 @@ const ICON_MAP: Record<string, React.ElementType> = { …, Wallet };
 
 ```tsx
 const aiConfigChildren: NavItem[] = isAIEnabled
-  ? [ /* 基础配置 / AI预算 / 人格 / MCP / 工具 / 技能 / 统计 / … 全量 */ ]
+  ? [ /* 基础配置 / 人格 / AI预算 / MCP / 工具 / 技能 / 统计 / … 全量 */ ]
   : [ { id: 'ai-basicConfig', … }, { id: 'ai-history', … } ];  // 未启用只保留两项
 ```
 
@@ -98,6 +104,7 @@ const aiConfigChildren: NavItem[] = isAIEnabled
 2. 新图标 → `import` + 加入 `ICON_MAP`。
 3. 三语言 `sidebar.json` 加 `xxx` 文案（见 [§02](./02-i18n.md)）。
 4. `App.tsx` 注册路由、创建页面（见 [§01](./01-architecture-and-conventions.md)、[§04](./04-page-layout-spec.md)）。
+5. 后端整页 `require_admin` 时加 `adminOnly: true`，路由包 `<AdminRoute>`。
 
 ## 9.7 运维分组中的 Live Chat 示例
 

@@ -1,4 +1,4 @@
-# GsCore Frontend / gsuid_hub v0.1.1
+# GsCore Frontend / gsuid_hub v0.1.2
 
 GsCore 网页控制台前端项目。该项目为 [gsuid_core](https://github.com/Genshin-bots/gsuid_core) 提供一套现代化、响应式、可国际化的 Web 管理控制台，用于管理核心配置、插件、日志、数据库、AI 能力与运行状态。
 
@@ -108,7 +108,7 @@ GsCore 网页控制台前端项目。该项目为 [gsuid_core](https://github.co
 | `/ai-tools` | AIToolsPage | AI 工具列表、分类与详情 |
 | `/ai-skills` | AISkillsPage | AI 技能列表、详情、克隆、编辑与删除 |
 | `/ai-knowledge` | AIKnowledgePage | AI 知识库分页、搜索、批量导入与文档管理 |
-| `/ai-memory` | AIMemoryPage | AI 记忆浏览、知识图谱与记忆刷新/删除 |
+| `/ai-memory` | AIMemoryPage | AI 记忆浏览、知识图谱、世界枢纽与挂文预览 |
 | `/ai-meme` | AIMemePage | AI 表情包素材管理、上传、打标、移动、按条件清空与删除 |
 | `/ai-scheduled-tasks` | AIScheduledTasksPage | AI 定时任务创建、暂停、恢复与删除 |
 | `/ai-kanban` | AIKanbanPage | AI 长任务看板（列内滚动 + 横向滚动） |
@@ -248,7 +248,7 @@ import { PinnedPage } from '@/components/layout/PinnedPage';
 - MCP 管理：服务器配置、环境变量、工具发现、JSON 导入、预设、热重载。
 - 能力代理（`/ai-capability-agents`）：来源 **builtin / plugin / user**；plugin 支持 Tab 下拉按 `plugin` 字段筛选；工具包、关键词、白名单、边界覆盖。
 - 工具与技能：工具浏览、技能详情、Git 克隆、Markdown 编辑。
-- 知识与记忆：文本/图片知识库、批量分片导入、记忆数据库与图谱可视化。
+- 知识与记忆：文本/图片知识库、批量分片导入、记忆数据库与图谱可视化（公共 world 枢纽 + 节点挂文）。
 - 表情包管理：素材上传、VLM 打标、标签编辑、使用统计、文件夹管理与**按条件清空**（筛选/全部）。
 - 长任务与审批：任务看板、高危操作审批中心。
 - Artifacts / 工具落盘：全局产出物浏览；FileOS 工具全文落盘（`/ai-tool-outputs`）。

@@ -2136,10 +2136,10 @@ export default function AIStatisticsPage() {
                     {perfMode === 'range' && (
                       <TabButtonGroup
                         options={[
-                          { value: '7d', label: t('aiStatistics.preset7d') },
-                          { value: '14d', label: t('aiStatistics.preset14d') },
-                          { value: '30d', label: t('aiStatistics.preset30d') },
-                          { value: '90d', label: t('aiStatistics.preset90d') },
+                          { value: '7d', label: t('aiStatistics.preset7d'), icon: <Sparkles className="w-4 h-4" /> },
+                          { value: '14d', label: t('aiStatistics.preset14d'), icon: <Zap className="w-4 h-4" /> },
+                          { value: '30d', label: t('aiStatistics.preset30d'), icon: <BarChart3 className="w-4 h-4" /> },
+                          { value: '90d', label: t('aiStatistics.preset90d'), icon: <TrendingUp className="w-4 h-4" /> },
                         ]}
                         value={perfRangePreset}
                         onValueChange={(v) => setPerfRangePreset(v as Exclude<RangePreset, 'custom'>)}

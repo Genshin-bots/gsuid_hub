@@ -78,5 +78,6 @@
   "settings": "設定",
   "stateStore": "状態ストア",
   "groupProfile": "グループ像",
-  "aiOps": "AI 運用センター"
+  "aiOps": "AI 運用センター",
+  "aiRuntime": "Agent ランタイム"
 }

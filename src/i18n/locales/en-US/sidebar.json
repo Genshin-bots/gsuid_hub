@@ -78,5 +78,6 @@
   "settings": "Settings",
   "stateStore": "State Store",
   "groupProfile": "Group Profile",
-  "aiOps": "AI Ops Center"
+  "aiOps": "AI Ops Center",
+  "aiRuntime": "Agent Runtime"
 }

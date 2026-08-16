@@ -54,6 +54,8 @@
     "whitelistNote": "仅以下用户可用：",
     "blacklistNote": "以下用户不可用：",
     "scopeGlobal": "全局启用",
+    "scopeGlobalGroup": "全局仅群聊",
+    "scopeGlobalPrivate": "全局仅私聊",
     "scopeSpecific": "特定启用",
     "scopeDisabled": "不启用",
     "memoryWarningTip": "全部群聊模式会处理所有群聊的记忆，可能占用较多 Token"
@@ -221,6 +223,28 @@
     "jinaHint": "经 r.jina.ai 读取；API Key 可选，填写可提高额度。默认主用。",
     "configNotLoaded": "尚未加载网页抓取服务配置，请确认后端已启动并注册 WebFetch 配置项",
     "jinaConfigNotLoaded": "尚未加载 Jina 配置，请确认后端已注册「Jina搜索抓取配置」"
+  },
+  "relationshipSettings": {
+    "title": "关系温度",
+    "description": "好感度是人格对这个人的长期关系温度，由互动质量与越界行为驱动，不是聊天条数。",
+    "empty": "后端尚未下发关系温度字段。请升级 gsuid_core。",
+    "openRuntime": "查询某人的关系温度"
+  },
+  "agentKitsSettings": {
+    "title": "Agent 套件",
+    "description": "产品能力按槽位挂载。关某槽 = 该能力不注册。密封槽关闭会拆安全面。",
+    "allowReplaceSealedWarn": "密封槽承载出站话术与身份锚。打开后可以替换它们；除非你清楚后果，保持关闭。",
+    "sealedOff": "密封槽当前为空，安全面已拆开。",
+    "slotsTitle": "套件槽",
+    "empty": "后端尚未下发套件槽字段。请升级 gsuid_core。",
+    "openRuntime": "查看槽位与 Hook 健康"
+  },
+  "cognitionSettings": {
+    "title": "认知联邦",
+    "description": "记忆 / 知识 / 工具落盘 / 任务产物合成一个检索面。世界知识挂在公共 world: 枢纽上，节点可挂文章。",
+    "prefetchHint": "认知探针预取默认关闭，灰度确认后再开。",
+    "empty": "后端尚未下发认知联邦字段。请升级 gsuid_core。",
+    "openRuntime": "浏览认知索引"
   },
   "advancedSettings": {
     "title": "高级设置",

@@ -34,7 +34,7 @@ import {
   hoverIconGroupClass,
 } from '@/components/layout/SidebarHoverIcon';
 
-const frontendVersion = PACKAGE_VERSION || '0.1.1';
+const frontendVersion = PACKAGE_VERSION || '0.1.2';
 
 // Build HomePage card classes that follow the global theme:
 // - `glass-card` (theme system: opacity + blur intensity, dark/light)
@@ -105,6 +105,7 @@ export default function HomePage() {
   }, [t]);
 
   const displayName = user?.name?.trim() || 'User';
+  const isAdmin = user?.role === 'admin';
 
   const loadHomeData = useCallback(async () => {
     setIsLoading(true);
@@ -131,7 +132,9 @@ export default function HomePage() {
     { label: t('home.goToPlugins'), description: t('home.goToPluginsDesc'), href: '/plugins', icon: Plug },
     { label: t('home.goToGitUpdate'), description: t('home.goToGitUpdateDesc'), href: '/git-update', icon: GitBranch },
     { label: t('home.goToDashboard'), description: t('home.goToDashboardDesc'), href: '/dashboard', icon: LayoutDashboard },
-    { label: t('home.goToDatabase'), description: t('home.goToDatabaseDesc'), href: '/database', icon: Database },
+    ...(isAdmin
+      ? [{ label: t('home.goToDatabase'), description: t('home.goToDatabaseDesc'), href: '/database', icon: Database }]
+      : []),
     { label: t('home.goToFrameworkConfig'), description: t('home.goToFrameworkConfigDesc'), href: '/framework-config', icon: Cpu },
     { label: t('home.goToConsole'), description: t('home.goToConsoleDesc'), href: '/console', icon: Terminal },
   ];
@@ -179,7 +182,7 @@ export default function HomePage() {
                 {t('home.backendVersion')} v{versionInfo?.version || '-'}
               </Badge>
               <Badge className="gap-1.5 rounded-full border-border/50 bg-background/20 px-3 py-1 text-sm text-muted-foreground backdrop-blur-xl" variant="outline">
-                <GitCommit className="h-3.5 w-3.5 text-primary" />
+                <GitCommit className="h-3.5 w-3.5" />
                 {t('home.commitHash')} {versionInfo?.commit || '-'}
               </Badge>
             </div>

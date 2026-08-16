@@ -54,6 +54,8 @@
     "whitelistNote": "以下のユーザーのみ利用可:",
     "blacklistNote": "以下のユーザーは利用不可:",
     "scopeGlobal": "全体で有効",
+    "scopeGlobalGroup": "グループのみ",
+    "scopeGlobalPrivate": "トークのみ",
     "scopeSpecific": "指定範囲で有効",
     "scopeDisabled": "無効",
     "memoryWarningTip": "全グループのメモリを処理するため、トークン消費が増える場合があります"
@@ -221,6 +223,28 @@
     "jinaHint": "r.jina.ai 経由。API Key は任意。デフォルトのメイン。",
     "configNotLoaded": "Web 取得サービス設定が未読込です。バックエンドが起動し WebFetch 設定が登録されているか確認してください",
     "jinaConfigNotLoaded": "Jina 設定が未読込です。バックエンドの Jina 検索・取得設定を確認してください"
+  },
+  "relationshipSettings": {
+    "title": "関係温度",
+    "description": "好感度は人格がこの人に対して持つ長期の関係温度です。交流の質で動き、発言数ではありません。",
+    "empty": "バックエンドが関係温度フィールドをまだ出していません。gsuid_core をアップグレードしてください。",
+    "openRuntime": "関係温度を照会"
+  },
+  "agentKitsSettings": {
+    "title": "Agent キット",
+    "description": "製品能力は槽に装着します。槽を閉じるとその能力は登録されません。密封槽を閉じると安全面が開きます。",
+    "allowReplaceSealedWarn": "密封槽は発話方針と身元アンカーを担います。置換は危険です。結果を理解していないならオフのままにしてください。",
+    "sealedOff": "密封槽が空です。安全面が開いています。",
+    "slotsTitle": "キット槽",
+    "empty": "バックエンドがキット槽フィールドをまだ出していません。gsuid_core をアップグレードしてください。",
+    "openRuntime": "槽と Hook の健全性を見る"
+  },
+  "cognitionSettings": {
+    "title": "認知フェデレーション",
+    "description": "記憶 / 知識 / ツール落盤 / タスク成果物を一つの検索面にまとめます。世界知識は公開 world: ハブにあり、ノードに記事を掛けることができます。",
+    "prefetchHint": "認知プリフェッチは既定オフです。グレーリリース後にオンにしてください。",
+    "empty": "バックエンドが認知フィールドをまだ出していません。gsuid_core をアップグレードしてください。",
+    "openRuntime": "認知インデックスを見る"
   },
   "advancedSettings": {
     "title": "詳細設定",

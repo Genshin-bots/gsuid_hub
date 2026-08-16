@@ -766,7 +766,13 @@ export interface LiveChatStateDto {
   activeId?: string | null;
 }
 
+export interface LiveChatBootstrapDto {
+  masters: string[];
+}
+
 export const liveChatApi = {
+  /** masters 列表；不含 WS_TOKEN。WS 用登录会话 token。 */
+  getBootstrap: () => api.get<LiveChatBootstrapDto>('/api/live-chat/bootstrap'),
   /** 组装完整状态（identity + index + 各会话文件） */
   getState: () => api.get<LiveChatStateDto>('/api/live-chat/state'),
   /** 整包拆分写入多文件 */
@@ -2098,7 +2104,7 @@ export interface PersonaFrameworkConfig {
 }
 
 // 角色配置相关类型
-export type PersonaScope = 'disabled' | 'global' | 'specific';
+export type PersonaScope = 'disabled' | 'global' | 'specific' | 'global_group' | 'global_private';
 export type AIMode = '提及应答' | '定时巡检' | '趣向捕捉(暂不可用)' | '困境救场(暂不可用)';
 
 export interface PersonaConfig {
@@ -4651,11 +4657,54 @@ export const memorySettingsApi = {
 };
 
 /**
- * 日志控制台配置（/logs 页面「控制台配置」Tab 专用）。
+ * 日志控制台配置。
+ *
+ * 与 `webconsole/logs_api.py` GET/PUT `/api/logs/config` 对齐：后端只持久化
+ * `visible_levels`（`GET /api/logs/levels` 的真实 value，不含 UI 标志 `all`）。
+ * `/logs` 配置弹窗与 `/console` 级别筛选共用这份偏好。
  */
+export const LOG_LEVEL_VALUES = [
+  'trace',
+  'debug',
+  'info',
+  'success',
+  'warning',
+  'error',
+  'critical',
+] as const;
+
+export type LogLevelValue = (typeof LOG_LEVEL_VALUES)[number];
+
+export interface LogsConfig {
+  visible_levels: string[];
+}
+
+export const DEFAULT_LOGS_CONFIG: LogsConfig = {
+  visible_levels: ['debug', 'info', 'warning', 'error'],
+};
+
+/** 与后端 `_sanitize_visible_levels` 一致：小写、去重、剔 `all` / 非法值，允许空数组。 */
+export function sanitizeVisibleLevels(values: unknown): string[] {
+  if (!Array.isArray(values)) return [];
+  const allowed = new Set<string>(LOG_LEVEL_VALUES);
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const raw of values) {
+    if (typeof raw !== 'string') continue;
+    const v = raw.trim().toLowerCase();
+    if (!v || v === 'all' || !allowed.has(v) || seen.has(v)) continue;
+    seen.add(v);
+    out.push(v);
+  }
+  return out;
+}
+
 export const logsConfigApi = {
-  get: () => api.get('/api/logs/config'),
-  update: (data: Record<string, unknown>) => api.put('/api/logs/config', data),
+  get: () => api.get<LogsConfig>('/api/logs/config'),
+  update: (data: { visible_levels: string[] }) =>
+    api.put<LogsConfig>('/api/logs/config', {
+      visible_levels: sanitizeVisibleLevels(data.visible_levels),
+    }),
 };
 
 // ===================
@@ -4814,7 +4863,7 @@ export interface AIWizardPersonaScope {
   ai_mode: string[];
   inspect_interval: number | null;
   has_inspect: boolean;
-  scope: 'disabled' | 'global' | 'specific';
+  scope: 'disabled' | 'global' | 'specific' | 'global_group' | 'global_private';
   target_groups: string[];
   is_enabled: boolean;
   scope_desc: string;
@@ -5728,4 +5777,199 @@ export const opsApi = {
       }>;
       ts: number;
     }>('/api/ops/plugins-diagnostics'),
+};
+
+// ===================
+// Agent kits / relationship / cognition — /api/agent_kits/* /api/relationship/* /api/cognition/*
+// ===================
+
+export interface AgentKitCandidate {
+  kit_id: string;
+  display_name: string;
+  owns_tools: string[];
+}
+
+export interface AgentKitSlot {
+  name: string;
+  description: string;
+  default_kit_id: string;
+  exclusive: boolean;
+  sealed: boolean;
+  configured: string[];
+  occupants: string[];
+  healthy: boolean;
+  candidates: AgentKitCandidate[];
+}
+
+export interface AgentKitSlotsData {
+  slots: AgentKitSlot[];
+}
+
+export interface AgentHookPointInfo {
+  id: string;
+  name: string;
+  anchor: string;
+  capabilities: string[];
+  default_timeout_ms: number;
+  wired: boolean;
+  owners: string[];
+}
+
+export interface AgentKitHooksData {
+  enabled: boolean;
+  total_hooks: number;
+  points: AgentHookPointInfo[];
+}
+
+export interface RelationshipViewData {
+  user_id: string;
+  bot_id?: string;
+  scored: boolean;
+  score?: number;
+  zone: string;
+  zone_label: string;
+  line: string;
+  last_delta?: number;
+  last_reason?: string;
+  last_eval_at?: number;
+  daily_gain?: number;
+  daily_loss?: number;
+  daily_ymd?: string;
+  last_positive_interact_at?: number;
+  interaction_count?: number;
+}
+
+export interface CognitionAttachment {
+  id: number | null;
+  node_id: number;
+  slot: string;
+  title: string;
+  summary: string;
+  as_of: string;
+  source: string;
+  writable: boolean;
+  ref: string;
+  handle: string;
+}
+
+export interface CognitionNode {
+  id: number | null;
+  kind: string;
+  ref: string;
+  scope_key: string;
+  owner_user_id: string;
+  title: string;
+  summary: string;
+  as_of: string;
+  source: string;
+  handle: string;
+  canon?: string;
+  decay: number;
+  attachments?: CognitionAttachment[];
+}
+
+export interface CognitionNodesData {
+  nodes: CognitionNode[];
+}
+
+export interface CognitionRebuildMountData {
+  hubs: number;
+  attachments: number;
+  linked_env: number;
+  skipped_ambiguous: number;
+  skipped_unresolved: number;
+  last_error: string | null;
+}
+
+export interface CognitionArticlePreview {
+  handle: string;
+  source: string;
+  mime: string;
+  text: string;
+  truncated: boolean;
+  size_bytes: number;
+}
+
+/**
+ * 兼容标准封套 `{status:0,data}` 与旧版 `{status_code:200,data}`。
+ * 旧 gsuid_core 若尚未改封套，控制台仍能读到 data。
+ */
+function unwrapConsolePayload<T>(raw: ApiResponse<T> | Record<string, unknown>): T {
+  const rec = raw as unknown as Record<string, unknown>;
+  if ((raw as ApiResponse<T>).status === 0 && (raw as ApiResponse<T>).data !== undefined && (raw as ApiResponse<T>).data !== null) {
+    return (raw as ApiResponse<T>).data as T;
+  }
+  if (rec.status_code === 200 && rec.data !== undefined && rec.data !== null) {
+    return rec.data as T;
+  }
+  throw new Error(getApiErrorMessage(raw, 'API request failed'));
+}
+
+async function getConsolePayload<T>(endpoint: string): Promise<T> {
+  return unwrapConsolePayload<T>(await api.getRaw<T>(endpoint));
+}
+
+async function postConsolePayload<T>(endpoint: string, body?: unknown): Promise<T> {
+  return unwrapConsolePayload<T>(await api.postRaw<T>(endpoint, body));
+}
+
+export const agentKitsApi = {
+  getSlots: () => getConsolePayload<AgentKitSlotsData>('/api/agent_kits/slots'),
+
+  getHooks: () => getConsolePayload<AgentKitHooksData>('/api/agent_kits/hooks'),
+};
+
+export const relationshipApi = {
+  getView: (params: { user_id: string; bot_id?: string }) => {
+    const query = new URLSearchParams();
+    query.set('user_id', params.user_id);
+    if (params.bot_id) query.set('bot_id', params.bot_id);
+    return getConsolePayload<RelationshipViewData>(
+      `/api/relationship/view?${query.toString()}`,
+    );
+  },
+};
+
+export const cognitionApi = {
+  getNodes: (params: {
+    keyword?: string;
+    scope_key?: string;
+    owner_user_id?: string;
+    limit?: number;
+  } = {}) => {
+    const query = new URLSearchParams();
+    if (params.keyword) query.set('keyword', params.keyword);
+    if (params.scope_key) query.set('scope_key', params.scope_key);
+    if (params.owner_user_id) query.set('owner_user_id', params.owner_user_id);
+    if (params.limit !== undefined) query.set('limit', String(params.limit));
+    const qs = query.toString();
+    return getConsolePayload<CognitionNodesData>(
+      `/api/cognition/nodes${qs ? `?${qs}` : ''}`,
+    );
+  },
+
+  readArticle: (handle: string, limit = 20000) => {
+    const query = new URLSearchParams();
+    query.set('handle', handle);
+    query.set('limit', String(limit));
+    return getConsolePayload<CognitionArticlePreview>(
+      `/api/cognition/articles?${query.toString()}`,
+    );
+  },
+
+  getNode: (
+    nodeId: number,
+    params: { scope_key?: string; owner_user_id?: string } = {},
+  ) => {
+    const query = new URLSearchParams();
+    if (params.scope_key) query.set('scope_key', params.scope_key);
+    if (params.owner_user_id) query.set('owner_user_id', params.owner_user_id);
+    const qs = query.toString();
+    return getConsolePayload<CognitionNode>(
+      `/api/cognition/nodes/${nodeId}${qs ? `?${qs}` : ''}`,
+    );
+  },
+
+  rebuildMount: () =>
+    postConsolePayload<CognitionRebuildMountData>('/api/cognition/rebuild_mount'),
 };

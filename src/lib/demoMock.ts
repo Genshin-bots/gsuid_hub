@@ -814,22 +814,58 @@ export const generateLogSources = () => [
   { name: 'dc-sayu', count: 31 },
   ...DEMO_LOG_SOURCES.filter((s) => !['onebot-114514', 'tg-sayu', 'dc-sayu'].includes(s)).map((s) => ({ name: s, count: 24 })),
 ];
-export const generateLogLevels = () => ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'];
+export const generateLogLevels = () => [
+  { label: '全部', value: 'all' },
+  { label: 'TRACE', value: 'trace' },
+  { label: 'DEBUG', value: 'debug' },
+  { label: 'INFO', value: 'info' },
+  { label: 'SUCCESS', value: 'success' },
+  { label: 'WARNING', value: 'warning' },
+  { label: 'ERROR', value: 'error' },
+  { label: 'CRITICAL', value: 'critical' },
+];
 export const generateLogStats = () => ({
   total_entries: 1842,
   by_level: { DEBUG: 512, INFO: 1043, WARNING: 224, ERROR: 58, CRITICAL: 5 },
   by_source: Object.fromEntries(DEMO_LOG_SOURCES.map((s) => [s, Math.floor(80 + Math.random() * 400)])),
   busiest_date: new Date().toISOString().split('T')[0],
 });
+
+const DEMO_LOG_LEVEL_VALUES = new Set([
+  'trace',
+  'debug',
+  'info',
+  'success',
+  'warning',
+  'error',
+  'critical',
+]);
+
+let demoLogsConfig: { visible_levels: string[] } = {
+  visible_levels: ['debug', 'info', 'warning', 'error'],
+};
+
 export const generateLogConfig = () => ({
-  retention_days: 30,
-  rotation_size_mb: 100,
-  enable_file_compression: true,
-  include_debug: false,
-  blacklisted_sources: ['plugin.noisy'],
-  blacklisted_modules: [],
-  max_size_per_file: 50,
+  visible_levels: [...demoLogsConfig.visible_levels],
 });
+
+export const applyLogConfig = (body: unknown) => {
+  const raw =
+    body && typeof body === 'object' && Array.isArray((body as { visible_levels?: unknown }).visible_levels)
+      ? ((body as { visible_levels: unknown[] }).visible_levels)
+      : [];
+  const seen = new Set<string>();
+  const levels: string[] = [];
+  for (const item of raw) {
+    if (typeof item !== 'string') continue;
+    const v = item.trim().toLowerCase();
+    if (!v || v === 'all' || !DEMO_LOG_LEVEL_VALUES.has(v) || seen.has(v)) continue;
+    seen.add(v);
+    levels.push(v);
+  }
+  demoLogsConfig = { visible_levels: levels };
+  return generateLogConfig();
+};
 
 // ---- Persona（PersonaConfigPage） ----
 const DEMO_PERSONAS = [

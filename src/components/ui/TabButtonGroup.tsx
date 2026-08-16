@@ -75,8 +75,8 @@ function tabSegmentClassName(
     hoverIconGroupClass,
     'relative text-sm font-medium transition-all duration-200 flex items-center gap-2 whitespace-nowrap',
     isActive
-      ? 'bg-primary text-primary-foreground'
-      : 'text-muted-foreground hover:text-foreground hover:bg-muted/80',
+      ? 'bg-primary text-primary-foreground [&_svg]:text-current'
+      : 'text-muted-foreground hover:text-foreground hover:bg-muted/80 [&_svg]:text-current',
     isDisabled &&
       'opacity-40 cursor-not-allowed pointer-events-none hover:text-muted-foreground hover:bg-transparent',
     buttonClassName,
@@ -142,9 +142,11 @@ export function TabButtonGroup({
                     isDisabled && 'cursor-not-allowed',
                   )}
                 >
-                  <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center">
-                    {asHoverIcon(option.icon)}
-                  </span>
+                  {option.icon != null && (
+                    <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center">
+                      {asHoverIcon(option.icon)}
+                    </span>
+                  )}
                   <span className="truncate">{option.label}</span>
                 </button>
 
@@ -221,9 +223,11 @@ export function TabButtonGroup({
                 'rounded-md px-4 py-2',
               )}
             >
-              <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center">
-                {asHoverIcon(option.icon)}
-              </span>
+              {option.icon != null && (
+                <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center">
+                  {asHoverIcon(option.icon)}
+                </span>
+              )}
               {option.label}
             </button>
           );

@@ -144,25 +144,31 @@ content: [{ type: 'recall_message_id', data: { echo, id: platformMsgId } }]
 | 日志包 | `bot_id === routeBotId` 且首段 `type` 以 `log_` 开头 → `onRawLog`，不进 `onMessage` |
 | demo | 页面侧 `import.meta.env.VITE_DEMO` 时**不建连** |
 
-Token 来自 `configApi.getCoreConfig().WS_TOKEN`（可空）。
+Token 来自 `getAuthToken()`（控制台登录会话），经 `?token=` 传给 `/ws/webconsole_livechat`。
+**不要**再用 `configApi.getCoreConfig().WS_TOKEN`：该接口已管理员专用，且 `WS_TOKEN` 会打码。
+`masters` 走 `liveChatApi.getBootstrap()`（`require_auth`）。其它适配器 bot 仍用核心 `WS_TOKEN`。
 
 ### ★★ 禁止把 handler 放进 connect 的 useEffect 依赖（P-30）
 
 ```tsx
-// ✅ 用 ref 挂最新处理函数；effect 仅依赖 coreLoaded / wsToken
+// ✅ 用 ref 挂最新处理函数；effect 仅依赖 bootstrap 完成（coreLoaded）
 const handleIncomingRef = useRef<(msg: MessageSend) => void>(() => {});
 handleIncomingRef.current = (msg) => { /* 用 identityRef / activeIdRef / tRef */ };
 
 useEffect(() => {
   if (!coreLoaded || import.meta.env.VITE_DEMO) return;
-  const client = new LiveChatWsClient({ routeBotId: WS_BOT_ID, token: wsToken, … });
+  const client = new LiveChatWsClient({
+    routeBotId: WS_BOT_ID,
+    token: getAuthToken() || '',
+    …
+  });
   client.setHandlers({
     onMessage: (m) => handleIncomingRef.current(m),
     …
   });
   client.connect();
   return () => client.disconnect();
-}, [coreLoaded, wsToken]); // 禁止把 identity / conversations / t 放进来
+}, [coreLoaded]); // 禁止把 identity / conversations / t 放进来
 ```
 
 否则每次身份/会话更新都会断连重连，AI 请求在 core 队列里等到超过 **STALE_CHAT_REQUEST_TTL = 8s**
@@ -176,6 +182,7 @@ useEffect(() => {
 
 | API | 用途 |
 |-----|------|
+| `GET /api/live-chat/bootstrap` | `masters`（登录即可；不含 `WS_TOKEN`） |
 | `GET/PUT /api/live-chat/state` | 整包读写（页面主路径） |
 | `PUT /api/live-chat/identity` | 仅身份 |
 | `PUT /api/live-chat/index` | 索引 + activeId（无 messages） |

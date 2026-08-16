@@ -926,62 +926,59 @@ main:has(.page-fill) .layout-page-inner {
   @apply bg-muted-foreground/40;
 }
 
-/* Force button icons to inherit button text color with highest priority */
-/* This must come last to override the global icon color rules */
-/* Using very specific selectors that come later in the file */
-
-/* Default button variant icons */
-[data-icon-color] button.bg-primary .lucide,
-[data-icon-color] [class*="Button"].bg-primary .lucide,
-[data-icon-color] button .lucide,
-[data-icon-color] [class*="Button"] .lucide,
-[data-icon-color] [role="button"] .lucide {
+/* Force button / badge / primary-pill icons to inherit text color.
+   Global tint is:
+     [data-icon-color="black"] :not(button):not([class*="Button"]) .lucide
+   specificity (0, 3, 1). The intermediate :not(button) matches a wrapping
+   <span> or the Badge <div>, so tint still paints icons black on black
+   Badge / selected Tab (bg-primary). Beat it with .lucide.lucide. */
+[data-icon-color="black"] [data-slot="badge"] .lucide.lucide,
+[data-icon-color="white"] [data-slot="badge"] .lucide.lucide,
+[data-icon-color="colored"] [data-slot="badge"] .lucide.lucide,
+[data-icon-color="black"] .bg-primary .lucide.lucide,
+[data-icon-color="white"] .bg-primary .lucide.lucide,
+[data-icon-color="colored"] .bg-primary .lucide.lucide,
+[data-icon-color="black"] .bg-destructive .lucide.lucide,
+[data-icon-color="white"] .bg-destructive .lucide.lucide,
+[data-icon-color="colored"] .bg-destructive .lucide.lucide,
+[data-icon-color="black"] button .lucide.lucide,
+[data-icon-color="white"] button .lucide.lucide,
+[data-icon-color="colored"] button .lucide.lucide,
+[data-icon-color="black"] [class*="Button"] .lucide.lucide,
+[data-icon-color="white"] [class*="Button"] .lucide.lucide,
+[data-icon-color="colored"] [class*="Button"] .lucide.lucide,
+[data-icon-color="black"] [role="button"] .lucide.lucide,
+[data-icon-color="white"] [role="button"] .lucide.lucide,
+[data-icon-color="colored"] [role="button"] .lucide.lucide {
   color: inherit !important;
 }
 
-/* Secondary button variant icons */
-[data-icon-color] button.bg-secondary .lucide,
-[data-icon-color] [class*="Button"].bg-secondary .lucide {
-  color: inherit !important;
-}
-
-/* Destructive button variant icons */
-[data-icon-color] button.bg-destructive .lucide,
-[data-icon-color] [class*="Button"].bg-destructive .lucide {
-  color: inherit !important;
-}
-
-/* Outline button variant icons */
-[data-icon-color] button.border-input .lucide,
-[data-icon-color] [class*="Button"].border-input .lucide {
-  color: inherit !important;
-}
-
-/* Ghost button variant icons */
-[data-icon-color] button:not(.bg-):not(.border-) .lucide,
-[data-icon-color] [class*="Button"]:not(.bg-):not(.border-) .lucide {
-  color: inherit !important;
-}
-
-/* Same for text elements */
-[data-icon-color] button text,
-[data-icon-color] [class*="Button"] text,
-[data-icon-color] [role="button"] text {
+[data-icon-color="black"] [data-slot="badge"] text,
+[data-icon-color="white"] [data-slot="badge"] text,
+[data-icon-color="colored"] [data-slot="badge"] text,
+[data-icon-color="black"] button text,
+[data-icon-color="white"] button text,
+[data-icon-color="colored"] button text,
+[data-icon-color="black"] [class*="Button"] text,
+[data-icon-color="white"] [class*="Button"] text,
+[data-icon-color="colored"] [class*="Button"] text,
+[data-icon-color="black"] [role="button"] text,
+[data-icon-color="white"] [role="button"] text,
+[data-icon-color="colored"] [role="button"] text {
   fill: inherit !important;
 }
 
 /* Sidebar menu button icons should respect iconColor setting */
-/* This must come after the inherit rules to take precedence */
-[data-icon-color="colored"] [data-sidebar="menu-button"] .lucide {
+[data-icon-color="colored"] [data-sidebar="menu-button"] .lucide.lucide {
   color: hsl(var(--primary)) !important;
   filter: none;
 }
 
-[data-icon-color="white"] [data-sidebar="menu-button"] .lucide {
+[data-icon-color="white"] [data-sidebar="menu-button"] .lucide.lucide {
   color: white !important;
 }
 
-[data-icon-color="black"] [data-sidebar="menu-button"] .lucide {
+[data-icon-color="black"] [data-sidebar="menu-button"] .lucide.lucide {
   color: black !important;
 }
 

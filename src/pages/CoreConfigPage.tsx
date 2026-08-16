@@ -127,7 +127,24 @@ const apiConfigToFieldDefinition = (
   if (key === 'HOST') return { type: 'text', label: labelKey, value: String(value), placeholder: 'coreFrameworkConfig.enterValue' };
   if (key === 'PORT') return { type: 'text', label: labelKey, value: String(value), placeholder: 'coreFrameworkConfig.enterValue' };
   if (key === 'ENABLE_HTTP') return { type: 'boolean', label: labelKey, value: value as boolean };
-  if (key === 'WS_TOKEN') return { type: 'text', label: labelKey, value: String(value), placeholder: 'coreFrameworkConfig.enterValue' };
+  if (key === 'WS_TOKEN') {
+    return {
+      type: 'password',
+      label: labelKey,
+      value: String(value),
+      placeholder: 'coreFrameworkConfig.enterValue',
+      secret: true,
+    };
+  }
+  if (key === 'REGISTER_CODE') {
+    return {
+      type: 'password',
+      label: labelKey,
+      value: String(value),
+      placeholder: 'coreFrameworkConfig.enterValue',
+      secret: true,
+    };
+  }
   if (key === 'TRUSTED_IPS') return { type: 'tags', label: labelKey, value: value as string[], placeholder: 'coreFrameworkConfig.enterTags' };
   if (key === 'masters') {
     return {

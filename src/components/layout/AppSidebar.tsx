@@ -1,4 +1,4 @@
-import { Home, LayoutDashboard, Database, Settings, FileText, LogOut, Palette, Terminal, Calendar, Store, Cpu, HardDrive, PanelLeftClose, Cog, Power, RotateCw, User, Brain, ChevronDown, ChevronRight, Wrench, Sparkles, BookOpen, History, TrendingUp, Clock, Server, GitBranch, Image as ImageIcon, ScrollText, Layers, ClipboardList, Activity, Wallet, ShieldCheck, Bug, PackageOpen, Send, Users, MessageCircle, FileSearch } from 'lucide-react';
+import { Home, LayoutDashboard, Database, Settings, FileText, LogOut, Palette, Terminal, Calendar, Store, Cpu, HardDrive, PanelLeftClose, Cog, Power, RotateCw, User, Brain, ChevronDown, ChevronRight, Wrench, Sparkles, BookOpen, History, TrendingUp, Clock, Server, GitBranch, Image as ImageIcon, ScrollText, Layers, ClipboardList, Activity, Wallet, ShieldCheck, Bug, PackageOpen, Send, Users, MessageCircle, FileSearch, Puzzle } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -41,6 +41,7 @@ interface NavItem {
   url?: string;
   icon?: React.ElementType;
   children?: NavItem[];
+  adminOnly?: boolean;
 }
 
 // 静态导航配置 - 避免每次渲染重新创建
@@ -67,16 +68,36 @@ const ICON_MAP: Record<string, React.ElementType> = {
   GitBranch,
   Wallet,
   MessageCircle,
+  Puzzle,
 };
 
+function filterAdminNav(items: NavItem[], isAdmin: boolean): NavItem[] {
+  const out: NavItem[] = [];
+  for (const item of items) {
+    if (item.adminOnly && !isAdmin) {
+      continue;
+    }
+    if (item.children && item.children.length > 0) {
+      const children = filterAdminNav(item.children, isAdmin);
+      if (children.length === 0) {
+        continue;
+      }
+      out.push({ ...item, children });
+      continue;
+    }
+    out.push(item);
+  }
+  return out;
+}
+
 // 导航项配置
-const getNavItems = (t: (key: string) => string, isAIEnabled: boolean): NavItem[] => {
+const getNavItems = (t: (key: string) => string, isAIEnabled: boolean, isAdmin: boolean): NavItem[] => {
   // AI 配置的子菜单：未启用 AI 时只保留 基础配置 / AI历史调用
   const aiConfigChildren: NavItem[] = isAIEnabled
     ? [
         { id: 'ai-basicConfig', title: t('sidebar.basicConfig'), url: '/ai-config', icon: Cog },
-        { id: 'ai-budget', title: t('sidebar.aiBudget'), url: '/ai-budget', icon: Wallet },
         { id: 'ai-personaConfig', title: t('sidebar.personaConfig'), url: '/persona-config', icon: User },
+        { id: 'ai-budget', title: t('sidebar.aiBudget'), url: '/ai-budget', icon: Wallet },
         { id: 'ai-mcpConfig', title: t('sidebar.mcpConfig'), url: '/mcp-config', icon: Server },
         { id: 'ai-capabilityAgents', title: t('sidebar.aiCapabilityAgents'), url: '/ai-capability-agents', icon: Layers },
         { id: 'ai-tools', title: t('sidebar.aiTools'), url: '/ai-tools', icon: Wrench },
@@ -93,6 +114,7 @@ const getNavItems = (t: (key: string) => string, isAIEnabled: boolean): NavItem[
         { id: 'ai-approvals', title: t('sidebar.aiApprovals'), url: '/ai-approvals', icon: ShieldCheck },
         { id: 'ai-debug', title: t('sidebar.aiDebug'), url: '/ai-debug', icon: Bug },
         { id: 'ai-ops', title: t('sidebar.aiOps'), url: '/ai-ops', icon: Activity },
+        { id: 'ai-runtime', title: t('sidebar.aiRuntime'), url: '/ai-runtime', icon: Puzzle },
         { id: 'ai-artifacts', title: t('sidebar.aiArtifacts'), url: '/ai-artifacts', icon: PackageOpen },
         { id: 'ai-tool-outputs', title: t('sidebar.aiToolOutputs'), url: '/ai-tool-outputs', icon: FileSearch },
       ]
@@ -101,18 +123,18 @@ const getNavItems = (t: (key: string) => string, isAIEnabled: boolean): NavItem[
         { id: 'ai-history', title: t('sidebar.aiHistory'), url: '/ai-history', icon: ScrollText },
       ];
 
-  return [
+  const items: NavItem[] = [
     { id: 'home', title: t('sidebar.home'), url: '/home', icon: Home },
     { id: 'dashboard', title: t('sidebar.dashboard'), url: '/dashboard', icon: LayoutDashboard },
-    { id: 'database', title: t('sidebar.database'), url: '/database', icon: Database },
+    { id: 'database', title: t('sidebar.database'), url: '/database', icon: Database, adminOnly: true },
     {
       id: 'adminCore',
       title: t('sidebar.adminCore'),
       icon: Cog,
       children: [
-        { id: 'coreConfig', title: t('sidebar.coreConfig'), url: '/core-config', icon: Cog },
+        { id: 'coreConfig', title: t('sidebar.coreConfig'), url: '/core-config', icon: Cog, adminOnly: true },
         { id: 'frameworkConfig', title: t('sidebar.frameworkConfig'), url: '/framework-config', icon: Cpu },
-        { id: 'backup', title: t('sidebar.backup'), url: '/backup', icon: HardDrive },
+        { id: 'backup', title: t('sidebar.backup'), url: '/backup', icon: HardDrive, adminOnly: true },
         { id: 'scheduler', title: t('sidebar.scheduler'), url: '/scheduler', icon: Calendar }
       ]
     },
@@ -126,7 +148,7 @@ const getNavItems = (t: (key: string) => string, isAIEnabled: boolean): NavItem[
         { id: 'traces', title: t('sidebar.traces'), url: '/traces', icon: Activity },
         { id: 'sessionManagement', title: t('sidebar.sessionManagement'), url: '/session-management', icon: History },
         { id: 'liveChat', title: t('sidebar.liveChat'), url: '/live-chat', icon: MessageCircle },
-        { id: 'batchPush', title: t('sidebar.batchPush'), url: '/batch-push', icon: Send }
+        { id: 'batchPush', title: t('sidebar.batchPush'), url: '/batch-push', icon: Send, adminOnly: true }
       ]
     },
     {
@@ -149,6 +171,7 @@ const getNavItems = (t: (key: string) => string, isAIEnabled: boolean): NavItem[
       ]
     }
   ];
+  return filterAdminNav(items, isAdmin);
 };
 
 // 使用memo优化NavItem渲染
@@ -322,13 +345,14 @@ const MemoizedNavItem = memo(function MemoizedNavItem({
 export function AppSidebar() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const { state: sidebarState, toggleSidebar, isMobile } = useSidebar();
   const { style: themeStyle, iconColor, sidebarLayout } = useTheme();
   const { t, language, setLanguage, availableLanguages } = useLanguage();
   const { isAIEnabled, refresh: refreshAIStatus } = useAIStatus();
   const { title: brandTitle, subtitle: brandSubtitle, iconUrl: brandIconUrl } = useBrand();
 
-  const navItems = useMemo(() => getNavItems(t, isAIEnabled), [t, isAIEnabled]);
+  const navItems = useMemo(() => getNavItems(t, isAIEnabled, isAdmin), [t, isAIEnabled, isAdmin]);
   // 移动端模式下侧边栏总是展开（抽屉打开后需要展示完整菜单，而不是仅 icon）
   // 桌面端才遵循用户的收起/展开偏好
   const isCollapsed = !isMobile && sidebarState === 'collapsed';
@@ -470,7 +494,7 @@ export function AppSidebar() {
               <div className="flex items-center gap-1 whitespace-nowrap">
                 <span className="font-bold text-lg">{brandTitle}</span>
                 {/* rounded-md 挂 --radius，随主题杂项「圆角强度」变化；覆盖 Badge 默认的 rounded-full */}
-                <Badge variant="default" className="rounded-md text-xs font-medium shrink-0">v{import.meta.env.PACKAGE_VERSION || '0.1.1'}</Badge>
+                <Badge variant="default" className="rounded-md text-xs font-medium shrink-0">v{import.meta.env.PACKAGE_VERSION || '0.1.2'}</Badge>
               </div>
               <span className="text-xs text-muted-foreground whitespace-nowrap">{brandSubtitle}</span>
             </div>
@@ -574,6 +598,7 @@ export function AppSidebar() {
           </DropdownMenuContent>
         </DropdownMenu>
 
+        {isAdmin && (
         <Button
           variant="ghost"
           size={isCollapsed ? 'icon' : 'default'}
@@ -590,7 +615,9 @@ export function AppSidebar() {
             : <SidebarHoverIcon icon={Power} className="w-4 h-4" />}
           {!isCollapsed && <span>{isPaused ? t('sidebar.resumeGsCore') : t('sidebar.pauseGsCore')}</span>}
         </Button>
+        )}
 
+        {isAdmin && (
         <Button
           variant="ghost"
           size={isCollapsed ? 'icon' : 'default'}
@@ -605,6 +632,7 @@ export function AppSidebar() {
           <SidebarHoverIcon icon={Power} className="w-4 h-4" />
           {!isCollapsed && <span>{t('sidebar.restartGsCore')}</span>}
         </Button>
+        )}
 
         <Button
           variant="ghost"

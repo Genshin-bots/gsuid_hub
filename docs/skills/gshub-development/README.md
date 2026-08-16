@@ -3,7 +3,7 @@
 > 本文件是 `docs/skills/gshub-development/` 的**主索引与能力全景**，给第一次接触本仓库的人 /
 > 准备扩前端控制台的人**一张完整的鸟瞰图**。
 > 它与同目录 `SKILL.md` 的分工是：
-> - **`SKILL.md` + `references/` 01–11**：开发规范与已知坑（**怎么写**一个页面/组件；§11 为 Live Chat）
+> - **`SKILL.md` + `references/` 01–12**：开发规范与已知坑（**怎么写**一个页面/组件；§11 为 Live Chat，§12 为记忆图谱 / 世界知识）
 > - **本 `README.md`**：功能全景与跟后端能力的对照、**当前前端覆盖了哪些、还差哪些**
 >
 > **更新原则**：本文档描述的是**前端控制台当前已实现的能力**，并通过"→ 对应后端 API"链接回 gsuid_core。
@@ -22,7 +22,7 @@
   3. **首次部署**：初始化管理员 → 上传品牌 → 安装插件 → 启用 AI。
 - **目标体验**：与日常 SaaS 控制台同级的视觉与交互一致性，全亮/暗 + 纯色/毛玻璃，三语言。
 
-实现细节见仓库根 `README.md`，开发规范见同目录 [`SKILL.md`](./SKILL.md) 与 `references/01–11`。
+实现细节见仓库根 `README.md`，开发规范见同目录 [`SKILL.md`](./SKILL.md) 与 `references/01–12`。
 
 ---
 
@@ -76,7 +76,7 @@
 | `/ai-tools` | `AIToolsPage.tsx` | 工具列表 + 分类 + 详情 | `ai_tools_api.py`（`/api/ai/tools*`） | [§04 排版参考页](./references/04-page-layout-spec.md) |
 | `/ai-skills` | `AISkillsPage.tsx` | 技能列表 + 详情 + Git 克隆安装 + Markdown 编辑 + 删除 | `ai_skills_api.py`（`/api/ai/skills*`） | [§04 排版参考页](./references/04-page-layout-spec.md) |
 | `/ai-knowledge` | `AIKnowledgePage.tsx` | 文本/图片知识库分页、搜索、批量导入、文档管理、Image RAG | `knowledge_base_api.py`（`/api/ai/knowledge*`）+ `image_rag_api.py`（`/api/ai/images*`） | [§07 渐进式配置](./references/07-config-pages-and-state.md) |
-| `/ai-memory` | `AIMemoryPage.tsx` | Episode / Entity / Edge / Category / Preference / Scope / Hiergraph / Stats 完整管理 | `ai_memory_api.py`（`/api/ai/memory*`） | [§07 §7.1 渐进式](./references/07-config-pages-and-state.md)、[§10 P-26](./references/10-pitfalls-and-performance.md) |
+| `/ai-memory` | `AIMemoryPage.tsx` | Episode / Entity / Edge / Category / Preference / Scope / Hiergraph / Stats；**独立「世界枢纽」页签 + 挂文预览** | `ai_memory_api.py`（`/api/ai/memory*`）+ `cognitionApi` | [§12](./references/12-memory-graph-and-cognition.md)、[§07 §7.1](./references/07-config-pages-and-state.md) |
 | `/ai-meme` | `AIMemePage.tsx` | 表情包素材：上传 / VLM 打标 / 标签 / 文件夹 / 检索；**按条件清空**（筛选/全部，`memeApi.purge`） | `meme_api.py`（`/api/meme*`） | [§10 P-17](./references/10-pitfalls-and-performance.md)、[§11.9](./references/11-live-chat.md) |
 | `/ai-scheduled-tasks` | `AIScheduledTasksPage.tsx` | 内部定时任务 CRUD、暂停/恢复、统计 | `ai_scheduled_task_api.py` | — |
 | `/ai-kanban` | `AIKanbanPage.tsx` | 长任务五列看板、任务详情、Artifacts、Workspace 文件、approve/reject、评估能力代理 | `kanban_api.py`（`/api/ai/kanban*`、`/api/ai/artifacts*`、`/api/ai/kanban/...workspace*`） | [§04 §4.1.1 page-viewport](./references/04-page-layout-spec.md) |
@@ -86,6 +86,7 @@
 | `/ai-history` | `AIHistoryPage.tsx` | AI Session 列表 / Trace 瀑布图（链 ↔ 分段 ↔ 子 agent）/ 统计 | `ai_session_logs_api.py`（`/api/ai/session_logs*`）+ `history_api.py`（`/api/history*`） | [§08 §8.7 Trace 瀑布](./references/08-page-patterns.md) |
 | `/session-management` | `SessionManagementPage.tsx` | Session 列表 + 历史对话 + Persona + 给 Session 发消息 | `history_api.py` | [§04 §4.1.1 page-fill](./references/04-page-layout-spec.md) |
 | `/ai-ops` | `AIOpsPage.tsx` | **运维诊断中心（收敛版）**：顶栏 Bot/Session/续聊状态 + 5 Tab（触发回放 / 黑白名单 / 输出试跑 / 安全策略 / 配置快照）。工具拓扑·意图·生命周期·多模态·插件诊断仅保留后端 API | `ops_diagnostics_api.py`（`/api/ops/*`） | 见 [`docs/CHANGELOG-2026-07.md`](../../CHANGELOG-2026-07.md) §四 |
+| `/ai-runtime` | `AIRuntimePage.tsx` | **Agent 运行时诊断**：套件槽健康（密封槽空占用红字）/ Hook 接线 / 关系温度 / **认知索引（world 枢纽、节点挂文、重建挂载）** | `agent_kits_api.py`（`/api/agent_kits/*`、`/api/relationship/view`、`/api/cognition/nodes`、`/api/cognition/rebuild_mount`） | [§12](./references/12-memory-graph-and-cognition.md)、[§04 PinnedPage](./references/04-page-layout-spec.md) |
 | `/group-profile` | `GroupProfilePage.tsx` | 群组画像只读（标签/词汇映射/称呼） | state_store `__gscore_group_profile__` | — |
 | `/ai-debug` | `AIDebugPage.tsx` | 记忆图谱 / 编排任务 / self_model | `agent_debug_api.py` | — |
 | `/ai-artifacts` | `AIArtifactsPage.tsx` | Artifact 全局浏览（TTL / 下载 / 过期筛选） | `artifacts_api.py` | — |
@@ -107,6 +108,7 @@
 | AI 运行 | 7 | `historyApi`、`aiSessionLogsApi`、`agentDebugApi`、`aiScheduledTasksApi`、`aiKanbanApi`、`aiApprovalsApi`、`aiStateStoreApi` | 同名 |
 | AI 度量 | 3 | `aiStatisticsApi`、`aiPerformanceApi`、`aiBudgetApi` | 同名 |
 | 运维诊断 | 1 | **`opsApi`** | `ops_diagnostics_api.py` |
+| Agent 运行时 | 3 | **`agentKitsApi`**、**`relationshipApi`**、**`cognitionApi`** | `agent_kits_api.py` |
 | 其它 | — | `aiArtifactsApi`、`aiToolOutputsApi`、`batchPushApi`、`brandSettingsApi`、`logsConfigApi`、`memoryApi` / `memorySettingsApi` | 见 CHANGELOG；图标 `getPluginIconUrl` |
 
 > **完整变更纪要（pnpm、P0–P2、AI Ops、路由清理）**：[`docs/CHANGELOG-2026-07.md`](../../CHANGELOG-2026-07.md)。
@@ -156,7 +158,7 @@
 
 ## 二点七、2026-08 TabButtonGroup 下拉 + PluginIcon + 能力代理筛选
 
-> 前端组件与体验更新（版本 **v0.1.1**）。规范正文见 [§06 §6.1 / §6.7](./references/06-reusable-component-catalog.md)。
+> 前端组件与体验更新（版本 **v0.1.2**）。规范正文见 [§06 §6.1 / §6.7](./references/06-reusable-component-catalog.md)。
 
 | 改动类型 | 路径 | 说明 |
 |---|---|---|
@@ -168,7 +170,7 @@
 | **类型** | `AgentNodeItem.plugin?` | list 接口插件来源字段，供二级筛选 |
 | **i18n** | `aiCapabilityAgents.json`（zh/en/ja） | `allPlugins` / `pluginFilterLabel`；文案去掉人格投影表述 |
 | **规范文档** | `SKILL.md`、`references/05`、`06`、`01`、本文 | 补全 dropdown 交互契约、PluginIcon 解析顺序、全站使用面表 |
-| 版本 | `package.json` / `README.md` | **v0.1.0 → v0.1.1** |
+| 版本 | `package.json` / `README.md` | **v0.1.0 → v0.1.2** |
 
 ### 交互契约速查（TabButtonGroup.dropdown）
 
@@ -223,6 +225,23 @@
 - 无任何备用勾选：不渲染备用配置面板。
 - **切换主用时静默从 fallback 剔除新主用**（无 soft-memory：旧主用不会自动回到备用勾选；需用户再点）。
 - 落库前再兜底剥离「备用含主用」；provider 比较 **trim + 大小写不敏感**。
+
+---
+
+## 二点九、2026-08 世界知识 + 节点挂文
+
+> 对齐 gsuid_core `10fdea759be2f5faf389987e13651a7b250b1b8f`（Everything is Memory · Write）。规范正文见 [§12](./references/12-memory-graph-and-cognition.md)。
+
+| 改动类型 | 路径 | 说明 |
+|---|---|---|
+| **API** | `cognitionApi` | 节点补 `canon` / `attachments[]`；新增 `getNode`、`rebuildMount` |
+| **共享** | `src/lib/cognition.ts` | `isWorldHub` / `hubForEntity` / `attachmentHref` / 旧后端降级 |
+| **组件** | `src/components/cognition/CognitionAttachments.tsx` | 按 slot 列出挂文；只读 vs 可写；句柄跳转原库页 |
+| **世界页签** | `AIMemoryPage` | 独立「世界枢纽」Tab；挂文「打开文章」就地预览 |
+| **索引** | `AIRuntimePage` CognitionPanel | world / 环境筛选、挂文列表、重建挂载（不碰记忆图） |
+| **Demo** | `mockServer.ts` | 钟离 / 原神 / 提瓦特枢纽 + plugin/agent 挂文 + `ent:` 镜像 |
+| **i18n** | `aiMemory` / `aiRuntime` / `aiConfig` | 三语言同步 |
+| **规范** | `SKILL.md` + `references/12` | 两层模型、叠层约定、ACL |
 
 ---
 
@@ -309,6 +328,7 @@
 | 核心 / 框架配置 | `core_config_api` + `framework-config` | 🟩 CoreConfig + FrameworkConfig（库/状态专项 UI 内嵌） |
 | AI State Store | `state_store_api` | 🟩 `/state-store` |
 | AI 运维诊断 | `ops_diagnostics_api` | 🟩 `/ai-ops` |
+| Agent 套件 / Hook / 关系温度 / 认知索引 | `agent_kits_api` | 🟩 `/ai-runtime` + `/ai-config`（含 world 枢纽 / 挂文 / 重建挂载） |
 | 插件启用 / 禁用 / 重载 / 配置 / SV | `plugins_api` | 🟩 PluginsPage |
 | 插件市场（白名单 + URL 安装） | `plugins_api::plugin-store` | 🟩 PluginStorePage |
 | Git 镜像与更新 | `git_mirror_api` + `git_update_api` | 🟩 GitUpdatePage |
@@ -327,6 +347,7 @@
 | AI 知识库文本/图片 + Image RAG | `knowledge_base_api` + `image_rag_api` | 🟩 AIKnowledgePage |
 | AI 知识备份导入/导出/对账 | 同上（`backup/*`、`reconcile`） | ⬛ 缺 UI |
 | AI 记忆 Episode / Entity / Edge | `ai_memory_api` | 🟩 AIMemoryPage |
+| 世界知识枢纽 + 节点挂文 | `agent_kits_api`（`/api/cognition/*`） | 🟩 `/ai-memory` 世界枢纽页签 + `/ai-runtime` 认知 Tab |
 | AI 记忆 Category / HierGraph | `ai_memory_api` | 🟨 仅基础 |
 | AI 偏好记忆 Procedural 规则 | `ai_memory_api::preferences` | 🟨 部分，需独立管理 |
 | AI 记忆子系统配置 | `ai_memory_api::config` | ⬛ 无独立页 |
@@ -379,13 +400,14 @@
 - **网络搜索/抓取 / 批量推送账号**：同步 [§07 §7.7](./references/07-config-pages-and-state.md) 与本文 §二点八；后端契约同步 gsuid_core 对应 docs。
 - **新踩坑**：`references/10-pitfalls-and-performance.md` 加 `P-NN` 章节，必要时 `SKILL.md` 速记区同步。
 - **Live Chat / 协议适配器改动**：同步 [§11](./references/11-live-chat.md) 与本文档 §二 `/live-chat` 行。
+- **记忆图谱 / 世界知识 / 节点挂文**：同步 [§12](./references/12-memory-graph-and-cognition.md) 与本文 §二点九。
 
 ---
 
 ## 七、关联文档（同仓库）
 
 - [`SKILL.md`](./SKILL.md) — 主入口与开发规范（必读）
-- [`references/01-architecture-and-conventions.md`](./references/01-architecture-and-conventions.md) 起按章节读（至 [§11 Live Chat](./references/11-live-chat.md)）
+- [`references/01-architecture-and-conventions.md`](./references/01-architecture-and-conventions.md) 起按章节读（至 [§12 记忆图谱与世界知识](./references/12-memory-graph-and-cognition.md)）
 - 仓库根 [`README.md`](../../../../README.md) — 项目总览
 - `gsuid_core` 仓库 `docs/skills/gscore-development/` — 后端框架规范
 - `gsuid_core/gsuid_core/webconsole/docs/` — 后端接口契约（按编号 01–43 阅读）

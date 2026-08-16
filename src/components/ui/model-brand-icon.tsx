@@ -51,8 +51,8 @@ import { cn } from '@/lib/utils';
  *   但底层调用的是第三方厂商的模型（LongCat / SenseNova / MiniMax / 日日新 / Yi / Baichuan...），
  *   此时用模型名匹配能拿到更准确的厂商 Logo。
  * - **统一官方彩版**：多数厂商图标使用 `default` variant（官方彩色 Logo）。
- *   **OpenAI 例外**：官方 path 硬编码白标，浅色主题会隐形；渲染时强制
- *   `path` 走 currentColor，并套 `text-black dark:text-white` 适配亮/暗。
+ *   **OpenAI 例外**：官方 path 硬编码白标；渲染时强制 `path` 走 currentColor，
+ *   颜色跟父级文字走（Badge / 按钮里即与文案同色，不再写死黑白）。
  * - **回退**：找不到匹配厂商时回退到 lucide 的 `Bot` 图标。
  *
  * 添加新的厂商识别时，只需要在 `BRAND_RULES` 里加一条 `{ pattern, Component }` 即可。
@@ -183,11 +183,10 @@ export interface ModelBrandIconProps {
  *   <ModelBrandIcon modelName="claude-opus-4-6" provider="openai" />
  */
 /**
- * OpenAI 官方 default path 硬编码 fill=#fff（白标），浅色主题会看不见。
- * 强制 path 走 currentColor，并由 text-black / dark:text-white 适配亮暗。
+ * OpenAI 官方 default path 硬编码 fill=#fff（白标）。
+ * 强制 path 走 currentColor，颜色继承父级（与 Badge / 按钮文字一致）。
  */
-const OPENAI_THEME_CLASS =
-  '[&_path]:!fill-current text-black dark:text-white';
+const OPENAI_THEME_CLASS = '[&_path]:!fill-current';
 
 function isOpenAiIcon(Component: IconComponent): boolean {
   return Component === Openai;
@@ -203,7 +202,7 @@ export function ModelBrandIcon({
   const Icon = rule.Component;
   const openAiTheme = isOpenAiIcon(Icon);
 
-  // 统一使用 `default`（官方彩版）；OpenAI 单独做亮/暗单色适配。
+  // 统一使用 `default`（官方彩版）；OpenAI 单色走 currentColor。
   // variant 为 thesvg 扩展 prop，各厂商联合类型不同，见上方 IconComponent 注释。
   return (
     <Icon

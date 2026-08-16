@@ -20,7 +20,7 @@ export type LiveChatWsHandlers = {
 export interface LiveChatWsOptions {
   /** 覆盖路由 bot_id，默认 webconsole_livechat */
   routeBotId?: string;
-  /** core WS_TOKEN；空则不带 query */
+  /** 控制台登录会话 token（query `?token=`）；空则不带 query */
   token?: string;
   /** 最大重连次数，0 = 无限 */
   maxRetries?: number;

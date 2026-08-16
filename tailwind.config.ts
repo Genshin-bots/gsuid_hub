@@ -135,6 +135,22 @@ export default {
   				'40%': { transform: 'translateX(3px)' },
   				'70%': { transform: 'translateX(-1px)' },
   			},
+			'sheet-slide-in-right': {
+				from: { transform: 'translateX(100%)' },
+				to: { transform: 'translateX(0)' },
+			},
+			'sheet-slide-out-right': {
+				from: { transform: 'translateX(0)' },
+				to: { transform: 'translateX(100%)' },
+			},
+			'sheet-overlay-in': {
+				from: { opacity: '0' },
+				to: { opacity: '1' },
+			},
+			'sheet-overlay-out': {
+				from: { opacity: '1' },
+				to: { opacity: '0' },
+			},
   		},
   		animation: {
   			'accordion-down': 'accordion-down 0.2s ease-out',
@@ -148,6 +164,10 @@ export default {
   			'sidebar-icon-pulse': 'sidebar-icon-pulse 0.45s ease-out both',
   			'sidebar-icon-tilt': 'sidebar-icon-tilt 0.45s ease-out both',
   			'sidebar-icon-nudge': 'sidebar-icon-nudge 0.4s ease-out both',
+			'sheet-slide-in-right': 'sheet-slide-in-right 0.48s cubic-bezier(0.32, 0.72, 0, 1) both',
+			'sheet-slide-out-right': 'sheet-slide-out-right 0.38s cubic-bezier(0.4, 0, 0.6, 1) both',
+			'sheet-overlay-in': 'sheet-overlay-in 0.4s cubic-bezier(0.32, 0.72, 0, 1) both',
+			'sheet-overlay-out': 'sheet-overlay-out 0.32s cubic-bezier(0.4, 0, 0.6, 1) both',
   		},
   		boxShadow: {
   			'2xs': 'var(--shadow-2xs)',
@@ -200,6 +220,7 @@ export default {
   		// 这里提供一个语义化的命名 ease `ease-out-soft` 替代之。
   		transitionTimingFunction: {
   			'out-soft': 'cubic-bezier(0.4, 0, 0.2, 1)',
+  			'in-out-soft': 'cubic-bezier(0.45, 0, 0.55, 1)',
   		},
   	}
   },

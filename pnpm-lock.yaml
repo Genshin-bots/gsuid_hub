@@ -3231,7 +3231,7 @@ packages:
     peerDependencies:
       typescript: '>=4.8.4'
 
-  ts-interface-checker@0.1.13:
+  ts-interface-checker@0.1.23:
     resolution: {integrity: sha512-Y/arvbn+rrz3JCKl9C4kVNfTfSm2/mEp5FSz5EsZSANGPSlQrpRI5M4PKF+mJnE52jOO90PnPSc3Ur3bTQw0gA==}
 
   tslib@2.3.0:
@@ -6427,7 +6427,7 @@ snapshots:
       mz: 2.7.0
       pirates: 4.0.7
       tinyglobby: 0.2.17
-      ts-interface-checker: 0.1.13
+      ts-interface-checker: 0.1.23
 
   supports-color@7.2.0:
     dependencies:
@@ -6512,7 +6512,7 @@ snapshots:
     dependencies:
       typescript: 5.9.3
 
-  ts-interface-checker@0.1.13: {}
+  ts-interface-checker@0.1.23: {}
 
   tslib@2.3.0: {}
 

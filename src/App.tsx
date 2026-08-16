@@ -51,6 +51,7 @@ import AIToolOutputsPage from "@/pages/AIToolOutputsPage";
 import StateStorePage from "@/pages/StateStorePage";
 import GroupProfilePage from "@/pages/GroupProfilePage";
 import AIOpsPage from "@/pages/AIOpsPage";
+import AIRuntimePage from "@/pages/AIRuntimePage";
 import LiveChatPage from "@/pages/LiveChatPage";
 
 const queryClient = new QueryClient();
@@ -68,6 +69,24 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  return <>{children}</>;
+}
+
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (user?.role !== 'admin') {
+    return <Navigate to="/home" replace />;
   }
 
   return <>{children}</>;
@@ -93,7 +112,7 @@ function AppRoutes() {
         <Route index element={<Navigate to="/home" replace />} />
         <Route path="home" element={<HomePage />} />
         <Route path="dashboard" element={<Dashboard />} />
-        <Route path="database" element={<DatabasePage />} />
+        <Route path="database" element={<AdminRoute><DatabasePage /></AdminRoute>} />
         <Route path="plugins" element={<PluginsPage />} />
         <Route path="logs" element={<LogsPage />} />
         <Route path="traces" element={<TracesPage />} />
@@ -120,15 +139,16 @@ function AppRoutes() {
         <Route path="ai-kanban" element={<AIKanbanPage />} />
         <Route path="ai-approvals" element={<AIApprovalsPage />} />
         <Route path="ai-budget" element={<AIBudgetPage />} />
-        <Route path="core-config" element={<CoreConfigPage />} />
+        <Route path="core-config" element={<AdminRoute><CoreConfigPage /></AdminRoute>} />
         <Route path="state-store" element={<StateStorePage />} />
         <Route path="group-profile" element={<GroupProfilePage />} />
-        <Route path="backup" element={<BackupPage />} />
+        <Route path="backup" element={<AdminRoute><BackupPage /></AdminRoute>} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="brand-settings" element={<BrandSettingsPage />} />
-        <Route path="batch-push" element={<BatchPushPage />} />
+        <Route path="batch-push" element={<AdminRoute><BatchPushPage /></AdminRoute>} />
         <Route path="ai-debug" element={<AIDebugPage />} />
         <Route path="ai-ops" element={<AIOpsPage />} />
+        <Route path="ai-runtime" element={<AIRuntimePage />} />
         <Route path="ai-artifacts" element={<AIArtifactsPage />} />
         <Route path="ai-tool-outputs" element={<AIToolOutputsPage />} />
       </Route>

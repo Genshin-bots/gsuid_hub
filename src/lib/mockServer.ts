@@ -50,6 +50,7 @@ import {
   generateLogLevels,
   generateLogStats,
   generateLogConfig,
+  applyLogConfig,
   generatePersonaList,
   generatePersonaDetail,
   generatePersonaConfigAll,
@@ -103,6 +104,137 @@ interface Route {
   h: Handler;
 }
 
+const DEMO_COGNITION_NODES = [
+  {
+    id: 101,
+    kind: 'entity',
+    ref: 'world:GenshinUID:钟离',
+    scope_key: '',
+    owner_user_id: '',
+    title: '钟离',
+    summary: '岩神摩拉克斯。公共世界枢纽，正文不在这个节点里。',
+    as_of: '5.7',
+    source: 'plugin',
+    handle: '',
+    canon: '',
+    decay: 1,
+    attachments: [
+      {
+        id: 1,
+        node_id: 101,
+        slot: '资料',
+        title: '钟离角色图鉴',
+        summary: '护盾与石化大招。插件只读篇。',
+        as_of: '5.7',
+        source: 'plugin',
+        writable: false,
+        ref: 'plugin:GenshinUID:zhongli',
+        handle: 'kb_plugin:zhongli',
+      },
+      {
+        id: 2,
+        node_id: 101,
+        slot: '资料',
+        title: '钟离传说任务笔记',
+        summary: 'Agent 补的一篇，可更新。',
+        as_of: '2026-08',
+        source: 'agent',
+        writable: true,
+        ref: 'kbdoc:zhongli-note',
+        handle: 'kb_kbdoc:zhongli-note',
+      },
+    ],
+  },
+  {
+    id: 102,
+    kind: 'entity',
+    ref: 'world:GenshinUID:原神',
+    scope_key: '',
+    owner_user_id: '',
+    title: '原神',
+    summary: '提瓦特大陆的开放世界游戏。公共世界枢纽。',
+    as_of: '5.7',
+    source: 'plugin',
+    handle: '',
+    canon: '',
+    decay: 1,
+    attachments: [
+      {
+        id: 3,
+        node_id: 102,
+        slot: '资料',
+        title: '原神版本手册',
+        summary: '当前版本活动与树脂规则。',
+        as_of: '5.7',
+        source: 'plugin',
+        writable: false,
+        ref: 'plugin:GenshinUID:genshin',
+        handle: 'kb_plugin:genshin',
+      },
+    ],
+  },
+  {
+    id: 103,
+    kind: 'entity',
+    ref: 'world:GenshinUID:提瓦特',
+    scope_key: '',
+    owner_user_id: '',
+    title: '提瓦特',
+    summary: '七国所在的世界。',
+    as_of: '5.7',
+    source: 'plugin',
+    handle: '',
+    canon: '',
+    decay: 1,
+    attachments: [],
+  },
+  {
+    id: 201,
+    kind: 'entity',
+    ref: 'ent:ent-4',
+    scope_key: 'group:114514',
+    owner_user_id: '',
+    title: '钟离',
+    summary: '本群对钟离的环境镜像，canon 指向世界枢纽。',
+    as_of: '',
+    source: 'memory',
+    handle: '',
+    canon: 'world:GenshinUID:钟离',
+    decay: 1,
+    attachments: [],
+  },
+  {
+    id: 202,
+    kind: 'entity',
+    ref: 'ent:ent-16',
+    scope_key: 'group:114514',
+    owner_user_id: '',
+    title: '原神',
+    summary: '本群对原神的环境镜像。',
+    as_of: '',
+    source: 'memory',
+    handle: '',
+    canon: 'world:GenshinUID:原神',
+    decay: 1,
+    attachments: [],
+  },
+  {
+    id: 203,
+    kind: 'entity',
+    ref: 'ent:ent-17',
+    scope_key: 'group:114514',
+    owner_user_id: '',
+    title: '提瓦特',
+    summary: '本群对提瓦特的环境镜像。',
+    as_of: '',
+    source: 'memory',
+    handle: '',
+    canon: 'world:GenshinUID:提瓦特',
+    decay: 1,
+    attachments: [],
+  },
+];
+
 const num = (url: URL, key: string, def: number) => Number(url.searchParams.get(key) ?? def);
 const botOf = (url: URL) => url.searchParams.get('bot_id') ?? 'all';
 const dateOf = (url: URL) => url.searchParams.get('date') ?? new Date().toISOString().split('T')[0];
@@ -118,6 +250,164 @@ const routes: Route[] = [
   { m: 'GET', re: /^\/api\/version\/bots$/, h: () => generateActiveBots() },
   { m: 'GET', re: /^\/api\/version\/bots\/count$/, h: () => ({ count: 3 }) },
   { m: 'GET', re: /^\/api\/version\/bots\/names$/, h: () => ({ names: generateActiveBots().names }) },
+
+  // ── Agent runtime (/ai-runtime) ──
+  {
+    m: 'GET',
+    re: /^\/api\/agent_kits\/slots$/,
+    h: () => ({
+      slots: [
+        {
+          name: 'memory',
+          description: '检索 + 注入 + 工具轨迹 + 记忆工具',
+          default_kit_id: 'gscore.memory',
+          exclusive: true,
+          sealed: false,
+          configured: ['gscore.memory'],
+          occupants: ['gscore.memory'],
+          healthy: true,
+          candidates: [{ kit_id: 'gscore.memory', display_name: 'GsCore Memory', owns_tools: [] }],
+        },
+        {
+          name: 'speech',
+          description: '出站话术态（密封：可关不可替）',
+          default_kit_id: 'gscore.speech',
+          exclusive: true,
+          sealed: true,
+          configured: [],
+          occupants: [],
+          healthy: false,
+          candidates: [],
+        },
+      ],
+    }),
+  },
+  {
+    m: 'GET',
+    re: /^\/api\/agent_kits\/hooks$/,
+    h: () => ({
+      enabled: true,
+      total_hooks: 1,
+      points: [
+        {
+          id: 'H05',
+          name: 'BEFORE_CONTEXT_ASSEMBLY',
+          anchor: 'context_assembly',
+          capabilities: ['read'],
+          default_timeout_ms: 200,
+          wired: true,
+          owners: ['gscore.memory'],
+        },
+        {
+          id: 'ON_AI_ERROR',
+          name: 'ON_AI_ERROR',
+          anchor: 'handle_ai.handle_ai_chat:except',
+          capabilities: [],
+          default_timeout_ms: 500,
+          wired: false,
+          owners: [],
+        },
+      ],
+    }),
+  },
+  {
+    m: 'GET',
+    re: /^\/api\/relationship\/view/,
+    h: ({ url }) => {
+      const userId = url.searchParams.get('user_id') || 'demo_user';
+      if (userId === 'nobody') {
+        return {
+          user_id: userId,
+          scored: false,
+          zone: 'distant',
+          zone_label: '不太熟',
+          line: '不太熟，公事公办',
+        };
+      }
+      return {
+        user_id: userId,
+        bot_id: url.searchParams.get('bot_id') || 'onebot',
+        scored: true,
+        score: 42,
+        zone: 'acquaintance',
+        zone_label: '认识',
+        line: '认识这个人',
+        last_delta: 1,
+        last_reason: 'pos.first_meaningful',
+        last_eval_at: Math.floor(Date.now() / 1000) - 3600,
+        daily_gain: 1,
+        daily_loss: 0,
+        daily_ymd: new Date().toISOString().slice(0, 10),
+        last_positive_interact_at: Math.floor(Date.now() / 1000) - 7200,
+        interaction_count: 8,
+      };
+    },
+  },
+  {
+    m: 'GET',
+    re: /^\/api\/cognition\/articles$/,
+    h: ({ url }) => {
+      const handle = url.searchParams.get('handle') || '';
+      const limit = Number(url.searchParams.get('limit') ?? 20000);
+      const byHandle: Record<string, string> = {
+        'kb_plugin:zhongli': '钟离，岩神摩拉克斯。持护盾与石化大招。本篇来自插件图鉴，只读。',
+        'kb_kbdoc:zhongli-note': '传说任务笔记：客卿身份、契约与摩拉。Agent 补写，可更新。',
+        'kb_plugin:genshin': '原神是提瓦特的开放世界游戏。树脂、活动与版本节奏见本手册。',
+      };
+      const text = byHandle[handle] || `演示正文（${handle || 'empty'}）`;
+      return {
+        handle,
+        source: 'knowledge',
+        mime: 'text/plain',
+        text: text.slice(0, Number.isFinite(limit) ? limit : 20000),
+        truncated: false,
+        size_bytes: text.length,
+      };
+    },
+  },
+  {
+    m: 'GET',
+    re: /^\/api\/cognition\/nodes(?:\/(\d+))?$/,
+    h: ({ url }) => {
+      const detailId = url.pathname.match(/\/nodes\/(\d+)$/)?.[1];
+      const nodes = DEMO_COGNITION_NODES;
+      if (detailId) {
+        return nodes.find((n) => n.id === Number(detailId)) ?? null;
+      }
+      const keyword = (url.searchParams.get('keyword') || '').trim().toLowerCase();
+      const scopeKey = url.searchParams.get('scope_key') || '';
+      const owner = url.searchParams.get('owner_user_id') || '';
+      const limit = Number(url.searchParams.get('limit') ?? 20);
+      const visible = nodes.filter((n) => {
+        if (scopeKey) {
+          if (n.scope_key !== '' && n.scope_key !== scopeKey) return false;
+        } else if (n.scope_key !== '') {
+          return false;
+        }
+        if (!owner && n.owner_user_id) return false;
+        if (owner && n.owner_user_id && n.owner_user_id !== owner) return false;
+        if (!keyword) return true;
+        return (
+          n.title.toLowerCase().includes(keyword) ||
+          n.summary.toLowerCase().includes(keyword) ||
+          n.ref.toLowerCase().includes(keyword)
+        );
+      });
+      return { nodes: visible.slice(0, Number.isFinite(limit) ? limit : 20) };
+    },
+  },
+  {
+    m: 'POST',
+    re: /^\/api\/cognition\/rebuild_mount$/,
+    h: () => ({
+      hubs: DEMO_COGNITION_NODES.filter((n) => n.ref.startsWith('world:')).length,
+      attachments: DEMO_COGNITION_NODES.reduce((sum, n) => sum + (n.attachments?.length ?? 0), 0),
+      linked_env: DEMO_COGNITION_NODES.filter((n) => n.canon).length,
+      skipped_ambiguous: 0,
+      skipped_unresolved: 1,
+      last_error: '',
+    }),
+  },
 
   // ── Ops diagnostics (/ai-ops) ──
   {
@@ -367,7 +657,7 @@ const routes: Route[] = [
   { m: 'GET', re: /^\/api\/logs\/levels$/, h: () => generateLogLevels() },
   { m: 'GET', re: /^\/api\/logs\/stats$/, h: () => generateLogStats() },
   { m: 'GET', re: /^\/api\/logs\/config$/, h: () => generateLogConfig() },
-  { m: 'PUT', re: /^\/api\/logs\/config$/, h: () => ({ status: 0, msg: 'ok' }) },
+  { m: 'PUT', re: /^\/api\/logs\/config$/, h: ({ body }) => applyLogConfig(body) },
 
   // /persona-config
   { m: 'GET', re: /^\/api\/persona\/list$/, h: () => generatePersonaList() },
@@ -455,6 +745,17 @@ const routes: Route[] = [
 
   // /batch-push（前端联调用 GET /api/BatchPush/targets 获取可选 bot/group/user；演示模式）
   { m: 'GET', re: /^\/api\/BatchPush\/targets(\?.*)?$/, h: (ctx) => generateBatchPushTargets(ctx.url.searchParams) },
+
+  { m: 'GET', re: /^\/api\/live-chat\/bootstrap$/, h: () => ({ masters: [] }) },
+  {
+    m: 'GET',
+    re: /^\/api\/live-chat\/state$/,
+    h: () => ({
+      identity: { userId: 'master', nickname: 'Master', avatar: '', botSelfId: 'webconsole_bot' },
+      conversations: [],
+      activeId: null,
+    }),
+  },
 ];
 
 const MEMORY_CONFIG = {

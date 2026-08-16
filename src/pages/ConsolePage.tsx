@@ -4,7 +4,13 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Terminal, Trash2, Download, Circle, Check, Minus } from "lucide-react";
-import { remoteCommandApi, logsApi } from "@/lib/api";
+import {
+  remoteCommandApi,
+  logsApi,
+  logsConfigApi,
+  sanitizeVisibleLevels,
+  DEFAULT_LOGS_CONFIG,
+} from "@/lib/api";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { cn } from "@/lib/utils";
@@ -143,7 +149,7 @@ export default function ConsolePage() {
 
   const [availableLevels, setAvailableLevels] = useState<Array<{ label: string; value: string }>>([]);
   const [visibleLevels, setVisibleLevels] = useState<Set<string>>(
-    () => new Set<string>(['debug', 'info', 'error']),
+    () => new Set<string>(DEFAULT_LOGS_CONFIG.visible_levels),
   );
   // 标记是否已应用过持久化数据，避免在拿到后�?levels 后被默认值覆�?
   const initializedRef = useRef(false);
@@ -175,49 +181,65 @@ export default function ConsolePage() {
       { label: 'CRITICAL', value: 'critical' },
     ];
 
-    const applyLevels = (levels: Array<{ label: string; value: string }>) => {
+    const applyLevels = (
+      levels: Array<{ label: string; value: string }>,
+      persisted: string[] | null,
+    ) => {
       setAvailableLevels(levels);
 
-      // 1) 优先尝试 localStorage 中的持久化选择
-      const persisted = loadVisibleLevelsFromStorage();
-      if (persisted && persisted.length > 0) {
-        // 仅保留后端实际提供的级别，防止新�?删除级别后出现幽灵选项
-        const validValues = new Set(levels.map((lv) => lv.value));
-        const filtered = persisted.filter((v) => validValues.has(v) && v !== 'all');
-        if (filtered.length > 0) {
-          setVisibleLevels(new Set(filtered));
-          initializedRef.current = true;
-          return;
-        }
+      const validValues = new Set(levels.map((lv) => lv.value));
+      const pick = (raw: string[] | null) =>
+        sanitizeVisibleLevels(raw).filter((v) => validValues.has(v));
+
+      // 1) GET /api/logs/config 是权威来源（允许空数组 = 用户主动全不选）
+      if (persisted !== null) {
+        setVisibleLevels(new Set(pick(persisted)));
+        initializedRef.current = true;
+        return;
       }
 
-      // 2) 没有持久化或持久化内容失效：使用默认 [debug, info, error]
-      const defaults = new Set<string>();
-      levels.forEach((lv) => {
-        if (['debug', 'info', 'error'].includes(lv.value)) {
-          defaults.add(lv.value);
-        }
-      });
+      // 2) 接口失败时回退 localStorage
+      const fromStorage = pick(loadVisibleLevelsFromStorage());
+      if (fromStorage.length > 0) {
+        setVisibleLevels(new Set(fromStorage));
+        initializedRef.current = true;
+        return;
+      }
+
+      // 3) 与后端 DEFAULT_LOGS_CONFIG 对齐
+      const defaults = new Set(
+        DEFAULT_LOGS_CONFIG.visible_levels.filter((v) => validValues.has(v)),
+      );
       if (defaults.size === 0 && levels.length > 0) {
-        // 后端未提供默认三档时，至少选中第一�?
-        defaults.add(levels[0].value);
+        const first = levels.find((lv) => lv.value !== 'all')?.value;
+        if (first) defaults.add(first);
       }
       setVisibleLevels(defaults);
       initializedRef.current = true;
     };
 
-    logsApi
-      .getLevels()
-      .then(applyLevels)
-      .catch(() => {
-        applyLevels(fallback);
-      });
+    Promise.all([
+      logsApi.getLevels().catch(() => fallback),
+      logsConfigApi
+        .get()
+        .then((cfg) => (Array.isArray(cfg?.visible_levels) ? cfg.visible_levels : []))
+        .catch(() => null),
+    ]).then(([levels, persisted]) => {
+      applyLevels(Array.isArray(levels) ? levels : fallback, persisted);
+    });
   }, []);
 
-  // 持久化：visibleLevels 变化时写�?localStorage
+  // 持久化：写 localStorage 缓存，并防抖写入 GET/PUT /api/logs/config
   useEffect(() => {
     if (!initializedRef.current) return;
     saveVisibleLevelsToStorage(visibleLevels);
+    const levels = Array.from(visibleLevels);
+    const timer = window.setTimeout(() => {
+      logsConfigApi.update({ visible_levels: levels }).catch(() => {
+        /* 网络失败时仍保留 localStorage 缓存 */
+      });
+    }, 400);
+    return () => window.clearTimeout(timer);
   }, [visibleLevels]);
 
   // SSE stream for real-time logs - 始终接收所有级别，前端通过 filteredLogs 控制显示

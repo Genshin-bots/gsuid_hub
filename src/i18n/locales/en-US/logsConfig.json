@@ -1,19 +1,17 @@
 {
   "title": "Logs Console Settings",
-  "subtitle": "Control retention / rotation / blacklist. Changes apply immediately.",
+  "subtitle": "Persist which log levels the live console should show. Saved across sessions.",
   "saveSuccess": "Logs console settings saved",
   "saveFailed": "Save failed",
   "loadFailed": "Failed to load logs console settings",
   "cancel": "Cancel",
   "save": "Save",
+  "selectAll": "Select all",
+  "deselectAll": "Deselect all",
+  "emptyHint": "No levels selected: the live console will hide all logs (you can change this here).",
   "fields": {
-    "retentionDays": "Retention (days)",
-    "rotationSizeMb": "Rotation size (MB)",
-    "maxSizePerFile": "Max per file (MB)",
-    "enableFileCompression": "Enable compression",
-    "includeDebug": "Include DEBUG level",
-    "blacklistedSources": "Blacklisted sources (one per line)",
-    "blacklistedModules": "Blacklisted modules (one per line)"
+    "visibleLevels": "Visible log levels",
+    "visibleLevelsHint": "Shared with the live console level filter. An empty list hides every level."
   },
   "toolbar": "Console settings"
 }

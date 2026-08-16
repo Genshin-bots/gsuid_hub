@@ -486,10 +486,18 @@ import { PluginIcon } from '@/components/ui/plugin-icon';
 要点：
 
 - 规则表 `BRAND_RULES`：匹配到后用官方 `default` 彩版。
-- **OpenAI 例外**：官方 path 硬编码白标，浅色主题会隐形 → 渲染强制 `path` 走 `currentColor`，并套 `text-black dark:text-white` 适配亮/暗。
+- **OpenAI 例外**：官方 path 硬编码白标 → 渲染强制 `path` 走 `currentColor`，颜色继承父级文字（Badge / 按钮里与文案同色，禁止再写死 `text-black`）。
 - 网络搜索/抓取 section 的 Jina/Tavily/Exa/MCP 图标在 section 内直接 `import { JinaAi, Tavily, … } from '@thesvg/react'`，**不**走 ModelBrandIcon（那是模型配置专用）。
 
 ## 6.9 LabelWithHelp —— AIConfig 字段标签 + Markdown 帮助
 
 位置：`src/pages/AIConfig/shared/LabelWithHelp.tsx`。契约见 [§05 §5.6](./05-components-and-form-controls.md)。  
 长说明（多源策略、主备语义）用 **i18n Markdown 字符串**，勿塞超长纯文本进 JSX。
+
+## 6.10 CognitionAttachments —— 节点挂文列表
+
+位置：`src/components/cognition/CognitionAttachments.tsx`。世界枢纽 / 认知节点上的文章列表，**记忆页详情与运行时索引必须复用**，禁止再手写 slot 分组。
+
+- 按 `slot` 分组；`writable` 与 `source` 用 Badge 分开（插件只读 / Agent 可写）。
+- 句柄跳转走 `attachmentHref`（`src/lib/cognition.ts`），不要在页面里再解析 `kb_` / `to_`。
+- 产品语义见 [§12](./12-memory-graph-and-cognition.md)。

@@ -78,5 +78,6 @@
   "settings": "设置",
   "stateStore": "状态存储",
   "groupProfile": "群组画像",
-  "aiOps": "AI 运维中心"
+  "aiOps": "AI 运维中心",
+  "aiRuntime": "Agent 运行时"
 }

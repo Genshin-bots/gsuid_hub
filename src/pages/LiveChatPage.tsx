@@ -10,7 +10,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { configApi, getApiErrorMessage } from '@/lib/api';
+import { getApiErrorMessage, liveChatApi, getAuthToken } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -121,7 +121,6 @@ export default function LiveChatPage() {
 
   // —— 连接 ——
   const [connState, setConnState] = useState<ConnectionState>('disconnected');
-  const [wsToken, setWsToken] = useState('');
   const [masters, setMasters] = useState<string[]>([]);
   const [coreLoaded, setCoreLoaded] = useState(false);
   const clientRef = useRef<LiveChatWsClient | null>(null);
@@ -176,27 +175,24 @@ export default function LiveChatPage() {
   }, []);
 
   // --------------------------------------------------------------------------
-  // 加载后端状态 + core 配置（masters / WS_TOKEN）
+  // 加载后端状态 + bootstrap（masters；WS 用登录会话 token）
   // --------------------------------------------------------------------------
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const [cfg, remote] = await Promise.all([
-          configApi.getCoreConfig().catch((e) => {
-            console.warn('[live-chat] load core config failed', getApiErrorMessage(e));
-            return null;
+        const [boot, remote] = await Promise.all([
+          liveChatApi.getBootstrap().catch((e) => {
+            console.warn('[live-chat] load bootstrap failed', getApiErrorMessage(e));
+            return { masters: [] as string[] };
           }),
           loadLiveChatState(),
         ]);
         if (cancelled) return;
 
-        const token = cfg && typeof cfg.WS_TOKEN === 'string' ? cfg.WS_TOKEN : '';
-        const masterList =
-          cfg && Array.isArray(cfg.masters)
-            ? (cfg.masters as unknown[]).map(String).filter(Boolean)
-            : [];
-        setWsToken(token);
+        const masterList = Array.isArray(boot.masters)
+          ? boot.masters.map(String).filter(Boolean)
+          : [];
         setMasters(masterList);
 
         let nextIdentity = remote.identity || defaultIdentity();
@@ -405,7 +401,7 @@ export default function LiveChatPage() {
 
     const client = new LiveChatWsClient({
       routeBotId: WS_BOT_ID,
-      token: wsToken,
+      token: getAuthToken() || '',
       maxRetries: 0,
       retryBaseMs: 3000,
     });
@@ -434,8 +430,8 @@ export default function LiveChatPage() {
         clientRef.current = null;
       }
     };
-    // 仅在 core 配置就绪 / token 变化时建连；禁止把 handler 放进依赖
-  }, [coreLoaded, wsToken]);
+    // 仅在 bootstrap 完成后建连；禁止把 handler 放进依赖
+  }, [coreLoaded]);
 
   // --------------------------------------------------------------------------
   // 滚动到底
@@ -895,7 +891,7 @@ export default function LiveChatPage() {
     old?.disconnect();
     const client = new LiveChatWsClient({
       routeBotId: WS_BOT_ID,
-      token: wsToken,
+      token: getAuthToken() || '',
       maxRetries: 0,
     });
     client.setHandlers({
