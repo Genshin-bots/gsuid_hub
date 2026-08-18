@@ -131,8 +131,8 @@
       "on": "On (default; Responses uses hosted web_search)"
     },
     "remoteWebSearchDescription": {
-      "off": "Responses also uses local Tavily / Jina / Exa. Chat Completions never reads this switch.",
-      "on": "Default. Switching the request method to Responses is enough to use the provider's hosted web_search. Chat Completions always uses local search, on or off. If a relay's Responses endpoint does not support hosted tools it will 400 — turn this off then."
+      "off": "Always use local Tavily / Jina / Exa. OpenAI Chat Completions never reads this switch.",
+      "on": "Default. OpenAI Responses or any Anthropic config uses the provider's hosted web_search with no extra setup. OpenAI Chat Completions always uses local search. If a relay does not support hosted tools it will 400 — turn this off then."
     },
     "sendBackThinking": "Send Back Thinking",
     "sendBackThinkingOptions": {

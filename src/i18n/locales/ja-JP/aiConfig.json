@@ -131,8 +131,8 @@
       "on": "オン（既定。Responses は上流の web_search）"
     },
     "remoteWebSearchDescription": {
-      "off": "Responses でもローカルの Tavily / Jina / Exa を使います。Chat Completions はこのスイッチを見ません。",
-      "on": "既定値。リクエスト方式を Responses にするだけで上流の hosted web_search を使います。Chat Completions はオンでもオフでもローカル検索です。中継の Responses が hosted ツール非対応なら 400 になるので、そのときはオフにしてください。"
+      "off": "常にローカルの Tavily / Jina / Exa を使います。OpenAI Chat Completions はこのスイッチを見ません。",
+      "on": "既定値。OpenAI を Responses にするか Anthropic 設定を使うだけで上流の hosted web_search を使います。OpenAI Chat Completions はオンでもオフでもローカル検索です。中継が hosted ツール非対応なら 400 になるので、そのときはオフにしてください。"
     },
     "sendBackThinking": "思考の再送信",
     "sendBackThinkingOptions": {

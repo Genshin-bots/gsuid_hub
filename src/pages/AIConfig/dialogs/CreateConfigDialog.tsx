@@ -400,6 +400,26 @@ export function CreateConfigDialog(props: CreateConfigDialogProps) {
               inputPlaceholder={t('aiConfig.serviceProvider.maxConcurrency')}
             />
           </div>
+          {isAnthropic && (
+            <div className="space-y-2">
+              <Label className="font-semibold flex items-center gap-2">
+                <Search className="w-4 h-4" />
+                {t('aiConfig.serviceProvider.remoteWebSearch')}
+              </Label>
+              <InputWithDropdown
+                value={remoteWebSearch}
+                onChange={onChangeRemoteWebSearch}
+                options={remoteWebSearchOptions}
+                formatLabel={(raw) => getRemoteWebSearchLabel(t, raw)}
+                placeholder={t('aiConfig.serviceProvider.remoteWebSearch')}
+                inputPlaceholder={t('aiConfig.serviceProvider.remoteWebSearch')}
+              />
+              <p className="text-xs text-muted-foreground flex items-start gap-1">
+                <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                <span>{getRemoteWebSearchDescription(t, remoteWebSearch)}</span>
+              </p>
+            </div>
+          )}
           {/* 仅 OpenAI 系列才有 usage_stats_mode / request_method */}
           {isOpenAISeries && (
             <>

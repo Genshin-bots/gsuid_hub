@@ -278,6 +278,28 @@ export function EditConfigDialog({
                 inputPlaceholder={t('aiConfig.serviceProvider.maxConcurrency')}
               />
             </div>
+            {isAnthropic && (
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold flex items-center gap-2">
+                  <Search className="w-4 h-4" />
+                  {t('aiConfig.serviceProvider.remoteWebSearch')}
+                </Label>
+                <InputWithDropdown
+                  value={data.remote_web_search || 'on'}
+                  onChange={(val) => onChangeField('remote_web_search', val)}
+                  options={remoteWebSearchOptions}
+                  formatLabel={(raw) => getRemoteWebSearchLabel(t, raw)}
+                  placeholder={t('aiConfig.serviceProvider.remoteWebSearch')}
+                  inputPlaceholder={t('aiConfig.serviceProvider.remoteWebSearch')}
+                />
+                <p className="text-xs text-muted-foreground flex items-start gap-1">
+                  <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                  <span>
+                    {getRemoteWebSearchDescription(t, data.remote_web_search || 'on')}
+                  </span>
+                </p>
+              </div>
+            )}
             {/* OpenAI 系列才有 `usage_stats_mode` / `request_method` */}
             {isOpenAISeries && (
               <>

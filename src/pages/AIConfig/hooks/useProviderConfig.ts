@@ -474,6 +474,9 @@ export function useProviderConfig(): UseProviderConfigReturn {
         if (openaiConfigData.max_tokens) {
           configData.max_tokens = { data: openaiConfigData.max_tokens };
         }
+        configData.remote_web_search = {
+          data: openaiConfigData.remote_web_search || 'on',
+        };
       } else if (editingConfigProvider === 'gemini') {
         // Gemini 只有公共字段，无 max_tokens / usage_stats_mode / request_method
       } else {
@@ -566,6 +569,7 @@ export function useProviderConfig(): UseProviderConfigReturn {
       };
       if (newConfigProvider === 'anthropic') {
         configData.max_tokens = { data: newConfigMaxTokens };
+        configData.remote_web_search = { data: newConfigRemoteWebSearch };
       } else if (newConfigProvider === 'gemini') {
         // Gemini 只有公共字段
       } else {

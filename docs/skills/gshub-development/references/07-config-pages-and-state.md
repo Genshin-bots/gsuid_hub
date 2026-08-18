@@ -253,13 +253,13 @@ const EXCLUDED_KEYS: string[] = [
 
 ## 7.6a OpenAI Provider：远端 Web Search（`remote_web_search`）
 
-位置：`CreateConfigDialog` / `EditConfigDialog`，紧挨「请求方式」下方。仅 OpenAI 系列。
+位置：`CreateConfigDialog` / `EditConfigDialog`。OpenAI 在「请求方式」下方；Anthropic 在「最大并发」下方。Gemini 不展示。
 
 | UI | 后端字段 | 取值 | 默认 |
 |----|----------|------|------|
 | 远端 Web Search | `remote_web_search` | `off` / `on` | `on` |
 
-默认 `on`：把请求方式改成 Responses 即可用上游内置 `web_search`，不必再调这个开关。`chat_completions` 无视本开关，永远本地 `web_search_tool`。读写与 `request_method` 同路径（`useProviderConfig` create/save）。i18n：`aiConfig.serviceProvider.remoteWebSearch*`。
+默认 `on`：OpenAI 把请求方式改成 Responses、或直接用 Anthropic 配置，即可用上游内置 `web_search`。`chat_completions` 无视本开关，永远本地 `web_search_tool`。读写走 `useProviderConfig` create/save（Anthropic 分支也要带这个字段）。i18n：`aiConfig.serviceProvider.remoteWebSearch*`。
 
 ## 7.6b OpenAI Provider：终端用户标识（`forward_end_user_id`）★
 

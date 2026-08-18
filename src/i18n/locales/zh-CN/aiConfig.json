@@ -131,8 +131,8 @@
       "on": "开启（默认；Responses 用上游内置 web_search）"
     },
     "remoteWebSearchDescription": {
-      "off": "Responses 也走本地 Tavily / Jina / Exa。Chat Completions 本来就不看这个开关。",
-      "on": "默认值。请求方式为 Responses 时直接用上游内置 web_search，不用再改别的。Chat Completions 无论开或关都走本地搜索。中转的 Responses 若不支持 hosted 工具会 400，再改回关闭即可。"
+      "off": "强制走本地 Tavily / Jina / Exa。OpenAI Chat Completions 本来就不看这个开关。",
+      "on": "默认值。OpenAI 选 Responses、或 Anthropic 配置，直接用上游内置 web_search，不用再改别的。OpenAI Chat Completions 无论开或关都走本地搜索。中转若不支持 hosted 工具会 400，再改回关闭即可。"
     },
     "sendBackThinking": "思考回传",
     "sendBackThinkingOptions": {
