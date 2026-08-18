@@ -129,13 +129,15 @@ export default function HomePage() {
   }, [loadHomeData]);
 
   const quickNavItems = [
-    { label: t('home.goToPlugins'), description: t('home.goToPluginsDesc'), href: '/plugins', icon: Plug },
+    ...(isAdmin
+      ? [
+          { label: t('home.goToPlugins'), description: t('home.goToPluginsDesc'), href: '/plugins', icon: Plug },
+          { label: t('home.goToFrameworkConfig'), description: t('home.goToFrameworkConfigDesc'), href: '/framework-config', icon: Cpu },
+          { label: t('home.goToDatabase'), description: t('home.goToDatabaseDesc'), href: '/database', icon: Database },
+        ]
+      : []),
     { label: t('home.goToGitUpdate'), description: t('home.goToGitUpdateDesc'), href: '/git-update', icon: GitBranch },
     { label: t('home.goToDashboard'), description: t('home.goToDashboardDesc'), href: '/dashboard', icon: LayoutDashboard },
-    ...(isAdmin
-      ? [{ label: t('home.goToDatabase'), description: t('home.goToDatabaseDesc'), href: '/database', icon: Database }]
-      : []),
-    { label: t('home.goToFrameworkConfig'), description: t('home.goToFrameworkConfigDesc'), href: '/framework-config', icon: Cpu },
     { label: t('home.goToConsole'), description: t('home.goToConsoleDesc'), href: '/console', icon: Terminal },
   ];
 

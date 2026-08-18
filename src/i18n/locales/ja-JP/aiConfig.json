@@ -125,6 +125,15 @@
       "chat_completions": "OpenAI 標準の /chat/completions エンドポイント。ほぼ全ての互換プロバイダでサポートされ、messages 配列でモデルに送信します。",
       "responses": "OpenAI の新しい /responses エンドポイント。複数ターンのツール呼び出し、ファイル参照、構造化出力を統合。モデルとプロキシ両方の対応が必要です。"
     },
+    "remoteWebSearch": "リモート Web Search",
+    "remoteWebSearchOptions": {
+      "off": "オフ（Responses でもローカル検索）",
+      "on": "オン（既定。Responses は上流の web_search）"
+    },
+    "remoteWebSearchDescription": {
+      "off": "Responses でもローカルの Tavily / Jina / Exa を使います。Chat Completions はこのスイッチを見ません。",
+      "on": "既定値。リクエスト方式を Responses にするだけで上流の hosted web_search を使います。Chat Completions はオンでもオフでもローカル検索です。中継の Responses が hosted ツール非対応なら 400 になるので、そのときはオフにしてください。"
+    },
     "sendBackThinking": "思考の再送信",
     "sendBackThinkingOptions": {
       "auto": "自動（pydantic_ai 既定、履歴の思考を再送信）",

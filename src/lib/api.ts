@@ -941,7 +941,7 @@ export const frameworkConfigApi = {
   getFrameworkConfig: (configName: string) =>
     api.get<FrameworkConfigDetail>(`/api/framework-config/${configName}`),
 
-  // 兼容旧接�?- 获取所有框架配�?
+  // 兼容旧接口 - 获取所有框架配置
   getFrameworkConfigs: () =>
     api.get<FrameworkConfig[]>('/api/framework-config'),
 
@@ -979,6 +979,10 @@ export interface OpenAIConfigOptions {
    */
   request_method: string[];
   /**
+   * 远端 Web Search（off / on）。仅 OpenAI 系列支持。
+   */
+  remote_web_search?: string[];
+  /**
    * 思考回传候选值（auto / off）。仅 OpenAI 系列支持。
    */
   send_back_thinking?: string[];
@@ -1012,6 +1016,12 @@ export interface OpenAIConfigData {
    * `chat_completions / responses` 二选一。
    */
   request_method?: string;
+  /**
+   * 远端 Web Search。**仅 OpenAI 系列才有此字段**：
+   * `on`（默认；Responses 时用上游内置 web_search）/
+   * `off`。Chat Completions 无视本开关，永远走本地 web_search_tool。
+   */
+  remote_web_search?: string;
   /**
    * 思考回传。**仅 OpenAI 系列才有此字段**：
    * `auto`（pydantic_ai 默认，历史思考以 <think> 标签/厂商字段回发）/
@@ -1155,6 +1165,8 @@ export interface ProviderConfigOptions {
     usage_stats_mode: string[];
     /** 请求方式候选值（chat_completions / responses）。仅 OpenAI 系列会返回。 */
     request_method: string[];
+    /** 远端 Web Search（off / on）。仅 OpenAI 系列会返回。 */
+    remote_web_search?: string[];
     /** 思考回传候选值（auto / off）。仅 OpenAI 系列会返回。 */
     send_back_thinking?: string[];
     /** 终端用户标识透传候选值（off / hashed / raw）。仅 OpenAI 系列会返回。 */

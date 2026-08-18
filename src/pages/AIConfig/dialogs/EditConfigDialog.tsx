@@ -10,6 +10,7 @@ import {
   KeyRound,
   Loader2,
   Plug2,
+  Search,
   Settings,
   Sparkles,
   TrendingUp,
@@ -34,6 +35,8 @@ import {
   getUsageStatsModeLabel,
   getRequestMethodLabel,
   getRequestMethodDescription,
+  getRemoteWebSearchLabel,
+  getRemoteWebSearchDescription,
   getSendBackThinkingLabel,
   getForwardEndUserIdLabel,
   getForwardEndUserIdDescription,
@@ -121,6 +124,10 @@ export function EditConfigDialog({
     options?.request_method && options.request_method.length > 0
       ? options.request_method
       : ['chat_completions', 'responses'];
+  const remoteWebSearchOptions =
+    options?.remote_web_search && options.remote_web_search.length > 0
+      ? options.remote_web_search
+      : ['off', 'on'];
   const sendBackThinkingOptions =
     options?.send_back_thinking && options.send_back_thinking.length > 0
       ? options.send_back_thinking
@@ -309,6 +316,26 @@ export function EditConfigDialog({
                       </span>
                     </p>
                   )}
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold flex items-center gap-2">
+                    <Search className="w-4 h-4" />
+                    {t('aiConfig.serviceProvider.remoteWebSearch')}
+                  </Label>
+                  <InputWithDropdown
+                    value={data.remote_web_search || 'on'}
+                    onChange={(val) => onChangeField('remote_web_search', val)}
+                    options={remoteWebSearchOptions}
+                    formatLabel={(raw) => getRemoteWebSearchLabel(t, raw)}
+                    placeholder={t('aiConfig.serviceProvider.remoteWebSearch')}
+                    inputPlaceholder={t('aiConfig.serviceProvider.remoteWebSearch')}
+                  />
+                  <p className="text-xs text-muted-foreground flex items-start gap-1">
+                    <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                    <span>
+                      {getRemoteWebSearchDescription(t, data.remote_web_search || 'on')}
+                    </span>
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label className="text-sm font-semibold flex items-center gap-2">

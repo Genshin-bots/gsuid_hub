@@ -10,6 +10,7 @@ import { frameworkConfigApi, FrameworkConfigListItem } from '@/lib/api';
 import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
+import { SecretInput } from '@/components/config/SecretInput';
 
 const UPLOAD_TYPES = ['smms', 's3', 'local', 'custom'] as const;
 type UploadType = typeof UPLOAD_TYPES[number];
@@ -466,14 +467,13 @@ export default function ImageUploadPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="smms_token" className={cn(!isPicSrvEnabled && "text-muted-foreground")}>
+              <Label htmlFor="upload-smms-cred" className={cn(!isPicSrvEnabled && "text-muted-foreground")}>
                 {t('imageUpload.smmsToken')}
               </Label>
-              <Input
-                id="smms_token"
-                type="password"
+              <SecretInput
+                id="upload-smms-cred"
                 value={uploadConfig.smms_token.value}
-                onChange={(e) => handleChange('smms_token', e.target.value)}
+                onChange={(val) => handleChange('smms_token', val)}
                 placeholder={t('imageUpload.smmsTokenPlaceholder')}
                 disabled={!isPicSrvEnabled}
               />
@@ -509,28 +509,26 @@ export default function ImageUploadPage() {
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="s3_access_key" className={cn(!isPicSrvEnabled && "text-muted-foreground")}>
+                <Label htmlFor="upload-s3-ak" className={cn(!isPicSrvEnabled && "text-muted-foreground")}>
                   {t('imageUpload.s3AccessKey')}
                 </Label>
-                <Input
-                  id="s3_access_key"
-                  type="password"
+                <SecretInput
+                  id="upload-s3-ak"
                   value={uploadConfig.s3_access_key.value}
-                  onChange={(e) => handleChange('s3_access_key', e.target.value)}
+                  onChange={(val) => handleChange('s3_access_key', val)}
                   placeholder={t('imageUpload.s3AccessKeyPlaceholder')}
                   disabled={!isPicSrvEnabled}
                 />
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="s3_secret_key" className={cn(!isPicSrvEnabled && "text-muted-foreground")}>
+                <Label htmlFor="upload-s3-sk" className={cn(!isPicSrvEnabled && "text-muted-foreground")}>
                   {t('imageUpload.s3SecretKey')}
                 </Label>
-                <Input
-                  id="s3_secret_key"
-                  type="password"
+                <SecretInput
+                  id="upload-s3-sk"
                   value={uploadConfig.s3_secret_key.value}
-                  onChange={(e) => handleChange('s3_secret_key', e.target.value)}
+                  onChange={(val) => handleChange('s3_secret_key', val)}
                   placeholder={t('imageUpload.s3SecretKeyPlaceholder')}
                   disabled={!isPicSrvEnabled}
                 />

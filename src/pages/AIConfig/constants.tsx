@@ -150,6 +150,13 @@ export const getRequestMethodLabel = (
 ): string =>
   getEnumLabel(t, 'aiConfig.serviceProvider.requestMethodOptions', raw);
 
+/** `remote_web_search`：`off / on` */
+export const getRemoteWebSearchLabel = (
+  t: (key: string) => string,
+  raw: string,
+): string =>
+  getEnumLabel(t, 'aiConfig.serviceProvider.remoteWebSearchOptions', raw);
+
 /** `send_back_thinking`：`auto / off`（思考回传） */
 export const getSendBackThinkingLabel = (
   t: (key: string) => string,
@@ -175,6 +182,13 @@ export const getRequestMethodDescription = (
   raw: string,
 ): string =>
   getEnumLabel(t, 'aiConfig.serviceProvider.requestMethodDescription', raw);
+
+/** `remote_web_search` 开关说明：默认 on；只对 Responses 生效，Chat 永远本地。 */
+export const getRemoteWebSearchDescription = (
+  t: (key: string) => string,
+  raw: string,
+): string =>
+  getEnumLabel(t, 'aiConfig.serviceProvider.remoteWebSearchDescription', raw);
 
 /**
  * `forward_end_user_id` 每个模式的说明。三种模式的隐私与可观测性权衡差别很大

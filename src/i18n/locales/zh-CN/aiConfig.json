@@ -125,6 +125,15 @@
       "chat_completions": "OpenAI 标准的 /chat/completions 端点，几乎所有兼容厂商都支持；按 message 数组发送模型参数。",
       "responses": "OpenAI 新版 /responses 端点，统一管理多轮工具调用、文件引用与结构化输出；需要模型与代理同时支持。"
     },
+    "remoteWebSearch": "远端 Web Search",
+    "remoteWebSearchOptions": {
+      "off": "关闭（Responses 也改用本地搜索）",
+      "on": "开启（默认；Responses 用上游内置 web_search）"
+    },
+    "remoteWebSearchDescription": {
+      "off": "Responses 也走本地 Tavily / Jina / Exa。Chat Completions 本来就不看这个开关。",
+      "on": "默认值。请求方式为 Responses 时直接用上游内置 web_search，不用再改别的。Chat Completions 无论开或关都走本地搜索。中转的 Responses 若不支持 hosted 工具会 400，再改回关闭即可。"
+    },
     "sendBackThinking": "思考回传",
     "sendBackThinkingOptions": {
       "auto": "自动（pydantic_ai 默认，回发历史思考）",

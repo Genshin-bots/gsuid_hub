@@ -12,6 +12,7 @@ import { frameworkConfigApi, PluginConfigItem, FrameworkConfigListItem, Framewor
 import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
+import { SecretInput } from '@/components/config/SecretInput';
 
 // Database type options
 const DB_TYPES = ['SQLite', 'MySql', 'PostgreSQL', '自定义'] as const;
@@ -509,21 +510,21 @@ export default function DatabaseConfigPage() {
                 <Separator />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="db_user">{t('databaseConfig.username')}</Label>
+                    <Label htmlFor="db-auth-user">{t('databaseConfig.username')}</Label>
                     <Input
-                      id="db_user"
+                      id="db-auth-user"
+                      autoComplete="off"
                       value={dbConfig.db_user?.value as string || ''}
                       onChange={(e) => handleChange('db_user', e.target.value)}
                       placeholder="root"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="db_password">{t('databaseConfig.password')}</Label>
-                    <Input
-                      id="db_password"
-                      type="password"
+                    <Label htmlFor="db-auth-secret">{t('databaseConfig.password')}</Label>
+                    <SecretInput
+                      id="db-auth-secret"
                       value={dbConfig.db_password?.value as string || ''}
-                      onChange={(e) => handleChange('db_password', e.target.value)}
+                      onChange={(val) => handleChange('db_password', val)}
                       placeholder="••••••••"
                     />
                   </div>
@@ -667,21 +668,21 @@ export default function DatabaseConfigPage() {
               <Separator />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="db_user">{t('databaseConfig.username')}</Label>
+                  <Label htmlFor="db-pg-auth-user">{t('databaseConfig.username')}</Label>
                   <Input
-                    id="db_user"
+                    id="db-pg-auth-user"
+                    autoComplete="off"
                     value={dbConfig.db_user?.value as string || ''}
                     onChange={(e) => handleChange('db_user', e.target.value)}
                     placeholder="postgres"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="db_password">{t('databaseConfig.password')}</Label>
-                  <Input
-                    id="db_password"
-                    type="password"
+                  <Label htmlFor="db-pg-auth-secret">{t('databaseConfig.password')}</Label>
+                  <SecretInput
+                    id="db-pg-auth-secret"
                     value={dbConfig.db_password?.value as string || ''}
-                    onChange={(e) => handleChange('db_password', e.target.value)}
+                    onChange={(val) => handleChange('db_password', val)}
                     placeholder="••••••••"
                   />
                 </div>

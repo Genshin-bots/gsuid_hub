@@ -1418,6 +1418,7 @@ export default function AIConfigPage() {
         maxTokens={provider.newConfigMaxTokens}
         usageStatsMode={provider.newConfigUsageStatsMode}
         requestMethod={provider.newConfigRequestMethod}
+        remoteWebSearch={provider.newConfigRemoteWebSearch}
         sendBackThinking={provider.newConfigSendBackThinking}
         forwardEndUserId={provider.newConfigForwardEndUserId}
         endUserIdSalt={provider.newConfigEndUserIdSalt}
@@ -1438,6 +1439,7 @@ export default function AIConfigPage() {
         onChangeMaxTokens={provider.setNewConfigMaxTokens}
         onChangeUsageStatsMode={provider.setNewConfigUsageStatsMode}
         onChangeRequestMethod={provider.setNewConfigRequestMethod}
+        onChangeRemoteWebSearch={provider.setNewConfigRemoteWebSearch}
         onChangeSendBackThinking={provider.setNewConfigSendBackThinking}
         onChangeForwardEndUserId={provider.setNewConfigForwardEndUserId}
         onChangeEndUserIdSalt={provider.setNewConfigEndUserIdSalt}

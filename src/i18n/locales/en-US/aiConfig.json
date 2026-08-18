@@ -125,6 +125,15 @@
       "chat_completions": "OpenAI's standard /chat/completions endpoint, supported by virtually all chat-compatible providers. Sends a messages array to the model.",
       "responses": "OpenAI's newer /responses endpoint that unifies multi-turn tool calls, file references and structured output. Requires the model and proxy to both support it."
     },
+    "remoteWebSearch": "Remote Web Search",
+    "remoteWebSearchOptions": {
+      "off": "Off (use local search even on Responses)",
+      "on": "On (default; Responses uses hosted web_search)"
+    },
+    "remoteWebSearchDescription": {
+      "off": "Responses also uses local Tavily / Jina / Exa. Chat Completions never reads this switch.",
+      "on": "Default. Switching the request method to Responses is enough to use the provider's hosted web_search. Chat Completions always uses local search, on or off. If a relay's Responses endpoint does not support hosted tools it will 400 — turn this off then."
+    },
     "sendBackThinking": "Send Back Thinking",
     "sendBackThinkingOptions": {
       "auto": "Auto (pydantic_ai default, resend history thinking)",

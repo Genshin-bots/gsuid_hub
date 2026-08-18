@@ -133,7 +133,7 @@ const getNavItems = (t: (key: string) => string, isAIEnabled: boolean, isAdmin: 
       icon: Cog,
       children: [
         { id: 'coreConfig', title: t('sidebar.coreConfig'), url: '/core-config', icon: Cog, adminOnly: true },
-        { id: 'frameworkConfig', title: t('sidebar.frameworkConfig'), url: '/framework-config', icon: Cpu },
+        { id: 'frameworkConfig', title: t('sidebar.frameworkConfig'), url: '/framework-config', icon: Cpu, adminOnly: true },
         { id: 'backup', title: t('sidebar.backup'), url: '/backup', icon: HardDrive, adminOnly: true },
         { id: 'scheduler', title: t('sidebar.scheduler'), url: '/scheduler', icon: Calendar }
       ]
@@ -157,7 +157,7 @@ const getNavItems = (t: (key: string) => string, isAIEnabled: boolean, isAdmin: 
       icon: Brain,
       children: aiConfigChildren,
     },
-    { id: 'plugins', title: t('sidebar.plugins'), url: '/plugins', icon: Settings },
+    { id: 'plugins', title: t('sidebar.plugins'), url: '/plugins', icon: Settings, adminOnly: true },
     { id: 'pluginStore', title: t('sidebar.pluginStore'), url: '/plugin-store', icon: Store },
     { id: 'gitUpdate', title: t('sidebar.gitUpdate'), url: '/git-update', icon: GitBranch },
     {
