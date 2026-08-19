@@ -205,6 +205,7 @@
     "configNotAvailable": "No editable settings for this provider",
     "tavilyConfig": "Tavily Configuration",
     "exaConfig": "Exa Configuration",
+    "anysearchConfig": "AnySearch Configuration",
     "jinaConfig": "Jina config (s.jina.ai / r.jina.ai)",
     "miniMaxConfig": "MiniMax Configuration",
     "maxResults": "Max Results",

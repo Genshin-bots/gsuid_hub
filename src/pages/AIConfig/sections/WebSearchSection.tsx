@@ -62,6 +62,7 @@ export interface WebSearchSectionProps {
 
   tavilyConfig?: { id: string; config: Record<string, PluginConfigItem> };
   exaConfig?: { id: string; config: Record<string, PluginConfigItem> };
+  anysearchConfig?: { id: string; config: Record<string, PluginConfigItem> };
   jinaConfig?: { id: string; config: Record<string, PluginConfigItem> };
   miniMaxConfig?: { id: string; config: Record<string, PluginConfigItem> };
 
@@ -150,6 +151,7 @@ export function WebSearchSection({
   websearchFallbackOptions,
   tavilyConfig,
   exaConfig,
+  anysearchConfig,
   jinaConfig,
   miniMaxConfig,
   websearchMcpToolId,
@@ -224,6 +226,27 @@ export function WebSearchSection({
           configId={exaConfig.id}
           onChange={onUpdateConfig}
           layout={[['api_key'], ['max_results', 'search_type']]}
+        />
+      );
+    }
+    if (key === 'anysearch') {
+      if (!anysearchConfig) {
+        return (
+          <p className="text-xs text-muted-foreground">
+            {t('aiConfig.serviceProvider.configNotAvailable')}
+          </p>
+        );
+      }
+      return (
+        <DynamicConfigPanel
+          config={anysearchConfig.config}
+          configId={anysearchConfig.id}
+          onChange={onUpdateConfig}
+          layout={[
+            ['api_key'],
+            ['max_results', 'timeout'],
+            ['zone', 'language'],
+          ]}
         />
       );
     }

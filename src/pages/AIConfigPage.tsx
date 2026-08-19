@@ -172,6 +172,16 @@ export default function AIConfigPage() {
     [configs],
   );
 
+  const anysearchConfig = useMemo(
+    () =>
+      Object.values(configs).find(
+        (c) =>
+          c.name.includes('AnySearch搜索配置') ||
+          c.full_name.includes('AnySearch搜索配置'),
+      ),
+    [configs],
+  );
+
   const miniMaxConfig = useMemo(
     () =>
       Object.values(configs).find(
@@ -267,7 +277,7 @@ export default function AIConfigPage() {
     (aiConfig?.config.rerank_provider?.value as string) ?? 'local';
   const isMemoryEnabled = toBool(aiConfig?.config.enable_memory?.value);
   const websearchProvider =
-    (aiConfig?.config.websearch_provider?.value as string) ?? 'Jina';
+    (aiConfig?.config.websearch_provider?.value as string) ?? 'AnySearch';
   const websearchLbStrategy =
     (aiConfig?.config.websearch_lb_strategy?.value as string) ?? 'error_switch';
   const websearchFallbackOrder = useMemo(() => {
@@ -395,8 +405,9 @@ export default function AIConfigPage() {
     (aiConfig?.config.rerank_provider?.options || ['local']) as string[];
   const websearchProviderOptions =
     (aiConfig?.config.websearch_provider?.options || [
-      'Jina',
+      'AnySearch',
       'Tavily',
+      'Jina',
       'Exa',
       'MiniMax',
       'MCP',
@@ -903,6 +914,7 @@ export default function AIConfigPage() {
             websearchFallbackOptions={websearchFallbackOptions}
             tavilyConfig={tavilyConfig}
             exaConfig={exaConfig}
+            anysearchConfig={anysearchConfig}
             jinaConfig={jinaConfig}
             miniMaxConfig={miniMaxConfig}
             websearchMcpToolId={websearchMcpToolId}

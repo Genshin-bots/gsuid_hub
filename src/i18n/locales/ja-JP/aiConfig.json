@@ -205,6 +205,7 @@
     "configNotAvailable": "このソースに編集可能な設定はありません",
     "tavilyConfig": "Tavily設定",
     "exaConfig": "Exa設定",
+    "anysearchConfig": "AnySearch設定",
     "jinaConfig": "Jina 設定（s.jina.ai / r.jina.ai）",
     "miniMaxConfig": "MiniMax設定",
     "maxResults": "最大件数",
