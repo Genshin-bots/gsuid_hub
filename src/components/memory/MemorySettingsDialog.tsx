@@ -1,14 +1,14 @@
 /**
  * MemorySettingsDialog — AI 记忆子系统设置 + HierGraph 重建
  *
- * 来源：docs/skills/gshub-development/README.md §3.1「完全空缺」第 7 项
+ * 来源：.agents/skills/gshub-development/README.md §3.1「完全空缺」第 7 项
  *
  * 字段与 `gsuid_core/ai_core/memory/config.py` 对齐。当前只展示常用字段，
  * 未覆盖的字段通过 rawConfig 兜底保存（不丢数据）。
  *
  * 涉及的 SKILL 章节：
- * - [§07 配置页 dirty 检查](../../docs/skills/gshub-development/references/07-config-pages-and-state.md)
- * - [§10 错误 toast 回显后端 detail](../../docs/skills/gshub-development/references/10-pitfalls-and-performance.md) P-13
+ * - [§07 配置页 dirty 检查](.agents/skills/gshub-development/references/07-config-pages-and-state.md)
+ * - [§10 错误 toast 回显后端 detail](.agents/skills/gshub-development/references/10-pitfalls-and-performance.md) P-13
  */
 import { useEffect, useState } from 'react';
 import { Brain, RefreshCw, Save } from 'lucide-react';

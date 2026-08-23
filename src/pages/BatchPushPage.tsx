@@ -1,7 +1,7 @@
 /**
  * /batch-push — 批量推送页（运维 / 主动通告）
  *
- * 来源：docs/skills/gshub-development/README.md §3.1「完全空缺」第 2 项
+ * 来源：.agents/skills/gshub-development/README.md §3.1「完全空缺」第 2 项
  * 后端对应：message_api.py (`/api/BatchPush` + `/api/BatchPush/targets`)
  *
  * 设计：

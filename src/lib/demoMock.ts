@@ -768,7 +768,7 @@ export const generateTableData = (tableName: string, params: URLSearchParams) =>
 // ===================
 // Tier 2 · 补漏洞：让 demo 模式必崩页面也能正常打开
 // ===================
-// 详见 `docs/skills/gshub-development/references/10-pitfalls-and-performance.md` P-26。
+// 详见 `.agents/skills/gshub-development/references/10-pitfalls-and-performance.md` P-26。
 // 这里集中给 /logs /persona-config /mcp-config /ai-statistics /ai-budget /backup /ai-kanban /ai-config
 // 这些页面所必需的 mock 数据，让 `npm run dev:demo` 全跑通。
 

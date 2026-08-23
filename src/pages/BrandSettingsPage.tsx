@@ -1,13 +1,13 @@
 /**
  * /brand-settings — 品牌信息编辑页
  *
- * 来源：docs/skills/gshub-development/README.md §3.1「完全空缺」第 1 项
+ * 来源：.agents/skills/gshub-development/README.md §3.1「完全空缺」第 1 项
  * 后端对应：brand_api.py (5 endpoints) + assets_api.py
  *
  * 设计：
  * - 标题卡 + 三部分（标题输入、副标题输入、ICON 上传/重置）
  * - "效果预览" 卡片：模拟登录页顶部 brand 区，让用户直观看生效样式
- * - 错误提示统一用 getApiErrorMessage 回显后端 msg/detail（[§01 §1.5](../docs/skills/gshub-development/references/01-architecture-and-conventions.md)）
+ * - 错误提示统一用 getApiErrorMessage 回显后端 msg/detail（[§01 §1.5](.agents/skills/gshub-development/references/01-architecture-and-conventions.md)）
  */
 import { useEffect, useRef, useState } from 'react';
 import { ImageIcon, RotateCcw, Save, Upload } from 'lucide-react';

@@ -1,11 +1,11 @@
 /**
  * /ai-artifacts — AI 产出物全局浏览
  *
- * 来源：docs/skills/gshub-development/README.md §3.1「完全空缺」第 6 项
+ * 来源：.agents/skills/gshub-development/README.md §3.1「完全空缺」第 6 项
  * 后端对应：artifacts_api.py (`/api/ai/artifacts*`)，并扩展支持全量浏览
  *
- * UI 风格参照 [§04 §4.6 表格行点击打开详情](../../docs/skills/gshub-development/references/04-page-layout-spec.md)，
- * 错误回显统一用 getApiErrorMessage（[§01 §1.5](../../docs/skills/gshub-development/references/01-architecture-and-conventions.md)）。
+ * UI 风格参照 [§04 §4.6 表格行点击打开详情](.agents/skills/gshub-development/references/04-page-layout-spec.md)，
+ * 错误回显统一用 getApiErrorMessage（[§01 §1.5](.agents/skills/gshub-development/references/01-architecture-and-conventions.md)）。
  */
 import { useEffect, useRef, useState } from 'react';
 import {

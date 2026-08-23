@@ -1,4 +1,4 @@
-# GsCore Frontend / gsuid_hub v0.1.2
+# GsCore Frontend / gsuid_hub v0.1.3
 
 GsCore 网页控制台前端项目。该项目为 [gsuid_core](https://github.com/Genshin-bots/gsuid_core) 提供一套现代化、响应式、可国际化的 Web 管理控制台，用于管理核心配置、插件、日志、数据库、AI 能力与运行状态。
 
@@ -40,9 +40,10 @@ GsCore 网页控制台前端项目。该项目为 [gsuid_core](https://github.co
 
 ```text
 .
-├── docs/
-│   └── skills/
-│       └── gshub-development/    # 前端开发规范 SKILL（排版/组件/i18n/主题/已知坑）
+├── AGENTS.md                     # 编码 Agent 入口（红线 / 结构 / 命令）
+├── .agents/skills/
+│   └── gshub-development/        # 前端开发规范 SKILL（排版/组件/i18n/主题/已知坑）
+├── docs/                         # 变更纪要等（Skill 已迁至 .agents/skills）
 ├── public/                       # 静态资源（任何构建都会原样打包）
 ├── demo-assets/                  # 仅「演示模式」用的较大静态资源（普通构建不打包，详见下文）
 │   ├── demo-memes/               # 演示用真实表情包图片
@@ -159,7 +160,7 @@ import { PinnedPage } from '@/components/layout/PinnedPage';
 `children` 跟着滚。典型有 toolbar 的页面：`/ai-knowledge`、`/ai-capability-agents`、`/database`、
 `/plugins`、`/git-update`、`/ai-artifacts`、`/ai-tool-outputs` 等。
 
-机制、对照表、迁移口诀与例外页面见 [`docs/skills/gshub-development/references/04-page-layout-spec.md`](docs/skills/gshub-development/references/04-page-layout-spec.md)。
+机制、对照表、迁移口诀与例外页面见 [`.agents/skills/gshub-development/references/04-page-layout-spec.md`](.agents/skills/gshub-development/references/04-page-layout-spec.md)。
 
 ### TabButtonGroup（含下拉拆分按钮）
 
@@ -204,7 +205,7 @@ import { PinnedPage } from '@/components/layout/PinnedPage';
 ```
 
 完整接口、反模式与全站使用面见  
-[`docs/skills/gshub-development/references/06-reusable-component-catalog.md`](docs/skills/gshub-development/references/06-reusable-component-catalog.md) §6.1。
+[`.agents/skills/gshub-development/references/06-reusable-component-catalog.md`](.agents/skills/gshub-development/references/06-reusable-component-catalog.md) §6.1。
 
 ### PluginIcon
 
@@ -263,7 +264,7 @@ import { PinnedPage } from '@/components/layout/PinnedPage';
 - 支持文本、图片、语音、视频、文件、@、引用回复、Markdown、按钮、合并转发、戳一戳、echo 回执与撤回控制包。
 - 会话与身份经 `/api/live-chat/*` 持久化到后端（localStorage 仅作兜底与迁移）；同会话发送有等待锁，避免 core 约 8s 队列 TTL 丢包。
 - 实现分层：`src/lib/liveChat/`（协议 / WS / 存储 / 媒体）+ `src/components/live-chat/`（UI）+ `LiveChatPage`（编排）。
-- 开发与维护约定见 [`docs/skills/gshub-development/references/11-live-chat.md`](docs/skills/gshub-development/references/11-live-chat.md)。
+- 开发与维护约定见 [`.agents/skills/gshub-development/references/11-live-chat.md`](.agents/skills/gshub-development/references/11-live-chat.md)。
 
 ### 日志、调度与维护
 
@@ -317,25 +318,27 @@ import { PinnedPage } from '@/components/layout/PinnedPage';
 
 > 更完整的变更说明见 [`docs/CHANGELOG-2026-07.md`](docs/CHANGELOG-2026-07.md)；  
 > 2026-08 组件更新（TabButtonGroup 下拉、PluginIcon、能力代理筛选）见  
-> [`docs/skills/gshub-development/README.md`](docs/skills/gshub-development/README.md) §二点七。
+> [`.agents/skills/gshub-development/README.md`](.agents/skills/gshub-development/README.md) §二点七。
 
 ### 开发规范（必读）
 
-改动 `src/` 前请先读 [`docs/skills/gshub-development/`](docs/skills/gshub-development/SKILL.md)，它沉淀了全站的设计约束与踩过的坑：
+编码 Agent 先读根目录 [`AGENTS.md`](AGENTS.md)（遵循 [agents.md](https://agents.md/)）。
+改动 `src/` 的专题细节见 [`.agents/skills/gshub-development/`](.agents/skills/gshub-development/SKILL.md)：
 
 | 章节 | 主题 |
 | --- | --- |
-| [一](docs/skills/gshub-development/references/01-architecture-and-conventions.md) | 架构与工程约定（目录、路由、API 层 + 401、错误回显） |
-| [二](docs/skills/gshub-development/references/02-i18n.md) | i18n 三语言同步 |
-| [三](docs/skills/gshub-development/references/03-theme-and-styling.md) | 主题与样式（CSS 变量、`glass-card`） |
-| [四](docs/skills/gshub-development/references/04-page-layout-spec.md) | **页面排版铁律**（`PinnedPage` / `page-fill` / `page-viewport`、标题、间距标尺） |
-| [五](docs/skills/gshub-development/references/05-components-and-form-controls.md) | 表单/筛选控件规范（无 Tab→`h-9` / 有 Tab→`h-11`、Select 哨兵） |
-| [六](docs/skills/gshub-development/references/06-reusable-component-catalog.md) | 封装组件目录（**TabButtonGroup.dropdown**、**PluginIcon**、PinnedPage…，禁止手搓） |
-| [七](docs/skills/gshub-development/references/07-config-pages-and-state.md) | 配置页与脏检查竞态 |
-| [八](docs/skills/gshub-development/references/08-page-patterns.md) | 页面模式与 Dialog 无障碍 |
-| [九](docs/skills/gshub-development/references/09-sidebar-navigation.md) | 侧边栏与导航 |
-| [十](docs/skills/gshub-development/references/10-pitfalls-and-performance.md) | **已知坑（P-1 ~ P-32）+ 性能 + 落地清单** |
-| [十一](docs/skills/gshub-development/references/11-live-chat.md) | **Live Chat**（早柚协议、WS 适配器、状态持久化、发送等待锁） |
+| [一](.agents/skills/gshub-development/references/01-architecture-and-conventions.md) | 架构与工程约定（目录、路由、API 层 + 401、错误回显） |
+| [二](.agents/skills/gshub-development/references/02-i18n.md) | i18n 三语言同步 |
+| [三](.agents/skills/gshub-development/references/03-theme-and-styling.md) | 主题与样式（CSS 变量、`glass-card`） |
+| [四](.agents/skills/gshub-development/references/04-page-layout-spec.md) | **页面排版铁律**（`PinnedPage` / `page-fill` / `page-viewport`、标题、间距标尺） |
+| [五](.agents/skills/gshub-development/references/05-components-and-form-controls.md) | 表单/筛选控件规范（无 Tab→`h-9` / 有 Tab→`h-11`、Select 哨兵） |
+| [六](.agents/skills/gshub-development/references/06-reusable-component-catalog.md) | 封装组件目录（**TabButtonGroup.dropdown**、**PluginIcon**、PinnedPage…，禁止手搓） |
+| [七](.agents/skills/gshub-development/references/07-config-pages-and-state.md) | 配置页与脏检查竞态 |
+| [八](.agents/skills/gshub-development/references/08-page-patterns.md) | 页面模式与 Dialog 无障碍 |
+| [九](.agents/skills/gshub-development/references/09-sidebar-navigation.md) | 侧边栏与导航 |
+| [十](.agents/skills/gshub-development/references/10-pitfalls-and-performance.md) | **已知坑（P-1 ~ P-32）+ 性能 + 落地清单** |
+| [十一](.agents/skills/gshub-development/references/11-live-chat.md) | **Live Chat**（早柚协议、WS 适配器、状态持久化、发送等待锁） |
+| [十二](.agents/skills/gshub-development/references/12-memory-graph-and-cognition.md) | **记忆图谱与世界知识** |
 
 ## 演示模式（Demo Mode）
 
@@ -367,7 +370,7 @@ import { PinnedPage } from '@/components/layout/PinnedPage';
 
 > ⚠️ **Mock 覆盖不全**：未被 Mock 命中的请求会穿透到真实 fetch → 404，页面拿到 `undefined` 后崩溃。
 > 目前 `/logs`、`/persona-config`、`/mcp-config`、`/ai-statistics`、`/ai-budget`、`/backup`、`/ai-kanban`、`/ai-config`
-> 在演示模式下**必崩**（属既有问题，与页面改动无关）。详见 [§10 P-26](docs/skills/gshub-development/references/10-pitfalls-and-performance.md)。
+> 在演示模式下**必崩**（属既有问题，与页面改动无关）。详见 [§10 P-26](.agents/skills/gshub-development/references/10-pitfalls-and-performance.md)。
 
 ### 演示静态资源（`demo-assets/`）
 

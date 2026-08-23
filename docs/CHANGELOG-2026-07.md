@@ -1,7 +1,7 @@
 # gsuid_hub 变更纪要（2026-07）
 
 > 本文档汇总本轮（约 2026-07-23 ~ 2026-07-24）对 **gsuid_hub** 控制台前端，以及配套 **gsuid_core/webconsole** 后端的改动。  
-> 与开发规范的关系：日常写法仍以 [`docs/skills/gshub-development/`](./skills/gshub-development/SKILL.md) 为准；本文只记**做了什么、为什么、怎么用**。
+> 与开发规范的关系：日常写法仍以 [`.agents/skills/gshub-development/`](../.agents/skills/gshub-development/SKILL.md) 为准；本文只记**做了什么、为什么、怎么用**。
 
 ---
 

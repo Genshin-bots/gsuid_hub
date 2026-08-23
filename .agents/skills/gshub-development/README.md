@@ -1,6 +1,6 @@
 # GsCore Web Console (gsuid_hub) — README & 能力对照索引
 
-> 本文件是 `docs/skills/gshub-development/` 的**主索引与能力全景**，给第一次接触本仓库的人 /
+> 本文件是 `.agents/skills/gshub-development/` 的**主索引与能力全景**，给第一次接触本仓库的人 /
 > 准备扩前端控制台的人**一张完整的鸟瞰图**。
 > 它与同目录 `SKILL.md` 的分工是：
 > - **`SKILL.md` + `references/` 01–12**：开发规范与已知坑（**怎么写**一个页面/组件；§11 为 Live Chat，§12 为记忆图谱 / 世界知识）
@@ -85,7 +85,7 @@
 | `/ai-statistics` | `AIStatisticsPage.tsx` | Token 用量（按模型/按类型/按区间）+ **User Turn / Agent Run 效率**（回合均耗、运行均耗、嵌套占比）+ 活跃用户/群 + 触发/意图分布 + 错误 + Heartbeat + RAG + 历史 + **小时级性能** | `ai_statistics_api.py`、`ai_performance_api.py` | [§10 P-26](./references/10-pitfalls-and-performance.md) |
 | `/ai-history` | `AIHistoryPage.tsx` | AI Session 列表 / Trace 瀑布图（链 ↔ 分段 ↔ 子 agent）/ 统计 | `ai_session_logs_api.py`（`/api/ai/session_logs*`）+ `history_api.py`（`/api/history*`） | [§08 §8.7 Trace 瀑布](./references/08-page-patterns.md) |
 | `/session-management` | `SessionManagementPage.tsx` | Session 列表 + 历史对话 + Persona + 给 Session 发消息 | `history_api.py` | [§04 §4.1.1 page-fill](./references/04-page-layout-spec.md) |
-| `/ai-ops` | `AIOpsPage.tsx` | **运维诊断中心（收敛版）**：顶栏 Bot/Session/续聊状态 + 5 Tab（触发回放 / 黑白名单 / 输出试跑 / 安全策略 / 配置快照）。工具拓扑·意图·生命周期·多模态·插件诊断仅保留后端 API | `ops_diagnostics_api.py`（`/api/ops/*`） | 见 [`docs/CHANGELOG-2026-07.md`](../../CHANGELOG-2026-07.md) §四 |
+| `/ai-ops` | `AIOpsPage.tsx` | **运维诊断中心（收敛版）**：顶栏 Bot/Session/续聊状态 + 5 Tab（触发回放 / 黑白名单 / 输出试跑 / 安全策略 / 配置快照）。工具拓扑·意图·生命周期·多模态·插件诊断仅保留后端 API | `ops_diagnostics_api.py`（`/api/ops/*`） | 见 [`docs/CHANGELOG-2026-07.md`](../../../docs/CHANGELOG-2026-07.md) §四 |
 | `/ai-runtime` | `AIRuntimePage.tsx` | **Agent 运行时诊断**：套件槽健康（密封槽空占用红字）/ Hook 接线 / 关系温度 / **认知索引（world 枢纽、节点挂文、重建挂载）** | `agent_kits_api.py`（`/api/agent_kits/*`、`/api/relationship/view`、`/api/cognition/nodes`、`/api/cognition/rebuild_mount`） | [§12](./references/12-memory-graph-and-cognition.md)、[§04 PinnedPage](./references/04-page-layout-spec.md) |
 | `/group-profile` | `GroupProfilePage.tsx` | 群组画像只读（标签/词汇映射/称呼） | state_store `__gscore_group_profile__` | — |
 | `/ai-debug` | `AIDebugPage.tsx` | 记忆图谱 / 编排任务 / self_model | `agent_debug_api.py` | — |
@@ -111,7 +111,7 @@
 | Agent 运行时 | 3 | **`agentKitsApi`**、**`relationshipApi`**、**`cognitionApi`** | `agent_kits_api.py` |
 | 其它 | — | `aiArtifactsApi`、`aiToolOutputsApi`、`batchPushApi`、`brandSettingsApi`、`logsConfigApi`、`memoryApi` / `memorySettingsApi` | 见 CHANGELOG；图标 `getPluginIconUrl` |
 
-> **完整变更纪要（pnpm、P0–P2、AI Ops、路由清理）**：[`docs/CHANGELOG-2026-07.md`](../../CHANGELOG-2026-07.md)。
+> **完整变更纪要（pnpm、P0–P2、AI Ops、路由清理）**：[`docs/CHANGELOG-2026-07.md`](../../../docs/CHANGELOG-2026-07.md)。
 
 ---
 
@@ -152,7 +152,7 @@
 | 路由 / 导航 | `App.tsx` + `AppSidebar.tsx` | `live-chat` 路由；侧栏 id=`liveChat`；图标 `MessageCircle` |
 | i18n | `liveChat.json` + `sidebar.liveChat` + 三语言 `index.ts` | 新建模块并注册 |
 | 增强 | `AIMemePage` + `memeApi.purge` | 「清空表情」：全部 / 当前筛选；`getApiErrorMessage` |
-| 规范文档 | `docs/skills/gshub-development/references/11-live-chat.md` | 分层、协议、P-30/P-31/P-32 |
+| 规范文档 | `.agents/skills/gshub-development/references/11-live-chat.md` | 分层、协议、P-30/P-31/P-32 |
 
 ---
 
@@ -242,6 +242,18 @@
 | **Demo** | `mockServer.ts` | 钟离 / 原神 / 提瓦特枢纽 + plugin/agent 挂文 + `ent:` 镜像 |
 | **i18n** | `aiMemory` / `aiRuntime` / `aiConfig` | 三语言同步 |
 | **规范** | `SKILL.md` + `references/12` | 两层模型、叠层约定、ACL |
+
+---
+
+## 二点十、2026-08 v0.1.3 Agent 文档迁位
+
+> 对齐 gsuid_core 的 `.agents/skills/` + 根目录 [`AGENTS.md`](../../../AGENTS.md)（[agents.md](https://agents.md/)）。
+
+| 改动类型 | 路径 | 说明 |
+|---|---|---|
+| **版本** | `package.json` / `README.md` / 侧栏兜底 | **v0.1.2 → v0.1.3** |
+| **新文件** | 仓库根 `AGENTS.md` | 编码 Agent 入口：项目地图、命令、红线、代码规范 |
+| **迁移** | `docs/skills/` → `.agents/skills/` | `gshub-development` Skill 与后端同布局，Grok 等会扫描 `.agents/skills/` |
 
 ---
 
@@ -376,7 +388,7 @@
 
 **汇总**：
 - 🟩 已完整实现：**24 个** 能力板块
-- 🟨 / ⬛ 旧「待补」表（§三、§五）**大量过时**（2026-07-20 快照）；以 [`CHANGELOG-2026-07.md`](../../CHANGELOG-2026-07.md) 与当前代码为准。
+- 🟨 / ⬛ 旧「待补」表（§三、§五）**大量过时**（2026-07-20 快照）；以 [`CHANGELOG-2026-07.md`](../../../docs/CHANGELOG-2026-07.md) 与当前代码为准。
 
 ---
 
@@ -397,6 +409,7 @@
 - **新后端 API**：一旦在 `gsuid_core` 落地、若 30 天内前端未对接，应在 §三 "待补清单"登记一行，避免成为隐性债务。
 - **新封装组件**：在 `references/06-reusable-component-catalog.md` 加章节，并在 `SKILL.md` 速记表里加一行。
 - **TabButtonGroup / PluginIcon 行为变更**：同步 [§06 §6.1 / §6.7](./references/06-reusable-component-catalog.md) 与本文 §二点七。
+- **Agent 入口 / Skill 路径**：根目录 `AGENTS.md`；Skill 在 `.agents/skills/gshub-development/`（见 §二点十）。
 - **网络搜索/抓取 / 批量推送账号**：同步 [§07 §7.7](./references/07-config-pages-and-state.md) 与本文 §二点八；后端契约同步 gsuid_core 对应 docs。
 - **新踩坑**：`references/10-pitfalls-and-performance.md` 加 `P-NN` 章节，必要时 `SKILL.md` 速记区同步。
 - **Live Chat / 协议适配器改动**：同步 [§11](./references/11-live-chat.md) 与本文档 §二 `/live-chat` 行。
@@ -408,6 +421,7 @@
 
 - [`SKILL.md`](./SKILL.md) — 主入口与开发规范（必读）
 - [`references/01-architecture-and-conventions.md`](./references/01-architecture-and-conventions.md) 起按章节读（至 [§12 记忆图谱与世界知识](./references/12-memory-graph-and-cognition.md)）
-- 仓库根 [`README.md`](../../../../README.md) — 项目总览
-- `gsuid_core` 仓库 `docs/skills/gscore-development/` — 后端框架规范
+- 仓库根 [`AGENTS.md`](../../../AGENTS.md) — 编码 Agent 入口
+- 仓库根 [`README.md`](../../../README.md) — 项目总览
+- `gsuid_core` 仓库 `.agents/skills/gscore-development/` — 后端框架规范
 - `gsuid_core/gsuid_core/webconsole/docs/` — 后端接口契约（按编号 01–43 阅读）

@@ -7,9 +7,9 @@
  *  - Persona 自我模型（self_model 加载 + 字段覆盖保存）
  *
  * 涉及的 SKILL 章节：
- *  - [§04 排版铁律 · PinnedPage + toolbar](../../docs/skills/gshub-development/references/04-page-layout-spec.md)
- *  - [§06 组件目录 · TabButtonGroup](../../docs/skills/gshub-development/references/06-reusable-component-catalog.md)
- *  - [§10 已知坑 · 错误 toast 回显后端 detail](../../docs/skills/gshub-development/references/10-pitfalls-and-performance.md) P-13
+ *  - [§04 排版铁律 · PinnedPage + toolbar](.agents/skills/gshub-development/references/04-page-layout-spec.md)
+ *  - [§06 组件目录 · TabButtonGroup](.agents/skills/gshub-development/references/06-reusable-component-catalog.md)
+ *  - [§10 已知坑 · 错误 toast 回显后端 detail](.agents/skills/gshub-development/references/10-pitfalls-and-performance.md) P-13
  */
 import { useEffect, useMemo, useState } from 'react';
 import {

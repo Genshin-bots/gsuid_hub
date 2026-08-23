@@ -342,8 +342,8 @@ provider 的创建 / 编辑弹窗展示。
 
 ### 后端契约
 
-详见 gsuid_core：`docs/skills/gscore-ai-core-api/references/11-mcp-image-search-and-meme.md` §11.3 / §11.3b、
-`docs/skills/gscore-deploy/references/13-ai.md`。
+详见 gsuid_core：`.agents/skills/gscore-ai-core-api/references/11-mcp-image-search-and-meme.md` §11.3 / §11.3b、
+`.agents/skills/gscore-deploy/references/13-ai.md`。
 
 ## 7.8 `/mcp-config` 传输方式：stdio / SSE / Streamable HTTP ★
 

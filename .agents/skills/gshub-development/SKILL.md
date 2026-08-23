@@ -49,8 +49,9 @@ description: >
 
 | 你的任务 | 该读的 SKILL / 文档 |
 |----------|---------------------|
+| 仓库地图 / 命令 / 代码红线 | 仓库根 [`AGENTS.md`](../../../AGENTS.md) |
 | **改前端控制台**（页面 / 组件 / i18n / 主题 / 路由 / API 层） | **本 SKILL** |
-| 改后端框架核心（handler / ai_core / 启动 / 数据库 / webconsole 后端） | gsuid_core 仓库 `gscore-development` |
+| 改后端框架核心（handler / ai_core / 启动 / 数据库 / webconsole 后端） | gsuid_core 仓库 `.agents/skills/gscore-development` |
 | 写后端业务插件 / 适配器 / 查 AI Core API | gsuid_core 仓库对应 SKILL |
 | 对接 WebConsole 后端接口（请求/响应字段） | `gsuid_core/webconsole/docs/` |
 
@@ -73,6 +74,7 @@ description: >
 
 ## 推荐阅读顺序（按需跳转）
 
+0. **动手前**：仓库根 [`AGENTS.md`](../../../AGENTS.md)（红线、命令、仓库地图）。
 1. **第一次接触本前端**：先看 [一、架构与工程约定](./references/01-architecture-and-conventions.md) 建立心智模型。
 2. **新增一个页面**：依次过 [四、排版铁律](./references/04-page-layout-spec.md) → [五、控件规范](./references/05-components-and-form-controls.md) / [六、组件目录](./references/06-reusable-component-catalog.md) → [二、i18n](./references/02-i18n.md) → [九、侧边栏](./references/09-sidebar-navigation.md)。
 3. **做配置类页面**：重点看 [七、配置页与状态](./references/07-config-pages-and-state.md)（dirty 检查竞态是最容易踩的坑）。
@@ -122,5 +124,7 @@ description: >
 
 ## 关联文档（同仓库其他位置）
 
+- 代码红线与工程约定：仓库根目录 [`AGENTS.md`](../../../AGENTS.md)（改任何代码前必读）
+- 能力全景与前后端对照：同目录 [`README.md`](./README.md)
 - WebConsole 后端接口文档：`gsuid_core/webconsole/docs/`（如本地有 gsuid_core 仓库）
-- 后端框架开发 SKILL：gsuid_core 仓库 `docs/skills/gscore-development/`
+- 后端框架开发 SKILL：gsuid_core 仓库 `.agents/skills/gscore-development/`
