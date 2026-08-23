@@ -2643,14 +2643,17 @@ export interface AIKnowledgeBackupResponse {
 
 
 export const aiKnowledgeApi = {
-  // 获取知识库列表（分页�?
-  getKnowledgeList: (params: { offset?: number; limit?: number; source?: string; page?: number; doc_id?: string } = {}) => {
+  getPlugins: () => api.get<string[]>('/api/ai/knowledge/plugins'),
+
+  // 获取知识库列表（分页）
+  getKnowledgeList: (params: { offset?: number; limit?: number; source?: string; page?: number; doc_id?: string; plugin?: string } = {}) => {
     const query = new URLSearchParams();
     if (params.page !== undefined) query.set('page', String(params.page));
     if (params.offset !== undefined) query.set('offset', String(params.offset));
     if (params.limit !== undefined) query.set('limit', String(params.limit));
     if (params.source) query.set('source', params.source);
     if (params.doc_id) query.set('doc_id', params.doc_id);
+    if (params.plugin) query.set('plugin', params.plugin);
     return api.get<AIKnowledgeListResponse>(`/api/ai/knowledge/list?${query.toString()}`);
   },
 
@@ -2671,11 +2674,12 @@ export const aiKnowledgeApi = {
     api.delete<{ id: string }>(`/api/ai/knowledge/${encodeURIComponent(entityId)}`),
 
   // 搜索知识
-  searchKnowledge: (query: string, limit: number = 10, source: string = 'all') => {
+  searchKnowledge: (query: string, limit: number = 10, source: string = 'all', plugin?: string) => {
     const params = new URLSearchParams();
     params.set('query', query);
     params.set('limit', String(limit));
     params.set('source', source);
+    if (plugin) params.set('plugin', plugin);
     return api.get<AIKnowledgeSearchResponse>(`/api/ai/knowledge/search?${params.toString()}`);
   },
 
@@ -2781,6 +2785,8 @@ export interface AIImageUpdateRequest {
 }
 
 export const aiImageApi = {
+  getPlugins: () => api.get<string[]>('/api/ai/images/plugins'),
+
   // 上传图片
   uploadImage: async (file: File) => {
     const formData = new FormData();
@@ -2806,12 +2812,13 @@ export const aiImageApi = {
   },
 
   // 获取图片列表（分页）
-  getImageList: (params: { offset?: number; limit?: number; plugin?: string; page?: number } = {}) => {
+  getImageList: (params: { offset?: number; limit?: number; plugin?: string; page?: number; source?: string } = {}) => {
     const query = new URLSearchParams();
     if (params.page !== undefined) query.set('page', String(params.page));
     if (params.offset !== undefined) query.set('offset', String(params.offset));
     if (params.limit !== undefined) query.set('limit', String(params.limit));
     if (params.plugin) query.set('plugin', params.plugin);
+    if (params.source) query.set('source', params.source);
     return api.get<AIImageListResponse>(`/api/ai/images/list?${query.toString()}`);
   },
 
@@ -2851,11 +2858,12 @@ export const aiImageApi = {
     api.delete<{ id: string }>(`/api/ai/images/${encodeURIComponent(entityId)}`),
 
   // 搜索图片
-  searchImages: (query: string, limit: number = 10, plugin?: string) => {
+  searchImages: (query: string, limit: number = 10, plugin?: string, source?: string) => {
     const params = new URLSearchParams();
     params.set('query', query);
     params.set('limit', String(limit));
     if (plugin) params.set('plugin', plugin);
+    if (source) params.set('source', source);
     return api.get<AIImageSearchResponse>(`/api/ai/images/search?${params.toString()}`);
   },
 

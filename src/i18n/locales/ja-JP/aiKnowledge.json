@@ -21,6 +21,8 @@
   "deleteImageConfirm": "本に削除画像知识「{id}」か?この操作できません取り消し。",
   "sourceManual": "手動追加",
   "sourcePlugin": "プラグイン知识",
+  "allPlugins": "すべてのプラグイン",
+  "pluginFilterLabel": "{name}",
   "typeText": "テキスト知识",
   "typeImage": "画像知识",
   "preview": "プレビュー",

@@ -873,7 +873,7 @@ export default function PluginsPage() {
         </div>
       }
       toolbar={
-        /* 插件选择：随标题常驻 */
+        /* 插件选择：随标题常驻。移动端收成下拉，避免一长串插件名撑破边距 */
         <TabButtonGroup
           options={pluginList.map((plugin) => ({
             value: plugin.id,
@@ -884,6 +884,7 @@ export default function PluginsPage() {
           }))}
           value={selectedPluginId}
           onValueChange={setSelectedPluginId}
+          collapseOnMobile
         />
       }
     >
@@ -1437,6 +1438,7 @@ export default function PluginsPage() {
                       }))}
                       value={selectedConfigName || ''}
                       onValueChange={(val) => val && setSelectedConfigName(val)}
+                      collapseOnMobile
                     />
                   </div>
                 )}

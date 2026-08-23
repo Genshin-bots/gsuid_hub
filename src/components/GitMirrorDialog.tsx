@@ -51,8 +51,8 @@ import {
   gitMirrorApi,
   GitMirrorInfo,
   GitMirrorOption,
-  GitPluginInfo,
 } from '@/lib/api';
+import { PluginIcon } from '@/components/ui/plugin-icon';
 
 // Radix UI Select 不允许空字符串作为 value，使用此常量作为默认值的占位符
 const DEFAULT_MIRROR_VALUE = '__github_default__';
@@ -133,6 +133,31 @@ function getMirrorTypeLabel(type: string, t: (key: string) => string) {
     default:
       return t('gitMirror.mirrorTypeDefault');
   }
+}
+
+function PluginNameWithIcon({
+  name,
+  isCore,
+  coreLabel,
+  className,
+}: {
+  name: string;
+  isCore: boolean;
+  coreLabel: string;
+  className?: string;
+}) {
+  return (
+    <div className={cn('flex items-center gap-2 min-w-0', className)}>
+      <PluginIcon pluginName={name} className="w-4 h-4" />
+      {isCore ? (
+        <Badge className="text-xs bg-primary/10 text-primary border-primary/20 shrink-0">
+          {coreLabel}
+        </Badge>
+      ) : (
+        <span className="truncate">{name}</span>
+      )}
+    </div>
+  );
 }
 
 /** 获取镜像源选项的图标 */
@@ -352,7 +377,7 @@ export default function GitMirrorDialog({ open, onOpenChange }: GitMirrorDialogP
                         <Table>
                           <TableHeader className="sticky top-0 bg-background z-10">
                             <TableRow>
-                              <TableHead className="w-[120px]">{t('gitMirror.pluginName')}</TableHead>
+                              <TableHead className="w-[160px]">{t('gitMirror.pluginName')}</TableHead>
                               <TableHead>{t('gitMirror.remoteUrl')}</TableHead>
                               <TableHead className="w-[90px]">{t('gitMirror.mirrorStatus')}</TableHead>
                               <TableHead className="w-[90px] text-right">{t('gitMirror.actions')}</TableHead>
@@ -366,11 +391,11 @@ export default function GitMirrorDialog({ open, onOpenChange }: GitMirrorDialogP
                               return (
                                 <TableRow key={plugin.name} className={!plugin.is_git_repo ? 'opacity-50' : ''}>
                                   <TableCell className="font-medium">
-                                    {isCore ? (
-                                      <Badge className="text-xs bg-primary/10 text-primary border-primary/20">{t('gitMirror.core')}</Badge>
-                                    ) : (
-                                      <span className="truncate">{plugin.name}</span>
-                                    )}
+                                    <PluginNameWithIcon
+                                      name={plugin.name}
+                                      isCore={isCore}
+                                      coreLabel={t('gitMirror.core')}
+                                    />
                                   </TableCell>
                                   <TableCell>
                                     {plugin.is_git_repo && plugin.remote_url ? (
@@ -419,11 +444,12 @@ export default function GitMirrorDialog({ open, onOpenChange }: GitMirrorDialogP
                               {/* 第一行：名称 + 镜像状态 + 操作按钮 */}
                               <div className="flex items-center justify-between gap-2">
                                 <div className="flex items-center gap-2 min-w-0 flex-1">
-                                  {isCore ? (
-                                    <Badge className="text-xs bg-primary/10 text-primary border-primary/20 shrink-0">{t('gitMirror.core')}</Badge>
-                                  ) : (
-                                    <span className="font-medium text-sm truncate">{plugin.name}</span>
-                                  )}
+                                  <PluginNameWithIcon
+                                    name={plugin.name}
+                                    isCore={isCore}
+                                    coreLabel={t('gitMirror.core')}
+                                    className="font-medium text-sm"
+                                  />
                                   <Badge variant="outline" className={`text-xs shrink-0 ${badge.className}`}>
                                     <span className="flex items-center gap-1">{badge.icon}{badge.label}</span>
                                   </Badge>
@@ -496,8 +522,13 @@ export default function GitMirrorDialog({ open, onOpenChange }: GitMirrorDialogP
               <GitBranch className="w-5 h-5" />
               {t('gitMirror.switchMirror')}
             </DialogTitle>
-            <DialogDescription>
-              {switchDialogPlugin}
+            <DialogDescription asChild>
+              <div className="flex items-center gap-2">
+                {switchDialogPlugin ? (
+                  <PluginIcon pluginName={switchDialogPlugin} className="w-4 h-4" />
+                ) : null}
+                <span>{switchDialogPlugin}</span>
+              </div>
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">

@@ -10,7 +10,8 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { pluginStoreApi, StorePlugin, gitMirrorApi, GitPluginInfo, getApiErrorMessage } from '@/lib/api';
 import { Skeleton } from '@/components/ui/skeleton';
 import GitMirrorDialog, { getMirrorBadge } from '@/components/GitMirrorDialog';
-import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
+import { TabButtonGroup, tabToolbarControlClass, tabToolbarGroupWrapClass } from '@/components/ui/TabButtonGroup';
+import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogFooter, DialogTitle } from '@/components/ui/dialog';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
@@ -102,6 +103,22 @@ export default function PluginStorePage() {
   const isDeprecated = (plugin: StorePlugin) => {
     return plugin.type === 'danger' && plugin.content === t('pluginStore.deprecated');
   };
+
+  const headerActionsRef = useRef<HTMLDivElement>(null);
+  const [headerActionsWidth, setHeaderActionsWidth] = useState<number | null>(null);
+
+  useEffect(() => {
+    const el = headerActionsRef.current;
+    if (!el) return;
+    const update = () => {
+      const width = el.getBoundingClientRect().width;
+      if (width > 0) setHeaderActionsWidth(width);
+    };
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   // 使用 ref 避免重建 components 对象时造成不必要的重渲染，
   // 同时让 img 组件可以访问当前打开的插件与镜像信息
@@ -504,6 +521,7 @@ export default function PluginStorePage() {
 
   return (
     <PinnedPage
+      className="gap-4"
       header={
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
           <div>
@@ -513,7 +531,7 @@ export default function PluginStorePage() {
             </h1>
             <p className="text-muted-foreground mt-1">{t('pluginStore.description')}</p>
           </div>
-          <div className="flex items-center gap-3">
+          <div ref={headerActionsRef} className="flex w-fit max-w-full flex-wrap items-center gap-3">
             <Button
               variant="outline"
               onClick={() => setGitMirrorOpen(true)}
@@ -543,31 +561,39 @@ export default function PluginStorePage() {
         </div>
       }
       toolbar={
-        /* 搜索 + 分类切换：两者原本是 space-y-6 的兄弟，用 space-y-6 保持同样行距 */
-        <div className="space-y-6">
-          <Card className="glass-card">
-            <CardContent className="p-4">
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder={t('pluginStore.searchPlugin')}
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          <TabButtonGroup
-            options={tabOptions}
-            value={activeTab}
-            onValueChange={setActiveTab}
-          />
+        /* 分类 Tab 与搜索始终同一行。移动端 Tab 收成下拉，搜索吃剩余宽度；桌面搜索跟上头三个按钮同宽 */
+        <div className="flex min-w-0 items-center gap-3">
+          <div className={cn(tabToolbarGroupWrapClass, 'min-w-0 shrink-0 max-w-[55%] md:max-w-none')}>
+            <TabButtonGroup
+              options={tabOptions}
+              value={activeTab}
+              onValueChange={setActiveTab}
+              className="shrink-0"
+              collapseOnMobile
+            />
+          </div>
+          <div
+            className={cn(
+              'relative min-w-0 flex-1',
+              headerActionsWidth != null && 'sm:flex-none sm:w-[var(--ps-actions-w)]',
+            )}
+            style={
+              headerActionsWidth != null
+                ? ({ '--ps-actions-w': `${Math.round(headerActionsWidth)}px` } as React.CSSProperties)
+                : undefined
+            }
+          >
+            <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder={t('pluginStore.searchPlugin')}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className={cn(tabToolbarControlClass, 'w-full pl-10')}
+            />
+          </div>
         </div>
       }
     >
-      <div className="mt-6">
           {isLoading ? (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
@@ -814,7 +840,6 @@ export default function PluginStorePage() {
               })}
             </div>
           )}
-        </div>
 
       <GitMirrorDialog
         open={gitMirrorOpen}

@@ -21,6 +21,8 @@
   "deleteImageConfirm": "确定要删除图片知识「{id}」吗？此操作无法撤销。",
   "sourceManual": "手动添加",
   "sourcePlugin": "插件知识",
+  "allPlugins": "全部插件",
+  "pluginFilterLabel": "{name}",
   "typeText": "文本知识",
   "typeImage": "图片知识",
   "preview": "预览",

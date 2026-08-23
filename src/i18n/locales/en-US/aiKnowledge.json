@@ -21,6 +21,8 @@
   "deleteImageConfirm": "Are you sure you want to delete the image knowledge \"{id}\"? This action cannot be undone.",
   "sourceManual": "Manual",
   "sourcePlugin": "Plugin Knowledge",
+  "allPlugins": "All plugins",
+  "pluginFilterLabel": "{name}",
   "typeText": "Text Knowledge",
   "typeImage": "Image Knowledge",
   "preview": "Preview",

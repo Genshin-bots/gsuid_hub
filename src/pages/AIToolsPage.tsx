@@ -7,7 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
+import { TabButtonGroup, tabToolbarControlClass, tabToolbarGroupWrapClass } from '@/components/ui/TabButtonGroup';
 import {
   Select,
   SelectContent,
@@ -392,89 +392,98 @@ export default function AIToolsPage() {
         </div>
       }
       toolbar={
-        /* 主 Tab 常驻；工具列表的多维筛选压成单行 Select + 搜索，避免 4 组 ButtonGroup 占满视口 */
-        <div className="space-y-3">
-          <TabButtonGroup
-            options={[
-              { value: 'tools', label: t('aiTools.tabs.tools'), icon: <Wrench className="w-4 h-4" /> },
-              { value: 'assemble', label: t('aiTools.tabs.assemble'), icon: <Boxes className="w-4 h-4" /> },
-              { value: 'entity', label: t('aiTools.tabs.entityIndex'), icon: <Network className="w-4 h-4" /> },
-            ]}
-            value={pageTab}
-            onValueChange={(v) => setPageTab(v as 'tools' | 'assemble' | 'entity')}
-          />
+        /* 主 Tab 左、筛选右：桌面同一行。筛选控件全部 min-w-0 + flex-1，窄屏均分宽度并截断，不撑出边距 */
+        <div className="flex min-w-0 flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className={cn(tabToolbarGroupWrapClass, 'max-w-full')}>
+            <TabButtonGroup
+              options={[
+                { value: 'tools', label: t('aiTools.tabs.tools'), icon: <Wrench className="w-4 h-4" /> },
+                { value: 'assemble', label: t('aiTools.tabs.assemble'), icon: <Boxes className="w-4 h-4" /> },
+                { value: 'entity', label: t('aiTools.tabs.entityIndex'), icon: <Network className="w-4 h-4" /> },
+              ]}
+              value={pageTab}
+              onValueChange={(v) => setPageTab(v as 'tools' | 'assemble' | 'entity')}
+              className="shrink-0"
+            />
+          </div>
 
           {pageTab === 'tools' && !isLoading && categories.length > 0 && (
-            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-              <div className="relative w-full sm:flex-1 sm:min-w-[200px] sm:max-w-sm">
+            <div className="flex min-w-0 w-full items-center gap-1.5 md:flex-1 md:justify-end">
+              <div className="relative min-w-0 flex-[1.3]">
                 <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   type="text"
                   placeholder={t('aiTools.searchPlaceholder')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="h-9 w-full pl-9"
+                  className={cn(tabToolbarControlClass, 'min-w-0 w-full pl-9')}
                 />
               </div>
 
-              <Select
-                value={diagnosticFilter}
-                onValueChange={(v) => setDiagnosticFilter(v as typeof diagnosticFilter)}
-              >
-                <SelectTrigger className="h-9 w-full sm:w-[170px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{t('aiTools.diagnostics.filterAll')}</SelectItem>
-                  <SelectItem value="issues">
-                    {t('aiTools.diagnostics.filterIssues')} (
-                    {diagnosticCounts.emptyDescription + diagnosticCounts.meta})
-                  </SelectItem>
-                  <SelectItem value="empty_description">
-                    {t('aiTools.diagnostics.filterEmpty')} ({diagnosticCounts.emptyDescription})
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="min-w-0 flex-1">
+                <Select
+                  value={diagnosticFilter}
+                  onValueChange={(v) => setDiagnosticFilter(v as typeof diagnosticFilter)}
+                >
+                  <SelectTrigger className={cn(tabToolbarControlClass, 'w-full min-w-0 px-2 [&>span]:min-w-0')}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{t('aiTools.diagnostics.filterAll')}</SelectItem>
+                    <SelectItem value="issues">
+                      {t('aiTools.diagnostics.filterIssues')} (
+                      {diagnosticCounts.emptyDescription + diagnosticCounts.meta})
+                    </SelectItem>
+                    <SelectItem value="empty_description">
+                      {t('aiTools.diagnostics.filterEmpty')} ({diagnosticCounts.emptyDescription})
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger className="h-9 w-full sm:w-[180px]">
-                  <SelectValue placeholder={t('aiTools.selectCategory')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {categoryList.map((category) => {
-                    const count = categoryCounts[category] || 0;
-                    const disabled =
-                      category !== 'all' && category !== selectedCategory && count === 0;
-                    return (
-                      <SelectItem key={category} value={category} disabled={disabled}>
-                        {category === 'all'
-                          ? `${t('aiTools.allCategories')} (${categoryCounts.all || 0})`
-                          : `${category} (${count})`}
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
+              <div className="min-w-0 flex-1">
+                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                  <SelectTrigger className={cn(tabToolbarControlClass, 'w-full min-w-0 px-2 [&>span]:min-w-0')}>
+                    <SelectValue placeholder={t('aiTools.selectCategory')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categoryList.map((category) => {
+                      const count = categoryCounts[category] || 0;
+                      const disabled =
+                        category !== 'all' && category !== selectedCategory && count === 0;
+                      return (
+                        <SelectItem key={category} value={category} disabled={disabled}>
+                          {category === 'all'
+                            ? `${t('aiTools.allCategories')} (${categoryCounts.all || 0})`
+                            : `${category} (${count})`}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
 
-              <Select value={selectedPlugin} onValueChange={setSelectedPlugin}>
-                <SelectTrigger className="h-9 w-full sm:w-[180px]">
-                  <SelectValue placeholder={t('aiTools.selectPlugin')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {pluginList.map((plugin) => {
-                    const count = pluginCounts[plugin] || 0;
-                    const disabled =
-                      plugin !== 'all' && plugin !== selectedPlugin && count === 0;
-                    return (
-                      <SelectItem key={plugin} value={plugin} disabled={disabled}>
-                        {plugin === 'all'
-                          ? `${t('aiTools.allPlugins')} (${pluginCounts.all || 0})`
-                          : `${plugin} (${count})`}
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
+              <div className="min-w-0 flex-1">
+                <Select value={selectedPlugin} onValueChange={setSelectedPlugin}>
+                  <SelectTrigger className={cn(tabToolbarControlClass, 'w-full min-w-0 px-2 [&>span]:min-w-0')}>
+                    <SelectValue placeholder={t('aiTools.selectPlugin')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {pluginList.map((plugin) => {
+                      const count = pluginCounts[plugin] || 0;
+                      const disabled =
+                        plugin !== 'all' && plugin !== selectedPlugin && count === 0;
+                      return (
+                        <SelectItem key={plugin} value={plugin} disabled={disabled}>
+                          {plugin === 'all'
+                            ? `${t('aiTools.allPlugins')} (${pluginCounts.all || 0})`
+                            : `${plugin} (${count})`}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           )}
         </div>
@@ -495,9 +504,9 @@ export default function AIToolsPage() {
 
       {/* 诊断徽章 + 工具计数：数据展示，随列表滚动，不占固定 toolbar 高度 */}
       {pageTab === 'tools' && !isLoading && !error && (
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-center justify-between gap-2">
           {diagnosticCounts.total > 0 ? (
-            <div className="flex flex-wrap items-center gap-2 text-xs">
+            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 text-xs">
               <Badge variant="secondary">
                 {t('aiTools.diagnostics.ok')}: {diagnosticCounts.ok}
               </Badge>
@@ -515,7 +524,7 @@ export default function AIToolsPage() {
           ) : (
             <span />
           )}
-          <p className="text-sm text-muted-foreground shrink-0">
+          <p className="shrink-0 text-sm text-muted-foreground whitespace-nowrap">
             {t('aiTools.toolCount', { count: filteredTools.length, total: totalCount })}
           </p>
         </div>
