@@ -72,11 +72,7 @@ export const tabToolbarIconButtonClass = 'h-11 w-11';
 export const tabToolbarGroupWrapClass =
   'flex shrink-0 items-center [&_.shadow-safe]:!my-0 [&_.shadow-safe]:!py-0';
 
-function tabSegmentClassName(
-  isActive: boolean,
-  isDisabled: boolean,
-  buttonClassName?: string,
-) {
+function tabSegmentClassName(isActive: boolean, isDisabled: boolean, buttonClassName?: string) {
   return cn(
     hoverIconGroupClass,
     'relative text-sm font-medium transition-all duration-200 flex items-center gap-2 whitespace-nowrap',
@@ -86,6 +82,20 @@ function tabSegmentClassName(
     isDisabled &&
       'opacity-40 cursor-not-allowed pointer-events-none hover:text-muted-foreground hover:bg-transparent',
     buttonClassName,
+  );
+}
+
+/** twMerge 不能用无前缀 `p-0` 覆盖 `sm:px-*`；拆分外层不能吃到调用方的 padding。 */
+const PADDING_CLASS = /^(?:[\w-]+:)*!?p(?:[xyltrbse])?-/;
+
+function omitPaddingClasses(className?: string) {
+  if (!className) return className;
+  return (
+    className
+      .split(/\s+/)
+      .filter(Boolean)
+      .filter((token) => !PADDING_CLASS.test(token))
+      .join(' ') || undefined
   );
 }
 
@@ -105,12 +115,16 @@ export function TabButtonGroup({
   const current = options.find((option) => option.value === value) ?? options[0];
 
   const expanded = (
-    <div className={cn(fullWidth ? 'flex w-full' : 'inline-flex', noShrink && 'shrink-0', 'max-w-full shadow-safe', collapseOnMobile && 'hidden md:inline-flex')}>
+    <div
+      className={cn(
+        fullWidth ? 'flex w-full' : 'inline-flex',
+        noShrink && 'shrink-0',
+        'max-w-full shadow-safe',
+        collapseOnMobile && 'hidden md:inline-flex',
+      )}
+    >
       <div
-        className={cn(
-          'inline-flex min-w-0 flex-wrap gap-1 rounded-lg p-1 glass-card',
-          className,
-        )}
+        className={cn('inline-flex min-w-0 flex-wrap gap-1 rounded-lg p-1 glass-card', className)}
       >
         {options.map((option) => {
           const isActive = value === option.value;
@@ -119,18 +133,16 @@ export function TabButtonGroup({
 
           if (dropdown && dropdown.items.length > 0) {
             const allValue = dropdown.allValue ?? dropdown.items[0]?.value;
-            const dividerClass = isActive
-              ? 'bg-primary-foreground/25'
-              : 'bg-border/70';
+            const dividerClass = isActive ? 'bg-primary-foreground/25' : 'bg-border/70';
 
             return (
               <div
                 key={option.value}
                 className={cn(
-                  'inline-flex min-w-0 items-stretch overflow-hidden rounded-md',
-                  tabSegmentClassName(isActive, isDisabled, buttonClassName),
-                  // 外层负责底色，内层按钮去掉独立圆角/底色
-                  'gap-0 p-0',
+                  tabSegmentClassName(isActive, isDisabled, omitPaddingClasses(buttonClassName)),
+                  // 外层只负责底色/对齐；padding 由内层主区 / ▾ 自己带。
+                  // 必须写在 buttonClassName 之后：无前缀 p-0 盖不住 sm:px-*。
+                  'inline-flex min-w-0 items-stretch overflow-hidden rounded-md gap-0 p-0',
                 )}
               >
                 {/* 主按钮：选中该 Tab + 二级筛选回到「全部」 */}
@@ -158,7 +170,10 @@ export function TabButtonGroup({
                   <span className="truncate">{option.label}</span>
                 </button>
 
-                <span className={cn('my-1.5 w-px shrink-0 self-stretch', dividerClass)} aria-hidden />
+                <span
+                  className={cn('my-1.5 w-px shrink-0 self-stretch', dividerClass)}
+                  aria-hidden
+                />
 
                 {/* 仅箭头触发下拉 */}
                 <DropdownMenu
@@ -186,7 +201,10 @@ export function TabButtonGroup({
                   </DropdownMenuTrigger>
                   <DropdownMenuContent
                     align={dropdown.align ?? 'end'}
-                    className={cn('min-w-[12rem] max-h-72 overflow-y-auto', dropdown.contentClassName)}
+                    className={cn(
+                      'min-w-[12rem] max-h-72 overflow-y-auto',
+                      dropdown.contentClassName,
+                    )}
                   >
                     {dropdown.items.map((item) => {
                       const selected = dropdown.value === item.value;

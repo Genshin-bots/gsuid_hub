@@ -928,8 +928,40 @@ const DEMO_PERSONAS = [
     is_default: true,
   },
 ];
+type DemoPersona = (typeof DEMO_PERSONAS)[number];
+const extraCopiedPersonas: DemoPersona[] = [];
+
+function allDemoPersonas(): DemoPersona[] {
+  return [...DEMO_PERSONAS, ...extraCopiedPersonas];
+}
+
+export const applyPersonaCopy = (name: string) => {
+  const all = allDemoPersonas();
+  const found = all.find((p) => p.name === name);
+  if (!found) {
+    return { status: 1, msg: `角色 '${name}' 不存在`, data: null };
+  }
+  const occupied = new Set(all.map((p) => p.name));
+  let dest = `${name}2`;
+  let n = 2;
+  while (occupied.has(dest)) {
+    n += 1;
+    dest = `${name}${n}`;
+  }
+  extraCopiedPersonas.push({
+    ...found,
+    name: dest,
+    enabled: false,
+    scope: 'disabled',
+    is_default: false,
+    target_groups: [],
+    bound_groups_count: 0,
+  });
+  return { name: dest, source: name };
+};
+
 export const generatePersonaList = () =>
-  DEMO_PERSONAS.map((p) => ({
+  allDemoPersonas().map((p) => ({
     name: p.name,
     description: p.description,
     enabled: p.enabled,
@@ -942,7 +974,7 @@ export const generatePersonaList = () =>
     has_audio: false,
   }));
 export const generatePersonaDetail = (name: string) => {
-  const found = DEMO_PERSONAS.find((p) => p.name === name) ?? DEMO_PERSONAS[0];
+  const found = allDemoPersonas().find((p) => p.name === name) ?? DEMO_PERSONAS[0];
   return {
     ...found,
     content_md: `# ${found.name}\n\n${found.description}\n\n## 行为准则\n- 礼貌回应，称呼对方为「旅行者」\n- 不讨论实时新闻\n- 当涉及战斗话题时，给出角色向建议\n`,
@@ -960,7 +992,7 @@ export const generatePersonaDetail = (name: string) => {
   };
 };
 export const generatePersonaConfigAll = () =>
-  DEMO_PERSONAS.map((p) => ({
+  allDemoPersonas().map((p) => ({
     name: p.name,
     enable_persona: p.enabled,
     ai_mode: p.ai_mode,
@@ -973,6 +1005,88 @@ export const generateGlobalPersonaConfig = () => {
     enabled_personas: enabled.map((p) => p.name),
     default_persona: enabled[0]?.name ?? '早柚',
   };
+};
+
+type DemoPersonaSettingItem = { title: string; desc: string; value: string; type: string; default: string };
+
+const DEMO_PERSONA_SETTING_DEFAULTS: Record<string, Omit<DemoPersonaSettingItem, 'default'>> = {
+  _AddressDivider: { type: 'gsdivider', title: '称呼', desc: '人格对特定对象的口头称呼', value: '称呼' },
+  master_title: {
+    type: 'gsstr',
+    title: '对主人的称呼',
+    desc: '对配置里 masters 用户的口头称呼。',
+    value: '主人',
+  },
+  _ErrorDivider: {
+    type: 'gsdivider',
+    title: '失败与拦截',
+    desc: '失败或拦截时直接发给用户的台词。',
+    value: '失败与拦截',
+  },
+  error_generic: {
+    type: 'gsstr',
+    title: '处理失败',
+    desc: 'Agent 执行失败或没有有效结果时发给用户的短句。',
+    value: '这条消息我处理失败了，稍后再试一次吧',
+  },
+  error_timeout: {
+    type: 'gsstr',
+    title: '处理超时',
+    desc: '请求超时或网络过慢时发给用户的短句。',
+    value: '刚才网络太慢处理超时了，稍后再试试吧',
+  },
+  error_content_policy: {
+    type: 'gsstr',
+    title: '内容安全拦截',
+    desc: '命中模型内容安全策略时发给用户的短句。',
+    value: '这条消息触发了内容安全策略，我没法处理',
+  },
+  fallback_ooc: {
+    type: 'gsstr',
+    title: '出戏拦截兜底',
+    desc: '回复命中出戏红线且无法重说时发给用户的中性短句。',
+    value: '这个不太想说呢。',
+  },
+  fallback_machine: {
+    type: 'gsstr',
+    title: '技术堆栈熔断',
+    desc: '回复像技术堆栈或状态 JSON 时发给用户的短句。',
+    value: '额…出错了，稍后再试',
+  },
+};
+
+const demoPersonaSettingsStore: Record<string, Record<string, DemoPersonaSettingItem>> = {};
+
+function clonePersonaSettingsDefaults(): Record<string, DemoPersonaSettingItem> {
+  const out: Record<string, DemoPersonaSettingItem> = {};
+  for (const [key, item] of Object.entries(DEMO_PERSONA_SETTING_DEFAULTS)) {
+    out[key] = { ...item, default: item.value };
+  }
+  return out;
+}
+
+export const generatePersonaSettings = (name: string) => {
+  if (!demoPersonaSettingsStore[name]) {
+    demoPersonaSettingsStore[name] = clonePersonaSettingsDefaults();
+  }
+  return demoPersonaSettingsStore[name];
+};
+
+export const applyPersonaSettings = (name: string, body: unknown) => {
+  const current = generatePersonaSettings(name);
+  if (body && typeof body === 'object' && !Array.isArray(body)) {
+    for (const [key, value] of Object.entries(body as Record<string, unknown>)) {
+      if (!(key in current) || current[key].type === 'gsdivider') continue;
+      const raw =
+        value && typeof value === 'object' && 'value' in value
+          ? (value as { value: unknown }).value
+          : value;
+      if (typeof raw === 'string') {
+        current[key] = { ...current[key], value: raw };
+      }
+    }
+  }
+  return current;
 };
 
 // ---- MCP（MCPConfigPage） ----

@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useIsMobile } from '@/hooks/use-mobile';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
@@ -143,7 +142,6 @@ export default function AIKnowledgePage() {
   const { style } = useTheme();
   const { t } = useLanguage();
   const isGlass = style === 'glassmorphism';
-  const isMobile = useIsMobile();
 
   // 知识类型筛选（文本/图片）
   const [knowledgeType, setKnowledgeType] = useState<KnowledgeType>('text');
@@ -848,9 +846,9 @@ export default function AIKnowledgePage() {
     : total;
 
   const knowledgeTypeOptions = useMemo(() => [
-    { value: 'text', label: t('aiKnowledge.typeText'), icon: isMobile ? undefined : <FileText className="w-4 h-4" /> },
-    { value: 'image', label: t('aiKnowledge.typeImage'), icon: isMobile ? undefined : <Image className="w-4 h-4" /> },
-  ], [isMobile, t]);
+    { value: 'text', label: t('aiKnowledge.typeText'), icon: <FileText className="w-4 h-4" /> },
+    { value: 'image', label: t('aiKnowledge.typeImage'), icon: <Image className="w-4 h-4" /> },
+  ], [t]);
 
   const sourceOptions = useMemo(() => {
     const isAllPlugins = selectedPluginFilter === ALL_PLUGINS;
@@ -860,11 +858,9 @@ export default function AIKnowledgePage() {
         label: isAllPlugins
           ? t('aiKnowledge.sourcePlugin')
           : t('aiKnowledge.pluginFilterLabel', { name: selectedPluginFilter }),
-        icon: isMobile
-          ? undefined
-          : isAllPlugins
-            ? <Sparkles className="w-4 h-4" />
-            : <PluginIcon pluginName={selectedPluginFilter} className="h-4 w-4" />,
+        icon: isAllPlugins
+          ? <Sparkles className="w-4 h-4" />
+          : <PluginIcon pluginName={selectedPluginFilter} className="h-4 w-4" />,
         dropdown: {
           value: selectedPluginFilter,
           onValueChange: (value: string) => {
@@ -887,9 +883,9 @@ export default function AIKnowledgePage() {
           ],
         },
       },
-      { value: 'manual', label: t('aiKnowledge.sourceManual'), icon: isMobile ? undefined : <Pencil className="w-4 h-4" /> },
+      { value: 'manual', label: t('aiKnowledge.sourceManual'), icon: <Pencil className="w-4 h-4" /> },
     ];
-  }, [isMobile, pluginNames, selectedPluginFilter, t]);
+  }, [pluginNames, selectedPluginFilter, t]);
 
   return (
     <PinnedPage
@@ -904,9 +900,9 @@ export default function AIKnowledgePage() {
         </div>
       }
       toolbar={
-        /* 移动端两行：两个 Tab 一组、搜索+操作一组；md+ 左右同一行对齐。右栏勿用 w-full 否则会把整行撑换行 */
+        /* 两组 Tab：够宽同一行，不够第二组换行（不横滑，避免「手动添加」被裁掉）。右栏勿用 w-full */
         <div className="flex min-w-0 flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div className="flex min-w-0 max-w-full items-center gap-1.5">
+          <div className="flex min-w-0 max-w-full flex-wrap items-center gap-1.5">
             <div className={tabToolbarGroupWrapClass}>
               <TabButtonGroup
                 options={knowledgeTypeOptions}
@@ -918,7 +914,6 @@ export default function AIKnowledgePage() {
                   setSearchQuery('');
                 }}
                 className="shrink-0"
-                buttonClassName="px-2 sm:px-4"
               />
             </div>
             <div className={tabToolbarGroupWrapClass}>
@@ -931,7 +926,6 @@ export default function AIKnowledgePage() {
                   if (value !== 'plugin') setSelectedPluginFilter(ALL_PLUGINS);
                 }}
                 className="shrink-0"
-                buttonClassName="px-2 sm:px-4"
               />
             </div>
           </div>

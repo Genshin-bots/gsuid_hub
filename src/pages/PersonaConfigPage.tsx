@@ -17,7 +17,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { TagsInput } from '@/components/config/TagsInput';
+import {
+  ConfigGrid,
+  TagsInput,
+  pluginConfigItemToFieldDef,
+} from '@/components/config';
+import type { ConfigFormData, ConfigValue } from '@/components/config';
 import { MultiSelectChipGroup } from '@/components/ui/MultiSelectChipGroup';
 import {
   Dialog,
@@ -50,6 +55,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Loader2,
   Plus,
+  Copy,
   Trash2,
   Sparkles,
   User,
@@ -91,6 +97,7 @@ const SUPPORTED_AUDIO_MIME_TYPES = [
   'audio/wave',   // wav (alternative)
 ];
 import {
+  getApiErrorMessage,
   personaApi,
   frameworkConfigApi,
   type PersonaListItem,
@@ -98,6 +105,7 @@ import {
   type PersonaConfig,
   type PersonaScope,
   type AIMode,
+  type PluginConfigItem,
 } from '@/lib/api';
 import { toast } from 'sonner';
 import { PinnedPage } from '@/components/layout/PinnedPage';
@@ -144,6 +152,22 @@ function findConflictingPersonas(
 // 工具函数
 // ============================================================================
 // 截取 markdown 文本的预览内容
+function settingsToFormData(config: Record<string, PluginConfigItem>): ConfigFormData {
+  const out: ConfigFormData = {};
+  for (const [key, item] of Object.entries(config)) {
+    out[key] = pluginConfigItemToFieldDef(key, item);
+  }
+  return out;
+}
+function settingsToPayload(config: Record<string, PluginConfigItem>): Record<string, unknown> {
+  const payload: Record<string, unknown> = {};
+  for (const [key, item] of Object.entries(config)) {
+    const rawType = (item.type || '').toLowerCase();
+    if (rawType === 'gsdivider') continue;
+    payload[key] = item.value;
+  }
+  return payload;
+}
 function getMarkdownPreview(content: string, maxLength: number = 100): string {
   if (!content) return '';
   const cleaned = content
@@ -217,6 +241,7 @@ export default function PersonaConfigPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [isCopying, setIsCopying] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isSavingConfig, setIsSavingConfig] = useState(false);
   // AI 创建对话框状态
@@ -237,6 +262,9 @@ export default function PersonaConfigPage() {
   const [editingKeywords, setEditingKeywords] = useState<string[]>([]);
   const [editingToolPacks, setEditingToolPacks] = useState<string[]>(['dynamic']);
   const [editingToolNames, setEditingToolNames] = useState<string[]>([]);
+  const [editingSettings, setEditingSettings] = useState<Record<string, PluginConfigItem>>({});
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
+  const [settingsLoading, setSettingsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('markdown');
   // 音频播放状态
   const [playingAudio, setPlayingAudio] = useState<string | null>(null);
@@ -248,6 +276,8 @@ export default function PersonaConfigPage() {
   // 二次确认对话框状态
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [copyConfirmOpen, setCopyConfirmOpen] = useState(false);
+  const [copyTarget, setCopyTarget] = useState<string | null>(null);
   const [saveConfirmOpen, setSaveConfirmOpen] = useState(false);
   const [scopeChangeConfirmOpen, setScopeChangeConfirmOpen] = useState(false);
   const [pendingScopeChange, setPendingScopeChange] = useState<{
@@ -530,6 +560,29 @@ export default function PersonaConfigPage() {
       setIsSavingConfig(false);
     }
   };
+  const loadPersonaSettings = useCallback(async (personaName: string) => {
+    setSettingsLoading(true);
+    setSettingsLoaded(false);
+    try {
+      const data = await personaApi.getPersonaSettings(personaName);
+      setEditingSettings(data ?? {});
+      setSettingsLoaded(true);
+    } catch (error) {
+      console.error('Failed to load persona settings:', error);
+      toast.error(t('personaConfig.personaSettingsLoadFailed'));
+      setEditingSettings({});
+      setSettingsLoaded(false);
+    } finally {
+      setSettingsLoading(false);
+    }
+  }, [t]);
+  const handleSettingsChange = useCallback((key: string, value: ConfigValue) => {
+    setEditingSettings((prev) => {
+      const current = prev[key];
+      if (!current) return prev;
+      return { ...prev, [key]: { ...current, value } };
+    });
+  }, []);
   // 打开编辑对话框（点击卡片）
   const handleCardClick = (persona: PersonaCardData) => {
     setEditingPersona(persona);
@@ -541,8 +594,11 @@ export default function PersonaConfigPage() {
     setEditingKeywords(persona.config?.keywords || []);
     setEditingToolPacks(persona.config?.tool_packs || ['dynamic']);
     setEditingToolNames(persona.config?.tool_names || []);
+    setEditingSettings({});
+    setSettingsLoaded(false);
     setActiveTab('markdown');
     setEditDialogOpen(true);
+    void loadPersonaSettings(persona.name);
   };
   // 点击头像上传 - 直接触发文件选择
   const handleAvatarClick = (e: React.MouseEvent, persona: PersonaCardData) => {
@@ -710,6 +766,12 @@ export default function PersonaConfigPage() {
       if (editContent !== editingPersona.content) {
         await personaApi.updatePersonaContent(editingPersona.name, editContent);
       }
+      if (settingsLoaded) {
+        await personaApi.updatePersonaSettings(
+          editingPersona.name,
+          settingsToPayload(editingSettings),
+        );
+      }
       toast.success(t('personaConfig.saveSuccess'));
       setEditDialogOpen(false);
       setEditingPersona(null);
@@ -730,6 +792,32 @@ export default function PersonaConfigPage() {
     e.stopPropagation();
     setDeleteTarget(personaName);
     setDeleteConfirmOpen(true);
+  };
+  const handleCopyClick = (e: React.MouseEvent, personaName: string) => {
+    e.stopPropagation();
+    setCopyTarget(personaName);
+    setCopyConfirmOpen(true);
+  };
+  const handleConfirmCopy = async () => {
+    if (!copyTarget) return;
+    try {
+      setIsCopying(copyTarget);
+      const data = await personaApi.copyPersona(copyTarget);
+      const newName = data?.name ?? '';
+      toast.success(
+        newName
+          ? t('personaConfig.copySuccessNamed', { name: newName })
+          : t('personaConfig.copySuccess'),
+      );
+      setCopyConfirmOpen(false);
+      setCopyTarget(null);
+      await loadData();
+    } catch (error) {
+      console.error('Failed to copy persona:', error);
+      toast.error(getApiErrorMessage(error, t('personaConfig.copyFailed')));
+    } finally {
+      setIsCopying(null);
+    }
   };
   // 处理卡片上的群聊标签变化（直接保存）
   const handleGroupsChange = async (personaName: string, groups: string[]) => {
@@ -879,19 +967,36 @@ export default function PersonaConfigPage() {
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between gap-2">
                 <h3 className="font-semibold text-base truncate">{persona.name}</h3>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={(e) => handleDeleteClick(e, persona.name)}
-                  className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10 shrink-0"
-                  disabled={isDeleting === persona.name}
-                >
-                  {isDeleting === persona.name ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Trash2 className="h-4 w-4" />
-                  )}
-                </Button>
+                <div className="flex items-center shrink-0">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={(e) => handleCopyClick(e, persona.name)}
+                    className="h-7 w-7 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                    disabled={isCopying === persona.name || isDeleting === persona.name}
+                    title={t('personaConfig.copyPersona')}
+                  >
+                    {isCopying === persona.name ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={(e) => handleDeleteClick(e, persona.name)}
+                    className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                    disabled={isDeleting === persona.name || isCopying === persona.name}
+                    title={t('personaConfig.deleteConfirm')}
+                  >
+                    {isDeleting === persona.name ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
               </div>
               {/* Heartbeat 运行态 */}
               {hb && (
@@ -1341,7 +1446,7 @@ export default function PersonaConfigPage() {
             className="flex min-h-0 flex-1 flex-col"
           >
             <div className="shrink-0 px-6 pt-4">
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6">
               <TabsTrigger value="markdown" className="gap-2">
                 <FileText className="h-4 w-4" />
                 {t('personaConfig.personaMarkdown')}
@@ -1349,6 +1454,10 @@ export default function PersonaConfigPage() {
               <TabsTrigger value="config" className="gap-2">
                 <Settings className="h-4 w-4" />
                 {t('personaConfig.config')}
+              </TabsTrigger>
+              <TabsTrigger value="settings" className="gap-2">
+                <Sparkles className="h-4 w-4" />
+                {t('personaConfig.personaSettings')}
               </TabsTrigger>
               <TabsTrigger value="avatar" className="gap-2">
                 <ImageIcon className="h-4 w-4" />
@@ -1573,6 +1682,32 @@ export default function PersonaConfigPage() {
                   </p>
                 </div>
               </div>
+            </TabsContent>
+            <TabsContent
+              value="settings"
+              className="mt-0 hidden min-h-0 flex-1 overflow-y-auto data-[state=active]:block"
+            >
+              {settingsLoading ? (
+                <div className="flex items-center justify-center gap-2 py-12 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  {t('common.loading')}
+                </div>
+              ) : Object.keys(editingSettings).length === 0 ? (
+                <div className="text-sm text-muted-foreground p-4 rounded-lg border border-border/30 bg-muted/20">
+                  {t('personaConfig.personaSettingsLoadFailed')}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    {t('personaConfig.personaSettingsHint')}
+                  </p>
+                  <ConfigGrid
+                    config={settingsToFormData(editingSettings)}
+                    onChange={handleSettingsChange}
+                    columns={3}
+                  />
+                </div>
+              )}
             </TabsContent>
             {/* 头像 Tab */}
             <TabsContent
@@ -1893,6 +2028,30 @@ export default function PersonaConfigPage() {
             </AlertDialogCancel>
             <AlertDialogAction onClick={handleConfirmScopeChange}>
               {t('personaConfig.switchGlobal')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      {/* 复制二次确认 */}
+      <AlertDialog
+        open={copyConfirmOpen}
+        onOpenChange={setCopyConfirmOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {t('personaConfig.copyConfirm')}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('personaConfig.copyConfirmMessage', {
+                name: copyTarget,
+              })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmCopy}>
+              {t('personaConfig.copyPersona')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

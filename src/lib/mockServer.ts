@@ -55,6 +55,9 @@ import {
   generatePersonaDetail,
   generatePersonaConfigAll,
   generateGlobalPersonaConfig,
+  generatePersonaSettings,
+  applyPersonaSettings,
+  applyPersonaCopy,
   generateMCPConfigList,
   generateMCPConfigDetail,
   generateMCPPresets,
@@ -663,6 +666,30 @@ const routes: Route[] = [
   { m: 'GET', re: /^\/api\/persona\/list$/, h: () => generatePersonaList() },
   { m: 'GET', re: /^\/api\/persona\/config\/all$/, h: () => generatePersonaConfigAll() },
   { m: 'GET', re: /^\/api\/persona\/config\/global$/, h: () => generateGlobalPersonaConfig() },
+  {
+    m: 'GET',
+    re: /^\/api\/persona\/([^/]+)\/settings$/,
+    h: ({ url }) => {
+      const name = decodeURIComponent(url.pathname.match(/\/persona\/([^/]+)\/settings$/)![1]);
+      return generatePersonaSettings(name);
+    },
+  },
+  {
+    m: 'PUT',
+    re: /^\/api\/persona\/([^/]+)\/settings$/,
+    h: ({ url, body }) => {
+      const name = decodeURIComponent(url.pathname.match(/\/persona\/([^/]+)\/settings$/)![1]);
+      return applyPersonaSettings(name, body);
+    },
+  },
+  {
+    m: 'POST',
+    re: /^\/api\/persona\/([^/]+)\/copy$/,
+    h: ({ url }) => {
+      const name = decodeURIComponent(url.pathname.match(/\/persona\/([^/]+)\/copy$/)![1]);
+      return applyPersonaCopy(name);
+    },
+  },
   { m: 'GET', re: /^\/api\/persona\/([^/]+)$/, h: ({ url }) => generatePersonaDetail(decodeURIComponent(url.pathname.split('/').pop()!)) },
 
   // /mcp-config

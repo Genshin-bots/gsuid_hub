@@ -2194,6 +2194,11 @@ export const personaApi = {
   addPersona: (data: PersonaAddRequest) =>
     api.post<PersonaAddResponse>('/api/persona/add', data),
 
+  copyPersona: (personaName: string) =>
+    api.post<{ name: string; source: string }>(
+      `/api/persona/${encodeURIComponent(personaName)}/copy`,
+    ),
+
   // 删除角色
   deletePersona: (personaName: string) =>
     api.delete<{ status: number; msg: string }>(`/api/persona/${encodeURIComponent(personaName)}`),
@@ -2269,9 +2274,20 @@ export const personaApi = {
   getGlobalPersona: () =>
     api.get<string | null>('/api/persona/config/global'),
 
-  // 获取所有角色配�?
+  // 获取所有角色配置
   getAllPersonaConfigs: () =>
     api.get<Record<string, PersonaConfig>>('/api/persona/config/all'),
+
+  getPersonaSettings: (personaName: string) =>
+    api.get<Record<string, PluginConfigItem>>(
+      `/api/persona/${encodeURIComponent(personaName)}/settings`,
+    ),
+
+  updatePersonaSettings: (personaName: string, values: Record<string, unknown>) =>
+    api.put<Record<string, PluginConfigItem>>(
+      `/api/persona/${encodeURIComponent(personaName)}/settings`,
+      values,
+    ),
 };
 
 // ===================

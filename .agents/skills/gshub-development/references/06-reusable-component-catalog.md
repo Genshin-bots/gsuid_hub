@@ -114,7 +114,7 @@ export const tabToolbarGroupWrapClass =
 
 实现要点（源码契约）：
 
-- 主区与 ▾ 是**两个独立 button**，中间竖线分隔；外层容器统一 active 底色（`bg-primary`）。
+- 主区与 ▾ 是**两个独立 button**，中间竖线分隔；外层容器统一 active 底色（`bg-primary`），**不吃 padding**（`buttonClassName` 的 `px-*` / `sm:px-*` 会被剥掉）。
 - 菜单用 `DropdownMenuItem`（非 `RadioItem`），左侧固定 **20×20 图标槽**，避免插件 PNG 被挤没。
 - 子项 `icon` 推荐 `PluginIcon`（`h-4 w-4`）或 lucide；无图标时槽位仍占位，避免文字错位。
 - 「全部」哨兵用 **`__all__`**（与 Radix Select 空值约定一致，见 [§05 §5.5](./05-components-and-form-controls.md)），**禁止** `value=""`。
@@ -237,6 +237,7 @@ profiles.filter((p) => {
 8. **禁止**把整个拆分按钮都做成 `DropdownMenuTrigger`——用户期望点主区 = 全部，只有 ▾ 才展开。
 9. 二级 state 由**调用方**持有；列表刷新后若当前插件名消失，应自行回退 `__all__`（参考页已有 `useEffect`）。
 10. 分段过多、窄屏会撑破边距时，加 `collapseOnMobile`：&lt;768px 收成「当前项 + ▾」DropdownMenu（图标槽 + 文案 + ✓），桌面仍是分段。参考 `/plugin-store`。
+11. **拆分按钮不要靠 `buttonClassName` 传 `px-*`**。外层需要 `p-0`，内层主区 / ▾ 自带 padding。`twMerge` 无法用无前缀 `p-0` 覆盖 `sm:px-4`，会在图标前、箭头后各多出一截留空（`/ai-knowledge` 插件知识曾中招）。组件已剥掉拆分外层的 padding 类。
 
 ### 6.1.7 全站使用面（按页面）
 
