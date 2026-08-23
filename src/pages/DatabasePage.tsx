@@ -32,13 +32,20 @@ export default function DatabasePage() {
   const [filterValue, setFilterValue] = useState('');
   const [filters, setFilters] = useState<{column: string; value: string}[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [hasSearched, setHasSearched] = useState(false);
   const [editingItem, setEditingItem] = useState<Record<string, unknown> | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage, setPerPage] = useState(20);
+
+  // 上次真正发给后端的查询。翻页 / 刷新 / 增删改必须复用它，
+  // 不能读搜索框的即时值（用户可能改了字但还没点搜索）。
+  const appliedQueryRef = useRef<{
+    search?: string;
+    filterColumns?: string[];
+    filterValues?: string[];
+  }>({});
 
   // Floating horizontal scrollbar refs and state
   const tableContainerRef = useRef<HTMLDivElement>(null);
@@ -91,8 +98,8 @@ export default function DatabasePage() {
       setFilterValue('');
       setFilters([]);
       setCurrentPage(1);
-      setHasSearched(false);
-      
+      appliedQueryRef.current = {};
+
       fetchTableMetadata(activeTable);
       fetchTableData(activeTable, 1, perPage);
     }
@@ -186,14 +193,33 @@ export default function DatabasePage() {
     }
   };
 
+  const collectQuery = () => {
+    const filterCols: string[] = [];
+    const filterVals: string[] = [];
+    if (filterColumn && filterValue) {
+      filterCols.push(filterColumn);
+      filterVals.push(filterValue);
+    }
+    filters.forEach((f) => {
+      filterCols.push(f.column);
+      filterVals.push(f.value);
+    });
+    return {
+      search: searchTerm || undefined,
+      filterColumns: filterCols.length > 0 ? filterCols : undefined,
+      filterValues: filterVals.length > 0 ? filterVals : undefined,
+    };
+  };
+
   const fetchTableData = async (
     tableName: string,
     page: number = 1,
-    pageSize: number = 20,
-    search?: string,
-    searchColumns?: string[],
-    filterColumns?: string[],
-    filterValues?: string[]
+    pageSize: number = perPage,
+    query: {
+      search?: string;
+      filterColumns?: string[];
+      filterValues?: string[];
+    } = appliedQueryRef.current
   ) => {
     try {
       setIsSearching(true);
@@ -201,10 +227,10 @@ export default function DatabasePage() {
         tableName,
         page,
         pageSize,
-        search,
-        searchColumns,
-        filterColumns,
-        filterValues
+        query.search,
+        undefined,
+        query.filterColumns,
+        query.filterValues
       );
       setData(result);
       setCurrentPage(page);
@@ -218,28 +244,8 @@ export default function DatabasePage() {
 
   const handleSearch = () => {
     if (!activeTable) return;
-    
-    // 标记已经点击过搜索按钮
-    setHasSearched(true);
-    
-    // 收集所有筛选条件
-    const filterCols: string[] = [];
-    const filterVals: string[] = [];
-    
-    // 添加新的筛选条件（如果有）
-    if (filterColumn && filterValue) {
-      filterCols.push(filterColumn);
-      filterVals.push(filterValue);
-    }
-    
-    // 添加已保存的多个筛选条件
-    filters.forEach(f => {
-      filterCols.push(f.column);
-      filterVals.push(f.value);
-    });
-    
-    // 调用后端搜索API
-    fetchTableData(activeTable, 1, perPage, searchTerm || undefined, undefined, filterCols, filterVals);
+    appliedQueryRef.current = collectQuery();
+    fetchTableData(activeTable, 1, perPage);
   };
 
   const addFilter = () => {
@@ -266,46 +272,7 @@ export default function DatabasePage() {
   };
 
   const columns = tableMetadata?.columns || [];
-  const columnNames = columns.map(col => col.name);
-
-  // 前端筛选逻辑 - 仅用于后端未返回筛选结果时的本地筛选
-  // 前端筛选逻辑 - 仅在点击搜索按钮后执行
-  const filteredData = useMemo(() => {
-    if (!data?.items) return [];
-    
-    let result = [...data.items];
-
-    // 只有在点击过搜索按钮后才进行前端筛选
-    if (hasSearched) {
-      // 搜索功能 - 搜索所有列
-      if (searchTerm) {
-        result = result.filter((item) =>
-          Object.values(item).some((val) =>
-            String(val).toLowerCase().includes(searchTerm.toLowerCase())
-          )
-        );
-      }
-
-      // 当前选中的筛选列
-      if (filterColumn && filterValue) {
-        result = result.filter((item) =>
-          String(item[filterColumn]).toLowerCase().includes(filterValue.toLowerCase())
-        );
-      }
-
-      // 已添加的多个筛选条件
-      if (filters.length > 0) {
-        result = result.filter((item) => {
-          return filters.every(f =>
-            String(item[f.column]).toLowerCase().includes(f.value.toLowerCase())
-          );
-        });
-      }
-    }
-
-    return result;
-  }, [data, searchTerm, filterColumn, filterValue, filters, hasSearched]);
-
+  const tableRows = data?.items ?? [];
   const totalPages = data ? Math.ceil(data.total / perPage) : 0;
 
   const handlePageChange = (newPage: number) => {
@@ -570,14 +537,14 @@ export default function DatabasePage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredData.length === 0 ? (
+                    {tableRows.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={columns.length + 1} className="text-center text-muted-foreground">
                           {t('database.noData')}
                         </TableCell>
                       </TableRow>
                     ) : (
-                      filteredData.map((item, index) => (
+                      tableRows.map((item, index) => (
                         <TableRow key={index}>
                           {columns.map((col) => (
                             <TableCell key={col.name} className="whitespace-nowrap">

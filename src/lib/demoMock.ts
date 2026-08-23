@@ -747,6 +747,20 @@ export const generateTableData = (tableName: string, params: URLSearchParams) =>
     const q = search.toLowerCase();
     rows = rows.filter((r) => Object.values(r).some((v) => v != null && String(v).toLowerCase().includes(q)));
   }
+  const filterColumns = (params.get('filter_columns') ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const filterValues = (params.get('filter_values') ?? '').split(',').map((s) => s.trim());
+  if (filterColumns.length > 0) {
+    rows = rows.filter((r) =>
+      filterColumns.every((col, i) => {
+        const val = filterValues[i];
+        if (val == null || val === '') return true;
+        return String(r[col] ?? '').toLowerCase().includes(val.toLowerCase());
+      }),
+    );
+  }
   const start = (page - 1) * perPage;
   return { items: rows.slice(start, start + perPage), total: rows.length, page, per_page: perPage };
 };
