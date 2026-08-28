@@ -39,6 +39,7 @@
   "logsView": "Logs View",
   "historyLogs": "History Logs",
   "traces": "Command Traces",
+  "httpTraces": "HTTP Traces",
   "consoleManagement": "Console Management",
   "themes": "Theme Settings",
   "accountSettings": "Account Settings",

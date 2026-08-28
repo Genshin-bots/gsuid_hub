@@ -18,6 +18,7 @@ import DatabasePage from "@/pages/DatabasePage";
 import PluginsPage from "@/pages/PluginsPage";
 import LogsPage from "@/pages/LogsPage";
 import TracesPage from "@/pages/TracesPage";
+import HttpTracesPage from "@/pages/HttpTracesPage";
 import ThemesPage from "@/pages/ThemesPage";
 import ConsolePage from "@/pages/ConsolePage";
 import SchedulerPage from "@/pages/SchedulerPage";
@@ -116,6 +117,7 @@ function AppRoutes() {
         <Route path="plugins" element={<PluginsPage />} />
         <Route path="logs" element={<LogsPage />} />
         <Route path="traces" element={<TracesPage />} />
+        <Route path="http-traces" element={<HttpTracesPage />} />
         <Route path="themes" element={<ThemesPage />} />
         <Route path="console" element={<ConsolePage />} />
         <Route path="scheduler" element={<SchedulerPage />} />

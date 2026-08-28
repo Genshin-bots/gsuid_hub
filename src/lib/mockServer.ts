@@ -582,6 +582,107 @@ const routes: Route[] = [
     },
   },
 
+  // ── HTTP request traces（daily_counts 必须在 {id} 之前）──
+  {
+    m: 'GET',
+    re: /^\/api\/http-traces\/daily_counts$/,
+    h: () => {
+      const days: Array<{ date: string; count: number }> = [];
+      const now = new Date();
+      for (let i = 59; i >= 0; i--) {
+        const d = new Date(now);
+        d.setDate(now.getDate() - i);
+        const date = d.toISOString().slice(0, 10);
+        days.push({ date, count: i === 0 ? 2 : 0 });
+      }
+      return days;
+    },
+  },
+  {
+    m: 'GET',
+    re: /^\/api\/http-traces$/,
+    h: () => ({
+      count: 2,
+      page: 1,
+      per_page: 100,
+      rows: [
+      {
+        trace_id: '11111111-1111-4111-8111-111111111111',
+        method: 'GET',
+        path: '/api/version',
+        query_redacted: '',
+        client_ip: '127.0.0.1',
+        user_id: '1',
+        user_name: 'demo',
+        start_time: Date.now() / 1000 - 12,
+        duration_ms: 18,
+        log_count: 0,
+        error_count: 0,
+        status_code: 200,
+        status: 'completed',
+      },
+      {
+        trace_id: '22222222-2222-4222-8222-222222222222',
+        method: 'POST',
+        path: '/api/plugins/reload',
+        query_redacted: '',
+        client_ip: '127.0.0.1',
+        user_id: '1',
+        user_name: 'demo',
+        start_time: Date.now() / 1000 - 40,
+        duration_ms: 240,
+        log_count: 2,
+        error_count: 0,
+        status_code: 200,
+        status: 'completed',
+      },
+    ],
+    }),
+  },
+  {
+    m: 'GET',
+    re: /^\/api\/traces$/,
+    h: () => ({
+      count: 0,
+      page: 1,
+      per_page: 100,
+      rows: [] as Array<{
+        trace_id: string;
+        command: string;
+        user_id: string;
+        group_id: string | null;
+        start_time: number;
+        duration_ms: number | null;
+        log_count: number;
+        status: string;
+      }>,
+    }),
+  },
+  {
+    m: 'GET',
+    re: /^\/api\/http-traces\/[^/]+$/,
+    h: () => ({
+      trace_id: '22222222-2222-4222-8222-222222222222',
+      method: 'POST',
+      path: '/api/plugins/reload',
+      query_redacted: '',
+      client_ip: '127.0.0.1',
+      user_id: '1',
+      user_name: 'demo',
+      start_time: Date.now() / 1000 - 40,
+      duration_ms: 240,
+      log_count: 0,
+      error_count: 0,
+      status_code: 200,
+      status: 'completed',
+      client_request_id: null,
+      content_length: 12,
+      response_content_type: 'application/json',
+      response_preview: '{"status":0,"msg":"ok"}',
+      logs: [] as Array<{ timestamp: string; level: string; event: string; plugin: string }>,
+    }),
+  },
+
   // ── Tier 1 · 看板 ──
   { m: 'GET', re: /^\/api\/dashboard\/bots$/, h: () => generateDashboardBots() },
   { m: 'GET', re: /^\/api\/dashboard\/metrics$/, h: ({ url }) => generateKeyMetrics(botOf(url)) },

@@ -1563,12 +1563,20 @@ export interface TraceDetail {
   logs: TraceLog[];
 }
 
+export interface TraceListPage {
+  rows: TraceItem[];
+  count: number;
+  page: number;
+  per_page: number;
+}
+
 export const traceApi = {
-  getTraces: (params: { date?: string; limit?: number } = {}) => {
+  getTraces: (params: { date?: string; page?: number; per_page?: number } = {}) => {
     const query = new URLSearchParams();
     if (params.date) query.set('date', params.date);
-    if (params.limit !== undefined) query.set('limit', String(params.limit));
-    return api.get<TraceItem[]>(`/api/traces?${query.toString()}`);
+    if (params.page !== undefined) query.set('page', String(params.page));
+    if (params.per_page !== undefined) query.set('per_page', String(params.per_page));
+    return api.get<TraceListPage>(`/api/traces?${query.toString()}`);
   },
 
   getTraceDetail: (traceId: string, params: { date?: string } = {}) => {
@@ -1579,6 +1587,79 @@ export const traceApi = {
 
   getDailyCounts: (days: number = 60) =>
     api.get<Array<{ date: string; count: number }>>(`/api/traces/daily_counts?days=${days}`),
+};
+
+export interface HttpTraceLog {
+  timestamp: string;
+  level: string;
+  event: string;
+  plugin: string;
+}
+
+export interface HttpTraceItem {
+  trace_id: string;
+  method: string;
+  path: string;
+  query_redacted: string;
+  client_ip: string;
+  user_id: string | null;
+  user_name: string | null;
+  start_time: number;
+  duration_ms: number | null;
+  log_count: number;
+  error_count: number;
+  status_code: number | null;
+  status: 'running' | 'completed';
+}
+
+export interface HttpTraceDetail extends HttpTraceItem {
+  client_request_id: string | null;
+  content_length: number | null;
+  response_content_type: string | null;
+  response_preview: string | null;
+  logs: HttpTraceLog[];
+}
+
+export interface HttpTraceListPage {
+  rows: HttpTraceItem[];
+  count: number;
+  page: number;
+  per_page: number;
+}
+
+export const httpTraceApi = {
+  getTraces: (params: {
+    date?: string;
+    page?: number;
+    per_page?: number;
+    method?: string;
+    path_prefix?: string;
+    status_class?: string;
+    user_id?: string;
+    errors_only?: boolean;
+  } = {}) => {
+    const query = new URLSearchParams();
+    if (params.date) query.set('date', params.date);
+    if (params.page !== undefined) query.set('page', String(params.page));
+    if (params.per_page !== undefined) query.set('per_page', String(params.per_page));
+    if (params.method) query.set('method', params.method);
+    if (params.path_prefix) query.set('path_prefix', params.path_prefix);
+    if (params.status_class) query.set('status_class', params.status_class);
+    if (params.user_id) query.set('user_id', params.user_id);
+    if (params.errors_only) query.set('errors_only', 'true');
+    return api.get<HttpTraceListPage>(`/api/http-traces?${query.toString()}`);
+  },
+  getTraceDetail: (traceId: string, params: { date?: string } = {}) => {
+    const query = new URLSearchParams();
+    if (params.date) query.set('date', params.date);
+    return api.get<HttpTraceDetail>(
+      `/api/http-traces/${encodeURIComponent(traceId)}?${query.toString()}`,
+    );
+  },
+  getDailyCounts: (days = 60) =>
+    api.get<Array<{ date: string; count: number }>>(
+      `/api/http-traces/daily_counts?days=${days}`,
+    ),
 };
 
 // ===================

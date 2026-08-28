@@ -39,6 +39,7 @@
   "logsView": "日志查看",
   "historyLogs": "历史日志",
   "traces": "命令追踪",
+  "httpTraces": "HTTP 请求追踪",
   "consoleManagement": "控制台管理",
   "themes": "主题设置",
   "accountSettings": "账号设置",

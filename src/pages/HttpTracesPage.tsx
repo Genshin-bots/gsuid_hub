@@ -2,8 +2,18 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import {
@@ -13,31 +23,33 @@ import {
   ChevronLeft,
   ChevronDown,
   Clock,
-  Hash,
-  User,
-  Users,
   ScrollText,
   Activity,
-  Terminal,
-  Search,
   Download,
-  MessageCircle,
+  Globe,
+  AlertTriangle,
 } from 'lucide-react';
-import { traceApi, type TraceItem, type TraceLog } from '@/lib/api';
+import {
+  httpTraceApi,
+  type HttpTraceItem,
+  type HttpTraceLog,
+  type HttpTraceDetail,
+  getApiErrorMessage,
+} from '@/lib/api';
 import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { ConsolePanel, type LogEntry } from '@/components/ConsolePanel';
 import { PinnedPage } from '@/components/layout/PinnedPage';
 
+const METHOD_ALL = '__all__';
+const STATUS_ALL = '__all__';
 const PAGE_SIZE = 100;
 
 function formatStartTime(seconds: number): string {
-  // New backend format: Unix timestamp in seconds
   if (seconds > 1_000_000_000) {
     return format(new Date(seconds * 1000), 'HH:mm:ss');
   }
-  // Legacy format: elapsed/perf_counter seconds (keep old behavior for compatibility)
   const totalSeconds = Math.floor(seconds % 86400);
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
@@ -46,20 +58,19 @@ function formatStartTime(seconds: number): string {
 }
 
 function parseTraceTimestamp(ts: string, dateStr: string): Date {
-  // ts: "05-28 10:01:30", dateStr: "2026-05-28"
   try {
     const [monthDay, time] = ts.split(' ');
     const year = dateStr.split('-')[0];
     const isoStr = `${year}-${monthDay}T${time}`;
     const d = new Date(isoStr);
-    if (!isNaN(d.getTime())) return d;
+    if (!Number.isNaN(d.getTime())) return d;
   } catch {
     /* ignore */
   }
   return new Date();
 }
 
-function traceLogToLogEntry(log: TraceLog, index: number, dateStr: string): LogEntry {
+function httpLogToLogEntry(log: HttpTraceLog, index: number, dateStr: string): LogEntry {
   let type: LogEntry['type'] = 'info';
   switch (log.level.toLowerCase()) {
     case 'trace':
@@ -90,14 +101,23 @@ function traceLogToLogEntry(log: TraceLog, index: number, dateStr: string): LogE
     type,
     content: log.event,
     timestamp: parseTraceTimestamp(log.timestamp, dateStr),
+    plugin: log.plugin,
   };
 }
 
-export default function TracesPage() {
+function statusCodeClass(code: number | null): string {
+  if (code === null) return 'text-muted-foreground';
+  if (code >= 500) return 'text-red-600 dark:text-red-400 font-semibold';
+  if (code >= 400) return 'text-amber-600 dark:text-amber-400 font-semibold';
+  if (code >= 200 && code < 300) return 'text-green-600 dark:text-green-400';
+  return 'text-muted-foreground';
+}
+
+export default function HttpTracesPage() {
   const { t } = useLanguage();
   const { style } = useTheme();
   const isGlass = style === 'glassmorphism';
-  const [traces, setTraces] = useState<TraceItem[]>([]);
+  const [traces, setTraces] = useState<HttpTraceItem[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
@@ -105,35 +125,34 @@ export default function TracesPage() {
   const [expandedTraceId, setExpandedTraceId] = useState<string | null>(null);
   const [traceLogs, setTraceLogs] = useState<LogEntry[]>([]);
   const [traceLoading, setTraceLoading] = useState(false);
-  const [traceDetail, setTraceDetail] = useState<{
-    trace_id: string;
-    command: string;
-    status: 'running' | 'completed';
-    duration_ms: number | null;
-    log_count: number;
-  } | null>(null);
+  const [traceDetail, setTraceDetail] = useState<HttpTraceDetail | null>(null);
   const [dailyCounts, setDailyCounts] = useState<Record<string, number>>({});
-  const [countsLoading, setCountsLoading] = useState(false);
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [method, setMethod] = useState(METHOD_ALL);
+  const [pathPrefix, setPathPrefix] = useState('');
+  const [statusClass, setStatusClass] = useState(STATUS_ALL);
+  const [userId, setUserId] = useState('');
+  const [onlyErrors, setOnlyErrors] = useState(false);
 
   useEffect(() => {
     if (typeof document === 'undefined') return;
-    const styleId = 'traces-calendar-overrides';
+    const styleId = 'http-traces-calendar-overrides';
     if (document.getElementById(styleId)) return;
     const el = document.createElement('style');
     el.id = styleId;
     el.textContent = `
-      .traces-date-calendar .rdp-day,
-      .traces-date-calendar .rdp-day_button {
+      .http-traces-date-calendar .rdp-day,
+      .http-traces-date-calendar .rdp-day_button {
         overflow: visible !important;
         border-radius: 8px !important;
       }
-      .traces-date-calendar .rdp-day,
-      .traces-date-calendar .rdp-day_button,
-      .traces-date-calendar .rdp-cell {
+      .http-traces-date-calendar .rdp-day,
+      .http-traces-date-calendar .rdp-day_button,
+      .http-traces-date-calendar .rdp-cell {
         width: 2.75rem !important;
         height: 2.75rem !important;
       }
-      .traces-date-calendar .rdp-day_button {
+      .http-traces-date-calendar .rdp-day_button {
         font-size: 0.875rem !important;
       }
     `;
@@ -145,26 +164,23 @@ export default function TracesPage() {
   const disabledMatchers = useMemo(() => {
     const dates = Object.keys(dailyCounts).sort();
     if (dates.length === 0) return undefined;
-    const minDate = new Date(dates[0] + 'T00:00:00');
-    const maxDate = new Date(dates[dates.length - 1] + 'T00:00:00');
+    const minDate = new Date(`${dates[0]}T00:00:00`);
+    const maxDate = new Date(`${dates[dates.length - 1]}T00:00:00`);
     return [{ before: minDate }, { after: maxDate }];
   }, [dailyCounts]);
 
   const fetchDailyCounts = useCallback(async () => {
-    setCountsLoading(true);
     try {
-      const data = await traceApi.getDailyCounts(60);
+      const data = await httpTraceApi.getDailyCounts(60);
       const record: Record<string, number> = {};
       for (const item of data) {
         record[item.date] = item.count;
       }
       setDailyCounts(record);
     } catch (error) {
-      console.error('Failed to fetch daily counts:', error);
-    } finally {
-      setCountsLoading(false);
+      toast.error(getApiErrorMessage(error, t('common.loadFailed')));
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     fetchDailyCounts();
@@ -172,72 +188,90 @@ export default function TracesPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [dateStr]);
+  }, [dateStr, method, pathPrefix, statusClass, userId, onlyErrors]);
 
-  const fetchTraces = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const data = await traceApi.getTraces({ date: dateStr, page, per_page: PAGE_SIZE });
-      setTraces(data.rows);
-      setTotalCount(data.count);
-      if (data.page !== page) setPage(data.page);
-    } catch (error) {
-      console.error('Failed to fetch traces:', error);
-      toast.error(t('common.loadFailed'));
-      setTraces([]);
-      setTotalCount(0);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [dateStr, page, t]);
+  const fetchList = useCallback(
+    async (silent = false) => {
+      if (!silent) setIsLoading(true);
+      try {
+        const data = await httpTraceApi.getTraces({
+          date: dateStr,
+          page,
+          per_page: PAGE_SIZE,
+          method: method === METHOD_ALL ? undefined : method,
+          path_prefix: pathPrefix.trim() || undefined,
+          status_class: statusClass === STATUS_ALL ? undefined : statusClass,
+          user_id: userId.trim() || undefined,
+          errors_only: onlyErrors || undefined,
+        });
+        setTraces(data.rows);
+        setTotalCount(data.count);
+        if (data.page !== page) setPage(data.page);
+      } catch (error) {
+        toast.error(getApiErrorMessage(error, t('common.loadFailed')));
+        setTraces([]);
+        setTotalCount(0);
+      } finally {
+        if (!silent) setIsLoading(false);
+      }
+    },
+    [dateStr, page, method, pathPrefix, statusClass, userId, onlyErrors, t],
+  );
 
   useEffect(() => {
-    fetchTraces();
-  }, [fetchTraces]);
+    fetchList(false);
+  }, [fetchList]);
 
-  const sortedTraces = useMemo(() => {
-    return [...traces].sort((a, b) => b.start_time - a.start_time);
-  }, [traces]);
+  const fetchDetail = useCallback(
+    async (traceId: string) => {
+      setTraceLoading(true);
+      try {
+        const detail = await httpTraceApi.getTraceDetail(traceId, { date: dateStr });
+        setTraceDetail(detail);
+        setTraceLogs(detail.logs.map((log, idx) => httpLogToLogEntry(log, idx, dateStr)));
+      } catch (error) {
+        toast.error(getApiErrorMessage(error, t('common.loadFailed')));
+        setTraceLogs([]);
+        setTraceDetail(null);
+      } finally {
+        setTraceLoading(false);
+      }
+    },
+    [dateStr, t],
+  );
 
-  const handleExpandTrace = async (trace: TraceItem) => {
+  useEffect(() => {
+    if (!autoRefresh) return;
+    const tick = () => {
+      if (document.visibilityState !== 'visible') return;
+      fetchList(true);
+      if (expandedTraceId && traceDetail?.status === 'running') {
+        void fetchDetail(expandedTraceId);
+      }
+    };
+    const id = window.setInterval(tick, 5000);
+    return () => window.clearInterval(id);
+  }, [autoRefresh, fetchList, fetchDetail, expandedTraceId, traceDetail?.status]);
+
+  const sortedTraces = useMemo(
+    () => [...traces].sort((a, b) => b.start_time - a.start_time),
+    [traces],
+  );
+
+  const handleExpandTrace = async (trace: HttpTraceItem) => {
     if (expandedTraceId === trace.trace_id) {
       setExpandedTraceId(null);
       setTraceLogs([]);
       setTraceDetail(null);
       return;
     }
-
     setExpandedTraceId(trace.trace_id);
-    setTraceLoading(true);
-    setTraceDetail({
-      trace_id: trace.trace_id,
-      command: trace.command,
-      status: trace.status,
-      duration_ms: trace.duration_ms,
-      log_count: trace.log_count,
-    });
-
-    try {
-      const detail = await traceApi.getTraceDetail(trace.trace_id, { date: dateStr });
-      const entries = detail.logs.map((log, idx) => traceLogToLogEntry(log, idx, dateStr));
-      setTraceLogs(entries);
-      setTraceDetail({
-        trace_id: detail.trace_id,
-        command: detail.command,
-        status: detail.status,
-        duration_ms: detail.duration_ms,
-        log_count: detail.log_count,
-      });
-    } catch (error) {
-      console.error('Failed to fetch trace detail:', error);
-      toast.error(t('common.loadFailed'));
-      setTraceLogs([]);
-    } finally {
-      setTraceLoading(false);
-    }
+    setTraceDetail(null);
+    setTraceLogs([]);
+    await fetchDetail(trace.trace_id);
   };
 
-  const statusBadge = (status: TraceItem['status']) => {
+  const statusBadge = (status: HttpTraceItem['status']) => {
     if (status === 'running') {
       return (
         <Badge
@@ -245,7 +279,7 @@ export default function TracesPage() {
           className="text-xs bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-950 dark:text-blue-400 dark:border-blue-900"
         >
           <Activity className="w-3 h-3 mr-1 animate-pulse" />
-          {t('traces.running')}
+          {t('httpTraces.running')}
         </Badge>
       );
     }
@@ -254,60 +288,40 @@ export default function TracesPage() {
         variant="outline"
         className="text-xs bg-green-50 text-green-600 border-green-200 dark:bg-green-950 dark:text-green-400 dark:border-green-900"
       >
-        {t('traces.completed')}
+        {t('httpTraces.completed')}
       </Badge>
     );
   };
 
   const handleDownloadTrace = useCallback(
-    async (trace: TraceItem) => {
+    async (trace: HttpTraceItem) => {
       try {
-        const detail = await traceApi.getTraceDetail(trace.trace_id, { date: dateStr });
+        const detail = await httpTraceApi.getTraceDetail(trace.trace_id, { date: dateStr });
         const blob = new Blob([JSON.stringify(detail, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `trace-${trace.trace_id}.json`;
+        a.download = `http-trace-${trace.trace_id}.json`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
       } catch (error) {
-        console.error('Failed to download trace:', error);
-        toast.error(t('common.loadFailed'));
+        toast.error(getApiErrorMessage(error, t('common.loadFailed')));
       }
     },
     [dateStr, t],
   );
 
-  const isSlow = (ms: number | null) => ms !== null && ms > 7000;
+  const isSlow = (ms: number | null) => ms !== null && ms > 1000;
+  const httpErrorCount = traces.filter(
+    (row) => row.status_code !== null && row.status_code >= 400,
+  ).length;
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE) || 1);
+  const gridClass = 'grid-cols-[92px_72px_minmax(0,1fr)_56px_90px_80px_70px_56px_56px_80px_44px]';
   const goPage = (next: number) => {
     setExpandedTraceId(null);
     setPage(next);
-  };
-
-  const sourceBadge = (trace: TraceItem) => {
-    if (trace.group_id) {
-      return (
-        <Badge
-          variant="outline"
-          className="text-xs bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-950 dark:text-blue-400 dark:border-blue-900"
-        >
-          <Users className="w-3 h-3 mr-1" />
-          {t('traces.group') || '群聊'}
-        </Badge>
-      );
-    }
-    return (
-      <Badge
-        variant="outline"
-        className="text-xs bg-purple-50 text-purple-600 border-purple-200 dark:bg-purple-950 dark:text-purple-400 dark:border-purple-900"
-      >
-        <MessageCircle className="w-3 h-3 mr-1" />
-        {t('traces.private') || '私聊'}
-      </Badge>
-    );
   };
 
   return (
@@ -318,29 +332,23 @@ export default function TracesPage() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0 overflow-x-auto">
             <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
-              <Terminal className="w-8 h-8 shrink-0" />
-              {t('traces.title') || '命令追踪'}
+              <Globe className="w-8 h-8 shrink-0" />
+              {t('httpTraces.title')}
             </h1>
             <p className="whitespace-nowrap text-muted-foreground mt-1">
-              {t('traces.description') || '查看命令执行追踪日志'}
+              {t('httpTraces.description')}
             </p>
           </div>
-          <div className="flex flex-wrap justify-end gap-2 self-end sm:self-auto">
+          <div className="flex flex-wrap justify-end gap-2 self-end sm:self-auto items-center">
             <Popover>
               <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    'justify-start text-left font-normal',
-                    !selectedDate && 'text-muted-foreground',
-                  )}
-                >
+                <Button variant="outline" className={cn('justify-start text-left font-normal')}>
                   <Calendar className="mr-2 h-4 w-4" />
-                  {selectedDate ? format(selectedDate, 'yyyy-MM-dd') : t('logs.selectDate')}
+                  {format(selectedDate, 'yyyy-MM-dd')}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start" side="bottom" sideOffset={8}>
-                <div className="traces-date-calendar">
+                <div className="http-traces-date-calendar">
                   <CalendarComponent
                     mode="single"
                     selected={selectedDate}
@@ -393,25 +401,85 @@ export default function TracesPage() {
             </Popover>
             <Button
               variant="outline"
-              onClick={fetchTraces}
+              onClick={() => fetchList(false)}
               disabled={isLoading}
               className="whitespace-nowrap"
             >
               <RefreshCw className={cn('w-4 h-4 mr-2', isLoading && 'animate-spin')} />
               {t('logs.refresh')}
             </Button>
+            <div className="flex items-center gap-2 h-9 px-2">
+              <Switch
+                id="http-trace-auto-refresh"
+                checked={autoRefresh}
+                onCheckedChange={setAutoRefresh}
+              />
+              <Label htmlFor="http-trace-auto-refresh" className="text-sm whitespace-nowrap">
+                {t('httpTraces.autoRefresh')}
+              </Label>
+            </div>
           </div>
         </div>
       }
+      toolbar={
+        <div className="flex flex-wrap gap-2 items-center">
+          <Select value={method} onValueChange={setMethod}>
+            <SelectTrigger className="h-9 w-[8.5rem]">
+              <SelectValue placeholder={t('httpTraces.filterMethod')} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={METHOD_ALL}>{t('httpTraces.filterAll')}</SelectItem>
+              {['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'].map((m) => (
+                <SelectItem key={m} value={m}>
+                  {m}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Input
+            className="h-9 w-[14rem]"
+            placeholder={t('httpTraces.filterPath')}
+            value={pathPrefix}
+            onChange={(e) => setPathPrefix(e.target.value)}
+          />
+          <Select value={statusClass} onValueChange={setStatusClass}>
+            <SelectTrigger className="h-9 w-[7.5rem]">
+              <SelectValue placeholder={t('httpTraces.filterStatusClass')} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={STATUS_ALL}>{t('httpTraces.filterAll')}</SelectItem>
+              <SelectItem value="2xx">{t('httpTraces.status2xx')}</SelectItem>
+              <SelectItem value="3xx">{t('httpTraces.status3xx')}</SelectItem>
+              <SelectItem value="4xx">{t('httpTraces.status4xx')}</SelectItem>
+              <SelectItem value="5xx">{t('httpTraces.status5xx')}</SelectItem>
+            </SelectContent>
+          </Select>
+          <div className="flex items-center gap-2 h-9 px-1">
+            <Switch
+              id="http-trace-only-errors"
+              checked={onlyErrors}
+              onCheckedChange={setOnlyErrors}
+            />
+            <Label htmlFor="http-trace-only-errors" className="text-sm whitespace-nowrap">
+              {t('httpTraces.onlyErrors')}
+            </Label>
+          </div>
+          <Input
+            className="h-9 w-[10rem] hidden xl:flex"
+            placeholder={t('httpTraces.filterUser')}
+            value={userId}
+            onChange={(e) => setUserId(e.target.value)}
+          />
+        </div>
+      }
     >
-      {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="glass-card border-l-4 border-l-primary">
           <CardContent className="p-4 flex items-center gap-3">
             <ScrollText className="w-7 h-7 text-primary shrink-0" strokeWidth={1.5} />
             <div>
               <p className="text-2xl font-bold">{totalCount}</p>
-              <p className="text-xs text-muted-foreground">{t('traces.totalTraces') || '总追踪'}</p>
+              <p className="text-xs text-muted-foreground">{t('httpTraces.totalTraces')}</p>
             </div>
           </CardContent>
         </Card>
@@ -420,9 +488,9 @@ export default function TracesPage() {
             <Activity className="w-7 h-7 text-blue-500 shrink-0" strokeWidth={1.5} />
             <div>
               <p className="text-2xl font-bold">
-                {traces.filter((t) => t.status === 'running').length}
+                {traces.filter((row) => row.status === 'running').length}
               </p>
-              <p className="text-xs text-muted-foreground">{t('traces.running') || '执行中'}</p>
+              <p className="text-xs text-muted-foreground">{t('httpTraces.running')}</p>
             </div>
           </CardContent>
         </Card>
@@ -431,68 +499,67 @@ export default function TracesPage() {
             <Clock className="w-7 h-7 text-green-500 shrink-0" strokeWidth={1.5} />
             <div>
               <p className="text-2xl font-bold">
-                {traces.filter((t) => t.status === 'completed').length}
+                {traces.filter((row) => row.status === 'completed').length}
               </p>
-              <p className="text-xs text-muted-foreground">{t('traces.completed') || '已完成'}</p>
+              <p className="text-xs text-muted-foreground">{t('httpTraces.completed')}</p>
             </div>
           </CardContent>
         </Card>
-        <Card className="glass-card border-l-4 border-l-purple-500">
+        <Card className="glass-card border-l-4 border-l-red-500">
           <CardContent className="p-4 flex items-center gap-3">
-            <Hash className="w-7 h-7 text-purple-500 shrink-0" strokeWidth={1.5} />
+            <AlertTriangle className="w-7 h-7 text-red-500 shrink-0" strokeWidth={1.5} />
             <div>
-              <p className="text-2xl font-bold">
-                {traces.reduce((sum, t) => sum + (t.log_count || 0), 0).toLocaleString()}
-              </p>
-              <p className="text-xs text-muted-foreground">{t('traces.totalLogs') || '总日志数'}</p>
+              <p className="text-2xl font-bold">{httpErrorCount}</p>
+              <p className="text-xs text-muted-foreground">{t('httpTraces.httpErrors')}</p>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Trace List */}
       <Card className="glass-card">
         <CardHeader className="py-3">
           <CardTitle className="text-base">
-            {t('traces.traceList') || '追踪列表'} ({totalCount})
+            {t('httpTraces.traceList')} ({totalCount})
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           {traces.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              {t('traces.noTraces') || '暂无追踪记录'}
-            </div>
+            <div className="text-center py-8 text-muted-foreground">{t('httpTraces.noTraces')}</div>
           ) : (
             <div className="divide-y divide-border/30">
-              {/* 表头 */}
-              <div className="hidden md:grid grid-cols-[92px_1fr_70px_110px_160px_80px_70px_56px_56px_80px_44px] gap-3 px-4 py-2 text-xs text-muted-foreground bg-muted/30 border-b border-border/30">
-                <div className="font-medium">{t('traces.status') || '状态'}</div>
-                <div className="font-medium">{t('traces.command') || '命令'}</div>
-                <div className="font-medium">{t('traces.source') || '来源'}</div>
-                <div className="font-medium hidden lg:flex">
-                  {t('traces.triggerUser') || '触发者'}
-                </div>
-                <div className="font-medium hidden xl:flex">
-                  {t('traces.triggerGroup') || '触发群'}
-                </div>
-                <div className="font-medium">{t('traces.triggerTime') || '触发时间'}</div>
-                <div className="font-medium">{t('traces.duration') || '耗时'}</div>
-                <div className="font-medium hidden lg:flex">{t('traces.logs') || '日志数'}</div>
-                <div className="font-medium hidden xl:flex">{t('traces.error') || '错误'}</div>
-                <div className="font-medium hidden lg:flex">{t('traces.traceId') || 'ID'}</div>
+              <div
+                className={cn(
+                  'hidden md:grid gap-3 px-4 py-2 text-xs text-muted-foreground bg-muted/30 border-b border-border/30',
+                  gridClass,
+                )}
+              >
+                <div className="font-medium">{t('httpTraces.status')}</div>
+                <div className="font-medium">{t('httpTraces.method')}</div>
+                <div className="font-medium">{t('httpTraces.path')}</div>
+                <div className="font-medium">{t('httpTraces.statusCode')}</div>
+                <div className="font-medium">{t('httpTraces.user')}</div>
+                <div className="font-medium">{t('httpTraces.triggerTime')}</div>
+                <div className="font-medium">{t('httpTraces.duration')}</div>
+                <div className="font-medium hidden lg:flex">{t('httpTraces.logs')}</div>
+                <div className="font-medium hidden xl:flex">{t('httpTraces.error')}</div>
+                <div className="font-medium hidden lg:flex">{t('httpTraces.traceId')}</div>
                 <div />
               </div>
               {sortedTraces.map((trace) => {
                 const isExpanded = expandedTraceId === trace.trace_id;
+                const pathTitle = trace.query_redacted
+                  ? `${trace.path}?${trace.query_redacted}`
+                  : trace.path;
                 return (
                   <div key={trace.trace_id} className="transition-colors">
-                    {/* 桌面端列表行 */}
                     <button
                       type="button"
                       onClick={() => handleExpandTrace(trace)}
-                      className="hidden md:grid w-full text-left grid-cols-[92px_1fr_70px_110px_160px_80px_70px_56px_56px_80px_44px] items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors"
+                      className={cn(
+                        'hidden md:grid w-full text-left items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors',
+                        gridClass,
+                      )}
                     >
-                      {/* 状态 + 展开 */}
                       <div className="flex items-center gap-1">
                         {statusBadge(trace.status)}
                         {isExpanded ? (
@@ -501,29 +568,23 @@ export default function TracesPage() {
                           <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
                         )}
                       </div>
-
-                      {/* 命令 */}
-                      <div className="truncate font-medium text-sm min-w-0">{trace.command}</div>
-
-                      {/* 来源 */}
-                      <div>{sourceBadge(trace)}</div>
-
-                      {/* 触发者 */}
-                      <div className="text-xs text-muted-foreground font-mono truncate hidden lg:block">
-                        {trace.user_id}
+                      <div>
+                        <Badge variant="outline" className="text-xs font-mono">
+                          {trace.method}
+                        </Badge>
                       </div>
-
-                      {/* 触发群 */}
-                      <div className="text-xs text-muted-foreground font-mono truncate hidden xl:block">
-                        {trace.group_id || '—'}
+                      <div className="truncate font-mono text-sm min-w-0" title={pathTitle}>
+                        {trace.path}
                       </div>
-
-                      {/* 触发时间 */}
+                      <div className={cn('text-xs font-mono', statusCodeClass(trace.status_code))}>
+                        {trace.status_code ?? '—'}
+                      </div>
+                      <div className="text-xs text-muted-foreground font-mono truncate">
+                        {trace.user_name || trace.user_id || t('httpTraces.emptyUser')}
+                      </div>
                       <div className="text-xs text-muted-foreground">
                         {formatStartTime(trace.start_time)}
                       </div>
-
-                      {/* 耗时 */}
                       <div
                         className={cn(
                           'text-xs',
@@ -534,13 +595,9 @@ export default function TracesPage() {
                       >
                         {trace.duration_ms !== null ? `${trace.duration_ms}ms` : '—'}
                       </div>
-
-                      {/* 日志数 */}
                       <div className="text-xs text-muted-foreground hidden lg:block">
                         {trace.log_count}
                       </div>
-
-                      {/* 错误数 */}
                       <div className="hidden xl:block">
                         {trace.error_count ? (
                           <Badge
@@ -553,13 +610,9 @@ export default function TracesPage() {
                           <span className="text-xs text-muted-foreground">-</span>
                         )}
                       </div>
-
-                      {/* trace_id */}
                       <div className="font-mono text-xs text-muted-foreground truncate hidden lg:block">
                         {trace.trace_id.slice(0, 8)}
                       </div>
-
-                      {/* 下载 */}
                       <div className="flex items-center justify-center">
                         <Button
                           variant="ghost"
@@ -567,16 +620,15 @@ export default function TracesPage() {
                           className="h-8 w-8"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleDownloadTrace(trace);
+                            void handleDownloadTrace(trace);
                           }}
-                          title={t('traces.downloadTrace') || '下载追踪'}
+                          title={t('httpTraces.downloadTrace')}
                         >
                           <Download className="w-4 h-4" />
                         </Button>
                       </div>
                     </button>
 
-                    {/* 移动端列表行 */}
                     <button
                       type="button"
                       onClick={() => handleExpandTrace(trace)}
@@ -589,17 +641,19 @@ export default function TracesPage() {
                         ) : (
                           <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
                         )}
-                        <span className="truncate font-medium text-sm flex-1 min-w-0">
-                          {trace.command}
+                        <Badge variant="outline" className="text-xs font-mono">
+                          {trace.method}
+                        </Badge>
+                        <span
+                          className="truncate font-mono text-sm flex-1 min-w-0"
+                          title={pathTitle}
+                        >
+                          {trace.path}
                         </span>
                       </div>
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground pl-6">
-                        {sourceBadge(trace)}
-                        <span className="font-mono">{trace.user_id}</span>
-                        {trace.group_id && <span className="font-mono">{trace.group_id}</span>}
-                        <span className="inline-flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          {formatStartTime(trace.start_time)}
+                        <span className={cn('font-mono', statusCodeClass(trace.status_code))}>
+                          {trace.status_code ?? '—'}
                         </span>
                         <span
                           className={cn(
@@ -609,53 +663,81 @@ export default function TracesPage() {
                         >
                           {trace.duration_ms !== null ? `${trace.duration_ms}ms` : '—'}
                         </span>
-                        <span>
-                          {trace.log_count} {t('traces.logs') || '日志'}
-                        </span>
-                        {trace.error_count ? (
-                          <Badge
-                            variant="outline"
-                            className="text-xs bg-red-50 text-red-600 border-red-200 dark:bg-red-950 dark:text-red-400 dark:border-red-900"
-                          >
-                            {trace.error_count} {t('traces.error') || '错误'}
-                          </Badge>
-                        ) : null}
-                      </div>
-                      <div className="flex items-center gap-2 pl-6 mt-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 px-2 text-xs"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDownloadTrace(trace);
-                          }}
-                        >
-                          <Download className="w-3 h-3 mr-1" />
-                          {t('traces.downloadTrace') || '下载追踪'}
-                        </Button>
                       </div>
                     </button>
 
                     {isExpanded && (
-                      <div className="px-4 pb-4">
+                      <div className="px-4 pb-4 space-y-3">
                         <div
                           className={cn(
-                            'h-[28rem] overflow-hidden rounded-xl',
+                            'rounded-xl p-3 space-y-3',
                             isGlass
-                              ? 'backdrop-blur-md bg-white/10 dark:bg-black/10 border border-white/20 dark:border-black/20 shadow-lg'
-                              : 'bg-card border border-border/50',
+                              ? 'backdrop-blur-md bg-white/10 dark:bg-black/10 border border-white/20 dark:border-black/20'
+                              : 'bg-muted/30 border border-border/50',
                           )}
                         >
-                          {traceLoading && traceDetail?.trace_id === trace.trace_id ? (
-                            <div className="h-full flex items-center justify-center text-muted-foreground">
-                              <RefreshCw className="w-5 h-5 animate-spin mr-2" />
-                              {t('common.loading')}
+                          <div>
+                            <div className="text-xs font-medium text-muted-foreground">
+                              {t('httpTraces.input')}
                             </div>
-                          ) : (
-                            <ConsolePanel logs={traceLogs} autoScroll={false} className="h-full" />
-                          )}
+                            <div className="font-mono text-sm mt-1 break-all">
+                              {trace.method} {trace.path}
+                            </div>
+                            <div className="font-mono text-xs text-muted-foreground mt-1 break-all">
+                              {t('httpTraces.query')}:{' '}
+                              {trace.query_redacted || t('httpTraces.emptyQuery')}
+                            </div>
+                            <div className="font-mono text-xs text-muted-foreground mt-1">
+                              {t('httpTraces.clientIp')}:{' '}
+                              {traceDetail?.client_ip ?? trace.client_ip}
+                              {(traceDetail?.client_request_id || null) && (
+                                <span className="ml-3">
+                                  {t('httpTraces.clientRequestId')}:{' '}
+                                  {traceDetail?.client_request_id}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-xs font-medium text-muted-foreground">
+                              {t('httpTraces.output')}
+                            </div>
+                            <div className="font-mono text-xs text-muted-foreground mt-1">
+                              {trace.status_code ?? '—'}
+                              {trace.duration_ms !== null ? ` · ${trace.duration_ms}ms` : ''}
+                              {traceDetail?.response_content_type
+                                ? ` · ${traceDetail.response_content_type}`
+                                : ''}
+                            </div>
+                            {traceLoading && expandedTraceId === trace.trace_id ? (
+                              <div className="py-4 text-muted-foreground text-xs flex items-center">
+                                <RefreshCw className="w-4 h-4 animate-spin mr-2" />
+                                {t('common.loading')}
+                              </div>
+                            ) : (
+                              <pre className="mt-2 max-h-64 overflow-auto rounded-md bg-background/60 p-2 text-xs font-mono whitespace-pre-wrap break-all">
+                                {traceDetail?.response_preview || t('httpTraces.emptyOutput')}
+                              </pre>
+                            )}
+                          </div>
                         </div>
+                        {traceLoading &&
+                        expandedTraceId === trace.trace_id ? null : traceLogs.length > 0 ? (
+                          <div
+                            className={cn(
+                              'h-[28rem] overflow-hidden rounded-xl',
+                              isGlass
+                                ? 'backdrop-blur-md bg-white/10 dark:bg-black/10 border border-white/20 dark:border-black/20 shadow-lg'
+                                : 'bg-card border border-border/50',
+                            )}
+                          >
+                            <ConsolePanel logs={traceLogs} autoScroll={false} className="h-full" />
+                          </div>
+                        ) : (
+                          <div className="text-xs text-muted-foreground px-1">
+                            {t('httpTraces.noInternalLogs')}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
