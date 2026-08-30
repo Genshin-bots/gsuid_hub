@@ -87,5 +87,11 @@
     "7": "Lower Permission",
     "8": "Blacklist"
   },
-  "loadPluginDetailFailed": "Failed to load plugin details"
+  "loadPluginDetailFailed": "Failed to load plugin details",
+  "openPluginPage": "Open plugin page",
+  "openPluginPageTitle": "Open the plugin page?",
+  "openPluginPageConfirm": "Open page",
+  "openPluginPageDesc": "This plugin provides its own page. The sidebar will collapse and the page will be embedded. Use the header to go back.",
+  "dontShowAgain": "Don't show this again",
+  "pluginPageBack": "Back to plugin settings"
 }

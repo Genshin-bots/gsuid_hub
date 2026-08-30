@@ -205,6 +205,29 @@ const PLUGIN_DEFS: Array<{ id: string; name: string; desc: string; enabled: bool
   { id: 'WzryUID', name: 'WzryUID', desc: '王者荣耀 战绩查询与英雄出装数据', enabled: true, status: 'update_available' },
 ];
 
+const DEMO_ZZZ_PAGE = {
+  id: 'console',
+  plugin: 'ZZZeroUID',
+  plugin_id: 'zzzerouid',
+  path: '/plugin-pages/zzzerouid/console/',
+  title: {
+    'zh-CN': '抽卡与角色管理',
+    'en-US': 'Gacha & Agents',
+    'ja-JP': 'ガチャとエージェント',
+  },
+  description: {
+    'zh-CN': '管理全体用户的抽卡记录与角色详情卡片',
+    'en-US': 'Manage gacha logs and agent detail cards',
+    'ja-JP': 'ガチャ記録とエージェント詳細を管理',
+  },
+  confirm_message: {
+    'zh-CN': '即将打开 ZZZeroUID 提供的抽卡与角色管理页面。确认后侧边栏会收起。',
+    'en-US': 'Open the ZZZeroUID gacha and agent manager. The sidebar will collapse.',
+    'ja-JP': 'ZZZeroUID のガチャ／エージェント管理ページを開きます。サイドバーは折りたたまれます。',
+  },
+  icon: 'layout-dashboard',
+};
+
 export const generatePluginList = () =>
   PLUGIN_DEFS.map((p) => ({
     id: p.id,
@@ -214,6 +237,7 @@ export const generatePluginList = () =>
     status: p.status,
     icon: demoPlaceholderImage(`plugin-${p.id}`),
     commit: hashSeed(p.id).toString(16).slice(0, 7),
+    pages: p.id === 'ZZZeroUID' ? [DEMO_ZZZ_PAGE] : [],
   }));
 
 /** 单个插件详情：含多种 option_type 的配置项，把配置面板撑满。 */
@@ -247,6 +271,7 @@ export const generatePluginDetail = (name: string) => {
       welcome_text: cfg('欢迎使用早柚核心~', '', 'str', '欢迎语', '新成员入群欢迎文案'),
     },
     config_names: ['基础配置', '高级配置'],
+    pages: base.id === 'ZZZeroUID' ? [DEMO_ZZZ_PAGE] : [],
     service_config: {
       enabled: base.enabled,
       pm: 6,

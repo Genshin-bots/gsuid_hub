@@ -147,7 +147,11 @@ const isGlass = style === 'glassmorphism';
 - 表格在移动端用卡片布局替代（`hidden md:block` / `md:hidden` 双布局，见 [§08 页面模式](./08-page-patterns.md)）。
 - 表单字段移动端单列、桌面端多列（`grid grid-cols-1 md:grid-cols-2`）。
 
-## 3.7 主题相关修改入口
+## 3.7 插件 iframe 跟随 Hub 主题
+
+`PluginViewPage` 把当前 `mode` / `style` / CSS 变量 `postMessage` 给插件页（`gshub:theme`），切主题 **不重载** iframe。协议与变量名见 Core 插件 SKILL §22.3.1、`src/lib/pluginPage.ts` 的 `buildHubThemeMessage`。
+
+## 3.8 主题相关修改入口
 
 - 改颜色预设 → `ThemeContext.tsx`
 - 改 Tailwind 颜色映射 → `tailwind.config.ts`

@@ -16,6 +16,7 @@ import HomePage from "@/pages/HomePage";
 import Dashboard from "@/pages/Dashboard";
 import DatabasePage from "@/pages/DatabasePage";
 import PluginsPage from "@/pages/PluginsPage";
+import PluginViewPage from "@/pages/PluginViewPage";
 import LogsPage from "@/pages/LogsPage";
 import TracesPage from "@/pages/TracesPage";
 import HttpTracesPage from "@/pages/HttpTracesPage";
@@ -115,6 +116,7 @@ function AppRoutes() {
         <Route path="dashboard" element={<Dashboard />} />
         <Route path="database" element={<AdminRoute><DatabasePage /></AdminRoute>} />
         <Route path="plugins" element={<PluginsPage />} />
+        <Route path="plugin-view/:pluginId/:pageId?" element={<PluginViewPage />} />
         <Route path="logs" element={<LogsPage />} />
         <Route path="traces" element={<TracesPage />} />
         <Route path="http-traces" element={<HttpTracesPage />} />

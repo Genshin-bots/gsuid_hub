@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
@@ -23,13 +24,29 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Settings, Loader2, ChevronDown, Save, Server, LayoutGrid, Users, Shield, Filter, Zap, MessageSquare, Key, Command, Package, RotateCw, Download, Sliders, Cog, Database, Globe, Bell, Lock, Palette, FileText, Layers, Wrench } from 'lucide-react';
+import { Settings, Loader2, ChevronDown, Save, Server, LayoutGrid, Users, Shield, Filter, Zap, MessageSquare, Key, Command, Package, RotateCw, Download, Sliders, Cog, Database, Globe, Bell, Lock, Palette, FileText, Layers, Wrench, AppWindow } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ConfigField, ConfigFieldDefinition, ConfigValue, ConfigFieldType, RepeatGroupField, RepeatGroupItem } from '@/components/config';
-import { pluginsApi, gitUpdateApi, Plugin, ServiceConfig, SvItem, SvCommand, PluginConfigItem, PluginConfigGroup, PluginListItem } from '@/lib/api';
+import { pluginsApi, gitUpdateApi, Plugin, ServiceConfig, SvItem, SvCommand, PluginConfigItem, PluginConfigGroup, PluginListItem, PluginPageMeta } from '@/lib/api';
 import { toast } from 'sonner';
 import { PinnedPage } from '@/components/layout/PinnedPage';
 import { PluginIcon } from '@/components/ui/plugin-icon';
+import {
+  matchPluginListId,
+  pickPluginPageText,
+  pluginViewPath,
+  pluginsListPath,
+  readPluginsListPluginId,
+  setSkipPluginPageConfirm,
+  shouldSkipPluginPageConfirm,
+} from '@/lib/pluginPage';
 
 // 命令类型颜色映射 - 提取为模块级常量，避免每次渲染重建
 const CMD_TYPE_COLORS: Record<string, string> = {
@@ -354,10 +371,14 @@ const convertToPlugin = (plugin: Plugin): any => {
 export default function PluginsPage() {
   const { style } = useTheme();
   const isGlass = style === 'glassmorphism';
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [pluginList, setPluginList] = useState<PluginListItem[]>([]);
   const [plugins, setPlugins] = useState<Plugin[]>([]);
-  const [selectedPluginId, setSelectedPluginId] = useState<string>('');
+  const [selectedPluginId, setSelectedPluginId] = useState<string>(
+    () => readPluginsListPluginId(searchParams.toString()),
+  );
   
   // 用于跟踪当前正在加载的插件ID，防止竞态条件
   const loadingPluginIdRef = useRef<string | null>(null);
@@ -367,6 +388,9 @@ export default function PluginsPage() {
   const [isSavingConfig, setIsSavingConfig] = useState(false);
   const [isSavingService, setIsSavingService] = useState(false);
   const [isReloadingPlugin, setIsReloadingPlugin] = useState(false);
+  const [pageDialogOpen, setPageDialogOpen] = useState(false);
+  const [pendingPage, setPendingPage] = useState<PluginPageMeta | null>(null);
+  const [dontShowAgain, setDontShowAgain] = useState(false);
 
   // 更新全部插件相关状态
   const [updateAllDialogOpen, setUpdateAllDialogOpen] = useState(false);
@@ -392,6 +416,35 @@ export default function PluginsPage() {
   const [editedEnabled, setEditedEnabled] = useState<boolean>(true);
 
   const selectedPlugin = plugins.find((p) => p.id === selectedPluginId);
+  const selectedPages = useMemo(() => {
+    const listed = pluginList.find((p) => p.id === selectedPluginId);
+    if (listed?.pages && listed.pages.length > 0) return listed.pages;
+    return selectedPlugin?.pages ?? [];
+  }, [pluginList, selectedPluginId, selectedPlugin]);
+
+  const goToPluginPage = useCallback((page: PluginPageMeta) => {
+    const returnId = selectedPluginId || page.plugin_id;
+    navigate(pluginViewPath(page), { state: { from: pluginsListPath(returnId), page } });
+  }, [navigate, selectedPluginId]);
+
+  const requestOpenPluginPage = useCallback((page: PluginPageMeta) => {
+    if (shouldSkipPluginPageConfirm(page.plugin_id, page.id)) {
+      goToPluginPage(page);
+      return;
+    }
+    setDontShowAgain(false);
+    setPendingPage(page);
+    setPageDialogOpen(true);
+  }, [goToPluginPage]);
+
+  const confirmOpenPluginPage = useCallback(() => {
+    if (!pendingPage) return;
+    if (dontShowAgain) {
+      setSkipPluginPageConfirm(pendingPage.plugin_id, pendingPage.id, true);
+    }
+    goToPluginPage(pendingPage);
+    setPageDialogOpen(false);
+  }, [pendingPage, dontShowAgain, goToPluginPage]);
 
   // 预计算所有 SV 命令的去重汇总列表
   const allCommands = useMemo(() => {
@@ -432,9 +485,12 @@ export default function PluginsPage() {
       setIsLoading(true);
       const data = await pluginsApi.getPluginList();
       setPluginList(data);
-      
-      // If has plugins and none selected, select first
-      if (data.length > 0 && !selectedPluginId) {
+
+      const wanted = readPluginsListPluginId(searchParams.toString()) || selectedPluginId;
+      const matched = matchPluginListId(data, wanted);
+      if (matched) {
+        setSelectedPluginId(matched);
+      } else if (data.length > 0 && !selectedPluginId) {
         setSelectedPluginId(data[0].id);
       }
     } catch (error) {
@@ -512,6 +568,14 @@ export default function PluginsPage() {
   useEffect(() => {
     fetchPluginList();
   }, []);
+
+  useEffect(() => {
+    if (!selectedPluginId) return;
+    if (readPluginsListPluginId(searchParams.toString()) === selectedPluginId) return;
+    const next = new URLSearchParams(searchParams);
+    next.set('plugin', selectedPluginId);
+    setSearchParams(next, { replace: true });
+  }, [selectedPluginId, searchParams, setSearchParams]);
 
   // Fetch detail when selected plugin changes
   useEffect(() => {
@@ -907,6 +971,32 @@ export default function PluginsPage() {
                 <p className="text-sm text-muted-foreground">{selectedPlugin.description}</p>
               </div>
             </div>
+            {selectedPages.length === 1 && (
+              <Button
+                className="gap-2 shrink-0 h-9"
+                onClick={() => requestOpenPluginPage(selectedPages[0])}
+              >
+                <AppWindow className="w-4 h-4" />
+                {pickPluginPageText(selectedPages[0].title, language, t('plugins.openPluginPage'))}
+              </Button>
+            )}
+            {selectedPages.length > 1 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button className="gap-2 shrink-0 h-9">
+                    <AppWindow className="w-4 h-4" />
+                    {t('plugins.openPluginPage')}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {selectedPages.map((page) => (
+                    <DropdownMenuItem key={page.id} onClick={() => requestOpenPluginPage(page)}>
+                      {pickPluginPageText(page.title, language, page.id)}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
 
           <CardContent className="pt-0 space-y-6">
@@ -1511,6 +1601,35 @@ export default function PluginsPage() {
           </CardContent>
         </Card>
       )}
+
+      <AlertDialog open={pageDialogOpen} onOpenChange={setPageDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('plugins.openPluginPageTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pickPluginPageText(
+                pendingPage?.confirm_message,
+                language,
+                t('plugins.openPluginPageDesc'),
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer select-none">
+            <Checkbox
+              id="plugin-page-dont-show"
+              checked={dontShowAgain}
+              onCheckedChange={(checked) => setDontShowAgain(checked === true)}
+            />
+            {t('plugins.dontShowAgain')}
+          </label>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmOpenPluginPage}>
+              {t('plugins.openPluginPageConfirm')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* 更新全部插件确认对话框 */}
       <AlertDialog open={updateAllDialogOpen} onOpenChange={setUpdateAllDialogOpen}>

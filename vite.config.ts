@@ -240,6 +240,10 @@ export default defineConfig(({ command, mode }) => {
         target: "http://localhost:8765",
         changeOrigin: true,
       },
+      "/plugin-pages": {
+        target: "http://localhost:8765",
+        changeOrigin: true,
+      },
       "/ws": {
         target: "http://localhost:8765",
         ws: true,

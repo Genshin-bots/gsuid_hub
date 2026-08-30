@@ -87,5 +87,11 @@
     "7": "权限较低",
     "8": "黑名单"
   },
-  "loadPluginDetailFailed": "无法加载插件详情"
+  "loadPluginDetailFailed": "无法加载插件详情",
+  "openPluginPage": "打开插件页面",
+  "openPluginPageTitle": "跳转到插件页面？",
+  "openPluginPageConfirm": "打开页面",
+  "openPluginPageDesc": "即将打开插件提供的页面进行配置。确认后侧边栏会收起，并以嵌入方式打开。可通过顶栏返回。",
+  "dontShowAgain": "下次不再弹出此提示",
+  "pluginPageBack": "返回插件配置"
 }

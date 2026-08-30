@@ -87,5 +87,11 @@
     "7": "権限やや低",
     "8": "ブラックリスト"
   },
-  "loadPluginDetailFailed": "プラグイン詳細の読み込みに失敗しました"
+  "loadPluginDetailFailed": "プラグイン詳細の読み込みに失敗しました",
+  "openPluginPage": "プラグインページを開く",
+  "openPluginPageTitle": "プラグインページに移動しますか？",
+  "openPluginPageConfirm": "ページを開く",
+  "openPluginPageDesc": "プラグインが提供するページを開きます。サイドバーは折りたたまれ、ページは埋め込み表示されます。ヘッダーから戻れます。",
+  "dontShowAgain": "次回から表示しない",
+  "pluginPageBack": "プラグイン設定に戻る"
 }

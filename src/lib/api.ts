@@ -231,6 +231,7 @@ export interface Plugin {
   config_names?: string[];  // 配置名称列表，用于判断是否需要显�?toggle group
   service_config?: ServiceConfig;
   sv_list?: SvItem[];
+  pages?: PluginPageMeta[];
 }
 
 // Plugin config item type
@@ -798,6 +799,17 @@ export const liveChatApi = {
 // ===================
 
 // 插件列表项（轻量级）
+export interface PluginPageMeta {
+  id: string;
+  plugin: string;
+  plugin_id: string;
+  path: string;
+  title: Record<string, string>;
+  description: Record<string, string>;
+  confirm_message: Record<string, string>;
+  icon?: string;
+}
+
 export interface PluginListItem {
   id: string;
   name: string;
@@ -806,6 +818,7 @@ export interface PluginListItem {
   status: string;
   icon?: string;
   commit?: string;
+  pages?: PluginPageMeta[];
 }
 
 // ===================
