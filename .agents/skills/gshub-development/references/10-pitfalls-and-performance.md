@@ -485,6 +485,16 @@ useEffect(() => {
 ### B.5 毛玻璃
 - `backdrop-filter` GPU 密集，避免叠在长列表每一项；低端设备/设置中可提供关闭选项。
 
+### B.6 生产包体积与静态资源（gzip / 缓存 / 懒加载）★★
+
+`pnpm build` 产物由 Core 挂在 `/app/`。体积和首屏由三件事一起决定：
+
+1. **路由懒加载（本仓库）**：`App.tsx` 里业务页和 `AppLayout` 必须 `React.lazy`。`Login` 保持静态 import（未登录首屏）。`AppLayout` 的 `<Outlet />` 外包 `<Suspense>`，避免切页时整棵壳闪烁。禁止把 50+ 页面静态 import 进入口——否则 ECharts / Sigma / markdown 会打进 3MB+ 主包。
+2. **预压缩（本仓库）**：`precompressDist` 在 `closeBundle` 为 js/css/html/json/svg 写 `.gz` / `.br`。只生成文件不够，Core 必须按 `Accept-Encoding` 选文件并设 `Content-Encoding`（协商与缓存头在 gsuid_core，不在本仓库落地）。
+3. **缓存头（gsuid_core，单独提交）**：`assets/**`（带 hash）→ `Cache-Control: public, max-age=31536000, immutable`；`index.html` / `version.json` → `no-cache`。**禁止**给 HTML 一年 immutable，否则升级后用户继续请求已删除的旧 hash。
+
+新增页面：继续在 `App.tsx` 用 `lazy(() => import('@/pages/XXXPage'))` 注册，不要改回静态 import。
+
 ### 快速检查清单
 - [ ] 列表 >50 项考虑虚拟滚动
 - [ ] 图片懒加载与适当缓存
@@ -509,7 +519,7 @@ useEffect(() => {
 - [ ] 三语言 JSON 同步 + 必要时三个 `index.ts`；leaf key 对齐（跑自查命令）
 - [ ] 插值用 `t(key, params)`
 - [ ] 侧边栏 `getNavItems` 项带稳定 `id`；新图标进 `ICON_MAP`（[§09](./09-sidebar-navigation.md)）
-- [ ] `App.tsx` 注册路由
+- [ ] `App.tsx` 用 `lazy(() => import('@/pages/XXXPage'))` 注册路由（禁止静态 import 页面，B.6）
 - [ ] 配置页脏检查同时比 `config` 与 `rawConfig`，原始快照等全部加载完再设（[§07](./07-config-pages-and-state.md)）
 - [ ] 双态 UI 的动作/图标/文案都按同一条件分支（P-4）
 - [ ] 三元 + 字符串拼接整体加括号（P-1）
