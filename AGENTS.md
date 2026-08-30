@@ -32,7 +32,7 @@
 ├── .agents/skills/                # 开发文档 Skill（给 Agent 按任务加载）
 │   └── gshub-development/
 ├── docs/                          # 变更纪要等（非入门；Skill 已迁走）
-├── public/                        # 任意构建都会拷入产物
+├── public/                        # 任意构建都会拷入产物（含 gshub-plugin.js 插件页 SDK）
 ├── demo-assets/                   # 仅 demo 构建拷入（表情包 / 插件 ICON）
 ├── src/
 │   ├── App.tsx                    # HashRouter 路由表

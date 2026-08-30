@@ -1,4 +1,4 @@
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin, type ViteDevServer } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
@@ -7,6 +7,27 @@ import fs from "fs";
 // 读取 package.json 获取版本号
 const packageJsonPath = path.resolve(__dirname, "package.json");
 const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf-8"));
+
+const PLUGIN_SDK_DEV_URL = "/plugin-pages/_sdk/gshub-plugin.js";
+
+/** Hub-dev 下 /plugin-pages 会代理到 Core；SDK 源在 public/，必须先于代理本地提供。 */
+function pluginSdkDevPlugin(): Plugin {
+  const sdkFile = path.resolve(__dirname, "public/gshub-plugin.js");
+  return {
+    name: "plugin-sdk-dev",
+    configureServer(server: ViteDevServer) {
+      server.middlewares.use((req, res, next) => {
+        const url = (req.url ?? "").split("?")[0];
+        if (url !== PLUGIN_SDK_DEV_URL) {
+          next();
+          return;
+        }
+        res.setHeader("Content-Type", "application/javascript; charset=utf-8");
+        fs.createReadStream(sdkFile).pipe(res);
+      });
+    },
+  };
+}
 
 // ============================================================================
 // stripThesvgVariantsPlugin
@@ -252,6 +273,7 @@ export default defineConfig(({ command, mode }) => {
   },
   plugins: [
     react(),
+    pluginSdkDevPlugin(),
     mode === "development" && componentTagger(),
     // 自定义插件：构建完成后生成 version.json
     {

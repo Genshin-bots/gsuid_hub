@@ -260,6 +260,7 @@ window.location.href = getLoginPath();  // 开发 → /login，生产 → /app/l
 | `src/pages/LiveChatPage.tsx` | Live Chat 编排页（`/live-chat`，page-fill） |
 | `src/pages/PluginViewPage.tsx` | 插件自带页 iframe（`/plugin-view/:pluginId/:pageId?`，page-fill，进页收起侧栏） |
 | `src/lib/pluginPage.ts` | 插件页确认框「下次不再弹出」+ iframe src + Hub 主题 `postMessage`（`gshub:theme`） |
+| `public/gshub-plugin.js` | 插件 iframe SDK 源文件；build 进 dist，Core 挂 `/plugin-pages/_sdk/gshub-plugin.js` |
 | `src/pages/AISkillsPage.tsx` `AIMemoryPage.tsx` | **排版标准参考页**（见 [§04](./04-page-layout-spec.md)） |
 
 ## 1.9 新增页面标准步骤
