@@ -40,7 +40,7 @@ function LayoutHeader() {
           <span className="font-semibold">{brandTitle}</span>
           {/* rounded-md 挂 --radius，与侧栏版本号一致随主题圆角强度变化 */}
           <Badge variant="default" className="rounded-md text-xs font-medium ml-1">
-            v{import.meta.env.PACKAGE_VERSION || '0.1.3'}
+            v{import.meta.env.PACKAGE_VERSION || '0.2.0'}
           </Badge>
         </div>
       </div>

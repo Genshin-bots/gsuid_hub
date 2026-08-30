@@ -257,6 +257,16 @@
 
 ---
 
+## 二点十一、2026-08 v0.2.0 生产包拆分
+
+| 改动类型 | 路径 | 说明 |
+|---|---|---|
+| **版本** | `package.json` / `README.md` / 侧栏兜底 | **v0.1.3 → v0.2.0** |
+| **路由懒加载** | `App.tsx` / `AppLayout` | 业务页 + 布局 `React.lazy`；登录页保持静态 import |
+| **预压缩** | `src/lib/staticAssets.ts` | 构建写出 `.gz` / `.br`；Core `static_serve.py` 按 `Accept-Encoding` 协商 |
+
+---
+
 ## 三、后端已具备但前端尚未覆盖 / 覆盖薄弱的板块（"待补"清单）
 
 > 这是 2026-07-20 一次盘点结果。**与 gsuid_core 后端端点的对照**（46 个 API 文件、约 250 端点）。

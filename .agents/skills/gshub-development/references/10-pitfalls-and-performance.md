@@ -490,8 +490,8 @@ useEffect(() => {
 `pnpm build` 产物由 Core 挂在 `/app/`。体积和首屏由三件事一起决定：
 
 1. **路由懒加载（本仓库）**：`App.tsx` 里业务页和 `AppLayout` 必须 `React.lazy`。`Login` 保持静态 import（未登录首屏）。`AppLayout` 的 `<Outlet />` 外包 `<Suspense>`，避免切页时整棵壳闪烁。禁止把 50+ 页面静态 import 进入口——否则 ECharts / Sigma / markdown 会打进 3MB+ 主包。
-2. **预压缩（本仓库）**：`precompressDist` 在 `closeBundle` 为 js/css/html/json/svg 写 `.gz` / `.br`。只生成文件不够，Core 必须按 `Accept-Encoding` 选文件并设 `Content-Encoding`（协商与缓存头在 gsuid_core，不在本仓库落地）。
-3. **缓存头（gsuid_core，单独提交）**：`assets/**`（带 hash）→ `Cache-Control: public, max-age=31536000, immutable`；`index.html` / `version.json` → `no-cache`。**禁止**给 HTML 一年 immutable，否则升级后用户继续请求已删除的旧 hash。
+2. **预压缩（本仓库）**：`precompressDist` 在 `closeBundle` 为 js/css/html/json/svg 写 `.gz` / `.br`。只生成文件不够，Core 必须按 `Accept-Encoding` 选文件并设 `Content-Encoding`。
+3. **缓存头（gsuid_core `static_serve.py`）**：`assets/**`（带 hash）→ `Cache-Control: public, max-age=31536000, immutable`；`index.html` / `version.json` → `no-cache`。**禁止**给 HTML 一年 immutable，否则升级后用户继续请求已删除的旧 hash。
 
 新增页面：继续在 `App.tsx` 用 `lazy(() => import('@/pages/XXXPage'))` 注册，不要改回静态 import。
 

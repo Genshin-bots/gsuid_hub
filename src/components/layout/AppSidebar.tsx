@@ -495,7 +495,7 @@ export function AppSidebar() {
               <div className="flex items-center gap-1 whitespace-nowrap">
                 <span className="font-bold text-lg">{brandTitle}</span>
                 {/* rounded-md 挂 --radius，随主题杂项「圆角强度」变化；覆盖 Badge 默认的 rounded-full */}
-                <Badge variant="default" className="rounded-md text-xs font-medium shrink-0">v{import.meta.env.PACKAGE_VERSION || '0.1.3'}</Badge>
+                <Badge variant="default" className="rounded-md text-xs font-medium shrink-0">v{import.meta.env.PACKAGE_VERSION || '0.2.0'}</Badge>
               </div>
               <span className="text-xs text-muted-foreground whitespace-nowrap">{brandSubtitle}</span>
             </div>

@@ -34,7 +34,7 @@ import {
   hoverIconGroupClass,
 } from '@/components/layout/SidebarHoverIcon';
 
-const frontendVersion = PACKAGE_VERSION || '0.1.3';
+const frontendVersion = PACKAGE_VERSION || '0.2.0';
 
 // Build HomePage card classes that follow the global theme:
 // - `glass-card` (theme system: opacity + blur intensity, dark/light)
