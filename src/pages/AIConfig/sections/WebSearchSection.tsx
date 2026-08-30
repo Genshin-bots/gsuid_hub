@@ -14,14 +14,10 @@ import {
   Settings2,
   Layers,
 } from 'lucide-react';
-import {
-  Tavily,
-  Exa,
-  JinaAi,
-  McpModelContextProtocol,
-  Minimax,
-} from '@thesvg/react';
+import { Tavily, Exa, JinaAi, McpModelContextProtocol, Minimax } from '@thesvg/react';
 import { cn } from '@/lib/utils';
+import anysearchIcon from '@/assets/search-providers/anysearch.ico';
+import firecrawlIcon from '@/assets/search-providers/firecrawl.ico';
 import {
   filterOutPrimaryProvider,
   HeadingWithHelp,
@@ -29,14 +25,35 @@ import {
   sameProviderId,
 } from '../shared';
 
+function FaviconIcon({ src, alt }: { src: string; alt: string }) {
+  return (
+    <img
+      src={src}
+      alt={alt}
+      width={14}
+      height={14}
+      className="h-3.5 w-3.5 shrink-0 rounded-[2px] object-contain"
+      draggable={false}
+    />
+  );
+}
+
 /**
- * 网络搜索提供方 -> 品牌图标（@thesvg/react 官方彩版）。
+ * 网络搜索提供方 -> 品牌图标。
+ * Tavily / Exa / Jina / MCP / MiniMax 走 @thesvg/react；
+ * AnySearch / Firecrawl 无 thesvg 条目，用官方 favicon。
  */
 function getSearchProviderIcon(provider: string) {
   const key = provider.trim().toLowerCase();
   if (key === 'tavily') return <Tavily width={14} height={14} variant="default" />;
   if (key === 'exa') return <Exa width={14} height={14} variant="default" />;
   if (key === 'jina') return <JinaAi width={14} height={14} variant="default" />;
+  if (key === 'anysearch') {
+    return <FaviconIcon src={anysearchIcon} alt="AnySearch" />;
+  }
+  if (key === 'firecrawl') {
+    return <FaviconIcon src={firecrawlIcon} alt="Firecrawl" />;
+  }
   if (key === 'mcp' || key === 'modelcontextprotocol' || key === 'model_context_protocol') {
     return <McpModelContextProtocol width={14} height={14} variant="default" />;
   }
@@ -63,6 +80,7 @@ export interface WebSearchSectionProps {
   tavilyConfig?: { id: string; config: Record<string, PluginConfigItem> };
   exaConfig?: { id: string; config: Record<string, PluginConfigItem> };
   anysearchConfig?: { id: string; config: Record<string, PluginConfigItem> };
+  firecrawlConfig?: { id: string; config: Record<string, PluginConfigItem> };
   jinaConfig?: { id: string; config: Record<string, PluginConfigItem> };
   miniMaxConfig?: { id: string; config: Record<string, PluginConfigItem> };
 
@@ -113,19 +131,14 @@ function ConfigBlock({
     <div
       className={cn(
         'rounded-lg border p-4 space-y-3',
-        isPrimary
-          ? 'border-primary/30 bg-primary/5'
-          : 'border-dashed border-border/60 bg-muted/20',
+        isPrimary ? 'border-primary/30 bg-primary/5' : 'border-dashed border-border/60 bg-muted/20',
         className,
       )}
     >
       <div className="flex items-center gap-2 min-w-0">
         <Badge
           variant={isPrimary ? 'default' : 'outline'}
-          className={cn(
-            'shrink-0 text-[10px] h-5 px-1.5',
-            !isPrimary && 'text-muted-foreground',
-          )}
+          className={cn('shrink-0 text-[10px] h-5 px-1.5', !isPrimary && 'text-muted-foreground')}
         >
           {roleLabel}
         </Badge>
@@ -152,6 +165,7 @@ export function WebSearchSection({
   tavilyConfig,
   exaConfig,
   anysearchConfig,
+  firecrawlConfig,
   jinaConfig,
   miniMaxConfig,
   websearchMcpToolId,
@@ -184,10 +198,7 @@ export function WebSearchSection({
     websearchLbStrategy === 'error_switch' || websearchLbStrategy === 'auto_balance';
 
   /** 下方配置块 / Chip 已选展示：不含当前主用（大小写不敏感） */
-  const effectiveFallbacks = filterOutPrimaryProvider(
-    websearchFallbackOrder,
-    websearchProvider,
-  );
+  const effectiveFallbacks = filterOutPrimaryProvider(websearchFallbackOrder, websearchProvider);
 
   /** Chip 展示用 value：主用不显示为已选；成员资格需用户显式勾选，切主用不自动恢复 */
   const fallbackChipValue = effectiveFallbacks;
@@ -242,11 +253,24 @@ export function WebSearchSection({
           config={anysearchConfig.config}
           configId={anysearchConfig.id}
           onChange={onUpdateConfig}
-          layout={[
-            ['api_key'],
-            ['max_results', 'timeout'],
-            ['zone', 'language'],
-          ]}
+          layout={[['api_key'], ['max_results', 'timeout'], ['zone', 'language']]}
+        />
+      );
+    }
+    if (key === 'firecrawl') {
+      if (!firecrawlConfig) {
+        return (
+          <p className="text-xs text-muted-foreground">
+            {t('aiConfig.serviceProvider.configNotAvailable')}
+          </p>
+        );
+      }
+      return (
+        <DynamicConfigPanel
+          config={firecrawlConfig.config}
+          configId={firecrawlConfig.id}
+          onChange={onUpdateConfig}
+          layout={[['api_key'], ['max_results', 'timeout']]}
         />
       );
     }
@@ -263,11 +287,7 @@ export function WebSearchSection({
           config={jinaConfig.config}
           configId={jinaConfig.id}
           onChange={onUpdateConfig}
-          layout={[
-            ['api_key'],
-            ['max_results', 'timeout'],
-            ['search_base_url', 'reader_base_url'],
-          ]}
+          layout={[['api_key'], ['max_results', 'timeout'], ['search_base_url', 'reader_base_url']]}
         />
       );
     }
@@ -408,9 +428,7 @@ export function WebSearchSection({
             icon: STRATEGY_ICONS[s] ?? <GitBranch className="w-3.5 h-3.5" />,
           }))}
           value={[websearchLbStrategy || 'error_switch']}
-          onValueChange={(newValue) =>
-            onChangeLbStrategy(newValue[0] || 'error_switch')
-          }
+          onValueChange={(newValue) => onChangeLbStrategy(newValue[0] || 'error_switch')}
           selectMode="single"
           showRadioIndicator
         />
@@ -429,9 +447,7 @@ export function WebSearchSection({
               const isPrimary = sameProviderId(p, websearchProvider);
               return {
                 value: p,
-                label: isPrimary
-                  ? `${p} (${t('aiConfig.serviceProvider.rolePrimary')})`
-                  : p,
+                label: isPrimary ? `${p} (${t('aiConfig.serviceProvider.rolePrimary')})` : p,
                 icon: getSearchProviderIcon(p),
                 // 主用：可见、禁用、不可勾选；不参与已选 / 不写入 fallback 字段
                 disabled: isPrimary,
@@ -440,9 +456,7 @@ export function WebSearchSection({
             value={fallbackChipValue}
             onValueChange={(visibleSelected) => {
               // 绝不把当前主用写入 fallback_order（切换主用时由父级静默剔除）
-              onChangeFallbackOrder(
-                filterOutPrimaryProvider(visibleSelected, websearchProvider),
-              );
+              onChangeFallbackOrder(filterOutPrimaryProvider(visibleSelected, websearchProvider));
             }}
             selectMode="multiple"
             allowEmpty

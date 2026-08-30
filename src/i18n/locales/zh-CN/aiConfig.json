@@ -206,6 +206,7 @@
     "tavilyConfig": "Tavily配置",
     "exaConfig": "Exa配置",
     "anysearchConfig": "AnySearch配置",
+    "firecrawlConfig": "Firecrawl配置",
     "jinaConfig": "Jina 配置（s.jina.ai / r.jina.ai）",
     "miniMaxConfig": "MiniMax配置",
     "maxResults": "最大结果数",

@@ -1,5 +1,10 @@
 /// <reference types="vite/client" />
 
+declare module '*.ico' {
+  const src: string;
+  export default src;
+}
+
 declare const PACKAGE_VERSION: string;
 
 interface ImportMetaEnv {

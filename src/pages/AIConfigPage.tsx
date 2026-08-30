@@ -182,6 +182,16 @@ export default function AIConfigPage() {
     [configs],
   );
 
+  const firecrawlConfig = useMemo(
+    () =>
+      Object.values(configs).find(
+        (c) =>
+          c.name.includes('Firecrawl搜索配置') ||
+          c.full_name.includes('Firecrawl搜索配置'),
+      ),
+    [configs],
+  );
+
   const miniMaxConfig = useMemo(
     () =>
       Object.values(configs).find(
@@ -406,6 +416,7 @@ export default function AIConfigPage() {
   const websearchProviderOptions =
     (aiConfig?.config.websearch_provider?.options || [
       'AnySearch',
+      'Firecrawl',
       'Tavily',
       'Jina',
       'Exa',
@@ -915,6 +926,7 @@ export default function AIConfigPage() {
             tavilyConfig={tavilyConfig}
             exaConfig={exaConfig}
             anysearchConfig={anysearchConfig}
+            firecrawlConfig={firecrawlConfig}
             jinaConfig={jinaConfig}
             miniMaxConfig={miniMaxConfig}
             websearchMcpToolId={websearchMcpToolId}
