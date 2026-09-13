@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { generateTableData } from './demoMock';
+import { generateTableCsv, generateTableData } from './demoMock';
 
 describe('generateTableData search pagination', () => {
   it('returns later pages of the same filtered set instead of an empty page', () => {
@@ -53,5 +53,24 @@ describe('generateTableData search pagination', () => {
     for (const row of [...page1.items, ...page2.items]) {
       expect(String(row.task_name)).toContain('签到');
     }
+  });
+
+  it('exports every matching row, not just the current page', () => {
+    const params = new URLSearchParams({
+      page: '1',
+      per_page: '5',
+      filter_columns: 'task_name',
+      filter_values: '签到',
+    });
+    const page = generateTableData('Subscribe', params);
+    const csv = generateTableCsv('Subscribe', params);
+    const lines = csv.replace(/^\ufeff/, '').trimEnd().split('\n');
+    const dataLines = lines.slice(1);
+
+    expect(page.items.length).toBe(5);
+    expect(page.total).toBeGreaterThan(5);
+    expect(dataLines.length).toBe(page.total);
+    expect(lines[0]).toContain('task_name');
+    expect(dataLines.every((line) => line.includes('签到'))).toBe(true);
   });
 });

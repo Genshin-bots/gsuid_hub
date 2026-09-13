@@ -33,5 +33,9 @@
   "yes": "是",
   "no": "否",
   "addFilter": "添加筛选",
-  "paginationInfo": "共 {total} 条记录，第 {current} / {totalPages} 页"
+  "paginationInfo": "共 {total} 条记录，第 {current} / {totalPages} 页",
+  "exportCsv": "导出 CSV",
+  "exportCsvHint": "导出当前筛选条件下的全部记录，不只是当前页",
+  "exportCsvSuccess": "CSV 已开始下载",
+  "exportCsvFailed": "导出 CSV 失败"
 }

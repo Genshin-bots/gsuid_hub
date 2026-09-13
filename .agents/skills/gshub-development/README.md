@@ -38,7 +38,7 @@
 | `/login` | `Login.tsx` | RSA 公钥加密登录、初始化管理员、记住自定义 API Host | `auth_api.py`（`/api/auth/{login,register,admin/exists,me,pubkey}`） |
 | `/home` | `HomePage.tsx` | Hero 大标题、Bot 数、版本号、快捷入口 | `version_api.py`（`/api/version`）、`dashboard_api.py::bots` |
 | `/dashboard` | `Dashboard.tsx` | 关键指标、命令趋势、用户/群活跃、Bot 列表 | `dashboard_api.py`（`/api/dashboard/{metrics,commands,users-groups,daily/*,bots}`） |
-| `/database` | `DatabasePage.tsx` | 跨插件浏览表结构与数据，单条 CRUD | `database_api.py`（`/api/database/*`） |
+| `/database` | `DatabasePage.tsx` | 跨插件浏览表结构与数据，单条 CRUD，全表 CSV 导出（非当前页） | `database_api.py`（`/api/database/*`，含 `/export.csv` 流式导出） |
 | `/console` | `ConsolePage.tsx` | WebSocket 实时控制台 + 远程命令 + 日志级别筛选 | `web_api.py`（WS）、`system_api.py`（`/api/system/{info,health,restart,stop,resume}`）、`remote_command` |
 | `/live-chat` | `LiveChatPage.tsx` | **控制台内嵌适配器**（见 [§11](./references/11-live-chat.md)）：WS 早柚协议上报/下发、会话持久化、图文音视文件/按钮/引用/@/戳一戳/echo 回执 | WS `/ws/webconsole_livechat` + REST `/api/live-chat/*` |
 | `/logs` | `LogsPage.tsx` | 按日期 / 等级 / 来源 / 关键词分页查日志、上下文窗 | `logs_api.py`（`/api/logs*`，含 `/stream` SSE 与 `/config`） |

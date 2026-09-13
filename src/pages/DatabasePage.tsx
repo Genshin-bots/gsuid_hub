@@ -12,8 +12,8 @@ import { Switch } from '@/components/ui/switch';
 import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Search, Plus, Pencil, Trash2, Filter, RefreshCw, ChevronLeft, ChevronRight, Database, X, PlusCircle } from 'lucide-react';
-import { databaseApi, PluginDatabaseInfo, DatabaseTableInfo, DatabaseColumn, PaginatedData } from '@/lib/api';
+import { Search, Plus, Pencil, Trash2, Filter, RefreshCw, ChevronLeft, ChevronRight, Database, X, PlusCircle, Download } from 'lucide-react';
+import { databaseApi, getApiErrorMessage, PluginDatabaseInfo, DatabaseTableInfo, PaginatedData } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -36,6 +36,7 @@ export default function DatabasePage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isExporting, setIsExporting] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage, setPerPage] = useState(20);
 
@@ -281,6 +282,33 @@ export default function DatabasePage() {
     }
   };
 
+  const handleExportCsv = async () => {
+    if (!activeTable) return;
+    try {
+      setIsExporting(true);
+      const query = appliedQueryRef.current;
+      const blob = await databaseApi.exportCsv(
+        activeTable,
+        query.search,
+        query.filterColumns,
+        query.filterValues,
+      );
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${activeTable}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success(t('database.exportCsvSuccess'));
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, t('database.exportCsvFailed')));
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const handleCreate = () => {
     const emptyItem: Record<string, unknown> = {};
     columns.forEach((col) => {
@@ -484,8 +512,23 @@ export default function DatabasePage() {
                   {t('database.search')}
                 </Button>
 
-                {/* 刷新 + 新增按钮 - 推到最右 */}
+                {/* 导出 / 刷新 / 新增 - 推到最右 */}
                 <div className="flex flex-wrap gap-2 ml-auto">
+                  <Button
+                    onClick={() => void handleExportCsv()}
+                    variant="outline"
+                    size="sm"
+                    className="h-10"
+                    disabled={isExporting}
+                    title={t('database.exportCsvHint')}
+                  >
+                    {isExporting ? (
+                      <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+                    ) : (
+                      <Download className="h-4 w-4 mr-1" />
+                    )}
+                    {t('database.exportCsv')}
+                  </Button>
                   <Button onClick={() => fetchTableData(activeTable, currentPage, perPage)} variant="outline" size="sm" className="h-10">
                     <RefreshCw className="h-4 w-4 mr-1" />
                     {t('database.refresh')}

@@ -669,7 +669,18 @@ class ApiClient {
     }
 
     if (!response.ok) {
-      throw new Error(`下载失败: HTTP ${response.status}`);
+      let errorMessage = `下载失败: HTTP ${response.status}`;
+      try {
+        const text = await response.text();
+        try {
+          errorMessage = getApiErrorMessage(JSON.parse(text), errorMessage);
+        } catch {
+          if (text) errorMessage = text.slice(0, 300);
+        }
+      } catch {
+        // ignore parse failures; keep HTTP status fallback
+      }
+      throw new Error(errorMessage);
     }
 
     return response.blob();
@@ -1788,6 +1799,27 @@ export const databaseApi = {
     }
     
     return api.get<PaginatedData>(`/api/database/table/${tableName}/data?${params.toString()}`);
+  },
+
+  exportCsv: (
+    tableName: string,
+    search?: string,
+    filterColumns?: string[],
+    filterValues?: string[],
+  ) => {
+    const params = new URLSearchParams();
+    if (search) {
+      params.set('search', search);
+    }
+    if (filterColumns && filterColumns.length > 0) {
+      params.set('filter_columns', filterColumns.join(','));
+    }
+    if (filterValues && filterValues.length > 0) {
+      params.set('filter_values', filterValues.join(','));
+    }
+    const qs = params.toString();
+    const path = `/api/database/table/${tableName}/export.csv`;
+    return api.downloadBlob(qs ? `${path}?${qs}` : path);
   },
 
   createRecord: (tableName: string, data: Record<string, unknown>) =>

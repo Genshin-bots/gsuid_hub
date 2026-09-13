@@ -33,5 +33,9 @@
   "yes": "Yes",
   "no": "No",
   "addFilter": "Add filter",
-  "paginationInfo": "Total {total} records, page {current} / {totalPages}"
+  "paginationInfo": "Total {total} records, page {current} / {totalPages}",
+  "exportCsv": "Export CSV",
+  "exportCsvHint": "Export every matching record, not just this page",
+  "exportCsvSuccess": "CSV download started",
+  "exportCsvFailed": "Failed to export CSV"
 }

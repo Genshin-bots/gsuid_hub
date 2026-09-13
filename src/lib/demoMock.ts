@@ -761,11 +761,16 @@ export const generateTableMetadata = (tableName: string) => {
   return t ? tableInfo(t) : { table_name: tableName, label: tableName, pk_name: 'id', columns: [] };
 };
 
-export const generateTableData = (tableName: string, params: URLSearchParams) => {
+const csvEscape = (value: unknown): string => {
+  if (value == null) return '';
+  const s = typeof value === 'boolean' ? (value ? 'true' : 'false') : String(value);
+  if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+  return s;
+};
+
+export const filterTableRows = (tableName: string, params: URLSearchParams) => {
   const t = findTable(tableName);
-  const page = Number(params.get('page') ?? 1);
-  const perPage = Number(params.get('per_page') ?? 20);
-  if (!t) return { items: [], total: 0, page, per_page: perPage };
+  if (!t) return { table: undefined, rows: [] as Record<string, unknown>[] };
   let rows = dbRows(t);
   const search = params.get('search');
   if (search) {
@@ -786,8 +791,23 @@ export const generateTableData = (tableName: string, params: URLSearchParams) =>
       }),
     );
   }
+  return { table: t, rows };
+};
+
+export const generateTableData = (tableName: string, params: URLSearchParams) => {
+  const page = Number(params.get('page') ?? 1);
+  const perPage = Number(params.get('per_page') ?? 20);
+  const { rows } = filterTableRows(tableName, params);
   const start = (page - 1) * perPage;
   return { items: rows.slice(start, start + perPage), total: rows.length, page, per_page: perPage };
+};
+
+export const generateTableCsv = (tableName: string, params: URLSearchParams) => {
+  const { table, rows } = filterTableRows(tableName, params);
+  if (!table) return '\ufeff\n';
+  const header = table.columns.map((c) => csvEscape(c.name)).join(',');
+  const body = rows.map((r) => table.columns.map((c) => csvEscape(r[c.name])).join(',')).join('\n');
+  return `\ufeff${header}\n${body}\n`;
 };
 
 // ===================

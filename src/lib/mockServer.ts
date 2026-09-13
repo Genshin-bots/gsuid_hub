@@ -34,6 +34,7 @@ import {
   generateDatabasePlugins,
   generateTableMetadata,
   generateTableData,
+  generateTableCsv,
   generateMemoryScopes,
   generateMemoryStats,
   generateMemoryEntities,
@@ -100,7 +101,7 @@ import {
 } from './demoMock';
 
 type Ctx = { url: URL; method: string; body: unknown };
-type Handler = (ctx: Ctx) => unknown;
+type Handler = (ctx: Ctx) => unknown | Response;
 interface Route {
   m: string;
   re: RegExp;
@@ -727,6 +728,21 @@ const routes: Route[] = [
   { m: 'GET', re: /^\/api\/database\/plugins$/, h: () => generateDatabasePlugins() },
   { m: 'GET', re: /^\/api\/database\/tables$/, h: () => [] },
   { m: 'GET', re: /^\/api\/database\/table\/([^/]+)\/data$/, h: ({ url }) => generateTableData(decodeURIComponent(url.pathname.match(/\/table\/([^/]+)\/data$/)![1]), url.searchParams) },
+  {
+    m: 'GET',
+    re: /^\/api\/database\/table\/([^/]+)\/export\.csv$/,
+    h: ({ url }) => {
+      const name = decodeURIComponent(url.pathname.match(/\/table\/([^/]+)\/export\.csv$/)![1]);
+      const csv = generateTableCsv(name, url.searchParams);
+      return new Response(csv, {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/csv; charset=utf-8',
+          'Content-Disposition': `attachment; filename="${name}.csv"`,
+        },
+      });
+    },
+  },
   { m: 'GET', re: /^\/api\/database\/table\/([^/]+)$/, h: ({ url }) => generateTableMetadata(decodeURIComponent(url.pathname.split('/').pop()!)) },
   { m: 'GET', re: /^\/api\/database\/([^/]+)\/tables$/, h: ({ url }) => { const id = decodeURIComponent(url.pathname.match(/\/database\/([^/]+)\/tables$/)![1]); return generateDatabasePlugins().find((p) => p.plugin_id === id) ?? null; } },
 
@@ -959,6 +975,10 @@ async function mockFetch(originalFetch: typeof fetch, input: RequestInfo | URL, 
   let payload: { status: number; msg: string; data: unknown };
   if (route) {
     const data = route.h({ url, method, body: safeJson(init?.body) });
+    if (data instanceof Response) {
+      await delay(120 + Math.floor(Math.random() * 180));
+      return data;
+    }
     payload = { status: 0, msg: 'ok', data };
   } else if (method === 'GET') {
     payload = { status: 0, msg: 'demo: not mocked', data: emptyFor(url.pathname) };
