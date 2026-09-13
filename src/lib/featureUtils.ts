@@ -252,11 +252,7 @@ export function filterToolsByDiagnostic(
 
 // ── Ops diagnostics helpers ──────────────────────────────────────
 
-export type TriggerOutcome =
-  | 'would_enter_ai'
-  | 'no_response'
-  | 'blocked'
-  | 'unknown';
+export type TriggerOutcome = 'would_enter_ai' | 'no_response' | 'blocked' | 'unknown';
 
 export function summarizeTriggerReplay(data: {
   outcome?: string;
@@ -289,7 +285,10 @@ export function summarizeTriggerReplay(data: {
   };
 }
 
-export function multimodalHealthLevel(util: number, workerRunning: boolean): 'ok' | 'warn' | 'critical' {
+export function multimodalHealthLevel(
+  util: number,
+  workerRunning: boolean,
+): 'ok' | 'warn' | 'critical' {
   if (!workerRunning && util > 0) return 'critical';
   if (util >= 0.85) return 'critical';
   if (util >= 0.5 || !workerRunning) return 'warn';
@@ -332,7 +331,9 @@ export function downloadJsonFilename(prefix: string, now = new Date()): string {
   return `${prefix}-${stamp}.json`;
 }
 
-export function oocHitLabel(hit: { category: string; matched: string[] } | null | undefined): string {
+export function oocHitLabel(
+  hit: { category: string; matched: string[] } | null | undefined,
+): string {
   if (!hit) return 'clean';
   return `${hit.category}:${(hit.matched || []).slice(0, 3).join(',')}`;
 }
@@ -373,11 +374,7 @@ function clampPositiveInt(n: number, fallback = 1): number {
  * Build the HTML img tag the BatchPush backend expects.
  * Backend: `base64_data = "base64://" + src.split(",")[-1]` and requires width/height strings.
  */
-export function buildBatchPushImageTag(
-  dataUrl: string,
-  width: number,
-  height: number,
-): string {
+export function buildBatchPushImageTag(dataUrl: string, width: number, height: number): string {
   const w = clampPositiveInt(width);
   const h = clampPositiveInt(height);
   // Ensure data URL still has a comma so split(",")[-1] yields pure base64.
@@ -386,11 +383,7 @@ export function buildBatchPushImageTag(
 }
 
 /** Short editor-only img tag (no base64). */
-export function buildBatchPushImagePlaceholder(
-  id: string,
-  width: number,
-  height: number,
-): string {
+export function buildBatchPushImagePlaceholder(id: string, width: number, height: number): string {
   const safeId = String(id).replace(/[^a-zA-Z0-9_-]/g, '');
   const w = clampPositiveInt(width);
   const h = clampPositiveInt(height);
@@ -401,10 +394,8 @@ export function makeBatchPushImageId(): string {
   return `bp_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
-const BP_PLACEHOLDER_RE =
-  /<img\b[^>]*\bdata-bp-id\s*=\s*["']([^"']+)["'][^>]*\/?>/gi;
-const BP_DATA_URL_IMG_RE =
-  /<img\b[^>]*\bsrc\s*=\s*["'](data:image\/[^"']+)["'][^>]*\/?>/gi;
+const BP_PLACEHOLDER_RE = /<img\b[^>]*\bdata-bp-id\s*=\s*["']([^"']+)["'][^>]*\/?>/gi;
+const BP_DATA_URL_IMG_RE = /<img\b[^>]*\bsrc\s*=\s*["'](data:image\/[^"']+)["'][^>]*\/?>/gi;
 
 /** Expand editor placeholders into backend-ready full img tags. */
 export function expandBatchPushBody(
@@ -491,9 +482,7 @@ export function insertTextAt(
 }
 
 /** Collect image Files from a DataTransfer (paste / drop). */
-export function collectImageFilesFromDataTransfer(
-  dt: DataTransfer | null | undefined,
-): File[] {
+export function collectImageFilesFromDataTransfer(dt: DataTransfer | null | undefined): File[] {
   if (!dt) return [];
   const out: File[] = [];
   if (dt.files && dt.files.length > 0) {
@@ -620,11 +609,37 @@ export function formatCompactMetric(n: number): string {
 }
 
 /** Pick latest date (YYYY-MM-DD) with metric > 0; null if none. */
-export function latestDateWithMetric(
-  metrics: Record<string, number>,
-): string | null {
+export function latestDateWithMetric(metrics: Record<string, number>): string | null {
   const dates = Object.keys(metrics)
     .filter((d) => (metrics[d] ?? 0) > 0)
     .sort();
   return dates.length > 0 ? dates[dates.length - 1]! : null;
+}
+
+/** Strip Python ExceptionGroup traceback gutter pipes (`| `) for readable display. */
+export function stripExceptionGroupGutters(text: string): string {
+  return text
+    .split(/\r?\n/)
+    .map((line) => line.replace(/^(\s*)\| ?/, '$1'))
+    .join('\n');
+}
+
+/** structlog TimeStamper is `%m-%d %H:%M:%S`; Date.parse without a year becomes 2001. */
+export function composeLogTimestamp(timestamp: string, date?: string): string {
+  const ts = timestamp.trim();
+  if (!ts) return '';
+  const yearMatch = date ? /^(\d{4})-\d{2}-\d{2}$/.exec(date.trim()) : null;
+  const year = yearMatch ? yearMatch[1] : '';
+  if (year && !ts.includes(year)) {
+    return `${year}-${ts}`;
+  }
+  return ts;
+}
+
+export function formatLogTimestamp(timestamp: string, date?: string, locale = 'zh-CN'): string {
+  const composed = composeLogTimestamp(timestamp, date);
+  if (!composed) return '';
+  const parsed = new Date(composed.includes('T') ? composed : composed.replace(' ', 'T'));
+  if (Number.isNaN(parsed.getTime())) return timestamp;
+  return parsed.toLocaleString(locale);
 }

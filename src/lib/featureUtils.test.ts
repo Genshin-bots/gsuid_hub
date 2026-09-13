@@ -11,6 +11,9 @@ import {
   getCommandColor,
   hashCommandName,
   latestDateWithMetric,
+  stripExceptionGroupGutters,
+  composeLogTimestamp,
+  formatLogTimestamp,
   normalizeBatchPushBodyImages,
   pruneBatchPushImageAssets,
   countToolDiagnostics,
@@ -113,7 +116,13 @@ describe('dates and stats', () => {
       },
       { date: '2026-07-02', data: {} },
     ]);
-    expect(series[0]).toMatchObject({ date: '2026-07-01', input: 1, output: 2, total: 3, userTurns: 0 });
+    expect(series[0]).toMatchObject({
+      date: '2026-07-01',
+      input: 1,
+      output: 2,
+      total: 3,
+      userTurns: 0,
+    });
     expect(series[1].total).toBe(0);
   });
 
@@ -227,8 +236,7 @@ describe('batch push image helpers', () => {
   });
 
   it('normalizes pasted data-URL imgs into placeholders', () => {
-    const raw =
-      '<p>x</p><img src="data:image/png;base64,AAAA" width="100" height="50" />';
+    const raw = '<p>x</p><img src="data:image/png;base64,AAAA" width="100" height="50" />';
     const { text, assets, extracted } = normalizeBatchPushBodyImages(raw);
     expect(extracted).toBe(1);
     expect(text).not.toContain('base64');
@@ -301,9 +309,46 @@ describe('dashboard command colors', () => {
   });
 
   it('picks latest date with positive metric', () => {
-    expect(
-      latestDateWithMetric({ '2026-01-01': 0, '2026-01-03': 10, '2026-01-02': 5 }),
-    ).toBe('2026-01-03');
+    expect(latestDateWithMetric({ '2026-01-01': 0, '2026-01-03': 10, '2026-01-02': 5 })).toBe(
+      '2026-01-03',
+    );
     expect(latestDateWithMetric({ a: 0 })).toBeNull();
+  });
+});
+
+describe('stripExceptionGroupGutters', () => {
+  it('removes ExceptionGroup pipe gutters and keeps traceback text', () => {
+    const raw = [
+      '  |   File "stdio.py", line 158, in stdout_reader',
+      '  |     await read_stream_writer.send(exc)',
+      '  | anyio.BrokenResourceError',
+      '    +------------------------------------',
+    ].join('\n');
+    const cleaned = stripExceptionGroupGutters(raw);
+    expect(cleaned).not.toContain('|');
+    expect(cleaned).toContain('File "stdio.py", line 158, in stdout_reader');
+    expect(cleaned).toContain('await read_stream_writer.send(exc)');
+    expect(cleaned).toContain('+------------------------------------');
+  });
+
+  it('leaves ordinary traceback lines unchanged', () => {
+    const raw = 'Traceback (most recent call last):\n  File "a.py", line 1, in <module>';
+    expect(stripExceptionGroupGutters(raw)).toBe(raw);
+  });
+});
+
+describe('composeLogTimestamp', () => {
+  it('prefixes MM-DD time with the log file year', () => {
+    expect(composeLogTimestamp('09-13 00:00:09', '2026-09-13')).toBe('2026-09-13 00:00:09');
+  });
+
+  it('does not double-prefix when year is already present', () => {
+    expect(composeLogTimestamp('2026-09-13 00:00:09', '2026-09-13')).toBe('2026-09-13 00:00:09');
+  });
+
+  it('formatLogTimestamp does not fall back to year 2001', () => {
+    const text = formatLogTimestamp('09-13 00:00:09', '2026-09-13', 'en-US');
+    expect(text).toContain('2026');
+    expect(text).not.toContain('2001');
   });
 });

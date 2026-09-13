@@ -52,6 +52,9 @@ import {
   generateLogStats,
   generateLogConfig,
   applyLogConfig,
+  generateErrorReports,
+  generateErrorReportDetail,
+  generateErrorReportDates,
   generatePersonaList,
   generatePersonaDetail,
   generatePersonaConfigAll,
@@ -778,6 +781,13 @@ const routes: Route[] = [
   { m: 'GET', re: /^\/api\/logs\/stats$/, h: () => generateLogStats() },
   { m: 'GET', re: /^\/api\/logs\/config$/, h: () => generateLogConfig() },
   { m: 'PUT', re: /^\/api\/logs\/config$/, h: ({ body }) => applyLogConfig(body) },
+  { m: 'GET', re: /^\/api\/logs\/error-reports$/, h: ({ url }) => generateErrorReports(url.searchParams) },
+  { m: 'GET', re: /^\/api\/logs\/error-reports\/available-dates$/, h: () => generateErrorReportDates() },
+  { m: 'GET', re: /^\/api\/logs\/error-reports\/([^/]+)$/, h: ({ url }) => {
+    const segs = url.pathname.split('/').filter(Boolean);
+    const filename = decodeURIComponent(segs[segs.length - 1] || '');
+    return generateErrorReportDetail(filename);
+  }},
 
   // /persona-config
   { m: 'GET', re: /^\/api\/persona\/list$/, h: () => generatePersonaList() },

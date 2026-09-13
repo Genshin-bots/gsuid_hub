@@ -17,7 +17,7 @@ import { DEMO_MEME_META } from './demoMemeMeta';
 
 /** 线性同余发生器（LCG）——可复现伪随机。 */
 export function makeRng(seed: number): () => number {
-  let s = (seed >>> 0) || 1;
+  let s = seed >>> 0 || 1;
   return () => {
     s = (Math.imul(s, 1664525) + 1013904223) >>> 0;
     return s / 0xffffffff;
@@ -43,23 +43,51 @@ export function demoPlaceholderImage(seed: string, label?: string): string {
   const rng = makeRng(hashSeed(seed));
   const h1 = randInt(rng, 0, 360);
   const h2 = (h1 + randInt(rng, 40, 170)) % 360;
-  const emoji = pick(rng, ['😀', '😎', '🥳', '🤖', '✨', '🎉', '🔥', '💡', '🌈', '🐱', '🍻', '👍', '😭', '🤔', '🥰', '😴']);
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">` +
+  const emoji = pick(rng, [
+    '😀',
+    '😎',
+    '🥳',
+    '🤖',
+    '✨',
+    '🎉',
+    '🔥',
+    '💡',
+    '🌈',
+    '🐱',
+    '🍻',
+    '👍',
+    '😭',
+    '🤔',
+    '🥰',
+    '😴',
+  ]);
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">` +
     `<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">` +
     `<stop offset="0" stop-color="hsl(${h1},72%,62%)"/>` +
     `<stop offset="1" stop-color="hsl(${h2},70%,48%)"/>` +
     `</linearGradient></defs>` +
     `<rect width="256" height="256" rx="20" fill="url(#g)"/>` +
     `<text x="128" y="128" font-size="120" text-anchor="middle" dominant-baseline="central">${emoji}</text>` +
-    (label ? `<text x="128" y="232" font-size="22" fill="rgba(255,255,255,.92)" text-anchor="middle" font-family="sans-serif">${label}</text>` : '') +
+    (label
+      ? `<text x="128" y="232" font-size="22" fill="rgba(255,255,255,.92)" text-anchor="middle" font-family="sans-serif">${label}</text>`
+      : '') +
     `</svg>`;
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 }
 
 /** 已内置真实 ICON.png 的插件名（来自 gsuid_core/plugins/<x>/ICON.png，放在 demo-assets/demo-plugin-icons/）。 */
 const DEMO_PLUGIN_ICON_IDS = new Set([
-  'GenshinUID', 'ZZZeroUID', 'WutheringWavesUID', 'ArknightsUID', 'BlueArchiveUID',
-  'LOLegendsUID', 'MajsoulUID', 'SayuStock', 'WzryUID', 'gsuid_core',
+  'GenshinUID',
+  'ZZZeroUID',
+  'WutheringWavesUID',
+  'ArknightsUID',
+  'BlueArchiveUID',
+  'LOLegendsUID',
+  'MajsoulUID',
+  'SayuStock',
+  'WzryUID',
+  'gsuid_core',
 ]);
 
 /** 插件图标：优先返回内置的**真实 PNG**（/hub/demo-plugin-icons/<name>.png）；
@@ -73,7 +101,8 @@ export function demoPluginIcon(name: string): string {
   const h2 = (h1 + randInt(rng, 30, 120)) % 360;
   // 取前 1–2 个字母（去掉非字母字符），无字母则回退首字符
   const letters = (name.replace(/[^A-Za-z]/g, '').slice(0, 2) || name.slice(0, 2)).toUpperCase();
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">` +
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">` +
     `<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">` +
     `<stop offset="0" stop-color="hsl(${h1},66%,56%)"/>` +
     `<stop offset="1" stop-color="hsl(${h2},62%,46%)"/>` +
@@ -160,7 +189,12 @@ export const generateAIWizardStatus = () => ({
     available: true,
     high_level_vision: { supported: true, model_name: 'claude-opus-4-8', note: '支持图片理解' },
     low_level_vision: { supported: true, model_name: 'claude-haiku-4-5', note: '支持图片理解' },
-    vlm_fallback: { configured: true, provider: 'anthropic', tools: ['describe_image'], note: '已配置' },
+    vlm_fallback: {
+      configured: true,
+      provider: 'anthropic',
+      tools: ['describe_image'],
+      note: '已配置',
+    },
   },
   persona: {
     persona_count: 3,
@@ -168,17 +202,57 @@ export const generateAIWizardStatus = () => ({
     inspect_enabled_count: 1,
     configured: true,
     personas: [
-      { name: '早柚', ai_mode: ['提及应答'], inspect_interval: null, has_inspect: false, scope: 'global' as const, target_groups: [], is_enabled: true, scope_desc: '全局启用' },
-      { name: '可莉', ai_mode: ['提及应答', '定时巡检'], inspect_interval: 30, has_inspect: true, scope: 'specific' as const, target_groups: ['114514'], is_enabled: true, scope_desc: '指定 1 个群' },
-      { name: '钟离', ai_mode: ['提及应答'], inspect_interval: null, has_inspect: false, scope: 'disabled' as const, target_groups: [], is_enabled: false, scope_desc: '已禁用' },
+      {
+        name: '早柚',
+        ai_mode: ['提及应答'],
+        inspect_interval: null,
+        has_inspect: false,
+        scope: 'global' as const,
+        target_groups: [],
+        is_enabled: true,
+        scope_desc: '全局启用',
+      },
+      {
+        name: '可莉',
+        ai_mode: ['提及应答', '定时巡检'],
+        inspect_interval: 30,
+        has_inspect: true,
+        scope: 'specific' as const,
+        target_groups: ['114514'],
+        is_enabled: true,
+        scope_desc: '指定 1 个群',
+      },
+      {
+        name: '钟离',
+        ai_mode: ['提及应答'],
+        inspect_interval: null,
+        has_inspect: false,
+        scope: 'disabled' as const,
+        target_groups: [],
+        is_enabled: false,
+        scope_desc: '已禁用',
+      },
     ],
     note: '演示数据',
   },
   memory: { enabled: true, memory_mode: ['群聊', '私聊'], memory_session: 'group' },
-  embedding: { provider: 'openai', configured: true, issues: [], model_name: 'text-embedding-3-small', note: '已配置' },
+  embedding: {
+    provider: 'openai',
+    configured: true,
+    issues: [],
+    model_name: 'text-embedding-3-small',
+    note: '已配置',
+  },
   web_search: { provider: 'tavily', configured: true, issues: [], note: '已配置' },
   missing_configs: [],
-  summary: { total_issues: 0, critical_count: 0, warning_count: 0, info_count: 0, ai_usable: true, note: '演示模式：AI 全部能力可用' },
+  summary: {
+    total_issues: 0,
+    critical_count: 0,
+    warning_count: 0,
+    info_count: 0,
+    ai_usable: true,
+    note: '演示模式：AI 全部能力可用',
+  },
 });
 
 // ───────────────────────── Tier 1 · 看板（复用 mockData 已有生成器，这里只补 bots）─────────────────────────
@@ -193,16 +267,76 @@ export const generateDashboardBots = () => [
 // ───────────────────────── Tier 1 · 插件库 / 插件配置 ─────────────────────────
 
 // 仅列内置了真实 ICON.png 的插件（见 DEMO_PLUGIN_ICON_IDS），避免按钮组/列表出现占位渐变图标。
-const PLUGIN_DEFS: Array<{ id: string; name: string; desc: string; enabled: boolean; status: string }> = [
-  { id: 'GenshinUID', name: 'GenshinUID', desc: '原神 UID 查询面板、抽卡分析、深渊统计等一站式原神插件', enabled: true, status: 'ok' },
-  { id: 'ZZZeroUID', name: 'ZZZeroUID', desc: '绝区零 代理人面板、邦布与驱动盘查询', enabled: true, status: 'ok' },
-  { id: 'WutheringWavesUID', name: 'WutheringWavesUID', desc: '鸣潮 共鸣者面板与声骸词条分析', enabled: true, status: 'ok' },
-  { id: 'ArknightsUID', name: 'ArknightsUID', desc: '明日方舟 干员练度与抽卡记录查询', enabled: false, status: 'disabled' },
-  { id: 'BlueArchiveUID', name: 'BlueArchiveUID', desc: '蔚蓝档案 学生编成与攻略查询', enabled: true, status: 'ok' },
-  { id: 'LOLegendsUID', name: 'LOLegendsUID', desc: '英雄联盟 召唤师战绩与对局数据查询', enabled: true, status: 'ok' },
-  { id: 'MajsoulUID', name: 'MajsoulUID', desc: '雀魂麻将 牌谱、段位与立直率统计', enabled: false, status: 'disabled' },
-  { id: 'SayuStock', name: 'SayuStock', desc: '早柚股市 A股 / 基金 行情查询与订阅推送', enabled: true, status: 'ok' },
-  { id: 'WzryUID', name: 'WzryUID', desc: '王者荣耀 战绩查询与英雄出装数据', enabled: true, status: 'update_available' },
+const PLUGIN_DEFS: Array<{
+  id: string;
+  name: string;
+  desc: string;
+  enabled: boolean;
+  status: string;
+}> = [
+  {
+    id: 'GenshinUID',
+    name: 'GenshinUID',
+    desc: '原神 UID 查询面板、抽卡分析、深渊统计等一站式原神插件',
+    enabled: true,
+    status: 'ok',
+  },
+  {
+    id: 'ZZZeroUID',
+    name: 'ZZZeroUID',
+    desc: '绝区零 代理人面板、邦布与驱动盘查询',
+    enabled: true,
+    status: 'ok',
+  },
+  {
+    id: 'WutheringWavesUID',
+    name: 'WutheringWavesUID',
+    desc: '鸣潮 共鸣者面板与声骸词条分析',
+    enabled: true,
+    status: 'ok',
+  },
+  {
+    id: 'ArknightsUID',
+    name: 'ArknightsUID',
+    desc: '明日方舟 干员练度与抽卡记录查询',
+    enabled: false,
+    status: 'disabled',
+  },
+  {
+    id: 'BlueArchiveUID',
+    name: 'BlueArchiveUID',
+    desc: '蔚蓝档案 学生编成与攻略查询',
+    enabled: true,
+    status: 'ok',
+  },
+  {
+    id: 'LOLegendsUID',
+    name: 'LOLegendsUID',
+    desc: '英雄联盟 召唤师战绩与对局数据查询',
+    enabled: true,
+    status: 'ok',
+  },
+  {
+    id: 'MajsoulUID',
+    name: 'MajsoulUID',
+    desc: '雀魂麻将 牌谱、段位与立直率统计',
+    enabled: false,
+    status: 'disabled',
+  },
+  {
+    id: 'SayuStock',
+    name: 'SayuStock',
+    desc: '早柚股市 A股 / 基金 行情查询与订阅推送',
+    enabled: true,
+    status: 'ok',
+  },
+  {
+    id: 'WzryUID',
+    name: 'WzryUID',
+    desc: '王者荣耀 战绩查询与英雄出装数据',
+    enabled: true,
+    status: 'update_available',
+  },
 ];
 
 const DEMO_ZZZ_PAGE = {
@@ -262,11 +396,18 @@ export const generatePluginDetail = (name: string) => {
     config: {
       enable: cfg(true, true, 'bool', '启用插件', '总开关，关闭后本插件所有命令失效'),
       auto_clean: cfg(false, false, 'bool', '自动清理缓存', '每日凌晨清理生成的临时图片'),
-      max_concurrency: cfg(8, 4, 'int', '最大并发', '同时处理的请求上限', { min_value: 1, max_value: 32 }),
+      max_concurrency: cfg(8, 4, 'int', '最大并发', '同时处理的请求上限', {
+        min_value: 1,
+        max_value: 32,
+      }),
       cache_ttl: cfg(3600, 1800, 'int', '缓存有效期（秒）', '查询结果缓存时长'),
       api_token: cfg('', '', 'str', 'API Token', '第三方数据源访问令牌', { secret: true }),
-      render_mode: cfg('html', 'html', 'str', '渲染模式', '面板图片的渲染方式', { options: ['html', 'pil', 'simple'] }),
-      theme: cfg('default', 'default', 'str', '面板主题', '内置面板配色', { options: ['default', 'dark', 'genshin', 'starrail'] }),
+      render_mode: cfg('html', 'html', 'str', '渲染模式', '面板图片的渲染方式', {
+        options: ['html', 'pil', 'simple'],
+      }),
+      theme: cfg('default', 'default', 'str', '面板主题', '内置面板配色', {
+        options: ['default', 'dark', 'genshin', 'starrail'],
+      }),
       push_groups: cfg(['114514', '1919810'], [], 'list', '推送群列表', '定时推送目标群号'),
       welcome_text: cfg('欢迎使用早柚核心~', '', 'str', '欢迎语', '新成员入群欢迎文案'),
     },
@@ -291,7 +432,8 @@ export const generatePluginDetail = (name: string) => {
 
 /** 绫华主题壁纸：直接用 gsuid_core 预设 themes_builtin/绫华.json 里的官方在线图
  *  （与其余预设一样走 URL，不再本地内置，省体积；联网加载）。 */
-const DEMO_AYAKA_BG = 'https://files.seeusercontent.com/2026/06/20/Jth9/aeb070e9498a448d60e76caddd36432b.jpg';
+const DEMO_AYAKA_BG =
+  'https://files.seeusercontent.com/2026/06/20/Jth9/aeb070e9498a448d60e76caddd36432b.jpg';
 
 /** 默认演示主题：直接加载「纯色质感」预设（light + 玻璃拟态 + 蓝色 + 透明磨砂卡片 + 透出底层装饰）——
  *  比带壁纸的预设更适合做首屏展示，不会喧宾夺主盖住内嵌面板的布局；
@@ -318,14 +460,118 @@ export const generateThemeConfig = () => ({ ...THEME_CONFIG });
 /** 内嵌 gsuid_core 自带的主题预设（gsuid_core/webconsole/themes_builtin/*.json）。
  *  演示模式没有真实后端预设目录，故把这些 JSON 直接内联，让「主题预设」标签页可用、可一键应用。 */
 const BUILTIN_THEME_PRESETS: Array<{ name: string; config: Record<string, unknown> }> = [
-  { name: '纯色质感', config: { mode: 'light', style: 'glassmorphism', color: 'blue', icon_color: 'colored', background_image: null, blur_intensity: 7, card_opacity: 55, theme_preset: 'shadcn', language: 'zh-CN' } },
-  { name: '清澈波纹', config: { mode: 'light', style: 'glassmorphism', color: 'blue', icon_color: 'colored', background_image: 'https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=1920&q=80', blur_intensity: 11, card_opacity: 45, theme_preset: 'shadcn', language: 'zh-CN' } },
-  { name: '磨砂岩石', config: { mode: 'dark', style: 'glassmorphism', color: 'blue', icon_color: 'colored', background_image: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=1920&q=80', blur_intensity: 7, card_opacity: 55, theme_preset: 'shadcn', language: 'zh-CN' } },
-  { name: '黑夜街道', config: { mode: 'dark', style: 'glassmorphism', color: 'blue', icon_color: 'colored', background_image: 'https://cdn.pixabay.com/photo/2024/05/26/15/27/anime-8788959_1280.jpg', blur_intensity: 7, card_opacity: 55, theme_preset: 'shadcn', language: 'zh-CN' } },
-  { name: '初音未来', config: { mode: 'dark', style: 'glassmorphism', color: 'blue', icon_color: 'colored', background_image: 'https://files.seeusercontent.com/2026/06/20/kL1z/wallpaper894.jpg', blur_intensity: 7, card_opacity: 34, theme_preset: 'default', language: 'zh-CN' } },
-  { name: '绫华', config: { mode: 'light', style: 'glassmorphism', color: 'orchid', icon_color: 'colored', background_image: DEMO_AYAKA_BG, blur_intensity: 8, card_opacity: 26, theme_preset: 'default', language: 'zh-CN' } },
-  { name: '鬼针草', config: { mode: 'light', style: 'glassmorphism', color: 'pink', icon_color: 'colored', background_image: 'https://files.seeusercontent.com/2026/06/20/u2Sj/a694927.jpg', blur_intensity: 1, card_opacity: 54, theme_preset: 'default', language: 'zh-CN' } },
-  { name: '随机老婆', config: { mode: 'light', style: 'glassmorphism', color: 'blue', icon_color: 'colored', background_image: 'https://api.paugram.com/wallpaper', blur_intensity: 8, card_opacity: 27, theme_preset: 'default', language: 'zh-CN' } },
+  {
+    name: '纯色质感',
+    config: {
+      mode: 'light',
+      style: 'glassmorphism',
+      color: 'blue',
+      icon_color: 'colored',
+      background_image: null,
+      blur_intensity: 7,
+      card_opacity: 55,
+      theme_preset: 'shadcn',
+      language: 'zh-CN',
+    },
+  },
+  {
+    name: '清澈波纹',
+    config: {
+      mode: 'light',
+      style: 'glassmorphism',
+      color: 'blue',
+      icon_color: 'colored',
+      background_image: 'https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=1920&q=80',
+      blur_intensity: 11,
+      card_opacity: 45,
+      theme_preset: 'shadcn',
+      language: 'zh-CN',
+    },
+  },
+  {
+    name: '磨砂岩石',
+    config: {
+      mode: 'dark',
+      style: 'glassmorphism',
+      color: 'blue',
+      icon_color: 'colored',
+      background_image: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=1920&q=80',
+      blur_intensity: 7,
+      card_opacity: 55,
+      theme_preset: 'shadcn',
+      language: 'zh-CN',
+    },
+  },
+  {
+    name: '黑夜街道',
+    config: {
+      mode: 'dark',
+      style: 'glassmorphism',
+      color: 'blue',
+      icon_color: 'colored',
+      background_image: 'https://cdn.pixabay.com/photo/2024/05/26/15/27/anime-8788959_1280.jpg',
+      blur_intensity: 7,
+      card_opacity: 55,
+      theme_preset: 'shadcn',
+      language: 'zh-CN',
+    },
+  },
+  {
+    name: '初音未来',
+    config: {
+      mode: 'dark',
+      style: 'glassmorphism',
+      color: 'blue',
+      icon_color: 'colored',
+      background_image: 'https://files.seeusercontent.com/2026/06/20/kL1z/wallpaper894.jpg',
+      blur_intensity: 7,
+      card_opacity: 34,
+      theme_preset: 'default',
+      language: 'zh-CN',
+    },
+  },
+  {
+    name: '绫华',
+    config: {
+      mode: 'light',
+      style: 'glassmorphism',
+      color: 'orchid',
+      icon_color: 'colored',
+      background_image: DEMO_AYAKA_BG,
+      blur_intensity: 8,
+      card_opacity: 26,
+      theme_preset: 'default',
+      language: 'zh-CN',
+    },
+  },
+  {
+    name: '鬼针草',
+    config: {
+      mode: 'light',
+      style: 'glassmorphism',
+      color: 'pink',
+      icon_color: 'colored',
+      background_image: 'https://files.seeusercontent.com/2026/06/20/u2Sj/a694927.jpg',
+      blur_intensity: 1,
+      card_opacity: 54,
+      theme_preset: 'default',
+      language: 'zh-CN',
+    },
+  },
+  {
+    name: '随机老婆',
+    config: {
+      mode: 'light',
+      style: 'glassmorphism',
+      color: 'blue',
+      icon_color: 'colored',
+      background_image: 'https://api.paugram.com/wallpaper',
+      blur_intensity: 8,
+      card_opacity: 27,
+      theme_preset: 'default',
+      language: 'zh-CN',
+    },
+  },
 ];
 
 export const generateThemePresets = () => {
@@ -357,11 +603,44 @@ export const applyThemePreset = (name: string) => {
 const MEMORY_SCOPE_KEY = 'group:114514';
 
 const ENTITY_NAMES = [
-  '早柚', '旅行者', '派蒙', '可莉', '钟离', '雷电将军', '甘雨', '胡桃',
-  '宵宫', '神里绫华', '枫原万叶', '八重神子', '纳西妲', '温迪', '达达利亚', '魈',
-  '原神', '提瓦特', '蒙德', '璃月', '稻妻', '须弥', '枫丹', '至冬',
-  '抽卡', '深渊', '圣遗物', '武器', '元素反应', '剧情', '联机', '体力',
-  '树脂', '每日委托', '锻造', '料理', '尘歌壶', '七圣召唤',
+  '早柚',
+  '旅行者',
+  '派蒙',
+  '可莉',
+  '钟离',
+  '雷电将军',
+  '甘雨',
+  '胡桃',
+  '宵宫',
+  '神里绫华',
+  '枫原万叶',
+  '八重神子',
+  '纳西妲',
+  '温迪',
+  '达达利亚',
+  '魈',
+  '原神',
+  '提瓦特',
+  '蒙德',
+  '璃月',
+  '稻妻',
+  '须弥',
+  '枫丹',
+  '至冬',
+  '抽卡',
+  '深渊',
+  '圣遗物',
+  '武器',
+  '元素反应',
+  '剧情',
+  '联机',
+  '体力',
+  '树脂',
+  '每日委托',
+  '锻造',
+  '料理',
+  '尘歌壶',
+  '七圣召唤',
 ];
 
 const ENTITY_TAGS = ['人物', '地点', '游戏', '玩法', '系统', '概念'];
@@ -513,7 +792,16 @@ export const demoMemeImageUrl = (memeId: string): string => {
 
 // 真实归档里 status 全是 'tagged'，会让「待打标/手动/已拒绝」等统计与筛选 Tab 全空。
 // 演示模式下按下标确定性地分散状态（图片/标签/描述仍是真实的），让统计卡与筛选都有内容。
-const MEME_STATUS_CYCLE = ['tagged', 'tagged', 'tagged', 'tagged', 'pending', 'manual', 'tagged', 'rejected'] as const;
+const MEME_STATUS_CYCLE = [
+  'tagged',
+  'tagged',
+  'tagged',
+  'tagged',
+  'pending',
+  'manual',
+  'tagged',
+  'rejected',
+] as const;
 
 /** 由真实元数据构建完整 MemeRecord（补齐使用次数/时间等运营字段，种子化稳定）。 */
 const buildMemeRecords = () =>
@@ -626,7 +914,12 @@ export const generateMemeStats = () => {
   const top_memes = [...records]
     .sort((a, b) => b.use_count - a.use_count)
     .slice(0, 5)
-    .map((r) => ({ meme_id: r.meme_id, description: r.description, use_count: r.use_count, file_path: r.file_path }));
+    .map((r) => ({
+      meme_id: r.meme_id,
+      description: r.description,
+      use_count: r.use_count,
+      file_path: r.file_path,
+    }));
   return { total: records.length, status_counts, folder_counts, total_usage, top_memes };
 };
 
@@ -634,7 +927,13 @@ export const generateMemeStats = () => {
 // DatabasePage 流程：getPlugins() → 选中首个插件首张表 → getTableMetadata(table) + getTableData(table)。
 // 形状以 api.ts 的 PluginDatabaseInfo / DatabaseTableInfo / PaginatedData 为准。
 
-interface DemoDbColumn { name: string; title: string; type: string; nullable: boolean; default: unknown }
+interface DemoDbColumn {
+  name: string;
+  title: string;
+  type: string;
+  nullable: boolean;
+  default: unknown;
+}
 interface DemoDbTable {
   table_name: string;
   label: string;
@@ -643,13 +942,23 @@ interface DemoDbTable {
   rowCount: number;
   makeRow: (rng: () => number, i: number) => Record<string, unknown>;
 }
-interface DemoDbPlugin { plugin_id: string; plugin_name: string; tables: DemoDbTable[] }
+interface DemoDbPlugin {
+  plugin_id: string;
+  plugin_name: string;
+  tables: DemoDbTable[];
+}
 
 const DB_BOTS = ['onebot', 'telegram', 'discord'] as const;
-const col = (name: string, title: string, type: string, nullable = false, def: unknown = null): DemoDbColumn =>
-  ({ name, title, type, nullable, default: def });
+const col = (
+  name: string,
+  title: string,
+  type: string,
+  nullable = false,
+  def: unknown = null,
+): DemoDbColumn => ({ name, title, type, nullable, default: def });
 
-const genshinUid = (rng: () => number) => `${pick(rng, ['1', '5', '6', '7', '8', '9'])}${randInt(rng, 10000000, 99999999)}`;
+const genshinUid = (rng: () => number) =>
+  `${pick(rng, ['1', '5', '6', '7', '8', '9'])}${randInt(rng, 10000000, 99999999)}`;
 const maskCookie = (rng: () => number) =>
   `account_id=${randInt(rng, 10000000, 99999999)};cookie_token=${hashSeed(String(rng())).toString(16)}************`;
 const onoff = (rng: () => number) => (rng() > 0.4 ? 'on' : 'off');
@@ -660,28 +969,51 @@ const DB_PLUGINS: DemoDbPlugin[] = [
     plugin_name: 'GenshinUID',
     tables: [
       {
-        table_name: 'GsBind', label: '原神绑定', pk_name: 'id', rowCount: 36,
+        table_name: 'GsBind',
+        label: '原神绑定',
+        pk_name: 'id',
+        rowCount: 36,
         columns: [
-          col('id', 'ID', 'INTEGER'), col('bot_id', 'Bot', 'TEXT'), col('user_id', '用户ID', 'TEXT'),
-          col('group_id', '群号', 'TEXT', true), col('uid', '原神UID', 'TEXT', true), col('sr_uid', '星铁UID', 'TEXT', true),
+          col('id', 'ID', 'INTEGER'),
+          col('bot_id', 'Bot', 'TEXT'),
+          col('user_id', '用户ID', 'TEXT'),
+          col('group_id', '群号', 'TEXT', true),
+          col('uid', '原神UID', 'TEXT', true),
+          col('sr_uid', '星铁UID', 'TEXT', true),
         ],
         makeRow: (rng, i) => ({
-          id: i + 1, bot_id: pick(rng, DB_BOTS), user_id: `${randInt(rng, 100000, 9999999)}`,
+          id: i + 1,
+          bot_id: pick(rng, DB_BOTS),
+          user_id: `${randInt(rng, 100000, 9999999)}`,
           group_id: rng() > 0.3 ? `${randInt(rng, 100000, 999999)}` : null,
-          uid: genshinUid(rng), sr_uid: rng() > 0.5 ? genshinUid(rng) : null,
+          uid: genshinUid(rng),
+          sr_uid: rng() > 0.5 ? genshinUid(rng) : null,
         }),
       },
       {
-        table_name: 'GsUser', label: '原神用户', pk_name: 'id', rowCount: 28,
+        table_name: 'GsUser',
+        label: '原神用户',
+        pk_name: 'id',
+        rowCount: 28,
         columns: [
-          col('id', 'ID', 'INTEGER'), col('bot_id', 'Bot', 'TEXT'), col('user_id', '用户ID', 'TEXT'),
-          col('uid', '原神UID', 'TEXT'), col('cookie', 'Cookie', 'TEXT', true),
-          col('stoken', 'SToken', 'TEXT', true), col('sign_switch', '自动签到', 'TEXT'), col('push_switch', '推送开关', 'TEXT'),
+          col('id', 'ID', 'INTEGER'),
+          col('bot_id', 'Bot', 'TEXT'),
+          col('user_id', '用户ID', 'TEXT'),
+          col('uid', '原神UID', 'TEXT'),
+          col('cookie', 'Cookie', 'TEXT', true),
+          col('stoken', 'SToken', 'TEXT', true),
+          col('sign_switch', '自动签到', 'TEXT'),
+          col('push_switch', '推送开关', 'TEXT'),
         ],
         makeRow: (rng, i) => ({
-          id: i + 1, bot_id: pick(rng, DB_BOTS), user_id: `${randInt(rng, 100000, 9999999)}`,
-          uid: genshinUid(rng), cookie: maskCookie(rng), stoken: rng() > 0.5 ? maskCookie(rng) : null,
-          sign_switch: onoff(rng), push_switch: onoff(rng),
+          id: i + 1,
+          bot_id: pick(rng, DB_BOTS),
+          user_id: `${randInt(rng, 100000, 9999999)}`,
+          uid: genshinUid(rng),
+          cookie: maskCookie(rng),
+          stoken: rng() > 0.5 ? maskCookie(rng) : null,
+          sign_switch: onoff(rng),
+          push_switch: onoff(rng),
         }),
       },
     ],
@@ -691,25 +1023,45 @@ const DB_PLUGINS: DemoDbPlugin[] = [
     plugin_name: 'ZZZeroUID',
     tables: [
       {
-        table_name: 'ZzzBind', label: '绝区零绑定', pk_name: 'id', rowCount: 22,
+        table_name: 'ZzzBind',
+        label: '绝区零绑定',
+        pk_name: 'id',
+        rowCount: 22,
         columns: [
-          col('id', 'ID', 'INTEGER'), col('bot_id', 'Bot', 'TEXT'), col('user_id', '用户ID', 'TEXT'),
-          col('group_id', '群号', 'TEXT', true), col('uid', '绝区零UID', 'TEXT'),
+          col('id', 'ID', 'INTEGER'),
+          col('bot_id', 'Bot', 'TEXT'),
+          col('user_id', '用户ID', 'TEXT'),
+          col('group_id', '群号', 'TEXT', true),
+          col('uid', '绝区零UID', 'TEXT'),
         ],
         makeRow: (rng, i) => ({
-          id: i + 1, bot_id: pick(rng, DB_BOTS), user_id: `${randInt(rng, 100000, 9999999)}`,
-          group_id: rng() > 0.3 ? `${randInt(rng, 100000, 999999)}` : null, uid: genshinUid(rng),
+          id: i + 1,
+          bot_id: pick(rng, DB_BOTS),
+          user_id: `${randInt(rng, 100000, 9999999)}`,
+          group_id: rng() > 0.3 ? `${randInt(rng, 100000, 999999)}` : null,
+          uid: genshinUid(rng),
         }),
       },
       {
-        table_name: 'ZzzUser', label: '绝区零用户', pk_name: 'id', rowCount: 19,
+        table_name: 'ZzzUser',
+        label: '绝区零用户',
+        pk_name: 'id',
+        rowCount: 19,
         columns: [
-          col('id', 'ID', 'INTEGER'), col('bot_id', 'Bot', 'TEXT'), col('user_id', '用户ID', 'TEXT'),
-          col('uid', '绝区零UID', 'TEXT'), col('cookie', 'Cookie', 'TEXT', true), col('sign_switch', '自动签到', 'TEXT'),
+          col('id', 'ID', 'INTEGER'),
+          col('bot_id', 'Bot', 'TEXT'),
+          col('user_id', '用户ID', 'TEXT'),
+          col('uid', '绝区零UID', 'TEXT'),
+          col('cookie', 'Cookie', 'TEXT', true),
+          col('sign_switch', '自动签到', 'TEXT'),
         ],
         makeRow: (rng, i) => ({
-          id: i + 1, bot_id: pick(rng, DB_BOTS), user_id: `${randInt(rng, 100000, 9999999)}`,
-          uid: genshinUid(rng), cookie: maskCookie(rng), sign_switch: onoff(rng),
+          id: i + 1,
+          bot_id: pick(rng, DB_BOTS),
+          user_id: `${randInt(rng, 100000, 9999999)}`,
+          uid: genshinUid(rng),
+          cookie: maskCookie(rng),
+          sign_switch: onoff(rng),
         }),
       },
     ],
@@ -719,16 +1071,33 @@ const DB_PLUGINS: DemoDbPlugin[] = [
     plugin_name: 'gsuid_core',
     tables: [
       {
-        table_name: 'Subscribe', label: '订阅推送', pk_name: 'id', rowCount: 31,
+        table_name: 'Subscribe',
+        label: '订阅推送',
+        pk_name: 'id',
+        rowCount: 31,
         columns: [
-          col('id', 'ID', 'INTEGER'), col('bot_id', 'Bot', 'TEXT'), col('user_id', '用户ID', 'TEXT'),
-          col('group_id', '群号', 'TEXT', true), col('task_name', '任务', 'TEXT'), col('extra_message', '备注', 'TEXT', true),
+          col('id', 'ID', 'INTEGER'),
+          col('bot_id', 'Bot', 'TEXT'),
+          col('user_id', '用户ID', 'TEXT'),
+          col('group_id', '群号', 'TEXT', true),
+          col('task_name', '任务', 'TEXT'),
+          col('extra_message', '备注', 'TEXT', true),
         ],
         makeRow: (rng, i) => ({
-          id: i + 1, bot_id: pick(rng, DB_BOTS), user_id: `${randInt(rng, 100000, 9999999)}`,
+          id: i + 1,
+          bot_id: pick(rng, DB_BOTS),
+          user_id: `${randInt(rng, 100000, 9999999)}`,
           group_id: rng() > 0.25 ? `${randInt(rng, 100000, 999999)}` : null,
-          task_name: pick(rng, ['原神签到', '体力提醒', '米游币获取', '星铁签到', '深渊推送', '版本活动']),
-          extra_message: rng() > 0.6 ? pick(rng, ['每日 08:00', '体力溢出提醒', '仅限管理员']) : null,
+          task_name: pick(rng, [
+            '原神签到',
+            '体力提醒',
+            '米游币获取',
+            '星铁签到',
+            '深渊推送',
+            '版本活动',
+          ]),
+          extra_message:
+            rng() > 0.6 ? pick(rng, ['每日 08:00', '体力溢出提醒', '仅限管理员']) : null,
         }),
       },
     ],
@@ -751,10 +1120,19 @@ const findTable = (tableName: string): DemoDbTable | undefined => {
   }
   return undefined;
 };
-const tableInfo = (t: DemoDbTable) => ({ table_name: t.table_name, label: t.label, pk_name: t.pk_name, columns: t.columns });
+const tableInfo = (t: DemoDbTable) => ({
+  table_name: t.table_name,
+  label: t.label,
+  pk_name: t.pk_name,
+  columns: t.columns,
+});
 
 export const generateDatabasePlugins = () =>
-  DB_PLUGINS.map((p) => ({ plugin_id: p.plugin_id, plugin_name: p.plugin_name, tables: p.tables.map(tableInfo) }));
+  DB_PLUGINS.map((p) => ({
+    plugin_id: p.plugin_id,
+    plugin_name: p.plugin_name,
+    tables: p.tables.map(tableInfo),
+  }));
 
 export const generateTableMetadata = (tableName: string) => {
   const t = findTable(tableName);
@@ -775,7 +1153,9 @@ export const filterTableRows = (tableName: string, params: URLSearchParams) => {
   const search = params.get('search');
   if (search) {
     const q = search.toLowerCase();
-    rows = rows.filter((r) => Object.values(r).some((v) => v != null && String(v).toLowerCase().includes(q)));
+    rows = rows.filter((r) =>
+      Object.values(r).some((v) => v != null && String(v).toLowerCase().includes(q)),
+    );
   }
   const filterColumns = (params.get('filter_columns') ?? '')
     .split(',')
@@ -787,7 +1167,9 @@ export const filterTableRows = (tableName: string, params: URLSearchParams) => {
       filterColumns.every((col, i) => {
         const val = filterValues[i];
         if (val == null || val === '') return true;
-        return String(r[col] ?? '').toLowerCase().includes(val.toLowerCase());
+        return String(r[col] ?? '')
+          .toLowerCase()
+          .includes(val.toLowerCase());
       }),
     );
   }
@@ -819,7 +1201,13 @@ export const generateTableCsv = (tableName: string, params: URLSearchParams) => 
 
 // ---- Logs（LogsPage） ----
 const DEMO_LOG_SOURCES = ['onebot-114514', 'tg-sayu', 'dc-sayu', 'gsuid_core', 'GsCoreAI'];
-const DEMO_LOG_MODULES = ['handle_event', 'ai_core.handle_ai', 'mcp.loader', 'plugin.loader', 'web'];
+const DEMO_LOG_MODULES = [
+  'handle_event',
+  'ai_core.handle_ai',
+  'mcp.loader',
+  'plugin.loader',
+  'web',
+];
 const DEMO_LOG_MESSAGES = [
   '收到消息 用户 114514 在群 10086',
   'plugin.match_trigger 命中 gs_help',
@@ -857,7 +1245,12 @@ export const generateLogEntries = (params: URLSearchParams) => {
     (it) => (!level || it.level === level) && (!source || it.source === source),
   );
   const start = (page - 1) * pageSize;
-  return { items: filtered.slice(start, start + pageSize), total: filtered.length, page, page_size: pageSize };
+  return {
+    items: filtered.slice(start, start + pageSize),
+    total: filtered.length,
+    page,
+    page_size: pageSize,
+  };
 };
 export const generateLogDates = () => {
   const today = new Date();
@@ -871,7 +1264,9 @@ export const generateLogSources = () => [
   { name: 'onebot-114514', count: 124 },
   { name: 'tg-sayu', count: 64 },
   { name: 'dc-sayu', count: 31 },
-  ...DEMO_LOG_SOURCES.filter((s) => !['onebot-114514', 'tg-sayu', 'dc-sayu'].includes(s)).map((s) => ({ name: s, count: 24 })),
+  ...DEMO_LOG_SOURCES.filter((s) => !['onebot-114514', 'tg-sayu', 'dc-sayu'].includes(s)).map(
+    (s) => ({ name: s, count: 24 }),
+  ),
 ];
 export const generateLogLevels = () => [
   { label: '全部', value: 'all' },
@@ -886,7 +1281,9 @@ export const generateLogLevels = () => [
 export const generateLogStats = () => ({
   total_entries: 1842,
   by_level: { DEBUG: 512, INFO: 1043, WARNING: 224, ERROR: 58, CRITICAL: 5 },
-  by_source: Object.fromEntries(DEMO_LOG_SOURCES.map((s) => [s, Math.floor(80 + Math.random() * 400)])),
+  by_source: Object.fromEntries(
+    DEMO_LOG_SOURCES.map((s) => [s, Math.floor(80 + Math.random() * 400)]),
+  ),
   busiest_date: new Date().toISOString().split('T')[0],
 });
 
@@ -908,10 +1305,93 @@ export const generateLogConfig = () => ({
   visible_levels: [...demoLogsConfig.visible_levels],
 });
 
+export const generateErrorReportDates = () => {
+  const today = new Date();
+  return Array.from({ length: 5 }).map((_, i) => {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    return d.toISOString().split('T')[0];
+  });
+};
+
+export const generateErrorReports = (params: URLSearchParams) => {
+  const page = Number(params.get('page') ?? 1);
+  const perPage = Number(params.get('per_page') ?? 50);
+  const search = (params.get('search') ?? '').toLowerCase();
+  const date = params.get('date') ?? '';
+  const startDate = params.get('start_date') ?? '';
+  const endDate = params.get('end_date') ?? '';
+  const items = Array.from({ length: 12 }, (_, i) => {
+    const idx = 12 - i;
+    const pad = String(idx).padStart(2, '0');
+    const filename = `error_report_2026-07-20_12-00-${pad}-000000.json`;
+    return {
+      id: `fp${String(idx).padStart(30, '0')}`,
+      filename,
+      timestamp: `2026-07-20_12-00-${pad}-000000`,
+      first_timestamp: `2026-07-18_12-00-${pad}-000000`,
+      count: i % 4 === 0 ? 3 : 1,
+      level: i % 5 === 0 ? 'critical' : 'error',
+      event: i % 3 === 0 ? `数据库连接失败 #${idx}` : `tool_call timeout #${idx}`,
+      pathname: i % 2 === 0 ? 'gsuid_core/handler.py' : 'gsuid_core/ai_core/gs_agent.py',
+      lineno: 40 + idx,
+      size: 800 + idx * 40,
+    };
+  });
+  const dayOf = (filename: string) =>
+    filename.slice('error_report_'.length, 'error_report_'.length + 10);
+  const filtered = items.filter((it) => {
+    if (search) {
+      const hay = `${it.event} ${it.pathname} ${it.filename}`.toLowerCase();
+      if (!hay.includes(search)) return false;
+    }
+    const day = dayOf(it.filename);
+    if (date && day !== date) return false;
+    if (startDate && endDate && (day < startDate || day > endDate)) return false;
+    return true;
+  });
+  const start = (Math.max(page, 1) - 1) * perPage;
+  return {
+    count: filtered.length,
+    rows: filtered.slice(start, start + perPage),
+    page: Math.max(page, 1),
+    per_page: perPage,
+  };
+};
+
+export const generateErrorReportDetail = (filename: string) => ({
+  fingerprint: filename.startsWith('fp') ? filename : 'fp000000000000000000000000000001',
+  count: 3,
+  report: {
+    event: '数据库连接失败',
+    _log_level: 'error',
+    _report_timestamp: '2026-07-20_12-00-12-000000',
+    pathname: 'gsuid_core/handler.py',
+    lineno: 42,
+    exception: 'sqlite3.OperationalError: database is locked',
+  },
+  occurrences: [
+    {
+      filename: 'error_report_2026-07-20_12-00-12-000000.json',
+      timestamp: '2026-07-20_12-00-12-000000',
+    },
+    {
+      filename: 'error_report_2026-07-19_12-00-12-000000.json',
+      timestamp: '2026-07-19_12-00-12-000000',
+    },
+    {
+      filename: 'error_report_2026-07-18_12-00-12-000000.json',
+      timestamp: '2026-07-18_12-00-12-000000',
+    },
+  ],
+});
+
 export const applyLogConfig = (body: unknown) => {
   const raw =
-    body && typeof body === 'object' && Array.isArray((body as { visible_levels?: unknown }).visible_levels)
-      ? ((body as { visible_levels: unknown[] }).visible_levels)
+    body &&
+    typeof body === 'object' &&
+    Array.isArray((body as { visible_levels?: unknown }).visible_levels)
+      ? (body as { visible_levels: unknown[] }).visible_levels
       : [];
   const seen = new Set<string>();
   const levels: string[] = [];
@@ -1052,10 +1532,21 @@ export const generateGlobalPersonaConfig = () => {
   };
 };
 
-type DemoPersonaSettingItem = { title: string; desc: string; value: string; type: string; default: string };
+type DemoPersonaSettingItem = {
+  title: string;
+  desc: string;
+  value: string;
+  type: string;
+  default: string;
+};
 
 const DEMO_PERSONA_SETTING_DEFAULTS: Record<string, Omit<DemoPersonaSettingItem, 'default'>> = {
-  _AddressDivider: { type: 'gsdivider', title: '称呼', desc: '人格对特定对象的口头称呼', value: '称呼' },
+  _AddressDivider: {
+    type: 'gsdivider',
+    title: '称呼',
+    desc: '人格对特定对象的口头称呼',
+    value: '称呼',
+  },
   master_title: {
     type: 'gsstr',
     title: '对主人的称呼',
@@ -1219,15 +1710,35 @@ export const generateMCPConfigDetail = (configId: string) => {
     ...c,
     env: Object.fromEntries(c.env_keys.map((k) => [k, '••••••••'])),
     tools: [
-      { name: `${c.name.split(' ')[0].toLowerCase()}_search`, description: '搜索并返回结果', input_schema: { type: 'object', properties: { q: { type: 'string' } } } },
-      { name: `${c.name.split(' ')[0].toLowerCase()}_summarize`, description: '对输入文本做摘要', input_schema: { type: 'object', properties: { text: { type: 'string' } } } },
+      {
+        name: `${c.name.split(' ')[0].toLowerCase()}_search`,
+        description: '搜索并返回结果',
+        input_schema: { type: 'object', properties: { q: { type: 'string' } } },
+      },
+      {
+        name: `${c.name.split(' ')[0].toLowerCase()}_summarize`,
+        description: '对输入文本做摘要',
+        input_schema: { type: 'object', properties: { text: { type: 'string' } } },
+      },
     ],
   };
 };
 export const generateMCPPresets = () => [
-  { name: 'OpenAI Tools', description: 'OpenAI 官方维护的 MCP，包含计算器与文件处理工具', transport: 'stdio' },
-  { name: 'Brave Search', description: 'Brave Search 官方 MCP，提供实时搜索能力', transport: 'stdio' },
-  { name: 'Filesystem (受限)', description: '限制到 Kanban Workspace 的文件系统 MCP', transport: 'stdio' },
+  {
+    name: 'OpenAI Tools',
+    description: 'OpenAI 官方维护的 MCP，包含计算器与文件处理工具',
+    transport: 'stdio',
+  },
+  {
+    name: 'Brave Search',
+    description: 'Brave Search 官方 MCP，提供实时搜索能力',
+    transport: 'stdio',
+  },
+  {
+    name: 'Filesystem (受限)',
+    description: '限制到 Kanban Workspace 的文件系统 MCP',
+    transport: 'stdio',
+  },
   {
     name: 'Remote HTTP',
     description: '通过 Streamable HTTP 连接的远程 MCP',
@@ -1303,10 +1814,34 @@ export const generateAIStatisticsSummary = () => ({
   active_users: [],
 });
 export const generateTokenByModel = () => [
-  { model: 'anthropic/claude-opus-4-8', total_tokens: 1_122_000, input_tokens: 360_000, output_tokens: 762_000, requests: 3_120 },
-  { model: 'anthropic/claude-haiku-4-5', total_tokens: 482_000, input_tokens: 200_000, output_tokens: 120_000, requests: 7_801 },
-  { model: 'openai/gpt-4o-mini', total_tokens: 210_311, input_tokens: 52_309, output_tokens: 51_120, requests: 1_461 },
-  { model: 'local/embedding-bge-m3', total_tokens: 28_000, input_tokens: 0, output_tokens: 0, requests: 100 },
+  {
+    model: 'anthropic/claude-opus-4-8',
+    total_tokens: 1_122_000,
+    input_tokens: 360_000,
+    output_tokens: 762_000,
+    requests: 3_120,
+  },
+  {
+    model: 'anthropic/claude-haiku-4-5',
+    total_tokens: 482_000,
+    input_tokens: 200_000,
+    output_tokens: 120_000,
+    requests: 7_801,
+  },
+  {
+    model: 'openai/gpt-4o-mini',
+    total_tokens: 210_311,
+    input_tokens: 52_309,
+    output_tokens: 51_120,
+    requests: 1_461,
+  },
+  {
+    model: 'local/embedding-bge-m3',
+    total_tokens: 28_000,
+    input_tokens: 0,
+    output_tokens: 0,
+    requests: 100,
+  },
 ];
 export const generateTokenByType = () => [
   { type: 'chat', total_tokens: 1_500_000, requests: 9_000 },
@@ -1566,8 +2101,22 @@ const DEMO_BACKUP_TREE: DemoTreeNode[] = (() => {
       file_count: 3,
       has_children: true,
       children: [
-        { name: 'settings.json', path: 'config/settings.json', type: 'file', size_bytes: 4096, file_count: 1, has_children: false },
-        { name: 'users.json', path: 'config/users.json', type: 'file', size_bytes: 8192, file_count: 1, has_children: false },
+        {
+          name: 'settings.json',
+          path: 'config/settings.json',
+          type: 'file',
+          size_bytes: 4096,
+          file_count: 1,
+          has_children: false,
+        },
+        {
+          name: 'users.json',
+          path: 'config/users.json',
+          type: 'file',
+          size_bytes: 8192,
+          file_count: 1,
+          has_children: false,
+        },
       ],
     },
     pluginRes,
@@ -1579,7 +2128,14 @@ const DEMO_BACKUP_TREE: DemoTreeNode[] = (() => {
       file_count: 8,
       has_children: true,
       children: [
-        { name: 'ai_config.json', path: 'ai_core/ai_config.json', type: 'file', size_bytes: 2048, file_count: 1, has_children: false },
+        {
+          name: 'ai_config.json',
+          path: 'ai_core/ai_config.json',
+          type: 'file',
+          size_bytes: 2048,
+          file_count: 1,
+          has_children: false,
+        },
       ],
     },
   ];
@@ -1613,7 +2169,7 @@ export const generateBackupFileTree = (params: URLSearchParams = new URLSearchPa
   const omitted = Math.max(0, sorted.length - offset - sliced.length);
   return {
     path,
-    name: path ? path.split('/').pop() ?? path : 'data',
+    name: path ? (path.split('/').pop() ?? path) : 'data',
     type: 'directory' as const,
     size_bytes: sorted.reduce((s, n) => s + n.size_bytes, 0),
     file_count: sorted.reduce((s, n) => s + n.file_count, 0),
@@ -1627,10 +2183,30 @@ export const generateBackupFileTree = (params: URLSearchParams = new URLSearchPa
   };
 };
 export const generateBackupFiles = () => [
-  { file_id: 'bf-20260719-db', name: 'database.zip', size_bytes: 1_482_311, created_at: '2026-07-19T03:00:12Z' },
-  { file_id: 'bf-20260719-cfg', name: 'config.zip', size_bytes: 218_422, created_at: '2026-07-19T03:00:13Z' },
-  { file_id: 'bf-20260720-db', name: 'database.zip', size_bytes: 1_511_882, created_at: '2026-07-20T03:00:11Z' },
-  { file_id: 'bf-20260720-cfg', name: 'config.zip', size_bytes: 224_121, created_at: '2026-07-20T03:00:12Z' },
+  {
+    file_id: 'bf-20260719-db',
+    name: 'database.zip',
+    size_bytes: 1_482_311,
+    created_at: '2026-07-19T03:00:12Z',
+  },
+  {
+    file_id: 'bf-20260719-cfg',
+    name: 'config.zip',
+    size_bytes: 218_422,
+    created_at: '2026-07-19T03:00:13Z',
+  },
+  {
+    file_id: 'bf-20260720-db',
+    name: 'database.zip',
+    size_bytes: 1_511_882,
+    created_at: '2026-07-20T03:00:11Z',
+  },
+  {
+    file_id: 'bf-20260720-cfg',
+    name: 'config.zip',
+    size_bytes: 224_121,
+    created_at: '2026-07-20T03:00:12Z',
+  },
 ];
 export const generateBackupConfig = () => ({
   schedule: 'daily',
@@ -1706,15 +2282,60 @@ export const generateKanbanTaskDetail = () => {
     task: root,
     root,
     subtasks: [
-      { ...root, id: 'demo-sub-1', display: '收集原神角色数据', kanban_column: 'progress' as const, status: 'pending', subtask_count: 0, subtask_done_count: 0 },
-      { ...root, id: 'demo-sub-2', display: '写作 README.md', kanban_column: 'progress' as const, status: 'pending', subtask_count: 0, subtask_done_count: 0 },
-      { ...root, id: 'demo-sub-3', display: '调试 MCP Server 连接', kanban_column: 'Done' as const, status: 'done', subtask_count: 0, subtask_done_count: 0 },
-      { ...root, id: 'demo-sub-4', display: '尝试加载网络字体', kanban_column: 'failed' as const, status: 'failed', failure_reason: 'GFW', subtask_count: 0, subtask_done_count: 0 },
+      {
+        ...root,
+        id: 'demo-sub-1',
+        display: '收集原神角色数据',
+        kanban_column: 'progress' as const,
+        status: 'pending',
+        subtask_count: 0,
+        subtask_done_count: 0,
+      },
+      {
+        ...root,
+        id: 'demo-sub-2',
+        display: '写作 README.md',
+        kanban_column: 'progress' as const,
+        status: 'pending',
+        subtask_count: 0,
+        subtask_done_count: 0,
+      },
+      {
+        ...root,
+        id: 'demo-sub-3',
+        display: '调试 MCP Server 连接',
+        kanban_column: 'Done' as const,
+        status: 'done',
+        subtask_count: 0,
+        subtask_done_count: 0,
+      },
+      {
+        ...root,
+        id: 'demo-sub-4',
+        display: '尝试加载网络字体',
+        kanban_column: 'failed' as const,
+        status: 'failed',
+        failure_reason: 'GFW',
+        subtask_count: 0,
+        subtask_done_count: 0,
+      },
     ],
     logs: [
-      { event_type: 'run_start', content: 'task started', timestamp: new Date(Date.now() - 600_000).toISOString() },
-      { event_type: 'tool_call', content: 'websearch 关键字 原神', timestamp: new Date(Date.now() - 540_000).toISOString() },
-      { event_type: 'tool_return', content: 'ok', timestamp: new Date(Date.now() - 540_000).toISOString() },
+      {
+        event_type: 'run_start',
+        content: 'task started',
+        timestamp: new Date(Date.now() - 600_000).toISOString(),
+      },
+      {
+        event_type: 'tool_call',
+        content: 'websearch 关键字 原神',
+        timestamp: new Date(Date.now() - 540_000).toISOString(),
+      },
+      {
+        event_type: 'tool_return',
+        content: 'ok',
+        timestamp: new Date(Date.now() - 540_000).toISOString(),
+      },
     ],
     artifacts: [
       {
@@ -1769,31 +2390,72 @@ export const generateKanbanArtifacts = () => ({
 });
 export const generateKanbanCandidates = () => ({
   candidates: [
-    { node_id: 'cap-researcher', display_name: '研究员', when_to_use: '需要做联网搜索或资料检索', match_keywords: ['搜索', '资料'], tool_names: ['websearch', 'fetch_url'], source: 'builtin' },
-    { node_id: 'cap-writer', display_name: '写作者', when_to_use: '需要写长文、文档', match_keywords: ['写作', '文档'], tool_names: ['file_write', 'compose_text'], source: 'builtin' },
+    {
+      node_id: 'cap-researcher',
+      display_name: '研究员',
+      when_to_use: '需要做联网搜索或资料检索',
+      match_keywords: ['搜索', '资料'],
+      tool_names: ['websearch', 'fetch_url'],
+      source: 'builtin',
+    },
+    {
+      node_id: 'cap-writer',
+      display_name: '写作者',
+      when_to_use: '需要写长文、文档',
+      match_keywords: ['写作', '文档'],
+      tool_names: ['file_write', 'compose_text'],
+      source: 'builtin',
+    },
   ],
 });
 export const generateKanbanWorkspaceFiles = () => ({
   task_id: 'demo-root-001',
   files: [
-    { path: 'input/characters.json', size_bytes: 1_204, mime: 'application/json', updated_at: new Date(Date.now() - 600_000).toISOString() },
-    { path: 'output/README.md', size_bytes: 8_211, mime: 'text/markdown', updated_at: new Date(Date.now() - 300_000).toISOString() },
+    {
+      path: 'input/characters.json',
+      size_bytes: 1_204,
+      mime: 'application/json',
+      updated_at: new Date(Date.now() - 600_000).toISOString(),
+    },
+    {
+      path: 'output/README.md',
+      size_bytes: 8_211,
+      mime: 'text/markdown',
+      updated_at: new Date(Date.now() - 300_000).toISOString(),
+    },
   ],
 });
 
 // ---- AI Config（AIConfigPage） ----
 const DEMO_PROVIDERS = [
-  { provider: 'anthropic', display_name: 'Anthropic', enabled: true, presets: ['claude-opus-4-8', 'claude-haiku-4-5'] },
+  {
+    provider: 'anthropic',
+    display_name: 'Anthropic',
+    enabled: true,
+    presets: ['claude-opus-4-8', 'claude-haiku-4-5'],
+  },
   { provider: 'openai', display_name: 'OpenAI', enabled: true, presets: ['gpt-4o', 'gpt-4o-mini'] },
-  { provider: 'gemini', display_name: 'Gemini', enabled: true, presets: ['gemini-2.5-pro', 'gemini-2.5-flash'] },
-  { provider: 'local', display_name: '本机服务 (Ollama / vLLM / SGLang)', enabled: false, presets: [] },
+  {
+    provider: 'gemini',
+    display_name: 'Gemini',
+    enabled: true,
+    presets: ['gemini-2.5-pro', 'gemini-2.5-flash'],
+  },
+  {
+    provider: 'local',
+    display_name: '本机服务 (Ollama / vLLM / SGLang)',
+    enabled: false,
+    presets: [],
+  },
 ];
 export const generateProviderList = () => ({
   providers: DEMO_PROVIDERS,
   default_provider: 'anthropic',
 });
 export const generateTaskConfig = (task: string) => {
-  const all = DEMO_PROVIDERS.flatMap((p) => p.presets.map((m) => ({ provider: p.provider, model_name: m })));
+  const all = DEMO_PROVIDERS.flatMap((p) =>
+    p.presets.map((m) => ({ provider: p.provider, model_name: m })),
+  );
   return {
     task_level: task,
     provider_config_name: `${task}-main`,
@@ -1861,7 +2523,13 @@ export const generateEmbeddingSummary = () => ({
 });
 export const generateMCPToolsConfigList = () => ({
   items: [
-    { item_key: 'web_search', display_name: 'Brave Search', enabled: true, tool_name: 'brave_search', details: { max_results: 5 } },
+    {
+      item_key: 'web_search',
+      display_name: 'Brave Search',
+      enabled: true,
+      tool_name: 'brave_search',
+      details: { max_results: 5 },
+    },
     { item_key: 'echo', display_name: 'Echo', enabled: false, tool_name: 'mcp_echo', details: {} },
   ],
 });
@@ -1872,8 +2540,18 @@ export const generateMCPToolsConfigList = () => ({
 // - items / bot_self_ids 的 bot_id = 平台 id（onebot / telegram / …）
 // - targets?bot_id= 只按平台过滤群/用户；选中 WS 连接不应清空目标列表
 const DEMO_PUSH_BOTS = [
-  { bot_id: 'ws-onebot-a', name: 'ws-onebot-a (OneBot)', ws_bot_id: 'ws-onebot-a', connected: true },
-  { bot_id: 'ws-telegram', name: 'ws-telegram (Telegram)', ws_bot_id: 'ws-telegram', connected: true },
+  {
+    bot_id: 'ws-onebot-a',
+    name: 'ws-onebot-a (OneBot)',
+    ws_bot_id: 'ws-onebot-a',
+    connected: true,
+  },
+  {
+    bot_id: 'ws-telegram',
+    name: 'ws-telegram (Telegram)',
+    ws_bot_id: 'ws-telegram',
+    connected: true,
+  },
   { bot_id: 'ws-discord', name: 'ws-discord (Discord)', ws_bot_id: 'ws-discord', connected: false },
 ];
 /** 演示：onebot 平台挂 3 个不同 bot_self_id，精准推送时必须选中其一 */
@@ -2015,4 +2693,3 @@ export const generateAllArtifacts = (params: URLSearchParams) => ({
   items: (generateKanbanArtifacts().items as any[]).map((a) => ({ ...a })),
   count: 2,
 });
-

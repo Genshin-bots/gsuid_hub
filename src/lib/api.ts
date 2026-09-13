@@ -296,6 +296,38 @@ export interface LogContextResponse {
   has_more_after: boolean;
 }
 
+export interface ErrorReportListItem {
+  id: string;
+  filename: string;
+  timestamp: string;
+  first_timestamp: string;
+  count: number;
+  level: string;
+  event: string;
+  pathname: string;
+  lineno: number | null;
+  size: number;
+}
+
+export interface ErrorReportOccurrence {
+  filename: string;
+  timestamp: string;
+}
+
+export interface ErrorReportDetail {
+  fingerprint: string;
+  count: number;
+  report: Record<string, unknown>;
+  occurrences: ErrorReportOccurrence[];
+}
+
+export interface ErrorReportListPage {
+  count: number;
+  rows: ErrorReportListItem[];
+  page: number;
+  per_page: number;
+}
+
 export interface SchedulerJob {
   id: string;
   name: string;
@@ -1549,6 +1581,45 @@ export const logsApi = {
 
   getLevels: () =>
     api.get<Array<{ label: string; value: string }>>('/api/logs/levels'),
+
+  getErrorReports: (params: {
+    page?: number;
+    per_page?: number;
+    search?: string;
+    level?: string;
+    date?: string;
+    start_date?: string;
+    end_date?: string;
+  } = {}) => {
+    const query = new URLSearchParams();
+    if (params.page) query.set('page', String(params.page));
+    if (params.per_page) query.set('per_page', String(params.per_page));
+    if (params.search) query.set('search', params.search);
+    if (params.level) query.set('level', params.level);
+    if (params.date) query.set('date', params.date);
+    if (params.start_date) query.set('start_date', params.start_date);
+    if (params.end_date) query.set('end_date', params.end_date);
+    const qs = query.toString();
+    return api.get<ErrorReportListPage>(
+      qs ? `/api/logs/error-reports?${qs}` : '/api/logs/error-reports',
+    );
+  },
+
+  getErrorReportDates: () =>
+    api.get<string[]>('/api/logs/error-reports/available-dates'),
+
+  getErrorReport: (
+    reportId: string,
+    params: { date?: string; start_date?: string; end_date?: string } = {},
+  ) => {
+    const query = new URLSearchParams();
+    if (params.date) query.set('date', params.date);
+    if (params.start_date) query.set('start_date', params.start_date);
+    if (params.end_date) query.set('end_date', params.end_date);
+    const qs = query.toString();
+    const path = `/api/logs/error-reports/${encodeURIComponent(reportId)}`;
+    return api.get<ErrorReportDetail>(qs ? `${path}?${qs}` : path);
+  },
 };
 
 // ===================
