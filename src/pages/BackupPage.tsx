@@ -1,5 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
-import { useTheme } from '@/contexts/ThemeContext';
+import { useState, useEffect } from 'react';
 import { HardDrive, Download, Trash2, Play, Archive, Save } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
@@ -19,7 +18,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { ConfigField, ConfigFieldDefinition, ConfigValue, ConfigFieldType } from '@/components/config';
 import { FileTreeSelector } from '@/components/backup/FileTreeSelector';
-import { backupApi, BackupFile, FileTreeNode } from '@/lib/api';
+import { backupApi, BackupFile } from '@/lib/api';
 import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { format } from 'date-fns';
@@ -99,8 +98,6 @@ function formatBytes(bytes: number): string {
 }
 
 export default function BackupPage() {
-  const { style } = useTheme();
-  const isGlass = style === 'glassmorphism';
   const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<string>('settings');
   const [config, setConfig] = useState<Record<string, ConfigFieldDefinition>>({});
@@ -117,7 +114,6 @@ export default function BackupPage() {
   }
 
   const [backupList, setBackupList] = useState<BackupFileWithMeta[]>([]);
-  const [fileTree, setFileTree] = useState<FileTreeNode[]>([]);
   const [originalConfig, setOriginalConfig] = useState<Record<string, any>>({});
   const [hasChanges, setHasChanges] = useState(false);
   const [isBackingUp, setIsBackingUp] = useState(false);
@@ -155,11 +151,6 @@ export default function BackupPage() {
         setConfig(convertedConfig);
         // Save original config for change detection
         setOriginalConfig(backendConfig);
-
-        // Fetch file tree
-        const tree = await backupApi.getFileTree();
-        console.log('BackupPage: File tree:', tree);
-        setFileTree(tree);
       } catch (error) {
         console.error('Failed to fetch data:', error);
       } finally {
@@ -169,16 +160,15 @@ export default function BackupPage() {
     fetchData();
   }, []);
 
-  // Convert file tree type to match component expectation
-  const convertFileTree = (nodes: FileTreeNode[]): any[] => {
-    return nodes.map(node => ({
-      ...node,
-      type: node.type === 'directory' ? 'folder' : 'file',
-      children: convertFileTree(node.children)
-    }));
+  const handleTreeSelection = (paths: string[]) => {
+    setSelectedPaths(paths);
+    const configDirty = Object.keys(config).some(
+      (key) => JSON.stringify(config[key]?.value) !== JSON.stringify(originalConfig[key]?.data),
+    );
+    const treeDirty =
+      JSON.stringify(paths) !== JSON.stringify(originalConfig.backup_dir?.data ?? []);
+    setHasChanges(configDirty || treeDirty);
   };
-
-  const convertedFileTree = convertFileTree(fileTree);
 
   const handleConfigChange = (key: string, value: ConfigValue) => {
     setConfig(prev => {
@@ -466,9 +456,8 @@ export default function BackupPage() {
             </CardHeader>
             <CardContent>
               <FileTreeSelector
-                items={convertedFileTree}
                 selectedPaths={selectedPaths}
-                onSelectionChange={setSelectedPaths}
+                onSelectionChange={handleTreeSelection}
                 className="max-h-[600px] overflow-auto"
               />
               <p className="text-sm text-muted-foreground mt-3">

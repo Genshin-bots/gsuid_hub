@@ -44,7 +44,7 @@
 | `/logs` | `LogsPage.tsx` | 按日期 / 等级 / 来源 / 关键词分页查日志、上下文窗 | `logs_api.py`（`/api/logs*`，含 `/stream` SSE 与 `/config`） |
 | `/traces` | `TracesPage.tsx` | 命令执行追踪链（按 trace_id 聚合逐条事件） | `trace_api.py`（`/api/traces`） |
 | `/scheduler` | `SchedulerPage.tsx` | APScheduler 任务列表 / 立即运行 / 暂停 / 恢复 / 删除 | `scheduler_api.py`（`/api/scheduler/jobs*`） |
-| `/backup` | `BackupPage.tsx` | 备份文件树 / 创建 / 下载 / 删除 / 配置 | `backup_api.py`（`/api/backup*`） |
+| `/backup` | `BackupPage.tsx` | 备份目录懒加载勾选（每页 100、按大小/文件数排序）/ 创建 / 下载 / 删除 / 配置 | `backup_api.py`（`/api/backup*`，含分页 `/file-tree`） |
 | `/themes` | `ThemesPage.tsx` | 主题配置 (mode/style/color) + 背景图 + 圆角 + 阴影 + 缩放 + 字体 + 预设管理 | `theme_api.py`（`/api/theme*`）+ `assets_api.py` |
 | `/settings` | `SettingsPage.tsx` | 头像、用户名、密码、API Host、语言 | `auth_api.py`（`/api/auth/{avatar,name,password}`） |
 

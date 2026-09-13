@@ -1526,34 +1526,106 @@ export const generateBudgetOverview = () => ({
 });
 
 // ---- Backup（BackupPage） ----
-export const generateBackupFileTree = () => ({
-  root: {
-    name: 'backups',
-    path: '',
+type DemoTreeNode = {
+  name: string;
+  path: string;
+  type: 'file' | 'directory';
+  size_bytes: number;
+  file_count: number;
+  has_children: boolean;
+  children?: DemoTreeNode[];
+};
+
+const DEMO_BACKUP_TREE: DemoTreeNode[] = (() => {
+  const files = Array.from({ length: 120 }, (_, i) => {
+    const size = (120 - i) * 1024;
+    return {
+      name: `cache-${String(i).padStart(3, '0')}.bin`,
+      path: `plugin-res/cache-${String(i).padStart(3, '0')}.bin`,
+      type: 'file' as const,
+      size_bytes: size,
+      file_count: 1,
+      has_children: false,
+    };
+  });
+  const pluginRes: DemoTreeNode = {
+    name: 'plugin-res',
+    path: 'plugin-res',
     type: 'directory',
-    children: [
-      {
-        name: '2026-07-19',
-        path: '2026-07-19',
-        type: 'directory',
-        children: [
-          { name: 'database.zip', path: '2026-07-19/database.zip', type: 'file', size_bytes: 1_482_311 },
-          { name: 'config.zip', path: '2026-07-19/config.zip', type: 'file', size_bytes: 218_422 },
-        ],
-      },
-      {
-        name: '2026-07-20',
-        path: '2026-07-20',
-        type: 'directory',
-        children: [
-          { name: 'database.zip', path: '2026-07-20/database.zip', type: 'file', size_bytes: 1_511_882 },
-          { name: 'config.zip', path: '2026-07-20/config.zip', type: 'file', size_bytes: 224_121 },
-          { name: 'workspace.zip', path: '2026-07-20/workspace.zip', type: 'file', size_bytes: 91_222_311 },
-        ],
-      },
-    ],
-  },
-});
+    size_bytes: files.reduce((s, f) => s + f.size_bytes, 0),
+    file_count: files.length,
+    has_children: true,
+    children: files,
+  };
+  return [
+    {
+      name: 'config',
+      path: 'config',
+      type: 'directory',
+      size_bytes: 12_288,
+      file_count: 3,
+      has_children: true,
+      children: [
+        { name: 'settings.json', path: 'config/settings.json', type: 'file', size_bytes: 4096, file_count: 1, has_children: false },
+        { name: 'users.json', path: 'config/users.json', type: 'file', size_bytes: 8192, file_count: 1, has_children: false },
+      ],
+    },
+    pluginRes,
+    {
+      name: 'ai_core',
+      path: 'ai_core',
+      type: 'directory',
+      size_bytes: 48_000,
+      file_count: 8,
+      has_children: true,
+      children: [
+        { name: 'ai_config.json', path: 'ai_core/ai_config.json', type: 'file', size_bytes: 2048, file_count: 1, has_children: false },
+      ],
+    },
+  ];
+})();
+
+export const generateBackupFileTree = (params: URLSearchParams = new URLSearchParams()) => {
+  const path = params.get('path') ?? '';
+  const sort = params.get('sort') === 'count' ? 'count' : 'size';
+  const offset = Math.max(0, Number(params.get('offset') ?? 0) || 0);
+  const limit = Math.min(100, Math.max(1, Number(params.get('limit') ?? 100) || 100));
+  let nodes = DEMO_BACKUP_TREE;
+  if (path) {
+    const walk = (list: DemoTreeNode[]): DemoTreeNode | undefined => {
+      for (const n of list) {
+        if (n.path === path) return n;
+        if (n.children) {
+          const hit = walk(n.children);
+          if (hit) return hit;
+        }
+      }
+      return undefined;
+    };
+    const found = walk(DEMO_BACKUP_TREE);
+    nodes = found?.children ?? [];
+  }
+  const sorted = [...nodes].sort((a, b) => {
+    const key = sort === 'count' ? 'file_count' : 'size_bytes';
+    return (b[key] as number) - (a[key] as number) || a.name.localeCompare(b.name);
+  });
+  const sliced = sorted.slice(offset, offset + limit).map(({ children: _c, ...rest }) => rest);
+  const omitted = Math.max(0, sorted.length - offset - sliced.length);
+  return {
+    path,
+    name: path ? path.split('/').pop() ?? path : 'data',
+    type: 'directory' as const,
+    size_bytes: sorted.reduce((s, n) => s + n.size_bytes, 0),
+    file_count: sorted.reduce((s, n) => s + n.file_count, 0),
+    child_total: sorted.length,
+    offset,
+    limit,
+    truncated: omitted > 0,
+    omitted_count: omitted,
+    sort,
+    children: sliced,
+  };
+};
 export const generateBackupFiles = () => [
   { file_id: 'bf-20260719-db', name: 'database.zip', size_bytes: 1_482_311, created_at: '2026-07-19T03:00:12Z' },
   { file_id: 'bf-20260719-cfg', name: 'config.zip', size_bytes: 218_422, created_at: '2026-07-19T03:00:13Z' },

@@ -38,5 +38,12 @@
   "enterValue": "入力内容",
   "webdavServerPlaceholder": "入力 WebDAV サービス器地址",
   "webdavUsernamePlaceholder": "入力ユーザー名",
-  "webdavPasswordPlaceholder": "入力パスワード"
+  "webdavPasswordPlaceholder": "入力パスワード",
+  "sortBySize": "サイズ順",
+  "sortByCount": "ファイル数順",
+  "moreItems": "ほか {count} 件",
+  "treeLoading": "読み込み中…",
+  "treeLoadFailed": "ディレクトリを読み込めません",
+  "emptyDir": "空のフォルダ",
+  "nodeMetaDir": "{size} · {count} ファイル"
 }

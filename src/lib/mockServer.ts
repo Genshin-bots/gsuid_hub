@@ -866,7 +866,7 @@ const routes: Route[] = [
 
   // /backup
   { m: 'GET', re: /^\/api\/backup\/files$/, h: () => generateBackupFiles() },
-  { m: 'GET', re: /^\/api\/backup\/file-tree$/, h: () => generateBackupFileTree() },
+  { m: 'GET', re: /^\/api\/backup\/file-tree$/, h: ({ url }) => generateBackupFileTree(url.searchParams) },
   { m: 'GET', re: /^\/api\/backup\/config$/, h: () => generateBackupConfig() },
 
   // /ai-kanban

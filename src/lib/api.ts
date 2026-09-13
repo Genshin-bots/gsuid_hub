@@ -1711,11 +1711,30 @@ export const schedulerApi = {
 // Backup APIs
 // ===================
 
+export type BackupFileTreeSort = 'size' | 'count';
+
 export interface FileTreeNode {
   id: string;
   name: string;
   type: 'file' | 'directory';
   path: string;
+  size_bytes: number;
+  file_count: number;
+  has_children: boolean;
+}
+
+export interface FileTreeListing {
+  path: string;
+  name: string;
+  type: 'directory';
+  size_bytes: number;
+  file_count: number;
+  child_total: number;
+  offset: number;
+  limit: number;
+  truncated: boolean;
+  omitted_count: number;
+  sort: BackupFileTreeSort;
   children: FileTreeNode[];
 }
 
@@ -1748,8 +1767,20 @@ export const backupApi = {
   }) =>
     api.post<{ status: number; msg: string }>('/api/backup/config', config),
 
-  getFileTree: () =>
-    api.get<FileTreeNode[]>('/api/backup/file-tree'),
+  getFileTree: (opts: {
+    path?: string;
+    sort?: BackupFileTreeSort;
+    offset?: number;
+    limit?: number;
+  } = {}) => {
+    const params = new URLSearchParams();
+    if (opts.path) params.set('path', opts.path);
+    if (opts.sort) params.set('sort', opts.sort);
+    if (opts.offset != null && opts.offset > 0) params.set('offset', String(opts.offset));
+    if (opts.limit != null) params.set('limit', String(opts.limit));
+    const qs = params.toString();
+    return api.get<FileTreeListing>(qs ? `/api/backup/file-tree?${qs}` : '/api/backup/file-tree');
+  },
 
   downloadFile: (fileId: string): Promise<Blob> =>
     api.downloadBlob(`/api/backup/download?file_id=${encodeURIComponent(fileId)}`),

@@ -38,5 +38,12 @@
   "enterValue": "Enter value",
   "webdavServerPlaceholder": "Enter WebDAV server address",
   "webdavUsernamePlaceholder": "Enter username",
-  "webdavPasswordPlaceholder": "Enter password"
+  "webdavPasswordPlaceholder": "Enter password",
+  "sortBySize": "By size",
+  "sortByCount": "By file count",
+  "moreItems": "{count} more items",
+  "treeLoading": "Loading…",
+  "treeLoadFailed": "Unable to load directory",
+  "emptyDir": "Empty folder",
+  "nodeMetaDir": "{size} · {count} files"
 }

@@ -38,5 +38,12 @@
   "enterValue": "请输入内容",
   "webdavServerPlaceholder": "请输入 WebDAV 服务器地址",
   "webdavUsernamePlaceholder": "请输入用户名",
-  "webdavPasswordPlaceholder": "请输入密码"
+  "webdavPasswordPlaceholder": "请输入密码",
+  "sortBySize": "按大小",
+  "sortByCount": "按文件数",
+  "moreItems": "还有 {count} 项",
+  "treeLoading": "加载中…",
+  "treeLoadFailed": "无法加载目录",
+  "emptyDir": "空目录",
+  "nodeMetaDir": "{size} · {count} 个文件"
 }
