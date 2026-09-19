@@ -35,6 +35,7 @@ import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { TagsInput } from './TagsInput';
 import { SecretInput } from './SecretInput';
+import { resolveDividerSubtitle } from './dividerDisplay';
 
 // 根据 title 关键词匹配图标
 const getTitleIcon = (title: string) => {
@@ -223,25 +224,42 @@ export function ConfigField({
   const renderField = () => {
     // Divider 类型
     if (field.type === 'divider') {
-      // 分割线标题：优先用后端提供的 value；value 为空(如 "")时回退到 title(label)，
-      // 两者都为空才渲染纯分割线
+      // 标题：后端 GsDivider.data（value）；空则回退 title（label）
+      // 副标题：GsDivider.desc，小字放在标题下面（与后端 39-plugin-config-types 一致）
       const dividerTitle =
         typeof value === 'string' && value ? value : displayLabel || null;
+      const dividerSubtitle = resolveDividerSubtitle(
+        descriptionText,
+        dividerTitle,
+        fieldKey,
+      );
+
       if (dividerTitle) {
-        // 带标题的分割线：标题样式突出
         return (
-          <div className="flex items-center gap-3 w-full pt-4 pb-2">
-            <div className="flex items-center gap-2">
-              <div className="w-1 h-5 bg-primary rounded-full" />
-              <h4 className="text-base font-bold text-foreground whitespace-nowrap tracking-wide">
-                {dividerTitle}
-              </h4>
+          <div className="flex gap-2 w-full pt-4 pb-2">
+            <div className="w-1 shrink-0 self-stretch min-h-5 rounded-full bg-primary" />
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-3">
+                <h4 className="text-base font-bold text-foreground whitespace-nowrap tracking-wide">
+                  {dividerTitle}
+                </h4>
+                <Separator className="flex-1" />
+              </div>
+              {dividerSubtitle && (
+                <p className="mt-1 text-sm text-muted-foreground">{dividerSubtitle}</p>
+              )}
             </div>
-            <Separator className="flex-1" />
           </div>
         );
       }
-      // 无标题的纯分割线
+      if (dividerSubtitle) {
+        return (
+          <div className="flex w-full flex-col gap-1 py-2">
+            <Separator className="w-full" />
+            <p className="text-sm text-muted-foreground">{dividerSubtitle}</p>
+          </div>
+        );
+      }
       return (
         <div className="flex items-center w-full py-2">
           <Separator className="flex-1" />
