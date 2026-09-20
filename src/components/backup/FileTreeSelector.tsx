@@ -1,16 +1,20 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import { ChevronRight, Folder, FolderOpen, File, HardDrive, ArrowDownWideNarrow, Hash } from 'lucide-react';
+import {
+  ChevronRight,
+  Folder,
+  FolderOpen,
+  File,
+  HardDrive,
+  ArrowDownWideNarrow,
+  Hash,
+} from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Button } from '@/components/ui/button';
 import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
 import { cn } from '@/lib/utils';
-import {
-  backupApi,
-  getApiErrorMessage,
-  type BackupFileTreeSort,
-  type FileTreeNode,
-} from '@/lib/api';
+import { backupApi, getApiErrorMessage, type BackupFileTreeSort } from '@/lib/api';
+import { normalizeFileTreeListing, type LoadedFileTreeNode } from '@/lib/backupFileTree';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { toast } from 'sonner';
 
@@ -20,14 +24,7 @@ interface FileTreeSelectorProps {
   className?: string;
 }
 
-interface LoadedNode extends FileTreeNode {
-  children: LoadedNode[];
-  childTotal: number;
-  omittedCount: number;
-  truncated: boolean;
-  loaded: boolean;
-  loading: boolean;
-}
+type LoadedNode = LoadedFileTreeNode;
 
 function formatBytes(bytes: number): string {
   if (!Number.isFinite(bytes) || bytes <= 0) return '0 B';
@@ -37,25 +34,13 @@ function formatBytes(bytes: number): string {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
 }
 
-function toLoaded(node: FileTreeNode): LoadedNode {
-  return {
-    ...node,
-    children: [],
-    childTotal: 0,
-    omittedCount: 0,
-    truncated: false,
-    loaded: false,
-    loading: false,
-  };
-}
-
 function pathIsUnder(parent: string, child: string): boolean {
   if (!parent) return child !== '';
   return child === parent || child.startsWith(`${parent}/`);
 }
 
 function getSelectionState(
-  node: FileTreeNode,
+  node: LoadedNode,
   selectedPaths: Set<string>,
 ): 'checked' | 'unchecked' | 'indeterminate' {
   if (selectedPaths.has(node.path)) return 'checked';
@@ -221,13 +206,15 @@ export function FileTreeSelector({
   const selectedSet = useMemo(() => new Set(selectedPaths), [selectedPaths]);
   const sortGen = useRef(0);
 
-  const applyListing = useCallback((nodes: LoadedNode[], listingChildren: FileTreeNode[], append: boolean) => {
-    const incoming = listingChildren.map(toLoaded);
-    if (!append) return incoming;
-    const seen = new Set(nodes.map((n) => n.path));
-    const extra = incoming.filter((n) => !seen.has(n.path));
-    return [...nodes, ...extra];
-  }, []);
+  const applyListing = useCallback(
+    (nodes: LoadedNode[], listingChildren: LoadedNode[], append: boolean) => {
+      if (!append) return listingChildren;
+      const seen = new Set(nodes.map((n) => n.path));
+      const extra = listingChildren.filter((n) => !seen.has(n.path));
+      return [...nodes, ...extra];
+    },
+    [],
+  );
 
   const fetchRoot = useCallback(
     async (nextSort: BackupFileTreeSort, offset = 0, append = false) => {
@@ -235,11 +222,15 @@ export function FileTreeSelector({
       const gen = sortGen.current;
       setRootMeta((prev) => ({ ...prev, loading: true }));
       try {
-        const listing = await backupApi.getFileTree({
-          sort: nextSort,
-          offset,
-          limit: 100,
-        });
+        // Old Core returned `data: [root]`; listing.children was undefined → setRoots .map crash.
+        const listing = normalizeFileTreeListing(
+          await backupApi.getFileTree({
+            sort: nextSort,
+            offset,
+            limit: 100,
+          }),
+          nextSort,
+        );
         if (gen !== sortGen.current) return;
         setRoots((prev) => applyListing(append ? prev : [], listing.children, append));
         setRootMeta({
@@ -261,13 +252,16 @@ export function FileTreeSelector({
     void fetchRoot(sort, 0, false);
   }, [sort, fetchRoot]);
 
-  const patchNode = useCallback((nodes: LoadedNode[], path: string, fn: (n: LoadedNode) => LoadedNode): LoadedNode[] => {
-    return nodes.map((n) => {
-      if (n.path === path) return fn(n);
-      if (n.children.length === 0) return n;
-      return { ...n, children: patchNode(n.children, path, fn) };
-    });
-  }, []);
+  const patchNode = useCallback(
+    (nodes: LoadedNode[], path: string, fn: (n: LoadedNode) => LoadedNode): LoadedNode[] => {
+      return nodes.map((n) => {
+        if (n.path === path) return fn(n);
+        if (n.children.length === 0) return n;
+        return { ...n, children: patchNode(n.children, path, fn) };
+      });
+    },
+    [],
+  );
 
   const loadChildren = useCallback(
     async (node: LoadedNode, append: boolean) => {
@@ -275,12 +269,15 @@ export function FileTreeSelector({
       const gen = sortGen.current;
       setRoots((prev) => patchNode(prev, node.path, (n) => ({ ...n, loading: true })));
       try {
-        const listing = await backupApi.getFileTree({
-          path: node.path,
+        const listing = normalizeFileTreeListing(
+          await backupApi.getFileTree({
+            path: node.path,
+            sort,
+            offset: append ? node.children.length : 0,
+            limit: 100,
+          }),
           sort,
-          offset: append ? node.children.length : 0,
-          limit: 100,
-        });
+        );
         if (gen !== sortGen.current) return;
         setRoots((prev) =>
           patchNode(prev, node.path, (n) => ({

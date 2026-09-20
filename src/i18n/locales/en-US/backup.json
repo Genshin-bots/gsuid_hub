@@ -43,6 +43,8 @@
   "sortByCount": "By file count",
   "moreItems": "{count} more items",
   "treeLoading": "Loading…",
+  "loadFailed": "Failed to load backup data",
+  "downloadFailed": "Failed to download backup file",
   "treeLoadFailed": "Unable to load directory",
   "emptyDir": "Empty folder",
   "nodeMetaDir": "{size} · {count} files"
