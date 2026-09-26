@@ -24,20 +24,16 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Settings, Loader2, ChevronDown, Save, Server, LayoutGrid, Users, Shield, Filter, Zap, MessageSquare, Key, Command, Package, RotateCw, Download, Sliders, Cog, Database, Globe, Bell, Lock, Palette, FileText, Layers, Wrench, AppWindow } from 'lucide-react';
+import { Settings, Loader2, ChevronDown, Save, Server, LayoutGrid, Users, Shield, Filter, Zap, MessageSquare, Key, Command, Package, RotateCw, Download, Sliders, Cog, Database, Globe, Bell, Lock, Palette, FileText, Layers, Wrench, AppWindow, CircleCheck, CircleOff } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ConfigField, ConfigFieldDefinition, ConfigValue, ConfigFieldType, RepeatGroupField, RepeatGroupItem } from '@/components/config';
-import { pluginsApi, gitUpdateApi, Plugin, ServiceConfig, SvItem, SvCommand, PluginConfigItem, PluginConfigGroup, PluginListItem, PluginPageMeta } from '@/lib/api';
+import { pluginsApi, gitUpdateApi, getApiErrorMessage, Plugin, ServiceConfig, SvItem, SvCommand, PluginConfigItem, PluginConfigGroup, PluginListItem, PluginPageMeta } from '@/lib/api';
+import { isPluginServiceDirty as pluginServiceFieldsDirty, isSvListDirty } from '@/lib/pluginServiceDirty';
 import { toast } from 'sonner';
 import { PinnedPage } from '@/components/layout/PinnedPage';
 import { PluginIcon } from '@/components/ui/plugin-icon';
+import { PluginUsageBar } from '@/components/plugins/PluginUsageBar';
 import {
   matchPluginListId,
   pickPluginPageText,
@@ -60,6 +56,81 @@ const CMD_TYPE_COLORS: Record<string, string> = {
   message: 'bg-indigo-100 text-indigo-800 border-indigo-300 dark:bg-indigo-900 dark:text-indigo-300 dark:border-indigo-700',
 };
 const CMD_TYPE_DEFAULT_COLOR = 'bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600';
+
+const SV_BADGE = 'gap-1 border-transparent font-normal';
+
+const SV_AREA_BADGE: Record<string, string> = {
+  ALL: 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-200',
+  GROUP: 'bg-violet-100 text-violet-800 dark:bg-violet-950 dark:text-violet-200',
+  DIRECT: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200',
+};
+
+const SV_PM_BADGE = [
+  'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-200',
+  'bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-200',
+  'bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200',
+  'bg-yellow-100 text-yellow-900 dark:bg-yellow-950 dark:text-yellow-200',
+  'bg-lime-100 text-lime-800 dark:bg-lime-950 dark:text-lime-200',
+  'bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-200',
+  'bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-200',
+  'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200',
+  'bg-zinc-200 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-100',
+];
+
+const SV_PRIORITY_BADGE = [
+  'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200',
+  'bg-cyan-100 text-cyan-800 dark:bg-cyan-950 dark:text-cyan-200',
+  'bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-200',
+  'bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-200',
+  'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200',
+  'bg-lime-100 text-lime-800 dark:bg-lime-950 dark:text-lime-200',
+  'bg-yellow-100 text-yellow-900 dark:bg-yellow-950 dark:text-yellow-200',
+  'bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200',
+  'bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-200',
+  'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-200',
+  'bg-fuchsia-100 text-fuchsia-800 dark:bg-fuchsia-950 dark:text-fuchsia-200',
+];
+
+function svPriorityBadgeClass(priority: number) {
+  const index = Math.min(Math.max(priority, 0), SV_PRIORITY_BADGE.length - 1);
+  return SV_PRIORITY_BADGE[index];
+}
+
+function svMatchesQuery(sv: SvItem, rawQuery: string) {
+  const query = rawQuery.trim().toLowerCase();
+  if (!query) return true;
+  if (sv.name.toLowerCase().includes(query)) return true;
+  return (sv.commands || []).some((cmd) => {
+    const shown = cmd.type === 'regex' ? simplifyRegexKeyword(cmd.keyword) : cmd.keyword;
+    return cmd.keyword.toLowerCase().includes(query) || shown.toLowerCase().includes(query);
+  });
+}
+
+function commandMatchesQuery(cmd: SvCommand, rawQuery: string) {
+  const query = rawQuery.trim().toLowerCase();
+  if (!query) return false;
+  const shown = cmd.type === 'regex' ? simplifyRegexKeyword(cmd.keyword) : cmd.keyword;
+  return cmd.keyword.toLowerCase().includes(query) || shown.toLowerCase().includes(query);
+}
+
+function useSvColumnCount() {
+  const [count, setCount] = useState(1);
+  useEffect(() => {
+    const wide = window.matchMedia('(min-width: 1024px)');
+    const medium = window.matchMedia('(min-width: 640px)');
+    const update = () => setCount(wide.matches ? 3 : medium.matches ? 2 : 1);
+    update();
+    wide.addEventListener('change', update);
+    medium.addEventListener('change', update);
+    return () => {
+      wide.removeEventListener('change', update);
+      medium.removeEventListener('change', update);
+    };
+  }, []);
+  return count;
+}
+
+
 
 // 根据配置名称关键词智能分配图标
 const configNameIconMap: Record<string, React.ReactNode> = {
@@ -376,6 +447,11 @@ export default function PluginsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [pluginList, setPluginList] = useState<PluginListItem[]>([]);
   const [plugins, setPlugins] = useState<Plugin[]>([]);
+  const [pluginUsageNames, setPluginUsageNames] = useState<string[]>([]);
+  const [pluginSection, setPluginSection] = useState<'params' | 'plugin' | 'sv'>('params');
+  const [openSvName, setOpenSvName] = useState<string | null>(null);
+  const [svQuery, setSvQuery] = useState('');
+  const svColumnCount = useSvColumnCount();
   const [selectedPluginId, setSelectedPluginId] = useState<string>(
     () => readPluginsListPluginId(searchParams.toString()),
   );
@@ -466,18 +542,48 @@ export default function PluginsPage() {
     return configChanged || groupsChanged;
   }, [selectedPlugin, originalConfig]);
 
-  const isServiceDirty = useMemo(() => {
-    const serviceChanged = JSON.stringify(editedServiceConfig) !== JSON.stringify(originalServiceConfig);
-    const svListChanged = JSON.stringify(editedSvList) !== JSON.stringify(originalSvList);
-    const enabledChanged = editedEnabled !== originalEnabled;
-    return serviceChanged || svListChanged || enabledChanged;
-  }, [editedServiceConfig, originalServiceConfig, editedSvList, originalSvList, editedEnabled, originalEnabled]);
+  const isPluginServiceDirty = useMemo(
+    () => pluginServiceFieldsDirty(editedServiceConfig, originalServiceConfig, editedEnabled, originalEnabled),
+    [editedServiceConfig, originalServiceConfig, editedEnabled, originalEnabled],
+  );
+
+  const isSvDirty = useMemo(
+    () => isSvListDirty(editedSvList, originalSvList),
+    [editedSvList, originalSvList],
+  );
 
   // 过滤空字符串的辅助函数
   const filterEmptyPrefix = (prefix: string[] | undefined): string[] => {
     if (!Array.isArray(prefix)) return [];
     return prefix.filter(item => item !== '');
   };
+
+  useEffect(() => {
+    setPluginSection('params');
+    setOpenSvName(null);
+    setSvQuery('');
+  }, [selectedPluginId]);
+
+  useEffect(() => {
+    if (pluginSection === 'sv' || !svQuery.trim()) return;
+    document.querySelector('[data-config-hit="true"]')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }, [svQuery, pluginSection, selectedConfigName]);
+
+  useEffect(() => {
+    let cancelled = false;
+    pluginsApi
+      .getPluginUsage()
+      .then((rank) => {
+        if (!cancelled) setPluginUsageNames(rank.plugins.map((item) => item.name));
+      })
+      .catch((error) => {
+        // 旧后端没有这个接口时，按钮组按插件原顺序排，不打断页面。
+        console.warn('plugin usage unavailable', error);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Fetch plugin list (lightweight)
   const fetchPluginList = async () => {
@@ -537,12 +643,10 @@ export default function PluginsPage() {
           prefix: filterEmptyPrefix(converted.service_config.prefix)
         } : null;
         
-        setOriginalServiceConfig(JSON.parse(JSON.stringify(processedServiceConfig)));
+        const baseService = processedServiceConfig || {};
+        setOriginalServiceConfig(JSON.parse(JSON.stringify(baseService)));
         setOriginalSvList(JSON.parse(JSON.stringify(converted.sv_list || [])));
-        setEditedServiceConfig({
-          ...(processedServiceConfig || {}),
-          enabled: converted.enabled ?? true
-        });
+        setEditedServiceConfig(JSON.parse(JSON.stringify(baseService)));
         setEditedSvList(JSON.parse(JSON.stringify(converted.sv_list || [])));
         setOriginalEnabled(converted.enabled ?? true);
         setEditedEnabled(converted.enabled ?? true);
@@ -616,12 +720,10 @@ export default function PluginsPage() {
       prefix: filterEmptyPrefix(selectedPlugin.service_config.prefix)
     } : null;
     
-    setOriginalServiceConfig(JSON.parse(JSON.stringify(processedServiceConfig)));
+    const baseService = processedServiceConfig || {};
+    setOriginalServiceConfig(JSON.parse(JSON.stringify(baseService)));
     setOriginalSvList(JSON.parse(JSON.stringify(selectedPlugin.sv_list || [])));
-    setEditedServiceConfig({
-      ...(processedServiceConfig || {}),
-      enabled: selectedPlugin.enabled ?? true
-    });
+    setEditedServiceConfig(JSON.parse(JSON.stringify(baseService)));
     setEditedSvList(JSON.parse(JSON.stringify(selectedPlugin.sv_list || [])));
     setOriginalEnabled(selectedPlugin.enabled ?? true);
     setEditedEnabled(selectedPlugin.enabled ?? true);
@@ -771,33 +873,40 @@ export default function PluginsPage() {
     }
   };
 
-  const handleSaveService = async () => {
+  const handleSavePluginService = async () => {
     if (!selectedPlugin) return;
     setIsSavingService(true);
     try {
-      // 保存服务配置（包含 enabled 状态），过滤掉prefix中的空字符串
       const servicePayload = {
         ...editedServiceConfig,
         enabled: editedEnabled,
-        prefix: filterEmptyPrefix(editedServiceConfig.prefix)
+        prefix: filterEmptyPrefix(editedServiceConfig.prefix),
       };
       await pluginsApi.updateServiceConfig(selectedPlugin.name, servicePayload as Record<string, unknown>);
+      setOriginalServiceConfig(JSON.parse(JSON.stringify({
+        ...editedServiceConfig,
+        prefix: filterEmptyPrefix(editedServiceConfig.prefix),
+      })));
+      setOriginalEnabled(editedEnabled);
+      toast.success(t('plugins.serviceConfigUpdated'));
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, t('plugins.updateServiceConfigFailed')));
+    } finally {
+      setIsSavingService(false);
+    }
+  };
 
-      // 保存 SV 配置
+  const handleSaveSv = async () => {
+    if (!selectedPlugin) return;
+    setIsSavingService(true);
+    try {
       for (const sv of editedSvList) {
         await pluginsApi.updateSvConfig(selectedPlugin.name, sv.name, sv as unknown as Record<string, unknown>);
       }
-
-      setOriginalServiceConfig(JSON.parse(JSON.stringify({
-        ...editedServiceConfig,
-        prefix: filterEmptyPrefix(editedServiceConfig.prefix)
-      })));
       setOriginalSvList(JSON.parse(JSON.stringify(editedSvList)));
-      setOriginalEnabled(editedEnabled);
-
       toast.success(t('plugins.serviceConfigUpdated'));
     } catch (error) {
-      toast.error(t('plugins.updateServiceConfigFailed'));
+      toast.error(getApiErrorMessage(error, t('plugins.updateServiceConfigFailed')));
     } finally {
       setIsSavingService(false);
     }
@@ -883,6 +992,23 @@ export default function PluginsPage() {
     setIsUpdatingAll(false);
   };
 
+  const configHitClass = (...parts: Array<string | undefined>) => {
+    const query = svQuery.trim().toLowerCase();
+    if (!query || pluginSection === 'sv') return '';
+    return parts.some((part) => (part || '').toLowerCase().includes(query))
+      ? 'relative isolate before:pointer-events-none before:absolute before:-inset-2.5 before:-z-10 before:rounded-lg before:bg-primary/10 before:ring-2 before:ring-primary/60'
+      : '';
+  };
+
+  const sectionSaving = pluginSection === 'params' ? isSavingConfig : isSavingService;
+  const sectionDirty =
+    pluginSection === 'params' ? isConfigDirty : pluginSection === 'plugin' ? isPluginServiceDirty : isSvDirty;
+  const saveSection = () => {
+    if (pluginSection === 'params') void handleSaveConfig();
+    else if (pluginSection === 'plugin') void handleSavePluginService();
+    else void handleSaveSv();
+  };
+
   return (
     <PinnedPage
       header={
@@ -937,18 +1063,11 @@ export default function PluginsPage() {
         </div>
       }
       toolbar={
-        /* 插件选择：随标题常驻。移动端收成下拉，避免一长串插件名撑破边距 */
-        <TabButtonGroup
-          options={pluginList.map((plugin) => ({
-            value: plugin.id,
-            label: plugin.name,
-            icon: (
-              <PluginIcon pluginName={plugin.name} />
-            ),
-          }))}
+        <PluginUsageBar
+          plugins={pluginList}
+          usageNames={pluginUsageNames}
           value={selectedPluginId}
           onValueChange={setSelectedPluginId}
-          collapseOnMobile
         />
       }
     >
@@ -961,84 +1080,85 @@ export default function PluginsPage() {
         </Card>
       ) : selectedPlugin ? (
         <Card key={selectedPlugin.id} className="glass-card">
-          <div className="p-6 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="flex items-center justify-center overflow-hidden">
-                <PluginIcon pluginName={selectedPlugin.name} className="w-10 h-10" />
+          <div className="sticky top-0 z-30 rounded-t-lg border-b border-border/40 bg-background px-6 pb-2 pt-3 before:pointer-events-none before:absolute before:inset-x-0 before:-top-3 before:h-3 before:bg-background">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center justify-center overflow-hidden">
+              <PluginIcon pluginName={selectedPlugin.name} className="h-8 w-8" />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold">{selectedPlugin.name}</h3>
+              <p className="text-sm text-muted-foreground">{selectedPlugin.description}</p>
+            </div>
+          </div>
+            <div className="mt-2 flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between [&_.shadow-safe]:!my-0 [&_.shadow-safe]:!py-0">
+              <div className="flex min-w-0 flex-wrap items-center gap-3">
+                <TabButtonGroup
+                  className="w-max"
+                  options={[
+                    {
+                      value: 'params',
+                      label: t('plugins.configParams'),
+                      icon: <Settings className="h-4 w-4" />,
+                    },
+                    {
+                      value: 'plugin',
+                      label: t('plugins.pluginServiceConfig'),
+                      icon: <Package className="h-4 w-4" />,
+                    },
+                    {
+                      value: 'sv',
+                      label: t('plugins.svServiceConfig'),
+                      icon: <Command className="h-4 w-4" />,
+                    },
+                  ]}
+                  value={pluginSection}
+                  onValueChange={(value) => setPluginSection(value as 'params' | 'plugin' | 'sv')}
+                />
+                {selectedPages.length > 0 && (
+                  <TabButtonGroup
+                    className="w-max"
+                    options={selectedPages.map((page) => ({
+                      value: page.id,
+                      label: pickPluginPageText(page.title, language, page.id),
+                      icon: <AppWindow className="h-4 w-4" />,
+                    }))}
+                    value="__plugin_page_idle__"
+                    onValueChange={(id) => {
+                      const page = selectedPages.find((item) => item.id === id);
+                      if (page) requestOpenPluginPage(page);
+                    }}
+                  />
+                )}
               </div>
-              <div>
-                <h3 className="text-xl font-bold">{selectedPlugin.name}</h3>
-                <p className="text-sm text-muted-foreground">{selectedPlugin.description}</p>
+              <div className="flex shrink-0 items-center gap-2">
+                <Input
+                  value={svQuery}
+                  onChange={(event) => setSvQuery(event.target.value)}
+                  placeholder={pluginSection === 'sv' ? t('plugins.searchSv') : t('plugins.searchConfig')}
+                  className="h-[38px] w-44 bg-background lg:w-56"
+                />
+                <Button
+                  className="h-[38px] shrink-0 gap-2 px-8 lg:min-w-[160px]"
+                  disabled={!sectionDirty || sectionSaving}
+                  onClick={saveSection}
+                >
+                  {sectionSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  确认修改
+                </Button>
               </div>
             </div>
-            {selectedPages.length === 1 && (
-              <Button
-                className="gap-2 shrink-0 h-9"
-                onClick={() => requestOpenPluginPage(selectedPages[0])}
-              >
-                <AppWindow className="w-4 h-4" />
-                {pickPluginPageText(selectedPages[0].title, language, t('plugins.openPluginPage'))}
-              </Button>
-            )}
-            {selectedPages.length > 1 && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button className="gap-2 shrink-0 h-9">
-                    <AppWindow className="w-4 h-4" />
-                    {t('plugins.openPluginPage')}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  {selectedPages.map((page) => (
-                    <DropdownMenuItem key={page.id} onClick={() => requestOpenPluginPage(page)}>
-                      {pickPluginPageText(page.title, language, page.id)}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
           </div>
 
-          <CardContent className="pt-0 space-y-6">
-            <Separator />
-
-            {/* 服务配置区域 - 重新设计为与Core配置一致的风格 */}
-            <Collapsible defaultOpen={false} className="group/service">
-              <CollapsibleTrigger asChild>
-                <div className="flex items-center justify-between mb-6 cursor-pointer hover:opacity-80 transition-opacity bg-background/50 rounded-xl p-4 border">
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center justify-center text-primary">
-                      <Server className="w-6 h-6" strokeWidth={1.5} />
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-bold">{t('plugins.serviceConfig')}</h3>
-                      <p className="text-muted-foreground text-sm mt-1">{t('plugins.serviceConfigDesc')}</p>
-                    </div>
-                  </div>
-                  <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform duration-200 group-data-[state=open]/service:rotate-180" />
-                </div>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                {/* Plugin服务配置 - 独立可折叠 */}
-                <Collapsible defaultOpen={true} className="group/plugin">
-                  <CollapsibleTrigger asChild>
-                    <div className="flex items-center justify-between mb-6 cursor-pointer hover:opacity-80 transition-opacity bg-muted/30 rounded-lg p-3 border">
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center justify-center text-primary">
-                          <Package className="w-5 h-5" strokeWidth={1.5} />
-                        </div>
-                        <div>
-                          <h4 className="text-lg font-semibold">{t('plugins.pluginServiceConfig')}</h4>
-                          <p className="text-muted-foreground text-sm">{t('plugins.pluginServiceConfigDesc')}</p>
-                        </div>
-                      </div>
-                      <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform duration-200 group-data-[state=open]/plugin:rotate-180" />
-                    </div>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent className="px-10">
+          <CardContent className="pt-6 space-y-6">
+            {pluginSection === 'plugin' && (
+              <>
                     {/* 汇总所有SV命令Tags - 默认折叠，展开时才渲染 */}
                     {allCommands.length > 0 && (
-                      <Collapsible defaultOpen={false} className="group/allCmds mb-6">
+                      <Collapsible
+                        defaultOpen={false}
+                        className={cn('group/allCmds mb-6', configHitClass(t('plugins.allCommands')))}
+                        data-config-hit={configHitClass(t('plugins.allCommands')) ? 'true' : undefined}
+                      >
                         <CollapsibleTrigger asChild>
                           <div className="flex items-center justify-between cursor-pointer hover:opacity-80 transition-opacity py-2">
                             <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
@@ -1088,7 +1208,10 @@ export default function PluginsPage() {
                     )}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-5">
                 {/* 插件状态 */}
-                <div className="space-y-2">
+                <div
+                  data-config-hit={configHitClass(t('plugins.pluginStatus'), t('plugins.enabled'), t('plugins.disabled')) ? 'true' : undefined}
+                  className={cn('space-y-2', configHitClass(t('plugins.pluginStatus'), t('plugins.enabled'), t('plugins.disabled')))}
+                >
                   <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                     <Settings className="w-4 h-4" />
                     {t('plugins.pluginStatus')}
@@ -1102,7 +1225,10 @@ export default function PluginsPage() {
                   </div>
                 </div>
 
-                <div className="space-y-2">
+                <div
+                  data-config-hit={configHitClass(t('plugins.permissionLevel')) ? 'true' : undefined}
+                  className={cn('space-y-2', configHitClass(t('plugins.permissionLevel')))}
+                >
                   <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                     <Shield className="w-4 h-4" />
                     {t('plugins.permissionLevel')}
@@ -1123,7 +1249,10 @@ export default function PluginsPage() {
                 </div>
 
                 {/* {t('plugins.priority')} */}
-                <div className="space-y-2">
+                <div
+                  data-config-hit={configHitClass(t('plugins.priority'), t('plugins.enterPriority')) ? 'true' : undefined}
+                  className={cn('space-y-2', configHitClass(t('plugins.priority'), t('plugins.enterPriority')))}
+                >
                   <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                     <Zap className="w-4 h-4" />
                     {t('plugins.priority')}
@@ -1138,7 +1267,10 @@ export default function PluginsPage() {
                 </div>
 
                 {/* {t('plugins.responseArea')} */}
-                <div className="space-y-2">
+                <div
+                  data-config-hit={configHitClass(t('plugins.responseArea'), t('plugins.global'), t('plugins.directOnly'), t('plugins.groupOnly')) ? 'true' : undefined}
+                  className={cn('space-y-2', configHitClass(t('plugins.responseArea'), t('plugins.global'), t('plugins.directOnly'), t('plugins.groupOnly')))}
+                >
                   <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                     <MessageSquare className="w-4 h-4" />
                     {t('plugins.responseArea')}
@@ -1160,7 +1292,10 @@ export default function PluginsPage() {
                 </div>
 
                 {/* {t('plugins.pluginWhiteList')} */}
-                <div className="space-y-2">
+                <div
+                  data-config-hit={configHitClass(t('plugins.pluginWhiteList'), t('plugins.whiteList')) ? 'true' : undefined}
+                  className={cn('space-y-2', configHitClass(t('plugins.pluginWhiteList'), t('plugins.whiteList')))}
+                >
                   <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                     <Filter className="w-4 h-4" />
                     {t('plugins.pluginWhiteList')}
@@ -1179,7 +1314,10 @@ export default function PluginsPage() {
                 </div>
 
                 {/* {t('plugins.pluginBlackList')} */}
-                <div className="space-y-2">
+                <div
+                  data-config-hit={configHitClass(t('plugins.pluginBlackList'), t('plugins.blackList')) ? 'true' : undefined}
+                  className={cn('space-y-2', configHitClass(t('plugins.pluginBlackList'), t('plugins.blackList')))}
+                >
                   <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                     <Users className="w-4 h-4" />
                     {t('plugins.pluginBlackList')}
@@ -1198,7 +1336,10 @@ export default function PluginsPage() {
                 </div>
 
                 {/* {t('plugins.disablePrefix')} */}
-                <div className="space-y-2">
+                <div
+                  data-config-hit={configHitClass(t('plugins.disablePrefix'), t('plugins.disablePrefixDesc'), t('plugins.forcePrefix')) ? 'true' : undefined}
+                  className={cn('space-y-2', configHitClass(t('plugins.disablePrefix'), t('plugins.disablePrefixDesc'), t('plugins.forcePrefix')))}
+                >
                   <div className="flex items-center justify-between gap-4">
                     <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2 shrink-0">
                       <Key className="w-4 h-4" />
@@ -1226,7 +1367,10 @@ export default function PluginsPage() {
                 </div>
 
                 {/* {t('plugins.allowEmptyPrefix')} */}
-                <div className="space-y-2">
+                <div
+                  data-config-hit={configHitClass(t('plugins.allowEmptyPrefix'), t('plugins.allowEmptyPrefixDesc')) ? 'true' : undefined}
+                  className={cn('space-y-2', configHitClass(t('plugins.allowEmptyPrefix'), t('plugins.allowEmptyPrefixDesc')))}
+                >
                   <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                     <Key className="w-4 h-4" />
                     {t('plugins.allowEmptyPrefix')}
@@ -1241,7 +1385,10 @@ export default function PluginsPage() {
                 </div>
 
                 {/* prefix 可编辑 - 使用tags组件 */}
-                <div className="space-y-2">
+                <div
+                  data-config-hit={configHitClass(t('plugins.prefix'), 'prefix') ? 'true' : undefined}
+                  className={cn('space-y-2', configHitClass(t('plugins.prefix'), 'prefix'))}
+                >
                   <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                     <Key className="w-4 h-4" />
                     prefix
@@ -1260,37 +1407,75 @@ export default function PluginsPage() {
                 </div>
 
                 </div>
-                  </CollapsibleContent>
-                </Collapsible>
+              </>
+            )}
 
-                {/* SV 服务列表配置 - 独立可折叠 */}
-                {editedSvList && editedSvList.length > 0 && (
-                  <Collapsible defaultOpen={false} className="group/svConfig mt-8">
-                    <CollapsibleTrigger asChild>
-                      <div className="flex items-center justify-between mb-6 cursor-pointer hover:opacity-80 transition-opacity bg-muted/30 rounded-lg p-3 border">
-                        <div className="flex items-center gap-3">
-                          <div className="flex items-center justify-center text-primary">
-                            <Command className="w-5 h-5" strokeWidth={1.5} />
+            {pluginSection === 'sv' && (
+              <>
+                {editedSvList && editedSvList.length > 0 ? (
+                  <div className="space-y-3">
+                    {editedSvList.every((sv) => !svMatchesQuery(sv, svQuery)) && (
+                      <p className="text-sm text-muted-foreground">{t('plugins.noSvMatch')}</p>
+                    )}
+                    <div className="flex items-start gap-3">
+                    {Array.from({ length: svColumnCount }, (_, columnIndex) => (
+                      <div key={columnIndex} className="flex min-w-0 flex-1 flex-col gap-3">
+                    {editedSvList
+                      .map((sv, index) => ({ sv, index }))
+                      .filter(({ sv }) => svMatchesQuery(sv, svQuery))
+                      .sort((a, b) => (a.sv.pm || 0) - (b.sv.pm || 0) || a.sv.name.localeCompare(b.sv.name))
+                      .filter((_, visibleIndex) => visibleIndex % svColumnCount === columnIndex)
+                      .map(({ sv, index }) => {
+                      const open = openSvName === sv.name;
+                      const areaLabel = sv.area === 'DIRECT'
+                        ? t('plugins.directOnly')
+                        : sv.area === 'GROUP'
+                          ? t('plugins.groupOnly')
+                          : t('plugins.global');
+                      return (
+                      <div key={`${sv.name}-${index}`} className="rounded-lg border bg-background">
+                        <div
+                          className="cursor-pointer space-y-1.5 px-3 py-2"
+                          onClick={() => setOpenSvName(open ? null : sv.name)}
+                        >
+                          <div className="flex items-center gap-2">
+                            <ChevronDown className={cn('h-4 w-4 shrink-0 text-muted-foreground transition-transform', open && 'rotate-180')} />
+                            <span className="min-w-0 flex-1 truncate font-medium">{sv.name}</span>
+                            <Badge
+                              className={cn(
+                                SV_BADGE,
+                                'ml-auto',
+                                sv.enabled
+                                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200'
+                                  : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300',
+                              )}
+                            >
+                              {sv.enabled ? <CircleCheck className="h-3 w-3" /> : <CircleOff className="h-3 w-3" />}
+                              {sv.enabled ? t('plugins.enabled') : t('plugins.disabled')}
+                            </Badge>
                           </div>
-                          <div>
-                            <h4 className="text-lg font-semibold">SV 服务配置</h4>
-                            <p className="text-muted-foreground text-sm">管理单个服务的详细配置</p>
+                          <div className="flex flex-wrap gap-1 pl-6">
+                            <Badge className={cn(SV_BADGE, SV_PM_BADGE[sv.pm || 0] || SV_PM_BADGE[6])}>
+                              {t(`plugins.permissionLevels.${sv.pm || 0}`)}
+                            </Badge>
+                            <Badge className={cn(SV_BADGE, svPriorityBadgeClass(sv.priority || 0))}>
+                              {t('plugins.priority')} {sv.priority || 0}
+                            </Badge>
+                            <Badge className={cn(SV_BADGE, SV_AREA_BADGE[sv.area] || SV_AREA_BADGE.ALL)}>
+                              {areaLabel}
+                            </Badge>
+                            <Badge variant="secondary" className="font-normal">
+                              {t('plugins.whiteList')} {sv.white_list?.length || 0}
+                            </Badge>
+                            <Badge variant="secondary" className="font-normal">
+                              {t('plugins.blackList')} {sv.black_list?.length || 0}
+                            </Badge>
                           </div>
                         </div>
-                        <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform duration-200 group-data-[state=open]/svConfig:rotate-180" />
-                      </div>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="px-10">
-                      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                    {editedSvList.map((sv, index) => (
-                      <Card key={`${sv.name}-${index}`} className="glass-card border h-full flex flex-col">
-                        <CardContent className="p-6 space-y-4 flex-1">
-                          {/* SV名称 */}
+                        {open && (
+                        <div className="space-y-4 border-t px-4 py-4">
                           <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <Server className="h-4 w-4 text-primary" />
-                              <span className="font-medium">{sv.name}</span>
-                            </div>
+                            <Label className="text-sm font-medium text-muted-foreground">{t('plugins.pluginStatus')}</Label>
                             <Switch
                               checked={sv.enabled}
                               onCheckedChange={(checked) => {
@@ -1439,7 +1624,11 @@ export default function PluginsPage() {
                                         <Tooltip key={cmdIndex}>
                                           <TooltipTrigger asChild>
                                             <span
-                                              className={`inline-flex items-center rounded-full border px-1.5 py-0.5 text-xs cursor-pointer transition-colors ${colorClass}`}
+                                              className={cn(
+                                                'inline-flex items-center rounded-full border px-1.5 py-0.5 text-xs cursor-pointer transition-colors',
+                                                colorClass,
+                                                commandMatchesQuery(cmd, svQuery) && 'ring-2 ring-primary',
+                                              )}
                                             >
                                               {displayText}
                                             </span>
@@ -1475,49 +1664,23 @@ export default function PluginsPage() {
                               <span className="text-xs text-muted-foreground">无</span>
                             </div>
                           )}
-                        </CardContent>
-                      </Card>
+                        </div>
+                        )}
+                      </div>
+                      );
+                    })}
+                      </div>
                     ))}
-                  </div>
-                  </CollapsibleContent>
-                </Collapsible>
-              )}
-
-              {/* 服务配置保存按钮 - 放在最外层 */}
-              <div className="flex items-center justify-end mt-8">
-                <Button
-                  size="lg"
-                  className="gap-2 min-w-[160px] h-11"
-                  disabled={!isServiceDirty || isSavingService}
-                  onClick={handleSaveService}
-                >
-                  {isSavingService ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                  确认修改
-                </Button>
-              </div>
-
-              </CollapsibleContent>
-            </Collapsible>
-
-            <Separator />
-
-            {/* 参数配置区域 - 默认展开 */}
-            <Collapsible defaultOpen={true} className="group/config">
-              <CollapsibleTrigger asChild>
-                <div className="flex items-center justify-between mb-6 cursor-pointer hover:opacity-80 transition-opacity bg-background/50 rounded-xl p-4 border">
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center justify-center text-primary">
-                      <Settings className="w-6 h-6" strokeWidth={1.5} />
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-bold">{t('plugins.configParams')}</h3>
-                      <p className="text-muted-foreground text-sm mt-1">{t('plugins.configParamsDesc')}</p>
                     </div>
                   </div>
-                  <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform duration-200 group-data-[state=open]/config:rotate-180" />
-                </div>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="px-10">
+                ) : (
+                  <p className="text-muted-foreground">{t('plugins.noSvServices')}</p>
+                )}
+              </>
+            )}
+
+            {pluginSection === 'params' && (
+              <>
                 {selectedPlugin.config_names && selectedPlugin.config_names.length > 1 && (
                   <div className="mb-4">
                     <TabButtonGroup
@@ -1548,12 +1711,19 @@ export default function PluginsPage() {
 
                     return entries.map(([key, field]) => {
                       const fieldDef = field as unknown as ConfigFieldDefinition;
+                      const shown = (text?: string) => (!text ? '' : text.includes('.') ? t(text) : text);
+                      const hit = configHitClass(
+                        shown(fieldDef.label),
+                        shown(fieldDef.description),
+                        typeof fieldDef.value === 'string' ? shown(fieldDef.value) : '',
+                        key,
+                      );
                       // divider / repeatgroup 类型需要占据整行
                       const isFullWidth = fieldDef.type === 'divider' || fieldDef.type === 'repeatgroup';
                       if (fieldDef.type === 'repeatgroup') {
                         const groupValue = Array.isArray(fieldDef.value) ? (fieldDef.value as unknown as RepeatGroupItem[]) : [];
                         return (
-                          <div key={`${selectedConfigName}_${key}`} className="col-span-full">
+                          <div key={`${selectedConfigName}_${key}`} data-config-hit={hit ? 'true' : undefined} className={cn('col-span-full', hit)}>
                             <RepeatGroupField
                               fieldKey={key}
                               template={fieldDef.template || {}}
@@ -1566,7 +1736,11 @@ export default function PluginsPage() {
                         );
                       }
                       return (
-                        <div key={`${selectedConfigName}_${key}`} className={isFullWidth ? 'col-span-full' : undefined}>
+                        <div
+                          key={`${selectedConfigName}_${key}`}
+                          data-config-hit={hit ? 'true' : undefined}
+                          className={cn(isFullWidth && 'col-span-full', hit)}
+                        >
                           <ConfigField
                             fieldKey={key}
                             field={fieldDef}
@@ -1577,20 +1751,8 @@ export default function PluginsPage() {
                     });
                   })()}
                 </div>
-
-                <div className="flex items-center justify-end mt-6">
-                  <Button
-                    size="lg"
-                    className="gap-2 min-w-[160px] h-11"
-                    disabled={!isConfigDirty || isSavingConfig}
-                    onClick={handleSaveConfig}
-                  >
-                    {isSavingConfig ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                    确认修改
-                  </Button>
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
+              </>
+            )}
           </CardContent>
         </Card>
       ) : (

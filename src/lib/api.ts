@@ -853,6 +853,16 @@ export interface PluginPageMeta {
   icon?: string;
 }
 
+export interface PluginUsageItem {
+  name: string;
+  triggers: number;
+}
+
+export interface PluginUsageRank {
+  window_days: number;
+  plugins: PluginUsageItem[];
+}
+
 export interface PluginListItem {
   id: string;
   name: string;
@@ -905,6 +915,10 @@ export const pluginsApi = {
   // 获取插件列表（轻量级接口�?
   getPluginList: () =>
     api.get<PluginListItem[]>(`/api/plugins/list?_t=${Date.now()}`),
+
+  /** 近几天命令触发热度。后端有缓存；旧后端没有这个接口时调用方自行降级。 */
+  getPluginUsage: () =>
+    api.get<PluginUsageRank>(`/api/plugins/usage`),
 
   // 获取插件详情（包含完整配置）
   getPlugin: (pluginName: string) =>
