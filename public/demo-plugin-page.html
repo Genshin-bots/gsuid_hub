@@ -16,7 +16,20 @@
     html.dark {
       --gold: #ffc801;
     }
-    html,body { margin:0; height:100%; background:var(--bg); color:var(--fg); font-family:ui-sans-serif,system-ui,sans-serif; }
+    @font-face {
+      font-family: 'MiSans VF';
+      src: url('/fonts/MiSansVF.ttf') format('truetype'),
+           url('../../../utils/fonts/MiSansVF.ttf') format('truetype');
+      font-weight: 150 700;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'Twemoji Mozilla';
+      src: url('/fonts/TwemojiMozilla-colr.woff2') format('woff2'),
+           url('../../../utils/fonts/TwemojiMozilla-colr.woff2') format('woff2');
+      font-display: swap;
+    }
+    html,body { margin:0; height:100%; background:var(--bg); color:var(--fg); font-family:'MiSans VF','Twemoji Mozilla',sans-serif; }
     .wrap { display:grid; grid-template-columns:240px 1fr; height:100%; }
     aside { border-right:1px solid var(--line); padding:16px; }
     h1 { font-size:18px; margin:0 0 12px; color:var(--gold); }

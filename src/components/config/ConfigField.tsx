@@ -37,6 +37,9 @@ import { TagsInput } from './TagsInput';
 import { SecretInput } from './SecretInput';
 import { resolveDividerSubtitle } from './dividerDisplay';
 
+// 分隔标题整行的倾斜角度。MiSans 没有斜体，用 skew 模拟；负值向右倾。
+const DIVIDER_TITLE_SKEW_DEG = -6;
+
 // 根据 title 关键词匹配图标
 const getTitleIcon = (title: string) => {
   const lowerTitle = title.toLowerCase();
@@ -234,21 +237,33 @@ export function ConfigField({
         fieldKey,
       );
 
+      const dividerHeading = (
+        <h4
+          className="inline-block text-xl font-bold tracking-wide text-foreground"
+          style={{
+            transform: `skewX(${DIVIDER_TITLE_SKEW_DEG}deg)`,
+            transformOrigin: 'bottom left',
+          }}
+        >
+          <span className="text-primary">[ </span>
+          {dividerTitle}
+          <span className="text-primary"> ]</span>
+        </h4>
+      );
+      if (dividerTitle && dividerSubtitle) {
+        return (
+          <div className="w-full pt-4 pb-2">
+            {dividerHeading}
+            <Separator className="my-1.5" />
+            <p className="text-xs text-muted-foreground">{dividerSubtitle}</p>
+          </div>
+        );
+      }
       if (dividerTitle) {
         return (
-          <div className="flex gap-2 w-full pt-4 pb-2">
-            <div className="w-1 shrink-0 self-stretch min-h-5 rounded-full bg-primary" />
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-3">
-                <h4 className="text-base font-bold text-foreground whitespace-nowrap tracking-wide">
-                  {dividerTitle}
-                </h4>
-                <Separator className="flex-1" />
-              </div>
-              {dividerSubtitle && (
-                <p className="mt-1 text-sm text-muted-foreground">{dividerSubtitle}</p>
-              )}
-            </div>
+          <div className="flex w-full items-center gap-3 pt-4 pb-2">
+            {dividerHeading}
+            <Separator className="flex-1" />
           </div>
         );
       }
@@ -256,7 +271,7 @@ export function ConfigField({
         return (
           <div className="flex w-full flex-col gap-1 py-2">
             <Separator className="w-full" />
-            <p className="text-sm text-muted-foreground">{dividerSubtitle}</p>
+            <p className="text-xs text-muted-foreground">{dividerSubtitle}</p>
           </div>
         );
       }

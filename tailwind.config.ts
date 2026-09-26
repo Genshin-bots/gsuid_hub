@@ -179,39 +179,9 @@ export default {
   			'2xl': 'var(--shadow-2xl)'
   		},
   		fontFamily: {
-  			sans: [
-  				'Poppins',
-  				'ui-sans-serif',
-  				'system-ui',
-  				'-apple-system',
-  				'BlinkMacSystemFont',
-  				'Segoe UI',
-  				'Roboto',
-  				'Helvetica Neue',
-  				'Arial',
-  				'Noto Sans',
-  				'sans-serif'
-  			],
-  			serif: [
-  				'Merriweather',
-  				'ui-serif',
-  				'Georgia',
-  				'Cambria',
-  				'Times New Roman',
-  				'Times',
-  				'serif'
-  			],
-  			mono: [
-  				'JetBrains Mono',
-  				'ui-monospace',
-  				'SFMono-Regular',
-  				'Menlo',
-  				'Monaco',
-  				'Consolas',
-  				'Liberation Mono',
-  				'Courier New',
-  				'monospace'
-  			]
+  			sans: ['MiSans VF', 'Twemoji Mozilla', 'sans-serif'],
+  			serif: ['MiSans VF', 'Twemoji Mozilla', 'sans-serif'],
+  			mono: ['MiSans VF', 'Twemoji Mozilla', 'sans-serif'],
   		},
   		// 自定义 transition-timing-function。
   		// 之前直接在 className 中写 `ease-[cubic-bezier(0.4,0,0.2,1)]` 会被

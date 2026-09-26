@@ -11,6 +11,74 @@ const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
 
 const PLUGIN_SDK_DEV_URL = '/plugin-pages/_sdk/gshub-plugin.js';
 
+/** 开发目录 fonts/ 里的两份文件，从 gsuid_core/utils/fonts 复制。 */
+const HUB_FONT_FILES = [
+  { name: 'MiSansVF.ttf', type: 'font/ttf' },
+  { name: 'TwemojiMozilla-colr.woff2', type: 'font/woff2' },
+] as const;
+
+/**
+ * 样式表写 /__console_font__/<文件名>，这个路径在仓库里不存在，Vite 不会把它打进 dist。
+ * dev：中间件从仓库 fonts/ 读文件（也认 /fonts/，给 public 里的静态页）。
+ * 正式构建：改成 ../../../utils/fonts/。产物在 webconsole/dist/assets/*.css 时请求 /utils/fonts/。
+ * demo 构建：改成 ../fonts/，并把文件拷进 dist-demo/fonts。
+ */
+function hubFontsPlugin(isDemo: boolean): Plugin {
+  const fontDir = path.resolve(__dirname, 'fonts');
+  return {
+    name: 'hub-fonts',
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        const url = (req.url ?? '').split('?')[0];
+        const font = HUB_FONT_FILES.find(
+          (item) => url === `/fonts/${item.name}` || url === `/__console_font__/${item.name}`,
+        );
+        if (!font) {
+          next();
+          return;
+        }
+        const file = path.join(fontDir, font.name);
+        if (!fs.existsSync(file)) {
+          next();
+          return;
+        }
+        res.setHeader('Content-Type', font.type);
+        res.setHeader('Cache-Control', 'public, max-age=3600');
+        fs.createReadStream(file).pipe(res);
+      });
+    },
+    generateBundle(_options, bundle) {
+      const replacementPrefix = isDemo ? '../fonts/' : '../../../utils/fonts/';
+      for (const item of Object.values(bundle)) {
+        if (item.type !== 'asset' || !item.fileName.endsWith('.css')) continue;
+        const source =
+          typeof item.source === 'string' ? item.source : Buffer.from(item.source).toString('utf8');
+        const pattern =
+          /url\(\s*(['"]?)(?:\/(?:app|hub))?\/__console_font__\/(MiSansVF\.ttf|TwemojiMozilla-colr\.woff2)\1\s*\)/g;
+        const next = source.replace(
+          pattern,
+          (_match, quote: string, name: string) =>
+            `url(${quote}${replacementPrefix}${name}${quote})`,
+        );
+        if (next !== source) item.source = next;
+      }
+    },
+    closeBundle() {
+      if (!isDemo) return;
+      const dest = path.resolve(__dirname, 'dist-demo', 'fonts');
+      fs.mkdirSync(dest, { recursive: true });
+      for (const font of HUB_FONT_FILES) {
+        const src = path.join(fontDir, font.name);
+        if (!fs.existsSync(src)) {
+          console.warn(`[hub-fonts] 缺少 ${src}`);
+          continue;
+        }
+        fs.copyFileSync(src, path.join(dest, font.name));
+      }
+    },
+  };
+}
+
 /** Hub-dev 下 /plugin-pages 会代理到 Core；SDK 源在 public/，必须先于代理本地提供。 */
 function pluginSdkDevPlugin(): Plugin {
   const sdkFile = path.resolve(__dirname, 'public/gshub-plugin.js');
@@ -273,6 +341,7 @@ export default defineConfig(({ command, mode }) => {
     plugins: [
       react(),
       pluginSdkDevPlugin(),
+      hubFontsPlugin(isDemo),
       mode === 'development' && componentTagger(),
       // 自定义插件：构建完成后生成 version.json
       {

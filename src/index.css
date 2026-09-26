@@ -1,16 +1,24 @@
 /*
- * 字体方案：
- * 之前从 fonts.lug.ustc.edu.cn（USTC LUG Google Fonts 镜像）按需加载
- * Poppins / Merriweather / JetBrains Mono。部分网络环境下 Chrome 会对该
- * 镜像进行二次代理（例如 fonts.proxy.ustclug.org），若代理 SSL/TLS
- * 配置陈旧会出现 `ERR_SSL_VERSION_OR_CIPHER_MISMATCH`，导致字体加载
- * 失败并刷出控制台错误。这里改用系统字体回退：
- *   - Sans:  ui-sans-serif / system-ui / -apple-system / Segoe UI / Roboto ...
- *   - Serif: ui-serif / Georgia / Cambria ...
- *   - Mono:  ui-monospace / SFMono-Regular / Menlo / Monaco ...
- * 不影响视觉效果（CSS 变量 --font-sans/--font-serif/--font-mono 已配置
- * 完整回退栈），同时消除外部字体依赖与 SSL 错误。
+ * 字体：MiSans VF（字重轴 150–700）+ Twemoji Mozilla（彩色 emoji）。
+ * 源码里的 url 用 /__console_font__/，避免 Vite 把仓库 fonts/ 打进 dist。
+ *   · pnpm dev 由 Vite 从仓库 fonts/ 提供（文件从 gsuid_core/utils/fonts 复制）
+ *   · pnpm build 把样式表里的地址改写成 ../../../utils/fonts/…
+ *     产物在 webconsole/dist/assets/*.css 时，这个相对路径请求 /utils/fonts/…
  */
+@font-face {
+  font-family: 'MiSans VF';
+  src: url('/__console_font__/MiSansVF.ttf') format('truetype');
+  font-weight: 150 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Twemoji Mozilla';
+  src: url('/__console_font__/TwemojiMozilla-colr.woff2') format('woff2');
+  font-display: swap;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -94,11 +102,11 @@ All colors MUST be HSL.
 
     --sidebar: 0 0% 98%;
 
-    --font-sans: 'Poppins', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+    --font-sans: 'MiSans VF', 'Twemoji Mozilla', sans-serif;
 
-    --font-serif: 'Merriweather', ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
+    --font-serif: 'MiSans VF', 'Twemoji Mozilla', sans-serif;
 
-    --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+    --font-mono: 'MiSans VF', 'Twemoji Mozilla', sans-serif;
 
     --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
 
@@ -185,6 +193,7 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-sans);
     padding-right: 0 !important;
     overflow-x: hidden;
   }
