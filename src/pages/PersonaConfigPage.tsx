@@ -23,7 +23,7 @@ import {
   pluginConfigItemToFieldDef,
 } from '@/components/config';
 import type { ConfigFormData, ConfigValue } from '@/components/config';
-import { MultiSelectChipGroup } from '@/components/ui/MultiSelectChipGroup';
+import { ChipGroup } from '@/components/ui/MultiSelectChipGroup';
 import {
   Dialog,
   DialogContent,
@@ -84,6 +84,7 @@ import {
   HelpCircle,
   Package,
   Wrench,
+  Layers,
 } from 'lucide-react';
 // 支持的音频格式
 const SUPPORTED_AUDIO_FORMATS = ['mp3', 'ogg', 'wav', 'm4a', 'flac'];
@@ -100,6 +101,8 @@ import {
   getApiErrorMessage,
   personaApi,
   frameworkConfigApi,
+  capabilityAgentsApi,
+  type AgentNodeItem,
   type PersonaListItem,
   type PersonaFrameworkConfig,
   type PersonaConfig,
@@ -109,6 +112,7 @@ import {
 } from '@/lib/api';
 import { toast } from 'sonner';
 import { PinnedPage } from '@/components/layout/PinnedPage';
+import { enabledIdsToSpec, specToEnabledIds } from '@/lib/capabilityAgentAllowlist';
 // ============================================================================
 // 类型定义
 // ============================================================================
@@ -262,6 +266,8 @@ export default function PersonaConfigPage() {
   const [editingKeywords, setEditingKeywords] = useState<string[]>([]);
   const [editingToolPacks, setEditingToolPacks] = useState<string[]>(['dynamic']);
   const [editingToolNames, setEditingToolNames] = useState<string[]>([]);
+  const [delegableAgents, setDelegableAgents] = useState<AgentNodeItem[]>([]);
+  const [editingEnabledAgents, setEditingEnabledAgents] = useState<string[]>([]);
   const [editingSettings, setEditingSettings] = useState<Record<string, PluginConfigItem>>({});
   const [settingsLoaded, setSettingsLoaded] = useState(false);
   const [settingsLoading, setSettingsLoading] = useState(false);
@@ -320,12 +326,14 @@ export default function PersonaConfigPage() {
   const loadData = useCallback(async () => {
     try {
       setIsLoading(true);
-      const [listData, frameworkData, allConfigs, hbStatus] = await Promise.all([
+      const [listData, frameworkData, allConfigs, hbStatus, agentList] = await Promise.all([
         personaApi.getPersonaList(),
         personaApi.getFrameworkConfig(),
         personaApi.getAllPersonaConfigs().catch(() => ({} as Record<string, PersonaConfig>)),
         personaApi.getHeartbeatStatus().catch(() => null),
+        capabilityAgentsApi.getList(undefined, { delegable: true }).catch(() => ({ items: [], count: 0 })),
       ]);
+      setDelegableAgents(agentList.items ?? []);
       setPersonaList(listData);
       setFrameworkConfig(frameworkData);
       setPersonaConfigs(allConfigs);
@@ -594,6 +602,12 @@ export default function PersonaConfigPage() {
     setEditingKeywords(persona.config?.keywords || []);
     setEditingToolPacks(persona.config?.tool_packs || ['dynamic']);
     setEditingToolNames(persona.config?.tool_names || []);
+    setEditingEnabledAgents(
+      specToEnabledIds(
+        persona.config?.capability_agents,
+        delegableAgents.map((a) => a.node_id),
+      ),
+    );
     setEditingSettings({});
     setSettingsLoaded(false);
     setActiveTab('markdown');
@@ -761,6 +775,14 @@ export default function PersonaConfigPage() {
         keywords: editingKeywords,
         tool_packs: editingToolPacks,
         tool_names: editingToolNames,
+        ...(delegableAgents.length > 0
+          ? {
+              capability_agents: enabledIdsToSpec(
+                editingEnabledAgents,
+                delegableAgents.map((a) => a.node_id),
+              ),
+            }
+          : {}),
       });
       // 保存 Markdown 内容（仅在内容发生变化时）
       if (editContent !== editingPersona.content) {
@@ -1679,6 +1701,56 @@ export default function PersonaConfigPage() {
                   />
                   <p className="text-xs text-muted-foreground">
                     {t('personaConfig.toolNamesHint')}
+                  </p>
+                </div>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <Label className="flex items-center gap-2 text-base">
+                      <Layers className="h-4 w-4" />
+                      {t('personaConfig.capabilityAgents')}
+                    </Label>
+                    {delegableAgents.length > 0 && (
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2 text-xs"
+                          onClick={() =>
+                            setEditingEnabledAgents(delegableAgents.map((a) => a.node_id))
+                          }
+                        >
+                          {t('personaConfig.capabilityAgentsSelectAll')}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2 text-xs"
+                          onClick={() => setEditingEnabledAgents([])}
+                        >
+                          {t('personaConfig.capabilityAgentsSelectNone')}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                  {delegableAgents.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">
+                      {t('personaConfig.capabilityAgentsEmpty')}
+                    </p>
+                  ) : (
+                    <ChipGroup
+                      options={delegableAgents.map((a) => ({
+                        value: a.node_id,
+                        label: a.display_name || a.node_id,
+                      }))}
+                      value={editingEnabledAgents}
+                      onValueChange={setEditingEnabledAgents}
+                      allowEmpty
+                    />
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    {t('personaConfig.capabilityAgentsHint')}
                   </p>
                 </div>
               </div>

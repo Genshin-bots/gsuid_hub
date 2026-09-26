@@ -2355,6 +2355,8 @@ export interface PersonaConfig {
   keywords?: string[]; // 触发关键词列表（用于提及应答模式�?
   tool_packs?: string[]; // 工具能力族（dynamic / task_basics / capability_domain 族名）
   tool_names?: string[]; // 显式工具白名单（并入保底池）
+  /** `*` 全开；`!node_id` 排除。缺省按全开。 */
+  capability_agents?: string[];
 }
 
 export interface PersonaConfigResponse {
@@ -2371,6 +2373,7 @@ export interface PersonaConfigUpdateRequest {
   keywords?: string[];
   tool_packs?: string[];
   tool_names?: string[];
+  capability_agents?: string[];
 }
 
 export interface PersonaConfigUpdateResponse {
@@ -2732,9 +2735,14 @@ export interface AgentNodeUpdateRequest {
 }
 
 export const capabilityAgentsApi = {
-  getList: (source?: AgentNodeSource) => {
-    const query = source ? `?source=${encodeURIComponent(source)}` : '';
-    return api.get<AgentNodeListResponse>(`/api/ai/capability-agents/list${query}`);
+  getList: (source?: AgentNodeSource, opts?: { delegable?: boolean }) => {
+    const params = new URLSearchParams();
+    if (source) params.set('source', source);
+    if (opts?.delegable) params.set('delegable', '1');
+    const query = params.toString();
+    return api.get<AgentNodeListResponse>(
+      `/api/ai/capability-agents/list${query ? `?${query}` : ''}`,
+    );
   },
 
   getDetail: (nodeId: string) =>

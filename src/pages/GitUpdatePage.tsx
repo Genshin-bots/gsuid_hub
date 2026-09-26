@@ -338,6 +338,7 @@ export default function GitUpdatePage() {
   const [isLoadingCommits, setIsLoadingCommits] = useState(false);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [isForceUpdating, setIsForceUpdating] = useState(false);
+  const [updatingAction, setUpdatingAction] = useState<'update' | 'force' | null>(null);
   const [displayCount, setDisplayCount] = useState(PAGE_SIZE);
   // 插件列表（来自 /api/plugins/list，包含实际运行版本）
   const [pluginList, setPluginList] = useState<{ id: string; commit?: string }[]>([]);
@@ -556,6 +557,7 @@ export default function GitUpdatePage() {
     setUpdateDialog(false);
     try {
       setIsForceUpdating(true);
+      setUpdatingAction('update');
       // api.post 已解包：返回 GitForceUpdateResponse，不是 {status,msg,data}
       const result = await gitUpdateApi.update(selectedPlugin);
       if (result?.success) {
@@ -581,6 +583,7 @@ export default function GitUpdatePage() {
       toast.error(t('gitUpdate.updateFailed'));
     } finally {
       setIsForceUpdating(false);
+      setUpdatingAction(null);
     }
   };
 
@@ -589,6 +592,7 @@ export default function GitUpdatePage() {
     if (!selectedPlugin) return;
     try {
       setIsForceUpdating(true);
+      setUpdatingAction('force');
       // api.post 已解包：返回 GitForceUpdateResponse，不是 {status,msg,data}
       const result = await gitUpdateApi.forceUpdate(selectedPlugin);
       if (result?.success) {
@@ -614,6 +618,7 @@ export default function GitUpdatePage() {
       toast.error(t('gitUpdate.forceUpdateFailed'));
     } finally {
       setIsForceUpdating(false);
+      setUpdatingAction(null);
       setForceUpdateDialog(false);
     }
   };
@@ -905,7 +910,11 @@ export default function GitUpdatePage() {
                 disabled={isForceUpdating || !selectedPlugin || isLoadingStatus}
                 className="gap-1 h-8"
               >
-                <Download className={`w-3 h-3 ${isForceUpdating ? 'animate-spin' : ''}`} />
+                {updatingAction === 'update' ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <Download className="w-3 h-3" />
+                )}
                 {t('gitUpdate.update')}
               </Button>
               <Button
@@ -915,7 +924,11 @@ export default function GitUpdatePage() {
                 disabled={isForceUpdating || !selectedPlugin || isLoadingStatus}
                 className="gap-1 h-8"
               >
-                <Download className={`w-3 h-3 ${isForceUpdating ? 'animate-spin' : ''}`} />
+                {updatingAction === 'force' ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <Download className="w-3 h-3" />
+                )}
                 {t('gitUpdate.forceUpdate')}
               </Button>
             </div>
