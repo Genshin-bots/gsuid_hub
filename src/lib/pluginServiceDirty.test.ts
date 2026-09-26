@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isPluginServiceDirty, isSvListDirty } from '@/lib/pluginServiceDirty';
+import { isPluginServiceDirty, isSvItemDirty, isSvListDirty } from '@/lib/pluginServiceDirty';
 import type { ServiceConfig, SvItem } from '@/lib/api';
 
 const base: ServiceConfig = {
@@ -37,5 +37,20 @@ describe('plugin service dirty', () => {
     expect(isSvListDirty([sv], [sv])).toBe(false);
     expect(isSvListDirty([{ ...sv, enabled: false }], [sv])).toBe(true);
     expect(isPluginServiceDirty(base, base, true, true)).toBe(false);
+  });
+
+  it('compares a single sv by displayed fields', () => {
+    const sv = {
+      name: '签到',
+      enabled: true,
+      pm: 6,
+      priority: 0,
+      area: 'ALL',
+      black_list: [],
+      white_list: [],
+    } as SvItem;
+    expect(isSvItemDirty(sv, sv)).toBe(false);
+    expect(isSvItemDirty({ ...sv, pm: 2 }, sv)).toBe(true);
+    expect(isSvItemDirty({ ...sv, white_list: ['1'] }, sv)).toBe(true);
   });
 });

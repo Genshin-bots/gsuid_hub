@@ -35,3 +35,18 @@ export function isPluginServiceDirty(
 export function isSvListDirty(edited: SvItem[] | null | undefined, original: SvItem[] | null | undefined) {
   return JSON.stringify(edited ?? []) !== JSON.stringify(original ?? []);
 }
+
+export function svItemSnapshot(sv: SvItem | null | undefined) {
+  return {
+    enabled: !!sv?.enabled,
+    pm: finiteNumber(sv?.pm),
+    priority: finiteNumber(sv?.priority),
+    area: sv?.area || 'ALL',
+    black_list: sv?.black_list || [],
+    white_list: sv?.white_list || [],
+  };
+}
+
+export function isSvItemDirty(edited: SvItem | null | undefined, original: SvItem | null | undefined) {
+  return JSON.stringify(svItemSnapshot(edited)) !== JSON.stringify(svItemSnapshot(original));
+}

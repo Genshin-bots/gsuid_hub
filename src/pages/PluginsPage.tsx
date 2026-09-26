@@ -14,6 +14,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -29,7 +37,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ConfigField, ConfigFieldDefinition, ConfigValue, ConfigFieldType, RepeatGroupField, RepeatGroupItem } from '@/components/config';
 import { pluginsApi, gitUpdateApi, getApiErrorMessage, Plugin, ServiceConfig, SvItem, SvCommand, PluginConfigItem, PluginConfigGroup, PluginListItem, PluginPageMeta } from '@/lib/api';
-import { isPluginServiceDirty as pluginServiceFieldsDirty, isSvListDirty } from '@/lib/pluginServiceDirty';
+import { isPluginServiceDirty as pluginServiceFieldsDirty, isSvItemDirty, isSvListDirty } from '@/lib/pluginServiceDirty';
 import { toast } from 'sonner';
 import { PinnedPage } from '@/components/layout/PinnedPage';
 import { PluginIcon } from '@/components/ui/plugin-icon';
@@ -113,21 +121,20 @@ function commandMatchesQuery(cmd: SvCommand, rawQuery: string) {
   return cmd.keyword.toLowerCase().includes(query) || shown.toLowerCase().includes(query);
 }
 
-function useSvColumnCount() {
-  const [count, setCount] = useState(1);
-  useEffect(() => {
-    const wide = window.matchMedia('(min-width: 1024px)');
-    const medium = window.matchMedia('(min-width: 640px)');
-    const update = () => setCount(wide.matches ? 3 : medium.matches ? 2 : 1);
-    update();
-    wide.addEventListener('change', update);
-    medium.addEventListener('change', update);
-    return () => {
-      wide.removeEventListener('change', update);
-      medium.removeEventListener('change', update);
-    };
-  }, []);
-  return count;
+function groupSvByPm(items: { sv: SvItem; index: number }[]) {
+  const groups = new Map<number, { sv: SvItem; index: number }[]>();
+  for (const item of items) {
+    const pm = item.sv.pm || 0;
+    const bucket = groups.get(pm);
+    if (bucket) bucket.push(item);
+    else groups.set(pm, [item]);
+  }
+  return [...groups.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([pm, grouped]) => ({
+      pm,
+      items: grouped.sort((a, b) => a.sv.name.localeCompare(b.sv.name)),
+    }));
 }
 
 
@@ -449,9 +456,9 @@ export default function PluginsPage() {
   const [plugins, setPlugins] = useState<Plugin[]>([]);
   const [pluginUsageNames, setPluginUsageNames] = useState<string[]>([]);
   const [pluginSection, setPluginSection] = useState<'params' | 'plugin' | 'sv'>('params');
-  const [openSvName, setOpenSvName] = useState<string | null>(null);
+  const [editingSvIndex, setEditingSvIndex] = useState<number | null>(null);
+  const [svDraft, setSvDraft] = useState<SvItem | null>(null);
   const [svQuery, setSvQuery] = useState('');
-  const svColumnCount = useSvColumnCount();
   const [selectedPluginId, setSelectedPluginId] = useState<string>(
     () => readPluginsListPluginId(searchParams.toString()),
   );
@@ -459,6 +466,9 @@ export default function PluginsPage() {
   // 用于跟踪当前正在加载的插件ID，防止竞态条件
   const loadingPluginIdRef = useRef<string | null>(null);
   const [selectedConfigName, setSelectedConfigName] = useState<string | null>(null);
+  const [paramsDirty, setParamsDirty] = useState(false);
+  const [warmPluginId, setWarmPluginId] = useState(selectedPluginId);
+  const [warmConfigNames, setWarmConfigNames] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [isSavingConfig, setIsSavingConfig] = useState(false);
@@ -492,6 +502,9 @@ export default function PluginsPage() {
   const [editedEnabled, setEditedEnabled] = useState<boolean>(true);
 
   const selectedPlugin = plugins.find((p) => p.id === selectedPluginId);
+  const paramsConfigName =
+    selectedConfigName || selectedPlugin?.config_names?.[0] || '';
+  const paramsConfigIndex = Math.max(0, (selectedPlugin?.config_names || []).indexOf(paramsConfigName));
   const selectedPages = useMemo(() => {
     const listed = pluginList.find((p) => p.id === selectedPluginId);
     if (listed?.pages && listed.pages.length > 0) return listed.pages;
@@ -535,12 +548,7 @@ export default function PluginsPage() {
     return Array.from(map.values());
   }, [editedSvList]);
 
-  const isConfigDirty = useMemo(() => {
-    if (!selectedPlugin || !originalConfig) return false;
-    const configChanged = JSON.stringify(selectedPlugin.config) !== JSON.stringify(originalConfig.config);
-    const groupsChanged = JSON.stringify(selectedPlugin.config_groups) !== JSON.stringify(originalConfig.groups);
-    return configChanged || groupsChanged;
-  }, [selectedPlugin, originalConfig]);
+  const isConfigDirty = paramsDirty;
 
   const isPluginServiceDirty = useMemo(
     () => pluginServiceFieldsDirty(editedServiceConfig, originalServiceConfig, editedEnabled, originalEnabled),
@@ -560,9 +568,24 @@ export default function PluginsPage() {
 
   useEffect(() => {
     setPluginSection('params');
-    setOpenSvName(null);
+    setEditingSvIndex(null);
+    setSvDraft(null);
     setSvQuery('');
   }, [selectedPluginId]);
+
+  useEffect(() => {
+    const names = selectedPlugin?.config_names;
+    if (pluginSection !== 'params' || !names || names.length < 2) return;
+    const warm = () => {
+      setWarmConfigNames((prev) => (names.every((name) => prev.includes(name)) ? prev : names));
+    };
+    if (typeof window.requestIdleCallback === 'function') {
+      const idleId = window.requestIdleCallback(warm, { timeout: 200 });
+      return () => window.cancelIdleCallback(idleId);
+    }
+    const timeoutId = window.setTimeout(warm, 0);
+    return () => window.clearTimeout(timeoutId);
+  }, [pluginSection, selectedPlugin?.id, selectedPlugin?.config_names]);
 
   useEffect(() => {
     if (pluginSection === 'sv' || !svQuery.trim()) return;
@@ -650,6 +673,7 @@ export default function PluginsPage() {
         setEditedSvList(JSON.parse(JSON.stringify(converted.sv_list || [])));
         setOriginalEnabled(converted.enabled ?? true);
         setEditedEnabled(converted.enabled ?? true);
+        setParamsDirty(false);
 
         if (converted.config_names && converted.config_names.length > 0) {
           setSelectedConfigName(converted.config_names[0]);
@@ -727,6 +751,7 @@ export default function PluginsPage() {
     setEditedSvList(JSON.parse(JSON.stringify(selectedPlugin.sv_list || [])));
     setOriginalEnabled(selectedPlugin.enabled ?? true);
     setEditedEnabled(selectedPlugin.enabled ?? true);
+    setParamsDirty(false);
 
     if (selectedPlugin.config_names && selectedPlugin.config_names.length > 0) {
       if (!selectedConfigName || !selectedPlugin.config_names.includes(selectedConfigName)) {
@@ -766,6 +791,7 @@ export default function PluginsPage() {
         return newPlugin;
       })
     );
+    setParamsDirty(true);
   }, []);
 
   // 校验所有配置项的 regex
@@ -865,6 +891,7 @@ export default function PluginsPage() {
         config: JSON.parse(JSON.stringify(selectedPlugin.config)),
         groups: JSON.parse(JSON.stringify(selectedPlugin.config_groups || []))
       });
+      setParamsDirty(false);
       toast.success(t('plugins.pluginConfigUpdated'));
     } catch (error) {
       toast.error(t('plugins.updatePluginConfigFailed'));
@@ -911,6 +938,38 @@ export default function PluginsPage() {
       setIsSavingService(false);
     }
   };
+
+  const closeSvEditor = () => {
+    setEditingSvIndex(null);
+    setSvDraft(null);
+  };
+
+  const handleSaveOneSv = async () => {
+    if (!selectedPlugin || editingSvIndex == null || !svDraft) return;
+    setIsSavingService(true);
+    try {
+      await pluginsApi.updateSvConfig(
+        selectedPlugin.name,
+        svDraft.name,
+        svDraft as unknown as Record<string, unknown>,
+      );
+      setEditedSvList((prev) => prev.map((item, index) => (index === editingSvIndex ? svDraft : item)));
+      setOriginalSvList((prev) =>
+        prev.map((item, index) =>
+          index === editingSvIndex ? (JSON.parse(JSON.stringify(svDraft)) as SvItem) : item,
+        ),
+      );
+      toast.success(t('plugins.serviceConfigUpdated'));
+      closeSvEditor();
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, t('plugins.updateServiceConfigFailed')));
+    } finally {
+      setIsSavingService(false);
+    }
+  };
+
+  const isSvDraftDirty =
+    editingSvIndex != null && isSvItemDirty(svDraft, originalSvList[editingSvIndex]);
 
   // 重载当前插件（reloadPlugin 走 postRaw，看顶层 status/msg，勿用 api.post 解包 data）
   const handleReloadPlugin = async () => {
@@ -1009,8 +1068,16 @@ export default function PluginsPage() {
     else void handleSaveSv();
   };
 
+  if (warmPluginId !== selectedPluginId) {
+    setWarmPluginId(selectedPluginId);
+    setWarmConfigNames(selectedConfigName ? [selectedConfigName] : []);
+  } else if (selectedConfigName && !warmConfigNames.includes(selectedConfigName)) {
+    setWarmConfigNames([...warmConfigNames, selectedConfigName]);
+  }
+
   return (
     <PinnedPage
+      bodyClassName="flex min-h-0 flex-col"
       header={
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0 overflow-x-auto">
@@ -1079,8 +1146,8 @@ export default function PluginsPage() {
           </CardContent>
         </Card>
       ) : selectedPlugin ? (
-        <Card key={selectedPlugin.id} className="glass-card">
-          <div className="sticky top-0 z-30 rounded-t-lg border-b border-border/40 bg-background px-6 pb-2 pt-3 before:pointer-events-none before:absolute before:inset-x-0 before:-top-3 before:h-3 before:bg-background">
+        <Card key={selectedPlugin.id} className="glass-card flex min-h-0 flex-1 flex-col">
+          <div className="shrink-0 border-b border-border/40 px-6 pb-2 pt-3">
           <div className="flex items-center gap-3">
             <div className="flex items-center justify-center overflow-hidden">
               <PluginIcon pluginName={selectedPlugin.name} className="h-8 w-8" />
@@ -1097,8 +1164,28 @@ export default function PluginsPage() {
                   options={[
                     {
                       value: 'params',
-                      label: t('plugins.configParams'),
-                      icon: <Settings className="h-4 w-4" />,
+                      label: paramsConfigName || t('plugins.configParams'),
+                      icon: paramsConfigName
+                        ? getConfigIcon(paramsConfigName, paramsConfigIndex)
+                        : <Settings className="h-4 w-4" />,
+                      ...(selectedPlugin.config_names && selectedPlugin.config_names.length > 1
+                        ? {
+                            dropdown: {
+                              value: paramsConfigName,
+                              onValueChange: (name: string) => {
+                                if (name !== selectedConfigName) setSelectedConfigName(name);
+                              },
+                              allValue: paramsConfigName,
+                              align: 'start' as const,
+                              contentClassName: 'min-w-[14rem]',
+                              items: selectedPlugin.config_names.map((name, index) => ({
+                                value: name,
+                                label: name,
+                                icon: getConfigIcon(name, index),
+                              })),
+                            },
+                          }
+                        : {}),
                     },
                     {
                       value: 'plugin',
@@ -1137,19 +1224,21 @@ export default function PluginsPage() {
                   placeholder={pluginSection === 'sv' ? t('plugins.searchSv') : t('plugins.searchConfig')}
                   className="h-[38px] w-44 bg-background lg:w-56"
                 />
-                <Button
-                  className="h-[38px] shrink-0 gap-2 px-8 lg:min-w-[160px]"
-                  disabled={!sectionDirty || sectionSaving}
-                  onClick={saveSection}
-                >
-                  {sectionSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                  确认修改
-                </Button>
+                {pluginSection !== 'sv' && (
+                  <Button
+                    className="h-[38px] shrink-0 gap-2 px-8 lg:min-w-[160px]"
+                    disabled={!sectionDirty || sectionSaving}
+                    onClick={saveSection}
+                  >
+                    {sectionSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                    {t('plugins.confirmChanges')}
+                  </Button>
+                )}
               </div>
             </div>
           </div>
 
-          <CardContent className="pt-6 space-y-6">
+          <CardContent className="min-h-0 flex-1 space-y-6 overflow-y-auto pt-6">
             {pluginSection === 'plugin' && (
               <>
                     {/* 汇总所有SV命令Tags - 默认折叠，展开时才渲染 */}
@@ -1417,261 +1506,72 @@ export default function PluginsPage() {
                     {editedSvList.every((sv) => !svMatchesQuery(sv, svQuery)) && (
                       <p className="text-sm text-muted-foreground">{t('plugins.noSvMatch')}</p>
                     )}
-                    <div className="flex items-start gap-3">
-                    {Array.from({ length: svColumnCount }, (_, columnIndex) => (
-                      <div key={columnIndex} className="flex min-w-0 flex-1 flex-col gap-3">
-                    {editedSvList
-                      .map((sv, index) => ({ sv, index }))
-                      .filter(({ sv }) => svMatchesQuery(sv, svQuery))
-                      .sort((a, b) => (a.sv.pm || 0) - (b.sv.pm || 0) || a.sv.name.localeCompare(b.sv.name))
-                      .filter((_, visibleIndex) => visibleIndex % svColumnCount === columnIndex)
-                      .map(({ sv, index }) => {
-                      const open = openSvName === sv.name;
-                      const areaLabel = sv.area === 'DIRECT'
-                        ? t('plugins.directOnly')
-                        : sv.area === 'GROUP'
-                          ? t('plugins.groupOnly')
-                          : t('plugins.global');
-                      return (
-                      <div key={`${sv.name}-${index}`} className="rounded-lg border bg-background">
-                        <div
-                          className="cursor-pointer space-y-1.5 px-3 py-2"
-                          onClick={() => setOpenSvName(open ? null : sv.name)}
-                        >
-                          <div className="flex items-center gap-2">
-                            <ChevronDown className={cn('h-4 w-4 shrink-0 text-muted-foreground transition-transform', open && 'rotate-180')} />
-                            <span className="min-w-0 flex-1 truncate font-medium">{sv.name}</span>
-                            <Badge
-                              className={cn(
-                                SV_BADGE,
-                                'ml-auto',
-                                sv.enabled
-                                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200'
-                                  : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300',
-                              )}
-                            >
-                              {sv.enabled ? <CircleCheck className="h-3 w-3" /> : <CircleOff className="h-3 w-3" />}
-                              {sv.enabled ? t('plugins.enabled') : t('plugins.disabled')}
-                            </Badge>
-                          </div>
-                          <div className="flex flex-wrap gap-1 pl-6">
-                            <Badge className={cn(SV_BADGE, SV_PM_BADGE[sv.pm || 0] || SV_PM_BADGE[6])}>
-                              {t(`plugins.permissionLevels.${sv.pm || 0}`)}
-                            </Badge>
-                            <Badge className={cn(SV_BADGE, svPriorityBadgeClass(sv.priority || 0))}>
-                              {t('plugins.priority')} {sv.priority || 0}
-                            </Badge>
-                            <Badge className={cn(SV_BADGE, SV_AREA_BADGE[sv.area] || SV_AREA_BADGE.ALL)}>
-                              {areaLabel}
-                            </Badge>
-                            <Badge variant="secondary" className="font-normal">
-                              {t('plugins.whiteList')} {sv.white_list?.length || 0}
-                            </Badge>
-                            <Badge variant="secondary" className="font-normal">
-                              {t('plugins.blackList')} {sv.black_list?.length || 0}
-                            </Badge>
-                          </div>
-                        </div>
-                        {open && (
-                        <div className="space-y-4 border-t px-4 py-4">
-                          <div className="flex items-center justify-between">
-                            <Label className="text-sm font-medium text-muted-foreground">{t('plugins.pluginStatus')}</Label>
-                            <Switch
-                              checked={sv.enabled}
-                              onCheckedChange={(checked) => {
-                                const newSvList = [...editedSvList];
-                                newSvList[index] = { ...sv, enabled: checked };
-                                setEditedSvList(newSvList);
-                              }}
-                            />
-                          </div>
-
-                          {/* {t('plugins.permissionLevel')} */}
-                          <div className="space-y-2">
-                            <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                              <Shield className="w-4 h-4" />
-                              {t('plugins.permissionLevel')}
-                            </Label>
-                            <Select
-                              value={String(sv.pm || 0)}
-                              onValueChange={(v) => {
-                                const newSvList = [...editedSvList];
-                                newSvList[index] = { ...sv, pm: parseInt(v) };
-                                setEditedSvList(newSvList);
-                              }}
-                            >
-                              <SelectTrigger className="bg-background h-9">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {[0, 1, 2, 3, 4, 5, 6, 7, 8].map(v => (
-                                  <SelectItem key={v} value={String(v)}>{t('plugins.permissionLevels.' + v)}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-
-                          {/* {t('plugins.priority')} */}
-                          <div className="space-y-2">
-                            <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                              <Zap className="w-4 h-4" />
-                              {t('plugins.priority')}
-                            </Label>
-                            <Input
-                              type="number"
-                              className="bg-background h-9"
-                              value={sv.priority || 0}
-                              onChange={(e) => {
-                                const newSvList = [...editedSvList];
-                                newSvList[index] = { ...sv, priority: parseInt(e.target.value) || 0 };
-                                setEditedSvList(newSvList);
-                              }}
-                              placeholder={t('plugins.enterPriority')}
-                            />
-                          </div>
-
-                          {/* {t('plugins.responseArea')} */}
-                          <div className="space-y-2">
-                            <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                              <MessageSquare className="w-4 h-4" />
-                              {t('plugins.responseArea')}
-                            </Label>
-                            <Select
-                              value={sv.area || 'ALL'}
-                              onValueChange={(v) => {
-                                const newSvList = [...editedSvList];
-                                newSvList[index] = { ...sv, area: v };
-                                setEditedSvList(newSvList);
-                              }}
-                            >
-                              <SelectTrigger className="bg-background h-9">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="ALL">{t('plugins.global')}</SelectItem>
-                                <SelectItem value="DIRECT">{t('plugins.directOnly')}</SelectItem>
-                                <SelectItem value="GROUP">{t('plugins.groupOnly')}</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-
-                          {/* {t('plugins.whiteList')} / {t('plugins.blackList')} */}
-                          <div className="space-y-4">
-                            <div className="space-y-2">
-                              <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                                <Filter className="w-4 h-4" />
-                                {t('plugins.whiteList')}
-                              </Label>
-                              <ConfigField
-                                fieldKey={`sv_${index}_white_list`}
-                                field={{
-                                  type: 'tags',
-                                  label: t('plugins.whiteList'),
-                                  value: sv.white_list || [],
-                                  placeholder: t('plugins.enterWhitelistContent')
-                                }}
-                                onChange={(fieldKey, value) => {
-                                  const newSvList = [...editedSvList];
-                                  newSvList[index] = { ...sv, white_list: value as unknown as string[] };
-                                  setEditedSvList(newSvList);
-                                }}
-                                showLabel={false}
-                              />
-                            </div>
-                            
-                            <div className="space-y-2">
-                              <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                                <Users className="w-4 h-4" />
-                                {t('plugins.blackList')}
-                              </Label>
-                              <ConfigField
-                                fieldKey={`sv_${index}_black_list`}
-                                field={{
-                                  type: 'tags',
-                                  label: t('plugins.blackList'),
-                                  value: sv.black_list || [],
-                                  placeholder: t('plugins.enterBlacklistContent')
-                                }}
-                                onChange={(fieldKey, value) => {
-                                  const newSvList = [...editedSvList];
-                                  newSvList[index] = { ...sv, black_list: value as unknown as string[] };
-                                  setEditedSvList(newSvList);
-                                }}
-                                showLabel={false}
-                              />
-                            </div>
-                          </div>
-
-                          {/* 命令Tags - 默认折叠 */}
-                          {sv.commands && sv.commands.length > 0 ? (
-                            <Collapsible defaultOpen={false} className="group/cmds">
-                              <CollapsibleTrigger asChild>
-                                <div className="flex items-center justify-between cursor-pointer hover:opacity-80 transition-opacity">
-                                  <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                                    <Command className="w-4 h-4" />
-                                    命令 ({sv.commands.length})
-                                  </Label>
-                                  <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform duration-200 group-data-[state=open]/cmds:rotate-180" />
-                                </div>
-                              </CollapsibleTrigger>
-                              <CollapsibleContent>
-                                <div className="flex flex-wrap items-center gap-1.5 pt-2">
-                                  <TooltipProvider delayDuration={300}>
-                                    {sv.commands.map((cmd: SvCommand, cmdIndex: number) => {
-                                      const colorClass = CMD_TYPE_COLORS[cmd.type] || CMD_TYPE_DEFAULT_COLOR;
-                                      const displayText = cmd.type === 'regex' ? simplifyRegexKeyword(cmd.keyword) : cmd.keyword;
-                                      return (
-                                        <Tooltip key={cmdIndex}>
-                                          <TooltipTrigger asChild>
-                                            <span
-                                              className={cn(
-                                                'inline-flex items-center rounded-full border px-1.5 py-0.5 text-xs cursor-pointer transition-colors',
-                                                colorClass,
-                                                commandMatchesQuery(cmd, svQuery) && 'ring-2 ring-primary',
-                                              )}
-                                            >
-                                              {displayText}
-                                            </span>
-                                          </TooltipTrigger>
-                                          <TooltipContent side="top" className="max-w-xs z-50 bg-white dark:bg-gray-900 border shadow-lg">
-                                            <div className="space-y-1">
-                                              <p className="font-medium text-gray-900 dark:text-gray-100">{t('plugins.commandTrigger')}</p>
-                                              <div className="grid grid-cols-[auto_1fr] gap-x-2 text-xs text-gray-700 dark:text-gray-300">
-                                                <span className="text-gray-500 dark:text-gray-400">{t('plugins.commandType')}:</span>
-                                                <span className="text-gray-900 dark:text-gray-100">{t(`plugins.triggerTypes.${cmd.type}`) || cmd.type}</span>
-                                                <span className="text-gray-500 dark:text-gray-400">{t('plugins.commandKeyword')}:</span>
-                                                <span className="font-mono break-all text-gray-900 dark:text-gray-100">{cmd.keyword}</span>
-                                                <span className="text-gray-500 dark:text-gray-400">{t('plugins.commandBlock')}:</span>
-                                                <span className="text-gray-900 dark:text-gray-100">{cmd.block ? '✓' : '✗'}</span>
-                                                <span className="text-gray-500 dark:text-gray-400">{t('plugins.commandToMe')}:</span>
-                                                <span className="text-gray-900 dark:text-gray-100">{cmd.to_me ? '✓' : '✗'}</span>
-                                              </div>
-                                            </div>
-                                          </TooltipContent>
-                                        </Tooltip>
-                                      );
-                                    })}
-                                  </TooltipProvider>
-                                </div>
-                              </CollapsibleContent>
-                            </Collapsible>
-                          ) : (
-                            <div className="space-y-2">
-                              <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                                <Command className="w-4 h-4" />
-                                命令
-                              </Label>
-                              <span className="text-xs text-muted-foreground">无</span>
-                            </div>
-                          )}
-                        </div>
+                    {groupSvByPm(
+                      editedSvList
+                        .map((sv, index) => ({ sv, index }))
+                        .filter(({ sv }) => svMatchesQuery(sv, svQuery)),
+                    ).map((group, groupIndex) => (
+                      <div
+                        key={group.pm}
+                        className={cn(
+                          'grid grid-cols-1 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(16rem,1fr))]',
+                          groupIndex > 0 && 'border-t border-border/40 pt-3',
                         )}
-                      </div>
-                      );
-                    })}
+                      >
+                          {group.items.map(({ sv, index }) => {
+                            const areaLabel =
+                              sv.area === 'DIRECT'
+                                ? t('plugins.directOnly')
+                                : sv.area === 'GROUP'
+                                  ? t('plugins.groupOnly')
+                                  : t('plugins.global');
+                            return (
+                              <button
+                                key={`${sv.name}-${index}`}
+                                type="button"
+                                className="min-w-0 w-full rounded-lg border bg-background p-3 text-left"
+                                onClick={() => {
+                                  setEditingSvIndex(index);
+                                  setSvDraft(JSON.parse(JSON.stringify(sv)) as SvItem);
+                                }}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <span className="min-w-0 flex-1 truncate font-medium">{sv.name}</span>
+                                  <Badge className={cn(SV_BADGE, 'shrink-0', svPriorityBadgeClass(sv.priority || 0))}>
+                                    {t('plugins.priorityShort', { n: sv.priority || 0 })}
+                                  </Badge>
+                                  <Badge
+                                    className={cn(
+                                      SV_BADGE,
+                                      'shrink-0',
+                                      sv.enabled
+                                        ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200'
+                                        : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300',
+                                    )}
+                                  >
+                                    {sv.enabled ? <CircleCheck className="h-3 w-3" /> : <CircleOff className="h-3 w-3" />}
+                                    {sv.enabled ? t('plugins.enabled') : t('plugins.disabled')}
+                                  </Badge>
+                                </div>
+                                <div className="mt-1.5 flex flex-wrap gap-1">
+                                  <Badge className={cn(SV_BADGE, SV_PM_BADGE[sv.pm || 0] || SV_PM_BADGE[6])}>
+                                    {t(`plugins.permissionLevels.${sv.pm || 0}`)}
+                                  </Badge>
+                                  <Badge className={cn(SV_BADGE, SV_AREA_BADGE[sv.area] || SV_AREA_BADGE.ALL)}>
+                                    {areaLabel}
+                                  </Badge>
+                                  <Badge variant="secondary" className="font-normal">
+                                    {t('plugins.whiteList')} {sv.white_list?.length || 0}
+                                  </Badge>
+                                  <Badge variant="secondary" className="font-normal">
+                                    {t('plugins.blackList')} {sv.black_list?.length || 0}
+                                  </Badge>
+                                </div>
+                              </button>
+                            );
+                          })}
                       </div>
                     ))}
-                    </div>
                   </div>
                 ) : (
                   <p className="text-muted-foreground">{t('plugins.noSvServices')}</p>
@@ -1681,76 +1581,93 @@ export default function PluginsPage() {
 
             {pluginSection === 'params' && (
               <>
-                {selectedPlugin.config_names && selectedPlugin.config_names.length > 1 && (
-                  <div className="mb-4">
-                    <TabButtonGroup
-                      options={selectedPlugin.config_names.map((name: string, index: number) => ({
-                        value: name,
-                        label: name,
-                        icon: getConfigIcon(name, index),
-                      }))}
-                      value={selectedConfigName || ''}
-                      onValueChange={(val) => val && setSelectedConfigName(val)}
-                      collapseOnMobile
-                    />
-                  </div>
-                )}
-                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                  {(() => {
-                    const currentGroup = selectedPlugin.config_groups?.find(g => g.config_name === selectedConfigName);
-                    const displayConfig = currentGroup ? currentGroup.config : selectedPlugin.config;
-
-                    const entries = Object.entries(displayConfig);
-                    if (entries.length === 0) {
-                      return (
+                {(selectedPlugin.config_groups && selectedPlugin.config_groups.length > 0
+                  ? selectedPlugin.config_groups.filter(
+                      (group) =>
+                        group.config_name === selectedConfigName
+                        || warmConfigNames.includes(group.config_name),
+                    )
+                  : [
+                      {
+                        config_name: paramsConfigName || '__default__',
+                        config: selectedPlugin.config,
+                      },
+                    ]
+                ).map((group) => {
+                  const groupName =
+                    selectedPlugin.config_groups && selectedPlugin.config_groups.length > 0
+                      ? group.config_name
+                      : selectedConfigName;
+                  const active = group.config_name === (selectedConfigName || group.config_name);
+                  const entries = Object.entries(group.config || {});
+                  return (
+                    <div
+                      key={group.config_name}
+                      className={cn(
+                        'grid gap-6 sm:grid-cols-2 lg:grid-cols-3',
+                        !active && 'hidden',
+                      )}
+                    >
+                      {entries.length === 0 ? (
                         <div className="col-span-full py-12 text-center text-muted-foreground">
                           <p>{t('plugins.noConfigItems')}</p>
                         </div>
-                      );
-                    }
-
-                    return entries.map(([key, field]) => {
-                      const fieldDef = field as unknown as ConfigFieldDefinition;
-                      const shown = (text?: string) => (!text ? '' : text.includes('.') ? t(text) : text);
-                      const hit = configHitClass(
-                        shown(fieldDef.label),
-                        shown(fieldDef.description),
-                        typeof fieldDef.value === 'string' ? shown(fieldDef.value) : '',
-                        key,
-                      );
-                      // divider / repeatgroup 类型需要占据整行
-                      const isFullWidth = fieldDef.type === 'divider' || fieldDef.type === 'repeatgroup';
-                      if (fieldDef.type === 'repeatgroup') {
-                        const groupValue = Array.isArray(fieldDef.value) ? (fieldDef.value as unknown as RepeatGroupItem[]) : [];
-                        return (
-                          <div key={`${selectedConfigName}_${key}`} data-config-hit={hit ? 'true' : undefined} className={cn('col-span-full', hit)}>
-                            <RepeatGroupField
-                              fieldKey={key}
-                              template={fieldDef.template || {}}
-                              value={groupValue}
-                              onChange={(fieldKey, value) => updateConfigValue(selectedPlugin.id, fieldKey, value, selectedConfigName)}
-                              title={fieldDef.label}
-                              description={fieldDef.description}
-                            />
-                          </div>
-                        );
-                      }
-                      return (
-                        <div
-                          key={`${selectedConfigName}_${key}`}
-                          data-config-hit={hit ? 'true' : undefined}
-                          className={cn(isFullWidth && 'col-span-full', hit)}
-                        >
-                          <ConfigField
-                            fieldKey={key}
-                            field={fieldDef}
-                            onChange={(fieldKey, value) => updateConfigValue(selectedPlugin.id, fieldKey, value, selectedConfigName)}
-                          />
-                        </div>
-                      );
-                    });
-                  })()}
-                </div>
+                      ) : (
+                        entries.map(([key, field]) => {
+                          const fieldDef = field as unknown as ConfigFieldDefinition;
+                          const shown = (text?: string) => (!text ? '' : text.includes('.') ? t(text) : text);
+                          const hit = active
+                            ? configHitClass(
+                                shown(fieldDef.label),
+                                shown(fieldDef.description),
+                                typeof fieldDef.value === 'string' ? shown(fieldDef.value) : '',
+                                key,
+                              )
+                            : '';
+                          const isFullWidth = fieldDef.type === 'divider' || fieldDef.type === 'repeatgroup';
+                          if (fieldDef.type === 'repeatgroup') {
+                            const groupValue = Array.isArray(fieldDef.value)
+                              ? (fieldDef.value as unknown as RepeatGroupItem[])
+                              : [];
+                            return (
+                              <div
+                                key={`${group.config_name}_${key}`}
+                                data-config-hit={hit ? 'true' : undefined}
+                                className={cn('col-span-full', hit)}
+                              >
+                                <RepeatGroupField
+                                  fieldKey={key}
+                                  template={fieldDef.template || {}}
+                                  value={groupValue}
+                                  onChange={(fieldKey, value) =>
+                                    updateConfigValue(selectedPlugin.id, fieldKey, value, groupName)
+                                  }
+                                  title={fieldDef.label}
+                                  description={fieldDef.description}
+                                />
+                              </div>
+                            );
+                          }
+                          return (
+                            <div
+                              key={`${group.config_name}_${key}`}
+                              data-config-hit={hit ? 'true' : undefined}
+                              className={cn(isFullWidth && 'col-span-full', hit)}
+                            >
+                              <ConfigField
+                                fieldKey={key}
+                                field={fieldDef}
+                                onChange={(fieldKey, value) =>
+                                  updateConfigValue(selectedPlugin.id, fieldKey, value, groupName)
+                                }
+                              />
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  );
+                })}
               </>
             )}
           </CardContent>
@@ -1763,6 +1680,202 @@ export default function PluginsPage() {
           </CardContent>
         </Card>
       )}
+
+      <Dialog
+        open={editingSvIndex != null && svDraft != null}
+        onOpenChange={(open) => {
+          if (!open) closeSvEditor();
+        }}
+      >
+        <DialogContent className="glass-card sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{svDraft?.name || t('plugins.svService')}</DialogTitle>
+            <DialogDescription>{t('plugins.svEditDesc')}</DialogDescription>
+          </DialogHeader>
+          {svDraft && (
+            <div className="max-h-[60vh] space-y-4 overflow-y-auto py-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-medium text-muted-foreground">{t('plugins.pluginStatus')}</Label>
+                <Switch
+                  checked={svDraft.enabled}
+                  onCheckedChange={(checked) => setSvDraft({ ...svDraft, enabled: checked })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                  <Shield className="h-4 w-4" />
+                  {t('plugins.permissionLevel')}
+                </Label>
+                <Select
+                  value={String(svDraft.pm || 0)}
+                  onValueChange={(value) => setSvDraft({ ...svDraft, pm: parseInt(value, 10) })}
+                >
+                  <SelectTrigger className="h-9 bg-background">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[0, 1, 2, 3, 4, 5, 6, 7, 8].map((level) => (
+                      <SelectItem key={level} value={String(level)}>
+                        {t(`plugins.permissionLevels.${level}`)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                  <Zap className="h-4 w-4" />
+                  {t('plugins.priority')}
+                </Label>
+                <Input
+                  type="number"
+                  className="h-9 bg-background"
+                  value={svDraft.priority || 0}
+                  onChange={(event) =>
+                    setSvDraft({ ...svDraft, priority: parseInt(event.target.value, 10) || 0 })
+                  }
+                  placeholder={t('plugins.enterPriority')}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                  <MessageSquare className="h-4 w-4" />
+                  {t('plugins.responseArea')}
+                </Label>
+                <Select
+                  value={svDraft.area || 'ALL'}
+                  onValueChange={(value) => setSvDraft({ ...svDraft, area: value })}
+                >
+                  <SelectTrigger className="h-9 bg-background">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">{t('plugins.global')}</SelectItem>
+                    <SelectItem value="DIRECT">{t('plugins.directOnly')}</SelectItem>
+                    <SelectItem value="GROUP">{t('plugins.groupOnly')}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                  <Filter className="h-4 w-4" />
+                  {t('plugins.whiteList')}
+                </Label>
+                <ConfigField
+                  fieldKey="sv_draft_white_list"
+                  field={{
+                    type: 'tags',
+                    label: t('plugins.whiteList'),
+                    value: svDraft.white_list || [],
+                    placeholder: t('plugins.enterWhitelistContent'),
+                  }}
+                  onChange={(_key, value) =>
+                    setSvDraft({ ...svDraft, white_list: value as unknown as string[] })
+                  }
+                  showLabel={false}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                  <Users className="h-4 w-4" />
+                  {t('plugins.blackList')}
+                </Label>
+                <ConfigField
+                  fieldKey="sv_draft_black_list"
+                  field={{
+                    type: 'tags',
+                    label: t('plugins.blackList'),
+                    value: svDraft.black_list || [],
+                    placeholder: t('plugins.enterBlacklistContent'),
+                  }}
+                  onChange={(_key, value) =>
+                    setSvDraft({ ...svDraft, black_list: value as unknown as string[] })
+                  }
+                  showLabel={false}
+                />
+              </div>
+              {svDraft.commands && svDraft.commands.length > 0 ? (
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                    <Command className="h-4 w-4" />
+                    {t('plugins.commands')} ({svDraft.commands.length})
+                  </Label>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <TooltipProvider delayDuration={300}>
+                      {svDraft.commands.map((cmd: SvCommand, cmdIndex: number) => {
+                        const colorClass = CMD_TYPE_COLORS[cmd.type] || CMD_TYPE_DEFAULT_COLOR;
+                        const displayText =
+                          cmd.type === 'regex' ? simplifyRegexKeyword(cmd.keyword) : cmd.keyword;
+                        return (
+                          <Tooltip key={cmdIndex}>
+                            <TooltipTrigger asChild>
+                              <span
+                                className={cn(
+                                  'inline-flex items-center rounded-full border px-1.5 py-0.5 text-xs',
+                                  colorClass,
+                                  commandMatchesQuery(cmd, svQuery) && 'ring-2 ring-primary',
+                                )}
+                              >
+                                {displayText}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="z-50 max-w-xs border bg-white shadow-lg dark:bg-gray-900">
+                              <div className="space-y-1">
+                                <p className="font-medium text-gray-900 dark:text-gray-100">
+                                  {t('plugins.commandTrigger')}
+                                </p>
+                                <div className="grid grid-cols-[auto_1fr] gap-x-2 text-xs text-gray-700 dark:text-gray-300">
+                                  <span className="text-gray-500 dark:text-gray-400">
+                                    {t('plugins.commandType')}:
+                                  </span>
+                                  <span className="text-gray-900 dark:text-gray-100">
+                                    {t(`plugins.triggerTypes.${cmd.type}`) || cmd.type}
+                                  </span>
+                                  <span className="text-gray-500 dark:text-gray-400">
+                                    {t('plugins.commandKeyword')}:
+                                  </span>
+                                  <span className="break-all font-mono text-gray-900 dark:text-gray-100">
+                                    {cmd.keyword}
+                                  </span>
+                                  <span className="text-gray-500 dark:text-gray-400">
+                                    {t('plugins.commandBlock')}:
+                                  </span>
+                                  <span className="text-gray-900 dark:text-gray-100">{cmd.block ? '✓' : '✗'}</span>
+                                  <span className="text-gray-500 dark:text-gray-400">
+                                    {t('plugins.commandToMe')}:
+                                  </span>
+                                  <span className="text-gray-900 dark:text-gray-100">{cmd.to_me ? '✓' : '✗'}</span>
+                                </div>
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        );
+                      })}
+                    </TooltipProvider>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                    <Command className="h-4 w-4" />
+                    {t('plugins.commands')}
+                  </Label>
+                  <span className="text-xs text-muted-foreground">{t('plugins.noCommands')}</span>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={closeSvEditor}>
+              {t('common.cancel')}
+            </Button>
+            <Button disabled={!isSvDraftDirty || isSavingService} onClick={() => void handleSaveOneSv()}>
+              {isSavingService ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              {t('plugins.confirmChanges')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={pageDialogOpen} onOpenChange={setPageDialogOpen}>
         <AlertDialogContent>
