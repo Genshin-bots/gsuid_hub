@@ -1,0 +1,9 @@
+/*
+ * Emoji 回退。MiSans VF 的 WOFF2 切片在 src/assets/misans-vf/，由 main.tsx 同步引入。
+ * Twemoji 约 500KB，等首次绘制后再登记，避免跟登录表单抢带宽。
+ */
+@font-face {
+  font-family: 'Twemoji Mozilla';
+  src: url('/__console_font__/TwemojiMozilla-colr.woff2') format('woff2');
+  font-display: swap;
+}

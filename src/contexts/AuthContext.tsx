@@ -18,6 +18,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    if (!getAuthToken()) {
+      setIsLoading(false);
+      return;
+    }
     const checkAuth = async () => {
       try {
         const userData = await authApi.getCurrentUser();
@@ -28,7 +32,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIsLoading(false);
       }
     };
-    
     checkAuth();
   }, []);
 

@@ -3,6 +3,7 @@ import App from "./App.tsx";
 import "./index.css";
 import { installMockServer } from "./lib/mockServer";
 import { setAuthToken } from "./lib/api";
+import { afterFirstPaint } from "./lib/afterFirstPaint";
 
 // ─── Demo（演示）模式 ────────────────────────────────────────────────────
 // `--mode demo` 下：先安装 Mock Server（覆写 window.fetch 接管所有 /api/*），
@@ -68,3 +69,7 @@ if (import.meta.env.VITE_DEMO) {
 }
 
 createRoot(document.getElementById("root")!).render(<App />);
+
+afterFirstPaint(() => {
+  void import("./fonts.css");
+});

@@ -1,8 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react';
 import { useTheme } from './ThemeContext';
-import zhCN from '@/i18n/locales/zh-CN';
-import enUS from '@/i18n/locales/en-US';
-import jaJP from '@/i18n/locales/ja-JP';
+import zhCommon from '@/i18n/locales/zh-CN/common.json';
+import zhLogin from '@/i18n/locales/zh-CN/login.json';
+import { afterFirstPaint } from '@/lib/afterFirstPaint';
 
 // ============================================================================
 // 类型定义
@@ -28,10 +28,11 @@ interface LanguageContextType {
 // 语言文件映射
 // ============================================================================
 
-const locales: Record<Language, Record<string, unknown>> = {
-  'zh-CN': zhCN,
-  'en-US': enUS,
-  'ja-JP': jaJP,
+type LocaleTree = Record<string, unknown>;
+const zhBoot: LocaleTree = { common: zhCommon, login: zhLogin };
+const extraLocaleLoaders: Record<Exclude<Language, 'zh-CN'>, () => Promise<{ default: LocaleTree }>> = {
+  'en-US': () => import('@/i18n/locales/en-US'),
+  'ja-JP': () => import('@/i18n/locales/ja-JP'),
 };
 
 const availableLanguages: LanguageOption[] = [
@@ -111,6 +112,9 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
   const themeContext = useTheme();
   
   // 浏览器 localStorage 为 UI 语言的主来源；Theme 默认 zh-CN 不应抢先覆盖用户偏好
+  const [extraLocales, setExtraLocales] = useState<Partial<Record<Exclude<Language, 'zh-CN'>, LocaleTree>>>({});
+  const [zhFull, setZhFull] = useState<LocaleTree | null>(null);
+
   const [language, setLanguageState] = useState<Language>(() => {
     try {
       const saved = localStorage.getItem(LANGUAGE_STORAGE_KEY);
@@ -154,6 +158,26 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
     }
   }, [themeContext.language, language]);
 
+  useEffect(() => {
+    afterFirstPaint(() => {
+      void import('@/i18n/locales/zh-CN').then((mod) => {
+        setZhFull(mod.default as unknown as LocaleTree);
+      });
+    });
+  }, []);
+
+  useEffect(() => {
+    if (language === 'zh-CN' || extraLocales[language]) return;
+    let alive = true;
+    extraLocaleLoaders[language]().then((mod) => {
+      if (!alive) return;
+      setExtraLocales((prev) => ({ ...prev, [language]: mod.default as unknown as LocaleTree }));
+    });
+    return () => {
+      alive = false;
+    };
+  }, [language, extraLocales]);
+
   // 保存语言设置到 localStorage；ThemeContext 负责 session / 后端（仅已登录）
   const setLanguage = useCallback((lang: Language) => {
     setLanguageState(lang);
@@ -167,8 +191,12 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
 
   // 翻译函数 - 使用useMemo缓存
   const t = useCallback((key: string, params?: Record<string, string | number>): string => {
-    return defaultT(key, locales[language], params);
-  }, [language]);
+    const pack =
+      language === 'zh-CN'
+        ? (zhFull ?? zhBoot)
+        : extraLocales[language] ?? zhFull ?? zhBoot;
+    return defaultT(key, pack, params);
+  }, [language, extraLocales, zhFull]);
 
   // 提供者值 - 使用useMemo避免每次渲染创建新对象
   const value = useMemo<LanguageContextType>(() => ({

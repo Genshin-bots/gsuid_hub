@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react';
 import { brandApi, BrandInfo, getBrandIconUrl } from '@/lib/api';
+import { afterFirstPaint } from '@/lib/afterFirstPaint';
 import { useLanguage } from './LanguageContext';
 
 // ============================================================================
@@ -56,6 +57,7 @@ interface BrandContextType {
 
 const DEFAULT_TITLE = 'GsHub';
 const DEFAULT_SUBTITLE = '早柚核心';
+const PACKAGED_ICON = `${import.meta.env.BASE_URL}ICON.png`;
 
 // ============================================================================
 // Context 创建
@@ -77,19 +79,20 @@ export function BrandProvider({ children }: { children: ReactNode }) {
   const [isLoaded, setIsLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   // 用 state 保存 icon 时间戳，保证触发 re-render 与 favicon 同步
-  const [iconTs, setIconTs] = useState<number>(Date.now());
+  const [iconTs, setIconTs] = useState<number>(0);
+  const [allowRemoteIcon, setAllowRemoteIcon] = useState(false);
 
-  // 当 iconTs / 语言 / 品牌变化时同步浏览器 tab favicon + title
   useEffect(() => {
-    syncFavicon(iconTs);
-    if (typeof document !== 'undefined') {
-      // 标题按当前语言取 i18n 词条（与品牌 title 解耦，按用户要求只显示固定的"网页控制台"）
-      const next = t('common.pageTitle');
-      if (document.title !== next) {
-        document.title = next;
-      }
+    if (typeof document === 'undefined') return;
+    const next = t('common.pageTitle');
+    if (document.title !== next) {
+      document.title = next;
     }
-  }, [iconTs, t, language]);
+  }, [t, language]);
+
+  useEffect(() => {
+    afterFirstPaint(() => setAllowRemoteIcon(true));
+  }, []);
 
   const refresh = useCallback(async () => {
     setIsLoading(true);
@@ -97,8 +100,9 @@ export function BrandProvider({ children }: { children: ReactNode }) {
       const response = await brandApi.getBrand();
       if (response.status === 0 && response.data) {
         setInfo(response.data);
-        // 拉取成功，刷新一次 icon 时间戳，方便后续换图强制刷新
-        setIconTs(Date.now());
+        if (response.data.icon_source === 'user') {
+          setIconTs(Date.now());
+        }
       }
     } catch (err) {
       // 公开接口，登录前也会请求；失败时静默回退到默认
@@ -160,9 +164,17 @@ export function BrandProvider({ children }: { children: ReactNode }) {
 
   const title = info?.title || DEFAULT_TITLE;
   const subtitle = info?.subtitle || DEFAULT_SUBTITLE;
-  // 始终带时间戳，确保上传新图后能立即看到
-  const iconUrl = getBrandIconUrl(iconTs);
   const iconSource = info?.icon_source ?? 'default';
+  const iconUrl =
+    allowRemoteIcon && isLoaded && iconSource === 'user'
+      ? getBrandIconUrl(iconTs)
+      : PACKAGED_ICON;
+
+  useEffect(() => {
+    if (isLoaded && iconSource === 'user') {
+      syncFavicon(iconTs);
+    }
+  }, [isLoaded, iconSource, iconTs]);
   const defaultInfo: BrandInfo['default'] = info?.default ?? {
     icon: 'ICON.png',
     title: DEFAULT_TITLE,

@@ -42,3 +42,10 @@ puppeteer-core-23.11.1.tgz
 
 # 开发期从 gsuid_core/utils/fonts 复制过来的字体，不入库
 /fonts/
+.tmp-misans/
+
+# 闪电.skill 测速用的产物拷贝
+/perf/bench/dist-a/
+/perf/bench/dist-b/
+/perf/bench/dist-e2/
+/perf

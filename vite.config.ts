@@ -11,15 +11,12 @@ const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
 
 const PLUGIN_SDK_DEV_URL = '/plugin-pages/_sdk/gshub-plugin.js';
 
-/** 开发目录 fonts/ 里的两份文件，从 gsuid_core/utils/fonts 复制。 */
-const HUB_FONT_FILES = [
-  { name: 'MiSansVF.ttf', type: 'font/ttf' },
-  { name: 'TwemojiMozilla-colr.woff2', type: 'font/woff2' },
-] as const;
+/** 开发目录 fonts/ 里的 Twemoji。MiSans 只用 public/misans-vf 的 WOFF2 切片，永不请求后端 TTF。 */
+const HUB_FONT_FILES = [{ name: 'TwemojiMozilla-colr.woff2', type: 'font/woff2' }] as const;
 
 /**
- * 样式表写 /__console_font__/<文件名>，这个路径在仓库里不存在，Vite 不会把它打进 dist。
- * dev：中间件从仓库 fonts/ 读文件（也认 /fonts/，给 public 里的静态页）。
+ * Twemoji 样式表写 /__console_font__/，这个路径在仓库里不存在，Vite 不会把它打进 dist。
+ * dev：中间件从仓库 fonts/ 读文件（也认 /fonts/）。
  * 正式构建：改成 ../../../utils/fonts/。产物在 webconsole/dist/assets/*.css 时请求 /utils/fonts/。
  * demo 构建：改成 ../fonts/，并把文件拷进 dist-demo/fonts。
  */
@@ -30,6 +27,11 @@ function hubFontsPlugin(isDemo: boolean): Plugin {
     configureServer(server) {
       server.middlewares.use((req, res, next) => {
         const url = (req.url ?? '').split('?')[0];
+        if (url.endsWith('/MiSansVF.ttf')) {
+          res.statusCode = 404;
+          res.end();
+          return;
+        }
         const font = HUB_FONT_FILES.find(
           (item) => url === `/fonts/${item.name}` || url === `/__console_font__/${item.name}`,
         );
@@ -54,7 +56,7 @@ function hubFontsPlugin(isDemo: boolean): Plugin {
         const source =
           typeof item.source === 'string' ? item.source : Buffer.from(item.source).toString('utf8');
         const pattern =
-          /url\(\s*(['"]?)(?:\/(?:app|hub))?\/__console_font__\/(MiSansVF\.ttf|TwemojiMozilla-colr\.woff2)\1\s*\)/g;
+          /url\(\s*(['"]?)(?:\/(?:app|hub))?\/__console_font__\/(TwemojiMozilla-colr\.woff2)\1\s*\)/g;
         const next = source.replace(
           pattern,
           (_match, quote: string, name: string) =>
@@ -440,14 +442,7 @@ export default defineConfig(({ command, mode }) => {
             ) {
               return 'react-vendor';
             }
-            if (
-              id.includes('node_modules/@radix-ui/react-dialog/') ||
-              id.includes('node_modules/@radix-ui/react-dropdown-menu/') ||
-              id.includes('node_modules/@radix-ui/react-select/') ||
-              id.includes('node_modules/@radix-ui/react-tabs/')
-            ) {
-              return 'ui-vendor';
-            }
+
             if (
               id.includes('node_modules/echarts/') ||
               id.includes('node_modules/echarts-for-react/') ||
@@ -475,9 +470,6 @@ export default defineConfig(({ command, mode }) => {
             }
             if (id.includes('node_modules/@tanstack/react-virtual/')) {
               return 'virtual';
-            }
-            if (id.includes('node_modules/lucide-react/')) {
-              return 'lucide';
             }
           },
           assetFileNames: (assetInfo) => {

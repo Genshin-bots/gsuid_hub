@@ -235,6 +235,9 @@ export default function Login() {
           <img
             src={brandIconUrl}
             alt={brandTitle}
+            width={96}
+            height={96}
+            fetchPriority="high"
             className="mx-auto w-24 h-24 object-contain mb-4"
             key={brandIconUrl}
           />

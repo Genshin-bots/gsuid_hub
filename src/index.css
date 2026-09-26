@@ -1,23 +1,7 @@
 /*
- * 字体：MiSans VF（字重轴 150–700）+ Twemoji Mozilla（彩色 emoji）。
- * 源码里的 url 用 /__console_font__/，避免 Vite 把仓库 fonts/ 打进 dist。
- *   · pnpm dev 由 Vite 从仓库 fonts/ 提供（文件从 gsuid_core/utils/fonts 复制）
- *   · pnpm build 把样式表里的地址改写成 ../../../utils/fonts/…
- *     产物在 webconsole/dist/assets/*.css 时，这个相对路径请求 /utils/fonts/…
+ * MiSans VF：index.html 引入 public/misans-vf 的 WOFF2 unicode-range 切片，不走后端 TTF。
+ * Twemoji：fonts.css，首次绘制后再加载。
  */
-@font-face {
-  font-family: 'MiSans VF';
-  src: url('/__console_font__/MiSansVF.ttf') format('truetype');
-  font-weight: 150 700;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Twemoji Mozilla';
-  src: url('/__console_font__/TwemojiMozilla-colr.woff2') format('woff2');
-  font-display: swap;
-}
 
 @tailwind base;
 @tailwind components;
