@@ -46,5 +46,6 @@
     "ambiguous": "歧义",
     "failed": "加载实体索引失败",
     "yes": "是"
-  }
+  },
+  "personaScope": "在人格中的可用性"
 }

@@ -193,9 +193,9 @@ import { HelpCircle } from 'lucide-react';
 <Input className="h-9" … />
 ```
 
-### AIConfig：优先 `LabelWithHelp`（支持 Markdown）
+### 字段标签优先 `LabelWithHelp`（支持 Markdown）
 
-位置：`src/pages/AIConfig/shared/LabelWithHelp.tsx`（与 `HeadingWithHelp` 对称，用于子表单字段）。
+位置：`src/components/ui/label-with-help.tsx`（AIConfig 侧从 `pages/AIConfig/shared` 桶再导出，用法不变）。
 
 - `description` 为 **string** → 轻量 Markdown（`**加粗**`、段落、列表；heading 压成加粗段落）；
 - 为 ReactNode → 原样展示；
@@ -213,7 +213,7 @@ import { LabelWithHelp } from '../shared';
 />
 ```
 
-**不要**在 AIConfig section 里再手搓一套 Label+HelpCircle，除非该字段不在 AIConfig 模块。
+**不要**再手搓一套 Label+HelpCircle；长说明一律走 i18n Markdown 字符串，勿塞超长纯文本进 JSX。
 
 ## 5.7 Switch 组件 UX 规范
 

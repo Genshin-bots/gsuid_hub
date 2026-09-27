@@ -2,20 +2,15 @@ import type { ReactNode } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { HelpCircle } from 'lucide-react';
 import { Label } from '@/components/ui/label';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 /**
  * 复用组件：带「?」帮助图标的字段标签。
  *
- * 与 `HeadingWithHelp` 对称，但适配内嵌的子表单块（如「高级任务 / 低级任务」、
- * 「Qdrant 部署方式」等）。Label 后紧跟一个圆形 `?` 按钮，悬停弹出说明。
+ * Label 右侧紧跟一个圆形 `?` 按钮，悬停弹出说明。字段的补充说明统一走这里，
+ * 不要另起一行正文（省空间、减视觉噪音）。
  *
- * `description` 为 **string** 时按轻量 Markdown 渲染（支持 `**加粗**`、换行段落）；
+ * `description` 为 **string** 时按轻量 Markdown 渲染（支持 `**加粗**`、段落、列表）；
  * 为 ReactNode 时原样展示。
  */
 export interface LabelWithHelpProps {
@@ -35,9 +30,7 @@ function HelpMarkdown({ text }: { text: string }) {
   return (
     <ReactMarkdown
       components={{
-        p: ({ children }) => (
-          <p className="mb-1.5 last:mb-0 leading-relaxed">{children}</p>
-        ),
+        p: ({ children }) => <p className="mb-1.5 last:mb-0 leading-relaxed">{children}</p>,
         strong: ({ children }) => (
           <strong className="font-semibold text-foreground">{children}</strong>
         ),
@@ -49,15 +42,9 @@ function HelpMarkdown({ text }: { text: string }) {
         ),
         li: ({ children }) => <li className="leading-relaxed">{children}</li>,
         // 避免 tooltip 里出现大标题，把 heading 压成加粗段落
-        h1: ({ children }) => (
-          <p className="mb-1.5 font-semibold last:mb-0">{children}</p>
-        ),
-        h2: ({ children }) => (
-          <p className="mb-1.5 font-semibold last:mb-0">{children}</p>
-        ),
-        h3: ({ children }) => (
-          <p className="mb-1.5 font-semibold last:mb-0">{children}</p>
-        ),
+        h1: ({ children }) => <p className="mb-1.5 font-semibold last:mb-0">{children}</p>,
+        h2: ({ children }) => <p className="mb-1.5 font-semibold last:mb-0">{children}</p>,
+        h3: ({ children }) => <p className="mb-1.5 font-semibold last:mb-0">{children}</p>,
       }}
     >
       {text}

@@ -9,8 +9,8 @@
 export { HeadingWithHelp } from './HeadingWithHelp';
 export type { HeadingWithHelpProps } from './HeadingWithHelp';
 
-export { LabelWithHelp } from './LabelWithHelp';
-export type { LabelWithHelpProps } from './LabelWithHelp';
+export { LabelWithHelp } from '@/components/ui/label-with-help';
+export type { LabelWithHelpProps } from '@/components/ui/label-with-help';
 
 export { ToggleRow } from './ToggleRow';
 export type { ToggleRowProps } from './ToggleRow';

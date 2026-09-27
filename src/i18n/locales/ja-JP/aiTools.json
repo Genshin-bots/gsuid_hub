@@ -46,5 +46,6 @@
     "ambiguous": "曖昧",
     "failed": "索引の読込に失敗",
     "yes": "はい"
-  }
+  },
+  "personaScope": "ペルソナごとの利用可否"
 }

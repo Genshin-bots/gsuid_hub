@@ -145,21 +145,34 @@ export const TagsInput: React.FC<TagsInputProps> = ({
   };
 
   return (
-    <div ref={containerRef} className="border rounded-md bg-background/30 backdrop-blur-sm h-10 w-full overflow-hidden">
+    <div
+      ref={containerRef}
+      className={cn(
+        'border rounded-md bg-background/30 backdrop-blur-sm h-10 w-full overflow-hidden',
+        // 冻结态（disabled）走仓库既有的虚线语言：虚线框 + 灰底。变灰一律用 opacity，
+        // 本主题的 --muted-foreground 与 --foreground 同色，改文字色等于没改
+        disabled && 'border-dashed bg-muted/30',
+      )}
+    >
       <div className="flex items-center gap-2 px-3 h-full overflow-hidden">
         {/* 已添加的标签列表 - 固定宽度，超出显示 +N */}
         <div className="flex items-center gap-2 overflow-hidden flex-shrink-0">
           {visibleTags.map((item, index) => (
             <div
               key={index}
-              className="flex items-center rounded-full border border-transparent bg-secondary/30 text-secondary-foreground hover:bg-secondary/50 backdrop-blur-sm gap-1 h-6 text-xs px-2.5 py-0.5 font-semibold transition-colors shrink-0"
+              className={cn(
+                'flex items-center rounded-full border text-secondary-foreground backdrop-blur-sm gap-1 h-6 text-xs px-2.5 py-0.5 font-semibold transition-colors shrink-0',
+                disabled
+                  ? 'bg-muted/40 border-dashed opacity-60'
+                  : 'border-transparent bg-secondary/30 hover:bg-secondary/50',
+              )}
             >
               <span className="truncate max-w-[80px]">
                 {truncateToWidth(item, 10)}
               </span>
               <button
                 onClick={() => handleRemoveTag(index)}
-                className="hover:text-destructive shrink-0 flex-shrink-0"
+                className="hover:text-destructive shrink-0 disabled:pointer-events-none disabled:opacity-40"
                 disabled={disabled}
                 title="删除"
               >
@@ -168,7 +181,14 @@ export const TagsInput: React.FC<TagsInputProps> = ({
             </div>
           ))}
           {hiddenCount > 0 && (
-            <div className="flex items-center rounded-full border border-transparent bg-primary/20 text-primary gap-1 h-6 text-xs px-2.5 py-0.5 font-semibold shrink-0">
+            <div
+              className={cn(
+                'flex items-center rounded-full border text-secondary-foreground gap-1 h-6 text-xs px-2.5 py-0.5 font-semibold shrink-0',
+                disabled
+                  ? 'border-dashed border-border/60 bg-muted/40 opacity-60'
+                  : 'border-transparent bg-primary/20 text-primary',
+              )}
+            >
               +{hiddenCount}
             </div>
           )}
@@ -182,7 +202,12 @@ export const TagsInput: React.FC<TagsInputProps> = ({
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="h-6 px-2 text-xs bg-primary/20 text-primary hover:bg-primary/30"
+                className={cn(
+                  'h-6 px-2 text-xs',
+                  disabled
+                    ? 'bg-muted/40 text-secondary-foreground hover:bg-muted/40'
+                    : 'bg-primary/20 text-primary hover:bg-primary/30',
+                )}
                 disabled={disabled}
               >
                 <Plus className="w-3 h-3 mr-1" />

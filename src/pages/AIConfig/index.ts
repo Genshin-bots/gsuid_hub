@@ -19,8 +19,8 @@ export { SidebarItem } from './shared/SidebarItem';
 export type { SidebarItemProps } from './shared/SidebarItem';
 export { HeadingWithHelp } from './shared/HeadingWithHelp';
 export type { HeadingWithHelpProps } from './shared/HeadingWithHelp';
-export { LabelWithHelp } from './shared/LabelWithHelp';
-export type { LabelWithHelpProps } from './shared/LabelWithHelp';
+export { LabelWithHelp } from './shared';
+export type { LabelWithHelpProps } from './shared';
 export { renderRichText } from './shared/renderRichText';
 
 // sections

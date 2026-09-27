@@ -494,9 +494,9 @@ import { PluginIcon } from '@/components/ui/plugin-icon';
 - **OpenAI 例外**：官方 path 硬编码白标 → 渲染强制 `path` 走 `currentColor`，颜色继承父级文字（Badge / 按钮里与文案同色，禁止再写死 `text-black`）。
 - 网络搜索/抓取 section 的 Jina/Tavily/Exa/MCP 图标在 section 内直接 `import { JinaAi, Tavily, … } from '@thesvg/react'`，**不**走 ModelBrandIcon（那是模型配置专用）。
 
-## 6.9 LabelWithHelp —— AIConfig 字段标签 + Markdown 帮助
+## 6.9 LabelWithHelp —— 字段标签 + Markdown 帮助
 
-位置：`src/pages/AIConfig/shared/LabelWithHelp.tsx`。契约见 [§05 §5.6](./05-components-and-form-controls.md)。  
+位置：`src/components/ui/label-with-help.tsx`。契约见 [§05 §5.6](./05-components-and-form-controls.md)。  
 长说明（多源策略、主备语义）用 **i18n Markdown 字符串**，勿塞超长纯文本进 JSX。
 
 ## 6.10 CognitionAttachments —— 节点挂文列表
@@ -506,3 +506,15 @@ import { PluginIcon } from '@/components/ui/plugin-icon';
 - 按 `slot` 分组；`writable` 与 `source` 用 Badge 分开（插件只读 / Agent 可写）。
 - 句柄跳转走 `attachmentHref`（`src/lib/cognition.ts`），不要在页面里再解析 `kb_` / `to_`。
 - 产品语义见 [§12](./12-memory-graph-and-cognition.md)。
+
+## 6.11 CheckListField —— 多选清单 + 按下拉浮层
+
+位置：`src/components/config/CheckListField.tsx`。几百项的工具 / 代理清单统一入口（人格工具范围、能力代理白名单）。**禁止**把几百个 Checkbox 直接铺在表单里。
+
+- 三种 `mode`：`include`（勾=选中）/ `exclude`（勾=排除）/ `add`（默认空、只挑几个）。**注意 add 模式的行内芯片行已删除**，已选内容改由 trigger 内 badge 承担；`include` 模式下 badge 数不显示（`count: 0` 的三段文案）。
+- 收起态用 Badge 流展示**全部已选项**；宽度不足时折成 `+N`。实测逻辑（隐藏 gauge + `ResizeObserver`）见组件内注释，`+N` 徽标宽度由 gauge 末尾的 `+{总数}` 模板量取来避免震荡。
+- 长清单必须分页 + `searchText` 预拼（见 §10 P-33 的浮层滚动坑）。
+- **分批渲染用容器 `onScroll`，不要用 IntersectionObserver**：底部「正在加载更多…（shown/total）」是纯客户端渐进渲染，**不产生任何请求**——数据早已整份在内存里，别误判成后端缺分页接口。浮层走 Radix `Portal` 晚一 tick 才进 DOM，effect 里拿 `scrollRef` 建 observer 永远建不起来（§10 P-35）。
+- `summary` 渲染在收起态触发器**下方**，不要挪回标题与触发器之间：并排栅格里（能力档位 | 启用工具）多夹一行会把同行控件挤低。PopoverContent 走 portal 不占布局，收起/展开它都在原位。
+- 表单控件高度统一 `h-10`（Button / TagsInput / Input 默认即 h-10；**仓库 `SelectTrigger` 默认 `h-7`，并排时必须显式加 `h-10`**，否则与同行控件四档高度参差）。浮层内部搜索 / 筛选行用组件内常量 `CONTROL_H = h-9`。
+- 说明文字走 `help` prop（`LabelWithHelp`），不要在正文里堆段落。

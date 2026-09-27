@@ -31,15 +31,19 @@ import { Button } from '@/components/ui/button';
 import {
   aiToolsApi,
   getApiErrorMessage,
+  personaApi,
   type AITool,
   type AIToolAssemblePreviewResponse,
   type AIEntityIndexResponse,
+  type PersonaConfig,
+  type PersonaListItem,
 } from '@/lib/api';
 import {
   countToolDiagnostics,
   diagnoseTool,
   filterToolsByDiagnostic,
 } from '@/lib/featureUtils';
+import { PersonaToolScopePanel } from '@/components/persona/PersonaToolScopePanel';
 import { toast } from 'sonner';
 import {
   Dialog,
@@ -378,7 +382,6 @@ export default function AIToolsPage() {
     setSelectedTool(tool);
     setDialogOpen(true);
   };
-
   return (
     <PinnedPage
       header={
@@ -853,6 +856,17 @@ export default function AIToolsPage() {
             <pre className="whitespace-pre-wrap text-sm font-mono bg-muted/50 p-4 rounded-md overflow-x-auto">
               {selectedTool?.fullDescription}
             </pre>
+
+            {selectedTool && (
+              <>
+                <div className="pt-2 text-sm font-semibold">{t('aiTools.personaScope')}</div>
+                <PersonaToolScopePanel
+                  plugin={selectedTool.plugin || 'core'}
+                  toolName={selectedTool.title}
+                  t={t}
+                />
+              </>
+            )}
           </div>
         </DialogContent>
       </Dialog>

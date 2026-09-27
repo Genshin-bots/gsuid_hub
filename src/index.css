@@ -392,11 +392,11 @@ All colors MUST be HSL.
   -webkit-backdrop-filter: none;
 }
 
-/* Glass effect for badge and tag elements - only apply in glassmorphism mode */
+/* Glass effect for badge and tag elements - only apply in glassmorphism mode
+ * 只留半透明底色，不再给每个徽标挂 backdrop-filter：这种元素在弹层里动辄几十上百个，
+ * 每个都要独立采样+模糊一次，是「叠很多层毛玻璃」卡顿的主要来源。 */
 [data-style="glassmorphism"] [class*="bg-secondary"] {
   background: hsl(var(--secondary) / 0.3) !important;
-  backdrop-filter: blur(8px) !important;
-  -webkit-backdrop-filter: blur(8px) !important;
 }
 
 [data-style="solid"] [class*="bg-secondary"] {
@@ -405,11 +405,9 @@ All colors MUST be HSL.
   -webkit-backdrop-filter: none !important;
 }
 
-/* Glass effect for add button in tag inputs */
+/* Tint for the add button in tag inputs（同 bg-secondary：只上色，不挂 blur） */
 [data-style="glassmorphism"] button.rounded-full {
   background: hsl(var(--accent) / 0.3) !important;
-  backdrop-filter: blur(8px) !important;
-  -webkit-backdrop-filter: blur(8px) !important;
 }
 
 .glass-sidebar {
@@ -742,7 +740,17 @@ main:has(.page-fill) .layout-page-inner {
   -webkit-backdrop-filter: blur(var(--blur-intensity, 12px)) !important;
   background: hsl(var(--popover) / 0.7) !important;
   border: 1px solid hsl(var(--border) / 0.5) !important;
-  will-change: backdrop-filter;
+}
+
+/*
+ * glass-card 的毛玻璃已经画在 ::before 上。弹层（Dialog/Sheet）若同时带 glass-card，
+ * 宿主会被上面的 [role="dialog"] 再糊一层——同一区域两次 blur，且弹层里往往还嵌着
+ * 输入框/浮层的 blur，滚动时层层重采样，掉帧非常明显。这里只保留 ::before 那一层。
+ */
+[data-style="glassmorphism"] .glass-card[role="dialog"],
+[data-style="glassmorphism"] .glass-card[role="alertdialog"] {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
 /* Dark mode glass dialog/popover */
@@ -764,8 +772,6 @@ main:has(.page-fill) .layout-page-inner {
 [data-style="glassmorphism"] .glass-terminal {
   backdrop-filter: blur(var(--blur-intensity, 12px));
   -webkit-backdrop-filter: blur(var(--blur-intensity, 12px));
-  will-change: backdrop-filter;
-  transform: translateZ(0);
 }
 
 /* Icon color variations based on data-icon-color attribute */
@@ -828,8 +834,6 @@ main:has(.page-fill) .layout-page-inner {
   [data-style="glassmorphism"] .ui-select-trigger {
     backdrop-filter: blur(10px) !important;
     -webkit-backdrop-filter: blur(10px) !important;
-    /* 限制输入框的will-change，避免过多GPU层 */
-    will-change: backdrop-filter;
   }
   
   input:focus,
@@ -893,12 +897,21 @@ main:has(.page-fill) .layout-page-inner {
   background: hsl(var(--background)) !important;
 }
 
+/*
+  冻结态：上面对 [role="combobox"] 的背景/边框是 !important（还带 dark / data-style 变体），
+  组件里的 `data-[disabled]:*` 工具类一律被压制。禁用的下拉只能在这里补一条同优先级规则，
+  放在 solid 段之后，保证 light / dark / solid 三套都压得住。
+  语义：字段本身不消失，只是所属模式没开 → 虚线 + muted 底，读起来是"冻结"而非"出错"。
+*/
+[role="combobox"]:disabled {
+  background: hsl(var(--muted) / 0.5) !important;
+  border: 1px dashed hsl(var(--border) / 0.9) !important;
+}
+
 .glass-input {
   background: hsl(var(--background) / 0.5);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  will-change: backdrop-filter;
-  transform: translateZ(0);
 }
 
 /* Custom scrollbar */

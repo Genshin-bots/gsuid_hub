@@ -462,6 +462,177 @@ useEffect(() => {
 前端 `types.ts` / `protocol.ts` **必须原样对齐**。改成正确拼写会导致按钮权限与撤回/禁言
 控制包全部失效。若后端某天正式改名，再做兼容双读。
 
+### P-33 Popover 内滚列表滚不动：不存在的 CSS 变量 + react-remove-scroll 吞滚轮 ★★
+
+**症状**：人格编辑 Sheet（Radix Dialog）里 `CheckListField`（显式工具白名单 / 可委派能力代理）
+的下拉列表鼠标滚轮无反应，弹窗还会超高顶出视口。两个根因叠加，缺一不可
+（`src/components/config/CheckListField.tsx` 已修）：
+
+1. **`max-height` 引用了不存在的 CSS 变量**。Radix Popper 把真实变量写在 wrapper 上
+   （`--radix-popper-available-height` / `-width`），`--radix-popover-content-available-height`
+   **根本不存在**。`max-h-[min(420px,var(--不存在的变量))]` 会在计算值阶段把整条 `max-height`
+   判为无效 → 列表永不溢出 → 滚轮无处可滚。正确写法（70vh 兜底、5rem 留给搜索行、180px 下限）：
+
+   ```tsx
+   const LIST_MAX_H =
+     'max-h-[min(420px,max(180px,calc(var(--radix-popper-available-height,70vh)_-_5rem)))]';
+   ```
+
+2. **react-remove-scroll 在 document 冒泡期 `preventDefault` 所有 wheel**。Dialog/Sheet 的滚动锁
+   在 **document** 上挂 nonPassive `wheel/touchmove/touchstart` 监听；Popover 经
+   `PopoverPrimitive.Portal`（`src/components/ui/popover.tsx`）挂到 `<body>`，恰在滚动锁
+   哨兵之外，滚轮事件照样冒泡到 document 被杀。注意 React 的 `onWheel` 里 `defaultPrevented`
+   恒为 `false`（React 监听早于 document），在 `onWheel` 里手滚 `scrollTop` 是**死代码**。
+
+**修法**（最小侵入，保留原生 deltaMode / 惯性 / overscroll）：在滚动容器上挂**冒泡期**的
+`stopPropagation`，事件到不了 document，原生滚动照常发生：
+
+```tsx
+<div
+  ref={scrollRef}
+  onWheel={(event) => event.stopPropagation()}
+  className="... overflow-y-auto overscroll-contain ..."
+/>
+```
+
+**不要**用捕获期 `stopPropagation`（`addEventListener('wheel', h, { capture: true })` 或
+React 捕获期合成事件都算）：容器是各滚动行的祖先，捕获期拦下来事件根本到不了 target，
+Chromium 会判定「没有可滚目标」而不产生原生滚动——症状和没修一模一样。同理别在 `onWheel`
+里 `preventDefault()`（会连页面自身滚动一起杀），也别在里面读 `defaultPrevented`（恒为
+`false`）。`src/components/ui/select.tsx` 的 `SelectPrimitive.Viewport` 是同一修法。
+
+任何 portal 到 body、又嵌在 Dialog/Sheet 里的内滚面板都适用；把 `touchmove` 也挂上同一
+监听即可覆盖触屏滚动（本次只按鼠标滚轮诉求修复）。**不要**改用「portal 进 dialog content」：
+Sheet content 带 `will-change: transform`，会成为 fixed 定位包含块，popper 定位直接坏掉。
+
+**取证提示**：Browser 工具的 `scroll` 动作对内嵌面板不可靠（对照实验在普通页面也
+`moved:false`）。改用**点滚动条轨道**（`position` 绝对坐标，避开顶部 thumb）产生真实原生
+滚动，再对比行 `rect` 位移即可取证。
+
+### P-34 嵌套控件用 `group-hover:`，被祖先容器自带的 `group` 抢触发 ★
+
+**症状**：人格卡片（`renderPersonaCard`，卡片根 `className` 自带 `group`）里的「头像/立绘/音频」
+胶囊想各自悬浮换文案，写成 `group-hover:invisible` / `group-hover:visible` 后，鼠标只要进入
+卡片（还没碰到胶囊）三枚就一起变。
+
+**根因**：Tailwind 的 `group-hover:` 编译成 `.group:hover &`，`.group` 匹配**任意层级**的、
+class 恰为 `group` 的祖先。子控件用无别名 `group-hover:` 时，祖先容器（卡片 / 列表项 /
+`SidebarInset` 内任意层）自带的 `group` 会连同触发。
+
+**修法**：子控件自己挂命名 group，变体用同名限定——`.group\/pill` 与 `.group` 是两个不同的
+类名，只跟自身绑定：
+
+```tsx
+<button className="group/pill ...">
+  <span className="group-hover/pill:invisible">{label}</span>
+  <span className="invisible group-hover/pill:visible">{hoverLabel}</span>
+</button>
+```
+
+命名 group 仓库已有先例：`group/hovericon`（`SidebarHoverIcon`）、`group/nav`（`HomePage`）、
+`group/brand`（`AppSidebar`）、`group/spec`（`HomePage`）、`group/sidebar-wrapper` /
+`group/menu-item`（`sidebar.tsx`）。`peer-` 同理，嵌套场景也要命名（`peer/x` +
+`peer-hover/x:`）。
+
+**取证**：类名是否真的生成，用 CLI 出 CSS 后按**转义后**的文本搜——`/` 在 CSS 里是 `\/`，
+直接搜 `group-hover/pill` 会漏（搜 `hovericon` 可做对照）：
+
+```sh
+pnpm exec tailwindcss -c tailwind.config.ts -i src/index.css -o "$TEMP/tw.css"
+Select-String -Path "$TEMP/tw.css" -SimpleMatch 'group-hover/pill'
+```
+
+**另一处提醒**：`renderPersonaCard` 这类「在 map 里被调用的普通函数」不能塞 `useState` 做
+hover 态（红线 1.7——它并非组件，每次渲染都会被调用，hook 顺序必崩）。这类「悬浮换文案 /
+换图标」优先 `group-hover` + `invisible/visible` 双槽位叠放（两段内容同占
+`col-start-1 row-start-1`），顺带让槽位按最宽那段预留宽度，避免 hover 时胶囊宽度抖动。
+
+### P-35 Portal 晚一 tick 挂载：effect 里读 ref 拿到 null，懒加载 observer 永远建不起来 ★★
+
+**症状**：`CheckListField`（显式工具白名单，485 项）的浮层里，滚到底永远停在第一页，
+底部「正在加载更多…（30/485）」一直转。**它看起来像「后端只给了 30 条 / 分页接口没实现」，
+其实一条网络请求都没有**——数据早就整份在内存里，那行字只是本地渐进渲染的提示。
+
+**根因**：懒加载 sentinel 用 `IntersectionObserver({ root: scrollRef.current })`，在
+`useEffect(…, [open, …])` 里 observe。Radix `Portal`（`src/components/ui/popover.tsx` 的
+`PopoverPrimitive.Portal`）**首帧渲染 `null`**，到自己的 `useLayoutEffect` 才把内容
+`createPortal` 到 body。于是「`open` 翻 true」那次 commit 跑本组件的 effect 时，
+浮层 DOM 还没进文档，`scrollRef.current` / `sentinelRef.current` **都是 null** →
+`if (!sentinel || !root) return`；之后 `open` / `rows.length` / `visibleCount` 都不再变，
+**这个 observer 一辈子不会被创建**，而症状和「observer 回调不触发」完全一样。
+
+**修法**：别在 effect 里拿 portal 内的 ref 做初始化，改成绑在 JSX 上的事件：
+
+```tsx
+const handleListScroll = () => {
+  const el = scrollRef.current;
+  if (!el || visibleCount >= rows.length) return;
+  if (el.scrollTop + el.clientHeight >= el.scrollHeight - 120) {
+    setVisibleCount((c) => Math.min(c + PAGE_SIZE, rows.length));
+  }
+};
+// <div ref={scrollRef} onScroll={handleListScroll} className="… overflow-y-auto">
+```
+
+`onScroll` 由 React 直接挂在节点上，节点一存在就生效，**没有这个时序坑**；滚轮 / 拖滚动条 /
+键盘翻页产生的原生 scroll 也都会走到（同一容器上的 `onWheel stopPropagation` 只断传播，
+不影响 scroll 事件）。
+
+**取证**：别信「IO 好像没回调」的直觉——先在同一环境挂一个**对照组 IO**（同样的 root 与
+`rootMargin`）观察 sentinel。实测对照 IO 正常回调（`isIntersecting=true`）而组件里的那个
+一次都没建起来，才坐实是初始化时序而非浏览器/root 参数问题。要看组件 effect 到底读到什么，
+临时 `console.log` 成 **JSON 字符串**（对象在 DevTools 里只显示 `Object`）：
+
+```
+[cl] io-effect {"open":true,"rowsLen":528,"visibleCount":30,"hasSentinel":false,"hasRoot":false}
+```
+
+**推广**：任何「浮层打开后要拿内部 ref 做一次性初始化」的逻辑（observer、measure、
+自动聚焦、ResizeObserver）都算这条坑；确实必须在 effect 里做时，加一个「节点挂载后置位」的
+state 触发第二次执行，别指望第一次就拿到 ref。
+
+### P-36 「变灰」不能靠 `text-muted-foreground`，冻结态也压不动 Select 的边框 ★★
+
+**症状**：字段在所属模式关闭后要做成「冻结置灰」，改完发现两点——① 文字几乎没变灰；
+② Select 触发器的虚线边框 / 灰底怎么加都不生效。看起来像 Tailwind 没生成类，其实不是。
+
+**根因（两条，都是主题层的事）**：
+
+1. **本主题的 `--muted-foreground` 与 `--foreground` 同色**：`:root` 里两者都是 `240 5% 10%`
+   （近黑），`.dark` 里 `--muted-foreground: 0 0% 5%` 也比背景深。`text-muted-foreground`
+   在这里**不是"灰"**，它就是正文色。要变灰只能用 `opacity`。
+2. **`index.css` 给输入类控件的背景/边框下了 `!important`**（`[role="combobox"]` / `input` /
+   `.ui-select-trigger` 三条规则，还各带 `.dark`、`[data-style="solid"]` 变体）。工具类里的
+   `bg-muted/30`、`data-[disabled]:border-dashed` 一律被压制，**类生成了也白搭**。
+
+**修法**：
+
+- 变灰一律用 `opacity-40/50/60`（标签、图标、chip 都一样），别用文字色
+- 冻结态统一语言：**虚线边框 + muted 底 + opacity**（仓库既有约定，`CheckListField` 的
+  exclude 触发器就是虚线）
+- 边框/背景被 `!important` 锁死的控件（Select 触发器、`input`）只能去 `index.css` 补规则，
+  放在 `[data-style="solid"]` 段**之后**（否则被同优先级的 dark / solid 段盖掉）：
+
+  ```css
+  /* 冻结态：上面对 [role="combobox"] 的背景/边框是 !important，工具类一律压不动 */
+  [role="combobox"]:disabled {
+    background: hsl(var(--muted) / 0.5) !important;
+    border: 1px dashed hsl(var(--border) / 0.9) !important;
+  }
+  ```
+
+**取证**：别靠肉眼猜灰度。把计算样式打进 DOM 再读回来，一次看清「颜色变了没 / opacity 生效没 /
+border-style 变没」：
+
+```tsx
+const cs = (el: Element | null) =>
+  el ? `${getComputedStyle(el).color} / bg ${getComputedStyle(el).backgroundColor}` : 'n/a';
+// 修好后应看到：[frozen] trigger bg rgba(210,210,213,0.5) border=dashed opacity=0.5
+```
+
+**顺带**：`TagInput` / `TagsInput` 这类自绘容器（纯 `div`）不受上面那条 `!important` 影响，
+虚线 + 灰底可以直接用工具类；只有真正的 `input` / `[role=combobox]` 才要动 CSS。
+
 ## B. 性能优化
 
 ### B.1 图片
@@ -525,4 +696,7 @@ useEffect(() => {
 - [ ] 三元 + 字符串拼接整体加括号（P-1）
 - [ ] Live Chat / 长连接：WS handler 用 ref，建连 effect 不依赖业务 state（P-30）；同会话防连发（P-31）
 - [ ] 协议 typo 字段保持兼容（P-32）；详见 [§11](./11-live-chat.md)
+- [ ] portal 到 body 的内滚列表（Popover 等）：`max-height` 用真实变量 `--radix-popper-available-height`，滚轮挂**冒泡期** `stopPropagation`（捕获期会连原生滚动一起杀掉，P-33）
+- [ ] 浮层里的懒加载/懒初始化不靠 effect 读 ref：Radix `Portal` 晚一 tick 挂载，observer 永远建不起来（P-35）
+- [ ] 「变灰/冻结」用 `opacity` + 虚线边框，不用 `text-muted-foreground`；`input` / `[role=combobox]` 的边框背景要去 `index.css` 改（P-36）
 - [ ] `npx tsc --noEmit -p tsconfig.app.json` 不新增报错

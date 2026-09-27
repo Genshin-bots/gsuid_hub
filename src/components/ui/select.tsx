@@ -78,9 +78,15 @@ const SelectContent = React.forwardRef<
       <SelectPrimitive.Viewport
         className={cn(
           "p-1",
-          position === "popper" &&
-            "h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]",
+          // 只对齐宽度；不要再锁高度——锁成 trigger 高度会让浮层塌成一条缝，
+          // 看起来像"改变了排版"而不是浮在上层。
+          position === "popper" && "w-full min-w-[var(--radix-select-trigger-width)]",
         )}
+        // Viewport 才是真正的滚动区（overflow: hidden auto）。Radix Dialog/Sheet 开着时
+        // react-remove-scroll 在 document 上挂了非 passive 的 wheel 监听，Select 内容同样
+        // portal 到 body、不在它的 shards 里，事件冒泡到 document 就被 preventDefault，滚轮
+        // 于是失效。这里冒泡期 stopPropagation 只断传播、不动默认行为。
+        onWheel={(event) => event.stopPropagation()}
       >
         {children}
       </SelectPrimitive.Viewport>

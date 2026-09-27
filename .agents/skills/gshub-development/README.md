@@ -205,7 +205,7 @@
 | **Section** | `AIConfig/sections/WebFetchSection.tsx` | 「网页抓取服务」：主用 Jina/local；同构多源 UI；Jina Key 可选 |
 | **装配** | `AIConfigPage.tsx` | 派生 `websearch_*` / `webfetch_*`；保存时剥离备用含主用并 toast |
 | **组件** | `MultiSelectChipGroup.tsx` | `disabled`：禁新选、已选可取消；`conflict` 样式 |
-| **组件** | `LabelWithHelp.tsx` | string description → Markdown tooltip（多行策略说明） |
+| **组件** | `ui/label-with-help.tsx` | string description → Markdown tooltip（多行策略说明） |
 | **组件** | `model-brand-icon.tsx` | OpenAI path → currentColor + 亮/暗文字色 |
 | **页面** | `BatchPushPage.tsx` | `InputWithDropdown` 机器人账号（列表+手填）→ `push_bot_self_id`；非宏 tag 追加 `\|{bot_self_id}`；**WS bot 只写 push_bot，不写 targets?bot_id** |
 | **API** | `batchPushApi` / targets | 消费 `bot_self_ids`；`push_bot` 空=全部 active；`targets?bot_id=`=平台 id |
@@ -242,6 +242,18 @@
 | **Demo** | `mockServer.ts` | 钟离 / 原神 / 提瓦特枢纽 + plugin/agent 挂文 + `ent:` 镜像 |
 | **i18n** | `aiMemory` / `aiRuntime` / `aiConfig` | 三语言同步 |
 | **规范** | `SKILL.md` + `references/12` | 两层模型、叠层约定、ACL |
+
+## 二点十、人格工具范围编辑器（`/persona-config` 编辑弹窗）
+
+> 与 gsuid_core 后端同轮落地。规范正文见 [§06 §6.11](./references/06-reusable-component-catalog.md)、[§05 §5.6](./references/05-components-and-form-controls.md)。
+
+| 改动类型 | 路径 | 说明 |
+|---|---|---|
+| **组件** | `src/components/persona/PersonaToolScopeEditor.tsx` | **工具能力族已彻底移除**（前端不展示、不可配置）；「能力档位」与「启用工具（按插件）」并为一行（档位窄列 15rem、三枚档位横排无副标题、说明走悬停 tooltip）；清单标题随档位切换（全量→排除插件工具族 / 精简→追加 / 纯聊天→启用 / 自定义混合态回落通用标题），自定义混合态没有主语义 |
+| **组件** | `src/components/config/CheckListField.tsx` | 框架默认常驻工具并入「显式工具白名单」并默认勾选；收起态 badge 展示全部已选 + `+N` 溢出 |
+| **页面** | `PersonaConfigPage` | `tool_packs` 入参 / payload / state 全删；`tool_names` 为空时用 catalog `always_mounted` 兜底；弹窗「启用范围」= 标题独占一行 + `grid-cols-2 sm:grid-cols-3 lg:grid-cols-5` 选项格（图标 + 标题 + 描述）；**卡片**「启用范围」= `grid-cols-5` 等分栅格 + 图标在左文本在右（图标经 `[&_svg]:h-3 [&_svg]:w-3` 压到 12px、`px-1`）——窄卡内容区仅 ~332px，5 枚内联胶囊（px-3 + 16px 图标）必然折成 4+1，等分栅格锁死一行（极端窄卡文案可两行、按钮不换行）；卡片「头像/立绘/音频」胶囊：`has=false` 时把前置资源图标换成 `X`；**悬浮时胶囊自身文案**从资源名切成「添加/替换」（`addResource` / `replaceResource`，插值 `{name}`，三语言 2 个 key），图标与文案各用「两格同叠」的 `grid` 槽位做显隐切换——保证胶囊宽度不跳动，也不依赖原生 `title`（悬浮提示慢且易被忽略）；`title` 仍保留作兜底。**变体必须命名**：`group/pill` + `group-hover/pill:`，卡片根自带无别名 `group`，无别名 `group-hover:` 会被祖先一并触发、鼠标进卡片三枚全变（[§10 P-34](./references/10-pitfalls-and-performance.md)）；等分格内图标+文案整体 `justify-center`；配套把 ja-JP `scopeGlobalGroup`/`scopeGlobalPrivate` 收敛为「グループのみ」/「トークのみ」（对齐 en-US 精长度） |
+| **API** | `api.ts` | catalog 只剩两个选择器；`PersonaConfig` / UpdateRequest 删 `tool_packs` |
+| **后端** | gsuid_core `persona_api.py` / `ai_core/persona/config.py` / `persona_proj.py` | persona 侧恒定挂 `[DYNAMIC_PACK]`；`set_tool_packs` 删除、GSC 项冻结 |
 
 ---
 

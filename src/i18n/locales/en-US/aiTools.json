@@ -46,5 +46,6 @@
     "ambiguous": "Ambiguous",
     "failed": "Failed to load entity index",
     "yes": "Yes"
-  }
+  },
+  "personaScope": "Availability per Persona"
 }
