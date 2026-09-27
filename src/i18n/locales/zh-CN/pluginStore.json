@@ -54,5 +54,8 @@
   "urlProtocolInvalid": "仅支持 http(s) / ssh / git@ 开头的 URL",
   "urlRequired": "请填写仓库 URL",
   "cancel": "取消",
-  "installing": "安装中..."
+  "installing": "安装中...",
+  "statTotal": "全部",
+  "statInstalled": "已安装",
+  "statUpdates": "可更新"
 }

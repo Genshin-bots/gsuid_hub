@@ -81,6 +81,7 @@ pnpm install
 pnpm dev                 # 开发：端口 8080，需本机 gsuid_core（代理 /api /ws → :8765）
 pnpm dev:demo            # 演示：免登录、Mock 数据，无需后端
 pnpm build               # 生产 → dist/，BASE_URL=/app/
+pnpm build:core          # 生产 → 兄弟仓库 gsuid_core/webconsole/dist（git 跟踪这份）
 pnpm build:demo          # 演示静态 → dist-demo/，BASE_URL=/hub/
 pnpm test                # vitest run
 pnpm lint                # eslint

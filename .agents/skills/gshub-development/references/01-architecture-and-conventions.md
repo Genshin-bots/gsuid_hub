@@ -278,3 +278,12 @@ window.location.href = getLoginPath();  // 开发 → /login，生产 → /app/l
 5. 复用已有封装组件拼装页面（见 [§05](./05-components-and-form-controls.md)、[§06](./06-reusable-component-catalog.md)）。
 
 > 完整自查清单见 [§10 已知坑 · 新页面落地清单](./10-pitfalls-and-performance.md)。
+
+## 1.10 生产产物（git 跟踪的 `webconsole/dist`）
+
+Core 挂载的是 `gsuid_core/webconsole/dist`（`!gsuid_core/webconsole/dist` 被 git 跟踪）。
+
+- `pnpm build` → 仓库内 `dist/`
+- `pnpm build:core` → `../gsuid_core/gsuid_core/webconsole/dist`
+- 文件名仍是 `[name]-[hash]`（给 Core 一年 immutable 缓存）。哈希来自文件内容：源码没变则哈希不变，git 不会出现「删旧哈希、加新哈希」的整文件抖动。
+- `version.json` 只写 `version` + `mode`，不含墙钟时间。预压缩 `.gz` 的 gzip 头 mtime 固定为 epoch。

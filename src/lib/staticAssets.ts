@@ -61,7 +61,8 @@ export async function precompressDist(distDir: string): Promise<{ files: number 
       if (data.length < MIN_COMPRESS_BYTES) {
         return;
       }
-      const gz = await gzipAsync(data, { level: 9 });
+      // mtime 固定 epoch，避免每次构建 gzip 头都变、git 跟踪的 .gz 无意义抖动。
+      const gz = await gzipAsync(data, { level: 9, mtime: new Date(0) });
       if (gz.length < data.length) {
         await fs.writeFile(`${file}.gz`, gz);
       }

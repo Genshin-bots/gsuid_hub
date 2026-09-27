@@ -305,6 +305,7 @@ import { PinnedPage } from '@/components/layout/PinnedPage';
 | `pnpm dev` | 开发服务器（端口 `8080`，需后端） |
 | `pnpm dev:demo` | 演示模式开发（端口 `8080`，免登录、无需后端） |
 | `pnpm build` | 生产构建 → `dist/`（基础路径 `/app/`） |
+| `pnpm build:core` | 生产构建直接写入兄弟仓库 `gsuid_core/webconsole/dist` |
 | `pnpm build:dev` | 开发模式构建 |
 | `pnpm build:demo` | 演示模式构建 → `dist-demo/`（基础路径 `/hub/`） |
 | `pnpm start` / `pnpm preview` | 预览生产构建 |
@@ -314,7 +315,7 @@ import { PinnedPage } from '@/components/layout/PinnedPage';
 | `pnpm exec tsc --noEmit -p tsconfig.app.json` | 类型检查 |
 
 开发时 Vite 会把 `/api` 与 `/ws` 代理到 `http://localhost:8765`，因此通常需要先启动 `gsuid_core` 后端。
-构建结束后会生成 `version.json`（版本号、构建时间、构建模式）。
+构建结束后会生成 `version.json`（版本号、构建模式）。产物文件名仍带内容哈希；同一份源码连续构建应得到相同哈希，未改动的 chunk 不会在 git 里整文件删增。写入 Core 用 `pnpm build:core`（也可用环境变量 `GSHUB_OUT_DIR`）。
 
 > 更完整的变更说明见 [`docs/CHANGELOG-2026-07.md`](docs/CHANGELOG-2026-07.md)；  
 > 2026-08 组件更新（TabButtonGroup 下拉、PluginIcon、能力代理筛选）见  

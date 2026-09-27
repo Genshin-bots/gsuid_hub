@@ -54,5 +54,8 @@
   "urlProtocolInvalid": "Only http(s) / ssh / git@ URLs are supported",
   "urlRequired": "Please provide a repository URL",
   "cancel": "Cancel",
-  "installing": "Installing..."
+  "installing": "Installing...",
+  "statTotal": "Total",
+  "statInstalled": "Installed",
+  "statUpdates": "Updates"
 }

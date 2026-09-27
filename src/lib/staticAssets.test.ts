@@ -45,5 +45,7 @@ describe('precompressDist', () => {
     expect(br.length).toBeLessThan(Buffer.byteLength(payload));
     expect(gunzipSync(gz).toString('utf8')).toBe(payload);
     expect(brotliDecompressSync(br).toString('utf8')).toBe(payload);
+    // gzip header mtime (bytes 4–7, little-endian) must stay epoch for git-tracked dist.
+    expect(gz.subarray(4, 8).equals(Buffer.alloc(4))).toBe(true);
   });
 });

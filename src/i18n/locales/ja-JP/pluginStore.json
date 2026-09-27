@@ -54,5 +54,8 @@
   "urlProtocolInvalid": "http(s) / ssh / git@ で始まる URL のみ対応しています",
   "urlRequired": "リポジトリ URL を入力してください",
   "cancel": "キャンセル",
-  "installing": "インストール中..."
+  "installing": "インストール中...",
+  "statTotal": "合計",
+  "statInstalled": "導入済",
+  "statUpdates": "更新可"
 }
