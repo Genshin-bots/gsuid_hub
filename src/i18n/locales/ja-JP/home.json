@@ -48,7 +48,8 @@
   "wsBotId": "WS Bot ID",
   "connected": "接続済み",
   "disconnected": "切断済み",
-  "noActiveBots": "現在 Bot インスタンスなし",
+  "noActiveBots": "接続中の Bot インスタンスはありません。コア設定で Bot を有効化するか、WebSocket 接続を確認してください。",
+  "noDependencies": "依存情報の表示なし",
   "loadBotsFailed": "Bot 情報の読込に失敗",
   "retry": "再試行"
 }

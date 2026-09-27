@@ -29,5 +29,10 @@
   "willUse": "将使用:",
   "settingsApiHost": "设置 API Host",
   "registerCodeTooltip": "首次进入需要注册，注册码在 gsuid_core/data/config.json 中可以找到，字段为 REGISTER_CODE，每个人都不同",
-  "registerCodeHelp": "查看帮助文档"
+  "registerCodeHelp": "查看帮助文档",
+  "offlineTitle": "无法连接后端",
+  "offlineDescription": "未能连接到 gsuid_core 服务。请确认后端已启动，且下方地址（端口通常为 8765）正确。",
+  "offlineRetry": "重试连接",
+  "offlineChecking": "检测中...",
+  "offlineChangeHost": "修改地址"
 }

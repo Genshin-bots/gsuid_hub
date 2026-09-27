@@ -9,6 +9,7 @@ import {
   probeAuthEncryption,
   type EncryptedPayload,
 } from './authCrypto';
+import { BackendUnreachableError, isUnreachableResponse } from './backendReachability';
 // Demo 模式：<img src> 不走 fetch（mockServer 拦不到），故图片 URL 构造函数在 VITE_DEMO 下
 // 直接返回内置 SVG 占位图，避免一墙裂图。普通构建下分支为 dead code，import 会被 tree-shake。
 import { demoPlaceholderImage, demoPluginIcon, demoMemeImageUrl } from './demoMock';
@@ -439,6 +440,50 @@ class ApiClient {
     this.baseUrl = url;
   }
 
+  /**
+   * 解析 `{status, msg, data}` 封套，并把「拿不到有效封套」转成 BackendUnreachableError。
+   *
+   * 代理失败（dev 下 Vite 转发到没启动的 Core）时 Vite 返回 500 + 空 body，
+   * 这里会走 `response.json()` 抛 SyntaxError 的老路；转成 BackendUnreachableError
+   * 后，调用方才能把它和后端自己的业务错误区分开。
+   */
+  private async parseEnvelope<T>(response: Response): Promise<ApiResponse<T>> {
+    let text: string;
+    try {
+      text = await response.text();
+    } catch {
+      throw new BackendUnreachableError(`Backend unreachable (unreadable body, HTTP ${response.status})`);
+    }
+
+    if (!text.trim()) {
+      if (!response.ok && isUnreachableResponse({
+        status: response.status,
+        bodyIsJson: false,
+        hasBody: false,
+      })) {
+        throw new BackendUnreachableError(`Backend unreachable (HTTP ${response.status})`);
+      }
+      throw new BackendUnreachableError(`Backend returned an empty body (HTTP ${response.status})`);
+    }
+
+    let data: ApiResponse<T>;
+    try {
+      data = JSON.parse(text) as ApiResponse<T>;
+    } catch {
+      if (!response.ok && !isUnreachableResponse({
+        status: response.status,
+        bodyIsJson: false,
+        hasBody: true,
+      })) {
+        // 非 JSON 的错误响应：把原文回显（与 request() 行为一致）
+        throw new Error(text);
+      }
+      throw new BackendUnreachableError(`Backend unreachable (invalid JSON, HTTP ${response.status})`);
+    }
+
+    return data;
+  }
+
   private async request<T>(
     endpoint: string,
     options: RequestInit = {}
@@ -474,24 +519,39 @@ class ApiClient {
     if (!response.ok) {
       // Try to parse error message from response（封套 msg 与 FastAPI detail 都要回显）
       let errorMessage = `HTTP Error: ${response.status}`;
+      let bodyIsJson = false;
+      let hasBody = false;
       try {
         const text = await response.text();
+        hasBody = text.trim().length > 0;
         try {
           const errorData = JSON.parse(text);
+          bodyIsJson = true;
           errorMessage = getApiErrorMessage(errorData, errorMessage);
         } catch {
           // Not JSON, use raw text if available
-          if (text) {
+          if (hasBody) {
             errorMessage = text;
           }
         }
       } catch {
         // Ignore parsing errors
       }
+      // dev 经 Vite 代理：Core 没启动时 Vite 造一个 500 + 空 body，fetch 不会 reject。
+      // 必须在解析层就转成「不可达」，否则登录页会以为后端活着而显示正常表单。
+      if (isUnreachableResponse({ status: response.status, bodyIsJson, hasBody })) {
+        throw new BackendUnreachableError(`Backend unreachable (HTTP ${response.status})`);
+      }
       throw new Error(errorMessage);
     }
 
-    const data: ApiResponse<T> = await response.json();
+    let data: ApiResponse<T>;
+    try {
+      data = await response.json();
+    } catch {
+      // 2xx 但 body 不是 JSON：代理异常或后端返回了非 JSON 内容
+      throw new BackendUnreachableError(`Backend unreachable (invalid JSON, HTTP ${response.status})`);
+    }
 
     if (data.status !== 0) {
       throw new Error(getApiErrorMessage(data, 'API request failed'));
@@ -643,8 +703,7 @@ class ApiClient {
       handleUnauthorized();
     }
 
-    const data: ApiResponse<T> = await response.json();
-    return data;
+    return this.parseEnvelope<T>(response);
   }
 
   // POST request returning the raw {status, msg, data} envelope without
@@ -674,8 +733,7 @@ class ApiClient {
       handleUnauthorized();
     }
 
-    const data: ApiResponse<T> = await response.json();
-    return data;
+    return this.parseEnvelope<T>(response);
   }
 
   // Download file as Blob with auth header

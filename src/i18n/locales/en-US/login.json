@@ -29,5 +29,10 @@
   "willUse": "Will use:",
   "settingsApiHost": "Settings API Host",
   "registerCodeTooltip": "Registration is required on first access. You can find the registration code in gsuid_core/data/config.json, in the REGISTER_CODE field. It is unique for each user.",
-  "registerCodeHelp": "View help documentation"
+  "registerCodeHelp": "View help documentation",
+  "offlineTitle": "Cannot reach the backend",
+  "offlineDescription": "Could not connect to the gsuid_core service. Make sure the backend is running and that the address below (port is usually 8765) is correct.",
+  "offlineRetry": "Retry connection",
+  "offlineChecking": "Checking...",
+  "offlineChangeHost": "Change address"
 }

@@ -48,7 +48,8 @@
   "wsBotId": "WS Bot ID",
   "connected": "已连接",
   "disconnected": "已断开",
-  "noActiveBots": "当前暂无 Bot 实例",
+  "noActiveBots": "当前没有已连接的 Bot 实例。请在核心配置中启用 Bot，或检查 WebSocket 连接。",
+  "noDependencies": "暂无可用依赖信息",
   "loadBotsFailed": "加载 Bot 信息失败",
   "retry": "重试"
 }

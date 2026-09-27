@@ -48,7 +48,8 @@
   "wsBotId": "WS Bot ID",
   "connected": "Connected",
   "disconnected": "Disconnected",
-  "noActiveBots": "No active Bot instances currently",
+  "noActiveBots": "No connected Bot instances. Enable a Bot in the core config, or check the WebSocket connection.",
+  "noDependencies": "No dependency information available",
   "loadBotsFailed": "Failed to load Bot info",
   "retry": "Retry"
 }

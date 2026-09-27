@@ -29,5 +29,10 @@
   "willUse": "使用:",
   "settingsApiHost": "設定 API Host",
   "registerCodeTooltip": "初回アクセス時に登録が必要です。登録コードは gsuid_core/data/config.json の REGISTER_CODE フィールドにあります。ユーザーごとに異なります。",
-  "registerCodeHelp": "ヘルプドキュメントを見る"
+  "registerCodeHelp": "ヘルプドキュメントを見る",
+  "offlineTitle": "バックエンドに接続できません",
+  "offlineDescription": "gsuid_core サービスに接続できませんでした。バックエンドが起動しているか、下のアドレス（ポートは通常 8765）が正しいかを確認してください。",
+  "offlineRetry": "再接続",
+  "offlineChecking": "確認中...",
+  "offlineChangeHost": "アドレスを変更"
 }

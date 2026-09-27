@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -8,14 +8,19 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Loader2, LogIn, Eye, EyeOff, UserPlus, Settings, ChevronDown, HelpCircle } from 'lucide-react';
+import { Loader2, LogIn, Eye, EyeOff, UserPlus, Settings, ChevronDown, HelpCircle, WifiOff, RefreshCw } from 'lucide-react';
 import { LanguageFlag } from '@/components/ui/language-flag';
 import { cn } from '@/lib/utils';
 import { getCustomApiHost, setCustomApiHost, authApi } from '@/lib/api';
+import { isBackendUnreachable } from '@/lib/backendReachability';
+
+/** 后端连通性：探测中 / 可达 / 不可达 */
+type BackendState = 'checking' | 'online' | 'offline';
+
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -30,41 +35,65 @@ export default function Login() {
   // 检查是否已存在管理员账号
   const [hasAdmin, setHasAdmin] = useState(false);
   const [isCheckingAdmin, setIsCheckingAdmin] = useState(true);
-    
+
+  // 后端连通性。与 isCheckingAdmin 分开：后端不可达时无法得知是否已有管理员，
+  // 此时不能把 hasAdmin 当成 false，否则会误显示「去注册」。
+  const [backendState, setBackendState] = useState<BackendState>('checking');
+  // 探测用的时间戳，确保 setCustomApiHost 后能重新探测
+  const [probeNonce, setProbeNonce] = useState(0);
+
   // Custom API Host settings
   const [showSettings, setShowSettings] = useState(false);
   const [customHost, setCustomHost] = useState('');
-    
+
   const { login, register } = useAuth();
   const { style, backgroundImage, blurIntensity } = useTheme();
   const { t, language, setLanguage, availableLanguages } = useLanguage();
   const { iconUrl: brandIconUrl, title: brandTitle } = useBrand();
   const navigate = useNavigate();
 
-  // Load theme config and custom host on mount
+  // 探测后端可达性 + 是否已存在管理员账号
   useEffect(() => {
-    // Theme config is automatically loaded by ThemeProvider
-    // Load saved custom API host
-    setCustomHost(getCustomApiHost());
-    
-    // 检查是否已存在管理员账号
+    let alive = true;
+    setIsCheckingAdmin(true);
+    setBackendState('checking');
+
     const checkAdminExists = async () => {
       try {
         const data = await authApi.checkAdminExists();
-        console.log('checkAdminExists data:', data);
-        // 后端返回 { status: 0, msg: "查询成功", data: { is_admin_exist: true } }
-        // api.get 会自动解析，返回的 data 就是 { is_admin_exist: true }
+        if (!alive) return;
         setHasAdmin(!!data.is_admin_exist);
+        setBackendState('online');
       } catch (error) {
-        console.error('Failed to check admin exists:', error);
-        // 如果请求失败，默认允许显示注册按钮
-        setHasAdmin(false);
+        if (!alive) return;
+        // 网络层失败 = 后端不可达；后端有应答但报错 = 视为可达，只是查不到
+        if (isBackendUnreachable(error)) {
+          setBackendState('offline');
+        } else {
+          console.error('Failed to check admin exists:', error);
+          setBackendState('online');
+          setHasAdmin(false);
+        }
       } finally {
-        setIsCheckingAdmin(false);
+        if (alive) setIsCheckingAdmin(false);
       }
     };
     checkAdminExists();
+
+    return () => {
+      alive = false;
+    };
+  }, [probeNonce]);
+
+  // Load saved custom host on mount
+  useEffect(() => {
+    // Theme config is automatically loaded by ThemeProvider
+    setCustomHost(getCustomApiHost());
   }, []);
+
+  // 后端不可达时自动重试探测：用户在设置里填好地址点「保存」即触发，
+  // 也顺带覆盖「后端稍后才启动」的场景。
+  const retryProbe = useCallback(() => setProbeNonce((n) => n + 1), []);
   
   // Handle saving custom host
   const handleSaveHost = () => {
@@ -75,13 +104,18 @@ export default function Login() {
     }
     setCustomApiHost(host);
     setShowSettings(false);
+    setError('');
+    // 地址变了，必须重新探测连通性与管理员状态
+    retryProbe();
   };
-  
+
   // Handle clearing custom host
   const handleClearHost = () => {
     setCustomApiHost('');
     setCustomHost('');
     setShowSettings(false);
+    setError('');
+    retryProbe();
   };
 
   const isGradient = backgroundImage?.startsWith('linear-gradient');
@@ -112,11 +146,19 @@ export default function Login() {
     if (result.success) {
       navigate('/home');
     } else {
-      setError(result.error || (isRegisterMode ? t('login.registerFailed') : t('login.loginFailed')));
+      // 提交时才发现连不上（例如后端刚好挂了），切到离线态展示连接提示
+      if (result.unreachable) {
+        setBackendState('offline');
+        setError('');
+      } else {
+        setError(result.error || (isRegisterMode ? t('login.registerFailed') : t('login.loginFailed')));
+      }
     }
-    
+
     setIsLoading(false);
   };
+
+  const isOffline = backendState === 'offline';
 
   return (
     <div className={cn(
@@ -251,7 +293,44 @@ export default function Login() {
         
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            {error && (
+            {/* 后端不可达：先讲清原因与修复路径，别让用户对着一个注定失败的表单反复试 */}
+            {isOffline && (
+              <Alert variant="destructive">
+                <WifiOff />
+                <AlertTitle>{t('login.offlineTitle')}</AlertTitle>
+                <AlertDescription>
+                  <p>{t('login.offlineDescription')}</p>
+                  <p className="mt-2 font-mono text-xs opacity-90">
+                    {getCustomApiHost() || window.location.origin}
+                  </p>
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={retryProbe}
+                      disabled={isCheckingAdmin}
+                    >
+                      <RefreshCw
+                        className={cn('mr-1.5 h-3.5 w-3.5', isCheckingAdmin && 'animate-spin')}
+                      />
+                      {isCheckingAdmin ? t('login.offlineChecking') : t('login.offlineRetry')}
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setShowSettings(true)}
+                    >
+                      <Settings className="mr-1.5 h-3.5 w-3.5" />
+                      {t('login.offlineChangeHost')}
+                    </Button>
+                  </div>
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {error && !isOffline && (
               <Alert variant="destructive">
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
@@ -267,6 +346,7 @@ export default function Login() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
+                  disabled={isOffline}
                   className={isGlassmorphism ? "glass-input" : ""}
                 />
               </div>
@@ -281,6 +361,7 @@ export default function Login() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                disabled={isOffline}
                 className={isGlassmorphism ? "glass-input" : ""}
               />
             </div>
@@ -295,6 +376,7 @@ export default function Login() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  disabled={isOffline}
                   className={cn(
                     isGlassmorphism ? "glass-input pr-10" : "pr-10",
                     "w-full"
@@ -323,6 +405,7 @@ export default function Login() {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
+                    disabled={isOffline}
                     className={isGlassmorphism ? "glass-input" : ""}
                   />
                 </div>
@@ -355,6 +438,7 @@ export default function Login() {
                     value={registerCode}
                     onChange={(e) => setRegisterCode(e.target.value)}
                     required
+                    disabled={isOffline}
                     className={isGlassmorphism ? "glass-input" : ""}
                   />
                 </div>
@@ -362,11 +446,16 @@ export default function Login() {
               </>
             )}
             
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button type="submit" className="w-full" disabled={isLoading || isOffline}>
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   {isRegisterMode ? t('login.registering') : t('login.loggingIn')}
+                </>
+              ) : isOffline ? (
+                <>
+                  <WifiOff className="mr-2 h-4 w-4" />
+                  {t('login.offlineRetry')}
                 </>
               ) : (
                 <>
@@ -376,8 +465,8 @@ export default function Login() {
               )}
             </Button>
 
-            {/* Toggle Register/Login - only show if no admin exists */}
-            {!hasAdmin && !isCheckingAdmin && (
+            {/* Toggle Register/Login - 后端可达且确认没有管理员时才提供注册入口 */}
+            {!hasAdmin && !isCheckingAdmin && !isOffline && (
               <Button
                 type="button"
                 variant="ghost"

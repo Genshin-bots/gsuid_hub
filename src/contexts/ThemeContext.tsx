@@ -61,6 +61,24 @@ function readSessionBool(key: string): boolean | null {
   return null;
 }
 
+/**
+ * 读 session 里记住的亮/暗模式。
+ *
+ * 连不上后端时 `getConfig` 失败，整个主题只能回退到本地值。**必须**在这里
+ * 就把 session 的偏好捡回来，否则初值（浅色）会先渲染一帧，等
+ * `loadFromSessionStorage()` 跑完再跳到 session 里的深色，肉眼是一次闪变；
+ * 且深色登录页配 destructive 离线横幅几乎不可读。
+ */
+function readStoredMode(): ThemeMode | null {
+  try {
+    const v = sessionStorage.getItem('theme_mode');
+    if (v === 'light' || v === 'dark') return v;
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
 function readSessionInt(key: string, min: number, max: number): number | null {
   try {
     const raw = sessionStorage.getItem(key);
@@ -297,7 +315,10 @@ const ThemeActionsContext = createContext<ThemeActionsContextType | undefined>(u
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   // 主题状�?
-  const [mode, setModeState] = useState<ThemeMode>('dark');
+  // 亮/暗初值优先取 session 记住的用户选择；没有记录时才用浅色。
+  // 浅色是「拿不到后端配置」时唯一站得住的底色：后端不可达意味着这个页面
+  // 大概率会渲染离线警告，浅底比深底更可读，也比硬编码 dark 更符合直觉。
+  const [mode, setModeState] = useState<ThemeMode>(() => readStoredMode() ?? 'light');
   const [style, setStyleState] = useState<ThemeStyle>('glassmorphism');
   const [color, setColorState] = useState<ThemeColor>('red');
   const [backgroundImage, setBackgroundImageState] = useState<string | null>(null);

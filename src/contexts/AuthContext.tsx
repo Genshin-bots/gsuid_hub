@@ -1,11 +1,23 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback } from 'react';
 import { authApi, User, getAuthToken, setAuthToken } from '@/lib/api';
+import { isBackendUnreachable } from '@/lib/backendReachability';
+
+/**
+ * 认证结果。`unreachable` 与 `error` 分开走：前者表示「压根没连上后端」
+ * （Service not running / 代理失败），需要显式的连接失败 UI；后者是后端应答后
+ * 拒绝的 msg（密码错、注册码错），照常回显即可。
+ */
+export interface AuthResult {
+  success: boolean;
+  error?: string;
+  unreachable?: boolean;
+}
 
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  register: (name: string, email: string, password: string, registerCode?: string, isAdmin?: boolean) => Promise<{ success: boolean; error?: string }>;
+  login: (email: string, password: string) => Promise<AuthResult>;
+  register: (name: string, email: string, password: string, registerCode?: string, isAdmin?: boolean) => Promise<AuthResult>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   isAuthenticated: boolean;
@@ -35,7 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkAuth();
   }, []);
 
-  const login = useCallback(async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+  const login = useCallback(async (email: string, password: string): Promise<AuthResult> => {
     setIsLoading(true);
     
     try {
@@ -54,11 +66,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { success: false, error: '登录失败' };
     } catch (error) {
       setIsLoading(false);
-      return { success: false, error: error instanceof Error ? error.message : '登录失败' };
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '登录失败',
+        unreachable: isBackendUnreachable(error),
+      };
     }
   }, []);
 
-  const register = useCallback(async (name: string, email: string, password: string, registerCode: string = '', isAdmin: boolean = false): Promise<{ success: boolean; error?: string }> => {
+  const register = useCallback(async (name: string, email: string, password: string, registerCode: string = '', isAdmin: boolean = false): Promise<AuthResult> => {
     setIsLoading(true);
     
     try {
@@ -77,7 +93,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { success: false, error: response.msg || '注册失败' };
     } catch (error) {
       setIsLoading(false);
-      return { success: false, error: error instanceof Error ? error.message : '注册失败' };
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '注册失败',
+        unreachable: isBackendUnreachable(error),
+      };
     }
   }, []);
 
