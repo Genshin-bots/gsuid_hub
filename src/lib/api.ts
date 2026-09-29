@@ -425,6 +425,9 @@ export interface ActiveBotsInfo {
   bots: ActiveBotInfo[];
 }
 
+// 通用请求超时：fetch 无内置超时，后端不返回时调用方会永远挂起
+const REQUEST_TIMEOUT_MS = 60_000;
+
 // ===================
 // API Client
 // ===================
@@ -508,8 +511,12 @@ class ApiClient {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
+    // fetch 默认无超时：后端若不返回，调用方会永久挂起（如旧版 dashboard 的轮询接口）
+    const timeoutSignal = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
+
     const response = await fetch(url, {
       ...options,
+      signal: options.signal ?? timeoutSignal,
       headers: {
         ...headers,
         ...options.headers,

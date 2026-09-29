@@ -11,6 +11,7 @@ import {
   getCommandColor,
   hashCommandName,
   latestDateWithMetric,
+  unwrapSettledRows,
   stripExceptionGroupGutters,
   composeLogTimestamp,
   formatLogTimestamp,
@@ -350,5 +351,51 @@ describe('composeLogTimestamp', () => {
     const text = formatLogTimestamp('09-13 00:00:09', '2026-09-13', 'en-US');
     expect(text).toContain('2026');
     expect(text).not.toContain('2001');
+  });
+});
+
+// ── Dashboard 三接口并发降级（issue #282）───────────────────────────
+describe('unwrapSettledRows', () => {
+  it('returns rows when the request fulfilled', () => {
+    const rows = [{ group: 'g1' }];
+    expect(unwrapSettledRows({ status: 'fulfilled', value: rows })).toEqual(rows);
+  });
+
+  it('degrades a rejected request to empty rows and reports the reason', () => {
+    const errors: unknown[] = [];
+    const result = unwrapSettledRows(
+      { status: 'rejected', reason: new Error('db down') },
+      (reason) => errors.push(reason),
+    );
+    expect(result).toEqual([]);
+    expect(errors).toHaveLength(1);
+  });
+
+  it('keeps sibling data when only one of the concurrent requests fails', async () => {
+    const errs: unknown[] = [];
+    const settled = await Promise.allSettled([
+      Promise.resolve([{ command: 'test' }]),
+      Promise.reject(new Error('timeout')),
+      Promise.resolve([{ user: 'u1' }]),
+    ]);
+    const [commands, groups, users] = settled.map((s) =>
+      unwrapSettledRows(s as PromiseSettledResult<Record<string, unknown>[]>, (e) => errs.push(e)),
+    );
+    expect(commands).toEqual([{ command: 'test' }]);
+    expect(groups).toEqual([]);
+    expect(users).toEqual([{ user: 'u1' }]);
+    expect(errs).toHaveLength(1);
+  });
+
+  it('tolerates a fulfilled undefined payload', () => {
+    const result = unwrapSettledRows({
+      status: 'fulfilled',
+      value: undefined as unknown as Record<string, unknown>[],
+    });
+    expect(result).toEqual([]);
+  });
+
+  it('works without an onError callback', () => {
+    expect(unwrapSettledRows({ status: 'rejected', reason: 'x' })).toEqual([]);
   });
 });

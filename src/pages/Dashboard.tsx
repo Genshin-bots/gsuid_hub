@@ -20,6 +20,7 @@ import {
   collectCommandKeysFromTriggerRows,
   getCommandColor,
   latestDateWithMetric,
+  unwrapSettledRows,
 } from '@/lib/featureUtils';
 import { MetricDayCalendar } from '@/components/ui/metric-day-calendar';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -53,8 +54,8 @@ export default function Dashboard() {
   }>>([]);
   // Daily data states
   const [dailyCommandUsage, setDailyCommandUsage] = useState<DailyCommandData[]>([]);
-  const [dailyGroupTriggers, setDailyGroupTriggers] = useState<Array<Record<string, any>>>([]);
-  const [dailyPersonalTriggers, setDailyPersonalTriggers] = useState<Array<Record<string, any>>>([]);
+  const [dailyGroupTriggers, setDailyGroupTriggers] = useState<Array<Record<string, unknown>>>([]);
+  const [dailyPersonalTriggers, setDailyPersonalTriggers] = useState<Array<Record<string, unknown>>>([]);
   const [isLoadingDaily, setIsLoadingDaily] = useState(false);
  
   // Dynamic command list from API
@@ -163,39 +164,37 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchDailyData = async () => {
       setIsLoadingDaily(true);
-      try {
-        const [commands, groupTriggers, personalTriggers] = await Promise.all([
-          dashboardApi.getDailyCommands(dateStr, selectedBot),
-          dashboardApi.getDailyGroupTriggers(dateStr, selectedBot),
-          dashboardApi.getDailyPersonalTriggers(dateStr, selectedBot),
-        ]);
+      // 三个接口各自降级：任一失败只影响自己的图，不连带清空其它已成功的数据
+      const [commands, groupTriggers, personalTriggers] = await Promise.allSettled([
+        dashboardApi.getDailyCommands(dateStr, selectedBot),
+        dashboardApi.getDailyGroupTriggers(dateStr, selectedBot),
+        dashboardApi.getDailyPersonalTriggers(dateStr, selectedBot),
+      ]);
 
-        setDailyCommandUsage(commands);
-        setDailyGroupTriggers(groupTriggers);
-        setDailyPersonalTriggers(personalTriggers);
+      const onError = (reason: unknown) => console.error('Failed to fetch daily data:', reason);
+      const commandRows = unwrapSettledRows<DailyCommandData>(commands, onError);
+      const groupRows = unwrapSettledRows<Record<string, unknown>>(groupTriggers, onError);
+      const personalRows = unwrapSettledRows<Record<string, unknown>>(personalTriggers, onError);
 
-        const cmds = collectCommandKeysFromTriggerRows(
-          [...groupTriggers, ...personalTriggers] as Array<Record<string, unknown>>,
-          ['group', 'user'],
-        );
-        for (const row of commands) {
-          if (row?.command && !cmds.includes(row.command)) cmds.push(row.command);
-        }
-        setCommandTypeList(cmds);
-        const visibility: Record<string, boolean> = {};
-        cmds.forEach((cmd) => {
-          visibility[cmd] = true;
-        });
-        setGroupTriggerVisibility(visibility);
-        setPersonalTriggerVisibility(visibility);
-      } catch (error) {
-        console.error('Failed to fetch daily data:', error);
-        setDailyCommandUsage([]);
-        setDailyGroupTriggers([]);
-        setDailyPersonalTriggers([]);
-      } finally {
-        setIsLoadingDaily(false);
+      setDailyCommandUsage(commandRows);
+      setDailyGroupTriggers(groupRows);
+      setDailyPersonalTriggers(personalRows);
+
+      const cmds = collectCommandKeysFromTriggerRows(
+        [...groupRows, ...personalRows],
+        ['group', 'user'],
+      );
+      for (const row of commandRows) {
+        if (row?.command && !cmds.includes(row.command)) cmds.push(row.command);
       }
+      setCommandTypeList(cmds);
+      const visibility: Record<string, boolean> = {};
+      cmds.forEach((cmd) => {
+        visibility[cmd] = true;
+      });
+      setGroupTriggerVisibility(visibility);
+      setPersonalTriggerVisibility(visibility);
+      setIsLoadingDaily(false);
     };
     void fetchDailyData();
   }, [selectedBot, selectedDate, dateStr]);
@@ -442,7 +441,7 @@ export default function Dashboard() {
     xAxis: { type: 'value' },
     yAxis: {
       type: 'category',
-      data: dailyGroupTriggers.map(d => d.group),
+      data: dailyGroupTriggers.map(d => String(d.group ?? '')),
       axisLabel: { fontSize: 10 },
     },
     tooltip: {
@@ -473,7 +472,7 @@ export default function Dashboard() {
     xAxis: { type: 'value' },
     yAxis: {
       type: 'category',
-      data: dailyPersonalTriggers.map(d => d.user),
+      data: dailyPersonalTriggers.map(d => String(d.user ?? '')),
       axisLabel: { fontSize: 10 },
     },
     tooltip: {

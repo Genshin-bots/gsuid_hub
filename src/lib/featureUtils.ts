@@ -589,6 +589,23 @@ export function collectCommandKeysFromTriggerRows(
 }
 
 /**
+ * 把 allSettled 结果降级为数组：失败的分支给空数组，成功分支原样返回。
+ *
+ * Dashboard 三个每日统计接口并发请求，任一失败不应连带清空其它已成功的图
+ * （Promise.all 会一起 reject）。rejected 的原因走 onError 单独上报。
+ */
+export function unwrapSettledRows<T>(
+  result: PromiseSettledResult<T[]>,
+  onError?: (reason: unknown) => void,
+): T[] {
+  if (result.status === 'rejected') {
+    onError?.(result.reason);
+    return [];
+  }
+  return result.value ?? [];
+}
+
+/**
  * Compact metric for calendar day cells (e.g. 3M, 12.5k, 42).
  * Keeps labels short enough for 2.75rem day buttons.
  */
