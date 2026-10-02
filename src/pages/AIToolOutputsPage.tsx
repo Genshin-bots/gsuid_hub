@@ -188,6 +188,21 @@ export default function AIToolOutputsPage() {
     }
   };
 
+  /** 移动端卡片与桌面表格共用，避免两处各写一份下载逻辑 */
+  const downloadRow = async (id: string) => {
+    try {
+      const blob = await aiToolOutputsApi.downloadRaw(id);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${id}.md`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, t('aiToolOutputs.messages.downloadFail')));
+    }
+  };
+
   const removeBatch = async () => {
     const ids = Array.from(selected);
     if (ids.length === 0) return;
@@ -350,105 +365,157 @@ export default function AIToolOutputsPage() {
               {t('aiToolOutputs.table.noData')}
             </p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-10">
-                    <Checkbox
-                      checked={items.length > 0 && selected.size === items.length}
-                      onCheckedChange={(c) => toggleAll(c === true)}
-                      aria-label="select all"
-                    />
-                  </TableHead>
-                  <TableHead>{t('aiToolOutputs.table.tool')}</TableHead>
-                  <TableHead>{t('aiToolOutputs.table.summary')}</TableHead>
-                  <TableHead>{t('aiToolOutputs.table.owner')}</TableHead>
-                  <TableHead>{t('aiToolOutputs.table.size')}</TableHead>
-                  <TableHead>{t('aiToolOutputs.table.createdAt')}</TableHead>
-                  <TableHead className="text-right">{t('aiToolOutputs.table.actions')}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {items.map((row) => (
-                  <TableRow
-                    key={row.id}
-                    className="cursor-pointer"
-                    onClick={() => openDetail(row.id)}
-                  >
-                    <TableCell onClick={(e) => e.stopPropagation()}>
+            <div className="hidden md:block">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-10">
                       <Checkbox
-                        checked={selected.has(row.id)}
-                        onCheckedChange={(c) => toggleOne(row.id, c === true)}
+                        checked={items.length > 0 && selected.size === items.length}
+                        onCheckedChange={(c) => toggleAll(c === true)}
+                        aria-label="select all"
                       />
-                    </TableCell>
-                    <TableCell>
+                    </TableHead>
+                    <TableHead>{t('aiToolOutputs.table.tool')}</TableHead>
+                    <TableHead>{t('aiToolOutputs.table.summary')}</TableHead>
+                    <TableHead>{t('aiToolOutputs.table.owner')}</TableHead>
+                    <TableHead>{t('aiToolOutputs.table.size')}</TableHead>
+                    <TableHead>{t('aiToolOutputs.table.createdAt')}</TableHead>
+                    <TableHead className="text-right">{t('aiToolOutputs.table.actions')}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {items.map((row) => (
+                    <TableRow
+                      key={row.id}
+                      className="cursor-pointer"
+                      onClick={() => openDetail(row.id)}
+                    >
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <Checkbox
+                          checked={selected.has(row.id)}
+                          onCheckedChange={(c) => toggleOne(row.id, c === true)}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Badge className="whitespace-normal max-w-full">
+                          {row.tool_name || '—'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="max-w-[280px] truncate" title={row.summary}>
+                        {row.summary || row.id}
+                      </TableCell>
+                      <TableCell className="font-mono text-xs max-w-[120px] truncate">
+                        {row.owner_user_id || '—'}
+                      </TableCell>
+                      <TableCell>{formatBytes(row.size_bytes)}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {row.created_at ?? '—'}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="inline-flex gap-1">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openDetail(row.id);
+                            }}
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void downloadRow(row.id);
+                            }}
+                          >
+                            <Download className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8 text-destructive"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeOne(row.id);
+                            }}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+
+          {/* 移动端：7 列表格在 ~311px 内只剩复选框一列，操作列够不到 → 卡片替代表格 */}
+          {items.length > 0 && (
+            <div className="md:hidden space-y-2">
+              {items.map((row) => (
+                <div
+                  key={row.id}
+                  className="rounded-lg border border-border/50 p-3 space-y-2"
+                >
+                  <div className="flex items-start gap-2 min-w-0">
+                    <Checkbox
+                      className="mt-0.5 shrink-0"
+                      checked={selected.has(row.id)}
+                      onCheckedChange={(c) => toggleOne(row.id, c === true)}
+                    />
+                    <div className="min-w-0 flex-1">
                       <Badge className="whitespace-normal max-w-full">
                         {row.tool_name || '—'}
                       </Badge>
-                    </TableCell>
-                    <TableCell className="max-w-[280px] truncate" title={row.summary}>
-                      {row.summary || row.id}
-                    </TableCell>
-                    <TableCell className="font-mono text-xs max-w-[120px] truncate">
-                      {row.owner_user_id || '—'}
-                    </TableCell>
-                    <TableCell>{formatBytes(row.size_bytes)}</TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      {row.created_at ?? '—'}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="inline-flex gap-1">
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-8 w-8"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openDetail(row.id);
-                          }}
-                        >
-                          <Eye className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-8 w-8"
-                          onClick={async (e) => {
-                            e.stopPropagation();
-                            try {
-                              const blob = await aiToolOutputsApi.downloadRaw(row.id);
-                              const url = URL.createObjectURL(blob);
-                              const a = document.createElement('a');
-                              a.href = url;
-                              a.download = `${row.id}.md`;
-                              a.click();
-                              URL.revokeObjectURL(url);
-                            } catch (err) {
-                              toast.error(
-                                getApiErrorMessage(err, t('aiToolOutputs.messages.downloadFail')),
-                              );
-                            }
-                          }}
-                        >
-                          <Download className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-8 w-8 text-destructive"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            removeOne(row.id);
-                          }}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                      <p className="mt-1 text-sm line-clamp-2 break-words">
+                        {row.summary || row.id}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <span className="truncate font-mono">{row.owner_user_id || '—'}</span>
+                    <span aria-hidden>·</span>
+                    <span className="shrink-0">{formatBytes(row.size_bytes)}</span>
+                    <span aria-hidden>·</span>
+                    <span className="shrink-0">{row.created_at ?? '—'}</span>
+                    <div className="ml-auto flex shrink-0 gap-1">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-9 w-9"
+                        aria-label={t('aiToolOutputs.table.actions')}
+                        onClick={() => openDetail(row.id)}
+                      >
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-9 w-9"
+                        onClick={() => void downloadRow(row.id)}
+                      >
+                        <Download className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-9 w-9 text-destructive"
+                        onClick={() => removeOne(row.id)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
 
           <div className="flex flex-wrap items-center justify-between gap-2">

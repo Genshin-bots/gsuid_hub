@@ -1296,7 +1296,7 @@ export default function PersonaConfigPage() {
                   onClick={() => handleScopeChange(persona.name, option.value)}
                   disabled={isSavingConfig}
                   className={cn(
-                    'flex items-center justify-center gap-1 px-1 py-1.5 rounded-full text-[10px] font-medium leading-tight transition-all',
+                    'flex items-center justify-center gap-1 px-1 py-2.5 sm:py-1.5 rounded-full text-[10px] font-medium leading-tight transition-all',
                     'border',
                     scope === option.value
                       ? 'bg-primary/15 text-primary border-primary/40 shadow-sm'
@@ -1402,16 +1402,16 @@ export default function PersonaConfigPage() {
       <PinnedPage
         header={
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div className="min-w-0 overflow-x-auto">
-              <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
+            <div className="min-w-0 sm:overflow-x-auto">
+              <h1 className="sm:whitespace-nowrap text-3xl font-bold flex items-center gap-3">
                 <Brain className="w-8 h-8 shrink-0" />
                 {t('personaConfig.title')}
               </h1>
-              <p className="whitespace-nowrap text-muted-foreground mt-1">
+              <p className="sm:whitespace-nowrap text-muted-foreground mt-1">
                 {t('personaConfig.description')}
               </p>
             </div>
-            <div className="flex flex-wrap items-center justify-end gap-2 self-end sm:self-auto">
+            <div className="flex flex-wrap items-center justify-start gap-2 self-start sm:justify-end sm:self-auto">
               {/* AI 生成按钮 */}
               <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
                 <DialogTrigger asChild>
@@ -1651,7 +1651,7 @@ export default function PersonaConfigPage() {
           <SheetContent
             side="right"
             overlayClassName="bg-white/80 dark:bg-black/80 data-[state=open]:animate-sheet-overlay-in data-[state=closed]:animate-sheet-overlay-out"
-            className="flex h-full w-full flex-col gap-0 bg-background/95 p-0 glass-card !fixed !inset-y-0 !right-0 !left-auto !top-0 !rounded-none !border-l !max-w-[60vw] data-[state=open]:will-change-transform data-[state=open]:animate-sheet-slide-in-right data-[state=closed]:animate-sheet-slide-out-right"
+            className="flex h-full w-full flex-col gap-0 bg-background/95 p-0 glass-card !fixed !inset-y-0 !right-0 !left-auto !top-0 !rounded-none !border-l !max-w-full sm:!max-w-[60vw] data-[state=open]:will-change-transform data-[state=open]:animate-sheet-slide-in-right data-[state=closed]:animate-sheet-slide-out-right"
           >
             <SheetHeader className="shrink-0 border-b px-6 py-4 pr-12 text-left">
               <SheetTitle className="flex items-center gap-2">
@@ -1789,7 +1789,7 @@ export default function PersonaConfigPage() {
                         <Settings className="h-4 w-4" />
                         {t('personaConfig.aiModes')}
                       </Label>
-                      <div className="grid grid-cols-5 gap-3 items-stretch">
+                      <div className="grid grid-cols-2 gap-3 items-stretch sm:grid-cols-5">
                         {AI_MODE_OPTIONS.map((mode) => (
                           <button
                             key={mode.value}

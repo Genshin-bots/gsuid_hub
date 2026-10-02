@@ -62,7 +62,9 @@ export function InputWithDropdown({
   inputPlaceholder = '输入或选择',
   disabled = false,
   className,
-  popoverWidth = 'w-[400px]',
+  // Radix 只重定位、不缩放宽度：固定 400px 在 375px 视口会被裁掉右侧。
+  // 窄屏改用视口宽，sm 起恢复 400px。
+  popoverWidth = 'w-[calc(100vw-1.5rem)] sm:w-[400px]',
   showCopyValueAction = true,
   copyValueLabel,
   copiedValueLabel,

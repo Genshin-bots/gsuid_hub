@@ -286,13 +286,13 @@ function StatCard({ title, value, subtitle, icon: Icon, className, inlineSuffix 
         <Icon className="w-4 h-4 text-muted-foreground" />
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold flex items-baseline gap-2 whitespace-nowrap">
+        <div className="text-2xl font-bold flex flex-wrap items-baseline gap-2 whitespace-normal sm:whitespace-nowrap">
           <span>{value}</span>
           {inlineSuffix && (
             <span className="text-xs font-normal text-muted-foreground">{inlineSuffix}</span>
           )}
         </div>
-        {subtitle && <p className="text-xs text-muted-foreground mt-1 whitespace-nowrap">{subtitle}</p>}
+        {subtitle && <p className="text-xs text-muted-foreground mt-1 whitespace-normal sm:whitespace-nowrap">{subtitle}</p>}
       </CardContent>
     </Card>
   );
@@ -1521,14 +1521,14 @@ export default function AIStatisticsPage() {
       header={
         /* 页面标题 */
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div className="min-w-0 overflow-x-auto">
-            <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
+          <div className="min-w-0 sm:overflow-x-auto">
+            <h1 className="sm:whitespace-nowrap text-3xl font-bold flex items-center gap-3">
               <TrendingUp className="w-8 h-8 shrink-0" />
               {t('aiStatistics.title')}
             </h1>
-            <p className="whitespace-nowrap text-muted-foreground mt-1">{t('aiStatistics.description')}</p>
+            <p className="sm:whitespace-nowrap text-muted-foreground mt-1">{t('aiStatistics.description')}</p>
           </div>
-          <div className="flex flex-wrap items-center justify-end gap-2 self-end sm:self-auto">
+          <div className="flex flex-wrap items-center justify-start gap-2 self-start sm:justify-end sm:self-auto">
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="outline" size="sm" className="gap-2 whitespace-nowrap">
@@ -1569,7 +1569,7 @@ export default function AIStatisticsPage() {
     >
       {/* 错误提示 */}
       {error && (
-        <div className="px-6">
+        <div className="px-0 sm:px-6">
           <Card className={cn('border-destructive/50', isGlass ? 'glass-card' : 'border border-border/50')}>
             <CardContent className="flex items-center gap-3 p-4 text-destructive">
               <AlertTriangle className="w-5 h-5" />
@@ -1581,7 +1581,7 @@ export default function AIStatisticsPage() {
 
       {/* 加载状态 */}
       {isLoading ? (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 px-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 px-0 sm:px-6">
           {Array.from({ length: 6 }).map((_, i) => (
             <Card key={i} className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -1589,8 +1589,8 @@ export default function AIStatisticsPage() {
                 <Skeleton className="w-4 h-4" />
               </CardHeader>
               <CardContent>
-                <Skeleton className="h-8 w-16 mb-2" />
-                <Skeleton className="h-3 w-32" />
+                <Skeleton className="h-8 w-12 sm:w-16 mb-2" />
+                <Skeleton className="h-3 w-20 sm:w-32" />
               </CardContent>
             </Card>
           ))}
@@ -1598,7 +1598,7 @@ export default function AIStatisticsPage() {
       ) : summary ? (
         <>
           {/* 时间段快速预览 - 7天/30天(单面板双块对比) */}
-          <div className="px-6">
+          <div className="px-0 sm:px-6">
             <QuickPreviewPanel
               isGlass={isGlass}
               loading7d={quickLoading}
@@ -1615,7 +1615,7 @@ export default function AIStatisticsPage() {
           </div>
 
           {/* Token 计量：概览统计卡片 - 一行6列 */}
-          <div className="px-6 space-y-2">
+          <div className="px-0 sm:px-6 space-y-2">
             <h2 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
               <Coins className="w-4 h-4" />
               {t('aiStatistics.tokenMetering')}
@@ -1675,7 +1675,7 @@ export default function AIStatisticsPage() {
           </div>
 
           {/* Token 效率：User Turn / Agent Run */}
-          <div className="px-6 space-y-2">
+          <div className="px-0 sm:px-6 space-y-2">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <h2 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <Target className="w-4 h-4" />
@@ -1727,7 +1727,7 @@ export default function AIStatisticsPage() {
           </div>
 
           {/* Tabs 容器 */}
-          <div className="px-6">
+          <div className="px-0 sm:px-6">
             <TabButtonGroup
               options={[
                 { value: 'overview', label: t('aiStatistics.overview'), icon: <TrendingUp className="w-4 h-4" /> },
@@ -1745,7 +1745,7 @@ export default function AIStatisticsPage() {
 
           {/* 概览 Tab */}
           {activeTab === 'overview' && (
-            <div className="space-y-4 px-6">
+            <div className="space-y-4 px-0 sm:px-6">
               <div className="glass-card-grid grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* 效率：Root vs Nested */}
                 <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
@@ -1930,7 +1930,7 @@ export default function AIStatisticsPage() {
 
           {/* 历史趋势 Tab */}
           {activeTab === 'history' && (
-            <div className="space-y-4 px-6">
+            <div className="space-y-4 px-0 sm:px-6">
               <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
                 <CardContent className="py-3">
                   <div className="flex flex-wrap items-center gap-2">
@@ -2006,7 +2006,7 @@ export default function AIStatisticsPage() {
 
           {/* Token 分析 Tab */}
           {activeTab === 'tokens' && (
-            <div className="space-y-4 px-6">
+            <div className="space-y-4 px-0 sm:px-6">
               <div className="glass-card-grid grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* Token 消耗图表 */}
                 <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
@@ -2121,7 +2121,7 @@ export default function AIStatisticsPage() {
 
           {/* 性能 Tab */}
           {activeTab === 'performance' && (
-            <div className="space-y-4 px-6">
+            <div className="space-y-4 px-0 sm:px-6">
               <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
                 <CardContent className="py-3">
                   <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -2391,7 +2391,7 @@ export default function AIStatisticsPage() {
 
           {/* RAG Tab */}
           {activeTab === 'rag' && (
-            <div className="space-y-4 px-6">
+            <div className="space-y-4 px-0 sm:px-6">
               <div className="grid grid-cols-1 gap-4">
                 {/* RAG 文档命中列表 */}
                 <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
@@ -2428,7 +2428,7 @@ export default function AIStatisticsPage() {
 
           {/* 用户 Tab */}
           {activeTab === 'users' && (
-            <div className="space-y-4 px-6">
+            <div className="space-y-4 px-0 sm:px-6">
               <div className="grid grid-cols-1 gap-4">
                 {/* 活跃用户/群组 */}
                 <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
@@ -2469,7 +2469,7 @@ export default function AIStatisticsPage() {
 
           {/* 时间段统计 Tab */}
           {activeTab === 'range' && (
-            <div className="space-y-4 px-6">
+            <div className="space-y-4 px-0 sm:px-6">
               {/* 工具栏:快捷预设 + 自定义日期范围 */}
               <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
                 <CardContent className="py-3">
@@ -2752,7 +2752,7 @@ export default function AIStatisticsPage() {
           )}
         </>
       ) : (
-        <div className="px-6">
+        <div className="px-0 sm:px-6">
           <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
             <CardContent className="flex flex-col items-center justify-center p-8 text-muted-foreground">
               <TrendingUp className="w-12 h-12 mb-4 opacity-50" />

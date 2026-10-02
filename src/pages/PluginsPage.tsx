@@ -1079,15 +1079,15 @@ export default function PluginsPage() {
     <PinnedPage
       bodyClassName="flex min-h-0 flex-col"
       header={
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div className="min-w-0 overflow-x-auto">
-            <h1 className="whitespace-nowrap text-3xl font-bold tracking-tight flex items-center gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
+          <div className="min-w-0 sm:overflow-x-auto">
+            <h1 className="sm:whitespace-nowrap text-3xl font-bold tracking-tight flex items-center gap-3">
               <Settings className="h-8 w-8 shrink-0" />
               {t('plugins.title')}
             </h1>
-            <p className="whitespace-nowrap text-muted-foreground">{t('plugins.description')}</p>
+            <p className="sm:whitespace-nowrap text-muted-foreground">{t('plugins.description')}</p>
           </div>
-          <div className="flex flex-wrap items-center justify-end gap-2 self-end sm:self-auto">
+          <div className="flex w-full gap-2 sm:w-auto sm:shrink-0 sm:items-center sm:justify-end">
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -1096,7 +1096,7 @@ export default function PluginsPage() {
                     size="sm"
                     onClick={handleUpdateAllClick}
                     disabled={isLoading || pluginList.length === 0}
-                    className="gap-2 whitespace-nowrap"
+                    className="flex-1 justify-center gap-2 whitespace-nowrap sm:flex-none"
                   >
                     <Download className="w-4 h-4" />
                     {t('plugins.updateAllPlugins')}
@@ -1115,7 +1115,7 @@ export default function PluginsPage() {
                     size="sm"
                     onClick={handleReloadPlugin}
                     disabled={!selectedPlugin || isReloadingPlugin}
-                    className="gap-2 whitespace-nowrap"
+                    className="flex-1 justify-center gap-2 whitespace-nowrap sm:flex-none"
                   >
                     <RotateCw className={`w-4 h-4 ${isReloadingPlugin ? 'animate-spin' : ''}`} />
                     {t('plugins.reloadPlugin')}
@@ -1147,7 +1147,7 @@ export default function PluginsPage() {
         </Card>
       ) : selectedPlugin ? (
         <Card key={selectedPlugin.id} className="glass-card flex min-h-0 flex-1 flex-col">
-          <div className="shrink-0 border-b border-border/40 px-6 pb-2 pt-3">
+          <div className="shrink-0 border-b border-border/40 px-4 pb-2 pt-3 sm:px-6">
           <div className="flex items-center gap-3">
             <div className="flex items-center justify-center overflow-hidden">
               <PluginIcon pluginName={selectedPlugin.name} className="h-8 w-8" />
@@ -1158,9 +1158,10 @@ export default function PluginsPage() {
             </div>
           </div>
             <div className="mt-2 flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between [&_.shadow-safe]:!my-0 [&_.shadow-safe]:!py-0">
-              <div className="flex min-w-0 flex-wrap items-center gap-3">
+              <div className="flex w-full min-w-0 flex-wrap items-center gap-2 sm:gap-3 lg:w-auto">
                 <TabButtonGroup
-                  className="w-max"
+                  className="w-full sm:w-max"
+                  singleRowOnMobile
                   options={[
                     {
                       value: 'params',
@@ -1203,7 +1204,7 @@ export default function PluginsPage() {
                 />
                 {selectedPages.length > 0 && (
                   <TabButtonGroup
-                    className="w-max"
+                    className="w-full sm:w-max"
                     options={selectedPages.map((page) => ({
                       value: page.id,
                       label: pickPluginPageText(page.title, language, page.id),
@@ -1217,16 +1218,16 @@ export default function PluginsPage() {
                   />
                 )}
               </div>
-              <div className="flex shrink-0 items-center gap-2">
+              <div className="flex w-full shrink-0 items-center gap-2 lg:w-auto">
                 <Input
                   value={svQuery}
                   onChange={(event) => setSvQuery(event.target.value)}
                   placeholder={pluginSection === 'sv' ? t('plugins.searchSv') : t('plugins.searchConfig')}
-                  className="h-[38px] w-44 bg-background lg:w-56"
+                  className="h-[38px] w-full min-w-0 flex-1 bg-background sm:w-44 sm:flex-none lg:w-56"
                 />
                 {pluginSection !== 'sv' && (
                   <Button
-                    className="h-[38px] shrink-0 gap-2 px-8 lg:min-w-[160px]"
+                    className="h-[38px] shrink-0 justify-center gap-2 px-4 sm:px-8 lg:min-w-[160px]"
                     disabled={!sectionDirty || sectionSaving}
                     onClick={saveSection}
                   >

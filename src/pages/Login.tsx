@@ -162,7 +162,9 @@ export default function Login() {
 
   return (
     <div className={cn(
-      "min-h-screen flex items-center justify-center p-4",
+      // my-auto（而非 items-center）+ overflow-y-auto：注册模式表单高于窄屏时
+      // 顶部（连同绝对定位在上方的语言工具条）仍然够得着，不会被裁掉
+      "min-h-screen flex justify-center overflow-y-auto p-4",
       isGlassmorphism ? "relative" : "bg-gradient-to-br from-background via-background to-muted/30"
     )}>
       {/* Background Layer */}
@@ -213,7 +215,7 @@ export default function Login() {
       )}
       
       {/* 仅卡片参与垂直居中；工具栏绝对定位在卡片上方，避免把卡片挤离正中 */}
-      <div className="w-full max-w-md relative z-10">
+      <div className="my-auto w-full max-w-md relative z-10">
         {/* 与下方登录卡片共用 glass-card / bg-card 材质，形成呼应 */}
         <div
           className={cn(

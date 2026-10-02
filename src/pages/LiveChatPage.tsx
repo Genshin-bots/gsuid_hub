@@ -964,7 +964,7 @@ export default function LiveChatPage() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="sm:hidden h-8 w-8 shrink-0"
+                    className="sm:hidden h-11 w-11 shrink-0"
                     onClick={() => setShowChatOnMobile(false)}
                   >
                     <ChevronLeft className="w-5 h-5" />

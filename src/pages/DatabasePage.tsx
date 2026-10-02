@@ -571,7 +571,10 @@ export default function DatabasePage() {
                           右侧还有隐藏列时加渐变遮罩 + 分层阴影，提示「还有更多列」 */}
                       <TableHead
                         className={cn(
-                          'w-[100px] whitespace-nowrap table-sticky-right',
+                          /* 窄屏取消右缘固定：表体只有 ~311px，固定列自身 min-content
+                             就有 ~108px，再加上 2rem 渐隐遮罩，数据列只剩一两列可见。
+                             改为随行滚动，操作列改用下方加高的滚动条够到。 */
+                          'w-[100px] whitespace-nowrap table-sticky-right !static sm:!sticky',
                           hasMoreRight && 'table-sticky-fade table-sticky-shadow'
                         )}
                       >
@@ -600,7 +603,7 @@ export default function DatabasePage() {
                               )}
                             </TableCell>
                           ))}
-                          <TableCell className={cn('table-sticky-right', hasMoreRight && 'table-sticky-fade table-sticky-shadow')}>
+                          <TableCell className={cn('table-sticky-right !static sm:!sticky', hasMoreRight && 'table-sticky-fade table-sticky-shadow')}>
                             <div className="flex gap-1">
                               <Button variant="ghost" size="icon" onClick={() => handleEdit(item)}>
                                 <Pencil className="h-4 w-4" />
@@ -734,7 +737,7 @@ export default function DatabasePage() {
     {showFloatingBar && createPortal(
       <div
         ref={floatingScrollbarRef}
-        className="overflow-x-auto h-3 bg-background/80 border border-border/60 shadow-md backdrop-blur-sm rounded-full"
+        className="overflow-x-auto h-5 sm:h-3 bg-background/80 border border-border/60 shadow-md backdrop-blur-sm rounded-full"
         onScroll={handleFloatingScroll}
         style={floatingBarStyle}
       >

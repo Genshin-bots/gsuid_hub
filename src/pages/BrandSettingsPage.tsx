@@ -183,7 +183,7 @@ export default function BrandSettingsPage() {
 
             <div className="space-y-2">
               <Label>{t('brandSettings.iconLabel')}</Label>
-              <div className="flex items-center gap-4">
+              <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:gap-4">
                 <div className="w-20 h-20 rounded-2xl overflow-hidden border border-border/40 bg-muted flex items-center justify-center">
                   {iconUrl ? (
                     <img

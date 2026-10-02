@@ -1340,7 +1340,7 @@ export default function MCPConfigPage() {
                               type="button"
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 shrink-0 text-destructive hover:text-destructive self-end sm:self-auto"
+                              className="h-8 w-8 shrink-0 text-destructive hover:text-destructive self-start sm:self-auto"
                               onClick={() => removeEnvVar(index)}
                             >
                               <X className="h-4 w-4" />
@@ -1446,7 +1446,7 @@ export default function MCPConfigPage() {
                               type="button"
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 shrink-0 text-destructive hover:text-destructive self-end sm:self-auto"
+                              className="h-8 w-8 shrink-0 text-destructive hover:text-destructive self-start sm:self-auto"
                               onClick={() => removeHeaderVar(index)}
                             >
                               <X className="h-4 w-4" />

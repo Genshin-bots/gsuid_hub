@@ -12,6 +12,8 @@
  */
 
 import { DEMO_MEME_META } from './demoMemeMeta';
+// 形状必须对齐 api.ts 的契约，否则页面读 .length 时整页 TypeError
+import type { AIBudgetOverview, AIBudgetWindowUsage } from '@/lib/api';
 
 // ───────────────────────── 工具：种子 RNG / 取值 ─────────────────────────
 
@@ -2049,14 +2051,46 @@ export const generateBudgetWhitelist = () => [
   { entry_id: 'wl-1', scope_type: 'user', scope_id: '10086', note: '群主' },
   { entry_id: 'wl-2', scope_type: 'group', scope_id: '114514', note: '' },
 ];
-export const generateBudgetOverview = () => ({
-  today_total: { tokens: 31_421, requests: 192 },
-  week_total: { tokens: 211_840, requests: 1_212 },
-  hit_count_today: 4,
-  hit_count_week: 18,
-  top_consumers: [
-    { scope_type: 'group', scope_id: '114514', tokens_today: 9_124, requests_today: 58 },
-    { scope_type: 'user', scope_id: '10086', tokens_today: 5_812, requests_today: 32 },
+const demoBudgetWindow = (
+  window: 'short' | 'day' | 'week',
+  window_seconds: number,
+  limit: number,
+  used: number,
+): AIBudgetWindowUsage => ({
+  window,
+  window_seconds,
+  limit,
+  used,
+  remaining: Math.max(limit - used, 0),
+  over: used > limit,
+  reset_at: null,
+});
+
+export const generateBudgetOverview = (): AIBudgetOverview => ({
+  enabled: true,
+  rule_count: DEMO_BUDGET_RULES.length,
+  enabled_rule_count: DEMO_BUDGET_RULES.filter((r) => r.enabled).length,
+  whitelist_count: 2,
+  total_tokens_24h: 31_421,
+  blocked_rules: [
+    {
+      rule_id: 1,
+      scope_label: '114514',
+      blocked: true,
+      windows: [
+        demoBudgetWindow('short', 600, 50_000, 51_200),
+        demoBudgetWindow('day', 86_400, 500_000, 214_000),
+        demoBudgetWindow('week', 604_800, 2_000_000, 640_000),
+      ],
+    },
+  ],
+  top_groups_24h: [
+    { group_id: '114514', total_tokens: 9_124 },
+    { group_id: '1919810', total_tokens: 6_730 },
+  ],
+  top_users_24h: [
+    { user_id: '10086', total_tokens: 5_812 },
+    { user_id: '20000', total_tokens: 3_204 },
   ],
 });
 

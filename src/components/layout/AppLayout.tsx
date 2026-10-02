@@ -23,12 +23,13 @@ function LayoutHeader() {
   if (!isMobile) return null;
 
   return (
-    <div className="sticky top-0 z-10 w-full bg-background/80 backdrop-blur-sm border-b border-border/40 px-4 py-2 flex items-center justify-between">
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={toggleSidebar} aria-label="打开菜单">
+    <div className="sticky top-0 z-10 w-full bg-background/80 backdrop-blur-sm border-b border-border/40 px-4 py-2 flex items-center justify-between gap-2">
+      <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+        <Button variant="ghost" size="icon" onClick={toggleSidebar} aria-label="打开菜单" className="shrink-0">
           <Menu className="h-5 w-5" />
         </Button>
-        <div className="flex items-center gap-1">
+        {/* 品牌区：min-w-0 + truncate，品牌名过长时收缩而不是把右侧头像挤出屏幕 */}
+        <div className="flex min-w-0 items-center gap-1">
           <div className="w-8 h-8 flex items-center justify-center shrink-0 overflow-hidden">
             <img
               src={brandIconUrl}
@@ -37,16 +38,17 @@ function LayoutHeader() {
               key={brandIconUrl}
             />
           </div>
-          <span className="font-semibold">{brandTitle}</span>
+          <span className="min-w-0 truncate font-semibold">{brandTitle}</span>
           {/* rounded-md 挂 --radius，与侧栏版本号一致随主题圆角强度变化 */}
-          <Badge variant="default" className="rounded-md text-xs font-medium ml-1">
+          <Badge variant="default" className="rounded-md text-xs font-medium ml-1 shrink-0">
             v{import.meta.env.PACKAGE_VERSION || '0.3.0'}
           </Badge>
         </div>
       </div>
       <button
         onClick={() => navigate('/settings')}
-        className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
+        aria-label={user?.name || '设置'}
+        className="flex shrink-0 cursor-pointer items-center rounded-full transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <Avatar className="w-8 h-8">
           {user?.avatar ? (

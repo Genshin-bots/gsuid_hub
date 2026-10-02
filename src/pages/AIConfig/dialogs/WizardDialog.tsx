@@ -161,10 +161,8 @@ export function WizardDialog({
                   )}
                 <div
                   className={cn(
-                    'grid gap-3',
-                    status.persona.personas.length > 1
-                      ? 'grid-cols-2'
-                      : 'grid-cols-1',
+                    // 窄屏单列：人格卡内的头像 + 徽章行在 ~150px 列里会被挤到换行
+                    'grid grid-cols-1 gap-3 sm:grid-cols-2',
                   )}
                 >
                   {status.persona.personas.map((persona, idx) => (
@@ -238,7 +236,7 @@ export function WizardDialog({
             )}
 
             {/* Checklist Items */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {checklist
                 .filter(
                   (item) =>

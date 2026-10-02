@@ -832,7 +832,7 @@ function KnowledgeGraph({
         <button
           type="button"
           onClick={stopLayout}
-          className="absolute top-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 rounded-md bg-background/85 px-3 py-1.5 text-xs text-muted-foreground shadow-sm backdrop-blur transition-colors hover:text-foreground"
+          className="absolute bottom-16 top-auto left-1/2 -translate-x-1/2 flex items-center gap-1.5 rounded-md bg-background/85 px-3 py-1.5 text-xs text-muted-foreground shadow-sm backdrop-blur transition-colors hover:text-foreground sm:bottom-auto sm:top-3"
         >
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
           正在计算布局…点击停止

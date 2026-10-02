@@ -90,14 +90,14 @@ export default function AIApprovalsPage() {
     <PinnedPage
       header={
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="min-w-0 overflow-x-auto">
-            <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
+          <div className="min-w-0 sm:overflow-x-auto">
+            <h1 className="sm:whitespace-nowrap text-3xl font-bold flex items-center gap-3">
               <ShieldCheck className="w-8 h-8 shrink-0" />
               {t('aiApprovals.title')}
             </h1>
-            <p className="whitespace-nowrap text-muted-foreground mt-1">{t('aiApprovals.description')}</p>
+            <p className="sm:whitespace-nowrap text-muted-foreground mt-1">{t('aiApprovals.description')}</p>
           </div>
-          <div className="flex flex-wrap items-center gap-2 self-end lg:self-auto">
+          <div className="flex flex-wrap items-center gap-2 self-start lg:self-auto">
             <Button variant="outline" onClick={() => loadData(viewMode)} disabled={isLoading} className="gap-2">
               {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
               {t('common.refresh') || '刷新'}
@@ -106,7 +106,7 @@ export default function AIApprovalsPage() {
         </div>
       }
       toolbar={
-        <div className="min-w-0 overflow-x-auto">
+        <div className="min-w-0 sm:overflow-x-auto">
           <TabButtonGroup
             options={viewOptions}
             value={viewMode}
@@ -158,7 +158,7 @@ export default function AIApprovalsPage() {
                   </div>
                 </div>
                 {item.status === 'pending' && (
-                  <div className="flex shrink-0 items-center gap-2 self-end lg:self-center">
+                  <div className="flex shrink-0 items-center gap-2 self-start lg:self-center">
                     <Button size="sm" className="gap-1.5" onClick={() => { setNote(''); setResolveTarget({ item, approved: true }); }}>
                       <Check className="h-4 w-4" />{t('aiApprovals.approve')}
                     </Button>

@@ -315,19 +315,19 @@ export default function AIScheduledTasksPage() {
       header={
         /* 页面标题 */
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div className="min-w-0 overflow-x-auto">
-            <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
+          <div className="min-w-0 sm:overflow-x-auto">
+            <h1 className="sm:whitespace-nowrap text-3xl font-bold flex items-center gap-3">
               <Clock className="w-8 h-8 shrink-0" />
               {t('aiScheduledTasks.title')}
             </h1>
-            <p className="whitespace-nowrap text-muted-foreground mt-1">{t('aiScheduledTasks.description')}</p>
+            <p className="sm:whitespace-nowrap text-muted-foreground mt-1">{t('aiScheduledTasks.description')}</p>
           </div>
           <Button
             onClick={() => {
               resetForm();
               setCreateDialogOpen(true);
             }}
-            className="gap-2 whitespace-nowrap self-end sm:self-auto"
+            className="gap-2 whitespace-nowrap self-start sm:self-auto"
           >
             <Plus className="w-4 h-4" />
             {t('aiScheduledTasks.createTask')}
@@ -431,9 +431,9 @@ export default function AIScheduledTasksPage() {
                 className="pl-10"
               />
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2 sm:flex-nowrap">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[160px]">
+                <SelectTrigger className="w-full min-w-[140px] flex-1 sm:w-[160px] sm:flex-none">
                   <Filter className="w-4 h-4 mr-2" />
                   <SelectValue placeholder={t('aiScheduledTasks.filterByStatus')} />
                 </SelectTrigger>
@@ -447,7 +447,7 @@ export default function AIScheduledTasksPage() {
                 </SelectContent>
               </Select>
               <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger className="w-[160px]">
+                <SelectTrigger className="w-full min-w-[140px] flex-1 sm:w-[160px] sm:flex-none">
                   <Filter className="w-4 h-4 mr-2" />
                   <SelectValue placeholder={t('aiScheduledTasks.filterByType')} />
                 </SelectTrigger>
@@ -786,7 +786,7 @@ export default function AIScheduledTasksPage() {
           </DialogHeader>
           {selectedTask && (
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground">{t('aiScheduledTasks.status')}</p>
                   {getStatusBadge(selectedTask.status)}

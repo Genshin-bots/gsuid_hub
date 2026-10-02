@@ -876,7 +876,7 @@ function SpanRow({ sp, depth, ctx }: { sp: TraceSpan; depth: number; ctx: RowCtx
         ))}
 
         {/* 墙钟时间：每行发生时刻（局部时间轴表达相对位置，这里补绝对时间） */}
-        <span className="w-16 shrink-0 text-[11px] text-muted-foreground/50 font-mono tabular-nums">
+        <span className="w-14 sm:w-16 shrink-0 text-[11px] text-muted-foreground/50 font-mono tabular-nums">
           {formatTimeOnly(sp.start)}
         </span>
 
@@ -890,7 +890,9 @@ function SpanRow({ sp, depth, ctx }: { sp: TraceSpan; depth: number; ctx: RowCtx
             )}
           </span>
           <span className={cn('shrink-0', color.icon)}>{kindIcon(sp)}</span>
-          <span className={cn('shrink-0 truncate max-w-[45%] text-sm font-semibold', color.text)}>
+          {/* min-w-0 + 窄屏允许收缩：子 Agent 子瀑布每层再缩进 22px，
+              不收缩的话深层行会超出 Viewport（overflow-x:hidden 直接裁掉时长列） */}
+          <span className={cn('min-w-0 shrink sm:shrink-0 truncate max-w-[45%] text-sm font-semibold', color.text)}>
             {spanLabel(sp, t)}
           </span>
           {childCount > 0 && (
@@ -913,7 +915,7 @@ function SpanRow({ sp, depth, ctx }: { sp: TraceSpan; depth: number; ctx: RowCtx
         <TimelineCell sp={sp} ctx={ctx} />
 
         {/* 时长 */}
-        <span className="w-14 shrink-0 text-right text-[11px] text-muted-foreground/70 font-mono tabular-nums">
+        <span className="w-10 sm:w-14 shrink-0 text-right text-[11px] text-muted-foreground/70 font-mono tabular-nums">
           {dur > 0 ? formatDuration(dur) : ''}
         </span>
       </div>

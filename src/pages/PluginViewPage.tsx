@@ -106,7 +106,7 @@ export default function PluginViewPage() {
           onClick={() => navigate(from)}
         >
           <ArrowLeft className="w-4 h-4" />
-          {t('plugins.pluginPageBack')}
+          <span className="hidden sm:inline">{t('plugins.pluginPageBack')}</span>
         </Button>
         <div className="flex items-center gap-2 min-w-0">
           {page?.plugin ? (

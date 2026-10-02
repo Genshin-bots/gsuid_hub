@@ -813,7 +813,7 @@ export function ConfigField({
     <TooltipProvider delayDuration={100}>
       <div className={cn("flex flex-col", className)}>
         {showLabel && (
-          <Label className="text-sm font-medium text-muted-foreground mb-2 h-5 flex items-center gap-2 shrink-0">
+          <Label className="text-sm font-medium text-muted-foreground mb-2 min-h-5 h-auto sm:h-5 flex items-start sm:items-center gap-2 shrink-0">
             {getTitleIcon(displayLabel)}
             {displayLabel}
             {field.required && <span className="text-destructive ml-1">*</span>}

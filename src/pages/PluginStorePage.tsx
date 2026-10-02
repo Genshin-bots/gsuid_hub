@@ -607,7 +607,7 @@ export default function PluginStorePage() {
               className={cn(tabToolbarControlClass, 'w-full pl-10')}
             />
           </div>
-          <div className="flex h-11 w-full min-w-0 items-center justify-end sm:ml-auto sm:w-auto">
+          <div className="flex min-h-11 w-full min-w-0 flex-wrap items-center justify-end gap-y-1 sm:h-11 sm:flex-nowrap sm:ml-auto sm:w-auto">
             {storeStatItems.map((item, index) => {
               const Icon = item.icon;
               return (
@@ -616,7 +616,7 @@ export default function PluginStorePage() {
                   type="button"
                   onClick={() => setActiveTab(item.id)}
                   className={cn(
-                    'inline-flex h-11 shrink-0 items-center gap-1.5 px-3 text-xs text-muted-foreground',
+                    'inline-flex h-11 shrink-0 items-center gap-1.5 px-2 text-xs text-muted-foreground sm:px-3',
                     index > 0 && 'border-l border-border/50',
                     activeTab === item.id && 'text-foreground',
                     'hover:text-foreground',
@@ -736,7 +736,7 @@ export default function PluginStorePage() {
                           {/* 标题行 + 右上角 badges */}
                           <div className="flex items-center justify-between gap-2">
                             <h3 className="font-semibold text-base truncate">{plugin.id}</h3>
-                            <div className="flex items-center gap-1.5 shrink-0">
+                            <div className="flex flex-wrap items-center justify-end gap-1.5 sm:shrink-0">
                               {/* 镜像来源 badge（仅已安装插件） */}
                               {plugin.installed && (() => {
                                 const gitInfo = gitPluginsMap[plugin.id.toLowerCase()];
@@ -893,7 +893,7 @@ export default function PluginStorePage() {
 
       {/* README Dialog */}
       <Dialog open={readmeDialogOpen} onOpenChange={setReadmeDialogOpen}>
-        <DialogContent className="w-[90vw] max-w-5xl h-[85vh] flex flex-col p-0 overflow-hidden">
+        <DialogContent className="w-[90vw] max-w-5xl h-[85dvh] sm:h-[85vh] flex flex-col p-0 overflow-hidden">
           {/* Custom Header */}
           <div className="px-6 py-4 border-b shrink-0">
             <div className="flex items-center justify-between pr-8">

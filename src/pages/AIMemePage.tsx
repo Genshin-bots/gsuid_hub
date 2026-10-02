@@ -1660,14 +1660,14 @@ export default function AIMemePage() {
       header={
         /* Header（固定区：标题 + 同行右侧操作按钮） */
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div className="min-w-0 overflow-x-auto">
-            <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
+          <div className="min-w-0 sm:overflow-x-auto">
+            <h1 className="sm:whitespace-nowrap text-3xl font-bold flex items-center gap-3">
               <ImageIcon className="w-8 h-8 shrink-0" />
               {t('aiMeme.title')}
             </h1>
             <p className="whitespace-nowrap text-sm text-muted-foreground mt-1">{t('aiMeme.description')}</p>
           </div>
-          <div className="flex flex-wrap items-center justify-end gap-2 self-end sm:self-auto">
+          <div className="flex flex-wrap items-center justify-start gap-2 self-start sm:justify-end sm:self-auto">
             {filterStatus === 'rejected' && (
               <Button
                 variant="destructive"
@@ -1884,6 +1884,7 @@ export default function AIMemePage() {
             value={filterStatus}
             onValueChange={(v) => setFilterStatus(v)}
             className="shrink-0"
+            collapseOnMobile
             options={[
               { value: 'tagged', label: t('aiMeme.status.tagged'), icon: <CheckCircle2 className="w-4 h-4" /> },
               { value: 'pending', label: t('aiMeme.status.pending'), icon: <Clock className="w-4 h-4" /> },
@@ -2026,11 +2027,11 @@ export default function AIMemePage() {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between pt-2">
+            <div className="flex flex-col items-start gap-2 pt-2 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm text-muted-foreground">
                 {t('common.totalRecords', { total })}
               </p>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"

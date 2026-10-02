@@ -123,13 +123,13 @@ export default function AIBudgetPage() {
     <PinnedPage
       header={
         /* Header */
-        <div className="flex items-end justify-between">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold flex items-center gap-3"><Wallet className="w-8 h-8" />{t('aiBudget.title')}</h1>
             <p className="text-muted-foreground mt-1">{t('aiBudget.description')}</p>
           </div>
           {activeTab === 'config' && (
-            <Button onClick={handleConfigSave} disabled={!configDirty || configSaving}>
+            <Button onClick={handleConfigSave} disabled={!configDirty || configSaving} className="self-start sm:self-auto">
               {configSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
               {t('aiBudget.config.save')}
             </Button>
@@ -939,7 +939,7 @@ function RuleCard({ rule, onToggle, onEdit, onDelete, onViewDetail }: {
           <div className="flex-1 min-w-0 flex items-center gap-2">
             <Switch checked={rule.enabled} onCheckedChange={onToggle} />
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
+              <div className="flex flex-wrap items-center gap-2 mb-1">
                 <span className="font-medium truncate">{rule.name || t('aiBudget.common.globalScope')}</span>
                 <Badge variant="outline" className="text-xs">{scopeTypeLabel}</Badge>
                 {rule.scope_id && <span className="text-xs font-mono text-muted-foreground">{rule.scope_id}</span>}
@@ -1403,11 +1403,11 @@ function WhitelistEntryCard({ entry, onEdit, onDelete }: {
   return (
     <Card className={cn("glass-card", !entry.enabled && "opacity-60")}>
       <CardContent className="py-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Shield className="w-4 h-4 text-primary" />
-            <div>
-              <div className="flex items-center gap-2">
+        <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 items-center gap-3">
+            <Shield className="w-4 h-4 text-primary shrink-0" />
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
                 <span className="font-mono text-sm font-medium">{entry.user_id}</span>
                 {isGlobal
                   ? <Badge className="bg-green-500/10 text-green-500 border-green-500/30">{t('aiBudget.whitelist.scope.global')}</Badge>
@@ -1418,7 +1418,7 @@ function WhitelistEntryCard({ entry, onEdit, onDelete }: {
               {entry.note && <p className="text-xs text-muted-foreground mt-1">{entry.note}</p>}
             </div>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex shrink-0 items-center gap-1">
             <Button variant="ghost" size="icon" onClick={onEdit}>
               <Pencil className="w-4 h-4" />
             </Button>

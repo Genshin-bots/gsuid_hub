@@ -49,3 +49,6 @@ puppeteer-core-23.11.1.tgz
 /perf/bench/dist-b/
 /perf/bench/dist-e2/
 /perf
+
+# 版式预览截图，本地目视验收用，不入库
+/.mobile-preview/

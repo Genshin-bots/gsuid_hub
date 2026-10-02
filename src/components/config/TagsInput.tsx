@@ -274,7 +274,7 @@ export const TagsInput: React.FC<TagsInputProps> = ({
                           <span className="flex-1 truncate text-sm">{item}</span>
                           <button
                             onClick={() => handleCopy(item, originalIndex)}
-                            className="opacity-0 group-hover:opacity-100 p-1 hover:bg-accent rounded"
+                            className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 p-1 hover:bg-accent rounded"
                             title={t('tagsInput.copy')}
                           >
                             {copiedIndex === originalIndex ? (
@@ -285,7 +285,7 @@ export const TagsInput: React.FC<TagsInputProps> = ({
                           </button>
                           <button
                             onClick={() => handleRemoveTag(originalIndex)}
-                            className="opacity-0 group-hover:opacity-100 p-1 hover:bg-accent rounded hover:text-destructive"
+                            className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 p-1 hover:bg-accent rounded hover:text-destructive"
                             title={t('tagsInput.delete')}
                           >
                             <X className="w-3 h-3" />

@@ -726,7 +726,7 @@ export default function AIKanbanPage() {
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild onClick={(event) => event.stopPropagation()}>
-            <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 opacity-80 sm:opacity-0 sm:group-hover:opacity-100">
+            <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-7 sm:w-7 shrink-0 opacity-80 sm:opacity-0 sm:group-hover:opacity-100">
               <MoreHorizontal className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
@@ -791,7 +791,7 @@ export default function AIKanbanPage() {
             { value: 'data', label: t('aiKanban.mode.data'), icon: <Database className="h-4 h-4" /> },
           ]}
         />
-        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
           {viewMode === 'kanban' ? (
             <>
               <Button variant="outline" onClick={() => setEvaluateOpen(true)} className="w-full gap-2 sm:w-auto"><Sparkles className="h-4 w-4" />{t('aiKanban.evaluate.title')}</Button>
@@ -817,7 +817,7 @@ export default function AIKanbanPage() {
       {viewMode === 'kanban' && (
       <Card className="glass-card shrink-0">
         <CardContent className="p-4 space-y-4">
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-6">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-2 xl:grid-cols-6">
             <Input value={filters.scope_key} onChange={(event) => setFilters((prev) => ({ ...prev, scope_key: event.target.value }))} placeholder={t('aiKanban.filters.scopeKey')} />
             <Input value={filters.bot_id} onChange={(event) => setFilters((prev) => ({ ...prev, bot_id: event.target.value }))} placeholder={t('aiKanban.filters.botId')} />
             <Input value={filters.group_id} onChange={(event) => setFilters((prev) => ({ ...prev, group_id: event.target.value }))} placeholder={t('aiKanban.filters.groupId')} />
@@ -948,7 +948,7 @@ export default function AIKanbanPage() {
                   <Card className="glass-card">
                     <CardHeader>
                       <CardTitle className="text-base">{t('aiKanban.detail.rootInfo')}</CardTitle>
-                      <CardDescription className="font-mono">{detail.root?.id}</CardDescription>
+                      <CardDescription className="font-mono break-all">{detail.root?.id}</CardDescription>
                     </CardHeader>
                     <CardContent className="grid grid-cols-1 gap-3 md:grid-cols-3">
                       <div className="rounded-lg bg-muted/40 p-3"><Label className="text-muted-foreground">{t('aiKanban.fields.status')}</Label>{/* Badge 是 div，不能作为 <p> 子元素（validateDOMNesting） */}<div><Badge className={statusClass(detail.task.status)}>{detail.task.status}</Badge></div></div>

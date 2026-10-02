@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { TabButtonGroup, tabToolbarControlClass, tabToolbarGroupWrapClass } from '@/components/ui/TabButtonGroup';
+import { PluginIcon } from '@/components/ui/plugin-icon';
 import {
   Select,
   SelectContent,
@@ -26,6 +27,7 @@ import {
   Search,
   Network,
   Boxes,
+  Puzzle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -185,6 +187,17 @@ function getPageNumbers(current: number, total: number): (number | 'ellipsis')[]
   if (end < total - 1) pages.push('ellipsis');
   pages.push(total);
   return pages;
+}
+
+// 插件筛选项前缀图标：'all' 用 Puzzle 占位（与 /ai-capability-agents 的「全部插件」一致），
+// 其余走统一 PluginIcon（core_command 等内置名由 getPluginIconUrl 映射到项目 LOGO）
+function PluginFilterIcon({ plugin }: { plugin: string }) {
+  if (plugin === 'all') return <Puzzle className="h-4 w-4 shrink-0 text-muted-foreground" />;
+  return <PluginIcon pluginName={plugin} className="h-4 w-4" />;
+}
+
+function pluginFilterLabel(plugin: string, count: number, allLabel: string): string {
+  return plugin === 'all' ? `${allLabel} (${count})` : `${plugin} (${count})`;
 }
 
 // ============================================================================
@@ -386,12 +399,12 @@ export default function AIToolsPage() {
     <PinnedPage
       header={
         /* 页面标题（固定区） */
-        <div className="min-w-0 overflow-x-auto">
-          <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
+        <div className="min-w-0 sm:overflow-x-auto">
+          <h1 className="sm:whitespace-nowrap text-3xl font-bold flex items-center gap-3">
             <Wrench className="w-8 h-8 shrink-0" />
             {t('aiTools.title')}
           </h1>
-          <p className="whitespace-nowrap text-muted-foreground mt-1">{t('aiTools.description')}</p>
+          <p className="sm:whitespace-nowrap text-muted-foreground mt-1">{t('aiTools.description')}</p>
         </div>
       }
       toolbar={
@@ -469,7 +482,20 @@ export default function AIToolsPage() {
               <div className="min-w-0 flex-1">
                 <Select value={selectedPlugin} onValueChange={setSelectedPlugin}>
                   <SelectTrigger className={cn(tabToolbarControlClass, 'w-full min-w-0 px-2 [&>span]:min-w-0')}>
-                    <SelectValue placeholder={t('aiTools.selectPlugin')} />
+                    {/* 显式传 children：Radix 默认把选中项整段 children portal 进触发器，
+                        图标会跟着进触发器并撑破 line-clamp，这里自绘以与列表项排版一致 */}
+                    <SelectValue placeholder={t('aiTools.selectPlugin')}>
+                      <span className="flex min-w-0 items-center gap-2">
+                        <PluginFilterIcon plugin={selectedPlugin} />
+                        <span className="truncate">
+                          {pluginFilterLabel(
+                            selectedPlugin,
+                            pluginCounts[selectedPlugin] || 0,
+                            t('aiTools.allPlugins')
+                          )}
+                        </span>
+                      </span>
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {pluginList.map((plugin) => {
@@ -478,9 +504,12 @@ export default function AIToolsPage() {
                         plugin !== 'all' && plugin !== selectedPlugin && count === 0;
                       return (
                         <SelectItem key={plugin} value={plugin} disabled={disabled}>
-                          {plugin === 'all'
-                            ? `${t('aiTools.allPlugins')} (${pluginCounts.all || 0})`
-                            : `${plugin} (${count})`}
+                          <span className="flex min-w-0 items-center gap-2">
+                            <PluginFilterIcon plugin={plugin} />
+                            <span className="truncate">
+                              {pluginFilterLabel(plugin, count, t('aiTools.allPlugins'))}
+                            </span>
+                          </span>
                         </SelectItem>
                       );
                     })}
@@ -754,12 +783,12 @@ export default function AIToolsPage() {
               onClick={() => handleToolClick(tool)}
             >
               <CardHeader>
-                <div className="flex items-start justify-between gap-2">
-                  <CardTitle className="flex items-center gap-2">
-                    <Wrench className="w-5 h-5 text-primary" />
-                    <span className="text-lg">{tool.title}</span>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                  <CardTitle className="flex min-w-0 items-center gap-2">
+                    <Wrench className="w-5 h-5 text-primary shrink-0" />
+                    <span className="text-lg truncate">{tool.title}</span>
                   </CardTitle>
-                  <div className="flex flex-col gap-1 items-end">
+                  <div className="flex shrink-0 flex-col gap-1 items-start sm:items-end">
                     {diag.reasons.includes('empty_description') && (
                       <Badge variant="destructive" className="text-[10px] gap-1">
                         <AlertCircle className="w-3 h-3" />

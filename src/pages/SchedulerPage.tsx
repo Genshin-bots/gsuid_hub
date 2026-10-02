@@ -161,12 +161,12 @@ export default function SchedulerPage() {
   return (
     <PinnedPage
       header={
-        <div className="min-w-0 overflow-x-auto">
-          <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
+        <div className="min-w-0 sm:overflow-x-auto">
+          <h1 className="sm:whitespace-nowrap text-3xl font-bold flex items-center gap-3">
             <Calendar className="w-8 h-8 shrink-0" />
             {t('scheduler.title')}
           </h1>
-          <p className="whitespace-nowrap text-muted-foreground mt-1">{t('scheduler.description')}</p>
+          <p className="sm:whitespace-nowrap text-muted-foreground mt-1">{t('scheduler.description')}</p>
         </div>
       }
     >
@@ -333,7 +333,7 @@ export default function SchedulerPage() {
           </DialogHeader>
           {selectedTask && (
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground">{t('scheduler.status')}</p>
                   {getStatusBadge(selectedTask.status)}

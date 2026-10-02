@@ -370,7 +370,7 @@ export default function FrameworkConfigPage() {
         <ButtonMarkdownSettings />
       ) : !selectedConfig.config || Object.keys(selectedConfig.config).length === 0 ? (
         <Card className="glass-card">
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             <div className="text-center py-8 text-muted-foreground">
               {t('frameworkConfig.noFrameworkConfig')}
             </div>
@@ -379,7 +379,7 @@ export default function FrameworkConfigPage() {
       ) : (
         <>
           <Card className="glass-card">
-            <CardContent className="p-6">
+            <CardContent className="p-4 sm:p-6">
               {Object.keys(selectedConfig.config).length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   {t('frameworkConfig.noConfigItems')}

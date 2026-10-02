@@ -312,7 +312,7 @@ export function DynamicConfigPanel({
         }
 
         return (
-          <div key={groupIndex} className="grid grid-cols-2 gap-4">
+          <div key={groupIndex} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {fields.map(({ key, item }) => renderField(key, item))}
           </div>
         );

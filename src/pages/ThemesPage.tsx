@@ -481,7 +481,7 @@ export default function ThemesPage() {
               <CardDescription>{t('themes.iconColorDesc')}</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 {iconColorOptions.map((option) => (
                   <SelectTile
                     key={option.id}
@@ -524,7 +524,7 @@ export default function ThemesPage() {
                         <Check className="absolute inset-0 m-auto w-5 h-5 text-white drop-shadow" />
                       )}
                     </span>
-                    <span className={cn('text-xs', color === theme.id ? 'text-primary font-medium' : 'text-muted-foreground')}>
+                    <span className={cn('text-xs truncate max-w-full', color === theme.id ? 'text-primary font-medium' : 'text-muted-foreground')}>
                       {t(theme.name)}
                     </span>
                   </button>
@@ -714,7 +714,7 @@ export default function ThemesPage() {
                   ) : (
                     <div className="w-full h-full" style={{ background: backgroundImage }} />
                   )}
-                  <Button size="icon" variant="destructive" className="absolute top-2 right-2 h-7 w-7" onClick={clearBackground}>
+                  <Button size="icon" variant="destructive" className="absolute top-1 right-1 h-9 w-9 sm:top-2 sm:right-2 sm:h-7 sm:w-7" onClick={clearBackground}>
                     <X className="w-4 h-4" />
                   </Button>
                   <span className="absolute bottom-1 left-1 text-xs bg-background/80 px-2 py-0.5 rounded">{t('themes.currentBg')}</span>

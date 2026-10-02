@@ -141,7 +141,7 @@ export function ChipGroup({
                     : undefined
             }
             className={cn(
-              "p-2.5 rounded-lg border-2 transition-all flex items-center gap-2",
+              "p-2.5 rounded-lg border-2 transition-all flex min-w-0 sm:min-w-auto items-center gap-2",
               "active:scale-[0.98]",
               isSelected
                 ? isConflict
@@ -180,7 +180,7 @@ export function ChipGroup({
               </span>
             )}
             <span className={cn(
-              "text-sm font-medium",
+              "text-sm font-medium min-w-0 sm:min-w-auto",
               isSelected && (isConflict ? "text-destructive" : "text-primary")
             )}>
               {option.label}

@@ -429,10 +429,10 @@ export default function AIDebugPage() {
                           : 'border-border/40 hover:border-border/70')
                       }
                     >
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline">{tk.node_kind}</Badge>
-                        <Badge>{tk.status}</Badge>
-                        <span className="font-mono text-xs text-muted-foreground truncate">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <Badge className="shrink-0" variant="outline">{tk.node_kind}</Badge>
+                        <Badge className="shrink-0">{tk.status}</Badge>
+                        <span className="min-w-0 font-mono text-xs text-muted-foreground truncate">
                           {tk.id}
                         </span>
                       </div>

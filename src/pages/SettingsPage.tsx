@@ -116,12 +116,12 @@ export default function SettingsPage() {
   return (
     <PinnedPage
       header={
-        <div className="min-w-0 overflow-x-auto">
-          <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
+        <div className="min-w-0 sm:overflow-x-auto">
+          <h1 className="sm:whitespace-nowrap text-3xl font-bold flex items-center gap-3">
             <User className="w-8 h-8 shrink-0" />
             {t('settings.title')}
           </h1>
-          <p className="whitespace-nowrap text-muted-foreground mt-1">{t('settings.description')}</p>
+          <p className="sm:whitespace-nowrap text-muted-foreground mt-1">{t('settings.description')}</p>
         </div>
       }
     >
@@ -149,7 +149,7 @@ export default function SettingsPage() {
                       {user?.name?.charAt(0) || 'U'}
                     </AvatarFallback>
                   )}
-                  <div className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <div className="absolute inset-0 rounded-full bg-black/50 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex items-center justify-center">
                     <Camera className="w-6 h-6 text-white" />
                   </div>
                 </Avatar>
@@ -201,7 +201,7 @@ export default function SettingsPage() {
             {/* Email (read-only) */}
             <div className="space-y-2">
               <Label>{t('login.email')}</Label>
-              <div className="px-3 py-2 rounded-md bg-muted/50 text-muted-foreground">
+              <div className="px-3 py-2 rounded-md bg-muted/50 text-muted-foreground break-all sm:break-normal">
                 {user?.email}
               </div>
               <p className="text-xs text-muted-foreground">{t('settings.emailReadOnly')}</p>

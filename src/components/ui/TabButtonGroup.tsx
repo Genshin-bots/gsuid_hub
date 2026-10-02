@@ -57,6 +57,13 @@ interface TabButtonGroupProps {
    * 桌面仍是分段按钮。有二级 `dropdown` 的项在收起态只切主 Tab。
    */
   collapseOnMobile?: boolean;
+  /**
+   * 窄屏（<768px）保持全部分段同行：等分铺满、隐藏图标、缩小字号、超长文案省略号。
+   * 与 `collapseOnMobile` 互斥。用于「分区必须一眼可见、可直接点到」的场景
+   * （/plugins 卡片头的 参数 / Plugin / SV 三分区）。
+   * 调用方需同时传 `w-full`，窄屏用 grid 等分（2–6 段，超出范围退回 flex 自适应）。
+   */
+  singleRowOnMobile?: boolean;
 }
 
 /**
@@ -71,6 +78,15 @@ export const tabToolbarIconButtonClass = 'h-11 w-11';
 /** 压掉 shadow-safe 竖直 bleed，便于与同行控件 items-center 齐平 */
 export const tabToolbarGroupWrapClass =
   'flex shrink-0 items-center [&_.shadow-safe]:!my-0 [&_.shadow-safe]:!py-0';
+
+/** `singleRowOnMobile` 的等分列数。必须写成字面量类名，JIT 扫不到模板拼出来的类。 */
+const GRID_COLS_CLASS: Record<number, string> = {
+  2: 'grid-cols-2',
+  3: 'grid-cols-3',
+  4: 'grid-cols-4',
+  5: 'grid-cols-5',
+  6: 'grid-cols-6',
+};
 
 function tabSegmentClassName(isActive: boolean, isDisabled: boolean, buttonClassName?: string) {
   return cn(
@@ -107,6 +123,7 @@ export function TabButtonGroup({
   buttonClassName,
   disabled = false,
   collapseOnMobile = false,
+  singleRowOnMobile = false,
 }: TabButtonGroupProps) {
   // className 作用在按钮容器（内层）上——调用方会传 grid/w-full 等布局类改写整条布局。
   // 外层只负责阴影安全区（shadow-safe 竖直负边距），并按内层是否铺满/禁缩镜像自身尺寸行为。
@@ -124,7 +141,14 @@ export function TabButtonGroup({
       )}
     >
       <div
-        className={cn('inline-flex min-w-0 flex-wrap gap-1 rounded-lg p-1 glass-card', className)}
+        className={cn(
+          'inline-flex min-w-0 flex-wrap gap-1 rounded-lg p-1 glass-card',
+          // 窄屏等分成 N 列不换行，好过收成下拉丢掉「分区一眼可见」。
+          // 用 grid 而非 flex：flex 下「主区 + ▾」拆分按钮里的 nowrap 文本会把整段
+          // 撑到 min-content，flex-1 等分直接失效（实测 82/98/98，grid 才是 93/93/93）。
+          singleRowOnMobile && cn('grid sm:inline-flex', GRID_COLS_CLASS[options.length]),
+          className,
+        )}
       >
         {options.map((option) => {
           const isActive = value === option.value;
@@ -143,6 +167,7 @@ export function TabButtonGroup({
                   // 外层只负责底色/对齐；padding 由内层主区 / ▾ 自己带。
                   // 必须写在 buttonClassName 之后：无前缀 p-0 盖不住 sm:px-*。
                   'inline-flex min-w-0 items-stretch overflow-hidden rounded-md gap-0 p-0',
+                  singleRowOnMobile && 'flex-1 text-xs sm:flex-none sm:text-sm',
                 )}
               >
                 {/* 主按钮：选中该 Tab + 二级筛选回到「全部」 */}
@@ -159,15 +184,21 @@ export function TabButtonGroup({
                   className={cn(
                     'flex min-w-0 items-center gap-1.5 sm:gap-2 px-2.5 sm:pl-4 sm:pr-2 py-2 rounded-none bg-transparent',
                     'hover:bg-transparent focus-visible:outline-none',
+                    singleRowOnMobile && 'flex-1 justify-center px-2 sm:flex-none sm:justify-start',
                     isDisabled && 'cursor-not-allowed',
                   )}
                 >
                   {option.icon != null && (
-                    <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center">
+                    <span
+                      className={cn(
+                        'flex h-[22px] w-[22px] shrink-0 items-center justify-center',
+                        singleRowOnMobile && 'hidden sm:flex',
+                      )}
+                    >
                       {asHoverIcon(option.icon)}
                     </span>
                   )}
-                  <span className="truncate">{option.label}</span>
+                  <span className="min-w-0 truncate">{option.label}</span>
                 </button>
 
                 <span
@@ -191,6 +222,7 @@ export function TabButtonGroup({
                       aria-label="Open filter menu"
                       className={cn(
                         'group flex items-center justify-center rounded-none border-0 bg-transparent px-2.5 py-2',
+                        singleRowOnMobile && 'px-1.5 sm:px-2.5',
                         'hover:bg-black/5 dark:hover:bg-white/10 focus-visible:outline-none',
                         'data-[state=open]:bg-black/5 dark:data-[state=open]:bg-white/10',
                         isDisabled && 'cursor-not-allowed',
@@ -247,14 +279,21 @@ export function TabButtonGroup({
               className={cn(
                 tabSegmentClassName(isActive, isDisabled, buttonClassName),
                 'rounded-md px-2.5 py-2 sm:px-4',
+                singleRowOnMobile &&
+                  'min-w-0 flex-1 justify-center px-2 text-xs sm:flex-none sm:px-4 sm:text-sm',
               )}
             >
               {option.icon != null && (
-                <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center">
+                <span
+                  className={cn(
+                    'flex h-[22px] w-[22px] shrink-0 items-center justify-center',
+                    singleRowOnMobile && 'hidden sm:flex',
+                  )}
+                >
                   {asHoverIcon(option.icon)}
                 </span>
               )}
-              {option.label}
+              <span className={cn(singleRowOnMobile && 'min-w-0 truncate')}>{option.label}</span>
             </button>
           );
         })}
@@ -291,24 +330,60 @@ export function TabButtonGroup({
               {options.map((option) => {
                 const selected = value === option.value;
                 const isDisabled = disabled || !!option.disabled;
+                const dropdown = option.dropdown;
+                const hasSubItems = !!dropdown && dropdown.items.length > 0;
                 return (
-                  <DropdownMenuItem
-                    key={option.value}
-                    disabled={isDisabled}
-                    onSelect={() => onValueChange(option.value)}
-                    className="cursor-pointer gap-2"
-                  >
-                    <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center [&>img]:h-4 [&>img]:w-4 [&>svg]:h-4 [&>svg]:w-4">
-                      {option.icon ?? null}
-                    </span>
-                    <span className="min-w-0 flex-1 truncate">{option.label}</span>
-                    <Check
-                      className={cn(
-                        'h-4 w-4 shrink-0 text-primary',
-                        selected ? 'opacity-100' : 'opacity-0',
-                      )}
-                    />
-                  </DropdownMenuItem>
+                  <React.Fragment key={option.value}>
+                    <DropdownMenuItem
+                      disabled={isDisabled}
+                      onSelect={() => {
+                        onValueChange(option.value);
+                        if (dropdown) {
+                          dropdown.onValueChange(dropdown.allValue ?? dropdown.items[0]?.value);
+                        }
+                      }}
+                      className="cursor-pointer gap-2"
+                    >
+                      <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center [&>img]:h-4 [&>img]:w-4 [&>svg]:h-4 [&>svg]:w-4">
+                        {option.icon ?? null}
+                      </span>
+                      <span className="min-w-0 flex-1 truncate">{option.label}</span>
+                      <Check
+                        className={cn(
+                          'h-4 w-4 shrink-0 text-primary',
+                          selected ? 'opacity-100' : 'opacity-0',
+                        )}
+                      />
+                    </DropdownMenuItem>
+                    {/* 二级筛选摊平进同一张菜单：收起态只有一个菜单可点，
+                        不摊平会让带 dropdown 的主 Tab 在窄屏丢掉切换能力 */}
+                    {hasSubItems &&
+                      dropdown.items.map((item) => {
+                        const subSelected = dropdown.value === item.value;
+                        return (
+                          <DropdownMenuItem
+                            key={`${option.value}:${item.value}`}
+                            disabled={item.disabled}
+                            onSelect={() => {
+                              onValueChange(option.value);
+                              dropdown.onValueChange(item.value);
+                            }}
+                            className="cursor-pointer gap-2 pl-8"
+                          >
+                            <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center [&>img]:h-4 [&>img]:w-4 [&>svg]:h-4 [&>svg]:w-4">
+                              {item.icon ?? null}
+                            </span>
+                            <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                            <Check
+                              className={cn(
+                                'h-4 w-4 shrink-0 text-primary',
+                                subSelected ? 'opacity-100' : 'opacity-0',
+                              )}
+                            />
+                          </DropdownMenuItem>
+                        );
+                      })}
+                  </React.Fragment>
                 );
               })}
             </DropdownMenuContent>

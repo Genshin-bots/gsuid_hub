@@ -891,12 +891,12 @@ export default function AIKnowledgePage() {
     <PinnedPage
       header={
         /* 页面标题 */
-        <div className="min-w-0 overflow-x-auto">
-          <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
+        <div className="min-w-0 sm:overflow-x-auto">
+          <h1 className="sm:whitespace-nowrap text-3xl font-bold flex items-center gap-3">
             <BookOpen className="w-8 h-8 shrink-0" />
             {t('aiKnowledge.title')}
           </h1>
-          <p className="whitespace-nowrap text-muted-foreground mt-1">{t('aiKnowledge.description')}</p>
+          <p className="sm:whitespace-nowrap text-muted-foreground mt-1">{t('aiKnowledge.description')}</p>
         </div>
       }
       toolbar={

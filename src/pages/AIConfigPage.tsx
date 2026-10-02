@@ -1223,16 +1223,16 @@ export default function AIConfigPage() {
       {/* Header（外边距由 AppLayout --layout-gutter 统一提供） */}
       <div className="shrink-0 pb-3">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div className="min-w-0 overflow-x-auto">
+          <div className="min-w-0 sm:overflow-x-auto">
             <h1 className="whitespace-nowrap text-xl sm:text-3xl font-bold flex items-center gap-2 sm:gap-3">
               <Bot className="w-6 h-6 sm:w-8 sm:h-8 shrink-0" />
               {t('aiConfig.title')}
             </h1>
-            <p className="whitespace-nowrap text-muted-foreground mt-1 text-xs sm:text-sm">
+            <p className="sm:whitespace-nowrap text-muted-foreground mt-1 text-xs sm:text-sm">
               {t('aiConfig.description')}
             </p>
           </div>
-          <div className="flex flex-wrap items-center justify-end gap-2 self-end sm:self-auto">
+          <div className="flex flex-wrap items-center justify-start gap-2 self-start sm:justify-end sm:self-auto">
             {isAIEnabled && (
               <Button
                 onClick={aiSwitch.handleOpenHelp}
@@ -1330,13 +1330,13 @@ export default function AIConfigPage() {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 sm:gap-3">
-                  <span className="text-sm sm:text-base font-semibold">
+                  <span className="min-w-0 text-sm sm:text-base font-semibold">
                     {t('aiConfig.serviceSwitch.title')}
                   </span>
                   <Badge
                     variant={isAIEnabled ? 'default' : 'secondary'}
                     className={cn(
-                      'text-xs font-medium',
+                      'shrink-0 text-xs font-medium',
                       isAIEnabled &&
                         'bg-primary/15 text-primary hover:bg-primary/20 border-primary/20',
                     )}

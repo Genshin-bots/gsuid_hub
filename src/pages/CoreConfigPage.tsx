@@ -266,7 +266,7 @@ export default function CoreConfigPage() {
     >
       <Card className="glass-card">
         {/* 无 CardHeader 时需显式 pt-6，否则默认 pt-0 会把顶部提醒贴在卡片顶边 */}
-        <CardContent className="space-y-6 pt-6">
+        <CardContent className="space-y-6 p-4 pt-4 sm:p-6 sm:pt-6">
           {/* Warning Alert */}
           {showWarning && (
             <Alert
@@ -280,7 +280,7 @@ export default function CoreConfigPage() {
               <button
                 type="button"
                 onClick={() => setShowWarning(false)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-orange-500 hover:text-orange-700"
+                className="absolute right-1 top-1/2 -translate-y-1/2 p-2 text-orange-500 hover:text-orange-700 sm:right-3 sm:p-0"
               >
                 <X className="h-4 w-4" />
               </button>

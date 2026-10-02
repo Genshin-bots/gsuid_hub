@@ -151,9 +151,11 @@ export function MessageComposer({
         </div>
       )}
 
-      <div className="flex items-end gap-2">
+      {/* 窄屏：附件按钮组独占一行，输入框 + 发送键共用下一行。
+          否则 5 个 32px 附件键 + 发送键会把输入框压到 ~65px */}
+      <div className="flex flex-wrap items-end gap-2 sm:flex-nowrap">
         <TooltipProvider delayDuration={300}>
-          <div className="flex items-center gap-0.5 shrink-0 pb-0.5">
+          <div className="flex w-full items-center gap-0.5 shrink-0 pb-0.5 sm:w-auto">
             <input
               ref={imageRef}
               type="file"
@@ -306,7 +308,7 @@ export function MessageComposer({
           disabled={disabled || sending}
           rows={1}
           className={cn(
-            'min-h-9 max-h-32 resize-none text-sm py-2',
+            'min-h-9 max-h-32 min-w-0 flex-1 resize-none text-sm py-2',
             'focus-visible:ring-1',
           )}
         />

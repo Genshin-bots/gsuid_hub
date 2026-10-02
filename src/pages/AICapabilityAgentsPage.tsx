@@ -510,14 +510,14 @@ export default function AICapabilityAgentsPage() {
     <PinnedPage
       header={
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="min-w-0 overflow-x-auto">
-            <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
+          <div className="min-w-0 sm:overflow-x-auto">
+            <h1 className="sm:whitespace-nowrap text-3xl font-bold flex items-center gap-3">
               <Bot className="w-8 h-8 shrink-0" />
               {t('aiCapabilityAgents.title')}
             </h1>
-            <p className="whitespace-nowrap text-muted-foreground mt-1">{t('aiCapabilityAgents.description')}</p>
+            <p className="sm:whitespace-nowrap text-muted-foreground mt-1">{t('aiCapabilityAgents.description')}</p>
           </div>
-          <div className="flex flex-wrap items-center gap-2 self-end lg:self-auto">
+          <div className="flex flex-wrap items-center gap-2 self-start lg:self-auto">
             <Button variant="outline" onClick={loadData} disabled={isLoading} className="gap-2">
               {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
               {t('common.refresh') || '刷新'}
@@ -532,7 +532,7 @@ export default function AICapabilityAgentsPage() {
       toolbar={
         /* 来源筛选 + 搜索 */
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-          <div className="min-w-0 overflow-x-auto">
+          <div className="min-w-0 sm:overflow-x-auto">
             <TabButtonGroup
               options={sourceOptions}
               value={activeSource}

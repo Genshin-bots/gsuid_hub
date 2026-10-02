@@ -701,6 +701,42 @@ main:has(.page-fill) .layout-page-inner {
   }
 }
 
+/* ============================================================================
+ * 移动端收敛（仅 <768px 生效，桌面逐像素不变）
+ * ============================================================================
+ *
+ * 桌面版式已验收，这里只针对窄屏（375–430px）做三件事，全部收在同一个
+ * max-width 断点里，避免误伤 ≥768px 的既有排版：
+ *
+ * 1) 收窄 gutter / page-top。1.5rem×2 = 48px 的页边距在 375px 屏上直接吃掉
+ *    13% 宽度，卡片再叠一层 p-6 后正文只剩 ~280px——表格与双列网格必崩。
+ *    收到 1rem 后正文净增 16px，配合卡片 p-4 共净增 32px。
+ *
+ * 2) 弹窗 .dialog-content 留出两侧安全边距 + 视口内可滚。Radix DialogContent
+ *    默认 w-full，在窄屏等于左右贴死视口边缘；长表单/宽表格还会顶出屏幕。
+ *    这条写在工具类之后（无 @layer），故移动端统一以本规则为准，调用方的
+ *    w-[95vw]/max-h-[80vh] 只在 ≥768px 生效——各页调用方零改动。
+ *
+ * 3) 卡片 / 表格密度（p-6→p-4 等）由 Card/Table 组件的 `sm:` 前缀工具类
+ *    承担，见 src/components/ui/card.tsx、table.tsx——不写在这里，因为写在这里
+ *    会反压调用方传入的 padding。
+ */
+@media (max-width: 767px) {
+  :root {
+    --layout-gutter: 1rem;
+    --layout-page-top: 1.5rem;
+  }
+
+  /* 抽屉宽度随 gutter 收窄，菜单不至于盖满整屏 */
+  .dialog-content {
+    width: calc(100vw - 1.5rem);
+    max-width: calc(100vw - 1.5rem);
+    max-height: 88dvh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+}
+
 /* Solid mode - remove glass effect from dropdown/popover elements */
 [data-style="solid"] .bg-popover,
 [data-style="solid"] [data-state="open"].bg-popover,

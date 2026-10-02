@@ -572,10 +572,10 @@ export default function Dashboard() {
             <p className="text-muted-foreground mt-1">{t('dashboard.description')}</p>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Bot className="w-5 h-5 text-muted-foreground" />
+          <div className="flex w-full items-center gap-2 sm:w-auto">
+            <Bot className="w-5 h-5 text-muted-foreground shrink-0" />
             <Select value={selectedBot} onValueChange={setSelectedBot}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder={t('dashboard.selectBot')} />
               </SelectTrigger>
               <SelectContent>
@@ -650,7 +650,7 @@ export default function Dashboard() {
             <Button
               variant="outline"
               className={cn(
-                'w-[260px] justify-start text-left font-normal',
+                'w-full justify-start text-left font-normal sm:w-[260px]',
                 !selectedDate && 'text-muted-foreground',
               )}
             >

@@ -130,13 +130,15 @@ export function PluginUsageBar({ plugins, usageNames, value, onValueChange }: Pl
   return (
     <div className="min-w-0 max-w-full">
       {renderMeasure}
-      <div className="inline-flex max-w-full shadow-safe md:hidden">
-        <div className="inline-flex min-w-0 max-w-full rounded-lg p-1 glass-card">
+      {/* 移动端：整行铺满的「当前插件 ▾」，比左对齐的窄胶囊更像一个可点的控件 */}
+      <div className="w-full max-w-full shadow-safe md:hidden">
+        <div className="flex w-full min-w-0 max-w-full rounded-lg p-1 glass-card">
           <PluginMenu
             plugins={ordered}
             value={value}
             onValueChange={onValueChange}
             label={selected?.name || t('plugins.selectPlugin')}
+            fullWidth
             icon={
               selected ? (
                 <PluginIcon pluginName={selected.name} />
@@ -195,6 +197,7 @@ function PluginMenu({
   icon,
   active = true,
   emptyLabel,
+  fullWidth = false,
 }: {
   plugins: PluginListItem[];
   value: string;
@@ -203,6 +206,8 @@ function PluginMenu({
   icon?: ReactNode;
   active?: boolean;
   emptyLabel?: string;
+  /** 移动端整行铺满：行内 flex 只拉伸高度，宽度要显式给 */
+  fullWidth?: boolean;
 }) {
   return (
     <DropdownMenu>
@@ -212,12 +217,20 @@ function PluginMenu({
           className={cn(
             hoverIconGroupClass,
             'inline-flex min-w-0 max-w-full items-stretch overflow-hidden rounded-md p-0 text-sm font-medium',
+            fullWidth && 'w-full',
             active
               ? 'bg-primary text-primary-foreground [&_svg]:text-current'
               : 'text-muted-foreground hover:bg-muted/80 hover:text-foreground [&_svg]:text-current',
           )}
         >
-          <span className="flex min-w-0 items-center gap-2 px-2.5 py-2 sm:pl-4 sm:pr-2">
+          {/* 铺满时让标签区吃掉剩余宽度，箭头才会被推到右缘；
+              否则内容全挤在左侧，右侧留一整条空白。 */}
+          <span
+            className={cn(
+              'flex min-w-0 items-center gap-2 px-2.5 py-2 sm:pl-4 sm:pr-2',
+              fullWidth && 'flex-1',
+            )}
+          >
             <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center">
               {icon != null ? asHoverIcon(icon) : null}
             </span>
@@ -230,7 +243,7 @@ function PluginMenu({
             )}
             aria-hidden
           />
-          <span className="flex items-center px-2.5">
+          <span className="flex shrink-0 items-center px-2.5">
             <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-70" />
           </span>
         </button>

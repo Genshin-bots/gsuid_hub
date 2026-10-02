@@ -248,15 +248,15 @@ export default function AISkillsPage() {
       header={
         /* 页面标题 */
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div className="min-w-0 overflow-x-auto">
-            <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
+          <div className="min-w-0 sm:overflow-x-auto">
+            <h1 className="sm:whitespace-nowrap text-3xl font-bold flex items-center gap-3">
               <Sparkles className="w-8 h-8 shrink-0" />
               {t('aiSkills.title')}
             </h1>
-            <p className="whitespace-nowrap text-muted-foreground mt-1">{t('aiSkills.description')}</p>
+            <p className="sm:whitespace-nowrap text-muted-foreground mt-1">{t('aiSkills.description')}</p>
           </div>
           {/* 新增技能按钮 */}
-          <Button onClick={() => setAddDialogOpen(true)} className="gap-2 whitespace-nowrap self-end sm:self-auto">
+          <Button onClick={() => setAddDialogOpen(true)} className="gap-2 whitespace-nowrap self-start sm:self-auto">
             <Plus className="h-4 w-4" />
             {t('aiSkills.addSkill')}
           </Button>
@@ -314,11 +314,11 @@ export default function AISkillsPage() {
               onClick={() => handleSkillClick(skill)}
             >
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 pr-20">
+                <CardTitle className="flex items-center gap-2 sm:pr-20">
                   <Sparkles className="w-5 h-5 text-primary shrink-0" />
                   <span className="text-lg truncate">{skill.title}</span>
                 </CardTitle>
-                <CardDescription className="text-xs text-muted-foreground font-mono">
+                <CardDescription className="text-xs text-muted-foreground font-mono break-all">
                   {skill.name}
                 </CardDescription>
               </CardHeader>

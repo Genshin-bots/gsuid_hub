@@ -726,7 +726,7 @@ export default function AIHistoryPage() {
           {selectedCard && mainDetail ? (
             <>
               {/* 详情头部 */}
-              <div className="h-14 border-b border-border/40 px-3 sm:px-4 flex items-center justify-between shrink-0">
+              <div className="h-auto min-h-14 py-2 sm:h-14 sm:py-0 border-b border-border/40 px-3 sm:px-4 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-2 min-w-0 flex-1">
                   <Button variant="ghost" size="icon" className="sm:hidden h-8 w-8 shrink-0" onClick={handleBackToList}>
                     <ChevronLeft className="w-5 h-5" />

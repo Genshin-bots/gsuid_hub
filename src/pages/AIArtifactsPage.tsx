@@ -308,9 +308,9 @@ export default function AIArtifactsPage() {
         <div className="flex flex-wrap items-end gap-3">
           <div className="space-y-1">
             <Label>{t('aiArtifacts.toolbar.filterRoot')}</Label>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Input
-                className="h-9 font-mono min-w-[280px]"
+                className="h-9 font-mono min-w-0 flex-1 sm:min-w-[280px] sm:flex-none"
                 placeholder="root_task_id"
                 value={rootTaskId}
                 onChange={(e) => setRootTaskId(e.target.value)}

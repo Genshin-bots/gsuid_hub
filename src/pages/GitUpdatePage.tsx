@@ -757,7 +757,7 @@ export default function GitUpdatePage() {
               {t('gitUpdate.description')}
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button
               variant="outline"
               onClick={() => setGitMirrorOpen(true)}
@@ -855,7 +855,7 @@ export default function GitUpdatePage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 <div className="flex items-center gap-2 min-w-0">
                   <MessageSquare className="w-4 h-4 text-muted-foreground shrink-0" />
-                  <span className="text-sm break-words leading-relaxed truncate">{currentPlugin.current_commit.message}</span>
+                  <span className="text-sm break-words leading-relaxed line-clamp-2 sm:truncate">{currentPlugin.current_commit.message}</span>
                 </div>
                 {currentMirrorInfo?.remote_url && (
                   <div className="flex items-center gap-2 min-w-0">
@@ -902,7 +902,7 @@ export default function GitUpdatePage() {
                 {t('gitUpdate.detachedHeadWarning')}
               </CardDescription>
             </div>
-            <div className="flex flex-row gap-2 shrink-0 justify-end items-end">
+            <div className="flex flex-row gap-2 shrink-0 justify-start items-end sm:justify-end">
               <Button
                 variant="default"
                 size="sm"

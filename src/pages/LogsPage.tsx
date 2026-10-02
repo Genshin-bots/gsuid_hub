@@ -106,7 +106,7 @@ const LogEntryItem = memo(function LogEntryItem({
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7"
+            className="h-9 w-9 sm:h-7 sm:w-7"
             onClick={(e) => {
               e.stopPropagation();
               onViewContext();
@@ -119,7 +119,7 @@ const LogEntryItem = memo(function LogEntryItem({
             <Button
               variant="ghost"
               size="icon"
-              className="h-7 w-7"
+              className="h-9 w-9 sm:h-7 sm:w-7"
               onClick={(e) => {
                 e.stopPropagation();
                 onToggle();
@@ -505,16 +505,16 @@ export default function LogsPage() {
       header={
         /* Header */
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div className="min-w-0 overflow-x-auto">
-            <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
+          <div className="min-w-0 sm:overflow-x-auto">
+            <h1 className="sm:whitespace-nowrap text-3xl font-bold flex items-center gap-3">
               <FileText className="w-8 h-8 shrink-0" />
               {t('logs.title')}
             </h1>
-            <p className="whitespace-nowrap text-muted-foreground mt-1">{t('logs.description')}</p>
+            <p className="sm:whitespace-nowrap text-muted-foreground mt-1">{t('logs.description')}</p>
           </div>
 
           {view === 'runtime' ? (
-            <div className="flex flex-wrap justify-end gap-2 self-end sm:self-auto">
+            <div className="flex flex-wrap justify-start gap-2 self-start sm:justify-end sm:self-auto">
               <Button
                 variant="outline"
                 onClick={handleRefresh}
@@ -824,7 +824,7 @@ export default function LogsPage() {
           {/* Pagination - 固定高度 */}
           <Card className="glass-card shrink-0">
             <CardContent className="p-3">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div className="text-sm text-muted-foreground">
                   {t('common.pageInfo')
                     .replace('{current}', currentPage.toString())

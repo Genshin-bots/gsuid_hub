@@ -22,18 +22,18 @@ export default function StateStorePage() {
     <PinnedPage
       header={
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div className="min-w-0 overflow-x-auto">
-            <h1 className="whitespace-nowrap text-3xl font-bold flex items-center gap-3">
+          <div className="min-w-0 sm:overflow-x-auto">
+            <h1 className="sm:whitespace-nowrap text-3xl font-bold flex items-center gap-3">
               <Database className="w-8 h-8 shrink-0" />
               {t('stateStore.title')}
             </h1>
-            <p className="whitespace-nowrap text-muted-foreground mt-1">
+            <p className="text-muted-foreground mt-1 sm:whitespace-nowrap">
               {t('stateStore.description')}
             </p>
           </div>
           <Button
             variant="outline"
-            className="h-9 whitespace-nowrap self-end sm:self-auto"
+            className="h-9 whitespace-nowrap self-start sm:self-auto"
             disabled={selectedCount === 0}
             onClick={() => ref.current?.openBatchDelete()}
           >

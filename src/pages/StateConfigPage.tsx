@@ -132,7 +132,7 @@ export default function StateConfigPage() {
       {/* 机器人名称设置 - 放在第一行 */}
       {nameConfigs.length > 0 && (
         <Card className="glass-card">
-          <CardContent className="p-6 space-y-4">
+          <CardContent className="p-4 sm:p-6 space-y-4">
             <div className="flex items-center gap-2 mb-2">
               <Bot className="w-5 h-5 text-muted-foreground" />
               <span className="font-medium">机器人名称设置</span>
@@ -154,11 +154,11 @@ export default function StateConfigPage() {
       {/* 开关配置 */}
       {boolConfigs.length > 0 && (
         <Card className="glass-card">
-          <CardContent className="p-6 space-y-4">
+          <CardContent className="p-4 sm:p-6 space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {boolConfigs.map(([key, field]) => (
-                <div key={key} className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
-                  <div>
+                <div key={key} className="flex items-center justify-between gap-3 p-4 bg-muted/50 rounded-lg">
+                  <div className="min-w-0">
                     <Label className="text-base font-medium">{field.label}</Label>
                     <p className="text-sm text-muted-foreground">{field.description}</p>
                   </div>
@@ -176,7 +176,7 @@ export default function StateConfigPage() {
       {/* 图片配置 */}
       {imageConfigs.length > 0 && (
         <Card className="glass-card">
-          <CardContent className="p-6 space-y-4">
+          <CardContent className="p-4 sm:p-6 space-y-4">
             <div className="flex items-center gap-2 mb-2">
               <Image className="w-5 h-5 text-muted-foreground" />
               <span className="font-medium">图片设置</span>
@@ -198,7 +198,7 @@ export default function StateConfigPage() {
       {/* 下拉选择配置 */}
       {selectConfigs.length > 0 && (
         <Card className="glass-card">
-          <CardContent className="p-6 space-y-4">
+          <CardContent className="p-4 sm:p-6 space-y-4">
             <div className="flex items-center gap-2 mb-2">
               <Type className="w-5 h-5 text-muted-foreground" />
               <span className="font-medium">文本设置</span>

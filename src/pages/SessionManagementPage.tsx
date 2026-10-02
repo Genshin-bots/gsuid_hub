@@ -621,7 +621,7 @@ export default function SessionManagementPage() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="sm:hidden h-8 w-8 shrink-0"
+                  className="sm:hidden h-11 w-11 shrink-0"
                   onClick={() => setSelectedSession(null)}
                 >
                   <ChevronLeft className="w-5 h-5" />
