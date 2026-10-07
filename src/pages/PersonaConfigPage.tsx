@@ -1789,7 +1789,9 @@ export default function PersonaConfigPage() {
                         <Settings className="h-4 w-4" />
                         {t('personaConfig.aiModes')}
                       </Label>
-                      <div className="grid grid-cols-2 gap-3 items-stretch sm:grid-cols-5">
+                      {/* 断点与「启用范围」对齐：sm 就上 5 列会把每格压到 ~130px，
+                          标题里的「(即将推出)」无处安放，只能折行 */}
+                      <div className="grid grid-cols-2 gap-3 items-stretch sm:grid-cols-3 lg:grid-cols-5">
                         {AI_MODE_OPTIONS.map((mode) => (
                           <button
                             key={mode.value}
@@ -1823,7 +1825,8 @@ export default function PersonaConfigPage() {
                               {mode.icon}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <div className="font-medium text-sm flex items-center gap-2">
+                              {/* 标题与「(即将推出)」合成一行整体截断：窄格下允许省略，不折成两行 */}
+                              <div className="font-medium text-sm truncate">
                                 {mode.label}
                                 {mode.disabled && (
                                   <span className="text-xs text-muted-foreground">

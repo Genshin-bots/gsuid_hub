@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useLayoutEffect } from 'react';
 import { X, Search, Plus, Copy, Check } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,12 @@ interface TagsInputProps {
   disabled?: boolean;
   options?: string[];
 }
+
+/**
+ * 胶囊核心样式。量尺行与可见行必须引用同一份，否则量出来的宽度对不上真实渲染宽度。
+ */
+const TAG_CHIP =
+  'flex items-center rounded-full border gap-1 h-6 text-xs px-2.5 font-semibold shrink-0';
 
 export const TagsInput: React.FC<TagsInputProps> = ({
   value,
@@ -107,32 +113,64 @@ export const TagsInput: React.FC<TagsInputProps> = ({
     (!searchQuery || opt.toLowerCase().includes(searchQuery.toLowerCase()))
   ) || [];
 
-  // 动态计算能显示的标签数量
-  const TAG_WIDTH = 80;
-  const INPUT_WIDTH = 120;
-  const PADDING = 24;
-  const GAP = 8;
-  const CONTAINER_MIN_WIDTH = 200;
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [containerWidth, setContainerWidth] = useState(CONTAINER_MIN_WIDTH);
+  // 可见胶囊数按真实像素算，不用固定常量估。
+  // 胶囊宽度随文案长度变（群号 10 位 vs 昵称 2 字），常量估窄会多塞标签；标签轨再 flex-shrink-0 撑破容器，
+  // 行级 overflow-hidden 就把尾部「更多」裁掉 —— 窄屏下永远点不到（P-28）。
+  // 量尺行离屏渲染全部标签量真实宽度；尾部（+N 与「更多」）永不收缩，让位的是标签轨自己。
+  const TAG_GAP = 8;
+  const railRef = useRef<HTMLDivElement>(null);
+  const gaugeRef = useRef<HTMLDivElement>(null);
+  const badgeRef = useRef<HTMLDivElement>(null);
+  const [metrics, setMetrics] = useState({ rail: 0, badge: 0, widths: [] as number[] });
 
-  useEffect(() => {
-    const updateWidth = () => {
-      if (containerRef.current) {
-        setContainerWidth(containerRef.current.offsetWidth);
-      }
+  // 无依赖：每次渲染后同步一次几何。相同值原样返回 prev，React 会跳过重渲染，不会自激。
+  useLayoutEffect(() => {
+    const rail = railRef.current;
+    const gauge = gaugeRef.current;
+    const badge = badgeRef.current;
+    const chips = gauge?.firstElementChild;
+    if (!rail || !chips || !badge) return;
+    const widths = Array.from(chips.children, (el) =>
+      Math.round(el.getBoundingClientRect().width),
+    );
+    const next = {
+      rail: rail.clientWidth,
+      // 徽标按最坏位数（+9999）预留：按真实位数预留会和「徽标出没出现」互为因果，
+      // 每次多渲染一轮都可能换一个 k，最后一个胶囊被裁成半个。
+      badge: Math.round(badge.getBoundingClientRect().width),
+      widths,
     };
-    updateWidth();
-    window.addEventListener('resize', updateWidth);
-    return () => window.removeEventListener('resize', updateWidth);
-  }, []);
+    setMetrics((prev) => {
+      const same =
+        prev.rail === next.rail &&
+        prev.badge === next.badge &&
+        prev.widths.length === widths.length &&
+        prev.widths.every((w, i) => w === widths[i]);
+      return same ? prev : next;
+    });
+  });
 
-  const EXTRA_WIDTH = 50;
-  const BUFFER = 10;
-  const availableWidth = containerWidth - INPUT_WIDTH - PADDING - EXTRA_WIDTH - BUFFER;
-  const maxVisibleTags = Math.max(0, Math.floor(availableWidth / (TAG_WIDTH + GAP)));
-  const visibleTags = listValue.slice(0, maxVisibleTags > 0 ? maxVisibleTags : 0);
-  const hiddenCount = Math.max(0, listValue.length - maxVisibleTags);
+  const fitCount = (total: number): number => {
+    let used = 0;
+    let n = 0;
+    for (let i = 0; i < listValue.length; i++) {
+      const w = metrics.widths[i];
+      if (!w) break;
+      const need = (i > 0 ? TAG_GAP : 0) + w;
+      if (used + need > total) break;
+      used += need;
+      n++;
+    }
+    return n;
+  };
+  // 先试「不出徽标」；放不下才按预留宽度重算。只放得下部分胶囊时，最后一个必定完整。
+  const withoutBadge = fitCount(metrics.rail);
+  const visibleCount =
+    withoutBadge >= listValue.length
+      ? withoutBadge
+      : fitCount(metrics.rail - metrics.badge - TAG_GAP);
+  const visibleTags = listValue.slice(0, visibleCount);
+  const hiddenCount = listValue.length - visibleCount;
 
   // 打开 Popover 时聚焦到输入框
   const handleOpenChange = (open: boolean) => {
@@ -146,56 +184,78 @@ export const TagsInput: React.FC<TagsInputProps> = ({
 
   return (
     <div
-      ref={containerRef}
       className={cn(
-        'border rounded-md bg-background/30 backdrop-blur-sm h-10 w-full overflow-hidden',
+        'relative border rounded-md bg-background/30 backdrop-blur-sm h-10 w-full overflow-hidden',
         // 冻结态（disabled）走仓库既有的虚线语言：虚线框 + 灰底。变灰一律用 opacity，
         // 本主题的 --muted-foreground 与 --foreground 同色，改文字色等于没改
         disabled && 'border-dashed bg-muted/30',
       )}
     >
-      <div className="flex items-center gap-2 px-3 h-full overflow-hidden">
-        {/* 已添加的标签列表 - 固定宽度，超出显示 +N */}
-        <div className="flex items-center gap-2 overflow-hidden flex-shrink-0">
+      {/* 量尺行：离屏渲染全部标签量真实宽度，不占布局也不可见。
+          「+9999」徽标是预留宽度用的量尺，实际徽标比它窄 */}
+      <div
+        ref={gaugeRef}
+        aria-hidden
+        className="pointer-events-none invisible absolute left-0 top-0 w-max flex items-center gap-2"
+      >
+        <div className="flex items-center gap-2">
+          {listValue.map((item) => (
+            <div key={item} className={cn(TAG_CHIP, 'text-secondary-foreground')}>
+              <span className="truncate max-w-[80px]">{truncateToWidth(item, 10)}</span>
+              <X className="w-3 h-3 shrink-0" />
+            </div>
+          ))}
+        </div>
+        <div
+          ref={badgeRef}
+          className={cn(TAG_CHIP, 'border-transparent bg-primary/20 text-primary')}
+        >
+          +9999
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2 px-3 h-full">
+        {/* 标签轨：可收缩 + 自裁。放不下就让位，绝不把尾部顶出可视区 */}
+        <div ref={railRef} className="flex items-center gap-2 flex-1 min-w-0 overflow-hidden">
           {visibleTags.map((item, index) => (
             <div
-              key={index}
+              key={item}
               className={cn(
-                'flex items-center rounded-full border text-secondary-foreground backdrop-blur-sm gap-1 h-6 text-xs px-2.5 py-0.5 font-semibold transition-colors shrink-0',
+                TAG_CHIP,
+                'text-secondary-foreground backdrop-blur-sm transition-colors',
                 disabled
                   ? 'bg-muted/40 border-dashed opacity-60'
                   : 'border-transparent bg-secondary/30 hover:bg-secondary/50',
               )}
             >
-              <span className="truncate max-w-[80px]">
-                {truncateToWidth(item, 10)}
-              </span>
+              <span className="truncate max-w-[80px]">{truncateToWidth(item, 10)}</span>
               <button
                 onClick={() => handleRemoveTag(index)}
                 className="hover:text-destructive shrink-0 disabled:pointer-events-none disabled:opacity-40"
                 disabled={disabled}
-                title="删除"
+                title={t('tagsInput.delete')}
               >
                 <X className="w-3 h-3" />
               </button>
             </div>
           ))}
+        </div>
+
+        {/* 尾部：+N 与「更多」永不收缩，窄屏也始终完整可点 */}
+        <div className="flex items-center gap-1.5 shrink-0">
           {hiddenCount > 0 && (
             <div
               className={cn(
-                'flex items-center rounded-full border text-secondary-foreground gap-1 h-6 text-xs px-2.5 py-0.5 font-semibold shrink-0',
+                TAG_CHIP,
                 disabled
-                  ? 'border-dashed border-border/60 bg-muted/40 opacity-60'
+                  ? 'border-dashed border-border/60 bg-muted/40 text-secondary-foreground opacity-60'
                   : 'border-transparent bg-primary/20 text-primary',
               )}
             >
               +{hiddenCount}
             </div>
           )}
-        </div>
-
-        {/* 更多按钮 - 点击打开下拉框 */}
-        <div className="flex items-center gap-1 flex-1 min-w-[50px] shrink-0">
+          {/* 更多按钮 - 点击打开下拉框 */}
           <Popover open={isOpen} onOpenChange={handleOpenChange}>
             <PopoverTrigger asChild>
               <Button
@@ -203,14 +263,15 @@ export const TagsInput: React.FC<TagsInputProps> = ({
                 variant="ghost"
                 size="sm"
                 className={cn(
-                  'h-6 px-2 text-xs',
+                  // size="sm" 给的是 h-9 / rounded-md / 16px 图标，这里要和其他胶囊同高同形，逐项覆盖
+                  'h-6 rounded-full px-2.5 gap-1 text-xs font-semibold [&_svg]:size-3',
                   disabled
                     ? 'bg-muted/40 text-secondary-foreground hover:bg-muted/40'
                     : 'bg-primary/20 text-primary hover:bg-primary/30',
                 )}
                 disabled={disabled}
               >
-                <Plus className="w-3 h-3 mr-1" />
+                <Plus className="w-3 h-3" />
                 {t('tagsInput.more')}
               </Button>
             </PopoverTrigger>
