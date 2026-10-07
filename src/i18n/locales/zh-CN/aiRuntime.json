@@ -1,6 +1,6 @@
 {
   "title": "Agent 运行时",
-  "description": "套件槽健康、Hook 挂载、关系温度查询、认知索引（世界枢纽 / 节点挂文）。套件与关系只读；重建挂载不碰记忆图。",
+  "description": "套件槽健康、Hook 挂载、关系温度查询、全部角色好感度、认知索引（世界枢纽 / 节点挂文）。套件与关系只读；重建挂载不碰记忆图。",
   "backendTooOld": "当前 gsuid_core 版本过旧，缺少运行时诊断接口。请升级后端。",
   "loadFailed": "加载失败",
   "tabs": {
@@ -62,7 +62,22 @@
     "dailyYmd": "预算日期",
     "lastPositive": "最近正向互动",
     "interactions": "有效互动次数",
-    "none": "无"
+    "none": "无",
+    "rosterTitle": "全部角色",
+    "rosterDesc": "已打分的用户都列在这里。分数、档位和上次原因只在本页展示。",
+    "rosterCount": "共 {count} 人",
+    "rosterEmpty": "还没有好感度记录。",
+    "rosterForbidden": "查看全部角色需要管理员权限。",
+    "rosterMissing": "当前 gsuid_core 没有全部角色接口。请升级后端。",
+    "rosterKeyword": "用户 ID 或名字",
+    "rosterKeywordPlaceholder": "包含匹配，可留空",
+    "rosterBotPlaceholder": "留空列出全部 Bot",
+    "rosterSearch": "筛选",
+    "colUser": "用户",
+    "colZone": "档位",
+    "colLine": "关系",
+    "master": "主人",
+    "viewRow": "查看"
   },
   "cognition": {
     "title": "认知节点检索",

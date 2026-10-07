@@ -1,6 +1,6 @@
 {
   "title": "Agent ランタイム",
-  "description": "キット槽の健全性、Hook の装着、関係温度の照会、認知インデックス（世界ハブ / ノード記事）。キットと関係は読み取り専用。再マウントは記憶グラフを触りません。",
+  "description": "キット槽の健全性、Hook の装着、関係温度の照会、全員の好感度、認知インデックス（世界ハブ / ノード記事）。キットと関係は読み取り専用。再マウントは記憶グラフを触りません。",
   "backendTooOld": "この gsuid_core は古く、ランタイム診断 API がありません。バックエンドをアップグレードしてください。",
   "loadFailed": "読み込みに失敗しました",
   "tabs": {
@@ -62,7 +62,22 @@
     "dailyYmd": "予算日",
     "lastPositive": "直近の正向交流",
     "interactions": "有効交流回数",
-    "none": "なし"
+    "none": "なし",
+    "rosterTitle": "全員の好感度",
+    "rosterDesc": "採点済みのユーザーを全員表示します。スコア、ゾーン、前回理由はこのページだけに出します。",
+    "rosterCount": "{count} 人",
+    "rosterEmpty": "好感度の記録はまだありません。",
+    "rosterForbidden": "全員の一覧は管理者だけが閲覧できます。",
+    "rosterMissing": "この gsuid_core には全員一覧の API がありません。バックエンドをアップグレードしてください。",
+    "rosterKeyword": "ユーザー ID または名前",
+    "rosterKeywordPlaceholder": "部分一致。空欄可",
+    "rosterBotPlaceholder": "空欄なら全 Bot",
+    "rosterSearch": "絞り込み",
+    "colUser": "ユーザー",
+    "colZone": "ゾーン",
+    "colLine": "関係",
+    "master": "主人",
+    "viewRow": "表示"
   },
   "cognition": {
     "title": "認知ノード検索",

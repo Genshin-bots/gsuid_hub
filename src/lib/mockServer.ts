@@ -319,6 +319,91 @@ const routes: Route[] = [
   },
   {
     m: 'GET',
+    re: /^\/api\/relationship\/list$/,
+    h: ({ url }) => {
+      const bot = url.searchParams.get('bot_id') || '';
+      const keyword = (url.searchParams.get('keyword') || '').trim();
+      const offset = Number(url.searchParams.get('offset') || 0);
+      const limit = Number(url.searchParams.get('limit') || 100);
+      const now = Math.floor(Date.now() / 1000);
+      const day = new Date().toISOString().slice(0, 10);
+      const all = [
+        {
+          id: 1,
+          user_id: '10001',
+          user_name: '阿禾',
+          bot_id: 'onebot',
+          is_master: true,
+          scored: true,
+          score: 86,
+          zone: 'close',
+          zone_label: '亲近',
+          line: '当前对话者是我的主人（最高权限）。关系温度：很熟。',
+          last_delta: 1,
+          last_reason: 'pos.meaningful',
+          last_eval_at: now - 3600,
+          daily_gain: 1,
+          daily_loss: 0,
+          daily_ymd: day,
+          last_positive_interact_at: now - 7200,
+          interaction_count: 20,
+        },
+        {
+          id: 2,
+          user_id: '10002',
+          user_name: '路人',
+          bot_id: 'onebot',
+          is_master: false,
+          scored: true,
+          score: 12,
+          zone: 'distant',
+          zone_label: '陌生',
+          line: '当前对话者：不太熟，公事公办。',
+          last_delta: 0,
+          last_reason: 'none.no_signal',
+          last_eval_at: now - 86400,
+          daily_gain: 0,
+          daily_loss: 0,
+          daily_ymd: day,
+          last_positive_interact_at: now - 86400,
+          interaction_count: 2,
+        },
+        {
+          id: 3,
+          user_id: '10003',
+          user_name: '冷淡',
+          bot_id: 'web',
+          is_master: false,
+          scored: true,
+          score: -20,
+          zone: 'cold',
+          zone_label: '冷淡',
+          line: '当前对话者：有点烦这个人，保持距离。',
+          last_delta: -2,
+          last_reason: 'neg.insult',
+          last_eval_at: now - 1800,
+          daily_gain: 0,
+          daily_loss: 2,
+          daily_ymd: day,
+          last_positive_interact_at: 0,
+          interaction_count: 6,
+        },
+      ];
+      const filtered = all.filter((row) => {
+        if (bot && row.bot_id !== bot) return false;
+        if (!keyword) return true;
+        return row.user_id.includes(keyword) || row.user_name.includes(keyword);
+      });
+      return {
+        items: filtered.slice(offset, offset + limit),
+        total: filtered.length,
+        offset,
+        limit,
+      };
+    },
+  },
+  {
+    m: 'GET',
     re: /^\/api\/relationship\/view/,
     h: ({ url }) => {
       const userId = url.searchParams.get('user_id') || 'demo_user';

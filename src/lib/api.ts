@@ -6314,6 +6314,22 @@ export interface RelationshipViewData {
   interaction_count?: number;
 }
 
+export interface RelationshipListItem extends RelationshipViewData {
+  id: number;
+  user_name: string;
+  bot_id: string;
+  is_master: boolean;
+  score: number;
+  scored: true;
+}
+
+export interface RelationshipListData {
+  items: RelationshipListItem[];
+  total: number;
+  offset: number;
+  limit: number;
+}
+
 export interface CognitionAttachment {
   id: number | null;
   node_id: number;
@@ -6404,6 +6420,16 @@ export const relationshipApi = {
     query.set('user_id', params.user_id);
     if (params.bot_id) query.set('bot_id', params.bot_id);
     return getConsolePayload<RelationshipViewData>(`/api/relationship/view?${query.toString()}`);
+  },
+
+  list: (params: { bot_id?: string; keyword?: string; offset?: number; limit?: number } = {}) => {
+    const query = new URLSearchParams();
+    if (params.bot_id) query.set('bot_id', params.bot_id);
+    if (params.keyword) query.set('keyword', params.keyword);
+    if (params.offset !== undefined) query.set('offset', String(params.offset));
+    if (params.limit !== undefined) query.set('limit', String(params.limit));
+    const qs = query.toString();
+    return getConsolePayload<RelationshipListData>(`/api/relationship/list${qs ? `?${qs}` : ''}`);
   },
 };
 

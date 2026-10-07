@@ -2,9 +2,9 @@
  * /ai-runtime — Agent 套件槽 / Hook / 关系温度 / 认知索引
  *
  * 后端：agent_kits_api.py
- * 四个接口全是 GET。密封槽空占用必须红字。
+ * 套件、单人关系、花名册都是 GET。花名册只对管理员开放。密封槽空占用必须红字。
  */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
   AlertTriangle,
@@ -18,6 +18,7 @@ import {
   ScanSearch,
   Search,
   Unplug,
+  Users,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -65,6 +66,8 @@ import {
   type AgentKitSlot,
   type CognitionNode,
   type CognitionRebuildMountData,
+  type RelationshipListData,
+  type RelationshipListItem,
   type RelationshipViewData,
 } from '@/lib/api';
 import {
@@ -101,6 +104,26 @@ function zoneBadgeVariant(
   if (zone === 'distant') return 'secondary';
   if (zone === 'acquaintance') return 'outline';
   return 'default';
+}
+
+const ROSTER_PAGE_SIZE = 100;
+
+interface RosterQuery {
+  keyword: string;
+  botId: string;
+  offset: number;
+  reload: number;
+}
+
+function isAdminForbidden(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err);
+  return msg.includes('需要管理员') || /HTTP Error:\s*403/i.test(msg);
+}
+
+function formatDelta(delta: number | undefined, empty: string): string {
+  if (delta === undefined) return empty;
+  if (delta > 0) return `+${delta}`;
+  return String(delta);
 }
 
 function handleHref(node: CognitionNode): string | null {
@@ -469,6 +492,65 @@ function RelationshipPanel() {
   const [loading, setLoading] = useState(false);
   const [missing, setMissing] = useState(false);
   const [view, setView] = useState<RelationshipViewData | null>(null);
+  const [draftKeyword, setDraftKeyword] = useState('');
+  const [draftBot, setDraftBot] = useState('');
+  const [rosterQuery, setRosterQuery] = useState<RosterQuery>({
+    keyword: '',
+    botId: '',
+    offset: 0,
+    reload: 0,
+  });
+  const [roster, setRoster] = useState<RelationshipListData | null>(null);
+  const [rosterLoading, setRosterLoading] = useState(false);
+  const [rosterMissing, setRosterMissing] = useState(false);
+  const [rosterForbidden, setRosterForbidden] = useState(false);
+  const detailRef = useRef<HTMLDivElement | null>(null);
+  const pendingScroll = useRef(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      setRosterLoading(true);
+      try {
+        const data = await relationshipApi.list({
+          bot_id: rosterQuery.botId || undefined,
+          keyword: rosterQuery.keyword || undefined,
+          offset: rosterQuery.offset,
+          limit: ROSTER_PAGE_SIZE,
+        });
+        if (cancelled) return;
+        setRoster(data);
+        setRosterForbidden(false);
+        setRosterMissing(false);
+      } catch (e) {
+        if (cancelled) return;
+        if (isAdminForbidden(e)) {
+          setRosterForbidden(true);
+          setRosterMissing(false);
+          setRoster(null);
+        } else if (isBackendMissing(e)) {
+          console.warn('[AIRuntimePage] /api/relationship/list 不可用：请升级 gsuid_core。', e);
+          setRosterMissing(true);
+          setRosterForbidden(false);
+          setRoster(null);
+        } else {
+          toast.error(getApiErrorMessage(e, t('aiRuntime.loadFailed')));
+        }
+      } finally {
+        if (!cancelled) setRosterLoading(false);
+      }
+    };
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [rosterQuery, t]);
+
+  useEffect(() => {
+    if (!pendingScroll.current || !view) return;
+    pendingScroll.current = false;
+    detailRef.current?.scrollIntoView({ block: 'nearest' });
+  }, [view]);
 
   const lookup = async () => {
     const uid = userId.trim();
@@ -496,6 +578,26 @@ function RelationshipPanel() {
       setLoading(false);
     }
   };
+
+  const openRow = (item: RelationshipListItem) => {
+    setUserId(item.user_id);
+    setBotId(item.bot_id);
+    setMissing(false);
+    setView(item);
+    pendingScroll.current = true;
+  };
+
+  const applyRosterFilter = () => {
+    setRosterQuery((prev) => ({
+      keyword: draftKeyword.trim(),
+      botId: draftBot.trim(),
+      offset: 0,
+      reload: prev.reload + 1,
+    }));
+  };
+
+  const pageCount = Math.max(1, Math.ceil((roster?.total ?? 0) / ROSTER_PAGE_SIZE));
+  const pageCurrent = Math.floor(rosterQuery.offset / ROSTER_PAGE_SIZE) + 1;
 
   if (missing) return <MissingBackendCard />;
 
@@ -544,6 +646,7 @@ function RelationshipPanel() {
         </CardContent>
       </Card>
 
+      <div ref={detailRef} className="space-y-4">
       {view && !view.scored && (
         <Card className="glass-card">
           <CardContent className="p-6 text-sm text-muted-foreground">
@@ -597,6 +700,214 @@ function RelationshipPanel() {
           </CardContent>
         </Card>
       )}
+      </div>
+
+      <Card className="glass-card">
+        <CardHeader>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <CardTitle className="flex items-center gap-2">
+                <Users className="w-5 h-5" />
+                {t('aiRuntime.relationship.rosterTitle')}
+              </CardTitle>
+              <CardDescription>{t('aiRuntime.relationship.rosterDesc')}</CardDescription>
+            </div>
+            <Button
+              variant="outline"
+              className="h-9 shrink-0 self-start"
+              onClick={() => setRosterQuery((prev) => ({ ...prev, reload: prev.reload + 1 }))}
+              disabled={rosterLoading || rosterForbidden || rosterMissing}
+            >
+              <RefreshCw className={cn('w-4 h-4', rosterLoading && 'animate-spin')} />
+              {t('common.refresh')}
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {rosterForbidden ? (
+            <p className="text-sm text-muted-foreground">
+              {t('aiRuntime.relationship.rosterForbidden')}
+            </p>
+          ) : rosterMissing ? (
+            <p className="text-sm text-muted-foreground">
+              {t('aiRuntime.relationship.rosterMissing')}
+            </p>
+          ) : (
+            <>
+              <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+                <div className="space-y-1">
+                  <Label htmlFor="rel-roster-kw">{t('aiRuntime.relationship.rosterKeyword')}</Label>
+                  <Input
+                    id="rel-roster-kw"
+                    className="h-9"
+                    value={draftKeyword}
+                    placeholder={t('aiRuntime.relationship.rosterKeywordPlaceholder')}
+                    onChange={(e) => setDraftKeyword(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') applyRosterFilter();
+                    }}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="rel-roster-bot">{t('aiRuntime.relationship.botId')}</Label>
+                  <Input
+                    id="rel-roster-bot"
+                    className="h-9 font-mono"
+                    value={draftBot}
+                    placeholder={t('aiRuntime.relationship.rosterBotPlaceholder')}
+                    onChange={(e) => setDraftBot(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') applyRosterFilter();
+                    }}
+                  />
+                </div>
+                <Button className="h-9" onClick={applyRosterFilter} disabled={rosterLoading}>
+                  <Search className="w-4 h-4" />
+                  {t('aiRuntime.relationship.rosterSearch')}
+                </Button>
+              </div>
+
+              {roster && (
+                <p className="text-sm text-muted-foreground">
+                  {t('aiRuntime.relationship.rosterCount', { count: roster.total })}
+                </p>
+              )}
+
+              {rosterLoading && !roster ? (
+                <Skeleton className="h-40 w-full" />
+              ) : roster && roster.items.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  {t('aiRuntime.relationship.rosterEmpty')}
+                </p>
+              ) : roster ? (
+                <div className={cn('overflow-x-auto', rosterLoading && 'opacity-60')}>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>{t('aiRuntime.relationship.colUser')}</TableHead>
+                        <TableHead>{t('aiRuntime.relationship.botId')}</TableHead>
+                        <TableHead>{t('aiRuntime.relationship.score')}</TableHead>
+                        <TableHead>{t('aiRuntime.relationship.colZone')}</TableHead>
+                        <TableHead>{t('aiRuntime.relationship.colLine')}</TableHead>
+                        <TableHead>{t('aiRuntime.relationship.lastReason')}</TableHead>
+                        <TableHead>{t('aiRuntime.relationship.lastDelta')}</TableHead>
+                        <TableHead>{t('aiRuntime.relationship.lastEval')}</TableHead>
+                        <TableHead>{t('aiRuntime.relationship.daily')}</TableHead>
+                        <TableHead>{t('aiRuntime.relationship.interactions')}</TableHead>
+                        <TableHead className="sr-only">{t('common.actions')}</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {roster.items.map((item) => (
+                        <TableRow
+                          key={`${item.bot_id}:${item.user_id}:${item.id}`}
+                          className={cn(
+                            view?.user_id === item.user_id &&
+                              view.bot_id === item.bot_id &&
+                              'bg-muted/40',
+                          )}
+                        >
+                          <TableCell>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="font-medium">
+                                {item.user_name || item.user_id}
+                              </span>
+                              {item.is_master && (
+                                <Badge variant="default" className="max-w-full whitespace-normal">
+                                  {t('aiRuntime.relationship.master')}
+                                </Badge>
+                              )}
+                            </div>
+                            {item.user_name && item.user_name !== item.user_id && (
+                              <div className="font-mono text-[11px] text-muted-foreground">
+                                {item.user_id}
+                              </div>
+                            )}
+                          </TableCell>
+                          <TableCell className="font-mono text-xs">{item.bot_id}</TableCell>
+                          <TableCell className="whitespace-nowrap font-medium">
+                            {item.score}
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={zoneBadgeVariant(item.zone)}
+                              className="max-w-full whitespace-normal"
+                            >
+                              {item.zone_label} · {item.zone}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="max-w-[16rem] truncate text-xs" title={item.line}>
+                            {item.line}
+                          </TableCell>
+                          <TableCell className="font-mono text-xs">
+                            {item.last_reason || t('aiRuntime.relationship.none')}
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            {formatDelta(item.last_delta, t('aiRuntime.relationship.none'))}
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap text-xs">
+                            {formatUnix(item.last_eval_at, t('aiRuntime.relationship.none'))}
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap text-xs">
+                            {t('aiRuntime.relationship.gain')} {item.daily_gain ?? 0} /{' '}
+                            {t('aiRuntime.relationship.loss')} {item.daily_loss ?? 0}
+                          </TableCell>
+                          <TableCell>{item.interaction_count ?? 0}</TableCell>
+                          <TableCell>
+                            <Button
+                              variant="outline"
+                              className="h-8"
+                              onClick={() => openRow(item)}
+                            >
+                              {t('aiRuntime.relationship.viewRow')}
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              ) : null}
+
+              {roster && roster.total > ROSTER_PAGE_SIZE && (
+                <div className="flex items-center justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    className="h-9"
+                    disabled={rosterQuery.offset === 0 || rosterLoading}
+                    onClick={() =>
+                      setRosterQuery((prev) => ({
+                        ...prev,
+                        offset: Math.max(0, prev.offset - ROSTER_PAGE_SIZE),
+                      }))
+                    }
+                  >
+                    {t('common.previousPage')}
+                  </Button>
+                  <span className="text-sm text-muted-foreground">
+                    {t('common.pageInfo', { current: pageCurrent, total: pageCount })}
+                  </span>
+                  <Button
+                    variant="outline"
+                    className="h-9"
+                    disabled={
+                      rosterQuery.offset + ROSTER_PAGE_SIZE >= roster.total || rosterLoading
+                    }
+                    onClick={() =>
+                      setRosterQuery((prev) => ({
+                        ...prev,
+                        offset: prev.offset + ROSTER_PAGE_SIZE,
+                      }))
+                    }
+                  >
+                    {t('common.nextPage')}
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

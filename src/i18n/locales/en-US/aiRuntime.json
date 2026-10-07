@@ -1,6 +1,6 @@
 {
   "title": "Agent Runtime",
-  "description": "Kit slot health, hook mounts, relationship lookup, and cognition index (world hubs / node articles). Kits and relationship stay read-only; rebuild mount never touches the memory graph.",
+  "description": "Kit slot health, hook mounts, relationship lookup, all scored users, and cognition index (world hubs / node articles). Kits and relationship stay read-only; rebuild mount never touches the memory graph.",
   "backendTooOld": "This gsuid_core build is too old and lacks the runtime diagnostics APIs. Please upgrade the backend.",
   "loadFailed": "Failed to load",
   "tabs": {
@@ -62,7 +62,22 @@
     "dailyYmd": "Budget date",
     "lastPositive": "Last positive interact",
     "interactions": "Meaningful interactions",
-    "none": "None"
+    "none": "None",
+    "rosterTitle": "All scored users",
+    "rosterDesc": "Every scored user is listed here. Score, zone, and last reason stay on this page.",
+    "rosterCount": "{count} people",
+    "rosterEmpty": "No favorability records yet.",
+    "rosterForbidden": "Listing every scored user requires an administrator.",
+    "rosterMissing": "This gsuid_core build has no all-users API. Upgrade the backend.",
+    "rosterKeyword": "User ID or name",
+    "rosterKeywordPlaceholder": "Contains match, optional",
+    "rosterBotPlaceholder": "Empty lists every bot",
+    "rosterSearch": "Filter",
+    "colUser": "User",
+    "colZone": "Zone",
+    "colLine": "Line",
+    "master": "Master",
+    "viewRow": "View"
   },
   "cognition": {
     "title": "Cognition node search",
