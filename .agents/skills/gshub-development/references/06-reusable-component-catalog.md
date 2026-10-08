@@ -110,7 +110,7 @@ export const tabToolbarGroupWrapClass =
 | 用户操作 | 主 Tab | 二级筛选 |
 |----------|--------|----------|
 | **点击主区**（文字/左侧图标） | 选中该 `option.value` | 重置为 `allValue`（默认首项，通常 `__all__`） |
-| **点击右侧 ▾** | 打开菜单时切到该主 Tab（**保留**当前二级值） | 不变，直到用户点菜单项 |
+| **点击右侧 ▾** | 不切换主 Tab，只展开菜单 | 不变，直到用户点菜单项 |
 | **点菜单某子项** | 选中该主 Tab | `dropdown.onValueChange(item.value)` |
 | 当前子项 | — | 右侧 ✓ 标记（`DropdownMenuItem` + `Check`，非 RadioItem） |
 
@@ -228,11 +228,11 @@ profiles.filter((p) => {
 
 ### 6.1.6 注意事项与反模式
 
-1. **不要加 `w-full`**——默认 `inline-flex` 自适应（确需占满才 `className="w-full"`）。
+1. 桌面默认 `inline-flex` 自适应。窄屏（默认 &lt;768px）分段按文案长短撑满所在行，放不下再换行；分组要到 `lg`/`xl` 才和别的控件并排时传 `fillUntil`。确需在桌面也铺满才 `className="w-full"`。
 2. 按钮过多自动 `flex-wrap`。
 3. 主 Tab 的 `icon` 经 `asHoverIcon` 包装，外层固定 `w-[22px] h-[22px]`；图标本身 `w-4 h-4`。  
    **下拉子项的 icon 不走 asHoverIcon**，直接渲染（`PluginIcon` 的 `<img>` 必须能显示）。
-4. 外壳已带 `glass-card`，**不要再传主题分支 class**。
+4. 外壳用 `glass-card-flat`（跟主题的底色和描边，**不投影**，与普通按钮一致）。不要改回 `glass-card`，也不要再传主题分支 class。
 5. **禁止压矮**：不要 `h-8`/`h-9` 外壳或 `buttonClassName="h-8 py-0"`。详见 [§05 §5.4](./05-components-and-form-controls.md)。
 6. 与同行 `items-center` 时用 `tabToolbarGroupWrapClass` 包一层，压掉 `shadow-safe` 竖直 bleed。
 7. **禁止**为「带筛选的 Tab」再手搓一层 `Select` + 外挂 Button；应给对应 `TabButtonOption` 加 `dropdown`。

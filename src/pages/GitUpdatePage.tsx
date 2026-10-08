@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
+import { SearchableMenu } from '@/components/ui/searchable-menu';
 import GitMirrorDialog, { getMirrorBadge } from '@/components/GitMirrorDialog';
 import {
   AlertDialog,
@@ -39,6 +39,7 @@ import {
   MessageSquare,
   Link,
   Globe,
+  LayoutGrid,
   Loader2,
   XCircle,
 } from 'lucide-react';
@@ -55,8 +56,9 @@ import {
   GitPluginInfo,
 } from '@/lib/api';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { PinnedPage } from '@/components/layout/PinnedPage';
+import { headerActionRowClass, PinnedPage } from '@/components/layout/PinnedPage';
 import { PluginIcon } from '@/components/ui/plugin-icon';
+import { cn } from '@/lib/utils';
 
 const PAGE_SIZE = 20;
 
@@ -741,82 +743,89 @@ export default function GitUpdatePage() {
     }
   };
 
+  const showHeaderReload =
+    !!selectedPlugin &&
+    selectedPlugin.toLowerCase() !== 'gsuid_core' &&
+    !selectedPlugin.startsWith('_');
+
   return (
     <PinnedPage
       className="gap-4"
       bodyClassName="space-y-4"
       header={
         /* Header */
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-          <div>
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between xl:gap-4">
+          <div className="min-w-0 xl:max-w-sm xl:shrink-0">
             <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-3">
-              <GitBranch className="w-7 h-7 sm:w-8 sm:h-8" />
+              <GitBranch className="w-7 h-7 sm:w-8 sm:h-8 shrink-0" />
               {t('gitUpdate.title')}
             </h1>
-            <p className="text-muted-foreground mt-1 text-sm sm:text-base">
+            <p className="text-muted-foreground mt-1 break-words text-sm sm:text-base">
               {t('gitUpdate.description')}
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setGitMirrorOpen(true)}
-              className="gap-2 self-start sm:self-auto"
-            >
-              <GitBranch className="w-4 h-4" />
-              {t('gitMirror.title')}
-            </Button>
-            <Button
-              variant="default"
-              onClick={handleUpdateAllClick}
-              disabled={isLoadingStatus || isForceUpdating}
-              className="gap-2 self-start sm:self-auto"
-            >
-              <Download className="w-4 h-4" />
-              {t('gitUpdate.updateAll')}
-            </Button>
-            {selectedPlugin && selectedPlugin.toLowerCase() !== 'gsuid_core' && !selectedPlugin.startsWith('_') && (
+          {/* 选择器在镜像源按钮左侧。xl 以下独占标题下方一整行，避免和副标题挤在一起 */}
+          <div className="flex w-full min-w-0 flex-wrap items-center gap-2 sm:justify-end">
+            {isLoadingStatus ? (
+              <Skeleton className="h-10 w-full shrink-0 rounded-md sm:w-64" />
+            ) : (
+              <SearchableMenu
+                appearance="outline"
+                width="trigger"
+                align="end"
+                disabled={plugins.length === 0}
+                className="w-full shrink-0 sm:w-64"
+                placeholder={t('gitUpdate.selectPlugin')}
+                placeholderIcon={<LayoutGrid className="h-4 w-4" />}
+                searchPlaceholder={t('plugins.searchPlugin')}
+                emptyText={t('plugins.noMatchingPlugin')}
+                value={selectedPlugin}
+                onValueChange={setSelectedPlugin}
+                items={plugins.map((plugin) => ({
+                  value: plugin.name,
+                  label: getPluginDisplayName(plugin.name),
+                  keywords: [plugin.name],
+                  icon: <PluginIcon pluginName={plugin.name} className="h-4 w-4" />,
+                }))}
+              />
+            )}
+            <div className={headerActionRowClass}>
               <Button
                 variant="outline"
-                onClick={handleReloadPlugin}
-                disabled={!selectedPlugin || isReloadingPlugin}
-                className="gap-2 self-start sm:self-auto"
+                onClick={() => setGitMirrorOpen(true)}
               >
-                <RotateCcw className={`w-4 h-4 ${isReloadingPlugin ? 'animate-spin' : ''}`} />
-                {t('plugins.reloadPlugin')}
+                <GitBranch className="w-4 h-4" />
+                {t('gitMirror.title')}
               </Button>
-            )}
-            <Button
-              variant="outline"
-              onClick={handleRefresh}
-              disabled={isLoadingStatus || isLoadingCommits}
-              className="gap-2 self-start sm:self-auto"
-            >
-              <RefreshCw className={`w-4 h-4 ${(isLoadingStatus || isLoadingCommits) ? 'animate-spin' : ''}`} />
-              {t('gitUpdate.refresh')}
-            </Button>
+              <Button
+                variant="default"
+                onClick={handleUpdateAllClick}
+                disabled={isLoadingStatus || isForceUpdating}
+              >
+                <Download className="w-4 h-4" />
+                {t('gitUpdate.updateAll')}
+              </Button>
+              {showHeaderReload && (
+                <Button
+                  variant="outline"
+                  onClick={handleReloadPlugin}
+                  disabled={!selectedPlugin || isReloadingPlugin}
+                >
+                  <RotateCcw className={cn('w-4 h-4', isReloadingPlugin && 'animate-spin')} />
+                  {t('plugins.reloadPlugin')}
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                onClick={handleRefresh}
+                disabled={isLoadingStatus || isLoadingCommits}
+              >
+                <RefreshCw className={cn('w-4 h-4', (isLoadingStatus || isLoadingCommits) && 'animate-spin')} />
+                {t('gitUpdate.refresh')}
+              </Button>
+            </div>
           </div>
         </div>
-      }
-      toolbar={
-        /* Plugin Selector - TabButtonGroup style */
-        isLoadingStatus ? (
-          <div className="flex flex-nowrap gap-1 p-1 bg-muted/50 rounded-lg border border-border/40 overflow-x-auto">
-            {[1, 2, 3].map(i => (
-              <Skeleton key={i} className="h-9 w-24 rounded-md shrink-0" />
-            ))}
-          </div>
-        ) : (
-          <TabButtonGroup
-            options={plugins.map(plugin => ({
-              value: plugin.name,
-              label: getPluginDisplayName(plugin.name),
-              icon: <PluginIcon pluginName={plugin.name} />,
-            }))}
-            value={selectedPlugin}
-            onValueChange={setSelectedPlugin}
-          />
-        )
       }
     >
       {/* Current Status */}

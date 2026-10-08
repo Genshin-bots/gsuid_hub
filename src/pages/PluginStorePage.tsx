@@ -17,7 +17,7 @@ import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import remarkGfm from 'remark-gfm';
 import type { Components } from 'react-markdown';
-import { PinnedPage } from '@/components/layout/PinnedPage';
+import { headerActionRowClass, PinnedPage } from '@/components/layout/PinnedPage';
 
 // 缓存相关常量
 const PLUGIN_CACHE_KEY = 'pluginStore_cache';
@@ -547,7 +547,7 @@ export default function PluginStorePage() {
             </h1>
             <p className="text-muted-foreground mt-1">{t('pluginStore.description')}</p>
           </div>
-          <div ref={headerActionsRef} className="flex w-fit max-w-full flex-wrap items-center gap-3">
+          <div ref={headerActionsRef} className={headerActionRowClass}>
             <Button
               variant="outline"
               onClick={() => setGitMirrorOpen(true)}

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Check, Clock, Loader2, RefreshCw, ShieldCheck, User, X } from 'lucide-react';
 import { toast } from 'sonner';
-import { PinnedPage } from '@/components/layout/PinnedPage';
+import { headerActionRowWideClass, PinnedPage } from '@/components/layout/PinnedPage';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { cn } from '@/lib/utils';
@@ -97,7 +97,7 @@ export default function AIApprovalsPage() {
             </h1>
             <p className="sm:whitespace-nowrap text-muted-foreground mt-1">{t('aiApprovals.description')}</p>
           </div>
-          <div className="flex flex-wrap items-center gap-2 self-start lg:self-auto">
+          <div className={headerActionRowWideClass}>
             <Button variant="outline" onClick={() => loadData(viewMode)} disabled={isLoading} className="gap-2">
               {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
               {t('common.refresh') || '刷新'}

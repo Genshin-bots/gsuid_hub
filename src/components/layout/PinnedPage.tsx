@@ -59,6 +59,19 @@ interface PinnedPageProps {
   className?: string;
 }
 
+/**
+ * 标题栏右侧操作按钮组。
+ * 窄屏（<640px，按钮还在标题下方独占一行）按文案长短分掉整行；一行放不下就换行，每行都撑满。
+ * sm 起恢复内容宽度并靠右。纯图标按钮加 `header-action-fixed`，避免被拉成空条。
+ * 宽度规则在 index.css 的 `.header-action-row`。
+ */
+export const headerActionRowClass =
+  'header-action-row flex w-full flex-wrap items-center gap-2 sm:w-auto sm:max-w-full sm:justify-end';
+
+/** 标题与按钮要到 lg 才并排时用：lg 之前按钮仍独占一行，并按文案撑满。 */
+export const headerActionRowWideClass =
+  'header-action-row header-action-row-wide flex w-full flex-wrap items-center gap-2 lg:w-auto lg:max-w-full lg:justify-end';
+
 export function PinnedPage({ header, toolbar, children, bodyClassName, className }: PinnedPageProps) {
   return (
     <div className={cn('page-pinned flex flex-col gap-6', className)}>

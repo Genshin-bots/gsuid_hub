@@ -71,7 +71,7 @@ import {
   RotateCw,
 } from 'lucide-react';
 import { memeApi, MemeRecord, MemeStatsData, MemeListParams, MemePersona, getApiErrorMessage } from '@/lib/api';
-import { PinnedPage } from '@/components/layout/PinnedPage';
+import { headerActionRowClass, PinnedPage } from '@/components/layout/PinnedPage';
 import { toast } from 'sonner';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
@@ -1667,7 +1667,7 @@ export default function AIMemePage() {
             </h1>
             <p className="whitespace-nowrap text-sm text-muted-foreground mt-1">{t('aiMeme.description')}</p>
           </div>
-          <div className="flex flex-wrap items-center justify-start gap-2 self-start sm:justify-end sm:self-auto">
+          <div className={headerActionRowClass}>
             {filterStatus === 'rejected' && (
               <Button
                 variant="destructive"
@@ -1721,7 +1721,7 @@ export default function AIMemePage() {
             <Button
               variant="outline"
               onClick={() => setShowImportDotMemeDialog(true)}
-              className={cn(tabToolbarControlClass, 'gap-1.5 whitespace-nowrap')}
+              className={cn(tabToolbarControlClass, 'header-action-fixed gap-1.5 whitespace-nowrap')}
               title={t('aiMeme.importDotMeme')}
             >
               <FileDown className="w-4 h-4" />
@@ -1730,7 +1730,7 @@ export default function AIMemePage() {
             <Button
               variant="outline"
               onClick={handleExportDotMeme}
-              className={cn(tabToolbarControlClass, 'gap-1.5 whitespace-nowrap')}
+              className={cn(tabToolbarControlClass, 'header-action-fixed gap-1.5 whitespace-nowrap')}
               title={t('aiMeme.exportDotMeme')}
               disabled={memes.length === 0}
             >

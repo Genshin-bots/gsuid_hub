@@ -128,7 +128,7 @@ import { PinnedPage } from '@/components/layout/PinnedPage';
 - **普通页顶部**用 `--layout-page-top`（默认 `2.75rem`），**不要**与侧栏顶对齐。
 - **中缝**约 `2×gutter` 呼吸距；`.page-fill` 在悬浮模式下拉回 `1×gutter` 与侧栏对齐。
 - **阴影**：`.glass-card` 用 `::before`（`z-index: -1`）画毛玻璃，宿主只画圆角阴影；**禁止**在 glass-card 宿主上写 `overflow-hidden`，也**禁止**对子元素强制 `position: relative`（会破坏 absolute 装饰层）。
-- **卡片网格**外圈加 `glass-card-grid`；紧凑控件（`TabButtonGroup`）自带 `shadow-safe`。
+- **卡片网格**外圈加 `glass-card-grid`。`TabButtonGroup` 外壳是 `glass-card-flat`，不投影。
 - CSS 已对 `.layout-page-inner .overflow-x-auto` 注入 `--shadow-bleed` 内边距（因 `overflow-x` 会连带裁切竖直阴影）。
 - **全高单卡片**根节点加 `.page-fill`：`main:has(.page-fill)` 会把上下 padding 收成 gutter，与悬浮侧栏顶底对齐；**标题页不要**加 `page-fill`（保持 `--layout-page-top`）。
 - 页面根 **禁止** 再写 `p-6` / `overflow-auto`（滚动交给 AppLayout main）。
@@ -181,7 +181,7 @@ import { PinnedPage } from '@/components/layout/PinnedPage';
 `.glass-card` 阴影会外溢约 8–12px，任何 `overflow` 容器都会把它切成直角。三个工具：
 
 1. **`glass-card-grid`**：卡片网格外圈加，竖直方向负 margin + padding 留出阴影位（水平不加，保证与下方全宽控件右缘对齐）。
-2. **`shadow-safe`**：任意需要竖直阴影安全区的容器（TabButtonGroup 已内置）。
+2. **`shadow-safe`**：任意需要竖直阴影安全区的容器。`TabButtonGroup` 不投影，不再挂这个类。
 3. **`.layout-page-inner .overflow-x-auto` 自动注入**：标题行 `min-w-0 overflow-x-auto` 这类横滚容器免手工处理。
 
 ### 4.1.3 glass-card 内的全出血子元素（图片头/表格/色条） ★★
@@ -256,12 +256,13 @@ glass-card 宿主不裁切（`overflow: visible`），所以**顶到卡片边缘
 // ✅ 正确：按钮底边与副标题底边对齐
 <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
   <div><h1 …/><p className="text-muted-foreground mt-1">…</p></div>
-  <Button className="self-start sm:self-auto shrink-0">保存</Button>
+  <Button className="w-full sm:w-auto sm:shrink-0">保存</Button>
 </div>
 ```
 
 > **共同禁忌**：标题块是「H1 + 副标题」两行，高度大于单行按钮。在 Header 里用 `items-center` 会让按钮**垂直居中**到 H1 与副标题之间，「浮在半空」、与副标题错位——**禁止**。
-> - 响应式统一：移动端堆叠用 `flex-col` + 按钮 `self-start`；`sm:` 起恢复 `sm:flex-row` + 按钮 `sm:self-auto`。
+> - 响应式统一：移动端堆叠用 `flex-col`；`sm:` 起恢复 `sm:flex-row` + 按钮 `sm:self-auto`。
+> - 窄屏按钮还在标题下方独占一行时，容器用 `headerActionRowClass`（`PinnedPage.tsx`）。标题要到 `lg` 才与按钮并排时用 `headerActionRowWideClass`。按钮按文案长短分掉整行剩余宽度；一行放不下就换到第二行，两行都撑满。纯图标按钮加 `header-action-fixed`。并排回标题右侧后恢复内容宽度、靠右对齐。
 > - 仅当 Header **没有**右侧操作区（纯标题块）时，Header 对齐方式才无所谓，可用 `items-center`。
 
 ## 4.3 反面示例（禁止使用）

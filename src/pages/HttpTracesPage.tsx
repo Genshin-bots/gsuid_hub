@@ -40,7 +40,7 @@ import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { ConsolePanel, type LogEntry } from '@/components/ConsolePanel';
-import { PinnedPage } from '@/components/layout/PinnedPage';
+import { headerActionRowClass, PinnedPage } from '@/components/layout/PinnedPage';
 
 const METHOD_ALL = '__all__';
 const STATUS_ALL = '__all__';
@@ -339,7 +339,7 @@ export default function HttpTracesPage() {
               {t('httpTraces.description')}
             </p>
           </div>
-          <div className="flex flex-wrap justify-start gap-2 self-start sm:justify-end sm:self-auto items-center">
+          <div className={headerActionRowClass}>
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="outline" className={cn('justify-start text-left font-normal')}>

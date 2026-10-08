@@ -28,7 +28,7 @@ import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { ConsolePanel, type LogEntry } from '@/components/ConsolePanel';
-import { PinnedPage } from '@/components/layout/PinnedPage';
+import { headerActionRowClass, PinnedPage } from '@/components/layout/PinnedPage';
 
 const PAGE_SIZE = 100;
 
@@ -325,7 +325,7 @@ export default function TracesPage() {
               {t('traces.description') || '查看命令执行追踪日志'}
             </p>
           </div>
-          <div className="flex flex-wrap justify-start gap-2 self-start sm:justify-end sm:self-auto">
+          <div className={headerActionRowClass}>
             <Popover>
               <PopoverTrigger asChild>
                 <Button

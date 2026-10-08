@@ -25,7 +25,7 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { PinnedPage } from '@/components/layout/PinnedPage';
+import { headerActionRowClass, PinnedPage } from '@/components/layout/PinnedPage';
 import {
   brandApi,
   getApiErrorMessage,
@@ -124,7 +124,7 @@ export default function BrandSettingsPage() {
               {t('brandSettings.description')}
             </p>
           </div>
-          <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+          <div className={headerActionRowClass}>
             <Button
               variant="outline"
               className="whitespace-nowrap"

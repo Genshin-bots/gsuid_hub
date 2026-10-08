@@ -3,7 +3,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 import { aiStatisticsApi, aiPerformanceApi, getApiErrorMessage } from '@/lib/api';
-import { PinnedPage } from '@/components/layout/PinnedPage';
+import { headerActionRowClass, PinnedPage } from '@/components/layout/PinnedPage';
 import type {
   HourlyPerformanceItem,
   HourlyPerformanceRangeItem,
@@ -1528,7 +1528,7 @@ export default function AIStatisticsPage() {
             </h1>
             <p className="sm:whitespace-nowrap text-muted-foreground mt-1">{t('aiStatistics.description')}</p>
           </div>
-          <div className="flex flex-wrap items-center justify-start gap-2 self-start sm:justify-end sm:self-auto">
+          <div className={headerActionRowClass}>
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="outline" className="gap-2 whitespace-nowrap">

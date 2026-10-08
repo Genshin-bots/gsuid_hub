@@ -30,6 +30,7 @@ import {
 import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import { headerActionRowWideClass } from '@/components/layout/PinnedPage';
 import { cn } from '@/lib/utils';
 import {
   aiKanbanApi,
@@ -786,12 +787,13 @@ export default function AIKanbanPage() {
         <TabButtonGroup
           value={viewMode}
           onValueChange={(v) => setViewMode(v as 'kanban' | 'data')}
+          fillUntil="lg"
           options={[
             { value: 'kanban', label: t('aiKanban.mode.kanban'), icon: <ClipboardList className="h-4 h-4" /> },
             { value: 'data', label: t('aiKanban.mode.data'), icon: <Database className="h-4 h-4" /> },
           ]}
         />
-        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
+        <div className={headerActionRowWideClass}>
           {viewMode === 'kanban' ? (
             <>
               <Button variant="outline" onClick={() => setEvaluateOpen(true)} className="w-full gap-2 sm:w-auto"><Sparkles className="h-4 w-4" />{t('aiKanban.evaluate.title')}</Button>

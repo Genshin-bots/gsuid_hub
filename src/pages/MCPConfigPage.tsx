@@ -62,7 +62,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { PinnedPage } from '@/components/layout/PinnedPage';
+import { headerActionRowClass, PinnedPage } from '@/components/layout/PinnedPage';
 
 // ============================================================================
 // MCP Server -> Brand Icon (auto-resolver wrapper)
@@ -742,7 +742,7 @@ export default function MCPConfigPage() {
               </h1>
               <p className="text-muted-foreground mt-1 text-sm sm:text-base">{t('mcpConfig.description')}</p>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
+            <div className={headerActionRowClass}>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button

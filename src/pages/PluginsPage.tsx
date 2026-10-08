@@ -39,7 +39,7 @@ import { ConfigField, ConfigFieldDefinition, ConfigValue, ConfigFieldType, Repea
 import { pluginsApi, gitUpdateApi, getApiErrorMessage, Plugin, ServiceConfig, SvItem, SvCommand, PluginConfigItem, PluginConfigGroup, PluginListItem, PluginPageMeta } from '@/lib/api';
 import { isPluginServiceDirty as pluginServiceFieldsDirty, isSvItemDirty, isSvListDirty } from '@/lib/pluginServiceDirty';
 import { toast } from 'sonner';
-import { PinnedPage } from '@/components/layout/PinnedPage';
+import { headerActionRowClass, PinnedPage } from '@/components/layout/PinnedPage';
 import { PluginIcon } from '@/components/ui/plugin-icon';
 import { PluginUsageBar } from '@/components/plugins/PluginUsageBar';
 import {
@@ -1116,7 +1116,7 @@ export default function PluginsPage() {
               value={selectedPluginId}
               onValueChange={setSelectedPluginId}
             />
-            <div className="flex gap-2">
+            <div className={headerActionRowClass}>
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -1124,7 +1124,7 @@ export default function PluginsPage() {
                     variant="outline"
                     onClick={handleUpdateAllClick}
                     disabled={isLoading || pluginList.length === 0}
-                    className={cn(tabToolbarControlClass, 'flex-1 justify-center gap-2 whitespace-nowrap sm:flex-none')}
+                    className={cn(tabToolbarControlClass, 'justify-center gap-2 whitespace-nowrap')}
                   >
                     <Download className="w-4 h-4" />
                     {t('plugins.updateAllPlugins')}
@@ -1142,7 +1142,7 @@ export default function PluginsPage() {
                     variant="outline"
                     onClick={handleReloadPlugin}
                     disabled={!selectedPlugin || isReloadingPlugin}
-                    className={cn(tabToolbarControlClass, 'flex-1 justify-center gap-2 whitespace-nowrap sm:flex-none')}
+                    className={cn(tabToolbarControlClass, 'justify-center gap-2 whitespace-nowrap')}
                   >
                     <RotateCw className={`w-4 h-4 ${isReloadingPlugin ? 'animate-spin' : ''}`} />
                     {t('plugins.reloadPlugin')}

@@ -1229,3 +1229,166 @@ tbody tr:hover .table-sticky-right::after {
 .embed-hidden *::after {
   animation-play-state: paused !important;
 }
+
+/* 标题栏操作按钮：窄屏按文案长短瓜分整行（flex-basis 为内容宽度，再分掉剩余空间）。
+   等分（flex-basis: 0）会把短按钮拉得和长按钮一样宽。
+   header-action-fixed：纯图标按钮保持内容宽度。
+   header-action-grow：包在 Tooltip 的 span 上（按钮不是行的直接子节点时）。
+   只在按钮行本身是通栏时生效：普通行 sm 起变为 w-auto，wide 行要到 lg。 */
+@media (max-width: 639px) {
+  .header-action-row > button:not(.header-action-fixed),
+  .header-action-row > a:not(.header-action-fixed) {
+    flex: 1 1 auto;
+    width: auto;
+    max-width: 100%;
+    min-width: min(100%, max-content);
+  }
+
+  .header-action-row > .header-action-grow {
+    display: flex;
+    flex: 1 1 auto;
+    width: auto;
+    max-width: 100%;
+    min-width: min(100%, max-content);
+  }
+
+  .header-action-row > .header-action-grow > button {
+    width: 100%;
+  }
+}
+
+/* 分段按钮：窄屏按文案长短撑满所在行。w-max 等工具类特异性更低，压得住。
+   singleRowOnMobile 不挂这些类，继续走 grid 等分。 */
+@media (max-width: 767px) {
+  .tab-segment-fill {
+    display: flex;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  /* 只包着分段的那一层（如 shrink-0 外壳）也要通栏，百分比宽度才有参照 */
+  :has(> .tab-segment-fill):not(:has(> :not(.tab-segment-fill))) {
+    width: 100%;
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 1023px) {
+  .tab-segment-fill-lg {
+    display: flex;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  :has(> .tab-segment-fill-lg):not(:has(> :not(.tab-segment-fill-lg))) {
+    width: 100%;
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 1279px) {
+  .tab-segment-fill-xl {
+    display: flex;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  :has(> .tab-segment-fill-xl):not(:has(> :not(.tab-segment-fill-xl))) {
+    width: 100%;
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 767px) {
+  .tab-segment-fill > .tab-segment-row {
+    display: flex;
+    width: 100%;
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 1023px) {
+  .tab-segment-fill-lg > .tab-segment-row {
+    display: flex;
+    width: 100%;
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 1279px) {
+  .tab-segment-fill-xl > .tab-segment-row {
+    display: flex;
+    width: 100%;
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 767px) {
+  .tab-segment-fill > .tab-segment-row > button,
+  .tab-segment-fill > .tab-segment-row > div {
+    flex: 1 1 auto;
+    width: auto;
+    max-width: 100%;
+    min-width: min(100%, max-content);
+    justify-content: center;
+  }
+
+  .tab-segment-fill > .tab-segment-row > div > button:first-of-type {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 1023px) {
+  .tab-segment-fill-lg > .tab-segment-row > button,
+  .tab-segment-fill-lg > .tab-segment-row > div {
+    flex: 1 1 auto;
+    width: auto;
+    max-width: 100%;
+    min-width: min(100%, max-content);
+    justify-content: center;
+  }
+
+  .tab-segment-fill-lg > .tab-segment-row > div > button:first-of-type {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 1279px) {
+  .tab-segment-fill-xl > .tab-segment-row > button,
+  .tab-segment-fill-xl > .tab-segment-row > div {
+    flex: 1 1 auto;
+    width: auto;
+    max-width: 100%;
+    min-width: min(100%, max-content);
+    justify-content: center;
+  }
+
+  .tab-segment-fill-xl > .tab-segment-row > div > button:first-of-type {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+}
+
+@media (min-width: 640px) and (max-width: 1023px) {
+  .header-action-row-wide > button:not(.header-action-fixed),
+  .header-action-row-wide > a:not(.header-action-fixed) {
+    flex: 1 1 auto;
+    width: auto;
+    max-width: 100%;
+    min-width: min(100%, max-content);
+  }
+
+  .header-action-row-wide > .header-action-grow {
+    display: flex;
+    flex: 1 1 auto;
+    width: auto;
+    max-width: 100%;
+    min-width: min(100%, max-content);
+  }
+
+  .header-action-row-wide > .header-action-grow > button {
+    width: 100%;
+  }
+}

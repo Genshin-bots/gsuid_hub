@@ -39,7 +39,7 @@ import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
 import { toast } from 'sonner';
 import { StructuredDataViewer } from '@/components/StructuredDataViewer';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { PinnedPage } from '@/components/layout/PinnedPage';
+import { headerActionRowClass, PinnedPage } from '@/components/layout/PinnedPage';
 
 type LogLevel = 'info' | 'warn' | 'error' | 'debug' | 'all';
 type DateMode = 'single' | 'range';
@@ -514,7 +514,7 @@ export default function LogsPage() {
           </div>
 
           {view === 'runtime' ? (
-            <div className="flex flex-wrap justify-start gap-2 self-start sm:justify-end sm:self-auto">
+            <div className={headerActionRowClass}>
               <Button
                 variant="outline"
                 onClick={handleRefresh}

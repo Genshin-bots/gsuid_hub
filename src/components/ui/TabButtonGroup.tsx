@@ -71,6 +71,13 @@ interface TabButtonGroupProps {
    * 默认不传。不要用 className 把默认高度硬压矮。
    */
   size?: 'default' | 'sm';
+  /**
+   * 分段在这个断点之前按文案长短撑满所在行（放不下再换行）。
+   * 默认 `md`：侧栏出现前（&lt;768px）撑满。
+   * 分组要到 `lg` / `xl` 才和别的控件并排时，把断点放到并排那一档。
+   * `collapseOnMobile` / `singleRowOnMobile` 有自己的窄屏形态，忽略此参数。
+   */
+  fillUntil?: 'md' | 'lg' | 'xl';
 }
 
 /**
@@ -134,6 +141,7 @@ export function TabButtonGroup({
   collapseOnMobile = false,
   singleRowOnMobile = false,
   size = 'default',
+  fillUntil = 'md',
 }: TabButtonGroupProps) {
   const sm = size === 'sm';
   const iconSlotClass = sm ? 'h-4 w-4' : 'h-[22px] w-[22px]';
@@ -141,23 +149,32 @@ export function TabButtonGroup({
   // 玻璃外壳另有 p-1，不能拿外壳高度去对齐旁边的按钮。
   const segmentYClass = sm ? 'h-full py-0' : 'h-10';
   // className 作用在按钮容器（内层）上——调用方会传 grid/w-full 等布局类改写整条布局。
-  // 外层只负责阴影安全区（shadow-safe 竖直负边距），并按内层是否铺满/禁缩镜像自身尺寸行为。
+  // 外壳用 glass-card-flat：跟主题的底色/描边，不投影。普通按钮也没有这层阴影。
   const fullWidth = typeof className === 'string' && /\b(?:w-full|grid)\b/.test(className);
   const noShrink = typeof className === 'string' && /\bshrink-0\b/.test(className);
   const current = options.find((option) => option.value === value) ?? options[0];
+  const fillClass =
+    collapseOnMobile || singleRowOnMobile
+      ? undefined
+      : fillUntil === 'xl'
+        ? 'tab-segment-fill tab-segment-fill-xl'
+        : fillUntil === 'lg'
+          ? 'tab-segment-fill tab-segment-fill-lg'
+          : 'tab-segment-fill';
 
   const expanded = (
     <div
       className={cn(
         fullWidth ? 'flex w-full' : 'inline-flex',
         noShrink && 'shrink-0',
-        'max-w-full shadow-safe',
+        'max-w-full',
         collapseOnMobile && 'hidden md:inline-flex',
+        fillClass,
       )}
     >
       <div
         className={cn(
-          'inline-flex min-w-0 flex-wrap gap-1 rounded-lg glass-card',
+          'tab-segment-row inline-flex min-w-0 flex-wrap gap-1 rounded-lg glass-card-flat',
           sm ? cn(tabSmShellClass, 'items-stretch px-0.5 py-0') : 'p-1',
           // 窄屏等分成 N 列不换行，好过收成下拉丢掉「分区一眼可见」。
           // 用 grid 而非 flex：flex 下「主区 + ▾」拆分按钮里的 nowrap 文本会把整段
@@ -233,10 +250,6 @@ export function TabButtonGroup({
                   contentClassName={dropdown.contentClassName}
                   items={dropdown.items}
                   value={dropdown.value}
-                  onOpenChange={(open) => {
-                    // 展开菜单时切到该主 Tab，但保留当前二级筛选
-                    if (open && !isDisabled) onValueChange(option.value);
-                  }}
                   onValueChange={(next) => {
                     onValueChange(option.value);
                     dropdown.onValueChange(next);
@@ -302,10 +315,10 @@ export function TabButtonGroup({
 
   return (
     <>
-      <div className="inline-flex max-w-full shadow-safe md:hidden">
+      <div className="inline-flex max-w-full md:hidden">
         <div
           className={cn(
-            'inline-flex min-w-0 max-w-full gap-1 rounded-lg glass-card',
+            'inline-flex min-w-0 max-w-full gap-1 rounded-lg glass-card-flat',
             sm ? cn(tabSmShellClass, 'items-stretch px-0.5 py-0') : 'p-1',
           )}
         >

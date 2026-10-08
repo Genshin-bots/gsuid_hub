@@ -48,6 +48,7 @@ import {
   Server,
   Terminal,
 } from 'lucide-react';
+import { headerActionRowClass } from '@/components/layout/PinnedPage';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import {
@@ -1232,7 +1233,7 @@ export default function AIConfigPage() {
               {t('aiConfig.description')}
             </p>
           </div>
-          <div className="flex flex-wrap items-center justify-start gap-2 self-start sm:justify-end sm:self-auto">
+          <div className={headerActionRowClass}>
             {isAIEnabled && (
               <Button
                 onClick={aiSwitch.handleOpenHelp}
@@ -1266,7 +1267,7 @@ export default function AIConfigPage() {
                 return (
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <span tabIndex={0} className="inline-flex">
+                      <span tabIndex={0} className="header-action-grow inline-flex">
                         {checkConfigBtn}
                       </span>
                     </TooltipTrigger>

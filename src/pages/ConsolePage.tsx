@@ -15,7 +15,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { cn } from "@/lib/utils";
 import { ConsolePanel, LogEntry, buildLogAnchor, computeLineCount } from "@/components/ConsolePanel";
-import { PinnedPage } from '@/components/layout/PinnedPage';
+import { headerActionRowClass, PinnedPage } from '@/components/layout/PinnedPage';
 
 let logCounter = 0;
 
@@ -608,7 +608,7 @@ export default function ConsolePage() {
             </h1>
             <p className="sm:whitespace-nowrap text-muted-foreground mt-1">{t('console.description')}</p>
           </div>
-          <div className="flex flex-wrap items-center justify-start gap-2 self-start sm:justify-end sm:self-auto">
+          <div className={headerActionRowClass}>
             <div className="flex items-center gap-2 text-sm text-muted-foreground whitespace-nowrap">
               <Circle className="w-2 h-2 fill-green-500 text-green-500 animate-pulse" />
               {t('console.connected')}

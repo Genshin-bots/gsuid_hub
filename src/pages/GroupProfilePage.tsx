@@ -78,7 +78,7 @@ export default function GroupProfilePage() {
           </div>
           <Button
             variant="outline"
-            className="whitespace-nowrap self-start sm:self-auto"
+            className="w-full whitespace-nowrap sm:w-auto"
             onClick={() => void loadKeys()}
           >
             <RefreshCw className={cn('w-4 h-4', loading && 'animate-spin')} />

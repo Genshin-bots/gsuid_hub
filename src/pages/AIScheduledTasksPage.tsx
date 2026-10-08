@@ -327,7 +327,7 @@ export default function AIScheduledTasksPage() {
               resetForm();
               setCreateDialogOpen(true);
             }}
-            className="gap-2 whitespace-nowrap self-start sm:self-auto"
+            className="w-full gap-2 whitespace-nowrap sm:w-auto"
           >
             <Plus className="w-4 h-4" />
             {t('aiScheduledTasks.createTask')}

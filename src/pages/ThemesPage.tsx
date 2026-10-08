@@ -392,7 +392,7 @@ export default function ThemesPage() {
             value={tab}
             onValueChange={(v) => setTab(v as ThemeTab)}
           />
-          <Button onClick={openSaveDialog} className="gap-2 self-start sm:self-auto shrink-0">
+          <Button onClick={openSaveDialog} className="w-full gap-2 sm:w-auto sm:shrink-0">
             <Save className="w-4 h-4" />
             {t('themes.saveAsPreset')}
           </Button>

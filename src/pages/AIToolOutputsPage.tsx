@@ -54,7 +54,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { PinnedPage } from '@/components/layout/PinnedPage';
+import { headerActionRowClass, PinnedPage } from '@/components/layout/PinnedPage';
 import {
   aiToolOutputsApi,
   getApiErrorMessage,
@@ -276,7 +276,7 @@ export default function AIToolOutputsPage() {
             </h1>
             <p className="text-muted-foreground mt-1">{t('aiToolOutputs.description')}</p>
           </div>
-          <div className="flex flex-wrap gap-2 shrink-0">
+          <div className={headerActionRowClass}>
             {selected.size > 0 && (
               <Button
                 variant="destructive"

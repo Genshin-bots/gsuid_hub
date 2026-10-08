@@ -129,7 +129,7 @@ export default function AIBudgetPage() {
             <p className="text-muted-foreground mt-1">{t('aiBudget.description')}</p>
           </div>
           {activeTab === 'config' && (
-            <Button onClick={handleConfigSave} disabled={!configDirty || configSaving} className="self-start sm:self-auto">
+            <Button onClick={handleConfigSave} disabled={!configDirty || configSaving} className="w-full sm:w-auto">
               {configSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
               {t('aiBudget.config.save')}
             </Button>
@@ -217,7 +217,7 @@ function OverviewTab() {
                 </Badge>
               )}
             </div>
-            <Button variant="outline" onClick={fetchOverview} className="shrink-0 self-start sm:self-auto">
+            <Button variant="outline" onClick={fetchOverview} className="w-full shrink-0 sm:w-auto">
               <RefreshCw className="w-4 h-4 mr-2" /> {t('aiBudget.overview.refresh')}
             </Button>
           </div>

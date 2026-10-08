@@ -11,7 +11,7 @@ import {
   AgentNodeSource,
   CapabilityAgentTool,
 } from '@/lib/api';
-import { PinnedPage } from '@/components/layout/PinnedPage';
+import { headerActionRowWideClass, PinnedPage } from '@/components/layout/PinnedPage';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -518,6 +518,7 @@ export default function AICapabilityAgentsPage() {
 
   return (
     <PinnedPage
+      className="gap-4"
       header={
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="min-w-0 sm:overflow-x-auto">
@@ -527,7 +528,7 @@ export default function AICapabilityAgentsPage() {
             </h1>
             <p className="sm:whitespace-nowrap text-muted-foreground mt-1">{t('aiCapabilityAgents.description')}</p>
           </div>
-          <div className="flex flex-wrap items-center gap-2 self-start lg:self-auto">
+          <div className={headerActionRowWideClass}>
             <Button variant="outline" onClick={loadData} disabled={isLoading} className="gap-2">
               {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
               {t('common.refresh') || '刷新'}
@@ -541,13 +542,14 @@ export default function AICapabilityAgentsPage() {
       }
       toolbar={
         /* 来源筛选 + 搜索 */
-        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div className="min-w-0">
             <TabButtonGroup
               options={sourceOptions}
               value={activeSource}
               onValueChange={(value) => setActiveSource(value as AgentNodeSource)}
-              className="w-max"
+              fillUntil="xl"
+              className="w-full xl:w-max"
             />
           </div>
           <div className="relative w-full xl:max-w-md">

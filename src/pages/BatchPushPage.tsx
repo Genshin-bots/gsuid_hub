@@ -737,7 +737,7 @@ export default function BatchPushPage() {
             </p>
           </div>
           <Button
-            className="self-start sm:self-auto shrink-0"
+            className="w-full sm:w-auto sm:shrink-0"
             onClick={submit}
             disabled={submitting}
           >

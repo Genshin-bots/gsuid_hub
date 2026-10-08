@@ -256,7 +256,7 @@ export default function AISkillsPage() {
             <p className="sm:whitespace-nowrap text-muted-foreground mt-1">{t('aiSkills.description')}</p>
           </div>
           {/* 新增技能按钮 */}
-          <Button onClick={() => setAddDialogOpen(true)} className="gap-2 whitespace-nowrap self-start sm:self-auto">
+          <Button onClick={() => setAddDialogOpen(true)} className="w-full gap-2 whitespace-nowrap sm:w-auto">
             <Plus className="h-4 w-4" />
             {t('aiSkills.addSkill')}
           </Button>

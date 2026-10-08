@@ -254,7 +254,7 @@ function SlotsPanel() {
             </Badge>
           )}
         </div>
-        <Button className="shrink-0 self-start sm:self-auto" variant="outline" onClick={() => void load()} disabled={loading}>
+        <Button className="w-full shrink-0 sm:w-auto" variant="outline" onClick={() => void load()} disabled={loading}>
           <RefreshCw className={cn('w-4 h-4', loading && 'animate-spin')} />
           {t('common.refresh')}
         </Button>
@@ -416,7 +416,7 @@ function HooksPanel() {
             {t('aiRuntime.hooks.unwiredCount', { count: unwired.length })}
           </Badge>
         </div>
-        <Button className="shrink-0 self-start sm:self-auto" variant="outline" onClick={() => void load()} disabled={loading}>
+        <Button className="w-full shrink-0 sm:w-auto" variant="outline" onClick={() => void load()} disabled={loading}>
           <RefreshCw className={cn('w-4 h-4', loading && 'animate-spin')} />
           {t('common.refresh')}
         </Button>

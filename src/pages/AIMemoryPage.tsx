@@ -1733,7 +1733,7 @@ export default function AIMemoryPage() {
           </div>
           <Button
             variant="outline"
-            className="self-start sm:self-auto shrink-0"
+            className="w-full sm:w-auto sm:shrink-0"
             onClick={() => setMemorySettingsOpen(true)}
           >
             <Brain className="w-4 h-4" />
@@ -1761,7 +1761,7 @@ export default function AIMemoryPage() {
           <p className="text-sm text-muted-foreground min-w-0">
             {t('aiMemory.cognitionIndexHint')}
           </p>
-          <Button variant="outline" className="shrink-0 self-start sm:self-auto" asChild>
+          <Button variant="outline" className="w-full shrink-0 sm:w-auto" asChild>
             <Link to="/ai-runtime?tab=cognition">
               <Globe className="w-4 h-4" />
               {t('aiMemory.cognitionIndexLink')}

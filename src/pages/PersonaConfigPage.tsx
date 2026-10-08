@@ -108,7 +108,7 @@ import {
   type PersonaToolCatalog,
 } from '@/lib/api';
 import { toast } from 'sonner';
-import { PinnedPage } from '@/components/layout/PinnedPage';
+import { headerActionRowClass, PinnedPage } from '@/components/layout/PinnedPage';
 import { enabledIdsToSpec, specToEnabledIds } from '@/lib/capabilityAgentAllowlist';
 import { enabledPluginsToSpec, specToEnabledPlugins } from '@/lib/personaToolScope';
 import { PersonaToolScopeEditor } from '@/components/persona/PersonaToolScopeEditor';
@@ -1411,7 +1411,7 @@ export default function PersonaConfigPage() {
                 {t('personaConfig.description')}
               </p>
             </div>
-            <div className="flex flex-wrap items-center justify-start gap-2 self-start sm:justify-end sm:self-auto">
+            <div className={headerActionRowClass}>
               {/* AI 生成按钮 */}
               <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
                 <DialogTrigger asChild>
