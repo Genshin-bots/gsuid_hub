@@ -236,8 +236,9 @@ Toast：`import { toast } from 'sonner'`。
 
 1. 有 `TabButtonGroup` 时把按钮移出 Header，与 group 同行（`sm:items-center`）。
 2. 否则放 Header 右侧，与**副标题底边**对齐（`sm:items-end`）。禁止 Header 内 `items-center` 让按钮夹在 H1 和副标题之间。
+3. **尺寸**：标题栏右侧、卡片头、空态和页面里的主操作按钮，一律用默认 `Button`（`h-10 px-4`，与「创建任务」一致）。不要写 `size="sm"`、`h-9`，也不要手写 `<button class="px-4 py-2">`。表格行内、分页、弹窗底栏、图谱缩放可以保持紧凑。
 
-筛选行高度：无 Tab → 统一 `h-9`；有 Tab → group 保持默认，同行控件 `tabToolbarControlClass`（`h-11`），禁止把 group 压矮。
+筛选行高度：无 Tab → 这一行的 Input / Select / 筛选按钮统一 `h-9`，不套用上面的默认按钮尺寸。有 `TabButtonGroup` 时，对齐的是分段**里面那颗按钮的视觉高度**（内钮固定 `h-10`），不是玻璃外壳，也不是组件外框。外壳有 `p-1`，比内钮高出一圈；把旁边的按钮做成外壳那么高，看起来会明显更高。同行 Input / Select / Button 用 `tabToolbarControlClass`（`h-10`），icon 按钮 `tabToolbarIconButtonClass`。标题栏右侧、和这排分段上下叠成一列的操作按钮，同样用这个视觉高度（当前与默认 `Button` 同高）。禁止把 group 压矮，也禁止按外壳高度去抬同行控件。
 
 Dialog：每个 `DialogContent` 必须有 `DialogTitle` + `DialogDescription`（可 `sr-only`）。双态 UI 的动作 / 图标 / 文案 / Title / Description **同一条件分支**（P-4、P-16、P-18）。
 

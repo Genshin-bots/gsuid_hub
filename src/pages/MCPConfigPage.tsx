@@ -747,7 +747,6 @@ export default function MCPConfigPage() {
                 <TooltipTrigger asChild>
                   <Button
                     variant="outline"
-                    size="sm"
                     onClick={handleReload}
                     disabled={isReloading}
                   >
@@ -763,11 +762,11 @@ export default function MCPConfigPage() {
                   <p>{t('mcpConfig.reload')} - {t('mcpConfig.description')}</p>
                 </TooltipContent>
               </Tooltip>
-              <Button variant="outline" size="sm" onClick={handleOpenImportDialog}>
+              <Button variant="outline" onClick={handleOpenImportDialog}>
                 <FileJson className="h-4 w-4 mr-1" />
                 {t('mcpConfig.importJson')}
               </Button>
-              <Button size="sm" onClick={openCreateDialog}>
+              <Button onClick={openCreateDialog}>
                 <Plus className="h-4 w-4 mr-1" />
                 {t('mcpConfig.addConfig')}
               </Button>

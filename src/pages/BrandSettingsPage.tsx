@@ -127,14 +127,14 @@ export default function BrandSettingsPage() {
           <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
             <Button
               variant="outline"
-              className="h-9"
+              className="whitespace-nowrap"
               onClick={onReset}
               disabled={loading || iconSource === 'default'}
             >
               <RotateCcw className="w-4 h-4" />
               {t('brandSettings.resetToDefault')}
             </Button>
-            <Button className="h-9" onClick={onSubmit} disabled={saving || loading}>
+            <Button className="whitespace-nowrap" onClick={onSubmit} disabled={saving || loading}>
               <Save className="w-4 h-4" />
               {saving ? '…' : t('brandSettings.save')}
             </Button>
@@ -208,8 +208,6 @@ export default function BrandSettingsPage() {
                   <div className="flex gap-2">
                     <Button
                       variant="outline"
-                      size="sm"
-                      className="h-9"
                       onClick={onPickFile}
                     >
                       <Upload className="w-4 h-4" />

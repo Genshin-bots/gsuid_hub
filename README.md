@@ -332,7 +332,7 @@ import { PinnedPage } from '@/components/layout/PinnedPage';
 | [二](.agents/skills/gshub-development/references/02-i18n.md) | i18n 三语言同步 |
 | [三](.agents/skills/gshub-development/references/03-theme-and-styling.md) | 主题与样式（CSS 变量、`glass-card`） |
 | [四](.agents/skills/gshub-development/references/04-page-layout-spec.md) | **页面排版铁律**（`PinnedPage` / `page-fill` / `page-viewport`、标题、间距标尺） |
-| [五](.agents/skills/gshub-development/references/05-components-and-form-controls.md) | 表单/筛选控件规范（无 Tab→`h-9` / 有 Tab→`h-11`、Select 哨兵） |
+| [五](.agents/skills/gshub-development/references/05-components-and-form-controls.md) | 表单/筛选控件规范（页面按钮默认 `h-10`；无 Tab→`h-9` / 有 Tab→内钮视觉高度 `h-10`、Select 哨兵） |
 | [六](.agents/skills/gshub-development/references/06-reusable-component-catalog.md) | 封装组件目录（**TabButtonGroup.dropdown**、**PluginIcon**、PinnedPage…，禁止手搓） |
 | [七](.agents/skills/gshub-development/references/07-config-pages-and-state.md) | 配置页与脏检查竞态 |
 | [八](.agents/skills/gshub-development/references/08-page-patterns.md) | 页面模式与 Dialog 无障碍 |
@@ -425,7 +425,8 @@ import Component from '@/components/Example';
 - UI 基于 shadcn/ui 与 Radix UI 构建，样式组合统一用 `cn()`（`src/lib/utils.ts`，内部是 tailwind-merge）。
 - 主题依赖 CSS Variables，Tailwind 配置把变量映射到设计令牌。
 - 卡片一律 `className="glass-card"`（已自动适配亮/暗与纯色/毛玻璃，**不要**用 `isGlass &&` 条件判断）。
-- 一行筛选高度：**无** `TabButtonGroup` 时统一 `h-9`；**有** Tab 时 group 保持默认、同行控件 `tabToolbarControlClass`（`h-11`）。
+- 页面主操作按钮用默认 `Button`（`h-10`，与「创建任务」一致），不要 `size="sm"`。
+- 一行筛选高度：**无** `TabButtonGroup` 时统一 `h-9`；**有** Tab 时对齐内钮视觉高度，同行控件 `tabToolbarControlClass`（`h-10`），不要按玻璃外壳对齐。
 - 分段切换用 `TabButtonGroup`；主分类 + 二级筛选用 `dropdown`；插件图标用 `PluginIcon`。
 - 复杂表单优先复用 `components/config` 下的配置组件。
 - ⚠️ `src/index.css` 的自定义段落位于 `@tailwind utilities` **之后**，会压掉同特异性的工具类——

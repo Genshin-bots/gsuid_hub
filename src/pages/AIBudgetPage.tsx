@@ -184,7 +184,7 @@ function OverviewTab() {
   if (loading) return <OverviewSkeleton />;
   if (error) return (
     <Card className="glass-card">
-      <CardContent className="py-8 text-center">
+      <CardContent className="!py-8 text-center">
         <p className="text-muted-foreground mb-4">{error}</p>
         <Button variant="outline" onClick={fetchOverview}>
           <RefreshCw className="w-4 h-4 mr-2" /> {t('aiBudget.common.retry')}
@@ -217,7 +217,7 @@ function OverviewTab() {
                 </Badge>
               )}
             </div>
-            <Button variant="outline" size="sm" onClick={fetchOverview} className="shrink-0 self-start sm:self-auto">
+            <Button variant="outline" onClick={fetchOverview} className="shrink-0 self-start sm:self-auto">
               <RefreshCw className="w-4 h-4 mr-2" /> {t('aiBudget.overview.refresh')}
             </Button>
           </div>
@@ -495,7 +495,7 @@ function ConfigTab({ onDirtyChange, onSavingChange, saveRef }: {
   if (loading) return <ConfigSkeleton />;
   if (error) return (
     <Card className="glass-card">
-      <CardContent className="py-8 text-center">
+      <CardContent className="!py-8 text-center">
         <p className="text-muted-foreground mb-4">{error}</p>
         <Button variant="outline" onClick={fetchConfig}>
           <RefreshCw className="w-4 h-4 mr-2" /> {t('aiBudget.common.retry')}
@@ -828,7 +828,7 @@ function RulesTab() {
       {/* Rules List */}
       {loading ? <RulesSkeleton /> : error ? (
         <Card className="glass-card">
-          <CardContent className="py-8 text-center">
+          <CardContent className="!py-8 text-center">
             <p className="text-muted-foreground mb-4">{error}</p>
             <Button variant="outline" onClick={fetchRules}>
               <RefreshCw className="w-4 h-4 mr-2" /> {t('aiBudget.common.retry')}
@@ -837,7 +837,7 @@ function RulesTab() {
         </Card>
       ) : filteredRules.length === 0 ? (
         <Card className="glass-card">
-          <CardContent className="py-8 text-center">
+          <CardContent className="!py-8 text-center">
             <Wallet className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
             <p className="text-muted-foreground">{t('aiBudget.rules.noRules')}</p>
           </CardContent>
@@ -1331,7 +1331,7 @@ function WhitelistTab() {
         </div>
       ) : error ? (
         <Card className="glass-card">
-          <CardContent className="py-8 text-center">
+          <CardContent className="!py-8 text-center">
             <p className="text-muted-foreground mb-4">{error}</p>
             <Button variant="outline" onClick={fetchEntries}>
               <RefreshCw className="w-4 h-4 mr-2" /> {t('aiBudget.common.retry')}
@@ -1340,7 +1340,7 @@ function WhitelistTab() {
         </Card>
       ) : entries.length === 0 ? (
         <Card className="glass-card">
-          <CardContent className="py-8 text-center">
+          <CardContent className="!py-8 text-center">
             <Shield className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
             <p className="text-muted-foreground">{t('aiBudget.whitelist.noEntries')}</p>
           </CardContent>
@@ -1673,7 +1673,7 @@ function DiagnosticTab() {
       {/* Check Result */}
       {checkError && (
         <Card className={cn("glass-card", "border-red-500/30")}>
-          <CardContent className="py-4 text-center text-red-500">{checkError}</CardContent>
+          <CardContent className="!py-4 text-center text-red-500">{checkError}</CardContent>
         </Card>
       )}
       {checkResult && (

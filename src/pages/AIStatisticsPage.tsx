@@ -16,7 +16,7 @@ import {
 } from '@/lib/featureUtils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
+import { TabButtonGroup, tabToolbarControlClass } from '@/components/ui/TabButtonGroup';
 import { Progress } from '@/components/ui/progress';
 import { EChartsWrapper, CHART_PALETTE } from '@/components/charts';
 import type { EChartsOption } from 'echarts';
@@ -1531,7 +1531,7 @@ export default function AIStatisticsPage() {
           <div className="flex flex-wrap items-center justify-start gap-2 self-start sm:justify-end sm:self-auto">
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-2 whitespace-nowrap">
+                <Button variant="outline" className="gap-2 whitespace-nowrap">
                   <CalendarIcon className="h-4 w-4" />
                   {format(selectedDate, 'yyyy-MM-dd')}
                   {(dailyInputTokens[format(selectedDate, 'yyyy-MM-dd')] ?? 0) > 0 && (
@@ -1551,18 +1551,10 @@ export default function AIStatisticsPage() {
                 />
               </PopoverContent>
             </Popover>
-            <button
-              onClick={loadData}
-              disabled={isLoading}
-              className={cn(
-                'flex items-center gap-2 whitespace-nowrap px-4 py-2 rounded-md text-sm transition-colors',
-                'bg-primary text-primary-foreground hover:bg-primary/90',
-                'disabled:opacity-50'
-              )}
-            >
+            <Button onClick={loadData} disabled={isLoading} className="gap-2 whitespace-nowrap">
               <RefreshCw className={cn('w-4 h-4', isLoading && 'animate-spin')} />
               {t('common.refresh')}
-            </button>
+            </Button>
           </div>
         </div>
       }
@@ -1948,8 +1940,7 @@ export default function AIStatisticsPage() {
                     />
                     <Button
                       variant="outline"
-                      size="sm"
-                      className="h-9 gap-2"
+                      className={cn(tabToolbarControlClass, 'gap-2')}
                       onClick={() => void fetchHistory()}
                       disabled={historyLoading}
                     >
@@ -2496,9 +2487,9 @@ export default function AIStatisticsPage() {
                           <PopoverTrigger asChild>
                             <Button
                               variant="outline"
-                              size="sm"
                               className={cn(
-                                'h-9 gap-2 justify-start font-normal',
+                                tabToolbarControlClass,
+                                'gap-2 justify-start font-normal',
                                 !rangeStartDate && 'text-muted-foreground',
                               )}
                             >
@@ -2522,9 +2513,9 @@ export default function AIStatisticsPage() {
                           <PopoverTrigger asChild>
                             <Button
                               variant="outline"
-                              size="sm"
                               className={cn(
-                                'h-9 gap-2 justify-start font-normal',
+                                tabToolbarControlClass,
+                                'gap-2 justify-start font-normal',
                                 !rangeEndDate && 'text-muted-foreground',
                               )}
                             >
@@ -2555,7 +2546,7 @@ export default function AIStatisticsPage() {
                   <CardContent className="flex items-center gap-3 p-4 text-destructive">
                     <AlertTriangle className="w-5 h-5" />
                     <span className="flex-1">{rangeError}</span>
-                    <Button size="sm" variant="outline" onClick={fetchRangeData} className="h-9">
+                    <Button variant="outline" onClick={fetchRangeData}>
                       <RefreshCw className="w-4 h-4 mr-1" />
                       {t('aiStatistics.refresh')}
                     </Button>
@@ -2742,7 +2733,7 @@ export default function AIStatisticsPage() {
                 </>
               ) : (
                 <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
-                  <CardContent className="flex flex-col items-center justify-center p-8 text-muted-foreground">
+                  <CardContent className="flex flex-col items-center justify-center !p-8 text-center text-muted-foreground">
                     <CalendarDays className="w-12 h-12 mb-4 opacity-50" />
                     <p>{t('aiStatistics.noDataInRange')}</p>
                   </CardContent>
@@ -2754,7 +2745,7 @@ export default function AIStatisticsPage() {
       ) : (
         <div className="px-0 sm:px-6">
           <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
-            <CardContent className="flex flex-col items-center justify-center p-8 text-muted-foreground">
+            <CardContent className="flex flex-col items-center justify-center !p-8 text-center text-muted-foreground">
               <TrendingUp className="w-12 h-12 mb-4 opacity-50" />
               <p>{t('common.noData')}</p>
             </CardContent>

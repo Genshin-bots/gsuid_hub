@@ -1001,10 +1001,10 @@ export default function ThemesPage() {
                 <CardDescription>{t('themes.presetsDesc')}</CardDescription>
               </div>
               <div className="flex gap-2 shrink-0">
-                <Button variant="outline" size="sm" className="h-9 w-9 p-0" onClick={loadPresets} disabled={presetsLoading} aria-label={t('themes.refresh')}>
+                <Button variant="outline" size="icon" onClick={loadPresets} disabled={presetsLoading} aria-label={t('themes.refresh')}>
                   <RefreshCw className={cn('w-4 h-4', presetsLoading && 'animate-spin')} />
                 </Button>
-                <Button size="sm" className="h-9 gap-2" onClick={openSaveDialog}>
+                <Button className="gap-2" onClick={openSaveDialog}>
                   <Save className="w-4 h-4" />
                   {t('themes.newPreset')}
                 </Button>
@@ -1022,7 +1022,7 @@ export default function ThemesPage() {
               <div className="flex flex-col items-center justify-center gap-3 py-10 text-center">
                 <AlertTriangle className="w-8 h-8 text-destructive" />
                 <p className="text-muted-foreground">{presetsError}</p>
-                <Button variant="outline" size="sm" onClick={loadPresets}>
+                <Button variant="outline" onClick={loadPresets}>
                   <RefreshCw className="w-4 h-4 mr-2" />
                   {t('themes.retry')}
                 </Button>
@@ -1032,7 +1032,7 @@ export default function ThemesPage() {
                 <FolderOpen className="w-10 h-10 text-muted-foreground opacity-50" />
                 <p className="text-muted-foreground">{t('themes.noPresets')}</p>
                 <p className="text-sm text-muted-foreground/80 max-w-sm">{t('themes.noPresetsHint')}</p>
-                <Button size="sm" className="mt-2 gap-2" onClick={openSaveDialog}>
+                <Button className="mt-2 gap-2" onClick={openSaveDialog}>
                   <Save className="w-4 h-4" />
                   {t('themes.saveAsPreset')}
                 </Button>

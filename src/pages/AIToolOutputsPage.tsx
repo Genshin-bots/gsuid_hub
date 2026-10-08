@@ -280,14 +280,14 @@ export default function AIToolOutputsPage() {
             {selected.size > 0 && (
               <Button
                 variant="destructive"
-                className="h-9"
+                className="whitespace-nowrap"
                 onClick={removeBatch}
               >
                 <Trash2 className="w-4 h-4" />
                 {t('aiToolOutputs.toolbar.batchDelete', { count: selected.size })}
               </Button>
             )}
-            <Button variant="outline" className="h-9" onClick={load}>
+            <Button variant="outline" className="whitespace-nowrap" onClick={load}>
               <RefreshCw className="w-4 h-4" />
               {t('aiToolOutputs.toolbar.refresh')}
             </Button>

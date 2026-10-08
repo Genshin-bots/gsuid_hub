@@ -542,7 +542,7 @@ export default function AICapabilityAgentsPage() {
       toolbar={
         /* 来源筛选 + 搜索 */
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-          <div className="min-w-0 sm:overflow-x-auto">
+          <div className="min-w-0">
             <TabButtonGroup
               options={sourceOptions}
               value={activeSource}
@@ -563,7 +563,7 @@ export default function AICapabilityAgentsPage() {
         </div>
       ) : filteredProfiles.length === 0 ? (
         <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
-          <CardContent className="flex flex-col items-center justify-center py-16 text-center text-muted-foreground">
+          <CardContent className="flex flex-col items-center justify-center !py-16 text-center text-muted-foreground">
             <Bot className="mb-4 h-12 w-12 opacity-50" />
             <p>{t('aiCapabilityAgents.empty')}</p>
           </CardContent>

@@ -296,7 +296,7 @@ export default function AIArtifactsPage() {
           </div>
           <Button
             variant="outline"
-            className="h-9 self-start sm:self-auto shrink-0"
+            className="self-start sm:self-auto shrink-0"
             onClick={load}
           >
             <RefreshCw className="w-4 h-4" />

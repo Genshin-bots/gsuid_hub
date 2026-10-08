@@ -195,7 +195,7 @@ function MissingBackendCard() {
   const { t } = useLanguage();
   return (
     <Card className="glass-card">
-      <CardContent className="p-6 text-sm text-muted-foreground">
+      <CardContent className="!p-6 text-sm text-muted-foreground">
         {t('aiRuntime.backendTooOld')}
       </CardContent>
     </Card>
@@ -254,7 +254,7 @@ function SlotsPanel() {
             </Badge>
           )}
         </div>
-        <Button className="h-9 shrink-0 self-start sm:self-auto" variant="outline" onClick={() => void load()} disabled={loading}>
+        <Button className="shrink-0 self-start sm:self-auto" variant="outline" onClick={() => void load()} disabled={loading}>
           <RefreshCw className={cn('w-4 h-4', loading && 'animate-spin')} />
           {t('common.refresh')}
         </Button>
@@ -277,7 +277,7 @@ function SlotsPanel() {
         </div>
       ) : slots.length === 0 ? (
         <Card className="glass-card">
-          <CardContent className="p-6 text-sm text-muted-foreground">
+          <CardContent className="!p-6 text-sm text-muted-foreground">
             {t('aiRuntime.slots.empty')}
           </CardContent>
         </Card>
@@ -416,7 +416,7 @@ function HooksPanel() {
             {t('aiRuntime.hooks.unwiredCount', { count: unwired.length })}
           </Badge>
         </div>
-        <Button className="h-9 shrink-0 self-start sm:self-auto" variant="outline" onClick={() => void load()} disabled={loading}>
+        <Button className="shrink-0 self-start sm:self-auto" variant="outline" onClick={() => void load()} disabled={loading}>
           <RefreshCw className={cn('w-4 h-4', loading && 'animate-spin')} />
           {t('common.refresh')}
         </Button>
@@ -649,7 +649,7 @@ function RelationshipPanel() {
       <div ref={detailRef} className="space-y-4">
       {view && !view.scored && (
         <Card className="glass-card">
-          <CardContent className="p-6 text-sm text-muted-foreground">
+          <CardContent className="!p-6 text-sm text-muted-foreground">
             {t('aiRuntime.relationship.unscored', { user: view.user_id })}
           </CardContent>
         </Card>
@@ -714,7 +714,7 @@ function RelationshipPanel() {
             </div>
             <Button
               variant="outline"
-              className="h-9 shrink-0 self-start"
+              className="shrink-0 self-start"
               onClick={() => setRosterQuery((prev) => ({ ...prev, reload: prev.reload + 1 }))}
               disabled={rosterLoading || rosterForbidden || rosterMissing}
             >
@@ -1083,7 +1083,7 @@ function CognitionPanel() {
 
       {nodes && visibleNodes.length === 0 && (
         <Card className="glass-card">
-          <CardContent className="p-6 text-sm text-muted-foreground">
+          <CardContent className="!p-6 text-sm text-muted-foreground">
             {t('aiRuntime.cognition.empty')}
           </CardContent>
         </Card>

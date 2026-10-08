@@ -140,7 +140,7 @@ export function SearchableMenu({
         aria-expanded={open}
         disabled={disabled}
         className={cn(
-          'flex h-11 w-full min-w-0 items-center justify-between gap-2 rounded-md border border-input bg-background px-2 text-sm ring-offset-background',
+          'flex h-10 w-full min-w-0 items-center justify-between gap-2 rounded-md border border-input bg-background px-2 text-sm ring-offset-background',
           'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
           'disabled:cursor-not-allowed disabled:opacity-50',
           className,
@@ -160,7 +160,7 @@ export function SearchableMenu({
         aria-haspopup="listbox"
         disabled={disabled}
         className={cn(
-          'h-11 w-full min-w-0 justify-between gap-2 px-3 sm:w-[16rem]',
+          'h-10 w-full min-w-0 justify-between gap-2 px-3 sm:w-[16rem]',
           className,
         )}
       >

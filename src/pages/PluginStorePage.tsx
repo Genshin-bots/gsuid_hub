@@ -607,7 +607,7 @@ export default function PluginStorePage() {
               className={cn(tabToolbarControlClass, 'w-full pl-10')}
             />
           </div>
-          <div className="flex min-h-11 w-full min-w-0 flex-wrap items-center justify-end gap-y-1 sm:h-11 sm:flex-nowrap sm:ml-auto sm:w-auto">
+          <div className="flex min-h-10 w-full min-w-0 flex-wrap items-center justify-end gap-y-1 sm:h-10 sm:flex-nowrap sm:ml-auto sm:w-auto">
             {storeStatItems.map((item, index) => {
               const Icon = item.icon;
               return (
@@ -616,7 +616,7 @@ export default function PluginStorePage() {
                   type="button"
                   onClick={() => setActiveTab(item.id)}
                   className={cn(
-                    'inline-flex h-11 shrink-0 items-center gap-1.5 px-2 text-xs text-muted-foreground sm:px-3',
+                    'inline-flex h-10 shrink-0 items-center gap-1.5 px-2 text-xs text-muted-foreground sm:px-3',
                     index > 0 && 'border-l border-border/50',
                     activeTab === item.id && 'text-foreground',
                     'hover:text-foreground',
@@ -662,7 +662,7 @@ export default function PluginStorePage() {
             </div>
           ) : filteredPlugins.length === 0 ? (
             <Card className="glass-card">
-              <CardContent className="py-12 text-center text-muted-foreground">
+              <CardContent className="!py-12 text-center text-muted-foreground">
                 <Package className="w-12 h-12 mx-auto mb-4 opacity-50" />
                 <p className="mb-2">
                   {searchQuery ? t('pluginStore.noMatchedPlugins') :

@@ -1733,7 +1733,7 @@ export default function AIMemoryPage() {
           </div>
           <Button
             variant="outline"
-            className="h-9 self-start sm:self-auto shrink-0"
+            className="self-start sm:self-auto shrink-0"
             onClick={() => setMemorySettingsOpen(true)}
           >
             <Brain className="w-4 h-4" />
@@ -1761,7 +1761,7 @@ export default function AIMemoryPage() {
           <p className="text-sm text-muted-foreground min-w-0">
             {t('aiMemory.cognitionIndexHint')}
           </p>
-          <Button variant="outline" size="sm" className="h-9 shrink-0 self-start sm:self-auto" asChild>
+          <Button variant="outline" className="shrink-0 self-start sm:self-auto" asChild>
             <Link to="/ai-runtime?tab=cognition">
               <Globe className="w-4 h-4" />
               {t('aiMemory.cognitionIndexLink')}
@@ -1873,7 +1873,7 @@ export default function AIMemoryPage() {
           </div>
           {entities.length === 0 && edges.length === 0 ? (
             <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
-              <CardContent className="flex flex-col items-center justify-center p-8 text-muted-foreground">
+              <CardContent className="flex flex-col items-center justify-center !p-8 text-center text-muted-foreground">
                 <Network className="w-12 h-12 mb-4 opacity-50" />
                 <p>{t('aiMemory.noGraphData')}</p>
               </CardContent>
@@ -1895,14 +1895,14 @@ export default function AIMemoryPage() {
       <div className="space-y-4">
         <div className="flex w-full min-w-0 items-center gap-2">
           <p className="text-sm text-muted-foreground min-w-0 flex-1">{t('aiMemory.worldTabDescription')}</p>
-          <Button variant="outline" size="sm" className="h-9 shrink-0" onClick={() => fetchCognition()}>
+          <Button variant="outline" className="shrink-0" onClick={() => fetchCognition()}>
             <RefreshCw className="w-4 h-4 sm:mr-1" />
             <span className="hidden sm:inline">{t('common.refresh')}</span>
           </Button>
         </div>
         {worldHubs.length === 0 ? (
           <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
-            <CardContent className="flex flex-col items-center justify-center p-8 text-muted-foreground">
+            <CardContent className="flex flex-col items-center justify-center !p-8 text-center text-muted-foreground">
               <Globe className="w-12 h-12 mb-4 opacity-50" />
               <p>{t('aiMemory.noWorldHubs')}</p>
             </CardContent>
@@ -1973,7 +1973,7 @@ export default function AIMemoryPage() {
           <div className="space-y-2">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-24 w-full" />)}</div>
         ) : preferences.length === 0 ? (
           <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
-            <CardContent className="flex flex-col items-center justify-center p-8 text-muted-foreground">
+            <CardContent className="flex flex-col items-center justify-center !p-8 text-center text-muted-foreground">
               <ListChecks className="w-12 h-12 mb-4 opacity-50" />
               <p>{t('aiMemory.noPreferences')}</p>
             </CardContent>
@@ -2115,7 +2115,7 @@ export default function AIMemoryPage() {
           </div>
           {scopes.length === 0 && (
             <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
-              <CardContent className="flex flex-col items-center justify-center p-8 text-muted-foreground"><Network className="w-12 h-12 mb-4 opacity-50" /><p>{t('aiMemory.noScopes')}</p></CardContent>
+              <CardContent className="flex flex-col items-center justify-center !p-8 text-center text-muted-foreground"><Network className="w-12 h-12 mb-4 opacity-50" /><p>{t('aiMemory.noScopes')}</p></CardContent>
             </Card>
           )}
       </div>
@@ -2141,7 +2141,7 @@ export default function AIMemoryPage() {
             <div className="space-y-2">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}</div>
           ) : episodes.length === 0 ? (
             <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
-              <CardContent className="flex flex-col items-center justify-center p-8 text-muted-foreground"><MessageSquare className="w-12 h-12 mb-4 opacity-50" /><p>{t('aiMemory.noEpisodes')}</p></CardContent>
+              <CardContent className="flex flex-col items-center justify-center !p-8 text-center text-muted-foreground"><MessageSquare className="w-12 h-12 mb-4 opacity-50" /><p>{t('aiMemory.noEpisodes')}</p></CardContent>
             </Card>
           ) : (
             <div className="space-y-2">
@@ -2202,7 +2202,7 @@ export default function AIMemoryPage() {
             <div className="glass-card-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-32 w-full" />)}</div>
           ) : entities.length === 0 ? (
             <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
-              <CardContent className="flex flex-col items-center justify-center p-8 text-muted-foreground"><Brain className="w-12 h-12 mb-4 opacity-50" /><p>{t('aiMemory.noEntities')}</p></CardContent>
+              <CardContent className="flex flex-col items-center justify-center !p-8 text-center text-muted-foreground"><Brain className="w-12 h-12 mb-4 opacity-50" /><p>{t('aiMemory.noEntities')}</p></CardContent>
             </Card>
           ) : (
             <div className="glass-card-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -2249,7 +2249,7 @@ export default function AIMemoryPage() {
             <div className="space-y-2">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}</div>
           ) : edges.length === 0 ? (
             <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
-              <CardContent className="flex flex-col items-center justify-center p-8 text-muted-foreground"><GitBranch className="w-12 h-12 mb-4 opacity-50" /><p>{t('aiMemory.noEdges')}</p></CardContent>
+              <CardContent className="flex flex-col items-center justify-center !p-8 text-center text-muted-foreground"><GitBranch className="w-12 h-12 mb-4 opacity-50" /><p>{t('aiMemory.noEdges')}</p></CardContent>
             </Card>
           ) : (
             <div className="space-y-2">
@@ -2291,7 +2291,7 @@ export default function AIMemoryPage() {
             <div className="space-y-3">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 w-full" />)}</div>
           ) : categories.length === 0 ? (
             <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
-              <CardContent className="flex flex-col items-center justify-center p-8 text-muted-foreground"><FolderTree className="w-12 h-12 mb-4 opacity-50" /><p>{t('aiMemory.noCategories')}</p></CardContent>
+              <CardContent className="flex flex-col items-center justify-center !p-8 text-center text-muted-foreground"><FolderTree className="w-12 h-12 mb-4 opacity-50" /><p>{t('aiMemory.noCategories')}</p></CardContent>
             </Card>
           ) : (
             <CategoryLayerTree

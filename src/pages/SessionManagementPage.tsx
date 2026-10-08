@@ -858,7 +858,7 @@ export default function SessionManagementPage() {
           // Empty State
           <div className="flex-1 flex items-center justify-center p-4">
             <Card className={cn("max-w-sm sm:max-w-md w-full rounded-xl", isGlass && "glass-card")}>
-              <CardContent className="p-6 sm:p-8 text-center">
+              <CardContent className="!p-6 text-center sm:!p-8">
                 <History className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 text-muted-foreground/50" />
                 <h3 className="text-base sm:text-lg font-medium mb-1 sm:mb-2">{t('sessionManagement.selectSession')}</h3>
                 <p className="text-xs sm:text-sm text-muted-foreground">

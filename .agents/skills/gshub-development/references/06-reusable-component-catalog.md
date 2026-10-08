@@ -92,8 +92,8 @@ interface TabButtonGroupProps {
 }
 
 // 同行对齐常量（导出）
-export const tabToolbarControlClass = 'h-11';
-export const tabToolbarIconButtonClass = 'h-11 w-11';
+export const tabToolbarControlClass = 'h-10'; // 对齐内钮视觉高度，不是玻璃外壳
+export const tabToolbarIconButtonClass = 'h-10 w-10';
 export const tabToolbarGroupWrapClass =
   'flex shrink-0 items-center [&_.shadow-safe]:!my-0 [&_.shadow-safe]:!py-0';
 ```
@@ -211,7 +211,7 @@ profiles.filter((p) => {
 
 ### 6.1.5 与 Input / Button 同行
 
-保持 **默认 group 高度**，同行控件 `h-11`：
+页面主操作按钮用默认 `Button`（`h-10`）。和分组并排时，对齐内钮视觉高度 `h-10`（`tabToolbarControlClass`），不要按玻璃外壳抬高旁边的按钮：
 
 ```tsx
 <div className="flex flex-wrap items-center gap-2">

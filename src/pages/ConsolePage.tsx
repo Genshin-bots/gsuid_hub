@@ -617,11 +617,11 @@ export default function ConsolePage() {
               <span className="text-sm text-muted-foreground">{t('console.autoScroll')}</span>
               <Switch checked={autoScroll} onCheckedChange={setAutoScroll} />
             </div>
-            <Button variant="outline" size="sm" onClick={exportLogs} className="whitespace-nowrap">
+            <Button variant="outline" onClick={exportLogs} className="whitespace-nowrap">
               <Download className="w-4 h-4 mr-2" />
               {t('console.exportLogs')}
             </Button>
-            <Button variant="outline" size="sm" onClick={clearLogs} className="whitespace-nowrap">
+            <Button variant="outline" onClick={clearLogs} className="whitespace-nowrap">
               <Trash2 className="w-4 h-4 mr-2" />
               {t('console.clear')}
             </Button>

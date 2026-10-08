@@ -262,7 +262,7 @@ function RuntimeStatusBar() {
 
           <Button
             variant="outline"
-            className="h-9 ml-auto"
+            className="ml-auto"
             onClick={() => void load()}
             disabled={loading}
           >

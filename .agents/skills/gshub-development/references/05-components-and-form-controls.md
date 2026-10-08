@@ -84,9 +84,11 @@ const buttonVariants = cva(
 
 非 `Button` 的可点击卡片（如 `/home` 快捷导航）自行加 `hoverIconGroupClass` + `SidebarHoverIcon`。
 
-## 5.4 一行筛选/表单控件高度必须统一 ★★
+## 5.4 按钮尺寸与一行筛选高度 ★★
 
-默认高度不一致：`Input` = **h-10**(40px)、`SelectTrigger` = **h-9**(36px)、`Button` 默认 = **h-10**、`Button size="sm"` = **h-9**、`Button size="icon"` = **h-10 w-10**、`TabButtonGroup` 默认外壳 ≈ **h-11**(44px，`p-1` + 内钮 `py-2` + 22px 图标)。
+页面主操作（标题栏右侧、卡片头、空态）用默认 `Button`：`h-10 px-4`，与「创建任务」一致。不要 `size="sm"`、不要 `h-9`、不要手写 `<button class="px-4 py-2">`。表格行内、分页、弹窗底栏可以保持紧凑。
+
+默认高度不一致：`Input` = **h-10**、`SelectTrigger` = **h-7**、`Button` 默认 = **h-10**、`Button size="sm"` = **h-9**、`Button size="icon"` = **h-10 w-10**。`TabButtonGroup` 内钮固定 **h-10**，外壳另有 `p-1`，比内钮高出一圈。
 
 按「这一行有没有 TabButtonGroup」分两档，**禁止混用**：
 
@@ -115,17 +117,17 @@ const buttonVariants = cva(
 <Button>新建</Button>
 ```
 
-### B. 有 TabButtonGroup → 以 **默认高度 group** 为基准，同行控件 `h-11` ★★★
+### B. 有 TabButtonGroup → 对齐内钮的**视觉高度** `h-10`，不是玻璃外壳 ★★★
 
-`TabButtonGroup` 默认高度是视觉主锚，**不要压矮**（禁止 `h-8` / `h-9` 外壳、禁止 `buttonClassName="h-8 py-0"` 一类矮版）。
+外壳有 `p-1`，比里面那颗按钮高出一圈。按外壳（或 `h-11` / `h-12`）去抬旁边的按钮，按钮会看起来更高。内钮固定 `h-10`，同行控件用同一个高度。**不要压矮** group（禁止 `h-8` 外壳、禁止 `buttonClassName="h-8 py-0"` 一类矮版）。
 
 同行 `Input` / `SelectTrigger` / `Button` 用组件导出的常量对齐：
 
 ```tsx
 import {
   TabButtonGroup,
-  tabToolbarControlClass,      // 'h-11'
-  tabToolbarIconButtonClass,   // 'h-11 w-11'
+  tabToolbarControlClass,      // 'h-10'，对齐内钮视觉高度
+  tabToolbarIconButtonClass,   // 'h-10 w-10'
   tabToolbarGroupWrapClass,    // 压掉 shadow-safe 竖直 bleed，便于 items-center
 } from '@/components/ui/TabButtonGroup';
 
@@ -143,9 +145,10 @@ import {
 
 | 场景 | 高度 | 说明 |
 |------|------|------|
-| 纯筛选行（无 Tab） | `h-9` | Input / Select / Button 显式 `h-9` |
-| 含默认 `TabButtonGroup` | `h-11` | 用 `tabToolbarControlClass` / `tabToolbarIconButtonClass` |
-| `TabButtonGroup` 本身 | **保持默认** | 禁止压成矮版 |
+| 页面主操作按钮 | 默认 `Button`（`h-10`） | 标题栏、卡片头、空态。不要 `size="sm"` |
+| 纯筛选行（无 Tab） | `h-9` | Input / Select / 这一行的按钮显式 `h-9` |
+| 含默认 `TabButtonGroup` | `h-10` | 对齐内钮视觉高度，不是外壳。用 `tabToolbarControlClass` / `tabToolbarIconButtonClass`。不要按外壳抬到 `h-11` / `h-12` |
+| `TabButtonGroup` 本身 | **内钮 `h-10`，外壳保持 `p-1`** | 禁止压矮外壳；外壳比内钮高是留白，不是按钮高度 |
 
 参考页：`/ai-knowledge` 工具栏、`/batch-push` 目标行、`/ai-meme` 筛选行。
 

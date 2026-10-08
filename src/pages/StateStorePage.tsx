@@ -33,7 +33,7 @@ export default function StateStorePage() {
           </div>
           <Button
             variant="outline"
-            className="h-9 whitespace-nowrap self-start sm:self-auto"
+            className="whitespace-nowrap self-start sm:self-auto"
             disabled={selectedCount === 0}
             onClick={() => ref.current?.openBatchDelete()}
           >

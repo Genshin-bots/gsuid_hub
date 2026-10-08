@@ -428,12 +428,12 @@ export default function AIScheduledTasksPage() {
                 placeholder={t('aiScheduledTasks.taskPromptPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
+                className="h-9 pl-10"
               />
             </div>
             <div className="flex flex-wrap gap-2 sm:flex-nowrap">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full min-w-[140px] flex-1 sm:w-[160px] sm:flex-none">
+                <SelectTrigger className="h-9 w-full min-w-[140px] flex-1 sm:w-[160px] sm:flex-none">
                   <Filter className="w-4 h-4 mr-2" />
                   <SelectValue placeholder={t('aiScheduledTasks.filterByStatus')} />
                 </SelectTrigger>
@@ -447,7 +447,7 @@ export default function AIScheduledTasksPage() {
                 </SelectContent>
               </Select>
               <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger className="w-full min-w-[140px] flex-1 sm:w-[160px] sm:flex-none">
+                <SelectTrigger className="h-9 w-full min-w-[140px] flex-1 sm:w-[160px] sm:flex-none">
                   <Filter className="w-4 h-4 mr-2" />
                   <SelectValue placeholder={t('aiScheduledTasks.filterByType')} />
                 </SelectTrigger>
@@ -457,7 +457,7 @@ export default function AIScheduledTasksPage() {
                   <SelectItem value="interval">{t('aiScheduledTasks.taskTypeInterval')}</SelectItem>
                 </SelectContent>
               </Select>
-              <Button variant="outline" size="icon" onClick={fetchTasks}>
+              <Button variant="outline" size="icon" className="h-9 w-9" onClick={fetchTasks}>
                 <RefreshCw className="w-4 h-4" />
               </Button>
             </div>
@@ -491,7 +491,7 @@ export default function AIScheduledTasksPage() {
         </div>
       ) : filteredTasks.length === 0 ? (
         <Card className={cn(isGlass ? "glass-card" : "border border-border/50")}>
-          <CardContent className="flex flex-col items-center justify-center p-8 text-muted-foreground">
+          <CardContent className="flex flex-col items-center justify-center !p-8 text-center text-muted-foreground">
             <Clock className="w-12 h-12 mb-4 opacity-50" />
             <p className="text-lg font-medium">{t('aiScheduledTasks.noTasks')}</p>
             <p className="text-sm">{t('aiScheduledTasks.noTasksDescription')}</p>

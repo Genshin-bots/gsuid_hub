@@ -297,7 +297,7 @@ export default function AISkillsPage() {
         <Card className={cn(
           isGlass ? "glass-card" : "border border-border/50"
         )}>
-          <CardContent className="flex flex-col items-center justify-center p-8 text-muted-foreground">
+          <CardContent className="flex flex-col items-center justify-center !p-8 text-center text-muted-foreground">
             <Sparkles className="w-12 h-12 mb-4 opacity-50" />
             <p>{t('aiSkills.noSkills')}</p>
           </CardContent>

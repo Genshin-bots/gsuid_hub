@@ -351,7 +351,7 @@ export default function DatabaseConfigPage() {
     return (
       <div className="space-y-6 flex-1 overflow-visible h-full flex flex-col">
         <Card className="glass-card">
-          <CardContent className="p-6">
+          <CardContent className="!p-6">
             <p className="text-center text-muted-foreground">{t('databaseConfig.notFound')}</p>
           </CardContent>
         </Card>

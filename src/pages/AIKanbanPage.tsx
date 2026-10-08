@@ -816,7 +816,7 @@ export default function AIKanbanPage() {
 
       {viewMode === 'kanban' && (
       <Card className="glass-card shrink-0">
-        <CardContent className="p-4 space-y-4">
+        <CardContent className="!p-4 space-y-4">
           <div className="grid grid-cols-2 gap-3 md:grid-cols-2 xl:grid-cols-6">
             <Input value={filters.scope_key} onChange={(event) => setFilters((prev) => ({ ...prev, scope_key: event.target.value }))} placeholder={t('aiKanban.filters.scopeKey')} />
             <Input value={filters.bot_id} onChange={(event) => setFilters((prev) => ({ ...prev, bot_id: event.target.value }))} placeholder={t('aiKanban.filters.botId')} />
@@ -901,9 +901,9 @@ export default function AIKanbanPage() {
             </div>
             <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
               {isLoadingBoard ? (
-                <Card className="glass-card"><CardContent className="py-10 text-center text-muted-foreground"><Loader2 className="mx-auto mb-2 h-5 w-5 animate-spin" />{t('common.loading')}</CardContent></Card>
+                <Card className="glass-card"><CardContent className="!py-10 text-center text-muted-foreground"><Loader2 className="mx-auto mb-2 h-5 w-5 animate-spin" />{t('common.loading')}</CardContent></Card>
               ) : (filteredColumns[column] || []).length === 0 ? (
-                <div className="rounded-xl border border-dashed border-border/60 p-8 text-center text-sm text-muted-foreground">{t('aiKanban.emptyColumn')}</div>
+                <div className="flex h-full min-h-[8rem] items-center justify-center rounded-xl border border-dashed border-border/60 p-8 text-center text-sm text-muted-foreground">{t('aiKanban.emptyColumn')}</div>
               ) : (
                 filteredColumns[column].map(renderCard)
               )}
@@ -957,12 +957,12 @@ export default function AIKanbanPage() {
                     </CardContent>
                   </Card>
                   <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-                    {detail.subtasks.length === 0 ? <Card className="glass-card"><CardContent className="py-12 text-center text-muted-foreground">{t('aiKanban.detail.noSubtasks')}</CardContent></Card> : detail.subtasks.map((task) => renderCard(task))}
+                    {detail.subtasks.length === 0 ? <Card className="glass-card"><CardContent className="!py-12 text-center text-muted-foreground">{t('aiKanban.detail.noSubtasks')}</CardContent></Card> : detail.subtasks.map((task) => renderCard(task))}
                   </div>
                 </TabsContent>
 
                 <TabsContent value="logs" className="space-y-3">
-                  {detail.logs.length === 0 ? <Card className="glass-card"><CardContent className="py-12 text-center text-muted-foreground">{t('aiKanban.detail.noLogs')}</CardContent></Card> : detail.logs.map((log, index) => (
+                  {detail.logs.length === 0 ? <Card className="glass-card"><CardContent className="!py-12 text-center text-muted-foreground">{t('aiKanban.detail.noLogs')}</CardContent></Card> : detail.logs.map((log, index) => (
                     <div key={`${log.timestamp}-${index}`} className={cn('rounded-xl border p-4', logClass(log.event_type))}>
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <Badge variant="outline">{log.event_type}</Badge>
@@ -974,7 +974,7 @@ export default function AIKanbanPage() {
                 </TabsContent>
 
                 <TabsContent value="artifacts" className="space-y-3">
-                  {artifacts.length === 0 ? <Card className="glass-card"><CardContent className="py-12 text-center text-muted-foreground">{t('aiKanban.detail.noArtifacts')}</CardContent></Card> : artifacts.map((artifact) => (
+                  {artifacts.length === 0 ? <Card className="glass-card"><CardContent className="!py-12 text-center text-muted-foreground">{t('aiKanban.detail.noArtifacts')}</CardContent></Card> : artifacts.map((artifact) => (
                     <Card key={artifact.id} className="glass-card">
                       <CardContent className="p-4 space-y-3">
                         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">

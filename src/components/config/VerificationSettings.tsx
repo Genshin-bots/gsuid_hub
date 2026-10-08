@@ -202,7 +202,7 @@ export default function VerificationSettings() {
     return (
       <div className="space-y-6 flex-1 overflow-visible h-full flex flex-col">
         <Card className="glass-card">
-          <CardContent className="p-6">
+          <CardContent className="!p-6">
             <p className="text-center text-muted-foreground">{t('verificationConfig.notFound')}</p>
           </CardContent>
         </Card>
@@ -216,7 +216,7 @@ export default function VerificationSettings() {
     <div className="space-y-6 flex-1 overflow-visible h-full flex flex-col">
       {/* Warning Card */}
       <Card className="glass-card border-amber-500/50 bg-amber-500/10">
-        <CardContent className="p-6">
+        <CardContent className="!p-6">
           <div className="flex items-center gap-2 text-amber-600 font-medium">
             <AlertTriangle className="w-5 h-5" />
             {t('verificationConfig.warning')}

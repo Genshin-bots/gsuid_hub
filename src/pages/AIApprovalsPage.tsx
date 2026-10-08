@@ -106,14 +106,12 @@ export default function AIApprovalsPage() {
         </div>
       }
       toolbar={
-        <div className="min-w-0 sm:overflow-x-auto">
-          <TabButtonGroup
-            options={viewOptions}
-            value={viewMode}
-            onValueChange={(value) => setViewMode(value as ViewMode)}
-            className="w-max"
-          />
-        </div>
+        <TabButtonGroup
+          options={viewOptions}
+          value={viewMode}
+          onValueChange={(value) => setViewMode(value as ViewMode)}
+          className="w-max"
+        />
       }
     >
 
@@ -123,7 +121,7 @@ export default function AIApprovalsPage() {
         </div>
       ) : items.length === 0 ? (
         <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
-          <CardContent className="flex flex-col items-center justify-center py-16 text-center text-muted-foreground">
+          <CardContent className="flex flex-col items-center justify-center !py-16 text-center text-muted-foreground">
             <ShieldCheck className="mb-4 h-12 w-12 opacity-50" />
             <p>{viewMode === 'pending' ? t('aiApprovals.emptyPending') : t('aiApprovals.emptyAll')}</p>
           </CardContent>

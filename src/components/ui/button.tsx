@@ -14,10 +14,10 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90 [&_svg]:text-primary-foreground [&_svg]:!text-primary-foreground",
-        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90 [&_svg]:text-destructive-foreground [&_svg]:!text-destructive-foreground",
+        default: "border border-transparent bg-primary text-primary-foreground hover:bg-primary/90 [&_svg]:text-primary-foreground [&_svg]:!text-primary-foreground",
+        destructive: "border border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/90 [&_svg]:text-destructive-foreground [&_svg]:!text-destructive-foreground",
         outline: "border border-input bg-background hover:bg-accent hover:text-accent-foreground [&_svg]:text-foreground [&_svg]:!text-foreground",
-        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80 [&_svg]:text-secondary-foreground [&_svg]:!text-secondary-foreground",
+        secondary: "border border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80 [&_svg]:text-secondary-foreground [&_svg]:!text-secondary-foreground",
         ghost: "hover:bg-accent hover:text-accent-foreground [&_svg]:text-foreground [&_svg]:!text-foreground",
         link: "text-primary underline-offset-4 hover:underline [&_svg]:text-primary [&_svg]:!text-primary",
       },

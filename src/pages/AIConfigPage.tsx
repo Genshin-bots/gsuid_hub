@@ -1236,11 +1236,10 @@ export default function AIConfigPage() {
             {isAIEnabled && (
               <Button
                 onClick={aiSwitch.handleOpenHelp}
-                size="sm"
                 variant="outline"
-                className="gap-1.5 sm:gap-2 whitespace-nowrap text-xs sm:text-sm"
+                className="gap-2 whitespace-nowrap"
               >
-                <HelpCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <HelpCircle className="w-4 h-4" />
                 {t('aiConfig.serviceSwitch.usageHelp')}
               </Button>
             )}
@@ -1251,14 +1250,13 @@ export default function AIConfigPage() {
                   disabled={
                     wizard.isWizardLoading || wizard.isPendingRestart
                   }
-                  size="sm"
                   variant="outline"
-                  className="gap-1.5 sm:gap-2 whitespace-nowrap text-xs sm:text-sm"
+                  className="gap-2 whitespace-nowrap"
                 >
                   {wizard.isWizardLoading ? (
-                    <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" />
+                    <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
-                    <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    <Sparkles className="w-4 h-4" />
                   )}
                   {t('aiConfig.checkConfig')}
                 </Button>
@@ -1283,16 +1281,15 @@ export default function AIConfigPage() {
             <Button
               onClick={handleSaveConfig}
               disabled={!isConfigDirty || isSaving}
-              size="sm"
               className={cn(
-                'gap-1.5 sm:gap-2 whitespace-nowrap transition-all duration-300 text-xs sm:text-sm',
+                'gap-2 whitespace-nowrap transition-all duration-300',
                 isConfigDirty && 'animate-in fade-in slide-in-from-bottom-2',
               )}
             >
               {isSaving ? (
-                <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" />
+                <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
-                <Save className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <Save className="w-4 h-4" />
               )}
               {t('aiConfig.saveButton')}
             </Button>

@@ -372,21 +372,21 @@ const StateStoreViewer = forwardRef<StateStoreViewerHandle, StateStoreViewerProp
       <div className="min-h-0 flex-1 overflow-y-auto py-2 px-0">
       {!selectedScope ? (
         <Card className="glass-card-flat shadow-none">
-          <CardContent className="py-12 text-center text-muted-foreground">
+          <CardContent className="!py-12 text-center text-muted-foreground">
             <Database className="mx-auto mb-3 h-10 w-10 opacity-40" />
             <p>{t('aiKanban.stateStore.selectScopeHint')}</p>
           </CardContent>
         </Card>
       ) : isLoadingKeys ? (
         <Card className="glass-card-flat shadow-none">
-          <CardContent className="py-10 text-center text-muted-foreground">
+          <CardContent className="!py-10 text-center text-muted-foreground">
             <Loader2 className="mx-auto mb-2 h-5 w-5 animate-spin" />
             {t('common.loading')}
           </CardContent>
         </Card>
       ) : keys.length === 0 ? (
         <Card className="glass-card-flat shadow-none">
-          <CardContent className="py-12 text-center text-muted-foreground">
+          <CardContent className="!py-12 text-center text-muted-foreground">
             <Key className="mx-auto mb-3 h-10 w-10 opacity-40" />
             <p>{t('aiKanban.stateStore.noKeys')}</p>
           </CardContent>

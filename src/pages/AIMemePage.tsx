@@ -1671,9 +1671,8 @@ export default function AIMemePage() {
             {filterStatus === 'rejected' && (
               <Button
                 variant="destructive"
-                size="sm"
                 onClick={() => setShowPurgeDialog(true)}
-                className="gap-1.5 whitespace-nowrap"
+                className={cn(tabToolbarControlClass, 'gap-1.5 whitespace-nowrap')}
               >
                 <Eraser className="w-4 h-4" />
                 {t('aiMeme.purgeRejected')}
@@ -1682,9 +1681,8 @@ export default function AIMemePage() {
             {filterStatus === 'pending_manual' && (
               <Button
                 variant="outline"
-                size="sm"
                 onClick={() => setShowRetagPendingDialog(true)}
-                className="gap-1.5 whitespace-nowrap"
+                className={cn(tabToolbarControlClass, 'gap-1.5 whitespace-nowrap')}
               >
                 <RotateCw className="w-4 h-4" />
                 {t('aiMeme.batchRetagPending')}
@@ -1699,7 +1697,7 @@ export default function AIMemePage() {
                   setShowPurgeAllDialog(true);
                 }}
                 disabled={isPurgingAll}
-                className="gap-1.5 whitespace-nowrap border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                className={cn(tabToolbarControlClass, 'gap-1.5 whitespace-nowrap border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive')}
               >
                 <Trash2 className="w-4 h-4" />
                 {t('aiMeme.purgeAll')}
@@ -1707,26 +1705,23 @@ export default function AIMemePage() {
             )}
             <Button
               variant="outline"
-              size="sm"
               onClick={() => { fetchMemes(); fetchStats(); fetchPersonas(); }}
-              className="gap-1.5 whitespace-nowrap"
+              className={cn(tabToolbarControlClass, 'gap-1.5 whitespace-nowrap')}
             >
               <RefreshCw className="w-4 h-4" />
               {t('aiMeme.refresh')}
             </Button>
             <Button
-              size="sm"
               onClick={() => setUploadOpen(true)}
-              className="gap-1.5 whitespace-nowrap"
+              className={cn(tabToolbarControlClass, 'gap-1.5 whitespace-nowrap')}
             >
               <Upload className="w-4 h-4" />
               {t('aiMeme.upload.title')}
             </Button>
             <Button
               variant="outline"
-              size="sm"
               onClick={() => setShowImportDotMemeDialog(true)}
-              className="gap-1.5 whitespace-nowrap"
+              className={cn(tabToolbarControlClass, 'gap-1.5 whitespace-nowrap')}
               title={t('aiMeme.importDotMeme')}
             >
               <FileDown className="w-4 h-4" />
@@ -1734,9 +1729,8 @@ export default function AIMemePage() {
             </Button>
             <Button
               variant="outline"
-              size="sm"
               onClick={handleExportDotMeme}
-              className="gap-1.5 whitespace-nowrap"
+              className={cn(tabToolbarControlClass, 'gap-1.5 whitespace-nowrap')}
               title={t('aiMeme.exportDotMeme')}
               disabled={memes.length === 0}
             >
@@ -1876,7 +1870,7 @@ export default function AIMemePage() {
         ) : null}
       </div>
 
-      {/* Filter Bar - single row: TabButtonGroup + Search + Sort；同行控件 h-11 对齐默认 group 高度 */}
+      {/* Filter Bar：同行控件对齐分段内钮的视觉高度（h-10），不是玻璃外壳 */}
       <div className="flex flex-wrap items-center gap-3">
         {/* Status Tab Filter */}
         <div className={tabToolbarGroupWrapClass}>
@@ -1897,10 +1891,7 @@ export default function AIMemePage() {
         </div>
 
         {/* Search */}
-        <div className={cn(
-          "relative w-52 rounded-lg border border-border/40 transition-all duration-200",
-          isGlass ? "glass-card" : "bg-muted/50"
-        )}>
+        <div className="relative w-52">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none z-10" />
           <Input
             value={searchInput}
@@ -1920,10 +1911,7 @@ export default function AIMemePage() {
 
         {/* Persona Filter - drop-down of all personas the library has ever seen,
             ordered by count desc. Empty value = "all personas". */}
-        <div className={cn(
-          "rounded-lg border border-border/40 transition-all duration-200",
-          isGlass ? "glass-card" : "bg-muted/50"
-        )}>
+        <div>
           <Select
             value={filterPersona}
             onValueChange={(v) => setFilterPersona(v)}
@@ -1951,10 +1939,7 @@ export default function AIMemePage() {
         </div>
 
         {/* Sort Select */}
-        <div className={cn(
-          "rounded-lg border border-border/40 transition-all duration-200",
-          isGlass ? "glass-card" : "bg-muted/50"
-        )}>
+        <div>
           <Select
             value={sortBy}
             onValueChange={(v) => setSortBy(v as SortOption)}
@@ -1993,7 +1978,7 @@ export default function AIMemePage() {
         </div>
       ) : memes.length === 0 ? (
         <Card className={cn(isGlass && "glass-card")}>
-          <CardContent className="py-16">
+          <CardContent className="!py-16">
             <div className="flex flex-col items-center justify-center text-center">
               <div className="w-20 h-20 rounded-2xl bg-muted/50 flex items-center justify-center mb-4">
                 <ImageIcon className="w-10 h-10 text-muted-foreground/30" />

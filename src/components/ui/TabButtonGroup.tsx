@@ -74,13 +74,12 @@ interface TabButtonGroupProps {
 }
 
 /**
- * 与默认高度的 TabButtonGroup 同行对齐用。
- * 默认 group 外壳 ≈ 44–46px（p-1 + 内钮 py-2 + 22px 图标），
- * 同行 Input / Select / Button 统一 `h-11`（44px），icon 按钮 `h-11 w-11`。
- * 要对齐 outline `size="sm"` 时用组件的 `size="sm"`，不要用 className 硬压高度。
+ * 与默认 TabButtonGroup **内钮**对齐的视觉高度，不是玻璃外壳。
+ * 外壳有 p-1，比里面那颗按钮高出一圈；按外壳对齐，旁边的按钮会看起来更高。
+ * 内钮固定 `h-10`，同行 Input / Select / Button 用同一个 `h-10`，icon 按钮 `h-10 w-10`。
  */
-export const tabToolbarControlClass = 'h-11';
-export const tabToolbarIconButtonClass = 'h-11 w-11';
+export const tabToolbarControlClass = 'h-10';
+export const tabToolbarIconButtonClass = 'h-10 w-10';
 
 /** `size="sm"` 的外壳高度，与 outline Button / Input 的 h-9 对齐。 */
 export const tabSmShellClass = 'h-9';
@@ -138,7 +137,9 @@ export function TabButtonGroup({
 }: TabButtonGroupProps) {
   const sm = size === 'sm';
   const iconSlotClass = sm ? 'h-4 w-4' : 'h-[22px] w-[22px]';
-  const segmentYClass = sm ? 'py-0' : 'py-2';
+  // 默认可视高度锁成 h-10，和 tabToolbarControlClass 同一数值。
+  // 玻璃外壳另有 p-1，不能拿外壳高度去对齐旁边的按钮。
+  const segmentYClass = sm ? 'h-full py-0' : 'h-10';
   // className 作用在按钮容器（内层）上——调用方会传 grid/w-full 等布局类改写整条布局。
   // 外层只负责阴影安全区（shadow-safe 竖直负边距），并按内层是否铺满/禁缩镜像自身尺寸行为。
   const fullWidth = typeof className === 'string' && /\b(?:w-full|grid)\b/.test(className);

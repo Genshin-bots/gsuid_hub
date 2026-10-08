@@ -1160,7 +1160,7 @@ export default function PluginsPage() {
     >
       {isLoading || isLoadingDetail ? (
         <Card className="glass-card">
-          <CardContent className="py-12 text-center">
+          <CardContent className="!py-12 text-center">
             <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
             <p className="text-muted-foreground">{t('plugins.loadingPluginConfig')}</p>
           </CardContent>
@@ -1697,7 +1697,7 @@ export default function PluginsPage() {
         </Card>
       ) : (
         <Card className="glass-card">
-          <CardContent className="py-12 text-center text-muted-foreground">
+          <CardContent className="!py-12 text-center text-muted-foreground">
             <Settings className="w-12 h-12 mx-auto mb-4 opacity-50" />
             <p>请先选择要配置的插件</p>
           </CardContent>

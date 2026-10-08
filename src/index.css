@@ -629,6 +629,9 @@ All colors MUST be HSL.
    */
   .page-pinned-toolbar {
     overflow-x: auto;
+    /* overflow-x:auto 会把 overflow-y 算成 auto。阴影安全区已经留过位，
+       这里用 clip 去掉按钮组旁那条多余的纵向滚动条，同时不把阴影裁成直角。 */
+    overflow-y: clip;
     margin: calc(var(--shadow-bleed) * -1);
     padding: var(--shadow-bleed);
   }
@@ -678,6 +681,18 @@ main:has(.page-fill) .layout-page-inner {
   padding-block: var(--shadow-bleed);
   margin-inline: 0;
   padding-inline: 0;
+}
+
+/*
+ * CardContent 默认 sm:pt-0，是为了不和前面的 CardHeader 底边距叠成两截。
+ * 没有 header 时它是卡片第一个子节点，顶边距被清成 0，统计卡 / 筛选条 / 提示条的内容就贴在上沿。
+ * 这里把顶边距补回 sm:p-6。调用方的 !p-* 仍然优先；p-0 表格不补。
+ */
+@media (min-width: 640px) {
+  .glass-card > .card-content.sm\:pt-0:first-child:not(.p-0),
+  .rounded-lg.border.bg-card > .card-content.sm\:pt-0:first-child:not(.p-0) {
+    padding-top: 1.5rem;
+  }
 }
 
 /*
