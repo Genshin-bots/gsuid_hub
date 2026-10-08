@@ -1953,6 +1953,14 @@ export const backupApi = {
 // Database APIs
 // ===================
 
+export interface CsvImportResult {
+  mode: 'merge' | 'replace';
+  inserted: number;
+  updated: number;
+  deleted: number;
+  rows: number;
+}
+
 export const databaseApi = {
   getTables: () => api.get<DatabaseTable[]>('/api/database/tables'),
 
@@ -2012,6 +2020,17 @@ export const databaseApi = {
     const qs = params.toString();
     const path = `/api/database/table/${tableName}/export.csv`;
     return api.downloadBlob(qs ? `${path}?${qs}` : path);
+  },
+
+  importCsv: (tableName: string, file: File, mode: 'merge' | 'replace') => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('mode', mode);
+    formData.append('confirm_table', tableName);
+    return api.postFormData<CsvImportResult>(
+      `/api/database/table/${encodeURIComponent(tableName)}/import.csv`,
+      formData,
+    );
   },
 
   createRecord: (tableName: string, data: Record<string, unknown>) =>

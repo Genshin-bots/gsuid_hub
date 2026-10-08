@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef, type ChangeEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,7 +12,7 @@ import { Switch } from '@/components/ui/switch';
 import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Search, Plus, Pencil, Trash2, Filter, RefreshCw, ChevronLeft, ChevronRight, Database, X, PlusCircle, Download } from 'lucide-react';
+import { Search, Plus, Pencil, Trash2, Filter, RefreshCw, ChevronLeft, ChevronRight, Database, X, PlusCircle, Download, Upload } from 'lucide-react';
 import { databaseApi, getApiErrorMessage, PluginDatabaseInfo, DatabaseTableInfo, PaginatedData } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -37,6 +37,12 @@ export default function DatabasePage() {
   const [isCreating, setIsCreating] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
+  const [importStep, setImportStep] = useState<0 | 1 | 2 | 3 | null>(null);
+  const [importMode, setImportMode] = useState<'merge' | 'replace'>('merge');
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [confirmName, setConfirmName] = useState('');
+  const [isImporting, setIsImporting] = useState(false);
+  const importInputRef = useRef<HTMLInputElement>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage, setPerPage] = useState(20);
 
@@ -99,6 +105,10 @@ export default function DatabasePage() {
       setFilterValue('');
       setFilters([]);
       setCurrentPage(1);
+      setImportStep(null);
+      setImportFile(null);
+      setConfirmName('');
+      setImportMode('merge');
       appliedQueryRef.current = {};
 
       fetchTableMetadata(activeTable);
@@ -308,6 +318,93 @@ export default function DatabasePage() {
       setIsExporting(false);
     }
   };
+
+  const closeImport = () => {
+    if (isImporting) return;
+    setImportStep(null);
+  };
+
+  const openImport = () => {
+    setImportMode('merge');
+    setImportFile(null);
+    setConfirmName('');
+    setImportStep(0);
+    if (importInputRef.current) importInputRef.current.value = '';
+  };
+
+  const onImportFile = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] ?? null;
+    setImportFile(file);
+    event.target.value = '';
+  };
+
+  const startImportConfirm = () => {
+    if (!importFile) {
+      toast.error(t('database.importNoFile'));
+      return;
+    }
+    if (importFile.size <= 0) {
+      toast.error(t('database.importEmptyFile'));
+      return;
+    }
+    if (importFile.size > 32 * 1024 * 1024) {
+      toast.error(t('database.importFileTooLarge'));
+      return;
+    }
+    setConfirmName('');
+    setImportStep(1);
+  };
+
+  const backImport = () => {
+    if (importStep === 1) setImportStep(0);
+    else if (importStep === 2) setImportStep(1);
+    else if (importStep === 3) setImportStep(2);
+  };
+
+  const submitImport = async () => {
+    if (!activeTable || !importFile || confirmName !== activeTable || isImporting) return;
+    try {
+      setIsImporting(true);
+      const result = await databaseApi.importCsv(activeTable, importFile, importMode);
+      toast.success(
+        t('database.importSuccess')
+          .replace('{inserted}', String(result.inserted))
+          .replace('{updated}', String(result.updated))
+          .replace('{deleted}', String(result.deleted)),
+      );
+      setImportStep(null);
+      setImportFile(null);
+      fetchTableData(activeTable, currentPage, perPage);
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, t('database.importFailed')));
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  const advanceImport = () => {
+    if (importStep === 0) startImportConfirm();
+    else if (importStep === 1) setImportStep(2);
+    else if (importStep === 2) {
+      setConfirmName('');
+      setImportStep(3);
+    } else if (importStep === 3) void submitImport();
+  };
+
+  const importModeLabel = importMode === 'merge' ? t('database.importModeMerge') : t('database.importModeReplace');
+  const importPrimaryDisabled =
+    isImporting ||
+    (importStep === 0 && !importFile) ||
+    (importStep === 3 && confirmName !== activeTable);
+  const importPrimaryLabel = isImporting
+    ? t('database.importing')
+    : importStep === 0
+      ? t('database.importNext')
+      : importStep === 1
+        ? t('database.importContinue').replace('{step}', '1')
+        : importStep === 2
+          ? t('database.importContinue').replace('{step}', '2')
+          : t('database.importStart');
 
   const handleCreate = () => {
     const emptyItem: Record<string, unknown> = {};
@@ -529,6 +626,21 @@ export default function DatabasePage() {
                     )}
                     {t('database.exportCsv')}
                   </Button>
+                  <Button
+                    onClick={openImport}
+                    variant="outline"
+                    size="sm"
+                    className="h-10"
+                    disabled={isImporting}
+                    title={t('database.importCsvHint')}
+                  >
+                    {isImporting ? (
+                      <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+                    ) : (
+                      <Upload className="h-4 w-4 mr-1" />
+                    )}
+                    {t('database.importCsv')}
+                  </Button>
                   <Button onClick={() => fetchTableData(activeTable, currentPage, perPage)} variant="outline" size="sm" className="h-10">
                     <RefreshCw className="h-4 w-4 mr-1" />
                     {t('database.refresh')}
@@ -727,6 +839,140 @@ export default function DatabasePage() {
             </Button>
             <Button onClick={handleSave}>
               {t('common.save')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={importStep !== null} onOpenChange={(open) => { if (!open) closeImport(); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>
+              {importStep === 0
+                ? t('database.importTitle')
+                : t('database.importConfirmTitle').replace('{step}', String(importStep ?? 1))}
+            </DialogTitle>
+            <DialogDescription>
+              {importStep === 0 && t('database.importDescription').replace('{table}', tableMetadata?.label || activeTable)}
+              {importStep === 1 && t('database.importConfirm1')
+                .replace('{file}', importFile?.name || '')
+                .replace('{table}', activeTable)
+                .replace('{mode}', importModeLabel)}
+              {importStep === 2 && importMode === 'merge' && t('database.importConfirm2Merge')}
+              {importStep === 2 && importMode === 'replace' && t('database.importConfirm2Replace').replace('{table}', activeTable)}
+              {importStep === 3 && t('database.importConfirm3').replace('{table}', activeTable)}
+            </DialogDescription>
+          </DialogHeader>
+
+          {importStep !== null && importStep > 0 && (
+            <div className="flex gap-1.5" aria-hidden>
+              {[1, 2, 3].map((step) => (
+                <div
+                  key={step}
+                  className={cn(
+                    'h-1.5 flex-1 rounded-full',
+                    importStep >= step
+                      ? importMode === 'replace' ? 'bg-destructive' : 'bg-primary'
+                      : 'bg-muted',
+                  )}
+                />
+              ))}
+            </div>
+          )}
+
+          {importStep === 0 && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 min-w-0">
+                <Button type="button" variant="outline" onClick={() => importInputRef.current?.click()}>
+                  <Upload className="h-4 w-4 mr-1" />
+                  {t('database.importPickFile')}
+                </Button>
+                <span className="text-sm text-muted-foreground truncate">
+                  {importFile
+                    ? t('database.importFileSelected').replace('{name}', importFile.name)
+                    : t('database.importNoFileYet')}
+                </span>
+              </div>
+              <input
+                ref={importInputRef}
+                type="file"
+                accept=".csv,text/csv"
+                className="hidden"
+                onChange={onImportFile}
+              />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  aria-pressed={importMode === 'merge'}
+                  onClick={() => setImportMode('merge')}
+                  className={cn(
+                    'rounded-lg border p-3 text-left transition-colors',
+                    importMode === 'merge' ? 'border-primary bg-primary/10' : 'border-border hover:bg-accent/40',
+                  )}
+                >
+                  <div className="font-medium">{t('database.importModeMerge')}</div>
+                  <p className="text-sm text-muted-foreground mt-1">{t('database.importModeMergeDesc')}</p>
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={importMode === 'replace'}
+                  onClick={() => setImportMode('replace')}
+                  className={cn(
+                    'rounded-lg border p-3 text-left transition-colors',
+                    importMode === 'replace' ? 'border-destructive bg-destructive/10' : 'border-border hover:bg-accent/40',
+                  )}
+                >
+                  <div className="font-medium">{t('database.importModeReplace')}</div>
+                  <p className="text-sm text-muted-foreground mt-1">{t('database.importModeReplaceDesc')}</p>
+                </button>
+              </div>
+              <p className="text-sm text-muted-foreground">{t('database.importWillConfirm')}</p>
+            </div>
+          )}
+
+          {importStep === 3 && (
+            <div className="space-y-2">
+              {tableMetadata && tableMetadata.label !== activeTable && (
+                <p className="text-sm text-muted-foreground">
+                  {t('database.importTableLabel').replace('{label}', tableMetadata.label)}
+                </p>
+              )}
+              <Label htmlFor="import-confirm-name">{t('database.importConfirmPlaceholder')}</Label>
+              <Input
+                id="import-confirm-name"
+                value={confirmName}
+                autoFocus
+                autoComplete="off"
+                spellCheck={false}
+                placeholder={t('database.importConfirmPlaceholder')}
+                onChange={(event) => setConfirmName(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' && confirmName === activeTable) {
+                    event.preventDefault();
+                    void submitImport();
+                  }
+                }}
+              />
+            </div>
+          )}
+
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button type="button" variant="outline" onClick={closeImport} disabled={isImporting}>
+              {t('common.cancel')}
+            </Button>
+            {importStep !== null && importStep > 0 && (
+              <Button type="button" variant="outline" onClick={backImport} disabled={isImporting}>
+                {t('database.importBack')}
+              </Button>
+            )}
+            <Button
+              type="button"
+              variant={importMode === 'replace' && importStep !== null && importStep > 0 ? 'destructive' : 'default'}
+              onClick={advanceImport}
+              disabled={importPrimaryDisabled}
+            >
+              {isImporting && <RefreshCw className="h-4 w-4 mr-1 animate-spin" />}
+              {importPrimaryLabel}
             </Button>
           </DialogFooter>
         </DialogContent>

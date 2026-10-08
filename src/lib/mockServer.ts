@@ -831,6 +831,11 @@ const routes: Route[] = [
       });
     },
   },
+  {
+    m: 'POST',
+    re: /^\/api\/database\/table\/([^/]+)\/import\.csv$/,
+    h: () => ({ mode: 'merge', inserted: 1, updated: 0, deleted: 0, rows: 1 }),
+  },
   { m: 'GET', re: /^\/api\/database\/table\/([^/]+)$/, h: ({ url }) => generateTableMetadata(decodeURIComponent(url.pathname.split('/').pop()!)) },
   { m: 'GET', re: /^\/api\/database\/([^/]+)\/tables$/, h: ({ url }) => { const id = decodeURIComponent(url.pathname.match(/\/database\/([^/]+)\/tables$/)![1]); return generateDatabasePlugins().find((p) => p.plugin_id === id) ?? null; } },
 
