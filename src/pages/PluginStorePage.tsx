@@ -53,6 +53,18 @@ function setCachedData<T>(key: string, data: T): void {
   }
 }
 
+/** 展示用洗牌。缓存仍存接口原序，每次进入页面再打乱。 */
+function shufflePlugins<T>(items: T[]): T[] {
+  const next = [...items];
+  for (let i = next.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const current = next[i];
+    next[i] = next[j];
+    next[j] = current;
+  }
+  return next;
+}
+
 
 // 根据 README 中图片 src 拼出 raw URL；处理 main / master 分支回退
 const buildRawUrl = (
@@ -220,7 +232,7 @@ export default function PluginStorePage() {
           isFun: cached.fun_plugins?.includes(plugin.id) || false,
           isTool: cached.tool_plugins?.includes(plugin.id) || false,
         }));
-        setPlugins(pluginsWithCategory);
+        setPlugins(shufflePlugins(pluginsWithCategory));
         setFunPlugins(cached.fun_plugins || []);
         setToolPlugins(cached.tool_plugins || []);
         setIsLoading(false);
@@ -237,7 +249,7 @@ export default function PluginStorePage() {
         isFun: data.fun_plugins?.includes(plugin.id) || false,
         isTool: data.tool_plugins?.includes(plugin.id) || false,
       }));
-      setPlugins(pluginsWithCategory);
+      setPlugins(shufflePlugins(pluginsWithCategory));
       setFunPlugins(data.fun_plugins || []);
       setToolPlugins(data.tool_plugins || []);
       // 写入缓存
