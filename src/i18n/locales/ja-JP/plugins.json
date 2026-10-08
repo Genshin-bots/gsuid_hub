@@ -2,6 +2,8 @@
   "title": "プラグイン設定",
   "description": "管理読込プラグインのパラメータとサービス設定",
   "selectPlugin": "選択プラグイン...",
+  "searchPlugin": "プラグインを検索",
+  "noMatchingPlugin": "一致するプラグインがありません",
   "morePlugins": "その他のプラグイン",
   "allPluginsShown": "よく使うプラグインはすでにこの行にあります",
   "pluginSelection": "プラグイン選択",

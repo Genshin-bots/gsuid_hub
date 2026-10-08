@@ -21,8 +21,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
+import { SearchableMenu } from '@/components/ui/searchable-menu';
 import { PluginIcon } from '@/components/ui/plugin-icon';
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -204,17 +204,27 @@ function ToolMultiSelectDropdown({ tools, value, onChange, disabled, t }: ToolMu
                   <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t('aiCapabilityAgents.tools.searchPlaceholder')} className="pl-9" />
                 </div>
-                <Select value={pluginFilter} onValueChange={setPluginFilter}>
-                  <SelectTrigger>
-                    <SelectValue placeholder={t('aiCapabilityAgents.tools.allPlugins')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">{t('aiCapabilityAgents.tools.allPlugins')}</SelectItem>
-                    {pluginOptions.map((plugin) => (
-                      <SelectItem key={plugin} value={plugin}>{plugin}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <SearchableMenu
+                  appearance="field"
+                  width="trigger"
+                  align="end"
+                  className="h-10"
+                  placeholder={t('aiCapabilityAgents.tools.allPlugins')}
+                  value={pluginFilter}
+                  onValueChange={setPluginFilter}
+                  items={[
+                    {
+                      value: 'all',
+                      label: t('aiCapabilityAgents.tools.allPlugins'),
+                      icon: <Puzzle className="h-4 w-4" />,
+                    },
+                    ...pluginOptions.map((plugin) => ({
+                      value: plugin,
+                      label: plugin,
+                      icon: <PluginIcon pluginName={plugin} className="h-4 w-4" />,
+                    })),
+                  ]}
+                />
               </div>
             </div>
             <div

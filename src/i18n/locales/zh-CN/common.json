@@ -29,6 +29,7 @@
   "edit": "编辑",
   "add": "添加",
   "search": "搜索",
+  "noMatches": "没有匹配项",
   "filter": "筛选",
   "export": "导出",
   "import": "导入",

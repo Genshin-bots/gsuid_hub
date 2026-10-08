@@ -944,6 +944,28 @@ main:has(.page-fill) .layout-page-inner {
   border: 1px dashed hsl(var(--border) / 0.9) !important;
 }
 
+/*
+  可搜索菜单里的输入框 / 列表会被上面的 input、[role=listbox] !important
+  收成带边框的块：搜索框变高且文字贴边，列表再按内容把自己撑宽。
+*/
+[data-searchable-menu] input,
+[data-searchable-menu] input:focus {
+  height: 2rem !important;
+  margin: 0 !important;
+  padding: 0 0.25rem !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+[data-searchable-menu] [role='listbox'] {
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
 .glass-input {
   background: hsl(var(--background) / 0.5);
   backdrop-filter: blur(8px);

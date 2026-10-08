@@ -8,6 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { SearchableMenu } from '@/components/ui/searchable-menu';
 
 /** 下拉子项：用于某一主 Tab 的二级筛选 */
 export interface TabButtonDropdownItem {
@@ -223,16 +224,23 @@ export function TabButtonGroup({
                   aria-hidden
                 />
 
-                {/* 仅箭头触发下拉 */}
-                <DropdownMenu
+                {/* 仅箭头触发下拉；列表与插件选择器共用 SearchableMenu */}
+                <SearchableMenu
+                  width="content"
+                  align={dropdown.align ?? 'end'}
+                  disabled={isDisabled}
+                  contentClassName={dropdown.contentClassName}
+                  items={dropdown.items}
+                  value={dropdown.value}
                   onOpenChange={(open) => {
                     // 展开菜单时切到该主 Tab，但保留当前二级筛选
-                    if (open && !isDisabled) {
-                      onValueChange(option.value);
-                    }
+                    if (open && !isDisabled) onValueChange(option.value);
                   }}
-                >
-                  <DropdownMenuTrigger asChild disabled={isDisabled}>
+                  onValueChange={(next) => {
+                    onValueChange(option.value);
+                    dropdown.onValueChange(next);
+                  }}
+                  trigger={
                     <button
                       type="button"
                       disabled={isDisabled}
@@ -249,42 +257,8 @@ export function TabButtonGroup({
                     >
                       <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-70 transition-transform group-data-[state=open]:rotate-180" />
                     </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent
-                    align={dropdown.align ?? 'end'}
-                    className={cn(
-                      'min-w-[12rem] max-h-72 overflow-y-auto',
-                      dropdown.contentClassName,
-                    )}
-                  >
-                    {dropdown.items.map((item) => {
-                      const selected = dropdown.value === item.value;
-                      return (
-                        <DropdownMenuItem
-                          key={item.value}
-                          disabled={item.disabled}
-                          onSelect={() => {
-                            onValueChange(option.value);
-                            dropdown.onValueChange(item.value);
-                          }}
-                          className="cursor-pointer gap-2"
-                        >
-                          {/* 固定宽度图标槽，避免无图标项错位；img 用 block 才能稳定占位 */}
-                          <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center [&>img]:h-4 [&>img]:w-4 [&>svg]:h-4 [&>svg]:w-4">
-                            {item.icon ?? null}
-                          </span>
-                          <span className="min-w-0 flex-1 truncate">{item.label}</span>
-                          <Check
-                            className={cn(
-                              'h-4 w-4 shrink-0 text-primary',
-                              selected ? 'opacity-100' : 'opacity-0',
-                            )}
-                          />
-                        </DropdownMenuItem>
-                      );
-                    })}
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                  }
+                />
               </div>
             );
           }

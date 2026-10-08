@@ -1,14 +1,8 @@
 import { useMemo } from 'react';
-import { Check, ChevronDown, LayoutGrid } from 'lucide-react';
+import { LayoutGrid } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { PluginIcon } from '@/components/ui/plugin-icon';
+import { SearchableMenu } from '@/components/ui/searchable-menu';
 import { useLanguage } from '@/contexts/LanguageContext';
 import type { PluginListItem } from '@/lib/api';
 
@@ -28,8 +22,8 @@ function pluginRank(plugin: PluginListItem, rank: Map<string, number>) {
 }
 
 /**
- * 单个插件下拉。常用插件排在前面。
- * 触发器与页头 outline `size="sm"` 按钮同高（h-9）。
+ * 插件页头的插件下拉。常用插件排在前面。
+ * 按钮是 outline，不带 combobox 角色，避免被全局输入框样式染成另一种底色。
  */
 export function PluginUsageBar({
   plugins,
@@ -52,54 +46,25 @@ export function PluginUsageBar({
     });
   }, [plugins, usageNames]);
 
-  const selected = ordered.find((plugin) => plugin.id === value);
-
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          disabled={plugins.length === 0}
-          className={cn('min-w-0 justify-between gap-2 px-3', className)}
-        >
-          <span className="flex min-w-0 items-center gap-2">
-            <span className="flex h-4 w-4 shrink-0 items-center justify-center">
-              {selected ? (
-                <PluginIcon pluginName={selected.name} className="h-4 w-4" />
-              ) : (
-                <LayoutGrid className="h-4 w-4" />
-              )}
-            </span>
-            <span className="truncate">{selected?.name || t('plugins.selectPlugin')}</span>
-          </span>
-          <ChevronDown className="h-4 w-4 shrink-0 opacity-70" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-[12rem] max-h-72 overflow-y-auto">
-        {ordered.map((plugin) => {
-          const isSelected = plugin.id === value;
-          return (
-            <DropdownMenuItem
-              key={plugin.id}
-              onSelect={() => onValueChange(plugin.id)}
-              className="cursor-pointer gap-2"
-            >
-              <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center [&>img]:h-4 [&>img]:w-4 [&>svg]:h-4 [&>svg]:w-4">
-                <PluginIcon pluginName={plugin.name} />
-              </span>
-              <span className="min-w-0 flex-1 truncate">{plugin.name}</span>
-              <Check
-                className={cn(
-                  'h-4 w-4 shrink-0 text-primary',
-                  isSelected ? 'opacity-100' : 'opacity-0',
-                )}
-              />
-            </DropdownMenuItem>
-          );
-        })}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <SearchableMenu
+      appearance="outline"
+      width="trigger"
+      align="end"
+      disabled={plugins.length === 0}
+      className={cn(className)}
+      placeholder={t('plugins.selectPlugin')}
+      placeholderIcon={<LayoutGrid className="h-4 w-4" />}
+      searchPlaceholder={t('plugins.searchPlugin')}
+      emptyText={t('plugins.noMatchingPlugin')}
+      value={value}
+      onValueChange={onValueChange}
+      items={ordered.map((plugin) => ({
+        value: plugin.id,
+        label: plugin.name,
+        keywords: [plugin.name, plugin.id],
+        icon: <PluginIcon pluginName={plugin.name} className="h-4 w-4" />,
+      }))}
+    />
   );
 }

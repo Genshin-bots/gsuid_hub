@@ -2,6 +2,8 @@
   "title": "Plugin Configuration",
   "description": "Manage loaded plugin parameters and service configurations",
   "selectPlugin": "Select plugin...",
+  "searchPlugin": "Search plugins",
+  "noMatchingPlugin": "No matching plugins",
   "morePlugins": "More plugins",
   "allPluginsShown": "Frequent plugins are already on this row",
   "pluginSelection": "Plugin Selection",

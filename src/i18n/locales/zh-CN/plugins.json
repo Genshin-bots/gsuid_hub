@@ -2,6 +2,8 @@
   "title": "插件配置",
   "description": "管理已加载插件的参数和服务配置",
   "selectPlugin": "选择插件...",
+  "searchPlugin": "搜索插件",
+  "noMatchingPlugin": "没有匹配的插件",
   "morePlugins": "更多插件",
   "allPluginsShown": "常用插件都已排在这一行",
   "pluginSelection": "插件选择",

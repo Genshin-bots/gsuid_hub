@@ -7,13 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { LabelWithHelp } from '@/components/ui/label-with-help';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { SearchableMenu } from '@/components/ui/searchable-menu';
 
 type TFn = (key: string, params?: Record<string, string | number>) => string;
 
@@ -424,22 +418,23 @@ export function CheckListField({
                 />
               </div>
               {filter && (
-                <Select value={filterValue} onValueChange={setFilterValue}>
-                  <SelectTrigger className={cn(CONTROL_H, 'text-sm')}>
-                    <SelectValue placeholder={filter.allLabel} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__all__">{filter.allLabel}</SelectItem>
-                    {filter.options.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        <span className="flex items-center gap-2">
-                          {opt.icon}
-                          {opt.label}
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <SearchableMenu
+                  appearance="field"
+                  width="trigger"
+                  align="end"
+                  className={cn(CONTROL_H, 'text-sm')}
+                  placeholder={filter.allLabel}
+                  value={filterValue}
+                  onValueChange={setFilterValue}
+                  items={[
+                    { value: '__all__', label: filter.allLabel },
+                    ...filter.options.map((opt) => ({
+                      value: opt.value,
+                      label: opt.label,
+                      icon: opt.icon,
+                    })),
+                  ]}
+                />
               )}
             </div>
 

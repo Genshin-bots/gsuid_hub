@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { TabButtonGroup, tabSmShellClass } from '@/components/ui/TabButtonGroup';
+import { TabButtonGroup, tabToolbarControlClass } from '@/components/ui/TabButtonGroup';
 import {
   Dialog,
   DialogContent,
@@ -1115,7 +1115,6 @@ export default function PluginsPage() {
               usageNames={pluginUsageNames}
               value={selectedPluginId}
               onValueChange={setSelectedPluginId}
-              className="w-full sm:w-auto sm:max-w-[16rem]"
             />
             <div className="flex gap-2">
             <TooltipProvider>
@@ -1123,10 +1122,9 @@ export default function PluginsPage() {
                 <TooltipTrigger asChild>
                   <Button
                     variant="outline"
-                    size="sm"
                     onClick={handleUpdateAllClick}
                     disabled={isLoading || pluginList.length === 0}
-                    className="flex-1 justify-center gap-2 whitespace-nowrap sm:flex-none"
+                    className={cn(tabToolbarControlClass, 'flex-1 justify-center gap-2 whitespace-nowrap sm:flex-none')}
                   >
                     <Download className="w-4 h-4" />
                     {t('plugins.updateAllPlugins')}
@@ -1142,10 +1140,9 @@ export default function PluginsPage() {
                 <TooltipTrigger asChild>
                   <Button
                     variant="outline"
-                    size="sm"
                     onClick={handleReloadPlugin}
                     disabled={!selectedPlugin || isReloadingPlugin}
-                    className="flex-1 justify-center gap-2 whitespace-nowrap sm:flex-none"
+                    className={cn(tabToolbarControlClass, 'flex-1 justify-center gap-2 whitespace-nowrap sm:flex-none')}
                   >
                     <RotateCw className={`w-4 h-4 ${isReloadingPlugin ? 'animate-spin' : ''}`} />
                     {t('plugins.reloadPlugin')}
@@ -1185,7 +1182,6 @@ export default function PluginsPage() {
               <div className="flex w-full min-w-0 flex-wrap items-center gap-2 sm:gap-3 lg:w-auto">
                 <TabButtonGroup
                   className="w-full sm:w-max"
-                  size="sm"
                   singleRowOnMobile
                   options={[
                     {
@@ -1230,7 +1226,6 @@ export default function PluginsPage() {
                 {selectedPages.length > 0 && (
                   <TabButtonGroup
                     className="w-full sm:w-max"
-                    size="sm"
                     options={selectedPages.map((page) => ({
                       value: page.id,
                       label: pickPluginPageText(page.title, language, page.id),
@@ -1249,11 +1244,11 @@ export default function PluginsPage() {
                   value={svQuery}
                   onChange={(event) => setSvQuery(event.target.value)}
                   placeholder={pluginSection === 'sv' ? t('plugins.searchSv') : t('plugins.searchConfig')}
-                  className={cn(tabSmShellClass, 'w-full min-w-0 flex-1 bg-background sm:w-44 sm:flex-none lg:w-56')}
+                  className={cn(tabToolbarControlClass, 'w-full min-w-0 flex-1 bg-background sm:w-44 sm:flex-none lg:w-56')}
                 />
                 {pluginSection !== 'sv' && (
                   <Button
-                    className={cn(tabSmShellClass, 'shrink-0 justify-center gap-2 px-4 sm:px-8 lg:min-w-[160px]')}
+                    className={cn(tabToolbarControlClass, 'shrink-0 justify-center gap-2 px-4 sm:px-8 lg:min-w-[160px]')}
                     disabled={!sectionDirty || sectionSaving}
                     onClick={saveSection}
                   >

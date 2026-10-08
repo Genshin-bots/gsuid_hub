@@ -29,6 +29,7 @@
   "edit": "編集",
   "add": "追加",
   "search": "検索",
+  "noMatches": "一致する項目がありません",
   "filter": "絞込",
   "export": "エクスポート",
   "import": "インポート",

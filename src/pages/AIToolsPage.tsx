@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { TabButtonGroup, tabToolbarControlClass, tabToolbarGroupWrapClass } from '@/components/ui/TabButtonGroup';
+import { SearchableMenu } from '@/components/ui/searchable-menu';
 import { PluginIcon } from '@/components/ui/plugin-icon';
 import {
   Select,
@@ -480,41 +481,25 @@ export default function AIToolsPage() {
               </div>
 
               <div className="min-w-0 flex-1">
-                <Select value={selectedPlugin} onValueChange={setSelectedPlugin}>
-                  <SelectTrigger className={cn(tabToolbarControlClass, 'w-full min-w-0 px-2 [&>span]:min-w-0')}>
-                    {/* 显式传 children：Radix 默认把选中项整段 children portal 进触发器，
-                        图标会跟着进触发器并撑破 line-clamp，这里自绘以与列表项排版一致 */}
-                    <SelectValue placeholder={t('aiTools.selectPlugin')}>
-                      <span className="flex min-w-0 items-center gap-2">
-                        <PluginFilterIcon plugin={selectedPlugin} />
-                        <span className="truncate">
-                          {pluginFilterLabel(
-                            selectedPlugin,
-                            pluginCounts[selectedPlugin] || 0,
-                            t('aiTools.allPlugins')
-                          )}
-                        </span>
-                      </span>
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {pluginList.map((plugin) => {
-                      const count = pluginCounts[plugin] || 0;
-                      const disabled =
-                        plugin !== 'all' && plugin !== selectedPlugin && count === 0;
-                      return (
-                        <SelectItem key={plugin} value={plugin} disabled={disabled}>
-                          <span className="flex min-w-0 items-center gap-2">
-                            <PluginFilterIcon plugin={plugin} />
-                            <span className="truncate">
-                              {pluginFilterLabel(plugin, count, t('aiTools.allPlugins'))}
-                            </span>
-                          </span>
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
+                <SearchableMenu
+                  appearance="field"
+                  width="trigger"
+                  align="end"
+                  className={cn(tabToolbarControlClass, 'w-full min-w-0 px-2')}
+                  placeholder={t('aiTools.selectPlugin')}
+                  searchPlaceholder={t('common.search')}
+                  value={selectedPlugin}
+                  onValueChange={setSelectedPlugin}
+                  items={pluginList.map((plugin) => {
+                    const count = pluginCounts[plugin] || 0;
+                    return {
+                      value: plugin,
+                      label: pluginFilterLabel(plugin, count, t('aiTools.allPlugins')),
+                      icon: <PluginFilterIcon plugin={plugin} />,
+                      disabled: plugin !== 'all' && plugin !== selectedPlugin && count === 0,
+                    };
+                  })}
+                />
               </div>
             </div>
           )}

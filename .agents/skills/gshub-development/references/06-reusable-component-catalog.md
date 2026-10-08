@@ -117,7 +117,7 @@ export const tabToolbarGroupWrapClass =
 实现要点（源码契约）：
 
 - 主区与 ▾ 是**两个独立 button**，中间竖线分隔；外层容器统一 active 底色（`bg-primary`），**不吃 padding**（`buttonClassName` 的 `px-*` / `sm:px-*` 会被剥掉）。
-- 菜单用 `DropdownMenuItem`（非 `RadioItem`），左侧固定 **20×20 图标槽**，避免插件 PNG 被挤没。
+- 桌面端 ▾ 菜单用 `SearchableMenu`（打开即可打字筛选），左侧固定 **20×20 图标槽**，避免插件 PNG 被挤没。窄屏收起态仍是 `DropdownMenu`。
 - 子项 `icon` 推荐 `PluginIcon`（`h-4 w-4`）或 lucide；无图标时槽位仍占位，避免文字错位。
 - 「全部」哨兵用 **`__all__`**（与 Radix Select 空值约定一致，见 [§05 §5.5](./05-components-and-form-controls.md)），**禁止** `value=""`。
 
@@ -525,3 +525,12 @@ import { PluginIcon } from '@/components/ui/plugin-icon';
 - `summary` 渲染在收起态触发器**下方**，不要挪回标题与触发器之间：并排栅格里（能力档位 | 启用工具）多夹一行会把同行控件挤低。PopoverContent 走 portal 不占布局，收起/展开它都在原位。
 - 表单控件高度统一 `h-10`（Button / TagsInput / Input 默认即 h-10；**仓库 `SelectTrigger` 默认 `h-7`，并排时必须显式加 `h-10`**，否则与同行控件四档高度参差）。浮层内部搜索 / 筛选行用组件内常量 `CONTROL_H = h-9`。
 - 说明文字走 `help` prop（`LabelWithHelp`），不要在正文里堆段落。
+
+## 6.12 SearchableMenu —— 可搜索下拉
+
+位置：`src/components/ui/searchable-menu.tsx`。插件选择、工具页插件筛选、`TabButtonGroup` 的 ▾ 二级菜单共用这一份。
+
+- 打开后搜索框自动聚焦，按 `label` 筛选。
+- `appearance="outline"`：页头线框按钮，**不要**加 `role="combobox"`（全局输入框样式会改掉底色和边框）。
+- `appearance="field"`：与工具栏 `Select` 同高同色（`/ai-tools` 插件筛选）。
+- `width="trigger"` 时菜单与按钮同宽；`width="content"` 时至少 16rem（分段按钮的 ▾ 很窄，不能跟箭头等宽）。
