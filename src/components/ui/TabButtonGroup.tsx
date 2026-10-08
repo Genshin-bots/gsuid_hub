@@ -64,16 +64,25 @@ interface TabButtonGroupProps {
    * 调用方需同时传 `w-full`，窄屏用 grid 等分（2–6 段，超出范围退回 flex 自适应）。
    */
   singleRowOnMobile?: boolean;
+  /**
+   * `sm`：外壳 h-9，只留左右内边距，纵向贴齐外框。
+   * 这样分段的可视高度和同行的 h-9 输入框 / 按钮一致。
+   * 默认不传。不要用 className 把默认高度硬压矮。
+   */
+  size?: 'default' | 'sm';
 }
 
 /**
  * 与默认高度的 TabButtonGroup 同行对齐用。
  * 默认 group 外壳 ≈ 44–46px（p-1 + 内钮 py-2 + 22px 图标），
  * 同行 Input / Select / Button 统一 `h-11`（44px），icon 按钮 `h-11 w-11`。
- * **禁止** 再把 TabButtonGroup 压成 h-8 / h-9 的矮版。
+ * 要对齐 outline `size="sm"` 时用组件的 `size="sm"`，不要用 className 硬压高度。
  */
 export const tabToolbarControlClass = 'h-11';
 export const tabToolbarIconButtonClass = 'h-11 w-11';
+
+/** `size="sm"` 的外壳高度，与 outline Button / Input 的 h-9 对齐。 */
+export const tabSmShellClass = 'h-9';
 
 /** 压掉 shadow-safe 竖直 bleed，便于与同行控件 items-center 齐平 */
 export const tabToolbarGroupWrapClass =
@@ -124,7 +133,11 @@ export function TabButtonGroup({
   disabled = false,
   collapseOnMobile = false,
   singleRowOnMobile = false,
+  size = 'default',
 }: TabButtonGroupProps) {
+  const sm = size === 'sm';
+  const iconSlotClass = sm ? 'h-4 w-4' : 'h-[22px] w-[22px]';
+  const segmentYClass = sm ? 'py-0' : 'py-2';
   // className 作用在按钮容器（内层）上——调用方会传 grid/w-full 等布局类改写整条布局。
   // 外层只负责阴影安全区（shadow-safe 竖直负边距），并按内层是否铺满/禁缩镜像自身尺寸行为。
   const fullWidth = typeof className === 'string' && /\b(?:w-full|grid)\b/.test(className);
@@ -142,7 +155,8 @@ export function TabButtonGroup({
     >
       <div
         className={cn(
-          'inline-flex min-w-0 flex-wrap gap-1 rounded-lg p-1 glass-card',
+          'inline-flex min-w-0 flex-wrap gap-1 rounded-lg glass-card',
+          sm ? cn(tabSmShellClass, 'items-stretch px-0.5 py-0') : 'p-1',
           // 窄屏等分成 N 列不换行，好过收成下拉丢掉「分区一眼可见」。
           // 用 grid 而非 flex：flex 下「主区 + ▾」拆分按钮里的 nowrap 文本会把整段
           // 撑到 min-content，flex-1 等分直接失效（实测 82/98/98，grid 才是 93/93/93）。
@@ -182,7 +196,9 @@ export function TabButtonGroup({
                     }
                   }}
                   className={cn(
-                    'flex min-w-0 items-center gap-1.5 sm:gap-2 px-2.5 sm:pl-4 sm:pr-2 py-2 rounded-none bg-transparent',
+                    'flex min-w-0 items-center gap-1.5 sm:gap-2 px-2.5 sm:pl-4 sm:pr-2 rounded-none bg-transparent',
+                    segmentYClass,
+                    sm && 'h-full',
                     'hover:bg-transparent focus-visible:outline-none',
                     singleRowOnMobile && 'flex-1 justify-center px-2 sm:flex-none sm:justify-start',
                     isDisabled && 'cursor-not-allowed',
@@ -191,7 +207,8 @@ export function TabButtonGroup({
                   {option.icon != null && (
                     <span
                       className={cn(
-                        'flex h-[22px] w-[22px] shrink-0 items-center justify-center',
+                        'flex shrink-0 items-center justify-center',
+                        iconSlotClass,
                         singleRowOnMobile && 'hidden sm:flex',
                       )}
                     >
@@ -221,7 +238,9 @@ export function TabButtonGroup({
                       disabled={isDisabled}
                       aria-label="Open filter menu"
                       className={cn(
-                        'group flex items-center justify-center rounded-none border-0 bg-transparent px-2.5 py-2',
+                        'group flex items-center justify-center rounded-none border-0 bg-transparent px-2.5',
+                        segmentYClass,
+                        sm && 'h-full',
                         singleRowOnMobile && 'px-1.5 sm:px-2.5',
                         'hover:bg-black/5 dark:hover:bg-white/10 focus-visible:outline-none',
                         'data-[state=open]:bg-black/5 dark:data-[state=open]:bg-white/10',
@@ -278,7 +297,9 @@ export function TabButtonGroup({
               disabled={isDisabled}
               className={cn(
                 tabSegmentClassName(isActive, isDisabled, buttonClassName),
-                'rounded-md px-2.5 py-2 sm:px-4',
+                'rounded-md px-2.5 sm:px-4',
+                segmentYClass,
+                sm && 'h-full',
                 singleRowOnMobile &&
                   'min-w-0 flex-1 justify-center px-2 text-xs sm:flex-none sm:px-4 sm:text-sm',
               )}
@@ -286,7 +307,8 @@ export function TabButtonGroup({
               {option.icon != null && (
                 <span
                   className={cn(
-                    'flex h-[22px] w-[22px] shrink-0 items-center justify-center',
+                    'flex shrink-0 items-center justify-center',
+                    iconSlotClass,
                     singleRowOnMobile && 'hidden sm:flex',
                   )}
                 >
@@ -306,7 +328,12 @@ export function TabButtonGroup({
   return (
     <>
       <div className="inline-flex max-w-full shadow-safe md:hidden">
-        <div className="inline-flex min-w-0 max-w-full gap-1 rounded-lg p-1 glass-card">
+        <div
+          className={cn(
+            'inline-flex min-w-0 max-w-full gap-1 rounded-lg glass-card',
+            sm ? cn(tabSmShellClass, 'items-stretch px-0.5 py-0') : 'p-1',
+          )}
+        >
           <DropdownMenu>
             <DropdownMenuTrigger asChild disabled={disabled}>
               <button
@@ -314,11 +341,13 @@ export function TabButtonGroup({
                 disabled={disabled}
                 className={cn(
                   tabSegmentClassName(true, disabled, buttonClassName),
-                  'max-w-full rounded-md px-4 py-2',
+                  'max-w-full rounded-md px-4',
+                  segmentYClass,
+                  sm && 'h-full',
                 )}
               >
                 {current?.icon != null && (
-                  <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center">
+                  <span className={cn('flex shrink-0 items-center justify-center', iconSlotClass)}>
                     {asHoverIcon(current.icon)}
                   </span>
                 )}

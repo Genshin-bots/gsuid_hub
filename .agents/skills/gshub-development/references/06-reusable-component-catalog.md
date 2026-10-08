@@ -88,6 +88,7 @@ interface TabButtonGroupProps {
   disabled?: boolean;            // 整组禁用
   collapseOnMobile?: boolean;    // <768px 收成「当前项 + ▾」下拉（/plugin-store）
   singleRowOnMobile?: boolean;   // <768px 保持同行等分、超长文案省略（/plugins 分区切换）
+  size?: 'default' | 'sm';       // sm：外壳 h-9，纵向无内边距，与同行 h-9 输入框/按钮对齐
 }
 
 // 同行对齐常量（导出）
@@ -320,7 +321,7 @@ import { TagsInput } from '@/components/config/TagsInput';
 </div>
 ```
 
-特性：已添加标签以 chip 展示可点击删除；「更多」按钮打开 Popover 搜索已添加标签；搜索框回车添加新标签；提供 `options` 时 Popover 显示可选列表；支持复制标签文本。
+特性：已添加标签以 chip 展示可点击删除；「更多」按钮打开 Popover 搜索已添加标签；搜索框回车添加新标签；提供 `options` 时 Popover 显示可选列表，点选后列表保持打开以便连续添加；chip、「更多」和 +N 徽标用 `rounded-lg`（`var(--radius)`）跟随主题圆角；支持复制标签文本。
 
 ## 6.4 ChipGroup（MultiSelectChipGroup）—— 多选/单选 Chip
 

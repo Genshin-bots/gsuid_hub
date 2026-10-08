@@ -14,10 +14,11 @@ interface TagsInputProps {
 }
 
 /**
- * 胶囊核心样式。量尺行与可见行必须引用同一份，否则量出来的宽度对不上真实渲染宽度。
+ * 标签芯片。量尺行与可见行必须引用同一份，否则量出来的宽度对不上真实渲染宽度。
+ * rounded-lg = var(--radius)，随主题圆角强度变化。
  */
 const TAG_CHIP =
-  'flex items-center rounded-full border gap-1 h-6 text-xs px-2.5 font-semibold shrink-0';
+  'flex items-center rounded-lg border gap-1 h-6 text-xs px-2.5 font-semibold shrink-0';
 
 export const TagsInput: React.FC<TagsInputProps> = ({
   value,
@@ -263,8 +264,8 @@ export const TagsInput: React.FC<TagsInputProps> = ({
                 variant="ghost"
                 size="sm"
                 className={cn(
-                  // size="sm" 给的是 h-9 / rounded-md / 16px 图标，这里要和其他胶囊同高同形，逐项覆盖
-                  'h-6 rounded-full px-2.5 gap-1 text-xs font-semibold [&_svg]:size-3',
+                  // size="sm" 给的是 h-9 / rounded-md / 16px 图标，这里要和标签芯片同高，圆角跟主题
+                  'h-6 rounded-lg px-2.5 gap-1 text-xs font-semibold [&_svg]:size-3',
                   disabled
                     ? 'bg-muted/40 text-secondary-foreground hover:bg-muted/40'
                     : 'bg-primary/20 text-primary hover:bg-primary/30',
@@ -374,10 +375,11 @@ export const TagsInput: React.FC<TagsInputProps> = ({
                         <div
                           key={opt}
                           className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-accent cursor-pointer"
-                          onClick={() => {
-                            handleAddTag(opt);
-                            setIsOpen(false);
+                          onMouseDown={(e) => {
+                            // 阻止焦点离开搜索框，否则 Popover 会当成点到外面而收起
+                            e.preventDefault();
                           }}
+                          onClick={() => handleAddTag(opt)}
                         >
                           <span className="flex-1 truncate text-sm">{opt}</span>
                           <Plus className="w-3.5 h-3.5 text-muted-foreground shrink-0" />

@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
+import { TabButtonGroup, tabSmShellClass } from '@/components/ui/TabButtonGroup';
 import {
   Dialog,
   DialogContent,
@@ -446,6 +446,17 @@ const convertToPlugin = (plugin: Plugin): any => {
   return { ...plugin, config, config_groups } as unknown as Plugin;
 };
 
+/** 配置页（第一个页签）默认展示的那一份没有任何字段。 */
+function isDefaultConfigEmpty(plugin: Plugin): boolean {
+  const groups = plugin.config_groups;
+  if (groups && groups.length > 0) {
+    const firstName = plugin.config_names?.[0];
+    const group = (firstName && groups.find((item) => item.config_name === firstName)) || groups[0];
+    return Object.keys(group?.config || {}).length === 0;
+  }
+  return Object.keys(plugin.config || {}).length === 0;
+}
+
 export default function PluginsPage() {
   const { style } = useTheme();
   const isGlass = style === 'glassmorphism';
@@ -465,6 +476,8 @@ export default function PluginsPage() {
   
   // 用于跟踪当前正在加载的插件ID，防止竞态条件
   const loadingPluginIdRef = useRef<string | null>(null);
+  // 每个插件只自动跳一次，避免用户再点回空配置页时被弹走。
+  const emptyConfigRedirectedRef = useRef<string | null>(null);
   const [selectedConfigName, setSelectedConfigName] = useState<string | null>(null);
   const [paramsDirty, setParamsDirty] = useState(false);
   const [warmPluginId, setWarmPluginId] = useState(selectedPluginId);
@@ -568,10 +581,19 @@ export default function PluginsPage() {
 
   useEffect(() => {
     setPluginSection('params');
+    emptyConfigRedirectedRef.current = null;
     setEditingSvIndex(null);
     setSvDraft(null);
     setSvQuery('');
   }, [selectedPluginId]);
+
+  useEffect(() => {
+    if (pluginSection !== 'params' || !selectedPlugin || isLoadingDetail) return;
+    if (emptyConfigRedirectedRef.current === selectedPlugin.id) return;
+    if (!isDefaultConfigEmpty(selectedPlugin)) return;
+    emptyConfigRedirectedRef.current = selectedPlugin.id;
+    setPluginSection('plugin');
+  }, [pluginSection, selectedPlugin, isLoadingDetail]);
 
   useEffect(() => {
     const names = selectedPlugin?.config_names;
@@ -1087,7 +1109,15 @@ export default function PluginsPage() {
             </h1>
             <p className="sm:whitespace-nowrap text-muted-foreground">{t('plugins.description')}</p>
           </div>
-          <div className="flex w-full gap-2 sm:w-auto sm:shrink-0 sm:items-center sm:justify-end">
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:shrink-0 sm:flex-row sm:items-center sm:justify-end">
+            <PluginUsageBar
+              plugins={pluginList}
+              usageNames={pluginUsageNames}
+              value={selectedPluginId}
+              onValueChange={setSelectedPluginId}
+              className="w-full sm:w-auto sm:max-w-[16rem]"
+            />
+            <div className="flex gap-2">
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -1126,16 +1156,9 @@ export default function PluginsPage() {
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
+            </div>
           </div>
         </div>
-      }
-      toolbar={
-        <PluginUsageBar
-          plugins={pluginList}
-          usageNames={pluginUsageNames}
-          value={selectedPluginId}
-          onValueChange={setSelectedPluginId}
-        />
       }
     >
       {isLoading || isLoadingDetail ? (
@@ -1147,8 +1170,9 @@ export default function PluginsPage() {
         </Card>
       ) : selectedPlugin ? (
         <Card key={selectedPlugin.id} className="glass-card flex min-h-0 flex-1 flex-col">
-          <div className="shrink-0 border-b border-border/40 px-4 pb-2 pt-3 sm:px-6">
-          <div className="flex items-center gap-3">
+          <div className="shrink-0 border-b border-border/40 px-4 py-4 sm:px-6">
+            <div className="flex flex-col gap-4">
+            <div className="flex items-center gap-3">
             <div className="flex items-center justify-center overflow-hidden">
               <PluginIcon pluginName={selectedPlugin.name} className="h-8 w-8" />
             </div>
@@ -1157,10 +1181,11 @@ export default function PluginsPage() {
               <p className="text-sm text-muted-foreground">{selectedPlugin.description}</p>
             </div>
           </div>
-            <div className="mt-2 flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between [&_.shadow-safe]:!my-0 [&_.shadow-safe]:!py-0">
+            <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between [&_.shadow-safe]:!my-0 [&_.shadow-safe]:!py-0">
               <div className="flex w-full min-w-0 flex-wrap items-center gap-2 sm:gap-3 lg:w-auto">
                 <TabButtonGroup
                   className="w-full sm:w-max"
+                  size="sm"
                   singleRowOnMobile
                   options={[
                     {
@@ -1205,6 +1230,7 @@ export default function PluginsPage() {
                 {selectedPages.length > 0 && (
                   <TabButtonGroup
                     className="w-full sm:w-max"
+                    size="sm"
                     options={selectedPages.map((page) => ({
                       value: page.id,
                       label: pickPluginPageText(page.title, language, page.id),
@@ -1223,11 +1249,11 @@ export default function PluginsPage() {
                   value={svQuery}
                   onChange={(event) => setSvQuery(event.target.value)}
                   placeholder={pluginSection === 'sv' ? t('plugins.searchSv') : t('plugins.searchConfig')}
-                  className="h-[38px] w-full min-w-0 flex-1 bg-background sm:w-44 sm:flex-none lg:w-56"
+                  className={cn(tabSmShellClass, 'w-full min-w-0 flex-1 bg-background sm:w-44 sm:flex-none lg:w-56')}
                 />
                 {pluginSection !== 'sv' && (
                   <Button
-                    className="h-[38px] shrink-0 justify-center gap-2 px-4 sm:px-8 lg:min-w-[160px]"
+                    className={cn(tabSmShellClass, 'shrink-0 justify-center gap-2 px-4 sm:px-8 lg:min-w-[160px]')}
                     disabled={!sectionDirty || sectionSaving}
                     onClick={saveSection}
                   >
@@ -1237,20 +1263,21 @@ export default function PluginsPage() {
                 )}
               </div>
             </div>
+            </div>
           </div>
 
-          <CardContent className="min-h-0 flex-1 space-y-6 overflow-y-auto pt-6">
+          <CardContent className="min-h-0 flex-1 space-y-4 overflow-y-auto pt-4 sm:pt-4">
             {pluginSection === 'plugin' && (
               <>
                     {/* 汇总所有SV命令Tags - 默认折叠，展开时才渲染 */}
                     {allCommands.length > 0 && (
                       <Collapsible
                         defaultOpen={false}
-                        className={cn('group/allCmds mb-6', configHitClass(t('plugins.allCommands')))}
+                        className={cn('group/allCmds', configHitClass(t('plugins.allCommands')))}
                         data-config-hit={configHitClass(t('plugins.allCommands')) ? 'true' : undefined}
                       >
                         <CollapsibleTrigger asChild>
-                          <div className="flex items-center justify-between cursor-pointer hover:opacity-80 transition-opacity py-2">
+                          <div className="flex items-center justify-between cursor-pointer hover:opacity-80 transition-opacity">
                             <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                               <Command className="w-4 h-4" />
                               {t('plugins.allCommands')} ({allCommands.length})
