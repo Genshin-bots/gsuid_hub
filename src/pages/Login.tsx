@@ -356,9 +356,15 @@ export default function Login() {
             
             <div className="space-y-2">
               <Label htmlFor="email">{t('login.email')}</Label>
+              {/* type=text：Chrome 的 type=email 会对 Twemoji COLR / 多切片 VF 做逐字回退，打字卡死整页（P-37） */}
               <Input
                 id="email"
-                type="email"
+                type="text"
+                inputMode="email"
+                autoComplete="username"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
                 placeholder={t('login.emailPlaceholder')}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}

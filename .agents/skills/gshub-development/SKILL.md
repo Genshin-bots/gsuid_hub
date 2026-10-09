@@ -68,7 +68,7 @@ description: >
 | 七 | 配置页与状态（渐进式 + dirty 竞态、AIConfig、**任务主备**、**网络搜索/网页抓取多源主备 UI**、**/mcp-config 三传输**） | [references/07-config-pages-and-state.md](./references/07-config-pages-and-state.md) |
 | 八 | 页面模式与 Dialog 规范（卡片列表页 / 表格详情 / Dialog/Modal / 双态 UI / 移动端 / SSH URL / API 设计经验） | [references/08-page-patterns.md](./references/08-page-patterns.md) |
 | 九 | 侧边栏与导航（`getNavItems`、稳定 `id` 作 key、`ICON_MAP`、AI 启用态条件子菜单、自动展开） | [references/09-sidebar-navigation.md](./references/09-sidebar-navigation.md) |
-| 十 | 已知坑 + 性能 + 落地清单（P-1~P-32 坑、性能优化、新页面落地自查清单总表） | [references/10-pitfalls-and-performance.md](./references/10-pitfalls-and-performance.md) |
+| 十 | 已知坑 + 性能 + 落地清单（P-1~P-37 坑、性能优化、新页面落地自查清单总表） | [references/10-pitfalls-and-performance.md](./references/10-pitfalls-and-performance.md) |
 | 十一 | **Live Chat**（控制台内嵌适配器：早柚协议、WS 二进制帧、段解析、状态持久化、发送等待锁） | [references/11-live-chat.md](./references/11-live-chat.md) |
 | 十二 | **记忆图谱与世界知识**（scope 记忆图 / `world:` 枢纽 / 节点挂文 / `cognitionApi`） | [references/12-memory-graph-and-cognition.md](./references/12-memory-graph-and-cognition.md) |
 

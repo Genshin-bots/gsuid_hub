@@ -181,6 +181,17 @@ All colors MUST be HSL.
     padding-right: 0 !important;
     overflow-x: hidden;
   }
+
+  /*
+   * 表单控件不跟 Twemoji。Chrome 的 email/url/tel 输入框会对字体栈里每一张 face
+   * 做逐字回退；COLR emoji 字体一旦进入候选，打字会卡住主线程（P-37）。
+   * 放在 @layer base，页面上的 font-mono 等工具类仍能覆盖。
+   */
+  input,
+  textarea,
+  select {
+    font-family: 'MiSans VF', sans-serif;
+  }
 }
 
 /*

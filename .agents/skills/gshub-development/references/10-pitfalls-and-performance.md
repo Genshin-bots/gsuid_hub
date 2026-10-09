@@ -634,6 +634,25 @@ const cs = (el: Element | null) =>
 **顺带**：`TagInput` / `TagsInput` 这类自绘容器（纯 `div`）不受上面那条 `!important` 影响，
 虚线 + 灰底可以直接用工具类；只有真正的 `input` / `[role=combobox]` 才要动 CSS。
 
+### P-37 Chrome `input[type=email]` + Twemoji COLR：打字卡死整页，密码框没事 ★★★
+
+**症状**：登录页邮箱框每敲一个字，整页卡住几百毫秒到数秒；密码框同样受控、同样 `glass-input`，打字却顺。
+
+**根因**（Chromium 已知问题，不是 React 重渲染）：
+
+1. 全局字体栈是 `'MiSans VF', 'Twemoji Mozilla', sans-serif`。Twemoji 是约 500KB 的 COLR 彩色 emoji 字体。
+2. `src/fonts.css` 若**没有** `unicode-range`，Chrome 会把整份 COLR 当成每个 ASCII 字符的候选 face。
+3. `input[type=email]`（以及 `url` / `tel`）走 Blink 单独的排版路径，**每个按键**都对字体栈里每一张 face 做逐字回退。扫一遍 COLR + MiSans 的几十个 unicode-range 切片，主线程就堵死。
+4. 密码框走 `PasswordInputType` + `-webkit-text-security: disc`，不跑这套回退，所以没事。邮箱/密码两边的 `setState` 重渲染成本是一样的，卡的是浏览器排版。
+
+**修法**（三处一起，缺一仍可能复发）：
+
+- Twemoji `@font-face` 必须带 emoji `unicode-range`（`src/fonts.css`），ASCII 不再进入候选。
+- `@layer base` 里 `input, textarea, select { font-family: 'MiSans VF', sans-serif; }`，表单控件不跟 emoji 字体；放 base 层，页面上的 `font-mono` 仍能覆盖。
+- 登录邮箱用 `type="text"` + `inputMode="email"` + `autoComplete="username"`，躲开 Chrome 的 email 排版路径。移动端仍出邮箱键盘。
+
+**禁止**：再给邮箱框写 `type="email"`「图个语义」。后端会校验格式；前端 `type=email` 的即时校验换来的是 Chromium 卡死。
+
 ## B. 性能优化
 
 ### B.1 图片
@@ -701,4 +720,5 @@ const cs = (el: Element | null) =>
 - [ ] portal 到 body 的内滚列表（Popover 等）：`max-height` 用真实变量 `--radix-popper-available-height`，滚轮挂**冒泡期** `stopPropagation`（捕获期会连原生滚动一起杀掉，P-33）
 - [ ] 浮层里的懒加载/懒初始化不靠 effect 读 ref：Radix `Portal` 晚一 tick 挂载，observer 永远建不起来（P-35）
 - [ ] 「变灰/冻结」用 `opacity` + 虚线边框，不用 `text-muted-foreground`；`input` / `[role=combobox]` 的边框背景要去 `index.css` 改（P-36）
+- [ ] 邮箱输入用 `type="text"` + `inputMode="email"`，Twemoji `@font-face` 必须带 emoji `unicode-range`（P-37）
 - [ ] `npx tsc --noEmit -p tsconfig.app.json` 不新增报错
