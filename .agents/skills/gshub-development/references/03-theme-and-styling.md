@@ -45,6 +45,7 @@ const {
 - 唯一真相源是 CSS 变量 `--radius`（主题杂项写入，单位 px；默认 24px）。
 - Tailwind `rounded-sm/md/lg/xl/2xl/3xl` 全部挂到 `--radius`（见 `tailwind.config.ts`）。
 - `rounded-full` 与显式 `rounded-[Npx]` 不随主题变。
+- `Badge` 默认 `rounded-md`（`calc(var(--radius) - 2px)`，与 Button 同档）。正圆序号等少数场景在调用处显式加 `rounded-full`。
 - 新组件优先用 `rounded-lg` / `rounded-md` 等语义 token，**禁止**再硬编码与主题无关的大圆角。
 - ⚠️ `.glass-card` / `.glass-card-flat` **类自身**声明了 `border-radius: var(--radius)`，且规则在 utilities 之后——要在表面类上用**更小**的自定义圆角必须加 important：`!rounded-[3px]`（例：RepeatGroupField）。
 

@@ -34,7 +34,7 @@ import { getApiErrorMessage, versionApi } from '@/lib/api';
 import type { VersionInfo, ActiveBotsInfo } from '@/lib/api';
 import { SidebarHoverIcon, hoverIconGroupClass } from '@/components/layout/SidebarHoverIcon';
 
-const frontendVersion = PACKAGE_VERSION || '0.3.0';
+const frontendVersion = PACKAGE_VERSION || '0.3.1';
 
 function getGreetingKey(hour: number) {
   if (hour >= 5 && hour < 11) return 'morning';
@@ -404,7 +404,7 @@ export default function HomePage() {
         </div>
         <div className="flex shrink-0 flex-wrap items-center gap-2">
           <Badge
-            className="max-w-full gap-1.5 whitespace-normal rounded-full border-border/60 px-3 py-1 text-muted-foreground"
+            className="max-w-full gap-1.5 whitespace-normal border-border/60 px-3 py-1 text-muted-foreground"
             variant="outline"
           >
             <GitCommit className="h-3.5 w-3.5 shrink-0" aria-hidden />
@@ -433,7 +433,7 @@ export default function HomePage() {
               {!isLoading && !error && (
                 <Badge
                   className={cn(
-                    'shrink-0 gap-1.5 rounded-full px-2.5 py-0.5 text-xs',
+                    'shrink-0 gap-1.5 px-2.5 py-0.5 text-xs',
                     connectedBotCount > 0
                       ? 'border-primary/25 bg-primary/10 text-primary'
                       : 'border-muted-foreground/25 bg-muted/30 text-muted-foreground',

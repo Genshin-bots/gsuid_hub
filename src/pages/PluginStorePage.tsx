@@ -809,7 +809,8 @@ export default function PluginStorePage() {
                     </div>
                     
                     {/* 按钮区域 */}
-                    <CardFooter className="pt-2 mt-auto">
+                    {/* 覆盖 CardFooter 的 sm:p-6，与上方标签行 px-4 左右对齐 */}
+                    <CardFooter className="mt-auto p-4 pt-2 sm:p-4 sm:pt-2">
                       {deprecated ? (
                         <Button
                           className="w-full gap-1 text-sm"
@@ -823,8 +824,8 @@ export default function PluginStorePage() {
                         <div className="flex gap-1.5 w-full">
                           <Button
                             size="sm"
-                            className="flex-1 gap-1 text-xs"
-                            variant="destructive"
+                            variant="outline"
+                            className="flex-1 gap-1 text-xs text-destructive hover:text-destructive [&_svg]:!text-current"
                             onClick={(e) => {
                               e.stopPropagation();
                               handleUninstall(plugin.id);
@@ -859,7 +860,8 @@ export default function PluginStorePage() {
                         <div className="flex gap-1.5 w-full">
                           <Button
                             size="sm"
-                            className="flex-1 gap-1 text-xs"
+                            variant="outline"
+                            className="flex-1 gap-1 text-xs text-primary hover:text-primary [&_svg]:!text-current"
                             onClick={(e) => {
                               e.stopPropagation();
                               handleInstall(plugin.id);
@@ -1053,9 +1055,10 @@ export default function PluginStorePage() {
               {t('pluginStore.cancel')}
             </Button>
             <Button
+              variant="outline"
               onClick={handleInstallByUrl}
               disabled={installByUrlLoading}
-              className="h-9"
+              className="h-9 text-primary hover:text-primary [&_svg]:!text-current"
             >
               {installByUrlLoading ? (
                 <>
