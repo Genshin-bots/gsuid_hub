@@ -148,13 +148,12 @@ function SelectTile({ active, onClick, icon, label }: SelectTileProps) {
       type="button"
       onClick={onClick}
       className={cn(
-        'group relative flex flex-1 min-w-0 flex-col items-center justify-center gap-2 rounded-xl border p-4 min-h-[88px] transition-all',
+        'group flex flex-1 min-w-0 flex-col items-center justify-center gap-2 rounded-xl border p-4 min-h-[88px] transition-all',
         active
           ? 'border-primary bg-primary/10 text-primary ring-1 ring-primary/30'
           : 'border-border/60 text-foreground hover:border-primary/50 hover:bg-primary/5'
       )}
     >
-      {active && <Check className="absolute right-2 top-2 w-4 h-4 text-primary" />}
       <span className="flex items-center justify-center [&_svg]:w-6 [&_svg]:h-6">{icon}</span>
       <span className="text-sm font-medium truncate max-w-full">{label}</span>
     </button>
@@ -532,98 +531,6 @@ export default function ThemesPage() {
               </div>
             </CardContent>
           </Card>
-
-          {/* 卡片透明度 */}
-          <Card className="glass-card">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Droplet className="w-5 h-5" />
-                {t('themes.cardOpacity')}
-              </CardTitle>
-              <CardDescription>{t('themes.cardOpacityDesc')}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-5">
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">{t('themes.cardOpacityValue')}</span>
-                  <span className="text-sm font-medium bg-primary/10 text-primary px-2 py-0.5 rounded">{cardOpacity}%</span>
-                </div>
-                <Slider
-                  value={[cardOpacity]}
-                  onValueChange={(value) => setCardOpacity(value[0])}
-                  onValueCommit={(value) => setCardOpacity(value[0], true)}
-                  min={0}
-                  max={100}
-                  step={1}
-                />
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>{t('themes.transparent')}</span>
-                  <span>{t('themes.standardOpacity')}</span>
-                  <span>{t('themes.opaque')}</span>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                {[{ v: 15, l: 'themes.slight' }, { v: 50, l: 'themes.standard' }, { v: 85, l: 'themes.strong' }].map((p) => (
-                  <Button
-                    key={p.v}
-                    variant="outline"
-                    size="sm"
-                    className={cn('h-8', cardOpacity === p.v && 'border-primary text-primary')}
-                    onClick={() => setCardOpacity(p.v, true)}
-                  >
-                    {t(p.l)}
-                  </Button>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* 毛玻璃强度（仅毛玻璃风格） */}
-          {style === 'glassmorphism' && (
-            <Card className="glass-card">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Blend className="w-5 h-5" />
-                  {t('themes.glassIntensity')}
-                </CardTitle>
-                <CardDescription>{t('themes.glassIntensityDesc')}</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-5">
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">{t('themes.blurIntensity')}</span>
-                    <span className="text-sm font-medium bg-primary/10 text-primary px-2 py-0.5 rounded">{blurIntensity}px</span>
-                  </div>
-                  <Slider
-                    value={[blurIntensity]}
-                    onValueChange={(value) => setBlurIntensity(value[0])}
-                    onValueCommit={(value) => setBlurIntensity(value[0], true)}
-                    min={0}
-                    max={24}
-                    step={1}
-                  />
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>{t('themes.clear')}</span>
-                    <span>{t('themes.moderate')}</span>
-                    <span>{t('themes.blurry')}</span>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  {[{ v: 4, l: 'themes.slight' }, { v: 12, l: 'themes.standard' }, { v: 20, l: 'themes.strong' }].map((p) => (
-                    <Button
-                      key={p.v}
-                      variant="outline"
-                      size="sm"
-                      className={cn('h-8', blurIntensity === p.v && 'border-primary text-primary')}
-                      onClick={() => setBlurIntensity(p.v, true)}
-                    >
-                      {t(p.l)}
-                    </Button>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
         </div>
       )}
 
@@ -732,6 +639,98 @@ export default function ThemesPage() {
       {/* ============================ 杂项 Tab ============================ */}
       {tab === 'misc' && (
         <div className="glass-card-grid grid gap-4 lg:grid-cols-2">
+          {/* 卡片透明度 */}
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Droplet className="w-5 h-5" />
+                {t('themes.cardOpacity')}
+              </CardTitle>
+              <CardDescription>{t('themes.cardOpacityDesc')}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">{t('themes.cardOpacityValue')}</span>
+                  <span className="text-sm font-medium bg-primary/10 text-primary px-2 py-0.5 rounded">{cardOpacity}%</span>
+                </div>
+                <Slider
+                  value={[cardOpacity]}
+                  onValueChange={(value) => setCardOpacity(value[0])}
+                  onValueCommit={(value) => setCardOpacity(value[0], true)}
+                  min={0}
+                  max={100}
+                  step={1}
+                />
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>{t('themes.transparent')}</span>
+                  <span>{t('themes.standardOpacity')}</span>
+                  <span>{t('themes.opaque')}</span>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                {[{ v: 15, l: 'themes.slight' }, { v: 50, l: 'themes.standard' }, { v: 85, l: 'themes.strong' }].map((p) => (
+                  <Button
+                    key={p.v}
+                    variant="outline"
+                    size="sm"
+                    className={cn('h-8', cardOpacity === p.v && 'border-primary text-primary')}
+                    onClick={() => setCardOpacity(p.v, true)}
+                  >
+                    {t(p.l)}
+                  </Button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 毛玻璃强度（仅毛玻璃风格） */}
+          {style === 'glassmorphism' && (
+            <Card className="glass-card">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Blend className="w-5 h-5" />
+                  {t('themes.glassIntensity')}
+                </CardTitle>
+                <CardDescription>{t('themes.glassIntensityDesc')}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">{t('themes.blurIntensity')}</span>
+                    <span className="text-sm font-medium bg-primary/10 text-primary px-2 py-0.5 rounded">{blurIntensity}px</span>
+                  </div>
+                  <Slider
+                    value={[blurIntensity]}
+                    onValueChange={(value) => setBlurIntensity(value[0])}
+                    onValueCommit={(value) => setBlurIntensity(value[0], true)}
+                    min={0}
+                    max={24}
+                    step={1}
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>{t('themes.clear')}</span>
+                    <span>{t('themes.moderate')}</span>
+                    <span>{t('themes.blurry')}</span>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  {[{ v: 4, l: 'themes.slight' }, { v: 12, l: 'themes.standard' }, { v: 20, l: 'themes.strong' }].map((p) => (
+                    <Button
+                      key={p.v}
+                      variant="outline"
+                      size="sm"
+                      className={cn('h-8', blurIntensity === p.v && 'border-primary text-primary')}
+                      onClick={() => setBlurIntensity(p.v, true)}
+                    >
+                      {t(p.l)}
+                    </Button>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* 侧边栏布局 */}
           <Card className="glass-card">
             <CardHeader>

@@ -55,7 +55,7 @@ All colors MUST be HSL.
     --layout-page-top: 2.75rem;
     /* 圆角阴影外溢安全距：overflow 容器内侧至少留这么多 */
     --shadow-bleed: 0.75rem;
-    /* 阴影强度系数：主题杂项 shadow_intensity(0-200%) 写入 0-2；表面类阴影 alpha 乘以它。默认 55% */
+    /* 阴影强度系数：主题杂项 shadow_intensity(0-200%) 写入 0-2。表面类阴影和 shadow-* 工具类的 alpha 都乘以它。默认 55% */
     --shadow-strength: 0.55;
 
     --sidebar-background: 0 0% 98%;
@@ -92,21 +92,21 @@ All colors MUST be HSL.
 
     --font-mono: 'MiSans VF', 'Twemoji Mozilla', sans-serif;
 
-    --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
+    --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / calc(0.05 * var(--shadow-strength)));
 
-    --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
+    --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / calc(0.05 * var(--shadow-strength)));
 
-    --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
+    --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength))), 0 1px 2px -1px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength)));
 
-    --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
+    --shadow: 0 1px 3px 0px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength))), 0 1px 2px -1px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength)));
 
-    --shadow-md: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 2px 4px -1px hsl(0 0% 0% / 0.1);
+    --shadow-md: 0 1px 3px 0px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength))), 0 2px 4px -1px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength)));
 
-    --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 4px 6px -1px hsl(0 0% 0% / 0.1);
+    --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength))), 0 4px 6px -1px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength)));
 
-    --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 8px 10px -1px hsl(0 0% 0% / 0.1);
+    --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength))), 0 8px 10px -1px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength)));
 
-    --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
+    --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / calc(0.25 * var(--shadow-strength)));
 
     --tracking-normal: 0em;
 
@@ -155,14 +155,14 @@ All colors MUST be HSL.
     --chart-4: 351 94% 71%;
     --chart-5: 240 5% 33%;
     --sidebar: 240 3% 15%;
-    --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
-    --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
-    --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
-    --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
-    --shadow-md: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 2px 4px -1px hsl(0 0% 0% / 0.1);
-    --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 4px 6px -1px hsl(0 0% 0% / 0.1);
-    --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 8px 10px -1px hsl(0 0% 0% / 0.1);
-    --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
+    --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / calc(0.05 * var(--shadow-strength)));
+    --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / calc(0.05 * var(--shadow-strength)));
+    --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength))), 0 1px 2px -1px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength)));
+    --shadow: 0 1px 3px 0px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength))), 0 1px 2px -1px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength)));
+    --shadow-md: 0 1px 3px 0px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength))), 0 2px 4px -1px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength)));
+    --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength))), 0 4px 6px -1px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength)));
+    --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength))), 0 8px 10px -1px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength)));
+    --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / calc(0.25 * var(--shadow-strength)));
   }
 }
 
@@ -1017,6 +1017,7 @@ main:has(.page-fill) .layout-page-inner {
 }
 
 /* Force button / badge / primary-pill icons to inherit text color.
+   asChild 的 Button 会落到 <a data-slot="button">，不是 button，全局染色仍会命中。
    Global tint is:
      [data-icon-color="black"] :not(button):not([class*="Button"]) .lucide
    specificity (0, 3, 1). The intermediate :not(button) matches a wrapping
@@ -1034,6 +1035,9 @@ main:has(.page-fill) .layout-page-inner {
 [data-icon-color="black"] button .lucide.lucide,
 [data-icon-color="white"] button .lucide.lucide,
 [data-icon-color="colored"] button .lucide.lucide,
+[data-icon-color="black"] [data-slot="button"] .lucide.lucide,
+[data-icon-color="white"] [data-slot="button"] .lucide.lucide,
+[data-icon-color="colored"] [data-slot="button"] .lucide.lucide,
 [data-icon-color="black"] [class*="Button"] .lucide.lucide,
 [data-icon-color="white"] [class*="Button"] .lucide.lucide,
 [data-icon-color="colored"] [class*="Button"] .lucide.lucide,
@@ -1049,6 +1053,9 @@ main:has(.page-fill) .layout-page-inner {
 [data-icon-color="black"] button text,
 [data-icon-color="white"] button text,
 [data-icon-color="colored"] button text,
+[data-icon-color="black"] [data-slot="button"] text,
+[data-icon-color="white"] [data-slot="button"] text,
+[data-icon-color="colored"] [data-slot="button"] text,
 [data-icon-color="black"] [class*="Button"] text,
 [data-icon-color="white"] [class*="Button"] text,
 [data-icon-color="colored"] [class*="Button"] text,

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect, useLayoutEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -86,6 +86,87 @@ const buildRawUrl = (
       return `https://raw.githubusercontent.com/${owner}/${repo}/refs/heads/${branch}/${path}`;
   }
 };
+
+const TAG_GAP = 6; // 与 gap-1.5 一致，量宽失败时的兜底
+
+/**
+ * 别名标签只排一行。CSS 算不出「几个完整标签 + 一枚 +N」的组合，
+ * 用隐藏 gauge 量每个标签的右边界；+N 按标签总数预留宽度，避免位数变化来回抖。
+ */
+function PluginAliasTags({ tags }: { tags: string[] }) {
+  const boxRef = useRef<HTMLSpanElement>(null);
+  const gaugeRef = useRef<HTMLSpanElement>(null);
+  const [visibleCount, setVisibleCount] = useState<number | null>(null);
+
+  useLayoutEffect(() => {
+    const box = boxRef.current;
+    const gauge = gaugeRef.current;
+    const total = tags.length;
+    if (!box || !gauge || total === 0) {
+      setVisibleCount(null);
+      return;
+    }
+    const measure = () => {
+      const available = box.clientWidth;
+      if (available <= 0) return;
+      const badges = Array.from(gauge.children) as HTMLElement[];
+      if (badges.length <= total) return;
+      const edges = badges.map((badge) => badge.offsetLeft + badge.offsetWidth);
+      if (edges[total - 1] <= available) {
+        setVisibleCount((prev) => (prev === total ? prev : total));
+        return;
+      }
+      const gap = Number.parseFloat(getComputedStyle(gauge).columnGap) || TAG_GAP;
+      const overflowWidth = badges[total].offsetWidth;
+      let fit = 0;
+      while (fit < total && edges[fit] + gap + overflowWidth <= available) {
+        fit += 1;
+      }
+      setVisibleCount((prev) => (prev === fit ? prev : fit));
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(box);
+    observer.observe(gauge);
+    return () => observer.disconnect();
+  }, [tags]);
+
+  const shown = visibleCount === null ? tags.length : Math.min(visibleCount, tags.length);
+  const hiddenLabels = tags.slice(shown);
+
+  return (
+    <span ref={boxRef} className="relative flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden">
+      {tags.slice(0, shown).map((tag, index) => (
+        <Badge key={`${tag}-${index}`} variant="outline" className="shrink-0 text-xs font-normal">
+          {tag}
+        </Badge>
+      ))}
+      {hiddenLabels.length > 0 && (
+        <Badge
+          variant="outline"
+          title={hiddenLabels.join(', ')}
+          className="shrink-0 border-transparent bg-foreground/10 text-xs font-normal text-foreground hover:bg-foreground/10 hover:text-foreground"
+        >
+          +{hiddenLabels.length}
+        </Badge>
+      )}
+      <span
+        ref={gaugeRef}
+        aria-hidden
+        className="invisible pointer-events-none absolute left-0 top-0 flex w-max gap-1.5"
+      >
+        {tags.map((tag, index) => (
+          <Badge key={`gauge-${tag}-${index}`} variant="outline" className="shrink-0 text-xs font-normal">
+            {tag}
+          </Badge>
+        ))}
+        <Badge variant="outline" className="shrink-0 text-xs font-normal">
+          +{tags.length}
+        </Badge>
+      </span>
+    </span>
+  );
+}
 
 export default function PluginStorePage() {
   const { t } = useLanguage();
@@ -755,7 +836,7 @@ export default function PluginStorePage() {
                                 if (gitInfo && gitInfo.is_git_repo && gitInfo.remote_url) {
                                   const badge = getMirrorBadge(gitInfo.mirror, gitInfo.remote_url, t);
                                   return (
-                                    <Badge variant="outline" className={`text-xs ${badge.className}`}>
+                                    <Badge variant="outline" className={`text-xs font-normal ${badge.className}`}>
                                       <span className="flex items-center gap-1">{badge.icon}{badge.label}</span>
                                     </Badge>
                                   );
@@ -763,18 +844,18 @@ export default function PluginStorePage() {
                                 return null;
                               })()}
                               {plugin.isFun && (
-                                <Badge variant="outline" className="text-xs text-blue-500 border-blue-500">{t('pluginStore.fun')}</Badge>
+                                <Badge variant="outline" className="text-xs font-normal text-blue-500 border-blue-500">{t('pluginStore.fun')}</Badge>
                               )}
                               {plugin.isTool && (
-                                <Badge variant="outline" className="text-xs text-green-500 border-green-500">{t('pluginStore.tool')}</Badge>
+                                <Badge variant="outline" className="text-xs font-normal text-green-500 border-green-500">{t('pluginStore.tool')}</Badge>
                               )}
                               {deprecated && (
-                                <Badge variant="secondary" className="text-xs bg-gray-500 text-white">
+                                <Badge variant="secondary" className="text-xs font-normal bg-gray-500 text-white">
                                   {t('pluginStore.deprecated')}
                                 </Badge>
                               )}
                               {plugin.type === 'danger' && !deprecated && (
-                                <Badge variant="destructive" className="text-xs">{plugin.content}</Badge>
+                                <Badge variant="destructive" className="text-xs font-normal">{plugin.content}</Badge>
                               )}
                             </div>
                           </div>
@@ -794,17 +875,15 @@ export default function PluginStorePage() {
                       </div>
                     </div>
                     
-                    {/* Tags 横向排布 */}
+                    {/* Tags 只排一行，放不下的收成 +N */}
                     <div className="px-4 pb-2">
-                      <div className="flex flex-wrap gap-1.5 items-center">
+                      <div className="flex min-w-0 flex-nowrap items-center gap-1.5">
                         {plugin.hasUpdate && (
-                          <Badge variant="outline" className="text-xs text-amber-500 border-amber-500">
+                          <Badge variant="outline" className="shrink-0 text-xs font-normal text-amber-500 border-amber-500">
                             {t('pluginStore.canUpdate')}
                           </Badge>
                         )}
-                        {plugin.alias?.map((tag, index) => (
-                          <Badge key={index} variant="outline" className="text-xs">{tag}</Badge>
-                        ))}
+                        {plugin.alias && plugin.alias.length > 0 && <PluginAliasTags tags={plugin.alias} />}
                       </div>
                     </div>
                     
