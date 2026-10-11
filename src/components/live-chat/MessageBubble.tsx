@@ -6,12 +6,7 @@ import type { ButtonData, ChatBlock, ChatMessage } from '@/lib/liveChat';
 import { messageHasText } from '@/lib/liveChat';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   Bot,
   User,
@@ -84,7 +79,9 @@ function BlockContent({
 }) {
   switch (block.kind) {
     case 'text':
-      return <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">{block.text}</p>;
+      return (
+        <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">{block.text}</p>
+      );
 
     case 'markdown':
       return (
@@ -105,7 +102,12 @@ function BlockContent({
 
     case 'video':
       return (
-        <video controls className="max-w-full max-h-72 rounded-lg" preload="metadata" src={block.src}>
+        <video
+          controls
+          className="max-w-full max-h-72 rounded-lg"
+          preload="metadata"
+          src={block.src}
+        >
           <track kind="captions" />
         </video>
       );
@@ -350,9 +352,7 @@ export function MessageBubble({
             b.kind === 'text' ? (
               <span key={i}>{b.text}</span>
             ) : b.kind === 'meta' ? (
-              <span key={i}>
-                {t('liveChat.metaEvent', { event: b.event })}
-              </span>
+              <span key={i}>{t('liveChat.metaEvent', { event: b.event })}</span>
             ) : null,
           )}
         </div>
@@ -363,7 +363,9 @@ export function MessageBubble({
   if (message.recalled) {
     return (
       <div className="flex justify-center my-2">
-        <span className="text-xs text-muted-foreground italic">{t('liveChat.messageRecalled')}</span>
+        <span className="text-xs text-muted-foreground italic">
+          {t('liveChat.messageRecalled')}
+        </span>
       </div>
     );
   }
@@ -404,7 +406,9 @@ export function MessageBubble({
           </Avatar>
         ) : isUser ? (
           message.senderName ? (
-            <span className="text-xs font-medium">{message.senderName.charAt(0).toUpperCase()}</span>
+            <span className="text-xs font-medium">
+              {message.senderName.charAt(0).toUpperCase()}
+            </span>
           ) : (
             <User className="h-4 w-4" />
           )
@@ -413,7 +417,12 @@ export function MessageBubble({
         )}
       </div>
 
-      <div className={cn('flex min-w-0 max-w-[82%] flex-col sm:max-w-[70%]', isUser ? 'items-end' : 'items-start')}>
+      <div
+        className={cn(
+          'flex min-w-0 max-w-[82%] flex-col sm:max-w-[70%]',
+          isUser ? 'items-end' : 'items-start',
+        )}
+      >
         <div
           className={cn(
             'mb-0.5 flex items-center gap-2 text-[10px] text-muted-foreground sm:text-xs',

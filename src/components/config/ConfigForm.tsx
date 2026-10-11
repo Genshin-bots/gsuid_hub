@@ -82,7 +82,7 @@ export function ConfigForm({
   };
 
   return (
-    <Card className={cn("glass-card", className)}>
+    <Card className={cn('glass-card', className)}>
       {(title || description || warningMessage) && (
         <CardHeader>
           {warningMessage && (
@@ -97,18 +97,14 @@ export function ConfigForm({
           {description && <CardDescription>{description}</CardDescription>}
         </CardHeader>
       )}
-      
+
       <CardContent className="space-y-6">
-        <div className={cn("grid gap-6", gridCols[columns])}>
+        <div className={cn('grid gap-6', gridCols[columns])}>
           {Object.entries(config).map(([key, field]) => {
             const isDivider = field.type === 'divider';
             return (
               <div key={key} className={isDivider ? 'col-span-full' : undefined}>
-                <ConfigField
-                  fieldKey={key}
-                  field={field}
-                  onChange={handleChange}
-                />
+                <ConfigField fieldKey={key} field={field} onChange={handleChange} />
               </div>
             );
           })}
@@ -116,11 +112,7 @@ export function ConfigForm({
 
         {showActions && (
           <div className="flex items-center justify-center pt-4 border-t border-border">
-            <Button 
-              onClick={handleSave} 
-              disabled={!hasChanges || isSaving}
-              className="gap-2"
-            >
+            <Button onClick={handleSave} disabled={!hasChanges || isSaving} className="gap-2">
               <CheckCircle className="w-4 h-4" />
               确认修改
             </Button>
@@ -148,16 +140,12 @@ export function ConfigGrid({ config, onChange, columns = 3, className }: ConfigG
   };
 
   return (
-    <div className={cn("grid gap-6", gridCols[columns], className)}>
+    <div className={cn('grid gap-6', gridCols[columns], className)}>
       {Object.entries(config).map(([key, field]) => {
         const isDivider = field.type === 'divider';
         return (
           <div key={key} className={isDivider ? 'col-span-full' : undefined}>
-            <ConfigField
-              fieldKey={key}
-              field={field}
-              onChange={onChange}
-            />
+            <ConfigField fieldKey={key} field={field} onChange={onChange} />
           </div>
         );
       })}

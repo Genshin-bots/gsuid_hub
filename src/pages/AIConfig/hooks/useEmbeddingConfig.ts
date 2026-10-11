@@ -17,10 +17,7 @@
  */
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import {
-  embeddingConfigApi,
-  type EmbeddingConfigSummary,
-} from '@/lib/api';
+import { embeddingConfigApi, type EmbeddingConfigSummary } from '@/lib/api';
 import { useLanguage } from '@/contexts/LanguageContext';
 import type { EmbeddingConfigField as EmbeddingConfigFieldUI } from '../index';
 
@@ -57,14 +54,10 @@ export interface UseEmbeddingConfigReturn {
 export function useEmbeddingConfig(): UseEmbeddingConfigReturn {
   const { t } = useLanguage();
 
-  const [embeddingSummary, setEmbeddingSummary] =
-    useState<EmbeddingConfigSummary | null>(null);
+  const [embeddingSummary, setEmbeddingSummary] = useState<EmbeddingConfigSummary | null>(null);
   const [isLoadingEmbeddingConfig, setIsLoadingEmbeddingConfig] = useState(false);
-  const [embeddingLocalConfig, setEmbeddingLocalConfig] = useState<EmbeddingFieldMap>(
-    {},
-  );
-  const [embeddingOpenaiConfig, setEmbeddingOpenaiConfig] =
-    useState<EmbeddingFieldMap>({});
+  const [embeddingLocalConfig, setEmbeddingLocalConfig] = useState<EmbeddingFieldMap>({});
+  const [embeddingOpenaiConfig, setEmbeddingOpenaiConfig] = useState<EmbeddingFieldMap>({});
 
   const [originalEmbeddingProvider, setOriginalEmbeddingProvider] = useState('');
   const [originalEmbeddingLocalConfig, setOriginalEmbeddingLocalConfig] =
@@ -100,36 +93,26 @@ export function useEmbeddingConfig(): UseEmbeddingConfigReturn {
     setEmbeddingSummary((prev) => (prev ? { ...prev, provider } : null));
   }, []);
 
-  const updateEmbeddingLocalField = useCallback(
-    (fieldKey: string, value: unknown) => {
-      setEmbeddingLocalConfig((prev) => ({
-        ...prev,
-        [fieldKey]: { ...prev[fieldKey], data: value },
-      }));
-    },
-    [],
-  );
+  const updateEmbeddingLocalField = useCallback((fieldKey: string, value: unknown) => {
+    setEmbeddingLocalConfig((prev) => ({
+      ...prev,
+      [fieldKey]: { ...prev[fieldKey], data: value },
+    }));
+  }, []);
 
-  const updateEmbeddingOpenaiField = useCallback(
-    (fieldKey: string, value: unknown) => {
-      setEmbeddingOpenaiConfig((prev) => ({
-        ...prev,
-        [fieldKey]: { ...prev[fieldKey], data: value },
-      }));
-    },
-    [],
-  );
+  const updateEmbeddingOpenaiField = useCallback((fieldKey: string, value: unknown) => {
+    setEmbeddingOpenaiConfig((prev) => ({
+      ...prev,
+      [fieldKey]: { ...prev[fieldKey], data: value },
+    }));
+  }, []);
 
   const refresh = useCallback(async () => {
     await fetchEmbeddingConfig();
   }, [fetchEmbeddingConfig]);
 
   const markSaved = useCallback(
-    (
-      nextProvider: string,
-      nextLocal: EmbeddingFieldMap,
-      nextOpenai: EmbeddingFieldMap,
-    ) => {
+    (nextProvider: string, nextLocal: EmbeddingFieldMap, nextOpenai: EmbeddingFieldMap) => {
       setOriginalEmbeddingProvider(nextProvider);
       setOriginalEmbeddingLocalConfig(JSON.parse(JSON.stringify(nextLocal)));
       setOriginalEmbeddingOpenaiConfig(JSON.parse(JSON.stringify(nextOpenai)));

@@ -8,12 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { TagsInput } from '@/components/config/TagsInput';
-import {
-  Tag,
-  AlignLeft,
-  BookOpen,
-  HelpCircle
-} from 'lucide-react';
+import { Tag, AlignLeft, BookOpen, HelpCircle } from 'lucide-react';
 
 interface FormField {
   key: string;
@@ -36,23 +31,51 @@ interface FormSection {
 export const knowledgeFormSections: FormSection[] = [
   {
     fields: [
-      { key: 'title', label: 'aiKnowledge.titleField', icon: BookOpen, required: true, type: 'input', placeholder: 'aiKnowledge.titlePlaceholder' },
-    ]
+      {
+        key: 'title',
+        label: 'aiKnowledge.titleField',
+        icon: BookOpen,
+        required: true,
+        type: 'input',
+        placeholder: 'aiKnowledge.titlePlaceholder',
+      },
+    ],
   },
   {
     fields: [
-      { key: 'plugin', label: 'aiKnowledge.plugin', icon: Tag, required: true, type: 'input', placeholder: 'manual' },
-    ]
+      {
+        key: 'plugin',
+        label: 'aiKnowledge.plugin',
+        icon: Tag,
+        required: true,
+        type: 'input',
+        placeholder: 'manual',
+      },
+    ],
   },
   {
     fields: [
-      { key: 'tags', label: 'aiKnowledge.tags', icon: Tag, type: 'tags', placeholder: 'aiKnowledge.tagsPlaceholder' },
-    ]
+      {
+        key: 'tags',
+        label: 'aiKnowledge.tags',
+        icon: Tag,
+        type: 'tags',
+        placeholder: 'aiKnowledge.tagsPlaceholder',
+      },
+    ],
   },
   {
     fields: [
-      { key: 'content', label: 'aiKnowledge.content', icon: AlignLeft, required: true, type: 'textarea', placeholder: 'aiKnowledge.contentPlaceholder', rows: 6 },
-    ]
+      {
+        key: 'content',
+        label: 'aiKnowledge.content',
+        icon: AlignLeft,
+        required: true,
+        type: 'textarea',
+        placeholder: 'aiKnowledge.contentPlaceholder',
+        rows: 6,
+      },
+    ],
   },
 ];
 
@@ -68,9 +91,9 @@ export function FormCard({ type, mode, data, onChange, showId = false }: FormCar
   const { t } = useLanguage();
   const allSections = knowledgeFormSections;
   // 根据 showId 过滤 sections
-  const sections = allSections.map(section => ({
+  const sections = allSections.map((section) => ({
     ...section,
-    fields: section.fields.filter(f => f.key !== 'id' || showId)
+    fields: section.fields.filter((f) => f.key !== 'id' || showId),
   }));
   const renderField = (field: FormField, value: any, dataId?: string) => {
     const handleChange = (newValue: any) => {
@@ -87,7 +110,9 @@ export function FormCard({ type, mode, data, onChange, showId = false }: FormCar
         return (
           <div className="flex flex-wrap gap-2">
             {tags.map((tag, i) => (
-              <Badge key={i} variant="outline">{tag}</Badge>
+              <Badge key={i} variant="outline">
+                {tag}
+              </Badge>
             ))}
           </div>
         );
@@ -95,9 +120,7 @@ export function FormCard({ type, mode, data, onChange, showId = false }: FormCar
       if (field.type === 'textarea' || field.key === 'content') {
         return (
           <div className="bg-muted rounded-lg p-4">
-            <pre className="whitespace-pre-wrap text-sm font-mono">
-              {value || '-'}
-            </pre>
+            <pre className="whitespace-pre-wrap text-sm font-mono">{value || '-'}</pre>
           </div>
         );
       }
@@ -151,13 +174,13 @@ export function FormCard({ type, mode, data, onChange, showId = false }: FormCar
           {section.fields.map((field, fieldIndex) => {
             const isFirstInSection = fieldIndex === 0;
             const showSeparator = isFirstInSection && sectionIndex > 0;
-            
+
             return (
               <div key={field.key}>
                 {showSeparator && <Separator className="my-4" />}
                 <div className="space-y-2">
                   <Label className="flex items-center gap-2 text-muted-foreground">
-                    {field.icon && React.createElement(field.icon, { className: "w-4 h-4" })}
+                    {field.icon && React.createElement(field.icon, { className: 'w-4 h-4' })}
                     {t(field.label)}
                     {field.required && <span className="text-destructive">*</span>}
                     {field.helpText && mode === 'edit' && (
@@ -201,12 +224,10 @@ export function DetailHeader({ title, type, subtitle }: DetailHeaderProps) {
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-3">
-        {React.createElement(icon, { className: "w-5 h-5 text-primary" })}
+        {React.createElement(icon, { className: 'w-5 h-5 text-primary' })}
         <span className="text-lg font-semibold">{title}</span>
       </div>
-      {subtitle && (
-        <p className="text-sm text-muted-foreground pl-8">{subtitle}</p>
-      )}
+      {subtitle && <p className="text-sm text-muted-foreground pl-8">{subtitle}</p>}
     </div>
   );
 }

@@ -1,8 +1,16 @@
 import { useMemo, useState, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
-  Users, UsersRound, UserPlus, UserMinus, TrendingUp,
-  Activity, Calendar, Bot, MessageSquare, LayoutGrid
+  Users,
+  UsersRound,
+  UserPlus,
+  UserMinus,
+  TrendingUp,
+  Activity,
+  Calendar,
+  Bot,
+  MessageSquare,
+  LayoutGrid,
 } from 'lucide-react';
 import {
   Select,
@@ -34,33 +42,46 @@ export default function Dashboard() {
   const [botList, setBotList] = useState<BotItem[]>([{ id: 'all', name: t('dashboard.summary') }]);
   const [selectedBot, setSelectedBot] = useState('all');
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  
+
   // Data states from API
   const [keyMetrics, setKeyMetrics] = useState({
-    dau: 0, dag: 0, mau: 0, mag: 0, retention: '0%',
-    newUsers: 0, churnedUsers: 0, dauMauRatio: '0', dagMagRatio: '0'
+    dau: 0,
+    dag: 0,
+    mau: 0,
+    mag: 0,
+    retention: '0%',
+    newUsers: 0,
+    churnedUsers: 0,
+    dauMauRatio: '0',
+    dagMagRatio: '0',
   });
-  const [monthlyCommandData, setMonthlyCommandData] = useState<Array<{
-    date: string;
-    sentCommands: number;
-    receivedCommands: number;
-    commandCalls: number;
-    imageGenerated: number;
-  }>>([]);
-  const [monthlyUserGroupData, setMonthlyUserGroupData] = useState<Array<{
-    date: string;
-    users: number;
-    groups: number;
-  }>>([]);
+  const [monthlyCommandData, setMonthlyCommandData] = useState<
+    Array<{
+      date: string;
+      sentCommands: number;
+      receivedCommands: number;
+      commandCalls: number;
+      imageGenerated: number;
+    }>
+  >([]);
+  const [monthlyUserGroupData, setMonthlyUserGroupData] = useState<
+    Array<{
+      date: string;
+      users: number;
+      groups: number;
+    }>
+  >([]);
   // Daily data states
   const [dailyCommandUsage, setDailyCommandUsage] = useState<DailyCommandData[]>([]);
   const [dailyGroupTriggers, setDailyGroupTriggers] = useState<Array<Record<string, unknown>>>([]);
-  const [dailyPersonalTriggers, setDailyPersonalTriggers] = useState<Array<Record<string, unknown>>>([]);
+  const [dailyPersonalTriggers, setDailyPersonalTriggers] = useState<
+    Array<Record<string, unknown>>
+  >([]);
   const [isLoadingDaily, setIsLoadingDaily] = useState(false);
- 
+
   // Dynamic command list from API
   const [commandTypeList, setCommandTypeList] = useState<string[]>([]);
-  
+
   // Fetch bot list from API
   useEffect(() => {
     const fetchBots = async () => {
@@ -76,7 +97,7 @@ export default function Dashboard() {
     };
     fetchBots();
   }, []);
-    
+
   // Fetch data from API
   useEffect(() => {
     const fetchData = async () => {
@@ -108,13 +129,17 @@ export default function Dashboard() {
   }, [selectedBot]);
 
   // Legend visibility states for each chart
-  const [monthlyCommandVisibility, setMonthlyCommandVisibility] = useState<Record<string, boolean>>({
-    sentCommands: true,
-    receivedCommands: true,
-    commandCalls: true,
-    imageGenerated: true,
-  });
-  const [monthlyUserGroupVisibility, setMonthlyUserGroupVisibility] = useState<Record<string, boolean>>({
+  const [monthlyCommandVisibility, setMonthlyCommandVisibility] = useState<Record<string, boolean>>(
+    {
+      sentCommands: true,
+      receivedCommands: true,
+      commandCalls: true,
+      imageGenerated: true,
+    },
+  );
+  const [monthlyUserGroupVisibility, setMonthlyUserGroupVisibility] = useState<
+    Record<string, boolean>
+  >({
     users: true,
     groups: true,
   });
@@ -122,7 +147,9 @@ export default function Dashboard() {
     count: true,
   });
   const [groupTriggerVisibility, setGroupTriggerVisibility] = useState<Record<string, boolean>>({});
-  const [personalTriggerVisibility, setPersonalTriggerVisibility] = useState<Record<string, boolean>>({});
+  const [personalTriggerVisibility, setPersonalTriggerVisibility] = useState<
+    Record<string, boolean>
+  >({});
   /** yyyy-MM-dd → 当日命令总数（日历角标 + 禁用无数据日） */
   const [dailyCommandCounts, setDailyCommandCounts] = useState<Record<string, number>>({});
 
@@ -200,14 +227,62 @@ export default function Dashboard() {
   }, [selectedBot, selectedDate, dateStr]);
 
   const metricCards = [
-    { title: 'DAU', value: keyMetrics.dau.toLocaleString(), icon: Users, color: 'text-blue-500', desc: t('dashboard.dauDesc') },
-    { title: 'DAG', value: keyMetrics.dag.toLocaleString(), icon: UsersRound, color: 'text-green-500', desc: t('dashboard.dagDesc') },
-    { title: t('dashboard.retention'), value: keyMetrics.retention, icon: TrendingUp, color: 'text-purple-500', desc: t('dashboard.retentionDesc') },
-    { title: t('dashboard.newUsers'), value: keyMetrics.newUsers.toLocaleString(), icon: UserPlus, color: 'text-cyan-500', desc: t('dashboard.newUsersDesc') },
-    { title: t('dashboard.churnedUsers'), value: keyMetrics.churnedUsers.toLocaleString(), icon: UserMinus, color: 'text-red-500', desc: t('dashboard.churnedUsersDesc') },
-    { title: 'MAU', value: keyMetrics.mau.toLocaleString(), icon: Activity, color: 'text-orange-500', desc: t('dashboard.mauDesc') },
-    { title: 'MAG', value: keyMetrics.mag.toLocaleString(), icon: UsersRound, color: 'text-teal-500', desc: t('dashboard.magDesc') },
-    { title: t('dashboard.dagMagRatio'), value: keyMetrics.dagMagRatio, icon: TrendingUp, color: 'text-pink-500', desc: t('dashboard.dagMagRatioDesc') },
+    {
+      title: 'DAU',
+      value: keyMetrics.dau.toLocaleString(),
+      icon: Users,
+      color: 'text-blue-500',
+      desc: t('dashboard.dauDesc'),
+    },
+    {
+      title: 'DAG',
+      value: keyMetrics.dag.toLocaleString(),
+      icon: UsersRound,
+      color: 'text-green-500',
+      desc: t('dashboard.dagDesc'),
+    },
+    {
+      title: t('dashboard.retention'),
+      value: keyMetrics.retention,
+      icon: TrendingUp,
+      color: 'text-purple-500',
+      desc: t('dashboard.retentionDesc'),
+    },
+    {
+      title: t('dashboard.newUsers'),
+      value: keyMetrics.newUsers.toLocaleString(),
+      icon: UserPlus,
+      color: 'text-cyan-500',
+      desc: t('dashboard.newUsersDesc'),
+    },
+    {
+      title: t('dashboard.churnedUsers'),
+      value: keyMetrics.churnedUsers.toLocaleString(),
+      icon: UserMinus,
+      color: 'text-red-500',
+      desc: t('dashboard.churnedUsersDesc'),
+    },
+    {
+      title: 'MAU',
+      value: keyMetrics.mau.toLocaleString(),
+      icon: Activity,
+      color: 'text-orange-500',
+      desc: t('dashboard.mauDesc'),
+    },
+    {
+      title: 'MAG',
+      value: keyMetrics.mag.toLocaleString(),
+      icon: UsersRound,
+      color: 'text-teal-500',
+      desc: t('dashboard.magDesc'),
+    },
+    {
+      title: t('dashboard.dagMagRatio'),
+      value: keyMetrics.dagMagRatio,
+      icon: TrendingUp,
+      color: 'text-pink-500',
+      desc: t('dashboard.dagMagRatioDesc'),
+    },
   ];
 
   // ============================================================================
@@ -215,285 +290,316 @@ export default function Dashboard() {
   // ============================================================================
 
   // 月度命令统计 - 折线图（固定 4 项图例；窄屏/长文案时 scroll 防换行）
-  const monthlyCommandOption = useMemo<EChartsOption>(() => ({
-    animationDuration: 1000,
-    animationEasing: 'cubicOut' as const,
-    grid: { left: '3%', right: '4%', bottom: 48, top: '12%', containLabel: true },
-    xAxis: {
-      type: 'category',
-      data: monthlyCommandData.map(d => d.date.slice(5)),
-      boundaryGap: false,
-    },
-    yAxis: { type: 'value' },
-    tooltip: {
-      trigger: 'axis',
-      axisPointer: { type: 'cross', label: { show: false } },
-    },
-    legend: {
-      type: 'scroll',
-      data: [
-        { name: t('dashboard.sendCommand'), icon: 'roundRect' },
-        { name: t('dashboard.receiveCommand'), icon: 'roundRect' },
-        { name: t('dashboard.commandCall'), icon: 'roundRect' },
-        { name: t('dashboard.imageGen'), icon: 'roundRect' },
+  const monthlyCommandOption = useMemo<EChartsOption>(
+    () => ({
+      animationDuration: 1000,
+      animationEasing: 'cubicOut' as const,
+      grid: { left: '3%', right: '4%', bottom: 48, top: '12%', containLabel: true },
+      xAxis: {
+        type: 'category',
+        data: monthlyCommandData.map((d) => d.date.slice(5)),
+        boundaryGap: false,
+      },
+      yAxis: { type: 'value' },
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: { type: 'cross', label: { show: false } },
+      },
+      legend: {
+        type: 'scroll',
+        data: [
+          { name: t('dashboard.sendCommand'), icon: 'roundRect' },
+          { name: t('dashboard.receiveCommand'), icon: 'roundRect' },
+          { name: t('dashboard.commandCall'), icon: 'roundRect' },
+          { name: t('dashboard.imageGen'), icon: 'roundRect' },
+        ],
+        bottom: 0,
+        left: 'center',
+        width: '92%',
+        selected: {
+          [t('dashboard.sendCommand')]: monthlyCommandVisibility.sentCommands,
+          [t('dashboard.receiveCommand')]: monthlyCommandVisibility.receivedCommands,
+          [t('dashboard.commandCall')]: monthlyCommandVisibility.commandCalls,
+          [t('dashboard.imageGen')]: monthlyCommandVisibility.imageGenerated,
+        },
+      },
+      series: [
+        {
+          name: t('dashboard.sendCommand'),
+          type: 'line',
+          data: monthlyCommandData.map((d) => d.sentCommands),
+          smooth: true,
+          symbol: 'circle',
+          symbolSize: 6,
+          lineStyle: { width: 2.5 },
+          areaStyle: {
+            opacity: 0.08,
+          },
+          emphasis: { focus: 'series' },
+        },
+        {
+          name: t('dashboard.receiveCommand'),
+          type: 'line',
+          data: monthlyCommandData.map((d) => d.receivedCommands),
+          smooth: true,
+          symbol: 'circle',
+          symbolSize: 6,
+          lineStyle: { width: 2.5 },
+          areaStyle: {
+            opacity: 0.08,
+          },
+          emphasis: { focus: 'series' },
+        },
+        {
+          name: t('dashboard.commandCall'),
+          type: 'line',
+          data: monthlyCommandData.map((d) => d.commandCalls),
+          smooth: true,
+          symbol: 'circle',
+          symbolSize: 6,
+          lineStyle: { width: 2.5 },
+          areaStyle: {
+            opacity: 0.08,
+          },
+          emphasis: { focus: 'series' },
+        },
+        {
+          name: t('dashboard.imageGen'),
+          type: 'line',
+          data: monthlyCommandData.map((d) => d.imageGenerated),
+          smooth: true,
+          symbol: 'circle',
+          symbolSize: 6,
+          lineStyle: { width: 2.5 },
+          areaStyle: {
+            opacity: 0.08,
+          },
+          emphasis: { focus: 'series' },
+        },
       ],
-      bottom: 0,
-      left: 'center',
-      width: '92%',
-      selected: {
-        [t('dashboard.sendCommand')]: monthlyCommandVisibility.sentCommands,
-        [t('dashboard.receiveCommand')]: monthlyCommandVisibility.receivedCommands,
-        [t('dashboard.commandCall')]: monthlyCommandVisibility.commandCalls,
-        [t('dashboard.imageGen')]: monthlyCommandVisibility.imageGenerated,
-      },
-    },
-    series: [
-      {
-        name: t('dashboard.sendCommand'),
-        type: 'line',
-        data: monthlyCommandData.map(d => d.sentCommands),
-        smooth: true,
-        symbol: 'circle',
-        symbolSize: 6,
-        lineStyle: { width: 2.5 },
-        areaStyle: {
-          opacity: 0.08,
-        },
-        emphasis: { focus: 'series' },
-      },
-      {
-        name: t('dashboard.receiveCommand'),
-        type: 'line',
-        data: monthlyCommandData.map(d => d.receivedCommands),
-        smooth: true,
-        symbol: 'circle',
-        symbolSize: 6,
-        lineStyle: { width: 2.5 },
-        areaStyle: {
-          opacity: 0.08,
-        },
-        emphasis: { focus: 'series' },
-      },
-      {
-        name: t('dashboard.commandCall'),
-        type: 'line',
-        data: monthlyCommandData.map(d => d.commandCalls),
-        smooth: true,
-        symbol: 'circle',
-        symbolSize: 6,
-        lineStyle: { width: 2.5 },
-        areaStyle: {
-          opacity: 0.08,
-        },
-        emphasis: { focus: 'series' },
-      },
-      {
-        name: t('dashboard.imageGen'),
-        type: 'line',
-        data: monthlyCommandData.map(d => d.imageGenerated),
-        smooth: true,
-        symbol: 'circle',
-        symbolSize: 6,
-        lineStyle: { width: 2.5 },
-        areaStyle: {
-          opacity: 0.08,
-        },
-        emphasis: { focus: 'series' },
-      },
-    ],
-  }), [monthlyCommandData, monthlyCommandVisibility, t]);
+    }),
+    [monthlyCommandData, monthlyCommandVisibility, t],
+  );
 
   // 月度用户与群组统计 - 柱状图（固定 2 项图例，风险低；统一 bottom 留白）
-  const monthlyUserGroupOption = useMemo<EChartsOption>(() => ({
-    animationDuration: 800,
-    animationEasing: 'cubicOut' as const,
-    grid: { left: '3%', right: '4%', bottom: 40, top: '12%', containLabel: true },
-    xAxis: {
-      type: 'category',
-      data: monthlyUserGroupData.map(d => d.date.slice(5)),
-    },
-    yAxis: { type: 'value' },
-    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-    legend: {
-      data: [
-        { name: t('dashboard.users'), icon: 'roundRect' },
-        { name: t('dashboard.groups'), icon: 'roundRect' },
+  const monthlyUserGroupOption = useMemo<EChartsOption>(
+    () => ({
+      animationDuration: 800,
+      animationEasing: 'cubicOut' as const,
+      grid: { left: '3%', right: '4%', bottom: 40, top: '12%', containLabel: true },
+      xAxis: {
+        type: 'category',
+        data: monthlyUserGroupData.map((d) => d.date.slice(5)),
+      },
+      yAxis: { type: 'value' },
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+      legend: {
+        data: [
+          { name: t('dashboard.users'), icon: 'roundRect' },
+          { name: t('dashboard.groups'), icon: 'roundRect' },
+        ],
+        bottom: 0,
+        selected: {
+          [t('dashboard.users')]: monthlyUserGroupVisibility.users,
+          [t('dashboard.groups')]: monthlyUserGroupVisibility.groups,
+        },
+      },
+      series: [
+        {
+          name: t('dashboard.users'),
+          type: 'bar',
+          data: monthlyUserGroupData.map((d) => d.users),
+          barMaxWidth: 30,
+          itemStyle: { borderRadius: [4, 4, 0, 0] },
+          emphasis: { focus: 'series' },
+        },
+        {
+          name: t('dashboard.groups'),
+          type: 'bar',
+          data: monthlyUserGroupData.map((d) => d.groups),
+          barMaxWidth: 30,
+          itemStyle: { borderRadius: [4, 4, 0, 0] },
+          emphasis: { focus: 'series' },
+        },
       ],
-      bottom: 0,
-      selected: {
-        [t('dashboard.users')]: monthlyUserGroupVisibility.users,
-        [t('dashboard.groups')]: monthlyUserGroupVisibility.groups,
-      },
-    },
-    series: [
-      {
-        name: t('dashboard.users'),
-        type: 'bar',
-        data: monthlyUserGroupData.map(d => d.users),
-        barMaxWidth: 30,
-        itemStyle: { borderRadius: [4, 4, 0, 0] },
-        emphasis: { focus: 'series' },
-      },
-      {
-        name: t('dashboard.groups'),
-        type: 'bar',
-        data: monthlyUserGroupData.map(d => d.groups),
-        barMaxWidth: 30,
-        itemStyle: { borderRadius: [4, 4, 0, 0] },
-        emphasis: { focus: 'series' },
-      },
-    ],
-  }), [monthlyUserGroupData, monthlyUserGroupVisibility, t]);
+    }),
+    [monthlyUserGroupData, monthlyUserGroupVisibility, t],
+  );
 
   // 命令使用量 - 水平柱状图（每条命令独立配色）
   // 图例仅 1 项，无多 series 换行风险；但 Y 轴类目多时需动态增高，避免条带挤扁
-  const commandUsageOption = useMemo<EChartsOption>(() => ({
-    animationDuration: 800,
-    animationEasing: 'cubicOut' as const,
-    grid: { left: '3%', right: '8%', bottom: 36, top: 12, containLabel: true },
-    xAxis: { type: 'value' },
-    yAxis: {
-      type: 'category',
-      data: dailyCommandUsage.map((d) => d.command),
-      axisLabel: { fontSize: 11 },
-    },
-    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-    legend: {
-      data: [{ name: t('dashboard.callCount'), icon: 'roundRect' }],
-      bottom: 0,
-      selected: {
-        [t('dashboard.callCount')]: commandUsageVisibility.count,
+  const commandUsageOption = useMemo<EChartsOption>(
+    () => ({
+      animationDuration: 800,
+      animationEasing: 'cubicOut' as const,
+      grid: { left: '3%', right: '8%', bottom: 36, top: 12, containLabel: true },
+      xAxis: { type: 'value' },
+      yAxis: {
+        type: 'category',
+        data: dailyCommandUsage.map((d) => d.command),
+        axisLabel: { fontSize: 11 },
       },
-    },
-    series: [
-      {
-        name: t('dashboard.callCount'),
-        type: 'bar',
-        data: dailyCommandUsage.map((d) => ({
-          value: d.count,
-          itemStyle: {
-            color: getCommandColor(d.command),
-            borderRadius: [0, 6, 6, 0],
-          },
-        })),
-        barMaxWidth: 24,
-        emphasis: { focus: 'series' },
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+      legend: {
+        data: [{ name: t('dashboard.callCount'), icon: 'roundRect' }],
+        bottom: 0,
+        selected: {
+          [t('dashboard.callCount')]: commandUsageVisibility.count,
+        },
       },
-    ],
-  }), [dailyCommandUsage, commandUsageVisibility, t]);
+      series: [
+        {
+          name: t('dashboard.callCount'),
+          type: 'bar',
+          data: dailyCommandUsage.map((d) => ({
+            value: d.count,
+            itemStyle: {
+              color: getCommandColor(d.command),
+              borderRadius: [0, 6, 6, 0],
+            },
+          })),
+          barMaxWidth: 24,
+          emphasis: { focus: 'series' },
+        },
+      ],
+    }),
+    [dailyCommandUsage, commandUsageVisibility, t],
+  );
 
   const commandUsageChartHeight = useMemo(
     () => Math.max(350, dailyCommandUsage.length * 28 + 72),
     [dailyCommandUsage.length],
   );
   // 命令系列过多时：滚动图例（单行 + 翻页），避免图例换行盖住柱状图
-  const buildManySeriesLegend = useCallback((
-    selected: Record<string, boolean>,
-  ): EChartsOption['legend'] => ({
-    type: 'scroll',
-    orient: 'horizontal',
-    data: commandTypeList.map((cmd) => ({ name: cmd, icon: 'roundRect' })),
-    bottom: 0,
-    left: 'center',
-    width: '92%',
-    itemWidth: 12,
-    itemHeight: 10,
-    itemGap: 10,
-    pageIconSize: 12,
-    pageButtonGap: 6,
-    pageButtonItemGap: 4,
-    textStyle: { fontSize: 11 },
-    selected,
-  }), [commandTypeList]);
+  const buildManySeriesLegend = useCallback(
+    (selected: Record<string, boolean>): EChartsOption['legend'] => ({
+      type: 'scroll',
+      orient: 'horizontal',
+      data: commandTypeList.map((cmd) => ({ name: cmd, icon: 'roundRect' })),
+      bottom: 0,
+      left: 'center',
+      width: '92%',
+      itemWidth: 12,
+      itemHeight: 10,
+      itemGap: 10,
+      pageIconSize: 12,
+      pageButtonGap: 6,
+      pageButtonItemGap: 4,
+      textStyle: { fontSize: 11 },
+      selected,
+    }),
+    [commandTypeList],
+  );
 
-  const stackedTriggerTooltipFormatter = useCallback((params: any) => {
-    if (!Array.isArray(params) || params.length === 0) return '';
-    const label = params[0].axisValue;
-    let total = 0;
-    let rows = '';
-    params.forEach((p: any) => {
-      if (p.value > 0) {
-        total += p.value;
-        rows += `<div style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin:2px 0">
+  const stackedTriggerTooltipFormatter = useCallback(
+    (params: any) => {
+      if (!Array.isArray(params) || params.length === 0) return '';
+      const label = params[0].axisValue;
+      let total = 0;
+      let rows = '';
+      params.forEach((p: any) => {
+        if (p.value > 0) {
+          total += p.value;
+          rows += `<div style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin:2px 0">
           <span style="display:flex;align-items:center;gap:6px">
             <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${p.color}"></span>
             ${p.seriesName}
           </span>
           <span style="font-weight:600">${p.value}</span>
         </div>`;
-      }
-    });
-    return `<div style="min-width:120px">
+        }
+      });
+      return `<div style="min-width:120px">
       <div style="font-weight:600;margin-bottom:6px">${label}</div>
       ${rows}
       <div style="border-top:1px solid rgba(128,128,128,0.2);margin-top:6px;padding-top:6px;display:flex;justify-content:space-between">
         <span>${t('dashboard.total')}</span><span style="font-weight:700">${total}</span>
       </div>
     </div>`;
-  }, [t]);
+    },
+    [t],
+  );
 
   // 群组命令触发量 - 堆叠水平柱状图
-  const groupTriggerOption = useMemo<EChartsOption>(() => ({
-    animationDuration: 800,
-    animationEasing: 'cubicOut' as const,
-    // 固定预留底部空间给单行 scroll 图例，避免与绘图区重叠
-    grid: { left: '3%', right: '8%', bottom: 48, top: 12, containLabel: true },
-    xAxis: { type: 'value' },
-    yAxis: {
-      type: 'category',
-      data: dailyGroupTriggers.map(d => String(d.group ?? '')),
-      axisLabel: { fontSize: 10 },
-    },
-    tooltip: {
-      trigger: 'axis',
-      axisPointer: { type: 'shadow' },
-      formatter: stackedTriggerTooltipFormatter,
-    },
-    legend: buildManySeriesLegend(groupTriggerVisibility),
-    series: commandTypeList.map((cmd, index) => ({
-      name: cmd,
-      type: 'bar' as const,
-      stack: 'total',
-      data: dailyGroupTriggers.map((d) => d[cmd] || 0),
-      barMaxWidth: 20,
-      itemStyle: {
-        color: getCommandColor(cmd),
-        borderRadius: index === commandTypeList.length - 1 ? [0, 6, 6, 0] : undefined,
+  const groupTriggerOption = useMemo<EChartsOption>(
+    () => ({
+      animationDuration: 800,
+      animationEasing: 'cubicOut' as const,
+      // 固定预留底部空间给单行 scroll 图例，避免与绘图区重叠
+      grid: { left: '3%', right: '8%', bottom: 48, top: 12, containLabel: true },
+      xAxis: { type: 'value' },
+      yAxis: {
+        type: 'category',
+        data: dailyGroupTriggers.map((d) => String(d.group ?? '')),
+        axisLabel: { fontSize: 10 },
       },
-      emphasis: { focus: 'series' as const },
-    })),
-  }), [dailyGroupTriggers, commandTypeList, groupTriggerVisibility, buildManySeriesLegend, stackedTriggerTooltipFormatter]);
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: { type: 'shadow' },
+        formatter: stackedTriggerTooltipFormatter,
+      },
+      legend: buildManySeriesLegend(groupTriggerVisibility),
+      series: commandTypeList.map((cmd, index) => ({
+        name: cmd,
+        type: 'bar' as const,
+        stack: 'total',
+        data: dailyGroupTriggers.map((d) => d[cmd] || 0),
+        barMaxWidth: 20,
+        itemStyle: {
+          color: getCommandColor(cmd),
+          borderRadius: index === commandTypeList.length - 1 ? [0, 6, 6, 0] : undefined,
+        },
+        emphasis: { focus: 'series' as const },
+      })),
+    }),
+    [
+      dailyGroupTriggers,
+      commandTypeList,
+      groupTriggerVisibility,
+      buildManySeriesLegend,
+      stackedTriggerTooltipFormatter,
+    ],
+  );
 
   // 个人命令触发量 - 堆叠水平柱状图
-  const personalTriggerOption = useMemo<EChartsOption>(() => ({
-    animationDuration: 800,
-    animationEasing: 'cubicOut' as const,
-    grid: { left: '3%', right: '8%', bottom: 48, top: 12, containLabel: true },
-    xAxis: { type: 'value' },
-    yAxis: {
-      type: 'category',
-      data: dailyPersonalTriggers.map(d => String(d.user ?? '')),
-      axisLabel: { fontSize: 10 },
-    },
-    tooltip: {
-      trigger: 'axis',
-      axisPointer: { type: 'shadow' },
-      formatter: stackedTriggerTooltipFormatter,
-    },
-    legend: buildManySeriesLegend(personalTriggerVisibility),
-    series: commandTypeList.map((cmd, index) => ({
-      name: cmd,
-      type: 'bar' as const,
-      stack: 'total',
-      data: dailyPersonalTriggers.map((d) => d[cmd] || 0),
-      barMaxWidth: 20,
-      itemStyle: {
-        color: getCommandColor(cmd),
-        borderRadius: index === commandTypeList.length - 1 ? [0, 6, 6, 0] : undefined,
+  const personalTriggerOption = useMemo<EChartsOption>(
+    () => ({
+      animationDuration: 800,
+      animationEasing: 'cubicOut' as const,
+      grid: { left: '3%', right: '8%', bottom: 48, top: 12, containLabel: true },
+      xAxis: { type: 'value' },
+      yAxis: {
+        type: 'category',
+        data: dailyPersonalTriggers.map((d) => String(d.user ?? '')),
+        axisLabel: { fontSize: 10 },
       },
-      emphasis: { focus: 'series' as const },
-    })),
-  }), [dailyPersonalTriggers, commandTypeList, personalTriggerVisibility, buildManySeriesLegend, stackedTriggerTooltipFormatter]);
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: { type: 'shadow' },
+        formatter: stackedTriggerTooltipFormatter,
+      },
+      legend: buildManySeriesLegend(personalTriggerVisibility),
+      series: commandTypeList.map((cmd, index) => ({
+        name: cmd,
+        type: 'bar' as const,
+        stack: 'total',
+        data: dailyPersonalTriggers.map((d) => d[cmd] || 0),
+        barMaxWidth: 20,
+        itemStyle: {
+          color: getCommandColor(cmd),
+          borderRadius: index === commandTypeList.length - 1 ? [0, 6, 6, 0] : undefined,
+        },
+        emphasis: { focus: 'series' as const },
+      })),
+    }),
+    [
+      dailyPersonalTriggers,
+      commandTypeList,
+      personalTriggerVisibility,
+      buildManySeriesLegend,
+      stackedTriggerTooltipFormatter,
+    ],
+  );
 
   // 行数多时拉高图表，避免 Y 轴类目挤在一起；命令多时也略增高给图例留白
   const groupTriggerChartHeight = useMemo(
@@ -505,57 +611,67 @@ export default function Dashboard() {
     [dailyPersonalTriggers.length],
   );
   // Legend 切换事件处理
-  const handleLegendSelectChanged = useCallback((
-    setter: React.Dispatch<React.SetStateAction<Record<string, boolean>>>,
-    keyMap: Record<string, string>
-  ) => {
-    return (params: any) => {
-      if (params.type === 'legendselectchanged') {
-        setter(prev => {
-          const next = { ...prev };
-          Object.entries(keyMap).forEach(([legendName, stateKey]) => {
-            if (legendName in params.selected) {
-              next[stateKey] = params.selected[legendName];
-            }
+  const handleLegendSelectChanged = useCallback(
+    (
+      setter: React.Dispatch<React.SetStateAction<Record<string, boolean>>>,
+      keyMap: Record<string, string>,
+    ) => {
+      return (params: any) => {
+        if (params.type === 'legendselectchanged') {
+          setter((prev) => {
+            const next = { ...prev };
+            Object.entries(keyMap).forEach(([legendName, stateKey]) => {
+              if (legendName in params.selected) {
+                next[stateKey] = params.selected[legendName];
+              }
+            });
+            return next;
           });
-          return next;
-        });
-      }
-    };
-  }, []);
+        }
+      };
+    },
+    [],
+  );
 
-  const monthlyCommandLegendHandler = useMemo(() => handleLegendSelectChanged(
-    setMonthlyCommandVisibility,
-    {
-      [t('dashboard.sendCommand')]: 'sentCommands',
-      [t('dashboard.receiveCommand')]: 'receivedCommands',
-      [t('dashboard.commandCall')]: 'commandCalls',
-      [t('dashboard.imageGen')]: 'imageGenerated',
-    }
-  ), [t, handleLegendSelectChanged]);
+  const monthlyCommandLegendHandler = useMemo(
+    () =>
+      handleLegendSelectChanged(setMonthlyCommandVisibility, {
+        [t('dashboard.sendCommand')]: 'sentCommands',
+        [t('dashboard.receiveCommand')]: 'receivedCommands',
+        [t('dashboard.commandCall')]: 'commandCalls',
+        [t('dashboard.imageGen')]: 'imageGenerated',
+      }),
+    [t, handleLegendSelectChanged],
+  );
 
-  const monthlyUserGroupLegendHandler = useMemo(() => handleLegendSelectChanged(
-    setMonthlyUserGroupVisibility,
-    {
-      [t('dashboard.users')]: 'users',
-      [t('dashboard.groups')]: 'groups',
-    }
-  ), [t, handleLegendSelectChanged]);
+  const monthlyUserGroupLegendHandler = useMemo(
+    () =>
+      handleLegendSelectChanged(setMonthlyUserGroupVisibility, {
+        [t('dashboard.users')]: 'users',
+        [t('dashboard.groups')]: 'groups',
+      }),
+    [t, handleLegendSelectChanged],
+  );
 
-  const commandUsageLegendHandler = useMemo(() => handleLegendSelectChanged(
-    setCommandUsageVisibility,
-    { [t('dashboard.callCount')]: 'count' }
-  ), [t, handleLegendSelectChanged]);
+  const commandUsageLegendHandler = useMemo(
+    () =>
+      handleLegendSelectChanged(setCommandUsageVisibility, { [t('dashboard.callCount')]: 'count' }),
+    [t, handleLegendSelectChanged],
+  );
 
   const groupTriggerLegendHandler = useMemo(() => {
     const keyMap: Record<string, string> = {};
-    commandTypeList.forEach(cmd => { keyMap[cmd] = cmd; });
+    commandTypeList.forEach((cmd) => {
+      keyMap[cmd] = cmd;
+    });
     return handleLegendSelectChanged(setGroupTriggerVisibility, keyMap);
   }, [commandTypeList, handleLegendSelectChanged]);
 
   const personalTriggerLegendHandler = useMemo(() => {
     const keyMap: Record<string, string> = {};
-    commandTypeList.forEach(cmd => { keyMap[cmd] = cmd; });
+    commandTypeList.forEach((cmd) => {
+      keyMap[cmd] = cmd;
+    });
     return handleLegendSelectChanged(setPersonalTriggerVisibility, keyMap);
   }, [commandTypeList, handleLegendSelectChanged]);
 

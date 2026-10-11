@@ -1,11 +1,6 @@
 import { Key, HelpCircle, SlidersHorizontal, Search, Globe, Cog } from 'lucide-react';
 import { Label } from '@/components/ui/label';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ConfigField, ConfigValue, ConfigFieldType, ConfigFieldDefinition } from './ConfigField';
 import { RepeatGroupField, RepeatGroupItem } from './RepeatGroupField';
 import { PluginConfigItem } from '@/lib/api';
@@ -126,7 +121,10 @@ function coerceValue(fieldType: string, rawType: string, rawValue: unknown): Con
   return rawValue == null ? '' : String(rawValue);
 }
 
-export function pluginConfigItemToFieldDef(fieldKey: string, item: PluginConfigItem): ConfigFieldDefinition {
+export function pluginConfigItemToFieldDef(
+  fieldKey: string,
+  item: PluginConfigItem,
+): ConfigFieldDefinition {
   const fieldType = mapBackendTypeToFieldType(item);
   const rawType = (item.type || '').toLowerCase();
 
@@ -181,9 +179,7 @@ export function DynamicConfigPanel({
   layout,
 }: DynamicConfigPanelProps) {
   // 获取所有需要渲染的字段
-  const allFields = Object.entries(config).filter(
-    ([key]) => !excludeKeys.includes(key)
-  );
+  const allFields = Object.entries(config).filter(([key]) => !excludeKeys.includes(key));
 
   // 如果没有指定 layout，按默认方式渲染（每个字段独占一行）
   const layoutGroups: string[][] = layout || allFields.map(([key]) => [key]);
@@ -202,10 +198,7 @@ export function DynamicConfigPanel({
 
     // divider 类型直接渲染，不需要 Label
     if (fieldType === 'divider') {
-      const dividerValue =
-        typeof item.value === 'string' && item.value
-          ? item.value
-          : null;
+      const dividerValue = typeof item.value === 'string' && item.value ? item.value : null;
       return (
         <ConfigField
           key={fieldKey}

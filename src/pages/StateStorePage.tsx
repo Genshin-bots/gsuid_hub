@@ -14,7 +14,7 @@ import StateStoreViewer, { type StateStoreViewerHandle } from '@/components/Stat
 export default function StateStorePage() {
   const { t } = useLanguage();
   const { style } = useTheme();
-  const isGlass = style === 'glassmorphism';
+  const isGlass = style !== 'solid';
   const ref = useRef<StateStoreViewerHandle>(null);
   const [selectedCount, setSelectedCount] = useState(0);
 

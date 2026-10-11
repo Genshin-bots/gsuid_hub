@@ -172,7 +172,7 @@ function ResultColumn({
   items: Array<{ id: string; primary: string; secondary?: string; score?: number }>;
 }) {
   return (
-    <Card className="border border-border/50">
+    <Card className="glass-card">
       <CardHeader className="py-3">
         <CardTitle className="text-sm">{title}</CardTitle>
       </CardHeader>

@@ -27,13 +27,7 @@ import { PinnedPage } from '@/components/layout/PinnedPage';
 import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CognitionAttachments } from '@/components/cognition/CognitionAttachments';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -70,6 +64,7 @@ import {
   type RelationshipListItem,
   type RelationshipViewData,
 } from '@/lib/api';
+import { GroupProfilePanel } from '@/pages/GroupProfilePage';
 import {
   isCognitionBackendMissing,
   isWorldHub,
@@ -77,16 +72,18 @@ import {
   pluginFromWorldRef,
 } from '@/lib/cognition';
 
-type TabId = 'slots' | 'hooks' | 'relationship' | 'cognition';
+type TabId = 'slots' | 'hooks' | 'relationship' | 'cognition' | 'group';
 
-const TAB_IDS: TabId[] = ['slots', 'hooks', 'relationship', 'cognition'];
+const TAB_IDS: TabId[] = ['slots', 'hooks', 'relationship', 'cognition', 'group'];
 
 function isTabId(value: string | null): value is TabId {
   return value !== null && (TAB_IDS as string[]).includes(value);
 }
 
 function isBackendMissing(err: unknown): boolean {
-  return isCognitionBackendMissing(err) || /404/.test(err instanceof Error ? err.message : String(err));
+  return (
+    isCognitionBackendMissing(err) || /404/.test(err instanceof Error ? err.message : String(err))
+  );
 }
 
 function formatUnix(ts: number | undefined, empty: string): string {
@@ -97,9 +94,7 @@ function formatUnix(ts: number | undefined, empty: string): string {
   return date.toLocaleString();
 }
 
-function zoneBadgeVariant(
-  zone: string,
-): 'destructive' | 'secondary' | 'outline' | 'default' {
+function zoneBadgeVariant(zone: string): 'destructive' | 'secondary' | 'outline' | 'default' {
   if (zone === 'hostile' || zone === 'cold') return 'destructive';
   if (zone === 'distant') return 'secondary';
   if (zone === 'acquaintance') return 'outline';
@@ -156,6 +151,11 @@ export default function AIRuntimePage() {
         label: t('aiRuntime.tabs.cognition'),
         icon: <ScanSearch className="w-4 h-4" />,
       },
+      {
+        value: 'group',
+        label: t('aiRuntime.tabs.group'),
+        icon: <Users className="w-4 h-4" />,
+      },
     ],
     [t],
   );
@@ -187,6 +187,7 @@ export default function AIRuntimePage() {
       {tab === 'hooks' && <HooksPanel />}
       {tab === 'relationship' && <RelationshipPanel />}
       {tab === 'cognition' && <CognitionPanel />}
+      {tab === 'group' && <GroupProfilePanel />}
     </PinnedPage>
   );
 }
@@ -254,7 +255,12 @@ function SlotsPanel() {
             </Badge>
           )}
         </div>
-        <Button className="w-full shrink-0 sm:w-auto" variant="outline" onClick={() => void load()} disabled={loading}>
+        <Button
+          className="w-full shrink-0 sm:w-auto"
+          variant="outline"
+          onClick={() => void load()}
+          disabled={loading}
+        >
           <RefreshCw className={cn('w-4 h-4', loading && 'animate-spin')} />
           {t('common.refresh')}
         </Button>
@@ -288,20 +294,14 @@ function SlotsPanel() {
             return (
               <Card
                 key={slot.name}
-                className={cn(
-                  'glass-card',
-                  sealedEmptySlot && 'border-destructive/50',
-                )}
+                className={cn('glass-card', sealedEmptySlot && 'border-destructive/50')}
               >
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center justify-between gap-2 text-base">
                     <span className="font-mono text-sm truncate">{slot.name}</span>
                     <div className="flex shrink-0 flex-wrap justify-end gap-1">
                       {slot.sealed && (
-                        <Badge
-                          variant="destructive"
-                          className="max-w-full whitespace-normal"
-                        >
+                        <Badge variant="destructive" className="max-w-full whitespace-normal">
                           {t('aiRuntime.slots.sealed')}
                         </Badge>
                       )}
@@ -416,7 +416,12 @@ function HooksPanel() {
             {t('aiRuntime.hooks.unwiredCount', { count: unwired.length })}
           </Badge>
         </div>
-        <Button className="w-full shrink-0 sm:w-auto" variant="outline" onClick={() => void load()} disabled={loading}>
+        <Button
+          className="w-full shrink-0 sm:w-auto"
+          variant="outline"
+          onClick={() => void load()}
+          disabled={loading}
+        >
           <RefreshCw className={cn('w-4 h-4', loading && 'animate-spin')} />
           {t('common.refresh')}
         </Button>
@@ -640,66 +645,80 @@ function RelationshipPanel() {
             </div>
           </div>
           <Button className="h-9" onClick={() => void lookup()} disabled={loading}>
-            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+            {loading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Search className="w-4 h-4" />
+            )}
             {t('aiRuntime.relationship.lookup')}
           </Button>
         </CardContent>
       </Card>
 
       <div ref={detailRef} className="space-y-4">
-      {view && !view.scored && (
-        <Card className="glass-card">
-          <CardContent className="!p-6 text-sm text-muted-foreground">
-            {t('aiRuntime.relationship.unscored', { user: view.user_id })}
-          </CardContent>
-        </Card>
-      )}
+        {view && !view.scored && (
+          <Card className="glass-card">
+            <CardContent className="!p-6 text-sm text-muted-foreground">
+              {t('aiRuntime.relationship.unscored', { user: view.user_id })}
+            </CardContent>
+          </Card>
+        )}
 
-      {view && view.scored && (
-        <Card className="glass-card">
-          <CardHeader>
-            <CardTitle className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <span className="font-mono text-base">{view.user_id}</span>
-              <Badge
-                variant={zoneBadgeVariant(view.zone)}
-                className="max-w-full whitespace-normal shrink-0"
-              >
-                {view.zone_label} · {view.zone}
-              </Badge>
-            </CardTitle>
-            <CardDescription>{view.line}</CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 text-sm">
-            <Field label={t('aiRuntime.relationship.score')} value={String(view.score ?? '—')} hint={t('aiRuntime.relationship.scoreHint')} />
-            <Field label={t('aiRuntime.relationship.lastReason')} value={view.last_reason || t('aiRuntime.relationship.none')} />
-            <Field
-              label={t('aiRuntime.relationship.lastDelta')}
-              value={view.last_delta !== undefined ? String(view.last_delta) : '—'}
-            />
-            <Field
-              label={t('aiRuntime.relationship.lastEval')}
-              value={formatUnix(view.last_eval_at, t('aiRuntime.relationship.none'))}
-            />
-            <Field
-              label={t('aiRuntime.relationship.daily')}
-              value={`${t('aiRuntime.relationship.gain')} ${view.daily_gain ?? 0} / ${t('aiRuntime.relationship.loss')} ${view.daily_loss ?? 0}`}
-            />
-            <Field label={t('aiRuntime.relationship.dailyYmd')} value={view.daily_ymd || t('aiRuntime.relationship.none')} />
-            <Field
-              label={t('aiRuntime.relationship.lastPositive')}
-              value={formatUnix(view.last_positive_interact_at, t('aiRuntime.relationship.none'))}
-            />
-            <Field
-              label={t('aiRuntime.relationship.interactions')}
-              value={String(view.interaction_count ?? 0)}
-            />
-            <Field
-              label={t('aiRuntime.relationship.botId')}
-              value={view.bot_id || t('aiRuntime.relationship.none')}
-            />
-          </CardContent>
-        </Card>
-      )}
+        {view && view.scored && (
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <span className="font-mono text-base">{view.user_id}</span>
+                <Badge
+                  variant={zoneBadgeVariant(view.zone)}
+                  className="max-w-full whitespace-normal shrink-0"
+                >
+                  {view.zone_label} · {view.zone}
+                </Badge>
+              </CardTitle>
+              <CardDescription>{view.line}</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 text-sm">
+              <Field
+                label={t('aiRuntime.relationship.score')}
+                value={String(view.score ?? '—')}
+                hint={t('aiRuntime.relationship.scoreHint')}
+              />
+              <Field
+                label={t('aiRuntime.relationship.lastReason')}
+                value={view.last_reason || t('aiRuntime.relationship.none')}
+              />
+              <Field
+                label={t('aiRuntime.relationship.lastDelta')}
+                value={view.last_delta !== undefined ? String(view.last_delta) : '—'}
+              />
+              <Field
+                label={t('aiRuntime.relationship.lastEval')}
+                value={formatUnix(view.last_eval_at, t('aiRuntime.relationship.none'))}
+              />
+              <Field
+                label={t('aiRuntime.relationship.daily')}
+                value={`${t('aiRuntime.relationship.gain')} ${view.daily_gain ?? 0} / ${t('aiRuntime.relationship.loss')} ${view.daily_loss ?? 0}`}
+              />
+              <Field
+                label={t('aiRuntime.relationship.dailyYmd')}
+                value={view.daily_ymd || t('aiRuntime.relationship.none')}
+              />
+              <Field
+                label={t('aiRuntime.relationship.lastPositive')}
+                value={formatUnix(view.last_positive_interact_at, t('aiRuntime.relationship.none'))}
+              />
+              <Field
+                label={t('aiRuntime.relationship.interactions')}
+                value={String(view.interaction_count ?? 0)}
+              />
+              <Field
+                label={t('aiRuntime.relationship.botId')}
+                value={view.bot_id || t('aiRuntime.relationship.none')}
+              />
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       <Card className="glass-card">
@@ -809,9 +828,7 @@ function RelationshipPanel() {
                         >
                           <TableCell>
                             <div className="flex flex-wrap items-center gap-2">
-                              <span className="font-medium">
-                                {item.user_name || item.user_id}
-                              </span>
+                              <span className="font-medium">{item.user_name || item.user_id}</span>
                               {item.is_master && (
                                 <Badge variant="default" className="max-w-full whitespace-normal">
                                   {t('aiRuntime.relationship.master')}
@@ -854,11 +871,7 @@ function RelationshipPanel() {
                           </TableCell>
                           <TableCell>{item.interaction_count ?? 0}</TableCell>
                           <TableCell>
-                            <Button
-                              variant="outline"
-                              className="h-8"
-                              onClick={() => openRow(item)}
-                            >
+                            <Button variant="outline" className="h-8" onClick={() => openRow(item)}>
                               {t('aiRuntime.relationship.viewRow')}
                             </Button>
                           </TableCell>
@@ -912,15 +925,7 @@ function RelationshipPanel() {
   );
 }
 
-function Field({
-  label,
-  value,
-  hint,
-}: {
-  label: string;
-  value: string;
-  hint?: string;
-}) {
+function Field({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
     <div className="space-y-1">
       <p className="text-muted-foreground">{label}</p>
@@ -1052,7 +1057,11 @@ function CognitionPanel() {
           <p className="text-xs text-muted-foreground">{t('aiRuntime.cognition.worldHint')}</p>
           <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
             <Button className="h-9" onClick={() => void search()} disabled={loading || rebuilding}>
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+              {loading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Search className="w-4 h-4" />
+              )}
               {t('common.search')}
             </Button>
             <Button
@@ -1061,7 +1070,11 @@ function CognitionPanel() {
               onClick={() => setRebuildOpen(true)}
               disabled={loading || rebuilding}
             >
-              {rebuilding ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+              {rebuilding ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <RefreshCw className="w-4 h-4" />
+              )}
               {t('aiRuntime.cognition.rebuild')}
             </Button>
           </div>
@@ -1074,9 +1087,21 @@ function CognitionPanel() {
           onValueChange={(v) => setKindFilter(v as typeof kindFilter)}
           className="w-full max-w-full"
           options={[
-            { value: 'all', label: t('aiRuntime.cognition.filterAll'), icon: <Layers className="w-4 h-4" /> },
-            { value: 'world', label: t('aiRuntime.cognition.filterWorld'), icon: <Globe className="w-4 h-4" /> },
-            { value: 'env', label: t('aiRuntime.cognition.filterEnv'), icon: <Boxes className="w-4 h-4" /> },
+            {
+              value: 'all',
+              label: t('aiRuntime.cognition.filterAll'),
+              icon: <Layers className="w-4 h-4" />,
+            },
+            {
+              value: 'world',
+              label: t('aiRuntime.cognition.filterWorld'),
+              icon: <Globe className="w-4 h-4" />,
+            },
+            {
+              value: 'env',
+              label: t('aiRuntime.cognition.filterEnv'),
+              icon: <Boxes className="w-4 h-4" />,
+            },
           ]}
         />
       )}
@@ -1134,7 +1159,9 @@ function CognitionPanel() {
                     {node.as_of && <span>as_of={node.as_of}</span>}
                     {node.source && <span>source={node.source}</span>}
                     <span>decay={node.decay}</span>
-                    {node.handle && <span className="font-mono break-all">handle={node.handle}</span>}
+                    {node.handle && (
+                      <span className="font-mono break-all">handle={node.handle}</span>
+                    )}
                     {node.canon && (
                       <span className="font-mono break-all">
                         {t('aiRuntime.cognition.canon')}= {node.canon}

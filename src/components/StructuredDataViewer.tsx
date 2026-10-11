@@ -1,4 +1,3 @@
-
 import React, { memo, useMemo } from 'react';
 
 interface StructuredDataViewerProps {
@@ -20,7 +19,7 @@ const colors = {
   bracket: 'text-gray-500',
   className: 'text-cyan-600 dark:text-cyan-400 font-semibold',
   normal: 'text-gray-700 dark:text-gray-300',
-  text: 'text-sky-500 dark:text-sky-400 font-medium'
+  text: 'text-sky-500 dark:text-sky-400 font-medium',
 };
 
 // 简单的纯文本渲染 - 无需任何解析
@@ -41,7 +40,7 @@ const tryParseJSON = (str: string): object | null => {
       .replace(/\bNone\b/g, 'null')
       .replace(/\bTrue\b/g, 'true')
       .replace(/\bFalse\b/g, 'false');
-    
+
     return JSON.parse(cleaned);
   } catch {
     return null;
@@ -49,7 +48,13 @@ const tryParseJSON = (str: string): object | null => {
 };
 
 // 简化的渲染器 - 避免递归创建太多DOM节点
-const SimpleRenderer = memo(function SimpleRenderer({ obj, depth = 0 }: { obj: unknown; depth?: number }) {
+const SimpleRenderer = memo(function SimpleRenderer({
+  obj,
+  depth = 0,
+}: {
+  obj: unknown;
+  depth?: number;
+}) {
   // 深度限制 - 防止过度嵌套
   if (depth > 3) {
     return <span className="text-gray-400">...</span>;
@@ -105,7 +110,12 @@ const SimpleRenderer = memo(function SimpleRenderer({ obj, depth = 0 }: { obj: u
       const className = record.__class__;
       const args = record.args;
       if (typeof args !== 'object' || args === null) {
-        return <span><span className={colors.className}>{String(className)}</span><span className={colors.bracket}>({String(args)})</span></span>;
+        return (
+          <span>
+            <span className={colors.className}>{String(className)}</span>
+            <span className={colors.bracket}>({String(args)})</span>
+          </span>
+        );
       }
       const argsRecord = args as Record<string, unknown>;
       const argKeys = Object.keys(argsRecord).slice(0, 3); // 只显示前3个参数
@@ -133,14 +143,17 @@ const SimpleRenderer = memo(function SimpleRenderer({ obj, depth = 0 }: { obj: u
     const hasMore = keys.length > 4;
     return (
       <span className={colors.bracket}>
-        {'{'}{displayKeys.map((key, i) => (
+        {'{'}
+        {displayKeys.map((key, i) => (
           <React.Fragment key={key}>
             {i > 0 && <span className={colors.bracket}>, </span>}
             <span className={colors.key}>"{key}"</span>
             <span className={colors.bracket}>:</span>
             <SimpleRenderer obj={record[key]} depth={depth + 1} />
           </React.Fragment>
-        ))}{hasMore && <span className="text-gray-400">...</span>}{'}'}
+        ))}
+        {hasMore && <span className="text-gray-400">...</span>}
+        {'}'}
       </span>
     );
   }
@@ -149,13 +162,13 @@ const SimpleRenderer = memo(function SimpleRenderer({ obj, depth = 0 }: { obj: u
 });
 
 // 主组件
-const StructuredDataViewer = memo(function StructuredDataViewer({ data, className = '' }: StructuredDataViewerProps) {
+const StructuredDataViewer = memo(function StructuredDataViewer({
+  data,
+  className = '',
+}: StructuredDataViewerProps) {
   // Hooks 必须无条件调用
   const hasStructure = Boolean(data && HAS_STRUCTURE_REGEX.test(data));
-  const parsed = useMemo(
-    () => (hasStructure ? tryParseJSON(data) : null),
-    [data, hasStructure],
-  );
+  const parsed = useMemo(() => (hasStructure ? tryParseJSON(data) : null), [data, hasStructure]);
 
   // 如果没有结构化数据，直接显示纯文本
   if (!hasStructure) {

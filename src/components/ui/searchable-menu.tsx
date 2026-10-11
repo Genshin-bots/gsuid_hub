@@ -159,10 +159,7 @@ export function SearchableMenu({
         aria-expanded={open}
         aria-haspopup="listbox"
         disabled={disabled}
-        className={cn(
-          'h-10 w-full min-w-0 justify-between gap-2 px-3 sm:w-[16rem]',
-          className,
-        )}
+        className={cn('h-10 w-full min-w-0 justify-between gap-2 px-3 sm:w-[16rem]', className)}
       >
         <span className="flex min-w-0 items-center gap-2">
           <span className="flex h-4 w-4 shrink-0 items-center justify-center">
@@ -187,9 +184,7 @@ export function SearchableMenu({
           width === 'content' && 'w-max min-w-[16rem] max-w-[24rem]',
           contentClassName,
         )}
-        style={
-          width === 'trigger' ? { width: 'var(--radix-popover-trigger-width)' } : undefined
-        }
+        style={width === 'trigger' ? { width: 'var(--radix-popover-trigger-width)' } : undefined}
         onOpenAutoFocus={(event) => {
           event.preventDefault();
           focusMenuSearch(panelRef.current);

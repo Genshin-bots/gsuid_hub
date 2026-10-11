@@ -90,10 +90,7 @@ export function ModelSelectDropdown({
   }, [open]);
 
   // 根据搜索值分别筛选两个列表（互不影响）
-  const lowerSearch = useMemo(
-    () => searchValue.trim().toLowerCase(),
-    [searchValue],
-  );
+  const lowerSearch = useMemo(() => searchValue.trim().toLowerCase(), [searchValue]);
 
   const presetFiltered = useMemo(() => {
     if (!lowerSearch) return safePresetOptions;
@@ -194,10 +191,7 @@ export function ModelSelectDropdown({
           variant="outline"
           role="combobox"
           disabled={disabled}
-          className={cn(
-            'w-full justify-between text-left font-normal h-10 px-3',
-            className,
-          )}
+          className={cn('w-full justify-between text-left font-normal h-10 px-3', className)}
         >
           <span className="truncate">
             {safeValue || <span className="text-muted-foreground">{placeholder}</span>}
@@ -243,9 +237,7 @@ export function ModelSelectDropdown({
               onClick={() => setActiveTab('discovered')}
             >
               {tDiscovered}
-              {isFetching && (
-                <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
-              )}
+              {isFetching && <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />}
             </Button>
           </div>
 
@@ -265,7 +257,9 @@ export function ModelSelectDropdown({
             )}
             <span className="truncate">
               {safeValue.trim()
-                ? (isCopied ? t('common.copiedCurrentValue') : t('common.copyCurrentValue'))
+                ? isCopied
+                  ? t('common.copiedCurrentValue')
+                  : t('common.copyCurrentValue')
                 : t('common.copyEmptyValue')}
             </span>
           </Button>
@@ -289,10 +283,7 @@ export function ModelSelectDropdown({
         <div className="h-[220px] border-t">
           {/* 预设列表层 —— 始终存在于 DOM，hidden 时只是不可见 */}
           <div
-            className={cn(
-              'h-full overflow-y-auto',
-              activeTab !== 'preset' && 'hidden',
-            )}
+            className={cn('h-full overflow-y-auto', activeTab !== 'preset' && 'hidden')}
             onWheel={(e) => e.stopPropagation()}
           >
             {presetFiltered.length > 0 ? (
@@ -306,10 +297,7 @@ export function ModelSelectDropdown({
 
           {/* 模型发现层 —— 始终存在于 DOM，hidden 时只是不可见 */}
           <div
-            className={cn(
-              'h-full overflow-y-auto',
-              activeTab !== 'discovered' && 'hidden',
-            )}
+            className={cn('h-full overflow-y-auto', activeTab !== 'discovered' && 'hidden')}
             onWheel={(e) => e.stopPropagation()}
           >
             {isFetching && safeDiscoveredModels.length === 0 ? (

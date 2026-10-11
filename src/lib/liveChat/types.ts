@@ -112,7 +112,12 @@ export interface LiveChatIdentity {
   botSelfId: string;
 }
 
-export type ConnectionState = 'disconnected' | 'connecting' | 'connected' | 'reconnecting' | 'error';
+export type ConnectionState =
+  | 'disconnected'
+  | 'connecting'
+  | 'connected'
+  | 'reconnecting'
+  | 'error';
 
 /** 路由级 WS bot_id（连接路径 /ws/{bot_id}） */
 export const WS_BOT_ID = 'webconsole_livechat';

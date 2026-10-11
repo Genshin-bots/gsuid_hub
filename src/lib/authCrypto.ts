@@ -146,14 +146,10 @@ export function clearAuthPubkeyCache(): void {
  */
 export async function fetchAuthPubkey(
   baseUrl: string,
-  forceRefresh: boolean = false
+  forceRefresh: boolean = false,
 ): Promise<{ key: CachedPubkey }> {
   const now = Date.now();
-  if (
-    !forceRefresh &&
-    pubkeyCache &&
-    now - pubkeyCache.fetchedAt < PUBKEY_CACHE_TTL_MS
-  ) {
+  if (!forceRefresh && pubkeyCache && now - pubkeyCache.fetchedAt < PUBKEY_CACHE_TTL_MS) {
     return { key: pubkeyCache };
   }
 
@@ -165,16 +161,12 @@ export async function fetchAuthPubkey(
   });
 
   if (!res.ok) {
-    throw new Error(
-      `Failed to fetch auth pubkey: HTTP ${res.status} ${res.statusText}`
-    );
+    throw new Error(`Failed to fetch auth pubkey: HTTP ${res.status} ${res.statusText}`);
   }
 
   const json = await res.json();
   if (!json || json.status !== 0 || !json.data) {
-    throw new Error(
-      `Invalid pubkey response: ${json?.msg ?? 'unknown error'}`
-    );
+    throw new Error(`Invalid pubkey response: ${json?.msg ?? 'unknown error'}`);
   }
   const data = json.data as ServerPubkey;
   if (data.alg !== 'x25519-aes256gcm') {
@@ -188,9 +180,7 @@ export async function fetchAuthPubkey(
     throw new Error(`Failed to decode server pubkey: ${(e as Error).message}`);
   }
   if (serverPubRaw.length !== 32) {
-    throw new Error(
-      `Invalid server pubkey length: ${serverPubRaw.length} (expected 32)`
-    );
+    throw new Error(`Invalid server pubkey length: ${serverPubRaw.length} (expected 32)`);
   }
 
   pubkeyCache = { data, serverPubRaw, fetchedAt: now };
@@ -206,7 +196,7 @@ export async function fetchAuthPubkey(
  */
 export function encryptAuthPayload<T extends Record<string, unknown>>(
   payload: T,
-  cachedKey: CachedPubkey
+  cachedKey: CachedPubkey,
 ): EncryptedPayload {
   // 1. 生成临时 X25519 密钥对（用完即丢）
   const clientPriv = x25519.utils.randomSecretKey();
@@ -222,13 +212,7 @@ export function encryptAuthPayload<T extends Record<string, unknown>>(
     shared = x25519.getSharedSecret(clientPriv, cachedKey.serverPubRaw);
 
     // 3. HKDF-SHA256(shared, salt=空, info=PROTOCOL_ID) -> 32 字节
-    derivedKey = hkdf(
-      sha256,
-      shared,
-      new Uint8Array(0),
-      PROTOCOL_ID,
-      DERIVED_KEY_LENGTH
-    );
+    derivedKey = hkdf(sha256, shared, new Uint8Array(0), PROTOCOL_ID, DERIVED_KEY_LENGTH);
 
     // 4. 随机 12 字节 IV
     iv = randomBytes(IV_LENGTH);

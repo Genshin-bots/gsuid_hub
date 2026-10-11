@@ -1,10 +1,5 @@
 import { AlertTriangle } from 'lucide-react';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import {
   asHoverIcon,
@@ -73,9 +68,7 @@ export function SidebarItem({
       </div>
       {!collapsed && (
         <>
-          <span className={cn('font-medium', isActive && 'text-primary')}>
-            {title}
-          </span>
+          <span className={cn('font-medium', isActive && 'text-primary')}>{title}</span>
           {alert && (
             <span className="shrink-0 ml-auto text-red-500" data-alert-icon>
               <SidebarHoverIcon icon={AlertTriangle} className="w-3.5 h-3.5" />

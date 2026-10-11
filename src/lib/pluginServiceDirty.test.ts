@@ -27,9 +27,9 @@ describe('plugin service dirty', () => {
   });
 
   it('treats an empty priority as unchanged when the form shows 0', () => {
-    expect(isPluginServiceDirty({ ...base, priority: Number.NaN }, { ...base, priority: 0 }, true, true)).toBe(
-      false,
-    );
+    expect(
+      isPluginServiceDirty({ ...base, priority: Number.NaN }, { ...base, priority: 0 }, true, true),
+    ).toBe(false);
   });
 
   it('tracks sv list edits separately from plugin service fields', () => {

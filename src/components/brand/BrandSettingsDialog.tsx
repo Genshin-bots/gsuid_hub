@@ -21,7 +21,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Loader2, Upload, RotateCcw, Image as ImageIcon, CheckCircle2, AlertTriangle } from 'lucide-react';
+import {
+  Loader2,
+  Upload,
+  RotateCcw,
+  Image as ImageIcon,
+  CheckCircle2,
+  AlertTriangle,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { useBrand } from '@/contexts/BrandContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -267,7 +274,7 @@ export function BrandSettingsDialog({ open, onOpenChange }: BrandSettingsDialogP
                   <span
                     className={cn(
                       'text-xs',
-                      titleTooLong ? 'text-destructive' : 'text-muted-foreground'
+                      titleTooLong ? 'text-destructive' : 'text-muted-foreground',
                     )}
                   >
                     {draftTitle.length}/64
@@ -288,7 +295,7 @@ export function BrandSettingsDialog({ open, onOpenChange }: BrandSettingsDialogP
                   <span
                     className={cn(
                       'text-xs',
-                      subtitleTooLong ? 'text-destructive' : 'text-muted-foreground'
+                      subtitleTooLong ? 'text-destructive' : 'text-muted-foreground',
                     )}
                   >
                     {draftSubtitle.length}/128
@@ -319,11 +326,7 @@ export function BrandSettingsDialog({ open, onOpenChange }: BrandSettingsDialogP
               {t('brand.restoreDefaults')}
             </Button>
             <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-              >
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 {t('common.cancel')}
               </Button>
               <Button
@@ -350,15 +353,11 @@ export function BrandSettingsDialog({ open, onOpenChange }: BrandSettingsDialogP
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{t('brand.resetIconConfirmTitle')}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t('brand.resetIconConfirmDesc')}
-            </AlertDialogDescription>
+            <AlertDialogDescription>{t('brand.resetIconConfirmDesc')}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-            <AlertDialogAction onClick={handleResetIcon}>
-              {t('brand.resetIcon')}
-            </AlertDialogAction>
+            <AlertDialogAction onClick={handleResetIcon}>{t('brand.resetIcon')}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

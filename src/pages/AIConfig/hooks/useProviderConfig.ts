@@ -154,18 +154,15 @@ export function useProviderConfig(): UseProviderConfigReturn {
   const [allConfigs, setAllConfigs] = useState<AllConfigsSummary | null>(null);
   const [highLevelConfig, setHighLevelConfig] = useState<string>('');
   const [lowLevelConfig, setLowLevelConfig] = useState<string>('');
-  const [modelSupportMap, setModelSupportMap] = useState<Record<string, string[]>>(
-    {},
-  );
+  const [modelSupportMap, setModelSupportMap] = useState<Record<string, string[]>>({});
 
   // ---------- OpenAI edit state ----------
-  const [openaiConfigData, setOpenaiConfigData] = useState<OpenAIConfigData | null>(
-    null,
-  );
+  const [openaiConfigData, setOpenaiConfigData] = useState<OpenAIConfigData | null>(null);
   const [isLoadingOpenaiConfig, setIsLoadingOpenaiConfig] = useState(false);
   const [isSavingOpenaiConfig, setIsSavingOpenaiConfig] = useState(false);
-  const [providerConfigOptions, setProviderConfigOptions] =
-    useState<ProviderConfigOptions | null>(null);
+  const [providerConfigOptions, setProviderConfigOptions] = useState<ProviderConfigOptions | null>(
+    null,
+  );
 
   // ---------- New config form ----------
   const [newConfigProvider, setNewConfigProvider] = useState('openai');
@@ -173,9 +170,7 @@ export function useProviderConfig(): UseProviderConfigReturn {
   const [newConfigBaseUrl, setNewConfigBaseUrl] = useState('');
   const [newConfigModel, setNewConfigModel] = useState('');
   const [newConfigApiKeys, setNewConfigApiKeys] = useState<string[]>([]);
-  const [newConfigModelSupport, setNewConfigModelSupport] = useState<string[]>([
-    'text',
-  ]);
+  const [newConfigModelSupport, setNewConfigModelSupport] = useState<string[]>(['text']);
   const [newConfigModelEffort, setNewConfigModelEffort] = useState('enable');
   // 三个 provider 相关字段：缺省值与后端 options 中的常见代表值对齐
   const [newConfigMaxConcurrency, setNewConfigMaxConcurrency] = useState(2);
@@ -183,18 +178,14 @@ export function useProviderConfig(): UseProviderConfigReturn {
   const [newConfigMaxTokens, setNewConfigMaxTokens] = useState('8192');
   // 仅 OpenAI 系列
   const [newConfigUsageStatsMode, setNewConfigUsageStatsMode] = useState('auto');
-  const [newConfigRequestMethod, setNewConfigRequestMethod] = useState(
-    'chat_completions',
-  );
+  const [newConfigRequestMethod, setNewConfigRequestMethod] = useState('chat_completions');
   const [newConfigRemoteWebSearch, setNewConfigRemoteWebSearch] = useState('on');
   const [newConfigSendBackThinking, setNewConfigSendBackThinking] = useState('auto');
   // 默认 off：透传终端用户标识属于要显式打开的行为，不能默认外发
   const [newConfigForwardEndUserId, setNewConfigForwardEndUserId] = useState('off');
   const [newConfigEndUserIdSalt, setNewConfigEndUserIdSalt] = useState('');
   const [newConfigFetchedModels, setNewConfigFetchedModels] = useState<string[]>([]);
-  const [editConfigFetchedModels, setEditConfigFetchedModels] = useState<string[]>(
-    [],
-  );
+  const [editConfigFetchedModels, setEditConfigFetchedModels] = useState<string[]>([]);
   const [isFetchingNewConfigModels, setIsFetchingNewConfigModels] = useState(false);
   const [isFetchingEditConfigModels, setIsFetchingEditConfigModels] = useState(false);
 
@@ -215,21 +206,17 @@ export function useProviderConfig(): UseProviderConfigReturn {
   );
 
   const getFirstApiKey = useCallback(
-    (apiKeys: string[]) =>
-      apiKeys.find((key) => key.trim())?.trim() || '',
+    (apiKeys: string[]) => apiKeys.find((key) => key.trim())?.trim() || '',
     [],
   );
 
-  const normalizeConfigName = useCallback(
-    (name: string, configs: AllConfigItem[]): string => {
-      if (!name) return '';
-      if (name.includes('++')) return name;
-      const match = configs.find((c) => c.config_name === name);
-      if (match) return match.name;
-      return `openai++${name}`;
-    },
-    [],
-  );
+  const normalizeConfigName = useCallback((name: string, configs: AllConfigItem[]): string => {
+    if (!name) return '';
+    if (name.includes('++')) return name;
+    const match = configs.find((c) => c.config_name === name);
+    if (match) return match.name;
+    return `openai++${name}`;
+  }, []);
 
   // ============================================================================
   // Fetch helpers
@@ -239,10 +226,7 @@ export function useProviderConfig(): UseProviderConfigReturn {
       const response = await providerConfigApi.getConfigOptions(provider);
       setProviderConfigOptions(response);
     } catch (error) {
-      console.error(
-        `Failed to fetch provider config options for ${provider}:`,
-        error,
-      );
+      console.error(`Failed to fetch provider config options for ${provider}:`, error);
       setProviderConfigOptions(null);
     }
   }, []);
@@ -257,11 +241,7 @@ export function useProviderConfig(): UseProviderConfigReturn {
     ) => {
       const trimmedBaseUrl = baseUrl.trim();
       const apiKey = getFirstApiKey(apiKeys);
-      if (
-        !trimmedBaseUrl ||
-        !apiKey ||
-        baseUrlHasTrailingSlash(trimmedBaseUrl)
-      ) {
+      if (!trimmedBaseUrl || !apiKey || baseUrlHasTrailingSlash(trimmedBaseUrl)) {
         onSuccess([]);
         return;
       }
@@ -303,8 +283,7 @@ export function useProviderConfig(): UseProviderConfigReturn {
           model_name: (cfg.model_name?.data as string) || '',
           model_support: (cfg.model_support?.data as string[]) || ['text'],
           model_effort: (cfg.model_effort?.data as string) || 'enable',
-          max_concurrency:
-            (cfg.max_concurrency?.data as number | undefined) ?? 2,
+          max_concurrency: (cfg.max_concurrency?.data as number | undefined) ?? 2,
           // 以下三个都是「按 provider 可选」
           max_tokens: cfg.max_tokens?.data as string | undefined,
           usage_stats_mode: cfg.usage_stats_mode?.data as string | undefined,
@@ -341,12 +320,8 @@ export function useProviderConfig(): UseProviderConfigReturn {
       const response = await providerConfigApi.getAllConfigs();
       setAllConfigs(response);
       const configList = response.configs || [];
-      setHighLevelConfig(
-        normalizeConfigName(response.high_level_config || '', configList),
-      );
-      setLowLevelConfig(
-        normalizeConfigName(response.low_level_config || '', configList),
-      );
+      setHighLevelConfig(normalizeConfigName(response.high_level_config || '', configList));
+      setLowLevelConfig(normalizeConfigName(response.low_level_config || '', configList));
     } catch (error) {
       console.error('Failed to fetch all configs:', error);
     }
@@ -373,8 +348,7 @@ export function useProviderConfig(): UseProviderConfigReturn {
       providerConfigApi
         .getConfigDetail(item.provider, item.config_name)
         .then((detail) => {
-          const support =
-            (detail.config?.model_support?.data as string[]) || ['text'];
+          const support = (detail.config?.model_support?.data as string[]) || ['text'];
           setModelSupportMap((prev) => ({ ...prev, [fullName]: support }));
         })
         .catch((error) => {
@@ -427,9 +401,7 @@ export function useProviderConfig(): UseProviderConfigReturn {
       try {
         await providerConfigApi.setHighLevelConfig(configFullName);
         setHighLevelConfig(configFullName);
-        toast.success(
-          t('aiConfig.providerConfig.setHighLevelSuccess', { name: configFullName }),
-        );
+        toast.success(t('aiConfig.providerConfig.setHighLevelSuccess', { name: configFullName }));
         await fetchAllConfigs();
       } catch (error) {
         console.error('Failed to set high level config:', error);
@@ -444,9 +416,7 @@ export function useProviderConfig(): UseProviderConfigReturn {
       try {
         await providerConfigApi.setLowLevelConfig(configFullName);
         setLowLevelConfig(configFullName);
-        toast.success(
-          t('aiConfig.providerConfig.setLowLevelSuccess', { name: configFullName }),
-        );
+        toast.success(t('aiConfig.providerConfig.setLowLevelSuccess', { name: configFullName }));
         await fetchAllConfigs();
       } catch (error) {
         console.error('Failed to set low level config:', error);
@@ -501,11 +471,7 @@ export function useProviderConfig(): UseProviderConfigReturn {
           data: openaiConfigData.end_user_id_salt ?? '',
         };
       }
-      await providerConfigApi.saveConfig(
-        editingConfigProvider,
-        editingConfigName,
-        configData,
-      );
+      await providerConfigApi.saveConfig(editingConfigProvider, editingConfigName, configData);
       toast.success(t('aiConfig.openaiConfig.saveSuccess'));
       setIsEditDialogOpen(false);
       fetchAllConfigs();
@@ -549,10 +515,7 @@ export function useProviderConfig(): UseProviderConfigReturn {
       toast.error(t('aiConfig.openaiConfig.modelRequired'));
       return;
     }
-    if (
-      newConfigApiKeys.length === 0 ||
-      newConfigApiKeys.every((k) => !k.trim())
-    ) {
+    if (newConfigApiKeys.length === 0 || newConfigApiKeys.every((k) => !k.trim())) {
       toast.error(t('aiConfig.openaiConfig.apiKeyRequired'));
       return;
     }
@@ -638,9 +601,7 @@ export function useProviderConfig(): UseProviderConfigReturn {
       }
 
       await providerConfigApi.deleteConfig(editingConfigProvider, editingConfigName);
-      toast.success(
-        t('aiConfig.openaiConfig.deleteSuccess', { name: editingConfigName }),
-      );
+      toast.success(t('aiConfig.openaiConfig.deleteSuccess', { name: editingConfigName }));
       setIsDeleteDialogOpen(false);
       setEditingConfigName('');
       setHighLevelConfig((prev) => (prev === fullConfigName ? '' : prev));
@@ -695,17 +656,14 @@ export function useProviderConfig(): UseProviderConfigReturn {
     setEditConfigFetchedModels([]);
   }, []);
 
-  const setOpenaiConfigDataField = useCallback(
-    (field: keyof OpenAIConfigData, value: unknown) => {
-      // 由于 `max_concurrency` 是 number、模型名称是 string、model_support 是 string[]，
-      // 这里统一放宽到 unknown：调用方按字段类型传值即可。
-      setOpenaiConfigData((prev) => {
-        if (!prev) return prev;
-        return { ...prev, [field]: value } as OpenAIConfigData;
-      });
-    },
-    [],
-  );
+  const setOpenaiConfigDataField = useCallback((field: keyof OpenAIConfigData, value: unknown) => {
+    // 由于 `max_concurrency` 是 number、模型名称是 string、model_support 是 string[]，
+    // 这里统一放宽到 unknown：调用方按字段类型传值即可。
+    setOpenaiConfigData((prev) => {
+      if (!prev) return prev;
+      return { ...prev, [field]: value } as OpenAIConfigData;
+    });
+  }, []);
 
   // ============================================================================
   // 派生

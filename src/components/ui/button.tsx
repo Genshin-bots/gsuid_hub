@@ -1,36 +1,41 @@
-import * as React from "react";
-import { Slot } from "@radix-ui/react-slot";
-import { cva, type VariantProps } from "class-variance-authority";
+import * as React from 'react';
+import { Slot } from '@radix-ui/react-slot';
+import { cva, type VariantProps } from 'class-variance-authority';
 
-import { cn } from "@/lib/utils";
+import { cn } from '@/lib/utils';
 import {
   asHoverIcon,
   hoverIconGroupClass,
   SidebarHoverIcon,
-} from "@/components/layout/SidebarHoverIcon";
+} from '@/components/layout/SidebarHoverIcon';
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0',
   {
     variants: {
       variant: {
-        default: "border border-transparent bg-primary text-primary-foreground hover:bg-primary/90 [&_svg]:text-primary-foreground [&_svg]:!text-primary-foreground",
-        destructive: "border border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/90 [&_svg]:text-destructive-foreground [&_svg]:!text-destructive-foreground",
-        outline: "border border-input bg-background hover:bg-accent hover:text-accent-foreground [&_svg]:text-foreground [&_svg]:!text-foreground",
-        secondary: "border border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80 [&_svg]:text-secondary-foreground [&_svg]:!text-secondary-foreground",
-        ghost: "hover:bg-accent hover:text-accent-foreground [&_svg]:text-foreground [&_svg]:!text-foreground",
-        link: "text-primary underline-offset-4 hover:underline [&_svg]:text-primary [&_svg]:!text-primary",
+        default:
+          'border border-transparent bg-primary text-primary-foreground hover:bg-primary/90 [&_svg]:text-primary-foreground [&_svg]:!text-primary-foreground',
+        destructive:
+          'border border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/90 [&_svg]:text-destructive-foreground [&_svg]:!text-destructive-foreground',
+        outline:
+          'border border-input bg-background hover:bg-accent hover:text-accent-foreground [&_svg]:text-foreground [&_svg]:!text-foreground',
+        secondary:
+          'border border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80 [&_svg]:text-secondary-foreground [&_svg]:!text-secondary-foreground',
+        ghost:
+          'hover:bg-accent hover:text-accent-foreground [&_svg]:text-foreground [&_svg]:!text-foreground',
+        link: 'text-primary underline-offset-4 hover:underline [&_svg]:text-primary [&_svg]:!text-primary',
       },
       size: {
-        default: "h-10 px-4 py-2",
-        sm: "h-9 rounded-md px-3",
-        lg: "h-11 rounded-md px-8",
-        icon: "h-10 w-10",
+        default: 'h-10 px-4 py-2',
+        sm: 'h-9 rounded-md px-3',
+        lg: 'h-11 rounded-md px-8',
+        icon: 'h-10 w-10',
       },
     },
     defaultVariants: {
-      variant: "default",
-      size: "default",
+      variant: 'default',
+      size: 'default',
     },
   },
 );
@@ -46,9 +51,7 @@ export interface ButtonProps
 }
 
 const REACT_FORWARD_REF =
-  typeof Symbol === "function" && Symbol.for
-    ? Symbol.for("react.forward_ref")
-    : 0xead0;
+  typeof Symbol === 'function' && Symbol.for ? Symbol.for('react.forward_ref') : 0xead0;
 
 /**
  * 只把 lucide-react 图标（forwardRef + PascalCase displayName）当图标。
@@ -58,10 +61,10 @@ function isLucideIconElement(child: React.ReactElement): boolean {
   if (child.type === SidebarHoverIcon) return true;
 
   const props = child.props as { className?: string; children?: React.ReactNode };
-  const className = typeof props.className === "string" ? props.className : "";
-  if (className.includes("lucide")) return true;
+  const className = typeof props.className === 'string' ? props.className : '';
+  if (className.includes('lucide')) return true;
 
-  if (typeof child.type === "string") return child.type === "svg";
+  if (typeof child.type === 'string') return child.type === 'svg';
 
   const type = child.type as {
     $$typeof?: symbol | number;
@@ -71,7 +74,7 @@ function isLucideIconElement(child: React.ReactElement): boolean {
 
   if (type.$$typeof !== REACT_FORWARD_REF) return false;
 
-  const name = type.displayName || "";
+  const name = type.displayName || '';
   if (!name || !/^[A-Z][A-Za-z0-9]*$/.test(name)) return false;
   if (/Flag|Avatar|Badge|Language|Provider|Context|Trigger|Content|Portal/i.test(name)) {
     return false;
@@ -87,7 +90,7 @@ function hasContinuousAnimation(className?: string): boolean {
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, asChild = false, iconMotion = true, children, ...props }, ref) => {
-    const Comp = asChild ? Slot : "button";
+    const Comp = asChild ? Slot : 'button';
 
     /**
      * 处理单个 React 元素（图标动效 / 递归进 DOM·Fragment 子树）。
@@ -103,7 +106,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       if (isLucideIconElement(child)) {
         const nextStyle: React.CSSProperties = {
           ...childProps.style,
-          color: "inherit",
+          color: 'inherit',
         };
 
         // 已包装 / 持续动画 / 关闭动效：只补颜色
@@ -112,10 +115,9 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           hasContinuousAnimation(childProps.className) ||
           child.type === SidebarHoverIcon
         ) {
-          return React.cloneElement(
-            child as React.ReactElement<{ style?: React.CSSProperties }>,
-            { style: nextStyle },
-          );
+          return React.cloneElement(child as React.ReactElement<{ style?: React.CSSProperties }>, {
+            style: nextStyle,
+          });
         }
 
         // asHoverIcon：给图标挂上 group-hover/hovericon:animate-*（经验证有效的路径）
@@ -129,12 +131,11 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       // 只对 DOM / Fragment 递归；不进 LanguageFlag 等业务组件内部
       if (
         childProps.children != null &&
-        (typeof child.type === "string" || child.type === React.Fragment)
+        (typeof child.type === 'string' || child.type === React.Fragment)
       ) {
-        return React.cloneElement(
-          child as React.ReactElement<{ children?: React.ReactNode }>,
-          { children: processChildren(childProps.children) },
-        );
+        return React.cloneElement(child as React.ReactElement<{ children?: React.ReactNode }>, {
+          children: processChildren(childProps.children),
+        });
       }
 
       return child;
@@ -173,6 +174,6 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     );
   },
 );
-Button.displayName = "Button";
+Button.displayName = 'Button';
 
 export { Button, buttonVariants };

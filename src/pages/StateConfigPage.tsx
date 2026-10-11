@@ -6,19 +6,26 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Loader2, Palette, Image, Type, Save, Bot } from 'lucide-react';
-import { ConfigField, ConfigFieldDefinition, ConfigValue, ConfigFieldType } from '@/components/config';
+import {
+  ConfigField,
+  ConfigFieldDefinition,
+  ConfigValue,
+  ConfigFieldType,
+} from '@/components/config';
 import { frameworkConfigApi, PluginConfigItem } from '@/lib/api';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 // Convert API config to local config type
-const convertToConfig = (config: Record<string, PluginConfigItem>): Record<string, ConfigFieldDefinition> => {
+const convertToConfig = (
+  config: Record<string, PluginConfigItem>,
+): Record<string, ConfigFieldDefinition> => {
   const result: Record<string, ConfigFieldDefinition> = {};
   for (const [key, value] of Object.entries(config)) {
     const configItem = value as PluginConfigItem;
     let type: ConfigFieldType = 'text';
     const rawType = configItem.type?.toLowerCase() || '';
-    
+
     if (rawType.includes('bool')) {
       type = 'boolean';
     } else if (rawType.includes('int')) {
@@ -30,7 +37,7 @@ const convertToConfig = (config: Record<string, PluginConfigItem>): Record<strin
     } else if (rawType.includes('image')) {
       type = 'image';
     }
-    
+
     result[key] = {
       value: configItem.value as ConfigValue,
       default: configItem.default,
@@ -79,10 +86,10 @@ export default function StateConfigPage() {
   }, []);
 
   const handleConfigChange = (key: string, value: ConfigValue) => {
-    setConfig(prev => {
+    setConfig((prev) => {
       const newConfig = {
         ...prev,
-        [key]: { ...prev[key], value }
+        [key]: { ...prev[key], value },
       };
       setIsDirty(JSON.stringify(newConfig) !== JSON.stringify(originalConfig));
       return newConfig;
@@ -119,12 +126,13 @@ export default function StateConfigPage() {
   const boolConfigs = Object.entries(config).filter(([_, field]) => field.type === 'boolean');
   const imageConfigs = Object.entries(config).filter(([_, field]) => field.type === 'image');
   // 文本设置: 只保留 CustomTheme 和 CustomSubtitle
-  const selectConfigs = Object.entries(config).filter(([_, field]) =>
-    field.type === 'select' && (field.label === '自定义主题色' || field.label === '自定义副标题')
+  const selectConfigs = Object.entries(config).filter(
+    ([_, field]) =>
+      field.type === 'select' && (field.label === '自定义主题色' || field.label === '自定义副标题'),
   );
   // 机器人名称设置: CustomName 和 CustomNameAlias
-  const nameConfigs = Object.entries(config).filter(([_, field]) =>
-    field.label === '自定义名称' || field.label === '自定义名称别名'
+  const nameConfigs = Object.entries(config).filter(
+    ([_, field]) => field.label === '自定义名称' || field.label === '自定义名称别名',
   );
 
   return (
@@ -139,12 +147,7 @@ export default function StateConfigPage() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {nameConfigs.map(([key, field]) => (
-                <ConfigField
-                  key={key}
-                  fieldKey={key}
-                  field={field}
-                  onChange={handleConfigChange}
-                />
+                <ConfigField key={key} fieldKey={key} field={field} onChange={handleConfigChange} />
               ))}
             </div>
           </CardContent>
@@ -157,7 +160,10 @@ export default function StateConfigPage() {
           <CardContent className="p-4 sm:p-6 space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {boolConfigs.map(([key, field]) => (
-                <div key={key} className="flex items-center justify-between gap-3 p-4 bg-muted/50 rounded-lg">
+                <div
+                  key={key}
+                  className="flex items-center justify-between gap-3 p-4 bg-muted/50 rounded-lg"
+                >
                   <div className="min-w-0">
                     <Label className="text-base font-medium">{field.label}</Label>
                     <p className="text-sm text-muted-foreground">{field.description}</p>
@@ -183,12 +189,7 @@ export default function StateConfigPage() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {imageConfigs.map(([key, field]) => (
-                <ConfigField
-                  key={key}
-                  fieldKey={key}
-                  field={field}
-                  onChange={handleConfigChange}
-                />
+                <ConfigField key={key} fieldKey={key} field={field} onChange={handleConfigChange} />
               ))}
             </div>
           </CardContent>
@@ -205,12 +206,7 @@ export default function StateConfigPage() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {selectConfigs.map(([key, field]) => (
-                <ConfigField
-                  key={key}
-                  fieldKey={key}
-                  field={field}
-                  onChange={handleConfigChange}
-                />
+                <ConfigField key={key} fieldKey={key} field={field} onChange={handleConfigChange} />
               ))}
             </div>
           </CardContent>
@@ -219,16 +215,8 @@ export default function StateConfigPage() {
 
       {/* Save Button */}
       <div className="flex justify-end pt-4">
-        <Button
-          onClick={handleSaveConfig}
-          disabled={!isDirty || isSaving}
-          className="gap-2"
-        >
-          {isSaving ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Save className="w-4 h-4" />
-          )}
+        <Button onClick={handleSaveConfig} disabled={!isDirty || isSaving} className="gap-2">
+          {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
           {t('common.save')}
         </Button>
       </div>

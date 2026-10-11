@@ -5,7 +5,18 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Save, Cpu, Play, RefreshCw, Clock, Package, Zap, GitBranch, AlertCircle } from 'lucide-react';
+import {
+  Loader2,
+  Save,
+  Cpu,
+  Play,
+  RefreshCw,
+  Clock,
+  Package,
+  Zap,
+  GitBranch,
+  AlertCircle,
+} from 'lucide-react';
 import { frameworkConfigApi, FrameworkConfigListItem } from '@/lib/api';
 import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -115,11 +126,12 @@ export default function CoreSettings() {
   const [coreConfigName, setCoreConfigName] = useState<string>('');
 
   const coreConfig = useMemo(() => {
-    return configs.find(c =>
-      c.name === '核心配置' ||
-      c.full_name === 'GsCore' ||
-      c.id === 'GsCore' ||
-      c.full_name === coreConfigName
+    return configs.find(
+      (c) =>
+        c.name === '核心配置' ||
+        c.full_name === 'GsCore' ||
+        c.id === 'GsCore' ||
+        c.full_name === coreConfigName,
     );
   }, [configs, coreConfigName]);
 
@@ -127,12 +139,12 @@ export default function CoreSettings() {
     try {
       setIsLoading(true);
       const data = await frameworkConfigApi.getFrameworkConfigList('GsCore');
-      const coreConfigList = data.filter(c => {
+      const coreConfigList = data.filter((c) => {
         const nameLower = c.name.toLowerCase();
         const fullNameLower = c.full_name.toLowerCase();
-        return nameLower.includes('核心') ||
-               fullNameLower.includes('core') ||
-               nameLower === 'gscore';
+        return (
+          nameLower.includes('核心') || fullNameLower.includes('core') || nameLower === 'gscore'
+        );
       });
 
       if (coreConfigList.length > 0) {
@@ -162,81 +174,83 @@ export default function CoreSettings() {
             default: (data.config.StartVENV?.default || 'auto') as string,
             options: (data.config.StartVENV?.options || VENV_OPTIONS) as string[],
             title: data.config.StartVENV?.title || '设置启动环境工具',
-            desc: data.config.StartVENV?.desc || '可选pdm, poetry, python, auto, uv'
+            desc: data.config.StartVENV?.desc || '可选pdm, poetry, python, auto, uv',
           },
           is_use_custom_restart_command: {
             value: (data.config.is_use_custom_restart_command?.value ?? false) as boolean,
             default: (data.config.is_use_custom_restart_command?.default ?? false) as boolean,
             title: data.config.is_use_custom_restart_command?.title || '使用自定义重启命令',
-            desc: data.config.is_use_custom_restart_command?.desc || '是否使用下面的自定义重启命令'
+            desc: data.config.is_use_custom_restart_command?.desc || '是否使用下面的自定义重启命令',
           },
           restart_command: {
             value: (data.config.restart_command?.value || 'poetry run python') as string,
             default: (data.config.restart_command?.default || 'poetry run python') as string,
             title: data.config.restart_command?.title || '自定义重启命令',
-            desc: data.config.restart_command?.desc || '自定义使用gs重启时触发的控制台命令'
+            desc: data.config.restart_command?.desc || '自定义使用gs重启时触发的控制台命令',
           },
           AutoUpdateCore: {
             value: (data.config.AutoUpdateCore?.value ?? true) as boolean,
             default: (data.config.AutoUpdateCore?.default ?? true) as boolean,
             title: data.config.AutoUpdateCore?.title || '自动更新Core',
-            desc: data.config.AutoUpdateCore?.desc || '每晚凌晨三点四十自动更新core本体'
+            desc: data.config.AutoUpdateCore?.desc || '每晚凌晨三点四十自动更新core本体',
           },
           AutoUpdatePlugins: {
             value: (data.config.AutoUpdatePlugins?.value ?? false) as boolean,
             default: (data.config.AutoUpdatePlugins?.default ?? false) as boolean,
             title: data.config.AutoUpdatePlugins?.title || '自动更新Core内所有插件',
-            desc: data.config.AutoUpdatePlugins?.desc || '每晚凌晨四点十分自动更新全部插件'
+            desc: data.config.AutoUpdatePlugins?.desc || '每晚凌晨四点十分自动更新全部插件',
           },
           AutoRestartCore: {
             value: (data.config.AutoRestartCore?.value ?? false) as boolean,
             default: (data.config.AutoRestartCore?.default ?? false) as boolean,
             title: data.config.AutoRestartCore?.title || '自动重启Core',
-            desc: data.config.AutoRestartCore?.desc || '每晚凌晨四点四十自动重启core'
+            desc: data.config.AutoRestartCore?.desc || '每晚凌晨四点四十自动重启core',
           },
           AutoUpdateCoreTime: {
             value: (data.config.AutoUpdateCoreTime?.value || [3, 40]) as [number, number],
             default: (data.config.AutoUpdateCoreTime?.default || [3, 40]) as [number, number],
             title: data.config.AutoUpdateCoreTime?.title || '自动更新Core时间设置',
-            desc: data.config.AutoUpdateCoreTime?.desc || '每晚自动更新Core时间设置(时, 分)'
+            desc: data.config.AutoUpdateCoreTime?.desc || '每晚自动更新Core时间设置(时, 分)',
           },
           AutoUpdatePluginsTime: {
             value: (data.config.AutoUpdatePluginsTime?.value || [4, 10]) as [number, number],
             default: (data.config.AutoUpdatePluginsTime?.default || [4, 10]) as [number, number],
             title: data.config.AutoUpdatePluginsTime?.title || '自动更新Core内所有插件时间设置',
-            desc: data.config.AutoUpdatePluginsTime?.desc || '每晚自动更新Core内所有插件时间设置(时, 分)'
+            desc:
+              data.config.AutoUpdatePluginsTime?.desc ||
+              '每晚自动更新Core内所有插件时间设置(时, 分)',
           },
           AutoRestartCoreTime: {
             value: (data.config.AutoRestartCoreTime?.value || [4, 40]) as [number, number],
             default: (data.config.AutoRestartCoreTime?.default || [4, 40]) as [number, number],
             title: data.config.AutoRestartCoreTime?.title || '自动重启Core时间设置',
-            desc: data.config.AutoRestartCoreTime?.desc || '每晚自动重启Core时间设置(时, 分)'
+            desc: data.config.AutoRestartCoreTime?.desc || '每晚自动重启Core时间设置(时, 分)',
           },
           AutoUpdateNotify: {
             value: (data.config.AutoUpdateNotify?.value ?? true) as boolean,
             default: (data.config.AutoUpdateNotify?.default ?? true) as boolean,
             title: data.config.AutoUpdateNotify?.title || '自动更新Core/插件时将内容通知主人',
-            desc: data.config.AutoUpdateNotify?.desc || '自动更新Core/插件时将内容通知主人'
+            desc: data.config.AutoUpdateNotify?.desc || '自动更新Core/插件时将内容通知主人',
           },
           AutoInstallDep: {
             value: (data.config.AutoInstallDep?.value ?? false) as boolean,
             default: (data.config.AutoInstallDep?.default ?? false) as boolean,
             title: data.config.AutoInstallDep?.title || '自动安装依赖',
-            desc: data.config.AutoInstallDep?.desc || '安装插件时将会自动安装依赖'
+            desc: data.config.AutoInstallDep?.desc || '安装插件时将会自动安装依赖',
           },
           AutoUpdateDep: {
             value: (data.config.AutoUpdateDep?.value ?? false) as boolean,
             default: (data.config.AutoUpdateDep?.default ?? false) as boolean,
             title: data.config.AutoUpdateDep?.title || '自动更新依赖',
-            desc: data.config.AutoUpdateDep?.desc || '启动Core时将会自动更新插件依赖'
+            desc: data.config.AutoUpdateDep?.desc || '启动Core时将会自动更新插件依赖',
           },
           AutoReloadPlugins: {
             value: (data.config.AutoReloadPlugins?.value ?? true) as boolean,
             default: (data.config.AutoReloadPlugins?.default ?? true) as boolean,
             title: data.config.AutoReloadPlugins?.title || '自动重载插件',
-            desc: data.config.AutoReloadPlugins?.desc || 'Core内插件更新/安装时自动载入/重载'
-          }
-        }
+            desc: data.config.AutoReloadPlugins?.desc || 'Core内插件更新/安装时自动载入/重载',
+          },
+        },
       };
 
       setConfigs([convertedConfig]);
@@ -266,27 +280,32 @@ export default function CoreSettings() {
     }
   }, [coreConfig?.id, setDirty]);
 
-  const handleChange = useCallback((fieldKey: string, value: string | number | boolean | [number, number]) => {
-    if (!coreConfig) return;
+  const handleChange = useCallback(
+    (fieldKey: string, value: string | number | boolean | [number, number]) => {
+      if (!coreConfig) return;
 
-    const originalValue = originalConfig[fieldKey as keyof CoreConfig]?.value;
-    const hasChanged = JSON.stringify(value) !== JSON.stringify(originalValue);
+      const originalValue = originalConfig[fieldKey as keyof CoreConfig]?.value;
+      const hasChanged = JSON.stringify(value) !== JSON.stringify(originalValue);
 
-    setConfigs(prev => prev.map(c => {
-      if (c.id !== coreConfig.id) return c;
-      return {
-        ...c,
-        config: {
-          ...c.config,
-          [fieldKey]: { ...c.config[fieldKey as keyof CoreConfig], value }
-        }
-      };
-    }));
-    setDirty(hasChanged);
-  }, [coreConfig, originalConfig, setDirty]);
+      setConfigs((prev) =>
+        prev.map((c) => {
+          if (c.id !== coreConfig.id) return c;
+          return {
+            ...c,
+            config: {
+              ...c.config,
+              [fieldKey]: { ...c.config[fieldKey as keyof CoreConfig], value },
+            },
+          };
+        }),
+      );
+      setDirty(hasChanged);
+    },
+    [coreConfig, originalConfig, setDirty],
+  );
 
   const handleSaveConfig = async () => {
-    const currentConfig = configs.find(c => c.id === coreConfig?.id);
+    const currentConfig = configs.find((c) => c.id === coreConfig?.id);
     if (!currentConfig) return;
     try {
       setIsSaving(true);
@@ -354,10 +373,10 @@ export default function CoreSettings() {
                 key={option}
                 onClick={() => handleChange('StartVENV', option)}
                 className={cn(
-                  "p-3 rounded-lg border-2 transition-all text-center",
+                  'p-3 rounded-lg border-2 transition-all text-center',
                   config.StartVENV.value === option
-                    ? "border-primary bg-primary/10"
-                    : "border-border hover:border-primary/50"
+                    ? 'border-primary bg-primary/10'
+                    : 'border-border hover:border-primary/50',
                 )}
               >
                 <span className="font-medium">{option.toUpperCase()}</span>
@@ -374,7 +393,9 @@ export default function CoreSettings() {
               </div>
               <div>
                 <p className="font-medium">{config.is_use_custom_restart_command.title}</p>
-                <p className="text-sm text-muted-foreground">{config.is_use_custom_restart_command.desc}</p>
+                <p className="text-sm text-muted-foreground">
+                  {config.is_use_custom_restart_command.desc}
+                </p>
               </div>
             </div>
             <Switch
@@ -435,7 +456,12 @@ export default function CoreSettings() {
                     min="0"
                     max="23"
                     value={config.AutoUpdateCoreTime.value[0]}
-                    onChange={(e) => handleChange('AutoUpdateCoreTime', [parseInt(e.target.value) || 0, config.AutoUpdateCoreTime.value[1]])}
+                    onChange={(e) =>
+                      handleChange('AutoUpdateCoreTime', [
+                        parseInt(e.target.value) || 0,
+                        config.AutoUpdateCoreTime.value[1],
+                      ])
+                    }
                     className="w-20"
                   />
                   <span className="text-muted-foreground">{t('coreConfig.hour')}</span>
@@ -446,7 +472,12 @@ export default function CoreSettings() {
                     min="0"
                     max="59"
                     value={config.AutoUpdateCoreTime.value[1]}
-                    onChange={(e) => handleChange('AutoUpdateCoreTime', [config.AutoUpdateCoreTime.value[0], parseInt(e.target.value) || 0])}
+                    onChange={(e) =>
+                      handleChange('AutoUpdateCoreTime', [
+                        config.AutoUpdateCoreTime.value[0],
+                        parseInt(e.target.value) || 0,
+                      ])
+                    }
                     className="w-20"
                   />
                   <span className="text-muted-foreground">{t('coreConfig.minute')}</span>
@@ -482,7 +513,12 @@ export default function CoreSettings() {
                     min="0"
                     max="23"
                     value={config.AutoUpdatePluginsTime.value[0]}
-                    onChange={(e) => handleChange('AutoUpdatePluginsTime', [parseInt(e.target.value) || 0, config.AutoUpdatePluginsTime.value[1]])}
+                    onChange={(e) =>
+                      handleChange('AutoUpdatePluginsTime', [
+                        parseInt(e.target.value) || 0,
+                        config.AutoUpdatePluginsTime.value[1],
+                      ])
+                    }
                     className="w-20"
                   />
                   <span className="text-muted-foreground">{t('coreConfig.hour')}</span>
@@ -493,7 +529,12 @@ export default function CoreSettings() {
                     min="0"
                     max="59"
                     value={config.AutoUpdatePluginsTime.value[1]}
-                    onChange={(e) => handleChange('AutoUpdatePluginsTime', [config.AutoUpdatePluginsTime.value[0], parseInt(e.target.value) || 0])}
+                    onChange={(e) =>
+                      handleChange('AutoUpdatePluginsTime', [
+                        config.AutoUpdatePluginsTime.value[0],
+                        parseInt(e.target.value) || 0,
+                      ])
+                    }
                     className="w-20"
                   />
                   <span className="text-muted-foreground">{t('coreConfig.minute')}</span>
@@ -529,7 +570,12 @@ export default function CoreSettings() {
                     min="0"
                     max="23"
                     value={config.AutoRestartCoreTime.value[0]}
-                    onChange={(e) => handleChange('AutoRestartCoreTime', [parseInt(e.target.value) || 0, config.AutoRestartCoreTime.value[1]])}
+                    onChange={(e) =>
+                      handleChange('AutoRestartCoreTime', [
+                        parseInt(e.target.value) || 0,
+                        config.AutoRestartCoreTime.value[1],
+                      ])
+                    }
                     className="w-20"
                   />
                   <span className="text-muted-foreground">{t('coreConfig.hour')}</span>
@@ -540,7 +586,12 @@ export default function CoreSettings() {
                     min="0"
                     max="59"
                     value={config.AutoRestartCoreTime.value[1]}
-                    onChange={(e) => handleChange('AutoRestartCoreTime', [config.AutoRestartCoreTime.value[0], parseInt(e.target.value) || 0])}
+                    onChange={(e) =>
+                      handleChange('AutoRestartCoreTime', [
+                        config.AutoRestartCoreTime.value[0],
+                        parseInt(e.target.value) || 0,
+                      ])
+                    }
                     className="w-20"
                   />
                   <span className="text-muted-foreground">{t('coreConfig.minute')}</span>
@@ -633,20 +684,11 @@ export default function CoreSettings() {
 
       {/* Save Button */}
       <div className="flex justify-end pt-4">
-        <Button
-          onClick={handleSaveConfig}
-          disabled={!isConfigDirty || isSaving}
-          className="gap-2"
-        >
-          {isSaving ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Save className="w-4 h-4" />
-          )}
+        <Button onClick={handleSaveConfig} disabled={!isConfigDirty || isSaving} className="gap-2">
+          {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
           {t('common.save')}
         </Button>
       </div>
     </div>
   );
 }
-

@@ -211,7 +211,12 @@ const packs = {
         ran: 'Maintenance done',
         runFailed: 'Maintenance failed',
       },
-      multimodal: { title: 'Multimodal intake health', ok: 'OK', warn: 'Warn', critical: 'Critical' },
+      multimodal: {
+        title: 'Multimodal intake health',
+        ok: 'OK',
+        warn: 'Warn',
+        critical: 'Critical',
+      },
       intent: {
         title: 'Intent classification',
         placeholder: 'User message…',

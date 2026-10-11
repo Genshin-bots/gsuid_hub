@@ -42,13 +42,7 @@ import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -317,10 +311,7 @@ export default function BatchPushPage() {
   const resolvedBotSelfId = resolvedBotSelf?.bot_self_id?.trim() || '';
 
   /** InputWithDropdown 选项：用 id 作 value，显示 label */
-  const botSelfDropdownOptions = useMemo(
-    () => botSelfOptions.map((o) => o.id),
-    [botSelfOptions],
-  );
+  const botSelfDropdownOptions = useMemo(() => botSelfOptions.map((o) => o.id), [botSelfOptions]);
   const formatBotSelfLabel = useCallback(
     (raw: string) => {
       const hit = botSelfOptions.find((o) => o.id === raw);
@@ -369,10 +360,7 @@ export default function BatchPushPage() {
           // 用 Set 去重，避免 offset/limit 在筛选变化瞬间抓到重叠时的重复行
           setItems((prev) => {
             const seen = new Set(prev.map((it) => it.value));
-            return [
-              ...prev,
-              ...data.items.filter((it) => !seen.has(it.value)),
-            ];
+            return [...prev, ...data.items.filter((it) => !seen.has(it.value))];
           });
         }
         setPageInfo({ total: data.total, hasMore: data.has_more });
@@ -399,9 +387,13 @@ export default function BatchPushPage() {
   useEffect(() => {
     let cancelled = false;
     setInitialLoading(true);
-    loadPage(true).catch(() => {/* loadPage 内部已 toast */}).finally(() => {
-      if (!cancelled) setInitialLoading(false);
-    });
+    loadPage(true)
+      .catch(() => {
+        /* loadPage 内部已 toast */
+      })
+      .finally(() => {
+        if (!cancelled) setInitialLoading(false);
+      });
     return () => {
       cancelled = true;
     };
@@ -542,22 +534,26 @@ export default function BatchPushPage() {
   );
 
   /** Keep textarea free of huge base64; prune deleted image assets. */
-  const onBodyTextChange = useCallback((raw: string) => {
-    if (raw.includes('data:image')) {
-      const { text: next, assets, extracted } = normalizeBatchPushBodyImages(
-        raw,
-        imageAssetsRef.current,
-      );
-      setImageAssets(pruneBatchPushImageAssets(next, assets));
-      setText(next);
-      if (extracted > 0) {
-        toast.success(t('batchPush.imageInserted', { count: extracted }));
+  const onBodyTextChange = useCallback(
+    (raw: string) => {
+      if (raw.includes('data:image')) {
+        const {
+          text: next,
+          assets,
+          extracted,
+        } = normalizeBatchPushBodyImages(raw, imageAssetsRef.current);
+        setImageAssets(pruneBatchPushImageAssets(next, assets));
+        setText(next);
+        if (extracted > 0) {
+          toast.success(t('batchPush.imageInserted', { count: extracted }));
+        }
+        return;
       }
-      return;
-    }
-    setText(raw);
-    setImageAssets((prev) => pruneBatchPushImageAssets(raw, prev));
-  }, [t]);
+      setText(raw);
+      setImageAssets((prev) => pruneBatchPushImageAssets(raw, prev));
+    },
+    [t],
+  );
 
   const onBodyPaste = useCallback(
     (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
@@ -732,15 +728,9 @@ export default function BatchPushPage() {
               <Send className="w-8 h-8 shrink-0" />
               {t('batchPush.title')}
             </h1>
-            <p className="text-muted-foreground mt-1">
-              {t('batchPush.description')}
-            </p>
+            <p className="text-muted-foreground mt-1">{t('batchPush.description')}</p>
           </div>
-          <Button
-            className="w-full sm:w-auto sm:shrink-0"
-            onClick={submit}
-            disabled={submitting}
-          >
+          <Button className="w-full sm:w-auto sm:shrink-0" onClick={submit} disabled={submitting}>
             <Send className="w-4 h-4" />
             {submitting ? t('batchPush.submitting') : t('batchPush.submit')}
           </Button>
@@ -756,9 +746,7 @@ export default function BatchPushPage() {
                 <Send className="w-5 h-5" />
                 {t('batchPush.sectionTextTitle')}
               </CardTitle>
-              <CardDescription>
-                {t('batchPush.sectionTextDesc')}
-              </CardDescription>
+              <CardDescription>{t('batchPush.sectionTextDesc')}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
@@ -835,9 +823,7 @@ export default function BatchPushPage() {
                 <ListChecks className="w-5 h-5" />
                 {t('batchPush.sectionTargetsTitle')}
               </CardTitle>
-              <CardDescription>
-                {t('batchPush.sectionTargetsDesc')}
-              </CardDescription>
+              <CardDescription>{t('batchPush.sectionTargetsDesc')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* 行 1：WS Bot + 机器人账号（bot_self_id） */}
@@ -849,9 +835,7 @@ export default function BatchPushPage() {
                       <SelectValue placeholder={t('batchPush.botsAll') ?? ''} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value={ALL_BOT_SENTINEL}>
-                        {t('batchPush.botsAll')}
-                      </SelectItem>
+                      <SelectItem value={ALL_BOT_SENTINEL}>{t('batchPush.botsAll')}</SelectItem>
                       {bots.map((b) => (
                         <SelectItem key={b.bot_id} value={b.bot_id}>
                           {b.name}
@@ -923,9 +907,7 @@ export default function BatchPushPage() {
                     {t('batchPush.loading')}
                   </div>
                 ) : items.length === 0 ? (
-                  <p className="text-xs text-muted-foreground p-3">
-                    {t('batchPush.noResults')}
-                  </p>
+                  <p className="text-xs text-muted-foreground p-3">{t('batchPush.noResults')}</p>
                 ) : (
                   <>
                     <div
@@ -1083,9 +1065,7 @@ export default function BatchPushPage() {
             <CardContent>
               <div className="border border-border/40 rounded-lg p-3 min-h-[160px] space-y-2 bg-background/50">
                 {previewBlocks.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">
-                    {t('batchPush.previewEmpty')}
-                  </p>
+                  <p className="text-xs text-muted-foreground">{t('batchPush.previewEmpty')}</p>
                 ) : (
                   previewBlocks.map((block, i) =>
                     block.type === 'image' ? (
@@ -1126,9 +1106,7 @@ export default function BatchPushPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-xs text-muted-foreground">
-                {t('batchPush.historyEmpty')}
-              </p>
+              <p className="text-xs text-muted-foreground">{t('batchPush.historyEmpty')}</p>
             </CardContent>
           </Card>
         </div>

@@ -4,16 +4,56 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Search, Plus, Pencil, Trash2, Filter, RefreshCw, ChevronLeft, ChevronRight, Database, X, PlusCircle, Download, Upload } from 'lucide-react';
-import { databaseApi, getApiErrorMessage, PluginDatabaseInfo, DatabaseTableInfo, PaginatedData } from '@/lib/api';
+import {
+  Search,
+  Plus,
+  Pencil,
+  Trash2,
+  Filter,
+  RefreshCw,
+  ChevronLeft,
+  ChevronRight,
+  Database,
+  X,
+  PlusCircle,
+  Download,
+  Upload,
+} from 'lucide-react';
+import {
+  databaseApi,
+  getApiErrorMessage,
+  PluginDatabaseInfo,
+  DatabaseTableInfo,
+  PaginatedData,
+} from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -30,7 +70,7 @@ export default function DatabasePage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterColumn, setFilterColumn] = useState<string>('');
   const [filterValue, setFilterValue] = useState('');
-  const [filters, setFilters] = useState<{column: string; value: string}[]>([]);
+  const [filters, setFilters] = useState<{ column: string; value: string }[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [editingItem, setEditingItem] = useState<Record<string, unknown> | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -66,7 +106,7 @@ export default function DatabasePage() {
   const [hasMoreRight, setHasMoreRight] = useState(false);
 
   const selectedPlugin = useMemo(() => {
-    return plugins.find(p => p.plugin_id === selectedPluginId);
+    return plugins.find((p) => p.plugin_id === selectedPluginId);
   }, [plugins, selectedPluginId]);
 
   const fetchPlugins = useCallback(async () => {
@@ -230,7 +270,7 @@ export default function DatabasePage() {
       search?: string;
       filterColumns?: string[];
       filterValues?: string[];
-    } = appliedQueryRef.current
+    } = appliedQueryRef.current,
   ) => {
     try {
       setIsSearching(true);
@@ -241,7 +281,7 @@ export default function DatabasePage() {
         query.search,
         undefined,
         query.filterColumns,
-        query.filterValues
+        query.filterValues,
       );
       setData(result);
       setCurrentPage(page);
@@ -262,7 +302,7 @@ export default function DatabasePage() {
   const addFilter = () => {
     if (filterColumn && filterValue) {
       // 检查是否已存在相同列的筛选
-      const existingIndex = filters.findIndex(f => f.column === filterColumn);
+      const existingIndex = filters.findIndex((f) => f.column === filterColumn);
       if (existingIndex >= 0) {
         // 更新已存在的筛选
         const newFilters = [...filters];
@@ -391,7 +431,8 @@ export default function DatabasePage() {
     } else if (importStep === 3) void submitImport();
   };
 
-  const importModeLabel = importMode === 'merge' ? t('database.importModeMerge') : t('database.importModeReplace');
+  const importModeLabel =
+    importMode === 'merge' ? t('database.importModeMerge') : t('database.importModeReplace');
   const importPrimaryDisabled =
     isImporting ||
     (importStep === 0 && !importFile) ||
@@ -409,7 +450,8 @@ export default function DatabasePage() {
   const handleCreate = () => {
     const emptyItem: Record<string, unknown> = {};
     columns.forEach((col) => {
-      emptyItem[col.name] = col.default ?? (col.type === 'int' ? 0 : col.type === 'bool' ? false : '');
+      emptyItem[col.name] =
+        col.default ?? (col.type === 'int' ? 0 : col.type === 'bool' ? false : '');
     });
     setEditingItem(emptyItem);
     setIsCreating(true);
@@ -457,12 +499,16 @@ export default function DatabasePage() {
     } catch (error) {
       console.error('Failed to delete record:', error);
       const errorMsg = error instanceof Error ? error.message : '';
-      toast.error(errorMsg ? `${t('database.deleteRecordFailed')}: ${errorMsg}` : t('database.deleteRecordFailed'));
+      toast.error(
+        errorMsg
+          ? `${t('database.deleteRecordFailed')}: ${errorMsg}`
+          : t('database.deleteRecordFailed'),
+      );
     }
   };
 
   const handleInputChange = (field: string, value: unknown) => {
-    setEditingItem((prev) => prev ? { ...prev, [field]: value } : null);
+    setEditingItem((prev) => (prev ? { ...prev, [field]: value } : null));
   };
 
   if (isLoading) {
@@ -475,192 +521,200 @@ export default function DatabasePage() {
 
   return (
     <>
-    <PinnedPage
-      header={
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-3">
-            <Database className="w-8 h-8" />
-            {t('database.title')}
-          </h1>
-          <p className="text-muted-foreground mt-1">{t('database.description')}</p>
-        </div>
-      }
-      toolbar={
-        /* 插件选择 + 数据表选择：两级导航控件，随标题常驻。
-           两者原本是 space-y-6 的兄弟，故这里用 space-y-6 保持同样的行距 */
-        <div className="space-y-6">
+      <PinnedPage
+        header={
           <div>
-            <TabButtonGroup
-              options={plugins.map((plugin) => ({
-                value: plugin.plugin_id,
-                label: plugin.plugin_name,
-                icon: (
-                  <PluginIcon pluginName={plugin.plugin_name === '核心功能' ? 'gsuid_core' : plugin.plugin_name} />
-                ),
-              }))}
-              value={selectedPluginId}
-              onValueChange={setSelectedPluginId}
-            />
+            <h1 className="text-3xl font-bold flex items-center gap-3">
+              <Database className="w-8 h-8" />
+              {t('database.title')}
+            </h1>
+            <p className="text-muted-foreground mt-1">{t('database.description')}</p>
           </div>
-
-          {selectedPlugin && selectedPlugin.tables.length > 0 && (
+        }
+        toolbar={
+          /* 插件选择 + 数据表选择：两级导航控件，随标题常驻。
+           两者原本是 space-y-6 的兄弟，故这里用 space-y-6 保持同样的行距 */
+          <div className="space-y-6">
             <div>
               <TabButtonGroup
-                options={selectedPlugin.tables.map((table) => ({
-                  value: table.table_name,
-                  label: table.label,
-                  icon: <Database className="w-4 h-4" />,
+                options={plugins.map((plugin) => ({
+                  value: plugin.plugin_id,
+                  label: plugin.plugin_name,
+                  icon: (
+                    <PluginIcon
+                      pluginName={
+                        plugin.plugin_name === '核心功能' ? 'gsuid_core' : plugin.plugin_name
+                      }
+                    />
+                  ),
                 }))}
-                value={activeTable}
-                onValueChange={setActiveTable}
+                value={selectedPluginId}
+                onValueChange={setSelectedPluginId}
               />
             </div>
-          )}
-        </div>
-      }
-    >
-      {activeTable && tableMetadata && (
-        <Card className="glass-card">
-          <CardContent className="pt-6">
-            <div className="flex flex-wrap items-center gap-4 mb-4">
-              {/* 全局搜索框 */}
-              <div className="flex items-center gap-2">
-                <Search className="h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder={t('database.search')}
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                  className="w-full sm:w-[200px]"
+
+            {selectedPlugin && selectedPlugin.tables.length > 0 && (
+              <div>
+                <TabButtonGroup
+                  options={selectedPlugin.tables.map((table) => ({
+                    value: table.table_name,
+                    label: table.label,
+                    icon: <Database className="w-4 h-4" />,
+                  }))}
+                  value={activeTable}
+                  onValueChange={setActiveTable}
                 />
               </div>
-              
-              {/* 筛选区域 + 搜索按钮 */}
-              <div className="flex items-center gap-2 flex-wrap flex-1">
-                {/* 筛选区域 */}
-                <div className="flex items-center gap-2 flex-wrap">
-                  <Filter className="h-4 w-4 text-muted-foreground" />
-                  <Select value={filterColumn} onValueChange={setFilterColumn}>
-                    <SelectTrigger className="h-10 w-full sm:w-[150px]">
-                      <SelectValue placeholder={t('database.filterColumn')} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {columns.map((col) => (
-                        <SelectItem key={col.name} value={col.name}>
-                          {col.title}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {filterColumn && (
-                    <>
-                      <Input
-                        placeholder={t('database.filterValue')}
-                        value={filterValue}
-                        onChange={(e) => setFilterValue(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && addFilter()}
-                        className="w-full sm:w-[150px]"
-                      />
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={addFilter}
-                        title={t('database.addFilter')}
-                        className="h-10"
-                      >
-                        <PlusCircle className="h-4 w-4" />
-                      </Button>
-                    </>
-                  )}
+            )}
+          </div>
+        }
+      >
+        {activeTable && tableMetadata && (
+          <Card className="glass-card">
+            <CardContent className="pt-6">
+              <div className="flex flex-wrap items-center gap-4 mb-4">
+                {/* 全局搜索框 */}
+                <div className="flex items-center gap-2">
+                  <Search className="h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder={t('database.search')}
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                    className="w-full sm:w-[200px]"
+                  />
                 </div>
 
-                {/* 已添加的筛选条件 */}
-                {filters.length > 0 && (
+                {/* 筛选区域 + 搜索按钮 */}
+                <div className="flex items-center gap-2 flex-wrap flex-1">
+                  {/* 筛选区域 */}
                   <div className="flex items-center gap-2 flex-wrap">
-                    {filters.map((filter, index) => {
-                      const col = columns.find(c => c.name === filter.column);
-                      return (
-                        <Badge key={index} variant="secondary" className="flex items-center gap-1 px-2 py-1">
-                          {col?.title || filter.column}: {filter.value}
-                          <button
-                            onClick={() => removeFilter(index)}
-                            className="ml-1 hover:text-destructive"
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </Badge>
-                      );
-                    })}
+                    <Filter className="h-4 w-4 text-muted-foreground" />
+                    <Select value={filterColumn} onValueChange={setFilterColumn}>
+                      <SelectTrigger className="h-10 w-full sm:w-[150px]">
+                        <SelectValue placeholder={t('database.filterColumn')} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {columns.map((col) => (
+                          <SelectItem key={col.name} value={col.name}>
+                            {col.title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {filterColumn && (
+                      <>
+                        <Input
+                          placeholder={t('database.filterValue')}
+                          value={filterValue}
+                          onChange={(e) => setFilterValue(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && addFilter()}
+                          className="w-full sm:w-[150px]"
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={addFilter}
+                          title={t('database.addFilter')}
+                          className="h-10"
+                        >
+                          <PlusCircle className="h-4 w-4" />
+                        </Button>
+                      </>
+                    )}
                   </div>
-                )}
 
-                {/* 搜索按钮 - 紧贴筛选区域 */}
-                <Button
-                  onClick={handleSearch}
-                  size="sm"
-                  disabled={isSearching}
-                  className="h-10"
-                >
-                  {isSearching ? (
-                    <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
-                  ) : (
-                    <Search className="h-4 w-4 mr-1" />
+                  {/* 已添加的筛选条件 */}
+                  {filters.length > 0 && (
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {filters.map((filter, index) => {
+                        const col = columns.find((c) => c.name === filter.column);
+                        return (
+                          <Badge
+                            key={index}
+                            variant="secondary"
+                            className="flex items-center gap-1 px-2 py-1"
+                          >
+                            {col?.title || filter.column}: {filter.value}
+                            <button
+                              onClick={() => removeFilter(index)}
+                              className="ml-1 hover:text-destructive"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </Badge>
+                        );
+                      })}
+                    </div>
                   )}
-                  {t('database.search')}
-                </Button>
 
-                {/* 导出 / 刷新 / 新增 - 推到最右 */}
-                <div className="flex flex-wrap gap-2 ml-auto">
-                  <Button
-                    onClick={() => void handleExportCsv()}
-                    variant="outline"
-                    size="sm"
-                    className="h-10"
-                    disabled={isExporting}
-                    title={t('database.exportCsvHint')}
-                  >
-                    {isExporting ? (
+                  {/* 搜索按钮 - 紧贴筛选区域 */}
+                  <Button onClick={handleSearch} size="sm" disabled={isSearching} className="h-10">
+                    {isSearching ? (
                       <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
                     ) : (
-                      <Download className="h-4 w-4 mr-1" />
+                      <Search className="h-4 w-4 mr-1" />
                     )}
-                    {t('database.exportCsv')}
+                    {t('database.search')}
                   </Button>
-                  <Button
-                    onClick={openImport}
-                    variant="outline"
-                    size="sm"
-                    className="h-10"
-                    disabled={isImporting}
-                    title={t('database.importCsvHint')}
-                  >
-                    {isImporting ? (
-                      <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
-                    ) : (
-                      <Upload className="h-4 w-4 mr-1" />
-                    )}
-                    {t('database.importCsv')}
-                  </Button>
-                  <Button onClick={() => fetchTableData(activeTable, currentPage, perPage)} variant="outline" size="sm" className="h-10">
-                    <RefreshCw className="h-4 w-4 mr-1" />
-                    {t('database.refresh')}
-                  </Button>
-                  <Button onClick={handleCreate} size="sm" className="h-10">
-                    <Plus className="h-4 w-4 mr-1" />
-                    {t('database.addNew')}
-                  </Button>
+
+                  {/* 导出 / 刷新 / 新增 - 推到最右 */}
+                  <div className="flex flex-wrap gap-2 ml-auto">
+                    <Button
+                      onClick={() => void handleExportCsv()}
+                      variant="outline"
+                      size="sm"
+                      className="h-10"
+                      disabled={isExporting}
+                      title={t('database.exportCsvHint')}
+                    >
+                      {isExporting ? (
+                        <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+                      ) : (
+                        <Download className="h-4 w-4 mr-1" />
+                      )}
+                      {t('database.exportCsv')}
+                    </Button>
+                    <Button
+                      onClick={openImport}
+                      variant="outline"
+                      size="sm"
+                      className="h-10"
+                      disabled={isImporting}
+                      title={t('database.importCsvHint')}
+                    >
+                      {isImporting ? (
+                        <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+                      ) : (
+                        <Upload className="h-4 w-4 mr-1" />
+                      )}
+                      {t('database.importCsv')}
+                    </Button>
+                    <Button
+                      onClick={() => fetchTableData(activeTable, currentPage, perPage)}
+                      variant="outline"
+                      size="sm"
+                      className="h-10"
+                    >
+                      <RefreshCw className="h-4 w-4 mr-1" />
+                      {t('database.refresh')}
+                    </Button>
+                    <Button onClick={handleCreate} size="sm" className="h-10">
+                      <Plus className="h-4 w-4 mr-1" />
+                      {t('database.addNew')}
+                    </Button>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <Separator className="my-2" />
+              <Separator className="my-2" />
 
-            <div className="relative">
-              <Table
-                wrapperRef={tableContainerRef}
-                wrapperClassName="scrollbar-hide"
-                onWrapperScroll={handleTableScroll}
-              >
+              <div className="relative">
+                <Table
+                  wrapperRef={tableContainerRef}
+                  wrapperClassName="scrollbar-hide"
+                  onWrapperScroll={handleTableScroll}
+                >
                   <TableHeader>
                     <TableRow>
                       {columns.map((col) => (
@@ -670,9 +724,7 @@ export default function DatabasePage() {
                               <TooltipTrigger asChild>
                                 <span>{col.title.slice(0, 10)}...</span>
                               </TooltipTrigger>
-                              <TooltipContent>
-                                {col.title}
-                              </TooltipContent>
+                              <TooltipContent>{col.title}</TooltipContent>
                             </Tooltip>
                           ) : (
                             col.title
@@ -687,7 +739,7 @@ export default function DatabasePage() {
                              就有 ~108px，再加上 2rem 渐隐遮罩，数据列只剩一两列可见。
                              改为随行滚动，操作列改用下方加高的滚动条够到。 */
                           'w-[100px] whitespace-nowrap table-sticky-right !static sm:!sticky',
-                          hasMoreRight && 'table-sticky-fade table-sticky-shadow'
+                          hasMoreRight && 'table-sticky-fade table-sticky-shadow',
                         )}
                       >
                         {t('database.actions')}
@@ -697,7 +749,10 @@ export default function DatabasePage() {
                   <TableBody>
                     {tableRows.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={columns.length + 1} className="text-center text-muted-foreground">
+                        <TableCell
+                          colSpan={columns.length + 1}
+                          className="text-center text-muted-foreground"
+                        >
                           {t('database.noData')}
                         </TableCell>
                       </TableRow>
@@ -715,12 +770,21 @@ export default function DatabasePage() {
                               )}
                             </TableCell>
                           ))}
-                          <TableCell className={cn('table-sticky-right !static sm:!sticky', hasMoreRight && 'table-sticky-fade table-sticky-shadow')}>
+                          <TableCell
+                            className={cn(
+                              'table-sticky-right !static sm:!sticky',
+                              hasMoreRight && 'table-sticky-fade table-sticky-shadow',
+                            )}
+                          >
                             <div className="flex gap-1">
                               <Button variant="ghost" size="icon" onClick={() => handleEdit(item)}>
                                 <Pencil className="h-4 w-4" />
                               </Button>
-                              <Button variant="ghost" size="icon" onClick={() => handleDelete(item)}>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDelete(item)}
+                              >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
@@ -730,267 +794,309 @@ export default function DatabasePage() {
                     )}
                   </TableBody>
                 </Table>
-            </div>
-
-            {data && data.total > 0 && (
-              <div className="flex items-center justify-between mt-4">
-                <div className="text-sm text-muted-foreground">
-                  {t('database.paginationInfo')
-                    .replace('{total}', String(data.total))
-                    .replace('{current}', String(currentPage))
-                    .replace('{totalPages}', String(totalPages))}
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handlePageChange(currentPage - 1)}
-                    disabled={currentPage <= 1}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handlePageChange(currentPage + 1)}
-                    disabled={currentPage >= totalPages}
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
               </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        {/* 三段式 flex：header / 可滚动字段区 / footer——长表单只滚中间，
+              {data && data.total > 0 && (
+                <div className="flex items-center justify-between mt-4">
+                  <div className="text-sm text-muted-foreground">
+                    {t('database.paginationInfo')
+                      .replace('{total}', String(data.total))
+                      .replace('{current}', String(currentPage))
+                      .replace('{totalPages}', String(totalPages))}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      disabled={currentPage <= 1}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      disabled={currentPage >= totalPages}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          {/* 三段式 flex：header / 可滚动字段区 / footer——长表单只滚中间，
             取消/保存按钮常驻可见（此前 overflow-y-auto 挂在 DialogContent 上，按钮会被滚走） */}
-        <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col overflow-hidden">
-          <DialogHeader>
-            <DialogTitle>{isCreating ? t('database.addRecord') : t('database.editRecord')}</DialogTitle>
-            {/* Radix 无障碍要求 DialogTitle + DialogDescription 成对（P-16/P-18）；
+          <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col overflow-hidden">
+            <DialogHeader>
+              <DialogTitle>
+                {isCreating ? t('database.addRecord') : t('database.editRecord')}
+              </DialogTitle>
+              {/* Radix 无障碍要求 DialogTitle + DialogDescription 成对（P-16/P-18）；
                 顺带展示「哪张表 / 哪条记录」的上下文 */}
-            <DialogDescription>
-              {isCreating
-                ? t('database.addRecordDescription').replace('{table}', tableMetadata?.label || activeTable)
-                : t('database.editRecordDescription')
-                    .replace('{table}', tableMetadata?.label || activeTable)
-                    .replace('{pk}', tableMetadata?.pk_name || 'id')
-                    .replace('{id}', String(editingItem?.[tableMetadata?.pk_name || 'id'] ?? ''))}
-            </DialogDescription>
-          </DialogHeader>
+              <DialogDescription>
+                {isCreating
+                  ? t('database.addRecordDescription').replace(
+                      '{table}',
+                      tableMetadata?.label || activeTable,
+                    )
+                  : t('database.editRecordDescription')
+                      .replace('{table}', tableMetadata?.label || activeTable)
+                      .replace('{pk}', tableMetadata?.pk_name || 'id')
+                      .replace('{id}', String(editingItem?.[tableMetadata?.pk_name || 'id'] ?? ''))}
+              </DialogDescription>
+            </DialogHeader>
 
-          <div className="grow min-h-0 overflow-y-auto py-2">
-            {/* 字段名置于输入框上方（旧版 25% 右对齐标签列会把长字段名挤成竖条）；
+            <div className="grow min-h-0 overflow-y-auto py-2">
+              {/* 字段名置于输入框上方（旧版 25% 右对齐标签列会把长字段名挤成竖条）；
                 标签区预留两行高并底对齐（min-h-10 + justify-end）：同行字段一长一短时，
                 下方输入框仍水平对齐，多出的空隙留在标签上方、不挤压输入框；
                 line-clamp-2 兜底超长标签（全文悬停 title 可见），杜绝三行破对齐；
                 桌面双列压缩表单高度，移动端退回单列；bool 字段内联 Switch，高度与 Input 对齐 */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-5">
-              {columns.map((col) => {
-                const isNumber = col.type === 'int' || col.type === 'float';
-                // 编辑时主键只读：handleSave 用 editingItem[pk] 定位记录，
-                // 若允许改主键，保存会指向一条不存在的记录
-                const pkLocked = !isCreating && col.name === (tableMetadata?.pk_name || 'id');
-                return (
-                  <div key={col.name} className="flex flex-col gap-2">
-                    <div className="flex flex-col justify-end min-h-10">
-                      <Label htmlFor={col.name} title={col.title} className="text-muted-foreground leading-snug line-clamp-2">
-                        {col.title}
-                      </Label>
-                    </div>
-                    {col.type === 'bool' ? (
-                      <div className="flex items-center h-10 px-3 rounded-md border border-border/60">
-                        <Switch
-                          id={col.name}
-                          checked={Boolean(editingItem?.[col.name])}
-                          onCheckedChange={(checked) => handleInputChange(col.name, checked)}
-                        />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-5">
+                {columns.map((col) => {
+                  const isNumber = col.type === 'int' || col.type === 'float';
+                  // 编辑时主键只读：handleSave 用 editingItem[pk] 定位记录，
+                  // 若允许改主键，保存会指向一条不存在的记录
+                  const pkLocked = !isCreating && col.name === (tableMetadata?.pk_name || 'id');
+                  return (
+                    <div key={col.name} className="flex flex-col gap-2">
+                      <div className="flex flex-col justify-end min-h-10">
+                        <Label
+                          htmlFor={col.name}
+                          title={col.title}
+                          className="text-muted-foreground leading-snug line-clamp-2"
+                        >
+                          {col.title}
+                        </Label>
                       </div>
-                    ) : (
-                      <Input
-                        id={col.name}
-                        type={isNumber ? 'number' : 'text'}
-                        value={String(editingItem?.[col.name] ?? '')}
-                        onChange={(e) =>
-                          handleInputChange(
-                            col.name,
-                            isNumber
-                              ? (col.type === 'int' ? parseInt(e.target.value) || 0 : parseFloat(e.target.value) || 0)
-                              : e.target.value
-                          )
-                        }
-                        readOnly={pkLocked}
-                        title={pkLocked ? t('database.pkEditHint') : undefined}
-                        className={pkLocked ? 'bg-muted/40 cursor-not-allowed' : undefined}
-                      />
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-              {t('common.cancel')}
-            </Button>
-            <Button onClick={handleSave}>
-              {t('common.save')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={importStep !== null} onOpenChange={(open) => { if (!open) closeImport(); }}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>
-              {importStep === 0
-                ? t('database.importTitle')
-                : t('database.importConfirmTitle').replace('{step}', String(importStep ?? 1))}
-            </DialogTitle>
-            <DialogDescription>
-              {importStep === 0 && t('database.importDescription').replace('{table}', tableMetadata?.label || activeTable)}
-              {importStep === 1 && t('database.importConfirm1')
-                .replace('{file}', importFile?.name || '')
-                .replace('{table}', activeTable)
-                .replace('{mode}', importModeLabel)}
-              {importStep === 2 && importMode === 'merge' && t('database.importConfirm2Merge')}
-              {importStep === 2 && importMode === 'replace' && t('database.importConfirm2Replace').replace('{table}', activeTable)}
-              {importStep === 3 && t('database.importConfirm3').replace('{table}', activeTable)}
-            </DialogDescription>
-          </DialogHeader>
-
-          {importStep !== null && importStep > 0 && (
-            <div className="flex gap-1.5" aria-hidden>
-              {[1, 2, 3].map((step) => (
-                <div
-                  key={step}
-                  className={cn(
-                    'h-1.5 flex-1 rounded-full',
-                    importStep >= step
-                      ? importMode === 'replace' ? 'bg-destructive' : 'bg-primary'
-                      : 'bg-muted',
-                  )}
-                />
-              ))}
-            </div>
-          )}
-
-          {importStep === 0 && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 min-w-0">
-                <Button type="button" variant="outline" onClick={() => importInputRef.current?.click()}>
-                  <Upload className="h-4 w-4 mr-1" />
-                  {t('database.importPickFile')}
-                </Button>
-                <span className="text-sm text-muted-foreground truncate">
-                  {importFile
-                    ? t('database.importFileSelected').replace('{name}', importFile.name)
-                    : t('database.importNoFileYet')}
-                </span>
+                      {col.type === 'bool' ? (
+                        <div className="flex items-center h-10 px-3 rounded-md border border-border/60">
+                          <Switch
+                            id={col.name}
+                            checked={Boolean(editingItem?.[col.name])}
+                            onCheckedChange={(checked) => handleInputChange(col.name, checked)}
+                          />
+                        </div>
+                      ) : (
+                        <Input
+                          id={col.name}
+                          type={isNumber ? 'number' : 'text'}
+                          value={String(editingItem?.[col.name] ?? '')}
+                          onChange={(e) =>
+                            handleInputChange(
+                              col.name,
+                              isNumber
+                                ? col.type === 'int'
+                                  ? parseInt(e.target.value) || 0
+                                  : parseFloat(e.target.value) || 0
+                                : e.target.value,
+                            )
+                          }
+                          readOnly={pkLocked}
+                          title={pkLocked ? t('database.pkEditHint') : undefined}
+                          className={pkLocked ? 'bg-muted/40 cursor-not-allowed' : undefined}
+                        />
+                      )}
+                    </div>
+                  );
+                })}
               </div>
-              <input
-                ref={importInputRef}
-                type="file"
-                accept=".csv,text/csv"
-                className="hidden"
-                onChange={onImportFile}
-              />
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  aria-pressed={importMode === 'merge'}
-                  onClick={() => setImportMode('merge')}
-                  className={cn(
-                    'rounded-lg border p-3 text-left transition-colors',
-                    importMode === 'merge' ? 'border-primary bg-primary/10' : 'border-border hover:bg-accent/40',
-                  )}
-                >
-                  <div className="font-medium">{t('database.importModeMerge')}</div>
-                  <p className="text-sm text-muted-foreground mt-1">{t('database.importModeMergeDesc')}</p>
-                </button>
-                <button
-                  type="button"
-                  aria-pressed={importMode === 'replace'}
-                  onClick={() => setImportMode('replace')}
-                  className={cn(
-                    'rounded-lg border p-3 text-left transition-colors',
-                    importMode === 'replace' ? 'border-destructive bg-destructive/10' : 'border-border hover:bg-accent/40',
-                  )}
-                >
-                  <div className="font-medium">{t('database.importModeReplace')}</div>
-                  <p className="text-sm text-muted-foreground mt-1">{t('database.importModeReplaceDesc')}</p>
-                </button>
-              </div>
-              <p className="text-sm text-muted-foreground">{t('database.importWillConfirm')}</p>
             </div>
-          )}
 
-          {importStep === 3 && (
-            <div className="space-y-2">
-              {tableMetadata && tableMetadata.label !== activeTable && (
-                <p className="text-sm text-muted-foreground">
-                  {t('database.importTableLabel').replace('{label}', tableMetadata.label)}
-                </p>
-              )}
-              <Label htmlFor="import-confirm-name">{t('database.importConfirmPlaceholder')}</Label>
-              <Input
-                id="import-confirm-name"
-                value={confirmName}
-                autoFocus
-                autoComplete="off"
-                spellCheck={false}
-                placeholder={t('database.importConfirmPlaceholder')}
-                onChange={(event) => setConfirmName(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' && confirmName === activeTable) {
-                    event.preventDefault();
-                    void submitImport();
-                  }
-                }}
-              />
-            </div>
-          )}
-
-          <DialogFooter className="gap-2 sm:gap-2">
-            <Button type="button" variant="outline" onClick={closeImport} disabled={isImporting}>
-              {t('common.cancel')}
-            </Button>
-            {importStep !== null && importStep > 0 && (
-              <Button type="button" variant="outline" onClick={backImport} disabled={isImporting}>
-                {t('database.importBack')}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                {t('common.cancel')}
               </Button>
+              <Button onClick={handleSave}>{t('common.save')}</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog
+          open={importStep !== null}
+          onOpenChange={(open) => {
+            if (!open) closeImport();
+          }}
+        >
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>
+                {importStep === 0
+                  ? t('database.importTitle')
+                  : t('database.importConfirmTitle').replace('{step}', String(importStep ?? 1))}
+              </DialogTitle>
+              <DialogDescription>
+                {importStep === 0 &&
+                  t('database.importDescription').replace(
+                    '{table}',
+                    tableMetadata?.label || activeTable,
+                  )}
+                {importStep === 1 &&
+                  t('database.importConfirm1')
+                    .replace('{file}', importFile?.name || '')
+                    .replace('{table}', activeTable)
+                    .replace('{mode}', importModeLabel)}
+                {importStep === 2 && importMode === 'merge' && t('database.importConfirm2Merge')}
+                {importStep === 2 &&
+                  importMode === 'replace' &&
+                  t('database.importConfirm2Replace').replace('{table}', activeTable)}
+                {importStep === 3 && t('database.importConfirm3').replace('{table}', activeTable)}
+              </DialogDescription>
+            </DialogHeader>
+
+            {importStep !== null && importStep > 0 && (
+              <div className="flex gap-1.5" aria-hidden>
+                {[1, 2, 3].map((step) => (
+                  <div
+                    key={step}
+                    className={cn(
+                      'h-1.5 flex-1 rounded-full',
+                      importStep >= step
+                        ? importMode === 'replace'
+                          ? 'bg-destructive'
+                          : 'bg-primary'
+                        : 'bg-muted',
+                    )}
+                  />
+                ))}
+              </div>
             )}
-            <Button
-              type="button"
-              variant={importMode === 'replace' && importStep !== null && importStep > 0 ? 'destructive' : 'default'}
-              onClick={advanceImport}
-              disabled={importPrimaryDisabled}
-            >
-              {isImporting && <RefreshCw className="h-4 w-4 mr-1 animate-spin" />}
-              {importPrimaryLabel}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </PinnedPage>
-    {/* Floating horizontal scrollbar rendered via Portal to body,
+
+            {importStep === 0 && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 min-w-0">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => importInputRef.current?.click()}
+                  >
+                    <Upload className="h-4 w-4 mr-1" />
+                    {t('database.importPickFile')}
+                  </Button>
+                  <span className="text-sm text-muted-foreground truncate">
+                    {importFile
+                      ? t('database.importFileSelected').replace('{name}', importFile.name)
+                      : t('database.importNoFileYet')}
+                  </span>
+                </div>
+                <input
+                  ref={importInputRef}
+                  type="file"
+                  accept=".csv,text/csv"
+                  className="hidden"
+                  onChange={onImportFile}
+                />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    aria-pressed={importMode === 'merge'}
+                    onClick={() => setImportMode('merge')}
+                    className={cn(
+                      'rounded-lg border p-3 text-left transition-colors',
+                      importMode === 'merge'
+                        ? 'border-primary bg-primary/10'
+                        : 'border-border hover:bg-accent/40',
+                    )}
+                  >
+                    <div className="font-medium">{t('database.importModeMerge')}</div>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {t('database.importModeMergeDesc')}
+                    </p>
+                  </button>
+                  <button
+                    type="button"
+                    aria-pressed={importMode === 'replace'}
+                    onClick={() => setImportMode('replace')}
+                    className={cn(
+                      'rounded-lg border p-3 text-left transition-colors',
+                      importMode === 'replace'
+                        ? 'border-destructive bg-destructive/10'
+                        : 'border-border hover:bg-accent/40',
+                    )}
+                  >
+                    <div className="font-medium">{t('database.importModeReplace')}</div>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {t('database.importModeReplaceDesc')}
+                    </p>
+                  </button>
+                </div>
+                <p className="text-sm text-muted-foreground">{t('database.importWillConfirm')}</p>
+              </div>
+            )}
+
+            {importStep === 3 && (
+              <div className="space-y-2">
+                {tableMetadata && tableMetadata.label !== activeTable && (
+                  <p className="text-sm text-muted-foreground">
+                    {t('database.importTableLabel').replace('{label}', tableMetadata.label)}
+                  </p>
+                )}
+                <Label htmlFor="import-confirm-name">
+                  {t('database.importConfirmPlaceholder')}
+                </Label>
+                <Input
+                  id="import-confirm-name"
+                  value={confirmName}
+                  autoFocus
+                  autoComplete="off"
+                  spellCheck={false}
+                  placeholder={t('database.importConfirmPlaceholder')}
+                  onChange={(event) => setConfirmName(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' && confirmName === activeTable) {
+                      event.preventDefault();
+                      void submitImport();
+                    }
+                  }}
+                />
+              </div>
+            )}
+
+            <DialogFooter className="gap-2 sm:gap-2">
+              <Button type="button" variant="outline" onClick={closeImport} disabled={isImporting}>
+                {t('common.cancel')}
+              </Button>
+              {importStep !== null && importStep > 0 && (
+                <Button type="button" variant="outline" onClick={backImport} disabled={isImporting}>
+                  {t('database.importBack')}
+                </Button>
+              )}
+              <Button
+                type="button"
+                variant={
+                  importMode === 'replace' && importStep !== null && importStep > 0
+                    ? 'destructive'
+                    : 'default'
+                }
+                onClick={advanceImport}
+                disabled={importPrimaryDisabled}
+              >
+                {isImporting && <RefreshCw className="h-4 w-4 mr-1 animate-spin" />}
+                {importPrimaryLabel}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </PinnedPage>
+      {/* Floating horizontal scrollbar rendered via Portal to body,
         so position:fixed works correctly regardless of ancestor transforms */}
-    {showFloatingBar && createPortal(
-      <div
-        ref={floatingScrollbarRef}
-        className="overflow-x-auto h-5 sm:h-3 bg-background/80 border border-border/60 shadow-md backdrop-blur-sm rounded-full"
-        onScroll={handleFloatingScroll}
-        style={floatingBarStyle}
-      >
-        <div style={{ width: tableScrollWidth, minWidth: '100%' }} className="h-px" />
-      </div>,
-      document.body
-    )}
-  </>
+      {showFloatingBar &&
+        createPortal(
+          <div
+            ref={floatingScrollbarRef}
+            className="overflow-x-auto h-5 sm:h-3 bg-background/80 border border-border/60 shadow-md backdrop-blur-sm rounded-full"
+            onScroll={handleFloatingScroll}
+            style={floatingBarStyle}
+          >
+            <div style={{ width: tableScrollWidth, minWidth: '100%' }} className="h-px" />
+          </div>,
+          document.body,
+        )}
+    </>
   );
 }

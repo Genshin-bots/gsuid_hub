@@ -90,9 +90,7 @@ export function AutoBrandIcon({
 }: AutoBrandIconProps) {
   return (
     <Server
-      className={['inline-block shrink-0', className]
-        .filter(Boolean)
-        .join(' ')}
+      className={['inline-block shrink-0', className].filter(Boolean).join(' ')}
       aria-hidden="true"
     />
   );

@@ -3,11 +3,10 @@
  * Read + delete only (state-store has no write API).
  */
 import { useCallback, useEffect, useState } from 'react';
-import { Loader2, RefreshCw, Users } from 'lucide-react';
+import { Navigate } from 'react-router-dom';
+import { Loader2, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { useTheme } from '@/contexts/ThemeContext';
-import { PinnedPage } from '@/components/layout/PinnedPage';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,10 +16,8 @@ import { cn } from '@/lib/utils';
 import { aiStateStoreApi, getApiErrorMessage, type AIStateStoreKeyItem } from '@/lib/api';
 import { GROUP_PROFILE_STATE_SCOPE, normalizeGroupProfile } from '@/lib/featureUtils';
 
-export default function GroupProfilePage() {
+export function GroupProfilePanel() {
   const { t } = useLanguage();
-  const { style } = useTheme();
-  const isGlass = style === 'glassmorphism';
   const [keys, setKeys] = useState<AIStateStoreKeyItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
@@ -64,31 +61,15 @@ export default function GroupProfilePage() {
   };
 
   return (
-    <PinnedPage
-      header={
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div className="min-w-0 sm:overflow-x-auto">
-            <h1 className="sm:whitespace-nowrap text-3xl font-bold flex items-center gap-3">
-              <Users className="w-8 h-8 shrink-0" />
-              {t('groupProfile.title')}
-            </h1>
-            <p className="sm:whitespace-nowrap text-muted-foreground mt-1">
-              {t('groupProfile.description')}
-            </p>
-          </div>
-          <Button
-            variant="outline"
-            className="w-full whitespace-nowrap sm:w-auto"
-            onClick={() => void loadKeys()}
-          >
-            <RefreshCw className={cn('w-4 h-4', loading && 'animate-spin')} />
-            {t('common.refresh')}
-          </Button>
-        </div>
-      }
-    >
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button variant="outline" onClick={() => void loadKeys()}>
+          <RefreshCw className={cn('w-4 h-4', loading && 'animate-spin')} />
+          {t('common.refresh')}
+        </Button>
+      </div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <Card className={cn('lg:col-span-1', isGlass ? 'glass-card' : 'border border-border/50')}>
+        <Card className={cn('lg:col-span-1', 'glass-card')}>
           <CardHeader className="py-3">
             <CardTitle className="text-sm">
               {t('groupProfile.scopes')} ({keys.length})
@@ -128,7 +109,7 @@ export default function GroupProfilePage() {
           </CardContent>
         </Card>
 
-        <Card className={cn('lg:col-span-2', isGlass ? 'glass-card' : 'border border-border/50')}>
+        <Card className={cn('lg:col-span-2', 'glass-card')}>
           <CardHeader className="py-3">
             <CardTitle className="text-sm">{selectedKey ?? t('groupProfile.selectHint')}</CardTitle>
           </CardHeader>
@@ -198,6 +179,10 @@ export default function GroupProfilePage() {
           </CardContent>
         </Card>
       </div>
-    </PinnedPage>
+    </div>
   );
+}
+
+export default function GroupProfilePage() {
+  return <Navigate to="/ai-runtime?tab=group" replace />;
 }

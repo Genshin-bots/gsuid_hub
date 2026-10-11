@@ -4,16 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import {
-  MessageCircle,
-  Plus,
-  Search,
-  Users,
-  User,
-  Trash2,
-  Settings2,
-  Loader2,
-} from 'lucide-react';
+import { MessageCircle, Plus, Search, Users, User, Trash2, Settings2, Loader2 } from 'lucide-react';
 import { ConnectionBadge } from './ConnectionBadge';
 import { format } from 'date-fns';
 
@@ -198,7 +189,10 @@ export function ConversationSidebar({
                           )}
                         </div>
                         {/* 第 2 行：最近消息预览 */}
-                        <p className="mt-1.5 truncate text-xs text-muted-foreground" title={preview}>
+                        <p
+                          className="mt-1.5 truncate text-xs text-muted-foreground"
+                          title={preview}
+                        >
                           {preview}
                         </p>
                       </div>

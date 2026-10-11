@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { BackendUnreachableError, isBackendUnreachable, isUnreachableResponse } from './backendReachability';
+import {
+  BackendUnreachableError,
+  isBackendUnreachable,
+  isUnreachableResponse,
+} from './backendReachability';
 
 /**
  * 这些用例锁的是一条真实踩过的坑：dev 下 Core 没启动时，Vite 代理返回
@@ -9,9 +13,7 @@ import { BackendUnreachableError, isBackendUnreachable, isUnreachableResponse } 
 describe('isUnreachableResponse', () => {
   it('treats the dev proxy 500 with empty body as unreachable', () => {
     // Vite 转发 ECONNREFUSED 时自己造的响应
-    expect(
-      isUnreachableResponse({ status: 500, bodyIsJson: false, hasBody: false }),
-    ).toBe(true);
+    expect(isUnreachableResponse({ status: 500, bodyIsJson: false, hasBody: false })).toBe(true);
   });
 
   it('treats gateway errors as unreachable regardless of body', () => {
@@ -22,9 +24,7 @@ describe('isUnreachableResponse', () => {
 
   it('keeps the backend 500 JSON envelope as a normal business error', () => {
     // 后端自己回的 5xx 必须照常把 msg/detail 抛给 UI，不能吞成「连不上」
-    expect(
-      isUnreachableResponse({ status: 500, bodyIsJson: true, hasBody: true }),
-    ).toBe(false);
+    expect(isUnreachableResponse({ status: 500, bodyIsJson: true, hasBody: true })).toBe(false);
   });
 
   it('does not treat 4xx as unreachable', () => {
@@ -49,9 +49,9 @@ describe('isBackendUnreachable', () => {
 
   it('recognises Safari and Firefox network-layer messages', () => {
     expect(isBackendUnreachable(new Error('Load failed'))).toBe(true);
-    expect(
-      isBackendUnreachable(new Error('NetworkError when attempting to fetch resource.')),
-    ).toBe(true);
+    expect(isBackendUnreachable(new Error('NetworkError when attempting to fetch resource.'))).toBe(
+      true,
+    );
   });
 
   it('does not swallow ordinary backend business errors', () => {

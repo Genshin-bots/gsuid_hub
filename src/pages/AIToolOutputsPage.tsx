@@ -5,27 +5,13 @@
  * 与 /ai-artifacts（Kanban res_*）不同：本页管理 to_/sa_ 等工具全文落盘。
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  Check,
-  Copy,
-  Download,
-  Eye,
-  FileSearch,
-  RefreshCw,
-  Trash2,
-} from 'lucide-react';
+import { Check, Copy, Download, Eye, FileSearch, RefreshCw, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
@@ -71,15 +57,7 @@ function formatBytes(n: number) {
   return `${(n / 1024 / 1024).toFixed(2)} MB`;
 }
 
-function MetaRow({
-  label,
-  value,
-  mono,
-}: {
-  label: string;
-  value: string;
-  mono?: boolean;
-}) {
+function MetaRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <div className="flex items-baseline gap-2 min-w-0">
       <dt className="shrink-0 text-muted-foreground">{label}</dt>
@@ -278,11 +256,7 @@ export default function AIToolOutputsPage() {
           </div>
           <div className={headerActionRowClass}>
             {selected.size > 0 && (
-              <Button
-                variant="destructive"
-                className="whitespace-nowrap"
-                onClick={removeBatch}
-              >
+              <Button variant="destructive" className="whitespace-nowrap" onClick={removeBatch}>
                 <Trash2 className="w-4 h-4" />
                 {t('aiToolOutputs.toolbar.batchDelete', { count: selected.size })}
               </Button>
@@ -460,10 +434,7 @@ export default function AIToolOutputsPage() {
           {items.length > 0 && (
             <div className="md:hidden space-y-2">
               {items.map((row) => (
-                <div
-                  key={row.id}
-                  className="rounded-lg border border-border/50 p-3 space-y-2"
-                >
+                <div key={row.id} className="rounded-lg border border-border/50 p-3 space-y-2">
                   <div className="flex items-start gap-2 min-w-0">
                     <Checkbox
                       className="mt-0.5 shrink-0"
@@ -471,9 +442,7 @@ export default function AIToolOutputsPage() {
                       onCheckedChange={(c) => toggleOne(row.id, c === true)}
                     />
                     <div className="min-w-0 flex-1">
-                      <Badge className="whitespace-normal max-w-full">
-                        {row.tool_name || '—'}
-                      </Badge>
+                      <Badge className="whitespace-normal max-w-full">{row.tool_name || '—'}</Badge>
                       <p className="mt-1 text-sm line-clamp-2 break-words">
                         {row.summary || row.id}
                       </p>
@@ -583,13 +552,7 @@ export default function AIToolOutputsPage() {
                   <MetaRow label="expires_at" value={detail.expires_at ?? '—'} mono />
                   <MetaRow
                     label="storage"
-                    value={
-                      detail.has_payload_path
-                        ? 'disk'
-                        : detail.has_inline
-                          ? 'inline'
-                          : '—'
-                    }
+                    value={detail.has_payload_path ? 'disk' : detail.has_inline ? 'inline' : '—'}
                   />
                 </dl>
               ) : (
@@ -624,9 +587,7 @@ export default function AIToolOutputsPage() {
                       ) : (
                         <Copy className="w-3.5 h-3.5" />
                       )}
-                      {payloadCopied
-                        ? t('aiToolOutputs.detail.copied')
-                        : t('common.copy')}
+                      {payloadCopied ? t('aiToolOutputs.detail.copied') : t('common.copy')}
                     </Button>
                   </div>
                   <pre className="flex-1 min-h-0 overflow-auto rounded-md bg-muted/40 p-3 text-xs whitespace-pre-wrap break-words">

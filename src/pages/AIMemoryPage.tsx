@@ -70,7 +70,15 @@ import {
   X,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { api, agentDebugApi, cognitionApi, AgentDebugMemoryConflict, AgentDebugMemoryEdge, type CognitionAttachment, type CognitionNode } from '@/lib/api';
+import {
+  api,
+  agentDebugApi,
+  cognitionApi,
+  AgentDebugMemoryConflict,
+  AgentDebugMemoryEdge,
+  type CognitionAttachment,
+  type CognitionNode,
+} from '@/lib/api';
 import { CognitionArticlePreview } from '@/components/cognition/CognitionArticlePreview';
 import { CognitionAttachments } from '@/components/cognition/CognitionAttachments';
 import { WorldHubGraph } from '@/components/cognition/WorldHubGraph';
@@ -231,7 +239,13 @@ const memoryApi = {
     return api.get<MemoryStats>(`/api/ai/memory/stats${queryStr ? `?${queryStr}` : ''}`);
   },
   getScopes: () => api.get<MemoryScope[]>('/api/ai/memory/scopes'),
-  getEpisodes: (params: { group_id?: string; scope_key?: string; all_scopes?: boolean; page?: number; page_size?: number }) => {
+  getEpisodes: (params: {
+    group_id?: string;
+    scope_key?: string;
+    all_scopes?: boolean;
+    page?: number;
+    page_size?: number;
+  }) => {
     const query = new URLSearchParams();
     if (params.group_id) query.set('group_id', params.group_id);
     if (params.scope_key) query.set('scope_key', params.scope_key);
@@ -243,7 +257,15 @@ const memoryApi = {
   getEpisodeDetail: (episodeId: string) =>
     api.get<Episode & { mentioned_entities: Entity[] }>(`/api/ai/memory/episodes/${episodeId}`),
   deleteEpisode: (episodeId: string) => api.delete<void>(`/api/ai/memory/episodes/${episodeId}`),
-  getEntities: (params: { group_id?: string; scope_key?: string; all_scopes?: boolean; is_speaker?: boolean; search?: string; page?: number; page_size?: number }) => {
+  getEntities: (params: {
+    group_id?: string;
+    scope_key?: string;
+    all_scopes?: boolean;
+    is_speaker?: boolean;
+    search?: string;
+    page?: number;
+    page_size?: number;
+  }) => {
     const query = new URLSearchParams();
     if (params.group_id) query.set('group_id', params.group_id);
     if (params.scope_key) query.set('scope_key', params.scope_key);
@@ -255,9 +277,18 @@ const memoryApi = {
     return api.get<PaginatedResponse<Entity>>(`/api/ai/memory/entities?${query.toString()}`);
   },
   getEntityDetail: (entityId: string) =>
-    api.get<Entity & { episodes: Episode[]; edges: (Edge & { direction: string })[] }>(`/api/ai/memory/entities/${entityId}`),
+    api.get<Entity & { episodes: Episode[]; edges: (Edge & { direction: string })[] }>(
+      `/api/ai/memory/entities/${entityId}`,
+    ),
   deleteEntity: (entityId: string) => api.delete<void>(`/api/ai/memory/entities/${entityId}`),
-  getEdges: (params: { group_id?: string; scope_key?: string; all_scopes?: boolean; entity_id?: string; page?: number; page_size?: number }) => {
+  getEdges: (params: {
+    group_id?: string;
+    scope_key?: string;
+    all_scopes?: boolean;
+    entity_id?: string;
+    page?: number;
+    page_size?: number;
+  }) => {
     const query = new URLSearchParams();
     if (params.group_id) query.set('group_id', params.group_id);
     if (params.scope_key) query.set('scope_key', params.scope_key);
@@ -268,9 +299,18 @@ const memoryApi = {
     return api.get<PaginatedResponse<Edge>>(`/api/ai/memory/edges?${query.toString()}`);
   },
   getEdgeDetail: (edgeId: string) =>
-    api.get<Edge & { source_entity: Entity; target_entity: Entity }>(`/api/ai/memory/edges/${edgeId}`),
+    api.get<Edge & { source_entity: Entity; target_entity: Entity }>(
+      `/api/ai/memory/edges/${edgeId}`,
+    ),
   deleteEdge: (edgeId: string) => api.delete<void>(`/api/ai/memory/edges/${edgeId}`),
-  getCategories: (params: { group_id?: string; scope_key?: string; all_scopes?: boolean; layer?: number; page?: number; page_size?: number }) => {
+  getCategories: (params: {
+    group_id?: string;
+    scope_key?: string;
+    all_scopes?: boolean;
+    layer?: number;
+    page?: number;
+    page_size?: number;
+  }) => {
     const query = new URLSearchParams();
     if (params.group_id) query.set('group_id', params.group_id);
     if (params.scope_key) query.set('scope_key', params.scope_key);
@@ -281,7 +321,13 @@ const memoryApi = {
     return api.get<PaginatedResponse<Category>>(`/api/ai/memory/categories?${query.toString()}`);
   },
   getCategoryDetail: (categoryId: string) =>
-    api.get<Category & { parent_categories: { id: string; name: string; layer: number }[]; child_categories: { id: string; name: string; layer: number }[]; member_entities: Entity[] }>(`/api/ai/memory/categories/${categoryId}`),
+    api.get<
+      Category & {
+        parent_categories: { id: string; name: string; layer: number }[];
+        child_categories: { id: string; name: string; layer: number }[];
+        member_entities: Entity[];
+      }
+    >(`/api/ai/memory/categories/${categoryId}`),
   getHierGraphStatus: (params: { group_id?: string; scope_key?: string }) => {
     const query = new URLSearchParams();
     if (params.group_id) query.set('group_id', params.group_id);
@@ -289,9 +335,16 @@ const memoryApi = {
     return api.get<HierGraphStatus>(`/api/ai/memory/hiergraph/status?${query.toString()}`);
   },
   getConfig: () => api.get<MemoryConfig>('/api/ai/memory/config'),
-  updateConfig: (data: Partial<MemoryConfig>) => api.put<MemoryConfig>('/api/ai/memory/config', data),
+  updateConfig: (data: Partial<MemoryConfig>) =>
+    api.put<MemoryConfig>('/api/ai/memory/config', data),
   deleteScope: (scopeKey: string) =>
-    api.delete<{ scope_key: string; deleted_episodes: number; deleted_entities: number; deleted_edges: number; deleted_categories: number }>(`/api/ai/memory/scopes/${encodeURIComponent(scopeKey)}`),
+    api.delete<{
+      scope_key: string;
+      deleted_episodes: number;
+      deleted_entities: number;
+      deleted_edges: number;
+      deleted_categories: number;
+    }>(`/api/ai/memory/scopes/${encodeURIComponent(scopeKey)}`),
   clearMemory: (params: { scope_key?: string; scope_pattern?: string; dry_run?: boolean }) =>
     api.post<{
       affected_scope_keys: string[];
@@ -315,7 +368,8 @@ const memoryApi = {
     if (params.scope_key) query.set('scope_key', params.scope_key);
     if (params.user_id) query.set('user_id', params.user_id);
     if (params.target_context) query.set('target_context', params.target_context);
-    if (params.is_correction !== undefined) query.set('is_correction', String(params.is_correction));
+    if (params.is_correction !== undefined)
+      query.set('is_correction', String(params.is_correction));
     if (params.polarity) query.set('polarity', params.polarity);
     if (params.is_active !== undefined) query.set('is_active', String(params.is_active));
     if (params.all_scopes) query.set('all_scopes', 'true');
@@ -325,10 +379,13 @@ const memoryApi = {
   },
   getPreferenceDetail: (prefId: string) =>
     api.get<Preference>(`/api/ai/memory/preferences/${prefId}`),
-  updatePreference: (prefId: string, data: Partial<Pick<Preference, 'preference_rule' | 'polarity' | 'target_context' | 'is_active'>>) =>
-    api.patch<Preference>(`/api/ai/memory/preferences/${prefId}`, data),
-  deletePreference: (prefId: string) =>
-    api.delete<null>(`/api/ai/memory/preferences/${prefId}`),
+  updatePreference: (
+    prefId: string,
+    data: Partial<
+      Pick<Preference, 'preference_rule' | 'polarity' | 'target_context' | 'is_active'>
+    >,
+  ) => api.patch<Preference>(`/api/ai/memory/preferences/${prefId}`, data),
+  deletePreference: (prefId: string) => api.delete<null>(`/api/ai/memory/preferences/${prefId}`),
 };
 
 // ============================================================================
@@ -337,7 +394,8 @@ const memoryApi = {
 
 function formatScopeType(scopeKey: string): { type: string; id: string } {
   if (scopeKey.startsWith('group:')) return { type: 'group', id: scopeKey.replace('group:', '') };
-  if (scopeKey.startsWith('user_global:')) return { type: 'user_global', id: scopeKey.replace('user_global:', '') };
+  if (scopeKey.startsWith('user_global:'))
+    return { type: 'user_global', id: scopeKey.replace('user_global:', '') };
   if (scopeKey.startsWith('user_in_group:')) {
     const parts = scopeKey.replace('user_in_group:', '').split('@');
     return { type: 'user_in_group', id: parts[0] };
@@ -346,8 +404,11 @@ function formatScopeType(scopeKey: string): { type: string; id: string } {
 }
 
 function formatDate(dateStr: string): string {
-  try { return new Date(dateStr).toLocaleString(); }
-  catch { return dateStr; }
+  try {
+    return new Date(dateStr).toLocaleString();
+  } catch {
+    return dateStr;
+  }
 }
 
 function truncateText(text: string, maxLength: number): string {
@@ -361,8 +422,8 @@ function truncateText(text: string, maxLength: number): string {
 
 const CENTER_NODE_COUNT = 3;
 const HUGE_GRAPH_NODE_THRESHOLD = 5000;
-const FA2_MAX_NODES = 8000;       // above this the force layout is skipped (deterministic layout only)
-const MAX_RENDER_EDGES = 30000;   // hard cap so layout + rendering stay bounded
+const FA2_MAX_NODES = 8000; // above this the force layout is skipped (deterministic layout only)
+const MAX_RENDER_EDGES = 30000; // hard cap so layout + rendering stay bounded
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
 
 type NodeKind = 'speaker' | 'entity' | 'placeholder';
@@ -386,16 +447,28 @@ function phyllotaxisPosition(index: number, spacing: number): { x: number; y: nu
 function getGraphPalette(isDark: boolean) {
   return isDark
     ? {
-        speaker: '#60a5fa', entity: '#818cf8', placeholder: '#94a3b8', center: '#facc15',
-        edge: 'rgba(96,165,250,0.7)', edgeInvalid: 'rgba(248,113,113,0.75)',
-        nodeDim: 'rgba(100,116,139,0.18)', edgeDim: 'rgba(96,165,250,0.12)',
-        label: '#e2e8f0', labelBg: 'rgba(15,23,42,0.78)',
+        speaker: '#60a5fa',
+        entity: '#818cf8',
+        placeholder: '#94a3b8',
+        center: '#facc15',
+        edge: 'rgba(96,165,250,0.7)',
+        edgeInvalid: 'rgba(248,113,113,0.75)',
+        nodeDim: 'rgba(100,116,139,0.18)',
+        edgeDim: 'rgba(96,165,250,0.12)',
+        label: '#e2e8f0',
+        labelBg: 'rgba(15,23,42,0.78)',
       }
     : {
-        speaker: '#3b82f6', entity: '#6366f1', placeholder: '#64748b', center: '#f59e0b',
-        edge: 'rgba(37,99,235,0.6)', edgeInvalid: 'rgba(239,68,68,0.65)',
-        nodeDim: 'rgba(148,163,184,0.22)', edgeDim: 'rgba(37,99,235,0.12)',
-        label: '#1e293b', labelBg: 'rgba(255,255,255,0.82)',
+        speaker: '#3b82f6',
+        entity: '#6366f1',
+        placeholder: '#64748b',
+        center: '#f59e0b',
+        edge: 'rgba(37,99,235,0.6)',
+        edgeInvalid: 'rgba(239,68,68,0.65)',
+        nodeDim: 'rgba(148,163,184,0.22)',
+        edgeDim: 'rgba(37,99,235,0.12)',
+        label: '#1e293b',
+        labelBg: 'rgba(255,255,255,0.82)',
       };
 }
 
@@ -457,7 +530,12 @@ function KnowledgeGraph({
     for (const edge of edges) {
       for (const id of [edge.source_entity_id, edge.target_entity_id]) {
         if (!meta.has(id)) {
-          meta.set(id, { id, label: id.slice(0, 8), degree: degree.get(id) || 0, kind: 'placeholder' });
+          meta.set(id, {
+            id,
+            label: id.slice(0, 8),
+            degree: degree.get(id) || 0,
+            kind: 'placeholder',
+          });
         }
       }
     }
@@ -465,7 +543,9 @@ function KnowledgeGraph({
       .filter((m) => m.degree > 0)
       .sort((a, b) => b.degree - a.degree)
       .slice(0, CENTER_NODE_COUNT)
-      .forEach((m, i) => { m.centerRank = i + 1; });
+      .forEach((m, i) => {
+        m.centerRank = i + 1;
+      });
     return meta;
   }, [entities, edges]);
 
@@ -491,7 +571,11 @@ function KnowledgeGraph({
       const pos = phyllotaxisPosition(index++, spacing);
       const size = m.centerRank
         ? 13 - m.centerRank
-        : m.kind === 'speaker' ? 6.5 : m.kind === 'placeholder' ? 3.5 : 5;
+        : m.kind === 'speaker'
+          ? 6.5
+          : m.kind === 'placeholder'
+            ? 3.5
+            : 5;
       graph.addNode(m.id, {
         x: pos.x,
         y: pos.y,
@@ -592,9 +676,11 @@ function KnowledgeGraph({
         const res = { ...data };
         let color = data.centerRank
           ? palette.center
-          : data.kind === 'speaker' ? palette.speaker
-          : data.kind === 'placeholder' ? palette.placeholder
-          : palette.entity;
+          : data.kind === 'speaker'
+            ? palette.speaker
+            : data.kind === 'placeholder'
+              ? palette.placeholder
+              : palette.entity;
         const highlight = highlightRef.current;
         if (highlight) {
           if (highlight.has(node)) {
@@ -666,10 +752,13 @@ function KnowledgeGraph({
       fa2Ref.current = layout;
       layout.start();
       setIsLayoutRunning(true);
-      layoutTimer = window.setTimeout(() => {
-        layout.stop();
-        setIsLayoutRunning(false);
-      }, Math.min(9000, 2500 + graph.order));
+      layoutTimer = window.setTimeout(
+        () => {
+          layout.stop();
+          setIsLayoutRunning(false);
+        },
+        Math.min(9000, 2500 + graph.order),
+      );
     }
 
     return () => {
@@ -733,19 +822,28 @@ function KnowledgeGraph({
     renderer.refresh({ skipIndexation: true });
   }, []);
 
-  const handleSearchSubmit = useCallback((e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const first = nodeSearchResults[0];
-    if (first) focusNode(first.id, { closeResults: true });
-  }, [focusNode, nodeSearchResults]);
+  const handleSearchSubmit = useCallback(
+    (e: React.FormEvent<HTMLFormElement>) => {
+      e.preventDefault();
+      const first = nodeSearchResults[0];
+      if (first) focusNode(first.id, { closeResults: true });
+    },
+    [focusNode, nodeSearchResults],
+  );
 
   const toggleFullscreen = useCallback(() => {
     const wrapper = wrapperRef.current;
     if (!wrapper) return;
     if (!document.fullscreenElement) {
-      wrapper.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {});
+      wrapper
+        .requestFullscreen()
+        .then(() => setIsFullscreen(true))
+        .catch(() => {});
     } else {
-      document.exitFullscreen().then(() => setIsFullscreen(false)).catch(() => {});
+      document
+        .exitFullscreen()
+        .then(() => setIsFullscreen(false))
+        .catch(() => {});
     }
   }, []);
 
@@ -767,10 +865,7 @@ function KnowledgeGraph({
     >
       <div
         ref={containerRef}
-        className={cn(
-          'w-full h-full glass-card',
-          isFullscreen ? '' : 'rounded-lg',
-        )}
+        className={cn('w-full h-full glass-card', isFullscreen ? '' : 'rounded-lg')}
         style={{ cursor: 'grab' }}
       />
       {/* Search */}
@@ -804,7 +899,10 @@ function KnowledgeGraph({
                     <span className="block truncate font-medium">{node.label}</span>
                     <span className="block truncate text-xs text-muted-foreground">{node.id}</span>
                   </span>
-                  <Badge variant={node.centerRank ? 'default' : 'outline'} className="shrink-0 text-[10px]">
+                  <Badge
+                    variant={node.centerRank ? 'default' : 'outline'}
+                    className="shrink-0 text-[10px]"
+                  >
                     {node.centerRank ? `TOP ${node.centerRank}` : `${node.degree} 线`}
                   </Badge>
                 </button>
@@ -817,13 +915,28 @@ function KnowledgeGraph({
       </form>
       {/* Controls */}
       <div className="absolute top-3 right-3 flex flex-col gap-1">
-        <Button variant="outline" size="icon" className="h-8 w-8 bg-background/80 backdrop-blur" onClick={() => sigmaRef.current?.getCamera().animatedZoom()}>
+        <Button
+          variant="outline"
+          size="icon"
+          className="h-8 w-8 bg-background/80 backdrop-blur"
+          onClick={() => sigmaRef.current?.getCamera().animatedZoom()}
+        >
           <ZoomIn className="w-4 h-4" />
         </Button>
-        <Button variant="outline" size="icon" className="h-8 w-8 bg-background/80 backdrop-blur" onClick={() => sigmaRef.current?.getCamera().animatedUnzoom()}>
+        <Button
+          variant="outline"
+          size="icon"
+          className="h-8 w-8 bg-background/80 backdrop-blur"
+          onClick={() => sigmaRef.current?.getCamera().animatedUnzoom()}
+        >
           <ZoomOut className="w-4 h-4" />
         </Button>
-        <Button variant="outline" size="icon" className="h-8 w-8 bg-background/80 backdrop-blur" onClick={toggleFullscreen}>
+        <Button
+          variant="outline"
+          size="icon"
+          className="h-8 w-8 bg-background/80 backdrop-blur"
+          onClick={toggleFullscreen}
+        >
           <Maximize2 className="w-4 h-4" />
         </Button>
       </div>
@@ -865,9 +978,19 @@ function KnowledgeGraph({
 // Sub-components
 // ============================================================================
 
-function StatsCard({ title, value, icon: Icon, isGlass }: { title: string; value: number; icon: React.ElementType; isGlass: boolean }) {
+function StatsCard({
+  title,
+  value,
+  icon: Icon,
+  isGlass,
+}: {
+  title: string;
+  value: number;
+  icon: React.ElementType;
+  isGlass: boolean;
+}) {
   return (
-    <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
+    <Card className={cn('glass-card')}>
       <CardContent className="p-3 sm:p-4">
         <div className="flex items-center gap-2 sm:gap-3">
           <div className="p-2 sm:p-2.5 rounded-lg bg-primary/10 shrink-0">
@@ -883,10 +1006,26 @@ function StatsCard({ title, value, icon: Icon, isGlass }: { title: string; value
   );
 }
 
-function ScopeCard({ scope, isGlass, onDelete, onSelect }: { scope: MemoryScope; isGlass: boolean; onDelete: () => void; onSelect: () => void }) {
+function ScopeCard({
+  scope,
+  isGlass,
+  onDelete,
+  onSelect,
+}: {
+  scope: MemoryScope;
+  isGlass: boolean;
+  onDelete: () => void;
+  onSelect: () => void;
+}) {
   const { type, id } = formatScopeType(scope.scope_key);
   return (
-    <Card className={cn('cursor-pointer transition-all hover:shadow-md hover:border-primary/50', isGlass ? 'glass-card' : 'border border-border/50')} onClick={onSelect}>
+    <Card
+      className={cn(
+        'cursor-pointer transition-all hover:shadow-md hover:border-primary/50',
+        'glass-card',
+      )}
+      onClick={onSelect}
+    >
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between gap-2">
           <CardTitle className="text-lg flex items-center gap-2 min-w-0">
@@ -900,14 +1039,35 @@ function ScopeCard({ scope, isGlass, onDelete, onSelect }: { scope: MemoryScope;
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-          <div><p className="text-muted-foreground">对话片段</p><p className="font-semibold">{scope.episode_count}</p></div>
-          <div><p className="text-muted-foreground">实体</p><p className="font-semibold">{scope.entity_count}</p></div>
-          <div><p className="text-muted-foreground">关系</p><p className="font-semibold">{scope.edge_count}</p></div>
-          <div><p className="text-muted-foreground">分类</p><p className="font-semibold">{scope.category_count}</p></div>
+          <div>
+            <p className="text-muted-foreground">对话片段</p>
+            <p className="font-semibold">{scope.episode_count}</p>
+          </div>
+          <div>
+            <p className="text-muted-foreground">实体</p>
+            <p className="font-semibold">{scope.entity_count}</p>
+          </div>
+          <div>
+            <p className="text-muted-foreground">关系</p>
+            <p className="font-semibold">{scope.edge_count}</p>
+          </div>
+          <div>
+            <p className="text-muted-foreground">分类</p>
+            <p className="font-semibold">{scope.category_count}</p>
+          </div>
         </div>
         <div className="flex justify-end mt-4">
-          <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); onDelete(); }}>
-            <Trash2 className="w-4 h-4 mr-1" />删除
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-destructive hover:text-destructive"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete();
+            }}
+          >
+            <Trash2 className="w-4 h-4 mr-1" />
+            删除
           </Button>
         </div>
       </CardContent>
@@ -928,18 +1088,37 @@ function EntityNode({
 }) {
   const articleCount = worldHub?.attachments?.length ?? 0;
   return (
-    <Card className={cn('cursor-pointer transition-all hover:shadow-md hover:border-primary/50', isGlass ? 'glass-card' : 'border border-border/50', entity.is_speaker && 'border-l-4 border-l-primary/60')} onClick={onClick}>
+    <Card
+      className={cn(
+        'cursor-pointer transition-all hover:shadow-md hover:border-primary/50',
+        'glass-card',
+        entity.is_speaker && 'border-l-4 border-l-primary/60',
+      )}
+      onClick={onClick}
+    >
       <CardContent className="p-4">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
             <p className="font-medium truncate">{entity.name}</p>
-            {entity.summary && <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{truncateText(entity.summary, 100)}</p>}
+            {entity.summary && (
+              <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                {truncateText(entity.summary, 100)}
+              </p>
+            )}
           </div>
-          {entity.is_speaker && <Badge variant="secondary" className="shrink-0">Speaker</Badge>}
+          {entity.is_speaker && (
+            <Badge variant="secondary" className="shrink-0">
+              Speaker
+            </Badge>
+          )}
         </div>
         {(entity.tag.length > 0 || worldHub) && (
           <div className="flex flex-wrap gap-1 mt-2">
-            {entity.tag.slice(0, 3).map((tag) => <Badge key={tag} variant="outline" className="text-xs">{tag}</Badge>)}
+            {entity.tag.slice(0, 3).map((tag) => (
+              <Badge key={tag} variant="outline" className="text-xs">
+                {tag}
+              </Badge>
+            ))}
             {worldHub && (
               <Badge variant="outline" className="text-xs gap-1">
                 <Globe className="w-3 h-3" />
@@ -954,20 +1133,47 @@ function EntityNode({
   );
 }
 
-function EdgeItem({ edge, isGlass, onClick, sourceName, targetName }: { edge: Edge; isGlass: boolean; onClick: () => void; sourceName?: string; targetName?: string }) {
+function EdgeItem({
+  edge,
+  isGlass,
+  onClick,
+  sourceName,
+  targetName,
+}: {
+  edge: Edge;
+  isGlass: boolean;
+  onClick: () => void;
+  sourceName?: string;
+  targetName?: string;
+}) {
   return (
-    <Card className={cn('cursor-pointer transition-all hover:shadow-md hover:border-primary/50', isGlass ? 'glass-card' : 'border border-border/50', edge.invalid_at && 'opacity-60')} onClick={onClick}>
+    <Card
+      className={cn(
+        'cursor-pointer transition-all hover:shadow-md hover:border-primary/50',
+        'glass-card',
+        edge.invalid_at && 'opacity-60',
+      )}
+      onClick={onClick}
+    >
       <CardContent className="p-4">
         <div className="flex items-center gap-2 text-sm min-w-0">
-          <span className="font-medium truncate max-w-[120px] min-w-0">{sourceName || edge.source_entity_id}</span>
+          <span className="font-medium truncate max-w-[120px] min-w-0">
+            {sourceName || edge.source_entity_id}
+          </span>
           <ChevronRight className="w-4 h-4 shrink-0 text-primary/50" />
-          <span className="font-medium truncate max-w-[120px] min-w-0">{targetName || edge.target_entity_id}</span>
+          <span className="font-medium truncate max-w-[120px] min-w-0">
+            {targetName || edge.target_entity_id}
+          </span>
         </div>
         <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{edge.fact}</p>
         <div className="flex items-center gap-2 mt-2">
           <Clock className="w-3 h-3 text-muted-foreground" />
           <span className="text-xs text-muted-foreground">{formatDate(edge.valid_at)}</span>
-          {edge.invalid_at && <Badge variant="destructive" className="text-xs">已失效</Badge>}
+          {edge.invalid_at && (
+            <Badge variant="destructive" className="text-xs">
+              已失效
+            </Badge>
+          )}
         </div>
       </CardContent>
     </Card>
@@ -1013,7 +1219,7 @@ function CategoryTreeNode({
       <div
         className={cn(
           'group flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer transition-all hover:shadow-sm',
-          isGlass ? 'hover:bg-accent/30' : 'hover:bg-accent/50'
+          isGlass ? 'hover:bg-accent/30' : 'hover:bg-accent/50',
         )}
         style={{ paddingLeft: `${12 + depth * 16}px` }}
         onClick={() => onClick(category.id)}
@@ -1021,25 +1227,32 @@ function CategoryTreeNode({
         {hasChildren ? (
           <button
             className="w-5 h-5 flex items-center justify-center rounded hover:bg-accent shrink-0 transition-colors"
-            onClick={(e) => { e.stopPropagation(); onToggle(category.id); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggle(category.id);
+            }}
           >
             {isLoading ? (
               <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
             ) : (
-              <ChevronRight className={cn(
-                'w-3.5 h-3.5 text-muted-foreground transition-transform duration-200',
-                isExpanded && 'rotate-90'
-              )} />
+              <ChevronRight
+                className={cn(
+                  'w-3.5 h-3.5 text-muted-foreground transition-transform duration-200',
+                  isExpanded && 'rotate-90',
+                )}
+              />
             )}
           </button>
         ) : (
           <div className="w-5 h-5 shrink-0" />
         )}
 
-        <div className={cn(
-          'w-6 h-6 rounded flex items-center justify-center text-[10px] font-bold text-white shrink-0',
-          layerColors[depth % layerColors.length]
-        )}>
+        <div
+          className={cn(
+            'w-6 h-6 rounded flex items-center justify-center text-[10px] font-bold text-white shrink-0',
+            layerColors[depth % layerColors.length],
+          )}
+        >
           L{category.layer}
         </div>
 
@@ -1049,19 +1262,23 @@ function CategoryTreeNode({
             <span className="font-medium text-sm truncate">{category.name}</span>
           </div>
           {category.summary && (
-            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1 ml-5.5">{category.summary}</p>
+            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1 ml-5.5">
+              {category.summary}
+            </p>
           )}
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
           {category.child_categories_count > 0 && (
             <Badge variant="outline" className="text-xs h-5 px-1.5">
-              <Layers className="w-3 h-3 mr-0.5" />{category.child_categories_count}
+              <Layers className="w-3 h-3 mr-0.5" />
+              {category.child_categories_count}
             </Badge>
           )}
           {category.member_entities_count > 0 && (
             <Badge variant="outline" className="text-xs h-5 px-1.5">
-              <Brain className="w-3 h-3 mr-0.5" />{category.member_entities_count}
+              <Brain className="w-3 h-3 mr-0.5" />
+              {category.member_entities_count}
             </Badge>
           )}
         </div>
@@ -1069,7 +1286,7 @@ function CategoryTreeNode({
 
       {isExpanded && children.length > 0 && (
         <div className="mt-1">
-          {children.map(child => (
+          {children.map((child) => (
             <CategoryTreeNode
               key={child.id}
               category={child}
@@ -1103,18 +1320,18 @@ function CategoryLayerTree({
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
   // Find max layer to determine root level
-  const maxLayer = categories.length > 0 ? Math.max(...categories.map(c => c.layer)) : 0;
+  const maxLayer = categories.length > 0 ? Math.max(...categories.map((c) => c.layer)) : 0;
 
   // Build tree structure from categories using parent_id
   const { rootIds, childrenMap } = useMemo(() => {
     const roots = new Set<string>();
     const children = new Map<string, Category[]>();
-    
+
     // Initialize children map for all categories
     for (const cat of categories) {
       children.set(cat.id, []);
     }
-    
+
     // Build parent-child relationships
     for (const cat of categories) {
       if (cat.parent_id && children.has(cat.parent_id)) {
@@ -1125,15 +1342,15 @@ function CategoryLayerTree({
         roots.add(cat.id);
       }
     }
-    
+
     return { rootIds: roots, childrenMap: children };
   }, [categories]);
 
   // Filter to only show roots at max layer (Layer 3 in this case)
-  const rootCategories = categories.filter(c => rootIds.has(c.id) && c.layer === maxLayer);
+  const rootCategories = categories.filter((c) => rootIds.has(c.id) && c.layer === maxLayer);
 
   const handleToggle = useCallback((id: string) => {
-    setExpandedIds(prev => {
+    setExpandedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) {
         next.delete(id);
@@ -1165,7 +1382,12 @@ function CategoryLayerTree({
         <span className="text-xs text-muted-foreground ml-2">点击展开/收起子分类</span>
       </div>
 
-      <div className={cn('rounded-lg p-4', isGlass ? 'glass-card' : 'border border-border/50 bg-background/50')}>
+      <div
+        className={cn(
+          'rounded-lg p-4',
+          'glass-card',
+        )}
+      >
         <div className="space-y-1">
           {rootCategories.map((cat) => (
             <CategoryTreeNode
@@ -1223,7 +1445,7 @@ function ScopeSelector({
 export default function AIMemoryPage() {
   const { style, mode } = useTheme();
   const { t } = useLanguage();
-  const isGlass = style === 'glassmorphism';
+  const isGlass = style !== 'solid';
   const isDark = mode === 'dark';
 
   const [stats, setStats] = useState<MemoryStats | null>(null);
@@ -1250,21 +1472,37 @@ export default function AIMemoryPage() {
   const [selectedScope, setSelectedScope] = useState<string>('all');
   const [entitySearch, setEntitySearch] = useState('');
   const [entityFilterSpeaker, setEntityFilterSpeaker] = useState<boolean | undefined>(undefined);
-  const [selectedEpisode, setSelectedEpisode] = useState<(Episode & { mentioned_entities: Entity[] }) | null>(null);
+  const [selectedEpisode, setSelectedEpisode] = useState<
+    (Episode & { mentioned_entities: Entity[] }) | null
+  >(null);
   const [selectedEntity, setSelectedEntity] = useState<Entity | null>(null);
-  const [selectedEdge, setSelectedEdge] = useState<{ source_entity: Entity; target_entity: Entity } & Edge | null>(null);
-  const [selectedCategoryDetail, setSelectedCategoryDetail] = useState<(Category & { parent_categories: { id: string; name: string; layer: number }[]; child_categories: { id: string; name: string; layer: number }[]; member_entities: Entity[] }) | null>(null);
+  const [selectedEdge, setSelectedEdge] = useState<
+    ({ source_entity: Entity; target_entity: Entity } & Edge) | null
+  >(null);
+  const [selectedCategoryDetail, setSelectedCategoryDetail] = useState<
+    | (Category & {
+        parent_categories: { id: string; name: string; layer: number }[];
+        child_categories: { id: string; name: string; layer: number }[];
+        member_entities: Entity[];
+      })
+    | null
+  >(null);
   const [activeTab, setActiveTab] = useState('graph');
   const [debugEdges, setDebugEdges] = useState<AgentDebugMemoryEdge[]>([]);
   const [debugConflicts, setDebugConflicts] = useState<AgentDebugMemoryConflict[]>([]);
   const [includeInvalidEdges, setIncludeInvalidEdges] = useState(false);
   const [isLoadingDebug, setIsLoadingDebug] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [pendingInvalidateEdge, setPendingInvalidateEdge] = useState<Pick<Edge, 'id' | 'fact' | 'source_entity_id' | 'target_entity_id'> | null>(null);
+  const [pendingInvalidateEdge, setPendingInvalidateEdge] = useState<Pick<
+    Edge,
+    'id' | 'fact' | 'source_entity_id' | 'target_entity_id'
+  > | null>(null);
   const [invalidateEdgeLoading, setInvalidateEdgeLoading] = useState(false);
   const [clearMemoryDialogOpen, setClearMemoryDialogOpen] = useState(false);
   const [clearMemoryLoading, setClearMemoryLoading] = useState(false);
-  const [dialogType, setDialogType] = useState<'episode' | 'entity' | 'edge' | 'category' | 'world'>('episode');
+  const [dialogType, setDialogType] = useState<
+    'episode' | 'entity' | 'edge' | 'category' | 'world'
+  >('episode');
   const [cognitionNodes, setCognitionNodes] = useState<CognitionNode[]>([]);
   const [selectedWorldHub, setSelectedWorldHub] = useState<CognitionNode | null>(null);
   const [previewArticle, setPreviewArticle] = useState<CognitionAttachment | null>(null);
@@ -1274,10 +1512,19 @@ export default function AIMemoryPage() {
   const [totalPreferences, setTotalPreferences] = useState(0);
   const [preferencePage, setPreferencePage] = useState(1);
   const [isLoadingPreferences, setIsLoadingPreferences] = useState(false);
-  const [preferenceFilter, setPreferenceFilter] = useState<'all' | 'active' | 'inactive' | 'correction'>('all');
-  const [preferencePolarityFilter, setPreferencePolarityFilter] = useState<'all' | 'do' | 'dont'>('all');
+  const [preferenceFilter, setPreferenceFilter] = useState<
+    'all' | 'active' | 'inactive' | 'correction'
+  >('all');
+  const [preferencePolarityFilter, setPreferencePolarityFilter] = useState<'all' | 'do' | 'dont'>(
+    'all',
+  );
   const [editingPreference, setEditingPreference] = useState<Preference | null>(null);
-  const [editingPreferenceDraft, setEditingPreferenceDraft] = useState<{ preference_rule: string; polarity: 'do' | 'dont'; target_context: string; is_active: boolean } | null>(null);
+  const [editingPreferenceDraft, setEditingPreferenceDraft] = useState<{
+    preference_rule: string;
+    polarity: 'do' | 'dont';
+    target_context: string;
+    is_active: boolean;
+  } | null>(null);
   const [savingPreference, setSavingPreference] = useState(false);
   const [deletingPreference, setDeletingPreference] = useState<Preference | null>(null);
   const [deletingPreferenceLoading, setDeletingPreferenceLoading] = useState(false);
@@ -1298,7 +1545,9 @@ export default function AIMemoryPage() {
         let targetScope = 'all';
         if (scopesData && scopesData.length > 0) {
           setScopes(scopesData);
-          const firstValid = scopesData.find(s => s.scope_key !== 'all' && !s.scope_key.includes('assistant'));
+          const firstValid = scopesData.find(
+            (s) => s.scope_key !== 'all' && !s.scope_key.includes('assistant'),
+          );
           targetScope = firstValid ? firstValid.scope_key : 'all';
           setSelectedScope(targetScope);
         }
@@ -1327,7 +1576,8 @@ export default function AIMemoryPage() {
     try {
       setIsLoadingData(true);
       const scope = scopeOverride ?? selectedScope;
-      const params: { page: number; page_size: number; scope_key?: string; all_scopes?: boolean } = { page, page_size: 20 };
+      const params: { page: number; page_size: number; scope_key?: string; all_scopes?: boolean } =
+        { page, page_size: 20 };
       if (scope !== 'all') {
         params.scope_key = scope;
       } else {
@@ -1337,15 +1587,30 @@ export default function AIMemoryPage() {
       setEpisodes(data.items);
       setTotalEpisodes(data.total);
       setEpisodePage(page);
-    } catch { toast.error(t('aiMemory.loadEpisodesFailed')); }
-    finally { setIsLoadingData(false); }
+    } catch {
+      toast.error(t('aiMemory.loadEpisodesFailed'));
+    } finally {
+      setIsLoadingData(false);
+    }
   };
 
   const fetchEntities = async (page = 1, scopeOverride?: string) => {
     try {
       setIsLoadingData(true);
       const scope = scopeOverride ?? selectedScope;
-      const params: { page: number; page_size: number; scope_key?: string; all_scopes?: boolean; search?: string; is_speaker?: boolean } = { page, page_size: 9999, search: entitySearch || undefined, is_speaker: entityFilterSpeaker };
+      const params: {
+        page: number;
+        page_size: number;
+        scope_key?: string;
+        all_scopes?: boolean;
+        search?: string;
+        is_speaker?: boolean;
+      } = {
+        page,
+        page_size: 9999,
+        search: entitySearch || undefined,
+        is_speaker: entityFilterSpeaker,
+      };
       if (scope !== 'all') {
         params.scope_key = scope;
       } else {
@@ -1355,15 +1620,19 @@ export default function AIMemoryPage() {
       setEntities(data.items);
       setTotalEntities(data.total);
       setEntityPage(page);
-    } catch { toast.error(t('aiMemory.loadEntitiesFailed')); }
-    finally { setIsLoadingData(false); }
+    } catch {
+      toast.error(t('aiMemory.loadEntitiesFailed'));
+    } finally {
+      setIsLoadingData(false);
+    }
   };
 
   const fetchEdges = async (page = 1, scopeOverride?: string) => {
     try {
       setIsLoadingData(true);
       const scope = scopeOverride ?? selectedScope;
-      const params: { page: number; page_size: number; scope_key?: string; all_scopes?: boolean } = { page, page_size: 9999 };
+      const params: { page: number; page_size: number; scope_key?: string; all_scopes?: boolean } =
+        { page, page_size: 9999 };
       if (scope !== 'all') {
         params.scope_key = scope;
       } else {
@@ -1373,10 +1642,12 @@ export default function AIMemoryPage() {
       setEdges(data.items);
       setTotalEdges(data.total);
       setEdgePage(page);
-    } catch { toast.error(t('aiMemory.loadEdgesFailed')); }
-    finally { setIsLoadingData(false); }
+    } catch {
+      toast.error(t('aiMemory.loadEdgesFailed'));
+    } finally {
+      setIsLoadingData(false);
+    }
   };
-
 
   const fetchCognition = async (scopeOverride?: string) => {
     const scope = scopeOverride ?? selectedScope;
@@ -1404,7 +1675,8 @@ export default function AIMemoryPage() {
     try {
       setIsLoadingData(true);
       const scope = scopeOverride ?? selectedScope;
-      const params: { page: number; page_size: number; scope_key?: string; all_scopes?: boolean } = { page, page_size: 9999 };
+      const params: { page: number; page_size: number; scope_key?: string; all_scopes?: boolean } =
+        { page, page_size: 9999 };
       if (scope !== 'all') {
         params.scope_key = scope;
       } else {
@@ -1414,10 +1686,12 @@ export default function AIMemoryPage() {
       setCategories(data.items);
       setTotalCategories(data.total);
       setCategoryPage(page);
-    } catch { toast.error(t('aiMemory.loadCategoriesFailed')); }
-    finally { setIsLoadingData(false); }
+    } catch {
+      toast.error(t('aiMemory.loadCategoriesFailed'));
+    } finally {
+      setIsLoadingData(false);
+    }
   };
-
 
   const fetchDebugMemory = async (scopeOverride?: string) => {
     const scope = scopeOverride ?? selectedScope;
@@ -1429,7 +1703,11 @@ export default function AIMemoryPage() {
     try {
       setIsLoadingDebug(true);
       const [edgeData, conflictData] = await Promise.all([
-        agentDebugApi.getMemoryEdges({ scope_key: scope, include_invalid: includeInvalidEdges, limit: 1000 }),
+        agentDebugApi.getMemoryEdges({
+          scope_key: scope,
+          include_invalid: includeInvalidEdges,
+          limit: 1000,
+        }),
         agentDebugApi.getMemoryConflicts({ scope_key: scope, limit: 500 }),
       ]);
       setDebugEdges(edgeData);
@@ -1442,7 +1720,9 @@ export default function AIMemoryPage() {
     }
   };
 
-  const requestInvalidateEdge = (edge: Pick<Edge, 'id' | 'fact' | 'source_entity_id' | 'target_entity_id'>) => {
+  const requestInvalidateEdge = (
+    edge: Pick<Edge, 'id' | 'fact' | 'source_entity_id' | 'target_entity_id'>,
+  ) => {
     setPendingInvalidateEdge(edge);
   };
 
@@ -1468,7 +1748,10 @@ export default function AIMemoryPage() {
 
   const handleScopeChange = (scope: string) => {
     setSelectedScope(scope);
-    setEpisodePage(1); setEntityPage(1); setEdgePage(1); setCategoryPage(1);
+    setEpisodePage(1);
+    setEntityPage(1);
+    setEdgePage(1);
+    setCategoryPage(1);
     // Pass scope explicitly to avoid stale closure
     fetchEpisodes(1, scope);
     fetchEntities(1, scope);
@@ -1496,7 +1779,14 @@ export default function AIMemoryPage() {
       setScopes(scopesData);
       const statsData = await memoryApi.getStats();
       if (statsData) setStats(statsData);
-    } catch (error) { const errorMsg = error instanceof Error ? error.message : ''; toast.error(errorMsg ? `${t('aiMemory.deleteScopeFailed')}: ${errorMsg}` : t('aiMemory.deleteScopeFailed')); }
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : '';
+      toast.error(
+        errorMsg
+          ? `${t('aiMemory.deleteScopeFailed')}: ${errorMsg}`
+          : t('aiMemory.deleteScopeFailed'),
+      );
+    }
   };
 
   const handleDeleteEpisode = async (episodeId: string) => {
@@ -1507,7 +1797,12 @@ export default function AIMemoryPage() {
       fetchEpisodes(episodePage);
       const statsData = await memoryApi.getStats();
       if (statsData) setStats(statsData);
-    } catch (error) { const errorMsg = error instanceof Error ? error.message : ''; toast.error(errorMsg ? `${t('aiMemory.deleteFailed')}: ${errorMsg}` : t('aiMemory.deleteFailed')); }
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : '';
+      toast.error(
+        errorMsg ? `${t('aiMemory.deleteFailed')}: ${errorMsg}` : t('aiMemory.deleteFailed'),
+      );
+    }
   };
 
   const handleDeleteEntity = async (entityId: string) => {
@@ -1518,7 +1813,12 @@ export default function AIMemoryPage() {
       fetchEntities(entityPage);
       const statsData = await memoryApi.getStats();
       if (statsData) setStats(statsData);
-    } catch (error) { const errorMsg = error instanceof Error ? error.message : ''; toast.error(errorMsg ? `${t('aiMemory.deleteFailed')}: ${errorMsg}` : t('aiMemory.deleteFailed')); }
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : '';
+      toast.error(
+        errorMsg ? `${t('aiMemory.deleteFailed')}: ${errorMsg}` : t('aiMemory.deleteFailed'),
+      );
+    }
   };
 
   const handleDeleteEdge = async (edgeId: string) => {
@@ -1529,7 +1829,12 @@ export default function AIMemoryPage() {
       fetchEdges(edgePage);
       const statsData = await memoryApi.getStats();
       if (statsData) setStats(statsData);
-    } catch (error) { const errorMsg = error instanceof Error ? error.message : ''; toast.error(errorMsg ? `${t('aiMemory.deleteFailed')}: ${errorMsg}` : t('aiMemory.deleteFailed')); }
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : '';
+      toast.error(
+        errorMsg ? `${t('aiMemory.deleteFailed')}: ${errorMsg}` : t('aiMemory.deleteFailed'),
+      );
+    }
   };
 
   const fetchPreferences = async (page = 1, scopeOverride?: string) => {
@@ -1584,7 +1889,10 @@ export default function AIMemoryPage() {
     if (!editingPreference || !editingPreferenceDraft) return;
     try {
       setSavingPreference(true);
-      const updated = await memoryApi.updatePreference(editingPreference.id, editingPreferenceDraft);
+      const updated = await memoryApi.updatePreference(
+        editingPreference.id,
+        editingPreferenceDraft,
+      );
       toast.success(t('aiMemory.preferenceUpdated'));
       setEditingPreference(updated);
       setEditingPreferenceDraft({
@@ -1596,7 +1904,11 @@ export default function AIMemoryPage() {
       await fetchPreferences(preferencePage);
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : '';
-      toast.error(errorMsg ? `${t('aiMemory.preferenceUpdateFailed')}: ${errorMsg}` : t('aiMemory.preferenceUpdateFailed'));
+      toast.error(
+        errorMsg
+          ? `${t('aiMemory.preferenceUpdateFailed')}: ${errorMsg}`
+          : t('aiMemory.preferenceUpdateFailed'),
+      );
     } finally {
       setSavingPreference(false);
     }
@@ -1614,7 +1926,11 @@ export default function AIMemoryPage() {
       }
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : '';
-      toast.error(errorMsg ? `${t('aiMemory.preferenceUpdateFailed')}: ${errorMsg}` : t('aiMemory.preferenceUpdateFailed'));
+      toast.error(
+        errorMsg
+          ? `${t('aiMemory.preferenceUpdateFailed')}: ${errorMsg}`
+          : t('aiMemory.preferenceUpdateFailed'),
+      );
     }
   };
 
@@ -1628,7 +1944,9 @@ export default function AIMemoryPage() {
       await fetchPreferences(preferencePage);
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : '';
-      toast.error(errorMsg ? `${t('aiMemory.deleteFailed')}: ${errorMsg}` : t('aiMemory.deleteFailed'));
+      toast.error(
+        errorMsg ? `${t('aiMemory.deleteFailed')}: ${errorMsg}` : t('aiMemory.deleteFailed'),
+      );
     } finally {
       setDeletingPreferenceLoading(false);
     }
@@ -1648,12 +1966,16 @@ export default function AIMemoryPage() {
     }
   };
 
-  const openDetailDialog = async (type: 'episode' | 'entity' | 'edge' | 'category' | 'world', id: string) => {
+  const openDetailDialog = async (
+    type: 'episode' | 'entity' | 'edge' | 'category' | 'world',
+    id: string,
+  ) => {
     setDialogType(type);
     setDialogOpen(true);
     if (type === 'world') {
-      const hub = worldHubs.find((h) => worldGraphId(h) === id)
-        ?? cognitionNodes.find((n) => worldGraphId(n) === id);
+      const hub =
+        worldHubs.find((h) => worldGraphId(h) === id) ??
+        cognitionNodes.find((n) => worldGraphId(n) === id);
       if (!hub) {
         setDialogOpen(false);
         return;
@@ -1663,10 +1985,26 @@ export default function AIMemoryPage() {
     }
     try {
       switch (type) {
-        case 'episode': { const data = await memoryApi.getEpisodeDetail(id); setSelectedEpisode(data); break; }
-        case 'entity': { const data = await memoryApi.getEntityDetail(id); setSelectedEntity(data); break; }
-        case 'edge': { const data = await memoryApi.getEdgeDetail(id); setSelectedEdge(data); break; }
-        case 'category': { const data = await memoryApi.getCategoryDetail(id); setSelectedCategoryDetail(data); break; }
+        case 'episode': {
+          const data = await memoryApi.getEpisodeDetail(id);
+          setSelectedEpisode(data);
+          break;
+        }
+        case 'entity': {
+          const data = await memoryApi.getEntityDetail(id);
+          setSelectedEntity(data);
+          break;
+        }
+        case 'edge': {
+          const data = await memoryApi.getEdgeDetail(id);
+          setSelectedEdge(data);
+          break;
+        }
+        case 'category': {
+          const data = await memoryApi.getCategoryDetail(id);
+          setSelectedCategoryDetail(data);
+          break;
+        }
       }
     } catch {
       // Fallback: use inline data from list when detail API is unavailable
@@ -1690,15 +2028,41 @@ export default function AIMemoryPage() {
             const targetEntity = entities.find((e) => e.id === ed.target_entity_id);
             setSelectedEdge({
               ...ed,
-              source_entity: sourceEntity || { id: ed.source_entity_id, scope_key: ed.scope_key, name: ed.source_entity_id, summary: '', tag: [], is_speaker: false, user_id: null, created_at: '', updated_at: '' },
-              target_entity: targetEntity || { id: ed.target_entity_id, scope_key: ed.scope_key, name: ed.target_entity_id, summary: '', tag: [], is_speaker: false, user_id: null, created_at: '', updated_at: '' },
+              source_entity: sourceEntity || {
+                id: ed.source_entity_id,
+                scope_key: ed.scope_key,
+                name: ed.source_entity_id,
+                summary: '',
+                tag: [],
+                is_speaker: false,
+                user_id: null,
+                created_at: '',
+                updated_at: '',
+              },
+              target_entity: targetEntity || {
+                id: ed.target_entity_id,
+                scope_key: ed.scope_key,
+                name: ed.target_entity_id,
+                summary: '',
+                tag: [],
+                is_speaker: false,
+                user_id: null,
+                created_at: '',
+                updated_at: '',
+              },
             });
           } else setDialogOpen(false);
           break;
         }
         case 'category': {
           const cat = categories.find((c) => c.id === id);
-          if (cat) setSelectedCategoryDetail({ ...cat, parent_categories: [], child_categories: [], member_entities: [] });
+          if (cat)
+            setSelectedCategoryDetail({
+              ...cat,
+              parent_categories: [],
+              child_categories: [],
+              member_entities: [],
+            });
           else setDialogOpen(false);
           break;
         }
@@ -1709,9 +2073,16 @@ export default function AIMemoryPage() {
   const selectedEntityConnectedEdges = useMemo(() => {
     if (!selectedEntity) return [];
     return edges
-      .filter((edge) => edge.source_entity_id === selectedEntity.id || edge.target_entity_id === selectedEntity.id)
+      .filter(
+        (edge) =>
+          edge.source_entity_id === selectedEntity.id ||
+          edge.target_entity_id === selectedEntity.id,
+      )
       .map((edge) => {
-        const connectedEntityId = edge.source_entity_id === selectedEntity.id ? edge.target_entity_id : edge.source_entity_id;
+        const connectedEntityId =
+          edge.source_entity_id === selectedEntity.id
+            ? edge.target_entity_id
+            : edge.source_entity_id;
         const connectedEntity = entities.find((entity) => entity.id === connectedEntityId);
         const direction = edge.source_entity_id === selectedEntity.id ? 'out' : 'in';
         return { edge, connectedEntityId, connectedEntity, direction };
@@ -1719,7 +2090,11 @@ export default function AIMemoryPage() {
   }, [edges, entities, selectedEntity]);
 
   if (isLoading) {
-    return <div className="flex items-center justify-center h-full"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
+    return (
+      <div className="flex items-center justify-center h-full">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
   }
 
   return (
@@ -1728,7 +2103,10 @@ export default function AIMemoryPage() {
         /* Header */
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h1 className="text-3xl font-bold flex items-center gap-3"><Brain className="w-8 h-8" />{t('aiMemory.title')}</h1>
+            <h1 className="text-3xl font-bold flex items-center gap-3">
+              <Brain className="w-8 h-8" />
+              {t('aiMemory.title')}
+            </h1>
             <p className="text-muted-foreground mt-1">{t('aiMemory.description')}</p>
           </div>
           <Button
@@ -1746,12 +2124,18 @@ export default function AIMemoryPage() {
         open={memorySettingsOpen}
         onOpenChange={setMemorySettingsOpen}
         scopeKey={scopes[0]?.scope_key ?? undefined}
-        onAfterSave={() => setMemorySettingsVersion(v => v + 1)}
+        onAfterSave={() => setMemorySettingsVersion((v) => v + 1)}
       />
       {error && (
-        <Card className={cn('border-destructive/50', isGlass ? 'glass-card' : 'border border-border/50')}>
+        <Card
+          className={cn(
+            'border-destructive/50',
+            'glass-card',
+          )}
+        >
           <CardContent className="flex items-center gap-3 p-4 text-destructive">
-            <AlertCircle className="w-5 h-5" /><span>{error}</span>
+            <AlertCircle className="w-5 h-5" />
+            <span>{error}</span>
           </CardContent>
         </Card>
       )}
@@ -1773,31 +2157,95 @@ export default function AIMemoryPage() {
       {/* Stats：8 卡固定两行四列（大屏不再挤成一行） */}
       {stats && (
         <div className="glass-card-grid grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <StatsCard title={t('aiMemory.statsEpisodes')} value={stats.episode_count} icon={MessageSquare} isGlass={isGlass} />
-          <StatsCard title={t('aiMemory.statsEntities')} value={stats.entity_count} icon={Brain} isGlass={isGlass} />
-          <StatsCard title={t('aiMemory.statsEdges')} value={stats.edge_count} icon={GitBranch} isGlass={isGlass} />
-          <StatsCard title={t('aiMemory.statsCategories')} value={stats.category_count} icon={FolderTree} isGlass={isGlass} />
-          <StatsCard title={t('aiMemory.statsSpeakers')} value={stats.speaker_entity_count} icon={Users} isGlass={isGlass} />
-          <StatsCard title={t('aiMemory.statsActiveEdges')} value={stats.active_edge_count} icon={Zap} isGlass={isGlass} />
-          <StatsCard title={t('aiMemory.statsScopes')} value={stats.scope_keys.length} icon={Network} isGlass={isGlass} />
-          <StatsCard title={t('aiMemory.statsQueue')} value={stats.observation_queue_size} icon={Clock} isGlass={isGlass} />
+          <StatsCard
+            title={t('aiMemory.statsEpisodes')}
+            value={stats.episode_count}
+            icon={MessageSquare}
+            isGlass={isGlass}
+          />
+          <StatsCard
+            title={t('aiMemory.statsEntities')}
+            value={stats.entity_count}
+            icon={Brain}
+            isGlass={isGlass}
+          />
+          <StatsCard
+            title={t('aiMemory.statsEdges')}
+            value={stats.edge_count}
+            icon={GitBranch}
+            isGlass={isGlass}
+          />
+          <StatsCard
+            title={t('aiMemory.statsCategories')}
+            value={stats.category_count}
+            icon={FolderTree}
+            isGlass={isGlass}
+          />
+          <StatsCard
+            title={t('aiMemory.statsSpeakers')}
+            value={stats.speaker_entity_count}
+            icon={Users}
+            isGlass={isGlass}
+          />
+          <StatsCard
+            title={t('aiMemory.statsActiveEdges')}
+            value={stats.active_edge_count}
+            icon={Zap}
+            isGlass={isGlass}
+          />
+          <StatsCard
+            title={t('aiMemory.statsScopes')}
+            value={stats.scope_keys.length}
+            icon={Network}
+            isGlass={isGlass}
+          />
+          <StatsCard
+            title={t('aiMemory.statsQueue')}
+            value={stats.observation_queue_size}
+            icon={Clock}
+            isGlass={isGlass}
+          />
         </div>
       )}
 
       {/* Hierarchical Graph Status */}
       {hierGraphStatus && (
-        <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
+        <Card className={cn('glass-card')}>
           <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-lg"><Layers className="w-5 h-5 text-primary" />{t('aiMemory.hierGraphStatus')}</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Layers className="w-5 h-5 text-primary" />
+              {t('aiMemory.hierGraphStatus')}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-              <div><p className="text-muted-foreground">{t('aiMemory.initialized')}</p><p className="font-semibold">{hierGraphStatus.initialized ? t('common.yes') : t('common.no')}</p></div>
-              <div><p className="text-muted-foreground">{t('aiMemory.maxLayer')}</p><p className="font-semibold">{hierGraphStatus.max_layer}</p></div>
-              <div><p className="text-muted-foreground">{t('aiMemory.lastRebuild')}</p><p className="font-semibold">{formatDate(hierGraphStatus.last_rebuild_at)}</p></div>
-              <div><p className="text-muted-foreground">{t('aiMemory.entityCountAtRebuild')}</p><p className="font-semibold">{hierGraphStatus.entity_count_at_last_rebuild}</p></div>
+              <div>
+                <p className="text-muted-foreground">{t('aiMemory.initialized')}</p>
+                <p className="font-semibold">
+                  {hierGraphStatus.initialized ? t('common.yes') : t('common.no')}
+                </p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">{t('aiMemory.maxLayer')}</p>
+                <p className="font-semibold">{hierGraphStatus.max_layer}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">{t('aiMemory.lastRebuild')}</p>
+                <p className="font-semibold">{formatDate(hierGraphStatus.last_rebuild_at)}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">{t('aiMemory.entityCountAtRebuild')}</p>
+                <p className="font-semibold">{hierGraphStatus.entity_count_at_last_rebuild}</p>
+              </div>
             </div>
-            {hierGraphStatus.group_summary_cache && <div className="mt-4"><p className="text-sm text-muted-foreground">{t('aiMemory.groupSummary')}</p><p className="text-sm mt-1 p-2 bg-muted/50 rounded">{hierGraphStatus.group_summary_cache}</p></div>}
+            {hierGraphStatus.group_summary_cache && (
+              <div className="mt-4">
+                <p className="text-sm text-muted-foreground">{t('aiMemory.groupSummary')}</p>
+                <p className="text-sm mt-1 p-2 bg-muted/50 rounded">
+                  {hierGraphStatus.group_summary_cache}
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
@@ -1809,17 +2257,57 @@ export default function AIMemoryPage() {
           onValueChange={setActiveTab}
           className="w-full max-w-full"
           options={[
-            { value: 'graph', label: t('aiMemory.tabGraph'), icon: <Network className="w-4 h-4" /> },
-            { value: 'world', label: t('aiMemory.tabWorld'), icon: <BookOpen className="w-4 h-4" /> },
-            { value: 'search', label: t('aiMemory.tabSearch'), icon: <Search className="w-4 h-4" /> },
-            { value: 'preferences', label: t('aiMemory.tabPreferences'), icon: <ListChecks className="w-4 h-4" /> },
-            { value: 'scopes', label: t('aiMemory.tabScopes'), icon: <Globe className="w-4 h-4" /> },
-            { value: 'episodes', label: t('aiMemory.tabEpisodes'), icon: <MessageSquare className="w-4 h-4" /> },
-            { value: 'entities', label: t('aiMemory.tabEntities'), icon: <Brain className="w-4 h-4" /> },
-            { value: 'edges', label: t('aiMemory.tabEdges'), icon: <GitBranch className="w-4 h-4" /> },
-            { value: 'categories', label: t('aiMemory.tabCategories'), icon: <FolderTree className="w-4 h-4" /> },
+            {
+              value: 'graph',
+              label: t('aiMemory.tabGraph'),
+              icon: <Network className="w-4 h-4" />,
+            },
+            {
+              value: 'world',
+              label: t('aiMemory.tabWorld'),
+              icon: <BookOpen className="w-4 h-4" />,
+            },
+            {
+              value: 'search',
+              label: t('aiMemory.tabSearch'),
+              icon: <Search className="w-4 h-4" />,
+            },
+            {
+              value: 'preferences',
+              label: t('aiMemory.tabPreferences'),
+              icon: <ListChecks className="w-4 h-4" />,
+            },
+            {
+              value: 'scopes',
+              label: t('aiMemory.tabScopes'),
+              icon: <Globe className="w-4 h-4" />,
+            },
+            {
+              value: 'episodes',
+              label: t('aiMemory.tabEpisodes'),
+              icon: <MessageSquare className="w-4 h-4" />,
+            },
+            {
+              value: 'entities',
+              label: t('aiMemory.tabEntities'),
+              icon: <Brain className="w-4 h-4" />,
+            },
+            {
+              value: 'edges',
+              label: t('aiMemory.tabEdges'),
+              icon: <GitBranch className="w-4 h-4" />,
+            },
+            {
+              value: 'categories',
+              label: t('aiMemory.tabCategories'),
+              icon: <FolderTree className="w-4 h-4" />,
+            },
             { value: 'debug', label: '调试视图', icon: <AlertCircle className="w-4 h-4" /> },
-            { value: 'config', label: t('aiMemory.tabConfig'), icon: <Settings className="w-4 h-4" /> },
+            {
+              value: 'config',
+              label: t('aiMemory.tabConfig'),
+              icon: <Settings className="w-4 h-4" />,
+            },
           ]}
         />
       </div>
@@ -1832,7 +2320,7 @@ export default function AIMemoryPage() {
 
       {/* Knowledge Graph Tab */}
       {activeTab === 'graph' && (
-      <div className="space-y-4">
+        <div className="space-y-4">
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">{t('aiMemory.graphDescription')}</p>
             {/* 移动端：左 scope 列表，右两个操作按钮；桌面同理保持一行 */}
@@ -1861,7 +2349,12 @@ export default function AIMemoryPage() {
                   variant="outline"
                   size="sm"
                   className="h-9 px-2.5 sm:px-3"
-                  onClick={() => { fetchEntities(1); fetchEdges(1); fetchCategories(1); fetchCognition(); }}
+                  onClick={() => {
+                    fetchEntities(1);
+                    fetchEdges(1);
+                    fetchCategories(1);
+                    fetchCognition();
+                  }}
                   title={t('common.refresh')}
                   aria-label={t('common.refresh')}
                 >
@@ -1872,7 +2365,7 @@ export default function AIMemoryPage() {
             </div>
           </div>
           {entities.length === 0 && edges.length === 0 ? (
-            <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
+            <Card className={cn('glass-card')}>
               <CardContent className="flex flex-col items-center justify-center !p-8 text-center text-muted-foreground">
                 <Network className="w-12 h-12 mb-4 opacity-50" />
                 <p>{t('aiMemory.noGraphData')}</p>
@@ -1888,244 +2381,430 @@ export default function AIMemoryPage() {
               onNodeClick={(type, id) => openDetailDialog(type, id)}
             />
           )}
-      </div>
+        </div>
       )}
 
       {activeTab === 'world' && (
-      <div className="space-y-4">
-        <div className="flex w-full min-w-0 items-center gap-2">
-          <p className="text-sm text-muted-foreground min-w-0 flex-1">{t('aiMemory.worldTabDescription')}</p>
-          <Button variant="outline" className="shrink-0" onClick={() => fetchCognition()}>
-            <RefreshCw className="w-4 h-4 sm:mr-1" />
-            <span className="hidden sm:inline">{t('common.refresh')}</span>
-          </Button>
+        <div className="space-y-4">
+          <div className="flex w-full min-w-0 items-center gap-2">
+            <p className="text-sm text-muted-foreground min-w-0 flex-1">
+              {t('aiMemory.worldTabDescription')}
+            </p>
+            <Button variant="outline" className="shrink-0" onClick={() => fetchCognition()}>
+              <RefreshCw className="w-4 h-4 sm:mr-1" />
+              <span className="hidden sm:inline">{t('common.refresh')}</span>
+            </Button>
+          </div>
+          {worldHubs.length === 0 ? (
+            <Card className={cn('glass-card')}>
+              <CardContent className="flex flex-col items-center justify-center !p-8 text-center text-muted-foreground">
+                <Globe className="w-12 h-12 mb-4 opacity-50" />
+                <p>{t('aiMemory.noWorldHubs')}</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <WorldHubGraph
+              hubs={worldHubs}
+              isDark={isDark}
+              onHubClick={(hub) => openDetailDialog('world', worldGraphId(hub))}
+              onArticleClick={setPreviewArticle}
+            />
+          )}
         </div>
-        {worldHubs.length === 0 ? (
-          <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
-            <CardContent className="flex flex-col items-center justify-center !p-8 text-center text-muted-foreground">
-              <Globe className="w-12 h-12 mb-4 opacity-50" />
-              <p>{t('aiMemory.noWorldHubs')}</p>
-            </CardContent>
-          </Card>
-        ) : (
-          <WorldHubGraph
-            hubs={worldHubs}
-            isDark={isDark}
-            onHubClick={(hub) => openDetailDialog('world', worldGraphId(hub))}
-            onArticleClick={setPreviewArticle}
-          />
-        )}
-      </div>
       )}
 
       {/* Preferences Tab */}
       {activeTab === 'preferences' && (
-      <div className="space-y-4">
-        <div className={cn('rounded-lg p-3 text-sm', isGlass ? 'glass-card' : 'border border-border/50 bg-card')}>
-          <div className="flex items-start gap-2">
-            <ListChecks className="w-4 h-4 mt-0.5 text-primary shrink-0" />
-            <div className="space-y-1">
-              <p className="font-medium">{t('aiMemory.tabPreferences')}</p>
-              <p className="text-muted-foreground">{t('aiMemory.preferencesDescription')}</p>
-              <p className="text-xs text-muted-foreground">{t('aiMemory.preferencesHint')}</p>
+        <div className="space-y-4">
+          <div
+            className={cn(
+              'rounded-lg p-3 text-sm',
+              'glass-card',
+            )}
+          >
+            <div className="flex items-start gap-2">
+              <ListChecks className="w-4 h-4 mt-0.5 text-primary shrink-0" />
+              <div className="space-y-1">
+                <p className="font-medium">{t('aiMemory.tabPreferences')}</p>
+                <p className="text-muted-foreground">{t('aiMemory.preferencesDescription')}</p>
+                <p className="text-xs text-muted-foreground">{t('aiMemory.preferencesHint')}</p>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-          <p className="text-sm text-muted-foreground">{t('aiMemory.preferenceCount', { count: preferences.length, total: totalPreferences })}</p>
-          <div className="flex flex-wrap items-center gap-2">
-            <ScopeSelector
-              value={selectedScope}
-              onChange={handleScopeChange}
-              scopes={scopes}
-              allLabel={t('aiMemory.preferenceScopeAll')}
-              className="w-[180px] h-9"
-            />
-            <Select value={preferenceFilter} onValueChange={(v) => { setPreferenceFilter(v as typeof preferenceFilter); setPreferencePage(1); setTimeout(() => fetchPreferences(1), 0); }}>
-              <SelectTrigger className="h-9 w-[140px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t('aiMemory.preferenceFilterAll')}</SelectItem>
-                <SelectItem value="active">{t('aiMemory.preferenceFilterActive')}</SelectItem>
-                <SelectItem value="inactive">{t('aiMemory.preferenceFilterInactive')}</SelectItem>
-                <SelectItem value="correction">{t('aiMemory.preferenceFilterCorrection')}</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={preferencePolarityFilter} onValueChange={(v) => { setPreferencePolarityFilter(v as typeof preferencePolarityFilter); setPreferencePage(1); setTimeout(() => fetchPreferences(1), 0); }}>
-              <SelectTrigger className="h-9 w-[120px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t('aiMemory.preferenceFilterAll')}</SelectItem>
-                <SelectItem value="do">{t('aiMemory.preferenceFilterDo')}</SelectItem>
-                <SelectItem value="dont">{t('aiMemory.preferenceFilterDont')}</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button variant="outline" size="sm" className="h-9" onClick={() => fetchPreferences(preferencePage)}>
-              <RefreshCw className="w-4 h-4 mr-1" />{t('common.refresh')}
-            </Button>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <p className="text-sm text-muted-foreground">
+              {t('aiMemory.preferenceCount', {
+                count: preferences.length,
+                total: totalPreferences,
+              })}
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <ScopeSelector
+                value={selectedScope}
+                onChange={handleScopeChange}
+                scopes={scopes}
+                allLabel={t('aiMemory.preferenceScopeAll')}
+                className="w-[180px] h-9"
+              />
+              <Select
+                value={preferenceFilter}
+                onValueChange={(v) => {
+                  setPreferenceFilter(v as typeof preferenceFilter);
+                  setPreferencePage(1);
+                  setTimeout(() => fetchPreferences(1), 0);
+                }}
+              >
+                <SelectTrigger className="h-9 w-[140px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t('aiMemory.preferenceFilterAll')}</SelectItem>
+                  <SelectItem value="active">{t('aiMemory.preferenceFilterActive')}</SelectItem>
+                  <SelectItem value="inactive">{t('aiMemory.preferenceFilterInactive')}</SelectItem>
+                  <SelectItem value="correction">
+                    {t('aiMemory.preferenceFilterCorrection')}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <Select
+                value={preferencePolarityFilter}
+                onValueChange={(v) => {
+                  setPreferencePolarityFilter(v as typeof preferencePolarityFilter);
+                  setPreferencePage(1);
+                  setTimeout(() => fetchPreferences(1), 0);
+                }}
+              >
+                <SelectTrigger className="h-9 w-[120px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t('aiMemory.preferenceFilterAll')}</SelectItem>
+                  <SelectItem value="do">{t('aiMemory.preferenceFilterDo')}</SelectItem>
+                  <SelectItem value="dont">{t('aiMemory.preferenceFilterDont')}</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9"
+                onClick={() => fetchPreferences(preferencePage)}
+              >
+                <RefreshCw className="w-4 h-4 mr-1" />
+                {t('common.refresh')}
+              </Button>
+            </div>
           </div>
-        </div>
 
-        {isLoadingPreferences ? (
-          <div className="space-y-2">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-24 w-full" />)}</div>
-        ) : preferences.length === 0 ? (
-          <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
-            <CardContent className="flex flex-col items-center justify-center !p-8 text-center text-muted-foreground">
-              <ListChecks className="w-12 h-12 mb-4 opacity-50" />
-              <p>{t('aiMemory.noPreferences')}</p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-2">
-            {preferences.map((pref) => {
-              const isEditing = editingPreference?.id === pref.id;
-              const draft = isEditing ? editingPreferenceDraft : null;
-              const ruleText = draft?.preference_rule ?? pref.preference_rule;
-              const polarity = draft?.polarity ?? pref.polarity;
-              const ctx = draft?.target_context ?? pref.target_context;
-              const active = draft?.is_active ?? pref.is_active;
-              return (
-                <Card key={pref.id} className={cn('transition-all', isGlass ? 'glass-card' : 'border border-border/50', !pref.is_active && 'opacity-70')}>
-                  <CardContent className="p-4 space-y-3">
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div className="flex flex-wrap items-center gap-2 min-w-0">
-                        <Badge variant={pref.is_correction ? 'default' : 'secondary'}>
-                          {pref.is_correction ? t('aiMemory.preferenceCorrection') : polarity === 'do' ? t('aiMemory.preferencePolarityDo') : t('aiMemory.preferencePolarityDont')}
-                        </Badge>
-                        <Badge variant={pref.is_active ? 'outline' : 'destructive'}>
-                          {pref.is_active ? t('aiMemory.preferenceActive') : t('aiMemory.preferenceInactive')}
-                        </Badge>
-                        <Badge variant="outline" className="font-mono text-xs">{pref.target_context}</Badge>
-                        <span className="font-mono text-xs text-muted-foreground truncate">{pref.id}</span>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-1 shrink-0">
-                        <Button variant="ghost" size="sm" onClick={() => togglePreferenceActive(pref)} title={pref.is_active ? t('aiMemory.preferenceDisable') : t('aiMemory.preferenceEnable')}>
-                          <Power className={cn('w-4 h-4', pref.is_active ? 'text-amber-500' : 'text-emerald-500')} />
-                        </Button>
-                        {isEditing ? (
-                          <>
-                            <Button variant="default" size="sm" disabled={savingPreference} onClick={saveEditPreference}>
-                              {savingPreference ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Save className="w-4 h-4 mr-1" />}{t('common.save')}
-                            </Button>
-                            <Button variant="ghost" size="sm" disabled={savingPreference} onClick={cancelEditPreference}>
-                              <X className="w-4 h-4 mr-1" />{t('common.cancel')}
-                            </Button>
-                          </>
-                        ) : (
-                          <Button variant="ghost" size="sm" onClick={() => startEditPreference(pref)} title={t('aiMemory.preferenceEdit')}>
-                            <Pencil className="w-4 h-4" />
-                          </Button>
-                        )}
-                        <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => setDeletingPreference(pref)} title={t('common.delete')}>
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-
-                    {isEditing && draft ? (
-                      <div className="space-y-3 rounded-md border border-border/50 p-3 bg-muted/30">
-                        <div className="space-y-1">
-                          <Label>{t('aiMemory.preferenceRule')}</Label>
-                          <Textarea
-                            value={draft.preference_rule}
-                            onChange={(e) => setEditingPreferenceDraft({ ...draft, preference_rule: e.target.value })}
-                            placeholder={t('aiMemory.preferenceRulePlaceholder')}
-                            rows={3}
-                            maxLength={2000}
-                          />
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          <div className="space-y-1">
-                            <Label>{t('aiMemory.preferencePolarity')}</Label>
-                            <Select value={draft.polarity} onValueChange={(v) => setEditingPreferenceDraft({ ...draft, polarity: v as 'do' | 'dont' })}>
-                              <SelectTrigger><SelectValue /></SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="do">{t('aiMemory.preferencePolarityDo')}</SelectItem>
-                                <SelectItem value="dont">{t('aiMemory.preferencePolarityDont')}</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="space-y-1">
-                            <Label>{t('aiMemory.preferenceContext')}</Label>
-                            <Input
-                              value={draft.target_context}
-                              onChange={(e) => setEditingPreferenceDraft({ ...draft, target_context: e.target.value })}
-                              placeholder={t('aiMemory.preferenceContextPlaceholder')}
-                              maxLength={128}
-                            />
-                            <p className="text-xs text-muted-foreground">{t('aiMemory.preferenceContextHelp')}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center justify-between rounded-md border border-border/50 px-3 py-2">
-                          <div>
-                            <Label className="text-sm">{t('aiMemory.preferenceIsActive')}</Label>
-                          </div>
-                          <Switch checked={draft.is_active} onCheckedChange={(v) => setEditingPreferenceDraft({ ...draft, is_active: v })} />
-                        </div>
-                      </div>
-                    ) : (
-                      <p className="text-sm whitespace-pre-wrap break-words">{ruleText}</p>
+          {isLoadingPreferences ? (
+            <div className="space-y-2">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Skeleton key={i} className="h-24 w-full" />
+              ))}
+            </div>
+          ) : preferences.length === 0 ? (
+            <Card className={cn('glass-card')}>
+              <CardContent className="flex flex-col items-center justify-center !p-8 text-center text-muted-foreground">
+                <ListChecks className="w-12 h-12 mb-4 opacity-50" />
+                <p>{t('aiMemory.noPreferences')}</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-2">
+              {preferences.map((pref) => {
+                const isEditing = editingPreference?.id === pref.id;
+                const draft = isEditing ? editingPreferenceDraft : null;
+                const ruleText = draft?.preference_rule ?? pref.preference_rule;
+                const polarity = draft?.polarity ?? pref.polarity;
+                const ctx = draft?.target_context ?? pref.target_context;
+                const active = draft?.is_active ?? pref.is_active;
+                return (
+                  <Card
+                    key={pref.id}
+                    className={cn(
+                      'transition-all',
+                      'glass-card',
+                      !pref.is_active && 'opacity-70',
                     )}
+                  >
+                    <CardContent className="p-4 space-y-3">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div className="flex flex-wrap items-center gap-2 min-w-0">
+                          <Badge variant={pref.is_correction ? 'default' : 'secondary'}>
+                            {pref.is_correction
+                              ? t('aiMemory.preferenceCorrection')
+                              : polarity === 'do'
+                                ? t('aiMemory.preferencePolarityDo')
+                                : t('aiMemory.preferencePolarityDont')}
+                          </Badge>
+                          <Badge variant={pref.is_active ? 'outline' : 'destructive'}>
+                            {pref.is_active
+                              ? t('aiMemory.preferenceActive')
+                              : t('aiMemory.preferenceInactive')}
+                          </Badge>
+                          <Badge variant="outline" className="font-mono text-xs">
+                            {pref.target_context}
+                          </Badge>
+                          <span className="font-mono text-xs text-muted-foreground truncate">
+                            {pref.id}
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-1 shrink-0">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => togglePreferenceActive(pref)}
+                            title={
+                              pref.is_active
+                                ? t('aiMemory.preferenceDisable')
+                                : t('aiMemory.preferenceEnable')
+                            }
+                          >
+                            <Power
+                              className={cn(
+                                'w-4 h-4',
+                                pref.is_active ? 'text-amber-500' : 'text-emerald-500',
+                              )}
+                            />
+                          </Button>
+                          {isEditing ? (
+                            <>
+                              <Button
+                                variant="default"
+                                size="sm"
+                                disabled={savingPreference}
+                                onClick={saveEditPreference}
+                              >
+                                {savingPreference ? (
+                                  <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                                ) : (
+                                  <Save className="w-4 h-4 mr-1" />
+                                )}
+                                {t('common.save')}
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                disabled={savingPreference}
+                                onClick={cancelEditPreference}
+                              >
+                                <X className="w-4 h-4 mr-1" />
+                                {t('common.cancel')}
+                              </Button>
+                            </>
+                          ) : (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => startEditPreference(pref)}
+                              title={t('aiMemory.preferenceEdit')}
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-destructive hover:text-destructive"
+                            onClick={() => setDeletingPreference(pref)}
+                            title={t('common.delete')}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
 
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1"><Users className="w-3 h-3" />{pref.user_id}</span>
-                      <span className="flex items-center gap-1"><Layers className="w-3 h-3" />{pref.scope_key}</span>
-                      <span className="flex items-center gap-1"><Zap className="w-3 h-3" />{t('aiMemory.preferenceMentionCount')}: {pref.mention_count}</span>
-                      {pref.source_episode_id && (
-                        <span className="flex items-center gap-1 font-mono truncate max-w-[200px]" title={pref.source_episode_id}>
-                          <GitBranch className="w-3 h-3" />{pref.source_episode_id}
+                      {isEditing && draft ? (
+                        <div className="space-y-3 rounded-md border border-border/50 p-3 bg-muted/30">
+                          <div className="space-y-1">
+                            <Label>{t('aiMemory.preferenceRule')}</Label>
+                            <Textarea
+                              value={draft.preference_rule}
+                              onChange={(e) =>
+                                setEditingPreferenceDraft({
+                                  ...draft,
+                                  preference_rule: e.target.value,
+                                })
+                              }
+                              placeholder={t('aiMemory.preferenceRulePlaceholder')}
+                              rows={3}
+                              maxLength={2000}
+                            />
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div className="space-y-1">
+                              <Label>{t('aiMemory.preferencePolarity')}</Label>
+                              <Select
+                                value={draft.polarity}
+                                onValueChange={(v) =>
+                                  setEditingPreferenceDraft({
+                                    ...draft,
+                                    polarity: v as 'do' | 'dont',
+                                  })
+                                }
+                              >
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="do">
+                                    {t('aiMemory.preferencePolarityDo')}
+                                  </SelectItem>
+                                  <SelectItem value="dont">
+                                    {t('aiMemory.preferencePolarityDont')}
+                                  </SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-1">
+                              <Label>{t('aiMemory.preferenceContext')}</Label>
+                              <Input
+                                value={draft.target_context}
+                                onChange={(e) =>
+                                  setEditingPreferenceDraft({
+                                    ...draft,
+                                    target_context: e.target.value,
+                                  })
+                                }
+                                placeholder={t('aiMemory.preferenceContextPlaceholder')}
+                                maxLength={128}
+                              />
+                              <p className="text-xs text-muted-foreground">
+                                {t('aiMemory.preferenceContextHelp')}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between rounded-md border border-border/50 px-3 py-2">
+                            <div>
+                              <Label className="text-sm">{t('aiMemory.preferenceIsActive')}</Label>
+                            </div>
+                            <Switch
+                              checked={draft.is_active}
+                              onCheckedChange={(v) =>
+                                setEditingPreferenceDraft({ ...draft, is_active: v })
+                              }
+                            />
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-sm whitespace-pre-wrap break-words">{ruleText}</p>
+                      )}
+
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <Users className="w-3 h-3" />
+                          {pref.user_id}
                         </span>
-                      )}
-                      <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{t('aiMemory.updatedAt')}: {formatDate(pref.updated_at)}</span>
-                      {pref.last_applied_at && (
-                        <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{t('aiMemory.preferenceLastApplied')}: {formatDate(pref.last_applied_at)}</span>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        )}
+                        <span className="flex items-center gap-1">
+                          <Layers className="w-3 h-3" />
+                          {pref.scope_key}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Zap className="w-3 h-3" />
+                          {t('aiMemory.preferenceMentionCount')}: {pref.mention_count}
+                        </span>
+                        {pref.source_episode_id && (
+                          <span
+                            className="flex items-center gap-1 font-mono truncate max-w-[200px]"
+                            title={pref.source_episode_id}
+                          >
+                            <GitBranch className="w-3 h-3" />
+                            {pref.source_episode_id}
+                          </span>
+                        )}
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {t('aiMemory.updatedAt')}: {formatDate(pref.updated_at)}
+                        </span>
+                        {pref.last_applied_at && (
+                          <span className="flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {t('aiMemory.preferenceLastApplied')}:{' '}
+                            {formatDate(pref.last_applied_at)}
+                          </span>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
 
-        {totalPreferences > 20 && (
-          <div className="flex justify-center gap-2">
-            <Button variant="outline" size="sm" disabled={preferencePage <= 1} onClick={() => fetchPreferences(preferencePage - 1)}>{t('common.previousPage')}</Button>
-            <span className="flex items-center text-sm text-muted-foreground">{preferencePage} / {Math.ceil(totalPreferences / 20)}</span>
-            <Button variant="outline" size="sm" disabled={preferencePage >= Math.ceil(totalPreferences / 20)} onClick={() => fetchPreferences(preferencePage + 1)}>{t('common.nextPage')}</Button>
-          </div>
-        )}
-      </div>
+          {totalPreferences > 20 && (
+            <div className="flex justify-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={preferencePage <= 1}
+                onClick={() => fetchPreferences(preferencePage - 1)}
+              >
+                {t('common.previousPage')}
+              </Button>
+              <span className="flex items-center text-sm text-muted-foreground">
+                {preferencePage} / {Math.ceil(totalPreferences / 20)}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={preferencePage >= Math.ceil(totalPreferences / 20)}
+                onClick={() => fetchPreferences(preferencePage + 1)}
+              >
+                {t('common.nextPage')}
+              </Button>
+            </div>
+          )}
+        </div>
       )}
 
       {/* Scopes Tab */}
       {activeTab === 'scopes' && (
-      <div className="space-y-4">
+        <div className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-            <p className="text-sm text-muted-foreground">{t('aiMemory.scopeCount', { count: scopes.length })}</p>
-            <Button variant="outline" size="sm" onClick={async () => { const data = await memoryApi.getScopes(); setScopes(data); }}>
-              <RefreshCw className="w-4 h-4 mr-1" />{t('common.refresh')}
+            <p className="text-sm text-muted-foreground">
+              {t('aiMemory.scopeCount', { count: scopes.length })}
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={async () => {
+                const data = await memoryApi.getScopes();
+                setScopes(data);
+              }}
+            >
+              <RefreshCw className="w-4 h-4 mr-1" />
+              {t('common.refresh')}
             </Button>
           </div>
           <div className="glass-card-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {scopes.map((scope) => <ScopeCard key={scope.scope_key} scope={scope} isGlass={isGlass} onDelete={() => handleDeleteScope(scope.scope_key)} onSelect={() => handleScopeChange(scope.scope_key)} />)}
+            {scopes.map((scope) => (
+              <ScopeCard
+                key={scope.scope_key}
+                scope={scope}
+                isGlass={isGlass}
+                onDelete={() => handleDeleteScope(scope.scope_key)}
+                onSelect={() => handleScopeChange(scope.scope_key)}
+              />
+            ))}
           </div>
           {scopes.length === 0 && (
-            <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
-              <CardContent className="flex flex-col items-center justify-center !p-8 text-center text-muted-foreground"><Network className="w-12 h-12 mb-4 opacity-50" /><p>{t('aiMemory.noScopes')}</p></CardContent>
+            <Card className={cn('glass-card')}>
+              <CardContent className="flex flex-col items-center justify-center !p-8 text-center text-muted-foreground">
+                <Network className="w-12 h-12 mb-4 opacity-50" />
+                <p>{t('aiMemory.noScopes')}</p>
+              </CardContent>
             </Card>
           )}
-      </div>
+        </div>
       )}
 
       {/* Episodes Tab */}
       {activeTab === 'episodes' && (
-      <div className="space-y-4">
+        <div className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-            <p className="text-sm text-muted-foreground">{t('aiMemory.episodeCount', { count: episodes.length, total: totalEpisodes })}</p>
+            <p className="text-sm text-muted-foreground">
+              {t('aiMemory.episodeCount', { count: episodes.length, total: totalEpisodes })}
+            </p>
             <div className="flex gap-2">
               <ScopeSelector
                 value={selectedScope}
@@ -2134,29 +2813,62 @@ export default function AIMemoryPage() {
                 allLabel={t('aiMemory.allScopes')}
                 className="w-[180px]"
               />
-              <Button variant="outline" size="sm" onClick={() => fetchEpisodes(episodePage)}><RefreshCw className="w-4 h-4 mr-1" />{t('common.refresh')}</Button>
+              <Button variant="outline" size="sm" onClick={() => fetchEpisodes(episodePage)}>
+                <RefreshCw className="w-4 h-4 mr-1" />
+                {t('common.refresh')}
+              </Button>
             </div>
           </div>
           {isLoadingData ? (
-            <div className="space-y-2">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}</div>
+            <div className="space-y-2">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Skeleton key={i} className="h-20 w-full" />
+              ))}
+            </div>
           ) : episodes.length === 0 ? (
-            <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
-              <CardContent className="flex flex-col items-center justify-center !p-8 text-center text-muted-foreground"><MessageSquare className="w-12 h-12 mb-4 opacity-50" /><p>{t('aiMemory.noEpisodes')}</p></CardContent>
+            <Card className={cn('glass-card')}>
+              <CardContent className="flex flex-col items-center justify-center !p-8 text-center text-muted-foreground">
+                <MessageSquare className="w-12 h-12 mb-4 opacity-50" />
+                <p>{t('aiMemory.noEpisodes')}</p>
+              </CardContent>
             </Card>
           ) : (
             <div className="space-y-2">
               {episodes.map((episode) => (
-                <Card key={episode.id} className={cn('cursor-pointer transition-all hover:shadow-md hover:border-primary/50', isGlass ? 'glass-card' : 'border border-border/50')} onClick={() => openDetailDialog('episode', episode.id)}>
+                <Card
+                  key={episode.id}
+                  className={cn(
+                    'cursor-pointer transition-all hover:shadow-md hover:border-primary/50',
+                    'glass-card',
+                  )}
+                  onClick={() => openDetailDialog('episode', episode.id)}
+                >
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
                         <p className="text-sm line-clamp-3">{truncateText(episode.content, 200)}</p>
                         <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                          <span className="flex items-center gap-1"><Users className="w-3 h-3" />{episode.speaker_ids.length} {t('aiMemory.speakers')}</span>
-                          <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{formatDate(episode.valid_at)}</span>
+                          <span className="flex items-center gap-1">
+                            <Users className="w-3 h-3" />
+                            {episode.speaker_ids.length} {t('aiMemory.speakers')}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {formatDate(episode.valid_at)}
+                          </span>
                         </div>
                       </div>
-                      <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive shrink-0" onClick={(e) => { e.stopPropagation(); handleDeleteEpisode(episode.id); }}><Trash2 className="w-4 h-4" /></Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive hover:text-destructive shrink-0"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteEpisode(episode.id);
+                        }}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -2165,22 +2877,45 @@ export default function AIMemoryPage() {
           )}
           {totalEpisodes > 20 && (
             <div className="flex justify-center gap-2">
-              <Button variant="outline" size="sm" disabled={episodePage <= 1} onClick={() => fetchEpisodes(episodePage - 1)}>{t('common.previousPage')}</Button>
-              <span className="flex items-center text-sm text-muted-foreground">{episodePage} / {Math.ceil(totalEpisodes / 20)}</span>
-              <Button variant="outline" size="sm" disabled={episodePage >= Math.ceil(totalEpisodes / 20)} onClick={() => fetchEpisodes(episodePage + 1)}>{t('common.nextPage')}</Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={episodePage <= 1}
+                onClick={() => fetchEpisodes(episodePage - 1)}
+              >
+                {t('common.previousPage')}
+              </Button>
+              <span className="flex items-center text-sm text-muted-foreground">
+                {episodePage} / {Math.ceil(totalEpisodes / 20)}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={episodePage >= Math.ceil(totalEpisodes / 20)}
+                onClick={() => fetchEpisodes(episodePage + 1)}
+              >
+                {t('common.nextPage')}
+              </Button>
             </div>
           )}
-      </div>
+        </div>
       )}
 
       {/* Entities Tab */}
       {activeTab === 'entities' && (
-      <div className="space-y-4">
+        <div className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div className="flex items-center gap-2 flex-1 min-w-0">
               <Search className="w-4 h-4 text-muted-foreground" />
-              <Input placeholder={t('aiMemory.searchEntities')} value={entitySearch} onChange={(e) => setEntitySearch(e.target.value)} className="max-w-xs" />
-              <Button variant="outline" size="sm" onClick={() => fetchEntities(1)}>{t('common.search')}</Button>
+              <Input
+                placeholder={t('aiMemory.searchEntities')}
+                value={entitySearch}
+                onChange={(e) => setEntitySearch(e.target.value)}
+                className="max-w-xs"
+              />
+              <Button variant="outline" size="sm" onClick={() => fetchEntities(1)}>
+                {t('common.search')}
+              </Button>
             </div>
             <div className="flex gap-2">
               <ScopeSelector
@@ -2190,19 +2925,48 @@ export default function AIMemoryPage() {
                 allLabel={t('aiMemory.allScopes')}
                 className="w-[180px]"
               />
-              <Button variant="outline" size="sm" onClick={() => { setEntityFilterSpeaker(entityFilterSpeaker === undefined ? true : entityFilterSpeaker === true ? false : undefined); fetchEntities(1); }}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setEntityFilterSpeaker(
+                    entityFilterSpeaker === undefined
+                      ? true
+                      : entityFilterSpeaker === true
+                        ? false
+                        : undefined,
+                  );
+                  fetchEntities(1);
+                }}
+              >
                 <Users className="w-4 h-4 mr-1" />
-                {entityFilterSpeaker === true ? t('aiMemory.speakersOnly') : entityFilterSpeaker === false ? t('aiMemory.nonSpeakersOnly') : t('aiMemory.allUsers')}
+                {entityFilterSpeaker === true
+                  ? t('aiMemory.speakersOnly')
+                  : entityFilterSpeaker === false
+                    ? t('aiMemory.nonSpeakersOnly')
+                    : t('aiMemory.allUsers')}
               </Button>
-              <Button variant="outline" size="sm" onClick={() => fetchEntities(entityPage)}><RefreshCw className="w-4 h-4 mr-1" />{t('common.refresh')}</Button>
+              <Button variant="outline" size="sm" onClick={() => fetchEntities(entityPage)}>
+                <RefreshCw className="w-4 h-4 mr-1" />
+                {t('common.refresh')}
+              </Button>
             </div>
           </div>
-          <p className="text-sm text-muted-foreground">{t('aiMemory.entityCount', { count: entities.length, total: totalEntities })}</p>
+          <p className="text-sm text-muted-foreground">
+            {t('aiMemory.entityCount', { count: entities.length, total: totalEntities })}
+          </p>
           {isLoadingData ? (
-            <div className="glass-card-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-32 w-full" />)}</div>
+            <div className="glass-card-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton key={i} className="h-32 w-full" />
+              ))}
+            </div>
           ) : entities.length === 0 ? (
-            <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
-              <CardContent className="flex flex-col items-center justify-center !p-8 text-center text-muted-foreground"><Brain className="w-12 h-12 mb-4 opacity-50" /><p>{t('aiMemory.noEntities')}</p></CardContent>
+            <Card className={cn('glass-card')}>
+              <CardContent className="flex flex-col items-center justify-center !p-8 text-center text-muted-foreground">
+                <Brain className="w-12 h-12 mb-4 opacity-50" />
+                <p>{t('aiMemory.noEntities')}</p>
+              </CardContent>
             </Card>
           ) : (
             <div className="glass-card-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -2214,26 +2978,54 @@ export default function AIMemoryPage() {
                     worldHub={hubForEntity(entity.id, entity.name, cognitionNodes)}
                     onClick={() => openDetailDialog('entity', entity.id)}
                   />
-                  <Button variant="ghost" size="sm" className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); handleDeleteEntity(entity.id); }}><Trash2 className="w-4 h-4" /></Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 text-destructive hover:text-destructive"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteEntity(entity.id);
+                    }}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
                 </div>
               ))}
             </div>
           )}
           {totalEntities > 20 && (
             <div className="flex justify-center gap-2">
-              <Button variant="outline" size="sm" disabled={entityPage <= 1} onClick={() => fetchEntities(entityPage - 1)}>{t('common.previousPage')}</Button>
-              <span className="flex items-center text-sm text-muted-foreground">{entityPage} / {Math.ceil(totalEntities / 20)}</span>
-              <Button variant="outline" size="sm" disabled={entityPage >= Math.ceil(totalEntities / 20)} onClick={() => fetchEntities(entityPage + 1)}>{t('common.nextPage')}</Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={entityPage <= 1}
+                onClick={() => fetchEntities(entityPage - 1)}
+              >
+                {t('common.previousPage')}
+              </Button>
+              <span className="flex items-center text-sm text-muted-foreground">
+                {entityPage} / {Math.ceil(totalEntities / 20)}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={entityPage >= Math.ceil(totalEntities / 20)}
+                onClick={() => fetchEntities(entityPage + 1)}
+              >
+                {t('common.nextPage')}
+              </Button>
             </div>
           )}
-      </div>
+        </div>
       )}
 
       {/* Edges Tab */}
       {activeTab === 'edges' && (
-      <div className="space-y-4">
+        <div className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-            <p className="text-sm text-muted-foreground">{t('aiMemory.edgeCount', { count: edges.length, total: totalEdges })}</p>
+            <p className="text-sm text-muted-foreground">
+              {t('aiMemory.edgeCount', { count: edges.length, total: totalEdges })}
+            </p>
             <div className="flex gap-2">
               <ScopeSelector
                 value={selectedScope}
@@ -2242,40 +3034,84 @@ export default function AIMemoryPage() {
                 allLabel={t('aiMemory.allScopes')}
                 className="w-[180px]"
               />
-              <Button variant="outline" size="sm" onClick={() => fetchEdges(edgePage)}><RefreshCw className="w-4 h-4 mr-1" />{t('common.refresh')}</Button>
+              <Button variant="outline" size="sm" onClick={() => fetchEdges(edgePage)}>
+                <RefreshCw className="w-4 h-4 mr-1" />
+                {t('common.refresh')}
+              </Button>
             </div>
           </div>
           {isLoadingData ? (
-            <div className="space-y-2">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}</div>
+            <div className="space-y-2">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Skeleton key={i} className="h-20 w-full" />
+              ))}
+            </div>
           ) : edges.length === 0 ? (
-            <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
-              <CardContent className="flex flex-col items-center justify-center !p-8 text-center text-muted-foreground"><GitBranch className="w-12 h-12 mb-4 opacity-50" /><p>{t('aiMemory.noEdges')}</p></CardContent>
+            <Card className={cn('glass-card')}>
+              <CardContent className="flex flex-col items-center justify-center !p-8 text-center text-muted-foreground">
+                <GitBranch className="w-12 h-12 mb-4 opacity-50" />
+                <p>{t('aiMemory.noEdges')}</p>
+              </CardContent>
             </Card>
           ) : (
             <div className="space-y-2">
               {edges.map((edge) => (
                 <div key={edge.id} className="relative group">
-                  <EdgeItem edge={edge} isGlass={isGlass} onClick={() => openDetailDialog('edge', edge.id)} sourceName={entities.find((e) => e.id === edge.source_entity_id)?.name} targetName={entities.find((e) => e.id === edge.target_entity_id)?.name} />
-                  <Button variant="ghost" size="sm" className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); handleDeleteEdge(edge.id); }}><Trash2 className="w-4 h-4" /></Button>
+                  <EdgeItem
+                    edge={edge}
+                    isGlass={isGlass}
+                    onClick={() => openDetailDialog('edge', edge.id)}
+                    sourceName={entities.find((e) => e.id === edge.source_entity_id)?.name}
+                    targetName={entities.find((e) => e.id === edge.target_entity_id)?.name}
+                  />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 text-destructive hover:text-destructive"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteEdge(edge.id);
+                    }}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
                 </div>
               ))}
             </div>
           )}
           {totalEdges > 20 && (
             <div className="flex justify-center gap-2">
-              <Button variant="outline" size="sm" disabled={edgePage <= 1} onClick={() => fetchEdges(edgePage - 1)}>{t('common.previousPage')}</Button>
-              <span className="flex items-center text-sm text-muted-foreground">{edgePage} / {Math.ceil(totalEdges / 20)}</span>
-              <Button variant="outline" size="sm" disabled={edgePage >= Math.ceil(totalEdges / 20)} onClick={() => fetchEdges(edgePage + 1)}>{t('common.nextPage')}</Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={edgePage <= 1}
+                onClick={() => fetchEdges(edgePage - 1)}
+              >
+                {t('common.previousPage')}
+              </Button>
+              <span className="flex items-center text-sm text-muted-foreground">
+                {edgePage} / {Math.ceil(totalEdges / 20)}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={edgePage >= Math.ceil(totalEdges / 20)}
+                onClick={() => fetchEdges(edgePage + 1)}
+              >
+                {t('common.nextPage')}
+              </Button>
             </div>
           )}
-      </div>
+        </div>
       )}
 
       {/* Categories Tab */}
       {activeTab === 'categories' && (
-      <div className="space-y-4">
+        <div className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-            <p className="text-sm text-muted-foreground">{t('aiMemory.categoryCount', { count: categories.length, total: totalCategories })}</p>
+            <p className="text-sm text-muted-foreground">
+              {t('aiMemory.categoryCount', { count: categories.length, total: totalCategories })}
+            </p>
             <div className="flex gap-2">
               <ScopeSelector
                 value={selectedScope}
@@ -2284,14 +3120,24 @@ export default function AIMemoryPage() {
                 allLabel={t('aiMemory.allScopes')}
                 className="w-[180px]"
               />
-              <Button variant="outline" size="sm" onClick={() => fetchCategories(categoryPage)}><RefreshCw className="w-4 h-4 mr-1" />{t('common.refresh')}</Button>
+              <Button variant="outline" size="sm" onClick={() => fetchCategories(categoryPage)}>
+                <RefreshCw className="w-4 h-4 mr-1" />
+                {t('common.refresh')}
+              </Button>
             </div>
           </div>
           {isLoadingData ? (
-            <div className="space-y-3">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 w-full" />)}</div>
+            <div className="space-y-3">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="h-24 w-full" />
+              ))}
+            </div>
           ) : categories.length === 0 ? (
-            <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
-              <CardContent className="flex flex-col items-center justify-center !p-8 text-center text-muted-foreground"><FolderTree className="w-12 h-12 mb-4 opacity-50" /><p>{t('aiMemory.noCategories')}</p></CardContent>
+            <Card className={cn('glass-card')}>
+              <CardContent className="flex flex-col items-center justify-center !p-8 text-center text-muted-foreground">
+                <FolderTree className="w-12 h-12 mb-4 opacity-50" />
+                <p>{t('aiMemory.noCategories')}</p>
+              </CardContent>
             </Card>
           ) : (
             <CategoryLayerTree
@@ -2301,16 +3147,21 @@ export default function AIMemoryPage() {
               onClick={(id) => openDetailDialog('category', id)}
             />
           )}
-      </div>
+        </div>
       )}
 
       {/* Agent Debug Tab */}
       {activeTab === 'debug' && (
         <div className="space-y-4">
-          <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
+          <Card className={cn('glass-card')}>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2"><AlertCircle className="w-5 h-5 text-primary" />Memory Graph Debug</CardTitle>
-              <CardDescription>使用 Agent Debug API 查看指定 scope 的 Edge 与矛盾记录，并可软删除错误 Edge。</CardDescription>
+              <CardTitle className="flex items-center gap-2">
+                <AlertCircle className="w-5 h-5 text-primary" />
+                Memory Graph Debug
+              </CardTitle>
+              <CardDescription>
+                使用 Agent Debug API 查看指定 scope 的 Edge 与矛盾记录，并可软删除错误 Edge。
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -2326,11 +3177,21 @@ export default function AIMemoryPage() {
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
                   <div className="flex items-center gap-2 rounded-md border border-border/50 px-3 py-2">
-                    <Switch checked={includeInvalidEdges} onCheckedChange={setIncludeInvalidEdges} />
+                    <Switch
+                      checked={includeInvalidEdges}
+                      onCheckedChange={setIncludeInvalidEdges}
+                    />
                     <Label className="text-sm">包含已失效 Edge</Label>
                   </div>
-                  <Button onClick={() => fetchDebugMemory()} disabled={selectedScope === 'all' || isLoadingDebug}>
-                    {isLoadingDebug ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-2" />}
+                  <Button
+                    onClick={() => fetchDebugMemory()}
+                    disabled={selectedScope === 'all' || isLoadingDebug}
+                  >
+                    {isLoadingDebug ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                    )}
                     查询调试数据
                   </Button>
                 </div>
@@ -2344,7 +3205,9 @@ export default function AIMemoryPage() {
           </Card>
 
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-            <Card className={cn('xl:col-span-2', isGlass ? 'glass-card' : 'border border-border/50')}>
+            <Card
+              className={cn('xl:col-span-2', 'glass-card')}
+            >
               <CardHeader>
                 <CardTitle className="flex items-center justify-between gap-2">
                   <span>Edge 列表</span>
@@ -2354,30 +3217,59 @@ export default function AIMemoryPage() {
               </CardHeader>
               <CardContent>
                 {isLoadingDebug ? (
-                  <div className="space-y-2">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 w-full" />)}</div>
+                  <div className="space-y-2">
+                    {Array.from({ length: 4 }).map((_, i) => (
+                      <Skeleton key={i} className="h-24 w-full" />
+                    ))}
+                  </div>
                 ) : debugEdges.length === 0 ? (
                   <div className="py-10 text-center text-muted-foreground">暂无 Edge 数据</div>
                 ) : (
                   <div className="space-y-3 max-h-[640px] overflow-auto pr-1">
                     {debugEdges.map((edge) => (
-                      <div key={edge.id} className={cn('rounded-lg border border-border/50 p-4', edge.invalid_at && 'opacity-60')}>
+                      <div
+                        key={edge.id}
+                        className={cn(
+                          'rounded-lg border border-border/50 p-4',
+                          edge.invalid_at && 'opacity-60',
+                        )}
+                      >
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0 space-y-2">
                             <div className="flex flex-wrap items-center gap-2">
-                              <Badge variant={edge.invalid_at ? 'destructive' : 'default'}>{edge.invalid_at ? '已失效' : '有效'}</Badge>
-                              <span className="font-mono text-xs text-muted-foreground">{edge.id}</span>
+                              <Badge variant={edge.invalid_at ? 'destructive' : 'default'}>
+                                {edge.invalid_at ? '已失效' : '有效'}
+                              </Badge>
+                              <span className="font-mono text-xs text-muted-foreground">
+                                {edge.id}
+                              </span>
                             </div>
                             <p className="text-sm whitespace-pre-wrap">{edge.fact}</p>
                             <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
                               <span>源: {edge.source_entity_id}</span>
                               <span>目标: {edge.target_entity_id}</span>
                               <span>提及: {edge.mention_count ?? 0}</span>
-                              <span>评分: {typeof edge.decay_score === 'number' ? edge.decay_score.toFixed(3) : '-'}</span>
-                              <span>最近访问: {edge.last_accessed ? formatDate(edge.last_accessed) : '-'}</span>
+                              <span>
+                                评分:{' '}
+                                {typeof edge.decay_score === 'number'
+                                  ? edge.decay_score.toFixed(3)
+                                  : '-'}
+                              </span>
+                              <span>
+                                最近访问:{' '}
+                                {edge.last_accessed ? formatDate(edge.last_accessed) : '-'}
+                              </span>
                             </div>
                           </div>
-                          <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" disabled={!!edge.invalid_at} onClick={() => requestInvalidateEdge(edge)}>
-                            <Trash2 className="w-4 h-4 mr-1" />失效
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-destructive hover:text-destructive"
+                            disabled={!!edge.invalid_at}
+                            onClick={() => requestInvalidateEdge(edge)}
+                          >
+                            <Trash2 className="w-4 h-4 mr-1" />
+                            失效
                           </Button>
                         </div>
                       </div>
@@ -2387,7 +3279,7 @@ export default function AIMemoryPage() {
               </CardContent>
             </Card>
 
-            <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
+            <Card className={cn('glass-card')}>
               <CardHeader>
                 <CardTitle className="flex items-center justify-between gap-2">
                   <span>记忆矛盾</span>
@@ -2401,12 +3293,19 @@ export default function AIMemoryPage() {
                 ) : (
                   <div className="space-y-3 max-h-[640px] overflow-auto pr-1">
                     {debugConflicts.map((conflict) => (
-                      <div key={conflict.id} className="rounded-lg border border-border/50 p-3 space-y-2">
+                      <div
+                        key={conflict.id}
+                        className="rounded-lg border border-border/50 p-3 space-y-2"
+                      >
                         <div className="flex items-center justify-between gap-2">
                           <Badge variant="secondary">{conflict.fact_signature}</Badge>
-                          <span className="text-xs text-muted-foreground">{conflict.created_at ? formatDate(conflict.created_at) : '-'}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {conflict.created_at ? formatDate(conflict.created_at) : '-'}
+                          </span>
                         </div>
-                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{conflict.summary}</p>
+                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                          {conflict.summary}
+                        </p>
                       </div>
                     ))}
                   </div>
@@ -2419,61 +3318,186 @@ export default function AIMemoryPage() {
 
       {/* Config Tab */}
       {activeTab === 'config' && (
-      <div className="space-y-4">
+        <div className="space-y-4">
           {config && (
             <>
-              <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
-                <CardHeader><CardTitle className="flex items-center gap-2"><Eye className="w-5 h-5" />{t('aiMemory.observerSettings')}</CardTitle><CardDescription>{t('aiMemory.observerSettingsDesc')}</CardDescription></CardHeader>
+              <Card className={cn('glass-card')}>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Eye className="w-5 h-5" />
+                    {t('aiMemory.observerSettings')}
+                  </CardTitle>
+                  <CardDescription>{t('aiMemory.observerSettingsDesc')}</CardDescription>
+                </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <div><Label>{t('aiMemory.observerEnabled')}</Label><p className="text-sm text-muted-foreground">{t('aiMemory.observerEnabledDesc')}</p></div>
+                    <div>
+                      <Label>{t('aiMemory.observerEnabled')}</Label>
+                      <p className="text-sm text-muted-foreground">
+                        {t('aiMemory.observerEnabledDesc')}
+                      </p>
+                    </div>
                     <Switch checked={config.observer_enabled} disabled />
                   </div>
-                  {config.observer_blacklist.length > 0 && <div><Label>{t('aiMemory.observerBlacklist')}</Label><div className="flex flex-wrap gap-2 mt-2">{config.observer_blacklist.map((id) => <Badge key={id} variant="outline">{id}</Badge>)}</div></div>}
+                  {config.observer_blacklist.length > 0 && (
+                    <div>
+                      <Label>{t('aiMemory.observerBlacklist')}</Label>
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {config.observer_blacklist.map((id) => (
+                          <Badge key={id} variant="outline">
+                            {id}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
-              <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
-                <CardHeader><CardTitle className="flex items-center gap-2"><Database className="w-5 h-5" />{t('aiMemory.ingestionSettings')}</CardTitle><CardDescription>{t('aiMemory.ingestionSettingsDesc')}</CardDescription></CardHeader>
+              <Card className={cn('glass-card')}>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Database className="w-5 h-5" />
+                    {t('aiMemory.ingestionSettings')}
+                  </CardTitle>
+                  <CardDescription>{t('aiMemory.ingestionSettingsDesc')}</CardDescription>
+                </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div><Label className="text-muted-foreground">{t('aiMemory.ingestionEnabled')}</Label><p className="font-semibold">{config.ingestion_enabled ? t('common.enabled') : t('common.disabled')}</p></div>
-                    <div><Label className="text-muted-foreground">{t('aiMemory.batchInterval')}</Label><p className="font-semibold">{config.batch_interval_seconds}s</p></div>
-                    <div><Label className="text-muted-foreground">{t('aiMemory.batchMaxSize')}</Label><p className="font-semibold">{config.batch_max_size}</p></div>
-                    <div><Label className="text-muted-foreground">{t('aiMemory.llmSemaphore')}</Label><p className="font-semibold">{config.llm_semaphore_limit}</p></div>
+                    <div>
+                      <Label className="text-muted-foreground">
+                        {t('aiMemory.ingestionEnabled')}
+                      </Label>
+                      <p className="font-semibold">
+                        {config.ingestion_enabled ? t('common.enabled') : t('common.disabled')}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">{t('aiMemory.batchInterval')}</Label>
+                      <p className="font-semibold">{config.batch_interval_seconds}s</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">{t('aiMemory.batchMaxSize')}</Label>
+                      <p className="font-semibold">{config.batch_max_size}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">{t('aiMemory.llmSemaphore')}</Label>
+                      <p className="font-semibold">{config.llm_semaphore_limit}</p>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
-              <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
-                <CardHeader><CardTitle className="flex items-center gap-2"><Search className="w-5 h-5" />{t('aiMemory.retrievalSettings')}</CardTitle><CardDescription>{t('aiMemory.retrievalSettingsDesc')}</CardDescription></CardHeader>
+              <Card className={cn('glass-card')}>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Search className="w-5 h-5" />
+                    {t('aiMemory.retrievalSettings')}
+                  </CardTitle>
+                  <CardDescription>{t('aiMemory.retrievalSettingsDesc')}</CardDescription>
+                </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div><Label className="text-muted-foreground">{t('aiMemory.enableRetrieval')}</Label><p className="font-semibold">{config.enable_retrieval ? t('common.enabled') : t('common.disabled')}</p></div>
-                    <div><Label className="text-muted-foreground">{t('aiMemory.enableSystem2')}</Label><p className="font-semibold">{config.enable_system2 ? t('common.enabled') : t('common.disabled')}</p></div>
-                    <div><Label className="text-muted-foreground">{t('aiMemory.enableUserGlobalMemory')}</Label><p className="font-semibold">{config.enable_user_global_memory ? t('common.enabled') : t('common.disabled')}</p></div>
-                    <div><Label className="text-muted-foreground">{t('aiMemory.enableHeartbeatMemory')}</Label><p className="font-semibold">{config.enable_heartbeat_memory ? t('common.enabled') : t('common.disabled')}</p></div>
+                    <div>
+                      <Label className="text-muted-foreground">
+                        {t('aiMemory.enableRetrieval')}
+                      </Label>
+                      <p className="font-semibold">
+                        {config.enable_retrieval ? t('common.enabled') : t('common.disabled')}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">{t('aiMemory.enableSystem2')}</Label>
+                      <p className="font-semibold">
+                        {config.enable_system2 ? t('common.enabled') : t('common.disabled')}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">
+                        {t('aiMemory.enableUserGlobalMemory')}
+                      </Label>
+                      <p className="font-semibold">
+                        {config.enable_user_global_memory
+                          ? t('common.enabled')
+                          : t('common.disabled')}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">
+                        {t('aiMemory.enableHeartbeatMemory')}
+                      </Label>
+                      <p className="font-semibold">
+                        {config.enable_heartbeat_memory
+                          ? t('common.enabled')
+                          : t('common.disabled')}
+                      </p>
+                    </div>
                   </div>
                   <Separator />
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div><Label className="text-muted-foreground">{t('aiMemory.retrievalTopK')}</Label><p className="font-semibold">{config.retrieval_top_k}</p></div>
-                    <div><Label className="text-muted-foreground">{t('aiMemory.dedupThreshold')}</Label><p className="font-semibold">{(config.dedup_similarity_threshold * 100).toFixed(0)}%</p></div>
-                    <div><Label className="text-muted-foreground">{t('aiMemory.edgeConflictThreshold')}</Label><p className="font-semibold">{(config.edge_conflict_threshold * 100).toFixed(0)}%</p></div>
+                    <div>
+                      <Label className="text-muted-foreground">{t('aiMemory.retrievalTopK')}</Label>
+                      <p className="font-semibold">{config.retrieval_top_k}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">
+                        {t('aiMemory.dedupThreshold')}
+                      </Label>
+                      <p className="font-semibold">
+                        {(config.dedup_similarity_threshold * 100).toFixed(0)}%
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">
+                        {t('aiMemory.edgeConflictThreshold')}
+                      </Label>
+                      <p className="font-semibold">
+                        {(config.edge_conflict_threshold * 100).toFixed(0)}%
+                      </p>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
-              <Card className={cn(isGlass ? 'glass-card' : 'border border-border/50')}>
-                <CardHeader><CardTitle className="flex items-center gap-2"><Layers className="w-5 h-5" />{t('aiMemory.hierGraphSettings')}</CardTitle><CardDescription>{t('aiMemory.hierGraphSettingsDesc')}</CardDescription></CardHeader>
+              <Card className={cn('glass-card')}>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Layers className="w-5 h-5" />
+                    {t('aiMemory.hierGraphSettings')}
+                  </CardTitle>
+                  <CardDescription>{t('aiMemory.hierGraphSettingsDesc')}</CardDescription>
+                </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div><Label className="text-muted-foreground">{t('aiMemory.minChildrenPerCategory')}</Label><p className="font-semibold">{config.min_children_per_category}</p></div>
-                    <div><Label className="text-muted-foreground">{t('aiMemory.maxLayers')}</Label><p className="font-semibold">{config.max_layers}</p></div>
-                    <div><Label className="text-muted-foreground">{t('aiMemory.hierGraphRebuildRatio')}</Label><p className="font-semibold">{(config.hiergraph_rebuild_ratio * 100).toFixed(0)}%</p></div>
-                    <div><Label className="text-muted-foreground">{t('aiMemory.hierGraphRebuildInterval')}</Label><p className="font-semibold">{(config.hiergraph_rebuild_interval_seconds / 3600).toFixed(0)}h</p></div>
+                    <div>
+                      <Label className="text-muted-foreground">
+                        {t('aiMemory.minChildrenPerCategory')}
+                      </Label>
+                      <p className="font-semibold">{config.min_children_per_category}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">{t('aiMemory.maxLayers')}</Label>
+                      <p className="font-semibold">{config.max_layers}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">
+                        {t('aiMemory.hierGraphRebuildRatio')}
+                      </Label>
+                      <p className="font-semibold">
+                        {(config.hiergraph_rebuild_ratio * 100).toFixed(0)}%
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">
+                        {t('aiMemory.hierGraphRebuildInterval')}
+                      </Label>
+                      <p className="font-semibold">
+                        {(config.hiergraph_rebuild_interval_seconds / 3600).toFixed(0)}h
+                      </p>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
             </>
           )}
-      </div>
+        </div>
       )}
 
       <CognitionArticlePreview article={previewArticle} onClose={() => setPreviewArticle(null)} />
@@ -2495,36 +3519,115 @@ export default function AIMemoryPage() {
           </DialogHeader>
           {dialogType === 'episode' && selectedEpisode && (
             <div className="space-y-4">
-              <div><Label className="text-muted-foreground">{t('aiMemory.scopeKey')}</Label><p className="font-mono text-sm">{selectedEpisode.scope_key}</p></div>
-              <div><Label className="text-muted-foreground">{t('aiMemory.content')}</Label><p className="mt-1 p-2 bg-muted/50 rounded text-sm whitespace-pre-wrap">{selectedEpisode.content}</p></div>
-              <div><Label className="text-muted-foreground">{t('aiMemory.speakers')}</Label><div className="flex flex-wrap gap-2 mt-2">{selectedEpisode.speaker_ids.map((id) => <Badge key={id} variant="outline">{id}</Badge>)}</div></div>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div><Label className="text-muted-foreground">{t('aiMemory.validAt')}</Label><p>{formatDate(selectedEpisode.valid_at)}</p></div>
-                <div><Label className="text-muted-foreground">{t('aiMemory.createdAt')}</Label><p>{formatDate(selectedEpisode.created_at)}</p></div>
+              <div>
+                <Label className="text-muted-foreground">{t('aiMemory.scopeKey')}</Label>
+                <p className="font-mono text-sm">{selectedEpisode.scope_key}</p>
               </div>
-              {selectedEpisode.mentioned_entities.length > 0 && <div><Label className="text-muted-foreground">{t('aiMemory.mentionedEntities')}</Label><div className="flex flex-wrap gap-2 mt-2">{selectedEpisode.mentioned_entities.map((e) => <Badge key={e.id} variant="secondary">{e.name}</Badge>)}</div></div>}
+              <div>
+                <Label className="text-muted-foreground">{t('aiMemory.content')}</Label>
+                <p className="mt-1 p-2 bg-muted/50 rounded text-sm whitespace-pre-wrap">
+                  {selectedEpisode.content}
+                </p>
+              </div>
+              <div>
+                <Label className="text-muted-foreground">{t('aiMemory.speakers')}</Label>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {selectedEpisode.speaker_ids.map((id) => (
+                    <Badge key={id} variant="outline">
+                      {id}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <Label className="text-muted-foreground">{t('aiMemory.validAt')}</Label>
+                  <p>{formatDate(selectedEpisode.valid_at)}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">{t('aiMemory.createdAt')}</Label>
+                  <p>{formatDate(selectedEpisode.created_at)}</p>
+                </div>
+              </div>
+              {selectedEpisode.mentioned_entities.length > 0 && (
+                <div>
+                  <Label className="text-muted-foreground">{t('aiMemory.mentionedEntities')}</Label>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {selectedEpisode.mentioned_entities.map((e) => (
+                      <Badge key={e.id} variant="secondary">
+                        {e.name}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
           {dialogType === 'entity' && selectedEntity && (
             <div className="space-y-4">
-              <div className={cn('rounded-lg p-4', isGlass ? 'glass-card' : 'border border-border/50 bg-card')}>
+              <div
+                className={cn(
+                  'rounded-lg p-4',
+                  'glass-card',
+                )}
+              >
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 text-sm">
-                  <div><Label className="text-muted-foreground">{t('aiMemory.scopeKey')}</Label><p className="font-mono text-sm break-all">{selectedEntity.scope_key}</p></div>
-                  <div><Label className="text-muted-foreground">{t('aiMemory.name')}</Label><p className="font-medium">{selectedEntity.name}</p></div>
-                  <div><Label className="text-muted-foreground">{t('aiMemory.isSpeaker')}</Label><p>{selectedEntity.is_speaker ? t('common.yes') : t('common.no')}</p></div>
-                  {selectedEntity.user_id && <div><Label className="text-muted-foreground">{t('aiMemory.userId')}</Label><p className="font-mono">{selectedEntity.user_id}</p></div>}
-                  <div><Label className="text-muted-foreground">{t('aiMemory.createdAt')}</Label><p>{formatDate(selectedEntity.created_at)}</p></div>
-                  <div><Label className="text-muted-foreground">{t('aiMemory.updatedAt')}</Label><p>{formatDate(selectedEntity.updated_at)}</p></div>
+                  <div>
+                    <Label className="text-muted-foreground">{t('aiMemory.scopeKey')}</Label>
+                    <p className="font-mono text-sm break-all">{selectedEntity.scope_key}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">{t('aiMemory.name')}</Label>
+                    <p className="font-medium">{selectedEntity.name}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">{t('aiMemory.isSpeaker')}</Label>
+                    <p>{selectedEntity.is_speaker ? t('common.yes') : t('common.no')}</p>
+                  </div>
+                  {selectedEntity.user_id && (
+                    <div>
+                      <Label className="text-muted-foreground">{t('aiMemory.userId')}</Label>
+                      <p className="font-mono">{selectedEntity.user_id}</p>
+                    </div>
+                  )}
+                  <div>
+                    <Label className="text-muted-foreground">{t('aiMemory.createdAt')}</Label>
+                    <p>{formatDate(selectedEntity.created_at)}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">{t('aiMemory.updatedAt')}</Label>
+                    <p>{formatDate(selectedEntity.updated_at)}</p>
+                  </div>
                 </div>
-                {selectedEntity.summary && <div className="mt-4"><Label className="text-muted-foreground">{t('aiMemory.summary')}</Label><p className="mt-1 p-2 bg-muted/50 rounded text-sm whitespace-pre-wrap">{selectedEntity.summary}</p></div>}
-                {selectedEntity.tag.length > 0 && <div className="mt-4"><Label className="text-muted-foreground">{t('aiMemory.tags')}</Label><div className="flex flex-wrap gap-2 mt-2">{selectedEntity.tag.map((tag) => <Badge key={tag} variant="outline">{tag}</Badge>)}</div></div>}
+                {selectedEntity.summary && (
+                  <div className="mt-4">
+                    <Label className="text-muted-foreground">{t('aiMemory.summary')}</Label>
+                    <p className="mt-1 p-2 bg-muted/50 rounded text-sm whitespace-pre-wrap">
+                      {selectedEntity.summary}
+                    </p>
+                  </div>
+                )}
+                {selectedEntity.tag.length > 0 && (
+                  <div className="mt-4">
+                    <Label className="text-muted-foreground">{t('aiMemory.tags')}</Label>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {selectedEntity.tag.map((tag) => (
+                        <Badge key={tag} variant="outline">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 {(() => {
                   const hub = hubForEntity(selectedEntity.id, selectedEntity.name, cognitionNodes);
                   if (!hub) return null;
                   const articles = hub.attachments ?? [];
                   return (
                     <div className="mt-4 space-y-2">
-                      <Label className="text-muted-foreground">{t('aiMemory.worldKnowledge')}</Label>
+                      <Label className="text-muted-foreground">
+                        {t('aiMemory.worldKnowledge')}
+                      </Label>
                       <button
                         type="button"
                         className="flex w-full items-center justify-between gap-2 rounded-md border border-border/50 p-3 text-left hover:bg-accent/40"
@@ -2535,7 +3638,9 @@ export default function AIMemoryPage() {
                             <Globe className="w-4 h-4 shrink-0" />
                             <span className="truncate">{hub.title || hub.ref}</span>
                           </span>
-                          <span className="mt-1 block font-mono text-xs text-muted-foreground break-all">{hub.ref}</span>
+                          <span className="mt-1 block font-mono text-xs text-muted-foreground break-all">
+                            {hub.ref}
+                          </span>
                         </span>
                         <Badge variant="secondary" className="shrink-0">
                           {t('aiMemory.articleCount', { count: articles.length })}
@@ -2554,51 +3659,93 @@ export default function AIMemoryPage() {
                 })()}
               </div>
 
-              <div className={cn('rounded-lg p-4', isGlass ? 'glass-card' : 'border border-border/50 bg-card')}>
+              <div
+                className={cn(
+                  'rounded-lg p-4',
+                  'glass-card',
+                )}
+              >
                 <div className="mb-3 flex items-center justify-between gap-2">
                   <div>
                     <h3 className="font-semibold">相连实体与关系 Edge</h3>
-                    <p className="text-xs text-muted-foreground">展示所有与当前实体直接相连的实体，可对错误 Edge 标记失效。</p>
+                    <p className="text-xs text-muted-foreground">
+                      展示所有与当前实体直接相连的实体，可对错误 Edge 标记失效。
+                    </p>
                   </div>
                   <Badge variant="outline">{selectedEntityConnectedEdges.length}</Badge>
                 </div>
                 {selectedEntityConnectedEdges.length === 0 ? (
-                  <div className="py-6 text-center text-sm text-muted-foreground">暂无直接相连实体</div>
+                  <div className="py-6 text-center text-sm text-muted-foreground">
+                    暂无直接相连实体
+                  </div>
                 ) : (
                   <div className="space-y-3 max-h-[360px] overflow-auto pr-1">
-                    {selectedEntityConnectedEdges.map(({ edge, connectedEntity, connectedEntityId, direction }) => (
-                      <div key={edge.id} className={cn('rounded-lg border border-border/50 p-3', edge.invalid_at && 'opacity-60')}>
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0 space-y-2">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <Badge variant={edge.invalid_at ? 'destructive' : 'default'}>{edge.invalid_at ? '已失效' : '有效'}</Badge>
-                              <Badge variant="outline">{direction === 'out' ? '当前实体 → 对方' : '对方 → 当前实体'}</Badge>
-                              <span className="font-mono text-xs text-muted-foreground">{edge.id}</span>
+                    {selectedEntityConnectedEdges.map(
+                      ({ edge, connectedEntity, connectedEntityId, direction }) => (
+                        <div
+                          key={edge.id}
+                          className={cn(
+                            'rounded-lg border border-border/50 p-3',
+                            edge.invalid_at && 'opacity-60',
+                          )}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0 space-y-2">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <Badge variant={edge.invalid_at ? 'destructive' : 'default'}>
+                                  {edge.invalid_at ? '已失效' : '有效'}
+                                </Badge>
+                                <Badge variant="outline">
+                                  {direction === 'out' ? '当前实体 → 对方' : '对方 → 当前实体'}
+                                </Badge>
+                                <span className="font-mono text-xs text-muted-foreground">
+                                  {edge.id}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2 text-sm">
+                                <span className="font-medium truncate">{selectedEntity.name}</span>
+                                <ChevronRight
+                                  className={cn(
+                                    'h-4 w-4 text-primary/60',
+                                    direction === 'in' && 'rotate-180',
+                                  )}
+                                />
+                                <button
+                                  type="button"
+                                  className="font-medium text-primary hover:underline truncate"
+                                  onClick={() => openDetailDialog('entity', connectedEntityId)}
+                                >
+                                  {connectedEntity?.name || connectedEntityId}
+                                </button>
+                              </div>
+                              <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                                {edge.fact}
+                              </p>
+                              <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+                                <span>生效: {edge.valid_at ? formatDate(edge.valid_at) : '-'}</span>
+                                <span>提及: {edge.mention_count ?? '-'}</span>
+                                <span>
+                                  评分:{' '}
+                                  {typeof edge.decay_score === 'number'
+                                    ? edge.decay_score.toFixed(3)
+                                    : '-'}
+                                </span>
+                              </div>
                             </div>
-                            <div className="flex items-center gap-2 text-sm">
-                              <span className="font-medium truncate">{selectedEntity.name}</span>
-                              <ChevronRight className={cn('h-4 w-4 text-primary/60', direction === 'in' && 'rotate-180')} />
-                              <button
-                                type="button"
-                                className="font-medium text-primary hover:underline truncate"
-                                onClick={() => openDetailDialog('entity', connectedEntityId)}
-                              >
-                                {connectedEntity?.name || connectedEntityId}
-                              </button>
-                            </div>
-                            <p className="text-sm text-muted-foreground whitespace-pre-wrap">{edge.fact}</p>
-                            <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-                              <span>生效: {edge.valid_at ? formatDate(edge.valid_at) : '-'}</span>
-                              <span>提及: {edge.mention_count ?? '-'}</span>
-                              <span>评分: {typeof edge.decay_score === 'number' ? edge.decay_score.toFixed(3) : '-'}</span>
-                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="shrink-0 text-destructive hover:text-destructive"
+                              disabled={!!edge.invalid_at}
+                              onClick={() => requestInvalidateEdge(edge)}
+                            >
+                              <Trash2 className="w-4 h-4 mr-1" />
+                              失效
+                            </Button>
                           </div>
-                          <Button variant="ghost" size="sm" className="shrink-0 text-destructive hover:text-destructive" disabled={!!edge.invalid_at} onClick={() => requestInvalidateEdge(edge)}>
-                            <Trash2 className="w-4 h-4 mr-1" />失效
-                          </Button>
                         </div>
-                      </div>
-                    ))}
+                      ),
+                    )}
                   </div>
                 )}
               </div>
@@ -2606,15 +3753,45 @@ export default function AIMemoryPage() {
           )}
           {dialogType === 'edge' && selectedEdge && (
             <div className="space-y-4">
-              <div><Label className="text-muted-foreground">{t('aiMemory.scopeKey')}</Label><p className="font-mono text-sm">{selectedEdge.scope_key}</p></div>
-              <div><Label className="text-muted-foreground">{t('aiMemory.fact')}</Label><p className="mt-1 p-2 bg-muted/50 rounded text-sm">{selectedEdge.fact}</p></div>
+              <div>
+                <Label className="text-muted-foreground">{t('aiMemory.scopeKey')}</Label>
+                <p className="font-mono text-sm">{selectedEdge.scope_key}</p>
+              </div>
+              <div>
+                <Label className="text-muted-foreground">{t('aiMemory.fact')}</Label>
+                <p className="mt-1 p-2 bg-muted/50 rounded text-sm">{selectedEdge.fact}</p>
+              </div>
               <div className="grid grid-cols-2 gap-4">
-                <div><Label className="text-muted-foreground">{t('aiMemory.sourceEntity')}</Label><p className="font-medium">{selectedEdge.source_entity.name}</p>{selectedEdge.source_entity.summary && <p className="text-sm text-muted-foreground mt-1">{truncateText(selectedEdge.source_entity.summary, 100)}</p>}</div>
-                <div><Label className="text-muted-foreground">{t('aiMemory.targetEntity')}</Label><p className="font-medium">{selectedEdge.target_entity.name}</p>{selectedEdge.target_entity.summary && <p className="text-sm text-muted-foreground mt-1">{truncateText(selectedEdge.target_entity.summary, 100)}</p>}</div>
+                <div>
+                  <Label className="text-muted-foreground">{t('aiMemory.sourceEntity')}</Label>
+                  <p className="font-medium">{selectedEdge.source_entity.name}</p>
+                  {selectedEdge.source_entity.summary && (
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {truncateText(selectedEdge.source_entity.summary, 100)}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">{t('aiMemory.targetEntity')}</Label>
+                  <p className="font-medium">{selectedEdge.target_entity.name}</p>
+                  {selectedEdge.target_entity.summary && (
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {truncateText(selectedEdge.target_entity.summary, 100)}
+                    </p>
+                  )}
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-4 text-sm">
-                <div><Label className="text-muted-foreground">{t('aiMemory.validAt')}</Label><p>{formatDate(selectedEdge.valid_at)}</p></div>
-                {selectedEdge.invalid_at && <div><Label className="text-muted-foreground">{t('aiMemory.invalidAt')}</Label><p className="text-destructive">{formatDate(selectedEdge.invalid_at)}</p></div>}
+                <div>
+                  <Label className="text-muted-foreground">{t('aiMemory.validAt')}</Label>
+                  <p>{formatDate(selectedEdge.valid_at)}</p>
+                </div>
+                {selectedEdge.invalid_at && (
+                  <div>
+                    <Label className="text-muted-foreground">{t('aiMemory.invalidAt')}</Label>
+                    <p className="text-destructive">{formatDate(selectedEdge.invalid_at)}</p>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -2625,7 +3802,9 @@ export default function AIMemoryPage() {
                   <Globe className="w-3 h-3" />
                   {t('aiMemory.legendWorld')}
                 </Badge>
-                {selectedWorldHub.source && <Badge variant="outline">{selectedWorldHub.source}</Badge>}
+                {selectedWorldHub.source && (
+                  <Badge variant="outline">{selectedWorldHub.source}</Badge>
+                )}
                 {pluginFromWorldRef(selectedWorldHub.ref) && (
                   <Badge variant="secondary">{pluginFromWorldRef(selectedWorldHub.ref)}</Badge>
                 )}
@@ -2641,11 +3820,16 @@ export default function AIMemoryPage() {
               {selectedWorldHub.summary && (
                 <div>
                   <Label className="text-muted-foreground">{t('aiMemory.summary')}</Label>
-                  <p className="mt-1 p-2 bg-muted/50 rounded text-sm whitespace-pre-wrap">{selectedWorldHub.summary}</p>
+                  <p className="mt-1 p-2 bg-muted/50 rounded text-sm whitespace-pre-wrap">
+                    {selectedWorldHub.summary}
+                  </p>
                 </div>
               )}
               <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                <span>{t('aiMemory.scopeKey')}: {selectedWorldHub.scope_key || t('aiMemory.publicWorldScope')}</span>
+                <span>
+                  {t('aiMemory.scopeKey')}:{' '}
+                  {selectedWorldHub.scope_key || t('aiMemory.publicWorldScope')}
+                </span>
                 {selectedWorldHub.as_of && <span>as_of={selectedWorldHub.as_of}</span>}
               </div>
               <div className="space-y-2">
@@ -2662,17 +3846,53 @@ export default function AIMemoryPage() {
           )}
           {dialogType === 'category' && selectedCategoryDetail && (
             <div className="space-y-4">
-              <div><Label className="text-muted-foreground">{t('aiMemory.scopeKey')}</Label><p className="font-mono text-sm">{selectedCategoryDetail.scope_key}</p></div>
-              <div><Label className="text-muted-foreground">{t('aiMemory.name')}</Label><p className="font-medium">{selectedCategoryDetail.name}</p></div>
-              {selectedCategoryDetail.summary && <div><Label className="text-muted-foreground">{t('aiMemory.summary')}</Label><p className="mt-1 p-2 bg-muted/50 rounded text-sm">{selectedCategoryDetail.summary}</p></div>}
-              {selectedCategoryDetail.tag.length > 0 && <div><Label className="text-muted-foreground">{t('aiMemory.tags')}</Label><div className="flex flex-wrap gap-2 mt-2">{selectedCategoryDetail.tag.map((tag) => <Badge key={tag} variant="outline">{tag}</Badge>)}</div></div>}
+              <div>
+                <Label className="text-muted-foreground">{t('aiMemory.scopeKey')}</Label>
+                <p className="font-mono text-sm">{selectedCategoryDetail.scope_key}</p>
+              </div>
+              <div>
+                <Label className="text-muted-foreground">{t('aiMemory.name')}</Label>
+                <p className="font-medium">{selectedCategoryDetail.name}</p>
+              </div>
+              {selectedCategoryDetail.summary && (
+                <div>
+                  <Label className="text-muted-foreground">{t('aiMemory.summary')}</Label>
+                  <p className="mt-1 p-2 bg-muted/50 rounded text-sm">
+                    {selectedCategoryDetail.summary}
+                  </p>
+                </div>
+              )}
+              {selectedCategoryDetail.tag.length > 0 && (
+                <div>
+                  <Label className="text-muted-foreground">{t('aiMemory.tags')}</Label>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {selectedCategoryDetail.tag.map((tag) => (
+                      <Badge key={tag} variant="outline">
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-4 text-sm">
-                <div><Label className="text-muted-foreground">{t('aiMemory.layer')}</Label><p className="font-semibold">{selectedCategoryDetail.layer}</p></div>
-                <div><Label className="text-muted-foreground">{t('aiMemory.memberEntities')}</Label><p className="font-semibold">{selectedCategoryDetail.member_entities_count}</p></div>
+                <div>
+                  <Label className="text-muted-foreground">{t('aiMemory.layer')}</Label>
+                  <p className="font-semibold">{selectedCategoryDetail.layer}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">{t('aiMemory.memberEntities')}</Label>
+                  <p className="font-semibold">{selectedCategoryDetail.member_entities_count}</p>
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-4 text-sm">
-                <div><Label className="text-muted-foreground">{t('aiMemory.createdAt')}</Label><p>{formatDate(selectedCategoryDetail.created_at)}</p></div>
-                <div><Label className="text-muted-foreground">{t('aiMemory.updatedAt')}</Label><p>{formatDate(selectedCategoryDetail.updated_at)}</p></div>
+                <div>
+                  <Label className="text-muted-foreground">{t('aiMemory.createdAt')}</Label>
+                  <p>{formatDate(selectedCategoryDetail.created_at)}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">{t('aiMemory.updatedAt')}</Label>
+                  <p>{formatDate(selectedCategoryDetail.updated_at)}</p>
+                </div>
               </div>
             </div>
           )}
@@ -2680,7 +3900,10 @@ export default function AIMemoryPage() {
       </Dialog>
 
       {/* Edge Invalidate Confirmation Dialog */}
-      <AlertDialog open={!!pendingInvalidateEdge} onOpenChange={(open) => !open && !invalidateEdgeLoading && setPendingInvalidateEdge(null)}>
+      <AlertDialog
+        open={!!pendingInvalidateEdge}
+        onOpenChange={(open) => !open && !invalidateEdgeLoading && setPendingInvalidateEdge(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
@@ -2688,7 +3911,8 @@ export default function AIMemoryPage() {
               确认标记 Edge 失效
             </AlertDialogTitle>
             <AlertDialogDescription>
-              这是软删除操作，只会设置 invalid_at，但会影响后续记忆检索结果。请确认该关系事实确实错误或不再适用。
+              这是软删除操作，只会设置
+              invalid_at，但会影响后续记忆检索结果。请确认该关系事实确实错误或不再适用。
             </AlertDialogDescription>
           </AlertDialogHeader>
           {pendingInvalidateEdge && (
@@ -2727,20 +3951,24 @@ export default function AIMemoryPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setClearMemoryDialogOpen(false)}>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setClearMemoryDialogOpen(false)}>
+              {t('common.cancel')}
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={async () => {
                 if (!selectedScope || selectedScope === 'all') return;
                 setClearMemoryLoading(true);
                 try {
                   const result = await memoryApi.clearMemory({ scope_key: selectedScope });
-                  toast.success(t('aiMemory.clearMemorySuccess', {
-                    scope: selectedScope,
-                    episodes: result.deleted_episodes,
-                    entities: result.deleted_entities,
-                    edges: result.deleted_edges,
-                    categories: result.deleted_categories,
-                  }));
+                  toast.success(
+                    t('aiMemory.clearMemorySuccess', {
+                      scope: selectedScope,
+                      episodes: result.deleted_episodes,
+                      entities: result.deleted_entities,
+                      edges: result.deleted_edges,
+                      categories: result.deleted_categories,
+                    }),
+                  );
                   setClearMemoryDialogOpen(false);
                   // Refresh all data
                   const scopesData = await memoryApi.getScopes();
@@ -2767,7 +3995,10 @@ export default function AIMemoryPage() {
       </AlertDialog>
 
       {/* Delete Preference Confirmation Dialog */}
-      <AlertDialog open={!!deletingPreference} onOpenChange={(open) => !open && !deletingPreferenceLoading && setDeletingPreference(null)}>
+      <AlertDialog
+        open={!!deletingPreference}
+        onOpenChange={(open) => !open && !deletingPreferenceLoading && setDeletingPreference(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
@@ -2779,7 +4010,9 @@ export default function AIMemoryPage() {
           {deletingPreference && (
             <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-sm space-y-1">
               <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                <Badge variant={deletingPreference.is_correction ? 'default' : 'secondary'}>{deletingPreference.polarity}</Badge>
+                <Badge variant={deletingPreference.is_correction ? 'default' : 'secondary'}>
+                  {deletingPreference.polarity}
+                </Badge>
                 <Badge variant="outline">{deletingPreference.target_context}</Badge>
                 <span className="font-mono">{deletingPreference.id}</span>
               </div>
@@ -2787,7 +4020,9 @@ export default function AIMemoryPage() {
             </div>
           )}
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deletingPreferenceLoading}>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogCancel disabled={deletingPreferenceLoading}>
+              {t('common.cancel')}
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDeletePreference}
               disabled={deletingPreferenceLoading}

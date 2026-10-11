@@ -183,12 +183,15 @@ export function InputWithDropdown({
     setOpen(false);
   }, [onChange, searchValue]);
 
-  const handleInputKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleCommitInput();
-    }
-  }, [handleCommitInput]);
+  const handleInputKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handleCommitInput();
+      }
+    },
+    [handleCommitInput],
+  );
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -197,10 +200,7 @@ export function InputWithDropdown({
           variant="outline"
           role="combobox"
           disabled={disabled}
-          className={cn(
-            'w-full justify-between text-left font-normal h-10 px-3',
-            className
-          )}
+          className={cn('w-full justify-between text-left font-normal h-10 px-3', className)}
         >
           <span className="truncate">
             {safeValue ? (
@@ -233,9 +233,17 @@ export function InputWithDropdown({
                   disabled={!safeValue.trim()}
                   onClick={handleCopyValue}
                 >
-                  {isCopied ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
+                  {isCopied ? (
+                    <Check className="h-3.5 w-3.5 text-green-500" />
+                  ) : (
+                    <Copy className="h-3.5 w-3.5" />
+                  )}
                   <span className="truncate">
-                    {safeValue.trim() ? (isCopied ? resolvedCopiedValueLabel : resolvedCopyValueLabel) : resolvedCopyEmptyLabel}
+                    {safeValue.trim()
+                      ? isCopied
+                        ? resolvedCopiedValueLabel
+                        : resolvedCopyValueLabel
+                      : resolvedCopyEmptyLabel}
                   </span>
                 </Button>
               )}
@@ -274,7 +282,7 @@ export function InputWithDropdown({
                 key={option}
                 className={cn(
                   'px-3 py-2 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground',
-                  safeValue === option && 'bg-accent'
+                  safeValue === option && 'bg-accent',
                 )}
                 onClick={() => {
                   onChange(option);

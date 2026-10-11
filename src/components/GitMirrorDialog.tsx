@@ -47,11 +47,7 @@ import {
 import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
-import {
-  gitMirrorApi,
-  GitMirrorInfo,
-  GitMirrorOption,
-} from '@/lib/api';
+import { gitMirrorApi, GitMirrorInfo, GitMirrorOption } from '@/lib/api';
 import { PluginIcon } from '@/components/ui/plugin-icon';
 
 // Radix UI Select 不允许空字符串作为 value，使用此常量作为默认值的占位符
@@ -225,10 +221,12 @@ export default function GitMirrorDialog({ open, onOpenChange }: GitMirrorDialogP
     try {
       setApplyAllLoading(true);
       const result = await gitMirrorApi.setAll(toMirrorValue(selectedMirror));
-      toast.success(t('gitMirror.applyToAllSuccess', {
+      toast.success(
+        t('gitMirror.applyToAllSuccess', {
           success: result.summary.success_count,
           fail: result.summary.fail_count,
-        }));
+        }),
+      );
       // 刷新数据
       await fetchMirrorInfo();
     } catch (error) {
@@ -275,22 +273,22 @@ export default function GitMirrorDialog({ open, onOpenChange }: GitMirrorDialogP
   const getSelectedMirrorLabel = () => {
     if (!mirrorInfo) return '';
     const realValue = toMirrorValue(selectedMirror);
-    const found = mirrorInfo.available_mirrors.find(m => m.value === realValue);
+    const found = mirrorInfo.available_mirrors.find((m) => m.value === realValue);
     return found ? found.label : realValue || t('gitMirror.defaultMirror');
   };
 
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className={cn("w-[95vw] max-w-4xl max-h-[85vh] flex flex-col", "glass-card")}>
+        <DialogContent
+          className={cn('w-[95vw] max-w-4xl max-h-[85vh] flex flex-col', 'glass-card')}
+        >
           <DialogHeader>
             <DialogTitle className="flex items-center gap-3">
               <GitBranch className="w-5 h-5" />
               {t('gitMirror.title')}
             </DialogTitle>
-            <DialogDescription>
-              {t('gitMirror.description')}
-            </DialogDescription>
+            <DialogDescription>{t('gitMirror.description')}</DialogDescription>
           </DialogHeader>
 
           {loading ? (
@@ -310,7 +308,10 @@ export default function GitMirrorDialog({ open, onOpenChange }: GitMirrorDialogP
                     </SelectTrigger>
                     <SelectContent>
                       {mirrorInfo.available_mirrors.map((mirror) => (
-                        <SelectItem key={mirror.value || DEFAULT_MIRROR_VALUE} value={toSelectValue(mirror.value)}>
+                        <SelectItem
+                          key={mirror.value || DEFAULT_MIRROR_VALUE}
+                          value={toSelectValue(mirror.value)}
+                        >
                           <div className="flex items-center gap-2">
                             {getMirrorOptionIcon(mirror.type)}
                             <span>{mirror.label}</span>
@@ -377,10 +378,16 @@ export default function GitMirrorDialog({ open, onOpenChange }: GitMirrorDialogP
                         <Table>
                           <TableHeader className="sticky top-0 bg-background z-10">
                             <TableRow>
-                              <TableHead className="w-[160px]">{t('gitMirror.pluginName')}</TableHead>
+                              <TableHead className="w-[160px]">
+                                {t('gitMirror.pluginName')}
+                              </TableHead>
                               <TableHead>{t('gitMirror.remoteUrl')}</TableHead>
-                              <TableHead className="w-[90px]">{t('gitMirror.mirrorStatus')}</TableHead>
-                              <TableHead className="w-[90px] text-right">{t('gitMirror.actions')}</TableHead>
+                              <TableHead className="w-[90px]">
+                                {t('gitMirror.mirrorStatus')}
+                              </TableHead>
+                              <TableHead className="w-[90px] text-right">
+                                {t('gitMirror.actions')}
+                              </TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -389,7 +396,10 @@ export default function GitMirrorDialog({ open, onOpenChange }: GitMirrorDialogP
                               const isCore = plugin.name === 'gsuid_core';
                               const isLoading = pluginLoading === plugin.name;
                               return (
-                                <TableRow key={plugin.name} className={!plugin.is_git_repo ? 'opacity-50' : ''}>
+                                <TableRow
+                                  key={plugin.name}
+                                  className={!plugin.is_git_repo ? 'opacity-50' : ''}
+                                >
                                   <TableCell className="font-medium">
                                     <PluginNameWithIcon
                                       name={plugin.name}
@@ -400,26 +410,55 @@ export default function GitMirrorDialog({ open, onOpenChange }: GitMirrorDialogP
                                   <TableCell>
                                     {plugin.is_git_repo && plugin.remote_url ? (
                                       <div className="flex items-center gap-1.5">
-                                        <code className="text-xs bg-muted px-1.5 py-0.5 rounded max-w-[300px] truncate block">{plugin.remote_url}</code>
+                                        <code className="text-xs bg-muted px-1.5 py-0.5 rounded max-w-[300px] truncate block">
+                                          {plugin.remote_url}
+                                        </code>
                                         {plugin.remote_url.startsWith('http') && (
-                                          <a href={plugin.remote_url} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground shrink-0" onClick={(e) => e.stopPropagation()}>
+                                          <a
+                                            href={plugin.remote_url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-muted-foreground hover:text-foreground shrink-0"
+                                            onClick={(e) => e.stopPropagation()}
+                                          >
                                             <ExternalLink className="w-3.5 h-3.5" />
                                           </a>
                                         )}
                                       </div>
                                     ) : (
-                                      <span className="text-muted-foreground text-sm">{t('gitMirror.notGitRepo')}</span>
+                                      <span className="text-muted-foreground text-sm">
+                                        {t('gitMirror.notGitRepo')}
+                                      </span>
                                     )}
                                   </TableCell>
                                   <TableCell>
-                                    <Badge variant="outline" className={`text-xs ${badge.className}`}>
-                                      <span className="flex items-center gap-1">{badge.icon}{badge.label}</span>
+                                    <Badge
+                                      variant="outline"
+                                      className={`text-xs ${badge.className}`}
+                                    >
+                                      <span className="flex items-center gap-1">
+                                        {badge.icon}
+                                        {badge.label}
+                                      </span>
                                     </Badge>
                                   </TableCell>
                                   <TableCell className="text-right">
                                     {plugin.is_git_repo ? (
-                                      <Button size="sm" variant="outline" className="gap-1 text-xs" disabled={isLoading} onClick={() => { setSwitchDialogPlugin(plugin.name); setSwitchDialogMirror(selectedMirror); }}>
-                                        {isLoading ? <RefreshCw className="w-3 h-3 animate-spin" /> : <GitBranch className="w-3 h-3" />}
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="gap-1 text-xs"
+                                        disabled={isLoading}
+                                        onClick={() => {
+                                          setSwitchDialogPlugin(plugin.name);
+                                          setSwitchDialogMirror(selectedMirror);
+                                        }}
+                                      >
+                                        {isLoading ? (
+                                          <RefreshCw className="w-3 h-3 animate-spin" />
+                                        ) : (
+                                          <GitBranch className="w-3 h-3" />
+                                        )}
                                         {t('gitMirror.switch')}
                                       </Button>
                                     ) : (
@@ -440,7 +479,13 @@ export default function GitMirrorDialog({ open, onOpenChange }: GitMirrorDialogP
                           const isCore = plugin.name === 'gsuid_core';
                           const isLoading = pluginLoading === plugin.name;
                           return (
-                            <div key={plugin.name} className={cn("rounded-lg p-3 space-y-2 glass-card", !plugin.is_git_repo && "opacity-50")}>
+                            <div
+                              key={plugin.name}
+                              className={cn(
+                                'rounded-lg p-3 space-y-2 glass-card',
+                                !plugin.is_git_repo && 'opacity-50',
+                              )}
+                            >
                               {/* 第一行：名称 + 镜像状态 + 操作按钮 */}
                               <div className="flex items-center justify-between gap-2">
                                 <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -450,13 +495,32 @@ export default function GitMirrorDialog({ open, onOpenChange }: GitMirrorDialogP
                                     coreLabel={t('gitMirror.core')}
                                     className="font-medium text-sm"
                                   />
-                                  <Badge variant="outline" className={`text-xs shrink-0 ${badge.className}`}>
-                                    <span className="flex items-center gap-1">{badge.icon}{badge.label}</span>
+                                  <Badge
+                                    variant="outline"
+                                    className={`text-xs shrink-0 ${badge.className}`}
+                                  >
+                                    <span className="flex items-center gap-1">
+                                      {badge.icon}
+                                      {badge.label}
+                                    </span>
                                   </Badge>
                                 </div>
                                 {plugin.is_git_repo ? (
-                                  <Button size="sm" variant="outline" className="gap-1 text-xs shrink-0" disabled={isLoading} onClick={() => { setSwitchDialogPlugin(plugin.name); setSwitchDialogMirror(selectedMirror); }}>
-                                    {isLoading ? <RefreshCw className="w-3 h-3 animate-spin" /> : <GitBranch className="w-3 h-3" />}
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="gap-1 text-xs shrink-0"
+                                    disabled={isLoading}
+                                    onClick={() => {
+                                      setSwitchDialogPlugin(plugin.name);
+                                      setSwitchDialogMirror(selectedMirror);
+                                    }}
+                                  >
+                                    {isLoading ? (
+                                      <RefreshCw className="w-3 h-3 animate-spin" />
+                                    ) : (
+                                      <GitBranch className="w-3 h-3" />
+                                    )}
                                     {t('gitMirror.switch')}
                                   </Button>
                                 ) : (
@@ -466,15 +530,25 @@ export default function GitMirrorDialog({ open, onOpenChange }: GitMirrorDialogP
                               {/* 第二行：Remote URL */}
                               {plugin.is_git_repo && plugin.remote_url ? (
                                 <div className="flex items-center gap-1.5">
-                                  <code className="text-xs bg-muted px-1.5 py-0.5 rounded truncate block flex-1">{plugin.remote_url}</code>
+                                  <code className="text-xs bg-muted px-1.5 py-0.5 rounded truncate block flex-1">
+                                    {plugin.remote_url}
+                                  </code>
                                   {plugin.remote_url.startsWith('http') && (
-                                    <a href={plugin.remote_url} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground shrink-0" onClick={(e) => e.stopPropagation()}>
+                                    <a
+                                      href={plugin.remote_url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-muted-foreground hover:text-foreground shrink-0"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
                                       <ExternalLink className="w-3.5 h-3.5" />
                                     </a>
                                   )}
                                 </div>
                               ) : (
-                                <span className="text-muted-foreground text-xs">{t('gitMirror.notGitRepo')}</span>
+                                <span className="text-muted-foreground text-xs">
+                                  {t('gitMirror.notGitRepo')}
+                                </span>
                               )}
                             </div>
                           );
@@ -502,9 +576,7 @@ export default function GitMirrorDialog({ open, onOpenChange }: GitMirrorDialogP
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-            <AlertDialogAction onClick={handleApplyAll}>
-              {t('common.confirm')}
-            </AlertDialogAction>
+            <AlertDialogAction onClick={handleApplyAll}>{t('common.confirm')}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -540,7 +612,10 @@ export default function GitMirrorDialog({ open, onOpenChange }: GitMirrorDialogP
                 </SelectTrigger>
                 <SelectContent>
                   {mirrorInfo?.available_mirrors.map((mirror) => (
-                    <SelectItem key={mirror.value || DEFAULT_MIRROR_VALUE} value={toSelectValue(mirror.value)}>
+                    <SelectItem
+                      key={mirror.value || DEFAULT_MIRROR_VALUE}
+                      value={toSelectValue(mirror.value)}
+                    >
                       <div className="flex items-center gap-2">
                         {getMirrorOptionIcon(mirror.type)}
                         <span>{mirror.label}</span>
@@ -557,10 +632,7 @@ export default function GitMirrorDialog({ open, onOpenChange }: GitMirrorDialogP
               </Select>
             </div>
             <div className="flex justify-end gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setSwitchDialogPlugin(null)}
-              >
+              <Button variant="outline" onClick={() => setSwitchDialogPlugin(null)}>
                 {t('common.cancel')}
               </Button>
               <Button
@@ -571,9 +643,7 @@ export default function GitMirrorDialog({ open, onOpenChange }: GitMirrorDialogP
                 }}
                 disabled={pluginLoading !== null}
               >
-                {pluginLoading ? (
-                  <RefreshCw className="w-4 h-4 animate-spin mr-2" />
-                ) : null}
+                {pluginLoading ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : null}
                 {t('common.confirm')}
               </Button>
             </div>

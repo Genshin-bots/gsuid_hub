@@ -37,7 +37,11 @@ function buildDefaultItem(template: Record<string, PluginConfigItem>): RepeatGro
 }
 
 // 折叠态副标题：首个 URL 字段 + 各嵌套组数量(通用，不写死具体键名)
-function summarize(item: RepeatGroupItem, entries: [string, PluginConfigItem][], skip: Set<string>): string {
+function summarize(
+  item: RepeatGroupItem,
+  entries: [string, PluginConfigItem][],
+  skip: Set<string>,
+): string {
   const parts: string[] = [];
   for (const [key, tItem] of entries) {
     if (skip.has(key)) continue;
@@ -51,7 +55,15 @@ function summarize(item: RepeatGroupItem, entries: [string, PluginConfigItem][],
   return parts.join(' · ');
 }
 
-export function RepeatGroupField({ fieldKey, template, value, onChange, disabled, title, description }: RepeatGroupFieldProps) {
+export function RepeatGroupField({
+  fieldKey,
+  template,
+  value,
+  onChange,
+  disabled,
+  title,
+  description,
+}: RepeatGroupFieldProps) {
   const { t } = useLanguage();
   const items = Array.isArray(value) ? value : [];
   const entries = Object.entries(template);
@@ -73,14 +85,20 @@ export function RepeatGroupField({ fieldKey, template, value, onChange, disabled
     });
 
   const update = (i: number, key: string, v: unknown) =>
-    onChange(fieldKey, items.map((it, idx) => (idx === i ? { ...it, [key]: v } : it)));
+    onChange(
+      fieldKey,
+      items.map((it, idx) => (idx === i ? { ...it, [key]: v } : it)),
+    );
   const add = () => {
     setOpen((prev) => new Set(prev).add(items.length));
     onChange(fieldKey, [...items, buildDefaultItem(template)]);
   };
   const remove = (i: number) => {
     setOpen((prev) => new Set([...prev].filter((x) => x !== i).map((x) => (x > i ? x - 1 : x))));
-    onChange(fieldKey, items.filter((_, idx) => idx !== i));
+    onChange(
+      fieldKey,
+      items.filter((_, idx) => idx !== i),
+    );
   };
 
   return (
@@ -88,7 +106,9 @@ export function RepeatGroupField({ fieldKey, template, value, onChange, disabled
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           {title && <Label className="text-sm font-medium text-foreground">{title}</Label>}
-          {description && <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{description}</p>}
+          {description && (
+            <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{description}</p>
+          )}
         </div>
         <Button
           type="button"
@@ -128,12 +148,22 @@ export function RepeatGroupField({ fieldKey, template, value, onChange, disabled
               }}
               className="flex items-center gap-2.5 px-3.5 py-2.5 cursor-pointer hover:bg-muted/20 transition-colors"
             >
-              <ChevronRight className={cn('w-4 h-4 text-muted-foreground shrink-0 transition-transform', isOpen && 'rotate-90')} />
+              <ChevronRight
+                className={cn(
+                  'w-4 h-4 text-muted-foreground shrink-0 transition-transform',
+                  isOpen && 'rotate-90',
+                )}
+              />
               <div className="min-w-0 flex-1">
                 <div className="text-sm font-medium truncate">{title}</div>
-                {subtitle && <div className="text-xs text-muted-foreground truncate">{subtitle}</div>}
+                {subtitle && (
+                  <div className="text-xs text-muted-foreground truncate">{subtitle}</div>
+                )}
               </div>
-              <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+              <div
+                className="flex items-center gap-1.5 shrink-0"
+                onClick={(e) => e.stopPropagation()}
+              >
                 {enableKey && (
                   <Switch
                     checked={Boolean(item[enableKey])}

@@ -9,11 +9,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useLanguage } from '@/contexts/LanguageContext';
-import {
-  cognitionApi,
-  getApiErrorMessage,
-  type CognitionAttachment,
-} from '@/lib/api';
+import { cognitionApi, getApiErrorMessage, type CognitionAttachment } from '@/lib/api';
 import { toast } from 'sonner';
 
 export function CognitionArticlePreview({
@@ -89,7 +85,9 @@ export function CognitionArticlePreview({
             <p className="text-sm text-muted-foreground">{t('aiMemory.articlePreviewEmpty')}</p>
           )}
           {truncated && !loading && (
-            <p className="mt-3 text-xs text-muted-foreground">{t('aiMemory.articlePreviewTruncated')}</p>
+            <p className="mt-3 text-xs text-muted-foreground">
+              {t('aiMemory.articlePreviewTruncated')}
+            </p>
           )}
         </div>
       </DialogContent>

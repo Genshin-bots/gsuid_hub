@@ -23,7 +23,7 @@ export interface ChipGroupProps {
   chipClassName?: string;
   disabled?: boolean;
   allowEmpty?: boolean;
-  /** 
+  /**
    * Selection mode: 'multiple' allows multiple selections (default),
    * 'single' allows only one selection at a time
    */
@@ -39,9 +39,9 @@ export interface ChipGroupProps {
 
 /**
  * ChipGroup - A reusable chip selection component
- * 
+ *
  * Supports both single and multi-select modes, with customizable styling.
- * 
+ *
  * @example Multi-select (default)
  * ```tsx
  * <ChipGroup
@@ -54,7 +54,7 @@ export interface ChipGroupProps {
  *   onValueChange={(newValue) => setSelectedModes(newValue)}
  * />
  * ```
- * 
+ *
  * @example Single-select
  * ```tsx
  * <ChipGroup
@@ -81,37 +81,35 @@ export function ChipGroup({
   showRadioIndicator = false,
   showOrderIndex = false,
 }: ChipGroupProps) {
-  const toggleOption = React.useCallback((optionValue: string) => {
-    if (disabled) return;
+  const toggleOption = React.useCallback(
+    (optionValue: string) => {
+      if (disabled) return;
 
-    const option = options.find((o) => o.value === optionValue);
-    const isSelected = value.includes(optionValue);
+      const option = options.find((o) => o.value === optionValue);
+      const isSelected = value.includes(optionValue);
 
-    // option.disabled：禁止未选中时勾选；已选中仍可取消
-    if (option?.disabled && !isSelected) return;
+      // option.disabled：禁止未选中时勾选；已选中仍可取消
+      if (option?.disabled && !isSelected) return;
 
-    if (selectMode === 'single') {
-      if (option?.disabled) return;
-      onValueChange([optionValue]);
-    } else {
-      if (isSelected) {
-        if (!allowEmpty && value.length === 1) {
-          return;
-        }
-        onValueChange(value.filter((v) => v !== optionValue));
+      if (selectMode === 'single') {
+        if (option?.disabled) return;
+        onValueChange([optionValue]);
       } else {
-        onValueChange([...value, optionValue]);
+        if (isSelected) {
+          if (!allowEmpty && value.length === 1) {
+            return;
+          }
+          onValueChange(value.filter((v) => v !== optionValue));
+        } else {
+          onValueChange([...value, optionValue]);
+        }
       }
-    }
-  }, [value, onValueChange, disabled, allowEmpty, selectMode, options]);
+    },
+    [value, onValueChange, disabled, allowEmpty, selectMode, options],
+  );
 
   return (
-    <div
-      className={cn(
-        'flex flex-wrap gap-2',
-        className
-      )}
-    >
+    <div className={cn('flex flex-wrap gap-2', className)}>
       {options.map((option) => {
         const isSelected = value.includes(option.value);
         // 未选中且 disabled → 不可点；已选中的 disabled 仍可点掉
@@ -141,37 +139,35 @@ export function ChipGroup({
                     : undefined
             }
             className={cn(
-              "p-2.5 rounded-lg border-2 transition-all flex min-w-0 sm:min-w-auto items-center gap-2",
-              "active:scale-[0.98]",
+              'p-2.5 rounded-lg border-2 transition-all flex min-w-0 sm:min-w-auto items-center gap-2',
+              'active:scale-[0.98]',
               isSelected
                 ? isConflict
-                  ? "border-destructive bg-destructive/10"
-                  : "border-primary bg-primary/10"
-                : "border-border hover:border-primary/50",
-              isHardDisabled && "opacity-50 cursor-not-allowed hover:border-border",
-              isConflict && isSelected && "opacity-100",
-              chipClassName
+                  ? 'border-destructive bg-destructive/10'
+                  : 'border-primary bg-primary/10'
+                : 'border-border hover:border-primary/50',
+              isHardDisabled && 'opacity-50 cursor-not-allowed hover:border-border',
+              isConflict && isSelected && 'opacity-100',
+              chipClassName,
             )}
           >
             {orderIndex > 0 && (
               <span
                 className={cn(
-                  "inline-flex items-center justify-center min-w-[1.125rem] h-[1.125rem] px-1 rounded text-[10px] font-semibold tabular-nums",
-                  isConflict
-                    ? "bg-destructive/20 text-destructive"
-                    : "bg-primary/20 text-primary",
+                  'inline-flex items-center justify-center min-w-[1.125rem] h-[1.125rem] px-1 rounded text-[10px] font-semibold tabular-nums',
+                  isConflict ? 'bg-destructive/20 text-destructive' : 'bg-primary/20 text-primary',
                 )}
               >
                 {orderIndex}
               </span>
             )}
             {option.color && (
-              <div 
+              <div
                 className={cn(
-                  "w-3 h-3 rounded-full flex-shrink-0 transition-opacity",
+                  'w-3 h-3 rounded-full flex-shrink-0 transition-opacity',
                   option.color,
-                  !isSelected && "opacity-30"
-                )} 
+                  !isSelected && 'opacity-30',
+                )}
               />
             )}
             {option.icon && (
@@ -179,32 +175,38 @@ export function ChipGroup({
                 {option.icon}
               </span>
             )}
-            <span className={cn(
-              "text-sm font-medium min-w-0 sm:min-w-auto",
-              isSelected && (isConflict ? "text-destructive" : "text-primary")
-            )}>
+            <span
+              className={cn(
+                'text-sm font-medium min-w-0 sm:min-w-auto',
+                isSelected && (isConflict ? 'text-destructive' : 'text-primary'),
+              )}
+            >
               {option.label}
             </span>
             {/* Multi-select indicator (hidden when order index already shows priority) */}
             {selectMode === 'multiple' && isSelected && !showOrderIndex && (
-              <span className={cn(
-                "ml-1 w-4 h-4 rounded-full flex items-center justify-center",
-                isConflict ? "bg-destructive/20" : "bg-primary/20",
-              )}>
-                <span className={cn(
-                  "w-1.5 h-1.5 rounded-full",
-                  isConflict ? "bg-destructive" : "bg-primary",
-                )} />
+              <span
+                className={cn(
+                  'ml-1 w-4 h-4 rounded-full flex items-center justify-center',
+                  isConflict ? 'bg-destructive/20' : 'bg-primary/20',
+                )}
+              >
+                <span
+                  className={cn(
+                    'w-1.5 h-1.5 rounded-full',
+                    isConflict ? 'bg-destructive' : 'bg-primary',
+                  )}
+                />
               </span>
             )}
             {/* Single-select radio indicator */}
             {selectMode === 'single' && (
-              <span className={cn(
-                "ml-1 w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all",
-                isSelected 
-                  ? "border-primary bg-primary" 
-                  : "border-muted-foreground/30"
-              )}>
+              <span
+                className={cn(
+                  'ml-1 w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all',
+                  isSelected ? 'border-primary bg-primary' : 'border-muted-foreground/30',
+                )}
+              >
                 {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
               </span>
             )}

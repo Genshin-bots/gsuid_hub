@@ -13,12 +13,7 @@ import {
   AtSign,
   Loader2,
 } from 'lucide-react';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 // ============================================================================
 // Types
@@ -116,7 +111,11 @@ export function MessageComposer({
         <div className="flex items-center gap-2 text-xs bg-muted/60 rounded-lg px-2.5 py-1.5">
           <span className="text-muted-foreground shrink-0">{t('liveChat.replyingTo')}</span>
           <span className="truncate flex-1">{replyPreview}</span>
-          <button type="button" onClick={onClearReply} className="p-0.5 hover:text-foreground text-muted-foreground">
+          <button
+            type="button"
+            onClick={onClearReply}
+            className="p-0.5 hover:text-foreground text-muted-foreground"
+          >
             <X className="w-3.5 h-3.5" />
           </button>
         </div>

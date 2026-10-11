@@ -8,20 +8,38 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import {
-  Server, Loader2, Plus, Pencil, Trash2, RefreshCw,
-  ChevronDown, ChevronRight, AlertTriangle, CheckCircle,
-  X, HelpCircle, Download, FileJson, Search, Wrench,
-  Settings2, ListChecks, Package, Globe, Terminal, Network,
-  Tag, ArrowLeftRight, Braces, Key, Shield,
-  Eye, EyeOff
+  Server,
+  Loader2,
+  Plus,
+  Pencil,
+  Trash2,
+  RefreshCw,
+  ChevronDown,
+  ChevronRight,
+  AlertTriangle,
+  CheckCircle,
+  X,
+  HelpCircle,
+  Download,
+  FileJson,
+  Search,
+  Wrench,
+  Settings2,
+  ListChecks,
+  Package,
+  Globe,
+  Terminal,
+  Network,
+  Tag,
+  ArrowLeftRight,
+  Braces,
+  Key,
+  Shield,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { AutoBrandIcon } from '@/components/ui/mcp-icon-lookup';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   mcpConfigApi,
   MCPConfig,
@@ -151,8 +169,8 @@ type ConnectionMethod = 'manual' | 'preset';
 function parseArgsText(text: string): string[] {
   return text
     .split('\n')
-    .map(line => line.trim())
-    .filter(line => line.length > 0);
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
 }
 
 function argsToText(args: string[]): string {
@@ -210,7 +228,10 @@ function isHttpMcpTransport(transport: MCPTransport): boolean {
 
 function transportMeta(transport: MCPTransport): {
   Icon: typeof Globe;
-  labelKey: 'mcpConfig.transportStdio' | 'mcpConfig.transportSse' | 'mcpConfig.transportStreamableHttp';
+  labelKey:
+    | 'mcpConfig.transportStdio'
+    | 'mcpConfig.transportSse'
+    | 'mcpConfig.transportStreamableHttp';
   short: string;
 } {
   if (transport === 'streamable_http') {
@@ -244,7 +265,7 @@ function getEmptyFormData(): FormData {
 export default function MCPConfigPage() {
   const { style } = useTheme();
   const { t } = useLanguage();
-  const isGlass = style === 'glassmorphism';
+  const isGlass = style !== 'solid';
 
   // State
   const [configs, setConfigs] = useState<MCPConfig[]>([]);
@@ -288,7 +309,7 @@ export default function MCPConfigPage() {
   const [visibleSecrets, setVisibleSecrets] = useState<Set<string>>(new Set());
 
   const toggleSecretVisibility = (key: string) => {
-    setVisibleSecrets(prev => {
+    setVisibleSecrets((prev) => {
       const next = new Set(prev);
       if (next.has(key)) {
         next.delete(key);
@@ -346,7 +367,9 @@ export default function MCPConfigPage() {
       setIsReloading(true);
       const result = await mcpConfigApi.reload();
       setReloadResult(result);
-      toast.success(`${t('mcpConfig.oldToolCount')}: ${result.old_tool_count} → ${t('mcpConfig.newToolCount')}: ${result.new_tool_count}`);
+      toast.success(
+        `${t('mcpConfig.oldToolCount')}: ${result.old_tool_count} → ${t('mcpConfig.newToolCount')}: ${result.new_tool_count}`,
+      );
       await loadConfigs();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : '');
@@ -368,13 +391,21 @@ export default function MCPConfigPage() {
   const filteredPresets = useMemo(() => {
     if (!presetSearchText.trim()) return presets;
     const keyword = presetSearchText.trim().toLowerCase();
-    return presets.filter(preset => {
+    return presets.filter((preset) => {
       const name = (preset.name || '').toLowerCase();
       const desc = (preset.description || '').toLowerCase();
       const command = (preset.command || '').toLowerCase();
       const url = (preset.url || '').toLowerCase();
-      const toolNames = (preset.default_tools || []).map(t => (t.name || '').toLowerCase()).join(' ');
-      return name.includes(keyword) || desc.includes(keyword) || command.includes(keyword) || url.includes(keyword) || toolNames.includes(keyword);
+      const toolNames = (preset.default_tools || [])
+        .map((t) => (t.name || '').toLowerCase())
+        .join(' ');
+      return (
+        name.includes(keyword) ||
+        desc.includes(keyword) ||
+        command.includes(keyword) ||
+        url.includes(keyword) ||
+        toolNames.includes(keyword)
+      );
     });
   }, [presets, presetSearchText]);
 
@@ -395,12 +426,12 @@ export default function MCPConfigPage() {
       toolPermissions: {},
     });
     // Pre-populate discovered tools from preset defaults
-    const presetTools: MCPToolFromServer[] = (preset.default_tools || []).map(dt => ({
+    const presetTools: MCPToolFromServer[] = (preset.default_tools || []).map((dt) => ({
       name: dt.name,
       description: dt.description,
     }));
     setDiscoveredTools(presetTools);
-    setSelectedToolNames(new Set(presetTools.map(t => t.name)));
+    setSelectedToolNames(new Set(presetTools.map((t) => t.name)));
     setPresetDialogOpen(false);
     setFormDialogOpen(true);
   };
@@ -436,7 +467,7 @@ export default function MCPConfigPage() {
       }
 
       setDiscoveredTools(result.tools);
-      setSelectedToolNames(new Set(result.tools.map(t => t.name)));
+      setSelectedToolNames(new Set(result.tools.map((t) => t.name)));
       toast.success(`${t('mcpConfig.toolsCount', { count: result.count })}`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : '');
@@ -446,7 +477,7 @@ export default function MCPConfigPage() {
   };
 
   const handleToggleTool = (toolName: string) => {
-    setSelectedToolNames(prev => {
+    setSelectedToolNames((prev) => {
       const next = new Set(prev);
       if (next.has(toolName)) {
         next.delete(toolName);
@@ -490,14 +521,14 @@ export default function MCPConfigPage() {
     setSelectedPresetName('');
     // Pre-populate tools from config (preserve parameters and input_schema)
     const existingTools = config.tools ?? [];
-    const configTools: MCPToolFromServer[] = existingTools.map(t => ({
+    const configTools: MCPToolFromServer[] = existingTools.map((t) => ({
       name: t.name,
       description: t.description,
       ...(t.parameters && { parameters: t.parameters }),
       ...(t.input_schema && { input_schema: t.input_schema }),
     }));
     setDiscoveredTools(configTools);
-    setSelectedToolNames(new Set(existingTools.map(t => t.name)));
+    setSelectedToolNames(new Set(existingTools.map((t) => t.name)));
     setFormDialogOpen(true);
   };
 
@@ -526,8 +557,8 @@ export default function MCPConfigPage() {
       // Build tools list from selected discovered tools
       // Include parameters and input_schema from discover response
       const tools: MCPToolDefinition[] = discoveredTools
-        .filter(dt => selectedToolNames.has(dt.name))
-        .map(dt => ({
+        .filter((dt) => selectedToolNames.has(dt.name))
+        .map((dt) => ({
           name: dt.name,
           description: dt.description,
           ...(dt.parameters && { parameters: dt.parameters }),
@@ -670,25 +701,23 @@ export default function MCPConfigPage() {
   // ============================================================================
 
   const addEnvVar = () => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       envVars: [...prev.envVars, { key: '', value: '' }],
     }));
   };
 
   const removeEnvVar = (index: number) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       envVars: prev.envVars.filter((_, i) => i !== index),
     }));
   };
 
   const updateEnvVar = (index: number, field: 'key' | 'value', value: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      envVars: prev.envVars.map((v, i) =>
-        i === index ? { ...v, [field]: value } : v
-      ),
+      envVars: prev.envVars.map((v, i) => (i === index ? { ...v, [field]: value } : v)),
     }));
   };
 
@@ -697,25 +726,23 @@ export default function MCPConfigPage() {
   // ============================================================================
 
   const addHeaderVar = () => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       headerVars: [...prev.headerVars, { key: '', value: '' }],
     }));
   };
 
   const removeHeaderVar = (index: number) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       headerVars: prev.headerVars.filter((_, i) => i !== index),
     }));
   };
 
   const updateHeaderVar = (index: number, field: 'key' | 'value', value: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      headerVars: prev.headerVars.map((v, i) =>
-        i === index ? { ...v, [field]: value } : v
-      ),
+      headerVars: prev.headerVars.map((v, i) => (i === index ? { ...v, [field]: value } : v)),
     }));
   };
 
@@ -733,23 +760,17 @@ export default function MCPConfigPage() {
           <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2 sm:gap-3">
-                <Server
-                  width={32}
-                  height={32}
-                  className="text-foreground"
-                />
+                <Server width={32} height={32} className="text-foreground" />
                 {t('mcpConfig.title')}
               </h1>
-              <p className="text-muted-foreground mt-1 text-sm sm:text-base">{t('mcpConfig.description')}</p>
+              <p className="text-muted-foreground mt-1 text-sm sm:text-base">
+                {t('mcpConfig.description')}
+              </p>
             </div>
             <div className={headerActionRowClass}>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    onClick={handleReload}
-                    disabled={isReloading}
-                  >
+                  <Button variant="outline" onClick={handleReload} disabled={isReloading}>
                     {isReloading ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
@@ -759,7 +780,9 @@ export default function MCPConfigPage() {
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>{t('mcpConfig.reload')} - {t('mcpConfig.description')}</p>
+                  <p>
+                    {t('mcpConfig.reload')} - {t('mcpConfig.description')}
+                  </p>
                 </TooltipContent>
               </Tooltip>
               <Button variant="outline" onClick={handleOpenImportDialog}>
@@ -783,7 +806,9 @@ export default function MCPConfigPage() {
                 <div className="flex-1">
                   <p className="text-sm font-medium">{t('mcpConfig.reloadSuccess')}</p>
                   <p className="text-xs text-muted-foreground">
-                    {t('mcpConfig.oldToolCount')}: {reloadResult.old_tool_count} → {t('mcpConfig.newToolCount')}: {reloadResult.new_tool_count} | {t('mcpConfig.configCount', { count: reloadResult.config_count })}
+                    {t('mcpConfig.oldToolCount')}: {reloadResult.old_tool_count} →{' '}
+                    {t('mcpConfig.newToolCount')}: {reloadResult.new_tool_count} |{' '}
+                    {t('mcpConfig.configCount', { count: reloadResult.config_count })}
                   </p>
                 </div>
                 <Button
@@ -811,14 +836,18 @@ export default function MCPConfigPage() {
                 <div className="w-16 h-16 rounded-2xl bg-muted/50 flex items-center justify-center mb-4">
                   <Server className="h-8 w-8 text-muted-foreground/50" />
                 </div>
-                <p className="text-sm font-medium text-muted-foreground">{t('mcpConfig.noConfigs')}</p>
-                <p className="text-xs text-muted-foreground/70 mt-1">{t('mcpConfig.noConfigsDesc')}</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  {t('mcpConfig.noConfigs')}
+                </p>
+                <p className="text-xs text-muted-foreground/70 mt-1">
+                  {t('mcpConfig.noConfigsDesc')}
+                </p>
               </div>
             </CardContent>
           </Card>
         ) : (
           <div className="space-y-3">
-            {configs.map(config => {
+            {configs.map((config) => {
               const itemTransport = normalizeMcpTransport(config.transport, config.url);
               const itemHttp = isHttpMcpTransport(itemTransport);
               const itemTools = config.tools ?? [];
@@ -826,260 +855,331 @@ export default function MCPConfigPage() {
               const itemEnv = config.env ?? {};
               const itemMeta = transportMeta(itemTransport);
               return (
-              <Card
-                key={config.config_id}
-                className={cn(
-                  "transition-all duration-300 hover:shadow-md glass-card",
-                  !config.enabled && "opacity-60"
-                )}
-              >
-                <CardContent className="pt-4 pb-4">
-                  <div className="flex items-start sm:items-center gap-3 sm:gap-4">
-                    {/* Expand/Collapse */}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 shrink-0 mt-0.5 sm:mt-0"
-                      onClick={() => setExpandedConfigId(
-                        expandedConfigId === config.config_id ? null : config.config_id
-                      )}
-                    >
-                      {expandedConfigId === config.config_id ? (
-                        <ChevronDown className="h-4 w-4" />
-                      ) : (
-                        <ChevronRight className="h-4 w-4" />
-                      )}
-                    </Button>
+                <Card
+                  key={config.config_id}
+                  className={cn(
+                    'transition-all duration-300 hover:shadow-md glass-card',
+                    !config.enabled && 'opacity-60',
+                  )}
+                >
+                  <CardContent className="pt-4 pb-4">
+                    <div className="flex items-start sm:items-center gap-3 sm:gap-4">
+                      {/* Expand/Collapse */}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 shrink-0 mt-0.5 sm:mt-0"
+                        onClick={() =>
+                          setExpandedConfigId(
+                            expandedConfigId === config.config_id ? null : config.config_id,
+                          )
+                        }
+                      >
+                        {expandedConfigId === config.config_id ? (
+                          <ChevronDown className="h-4 w-4" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4" />
+                        )}
+                      </Button>
 
-                    {/* Icon - hidden on mobile, shown on sm+ */}
-                    <div className={cn(
-                      "hidden sm:flex w-10 h-10 rounded-xl items-center justify-center flex-shrink-0 transition-all duration-300",
-                      config.enabled ? "bg-primary/10" : "bg-muted"
-                    )}>
-                      <McpBrandIcon
-                        name={config.name}
-                        command={config.command}
-                        url={config.url}
+                      {/* Icon - hidden on mobile, shown on sm+ */}
+                      <div
                         className={cn(
-                          "w-5 h-5 transition-colors duration-300",
-                          config.enabled ? "text-primary" : "text-muted-foreground"
+                          'hidden sm:flex w-10 h-10 rounded-xl items-center justify-center flex-shrink-0 transition-all duration-300',
+                          config.enabled ? 'bg-primary/10' : 'bg-muted',
                         )}
-                      />
-                    </div>
+                      >
+                        <McpBrandIcon
+                          name={config.name}
+                          command={config.command}
+                          url={config.url}
+                          className={cn(
+                            'w-5 h-5 transition-colors duration-300',
+                            config.enabled ? 'text-primary' : 'text-muted-foreground',
+                          )}
+                        />
+                      </div>
 
-                    {/* Info */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                        <p className="font-medium text-sm truncate max-w-full">{config.name}</p>
-                        <Badge variant="outline" className="text-xs shrink-0">
-                          <itemMeta.Icon className="h-3 w-3 mr-1" />{itemMeta.short}
-                        </Badge>
-                        <Badge variant={config.enabled ? "default" : "secondary"} className="text-xs shrink-0">
-                          {config.enabled ? t('mcpConfig.enabled') : t('mcpConfig.disabled')}
-                        </Badge>
-                        {config.register_as_ai_tools && (
-                          <Badge variant="outline" className="text-xs shrink-0 bg-blue-500/10 text-blue-600 border-blue-200">
-                            AI Tools
-                          </Badge>
-                        )}
-                        {itemTools.length > 0 && (
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                          <p className="font-medium text-sm truncate max-w-full">{config.name}</p>
                           <Badge variant="outline" className="text-xs shrink-0">
-                            <Wrench className="h-3 w-3 mr-1" />
-                            {t('mcpConfig.toolsCount', { count: itemTools.length })}
+                            <itemMeta.Icon className="h-3 w-3 mr-1" />
+                            {itemMeta.short}
                           </Badge>
+                          <Badge
+                            variant={config.enabled ? 'default' : 'secondary'}
+                            className="text-xs shrink-0"
+                          >
+                            {config.enabled ? t('mcpConfig.enabled') : t('mcpConfig.disabled')}
+                          </Badge>
+                          {config.register_as_ai_tools && (
+                            <Badge
+                              variant="outline"
+                              className="text-xs shrink-0 bg-blue-500/10 text-blue-600 border-blue-200"
+                            >
+                              AI Tools
+                            </Badge>
+                          )}
+                          {itemTools.length > 0 && (
+                            <Badge variant="outline" className="text-xs shrink-0">
+                              <Wrench className="h-3 w-3 mr-1" />
+                              {t('mcpConfig.toolsCount', { count: itemTools.length })}
+                            </Badge>
+                          )}
+                        </div>
+                        {itemHttp ? (
+                          <p className="text-xs text-muted-foreground mt-0.5 break-all">
+                            <Globe className="h-3 w-3 inline mr-1" />
+                            <code className="bg-muted px-1 py-0.5 rounded text-[10px]">
+                              {config.url}
+                            </code>
+                          </p>
+                        ) : (
+                          <p className="text-xs text-muted-foreground mt-0.5 break-all">
+                            <code className="bg-muted px-1 py-0.5 rounded text-[10px]">
+                              {config.command}
+                            </code>
+                            {itemArgs.length > 0 && (
+                              <span className="ml-1">
+                                {itemArgs.map((arg, i) => (
+                                  <span key={i}>
+                                    <code className="bg-muted px-1 py-0.5 rounded text-[10px] ml-1">
+                                      {arg}
+                                    </code>
+                                  </span>
+                                ))}
+                              </span>
+                            )}
+                          </p>
                         )}
                       </div>
-                      {itemHttp ? (
-                        <p className="text-xs text-muted-foreground mt-0.5 break-all">
-                          <Globe className="h-3 w-3 inline mr-1" />
-                          <code className="bg-muted px-1 py-0.5 rounded text-[10px]">{config.url}</code>
-                        </p>
-                      ) : (
-                        <p className="text-xs text-muted-foreground mt-0.5 break-all">
-                          <code className="bg-muted px-1 py-0.5 rounded text-[10px]">{config.command}</code>
-                          {itemArgs.length > 0 && (
-                            <span className="ml-1">
-                              {itemArgs.map((arg, i) => (
-                                <span key={i}>
-                                  <code className="bg-muted px-1 py-0.5 rounded text-[10px] ml-1">{arg}</code>
-                                </span>
-                              ))}
+
+                      {/* Actions */}
+                      <div className="flex items-center gap-1 shrink-0">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span>
+                              <Switch
+                                checked={config.enabled}
+                                onCheckedChange={() => handleToggle(config)}
+                              />
                             </span>
-                          )}
-                        </p>
-                      )}
-                    </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{t('mcpConfig.toggleEnabled')}</p>
+                          </TooltipContent>
+                        </Tooltip>
 
-                    {/* Actions */}
-                    <div className="flex items-center gap-1 shrink-0">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span>
-                            <Switch
-                              checked={config.enabled}
-                              onCheckedChange={() => handleToggle(config)}
-                            />
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>{t('mcpConfig.toggleEnabled')}</p>
-                        </TooltipContent>
-                      </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => openEditDialog(config)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{t('mcpConfig.editConfig')}</p>
+                          </TooltipContent>
+                        </Tooltip>
 
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => openEditDialog(config)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>{t('mcpConfig.editConfig')}</p>
-                        </TooltipContent>
-                      </Tooltip>
-
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-destructive hover:text-destructive"
-                            onClick={() => openDeleteDialog(config)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>{t('mcpConfig.deleteConfig')}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
-                  </div>
-
-                  {/* Expanded Details */}
-                  {expandedConfigId === config.config_id && (
-                    <div className="mt-4 ml-4 sm:ml-12 p-3 sm:p-4 rounded-xl border bg-muted/30 border-border/40 space-y-3">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div>
-                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">{t('mcpConfig.configId')}</p>
-                          <p className="text-sm"><code className="bg-muted px-1.5 py-0.5 rounded">{config.config_id}</code></p>
-                        </div>
-                        <div>
-                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">{t('mcpConfig.transport')}</p>
-                          <p className="text-sm">
-                            <Badge variant="outline" className="text-xs">
-                              <itemMeta.Icon className="h-3 w-3 mr-1" />
-                              {t(itemMeta.labelKey)}
-                            </Badge>
-                          </p>
-                        </div>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive hover:text-destructive"
+                              onClick={() => openDeleteDialog(config)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{t('mcpConfig.deleteConfig')}</p>
+                          </TooltipContent>
+                        </Tooltip>
                       </div>
+                    </div>
 
-                      {/* stdio mode details */}
-                      {!itemHttp && (
-                        <>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div>
-                              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">{t('mcpConfig.command')}</p>
-                              <p className="text-sm"><code className="bg-muted px-1.5 py-0.5 rounded">{config.command}</code></p>
-                            </div>
-                          </div>
-                          {itemArgs.length > 0 && (
-                            <div>
-                              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">{t('mcpConfig.args')}</p>
-                              <div className="flex flex-wrap gap-1">
-                                {itemArgs.map((arg, i) => (
-                                  <Badge key={i} variant="outline" className="text-xs font-mono">{arg}</Badge>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                          {Object.keys(itemEnv).length > 0 && (
-                            <div>
-                              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">{t('mcpConfig.env')}</p>
-                              <div className="space-y-1">
-                                {Object.entries(itemEnv).map(([key, value]) => (
-                                  <div key={key} className="flex items-center gap-2 text-xs">
-                                    <code className="bg-muted px-1.5 py-0.5 rounded font-mono">{key}</code>
-                                    <span className="text-muted-foreground">=</span>
-                                    <code className="bg-muted px-1.5 py-0.5 rounded font-mono">***</code>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </>
-                      )}
-
-                      {/* remote HTTP details */}
-                      {itemHttp && (
-                        <>
+                    {/* Expanded Details */}
+                    {expandedConfigId === config.config_id && (
+                      <div className="mt-4 ml-4 sm:ml-12 p-3 sm:p-4 rounded-xl border bg-muted/30 border-border/40 space-y-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <div>
-                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">{t('mcpConfig.url')}</p>
-                            <p className="text-sm break-all"><code className="bg-muted px-1.5 py-0.5 rounded">{config.url}</code></p>
+                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+                              {t('mcpConfig.configId')}
+                            </p>
+                            <p className="text-sm">
+                              <code className="bg-muted px-1.5 py-0.5 rounded">
+                                {config.config_id}
+                              </code>
+                            </p>
                           </div>
-                          {config.headers && Object.keys(config.headers).length > 0 && (
-                            <div>
-                              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">{t('mcpConfig.headers')}</p>
-                              <div className="space-y-1">
-                                {Object.entries(config.headers).map(([key, value]) => (
-                                  <div key={key} className="flex items-center gap-2 text-xs">
-                                    <code className="bg-muted px-1.5 py-0.5 rounded font-mono">{key}</code>
-                                    <span className="text-muted-foreground">:</span>
-                                    <code className="bg-muted px-1.5 py-0.5 rounded font-mono">***</code>
-                                  </div>
-                                ))}
+                          <div>
+                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+                              {t('mcpConfig.transport')}
+                            </p>
+                            <p className="text-sm">
+                              <Badge variant="outline" className="text-xs">
+                                <itemMeta.Icon className="h-3 w-3 mr-1" />
+                                {t(itemMeta.labelKey)}
+                              </Badge>
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* stdio mode details */}
+                        {!itemHttp && (
+                          <>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              <div>
+                                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+                                  {t('mcpConfig.command')}
+                                </p>
+                                <p className="text-sm">
+                                  <code className="bg-muted px-1.5 py-0.5 rounded">
+                                    {config.command}
+                                  </code>
+                                </p>
                               </div>
                             </div>
-                          )}
-                        </>
-                      )}
-
-                      {/* Register as AI Tools */}
-                      <div className="flex items-center gap-2">
-                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('mcpConfig.registerAsAiTools')}:</p>
-                        <Badge variant={config.register_as_ai_tools ? "default" : "secondary"} className="text-xs">
-                          {config.register_as_ai_tools ? t('common.yes') : t('common.no')}
-                        </Badge>
-                      </div>
-
-                      {/* Tools List */}
-                      {itemTools.length > 0 && (
-                        <div>
-                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{t('mcpConfig.tools')}</p>
-                          <div className="space-y-2">
-                            {itemTools.map((tool, i) => (
-                              <div key={i} className="flex items-start gap-2 p-2 rounded-lg bg-background/50 border border-border/30">
-                                <Wrench className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                                <div className="min-w-0">
-                                  <p className="text-sm font-medium">{tool.name}</p>
-                                  {tool.description && (
-                                    <p className="text-xs text-muted-foreground">{tool.description}</p>
-                                  )}
-                                  {tool.parameters && Object.keys(tool.parameters).length > 0 && (
-                                    <div className="flex flex-wrap gap-1 mt-1">
-                                      {Object.entries(tool.parameters).map(([paramName, paramDef]) => (
-                                        <Badge key={paramName} variant="outline" className="text-[10px] font-mono">
-                                          {paramName}
-                                          {paramDef.required && <span className="text-destructive ml-0.5">*</span>}
-                                        </Badge>
-                                      ))}
-                                    </div>
-                                  )}
+                            {itemArgs.length > 0 && (
+                              <div>
+                                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+                                  {t('mcpConfig.args')}
+                                </p>
+                                <div className="flex flex-wrap gap-1">
+                                  {itemArgs.map((arg, i) => (
+                                    <Badge key={i} variant="outline" className="text-xs font-mono">
+                                      {arg}
+                                    </Badge>
+                                  ))}
                                 </div>
                               </div>
-                            ))}
-                          </div>
+                            )}
+                            {Object.keys(itemEnv).length > 0 && (
+                              <div>
+                                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+                                  {t('mcpConfig.env')}
+                                </p>
+                                <div className="space-y-1">
+                                  {Object.entries(itemEnv).map(([key, value]) => (
+                                    <div key={key} className="flex items-center gap-2 text-xs">
+                                      <code className="bg-muted px-1.5 py-0.5 rounded font-mono">
+                                        {key}
+                                      </code>
+                                      <span className="text-muted-foreground">=</span>
+                                      <code className="bg-muted px-1.5 py-0.5 rounded font-mono">
+                                        ***
+                                      </code>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </>
+                        )}
+
+                        {/* remote HTTP details */}
+                        {itemHttp && (
+                          <>
+                            <div>
+                              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+                                {t('mcpConfig.url')}
+                              </p>
+                              <p className="text-sm break-all">
+                                <code className="bg-muted px-1.5 py-0.5 rounded">{config.url}</code>
+                              </p>
+                            </div>
+                            {config.headers && Object.keys(config.headers).length > 0 && (
+                              <div>
+                                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+                                  {t('mcpConfig.headers')}
+                                </p>
+                                <div className="space-y-1">
+                                  {Object.entries(config.headers).map(([key, value]) => (
+                                    <div key={key} className="flex items-center gap-2 text-xs">
+                                      <code className="bg-muted px-1.5 py-0.5 rounded font-mono">
+                                        {key}
+                                      </code>
+                                      <span className="text-muted-foreground">:</span>
+                                      <code className="bg-muted px-1.5 py-0.5 rounded font-mono">
+                                        ***
+                                      </code>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </>
+                        )}
+
+                        {/* Register as AI Tools */}
+                        <div className="flex items-center gap-2">
+                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                            {t('mcpConfig.registerAsAiTools')}:
+                          </p>
+                          <Badge
+                            variant={config.register_as_ai_tools ? 'default' : 'secondary'}
+                            className="text-xs"
+                          >
+                            {config.register_as_ai_tools ? t('common.yes') : t('common.no')}
+                          </Badge>
                         </div>
-                      )}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+
+                        {/* Tools List */}
+                        {itemTools.length > 0 && (
+                          <div>
+                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                              {t('mcpConfig.tools')}
+                            </p>
+                            <div className="space-y-2">
+                              {itemTools.map((tool, i) => (
+                                <div
+                                  key={i}
+                                  className="flex items-start gap-2 p-2 rounded-lg bg-background/50 border border-border/30"
+                                >
+                                  <Wrench className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                                  <div className="min-w-0">
+                                    <p className="text-sm font-medium">{tool.name}</p>
+                                    {tool.description && (
+                                      <p className="text-xs text-muted-foreground">
+                                        {tool.description}
+                                      </p>
+                                    )}
+                                    {tool.parameters && Object.keys(tool.parameters).length > 0 && (
+                                      <div className="flex flex-wrap gap-1 mt-1">
+                                        {Object.entries(tool.parameters).map(
+                                          ([paramName, paramDef]) => (
+                                            <Badge
+                                              key={paramName}
+                                              variant="outline"
+                                              className="text-[10px] font-mono"
+                                            >
+                                              {paramName}
+                                              {paramDef.required && (
+                                                <span className="text-destructive ml-0.5">*</span>
+                                              )}
+                                            </Badge>
+                                          ),
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
               );
             })}
           </div>
@@ -1113,8 +1213,7 @@ export default function MCPConfigPage() {
               <DialogDescription>
                 {editingConfig
                   ? `${t('mcpConfig.editConfig')} - ${editingConfig.name}`
-                  : t('mcpConfig.description')
-                }
+                  : t('mcpConfig.description')}
               </DialogDescription>
             </DialogHeader>
 
@@ -1155,8 +1254,7 @@ export default function MCPConfigPage() {
                       <Package className="h-4 w-4 mr-2" />
                       {selectedPresetName
                         ? `${t('mcpConfig.selectPreset')}: ${selectedPresetName}`
-                        : t('mcpConfig.selectPresetPlaceholder')
-                      }
+                        : t('mcpConfig.selectPresetPlaceholder')}
                     </Button>
                   )}
                 </div>
@@ -1180,7 +1278,7 @@ export default function MCPConfigPage() {
                   id="mcp-name"
                   placeholder={t('mcpConfig.configNamePlaceholder')}
                   value={formData.name}
-                  onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
                 />
               </div>
 
@@ -1202,7 +1300,7 @@ export default function MCPConfigPage() {
                   type="single"
                   value={formData.transport}
                   onValueChange={(v) => {
-                    if (v) setFormData(prev => ({ ...prev, transport: v as MCPTransport }));
+                    if (v) setFormData((prev) => ({ ...prev, transport: v as MCPTransport }));
                   }}
                   variant="outline"
                   className="justify-start flex-wrap"
@@ -1211,7 +1309,10 @@ export default function MCPConfigPage() {
                     <Terminal className="h-3.5 w-3.5" />
                     {t('mcpConfig.transportStdio')}
                   </ToggleGroupItem>
-                  <ToggleGroupItem value="streamable_http" className="flex items-center gap-1.5 px-3">
+                  <ToggleGroupItem
+                    value="streamable_http"
+                    className="flex items-center gap-1.5 px-3"
+                  >
                     <Network className="h-3.5 w-3.5" />
                     {t('mcpConfig.transportStreamableHttp')}
                   </ToggleGroupItem>
@@ -1243,7 +1344,9 @@ export default function MCPConfigPage() {
                       id="mcp-command"
                       placeholder={t('mcpConfig.commandPlaceholder')}
                       value={formData.command}
-                      onChange={e => setFormData(prev => ({ ...prev, command: e.target.value }))}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, command: e.target.value }))
+                      }
                     />
                   </div>
 
@@ -1265,12 +1368,16 @@ export default function MCPConfigPage() {
                       id="mcp-args"
                       placeholder={t('mcpConfig.argsPlaceholder')}
                       value={formData.argsText}
-                      onChange={e => setFormData(prev => ({ ...prev, argsText: e.target.value }))}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, argsText: e.target.value }))
+                      }
                       rows={3}
                       className="font-mono text-sm"
                     />
                     {!formData.argsText.trim() && (
-                      <p className="text-xs text-muted-foreground/60 italic">{t('mcpConfig.noArgs')}</p>
+                      <p className="text-xs text-muted-foreground/60 italic">
+                        {t('mcpConfig.noArgs')}
+                      </p>
                     )}
                   </div>
 
@@ -1303,11 +1410,14 @@ export default function MCPConfigPage() {
                     {formData.envVars.length > 0 ? (
                       <div className="space-y-2">
                         {formData.envVars.map((envVar, index) => (
-                          <div key={index} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                          <div
+                            key={index}
+                            className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2"
+                          >
                             <Input
                               placeholder={t('mcpConfig.envKeyPlaceholder')}
                               value={envVar.key}
-                              onChange={e => updateEnvVar(index, 'key', e.target.value)}
+                              onChange={(e) => updateEnvVar(index, 'key', e.target.value)}
                               className="flex-1 font-mono text-sm"
                             />
                             <span className="text-muted-foreground hidden sm:inline">=</span>
@@ -1315,7 +1425,7 @@ export default function MCPConfigPage() {
                               <Input
                                 placeholder={t('mcpConfig.envValuePlaceholder')}
                                 value={envVar.value}
-                                onChange={e => updateEnvVar(index, 'value', e.target.value)}
+                                onChange={(e) => updateEnvVar(index, 'value', e.target.value)}
                                 className="flex-1 font-mono text-sm pr-9"
                                 type={visibleSecrets.has(`env-${index}`) ? 'text' : 'password'}
                               />
@@ -1325,8 +1435,16 @@ export default function MCPConfigPage() {
                                 size="icon"
                                 className="absolute right-0 top-0 h-full w-9 px-0 hover:bg-transparent text-muted-foreground hover:text-foreground"
                                 onClick={() => toggleSecretVisibility(`env-${index}`)}
-                                aria-label={visibleSecrets.has(`env-${index}`) ? t('common.hide') : t('common.show')}
-                                title={visibleSecrets.has(`env-${index}`) ? t('common.hide') : t('common.show')}
+                                aria-label={
+                                  visibleSecrets.has(`env-${index}`)
+                                    ? t('common.hide')
+                                    : t('common.show')
+                                }
+                                title={
+                                  visibleSecrets.has(`env-${index}`)
+                                    ? t('common.hide')
+                                    : t('common.show')
+                                }
                               >
                                 {visibleSecrets.has(`env-${index}`) ? (
                                   <EyeOff className="h-4 w-4" />
@@ -1348,7 +1466,9 @@ export default function MCPConfigPage() {
                         ))}
                       </div>
                     ) : (
-                      <p className="text-xs text-muted-foreground/60 italic">{t('mcpConfig.noEnvVars')}</p>
+                      <p className="text-xs text-muted-foreground/60 italic">
+                        {t('mcpConfig.noEnvVars')}
+                      </p>
                     )}
                   </div>
                 </>
@@ -1375,7 +1495,7 @@ export default function MCPConfigPage() {
                       id="mcp-url"
                       placeholder={t('mcpConfig.urlPlaceholder')}
                       value={formData.url}
-                      onChange={e => setFormData(prev => ({ ...prev, url: e.target.value }))}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, url: e.target.value }))}
                       className="font-mono text-sm"
                     />
                   </div>
@@ -1409,11 +1529,14 @@ export default function MCPConfigPage() {
                     {formData.headerVars.length > 0 ? (
                       <div className="space-y-2">
                         {formData.headerVars.map((headerVar, index) => (
-                          <div key={index} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                          <div
+                            key={index}
+                            className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2"
+                          >
                             <Input
                               placeholder={t('mcpConfig.headersKeyPlaceholder')}
                               value={headerVar.key}
-                              onChange={e => updateHeaderVar(index, 'key', e.target.value)}
+                              onChange={(e) => updateHeaderVar(index, 'key', e.target.value)}
                               className="flex-1 font-mono text-sm"
                             />
                             <span className="text-muted-foreground hidden sm:inline">:</span>
@@ -1421,7 +1544,7 @@ export default function MCPConfigPage() {
                               <Input
                                 placeholder={t('mcpConfig.headersValuePlaceholder')}
                                 value={headerVar.value}
-                                onChange={e => updateHeaderVar(index, 'value', e.target.value)}
+                                onChange={(e) => updateHeaderVar(index, 'value', e.target.value)}
                                 className="flex-1 font-mono text-sm pr-9"
                                 type={visibleSecrets.has(`header-${index}`) ? 'text' : 'password'}
                               />
@@ -1431,8 +1554,16 @@ export default function MCPConfigPage() {
                                 size="icon"
                                 className="absolute right-0 top-0 h-full w-9 px-0 hover:bg-transparent text-muted-foreground hover:text-foreground"
                                 onClick={() => toggleSecretVisibility(`header-${index}`)}
-                                aria-label={visibleSecrets.has(`header-${index}`) ? t('common.hide') : t('common.show')}
-                                title={visibleSecrets.has(`header-${index}`) ? t('common.hide') : t('common.show')}
+                                aria-label={
+                                  visibleSecrets.has(`header-${index}`)
+                                    ? t('common.hide')
+                                    : t('common.show')
+                                }
+                                title={
+                                  visibleSecrets.has(`header-${index}`)
+                                    ? t('common.hide')
+                                    : t('common.show')
+                                }
                               >
                                 {visibleSecrets.has(`header-${index}`) ? (
                                   <EyeOff className="h-4 w-4" />
@@ -1454,7 +1585,9 @@ export default function MCPConfigPage() {
                         ))}
                       </div>
                     ) : (
-                      <p className="text-xs text-muted-foreground/60 italic">{t('mcpConfig.noHeaders')}</p>
+                      <p className="text-xs text-muted-foreground/60 italic">
+                        {t('mcpConfig.noHeaders')}
+                      </p>
                     )}
                   </div>
                 </>
@@ -1467,7 +1600,12 @@ export default function MCPConfigPage() {
                 <Button
                   variant="outline"
                   onClick={handleDiscoverTools}
-                  disabled={isDiscovering || !formData.name.trim() || (formData.transport === 'stdio' && !formData.command.trim()) || (isHttpMcpTransport(formData.transport) && !formData.url.trim())}
+                  disabled={
+                    isDiscovering ||
+                    !formData.name.trim() ||
+                    (formData.transport === 'stdio' && !formData.command.trim()) ||
+                    (isHttpMcpTransport(formData.transport) && !formData.url.trim())
+                  }
                   className="w-full"
                 >
                   {isDiscovering ? (
@@ -1490,10 +1628,10 @@ export default function MCPConfigPage() {
                         <div
                           key={i}
                           className={cn(
-                            "flex items-start gap-3 p-2.5 rounded-lg border cursor-pointer transition-colors",
+                            'flex items-start gap-3 p-2.5 rounded-lg border cursor-pointer transition-colors',
                             selectedToolNames.has(tool.name)
-                              ? "bg-primary/5 border-primary/30"
-                              : "bg-muted/30 border-border/30 hover:bg-muted/50"
+                              ? 'bg-primary/5 border-primary/30'
+                              : 'bg-muted/30 border-border/30 hover:bg-muted/50',
                           )}
                           onClick={() => handleToggleTool(tool.name)}
                         >
@@ -1505,7 +1643,9 @@ export default function MCPConfigPage() {
                           <div className="min-w-0 flex-1">
                             <p className="text-sm font-medium">{tool.name}</p>
                             {tool.description && (
-                              <p className="text-xs text-muted-foreground line-clamp-2">{tool.description}</p>
+                              <p className="text-xs text-muted-foreground line-clamp-2">
+                                {tool.description}
+                              </p>
                             )}
                           </div>
                         </div>
@@ -1521,7 +1661,9 @@ export default function MCPConfigPage() {
               <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/30">
                 <Switch
                   checked={formData.enabled}
-                  onCheckedChange={checked => setFormData(prev => ({ ...prev, enabled: checked }))}
+                  onCheckedChange={(checked) =>
+                    setFormData((prev) => ({ ...prev, enabled: checked }))
+                  }
                 />
                 <div>
                   <p className="text-sm font-medium">{t('mcpConfig.enabled')}</p>
@@ -1533,11 +1675,15 @@ export default function MCPConfigPage() {
               <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/30">
                 <Switch
                   checked={formData.registerAsAiTools}
-                  onCheckedChange={checked => setFormData(prev => ({ ...prev, registerAsAiTools: checked }))}
+                  onCheckedChange={(checked) =>
+                    setFormData((prev) => ({ ...prev, registerAsAiTools: checked }))
+                  }
                 />
                 <div>
                   <p className="text-sm font-medium">{t('mcpConfig.registerAsAiTools')}</p>
-                  <p className="text-xs text-muted-foreground">{t('mcpConfig.registerAsAiToolsHelp')}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {t('mcpConfig.registerAsAiToolsHelp')}
+                  </p>
                 </div>
               </div>
 
@@ -1547,7 +1693,9 @@ export default function MCPConfigPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium">{t('mcpConfig.toolPermissions')}</p>
-                      <p className="text-xs text-muted-foreground">{t('mcpConfig.toolPermissionsHelp')}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {t('mcpConfig.toolPermissionsHelp')}
+                      </p>
                     </div>
                     <Button
                       variant="outline"
@@ -1555,12 +1703,12 @@ export default function MCPConfigPage() {
                       onClick={() => {
                         // Add default permission (pm=6, all users) for each selected tool
                         const newPerms = { ...formData.toolPermissions };
-                        selectedToolNames.forEach(toolName => {
+                        selectedToolNames.forEach((toolName) => {
                           if (newPerms[toolName] === undefined) {
                             newPerms[toolName] = 6;
                           }
                         });
-                        setFormData(prev => ({ ...prev, toolPermissions: newPerms }));
+                        setFormData((prev) => ({ ...prev, toolPermissions: newPerms }));
                       }}
                     >
                       <Plus className="h-3 w-3 mr-1" />
@@ -1575,24 +1723,27 @@ export default function MCPConfigPage() {
                     </div>
                   ) : (
                     <div className="space-y-2 max-h-[200px] overflow-y-auto">
-                      {Array.from(selectedToolNames).map(toolName => {
+                      {Array.from(selectedToolNames).map((toolName) => {
                         const currentPm = formData.toolPermissions[toolName] ?? 6;
                         return (
-                          <div key={toolName} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 p-2 bg-muted/30 rounded">
+                          <div
+                            key={toolName}
+                            className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 p-2 bg-muted/30 rounded"
+                          >
                             <span className="text-sm font-mono flex-1 truncate">{toolName}</span>
                             <Select
                               value={String(currentPm)}
                               onValueChange={(value) => {
                                 const newPerms = { ...formData.toolPermissions };
                                 newPerms[toolName] = Number(value);
-                                setFormData(prev => ({ ...prev, toolPermissions: newPerms }));
+                                setFormData((prev) => ({ ...prev, toolPermissions: newPerms }));
                               }}
                             >
                               <SelectTrigger className="w-full sm:w-[180px] h-8">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                {PERMISSION_OPTIONS.map(opt => (
+                                {PERMISSION_OPTIONS.map((opt) => (
                                   <SelectItem key={opt.value} value={String(opt.value)}>
                                     {t(opt.labelKey)} (pm={opt.value})
                                   </SelectItem>
@@ -1609,7 +1760,10 @@ export default function MCPConfigPage() {
                                     onClick={() => {
                                       const newPerms = { ...formData.toolPermissions };
                                       delete newPerms[toolName];
-                                      setFormData(prev => ({ ...prev, toolPermissions: newPerms }));
+                                      setFormData((prev) => ({
+                                        ...prev,
+                                        toolPermissions: newPerms,
+                                      }));
                                     }}
                                   >
                                     <Trash2 className="h-3 w-3" />
@@ -1640,9 +1794,7 @@ export default function MCPConfigPage() {
                       onClick={handleSubmit}
                       disabled={isSubmitting || (!editingConfig && discoveredTools.length === 0)}
                     >
-                      {isSubmitting ? (
-                        <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                      ) : null}
+                      {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
                       {editingConfig ? t('common.save') : t('common.confirm')}
                     </Button>
                   </span>
@@ -1695,9 +1847,7 @@ export default function MCPConfigPage() {
                 <FileJson className="w-5 h-5" />
                 {t('mcpConfig.importJson')}
               </DialogTitle>
-              <DialogDescription>
-                {t('mcpConfig.importJsonPlaceholder')}
-              </DialogDescription>
+              <DialogDescription>{t('mcpConfig.importJsonPlaceholder')}</DialogDescription>
             </DialogHeader>
 
             <div className="space-y-4 py-2 px-6 flex-1 min-h-0 overflow-y-auto">
@@ -1721,7 +1871,7 @@ export default function MCPConfigPage() {
   }
 }`}
                 value={importJsonText}
-                onChange={e => setImportJsonText(e.target.value)}
+                onChange={(e) => setImportJsonText(e.target.value)}
                 rows={12}
                 className="font-mono text-sm"
               />
@@ -1751,9 +1901,7 @@ export default function MCPConfigPage() {
                 <Package className="w-5 h-5" />
                 {t('mcpConfig.presetList')}
               </DialogTitle>
-              <DialogDescription>
-                {t('mcpConfig.selectPresetPlaceholder')}
-              </DialogDescription>
+              <DialogDescription>{t('mcpConfig.selectPresetPlaceholder')}</DialogDescription>
             </DialogHeader>
 
             <div className="space-y-3 py-2 flex-1 min-h-0 flex flex-col">
@@ -1764,90 +1912,103 @@ export default function MCPConfigPage() {
                   <Input
                     placeholder={t('mcpConfig.presetSearchPlaceholder')}
                     value={presetSearchText}
-                    onChange={e => setPresetSearchText(e.target.value)}
+                    onChange={(e) => setPresetSearchText(e.target.value)}
                     className="pl-8"
                   />
                 </div>
               )}
 
               <div className="flex-1 min-h-0 overflow-y-auto space-y-2 pr-1">
-              {isLoadingPresets ? (
-                <div className="flex items-center justify-center py-10">
-                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                </div>
-              ) : presets.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-10 text-center">
-                  <Package className="h-8 w-8 text-muted-foreground/50 mb-2" />
-                  <p className="text-sm text-muted-foreground">{t('mcpConfig.noConfigs')}</p>
-                </div>
-              ) : filteredPresets.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-10 text-center">
-                  <Search className="h-8 w-8 text-muted-foreground/50 mb-2" />
-                  <p className="text-sm text-muted-foreground">{t('mcpConfig.noPresetSearchResult')}</p>
-                </div>
-              ) : (
-                filteredPresets.map((preset, i) => {
-                  const presetTransport = normalizeMcpTransport(preset.transport, preset.url);
-                  const presetMeta = transportMeta(presetTransport);
-                  return (
-                    <div
-                      key={i}
-                      className="p-4 rounded-lg border border-border/50 hover:bg-muted/50 cursor-pointer transition-colors"
-                      onClick={() => handleSelectPreset(preset)}
-                    >
-                      <div className="flex items-start gap-3">
-                        {/* 预设品牌图标（按 name / command / url 智能识别） */}
-                        <div className="hidden sm:flex w-10 h-10 rounded-xl bg-primary/10 items-center justify-center flex-shrink-0 text-primary">
-                          <McpBrandIcon
-                            name={preset.name}
-                            command={preset.command}
-                            url={preset.url}
-                            className="w-5 h-5"
-                          />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-1.5">
-                            <p className="font-medium text-sm">{preset.name}</p>
-                            <Badge variant="outline" className="text-[10px] shrink-0">
-                              <presetMeta.Icon className="h-2.5 w-2.5 mr-0.5" />
-                              {presetMeta.short}
-                            </Badge>
+                {isLoadingPresets ? (
+                  <div className="flex items-center justify-center py-10">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : presets.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-10 text-center">
+                    <Package className="h-8 w-8 text-muted-foreground/50 mb-2" />
+                    <p className="text-sm text-muted-foreground">{t('mcpConfig.noConfigs')}</p>
+                  </div>
+                ) : filteredPresets.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-10 text-center">
+                    <Search className="h-8 w-8 text-muted-foreground/50 mb-2" />
+                    <p className="text-sm text-muted-foreground">
+                      {t('mcpConfig.noPresetSearchResult')}
+                    </p>
+                  </div>
+                ) : (
+                  filteredPresets.map((preset, i) => {
+                    const presetTransport = normalizeMcpTransport(preset.transport, preset.url);
+                    const presetMeta = transportMeta(presetTransport);
+                    return (
+                      <div
+                        key={i}
+                        className="p-4 rounded-lg border border-border/50 hover:bg-muted/50 cursor-pointer transition-colors"
+                        onClick={() => handleSelectPreset(preset)}
+                      >
+                        <div className="flex items-start gap-3">
+                          {/* 预设品牌图标（按 name / command / url 智能识别） */}
+                          <div className="hidden sm:flex w-10 h-10 rounded-xl bg-primary/10 items-center justify-center flex-shrink-0 text-primary">
+                            <McpBrandIcon
+                              name={preset.name}
+                              command={preset.command}
+                              url={preset.url}
+                              className="w-5 h-5"
+                            />
                           </div>
-                          {preset.description && (
-                            <p className="text-xs text-muted-foreground mt-0.5">{preset.description}</p>
-                          )}
-                          {presetTransport === 'stdio' && preset.command && (
-                            <div className="flex flex-wrap items-center gap-2 mt-2">
-                              <code className="text-[10px] bg-muted px-1.5 py-0.5 rounded font-mono">{preset.command}</code>
-                              {(preset.args || []).map((arg, j) => (
-                                <code key={j} className="text-[10px] bg-muted px-1.5 py-0.5 rounded font-mono">{arg}</code>
-                              ))}
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5">
+                              <p className="font-medium text-sm">{preset.name}</p>
+                              <Badge variant="outline" className="text-[10px] shrink-0">
+                                <presetMeta.Icon className="h-2.5 w-2.5 mr-0.5" />
+                                {presetMeta.short}
+                              </Badge>
                             </div>
-                          )}
-                          {isHttpMcpTransport(presetTransport) && preset.url && (
-                            <div className="mt-2">
-                              <code className="text-[10px] bg-muted px-1.5 py-0.5 rounded font-mono break-all">{preset.url}</code>
-                            </div>
-                          )}
-                          {(preset.default_tools || []).length > 0 && (
-                            <div className="flex flex-wrap gap-1 mt-2">
-                              {preset.default_tools!.map((tool, j) => (
-                                <Badge key={j} variant="outline" className="text-[10px]">
-                                  <Wrench className="h-2.5 w-2.5 mr-0.5" />
-                                  {tool.name}
-                                </Badge>
-                              ))}
-                            </div>
-                          )}
+                            {preset.description && (
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                {preset.description}
+                              </p>
+                            )}
+                            {presetTransport === 'stdio' && preset.command && (
+                              <div className="flex flex-wrap items-center gap-2 mt-2">
+                                <code className="text-[10px] bg-muted px-1.5 py-0.5 rounded font-mono">
+                                  {preset.command}
+                                </code>
+                                {(preset.args || []).map((arg, j) => (
+                                  <code
+                                    key={j}
+                                    className="text-[10px] bg-muted px-1.5 py-0.5 rounded font-mono"
+                                  >
+                                    {arg}
+                                  </code>
+                                ))}
+                              </div>
+                            )}
+                            {isHttpMcpTransport(presetTransport) && preset.url && (
+                              <div className="mt-2">
+                                <code className="text-[10px] bg-muted px-1.5 py-0.5 rounded font-mono break-all">
+                                  {preset.url}
+                                </code>
+                              </div>
+                            )}
+                            {(preset.default_tools || []).length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-2">
+                                {preset.default_tools!.map((tool, j) => (
+                                  <Badge key={j} variant="outline" className="text-[10px]">
+                                    <Wrench className="h-2.5 w-2.5 mr-0.5" />
+                                    {tool.name}
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+                            <Plus className="h-4 w-4" />
+                          </Button>
                         </div>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
-                          <Plus className="h-4 w-4" />
-                        </Button>
                       </div>
-                    </div>
-                  );
-                })
-              )}
+                    );
+                  })
+                )}
               </div>
             </div>
 

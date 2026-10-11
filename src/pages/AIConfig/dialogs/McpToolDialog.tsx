@@ -63,15 +63,11 @@ export function McpToolDialog({
           </DialogTitle>
           <DialogDescription>
             {serviceType === 'websearch' && t('aiConfig.mcpTool.webSearchMcpTool')}
-            {serviceType === 'image_understand' &&
-              t('aiConfig.mcpTool.imageUnderstandMcpTool')}
+            {serviceType === 'image_understand' && t('aiConfig.mcpTool.imageUnderstandMcpTool')}
             {serviceType === 'asr' && t('aiConfig.mcpTool.asrMcpTool')}
-            {serviceType === 'document_extract' &&
-              t('aiConfig.mcpTool.documentExtractMcpTool')}
-            {serviceType === 'video_extract' &&
-              t('aiConfig.mcpTool.videoExtractMcpTool')}
-            {serviceType === 'video_understand' &&
-              t('aiConfig.mcpTool.videoUnderstandMcpTool')}
+            {serviceType === 'document_extract' && t('aiConfig.mcpTool.documentExtractMcpTool')}
+            {serviceType === 'video_extract' && t('aiConfig.mcpTool.videoExtractMcpTool')}
+            {serviceType === 'video_understand' && t('aiConfig.mcpTool.videoUnderstandMcpTool')}
           </DialogDescription>
         </DialogHeader>
 
@@ -175,9 +171,7 @@ export function McpToolDialog({
                             <Wrench
                               className={cn(
                                 'h-3.5 w-3.5 shrink-0 mt-0.5',
-                                isSelected
-                                  ? 'text-primary'
-                                  : 'text-muted-foreground',
+                                isSelected ? 'text-primary' : 'text-muted-foreground',
                               )}
                             />
                             <div className="flex-1 min-w-0">
@@ -185,9 +179,7 @@ export function McpToolDialog({
                                 <span
                                   className={cn(
                                     'text-sm truncate',
-                                    isSelected
-                                      ? 'font-semibold text-primary'
-                                      : 'font-medium',
+                                    isSelected ? 'font-semibold text-primary' : 'font-medium',
                                   )}
                                 >
                                   {tool.name}

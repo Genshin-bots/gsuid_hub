@@ -8,9 +8,6 @@ export function sameProviderId(a: string, b: string): boolean {
 }
 
 /** 从备用顺序中剔除与主用同 id 的项（trim + 大小写不敏感）。 */
-export function filterOutPrimaryProvider(
-  order: readonly string[],
-  primary: string,
-): string[] {
+export function filterOutPrimaryProvider(order: readonly string[], primary: string): string[] {
   return order.filter((p) => p && !sameProviderId(p, primary));
 }

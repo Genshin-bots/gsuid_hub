@@ -1,10 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Heart } from 'lucide-react';
-import {
-  ConfigField,
-  pluginConfigItemToFieldDef,
-  type ConfigValue,
-} from '@/components/config';
+import { ConfigField, pluginConfigItemToFieldDef, type ConfigValue } from '@/components/config';
 import { Button } from '@/components/ui/button';
 import type { PluginConfigItem } from '@/lib/api';
 import { RELATIONSHIP_CONFIG_KEYS } from '../runtimeConfigKeys';

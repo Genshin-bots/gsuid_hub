@@ -23,7 +23,11 @@ describe('generateTableData search pagination', () => {
     for (const row of page2.items) {
       expect(page1Ids.has(row.id)).toBe(false);
       expect(
-        Object.values(row).some((value) => String(value ?? '').toLowerCase().includes(search)),
+        Object.values(row).some((value) =>
+          String(value ?? '')
+            .toLowerCase()
+            .includes(search),
+        ),
       ).toBe(true);
     }
   });
@@ -64,7 +68,10 @@ describe('generateTableData search pagination', () => {
     });
     const page = generateTableData('Subscribe', params);
     const csv = generateTableCsv('Subscribe', params);
-    const lines = csv.replace(/^\ufeff/, '').trimEnd().split('\n');
+    const lines = csv
+      .replace(/^\ufeff/, '')
+      .trimEnd()
+      .split('\n');
     const dataLines = lines.slice(1);
 
     expect(page.items.length).toBe(5);

@@ -96,10 +96,7 @@ export function MetricDayCalendar({
             return (
               <div className="flex flex-col items-center justify-center w-full h-full leading-none">
                 <span
-                  className={cn(
-                    'text-[0.85rem]',
-                    !hasData && 'text-muted-foreground opacity-50',
-                  )}
+                  className={cn('text-[0.85rem]', !hasData && 'text-muted-foreground opacity-50')}
                 >
                   {dayDate.getDate()}
                 </span>

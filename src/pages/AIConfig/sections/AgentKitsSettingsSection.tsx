@@ -1,10 +1,6 @@
 import { Link } from 'react-router-dom';
 import { AlertTriangle, Puzzle } from 'lucide-react';
-import {
-  ConfigField,
-  pluginConfigItemToFieldDef,
-  type ConfigValue,
-} from '@/components/config';
+import { ConfigField, pluginConfigItemToFieldDef, type ConfigValue } from '@/components/config';
 import { Button } from '@/components/ui/button';
 import type { PluginConfigItem } from '@/lib/api';
 import { AGENT_KITS_CONFIG_KEYS, isKitSlotConfigKey } from '../runtimeConfigKeys';
@@ -19,7 +15,9 @@ export interface AgentKitsSettingsSectionProps {
 }
 
 function isSealedSlotOff(key: string, item: PluginConfigItem): boolean {
-  const value = String(item.value ?? '').trim().toLowerCase();
+  const value = String(item.value ?? '')
+    .trim()
+    .toLowerCase();
   if (value !== 'off') return false;
   const blob = `${item.title ?? ''} ${item.desc ?? ''} ${key}`.toLowerCase();
   return blob.includes('密封') || blob.includes('sealed');
@@ -34,9 +32,7 @@ export function AgentKitsSettingsSection({
     const item = aiConfig.config[key];
     return item ? ([[key, item]] as [string, PluginConfigItem][]) : [];
   });
-  const slotEntries = Object.entries(aiConfig.config).filter(([key]) =>
-    isKitSlotConfigKey(key),
-  );
+  const slotEntries = Object.entries(aiConfig.config).filter(([key]) => isKitSlotConfigKey(key));
   const sealedOff = slotEntries.filter(([key, item]) => isSealedSlotOff(key, item));
 
   return (
@@ -50,9 +46,7 @@ export function AgentKitsSettingsSection({
           {t('aiConfig.agentKitsSettings.description')}
         </p>
         <Button variant="outline" size="sm" className="mt-3 h-9" asChild>
-          <Link to="/ai-runtime?tab=slots">
-            {t('aiConfig.agentKitsSettings.openRuntime')}
-          </Link>
+          <Link to="/ai-runtime?tab=slots">{t('aiConfig.agentKitsSettings.openRuntime')}</Link>
         </Button>
       </div>
 
@@ -76,9 +70,7 @@ export function AgentKitsSettingsSection({
                   <ConfigField
                     fieldKey={key}
                     field={pluginConfigItemToFieldDef(key, item)}
-                    onChange={(fieldKey, value) =>
-                      onUpdateConfig(aiConfig.id, fieldKey, value)
-                    }
+                    onChange={(fieldKey, value) => onUpdateConfig(aiConfig.id, fieldKey, value)}
                   />
                   {key === 'allow_replace_sealed' && (
                     <p className="mt-2 text-xs text-destructive">
@@ -94,9 +86,7 @@ export function AgentKitsSettingsSection({
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-lg border border-destructive/40 bg-destructive/5 p-3">
               <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2 text-sm text-destructive">
                 <AlertTriangle className="w-4 h-4 shrink-0" />
-                <span className="font-medium">
-                  {t('aiConfig.agentKitsSettings.sealedOff')}
-                </span>
+                <span className="font-medium">{t('aiConfig.agentKitsSettings.sealedOff')}</span>
               </div>
             </div>
           )}
@@ -119,9 +109,7 @@ export function AgentKitsSettingsSection({
                     <ConfigField
                       fieldKey={key}
                       field={pluginConfigItemToFieldDef(key, item)}
-                      onChange={(fieldKey, value) =>
-                        onUpdateConfig(aiConfig.id, fieldKey, value)
-                      }
+                      onChange={(fieldKey, value) => onUpdateConfig(aiConfig.id, fieldKey, value)}
                     />
                   </div>
                 ))}

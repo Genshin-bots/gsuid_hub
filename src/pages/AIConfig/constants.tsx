@@ -1,9 +1,4 @@
-import {
-  Cpu,
-  MessageSquare,
-  Sparkles,
-  Zap,
-} from 'lucide-react';
+import { Cpu, MessageSquare, Sparkles, Zap } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 /**
@@ -46,9 +41,7 @@ export interface ModelCapability {
  * 构建模型能力选项的工厂函数。
  * 由于 label 来自 i18n，所以定义为函数，每次根据 t 重新生成。
  */
-export const getModelCapabilities = (
-  t: (key: string) => string,
-): ModelCapability[] => [
+export const getModelCapabilities = (t: (key: string) => string): ModelCapability[] => [
   {
     value: 'text',
     label: t('aiConfig.serviceProvider.capabilityText'),
@@ -75,9 +68,7 @@ export const getModelCapabilities = (
  * 构建嵌入模型支持的模态选项的工厂函数。
  * 与 `getModelCapabilities` 对称；用于 OpenAI 嵌入模型配置中的 `embedding_modalities` 字段。
  */
-export const getEmbeddingModalities = (
-  t: (key: string) => string,
-): ModelCapability[] => [
+export const getEmbeddingModalities = (t: (key: string) => string): ModelCapability[] => [
   {
     value: 'text',
     label: t('aiConfig.vectorDb.embeddingModalityText'),
@@ -130,45 +121,27 @@ export const getEnumLabel = (
 };
 
 /** `model_effort`：`enable / disable / minimal / low / medium / high / xhigh` */
-export const getModelEffortLabel = (
-  t: (key: string) => string,
-  raw: string,
-): string =>
+export const getModelEffortLabel = (t: (key: string) => string, raw: string): string =>
   getEnumLabel(t, 'aiConfig.serviceProvider.modelEffortOptions', raw);
 
 /** `usage_stats_mode`：`auto / incremental / cumulative` */
-export const getUsageStatsModeLabel = (
-  t: (key: string) => string,
-  raw: string,
-): string =>
+export const getUsageStatsModeLabel = (t: (key: string) => string, raw: string): string =>
   getEnumLabel(t, 'aiConfig.serviceProvider.usageStatsModeOptions', raw);
 
 /** `request_method`：`chat_completions / responses` */
-export const getRequestMethodLabel = (
-  t: (key: string) => string,
-  raw: string,
-): string =>
+export const getRequestMethodLabel = (t: (key: string) => string, raw: string): string =>
   getEnumLabel(t, 'aiConfig.serviceProvider.requestMethodOptions', raw);
 
 /** `remote_web_search`：`off / on` */
-export const getRemoteWebSearchLabel = (
-  t: (key: string) => string,
-  raw: string,
-): string =>
+export const getRemoteWebSearchLabel = (t: (key: string) => string, raw: string): string =>
   getEnumLabel(t, 'aiConfig.serviceProvider.remoteWebSearchOptions', raw);
 
 /** `send_back_thinking`：`auto / off`（思考回传） */
-export const getSendBackThinkingLabel = (
-  t: (key: string) => string,
-  raw: string,
-): string =>
+export const getSendBackThinkingLabel = (t: (key: string) => string, raw: string): string =>
   getEnumLabel(t, 'aiConfig.serviceProvider.sendBackThinkingOptions', raw);
 
 /** `forward_end_user_id`：`off / hashed / raw`（终端用户标识透传） */
-export const getForwardEndUserIdLabel = (
-  t: (key: string) => string,
-  raw: string,
-): string =>
+export const getForwardEndUserIdLabel = (t: (key: string) => string, raw: string): string =>
   getEnumLabel(t, 'aiConfig.serviceProvider.forwardEndUserIdOptions', raw);
 
 /**
@@ -177,25 +150,16 @@ export const getForwardEndUserIdLabel = (
  *
  * 与 `getRequestMethodLabel` 不同，这里的 i18n value 是长句说明，不是简短标签。
  */
-export const getRequestMethodDescription = (
-  t: (key: string) => string,
-  raw: string,
-): string =>
+export const getRequestMethodDescription = (t: (key: string) => string, raw: string): string =>
   getEnumLabel(t, 'aiConfig.serviceProvider.requestMethodDescription', raw);
 
 /** `remote_web_search` 开关说明：默认 on；只对 Responses 生效，Chat 永远本地。 */
-export const getRemoteWebSearchDescription = (
-  t: (key: string) => string,
-  raw: string,
-): string =>
+export const getRemoteWebSearchDescription = (t: (key: string) => string, raw: string): string =>
   getEnumLabel(t, 'aiConfig.serviceProvider.remoteWebSearchDescription', raw);
 
 /**
  * `forward_end_user_id` 每个模式的说明。三种模式的隐私与可观测性权衡差别很大
  * （raw 会把原始标识发到上游），必须逐项说明，写法同 `getRequestMethodDescription`。
  */
-export const getForwardEndUserIdDescription = (
-  t: (key: string) => string,
-  raw: string,
-): string =>
+export const getForwardEndUserIdDescription = (t: (key: string) => string, raw: string): string =>
   getEnumLabel(t, 'aiConfig.serviceProvider.forwardEndUserIdDescription', raw);

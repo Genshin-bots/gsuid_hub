@@ -7,7 +7,8 @@
     "slots": "Kit slots",
     "hooks": "Hooks",
     "relationship": "Relationship",
-    "cognition": "Cognition"
+    "cognition": "Cognition",
+    "group": "Group profile"
   },
   "slots": {
     "count": "{count} slots",

@@ -166,7 +166,9 @@ export function EditConfigDialog({
                 options={options?.base_url || []}
                 placeholder="选择或输入 API Base URL"
                 inputPlaceholder="输入或选择 API Base URL"
-                className={showBaseUrlWarning ? 'border-red-500 text-red-600 dark:text-red-400' : undefined}
+                className={
+                  showBaseUrlWarning ? 'border-red-500 text-red-600 dark:text-red-400' : undefined
+                }
               />
               {showBaseUrlWarning && (
                 <p className="text-xs text-red-600 dark:text-red-400 flex items-center gap-1">
@@ -262,11 +264,7 @@ export function EditConfigDialog({
                 {t('aiConfig.serviceProvider.maxConcurrency')}
               </Label>
               <InputWithDropdown
-                value={
-                  typeof data.max_concurrency === 'number'
-                    ? data.max_concurrency
-                    : ''
-                }
+                value={typeof data.max_concurrency === 'number' ? data.max_concurrency : ''}
                 onChange={(val) => {
                   // InputWithDropdown 只产出 string；保存前转换为 number，
                   // 空值回落到 1，避免 NaN 落库。
@@ -294,9 +292,7 @@ export function EditConfigDialog({
                 />
                 <p className="text-xs text-muted-foreground flex items-start gap-1">
                   <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-                  <span>
-                    {getRemoteWebSearchDescription(t, data.remote_web_search || 'on')}
-                  </span>
+                  <span>{getRemoteWebSearchDescription(t, data.remote_web_search || 'on')}</span>
                 </p>
               </div>
             )}
@@ -333,9 +329,7 @@ export function EditConfigDialog({
                   {data.request_method && (
                     <p className="text-xs text-muted-foreground flex items-start gap-1">
                       <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-                      <span>
-                        {getRequestMethodDescription(t, data.request_method)}
-                      </span>
+                      <span>{getRequestMethodDescription(t, data.request_method)}</span>
                     </p>
                   )}
                 </div>
@@ -354,9 +348,7 @@ export function EditConfigDialog({
                   />
                   <p className="text-xs text-muted-foreground flex items-start gap-1">
                     <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-                    <span>
-                      {getRemoteWebSearchDescription(t, data.remote_web_search || 'on')}
-                    </span>
+                    <span>{getRemoteWebSearchDescription(t, data.remote_web_search || 'on')}</span>
                   </p>
                 </div>
                 <div className="space-y-2">
@@ -388,9 +380,7 @@ export function EditConfigDialog({
                   />
                   <p className="text-xs text-muted-foreground flex items-start gap-1">
                     <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-                    <span>
-                      {getForwardEndUserIdDescription(t, forwardEndUserId)}
-                    </span>
+                    <span>{getForwardEndUserIdDescription(t, forwardEndUserId)}</span>
                   </p>
                 </div>
                 {/* 盐值只在 hashed 模式下有意义，其余模式整块隐藏 */}

@@ -1,38 +1,44 @@
-import * as React from "react";
-import { cva, type VariantProps } from "class-variance-authority";
+import * as React from 'react';
+import { cva, type VariantProps } from 'class-variance-authority';
 
-import { cn } from "@/lib/utils";
+import { cn } from '@/lib/utils';
 
 const badgeVariants = cva(
   // rounded-md 挂 --radius（比主题圆角小 2px，与 Button 同档）。rounded-full 是胶囊，不吃主题圆角。
-  "inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors whitespace-nowrap [&_svg]:!text-current [&_svg]:stroke-current",
+  'inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors whitespace-nowrap [&_svg]:!text-current [&_svg]:stroke-current',
   {
     variants: {
       variant: {
-        default: "border-transparent bg-primary text-primary-foreground hover:bg-primary/90",
-        secondary: "border-transparent bg-secondary/30 text-secondary-foreground hover:bg-secondary/50 backdrop-blur-sm",
-        destructive: "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/90",
-        outline: "text-foreground hover:bg-accent hover:text-accent-foreground",
+        default: 'border-transparent bg-primary text-primary-foreground hover:bg-primary/90',
+        secondary:
+          'border-transparent bg-secondary/30 text-secondary-foreground hover:bg-secondary/50 backdrop-blur-sm',
+        destructive:
+          'border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/90',
+        outline: 'text-foreground hover:bg-accent hover:text-accent-foreground',
       },
     },
     defaultVariants: {
-      variant: "default",
+      variant: 'default',
     },
   },
 );
 
-export interface BadgeProps extends React.HTMLAttributes<HTMLDivElement>, VariantProps<typeof badgeVariants> {}
+export interface BadgeProps
+  extends React.HTMLAttributes<HTMLDivElement>,
+    VariantProps<typeof badgeVariants> {}
 
-const Badge = React.forwardRef<HTMLDivElement, BadgeProps>(({ className, variant, ...props }, ref) => {
-  return (
-    <div
-      data-slot="badge"
-      className={cn(badgeVariants({ variant }), className)}
-      ref={ref}
-      {...props}
-    />
-  );
-});
-Badge.displayName = "Badge";
+const Badge = React.forwardRef<HTMLDivElement, BadgeProps>(
+  ({ className, variant, ...props }, ref) => {
+    return (
+      <div
+        data-slot="badge"
+        className={cn(badgeVariants({ variant }), className)}
+        ref={ref}
+        {...props}
+      />
+    );
+  },
+);
+Badge.displayName = 'Badge';
 
 export { Badge, badgeVariants };

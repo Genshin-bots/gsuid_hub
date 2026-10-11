@@ -34,8 +34,7 @@ export function EmbeddingWarningDialog({
         <AlertDialogHeader>
           <AlertDialogTitle className="flex items-center gap-2">
             <AlertTriangle className="w-5 h-5 text-amber-500" />
-            {t('aiConfig.serviceProvider.embeddingSaveWarningTitle') ||
-              '修改嵌入模型配置警告'}
+            {t('aiConfig.serviceProvider.embeddingSaveWarningTitle') || '修改嵌入模型配置警告'}
           </AlertDialogTitle>
           <AlertDialogDescription>
             {t('aiConfig.serviceProvider.embeddingSaveWarningDesc') ||

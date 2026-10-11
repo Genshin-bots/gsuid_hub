@@ -289,9 +289,7 @@ export function CreateConfigDialog(props: CreateConfigDialogProps) {
               placeholder="选择或输入 API Base URL"
               inputPlaceholder="https://api.openai.com/v1"
               className={
-                showBaseUrlWarning
-                  ? 'border-red-500 text-red-600 dark:text-red-400'
-                  : undefined
+                showBaseUrlWarning ? 'border-red-500 text-red-600 dark:text-red-400' : undefined
               }
             />
             {showBaseUrlWarning && (
@@ -453,9 +451,7 @@ export function CreateConfigDialog(props: CreateConfigDialogProps) {
                 {requestMethod && (
                   <p className="text-xs text-muted-foreground flex items-start gap-1">
                     <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-                    <span>
-                      {getRequestMethodDescription(t, requestMethod)}
-                    </span>
+                    <span>{getRequestMethodDescription(t, requestMethod)}</span>
                   </p>
                 )}
               </div>

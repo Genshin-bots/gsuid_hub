@@ -50,10 +50,8 @@ export function AIServiceSwitchDialog({
   const isEnable = mode === 'enable';
 
   // —— 开启 AI 服务 ——
-  const enableTitle =
-    t('aiConfig.serviceSwitch.enableDialog.title') || '启用 AI 功能提示';
-  const enableConfirm =
-    t('aiConfig.serviceSwitch.enableDialog.confirm') || '我已了解，继续开启';
+  const enableTitle = t('aiConfig.serviceSwitch.enableDialog.title') || '启用 AI 功能提示';
+  const enableConfirm = t('aiConfig.serviceSwitch.enableDialog.confirm') || '我已了解，继续开启';
   const enableLines: DialogLine[] = [
     {
       text:
@@ -100,10 +98,8 @@ export function AIServiceSwitchDialog({
   ];
 
   // —— 关闭 AI 服务 ——
-  const disableTitle =
-    t('aiConfig.serviceSwitch.disableDialog.title') || '关闭 AI 功能提示';
-  const disableConfirm =
-    t('aiConfig.serviceSwitch.disableDialog.confirm') || '我已了解，继续关闭';
+  const disableTitle = t('aiConfig.serviceSwitch.disableDialog.title') || '关闭 AI 功能提示';
+  const disableConfirm = t('aiConfig.serviceSwitch.disableDialog.confirm') || '我已了解，继续关闭';
   const disableLine =
     t('aiConfig.serviceSwitch.disableDialog.line1') ||
     '为了彻底关闭AI功能的占用，建议你立即重启核心以完成关闭。';
@@ -155,9 +151,7 @@ export function AIServiceSwitchDialog({
         </AlertDialogHeader>
         <AlertDialogFooter>
           {helpOnly ? (
-            <AlertDialogAction onClick={() => onOpenChange(false)}>
-              {closeLabel}
-            </AlertDialogAction>
+            <AlertDialogAction onClick={() => onOpenChange(false)}>{closeLabel}</AlertDialogAction>
           ) : (
             <>
               <AlertDialogCancel onClick={() => onOpenChange(false)}>

@@ -2,7 +2,12 @@ import { useState, useCallback, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { ConfigField, ConfigFieldDefinition, ConfigFieldType, ConfigValue } from '@/components/config/ConfigField';
+import {
+  ConfigField,
+  ConfigFieldDefinition,
+  ConfigFieldType,
+  ConfigValue,
+} from '@/components/config/ConfigField';
 import { AlertTriangle, CheckCircle, Settings, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { configApi, CoreConfigOptionMeta } from '@/lib/api';
@@ -63,7 +68,7 @@ const fieldDescKeys: Record<string, string> = {
 const apiConfigToFieldDefinition = (
   key: string,
   value: unknown,
-  optionsMeta?: Record<string, CoreConfigOptionMeta>
+  optionsMeta?: Record<string, CoreConfigOptionMeta>,
 ): ConfigFieldDefinition => {
   const labelKey = fieldLabelKeys[key] || `coreConfig.${key}`;
 
@@ -76,9 +81,12 @@ const apiConfigToFieldDefinition = (
       type: metaType,
       label: labelKey,
       // multiselect 的值是数组，不能被 String() 压扁
-      value: metaType === 'multiselect'
-        ? (Array.isArray(value) ? (value as string[]) : [])
-        : String(value ?? meta.options[0]),
+      value:
+        metaType === 'multiselect'
+          ? Array.isArray(value)
+            ? (value as string[])
+            : []
+          : String(value ?? meta.options[0]),
       options: meta.options,
       optionLabels: meta.labels,
       description: fieldDescKeys[key],
@@ -92,14 +100,20 @@ const apiConfigToFieldDefinition = (
       value: value as string,
       upload_to: 'data',
       filename: 'bg',
-      suffix: 'jpg'
+      suffix: 'jpg',
     };
   }
   if (typeof value === 'boolean') {
     return { type: 'boolean', label: labelKey, value };
   }
   if (typeof value === 'number') {
-    return { type: 'number', label: labelKey, value, placeholder: 'coreFrameworkConfig.enterValue', description: fieldDescKeys[key] };
+    return {
+      type: 'number',
+      label: labelKey,
+      value,
+      placeholder: 'coreFrameworkConfig.enterValue',
+      description: fieldDescKeys[key],
+    };
   }
   if (key === 'web_cors_origins' && Array.isArray(value)) {
     return {
@@ -118,7 +132,7 @@ const apiConfigToFieldDefinition = (
       type: 'select',
       label: labelKey,
       value: value as string,
-      options: ['TRACE', 'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']
+      options: ['TRACE', 'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
     };
   }
   if (key === 'log_output') {
@@ -126,18 +140,30 @@ const apiConfigToFieldDefinition = (
       type: 'tags',
       label: labelKey,
       value: value as string[],
-      placeholder: 'coreFrameworkConfig.enterTags'
+      placeholder: 'coreFrameworkConfig.enterTags',
     };
   }
   if (key === 'log_module') {
     return {
       type: 'boolean',
       label: labelKey,
-      value: value as boolean
+      value: value as boolean,
     };
   }
-  if (key === 'HOST') return { type: 'text', label: labelKey, value: String(value), placeholder: 'coreFrameworkConfig.enterValue' };
-  if (key === 'PORT') return { type: 'text', label: labelKey, value: String(value), placeholder: 'coreFrameworkConfig.enterValue' };
+  if (key === 'HOST')
+    return {
+      type: 'text',
+      label: labelKey,
+      value: String(value),
+      placeholder: 'coreFrameworkConfig.enterValue',
+    };
+  if (key === 'PORT')
+    return {
+      type: 'text',
+      label: labelKey,
+      value: String(value),
+      placeholder: 'coreFrameworkConfig.enterValue',
+    };
   if (key === 'ENABLE_HTTP') return { type: 'boolean', label: labelKey, value: value as boolean };
   if (key === 'WS_TOKEN') {
     return {
@@ -157,14 +183,20 @@ const apiConfigToFieldDefinition = (
       secret: true,
     };
   }
-  if (key === 'TRUSTED_IPS') return { type: 'tags', label: labelKey, value: value as string[], placeholder: 'coreFrameworkConfig.enterTags' };
+  if (key === 'TRUSTED_IPS')
+    return {
+      type: 'tags',
+      label: labelKey,
+      value: value as string[],
+      placeholder: 'coreFrameworkConfig.enterTags',
+    };
   if (key === 'masters') {
     return {
       type: 'tags',
       label: labelKey,
       value: value as string[],
       placeholder: 'coreFrameworkConfig.enterTags',
-      description: 'coreFrameworkConfig.mastersDesc'
+      description: 'coreFrameworkConfig.mastersDesc',
     };
   }
   if (key === 'superusers') {
@@ -173,13 +205,26 @@ const apiConfigToFieldDefinition = (
       label: labelKey,
       value: value as string[],
       placeholder: 'coreFrameworkConfig.enterTags',
-      description: 'coreFrameworkConfig.superusersDesc'
+      description: 'coreFrameworkConfig.superusersDesc',
     };
   }
-  if (key === 'misfire_grace_time') return { type: 'number', label: labelKey, value: value as number, placeholder: 'coreFrameworkConfig.enterValue' };
-  if (key === 'enable_empty_start') return { type: 'boolean', label: labelKey, value: value as boolean };
-  if (key === 'command_start') return { type: 'tags', label: labelKey, value: value as string[], placeholder: 'coreFrameworkConfig.enterTags' };
-   
+  if (key === 'misfire_grace_time')
+    return {
+      type: 'number',
+      label: labelKey,
+      value: value as number,
+      placeholder: 'coreFrameworkConfig.enterValue',
+    };
+  if (key === 'enable_empty_start')
+    return { type: 'boolean', label: labelKey, value: value as boolean };
+  if (key === 'command_start')
+    return {
+      type: 'tags',
+      label: labelKey,
+      value: value as string[],
+      placeholder: 'coreFrameworkConfig.enterTags',
+    };
+
   return { type: 'text', label: labelKey, value: String(value), placeholder: 'coreConfig.content' };
 };
 
@@ -198,15 +243,29 @@ export default function CoreConfigPage() {
         // 并行拉取配置值与枚举元数据；元数据接口不可用（旧后端）时降级为空，字段回落文本框
         const [data, optionsMeta] = await Promise.all([
           configApi.getCoreConfig() as Promise<CoreConfig>,
-          configApi.getCoreConfigOptions().catch(() => ({} as Record<string, CoreConfigOptionMeta>)),
+          configApi
+            .getCoreConfigOptions()
+            .catch(() => ({}) as Record<string, CoreConfigOptionMeta>),
         ]);
         const fieldConfig: Record<string, ConfigFieldDefinition> = {};
 
         // Process nested log object
         if (data.log && typeof data.log === 'object') {
-          fieldConfig['log_level'] = apiConfigToFieldDefinition('log_level', data.log.level, optionsMeta);
-          fieldConfig['log_output'] = apiConfigToFieldDefinition('log_output', data.log.output, optionsMeta);
-          fieldConfig['log_module'] = apiConfigToFieldDefinition('log_module', data.log.module, optionsMeta);
+          fieldConfig['log_level'] = apiConfigToFieldDefinition(
+            'log_level',
+            data.log.level,
+            optionsMeta,
+          );
+          fieldConfig['log_output'] = apiConfigToFieldDefinition(
+            'log_output',
+            data.log.output,
+            optionsMeta,
+          );
+          fieldConfig['log_module'] = apiConfigToFieldDefinition(
+            'log_module',
+            data.log.module,
+            optionsMeta,
+          );
           delete data.log;
         }
 
@@ -239,7 +298,7 @@ export default function CoreConfigPage() {
       // Convert config to plain object for API
       const configData: Record<string, unknown> = {};
       const logConfig: Record<string, unknown> = {};
-      
+
       for (const [key, field] of Object.entries(config)) {
         if (key.startsWith('log_')) {
           const logKey = key.replace('log_', '');
@@ -248,12 +307,12 @@ export default function CoreConfigPage() {
           configData[key] = field.value;
         }
       }
-      
+
       // Merge log config
       if (Object.keys(logConfig).length > 0) {
         configData.log = logConfig;
       }
-      
+
       await configApi.setCoreConfig(configData);
       toast.success(t('coreConfig.configSaved'));
       setHasChanges(false);
@@ -302,19 +361,14 @@ export default function CoreConfigPage() {
           {/* Config Grid - 3 columns with consistent alignment */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-5">
             {Object.entries(config).map(([key, field]) => (
-              <ConfigField
-                key={key}
-                fieldKey={key}
-                field={field}
-                onChange={handleChange}
-              />
+              <ConfigField key={key} fieldKey={key} field={field} onChange={handleChange} />
             ))}
           </div>
 
           {/* Save Button */}
           <div className="flex items-center justify-center pt-6 border-t border-border">
-            <Button 
-              onClick={handleSave} 
+            <Button
+              onClick={handleSave}
               disabled={!hasChanges || isSaving}
               className="gap-2 min-w-[160px] h-11"
               size="lg"

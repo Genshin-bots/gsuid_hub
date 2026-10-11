@@ -2,14 +2,7 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 
 /** 图标 hover 动效类型 */
-export type SidebarIconMotion =
-  | 'pop'
-  | 'bounce'
-  | 'wiggle'
-  | 'spin'
-  | 'pulse'
-  | 'tilt'
-  | 'nudge';
+export type SidebarIconMotion = 'pop' | 'bounce' | 'wiggle' | 'spin' | 'pulse' | 'tilt' | 'nudge';
 
 /**
  * 完整 class 字符串必须静态写出，供 Tailwind JIT 扫描。
@@ -210,10 +203,7 @@ const ICON_MOTION_BY_NAME: Record<string, SidebarIconMotion> = {
   Coffee: 'pulse',
 };
 
-function resolveMotion(
-  icon: React.ElementType,
-  override?: SidebarIconMotion,
-): SidebarIconMotion {
+function resolveMotion(icon: React.ElementType, override?: SidebarIconMotion): SidebarIconMotion {
   if (override) return override;
   const name =
     (icon as { displayName?: string; name?: string }).displayName ||
@@ -251,12 +241,7 @@ export function SidebarHoverIcon({
 
   return (
     <Icon
-      className={cn(
-        className,
-        'origin-center shrink-0',
-        hoverClass,
-        'motion-reduce:animate-none',
-      )}
+      className={cn(className, 'origin-center shrink-0', hoverClass, 'motion-reduce:animate-none')}
       style={style}
       aria-hidden
     />
@@ -289,9 +274,7 @@ export function asHoverIcon(
   if (typeof type === 'string') {
     if (type !== 'svg' && type !== 'img') return icon;
     const motion = options?.motion ?? 'pop';
-    const hoverClass = options?.selfHover
-      ? SELF_HOVER_CLASS[motion]
-      : GROUP_HOVER_CLASS[motion];
+    const hoverClass = options?.selfHover ? SELF_HOVER_CLASS[motion] : GROUP_HOVER_CLASS[motion];
     return React.cloneElement(icon as React.ReactElement<{ className?: string }>, {
       className: cn(
         props.className,
@@ -309,9 +292,7 @@ export function asHoverIcon(
     name?: string;
   };
   const REACT_FORWARD_REF =
-    typeof Symbol === 'function' && Symbol.for
-      ? Symbol.for('react.forward_ref')
-      : undefined;
+    typeof Symbol === 'function' && Symbol.for ? Symbol.for('react.forward_ref') : undefined;
   const name = typeMeta.displayName || typeMeta.name || '';
   const isLucideForwardRef =
     !!REACT_FORWARD_REF &&

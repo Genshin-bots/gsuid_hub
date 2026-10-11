@@ -22,9 +22,7 @@ export function CognitionAttachments({
   const [preview, setPreview] = useState<CognitionAttachment | null>(null);
 
   if (attachments.length === 0) {
-    return emptyText ? (
-      <p className="text-sm text-muted-foreground">{emptyText}</p>
-    ) : null;
+    return emptyText ? <p className="text-sm text-muted-foreground">{emptyText}</p> : null;
   }
 
   const slots = new Map<string, CognitionAttachment[]>();
@@ -49,7 +47,10 @@ export function CognitionAttachments({
                 <div className="flex flex-wrap items-center gap-2 min-w-0">
                   <FileText className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
                   <span className="font-medium text-sm truncate">{att.title || att.ref}</span>
-                  <Badge variant={att.writable ? 'default' : 'outline'} className="shrink-0 text-[10px] gap-1">
+                  <Badge
+                    variant={att.writable ? 'default' : 'outline'}
+                    className="shrink-0 text-[10px] gap-1"
+                  >
                     {att.writable && <Pencil className="w-3 h-3" />}
                     {att.writable ? writableLabel : readonlyLabel}
                   </Badge>
@@ -68,12 +69,7 @@ export function CognitionAttachments({
                   {att.as_of && <span>as_of={att.as_of}</span>}
                   {att.handle && <span className="font-mono break-all">handle={att.handle}</span>}
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8"
-                  onClick={() => setPreview(att)}
-                >
+                <Button variant="outline" size="sm" className="h-8" onClick={() => setPreview(att)}>
                   {openLabel}
                 </Button>
               </div>

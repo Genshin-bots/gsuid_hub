@@ -26,9 +26,10 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useTheme } from '@/contexts/ThemeContext';
+import { LiquidSegmentThumb } from '@/components/ui/LiquidSegmentThumb';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
-import { themeApi, ThemePresetItem, ThemeConfig, getApiErrorMessage } from '@/lib/api';
+import { themeApi, type ThemePresetItem, type ThemeConfig, getApiErrorMessage } from '@/lib/api';
 import {
   Sun,
   Moon,
@@ -255,17 +256,28 @@ function SelectTile({ active, onClick, icon, label }: SelectTileProps) {
   return (
     <button
       type="button"
+      data-active={active ? 'true' : undefined}
       onClick={onClick}
       className={cn(
-        'group flex flex-1 min-w-0 flex-col items-center justify-center gap-2 rounded-xl border p-4 min-h-[88px] transition-all',
+        'select-tile group flex flex-1 min-w-0 flex-col items-center justify-center gap-2 rounded-xl border p-4 min-h-[88px] transition-all',
         active
-          ? 'border-primary bg-primary/10 text-primary ring-1 ring-primary/30'
-          : 'border-border/60 text-foreground hover:border-primary/50 hover:bg-primary/5',
+          ? 'border-primary bg-primary/15 text-primary font-semibold shadow-sm ring-1 ring-primary/40'
+          : 'border-border/60 text-muted-foreground hover:border-primary/40 hover:text-foreground hover:bg-primary/5',
       )}
     >
       <span className="flex items-center justify-center [&_svg]:w-6 [&_svg]:h-6">{icon}</span>
       <span className="text-sm font-medium truncate max-w-full">{label}</span>
     </button>
+  );
+}
+
+function SelectTileRow({ className, children }: { className?: string; children: React.ReactNode }) {
+  const rowRef = useRef<HTMLDivElement>(null);
+  return (
+    <div ref={rowRef} className={cn('select-tile-row relative flex flex-wrap gap-3', className)}>
+      <LiquidSegmentThumb containerRef={rowRef} activeSelector="[data-active='true']" />
+      {children}
+    </div>
   );
 }
 
@@ -316,6 +328,7 @@ export default function ThemesPage() {
     color,
     backgroundImage,
     blurIntensity,
+    backgroundBlur,
     cardOpacity,
     iconColor,
     themePreset,
@@ -329,6 +342,7 @@ export default function ThemesPage() {
     setColor,
     setBackgroundImage,
     setBlurIntensity,
+    setBackgroundBlur,
     setCardOpacity,
     setIconColor,
     setThemePreset,
@@ -553,7 +567,7 @@ export default function ThemesPage() {
               <CardDescription>{t('themes.colorModeDesc')}</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex gap-3">
+              <SelectTileRow>
                 <SelectTile
                   active={mode === 'light'}
                   onClick={() => setMode('light', true)}
@@ -566,7 +580,7 @@ export default function ThemesPage() {
                   icon={<Moon />}
                   label={t('themes.darkMode')}
                 />
-              </div>
+              </SelectTileRow>
             </CardContent>
           </Card>
 
@@ -580,15 +594,17 @@ export default function ThemesPage() {
               <CardDescription>{t('themes.styleDesc')}</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-wrap gap-3">
+              <SelectTileRow>
                 <SelectTile
                   active={style === 'solid'}
                   onClick={() => setStyle('solid', true)}
                   icon={
                     <span
                       className={cn(
-                        'block w-6 h-6 rounded-lg',
-                        style === 'solid' ? 'bg-primary' : 'bg-foreground/70',
+                        'block h-6 w-6 rounded-lg',
+                        style === 'solid'
+                          ? 'bg-primary-foreground shadow-[inset_0_0_0_1px_hsl(var(--primary-foreground)/0.45)]'
+                          : 'bg-foreground/70',
                       )}
                     />
                   }
@@ -612,7 +628,18 @@ export default function ThemesPage() {
                   }
                   label={t('themes.luminousStyle')}
                 />
-              </div>
+                <SelectTile
+                  active={style === 'liquid'}
+                  onClick={() => setStyle('liquid', true)}
+                  icon={
+                    <span className="relative block w-6 h-6 rounded-lg bg-gradient-to-br from-white/40 via-white/10 to-white/25 backdrop-blur-md border border-white/80 shadow-[inset_0_1.5px_0_rgba(255,255,255,0.95),inset_0_0_6px_rgba(255,255,255,0.2),0_2px_8px_rgba(0,0,0,0.15)] overflow-hidden">
+                      <span className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,rgba(255,255,255,0.9)_0%,transparent_60%)]" />
+                      <span className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-cyan-400/30 via-emerald-400/20 to-pink-400/30 blur-[1px] opacity-60" />
+                    </span>
+                  }
+                  label={t('themes.liquidStyle')}
+                />
+              </SelectTileRow>
             </CardContent>
           </Card>
 
@@ -626,7 +653,7 @@ export default function ThemesPage() {
               <CardDescription>{t('themes.themePresetDesc')}</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex gap-3">
+              <SelectTileRow>
                 <SelectTile
                   active={themePreset === 'default'}
                   onClick={() => setThemePreset('default', true)}
@@ -639,7 +666,7 @@ export default function ThemesPage() {
                   icon={<span className="block w-6 h-6 rounded border-2 border-current" />}
                   label={t('themes.shadcnStyle')}
                 />
-              </div>
+              </SelectTileRow>
               <p className="mt-3 text-sm text-muted-foreground">
                 {themePreset === 'shadcn'
                   ? t('themes.shadcnStyleDesc')
@@ -658,7 +685,7 @@ export default function ThemesPage() {
               <CardDescription>{t('themes.iconColorDesc')}</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <SelectTileRow className="grid grid-cols-1 sm:grid-cols-3">
                 {iconColorOptions.map((option) => (
                   <SelectTile
                     key={option.id}
@@ -668,7 +695,7 @@ export default function ThemesPage() {
                     label={t(option.name)}
                   />
                 ))}
-              </div>
+              </SelectTileRow>
             </CardContent>
           </Card>
 
@@ -730,6 +757,52 @@ export default function ThemesPage() {
             <CardDescription>{t('themes.bgSettingsDesc')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">
+                  {t('themes.backgroundBlurValue')}
+                </span>
+                <span className="rounded bg-primary/10 px-2 py-0.5 text-sm font-medium text-primary">
+                  {backgroundBlur}px
+                </span>
+              </div>
+              <p className="text-sm text-muted-foreground">{t('themes.backgroundBlurDesc')}</p>
+              <Slider
+                value={[backgroundBlur]}
+                onValueChange={(value) => setBackgroundBlur(value[0])}
+                onValueCommit={(value) => setBackgroundBlur(value[0], true)}
+                min={0}
+                max={40}
+                step={1}
+              />
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>{t('themes.clear')}</span>
+                <span>{t('themes.moderate')}</span>
+                <span>{t('themes.blurry')}</span>
+              </div>
+              <div className="flex gap-2">
+                {[
+                  { v: 0, l: 'themes.clear' },
+                  { v: 12, l: 'themes.moderate' },
+                  { v: 28, l: 'themes.blurry' },
+                ].map((p) => (
+                  <Button
+                    key={p.v}
+                    variant="outline"
+                    size="sm"
+                    className={cn(
+                      'h-8',
+                      backgroundBlur === p.v &&
+                        'border-primary bg-primary/15 font-semibold text-primary',
+                    )}
+                    onClick={() => setBackgroundBlur(p.v, true)}
+                  >
+                    {t(p.l)}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
             {/* 无背景 / 默认 */}
             <div className="space-y-3">
               <Label className="text-sm font-medium text-primary bg-primary/10 px-2 py-1 rounded-md inline-block">
@@ -936,7 +1009,11 @@ export default function ThemesPage() {
                     key={p.v}
                     variant="outline"
                     size="sm"
-                    className={cn('h-8', cardOpacity === p.v && 'border-primary text-primary')}
+                    className={cn(
+                      'h-8',
+                      cardOpacity === p.v &&
+                        'border-primary bg-primary/15 text-primary font-semibold',
+                    )}
                     onClick={() => setCardOpacity(p.v, true)}
                   >
                     {t(p.l)}
@@ -990,7 +1067,11 @@ export default function ThemesPage() {
                       key={p.v}
                       variant="outline"
                       size="sm"
-                      className={cn('h-8', blurIntensity === p.v && 'border-primary text-primary')}
+                      className={cn(
+                        'h-8',
+                        blurIntensity === p.v &&
+                          'border-primary bg-primary/15 text-primary font-semibold',
+                      )}
                       onClick={() => setBlurIntensity(p.v, true)}
                     >
                       {t(p.l)}
@@ -1011,7 +1092,7 @@ export default function ThemesPage() {
               <CardDescription>{t('themes.sidebarLayoutDesc')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="flex flex-wrap gap-3">
+              <SelectTileRow>
                 <SelectTile
                   active={sidebarLayout === 'floating'}
                   onClick={() => setSidebarLayout('floating', true)}
@@ -1030,7 +1111,7 @@ export default function ThemesPage() {
                   icon={<SeparatorVertical />}
                   label={t('themes.sidebarLine')}
                 />
-              </div>
+              </SelectTileRow>
               <p className="text-sm text-muted-foreground">
                 {sidebarLayout === 'floating'
                   ? t('themes.sidebarFloatingDesc')
@@ -1051,7 +1132,7 @@ export default function ThemesPage() {
               <CardDescription>{t('themes.sidebarDefaultStateDesc')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="flex gap-3">
+              <SelectTileRow>
                 <SelectTile
                   active={!sidebarDefaultCollapsed}
                   onClick={() => setSidebarDefaultCollapsed(false, true)}
@@ -1064,7 +1145,7 @@ export default function ThemesPage() {
                   icon={<PanelLeftClose />}
                   label={t('themes.sidebarCollapsed')}
                 />
-              </div>
+              </SelectTileRow>
               <p className="text-sm text-muted-foreground">
                 {sidebarDefaultCollapsed
                   ? t('themes.sidebarCollapsedDesc')
@@ -1118,7 +1199,11 @@ export default function ThemesPage() {
                     key={p.v}
                     variant="outline"
                     size="sm"
-                    className={cn('h-8', borderRadius === p.v && 'border-primary text-primary')}
+                    className={cn(
+                      'h-8',
+                      borderRadius === p.v &&
+                        'border-primary bg-primary/15 text-primary font-semibold',
+                    )}
                     onClick={() => setBorderRadius(p.v, true)}
                   >
                     {t(p.l)}
@@ -1252,7 +1337,10 @@ export default function ThemesPage() {
                     key={p.v}
                     variant="outline"
                     size="sm"
-                    className={cn('h-8', uiScale === p.v && 'border-primary text-primary')}
+                    className={cn(
+                      'h-8',
+                      uiScale === p.v && 'border-primary bg-primary/15 text-primary font-semibold',
+                    )}
                     onClick={() => setUiScale(p.v, true)}
                   >
                     {t(p.l)}
@@ -1447,11 +1535,13 @@ export default function ThemesPage() {
                   {mode === 'dark' ? t('themes.darkMode') : t('themes.lightMode')}
                 </Badge>
                 <Badge variant="secondary">
-                  {style === 'luminous'
-                    ? t('themes.luminousStyle')
-                    : style === 'glassmorphism'
-                      ? t('themes.glassStyle')
-                      : t('themes.solidStyle')}
+                  {style === 'liquid'
+                    ? t('themes.liquidStyle')
+                    : style === 'luminous'
+                      ? t('themes.luminousStyle')
+                      : style === 'glassmorphism'
+                        ? t('themes.glassStyle')
+                        : t('themes.solidStyle')}
                 </Badge>
                 {currentColorName && <Badge variant="secondary">{t(currentColorName)}</Badge>}
                 <Badge variant="secondary">

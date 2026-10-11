@@ -116,7 +116,7 @@ function statusCodeClass(code: number | null): string {
 export default function HttpTracesPage() {
   const { t } = useLanguage();
   const { style } = useTheme();
-  const isGlass = style === 'glassmorphism';
+  const isGlass = style !== 'solid';
   const [traces, setTraces] = useState<HttpTraceItem[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(1);

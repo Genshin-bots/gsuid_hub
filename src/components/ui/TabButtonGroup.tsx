@@ -9,6 +9,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { SearchableMenu } from '@/components/ui/searchable-menu';
+import { LiquidSegmentThumb } from '@/components/ui/LiquidSegmentThumb';
 
 /** 下拉子项：用于某一主 Tab 的二级筛选 */
 export interface TabButtonDropdownItem {
@@ -143,6 +144,7 @@ export function TabButtonGroup({
   size = 'default',
   fillUntil = 'md',
 }: TabButtonGroupProps) {
+  const rowRef = React.useRef<HTMLDivElement>(null);
   const sm = size === 'sm';
   const iconSlotClass = sm ? 'h-4 w-4' : 'h-[22px] w-[22px]';
   // 默认可视高度锁成 h-10，和 tabToolbarControlClass 同一数值。
@@ -173,6 +175,7 @@ export function TabButtonGroup({
       )}
     >
       <div
+        ref={rowRef}
         className={cn(
           'tab-segment-row inline-flex min-w-0 flex-wrap gap-1 rounded-lg glass-card-flat',
           sm ? cn(tabSmShellClass, 'items-stretch px-0.5 py-0') : 'p-1',
@@ -183,6 +186,7 @@ export function TabButtonGroup({
           className,
         )}
       >
+        <LiquidSegmentThumb containerRef={rowRef} activeSelector="[data-segment-active='true']" />
         {options.map((option) => {
           const isActive = value === option.value;
           const isDisabled = disabled || !!option.disabled;
@@ -195,6 +199,7 @@ export function TabButtonGroup({
             return (
               <div
                 key={option.value}
+                data-segment-active={isActive ? 'true' : undefined}
                 className={cn(
                   tabSegmentClassName(isActive, isDisabled, omitPaddingClasses(buttonClassName)),
                   // 外层只负责底色/对齐；padding 由内层主区 / ▾ 自己带。
@@ -281,6 +286,7 @@ export function TabButtonGroup({
             <button
               key={option.value}
               type="button"
+              data-segment-active={isActive ? 'true' : undefined}
               onClick={() => onValueChange(option.value)}
               disabled={isDisabled}
               className={cn(

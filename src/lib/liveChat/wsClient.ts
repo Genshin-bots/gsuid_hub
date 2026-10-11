@@ -3,12 +3,7 @@
 // ============================================================================
 
 import { getCustomApiHost } from '@/lib/api';
-import {
-  type ConnectionState,
-  type MessageReceive,
-  type MessageSend,
-  WS_BOT_ID,
-} from './types';
+import { type ConnectionState, type MessageReceive, type MessageSend, WS_BOT_ID } from './types';
 
 export type LiveChatWsHandlers = {
   onState?: (state: ConnectionState, detail?: string) => void;

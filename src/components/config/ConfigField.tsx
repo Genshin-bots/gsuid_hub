@@ -7,7 +7,13 @@ import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { InputWithDropdown } from '@/components/ui/input-with-dropdown';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { MarkdownTooltip } from './MarkdownTooltip';
 import { TimePicker } from '@/components/ui/time-picker';
@@ -20,12 +26,32 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+} from '@/components/ui/alert-dialog';
 import { Separator } from '@/components/ui/separator';
 import {
-  CalendarIcon, X, Upload, HelpCircle, Bell, CreditCard, Settings,
-  Clock, Cog, MessageSquare, Image, Shield, Database, Zap, Key, Loader2,
-  ChevronDown, Eye, FileText, Files, Palette, AlertCircle, Minus,
+  CalendarIcon,
+  X,
+  Upload,
+  HelpCircle,
+  Bell,
+  CreditCard,
+  Settings,
+  Clock,
+  Cog,
+  MessageSquare,
+  Image,
+  Shield,
+  Database,
+  Zap,
+  Key,
+  Loader2,
+  ChevronDown,
+  Eye,
+  FileText,
+  Files,
+  Palette,
+  AlertCircle,
+  Minus,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
@@ -43,7 +69,7 @@ const DIVIDER_TITLE_SKEW_DEG = -6;
 // 根据 title 关键词匹配图标
 const getTitleIcon = (title: string) => {
   const lowerTitle = title.toLowerCase();
-  
+
   if (lowerTitle.includes('推送') || lowerTitle.includes('通知') || lowerTitle.includes('消息')) {
     return <Bell className="w-4 h-4" />;
   }
@@ -74,7 +100,7 @@ const getTitleIcon = (title: string) => {
   if (lowerTitle.includes('性能') || lowerTitle.includes('优化')) {
     return <Zap className="w-4 h-4" />;
   }
-  
+
   // 默认图标
   return <Cog className="w-4 h-4" />;
 };
@@ -107,7 +133,14 @@ export type ConfigFieldType =
   | 'timerange'
   | 'repeatgroup';
 
-export type ConfigValue = string | number | boolean | string[] | [number, number] | [[number, number], [number, number]] | null;
+export type ConfigValue =
+  | string
+  | number
+  | boolean
+  | string[]
+  | [number, number]
+  | [[number, number], [number, number]]
+  | null;
 
 export interface ConfigFieldDefinition {
   type: ConfigFieldType;
@@ -146,19 +179,19 @@ export function ConfigField({
   field,
   onChange,
   showLabel = true,
-  className
+  className,
 }: ConfigFieldProps) {
   const { t } = useLanguage();
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const value = field.value;
-  
+
   // 是否为密钥字段（仅由后端 secret 属性决定）
   const isSecret = isSecretField(field);
 
   // regex 校验状态
   const [regexError, setRegexError] = useState<string | null>(null);
-  
+
   // 图片删除确认对话框状态
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
@@ -169,8 +202,16 @@ export function ConfigField({
 
   // Translate label if it's an i18n key (contains a dot), otherwise use as-is
   const displayLabel = labelText.includes('.') ? t(labelText) : labelText;
-  const displayPlaceholder = placeholderText ? (placeholderText.includes('.') ? t(placeholderText) : placeholderText) : placeholderText;
-  const displayDescription = descriptionText ? (descriptionText.includes('.') ? t(descriptionText) : descriptionText) : descriptionText;
+  const displayPlaceholder = placeholderText
+    ? placeholderText.includes('.')
+      ? t(placeholderText)
+      : placeholderText
+    : placeholderText;
+  const displayDescription = descriptionText
+    ? descriptionText.includes('.')
+      ? t(descriptionText)
+      : descriptionText
+    : descriptionText;
 
   // regex 校验
   const validateRegex = (val: string) => {
@@ -216,7 +257,7 @@ export function ConfigField({
         }}
         placeholder={displayPlaceholder || `输入${displayLabel}`}
         disabled={field.disabled}
-        className={cn(regexError && "border-destructive focus-visible:ring-destructive")}
+        className={cn(regexError && 'border-destructive focus-visible:ring-destructive')}
       />
     );
   };
@@ -229,13 +270,8 @@ export function ConfigField({
     if (field.type === 'divider') {
       // 标题：后端 GsDivider.data（value）；空则回退 title（label）
       // 副标题：GsDivider.desc，小字放在标题下面（与后端 39-plugin-config-types 一致）
-      const dividerTitle =
-        typeof value === 'string' && value ? value : displayLabel || null;
-      const dividerSubtitle = resolveDividerSubtitle(
-        descriptionText,
-        dividerTitle,
-        fieldKey,
-      );
+      const dividerTitle = typeof value === 'string' && value ? value : displayLabel || null;
+      const dividerSubtitle = resolveDividerSubtitle(descriptionText, dividerTitle, fieldKey);
 
       const dividerHeading = (
         <h4
@@ -305,8 +341,8 @@ export function ConfigField({
               placeholder={displayPlaceholder || `输入${displayLabel}`}
               disabled={field.disabled}
               className={cn(
-                "bg-background h-10",
-                regexError && "border-destructive focus-visible:ring-destructive"
+                'bg-background h-10',
+                regexError && 'border-destructive focus-visible:ring-destructive',
               )}
             />
             {regexError && (
@@ -440,7 +476,11 @@ export function ConfigField({
       case 'multiselect':
         return (
           <TagsInput
-            value={Array.isArray(value) && value.every(v => typeof v === 'string') ? value as string[] : []}
+            value={
+              Array.isArray(value) && value.every((v) => typeof v === 'string')
+                ? (value as string[])
+                : []
+            }
             onChange={(newValue) => onChange(fieldKey, newValue)}
             placeholder={displayPlaceholder || '输入并回车添加...'}
             disabled={field.disabled}
@@ -455,11 +495,11 @@ export function ConfigField({
         return (
           <Popover>
             <PopoverTrigger asChild>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className={cn(
-                  "ui-field-trigger w-full justify-start text-left bg-background h-10 hover:text-foreground",
-                  !value && "text-muted-foreground"
+                  'ui-field-trigger w-full justify-start text-left bg-background h-10 hover:text-foreground',
+                  !value && 'text-muted-foreground',
                 )}
                 disabled={field.disabled}
               >
@@ -471,9 +511,7 @@ export function ConfigField({
               <Calendar
                 mode="single"
                 selected={value ? new Date(value as string) : undefined}
-                onSelect={(date) =>
-                  onChange(fieldKey, date?.toISOString().split('T')[0] || '')
-                }
+                onSelect={(date) => onChange(fieldKey, date?.toISOString().split('T')[0] || '')}
                 className="pointer-events-auto"
               />
             </PopoverContent>
@@ -496,10 +534,14 @@ export function ConfigField({
       // 时间范围选择器（两个 TimePicker 组合）
       // ----------------------------------------------------------
       case 'timerange': {
-        const timeRange = (Array.isArray(value) && value.length === 2) 
-          ? value as [[number, number], [number, number]]
-          : [[0, 0], [23, 59]] as [[number, number], [number, number]];
-        
+        const timeRange =
+          Array.isArray(value) && value.length === 2
+            ? (value as [[number, number], [number, number]])
+            : ([
+                [0, 0],
+                [23, 59],
+              ] as [[number, number], [number, number]]);
+
         return (
           <div className="flex items-center gap-2">
             <div className="flex-1">
@@ -528,7 +570,11 @@ export function ConfigField({
       case 'tags':
         return (
           <TagsInput
-            value={Array.isArray(value) && value.every(v => typeof v === 'string') ? value as string[] : []}
+            value={
+              Array.isArray(value) && value.every((v) => typeof v === 'string')
+                ? (value as string[])
+                : []
+            }
             onChange={(newValue) => onChange(fieldKey, newValue)}
             placeholder={displayPlaceholder}
             disabled={field.disabled}
@@ -539,7 +585,7 @@ export function ConfigField({
       // 颜色选择器（主题化 Popover）
       // ----------------------------------------------------------
       case 'color': {
-        const hexValue = (typeof value === 'string' && value) ? value : '#000000';
+        const hexValue = typeof value === 'string' && value ? value : '#000000';
         const displayColor = hexValue.length >= 7 ? hexValue.substring(0, 7) : hexValue;
 
         return (
@@ -602,25 +648,26 @@ export function ConfigField({
         const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
           const files = e.target.files;
           if (!files || files.length === 0) return;
-          
+
           setIsUploading(true);
           try {
             if (field.type === 'filesupload') {
               const paths: string[] = [];
               for (let i = 0; i < files.length; i++) {
-                const data = await assetsApi.upload(files[i], value as string || field.upload_to);
+                const data = await assetsApi.upload(files[i], (value as string) || field.upload_to);
                 paths.push(data.path);
               }
-              onChange(fieldKey, paths.length > 0 ? (value as string || field.upload_to) : '');
+              onChange(fieldKey, paths.length > 0 ? (value as string) || field.upload_to : '');
               toast.success(`${files.length} 个文件已上传`);
             } else {
-              const targetFilename = field.filename && field.suffix ? `${field.filename}.${field.suffix}` : undefined;
+              const targetFilename =
+                field.filename && field.suffix ? `${field.filename}.${field.suffix}` : undefined;
               const data = await assetsApi.upload(files[0], field.upload_to, targetFilename);
               onChange(fieldKey, data.path);
-              toast.success("文件已上传并更新配置");
+              toast.success('文件已上传并更新配置');
             }
           } catch (error) {
-            toast.error(error instanceof Error ? error.message : "上传失败");
+            toast.error(error instanceof Error ? error.message : '上传失败');
           } finally {
             setIsUploading(false);
             if (fileInputRef.current) fileInputRef.current.value = '';
@@ -654,12 +701,21 @@ export function ConfigField({
               ) : (
                 <FileText className="w-4 h-4 shrink-0 text-muted-foreground" />
               )}
-              <span className={cn("truncate flex-1", !value && "text-muted-foreground")}>
-                {isUploading ? "正在上传..." : value ? String(value) : (isMultiple ? "上传文件（批量）" : "上传文件")}
+              <span className={cn('truncate flex-1', !value && 'text-muted-foreground')}>
+                {isUploading
+                  ? '正在上传...'
+                  : value
+                    ? String(value)
+                    : isMultiple
+                      ? '上传文件（批量）'
+                      : '上传文件'}
               </span>
               {value && !isUploading && (
                 <button
-                  onClick={(e) => { e.stopPropagation(); onChange(fieldKey, ''); }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onChange(fieldKey, '');
+                  }}
                   className="p-0.5 hover:bg-destructive/10 hover:text-destructive rounded transition-colors shrink-0"
                   disabled={field.disabled}
                 >
@@ -679,19 +735,20 @@ export function ConfigField({
       // ----------------------------------------------------------
       case 'image': {
         const previewUrl = assetsApi.getPreviewUrl(value as string);
-        
+
         const handleImageFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
           const file = e.target.files?.[0];
           if (!file) return;
-          
+
           setIsUploading(true);
           try {
-            const targetFilename = field.filename && field.suffix ? `${field.filename}.${field.suffix}` : undefined;
+            const targetFilename =
+              field.filename && field.suffix ? `${field.filename}.${field.suffix}` : undefined;
             const data = await assetsApi.upload(file, field.upload_to, targetFilename);
             onChange(fieldKey, data.path);
-            toast.success("图片已上传并更新配置");
+            toast.success('图片已上传并更新配置');
           } catch (error) {
-            toast.error(error instanceof Error ? error.message : "未知错误");
+            toast.error(error instanceof Error ? error.message : '未知错误');
           } finally {
             setIsUploading(false);
             if (fileInputRef.current) fileInputRef.current.value = '';
@@ -707,10 +764,10 @@ export function ConfigField({
             try {
               await assetsApi.delete(value as string);
               onChange(fieldKey, '');
-              toast.success("图片已从服务器删除");
+              toast.success('图片已从服务器删除');
             } catch (error) {
               const errorMsg = error instanceof Error ? error.message : '';
-              toast.error(errorMsg ? `无法删除图片: ${errorMsg}` : "无法删除图片，请稍后重试");
+              toast.error(errorMsg ? `无法删除图片: ${errorMsg}` : '无法删除图片，请稍后重试');
             }
           } else {
             onChange(fieldKey, '');
@@ -743,19 +800,23 @@ export function ConfigField({
                     alt=""
                     className="w-full h-full object-contain"
                     onError={(e) => {
-                      (e.target as HTMLImageElement).src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxyZWN0IHdpZHRoPSIxOCIgaGVpZ2h0PSIxOCIgeD0iMyIgeT0iMyIgcng9IjIiIHJ5PSIyIi8+PHBhdGggZD0ibTIxIDE1LTUtNS02IDYiLz48Y2lyY2xlIGN4PSI5IiBjeT0iOSIgcj0iMiIvPjwvc3ZnPg==';
+                      (e.target as HTMLImageElement).src =
+                        'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxyZWN0IHdpZHRoPSIxOCIgaGVpZ2h0PSIxOCIgeD0iMyIgeT0iMyIgcng9IjIiIHJ5PSIyIi8+PHBhdGggZD0ibTIxIDE1LTUtNS02IDYiLz48Y2lyY2xlIGN4PSI5IiBjeT0iOSIgcj0iMiIvPjwvc3ZnPg==';
                     }}
                   />
                 </div>
               ) : (
                 <Image className="w-4 h-4 shrink-0 text-muted-foreground" />
               )}
-              <span className={cn("truncate flex-1", !value && "text-muted-foreground")}>
-                {isUploading ? "正在上传..." : value ? String(value) : "上传图片"}
+              <span className={cn('truncate flex-1', !value && 'text-muted-foreground')}>
+                {isUploading ? '正在上传...' : value ? String(value) : '上传图片'}
               </span>
               {value && !isUploading && (
                 <button
-                  onClick={(e) => { e.stopPropagation(); handleDeleteClick(); }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteClick();
+                  }}
                   className="p-0.5 hover:bg-destructive/10 hover:text-destructive rounded transition-colors shrink-0"
                   disabled={field.disabled}
                 >
@@ -775,7 +836,10 @@ export function ConfigField({
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>取消</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleConfirmDelete} className="bg-destructive hover:bg-destructive/90">
+                  <AlertDialogAction
+                    onClick={handleConfirmDelete}
+                    className="bg-destructive hover:bg-destructive/90"
+                  >
                     删除
                   </AlertDialogAction>
                 </AlertDialogFooter>
@@ -790,9 +854,9 @@ export function ConfigField({
       // ----------------------------------------------------------
       default:
         return (
-          <Input 
-            value={String(value ?? '')} 
-            onChange={(e) => onChange(fieldKey, e.target.value)} 
+          <Input
+            value={String(value ?? '')}
+            onChange={(e) => onChange(fieldKey, e.target.value)}
             disabled={field.disabled}
             className="bg-background h-10"
           />
@@ -802,16 +866,12 @@ export function ConfigField({
 
   // Divider 类型：不需要 Label，直接渲染
   if (isDividerField) {
-    return (
-      <div className={cn("col-span-full", className)}>
-        {renderField()}
-      </div>
-    );
+    return <div className={cn('col-span-full', className)}>{renderField()}</div>;
   }
 
   return (
     <TooltipProvider delayDuration={100}>
-      <div className={cn("flex flex-col", className)}>
+      <div className={cn('flex flex-col', className)}>
         {showLabel && (
           <Label className="text-sm font-medium text-muted-foreground mb-2 min-h-5 h-auto sm:h-5 flex items-start sm:items-center gap-2 shrink-0">
             {getTitleIcon(displayLabel)}

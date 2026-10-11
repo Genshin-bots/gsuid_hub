@@ -4,7 +4,20 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Sparkles, AlertCircle, Plus, Trash2, Edit2, GitBranch, FileText, ScrollText, Link, FileCode, FolderOpen, Loader2 } from 'lucide-react';
+import {
+  Sparkles,
+  AlertCircle,
+  Plus,
+  Trash2,
+  Edit2,
+  GitBranch,
+  FileText,
+  ScrollText,
+  Link,
+  FileCode,
+  FolderOpen,
+  Loader2,
+} from 'lucide-react';
 import { aiSkillsApi, getApiErrorMessage, type AISkill, type AISkillDetail } from '@/lib/api';
 import { toast } from 'sonner';
 import { PinnedPage } from '@/components/layout/PinnedPage';
@@ -52,7 +65,7 @@ function parseSkillDescription(skill: AISkill): ParsedSkill {
   const firstLine = lines[0];
   // 如果第一行字数小于11，则作为标题
   const title = firstLine.length < 11 ? firstLine : skill.name;
-  
+
   // Args 之前的所有内容作为简介
   const summaryLines: string[] = [];
   for (const line of lines) {
@@ -65,7 +78,7 @@ function parseSkillDescription(skill: AISkill): ParsedSkill {
   }
   // 去掉第一行（标题行），保留换行
   const summary = summaryLines.slice(1).join('\n') || skill.description;
-  
+
   return {
     name: skill.name,
     title,
@@ -82,7 +95,7 @@ function parseSkillDescription(skill: AISkill): ParsedSkill {
 export default function AISkillsPage() {
   const { style } = useTheme();
   const { t } = useLanguage();
-  const isGlass = style === 'glassmorphism';
+  const isGlass = style !== 'solid';
 
   // 状态
   const [skills, setSkills] = useState<AISkill[]>([]);
@@ -113,7 +126,7 @@ export default function AISkillsPage() {
 
   // 解析后的技能列表
   const parsedSkills = useMemo(() => {
-    return skills.map(skill => parseSkillDescription(skill));
+    return skills.map((skill) => parseSkillDescription(skill));
   }, [skills]);
 
   // 加载技能列表
@@ -253,10 +266,15 @@ export default function AISkillsPage() {
               <Sparkles className="w-8 h-8 shrink-0" />
               {t('aiSkills.title')}
             </h1>
-            <p className="sm:whitespace-nowrap text-muted-foreground mt-1">{t('aiSkills.description')}</p>
+            <p className="sm:whitespace-nowrap text-muted-foreground mt-1">
+              {t('aiSkills.description')}
+            </p>
           </div>
           {/* 新增技能按钮 */}
-          <Button onClick={() => setAddDialogOpen(true)} className="w-full gap-2 whitespace-nowrap sm:w-auto">
+          <Button
+            onClick={() => setAddDialogOpen(true)}
+            className="w-full gap-2 whitespace-nowrap sm:w-auto"
+          >
             <Plus className="h-4 w-4" />
             {t('aiSkills.addSkill')}
           </Button>
@@ -265,10 +283,12 @@ export default function AISkillsPage() {
     >
       {/* 错误提示 */}
       {error && (
-        <Card className={cn(
-          "border-destructive/50",
-          isGlass ? "glass-card" : "border border-border/50"
-        )}>
+        <Card
+          className={cn(
+            'border-destructive/50',
+            'glass-card',
+          )}
+        >
           <CardContent className="flex items-center gap-3 p-4 text-destructive">
             <AlertCircle className="w-5 h-5" />
             <span>{error}</span>
@@ -280,9 +300,7 @@ export default function AISkillsPage() {
       {isLoading ? (
         <div className="glass-card-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {Array.from({ length: 6 }).map((_, i) => (
-            <Card key={i} className={cn(
-              isGlass ? "glass-card" : "border border-border/50"
-            )}>
+            <Card key={i} className={cn('glass-card')}>
               <CardHeader>
                 <Skeleton className="h-6 w-3/4" />
               </CardHeader>
@@ -294,9 +312,7 @@ export default function AISkillsPage() {
           ))}
         </div>
       ) : parsedSkills.length === 0 ? (
-        <Card className={cn(
-          isGlass ? "glass-card" : "border border-border/50"
-        )}>
+        <Card className={cn('glass-card')}>
           <CardContent className="flex flex-col items-center justify-center !p-8 text-center text-muted-foreground">
             <Sparkles className="w-12 h-12 mb-4 opacity-50" />
             <p>{t('aiSkills.noSkills')}</p>
@@ -305,11 +321,11 @@ export default function AISkillsPage() {
       ) : (
         <div className="glass-card-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {parsedSkills.map((skill) => (
-            <Card 
-              key={skill.name} 
+            <Card
+              key={skill.name}
               className={cn(
-                "relative transition-colors hover:border-primary/50",
-                isGlass ? "glass-card" : "border border-border/50"
+                'relative transition-colors hover:border-primary/50',
+                'glass-card',
               )}
               onClick={() => handleSkillClick(skill)}
             >
@@ -361,9 +377,7 @@ export default function AISkillsPage() {
               <Sparkles className="w-5 h-5 text-primary" />
               {selectedSkill?.name || t('aiSkills.loading')}
             </DialogTitle>
-            <DialogDescription className="text-base">
-              {selectedSkill?.name}
-            </DialogDescription>
+            <DialogDescription className="text-base">{selectedSkill?.name}</DialogDescription>
           </DialogHeader>
           {isLoadingDetail ? (
             <div className="mt-4 space-y-3">
@@ -394,13 +408,11 @@ export default function AISkillsPage() {
                     {t('aiSkills.markdown')}
                   </h3>
                   <div className="bg-muted/50 p-4 rounded-md overflow-x-auto">
-                    <pre className="whitespace-pre-wrap text-sm">
-                      {selectedSkill.content}
-                    </pre>
+                    <pre className="whitespace-pre-wrap text-sm">{selectedSkill.content}</pre>
                   </div>
                 </div>
               )}
-              
+
               {/* 许可证 */}
               {selectedSkill.license && (
                 <div>
@@ -411,7 +423,7 @@ export default function AISkillsPage() {
                   <p className="text-sm text-muted-foreground">{selectedSkill.license}</p>
                 </div>
               )}
-              
+
               {/* 兼容性 */}
               {selectedSkill.compatibility && (
                 <div>
@@ -422,7 +434,7 @@ export default function AISkillsPage() {
                   <p className="text-sm text-muted-foreground">{selectedSkill.compatibility}</p>
                 </div>
               )}
-              
+
               {/* 资源列表 */}
               {selectedSkill.resources && selectedSkill.resources.length > 0 && (
                 <div>
@@ -440,7 +452,7 @@ export default function AISkillsPage() {
                   </ul>
                 </div>
               )}
-              
+
               {/* 脚本列表 */}
               {selectedSkill.scripts && selectedSkill.scripts.length > 0 && (
                 <div>
@@ -458,14 +470,16 @@ export default function AISkillsPage() {
                   </ul>
                 </div>
               )}
-              
+
               {/* 路径信息 */}
               <div>
                 <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
                   <FolderOpen className="w-4 h-4" />
                   {t('aiSkills.uri')}
                 </h3>
-                <p className="text-xs text-muted-foreground font-mono break-all">{selectedSkill.uri}</p>
+                <p className="text-xs text-muted-foreground font-mono break-all">
+                  {selectedSkill.uri}
+                </p>
               </div>
             </div>
           ) : null}
@@ -480,9 +494,7 @@ export default function AISkillsPage() {
               <GitBranch className="w-5 h-5 text-primary" />
               {t('aiSkills.addSkill')}
             </DialogTitle>
-            <DialogDescription>
-              {t('aiSkills.addSkillDescription')}
-            </DialogDescription>
+            <DialogDescription>{t('aiSkills.addSkillDescription')}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 mt-4">
             <div className="space-y-2">
@@ -556,9 +568,7 @@ export default function AISkillsPage() {
               <Edit2 className="w-5 h-5 text-primary" />
               {t('aiSkills.editSkill')}: {skillToEdit?.name}
             </DialogTitle>
-            <DialogDescription>
-              {t('aiSkills.editSkillDescription')}
-            </DialogDescription>
+            <DialogDescription>{t('aiSkills.editSkillDescription')}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 mt-4">
             <div className="space-y-2">
@@ -590,7 +600,9 @@ export default function AISkillsPage() {
                     <Loader2 className="h-4 w-4 animate-spin" />
                     {t('aiSkills.saving')}
                   </>
-                ) : t('aiSkills.save')}
+                ) : (
+                  t('aiSkills.save')
+                )}
               </Button>
             </div>
           </div>

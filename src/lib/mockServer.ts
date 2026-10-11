@@ -256,7 +256,11 @@ const routes: Route[] = [
   { m: 'GET', re: /^\/api\/version$/, h: () => generateVersionInfo() },
   { m: 'GET', re: /^\/api\/version\/bots$/, h: () => generateActiveBots() },
   { m: 'GET', re: /^\/api\/version\/bots\/count$/, h: () => ({ count: 3 }) },
-  { m: 'GET', re: /^\/api\/version\/bots\/names$/, h: () => ({ names: generateActiveBots().names }) },
+  {
+    m: 'GET',
+    re: /^\/api\/version\/bots\/names$/,
+    h: () => ({ names: generateActiveBots().names }),
+  },
 
   // ── Agent runtime (/ai-runtime) ──
   {
@@ -591,7 +595,12 @@ const routes: Route[] = [
     re: /^\/api\/ops\/output-preview$/,
     h: ({ body }) => {
       const text = String((body as { text?: string })?.text ?? '');
-      return { firewall_enabled: true, ooc_hit: null, stages: { raw: text, final: text }, final: text };
+      return {
+        firewall_enabled: true,
+        ooc_hit: null,
+        stages: { raw: text, final: text },
+        final: text,
+      };
     },
   },
   {
@@ -654,7 +663,9 @@ const routes: Route[] = [
       plugin_count: 2,
       module_cache_size: 10,
       active_bots: ['ws-demo'],
-      items: [{ name: 'GenshinUID', enabled: true, sv_count: 3, has_config: true, keys: ['enabled'] }],
+      items: [
+        { name: 'GenshinUID', enabled: true, sv_count: 3, has_config: true, keys: ['enabled'] },
+      ],
       ts: Date.now() / 1000,
     }),
   },
@@ -695,37 +706,37 @@ const routes: Route[] = [
       page: 1,
       per_page: 100,
       rows: [
-      {
-        trace_id: '11111111-1111-4111-8111-111111111111',
-        method: 'GET',
-        path: '/api/version',
-        query_redacted: '',
-        client_ip: '127.0.0.1',
-        user_id: '1',
-        user_name: 'demo',
-        start_time: Date.now() / 1000 - 12,
-        duration_ms: 18,
-        log_count: 0,
-        error_count: 0,
-        status_code: 200,
-        status: 'completed',
-      },
-      {
-        trace_id: '22222222-2222-4222-8222-222222222222',
-        method: 'POST',
-        path: '/api/plugins/reload',
-        query_redacted: '',
-        client_ip: '127.0.0.1',
-        user_id: '1',
-        user_name: 'demo',
-        start_time: Date.now() / 1000 - 40,
-        duration_ms: 240,
-        log_count: 2,
-        error_count: 0,
-        status_code: 200,
-        status: 'completed',
-      },
-    ],
+        {
+          trace_id: '11111111-1111-4111-8111-111111111111',
+          method: 'GET',
+          path: '/api/version',
+          query_redacted: '',
+          client_ip: '127.0.0.1',
+          user_id: '1',
+          user_name: 'demo',
+          start_time: Date.now() / 1000 - 12,
+          duration_ms: 18,
+          log_count: 0,
+          error_count: 0,
+          status_code: 200,
+          status: 'completed',
+        },
+        {
+          trace_id: '22222222-2222-4222-8222-222222222222',
+          method: 'POST',
+          path: '/api/plugins/reload',
+          query_redacted: '',
+          client_ip: '127.0.0.1',
+          user_id: '1',
+          user_name: 'demo',
+          start_time: Date.now() / 1000 - 40,
+          duration_ms: 240,
+          log_count: 2,
+          error_count: 0,
+          status_code: 200,
+          status: 'completed',
+        },
+      ],
     }),
   },
   {
@@ -775,16 +786,39 @@ const routes: Route[] = [
   // ── Tier 1 · 看板 ──
   { m: 'GET', re: /^\/api\/dashboard\/bots$/, h: () => generateDashboardBots() },
   { m: 'GET', re: /^\/api\/dashboard\/metrics$/, h: ({ url }) => generateKeyMetrics(botOf(url)) },
-  { m: 'GET', re: /^\/api\/dashboard\/commands$/, h: ({ url }) => generateMonthlyCommandData(botOf(url)) },
-  { m: 'GET', re: /^\/api\/dashboard\/users-groups$/, h: ({ url }) => generateMonthlyUserGroupData(botOf(url)) },
-  { m: 'GET', re: /^\/api\/dashboard\/daily\/commands$/, h: ({ url }) => generateDailyCommandUsage(botOf(url), dateOf(url)) },
-  { m: 'GET', re: /^\/api\/dashboard\/daily\/group-triggers$/, h: ({ url }) => generateDailyGroupCommandTriggers(botOf(url), dateOf(url)) },
-  { m: 'GET', re: /^\/api\/dashboard\/daily\/personal-triggers$/, h: ({ url }) => generateDailyPersonalCommandTriggers(botOf(url), dateOf(url)) },
+  {
+    m: 'GET',
+    re: /^\/api\/dashboard\/commands$/,
+    h: ({ url }) => generateMonthlyCommandData(botOf(url)),
+  },
+  {
+    m: 'GET',
+    re: /^\/api\/dashboard\/users-groups$/,
+    h: ({ url }) => generateMonthlyUserGroupData(botOf(url)),
+  },
+  {
+    m: 'GET',
+    re: /^\/api\/dashboard\/daily\/commands$/,
+    h: ({ url }) => generateDailyCommandUsage(botOf(url), dateOf(url)),
+  },
+  {
+    m: 'GET',
+    re: /^\/api\/dashboard\/daily\/group-triggers$/,
+    h: ({ url }) => generateDailyGroupCommandTriggers(botOf(url), dateOf(url)),
+  },
+  {
+    m: 'GET',
+    re: /^\/api\/dashboard\/daily\/personal-triggers$/,
+    h: ({ url }) => generateDailyPersonalCommandTriggers(botOf(url), dateOf(url)),
+  },
   {
     m: 'GET',
     re: /^\/api\/dashboard\/daily\/command-counts$/,
     h: ({ url }) => {
-      const days = Math.min(366, Math.max(1, Number(new URL(url, 'http://x').searchParams.get('days') || 60)));
+      const days = Math.min(
+        366,
+        Math.max(1, Number(new URL(url, 'http://x').searchParams.get('days') || 60)),
+      );
       const today = new Date();
       const out: Array<{ date: string; count: number }> = [];
       for (let i = days - 1; i >= 0; i -= 1) {
@@ -801,21 +835,48 @@ const routes: Route[] = [
 
   // ── Tier 1 · 插件库 / 配置 ──
   { m: 'GET', re: /^\/api\/plugins\/list$/, h: () => generatePluginList() },
-  { m: 'GET', re: /^\/api\/plugins$/, h: () => generatePluginList().map((p) => generatePluginDetail(p.id)) },
-  { m: 'GET', re: /^\/api\/plugins\/([^/]+)$/, h: ({ url }) => generatePluginDetail(decodeURIComponent(url.pathname.split('/').pop()!)) },
+  {
+    m: 'GET',
+    re: /^\/api\/plugins$/,
+    h: () => generatePluginList().map((p) => generatePluginDetail(p.id)),
+  },
+  {
+    m: 'GET',
+    re: /^\/api\/plugins\/([^/]+)$/,
+    h: ({ url }) => generatePluginDetail(decodeURIComponent(url.pathname.split('/').pop()!)),
+  },
 
   // ── Tier 1 · 主题 ──
   { m: 'GET', re: /^\/api\/theme\/config$/, h: () => generateThemeConfig() },
   { m: 'GET', re: /^\/api\/theme\/presets$/, h: () => generateThemePresets() },
   // 应用预设：返回 { name, config } → ThemesPage 调 applyThemeConfig 真正切换主题
-  { m: 'POST', re: /^\/api\/theme\/presets\/apply$/, h: ({ body }) => applyThemePreset((body as { name?: string })?.name ?? '') },
-  { m: 'POST', re: /^\/api\/theme\/presets\/save$/, h: ({ body }) => { const n = (body as { name?: string })?.name ?? 'preset'; return { name: n, filename: `${n}.json` }; } },
+  {
+    m: 'POST',
+    re: /^\/api\/theme\/presets\/apply$/,
+    h: ({ body }) => applyThemePreset((body as { name?: string })?.name ?? ''),
+  },
+  {
+    m: 'POST',
+    re: /^\/api\/theme\/presets\/save$/,
+    h: ({ body }) => {
+      const n = (body as { name?: string })?.name ?? 'preset';
+      return { name: n, filename: `${n}.json` };
+    },
+  },
 
   // ── Tier 1 · 插件数据库（DatabasePage）──
   // 注意顺序：更具体的 `/table/:name/data` 必须排在 `/table/:name` 之前。
   { m: 'GET', re: /^\/api\/database\/plugins$/, h: () => generateDatabasePlugins() },
   { m: 'GET', re: /^\/api\/database\/tables$/, h: () => [] },
-  { m: 'GET', re: /^\/api\/database\/table\/([^/]+)\/data$/, h: ({ url }) => generateTableData(decodeURIComponent(url.pathname.match(/\/table\/([^/]+)\/data$/)![1]), url.searchParams) },
+  {
+    m: 'GET',
+    re: /^\/api\/database\/table\/([^/]+)\/data$/,
+    h: ({ url }) =>
+      generateTableData(
+        decodeURIComponent(url.pathname.match(/\/table\/([^/]+)\/data$/)![1]),
+        url.searchParams,
+      ),
+  },
   {
     m: 'GET',
     re: /^\/api\/database\/table\/([^/]+)\/export\.csv$/,
@@ -836,19 +897,50 @@ const routes: Route[] = [
     re: /^\/api\/database\/table\/([^/]+)\/import\.csv$/,
     h: () => ({ mode: 'merge', inserted: 1, updated: 0, deleted: 0, rows: 1 }),
   },
-  { m: 'GET', re: /^\/api\/database\/table\/([^/]+)$/, h: ({ url }) => generateTableMetadata(decodeURIComponent(url.pathname.split('/').pop()!)) },
-  { m: 'GET', re: /^\/api\/database\/([^/]+)\/tables$/, h: ({ url }) => { const id = decodeURIComponent(url.pathname.match(/\/database\/([^/]+)\/tables$/)![1]); return generateDatabasePlugins().find((p) => p.plugin_id === id) ?? null; } },
+  {
+    m: 'GET',
+    re: /^\/api\/database\/table\/([^/]+)$/,
+    h: ({ url }) => generateTableMetadata(decodeURIComponent(url.pathname.split('/').pop()!)),
+  },
+  {
+    m: 'GET',
+    re: /^\/api\/database\/([^/]+)\/tables$/,
+    h: ({ url }) => {
+      const id = decodeURIComponent(url.pathname.match(/\/database\/([^/]+)\/tables$/)![1]);
+      return generateDatabasePlugins().find((p) => p.plugin_id === id) ?? null;
+    },
+  },
 
   // ── Tier 1 · AI 记忆图谱（/api/ai/memory/*）──
   { m: 'GET', re: /^\/api\/ai\/memory\/scopes$/, h: () => generateMemoryScopes() },
   { m: 'GET', re: /^\/api\/ai\/memory\/stats$/, h: () => generateMemoryStats() },
   { m: 'GET', re: /^\/api\/ai\/memory\/config$/, h: () => MEMORY_CONFIG },
   { m: 'GET', re: /^\/api\/ai\/memory\/hiergraph\/status$/, h: () => HIERGRAPH_STATUS },
-  { m: 'GET', re: /^\/api\/ai\/memory\/entities$/, h: ({ url }) => generateMemoryEntities(num(url, 'page', 1), num(url, 'page_size', 200)) },
-  { m: 'GET', re: /^\/api\/ai\/memory\/edges$/, h: ({ url }) => generateMemoryEdges(num(url, 'page', 1), num(url, 'page_size', 500)) },
-  { m: 'GET', re: /^\/api\/ai\/memory\/categories$/, h: ({ url }) => generateMemoryCategories(num(url, 'page', 1), num(url, 'page_size', 200)) },
-  { m: 'GET', re: /^\/api\/ai\/memory\/episodes$/, h: () => ({ items: [], total: 0, page: 1, page_size: 20 }) },
-  { m: 'GET', re: /^\/api\/ai\/memory\/preferences$/, h: () => ({ items: [], total: 0, page: 1, page_size: 20 }) },
+  {
+    m: 'GET',
+    re: /^\/api\/ai\/memory\/entities$/,
+    h: ({ url }) => generateMemoryEntities(num(url, 'page', 1), num(url, 'page_size', 200)),
+  },
+  {
+    m: 'GET',
+    re: /^\/api\/ai\/memory\/edges$/,
+    h: ({ url }) => generateMemoryEdges(num(url, 'page', 1), num(url, 'page_size', 500)),
+  },
+  {
+    m: 'GET',
+    re: /^\/api\/ai\/memory\/categories$/,
+    h: ({ url }) => generateMemoryCategories(num(url, 'page', 1), num(url, 'page_size', 200)),
+  },
+  {
+    m: 'GET',
+    re: /^\/api\/ai\/memory\/episodes$/,
+    h: () => ({ items: [], total: 0, page: 1, page_size: 20 }),
+  },
+  {
+    m: 'GET',
+    re: /^\/api\/ai\/memory\/preferences$/,
+    h: () => ({ items: [], total: 0, page: 1, page_size: 20 }),
+  },
 
   // ── Tier 1 · 智能表情包 ──
   { m: 'GET', re: /^\/api\/meme\/list$/, h: ({ url }) => generateMemeList(url.searchParams) },
@@ -856,11 +948,15 @@ const routes: Route[] = [
   { m: 'GET', re: /^\/api\/meme\/stats$/, h: () => generateMemeStats() },
   // 单条详情（点击表情打开详情弹窗）——必须放在上面三条「具体路径」之后，避免误吞 list/personas/stats。
   // 兼容尾斜杠；返回完整 MemeRecord，缺字段会让 AIMemePage 展开 tags 白屏。
-  { m: 'GET', re: /^\/api\/meme\/([^/]+)\/?$/, h: ({ url }) => {
-    const segs = url.pathname.split('/').filter(Boolean);
-    const id = decodeURIComponent(segs[segs.length - 1] || '');
-    return generateMemeDetail(id);
-  }},
+  {
+    m: 'GET',
+    re: /^\/api\/meme\/([^/]+)\/?$/,
+    h: ({ url }) => {
+      const segs = url.pathname.split('/').filter(Boolean);
+      const id = decodeURIComponent(segs[segs.length - 1] || '');
+      return generateMemeDetail(id);
+    },
+  },
 
   // ── Tier 2 · 让 demo 必崩页面也可以打开 ──
   // /logs
@@ -871,13 +967,25 @@ const routes: Route[] = [
   { m: 'GET', re: /^\/api\/logs\/stats$/, h: () => generateLogStats() },
   { m: 'GET', re: /^\/api\/logs\/config$/, h: () => generateLogConfig() },
   { m: 'PUT', re: /^\/api\/logs\/config$/, h: ({ body }) => applyLogConfig(body) },
-  { m: 'GET', re: /^\/api\/logs\/error-reports$/, h: ({ url }) => generateErrorReports(url.searchParams) },
-  { m: 'GET', re: /^\/api\/logs\/error-reports\/available-dates$/, h: () => generateErrorReportDates() },
-  { m: 'GET', re: /^\/api\/logs\/error-reports\/([^/]+)$/, h: ({ url }) => {
-    const segs = url.pathname.split('/').filter(Boolean);
-    const filename = decodeURIComponent(segs[segs.length - 1] || '');
-    return generateErrorReportDetail(filename);
-  }},
+  {
+    m: 'GET',
+    re: /^\/api\/logs\/error-reports$/,
+    h: ({ url }) => generateErrorReports(url.searchParams),
+  },
+  {
+    m: 'GET',
+    re: /^\/api\/logs\/error-reports\/available-dates$/,
+    h: () => generateErrorReportDates(),
+  },
+  {
+    m: 'GET',
+    re: /^\/api\/logs\/error-reports\/([^/]+)$/,
+    h: ({ url }) => {
+      const segs = url.pathname.split('/').filter(Boolean);
+      const filename = decodeURIComponent(segs[segs.length - 1] || '');
+      return generateErrorReportDetail(filename);
+    },
+  },
 
   // /persona-config
   { m: 'GET', re: /^\/api\/persona\/list$/, h: () => generatePersonaList() },
@@ -907,13 +1015,22 @@ const routes: Route[] = [
       return applyPersonaCopy(name);
     },
   },
-  { m: 'GET', re: /^\/api\/persona\/([^/]+)$/, h: ({ url }) => generatePersonaDetail(decodeURIComponent(url.pathname.split('/').pop()!)) },
+  {
+    m: 'GET',
+    re: /^\/api\/persona\/([^/]+)$/,
+    h: ({ url }) => generatePersonaDetail(decodeURIComponent(url.pathname.split('/').pop()!)),
+  },
 
   // /mcp-config
   { m: 'GET', re: /^\/api\/ai\/mcp\/list$/, h: () => generateMCPConfigList() },
   { m: 'GET', re: /^\/api\/ai\/mcp\/presets$/, h: () => generateMCPPresets() },
   { m: 'GET', re: /^\/api\/ai\/mcp-tools-config\/list$/, h: () => generateMCPToolsConfigList() },
-  { m: 'GET', re: /^\/api\/ai\/mcp\/([^/]+)$/, h: ({ url }) => generateMCPConfigDetail(decodeURIComponent(url.pathname.match(/\/mcp\/([^/]+)$/)![1])) },
+  {
+    m: 'GET',
+    re: /^\/api\/ai\/mcp\/([^/]+)$/,
+    h: ({ url }) =>
+      generateMCPConfigDetail(decodeURIComponent(url.pathname.match(/\/mcp\/([^/]+)$/)![1])),
+  },
   { m: 'GET', re: /^\/api\/ai\/mcp\/([^/]+)\/tools$/, h: () => ({ tools: [] }) },
 
   // /ai-statistics
@@ -925,7 +1042,10 @@ const routes: Route[] = [
     m: 'GET',
     re: /^\/api\/ai\/statistics\/daily-token-counts$/,
     h: ({ url }) => {
-      const days = Math.min(366, Math.max(1, Number(new URL(url, 'http://x').searchParams.get('days') || 60)));
+      const days = Math.min(
+        366,
+        Math.max(1, Number(new URL(url, 'http://x').searchParams.get('days') || 60)),
+      );
       const today = new Date();
       const out: Array<{
         date: string;
@@ -950,45 +1070,102 @@ const routes: Route[] = [
     },
   },
   { m: 'GET', re: /^\/api\/ai\/statistics\/active-users$/, h: () => generateActiveUsers() },
-  { m: 'GET', re: /^\/api\/ai\/statistics\/trigger-distribution$/, h: () => generateTriggerDistribution() },
-  { m: 'GET', re: /^\/api\/ai\/statistics\/intent-distribution$/, h: () => generateIntentDistribution() },
+  {
+    m: 'GET',
+    re: /^\/api\/ai\/statistics\/trigger-distribution$/,
+    h: () => generateTriggerDistribution(),
+  },
+  {
+    m: 'GET',
+    re: /^\/api\/ai\/statistics\/intent-distribution$/,
+    h: () => generateIntentDistribution(),
+  },
   { m: 'GET', re: /^\/api\/ai\/statistics\/errors$/, h: () => generateErrorStats() },
   { m: 'GET', re: /^\/api\/ai\/statistics\/heartbeat$/, h: () => generateHeartbeatStats() },
   { m: 'GET', re: /^\/api\/ai\/statistics\/rag$/, h: () => generateRAGStats() },
   { m: 'GET', re: /^\/api\/ai\/performance\/hourly$/, h: () => generatePerformanceHourly() },
-  { m: 'GET', re: /^\/api\/ai\/performance\/hourly\/range$/, h: () => generatePerformanceHourlyRange() },
+  {
+    m: 'GET',
+    re: /^\/api\/ai\/performance\/hourly\/range$/,
+    h: () => generatePerformanceHourlyRange(),
+  },
 
   // /ai-budget
   { m: 'GET', re: /^\/api\/ai\/budget\/config$/, h: () => generateBudgetConfig() },
-  { m: 'GET', re: /^\/api\/ai\/budget\/rules$/, h: ({ url }) => generateBudgetRules(url.searchParams) },
+  {
+    m: 'GET',
+    re: /^\/api\/ai\/budget\/rules$/,
+    h: ({ url }) => generateBudgetRules(url.searchParams),
+  },
   { m: 'GET', re: /^\/api\/ai\/budget\/whitelist$/, h: () => generateBudgetWhitelist() },
   { m: 'GET', re: /^\/api\/ai\/budget\/overview$/, h: () => generateBudgetOverview() },
 
   // /backup
   { m: 'GET', re: /^\/api\/backup\/files$/, h: () => generateBackupFiles() },
-  { m: 'GET', re: /^\/api\/backup\/file-tree$/, h: ({ url }) => generateBackupFileTree(url.searchParams) },
+  {
+    m: 'GET',
+    re: /^\/api\/backup\/file-tree$/,
+    h: ({ url }) => generateBackupFileTree(url.searchParams),
+  },
   { m: 'GET', re: /^\/api\/backup\/config$/, h: () => generateBackupConfig() },
 
   // /ai-kanban
   { m: 'GET', re: /^\/api\/ai\/kanban\/board$/, h: () => generateKanbanBoard() },
-  { m: 'GET', re: /^\/api\/ai\/kanban\/tasks\/([^/]+)$/, h: ({ url }) => generateKanbanTaskDetail() },
-  { m: 'GET', re: /^\/api\/ai\/artifacts$/, h: ({ url }) => generateAllArtifacts(url.searchParams) },
-  { m: 'GET', re: /^\/api\/ai\/kanban\/tasks\/([^/]+)\/workspace\/files$/, h: () => generateKanbanWorkspaceFiles() },
-  { m: 'GET', re: /^\/api\/ai\/capability-agents\/kanban-candidates$/, h: () => generateKanbanCandidates() },
+  {
+    m: 'GET',
+    re: /^\/api\/ai\/kanban\/tasks\/([^/]+)$/,
+    h: ({ url }) => generateKanbanTaskDetail(),
+  },
+  {
+    m: 'GET',
+    re: /^\/api\/ai\/artifacts$/,
+    h: ({ url }) => generateAllArtifacts(url.searchParams),
+  },
+  {
+    m: 'GET',
+    re: /^\/api\/ai\/kanban\/tasks\/([^/]+)\/workspace\/files$/,
+    h: () => generateKanbanWorkspaceFiles(),
+  },
+  {
+    m: 'GET',
+    re: /^\/api\/ai\/capability-agents\/kanban-candidates$/,
+    h: () => generateKanbanCandidates(),
+  },
 
   // /ai-config (Provider/Embedding/Wizard)
   { m: 'GET', re: /^\/api\/provider_config\/providers$/, h: () => generateProviderList() },
-  { m: 'GET', re: /^\/api\/provider_config\/task_config\/(high|low)$/, h: ({ url }) => generateTaskConfig(decodeURIComponent(url.pathname.split('/').pop()!)) },
-  { m: 'GET', re: /^\/api\/provider_config\/all_configs$/, h: () => generateProviderConfigsSummary() },
-  { m: 'GET', re: /^\/api\/provider_config\/config\/([^/]+)\/options$/, h: ({ url }) => generateProviderOptions() },
-  { m: 'GET', re: /^\/api\/provider_config\/config\/([^/]+)\/[^/]+$/, h: ({ url }) => generateProviderConfigDetail(decodeURIComponent(url.pathname.split('/').slice(-2, -1)[0])) },
+  {
+    m: 'GET',
+    re: /^\/api\/provider_config\/task_config\/(high|low)$/,
+    h: ({ url }) => generateTaskConfig(decodeURIComponent(url.pathname.split('/').pop()!)),
+  },
+  {
+    m: 'GET',
+    re: /^\/api\/provider_config\/all_configs$/,
+    h: () => generateProviderConfigsSummary(),
+  },
+  {
+    m: 'GET',
+    re: /^\/api\/provider_config\/config\/([^/]+)\/options$/,
+    h: ({ url }) => generateProviderOptions(),
+  },
+  {
+    m: 'GET',
+    re: /^\/api\/provider_config\/config\/([^/]+)\/[^/]+$/,
+    h: ({ url }) =>
+      generateProviderConfigDetail(decodeURIComponent(url.pathname.split('/').slice(-2, -1)[0])),
+  },
   { m: 'GET', re: /^\/api\/embedding_config\/provider$/, h: () => generateEmbeddingProvider() },
   { m: 'GET', re: /^\/api\/embedding_config\/local$/, h: () => generateEmbeddingLocal() },
   { m: 'GET', re: /^\/api\/embedding_config\/openai$/, h: () => generateEmbeddingOpenAI() },
   { m: 'GET', re: /^\/api\/embedding_config\/summary$/, h: () => generateEmbeddingSummary() },
 
   // /batch-push（前端联调用 GET /api/BatchPush/targets 获取可选 bot/group/user；演示模式）
-  { m: 'GET', re: /^\/api\/BatchPush\/targets(\?.*)?$/, h: (ctx) => generateBatchPushTargets(ctx.url.searchParams) },
+  {
+    m: 'GET',
+    re: /^\/api\/BatchPush\/targets(\?.*)?$/,
+    h: (ctx) => generateBatchPushTargets(ctx.url.searchParams),
+  },
 
   { m: 'GET', re: /^\/api\/live-chat\/bootstrap$/, h: () => ({ masters: [] }) },
   {
@@ -1036,14 +1213,26 @@ const HIERGRAPH_STATUS = {
 /** 兜底空值：按路径末段词形猜测「集合 → []」还是「对象 → 空分页对象」。 */
 function emptyFor(pathname: string): unknown {
   const seg = pathname.split('/').filter(Boolean).pop() ?? '';
-  if (/(s|list|history|logs|records|items|scopes|presets|categories|entities|edges|episodes|jobs|tasks)$/i.test(seg)) {
+  if (
+    /(s|list|history|logs|records|items|scopes|presets|categories|entities|edges|episodes|jobs|tasks)$/i.test(
+      seg,
+    )
+  ) {
     return [];
   }
   // 「万能空对象」：同时覆盖常见分页 / 集合字段名，尽量让未精细 Mock 的页面读到空态
   // （`.items` / `.records` / `.rows` / `.results` / `.list` 都拿到 []）而非崩溃。
   return {
-    items: [], records: [], rows: [], data: [], results: [], list: [],
-    total: 0, count: 0, page: 1, page_size: 20,
+    items: [],
+    records: [],
+    rows: [],
+    data: [],
+    results: [],
+    list: [],
+    total: 0,
+    count: 0,
+    page: 1,
+    page_size: 20,
   };
 }
 
@@ -1059,7 +1248,11 @@ function safeJson(body: BodyInit | null | undefined): unknown {
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /** Mock 版 fetch：拦 `/api/*`，其余透传。 */
-async function mockFetch(originalFetch: typeof fetch, input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+async function mockFetch(
+  originalFetch: typeof fetch,
+  input: RequestInfo | URL,
+  init?: RequestInit,
+): Promise<Response> {
   const rawUrl =
     typeof input === 'string' ? input : input instanceof URL ? input.href : (input as Request).url;
   const url = new URL(rawUrl, location.origin);
@@ -1101,7 +1294,8 @@ export function installMockServer(): void {
   if (installed || typeof window === 'undefined') return;
   installed = true;
   const originalFetch = window.fetch.bind(window);
-  window.fetch = (input: RequestInfo | URL, init?: RequestInit) => mockFetch(originalFetch, input, init);
+  window.fetch = (input: RequestInfo | URL, init?: RequestInit) =>
+    mockFetch(originalFetch, input, init);
   // eslint-disable-next-line no-console
   console.info('[demo] Mock Server 已启用：所有 /api/* 请求由本地假数据接管。');
 }

@@ -120,7 +120,7 @@ export function WorldHubGraph({
       const n = hub.attachments?.length ?? 0;
       meta.set(id, {
         id,
-        label: n > 0 ? `${hub.title || hub.ref} (${n})` : (hub.title || hub.ref),
+        label: n > 0 ? `${hub.title || hub.ref} (${n})` : hub.title || hub.ref,
         kind: 'hub',
         writable: false,
         degree: degree.get(id) || 0,
@@ -139,7 +139,9 @@ export function WorldHubGraph({
       .filter((m) => m.kind === 'hub' && m.degree > 0)
       .sort((a, b) => b.degree - a.degree)
       .slice(0, CENTER_NODE_COUNT)
-      .forEach((m, i) => { m.centerRank = i + 1; });
+      .forEach((m, i) => {
+        m.centerRank = i + 1;
+      });
 
     return { nodeMeta: meta, hubById, articleById, edges };
   }, [hubs, t]);
@@ -161,9 +163,7 @@ export function WorldHubGraph({
     let index = 0;
     nodeMeta.forEach((m) => {
       const pos = phyllotaxisPosition(index++, 24);
-      const size = m.kind === 'hub'
-        ? (m.centerRank ? 13 - m.centerRank : 7.5)
-        : m.writable ? 5 : 4;
+      const size = m.kind === 'hub' ? (m.centerRank ? 13 - m.centerRank : 7.5) : m.writable ? 5 : 4;
       graph.addNode(m.id, {
         x: pos.x,
         y: pos.y,
@@ -252,9 +252,14 @@ export function WorldHubGraph({
       nodeReducer: (node, data) => {
         const palette = getPalette(isDarkRef.current);
         const res = { ...data };
-        let color = data.kind === 'hub'
-          ? (data.centerRank ? palette.center : palette.hub)
-          : data.writable ? palette.writable : palette.article;
+        let color =
+          data.kind === 'hub'
+            ? data.centerRank
+              ? palette.center
+              : palette.hub
+            : data.writable
+              ? palette.writable
+              : palette.article;
         const highlight = highlightRef.current;
         if (highlight) {
           if (highlight.has(node)) res.forceLabel = true;
@@ -326,10 +331,13 @@ export function WorldHubGraph({
       fa2Ref.current = layout;
       layout.start();
       setIsLayoutRunning(true);
-      layoutTimer = window.setTimeout(() => {
-        layout.stop();
-        setIsLayoutRunning(false);
-      }, Math.min(9000, 2500 + graph.order));
+      layoutTimer = window.setTimeout(
+        () => {
+          layout.stop();
+          setIsLayoutRunning(false);
+        },
+        Math.min(9000, 2500 + graph.order),
+      );
     }
 
     return () => {
@@ -380,10 +388,12 @@ export function WorldHubGraph({
     if (options?.closeResults) setNodeSearchQuery('');
     const display = renderer.getNodeDisplayData(nodeId);
     if (display) {
-      renderer.getCamera().animate(
-        { x: display.x, y: display.y, ratio: Math.min(renderer.getCamera().ratio, 0.22) },
-        { duration: 600 },
-      );
+      renderer
+        .getCamera()
+        .animate(
+          { x: display.x, y: display.y, ratio: Math.min(renderer.getCamera().ratio, 0.22) },
+          { duration: 600 },
+        );
     }
     renderer.refresh({ skipIndexation: true });
   }, []);
@@ -392,9 +402,15 @@ export function WorldHubGraph({
     const wrapper = wrapperRef.current;
     if (!wrapper) return;
     if (!document.fullscreenElement) {
-      wrapper.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {});
+      wrapper
+        .requestFullscreen()
+        .then(() => setIsFullscreen(true))
+        .catch(() => {});
     } else {
-      document.exitFullscreen().then(() => setIsFullscreen(false)).catch(() => {});
+      document
+        .exitFullscreen()
+        .then(() => setIsFullscreen(false))
+        .catch(() => {});
     }
   }, []);
 
@@ -452,25 +468,45 @@ export function WorldHubGraph({
                     <span className="block truncate font-medium">{node.label}</span>
                     <span className="block truncate text-xs text-muted-foreground">{node.id}</span>
                   </span>
-                  <Badge variant={node.kind === 'hub' ? 'default' : 'outline'} className="shrink-0 text-[10px]">
+                  <Badge
+                    variant={node.kind === 'hub' ? 'default' : 'outline'}
+                    className="shrink-0 text-[10px]"
+                  >
                     {node.kind === 'hub' ? t('aiMemory.legendWorld') : t('aiMemory.legendArticle')}
                   </Badge>
                 </button>
               ))
             ) : (
-              <div className="px-3 py-2 text-sm text-muted-foreground">{t('aiMemory.worldGraphNoMatch')}</div>
+              <div className="px-3 py-2 text-sm text-muted-foreground">
+                {t('aiMemory.worldGraphNoMatch')}
+              </div>
             )}
           </div>
         )}
       </form>
       <div className="absolute top-3 right-3 flex flex-col gap-1">
-        <Button variant="outline" size="icon" className="h-8 w-8 bg-background/80 backdrop-blur" onClick={() => sigmaRef.current?.getCamera().animatedZoom()}>
+        <Button
+          variant="outline"
+          size="icon"
+          className="h-8 w-8 bg-background/80 backdrop-blur"
+          onClick={() => sigmaRef.current?.getCamera().animatedZoom()}
+        >
           <ZoomIn className="w-4 h-4" />
         </Button>
-        <Button variant="outline" size="icon" className="h-8 w-8 bg-background/80 backdrop-blur" onClick={() => sigmaRef.current?.getCamera().animatedUnzoom()}>
+        <Button
+          variant="outline"
+          size="icon"
+          className="h-8 w-8 bg-background/80 backdrop-blur"
+          onClick={() => sigmaRef.current?.getCamera().animatedUnzoom()}
+        >
           <ZoomOut className="w-4 h-4" />
         </Button>
-        <Button variant="outline" size="icon" className="h-8 w-8 bg-background/80 backdrop-blur" onClick={toggleFullscreen}>
+        <Button
+          variant="outline"
+          size="icon"
+          className="h-8 w-8 bg-background/80 backdrop-blur"
+          onClick={toggleFullscreen}
+        >
           <Maximize2 className="w-4 h-4" />
         </Button>
       </div>

@@ -1,18 +1,18 @@
-import { useRef, memo, forwardRef, useEffect, useCallback, useLayoutEffect } from "react";
-import { useVirtualizer } from "@tanstack/react-virtual";
-import { StructuredDataViewer } from "@/components/StructuredDataViewer";
-import { cn } from "@/lib/utils";
+import { useRef, memo, forwardRef, useEffect, useCallback, useLayoutEffect } from 'react';
+import { useVirtualizer } from '@tanstack/react-virtual';
+import { StructuredDataViewer } from '@/components/StructuredDataViewer';
+import { cn } from '@/lib/utils';
 
 export type LogEntryType =
-  | "input"
-  | "output"
-  | "error"
-  | "warning"
-  | "info"
-  | "success"
-  | "debug"
-  | "trace"
-  | "critical";
+  | 'input'
+  | 'output'
+  | 'error'
+  | 'warning'
+  | 'info'
+  | 'success'
+  | 'debug'
+  | 'trace'
+  | 'critical';
 
 export interface LogEntry {
   id: string;
@@ -56,28 +56,28 @@ const AVG_CHAR_WIDTH = 14;
 const RESERVED_WIDTH = 320;
 
 /** 与后端 _CORE_ORIGIN_LABEL 对齐的框架本体名 */
-const CORE_PLUGIN_LABELS = new Set(["sayucore", "core", "gscore"]);
+const CORE_PLUGIN_LABELS = new Set(['sayucore', 'core', 'gscore']);
 
 /**
  * 插件 badge 色板（与后端 _PLUGIN_FORE_PALETTE 思路一致：按名哈希稳定取色）。
  * 用 bg-* 实体色保证亮/暗主题下都清晰可读。
  */
 const PLUGIN_BADGE_PALETTE: Array<{ bg: string; text: string }> = [
-  { bg: "bg-cyan-600", text: "text-white" },
-  { bg: "bg-blue-600", text: "text-white" },
-  { bg: "bg-green-600", text: "text-white" },
-  { bg: "bg-fuchsia-600", text: "text-white" },
-  { bg: "bg-amber-500", text: "text-black" },
-  { bg: "bg-sky-500", text: "text-white" },
-  { bg: "bg-indigo-600", text: "text-white" },
-  { bg: "bg-lime-600", text: "text-white" },
-  { bg: "bg-pink-600", text: "text-white" },
-  { bg: "bg-yellow-500", text: "text-black" },
-  { bg: "bg-teal-600", text: "text-white" },
-  { bg: "bg-violet-600", text: "text-white" },
+  { bg: 'bg-cyan-600', text: 'text-white' },
+  { bg: 'bg-blue-600', text: 'text-white' },
+  { bg: 'bg-green-600', text: 'text-white' },
+  { bg: 'bg-fuchsia-600', text: 'text-white' },
+  { bg: 'bg-amber-500', text: 'text-black' },
+  { bg: 'bg-sky-500', text: 'text-white' },
+  { bg: 'bg-indigo-600', text: 'text-white' },
+  { bg: 'bg-lime-600', text: 'text-white' },
+  { bg: 'bg-pink-600', text: 'text-white' },
+  { bg: 'bg-yellow-500', text: 'text-black' },
+  { bg: 'bg-teal-600', text: 'text-white' },
+  { bg: 'bg-violet-600', text: 'text-white' },
 ];
 
-const CORE_PLUGIN_BADGE = { bg: "bg-slate-500", text: "text-white" };
+const CORE_PLUGIN_BADGE = { bg: 'bg-slate-500', text: 'text-white' };
 
 /** 简易字符串哈希（稳定、无依赖），用于插件名 → 色板下标 */
 function hashPluginName(name: string): number {
@@ -90,9 +90,9 @@ function hashPluginName(name: string): number {
 }
 
 function getPluginBadge(plugin: string): { label: string; bg: string; text: string } {
-  const label = plugin.trim() || "SayuCore";
-  const key = label.toLowerCase().replace(/[\s-]+/g, "");
-  if (CORE_PLUGIN_LABELS.has(key) || key === "sayucore") {
+  const label = plugin.trim() || 'SayuCore';
+  const key = label.toLowerCase().replace(/[\s-]+/g, '');
+  if (CORE_PLUGIN_LABELS.has(key) || key === 'sayucore') {
     return { label, ...CORE_PLUGIN_BADGE };
   }
   const idx = hashPluginName(label) % PLUGIN_BADGE_PALETTE.length;
@@ -109,9 +109,9 @@ function getPluginBadge(plugin: string): { label: string; bg: string; text: stri
  */
 export function computeLineCount(content: string): number {
   if (!content) return 1;
-  const normalized = content.replace(/^[\r\n]+|[\r\n]+$/g, "");
+  const normalized = content.replace(/^[\r\n]+|[\r\n]+$/g, '');
   if (!normalized) return 1;
-  return normalized.split("\n").length;
+  return normalized.split('\n').length;
 }
 
 /**
@@ -120,8 +120,8 @@ export function computeLineCount(content: string): number {
  * 不影响有意的内容布局。
  */
 function normalizeLogContent(content: unknown): string {
-  const text = typeof content === "string" ? content : String(content ?? "");
-  return text.replace(/^[\r\n]+|[\r\n]+$/g, "");
+  const text = typeof content === 'string' ? content : String(content ?? '');
+  return text.replace(/^[\r\n]+|[\r\n]+$/g, '');
 }
 
 /**
@@ -131,7 +131,7 @@ function normalizeLogContent(content: unknown): string {
  */
 export function buildLogAnchor(timestamp: Date, content: string): string {
   const ts = timestamp instanceof Date ? timestamp.getTime() : Number(timestamp);
-  const head = (typeof content === "string" ? content : String(content ?? "")).slice(0, 16);
+  const head = (typeof content === 'string' ? content : String(content ?? '')).slice(0, 16);
   return `${ts}::${head}`;
 }
 
@@ -143,125 +143,115 @@ export function buildLogAnchor(timestamp: Date, content: string): string {
  * time | level | plugin | message
  */
 const LOG_ROW_GRID_CLASS =
-  "grid grid-cols-[4.75rem_4.25rem_7.5rem_minmax(0,1fr)] gap-x-1.5 items-baseline py-0.5";
+  'grid grid-cols-[4.75rem_4.25rem_7.5rem_minmax(0,1fr)] gap-x-1.5 items-baseline py-0.5';
 
 /** 时间列：与正文同字号行高，参与 baseline */
-const TIME_CELL_CLASS =
-  "min-w-0 font-mono text-xs tabular-nums leading-5 text-muted-foreground";
+const TIME_CELL_CLASS = 'min-w-0 font-mono text-xs tabular-nums leading-5 text-muted-foreground';
 
 /**
  * badge：不用固定 h-* / flex 居中（会脱离文字基线）。
  * 与正文同 text-xs leading-5，仅左右 padding，高度 = 行高，与首行齐平。
  */
 const BADGE_CELL_CLASS =
-  "box-border w-full min-w-0 font-mono text-xs leading-5 font-semibold " +
-  "text-center px-1 rounded truncate whitespace-nowrap select-none";
+  'box-border w-full min-w-0 font-mono text-xs leading-5 font-semibold ' +
+  'text-center px-1 rounded truncate whitespace-nowrap select-none';
 
 /** 固定 HH:MM:SS，避免 toLocaleTimeString 在不同 locale 下长短不一 */
 function formatLogTime(ts: Date): string {
   const d = ts instanceof Date ? ts : new Date(ts);
-  if (Number.isNaN(d.getTime())) return "--:--:--";
-  const hh = String(d.getHours()).padStart(2, "0");
-  const mm = String(d.getMinutes()).padStart(2, "0");
-  const ss = String(d.getSeconds()).padStart(2, "0");
+  if (Number.isNaN(d.getTime())) return '--:--:--';
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  const ss = String(d.getSeconds()).padStart(2, '0');
   return `${hh}:${mm}:${ss}`;
 }
 
 function getLevelBadge(type: LogEntryType) {
   // 短标签（最长 SUCCESS=7）适配 4.25rem 列；完整语义见 title
   const badges: Record<LogEntryType, { label: string; bg: string; text: string }> = {
-    input: { label: "CMD", bg: "bg-blue-600", text: "text-white" },
-    output: { label: "OUT", bg: "bg-slate-600", text: "text-white" },
-    error: { label: "ERROR", bg: "bg-red-600", text: "text-white" },
-    warning: { label: "WARN", bg: "bg-yellow-500", text: "text-black" },
-    info: { label: "INFO", bg: "bg-emerald-600", text: "text-white" },
-    success: { label: "SUCCESS", bg: "bg-green-600", text: "text-white" },
-    debug: { label: "DEBUG", bg: "bg-purple-600", text: "text-white" },
-    trace: { label: "TRACE", bg: "bg-gray-500", text: "text-white" },
-    critical: { label: "CRIT", bg: "bg-rose-700", text: "text-white" },
+    input: { label: 'CMD', bg: 'bg-blue-600', text: 'text-white' },
+    output: { label: 'OUT', bg: 'bg-slate-600', text: 'text-white' },
+    error: { label: 'ERROR', bg: 'bg-red-600', text: 'text-white' },
+    warning: { label: 'WARN', bg: 'bg-yellow-500', text: 'text-black' },
+    info: { label: 'INFO', bg: 'bg-emerald-600', text: 'text-white' },
+    success: { label: 'SUCCESS', bg: 'bg-green-600', text: 'text-white' },
+    debug: { label: 'DEBUG', bg: 'bg-purple-600', text: 'text-white' },
+    trace: { label: 'TRACE', bg: 'bg-gray-500', text: 'text-white' },
+    critical: { label: 'CRIT', bg: 'bg-rose-700', text: 'text-white' },
   };
   return badges[type] || badges.info;
 }
 
 function getLogColor(type: LogEntryType) {
   switch (type) {
-    case "input":
-      return "text-cyan-600 dark:text-cyan-400";
-    case "output":
-      return "text-slate-700 dark:text-gray-200";
-    case "error":
-      return "text-red-600 dark:text-red-400";
-    case "warning":
-      return "text-amber-600 dark:text-yellow-400";
-    case "info":
-      return "text-emerald-700 dark:text-white";
-    case "success":
-      return "text-green-600 dark:text-green-400";
-    case "debug":
-      return "text-purple-600 dark:text-purple-400";
-    case "trace":
-      return "text-gray-500 dark:text-gray-400";
-    case "critical":
-      return "text-rose-700 dark:text-rose-500";
+    case 'input':
+      return 'text-cyan-600 dark:text-cyan-400';
+    case 'output':
+      return 'text-slate-700 dark:text-gray-200';
+    case 'error':
+      return 'text-red-600 dark:text-red-400';
+    case 'warning':
+      return 'text-amber-600 dark:text-yellow-400';
+    case 'info':
+      return 'text-emerald-700 dark:text-white';
+    case 'success':
+      return 'text-green-600 dark:text-green-400';
+    case 'debug':
+      return 'text-purple-600 dark:text-purple-400';
+    case 'trace':
+      return 'text-gray-500 dark:text-gray-400';
+    case 'critical':
+      return 'text-rose-700 dark:text-rose-500';
     default:
-      return "text-slate-700 dark:text-gray-200";
+      return 'text-slate-700 dark:text-gray-200';
   }
 }
 
 interface LogRowProps {
   log: LogEntry;
   style?: React.CSSProperties;
-  "data-index": number;
+  'data-index': number;
 }
 
 const LogRow = memo(
-  forwardRef<HTMLDivElement, LogRowProps>(
-    function LogRow({ log, style, "data-index": dataIndex }, ref) {
-      // 列宽由 LOG_ROW_GRID_CLASS 固定，不再使用 padBadgeLabel
-      const badge = getLevelBadge(log.type);
-      const pluginBadge = log.plugin ? getPluginBadge(log.plugin) : null;
-      return (
-        <div
-          ref={ref}
-          data-index={dataIndex}
-          style={style}
-          className={LOG_ROW_GRID_CLASS}
-        >
-          <span className={TIME_CELL_CLASS}>
-            [{formatLogTime(log.timestamp)}]
-          </span>
+  forwardRef<HTMLDivElement, LogRowProps>(function LogRow(
+    { log, style, 'data-index': dataIndex },
+    ref,
+  ) {
+    // 列宽由 LOG_ROW_GRID_CLASS 固定，不再使用 padBadgeLabel
+    const badge = getLevelBadge(log.type);
+    const pluginBadge = log.plugin ? getPluginBadge(log.plugin) : null;
+    return (
+      <div ref={ref} data-index={dataIndex} style={style} className={LOG_ROW_GRID_CLASS}>
+        <span className={TIME_CELL_CLASS}>[{formatLogTime(log.timestamp)}]</span>
+        <span className={cn(BADGE_CELL_CLASS, badge.bg, badge.text)} title={badge.label}>
+          {badge.label}
+        </span>
+        {pluginBadge ? (
           <span
-            className={cn(BADGE_CELL_CLASS, badge.bg, badge.text)}
-            title={badge.label}
+            className={cn(BADGE_CELL_CLASS, pluginBadge.bg, pluginBadge.text)}
+            title={pluginBadge.label}
           >
-            {badge.label}
+            {pluginBadge.label}
           </span>
-          {pluginBadge ? (
-            <span
-              className={cn(BADGE_CELL_CLASS, pluginBadge.bg, pluginBadge.text)}
-              title={pluginBadge.label}
-            >
-              {pluginBadge.label}
-            </span>
-          ) : (
-            // 占位保持列宽；用同 leading 的空白字符参与 baseline，避免列塌陷错位
-            <span aria-hidden className="font-mono text-xs leading-5">
-              {"\u00a0"}
-            </span>
+        ) : (
+          // 占位保持列宽；用同 leading 的空白字符参与 baseline，避免列塌陷错位
+          <span aria-hidden className="font-mono text-xs leading-5">
+            {'\u00a0'}
+          </span>
+        )}
+        {/* 与左侧同 text-xs leading-5，首行基线对齐；多行仍向下延展 */}
+        <div
+          className={cn(
+            'min-w-0 whitespace-pre-wrap break-all font-mono text-xs leading-5',
+            getLogColor(log.type),
           )}
-          {/* 与左侧同 text-xs leading-5，首行基线对齐；多行仍向下延展 */}
-          <div
-            className={cn(
-              "min-w-0 whitespace-pre-wrap break-all font-mono text-xs leading-5",
-              getLogColor(log.type),
-            )}
-          >
-            <StructuredDataViewer data={normalizeLogContent(log.content)} />
-          </div>
+        >
+          <StructuredDataViewer data={normalizeLogContent(log.content)} />
         </div>
-      );
-    }
-  )
+      </div>
+    );
+  }),
 );
 
 interface ConsolePanelProps {
@@ -312,7 +302,7 @@ export const ConsolePanel = function ConsolePanel({
       return log.id;
     },
     measureElement:
-      typeof window !== "undefined" && "ResizeObserver" in window
+      typeof window !== 'undefined' && 'ResizeObserver' in window
         ? (element) => element.getBoundingClientRect().height
         : undefined,
   });
@@ -390,9 +380,7 @@ export const ConsolePanel = function ConsolePanel({
       if (removedSome) {
         const visibleItems = virtualizer.getVirtualItems();
         const topId =
-          visibleItems.length > 0
-            ? prevLogs[visibleItems[0].index]?.id ?? null
-            : null;
+          visibleItems.length > 0 ? (prevLogs[visibleItems[0].index]?.id ?? null) : null;
         if (topId) {
           pendingScrollIdRef.current = topId;
         }
@@ -441,23 +429,23 @@ export const ConsolePanel = function ConsolePanel({
     <div
       ref={parentRef}
       className={cn(
-        "flex-1 p-4 bg-transparent overflow-y-auto font-mono text-sm relative",
-        className
+        'flex-1 p-4 bg-transparent overflow-y-auto font-mono text-sm relative',
+        className,
       )}
     >
       <div
         style={{
           height: `${virtualizer.getTotalSize()}px`,
-          width: "100%",
-          position: "relative",
+          width: '100%',
+          position: 'relative',
         }}
       >
         <div
           style={{
-            position: "absolute",
+            position: 'absolute',
             top: 0,
             left: 0,
-            width: "100%",
+            width: '100%',
           }}
         >
           {virtualItems.map((virtualItem) => (
@@ -467,10 +455,10 @@ export const ConsolePanel = function ConsolePanel({
               ref={virtualizer.measureElement}
               data-index={virtualItem.index}
               style={{
-                position: "absolute",
+                position: 'absolute',
                 top: 0,
                 left: 0,
-                width: "100%",
+                width: '100%',
                 transform: `translateY(${virtualItem.start}px)`,
               }}
             />

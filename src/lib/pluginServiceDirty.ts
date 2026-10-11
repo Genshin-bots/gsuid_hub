@@ -28,11 +28,15 @@ export function isPluginServiceDirty(
   originalEnabled: boolean,
 ) {
   const fieldsChanged =
-    JSON.stringify(serviceConfigSnapshot(edited)) !== JSON.stringify(serviceConfigSnapshot(original));
+    JSON.stringify(serviceConfigSnapshot(edited)) !==
+    JSON.stringify(serviceConfigSnapshot(original));
   return fieldsChanged || editedEnabled !== originalEnabled;
 }
 
-export function isSvListDirty(edited: SvItem[] | null | undefined, original: SvItem[] | null | undefined) {
+export function isSvListDirty(
+  edited: SvItem[] | null | undefined,
+  original: SvItem[] | null | undefined,
+) {
   return JSON.stringify(edited ?? []) !== JSON.stringify(original ?? []);
 }
 
@@ -47,6 +51,9 @@ export function svItemSnapshot(sv: SvItem | null | undefined) {
   };
 }
 
-export function isSvItemDirty(edited: SvItem | null | undefined, original: SvItem | null | undefined) {
+export function isSvItemDirty(
+  edited: SvItem | null | undefined,
+  original: SvItem | null | undefined,
+) {
   return JSON.stringify(svItemSnapshot(edited)) !== JSON.stringify(svItemSnapshot(original));
 }

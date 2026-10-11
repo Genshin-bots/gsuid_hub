@@ -96,7 +96,7 @@ function traceLogToLogEntry(log: TraceLog, index: number, dateStr: string): LogE
 export default function TracesPage() {
   const { t } = useLanguage();
   const { style } = useTheme();
-  const isGlass = style === 'glassmorphism';
+  const isGlass = style !== 'solid';
   const [traces, setTraces] = useState<TraceItem[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(1);

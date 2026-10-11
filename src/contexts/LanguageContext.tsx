@@ -1,4 +1,12 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+  useCallback,
+  useMemo,
+} from 'react';
 import { useTheme } from './ThemeContext';
 import zhCommon from '@/i18n/locales/zh-CN/common.json';
 import zhLogin from '@/i18n/locales/zh-CN/login.json';
@@ -30,7 +38,10 @@ interface LanguageContextType {
 
 type LocaleTree = Record<string, unknown>;
 const zhBoot: LocaleTree = { common: zhCommon, login: zhLogin };
-const extraLocaleLoaders: Record<Exclude<Language, 'zh-CN'>, () => Promise<{ default: LocaleTree }>> = {
+const extraLocaleLoaders: Record<
+  Exclude<Language, 'zh-CN'>,
+  () => Promise<{ default: LocaleTree }>
+> = {
   'en-US': () => import('@/i18n/locales/en-US'),
   'ja-JP': () => import('@/i18n/locales/ja-JP'),
 };
@@ -42,13 +53,17 @@ const availableLanguages: LanguageOption[] = [
 ];
 
 // 预定义的翻译函数（不在组件内部创建）
-const defaultT = (key: string, locale: Record<string, unknown>, params?: Record<string, string | number>): string => {
+const defaultT = (
+  key: string,
+  locale: Record<string, unknown>,
+  params?: Record<string, string | number>,
+): string => {
   if (!locale) {
     return key;
   }
   const keys = key.split('.');
   let current: unknown = locale;
-  
+
   for (const k of keys) {
     if (current && typeof current === 'object' && k in current) {
       current = (current as Record<string, unknown>)[k];
@@ -56,15 +71,15 @@ const defaultT = (key: string, locale: Record<string, unknown>, params?: Record<
       return key;
     }
   }
-  
+
   let value = typeof current === 'string' ? current : key;
-  
+
   if (params) {
     Object.entries(params).forEach(([paramKey, paramValue]) => {
       value = value.replace(new RegExp(`\\{${paramKey}\\}`, 'g'), String(paramValue));
     });
   }
-  
+
   return value;
 };
 
@@ -81,7 +96,7 @@ const LANGUAGE_STORAGE_KEY = 'gsuid_hub_language';
 function getNestedValue(obj: Record<string, unknown>, path: string): string {
   const keys = path.split('.');
   let current: unknown = obj;
-  
+
   for (const key of keys) {
     if (current && typeof current === 'object' && key in current) {
       current = (current as Record<string, unknown>)[key];
@@ -89,7 +104,7 @@ function getNestedValue(obj: Record<string, unknown>, path: string): string {
       return path; // 返回 key 如果找不到翻译
     }
   }
-  
+
   return typeof current === 'string' ? current : path;
 }
 
@@ -110,9 +125,11 @@ interface LanguageProviderProps {
 export function LanguageProvider({ children }: LanguageProviderProps) {
   // 使用 ThemeContext 保存语言到后端（已登录时）/ sessionStorage
   const themeContext = useTheme();
-  
+
   // 浏览器 localStorage 为 UI 语言的主来源；Theme 默认 zh-CN 不应抢先覆盖用户偏好
-  const [extraLocales, setExtraLocales] = useState<Partial<Record<Exclude<Language, 'zh-CN'>, LocaleTree>>>({});
+  const [extraLocales, setExtraLocales] = useState<
+    Partial<Record<Exclude<Language, 'zh-CN'>, LocaleTree>>
+  >({});
   const [zhFull, setZhFull] = useState<LocaleTree | null>(null);
 
   const [language, setLanguageState] = useState<Language>(() => {
@@ -124,7 +141,11 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
     } catch {
       // ignore
     }
-    if (themeContext.language === 'zh-CN' || themeContext.language === 'en-US' || themeContext.language === 'ja-JP') {
+    if (
+      themeContext.language === 'zh-CN' ||
+      themeContext.language === 'en-US' ||
+      themeContext.language === 'ja-JP'
+    ) {
       return themeContext.language;
     }
     return 'zh-CN';
@@ -179,38 +200,41 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
   }, [language, extraLocales]);
 
   // 保存语言设置到 localStorage；ThemeContext 负责 session / 后端（仅已登录）
-  const setLanguage = useCallback((lang: Language) => {
-    setLanguageState(lang);
-    try {
-      localStorage.setItem(LANGUAGE_STORAGE_KEY, lang);
-    } catch {
-      // ignore
-    }
-    themeContext.setLanguage(lang);
-  }, [themeContext.setLanguage]);
+  const setLanguage = useCallback(
+    (lang: Language) => {
+      setLanguageState(lang);
+      try {
+        localStorage.setItem(LANGUAGE_STORAGE_KEY, lang);
+      } catch {
+        // ignore
+      }
+      themeContext.setLanguage(lang);
+    },
+    [themeContext.setLanguage],
+  );
 
   // 翻译函数 - 使用useMemo缓存
-  const t = useCallback((key: string, params?: Record<string, string | number>): string => {
-    const pack =
-      language === 'zh-CN'
-        ? (zhFull ?? zhBoot)
-        : extraLocales[language] ?? zhFull ?? zhBoot;
-    return defaultT(key, pack, params);
-  }, [language, extraLocales, zhFull]);
+  const t = useCallback(
+    (key: string, params?: Record<string, string | number>): string => {
+      const pack =
+        language === 'zh-CN' ? (zhFull ?? zhBoot) : (extraLocales[language] ?? zhFull ?? zhBoot);
+      return defaultT(key, pack, params);
+    },
+    [language, extraLocales, zhFull],
+  );
 
   // 提供者值 - 使用useMemo避免每次渲染创建新对象
-  const value = useMemo<LanguageContextType>(() => ({
-    language,
-    setLanguage,
-    t,
-    availableLanguages,
-  }), [language, setLanguage, t]);
-
-  return (
-    <LanguageContext.Provider value={value}>
-      {children}
-    </LanguageContext.Provider>
+  const value = useMemo<LanguageContextType>(
+    () => ({
+      language,
+      setLanguage,
+      t,
+      availableLanguages,
+    }),
+    [language, setLanguage, t],
   );
+
+  return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;
 }
 
 // ============================================================================

@@ -1,19 +1,12 @@
 import { FileText, ChevronDown, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import {
-  ModelBrandIcon,
-  ProviderBrandIcon,
-} from '@/components/ui/model-brand-icon';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ModelBrandIcon, ProviderBrandIcon } from '@/components/ui/model-brand-icon';
 import { useState } from 'react';
 
 export interface ConfigSelectItem {
-  name: string;        // provider++name 格式，唯一标识
+  name: string; // provider++name 格式，唯一标识
   provider: string;
   config_name: string; // 纯配置名，用于显示
   model_name: string;
@@ -29,10 +22,14 @@ interface ConfigSelectDropdownProps {
 
 function getProviderLabel(provider: string): string {
   switch (provider) {
-    case 'openai': return 'OpenAI';
-    case 'anthropic': return 'Anthropic';
-    case 'gemini': return 'Gemini';
-    default: return provider;
+    case 'openai':
+      return 'OpenAI';
+    case 'anthropic':
+      return 'Anthropic';
+    case 'gemini':
+      return 'Gemini';
+    default:
+      return provider;
   }
 }
 
@@ -69,14 +66,7 @@ function ConfigFileIcon({
   // 用 modelName 决定厂商；如果匹配不到任何规则，resolveBrandRule 会回退
   // 到 provider 对应的通用图标，而不是 lucide 的 FallbackBrandIcon。
   // 这里如果仍想保底展示一个「文件」造型，就走 FallbackBrandIcon 之外的 FileText。
-  return (
-    <ModelBrandIcon
-      modelName={matched}
-      provider={provider}
-      size={20}
-      className={className}
-    />
-  );
+  return <ModelBrandIcon modelName={matched} provider={provider} size={20} className={className} />;
 }
 
 /**
@@ -109,8 +99,8 @@ export function ConfigSelectDropdown({
           aria-expanded={open}
           tabIndex={0}
           className={cn(
-            "flex items-center justify-between p-3 rounded-2xl border transition-all duration-200 cursor-pointer",
-            "border-primary/30 bg-primary/5",
+            'flex items-center justify-between p-3 rounded-2xl border transition-all duration-200 cursor-pointer',
+            'border-primary/30 bg-primary/5',
             className,
           )}
           onKeyDown={(e) => {
@@ -130,11 +120,16 @@ export function ConfigSelectDropdown({
                 />
               </div>
               <div className="min-w-0">
-                <span className="text-sm font-medium truncate block">{selectedItem.config_name}</span>
+                <span className="text-sm font-medium truncate block">
+                  {selectedItem.config_name}
+                </span>
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <Badge
                     variant="outline"
-                    className={cn("text-[10px] h-4 px-1.5 gap-1", getProviderBadgeClass(selectedItem.provider))}
+                    className={cn(
+                      'text-[10px] h-4 px-1.5 gap-1',
+                      getProviderBadgeClass(selectedItem.provider),
+                    )}
                   >
                     <ProviderBrandIcon
                       provider={selectedItem.provider}
@@ -143,7 +138,9 @@ export function ConfigSelectDropdown({
                     />
                     {getProviderLabel(selectedItem.provider)}
                   </Badge>
-                  <span className="text-[10px] text-muted-foreground truncate">{selectedItem.model_name}</span>
+                  <span className="text-[10px] text-muted-foreground truncate">
+                    {selectedItem.model_name}
+                  </span>
                 </div>
               </div>
             </div>
@@ -155,7 +152,12 @@ export function ConfigSelectDropdown({
               <span className="text-sm text-muted-foreground">{placeholder}</span>
             </div>
           )}
-          <ChevronDown className={cn("w-4 h-4 text-muted-foreground shrink-0 transition-transform", open && "rotate-180")} />
+          <ChevronDown
+            className={cn(
+              'w-4 h-4 text-muted-foreground shrink-0 transition-transform',
+              open && 'rotate-180',
+            )}
+          />
         </div>
       </PopoverTrigger>
       <PopoverContent
@@ -172,17 +174,17 @@ export function ConfigSelectDropdown({
                 <div
                   key={item.name}
                   className={cn(
-                    "flex items-center gap-3 p-2.5 rounded-lg transition-colors cursor-pointer",
-                    isSelected
-                      ? "bg-primary/10"
-                      : "hover:bg-muted/50",
+                    'flex items-center gap-3 p-2.5 rounded-lg transition-colors cursor-pointer',
+                    isSelected ? 'bg-primary/10' : 'hover:bg-muted/50',
                   )}
                   onClick={() => handleSelect(item.name)}
                 >
-                  <div className={cn(
-                    "flex items-center justify-center flex-shrink-0",
-                    isSelected ? "text-primary" : "text-muted-foreground",
-                  )}>
+                  <div
+                    className={cn(
+                      'flex items-center justify-center flex-shrink-0',
+                      isSelected ? 'text-primary' : 'text-muted-foreground',
+                    )}
+                  >
                     <ConfigFileIcon
                       modelName={item.model_name}
                       provider={item.provider}
@@ -194,7 +196,10 @@ export function ConfigSelectDropdown({
                     <div className="flex items-center gap-1.5 mt-0.5">
                       <Badge
                         variant="outline"
-                        className={cn("text-[10px] h-4 px-1.5 gap-1", getProviderBadgeClass(item.provider))}
+                        className={cn(
+                          'text-[10px] h-4 px-1.5 gap-1',
+                          getProviderBadgeClass(item.provider),
+                        )}
                       >
                         <ProviderBrandIcon
                           provider={item.provider}
@@ -203,7 +208,9 @@ export function ConfigSelectDropdown({
                         />
                         {getProviderLabel(item.provider)}
                       </Badge>
-                      <span className="text-[10px] text-muted-foreground truncate">{item.model_name}</span>
+                      <span className="text-[10px] text-muted-foreground truncate">
+                        {item.model_name}
+                      </span>
                     </div>
                   </div>
                   {isSelected && (

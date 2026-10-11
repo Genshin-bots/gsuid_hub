@@ -127,7 +127,12 @@ function inferGroup(createBy: string): string {
   if (cb.startsWith('kanban')) return 'kanban';
   if (cb.startsWith('schedul')) return 'scheduled';
   if (cb.startsWith('proactive')) return 'proactive';
-  if (cb.startsWith('capagent') || cb.includes('capability') || cb.includes('planner') || cb.endsWith('agent'))
+  if (
+    cb.startsWith('capagent') ||
+    cb.includes('capability') ||
+    cb.includes('planner') ||
+    cb.endsWith('agent')
+  )
     return 'capability';
   return 'other';
 }
@@ -154,7 +159,9 @@ function humanizeCreateBy(createBy: string): string {
 function parseAutoScope(sessionId: string, createBy: string): string | null {
   const prefix = `auto_${createBy}_`;
   if (!sessionId.startsWith(prefix)) return null;
-  const m = sessionId.slice(prefix.length).match(/^(group|uglobal|uingroup|self)-(.+)_[0-9a-f]{6,}$/);
+  const m = sessionId
+    .slice(prefix.length)
+    .match(/^(group|uglobal|uingroup|self)-(.+)_[0-9a-f]{6,}$/);
   if (!m) return null;
   const [, code, id] = m;
   if (code === 'group') return `群 ${id}`;
@@ -186,13 +193,15 @@ function describeSession(
   // 1) 常规聊天：session_id 形如 platform:...:group/private:xxx → 会话名（群名/私聊名）
   if (parsed.chatType) return { name: parsed.displayName, Icon };
   // 2) 能力 Agent：展示 node_id（任务本身），比泛化的「能力 Agent」更有信息量
-  if (log.session_id.startsWith('capagent_')) return { name: capabilityNodeName(log.session_id), Icon };
+  if (log.session_id.startsWith('capagent_'))
+    return { name: capabilityNodeName(log.session_id), Icon };
   // 3) 定向后台会话（心跳/续聊）：类别标签 + 目标（群号/用户），别把不同目标折叠成同一个名字
   const target = targetedTarget(log.session_id);
   if (target) return { name: `${cat?.label ?? humanizeCreateBy(log.create_by)} · ${target}`, Icon };
   // 3.5) 记忆等后台抽取子 agent：auto_ id 里编了 scope → 显示"针对哪个群/用户"
   const autoScope = parseAutoScope(log.session_id, log.create_by);
-  if (autoScope) return { name: `${cat?.label ?? humanizeCreateBy(log.create_by)} · ${autoScope}`, Icon };
+  if (autoScope)
+    return { name: `${cat?.label ?? humanizeCreateBy(log.create_by)} · ${autoScope}`, Icon };
   // 4) 其它系统/子任务：后端归类的简短标签（记忆实体抽取…）；未收录则按 create_by 兜底
   if (cat) return { name: cat.label, Icon };
   return { name: humanizeCreateBy(log.create_by) || parsed.displayName, Icon };
@@ -383,7 +392,9 @@ export default function AIHistoryPage() {
     if (missing.length === 0) return;
     setIsLoadingEarlier(true);
     try {
-      const results = await Promise.all(missing.map((s) => fetchSegment(s).then((d) => [s.segment_index, d] as const)));
+      const results = await Promise.all(
+        missing.map((s) => fetchSegment(s).then((d) => [s.segment_index, d] as const)),
+      );
       setSegEntries((prev) => {
         const next = { ...prev };
         for (const [idx, d] of results) {
@@ -400,16 +411,19 @@ export default function AIHistoryPage() {
   }, [selectedCard, segEntries, fetchSegment, t]);
 
   // 供 waterfall 展开子 Agent 时懒加载其 trace（用 log_file 的 stem 作 session_id）
-  const loadSubAgent = useCallback(async (agentData: Record<string, unknown>): Promise<SessionLogEntry[] | null> => {
-    const logFile = typeof agentData.log_file === 'string' ? agentData.log_file : '';
-    const sid = logFile
-      ? logFile.replace(/^.*[\\/]/, '').replace(/\.json$/, '')
-      : (agentData.session_id as string) || '';
-    if (!sid) return null;
-    const uuid = typeof agentData.session_uuid === 'string' ? agentData.session_uuid : undefined;
-    const d = await aiSessionLogsApi.getLogDetail(sid, uuid);
-    return d?.entries ?? null;
-  }, []);
+  const loadSubAgent = useCallback(
+    async (agentData: Record<string, unknown>): Promise<SessionLogEntry[] | null> => {
+      const logFile = typeof agentData.log_file === 'string' ? agentData.log_file : '';
+      const sid = logFile
+        ? logFile.replace(/^.*[\\/]/, '').replace(/\.json$/, '')
+        : (agentData.session_id as string) || '';
+      if (!sid) return null;
+      const uuid = typeof agentData.session_uuid === 'string' ? agentData.session_uuid : undefined;
+      const d = await aiSessionLogsApi.getLogDetail(sid, uuid);
+      return d?.entries ?? null;
+    },
+    [],
+  );
 
   // ── effects ───────────────────────────────────────────────────────────
   useEffect(() => {
@@ -512,382 +526,458 @@ export default function AIHistoryPage() {
       {/* overflow 必须在阴影宿主内部：宿主 glass-card 保持 overflow:visible，阴影才能贴合圆角 */}
       <div className="page-fill flex glass-card">
         <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden rounded-[inherit]">
-        {/* ── 左侧：链列表 ── */}
-        <div
-          className={cn(
-            'border-r border-border/40 flex flex-col shrink-0',
-            'w-full absolute inset-0 z-10 sm:relative sm:w-80 lg:w-96',
-            selectedCard ? 'hidden sm:flex' : 'flex',
-          )}
-        >
-          <div className="p-4 border-b border-border/40 space-y-3">
-            <div className="flex items-center justify-between">
-              <h1 className="text-lg font-semibold flex items-center gap-2">
-                <History className="w-5 h-5 text-primary" />
-                {t('aiHistory.title')}
-              </h1>
-              <Button variant="ghost" size="icon" onClick={handleRefresh} disabled={isLoading} className="h-8 w-8">
-                {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-              </Button>
-            </div>
-
-            {/* 统计概览：一行轻量文本，不做卡片盒子 */}
-            <div className="flex items-center gap-4 text-xs text-muted-foreground min-w-0">
-              <span className="inline-flex items-center gap-1.5 min-w-0">
-                <HardDrive className="w-3.5 h-3.5 shrink-0" />
-                <span className="truncate">{t('aiHistory.statsTotalFiles')}</span>
-                <span className="font-semibold text-foreground tabular-nums shrink-0">{stats?.total ?? '-'}</span>
-              </span>
-              <span className="inline-flex items-center gap-1.5 min-w-0">
-                <Cpu className="w-3.5 h-3.5 shrink-0" />
-                <span className="truncate">{t('aiHistory.statsActiveSessions')}</span>
-                <span
-                  className={cn(
-                    'font-semibold text-foreground tabular-nums shrink-0',
-                    (stats?.active_count ?? 0) > 0 && 'text-green-600 dark:text-green-400',
-                  )}
+          {/* ── 左侧：链列表 ── */}
+          <div
+            className={cn(
+              'border-r border-border/40 flex flex-col shrink-0',
+              'w-full absolute inset-0 z-10 sm:relative sm:w-80 lg:w-96',
+              selectedCard ? 'hidden sm:flex' : 'flex',
+            )}
+          >
+            <div className="p-4 border-b border-border/40 space-y-3">
+              <div className="flex items-center justify-between">
+                <h1 className="text-lg font-semibold flex items-center gap-2">
+                  <History className="w-5 h-5 text-primary" />
+                  {t('aiHistory.title')}
+                </h1>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleRefresh}
+                  disabled={isLoading}
+                  className="h-8 w-8"
                 >
-                  {stats?.active_count ?? '-'}
+                  {isLoading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="w-4 h-4" />
+                  )}
+                </Button>
+              </div>
+
+              {/* 统计概览：一行轻量文本，不做卡片盒子 */}
+              <div className="flex items-center gap-4 text-xs text-muted-foreground min-w-0">
+                <span className="inline-flex items-center gap-1.5 min-w-0">
+                  <HardDrive className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">{t('aiHistory.statsTotalFiles')}</span>
+                  <span className="font-semibold text-foreground tabular-nums shrink-0">
+                    {stats?.total ?? '-'}
+                  </span>
                 </span>
-              </span>
-            </div>
-
-            {/* 搜索（输入即筛，Enter 立即生效） */}
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder={t('aiHistory.searchPlaceholder')}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleApplyFilter()}
-                className="pl-9 h-9 text-sm border-border/40 bg-card/50 focus-visible:ring-1 focus-visible:ring-primary/30"
-              />
-            </div>
-
-            {/* 筛选：来源 + 人格（选择即生效，无需额外按钮） */}
-            <div className="flex items-center gap-2">
-              <Select value={filterCreateBy} onValueChange={setFilterCreateBy}>
-                <SelectTrigger className="flex-1 min-w-0 h-9 text-xs">
-                  <SelectValue placeholder={t('aiHistory.filterCreateBy')} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={DEFAULT_SELECT_VALUE}>{t('aiHistory.filterAll')}</SelectItem>
-                  {categories.map((cat) => (
-                    <SelectItem key={cat.create_by} value={cat.create_by}>
-                      {cat.label} ({cat.count})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={filterPersona} onValueChange={setFilterPersona}>
-                <SelectTrigger className="flex-1 min-w-0 h-9 text-xs">
-                  <SelectValue placeholder={t('aiHistory.filterPersona')} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={DEFAULT_SELECT_VALUE}>{t('aiHistory.filterAll')}</SelectItem>
-                  {personaOptions.map((opt) => (
-                    <SelectItem key={opt} value={opt}>
-                      {opt}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* 列表 */}
-          <ScrollArea className="flex-1">
-            {isLoading ? (
-              <div className="space-y-3 p-3">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <Skeleton key={i} className="h-16 w-full" />
-                ))}
+                <span className="inline-flex items-center gap-1.5 min-w-0">
+                  <Cpu className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">{t('aiHistory.statsActiveSessions')}</span>
+                  <span
+                    className={cn(
+                      'font-semibold text-foreground tabular-nums shrink-0',
+                      (stats?.active_count ?? 0) > 0 && 'text-green-600 dark:text-green-400',
+                    )}
+                  >
+                    {stats?.active_count ?? '-'}
+                  </span>
+                </span>
               </div>
-            ) : logs.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                <FileText className="w-10 h-10 mb-3 opacity-40" />
-                <p className="text-sm">{t('aiHistory.noLogs')}</p>
-              </div>
-            ) : (
-              <div className="p-2 space-y-1">
-                {logs
-                  .filter((log) => log.session_id)
-                  .map((log) => {
-                    const isSelected = selectedCard?.chain_id === log.chain_id;
-                    const segCount = log.segment_count ?? 1;
-                    const { name: displayName, Icon: TypeIcon } = describeSession(log, categoryMap);
-                    // created_at_str 形如 "2026-07-09 09:44:51" → 取 "07-09 09:44"
-                    const shortTime = log.created_at_str ? log.created_at_str.slice(5, 16) : '';
-                    return (
-                      <button
-                        key={log.chain_id || log.session_uuid}
-                        onClick={() => selectCard(log)}
-                        className={cn(
-                          'w-full p-2.5 rounded-lg text-left transition-colors',
-                          isSelected ? 'bg-primary/10 ring-1 ring-inset ring-primary/25' : 'hover:bg-accent/60',
-                        )}
-                      >
-                        <div className="flex items-center gap-3">
-                          {/* persona 头像 + 活跃绿点（脉冲） */}
-                          <div className="relative shrink-0">
-                            <Avatar className="w-10 h-10 rounded-xl">
-                              <AvatarImage
-                                src={log.persona_name ? personaApi.getAvatarUrl(log.persona_name) : undefined}
-                                alt={log.persona_name || ''}
-                              />
-                              <AvatarFallback className="rounded-xl bg-muted text-muted-foreground text-xs">
-                                {/* 有人格 → 人格首字（配合上面的头像图）；无人格 → 按任务类型给图标 */}
-                                {log.persona_name ? log.persona_name.slice(0, 2) : <TypeIcon className="w-4 h-4" />}
-                              </AvatarFallback>
-                            </Avatar>
-                            {log.is_active && (
-                              <span className="absolute -bottom-0.5 -right-0.5 flex h-3 w-3">
-                                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-60" />
-                                <span className="relative inline-flex h-3 w-3 rounded-full bg-green-500 ring-2 ring-card" />
-                              </span>
-                            )}
-                          </div>
 
-                          <div className="flex-1 min-w-0">
-                            {/* 行1：名称 + 类型徽章 ……… 时间（右对齐） */}
-                            <div className="flex items-center gap-1.5 min-w-0">
-                              {/* min-w-0 必不可少：flex 子项默认 min-width:auto 会让长 session_id
+              {/* 搜索（输入即筛，Enter 立即生效） */}
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder={t('aiHistory.searchPlaceholder')}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleApplyFilter()}
+                  className="pl-9 h-9 text-sm border-border/40 bg-card/50 focus-visible:ring-1 focus-visible:ring-primary/30"
+                />
+              </div>
+
+              {/* 筛选：来源 + 人格（选择即生效，无需额外按钮） */}
+              <div className="flex items-center gap-2">
+                <Select value={filterCreateBy} onValueChange={setFilterCreateBy}>
+                  <SelectTrigger className="flex-1 min-w-0 h-9 text-xs">
+                    <SelectValue placeholder={t('aiHistory.filterCreateBy')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={DEFAULT_SELECT_VALUE}>{t('aiHistory.filterAll')}</SelectItem>
+                    {categories.map((cat) => (
+                      <SelectItem key={cat.create_by} value={cat.create_by}>
+                        {cat.label} ({cat.count})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={filterPersona} onValueChange={setFilterPersona}>
+                  <SelectTrigger className="flex-1 min-w-0 h-9 text-xs">
+                    <SelectValue placeholder={t('aiHistory.filterPersona')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={DEFAULT_SELECT_VALUE}>{t('aiHistory.filterAll')}</SelectItem>
+                    {personaOptions.map((opt) => (
+                      <SelectItem key={opt} value={opt}>
+                        {opt}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* 列表 */}
+            <ScrollArea className="flex-1">
+              {isLoading ? (
+                <div className="space-y-3 p-3">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <Skeleton key={i} className="h-16 w-full" />
+                  ))}
+                </div>
+              ) : logs.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                  <FileText className="w-10 h-10 mb-3 opacity-40" />
+                  <p className="text-sm">{t('aiHistory.noLogs')}</p>
+                </div>
+              ) : (
+                <div className="p-2 space-y-1">
+                  {logs
+                    .filter((log) => log.session_id)
+                    .map((log) => {
+                      const isSelected = selectedCard?.chain_id === log.chain_id;
+                      const segCount = log.segment_count ?? 1;
+                      const { name: displayName, Icon: TypeIcon } = describeSession(
+                        log,
+                        categoryMap,
+                      );
+                      // created_at_str 形如 "2026-07-09 09:44:51" → 取 "07-09 09:44"
+                      const shortTime = log.created_at_str ? log.created_at_str.slice(5, 16) : '';
+                      return (
+                        <button
+                          key={log.chain_id || log.session_uuid}
+                          onClick={() => selectCard(log)}
+                          className={cn(
+                            'w-full p-2.5 rounded-lg text-left transition-colors',
+                            isSelected
+                              ? 'bg-primary/10 ring-1 ring-inset ring-primary/25'
+                              : 'hover:bg-accent/60',
+                          )}
+                        >
+                          <div className="flex items-center gap-3">
+                            {/* persona 头像 + 活跃绿点（脉冲） */}
+                            <div className="relative shrink-0">
+                              <Avatar className="w-10 h-10 rounded-xl">
+                                <AvatarImage
+                                  src={
+                                    log.persona_name
+                                      ? personaApi.getAvatarUrl(log.persona_name)
+                                      : undefined
+                                  }
+                                  alt={log.persona_name || ''}
+                                />
+                                <AvatarFallback className="rounded-xl bg-muted text-muted-foreground text-xs">
+                                  {/* 有人格 → 人格首字（配合上面的头像图）；无人格 → 按任务类型给图标 */}
+                                  {log.persona_name ? (
+                                    log.persona_name.slice(0, 2)
+                                  ) : (
+                                    <TypeIcon className="w-4 h-4" />
+                                  )}
+                                </AvatarFallback>
+                              </Avatar>
+                              {log.is_active && (
+                                <span className="absolute -bottom-0.5 -right-0.5 flex h-3 w-3">
+                                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-60" />
+                                  <span className="relative inline-flex h-3 w-3 rounded-full bg-green-500 ring-2 ring-card" />
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="flex-1 min-w-0">
+                              {/* 行1：名称 + 类型徽章 ……… 时间（右对齐） */}
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                {/* min-w-0 必不可少：flex 子项默认 min-width:auto 会让长 session_id
                                   撑破容器（无省略号、把时间挤出视口）；加上后才真正省略截断。
                                   title 原生 tooltip 让超长的子/看板 Agent 名可 hover 看全。 */}
-                              <span className="text-sm font-medium truncate min-w-0" title={log.session_id}>
-                                {displayName}
-                              </span>
-                              <ChatTypeBadge sessionId={log.session_id} t={t} />
-                              <span className="ml-auto shrink-0 text-[10px] text-muted-foreground/70 font-mono tabular-nums">
-                                {shortTime}
-                              </span>
-                            </div>
-                            {/* 行2：人格 · 条数（+ 分段/子Agent 紧凑徽章） */}
-                            <div className="flex items-center gap-1.5 mt-0.5 text-xs text-muted-foreground min-w-0">
-                              <span className="truncate min-w-0">{log.persona_name}</span>
-                              <span className="shrink-0 opacity-40">·</span>
-                              <span className="shrink-0 tabular-nums">
-                                {log.entry_count} {t('aiHistory.entries')}
-                              </span>
-                              {segCount > 1 && (
-                                <Badge variant="secondary" className="ml-1 shrink-0 h-4 px-1 gap-0.5 text-[10px]">
-                                  <Layers className="w-2.5 h-2.5" />
-                                  {segCount}
-                                </Badge>
-                              )}
-                              {log.linked_agent_count > 0 && (
-                                <Badge
-                                  variant="outline"
-                                  className="shrink-0 h-4 px-1 gap-0.5 text-[10px] text-violet-500 border-violet-500/30"
+                                <span
+                                  className="text-sm font-medium truncate min-w-0"
+                                  title={log.session_id}
                                 >
-                                  <Bot className="w-2.5 h-2.5" />
-                                  {log.linked_agent_count}
-                                </Badge>
-                              )}
+                                  {displayName}
+                                </span>
+                                <ChatTypeBadge sessionId={log.session_id} t={t} />
+                                <span className="ml-auto shrink-0 text-[10px] text-muted-foreground/70 font-mono tabular-nums">
+                                  {shortTime}
+                                </span>
+                              </div>
+                              {/* 行2：人格 · 条数（+ 分段/子Agent 紧凑徽章） */}
+                              <div className="flex items-center gap-1.5 mt-0.5 text-xs text-muted-foreground min-w-0">
+                                <span className="truncate min-w-0">{log.persona_name}</span>
+                                <span className="shrink-0 opacity-40">·</span>
+                                <span className="shrink-0 tabular-nums">
+                                  {log.entry_count} {t('aiHistory.entries')}
+                                </span>
+                                {segCount > 1 && (
+                                  <Badge
+                                    variant="secondary"
+                                    className="ml-1 shrink-0 h-4 px-1 gap-0.5 text-[10px]"
+                                  >
+                                    <Layers className="w-2.5 h-2.5" />
+                                    {segCount}
+                                  </Badge>
+                                )}
+                                {log.linked_agent_count > 0 && (
+                                  <Badge
+                                    variant="outline"
+                                    className="shrink-0 h-4 px-1 gap-0.5 text-[10px] text-violet-500 border-violet-500/30"
+                                  >
+                                    <Bot className="w-2.5 h-2.5" />
+                                    {log.linked_agent_count}
+                                  </Badge>
+                                )}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </button>
-                    );
+                        </button>
+                      );
+                    })}
+                </div>
+              )}
+            </ScrollArea>
+
+            {/* 分页 */}
+            {total > 0 && (
+              <div className="p-3 border-t border-border/50 flex items-center justify-between text-xs">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handlePrevPage}
+                  disabled={offset === 0 || isLoading}
+                  className="h-7 px-2"
+                >
+                  {t('common.previousPage')}
+                </Button>
+                <span className="text-muted-foreground">
+                  {t('common.pageInfo', {
+                    current: Math.floor(offset / limit) + 1,
+                    total: Math.ceil(total / limit),
                   })}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleNextPage}
+                  disabled={offset + limit >= total || isLoading}
+                  className="h-7 px-2"
+                >
+                  {t('common.nextPage')}
+                </Button>
               </div>
             )}
-          </ScrollArea>
+          </div>
 
-          {/* 分页 */}
-          {total > 0 && (
-            <div className="p-3 border-t border-border/50 flex items-center justify-between text-xs">
-              <Button variant="ghost" size="sm" onClick={handlePrevPage} disabled={offset === 0 || isLoading} className="h-7 px-2">
-                {t('common.previousPage')}
-              </Button>
-              <span className="text-muted-foreground">
-                {t('common.pageInfo', { current: Math.floor(offset / limit) + 1, total: Math.ceil(total / limit) })}
-              </span>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleNextPage}
-                disabled={offset + limit >= total || isLoading}
-                className="h-7 px-2"
-              >
-                {t('common.nextPage')}
-              </Button>
-            </div>
-          )}
-        </div>
-
-        {/* ── 右侧：Trace 瀑布 ── */}
-        <div
-          className={cn(
-            'flex-1 flex flex-col min-w-0 overflow-hidden',
-            selectedCard ? 'flex' : 'hidden sm:flex',
-          )}
-        >
-          {selectedCard && mainDetail ? (
-            <>
-              {/* 详情头部 */}
-              <div className="h-auto min-h-14 py-2 sm:h-14 sm:py-0 border-b border-border/40 px-3 sm:px-4 flex items-center justify-between shrink-0">
-                <div className="flex items-center gap-2 min-w-0 flex-1">
-                  <Button variant="ghost" size="icon" className="sm:hidden h-8 w-8 shrink-0" onClick={handleBackToList}>
-                    <ChevronLeft className="w-5 h-5" />
-                  </Button>
-                  <Avatar className="w-7 h-7 shrink-0">
-                    <AvatarImage src={avatarUrl} alt={personaName} />
-                    <AvatarFallback className="bg-indigo-500/10 text-indigo-600">
-                      {personaName ? personaName.slice(0, 2) : <DetailIcon className="w-4 h-4" />}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      <h2 className="font-semibold text-sm truncate min-w-0" title={mainDetail.session_id}>
-                        {detailDesc?.name || parseSessionId(mainDetail.session_id).displayName}
-                      </h2>
-                      <ChatTypeBadge sessionId={mainDetail.session_id} t={t} />
-                    </div>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {personaName} · {createByLabel} · {selectedCard.entry_count} {t('aiHistory.entries')}
-                      {totalSegCount > 1 && ` · ${t('aiHistory.segmentsCount', { count: totalSegCount })}`}
-                    </p>
-                    {(linkedAgentsLoading || linkedAgents.length > 0) && (
-                      <div className="flex flex-wrap items-center gap-1 mt-0.5 min-w-0">
-                        <span className="text-[10px] text-muted-foreground shrink-0">
-                          {t('aiHistory.linkedAgents')}:
-                        </span>
-                        {linkedAgentsLoading ? (
-                          <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
-                        ) : (
-                          linkedAgents.slice(0, 6).map((agent) => (
-                            <Badge
-                              key={`${agent.agent_type}-${agent.session_id}`}
-                              variant="outline"
-                              className="text-[10px] h-5 px-1.5 font-mono max-w-[140px] truncate"
-                              title={`${agent.agent_type} · ${agent.session_id}`}
-                            >
-                              {agent.persona_name || agent.agent_type}
-                              {agent.entry_count > 0 ? ` · ${agent.entry_count}` : ''}
+          {/* ── 右侧：Trace 瀑布 ── */}
+          <div
+            className={cn(
+              'flex-1 flex flex-col min-w-0 overflow-hidden',
+              selectedCard ? 'flex' : 'hidden sm:flex',
+            )}
+          >
+            {selectedCard && mainDetail ? (
+              <>
+                {/* 详情头部 */}
+                <div className="h-auto min-h-14 py-2 sm:h-14 sm:py-0 border-b border-border/40 px-3 sm:px-4 flex items-center justify-between shrink-0">
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="sm:hidden h-8 w-8 shrink-0"
+                      onClick={handleBackToList}
+                    >
+                      <ChevronLeft className="w-5 h-5" />
+                    </Button>
+                    <Avatar className="w-7 h-7 shrink-0">
+                      <AvatarImage src={avatarUrl} alt={personaName} />
+                      <AvatarFallback className="bg-indigo-500/10 text-indigo-600">
+                        {personaName ? personaName.slice(0, 2) : <DetailIcon className="w-4 h-4" />}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <h2
+                          className="font-semibold text-sm truncate min-w-0"
+                          title={mainDetail.session_id}
+                        >
+                          {detailDesc?.name || parseSessionId(mainDetail.session_id).displayName}
+                        </h2>
+                        <ChatTypeBadge sessionId={mainDetail.session_id} t={t} />
+                      </div>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {personaName} · {createByLabel} · {selectedCard.entry_count}{' '}
+                        {t('aiHistory.entries')}
+                        {totalSegCount > 1 &&
+                          ` · ${t('aiHistory.segmentsCount', { count: totalSegCount })}`}
+                      </p>
+                      {(linkedAgentsLoading || linkedAgents.length > 0) && (
+                        <div className="flex flex-wrap items-center gap-1 mt-0.5 min-w-0">
+                          <span className="text-[10px] text-muted-foreground shrink-0">
+                            {t('aiHistory.linkedAgents')}:
+                          </span>
+                          {linkedAgentsLoading ? (
+                            <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
+                          ) : (
+                            linkedAgents.slice(0, 6).map((agent) => (
+                              <Badge
+                                key={`${agent.agent_type}-${agent.session_id}`}
+                                variant="outline"
+                                className="text-[10px] h-5 px-1.5 font-mono max-w-[140px] truncate"
+                                title={`${agent.agent_type} · ${agent.session_id}`}
+                              >
+                                {agent.persona_name || agent.agent_type}
+                                {agent.entry_count > 0 ? ` · ${agent.entry_count}` : ''}
+                              </Badge>
+                            ))
+                          )}
+                          {!linkedAgentsLoading && linkedAgents.length > 6 && (
+                            <Badge variant="secondary" className="text-[10px] h-5 px-1.5">
+                              +{linkedAgents.length - 6}
                             </Badge>
-                          ))
-                        )}
-                        {!linkedAgentsLoading && linkedAgents.length > 6 && (
-                          <Badge variant="secondary" className="text-[10px] h-5 px-1.5">
-                            +{linkedAgents.length - 6}
-                          </Badge>
-                        )}
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {(sessionTokens.tin > 0 || sessionTokens.tout > 0) && (
+                      <span
+                        className="hidden lg:inline-flex items-center gap-1 text-[10px] font-mono px-1.5 py-0.5 rounded bg-muted/60 border border-border/40 text-muted-foreground"
+                        title={`${t('aiHistory.inputTokens')} / ${t('aiHistory.outputTokens')}`}
+                      >
+                        <span className="opacity-70">Σ</span>
+                        <span className="text-sky-500">↗{formatTokens(sessionTokens.tin)}</span>
+                        <span className="text-emerald-500">
+                          ↙{formatTokens(sessionTokens.tout)}
+                        </span>
+                      </span>
+                    )}
+                    <span className="text-xs text-muted-foreground hidden sm:inline">
+                      {formatTimestamp(selectedCard.created_at)}
+                    </span>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => waterfallRef.current?.expandAll()}
+                          className="h-8 w-8 hidden sm:inline-flex"
+                        >
+                          <ChevronsUpDown className="w-4 h-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{t('aiHistory.waterfall.expandAll')}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => waterfallRef.current?.collapseAll()}
+                          className="h-8 w-8 hidden sm:inline-flex"
+                        >
+                          <ChevronsDownUp className="w-4 h-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{t('aiHistory.waterfall.collapseAll')}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleRefresh}
+                      disabled={isLoadingDetail}
+                      className="h-8 w-8"
+                    >
+                      {isLoadingDetail ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <RefreshCw className="w-4 h-4" />
+                      )}
+                    </Button>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={handleDownloadSession}
+                          className="h-8 w-8"
+                        >
+                          <Download className="w-4 h-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{t('aiHistory.downloadSession')}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                </div>
+
+                {/* 瀑布内容 */}
+                <ScrollArea className="flex-1 min-w-0">
+                  <div className="min-w-0 max-w-full px-3 sm:px-5 pt-3 pb-8">
+                    {/* 加载更早分段 */}
+                    {hasEarlier && (
+                      <div className="mb-2 flex justify-center">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={loadEarlierSegments}
+                          disabled={isLoadingEarlier}
+                          className="h-7 gap-1.5 text-xs"
+                        >
+                          {isLoadingEarlier ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Layers className="w-3.5 h-3.5" />
+                          )}
+                          {t('aiHistory.loadEarlierSegments', {
+                            count: totalSegCount - loadedSegCount,
+                          })}
+                        </Button>
+                      </div>
+                    )}
+
+                    {isLoadingDetail ? (
+                      <div className="space-y-2">
+                        {/* 骨架形状贴近真实内容：run 块卡片（头 + 体）交替 */}
+                        <Skeleton className="h-9 w-full rounded-xl" />
+                        <Skeleton className="h-44 w-full rounded-xl" />
+                        <Skeleton className="h-9 w-full rounded-xl" />
+                        <Skeleton className="h-28 w-full rounded-xl" />
+                        <Skeleton className="h-9 w-full rounded-xl" />
+                      </div>
+                    ) : mainEntries.length > 0 ? (
+                      <TraceWaterfall
+                        ref={waterfallRef}
+                        entries={mainEntries}
+                        t={t}
+                        loadSubAgent={loadSubAgent}
+                      />
+                    ) : (
+                      <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                        <FileText className="w-10 h-10 mb-3 opacity-40" />
+                        <p className="text-sm">{t('aiHistory.noEntries')}</p>
                       </div>
                     )}
                   </div>
-                </div>
-                <div className="flex items-center gap-1.5 shrink-0">
-                  {(sessionTokens.tin > 0 || sessionTokens.tout > 0) && (
-                    <span
-                      className="hidden lg:inline-flex items-center gap-1 text-[10px] font-mono px-1.5 py-0.5 rounded bg-muted/60 border border-border/40 text-muted-foreground"
-                      title={`${t('aiHistory.inputTokens')} / ${t('aiHistory.outputTokens')}`}
-                    >
-                      <span className="opacity-70">Σ</span>
-                      <span className="text-sky-500">↗{formatTokens(sessionTokens.tin)}</span>
-                      <span className="text-emerald-500">↙{formatTokens(sessionTokens.tout)}</span>
-                    </span>
-                  )}
-                  <span className="text-xs text-muted-foreground hidden sm:inline">
-                    {formatTimestamp(selectedCard.created_at)}
-                  </span>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => waterfallRef.current?.expandAll()}
-                        className="h-8 w-8 hidden sm:inline-flex"
-                      >
-                        <ChevronsUpDown className="w-4 h-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>{t('aiHistory.waterfall.expandAll')}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => waterfallRef.current?.collapseAll()}
-                        className="h-8 w-8 hidden sm:inline-flex"
-                      >
-                        <ChevronsDownUp className="w-4 h-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>{t('aiHistory.waterfall.collapseAll')}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                  <Button variant="ghost" size="icon" onClick={handleRefresh} disabled={isLoadingDetail} className="h-8 w-8">
-                    {isLoadingDetail ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-                  </Button>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" onClick={handleDownloadSession} className="h-8 w-8">
-                        <Download className="w-4 h-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>{t('aiHistory.downloadSession')}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
+                </ScrollArea>
+              </>
+            ) : (
+              <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground">
+                <History className="w-12 h-12 mb-4 opacity-20" />
+                <p className="text-sm">{t('aiHistory.selectSession')}</p>
+                <p className="text-xs text-muted-foreground/60 mt-1">
+                  {t('aiHistory.selectSessionHint')}
+                </p>
               </div>
-
-              {/* 瀑布内容 */}
-              <ScrollArea className="flex-1 min-w-0">
-                <div className="min-w-0 max-w-full px-3 sm:px-5 pt-3 pb-8">
-                  {/* 加载更早分段 */}
-                  {hasEarlier && (
-                    <div className="mb-2 flex justify-center">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={loadEarlierSegments}
-                        disabled={isLoadingEarlier}
-                        className="h-7 gap-1.5 text-xs"
-                      >
-                        {isLoadingEarlier ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                          <Layers className="w-3.5 h-3.5" />
-                        )}
-                        {t('aiHistory.loadEarlierSegments', { count: totalSegCount - loadedSegCount })}
-                      </Button>
-                    </div>
-                  )}
-
-                  {isLoadingDetail ? (
-                    <div className="space-y-2">
-                      {/* 骨架形状贴近真实内容：run 块卡片（头 + 体）交替 */}
-                      <Skeleton className="h-9 w-full rounded-xl" />
-                      <Skeleton className="h-44 w-full rounded-xl" />
-                      <Skeleton className="h-9 w-full rounded-xl" />
-                      <Skeleton className="h-28 w-full rounded-xl" />
-                      <Skeleton className="h-9 w-full rounded-xl" />
-                    </div>
-                  ) : mainEntries.length > 0 ? (
-                    <TraceWaterfall ref={waterfallRef} entries={mainEntries} t={t} loadSubAgent={loadSubAgent} />
-                  ) : (
-                    <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                      <FileText className="w-10 h-10 mb-3 opacity-40" />
-                      <p className="text-sm">{t('aiHistory.noEntries')}</p>
-                    </div>
-                  )}
-                </div>
-              </ScrollArea>
-            </>
-          ) : (
-            <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground">
-              <History className="w-12 h-12 mb-4 opacity-20" />
-              <p className="text-sm">{t('aiHistory.selectSession')}</p>
-              <p className="text-xs text-muted-foreground/60 mt-1">{t('aiHistory.selectSessionHint')}</p>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
         </div>
       </div>
     </TooltipProvider>

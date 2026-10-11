@@ -447,6 +447,7 @@ const THEME_CONFIG = {
   icon_color: 'colored' as const,
   background_image: null,
   blur_intensity: 7,
+  background_blur: 0,
   theme_preset: 'shadcn' as const,
   language: 'zh-CN' as const,
   card_opacity: 55,
@@ -462,6 +463,23 @@ export const generateThemeConfig = () => ({ ...THEME_CONFIG });
 /** 内嵌 gsuid_core 自带的主题预设（gsuid_core/webconsole/themes_builtin/*.json）。
  *  演示模式没有真实后端预设目录，故把这些 JSON 直接内联，让「主题预设」标签页可用、可一键应用。 */
 const BUILTIN_THEME_PRESETS: Array<{ name: string; config: Record<string, unknown> }> = [
+  {
+    name: '苹果液态玻璃',
+    config: {
+      mode: 'dark',
+      style: 'liquid',
+      color: 'blue',
+      icon_color: 'colored',
+      background_image: null,
+      blur_intensity: 16,
+      card_opacity: 28,
+      theme_preset: 'default',
+      language: 'zh-CN',
+      sidebar_layout: 'floating',
+      border_radius: 16,
+      shadow_intensity: 85,
+    },
+  },
   {
     name: '液态琉光',
     config: {
@@ -612,7 +630,7 @@ export const generateThemePresets = () => {
 /** 应用某个预设：返回 { name, config }，供 ThemesPage 调 applyThemeConfig 真正切换主题。 */
 export const applyThemePreset = (name: string) => {
   const found = BUILTIN_THEME_PRESETS.find((p) => p.name === name);
-  return { name, config: found ? found.config : { ...THEME_CONFIG } };
+  return { name, config: { background_blur: 0, ...(found ? found.config : { ...THEME_CONFIG }) } };
 };
 
 // ───────────────────────── Tier 1 · AI 记忆图谱 ─────────────────────────

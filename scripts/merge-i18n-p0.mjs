@@ -34,8 +34,7 @@ const packs = {
         enableFamiliarityRouting: 'RF-Mem 熟悉度路由',
         enableRecollectionPath: 'RF-Mem 回忆路径',
       },
-      readonlyHint:
-        '以下项来自 MEMORY_CONFIG 框架配置，此处只读展示；请在「框架配置」中修改。',
+      readonlyHint: '以下项来自 MEMORY_CONFIG 框架配置，此处只读展示；请在「框架配置」中修改。',
     },
     aiMemory: {
       tabSearch: '检索试跑',

@@ -3,12 +3,12 @@ import React, {
   useContext,
   useState,
   useEffect,
-  ReactNode,
+  type ReactNode,
   useCallback,
   useMemo,
   useRef,
 } from 'react';
-import { themeApi, ThemeConfig, getAuthToken } from '@/lib/api';
+import { themeApi, type ThemeConfig, getAuthToken } from '@/lib/api';
 
 /** 与 LanguageContext 共用：浏览器侧语言偏好（登录前也可持久） */
 const LANGUAGE_STORAGE_KEY = 'gsuid_hub_language';
@@ -34,10 +34,10 @@ function readStoredLanguage(): Language | null {
 // ============================================================================
 
 type ThemeMode = 'light' | 'dark';
-type ThemeStyle = 'solid' | 'glassmorphism' | 'luminous';
+type ThemeStyle = 'solid' | 'glassmorphism' | 'luminous' | 'liquid';
 
 function parseThemeStyle(v: unknown): ThemeStyle | null {
-  if (v === 'solid' || v === 'glassmorphism' || v === 'luminous') return v;
+  if (v === 'solid' || v === 'glassmorphism' || v === 'luminous' || v === 'liquid') return v;
   return null;
 }
 
@@ -60,6 +60,9 @@ const UI_SCALE_DEFAULT = 97;
 const SHADOW_INTENSITY_MIN = 0;
 const SHADOW_INTENSITY_MAX = 200;
 const SHADOW_INTENSITY_DEFAULT = 55;
+const BACKGROUND_BLUR_MIN = 0;
+const BACKGROUND_BLUR_MAX = 40;
+const BACKGROUND_BLUR_DEFAULT = 0;
 
 function clampInt(n: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, Math.round(n)));
@@ -138,6 +141,9 @@ interface ThemeBackgroundContextType {
   setBackgroundImage: (url: string | null, autoSave?: boolean) => void;
   blurIntensity: number;
   setBlurIntensity: (value: number, autoSave?: boolean) => void;
+  /** 背景图模糊（px，0 = 原图）。与毛玻璃强度 blurIntensity 无关。 */
+  backgroundBlur: number;
+  setBackgroundBlur: (value: number, autoSave?: boolean) => void;
   /** Card opacity percentage (0-100). Applies to both solid and glassmorphism styles. */
   cardOpacity: number;
   setCardOpacity: (value: number, autoSave?: boolean) => void;
@@ -357,6 +363,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [color, setColorState] = useState<ThemeColor>('red');
   const [backgroundImage, setBackgroundImageState] = useState<string | null>(null);
   const [blurIntensity, setBlurIntensityState] = useState<number>(12);
+  const [backgroundBlur, setBackgroundBlurState] = useState<number>(
+    () =>
+      readSessionInt('theme_background_blur', BACKGROUND_BLUR_MIN, BACKGROUND_BLUR_MAX) ??
+      BACKGROUND_BLUR_DEFAULT,
+  );
   const [cardOpacity, setCardOpacityState] = useState<number>(25);
   const [iconColor, setIconColorState] = useState<IconColor>('colored');
   const [themePreset, setThemePresetState] = useState<ThemePreset>('default');
@@ -390,6 +401,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     iconColor,
     backgroundImage,
     blurIntensity,
+    backgroundBlur,
     cardOpacity,
     themePreset,
     language,
@@ -409,6 +421,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       iconColor,
       backgroundImage,
       blurIntensity,
+      backgroundBlur,
       cardOpacity,
       themePreset,
       language,
@@ -425,6 +438,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     iconColor,
     backgroundImage,
     blurIntensity,
+    backgroundBlur,
     cardOpacity,
     themePreset,
     language,
@@ -467,6 +481,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
           }
           if (config.blur_intensity !== undefined) {
             setBlurIntensityState(config.blur_intensity);
+          }
+          if (typeof config.background_blur === 'number') {
+            setBackgroundBlurState(
+              clampInt(config.background_blur, BACKGROUND_BLUR_MIN, BACKGROUND_BLUR_MAX),
+            );
           }
           if (config.card_opacity !== undefined && config.card_opacity !== null) {
             setCardOpacityState(config.card_opacity);
@@ -523,6 +542,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       const savedColor = sessionStorage.getItem('theme_color') as ThemeColor;
       const savedBg = sessionStorage.getItem('theme_bg');
       const savedBlur = sessionStorage.getItem('theme_blur');
+      const savedBackgroundBlur = readSessionInt(
+        'theme_background_blur',
+        BACKGROUND_BLUR_MIN,
+        BACKGROUND_BLUR_MAX,
+      );
       const savedCardOpacity = sessionStorage.getItem('theme_card_opacity');
       const savedIconColor = sessionStorage.getItem('theme_icon_color') as IconColor;
       const savedPreset = sessionStorage.getItem('theme_preset') as ThemePreset;
@@ -546,6 +570,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       if (savedColor) setColorState(savedColor);
       if (savedBg) setBackgroundImageState(savedBg);
       if (savedBlur) setBlurIntensityState(parseInt(savedBlur, 10));
+      if (savedBackgroundBlur != null) setBackgroundBlurState(savedBackgroundBlur);
       if (savedCardOpacity) setCardOpacityState(parseInt(savedCardOpacity, 10));
       if (savedIconColor) setIconColorState(savedIconColor);
       if (savedPreset) setThemePresetState(savedPreset);
@@ -593,6 +618,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       // 保存其他设置到sessionStorage
       sessionStorage.setItem('theme_color', color);
       sessionStorage.setItem('theme_preset', themePreset);
+      document.documentElement.setAttribute('data-preset', themePreset);
 
       if (backgroundImage) {
         sessionStorage.setItem('theme_bg', backgroundImage);
@@ -602,6 +628,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
       sessionStorage.setItem('theme_blur', blurIntensity.toString());
       document.documentElement.style.setProperty('--blur-intensity', `${blurIntensity}px`);
+      sessionStorage.setItem('theme_background_blur', String(backgroundBlur));
+      document.documentElement.style.setProperty('--background-blur', `${backgroundBlur}px`);
 
       sessionStorage.setItem('theme_card_opacity', cardOpacity.toString());
       document.documentElement.style.setProperty('--card-opacity', String(cardOpacity / 100));
@@ -641,6 +669,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     themePreset,
     backgroundImage,
     blurIntensity,
+    backgroundBlur,
     cardOpacity,
     iconColor,
     sidebarLayout,
@@ -662,6 +691,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         icon_color: config.iconColor,
         background_image: config.backgroundImage,
         blur_intensity: config.blurIntensity,
+        background_blur: config.backgroundBlur,
         card_opacity: config.cardOpacity,
         theme_preset: config.themePreset,
         language: config.language,
@@ -742,6 +772,17 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       setBlurIntensityState(value);
       if (autoSave && isInitialized) {
         saveToBackend({ blurIntensity: value });
+      }
+    },
+    [isInitialized, saveToBackend],
+  );
+
+  const setBackgroundBlur = useCallback(
+    (value: number, autoSave?: boolean) => {
+      const next = clampInt(value, BACKGROUND_BLUR_MIN, BACKGROUND_BLUR_MAX);
+      setBackgroundBlurState(next);
+      if (autoSave && isInitialized) {
+        saveToBackend({ backgroundBlur: next });
       }
     },
     [isInitialized, saveToBackend],
@@ -838,6 +879,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       icon_color: c.iconColor,
       background_image: c.backgroundImage,
       blur_intensity: c.blurIntensity,
+      background_blur: c.backgroundBlur,
       card_opacity: c.cardOpacity,
       theme_preset: c.themePreset,
       language: c.language,
@@ -870,6 +912,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     }
     if (typeof config.blur_intensity === 'number') {
       setBlurIntensityState(Math.max(0, Math.min(24, config.blur_intensity)));
+    }
+    if (typeof config.background_blur === 'number') {
+      setBackgroundBlurState(
+        clampInt(config.background_blur, BACKGROUND_BLUR_MIN, BACKGROUND_BLUR_MAX),
+      );
     }
     if (typeof config.card_opacity === 'number') {
       setCardOpacityState(Math.max(0, Math.min(100, config.card_opacity)));
@@ -924,6 +971,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       setBackgroundImage,
       blurIntensity,
       setBlurIntensity,
+      backgroundBlur,
+      setBackgroundBlur,
       cardOpacity,
       setCardOpacity,
     }),
@@ -932,6 +981,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       setBackgroundImage,
       blurIntensity,
       setBlurIntensity,
+      backgroundBlur,
+      setBackgroundBlur,
       cardOpacity,
       setCardOpacity,
     ],
@@ -1014,9 +1065,11 @@ export function useTheme() {
     style: styleContext.style,
     isGlass: styleContext.style !== 'solid',
     isLuminous: styleContext.style === 'luminous',
+    isLiquid: styleContext.style === 'liquid',
     color: colorContext.color,
     backgroundImage: backgroundContext.backgroundImage,
     blurIntensity: backgroundContext.blurIntensity,
+    backgroundBlur: backgroundContext.backgroundBlur,
     cardOpacity: backgroundContext.cardOpacity,
     iconColor: iconColorContext.iconColor,
     themePreset: colorContext.themePreset,
@@ -1031,6 +1084,7 @@ export function useTheme() {
     setColor: colorContext.setColor,
     setBackgroundImage: backgroundContext.setBackgroundImage,
     setBlurIntensity: backgroundContext.setBlurIntensity,
+    setBackgroundBlur: backgroundContext.setBackgroundBlur,
     setCardOpacity: backgroundContext.setCardOpacity,
     setIconColor: iconColorContext.setIconColor,
     setThemePreset: colorContext.setThemePreset,

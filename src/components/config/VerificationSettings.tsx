@@ -53,10 +53,11 @@ export default function VerificationSettings() {
   const [showApiKey, setShowApiKey] = useState(false);
 
   const verificationConfig = useMemo(() => {
-    return configs.find(c =>
-      c.name === '验证配置' ||
-      c.full_name === '验证配置' ||
-      c.full_name === verificationConfigName
+    return configs.find(
+      (c) =>
+        c.name === '验证配置' ||
+        c.full_name === '验证配置' ||
+        c.full_name === verificationConfigName,
     );
   }, [configs, verificationConfigName]);
 
@@ -64,13 +65,15 @@ export default function VerificationSettings() {
     try {
       setIsLoading(true);
       const data = await frameworkConfigApi.getFrameworkConfigList('GsCore');
-      const verificationConfigList = data.filter(c => {
+      const verificationConfigList = data.filter((c) => {
         const nameLower = c.name.toLowerCase();
         const fullNameLower = c.full_name.toLowerCase();
-        return nameLower.includes('验证') ||
-               fullNameLower.includes('verify') ||
-               fullNameLower.includes('verification') ||
-               fullNameLower.includes('验证配置');
+        return (
+          nameLower.includes('验证') ||
+          fullNameLower.includes('verify') ||
+          fullNameLower.includes('verification') ||
+          fullNameLower.includes('验证配置')
+        );
       });
 
       if (verificationConfigList.length > 0) {
@@ -79,7 +82,9 @@ export default function VerificationSettings() {
       }
     } catch (error) {
       console.error('Failed to fetch verification config list:', error);
-      toast.error(t('verificationConfig.loadFailed') || 'Unable to load verification configuration');
+      toast.error(
+        t('verificationConfig.loadFailed') || 'Unable to load verification configuration',
+      );
     } finally {
       setIsLoading(false);
     }
@@ -99,28 +104,30 @@ export default function VerificationSettings() {
             value: (data.config._pass_API?.value || '') as string,
             default: (data.config._pass_API?.default || '') as string,
             title: data.config._pass_API?.title || '神奇API',
-            desc: data.config._pass_API?.desc || '设置某种神奇的API'
+            desc: data.config._pass_API?.desc || '设置某种神奇的API',
           },
           CaptchaPass: {
             value: (data.config.CaptchaPass?.value ?? true) as boolean,
             default: (data.config.CaptchaPass?.default ?? true) as boolean,
             title: data.config.CaptchaPass?.title || '失效项',
-            desc: data.config.CaptchaPass?.desc || '该选项已经无效且可能有一定危险性...'
+            desc: data.config.CaptchaPass?.desc || '该选项已经无效且可能有一定危险性...',
           },
           MysPass: {
             value: (data.config.MysPass?.value ?? false) as boolean,
             default: (data.config.MysPass?.default ?? false) as boolean,
             title: data.config.MysPass?.title || '无效项',
-            desc: data.config.MysPass?.desc || '该选项已经无效且可能有一定危险性...'
-          }
-        }
+            desc: data.config.MysPass?.desc || '该选项已经无效且可能有一定危险性...',
+          },
+        },
       };
 
       setConfigs([convertedConfig]);
       setOriginalConfig(JSON.parse(JSON.stringify(convertedConfig.config)));
     } catch (error) {
       console.error('Failed to fetch verification config detail:', error);
-      toast.error(t('verificationConfig.loadFailed') || 'Unable to load verification configuration');
+      toast.error(
+        t('verificationConfig.loadFailed') || 'Unable to load verification configuration',
+      );
     } finally {
       setIsLoadingDetail(false);
     }
@@ -143,24 +150,29 @@ export default function VerificationSettings() {
     }
   }, [verificationConfig?.id, setDirty]);
 
-  const handleChange = useCallback((fieldKey: string, value: string | boolean) => {
-    if (!verificationConfig) return;
+  const handleChange = useCallback(
+    (fieldKey: string, value: string | boolean) => {
+      if (!verificationConfig) return;
 
-    const originalValue = originalConfig[fieldKey as keyof VerificationConfig]?.value;
-    const hasChanged = JSON.stringify(value) !== JSON.stringify(originalValue);
+      const originalValue = originalConfig[fieldKey as keyof VerificationConfig]?.value;
+      const hasChanged = JSON.stringify(value) !== JSON.stringify(originalValue);
 
-    setConfigs(prev => prev.map(c => {
-      if (c.id !== verificationConfig.id) return c;
-      return {
-        ...c,
-        config: {
-          ...c.config,
-          [fieldKey]: { ...c.config[fieldKey as keyof VerificationConfig], value }
-        }
-      };
-    }));
-    setDirty(hasChanged);
-  }, [verificationConfig, originalConfig, setDirty]);
+      setConfigs((prev) =>
+        prev.map((c) => {
+          if (c.id !== verificationConfig.id) return c;
+          return {
+            ...c,
+            config: {
+              ...c.config,
+              [fieldKey]: { ...c.config[fieldKey as keyof VerificationConfig], value },
+            },
+          };
+        }),
+      );
+      setDirty(hasChanged);
+    },
+    [verificationConfig, originalConfig, setDirty],
+  );
 
   const handleSaveConfig = async () => {
     if (!verificationConfig) return;
@@ -179,7 +191,9 @@ export default function VerificationSettings() {
       setDirty(false);
       toast.success(t('verificationConfig.configSaved'));
     } catch (error) {
-      toast.error(t('verificationConfig.saveFailed') || 'Failed to update verification configuration');
+      toast.error(
+        t('verificationConfig.saveFailed') || 'Failed to update verification configuration',
+      );
     } finally {
       setIsSaving(false);
     }
@@ -221,9 +235,7 @@ export default function VerificationSettings() {
             <AlertTriangle className="w-5 h-5" />
             {t('verificationConfig.warning')}
           </div>
-          <p className="text-sm text-amber-600/80 mt-1">
-            {t('verificationConfig.warningDesc')}
-          </p>
+          <p className="text-sm text-amber-600/80 mt-1">{t('verificationConfig.warningDesc')}</p>
         </CardContent>
       </Card>
 
@@ -276,7 +288,10 @@ export default function VerificationSettings() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Badge variant="outline" className="bg-amber-500/20 text-amber-600 border-amber-500/50">
+              <Badge
+                variant="outline"
+                className="bg-amber-500/20 text-amber-600 border-amber-500/50"
+              >
                 {t('verificationConfig.deprecated')}
               </Badge>
               <Switch
@@ -298,7 +313,10 @@ export default function VerificationSettings() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Badge variant="outline" className="bg-amber-500/20 text-amber-600 border-amber-500/50">
+              <Badge
+                variant="outline"
+                className="bg-amber-500/20 text-amber-600 border-amber-500/50"
+              >
                 {t('verificationConfig.deprecated')}
               </Badge>
               <Switch
@@ -312,16 +330,8 @@ export default function VerificationSettings() {
 
       {/* Save Button */}
       <div className="flex justify-end pt-4">
-        <Button
-          onClick={handleSaveConfig}
-          disabled={!isConfigDirty || isSaving}
-          className="gap-2"
-        >
-          {isSaving ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Save className="w-4 h-4" />
-          )}
+        <Button onClick={handleSaveConfig} disabled={!isConfigDirty || isSaving} className="gap-2">
+          {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
           {t('common.save')}
         </Button>
       </div>

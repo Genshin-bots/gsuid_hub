@@ -1,4 +1,47 @@
-import { Home, LayoutDashboard, Database, Settings, FileText, LogOut, Palette, Terminal, Calendar, Store, Cpu, HardDrive, PanelLeftClose, Cog, Power, RotateCw, User, Brain, ChevronDown, ChevronRight, Wrench, Sparkles, BookOpen, History, TrendingUp, Clock, Server, GitBranch, Image as ImageIcon, ScrollText, Layers, ClipboardList, Activity, Wallet, ShieldCheck, Bug, PackageOpen, Send, Users, MessageCircle, FileSearch, Puzzle, Globe } from 'lucide-react';
+import {
+  Home,
+  LayoutDashboard,
+  Database,
+  Settings,
+  FileText,
+  LogOut,
+  Palette,
+  Terminal,
+  Calendar,
+  Store,
+  Cpu,
+  HardDrive,
+  PanelLeftClose,
+  Cog,
+  Power,
+  RotateCw,
+  User,
+  Brain,
+  ChevronDown,
+  ChevronRight,
+  Wrench,
+  Sparkles,
+  BookOpen,
+  History,
+  TrendingUp,
+  Clock,
+  Server,
+  GitBranch,
+  Image as ImageIcon,
+  ScrollText,
+  Layers,
+  ClipboardList,
+  Activity,
+  Wallet,
+  ShieldCheck,
+  Bug,
+  PackageOpen,
+  Send,
+  MessageCircle,
+  FileSearch,
+  Puzzle,
+  Globe,
+} from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -8,11 +51,28 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useAIStatus } from '@/contexts/AIStatusContext';
 import { useBrand } from '@/contexts/BrandContext';
 import { Button } from '@/components/ui/button';
-import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from '@/components/ui/sidebar';
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  useSidebar,
+} from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { LanguageFlag } from '@/components/ui/language-flag';
 import { BrandSettingsDialog } from '@/components/brand/BrandSettingsDialog';
 import { cn } from '@/lib/utils';
@@ -25,12 +85,8 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+} from '@/components/ui/dialog';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useSystemControl } from '@/hooks/useSystemControl';
 import { SidebarHoverIcon, sidebarNavItemGroupClass } from '@/components/layout/SidebarHoverIcon';
 
@@ -46,7 +102,19 @@ interface NavItem {
 }
 
 // 静态导航配置 - 避免每次渲染重新创建
-const NAV_ITEMS_KEYS = ['home', 'dashboard', 'database', 'adminCore', 'logsView', 'aiConfig', 'aiPersona', 'plugins', 'pluginStore', 'gitUpdate', 'consoleManagement'] as const;
+const NAV_ITEMS_KEYS = [
+  'home',
+  'dashboard',
+  'database',
+  'adminCore',
+  'logsView',
+  'aiConfig',
+  'aiPersona',
+  'plugins',
+  'pluginStore',
+  'gitUpdate',
+  'consoleManagement',
+] as const;
 
 // 图标映射 - 使用静态对象避免每次渲染重新创建
 const ICON_MAP: Record<string, React.ElementType> = {
@@ -92,32 +160,75 @@ function filterAdminNav(items: NavItem[], isAdmin: boolean): NavItem[] {
 }
 
 // 导航项配置
-const getNavItems = (t: (key: string) => string, isAIEnabled: boolean, isAdmin: boolean): NavItem[] => {
+const getNavItems = (
+  t: (key: string) => string,
+  isAIEnabled: boolean,
+  isAdmin: boolean,
+): NavItem[] => {
   // AI 配置的子菜单：未启用 AI 时只保留 基础配置 / AI历史调用
   const aiConfigChildren: NavItem[] = isAIEnabled
     ? [
         { id: 'ai-basicConfig', title: t('sidebar.basicConfig'), url: '/ai-config', icon: Cog },
-        { id: 'ai-personaConfig', title: t('sidebar.personaConfig'), url: '/persona-config', icon: User },
+        {
+          id: 'ai-personaConfig',
+          title: t('sidebar.personaConfig'),
+          url: '/persona-config',
+          icon: User,
+        },
         { id: 'ai-budget', title: t('sidebar.aiBudget'), url: '/ai-budget', icon: Wallet },
         { id: 'ai-mcpConfig', title: t('sidebar.mcpConfig'), url: '/mcp-config', icon: Server },
-        { id: 'ai-capabilityAgents', title: t('sidebar.aiCapabilityAgents'), url: '/ai-capability-agents', icon: Layers },
+        {
+          id: 'ai-capabilityAgents',
+          title: t('sidebar.aiCapabilityAgents'),
+          url: '/ai-capability-agents',
+          icon: Layers,
+        },
         { id: 'ai-tools', title: t('sidebar.aiTools'), url: '/ai-tools', icon: Wrench },
         { id: 'ai-skills', title: t('sidebar.aiSkills'), url: '/ai-skills', icon: Sparkles },
-        { id: 'ai-statistics', title: t('sidebar.aiStatistics'), url: '/ai-statistics', icon: TrendingUp },
-        { id: 'ai-scheduledTasks', title: t('sidebar.aiScheduledTasks'), url: '/ai-scheduled-tasks', icon: Clock },
-        { id: 'ai-knowledge', title: t('sidebar.aiKnowledge'), url: '/ai-knowledge', icon: BookOpen },
+        {
+          id: 'ai-statistics',
+          title: t('sidebar.aiStatistics'),
+          url: '/ai-statistics',
+          icon: TrendingUp,
+        },
+        {
+          id: 'ai-scheduledTasks',
+          title: t('sidebar.aiScheduledTasks'),
+          url: '/ai-scheduled-tasks',
+          icon: Clock,
+        },
+        {
+          id: 'ai-knowledge',
+          title: t('sidebar.aiKnowledge'),
+          url: '/ai-knowledge',
+          icon: BookOpen,
+        },
         { id: 'ai-meme', title: t('sidebar.aiMeme'), url: '/ai-meme', icon: ImageIcon },
         { id: 'ai-memory', title: t('sidebar.aiMemory'), url: '/ai-memory', icon: Brain },
         { id: 'ai-history', title: t('sidebar.aiHistory'), url: '/ai-history', icon: ScrollText },
         { id: 'ai-kanban', title: t('sidebar.aiKanban'), url: '/ai-kanban', icon: ClipboardList },
         { id: 'ai-stateStore', title: t('sidebar.stateStore'), url: '/state-store', icon: HardDrive },
-        { id: 'ai-groupProfile', title: t('sidebar.groupProfile'), url: '/group-profile', icon: Users },
-        { id: 'ai-approvals', title: t('sidebar.aiApprovals'), url: '/ai-approvals', icon: ShieldCheck },
+        {
+          id: 'ai-approvals',
+          title: t('sidebar.aiApprovals'),
+          url: '/ai-approvals',
+          icon: ShieldCheck,
+        },
         { id: 'ai-debug', title: t('sidebar.aiDebug'), url: '/ai-debug', icon: Bug },
         { id: 'ai-ops', title: t('sidebar.aiOps'), url: '/ai-ops', icon: Activity },
         { id: 'ai-runtime', title: t('sidebar.aiRuntime'), url: '/ai-runtime', icon: Puzzle },
-        { id: 'ai-artifacts', title: t('sidebar.aiArtifacts'), url: '/ai-artifacts', icon: PackageOpen },
-        { id: 'ai-tool-outputs', title: t('sidebar.aiToolOutputs'), url: '/ai-tool-outputs', icon: FileSearch },
+        {
+          id: 'ai-artifacts',
+          title: t('sidebar.aiArtifacts'),
+          url: '/ai-artifacts',
+          icon: PackageOpen,
+        },
+        {
+          id: 'ai-tool-outputs',
+          title: t('sidebar.aiToolOutputs'),
+          url: '/ai-tool-outputs',
+          icon: FileSearch,
+        },
       ]
     : [
         { id: 'ai-basicConfig', title: t('sidebar.basicConfig'), url: '/ai-config', icon: Cog },
@@ -127,17 +238,41 @@ const getNavItems = (t: (key: string) => string, isAIEnabled: boolean, isAdmin: 
   const items: NavItem[] = [
     { id: 'home', title: t('sidebar.home'), url: '/home', icon: Home },
     { id: 'dashboard', title: t('sidebar.dashboard'), url: '/dashboard', icon: LayoutDashboard },
-    { id: 'database', title: t('sidebar.database'), url: '/database', icon: Database, adminOnly: true },
+    {
+      id: 'database',
+      title: t('sidebar.database'),
+      url: '/database',
+      icon: Database,
+      adminOnly: true,
+    },
     {
       id: 'adminCore',
       title: t('sidebar.adminCore'),
       icon: Cog,
       children: [
-        { id: 'coreConfig', title: t('sidebar.coreConfig'), url: '/core-config', icon: Cog, adminOnly: true },
-        { id: 'frameworkConfig', title: t('sidebar.frameworkConfig'), url: '/framework-config', icon: Cpu, adminOnly: true },
-        { id: 'backup', title: t('sidebar.backup'), url: '/backup', icon: HardDrive, adminOnly: true },
-        { id: 'scheduler', title: t('sidebar.scheduler'), url: '/scheduler', icon: Calendar }
-      ]
+        {
+          id: 'coreConfig',
+          title: t('sidebar.coreConfig'),
+          url: '/core-config',
+          icon: Cog,
+          adminOnly: true,
+        },
+        {
+          id: 'frameworkConfig',
+          title: t('sidebar.frameworkConfig'),
+          url: '/framework-config',
+          icon: Cpu,
+          adminOnly: true,
+        },
+        {
+          id: 'backup',
+          title: t('sidebar.backup'),
+          url: '/backup',
+          icon: HardDrive,
+          adminOnly: true,
+        },
+        { id: 'scheduler', title: t('sidebar.scheduler'), url: '/scheduler', icon: Calendar },
+      ],
     },
     {
       id: 'logsView',
@@ -148,10 +283,21 @@ const getNavItems = (t: (key: string) => string, isAIEnabled: boolean, isAdmin: 
         { id: 'historyLogs', title: t('sidebar.historyLogs'), url: '/logs', icon: FileText },
         { id: 'traces', title: t('sidebar.traces'), url: '/traces', icon: Activity },
         { id: 'httpTraces', title: t('sidebar.httpTraces'), url: '/http-traces', icon: Globe },
-        { id: 'sessionManagement', title: t('sidebar.sessionManagement'), url: '/session-management', icon: History },
+        {
+          id: 'sessionManagement',
+          title: t('sidebar.sessionManagement'),
+          url: '/session-management',
+          icon: History,
+        },
         { id: 'liveChat', title: t('sidebar.liveChat'), url: '/live-chat', icon: MessageCircle },
-        { id: 'batchPush', title: t('sidebar.batchPush'), url: '/batch-push', icon: Send, adminOnly: true }
-      ]
+        {
+          id: 'batchPush',
+          title: t('sidebar.batchPush'),
+          url: '/batch-push',
+          icon: Send,
+          adminOnly: true,
+        },
+      ],
     },
     {
       id: 'aiConfig',
@@ -159,7 +305,13 @@ const getNavItems = (t: (key: string) => string, isAIEnabled: boolean, isAdmin: 
       icon: Brain,
       children: aiConfigChildren,
     },
-    { id: 'plugins', title: t('sidebar.plugins'), url: '/plugins', icon: Settings, adminOnly: true },
+    {
+      id: 'plugins',
+      title: t('sidebar.plugins'),
+      url: '/plugins',
+      icon: Settings,
+      adminOnly: true,
+    },
     { id: 'pluginStore', title: t('sidebar.pluginStore'), url: '/plugin-store', icon: Store },
     { id: 'gitUpdate', title: t('sidebar.gitUpdate'), url: '/git-update', icon: GitBranch },
     {
@@ -168,10 +320,20 @@ const getNavItems = (t: (key: string) => string, isAIEnabled: boolean, isAdmin: 
       icon: Settings,
       children: [
         { id: 'themes', title: t('sidebar.themes'), url: '/themes', icon: Palette },
-        { id: 'brandSettings', title: t('sidebar.brandSettings'), url: '/brand-settings', icon: ImageIcon },
-        { id: 'accountSettings', title: t('sidebar.accountSettings'), url: '/settings', icon: User }
-      ]
-    }
+        {
+          id: 'brandSettings',
+          title: t('sidebar.brandSettings'),
+          url: '/brand-settings',
+          icon: ImageIcon,
+        },
+        {
+          id: 'accountSettings',
+          title: t('sidebar.accountSettings'),
+          url: '/settings',
+          icon: User,
+        },
+      ],
+    },
   ];
   return filterAdminNav(items, isAdmin);
 };
@@ -192,7 +354,7 @@ const MemoizedNavItem = memo(function MemoizedNavItem({
   isExpanded,
   onToggle,
   iconStyle,
-  iconClass
+  iconClass,
 }: NavItemProps) {
   const location = useLocation();
   const hasChildren = item.children && item.children.length > 0;
@@ -203,7 +365,7 @@ const MemoizedNavItem = memo(function MemoizedNavItem({
   const isItemActive = useMemo(() => {
     if (!hasChildren || !item.children) return false;
     const currentPath = location.pathname;
-    return item.children.some(child => {
+    return item.children.some((child) => {
       if (!child.url) return false;
       return currentPath === child.url || currentPath.startsWith(child.url + '/');
     });
@@ -222,11 +384,11 @@ const MemoizedNavItem = memo(function MemoizedNavItem({
                 tooltip={item.title}
                 className={cn(
                   sidebarNavItemGroupClass,
-                  "flex items-center rounded-lg transition-all cursor-pointer",
-                  "justify-center w-10 h-10 p-0",
-                  "hover:bg-primary/10",
+                  'flex items-center rounded-lg transition-all cursor-pointer',
+                  'justify-center w-10 h-10 p-0',
+                  'hover:bg-primary/10',
                   // 父菜单处于激活态时（任一子菜单被激活），使用与子菜单激活态一致的明显样式
-                  isItemActive && "bg-primary/20 text-primary font-medium shadow-sm"
+                  isItemActive && 'bg-primary/20 text-primary font-medium shadow-sm',
                 )}
               >
                 {item.icon && (
@@ -243,15 +405,22 @@ const MemoizedNavItem = memo(function MemoizedNavItem({
               <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground border-b border-border/50 mb-1">
                 {item.title}
               </div>
-              {item.children?.map(child => (
+              {item.children?.map((child) => (
                 <DropdownMenuItem key={child.id} asChild>
                   <NavLink
                     to={child.url || '#'}
-                    className={cn(sidebarNavItemGroupClass, "cursor-pointer flex items-center gap-2 py-2")}
+                    className={cn(
+                      sidebarNavItemGroupClass,
+                      'cursor-pointer flex items-center gap-2 py-2',
+                    )}
                     activeClassName="bg-accent text-accent-foreground font-medium"
                   >
                     {child.icon && (
-                      <SidebarHoverIcon icon={child.icon} className="w-4 h-4 shrink-0" style={iconStyle} />
+                      <SidebarHoverIcon
+                        icon={child.icon}
+                        className="w-4 h-4 shrink-0"
+                        style={iconStyle}
+                      />
                     )}
                     <span>{child.title}</span>
                   </NavLink>
@@ -265,48 +434,50 @@ const MemoizedNavItem = memo(function MemoizedNavItem({
 
     // 展开状态：使用 Collapsible 正常显示子菜单
     return (
-      <Collapsible
-        open={isExpanded}
-        onOpenChange={onToggle}
-        className="w-full"
-      >
+      <Collapsible open={isExpanded} onOpenChange={onToggle} className="w-full">
         <SidebarMenuItem className="w-full">
           <CollapsibleTrigger asChild>
             <SidebarMenuButton
               tooltip={item.title}
               className={cn(
                 sidebarNavItemGroupClass,
-                "flex items-center rounded-lg transition-all cursor-pointer",
-                "gap-3 px-3 py-2.5 w-full",
-                "hover:bg-primary/10"
+                'flex items-center rounded-lg transition-all cursor-pointer',
+                'gap-3 px-3 py-2.5 w-full',
+                'hover:bg-primary/10',
               )}
             >
               {item.icon && (
                 <SidebarHoverIcon icon={item.icon} className={iconClass} style={iconStyle} />
               )}
               <span className="flex-1 text-left">{item.title}</span>
-              {isExpanded
-                ? <SidebarHoverIcon icon={ChevronDown} className={iconClass} style={iconStyle} />
-                : <SidebarHoverIcon icon={ChevronRight} className={iconClass} style={iconStyle} />}
+              {isExpanded ? (
+                <SidebarHoverIcon icon={ChevronDown} className={iconClass} style={iconStyle} />
+              ) : (
+                <SidebarHoverIcon icon={ChevronRight} className={iconClass} style={iconStyle} />
+              )}
             </SidebarMenuButton>
           </CollapsibleTrigger>
           <CollapsibleContent>
             <SidebarMenu className="ml-2 mt-1 border-l-2 border-primary/20 pl-2">
-              {item.children?.map(child => (
+              {item.children?.map((child) => (
                 <SidebarMenuItem key={child.id} className="w-full">
                   <SidebarMenuButton asChild tooltip={child.title}>
                     <NavLink
                       to={child.url || '#'}
                       className={cn(
                         sidebarNavItemGroupClass,
-                        "flex items-center rounded-lg transition-all",
-                        "gap-3 px-3 py-2",
-                        "hover:bg-primary/10"
+                        'flex items-center rounded-lg transition-all',
+                        'gap-3 px-3 py-2',
+                        'hover:bg-primary/10',
                       )}
                       activeClassName="bg-primary/20 text-primary font-medium shadow-sm"
                     >
                       {child.icon && (
-                        <SidebarHoverIcon icon={child.icon} className="w-4 h-4 shrink-0" style={iconStyle} />
+                        <SidebarHoverIcon
+                          icon={child.icon}
+                          className="w-4 h-4 shrink-0"
+                          style={iconStyle}
+                        />
                       )}
                       <span>{child.title}</span>
                     </NavLink>
@@ -321,15 +492,15 @@ const MemoizedNavItem = memo(function MemoizedNavItem({
   }
 
   return (
-    <SidebarMenuItem className={cn(isCollapsed ? "w-auto" : "w-full")}>
+    <SidebarMenuItem className={cn(isCollapsed ? 'w-auto' : 'w-full')}>
       <SidebarMenuButton asChild tooltip={item.title}>
         <NavLink
           to={item.url || '#'}
           className={cn(
             sidebarNavItemGroupClass,
-            "flex items-center rounded-lg transition-all",
-            isCollapsed ? "justify-center w-10 h-10 p-0" : "gap-3 px-3 py-2.5",
-            "hover:bg-primary/10"
+            'flex items-center rounded-lg transition-all',
+            isCollapsed ? 'justify-center w-10 h-10 p-0' : 'gap-3 px-3 py-2.5',
+            'hover:bg-primary/10',
           )}
           activeClassName="bg-primary/20 text-primary font-medium shadow-sm"
         >
@@ -398,9 +569,9 @@ export function AppSidebar() {
 
   const toggleExpanded = (id: string) => {
     const willExpand = !expandedItems[id];
-    setExpandedItems(prev => ({
+    setExpandedItems((prev) => ({
       ...prev,
-      [id]: willExpand
+      [id]: willExpand,
     }));
     // 展开 AI 配置菜单时，重新从后端校验 AI 是否启动，
     // 以保证未点击 /ai-config 时也能显示完整的 AI 子菜单
@@ -414,13 +585,13 @@ export function AppSidebar() {
     if (isInitialMount.current) {
       isInitialMount.current = false;
       const currentPath = location.pathname;
-      navItems.forEach(item => {
+      navItems.forEach((item) => {
         if (item.children) {
-          const hasActiveChild = item.children.some(child =>
-            currentPath === child.url || currentPath.startsWith((child.url || '') + '/')
+          const hasActiveChild = item.children.some(
+            (child) => currentPath === child.url || currentPath.startsWith((child.url || '') + '/'),
           );
           if (hasActiveChild) {
-            setExpandedItems(prev => ({ ...prev, [item.id]: true }));
+            setExpandedItems((prev) => ({ ...prev, [item.id]: true }));
           }
         }
       });
@@ -437,7 +608,7 @@ export function AppSidebar() {
     return { color: 'hsl(var(--primary))', stroke: 'hsl(var(--primary))' };
   }, [iconColor]);
 
-  const iconClass = "w-5 h-5 shrink-0";
+  const iconClass = 'w-5 h-5 shrink-0';
 
   // 侧边栏布局：floating=悬浮卡片 / docked=贴边玻璃面板 / line=仅分割线
   const sidebarVariant = sidebarLayout === 'floating' ? 'floating' : 'sidebar';
@@ -449,21 +620,22 @@ export function AppSidebar() {
         : 'glass-sidebar';
 
   return (
-    <Sidebar
-      variant={sidebarVariant}
-      collapsible="icon"
-      className={sidebarChromeClass}
-    >
-      <SidebarHeader className={cn("p-4", isCollapsed && "flex flex-col items-center")}>
-        <div className={cn("flex items-center w-full", isCollapsed ? "justify-center" : "justify-between gap-2")}>
+    <Sidebar variant={sidebarVariant} collapsible="icon" className={sidebarChromeClass}>
+      <SidebarHeader className={cn(isCollapsed ? 'items-center px-0 py-3' : 'p-4')}>
+        <div
+          className={cn(
+            'flex w-full items-center',
+            isCollapsed ? 'justify-center' : 'justify-between gap-2',
+          )}
+        >
           <button
             type="button"
             // 收起时：点击 ICON = 展开侧边栏
             // 展开时：点击 ICON = 打开品牌配置
             onClick={isCollapsed ? toggleSidebar : () => setShowBrandDialog(true)}
             className={cn(
-              "flex items-center group/brand rounded-lg p-1 -ml-1 transition-colors hover:bg-primary/10 shrink-0 min-w-0 text-left",
-              isCollapsed ? "justify-center" : "gap-3"
+              'group/brand flex shrink-0 items-center rounded-lg text-left transition-colors hover:bg-primary/10',
+              isCollapsed ? 'h-8 w-8 justify-center p-0' : 'min-w-0 gap-3 p-1 -ml-1',
             )}
             // 收起时 hover 提示改为"展开侧边栏"，与新职责一致
             title={isCollapsed ? t('sidebar.expandSidebar') : t('brand.editBrand')}
@@ -472,16 +644,16 @@ export function AppSidebar() {
             {/* 收起时 ICON 缩小到 75%（40 → 30 px），留出 hover 热区 */}
             <div
               className={cn(
-                "flex items-center justify-center shrink-0 overflow-hidden transition-all duration-300 ease-out-soft",
-                isCollapsed ? "w-[30px] h-[30px]" : "w-10 h-10"
+                'flex items-center justify-center shrink-0 overflow-hidden transition-all duration-300 ease-out-soft',
+                isCollapsed ? 'w-[30px] h-[30px]' : 'w-10 h-10',
               )}
             >
               <img
                 src={brandIconUrl}
                 alt={brandTitle}
                 className={cn(
-                  "object-contain transition-all duration-300 ease-out-soft",
-                  isCollapsed ? "w-[30px] h-[30px]" : "w-10 h-10"
+                  'object-contain transition-all duration-300 ease-out-soft',
+                  isCollapsed ? 'w-[30px] h-[30px]' : 'w-10 h-10',
                 )}
                 key={brandIconUrl}
               />
@@ -489,15 +661,22 @@ export function AppSidebar() {
             {/* 标题/副标题：收起时折叠为宽度 0 + 透明，与 sidebar 宽度动画同步淡出 */}
             <div
               className={cn(
-                "flex flex-col items-start min-w-0 overflow-hidden transition-all duration-300 ease-out-soft",
-                isCollapsed ? "max-w-0 opacity-0 ml-0" : "max-w-[200px] opacity-100"
+                'flex flex-col items-start min-w-0 overflow-hidden transition-all duration-300 ease-out-soft',
+                isCollapsed ? 'max-w-0 opacity-0 ml-0' : 'max-w-[200px] opacity-100',
               )}
             >
               <div className="flex items-center gap-1 whitespace-nowrap">
                 <span className="font-bold text-lg">{brandTitle}</span>
-                <Badge variant="default" className="text-xs font-medium shrink-0">v{import.meta.env.PACKAGE_VERSION || '0.3.1'}</Badge>
+                <Badge
+                  variant="secondary"
+                  className="text-xs font-mono font-medium shrink-0 bg-muted/80 text-foreground border border-border/50"
+                >
+                  v{import.meta.env.PACKAGE_VERSION || PACKAGE_VERSION || '0.3.1'}
+                </Badge>
               </div>
-              <span className="text-xs text-muted-foreground whitespace-nowrap">{brandSubtitle}</span>
+              <span className="text-xs text-muted-foreground whitespace-nowrap">
+                {brandSubtitle}
+              </span>
             </div>
           </button>
           {/* 折叠按钮：宽度/透明度同步过渡，避免突然消失 */}
@@ -505,8 +684,8 @@ export function AppSidebar() {
             onClick={toggleSidebar}
             className={cn(
               sidebarNavItemGroupClass,
-              "h-8 flex items-center justify-center rounded-lg hover:bg-primary/10 transition-all duration-300 ease-out-soft text-muted-foreground hover:text-foreground shrink-0 overflow-hidden",
-              isCollapsed ? "w-0 opacity-0 pointer-events-none" : "w-8 opacity-100"
+              'h-8 flex items-center justify-center rounded-lg hover:bg-primary/10 transition-all duration-300 ease-out-soft text-muted-foreground hover:text-foreground shrink-0 overflow-hidden',
+              isCollapsed ? 'w-0 opacity-0 pointer-events-none' : 'w-8 opacity-100',
             )}
             aria-label={t('sidebar.collapseSidebar')}
             tabIndex={isCollapsed ? -1 : 0}
@@ -518,16 +697,16 @@ export function AppSidebar() {
 
       <Separator className="opacity-30 mx-2" />
 
-      <SidebarContent className={cn(isCollapsed ? "px-1" : "p-2")}>
-        <SidebarGroup className={cn(isCollapsed && "p-0")}>
+      <SidebarContent className={cn(isCollapsed ? 'px-1' : 'p-2')}>
+        <SidebarGroup className={cn(isCollapsed && 'p-0')}>
           {!isCollapsed && (
             <SidebarGroupLabel className="text-muted-foreground/70">
               {t('sidebar.navMenu')}
             </SidebarGroupLabel>
           )}
           <SidebarGroupContent>
-            <SidebarMenu className={cn(isCollapsed && "items-center")}>
-              {navItems.map(item => (
+            <SidebarMenu className={cn(isCollapsed && 'items-center')}>
+              {navItems.map((item) => (
                 <MemoizedNavItem
                   key={item.id}
                   item={item}
@@ -543,11 +722,14 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className={cn("p-4", isCollapsed && "flex flex-col items-center")}>
+      <SidebarFooter className={cn(isCollapsed ? 'items-center px-0 py-3' : 'p-4')}>
         <Separator className="mb-4 opacity-30" />
 
         <div
-          className={cn("flex items-center mb-3 cursor-pointer hover:opacity-80 transition-opacity", isCollapsed ? "justify-center" : "gap-3")}
+          className={cn(
+            'flex items-center mb-3 cursor-pointer hover:opacity-80 transition-opacity',
+            isCollapsed ? 'w-full justify-center' : 'gap-3',
+          )}
           onClick={() => navigate('/settings')}
           title={t('sidebar.settings')}
         >
@@ -578,15 +760,19 @@ export function AppSidebar() {
               variant="ghost"
               size={isCollapsed ? 'icon' : 'default'}
               className={cn(
-                "hover:text-primary hover:bg-primary/10 transition-colors",
-                isCollapsed ? "w-auto justify-center" : "w-full justify-start gap-2"
+                'hover:text-primary hover:bg-primary/10 transition-colors',
+                isCollapsed ? 'w-auto justify-center' : 'w-full justify-start gap-2',
               )}
             >
               {(() => {
                 const currentLanguage = availableLanguages.find((lang) => lang.code === language);
                 return currentLanguage ? <LanguageFlag code={currentLanguage.flagCode} /> : null;
               })()}
-              {!isCollapsed && <span>{availableLanguages.find((lang) => lang.code === language)?.name ?? language}</span>}
+              {!isCollapsed && (
+                <span>
+                  {availableLanguages.find((lang) => lang.code === language)?.name ?? language}
+                </span>
+              )}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
@@ -594,7 +780,7 @@ export function AppSidebar() {
               <DropdownMenuItem
                 key={lang.code}
                 onClick={() => setLanguage(lang.code)}
-                className={cn("cursor-pointer gap-2", language === lang.code && "bg-accent")}
+                className={cn('cursor-pointer gap-2', language === lang.code && 'bg-accent')}
               >
                 <LanguageFlag code={lang.flagCode} />
                 <span>{lang.name}</span>
@@ -604,39 +790,43 @@ export function AppSidebar() {
         </DropdownMenu>
 
         {isAdmin && (
-        <Button
-          variant="ghost"
-          size={isCollapsed ? 'icon' : 'default'}
-          onClick={() => setShowPauseDialog(true)}
-          title={isPaused ? t('sidebar.resumeGsCore') : t('sidebar.pauseGsCore')}
-          className={cn(
-            sidebarNavItemGroupClass,
-            "hover:text-yellow-500 hover:bg-yellow-500/10 transition-colors",
-            isCollapsed ? "w-auto justify-center" : "w-full justify-start gap-2"
-          )}
-        >
-          {isPaused
-            ? <SidebarHoverIcon icon={RotateCw} className="w-4 h-4" />
-            : <SidebarHoverIcon icon={Power} className="w-4 h-4" />}
-          {!isCollapsed && <span>{isPaused ? t('sidebar.resumeGsCore') : t('sidebar.pauseGsCore')}</span>}
-        </Button>
+          <Button
+            variant="ghost"
+            size={isCollapsed ? 'icon' : 'default'}
+            onClick={() => setShowPauseDialog(true)}
+            title={isPaused ? t('sidebar.resumeGsCore') : t('sidebar.pauseGsCore')}
+            className={cn(
+              sidebarNavItemGroupClass,
+              'hover:text-yellow-500 hover:bg-yellow-500/10 transition-colors',
+              isCollapsed ? 'w-auto justify-center' : 'w-full justify-start gap-2',
+            )}
+          >
+            {isPaused ? (
+              <SidebarHoverIcon icon={RotateCw} className="w-4 h-4" />
+            ) : (
+              <SidebarHoverIcon icon={Power} className="w-4 h-4" />
+            )}
+            {!isCollapsed && (
+              <span>{isPaused ? t('sidebar.resumeGsCore') : t('sidebar.pauseGsCore')}</span>
+            )}
+          </Button>
         )}
 
         {isAdmin && (
-        <Button
-          variant="ghost"
-          size={isCollapsed ? 'icon' : 'default'}
-          onClick={() => setShowRestartDialog(true)}
-          title={t('sidebar.restartGsCore')}
-          className={cn(
-            sidebarNavItemGroupClass,
-            "hover:text-orange-500 hover:bg-orange-500/10 transition-colors",
-            isCollapsed ? "w-auto justify-center" : "w-full justify-start gap-2"
-          )}
-        >
-          <SidebarHoverIcon icon={Power} className="w-4 h-4" />
-          {!isCollapsed && <span>{t('sidebar.restartGsCore')}</span>}
-        </Button>
+          <Button
+            variant="ghost"
+            size={isCollapsed ? 'icon' : 'default'}
+            onClick={() => setShowRestartDialog(true)}
+            title={t('sidebar.restartGsCore')}
+            className={cn(
+              sidebarNavItemGroupClass,
+              'hover:text-orange-500 hover:bg-orange-500/10 transition-colors',
+              isCollapsed ? 'w-auto justify-center' : 'w-full justify-start gap-2',
+            )}
+          >
+            <SidebarHoverIcon icon={Power} className="w-4 h-4" />
+            {!isCollapsed && <span>{t('sidebar.restartGsCore')}</span>}
+          </Button>
         )}
 
         <Button
@@ -645,8 +835,8 @@ export function AppSidebar() {
           onClick={logout}
           className={cn(
             sidebarNavItemGroupClass,
-            "hover:text-destructive hover:bg-destructive/10 transition-colors",
-            isCollapsed ? "w-auto justify-center" : "w-full justify-start gap-2"
+            'hover:text-destructive hover:bg-destructive/10 transition-colors',
+            isCollapsed ? 'w-auto justify-center' : 'w-full justify-start gap-2',
           )}
         >
           <SidebarHoverIcon icon={LogOut} className="w-4 h-4" />
@@ -664,9 +854,7 @@ export function AppSidebar() {
                   <RotateCw className="w-5 h-5 animate-spin text-green-500" />
                   {t('sidebar.restartSuccess')}
                 </DialogTitle>
-                <DialogDescription>
-                  {t('sidebar.restartSuccessDesc')}
-                </DialogDescription>
+                <DialogDescription>{t('sidebar.restartSuccessDesc')}</DialogDescription>
               </>
             ) : isRestarting ? (
               <>
@@ -674,9 +862,7 @@ export function AppSidebar() {
                   <RotateCw className="w-5 h-5 animate-spin" />
                   {t('sidebar.restartSystem')}
                 </DialogTitle>
-                <DialogDescription>
-                  {t('sidebar.restartingDesc')}
-                </DialogDescription>
+                <DialogDescription>{t('sidebar.restartingDesc')}</DialogDescription>
               </>
             ) : (
               <>
@@ -742,7 +928,9 @@ export function AppSidebar() {
               </>
             ) : (
               <>
-                <DialogTitle>{isPaused ? t('sidebar.confirmResumeTitle') : t('sidebar.confirmPauseTitle')}</DialogTitle>
+                <DialogTitle>
+                  {isPaused ? t('sidebar.confirmResumeTitle') : t('sidebar.confirmPauseTitle')}
+                </DialogTitle>
                 <DialogDescription className="text-red-500 italic">
                   {isPaused ? t('sidebar.confirmResumeDesc') : t('sidebar.confirmPauseDesc')}
                 </DialogDescription>

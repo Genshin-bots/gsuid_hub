@@ -12,10 +12,7 @@ import {
 import { EmptyState } from '../shared/EmptyState';
 import { cn } from '@/lib/utils';
 import { Server } from 'lucide-react';
-import {
-  ModelBrandIcon,
-  ProviderBrandIcon,
-} from '@/components/ui/model-brand-icon';
+import { ModelBrandIcon, ProviderBrandIcon } from '@/components/ui/model-brand-icon';
 import type { AllConfigItem } from '@/lib/api';
 
 export interface ManageConfigDialogProps {

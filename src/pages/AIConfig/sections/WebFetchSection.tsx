@@ -76,18 +76,13 @@ function ConfigBlock({
     <div
       className={cn(
         'rounded-lg border p-4 space-y-3',
-        isPrimary
-          ? 'border-primary/30 bg-primary/5'
-          : 'border-dashed border-border/60 bg-muted/20',
+        isPrimary ? 'border-primary/30 bg-primary/5' : 'border-dashed border-border/60 bg-muted/20',
       )}
     >
       <div className="flex items-center gap-2 min-w-0">
         <Badge
           variant={isPrimary ? 'default' : 'outline'}
-          className={cn(
-            'shrink-0 text-[10px] h-5 px-1.5',
-            !isPrimary && 'text-muted-foreground',
-          )}
+          className={cn('shrink-0 text-[10px] h-5 px-1.5', !isPrimary && 'text-muted-foreground')}
         >
           {roleLabel}
         </Badge>
@@ -141,10 +136,7 @@ export function WebFetchSection({
     webfetchLbStrategy === 'error_switch' || webfetchLbStrategy === 'auto_balance';
 
   /** 下方配置块 / Chip 已选展示：不含当前主用（大小写不敏感） */
-  const effectiveFallbacks = filterOutPrimaryProvider(
-    webfetchFallbackOrder,
-    primary,
-  );
+  const effectiveFallbacks = filterOutPrimaryProvider(webfetchFallbackOrder, primary);
 
   const fallbackChipValue = effectiveFallbacks;
 
@@ -171,19 +163,14 @@ export function WebFetchSection({
           config={jinaConfig.config}
           configId={jinaConfig.id}
           onChange={onUpdateConfig}
-          layout={[
-            ['api_key'],
-            ['timeout', 'reader_base_url'],
-          ]}
+          layout={[['api_key'], ['timeout', 'reader_base_url']]}
         />
       );
     }
     // local
     if (!webFetchConfig) {
       return (
-        <p className="text-sm text-muted-foreground">
-          {t('aiConfig.webFetch.configNotLoaded')}
-        </p>
+        <p className="text-sm text-muted-foreground">{t('aiConfig.webFetch.configNotLoaded')}</p>
       );
     }
     return (
@@ -213,11 +200,7 @@ export function WebFetchSection({
         <LabelWithHelp
           icon={<Layers className="w-3.5 h-3.5 text-muted-foreground" />}
           label={t('aiConfig.webFetch.primaryProvider')}
-          description={
-            isJina
-              ? t('aiConfig.webFetch.jinaHint')
-              : t('aiConfig.webFetch.localHint')
-          }
+          description={isJina ? t('aiConfig.webFetch.jinaHint') : t('aiConfig.webFetch.localHint')}
           className="text-xs font-medium text-muted-foreground"
         />
         <ChipGroup
@@ -247,9 +230,7 @@ export function WebFetchSection({
             icon: STRATEGY_ICONS[s] ?? <GitBranch className="w-3.5 h-3.5" />,
           }))}
           value={[webfetchLbStrategy || 'error_switch']}
-          onValueChange={(newValue) =>
-            onChangeLbStrategy(newValue[0] || 'error_switch')
-          }
+          onValueChange={(newValue) => onChangeLbStrategy(newValue[0] || 'error_switch')}
           selectMode="single"
           showRadioIndicator
         />
@@ -269,9 +250,7 @@ export function WebFetchSection({
               const base = providerLabel(p);
               return {
                 value: p,
-                label: isPrimary
-                  ? `${base} (${t('aiConfig.serviceProvider.rolePrimary')})`
-                  : base,
+                label: isPrimary ? `${base} (${t('aiConfig.serviceProvider.rolePrimary')})` : base,
                 icon: getFetchProviderIcon(p),
                 disabled: isPrimary,
               };
@@ -279,9 +258,7 @@ export function WebFetchSection({
             value={fallbackChipValue}
             onValueChange={(visibleSelected) => {
               // 绝不把当前主用写入 fallback_order
-              onChangeFallbackOrder(
-                filterOutPrimaryProvider(visibleSelected, primary),
-              );
+              onChangeFallbackOrder(filterOutPrimaryProvider(visibleSelected, primary));
             }}
             selectMode="multiple"
             allowEmpty

@@ -8,28 +8,13 @@
  * 错误回显统一用 getApiErrorMessage（[§01 §1.5](.agents/skills/gshub-development/references/01-architecture-and-conventions.md)）。
  */
 import { useEffect, useRef, useState } from 'react';
-import {
-  Check,
-  Clock,
-  Copy,
-  Download,
-  Eye,
-  PackageOpen,
-  RefreshCw,
-  Trash2,
-} from 'lucide-react';
+import { Check, Clock, Copy, Download, Eye, PackageOpen, RefreshCw, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -51,11 +36,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { PinnedPage } from '@/components/layout/PinnedPage';
-import {
-  aiArtifactsApi,
-  getApiErrorMessage,
-  type AIArtifactItem,
-} from '@/lib/api';
+import { aiArtifactsApi, getApiErrorMessage, type AIArtifactItem } from '@/lib/api';
 
 function formatBytes(n: number) {
   if (n < 1024) return `${n} B`;
@@ -82,11 +63,7 @@ function MetaRow({
     <div className={`flex items-baseline gap-2 min-w-0 ${className ?? ''}`}>
       <dt className="shrink-0 text-muted-foreground">{label}</dt>
       <dd
-        className={
-          mono
-            ? 'font-mono truncate min-w-0 flex-1'
-            : 'truncate min-w-0 flex-1'
-        }
+        className={mono ? 'font-mono truncate min-w-0 flex-1' : 'truncate min-w-0 flex-1'}
         title={value}
       >
         {value}
@@ -150,10 +127,7 @@ export default function AIArtifactsPage() {
       // 全量浏览失败 → 降级为空列表并提示（与原逻辑一致）
       if (useAll) {
         setItems([]);
-        console.warn(
-          '[AIArtifacts] global list unavailable, backend may need upgrade:',
-          e,
-        );
+        console.warn('[AIArtifacts] global list unavailable, backend may need upgrade:', e);
       } else {
         toast.error(getApiErrorMessage(e, t('aiArtifacts.messages.loadFail')));
       }
@@ -187,9 +161,7 @@ export default function AIArtifactsPage() {
     setDetail(null);
     try {
       const data = await aiArtifactsApi.getDetail(id);
-      const kind =
-        data.payload_kind ||
-        (data.mime?.startsWith('image/') ? 'image' : 'text');
+      const kind = data.payload_kind || (data.mime?.startsWith('image/') ? 'image' : 'text');
       setDetail({
         item: data,
         payloadPreview: data.payload_preview ?? null,
@@ -290,15 +262,9 @@ export default function AIArtifactsPage() {
               <PackageOpen className="w-8 h-8 shrink-0" />
               {t('aiArtifacts.title')}
             </h1>
-            <p className="text-muted-foreground mt-1">
-              {t('aiArtifacts.description')}
-            </p>
+            <p className="text-muted-foreground mt-1">{t('aiArtifacts.description')}</p>
           </div>
-          <Button
-            variant="outline"
-            className="w-full sm:w-auto sm:shrink-0"
-            onClick={load}
-          >
+          <Button variant="outline" className="w-full sm:w-auto sm:shrink-0" onClick={load}>
             <RefreshCw className="w-4 h-4" />
             {t('aiArtifacts.toolbar.refresh')}
           </Button>
@@ -332,10 +298,7 @@ export default function AIArtifactsPage() {
             </div>
           </div>
           <div className="flex items-center gap-2 pb-1.5">
-            <Switch
-              checked={includeExpired}
-              onCheckedChange={setIncludeExpired}
-            />
+            <Switch checked={includeExpired} onCheckedChange={setIncludeExpired} />
             <Label>{t('aiArtifacts.toolbar.includeExpired')}</Label>
           </div>
         </div>
@@ -366,18 +329,12 @@ export default function AIArtifactsPage() {
                   <TableHead>{t('aiArtifacts.table.profile')}</TableHead>
                   <TableHead>{t('aiArtifacts.table.size')}</TableHead>
                   <TableHead>{t('aiArtifacts.table.expiresAt')}</TableHead>
-                  <TableHead className="text-right">
-                    {t('aiArtifacts.table.actions')}
-                  </TableHead>
+                  <TableHead className="text-right">{t('aiArtifacts.table.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {items.map((a) => (
-                  <TableRow
-                    key={a.id}
-                    className="cursor-pointer"
-                    onClick={() => openDetail(a.id)}
-                  >
+                  <TableRow key={a.id} className="cursor-pointer" onClick={() => openDetail(a.id)}>
                     <TableCell>
                       <Badge>{a.artifact_kind}</Badge>
                     </TableCell>
@@ -484,9 +441,7 @@ export default function AIArtifactsPage() {
                   <PackageOpen className="w-3 h-3" />
                   {formatBytes(detail.item.size_bytes)}
                 </span>
-                {detail.item.mime && (
-                  <span className="font-mono">{detail.item.mime}</span>
-                )}
+                {detail.item.mime && <span className="font-mono">{detail.item.mime}</span>}
                 {detail.item.expires_at && (
                   <span className="inline-flex items-center gap-1">
                     <Clock className="w-3 h-3" />
@@ -500,17 +455,10 @@ export default function AIArtifactsPage() {
           {/* Tabs：默认切到 Payload（用户主诉求），Overview tab 收纳完整元数据 grid。
               Radix Tabs 内部用 data-state 控制 mount/unmount，所以切回 Overview 时状态保留。
               TabsContent 默认带 mt-2 间距 + display，需要重置为 mt-0 才能贴合 TabsList。 */}
-          <Tabs
-            defaultValue="payload"
-            className="flex-1 min-h-0 flex flex-col"
-          >
+          <Tabs defaultValue="payload" className="flex-1 min-h-0 flex flex-col">
             <TabsList className="self-start mx-6 mt-3 shrink-0">
-              <TabsTrigger value="overview">
-                {t('aiArtifacts.detail.tabOverview')}
-              </TabsTrigger>
-              <TabsTrigger value="payload">
-                {t('aiArtifacts.detail.tabPayload')}
-              </TabsTrigger>
+              <TabsTrigger value="overview">{t('aiArtifacts.detail.tabOverview')}</TabsTrigger>
+              <TabsTrigger value="payload">{t('aiArtifacts.detail.tabPayload')}</TabsTrigger>
             </TabsList>
 
             {/* Overview tab：摘要全文 + 元数据 grid。
@@ -536,12 +484,13 @@ export default function AIArtifactsPage() {
                     <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5 text-xs">
                       <MetaRow label="root_task_id" value={detail.item.root_task_id} mono />
                       <MetaRow label="task_id" value={detail.item.task_id} mono />
-                      <MetaRow label="parent_task_id" value={detail.item.parent_task_id ?? '—'} mono />
-                      <MetaRow label="created_at" value={detail.item.created_at ?? '—'} mono />
                       <MetaRow
-                        label="has_inline"
-                        value={detail.item.has_inline ? '✓' : '—'}
+                        label="parent_task_id"
+                        value={detail.item.parent_task_id ?? '—'}
+                        mono
                       />
+                      <MetaRow label="created_at" value={detail.item.created_at ?? '—'} mono />
+                      <MetaRow label="has_inline" value={detail.item.has_inline ? '✓' : '—'} />
                       <MetaRow
                         label="has_payload_path"
                         value={detail.item.has_payload_path ? '✓' : '—'}
@@ -582,9 +531,7 @@ export default function AIArtifactsPage() {
                         className="h-7 text-xs"
                         onClick={async () => {
                           try {
-                            const blob = await aiArtifactsApi.downloadRaw(
-                              detail.item.id,
-                            );
+                            const blob = await aiArtifactsApi.downloadRaw(detail.item.id);
                             const url = URL.createObjectURL(blob);
                             const a = document.createElement('a');
                             a.href = url;
@@ -592,12 +539,7 @@ export default function AIArtifactsPage() {
                             a.click();
                             URL.revokeObjectURL(url);
                           } catch (e) {
-                            toast.error(
-                              getApiErrorMessage(
-                                e,
-                                t('aiArtifacts.messages.loadFail'),
-                              ),
-                            );
+                            toast.error(getApiErrorMessage(e, t('aiArtifacts.messages.loadFail')));
                           }
                         }}
                       >
@@ -618,9 +560,7 @@ export default function AIArtifactsPage() {
                         ) : (
                           <Copy className="w-3.5 h-3.5" />
                         )}
-                        {payloadCopied
-                          ? t('aiArtifacts.detail.copied')
-                          : t('common.copy')}
+                        {payloadCopied ? t('aiArtifacts.detail.copied') : t('common.copy')}
                       </Button>
                     )}
                   </div>
@@ -640,8 +580,7 @@ export default function AIArtifactsPage() {
                     </div>
                   ) : (
                     <pre className="flex-1 min-h-0 bg-muted rounded-md p-3 text-sm font-mono overflow-auto whitespace-pre-wrap leading-relaxed">
-                      {detail.payloadPreview ??
-                        t('aiArtifacts.detail.payloadEmpty')}
+                      {detail.payloadPreview ?? t('aiArtifacts.detail.payloadEmpty')}
                     </pre>
                   )}
                 </section>

@@ -7,7 +7,8 @@
     "slots": "套件槽",
     "hooks": "Hook",
     "relationship": "关系温度",
-    "cognition": "认知索引"
+    "cognition": "认知索引",
+    "group": "群组画像"
   },
   "slots": {
     "count": "共 {count} 个槽",

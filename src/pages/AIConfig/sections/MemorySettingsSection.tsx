@@ -1,11 +1,7 @@
 import { Brain, ChevronRight, MemoryStick } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { ChipGroup } from '@/components/ui/MultiSelectChipGroup';
-import {
-  ConfigField,
-  pluginConfigItemToFieldDef,
-  type ConfigValue,
-} from '@/components/config';
+import { ConfigField, pluginConfigItemToFieldDef, type ConfigValue } from '@/components/config';
 import { LabelWithHelp } from '../shared';
 import type { PluginConfigItem } from '@/lib/api';
 
@@ -52,10 +48,7 @@ export function MemorySettingsSection({
             {t('aiConfig.memorySettings.description')}
           </p>
         </div>
-        <Switch
-          checked={isMemoryEnabled}
-          onCheckedChange={onToggleMemory}
-        />
+        <Switch checked={isMemoryEnabled} onCheckedChange={onToggleMemory} />
       </div>
 
       {!isMemoryEnabled ? (
@@ -73,17 +66,15 @@ export function MemorySettingsSection({
               description={memoryConfig.config.memory_mode?.desc}
             />
             <ChipGroup
-              options={(
-                memoryConfig.config.memory_mode?.options || ['被动感知', '主动会话']
-              ).map((p: string) => ({
-                value: p,
-                label: p,
-                icon: <Brain className="w-3.5 h-3.5" />,
-              }))}
+              options={(memoryConfig.config.memory_mode?.options || ['被动感知', '主动会话']).map(
+                (p: string) => ({
+                  value: p,
+                  label: p,
+                  icon: <Brain className="w-3.5 h-3.5" />,
+                }),
+              )}
               value={(memoryConfig.config.memory_mode?.value as string[]) || []}
-              onValueChange={(newValue) =>
-                onUpdateConfig(memoryConfig.id, 'memory_mode', newValue)
-              }
+              onValueChange={(newValue) => onUpdateConfig(memoryConfig.id, 'memory_mode', newValue)}
               // 记忆路径支持全部关闭或按需开启任意子集（设计允许空数组）
               allowEmpty
             />

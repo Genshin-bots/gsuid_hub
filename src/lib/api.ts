@@ -2284,11 +2284,13 @@ export const remoteCommandApi = {
 
 export interface ThemeConfig {
   mode: 'light' | 'dark';
-  style: 'solid' | 'glassmorphism' | 'luminous';
+  style: 'solid' | 'glassmorphism' | 'luminous' | 'liquid';
   color: string;
   icon_color: 'white' | 'black' | 'colored';
   background_image: string | null;
   blur_intensity: number;
+  /** Wallpaper blur in px (0–40). 0 keeps the background sharp. Independent of blur_intensity. */
+  background_blur?: number;
   theme_preset: 'default' | 'shadcn' | 'custom';
   language: 'zh-CN' | 'en-US' | 'ja-JP';
   /** Card opacity percentage (0-100). Applies to both solid and glassmorphism styles. */

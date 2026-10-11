@@ -10,7 +10,13 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { TabButtonGroup, tabToolbarControlClass } from '@/components/ui/TabButtonGroup';
 import {
@@ -31,13 +37,73 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Settings, Loader2, ChevronDown, Save, Server, LayoutGrid, Users, Shield, Filter, Zap, MessageSquare, Key, Command, Package, RotateCw, Download, Sliders, Cog, Database, Globe, Bell, Lock, Palette, FileText, Layers, Wrench, AppWindow, CircleCheck, CircleOff } from 'lucide-react';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  Settings,
+  Loader2,
+  ChevronDown,
+  Save,
+  Server,
+  LayoutGrid,
+  Users,
+  Shield,
+  Filter,
+  Zap,
+  MessageSquare,
+  Key,
+  Command,
+  Package,
+  RotateCw,
+  Download,
+  Sliders,
+  Cog,
+  Database,
+  Globe,
+  Bell,
+  Lock,
+  Palette,
+  FileText,
+  Layers,
+  Wrench,
+  AppWindow,
+  CircleCheck,
+  CircleOff,
+} from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { ConfigField, ConfigFieldDefinition, ConfigValue, ConfigFieldType, RepeatGroupField, RepeatGroupItem } from '@/components/config';
-import { pluginsApi, gitUpdateApi, getApiErrorMessage, Plugin, ServiceConfig, SvItem, SvCommand, PluginConfigItem, PluginConfigGroup, PluginListItem, PluginPageMeta } from '@/lib/api';
-import { isPluginServiceDirty as pluginServiceFieldsDirty, isSvItemDirty, isSvListDirty } from '@/lib/pluginServiceDirty';
+import {
+  ConfigField,
+  ConfigFieldDefinition,
+  ConfigValue,
+  ConfigFieldType,
+  RepeatGroupField,
+  RepeatGroupItem,
+} from '@/components/config';
+import {
+  pluginsApi,
+  gitUpdateApi,
+  getApiErrorMessage,
+  Plugin,
+  ServiceConfig,
+  SvItem,
+  SvCommand,
+  PluginConfigItem,
+  PluginConfigGroup,
+  PluginListItem,
+  PluginPageMeta,
+} from '@/lib/api';
+import {
+  isPluginServiceDirty as pluginServiceFieldsDirty,
+  isSvItemDirty,
+  isSvListDirty,
+} from '@/lib/pluginServiceDirty';
 import { toast } from 'sonner';
 import { headerActionRowClass, PinnedPage } from '@/components/layout/PinnedPage';
 import { PluginIcon } from '@/components/ui/plugin-icon';
@@ -54,16 +120,24 @@ import {
 
 // 命令类型颜色映射 - 提取为模块级常量，避免每次渲染重建
 const CMD_TYPE_COLORS: Record<string, string> = {
-  command: 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900 dark:text-blue-300 dark:border-blue-700',
-  prefix: 'bg-green-100 text-green-800 border-green-300 dark:bg-green-900 dark:text-green-300 dark:border-green-700',
-  suffix: 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-900 dark:text-emerald-300 dark:border-emerald-700',
-  keyword: 'bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-900 dark:text-yellow-300 dark:border-yellow-700',
-  fullmatch: 'bg-orange-100 text-orange-800 border-orange-300 dark:bg-orange-900 dark:text-orange-300 dark:border-orange-700',
-  regex: 'bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-900 dark:text-purple-300 dark:border-purple-700',
+  command:
+    'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900 dark:text-blue-300 dark:border-blue-700',
+  prefix:
+    'bg-green-100 text-green-800 border-green-300 dark:bg-green-900 dark:text-green-300 dark:border-green-700',
+  suffix:
+    'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-900 dark:text-emerald-300 dark:border-emerald-700',
+  keyword:
+    'bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-900 dark:text-yellow-300 dark:border-yellow-700',
+  fullmatch:
+    'bg-orange-100 text-orange-800 border-orange-300 dark:bg-orange-900 dark:text-orange-300 dark:border-orange-700',
+  regex:
+    'bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-900 dark:text-purple-300 dark:border-purple-700',
   file: 'bg-pink-100 text-pink-800 border-pink-300 dark:bg-pink-900 dark:text-pink-300 dark:border-pink-700',
-  message: 'bg-indigo-100 text-indigo-800 border-indigo-300 dark:bg-indigo-900 dark:text-indigo-300 dark:border-indigo-700',
+  message:
+    'bg-indigo-100 text-indigo-800 border-indigo-300 dark:bg-indigo-900 dark:text-indigo-300 dark:border-indigo-700',
 };
-const CMD_TYPE_DEFAULT_COLOR = 'bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600';
+const CMD_TYPE_DEFAULT_COLOR =
+  'bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600';
 
 const SV_BADGE = 'gap-1 border-transparent font-normal';
 
@@ -137,51 +211,49 @@ function groupSvByPm(items: { sv: SvItem; index: number }[]) {
     }));
 }
 
-
-
 // 根据配置名称关键词智能分配图标
 const configNameIconMap: Record<string, React.ReactNode> = {
-  '基本': <Settings className="w-4 h-4" />,
-  '基础': <Settings className="w-4 h-4" />,
-  'basic': <Settings className="w-4 h-4" />,
-  'general': <Settings className="w-4 h-4" />,
-  '通用': <Settings className="w-4 h-4" />,
-  '高级': <Sliders className="w-4 h-4" />,
-  'advanced': <Sliders className="w-4 h-4" />,
-  '安全': <Shield className="w-4 h-4" />,
-  'security': <Shield className="w-4 h-4" />,
-  '权限': <Lock className="w-4 h-4" />,
-  'permission': <Lock className="w-4 h-4" />,
-  '消息': <MessageSquare className="w-4 h-4" />,
-  'message': <MessageSquare className="w-4 h-4" />,
-  '用户': <Users className="w-4 h-4" />,
-  'user': <Users className="w-4 h-4" />,
-  '服务': <Server className="w-4 h-4" />,
-  'service': <Server className="w-4 h-4" />,
-  '数据库': <Database className="w-4 h-4" />,
-  'database': <Database className="w-4 h-4" />,
-  '网络': <Globe className="w-4 h-4" />,
-  'network': <Globe className="w-4 h-4" />,
-  '通知': <Bell className="w-4 h-4" />,
-  'notification': <Bell className="w-4 h-4" />,
-  '外观': <Palette className="w-4 h-4" />,
-  'theme': <Palette className="w-4 h-4" />,
-  '过滤': <Filter className="w-4 h-4" />,
-  'filter': <Filter className="w-4 h-4" />,
-  '命令': <Command className="w-4 h-4" />,
-  'command': <Command className="w-4 h-4" />,
-  '快捷': <Zap className="w-4 h-4" />,
-  'hotkey': <Zap className="w-4 h-4" />,
-  '定时': <Key className="w-4 h-4" />,
-  'schedule': <Key className="w-4 h-4" />,
-  '配置': <Cog className="w-4 h-4" />,
-  'config': <Cog className="w-4 h-4" />,
-  '文件': <FileText className="w-4 h-4" />,
-  'file': <FileText className="w-4 h-4" />,
-  '分层': <Layers className="w-4 h-4" />,
-  'layer': <Layers className="w-4 h-4" />,
-  '工具': <Wrench className="w-4 h-4" />,
-  'tool': <Wrench className="w-4 h-4" />,
+  基本: <Settings className="w-4 h-4" />,
+  基础: <Settings className="w-4 h-4" />,
+  basic: <Settings className="w-4 h-4" />,
+  general: <Settings className="w-4 h-4" />,
+  通用: <Settings className="w-4 h-4" />,
+  高级: <Sliders className="w-4 h-4" />,
+  advanced: <Sliders className="w-4 h-4" />,
+  安全: <Shield className="w-4 h-4" />,
+  security: <Shield className="w-4 h-4" />,
+  权限: <Lock className="w-4 h-4" />,
+  permission: <Lock className="w-4 h-4" />,
+  消息: <MessageSquare className="w-4 h-4" />,
+  message: <MessageSquare className="w-4 h-4" />,
+  用户: <Users className="w-4 h-4" />,
+  user: <Users className="w-4 h-4" />,
+  服务: <Server className="w-4 h-4" />,
+  service: <Server className="w-4 h-4" />,
+  数据库: <Database className="w-4 h-4" />,
+  database: <Database className="w-4 h-4" />,
+  网络: <Globe className="w-4 h-4" />,
+  network: <Globe className="w-4 h-4" />,
+  通知: <Bell className="w-4 h-4" />,
+  notification: <Bell className="w-4 h-4" />,
+  外观: <Palette className="w-4 h-4" />,
+  theme: <Palette className="w-4 h-4" />,
+  过滤: <Filter className="w-4 h-4" />,
+  filter: <Filter className="w-4 h-4" />,
+  命令: <Command className="w-4 h-4" />,
+  command: <Command className="w-4 h-4" />,
+  快捷: <Zap className="w-4 h-4" />,
+  hotkey: <Zap className="w-4 h-4" />,
+  定时: <Key className="w-4 h-4" />,
+  schedule: <Key className="w-4 h-4" />,
+  配置: <Cog className="w-4 h-4" />,
+  config: <Cog className="w-4 h-4" />,
+  文件: <FileText className="w-4 h-4" />,
+  file: <FileText className="w-4 h-4" />,
+  分层: <Layers className="w-4 h-4" />,
+  layer: <Layers className="w-4 h-4" />,
+  工具: <Wrench className="w-4 h-4" />,
+  tool: <Wrench className="w-4 h-4" />,
 };
 
 // 用于无法匹配关键词时的循环图标列表
@@ -213,7 +285,8 @@ const _regexSimplifyCache = new Map<string, string>();
 
 /** 用 O(n) 扫描剥离字符类 [...]，避免灾难性回溯 */
 function stripCharClass(s: string): string {
-  let out = '', i = 0;
+  let out = '',
+    i = 0;
   while (i < s.length) {
     if (s[i] === '[' && (i === 0 || s[i - 1] !== '\\')) {
       i++; // skip '['
@@ -229,28 +302,46 @@ function stripCharClass(s: string): string {
 
 /** 用 O(n) 扫描剥离常见正则元字符和转义序列 */
 function stripEscapeMeta(s: string): string {
-  let out = '', i = 0;
+  let out = '',
+    i = 0;
   while (i < s.length) {
     if (s[i] === '\\' && i + 1 < s.length) {
       const c = s[i + 1];
-      if ('dwWsSbDBntrfv'.includes(c)) { i += 2; continue; }
-      if (c === 'u' && i + 5 < s.length && /^[\da-fA-F]{4}$/.test(s.slice(i + 2, i + 6))) { i += 6; continue; }
-      if (c === 'U' && i + 9 < s.length && /^[\da-fA-F]{8}$/.test(s.slice(i + 2, i + 10))) { i += 10; continue; }
-      if (c === 'x' && i + 3 < s.length && /^[\da-fA-F]{2}$/.test(s.slice(i + 2, i + 4))) { i += 4; continue; }
+      if ('dwWsSbDBntrfv'.includes(c)) {
+        i += 2;
+        continue;
+      }
+      if (c === 'u' && i + 5 < s.length && /^[\da-fA-F]{4}$/.test(s.slice(i + 2, i + 6))) {
+        i += 6;
+        continue;
+      }
+      if (c === 'U' && i + 9 < s.length && /^[\da-fA-F]{8}$/.test(s.slice(i + 2, i + 10))) {
+        i += 10;
+        continue;
+      }
+      if (c === 'x' && i + 3 < s.length && /^[\da-fA-F]{2}$/.test(s.slice(i + 2, i + 4))) {
+        i += 4;
+        continue;
+      }
       if (c === '{') {
         let j = i + 2;
         while (j < s.length && s[j] !== '}') j++;
-        i = j + 1; continue;
+        i = j + 1;
+        continue;
       }
-      out += s[i]; i++;
+      out += s[i];
+      i++;
     } else if (s[i] === '{') {
       i++;
       while (i < s.length && s[i] !== '}') i++;
-      i++; continue;
+      i++;
+      continue;
     } else if ('*+^$'.includes(s[i])) {
-      i++; continue;
+      i++;
+      continue;
     } else {
-      out += s[i]; i++;
+      out += s[i];
+      i++;
     }
   }
   return out;
@@ -258,7 +349,8 @@ function stripEscapeMeta(s: string): string {
 
 /** 计算字符串中可读字符(CJK×10 + 字母数字×1)的权重 */
 function countReadableScore(s: string): number {
-  let cjk = 0, alpha = 0;
+  let cjk = 0,
+    alpha = 0;
   for (let i = 0; i < s.length; i++) {
     const c = s.charCodeAt(i);
     if (c >= 0x4e00 && c <= 0x9fa5) cjk++;
@@ -305,7 +397,10 @@ function simplifyRegexKeyword(keyword: string): string {
         let bestScore = countReadableScore(best);
         for (const alt of alts) {
           const score = countReadableScore(alt);
-          if (score > bestScore) { best = alt; bestScore = score; }
+          if (score > bestScore) {
+            best = alt;
+            bestScore = score;
+          }
         }
         return best;
       }
@@ -331,7 +426,7 @@ function simpleHash(str: string): number {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
     const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
+    hash = (hash << 5) - hash + char;
     hash |= 0; // 转为32位整数
   }
   return Math.abs(hash);
@@ -367,7 +462,8 @@ const convertToPlugin = (plugin: Plugin): any => {
       else if (rawType === 'gstimerange') type = 'timerange';
       else if (rawType === 'gsdate') type = 'date';
       else if (rawType === 'gstimer') type = 'time';
-      else if (rawType === 'gstime') type = 'time'; // 已废弃但仍支持
+      else if (rawType === 'gstime')
+        type = 'time'; // 已废弃但仍支持
       else if (rawType === 'gsbool') type = 'boolean';
       else if (rawType === 'gsint') {
         // gsint: 有 options 时用下拉选择，否则用数字输入
@@ -379,8 +475,7 @@ const convertToPlugin = (plugin: Plugin): any => {
         } else {
           type = 'number';
         }
-      }
-      else if (rawType === 'gsfloat') type = 'number';
+      } else if (rawType === 'gsfloat') type = 'number';
       else if (rawType === 'gsliststr') type = configItem.options ? 'multiselect' : 'tags';
       else if (rawType === 'gslist') {
         type = 'tags';
@@ -388,22 +483,22 @@ const convertToPlugin = (plugin: Plugin): any => {
         if (Array.isArray(configItem.value)) {
           configItem.value = configItem.value.map(String);
         }
-      }
-      else if (rawType === 'gsdict') {
+      } else if (rawType === 'gsdict') {
         type = 'text';
         if (typeof configItem.value === 'object' && configItem.value !== null) {
           configItem.value = JSON.stringify(configItem.value, null, 2);
         }
-      }
-      else if (rawType === 'gsimage') type = 'image';
+      } else if (rawType === 'gsimage') type = 'image';
       else if (rawType === 'gsstr') type = configItem.options ? 'select' : 'text';
       // 兜底：模糊匹配旧格式
       else if (rawType.includes('bool')) type = 'boolean';
       else if (rawType.includes('int')) type = 'number';
       else if (rawType.includes('float')) type = 'number';
-      else if (rawType.includes('list') || rawType.includes('array')) type = configItem.options ? 'multiselect' : 'tags';
+      else if (rawType.includes('list') || rawType.includes('array'))
+        type = configItem.options ? 'multiselect' : 'tags';
       else if (rawType.includes('time') || rawType.includes('date')) type = 'date';
-      else if (rawType.includes('str') || rawType.includes('string')) type = configItem.options ? 'select' : 'text';
+      else if (rawType.includes('str') || rawType.includes('string'))
+        type = configItem.options ? 'select' : 'text';
       else if (rawType.includes('dict') || rawType.includes('object')) {
         type = 'text';
         if (typeof configItem.value === 'object' && configItem.value !== null) {
@@ -438,9 +533,9 @@ const convertToPlugin = (plugin: Plugin): any => {
   };
 
   const config = processConfig(plugin.config || {});
-  const config_groups = plugin.config_groups?.map(group => ({
+  const config_groups = plugin.config_groups?.map((group) => ({
     ...group,
-    config: processConfig(group.config)
+    config: processConfig(group.config),
   }));
 
   return { ...plugin, config, config_groups } as unknown as Plugin;
@@ -459,7 +554,7 @@ function isDefaultConfigEmpty(plugin: Plugin): boolean {
 
 export default function PluginsPage() {
   const { style } = useTheme();
-  const isGlass = style === 'glassmorphism';
+  const isGlass = style !== 'solid';
   const { t, language } = useLanguage();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -470,10 +565,10 @@ export default function PluginsPage() {
   const [editingSvIndex, setEditingSvIndex] = useState<number | null>(null);
   const [svDraft, setSvDraft] = useState<SvItem | null>(null);
   const [svQuery, setSvQuery] = useState('');
-  const [selectedPluginId, setSelectedPluginId] = useState<string>(
-    () => readPluginsListPluginId(searchParams.toString()),
+  const [selectedPluginId, setSelectedPluginId] = useState<string>(() =>
+    readPluginsListPluginId(searchParams.toString()),
   );
-  
+
   // 用于跟踪当前正在加载的插件ID，防止竞态条件
   const loadingPluginIdRef = useRef<string | null>(null);
   // 每个插件只自动跳一次，避免用户再点回空配置页时被弹走。
@@ -515,29 +610,37 @@ export default function PluginsPage() {
   const [editedEnabled, setEditedEnabled] = useState<boolean>(true);
 
   const selectedPlugin = plugins.find((p) => p.id === selectedPluginId);
-  const paramsConfigName =
-    selectedConfigName || selectedPlugin?.config_names?.[0] || '';
-  const paramsConfigIndex = Math.max(0, (selectedPlugin?.config_names || []).indexOf(paramsConfigName));
+  const paramsConfigName = selectedConfigName || selectedPlugin?.config_names?.[0] || '';
+  const paramsConfigIndex = Math.max(
+    0,
+    (selectedPlugin?.config_names || []).indexOf(paramsConfigName),
+  );
   const selectedPages = useMemo(() => {
     const listed = pluginList.find((p) => p.id === selectedPluginId);
     if (listed?.pages && listed.pages.length > 0) return listed.pages;
     return selectedPlugin?.pages ?? [];
   }, [pluginList, selectedPluginId, selectedPlugin]);
 
-  const goToPluginPage = useCallback((page: PluginPageMeta) => {
-    const returnId = selectedPluginId || page.plugin_id;
-    navigate(pluginViewPath(page), { state: { from: pluginsListPath(returnId), page } });
-  }, [navigate, selectedPluginId]);
+  const goToPluginPage = useCallback(
+    (page: PluginPageMeta) => {
+      const returnId = selectedPluginId || page.plugin_id;
+      navigate(pluginViewPath(page), { state: { from: pluginsListPath(returnId), page } });
+    },
+    [navigate, selectedPluginId],
+  );
 
-  const requestOpenPluginPage = useCallback((page: PluginPageMeta) => {
-    if (shouldSkipPluginPageConfirm(page.plugin_id, page.id)) {
-      goToPluginPage(page);
-      return;
-    }
-    setDontShowAgain(false);
-    setPendingPage(page);
-    setPageDialogOpen(true);
-  }, [goToPluginPage]);
+  const requestOpenPluginPage = useCallback(
+    (page: PluginPageMeta) => {
+      if (shouldSkipPluginPageConfirm(page.plugin_id, page.id)) {
+        goToPluginPage(page);
+        return;
+      }
+      setDontShowAgain(false);
+      setPendingPage(page);
+      setPageDialogOpen(true);
+    },
+    [goToPluginPage],
+  );
 
   const confirmOpenPluginPage = useCallback(() => {
     if (!pendingPage) return;
@@ -552,8 +655,8 @@ export default function PluginsPage() {
   const allCommands = useMemo(() => {
     if (!editedSvList || editedSvList.length === 0) return [];
     const map = new Map<string, SvCommand>();
-    editedSvList.forEach(sv => {
-      sv.commands?.forEach(cmd => {
+    editedSvList.forEach((sv) => {
+      sv.commands?.forEach((cmd) => {
         const key = `${cmd.type}:${cmd.keyword}`;
         if (!map.has(key)) map.set(key, cmd);
       });
@@ -564,7 +667,13 @@ export default function PluginsPage() {
   const isConfigDirty = paramsDirty;
 
   const isPluginServiceDirty = useMemo(
-    () => pluginServiceFieldsDirty(editedServiceConfig, originalServiceConfig, editedEnabled, originalEnabled),
+    () =>
+      pluginServiceFieldsDirty(
+        editedServiceConfig,
+        originalServiceConfig,
+        editedEnabled,
+        originalEnabled,
+      ),
     [editedServiceConfig, originalServiceConfig, editedEnabled, originalEnabled],
   );
 
@@ -576,7 +685,7 @@ export default function PluginsPage() {
   // 过滤空字符串的辅助函数
   const filterEmptyPrefix = (prefix: string[] | undefined): string[] => {
     if (!Array.isArray(prefix)) return [];
-    return prefix.filter(item => item !== '');
+    return prefix.filter((item) => item !== '');
   };
 
   useEffect(() => {
@@ -611,7 +720,9 @@ export default function PluginsPage() {
 
   useEffect(() => {
     if (pluginSection === 'sv' || !svQuery.trim()) return;
-    document.querySelector('[data-config-hit="true"]')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    document
+      .querySelector('[data-config-hit="true"]')
+      ?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }, [svQuery, pluginSection, selectedConfigName]);
 
   useEffect(() => {
@@ -656,38 +767,40 @@ export default function PluginsPage() {
   const fetchPluginDetail = async (pluginName: string) => {
     const requestId = pluginName; // 用插件名作为请求ID
     loadingPluginIdRef.current = requestId;
-    
+
     try {
       setIsLoadingDetail(true);
       const data = await pluginsApi.getPlugin(pluginName);
-      
+
       // 竞态条件检查：如果当前正在加载的不是这个请求，则忽略响应
       if (loadingPluginIdRef.current !== requestId) {
         console.log(`Ignored stale response for plugin: ${pluginName}`);
         return;
       }
-      
+
       const converted = convertToPlugin(data);
-      
-      setPlugins(prev => {
+
+      setPlugins((prev) => {
         // Remove existing plugin with same id if exists, then add new one
-        const filtered = prev.filter(p => p.id !== converted.id);
+        const filtered = prev.filter((p) => p.id !== converted.id);
         return [...filtered, converted];
       });
-      
+
       // If this is the selected plugin, set original config
       // 再次检查 selectedPluginId 是否仍然匹配，防止慢请求覆盖快请求的数据
       if (data.id === selectedPluginId && loadingPluginIdRef.current === requestId) {
         setOriginalConfig({
           config: JSON.parse(JSON.stringify(converted.config)),
-          groups: JSON.parse(JSON.stringify(converted.config_groups || []))
+          groups: JSON.parse(JSON.stringify(converted.config_groups || [])),
         });
-        
-        const processedServiceConfig = converted.service_config ? {
-          ...converted.service_config,
-          prefix: filterEmptyPrefix(converted.service_config.prefix)
-        } : null;
-        
+
+        const processedServiceConfig = converted.service_config
+          ? {
+              ...converted.service_config,
+              prefix: filterEmptyPrefix(converted.service_config.prefix),
+            }
+          : null;
+
         const baseService = processedServiceConfig || {};
         setOriginalServiceConfig(JSON.parse(JSON.stringify(baseService)));
         setOriginalSvList(JSON.parse(JSON.stringify(converted.sv_list || [])));
@@ -731,10 +844,10 @@ export default function PluginsPage() {
   useEffect(() => {
     if (selectedPluginId) {
       // Check if we already have the detail for this plugin
-      const existingPlugin = plugins.find(p => p.id === selectedPluginId);
+      const existingPlugin = plugins.find((p) => p.id === selectedPluginId);
       if (!existingPlugin) {
         // Need to fetch detail for this plugin
-        const pluginInfo = pluginList.find(p => p.id === selectedPluginId);
+        const pluginInfo = pluginList.find((p) => p.id === selectedPluginId);
         if (pluginInfo) {
           fetchPluginDetail(pluginInfo.name);
         }
@@ -749,23 +862,25 @@ export default function PluginsPage() {
   // the save button disabled.
   useEffect(() => {
     if (!selectedPlugin) return;
-    
+
     // 如果有正在加载的请求且与当前选中的插件不匹配，跳过（等待新请求）
     // 只有在没有正在加载的请求，或正在加载的请求就是当前选中的插件时，才更新状态
     if (loadingPluginIdRef.current !== null && loadingPluginIdRef.current !== selectedPlugin.id) {
       return;
     }
-    
+
     setOriginalConfig({
       config: JSON.parse(JSON.stringify(selectedPlugin.config)),
-      groups: JSON.parse(JSON.stringify(selectedPlugin.config_groups || []))
+      groups: JSON.parse(JSON.stringify(selectedPlugin.config_groups || [])),
     });
-    
-    const processedServiceConfig = selectedPlugin.service_config ? {
-      ...selectedPlugin.service_config,
-      prefix: filterEmptyPrefix(selectedPlugin.service_config.prefix)
-    } : null;
-    
+
+    const processedServiceConfig = selectedPlugin.service_config
+      ? {
+          ...selectedPlugin.service_config,
+          prefix: filterEmptyPrefix(selectedPlugin.service_config.prefix),
+        }
+      : null;
+
     const baseService = processedServiceConfig || {};
     setOriginalServiceConfig(JSON.parse(JSON.stringify(baseService)));
     setOriginalSvList(JSON.parse(JSON.stringify(selectedPlugin.sv_list || [])));
@@ -785,42 +900,50 @@ export default function PluginsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPlugin?.id]);
 
-  const updateConfigValue = useCallback((pluginId: string, fieldKey: string, value: ConfigValue | RepeatGroupItem[], groupName: string | null) => {
-    setPlugins((prev) =>
-      prev.map((p) => {
-        if (p.id !== pluginId) return p;
+  const updateConfigValue = useCallback(
+    (
+      pluginId: string,
+      fieldKey: string,
+      value: ConfigValue | RepeatGroupItem[],
+      groupName: string | null,
+    ) => {
+      setPlugins((prev) =>
+        prev.map((p) => {
+          if (p.id !== pluginId) return p;
 
-        const newPlugin = { ...p };
-        if (groupName && newPlugin.config_groups) {
-          newPlugin.config_groups = newPlugin.config_groups.map(g => {
-            if (g.config_name === groupName) {
-              return {
-                ...g,
-                config: {
-                  ...g.config,
-                  [fieldKey]: { ...g.config[fieldKey], value }
-                }
-              };
-            }
-            return g;
-          });
-        } else if (newPlugin.config) {
-          newPlugin.config = {
-            ...newPlugin.config,
-            [fieldKey]: { ...newPlugin.config[fieldKey], value }
-          };
-        }
-        return newPlugin;
-      })
-    );
-    setParamsDirty(true);
-  }, []);
+          const newPlugin = { ...p };
+          if (groupName && newPlugin.config_groups) {
+            newPlugin.config_groups = newPlugin.config_groups.map((g) => {
+              if (g.config_name === groupName) {
+                return {
+                  ...g,
+                  config: {
+                    ...g.config,
+                    [fieldKey]: { ...g.config[fieldKey], value },
+                  },
+                };
+              }
+              return g;
+            });
+          } else if (newPlugin.config) {
+            newPlugin.config = {
+              ...newPlugin.config,
+              [fieldKey]: { ...newPlugin.config[fieldKey], value },
+            };
+          }
+          return newPlugin;
+        }),
+      );
+      setParamsDirty(true);
+    },
+    [],
+  );
 
   // 校验所有配置项的 regex
   const validateAllRegex = (): boolean => {
     if (!selectedPlugin) return true;
     const configsToCheck: Array<{ key: string; field: ConfigFieldDefinition }> = [];
-    
+
     if (selectedPlugin.config_groups && selectedPlugin.config_groups.length > 0) {
       for (const group of selectedPlugin.config_groups) {
         for (const [key, field] of Object.entries(group.config)) {
@@ -832,7 +955,7 @@ export default function PluginsPage() {
         configsToCheck.push({ key, field: field as unknown as ConfigFieldDefinition });
       }
     }
-    
+
     for (const { key, field } of configsToCheck) {
       if (field.regex && (field.type === 'text' || field.type === 'password')) {
         try {
@@ -851,14 +974,17 @@ export default function PluginsPage() {
   };
 
   // 保存前对值进行类型特定的转换
-  const convertValueForSave = (key: string, field: ConfigFieldDefinition): { skip: boolean; value?: unknown } => {
+  const convertValueForSave = (
+    key: string,
+    field: ConfigFieldDefinition,
+  ): { skip: boolean; value?: unknown } => {
     const rawType = (field as any).rawType?.toLowerCase?.() || '';
-    
+
     // divider 类型不需要保存
     if (field.type === 'divider' || rawType === 'gsdivider') {
       return { skip: true };
     }
-    
+
     // gsdict: 将 JSON 字符串转回对象
     if (rawType === 'gsdict') {
       try {
@@ -867,25 +993,25 @@ export default function PluginsPage() {
         return { skip: false, value: field.value };
       }
     }
-    
+
     // gslist: 将字符串数组转为整数数组
     if (rawType === 'gslist' && Array.isArray(field.value)) {
-      return { skip: false, value: (field.value as string[]).map(Number).filter(n => !isNaN(n)) };
+      return { skip: false, value: (field.value as string[]).map(Number).filter((n) => !isNaN(n)) };
     }
-    
+
     return { skip: false, value: field.value };
   };
 
   const handleSaveConfig = async () => {
     if (!selectedPlugin) return;
-    
+
     // 先校验 regex
     if (!validateAllRegex()) return;
-    
+
     setIsSavingConfig(true);
     try {
       let payload: any = {};
-      
+
       const buildConfigPayload = (config: Record<string, any>) => {
         const entries: [string, unknown][] = [];
         for (const [k, v] of Object.entries(config)) {
@@ -896,13 +1022,13 @@ export default function PluginsPage() {
         }
         return Object.fromEntries(entries);
       };
-      
+
       if (selectedPlugin.config_groups && selectedPlugin.config_groups.length > 0) {
         payload = {
-          config_groups: selectedPlugin.config_groups.map(g => ({
+          config_groups: selectedPlugin.config_groups.map((g) => ({
             config_name: g.config_name,
-            config: buildConfigPayload(g.config)
-          }))
+            config: buildConfigPayload(g.config),
+          })),
         };
       } else {
         payload = buildConfigPayload(selectedPlugin.config);
@@ -911,7 +1037,7 @@ export default function PluginsPage() {
 
       setOriginalConfig({
         config: JSON.parse(JSON.stringify(selectedPlugin.config)),
-        groups: JSON.parse(JSON.stringify(selectedPlugin.config_groups || []))
+        groups: JSON.parse(JSON.stringify(selectedPlugin.config_groups || [])),
       });
       setParamsDirty(false);
       toast.success(t('plugins.pluginConfigUpdated'));
@@ -931,11 +1057,18 @@ export default function PluginsPage() {
         enabled: editedEnabled,
         prefix: filterEmptyPrefix(editedServiceConfig.prefix),
       };
-      await pluginsApi.updateServiceConfig(selectedPlugin.name, servicePayload as Record<string, unknown>);
-      setOriginalServiceConfig(JSON.parse(JSON.stringify({
-        ...editedServiceConfig,
-        prefix: filterEmptyPrefix(editedServiceConfig.prefix),
-      })));
+      await pluginsApi.updateServiceConfig(
+        selectedPlugin.name,
+        servicePayload as Record<string, unknown>,
+      );
+      setOriginalServiceConfig(
+        JSON.parse(
+          JSON.stringify({
+            ...editedServiceConfig,
+            prefix: filterEmptyPrefix(editedServiceConfig.prefix),
+          }),
+        ),
+      );
       setOriginalEnabled(editedEnabled);
       toast.success(t('plugins.serviceConfigUpdated'));
     } catch (error) {
@@ -950,7 +1083,11 @@ export default function PluginsPage() {
     setIsSavingService(true);
     try {
       for (const sv of editedSvList) {
-        await pluginsApi.updateSvConfig(selectedPlugin.name, sv.name, sv as unknown as Record<string, unknown>);
+        await pluginsApi.updateSvConfig(
+          selectedPlugin.name,
+          sv.name,
+          sv as unknown as Record<string, unknown>,
+        );
       }
       setOriginalSvList(JSON.parse(JSON.stringify(editedSvList)));
       toast.success(t('plugins.serviceConfigUpdated'));
@@ -975,7 +1112,9 @@ export default function PluginsPage() {
         svDraft.name,
         svDraft as unknown as Record<string, unknown>,
       );
-      setEditedSvList((prev) => prev.map((item, index) => (index === editingSvIndex ? svDraft : item)));
+      setEditedSvList((prev) =>
+        prev.map((item, index) => (index === editingSvIndex ? svDraft : item)),
+      );
       setOriginalSvList((prev) =>
         prev.map((item, index) =>
           index === editingSvIndex ? (JSON.parse(JSON.stringify(svDraft)) as SvItem) : item,
@@ -1007,9 +1146,7 @@ export default function PluginsPage() {
         await fetchPluginList();
         await fetchPluginDetail(name);
       } else {
-        toast.error(
-          result?.msg || t('plugins.reloadPluginFailed', { name, error: '' }),
-        );
+        toast.error(result?.msg || t('plugins.reloadPluginFailed', { name, error: '' }));
       }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : String(error));
@@ -1028,44 +1165,51 @@ export default function PluginsPage() {
     setUpdateAllDialogOpen(false);
     setUpdateAllPanelOpen(true);
     setIsUpdatingAll(true);
-    
+
     // 初始化所有插件状态为 pending
-    const initialList: PluginUpdateItem[] = pluginList.map(p => ({ name: p.name, status: 'pending' }));
+    const initialList: PluginUpdateItem[] = pluginList.map((p) => ({
+      name: p.name,
+      status: 'pending',
+    }));
     setPluginUpdateList(initialList);
 
     // 并行更新所有插件
     const updatePromises = pluginList.map(async (plugin) => {
       // 更新状态为 updating
-      setPluginUpdateList(prev => prev.map(p =>
-        p.name === plugin.name ? { ...p, status: 'updating' } : p
-      ));
-      
+      setPluginUpdateList((prev) =>
+        prev.map((p) => (p.name === plugin.name ? { ...p, status: 'updating' } : p)),
+      );
+
       try {
         // api.post 已解包：返回 GitForceUpdateResponse（{ success, message, current_commit }）
         const result = await gitUpdateApi.forceUpdate(plugin.name);
         if (result?.success) {
-          setPluginUpdateList(prev => prev.map(p =>
-            p.name === plugin.name
-              ? { ...p, status: 'success', message: result.message }
-              : p
-          ));
+          setPluginUpdateList((prev) =>
+            prev.map((p) =>
+              p.name === plugin.name ? { ...p, status: 'success', message: result.message } : p,
+            ),
+          );
         } else {
-          setPluginUpdateList(prev => prev.map(p =>
-            p.name === plugin.name
-              ? { ...p, status: 'failed', message: result?.message || t('plugins.updateFailed') }
-              : p
-          ));
+          setPluginUpdateList((prev) =>
+            prev.map((p) =>
+              p.name === plugin.name
+                ? { ...p, status: 'failed', message: result?.message || t('plugins.updateFailed') }
+                : p,
+            ),
+          );
         }
       } catch (error) {
-        setPluginUpdateList(prev => prev.map(p =>
-          p.name === plugin.name
-            ? {
-                ...p,
-                status: 'failed',
-                message: error instanceof Error ? error.message : String(error),
-              }
-            : p
-        ));
+        setPluginUpdateList((prev) =>
+          prev.map((p) =>
+            p.name === plugin.name
+              ? {
+                  ...p,
+                  status: 'failed',
+                  message: error instanceof Error ? error.message : String(error),
+                }
+              : p,
+          ),
+        );
       }
     });
 
@@ -1083,7 +1227,11 @@ export default function PluginsPage() {
 
   const sectionSaving = pluginSection === 'params' ? isSavingConfig : isSavingService;
   const sectionDirty =
-    pluginSection === 'params' ? isConfigDirty : pluginSection === 'plugin' ? isPluginServiceDirty : isSvDirty;
+    pluginSection === 'params'
+      ? isConfigDirty
+      : pluginSection === 'plugin'
+        ? isPluginServiceDirty
+        : isSvDirty;
   const saveSection = () => {
     if (pluginSection === 'params') void handleSaveConfig();
     else if (pluginSection === 'plugin') void handleSavePluginService();
@@ -1117,42 +1265,48 @@ export default function PluginsPage() {
               onValueChange={setSelectedPluginId}
             />
             <div className={headerActionRowClass}>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    onClick={handleUpdateAllClick}
-                    disabled={isLoading || pluginList.length === 0}
-                    className={cn(tabToolbarControlClass, 'justify-center gap-2 whitespace-nowrap')}
-                  >
-                    <Download className="w-4 h-4" />
-                    {t('plugins.updateAllPlugins')}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>{t('plugins.updateAllPluginsDesc')}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    onClick={handleReloadPlugin}
-                    disabled={!selectedPlugin || isReloadingPlugin}
-                    className={cn(tabToolbarControlClass, 'justify-center gap-2 whitespace-nowrap')}
-                  >
-                    <RotateCw className={`w-4 h-4 ${isReloadingPlugin ? 'animate-spin' : ''}`} />
-                    {t('plugins.reloadPlugin')}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>{t('plugins.reloadPlugin')}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      onClick={handleUpdateAllClick}
+                      disabled={isLoading || pluginList.length === 0}
+                      className={cn(
+                        tabToolbarControlClass,
+                        'justify-center gap-2 whitespace-nowrap',
+                      )}
+                    >
+                      <Download className="w-4 h-4" />
+                      {t('plugins.updateAllPlugins')}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{t('plugins.updateAllPluginsDesc')}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      onClick={handleReloadPlugin}
+                      disabled={!selectedPlugin || isReloadingPlugin}
+                      className={cn(
+                        tabToolbarControlClass,
+                        'justify-center gap-2 whitespace-nowrap',
+                      )}
+                    >
+                      <RotateCw className={`w-4 h-4 ${isReloadingPlugin ? 'animate-spin' : ''}`} />
+                      {t('plugins.reloadPlugin')}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{t('plugins.reloadPlugin')}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
           </div>
         </div>
@@ -1169,355 +1323,514 @@ export default function PluginsPage() {
         <Card key={selectedPlugin.id} className="glass-card flex min-h-0 flex-1 flex-col">
           <div className="shrink-0 border-b border-border/40 px-4 py-4 sm:px-6">
             <div className="flex flex-col gap-4">
-            <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center overflow-hidden">
-              <PluginIcon pluginName={selectedPlugin.name} className="h-8 w-8" />
-            </div>
-            <div>
-              <h3 className="text-xl font-bold">{selectedPlugin.name}</h3>
-              <p className="text-sm text-muted-foreground">{selectedPlugin.description}</p>
-            </div>
-          </div>
-            <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between [&_.shadow-safe]:!my-0 [&_.shadow-safe]:!py-0">
-              <div className="flex w-full min-w-0 flex-wrap items-center gap-2 sm:gap-3 lg:w-auto">
-                <TabButtonGroup
-                  className="w-full sm:w-max"
-                  singleRowOnMobile
-                  options={[
-                    {
-                      value: 'params',
-                      label: paramsConfigName || t('plugins.configParams'),
-                      icon: paramsConfigName
-                        ? getConfigIcon(paramsConfigName, paramsConfigIndex)
-                        : <Settings className="h-4 w-4" />,
-                      ...(selectedPlugin.config_names && selectedPlugin.config_names.length > 1
-                        ? {
-                            dropdown: {
-                              value: paramsConfigName,
-                              onValueChange: (name: string) => {
-                                if (name !== selectedConfigName) setSelectedConfigName(name);
-                              },
-                              allValue: paramsConfigName,
-                              align: 'start' as const,
-                              contentClassName: 'min-w-[14rem]',
-                              items: selectedPlugin.config_names.map((name, index) => ({
-                                value: name,
-                                label: name,
-                                icon: getConfigIcon(name, index),
-                              })),
-                            },
-                          }
-                        : {}),
-                    },
-                    {
-                      value: 'plugin',
-                      label: t('plugins.pluginServiceConfig'),
-                      icon: <Package className="h-4 w-4" />,
-                    },
-                    {
-                      value: 'sv',
-                      label: t('plugins.svServiceConfig'),
-                      icon: <Command className="h-4 w-4" />,
-                    },
-                  ]}
-                  value={pluginSection}
-                  onValueChange={(value) => setPluginSection(value as 'params' | 'plugin' | 'sv')}
-                />
-                {selectedPages.length > 0 && (
+              <div className="flex items-center gap-3">
+                <div className="flex items-center justify-center overflow-hidden">
+                  <PluginIcon pluginName={selectedPlugin.name} className="h-8 w-8" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold">{selectedPlugin.name}</h3>
+                  <p className="text-sm text-muted-foreground">{selectedPlugin.description}</p>
+                </div>
+              </div>
+              <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between [&_.shadow-safe]:!my-0 [&_.shadow-safe]:!py-0">
+                <div className="flex w-full min-w-0 flex-wrap items-center gap-2 sm:gap-3 lg:w-auto">
                   <TabButtonGroup
                     className="w-full sm:w-max"
-                    options={selectedPages.map((page) => ({
-                      value: page.id,
-                      label: pickPluginPageText(page.title, language, page.id),
-                      icon: <AppWindow className="h-4 w-4" />,
-                    }))}
-                    value="__plugin_page_idle__"
-                    onValueChange={(id) => {
-                      const page = selectedPages.find((item) => item.id === id);
-                      if (page) requestOpenPluginPage(page);
-                    }}
+                    singleRowOnMobile
+                    options={[
+                      {
+                        value: 'params',
+                        label: paramsConfigName || t('plugins.configParams'),
+                        icon: paramsConfigName ? (
+                          getConfigIcon(paramsConfigName, paramsConfigIndex)
+                        ) : (
+                          <Settings className="h-4 w-4" />
+                        ),
+                        ...(selectedPlugin.config_names && selectedPlugin.config_names.length > 1
+                          ? {
+                              dropdown: {
+                                value: paramsConfigName,
+                                onValueChange: (name: string) => {
+                                  if (name !== selectedConfigName) setSelectedConfigName(name);
+                                },
+                                allValue: paramsConfigName,
+                                align: 'start' as const,
+                                contentClassName: 'min-w-[14rem]',
+                                items: selectedPlugin.config_names.map((name, index) => ({
+                                  value: name,
+                                  label: name,
+                                  icon: getConfigIcon(name, index),
+                                })),
+                              },
+                            }
+                          : {}),
+                      },
+                      {
+                        value: 'plugin',
+                        label: t('plugins.pluginServiceConfig'),
+                        icon: <Package className="h-4 w-4" />,
+                      },
+                      {
+                        value: 'sv',
+                        label: t('plugins.svServiceConfig'),
+                        icon: <Command className="h-4 w-4" />,
+                      },
+                    ]}
+                    value={pluginSection}
+                    onValueChange={(value) => setPluginSection(value as 'params' | 'plugin' | 'sv')}
                   />
-                )}
+                  {selectedPages.length > 0 && (
+                    <TabButtonGroup
+                      className="w-full sm:w-max"
+                      options={selectedPages.map((page) => ({
+                        value: page.id,
+                        label: pickPluginPageText(page.title, language, page.id),
+                        icon: <AppWindow className="h-4 w-4" />,
+                      }))}
+                      value="__plugin_page_idle__"
+                      onValueChange={(id) => {
+                        const page = selectedPages.find((item) => item.id === id);
+                        if (page) requestOpenPluginPage(page);
+                      }}
+                    />
+                  )}
+                </div>
+                <div className="flex w-full shrink-0 items-center gap-2 lg:w-auto">
+                  <Input
+                    value={svQuery}
+                    onChange={(event) => setSvQuery(event.target.value)}
+                    placeholder={
+                      pluginSection === 'sv' ? t('plugins.searchSv') : t('plugins.searchConfig')
+                    }
+                    className={cn(
+                      tabToolbarControlClass,
+                      'w-full min-w-0 flex-1 bg-background sm:w-44 sm:flex-none lg:w-56',
+                    )}
+                  />
+                  {pluginSection !== 'sv' && (
+                    <Button
+                      className={cn(
+                        tabToolbarControlClass,
+                        'shrink-0 justify-center gap-2 px-4 sm:px-8 lg:min-w-[160px]',
+                      )}
+                      disabled={!sectionDirty || sectionSaving}
+                      onClick={saveSection}
+                    >
+                      {sectionSaving ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Save className="h-4 w-4" />
+                      )}
+                      {t('plugins.confirmChanges')}
+                    </Button>
+                  )}
+                </div>
               </div>
-              <div className="flex w-full shrink-0 items-center gap-2 lg:w-auto">
-                <Input
-                  value={svQuery}
-                  onChange={(event) => setSvQuery(event.target.value)}
-                  placeholder={pluginSection === 'sv' ? t('plugins.searchSv') : t('plugins.searchConfig')}
-                  className={cn(tabToolbarControlClass, 'w-full min-w-0 flex-1 bg-background sm:w-44 sm:flex-none lg:w-56')}
-                />
-                {pluginSection !== 'sv' && (
-                  <Button
-                    className={cn(tabToolbarControlClass, 'shrink-0 justify-center gap-2 px-4 sm:px-8 lg:min-w-[160px]')}
-                    disabled={!sectionDirty || sectionSaving}
-                    onClick={saveSection}
-                  >
-                    {sectionSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                    {t('plugins.confirmChanges')}
-                  </Button>
-                )}
-              </div>
-            </div>
             </div>
           </div>
 
           <CardContent className="min-h-0 flex-1 space-y-4 overflow-y-auto pt-4 sm:pt-4">
             {pluginSection === 'plugin' && (
               <>
-                    {/* 汇总所有SV命令Tags - 默认折叠，展开时才渲染 */}
-                    {allCommands.length > 0 && (
-                      <Collapsible
-                        defaultOpen={false}
-                        className={cn('group/allCmds', configHitClass(t('plugins.allCommands')))}
-                        data-config-hit={configHitClass(t('plugins.allCommands')) ? 'true' : undefined}
-                      >
-                        <CollapsibleTrigger asChild>
-                          <div className="flex items-center justify-between cursor-pointer hover:opacity-80 transition-opacity">
-                            <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                              <Command className="w-4 h-4" />
-                              {t('plugins.allCommands')} ({allCommands.length})
-                            </Label>
-                            <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform duration-200 group-data-[state=open]/allCmds:rotate-180" />
-                          </div>
-                        </CollapsibleTrigger>
-                        <CollapsibleContent>
-                          <div className="flex flex-wrap items-center gap-1.5 pb-4 border-b">
-                            <TooltipProvider delayDuration={300}>
-                              {allCommands.map((cmd: SvCommand, cmdIndex: number) => {
-                                const colorClass = CMD_TYPE_COLORS[cmd.type] || CMD_TYPE_DEFAULT_COLOR;
-                                
-                                return (
-                                  <Tooltip key={cmdIndex}>
-                                    <TooltipTrigger asChild>
-                                      <span
-                                        className={`inline-flex items-center rounded-full border px-1.5 py-0.5 text-xs cursor-pointer transition-colors ${colorClass}`}
-                                      >
-                                        {cmd.type === 'regex' ? simplifyRegexKeyword(cmd.keyword) : cmd.keyword}
-                                      </span>
-                                    </TooltipTrigger>
-                                    <TooltipContent side="top" className="max-w-xs z-50 bg-white dark:bg-gray-900 border shadow-lg">
-                                      <div className="space-y-1">
-                                        <p className="font-medium text-gray-900 dark:text-gray-100">{t('plugins.commandTrigger')}</p>
-                                        <div className="grid grid-cols-[auto_1fr] gap-x-2 text-xs text-gray-700 dark:text-gray-300">
-                                          <span className="text-gray-500 dark:text-gray-400">{t('plugins.commandType')}:</span>
-                                          <span className="text-gray-900 dark:text-gray-100">{t(`plugins.triggerTypes.${cmd.type}`) || cmd.type}</span>
-                                          <span className="text-gray-500 dark:text-gray-400">{t('plugins.commandKeyword')}:</span>
-                                          <span className="font-mono break-all text-gray-900 dark:text-gray-100">{cmd.keyword}</span>
-                                          <span className="text-gray-500 dark:text-gray-400">{t('plugins.commandBlock')}:</span>
-                                          <span className="text-gray-900 dark:text-gray-100">{cmd.block ? '✓' : '✗'}</span>
-                                          <span className="text-gray-500 dark:text-gray-400">{t('plugins.commandToMe')}:</span>
-                                          <span className="text-gray-900 dark:text-gray-100">{cmd.to_me ? '✓' : '✗'}</span>
-                                        </div>
-                                      </div>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                );
-                              })}
-                            </TooltipProvider>
-                          </div>
-                        </CollapsibleContent>
-                      </Collapsible>
-                    )}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-5">
-                {/* 插件状态 */}
-                <div
-                  data-config-hit={configHitClass(t('plugins.pluginStatus'), t('plugins.enabled'), t('plugins.disabled')) ? 'true' : undefined}
-                  className={cn('space-y-2', configHitClass(t('plugins.pluginStatus'), t('plugins.enabled'), t('plugins.disabled')))}
-                >
-                  <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                    <Settings className="w-4 h-4" />
-                    {t('plugins.pluginStatus')}
-                  </Label>
-                  <div className="flex items-center space-x-2 pt-2">
-                    <Switch
-                      checked={editedEnabled}
-                      onCheckedChange={(checked) => setEditedEnabled(checked)}
-                    />
-                    <span className="text-sm text-muted-foreground">{editedEnabled ? t('plugins.enabled') : t('plugins.disabled')}</span>
-                  </div>
-                </div>
-
-                <div
-                  data-config-hit={configHitClass(t('plugins.permissionLevel')) ? 'true' : undefined}
-                  className={cn('space-y-2', configHitClass(t('plugins.permissionLevel')))}
-                >
-                  <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                    <Shield className="w-4 h-4" />
-                    {t('plugins.permissionLevel')}
-                  </Label>
-                  <Select
-                    value={String(editedServiceConfig.pm || 0)}
-                    onValueChange={(v) => setEditedServiceConfig(prev => ({ ...prev, pm: parseInt(v) }))}
+                {/* 汇总所有SV命令Tags - 默认折叠，展开时才渲染 */}
+                {allCommands.length > 0 && (
+                  <Collapsible
+                    defaultOpen={false}
+                    className={cn('group/allCmds', configHitClass(t('plugins.allCommands')))}
+                    data-config-hit={configHitClass(t('plugins.allCommands')) ? 'true' : undefined}
                   >
-                    <SelectTrigger className="bg-background h-10">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {[0, 1, 2, 3, 4, 5, 6, 7, 8].map(v => (
-                        <SelectItem key={v} value={String(v)}>{t('plugins.permissionLevels.' + v)}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* {t('plugins.priority')} */}
-                <div
-                  data-config-hit={configHitClass(t('plugins.priority'), t('plugins.enterPriority')) ? 'true' : undefined}
-                  className={cn('space-y-2', configHitClass(t('plugins.priority'), t('plugins.enterPriority')))}
-                >
-                  <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                    <Zap className="w-4 h-4" />
-                    {t('plugins.priority')}
-                  </Label>
-                  <Input
-                    type="number"
-                    className="bg-background h-10"
-                    value={editedServiceConfig.priority || 0}
-                    onChange={(e) => setEditedServiceConfig(prev => ({ ...prev, priority: parseInt(e.target.value) }))}
-                    placeholder={t('plugins.enterPriority')}
-                  />
-                </div>
-
-                {/* {t('plugins.responseArea')} */}
-                <div
-                  data-config-hit={configHitClass(t('plugins.responseArea'), t('plugins.global'), t('plugins.directOnly'), t('plugins.groupOnly')) ? 'true' : undefined}
-                  className={cn('space-y-2', configHitClass(t('plugins.responseArea'), t('plugins.global'), t('plugins.directOnly'), t('plugins.groupOnly')))}
-                >
-                  <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                    <MessageSquare className="w-4 h-4" />
-                    {t('plugins.responseArea')}
-                  </Label>
-                  <Select
-                    value={editedServiceConfig.area || 'ALL'}
-                    onValueChange={(v) => setEditedServiceConfig(prev => ({ ...prev, area: v }))}
-                  >
-                    <SelectTrigger className="bg-background h-10">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ALL">全局</SelectItem>
-                      <SelectItem value="DIRECT">仅限私聊</SelectItem>
-                      <SelectItem value="GROUP">仅限群聊</SelectItem>
-                      <SelectItem value="SV">SV服务</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* {t('plugins.pluginWhiteList')} */}
-                <div
-                  data-config-hit={configHitClass(t('plugins.pluginWhiteList'), t('plugins.whiteList')) ? 'true' : undefined}
-                  className={cn('space-y-2', configHitClass(t('plugins.pluginWhiteList'), t('plugins.whiteList')))}
-                >
-                  <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                    <Filter className="w-4 h-4" />
-                    {t('plugins.pluginWhiteList')}
-                  </Label>
-                  <ConfigField
-                    fieldKey="white_list"
-                    field={{
-                      type: 'tags',
-                      label: t('plugins.pluginWhiteList'),
-                      value: editedServiceConfig.white_list || [],
-                      placeholder: t('plugins.enterWhitelistContent')
-                    }}
-                    onChange={(fieldKey, value) => setEditedServiceConfig(prev => ({ ...prev, [fieldKey]: value }))}
-                    showLabel={false}
-                  />
-                </div>
-
-                {/* {t('plugins.pluginBlackList')} */}
-                <div
-                  data-config-hit={configHitClass(t('plugins.pluginBlackList'), t('plugins.blackList')) ? 'true' : undefined}
-                  className={cn('space-y-2', configHitClass(t('plugins.pluginBlackList'), t('plugins.blackList')))}
-                >
-                  <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                    <Users className="w-4 h-4" />
-                    {t('plugins.pluginBlackList')}
-                  </Label>
-                  <ConfigField
-                    fieldKey="black_list"
-                    field={{
-                      type: 'tags',
-                      label: t('plugins.pluginBlackList'),
-                      value: editedServiceConfig.black_list || [],
-                      placeholder: t('plugins.enterBlacklistContent')
-                    }}
-                    onChange={(fieldKey, value) => setEditedServiceConfig(prev => ({ ...prev, [fieldKey]: value }))}
-                    showLabel={false}
-                  />
-                </div>
-
-                {/* {t('plugins.disablePrefix')} */}
-                <div
-                  data-config-hit={configHitClass(t('plugins.disablePrefix'), t('plugins.disablePrefixDesc'), t('plugins.forcePrefix')) ? 'true' : undefined}
-                  className={cn('space-y-2', configHitClass(t('plugins.disablePrefix'), t('plugins.disablePrefixDesc'), t('plugins.forcePrefix')))}
-                >
-                  <div className="flex items-center justify-between gap-4">
-                    <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2 shrink-0">
-                      <Key className="w-4 h-4" />
-                      {t('plugins.disablePrefix')}
-                    </Label>
-                    {/* force_prefix 只读显示 - 带颜色的tags */}
-                    {Array.isArray(editedServiceConfig.force_prefix) && editedServiceConfig.force_prefix.length > 0 && (
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-xs text-muted-foreground">强制前缀：</span>
-                        {editedServiceConfig.force_prefix.map((prefix: string, index: number) => (
-                          <Badge key={index} variant="secondary" className="text-xs bg-primary/10 text-primary border-primary/20">
-                            {prefix}
-                          </Badge>
-                        ))}
+                    <CollapsibleTrigger asChild>
+                      <div className="flex items-center justify-between cursor-pointer hover:opacity-80 transition-opacity">
+                        <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                          <Command className="w-4 h-4" />
+                          {t('plugins.allCommands')} ({allCommands.length})
+                        </Label>
+                        <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform duration-200 group-data-[state=open]/allCmds:rotate-180" />
                       </div>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <div className="flex flex-wrap items-center gap-1.5 pb-4 border-b">
+                        <TooltipProvider delayDuration={300}>
+                          {allCommands.map((cmd: SvCommand, cmdIndex: number) => {
+                            const colorClass = CMD_TYPE_COLORS[cmd.type] || CMD_TYPE_DEFAULT_COLOR;
+
+                            return (
+                              <Tooltip key={cmdIndex}>
+                                <TooltipTrigger asChild>
+                                  <span
+                                    className={`inline-flex items-center rounded-full border px-1.5 py-0.5 text-xs cursor-pointer transition-colors ${colorClass}`}
+                                  >
+                                    {cmd.type === 'regex'
+                                      ? simplifyRegexKeyword(cmd.keyword)
+                                      : cmd.keyword}
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent
+                                  side="top"
+                                  className="max-w-xs z-50 bg-white dark:bg-gray-900 border shadow-lg"
+                                >
+                                  <div className="space-y-1">
+                                    <p className="font-medium text-gray-900 dark:text-gray-100">
+                                      {t('plugins.commandTrigger')}
+                                    </p>
+                                    <div className="grid grid-cols-[auto_1fr] gap-x-2 text-xs text-gray-700 dark:text-gray-300">
+                                      <span className="text-gray-500 dark:text-gray-400">
+                                        {t('plugins.commandType')}:
+                                      </span>
+                                      <span className="text-gray-900 dark:text-gray-100">
+                                        {t(`plugins.triggerTypes.${cmd.type}`) || cmd.type}
+                                      </span>
+                                      <span className="text-gray-500 dark:text-gray-400">
+                                        {t('plugins.commandKeyword')}:
+                                      </span>
+                                      <span className="font-mono break-all text-gray-900 dark:text-gray-100">
+                                        {cmd.keyword}
+                                      </span>
+                                      <span className="text-gray-500 dark:text-gray-400">
+                                        {t('plugins.commandBlock')}:
+                                      </span>
+                                      <span className="text-gray-900 dark:text-gray-100">
+                                        {cmd.block ? '✓' : '✗'}
+                                      </span>
+                                      <span className="text-gray-500 dark:text-gray-400">
+                                        {t('plugins.commandToMe')}:
+                                      </span>
+                                      <span className="text-gray-900 dark:text-gray-100">
+                                        {cmd.to_me ? '✓' : '✗'}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
+                            );
+                          })}
+                        </TooltipProvider>
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
+                )}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-5">
+                  {/* 插件状态 */}
+                  <div
+                    data-config-hit={
+                      configHitClass(
+                        t('plugins.pluginStatus'),
+                        t('plugins.enabled'),
+                        t('plugins.disabled'),
+                      )
+                        ? 'true'
+                        : undefined
+                    }
+                    className={cn(
+                      'space-y-2',
+                      configHitClass(
+                        t('plugins.pluginStatus'),
+                        t('plugins.enabled'),
+                        t('plugins.disabled'),
+                      ),
                     )}
+                  >
+                    <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                      <Settings className="w-4 h-4" />
+                      {t('plugins.pluginStatus')}
+                    </Label>
+                    <div className="flex items-center space-x-2 pt-2">
+                      <Switch
+                        checked={editedEnabled}
+                        onCheckedChange={(checked) => setEditedEnabled(checked)}
+                      />
+                      <span className="text-sm text-muted-foreground">
+                        {editedEnabled ? t('plugins.enabled') : t('plugins.disabled')}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-2 pt-2">
-                    <Switch
-                      checked={editedServiceConfig.disable_force_prefix || false}
-                      onCheckedChange={(checked) => setEditedServiceConfig(prev => ({ ...prev, disable_force_prefix: checked }))}
+
+                  <div
+                    data-config-hit={
+                      configHitClass(t('plugins.permissionLevel')) ? 'true' : undefined
+                    }
+                    className={cn('space-y-2', configHitClass(t('plugins.permissionLevel')))}
+                  >
+                    <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                      <Shield className="w-4 h-4" />
+                      {t('plugins.permissionLevel')}
+                    </Label>
+                    <Select
+                      value={String(editedServiceConfig.pm || 0)}
+                      onValueChange={(v) =>
+                        setEditedServiceConfig((prev) => ({ ...prev, pm: parseInt(v) }))
+                      }
+                    >
+                      <SelectTrigger className="bg-background h-10">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[0, 1, 2, 3, 4, 5, 6, 7, 8].map((v) => (
+                          <SelectItem key={v} value={String(v)}>
+                            {t('plugins.permissionLevels.' + v)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* {t('plugins.priority')} */}
+                  <div
+                    data-config-hit={
+                      configHitClass(t('plugins.priority'), t('plugins.enterPriority'))
+                        ? 'true'
+                        : undefined
+                    }
+                    className={cn(
+                      'space-y-2',
+                      configHitClass(t('plugins.priority'), t('plugins.enterPriority')),
+                    )}
+                  >
+                    <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                      <Zap className="w-4 h-4" />
+                      {t('plugins.priority')}
+                    </Label>
+                    <Input
+                      type="number"
+                      className="bg-background h-10"
+                      value={editedServiceConfig.priority || 0}
+                      onChange={(e) =>
+                        setEditedServiceConfig((prev) => ({
+                          ...prev,
+                          priority: parseInt(e.target.value),
+                        }))
+                      }
+                      placeholder={t('plugins.enterPriority')}
                     />
-                    <span className="text-sm text-muted-foreground">{t('plugins.disablePrefixDesc')}</span>
                   </div>
-                </div>
 
-                {/* {t('plugins.allowEmptyPrefix')} */}
-                <div
-                  data-config-hit={configHitClass(t('plugins.allowEmptyPrefix'), t('plugins.allowEmptyPrefixDesc')) ? 'true' : undefined}
-                  className={cn('space-y-2', configHitClass(t('plugins.allowEmptyPrefix'), t('plugins.allowEmptyPrefixDesc')))}
-                >
-                  <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                    <Key className="w-4 h-4" />
-                    {t('plugins.allowEmptyPrefix')}
-                  </Label>
-                  <div className="flex items-center space-x-2 pt-2">
-                    <Switch
-                      checked={editedServiceConfig.allow_empty_prefix || false}
-                      onCheckedChange={(checked) => setEditedServiceConfig(prev => ({ ...prev, allow_empty_prefix: checked }))}
+                  {/* {t('plugins.responseArea')} */}
+                  <div
+                    data-config-hit={
+                      configHitClass(
+                        t('plugins.responseArea'),
+                        t('plugins.global'),
+                        t('plugins.directOnly'),
+                        t('plugins.groupOnly'),
+                      )
+                        ? 'true'
+                        : undefined
+                    }
+                    className={cn(
+                      'space-y-2',
+                      configHitClass(
+                        t('plugins.responseArea'),
+                        t('plugins.global'),
+                        t('plugins.directOnly'),
+                        t('plugins.groupOnly'),
+                      ),
+                    )}
+                  >
+                    <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                      <MessageSquare className="w-4 h-4" />
+                      {t('plugins.responseArea')}
+                    </Label>
+                    <Select
+                      value={editedServiceConfig.area || 'ALL'}
+                      onValueChange={(v) =>
+                        setEditedServiceConfig((prev) => ({ ...prev, area: v }))
+                      }
+                    >
+                      <SelectTrigger className="bg-background h-10">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ALL">全局</SelectItem>
+                        <SelectItem value="DIRECT">仅限私聊</SelectItem>
+                        <SelectItem value="GROUP">仅限群聊</SelectItem>
+                        <SelectItem value="SV">SV服务</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* {t('plugins.pluginWhiteList')} */}
+                  <div
+                    data-config-hit={
+                      configHitClass(t('plugins.pluginWhiteList'), t('plugins.whiteList'))
+                        ? 'true'
+                        : undefined
+                    }
+                    className={cn(
+                      'space-y-2',
+                      configHitClass(t('plugins.pluginWhiteList'), t('plugins.whiteList')),
+                    )}
+                  >
+                    <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                      <Filter className="w-4 h-4" />
+                      {t('plugins.pluginWhiteList')}
+                    </Label>
+                    <ConfigField
+                      fieldKey="white_list"
+                      field={{
+                        type: 'tags',
+                        label: t('plugins.pluginWhiteList'),
+                        value: editedServiceConfig.white_list || [],
+                        placeholder: t('plugins.enterWhitelistContent'),
+                      }}
+                      onChange={(fieldKey, value) =>
+                        setEditedServiceConfig((prev) => ({ ...prev, [fieldKey]: value }))
+                      }
+                      showLabel={false}
                     />
-                    <span className="text-sm text-muted-foreground">允许空命令前缀</span>
                   </div>
-                </div>
 
-                {/* prefix 可编辑 - 使用tags组件 */}
-                <div
-                  data-config-hit={configHitClass(t('plugins.prefix'), 'prefix') ? 'true' : undefined}
-                  className={cn('space-y-2', configHitClass(t('plugins.prefix'), 'prefix'))}
-                >
-                  <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                    <Key className="w-4 h-4" />
-                    prefix
-                  </Label>
-                  <ConfigField
-                    fieldKey="prefix"
-                    field={{
-                      type: 'tags',
-                      label: 'prefix',
-                      value: editedServiceConfig.prefix || [],
-                      placeholder: '输入前缀内容'
-                    }}
-                    onChange={(fieldKey, value) => setEditedServiceConfig(prev => ({ ...prev, [fieldKey]: value }))}
-                    showLabel={false}
-                  />
-                </div>
+                  {/* {t('plugins.pluginBlackList')} */}
+                  <div
+                    data-config-hit={
+                      configHitClass(t('plugins.pluginBlackList'), t('plugins.blackList'))
+                        ? 'true'
+                        : undefined
+                    }
+                    className={cn(
+                      'space-y-2',
+                      configHitClass(t('plugins.pluginBlackList'), t('plugins.blackList')),
+                    )}
+                  >
+                    <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                      <Users className="w-4 h-4" />
+                      {t('plugins.pluginBlackList')}
+                    </Label>
+                    <ConfigField
+                      fieldKey="black_list"
+                      field={{
+                        type: 'tags',
+                        label: t('plugins.pluginBlackList'),
+                        value: editedServiceConfig.black_list || [],
+                        placeholder: t('plugins.enterBlacklistContent'),
+                      }}
+                      onChange={(fieldKey, value) =>
+                        setEditedServiceConfig((prev) => ({ ...prev, [fieldKey]: value }))
+                      }
+                      showLabel={false}
+                    />
+                  </div>
 
+                  {/* {t('plugins.disablePrefix')} */}
+                  <div
+                    data-config-hit={
+                      configHitClass(
+                        t('plugins.disablePrefix'),
+                        t('plugins.disablePrefixDesc'),
+                        t('plugins.forcePrefix'),
+                      )
+                        ? 'true'
+                        : undefined
+                    }
+                    className={cn(
+                      'space-y-2',
+                      configHitClass(
+                        t('plugins.disablePrefix'),
+                        t('plugins.disablePrefixDesc'),
+                        t('plugins.forcePrefix'),
+                      ),
+                    )}
+                  >
+                    <div className="flex items-center justify-between gap-4">
+                      <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2 shrink-0">
+                        <Key className="w-4 h-4" />
+                        {t('plugins.disablePrefix')}
+                      </Label>
+                      {/* force_prefix 只读显示 - 带颜色的tags */}
+                      {Array.isArray(editedServiceConfig.force_prefix) &&
+                        editedServiceConfig.force_prefix.length > 0 && (
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xs text-muted-foreground">强制前缀：</span>
+                            {editedServiceConfig.force_prefix.map(
+                              (prefix: string, index: number) => (
+                                <Badge
+                                  key={index}
+                                  variant="secondary"
+                                  className="text-xs bg-primary/10 text-primary border-primary/20"
+                                >
+                                  {prefix}
+                                </Badge>
+                              ),
+                            )}
+                          </div>
+                        )}
+                    </div>
+                    <div className="flex items-center space-x-2 pt-2">
+                      <Switch
+                        checked={editedServiceConfig.disable_force_prefix || false}
+                        onCheckedChange={(checked) =>
+                          setEditedServiceConfig((prev) => ({
+                            ...prev,
+                            disable_force_prefix: checked,
+                          }))
+                        }
+                      />
+                      <span className="text-sm text-muted-foreground">
+                        {t('plugins.disablePrefixDesc')}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* {t('plugins.allowEmptyPrefix')} */}
+                  <div
+                    data-config-hit={
+                      configHitClass(
+                        t('plugins.allowEmptyPrefix'),
+                        t('plugins.allowEmptyPrefixDesc'),
+                      )
+                        ? 'true'
+                        : undefined
+                    }
+                    className={cn(
+                      'space-y-2',
+                      configHitClass(
+                        t('plugins.allowEmptyPrefix'),
+                        t('plugins.allowEmptyPrefixDesc'),
+                      ),
+                    )}
+                  >
+                    <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                      <Key className="w-4 h-4" />
+                      {t('plugins.allowEmptyPrefix')}
+                    </Label>
+                    <div className="flex items-center space-x-2 pt-2">
+                      <Switch
+                        checked={editedServiceConfig.allow_empty_prefix || false}
+                        onCheckedChange={(checked) =>
+                          setEditedServiceConfig((prev) => ({
+                            ...prev,
+                            allow_empty_prefix: checked,
+                          }))
+                        }
+                      />
+                      <span className="text-sm text-muted-foreground">允许空命令前缀</span>
+                    </div>
+                  </div>
+
+                  {/* prefix 可编辑 - 使用tags组件 */}
+                  <div
+                    data-config-hit={
+                      configHitClass(t('plugins.prefix'), 'prefix') ? 'true' : undefined
+                    }
+                    className={cn('space-y-2', configHitClass(t('plugins.prefix'), 'prefix'))}
+                  >
+                    <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                      <Key className="w-4 h-4" />
+                      prefix
+                    </Label>
+                    <ConfigField
+                      fieldKey="prefix"
+                      field={{
+                        type: 'tags',
+                        label: 'prefix',
+                        value: editedServiceConfig.prefix || [],
+                        placeholder: '输入前缀内容',
+                      }}
+                      onChange={(fieldKey, value) =>
+                        setEditedServiceConfig((prev) => ({ ...prev, [fieldKey]: value }))
+                      }
+                      showLabel={false}
+                    />
+                  </div>
                 </div>
               </>
             )}
@@ -1541,58 +1854,80 @@ export default function PluginsPage() {
                           groupIndex > 0 && 'border-t border-border/40 pt-3',
                         )}
                       >
-                          {group.items.map(({ sv, index }) => {
-                            const areaLabel =
-                              sv.area === 'DIRECT'
-                                ? t('plugins.directOnly')
-                                : sv.area === 'GROUP'
-                                  ? t('plugins.groupOnly')
-                                  : t('plugins.global');
-                            return (
-                              <button
-                                key={`${sv.name}-${index}`}
-                                type="button"
-                                className="min-w-0 w-full rounded-lg border bg-background p-3 text-left"
-                                onClick={() => {
-                                  setEditingSvIndex(index);
-                                  setSvDraft(JSON.parse(JSON.stringify(sv)) as SvItem);
-                                }}
-                              >
-                                <div className="flex items-center gap-2">
-                                  <span className="min-w-0 flex-1 truncate font-medium">{sv.name}</span>
-                                  <Badge className={cn(SV_BADGE, 'shrink-0', svPriorityBadgeClass(sv.priority || 0))}>
-                                    {t('plugins.priorityShort', { n: sv.priority || 0 })}
-                                  </Badge>
-                                  <Badge
-                                    className={cn(
-                                      SV_BADGE,
-                                      'shrink-0',
-                                      sv.enabled
-                                        ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200'
-                                        : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300',
-                                    )}
-                                  >
-                                    {sv.enabled ? <CircleCheck className="h-3 w-3" /> : <CircleOff className="h-3 w-3" />}
-                                    {sv.enabled ? t('plugins.enabled') : t('plugins.disabled')}
-                                  </Badge>
-                                </div>
-                                <div className="mt-1.5 flex flex-wrap gap-1">
-                                  <Badge className={cn(SV_BADGE, SV_PM_BADGE[sv.pm || 0] || SV_PM_BADGE[6])}>
-                                    {t(`plugins.permissionLevels.${sv.pm || 0}`)}
-                                  </Badge>
-                                  <Badge className={cn(SV_BADGE, SV_AREA_BADGE[sv.area] || SV_AREA_BADGE.ALL)}>
-                                    {areaLabel}
-                                  </Badge>
-                                  <Badge variant="secondary" className="font-normal">
-                                    {t('plugins.whiteList')} {sv.white_list?.length || 0}
-                                  </Badge>
-                                  <Badge variant="secondary" className="font-normal">
-                                    {t('plugins.blackList')} {sv.black_list?.length || 0}
-                                  </Badge>
-                                </div>
-                              </button>
-                            );
-                          })}
+                        {group.items.map(({ sv, index }) => {
+                          const areaLabel =
+                            sv.area === 'DIRECT'
+                              ? t('plugins.directOnly')
+                              : sv.area === 'GROUP'
+                                ? t('plugins.groupOnly')
+                                : t('plugins.global');
+                          return (
+                            <button
+                              key={`${sv.name}-${index}`}
+                              type="button"
+                              className="min-w-0 w-full rounded-lg border bg-background p-3 text-left"
+                              onClick={() => {
+                                setEditingSvIndex(index);
+                                setSvDraft(JSON.parse(JSON.stringify(sv)) as SvItem);
+                              }}
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className="min-w-0 flex-1 truncate font-medium">
+                                  {sv.name}
+                                </span>
+                                <Badge
+                                  className={cn(
+                                    SV_BADGE,
+                                    'shrink-0',
+                                    svPriorityBadgeClass(sv.priority || 0),
+                                  )}
+                                >
+                                  {t('plugins.priorityShort', { n: sv.priority || 0 })}
+                                </Badge>
+                                <Badge
+                                  className={cn(
+                                    SV_BADGE,
+                                    'shrink-0',
+                                    sv.enabled
+                                      ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200'
+                                      : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300',
+                                  )}
+                                >
+                                  {sv.enabled ? (
+                                    <CircleCheck className="h-3 w-3" />
+                                  ) : (
+                                    <CircleOff className="h-3 w-3" />
+                                  )}
+                                  {sv.enabled ? t('plugins.enabled') : t('plugins.disabled')}
+                                </Badge>
+                              </div>
+                              <div className="mt-1.5 flex flex-wrap gap-1">
+                                <Badge
+                                  className={cn(
+                                    SV_BADGE,
+                                    SV_PM_BADGE[sv.pm || 0] || SV_PM_BADGE[6],
+                                  )}
+                                >
+                                  {t(`plugins.permissionLevels.${sv.pm || 0}`)}
+                                </Badge>
+                                <Badge
+                                  className={cn(
+                                    SV_BADGE,
+                                    SV_AREA_BADGE[sv.area] || SV_AREA_BADGE.ALL,
+                                  )}
+                                >
+                                  {areaLabel}
+                                </Badge>
+                                <Badge variant="secondary" className="font-normal">
+                                  {t('plugins.whiteList')} {sv.white_list?.length || 0}
+                                </Badge>
+                                <Badge variant="secondary" className="font-normal">
+                                  {t('plugins.blackList')} {sv.black_list?.length || 0}
+                                </Badge>
+                              </div>
+                            </button>
+                          );
+                        })}
                       </div>
                     ))}
                   </div>
@@ -1607,8 +1942,8 @@ export default function PluginsPage() {
                 {(selectedPlugin.config_groups && selectedPlugin.config_groups.length > 0
                   ? selectedPlugin.config_groups.filter(
                       (group) =>
-                        group.config_name === selectedConfigName
-                        || warmConfigNames.includes(group.config_name),
+                        group.config_name === selectedConfigName ||
+                        warmConfigNames.includes(group.config_name),
                     )
                   : [
                       {
@@ -1638,7 +1973,8 @@ export default function PluginsPage() {
                       ) : (
                         entries.map(([key, field]) => {
                           const fieldDef = field as unknown as ConfigFieldDefinition;
-                          const shown = (text?: string) => (!text ? '' : text.includes('.') ? t(text) : text);
+                          const shown = (text?: string) =>
+                            !text ? '' : text.includes('.') ? t(text) : text;
                           const hit = active
                             ? configHitClass(
                                 shown(fieldDef.label),
@@ -1647,7 +1983,8 @@ export default function PluginsPage() {
                                 key,
                               )
                             : '';
-                          const isFullWidth = fieldDef.type === 'divider' || fieldDef.type === 'repeatgroup';
+                          const isFullWidth =
+                            fieldDef.type === 'divider' || fieldDef.type === 'repeatgroup';
                           if (fieldDef.type === 'repeatgroup') {
                             const groupValue = Array.isArray(fieldDef.value)
                               ? (fieldDef.value as unknown as RepeatGroupItem[])
@@ -1718,7 +2055,9 @@ export default function PluginsPage() {
           {svDraft && (
             <div className="max-h-[60vh] space-y-4 overflow-y-auto py-2">
               <div className="flex items-center justify-between">
-                <Label className="text-sm font-medium text-muted-foreground">{t('plugins.pluginStatus')}</Label>
+                <Label className="text-sm font-medium text-muted-foreground">
+                  {t('plugins.pluginStatus')}
+                </Label>
                 <Switch
                   checked={svDraft.enabled}
                   onCheckedChange={(checked) => setSvDraft({ ...svDraft, enabled: checked })}
@@ -1842,7 +2181,10 @@ export default function PluginsPage() {
                                 {displayText}
                               </span>
                             </TooltipTrigger>
-                            <TooltipContent side="top" className="z-50 max-w-xs border bg-white shadow-lg dark:bg-gray-900">
+                            <TooltipContent
+                              side="top"
+                              className="z-50 max-w-xs border bg-white shadow-lg dark:bg-gray-900"
+                            >
                               <div className="space-y-1">
                                 <p className="font-medium text-gray-900 dark:text-gray-100">
                                   {t('plugins.commandTrigger')}
@@ -1863,11 +2205,15 @@ export default function PluginsPage() {
                                   <span className="text-gray-500 dark:text-gray-400">
                                     {t('plugins.commandBlock')}:
                                   </span>
-                                  <span className="text-gray-900 dark:text-gray-100">{cmd.block ? '✓' : '✗'}</span>
+                                  <span className="text-gray-900 dark:text-gray-100">
+                                    {cmd.block ? '✓' : '✗'}
+                                  </span>
                                   <span className="text-gray-500 dark:text-gray-400">
                                     {t('plugins.commandToMe')}:
                                   </span>
-                                  <span className="text-gray-900 dark:text-gray-100">{cmd.to_me ? '✓' : '✗'}</span>
+                                  <span className="text-gray-900 dark:text-gray-100">
+                                    {cmd.to_me ? '✓' : '✗'}
+                                  </span>
                                 </div>
                               </div>
                             </TooltipContent>
@@ -1892,8 +2238,15 @@ export default function PluginsPage() {
             <Button variant="outline" onClick={closeSvEditor}>
               {t('common.cancel')}
             </Button>
-            <Button disabled={!isSvDraftDirty || isSavingService} onClick={() => void handleSaveOneSv()}>
-              {isSavingService ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            <Button
+              disabled={!isSvDraftDirty || isSavingService}
+              onClick={() => void handleSaveOneSv()}
+            >
+              {isSavingService ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
               {t('plugins.confirmChanges')}
             </Button>
           </DialogFooter>
@@ -1934,9 +2287,7 @@ export default function PluginsPage() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{t('plugins.updateAllPlugins')}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t('plugins.updateAllPluginsConfirm')}
-            </AlertDialogDescription>
+            <AlertDialogDescription>{t('plugins.updateAllPluginsConfirm')}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
@@ -1956,11 +2307,7 @@ export default function PluginsPage() {
                 <Download className="w-5 h-5" />
                 {t('plugins.updateAllPlugins')}
               </h3>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setUpdateAllPanelOpen(false)}
-              >
+              <Button variant="ghost" size="sm" onClick={() => setUpdateAllPanelOpen(false)}>
                 {t('common.close')}
               </Button>
             </div>
@@ -1988,14 +2335,15 @@ export default function PluginsPage() {
                           </Badge>
                         )}
                         {plugin.status === 'success' && (
-                          <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/20">
+                          <Badge
+                            variant="outline"
+                            className="bg-green-500/10 text-green-600 border-green-500/20"
+                          >
                             {t('plugins.updateSuccess')}
                           </Badge>
                         )}
                         {plugin.status === 'failed' && (
-                          <Badge variant="destructive">
-                            {t('plugins.updateFailed')}
-                          </Badge>
+                          <Badge variant="destructive">{t('plugins.updateFailed')}</Badge>
                         )}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground max-w-xs truncate">

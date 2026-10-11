@@ -27,12 +27,7 @@ export function PersonaAvatar({ name, isEnabled }: PersonaAvatarProps) {
           onError={() => setImgError(true)}
         />
       ) : (
-        <Bot
-          className={cn(
-            'w-4 h-4',
-            isEnabled ? 'text-primary' : 'text-muted-foreground',
-          )}
-        />
+        <Bot className={cn('w-4 h-4', isEnabled ? 'text-primary' : 'text-muted-foreground')} />
       )}
     </div>
   );

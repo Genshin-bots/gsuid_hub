@@ -51,13 +51,10 @@ export function PersonaToolScopePanel({ plugin, toolName, t }: PersonaToolScopeP
     void load();
   }, [load]);
 
-  const allPlugins = useCallback(
-    async () => {
-      const catalog = await personaApi.getToolCatalog();
-      return catalog.plugins.map((p) => p.name);
-    },
-    [],
-  );
+  const allPlugins = useCallback(async () => {
+    const catalog = await personaApi.getToolCatalog();
+    return catalog.plugins.map((p) => p.name);
+  }, []);
 
   const setPluginEnabled = async (name: string, cfg: PersonaConfig, enabled: boolean) => {
     setBusy(name);
@@ -70,7 +67,10 @@ export function PersonaToolScopePanel({ plugin, toolName, t }: PersonaToolScopeP
       await personaApi.updatePersonaConfig(name, {
         enabled_tools: enabledPluginsToSpec(next, known),
       });
-      setConfigs((prev) => ({ ...prev, [name]: { ...cfg, enabled_tools: enabledPluginsToSpec(next, known) } }));
+      setConfigs((prev) => ({
+        ...prev,
+        [name]: { ...cfg, enabled_tools: enabledPluginsToSpec(next, known) },
+      }));
       toast.success(t('personaConfig.scopeSaved'));
     } catch (e) {
       toast.error(getError(e, t));
@@ -174,7 +174,8 @@ function PluginToggleButton({
   // enabled_tools 缺省 = 全开；这里只判「是否显式排除」
   const spec = config.enabled_tools;
   const denied = (spec ?? []).some((x) => x === `!${plugin}`);
-  const whitelistOnly = (spec ?? []).length > 0 && !(spec ?? []).includes('*') && !(spec ?? []).includes('all');
+  const whitelistOnly =
+    (spec ?? []).length > 0 && !(spec ?? []).includes('*') && !(spec ?? []).includes('all');
   const enabled = whitelistOnly ? !denied : true;
 
   return (
@@ -188,7 +189,9 @@ function PluginToggleButton({
       title={t('personaConfig.scopePluginToggleTitle')}
     >
       {enabled ? <Power className="h-3.5 w-3.5" /> : <PowerOff className="h-3.5 w-3.5" />}
-      <span className={cn('truncate')}>{enabled ? t('personaConfig.scopeEnabled') : t('personaConfig.scopeDisabled')}</span>
+      <span className={cn('truncate')}>
+        {enabled ? t('personaConfig.scopeEnabled') : t('personaConfig.scopeDisabled')}
+      </span>
       {!enabled && <Check className="h-3 w-3" />}
     </Button>
   );

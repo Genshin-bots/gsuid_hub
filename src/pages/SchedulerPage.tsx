@@ -9,7 +9,7 @@ import {
   TableCell,
   TableHead,
   TableHeader,
-  TableRow
+  TableRow,
 } from '@/components/ui/table';
 import {
   Dialog,
@@ -29,7 +29,7 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
-  History
+  History,
 } from 'lucide-react';
 import { format, addHours, addMinutes, addDays } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
@@ -70,12 +70,12 @@ export default function SchedulerPage() {
         description: job.description || job.name, // Use docstring from backend
         cronExpression: job.trigger,
         cronDescription: job.trigger_description || job.trigger,
-        status: job.paused ? 'paused' as const : 'running' as const,
+        status: job.paused ? ('paused' as const) : ('running' as const),
         nextRun: job.next_run_time ? new Date(job.next_run_time) : new Date(),
         lastRun: null,
         lastResult: 'success' as const,
         runCount: 0,
-        avgDuration: 'N/A'
+        avgDuration: 'N/A',
       }));
       setTasks(formattedJobs);
     } catch (error) {
@@ -91,23 +91,27 @@ export default function SchedulerPage() {
   }, []);
 
   const filteredTasks = useMemo(() => {
-    return tasks.filter(task =>
-      task.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      task.description.toLowerCase().includes(searchQuery.toLowerCase())
+    return tasks.filter(
+      (task) =>
+        task.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        task.description.toLowerCase().includes(searchQuery.toLowerCase()),
     );
   }, [tasks, searchQuery]);
 
-  const stats = useMemo(() => ({
-    total: tasks.length,
-    running: tasks.filter(t => t.status === 'running').length,
-    paused: tasks.filter(t => t.status === 'paused').length,
-    error: tasks.filter(t => t.status === 'error').length
-  }), [tasks]);
+  const stats = useMemo(
+    () => ({
+      total: tasks.length,
+      running: tasks.filter((t) => t.status === 'running').length,
+      paused: tasks.filter((t) => t.status === 'paused').length,
+      error: tasks.filter((t) => t.status === 'error').length,
+    }),
+    [tasks],
+  );
 
   const toggleTaskStatus = async (taskId: string) => {
-    const task = tasks.find(t => t.id === taskId);
+    const task = tasks.find((t) => t.id === taskId);
     if (!task) return;
-    
+
     try {
       if (task.status === 'running') {
         await schedulerApi.pauseJob(taskId);
@@ -139,11 +143,23 @@ export default function SchedulerPage() {
   const getStatusBadge = (status: ScheduledTask['status']) => {
     switch (status) {
       case 'running':
-        return <Badge className="bg-green-500/20 text-green-500 border-green-500/30">{t('scheduler.running')}</Badge>;
+        return (
+          <Badge className="bg-green-500/20 text-green-500 border-green-500/30">
+            {t('scheduler.running')}
+          </Badge>
+        );
       case 'paused':
-        return <Badge className="bg-yellow-500/20 text-yellow-500 border-yellow-500/30">{t('scheduler.paused')}</Badge>;
+        return (
+          <Badge className="bg-yellow-500/20 text-yellow-500 border-yellow-500/30">
+            {t('scheduler.paused')}
+          </Badge>
+        );
       case 'error':
-        return <Badge className="bg-destructive/20 text-destructive border-destructive/30">{t('scheduler.error')}</Badge>;
+        return (
+          <Badge className="bg-destructive/20 text-destructive border-destructive/30">
+            {t('scheduler.error')}
+          </Badge>
+        );
     }
   };
 
@@ -166,7 +182,9 @@ export default function SchedulerPage() {
             <Calendar className="w-8 h-8 shrink-0" />
             {t('scheduler.title')}
           </h1>
-          <p className="sm:whitespace-nowrap text-muted-foreground mt-1">{t('scheduler.description')}</p>
+          <p className="sm:whitespace-nowrap text-muted-foreground mt-1">
+            {t('scheduler.description')}
+          </p>
         </div>
       }
     >
@@ -247,17 +265,23 @@ export default function SchedulerPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>{t('scheduler.taskName')}</TableHead>
-                  <TableHead className="hidden md:table-cell">{t('scheduler.executionCycle')}</TableHead>
+                  <TableHead className="hidden md:table-cell">
+                    {t('scheduler.executionCycle')}
+                  </TableHead>
                   <TableHead>{t('scheduler.status')}</TableHead>
-                  <TableHead className="hidden lg:table-cell">{t('scheduler.nextExecution')}</TableHead>
-                  <TableHead className="hidden lg:table-cell">{t('scheduler.lastResult')}</TableHead>
+                  <TableHead className="hidden lg:table-cell">
+                    {t('scheduler.nextExecution')}
+                  </TableHead>
+                  <TableHead className="hidden lg:table-cell">
+                    {t('scheduler.lastResult')}
+                  </TableHead>
                   <TableHead className="text-right">{t('scheduler.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredTasks.map((task) => (
-                  <TableRow 
-                    key={task.id} 
+                  <TableRow
+                    key={task.id}
                     className="cursor-pointer hover:bg-muted/50"
                     onClick={() => setSelectedTask(task)}
                   >
@@ -272,7 +296,9 @@ export default function SchedulerPage() {
                     <TableCell className="hidden md:table-cell">
                       <div>
                         <p className="text-sm">{task.cronDescription}</p>
-                        <p className="text-xs text-muted-foreground font-mono">{task.cronExpression}</p>
+                        <p className="text-xs text-muted-foreground font-mono">
+                          {task.cronExpression}
+                        </p>
                       </div>
                     </TableCell>
                     <TableCell>{getStatusBadge(task.status)}</TableCell>
@@ -290,12 +316,17 @@ export default function SchedulerPage() {
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                      <div
+                        className="flex items-center justify-end gap-1"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <Button
                           variant="ghost"
                           size="icon"
                           onClick={() => toggleTaskStatus(task.id)}
-                          title={task.status === 'running' ? t('scheduler.pause') : t('scheduler.start')}
+                          title={
+                            task.status === 'running' ? t('scheduler.pause') : t('scheduler.start')
+                          }
                         >
                           {task.status === 'running' ? (
                             <Pause className="w-4 h-4" />
@@ -352,15 +383,16 @@ export default function SchedulerPage() {
                 </div>
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground">{t('scheduler.nextRunTime')}</p>
-                  <p className="text-sm">{format(selectedTask.nextRun, 'yyyy-MM-dd HH:mm:ss', { locale: zhCN })}</p>
+                  <p className="text-sm">
+                    {format(selectedTask.nextRun, 'yyyy-MM-dd HH:mm:ss', { locale: zhCN })}
+                  </p>
                 </div>
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground">{t('scheduler.lastRunTime')}</p>
                   <p className="text-sm">
-                    {selectedTask.lastRun 
+                    {selectedTask.lastRun
                       ? format(selectedTask.lastRun, 'yyyy-MM-dd HH:mm:ss', { locale: zhCN })
-                      : '-'
-                    }
+                      : '-'}
                   </p>
                 </div>
                 <div className="space-y-1">
@@ -372,8 +404,11 @@ export default function SchedulerPage() {
                   <div className="flex items-center gap-2">
                     {getResultIcon(selectedTask.lastResult)}
                     <span className="text-sm">
-                      {selectedTask.lastResult === 'success' ? t('scheduler.success') :
-                       selectedTask.lastResult === 'failed' ? t('scheduler.failed') : t('scheduler.pending')}
+                      {selectedTask.lastResult === 'success'
+                        ? t('scheduler.success')
+                        : selectedTask.lastResult === 'failed'
+                          ? t('scheduler.failed')
+                          : t('scheduler.pending')}
                     </span>
                   </div>
                 </div>
@@ -396,10 +431,7 @@ export default function SchedulerPage() {
                     </>
                   )}
                 </Button>
-                <Button
-                  className="flex-1"
-                  onClick={() => runTaskNow(selectedTask.id)}
-                >
+                <Button className="flex-1" onClick={() => runTaskNow(selectedTask.id)}>
                   <RefreshCw className="w-4 h-4 mr-2" />
                   {t('scheduler.runNow')}
                 </Button>

@@ -46,8 +46,11 @@ function LayoutHeader() {
             />
           </div>
           <span className="min-w-0 truncate font-semibold">{brandTitle}</span>
-          <Badge variant="default" className="text-xs font-medium ml-1 shrink-0">
-            v{import.meta.env.PACKAGE_VERSION || '0.3.0'}
+          <Badge
+            variant="secondary"
+            className="text-xs font-mono font-medium ml-1 shrink-0 bg-muted/80 text-foreground border border-border/50"
+          >
+            v{import.meta.env.PACKAGE_VERSION || PACKAGE_VERSION || '0.3.1'}
           </Badge>
         </div>
       </div>
@@ -75,13 +78,14 @@ function LayoutHeader() {
 }
 
 function LayoutContent() {
-  const { style, backgroundImage, blurIntensity } = useTheme();
+  const { style, backgroundImage, blurIntensity, backgroundBlur } = useTheme();
 
   const isGradient = backgroundImage?.startsWith('linear-gradient');
   const isImage = backgroundImage && !isGradient;
   const isGlassmorphism = style === 'glassmorphism';
   const isLuminous = style === 'luminous';
-  const isGlass = isGlassmorphism || isLuminous;
+  const isLiquid = style === 'liquid';
+  const isGlass = isGlassmorphism || isLuminous || isLiquid;
 
   // 合并背景层为单一元素，减少DOM层级和重绘
   const getBackgroundStyle = (): React.CSSProperties => {
@@ -93,6 +97,27 @@ function LayoutContent() {
       willChange: 'transform',
       transform: 'translateZ(0)',
     };
+
+    if (isLiquid) {
+      if (isGradient) {
+        return { ...baseStyle, background: backgroundImage };
+      }
+      if (isImage) {
+        return {
+          ...baseStyle,
+          backgroundImage: `url("${backgroundImage}")`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          backgroundAttachment: 'fixed',
+        };
+      }
+      // 苹果液态玻璃默认背景：三原色散流体透镜光斑 (Cyan/Magenta/Amber) 与高通透底色
+      return {
+        ...baseStyle,
+        background: `radial-gradient(ellipse 65% 55% at 18% 12%, hsl(var(--primary) / 0.22) 0%, transparent 60%), radial-gradient(ellipse 55% 45% at 85% 20%, rgba(0, 210, 255, 0.16) 0%, transparent 55%), radial-gradient(ellipse 60% 50% at 78% 82%, rgba(255, 60, 160, 0.14) 0%, transparent 60%), radial-gradient(circle 35% at 30% 75%, rgba(255, 190, 70, 0.10) 0%, transparent 50%), hsl(var(--background))`,
+      };
+    }
 
     if (isLuminous) {
       if (isGradient) {
@@ -173,7 +198,16 @@ function LayoutContent() {
   return (
     <>
       {/* 合并后的单一背景层 - 使用GPU加速 */}
-      <div style={getBackgroundStyle()} aria-hidden="true" />
+      <div className="pointer-events-none fixed inset-0 z-[-10] overflow-hidden" aria-hidden="true">
+        <div
+          style={{
+            ...getBackgroundStyle(),
+            position: 'absolute',
+            zIndex: 0,
+            ...(backgroundBlur > 0 ? { filter: `blur(${backgroundBlur}px)` } : null),
+          }}
+        />
+      </div>
 
       {/* 毛玻璃模式下的额外叠加层（仅毛玻璃模式且无背景图时需要） */}
       {overlayStyle && <div style={overlayStyle} aria-hidden="true" />}

@@ -5,7 +5,18 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { Image, Loader2, Save, Cloud, Server, HardDrive, Code, Globe, Trash2, Clock } from 'lucide-react';
+import {
+  Image,
+  Loader2,
+  Save,
+  Cloud,
+  Server,
+  HardDrive,
+  Code,
+  Globe,
+  Trash2,
+  Clock,
+} from 'lucide-react';
 import { frameworkConfigApi, FrameworkConfigListItem } from '@/lib/api';
 import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -13,7 +24,7 @@ import { cn } from '@/lib/utils';
 import { SecretInput } from '@/components/config/SecretInput';
 
 const UPLOAD_TYPES = ['smms', 's3', 'local', 'custom'] as const;
-type UploadType = typeof UPLOAD_TYPES[number];
+type UploadType = (typeof UPLOAD_TYPES)[number];
 
 interface ImageUploadConfig {
   EnablePicSrv: {
@@ -122,31 +133,34 @@ export default function ImageUploadPage() {
   const [imageUploadConfigName, setImageUploadConfigName] = useState<string>('');
 
   const imageUploadConfig = useMemo(() => {
-    return configs.find(c =>
-      c.name === 'GsCore图片上传' ||
-      c.full_name === 'GsCore图片上传' ||
-      c.id === 'GsCore图片上传' ||
-      c.full_name === imageUploadConfigName
+    return configs.find(
+      (c) =>
+        c.name === 'GsCore图片上传' ||
+        c.full_name === 'GsCore图片上传' ||
+        c.id === 'GsCore图片上传' ||
+        c.full_name === imageUploadConfigName,
     );
   }, [configs, imageUploadConfigName]);
 
-  const currentUploadType = (imageUploadConfig?.config?.PicUploader?.value) as UploadType || 'smms';
+  const currentUploadType = (imageUploadConfig?.config?.PicUploader?.value as UploadType) || 'smms';
 
   const fetchConfigList = async () => {
     try {
       setIsLoading(true);
       const data = await frameworkConfigApi.getFrameworkConfigList('GsCore');
-      const imgConfigList = data.filter(c => {
+      const imgConfigList = data.filter((c) => {
         const nameLower = c.name.toLowerCase();
         const fullNameLower = c.full_name.toLowerCase();
-        return nameLower.includes('图片') ||
-               fullNameLower.includes('图片') ||
-               nameLower.includes('image') ||
-               fullNameLower.includes('image') ||
-               nameLower.includes('upload') ||
-               fullNameLower.includes('upload');
+        return (
+          nameLower.includes('图片') ||
+          fullNameLower.includes('图片') ||
+          nameLower.includes('image') ||
+          fullNameLower.includes('image') ||
+          nameLower.includes('upload') ||
+          fullNameLower.includes('upload')
+        );
       });
-      
+
       if (imgConfigList.length > 0) {
         setConfigList(imgConfigList);
         setImageUploadConfigName(imgConfigList[0].full_name);
@@ -163,7 +177,7 @@ export default function ImageUploadPage() {
     try {
       setIsLoadingDetail(true);
       const data = await frameworkConfigApi.getFrameworkConfig(configName);
-      
+
       const convertedConfig: LocalImageUploadConfig = {
         id: data.id,
         name: data.name,
@@ -173,90 +187,95 @@ export default function ImageUploadPage() {
             value: (data.config.EnablePicSrv?.value ?? false) as boolean,
             default: (data.config.EnablePicSrv?.default ?? false) as boolean,
             title: data.config.EnablePicSrv?.title || '启用将图片转链接发送(需公网)',
-            desc: data.config.EnablePicSrv?.desc || '发送图片转链接'
+            desc: data.config.EnablePicSrv?.desc || '发送图片转链接',
           },
           PicUploader: {
             value: (data.config.PicUploader?.value || 'smms') as string,
             default: (data.config.PicUploader?.default || 'smms') as string,
-            options: (data.config.PicUploader?.options || ['smms', 's3', 'local', 'custom']) as string[],
+            options: (data.config.PicUploader?.options || [
+              'smms',
+              's3',
+              'local',
+              'custom',
+            ]) as string[],
             title: data.config.PicUploader?.title || '上传图片方式',
-            desc: data.config.PicUploader?.desc || '可选s3或smms或custom或local'
+            desc: data.config.PicUploader?.desc || '可选s3或smms或custom或local',
           },
           AutoDelete: {
             value: (data.config.AutoDelete?.value ?? true) as boolean,
             default: (data.config.AutoDelete?.default ?? true) as boolean,
             title: data.config.AutoDelete?.title || '上传完后自动删除',
-            desc: data.config.AutoDelete?.desc || '是否自动删除图片'
+            desc: data.config.AutoDelete?.desc || '是否自动删除图片',
           },
           smms_token: {
             value: (data.config.smms_token?.value || '') as string,
             default: (data.config.smms_token?.default || '') as string,
             title: data.config.smms_token?.title || 'sm.ms_token',
-            desc: data.config.smms_token?.desc || 'sm.ms的token'
+            desc: data.config.smms_token?.desc || 'sm.ms的token',
           },
           s3_endpoint: {
             value: (data.config.s3_endpoint?.value || '') as string,
             default: (data.config.s3_endpoint?.default || '') as string,
             title: data.config.s3_endpoint?.title || 's3_endpoint',
-            desc: data.config.s3_endpoint?.desc || '终结点url'
+            desc: data.config.s3_endpoint?.desc || '终结点url',
           },
           s3_access_key: {
             value: (data.config.s3_access_key?.value || '') as string,
             default: (data.config.s3_access_key?.default || '') as string,
             title: data.config.s3_access_key?.title || 's3_access_key',
-            desc: data.config.s3_access_key?.desc || 'AK'
+            desc: data.config.s3_access_key?.desc || 'AK',
           },
           s3_secret_key: {
             value: (data.config.s3_secret_key?.value || '') as string,
             default: (data.config.s3_secret_key?.default || '') as string,
             title: data.config.s3_secret_key?.title || 's3_secret_key',
-            desc: data.config.s3_secret_key?.desc || 'SK'
+            desc: data.config.s3_secret_key?.desc || 'SK',
           },
           s3_bucket: {
             value: (data.config.s3_bucket?.value || '') as string,
             default: (data.config.s3_bucket?.default || '') as string,
             title: data.config.s3_bucket?.title || 's3_bucket',
-            desc: data.config.s3_bucket?.desc || 'Bucket'
+            desc: data.config.s3_bucket?.desc || 'Bucket',
           },
           s3_region: {
             value: (data.config.s3_region?.value || '') as string,
             default: (data.config.s3_region?.default || '') as string,
             title: data.config.s3_region?.title || 's3_region',
-            desc: data.config.s3_region?.desc || 'Region'
+            desc: data.config.s3_region?.desc || 'Region',
           },
           custom_url: {
             value: (data.config.custom_url?.value || '') as string,
             default: (data.config.custom_url?.default || '') as string,
             title: data.config.custom_url?.title || '自定义上传图片API',
-            desc: data.config.custom_url?.desc || '填入上传图片API'
+            desc: data.config.custom_url?.desc || '填入上传图片API',
           },
           custom_header: {
             value: (data.config.custom_header?.value || '') as string,
             default: (data.config.custom_header?.default || '') as string,
             title: data.config.custom_header?.title || '自定义上传图片Header',
-            desc: data.config.custom_header?.desc || '填入上传图片header'
+            desc: data.config.custom_header?.desc || '填入上传图片header',
           },
           PicSrv: {
             value: (data.config.PicSrv?.value || '') as string,
             default: (data.config.PicSrv?.default || '') as string,
             title: data.config.PicSrv?.title || '图片转链接为(需公网)',
-            desc: data.config.PicSrv?.desc || '发送图片转链接'
+            desc: data.config.PicSrv?.desc || '发送图片转链接',
           },
           EnableCleanPicSrv: {
             value: (data.config.EnableCleanPicSrv?.value ?? true) as boolean,
             default: (data.config.EnableCleanPicSrv?.default ?? true) as boolean,
             title: data.config.EnableCleanPicSrv?.title || '是否定期清理本地图床',
-            desc: data.config.EnableCleanPicSrv?.desc || '定期清理图床开关'
+            desc: data.config.EnableCleanPicSrv?.desc || '定期清理图床开关',
           },
           ScheduledCleanPicSrv: {
             value: (data.config.ScheduledCleanPicSrv?.value || '180') as string,
             default: (data.config.ScheduledCleanPicSrv?.default || '180') as string,
             title: data.config.ScheduledCleanPicSrv?.title || '本地图床定期清理(秒)',
-            desc: data.config.ScheduledCleanPicSrv?.desc || '定期删除图片'
-          }
-        }
+            desc: data.config.ScheduledCleanPicSrv?.desc || '定期删除图片',
+          },
+        },
       };
-      
+
       setConfigs([convertedConfig]);
       setOriginalConfig(JSON.parse(JSON.stringify(convertedConfig.config)));
     } catch (error) {
@@ -283,34 +302,39 @@ export default function ImageUploadPage() {
     }
   }, [imageUploadConfig?.id]);
 
-  const handleChange = useCallback((fieldKey: string, value: string | number | boolean) => {
-    if (!imageUploadConfig) return;
-    
-    setConfigs(prev => prev.map(c => {
-      if (c.id !== imageUploadConfig.id) return c;
-      return {
-        ...c,
-        config: {
-          ...c.config,
-          [fieldKey]: { ...c.config[fieldKey as keyof ImageUploadConfig], value }
-        }
-      };
-    }));
-    setIsDirty(true);
-  }, [imageUploadConfig]);
+  const handleChange = useCallback(
+    (fieldKey: string, value: string | number | boolean) => {
+      if (!imageUploadConfig) return;
+
+      setConfigs((prev) =>
+        prev.map((c) => {
+          if (c.id !== imageUploadConfig.id) return c;
+          return {
+            ...c,
+            config: {
+              ...c.config,
+              [fieldKey]: { ...c.config[fieldKey as keyof ImageUploadConfig], value },
+            },
+          };
+        }),
+      );
+      setIsDirty(true);
+    },
+    [imageUploadConfig],
+  );
 
   const handleSaveConfig = async () => {
     if (!imageUploadConfig) return;
     try {
       setIsSaving(true);
       const configToSave: Record<string, any> = {};
-      
+
       Object.entries(imageUploadConfig.config).forEach(([key, field]) => {
         if (field && typeof field === 'object' && 'value' in field) {
           configToSave[key] = (field as { value: any }).value;
         }
       });
-      
+
       await frameworkConfigApi.updateFrameworkConfig(imageUploadConfig.full_name, configToSave);
       setOriginalConfig(JSON.parse(JSON.stringify(imageUploadConfig.config)));
       toast.success(t('imageUpload.configSaved'));
@@ -352,7 +376,7 @@ export default function ImageUploadPage() {
   return (
     <div className="space-y-6 flex-1 overflow-visible h-full flex flex-col">
       {/* Image Service Toggle - First as main switch */}
-      <Card className={cn("glass-card", !isPicSrvEnabled && "opacity-60")}>
+      <Card className={cn('glass-card', !isPicSrvEnabled && 'opacity-60')}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Globe className="w-5 h-5" />
@@ -368,9 +392,7 @@ export default function ImageUploadPage() {
               </div>
               <div>
                 <p className="font-medium">{t('imageUpload.enablePicSrv')}</p>
-                <p className="text-sm text-muted-foreground">
-                  {t('imageUpload.enablePicSrvDesc')}
-                </p>
+                <p className="text-sm text-muted-foreground">{t('imageUpload.enablePicSrvDesc')}</p>
               </div>
             </div>
             <Switch
@@ -382,7 +404,7 @@ export default function ImageUploadPage() {
       </Card>
 
       {/* Auto Delete - Common setting, before upload method */}
-      <Card className={cn("glass-card", !isPicSrvEnabled && "opacity-60")}>
+      <Card className={cn('glass-card', !isPicSrvEnabled && 'opacity-60')}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Trash2 className="w-5 h-5" />
@@ -398,9 +420,7 @@ export default function ImageUploadPage() {
               </div>
               <div>
                 <p className="font-medium">{t('imageUpload.autoDeleteTitle')}</p>
-                <p className="text-sm text-muted-foreground">
-                  {t('imageUpload.autoDeleteHelp')}
-                </p>
+                <p className="text-sm text-muted-foreground">{t('imageUpload.autoDeleteHelp')}</p>
               </div>
             </div>
             <Switch
@@ -413,7 +433,7 @@ export default function ImageUploadPage() {
       </Card>
 
       {/* Upload Method Selection */}
-      <Card className={cn("glass-card", !isPicSrvEnabled && "opacity-60")}>
+      <Card className={cn('glass-card', !isPicSrvEnabled && 'opacity-60')}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Cloud className="w-5 h-5" />
@@ -429,11 +449,11 @@ export default function ImageUploadPage() {
                 onClick={() => isPicSrvEnabled && handleChange('PicUploader', type)}
                 disabled={!isPicSrvEnabled}
                 className={cn(
-                  "p-4 rounded-lg border-2 transition-all text-left",
+                  'p-4 rounded-lg border-2 transition-all text-left',
                   currentUploadType === type && isPicSrvEnabled
-                    ? "border-primary bg-primary/10"
-                    : "border-border hover:border-primary/50",
-                  !isPicSrvEnabled && "cursor-not-allowed opacity-50"
+                    ? 'border-primary bg-primary/10'
+                    : 'border-border hover:border-primary/50',
+                  !isPicSrvEnabled && 'cursor-not-allowed opacity-50',
                 )}
               >
                 <div className="flex items-center gap-2 mb-2">
@@ -457,7 +477,7 @@ export default function ImageUploadPage() {
 
       {/* SMMS Configuration */}
       {currentUploadType === 'smms' && (
-        <Card className={cn("glass-card", !isPicSrvEnabled && "opacity-60")}>
+        <Card className={cn('glass-card', !isPicSrvEnabled && 'opacity-60')}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Cloud className="w-5 h-5" />
@@ -467,7 +487,10 @@ export default function ImageUploadPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="upload-smms-cred" className={cn(!isPicSrvEnabled && "text-muted-foreground")}>
+              <Label
+                htmlFor="upload-smms-cred"
+                className={cn(!isPicSrvEnabled && 'text-muted-foreground')}
+              >
                 {t('imageUpload.smmsToken')}
               </Label>
               <SecretInput
@@ -485,7 +508,7 @@ export default function ImageUploadPage() {
 
       {/* S3 Configuration */}
       {currentUploadType === 's3' && (
-        <Card className={cn("glass-card", !isPicSrvEnabled && "opacity-60")}>
+        <Card className={cn('glass-card', !isPicSrvEnabled && 'opacity-60')}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Server className="w-5 h-5" />
@@ -495,7 +518,10 @@ export default function ImageUploadPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="s3_endpoint" className={cn(!isPicSrvEnabled && "text-muted-foreground")}>
+              <Label
+                htmlFor="s3_endpoint"
+                className={cn(!isPicSrvEnabled && 'text-muted-foreground')}
+              >
                 {t('imageUpload.s3Endpoint')}
               </Label>
               <Input
@@ -506,10 +532,13 @@ export default function ImageUploadPage() {
                 disabled={!isPicSrvEnabled}
               />
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="upload-s3-ak" className={cn(!isPicSrvEnabled && "text-muted-foreground")}>
+                <Label
+                  htmlFor="upload-s3-ak"
+                  className={cn(!isPicSrvEnabled && 'text-muted-foreground')}
+                >
                   {t('imageUpload.s3AccessKey')}
                 </Label>
                 <SecretInput
@@ -520,9 +549,12 @@ export default function ImageUploadPage() {
                   disabled={!isPicSrvEnabled}
                 />
               </div>
-              
+
               <div className="space-y-2">
-                <Label htmlFor="upload-s3-sk" className={cn(!isPicSrvEnabled && "text-muted-foreground")}>
+                <Label
+                  htmlFor="upload-s3-sk"
+                  className={cn(!isPicSrvEnabled && 'text-muted-foreground')}
+                >
                   {t('imageUpload.s3SecretKey')}
                 </Label>
                 <SecretInput
@@ -534,10 +566,13 @@ export default function ImageUploadPage() {
                 />
               </div>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="s3_bucket" className={cn(!isPicSrvEnabled && "text-muted-foreground")}>
+                <Label
+                  htmlFor="s3_bucket"
+                  className={cn(!isPicSrvEnabled && 'text-muted-foreground')}
+                >
                   {t('imageUpload.s3Bucket')}
                 </Label>
                 <Input
@@ -548,9 +583,12 @@ export default function ImageUploadPage() {
                   disabled={!isPicSrvEnabled}
                 />
               </div>
-              
+
               <div className="space-y-2">
-                <Label htmlFor="s3_region" className={cn(!isPicSrvEnabled && "text-muted-foreground")}>
+                <Label
+                  htmlFor="s3_region"
+                  className={cn(!isPicSrvEnabled && 'text-muted-foreground')}
+                >
                   {t('imageUpload.s3Region')}
                 </Label>
                 <Input
@@ -569,7 +607,7 @@ export default function ImageUploadPage() {
       {/* Local Configuration */}
       {currentUploadType === 'local' && (
         <>
-          <Card className={cn("glass-card", !isPicSrvEnabled && "opacity-60")}>
+          <Card className={cn('glass-card', !isPicSrvEnabled && 'opacity-60')}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <HardDrive className="w-5 h-5" />
@@ -590,13 +628,11 @@ export default function ImageUploadPage() {
                     </p>
                   </div>
                 </div>
-                <Badge variant="secondary">
-                  {t('imageUpload.local')}
-                </Badge>
+                <Badge variant="secondary">{t('imageUpload.local')}</Badge>
               </div>
-              
+
               <div className="space-y-2">
-                <Label htmlFor="PicSrv" className={cn(!isPicSrvEnabled && "text-muted-foreground")}>
+                <Label htmlFor="PicSrv" className={cn(!isPicSrvEnabled && 'text-muted-foreground')}>
                   {t('imageUpload.picSrvUrl')}
                 </Label>
                 <Input
@@ -612,7 +648,7 @@ export default function ImageUploadPage() {
           </Card>
 
           {/* Scheduled Clean - Local only */}
-          <Card className={cn("glass-card", !isPicSrvEnabled && "opacity-60")}>
+          <Card className={cn('glass-card', !isPicSrvEnabled && 'opacity-60')}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Clock className="w-5 h-5" />
@@ -640,7 +676,7 @@ export default function ImageUploadPage() {
                     disabled={!isPicSrvEnabled}
                   />
                 </div>
-                
+
                 {uploadConfig.EnableCleanPicSrv.value && isPicSrvEnabled && (
                   <div className="space-y-2">
                     <Label htmlFor="ScheduledCleanPicSrv">{t('imageUpload.cleanInterval')}</Label>
@@ -651,7 +687,9 @@ export default function ImageUploadPage() {
                       onChange={(e) => handleChange('ScheduledCleanPicSrv', e.target.value)}
                       placeholder={t('imageUpload.cleanIntervalPlaceholder')}
                     />
-                    <p className="text-sm text-muted-foreground">{t('imageUpload.cleanIntervalHelp')}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {t('imageUpload.cleanIntervalHelp')}
+                    </p>
                   </div>
                 )}
               </div>
@@ -662,7 +700,7 @@ export default function ImageUploadPage() {
 
       {/* Custom API Configuration */}
       {currentUploadType === 'custom' && (
-        <Card className={cn("glass-card", !isPicSrvEnabled && "opacity-60")}>
+        <Card className={cn('glass-card', !isPicSrvEnabled && 'opacity-60')}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Code className="w-5 h-5" />
@@ -672,7 +710,10 @@ export default function ImageUploadPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="custom_url" className={cn(!isPicSrvEnabled && "text-muted-foreground")}>
+              <Label
+                htmlFor="custom_url"
+                className={cn(!isPicSrvEnabled && 'text-muted-foreground')}
+              >
                 {t('imageUpload.customUrl')}
               </Label>
               <Input
@@ -684,9 +725,12 @@ export default function ImageUploadPage() {
               />
               <p className="text-sm text-muted-foreground">{t('imageUpload.customUrlHelp')}</p>
             </div>
-            
+
             <div className="space-y-2">
-              <Label htmlFor="custom_header" className={cn(!isPicSrvEnabled && "text-muted-foreground")}>
+              <Label
+                htmlFor="custom_header"
+                className={cn(!isPicSrvEnabled && 'text-muted-foreground')}
+              >
                 {t('imageUpload.customHeader')}
               </Label>
               <Input
@@ -703,16 +747,8 @@ export default function ImageUploadPage() {
       )}
       {/* Save Button */}
       <div className="flex justify-end pt-4">
-        <Button
-          onClick={handleSaveConfig}
-          disabled={!isDirty || isSaving}
-          className="gap-2"
-        >
-          {isSaving ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Save className="w-4 h-4" />
-          )}
+        <Button onClick={handleSaveConfig} disabled={!isDirty || isSaving} className="gap-2">
+          {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
           {t('common.save')}
         </Button>
       </div>

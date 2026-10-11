@@ -27,7 +27,6 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { useTheme } from '@/contexts/ThemeContext';
 import { PinnedPage } from '@/components/layout/PinnedPage';
 import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
 import { Button } from '@/components/ui/button';
@@ -40,11 +39,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { TagsInput } from '@/components/config/TagsInput';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 import { getApiErrorMessage, opsApi } from '@/lib/api';
 import {
@@ -61,8 +56,6 @@ type DetailKind = 'bots' | 'sessions' | 'followup' | null;
 
 export default function AIOpsPage() {
   const { t } = useLanguage();
-  const { style } = useTheme();
-  const isGlass = style === 'glassmorphism';
   const [tab, setTab] = useState<TabId>('trigger');
 
   const tabs = useMemo(
@@ -84,10 +77,11 @@ export default function AIOpsPage() {
             <Activity className="w-8 h-8 shrink-0" />
             {t('aiOps.title')}
           </h1>
-          <p className="sm:whitespace-nowrap text-muted-foreground mt-1">{t('aiOps.description')}</p>
+          <p className="sm:whitespace-nowrap text-muted-foreground mt-1">
+            {t('aiOps.description')}
+          </p>
         </div>
       }
-      className={cn(isGlass && 'glass-page')}
     >
       <div className="space-y-4 px-0 pb-6">
         <RuntimeStatusBar />
@@ -119,7 +113,7 @@ function PanelCard({
   children: React.ReactNode;
 }) {
   return (
-    <Card className="border border-border/50">
+    <Card className="glass-card">
       <CardHeader className="py-3 flex flex-row items-start justify-between gap-2">
         <div className="min-w-0 space-y-1">
           <CardTitle className="text-base">{title}</CardTitle>
@@ -142,12 +136,12 @@ function RuntimeStatusBar() {
   const [bots, setBots] = useState<
     Array<{ ws_bot_id: string; bot_id: string; connected: boolean }>
   >([]);
-  const [sessions, setSessions] = useState<Awaited<
-    ReturnType<typeof opsApi.getSessions>
-  > | null>(null);
-  const [followup, setFollowup] = useState<Awaited<
-    ReturnType<typeof opsApi.getFollowup>
-  > | null>(null);
+  const [sessions, setSessions] = useState<Awaited<ReturnType<typeof opsApi.getSessions>> | null>(
+    null,
+  );
+  const [followup, setFollowup] = useState<Awaited<ReturnType<typeof opsApi.getFollowup>> | null>(
+    null,
+  );
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -180,7 +174,7 @@ function RuntimeStatusBar() {
   };
 
   return (
-    <Card className="border border-border/50">
+    <Card className="glass-card">
       <CardContent className="pt-4 space-y-3">
         <div className="flex flex-wrap items-center gap-2">
           <button
@@ -298,7 +292,9 @@ function RuntimeStatusBar() {
                     >
                       <div className="min-w-0">
                         <div className="font-medium truncate">{b.ws_bot_id}</div>
-                        <div className="text-xs text-muted-foreground truncate">bot_id: {b.bot_id}</div>
+                        <div className="text-xs text-muted-foreground truncate">
+                          bot_id: {b.bot_id}
+                        </div>
                       </div>
                       <Badge className="shrink-0" variant={b.connected ? 'default' : 'secondary'}>
                         {b.connected ? t('aiOps.bots.online') : t('aiOps.bots.offline')}
@@ -347,8 +343,7 @@ function RuntimeStatusBar() {
                           <span>persona: {s.persona_name || '—'}</span>
                           <span>hist: {s.history_length}</span>
                           <span>
-                            idle:{' '}
-                            {s.idle_seconds != null ? `${Math.round(s.idle_seconds)}s` : '—'}
+                            idle: {s.idle_seconds != null ? `${Math.round(s.idle_seconds)}s` : '—'}
                           </span>
                         </div>
                       </div>
@@ -491,9 +486,7 @@ function TriggerPanel() {
                 >
                   <span className="font-medium">{s.step}</span> {s.pass ? '✓' : '✗'}
                   <pre className="mt-1 whitespace-pre-wrap break-all text-muted-foreground">
-                    {typeof s.detail === 'string'
-                      ? s.detail
-                      : JSON.stringify(s.detail, null, 2)}
+                    {typeof s.detail === 'string' ? s.detail : JSON.stringify(s.detail, null, 2)}
                   </pre>
                 </div>
               ))}
@@ -720,7 +713,10 @@ function SecurityPanel() {
             const list = Array.isArray(raw)
               ? (raw as string[])
               : typeof raw === 'string' && raw
-                ? raw.split(/[,，\n]/).map((s) => s.trim()).filter(Boolean)
+                ? raw
+                    .split(/[,，\n]/)
+                    .map((s) => s.trim())
+                    .filter(Boolean)
                 : [];
             return (
               <div key={k} className="space-y-1">

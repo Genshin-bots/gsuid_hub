@@ -72,7 +72,13 @@ export const headerActionRowClass =
 export const headerActionRowWideClass =
   'header-action-row header-action-row-wide flex w-full flex-wrap items-center gap-2 lg:w-auto lg:max-w-full lg:justify-end';
 
-export function PinnedPage({ header, toolbar, children, bodyClassName, className }: PinnedPageProps) {
+export function PinnedPage({
+  header,
+  toolbar,
+  children,
+  bodyClassName,
+  className,
+}: PinnedPageProps) {
   return (
     <div className={cn('page-pinned flex flex-col gap-6', className)}>
       <div className="page-pinned-header">{header}</div>

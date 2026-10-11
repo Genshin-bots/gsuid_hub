@@ -1,11 +1,4 @@
-import {
-  AlertTriangle,
-  ListChecks,
-  Plus,
-  Settings,
-  Sparkles,
-  Zap,
-} from 'lucide-react';
+import { AlertTriangle, ListChecks, Plus, Settings, Sparkles, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { ConfigSelectDropdown } from '@/components/config';
@@ -148,9 +141,7 @@ export function TaskConfigSection({
             )}
             <div className="pt-1 pl-1 space-y-2 border-l-2 border-primary/20 ml-1">
               <LabelWithHelp
-                icon={
-                  <Sparkles className="w-3.5 h-3.5 text-muted-foreground" />
-                }
+                icon={<Sparkles className="w-3.5 h-3.5 text-muted-foreground" />}
                 label={t('aiConfig.providerConfig.highLevelTask2nd')}
                 description={t('aiConfig.providerConfig.highLevelTask2ndDesc')}
                 className="text-xs font-medium text-muted-foreground"

@@ -69,7 +69,7 @@ export default function Login() {
   const [customHost, setCustomHost] = useState('');
 
   const { login, register } = useAuth();
-  const { style, backgroundImage, blurIntensity } = useTheme();
+  const { style, backgroundImage, blurIntensity, backgroundBlur } = useTheme();
   const { t, language, setLanguage, availableLanguages } = useLanguage();
   const { iconUrl: brandIconUrl, title: brandTitle } = useBrand();
   const navigate = useNavigate();
@@ -144,11 +144,13 @@ export default function Login() {
   const isImage = backgroundImage && !isGradient;
   const isGlassmorphism = style === 'glassmorphism';
   const isLuminous = style === 'luminous';
-  const isGlass = isGlassmorphism || isLuminous;
+  const isLiquid = style === 'liquid';
+  const isGlass = isGlassmorphism || isLuminous || isLiquid;
   const isSolid = style === 'solid';
   const hasBackground = isGlass && backgroundImage;
   const hasDefaultGlass = isGlassmorphism && !backgroundImage;
   const hasDefaultLuminous = isLuminous && !backgroundImage;
+  const hasDefaultLiquid = isLiquid && !backgroundImage;
   const hasSolidBackground = isSolid && (backgroundImage || !isGlass);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -186,6 +188,8 @@ export default function Login() {
   };
 
   const isOffline = backendState === 'offline';
+  const wallpaperBlurStyle: React.CSSProperties =
+    backgroundBlur > 0 ? { filter: `blur(${backgroundBlur}px)` } : {};
 
   return (
     <div
@@ -198,13 +202,16 @@ export default function Login() {
     >
       {/* Background Layer */}
       {hasBackground && (
-        <div className="fixed inset-0 z-0">
+        <div className="fixed inset-0 z-0 overflow-hidden">
           {isGradient ? (
-            <div className="w-full h-full" style={{ background: backgroundImage }} />
+            <div
+              className="h-full w-full"
+              style={{ background: backgroundImage, ...wallpaperBlurStyle }}
+            />
           ) : (
             <div
-              className="w-full h-full bg-cover bg-center bg-no-repeat bg-fixed"
-              style={{ backgroundImage: `url("${backgroundImage}")` }}
+              className="h-full w-full bg-cover bg-center bg-no-repeat bg-fixed"
+              style={{ backgroundImage: `url("${backgroundImage}")`, ...wallpaperBlurStyle }}
             />
           )}
           <div
@@ -242,13 +249,29 @@ export default function Login() {
         </div>
       )}
 
+      {/* Default Liquid Glass Background */}
+      {hasDefaultLiquid && (
+        <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/15 via-background to-accent/15" />
+          <div className="absolute -top-32 left-1/5 w-[520px] h-[520px] bg-gradient-to-tr from-sky-400/25 via-primary/20 to-transparent rounded-full blur-[90px] animate-pulse" />
+          <div
+            className="absolute -bottom-28 right-1/5 w-[560px] h-[560px] bg-gradient-to-bl from-pink-500/20 via-purple-500/15 to-transparent rounded-full blur-[100px] animate-pulse"
+            style={{ animationDelay: '1.5s' }}
+          />
+          <div
+            className="absolute top-1/3 right-1/4 w-[380px] h-[380px] bg-gradient-to-br from-amber-400/15 to-teal-400/10 rounded-full blur-[80px] animate-pulse"
+            style={{ animationDelay: '3s' }}
+          />
+        </div>
+      )}
+
       {/* Solid Style Background */}
       {isSolid && (
-        <div className="fixed inset-0 z-0">
+        <div className="fixed inset-0 z-0 overflow-hidden">
           {backgroundImage ? (
             <div
-              className="w-full h-full bg-cover bg-center bg-no-repeat bg-fixed"
-              style={{ backgroundImage: `url("${backgroundImage}")` }}
+              className="h-full w-full bg-cover bg-center bg-no-repeat bg-fixed"
+              style={{ backgroundImage: `url("${backgroundImage}")`, ...wallpaperBlurStyle }}
             />
           ) : (
             <div className="w-full h-full bg-gradient-to-br from-background via-background to-secondary/30" />

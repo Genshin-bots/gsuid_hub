@@ -355,9 +355,7 @@ export default function ErrorReportsPanel() {
 
       <Card className="glass-card">
         <CardHeader className="py-3">
-          <CardTitle className="text-base">
-            {t('logs.errorReportsList', { count })}
-          </CardTitle>
+          <CardTitle className="text-base">{t('logs.errorReportsList', { count })}</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           {rows.length === 0 ? (
@@ -400,7 +398,9 @@ export default function ErrorReportsPanel() {
                       {formatReportTime(item.timestamp)}
                     </span>
                     {item.size ? (
-                      <span className="text-xs text-muted-foreground">{formatBytes(item.size)}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {formatBytes(item.size)}
+                      </span>
                     ) : null}
                   </div>
                   <p className="mt-1 text-sm break-all">{item.event}</p>
@@ -419,8 +419,8 @@ export default function ErrorReportsPanel() {
         <CardContent className="p-3">
           <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div className="text-sm text-muted-foreground">
-              {t('common.pageInfo', { current: query.page, total: totalPages })}{' '}
-              ({t('common.totalRecords', { total: count })})
+              {t('common.pageInfo', { current: query.page, total: totalPages })} (
+              {t('common.totalRecords', { total: count })})
             </div>
             <div className="flex items-center gap-2">
               <Button
@@ -442,9 +442,7 @@ export default function ErrorReportsPanel() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() =>
-                  setQuery((q) => ({ ...q, page: Math.min(totalPages, q.page + 1) }))
-                }
+                onClick={() => setQuery((q) => ({ ...q, page: Math.min(totalPages, q.page + 1) }))}
                 disabled={query.page >= totalPages}
               >
                 <ChevronRight className="h-4 w-4" />
@@ -466,7 +464,9 @@ export default function ErrorReportsPanel() {
         <DialogContent className="glass-card flex max-h-[85vh] max-w-3xl flex-col">
           <DialogHeader>
             <DialogTitle>{t('logs.errorReportDetail')}</DialogTitle>
-            <DialogDescription className="sr-only">{t('logs.errorReportAriaDesc')}</DialogDescription>
+            <DialogDescription className="sr-only">
+              {t('logs.errorReportAriaDesc')}
+            </DialogDescription>
           </DialogHeader>
           {detailLoading ? (
             <div className="flex items-center justify-center py-12 text-muted-foreground">
@@ -482,7 +482,11 @@ export default function ErrorReportsPanel() {
                 <span className="text-sm text-muted-foreground">
                   {t('logs.errorReportTimesLabel')}: {detail.count}
                 </span>
-                <Button variant="outline" className="ml-auto h-9 shrink-0" onClick={() => void copyReport()}>
+                <Button
+                  variant="outline"
+                  className="ml-auto h-9 shrink-0"
+                  onClick={() => void copyReport()}
+                >
                   <Copy className="mr-2 h-4 w-4" />
                   {t('common.copy')}
                 </Button>
@@ -502,7 +506,9 @@ export default function ErrorReportsPanel() {
               </div>
               {typeof detail.report.exception === 'string' && detail.report.exception ? (
                 <div>
-                  <p className="mb-1 text-sm text-muted-foreground">{t('logs.errorReportException')}</p>
+                  <p className="mb-1 text-sm text-muted-foreground">
+                    {t('logs.errorReportException')}
+                  </p>
                   <pre className="overflow-x-auto whitespace-pre-wrap rounded bg-background/50 p-3 font-mono text-xs">
                     {detail.report.exception}
                   </pre>
@@ -517,7 +523,9 @@ export default function ErrorReportsPanel() {
                 </div>
               ) : null}
               <div>
-                <p className="mb-1 text-sm text-muted-foreground">{t('logs.errorReportOccurrences')}</p>
+                <p className="mb-1 text-sm text-muted-foreground">
+                  {t('logs.errorReportOccurrences')}
+                </p>
                 <ul className="space-y-1 text-sm">
                   {detail.occurrences.map((occ) => (
                     <li key={occ.filename} className="break-all font-mono text-xs">

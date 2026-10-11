@@ -1,10 +1,6 @@
 import { Link } from 'react-router-dom';
 import { ScanSearch } from 'lucide-react';
-import {
-  ConfigField,
-  pluginConfigItemToFieldDef,
-  type ConfigValue,
-} from '@/components/config';
+import { ConfigField, pluginConfigItemToFieldDef, type ConfigValue } from '@/components/config';
 import { Button } from '@/components/ui/button';
 import type { PluginConfigItem } from '@/lib/api';
 import { COGNITION_CONFIG_KEYS } from '../runtimeConfigKeys';
@@ -39,9 +35,7 @@ export function CognitionSettingsSection({
           {t('aiConfig.cognitionSettings.description')}
         </p>
         <Button variant="outline" size="sm" className="mt-3 h-9" asChild>
-          <Link to="/ai-runtime?tab=cognition">
-            {t('aiConfig.cognitionSettings.openRuntime')}
-          </Link>
+          <Link to="/ai-runtime?tab=cognition">{t('aiConfig.cognitionSettings.openRuntime')}</Link>
         </Button>
       </div>
 

@@ -296,9 +296,9 @@ function getScopeLabel(scope: PersonaScope, t: (key: string) => string) {
 // 组件定义
 // ============================================================================
 export default function PersonaConfigPage() {
-  const { style, cardOpacity, blurIntensity } = useTheme();
+  const { style } = useTheme();
   const { t } = useLanguage();
-  const isGlass = style === 'glassmorphism';
+  const isGlass = style !== 'solid';
   // 状态
   const [personaList, setPersonaList] = useState<PersonaListItem[]>([]);
   const [personaDetails, setPersonaDetails] = useState<Record<string, PersonaCardData>>({});
@@ -1066,9 +1066,7 @@ export default function PersonaConfigPage() {
           'relative transition-all duration-300 cursor-pointer group',
           'hover:shadow-xl hover:scale-[1.02]',
           // 毛玻璃效果 + 红色主题边框
-          isGlass
-            ? 'glass-card border border-primary/20 hover:border-primary/40'
-            : 'border border-primary/30 hover:border-primary/50 bg-card',
+          'glass-card border border-primary/20 hover:border-primary/40',
         )}
       >
         {/* 立绘背景层 */}
@@ -1259,7 +1257,12 @@ export default function PersonaConfigPage() {
                 >
                   {/* 图标槽两格叠放：缺失态默认 X，悬浮换成「+」与「添加」文案配套 */}
                   <span className="grid h-3 w-3 shrink-0 place-items-center">
-                    <span className={cn('col-start-1 row-start-1', !has && 'group-hover/pill:invisible')}>
+                    <span
+                      className={cn(
+                        'col-start-1 row-start-1',
+                        !has && 'group-hover/pill:invisible',
+                      )}
+                    >
                       {has ? <Icon className="w-3 h-3" /> : <X className="w-3 h-3" />}
                     </span>
                     {!has && (
@@ -1270,7 +1273,9 @@ export default function PersonaConfigPage() {
                   </span>
                   {/* 文案槽两格叠放：默认资源名 → 悬浮「添加/替换」；同格堆叠保证胶囊宽度不跳动 */}
                   <span className="hidden sm:grid">
-                    <span className="col-start-1 row-start-1 group-hover/pill:invisible">{label}</span>
+                    <span className="col-start-1 row-start-1 group-hover/pill:invisible">
+                      {label}
+                    </span>
                     <span className="col-start-1 row-start-1 invisible group-hover/pill:visible">
                       {hoverLabel}
                     </span>
@@ -1400,6 +1405,7 @@ export default function PersonaConfigPage() {
         }
       />
       <PinnedPage
+        className="min-w-0"
         header={
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div className="min-w-0 sm:overflow-x-auto">
@@ -1554,12 +1560,12 @@ export default function PersonaConfigPage() {
         {personaCards.some((p) => isGlobalLikeScope(p.config?.scope)) && (
           <div
             className={cn(
-              'flex items-center gap-2 p-3 rounded-lg text-sm',
-              'bg-blue-500/10 text-blue-600 border border-blue-500/30',
+              'flex min-w-0 items-start gap-2 rounded-lg p-3 text-sm',
+              'border border-blue-500/30 bg-blue-500/10 text-blue-600',
             )}
           >
-            <Globe className="w-4 h-4" />
-            <span>
+            <Globe className="mt-0.5 h-4 w-4 shrink-0" />
+            <span className="min-w-0 break-words">
               {t('personaConfig.globalEnabledHint', {
                 name: personaCards
                   .filter((p) => isGlobalLikeScope(p.config?.scope))
@@ -1575,16 +1581,14 @@ export default function PersonaConfigPage() {
           personaCards.length > 0 && (
             <div
               className={cn(
-                'flex items-center gap-2 p-3 rounded-lg text-sm glass-card',
-                'border border-amber-500/40 dark:border-amber-400/40 text-amber-700 dark:text-amber-300',
+                'flex min-w-0 items-start gap-2 rounded-lg p-3 text-sm glass-card glass-alert',
+                'border border-amber-500/40 text-amber-700 dark:border-amber-400/40 dark:text-amber-300',
               )}
-              style={{
-                ['--card-opacity' as string]: (cardOpacity / 100).toString(),
-                ['--blur-intensity' as string]: `${blurIntensity}px`,
-              }}
             >
-              <AlertCircle className="w-4 h-4" />
-              <span>{t('personaConfig.noPersonaEnabledWarning')}</span>
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span className="min-w-0 break-words">
+                {t('personaConfig.noPersonaEnabledWarning')}
+              </span>
             </div>
           )}
         {/* 仅特定群聊启用警告 */}
@@ -1592,16 +1596,12 @@ export default function PersonaConfigPage() {
           personaCards.some((p) => p.config?.scope === 'specific') && (
             <div
               className={cn(
-                'flex items-center gap-2 p-3 rounded-lg text-sm glass-card',
-                'border border-amber-500/40 dark:border-amber-400/40 text-amber-700 dark:text-amber-300',
+                'flex min-w-0 items-start gap-2 rounded-lg p-3 text-sm glass-card glass-alert',
+                'border border-amber-500/40 text-amber-700 dark:border-amber-400/40 dark:text-amber-300',
               )}
-              style={{
-                ['--card-opacity' as string]: (cardOpacity / 100).toString(),
-                ['--blur-intensity' as string]: `${blurIntensity}px`,
-              }}
             >
-              <AlertCircle className="w-4 h-4" />
-              <span>
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span className="min-w-0 break-words">
                 {t('personaConfig.specificOnlyWarning', {
                   groups:
                     personaCards
@@ -1622,16 +1622,14 @@ export default function PersonaConfigPage() {
             {/* 无人格警告 */}
             <div
               className={cn(
-                'flex items-center gap-2 p-3 rounded-lg text-sm glass-card',
-                'border border-amber-500/40 dark:border-amber-400/40 text-amber-700 dark:text-amber-300',
+                'flex min-w-0 items-start gap-2 rounded-lg p-3 text-sm glass-card glass-alert',
+                'border border-amber-500/40 text-amber-700 dark:border-amber-400/40 dark:text-amber-300',
               )}
-              style={{
-                ['--card-opacity' as string]: (cardOpacity / 100).toString(),
-                ['--blur-intensity' as string]: `${blurIntensity}px`,
-              }}
             >
-              <AlertCircle className="w-4 h-4" />
-              <span>{t('personaConfig.noPersonaAtAllWarning')}</span>
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span className="min-w-0 break-words">
+                {t('personaConfig.noPersonaAtAllWarning')}
+              </span>
             </div>
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <User className="h-12 w-12 text-muted-foreground mb-4" />

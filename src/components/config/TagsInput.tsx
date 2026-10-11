@@ -81,9 +81,9 @@ export const TagsInput: React.FC<TagsInputProps> = ({
     const chineseCount = (text.match(chineseRegex) || []).length;
     const otherCount = text.length - chineseCount;
     const totalWidth = chineseCount + otherCount * 0.5;
-    
+
     if (totalWidth <= maxWidth) return text;
-    
+
     let result = '';
     let currentWidth = 0;
     for (const char of text) {
@@ -97,22 +97,23 @@ export const TagsInput: React.FC<TagsInputProps> = ({
 
   // 过滤已添加的标签（支持搜索）
   const filteredAddedTags = searchQuery
-    ? listValue.filter(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
+    ? listValue.filter((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase()))
     : listValue;
 
   // 判断输入是否在已添加列表中
-  const isInAddedList = searchQuery.trim() && listValue.some(
-    tag => tag.toLowerCase() === searchQuery.toLowerCase()
-  );
+  const isInAddedList =
+    searchQuery.trim() && listValue.some((tag) => tag.toLowerCase() === searchQuery.toLowerCase());
 
   // 判断输入是否为新的自定义标签
   const canAddCustom = searchQuery.trim() && !listValue.includes(searchQuery.trim());
 
   // 过滤选项（排除已选中的，支持搜索）
-  const filteredOptions = options?.filter(opt =>
-    !listValue.includes(opt) &&
-    (!searchQuery || opt.toLowerCase().includes(searchQuery.toLowerCase()))
-  ) || [];
+  const filteredOptions =
+    options?.filter(
+      (opt) =>
+        !listValue.includes(opt) &&
+        (!searchQuery || opt.toLowerCase().includes(searchQuery.toLowerCase())),
+    ) || [];
 
   // 可见胶囊数按真实像素算，不用固定常量估。
   // 胶囊宽度随文案长度变（群号 10 位 vs 昵称 2 字），常量估窄会多塞标签；标签轨再 flex-shrink-0 撑破容器，
@@ -131,9 +132,7 @@ export const TagsInput: React.FC<TagsInputProps> = ({
     const badge = badgeRef.current;
     const chips = gauge?.firstElementChild;
     if (!rail || !chips || !badge) return;
-    const widths = Array.from(chips.children, (el) =>
-      Math.round(el.getBoundingClientRect().width),
-    );
+    const widths = Array.from(chips.children, (el) => Math.round(el.getBoundingClientRect().width));
     const next = {
       rail: rail.clientWidth,
       // 徽标按最坏位数（+9999）预留：按真实位数预留会和「徽标出没出现」互为因果，
@@ -303,8 +302,8 @@ export const TagsInput: React.FC<TagsInputProps> = ({
                       }
                     }}
                     className={cn(
-                      "flex-1 bg-transparent border-0 outline-none text-sm pl-2",
-                      searchQuery ? "text-foreground" : "placeholder:text-muted-foreground"
+                      'flex-1 bg-transparent border-0 outline-none text-sm pl-2',
+                      searchQuery ? 'text-foreground' : 'placeholder:text-muted-foreground',
                     )}
                   />
                 </div>
@@ -321,8 +320,7 @@ export const TagsInput: React.FC<TagsInputProps> = ({
                       ? isInAddedList
                         ? `"${searchQuery}" ${t('tagsInput.alreadyAddedTop')}`
                         : t('tagsInput.noMatch')
-                      : t('tagsInput.noTags')
-                    }
+                      : t('tagsInput.noTags')}
                   </div>
                 ) : (
                   <div className="max-h-40 overflow-y-auto space-y-1">
@@ -363,12 +361,16 @@ export const TagsInput: React.FC<TagsInputProps> = ({
               {options && options.length > 0 && (
                 <div className="p-3">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-sm font-medium text-muted-foreground">{t('tagsInput.optionalTags')}</span>
+                    <span className="text-sm font-medium text-muted-foreground">
+                      {t('tagsInput.optionalTags')}
+                    </span>
                   </div>
                   <div className="max-h-48 overflow-y-auto space-y-1">
                     {filteredOptions.length === 0 ? (
                       <div className="text-sm text-muted-foreground py-2 text-center">
-                        {searchQuery ? t('tagsInput.noOptionMatch') : t('tagsInput.allOptionsAdded')}
+                        {searchQuery
+                          ? t('tagsInput.noOptionMatch')
+                          : t('tagsInput.allOptionsAdded')}
                       </div>
                     ) : (
                       filteredOptions.map((opt) => (

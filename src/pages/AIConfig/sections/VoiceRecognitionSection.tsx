@@ -83,9 +83,7 @@ export function VoiceRecognitionSection({
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-sm font-medium truncate">
-                        {asrToolInfo.toolName}
-                      </span>
+                      <span className="text-sm font-medium truncate">{asrToolInfo.toolName}</span>
                       <Badge
                         variant="outline"
                         className="text-[10px] h-4 px-1 border-primary/20 text-primary bg-primary/5 shrink-0"

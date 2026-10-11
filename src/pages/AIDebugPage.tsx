@@ -12,27 +12,13 @@
  *  - [§10 已知坑 · 错误 toast 回显后端 detail](.agents/skills/gshub-development/references/10-pitfalls-and-performance.md) P-13
  */
 import { useEffect, useMemo, useState } from 'react';
-import {
-  Brain,
-  Bug,
-  ListChecks,
-  Save,
-  ShieldAlert,
-  Skull,
-  Trash2,
-} from 'lucide-react';
+import { Brain, Bug, ListChecks, Save, ShieldAlert, Skull, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -242,8 +228,16 @@ export default function AIDebugPage() {
 
   const tabs = useMemo(
     () => [
-      { value: 'memoryGraph', label: t('aiDebug.tabs.memoryGraph'), icon: <Brain className="w-4 h-4" /> },
-      { value: 'orchestration', label: t('aiDebug.tabs.orchestration'), icon: <ListChecks className="w-4 h-4" /> },
+      {
+        value: 'memoryGraph',
+        label: t('aiDebug.tabs.memoryGraph'),
+        icon: <Brain className="w-4 h-4" />,
+      },
+      {
+        value: 'orchestration',
+        label: t('aiDebug.tabs.orchestration'),
+        icon: <ListChecks className="w-4 h-4" />,
+      },
       { value: 'selfModel', label: t('aiDebug.tabs.selfModel'), icon: <Bug className="w-4 h-4" /> },
     ],
     [t],
@@ -259,19 +253,11 @@ export default function AIDebugPage() {
               <ShieldAlert className="w-8 h-8 shrink-0" />
               {t('aiDebug.title')}
             </h1>
-            <p className="text-muted-foreground mt-1">
-              {t('aiDebug.description')}
-            </p>
+            <p className="text-muted-foreground mt-1">{t('aiDebug.description')}</p>
           </div>
         </div>
       }
-      toolbar={
-        <TabButtonGroup
-          options={tabs}
-          value={activeTab}
-          onValueChange={setActiveTab}
-        />
-      }
+      toolbar={<TabButtonGroup options={tabs} value={activeTab} onValueChange={setActiveTab} />}
     >
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsContent value="memoryGraph" className="space-y-4">
@@ -281,9 +267,7 @@ export default function AIDebugPage() {
                 <Brain className="w-5 h-5" />
                 {t('aiDebug.tabs.memoryGraph')}
               </CardTitle>
-              <CardDescription>
-                {t('aiDebug.description')}
-              </CardDescription>
+              <CardDescription>{t('aiDebug.description')}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap items-end gap-3">
@@ -308,10 +292,7 @@ export default function AIDebugPage() {
                     items-end 已让两列底对齐 → 视觉中心也对齐。
                     不加 h-9 时 Switch 行默认 ~24px 高，Switch 中心比 Select 中心高 6px。 */}
                 <div className="flex items-center gap-2 h-9">
-                  <Switch
-                    checked={includeInvalid}
-                    onCheckedChange={setIncludeInvalid}
-                  />
+                  <Switch checked={includeInvalid} onCheckedChange={setIncludeInvalid} />
                   <Label>{t('aiDebug.memoryGraph.includeInvalid')}</Label>
                 </div>
               </div>
@@ -321,17 +302,13 @@ export default function AIDebugPage() {
           <Card className="glass-card">
             <CardHeader>
               <CardTitle>{t('aiDebug.memoryGraph.edgesTitle')}</CardTitle>
-              <CardDescription>
-                {t('aiDebug.memoryGraph.edgesDesc')}
-              </CardDescription>
+              <CardDescription>{t('aiDebug.memoryGraph.edgesDesc')}</CardDescription>
             </CardHeader>
             <CardContent>
               {loading.edges ? (
                 <Skeleton className="h-24 w-full rounded-md" />
               ) : edges.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  {t('aiDebug.memoryGraph.noEdges')}
-                </p>
+                <p className="text-sm text-muted-foreground">{t('aiDebug.memoryGraph.noEdges')}</p>
               ) : (
                 <div className="space-y-2">
                   {edges.map((edge) => (
@@ -370,9 +347,7 @@ export default function AIDebugPage() {
           <Card className="glass-card">
             <CardHeader>
               <CardTitle>{t('aiDebug.memoryGraph.conflictsTitle')}</CardTitle>
-              <CardDescription>
-                {t('aiDebug.memoryGraph.conflictsDesc')}
-              </CardDescription>
+              <CardDescription>{t('aiDebug.memoryGraph.conflictsDesc')}</CardDescription>
             </CardHeader>
             <CardContent>
               {loading.conflicts ? (
@@ -384,10 +359,7 @@ export default function AIDebugPage() {
               ) : (
                 <ul className="space-y-2">
                   {conflicts.map((c) => (
-                    <li
-                      key={c.id}
-                      className="border border-border/40 rounded-lg p-3 text-sm"
-                    >
+                    <li key={c.id} className="border border-border/40 rounded-lg p-3 text-sm">
                       <p className="font-medium">{c.summary}</p>
                       <p className="text-xs text-muted-foreground">
                         {c.fact_signature} · {c.created_at ?? '—'}
@@ -407,9 +379,7 @@ export default function AIDebugPage() {
                 <ListChecks className="w-5 h-5" />
                 {t('aiDebug.orchestration.tasksTitle')}
               </CardTitle>
-              <CardDescription>
-                {t('aiDebug.orchestration.tasksDesc')}
-              </CardDescription>
+              <CardDescription>{t('aiDebug.orchestration.tasksDesc')}</CardDescription>
             </CardHeader>
             <CardContent>
               {loadingTasks.list ? (
@@ -430,7 +400,9 @@ export default function AIDebugPage() {
                       }
                     >
                       <div className="flex min-w-0 items-center gap-2">
-                        <Badge className="shrink-0" variant="outline">{tk.node_kind}</Badge>
+                        <Badge className="shrink-0" variant="outline">
+                          {tk.node_kind}
+                        </Badge>
                         <Badge className="shrink-0">{tk.status}</Badge>
                         <span className="min-w-0 font-mono text-xs text-muted-foreground truncate">
                           {tk.id}
@@ -449,13 +421,9 @@ export default function AIDebugPage() {
 
           <Card className="glass-card">
             <CardHeader>
-              <CardTitle>
-                {t('aiDebug.orchestration.taskDetailTitle')}
-              </CardTitle>
+              <CardTitle>{t('aiDebug.orchestration.taskDetailTitle')}</CardTitle>
               <CardDescription>
-                {selectedTaskId
-                  ? selectedTaskId
-                  : t('aiDebug.orchestration.noTaskId')}
+                {selectedTaskId ? selectedTaskId : t('aiDebug.orchestration.noTaskId')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -498,13 +466,8 @@ export default function AIDebugPage() {
                     ) : (
                       <ul className="space-y-1">
                         {(taskDetail.logs ?? []).map((lg, i) => (
-                          <li
-                            key={i}
-                            className="text-xs border border-border/40 rounded px-2 py-1"
-                          >
-                            <span className="text-muted-foreground mr-2">
-                              [{lg.event_type}]
-                            </span>
+                          <li key={i} className="text-xs border border-border/40 rounded px-2 py-1">
+                            <span className="text-muted-foreground mr-2">[{lg.event_type}]</span>
                             {lg.content}
                           </li>
                         ))}
@@ -524,9 +487,7 @@ export default function AIDebugPage() {
                 <Bug className="w-5 h-5" />
                 {t('aiDebug.selfModel.selfModelTitle')}
               </CardTitle>
-              <CardDescription>
-                {t('aiDebug.selfModel.selfModelDesc')}
-              </CardDescription>
+              <CardDescription>{t('aiDebug.selfModel.selfModelDesc')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex flex-wrap items-end gap-3">

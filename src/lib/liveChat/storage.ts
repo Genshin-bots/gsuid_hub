@@ -203,11 +203,13 @@ export async function loadLiveChatState(): Promise<LiveChatPersistedState> {
       return migrated;
     }
 
-    return remote || {
-      identity: defaultIdentity(),
-      conversations: [],
-      activeId: null,
-    };
+    return (
+      remote || {
+        identity: defaultIdentity(),
+        conversations: [],
+        activeId: null,
+      }
+    );
   } catch (e) {
     console.warn('[live-chat] load from backend failed, fallback local', e);
     const localConvs = loadConversationsLocal();

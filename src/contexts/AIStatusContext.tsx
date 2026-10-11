@@ -1,4 +1,12 @@
-import { createContext, useContext, useState, useCallback, ReactNode, useMemo, useEffect } from 'react';
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  ReactNode,
+  useMemo,
+  useEffect,
+} from 'react';
 import { aiWizardApi, getAuthToken } from '@/lib/api';
 
 interface AIStatusContextType {
@@ -49,18 +57,17 @@ export function AIStatusProvider({ children }: AIStatusProviderProps) {
     setIsAIEnabledState(enabled);
   }, []);
 
-  const value = useMemo<AIStatusContextType>(() => ({
-    isAIEnabled,
-    setAIEnabled,
-    refresh,
-    isLoaded,
-  }), [isAIEnabled, setAIEnabled, refresh, isLoaded]);
-
-  return (
-    <AIStatusContext.Provider value={value}>
-      {children}
-    </AIStatusContext.Provider>
+  const value = useMemo<AIStatusContextType>(
+    () => ({
+      isAIEnabled,
+      setAIEnabled,
+      refresh,
+      isLoaded,
+    }),
+    [isAIEnabled, setAIEnabled, refresh, isLoaded],
   );
+
+  return <AIStatusContext.Provider value={value}>{children}</AIStatusContext.Provider>;
 }
 
 export function useAIStatus() {

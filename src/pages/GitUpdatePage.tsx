@@ -55,7 +55,14 @@ import {
   GitCommitListResponse,
   GitPluginInfo,
 } from '@/lib/api';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { headerActionRowClass, PinnedPage } from '@/components/layout/PinnedPage';
 import { PluginIcon } from '@/components/ui/plugin-icon';
 import { cn } from '@/lib/utils';
@@ -108,7 +115,7 @@ function clearCommitsCache(pluginName?: string) {
         keysToRemove.push(key);
       }
     }
-    keysToRemove.forEach(k => localStorage.removeItem(k));
+    keysToRemove.forEach((k) => localStorage.removeItem(k));
   }
 }
 
@@ -127,21 +134,29 @@ function getGithubRepoPath(remoteUrl?: string, pluginName?: string): string | nu
     .replace(/^https?:\/\/ghproxy\.com\//i, '')
     .replace(/^https?:\/\/gh-proxy\.com\//i, '');
 
-  const githubSshMatch = normalizedUrl.match(/ssh:\/\/git@(?:ssh\.)?github\.com(?::\d+)?\/([^/\s]+)\/([^/\s]+?)(?:\.git)?(?:[/?#]|$)/i);
+  const githubSshMatch = normalizedUrl.match(
+    /ssh:\/\/git@(?:ssh\.)?github\.com(?::\d+)?\/([^/\s]+)\/([^/\s]+?)(?:\.git)?(?:[/?#]|$)/i,
+  );
   if (githubSshMatch) {
     return `${githubSshMatch[1]}/${cleanRepoName(githubSshMatch[2])}`;
   }
 
-  const githubMatch = normalizedUrl.match(/github\.com[:/]([^/\s:]+)\/([^/\s]+?)(?:\.git)?(?:[/?#]|$)/i);
+  const githubMatch = normalizedUrl.match(
+    /github\.com[:/]([^/\s:]+)\/([^/\s]+?)(?:\.git)?(?:[/?#]|$)/i,
+  );
   if (githubMatch) {
     return `${githubMatch[1]}/${cleanRepoName(githubMatch[2])}`;
   }
 
-  const mirrorMatch = normalizedUrl.match(/(?:gitcode\.com|cnb\.cool)\/([^/\s]+)\/([^/\s]+?)(?:\.git)?(?:[/?#]|$)/i);
+  const mirrorMatch = normalizedUrl.match(
+    /(?:gitcode\.com|cnb\.cool)\/([^/\s]+)\/([^/\s]+?)(?:\.git)?(?:[/?#]|$)/i,
+  );
   if (mirrorMatch) {
     const owner = mirrorMatch[1];
     const repo = cleanRepoName(mirrorMatch[2]);
-    return KNOWN_GITHUB_MIRROR_OWNERS.has(owner.toLowerCase()) ? `Genshin-bots/${repo}` : `${owner}/${repo}`;
+    return KNOWN_GITHUB_MIRROR_OWNERS.has(owner.toLowerCase())
+      ? `Genshin-bots/${repo}`
+      : `${owner}/${repo}`;
   }
 
   return fallbackRepo;
@@ -210,10 +225,7 @@ const CommitCard = memo(function CommitCard({
       <CardContent className="p-3 space-y-2">
         <div className="flex items-center justify-between gap-2 min-w-0">
           <div className="flex items-center gap-2 min-w-0 flex-wrap">
-            <Badge
-              variant="outline"
-              className="font-mono text-xs whitespace-nowrap shrink-0"
-            >
+            <Badge variant="outline" className="font-mono text-xs whitespace-nowrap shrink-0">
               {commit.short_hash}
             </Badge>
             {isLocalCurrent && (
@@ -235,7 +247,11 @@ const CommitCard = memo(function CommitCard({
               disabled={isCheckingOut}
               className="gap-1 text-xs h-7 whitespace-nowrap shrink-0"
             >
-              {isFuture ? <ArrowDownToLine className="w-3 h-3" /> : <RotateCcw className="w-3 h-3" />}
+              {isFuture ? (
+                <ArrowDownToLine className="w-3 h-3" />
+              ) : (
+                <RotateCcw className="w-3 h-3" />
+              )}
               {isFuture ? t('gitUpdate.updateToVersion') : t('gitUpdate.checkoutToVersion')}
             </Button>
           )}
@@ -284,10 +300,7 @@ const CommitRow = memo(function CommitRow({
     <tr className={`border-b border-border/50 ${isLocalCurrent ? 'bg-primary/5' : ''}`}>
       <td className="p-3">
         <div className="flex items-center gap-2 flex-wrap">
-          <Badge
-            variant="outline"
-            className="font-mono text-xs whitespace-nowrap"
-          >
+          <Badge variant="outline" className="font-mono text-xs whitespace-nowrap">
             {commit.short_hash}
           </Badge>
           {isLocalCurrent && (
@@ -328,7 +341,7 @@ const CommitRow = memo(function CommitRow({
 export default function GitUpdatePage() {
   const { t } = useLanguage();
   const { style } = useTheme();
-  const isGlass = style === 'glassmorphism';
+  const isGlass = style !== 'solid';
   const isMobile = useIsMobile();
 
   // State
@@ -383,10 +396,10 @@ export default function GitUpdatePage() {
       const cached = getCachedData<GitPluginStatus[]>(GIT_STATUS_CACHE_KEY);
       if (cached) {
         if (cancelled) return;
-        const gitPlugins = cached.filter(p => p.is_git_repo);
+        const gitPlugins = cached.filter((p) => p.is_git_repo);
         setPlugins(gitPlugins);
         if (gitPlugins.length > 0) {
-          const core = gitPlugins.find(p => p.name.toLowerCase() === 'gsuid_core');
+          const core = gitPlugins.find((p) => p.name.toLowerCase() === 'gsuid_core');
           setSelectedPlugin(core ? core.name : gitPlugins[0].name);
         }
         setIsLoadingStatus(false);
@@ -399,14 +412,14 @@ export default function GitUpdatePage() {
 
         if (cancelled) return;
 
-        const gitPlugins = statusData.filter(p => p.is_git_repo);
+        const gitPlugins = statusData.filter((p) => p.is_git_repo);
         setPlugins(gitPlugins);
         // 写入缓存
         setCachedData(GIT_STATUS_CACHE_KEY, statusData);
 
         // Set default selection
         if (gitPlugins.length > 0) {
-          const core = gitPlugins.find(p => p.name.toLowerCase() === 'gsuid_core');
+          const core = gitPlugins.find((p) => p.name.toLowerCase() === 'gsuid_core');
           setSelectedPlugin(core ? core.name : gitPlugins[0].name);
         }
       } catch (error) {
@@ -420,7 +433,9 @@ export default function GitUpdatePage() {
     }
 
     load();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []); // Only run once on mount
 
   // Fetch git mirror info for remote_url and mirror badge
@@ -431,7 +446,7 @@ export default function GitUpdatePage() {
         const data = await gitMirrorApi.getInfo();
         if (cancelled) return;
         const map: Record<string, GitPluginInfo> = {};
-        data.plugins.forEach(p => {
+        data.plugins.forEach((p) => {
           map[p.name.toLowerCase()] = p;
         });
         setGitPluginsMap(map);
@@ -440,7 +455,9 @@ export default function GitUpdatePage() {
       }
     }
     loadMirrorInfo();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Fetch plugin list to get actual running commit (from /api/plugins/list)
@@ -456,7 +473,9 @@ export default function GitUpdatePage() {
       }
     }
     loadPluginList();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Fetch commits when plugin changes (with cache)
@@ -497,7 +516,9 @@ export default function GitUpdatePage() {
     }
 
     loadCommits();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [selectedPlugin]); // Only depends on selectedPlugin
 
   // Handle refresh (force refresh, bypass cache)
@@ -505,7 +526,7 @@ export default function GitUpdatePage() {
     try {
       setIsLoadingStatus(true);
       const statusData = await gitUpdateApi.getStatus();
-      const gitPlugins = statusData.filter(p => p.is_git_repo);
+      const gitPlugins = statusData.filter((p) => p.is_git_repo);
       setPlugins(gitPlugins);
       // 更新缓存
       setCachedData(GIT_STATUS_CACHE_KEY, statusData);
@@ -626,7 +647,7 @@ export default function GitUpdatePage() {
   };
 
   // Get current plugin status
-  const currentPlugin = plugins.find(p => p.name === selectedPlugin);
+  const currentPlugin = plugins.find((p) => p.name === selectedPlugin);
   const currentMirrorInfo = gitPluginsMap[selectedPlugin?.toLowerCase()] || null;
   const githubRepoPath = getGithubRepoPath(currentMirrorInfo?.remote_url, selectedPlugin);
 
@@ -641,7 +662,7 @@ export default function GitUpdatePage() {
   const hasMore = displayCount < allCommits.length;
 
   const handleLoadMore = useCallback(() => {
-    setDisplayCount(prev => Math.min(prev + PAGE_SIZE, allCommits.length));
+    setDisplayCount((prev) => Math.min(prev + PAGE_SIZE, allCommits.length));
   }, [allCommits.length]);
 
   const handleCheckoutClick = useCallback((commit: GitCommitInfo) => {
@@ -650,8 +671,8 @@ export default function GitUpdatePage() {
 
   const checkoutDialogIsFuture = (() => {
     if (!checkoutDialog.commit || !commitsData) return false;
-    const currentIdx = allCommits.findIndex(c => c.hash === commitsData.current_hash);
-    const targetIdx = allCommits.findIndex(c => c.hash === checkoutDialog.commit?.hash);
+    const currentIdx = allCommits.findIndex((c) => c.hash === commitsData.current_hash);
+    const targetIdx = allCommits.findIndex((c) => c.hash === checkoutDialog.commit?.hash);
     return currentIdx === -1 || (targetIdx !== -1 && targetIdx < currentIdx);
   })();
 
@@ -667,46 +688,58 @@ export default function GitUpdatePage() {
     setTimeout(async () => {
       setUpdateAllPanelOpen(true);
       setIsUpdatingAll(true);
-      
+
       // 初始化所有插件状态为 pending
-      const initialList: PluginUpdateItem[] = plugins.filter(p => p.is_git_repo).map(p => ({ name: p.name, status: 'pending' }));
+      const initialList: PluginUpdateItem[] = plugins
+        .filter((p) => p.is_git_repo)
+        .map((p) => ({ name: p.name, status: 'pending' }));
       setPluginUpdateList(initialList);
 
       // 并行更新所有插件
-      const updatePromises = plugins.filter(p => p.is_git_repo).map(async (plugin) => {
-        // 更新状态为 updating
-        setPluginUpdateList(prev => prev.map(p =>
-          p.name === plugin.name ? { ...p, status: 'updating' } : p
-        ));
-        
-        try {
-          // api.post 已解包：返回 GitForceUpdateResponse
-          const result = await gitUpdateApi.update(plugin.name);
-          if (result?.success) {
-            setPluginUpdateList(prev => prev.map(p =>
-              p.name === plugin.name
-                ? { ...p, status: 'success', message: result.message }
-                : p
-            ));
-          } else {
-            setPluginUpdateList(prev => prev.map(p =>
-              p.name === plugin.name
-                ? { ...p, status: 'failed', message: result?.message || t('gitUpdate.updateFailed') }
-                : p
-            ));
+      const updatePromises = plugins
+        .filter((p) => p.is_git_repo)
+        .map(async (plugin) => {
+          // 更新状态为 updating
+          setPluginUpdateList((prev) =>
+            prev.map((p) => (p.name === plugin.name ? { ...p, status: 'updating' } : p)),
+          );
+
+          try {
+            // api.post 已解包：返回 GitForceUpdateResponse
+            const result = await gitUpdateApi.update(plugin.name);
+            if (result?.success) {
+              setPluginUpdateList((prev) =>
+                prev.map((p) =>
+                  p.name === plugin.name ? { ...p, status: 'success', message: result.message } : p,
+                ),
+              );
+            } else {
+              setPluginUpdateList((prev) =>
+                prev.map((p) =>
+                  p.name === plugin.name
+                    ? {
+                        ...p,
+                        status: 'failed',
+                        message: result?.message || t('gitUpdate.updateFailed'),
+                      }
+                    : p,
+                ),
+              );
+            }
+          } catch (error) {
+            setPluginUpdateList((prev) =>
+              prev.map((p) =>
+                p.name === plugin.name
+                  ? {
+                      ...p,
+                      status: 'failed',
+                      message: error instanceof Error ? error.message : String(error),
+                    }
+                  : p,
+              ),
+            );
           }
-        } catch (error) {
-          setPluginUpdateList(prev => prev.map(p =>
-            p.name === plugin.name
-              ? {
-                  ...p,
-                  status: 'failed',
-                  message: error instanceof Error ? error.message : String(error),
-                }
-              : p
-          ));
-        }
-      });
+        });
 
       await Promise.all(updatePromises);
       setIsUpdatingAll(false);
@@ -790,10 +823,7 @@ export default function GitUpdatePage() {
               />
             )}
             <div className={headerActionRowClass}>
-              <Button
-                variant="outline"
-                onClick={() => setGitMirrorOpen(true)}
-              >
+              <Button variant="outline" onClick={() => setGitMirrorOpen(true)}>
                 <GitBranch className="w-4 h-4" />
                 {t('gitMirror.title')}
               </Button>
@@ -820,7 +850,9 @@ export default function GitUpdatePage() {
                 onClick={handleRefresh}
                 disabled={isLoadingStatus || isLoadingCommits}
               >
-                <RefreshCw className={cn('w-4 h-4', (isLoadingStatus || isLoadingCommits) && 'animate-spin')} />
+                <RefreshCw
+                  className={cn('w-4 h-4', (isLoadingStatus || isLoadingCommits) && 'animate-spin')}
+                />
                 {t('gitUpdate.refresh')}
               </Button>
             </div>
@@ -841,22 +873,32 @@ export default function GitUpdatePage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               <div className="flex items-center gap-2 min-w-0">
                 <GitBranch className="w-4 h-4 text-muted-foreground shrink-0" />
-                <span className="text-sm text-muted-foreground whitespace-nowrap shrink-0">{t('gitUpdate.branch')}:</span>
+                <span className="text-sm text-muted-foreground whitespace-nowrap shrink-0">
+                  {t('gitUpdate.branch')}:
+                </span>
                 <span className="truncate">{currentPlugin.branch}</span>
               </div>
               <div className="flex items-center gap-2 min-w-0">
                 <GitCommit className="w-4 h-4 text-muted-foreground shrink-0" />
-                <span className="text-sm text-muted-foreground whitespace-nowrap shrink-0">{t('gitUpdate.commit')}:</span>
-                <span className="truncate font-mono text-sm">{currentPlugin.current_commit.short_hash}</span>
+                <span className="text-sm text-muted-foreground whitespace-nowrap shrink-0">
+                  {t('gitUpdate.commit')}:
+                </span>
+                <span className="truncate font-mono text-sm">
+                  {currentPlugin.current_commit.short_hash}
+                </span>
               </div>
               <div className="flex items-center gap-2 min-w-0">
                 <User className="w-4 h-4 text-muted-foreground shrink-0" />
-                <span className="text-sm text-muted-foreground whitespace-nowrap shrink-0">{t('gitUpdate.author')}:</span>
+                <span className="text-sm text-muted-foreground whitespace-nowrap shrink-0">
+                  {t('gitUpdate.author')}:
+                </span>
                 <span className="text-sm truncate">{currentPlugin.current_commit.author}</span>
               </div>
               <div className="flex items-center gap-2 min-w-0">
                 <Calendar className="w-4 h-4 text-muted-foreground shrink-0" />
-                <span className="text-sm text-muted-foreground whitespace-nowrap shrink-0">{t('gitUpdate.date')}:</span>
+                <span className="text-sm text-muted-foreground whitespace-nowrap shrink-0">
+                  {t('gitUpdate.date')}:
+                </span>
                 <span className="text-sm truncate">{currentPlugin.current_commit.date}</span>
               </div>
             </div>
@@ -864,7 +906,9 @@ export default function GitUpdatePage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 <div className="flex items-center gap-2 min-w-0">
                   <MessageSquare className="w-4 h-4 text-muted-foreground shrink-0" />
-                  <span className="text-sm break-words leading-relaxed line-clamp-2 sm:truncate">{currentPlugin.current_commit.message}</span>
+                  <span className="text-sm break-words leading-relaxed line-clamp-2 sm:truncate">
+                    {currentPlugin.current_commit.message}
+                  </span>
                 </div>
                 {currentMirrorInfo?.remote_url && (
                   <div className="flex items-center gap-2 min-w-0">
@@ -874,7 +918,11 @@ export default function GitUpdatePage() {
                       className="text-xs font-mono whitespace-nowrap"
                       title={currentMirrorInfo.remote_url}
                     >
-                      {currentMirrorInfo.remote_url.replace(/^https?:\/\//, '').split('/').slice(-2).join('/')}
+                      {currentMirrorInfo.remote_url
+                        .replace(/^https?:\/\//, '')
+                        .split('/')
+                        .slice(-2)
+                        .join('/')}
                     </Badge>
                   </div>
                 )}
@@ -882,9 +930,16 @@ export default function GitUpdatePage() {
                   <div className="flex items-center gap-2 min-w-0">
                     <Globe className="w-4 h-4 text-muted-foreground shrink-0" />
                     {(() => {
-                      const badge = getMirrorBadge(currentMirrorInfo.mirror || 'unknown', currentMirrorInfo.remote_url, t);
+                      const badge = getMirrorBadge(
+                        currentMirrorInfo.mirror || 'unknown',
+                        currentMirrorInfo.remote_url,
+                        t,
+                      );
                       return (
-                        <Badge variant="outline" className={`text-xs whitespace-nowrap ${badge.className}`}>
+                        <Badge
+                          variant="outline"
+                          className={`text-xs whitespace-nowrap ${badge.className}`}
+                        >
                           {badge.icon}
                           <span className="ml-1">{badge.label}</span>
                         </Badge>
@@ -907,9 +962,7 @@ export default function GitUpdatePage() {
                 <ArrowDownToLine className="w-5 h-5 text-primary" />
                 {t('gitUpdate.remoteCommits')}
               </CardTitle>
-              <CardDescription>
-                {t('gitUpdate.detachedHeadWarning')}
-              </CardDescription>
+              <CardDescription>{t('gitUpdate.detachedHeadWarning')}</CardDescription>
             </div>
             <div className="flex flex-row gap-2 shrink-0 justify-start items-end sm:justify-end">
               <Button
@@ -946,7 +999,7 @@ export default function GitUpdatePage() {
         <CardContent className="p-0 sm:px-6 sm:pb-6">
           {isLoadingCommits ? (
             <div className="space-y-3 p-4 sm:p-0">
-              {[1, 2, 3, 4, 5].map(i => (
+              {[1, 2, 3, 4, 5].map((i) => (
                 <div key={i} className="flex items-center gap-4">
                   <Skeleton className="h-4 w-16" />
                   <Skeleton className="h-4 w-24" />
@@ -964,8 +1017,10 @@ export default function GitUpdatePage() {
             /* Mobile: Card layout */
             <div className="space-y-3 p-4">
               {(() => {
-                const currentIdx = allCommits.findIndex(c => c.hash === commitsData.current_hash);
-                const runningPlugin = pluginList.find(p => p.id.toLowerCase() === selectedPlugin.toLowerCase());
+                const currentIdx = allCommits.findIndex((c) => c.hash === commitsData.current_hash);
+                const runningPlugin = pluginList.find(
+                  (p) => p.id.toLowerCase() === selectedPlugin.toLowerCase(),
+                );
                 const runningCommit = runningPlugin?.commit;
                 return displayedCommits.map((commit, index) => (
                   <CommitCard
@@ -984,11 +1039,7 @@ export default function GitUpdatePage() {
               })()}
               {hasMore && (
                 <div className="flex justify-center pt-2">
-                  <Button
-                    variant="outline"
-                    onClick={handleLoadMore}
-                    className="gap-2"
-                  >
+                  <Button variant="outline" onClick={handleLoadMore} className="gap-2">
                     <ChevronDown className="w-4 h-4" />
                     {t('gitUpdate.loadMore')} ({displayCount}/{allCommits.length})
                   </Button>
@@ -1001,17 +1052,31 @@ export default function GitUpdatePage() {
               <table className="w-full caption-bottom text-sm min-w-[640px]">
                 <thead className="sticky top-0 bg-background z-10">
                   <tr className="border-b border-border/50">
-                    <th className="h-10 px-3 text-left font-medium text-muted-foreground w-28 whitespace-nowrap">{t('gitUpdate.commit')}</th>
-                    <th className="h-10 px-3 text-left font-medium text-muted-foreground">{t('gitUpdate.message')}</th>
-                    <th className="h-10 px-3 text-left font-medium text-muted-foreground w-28 whitespace-nowrap">{t('gitUpdate.author')}</th>
-                    <th className="h-10 px-3 text-left font-medium text-muted-foreground w-44 whitespace-nowrap">{t('gitUpdate.date')}</th>
-                    <th className="h-10 px-3 text-right font-medium text-muted-foreground w-32 whitespace-nowrap">{t('common.actions')}</th>
+                    <th className="h-10 px-3 text-left font-medium text-muted-foreground w-28 whitespace-nowrap">
+                      {t('gitUpdate.commit')}
+                    </th>
+                    <th className="h-10 px-3 text-left font-medium text-muted-foreground">
+                      {t('gitUpdate.message')}
+                    </th>
+                    <th className="h-10 px-3 text-left font-medium text-muted-foreground w-28 whitespace-nowrap">
+                      {t('gitUpdate.author')}
+                    </th>
+                    <th className="h-10 px-3 text-left font-medium text-muted-foreground w-44 whitespace-nowrap">
+                      {t('gitUpdate.date')}
+                    </th>
+                    <th className="h-10 px-3 text-right font-medium text-muted-foreground w-32 whitespace-nowrap">
+                      {t('common.actions')}
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {(() => {
-                    const currentIdx = allCommits.findIndex(c => c.hash === commitsData.current_hash);
-                    const runningPlugin = pluginList.find(p => p.id.toLowerCase() === selectedPlugin.toLowerCase());
+                    const currentIdx = allCommits.findIndex(
+                      (c) => c.hash === commitsData.current_hash,
+                    );
+                    const runningPlugin = pluginList.find(
+                      (p) => p.id.toLowerCase() === selectedPlugin.toLowerCase(),
+                    );
                     const runningCommit = runningPlugin?.commit;
                     return displayedCommits.map((commit, index) => (
                       <CommitRow
@@ -1031,11 +1096,7 @@ export default function GitUpdatePage() {
                   {hasMore && (
                     <tr>
                       <td colSpan={5} className="text-center py-4">
-                        <Button
-                          variant="outline"
-                          onClick={handleLoadMore}
-                          className="gap-2"
-                        >
+                        <Button variant="outline" onClick={handleLoadMore} className="gap-2">
                           <ChevronDown className="w-4 h-4" />
                           {t('gitUpdate.loadMore')} ({displayCount}/{allCommits.length})
                         </Button>
@@ -1060,24 +1121,38 @@ export default function GitUpdatePage() {
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <AlertTriangle className="w-5 h-5 text-yellow-500" />
-              {t(checkoutDialogIsFuture ? 'gitUpdate.updateConfirmTitle' : 'gitUpdate.checkoutConfirmTitle')}
+              {t(
+                checkoutDialogIsFuture
+                  ? 'gitUpdate.updateConfirmTitle'
+                  : 'gitUpdate.checkoutConfirmTitle',
+              )}
             </AlertDialogTitle>
             <AlertDialogDescription className="text-left space-y-2">
               <div>
                 {checkoutDialogIsFuture
-                  ? t('gitUpdate.updateConfirmDesc', { plugin: getPluginDisplayName(selectedPlugin), hash: checkoutDialog.commit?.short_hash || '', message: checkoutDialog.commit?.message || '' })
-                  : t('gitUpdate.checkoutConfirmMessage', { plugin: getPluginDisplayName(selectedPlugin), hash: checkoutDialog.commit?.short_hash || '' })}
+                  ? t('gitUpdate.updateConfirmDesc', {
+                      plugin: getPluginDisplayName(selectedPlugin),
+                      hash: checkoutDialog.commit?.short_hash || '',
+                      message: checkoutDialog.commit?.message || '',
+                    })
+                  : t('gitUpdate.checkoutConfirmMessage', {
+                      plugin: getPluginDisplayName(selectedPlugin),
+                      hash: checkoutDialog.commit?.short_hash || '',
+                    })}
               </div>
               <div className="text-muted-foreground">
-                {t('gitUpdate.checkoutConfirmCommitInfo', { hash: checkoutDialog.commit?.short_hash || '', message: checkoutDialog.commit?.message || '' })}
+                {t('gitUpdate.checkoutConfirmCommitInfo', {
+                  hash: checkoutDialog.commit?.short_hash || '',
+                  message: checkoutDialog.commit?.message || '',
+                })}
               </div>
-              <div className="text-yellow-600 dark:text-yellow-500 font-medium">{t('gitUpdate.checkoutConfirmWarning')}</div>
+              <div className="text-yellow-600 dark:text-yellow-500 font-medium">
+                {t('gitUpdate.checkoutConfirmWarning')}
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isCheckingOut}>
-              {t('common.cancel')}
-            </AlertDialogCancel>
+            <AlertDialogCancel disabled={isCheckingOut}>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleCheckout}
               disabled={isCheckingOut}
@@ -1098,21 +1173,30 @@ export default function GitUpdatePage() {
               {t('gitUpdate.updateConfirmTitle')}
             </AlertDialogTitle>
             <AlertDialogDescription className="text-left space-y-2">
-              <div>确认将 <strong>{getPluginDisplayName(selectedPlugin)}</strong> 更新到 commit <code className="bg-muted px-1 py-0.5 rounded font-mono text-xs">{commitsData?.current_hash || ''}</code>？</div>
-              <div className="text-muted-foreground">
-                commit <code className="bg-muted px-1 py-0.5 rounded font-mono text-xs">{commitsData?.current_hash || ''}</code>：<span className="font-medium">{commitsData?.commits[0]?.message || ''}</span>
+              <div>
+                确认将 <strong>{getPluginDisplayName(selectedPlugin)}</strong> 更新到 commit{' '}
+                <code className="bg-muted px-1 py-0.5 rounded font-mono text-xs">
+                  {commitsData?.current_hash || ''}
+                </code>
+                ？
               </div>
-              <div className="text-yellow-600 dark:text-yellow-500 font-medium">⚠️ 注意：更新将执行 <code className="bg-muted px-1 py-0.5 rounded font-mono text-xs">git pull</code>，如有本地代码修改将移除，此操作不可逆。</div>
+              <div className="text-muted-foreground">
+                commit{' '}
+                <code className="bg-muted px-1 py-0.5 rounded font-mono text-xs">
+                  {commitsData?.current_hash || ''}
+                </code>
+                ：<span className="font-medium">{commitsData?.commits[0]?.message || ''}</span>
+              </div>
+              <div className="text-yellow-600 dark:text-yellow-500 font-medium">
+                ⚠️ 注意：更新将执行{' '}
+                <code className="bg-muted px-1 py-0.5 rounded font-mono text-xs">git pull</code>
+                ，如有本地代码修改将移除，此操作不可逆。
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isForceUpdating}>
-              {t('common.cancel')}
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleUpdate}
-              disabled={isForceUpdating}
-            >
+            <AlertDialogCancel disabled={isForceUpdating}>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleUpdate} disabled={isForceUpdating}>
               {isForceUpdating ? t('gitUpdate.loading') : t('common.confirm')}
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -1134,9 +1218,7 @@ export default function GitUpdatePage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isForceUpdating}>
-              {t('common.cancel')}
-            </AlertDialogCancel>
+            <AlertDialogCancel disabled={isForceUpdating}>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleForceUpdate}
               disabled={isForceUpdating}
@@ -1153,9 +1235,7 @@ export default function GitUpdatePage() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{t('gitUpdate.updateAll')}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t('plugins.updateAllPluginsConfirm')}
-            </AlertDialogDescription>
+            <AlertDialogDescription>{t('plugins.updateAllPluginsConfirm')}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
@@ -1253,10 +1333,7 @@ export default function GitUpdatePage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <GitMirrorDialog
-        open={gitMirrorOpen}
-        onOpenChange={setGitMirrorOpen}
-      />
+      <GitMirrorDialog open={gitMirrorOpen} onOpenChange={setGitMirrorOpen} />
     </PinnedPage>
   );
 }

@@ -1,9 +1,9 @@
-import { createRoot } from "react-dom/client";
-import App from "./App.tsx";
-import "./index.css";
-import { installMockServer } from "./lib/mockServer";
-import { setAuthToken } from "./lib/api";
-import { afterFirstPaint } from "./lib/afterFirstPaint";
+import { createRoot } from 'react-dom/client';
+import App from './App.tsx';
+import './index.css';
+import { installMockServer } from './lib/mockServer';
+import { setAuthToken } from './lib/api';
+import { afterFirstPaint } from './lib/afterFirstPaint';
 
 // ─── Demo（演示）模式 ────────────────────────────────────────────────────
 // `--mode demo` 下：先安装 Mock Server（覆写 window.fetch 接管所有 /api/*），
@@ -21,55 +21,80 @@ if (import.meta.env.VITE_DEMO) {
   const makeMemStorage = (): Storage => {
     const mem = new Map<string, string>();
     return {
-      get length() { return mem.size; },
-      clear() { mem.clear(); },
-      getItem(k: string) { return mem.has(k) ? mem.get(k)! : null; },
-      key(i: number) { return Array.from(mem.keys())[i] ?? null; },
-      removeItem(k: string) { mem.delete(k); },
-      setItem(k: string, v: string) { mem.set(k, String(v)); },
+      get length() {
+        return mem.size;
+      },
+      clear() {
+        mem.clear();
+      },
+      getItem(k: string) {
+        return mem.has(k) ? mem.get(k)! : null;
+      },
+      key(i: number) {
+        return Array.from(mem.keys())[i] ?? null;
+      },
+      removeItem(k: string) {
+        mem.delete(k);
+      },
+      setItem(k: string, v: string) {
+        mem.set(k, String(v));
+      },
     } as Storage;
   };
   const THEME_KEYS = [
-    "theme_mode", "theme_style", "theme_color", "theme_bg", "theme_blur",
-    "theme_card_opacity", "theme_icon_color", "theme_preset", "theme_language",
-    "theme_sidebar_layout", "theme_border_radius", "theme_ui_scale",
-    "theme_shadow_intensity", "theme_sidebar_default_collapsed",
+    'theme_mode',
+    'theme_style',
+    'theme_color',
+    'theme_bg',
+    'theme_blur',
+    'theme_background_blur',
+    'theme_card_opacity',
+    'theme_icon_color',
+    'theme_preset',
+    'theme_language',
+    'theme_sidebar_layout',
+    'theme_border_radius',
+    'theme_ui_scale',
+    'theme_shadow_intensity',
+    'theme_sidebar_default_collapsed',
   ];
-  for (const name of ["localStorage", "sessionStorage"] as const) {
+  for (const name of ['localStorage', 'sessionStorage'] as const) {
     try {
       Object.defineProperty(window, name, { configurable: true, value: makeMemStorage() });
     } catch {
       // 退而求其次：至少清掉主题相关键，避免跨刷新残留。
       try {
         THEME_KEYS.forEach((k) => window[name].removeItem(k));
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     }
   }
 
   installMockServer();
-  setAuthToken("demo-token");
+  setAuthToken('demo-token');
   // 嵌入锁定模式：docs 主页 iframe 以 `?embed=1` 加载本应用。此时给 <html> 打上 demo-embed 类，
   // 由 index.css 把侧边栏置为「可见但不可点击」，避免访客点侧边栏切走到别的页面（见用户反馈）。
-  if (new URLSearchParams(location.search).get("embed") === "1") {
-    document.documentElement.classList.add("demo-embed");
+  if (new URLSearchParams(location.search).get('embed') === '1') {
+    document.documentElement.classList.add('demo-embed');
 
     // 可见性联动：docs 主页按面板是否在视口 postMessage 过来。离屏时给 <html> 打
     // `embed-hidden` 类 → index.css 暂停所有 CSS 动画；同时派发事件供重型组件
     // （如 AI 记忆力导图）停掉自己的 JS 动画，避免离屏面板抢主线程拖累滚动。
-    window.addEventListener("message", (ev) => {
+    window.addEventListener('message', (ev) => {
       const d = ev.data;
-      if (!d || d.source !== "gshub-docs" || d.type !== "embed-visibility") return;
+      if (!d || d.source !== 'gshub-docs' || d.type !== 'embed-visibility') return;
       const hidden = d.visible === false;
-      document.documentElement.classList.toggle("embed-hidden", hidden);
+      document.documentElement.classList.toggle('embed-hidden', hidden);
       window.dispatchEvent(
-        new CustomEvent("gshub-embed-visibility", { detail: { visible: !hidden } }),
+        new CustomEvent('gshub-embed-visibility', { detail: { visible: !hidden } }),
       );
     });
   }
 }
 
-createRoot(document.getElementById("root")!).render(<App />);
+createRoot(document.getElementById('root')!).render(<App />);
 
 afterFirstPaint(() => {
-  void import("./fonts.css");
+  void import('./fonts.css');
 });

@@ -3,12 +3,34 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { Database, Settings, Loader2, Save, ChevronDown, ChevronUp, Server, Lock, Network, HardDrive } from 'lucide-react';
-import { frameworkConfigApi, PluginConfigItem, FrameworkConfigListItem, FrameworkConfigDetail } from '@/lib/api';
+import {
+  Database,
+  Settings,
+  Loader2,
+  Save,
+  ChevronDown,
+  ChevronUp,
+  Server,
+  Lock,
+  Network,
+  HardDrive,
+} from 'lucide-react';
+import {
+  frameworkConfigApi,
+  PluginConfigItem,
+  FrameworkConfigListItem,
+  FrameworkConfigDetail,
+} from '@/lib/api';
 import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
@@ -16,7 +38,7 @@ import { SecretInput } from '@/components/config/SecretInput';
 
 // Database type options
 const DB_TYPES = ['SQLite', 'MySql', 'PostgreSQL', '自定义'] as const;
-type DBType = typeof DB_TYPES[number];
+type DBType = (typeof DB_TYPES)[number];
 
 // MySQL driver options
 const DB_DRIVERS = ['aiomysql', 'asyncmy'] as const;
@@ -121,16 +143,17 @@ export default function DatabaseConfigPage() {
 
   // Get the GsCore database config
   const databaseConfig = useMemo(() => {
-    return configs.find(c =>
-      c.name === 'GsCore数据库配置' ||
-      c.full_name === 'GsCore数据库配置' ||
-      c.id === 'GsCore数据库配置' ||
-      c.full_name === databaseConfigName
+    return configs.find(
+      (c) =>
+        c.name === 'GsCore数据库配置' ||
+        c.full_name === 'GsCore数据库配置' ||
+        c.id === 'GsCore数据库配置' ||
+        c.full_name === databaseConfigName,
     );
   }, [configs, databaseConfigName]);
 
   // Current db_type value
-  const currentDbType = databaseConfig?.config?.db_type?.value as DBType || 'SQLite';
+  const currentDbType = (databaseConfig?.config?.db_type?.value as DBType) || 'SQLite';
 
   // Fetch config list from API (轻量级接口)
   const fetchConfigList = async () => {
@@ -138,14 +161,16 @@ export default function DatabaseConfigPage() {
       setIsLoading(true);
       const data = await frameworkConfigApi.getFrameworkConfigList('GsCore');
       // Filter only database config
-      const dbConfigList = data.filter(c => {
+      const dbConfigList = data.filter((c) => {
         const nameLower = c.name.toLowerCase();
         const fullNameLower = c.full_name.toLowerCase();
-        return nameLower.includes('database') ||
-               fullNameLower.includes('database') ||
-               nameLower.includes('数据库');
+        return (
+          nameLower.includes('database') ||
+          fullNameLower.includes('database') ||
+          nameLower.includes('数据库')
+        );
       });
-      
+
       if (dbConfigList.length > 0) {
         setConfigList(dbConfigList);
         setDatabaseConfigName(dbConfigList[0].full_name);
@@ -163,7 +188,7 @@ export default function DatabaseConfigPage() {
     try {
       setIsLoadingDetail(true);
       const data = await frameworkConfigApi.getFrameworkConfig(configName);
-      
+
       // Convert the raw config to the expected format
       const convertedConfig: LocalDatabaseConfig = {
         id: data.id,
@@ -173,82 +198,107 @@ export default function DatabaseConfigPage() {
           db_type: {
             value: (data.config.db_type?.value || 'SQLite') as string,
             default: (data.config.db_type?.default || 'SQLite') as string,
-            options: (data.config.db_type?.options || ['SQLite', 'MySql', 'PostgreSQL', '自定义']) as string[],
+            options: (data.config.db_type?.options || [
+              'SQLite',
+              'MySql',
+              'PostgreSQL',
+              '自定义',
+            ]) as string[],
             title: data.config.db_type?.title || '数据库类型',
-            desc: data.config.db_type?.desc || '选择数据库类型'
+            desc: data.config.db_type?.desc || '选择数据库类型',
           },
-          db_driver: data.config.db_driver ? {
-            value: data.config.db_driver.value as string,
-            default: data.config.db_driver.default as string,
-            options: (data.config.db_driver.options || ['aiomysql', 'asyncmy']) as string[],
-            title: data.config.db_driver.title || 'MySQL驱动',
-            desc: data.config.db_driver.desc || '选择MySQL驱动'
-          } : undefined,
-          db_custom_url: data.config.db_custom_url ? {
-            value: data.config.db_custom_url.value as string,
-            default: data.config.db_custom_url.default as string,
-            options: (data.config.db_custom_url.options || []) as string[],
-            title: data.config.db_custom_url.title || '自定义连接URL',
-            desc: data.config.db_custom_url.desc || '自定义数据库连接URL'
-          } : undefined,
-          db_host: data.config.db_host ? {
-            value: data.config.db_host.value as string,
-            default: data.config.db_host.default as string,
-            options: (data.config.db_host.options || []) as string[],
-            title: data.config.db_host.title || '主机地址',
-            desc: data.config.db_host.desc || '数据库主机地址'
-          } : undefined,
-          db_port: data.config.db_port ? {
-            value: data.config.db_port.value as string,
-            default: data.config.db_port.default as string,
-            options: (data.config.db_port.options || []) as string[],
-            title: data.config.db_port.title || '端口',
-            desc: data.config.db_port.desc || '数据库端口'
-          } : undefined,
-          db_user: data.config.db_user ? {
-            value: data.config.db_user.value as string,
-            default: data.config.db_user.default as string,
-            options: (data.config.db_user.options || []) as string[],
-            title: data.config.db_user.title || '用户名',
-            desc: data.config.db_user.desc || '数据库用户名'
-          } : undefined,
-          db_password: data.config.db_password ? {
-            value: data.config.db_password.value as string,
-            default: data.config.db_password.default as string,
-            options: (data.config.db_password.options || []) as string[],
-            title: data.config.db_password.title || '密码',
-            desc: data.config.db_password.desc || '数据库密码'
-          } : undefined,
-          db_name: data.config.db_name ? {
-            value: data.config.db_name.value as string,
-            default: data.config.db_name.default as string,
-            options: (data.config.db_name.options || []) as string[],
-            title: data.config.db_name.title || '数据库名',
-            desc: data.config.db_name.desc || '数据库名称'
-          } : undefined,
-          db_pool_size: data.config.db_pool_size ? {
-            value: data.config.db_pool_size.value as number,
-            default: data.config.db_pool_size.default as number,
-            options: (data.config.db_pool_size.options || [1, 3, 5, 10, 20]) as number[],
-            title: data.config.db_pool_size.title || '连接池大小',
-            desc: data.config.db_pool_size.desc || '数据库连接池大小'
-          } : undefined,
-          db_echo: data.config.db_echo ? {
-            value: data.config.db_echo.value as boolean,
-            default: data.config.db_echo.default as boolean,
-            title: data.config.db_echo.title || 'SQL日志',
-            desc: data.config.db_echo.desc || '是否显示SQL执行日志'
-          } : undefined,
-          db_pool_recycle: data.config.db_pool_recycle ? {
-            value: data.config.db_pool_recycle.value as number,
-            default: data.config.db_pool_recycle.default as number,
-            options: (data.config.db_pool_recycle.options || [3600, 7200, 14400]) as number[],
-            title: data.config.db_pool_recycle.title || '连接回收时间',
-            desc: data.config.db_pool_recycle.desc || '连接回收时间（秒）'
-          } : undefined
-        }
+          db_driver: data.config.db_driver
+            ? {
+                value: data.config.db_driver.value as string,
+                default: data.config.db_driver.default as string,
+                options: (data.config.db_driver.options || ['aiomysql', 'asyncmy']) as string[],
+                title: data.config.db_driver.title || 'MySQL驱动',
+                desc: data.config.db_driver.desc || '选择MySQL驱动',
+              }
+            : undefined,
+          db_custom_url: data.config.db_custom_url
+            ? {
+                value: data.config.db_custom_url.value as string,
+                default: data.config.db_custom_url.default as string,
+                options: (data.config.db_custom_url.options || []) as string[],
+                title: data.config.db_custom_url.title || '自定义连接URL',
+                desc: data.config.db_custom_url.desc || '自定义数据库连接URL',
+              }
+            : undefined,
+          db_host: data.config.db_host
+            ? {
+                value: data.config.db_host.value as string,
+                default: data.config.db_host.default as string,
+                options: (data.config.db_host.options || []) as string[],
+                title: data.config.db_host.title || '主机地址',
+                desc: data.config.db_host.desc || '数据库主机地址',
+              }
+            : undefined,
+          db_port: data.config.db_port
+            ? {
+                value: data.config.db_port.value as string,
+                default: data.config.db_port.default as string,
+                options: (data.config.db_port.options || []) as string[],
+                title: data.config.db_port.title || '端口',
+                desc: data.config.db_port.desc || '数据库端口',
+              }
+            : undefined,
+          db_user: data.config.db_user
+            ? {
+                value: data.config.db_user.value as string,
+                default: data.config.db_user.default as string,
+                options: (data.config.db_user.options || []) as string[],
+                title: data.config.db_user.title || '用户名',
+                desc: data.config.db_user.desc || '数据库用户名',
+              }
+            : undefined,
+          db_password: data.config.db_password
+            ? {
+                value: data.config.db_password.value as string,
+                default: data.config.db_password.default as string,
+                options: (data.config.db_password.options || []) as string[],
+                title: data.config.db_password.title || '密码',
+                desc: data.config.db_password.desc || '数据库密码',
+              }
+            : undefined,
+          db_name: data.config.db_name
+            ? {
+                value: data.config.db_name.value as string,
+                default: data.config.db_name.default as string,
+                options: (data.config.db_name.options || []) as string[],
+                title: data.config.db_name.title || '数据库名',
+                desc: data.config.db_name.desc || '数据库名称',
+              }
+            : undefined,
+          db_pool_size: data.config.db_pool_size
+            ? {
+                value: data.config.db_pool_size.value as number,
+                default: data.config.db_pool_size.default as number,
+                options: (data.config.db_pool_size.options || [1, 3, 5, 10, 20]) as number[],
+                title: data.config.db_pool_size.title || '连接池大小',
+                desc: data.config.db_pool_size.desc || '数据库连接池大小',
+              }
+            : undefined,
+          db_echo: data.config.db_echo
+            ? {
+                value: data.config.db_echo.value as boolean,
+                default: data.config.db_echo.default as boolean,
+                title: data.config.db_echo.title || 'SQL日志',
+                desc: data.config.db_echo.desc || '是否显示SQL执行日志',
+              }
+            : undefined,
+          db_pool_recycle: data.config.db_pool_recycle
+            ? {
+                value: data.config.db_pool_recycle.value as number,
+                default: data.config.db_pool_recycle.default as number,
+                options: (data.config.db_pool_recycle.options || [3600, 7200, 14400]) as number[],
+                title: data.config.db_pool_recycle.title || '连接回收时间',
+                desc: data.config.db_pool_recycle.desc || '连接回收时间（秒）',
+              }
+            : undefined,
+        },
       };
-      
+
       setConfigs([convertedConfig]);
       setOriginalConfig(JSON.parse(JSON.stringify(convertedConfig)));
     } catch (error) {
@@ -281,34 +331,39 @@ export default function DatabaseConfigPage() {
     }
   }, [databaseConfig]);
 
-  const handleChange = useCallback((fieldKey: string, value: string | number | boolean) => {
-    if (!databaseConfig) return;
-    
-    setConfigs(prev => prev.map(c => {
-      if (c.id !== databaseConfig.id) return c;
-      return {
-        ...c,
-        config: {
-          ...c.config,
-          [fieldKey]: { ...c.config[fieldKey as keyof DatabaseConfig], value }
-        }
-      };
-    }));
-    setIsDirty(true);
-  }, [databaseConfig]);
+  const handleChange = useCallback(
+    (fieldKey: string, value: string | number | boolean) => {
+      if (!databaseConfig) return;
+
+      setConfigs((prev) =>
+        prev.map((c) => {
+          if (c.id !== databaseConfig.id) return c;
+          return {
+            ...c,
+            config: {
+              ...c.config,
+              [fieldKey]: { ...c.config[fieldKey as keyof DatabaseConfig], value },
+            },
+          };
+        }),
+      );
+      setIsDirty(true);
+    },
+    [databaseConfig],
+  );
 
   const handleSaveConfig = async () => {
     if (!databaseConfig) return;
     try {
       setIsSaving(true);
       const configToSave: Record<string, any> = {};
-      
+
       Object.entries(databaseConfig.config).forEach(([key, field]) => {
         if (field && typeof field === 'object' && 'value' in field) {
           configToSave[key] = (field as { value: any }).value;
         }
       });
-      
+
       await frameworkConfigApi.updateFrameworkConfig(databaseConfig.full_name, configToSave);
       setOriginalConfig(JSON.parse(JSON.stringify(databaseConfig.config)));
       toast.success(t('databaseConfig.configSaved'));
@@ -329,13 +384,13 @@ export default function DatabaseConfigPage() {
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     basic: true,
     connection: true,
-    pool: false
+    pool: false,
   });
 
   const toggleSection = (section: string) => {
-    setExpandedSections(prev => ({
+    setExpandedSections((prev) => ({
       ...prev,
-      [section]: !prev[section]
+      [section]: !prev[section],
     }));
   };
 
@@ -379,10 +434,10 @@ export default function DatabaseConfigPage() {
                 key={type}
                 onClick={() => handleChange('db_type', type)}
                 className={cn(
-                  "p-4 rounded-lg border-2 transition-all text-left",
+                  'p-4 rounded-lg border-2 transition-all text-left',
                   currentDbType === type
-                    ? "border-primary bg-primary/10"
-                    : "border-border hover:border-primary/50"
+                    ? 'border-primary bg-primary/10'
+                    : 'border-border hover:border-primary/50',
                 )}
               >
                 <div className="flex items-center gap-2 mb-2">
@@ -427,9 +482,7 @@ export default function DatabaseConfigPage() {
                   </p>
                 </div>
               </div>
-              <Badge variant="secondary">
-                {t('databaseConfig.recommended')}
-              </Badge>
+              <Badge variant="secondary">{t('databaseConfig.recommended')}</Badge>
             </div>
           </CardContent>
         </Card>
@@ -449,7 +502,7 @@ export default function DatabaseConfigPage() {
             </CardHeader>
             <CardContent>
               <Select
-                value={dbConfig.db_driver?.value as string || 'aiomysql'}
+                value={(dbConfig.db_driver?.value as string) || 'aiomysql'}
                 onValueChange={(value) => handleChange('db_driver', value)}
               >
                 <SelectTrigger className="w-full md:w-[300px]">
@@ -469,7 +522,7 @@ export default function DatabaseConfigPage() {
           {/* Connection Settings */}
           <Card className="glass-card">
             <CardHeader>
-              <CardTitle 
+              <CardTitle
                 className="flex items-center justify-between cursor-pointer"
                 onClick={() => toggleSection('connection')}
               >
@@ -492,7 +545,7 @@ export default function DatabaseConfigPage() {
                     <Label htmlFor="db_host">{t('databaseConfig.host')}</Label>
                     <Input
                       id="db_host"
-                      value={dbConfig.db_host?.value as string || ''}
+                      value={(dbConfig.db_host?.value as string) || ''}
                       onChange={(e) => handleChange('db_host', e.target.value)}
                       placeholder="localhost"
                     />
@@ -501,7 +554,7 @@ export default function DatabaseConfigPage() {
                     <Label htmlFor="db_port">{t('databaseConfig.port')}</Label>
                     <Input
                       id="db_port"
-                      value={dbConfig.db_port?.value as string || ''}
+                      value={(dbConfig.db_port?.value as string) || ''}
                       onChange={(e) => handleChange('db_port', e.target.value)}
                       placeholder="3306"
                     />
@@ -514,7 +567,7 @@ export default function DatabaseConfigPage() {
                     <Input
                       id="db-auth-user"
                       autoComplete="off"
-                      value={dbConfig.db_user?.value as string || ''}
+                      value={(dbConfig.db_user?.value as string) || ''}
                       onChange={(e) => handleChange('db_user', e.target.value)}
                       placeholder="root"
                     />
@@ -523,7 +576,7 @@ export default function DatabaseConfigPage() {
                     <Label htmlFor="db-auth-secret">{t('databaseConfig.password')}</Label>
                     <SecretInput
                       id="db-auth-secret"
-                      value={dbConfig.db_password?.value as string || ''}
+                      value={(dbConfig.db_password?.value as string) || ''}
                       onChange={(val) => handleChange('db_password', val)}
                       placeholder="••••••••"
                     />
@@ -534,7 +587,7 @@ export default function DatabaseConfigPage() {
                   <Label htmlFor="db_name">{t('databaseConfig.databaseName')}</Label>
                   <Input
                     id="db_name"
-                    value={dbConfig.db_name?.value as string || ''}
+                    value={(dbConfig.db_name?.value as string) || ''}
                     onChange={(e) => handleChange('db_name', e.target.value)}
                     placeholder="GsData"
                   />
@@ -546,7 +599,7 @@ export default function DatabaseConfigPage() {
           {/* Pool Settings */}
           <Card className="glass-card">
             <CardHeader>
-              <CardTitle 
+              <CardTitle
                 className="flex items-center justify-between cursor-pointer"
                 onClick={() => toggleSection('pool')}
               >
@@ -598,7 +651,7 @@ export default function DatabaseConfigPage() {
                           { value: 3600, label: '1 小时' },
                           { value: 7200, label: '2 小时' },
                           { value: 14400, label: '4 小时' },
-                          { value: 28800, label: '8 小时' }
+                          { value: 28800, label: '8 小时' },
                         ].map((item) => (
                           <SelectItem key={item.value} value={String(item.value)}>
                             {item.label}
@@ -622,7 +675,7 @@ export default function DatabaseConfigPage() {
                     </div>
                   </div>
                   <Switch
-                    checked={dbConfig.db_echo?.value as boolean || false}
+                    checked={(dbConfig.db_echo?.value as boolean) || false}
                     onCheckedChange={(checked) => handleChange('db_echo', checked)}
                   />
                 </div>
@@ -650,7 +703,7 @@ export default function DatabaseConfigPage() {
                   <Label htmlFor="db_host">{t('databaseConfig.host')}</Label>
                   <Input
                     id="db_host"
-                    value={dbConfig.db_host?.value as string || ''}
+                    value={(dbConfig.db_host?.value as string) || ''}
                     onChange={(e) => handleChange('db_host', e.target.value)}
                     placeholder="localhost"
                   />
@@ -659,7 +712,7 @@ export default function DatabaseConfigPage() {
                   <Label htmlFor="db_port">{t('databaseConfig.port')}</Label>
                   <Input
                     id="db_port"
-                    value={dbConfig.db_port?.value as string || ''}
+                    value={(dbConfig.db_port?.value as string) || ''}
                     onChange={(e) => handleChange('db_port', e.target.value)}
                     placeholder="5432"
                   />
@@ -672,7 +725,7 @@ export default function DatabaseConfigPage() {
                   <Input
                     id="db-pg-auth-user"
                     autoComplete="off"
-                    value={dbConfig.db_user?.value as string || ''}
+                    value={(dbConfig.db_user?.value as string) || ''}
                     onChange={(e) => handleChange('db_user', e.target.value)}
                     placeholder="postgres"
                   />
@@ -681,7 +734,7 @@ export default function DatabaseConfigPage() {
                   <Label htmlFor="db-pg-auth-secret">{t('databaseConfig.password')}</Label>
                   <SecretInput
                     id="db-pg-auth-secret"
-                    value={dbConfig.db_password?.value as string || ''}
+                    value={(dbConfig.db_password?.value as string) || ''}
                     onChange={(val) => handleChange('db_password', val)}
                     placeholder="••••••••"
                   />
@@ -692,7 +745,7 @@ export default function DatabaseConfigPage() {
                 <Label htmlFor="db_name">{t('databaseConfig.databaseName')}</Label>
                 <Input
                   id="db_name"
-                  value={dbConfig.db_name?.value as string || ''}
+                  value={(dbConfig.db_name?.value as string) || ''}
                   onChange={(e) => handleChange('db_name', e.target.value)}
                   placeholder="GsData"
                 />
@@ -703,7 +756,7 @@ export default function DatabaseConfigPage() {
           {/* Pool Settings for PostgreSQL */}
           <Card className="glass-card">
             <CardHeader>
-              <CardTitle 
+              <CardTitle
                 className="flex items-center justify-between cursor-pointer"
                 onClick={() => toggleSection('pool')}
               >
@@ -755,7 +808,7 @@ export default function DatabaseConfigPage() {
                           { value: 3600, label: '1 小时' },
                           { value: 7200, label: '2 小时' },
                           { value: 14400, label: '4 小时' },
-                          { value: 28800, label: '8 小时' }
+                          { value: 28800, label: '8 小时' },
                         ].map((item) => (
                           <SelectItem key={item.value} value={String(item.value)}>
                             {item.label}
@@ -779,7 +832,7 @@ export default function DatabaseConfigPage() {
                     </div>
                   </div>
                   <Switch
-                    checked={dbConfig.db_echo?.value as boolean || false}
+                    checked={(dbConfig.db_echo?.value as boolean) || false}
                     onCheckedChange={(checked) => handleChange('db_echo', checked)}
                   />
                 </div>
@@ -804,7 +857,7 @@ export default function DatabaseConfigPage() {
               <Label htmlFor="db_custom_url">{t('databaseConfig.connectionUrl')}</Label>
               <Input
                 id="db_custom_url"
-                value={dbConfig.db_custom_url?.value as string || ''}
+                value={(dbConfig.db_custom_url?.value as string) || ''}
                 onChange={(e) => handleChange('db_custom_url', e.target.value)}
                 placeholder="sqlite+aiosqlite:///path/to/database.db"
               />
@@ -819,16 +872,8 @@ export default function DatabaseConfigPage() {
       )}
       {/* Save Button */}
       <div className="flex justify-end pt-4">
-        <Button
-          onClick={handleSaveConfig}
-          disabled={!isDirty || isSaving}
-          className="gap-2"
-        >
-          {isSaving ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Save className="w-4 h-4" />
-          )}
+        <Button onClick={handleSaveConfig} disabled={!isDirty || isSaving} className="gap-2">
+          {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
           {t('common.save')}
         </Button>
       </div>

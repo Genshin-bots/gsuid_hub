@@ -17,7 +17,12 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { ChipGroup } from '@/components/ui/MultiSelectChipGroup';
-import { DynamicConfigPanel, ConfigField, type ConfigFieldType, type ConfigValue } from '@/components/config';
+import {
+  DynamicConfigPanel,
+  ConfigField,
+  type ConfigFieldType,
+  type ConfigValue,
+} from '@/components/config';
 import { InputWithDropdown } from '@/components/ui/input-with-dropdown';
 import { cn } from '@/lib/utils';
 import { renderRichText } from '../shared/renderRichText';
@@ -112,8 +117,12 @@ export function VectorDbSection({
   // —— 记录初始值，用于判断是否真正发生了变更 ——
   const initialQdrantRef = useRef(qdrantProvider);
   const initialEmbeddingRef = useRef(embeddingProvider);
-  useEffect(() => { initialQdrantRef.current = qdrantProvider; }, []);
-  useEffect(() => { initialEmbeddingRef.current = embeddingProvider; }, []);
+  useEffect(() => {
+    initialQdrantRef.current = qdrantProvider;
+  }, []);
+  useEffect(() => {
+    initialEmbeddingRef.current = embeddingProvider;
+  }, []);
 
   // —— Qdrant 部署方式切换确认弹窗 ——
   const [isQdrantSwitchDialogOpen, setIsQdrantSwitchDialogOpen] = useState(false);
@@ -179,9 +188,7 @@ export function VectorDbSection({
           <Database className="w-5 h-5 text-primary" />
           {t('aiConfig.vectorDb.title')}
         </h2>
-        <p className="text-sm text-muted-foreground">
-          {t('aiConfig.vectorDb.description')}
-        </p>
+        <p className="text-sm text-muted-foreground">{t('aiConfig.vectorDb.description')}</p>
       </div>
 
       {/* 1. Qdrant 部署方式 */}
@@ -295,11 +302,13 @@ export function VectorDbSection({
                   : p === 'openai'
                     ? t('aiConfig.serviceProvider.openaiModel')
                     : p,
-              icon: extra
-                ? <Globe className="w-3.5 h-3.5" />
-                : p === 'local'
-                  ? <Database className="w-3.5 h-3.5" />
-                  : <Globe className="w-3.5 h-3.5" />,
+              icon: extra ? (
+                <Globe className="w-3.5 h-3.5" />
+              ) : p === 'local' ? (
+                <Database className="w-3.5 h-3.5" />
+              ) : (
+                <Globe className="w-3.5 h-3.5" />
+              ),
             };
           })}
           value={embeddingProvider ? [embeddingProvider] : []}
@@ -373,31 +382,29 @@ export function VectorDbSection({
                 // 会在本节末尾用 ChipGroup 渲染，这里跳过避免重复。
                 .filter(([key]) => key !== 'embedding_modalities')
                 .map(([key, field]) => (
-                <div key={key} className="space-y-1.5">
-                  <FieldLabel
-                    icon={getProviderFieldIcon(key)}
-                    title={field.title || key}
-                    desc={field.desc}
-                  />
-                  <ConfigField
-                    fieldKey={key}
-                    field={{
-                      type: (
-                        Array.isArray(field.options) && field.options.length > 0
+                  <div key={key} className="space-y-1.5">
+                    <FieldLabel
+                      icon={getProviderFieldIcon(key)}
+                      title={field.title || key}
+                      desc={field.desc}
+                    />
+                    <ConfigField
+                      fieldKey={key}
+                      field={{
+                        type: (Array.isArray(field.options) && field.options.length > 0
                           ? 'select'
-                          : 'text'
-                      ) as ConfigFieldType,
-                      label: field.title || key,
-                      value: field.data == null ? '' : String(field.data),
-                      options: (field.options || []).map((o) => String(o)),
-                      placeholder: '',
-                      description: field.desc || '',
-                    }}
-                    showLabel={false}
-                    onChange={(k, v) => onUpdateEmbeddingLocalField(k, v)}
-                  />
-                </div>
-              ))}
+                          : 'text') as ConfigFieldType,
+                        label: field.title || key,
+                        value: field.data == null ? '' : String(field.data),
+                        options: (field.options || []).map((o) => String(o)),
+                        placeholder: '',
+                        description: field.desc || '',
+                      }}
+                      showLabel={false}
+                      onChange={(k, v) => onUpdateEmbeddingLocalField(k, v)}
+                    />
+                  </div>
+                ))}
             </div>
           ) : (
             <div className="space-y-3">
@@ -406,38 +413,38 @@ export function VectorDbSection({
                 // 会在本节末尾用 ChipGroup 渲染，这里跳过避免重复 + 错误的单值下拉。
                 .filter(([key]) => key !== 'embedding_modalities')
                 .map(([key, field]) => (
-                <div key={key} className="space-y-1.5">
-                  <FieldLabel
-                    icon={getProviderFieldIcon(key)}
-                    title={field.title || key}
-                    desc={field.desc}
-                  />
-                  {key === 'api_key' ? (
-                    <ConfigField
-                      fieldKey={key}
-                      field={{
-                        type: 'tags',
-                        label: field.title || key,
-                        value: (field.data as string[]) || [],
-                        placeholder: '输入API密钥（支持多个）',
-                        description: field.desc || '',
-                      }}
-                      showLabel={false}
-                      onChange={(k, v) => onUpdateEmbeddingOpenaiField(k, v)}
+                  <div key={key} className="space-y-1.5">
+                    <FieldLabel
+                      icon={getProviderFieldIcon(key)}
+                      title={field.title || key}
+                      desc={field.desc}
                     />
-                  ) : (
-                    <InputWithDropdown
-                      value={field.data == null ? '' : String(field.data)}
-                      onChange={(val) => onUpdateEmbeddingOpenaiField(key, val)}
-                      options={(field.options || []).map((o) => String(o))}
-                      placeholder={`选择或输入${field.title || key}`}
-                      inputPlaceholder={
-                        field.options?.[0] != null ? String(field.options[0]) : ''
-                      }
-                    />
-                  )}
-                </div>
-              ))}
+                    {key === 'api_key' ? (
+                      <ConfigField
+                        fieldKey={key}
+                        field={{
+                          type: 'tags',
+                          label: field.title || key,
+                          value: (field.data as string[]) || [],
+                          placeholder: '输入API密钥（支持多个）',
+                          description: field.desc || '',
+                        }}
+                        showLabel={false}
+                        onChange={(k, v) => onUpdateEmbeddingOpenaiField(k, v)}
+                      />
+                    ) : (
+                      <InputWithDropdown
+                        value={field.data == null ? '' : String(field.data)}
+                        onChange={(val) => onUpdateEmbeddingOpenaiField(key, val)}
+                        options={(field.options || []).map((o) => String(o))}
+                        placeholder={`选择或输入${field.title || key}`}
+                        inputPlaceholder={
+                          field.options?.[0] != null ? String(field.options[0]) : ''
+                        }
+                      />
+                    )}
+                  </div>
+                ))}
             </div>
           )}
         </div>
@@ -446,28 +453,27 @@ export function VectorDbSection({
           是独立于 provider 的全局设置，因此放在所有 provider-specific 字段之后。
           切换 local / openai / 第三方 provider 都能看到并修改。
         */}
-        {embeddingConfig?.config.embedding_modalities && (() => {
-          const item = embeddingConfig.config.embedding_modalities;
-          const value = Array.isArray(item.value)
-            ? (item.value as string[])
-            : [];
-          return (
-            <div className="space-y-1.5">
-              <FieldLabel
-                icon={<Sparkles className="w-3 h-3" />}
-                title={item.title || t('aiConfig.vectorDb.embeddingModalities')}
-                desc={item.desc}
-              />
-              <ChipGroup
-                options={getEmbeddingModalities(t)}
-                value={value}
-                onValueChange={(v) =>
-                  onUpdateConfig(embeddingConfig.id, 'embedding_modalities', v)
-                }
-              />
-            </div>
-          );
-        })()}
+        {embeddingConfig?.config.embedding_modalities &&
+          (() => {
+            const item = embeddingConfig.config.embedding_modalities;
+            const value = Array.isArray(item.value) ? (item.value as string[]) : [];
+            return (
+              <div className="space-y-1.5">
+                <FieldLabel
+                  icon={<Sparkles className="w-3 h-3" />}
+                  title={item.title || t('aiConfig.vectorDb.embeddingModalities')}
+                  desc={item.desc}
+                />
+                <ChipGroup
+                  options={getEmbeddingModalities(t)}
+                  value={value}
+                  onValueChange={(v) =>
+                    onUpdateConfig(embeddingConfig.id, 'embedding_modalities', v)
+                  }
+                />
+              </div>
+            );
+          })()}
       </div>
 
       <Separator className="bg-border/30" />
@@ -483,9 +489,7 @@ export function VectorDbSection({
           </div>
           <Switch
             checked={isRerankEnabled}
-            onCheckedChange={(checked) =>
-              onUpdateConfig(aiConfigId, 'enable_rerank', checked)
-            }
+            onCheckedChange={(checked) => onUpdateConfig(aiConfigId, 'enable_rerank', checked)}
           />
         </div>
         <div
@@ -532,9 +536,7 @@ export function VectorDbSection({
                   config={rerankConfig.config}
                   configId={rerankConfig.id}
                   onChange={onUpdateConfig}
-                  excludeKeys={
-                    rerankProvider === 'openai' ? [] : ['base_url', 'api_key']
-                  }
+                  excludeKeys={rerankProvider === 'openai' ? [] : ['base_url', 'api_key']}
                 />
               </div>
             )}
@@ -638,15 +640,7 @@ function getProviderFieldIcon(fieldKey: string) {
  * 与 `DynamicConfigPanel` 的字段 label 风格保持一致。复用 `LabelWithHelp`，
  * 仅用 `className` 覆盖成更小、更暗的内嵌字段样式。
  */
-function FieldLabel({
-  icon,
-  title,
-  desc,
-}: {
-  icon: ReactNode;
-  title: string;
-  desc?: string;
-}) {
+function FieldLabel({ icon, title, desc }: { icon: ReactNode; title: string; desc?: string }) {
   return (
     <LabelWithHelp
       icon={<span className="text-muted-foreground/80">{icon}</span>}

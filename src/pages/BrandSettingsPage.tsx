@@ -16,21 +16,11 @@ import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { headerActionRowClass, PinnedPage } from '@/components/layout/PinnedPage';
-import {
-  brandApi,
-  getApiErrorMessage,
-  type BrandInfo,
-} from '@/lib/api';
+import { brandApi, getApiErrorMessage, type BrandInfo } from '@/lib/api';
 
 export default function BrandSettingsPage() {
   const { t } = useLanguage();
@@ -72,9 +62,7 @@ export default function BrandSettingsPage() {
     try {
       const updated = await brandApi.updateBrand({ title, subtitle });
       setInfo((prev) =>
-        prev
-          ? { ...prev, title: updated.title, subtitle: updated.subtitle }
-          : prev,
+        prev ? { ...prev, title: updated.title, subtitle: updated.subtitle } : prev,
       );
       toast.success(t('brandSettings.savedSuccess'));
     } catch (e) {
@@ -120,9 +108,7 @@ export default function BrandSettingsPage() {
               <ImageIcon className="w-8 h-8 shrink-0" />
               {t('brandSettings.title')}
             </h1>
-            <p className="text-muted-foreground mt-1">
-              {t('brandSettings.description')}
-            </p>
+            <p className="text-muted-foreground mt-1">{t('brandSettings.description')}</p>
           </div>
           <div className={headerActionRowClass}>
             <Button
@@ -150,9 +136,7 @@ export default function BrandSettingsPage() {
               <ImageIcon className="w-5 h-5" />
               {t('brandSettings.sectionTitle')}
             </CardTitle>
-            <CardDescription>
-              {t('brandSettings.sectionDesc')}
-            </CardDescription>
+            <CardDescription>{t('brandSettings.sectionDesc')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-2">
@@ -168,9 +152,7 @@ export default function BrandSettingsPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="brand-subtitle">
-                {t('brandSettings.subtitleLabel')}
-              </Label>
+              <Label htmlFor="brand-subtitle">{t('brandSettings.subtitleLabel')}</Label>
               <Input
                 id="brand-subtitle"
                 className="h-9"
@@ -206,10 +188,7 @@ export default function BrandSettingsPage() {
                       : t('brandSettings.iconSourceDefault')}
                   </p>
                   <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      onClick={onPickFile}
-                    >
+                    <Button variant="outline" onClick={onPickFile}>
                       <Upload className="w-4 h-4" />
                       {t('brandSettings.uploadNew')}
                     </Button>
@@ -245,9 +224,7 @@ export default function BrandSettingsPage() {
         <Card className="glass-card">
           <CardHeader>
             <CardTitle>{t('brandSettings.previewTitle')}</CardTitle>
-            <CardDescription>
-              {t('brandSettings.previewSubtitle')}
-            </CardDescription>
+            <CardDescription>{t('brandSettings.previewSubtitle')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div

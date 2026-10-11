@@ -21,11 +21,7 @@ export interface UseAIServiceSwitchArgs {
   /** 来自 useFrameworkConfig 的 aiConfig（即 name 包含「AI 配置」的条目） */
   aiConfig: LocalFrameworkConfig | undefined;
   /** 来自 useFrameworkConfig 的字段写入函数 */
-  updateConfigValue: (
-    configId: string,
-    fieldKey: string,
-    value: ConfigValue,
-  ) => void;
+  updateConfigValue: (configId: string, fieldKey: string, value: ConfigValue) => void;
   /** 当前 AI 是否启用（用于「使用帮助」按钮可见性） */
   isAIEnabled: boolean;
   /** 写入 AIStatusContext（侧边栏订阅） */
@@ -44,16 +40,8 @@ export interface UseAIServiceSwitchReturn {
   setIsAISwitchDialogOpen: (open: boolean) => void;
 }
 
-export function useAIServiceSwitch(
-  args: UseAIServiceSwitchArgs,
-): UseAIServiceSwitchReturn {
-  const {
-    aiConfig,
-    updateConfigValue,
-    isAIEnabled,
-    setGlobalAIEnabled,
-    setPendingRestart,
-  } = args;
+export function useAIServiceSwitch(args: UseAIServiceSwitchArgs): UseAIServiceSwitchReturn {
+  const { aiConfig, updateConfigValue, isAIEnabled, setGlobalAIEnabled, setPendingRestart } = args;
 
   const [isAISwitchDialogOpen, setIsAISwitchDialogOpen] = useState(false);
   const [pendingAISwitchValue, setPendingAISwitchValue] = useState(false);
@@ -80,13 +68,7 @@ export function useAIServiceSwitch(
       // 标记需要重启核心服务后才能执行检查配置
       setPendingRestart(true);
     }
-  }, [
-    aiConfig,
-    pendingAISwitchValue,
-    updateConfigValue,
-    setGlobalAIEnabled,
-    setPendingRestart,
-  ]);
+  }, [aiConfig, pendingAISwitchValue, updateConfigValue, setGlobalAIEnabled, setPendingRestart]);
 
   /**
    * 打开使用帮助（重新显示 AI 服务开关确认对话框）

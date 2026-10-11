@@ -48,7 +48,8 @@ export function isUnreachableResponse(response: {
 export function isBackendUnreachable(source: unknown): boolean {
   if (source instanceof BackendUnreachableError) return true;
   if (source instanceof TypeError) return true;
-  const message = source instanceof Error ? source.message : typeof source === 'string' ? source : '';
+  const message =
+    source instanceof Error ? source.message : typeof source === 'string' ? source : '';
   // Safari / Firefox 的网络层文案；注意不要匹配 'Failed to fetch auth pubkey'
   // 这类我们自己拼的 HTTP 错误串，它属于后端有应答但状态码不对。
   return /\b(load failed|networkerror|network request failed|err_connection)\b/i.test(message);

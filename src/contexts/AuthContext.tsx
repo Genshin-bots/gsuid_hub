@@ -1,4 +1,12 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+  useMemo,
+  useCallback,
+} from 'react';
 import { authApi, User, getAuthToken, setAuthToken } from '@/lib/api';
 import { isBackendUnreachable } from '@/lib/backendReachability';
 
@@ -17,7 +25,13 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<AuthResult>;
-  register: (name: string, email: string, password: string, registerCode?: string, isAdmin?: boolean) => Promise<AuthResult>;
+  register: (
+    name: string,
+    email: string,
+    password: string,
+    registerCode?: string,
+    isAdmin?: boolean,
+  ) => Promise<AuthResult>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   isAuthenticated: boolean;
@@ -49,10 +63,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (email: string, password: string): Promise<AuthResult> => {
     setIsLoading(true);
-    
+
     try {
       const response = await authApi.login(email, password);
-      
+
       if (response.user && response.token) {
         const userData = response.user;
         setUser(userData);
@@ -61,7 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIsLoading(false);
         return { success: true };
       }
-      
+
       setIsLoading(false);
       return { success: false, error: '登录失败' };
     } catch (error) {
@@ -74,32 +88,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const register = useCallback(async (name: string, email: string, password: string, registerCode: string = '', isAdmin: boolean = false): Promise<AuthResult> => {
-    setIsLoading(true);
-    
-    try {
-      const response = await authApi.register(name, email, password, registerCode, isAdmin);
-      
-      if (response.user && response.token) {
-        const userData = response.user;
-        setUser(userData);
-        setAuthToken(response.token);
-        localStorage.setItem('auth_user', JSON.stringify(userData));
+  const register = useCallback(
+    async (
+      name: string,
+      email: string,
+      password: string,
+      registerCode: string = '',
+      isAdmin: boolean = false,
+    ): Promise<AuthResult> => {
+      setIsLoading(true);
+
+      try {
+        const response = await authApi.register(name, email, password, registerCode, isAdmin);
+
+        if (response.user && response.token) {
+          const userData = response.user;
+          setUser(userData);
+          setAuthToken(response.token);
+          localStorage.setItem('auth_user', JSON.stringify(userData));
+          setIsLoading(false);
+          return { success: true };
+        }
+
         setIsLoading(false);
-        return { success: true };
+        return { success: false, error: response.msg || '注册失败' };
+      } catch (error) {
+        setIsLoading(false);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : '注册失败',
+          unreachable: isBackendUnreachable(error),
+        };
       }
-      
-      setIsLoading(false);
-      return { success: false, error: response.msg || '注册失败' };
-    } catch (error) {
-      setIsLoading(false);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : '注册失败',
-        unreachable: isBackendUnreachable(error),
-      };
-    }
-  }, []);
+    },
+    [],
+  );
 
   const logout = useCallback(async () => {
     try {
@@ -134,14 +157,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       refreshUser,
       isAuthenticated: !!user,
     }),
-    [user, isLoading, login, register, logout, refreshUser]
+    [user, isLoading, login, register, logout, refreshUser],
   );
 
-  return (
-    <AuthContext.Provider value={contextValue}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

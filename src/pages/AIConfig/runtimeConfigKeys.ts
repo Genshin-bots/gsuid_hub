@@ -18,10 +18,7 @@ export const RELATIONSHIP_CONFIG_KEYS: string[] = [
   'favor_care_signal_enable',
 ];
 
-export const AGENT_KITS_CONFIG_KEYS: string[] = [
-  'agent_hooks_enable',
-  'allow_replace_sealed',
-];
+export const AGENT_KITS_CONFIG_KEYS: string[] = ['agent_hooks_enable', 'allow_replace_sealed'];
 
 export const COGNITION_CONFIG_KEYS: string[] = [
   'cognition_artifact_enable',
@@ -29,11 +26,7 @@ export const COGNITION_CONFIG_KEYS: string[] = [
   'cognition_prefetch_enable',
 ];
 
-export const RUNTIME_DIVIDER_KEYS: string[] = [
-  'Relationship',
-  'AgentKits',
-  'Cognition',
-];
+export const RUNTIME_DIVIDER_KEYS: string[] = ['Relationship', 'AgentKits', 'Cognition'];
 
 export const KIT_SLOT_KEY_PREFIX = 'kit_slots.';
 

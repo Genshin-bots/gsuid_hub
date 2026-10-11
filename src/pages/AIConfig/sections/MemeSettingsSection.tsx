@@ -1,10 +1,6 @@
 import { ChevronRight, Smile, Sparkles } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
-import {
-  ConfigField,
-  pluginConfigItemToFieldDef,
-  type ConfigValue,
-} from '@/components/config';
+import { ConfigField, pluginConfigItemToFieldDef, type ConfigValue } from '@/components/config';
 import { ToggleRow } from '../shared';
 import type { PluginConfigItem } from '@/lib/api';
 
@@ -31,11 +27,7 @@ const EXCLUDED_KEYS: string[] = ['meme_enable', 'meme_auto_collect'];
  *
  * 当 memeConfig 缺失时返回 null（侧边栏会同步隐藏入口）。
  */
-export function MemeSettingsSection({
-  t,
-  memeConfig,
-  onUpdateConfig,
-}: MemeSettingsSectionProps) {
+export function MemeSettingsSection({ t, memeConfig, onUpdateConfig }: MemeSettingsSectionProps) {
   if (!memeConfig) return null;
 
   return (
@@ -46,15 +38,11 @@ export function MemeSettingsSection({
             <Smile className="w-5 h-5 text-primary" />
             {t('aiConfig.memeSettings.title')}
           </h2>
-          <p className="text-sm text-muted-foreground">
-            {t('aiConfig.memeSettings.description')}
-          </p>
+          <p className="text-sm text-muted-foreground">{t('aiConfig.memeSettings.description')}</p>
         </div>
         <Switch
           checked={(memeConfig.config.meme_enable?.value as boolean) ?? false}
-          onCheckedChange={(checked) =>
-            onUpdateConfig(memeConfig.id, 'meme_enable', checked)
-          }
+          onCheckedChange={(checked) => onUpdateConfig(memeConfig.id, 'meme_enable', checked)}
         />
       </div>
 
@@ -66,9 +54,7 @@ export function MemeSettingsSection({
               iconColorClass="text-primary"
               title={t('aiConfig.memeSettings.autoCollect')}
               description={t('aiConfig.memeSettings.autoCollectDesc')}
-              checked={
-                (memeConfig.config.meme_auto_collect?.value as boolean) ?? false
-              }
+              checked={(memeConfig.config.meme_auto_collect?.value as boolean) ?? false}
               onCheckedChange={(checked) =>
                 onUpdateConfig(memeConfig.id, 'meme_auto_collect', checked)
               }
@@ -91,16 +77,11 @@ export function MemeSettingsSection({
                 const fieldDef = pluginConfigItemToFieldDef(key, item);
                 const isDivider = fieldDef.type === 'divider';
                 return (
-                  <div
-                    key={key}
-                    className={isDivider ? 'col-span-full' : undefined}
-                  >
+                  <div key={key} className={isDivider ? 'col-span-full' : undefined}>
                     <ConfigField
                       fieldKey={key}
                       field={fieldDef}
-                      onChange={(fieldKey, value) =>
-                        onUpdateConfig(memeConfig.id, fieldKey, value)
-                      }
+                      onChange={(fieldKey, value) => onUpdateConfig(memeConfig.id, fieldKey, value)}
                     />
                   </div>
                 );

@@ -69,7 +69,9 @@ export function fileContentToSrc(content: string): string {
 }
 
 /** 读图文件为 base64 并附带 object URL 预览 */
-export async function prepareOutgoingImage(file: File): Promise<{ payload: string; previewUrl: string }> {
+export async function prepareOutgoingImage(
+  file: File,
+): Promise<{ payload: string; previewUrl: string }> {
   const payload = await fileToBase64Payload(file);
   const previewUrl = URL.createObjectURL(file);
   return { payload, previewUrl };

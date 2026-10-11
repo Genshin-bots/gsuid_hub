@@ -16,7 +16,7 @@ interface TimePickerProps {
 // Parse time value to hours and minutes
 const parseTime = (timeValue: TimeValue): { hours: number; minutes: number } => {
   if (!timeValue) return { hours: 0, minutes: 0 };
-  
+
   // Handle tuple [hours, minutes]
   if (Array.isArray(timeValue)) {
     return {
@@ -24,7 +24,7 @@ const parseTime = (timeValue: TimeValue): { hours: number; minutes: number } => 
       minutes: typeof timeValue[1] === 'number' ? timeValue[1] : 0,
     };
   }
-  
+
   // Handle string "H:mm" or "HH:mm" format
   const parts = timeValue.split(':');
   return {
@@ -90,9 +90,9 @@ export function TimePicker({ value, onChange, disabled, className }: TimePickerP
         <Button
           variant="outline"
           className={cn(
-            "ui-field-trigger w-full justify-start text-left bg-background h-10 pl-3 pr-3 gap-2 font-normal hover:text-foreground",
-            !value && "text-muted-foreground",
-            className
+            'ui-field-trigger w-full justify-start text-left bg-background h-10 pl-3 pr-3 gap-2 font-normal hover:text-foreground',
+            !value && 'text-muted-foreground',
+            className,
           )}
           disabled={disabled}
         >
@@ -100,9 +100,9 @@ export function TimePicker({ value, onChange, disabled, className }: TimePickerP
           <span className="flex-1">{displayValue}</span>
         </Button>
       </PopoverTrigger>
-      <PopoverContent 
-        className="w-auto p-4 glass-card dark:dark-glass-card" 
-        align="start" 
+      <PopoverContent
+        className="w-auto p-4 glass-card dark:dark-glass-card"
+        align="start"
         sideOffset={4}
       >
         <div className="flex flex-col gap-4">

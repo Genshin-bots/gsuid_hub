@@ -2,12 +2,7 @@ import * as React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { HelpCircle } from 'lucide-react';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
 /**
@@ -40,17 +35,17 @@ const markdownComponents = {
   } & React.HTMLAttributes<HTMLElement>) => {
     if (inline) {
       return (
-        <code
-          className="px-1 py-0.5 rounded bg-muted text-[0.85em] font-mono break-all"
-          {...props}
-        >
+        <code className="px-1 py-0.5 rounded bg-muted text-[0.85em] font-mono break-all" {...props}>
           {children}
         </code>
       );
     }
     return (
       <code
-        className={cn('block bg-muted px-2 py-1 rounded text-[0.85em] font-mono whitespace-pre-wrap break-all', className)}
+        className={cn(
+          'block bg-muted px-2 py-1 rounded text-[0.85em] font-mono whitespace-pre-wrap break-all',
+          className,
+        )}
         {...props}
       >
         {children}
@@ -75,9 +70,7 @@ const markdownComponents = {
   strong: ({ children }: { children?: React.ReactNode }) => (
     <strong className="font-semibold text-foreground">{children}</strong>
   ),
-  em: ({ children }: { children?: React.ReactNode }) => (
-    <em className="italic">{children}</em>
-  ),
+  em: ({ children }: { children?: React.ReactNode }) => <em className="italic">{children}</em>,
   h1: ({ children }: { children?: React.ReactNode }) => (
     <h1 className="text-base font-semibold mt-1 mb-1">{children}</h1>
   ),
@@ -102,9 +95,7 @@ const markdownComponents = {
     </div>
   ),
   th: ({ children }: { children?: React.ReactNode }) => (
-    <th className="px-2 py-1 text-left font-semibold border-b border-border">
-      {children}
-    </th>
+    <th className="px-2 py-1 text-left font-semibold border-b border-border">{children}</th>
   ),
   td: ({ children }: { children?: React.ReactNode }) => (
     <td className="px-2 py-1 border-b border-border/50">{children}</td>

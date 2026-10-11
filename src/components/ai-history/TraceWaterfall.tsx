@@ -116,7 +116,15 @@ function buildTrace(entries: SessionLogEntry[]): TraceSpan[] {
     const d = (e.data || {}) as Record<string, unknown>;
     switch (e.type) {
       case 'run_start': {
-        run = { id: nid(), kind: 'run', start: ts, end: ts, children: [], sumTokensIn: 0, sumTokensOut: 0 };
+        run = {
+          id: nid(),
+          kind: 'run',
+          start: ts,
+          end: ts,
+          children: [],
+          sumTokensIn: 0,
+          sumTokensOut: 0,
+        };
         chat = null;
         pushTop(run);
         break;
@@ -150,7 +158,14 @@ function buildTrace(entries: SessionLogEntry[]): TraceSpan[] {
       case 'text_output': {
         if (chat) {
           // 嵌套为「对话」的子 span（对话 → 思考过程 / 文本输出），而非与对话同级
-          chat.children.push({ id: nid(), kind: 'generic', start: ts, end: ts, entry: e, children: [] });
+          chat.children.push({
+            id: nid(),
+            kind: 'generic',
+            start: ts,
+            end: ts,
+            entry: e,
+            children: [],
+          });
           chat.end = Math.max(chat.end, ts);
         } else {
           addToRun({ id: nid(), kind: 'generic', start: ts, end: ts, entry: e, children: [] });
@@ -218,7 +233,15 @@ function buildTrace(entries: SessionLogEntry[]): TraceSpan[] {
         // （proactive_generator 之前被过滤掉，导致主动发言看起来"只有输出没有思考"）。
         const at = asStr(d.agent_type);
         if (at !== 'sub_agent' && at !== 'proactive_generator') break;
-        addToRun({ id: nid(), kind: 'subagent', start: ts, end: ts, entry: e, agentData: d, children: [] });
+        addToRun({
+          id: nid(),
+          kind: 'subagent',
+          start: ts,
+          end: ts,
+          entry: e,
+          agentData: d,
+          children: [],
+        });
         break;
       }
       case 'result': {
@@ -227,7 +250,15 @@ function buildTrace(entries: SessionLogEntry[]): TraceSpan[] {
         break;
       }
       case 'error': {
-        addToRun({ id: nid(), kind: 'event', start: ts, end: ts, entry: e, isError: true, children: [] });
+        addToRun({
+          id: nid(),
+          kind: 'event',
+          start: ts,
+          end: ts,
+          entry: e,
+          isError: true,
+          children: [],
+        });
         break;
       }
       case 'history_reset': {
@@ -380,7 +411,10 @@ function formatDuration(seconds: number): string {
 
 type TFunc = (key: string, opts?: Record<string, unknown>) => string;
 
-const RESET_STYLE: Record<string, { border: string; bg: string; text: string; icon: JSX.Element; key: string }> = {
+const RESET_STYLE: Record<
+  string,
+  { border: string; bg: string; text: string; icon: JSX.Element; key: string }
+> = {
   user_clear: {
     border: 'border-red-500/40',
     bg: 'bg-red-500/10',
@@ -405,7 +439,10 @@ const RESET_STYLE: Record<string, { border: string; bg: string; text: string; ic
 };
 
 // 交互模式变化分隔条样式：被动(用户发话) 用中性蓝、主动(AI 发言) 用粉色，与 proactive span 同色系
-const MODE_STYLE: Record<string, { border: string; bg: string; text: string; icon: JSX.Element; key: string }> = {
+const MODE_STYLE: Record<
+  string,
+  { border: string; bg: string; text: string; icon: JSX.Element; key: string }
+> = {
   to_reactive: {
     border: 'border-sky-500/40',
     bg: 'bg-sky-500/10',
@@ -443,7 +480,11 @@ function kindIcon(sp: TraceSpan) {
     case 'proactive':
       return <Radio className="w-3.5 h-3.5" />;
     case 'event':
-      return sp.isError ? <AlertTriangle className="w-3.5 h-3.5" /> : <Scissors className="w-3.5 h-3.5" />;
+      return sp.isError ? (
+        <AlertTriangle className="w-3.5 h-3.5" />
+      ) : (
+        <Scissors className="w-3.5 h-3.5" />
+      );
     case 'system':
       return <Shield className="w-3.5 h-3.5" />;
     default: {
@@ -458,37 +499,78 @@ function kindIcon(sp: TraceSpan) {
 // span 主题色（图标色 icon + 标签文字色 text + 甘特条色 bar），亮/暗两套都可读。
 // text 与 icon 同色系但更深/更浅一档，保证长标签在正文里仍清晰、又能一眼区分类型。
 function kindColor(sp: TraceSpan): { icon: string; bar: string; text: string } {
-  if (sp.isError) return { icon: 'text-red-500', bar: 'bg-red-400/70', text: 'text-red-600 dark:text-red-400' };
+  if (sp.isError)
+    return { icon: 'text-red-500', bar: 'bg-red-400/70', text: 'text-red-600 dark:text-red-400' };
   switch (sp.kind) {
     case 'run':
       return { icon: 'text-primary', bar: 'bg-primary/60', text: 'text-foreground' };
     case 'chat':
       return { icon: 'text-sky-500', bar: 'bg-sky-400/70', text: 'text-sky-700 dark:text-sky-300' };
     case 'tool':
-      return { icon: 'text-amber-500', bar: 'bg-amber-400/70', text: 'text-amber-700 dark:text-amber-300' };
+      return {
+        icon: 'text-amber-500',
+        bar: 'bg-amber-400/70',
+        text: 'text-amber-700 dark:text-amber-300',
+      };
     case 'subagent':
       // 主动消息的生成子 Agent 用 proactive 同色系（粉），与普通子 Agent（紫）区分
       if (sp.agentData?.agent_type === 'proactive_generator')
-        return { icon: 'text-pink-500', bar: 'bg-pink-400/70', text: 'text-pink-700 dark:text-pink-300' };
-      return { icon: 'text-violet-500', bar: 'bg-violet-400/70', text: 'text-violet-700 dark:text-violet-300' };
+        return {
+          icon: 'text-pink-500',
+          bar: 'bg-pink-400/70',
+          text: 'text-pink-700 dark:text-pink-300',
+        };
+      return {
+        icon: 'text-violet-500',
+        bar: 'bg-violet-400/70',
+        text: 'text-violet-700 dark:text-violet-300',
+      };
     case 'user':
-      return { icon: 'text-blue-500', bar: 'bg-blue-400/60', text: 'text-blue-700 dark:text-blue-300' };
+      return {
+        icon: 'text-blue-500',
+        bar: 'bg-blue-400/60',
+        text: 'text-blue-700 dark:text-blue-300',
+      };
     case 'result':
-      return { icon: 'text-emerald-500', bar: 'bg-emerald-400/70', text: 'text-emerald-700 dark:text-emerald-300' };
+      return {
+        icon: 'text-emerald-500',
+        bar: 'bg-emerald-400/70',
+        text: 'text-emerald-700 dark:text-emerald-300',
+      };
     case 'proactive':
-      return { icon: 'text-pink-500', bar: 'bg-pink-400/70', text: 'text-pink-700 dark:text-pink-300' };
+      return {
+        icon: 'text-pink-500',
+        bar: 'bg-pink-400/70',
+        text: 'text-pink-700 dark:text-pink-300',
+      };
     case 'generic': {
       // thinking / text_output 各给一套可辨识的低饱和色，其余 generic 保持中性灰
       const et = sp.entry?.type;
       if (et === 'thinking')
-        return { icon: 'text-indigo-400', bar: 'bg-indigo-400/60', text: 'text-indigo-600 dark:text-indigo-300' };
+        return {
+          icon: 'text-indigo-400',
+          bar: 'bg-indigo-400/60',
+          text: 'text-indigo-600 dark:text-indigo-300',
+        };
       if (et === 'text_output')
-        return { icon: 'text-teal-500', bar: 'bg-teal-400/60', text: 'text-teal-700 dark:text-teal-300' };
-      return { icon: 'text-muted-foreground', bar: 'bg-muted-foreground/40', text: 'text-muted-foreground' };
+        return {
+          icon: 'text-teal-500',
+          bar: 'bg-teal-400/60',
+          text: 'text-teal-700 dark:text-teal-300',
+        };
+      return {
+        icon: 'text-muted-foreground',
+        bar: 'bg-muted-foreground/40',
+        text: 'text-muted-foreground',
+      };
     }
     default:
       // system（生命周期 / system_prompt / tools_list）：中性但比正文淡一档
-      return { icon: 'text-muted-foreground', bar: 'bg-muted-foreground/40', text: 'text-foreground/70' };
+      return {
+        icon: 'text-muted-foreground',
+        bar: 'bg-muted-foreground/40',
+        text: 'text-foreground/70',
+      };
   }
 }
 
@@ -517,7 +599,8 @@ function spanLabel(sp: TraceSpan, t: TFunc): string {
       return t('aiHistory.waterfall.proactive');
     case 'event':
       if (sp.isError) return asStr(sp.entry?.data?.error_type) || t('aiHistory.entryType.error');
-      if (sp.resetReason) return t(RESET_STYLE[sp.resetReason]?.key || 'aiHistory.waterfall.reset.title');
+      if (sp.resetReason)
+        return t(RESET_STYLE[sp.resetReason]?.key || 'aiHistory.waterfall.reset.title');
       return sp.entry?.type || '';
     case 'system': {
       const et = sp.entry?.type || '';
@@ -603,7 +686,8 @@ function spanExpandable(sp: TraceSpan): boolean {
   if (!et) return false;
   const d = (sp.entry?.data || {}) as Record<string, unknown>;
   if (et === 'user_input' || et === 'text_output') return !!(d.content || d.output);
-  if (et === 'system_prompt' || et === 'thinking' || et === 'proactive_emission') return !!d.content;
+  if (et === 'system_prompt' || et === 'thinking' || et === 'proactive_emission')
+    return !!d.content;
   if (et === 'result') return !!d.output;
   if (et === 'error') return !!(d.message || d.error_type);
   if (et === 'history_reset') return true;
@@ -632,17 +716,26 @@ function SpanContent({ sp, t }: { sp: TraceSpan; t: TFunc }) {
 
 // 长无空格串（URL / base64 / JSON）必须在容器宽度内硬换行，避免撑破瀑布布局
 const WRAP_TEXT = 'min-w-0 max-w-full whitespace-pre-wrap break-words [overflow-wrap:anywhere]';
-const CODE_BLOCK = cn(
-  'text-xs bg-muted/50 rounded-md p-2 font-mono',
-  WRAP_TEXT,
-);
+const CODE_BLOCK = cn('text-xs bg-muted/50 rounded-md p-2 font-mono', WRAP_TEXT);
 const PLAIN_BLOCK = cn('text-sm font-sans leading-relaxed', WRAP_TEXT);
 
-function EntryBlock({ entry, t, showLabel = true }: { entry: SessionLogEntry; t: TFunc; showLabel?: boolean }) {
+function EntryBlock({
+  entry,
+  t,
+  showLabel = true,
+}: {
+  entry: SessionLogEntry;
+  t: TFunc;
+  showLabel?: boolean;
+}) {
   const d = (entry.data || {}) as Record<string, unknown>;
   const toolInfo = useContext(ToolInfoContext);
   const label = (key: string) =>
-    showLabel ? <div className="text-[10px] uppercase tracking-wide text-muted-foreground/70 mb-1">{t(key)}</div> : null;
+    showLabel ? (
+      <div className="text-[10px] uppercase tracking-wide text-muted-foreground/70 mb-1">
+        {t(key)}
+      </div>
+    ) : null;
 
   if (entry.type === 'tool_call') {
     return (
@@ -707,11 +800,17 @@ function EntryBlock({ entry, t, showLabel = true }: { entry: SessionLogEntry; t:
               <TooltipContent className="max-w-sm">
                 <p className="text-xs font-mono font-medium break-all">{tool}</p>
                 {info?.description ? (
-                  <p className={cn('mt-1 text-xs text-muted-foreground', WRAP_TEXT)}>{info.description}</p>
+                  <p className={cn('mt-1 text-xs text-muted-foreground', WRAP_TEXT)}>
+                    {info.description}
+                  </p>
                 ) : (
-                  <p className="mt-1 text-xs text-muted-foreground/70 italic">{t('aiHistory.waterfall.toolNoInfo')}</p>
+                  <p className="mt-1 text-xs text-muted-foreground/70 italic">
+                    {t('aiHistory.waterfall.toolNoInfo')}
+                  </p>
                 )}
-                {meta && <p className="mt-1 text-[10px] text-muted-foreground/70 break-all">{meta}</p>}
+                {meta && (
+                  <p className="mt-1 text-[10px] text-muted-foreground/70 break-all">{meta}</p>
+                )}
               </TooltipContent>
             </Tooltip>
           );
@@ -725,9 +824,13 @@ function EntryBlock({ entry, t, showLabel = true }: { entry: SessionLogEntry; t:
     const after = d.after as number | undefined;
     return (
       <div className="text-xs text-muted-foreground space-y-0.5 min-w-0 max-w-full">
-        <div className={WRAP_TEXT}>{t(RESET_STYLE[reason]?.key || 'aiHistory.waterfall.reset.title')}</div>
+        <div className={WRAP_TEXT}>
+          {t(RESET_STYLE[reason]?.key || 'aiHistory.waterfall.reset.title')}
+        </div>
         {typeof before === 'number' && typeof after === 'number' && (
-          <div className="font-mono">{before} → {after}</div>
+          <div className="font-mono">
+            {before} → {after}
+          </div>
         )}
         {typeof d.persona_name === 'string' && (
           <div className={cn('font-mono', WRAP_TEXT)}>→ {d.persona_name}</div>
@@ -818,10 +921,19 @@ function TimelineCell({ sp, ctx, strong }: { sp: TraceSpan; ctx: RowCtx; strong?
     >
       {/* 四分位参考线：给"条在窗口内的位置"提供刻度感 */}
       {[25, 50, 75].map((p) => (
-        <span key={p} aria-hidden className="absolute inset-y-1 w-px bg-border/50" style={{ left: `${p}%` }} />
+        <span
+          key={p}
+          aria-hidden
+          className="absolute inset-y-1 w-px bg-border/50"
+          style={{ left: `${p}%` }}
+        />
       ))}
       <span
-        className={cn('absolute top-1/2 -translate-y-1/2 rounded-full', strong ? 'h-2' : 'h-[5px]', color.bar)}
+        className={cn(
+          'absolute top-1/2 -translate-y-1/2 rounded-full',
+          strong ? 'h-2' : 'h-[5px]',
+          color.bar,
+        )}
         style={{ left: `${leftPct}%`, width: `${widthPct}%` }}
       />
     </div>
@@ -881,10 +993,17 @@ function SpanRow({ sp, depth, ctx }: { sp: TraceSpan; depth: number; ctx: RowCtx
         </span>
 
         {/* 缩进 + 展开控件 + 图标 + 标签 + 预览 */}
-        <div className="flex items-center gap-1.5 min-w-0 flex-1" style={{ paddingLeft: depth * INDENT }}>
+        <div
+          className="flex items-center gap-1.5 min-w-0 flex-1"
+          style={{ paddingLeft: depth * INDENT }}
+        >
           <span className="w-4 shrink-0 flex items-center justify-center text-muted-foreground/50">
             {expandable ? (
-              isOpen ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />
+              isOpen ? (
+                <ChevronDown className="w-3.5 h-3.5" />
+              ) : (
+                <ChevronRight className="w-3.5 h-3.5" />
+              )
             ) : (
               <span className="w-1 h-1 rounded-full bg-muted-foreground/40" />
             )}
@@ -892,11 +1011,18 @@ function SpanRow({ sp, depth, ctx }: { sp: TraceSpan; depth: number; ctx: RowCtx
           <span className={cn('shrink-0', color.icon)}>{kindIcon(sp)}</span>
           {/* min-w-0 + 窄屏允许收缩：子 Agent 子瀑布每层再缩进 22px，
               不收缩的话深层行会超出 Viewport（overflow-x:hidden 直接裁掉时长列） */}
-          <span className={cn('min-w-0 shrink sm:shrink-0 truncate max-w-[45%] text-sm font-semibold', color.text)}>
+          <span
+            className={cn(
+              'min-w-0 shrink sm:shrink-0 truncate max-w-[45%] text-sm font-semibold',
+              color.text,
+            )}
+          >
             {spanLabel(sp, t)}
           </span>
           {childCount > 0 && (
-            <span className="shrink-0 text-[10px] font-mono px-1 rounded bg-primary/10 text-primary">{childCount}</span>
+            <span className="shrink-0 text-[10px] font-mono px-1 rounded bg-primary/10 text-primary">
+              {childCount}
+            </span>
           )}
           {sp.kind === 'chat' && sp.model && (
             <span className="hidden lg:inline-block shrink-0 max-w-44 truncate text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-muted/70 text-muted-foreground border border-border/40">
@@ -904,7 +1030,9 @@ function SpanRow({ sp, depth, ctx }: { sp: TraceSpan; depth: number; ctx: RowCtx
             </span>
           )}
           {preview && (
-            <span className="flex-1 min-w-0 truncate text-xs text-muted-foreground/60">{preview}</span>
+            <span className="flex-1 min-w-0 truncate text-xs text-muted-foreground/60">
+              {preview}
+            </span>
           )}
           <span className="ml-auto shrink-0">
             <TokenBadges sp={sp} />
@@ -985,7 +1113,12 @@ function SpanRow({ sp, depth, ctx }: { sp: TraceSpan; depth: number; ctx: RowCtx
 function RunBlock({ sp, base }: { sp: TraceSpan; base: RowBase }) {
   const { expanded, toggle, t } = base;
   const isOpen = expanded.has(sp.id);
-  const ctx: RowCtx = { ...base, windowStart: sp.start, windowSpan: Math.max(sp.end - sp.start, 0.001), showTimeline: true };
+  const ctx: RowCtx = {
+    ...base,
+    windowStart: sp.start,
+    windowSpan: Math.max(sp.end - sp.start, 0.001),
+    showTimeline: true,
+  };
   const dur = sp.end - sp.start;
   return (
     <div>
@@ -1003,7 +1136,11 @@ function RunBlock({ sp, base }: { sp: TraceSpan; base: RowBase }) {
       >
         <div className="flex items-center gap-1.5 min-w-0 flex-1">
           <span className="w-4 shrink-0 flex items-center justify-center text-muted-foreground/50">
-            {isOpen ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+            {isOpen ? (
+              <ChevronDown className="w-3.5 h-3.5" />
+            ) : (
+              <ChevronRight className="w-3.5 h-3.5" />
+            )}
           </span>
           <Play className="w-3.5 h-3.5 text-primary shrink-0" />
           <span className="text-sm font-bold truncate">{t('aiHistory.waterfall.agentRun')}</span>
@@ -1081,7 +1218,14 @@ function ResetDivider({ sp, t }: { sp: TraceSpan; t: TFunc }) {
   const style = RESET_STYLE[sp.resetReason || 'auto_compact'] || RESET_STYLE.auto_compact;
   const d = (sp.entry?.data || {}) as Record<string, unknown>;
   return (
-    <div className={cn('flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-medium', style.border, style.bg, style.text)}>
+    <div
+      className={cn(
+        'flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-medium',
+        style.border,
+        style.bg,
+        style.text,
+      )}
+    >
       {style.icon}
       <span>{t(style.key)}</span>
       {typeof d.before === 'number' && typeof d.after === 'number' && (
@@ -1089,7 +1233,9 @@ function ResetDivider({ sp, t }: { sp: TraceSpan; t: TFunc }) {
           {d.before} → {d.after}
         </span>
       )}
-      {typeof d.persona_name === 'string' && <span className="font-mono opacity-70">→ {d.persona_name}</span>}
+      {typeof d.persona_name === 'string' && (
+        <span className="font-mono opacity-70">→ {d.persona_name}</span>
+      )}
       <span className="ml-auto font-mono opacity-50 tabular-nums">{formatTimeOnly(sp.start)}</span>
     </div>
   );
@@ -1142,7 +1288,12 @@ function LifecycleDivider({ sp, t }: { sp: TraceSpan; t: TFunc }) {
 function LooseBlock({ spans, base }: { spans: TraceSpan[]; base: RowBase }) {
   const lo = Math.min(...spans.map((s) => s.start));
   const hi = Math.max(...spans.map((s) => s.end));
-  const ctx: RowCtx = { ...base, windowStart: lo, windowSpan: Math.max(hi - lo, 0.001), showTimeline: false };
+  const ctx: RowCtx = {
+    ...base,
+    windowStart: lo,
+    windowSpan: Math.max(hi - lo, 0.001),
+    showTimeline: false,
+  };
   return (
     <div>
       {spans.map((sp) => (
@@ -1168,123 +1319,132 @@ export interface TraceWaterfallHandle {
   collapseAll: () => void;
 }
 
-const TraceWaterfallInner = forwardRef<TraceWaterfallHandle, TraceWaterfallProps>(function TraceWaterfallInner(
-  { entries, t, loadSubAgent },
-  ref,
-) {
-  const roots = useMemo(() => buildTrace(entries), [entries]);
-  const blocks = useMemo(() => groupBlocks(roots), [roots]);
-  const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
-  const [subCache, setSubCache] = useState<Record<string, SessionLogEntry[] | 'loading' | 'error'>>({});
+const TraceWaterfallInner = forwardRef<TraceWaterfallHandle, TraceWaterfallProps>(
+  function TraceWaterfallInner({ entries, t, loadSubAgent }, ref) {
+    const roots = useMemo(() => buildTrace(entries), [entries]);
+    const blocks = useMemo(() => groupBlocks(roots), [roots]);
+    const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
+    const [subCache, setSubCache] = useState<
+      Record<string, SessionLogEntry[] | 'loading' | 'error'>
+    >({});
 
-  // 数据变化时默认展开：容器 run/chat（用于抵达文本输出）+ 每条「文本输出(text_output)」自身，
-  // 让 AI 的文本回复一进来就完整可读；思考(thinking)/工具/系统等其余节点保持折叠（仅显示为行，不展开内容）。
-  // 子 Agent（subagent）不自动展开——其 trace 是点击时才懒加载的，避免一次性打一堆请求。
-  useEffect(() => {
-    const ids = new Set<string>();
-    const walk = (sp: TraceSpan) => {
-      if (sp.kind === 'run' || sp.kind === 'chat') ids.add(sp.id);
-      if (sp.kind === 'generic' && sp.entry?.type === 'text_output') ids.add(sp.id);
-      sp.children.forEach(walk);
-    };
-    roots.forEach(walk);
-    setExpanded(ids);
-  }, [roots]);
+    // 数据变化时默认展开：容器 run/chat（用于抵达文本输出）+ 每条「文本输出(text_output)」自身，
+    // 让 AI 的文本回复一进来就完整可读；思考(thinking)/工具/系统等其余节点保持折叠（仅显示为行，不展开内容）。
+    // 子 Agent（subagent）不自动展开——其 trace 是点击时才懒加载的，避免一次性打一堆请求。
+    useEffect(() => {
+      const ids = new Set<string>();
+      const walk = (sp: TraceSpan) => {
+        if (sp.kind === 'run' || sp.kind === 'chat') ids.add(sp.id);
+        if (sp.kind === 'generic' && sp.entry?.type === 'text_output') ids.add(sp.id);
+        sp.children.forEach(walk);
+      };
+      roots.forEach(walk);
+      setExpanded(ids);
+    }, [roots]);
 
-  const toggle = useCallback((id: string) => {
-    setExpanded((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }, []);
-
-  const requestSub = useCallback(
-    (id: string, agentData: Record<string, unknown>) => {
-      if (!loadSubAgent) return;
-      setSubCache((prev) => ({ ...prev, [id]: 'loading' }));
-      loadSubAgent(agentData)
-        .then((res) => setSubCache((prev) => ({ ...prev, [id]: res ?? [] })))
-        .catch(() => setSubCache((prev) => ({ ...prev, [id]: 'error' })));
-    },
-    [loadSubAgent],
-  );
-
-  // 全部展开：除 subagent 外的所有可展开节点（subagent 的子 trace 是点击时才懒加载的，
-  // 批量展开会一次性打一堆请求且面板为空，故跳过）。全部收起 = 只留 run 卡片头，一行一次运行，
-  // 正好是整个会话的时间线总览。
-  const expandAll = useCallback(() => {
-    const ids = new Set<string>();
-    const walk = (sp: TraceSpan) => {
-      if (sp.kind !== 'subagent' && (sp.kind === 'run' || spanExpandable(sp))) ids.add(sp.id);
-      sp.children.forEach(walk);
-    };
-    roots.forEach(walk);
-    setExpanded(ids);
-  }, [roots]);
-  const collapseAll = useCallback(() => setExpanded(new Set()), []);
-
-  useImperativeHandle(ref, () => ({ expandAll, collapseAll }), [expandAll, collapseAll]);
-
-  if (roots.length === 0) {
-    return null;
-  }
-
-  return (
-    <div className="flex min-w-0 max-w-full flex-col gap-3">
-      {blocks.map((b) => {
-        if (b.type === 'run')
-          return <RunBlock key={b.key} sp={b.sp} base={{ expanded, toggle, t, loadSubAgent, subCache, requestSub }} />;
-        if (b.type === 'proactive') return <ProactiveBlock key={b.key} sp={b.sp} t={t} />;
-        if (b.type === 'reset') return <ResetDivider key={b.key} sp={b.sp} t={t} />;
-        if (b.type === 'mode') return <ModeDivider key={b.key} sp={b.sp} t={t} />;
-        if (b.type === 'lifecycle') return <LifecycleDivider key={b.key} sp={b.sp} t={t} />;
-        // 显式收窄到 'loose'，避免联合类型上访问 spans 报错
-        if (b.type === 'loose') {
-          return (
-            <LooseBlock
-              key={b.key}
-              spans={b.spans}
-              base={{ expanded, toggle, t, loadSubAgent, subCache, requestSub }}
-            />
-          );
-        }
-        return null;
-      })}
-    </div>
-  );
-});
-
-const TraceWaterfall = forwardRef<TraceWaterfallHandle, TraceWaterfallProps>(function TraceWaterfall(props, ref) {
-  // 顶层拉一次全量工具元数据（含子 Agent 的嵌套瀑布：其 TraceWaterfallInner 在本 Provider 之内，
-  // 共用同一份 map，不重复请求）。失败静默——tooltip 退化为只显工具名。
-  const [toolInfo, setToolInfo] = useState<Record<string, AITool>>({});
-  useEffect(() => {
-    let cancelled = false;
-    aiToolsApi
-      .getToolsList()
-      .then((res) => {
-        if (cancelled) return;
-        const map: Record<string, AITool> = {};
-        for (const item of res?.tools || []) map[item.name] = item;
-        setToolInfo(map);
-      })
-      .catch(() => {
-        /* 工具信息拉取失败不影响瀑布渲染 */
+    const toggle = useCallback((id: string) => {
+      setExpanded((prev) => {
+        const next = new Set(prev);
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
+        return next;
       });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    }, []);
 
-  return (
-    <ToolInfoContext.Provider value={toolInfo}>
-      <TooltipProvider delayDuration={150}>
-        <TraceWaterfallInner {...props} ref={ref} />
-      </TooltipProvider>
-    </ToolInfoContext.Provider>
-  );
-});
+    const requestSub = useCallback(
+      (id: string, agentData: Record<string, unknown>) => {
+        if (!loadSubAgent) return;
+        setSubCache((prev) => ({ ...prev, [id]: 'loading' }));
+        loadSubAgent(agentData)
+          .then((res) => setSubCache((prev) => ({ ...prev, [id]: res ?? [] })))
+          .catch(() => setSubCache((prev) => ({ ...prev, [id]: 'error' })));
+      },
+      [loadSubAgent],
+    );
+
+    // 全部展开：除 subagent 外的所有可展开节点（subagent 的子 trace 是点击时才懒加载的，
+    // 批量展开会一次性打一堆请求且面板为空，故跳过）。全部收起 = 只留 run 卡片头，一行一次运行，
+    // 正好是整个会话的时间线总览。
+    const expandAll = useCallback(() => {
+      const ids = new Set<string>();
+      const walk = (sp: TraceSpan) => {
+        if (sp.kind !== 'subagent' && (sp.kind === 'run' || spanExpandable(sp))) ids.add(sp.id);
+        sp.children.forEach(walk);
+      };
+      roots.forEach(walk);
+      setExpanded(ids);
+    }, [roots]);
+    const collapseAll = useCallback(() => setExpanded(new Set()), []);
+
+    useImperativeHandle(ref, () => ({ expandAll, collapseAll }), [expandAll, collapseAll]);
+
+    if (roots.length === 0) {
+      return null;
+    }
+
+    return (
+      <div className="flex min-w-0 max-w-full flex-col gap-3">
+        {blocks.map((b) => {
+          if (b.type === 'run')
+            return (
+              <RunBlock
+                key={b.key}
+                sp={b.sp}
+                base={{ expanded, toggle, t, loadSubAgent, subCache, requestSub }}
+              />
+            );
+          if (b.type === 'proactive') return <ProactiveBlock key={b.key} sp={b.sp} t={t} />;
+          if (b.type === 'reset') return <ResetDivider key={b.key} sp={b.sp} t={t} />;
+          if (b.type === 'mode') return <ModeDivider key={b.key} sp={b.sp} t={t} />;
+          if (b.type === 'lifecycle') return <LifecycleDivider key={b.key} sp={b.sp} t={t} />;
+          // 显式收窄到 'loose'，避免联合类型上访问 spans 报错
+          if (b.type === 'loose') {
+            return (
+              <LooseBlock
+                key={b.key}
+                spans={b.spans}
+                base={{ expanded, toggle, t, loadSubAgent, subCache, requestSub }}
+              />
+            );
+          }
+          return null;
+        })}
+      </div>
+    );
+  },
+);
+
+const TraceWaterfall = forwardRef<TraceWaterfallHandle, TraceWaterfallProps>(
+  function TraceWaterfall(props, ref) {
+    // 顶层拉一次全量工具元数据（含子 Agent 的嵌套瀑布：其 TraceWaterfallInner 在本 Provider 之内，
+    // 共用同一份 map，不重复请求）。失败静默——tooltip 退化为只显工具名。
+    const [toolInfo, setToolInfo] = useState<Record<string, AITool>>({});
+    useEffect(() => {
+      let cancelled = false;
+      aiToolsApi
+        .getToolsList()
+        .then((res) => {
+          if (cancelled) return;
+          const map: Record<string, AITool> = {};
+          for (const item of res?.tools || []) map[item.name] = item;
+          setToolInfo(map);
+        })
+        .catch(() => {
+          /* 工具信息拉取失败不影响瀑布渲染 */
+        });
+      return () => {
+        cancelled = true;
+      };
+    }, []);
+
+    return (
+      <ToolInfoContext.Provider value={toolInfo}>
+        <TooltipProvider delayDuration={150}>
+          <TraceWaterfallInner {...props} ref={ref} />
+        </TooltipProvider>
+      </ToolInfoContext.Provider>
+    );
+  },
+);
 
 export default TraceWaterfall;

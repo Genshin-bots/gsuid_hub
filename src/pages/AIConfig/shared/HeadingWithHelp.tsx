@@ -1,11 +1,6 @@
 import type { ReactNode } from 'react';
 import { HelpCircle } from 'lucide-react';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
 /**
@@ -44,8 +39,7 @@ export function HeadingWithHelp({
   className,
   weightClass = 'font-bold',
 }: HeadingWithHelpProps) {
-  const hasSubtitle =
-    subtitle !== undefined && subtitle !== null && subtitle !== '';
+  const hasSubtitle = subtitle !== undefined && subtitle !== null && subtitle !== '';
 
   return (
     <div className={cn('mb-1', className)}>
@@ -73,9 +67,7 @@ export function HeadingWithHelp({
         )}
       </div>
       {hasSubtitle && (
-        <p className="mt-1 text-sm text-muted-foreground leading-relaxed pl-7">
-          {subtitle}
-        </p>
+        <p className="mt-1 text-sm text-muted-foreground leading-relaxed pl-7">{subtitle}</p>
       )}
     </div>
   );

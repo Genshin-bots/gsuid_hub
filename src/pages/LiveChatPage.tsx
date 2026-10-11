@@ -47,10 +47,7 @@ import {
 } from 'lucide-react';
 import { ConversationSidebar } from '@/components/live-chat/ConversationSidebar';
 import { MessageBubble } from '@/components/live-chat/MessageBubble';
-import {
-  MessageComposer,
-  type PendingMedia,
-} from '@/components/live-chat/MessageComposer';
+import { MessageComposer, type PendingMedia } from '@/components/live-chat/MessageComposer';
 import {
   type ButtonData,
   type ChatMessage,
@@ -86,10 +83,7 @@ import {
 // Helpers
 // ============================================================================
 
-function connectionLabel(
-  state: ConnectionState,
-  t: (k: string) => string,
-): string {
+function connectionLabel(state: ConnectionState, t: (k: string) => string): string {
   switch (state) {
     case 'connected':
       return t('liveChat.status.connected');
@@ -246,7 +240,11 @@ export default function LiveChatPage() {
         console.warn('[live-chat] bootstrap failed', e);
         if (!cancelled) {
           const fallback = defaultIdentity();
-          const conv = createConversation('direct', fallback.userId, t('liveChat.defaultDirectName'));
+          const conv = createConversation(
+            'direct',
+            fallback.userId,
+            t('liveChat.defaultDirectName'),
+          );
           setIdentity(fallback);
           setConversations([conv]);
           setActiveId(conv.id);
@@ -301,10 +299,7 @@ export default function LiveChatPage() {
       const key = conversationKey(type, targetId);
       setConversations((prev) => {
         if (prev.some((c) => c.id === key)) return prev;
-        return [
-          ...prev,
-          createConversation(type, targetId, name || targetId),
-        ];
+        return [...prev, createConversation(type, targetId, name || targetId)];
       });
       return key;
     },
@@ -410,11 +405,7 @@ export default function LiveChatPage() {
       onMessage: (m) => handleIncomingRef.current(m),
       onRawLog: (level, text) => {
         const fn =
-          level === 'error'
-            ? console.error
-            : level === 'warning'
-              ? console.warn
-              : console.log;
+          level === 'error' ? console.error : level === 'warning' ? console.warn : console.log;
         fn(`[GsCore ${level}]`, text);
       },
       onError: (err) => {
@@ -869,7 +860,9 @@ export default function LiveChatPage() {
     if (!activeId) return;
     setConversations((prev) =>
       prev.map((c) =>
-        c.id === activeId ? { ...c, messages: [], lastPreview: undefined, updatedAt: Date.now() } : c,
+        c.id === activeId
+          ? { ...c, messages: [], lastPreview: undefined, updatedAt: Date.now() }
+          : c,
       ),
     );
   };
@@ -898,7 +891,8 @@ export default function LiveChatPage() {
       onState: (s) => setConnState(s),
       onMessage: (m) => handleIncomingRef.current(m),
       onRawLog: (level, text) => {
-        const fn = level === 'error' ? console.error : level === 'warning' ? console.warn : console.log;
+        const fn =
+          level === 'error' ? console.error : level === 'warning' ? console.warn : console.log;
         fn(`[GsCore ${level}]`, text);
       },
     });
@@ -986,7 +980,9 @@ export default function LiveChatPage() {
 
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 min-w-0">
-                      <h2 className="font-semibold text-sm sm:text-base truncate">{activeConv.name}</h2>
+                      <h2 className="font-semibold text-sm sm:text-base truncate">
+                        {activeConv.name}
+                      </h2>
                       <Badge
                         variant="secondary"
                         className={cn(
@@ -1017,7 +1013,9 @@ export default function LiveChatPage() {
                     onClick={reconnect}
                     title={t('liveChat.reconnect')}
                   >
-                    <RefreshCw className={cn('w-4 h-4', connState === 'connecting' && 'animate-spin')} />
+                    <RefreshCw
+                      className={cn('w-4 h-4', connState === 'connecting' && 'animate-spin')}
+                    />
                   </Button>
                   <Button
                     variant="ghost"
@@ -1047,7 +1045,9 @@ export default function LiveChatPage() {
                     <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-3">
                       <MessageCircle className="w-10 h-10 opacity-40" />
                       <p className="text-sm text-center max-w-xs">{t('liveChat.emptyChat')}</p>
-                      <p className="text-xs text-center max-w-sm opacity-70">{t('liveChat.emptyChatHint')}</p>
+                      <p className="text-xs text-center max-w-sm opacity-70">
+                        {t('liveChat.emptyChatHint')}
+                      </p>
                     </div>
                   ) : (
                     activeConv.messages.map((m) => (
@@ -1091,9 +1091,7 @@ export default function LiveChatPage() {
                 onAtBot={() => setAtBot((v) => !v)}
                 sending={sending}
                 replyPreview={
-                  replyTo
-                    ? blocksPreview(replyTo.blocks) || replyTo.msgId || replyTo.id
-                    : null
+                  replyTo ? blocksPreview(replyTo.blocks) || replyTo.msgId || replyTo.id : null
                 }
                 onClearReply={() => setReplyTo(null)}
                 isGroup={activeConv.type === 'group'}
@@ -1104,7 +1102,11 @@ export default function LiveChatPage() {
                   <Badge variant="outline" className="text-[10px] gap-1">
                     <Bot className="w-3 h-3" />
                     {t('liveChat.atBotActive')}
-                    <button type="button" className="ml-1 opacity-70 hover:opacity-100" onClick={() => setAtBot(false)}>
+                    <button
+                      type="button"
+                      className="ml-1 opacity-70 hover:opacity-100"
+                      onClick={() => setAtBot(false)}
+                    >
                       ×
                     </button>
                   </Badge>
@@ -1217,10 +1219,16 @@ export default function LiveChatPage() {
               <Label>{t('liveChat.userIdLabel')}</Label>
               {masters.length > 0 ? (
                 <Select
-                  value={masters.includes(settingsDraft.userId) ? settingsDraft.userId : '__custom__'}
+                  value={
+                    masters.includes(settingsDraft.userId) ? settingsDraft.userId : '__custom__'
+                  }
                   onValueChange={(v) => {
                     if (v === '__custom__') return;
-                    setSettingsDraft((s) => ({ ...s, userId: v, nickname: s.nickname || 'Master' }));
+                    setSettingsDraft((s) => ({
+                      ...s,
+                      userId: v,
+                      nickname: s.nickname || 'Master',
+                    }));
                   }}
                 >
                   <SelectTrigger className="h-9">
@@ -1270,8 +1278,12 @@ export default function LiveChatPage() {
               <p className="text-xs text-muted-foreground">{t('liveChat.botSelfIdHint')}</p>
             </div>
             <div className="rounded-lg bg-muted/40 px-3 py-2 text-xs text-muted-foreground space-y-1">
-              <div>ws_bot_id: <code className="text-foreground">{WS_BOT_ID}</code></div>
-              <div>bot_id: <code className="text-foreground">{PLATFORM_BOT_ID}</code></div>
+              <div>
+                ws_bot_id: <code className="text-foreground">{WS_BOT_ID}</code>
+              </div>
+              <div>
+                bot_id: <code className="text-foreground">{PLATFORM_BOT_ID}</code>
+              </div>
             </div>
           </div>
           <DialogFooter>

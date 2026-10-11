@@ -17,11 +17,7 @@
  * 又把"工具详情/工具列表/MCP 服务列表"三块状态封到本 hook。
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  mcpConfigApi,
-  type MCPToolsConfigItem,
-  type MCPConfig,
-} from '@/lib/api';
+import { mcpConfigApi, type MCPToolsConfigItem, type MCPConfig } from '@/lib/api';
 import {
   MCP_SERVICE_TOOLS_CONFIG_KEY_MAP,
   type McpServiceType,
@@ -43,17 +39,11 @@ export interface UseMcpToolsConfigReturn {
   /** 当前正在编辑的 MCP 工具映射 */
   mcpToolsConfigs: Record<string, MCPToolsConfigItem>;
   /** 当前正在编辑的工具参数详情 */
-  mcpDetailsEditing: Record<
-    string,
-    Record<string, string | number | boolean | null>
-  >;
+  mcpDetailsEditing: Record<string, Record<string, string | number | boolean | null>>;
 
   // 原始快照
   originalMcpToolsConfigs: Record<string, MCPToolsConfigItem>;
-  originalMcpDetails: Record<
-    string,
-    Record<string, string | number | boolean | null>
-  >;
+  originalMcpDetails: Record<string, Record<string, string | number | boolean | null>>;
 
   // Dialog
   mcpToolDialogOpen: boolean;
@@ -74,11 +64,7 @@ export interface UseMcpToolsConfigReturn {
     mcpParamName: string,
     value: string | number | boolean | null,
   ) => void;
-  renameMcpDetailKey: (
-    configKey: string,
-    oldName: string,
-    newName: string,
-  ) => void;
+  renameMcpDetailKey: (configKey: string, oldName: string, newName: string) => void;
   addMcpDetailRow: (configKey: string) => void;
   removeMcpDetailRow: (configKey: string, mcpParamName: string) => void;
 
@@ -88,27 +74,17 @@ export interface UseMcpToolsConfigReturn {
   /** 保存成功后刷新快照 */
   markSaved: (
     nextTools: Record<string, MCPToolsConfigItem>,
-    nextDetails: Record<
-      string,
-      Record<string, string | number | boolean | null>
-    >,
+    nextDetails: Record<string, Record<string, string | number | boolean | null>>,
   ) => void;
 }
 
-type McpDetailsMap = Record<
-  string,
-  Record<string, string | number | boolean | null>
->;
+type McpDetailsMap = Record<string, Record<string, string | number | boolean | null>>;
 
-export function useMcpToolsConfig(
-  args: UseMcpToolsConfigArgs,
-): UseMcpToolsConfigReturn {
+export function useMcpToolsConfig(args: UseMcpToolsConfigArgs): UseMcpToolsConfigReturn {
   const { mcpToolsConfig, updateConfigValue } = args;
 
   const [mcpConfigs, setMcpConfigs] = useState<MCPConfig[]>([]);
-  const [mcpToolsConfigs, setMcpToolsConfigs] = useState<
-    Record<string, MCPToolsConfigItem>
-  >({});
+  const [mcpToolsConfigs, setMcpToolsConfigs] = useState<Record<string, MCPToolsConfigItem>>({});
   const [mcpDetailsEditing, setMcpDetailsEditing] = useState<McpDetailsMap>({});
 
   const [originalMcpToolsConfigs, setOriginalMcpToolsConfigs] = useState<
@@ -117,8 +93,7 @@ export function useMcpToolsConfig(
   const [originalMcpDetails, setOriginalMcpDetails] = useState<McpDetailsMap>({});
 
   const [mcpToolDialogOpen, setMcpToolDialogOpen] = useState(false);
-  const [mcpToolDialogType, setMcpToolDialogType] =
-    useState<McpServiceType>('websearch');
+  const [mcpToolDialogType, setMcpToolDialogType] = useState<McpServiceType>('websearch');
 
   // -------------------------------------------------------------------------
   // Fetch
@@ -188,8 +163,7 @@ export function useMcpToolsConfig(
   const selectedMcpToolInfo = useMemo(
     () =>
       currentDialogMcpToolId
-        ? mcpToolOptions.find((opt) => opt.value === currentDialogMcpToolId) ||
-          null
+        ? mcpToolOptions.find((opt) => opt.value === currentDialogMcpToolId) || null
         : null,
     [currentDialogMcpToolId, mcpToolOptions],
   );
@@ -224,8 +198,7 @@ export function useMcpToolsConfig(
       if (!mcpToolsConfig) return;
       const configKey = MCP_SERVICE_TOOLS_CONFIG_KEY_MAP[mcpToolDialogType];
       const mcpToolsConfigKey = configKey;
-      const currentToolId =
-        (mcpToolsConfig.config[configKey]?.value as string) || '';
+      const currentToolId = (mcpToolsConfig.config[configKey]?.value as string) || '';
       const finalValue = currentToolId === toolId ? '' : toolId;
 
       updateConfigValue(mcpToolsConfig.id, configKey, finalValue);
@@ -294,11 +267,7 @@ export function useMcpToolsConfig(
   );
 
   const updateMcpDetailValue = useCallback(
-    (
-      configKey: string,
-      mcpParamName: string,
-      value: string | number | boolean | null,
-    ) => {
+    (configKey: string, mcpParamName: string, value: string | number | boolean | null) => {
       setMcpDetailsEditing((prev) => ({
         ...prev,
         [configKey]: {
@@ -310,18 +279,15 @@ export function useMcpToolsConfig(
     [],
   );
 
-  const renameMcpDetailKey = useCallback(
-    (configKey: string, oldName: string, newName: string) => {
-      setMcpDetailsEditing((prev) => {
-        const details = { ...prev[configKey] };
-        const val = details[oldName];
-        delete details[oldName];
-        details[newName] = val;
-        return { ...prev, [configKey]: details };
-      });
-    },
-    [],
-  );
+  const renameMcpDetailKey = useCallback((configKey: string, oldName: string, newName: string) => {
+    setMcpDetailsEditing((prev) => {
+      const details = { ...prev[configKey] };
+      const val = details[oldName];
+      delete details[oldName];
+      details[newName] = val;
+      return { ...prev, [configKey]: details };
+    });
+  }, []);
 
   const addMcpDetailRow = useCallback((configKey: string) => {
     setMcpDetailsEditing((prev) => ({
@@ -333,29 +299,23 @@ export function useMcpToolsConfig(
     }));
   }, []);
 
-  const removeMcpDetailRow = useCallback(
-    (configKey: string, mcpParamName: string) => {
-      setMcpDetailsEditing((prev) => {
-        const newDetails = { ...prev[configKey] };
-        delete newDetails[mcpParamName];
-        return {
-          ...prev,
-          [configKey]: newDetails,
-        };
-      });
-    },
-    [],
-  );
+  const removeMcpDetailRow = useCallback((configKey: string, mcpParamName: string) => {
+    setMcpDetailsEditing((prev) => {
+      const newDetails = { ...prev[configKey] };
+      delete newDetails[mcpParamName];
+      return {
+        ...prev,
+        [configKey]: newDetails,
+      };
+    });
+  }, []);
 
   const refresh = useCallback(async () => {
     await fetchMcpConfigs();
   }, [fetchMcpConfigs]);
 
   const markSaved = useCallback(
-    (
-      nextTools: Record<string, MCPToolsConfigItem>,
-      nextDetails: McpDetailsMap,
-    ) => {
+    (nextTools: Record<string, MCPToolsConfigItem>, nextDetails: McpDetailsMap) => {
       setOriginalMcpToolsConfigs(JSON.parse(JSON.stringify(nextTools)));
       setOriginalMcpDetails(JSON.parse(JSON.stringify(nextDetails)));
     },

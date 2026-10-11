@@ -62,11 +62,7 @@ import { cn } from '@/lib/utils';
  * 包括 longcat、日日新、yi、baichuan、zhipu、huawei、kuaishou 等冷门厂商。
  */
 
-export type ProviderName =
-  | 'openai'
-  | 'anthropic'
-  | 'gemini'
-  | string;
+export type ProviderName = 'openai' | 'anthropic' | 'gemini' | string;
 
 // 各厂商 SVG 的 variant 联合类型互不相同（含 dark/wordmark/color…），
 // 这里用宽松组件类型 + 渲染时透传 variant，避免 BrandRule 被 propTypes 拖垮。
@@ -96,19 +92,31 @@ const BRAND_RULES: BrandRule[] = [
   // ----- Anthropic / Claude -----
   { pattern: /(^|[-_./])(claude|anthropic)/i, Component: Claude, variant: 'default' },
   // ----- OpenAI -----
-  { pattern: /(^|[-_./])(gpt|openai|o1|o3|o4|chatgpt|sora|dall[-_ ]?e|whisper)/i, Component: Openai, variant: 'default' },
+  {
+    pattern: /(^|[-_./])(gpt|openai|o1|o3|o4|chatgpt|sora|dall[-_ ]?e|whisper)/i,
+    Component: Openai,
+    variant: 'default',
+  },
   // ----- Google Gemini -----
   { pattern: /(^|[-_./])gemini/i, Component: Gemini, variant: 'default' },
 
   // ====== 国产 / 中文厂商（冷门优先） ======
   // ----- 零一万物 Yi / 01.AI（注意别让下面 antgroup / ant 误吃） -----
-  { pattern: /(^|[-_./])yi|01[-_.]?ai|zeroone[-_ ]?ai|wanzhi|万知/i, Component: Yi, variant: 'default' },
+  {
+    pattern: /(^|[-_./])yi|01[-_.]?ai|zeroone[-_ ]?ai|wanzhi|万知/i,
+    Component: Yi,
+    variant: 'default',
+  },
   // ----- 百川智能 Baichuan -----
   { pattern: /(^|[-_./])baichuan|百川/i, Component: Baichuan, variant: 'default' },
   // ----- 智谱 AI / ChatGLM -----
   { pattern: /zhipu|chatglm|智谱|glm-/i, Component: Zhipu, variant: 'default' },
   // ----- 商汤 SenseNova / 日日新 / SenseChat -----
-  { pattern: /sensenova|sensechat|sense[-_ ]?(nova|chat)|日日新|商汤/i, Component: Sensenova, variant: 'default' },
+  {
+    pattern: /sensenova|sensechat|sense[-_ ]?(nova|chat)|日日新|商汤/i,
+    Component: Sensenova,
+    variant: 'default',
+  },
   // ----- 美团 LongCat -----
   { pattern: /longcat/i, Component: Longcat, variant: 'default' },
   // ----- MiniMax -----
@@ -137,7 +145,11 @@ const BRAND_RULES: BrandRule[] = [
   // ----- 百度 文心一言 / ERNIE -----
   { pattern: /ernie|wenxin|baidu|文心/i, Component: Baidu, variant: 'default' },
   // ----- 蚂蚁集团 Ling / inclusionAI -----
-  { pattern: /(^|[-_./])ling|inclusionai|inclusion[-_ ]?ai/i, Component: Antgroup, variant: 'default' },
+  {
+    pattern: /(^|[-_./])ling|inclusionai|inclusion[-_ ]?ai/i,
+    Component: Antgroup,
+    variant: 'default',
+  },
   // ----- DeepSeek -----
   { pattern: /deepseek/i, Component: Deepseek, variant: 'default' },
 
@@ -192,12 +204,7 @@ function isOpenAiIcon(Component: IconComponent): boolean {
   return Component === Openai;
 }
 
-export function ModelBrandIcon({
-  modelName,
-  provider,
-  size = 16,
-  className,
-}: ModelBrandIconProps) {
+export function ModelBrandIcon({ modelName, provider, size = 16, className }: ModelBrandIconProps) {
   const rule = resolveBrandRule(modelName, provider);
   const Icon = rule.Component;
   const openAiTheme = isOpenAiIcon(Icon);
@@ -209,11 +216,7 @@ export function ModelBrandIcon({
       width={size}
       height={size}
       variant={rule.variant ?? 'default'}
-      className={cn(
-        'inline-block shrink-0',
-        openAiTheme && OPENAI_THEME_CLASS,
-        className,
-      )}
+      className={cn('inline-block shrink-0', openAiTheme && OPENAI_THEME_CLASS, className)}
       aria-hidden="true"
     />
   );
@@ -265,11 +268,7 @@ export interface ProviderBrandIconProps {
   className?: string;
 }
 
-export function ProviderBrandIcon({
-  provider,
-  size = 16,
-  className,
-}: ProviderBrandIconProps) {
+export function ProviderBrandIcon({ provider, size = 16, className }: ProviderBrandIconProps) {
   switch (provider) {
     case 'anthropic':
       return (
@@ -298,11 +297,7 @@ export function ProviderBrandIcon({
           width={size}
           height={size}
           variant="default"
-          className={cn(
-            'inline-block shrink-0',
-            OPENAI_THEME_CLASS,
-            className,
-          )}
+          className={cn('inline-block shrink-0', OPENAI_THEME_CLASS, className)}
           aria-hidden="true"
         />
       );
@@ -310,12 +305,7 @@ export function ProviderBrandIcon({
 }
 
 /** Provider 解析失败时的兜底图标（lucide Bot，主题可控） */
-export function FallbackBrandIcon({
-  className,
-}: {
-  size?: number;
-  className?: string;
-}) {
+export function FallbackBrandIcon({ className }: { size?: number; className?: string }) {
   // 尺寸由调用方通过 className（如 `w-4 h-4`）控制，与 lucide 习惯保持一致
   return <Bot className={cn('inline-block shrink-0', className)} aria-hidden="true" />;
 }

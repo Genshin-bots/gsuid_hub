@@ -80,7 +80,9 @@ export default function LogsConfigDialog({ open, onOpenChange }: Props) {
   }, [open, t]);
 
   const onNumber = (key: keyof LogsConfig, value: number) => {
-    setCfg((prev) => (prev ? { ...prev, [key]: Number.isFinite(value) ? value : undefined } : prev));
+    setCfg((prev) =>
+      prev ? { ...prev, [key]: Number.isFinite(value) ? value : undefined } : prev,
+    );
   };
 
   const onSwitch = (key: keyof LogsConfig, value: boolean) => {
@@ -165,7 +167,9 @@ export default function LogsConfigDialog({ open, onOpenChange }: Props) {
               </div>
               <div className="flex flex-col justify-end gap-3 pb-0.5">
                 <div className="flex items-center justify-between gap-3">
-                  <Label htmlFor="logs-compression">{t('logsConfig.fields.enableFileCompression')}</Label>
+                  <Label htmlFor="logs-compression">
+                    {t('logsConfig.fields.enableFileCompression')}
+                  </Label>
                   <Switch
                     id="logs-compression"
                     checked={!!cfg.enable_file_compression}
@@ -184,7 +188,9 @@ export default function LogsConfigDialog({ open, onOpenChange }: Props) {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="logs-blacklist-sources">{t('logsConfig.fields.blacklistedSources')}</Label>
+              <Label htmlFor="logs-blacklist-sources">
+                {t('logsConfig.fields.blacklistedSources')}
+              </Label>
               <Textarea
                 id="logs-blacklist-sources"
                 className="min-h-[88px] font-mono text-sm"
@@ -195,7 +201,9 @@ export default function LogsConfigDialog({ open, onOpenChange }: Props) {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="logs-blacklist-modules">{t('logsConfig.fields.blacklistedModules')}</Label>
+              <Label htmlFor="logs-blacklist-modules">
+                {t('logsConfig.fields.blacklistedModules')}
+              </Label>
               <Textarea
                 id="logs-blacklist-modules"
                 className="min-h-[88px] font-mono text-sm"
@@ -217,11 +225,7 @@ export default function LogsConfigDialog({ open, onOpenChange }: Props) {
             {t('logsConfig.cancel')}
           </Button>
           <Button className="h-9" onClick={onSave} disabled={saving || loading || !cfg}>
-            {saving ? (
-              <RefreshCw className="w-4 h-4 animate-spin" />
-            ) : (
-              <Save className="w-4 h-4" />
-            )}
+            {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             {t('logsConfig.save')}
           </Button>
         </DialogFooter>

@@ -18,8 +18,17 @@ import { DynamicConfigPanel } from '@/components/config';
 import type { ConfigValue } from '@/components/config';
 import { frameworkConfigApi, type PluginConfigItem } from '@/lib/api';
 import {
-  Server, Save, Loader2, AlertTriangle, ShieldCheck, Key, Plug,
-  Globe, Terminal, RefreshCw, Activity,
+  Server,
+  Save,
+  Loader2,
+  AlertTriangle,
+  ShieldCheck,
+  Key,
+  Plug,
+  Globe,
+  Terminal,
+  RefreshCw,
+  Activity,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -40,10 +49,7 @@ export interface GsCoreAiMcpServerSectionProps {
   isGlass?: boolean;
 }
 
-export function GsCoreAiMcpServerSection({
-  t,
-  isGlass = false,
-}: GsCoreAiMcpServerSectionProps) {
+export function GsCoreAiMcpServerSection({ t, isGlass = false }: GsCoreAiMcpServerSectionProps) {
   const [rawConfig, setRawConfig] = useState<RawServerConfig | null>(null);
   const [editedConfig, setEditedConfig] = useState<Record<string, PluginConfigItem>>({});
 
@@ -83,20 +89,14 @@ export function GsCoreAiMcpServerSection({
   const savedEnableMcpServer = Boolean(
     (rawConfig?.config.enable_mcp_server?.value as boolean | undefined) ?? false,
   );
-  const savedTransport = String(
-    rawConfig?.config.mcp_server_transport?.value ?? 'sse',
-  );
-  const savedPort = Number(
-    rawConfig?.config.mcp_server_port?.value ?? 8766,
-  );
-  const savedApiKey = String(
-    rawConfig?.config.mcp_server_api_key?.value ?? '',
-  );
+  const savedTransport = String(rawConfig?.config.mcp_server_transport?.value ?? 'sse');
+  const savedPort = Number(rawConfig?.config.mcp_server_port?.value ?? 8766);
+  const savedApiKey = String(rawConfig?.config.mcp_server_api_key?.value ?? '');
 
   // ---------------- 事件 ----------------
   const handleFieldChange = useCallback(
     (_configId: string, fieldKey: string, value: ConfigValue) => {
-      setEditedConfig(prev => {
+      setEditedConfig((prev) => {
         const item = prev[fieldKey];
         if (!item) return prev;
         return {
@@ -136,10 +136,8 @@ export function GsCoreAiMcpServerSection({
         payload,
       );
 
-      setRawConfig(prev =>
-        prev
-          ? { ...prev, config: JSON.parse(JSON.stringify(editedConfig)) }
-          : prev,
+      setRawConfig((prev) =>
+        prev ? { ...prev, config: JSON.parse(JSON.stringify(editedConfig)) } : prev,
       );
       toast.success(t('gsCoreAiMcpServer.saveSuccess'));
     } catch (error) {
@@ -159,9 +157,7 @@ export function GsCoreAiMcpServerSection({
           <Server className="w-5 h-5 text-muted-foreground" />
           {t('gsCoreAiMcpServer.title')}
         </h2>
-        <p className="text-sm text-muted-foreground">
-          {t('gsCoreAiMcpServer.description')}
-        </p>
+        <p className="text-sm text-muted-foreground">{t('gsCoreAiMcpServer.description')}</p>
       </div>
 
       {/* 状态卡片 */}
@@ -182,17 +178,23 @@ export function GsCoreAiMcpServerSection({
                 : t('gsCoreAiMcpServer.status.disabled')}
             </Badge>
           }
-          glassClassName={isGlass ? 'glass-card' : ''}
+          glassClassName={'glass-card'}
         />
         <StatusCard
-          icon={savedTransport === 'stdio' ? <Terminal className="w-5 h-5" /> : <Globe className="w-5 h-5" />}
+          icon={
+            savedTransport === 'stdio' ? (
+              <Terminal className="w-5 h-5" />
+            ) : (
+              <Globe className="w-5 h-5" />
+            )
+          }
           label={t('gsCoreAiMcpServer.status.transport')}
           value={
             <span className="text-sm font-mono">
               {savedTransport === 'stdio' ? 'stdio' : `SSE :${savedPort}`}
             </span>
           }
-          glassClassName={isGlass ? 'glass-card' : ''}
+          glassClassName={'glass-card'}
         />
         <StatusCard
           icon={<ShieldCheck className="w-5 h-5" />}
@@ -210,19 +212,17 @@ export function GsCoreAiMcpServerSection({
                 : t('gsCoreAiMcpServer.status.authDisabled')}
             </Badge>
           }
-          glassClassName={isGlass ? 'glass-card' : ''}
+          glassClassName={'glass-card'}
         />
         <StatusCard
           icon={<Plug className="w-5 h-5" />}
           label={t('gsCoreAiMcpServer.status.endpoints')}
           value={
             <span className="text-sm font-mono break-all">
-              {savedTransport === 'stdio'
-                ? 'stdin / stdout'
-                : `http(s)://<host>:${savedPort}/...`}
+              {savedTransport === 'stdio' ? 'stdin / stdout' : `http(s)://<host>:${savedPort}/...`}
             </span>
           }
-          glassClassName={isGlass ? 'glass-card' : ''}
+          glassClassName={'glass-card'}
         />
       </div>
 
@@ -231,25 +231,19 @@ export function GsCoreAiMcpServerSection({
         <div
           className={cn(
             'flex items-start gap-3 rounded-lg border p-4 text-sm',
-            isGlass
-              ? 'glass-card border-blue-500/30'
-              : 'border-blue-500/40 bg-blue-500/5',
+            'glass-card border-blue-500/30',
           )}
         >
           <AlertTriangle className="w-4 h-4 mt-0.5 text-blue-600 dark:text-blue-400 shrink-0" />
           <div className="space-y-1">
-            <p className="font-semibold">
-              {t('gsCoreAiMcpServer.banner.activeTitle')}
-            </p>
-            <p className="text-muted-foreground">
-              {t('gsCoreAiMcpServer.banner.activeDesc')}
-            </p>
+            <p className="font-semibold">{t('gsCoreAiMcpServer.banner.activeTitle')}</p>
+            <p className="text-muted-foreground">{t('gsCoreAiMcpServer.banner.activeDesc')}</p>
           </div>
         </div>
       )}
 
       {/* 配置面板 */}
-      <Card className={cn(isGlass ? 'glass-card' : '')}>
+      <Card className={cn('glass-card')}>
         <CardHeader>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
@@ -257,9 +251,7 @@ export function GsCoreAiMcpServerSection({
                 <Server className="w-5 h-5" />
                 {t('gsCoreAiMcpServer.configCard.title')}
               </CardTitle>
-              <CardDescription>
-                {t('gsCoreAiMcpServer.configCard.description')}
-              </CardDescription>
+              <CardDescription>{t('gsCoreAiMcpServer.configCard.description')}</CardDescription>
             </div>
             <div className="flex items-center gap-2">
               <Button
@@ -269,9 +261,7 @@ export function GsCoreAiMcpServerSection({
                 disabled={isLoading || isSaving}
                 className="gap-1"
               >
-                <RefreshCw
-                  className={cn('w-4 h-4', isLoading && 'animate-spin')}
-                />
+                <RefreshCw className={cn('w-4 h-4', isLoading && 'animate-spin')} />
                 {t('gsCoreAiMcpServer.actions.refresh')}
               </Button>
               <Button
@@ -311,29 +301,25 @@ export function GsCoreAiMcpServerSection({
       </Card>
 
       {/* API Key 提示 */}
-      <Card className={cn(isGlass ? 'glass-card' : '')}>
+      <Card className={cn('glass-card')}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <Key className="w-4 h-4" />
             {t('gsCoreAiMcpServer.apiKeyCard.title')}
           </CardTitle>
-          <CardDescription>
-            {t('gsCoreAiMcpServer.apiKeyCard.description')}
-          </CardDescription>
+          <CardDescription>{t('gsCoreAiMcpServer.apiKeyCard.description')}</CardDescription>
         </CardHeader>
         <CardContent>
           <pre className="rounded-md bg-muted/60 p-3 text-xs font-mono overflow-x-auto whitespace-pre-wrap break-all">
-{savedApiKey
-  ? `Authorization: Bearer ${savedApiKey}`
-  : t('gsCoreAiMcpServer.apiKeyCard.empty')}
+            {savedApiKey
+              ? `Authorization: Bearer ${savedApiKey}`
+              : t('gsCoreAiMcpServer.apiKeyCard.empty')}
           </pre>
         </CardContent>
       </Card>
 
       <Separator className="opacity-30" />
-      <p className="text-xs text-muted-foreground">
-        {t('gsCoreAiMcpServer.footnote')}
-      </p>
+      <p className="text-xs text-muted-foreground">{t('gsCoreAiMcpServer.footnote')}</p>
     </div>
   );
 }

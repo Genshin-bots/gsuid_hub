@@ -10,7 +10,7 @@
 import { useTheme } from '@/contexts/ThemeContext';
 const {
   mode,        // 'light' | 'dark'
-  style,       // 'solid' | 'glassmorphism'
+  style,       // 'solid' | 'glassmorphism' | 'luminous' | 'liquid'
   color,       // 'red' | 'orchid' | 'blue' | 'green' | 'orange' | 'pink'
   iconColor,   // 'white' | 'black' | 'colored'
   themePreset, // 'default' | 'shadcn'
@@ -29,7 +29,7 @@ const {
 
 侧边栏布局 class：`floating-sidebar` / `glass-sidebar` / `line-sidebar`（`line` 无卡片/阴影，仅 `border-right`）。
 
-「杂项」各项均持久化到后端 `ThemeConfig`（`sidebar_layout` / `border_radius` / `ui_scale` / `shadow_intensity` / `sidebar_default_collapsed`），并镜像到 sessionStorage（`theme_sidebar_layout` 等）供首屏防闪。**新增杂项字段的完整同步清单**（缺一处都会出 bug）：
+「杂项」各项均持久化到后端 `ThemeConfig`（`sidebar_layout` / `border_radius` / `ui_scale` / `shadow_intensity` / `sidebar_default_collapsed`），并镜像到 sessionStorage（`theme_sidebar_layout` 等）供首屏防闪。背景页的 `background_blur`（0–40px，默认 0，session 键 `theme_background_blur`）同样走这套持久化，但只模糊壁纸，不改 `blur_intensity`（卡片毛玻璃）。**新增主题字段的完整同步清单**（缺一处都会出 bug）：
 
 1. 前端 `ThemeContext.tsx`：常量/state/早期 effect/applyTheme/saveToBackend/setter/getThemeConfig/applyThemeConfig/miscContext/useTheme 十处；
 2. `api.ts` 的 `ThemeConfig` 接口；

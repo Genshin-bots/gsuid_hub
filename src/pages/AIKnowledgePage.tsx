@@ -92,7 +92,6 @@ import { PluginIcon } from '@/components/ui/plugin-icon';
 
 const ALL_PLUGINS = '__all__';
 
-
 // ============================================================================
 // 类型定义
 // ============================================================================
@@ -141,29 +140,29 @@ const initialImageFormData: ImageKnowledgeFormData = {
 export default function AIKnowledgePage() {
   const { style } = useTheme();
   const { t } = useLanguage();
-  const isGlass = style === 'glassmorphism';
+  const isGlass = style !== 'solid';
 
   // 知识类型筛选（文本/图片）
   const [knowledgeType, setKnowledgeType] = useState<KnowledgeType>('text');
-  
+
   // 来源筛选（插件/手动）；插件知识默认全量，可再按插件名筛
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>('plugin');
   const [selectedPluginFilter, setSelectedPluginFilter] = useState(ALL_PLUGINS);
   const [pluginNames, setPluginNames] = useState<string[]>([]);
-  
+
   // 搜索和分页状态
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [showSearchResults, setShowSearchResults] = useState(false);
-  
+
   // 文本知识状态
   const [textKnowledgeList, setTextKnowledgeList] = useState<AIKnowledgeItem[]>([]);
   const [textSearchResults, setTextSearchResults] = useState<AIKnowledgeItem[]>([]);
-  
+
   // 图片知识状态
   const [imageKnowledgeList, setImageKnowledgeList] = useState<AIImageItem[]>([]);
   const [imageSearchResults, setImageSearchResults] = useState<AIImageItem[]>([]);
-  
+
   // 分页状态
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);
@@ -193,9 +192,12 @@ export default function AIKnowledgePage() {
   const [bulkPlugin, setBulkPlugin] = useState('manual');
   const [bulkOneDocPerFile, setBulkOneDocPerFile] = useState(true);
   const [bulkImporting, setBulkImporting] = useState(false);
-  const [bulkImportResult, setBulkImportResult] = useState<
-    { doc_id: string; total_chunks: number; written: number; skipped: number } | null
-  >(null);
+  const [bulkImportResult, setBulkImportResult] = useState<{
+    doc_id: string;
+    total_chunks: number;
+    written: number;
+    skipped: number;
+  } | null>(null);
   const [isBulkDragging, setIsBulkDragging] = useState(false);
 
   // 文档级浏览（按 doc_id）
@@ -214,7 +216,6 @@ export default function AIKnowledgePage() {
   const [backupFile, setBackupFile] = useState<File | null>(null);
   const [backupImporting, setBackupImporting] = useState(false);
 
-
   // 删除确认 Dialog
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<AIKnowledgeItem | AIImageItem | null>(null);
@@ -232,11 +233,11 @@ export default function AIKnowledgePage() {
   const fetchKnowledgeList = useCallback(async () => {
     try {
       setIsLoading(true);
-      
+
       if (knowledgeType === 'text') {
-        const data = await aiKnowledgeApi.getKnowledgeList({ 
-          page, 
-          limit, 
+        const data = await aiKnowledgeApi.getKnowledgeList({
+          page,
+          limit,
           source: sourceFilter,
           plugin: pluginQuery,
         });
@@ -280,7 +281,9 @@ export default function AIKnowledgePage() {
       .then((names) => {
         if (cancelled) return;
         const cleaned = Array.from(
-          new Set((names || []).map((n) => String(n || '').trim()).filter((n) => n && n !== 'manual')),
+          new Set(
+            (names || []).map((n) => String(n || '').trim()).filter((n) => n && n !== 'manual'),
+          ),
         ).sort((a, b) => a.localeCompare(b));
         setPluginNames(cleaned);
       })
@@ -310,9 +313,14 @@ export default function AIKnowledgePage() {
 
     try {
       setIsSearching(true);
-      
+
       if (knowledgeType === 'text') {
-        const data = await aiKnowledgeApi.searchKnowledge(searchQuery, 50, sourceFilter, pluginQuery);
+        const data = await aiKnowledgeApi.searchKnowledge(
+          searchQuery,
+          50,
+          sourceFilter,
+          pluginQuery,
+        );
         setTextSearchResults(data.results || []);
       } else if (sourceFilter === 'manual') {
         const data = await aiImageApi.searchImages(searchQuery, 50, 'manual');
@@ -326,7 +334,7 @@ export default function AIKnowledgePage() {
         );
         setImageSearchResults(data.results || []);
       }
-      
+
       setShowSearchResults(true);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t('common.loadFailed'));
@@ -453,13 +461,13 @@ export default function AIKnowledgePage() {
 
     try {
       setIsDeleting(true);
-      
+
       if (knowledgeType === 'text') {
         await aiKnowledgeApi.deleteKnowledge(itemToDelete.id);
       } else {
         await aiImageApi.deleteImage(itemToDelete.id);
       }
-      
+
       toast.success(t('common.success'));
       setDeleteDialogOpen(false);
       setItemToDelete(null);
@@ -491,13 +499,13 @@ export default function AIKnowledgePage() {
     try {
       setIsUploading(true);
       const result = await aiImageApi.uploadImage(file);
-      
-      setImageFormData(prev => ({
+
+      setImageFormData((prev) => ({
         ...prev,
         path: result.path,
         previewUrl: assetsApi.getPreviewUrl(result.path),
       }));
-      
+
       toast.success(t('aiKnowledge.imageUploadSuccess'));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t('aiKnowledge.imageUploadFailed'));
@@ -529,7 +537,24 @@ export default function AIKnowledgePage() {
     setBulkImportResult(null);
   };
 
-  const ACCEPTED_TEXT_EXT = ['.txt', '.md', '.markdown', '.rst', '.log', '.json', '.jsonl', '.csv', '.html', '.htm', '.xml', '.yaml', '.yml', '.ini', '.conf', '.tex'];
+  const ACCEPTED_TEXT_EXT = [
+    '.txt',
+    '.md',
+    '.markdown',
+    '.rst',
+    '.log',
+    '.json',
+    '.jsonl',
+    '.csv',
+    '.html',
+    '.htm',
+    '.xml',
+    '.yaml',
+    '.yml',
+    '.ini',
+    '.conf',
+    '.tex',
+  ];
 
   const isAcceptedTextFile = (f: File) => {
     const name = f.name.toLowerCase();
@@ -549,7 +574,14 @@ export default function AIKnowledgePage() {
     setBulkFiles((prev) => [...prev, ...list]);
     // 自动用第一个文件名作为默认 doc_id / title（仅在用户尚未手动填写时）
     setBulkDocTitle((cur) => (cur ? cur : list[0].name.replace(/\.[^.]+$/, '')));
-    setBulkDocId((cur) => (cur ? cur : list[0].name.replace(/\.[^.]+$/, '').replace(/\s+/g, '_').toLowerCase()));
+    setBulkDocId((cur) =>
+      cur
+        ? cur
+        : list[0].name
+            .replace(/\.[^.]+$/, '')
+            .replace(/\s+/g, '_')
+            .toLowerCase(),
+    );
   };
 
   const handleBulkPickFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -560,7 +592,14 @@ export default function AIKnowledgePage() {
     }
     setBulkFiles((prev) => [...prev, ...list]);
     setBulkDocTitle((cur) => (cur ? cur : list[0].name.replace(/\.[^.]+$/, '')));
-    setBulkDocId((cur) => (cur ? cur : list[0].name.replace(/\.[^.]+$/, '').replace(/\s+/g, '_').toLowerCase()));
+    setBulkDocId((cur) =>
+      cur
+        ? cur
+        : list[0].name
+            .replace(/\.[^.]+$/, '')
+            .replace(/\s+/g, '_')
+            .toLowerCase(),
+    );
     e.target.value = '';
   };
 
@@ -607,18 +646,22 @@ export default function AIKnowledgePage() {
         fileContents.push({ name: f.name, text });
       }
 
-      const aggregate: { doc_id: string; total_chunks: number; written: number; skipped: number } = {
-        doc_id: '',
-        total_chunks: 0,
-        written: 0,
-        skipped: 0,
-      };
+      const aggregate: { doc_id: string; total_chunks: number; written: number; skipped: number } =
+        {
+          doc_id: '',
+          total_chunks: 0,
+          written: 0,
+          skipped: 0,
+        };
 
       if (bulkOneDocPerFile) {
         // 每个文件一个 doc_id
         for (let i = 0; i < fileContents.length; i++) {
           const fc = fileContents[i];
-          const baseId = (bulkDocId || fc.name).replace(/\.[^.]+$/, '').replace(/\s+/g, '_').toLowerCase();
+          const baseId = (bulkDocId || fc.name)
+            .replace(/\.[^.]+$/, '')
+            .replace(/\s+/g, '_')
+            .toLowerCase();
           const docId = fileContents.length === 1 ? baseId : `${baseId}_${i + 1}`;
           const title = fileContents.length === 1 ? bulkDocTitle : `${bulkDocTitle} - ${fc.name}`;
           const req: AIKnowledgeBulkRequest = {
@@ -637,8 +680,12 @@ export default function AIKnowledgePage() {
           aggregate.skipped += resp.skipped;
         }
         if (fileContents.length > 0) {
-          const baseId = (bulkDocId || fileContents[0].name).replace(/\.[^.]+$/, '').replace(/\s+/g, '_').toLowerCase();
-          aggregate.doc_id = fileContents.length === 1 ? baseId : `${baseId}_1 ... ${fileContents.length}`;
+          const baseId = (bulkDocId || fileContents[0].name)
+            .replace(/\.[^.]+$/, '')
+            .replace(/\s+/g, '_')
+            .toLowerCase();
+          aggregate.doc_id =
+            fileContents.length === 1 ? baseId : `${baseId}_1 ... ${fileContents.length}`;
         }
       } else {
         // 合并为单个 doc_id（按文件顺序，添加文件头分隔）
@@ -751,7 +798,9 @@ export default function AIKnowledgePage() {
       setBackupImporting(true);
       const jsonl = await backupFile.text();
       const resp: AIKnowledgeBackupResponse = await aiKnowledgeApi.importBackup({ jsonl });
-      toast.success(t('aiKnowledge.backupImportSuccess', { total: resp.total, written: resp.written }));
+      toast.success(
+        t('aiKnowledge.backupImportSuccess', { total: resp.total, written: resp.written }),
+      );
       setBackupDialogOpen(false);
       setBackupFile(null);
       fetchKnowledgeList();
@@ -776,10 +825,7 @@ export default function AIKnowledgePage() {
         `${t('aiKnowledge.reconcileMissingInSql')}: ${resp.missing_in_sql ?? 0}`,
         `${t('aiKnowledge.reconcileReEmbedded')}: ${resp.re_embedded ?? 0}`,
       ].join('\n');
-      toast.success(
-        `${t('aiKnowledge.reconcile')}: \n${summary}`,
-        { duration: 8000 },
-      );
+      toast.success(`${t('aiKnowledge.reconcile')}: \n${summary}`, { duration: 8000 });
       fetchKnowledgeList();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t('aiKnowledge.reconcileFailed'));
@@ -787,7 +833,6 @@ export default function AIKnowledgePage() {
       setReconciling(false);
     }
   };
-
 
   // 点击行打开编辑
   const handleOpenEdit = async (item: AIKnowledgeItem | AIImageItem) => {
@@ -810,7 +855,7 @@ export default function AIKnowledgePage() {
   const getPageNumbers = () => {
     const pages: (number | 'ellipsis')[] = [];
     const maxVisible = 5;
-    
+
     if (totalPages <= maxVisible) {
       for (let i = 1; i <= totalPages; i++) {
         pages.push(i);
@@ -838,17 +883,27 @@ export default function AIKnowledgePage() {
   };
 
   // 显示的数据源
-  const displayList = knowledgeType === 'text' 
-    ? (showSearchResults && textSearchResults.length > 0 ? textSearchResults : textKnowledgeList)
-    : (showSearchResults && imageSearchResults.length > 0 ? imageSearchResults : imageKnowledgeList);
-  const displayTotal = showSearchResults 
-    ? (knowledgeType === 'text' ? textSearchResults.length : imageSearchResults.length)
+  const displayList =
+    knowledgeType === 'text'
+      ? showSearchResults && textSearchResults.length > 0
+        ? textSearchResults
+        : textKnowledgeList
+      : showSearchResults && imageSearchResults.length > 0
+        ? imageSearchResults
+        : imageKnowledgeList;
+  const displayTotal = showSearchResults
+    ? knowledgeType === 'text'
+      ? textSearchResults.length
+      : imageSearchResults.length
     : total;
 
-  const knowledgeTypeOptions = useMemo(() => [
-    { value: 'text', label: t('aiKnowledge.typeText'), icon: <FileText className="w-4 h-4" /> },
-    { value: 'image', label: t('aiKnowledge.typeImage'), icon: <Image className="w-4 h-4" /> },
-  ], [t]);
+  const knowledgeTypeOptions = useMemo(
+    () => [
+      { value: 'text', label: t('aiKnowledge.typeText'), icon: <FileText className="w-4 h-4" /> },
+      { value: 'image', label: t('aiKnowledge.typeImage'), icon: <Image className="w-4 h-4" /> },
+    ],
+    [t],
+  );
 
   const sourceOptions = useMemo(() => {
     const isAllPlugins = selectedPluginFilter === ALL_PLUGINS;
@@ -858,9 +913,11 @@ export default function AIKnowledgePage() {
         label: isAllPlugins
           ? t('aiKnowledge.sourcePlugin')
           : t('aiKnowledge.pluginFilterLabel', { name: selectedPluginFilter }),
-        icon: isAllPlugins
-          ? <Sparkles className="w-4 h-4" />
-          : <PluginIcon pluginName={selectedPluginFilter} className="h-4 w-4" />,
+        icon: isAllPlugins ? (
+          <Sparkles className="w-4 h-4" />
+        ) : (
+          <PluginIcon pluginName={selectedPluginFilter} className="h-4 w-4" />
+        ),
         dropdown: {
           value: selectedPluginFilter,
           onValueChange: (value: string) => {
@@ -883,7 +940,11 @@ export default function AIKnowledgePage() {
           ],
         },
       },
-      { value: 'manual', label: t('aiKnowledge.sourceManual'), icon: <Pencil className="w-4 h-4" /> },
+      {
+        value: 'manual',
+        label: t('aiKnowledge.sourceManual'),
+        icon: <Pencil className="w-4 h-4" />,
+      },
     ];
   }, [pluginNames, selectedPluginFilter, t]);
 
@@ -896,7 +957,9 @@ export default function AIKnowledgePage() {
             <BookOpen className="w-8 h-8 shrink-0" />
             {t('aiKnowledge.title')}
           </h1>
-          <p className="sm:whitespace-nowrap text-muted-foreground mt-1">{t('aiKnowledge.description')}</p>
+          <p className="sm:whitespace-nowrap text-muted-foreground mt-1">
+            {t('aiKnowledge.description')}
+          </p>
         </div>
       }
       toolbar={
@@ -934,7 +997,11 @@ export default function AIKnowledgePage() {
             <div className="relative min-w-0 flex-1 md:max-w-64 md:flex-none md:w-56">
               <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder={knowledgeType === 'text' ? t('aiKnowledge.searchPlaceholder') : t('aiKnowledge.searchImagePlaceholder')}
+                placeholder={
+                  knowledgeType === 'text'
+                    ? t('aiKnowledge.searchPlaceholder')
+                    : t('aiKnowledge.searchImagePlaceholder')
+                }
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -948,7 +1015,11 @@ export default function AIKnowledgePage() {
               disabled={isSearching}
               title={t('aiKnowledge.searchPlaceholder')}
             >
-              {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+              {isSearching ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Search className="h-4 w-4" />
+              )}
             </Button>
             <Button
               onClick={() => {
@@ -975,7 +1046,10 @@ export default function AIKnowledgePage() {
               <span className="hidden md:inline ml-1">{t('aiKnowledge.exportBackup')}</span>
             </Button>
             <Button
-              onClick={() => { setBackupFile(null); setBackupDialogOpen(true); }}
+              onClick={() => {
+                setBackupFile(null);
+                setBackupDialogOpen(true);
+              }}
               variant="outline"
               className={cn(tabToolbarIconButtonClass, 'shrink-0 md:w-auto md:px-3')}
               title={t('aiKnowledge.importBackup')}
@@ -995,9 +1069,7 @@ export default function AIKnowledgePage() {
               ) : (
                 <Sparkles className="h-4 w-4" />
               )}
-              <span className="hidden md:inline ml-1">
-                {t('aiKnowledge.reconcile')}
-              </span>
+              <span className="hidden md:inline ml-1">{t('aiKnowledge.reconcile')}</span>
             </Button>
             <Button
               onClick={handleOpenAddDialog}
@@ -1013,8 +1085,17 @@ export default function AIKnowledgePage() {
       {/* 搜索结果提示 */}
       {showSearchResults && displayList.length > 0 && (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <span>{t('aiKnowledge.searchResults')}: {displayList.length}</span>
-          <Button variant="ghost" size="sm" onClick={() => { setShowSearchResults(false); setSearchQuery(''); }}>
+          <span>
+            {t('aiKnowledge.searchResults')}: {displayList.length}
+          </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setShowSearchResults(false);
+              setSearchQuery('');
+            }}
+          >
             <X className="h-4 w-4 mr-1" />
             {t('common.clear')}
           </Button>
@@ -1022,7 +1103,7 @@ export default function AIKnowledgePage() {
       )}
 
       {/* 知识列表表格 */}
-      <Card className={cn(isGlass ? "glass-card" : "border border-border/50")}>
+      <Card className={cn('glass-card')}>
         <CardContent className="p-0">
           {isLoading ? (
             <div className="p-6 space-y-4">
@@ -1034,9 +1115,7 @@ export default function AIKnowledgePage() {
               ))}
             </div>
           ) : displayList.length === 0 ? (
-            <div className="p-12 text-center text-muted-foreground">
-              {t('common.noData')}
-            </div>
+            <div className="p-12 text-center text-muted-foreground">{t('common.noData')}</div>
           ) : (
             <>
               <Table>
@@ -1061,127 +1140,145 @@ export default function AIKnowledgePage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {knowledgeType === 'text' ? (
-                    // 文本知识列表
-                    (displayList as AIKnowledgeItem[]).map((item) => (
-                      <TableRow key={item.id} className="cursor-pointer" onClick={() => handleOpenEdit(item)}>
-                        <TableCell className="font-medium truncate">{item.title}</TableCell>
-                        <TableCell className="text-center">
-                          <Badge variant="secondary">{item.plugin}</Badge>
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          <span className="line-clamp-1">{item.content.split('\n')[0]}</span>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap gap-1">
-                            {item.tags && item.tags.length > 0 ? (
-                              item.tags.map((tag, i) => (
-                                <Badge key={i} variant="outline" className="text-xs">
-                                  {tag}
-                                </Badge>
-                              ))
-                            ) : (
-                              <span className="text-muted-foreground">-</span>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex justify-end gap-2">
-                            {(() => {
-                              const docKey = item.id.includes('#') ? item.id.split('#')[0] : '';
-                              if (!docKey) return null;
-                              return (
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  title={t('aiKnowledge.viewDoc', { docId: docKey })}
-                                  onClick={() => openDocViewer(docKey, item.title.replace(/\s*-\s*第\d+段\s*$/, '').trim())}
-                                >
-                                  <ScrollText className="h-4 w-4" />
-                                </Button>
-                              );
-                            })()}
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleOpenEditTextDialog(item)}
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => { setItemToDelete(item); setDeleteDialogOpen(true); }}
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
-                    // 图片知识列表
-                    (displayList as AIImageItem[]).map((item) => (
-                      <TableRow key={item.id} className="cursor-pointer" onClick={() => handleOpenEdit(item)}>
-                        <TableCell>
-                          <div 
-                            className="w-16 h-16 rounded-lg bg-muted flex items-center justify-center overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handlePreviewImage(item.path);
-                            }}
-                          >
-                            <img 
-                              src={assetsApi.getPreviewUrl(item.path)} 
-                              alt={item.id}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).style.display = 'none';
-                                (e.target as HTMLImageElement).parentElement!.innerHTML = '<span class="text-muted-foreground text-xs">No Image</span>';
+                  {knowledgeType === 'text'
+                    ? // 文本知识列表
+                      (displayList as AIKnowledgeItem[]).map((item) => (
+                        <TableRow
+                          key={item.id}
+                          className="cursor-pointer"
+                          onClick={() => handleOpenEdit(item)}
+                        >
+                          <TableCell className="font-medium truncate">{item.title}</TableCell>
+                          <TableCell className="text-center">
+                            <Badge variant="secondary">{item.plugin}</Badge>
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            <span className="line-clamp-1">{item.content.split('\n')[0]}</span>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-wrap gap-1">
+                              {item.tags && item.tags.length > 0 ? (
+                                item.tags.map((tag, i) => (
+                                  <Badge key={i} variant="outline" className="text-xs">
+                                    {tag}
+                                  </Badge>
+                                ))
+                              ) : (
+                                <span className="text-muted-foreground">-</span>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex justify-end gap-2">
+                              {(() => {
+                                const docKey = item.id.includes('#') ? item.id.split('#')[0] : '';
+                                if (!docKey) return null;
+                                return (
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    title={t('aiKnowledge.viewDoc', { docId: docKey })}
+                                    onClick={() =>
+                                      openDocViewer(
+                                        docKey,
+                                        item.title.replace(/\s*-\s*第\d+段\s*$/, '').trim(),
+                                      )
+                                    }
+                                  >
+                                    <ScrollText className="h-4 w-4" />
+                                  </Button>
+                                );
+                              })()}
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleOpenEditTextDialog(item)}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                  setItemToDelete(item);
+                                  setDeleteDialogOpen(true);
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    : // 图片知识列表
+                      (displayList as AIImageItem[]).map((item) => (
+                        <TableRow
+                          key={item.id}
+                          className="cursor-pointer"
+                          onClick={() => handleOpenEdit(item)}
+                        >
+                          <TableCell>
+                            <div
+                              className="w-16 h-16 rounded-lg bg-muted flex items-center justify-center overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handlePreviewImage(item.path);
                               }}
-                            />
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <Badge variant="secondary">{item.plugin}</Badge>
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          <span className="line-clamp-1 text-xs font-mono">{item.path}</span>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap gap-1">
-                            {item.tags && item.tags.length > 0 ? (
-                              item.tags.map((tag, i) => (
-                                <Badge key={i} variant="outline" className="text-xs">
-                                  {tag}
-                                </Badge>
-                              ))
-                            ) : (
-                              <span className="text-muted-foreground">-</span>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handlePreviewImage(item.path)}
                             >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => { setItemToDelete(item); setDeleteDialogOpen(true); }}
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
+                              <img
+                                src={assetsApi.getPreviewUrl(item.path)}
+                                alt={item.id}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).style.display = 'none';
+                                  (e.target as HTMLImageElement).parentElement!.innerHTML =
+                                    '<span class="text-muted-foreground text-xs">No Image</span>';
+                                }}
+                              />
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Badge variant="secondary">{item.plugin}</Badge>
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            <span className="line-clamp-1 text-xs font-mono">{item.path}</span>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-wrap gap-1">
+                              {item.tags && item.tags.length > 0 ? (
+                                item.tags.map((tag, i) => (
+                                  <Badge key={i} variant="outline" className="text-xs">
+                                    {tag}
+                                  </Badge>
+                                ))
+                              ) : (
+                                <span className="text-muted-foreground">-</span>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handlePreviewImage(item.path)}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                  setItemToDelete(item);
+                                  setDeleteDialogOpen(true);
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
                 </TableBody>
               </Table>
 
@@ -1193,7 +1290,9 @@ export default function AIKnowledgePage() {
                       <PaginationItem>
                         <PaginationPrevious
                           onClick={() => handlePageChange(Math.max(1, page - 1))}
-                          className={page === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                          className={
+                            page === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'
+                          }
                         />
                       </PaginationItem>
                       {getPageNumbers().map((p, index) =>
@@ -1211,12 +1310,14 @@ export default function AIKnowledgePage() {
                               {p}
                             </PaginationLink>
                           </PaginationItem>
-                        )
+                        ),
                       )}
                       <PaginationItem>
                         <PaginationNext
                           onClick={() => handlePageChange(Math.min(totalPages, page + 1))}
-                          className={page >= totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                          className={
+                            page >= totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'
+                          }
                         />
                       </PaginationItem>
                     </PaginationContent>
@@ -1252,7 +1353,7 @@ export default function AIKnowledgePage() {
               {t('aiKnowledge.formAriaDesc')}
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4 py-4">
             {knowledgeType === 'text' ? (
               // 文本知识表单
@@ -1269,7 +1370,7 @@ export default function AIKnowledgePage() {
                     placeholder={t('aiKnowledge.titlePlaceholder')}
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label className="flex items-center gap-2">
                     <Sparkles className="w-4 h-4" />
@@ -1282,7 +1383,7 @@ export default function AIKnowledgePage() {
                     placeholder="manual"
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label className="flex items-center gap-2">
                     <Pencil className="w-4 h-4" />
@@ -1294,7 +1395,7 @@ export default function AIKnowledgePage() {
                     placeholder={t('aiKnowledge.tagsPlaceholder')}
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label className="flex items-center gap-2">
                     <FileText className="w-4 h-4" />
@@ -1319,7 +1420,7 @@ export default function AIKnowledgePage() {
                     {t('aiKnowledge.imageFile')}
                     <span className="text-destructive">*</span>
                   </Label>
-                  
+
                   {/* 图片上传区域 */}
                   {!imageFormData.previewUrl ? (
                     <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:bg-muted/50 transition-colors cursor-pointer">
@@ -1331,14 +1432,19 @@ export default function AIKnowledgePage() {
                         id="image-upload"
                         disabled={isUploading}
                       />
-                      <label htmlFor="image-upload" className="cursor-pointer flex flex-col items-center gap-2">
+                      <label
+                        htmlFor="image-upload"
+                        className="cursor-pointer flex flex-col items-center gap-2"
+                      >
                         {isUploading ? (
                           <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
                         ) : (
                           <Upload className="w-8 h-8 text-muted-foreground" />
                         )}
                         <span className="text-sm text-muted-foreground">
-                          {isUploading ? t('aiKnowledge.uploading') : t('aiKnowledge.clickToUpload')}
+                          {isUploading
+                            ? t('aiKnowledge.uploading')
+                            : t('aiKnowledge.clickToUpload')}
                         </span>
                         <span className="text-xs text-muted-foreground">
                           {t('aiKnowledge.imageSizeHint')}
@@ -1347,8 +1453,8 @@ export default function AIKnowledgePage() {
                     </div>
                   ) : (
                     <div className="relative">
-                      <img 
-                        src={imageFormData.previewUrl} 
+                      <img
+                        src={imageFormData.previewUrl}
                         alt="Preview"
                         className="w-full max-h-48 object-contain rounded-lg border"
                       />
@@ -1356,14 +1462,16 @@ export default function AIKnowledgePage() {
                         variant="destructive"
                         size="sm"
                         className="absolute top-2 right-2"
-                        onClick={() => setImageFormData(prev => ({ ...prev, path: '', previewUrl: '' }))}
+                        onClick={() =>
+                          setImageFormData((prev) => ({ ...prev, path: '', previewUrl: '' }))
+                        }
                       >
                         <X className="w-4 h-4" />
                       </Button>
                     </div>
                   )}
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label className="flex items-center gap-2">
                     <Sparkles className="w-4 h-4" />
@@ -1376,7 +1484,7 @@ export default function AIKnowledgePage() {
                     placeholder="manual"
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label className="flex items-center gap-2">
                     <Pencil className="w-4 h-4" />
@@ -1388,11 +1496,9 @@ export default function AIKnowledgePage() {
                     onChange={(tags) => setImageFormData({ ...imageFormData, tags })}
                     placeholder={t('aiKnowledge.imageTagsPlaceholder')}
                   />
-                  <p className="text-xs text-muted-foreground">
-                    {t('aiKnowledge.imageTagsHelp')}
-                  </p>
+                  <p className="text-xs text-muted-foreground">{t('aiKnowledge.imageTagsHelp')}</p>
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label className="flex items-center gap-2">
                     <FileText className="w-4 h-4" />
@@ -1400,7 +1506,9 @@ export default function AIKnowledgePage() {
                   </Label>
                   <Textarea
                     value={imageFormData.content}
-                    onChange={(e) => setImageFormData({ ...imageFormData, content: e.target.value })}
+                    onChange={(e) =>
+                      setImageFormData({ ...imageFormData, content: e.target.value })
+                    }
                     placeholder={t('aiKnowledge.imageDescriptionPlaceholder')}
                     rows={3}
                   />
@@ -1408,24 +1516,20 @@ export default function AIKnowledgePage() {
                     {t('aiKnowledge.imageDescriptionHelp')}
                   </p>
                 </div>
-                
+
                 {imageFormData.path && (
                   <div className="space-y-2">
                     <Label className="flex items-center gap-2">
                       <FileText className="w-4 h-4" />
                       {t('aiKnowledge.imagePath')}
                     </Label>
-                    <Input
-                      value={imageFormData.path}
-                      disabled
-                      className="font-mono text-xs"
-                    />
+                    <Input value={imageFormData.path} disabled className="font-mono text-xs" />
                   </div>
                 )}
               </>
             )}
           </div>
-          
+
           <DialogFooter className="flex items-center justify-between">
             {isEditMode && (
               <span className="text-sm text-muted-foreground">
@@ -1436,8 +1540,8 @@ export default function AIKnowledgePage() {
               <Button variant="outline" onClick={() => setDialogOpen(false)}>
                 {t('common.cancel')}
               </Button>
-              <Button 
-                onClick={handleSave} 
+              <Button
+                onClick={handleSave}
                 disabled={isSaving || (knowledgeType === 'image' && !imageFormData.path)}
               >
                 {isSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
@@ -1454,17 +1558,22 @@ export default function AIKnowledgePage() {
           <AlertDialogHeader>
             <AlertDialogTitle>{t('common.confirm')}</AlertDialogTitle>
             <AlertDialogDescription>
-              {knowledgeType === 'text' 
-                ? t('aiKnowledge.deleteConfirm', { title: (itemToDelete as AIKnowledgeItem)?.title })
-                : t('aiKnowledge.deleteImageConfirm', { id: itemToDelete?.id })
-              }
+              {knowledgeType === 'text'
+                ? t('aiKnowledge.deleteConfirm', {
+                    title: (itemToDelete as AIKnowledgeItem)?.title,
+                  })
+                : t('aiKnowledge.deleteImageConfirm', { id: itemToDelete?.id })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setItemToDelete(null)}>
               {t('common.cancel')}
             </AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90">
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="bg-destructive hover:bg-destructive/90"
+            >
               {isDeleting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               {t('common.delete')}
             </AlertDialogAction>
@@ -1495,9 +1604,12 @@ export default function AIKnowledgePage() {
             <div
               className={cn(
                 'border-2 border-dashed rounded-lg p-6 text-center transition-colors',
-                isBulkDragging ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/50'
+                isBulkDragging ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/50',
               )}
-              onDragOver={(e) => { e.preventDefault(); setIsBulkDragging(true); }}
+              onDragOver={(e) => {
+                e.preventDefault();
+                setIsBulkDragging(true);
+              }}
               onDragLeave={() => setIsBulkDragging(false)}
               onDrop={handleBulkDrop}
             >
@@ -1510,26 +1622,40 @@ export default function AIKnowledgePage() {
                 id="bulk-file-input"
                 disabled={bulkImporting}
               />
-              <label htmlFor="bulk-file-input" className="cursor-pointer flex flex-col items-center gap-2">
+              <label
+                htmlFor="bulk-file-input"
+                className="cursor-pointer flex flex-col items-center gap-2"
+              >
                 <Files className="w-10 h-10 text-muted-foreground" />
                 <span className="text-sm font-medium">{t('aiKnowledge.bulkDropOrClick')}</span>
-                <span className="text-xs text-muted-foreground">{t('aiKnowledge.bulkSupportedExts')}</span>
+                <span className="text-xs text-muted-foreground">
+                  {t('aiKnowledge.bulkSupportedExts')}
+                </span>
               </label>
             </div>
 
             {/* 已选文件 */}
             {bulkFiles.length > 0 && (
               <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">{t('aiKnowledge.bulkSelectedFiles', { count: bulkFiles.length })}</Label>
+                <Label className="text-xs text-muted-foreground">
+                  {t('aiKnowledge.bulkSelectedFiles', { count: bulkFiles.length })}
+                </Label>
                 <div className="max-h-40 overflow-y-auto space-y-1 rounded border p-2 bg-muted/30">
                   {bulkFiles.map((f, i) => (
                     <div key={i} className="flex items-center justify-between text-sm">
                       <span className="truncate flex-1 flex items-center gap-2">
                         <FileText className="w-3 h-3 shrink-0" />
                         <span className="truncate">{f.name}</span>
-                        <span className="text-xs text-muted-foreground shrink-0">({formatBytes(f.size)})</span>
+                        <span className="text-xs text-muted-foreground shrink-0">
+                          ({formatBytes(f.size)})
+                        </span>
                       </span>
-                      <Button variant="ghost" size="icon" onClick={() => removeBulkFile(i)} disabled={bulkImporting}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeBulkFile(i)}
+                        disabled={bulkImporting}
+                      >
                         <X className="w-3 h-3" />
                       </Button>
                     </div>
@@ -1540,7 +1666,9 @@ export default function AIKnowledgePage() {
 
             {/* 或直接粘贴文本 */}
             <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">{t('aiKnowledge.bulkOrPasteText')}</Label>
+              <Label className="text-xs text-muted-foreground">
+                {t('aiKnowledge.bulkOrPasteText')}
+              </Label>
               <Textarea
                 value={bulkText}
                 onChange={(e) => setBulkText(e.target.value)}
@@ -1554,7 +1682,9 @@ export default function AIKnowledgePage() {
             {/* 元信息 */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label>{t('aiKnowledge.bulkDocTitle')} <span className="text-destructive">*</span></Label>
+                <Label>
+                  {t('aiKnowledge.bulkDocTitle')} <span className="text-destructive">*</span>
+                </Label>
                 <Input
                   value={bulkDocTitle}
                   onChange={(e) => setBulkDocTitle(e.target.value)}
@@ -1601,10 +1731,14 @@ export default function AIKnowledgePage() {
                   min={50}
                   max={4000}
                   value={bulkChunkSize}
-                  onChange={(e) => setBulkChunkSize(Math.max(50, Math.min(4000, Number(e.target.value) || 400)))}
+                  onChange={(e) =>
+                    setBulkChunkSize(Math.max(50, Math.min(4000, Number(e.target.value) || 400)))
+                  }
                   disabled={bulkImporting}
                 />
-                <p className="text-xs text-muted-foreground">{t('aiKnowledge.bulkChunkSizeHelp')}</p>
+                <p className="text-xs text-muted-foreground">
+                  {t('aiKnowledge.bulkChunkSizeHelp')}
+                </p>
               </div>
               <div className="space-y-2">
                 <Label>{t('aiKnowledge.bulkChunkOverlap')}</Label>
@@ -1613,10 +1747,14 @@ export default function AIKnowledgePage() {
                   min={0}
                   max={4000}
                   value={bulkChunkOverlap}
-                  onChange={(e) => setBulkChunkOverlap(Math.max(0, Math.min(4000, Number(e.target.value) || 0)))}
+                  onChange={(e) =>
+                    setBulkChunkOverlap(Math.max(0, Math.min(4000, Number(e.target.value) || 0)))
+                  }
                   disabled={bulkImporting}
                 />
-                <p className="text-xs text-muted-foreground">{t('aiKnowledge.bulkChunkOverlapHelp')}</p>
+                <p className="text-xs text-muted-foreground">
+                  {t('aiKnowledge.bulkChunkOverlapHelp')}
+                </p>
               </div>
             </div>
 
@@ -1643,19 +1781,33 @@ export default function AIKnowledgePage() {
 
             {bulkImportResult && (
               <div className="rounded-md border bg-muted/40 p-3 text-sm">
-                <div className="font-medium text-foreground mb-1">{t('aiKnowledge.bulkImportResultTitle')}</div>
-                <div>doc_id: <span className="font-mono">{bulkImportResult.doc_id || '-'}</span></div>
-                <div>{t('aiKnowledge.bulkImportResultTotal', { n: bulkImportResult.total_chunks })}</div>
-                <div>{t('aiKnowledge.bulkImportResultWritten', { n: bulkImportResult.written })}</div>
+                <div className="font-medium text-foreground mb-1">
+                  {t('aiKnowledge.bulkImportResultTitle')}
+                </div>
+                <div>
+                  doc_id: <span className="font-mono">{bulkImportResult.doc_id || '-'}</span>
+                </div>
+                <div>
+                  {t('aiKnowledge.bulkImportResultTotal', { n: bulkImportResult.total_chunks })}
+                </div>
+                <div>
+                  {t('aiKnowledge.bulkImportResultWritten', { n: bulkImportResult.written })}
+                </div>
                 {bulkImportResult.skipped > 0 && (
-                  <div className="text-amber-600">{t('aiKnowledge.bulkImportResultSkipped', { n: bulkImportResult.skipped })}</div>
+                  <div className="text-amber-600">
+                    {t('aiKnowledge.bulkImportResultSkipped', { n: bulkImportResult.skipped })}
+                  </div>
                 )}
               </div>
             )}
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setBulkDialogOpen(false)} disabled={bulkImporting}>
+            <Button
+              variant="outline"
+              onClick={() => setBulkDialogOpen(false)}
+              disabled={bulkImporting}
+            >
               {t('common.cancel')}
             </Button>
             <Button onClick={handleBulkImport} disabled={bulkImporting}>
@@ -1688,7 +1840,9 @@ export default function AIKnowledgePage() {
             <div className="py-8 text-center text-muted-foreground">{t('common.noData')}</div>
           ) : (
             <div className="space-y-2">
-              <div className="text-xs text-muted-foreground">{t('aiKnowledge.docViewerTotalChunks', { total: docViewerTotal })}</div>
+              <div className="text-xs text-muted-foreground">
+                {t('aiKnowledge.docViewerTotalChunks', { total: docViewerTotal })}
+              </div>
               <div className="space-y-2 max-h-[55vh] overflow-y-auto">
                 {docViewerChunks.map((chunk) => {
                   const m = /#(\d+)$/.exec(chunk.id);
@@ -1696,10 +1850,16 @@ export default function AIKnowledgePage() {
                   return (
                     <div key={chunk.id} className="border rounded-md p-3 bg-muted/30">
                       <div className="flex items-center justify-between mb-1">
-                        <Badge variant="secondary" className="text-xs">#{idx}</Badge>
-                        <span className="text-xs text-muted-foreground truncate ml-2 font-mono">{chunk.id}</span>
+                        <Badge variant="secondary" className="text-xs">
+                          #{idx}
+                        </Badge>
+                        <span className="text-xs text-muted-foreground truncate ml-2 font-mono">
+                          {chunk.id}
+                        </span>
                       </div>
-                      <pre className="whitespace-pre-wrap text-xs font-mono leading-relaxed text-foreground/80 max-h-40 overflow-y-auto">{chunk.content}</pre>
+                      <pre className="whitespace-pre-wrap text-xs font-mono leading-relaxed text-foreground/80 max-h-40 overflow-y-auto">
+                        {chunk.content}
+                      </pre>
                     </div>
                   );
                 })}
@@ -1710,7 +1870,11 @@ export default function AIKnowledgePage() {
                     variant="outline"
                     size="sm"
                     disabled={docViewerPage <= 1}
-                    onClick={() => { const np = docViewerPage - 1; setDocViewerPage(np); loadDocChunks(docViewerDocId, np); }}
+                    onClick={() => {
+                      const np = docViewerPage - 1;
+                      setDocViewerPage(np);
+                      loadDocChunks(docViewerDocId, np);
+                    }}
                   >
                     {t('aiKnowledge.docViewerPrev')}
                   </Button>
@@ -1721,7 +1885,11 @@ export default function AIKnowledgePage() {
                     variant="outline"
                     size="sm"
                     disabled={docViewerPage >= Math.ceil(docViewerTotal / docViewerLimit)}
-                    onClick={() => { const np = docViewerPage + 1; setDocViewerPage(np); loadDocChunks(docViewerDocId, np); }}
+                    onClick={() => {
+                      const np = docViewerPage + 1;
+                      setDocViewerPage(np);
+                      loadDocChunks(docViewerDocId, np);
+                    }}
                   >
                     {t('aiKnowledge.docViewerNext')}
                   </Button>
@@ -1747,7 +1915,12 @@ export default function AIKnowledgePage() {
       </Dialog>
 
       {/* 备份导入 Dialog（JSONL） */}
-      <Dialog open={backupDialogOpen} onOpenChange={(o) => { if (!backupImporting) setBackupDialogOpen(o); }}>
+      <Dialog
+        open={backupDialogOpen}
+        onOpenChange={(o) => {
+          if (!backupImporting) setBackupDialogOpen(o);
+        }}
+      >
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -1769,19 +1942,30 @@ export default function AIKnowledgePage() {
                 id="backup-file-input"
                 disabled={backupImporting}
               />
-              <label htmlFor="backup-file-input" className="cursor-pointer flex flex-col items-center gap-2">
+              <label
+                htmlFor="backup-file-input"
+                className="cursor-pointer flex flex-col items-center gap-2"
+              >
                 <FilePlus className="w-8 h-8 text-muted-foreground" />
-                <span className="text-sm font-medium">{backupFile ? backupFile.name : t('aiKnowledge.backupPickFile')}</span>
-                {backupFile && <span className="text-xs text-muted-foreground">{formatBytes(backupFile.size)}</span>}
+                <span className="text-sm font-medium">
+                  {backupFile ? backupFile.name : t('aiKnowledge.backupPickFile')}
+                </span>
+                {backupFile && (
+                  <span className="text-xs text-muted-foreground">
+                    {formatBytes(backupFile.size)}
+                  </span>
+                )}
               </label>
             </div>
-            <div className="text-xs text-muted-foreground">
-              {t('aiKnowledge.importBackupNote')}
-            </div>
+            <div className="text-xs text-muted-foreground">{t('aiKnowledge.importBackupNote')}</div>
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setBackupDialogOpen(false)} disabled={backupImporting}>
+            <Button
+              variant="outline"
+              onClick={() => setBackupDialogOpen(false)}
+              disabled={backupImporting}
+            >
               {t('common.cancel')}
             </Button>
             <Button onClick={handleImportBackup} disabled={backupImporting || !backupFile}>
@@ -1793,7 +1977,12 @@ export default function AIKnowledgePage() {
       </Dialog>
 
       {/* 删除整篇文档确认 */}
-      <AlertDialog open={!!deletingDoc} onOpenChange={(o) => { if (!o) setDeletingDoc(null); }}>
+      <AlertDialog
+        open={!!deletingDoc}
+        onOpenChange={(o) => {
+          if (!o) setDeletingDoc(null);
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{t('aiKnowledge.deleteWholeDocConfirmTitle')}</AlertDialogTitle>

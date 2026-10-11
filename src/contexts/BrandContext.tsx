@@ -1,4 +1,12 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+  useCallback,
+  useMemo,
+} from 'react';
 import { brandApi, BrandInfo, getBrandIconUrl } from '@/lib/api';
 import { afterFirstPaint } from '@/lib/afterFirstPaint';
 import { useLanguage } from './LanguageContext';
@@ -20,7 +28,9 @@ function syncFavicon(timestamp: number) {
   apply('#favicon-apple');
   // 兜底：按 rel 选择，避免某些环境下 id 选择失败
   document
-    .querySelectorAll<HTMLLinkElement>('link[rel="icon"], link[rel="shortcut icon"], link[rel="apple-touch-icon"]')
+    .querySelectorAll<HTMLLinkElement>(
+      'link[rel="icon"], link[rel="shortcut icon"], link[rel="apple-touch-icon"]',
+    )
     .forEach((el) => {
       el.href = href;
     });
@@ -166,9 +176,7 @@ export function BrandProvider({ children }: { children: ReactNode }) {
   const subtitle = info?.subtitle || DEFAULT_SUBTITLE;
   const iconSource = info?.icon_source ?? 'default';
   const iconUrl =
-    allowRemoteIcon && isLoaded && iconSource === 'user'
-      ? getBrandIconUrl(iconTs)
-      : PACKAGED_ICON;
+    allowRemoteIcon && isLoaded && iconSource === 'user' ? getBrandIconUrl(iconTs) : PACKAGED_ICON;
 
   useEffect(() => {
     if (isLoaded && iconSource === 'user') {
@@ -195,7 +203,19 @@ export function BrandProvider({ children }: { children: ReactNode }) {
       uploadIcon,
       deleteIcon,
     }),
-    [title, subtitle, iconUrl, iconSource, defaultInfo, isLoaded, isLoading, refresh, updateInfo, uploadIcon, deleteIcon]
+    [
+      title,
+      subtitle,
+      iconUrl,
+      iconSource,
+      defaultInfo,
+      isLoaded,
+      isLoading,
+      refresh,
+      updateInfo,
+      uploadIcon,
+      deleteIcon,
+    ],
   );
 
   return <BrandContext.Provider value={value}>{children}</BrandContext.Provider>;

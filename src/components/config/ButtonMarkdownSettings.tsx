@@ -5,13 +5,30 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Save, Settings, Layout, FileText, List, Columns, ToggleLeft, ToggleRight, SplitSquareHorizontal, Cog } from 'lucide-react';
+import {
+  Loader2,
+  Save,
+  Settings,
+  Layout,
+  FileText,
+  List,
+  Columns,
+  ToggleLeft,
+  ToggleRight,
+  SplitSquareHorizontal,
+  Cog,
+} from 'lucide-react';
 import { frameworkConfigApi, FrameworkConfigListItem, PluginConfigItem } from '@/lib/api';
 import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useConfigDirty } from '@/contexts/ConfigDirtyContext';
 import { cn } from '@/lib/utils';
-import { ConfigField, ConfigFieldDefinition, ConfigFieldType, ConfigValue } from '@/components/config';
+import {
+  ConfigField,
+  ConfigFieldDefinition,
+  ConfigFieldType,
+  ConfigValue,
+} from '@/components/config';
 
 // 平台配置接口 - 适配后端返回的 gsliststr 类型
 interface PlatformConfig {
@@ -64,7 +81,16 @@ const EXPECTED_CONFIG_KEYS = [
 ];
 
 // 平台选项的默认列表和标签映射
-const PLATFORM_OPTIONS = ['villa', 'kaiheila', 'dodo', 'discord', 'telegram', 'qqgroup', 'qqguild', 'web'];
+const PLATFORM_OPTIONS = [
+  'villa',
+  'kaiheila',
+  'dodo',
+  'discord',
+  'telegram',
+  'qqgroup',
+  'qqguild',
+  'web',
+];
 
 const PLATFORM_LABELS: Record<string, string> = {
   villa: '米游社大别野',
@@ -90,7 +116,7 @@ const PLATFORM_COLORS: Record<string, string> = {
 
 // 根据 options 生成平台列表
 const getPlatformsFromOptions = (options: string[]) => {
-  return options.map(key => ({
+  return options.map((key) => ({
     key,
     label: PLATFORM_LABELS[key] || key,
     color: PLATFORM_COLORS[key] || 'bg-gray-500',
@@ -106,14 +132,17 @@ export default function ButtonMarkdownSettings() {
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [originalConfig, setOriginalConfig] = useState<Record<string, any>>({});
-  const [originalRawConfig, setOriginalRawConfig] = useState<Record<string, PluginConfigItem> | undefined>(undefined);
+  const [originalRawConfig, setOriginalRawConfig] = useState<
+    Record<string, PluginConfigItem> | undefined
+  >(undefined);
   const [buttonMdConfigName, setButtonMdConfigName] = useState<string>('');
 
   const buttonMdConfig = useMemo(() => {
-    return configs.find(c =>
-      c.name === '按钮和MD配置' ||
-      c.full_name === '按钮和MD配置' ||
-      c.full_name === buttonMdConfigName
+    return configs.find(
+      (c) =>
+        c.name === '按钮和MD配置' ||
+        c.full_name === '按钮和MD配置' ||
+        c.full_name === buttonMdConfigName,
     );
   }, [configs, buttonMdConfigName]);
 
@@ -121,14 +150,16 @@ export default function ButtonMarkdownSettings() {
     try {
       setIsLoading(true);
       const data = await frameworkConfigApi.getFrameworkConfigList('GsCore');
-      const buttonMdConfigList = data.filter(c => {
+      const buttonMdConfigList = data.filter((c) => {
         const nameLower = c.name.toLowerCase();
         const fullNameLower = c.full_name.toLowerCase();
-        return nameLower.includes('按钮') ||
-               nameLower.includes('markdown') ||
-               nameLower.includes('md') ||
-               fullNameLower.includes('按钮') ||
-               fullNameLower.includes('markdown');
+        return (
+          nameLower.includes('按钮') ||
+          nameLower.includes('markdown') ||
+          nameLower.includes('md') ||
+          fullNameLower.includes('按钮') ||
+          fullNameLower.includes('markdown')
+        );
       });
 
       if (buttonMdConfigList.length > 0) {
@@ -159,53 +190,74 @@ export default function ButtonMarkdownSettings() {
             default: (data.config.SendMDPlatform?.default || []) as string[],
             options: (data.config.SendMDPlatform?.options || PLATFORM_OPTIONS) as string[],
             title: data.config.SendMDPlatform?.title || '默认发送MD的平台列表',
-            desc: data.config.SendMDPlatform?.desc || '发送MD的平台列表'
+            desc: data.config.SendMDPlatform?.desc || '发送MD的平台列表',
           },
           ButtonRow: {
             value: (data.config.ButtonRow?.value || 2) as number,
             default: (data.config.ButtonRow?.default || 2) as number,
             title: data.config.ButtonRow?.title || '按钮默认一行几个',
-            desc: data.config.ButtonRow?.desc || '除了插件作者特殊设定的按钮排序'
+            desc: data.config.ButtonRow?.desc || '除了插件作者特殊设定的按钮排序',
           },
           SendButtonsPlatform: {
-            value: (data.config.SendButtonsPlatform?.value || ['villa', 'kaiheila', 'dodo', 'discord', 'telegram', 'web']) as string[],
-            default: (data.config.SendButtonsPlatform?.default || ['villa', 'kaiheila', 'dodo', 'discord', 'telegram', 'web']) as string[],
+            value: (data.config.SendButtonsPlatform?.value || [
+              'villa',
+              'kaiheila',
+              'dodo',
+              'discord',
+              'telegram',
+              'web',
+            ]) as string[],
+            default: (data.config.SendButtonsPlatform?.default || [
+              'villa',
+              'kaiheila',
+              'dodo',
+              'discord',
+              'telegram',
+              'web',
+            ]) as string[],
             options: (data.config.SendButtonsPlatform?.options || PLATFORM_OPTIONS) as string[],
             title: data.config.SendButtonsPlatform?.title || '默认发送按钮的平台列表',
-            desc: data.config.SendButtonsPlatform?.desc || '发送按钮的平台列表'
+            desc: data.config.SendButtonsPlatform?.desc || '发送按钮的平台列表',
           },
           SendTemplatePlatform: {
             value: (data.config.SendTemplatePlatform?.value || ['qqgroup', 'qqguild']) as string[],
-            default: (data.config.SendTemplatePlatform?.default || ['qqgroup', 'qqguild']) as string[],
-            options: (data.config.SendTemplatePlatform?.options || ['qqgroup', 'qqguild', 'web']) as string[],
+            default: (data.config.SendTemplatePlatform?.default || [
+              'qqgroup',
+              'qqguild',
+            ]) as string[],
+            options: (data.config.SendTemplatePlatform?.options || [
+              'qqgroup',
+              'qqguild',
+              'web',
+            ]) as string[],
             title: data.config.SendTemplatePlatform?.title || '默认发送模板按钮/MD的平台列表',
-            desc: data.config.SendTemplatePlatform?.desc || '发送按钮的平台列表'
+            desc: data.config.SendTemplatePlatform?.desc || '发送按钮的平台列表',
           },
           TryTemplateForQQ: {
             value: (data.config.TryTemplateForQQ?.value ?? true) as boolean,
             default: (data.config.TryTemplateForQQ?.default ?? true) as boolean,
             title: data.config.TryTemplateForQQ?.title || '启用后尝试读取模板文件并发送',
-            desc: data.config.TryTemplateForQQ?.desc || '发送MD和按钮模板'
+            desc: data.config.TryTemplateForQQ?.desc || '发送MD和按钮模板',
           },
           ForceSendMD: {
             value: (data.config.ForceSendMD?.value ?? false) as boolean,
             default: (data.config.ForceSendMD?.default ?? false) as boolean,
             title: data.config.ForceSendMD?.title || '强制使用MD发送图文',
-            desc: data.config.ForceSendMD?.desc || '强制使用MD发送图文'
+            desc: data.config.ForceSendMD?.desc || '强制使用MD发送图文',
           },
           UseCRLFReplaceLFForMD: {
             value: (data.config.UseCRLFReplaceLFForMD?.value ?? true) as boolean,
             default: (data.config.UseCRLFReplaceLFForMD?.default ?? true) as boolean,
             title: data.config.UseCRLFReplaceLFForMD?.title || '发送MD时使用CR替换LF',
-            desc: data.config.UseCRLFReplaceLFForMD?.desc || '发送MD时使用CR替换LF'
+            desc: data.config.UseCRLFReplaceLFForMD?.desc || '发送MD时使用CR替换LF',
           },
           SplitMDAndButtons: {
             value: (data.config.SplitMDAndButtons?.value ?? false) as boolean,
             default: (data.config.SplitMDAndButtons?.default ?? false) as boolean,
             title: data.config.SplitMDAndButtons?.title || '发送MD消息时将按钮分开发送',
-            desc: data.config.SplitMDAndButtons?.desc || '发送MD消息时将按钮分开发送'
-          }
-        }
+            desc: data.config.SplitMDAndButtons?.desc || '发送MD消息时将按钮分开发送',
+          },
+        },
       };
 
       setConfigs([convertedConfig]);
@@ -238,10 +290,13 @@ export default function ButtonMarkdownSettings() {
   }, [buttonMdConfig?.id, setDirty]);
 
   // 将后端配置转换为 ConfigFieldDefinition 类型
-  const convertToConfigField = (key: string, configItem: PluginConfigItem): ConfigFieldDefinition => {
+  const convertToConfigField = (
+    key: string,
+    configItem: PluginConfigItem,
+  ): ConfigFieldDefinition => {
     let type: ConfigFieldType = 'text';
     const rawType = configItem.type?.toLowerCase() || '';
-    
+
     if (rawType.includes('bool')) {
       type = 'boolean';
     } else if (rawType.includes('int')) {
@@ -265,7 +320,7 @@ export default function ButtonMarkdownSettings() {
     } else if (rawType.includes('image')) {
       type = 'image';
     }
-    
+
     return {
       type,
       label: configItem.title || key,
@@ -290,45 +345,53 @@ export default function ButtonMarkdownSettings() {
     return items;
   }, [buttonMdConfig?.rawConfig]);
 
-  const handleChange = useCallback((fieldKey: string, value: string | number | boolean | string[]) => {
-    if (!buttonMdConfig) return;
+  const handleChange = useCallback(
+    (fieldKey: string, value: string | number | boolean | string[]) => {
+      if (!buttonMdConfig) return;
 
-    // 检查是否是预料之外的配置项
-    if (!EXPECTED_CONFIG_KEYS.includes(fieldKey)) {
-      // 更新 rawConfig 中的值
-      setConfigs(prev => prev.map(c => {
-        if (c.id !== buttonMdConfig.id) return c;
-        const updatedRawConfig = { ...c.rawConfig };
-        if (updatedRawConfig[fieldKey]) {
-          updatedRawConfig[fieldKey] = { ...updatedRawConfig[fieldKey], value };
-        }
-        return { ...c, rawConfig: updatedRawConfig };
-      }));
-      setDirty(true);
-      return;
-    }
+      // 检查是否是预料之外的配置项
+      if (!EXPECTED_CONFIG_KEYS.includes(fieldKey)) {
+        // 更新 rawConfig 中的值
+        setConfigs((prev) =>
+          prev.map((c) => {
+            if (c.id !== buttonMdConfig.id) return c;
+            const updatedRawConfig = { ...c.rawConfig };
+            if (updatedRawConfig[fieldKey]) {
+              updatedRawConfig[fieldKey] = { ...updatedRawConfig[fieldKey], value };
+            }
+            return { ...c, rawConfig: updatedRawConfig };
+          }),
+        );
+        setDirty(true);
+        return;
+      }
 
-    const originalValue = originalConfig[fieldKey as keyof ButtonMarkdownConfig]?.value;
-    const hasChanged = JSON.stringify(value) !== JSON.stringify(originalValue);
+      const originalValue = originalConfig[fieldKey as keyof ButtonMarkdownConfig]?.value;
+      const hasChanged = JSON.stringify(value) !== JSON.stringify(originalValue);
 
-    setConfigs(prev => prev.map(c => {
-      if (c.id !== buttonMdConfig.id) return c;
-      return {
-        ...c,
-        config: {
-          ...c.config,
-          [fieldKey]: { ...c.config[fieldKey as keyof ButtonMarkdownConfig], value }
-        }
-      };
-    }));
-    setDirty(hasChanged);
-  }, [buttonMdConfig, originalConfig, setDirty]);
+      setConfigs((prev) =>
+        prev.map((c) => {
+          if (c.id !== buttonMdConfig.id) return c;
+          return {
+            ...c,
+            config: {
+              ...c.config,
+              [fieldKey]: { ...c.config[fieldKey as keyof ButtonMarkdownConfig], value },
+            },
+          };
+        }),
+      );
+      setDirty(hasChanged);
+    },
+    [buttonMdConfig, originalConfig, setDirty],
+  );
 
   const togglePlatform = (fieldKey: string, platform: string) => {
     if (!buttonMdConfig) return;
-    const currentValue = buttonMdConfig.config[fieldKey as keyof ButtonMarkdownConfig].value as string[];
+    const currentValue = buttonMdConfig.config[fieldKey as keyof ButtonMarkdownConfig]
+      .value as string[];
     const newValue = currentValue.includes(platform)
-      ? currentValue.filter(p => p !== platform)
+      ? currentValue.filter((p) => p !== platform)
       : [...currentValue, platform];
     handleChange(fieldKey, newValue);
   };
@@ -361,7 +424,9 @@ export default function ButtonMarkdownSettings() {
       setDirty(false);
       toast.success(t('buttonMdConfig.configSaved'));
     } catch (error) {
-      toast.error(t('buttonMdConfig.saveFailed') || 'Failed to update button markdown configuration');
+      toast.error(
+        t('buttonMdConfig.saveFailed') || 'Failed to update button markdown configuration',
+      );
     } finally {
       setIsSaving(false);
     }
@@ -371,8 +436,10 @@ export default function ButtonMarkdownSettings() {
     if (!buttonMdConfig) return false;
     const configChanged = JSON.stringify(buttonMdConfig.config) !== JSON.stringify(originalConfig);
     // 同时检查预料之外的配置项（rawConfig）是否有变化
-    const rawConfigChanged = buttonMdConfig.rawConfig && originalRawConfig ?
-      JSON.stringify(buttonMdConfig.rawConfig) !== JSON.stringify(originalRawConfig) : false;
+    const rawConfigChanged =
+      buttonMdConfig.rawConfig && originalRawConfig
+        ? JSON.stringify(buttonMdConfig.rawConfig) !== JSON.stringify(originalRawConfig)
+        : false;
     return configChanged || rawConfigChanged;
   }, [buttonMdConfig, originalConfig, originalRawConfig]);
 
@@ -400,13 +467,17 @@ export default function ButtonMarkdownSettings() {
 
   // 从后端返回的 options 动态生成平台列表，fallback 到默认列表
   const sendMDPlatforms = getPlatformsFromOptions(
-    config.SendMDPlatform.options?.length ? config.SendMDPlatform.options : PLATFORM_OPTIONS
+    config.SendMDPlatform.options?.length ? config.SendMDPlatform.options : PLATFORM_OPTIONS,
   );
   const sendButtonsPlatforms = getPlatformsFromOptions(
-    config.SendButtonsPlatform.options?.length ? config.SendButtonsPlatform.options : PLATFORM_OPTIONS
+    config.SendButtonsPlatform.options?.length
+      ? config.SendButtonsPlatform.options
+      : PLATFORM_OPTIONS,
   );
   const sendTemplatePlatforms = getPlatformsFromOptions(
-    config.SendTemplatePlatform.options?.length ? config.SendTemplatePlatform.options : ['qqgroup', 'qqguild', 'web']
+    config.SendTemplatePlatform.options?.length
+      ? config.SendTemplatePlatform.options
+      : ['qqgroup', 'qqguild', 'web'],
   );
 
   return (
@@ -435,13 +506,19 @@ export default function ButtonMarkdownSettings() {
                     key={platform.key}
                     onClick={() => togglePlatform('SendMDPlatform', platform.key)}
                     className={cn(
-                      "p-2 rounded-lg border-2 transition-all flex items-center gap-2",
+                      'p-2 rounded-lg border-2 transition-all flex items-center gap-2',
                       isSelected
-                        ? "border-primary bg-primary/10"
-                        : "border-border hover:border-primary/50"
+                        ? 'border-primary bg-primary/10'
+                        : 'border-border hover:border-primary/50',
                     )}
                   >
-                    <div className={cn("w-3 h-3 rounded-full", platform.color, !isSelected && "opacity-30")} />
+                    <div
+                      className={cn(
+                        'w-3 h-3 rounded-full',
+                        platform.color,
+                        !isSelected && 'opacity-30',
+                      )}
+                    />
                     <span className="text-sm">{platform.label}</span>
                   </button>
                 );
@@ -465,13 +542,19 @@ export default function ButtonMarkdownSettings() {
                       key={platform.key}
                       onClick={() => togglePlatform('SendButtonsPlatform', platform.key)}
                       className={cn(
-                        "p-2 rounded-lg border-2 transition-all flex items-center gap-2",
+                        'p-2 rounded-lg border-2 transition-all flex items-center gap-2',
                         isSelected
-                          ? "border-primary bg-primary/10"
-                          : "border-border hover:border-primary/50"
+                          ? 'border-primary bg-primary/10'
+                          : 'border-border hover:border-primary/50',
                       )}
                     >
-                      <div className={cn("w-3 h-3 rounded-full", platform.color, !isSelected && "opacity-30")} />
+                      <div
+                        className={cn(
+                          'w-3 h-3 rounded-full',
+                          platform.color,
+                          !isSelected && 'opacity-30',
+                        )}
+                      />
                       <span className="text-sm">{platform.label}</span>
                     </button>
                   );
@@ -494,13 +577,19 @@ export default function ButtonMarkdownSettings() {
                       key={platform.key}
                       onClick={() => togglePlatform('SendTemplatePlatform', platform.key)}
                       className={cn(
-                        "p-2 rounded-lg border-2 transition-all flex items-center gap-2",
+                        'p-2 rounded-lg border-2 transition-all flex items-center gap-2',
                         isSelected
-                          ? "border-primary bg-primary/10"
-                          : "border-border hover:border-primary/50"
+                          ? 'border-primary bg-primary/10'
+                          : 'border-border hover:border-primary/50',
                       )}
                     >
-                      <div className={cn("w-3 h-3 rounded-full", platform.color, !isSelected && "opacity-30")} />
+                      <div
+                        className={cn(
+                          'w-3 h-3 rounded-full',
+                          platform.color,
+                          !isSelected && 'opacity-30',
+                        )}
+                      />
                       <span className="text-sm">{platform.label}</span>
                     </button>
                   );
@@ -531,10 +620,10 @@ export default function ButtonMarkdownSettings() {
                   key={row}
                   onClick={() => handleChange('ButtonRow', row)}
                   className={cn(
-                    "w-12 h-12 rounded-lg border-2 transition-all flex items-center justify-center",
+                    'w-12 h-12 rounded-lg border-2 transition-all flex items-center justify-center',
                     config.ButtonRow.value === row
-                      ? "border-primary bg-primary/10 text-primary font-bold"
-                      : "border-border hover:border-primary/50"
+                      ? 'border-primary bg-primary/10 text-primary font-bold'
+                      : 'border-border hover:border-primary/50',
                   )}
                 >
                   {row}
@@ -591,7 +680,9 @@ export default function ButtonMarkdownSettings() {
                 </div>
                 <div>
                   <p className="font-medium">{config.UseCRLFReplaceLFForMD.title}</p>
-                  <p className="text-sm text-muted-foreground">{config.UseCRLFReplaceLFForMD.desc}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {config.UseCRLFReplaceLFForMD.desc}
+                  </p>
                 </div>
               </div>
               <Switch
@@ -633,12 +724,7 @@ export default function ButtonMarkdownSettings() {
           <CardContent className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {Object.entries(unexpectedConfigItems).map(([key, field]) => (
-                <ConfigField
-                  key={key}
-                  fieldKey={key}
-                  field={field}
-                  onChange={handleChange}
-                />
+                <ConfigField key={key} fieldKey={key} field={field} onChange={handleChange} />
               ))}
             </div>
           </CardContent>
@@ -647,16 +733,8 @@ export default function ButtonMarkdownSettings() {
 
       {/* Save Button */}
       <div className="flex justify-end pt-4">
-        <Button
-          onClick={handleSaveConfig}
-          disabled={!isConfigDirty || isSaving}
-          className="gap-2"
-        >
-          {isSaving ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Save className="w-4 h-4" />
-          )}
+        <Button onClick={handleSaveConfig} disabled={!isConfigDirty || isSaving} className="gap-2">
+          {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
           {t('common.save')}
         </Button>
       </div>
