@@ -12,6 +12,7 @@ import { Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { resolveApiAssetUrl } from '@/lib/api';
 
 function LayoutHeader() {
   const { toggleSidebar } = useSidebar();
@@ -25,7 +26,13 @@ function LayoutHeader() {
   return (
     <div className="sticky top-0 z-10 w-full bg-background/80 backdrop-blur-sm border-b border-border/40 px-4 py-2 flex items-center justify-between gap-2">
       <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-        <Button variant="ghost" size="icon" onClick={toggleSidebar} aria-label="打开菜单" className="shrink-0">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={toggleSidebar}
+          aria-label="打开菜单"
+          className="shrink-0"
+        >
           <Menu className="h-5 w-5" />
         </Button>
         {/* 品牌区：min-w-0 + truncate，品牌名过长时收缩而不是把右侧头像挤出屏幕 */}
@@ -52,7 +59,7 @@ function LayoutHeader() {
         <Avatar className="w-8 h-8">
           {user?.avatar ? (
             <img
-              src={user.avatar}
+              src={resolveApiAssetUrl(user.avatar)}
               alt={user.name}
               className="w-full h-full object-cover rounded-full"
             />
@@ -73,6 +80,8 @@ function LayoutContent() {
   const isGradient = backgroundImage?.startsWith('linear-gradient');
   const isImage = backgroundImage && !isGradient;
   const isGlassmorphism = style === 'glassmorphism';
+  const isLuminous = style === 'luminous';
+  const isGlass = isGlassmorphism || isLuminous;
 
   // 合并背景层为单一元素，减少DOM层级和重绘
   const getBackgroundStyle = (): React.CSSProperties => {
@@ -84,6 +93,27 @@ function LayoutContent() {
       willChange: 'transform',
       transform: 'translateZ(0)',
     };
+
+    if (isLuminous) {
+      if (isGradient) {
+        return { ...baseStyle, background: backgroundImage };
+      }
+      if (isImage) {
+        return {
+          ...baseStyle,
+          backgroundImage: `url("${backgroundImage}")`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          backgroundAttachment: 'fixed',
+        };
+      }
+      // 光感玻璃默认背景：有机流体折射光斑，提供丰富的光学折射源
+      return {
+        ...baseStyle,
+        background: `radial-gradient(ellipse at 12% 15%, hsl(var(--primary) / 0.16) 0%, transparent 55%), radial-gradient(ellipse at 88% 85%, hsl(var(--accent) / 0.14) 0%, transparent 50%), radial-gradient(circle at 50% 45%, hsl(var(--chart-2) / 0.08) 0%, transparent 65%), hsl(var(--background))`,
+      };
+    }
 
     if (isGlassmorphism) {
       if (isGradient) {
@@ -124,9 +154,9 @@ function LayoutContent() {
     };
   };
 
-  // 毛玻璃叠加层样式 - 仅在需要时渲染
+  // 毛玻璃 / 光感玻璃叠加层样式 - 仅在需要时渲染
   const overlayStyle = useMemo<React.CSSProperties | null>(() => {
-    if (!isGlassmorphism || backgroundImage) return null;
+    if (!isGlass || backgroundImage) return null;
     return {
       position: 'fixed',
       inset: 0,
@@ -138,7 +168,7 @@ function LayoutContent() {
       willChange: 'backdrop-filter',
       transform: 'translateZ(0)',
     };
-  }, [isGlassmorphism, backgroundImage, blurIntensity]);
+  }, [isGlass, backgroundImage, blurIntensity]);
 
   return (
     <>

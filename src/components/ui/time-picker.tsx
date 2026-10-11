@@ -90,7 +90,7 @@ export function TimePicker({ value, onChange, disabled, className }: TimePickerP
         <Button
           variant="outline"
           className={cn(
-            "w-full justify-start text-left bg-background h-10 pl-3 pr-3 gap-2 font-normal",
+            "ui-field-trigger w-full justify-start text-left bg-background h-10 pl-3 pr-3 gap-2 font-normal hover:text-foreground",
             !value && "text-muted-foreground",
             className
           )}

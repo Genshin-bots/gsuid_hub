@@ -26,6 +26,7 @@ interface CoreConfig {
   };
   enable_empty_start: boolean;
   command_start: string[];
+  web_cors_origins: string[];
   [key: string]: unknown;
 }
 
@@ -47,13 +48,15 @@ const fieldLabelKeys: Record<string, string> = {
   misfire_grace_time: 'coreFrameworkConfig.misfireGraceTime',
   enable_empty_start: 'coreFrameworkConfig.emptyStart',
   command_start: 'coreFrameworkConfig.commandPrefix',
-  web_max_sessions: 'coreFrameworkConfig.webMaxSessions'
+  web_max_sessions: 'coreFrameworkConfig.webMaxSessions',
+  web_cors_origins: 'coreFrameworkConfig.webCorsOrigins',
 };
 
 // 字段的描述文案 key（仅 UI 说明，静态、不随可选值增减而变）
 const fieldDescKeys: Record<string, string> = {
   LANGUAGE: 'coreFrameworkConfig.languageDesc',
   web_max_sessions: 'coreFrameworkConfig.webMaxSessionsDesc',
+  web_cors_origins: 'coreFrameworkConfig.webCorsOriginsDesc',
 };
 
 // Convert API config to field definition
@@ -97,6 +100,15 @@ const apiConfigToFieldDefinition = (
   }
   if (typeof value === 'number') {
     return { type: 'number', label: labelKey, value, placeholder: 'coreFrameworkConfig.enterValue', description: fieldDescKeys[key] };
+  }
+  if (key === 'web_cors_origins' && Array.isArray(value)) {
+    return {
+      type: 'tags',
+      label: labelKey,
+      value: value as string[],
+      placeholder: 'coreFrameworkConfig.webCorsOriginsPlaceholder',
+      description: fieldDescKeys[key],
+    };
   }
   if (Array.isArray(value)) {
     return { type: 'tags', label: labelKey, value, placeholder: 'coreFrameworkConfig.enterTags' };

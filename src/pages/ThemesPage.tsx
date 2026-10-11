@@ -30,10 +30,36 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 import { themeApi, ThemePresetItem, ThemeConfig, getApiErrorMessage } from '@/lib/api';
 import {
-  Sun, Moon, Palette, Image, Sparkles, Check, Upload, Link, X, Blend, Paintbrush,
-  Layers, Droplet, Bookmark, Save, Trash2, Loader2, RefreshCw, CheckCircle2,
-  AlertTriangle, FolderOpen, SlidersHorizontal, PanelLeft, SquareStack,
-  CornerDownRight, Type, PanelLeftClose, PanelLeftOpen, SeparatorVertical, CloudFog,
+  Sun,
+  Moon,
+  Palette,
+  Image,
+  Sparkles,
+  Check,
+  Upload,
+  Link,
+  X,
+  Blend,
+  Paintbrush,
+  Layers,
+  Droplet,
+  Bookmark,
+  Save,
+  Trash2,
+  Loader2,
+  RefreshCw,
+  CheckCircle2,
+  AlertTriangle,
+  FolderOpen,
+  SlidersHorizontal,
+  PanelLeft,
+  SquareStack,
+  CornerDownRight,
+  Type,
+  PanelLeftClose,
+  PanelLeftOpen,
+  SeparatorVertical,
+  CloudFog,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { PinnedPage } from '@/components/layout/PinnedPage';
@@ -53,34 +79,110 @@ const themeColors = [
 
 // 二次元背景预设
 const animeBgPresets = [
-  { id: 'anime3', name: 'themes.animeStreet', value: 'https://cdn.pixabay.com/photo/2024/05/26/15/27/anime-8788959_1280.jpg' },
-  { id: 'anime4', name: 'themes.animeRail', value: 'https://files.seeusercontent.com/2026/03/13/5nQg/gg.jpg' },
+  {
+    id: 'anime3',
+    name: 'themes.animeStreet',
+    value: 'https://cdn.pixabay.com/photo/2024/05/26/15/27/anime-8788959_1280.jpg',
+  },
+  {
+    id: 'anime4',
+    name: 'themes.animeRail',
+    value: 'https://files.seeusercontent.com/2026/03/13/5nQg/gg.jpg',
+  },
   { id: 'anime5', name: 'themes.randomWife', value: 'https://api.paugram.com/wallpaper' },
-  { id: 'anime6', name: 'themes.ruinsGirl', value: 'https://files.seeusercontent.com/2026/03/13/w5oD/aa.jpg' },
-  { id: 'anime7', name: 'themes.kamisatoAyaka', value: 'https://files.seeusercontent.com/2026/06/20/Jth9/aeb070e9498a448d60e76caddd36432b.jpg' },
-  { id: 'anime8', name: 'themes.sayu', value: 'https://files.seeusercontent.com/2026/06/20/sgO1/2026-06-21-06-13-29.png' },
-  { id: 'anime9', name: 'themes.bidens', value: 'https://files.seeusercontent.com/2026/06/20/u2Sj/a694927.jpg' },
-  { id: 'anime10', name: 'themes.blueGirl', value: 'https://files.seeusercontent.com/2026/06/20/qS9l/44873217_p0.jpg' },
-  { id: 'anime11', name: 'themes.miku', value: 'https://files.seeusercontent.com/2026/06/20/kL1z/wallpaper894.jpg' },
+  {
+    id: 'anime6',
+    name: 'themes.ruinsGirl',
+    value: 'https://files.seeusercontent.com/2026/03/13/w5oD/aa.jpg',
+  },
+  {
+    id: 'anime7',
+    name: 'themes.kamisatoAyaka',
+    value: 'https://files.seeusercontent.com/2026/06/20/Jth9/aeb070e9498a448d60e76caddd36432b.jpg',
+  },
+  {
+    id: 'anime8',
+    name: 'themes.sayu',
+    value: 'https://files.seeusercontent.com/2026/06/20/sgO1/2026-06-21-06-13-29.png',
+  },
+  {
+    id: 'anime9',
+    name: 'themes.bidens',
+    value: 'https://files.seeusercontent.com/2026/06/20/u2Sj/a694927.jpg',
+  },
+  {
+    id: 'anime10',
+    name: 'themes.blueGirl',
+    value: 'https://files.seeusercontent.com/2026/06/20/qS9l/44873217_p0.jpg',
+  },
+  {
+    id: 'anime11',
+    name: 'themes.miku',
+    value: 'https://files.seeusercontent.com/2026/06/20/kL1z/wallpaper894.jpg',
+  },
 ];
 
 // 图片预设背景
 const imagePresets = [
-  { id: 'starry', name: 'themes.black', value: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=1920&q=80' },
-  { id: 'mountain', name: 'themes.mountain', value: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920&q=80' },
-  { id: 'ocean', name: 'themes.ocean', value: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1920&q=80' },
-  { id: 'forest', name: 'themes.forest', value: 'https://images.unsplash.com/photo-1448375240586-882707db888b?w=1920&q=80' },
-  { id: 'city', name: 'themes.city', value: 'https://images.unsplash.com/photo-1519501025264-65ba15a82390?w=1920&q=80' },
-  { id: 'aurora', name: 'themes.aurora', value: 'https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=1920&q=80' },
+  {
+    id: 'starry',
+    name: 'themes.black',
+    value: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=1920&q=80',
+  },
+  {
+    id: 'mountain',
+    name: 'themes.mountain',
+    value: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920&q=80',
+  },
+  {
+    id: 'ocean',
+    name: 'themes.ocean',
+    value: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1920&q=80',
+  },
+  {
+    id: 'forest',
+    name: 'themes.forest',
+    value: 'https://images.unsplash.com/photo-1448375240586-882707db888b?w=1920&q=80',
+  },
+  {
+    id: 'city',
+    name: 'themes.city',
+    value: 'https://images.unsplash.com/photo-1519501025264-65ba15a82390?w=1920&q=80',
+  },
+  {
+    id: 'aurora',
+    name: 'themes.aurora',
+    value: 'https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=1920&q=80',
+  },
 ];
 
 // 渐变预设背景
 const gradientPresets = [
-  { id: 'gradient1', name: 'themes.auroraPurple', value: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' },
-  { id: 'gradient2', name: 'themes.gradientBlue', value: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' },
-  { id: 'gradient3', name: 'themes.gradientOrange', value: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)' },
-  { id: 'gradient4', name: 'themes.gradientGreen', value: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)' },
-  { id: 'gradient5', name: 'themes.gradientBlack', value: 'linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 50%, #16213e 100%)' },
+  {
+    id: 'gradient1',
+    name: 'themes.auroraPurple',
+    value: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+  },
+  {
+    id: 'gradient2',
+    name: 'themes.gradientBlue',
+    value: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+  },
+  {
+    id: 'gradient3',
+    name: 'themes.gradientOrange',
+    value: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+  },
+  {
+    id: 'gradient4',
+    name: 'themes.gradientGreen',
+    value: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)',
+  },
+  {
+    id: 'gradient5',
+    name: 'themes.gradientBlack',
+    value: 'linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 50%, #16213e 100%)',
+  },
 ];
 
 const iconColorOptions = [
@@ -100,7 +202,9 @@ function formatMtime(sec: number): string {
 }
 
 // 主题色 id → 展示用 HSL（与 themeColors 的色板一致）
-const COLOR_HSL: Record<string, string> = Object.fromEntries(themeColors.map((c) => [c.id, c.color]));
+const COLOR_HSL: Record<string, string> = Object.fromEntries(
+  themeColors.map((c) => [c.id, c.color]),
+);
 
 function colorHslOf(color?: string): string {
   return (color && COLOR_HSL[color]) || 'hsl(240 5% 55%)';
@@ -116,14 +220,19 @@ function PresetPreview({ config }: { config?: ThemeConfig }) {
   const isImage = !!bg && !isGradient;
 
   return (
-    <div className="absolute inset-0" style={{ background: isGradient ? (bg as string) : themedGradient }}>
+    <div
+      className="absolute inset-0"
+      style={{ background: isGradient ? (bg as string) : themedGradient }}
+    >
       {isImage && (
         <img
           src={bg as string}
           alt=""
           className="h-full w-full object-cover"
           loading="lazy"
-          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+          onError={(e) => {
+            (e.currentTarget as HTMLImageElement).style.display = 'none';
+          }}
         />
       )}
     </div>
@@ -151,7 +260,7 @@ function SelectTile({ active, onClick, icon, label }: SelectTileProps) {
         'group flex flex-1 min-w-0 flex-col items-center justify-center gap-2 rounded-xl border p-4 min-h-[88px] transition-all',
         active
           ? 'border-primary bg-primary/10 text-primary ring-1 ring-primary/30'
-          : 'border-border/60 text-foreground hover:border-primary/50 hover:bg-primary/5'
+          : 'border-border/60 text-foreground hover:border-primary/50 hover:bg-primary/5',
       )}
     >
       <span className="flex items-center justify-center [&_svg]:w-6 [&_svg]:h-6">{icon}</span>
@@ -175,7 +284,9 @@ function BgThumb({ active, onClick, label, children }: BgThumbProps) {
       onClick={onClick}
       className={cn(
         'relative aspect-video w-full rounded-lg overflow-hidden transition-all hover:scale-[1.03]',
-        active ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : 'ring-1 ring-border/70'
+        active
+          ? 'ring-2 ring-primary ring-offset-2 ring-offset-background'
+          : 'ring-1 ring-border/70',
       )}
     >
       {children}
@@ -200,11 +311,34 @@ type ThemeTab = 'appearance' | 'background' | 'presets' | 'misc';
 export default function ThemesPage() {
   const { t } = useLanguage();
   const {
-    mode, style, color, backgroundImage, blurIntensity, cardOpacity,
-    iconColor, themePreset, sidebarLayout, borderRadius, uiScale, shadowIntensity, sidebarDefaultCollapsed,
-    setMode, setStyle, setColor, setBackgroundImage, setBlurIntensity, setCardOpacity,
-    setIconColor, setThemePreset, setSidebarLayout, setBorderRadius, setUiScale, setShadowIntensity,
-    setSidebarDefaultCollapsed, getThemeConfig, applyThemeConfig,
+    mode,
+    style,
+    color,
+    backgroundImage,
+    blurIntensity,
+    cardOpacity,
+    iconColor,
+    themePreset,
+    sidebarLayout,
+    borderRadius,
+    uiScale,
+    shadowIntensity,
+    sidebarDefaultCollapsed,
+    setMode,
+    setStyle,
+    setColor,
+    setBackgroundImage,
+    setBlurIntensity,
+    setCardOpacity,
+    setIconColor,
+    setThemePreset,
+    setSidebarLayout,
+    setBorderRadius,
+    setUiScale,
+    setShadowIntensity,
+    setSidebarDefaultCollapsed,
+    getThemeConfig,
+    applyThemeConfig,
   } = useTheme();
 
   const [tab, setTab] = useState<ThemeTab>('appearance');
@@ -227,7 +361,7 @@ export default function ThemesPage() {
   const trimmedName = presetName.trim();
   const nameExists = useMemo(
     () => presets.some((p) => p.name === trimmedName),
-    [presets, trimmedName]
+    [presets, trimmedName],
   );
 
   const loadPresets = useCallback(async () => {
@@ -287,16 +421,20 @@ export default function ThemesPage() {
     toast.success(t('themes.bgCleared'));
   };
 
-  // 选择背景时自动切换到毛玻璃风格
+  // 选择背景时：若为纯色风格则自动切换到毛玻璃风格；若已经是毛玻璃或光感玻璃则保留
   const handleSelectBackground = (value: string | null) => {
     setBackgroundImage(value, true);
-    if (value && style !== 'glassmorphism') {
+    if (value && style === 'solid') {
       setStyle('glassmorphism', true);
       toast.success(t('themes.autoSwitchGlass'));
     }
   };
 
-  const allPresetValues = [...imagePresets.map((p) => p.value), ...gradientPresets.map((p) => p.value), ...animeBgPresets.map((p) => p.value)];
+  const allPresetValues = [
+    ...imagePresets.map((p) => p.value),
+    ...gradientPresets.map((p) => p.value),
+    ...animeBgPresets.map((p) => p.value),
+  ];
   const isCustomImage = backgroundImage && !allPresetValues.includes(backgroundImage);
 
   // ---- 预设操作 ----
@@ -365,7 +503,11 @@ export default function ThemesPage() {
   const currentColorName = themeColors.find((c) => c.id === color)?.name;
 
   const tabOptions = [
-    { value: 'appearance', label: t('themes.tabAppearance'), icon: <Palette className="w-4 h-4" /> },
+    {
+      value: 'appearance',
+      label: t('themes.tabAppearance'),
+      icon: <Palette className="w-4 h-4" />,
+    },
     { value: 'background', label: t('themes.tabBackground'), icon: <Image className="w-4 h-4" /> },
     { value: 'presets', label: t('themes.tabPresets'), icon: <Bookmark className="w-4 h-4" /> },
     { value: 'misc', label: t('themes.tabMisc'), icon: <SlidersHorizontal className="w-4 h-4" /> },
@@ -412,8 +554,18 @@ export default function ThemesPage() {
             </CardHeader>
             <CardContent>
               <div className="flex gap-3">
-                <SelectTile active={mode === 'light'} onClick={() => setMode('light', true)} icon={<Sun />} label={t('themes.lightMode')} />
-                <SelectTile active={mode === 'dark'} onClick={() => setMode('dark', true)} icon={<Moon />} label={t('themes.darkMode')} />
+                <SelectTile
+                  active={mode === 'light'}
+                  onClick={() => setMode('light', true)}
+                  icon={<Sun />}
+                  label={t('themes.lightMode')}
+                />
+                <SelectTile
+                  active={mode === 'dark'}
+                  onClick={() => setMode('dark', true)}
+                  icon={<Moon />}
+                  label={t('themes.darkMode')}
+                />
               </div>
             </CardContent>
           </Card>
@@ -428,18 +580,37 @@ export default function ThemesPage() {
               <CardDescription>{t('themes.styleDesc')}</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex gap-3">
+              <div className="flex flex-wrap gap-3">
                 <SelectTile
                   active={style === 'solid'}
                   onClick={() => setStyle('solid', true)}
-                  icon={<span className={cn('block w-6 h-6 rounded-lg', style === 'solid' ? 'bg-primary' : 'bg-foreground/70')} />}
+                  icon={
+                    <span
+                      className={cn(
+                        'block w-6 h-6 rounded-lg',
+                        style === 'solid' ? 'bg-primary' : 'bg-foreground/70',
+                      )}
+                    />
+                  }
                   label={t('themes.solidStyle')}
                 />
                 <SelectTile
                   active={style === 'glassmorphism'}
                   onClick={() => setStyle('glassmorphism', true)}
-                  icon={<span className="block w-6 h-6 rounded-lg bg-gradient-to-br from-primary/50 to-accent/50 backdrop-blur border border-border/50" />}
+                  icon={
+                    <span className="block w-6 h-6 rounded-lg bg-gradient-to-br from-primary/50 to-accent/50 backdrop-blur border border-border/50" />
+                  }
                   label={t('themes.glassStyle')}
+                />
+                <SelectTile
+                  active={style === 'luminous'}
+                  onClick={() => setStyle('luminous', true)}
+                  icon={
+                    <span className="relative block w-6 h-6 rounded-lg bg-gradient-to-br from-primary/40 via-sky-400/30 to-accent/50 backdrop-blur-md border border-white/60 shadow-[inset_0_1px_1px_rgba(255,255,255,0.8),0_2px_8px_hsl(var(--primary)/0.25)] overflow-hidden">
+                      <span className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/40 to-transparent animate-pulse" />
+                    </span>
+                  }
+                  label={t('themes.luminousStyle')}
                 />
               </div>
             </CardContent>
@@ -456,7 +627,12 @@ export default function ThemesPage() {
             </CardHeader>
             <CardContent>
               <div className="flex gap-3">
-                <SelectTile active={themePreset === 'default'} onClick={() => setThemePreset('default', true)} icon={<Palette />} label={t('themes.defaultStyle')} />
+                <SelectTile
+                  active={themePreset === 'default'}
+                  onClick={() => setThemePreset('default', true)}
+                  icon={<Palette />}
+                  label={t('themes.defaultStyle')}
+                />
                 <SelectTile
                   active={themePreset === 'shadcn'}
                   onClick={() => setThemePreset('shadcn', true)}
@@ -465,7 +641,9 @@ export default function ThemesPage() {
                 />
               </div>
               <p className="mt-3 text-sm text-muted-foreground">
-                {themePreset === 'shadcn' ? t('themes.shadcnStyleDesc') : t('themes.defaultStyleDesc')}
+                {themePreset === 'shadcn'
+                  ? t('themes.shadcnStyleDesc')
+                  : t('themes.defaultStyleDesc')}
               </p>
             </CardContent>
           </Card>
@@ -515,7 +693,9 @@ export default function ThemesPage() {
                     <span
                       className={cn(
                         'relative h-10 w-full rounded-lg transition-all group-hover:scale-105',
-                        color === theme.id ? 'ring-2 ring-offset-2 ring-offset-background ring-primary' : ''
+                        color === theme.id
+                          ? 'ring-2 ring-offset-2 ring-offset-background ring-primary'
+                          : '',
                       )}
                       style={{ backgroundColor: theme.color }}
                     >
@@ -523,7 +703,12 @@ export default function ThemesPage() {
                         <Check className="absolute inset-0 m-auto w-5 h-5 text-white drop-shadow" />
                       )}
                     </span>
-                    <span className={cn('text-xs truncate max-w-full', color === theme.id ? 'text-primary font-medium' : 'text-muted-foreground')}>
+                    <span
+                      className={cn(
+                        'text-xs truncate max-w-full',
+                        color === theme.id ? 'text-primary font-medium' : 'text-muted-foreground',
+                      )}
+                    >
                       {t(theme.name)}
                     </span>
                   </button>
@@ -547,9 +732,15 @@ export default function ThemesPage() {
           <CardContent className="space-y-6">
             {/* 无背景 / 默认 */}
             <div className="space-y-3">
-              <Label className="text-sm font-medium text-primary bg-primary/10 px-2 py-1 rounded-md inline-block">{t('themes.default')}</Label>
+              <Label className="text-sm font-medium text-primary bg-primary/10 px-2 py-1 rounded-md inline-block">
+                {t('themes.default')}
+              </Label>
               <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
-                <BgThumb active={backgroundImage === null} onClick={() => handleSelectBackground(null)} label={t('themes.noBg')}>
+                <BgThumb
+                  active={backgroundImage === null}
+                  onClick={() => handleSelectBackground(null)}
+                  label={t('themes.noBg')}
+                >
                   <div className="w-full h-full bg-gradient-to-br from-muted to-muted/40" />
                 </BgThumb>
               </div>
@@ -557,11 +748,23 @@ export default function ThemesPage() {
 
             {/* 二次元背景 */}
             <div className="space-y-3">
-              <Label className="text-sm font-medium text-primary bg-primary/10 px-2 py-1 rounded-md inline-block">{t('themes.animeBg')}</Label>
+              <Label className="text-sm font-medium text-primary bg-primary/10 px-2 py-1 rounded-md inline-block">
+                {t('themes.animeBg')}
+              </Label>
               <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
                 {animeBgPresets.map((bg) => (
-                  <BgThumb key={bg.id} active={backgroundImage === bg.value} onClick={() => handleSelectBackground(bg.value)} label={t(bg.name)}>
-                    <img src={bg.value} alt={t(bg.name)} className="w-full h-full object-cover" loading="lazy" />
+                  <BgThumb
+                    key={bg.id}
+                    active={backgroundImage === bg.value}
+                    onClick={() => handleSelectBackground(bg.value)}
+                    label={t(bg.name)}
+                  >
+                    <img
+                      src={bg.value}
+                      alt={t(bg.name)}
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                    />
                   </BgThumb>
                 ))}
               </div>
@@ -569,11 +772,23 @@ export default function ThemesPage() {
 
             {/* 图片背景 */}
             <div className="space-y-3">
-              <Label className="text-sm font-medium text-primary bg-primary/10 px-2 py-1 rounded-md inline-block">{t('themes.imageBg')}</Label>
+              <Label className="text-sm font-medium text-primary bg-primary/10 px-2 py-1 rounded-md inline-block">
+                {t('themes.imageBg')}
+              </Label>
               <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
                 {imagePresets.map((bg) => (
-                  <BgThumb key={bg.id} active={backgroundImage === bg.value} onClick={() => handleSelectBackground(bg.value)} label={t(bg.name)}>
-                    <img src={bg.value} alt={t(bg.name)} className="w-full h-full object-cover" loading="lazy" />
+                  <BgThumb
+                    key={bg.id}
+                    active={backgroundImage === bg.value}
+                    onClick={() => handleSelectBackground(bg.value)}
+                    label={t(bg.name)}
+                  >
+                    <img
+                      src={bg.value}
+                      alt={t(bg.name)}
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                    />
                   </BgThumb>
                 ))}
               </div>
@@ -581,10 +796,17 @@ export default function ThemesPage() {
 
             {/* 渐变背景 */}
             <div className="space-y-3">
-              <Label className="text-sm font-medium text-primary bg-primary/10 px-2 py-1 rounded-md inline-block">{t('themes.gradientBg')}</Label>
+              <Label className="text-sm font-medium text-primary bg-primary/10 px-2 py-1 rounded-md inline-block">
+                {t('themes.gradientBg')}
+              </Label>
               <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
                 {gradientPresets.map((bg) => (
-                  <BgThumb key={bg.id} active={backgroundImage === bg.value} onClick={() => handleSelectBackground(bg.value)} label={t(bg.name)}>
+                  <BgThumb
+                    key={bg.id}
+                    active={backgroundImage === bg.value}
+                    onClick={() => handleSelectBackground(bg.value)}
+                    label={t(bg.name)}
+                  >
                     <div className="w-full h-full" style={{ background: bg.value }} />
                   </BgThumb>
                 ))}
@@ -593,10 +815,22 @@ export default function ThemesPage() {
 
             {/* 自定义背景 */}
             <div className="space-y-3">
-              <Label className="text-sm font-medium text-primary bg-primary/10 px-2 py-1 rounded-md inline-block">{t('themes.customBg')}</Label>
+              <Label className="text-sm font-medium text-primary bg-primary/10 px-2 py-1 rounded-md inline-block">
+                {t('themes.customBg')}
+              </Label>
               <div className="flex flex-col gap-2 sm:flex-row">
-                <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
-                <Button variant="outline" className="h-9 sm:flex-1" onClick={() => fileInputRef.current?.click()}>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+                <Button
+                  variant="outline"
+                  className="h-9 sm:flex-1"
+                  onClick={() => fileInputRef.current?.click()}
+                >
                   <Upload className="w-4 h-4 mr-2" />
                   {t('themes.uploadImage')}
                 </Button>
@@ -604,11 +838,18 @@ export default function ThemesPage() {
                   <Input
                     value={customUrl}
                     onChange={(e) => setCustomUrl(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') handleCustomUrl(); }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleCustomUrl();
+                    }}
                     placeholder={t('themes.imageLink')}
                     className="h-9 flex-1"
                   />
-                  <Button onClick={handleCustomUrl} size="icon" variant="outline" className="h-9 w-9 shrink-0">
+                  <Button
+                    onClick={handleCustomUrl}
+                    size="icon"
+                    variant="outline"
+                    className="h-9 w-9 shrink-0"
+                  >
                     <Link className="w-4 h-4" />
                   </Button>
                 </div>
@@ -617,20 +858,33 @@ export default function ThemesPage() {
               {isCustomImage && (
                 <div className="relative rounded-lg overflow-hidden aspect-video max-w-md">
                   {backgroundImage.startsWith('data:') || backgroundImage.startsWith('http') ? (
-                    <img src={backgroundImage} alt={t('themes.currentBg')} className="w-full h-full object-cover" />
+                    <img
+                      src={backgroundImage}
+                      alt={t('themes.currentBg')}
+                      className="w-full h-full object-cover"
+                    />
                   ) : (
                     <div className="w-full h-full" style={{ background: backgroundImage }} />
                   )}
-                  <Button size="icon" variant="destructive" className="absolute top-1 right-1 h-9 w-9 sm:top-2 sm:right-2 sm:h-7 sm:w-7" onClick={clearBackground}>
+                  <Button
+                    size="icon"
+                    variant="destructive"
+                    className="absolute top-1 right-1 h-9 w-9 sm:top-2 sm:right-2 sm:h-7 sm:w-7"
+                    onClick={clearBackground}
+                  >
                     <X className="w-4 h-4" />
                   </Button>
-                  <span className="absolute bottom-1 left-1 text-xs bg-background/80 px-2 py-0.5 rounded">{t('themes.currentBg')}</span>
+                  <span className="absolute bottom-1 left-1 text-xs bg-background/80 px-2 py-0.5 rounded">
+                    {t('themes.currentBg')}
+                  </span>
                 </div>
               )}
             </div>
 
-            {style !== 'glassmorphism' && (
-              <p className="text-xs text-muted-foreground border-l-2 border-primary/50 pl-2">{t('themes.tip')}</p>
+            {style === 'solid' && (
+              <p className="text-xs text-muted-foreground border-l-2 border-primary/50 pl-2">
+                {t('themes.tip')}
+              </p>
             )}
           </CardContent>
         </Card>
@@ -651,8 +905,12 @@ export default function ThemesPage() {
             <CardContent className="space-y-5">
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">{t('themes.cardOpacityValue')}</span>
-                  <span className="text-sm font-medium bg-primary/10 text-primary px-2 py-0.5 rounded">{cardOpacity}%</span>
+                  <span className="text-sm text-muted-foreground">
+                    {t('themes.cardOpacityValue')}
+                  </span>
+                  <span className="text-sm font-medium bg-primary/10 text-primary px-2 py-0.5 rounded">
+                    {cardOpacity}%
+                  </span>
                 </div>
                 <Slider
                   value={[cardOpacity]}
@@ -669,7 +927,11 @@ export default function ThemesPage() {
                 </div>
               </div>
               <div className="flex gap-2">
-                {[{ v: 15, l: 'themes.slight' }, { v: 50, l: 'themes.standard' }, { v: 85, l: 'themes.strong' }].map((p) => (
+                {[
+                  { v: 15, l: 'themes.slight' },
+                  { v: 50, l: 'themes.standard' },
+                  { v: 85, l: 'themes.strong' },
+                ].map((p) => (
                   <Button
                     key={p.v}
                     variant="outline"
@@ -684,8 +946,8 @@ export default function ThemesPage() {
             </CardContent>
           </Card>
 
-          {/* 毛玻璃强度（仅毛玻璃风格） */}
-          {style === 'glassmorphism' && (
+          {/* 毛玻璃 / 光感玻璃强度 */}
+          {style !== 'solid' && (
             <Card className="glass-card">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -697,8 +959,12 @@ export default function ThemesPage() {
               <CardContent className="space-y-5">
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">{t('themes.blurIntensity')}</span>
-                    <span className="text-sm font-medium bg-primary/10 text-primary px-2 py-0.5 rounded">{blurIntensity}px</span>
+                    <span className="text-sm text-muted-foreground">
+                      {t('themes.blurIntensity')}
+                    </span>
+                    <span className="text-sm font-medium bg-primary/10 text-primary px-2 py-0.5 rounded">
+                      {blurIntensity}px
+                    </span>
                   </div>
                   <Slider
                     value={[blurIntensity]}
@@ -715,7 +981,11 @@ export default function ThemesPage() {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  {[{ v: 4, l: 'themes.slight' }, { v: 12, l: 'themes.standard' }, { v: 20, l: 'themes.strong' }].map((p) => (
+                  {[
+                    { v: 4, l: 'themes.slight' },
+                    { v: 12, l: 'themes.standard' },
+                    { v: 20, l: 'themes.strong' },
+                  ].map((p) => (
                     <Button
                       key={p.v}
                       variant="outline"
@@ -815,8 +1085,12 @@ export default function ThemesPage() {
             <CardContent className="space-y-5">
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">{t('themes.borderRadiusValue')}</span>
-                  <span className="text-sm font-medium bg-primary/10 text-primary px-2 py-0.5 rounded">{borderRadius}px</span>
+                  <span className="text-sm text-muted-foreground">
+                    {t('themes.borderRadiusValue')}
+                  </span>
+                  <span className="text-sm font-medium bg-primary/10 text-primary px-2 py-0.5 rounded">
+                    {borderRadius}px
+                  </span>
                 </div>
                 <Slider
                   value={[borderRadius]}
@@ -880,8 +1154,12 @@ export default function ThemesPage() {
             <CardContent className="space-y-5">
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">{t('themes.shadowIntensityValue')}</span>
-                  <span className="text-sm font-medium bg-primary/10 text-primary px-2 py-0.5 rounded">{shadowIntensity}%</span>
+                  <span className="text-sm text-muted-foreground">
+                    {t('themes.shadowIntensityValue')}
+                  </span>
+                  <span className="text-sm font-medium bg-primary/10 text-primary px-2 py-0.5 rounded">
+                    {shadowIntensity}%
+                  </span>
                 </div>
                 <Slider
                   value={[shadowIntensity]}
@@ -945,7 +1223,9 @@ export default function ThemesPage() {
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-muted-foreground">{t('themes.uiScaleValue')}</span>
-                  <span className="text-sm font-medium bg-primary/10 text-primary px-2 py-0.5 rounded">{uiScale}%</span>
+                  <span className="text-sm font-medium bg-primary/10 text-primary px-2 py-0.5 rounded">
+                    {uiScale}%
+                  </span>
                 </div>
                 <Slider
                   value={[uiScale]}
@@ -1000,7 +1280,13 @@ export default function ThemesPage() {
                 <CardDescription>{t('themes.presetsDesc')}</CardDescription>
               </div>
               <div className="flex gap-2 shrink-0">
-                <Button variant="outline" size="icon" onClick={loadPresets} disabled={presetsLoading} aria-label={t('themes.refresh')}>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={loadPresets}
+                  disabled={presetsLoading}
+                  aria-label={t('themes.refresh')}
+                >
                   <RefreshCw className={cn('w-4 h-4', presetsLoading && 'animate-spin')} />
                 </Button>
                 <Button className="gap-2" onClick={openSaveDialog}>
@@ -1030,7 +1316,9 @@ export default function ThemesPage() {
               <div className="flex flex-col items-center justify-center gap-2 py-10 text-center">
                 <FolderOpen className="w-10 h-10 text-muted-foreground opacity-50" />
                 <p className="text-muted-foreground">{t('themes.noPresets')}</p>
-                <p className="text-sm text-muted-foreground/80 max-w-sm">{t('themes.noPresetsHint')}</p>
+                <p className="text-sm text-muted-foreground/80 max-w-sm">
+                  {t('themes.noPresetsHint')}
+                </p>
                 <Button className="mt-2 gap-2" onClick={openSaveDialog}>
                   <Save className="w-4 h-4" />
                   {t('themes.saveAsPreset')}
@@ -1043,7 +1331,9 @@ export default function ThemesPage() {
                     key={preset.name}
                     className={cn(
                       'group flex flex-col overflow-hidden rounded-lg border transition-colors',
-                      preset.is_active ? 'border-primary/60 ring-1 ring-primary/30' : 'border-border/60 hover:border-primary/40'
+                      preset.is_active
+                        ? 'border-primary/60 ring-1 ring-primary/30'
+                        : 'border-border/60 hover:border-primary/40',
                     )}
                   >
                     {/* 背景预览 */}
@@ -1052,10 +1342,14 @@ export default function ThemesPage() {
                       {/* 顶部右侧徽标 */}
                       <div className="absolute top-2 right-2 flex gap-1">
                         {preset.is_active && (
-                          <Badge className="border-transparent bg-primary text-primary-foreground hover:bg-primary">{t('themes.activeBadge')}</Badge>
+                          <Badge className="border-transparent bg-primary text-primary-foreground hover:bg-primary">
+                            {t('themes.activeBadge')}
+                          </Badge>
                         )}
                         {!preset.valid && (
-                          <Badge variant="destructive" title={t('themes.invalidHint')}>{t('themes.invalidBadge')}</Badge>
+                          <Badge variant="destructive" title={t('themes.invalidHint')}>
+                            {t('themes.invalidBadge')}
+                          </Badge>
                         )}
                       </div>
                     </div>
@@ -1067,9 +1361,13 @@ export default function ThemesPage() {
                           style={{ background: colorHslOf(preset.config?.color) }}
                         />
                         <div className="min-w-0">
-                          <p className="truncate text-sm font-medium leading-tight">{preset.name}</p>
+                          <p className="truncate text-sm font-medium leading-tight">
+                            {preset.name}
+                          </p>
                           {preset.mtime ? (
-                            <p className="truncate text-xs text-muted-foreground leading-tight">{formatMtime(preset.mtime)}</p>
+                            <p className="truncate text-xs text-muted-foreground leading-tight">
+                              {formatMtime(preset.mtime)}
+                            </p>
                           ) : null}
                         </div>
                       </div>
@@ -1078,7 +1376,9 @@ export default function ThemesPage() {
                           variant="outline"
                           size="sm"
                           className="h-8"
-                          disabled={preset.is_active || !preset.valid || applyingName === preset.name}
+                          disabled={
+                            preset.is_active || !preset.valid || applyingName === preset.name
+                          }
                           onClick={() => handleApplyPreset(preset)}
                         >
                           {applyingName === preset.name ? (
@@ -1124,7 +1424,9 @@ export default function ThemesPage() {
                 id="preset-name"
                 value={presetName}
                 onChange={(e) => setPresetName(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter' && trimmedName && !saving) handleSavePreset(); }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && trimmedName && !saving) handleSavePreset();
+                }}
                 placeholder={t('themes.presetNamePlaceholder')}
                 autoFocus
               />
@@ -1141,10 +1443,20 @@ export default function ThemesPage() {
             <div className="space-y-2">
               <Label className="text-muted-foreground">{t('themes.currentSettings')}</Label>
               <div className="flex flex-wrap gap-2">
-                <Badge variant="secondary">{mode === 'dark' ? t('themes.darkMode') : t('themes.lightMode')}</Badge>
-                <Badge variant="secondary">{style === 'glassmorphism' ? t('themes.glassStyle') : t('themes.solidStyle')}</Badge>
+                <Badge variant="secondary">
+                  {mode === 'dark' ? t('themes.darkMode') : t('themes.lightMode')}
+                </Badge>
+                <Badge variant="secondary">
+                  {style === 'luminous'
+                    ? t('themes.luminousStyle')
+                    : style === 'glassmorphism'
+                      ? t('themes.glassStyle')
+                      : t('themes.solidStyle')}
+                </Badge>
                 {currentColorName && <Badge variant="secondary">{t(currentColorName)}</Badge>}
-                <Badge variant="secondary">{themePreset === 'shadcn' ? t('themes.shadcnStyle') : t('themes.defaultStyle')}</Badge>
+                <Badge variant="secondary">
+                  {themePreset === 'shadcn' ? t('themes.shadcnStyle') : t('themes.defaultStyle')}
+                </Badge>
                 <Badge variant="secondary">
                   {sidebarLayout === 'floating'
                     ? t('themes.sidebarFloating')
@@ -1156,9 +1468,15 @@ export default function ThemesPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setSaveOpen(false)}>{t('themes.cancel')}</Button>
+            <Button variant="outline" onClick={() => setSaveOpen(false)}>
+              {t('themes.cancel')}
+            </Button>
             <Button onClick={handleSavePreset} disabled={saving || !trimmedName}>
-              {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+              {saving ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="w-4 h-4 mr-2" />
+              )}
               {nameExists ? t('themes.overwriteSave') : t('themes.save')}
             </Button>
           </DialogFooter>
@@ -1166,7 +1484,12 @@ export default function ThemesPage() {
       </Dialog>
 
       {/* ============================ 删除确认弹窗 ============================ */}
-      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
+      <AlertDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null);
+        }}
+      >
         <AlertDialogContent className="glass-card">
           <AlertDialogHeader>
             <AlertDialogTitle>{t('themes.deletePresetTitle')}</AlertDialogTitle>
@@ -1177,11 +1500,18 @@ export default function ThemesPage() {
           <AlertDialogFooter>
             <AlertDialogCancel>{t('themes.cancel')}</AlertDialogCancel>
             <AlertDialogAction
-              onClick={(e) => { e.preventDefault(); confirmDeletePreset(); }}
+              onClick={(e) => {
+                e.preventDefault();
+                confirmDeletePreset();
+              }}
               disabled={deleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {deleting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
+              {deleting ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Trash2 className="w-4 h-4 mr-2" />
+              )}
               {t('themes.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>

@@ -31,7 +31,15 @@ import {
   Upload,
   X
 } from 'lucide-react';
-import { historyApi, SessionInfo, SessionHistoryTextResponse, SessionHistoryJSONResponse, SessionHistoryOpenAIResponse, SessionPersonaResponse } from '@/lib/api';
+import {
+  historyApi,
+  resolveApiAssetUrl,
+  SessionInfo,
+  SessionHistoryTextResponse,
+  SessionHistoryJSONResponse,
+  SessionHistoryOpenAIResponse,
+  SessionPersonaResponse,
+} from '@/lib/api';
 import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -417,7 +425,7 @@ export default function SessionManagementPage() {
         )}>
           {isUser && msg.user_avatar ? (
             <Avatar className="w-full h-full">
-              <AvatarImage src={msg.user_avatar} alt={msg.user_name || 'User'} />
+              <AvatarImage src={resolveApiAssetUrl(msg.user_avatar)} alt={msg.user_name || 'User'} />
               <AvatarFallback className="bg-primary/20 text-primary text-[10px] sm:text-xs font-medium">
                 {msg.user_name ? msg.user_name.charAt(0).toUpperCase() : <User className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
               </AvatarFallback>
@@ -520,7 +528,9 @@ export default function SessionManagementPage() {
                 const displayId = getSessionDisplayId(session);
                 const botId = getBotId(session);
                 const isGroup = session.type === 'group';
-                const userAvatar = session.last_user?.user_avatar;
+                const userAvatar = session.last_user?.user_avatar
+                  ? resolveApiAssetUrl(session.last_user.user_avatar)
+                  : undefined;
                 
                 return (
                   <button
@@ -629,7 +639,10 @@ export default function SessionManagementPage() {
                 
                 <Avatar key={selectedSession.session.session_id} className="w-8 h-8 sm:w-10 sm:h-10 shrink-0">
                   {selectedSession.session.type !== 'group' && selectedSession.session.last_user?.user_avatar && (
-                    <AvatarImage src={selectedSession.session.last_user.user_avatar} alt={getSessionDisplayId(selectedSession.session)} />
+                    <AvatarImage
+                      src={resolveApiAssetUrl(selectedSession.session.last_user.user_avatar)}
+                      alt={getSessionDisplayId(selectedSession.session)}
+                    />
                   )}
                   <AvatarFallback className={cn(
                     selectedSession.session.type === 'group' ? "bg-green-500/20" : "bg-blue-500/20"

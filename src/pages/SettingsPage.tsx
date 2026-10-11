@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { User, Lock, Camera, CheckCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { authApi } from '@/lib/api';
+import { authApi, resolveApiAssetUrl } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
@@ -121,7 +121,9 @@ export default function SettingsPage() {
             <User className="w-8 h-8 shrink-0" />
             {t('settings.title')}
           </h1>
-          <p className="sm:whitespace-nowrap text-muted-foreground mt-1">{t('settings.description')}</p>
+          <p className="sm:whitespace-nowrap text-muted-foreground mt-1">
+            {t('settings.description')}
+          </p>
         </div>
       }
     >
@@ -143,7 +145,11 @@ export default function SettingsPage() {
                   onClick={handleAvatarClick}
                 >
                   {user?.avatar ? (
-                    <img src={user.avatar} alt={user.name} className="w-full h-full object-cover rounded-full" />
+                    <img
+                      src={resolveApiAssetUrl(user.avatar)}
+                      alt={user.name}
+                      className="w-full h-full object-cover rounded-full"
+                    />
                   ) : (
                     <AvatarFallback className="bg-primary/20 text-primary text-2xl font-medium">
                       {user?.name?.charAt(0) || 'U'}

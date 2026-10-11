@@ -463,6 +463,23 @@ export const generateThemeConfig = () => ({ ...THEME_CONFIG });
  *  演示模式没有真实后端预设目录，故把这些 JSON 直接内联，让「主题预设」标签页可用、可一键应用。 */
 const BUILTIN_THEME_PRESETS: Array<{ name: string; config: Record<string, unknown> }> = [
   {
+    name: '液态琉光',
+    config: {
+      mode: 'dark',
+      style: 'luminous',
+      color: 'blue',
+      icon_color: 'colored',
+      background_image: null,
+      blur_intensity: 14,
+      card_opacity: 35,
+      theme_preset: 'shadcn',
+      language: 'zh-CN',
+      sidebar_layout: 'floating',
+      border_radius: 12,
+      shadow_intensity: 75,
+    },
+  },
+  {
     name: '纯色质感',
     config: {
       mode: 'light',

@@ -28,5 +28,8 @@
   "language": "フレームワーク言語",
   "languageDesc": "GsCore フレームワークのログとシステム文案の言語（デプロイ者向け）；zh-cn = 簡体中文、en = English。切替後は GsCore の再起動が必要です。",
   "webMaxSessions": "同一アカウントの最大同時セッション数",
-  "webMaxSessionsDesc": "設定項目 web_max_sessions に対応：同一アカウントで同時にログイン状態を保てるデバイス/ブラウザの数。1 = シングルサインオン（新しいログインで最も古いセッションが切断されます）。ログイン有効期間は 48 時間で、バックエンド再起動後も維持されます。"
+  "webMaxSessionsDesc": "設定項目 web_max_sessions に対応：同一アカウントで同時にログイン状態を保てるデバイス/ブラウザの数。1 = シングルサインオン（新しいログインで最も古いセッションが切断されます）。ログイン有効期間は 48 時間で、バックエンド再起動後も維持されます。",
+  "webCorsOrigins": "許可するコンソールのオリジン",
+  "webCorsOriginsPlaceholder": "http://localhost:8080",
+  "webCorsOriginsDesc": "設定項目 web_cors_origins に対応：これらのオリジンから、ログイン資格情報付きでこの Core の Web API を呼べるようにします。制御台ページのオリジンを記入します（例: http://localhost:8080）。スキーム・ホスト・ポートを含め、API アドレスやパスは不要です。空ならクロスオリジンは閉じたままです。保存後の次のリクエストから有効です。"
 }

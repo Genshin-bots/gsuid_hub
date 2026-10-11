@@ -458,7 +458,7 @@ export function ConfigField({
               <Button 
                 variant="outline" 
                 className={cn(
-                  "w-full justify-start text-left bg-background h-10",
+                  "ui-field-trigger w-full justify-start text-left bg-background h-10 hover:text-foreground",
                   !value && "text-muted-foreground"
                 )}
                 disabled={field.disabled}
@@ -547,7 +547,7 @@ export function ConfigField({
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
-                className="w-full justify-start text-left bg-background h-10 gap-2"
+                className="ui-field-trigger w-full justify-start text-left bg-background h-10 gap-2 hover:text-foreground"
                 disabled={field.disabled}
               >
                 <div

@@ -1,5 +1,6 @@
 import { lazy, Suspense, type ReactNode } from 'react';
 import { Toaster as Sonner } from '@/components/ui/sonner';
+import { LuminousGlassFilter } from '@/components/ui/LuminousGlassFilter';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
@@ -199,6 +200,7 @@ const App = () => (
               <AIStatusProvider>
                 <TooltipProvider>
                   <Sonner />
+                  <LuminousGlassFilter />
                   <HashRouter>
                     <AppRoutes />
                   </HashRouter>

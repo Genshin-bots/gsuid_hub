@@ -18,6 +18,11 @@ import { demoPlaceholderImage, demoPluginIcon, demoMemeImageUrl } from './demoMo
 // Can be customized by user in settings (e.g., 127.0.0.1:8765)
 let API_BASE = '';
 
+/** 去掉首尾空白和末尾斜杠，避免和 `/api/...` 拼成 `//api`。 */
+function normalizeCustomApiHost(host: string): string {
+  return host.trim().replace(/\/+$/, '');
+}
+
 // ===================
 // Auth encryption support
 // ===================
@@ -30,12 +35,29 @@ let authEncryptionSupported: boolean | null = null;
 if (typeof window !== 'undefined') {
   const stored = localStorage.getItem('custom_api_host');
   if (stored) {
-    API_BASE = stored;
+    API_BASE = normalizeCustomApiHost(stored);
+    if (API_BASE !== stored) {
+      if (API_BASE) localStorage.setItem('custom_api_host', API_BASE);
+      else localStorage.removeItem('custom_api_host');
+    }
   }
 }
 
 export function getCustomApiHost(): string {
   return API_BASE;
+}
+
+/**
+ * 后端存的是 `/api/...` 这种站内路径。`<img>` 不走 fetch，自定义 Host 时要自己补上，
+ * 否则浏览器会向页面源（dev 下是 Vite）要这张图。
+ */
+export function resolveApiAssetUrl(url: string | null | undefined): string {
+  const value = (url ?? '').trim();
+  const host = getCustomApiHost();
+  if (!value || !host) return value;
+  if (/^(https?:|data:|blob:)/i.test(value)) return value;
+  if (!value.startsWith('/api/')) return value;
+  return `${host}${value}`;
 }
 
 // Get the login path based on the current base URL (supports both dev and production paths)
@@ -47,14 +69,15 @@ export function getLoginPath(): string {
 }
 
 export function setCustomApiHost(host: string): void {
-  API_BASE = host;
+  const normalized = normalizeCustomApiHost(host);
+  API_BASE = normalized;
   // Update the api instance's baseUrl
-  api.setBaseUrl(host);
+  api.setBaseUrl(normalized);
   // 切换后端地址时，把认证加密相关缓存清掉，避免复用旧公钥
   clearAuthPubkeyCache();
   authEncryptionSupported = null;
-  if (host) {
-    localStorage.setItem('custom_api_host', host);
+  if (normalized) {
+    localStorage.setItem('custom_api_host', normalized);
   } else {
     localStorage.removeItem('custom_api_host');
   }
@@ -2261,7 +2284,7 @@ export const remoteCommandApi = {
 
 export interface ThemeConfig {
   mode: 'light' | 'dark';
-  style: 'solid' | 'glassmorphism';
+  style: 'solid' | 'glassmorphism' | 'luminous';
   color: string;
   icon_color: 'white' | 'black' | 'colored';
   background_image: string | null;

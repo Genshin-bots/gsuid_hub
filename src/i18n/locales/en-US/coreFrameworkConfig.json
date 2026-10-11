@@ -28,5 +28,8 @@
   "language": "Framework Language",
   "languageDesc": "Language of GsCore framework logs and system messages (for the deployer); zh-cn = Simplified Chinese, en = English. GsCore restart required after change.",
   "webMaxSessions": "Max Concurrent Sessions per Account",
-  "webMaxSessionsDesc": "Maps to the web_max_sessions config entry: how many devices/browsers can stay logged in with the same account. 1 = single sign-on (a new login kicks out the oldest session); increase for multi-device access. Login stays valid for 48 hours and survives backend restarts."
+  "webMaxSessionsDesc": "Maps to the web_max_sessions config entry: how many devices/browsers can stay logged in with the same account. 1 = single sign-on (a new login kicks out the oldest session); increase for multi-device access. Login stays valid for 48 hours and survives backend restarts.",
+  "webCorsOrigins": "Allowed console origins",
+  "webCorsOriginsPlaceholder": "http://localhost:8080",
+  "webCorsOriginsDesc": "Maps to web_cors_origins. Browsers at these origins may call this Core's web API with login credentials. Enter the console page origin, for example http://localhost:8080 (scheme, host, and port). Do not enter the API address or a path. Empty keeps cross-origin access closed. Takes effect on the next request after saving."
 }

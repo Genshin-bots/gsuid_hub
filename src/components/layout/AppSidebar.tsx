@@ -16,6 +16,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { LanguageFlag } from '@/components/ui/language-flag';
 import { BrandSettingsDialog } from '@/components/brand/BrandSettingsDialog';
 import { cn } from '@/lib/utils';
+import { resolveApiAssetUrl } from '@/lib/api';
 import React, { useState, useEffect, useRef, memo, useMemo } from 'react';
 import {
   Dialog,
@@ -552,7 +553,11 @@ export function AppSidebar() {
         >
           <Avatar className="w-9 h-9 ring-2 ring-primary/20">
             {user?.avatar ? (
-              <img src={user.avatar} alt={user.name} className="w-full h-full object-cover rounded-full" />
+              <img
+                src={resolveApiAssetUrl(user.avatar)}
+                alt={user.name}
+                className="w-full h-full object-cover rounded-full"
+              />
             ) : (
               <AvatarFallback className="bg-primary/20 text-primary text-sm font-medium">
                 {user?.name?.charAt(0) || 'U'}

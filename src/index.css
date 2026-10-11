@@ -246,6 +246,126 @@ All colors MUST be HSL.
   -webkit-backdrop-filter: blur(var(--blur-intensity, 12px));
 }
 
+/* ============================================================================
+ * Luminous Glass Style (光感玻璃)
+ * - 物理质感：顶部高光锐刃 + 内部双重折射倒角 + 底部环境反弹光
+ * - 光学透镜：超通透 + 色彩饱和度提升 (saturate 190%) + 对比度与亮度增强
+ * - 色散与流光：边缘色散高光 (prismatic dispersion sheen) + 渐变透镜曲面
+ * ============================================================================ */
+[data-style="luminous"] .glass-card {
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  box-shadow:
+    var(--tw-ring-offset-shadow, 0 0 #0000),
+    var(--tw-ring-shadow, 0 0 #0000),
+    inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.65),
+    inset 1px 0 1.5px 0 rgba(255, 255, 255, 0.25),
+    inset -1px 0 1.5px 0 rgba(255, 255, 255, 0.15),
+    inset 0 -1.5px 1.5px 0 rgba(255, 255, 255, 0.12),
+    0 3px 12px -2px hsl(var(--primary) / calc(0.08 * var(--shadow-strength))),
+    0 14px 38px -6px hsl(0 0% 0% / calc(0.14 * var(--shadow-strength))) !important;
+  transition: border-color 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-style="luminous"] .glass-card:hover {
+  border-color: rgba(255, 255, 255, 0.75);
+  box-shadow:
+    var(--tw-ring-offset-shadow, 0 0 #0000),
+    var(--tw-ring-shadow, 0 0 #0000),
+    inset 0 1.5px 1.5px 0 rgba(255, 255, 255, 0.85),
+    inset 1px 0 2px 0 rgba(255, 255, 255, 0.35),
+    inset -1px 0 2px 0 rgba(255, 255, 255, 0.2),
+    inset 0 -1.5px 1.5px 0 rgba(255, 255, 255, 0.18),
+    0 4px 16px -2px hsl(var(--primary) / calc(0.15 * var(--shadow-strength))),
+    0 18px 46px -6px hsl(0 0% 0% / calc(0.18 * var(--shadow-strength))) !important;
+}
+
+[data-style="luminous"] .glass-card::before {
+  background: linear-gradient(
+    135deg,
+    hsl(var(--card) / calc(var(--card-opacity, 0.22) * 1.25)) 0%,
+    hsl(var(--card) / calc(var(--card-opacity, 0.22) * 0.75)) 45%,
+    hsl(var(--card) / calc(var(--card-opacity, 0.22) * 1.1)) 100%
+  );
+  backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.2)) saturate(190%) contrast(106%) brightness(105%);
+  -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.2)) saturate(190%) contrast(106%) brightness(105%);
+}
+
+[data-style="luminous"] :where(.glass-card, .floating-sidebar)::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      circle at 20% 15%,
+      hsl(var(--primary) / 0.08) 0%,
+      transparent 45%
+    ),
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.08) 0%,
+      transparent 35%,
+      rgba(255, 255, 255, 0.02) 65%,
+      rgba(255, 255, 255, 0.06) 100%
+    );
+  opacity: 0.85;
+  transition: opacity 0.3s ease;
+}
+
+[data-style="luminous"] :where(.glass-card, .floating-sidebar):hover::after {
+  opacity: 1;
+}
+
+[data-style="luminous"] .glass-card[role="dialog"]::after,
+[data-style="luminous"] .glass-card[role="alertdialog"]::after {
+  display: none !important;
+}
+
+.dark[data-style="luminous"] .glass-card,
+.dark [data-style="luminous"] .glass-card,
+[data-style="luminous"] .dark .glass-card {
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow:
+    var(--tw-ring-offset-shadow, 0 0 #0000),
+    var(--tw-ring-shadow, 0 0 #0000),
+    inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.35),
+    inset 1px 0 1.5px 0 rgba(255, 255, 255, 0.12),
+    inset -1px 0 1.5px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -1.5px 1.5px 0 rgba(255, 255, 255, 0.06),
+    0 4px 18px -2px hsl(var(--primary) / calc(0.18 * var(--shadow-strength))),
+    0 16px 44px -8px hsl(0 0% 0% / calc(0.38 * var(--shadow-strength))) !important;
+}
+
+.dark[data-style="luminous"] .glass-card:hover,
+.dark [data-style="luminous"] .glass-card:hover,
+[data-style="luminous"] .dark .glass-card:hover {
+  border-color: rgba(255, 255, 255, 0.28);
+  box-shadow:
+    var(--tw-ring-offset-shadow, 0 0 #0000),
+    var(--tw-ring-shadow, 0 0 #0000),
+    inset 0 1.5px 1.5px 0 rgba(255, 255, 255, 0.5),
+    inset 1px 0 2px 0 rgba(255, 255, 255, 0.2),
+    inset -1px 0 2px 0 rgba(255, 255, 255, 0.12),
+    inset 0 -1.5px 1.5px 0 rgba(255, 255, 255, 0.08),
+    0 6px 22px -2px hsl(var(--primary) / calc(0.28 * var(--shadow-strength))),
+    0 20px 50px -8px hsl(0 0% 0% / calc(0.48 * var(--shadow-strength))) !important;
+}
+
+.dark[data-style="luminous"] .glass-card::before,
+.dark [data-style="luminous"] .glass-card::before,
+[data-style="luminous"] .dark .glass-card::before {
+  background: linear-gradient(
+    135deg,
+    hsl(var(--card) / calc(var(--card-opacity, 0.2) * 1.3)) 0%,
+    hsl(var(--card) / calc(var(--card-opacity, 0.2) * 0.7)) 50%,
+    hsl(var(--card) / calc(var(--card-opacity, 0.2) * 1.15)) 100%
+  );
+  backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.25)) saturate(180%) contrast(108%) brightness(112%);
+  -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.25)) saturate(180%) contrast(108%) brightness(112%);
+}
+
 /*
  * 弹层（Dialog/Sheet/AlertDialog，Radix 都带 role）上的 glass-card 不要描边：
  * 半透明 1px 边框叠在深色遮罩上会混成一圈黑色描边线，靠阴影分层即可。
@@ -403,11 +523,14 @@ All colors MUST be HSL.
   -webkit-backdrop-filter: none;
 }
 
-/* Glass effect for badge and tag elements - only apply in glassmorphism mode
- * 只留半透明底色，不再给每个徽标挂 backdrop-filter：这种元素在弹层里动辄几十上百个，
- * 每个都要独立采样+模糊一次，是「叠很多层毛玻璃」卡顿的主要来源。 */
-[data-style="glassmorphism"] [class*="bg-secondary"] {
+/* Glass effect for badge and tag elements - only apply in glassmorphism and luminous mode */
+[data-style="glassmorphism"] [class*="bg-secondary"],
+[data-style="luminous"] [class*="bg-secondary"] {
   background: hsl(var(--secondary) / 0.3) !important;
+}
+
+[data-style="luminous"] [class*="bg-secondary"] {
+  border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 [data-style="solid"] [class*="bg-secondary"] {
@@ -417,7 +540,8 @@ All colors MUST be HSL.
 }
 
 /* Tint for the add button in tag inputs（同 bg-secondary：只上色，不挂 blur） */
-[data-style="glassmorphism"] button.rounded-full {
+[data-style="glassmorphism"] button.rounded-full,
+[data-style="luminous"] button.rounded-full {
   background: hsl(var(--accent) / 0.3) !important;
 }
 
@@ -434,6 +558,29 @@ All colors MUST be HSL.
 [data-style="glassmorphism"] .glass-sidebar {
   backdrop-filter: blur(var(--blur-intensity, 12px));
   -webkit-backdrop-filter: blur(var(--blur-intensity, 12px));
+}
+
+[data-style="luminous"] .glass-sidebar {
+  background: hsl(var(--sidebar) / var(--card-opacity, 0.22)) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow:
+    2px 0 16px -2px hsl(var(--primary) / calc(0.08 * var(--shadow-strength))),
+    6px 0 32px -4px hsl(0 0% 0% / calc(0.12 * var(--shadow-strength))),
+    inset -1px 0 1px 0 rgba(255, 255, 255, 0.35),
+    inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.2)) saturate(190%) contrast(106%);
+  -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.2)) saturate(190%) contrast(106%);
+}
+
+.dark[data-style="luminous"] .glass-sidebar,
+.dark [data-style="luminous"] .glass-sidebar,
+[data-style="luminous"] .dark .glass-sidebar {
+  border-right-color: rgba(255, 255, 255, 0.12);
+  box-shadow:
+    2px 0 18px -2px hsl(var(--primary) / calc(0.18 * var(--shadow-strength))),
+    6px 0 36px -4px hsl(0 0% 0% / calc(0.35 * var(--shadow-strength))),
+    inset -1px 0 1px 0 rgba(255, 255, 255, 0.15),
+    inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 /* 移动端模式下毛玻璃侧边栏使用直角 */
@@ -513,6 +660,58 @@ All colors MUST be HSL.
 [data-style="glassmorphism"] .floating-sidebar::before {
   backdrop-filter: blur(var(--blur-intensity, 12px));
   -webkit-backdrop-filter: blur(var(--blur-intensity, 12px));
+}
+
+[data-style="luminous"] .floating-sidebar {
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow:
+    var(--tw-ring-offset-shadow, 0 0 #0000),
+    var(--tw-ring-shadow, 0 0 #0000),
+    inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.65),
+    inset 1px 0 1.5px 0 rgba(255, 255, 255, 0.25),
+    inset -1px 0 1.5px 0 rgba(255, 255, 255, 0.15),
+    inset 0 -1.5px 1.5px 0 rgba(255, 255, 255, 0.12),
+    0 4px 20px -2px hsl(var(--primary) / calc(0.08 * var(--shadow-strength))),
+    0 16px 40px -6px hsl(0 0% 0% / calc(0.14 * var(--shadow-strength))) !important;
+}
+
+[data-style="luminous"] .floating-sidebar::before {
+  background: linear-gradient(
+    135deg,
+    hsl(var(--sidebar) / calc(var(--card-opacity, 0.22) * 1.25)) 0%,
+    hsl(var(--sidebar) / calc(var(--card-opacity, 0.22) * 0.75)) 50%,
+    hsl(var(--sidebar) / calc(var(--card-opacity, 0.22) * 1.1)) 100%
+  );
+  backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.2)) saturate(190%) contrast(106%);
+  -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.2)) saturate(190%) contrast(106%);
+}
+
+.dark[data-style="luminous"] .floating-sidebar,
+.dark [data-style="luminous"] .floating-sidebar,
+[data-style="luminous"] .dark .floating-sidebar {
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow:
+    var(--tw-ring-offset-shadow, 0 0 #0000),
+    var(--tw-ring-shadow, 0 0 #0000),
+    inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.35),
+    inset 1px 0 1.5px 0 rgba(255, 255, 255, 0.12),
+    inset -1px 0 1.5px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -1.5px 1.5px 0 rgba(255, 255, 255, 0.06),
+    0 6px 24px -2px hsl(var(--primary) / calc(0.18 * var(--shadow-strength))),
+    0 20px 48px -8px hsl(0 0% 0% / calc(0.38 * var(--shadow-strength))) !important;
+}
+
+.dark[data-style="luminous"] .floating-sidebar::before,
+.dark [data-style="luminous"] .floating-sidebar::before,
+[data-style="luminous"] .dark .floating-sidebar::before {
+  background: linear-gradient(
+    135deg,
+    hsl(var(--sidebar) / calc(var(--card-opacity, 0.2) * 1.3)) 0%,
+    hsl(var(--sidebar) / calc(var(--card-opacity, 0.2) * 0.7)) 50%,
+    hsl(var(--sidebar) / calc(var(--card-opacity, 0.2) * 1.15)) 100%
+  );
+  backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.25)) saturate(180%) contrast(108%) brightness(112%);
+  -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.25)) saturate(180%) contrast(108%) brightness(112%);
 }
 
 /*
@@ -836,6 +1035,49 @@ main:has(.page-fill) .layout-page-inner {
   -webkit-backdrop-filter: blur(var(--blur-intensity, 12px));
 }
 
+/* Apply backdrop-filter in luminous mode */
+[data-style="luminous"] [role="dialog"],
+[data-style="luminous"] [class*="DialogContent"],
+[data-style="luminous"] [class*="popover"] {
+  backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.25)) saturate(190%) contrast(106%) !important;
+  -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.25)) saturate(190%) contrast(106%) !important;
+  background: hsl(var(--popover) / 0.72) !important;
+  border: 1px solid rgba(255, 255, 255, 0.35) !important;
+  box-shadow:
+    inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.5),
+    inset 0 -1px 1px 0 rgba(255, 255, 255, 0.15),
+    0 16px 40px -4px hsl(0 0% 0% / calc(0.25 * var(--shadow-strength))) !important;
+}
+
+[data-style="luminous"] .glass-card[role="dialog"],
+[data-style="luminous"] .glass-card[role="alertdialog"] {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.dark[data-style="luminous"] [role="dialog"],
+.dark[data-style="luminous"] [class*="DialogContent"],
+.dark[data-style="luminous"] [class*="popover"],
+.dark [data-style="luminous"] [role="dialog"],
+.dark [data-style="luminous"] [class*="DialogContent"],
+.dark [data-style="luminous"] [class*="popover"],
+[data-style="luminous"] .dark [role="dialog"],
+[data-style="luminous"] .dark [class*="DialogContent"],
+[data-style="luminous"] .dark [class*="popover"] {
+  background: hsl(var(--popover) / 0.62) !important;
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  box-shadow:
+    inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.3),
+    inset 0 -1px 1px 0 rgba(255, 255, 255, 0.1),
+    0 18px 44px -4px hsl(0 0% 0% / calc(0.4 * var(--shadow-strength))) !important;
+}
+
+/* Terminal specific luminous style */
+[data-style="luminous"] .glass-terminal {
+  backdrop-filter: blur(var(--blur-intensity, 12px)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--blur-intensity, 12px)) saturate(180%);
+}
+
 /* Icon color variations based on data-icon-color attribute */
 /* Apply to all icons EXCEPT those inside native buttons */
 
@@ -896,6 +1138,61 @@ main:has(.page-fill) .layout-page-inner {
   [data-style="glassmorphism"] .ui-select-trigger {
     backdrop-filter: blur(10px) !important;
     -webkit-backdrop-filter: blur(10px) !important;
+  }
+
+  /* Apply backdrop-filter in luminous mode */
+  [data-style="luminous"] input,
+  [data-style="luminous"] select,
+  [data-style="luminous"] textarea,
+  [data-style="luminous"] [role="combobox"],
+  [data-style="luminous"] [role="listbox"],
+  [data-style="luminous"] .ui-input,
+  [data-style="luminous"] .ui-select-trigger {
+    backdrop-filter: blur(12px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(12px) saturate(180%) !important;
+    background: hsl(var(--background) / 0.5) !important;
+    border: 1px solid rgba(255, 255, 255, 0.35) !important;
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.4), inset 0 -0.5px 1px rgba(0, 0, 0, 0.05) !important;
+  }
+
+  /* Button 扮的字段（时间选择）没有 input / combobox，光感玻璃下会停在不透明 bg-background。
+     与 TagsInput 外壳对齐：bg-background/30 + backdrop-blur-sm。纯色模式不写这条，继续走实底。 */
+  [data-style="glassmorphism"] .ui-field-trigger,
+  [data-style="luminous"] .ui-field-trigger {
+    background: hsl(var(--background) / 0.3) !important;
+    backdrop-filter: blur(4px) !important;
+    -webkit-backdrop-filter: blur(4px) !important;
+  }
+
+  [data-style="glassmorphism"] .ui-field-trigger:hover,
+  [data-style="luminous"] .ui-field-trigger:hover {
+    background: hsl(var(--background) / 0.42) !important;
+  }
+
+  .dark[data-style="luminous"] input,
+  .dark[data-style="luminous"] select,
+  .dark[data-style="luminous"] textarea,
+  .dark[data-style="luminous"] [role="combobox"],
+  .dark[data-style="luminous"] [role="listbox"],
+  .dark[data-style="luminous"] .ui-input,
+  .dark[data-style="luminous"] .ui-select-trigger,
+  .dark [data-style="luminous"] input,
+  .dark [data-style="luminous"] select,
+  .dark [data-style="luminous"] textarea,
+  .dark [data-style="luminous"] [role="combobox"],
+  .dark [data-style="luminous"] [role="listbox"],
+  .dark [data-style="luminous"] .ui-input,
+  .dark [data-style="luminous"] .ui-select-trigger,
+  [data-style="luminous"] .dark input,
+  [data-style="luminous"] .dark select,
+  [data-style="luminous"] .dark textarea,
+  [data-style="luminous"] .dark [role="combobox"],
+  [data-style="luminous"] .dark [role="listbox"],
+  [data-style="luminous"] .dark .ui-input,
+  [data-style="luminous"] .dark .ui-select-trigger {
+    background: hsl(var(--background) / 0.35) !important;
+    border: 1px solid rgba(255, 255, 255, 0.16) !important;
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.15), inset 0 -0.5px 1px rgba(0, 0, 0, 0.15) !important;
   }
   
   input:focus,
@@ -1168,6 +1465,17 @@ button[role="switch"][data-state="unchecked"] span {
     -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.5));
     backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.5));
   }
+  [data-style="luminous"] .table-sticky-right {
+    --sticky-bg-alpha: calc(var(--card-opacity, 0.25) + 0.45);
+    -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.5)) saturate(190%) contrast(106%);
+    backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.5)) saturate(190%) contrast(106%);
+  }
+}
+
+/* SVG Displacement Refraction utility */
+.luminous-refractive {
+  backdrop-filter: url(#luminous-glass-refraction) blur(calc(var(--blur-intensity, 12px) * 1.2)) saturate(190%);
+  -webkit-backdrop-filter: url(#luminous-glass-refraction) blur(calc(var(--blur-intensity, 12px) * 1.2)) saturate(190%);
 }
 
 /* 左侧渐变遮罩：始终挂在固定格左缘（right: 100%，随 sticky 移动），
