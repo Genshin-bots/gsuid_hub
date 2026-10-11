@@ -253,7 +253,7 @@ profiles.filter((p) => {
 | `/ai-capability-agents` | 来源 builtin / **plugin（下拉按插件）** / user | ✅ plugin 项 |
 | `/ai-knowledge` | 文本/图片知识；来源 **plugin（下拉按插件）** / manual | ✅ plugin 项 |
 | `/ai-tools` `/ai-meme` `/ai-budget` `/ai-approvals` | 主 Tab / 筛选 | 否 |
-| `/ai-statistics` `/ai-memory` `/ai-ops` `/ai-debug` | 多 Tab | 否 |
+| `/ai-statistics` `/ai-memory` `/ai-ops` | 多 Tab | 否 |
 | `/ai-kanban` `/batch-push` `/backup` `/database` `/git-update` 等 | 插件选择 / 类型筛选 | 否（`/git-update` 插件 Tab 用 `PluginIcon` 作 **主 icon**） |
 | `/plugin-store` | 全部/已装/更新/娱乐/工具 | `collapseOnMobile` |
 | `/plugins` | 本地插件选择 / 配置分组 | 卡片头分区用 `singleRowOnMobile`（顶部分类组仍用 `collapseOnMobile`） |

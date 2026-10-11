@@ -870,7 +870,7 @@ function KnowledgeGraph({
       />
       {/* Search */}
       <form
-        className="absolute top-3 left-3 w-[min(360px,calc(100%-88px))] rounded-lg border border-border/50 bg-background/90 p-2 shadow-sm backdrop-blur"
+        className="glass-float absolute top-3 left-3 w-[min(360px,calc(100%-88px))] rounded-lg p-2"
         onSubmit={handleSearchSubmit}
       >
         <div className="flex items-center gap-2">
@@ -879,11 +879,11 @@ function KnowledgeGraph({
             value={nodeSearchQuery}
             onChange={(e) => setNodeSearchQuery(e.target.value)}
             placeholder="搜索节点名称或 ID，回车定位"
-            className="h-8 bg-background/70"
+            className="h-8 border-0 bg-transparent shadow-none"
           />
         </div>
         {nodeSearchQuery.trim() && (
-          <div className="mt-2 max-h-56 overflow-auto rounded-md border border-border/40 bg-background/95">
+          <div className="mt-2 max-h-56 overflow-auto rounded-md border border-border/30 bg-transparent">
             {nodeSearchResults.length > 0 ? (
               nodeSearchResults.map((node) => (
                 <button

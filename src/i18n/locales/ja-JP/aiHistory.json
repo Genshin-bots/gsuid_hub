@@ -84,5 +84,6 @@
     }
   },
   "linkedAgents": "関連 Agent",
+  "linkedAgentsSummary": "関連 Agent {count} · {entries} 件",
   "loadLinkedFailed": "関連 Agent の読込失敗"
 }

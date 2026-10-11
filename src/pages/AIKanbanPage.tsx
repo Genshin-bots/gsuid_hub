@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import {
   AlertTriangle,
   Archive,
@@ -98,6 +99,8 @@ import StateStoreViewer, { StateStoreViewerHandle } from '@/components/StateStor
 
 const COLUMN_KEYS: AIKanbanColumnKey[] = ['target', 'progress', 'Done', 'Blocked', 'failed'];
 const ALL_VALUE = '__all__';
+const BOARD_FILTER_DEBOUNCE_MS = 300;
+const CARD_ESTIMATE_PX = 120;
 
 interface PendingAction {
   type:
@@ -338,10 +341,323 @@ function logClass(eventType: string) {
   return 'border-border/50 bg-muted/20';
 }
 
+function cardSearchBlob(card: AIKanbanCard): string {
+  return [
+    card.id,
+    card.display,
+    card.goal,
+    card.agent_profile,
+    card.persona_name,
+    card.failure_reason,
+  ]
+    .join('\n')
+    .toLowerCase();
+}
+
+interface KanbanBoardCardProps {
+  task: AIKanbanCard;
+  onOpen: (task: AIKanbanCard) => void;
+  onAction: (action: PendingAction) => void;
+}
+
+const KanbanBoardCard = memo(function KanbanBoardCard({
+  task,
+  onOpen,
+  onAction,
+}: KanbanBoardCardProps) {
+  const { t } = useLanguage();
+  return (
+    <div
+      draggable
+      onDragStart={(event) => event.dataTransfer.setData('text/plain', task.id)}
+      onClick={() => onOpen(task)}
+      className={cn(
+        'group glass-card-flat relative cursor-pointer rounded-xl p-3 shadow-[0_2px_10px_hsl(0_0%_0%/0.04)] transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[0_10px_30px_hsl(0_0%_0%/0.10)]',
+        task.kind === 'subtask' &&
+          'pl-4 before:absolute before:inset-y-3 before:left-1.5 before:w-1 before:rounded-full before:bg-primary/40',
+      )}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 flex-1 space-y-2">
+          <h3 className="text-sm font-semibold leading-snug line-clamp-2">{task.display}</h3>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <Badge
+              variant="outline"
+              className={cn(
+                'px-1.5 py-0 text-[10px]',
+                task.kind === 'root'
+                  ? 'bg-blue-500/15 text-blue-600 border-blue-500/30'
+                  : 'bg-emerald-500/15 text-emerald-600 border-emerald-500/30',
+              )}
+            >
+              {task.kind === 'root' ? t('aiKanban.kind.root') : t('aiKanban.kind.subtask')}
+            </Badge>
+            <Badge className={cn('px-1.5 py-0 text-[10px]', statusClass(task.status))}>
+              {task.status}
+            </Badge>
+            {task.kind === 'root' && task.subtask_count > 0 && (
+              <Badge variant="secondary" className="px-1.5 py-0 text-[10px]">
+                {task.subtask_done_count}/{task.subtask_count}
+              </Badge>
+            )}
+            {task.respawn_count > 0 && (
+              <Badge variant="secondary" className="px-1.5 py-0 text-[10px]">
+                ↻ {task.respawn_count}
+              </Badge>
+            )}
+          </div>
+        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild onClick={(event) => event.stopPropagation()}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 sm:h-7 sm:w-7 shrink-0 opacity-80 sm:opacity-0 sm:group-hover:opacity-100"
+            >
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" onClick={(event) => event.stopPropagation()}>
+            <DropdownMenuItem onClick={() => onOpen(task)}>
+              <FileText className="mr-2 h-4 w-4" />
+              {t('aiKanban.actions.detail')}
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() =>
+                onAction({
+                  type: 'pause',
+                  task,
+                  title: t('aiKanban.actions.pause'),
+                  description: t('aiKanban.confirm.pause', { name: task.display }),
+                  confirmLabel: t('aiKanban.actions.pause'),
+                })
+              }
+            >
+              <PauseCircle className="mr-2 h-4 w-4" />
+              {t('aiKanban.actions.pause')}
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() =>
+                onAction({
+                  type: 'resume',
+                  task,
+                  title: t('aiKanban.actions.resume'),
+                  description: t('aiKanban.confirm.resume', { name: task.display }),
+                  confirmLabel: t('aiKanban.actions.resume'),
+                })
+              }
+            >
+              <PlayCircle className="mr-2 h-4 w-4" />
+              {t('aiKanban.actions.resume')}
+            </DropdownMenuItem>
+            {task.kind === 'subtask' && (
+              <DropdownMenuItem
+                onClick={() =>
+                  onAction({
+                    type: 'respawn',
+                    task,
+                    title: t('aiKanban.actions.respawn'),
+                    description: t('aiKanban.confirm.respawn', { name: task.display }),
+                    confirmLabel: t('aiKanban.actions.respawn'),
+                  })
+                }
+              >
+                <RotateCcw className="mr-2 h-4 w-4" />
+                {t('aiKanban.actions.respawn')}
+              </DropdownMenuItem>
+            )}
+            {task.kind === 'subtask' && (
+              <DropdownMenuItem
+                onClick={() =>
+                  onAction({
+                    type: 'approve',
+                    task,
+                    title: t('aiKanban.actions.approve'),
+                    description: t('aiKanban.confirm.approve', { name: task.display }),
+                    confirmLabel: t('aiKanban.actions.approve'),
+                  })
+                }
+              >
+                <CheckCircle2 className="mr-2 h-4 w-4" />
+                {t('aiKanban.actions.approve')}
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="text-destructive"
+              onClick={() =>
+                onAction({
+                  type: 'fail',
+                  task,
+                  title: t('aiKanban.actions.fail'),
+                  description:
+                    task.kind === 'root'
+                      ? t('aiKanban.confirm.failRoot', { name: task.display })
+                      : t('aiKanban.confirm.failSubtask', { name: task.display }),
+                  confirmLabel: t('aiKanban.actions.fail'),
+                  destructive: true,
+                })
+              }
+            >
+              <XCircle className="mr-2 h-4 w-4" />
+              {t('aiKanban.actions.fail')}
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="text-destructive"
+              onClick={() =>
+                onAction({
+                  type: 'hardDelete',
+                  task,
+                  title: t('aiKanban.actions.hardDelete'),
+                  description: t('aiKanban.confirm.hardDelete', { name: task.display }),
+                  confirmLabel: t('aiKanban.actions.hardDelete'),
+                  destructive: true,
+                })
+              }
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              {t('aiKanban.actions.hardDelete')}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </div>
+  );
+});
+
+interface KanbanColumnProps {
+  column: AIKanbanColumnKey;
+  cards: AIKanbanCard[];
+  rawCount: number;
+  isInitialLoading: boolean;
+  isBulkDeleting: boolean;
+  onDropTask: (taskId: string) => void;
+  onOpen: (task: AIKanbanCard) => void;
+  onAction: (action: PendingAction) => void;
+  onBulkDelete: () => void;
+}
+
+function KanbanColumn({
+  column,
+  cards,
+  rawCount,
+  isInitialLoading,
+  isBulkDeleting,
+  onDropTask,
+  onOpen,
+  onAction,
+  onBulkDelete,
+}: KanbanColumnProps) {
+  const { t } = useLanguage();
+  const { cardOpacity, blurIntensity } = useTheme();
+  const parentRef = useRef<HTMLDivElement>(null);
+  const meta = COLUMN_HEADER_META[column];
+  const HeaderIcon = meta.Icon;
+  // 一列可能有上千张卡，只挂视口里的节点。
+  const virtualizer = useVirtualizer({
+    count: isInitialLoading ? 0 : cards.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => CARD_ESTIMATE_PX,
+    overscan: 8,
+    getItemKey: (index) => cards[index]?.id ?? `missing-${index}`,
+    measureElement:
+      typeof window !== 'undefined' && 'ResizeObserver' in window
+        ? (element) => element.getBoundingClientRect().height
+        : undefined,
+  });
+
+  return (
+    <div
+      onDragOver={(event) => event.preventDefault()}
+      onDrop={(event) => {
+        event.preventDefault();
+        onDropTask(event.dataTransfer.getData('text/plain'));
+      }}
+      className={cn(
+        'flex h-full min-h-[460px] max-h-[70dvh] md:max-h-none w-[min(82vw,320px)] shrink-0 flex-col rounded-2xl border p-3 transition-colors sm:w-[320px] xl:w-[340px] glass-card',
+        columnAccentClass(column),
+      )}
+      style={{
+        ['--card-opacity' as string]: (cardOpacity / 100).toString(),
+        ['--blur-intensity' as string]: `${blurIntensity}px`,
+      }}
+    >
+      <div className="mb-3 flex items-center justify-between gap-2 px-1">
+        <div className="flex min-w-0 items-center gap-2">
+          <HeaderIcon className={cn('h-4 w-4 shrink-0', meta.titleClass)} />
+          <span className={cn('truncate font-semibold', meta.titleClass)}>
+            {t(`aiKanban.columns.${column}`)}
+          </span>
+          <Badge variant="secondary" className={cn('border-transparent', meta.badgeClass)}>
+            {cards.length}
+          </Badge>
+        </div>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          title={t('aiKanban.bulkDelete.columnButton')}
+          aria-label={t('aiKanban.bulkDelete.columnButton')}
+          disabled={isBulkDeleting || rawCount === 0}
+          onClick={(event) => {
+            event.stopPropagation();
+            onBulkDelete();
+          }}
+          className="h-7 w-7 shrink-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+      <div ref={parentRef} className="min-h-0 flex-1 overflow-y-auto pr-1">
+        {isInitialLoading ? (
+          <Card className="glass-card">
+            <CardContent className="!py-10 text-center text-muted-foreground">
+              <Loader2 className="mx-auto mb-2 h-5 w-5 animate-spin" />
+              {t('common.loading')}
+            </CardContent>
+          </Card>
+        ) : cards.length === 0 ? (
+          <div className="flex h-full min-h-[8rem] items-center justify-center rounded-xl border border-dashed border-border/60 p-8 text-center text-sm text-muted-foreground">
+            {t('aiKanban.emptyColumn')}
+          </div>
+        ) : (
+          <div
+            style={{
+              height: virtualizer.getTotalSize(),
+              width: '100%',
+              position: 'relative',
+            }}
+          >
+            {virtualizer.getVirtualItems().map((item) => {
+              const task = cards[item.index];
+              if (!task) return null;
+              return (
+                <div
+                  key={task.id}
+                  data-index={item.index}
+                  ref={(node) => virtualizer.measureElement(node)}
+                  className="pb-3"
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    transform: `translateY(${item.start}px)`,
+                  }}
+                >
+                  <KanbanBoardCard task={task} onOpen={onOpen} onAction={onAction} />
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function AIKanbanPage() {
   const { t } = useLanguage();
-  const { style, cardOpacity, blurIntensity } = useTheme();
-  const isGlass = style !== 'solid';
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
   const stateStoreRef = useRef<StateStoreViewerHandle>(null);
   /** 第一层确认 → 第二层确认 时跳过清列状态 */
@@ -363,7 +679,7 @@ export default function AIKanbanPage() {
   const artifactPreviewRef = useRef<Record<string, FilePreviewState>>({});
   const workspacePreviewRef = useRef<Record<string, FilePreviewState>>({});
   const [detailTab, setDetailTab] = useState('subtasks');
-  const [isLoadingBoard, setIsLoadingBoard] = useState(false);
+  const [isLoadingBoard, setIsLoadingBoard] = useState(true);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [includeChildren, setIncludeChildren] = useState(true);
   const [filters, setFilters] = useState({
@@ -373,6 +689,7 @@ export default function AIKanbanPage() {
     owner_user_id: '',
     status: ALL_VALUE,
   });
+  const [appliedFilters, setAppliedFilters] = useState(filters);
   const [searchQuery, setSearchQuery] = useState('');
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
   const [secondConfirmAction, setSecondConfirmAction] = useState<PendingAction | null>(null);
@@ -410,25 +727,35 @@ export default function AIKanbanPage() {
   /** 从列头发起时锁定列；从页顶发起时为 null（手动选分类） */
   const [bulkDeleteColumn, setBulkDeleteColumn] = useState<AIKanbanColumnKey | null>(null);
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const boardRequestRef = useRef(0);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setAppliedFilters(filters), BOARD_FILTER_DEBOUNCE_MS);
+    return () => window.clearTimeout(timer);
+  }, [filters]);
 
   const loadBoard = useCallback(async () => {
+    const requestId = boardRequestRef.current + 1;
+    boardRequestRef.current = requestId;
     try {
       setIsLoadingBoard(true);
       const data = await aiKanbanApi.getBoard({
-        scope_key: filters.scope_key.trim() || undefined,
-        bot_id: filters.bot_id.trim() || undefined,
-        group_id: filters.group_id.trim() || undefined,
-        owner_user_id: filters.owner_user_id.trim() || undefined,
+        scope_key: appliedFilters.scope_key.trim() || undefined,
+        bot_id: appliedFilters.bot_id.trim() || undefined,
+        group_id: appliedFilters.group_id.trim() || undefined,
+        owner_user_id: appliedFilters.owner_user_id.trim() || undefined,
         include_children: includeChildren,
-        status: filters.status === ALL_VALUE ? undefined : filters.status,
+        status: appliedFilters.status === ALL_VALUE ? undefined : appliedFilters.status,
       });
+      if (boardRequestRef.current !== requestId) return;
       setBoard({ columns: { ...emptyColumns, ...data.columns }, summary: data.summary });
     } catch (error) {
+      if (boardRequestRef.current !== requestId) return;
       toast.error(error instanceof Error ? error.message : t('aiKanban.messages.loadBoardFailed'));
     } finally {
-      setIsLoadingBoard(false);
+      if (boardRequestRef.current === requestId) setIsLoadingBoard(false);
     }
-  }, [filters, includeChildren, t]);
+  }, [appliedFilters, includeChildren, t]);
 
   const loadCandidates = useCallback(async () => {
     try {
@@ -489,12 +816,16 @@ export default function AIKanbanPage() {
     if (selectedTaskId) loadTaskDetail(selectedTaskId);
   }, [selectedTaskId, loadTaskDetail]);
 
-  const cardsById = useMemo(() => {
+  const { cardsById, searchIndex } = useMemo(() => {
     const map = new Map<string, AIKanbanCard>();
-    COLUMN_KEYS.forEach((column) =>
-      board.columns[column]?.forEach((card) => map.set(card.id, card)),
-    );
-    return map;
+    const index = new Map<string, string>();
+    for (const column of COLUMN_KEYS) {
+      for (const card of board.columns[column]) {
+        map.set(card.id, card);
+        index.set(card.id, cardSearchBlob(card));
+      }
+    }
+    return { cardsById: map, searchIndex: index };
   }, [board.columns]);
 
   const filteredColumns = useMemo(() => {
@@ -502,24 +833,14 @@ export default function AIKanbanPage() {
     if (!keyword) return board.columns;
     return COLUMN_KEYS.reduce<Record<AIKanbanColumnKey, AIKanbanCard[]>>(
       (acc, column) => {
-        acc[column] = (board.columns[column] || []).filter((card) =>
-          [
-            card.id,
-            card.display,
-            card.goal,
-            card.agent_profile,
-            card.persona_name,
-            card.failure_reason,
-          ]
-            .join('\n')
-            .toLowerCase()
-            .includes(keyword),
+        acc[column] = board.columns[column].filter((card) =>
+          (searchIndex.get(card.id) ?? '').includes(keyword),
         );
         return acc;
       },
       { ...emptyColumns },
     );
-  }, [board.columns, searchQuery]);
+  }, [board.columns, searchIndex, searchQuery]);
 
   const candidateOptions = useMemo(() => candidates.map((item) => item.node_id), [candidates]);
 
@@ -564,11 +885,11 @@ export default function AIKanbanPage() {
     return labels;
   }, [filters, t]);
 
-  const openDetail = (task: AIKanbanCard) => {
+  const openDetail = useCallback((task: AIKanbanCard) => {
     setSelectedTaskId(task.id);
-  };
+  }, []);
 
-  const openAction = (action: PendingAction) => {
+  const openAction = useCallback((action: PendingAction) => {
     setFailReason('');
     setRespawnDraft({
       description: action.task?.goal || action.task?.display || '',
@@ -576,7 +897,7 @@ export default function AIKanbanPage() {
     });
     setApprovalNote('');
     setPendingAction(action);
-  };
+  }, []);
 
   const runAction = async () => {
     if (!pendingAction && !secondConfirmAction) return;
@@ -942,165 +1263,6 @@ export default function AIKanbanPage() {
     }
   };
 
-  const renderCard = (task: AIKanbanCard) => (
-    <div
-      key={task.id}
-      draggable
-      onDragStart={(event) => event.dataTransfer.setData('text/plain', task.id)}
-      onClick={() => openDetail(task)}
-      className={cn(
-        'group glass-card-flat relative cursor-pointer rounded-xl p-3 shadow-[0_2px_10px_hsl(0_0%_0%/0.04)] transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[0_10px_30px_hsl(0_0%_0%/0.10)]',
-        task.kind === 'subtask' &&
-          'pl-4 before:absolute before:inset-y-3 before:left-1.5 before:w-1 before:rounded-full before:bg-primary/40',
-      )}
-    >
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0 flex-1 space-y-2">
-          <h3 className="text-sm font-semibold leading-snug line-clamp-2">{task.display}</h3>
-          <div className="flex flex-wrap items-center gap-1.5">
-            <Badge
-              variant="outline"
-              className={cn(
-                'px-1.5 py-0 text-[10px]',
-                task.kind === 'root'
-                  ? 'bg-blue-500/15 text-blue-600 border-blue-500/30'
-                  : 'bg-emerald-500/15 text-emerald-600 border-emerald-500/30',
-              )}
-            >
-              {task.kind === 'root' ? t('aiKanban.kind.root') : t('aiKanban.kind.subtask')}
-            </Badge>
-            <Badge className={cn('px-1.5 py-0 text-[10px]', statusClass(task.status))}>
-              {task.status}
-            </Badge>
-            {task.kind === 'root' && task.subtask_count > 0 && (
-              <Badge variant="secondary" className="px-1.5 py-0 text-[10px]">
-                {task.subtask_done_count}/{task.subtask_count}
-              </Badge>
-            )}
-            {task.respawn_count > 0 && (
-              <Badge variant="secondary" className="px-1.5 py-0 text-[10px]">
-                ↻ {task.respawn_count}
-              </Badge>
-            )}
-          </div>
-        </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild onClick={(event) => event.stopPropagation()}>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9 sm:h-7 sm:w-7 shrink-0 opacity-80 sm:opacity-0 sm:group-hover:opacity-100"
-            >
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" onClick={(event) => event.stopPropagation()}>
-            <DropdownMenuItem onClick={() => openDetail(task)}>
-              <FileText className="mr-2 h-4 w-4" />
-              {t('aiKanban.actions.detail')}
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() =>
-                openAction({
-                  type: 'pause',
-                  task,
-                  title: t('aiKanban.actions.pause'),
-                  description: t('aiKanban.confirm.pause', { name: task.display }),
-                  confirmLabel: t('aiKanban.actions.pause'),
-                })
-              }
-            >
-              <PauseCircle className="mr-2 h-4 w-4" />
-              {t('aiKanban.actions.pause')}
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() =>
-                openAction({
-                  type: 'resume',
-                  task,
-                  title: t('aiKanban.actions.resume'),
-                  description: t('aiKanban.confirm.resume', { name: task.display }),
-                  confirmLabel: t('aiKanban.actions.resume'),
-                })
-              }
-            >
-              <PlayCircle className="mr-2 h-4 w-4" />
-              {t('aiKanban.actions.resume')}
-            </DropdownMenuItem>
-            {task.kind === 'subtask' && (
-              <DropdownMenuItem
-                onClick={() =>
-                  openAction({
-                    type: 'respawn',
-                    task,
-                    title: t('aiKanban.actions.respawn'),
-                    description: t('aiKanban.confirm.respawn', { name: task.display }),
-                    confirmLabel: t('aiKanban.actions.respawn'),
-                  })
-                }
-              >
-                <RotateCcw className="mr-2 h-4 w-4" />
-                {t('aiKanban.actions.respawn')}
-              </DropdownMenuItem>
-            )}
-            {task.kind === 'subtask' && (
-              <DropdownMenuItem
-                onClick={() =>
-                  openAction({
-                    type: 'approve',
-                    task,
-                    title: t('aiKanban.actions.approve'),
-                    description: t('aiKanban.confirm.approve', { name: task.display }),
-                    confirmLabel: t('aiKanban.actions.approve'),
-                  })
-                }
-              >
-                <CheckCircle2 className="mr-2 h-4 w-4" />
-                {t('aiKanban.actions.approve')}
-              </DropdownMenuItem>
-            )}
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              className="text-destructive"
-              onClick={() =>
-                openAction({
-                  type: 'fail',
-                  task,
-                  title: t('aiKanban.actions.fail'),
-                  description:
-                    task.kind === 'root'
-                      ? t('aiKanban.confirm.failRoot', { name: task.display })
-                      : t('aiKanban.confirm.failSubtask', { name: task.display }),
-                  confirmLabel: t('aiKanban.actions.fail'),
-                  destructive: true,
-                })
-              }
-            >
-              <XCircle className="mr-2 h-4 w-4" />
-              {t('aiKanban.actions.fail')}
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              className="text-destructive"
-              onClick={() =>
-                openAction({
-                  type: 'hardDelete',
-                  task,
-                  title: t('aiKanban.actions.hardDelete'),
-                  description: t('aiKanban.confirm.hardDelete', { name: task.display }),
-                  confirmLabel: t('aiKanban.actions.hardDelete'),
-                  destructive: true,
-                })
-              }
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              {t('aiKanban.actions.hardDelete')}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-    </div>
-  );
-
   useEffect(() => {
     artifactPreviewRef.current = artifactPreview;
   }, [artifactPreview]);
@@ -1342,73 +1504,18 @@ export default function AIKanbanPage() {
         <div className="min-h-0 flex-1 overflow-x-auto [--shadow-bleed:1.5rem]">
           <div className="flex h-full min-w-max gap-4">
             {COLUMN_KEYS.map((column) => (
-              <div
+              <KanbanColumn
                 key={column}
-                onDragOver={(event) => event.preventDefault()}
-                onDrop={(event) => onDropToColumn(column, event.dataTransfer.getData('text/plain'))}
-                className={cn(
-                  // 移动端页面整体可滚（page-viewport 仅桌面锁高），列高用 70dvh 封顶、任务列表内滚
-                  'flex h-full min-h-[460px] max-h-[70dvh] md:max-h-none w-[min(82vw,320px)] shrink-0 flex-col rounded-2xl border p-3 transition-colors sm:w-[320px] xl:w-[340px] glass-card',
-                  columnAccentClass(column),
-                )}
-                style={{
-                  ['--card-opacity' as string]: (cardOpacity / 100).toString(),
-                  ['--blur-intensity' as string]: `${blurIntensity}px`,
-                }}
-              >
-                <div className="mb-3 flex items-center justify-between gap-2 px-1">
-                  <div className="flex min-w-0 items-center gap-2">
-                    {(() => {
-                      const meta = COLUMN_HEADER_META[column];
-                      return (
-                        <>
-                          <meta.Icon className={cn('h-4 w-4 shrink-0', meta.titleClass)} />
-                          <span className={cn('truncate font-semibold', meta.titleClass)}>
-                            {t(`aiKanban.columns.${column}`)}
-                          </span>
-                          <Badge
-                            variant="secondary"
-                            className={cn('border-transparent', meta.badgeClass)}
-                          >
-                            {filteredColumns[column]?.length || 0}
-                          </Badge>
-                        </>
-                      );
-                    })()}
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    title={t('aiKanban.bulkDelete.columnButton')}
-                    aria-label={t('aiKanban.bulkDelete.columnButton')}
-                    disabled={isBulkDeleting || (board.columns[column]?.length || 0) === 0}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      openColumnBulkDelete(column);
-                    }}
-                    className="h-7 w-7 shrink-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-                <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
-                  {isLoadingBoard ? (
-                    <Card className="glass-card">
-                      <CardContent className="!py-10 text-center text-muted-foreground">
-                        <Loader2 className="mx-auto mb-2 h-5 w-5 animate-spin" />
-                        {t('common.loading')}
-                      </CardContent>
-                    </Card>
-                  ) : (filteredColumns[column] || []).length === 0 ? (
-                    <div className="flex h-full min-h-[8rem] items-center justify-center rounded-xl border border-dashed border-border/60 p-8 text-center text-sm text-muted-foreground">
-                      {t('aiKanban.emptyColumn')}
-                    </div>
-                  ) : (
-                    filteredColumns[column].map(renderCard)
-                  )}
-                </div>
-              </div>
+                column={column}
+                cards={filteredColumns[column]}
+                rawCount={board.columns[column].length}
+                isInitialLoading={isLoadingBoard && board.summary.updated_at === null}
+                isBulkDeleting={isBulkDeleting}
+                onDropTask={(taskId) => onDropToColumn(column, taskId)}
+                onOpen={openDetail}
+                onAction={openAction}
+                onBulkDelete={() => openColumnBulkDelete(column)}
+              />
             ))}
           </div>
         </div>
@@ -1515,7 +1622,14 @@ export default function AIKanbanPage() {
                         </CardContent>
                       </Card>
                     ) : (
-                      detail.subtasks.map((task) => renderCard(task))
+                      detail.subtasks.map((task) => (
+                        <KanbanBoardCard
+                          key={task.id}
+                          task={task}
+                          onOpen={openDetail}
+                          onAction={openAction}
+                        />
+                      ))
                     )}
                   </div>
                 </TabsContent>

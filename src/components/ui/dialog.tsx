@@ -23,6 +23,7 @@ const DialogOverlay = React.forwardRef<
       className,
     )}
     {...props}
+    data-dialog-overlay=""
   />
 ));
 DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;

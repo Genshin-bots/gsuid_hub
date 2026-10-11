@@ -84,5 +84,6 @@
     }
   },
   "linkedAgents": "Linked agents",
+  "linkedAgentsSummary": "{count} linked agents · {entries} entries",
   "loadLinkedFailed": "Failed to load linked agents"
 }

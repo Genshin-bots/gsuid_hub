@@ -4429,26 +4429,6 @@ export interface AgentDebugMemoryConflict {
   created_at: string | null;
 }
 
-export interface AgentDebugTaskListItem {
-  id: string;
-  ordinal: number;
-  node_kind: string;
-  root_task_id: string;
-  display_name: string;
-  goal: string;
-  status: string;
-  owner_user_id: string | null;
-  agent_profile: string;
-  updated_at: string | null;
-}
-
-export interface AgentDebugTaskDetail {
-  task: Record<string, unknown>;
-  root: Record<string, unknown> | null;
-  subtasks: Array<Record<string, unknown>>;
-  logs: Array<{ event_type: string; content: string; timestamp: string | null }>;
-}
-
 export const agentDebugApi = {
   getMemoryEdges: (params: { scope_key: string; include_invalid?: boolean; limit?: number }) => {
     const query = new URLSearchParams();
@@ -4472,30 +4452,6 @@ export const agentDebugApi = {
       `/api/agent_debug/memory/conflicts?${query.toString()}`,
     );
   },
-
-  // ── Orchestration Board ──
-  listTasks: (params: { status?: string; limit?: number } = {}) => {
-    const query = new URLSearchParams();
-    if (params.status) query.set('status', params.status);
-    if (params.limit !== undefined) query.set('limit', String(params.limit));
-    const qs = query.toString();
-    return api.get<AgentDebugTaskListItem[]>(`/api/agent_debug/tasks${qs ? `?${qs}` : ''}`);
-  },
-
-  getTask: (taskId: string) =>
-    api.get<AgentDebugTaskDetail>(`/api/agent_debug/tasks/${encodeURIComponent(taskId)}`),
-
-  abortTask: (taskId: string) =>
-    api.post<{ task_id: string }>(`/api/agent_debug/tasks/${encodeURIComponent(taskId)}/abort`),
-
-  // ── Persona Evolution Inspector ──
-  getSelfModel: (botId = 'default') =>
-    api.get<Record<string, unknown>>(
-      `/api/agent_debug/self_model?bot_id=${encodeURIComponent(botId)}`,
-    ),
-
-  setSelfModel: (data: { bot_id?: string; field: string; items: string[] }) =>
-    api.post<{ field: string; count: number }>(`/api/agent_debug/self_model`, data),
 };
 
 // ===================
@@ -5070,7 +5026,7 @@ export const brandSettingsApi = {
  * 记忆子系统 API（2026-07-20 补全，导出后多个页面共用）。
  *
  * 历史：原本这是 AIMemoryPage 内私有 const，现在提到 api.ts 让
- * /ai-debug / 记忆设置 Dialog 等都能复用。
+ * 记忆设置 Dialog 等都能复用。
  */
 export interface MemorySearchRequest {
   query: string;

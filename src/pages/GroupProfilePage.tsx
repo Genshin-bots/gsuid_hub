@@ -4,10 +4,9 @@
  */
 import { useCallback, useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
-import { Loader2, RefreshCw } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -16,7 +15,11 @@ import { cn } from '@/lib/utils';
 import { aiStateStoreApi, getApiErrorMessage, type AIStateStoreKeyItem } from '@/lib/api';
 import { GROUP_PROFILE_STATE_SCOPE, normalizeGroupProfile } from '@/lib/featureUtils';
 
-export function GroupProfilePanel() {
+export function GroupProfilePanel({
+  bindRefresh,
+}: {
+  bindRefresh?: (fn: (() => void) | null, loading: boolean) => void;
+}) {
   const { t } = useLanguage();
   const [keys, setKeys] = useState<AIStateStoreKeyItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,6 +46,14 @@ export function GroupProfilePanel() {
     void loadKeys();
   }, [loadKeys]);
 
+  useEffect(() => {
+    if (!bindRefresh) return;
+    bindRefresh(() => {
+      void loadKeys();
+    }, loading);
+    return () => bindRefresh(null, false);
+  }, [bindRefresh, loadKeys, loading]);
+
   const loadDetail = async (stateKey: string) => {
     setSelectedKey(stateKey);
     setDetailLoading(true);
@@ -62,12 +73,6 @@ export function GroupProfilePanel() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
-        <Button variant="outline" onClick={() => void loadKeys()}>
-          <RefreshCw className={cn('w-4 h-4', loading && 'animate-spin')} />
-          {t('common.refresh')}
-        </Button>
-      </div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <Card className={cn('lg:col-span-1', 'glass-card')}>
           <CardHeader className="py-3">

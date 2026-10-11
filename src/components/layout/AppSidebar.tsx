@@ -34,7 +34,6 @@ import {
   Activity,
   Wallet,
   ShieldCheck,
-  Bug,
   PackageOpen,
   Send,
   MessageCircle,
@@ -214,7 +213,6 @@ const getNavItems = (
           url: '/ai-approvals',
           icon: ShieldCheck,
         },
-        { id: 'ai-debug', title: t('sidebar.aiDebug'), url: '/ai-debug', icon: Bug },
         { id: 'ai-ops', title: t('sidebar.aiOps'), url: '/ai-ops', icon: Activity },
         { id: 'ai-runtime', title: t('sidebar.aiRuntime'), url: '/ai-runtime', icon: Puzzle },
         {
@@ -671,7 +669,7 @@ export function AppSidebar() {
                   variant="secondary"
                   className="text-xs font-mono font-medium shrink-0 bg-muted/80 text-foreground border border-border/50"
                 >
-                  v{import.meta.env.PACKAGE_VERSION || PACKAGE_VERSION || '0.3.1'}
+                  v{import.meta.env.PACKAGE_VERSION || PACKAGE_VERSION || '0.3.2'}
                 </Badge>
               </div>
               <span className="text-xs text-muted-foreground whitespace-nowrap">

@@ -653,6 +653,26 @@ const cs = (el: Element | null) =>
 
 **禁止**：再给邮箱框写 `type="email"`「图个语义」。后端会校验格式；前端 `type=email` 的即时校验换来的是 Chromium 卡死。
 
+### P-38 光感/液态玻璃：侧栏宽度动画把整页 backdrop 逐帧重采样 ★★
+
+**症状**：`data-style="luminous"` / `"liquid"` 下侧栏收起、展开明显掉帧；页面上卡片多时更严重。纯色和普通毛玻璃轻很多。
+
+**根因**：
+
+1. 侧栏动画改的是 `width`（主内容区跟着重排）。`backdrop-filter` 的区域每帧都变，浏览器必须重采样背后的像素。
+2. 光感/液态在 blur 上又叠了 `saturate` / `contrast` / `brightness`，走不了 Chrome 的 blur 快速路径。液态的 SVG `feDisplacementMap`（`url(#liquid-glass-lens-filter)`）更重：大面积表面禁止挂这个滤镜，曲面靠倒角和 `::after`。光是把置换滤镜从每张卡上摘掉就要掉一帧。
+3. 默认壁纸如果再铺一层整屏 `backdrop-filter`，会垫在每张卡下面，变成嵌套 backdrop，侧栏一动就整屏重算。
+4. `will-change: width` 和常驻 `translateX(0)` / `transform-gpu` 会把玻璃所在元素变成 backdrop 根，宽度动画时整层失效。`width` 本身也不能合成。
+
+**修法**：
+
+- **不要**在动画中途切换 `backdrop-filter`（例如临时改成 `blur(8px)` 再恢复）。参数一变，玻璃的亮度/模糊就会跳一下，看起来是闪烁，而且切换本身要重铺所有层。
+- 光感/液态里会跟着布局移动的表面（卡片、侧栏、分段条、输入框、带 `backdrop-blur` 的小块）**不要** `backdrop-filter`。磨砂放在壁纸的静态 `filter: blur()` 上，表面只用半透明底、倒角和高光。见 `index.css` 末尾那条覆盖。
+- 弹层不参与侧栏宽度动画，可以保留自己的模糊。表格固定列要盖住滑过的文字，也不要关掉。
+- 不要整屏 `backdrop-filter`。普通毛玻璃仍可以用那层叠加。
+- 侧栏宽度过渡不要加 `will-change`，图标模式不要写 `transform: translateX(0)`。
+- 液态菜单项不要 `transition: all`。
+
 ## B. 性能优化
 
 ### B.1 图片
@@ -675,6 +695,7 @@ const cs = (el: Element | null) =>
 
 ### B.5 毛玻璃
 - `backdrop-filter` GPU 密集，避免叠在长列表每一项；低端设备/设置中可提供关闭选项。
+- 光感/液态的布局表面不要 `backdrop-filter`，也不要在侧栏动画里切换滤镜（会闪）。壁纸用静态 `filter: blur()`。见 P-38。
 
 ### B.6 生产包体积与静态资源（gzip / 缓存 / 懒加载）★★
 

@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useRef, memo } from 'react';
-import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
@@ -72,10 +71,10 @@ import {
 } from 'lucide-react';
 import {
   memeApi,
-  MemeRecord,
-  MemeStatsData,
-  MemeListParams,
-  MemePersona,
+  type MemeRecord,
+  type MemeStatsData,
+  type MemeListParams,
+  type MemePersona,
   getApiErrorMessage,
 } from '@/lib/api';
 import { headerActionRowClass, PinnedPage } from '@/components/layout/PinnedPage';
@@ -178,14 +177,12 @@ function StatCard({
   iconClass,
   label,
   value,
-  isGlass,
 }: {
   icon: React.ReactNode;
   iconBgClass: string;
   iconClass: string;
   label: string;
   value: number | string;
-  isGlass: boolean;
 }) {
   return (
     <Card className={cn('transition-all duration-300 hover:shadow-md', 'glass-card')}>
@@ -210,13 +207,11 @@ function StatCard({
 const MemeCard = memo(function MemeCard({
   meme,
   onClick,
-  isGlass,
   selected,
   onToggleSelect,
 }: {
   meme: MemeRecord;
   onClick: (meme: MemeRecord) => void;
-  isGlass: boolean;
   selected?: boolean;
   onToggleSelect?: (memeId: string) => void;
 }) {
@@ -482,8 +477,8 @@ const MemeCard = memo(function MemeCard({
         </div>
       </div>
       {/* Info */}
-      <CardContent className="p-3 space-y-1.5">
-        <p className="text-xs text-muted-foreground line-clamp-2 min-h-[2rem]">
+      <CardContent className="flex flex-col gap-1.5 p-3 sm:p-3">
+        <p className="min-w-0 truncate text-xs leading-4 text-muted-foreground">
           {meme.description || t('aiMeme.card.noDescription')}
         </p>
         <div className="flex flex-wrap gap-1">
@@ -533,14 +528,12 @@ function MemeDetailDialog({
   onClose,
   onUpdate,
   onDelete,
-  isGlass,
 }: {
   meme: MemeRecord | null;
   open: boolean;
   onClose: () => void;
   onUpdate: () => void;
   onDelete: () => void;
-  isGlass: boolean;
 }) {
   const { t } = useLanguage();
   const [editDescription, setEditDescription] = useState('');
@@ -667,34 +660,34 @@ function MemeDetailDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden p-0">
-          <div className="flex flex-col md:flex-row h-full max-h-[85vh]">
+        <DialogContent className="glass-card max-h-[90vh] max-w-4xl gap-0 overflow-visible p-0 sm:max-w-4xl sm:p-0">
+          <div className="flex max-h-[min(85vh,52rem)] min-h-0 flex-col overflow-hidden rounded-[inherit] md:flex-row">
             {/* Left: Image Preview */}
-            <div className="md:w-1/2 bg-muted/20 flex items-center justify-center p-4 min-h-[300px] md:min-h-0">
+            <div className="flex min-h-[240px] items-center justify-center bg-foreground/[0.04] p-6 md:min-h-0 md:w-1/2">
               <img
                 src={detailBlobUrl || undefined}
                 alt={meme.description || meme.meme_id}
-                className="max-w-full max-h-[400px] md:max-h-[70vh] object-contain rounded-lg"
+                className="max-h-[400px] max-w-full rounded-lg object-contain md:max-h-[70vh]"
               />
             </div>
 
             {/* Right: Info & Edit */}
-            <div className="md:w-1/2 flex flex-col min-h-0">
-              <DialogHeader className="px-5 pt-5 pb-3 shrink-0">
-                <DialogTitle className="flex items-center gap-2 text-base">
+            <div className="flex min-h-0 flex-col border-border/40 md:w-1/2 md:border-l">
+              <DialogHeader className="shrink-0 space-y-2 px-6 pb-4 pr-12 pt-6">
+                <DialogTitle className="flex items-center gap-2">
                   <ImageIcon className="w-5 h-5 text-primary" />
                   {t('aiMeme.detail.title')}
                 </DialogTitle>
-                <DialogDescription className="text-xs">
+                <DialogDescription>
                   {meme.meme_id} · {meme.width}×{meme.height} · {formatFileSize(meme.file_size)}
                 </DialogDescription>
               </DialogHeader>
 
-              <ScrollArea className="flex-1 min-h-0 px-5">
-                <div className="space-y-3 pb-3">
+              <ScrollArea className="min-h-0 flex-1 px-6">
+                <div className="space-y-4 pb-4">
                   {/* Description */}
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium text-muted-foreground">
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">
                       {t('aiMeme.detail.description')}
                     </Label>
                     <Textarea
@@ -706,21 +699,21 @@ function MemeDetailDialog({
                   </div>
 
                   {/* Tags */}
-                  <div className="space-y-2.5">
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-medium text-muted-foreground">
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label className="text-muted-foreground">
                         {t('aiMeme.detail.emotionTags')}
                       </Label>
                       <TagsInput value={editEmotionTags} onChange={setEditEmotionTags} />
                     </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-medium text-muted-foreground">
+                    <div className="space-y-2">
+                      <Label className="text-muted-foreground">
                         {t('aiMeme.detail.sceneTags')}
                       </Label>
                       <TagsInput value={editSceneTags} onChange={setEditSceneTags} />
                     </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-medium text-muted-foreground">
+                    <div className="space-y-2">
+                      <Label className="text-muted-foreground">
                         {t('aiMeme.detail.customTags')}
                       </Label>
                       <TagsInput value={editCustomTags} onChange={setEditCustomTags} />
@@ -728,8 +721,8 @@ function MemeDetailDialog({
                   </div>
 
                   {/* Persona Hint */}
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-2 text-muted-foreground">
                       <Users className="w-3 h-3" />
                       {t('aiMeme.detail.personaHint')}
                     </Label>
@@ -737,14 +730,14 @@ function MemeDetailDialog({
                       value={editPersonaHint}
                       onChange={(e) => setEditPersonaHint(e.target.value)}
                       placeholder={t('aiMeme.detail.personaHintPlaceholder')}
-                      className="h-8 text-sm"
+                      className="text-sm"
                     />
                   </div>
 
                   <Separator className="bg-border/30" />
 
                   {/* File Info & Usage Stats - compact grid */}
-                  <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs">
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
                     <div className="flex items-center gap-1.5">
                       <FileImage className="w-3 h-3 text-muted-foreground shrink-0" />
                       <span className="text-muted-foreground">{t('aiMeme.detail.fileSize')}:</span>
@@ -767,7 +760,7 @@ function MemeDetailDialog({
                   <Separator className="bg-border/30" />
 
                   {/* Usage Stats - compact */}
-                  <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs">
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
                     <div className="flex items-center gap-1.5">
                       <Zap className="w-3 h-3 text-muted-foreground shrink-0" />
                       <span className="text-muted-foreground">{t('aiMeme.detail.useCount')}:</span>
@@ -795,7 +788,7 @@ function MemeDetailDialog({
                   <Separator className="bg-border/30" />
 
                   {/* Timestamps - compact */}
-                  <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+                  <div className="grid grid-cols-1 gap-x-4 gap-y-2 text-sm text-muted-foreground sm:grid-cols-2">
                     <div className="flex items-center gap-1">
                       <span>{t('aiMeme.detail.createdAt')}</span>
                     </div>
@@ -816,47 +809,33 @@ function MemeDetailDialog({
                 </div>
               </ScrollArea>
 
-              {/* Action Buttons - single row, no wrap */}
-              <div className="px-5 py-3 border-t border-border/30 flex items-center gap-2 shrink-0">
-                <Button
-                  size="sm"
-                  onClick={handleSave}
-                  disabled={isSaving}
-                  className="gap-1.5 h-8 text-xs"
-                >
+              <div className="flex shrink-0 flex-wrap items-center gap-2 border-t border-border/40 px-6 py-4">
+                <Button onClick={handleSave} disabled={isSaving} className="gap-2">
                   {isSaving ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
-                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <CheckCircle2 className="w-4 h-4" />
                   )}
                   {t('common.save')}
                 </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setShowMoveDialog(true)}
-                  className="gap-1.5 h-8 text-xs"
-                >
-                  <Move className="w-3.5 h-3.5" />
+                <Button variant="outline" onClick={() => setShowMoveDialog(true)} className="gap-2">
+                  <Move className="w-4 h-4" />
                   {t('aiMeme.detail.moveToFolder')}
                 </Button>
                 <Button
-                  size="sm"
                   variant="outline"
                   onClick={() => setShowRetagDialog(true)}
-                  className="gap-1.5 h-8 text-xs"
+                  className="gap-2"
                 >
-                  <Sparkles className="w-3.5 h-3.5" />
+                  <Sparkles className="w-4 h-4" />
                   {t('aiMeme.detail.retag')}
                 </Button>
-                <div className="flex-1" />
                 <Button
-                  size="sm"
                   variant="destructive"
                   onClick={() => setShowDeleteDialog(true)}
-                  className="gap-1.5 h-8 text-xs"
+                  className="gap-2 sm:ml-auto"
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
+                  <Trash2 className="w-4 h-4" />
                   {t('common.delete')}
                 </Button>
               </div>
@@ -867,7 +846,7 @@ function MemeDetailDialog({
 
       {/* Move Dialog */}
       <Dialog open={showMoveDialog} onOpenChange={setShowMoveDialog}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="glass-card max-w-sm">
           <DialogHeader>
             <DialogTitle>{t('aiMeme.detail.moveToFolder')}</DialogTitle>
             <DialogDescription>{t('aiMeme.detail.targetFolder')}</DialogDescription>
@@ -894,7 +873,7 @@ function MemeDetailDialog({
 
       {/* Retag Confirm Dialog */}
       <AlertDialog open={showRetagDialog} onOpenChange={setShowRetagDialog}>
-        <AlertDialogContent>
+        <AlertDialogContent className="glass-card">
           <AlertDialogHeader>
             <AlertDialogTitle>{t('aiMeme.detail.retagConfirm')}</AlertDialogTitle>
             <AlertDialogDescription>{t('aiMeme.detail.retagConfirmDesc')}</AlertDialogDescription>
@@ -911,7 +890,7 @@ function MemeDetailDialog({
 
       {/* Delete Confirm Dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
+        <AlertDialogContent className="glass-card">
           <AlertDialogHeader>
             <AlertDialogTitle>{t('aiMeme.detail.deleteConfirm')}</AlertDialogTitle>
             <AlertDialogDescription>{t('aiMeme.detail.deleteConfirmDesc')}</AlertDialogDescription>
@@ -939,13 +918,11 @@ function UploadDialog({
   open,
   onClose,
   onSuccess,
-  isGlass,
   personas,
 }: {
   open: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  isGlass: boolean;
   personas: MemePersona[];
 }) {
   const { t } = useLanguage();
@@ -1054,7 +1031,7 @@ function UploadDialog({
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="glass-card max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Upload className="w-5 h-5 text-primary" />
@@ -1230,9 +1207,7 @@ function UploadDialog({
 // ============================================================================
 
 export default function AIMemePage() {
-  const { style } = useTheme();
   const { t } = useLanguage();
-  const isGlass = style !== 'solid';
 
   // State
   const [memes, setMemes] = useState<MemeRecord[]>([]);
@@ -1691,21 +1666,19 @@ export default function AIMemePage() {
 
   return (
     <PinnedPage
-      className="gap-3"
-      bodyClassName="space-y-3"
       header={
-        /* Header（固定区：标题 + 同行右侧操作按钮） */
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        /* 标题与操作按钮底对齐。按钮行允许收缩换行，避免被裁出视口 */
+        <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0 sm:overflow-x-auto">
-            <h1 className="sm:whitespace-nowrap text-3xl font-bold flex items-center gap-3">
-              <ImageIcon className="w-8 h-8 shrink-0" />
+            <h1 className="flex items-center gap-3 text-3xl font-bold sm:whitespace-nowrap">
+              <ImageIcon className="h-8 w-8 shrink-0" />
               {t('aiMeme.title')}
             </h1>
-            <p className="whitespace-nowrap text-sm text-muted-foreground mt-1">
+            <p className="mt-1 text-muted-foreground sm:whitespace-nowrap">
               {t('aiMeme.description')}
             </p>
           </div>
-          <div className={headerActionRowClass}>
+          <div className={cn(headerActionRowClass, 'min-w-0 sm:flex-1')}>
             {filterStatus === 'rejected' && (
               <Button
                 variant="destructive"
@@ -1729,7 +1702,6 @@ export default function AIMemePage() {
             {(stats?.total ?? total) > 0 && (
               <Button
                 variant="outline"
-                size="sm"
                 onClick={() => {
                   setPurgeScope('filtered');
                   setShowPurgeAllDialog(true);
@@ -1773,7 +1745,7 @@ export default function AIMemePage() {
               title={t('aiMeme.importDotMeme')}
             >
               <FileDown className="w-4 h-4" />
-              <span className="hidden xl:inline">{t('aiMeme.importDotMeme')}</span>
+              <span>{t('aiMeme.importDotMeme')}</span>
             </Button>
             <Button
               variant="outline"
@@ -1786,8 +1758,123 @@ export default function AIMemePage() {
               disabled={memes.length === 0}
             >
               <FileUp className="w-4 h-4" />
-              <span className="hidden xl:inline">{t('aiMeme.exportDotMeme')}</span>
+              <span>{t('aiMeme.exportDotMeme')}</span>
             </Button>
+          </div>
+        </div>
+      }
+      toolbar={
+        /* 筛选行：控件高度对齐分段内钮 h-10，不是玻璃外壳 */
+        <div className="flex min-w-0 flex-wrap items-center gap-3">
+          <div className={cn(tabToolbarGroupWrapClass, 'max-w-full')}>
+            <TabButtonGroup
+              value={filterStatus}
+              onValueChange={(v) => setFilterStatus(v)}
+              className="shrink-0"
+              collapseOnMobile
+              options={[
+                {
+                  value: 'tagged',
+                  label: t('aiMeme.status.tagged'),
+                  icon: <CheckCircle2 className="w-4 h-4" />,
+                },
+                {
+                  value: 'pending',
+                  label: t('aiMeme.status.pending'),
+                  icon: <Clock className="w-4 h-4" />,
+                },
+                {
+                  value: 'pending_manual',
+                  label: t('aiMeme.status.pendingManual'),
+                  icon: <AlertCircle className="w-4 h-4" />,
+                },
+                {
+                  value: 'manual',
+                  label: t('aiMeme.status.manual'),
+                  icon: <Sparkles className="w-4 h-4" />,
+                },
+                {
+                  value: 'rejected',
+                  label: t('aiMeme.status.rejected'),
+                  icon: <X className="w-4 h-4" />,
+                },
+                {
+                  value: '',
+                  label: t('aiMeme.filter.allStatus'),
+                  icon: <Layers className="w-4 h-4" />,
+                },
+              ]}
+            />
+          </div>
+
+          {/* Search */}
+          <div className="relative min-w-[12rem] flex-1 basis-52">
+            <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={searchInput}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              placeholder={t('aiMeme.filter.searchPlaceholder')}
+              className={cn(tabToolbarControlClass, 'w-full min-w-0 pl-9')}
+            />
+            {searchInput && (
+              <button
+                onClick={() => {
+                  setSearchInput('');
+                  setSearchQuery('');
+                  setPage(1);
+                }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground z-10"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+
+          {/* Persona Filter - drop-down of all personas the library has ever seen,
+            ordered by count desc. Empty value = "all personas". */}
+          <div className="min-w-[10rem] flex-1 basis-44">
+            <Select value={filterPersona} onValueChange={(v) => setFilterPersona(v)}>
+              <SelectTrigger
+                className={cn(tabToolbarControlClass, 'w-full min-w-0 px-3 [&>span]:min-w-0')}
+              >
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <Users className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+                  <SelectValue placeholder={t('aiMeme.filter.persona')} />
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={PERSONA_ALL}>{t('aiMeme.filter.allPersonas')}</SelectItem>
+                {personas.map((p) => (
+                  <SelectItem key={p.persona_hint} value={p.persona_hint}>
+                    <span className="flex items-center gap-2">
+                      <span className="truncate max-w-[160px]">{p.persona_hint}</span>
+                      <span className="text-[10px] text-muted-foreground tabular-nums">
+                        {p.count}
+                      </span>
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Sort Select */}
+          <div className="min-w-[9rem] flex-1 basis-40">
+            <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
+              <SelectTrigger
+                className={cn(tabToolbarControlClass, 'w-full min-w-0 px-3 [&>span]:min-w-0')}
+              >
+                <div className="flex items-center gap-1.5">
+                  <TrendingUp className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+                  <SelectValue placeholder={t('aiMeme.filter.sortBy')} />
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="created_at_desc">{t('aiMeme.filter.createdAtDesc')}</SelectItem>
+                <SelectItem value="use_count_desc">{t('aiMeme.filter.useCountDesc')}</SelectItem>
+                <SelectItem value="use_count_asc">{t('aiMeme.filter.useCountAsc')}</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
       }
@@ -1848,202 +1935,73 @@ export default function AIMemePage() {
         </Card>
       )}
 
-      {/* Stats Overview */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-        {isLoadingStats ? (
-          Array.from({ length: 6 }).map((_, i) => (
-            <Card key={i} className={cn('glass-card')}>
-              <CardContent className="p-4">
-                <Skeleton className="h-4 w-16 mb-2" />
-                <Skeleton className="h-7 w-12" />
-              </CardContent>
-            </Card>
-          ))
-        ) : stats ? (
-          <>
-            <StatCard
-              icon={<Layers />}
-              iconBgClass="bg-primary/10"
-              iconClass="text-primary"
-              label={t('aiMeme.stats.total')}
-              value={stats.total}
-              isGlass={isGlass}
-            />
-            <StatCard
-              icon={<Zap />}
-              iconBgClass="bg-amber-500/10"
-              iconClass="text-amber-500"
-              label={t('aiMeme.stats.totalUsage')}
-              value={stats.total_usage}
-              isGlass={isGlass}
-            />
-            <StatCard
-              icon={<Clock />}
-              iconBgClass="bg-yellow-500/10"
-              iconClass="text-yellow-500"
-              label={t('aiMeme.stats.pending')}
-              value={stats.status_counts.pending || 0}
-              isGlass={isGlass}
-            />
-            <StatCard
-              icon={<CheckCircle2 />}
-              iconBgClass="bg-green-500/10"
-              iconClass="text-green-500"
-              label={t('aiMeme.stats.tagged')}
-              value={stats.status_counts.tagged || 0}
-              isGlass={isGlass}
-            />
-            <StatCard
-              icon={<Sparkles />}
-              iconBgClass="bg-blue-500/10"
-              iconClass="text-blue-500"
-              label={t('aiMeme.stats.manual')}
-              value={stats.status_counts.manual || 0}
-              isGlass={isGlass}
-            />
-            <StatCard
-              icon={<AlertCircle />}
-              iconBgClass="bg-red-500/10"
-              iconClass="text-red-500"
-              label={t('aiMeme.stats.rejected')}
-              value={stats.status_counts.rejected || 0}
-              isGlass={isGlass}
-            />
-          </>
-        ) : null}
-      </div>
-
-      {/* Filter Bar：同行控件对齐分段内钮的视觉高度（h-10），不是玻璃外壳 */}
-      <div className="flex flex-wrap items-center gap-3">
-        {/* Status Tab Filter */}
-        <div className={tabToolbarGroupWrapClass}>
-          <TabButtonGroup
-            value={filterStatus}
-            onValueChange={(v) => setFilterStatus(v)}
-            className="shrink-0"
-            collapseOnMobile
-            options={[
-              {
-                value: 'tagged',
-                label: t('aiMeme.status.tagged'),
-                icon: <CheckCircle2 className="w-4 h-4" />,
-              },
-              {
-                value: 'pending',
-                label: t('aiMeme.status.pending'),
-                icon: <Clock className="w-4 h-4" />,
-              },
-              {
-                value: 'pending_manual',
-                label: t('aiMeme.status.pendingManual'),
-                icon: <AlertCircle className="w-4 h-4" />,
-              },
-              {
-                value: 'manual',
-                label: t('aiMeme.status.manual'),
-                icon: <Sparkles className="w-4 h-4" />,
-              },
-              {
-                value: 'rejected',
-                label: t('aiMeme.status.rejected'),
-                icon: <X className="w-4 h-4" />,
-              },
-              {
-                value: '',
-                label: t('aiMeme.filter.allStatus'),
-                icon: <Layers className="w-4 h-4" />,
-              },
-            ]}
-          />
+      {(isLoadingStats || stats) && (
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
+          {isLoadingStats ? (
+            Array.from({ length: 6 }).map((_, i) => (
+              <Card key={i} className={cn('glass-card')}>
+                <CardContent className="p-4">
+                  <Skeleton className="h-4 w-16 mb-2" />
+                  <Skeleton className="h-7 w-12" />
+                </CardContent>
+              </Card>
+            ))
+          ) : stats ? (
+            <>
+              <StatCard
+                icon={<Layers />}
+                iconBgClass="bg-primary/10"
+                iconClass="text-primary"
+                label={t('aiMeme.stats.total')}
+                value={stats.total}
+              />
+              <StatCard
+                icon={<Zap />}
+                iconBgClass="bg-amber-500/10"
+                iconClass="text-amber-500"
+                label={t('aiMeme.stats.totalUsage')}
+                value={stats.total_usage}
+              />
+              <StatCard
+                icon={<Clock />}
+                iconBgClass="bg-yellow-500/10"
+                iconClass="text-yellow-500"
+                label={t('aiMeme.stats.pending')}
+                value={stats.status_counts.pending || 0}
+              />
+              <StatCard
+                icon={<CheckCircle2 />}
+                iconBgClass="bg-green-500/10"
+                iconClass="text-green-500"
+                label={t('aiMeme.stats.tagged')}
+                value={stats.status_counts.tagged || 0}
+              />
+              <StatCard
+                icon={<Sparkles />}
+                iconBgClass="bg-blue-500/10"
+                iconClass="text-blue-500"
+                label={t('aiMeme.stats.manual')}
+                value={stats.status_counts.manual || 0}
+              />
+              <StatCard
+                icon={<AlertCircle />}
+                iconBgClass="bg-red-500/10"
+                iconClass="text-red-500"
+                label={t('aiMeme.stats.rejected')}
+                value={stats.status_counts.rejected || 0}
+              />
+            </>
+          ) : null}
         </div>
-
-        {/* Search */}
-        <div className="relative w-52">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none z-10" />
-          <Input
-            value={searchInput}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            placeholder={t('aiMeme.filter.searchPlaceholder')}
-            className={cn(
-              tabToolbarControlClass,
-              'pl-10 pr-9 text-sm bg-transparent border-0 rounded-none shadow-none focus-visible:ring-0 focus-visible:ring-offset-0',
-            )}
-          />
-          {searchInput && (
-            <button
-              onClick={() => {
-                setSearchInput('');
-                setSearchQuery('');
-                setPage(1);
-              }}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground z-10"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
-        </div>
-
-        {/* Persona Filter - drop-down of all personas the library has ever seen,
-            ordered by count desc. Empty value = "all personas". */}
-        <div>
-          <Select value={filterPersona} onValueChange={(v) => setFilterPersona(v)}>
-            <SelectTrigger
-              className={cn(
-                tabToolbarControlClass,
-                'w-auto min-w-[180px] max-w-[260px] text-sm whitespace-nowrap bg-transparent border-0 rounded-none shadow-none focus:ring-0 focus:ring-offset-0',
-              )}
-            >
-              <div className="flex items-center gap-1.5 min-w-0">
-                <Users className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-                <SelectValue placeholder={t('aiMeme.filter.persona')} />
-              </div>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={PERSONA_ALL}>{t('aiMeme.filter.allPersonas')}</SelectItem>
-              {personas.map((p) => (
-                <SelectItem key={p.persona_hint} value={p.persona_hint}>
-                  <span className="flex items-center gap-2">
-                    <span className="truncate max-w-[160px]">{p.persona_hint}</span>
-                    <span className="text-[10px] text-muted-foreground tabular-nums">
-                      {p.count}
-                    </span>
-                  </span>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Sort Select */}
-        <div>
-          <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
-            <SelectTrigger
-              className={cn(
-                tabToolbarControlClass,
-                'w-auto min-w-[160px] text-sm whitespace-nowrap bg-transparent border-0 rounded-none shadow-none focus:ring-0 focus:ring-offset-0',
-              )}
-            >
-              <div className="flex items-center gap-1.5">
-                <TrendingUp className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-                <SelectValue placeholder={t('aiMeme.filter.sortBy')} />
-              </div>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="created_at_desc">{t('aiMeme.filter.createdAtDesc')}</SelectItem>
-              <SelectItem value="use_count_desc">{t('aiMeme.filter.useCountDesc')}</SelectItem>
-              <SelectItem value="use_count_asc">{t('aiMeme.filter.useCountAsc')}</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+      )}
 
       {/* Meme Grid */}
       {isLoading ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
           {Array.from({ length: 12 }).map((_, i) => (
             <Card key={i} className={cn('glass-card')}>
               <Skeleton className="aspect-square w-full" />
-              <CardContent className="p-3 space-y-2">
+              <CardContent className="space-y-2 p-3 sm:p-3">
                 <Skeleton className="h-3 w-full" />
                 <Skeleton className="h-3 w-2/3" />
                 <div className="flex gap-1">
@@ -2072,13 +2030,12 @@ export default function AIMemePage() {
         </Card>
       ) : (
         <>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
             {memes.map((meme) => (
               <MemeCard
                 key={meme.meme_id}
                 meme={meme}
                 onClick={handleMemeClick}
-                isGlass={isGlass}
                 selected={selectedIds.has(meme.meme_id)}
                 onToggleSelect={toggleSelectMeme}
               />
@@ -2141,7 +2098,6 @@ export default function AIMemePage() {
         }}
         onUpdate={handleDetailUpdate}
         onDelete={handleDetailDelete}
-        isGlass={isGlass}
       />
 
       {/* Upload Dialog */}
@@ -2149,13 +2105,12 @@ export default function AIMemePage() {
         open={uploadOpen}
         onClose={() => setUploadOpen(false)}
         onSuccess={handleUploadSuccess}
-        isGlass={isGlass}
         personas={personas}
       />
 
       {/* Batch Delete Confirm Dialog */}
       <AlertDialog open={showBatchDeleteDialog} onOpenChange={setShowBatchDeleteDialog}>
-        <AlertDialogContent>
+        <AlertDialogContent className="glass-card">
           <AlertDialogHeader>
             <AlertDialogTitle>{t('aiMeme.batchDeleteConfirm')}</AlertDialogTitle>
             <AlertDialogDescription>
@@ -2178,7 +2133,7 @@ export default function AIMemePage() {
 
       {/* Purge Rejected Confirm Dialog */}
       <AlertDialog open={showPurgeDialog} onOpenChange={setShowPurgeDialog}>
-        <AlertDialogContent>
+        <AlertDialogContent className="glass-card">
           <AlertDialogHeader>
             <AlertDialogTitle>{t('aiMeme.purgeRejectedConfirm')}</AlertDialogTitle>
             <AlertDialogDescription>{t('aiMeme.purgeRejectedConfirmDesc')}</AlertDialogDescription>
@@ -2202,7 +2157,7 @@ export default function AIMemePage() {
         open={showPurgeAllDialog}
         onOpenChange={(open) => !isPurgingAll && setShowPurgeAllDialog(open)}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className="glass-card">
           <AlertDialogHeader>
             <AlertDialogTitle>{t('aiMeme.purgeAllConfirm')}</AlertDialogTitle>
             <AlertDialogDescription>{t('aiMeme.purgeAllConfirmDesc')}</AlertDialogDescription>
@@ -2245,7 +2200,7 @@ export default function AIMemePage() {
 
       {/* Batch Retag Pending Confirm Dialog */}
       <AlertDialog open={showRetagPendingDialog} onOpenChange={setShowRetagPendingDialog}>
-        <AlertDialogContent>
+        <AlertDialogContent className="glass-card">
           <AlertDialogHeader>
             <AlertDialogTitle>{t('aiMeme.batchRetagPendingConfirm')}</AlertDialogTitle>
             <AlertDialogDescription>

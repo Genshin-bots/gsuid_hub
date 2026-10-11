@@ -332,7 +332,7 @@ export function FileTreeSelector({
         value={sort}
         onValueChange={(v) => setSort(v as BackupFileTreeSort)}
       />
-      <div className={cn('border rounded-lg bg-background p-2', className)}>
+      <div className={cn('rounded-lg border border-border/40 bg-transparent p-2', className)}>
         {rootMeta.loading && roots.length === 0 && (
           <div className="flex items-center gap-2 text-sm text-muted-foreground px-2 py-3">
             <HardDrive className="w-4 h-4" />

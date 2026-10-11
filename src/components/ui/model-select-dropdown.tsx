@@ -169,10 +169,8 @@ export function ModelSelectDropdown({
     (option: string) => (
       <div
         key={option}
-        className={cn(
-          'px-3 py-2 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground transition-colors',
-          safeValue === option && 'bg-accent',
-        )}
+        data-active={safeValue === option ? 'true' : undefined}
+        className="menu-option cursor-pointer px-3 py-2 text-sm"
         onClick={() => {
           onChange(option);
           setOpen(false);
@@ -200,7 +198,7 @@ export function ModelSelectDropdown({
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        className="w-[400px] p-0 flex flex-col data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2"
+        className="menu-panel w-[400px] overflow-hidden p-0 flex flex-col data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2"
         side="top"
         align="start"
         avoidCollisions={false}
@@ -280,10 +278,13 @@ export function ModelSelectDropdown({
           通过 hidden 切换显示哪个层，但 PopoverContent 的总高度
           永远等于顶部固定区 + 220px，Radix 不会再因内容变化而重算方向。
         */}
-        <div className="h-[220px] border-t">
+        <div className="h-[220px] border-t p-1">
           {/* 预设列表层 —— 始终存在于 DOM，hidden 时只是不可见 */}
           <div
-            className={cn('h-full overflow-y-auto', activeTab !== 'preset' && 'hidden')}
+            className={cn(
+              'menu-option-list h-full overflow-y-auto',
+              activeTab !== 'preset' && 'hidden',
+            )}
             onWheel={(e) => e.stopPropagation()}
           >
             {presetFiltered.length > 0 ? (
@@ -297,7 +298,10 @@ export function ModelSelectDropdown({
 
           {/* 模型发现层 —— 始终存在于 DOM，hidden 时只是不可见 */}
           <div
-            className={cn('h-full overflow-y-auto', activeTab !== 'discovered' && 'hidden')}
+            className={cn(
+              'menu-option-list h-full overflow-y-auto',
+              activeTab !== 'discovered' && 'hidden',
+            )}
             onWheel={(e) => e.stopPropagation()}
           >
             {isFetching && safeDiscoveredModels.length === 0 ? (

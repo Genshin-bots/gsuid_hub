@@ -530,11 +530,12 @@ All colors MUST be HSL.
   background: rgba(255, 255, 255, 0.08) !important;
 }
 
-/* 内部保持澄澈通透，绝不全屏磨砂模糊！通过 SVG feDisplacementMap 呈现真实曲面折射与微棱镜色散 */
+/* 大面积玻璃不要挂 SVG feDisplacementMap。置换图会跟着布局逐帧重采样，
+   侧栏一改宽度，每张卡都要重跑一遍，光是切掉滤镜就要掉一帧。曲面感靠倒角和 ::after。 */
 [data-style="liquid"] .glass-card::before {
   background: hsl(var(--card) / var(--card-opacity, 0.25)) !important;
-  backdrop-filter: url(#liquid-glass-lens-filter) blur(var(--liquid-blur, 8px)) contrast(1.15) brightness(1.05) saturate(1.2);
-  -webkit-backdrop-filter: url(#liquid-glass-lens-filter) blur(var(--liquid-blur, 8px)) contrast(1.15) brightness(1.05) saturate(1.2);
+  backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.15) brightness(1.05) saturate(1.2);
+  -webkit-backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.15) brightness(1.05) saturate(1.2);
 }
 
 /* 玻璃表面微弱的物理弧面反光膜，纯净通透，彻底去除人工涂抹彩色伪边框 */
@@ -634,8 +635,8 @@ All colors MUST be HSL.
 .dark [data-style="liquid"] .glass-card::before,
 [data-style="liquid"] .dark .glass-card::before {
   background: hsl(var(--card) / var(--card-opacity, 0.25)) !important;
-  backdrop-filter: url(#liquid-glass-lens-filter) blur(var(--liquid-blur, 8px)) contrast(1.15) brightness(1.05) saturate(1.2);
-  -webkit-backdrop-filter: url(#liquid-glass-lens-filter) blur(var(--liquid-blur, 8px)) contrast(1.15) brightness(1.05) saturate(1.2);
+  backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.15) brightness(1.05) saturate(1.2);
+  -webkit-backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.15) brightness(1.05) saturate(1.2);
 }
 
 .dark[data-style="liquid"] :where(.glass-card, .floating-sidebar)::after {
@@ -824,6 +825,118 @@ All colors MUST be HSL.
   -webkit-backdrop-filter: none !important;
 }
 
+/* 三种玻璃下的普通徽章（outline / secondary）。实心主色和危险色不改。
+   有类型色的徽章走 theme-chip-tint，或文字本身就是蓝/绿/琥珀。 */
+[data-style="glassmorphism"] [data-slot="badge"]:not(.bg-primary):not(.bg-destructive),
+[data-style="luminous"] [data-slot="badge"]:not(.bg-primary):not(.bg-destructive),
+[data-style="liquid"] [data-slot="badge"]:not(.bg-primary):not(.bg-destructive) {
+  border-radius: calc(var(--radius) - 2px);
+  background: hsl(var(--card) / 0.55) !important;
+  border-color: hsl(var(--border) / 0.55) !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.35);
+}
+
+[data-style="luminous"] [data-slot="badge"]:not(.bg-primary):not(.bg-destructive) {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0.22)) !important;
+  border-color: rgba(255, 255, 255, 0.72) !important;
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.95),
+    0 0 12px -4px hsl(var(--primary) / 0.4);
+}
+
+[data-style="liquid"] [data-slot="badge"]:not(.bg-primary):not(.bg-destructive) {
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.16)) !important;
+  border-color: rgba(255, 255, 255, 0.62) !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.9);
+}
+
+.dark[data-style="glassmorphism"] [data-slot="badge"]:not(.bg-primary):not(.bg-destructive),
+.dark [data-style="glassmorphism"] [data-slot="badge"]:not(.bg-primary):not(.bg-destructive) {
+  background: hsl(var(--card) / 0.4) !important;
+  border-color: hsl(var(--border) / 0.5) !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.12);
+}
+
+.dark[data-style="luminous"] [data-slot="badge"]:not(.bg-primary):not(.bg-destructive),
+.dark [data-style="luminous"] [data-slot="badge"]:not(.bg-primary):not(.bg-destructive) {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.05)) !important;
+  border-color: rgba(255, 255, 255, 0.28) !important;
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.45),
+    0 0 14px -4px hsl(var(--primary) / 0.55);
+}
+
+.dark[data-style="liquid"] [data-slot="badge"]:not(.bg-primary):not(.bg-destructive),
+.dark [data-style="liquid"] [data-slot="badge"]:not(.bg-primary):not(.bg-destructive) {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.04)) !important;
+  border-color: rgba(255, 255, 255, 0.24) !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.42);
+}
+
+[data-style="glassmorphism"] [data-slot="badge"]:is(.theme-chip-tint, .text-blue-500, .text-blue-600, .text-green-500, .text-green-600, .text-emerald-500, .text-emerald-600, .text-amber-500, .text-amber-600, .text-orange-500, .text-red-500, .text-primary):not(.bg-primary):not(.bg-destructive) {
+  background: color-mix(in srgb, currentColor 18%, transparent) !important;
+  border-color: color-mix(in srgb, currentColor 42%, transparent) !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.28);
+}
+
+[data-style="luminous"] [data-slot="badge"]:is(.theme-chip-tint, .text-blue-500, .text-blue-600, .text-green-500, .text-green-600, .text-emerald-500, .text-emerald-600, .text-amber-500, .text-amber-600, .text-orange-500, .text-red-500, .text-primary):not(.bg-primary):not(.bg-destructive) {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, currentColor 34%, white),
+    color-mix(in srgb, currentColor 16%, transparent)
+  ) !important;
+  border-color: color-mix(in srgb, currentColor 62%, white) !important;
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.8),
+    0 0 12px -2px currentColor;
+}
+
+[data-style="liquid"] [data-slot="badge"]:is(.theme-chip-tint, .text-blue-500, .text-blue-600, .text-green-500, .text-green-600, .text-emerald-500, .text-emerald-600, .text-amber-500, .text-amber-600, .text-orange-500, .text-red-500, .text-primary):not(.bg-primary):not(.bg-destructive) {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, currentColor 24%, rgba(255, 255, 255, 0.72)),
+    color-mix(in srgb, currentColor 12%, transparent)
+  ) !important;
+  border-color: color-mix(in srgb, currentColor 48%, white) !important;
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.92),
+    0 2px 8px -3px currentColor;
+}
+
+.dark[data-style="glassmorphism"] [data-slot="badge"]:is(.theme-chip-tint, .text-blue-500, .text-blue-600, .text-green-500, .text-green-600, .text-emerald-500, .text-emerald-600, .text-amber-500, .text-amber-600, .text-orange-500, .text-red-500, .text-primary):not(.bg-primary):not(.bg-destructive),
+.dark [data-style="glassmorphism"] [data-slot="badge"]:is(.theme-chip-tint, .text-blue-500, .text-blue-600, .text-green-500, .text-green-600, .text-emerald-500, .text-emerald-600, .text-amber-500, .text-amber-600, .text-orange-500, .text-red-500, .text-primary):not(.bg-primary):not(.bg-destructive) {
+  background: color-mix(in srgb, currentColor 22%, transparent) !important;
+  border-color: color-mix(in srgb, currentColor 48%, transparent) !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.14);
+}
+
+.dark[data-style="luminous"] [data-slot="badge"]:is(.theme-chip-tint, .text-blue-500, .text-blue-600, .text-green-500, .text-green-600, .text-emerald-500, .text-emerald-600, .text-amber-500, .text-amber-600, .text-orange-500, .text-red-500, .text-primary):not(.bg-primary):not(.bg-destructive),
+.dark [data-style="luminous"] [data-slot="badge"]:is(.theme-chip-tint, .text-blue-500, .text-blue-600, .text-green-500, .text-green-600, .text-emerald-500, .text-emerald-600, .text-amber-500, .text-amber-600, .text-orange-500, .text-red-500, .text-primary):not(.bg-primary):not(.bg-destructive) {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, currentColor 46%, transparent),
+    color-mix(in srgb, currentColor 16%, transparent)
+  ) !important;
+  border-color: color-mix(in srgb, currentColor 70%, white) !important;
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.4),
+    0 0 14px -2px currentColor;
+}
+
+.dark[data-style="liquid"] [data-slot="badge"]:is(.theme-chip-tint, .text-blue-500, .text-blue-600, .text-green-500, .text-green-600, .text-emerald-500, .text-emerald-600, .text-amber-500, .text-amber-600, .text-orange-500, .text-red-500, .text-primary):not(.bg-primary):not(.bg-destructive),
+.dark [data-style="liquid"] [data-slot="badge"]:is(.theme-chip-tint, .text-blue-500, .text-blue-600, .text-green-500, .text-green-600, .text-emerald-500, .text-emerald-600, .text-amber-500, .text-amber-600, .text-orange-500, .text-red-500, .text-primary):not(.bg-primary):not(.bg-destructive) {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, currentColor 36%, transparent),
+    color-mix(in srgb, currentColor 12%, transparent)
+  ) !important;
+  border-color: color-mix(in srgb, currentColor 55%, white) !important;
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.45),
+    0 2px 10px -4px currentColor;
+}
+
 /* Tint for the add button in tag inputs（同 bg-secondary：只上色，不挂 blur） */
 [data-style="glassmorphism"] button.rounded-full,
 [data-style="luminous"] button.rounded-full,
@@ -878,8 +991,8 @@ All colors MUST be HSL.
     inset 0 1px 0 0 rgba(255, 255, 255, 0.50),
     /* 自然柔和环境投影 */
     4px 0 20px -2px hsl(0 0% 0% / calc(0.08 * var(--shadow-strength))) !important;
-  backdrop-filter: url(#liquid-glass-edge-filter) blur(var(--liquid-blur, 8px)) contrast(1.08) brightness(1.04) saturate(1.1) !important;
-  -webkit-backdrop-filter: url(#liquid-glass-edge-filter) blur(var(--liquid-blur, 8px)) contrast(1.08) brightness(1.04) saturate(1.1) !important;
+  backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.08) brightness(1.04) saturate(1.1) !important;
+  -webkit-backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.08) brightness(1.04) saturate(1.1) !important;
 }
 
 .dark[data-style="liquid"] .glass-sidebar,
@@ -1027,8 +1140,8 @@ All colors MUST be HSL.
 
 [data-style="liquid"] .floating-sidebar::before {
   background: hsl(var(--sidebar) / var(--card-opacity, 0.25)) !important;
-  backdrop-filter: url(#liquid-glass-lens-filter) blur(var(--liquid-blur, 8px)) contrast(1.15) brightness(1.05) saturate(1.2);
-  -webkit-backdrop-filter: url(#liquid-glass-lens-filter) blur(var(--liquid-blur, 8px)) contrast(1.15) brightness(1.05) saturate(1.2);
+  backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.15) brightness(1.05) saturate(1.2);
+  -webkit-backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.15) brightness(1.05) saturate(1.2);
 }
 
 .dark[data-style="liquid"] .floating-sidebar,
@@ -1048,8 +1161,8 @@ All colors MUST be HSL.
 .dark [data-style="liquid"] .floating-sidebar::before,
 [data-style="liquid"] .dark .floating-sidebar::before {
   background: hsl(var(--sidebar) / var(--card-opacity, 0.25)) !important;
-  backdrop-filter: url(#liquid-glass-lens-filter) blur(var(--liquid-blur, 8px)) contrast(1.15) brightness(1.05) saturate(1.2);
-  -webkit-backdrop-filter: url(#liquid-glass-lens-filter) blur(var(--liquid-blur, 8px)) contrast(1.15) brightness(1.05) saturate(1.2);
+  backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.15) brightness(1.05) saturate(1.2);
+  -webkit-backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.15) brightness(1.05) saturate(1.2);
 }
 
 /* ============================================================================
@@ -1059,7 +1172,14 @@ All colors MUST be HSL.
  * ============================================================================ */
 [data-style="liquid"] [data-sidebar="menu-button"] {
   border: 1px solid transparent !important;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  /* 不要 transition: all。收起时每一项的 width/padding 都在变，all 会把 box-shadow 也逐帧重画。 */
+  transition:
+    width 300ms cubic-bezier(0.4, 0, 0.2, 1),
+    height 300ms cubic-bezier(0.4, 0, 0.2, 1),
+    padding 300ms cubic-bezier(0.4, 0, 0.2, 1),
+    background-color 250ms cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 250ms cubic-bezier(0.16, 1, 0.3, 1),
+    color 250ms cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 /* 侧边栏悬停态项：通透水润微折射 */
@@ -1293,13 +1413,17 @@ All colors MUST be HSL.
   transform: none;
 }
 
-/* 页头描边按钮（outline = bg-background）在液态玻璃下是实心白块。改成和输入框同一层玻璃。 */
+/* 页头描边按钮（outline = bg-background）在液态玻璃下是实心白块。改成和输入框同一层玻璃。
+   文字色单独写：text-destructive（卸载）要留红色，不能跟着前景色走。 */
 [data-style="liquid"] :is(button, a).bg-background:not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) {
   background: hsl(var(--card) / var(--card-opacity, 0.35)) !important;
   border: 1px solid rgba(255, 255, 255, 0.55) !important;
   box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.75) !important;
   backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.08) brightness(1.04) saturate(1.1);
   -webkit-backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.08) brightness(1.04) saturate(1.1);
+}
+
+[data-style="liquid"] :is(button, a).bg-background:not(.text-destructive):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) {
   color: hsl(var(--foreground)) !important;
 }
 
@@ -1315,6 +1439,11 @@ All colors MUST be HSL.
   background: hsl(var(--card) / var(--card-opacity, 0.4)) !important;
   border-color: rgba(255, 255, 255, 0.18) !important;
   box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.32) !important;
+}
+
+.dark[data-style="liquid"] :is(button, a).bg-background:not(.text-destructive):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile),
+.dark [data-style="liquid"] :is(button, a).bg-background:not(.text-destructive):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile),
+[data-style="liquid"] .dark :is(button, a).bg-background:not(.text-destructive):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) {
   color: hsl(var(--foreground)) !important;
 }
 
@@ -1332,6 +1461,9 @@ All colors MUST be HSL.
   box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.75) !important;
   backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.2)) saturate(190%) contrast(106%) brightness(105%);
   -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.2)) saturate(190%) contrast(106%) brightness(105%);
+}
+
+[data-style="luminous"] :is(button, a).bg-background:not(.text-destructive):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):not(.bg-primary\/15) {
   color: hsl(var(--foreground)) !important;
 }
 
@@ -1358,6 +1490,10 @@ All colors MUST be HSL.
   box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.28) !important;
   backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.25)) saturate(180%) contrast(108%) brightness(112%);
   -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.25)) saturate(180%) contrast(108%) brightness(112%);
+}
+
+.dark[data-style="luminous"] :is(button, a).bg-background:not(.text-destructive):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):not(.bg-primary\/15),
+.dark [data-style="luminous"] :is(button, a).bg-background:not(.text-destructive):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):not(.bg-primary\/15) {
   color: hsl(var(--foreground)) !important;
 }
 
@@ -1375,6 +1511,9 @@ All colors MUST be HSL.
   box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.45) !important;
   backdrop-filter: blur(var(--blur-intensity, 12px));
   -webkit-backdrop-filter: blur(var(--blur-intensity, 12px));
+}
+
+[data-style="glassmorphism"] :is(button, a).bg-background:not(.text-destructive):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):not(.bg-primary\/15) {
   color: hsl(var(--foreground)) !important;
 }
 
@@ -1397,6 +1536,10 @@ All colors MUST be HSL.
   background: hsl(var(--card) / var(--card-opacity, 0.2)) !important;
   border-color: hsl(var(--border) / 0.4) !important;
   box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.16) !important;
+}
+
+.dark[data-style="glassmorphism"] :is(button, a).bg-background:not(.text-destructive):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):not(.bg-primary\/15),
+.dark [data-style="glassmorphism"] :is(button, a).bg-background:not(.text-destructive):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):not(.bg-primary\/15) {
   color: hsl(var(--foreground)) !important;
 }
 
@@ -2065,6 +2208,79 @@ main:has(.page-fill) .layout-page-inner {
 }
 
 /*
+ * 带 glass-card 的弹层：磨砂画在 ::before。
+ * [role=dialog] 写在宿主上的半透明底会把 ::before 盖住，弹层就变成一块实心卡片。
+ * 遮罩同理——白 80% 把壁纸盖死后，光感 / 磨砂 / 液态都没有颜色可透。
+ */
+[data-style="glassmorphism"] .glass-card[role="dialog"],
+[data-style="glassmorphism"] .glass-card[role="alertdialog"],
+[data-style="luminous"] .glass-card[role="dialog"],
+[data-style="luminous"] .glass-card[role="alertdialog"],
+[data-style="liquid"] .glass-card[role="dialog"],
+[data-style="liquid"] .glass-card[role="alertdialog"] {
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+[data-style="glassmorphism"] .glass-card[role="dialog"]::before,
+[data-style="glassmorphism"] .glass-card[role="alertdialog"]::before {
+  background: hsl(var(--popover) / 0.62) !important;
+  backdrop-filter: blur(var(--blur-intensity, 12px)) !important;
+  -webkit-backdrop-filter: blur(var(--blur-intensity, 12px)) !important;
+}
+
+[data-style="luminous"] .glass-card[role="dialog"]::before,
+[data-style="luminous"] .glass-card[role="alertdialog"]::before {
+  background: hsl(var(--card) / 0.58) !important;
+  backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.25)) saturate(190%) contrast(106%) brightness(105%) !important;
+  -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.25)) saturate(190%) contrast(106%) brightness(105%) !important;
+}
+
+[data-style="liquid"] .glass-card[role="dialog"]::before,
+[data-style="liquid"] .glass-card[role="alertdialog"]::before {
+  background: hsl(var(--popover) / 0.42) !important;
+  backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.4)) saturate(190%) contrast(106%) !important;
+  -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.4)) saturate(190%) contrast(106%) !important;
+}
+
+.dark[data-style="glassmorphism"] .glass-card[role="dialog"]::before,
+.dark [data-style="glassmorphism"] .glass-card[role="dialog"]::before,
+.dark[data-style="glassmorphism"] .glass-card[role="alertdialog"]::before,
+.dark [data-style="glassmorphism"] .glass-card[role="alertdialog"]::before {
+  background: hsl(var(--popover) / 0.5) !important;
+}
+
+.dark[data-style="luminous"] .glass-card[role="dialog"]::before,
+.dark [data-style="luminous"] .glass-card[role="dialog"]::before,
+.dark[data-style="luminous"] .glass-card[role="alertdialog"]::before,
+.dark [data-style="luminous"] .glass-card[role="alertdialog"]::before {
+  background: hsl(var(--card) / 0.46) !important;
+}
+
+.dark[data-style="liquid"] .glass-card[role="dialog"]::before,
+.dark [data-style="liquid"] .glass-card[role="dialog"]::before,
+.dark[data-style="liquid"] .glass-card[role="alertdialog"]::before,
+.dark [data-style="liquid"] .glass-card[role="alertdialog"]::before {
+  background: hsl(var(--popover) / 0.4) !important;
+}
+
+[data-style="glassmorphism"] [data-dialog-overlay],
+[data-style="luminous"] [data-dialog-overlay],
+[data-style="liquid"] [data-dialog-overlay] {
+  background: hsl(240 20% 12% / 0.22) !important;
+}
+
+.dark[data-style="glassmorphism"] [data-dialog-overlay],
+.dark [data-style="glassmorphism"] [data-dialog-overlay],
+.dark[data-style="luminous"] [data-dialog-overlay],
+.dark [data-style="luminous"] [data-dialog-overlay],
+.dark[data-style="liquid"] [data-dialog-overlay],
+.dark [data-style="liquid"] [data-dialog-overlay] {
+  background: hsl(0 0% 0% / 0.5) !important;
+}
+
+/*
  * 下拉菜单 / 选择列表：对齐苹果液态玻璃胶囊。
  * 外壳要透出背后的画面，当前项是槽里更亮的一层水镜，不是实心 accent 块。
  */
@@ -2077,8 +2293,8 @@ main:has(.page-fill) .layout-page-inner {
     inset 0 1px 0 0 rgba(255, 255, 255, 0.85),
     inset 0 0 18px 0 rgba(255, 255, 255, 0.18),
     0 16px 40px -8px hsl(0 0% 0% / calc(0.28 * var(--shadow-strength))) !important;
-  backdrop-filter: url(#liquid-glass-lens-filter) blur(var(--liquid-blur, 8px)) contrast(1.15) brightness(1.05) saturate(1.2) !important;
-  -webkit-backdrop-filter: url(#liquid-glass-lens-filter) blur(var(--liquid-blur, 8px)) contrast(1.15) brightness(1.05) saturate(1.2) !important;
+  backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.15) brightness(1.05) saturate(1.2) !important;
+  -webkit-backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.15) brightness(1.05) saturate(1.2) !important;
 }
 
 .dark[data-style="liquid"] [role="menu"],
@@ -2093,41 +2309,6 @@ main:has(.page-fill) .layout-page-inner {
     0 18px 44px -8px hsl(0 0% 0% / calc(0.45 * var(--shadow-strength))) !important;
 }
 
-[data-style="liquid"] [role="menu"] [role="menuitem"],
-[data-style="liquid"] [role="listbox"] [role="option"] {
-  /* 内项圆角 = 外壳圆角减去菜单 padding，贴着外壳弯，不会顶出一圈方角。 */
-  border-radius: max(6px, calc(var(--radius) - 6px)) !important;
-}
-
-[data-style="liquid"] [role="menu"] [role="menuitem"].bg-accent,
-[data-style="liquid"] [role="menu"] [role="menuitem"][data-highlighted],
-[data-style="liquid"] [role="listbox"] [role="option"][data-highlighted],
-[data-style="liquid"] [role="listbox"] [role="option"][data-state="checked"] {
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.62) 0%,
-    rgba(255, 255, 255, 0.32) 100%
-  ) !important;
-  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.85) !important;
-  color: hsl(var(--foreground)) !important;
-}
-
-.dark[data-style="liquid"] [role="menu"] [role="menuitem"].bg-accent,
-.dark [data-style="liquid"] [role="menu"] [role="menuitem"].bg-accent,
-.dark[data-style="liquid"] [role="menu"] [role="menuitem"][data-highlighted],
-.dark [data-style="liquid"] [role="menu"] [role="menuitem"][data-highlighted],
-.dark[data-style="liquid"] [role="listbox"] [role="option"][data-highlighted],
-.dark [data-style="liquid"] [role="listbox"] [role="option"][data-highlighted],
-.dark[data-style="liquid"] [role="listbox"] [role="option"][data-state="checked"],
-.dark [data-style="liquid"] [role="listbox"] [role="option"][data-state="checked"] {
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.2) 0%,
-    rgba(255, 255, 255, 0.08) 100%
-  ) !important;
-  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.45) !important;
-  color: hsl(var(--popover-foreground)) !important;
-}
 
 /* Terminal specific liquid style */
 [data-style="liquid"] .glass-terminal {
@@ -2833,4 +3014,305 @@ tbody tr:hover .table-sticky-right::after {
   .header-action-row-wide > .header-action-grow > button {
     width: 100%;
   }
+}
+
+/*
+ * 光感 / 液态：布局表面上不要 backdrop-filter。
+ * 侧栏收起在改 width，主内容跟着平移。只要元素还挂着 backdrop-filter，
+ * 每一帧都要重采样背后的像素，动画会卡；中途把滤镜换成别的值再换回来还会闪。
+ * 磨砂来自壁纸上的静态 filter: blur()，表面只用半透明底、倒角和高光。
+ * 弹层不参与这次宽度动画，保留它们自己的模糊。
+ * 表格固定列要盖住滑过去的文字，也不在这里关掉。
+ */
+html[data-style="luminous"] :is(
+  .glass-sidebar,
+  .glass-terminal,
+  .luminous-refractive,
+  .liquid-refractive,
+  [class*="backdrop-blur"],
+  input,
+  textarea,
+  select,
+  button,
+  a,
+  [role="combobox"],
+  [role="listbox"],
+  [role="menu"],
+  .ui-input,
+  .ui-select-trigger,
+  .ui-field-trigger
+),
+html[data-style="liquid"] :is(
+  .glass-sidebar,
+  .glass-terminal,
+  .luminous-refractive,
+  .liquid-refractive,
+  [class*="backdrop-blur"],
+  input,
+  textarea,
+  select,
+  button,
+  a,
+  [role="combobox"],
+  [role="listbox"],
+  [role="menu"],
+  .ui-input,
+  .ui-select-trigger,
+  .ui-field-trigger
+),
+html[data-style="luminous"] :is(
+  .glass-card:not([role="dialog"]):not([role="alertdialog"]),
+  .floating-sidebar,
+  .tab-segment-row,
+  .glass-alert
+)::before,
+html[data-style="liquid"] :is(
+  .glass-card:not([role="dialog"]):not([role="alertdialog"]),
+  .floating-sidebar,
+  .tab-segment-row,
+  .glass-alert
+)::before {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/*
+ * 小块浮层（插件搜索下拉、图谱搜索条）。
+ * 上面关掉的是会跟着侧栏变宽的大表面。浮层不参与那次动画，保留一层模糊，
+ * 才能透出背后的列表或图谱，而不是一块实心底。
+ */
+.glass-float {
+  border-radius: var(--radius);
+  border: 1px solid hsl(var(--border) / 0.45);
+  background: hsl(var(--popover) / 0.72);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.55),
+    0 16px 40px -8px hsl(0 0% 0% / calc(0.28 * var(--shadow-strength, 1)));
+  backdrop-filter: blur(var(--blur-intensity, 12px));
+  -webkit-backdrop-filter: blur(var(--blur-intensity, 12px));
+}
+
+[data-style="solid"] .glass-float {
+  background: hsl(var(--popover));
+  border-color: hsl(var(--border));
+  box-shadow: 0 8px 24px hsl(0 0% 0% / 0.12);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+[data-style="luminous"] .glass-float {
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: hsl(var(--popover) / 0.55);
+  box-shadow:
+    inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.5),
+    inset 0 -1px 1px 0 rgba(255, 255, 255, 0.15),
+    0 16px 40px -4px hsl(0 0% 0% / calc(0.25 * var(--shadow-strength, 1)));
+  backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.25)) saturate(190%) contrast(106%);
+  -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.25)) saturate(190%) contrast(106%);
+}
+
+.dark[data-style="luminous"] .glass-float {
+  border-color: rgba(255, 255, 255, 0.18);
+  background: hsl(var(--popover) / 0.42);
+  box-shadow:
+    inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.3),
+    inset 0 -1px 1px 0 rgba(255, 255, 255, 0.1),
+    0 18px 44px -4px hsl(0 0% 0% / calc(0.4 * var(--shadow-strength, 1)));
+}
+
+[data-style="liquid"] .glass-float {
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  background: hsl(var(--popover) / 0.38);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.8),
+    inset 0 0 14px 0 rgba(255, 255, 255, 0.1),
+    0 16px 40px -8px hsl(0 0% 0% / calc(0.28 * var(--shadow-strength, 1)));
+  backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.15) brightness(1.05) saturate(1.2);
+  -webkit-backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.15) brightness(1.05) saturate(1.2);
+}
+
+.dark[data-style="liquid"] .glass-float {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: hsl(var(--background) / 0.34);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.4),
+    inset 0 0 14px 0 rgba(255, 255, 255, 0.06),
+    0 18px 44px -8px hsl(0 0% 0% / calc(0.45 * var(--shadow-strength, 1)));
+}
+
+.glass-float input,
+[data-searchable-menu] input {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+
+/* 描边按钮的危险色不要被玻璃主题的前景色盖掉。卸载等操作用 text-destructive。 */
+:is(button, a).text-destructive,
+:is(button, a).text-destructive:hover {
+  color: hsl(var(--destructive)) !important;
+}
+
+:is(button, a).text-destructive svg {
+  color: hsl(var(--destructive)) !important;
+}
+
+/*
+ * 下拉选项。外壳圆角和内边距定死后，悬停/激活的圆角 = 外壳圆角 − 内边距，
+ * 弯度和列表平行，不会顶出一圈方角，也不会铺成贴边的矩形。
+ * 纯色仍用 accent。三种玻璃各自画选项底、悬停、激活，不共用一块实色。
+ */
+[role="menu"],
+[role="listbox"],
+.menu-panel,
+.glass-float {
+  --menu-pad: 0.25rem;
+}
+
+[role="menu"],
+.menu-panel {
+  --menu-radius: max(0px, calc(var(--radius) - 2px));
+}
+
+[role="listbox"],
+.glass-float {
+  --menu-radius: var(--radius);
+}
+
+.menu-option {
+  border-radius: max(0px, calc(var(--menu-radius, var(--radius)) - var(--menu-pad, 0.25rem))) !important;
+  transition:
+    background-color 0.15s ease,
+    box-shadow 0.15s ease,
+    color 0.15s ease;
+}
+
+.menu-option:is(:hover, [data-highlighted], [data-selected='true'], [data-state='open']),
+.menu-option:is([data-active='true'], [data-state='checked']) {
+  background: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
+}
+
+[data-style='glassmorphism'] .menu-option,
+[data-style='luminous'] .menu-option,
+[data-style='liquid'] .menu-option {
+  background: transparent !important;
+  color: hsl(var(--foreground)) !important;
+  box-shadow: none !important;
+}
+
+/* 磨砂：中性霜面。壳本身已经是白玻璃，再铺白底会看不见，用前景色的薄罩区分悬停和激活。 */
+[data-style='glassmorphism'] .menu-option:is(:hover, [data-highlighted], [data-selected='true'], [data-state='open']) {
+  background: hsl(var(--foreground) / 0.06) !important;
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.55),
+    inset 0 0 0 1px hsl(var(--border) / 0.55) !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+[data-style='glassmorphism'] .menu-option:is([data-active='true'], [data-state='checked']) {
+  background: hsl(var(--foreground) / 0.1) !important;
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.7),
+    inset 0 0 0 1px hsl(var(--border) / 0.9) !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+:is(.dark[data-style='glassmorphism'], .dark [data-style='glassmorphism'], [data-style='glassmorphism'] .dark)
+  .menu-option:is(:hover, [data-highlighted], [data-selected='true'], [data-state='open']) {
+  background: hsl(var(--foreground) / 0.08) !important;
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.16),
+    inset 0 0 0 1px hsl(var(--border) / 0.5) !important;
+}
+
+:is(.dark[data-style='glassmorphism'], .dark [data-style='glassmorphism'], [data-style='glassmorphism'] .dark)
+  .menu-option:is([data-active='true'], [data-state='checked']) {
+  background: hsl(var(--foreground) / 0.14) !important;
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.28),
+    inset 0 0 0 1px hsl(var(--border) / 0.7) !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+/* 光感：悬停带一点主题色高光，激活是更亮的透镜。 */
+[data-style='luminous'] .menu-option:is(:hover, [data-highlighted], [data-selected='true'], [data-state='open']) {
+  background: hsl(var(--primary) / 0.08) !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.75) !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+[data-style='luminous'] .menu-option:is([data-active='true'], [data-state='checked']) {
+  background: hsl(var(--primary) / 0.16) !important;
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.95),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.75),
+    0 6px 16px -8px hsl(var(--primary) / 0.5) !important;
+  color: hsl(var(--primary)) !important;
+}
+
+:is(.dark[data-style='luminous'], .dark [data-style='luminous'], [data-style='luminous'] .dark)
+  .menu-option:is(:hover, [data-highlighted], [data-selected='true'], [data-state='open']) {
+  background: rgba(255, 255, 255, 0.1) !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.28) !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+:is(.dark[data-style='luminous'], .dark [data-style='luminous'], [data-style='luminous'] .dark)
+  .menu-option:is([data-active='true'], [data-state='checked']) {
+  background: hsl(var(--primary) / 0.34) !important;
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.4),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.3) !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+/* 液态：悬停是薄水膜，激活是更厚的水镜。浅色壳上纯白会消失，外圈用一条很淡的前景描边把水滴托出来。 */
+[data-style='liquid'] .menu-option:is(:hover, [data-highlighted], [data-selected='true'], [data-state='open']) {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.5) 0%,
+    rgba(255, 255, 255, 0.18) 100%
+  ) !important;
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.95),
+    0 0 0 1px hsl(var(--foreground) / 0.08) !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+[data-style='liquid'] .menu-option:is([data-active='true'], [data-state='checked']) {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.92) 0%,
+    rgba(255, 255, 255, 0.48) 100%
+  ) !important;
+  box-shadow:
+    inset 0 1.5px 0 0 rgba(255, 255, 255, 1),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.85),
+    0 0 0 1px hsl(var(--foreground) / 0.14),
+    0 8px 16px -10px hsl(var(--foreground) / 0.4) !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+:is(.dark[data-style='liquid'], .dark [data-style='liquid'], [data-style='liquid'] .dark)
+  .menu-option:is(:hover, [data-highlighted], [data-selected='true'], [data-state='open']) {
+  background: rgba(255, 255, 255, 0.1) !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.32) !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+:is(.dark[data-style='liquid'], .dark [data-style='liquid'], [data-style='liquid'] .dark)
+  .menu-option:is([data-active='true'], [data-state='checked']) {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.24) 0%,
+    rgba(255, 255, 255, 0.1) 100%
+  ) !important;
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.5),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.24) !important;
+  color: hsl(var(--foreground)) !important;
 }

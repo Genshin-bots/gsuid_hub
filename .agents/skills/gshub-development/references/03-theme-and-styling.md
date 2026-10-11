@@ -123,7 +123,8 @@ const isGlass = style === 'glassmorphism';
 | `ring-*` 依然可用 | 表面类阴影头部透传 `var(--tw-ring-offset-shadow)/var(--tw-ring-shadow)`——改这些 box-shadow 时**必须保留这两项**，否则全站选中态 ring 消失 |
 | 覆盖类默认圆角需 `!rounded-*` | 类自带 `border-radius: var(--radius)` 且声明在 utilities 之后 |
 | 定位/层级声明必须走 `:where(...)`（零特异性） | 表面类默认 `relative + z-index:0`；若写成普通类声明会压掉 Dialog/Sheet 的 `fixed`/`z-50` 工具类——弹层失去定位、沉到遮罩下面，症状是"点开只剩遮罩没内容" |
-| 弹层上的 glass-card 无描边 | `.glass-card[role="dialog"/"alertdialog"]` 已统一 `border: none`——半透明 1px 边框叠在深色遮罩上会混成黑色描边线，弹层靠阴影分层即可 |
+| 弹层上的 glass-card 无描边 | `.glass-card[role="dialog"/"alertdialog"]` 已统一 `border: none`——半透明 1px 边框叠在深色遮罩上会混成黑色描边线，弹层靠阴影分层即可。光感 / 液态后面的 `[role=dialog]` 规则会再补回高光描边 |
+| 玻璃弹层宿主必须透明 | `DialogContent` / `AlertDialogContent` 加 `glass-card`。光感 / 磨砂 / 液态下宿主 `background: transparent`，质感画在 `::before`。遮罩用 `[data-dialog-overlay]` 的浅压暗，不要 `bg-white/80`，否则壁纸被盖死，弹层变成实心白卡片 |
 | `glass-card-flat`：无阴影无 blur | 供 overflow 容器内嵌 / 长列表项使用；`overflow-hidden` 安全；`hover:shadow-*` 可用（:hover 特异性更高） |
 
 ## 3.5 布局背景与 gutter
@@ -141,6 +142,8 @@ const isGlass = style === 'glassmorphism';
 - 页面根 **禁止** 再写 `p-6`（见 [§04 页面排版](./04-page-layout-spec.md)）。
 
 `backdrop-filter` 是 GPU 密集操作，低端设备性能敏感，**避免在长列表的每一项上叠加毛玻璃**（见 [§10 性能](./10-pitfalls-and-performance.md)）。
+
+光感/液态的默认壁纸用静态 `filter: blur()`（`AppLayout` 的 `frostBlur`），**不要**再铺整屏 `backdrop-filter`，也不要在侧栏动画里把表面的 `backdrop-filter` 改来改去。见 [§10 P-38](./10-pitfalls-and-performance.md)。
 
 ## 3.6 响应式设计
 

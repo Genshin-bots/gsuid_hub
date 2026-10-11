@@ -120,7 +120,6 @@ GsCore 网页控制台前端项目。该项目为 [gsuid_core](https://github.co
 | `/ai-artifacts` | AIArtifactsPage | AI 产出物全局浏览、TTL、下载 |
 | `/ai-tool-outputs` | AIToolOutputsPage | FileOS 工具落盘浏览、筛选、预览与批量删除 |
 | `/ai-ops` | AIOpsPage | AI 运维诊断（触发回放 / 黑白名单 / 试跑 / 安全 / 配置快照） |
-| `/ai-debug` | AIDebugPage | Agent 调试（记忆图谱 / 编排任务 / self_model） |
 | `/session-management` | SessionManagementPage | 会话列表、历史记录、人格内容与消息发送 |
 
 ## 页面骨架（先读这一节再动 UI）★
@@ -253,7 +252,7 @@ import { PinnedPage } from '@/components/layout/PinnedPage';
 - 表情包管理：素材上传、VLM 打标、标签编辑、使用统计、文件夹管理与**按条件清空**（筛选/全部）。
 - 长任务与审批：任务看板、高危操作审批中心。
 - Artifacts / 工具落盘：全局产出物浏览；FileOS 工具全文落盘（`/ai-tool-outputs`）。
-- 运维诊断与调试：`/ai-ops`、`/ai-debug`。
+- 运维诊断：`/ai-ops`。
 - 预算与统计：预算规则/白名单/用量诊断、Token 与费用统计。
 - 会话与日志：历史会话、OpenAI 格式消息、运行事件日志、子 Agent 链路与统计。
 

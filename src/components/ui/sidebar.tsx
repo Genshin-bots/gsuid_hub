@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Slot } from '@radix-ui/react-slot';
-import { VariantProps, cva } from 'class-variance-authority';
+import { type VariantProps, cva } from 'class-variance-authority';
 import { PanelLeft } from 'lucide-react';
 
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -262,31 +262,35 @@ const Sidebar = React.forwardRef<
         data-side={side}
       >
         {/* Spacer - 平滑过渡宽度，让右侧主内容跟随 sidebar 一起滑动
-          （之前刻意 instant，导致主内容瞬移造成卡顿） */}
+          （之前刻意 instant，导致主内容瞬移造成卡顿）。
+          width 不能合成，不要 will-change / translateZ：那会把 backdrop-filter 钉成常驻层。 */}
         <div
-          className="relative h-svh bg-transparent transition-[width] duration-300 ease-out-soft will-change-[width]"
+          className="relative h-svh bg-transparent transition-[width] duration-300 ease-out-soft"
           style={{
             width: isCollapsed ? collapsedIconWidth : expandedWidth,
           }}
         />
-        {/* Sidebar container - fixed position, uses transform for smooth animation */}
+        {/* Sidebar container - fixed position. Offcanvas 才用 transform，图标收起只改宽度。 */}
         <div
           className={cn(
             'fixed inset-y-0 z-10 hidden h-svh md:flex',
             side === 'left' ? 'left-0' : 'right-0',
-            // GPU-accelerated transform / width animation
-            hasFloatingPadding
-              ? 'transition-[width,transform] duration-300 ease-out-soft will-change-[width,transform] transform-gpu'
-              : 'transition-transform duration-300 ease-out-soft will-change-transform transform-gpu',
+            isOffcanvas
+              ? 'transition-[width,transform] duration-300 ease-out-soft'
+              : 'transition-[width] duration-300 ease-out-soft',
           )}
           style={{
             // Icon collapse: shrink fixed shell so empty area doesn't steal clicks
             width: isCollapsed && isIconMode ? collapsedIconWidth : expandedWidth,
-            // Use transform for GPU acceleration - offcanvas slides out
-            transform:
-              isCollapsed && isOffcanvas
-                ? `translateX(${side === 'left' ? '-100%' : '100%'})`
-                : 'translateX(0)',
+            // 图标模式不要写 translateX(0)。常驻 transform 会变成 backdrop 根，
+            // 宽度一变就把整面玻璃逐帧重采样。
+            ...(isOffcanvas
+              ? {
+                  transform: isCollapsed
+                    ? `translateX(${side === 'left' ? '-100%' : '100%'})`
+                    : 'translateX(0)',
+                }
+              : null),
             ...floatingPaddingStyle,
           }}
           {...props}
@@ -299,7 +303,7 @@ const Sidebar = React.forwardRef<
             data-sidebar="sidebar"
             className={cn(
               'flex h-full flex-col overflow-visible',
-              'transition-[width,transform] duration-300 ease-out-soft will-change-[width,transform]',
+              'transition-[width] duration-300 ease-out-soft',
               className?.includes('floating-sidebar') ||
                 className?.includes('glass-sidebar') ||
                 className?.includes('line-sidebar')

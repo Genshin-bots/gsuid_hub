@@ -180,7 +180,11 @@ function PluginAliasTags({ tags }: { tags: string[] }) {
       className="relative flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden"
     >
       {tags.slice(0, shown).map((tag, index) => (
-        <Badge key={`${tag}-${index}`} variant="outline" className="shrink-0 text-xs font-normal">
+        <Badge
+          key={`${tag}-${index}`}
+          variant="outline"
+          className="theme-chip shrink-0 text-xs font-normal"
+        >
           {tag}
         </Badge>
       ))}
@@ -188,7 +192,7 @@ function PluginAliasTags({ tags }: { tags: string[] }) {
         <Badge
           variant="outline"
           title={hiddenLabels.join(', ')}
-          className="shrink-0 border-transparent bg-foreground/10 text-xs font-normal text-foreground hover:bg-foreground/10 hover:text-foreground"
+          className="theme-chip shrink-0 border-transparent bg-foreground/10 text-xs font-normal text-foreground hover:bg-foreground/10 hover:text-foreground"
         >
           +{hiddenLabels.length}
         </Badge>
@@ -912,7 +916,7 @@ export default function PluginStorePage() {
                                 return (
                                   <Badge
                                     variant="outline"
-                                    className={`text-xs font-normal ${badge.className}`}
+                                    className={`theme-chip theme-chip-tint text-xs font-normal ${badge.className}`}
                                   >
                                     <span className="flex items-center gap-1">
                                       {badge.icon}
@@ -926,7 +930,7 @@ export default function PluginStorePage() {
                           {plugin.isFun && (
                             <Badge
                               variant="outline"
-                              className="text-xs font-normal text-blue-500 border-blue-500"
+                              className="theme-chip theme-chip-tint text-xs font-normal text-blue-500 border-blue-500"
                             >
                               {t('pluginStore.fun')}
                             </Badge>
@@ -934,7 +938,7 @@ export default function PluginStorePage() {
                           {plugin.isTool && (
                             <Badge
                               variant="outline"
-                              className="text-xs font-normal text-green-500 border-green-500"
+                              className="theme-chip theme-chip-tint text-xs font-normal text-green-500 border-green-500"
                             >
                               {t('pluginStore.tool')}
                             </Badge>
@@ -979,7 +983,7 @@ export default function PluginStorePage() {
                     {plugin.hasUpdate && (
                       <Badge
                         variant="outline"
-                        className="shrink-0 text-xs font-normal text-amber-500 border-amber-500"
+                        className="theme-chip theme-chip-tint shrink-0 text-xs font-normal text-amber-500 border-amber-500"
                       >
                         {t('pluginStore.canUpdate')}
                       </Badge>

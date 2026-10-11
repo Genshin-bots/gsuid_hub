@@ -1063,15 +1063,14 @@ export default function PersonaConfigPage() {
         key={persona.name}
         onClick={() => handleCardClick(persona)}
         className={cn(
-          'relative transition-all duration-300 cursor-pointer group',
-          'hover:shadow-xl hover:scale-[1.02]',
-          // 毛玻璃效果 + 红色主题边框
+          'relative min-w-0 cursor-pointer transition-all duration-300 group hover:scale-[1.02]',
           'glass-card border border-primary/20 hover:border-primary/40',
         )}
       >
-        {/* 立绘背景层 */}
+        {/* 立绘贴边铺满。宿主不能 overflow-hidden（会把玻璃阴影切成直角），
+            圆角裁切放在这一层。 */}
         {hasImage && (
-          <div className="absolute inset-0 z-0">
+          <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-[inherit]">
             <img
               src={imageUrl}
               alt=""
@@ -1093,7 +1092,7 @@ export default function PersonaConfigPage() {
             />
           </div>
         )}
-        <CardContent className="relative z-10 p-4 flex flex-col h-full gap-3">
+        <CardContent className="relative z-10 flex h-full flex-col gap-3 p-4 sm:p-6">
           {/* === 区域1: 头像和基本信息 === */}
           <div className="flex items-center gap-3">
             {/* 头像 - 带红色主题边框 */}
@@ -1596,12 +1595,12 @@ export default function PersonaConfigPage() {
           personaCards.some((p) => p.config?.scope === 'specific') && (
             <div
               className={cn(
-                'flex min-w-0 items-start gap-2 rounded-lg p-3 text-sm glass-card glass-alert',
-                'border border-amber-500/40 text-amber-700 dark:border-amber-400/40 dark:text-amber-300',
+                'grid w-full min-w-0 max-w-full grid-cols-[auto_minmax(0,1fr)] items-start gap-2 rounded-lg p-3 text-sm',
+                'glass-card glass-alert border border-amber-500/40 text-amber-700 dark:border-amber-400/40 dark:text-amber-300',
               )}
             >
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-              <span className="min-w-0 break-words">
+              <span className="min-w-0 whitespace-normal break-all">
                 {t('personaConfig.specificOnlyWarning', {
                   groups:
                     personaCards
@@ -1640,7 +1639,7 @@ export default function PersonaConfigPage() {
             </div>
           </>
         ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-[repeat(auto-fill,minmax(380px,1fr))]">
+          <div className="glass-card-grid grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-[repeat(auto-fit,minmax(min(100%,380px),1fr))]">
             {personaCards.map(renderPersonaCard)}
           </div>
         )}

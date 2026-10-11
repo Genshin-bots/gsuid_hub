@@ -46,7 +46,6 @@ import module43 from './brand.json';
 import module44 from './aiApprovals.json';
 import module45 from './brandSettings.json';
 import module46 from './batchPush.json';
-import module47 from './aiDebug.json';
 import module48 from './aiArtifacts.json';
 import module49 from './memorySettings.json';
 import module50 from './logsConfig.json';
@@ -106,7 +105,6 @@ const locale = {
   aiApprovals: module44,
   brandSettings: module45,
   batchPush: module46,
-  aiDebug: module47,
   aiArtifacts: module48,
   memorySettings: module49,
   logsConfig: module50,

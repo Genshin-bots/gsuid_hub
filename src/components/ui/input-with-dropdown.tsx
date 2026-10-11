@@ -213,7 +213,7 @@ export function InputWithDropdown({
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        className={cn(popoverWidth, 'p-0')}
+        className={cn('menu-panel overflow-hidden', popoverWidth, 'p-0')}
         align="start"
         onOpenAutoFocus={handleOpenAutoFocus}
         onWheel={(e) => e.stopPropagation()}
@@ -273,25 +273,28 @@ export function InputWithDropdown({
           />
         </div>
         {filteredOptions.length > 0 && (
-          <div
-            className="max-h-[360px] overflow-y-auto border-t"
-            onWheel={(e) => e.stopPropagation()}
-          >
-            {filteredOptions.map((option) => (
-              <div
-                key={option}
-                className={cn(
-                  'px-3 py-2 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground',
-                  safeValue === option && 'bg-accent',
-                )}
-                onClick={() => {
-                  onChange(option);
-                  setOpen(false);
-                }}
-              >
-                {renderLabel(option)}
-              </div>
-            ))}
+          <div className="border-t p-1">
+            <div
+              className="menu-option-list max-h-[360px] overflow-y-auto"
+              onWheel={(e) => e.stopPropagation()}
+            >
+              {filteredOptions.map((option) => {
+                const selected = safeValue === option;
+                return (
+                  <div
+                    key={option}
+                    data-active={selected ? 'true' : undefined}
+                    className="menu-option cursor-pointer px-3 py-2 text-sm"
+                    onClick={() => {
+                      onChange(option);
+                      setOpen(false);
+                    }}
+                  >
+                    {renderLabel(option)}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
         {searchValue.trim() && filteredOptions.length === 0 && (

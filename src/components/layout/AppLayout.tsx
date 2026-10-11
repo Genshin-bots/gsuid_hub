@@ -7,7 +7,6 @@ import { AppSidebar } from './AppSidebar';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBrand } from '@/contexts/BrandContext';
-import { cn } from '@/lib/utils';
 import { Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -50,7 +49,7 @@ function LayoutHeader() {
             variant="secondary"
             className="text-xs font-mono font-medium ml-1 shrink-0 bg-muted/80 text-foreground border border-border/50"
           >
-            v{import.meta.env.PACKAGE_VERSION || PACKAGE_VERSION || '0.3.1'}
+            v{import.meta.env.PACKAGE_VERSION || PACKAGE_VERSION || '0.3.2'}
           </Badge>
         </div>
       </div>
@@ -85,7 +84,10 @@ function LayoutContent() {
   const isGlassmorphism = style === 'glassmorphism';
   const isLuminous = style === 'luminous';
   const isLiquid = style === 'liquid';
-  const isGlass = isGlassmorphism || isLuminous || isLiquid;
+  // 光感/液态默认壁纸用静态 filter 模糊，不再铺整屏 backdrop-filter。
+  // 整屏 backdrop 会垫在每张卡下面，侧栏一改宽度就整屏重采样。
+  const frostBlur =
+    (isLuminous || isLiquid) && !backgroundImage && blurIntensity > 0 ? blurIntensity : 0;
 
   // 合并背景层为单一元素，减少DOM层级和重绘
   const getBackgroundStyle = (): React.CSSProperties => {
@@ -93,9 +95,6 @@ function LayoutContent() {
       position: 'fixed',
       inset: 0,
       zIndex: -10,
-      // GPU加速优化
-      willChange: 'transform',
-      transform: 'translateZ(0)',
     };
 
     if (isLiquid) {
@@ -179,9 +178,9 @@ function LayoutContent() {
     };
   };
 
-  // 毛玻璃 / 光感玻璃叠加层样式 - 仅在需要时渲染
+  // 仅普通毛玻璃保留整屏 backdrop。光感/液态的表面自己会糊，再垫一层会嵌套重采样。
   const overlayStyle = useMemo<React.CSSProperties | null>(() => {
-    if (!isGlass || backgroundImage) return null;
+    if (!isGlassmorphism || backgroundImage) return null;
     return {
       position: 'fixed',
       inset: 0,
@@ -189,22 +188,25 @@ function LayoutContent() {
       pointerEvents: 'none',
       backdropFilter: `blur(${blurIntensity}px)`,
       WebkitBackdropFilter: `blur(${blurIntensity}px)`,
-      // GPU加速
-      willChange: 'backdrop-filter',
-      transform: 'translateZ(0)',
     };
-  }, [isGlass, backgroundImage, blurIntensity]);
+  }, [isGlassmorphism, backgroundImage, blurIntensity]);
 
   return (
     <>
-      {/* 合并后的单一背景层 - 使用GPU加速 */}
+      {/* 壁纸。光感/液态的模糊画在这层静态 filter 上，结果可被缓存。 */}
       <div className="pointer-events-none fixed inset-0 z-[-10] overflow-hidden" aria-hidden="true">
         <div
           style={{
             ...getBackgroundStyle(),
             position: 'absolute',
             zIndex: 0,
-            ...(backgroundBlur > 0 ? { filter: `blur(${backgroundBlur}px)` } : null),
+            ...(Math.max(backgroundBlur, frostBlur) > 0
+              ? {
+                  filter: `blur(${Math.max(backgroundBlur, frostBlur)}px)`,
+                  // 模糊会吃掉四边，略放大后由外层 overflow 裁掉发白的边
+                  ...(frostBlur > 0 ? { transform: 'scale(1.08)' } : null),
+                }
+              : null),
           }}
         />
       </div>
@@ -219,13 +221,7 @@ function LayoutContent() {
         - SidebarProvider already provides the flex container
       */}
       <AppSidebar />
-      <SidebarInset
-        className={cn(
-          'flex flex-col overflow-hidden',
-          // 使用transform代替transition-all，减少重绘
-          'transform-gpu',
-        )}
-      >
+      <SidebarInset className="flex flex-col overflow-hidden">
         <LayoutHeader />
         {/*
           滚动容器与内边距拆开：

@@ -53,7 +53,6 @@ const SettingsPage = lazy(() => import('@/pages/SettingsPage'));
 const NotFound = lazy(() => import('@/pages/NotFound'));
 const BrandSettingsPage = lazy(() => import('@/pages/BrandSettingsPage'));
 const BatchPushPage = lazy(() => import('@/pages/BatchPushPage'));
-const AIDebugPage = lazy(() => import('@/pages/AIDebugPage'));
 const AIArtifactsPage = lazy(() => import('@/pages/AIArtifactsPage'));
 const AIToolOutputsPage = lazy(() => import('@/pages/AIToolOutputsPage'));
 const StateStorePage = lazy(() => import('@/pages/StateStorePage'));
@@ -177,7 +176,6 @@ function AppRoutes() {
               </AdminRoute>
             }
           />
-          <Route path="ai-debug" element={<AIDebugPage />} />
           <Route path="ai-ops" element={<AIOpsPage />} />
           <Route path="ai-runtime" element={<AIRuntimePage />} />
           <Route path="ai-artifacts" element={<AIArtifactsPage />} />

@@ -88,7 +88,6 @@
 | `/ai-ops` | `AIOpsPage.tsx` | **运维诊断中心（收敛版）**：顶栏 Bot/Session/续聊状态 + 5 Tab（触发回放 / 黑白名单 / 输出试跑 / 安全策略 / 配置快照）。工具拓扑·意图·生命周期·多模态·插件诊断仅保留后端 API | `ops_diagnostics_api.py`（`/api/ops/*`） | 见 [`docs/CHANGELOG-2026-07.md`](../../../docs/CHANGELOG-2026-07.md) §四 |
 | `/ai-runtime` | `AIRuntimePage.tsx` | **Agent 运行时诊断**：套件槽健康（密封槽空占用红字）/ Hook 接线 / 关系温度 / **认知索引（world 枢纽、节点挂文、重建挂载）** | `agent_kits_api.py`（`/api/agent_kits/*`、`/api/relationship/view`、`/api/cognition/nodes`、`/api/cognition/rebuild_mount`） | [§12](./references/12-memory-graph-and-cognition.md)、[§04 PinnedPage](./references/04-page-layout-spec.md) |
 | `/group-profile` | `GroupProfilePage.tsx` | 群组画像只读（标签/词汇映射/称呼） | state_store `__gscore_group_profile__` | — |
-| `/ai-debug` | `AIDebugPage.tsx` | 记忆图谱 / 编排任务 / self_model | `agent_debug_api.py` | — |
 | `/ai-artifacts` | `AIArtifactsPage.tsx` | Artifact 全局浏览（TTL / 下载 / 过期筛选） | `artifacts_api.py` | — |
 
 ### 2.5 当前 API 全景（`src/lib/api.ts`）
@@ -124,7 +123,7 @@
 |---|---|---|
 | 新页面 | `src/pages/BrandSettingsPage.tsx` | `/brand-settings` 标题/副标题/ICON 编辑与实时预览 |
 | 新页面 | `src/pages/BatchPushPage.tsx` | `/batch-push` HTML 推文 + WS bot / **bot_self_id 可选手填** / 群用户多选 + ALL* 宏 |
-| 新页面 | `src/pages/AIDebugPage.tsx` | `/ai-debug` 三 Tab（记忆图谱 / Agent 任务 / self_model） |
+| 新页面 | `src/pages/AIDebugPage.tsx` | `/ai-debug` 三 Tab（2026-10 已删除，勿恢复；边/冲突留在记忆页，编排看看板） |
 | 新页面 | `src/pages/AIArtifactsPage.tsx` | `/ai-artifacts` 全局浏览 + TTL 延长 + 下载 |
 | 新组件 | `src/components/memory/MemorySettingsDialog.tsx` | AIMemoryPage 弹窗：记忆子系统 14 个常用字段 + HierGraph 重建 |
 | 新组件 | `src/components/logs/LogsConfigDialog.tsx` | LogsPage 弹窗：保留 / 轮转 / 黑名单 |
@@ -288,7 +287,7 @@
 
 | 后端模块 | 端点数 | 前端空缺描述 | 建议页面 |
 |---|---|---|---|
-| **agent_debug_api**（Agent 可视化调试台） | 8 | `Memory Graph View`、`Orchestration Board`、`Persona Evolution Inspector` 三个面板**全部缺**。`AIKanbanPage` 只覆盖了部分 Orchestration；`AIMemoryPage` 只覆盖了基础浏览，缺 Edge 软删除/合并、`memory/conflicts` 解决、`agent_debug/self_model` 修正。 | 新增 `/ai-debug` 路由 / 拆 3 个 Tab |
+| **agent_debug_api**（原 Agent 调试台） | 8 | 独立页已删除。边失效与冲突由 `AIMemoryPage` 调用 `agentDebugApi`；任务编排看 `AIKanbanPage`。`self_model` 不再做页面。 | 不要恢复 `/ai-debug` |
 | **artifacts_api**（AI 产出物） | 5 | `AIKanbanPage` 内已调用 artifacts 列表/详情/下载/删除/TTL 延长，但**没有独立页面**做资源全局浏览。 | 新增 `/ai-artifacts` |
 | **workspace_api**（Kanban 任务工作区） | 4 | workspace 文件列表、上传、下载、apply-patch 仅在 Kanban 任务详情 Dialog 部分暴露，缺全局浏览。 | AIKanban 详情弹窗 + 全局工作区 |
 | **state_store_api**（State 状态存储） | 6 | ~~缺独立页~~ → 已有 `/state-store`（`StateStorePage` + `StateStoreViewer`） | — |
@@ -397,7 +396,7 @@
 | AI 小时级性能 | `ai_performance_api` | 🟩 AIStatisticsPage 内嵌 |
 | AI Session 历史与 Trace 瀑布 | `ai_session_logs_api` | 🟩 AIHistoryPage |
 | Session 实时收发 / 历史回放 | `history_api` | 🟩 SessionManagementPage |
-| Agent 可视化调试台 | `agent_debug_api` | ⬛ 整个缺失 |
+| Agent 可视化调试台 | `agent_debug_api` | 页面已删除。边/冲突在 AIMemoryPage；编排在 AIKanban |
 | State Store 状态存储 | `state_store_api` | 🟨 偏弱 |
 | 品牌信息 | `brand_api` | ⬛ 无独立编辑页 |
 | 批量推送 | `message_api::BatchPush` | 🟩 BatchPushPage（bot_self_id） |

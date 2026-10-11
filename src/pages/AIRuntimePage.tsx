@@ -72,9 +72,9 @@ import {
   pluginFromWorldRef,
 } from '@/lib/cognition';
 
-type TabId = 'slots' | 'hooks' | 'relationship' | 'cognition' | 'group';
+type TabId = 'relationship' | 'slots' | 'hooks' | 'cognition' | 'group';
 
-const TAB_IDS: TabId[] = ['slots', 'hooks', 'relationship', 'cognition', 'group'];
+const TAB_IDS: TabId[] = ['relationship', 'slots', 'hooks', 'cognition', 'group'];
 
 function isTabId(value: string | null): value is TabId {
   return value !== null && (TAB_IDS as string[]).includes(value);
@@ -129,7 +129,14 @@ export default function AIRuntimePage() {
   const { t } = useLanguage();
   const [searchParams, setSearchParams] = useSearchParams();
   const tabFromUrl = searchParams.get('tab');
-  const tab: TabId = isTabId(tabFromUrl) ? tabFromUrl : 'slots';
+  const tab: TabId = isTabId(tabFromUrl) ? tabFromUrl : 'relationship';
+  const refreshRef = useRef<(() => void) | null>(null);
+  const [panelLoading, setPanelLoading] = useState(false);
+  const bindRefresh = useCallback((fn: (() => void) | null, loading: boolean) => {
+    refreshRef.current = fn;
+    setPanelLoading(loading);
+  }, []);
+  const showRefresh = tab === 'slots' || tab === 'hooks' || tab === 'group';
 
   const setTab = (next: TabId) => {
     const nextParams = new URLSearchParams(searchParams);
@@ -139,13 +146,13 @@ export default function AIRuntimePage() {
 
   const tabs = useMemo(
     () => [
-      { value: 'slots', label: t('aiRuntime.tabs.slots'), icon: <Puzzle className="w-4 h-4" /> },
-      { value: 'hooks', label: t('aiRuntime.tabs.hooks'), icon: <Unplug className="w-4 h-4" /> },
       {
         value: 'relationship',
         label: t('aiRuntime.tabs.relationship'),
         icon: <Heart className="w-4 h-4" />,
       },
+      { value: 'slots', label: t('aiRuntime.tabs.slots'), icon: <Puzzle className="w-4 h-4" /> },
+      { value: 'hooks', label: t('aiRuntime.tabs.hooks'), icon: <Unplug className="w-4 h-4" /> },
       {
         value: 'cognition',
         label: t('aiRuntime.tabs.cognition'),
@@ -172,6 +179,17 @@ export default function AIRuntimePage() {
             </h1>
             <p className="text-muted-foreground mt-1">{t('aiRuntime.description')}</p>
           </div>
+          {showRefresh && (
+            <Button
+              variant="outline"
+              className="shrink-0 self-start sm:self-auto"
+              disabled={panelLoading}
+              onClick={() => refreshRef.current?.()}
+            >
+              <RefreshCw className={cn('w-4 h-4', panelLoading && 'animate-spin')} />
+              {t('common.refresh')}
+            </Button>
+          )}
         </div>
       }
       toolbar={
@@ -183,11 +201,11 @@ export default function AIRuntimePage() {
         />
       }
     >
-      {tab === 'slots' && <SlotsPanel />}
-      {tab === 'hooks' && <HooksPanel />}
+      {tab === 'slots' && <SlotsPanel bindRefresh={bindRefresh} />}
+      {tab === 'hooks' && <HooksPanel bindRefresh={bindRefresh} />}
       {tab === 'relationship' && <RelationshipPanel />}
       {tab === 'cognition' && <CognitionPanel />}
-      {tab === 'group' && <GroupProfilePanel />}
+      {tab === 'group' && <GroupProfilePanel bindRefresh={bindRefresh} />}
     </PinnedPage>
   );
 }
@@ -203,7 +221,11 @@ function MissingBackendCard() {
   );
 }
 
-function SlotsPanel() {
+function SlotsPanel({
+  bindRefresh,
+}: {
+  bindRefresh: (fn: (() => void) | null, loading: boolean) => void;
+}) {
   const { t } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [missing, setMissing] = useState(false);
@@ -232,6 +254,13 @@ function SlotsPanel() {
     void load();
   }, [load]);
 
+  useEffect(() => {
+    bindRefresh(() => {
+      void load();
+    }, loading);
+    return () => bindRefresh(null, false);
+  }, [bindRefresh, load, loading]);
+
   const sealedEmpty = slots.filter((s) => s.sealed && s.occupants.length === 0);
   const unhealthy = slots.filter((s) => !s.healthy);
 
@@ -239,31 +268,20 @@ function SlotsPanel() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
-          <Badge variant="secondary" className="max-w-full whitespace-normal">
-            {t('aiRuntime.slots.count', { count: slots.length })}
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <Badge variant="secondary" className="max-w-full whitespace-normal">
+          {t('aiRuntime.slots.count', { count: slots.length })}
+        </Badge>
+        {sealedEmpty.length > 0 && (
+          <Badge variant="destructive" className="max-w-full whitespace-normal">
+            {t('aiRuntime.slots.sealedEmptyCount', { count: sealedEmpty.length })}
           </Badge>
-          {sealedEmpty.length > 0 && (
-            <Badge variant="destructive" className="max-w-full whitespace-normal">
-              {t('aiRuntime.slots.sealedEmptyCount', { count: sealedEmpty.length })}
-            </Badge>
-          )}
-          {unhealthy.length > 0 && (
-            <Badge variant="outline" className="max-w-full whitespace-normal">
-              {t('aiRuntime.slots.unhealthyCount', { count: unhealthy.length })}
-            </Badge>
-          )}
-        </div>
-        <Button
-          className="w-full shrink-0 sm:w-auto"
-          variant="outline"
-          onClick={() => void load()}
-          disabled={loading}
-        >
-          <RefreshCw className={cn('w-4 h-4', loading && 'animate-spin')} />
-          {t('common.refresh')}
-        </Button>
+        )}
+        {unhealthy.length > 0 && (
+          <Badge variant="outline" className="max-w-full whitespace-normal">
+            {t('aiRuntime.slots.unhealthyCount', { count: unhealthy.length })}
+          </Badge>
+        )}
       </div>
 
       {sealedEmpty.length > 0 && (
@@ -358,7 +376,11 @@ function SlotsPanel() {
   );
 }
 
-function HooksPanel() {
+function HooksPanel({
+  bindRefresh,
+}: {
+  bindRefresh: (fn: (() => void) | null, loading: boolean) => void;
+}) {
   const { t } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [missing, setMissing] = useState(false);
@@ -391,6 +413,13 @@ function HooksPanel() {
     void load();
   }, [load]);
 
+  useEffect(() => {
+    bindRefresh(() => {
+      void load();
+    }, loading);
+    return () => bindRefresh(null, false);
+  }, [bindRefresh, load, loading]);
+
   if (missing) return <MissingBackendCard />;
 
   const wiredEmpty = points.filter((p) => p.wired && p.owners.length === 0);
@@ -398,33 +427,22 @@ function HooksPanel() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
-          <Badge
-            variant={enabled ? 'default' : 'destructive'}
-            className="max-w-full whitespace-normal"
-          >
-            {enabled ? t('aiRuntime.hooks.enabled') : t('aiRuntime.hooks.disabled')}
-          </Badge>
-          <Badge variant="secondary" className="max-w-full whitespace-normal">
-            {t('aiRuntime.hooks.total', { count: total })}
-          </Badge>
-          <Badge variant="outline" className="max-w-full whitespace-normal">
-            {t('aiRuntime.hooks.wiredEmpty', { count: wiredEmpty.length })}
-          </Badge>
-          <Badge variant="outline" className="max-w-full whitespace-normal">
-            {t('aiRuntime.hooks.unwiredCount', { count: unwired.length })}
-          </Badge>
-        </div>
-        <Button
-          className="w-full shrink-0 sm:w-auto"
-          variant="outline"
-          onClick={() => void load()}
-          disabled={loading}
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <Badge
+          variant={enabled ? 'default' : 'destructive'}
+          className="max-w-full whitespace-normal"
         >
-          <RefreshCw className={cn('w-4 h-4', loading && 'animate-spin')} />
-          {t('common.refresh')}
-        </Button>
+          {enabled ? t('aiRuntime.hooks.enabled') : t('aiRuntime.hooks.disabled')}
+        </Badge>
+        <Badge variant="secondary" className="max-w-full whitespace-normal">
+          {t('aiRuntime.hooks.total', { count: total })}
+        </Badge>
+        <Badge variant="outline" className="max-w-full whitespace-normal">
+          {t('aiRuntime.hooks.wiredEmpty', { count: wiredEmpty.length })}
+        </Badge>
+        <Badge variant="outline" className="max-w-full whitespace-normal">
+          {t('aiRuntime.hooks.unwiredCount', { count: unwired.length })}
+        </Badge>
       </div>
 
       <p className="text-xs text-muted-foreground">{t('aiRuntime.hooks.hint')}</p>
@@ -800,19 +818,19 @@ function RelationshipPanel() {
                 </p>
               ) : roster ? (
                 <div className={cn('overflow-x-auto', rosterLoading && 'opacity-60')}>
-                  <Table>
+                  <Table className="w-max min-w-full whitespace-nowrap">
                     <TableHeader>
                       <TableRow>
-                        <TableHead>{t('aiRuntime.relationship.colUser')}</TableHead>
-                        <TableHead>{t('aiRuntime.relationship.botId')}</TableHead>
-                        <TableHead>{t('aiRuntime.relationship.score')}</TableHead>
-                        <TableHead>{t('aiRuntime.relationship.colZone')}</TableHead>
-                        <TableHead>{t('aiRuntime.relationship.colLine')}</TableHead>
-                        <TableHead>{t('aiRuntime.relationship.lastReason')}</TableHead>
-                        <TableHead>{t('aiRuntime.relationship.lastDelta')}</TableHead>
-                        <TableHead>{t('aiRuntime.relationship.lastEval')}</TableHead>
-                        <TableHead>{t('aiRuntime.relationship.daily')}</TableHead>
-                        <TableHead>{t('aiRuntime.relationship.interactions')}</TableHead>
+                        <TableHead className="whitespace-nowrap">{t('aiRuntime.relationship.colUser')}</TableHead>
+                        <TableHead className="whitespace-nowrap">{t('aiRuntime.relationship.botId')}</TableHead>
+                        <TableHead className="whitespace-nowrap">{t('aiRuntime.relationship.score')}</TableHead>
+                        <TableHead className="whitespace-nowrap">{t('aiRuntime.relationship.colZone')}</TableHead>
+                        <TableHead className="whitespace-nowrap">{t('aiRuntime.relationship.colLine')}</TableHead>
+                        <TableHead className="whitespace-nowrap">{t('aiRuntime.relationship.lastReason')}</TableHead>
+                        <TableHead className="whitespace-nowrap">{t('aiRuntime.relationship.lastDelta')}</TableHead>
+                        <TableHead className="whitespace-nowrap">{t('aiRuntime.relationship.lastEval')}</TableHead>
+                        <TableHead className="whitespace-nowrap">{t('aiRuntime.relationship.daily')}</TableHead>
+                        <TableHead className="whitespace-nowrap">{t('aiRuntime.relationship.interactions')}</TableHead>
                         <TableHead className="sr-only">{t('common.actions')}</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -827,10 +845,10 @@ function RelationshipPanel() {
                           )}
                         >
                           <TableCell>
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span className="font-medium">{item.user_name || item.user_id}</span>
+                            <div className="flex flex-nowrap items-center gap-2">
+                              <span className="whitespace-nowrap font-medium">{item.user_name || item.user_id}</span>
                               {item.is_master && (
-                                <Badge variant="default" className="max-w-full whitespace-normal">
+                                <Badge variant="default" className="whitespace-nowrap">
                                   {t('aiRuntime.relationship.master')}
                                 </Badge>
                               )}
@@ -841,22 +859,22 @@ function RelationshipPanel() {
                               </div>
                             )}
                           </TableCell>
-                          <TableCell className="font-mono text-xs">{item.bot_id}</TableCell>
+                          <TableCell className="whitespace-nowrap font-mono text-xs">{item.bot_id}</TableCell>
                           <TableCell className="whitespace-nowrap font-medium">
                             {item.score}
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="whitespace-nowrap">
                             <Badge
                               variant={zoneBadgeVariant(item.zone)}
-                              className="max-w-full whitespace-normal"
+                              className="whitespace-nowrap"
                             >
                               {item.zone_label} · {item.zone}
                             </Badge>
                           </TableCell>
-                          <TableCell className="max-w-[16rem] truncate text-xs" title={item.line}>
+                          <TableCell className="max-w-[16rem] truncate whitespace-nowrap text-xs" title={item.line}>
                             {item.line}
                           </TableCell>
-                          <TableCell className="font-mono text-xs">
+                          <TableCell className="whitespace-nowrap font-mono text-xs">
                             {item.last_reason || t('aiRuntime.relationship.none')}
                           </TableCell>
                           <TableCell className="whitespace-nowrap">
@@ -869,7 +887,7 @@ function RelationshipPanel() {
                             {t('aiRuntime.relationship.gain')} {item.daily_gain ?? 0} /{' '}
                             {t('aiRuntime.relationship.loss')} {item.daily_loss ?? 0}
                           </TableCell>
-                          <TableCell>{item.interaction_count ?? 0}</TableCell>
+                          <TableCell className="whitespace-nowrap">{item.interaction_count ?? 0}</TableCell>
                           <TableCell>
                             <Button variant="outline" className="h-8" onClick={() => openRow(item)}>
                               {t('aiRuntime.relationship.viewRow')}

@@ -84,5 +84,6 @@
     }
   },
   "linkedAgents": "关联 Agent",
+  "linkedAgentsSummary": "关联 {count} 个 Agent · {entries} 条",
   "loadLinkedFailed": "加载关联 Agent 失败"
 }

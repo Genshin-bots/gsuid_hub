@@ -46,7 +46,6 @@ import {
 import {
   aiSessionLogsApi,
   personaApi,
-  type LinkedAgent,
   SessionLogSummary,
   SessionLogDetail,
   SessionLogEntry,
@@ -260,6 +259,7 @@ export default function AIHistoryPage() {
   const [logs, setLogs] = useState<SessionLogSummary[]>([]);
   const [stats, setStats] = useState<SessionLogStatsOverview | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasLoadedLogs, setHasLoadedLogs] = useState(false);
   const [categories, setCategories] = useState<SessionLogCategory[]>([]);
 
   // 选中链
@@ -269,8 +269,6 @@ export default function AIHistoryPage() {
   const [segEntries, setSegEntries] = useState<Record<number, SessionLogEntry[]>>({});
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [isLoadingEarlier, setIsLoadingEarlier] = useState(false);
-  const [linkedAgents, setLinkedAgents] = useState<LinkedAgent[]>([]);
-  const [linkedAgentsLoading, setLinkedAgentsLoading] = useState(false);
 
   // 筛选
   const [searchQuery, setSearchQuery] = useState('');
@@ -332,6 +330,7 @@ export default function AIHistoryPage() {
         setLogs(data.items || []);
         setTotal(data.total || 0);
         setOffset(currentOffset);
+        setHasLoadedLogs(true);
       } catch (err) {
         console.error('Failed to fetch session logs:', err);
         toast.error(t('aiHistory.loadFailed'));
@@ -358,27 +357,20 @@ export default function AIHistoryPage() {
       setSelectedCard(card);
       setMainDetail(null);
       setSegEntries({});
-      setLinkedAgents([]);
       setIsLoadingDetail(true);
-      setLinkedAgentsLoading(true);
       try {
         const segs = cardSegments(card);
         const latest = segs[segs.length - 1];
-        const [d, linked] = await Promise.all([
-          fetchSegment(latest),
-          aiSessionLogsApi.getLinkedAgents(card.session_id).catch(() => null),
-        ]);
+        const d = await fetchSegment(latest);
         if (d) {
           setMainDetail(d);
           setSegEntries({ [latest.segment_index]: d.entries || [] });
         }
-        setLinkedAgents(linked?.linked_agents ?? []);
       } catch (err) {
         console.error('Failed to fetch chain detail:', err);
         toast.error(t('aiHistory.loadDetailFailed'));
       } finally {
         setIsLoadingDetail(false);
-        setLinkedAgentsLoading(false);
       }
     },
     [fetchSegment, t],
@@ -511,6 +503,11 @@ export default function AIHistoryPage() {
     ? (categoryMap.get(selectedCard.create_by)?.label ?? selectedCard.create_by)
     : '';
   const hasEarlier = selectedCard ? loadedSegCount < totalSegCount : false;
+  const linkedAgentCount = selectedCard?.linked_agent_count ?? 0;
+  const linkedEntryCount = (selectedCard?.linked_agents ?? []).reduce(
+    (sum, agent) => sum + (agent.entry_count || 0),
+    0,
+  );
   // 详情头部：与列表一致地展示简短名 + 类型图标（selectedCard 在分类未随详情返回时兜底）
   const detailDesc = mainDetail
     ? describeSession(mainDetail, categoryMap)
@@ -623,7 +620,7 @@ export default function AIHistoryPage() {
 
             {/* 列表 */}
             <ScrollArea className="flex-1">
-              {isLoading ? (
+              {isLoading && !hasLoadedLogs ? (
                 <div className="space-y-3 p-3">
                   {Array.from({ length: 6 }).map((_, i) => (
                     <Skeleton key={i} className="h-16 w-full" />
@@ -809,36 +806,14 @@ export default function AIHistoryPage() {
                       <p className="text-xs text-muted-foreground truncate">
                         {personaName} · {createByLabel} · {selectedCard.entry_count}{' '}
                         {t('aiHistory.entries')}
+                        {linkedAgentCount > 0 &&
+                          ` · ${t('aiHistory.linkedAgentsSummary', {
+                            count: linkedAgentCount,
+                            entries: linkedEntryCount,
+                          })}`}
                         {totalSegCount > 1 &&
                           ` · ${t('aiHistory.segmentsCount', { count: totalSegCount })}`}
                       </p>
-                      {(linkedAgentsLoading || linkedAgents.length > 0) && (
-                        <div className="flex flex-wrap items-center gap-1 mt-0.5 min-w-0">
-                          <span className="text-[10px] text-muted-foreground shrink-0">
-                            {t('aiHistory.linkedAgents')}:
-                          </span>
-                          {linkedAgentsLoading ? (
-                            <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
-                          ) : (
-                            linkedAgents.slice(0, 6).map((agent) => (
-                              <Badge
-                                key={`${agent.agent_type}-${agent.session_id}`}
-                                variant="outline"
-                                className="text-[10px] h-5 px-1.5 font-mono max-w-[140px] truncate"
-                                title={`${agent.agent_type} · ${agent.session_id}`}
-                              >
-                                {agent.persona_name || agent.agent_type}
-                                {agent.entry_count > 0 ? ` · ${agent.entry_count}` : ''}
-                              </Badge>
-                            ))
-                          )}
-                          {!linkedAgentsLoading && linkedAgents.length > 6 && (
-                            <Badge variant="secondary" className="text-[10px] h-5 px-1.5">
-                              +{linkedAgents.length - 6}
-                            </Badge>
-                          )}
-                        </div>
-                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
