@@ -1793,7 +1793,37 @@ export const generateAIStatisticsSummary = () => ({
     total_cache_read_tokens: 280_000,
     total_cache_write_tokens: 16_882,
     by_model: [],
-    by_type: [],
+    // 四段分项加总与上面四个 total 严格对齐，堆叠条才不会看着缺一块
+    by_type: [
+      {
+        type: 'chat',
+        input_tokens: 452_309,
+        output_tokens: 780_120,
+        cache_read_tokens: 231_000,
+        cache_write_tokens: 13_882,
+      },
+      {
+        type: 'tool_call',
+        input_tokens: 132_000,
+        output_tokens: 124_000,
+        cache_read_tokens: 40_000,
+        cache_write_tokens: 2_600,
+      },
+      {
+        type: 'embedding',
+        input_tokens: 20_000,
+        output_tokens: 0,
+        cache_read_tokens: 7_000,
+        cache_write_tokens: 0,
+      },
+      {
+        type: 'rerank',
+        input_tokens: 8_000,
+        output_tokens: 29_000,
+        cache_read_tokens: 2_000,
+        cache_write_tokens: 400,
+      },
+    ],
   },
   latency: { avg: 1.24, p95: 3.8 },
   intent_distribution: {
@@ -1853,30 +1883,38 @@ export const generateAIStatisticsSummary = () => ({
 export const generateTokenByModel = () => [
   {
     model: 'anthropic/claude-opus-4-8',
-    total_tokens: 1_122_000,
+    total_tokens: 1_222_200,
     input_tokens: 360_000,
     output_tokens: 762_000,
+    cache_read_tokens: 94_000,
+    cache_write_tokens: 6_200,
     requests: 3_120,
   },
   {
     model: 'anthropic/claude-haiku-4-5',
-    total_tokens: 482_000,
+    total_tokens: 439_500,
     input_tokens: 200_000,
     output_tokens: 120_000,
+    cache_read_tokens: 112_000,
+    cache_write_tokens: 7_500,
     requests: 7_801,
   },
   {
     model: 'openai/gpt-4o-mini',
-    total_tokens: 210_311,
+    total_tokens: 148_329,
     input_tokens: 52_309,
     output_tokens: 51_120,
+    cache_read_tokens: 42_000,
+    cache_write_tokens: 2_900,
     requests: 1_461,
   },
   {
     model: 'local/embedding-bge-m3',
-    total_tokens: 28_000,
-    input_tokens: 0,
+    total_tokens: 37_482,
+    input_tokens: 28_000,
     output_tokens: 0,
+    cache_read_tokens: 8_000,
+    cache_write_tokens: 1_482,
     requests: 100,
   },
 ];
@@ -1926,72 +1964,237 @@ export const generateRAGStats = () => ({
     { doc_id: 'doc-029', title: '深渊配队攻略', hit_count: 99 },
   ],
 });
-export const generateTokenByRange = () => ({
-  start: new Date(Date.now() - 6 * 86400_000).toISOString().split('T')[0],
-  end: new Date().toISOString().split('T')[0],
-  total: {
-    input_tokens: 612_309,
-    output_tokens: 933_120,
-    cache_read_tokens: 280_000,
-    cache_write_tokens: 16_882,
-    total_tokens: 1_545_429,
-  },
-  daily: Array.from({ length: 7 }).map((_, i) => {
-    const input = 70_000 + i * 5_000;
-    const output = 90_000 + i * 4_000;
+export const generateRagDocuments = () => [
+  { document_name: '原神角色图鉴.md', hit_count: 312 },
+  { document_name: '七圣召唤规则.md', hit_count: 192 },
+  { document_name: '深渊配队攻略.md', hit_count: 148 },
+  { document_name: '圣遗物词条速查.md', hit_count: 96 },
+  { document_name: '元素反应表.md', hit_count: 74 },
+  { document_name: '武器精炼材料.md', hit_count: 51 },
+  { document_name: '每日委托奖励.md', hit_count: 33 },
+  { document_name: '地图探索度.md', hit_count: 18 },
+  { document_name: '联名活动公告.md', hit_count: 9 },
+  { document_name: '版本更新日志.md', hit_count: 4 },
+];
+
+/** 历史趋势：按 days 铺一串逐日 token / 效率读数，供 /ai-statistics 的历史趋势页签用。 */
+export const generateStatisticsHistory = (days = 7) =>
+  Array.from({ length: days }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (days - 1 - i));
+    const input = 380_000 + ((i * 137_000) % 420_000);
+    const output = Math.floor(input * 0.42);
+    const userTurns = 40 + ((i * 17) % 55);
+    const agentRuns = userTurns * 2 + ((i * 13) % 40);
     return {
-      date: new Date(Date.now() - (6 - i) * 86400_000).toISOString().split('T')[0],
+      date: d.toISOString().split('T')[0],
+      data: {
+        token_usage: { total_input_tokens: input, total_output_tokens: output },
+        efficiency: {
+          user_turn_count: userTurns,
+          agent_run_count: agentRuns,
+          avg_tokens_per_user_turn: Math.floor((input + output) / userTurns),
+          avg_tokens_per_agent_run: Math.floor((input + output) / agentRuns),
+          avg_agent_runs_per_user_turn: Number((agentRuns / userTurns).toFixed(2)),
+        },
+      },
+    };
+  });
+
+/**
+ * 区间 Token 统计。按请求里的起止日期铺天数 —— 7 天 / 30 天 / 90 天必须给出不同的总量，
+ * 否则快捷预览和区间切换在 demo 下看起来像坏了。
+ */
+export const generateTokenByRange = (startDate?: string, endDate?: string) => {
+  const end = endDate ?? new Date().toISOString().split('T')[0];
+  const start = startDate ?? new Date(Date.now() - 6 * 86400_000).toISOString().split('T')[0];
+  const spanDays = Math.max(
+    1,
+    Math.round((Date.parse(`${end}T00:00:00Z`) - Date.parse(`${start}T00:00:00Z`)) / 86400_000) + 1,
+  );
+
+  const daily = Array.from({ length: spanDays }).map((_, i) => {
+    const date = new Date(`${start}T00:00:00Z`);
+    date.setUTCDate(date.getUTCDate() + i);
+    // 周末量级掉一半，区间内缓慢上行：曲线有起伏才看得出趋势
+    const weekend = date.getUTCDay() === 0 || date.getUTCDay() === 6 ? 0.45 : 1;
+    const drift = 0.82 + (i / Math.max(spanDays - 1, 1)) * 0.4;
+    const input = Math.round(78_000 * weekend * drift) + i * 1_200;
+    const output = Math.round(96_000 * weekend * drift) + i * 900;
+    const cacheRead = Math.floor(input * (0.2 + (i % 5) * 0.02));
+    const cacheWrite = Math.floor(input * 0.03);
+    const userTurn = Math.max(4, Math.round((30 + i * 1.6) * weekend));
+    const agentRun = userTurn * 2 + Math.round(userTurn * 0.4);
+    return {
+      date: date.toISOString().split('T')[0],
       input_tokens: input,
       output_tokens: output,
-      cache_read_tokens: Math.floor(input * 0.2),
-      cache_write_tokens: Math.floor(input * 0.03),
-      total_tokens: input + output,
+      cache_read_tokens: cacheRead,
+      cache_write_tokens: cacheWrite,
+      // 与后端一致：四类互不重叠，总量四项全加（manager.py get_token_usage_by_range）
+      total_tokens: input + output + cacheRead + cacheWrite,
+      user_turn_count: userTurn,
+      agent_run_count: agentRun,
+      avg_tokens_per_user_turn: Math.floor((input + output) / userTurn),
+      avg_tokens_per_agent_run: Math.floor((input + output) / agentRun),
     };
-  }),
-  by_model: [
-    {
-      model: 'anthropic/claude-opus-4-8',
-      input_tokens: 360_000,
-      output_tokens: 762_000,
-      cache_read_tokens: 100_000,
-      cache_write_tokens: 8_000,
-      total_tokens: 1_122_000,
+  });
+
+  const sum = (pick: (d: (typeof daily)[number]) => number) =>
+    daily.reduce((acc, d) => acc + pick(d), 0);
+
+  const total = {
+    input_tokens: sum((d) => d.input_tokens),
+    output_tokens: sum((d) => d.output_tokens),
+    cache_read_tokens: sum((d) => d.cache_read_tokens),
+    cache_write_tokens: sum((d) => d.cache_write_tokens),
+    total_tokens: sum((d) => d.total_tokens),
+  };
+
+  // 模型构成按固定份额拆：区间越长总量越大，环图占比保持稳定
+  const by_model = (
+    [
+      { model: 'anthropic/claude-opus-4-8', share: 0.62, inShare: 0.38, outShare: 0.82 },
+      { model: 'anthropic/claude-haiku-4-5', share: 0.27, inShare: 0.33, outShare: 0.13 },
+      { model: 'openai/gpt-4o-mini', share: 0.08, inShare: 0.21, outShare: 0.04 },
+      { model: 'local/embedding-bge-m3', share: 0.03, inShare: 0.08, outShare: 0.01 },
+    ] as const
+  ).map((m) => {
+    const input = Math.round(total.input_tokens * m.inShare);
+    const output = Math.round(total.output_tokens * m.outShare);
+    const cacheRead = Math.round(total.cache_read_tokens * m.share);
+    const cacheWrite = Math.round(total.cache_write_tokens * m.share);
+    return {
+      model: m.model,
+      input_tokens: input,
+      output_tokens: output,
+      cache_read_tokens: cacheRead,
+      cache_write_tokens: cacheWrite,
+      total_tokens: input + output + cacheRead + cacheWrite,
+    };
+  });
+
+  // 类型构成同理：与后端 by_type 同口径（跨天按 chat_type 聚合，按总量降序）
+  const by_type = (
+    [
+      { type: 'chat', share: 0.58, inShare: 0.44, outShare: 0.71 },
+      { type: 'tool_call', share: 0.24, inShare: 0.31, outShare: 0.18 },
+      { type: 'rerank', share: 0.11, inShare: 0.16, outShare: 0.07 },
+      { type: 'memory_text_extract', share: 0.07, inShare: 0.09, outShare: 0.04 },
+    ] as const
+  ).map((ty) => {
+    const input = Math.round(total.input_tokens * ty.inShare);
+    const output = Math.round(total.output_tokens * ty.outShare);
+    const cacheRead = Math.round(total.cache_read_tokens * ty.share);
+    const cacheWrite = Math.round(total.cache_write_tokens * ty.share);
+    return {
+      type: ty.type,
+      input_tokens: input,
+      output_tokens: output,
+      cache_read_tokens: cacheRead,
+      cache_write_tokens: cacheWrite,
+      total_tokens: input + output + cacheRead + cacheWrite,
+    };
+  });
+
+  const userTurnCount = sum((d) => d.user_turn_count);
+  const agentRunCount = sum((d) => d.agent_run_count);
+
+  /* 延迟 / 错误跟着区间走：按每天的用户回合数当权重算平均（对应后端按
+     latency_sample_count 加权），P95 取各日峰值的最大。每日带 ±20% 波动，
+     区间越长越接近互相抵消后的均值 —— 切档位时读数真的会动，不会几档都印同一个数。 */
+  const dailyLatency = daily.map((d, i) => {
+    const swing = 0.8 + ((i * 7) % 5) * 0.1;
+    const base = (1.66 - Math.min(d.user_turn_count / 900, 0.5)) * swing;
+    return {
+      avg: Number((base + (d.agent_run_count % 7) * 0.06).toFixed(3)),
+      p95: Number(
+        (base * (2.5 + ((i * 3) % 4) * 0.25) + (d.agent_run_count % 5) * 0.22).toFixed(3),
+      ),
+      samples: d.user_turn_count,
+    };
+  });
+  const latencySamples = dailyLatency.reduce((acc, d) => acc + d.samples, 0);
+  const latencyAvg =
+    dailyLatency.reduce((acc, d) => acc + d.avg * d.samples, 0) / Math.max(latencySamples, 1);
+  const latencyP95 = Math.max(...dailyLatency.map((d) => d.p95));
+
+  const errors = {
+    timeout: Math.round(userTurnCount * 0.011),
+    rate_limit: Math.round(userTurnCount * 0.008),
+    network_error: Math.round(userTurnCount * 0.005),
+    usage_limit: Math.round(userTurnCount * 0.002),
+    agent_error: Math.round(userTurnCount * 0.004),
+    api_529_error: Math.round(userTurnCount * 0.006),
+  };
+
+  return {
+    start_date: start,
+    end_date: end,
+    days: spanDays,
+    total,
+    daily,
+    by_model,
+    by_type,
+    efficiency: {
+      user_turn_count: userTurnCount,
+      agent_run_count: agentRunCount,
+      user_turn_agent_run_count: userTurnCount,
+      avg_tokens_per_user_turn: Math.floor(total.total_tokens / Math.max(userTurnCount, 1)),
+      avg_tokens_per_agent_run: Math.floor(total.total_tokens / Math.max(agentRunCount, 1)),
+      avg_agent_runs_per_user_turn: agentRunCount / Math.max(userTurnCount, 1),
     },
-    {
-      model: 'anthropic/claude-haiku-4-5',
-      input_tokens: 200_000,
-      output_tokens: 120_000,
-      cache_read_tokens: 80_000,
-      cache_write_tokens: 4_000,
-      total_tokens: 320_000,
+    latency: {
+      avg: Number(latencyAvg.toFixed(2)),
+      p95: Number(latencyP95.toFixed(2)),
+      samples: latencySamples,
     },
-  ],
-});
+    errors: { ...errors, total: Object.values(errors).reduce((a, b) => a + b, 0) },
+  };
+};
 export const generatePerformanceHourly = () => {
-  return Array.from({ length: 24 }).map((_, i) => ({
-    hour: i,
-    providers: [
-      {
-        provider: 'anthropic',
-        model: 'claude-haiku-4-5',
-        request_count: 20 + Math.floor(Math.random() * 40),
-        ttft_min_ms: 200,
-        ttft_max_ms: 1200,
-        ttft_avg_ms: 400 + Math.floor(Math.random() * 300),
-        tps_min: 20,
-        tps_max: 90,
-        tps_avg: 35 + Math.random() * 20,
-        input_tokens: 5000 + Math.floor(Math.random() * 3000),
-        output_tokens: 3000 + Math.floor(Math.random() * 2000),
-        cache_read_tokens: 800,
-        cache_write_tokens: 120,
-        tool_call_count: 2 + Math.floor(Math.random() * 6),
-      },
-    ],
-  }));
+  /* TTFT 与 TPS 之前都只吃 Math.random()，偶尔 24 个点整段同形，
+     看起来像同一份数据画了两遍。改成各自独立的波形 + 小幅抖动：
+     夜间批量任务 TTFT 更慢（等队列），TPS 反而更快（并发高、单请求轻）。 */
+  const wobble = (scale: number) => Math.round((Math.random() - 0.5) * scale);
+  return Array.from({ length: 24 }).map((_, i) => {
+    const night = i >= 22 || i <= 1 ? 1 : 0;
+    const ttft = Math.max(180, 420 + night * 210 + Math.round(Math.sin(i / 2.3) * 70) + wobble(40));
+    const tps = Math.max(
+      18,
+      41 + night * 15 + Math.round(Math.sin(i / 1.4 + 1.1) * 10) + wobble(4),
+    );
+    const requests = Math.max(
+      6,
+      26 + Math.round(Math.sin((i - 7) / 2.7) * 16) + night * 6 + wobble(6),
+    );
+    return {
+      hour: i,
+      providers: [
+        {
+          provider: 'anthropic',
+          model: 'claude-haiku-4-5',
+          request_count: requests,
+          ttft_min_ms: Math.round(ttft * 0.55),
+          ttft_max_ms: Math.round(ttft * 2.1),
+          ttft_avg_ms: ttft,
+          tps_min: Math.round(tps * 0.6),
+          tps_max: Math.round(tps * 1.9),
+          tps_avg: tps,
+          input_tokens: 5000 + Math.round(1800 + Math.sin(i / 2) * 1200) + wobble(600),
+          output_tokens: 3000 + Math.round(1100 + Math.sin(i / 1.8 + 0.6) * 900) + wobble(500),
+          cache_read_tokens: 800,
+          cache_write_tokens: 120,
+          tool_call_count: 2 + Math.floor(Math.random() * 6),
+        },
+      ],
+    };
+  });
 };
 export const generatePerformanceHourlyRange = () => {
-  // Flat rows matching HourlyPerformanceRangeItem for aggregatePerformanceByDate
+  // Flat rows matching HourlyPerformanceRangeItem for aggregatePerformanceByDate /
+  // aggregatePerformanceByHour. 七天 × 有活跃度的整段小时：概览的 24 小时剖面在区间
+  // 档也按 hour 聚合，缺小时会直接在折线上断成几截。
   const rows: Array<{
     date: string;
     hour: number;
@@ -2010,27 +2213,30 @@ export const generatePerformanceHourlyRange = () => {
     cache_write_tokens: number;
     tool_call_count: number;
   }> = [];
+  const wobble = (scale: number) => Math.round((Math.random() - 0.5) * scale);
   for (let i = 0; i < 7; i++) {
     const d = new Date(Date.now() - (6 - i) * 86400_000);
     const date = d.toISOString().split('T')[0];
-    for (const hour of [9, 12, 18, 21]) {
+    for (let hour = 0; hour < 24; hour++) {
+      const night = hour >= 1 && hour <= 5 ? 1 : 0;
+      const requests = Math.max(2, 18 + Math.round(Math.sin((hour - 7) / 2.7) * 14) - night * 12);
       rows.push({
         date,
         hour,
         provider: 'anthropic',
         model: 'claude-haiku-4-5',
-        request_count: 80 + Math.floor(Math.random() * 40),
-        ttft_min_ms: 200,
-        ttft_max_ms: 1200,
-        ttft_avg_ms: 450 + Math.floor(Math.random() * 200),
-        tps_min: 20,
-        tps_max: 80,
-        tps_avg: 40 + Math.random() * 15,
-        input_tokens: 12_000,
-        output_tokens: 8_000,
-        cache_read_tokens: 2_000,
-        cache_write_tokens: 400,
-        tool_call_count: 10 + Math.floor(Math.random() * 8),
+        request_count: requests,
+        ttft_min_ms: Math.round(180 + wobble(60)),
+        ttft_max_ms: Math.round(900 + wobble(240)),
+        ttft_avg_ms: 380 + Math.round(Math.sin(hour / 3) * 60) + Math.floor(wobble(50)),
+        tps_min: Math.round(18 + wobble(6)),
+        tps_max: Math.round(78 + wobble(14)),
+        tps_avg: Number((38 + Math.sin(hour / 4) * 9 + wobble(5)).toFixed(1)),
+        input_tokens: 5000 + Math.round(900 + Math.sin(hour / 2) * 700) + wobble(400),
+        output_tokens: 3000 + Math.round(700 + Math.sin(hour / 1.8 + 0.6) * 500) + wobble(300),
+        cache_read_tokens: 600 + wobble(220),
+        cache_write_tokens: 90 + wobble(40),
+        tool_call_count: 1 + Math.floor(Math.random() * 5),
       });
     }
   }

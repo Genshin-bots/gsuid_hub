@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
   aggregatePerformanceByDate,
+  aggregatePerformanceByHour,
+  perfHourTotals,
+  toPerfHourSeries,
+  asPercent,
   botConnectionSummary,
   buildBatchPushImagePlaceholder,
   buildBatchPushImageTag,
@@ -11,6 +15,7 @@ import {
   getCommandColor,
   hashCommandName,
   latestDateWithMetric,
+  sparkHeadline,
   unwrapSettledRows,
   stripExceptionGroupGutters,
   composeLogTimestamp,
@@ -136,6 +141,62 @@ describe('dates and stats', () => {
     expect(rows).toHaveLength(2);
     expect(rows[0].requests).toBe(5);
     expect(rows[0].ttftAvg).toBe(150);
+  });
+});
+
+describe('performance hour profile', () => {
+  const rows = [
+    { hour: 9, provider: 'openai', model: 'gpt', request_count: 4, ttft_avg_ms: 100, tps_avg: 10 },
+    { hour: 9, provider: 'openai', model: 'gpt', request_count: 6, ttft_avg_ms: 200, tps_avg: 20 },
+    {
+      hour: 9,
+      provider: 'anthropic',
+      model: 'haiku',
+      request_count: 2,
+      ttft_avg_ms: 50,
+      tps_avg: 5,
+    },
+    { hour: 10, provider: 'openai', model: 'gpt', request_count: 1, ttft_avg_ms: 80, tps_avg: 8 },
+  ];
+
+  it('merges the same hour across days into one point', () => {
+    const series = aggregatePerformanceByHour(rows);
+    expect(series.map((p) => p.hour)).toEqual([9, 10]);
+    expect(series[0].models).toHaveLength(2);
+  });
+
+  it('sums requests per model but averages ttft/tps', () => {
+    const series = aggregatePerformanceByHour(rows);
+    const gpt = series[0].models.find((m) => m.model === 'gpt')!;
+    expect(gpt.request_count).toBe(10);
+    expect(gpt.ttft_avg_ms).toBe(150);
+    expect(gpt.tps_avg).toBe(15);
+  });
+
+  it('summarises the whole profile for the chart headers', () => {
+    const totals = perfHourTotals(aggregatePerformanceByHour(rows));
+    expect(totals.requests).toBe(13);
+    expect(totals.models).toBe(2);
+    /* 均值是对「聚合后的小时点」求的：9 点那两个 gpt 行先折成 150，再和 haiku 的 50、
+       10 点的 80 一起除以 3。拿原始行直接除以 4 会把「同小时跨天」当成两份权重。 */
+    expect(totals.ttft).toBeCloseTo((150 + 50 + 80) / 3);
+    expect(totals.tps).toBeCloseTo((15 + 5 + 8) / 3);
+  });
+
+  it('returns empty totals for an empty profile', () => {
+    expect(perfHourTotals([])).toEqual({ requests: 0, ttft: 0, tps: 0, models: 0 });
+  });
+
+  it('flattens the nested single-day payload into the same shape', () => {
+    const series = toPerfHourSeries([
+      {
+        hour: 0,
+        providers: [
+          { provider: 'openai', model: 'gpt', request_count: 3, ttft_avg_ms: 90, tps_avg: 9 },
+        ],
+      },
+    ]);
+    expect(series[0].models[0].request_count).toBe(3);
   });
 });
 
@@ -314,6 +375,45 @@ describe('dashboard command colors', () => {
       '2026-01-03',
     );
     expect(latestDateWithMetric({ a: 0 })).toBeNull();
+  });
+});
+
+describe('asPercent', () => {
+  it('appends the unit the backend stripped off', () => {
+    expect(asPercent('20.78')).toBe('20.78%');
+    expect(asPercent('47.71')).toBe('47.71%');
+    expect(asPercent(0)).toBe('0%');
+  });
+
+  it('does not double the unit or decorate an empty value', () => {
+    expect(asPercent('20.78%')).toBe('20.78%');
+    expect(asPercent('')).toBe('0%');
+  });
+});
+
+describe('sparkHeadline', () => {
+  it('shows today value', () => {
+    expect(sparkHeadline(['10-13', '10-14'], [1200, 183], '10-14')).toBe('183');
+  });
+
+  it('falls back to last non-zero day when today is 0 (old backend excluded today)', () => {
+    expect(sparkHeadline(['10-12', '10-13', '10-14'], [900, 1200, 0], '10-14')).toBe('1,200');
+  });
+
+  it('keeps a real 0 when the last day is not today', () => {
+    expect(sparkHeadline(['10-12', '10-13'], [900, 0], '10-14')).toBe('0');
+  });
+
+  it('skips trailing zeros when picking the fallback day', () => {
+    expect(sparkHeadline(['10-12', '10-13', '10-14'], [900, 0, 0], '10-14')).toBe('900');
+  });
+
+  it('reports 0 when the whole series is empty', () => {
+    expect(sparkHeadline(['10-13', '10-14'], [0, 0], '10-14')).toBe('0');
+  });
+
+  it('handles an empty series without throwing', () => {
+    expect(sparkHeadline([], [], '10-14')).toBe('0');
   });
 });
 

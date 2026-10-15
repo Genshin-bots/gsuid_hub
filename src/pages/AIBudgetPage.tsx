@@ -230,6 +230,10 @@ function OverviewTab() {
 
   if (!overview) return null;
 
+  // 占比条以榜首为基准，不依赖后端是否已按降序返回
+  const topGroupsMax = overview.top_groups_24h.reduce((m, i) => Math.max(m, i.total_tokens), 0);
+  const topUsersMax = overview.top_users_24h.reduce((m, i) => Math.max(m, i.total_tokens), 0);
+
   return (
     <div className="space-y-6">
       {/* Status Banner
@@ -329,22 +333,15 @@ function OverviewTab() {
                 {t('aiBudget.overview.noData')}
               </p>
             ) : (
-              <div className="space-y-2">
+              <div>
                 {overview.top_groups_24h.map((item, idx) => (
-                  <div
+                  <TopConsumptionRow
                     key={item.group_id}
-                    className="flex items-center justify-between py-2 border-b border-border/50 last:border-0"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="w-6 h-6 justify-center text-xs font-mono">
-                        {idx + 1}
-                      </Badge>
-                      <span className="font-mono text-sm">{item.group_id}</span>
-                    </div>
-                    <span className="text-sm font-medium">
-                      {formatTokens(item.total_tokens)} {t('aiBudget.overview.tokens')}
-                    </span>
-                  </div>
+                    rank={idx + 1}
+                    label={item.group_id}
+                    tokens={item.total_tokens}
+                    maxTokens={topGroupsMax}
+                  />
                 ))}
               </div>
             )}
@@ -364,27 +361,62 @@ function OverviewTab() {
                 {t('aiBudget.overview.noData')}
               </p>
             ) : (
-              <div className="space-y-2">
+              <div>
                 {overview.top_users_24h.map((item, idx) => (
-                  <div
+                  <TopConsumptionRow
                     key={item.user_id}
-                    className="flex items-center justify-between py-2 border-b border-border/50 last:border-0"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="w-6 h-6 justify-center text-xs font-mono">
-                        {idx + 1}
-                      </Badge>
-                      <span className="font-mono text-sm">{item.user_id}</span>
-                    </div>
-                    <span className="text-sm font-medium">
-                      {formatTokens(item.total_tokens)} {t('aiBudget.overview.tokens')}
-                    </span>
-                  </div>
+                    rank={idx + 1}
+                    label={item.user_id}
+                    tokens={item.total_tokens}
+                    maxTokens={topUsersMax}
+                  />
                 ))}
               </div>
             )}
           </CardContent>
         </Card>
+      </div>
+    </div>
+  );
+}
+
+/** 24h 排行行：群号 / 用户 ID 常是超长字符串，名字区必须 min-w-0 才能截断，
+ *  否则长名字撑破卡片、右侧数值被挤换行（P-28：桌面下不允许出现横向溢出）。 */
+function TopConsumptionRow({
+  rank,
+  label,
+  tokens,
+  maxTokens,
+}: {
+  rank: number;
+  label: string;
+  tokens: number;
+  maxTokens: number;
+}) {
+  const { t } = useLanguage();
+  const pct = maxTokens > 0 ? Math.max((tokens / maxTokens) * 100, 2) : 0;
+
+  return (
+    <div className="py-2 border-b border-border/50 last:border-0">
+      <div className="flex items-center gap-3">
+        <Badge
+          variant="outline"
+          className="w-6 h-6 shrink-0 justify-center text-xs font-mono tabular-nums"
+        >
+          {rank}
+        </Badge>
+        <span className="min-w-0 flex-1 truncate font-mono text-sm" title={label}>
+          {label}
+        </span>
+        <span className="shrink-0 whitespace-nowrap text-sm font-medium tabular-nums">
+          {formatTokens(tokens)}
+          <span className="ml-1 text-xs font-normal text-muted-foreground">
+            {t('aiBudget.overview.tokens')}
+          </span>
+        </span>
+      </div>
+      <div className="mt-1.5 ml-9 h-1 rounded-full bg-muted/60 overflow-hidden">
+        <div className="h-full rounded-full bg-primary/60" style={{ width: `${pct}%` }} />
       </div>
     </div>
   );

@@ -5491,6 +5491,10 @@ export interface TokenRangeByModelItem extends TokenRangeBucket {
   model: string;
 }
 
+export interface TokenRangeByTypeItem extends TokenRangeBucket {
+  type: string;
+}
+
 /** User Turn / Agent Run 效率（省 Token 主指标） */
 export interface EfficiencyStatsData {
   date?: string;
@@ -5521,6 +5525,25 @@ export interface TokenRangeEfficiency {
   avg_agent_runs_per_user_turn: number;
 }
 
+/** 区间延迟。avg 由后端按样本数加权；samples 为 0 表示区间全是迁移前的历史行，
+ *  avg 是「各日均值的算术平均」的估算值。p95 是区间内各日 P95 的最大值。 */
+export interface TokenRangeLatency {
+  avg: number;
+  p95: number;
+  samples: number;
+}
+
+/** 区间错误计数，字段与 /summary 的 errors 一致 */
+export interface TokenRangeErrors {
+  timeout: number;
+  rate_limit: number;
+  network_error: number;
+  usage_limit: number;
+  agent_error: number;
+  api_529_error: number;
+  total: number;
+}
+
 export interface TokenRangeData {
   start_date: string;
   end_date: string;
@@ -5528,7 +5551,11 @@ export interface TokenRangeData {
   total: TokenRangeBucket;
   daily: TokenRangeDailyItem[];
   by_model: TokenRangeByModelItem[];
+  /** 按 chat_type 跨天聚合。与 by_model 同口径同区间，前端两张构成卡共用这一份。 */
+  by_type: TokenRangeByTypeItem[];
   efficiency?: TokenRangeEfficiency;
+  latency?: TokenRangeLatency;
+  errors?: TokenRangeErrors;
 }
 
 export interface MemoryStatsData {

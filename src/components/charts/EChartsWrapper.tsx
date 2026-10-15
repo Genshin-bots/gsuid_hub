@@ -98,8 +98,11 @@ export default function EChartsWrapper({
           color: themeColors.tooltipTextColor,
           fontSize: 13,
         },
+        // 必须挂到 body：.glass-card 统一带 z-index:0，自带一个层叠上下文，
+        // tooltip 留在卡片里溢出时会被相邻兄弟卡片按 DOM 顺序盖住 —— 看着像「被裁断」。
+        appendTo: 'body',
         extraCssText:
-          'backdrop-filter: blur(8px); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);',
+          'backdrop-filter: blur(8px); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 2147483647;',
       },
     };
 

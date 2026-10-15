@@ -24,6 +24,7 @@
   "newUsersDesc": "今日首次使用",
   "churnedUsersDesc": "旧用户近 7 天未活跃",
   "mauDesc": "近 30 天活跃用户",
+  "dauMauRatioDesc": "日活 / 月活",
   "magDesc": "近 30 天活跃群组",
   "dagMagRatioDesc": "旧群组近 7 天活跃",
   "total": "总计",
@@ -34,5 +35,12 @@
   "users": "用户",
   "groups": "群组",
   "callCount": "调用次数",
-  "selectDate": "选择日期"
+  "selectDate": "选择日期",
+  "lastUpdated": "更新于",
+  "otherCommands": "其他",
+  "recentTrend": "近 60 天命令总数",
+  "recentTrendTotal": "合计 {count} 次",
+  "expandChart": "展开完整明细",
+  "collapseChart": "收起回到概览",
+  "itemCount": "共 {count} 条"
 }

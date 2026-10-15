@@ -24,6 +24,7 @@
   "newUsersDesc": "本日初回利用",
   "churnedUsersDesc": "既存ユーザーの7日未利用",
   "mauDesc": "過去30日の活発ユーザー",
+  "dauMauRatioDesc": "日活 / 月活",
   "magDesc": "過去30日の活発グループ",
   "dagMagRatioDesc": "既存グループの7日活発",
   "total": "合計",
@@ -34,5 +35,12 @@
   "users": "ユーザー",
   "groups": "グループ",
   "callCount": "呼び出し回数",
-  "selectDate": "選択日付"
+  "selectDate": "選択日付",
+  "lastUpdated": "更新",
+  "otherCommands": "その他",
+  "recentTrend": "直近60日のコマンド総数",
+  "recentTrendTotal": "合計 {count} 回",
+  "expandChart": "詳細を展開",
+  "collapseChart": "概要に戻す",
+  "itemCount": "全 {count} 件"
 }

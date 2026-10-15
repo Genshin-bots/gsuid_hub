@@ -1,6 +1,17 @@
 // Mock data for dashboard
 // #TODO: Replace all mock data generators with actual API calls
 
+/**
+ * 本地日期的 yyyy-MM-dd。不能用 `toISOString().split('T')[0]` —— 那是 UTC 日期，
+ * 东八区在本地 00:00~07:59 之间会拿到「昨天」，于是月度序列的最后一天不再等于今天，
+ * 日历角标和「最近有数据的一天」也会跟着错一天。
+ */
+const localYmd = (d: Date): string =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+/** 供 mockServer 复用（同理不能用 toISOString，那是 UTC 日期） */
+export const mockLocalYmd = localYmd;
+
 // Bot list for selection
 export const mockBotList = [
   { id: 'all', name: '汇总' },
@@ -17,9 +28,11 @@ export const generateKeyMetrics = (botId: string = 'all') => ({
   newUsers: Math.floor(Math.random() * 300) + 50, // New Users
   churnedUsers: Math.floor(Math.random() * 100) + 20, // Churned Users
   mau: Math.floor(Math.random() * 20000) + 5000, // Monthly Active Users
-  dauMauRatio: (Math.random() * 0.3 + 0.1).toFixed(2), // DAU/MAU
+  // 这两个字段后端给的是「剥掉 % 的百分数」（见 dashboard_api.py 的 rstrip('%')），
+  // 不是 0~1 的分数。生成 0.23 会让前端的 asPercent 补成 0.23%，比真值小两个数量级。
+  dauMauRatio: (Math.random() * 20 + 5).toFixed(2), // DAU/MAU, %
   mag: Math.floor(Math.random() * 3000) + 500, // Monthly Active Groups
-  dagMagRatio: (Math.random() * 0.4 + 0.2).toFixed(2), // DAG/MAG
+  dagMagRatio: (Math.random() * 50 + 10).toFixed(2), // DAG/MAG, %
 });
 
 // #TODO: Fetch monthly command data from backend API
@@ -30,7 +43,7 @@ export const generateMonthlyCommandData = (botId: string = 'all') => {
     const date = new Date(now);
     date.setDate(date.getDate() - i);
     data.push({
-      date: date.toISOString().split('T')[0],
+      date: localYmd(date),
       sentCommands: Math.floor(Math.random() * 2000) + 500,
       receivedCommands: Math.floor(Math.random() * 1800) + 400,
       commandCalls: Math.floor(Math.random() * 3000) + 800,
@@ -48,7 +61,7 @@ export const generateMonthlyUserGroupData = (botId: string = 'all') => {
     const date = new Date(now);
     date.setDate(date.getDate() - i);
     data.push({
-      date: date.toISOString().split('T')[0],
+      date: localYmd(date),
       users: Math.floor(Math.random() * 3000) + 500,
       groups: Math.floor(Math.random() * 600) + 100,
     });
@@ -157,7 +170,7 @@ export const generateDailyActiveUsers = () => {
     const date = new Date(now);
     date.setDate(date.getDate() - i);
     data.push({
-      date: date.toISOString().split('T')[0],
+      date: localYmd(date),
       users: Math.floor(Math.random() * 500) + 100,
       newUsers: Math.floor(Math.random() * 50) + 10,
       sessions: Math.floor(Math.random() * 800) + 200,

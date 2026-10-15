@@ -2281,31 +2281,79 @@ main:has(.page-fill) .layout-page-inner {
 }
 
 /*
- * 下拉菜单 / 选择列表：对齐苹果液态玻璃胶囊。
- * 外壳要透出背后的画面，当前项是槽里更亮的一层水镜，不是实心 accent 块。
+ * 浮层玻璃：下拉菜单（role=menu）、选择列表（role=listbox）、.menu-panel（Popover）、
+ * .glass-float（可搜索浮层）。这一族不能用 .glass-card 的数字 —— 两者的取值逻辑相反：
+ *
+ *   卡片：内容长在自己肚子里，画得再透也只透给用户看，所以 0.22~0.25 就够。
+ *   浮层：压在别人的内容上，背后是整屏列表 / 时间戳 / ID 这种高对比小字。
+ *         透一点，背后的行就原样浮上来，和菜单项两行字叠在一起，谁都读不了。
+ *
+ * 两个参数必须同时够，只调一个都还是「看得见字」：
+ *   低模糊 + 低透明 = 背后的列表原样透出（液态默认就是这样：--liquid-blur 是
+ *     blur × card-opacity，卡片透明度默认 25% → 3px，3px 等于没糊）；
+ *   高模糊 + 低透明 = 一片灰浆，菜单项自己也不干净。
+ * 故模糊走 --overlay-blur（有下限，不跟卡片透明度缩水），填充率高到残余重影读不出来。
+ *
+ * 位置在本文件靠前处：同特异度的 [data-searchable-menu] [role='listbox']
+ * （background: transparent）必须靠后写，才能继续压住可搜索浮层的内层列表。
  */
-[data-style="liquid"] [role="menu"],
-[data-style="liquid"] [role="listbox"] {
-  background: hsl(0 0% 100% / 0.42) !important;
-  border: 1px solid rgba(255, 255, 255, 0.62) !important;
-  border-radius: var(--radius) !important;
-  box-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.85),
-    inset 0 0 18px 0 rgba(255, 255, 255, 0.18),
-    0 16px 40px -8px hsl(0 0% 0% / calc(0.28 * var(--shadow-strength))) !important;
-  backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.15) brightness(1.05) saturate(1.2) !important;
-  -webkit-backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.15) brightness(1.05) saturate(1.2) !important;
+:root {
+  --overlay-blur: max(20px, calc(var(--blur-intensity, 12px) * 1.6));
 }
 
-.dark[data-style="liquid"] [role="menu"],
-.dark [data-style="liquid"] [role="menu"],
-.dark[data-style="liquid"] [role="listbox"],
-.dark [data-style="liquid"] [role="listbox"] {
-  background: hsl(var(--background) / 0.32) !important;
-  border-color: rgba(255, 255, 255, 0.22) !important;
+[data-style="glassmorphism"] {
+  --overlay-fill: hsl(var(--background) / 0.82);
+  --overlay-border: hsl(var(--border) / 0.5);
+  --overlay-filter: blur(var(--overlay-blur)) saturate(150%);
+}
+
+:is(.dark[data-style='glassmorphism'], .dark [data-style='glassmorphism'], [data-style='glassmorphism'] .dark) {
+  --overlay-fill: hsl(var(--background) / 0.8);
+  --overlay-border: hsl(var(--border) / 0.45);
+}
+
+/* 光感：比磨砂更亮的水面，模糊外再拉一点饱和与对比。 */
+[data-style="luminous"] {
+  --overlay-fill: hsl(var(--background) / 0.8);
+  --overlay-border: rgba(255, 255, 255, 0.45);
+  --overlay-filter: blur(var(--overlay-blur)) saturate(190%) contrast(106%) brightness(105%);
+}
+
+:is(.dark[data-style='luminous'], .dark [data-style='luminous'], [data-style='luminous'] .dark) {
+  --overlay-fill: hsl(var(--background) / 0.78);
+  --overlay-border: rgba(255, 255, 255, 0.2);
+}
+
+/* 液态：外壳保留主题的纯白水层，靠内层水镜和描边分出当前项，不再拿整片白当高亮。 */
+[data-style="liquid"] {
+  --overlay-fill: hsl(0 0% 100% / 0.76);
+  --overlay-border: rgba(255, 255, 255, 0.62);
+  --overlay-filter: blur(var(--overlay-blur)) contrast(1.15) brightness(1.05) saturate(1.2);
+}
+
+:is(.dark[data-style='liquid'], .dark [data-style='liquid'], [data-style='liquid'] .dark) {
+  --overlay-fill: hsl(var(--background) / 0.74);
+  --overlay-border: rgba(255, 255, 255, 0.22);
+}
+
+:is([data-style='glassmorphism'], [data-style='luminous'], [data-style='liquid'])
+  :is([role='menu'], [role='listbox'], .menu-panel, .glass-float) {
+  background: var(--overlay-fill) !important;
+  border: 1px solid var(--overlay-border) !important;
+  border-radius: var(--radius) !important;
+  backdrop-filter: var(--overlay-filter) !important;
+  -webkit-backdrop-filter: var(--overlay-filter) !important;
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.85),
+    0 16px 40px -8px hsl(0 0% 0% / calc(0.28 * var(--shadow-strength))) !important;
+}
+
+:is(.dark[data-style='glassmorphism'], .dark [data-style='luminous'], .dark [data-style='liquid'])
+  :is([role='menu'], [role='listbox'], .menu-panel, .glass-float),
+.dark:is([data-style='glassmorphism'], [data-style='luminous'], [data-style='liquid'])
+  :is([role='menu'], [role='listbox'], .menu-panel, .glass-float) {
   box-shadow:
     inset 0 1px 0 0 rgba(255, 255, 255, 0.42),
-    inset 0 0 16px 0 rgba(255, 255, 255, 0.06),
     0 18px 44px -8px hsl(0 0% 0% / calc(0.45 * var(--shadow-strength))) !important;
 }
 
@@ -3023,6 +3071,10 @@ tbody tr:hover .table-sticky-right::after {
  * 磨砂来自壁纸上的静态 filter: blur()，表面只用半透明底、倒角和高光。
  * 弹层不参与这次宽度动画，保留它们自己的模糊。
  * 表格固定列要盖住滑过去的文字，也不在这里关掉。
+ *
+ * [role=listbox] / [role=menu] 是 Radix 浮层：Portal 到 body 的 position:fixed，
+ * 侧栏收缩时它们不动，故不在此列。它们是整组里唯一「背后压着别人内容」的表面，
+ * 关掉模糊后底下的小字会原样透上来和选项撞在一起（见上方「浮层玻璃」）。
  */
 html[data-style="luminous"] :is(
   .glass-sidebar,
@@ -3036,8 +3088,6 @@ html[data-style="luminous"] :is(
   button,
   a,
   [role="combobox"],
-  [role="listbox"],
-  [role="menu"],
   .ui-input,
   .ui-select-trigger,
   .ui-field-trigger
@@ -3054,8 +3104,6 @@ html[data-style="liquid"] :is(
   button,
   a,
   [role="combobox"],
-  [role="listbox"],
-  [role="menu"],
   .ui-input,
   .ui-select-trigger,
   .ui-field-trigger
@@ -3270,7 +3318,8 @@ html[data-style="liquid"] :is(
   color: hsl(var(--foreground)) !important;
 }
 
-/* 液态：悬停是薄水膜，激活是更厚的水镜。浅色壳上纯白会消失，外圈用一条很淡的前景描边把水滴托出来。 */
+/* 液态：悬停是薄水膜，激活是更厚的水镜。外壳本身已是白水层，当前项再铺纯白会消失，
+   故改用主题色染一层水 + 描边把水滴托出来（外壳提亮后白底白字已经不成立）。 */
 [data-style='liquid'] .menu-option:is(:hover, [data-highlighted], [data-selected='true'], [data-state='open']) {
   background: linear-gradient(
     180deg,
@@ -3279,20 +3328,19 @@ html[data-style="liquid"] :is(
   ) !important;
   box-shadow:
     inset 0 1px 0 0 rgba(255, 255, 255, 0.95),
-    0 0 0 1px hsl(var(--foreground) / 0.08) !important;
+    0 0 0 1px hsl(var(--foreground) / 0.1) !important;
   color: hsl(var(--foreground)) !important;
 }
 
 [data-style='liquid'] .menu-option:is([data-active='true'], [data-state='checked']) {
   background: linear-gradient(
     180deg,
-    rgba(255, 255, 255, 0.92) 0%,
-    rgba(255, 255, 255, 0.48) 100%
+    hsl(var(--primary) / 0.16) 0%,
+    hsl(var(--primary) / 0.07) 100%
   ) !important;
   box-shadow:
-    inset 0 1.5px 0 0 rgba(255, 255, 255, 1),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.85),
-    0 0 0 1px hsl(var(--foreground) / 0.14),
+    inset 0 1.5px 0 0 rgba(255, 255, 255, 0.95),
+    inset 0 0 0 1px hsl(var(--primary) / 0.32),
     0 8px 16px -10px hsl(var(--foreground) / 0.4) !important;
   color: hsl(var(--foreground)) !important;
 }

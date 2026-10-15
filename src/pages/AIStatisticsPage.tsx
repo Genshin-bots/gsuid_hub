@@ -1,51 +1,80 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useTheme } from '@/contexts/ThemeContext';
+import { Children, useState, useEffect, useMemo, useCallback } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 import { aiStatisticsApi, aiPerformanceApi, getApiErrorMessage } from '@/lib/api';
-import { headerActionRowClass, PinnedPage } from '@/components/layout/PinnedPage';
+import { PinnedPage } from '@/components/layout/PinnedPage';
 import type { HourlyPerformanceItem, HourlyPerformanceRangeItem, TokenRangeData } from '@/lib/api';
 import {
   aggregatePerformanceByDate,
-  extractHistoryTokenSeries,
+  aggregatePerformanceByHour,
+  formatCompactMetric,
+  latestDateWithMetric,
   memoryIngestHealth,
+  perfHourTotals,
+  toPerfHourSeries,
 } from '@/lib/featureUtils';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import type { PerfHourModel, PerfHourPoint } from '@/lib/featureUtils';
+import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { TabButtonGroup, tabToolbarControlClass } from '@/components/ui/TabButtonGroup';
-import { Progress } from '@/components/ui/progress';
-import { EChartsWrapper, CHART_PALETTE } from '@/components/charts';
+import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
+import {
+  DataBlock,
+  MetricHero,
+  MetricMini,
+  RatioBar,
+  SectionLabel,
+  StatStrip,
+} from '@/components/ui/DataBlock';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  BAR_RADIUS_RIGHT,
+  BAR_RADIUS_TOP,
+  BAR_THICKNESS,
+  CATEGORY_AXIS_BASE,
+  EChartsWrapper,
+  VALUE_AXIS_BASE,
+  barFill,
+  compactTick,
+  niceMax,
+  softAreaFill,
+  stackedCells,
+  useChartAxisColors,
+  useSeriesRamp,
+  withAlpha,
+} from '@/components/charts';
 import type { EChartsOption } from 'echarts';
 import {
-  Coins,
-  Clock,
-  AlertTriangle,
   Activity,
+  AlertTriangle,
+  Brain,
+  CalendarDays,
+  ChevronRight,
+  Clock,
+  Coins,
   Database,
+  Gauge,
+  GitBranch,
+  Layers,
+  RefreshCw,
+  Target,
+  Table2,
+  TrendingUp,
   Users,
   Zap,
-  Brain,
-  RefreshCw,
-  TrendingUp,
-  Calendar as CalendarIcon,
-  CalendarDays,
-  Gauge,
-  HardDrive,
-  ArrowRight,
-  Sparkles,
-  BarChart3,
-  Pencil,
-  Layers,
-  GitBranch,
-  Target,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
-import { format, subDays, startOfDay, parse } from 'date-fns';
 import { MetricDayCalendar } from '@/components/ui/metric-day-calendar';
-import { formatCompactMetric, latestDateWithMetric } from '@/lib/featureUtils';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { format, subDays, startOfDay, parse } from 'date-fns';
 
 // ============================================================================
 // 类型定义 (兼容旧接口 + 新缓存字段)
@@ -211,15 +240,27 @@ async function fetchTokenByRange(start_date?: string, end_date?: string): Promis
   return aiStatisticsApi.getTokenByRange(start_date, end_date);
 }
 
-/** 预设范围类型 */
-type RangePreset = '7d' | '14d' | '30d' | '90d' | 'custom';
+/** 预设范围类型。「今日」也是一段长度为 1 的闭区间，所以和预设统一在一套里。 */
+type RangePreset = 'today' | '7d' | '14d' | '30d' | '90d' | 'custom';
 
-const PRESET_DAYS: Record<Exclude<RangePreset, 'custom'>, number> = {
+const PRESET_DAYS: Record<Exclude<RangePreset, 'custom' | 'today'>, number> = {
   '7d': 7,
   '14d': 14,
   '30d': 30,
   '90d': 90,
 };
+
+/** 预设区间的文案。别在 JSX 里堆三元。
+ *  刻意不带图标：六颗图标要多占 180px 横向预算，页头那排页签正是被它们挤到第二行的；
+ *  预设文案本身就短（「今日 / 7天 / 自定义」），加了图标反而是一排看不懂的小装饰。 */
+const RANGE_PRESET_TABS = [
+  { value: 'today', labelKey: 'aiStatistics.scopeToday' },
+  { value: '7d', labelKey: 'aiStatistics.preset7d' },
+  { value: '14d', labelKey: 'aiStatistics.preset14d' },
+  { value: '30d', labelKey: 'aiStatistics.preset30d' },
+  { value: '90d', labelKey: 'aiStatistics.preset90d' },
+  { value: 'custom', labelKey: 'aiStatistics.customRange' },
+] as const;
 
 /** 根据 preset 计算起止日期(YYYY-MM-DD) */
 function computeRangeDates(
@@ -233,6 +274,13 @@ function computeRangeDates(
       start_date: start ? format(start, 'yyyy-MM-dd') : undefined,
       end_date: end ? format(end, 'yyyy-MM-dd') : undefined,
     };
+  }
+  /* 「今日」用的是日历里选中的那天而不是自然今天 —— 否则日历翻到别的月份时，
+     主角卡的数字和下面所有按日取数的卡片会对不上。 */
+  if (preset === 'today') {
+    const day = start ?? today;
+    const s = format(day, 'yyyy-MM-dd');
+    return { start_date: s, end_date: s };
   }
   const days = PRESET_DAYS[preset];
   // 后端闭区间 [start, end];今天为 end,往前 (days-1) 天作为 start,合计 days 天
@@ -250,221 +298,391 @@ function computeRangeDates(
 function formatCompactNumber(num: number): string {
   if (num >= 1_000_000_000) return `${(num / 1_000_000_000).toFixed(2)}B`;
   if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(2)}M`;
-  if (num >= 1_000) return `${(num / 1_000).toFixed(2)}K`;
+  if (num >= 1000) return `${(num / 1000).toFixed(2)}K`;
   return num.toLocaleString();
+}
+
+// ============================================================================
+// 图表装配
+// ============================================================================
+
+/** 图表高度带。行高 ROW_HEIGHT 同时定住「一根横条占多高」，卡片高度跟着行数走。 */
+const ROW_HEIGHT = 26;
+const CHART_MIN = 120;
+const CHART_MAX = 300;
+/** 性能详情页那张趋势图独占一行，不跟上面并排，用自己的高度。 */
+const TREND_HEIGHT = 150;
+/** 三张 24 小时剖面 + 效率趋势并成一行，容器高度和 grid 余量都必须共用一份，
+ *  绘图区才能逐像素对齐 —— 各自写各的，底边就会错开一截，x 轴标签跟着错位。
+ *  右 28 不是随手挑的：左 28 放主轴数字，右 28 是给效率趋势的次轴数字留的位置；
+ *  三张单轴图原来写 right: 14，右边界会比双轴图多出 14px，一排看过去右边参差。
+ *  底部 34 是四张共用的高度：单轴图只用到轴标签那点、其余留白，效率趋势在轴标签
+ *  下面还要摆三项图例，正好用满。绘图区高度 176-12-34=130，与原先 150-12-8 一致，
+ *  柱形一根没变，只是底下多出一条边距。 */
+const ROW_CHART_HEIGHT = 176;
+const ROW_GRID = { left: 28, right: 28, top: 12, bottom: 34 } as const;
+/** 环图：下面还要跟一列 React 图例，所以只占卡片上半。 */
+const DONUT_HEIGHT = 148;
+/** 「今日」档下趋势区往前回看几天。一天的区间在每日走势上只有一个点，那不叫走势。 */
+const TREND_LOOKBACK_DAYS = 7;
+
+/**
+ * 时间控件（今日的日历、自定义区间、只读区间、刷新）用的玻璃外壳。
+ *
+ * 与 TabButtonGroup 外壳是同一组类：`glass-card-flat` 给基础底色，`tab-segment-row`
+ * 只在光感 / 液态主题下补顶刃高光、色散与背后模糊。之前这几个控件是裸的
+ * `variant="outline"` 按钮 —— 旁边那排分段条有玻璃质感，它们还是一整块实底，
+ * 在液态主题下尤其像贴上去的。走同一组类才是一套。
+ *
+ * 代价：这几个按钮必须用 `variant="ghost"` 而不是 `"outline"`。outline 带
+ * `bg-background`，会命中 index.css 里 `[data-style="liquid"] :is(button, a).bg-background`
+ * 那条「页头描边按钮在液态下改成玻璃」的规则，它的 `!important` 描边/内高光跟
+ * `.tab-segment-row` 同为白描边但背景不透明，液态下就把外壳整个压成透明 ——
+ * 光感主题因为 `.tab-segment-row` 自带描边反而正常，所以只有液态翻车，很难一眼归因。
+ * ghost 不带 `bg-background`，外壳自己说话，三套主题表现一致。
+ */
+const rangeControlShellClass = 'glass-card-flat tab-segment-row';
+
+/* 同行控件的高度跟分段组的**外壳**齐平，而不是里面的按钮。
+   TabButtonGroup 的外壳没有显式高度，是 `p-1`(2×0.25rem) 包着 `h-10` 的内钮，
+   再加外壳自己 `glass-card-flat` 的上下各 1px 描边 —— 外框 3rem + 2px（实测 49px）。
+   而共用的 `tabToolbarControlClass` 是 `h-10`（实测 39px），差出来的 10px 一眼就看得出来，
+   读着像「这几个控件没做完」。
+   写成 rem 而不是 50px：`ui_scale` 改的是根字号，外壳那几项都是 rem，定死 px 会在
+   非 100% 缩放下反过来又错开。
+   共用导出不要动 —— 它是给旁边摆 Input / Select 的场景定的；这几个控件自己也是
+   rangeControlShellClass 的玻璃面外壳，是这一排的同伴而不是旁观者。 */
+const rangeControlHeightClass = 'h-[calc(3rem+2px)]';
+const rangeIconButtonClass = 'h-[calc(3rem+2px)] w-[calc(3rem+2px)]';
+
+function rowChartHeight(rows: number): number {
+  return Math.min(Math.max(rows * ROW_HEIGHT + 56, CHART_MIN), CHART_MAX);
+}
+
+/**
+ * Token 构成那两张堆叠条的专用高度带。
+ *
+ * 这一行三张卡是等高的（最高的是每日走势），高度差得由条形自己吸收：分类轴的行距
+ * 等于绘图区高 ÷ 类目数，所以行数少的时候行距自动拉开。原来按行数给高度
+ * （3 行 68px、4 行 86px）看着紧凑，可一旦放进等高的行里，占位不到一半的卡就被上下
+ * 白边填满 —— 比底边不齐更刺眼。所以改成「先给一个跟趋势图齐平的下限」：
+ * 3~4 行都落到下限，高度完全一致；真到 6 行才往上长，下限托不住为止。
+ */
+const STACK_ROW_HEIGHT = 22;
+const STACK_CHART_MIN = 120;
+const STACK_CHART_MAX = 150;
+
+/* 本页所有柱系列的条粗细统一走 BAR_THICKNESS（16），不再每张图各写一个上限。
+   原先是 22（构成卡）/ 18（效率趋势）/ 16（触发方式、RAG）四种，同一屏里条的粗细
+   跟着「这一图有几根」变，读着像四张图不是一个组件画的。
+   16 是能统一到的最大值：请求次数那张是 24 根小时柱，类别带宽只有约 17px，
+   条比这更粗就得互相压 —— 所以它反过来给全页定了上限。
+   构成卡这里原来写 22，行距拉开看着是「厚条 + 大缝」；条粗细交给统一常量，
+   行距仍由 STACK_ROW_HEIGHT 管，两者不再各说各话。 */
+
+/** 每日走势要和同行的两张构成卡齐平，比行 2 的剖面图矮一截。 */
+const TOKEN_TREND_HEIGHT = 130;
+
+function stackChartHeight(rows: number): number {
+  return Math.min(Math.max(rows * STACK_ROW_HEIGHT + 12, STACK_CHART_MIN), STACK_CHART_MAX);
+}
+
+interface SliceDatum {
+  name: string;
+  value: number;
+  color: string;
+  /** 占总量的比例，0~1 */
+  share: number;
+}
+
+/**
+ * 分类环图的数据整形：前 N 项各占一色，其余并进「其他」。
+ * 颜色索引跟着名次走，切日期不会整片换色；「其他」固定吃最后一格中性色，
+ * 读者一眼能认出它是兜底项而不是某类。
+ */
+function buildSlices(
+  items: { name: string; value: number }[],
+  ramp: string[],
+  limit: number,
+  otherLabel: string,
+): SliceDatum[] {
+  const sorted = items.filter((i) => i.value > 0).sort((a, b) => b.value - a.value);
+  const total = sorted.reduce((sum, i) => sum + i.value, 0);
+  if (total <= 0) return [];
+  const head = sorted.slice(0, limit).map((item, idx) => ({
+    name: item.name,
+    value: item.value,
+    color: ramp[idx % 4],
+    share: item.value / total,
+  }));
+  const rest = sorted.slice(limit);
+  if (rest.length === 0) return head;
+  const restSum = rest.reduce((sum, i) => sum + i.value, 0);
+  return [...head, { name: otherLabel, value: restSum, color: ramp[4], share: restSum / total }];
+}
+
+/** 「每行由 4 种 token 构成」的堆叠横条：按总量降序 + yAxis.inverse，#1 落在最上面。 */
+interface StackRow {
+  id: string;
+  values: number[];
+}
+
+/** 堆叠分段固定顺序：输入 → 输出 → 缓存读 → 缓存写。顺序即堆叠顺序，颜色也按序取主题色阶。 */
+const TOKEN_STACK_FIELDS = ['input', 'output', 'cacheRead', 'cacheWrite'] as const;
+
+const TOKEN_STACK_LABEL_KEYS: Record<(typeof TOKEN_STACK_FIELDS)[number], string> = {
+  input: 'aiStatistics.inputTokens',
+  output: 'aiStatistics.outputTokens',
+  cacheRead: 'aiStatistics.cacheReadTokens',
+  cacheWrite: 'aiStatistics.cacheWriteTokens',
+};
+
+function buildStackRows(
+  items: {
+    name: string;
+    input: number;
+    output: number;
+    cacheRead: number;
+    cacheWrite: number;
+  }[],
+  limit: number,
+  otherLabel: string,
+): { rows: StackRow[] } {
+  const sorted = [...items]
+    .map((item) => ({
+      item,
+      total: TOKEN_STACK_FIELDS.reduce((sum, k) => sum + (item[k] || 0), 0),
+    }))
+    .sort((a, b) => b.total - a.total);
+  const head = sorted.slice(0, limit);
+  const rest = sorted.slice(limit);
+  const rows: StackRow[] = head.map(({ item }) => ({
+    id: item.name,
+    values: TOKEN_STACK_FIELDS.map((k) => item[k] || 0),
+  }));
+  if (rest.length > 0) {
+    rows.push({
+      id: otherLabel,
+      values: TOKEN_STACK_FIELDS.map((k) => rest.reduce((sum, r) => sum + (r.item[k] || 0), 0)),
+    });
+  }
+  return { rows };
 }
 
 // ============================================================================
 // 辅助组件
 // ============================================================================
 
-interface StatCardProps {
-  title: string;
-  value: string | number;
-  subtitle?: string;
-  icon: React.ElementType;
-  className?: string;
-  /** 追加在主数字后面同行显示的小字(如 P95) */
-  inlineSuffix?: React.ReactNode;
-}
-
-function StatCard({ title, value, subtitle, icon: Icon, className, inlineSuffix }: StatCardProps) {
-  const { style } = useTheme();
-  const isGlass = style !== 'solid';
-
+/** 空态。高度跟着图表走，不然卡片会因为少了一块而塌一截。 */
+function EmptyChart({ height = ROW_CHART_HEIGHT, label }: { height?: number; label: string }) {
   return (
-    <Card className={cn('glass-card', className)}>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
-        <Icon className="w-4 h-4 text-muted-foreground" />
-      </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold flex flex-wrap items-baseline gap-2 whitespace-normal sm:whitespace-nowrap">
-          <span>{value}</span>
-          {inlineSuffix && (
-            <span className="text-xs font-normal text-muted-foreground">{inlineSuffix}</span>
-          )}
-        </div>
-        {subtitle && (
-          <p className="text-xs text-muted-foreground mt-1 whitespace-normal sm:whitespace-nowrap">
-            {subtitle}
-          </p>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-interface ProgressItemProps {
-  label: string;
-  value: number;
-  percentage: number;
-}
-
-function ProgressItem({ label, value, percentage }: ProgressItemProps) {
-  const safePercentage = isNaN(percentage) ? 0 : percentage;
-  return (
-    <div className="space-y-1">
-      <div className="flex justify-between text-sm">
-        <span>{label}</span>
-        <span className="text-muted-foreground">
-          {value} ({safePercentage.toFixed(1)}%)
-        </span>
-      </div>
-      <Progress value={safePercentage} className="h-2" />
+    <div
+      className="flex items-center justify-center text-xs text-muted-foreground"
+      style={{ height }}
+    >
+      {label}
     </div>
   );
 }
 
-/** 快速预览区:单个面板内左右两个可点击的"时间段"块(7d/30d),点击跳转 range tab */
-interface QuickPreviewProps {
-  isGlass: boolean;
-  loading7d: boolean;
-  loading30d: boolean;
-  data7d: TokenRangeData | null;
-  data30d: TokenRangeData | null;
-  error: string | null;
-  onSelectPreset: (preset: RangePreset) => void;
-  t: (key: string) => string;
+/**
+ * 环图。图例交给 React 画（DonutLegend），所以这里不必给 ECharts 留右侧位置，
+ * 环就能真正居中 —— 右偏 35% 再配一列图例是老式画法，读起来重心是歪的。
+ */
+function DonutChart({
+  slices,
+  total,
+  centerLabel,
+  height = DONUT_HEIGHT,
+}: {
+  slices: SliceDatum[];
+  total: number;
+  centerLabel: string;
+  height?: number;
+}) {
+  const { text, muted } = useChartAxisColors();
+  if (slices.length === 0) return <EmptyChart height={height} label="—" />;
+
+  const option: EChartsOption = {
+    animationDuration: 700,
+    animationEasing: 'cubicOut',
+    tooltip: {
+      trigger: 'item',
+      formatter: (params: any) =>
+        `${params.name}<br/>${formatCompactNumber(Number(params.value ?? 0))} (${params.percent}%)`,
+    },
+    /* 图例由 DonutLegend 用 React 画。EChartsWrapper 的基础 option 里带了 legend 节点，
+       不显式关掉的话 ECharts 会按 series 名自动长出一份 legend，压在环图下方。 */
+    legend: { show: false },
+    title: {
+      text: formatCompactNumber(total),
+      subtext: centerLabel,
+      left: 'center',
+      top: '37%',
+      textStyle: { fontSize: 20, fontWeight: 700, color: text },
+      subtextStyle: { fontSize: 11, color: muted },
+    },
+    series: [
+      {
+        type: 'pie',
+        radius: ['64%', '88%'],
+        center: ['50%', '50%'],
+        avoidLabelOverlap: true,
+        itemStyle: { borderColor: 'transparent', borderWidth: 2, borderRadius: 4 },
+        label: { show: false },
+        labelLine: { show: false },
+        emphasis: { scale: true, scaleSize: 6 },
+        data: slices.map((slice) => ({
+          name: slice.name,
+          value: slice.value,
+          itemStyle: { color: slice.color },
+        })),
+      },
+    ],
+  };
+  return <EChartsWrapper option={option} height={height} />;
 }
 
-function QuickPreviewPanel({
-  isGlass,
-  loading7d,
-  loading30d,
-  data7d,
-  data30d,
-  error,
-  onSelectPreset,
-  t,
-}: QuickPreviewProps) {
+/** 环图的图例行。ECharts 自带图例在窄卡片里会换行盖住图，指针悬停也只高亮方块，
+ *  这里用 React 写死四列（色点 / 名称 / 数值 / 占比），条目再多也不会错位。 */
+function DonutLegend({ slices, className }: { slices: SliceDatum[]; className?: string }) {
   return (
-    <Card className="glass-card">
-      <div className="overflow-hidden rounded-[inherit]">
-        <div className="grid grid-cols-1 divide-y divide-border/50 sm:grid-cols-2 sm:divide-x sm:divide-y-0">
-          <QuickPreviewItem
-            title={t('aiStatistics.last7Days')}
-            icon={<CalendarDays className="w-4 h-4" />}
-            loading={loading7d}
-            data={data7d}
-            error={error}
-            onClick={() => onSelectPreset('7d')}
-            t={t}
+    /* w-full min-w-0 两处都要：ul 是 flex 子节点的子节点，不锁住宽度的话长模型名
+       （deepseek/deepseek-v4.1-flash 之类）会把整行撑出卡片，压到隔壁卡片上。 */
+    <ul className={cn('mt-1 w-full min-w-0 space-y-1', className)}>
+      {slices.map((slice) => (
+        <li key={slice.name} className="flex min-w-0 items-center gap-2 text-xs">
+          <span
+            className="h-2 w-2 shrink-0 rounded-full"
+            style={{ backgroundColor: slice.color }}
           />
-          <QuickPreviewItem
-            title={t('aiStatistics.last30Days')}
-            icon={<BarChart3 className="w-4 h-4" />}
-            loading={loading30d}
-            data={data30d}
-            error={error}
-            onClick={() => onSelectPreset('30d')}
-            t={t}
-          />
-        </div>
-      </div>
-    </Card>
+          <span className="min-w-0 flex-1 truncate text-muted-foreground">{slice.name}</span>
+          <span className="shrink-0 tabular-nums font-medium">
+            {formatCompactNumber(slice.value)}
+          </span>
+          <span className="w-12 shrink-0 text-right tabular-nums text-muted-foreground">
+            {(slice.share * 100).toFixed(1)}%
+          </span>
+        </li>
+      ))}
+    </ul>
   );
 }
 
-/** 单个时间段预览块(无 Card 容器,只在面板内作为可点击单元格) */
-interface QuickPreviewItemProps {
-  title: string;
-  icon: React.ReactNode;
-  loading: boolean;
-  data: TokenRangeData | null;
-  error: string | null;
-  onClick: () => void;
-  t: (key: string) => string;
+/** 100% 堆叠条。两三个量的构成关系（比如命中 / 未命中、Root / 嵌套）：
+ *  画环图是杀鸡用牛刀，一条按比例分段的横条比任何图都直接。
+ *  color 由调用方给：色阶色给主项，中性色给兜底项。 */
+function SplitBar({ segments }: { segments: { label: string; value: number; color: string }[] }) {
+  const total = segments.reduce((sum, s) => sum + s.value, 0);
+  if (total <= 0) {
+    return <div className="h-2 w-full rounded-full bg-muted" />;
+  }
+  const visible = segments.filter((s) => s.value > 0);
+  return (
+    <div className="flex h-2 w-full overflow-hidden rounded-full bg-muted">
+      {visible.map((segment, index) => (
+        <div
+          key={segment.label}
+          className={cn(
+            'h-full',
+            index === 0 && 'rounded-l-full',
+            index === visible.length - 1 && 'rounded-r-full',
+          )}
+          style={{ width: `${(segment.value / total) * 100}%`, backgroundColor: segment.color }}
+        />
+      ))}
+    </div>
+  );
 }
 
-function QuickPreviewItem({
-  title,
-  icon,
-  loading,
-  data,
-  error,
-  onClick,
-  t,
-}: QuickPreviewItemProps) {
+/** 兜底项的中性色：深浅色模式各有一档透明度，直接吃 CSS 变量跟着主题走。 */
+const NEUTRAL_SEGMENT = 'hsl(var(--muted-foreground) / 0.28)';
+
+/**
+ * 占比行。单序列就吃主题色阶第一色 —— 按项各上色就成了彩虹条。
+ *
+ * 这里没用 <Progress>：它的指示条写死 `bg-primary`，而 shadcn 浅色预设的 primary 是
+ * 近黑的深蓝，和同一页里走色阶的图表并排放会明显对不上。自己画这根条才能和 SplitBar
+ * 共用同一套色，页面才是一个颜色系统。
+ */
+function ShareRow({
+  label,
+  value,
+  percentage,
+  color,
+}: {
+  label: string;
+  value: number;
+  percentage: number;
+  color: string;
+}) {
+  const pct = Number.isFinite(percentage) ? Math.min(Math.max(percentage, 0), 100) : 0;
   return (
-    <div
-      className="glass-hover-cell group cursor-pointer p-4 outline-none transition-colors hover:bg-accent/30 focus-visible:bg-accent/40"
-      onClick={onClick}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onClick();
-        }
-      }}
-    >
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-          <span className="text-primary/70">{icon}</span>
-          <span>{title}</span>
-        </div>
-        <ArrowRight className="w-3.5 h-3.5 text-muted-foreground opacity-0 -translate-x-1 transition-all group-hover:opacity-100 group-hover:translate-x-0" />
+    <div>
+      <div className="flex items-baseline justify-between gap-2 text-xs">
+        <span className="min-w-0 truncate text-muted-foreground">{label}</span>
+        <span className="shrink-0 tabular-nums">
+          <span className="font-medium">{value.toLocaleString()}</span>
+          <span className="ml-1 text-muted-foreground">{pct.toFixed(1)}%</span>
+        </span>
       </div>
-      {loading ? (
-        <div className="space-y-2">
-          <Skeleton className="h-8 w-28" />
-          <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
-            <Skeleton className="h-3 w-16" />
-            <Skeleton className="h-3 w-16" />
-            <Skeleton className="h-3 w-16" />
-            <Skeleton className="h-3 w-16" />
-          </div>
-        </div>
-      ) : error && !data ? (
-        <div className="text-sm text-muted-foreground">{error}</div>
-      ) : data ? (
-        <div className="space-y-2.5">
-          <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-bold tabular-nums leading-none">
-              {/* 缓存 Token 属于输入的一部分,总计仅取 输入+输出,避免与缓存重复累加 */}
-              {formatCompactNumber(data.total.input_tokens + data.total.output_tokens)}
-            </span>
-            <span className="text-xs text-muted-foreground">{t('aiStatistics.totalTokens')}</span>
-          </div>
-          <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs">
-            <div className="flex items-baseline justify-between gap-2 min-w-0">
-              <span className="text-muted-foreground truncate">
-                {t('aiStatistics.inputTokens')}
-              </span>
-              <span className="tabular-nums font-medium">
-                {formatCompactNumber(data.total.input_tokens)}
-              </span>
-            </div>
-            <div className="flex items-baseline justify-between gap-2 min-w-0">
-              <span className="text-muted-foreground truncate">
-                {t('aiStatistics.outputTokens')}
-              </span>
-              <span className="tabular-nums font-medium">
-                {formatCompactNumber(data.total.output_tokens)}
-              </span>
-            </div>
-            <div className="flex items-baseline justify-between gap-2 min-w-0">
-              <span className="text-muted-foreground truncate">
-                {t('aiStatistics.cacheReadTokens')}
-              </span>
-              <span className="tabular-nums font-medium">
-                {formatCompactNumber(data.total.cache_read_tokens)}
-              </span>
-            </div>
-            <div className="flex items-baseline justify-between gap-2 min-w-0">
-              <span className="text-muted-foreground truncate">
-                {t('aiStatistics.cacheWriteTokens')}
-              </span>
-              <span className="tabular-nums font-medium">
-                {formatCompactNumber(data.total.cache_write_tokens)}
-              </span>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="text-sm text-muted-foreground">{t('common.noData')}</div>
-      )}
+      <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+        <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: color }} />
+      </div>
+    </div>
+  );
+}
+
+const TABLE_HEAD = 'py-2 px-3 text-[11px] font-medium text-muted-foreground';
+const TABLE_CELL = 'py-2 px-3 text-[13px]';
+const TABLE_NUM = 'py-2 px-3 text-right text-[13px] tabular-nums';
+
+/** 详情表。列名与数字对齐规则全站统一：文字左对齐、数字右对齐 + 等宽数字。 */
+function DataTable({
+  head,
+  children,
+  emptyLabel,
+}: {
+  head: React.ReactNode;
+  children: React.ReactNode;
+  emptyLabel?: string;
+}) {
+  const isEmpty = Children.count(children) === 0;
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b border-border/50">{head}</tr>
+        </thead>
+        <tbody>
+          {isEmpty ? (
+            // colSpan 给宽值即可：浏览器会截到实际列数，不影响对齐
+            <tr>
+              <td colSpan={16} className={cn(TABLE_CELL, 'text-muted-foreground')}>
+                {emptyLabel}
+              </td>
+            </tr>
+          ) : (
+            children
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function TileSkeleton({ count }: { count: number }) {
+  return (
+    <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 lg:grid-cols-6">
+      {Array.from({ length: count }).map((_, i) => (
+        <Card key={i} className="glass-card">
+          <CardContent className="space-y-2 p-3.5">
+            <Skeleton className="h-3 w-20" />
+            <Skeleton className="h-6 w-16" />
+            <Skeleton className="h-2.5 w-24" />
+          </CardContent>
+        </Card>
+      ))}
     </div>
   );
 }
@@ -474,14 +692,16 @@ function QuickPreviewItem({
 // ============================================================================
 
 export default function AIStatisticsPage() {
-  const { style } = useTheme();
   const { t } = useLanguage();
-  const isGlass = style !== 'solid';
+  /** 全页图表共用一套主题色阶：切主题时所有图一起换色。与 /dashboard 同一份实现。 */
+  const ramp = useSeriesRamp();
+  const axis = useChartAxisColors();
 
   // 状态
   const [summary, setSummary] = useState<StatisticsSummary | null>(null);
-  const [tokenByModel, setTokenByModel] = useState<TokenByModel[]>([]);
-  const [tokenByType, setTokenByType] = useState<TokenByType[]>([]);
+  /** 单日口径的按模型 / 按类型分布，只在「今日」档用；区间档见下面 tokenByModel / tokenByType。 */
+  const [dayTokenByModel, setDayTokenByModel] = useState<TokenByModel[]>([]);
+  const [dayTokenByType, setDayTokenByType] = useState<TokenByType[]>([]);
   const [activeUsers, setActiveUsers] = useState<ActiveUser[]>([]);
   const [ragDocuments, setRagDocuments] = useState<RagDocument[]>([]);
   const [performanceData, setPerformanceData] = useState<HourlyPerformanceItem[]>([]);
@@ -491,47 +711,37 @@ export default function AIStatisticsPage() {
   /** yyyy-MM-dd → 当日 input_tokens（日历角标） */
   const [dailyInputTokens, setDailyInputTokens] = useState<Record<string, number>>({});
   const [activeTab, setActiveTab] = useState<string>('overview');
+  /** 最近一次成功拉取的时刻，供工具栏显示「更新于」 */
+  const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
+  // 概览里的明细不跳页签，点开成弹窗：明细是补充信息，不该把用户从仪表盘上带走
+  const [perfDetailOpen, setPerfDetailOpen] = useState(false);
+  const [dataDetailOpen, setDataDetailOpen] = useState(false);
 
   // 时间段 Token 统计相关状态
   const [rangeData, setRangeData] = useState<TokenRangeData | null>(null);
   const [rangeLoading, setRangeLoading] = useState(false);
   const [rangeError, setRangeError] = useState<string | null>(null);
-  const [rangePreset, setRangePreset] = useState<RangePreset>('7d');
+  const [rangePreset, setRangePreset] = useState<RangePreset>('today');
   const [rangeStartDate, setRangeStartDate] = useState<Date | undefined>(undefined);
   const [rangeEndDate, setRangeEndDate] = useState<Date | undefined>(undefined);
 
-  // 顶部快速预览(7天/30天)
-  const [quick7d, setQuick7d] = useState<TokenRangeData | null>(null);
-  const [quick30d, setQuick30d] = useState<TokenRangeData | null>(null);
-  const [quickLoading, setQuickLoading] = useState(true);
-  const [quickError, setQuickError] = useState<string | null>(null);
+  // 历史趋势页签已并入概览：每日走势 / 效率趋势由 rangeData.daily 供给，
+  // 原来的 getHistory 一条链路（historyDays + historySeries）整条删掉，
+  // 每日明细那张表改读 rangeData.daily 放进「数据明细」弹窗。
 
-  // 历史趋势 (getHistory)
-  const [historyDays, setHistoryDays] = useState<7 | 14 | 30>(7);
-  const [historySeries, setHistorySeries] = useState<
-    Array<{
-      date: string;
-      input: number;
-      output: number;
-      total: number;
-      userTurns: number;
-      agentRuns: number;
-      avgPerTurn: number;
-      avgPerRun: number;
-      avgRunsPerTurn: number;
-    }>
-  >([]);
-  const [historyLoading, setHistoryLoading] = useState(false);
-  const [historyError, setHistoryError] = useState<string | null>(null);
+  /* 趋势区专用的一份区间数据。「今日」档一天画不出走势，所以那一档下另取最近 7 天；
+     区间档直接复用顶部那份 rangeData，不额外发请求。 */
+  const [trendData, setTrendData] = useState<TokenRangeData | null>(null);
+  const [trendLoading, setTrendLoading] = useState(false);
+  const [trendError, setTrendError] = useState<string | null>(null);
 
-  // 性能: 单日 / 日期范围
+  // 性能: 单日 / 日期范围。区间模式不再有自己的预设，直接跟顶部的时间维度走。
   const [perfMode, setPerfMode] = useState<'day' | 'range'>('day');
-  const [perfRangePreset, setPerfRangePreset] = useState<Exclude<RangePreset, 'custom'>>('7d');
   const [perfRangeRows, setPerfRangeRows] = useState<HourlyPerformanceRangeItem[]>([]);
   const [perfRangeLoading, setPerfRangeLoading] = useState(false);
 
   // 加载数据
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -546,22 +756,23 @@ export default function AIStatisticsPage() {
       ]);
 
       setSummary(summaryData);
-      setTokenByModel(tokenData);
-      setTokenByType(summaryData?.token_usage?.by_type ?? []);
+      setDayTokenByModel(tokenData);
+      setDayTokenByType(summaryData?.token_usage?.by_type ?? []);
       setActiveUsers(usersData);
       setRagDocuments(ragData);
       setPerformanceData(perfData);
+      setUpdatedAt(new Date());
     } catch (err) {
       setError(err instanceof Error ? err.message : t('common.loadFailed'));
       toast.error(err instanceof Error ? err.message : t('common.loadFailed'));
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [selectedDate, t]);
 
   useEffect(() => {
     loadData();
-  }, [selectedDate, t]);
+  }, [loadData]);
 
   // 日历：近 60 天每日 input token
   useEffect(() => {
@@ -601,7 +812,12 @@ export default function AIStatisticsPage() {
     try {
       setRangeLoading(true);
       setRangeError(null);
-      const { start_date, end_date } = computeRangeDates(rangePreset, rangeStartDate, rangeEndDate);
+      const { start_date, end_date } = computeRangeDates(
+        rangePreset,
+        // 「今日」把日历里选中的那天当起点；自定义区间仍用自己那两个选择器
+        rangePreset === 'today' ? selectedDate : rangeStartDate,
+        rangeEndDate,
+      );
       const data = await fetchTokenByRange(start_date, end_date);
       setRangeData(data);
     } catch (err) {
@@ -611,77 +827,59 @@ export default function AIStatisticsPage() {
     } finally {
       setRangeLoading(false);
     }
-  }, [rangePreset, rangeStartDate, rangeEndDate, t]);
+  }, [rangePreset, rangeStartDate, rangeEndDate, selectedDate, t]);
 
   useEffect(() => {
-    // 仅在切到 range tab 或日期变化时拉取,减少不必要请求
-    if (activeTab === 'range') {
+    // 概览的「区间走势」和「时间段统计」是同一份区间数据，两处都要它；
+    // 条件写窄了这个 effect 就只在一半的页签上生效。
+    if (activeTab === 'range' || activeTab === 'overview') {
       fetchRangeData();
     }
   }, [activeTab, fetchRangeData]);
 
-  // 顶部快速预览(7天/30天) - 独立请求,静默失败
-  const fetchQuickPreview = useCallback(async () => {
-    try {
-      setQuickLoading(true);
-      const today = startOfDay(new Date());
-      const start7 = format(subDays(today, 6), 'yyyy-MM-dd');
-      const start30 = format(subDays(today, 29), 'yyyy-MM-dd');
-      const end = format(today, 'yyyy-MM-dd');
-      const [d7, d30] = await Promise.all([
-        fetchTokenByRange(start7, end).catch(() => null),
-        fetchTokenByRange(start30, end).catch(() => null),
-      ]);
-      setQuick7d(d7);
-      setQuick30d(d30);
-      if (!d7 && !d30) {
-        setQuickError(t('aiStatistics.loadFailed'));
-      } else {
-        setQuickError(null);
-      }
-    } catch (err) {
-      // 后端版本过旧可能没有此端点,降级为 warn 而不是 error
-      const msg = err instanceof Error ? err.message : String(err);
-      console.warn(
-        '[AIStatisticsPage] /api/ai/statistics/token-by-range 不可用,顶部快速预览保持为空。请升级 gsuid_core。',
-        msg,
-      );
-      setQuickError(null);
-    } finally {
-      setQuickLoading(false);
+  /* 趋势区的窗口。区间档就是顶部那个区间；「今日」档往前带 7 天 ——
+     一天的区间在每日走势上只有一个点，那不叫走势。 */
+  const trendWindow = useMemo(() => {
+    if (rangePreset !== 'today') {
+      return computeRangeDates(rangePreset, rangeStartDate, rangeEndDate);
     }
-  }, [t]);
+    const end = startOfDay(selectedDate ?? new Date());
+    return {
+      start_date: format(subDays(end, TREND_LOOKBACK_DAYS - 1), 'yyyy-MM-dd'),
+      end_date: format(end, 'yyyy-MM-dd'),
+    };
+  }, [rangePreset, rangeStartDate, rangeEndDate, selectedDate]);
+
+  const fetchTrendData = useCallback(async () => {
+    try {
+      setTrendLoading(true);
+      setTrendError(null);
+      const data = await fetchTokenByRange(trendWindow.start_date, trendWindow.end_date);
+      setTrendData(data);
+    } catch (err) {
+      setTrendError(getApiErrorMessage(err, t('aiStatistics.loadFailed')));
+      setTrendData(null);
+    } finally {
+      setTrendLoading(false);
+    }
+  }, [trendWindow, t]);
 
   useEffect(() => {
-    fetchQuickPreview();
-  }, [fetchQuickPreview]);
-
-  // 历史趋势
-  const fetchHistory = useCallback(async () => {
-    try {
-      setHistoryLoading(true);
-      setHistoryError(null);
-      const rows = await aiStatisticsApi.getHistory(historyDays);
-      setHistorySeries(extractHistoryTokenSeries(rows ?? []));
-    } catch (err) {
-      setHistoryError(getApiErrorMessage(err, t('aiStatistics.loadFailed')));
-      setHistorySeries([]);
-    } finally {
-      setHistoryLoading(false);
+    // 只有「今日」档需要这份：区间档的趋势区直接读 rangeData，不重复请求
+    if (activeTab === 'overview' && rangePreset === 'today') {
+      void fetchTrendData();
     }
-  }, [historyDays, t]);
+  }, [activeTab, rangePreset, fetchTrendData]);
 
-  useEffect(() => {
-    if (activeTab === 'history') {
-      void fetchHistory();
-    }
-  }, [activeTab, fetchHistory]);
-
-  // 性能日期范围
+  // 性能日期范围：跟着顶部的时间维度走，日期解析口径和 Token 那一路完全一致
   const fetchPerfRange = useCallback(async () => {
     try {
       setPerfRangeLoading(true);
-      const { start_date, end_date } = computeRangeDates(perfRangePreset);
+      const { start_date, end_date } = computeRangeDates(
+        rangePreset,
+        rangePreset === 'today' ? selectedDate : rangeStartDate,
+        rangeEndDate,
+      );
       const rows = await aiPerformanceApi.getHourlyRange(start_date, end_date);
       setPerfRangeRows(rows ?? []);
     } catch {
@@ -689,307 +887,291 @@ export default function AIStatisticsPage() {
     } finally {
       setPerfRangeLoading(false);
     }
-  }, [perfRangePreset]);
+  }, [rangePreset, rangeStartDate, rangeEndDate, selectedDate]);
 
   useEffect(() => {
-    if (activeTab === 'performance' && perfMode === 'range') {
+    // 概览的三张 24 小时图跟着顶部时间维度走：只有区间档需要 hourly-range，
+    // 「今日」那一档单日 hourly 已经覆盖了，不用多打一次请求。
+    if (rangePreset !== 'today') {
       void fetchPerfRange();
+    } else {
+      setPerfRangeRows([]);
     }
-  }, [activeTab, perfMode, fetchPerfRange]);
-
-  // 准备图表数据
-  const intentChartData = summary
-    ? Object.entries(summary.intent_distribution ?? {}).map(([name, data]) => ({
-        name,
-        value: data?.count ?? 0,
-        percentage: data?.percentage ?? 0,
-      }))
-    : [];
-
-  const triggerChartData = summary
-    ? Object.entries(summary.trigger_distribution ?? {}).map(([name, data]) => ({
-        name,
-        value: typeof data === 'number' ? data : (data?.count ?? 0),
-        percentage: typeof data === 'number' ? 0 : (data?.percentage ?? 0),
-      }))
-    : [];
-
-  const tokenModelChartData = tokenByModel.map((item) => ({
-    name: item.model ?? 'Unknown',
-    input: item.input_tokens ?? 0,
-    output: item.output_tokens ?? 0,
-    cacheRead: item.cache_read_tokens ?? 0,
-    cacheWrite: item.cache_write_tokens ?? 0,
-  }));
-
-  const tokenTypeChartData = tokenByType.map((item) => ({
-    name: item.type ?? 'Unknown',
-    input: item.input_tokens ?? 0,
-    output: item.output_tokens ?? 0,
-    cacheRead: item.cache_read_tokens ?? 0,
-    cacheWrite: item.cache_write_tokens ?? 0,
-  }));
+  }, [rangePreset, fetchPerfRange]);
 
   // ============================================================================
-  // ECharts 配置
+  // 图表装配
   // ============================================================================
 
-  // 动态 series 过多时：底部单行滚动图例，预留 grid 空间，避免换行盖住绘图区
-  const scrollBottomLegend = useCallback(
-    (names: string[], textFontSize = 10): EChartsOption['legend'] => ({
-      type: 'scroll',
-      orient: 'horizontal',
-      data: names,
-      bottom: 0,
-      left: 'center',
-      width: '92%',
-      itemWidth: 12,
-      itemHeight: 10,
-      itemGap: 10,
-      pageIconSize: 12,
-      pageButtonGap: 6,
-      pageButtonItemGap: 4,
-      textStyle: { fontSize: textFontSize },
-    }),
-    [],
+  const dateStr = format(selectedDate, 'yyyy-MM-dd');
+
+  /** 底部单行图例：项数多时换行会盖住绘图区，所以 scroll + 压小尺寸。
+   *  `tight` 给挤在窄列里的图用：每日走势有 5 个 series，占 3 列时默认尺寸要分页，
+   *  翻页才能看全，不如直接压紧一行放下。 */
+  const bottomLegend = useCallback(
+    (names: string[], tight?: boolean) =>
+      ({
+        type: 'scroll',
+        orient: 'horizontal',
+        data: names,
+        bottom: 0,
+        left: 'center',
+        width: '98%',
+        icon: 'roundRect',
+        itemWidth: tight ? 9 : 12,
+        itemHeight: tight ? 7 : 8,
+        itemGap: tight ? 7 : 12,
+        pageIconSize: 12,
+        pageButtonGap: 6,
+        textStyle: { fontSize: tight ? 10 : 11, color: axis.muted },
+      }) as EChartsOption['legend'],
+    [axis.muted],
   );
 
-  // 饼图右侧竖向滚动图例（项数多时不溢出盖住饼图）
-  const scrollRightLegend = useCallback(
-    (): EChartsOption['legend'] => ({
-      type: 'scroll',
-      orient: 'vertical',
-      right: '2%',
-      top: 'middle',
-      height: '80%',
-      textStyle: { fontSize: 11 },
-      itemGap: 8,
-      pageIconSize: 12,
-    }),
-    [],
+  /** 堆叠图的 tooltip：分段 + 合计，比默认的浮层好读。 */
+  const stackTooltip = useCallback(
+    (names: string[]) => (params: any) => {
+      if (!Array.isArray(params) || params.length === 0) return '';
+      let total = 0;
+      let rows = '';
+      params.forEach((p: any) => {
+        if (Number(p.value) <= 0) return;
+        total += Number(p.value);
+        rows += `<div style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin:2px 0">
+            <span style="display:flex;align-items:center;gap:6px">
+              <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${p.color}"></span>
+              ${names[p.seriesIndex] ?? p.seriesName}
+            </span>
+            <span style="font-weight:600">${formatCompactNumber(Number(p.value))}</span>
+          </div>`;
+      });
+      if (!rows) return '';
+      return `<div style="min-width:150px">
+          <div style="font-weight:600;margin-bottom:6px">${params[0].axisValue}</div>
+          ${rows}
+          <div style="border-top:1px solid rgba(128,128,128,0.2);margin-top:6px;padding-top:6px;display:flex;justify-content:space-between">
+            <span>${t('aiStatistics.totalTokens')}</span><span style="font-weight:700">${formatCompactNumber(total)}</span>
+          </div>
+        </div>`;
+    },
+    [t],
   );
 
-  // 意图分布 - 环形图
-  const intentPieOption = useMemo<EChartsOption>(
+  // ---- 概览：分布类 ----
+
+  const intentSlices = useMemo(
+    () =>
+      buildSlices(
+        Object.entries(summary?.intent_distribution ?? {}).map(([name, data]) => ({
+          name,
+          value: data?.count ?? 0,
+        })),
+        ramp,
+        5,
+        t('aiStatistics.other'),
+      ),
+    [summary, ramp, t],
+  );
+
+  const triggerItems = useMemo(
+    () =>
+      Object.entries(summary?.trigger_distribution ?? {})
+        .map(([name, data]) => ({
+          name,
+          value: typeof data === 'number' ? data : (data?.count ?? 0),
+        }))
+        .filter((item) => item.value > 0)
+        .sort((a, b) => b.value - a.value),
+    [summary],
+  );
+
+  /** 触发方式：单序列排名图。名称已经在 Y 轴上了，再按名称上色就是纯装饰。 */
+  const triggerOption = useMemo<EChartsOption>(
     () => ({
-      animationDuration: 1000,
-      animationEasing: 'cubicOut' as const,
-      tooltip: {
-        trigger: 'item',
-        formatter: '{b}: {c} ({d}%)',
+      animationDuration: 700,
+      animationEasing: 'cubicOut',
+      grid: { left: 2, right: 34, bottom: 8, top: 8, containLabel: true },
+      xAxis: {
+        ...VALUE_AXIS_BASE,
+        axisLabel: { fontSize: 10 },
+        splitNumber: 2,
       },
-      legend: scrollRightLegend(),
-      series: [
-        {
-          type: 'pie',
-          radius: ['40%', '65%'],
-          center: ['35%', '50%'],
-          avoidLabelOverlap: false,
-          itemStyle: {
-            borderRadius: 6,
-            borderColor: 'transparent',
-            borderWidth: 2,
-          },
-          label: {
-            show: false,
-            position: 'center',
-          },
-          labelLine: {
-            show: false,
-          },
-          emphasis: {
-            scale: true,
-            scaleSize: 8,
-            label: {
-              show: true,
-              fontSize: 13,
-              fontWeight: 'bold',
-              formatter: '{b}\n{d}%',
-            },
-            itemStyle: {
-              shadowBlur: 10,
-              shadowOffsetX: 0,
-              shadowColor: 'rgba(0, 0, 0, 0.2)',
-            },
-          },
-          data: intentChartData.map((item, index) => ({
-            name: item.name,
-            value: item.value,
-            itemStyle: { color: CHART_PALETTE[index % CHART_PALETTE.length] },
-          })),
-        },
-      ],
-    }),
-    [intentChartData, scrollRightLegend],
-  );
-  // 触发方式分布 - 水平柱状图
-  const triggerBarOption = useMemo<EChartsOption>(
-    () => ({
-      animationDuration: 800,
-      animationEasing: 'cubicOut' as const,
-      grid: { left: '3%', right: '10%', bottom: '8%', top: '8%', containLabel: true },
-      xAxis: { type: 'value' },
       yAxis: {
-        type: 'category',
-        data: triggerChartData.map((d) => d.name),
-        axisLabel: { fontSize: 11 },
+        ...CATEGORY_AXIS_BASE,
+        data: triggerItems.map((d) => d.name),
+        inverse: true,
+        axisLabel: { fontSize: 10, width: 84, overflow: 'truncate' },
       },
       tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+      legend: { show: false },
       series: [
         {
           type: 'bar',
-          data: triggerChartData.map((d, i) => ({
-            value: d.value,
-            itemStyle: { color: CHART_PALETTE[i % CHART_PALETTE.length] },
-          })),
-          barMaxWidth: 24,
-          itemStyle: { borderRadius: [0, 4, 4, 0] },
-          emphasis: { focus: 'series' },
+          data: triggerItems.map((d) => d.value),
+          barMaxWidth: BAR_THICKNESS,
+          itemStyle: { color: barFill(ramp[0]), borderRadius: BAR_RADIUS_RIGHT },
           label: {
             show: true,
             position: 'right',
-            formatter: '{c}',
-            fontSize: 11,
+            fontSize: 10,
+            color: axis.muted,
+            formatter: (p: any) => formatCompactNumber(Number(p.value)),
           },
-        },
-      ],
-    }),
-    [triggerChartData],
-  );
-
-  // Token by Model - 分组柱状图 (含缓存)
-  const tokenModelOption = useMemo<EChartsOption>(
-    () => ({
-      animationDuration: 800,
-      animationEasing: 'cubicOut' as const,
-      grid: { left: '3%', right: '4%', bottom: 48, top: '12%', containLabel: true },
-      xAxis: {
-        type: 'category',
-        data: tokenModelChartData.map((d) => d.name),
-        axisLabel: { rotate: tokenModelChartData.length > 5 ? 30 : 0, fontSize: 11 },
-      },
-      yAxis: { type: 'value' },
-      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-      legend: {
-        type: 'scroll',
-        data: [
-          { name: t('aiStatistics.inputTokens'), icon: 'roundRect' },
-          { name: t('aiStatistics.outputTokens'), icon: 'roundRect' },
-          { name: t('aiStatistics.cacheReadTokens'), icon: 'roundRect' },
-          { name: t('aiStatistics.cacheWriteTokens'), icon: 'roundRect' },
-        ],
-        bottom: 0,
-        left: 'center',
-        width: '92%',
-        textStyle: { fontSize: 11 },
-      },
-      series: [
-        {
-          name: t('aiStatistics.inputTokens'),
-          type: 'bar',
-          data: tokenModelChartData.map((d) => d.input),
-          barMaxWidth: 24,
-          itemStyle: { borderRadius: [4, 4, 0, 0] },
-          emphasis: { focus: 'series' },
-        },
-        {
-          name: t('aiStatistics.outputTokens'),
-          type: 'bar',
-          data: tokenModelChartData.map((d) => d.output),
-          barMaxWidth: 24,
-          itemStyle: { borderRadius: [4, 4, 0, 0] },
-          emphasis: { focus: 'series' },
-        },
-        {
-          name: t('aiStatistics.cacheReadTokens'),
-          type: 'bar',
-          data: tokenModelChartData.map((d) => d.cacheRead),
-          barMaxWidth: 24,
-          itemStyle: { borderRadius: [4, 4, 0, 0], color: '#10b981' },
-          emphasis: { focus: 'series' },
-        },
-        {
-          name: t('aiStatistics.cacheWriteTokens'),
-          type: 'bar',
-          data: tokenModelChartData.map((d) => d.cacheWrite),
-          barMaxWidth: 24,
-          itemStyle: { borderRadius: [4, 4, 0, 0], color: '#f59e0b' },
           emphasis: { focus: 'series' },
         },
       ],
     }),
-    [tokenModelChartData, t],
+    [triggerItems, ramp, axis.muted],
   );
 
-  // Token by Type - 分组柱状图 (含缓存)
-  const tokenTypeOption = useMemo<EChartsOption>(
-    () => ({
-      animationDuration: 800,
-      animationEasing: 'cubicOut' as const,
-      grid: { left: '3%', right: '4%', bottom: 48, top: '12%', containLabel: true },
-      xAxis: {
-        type: 'category',
-        data: tokenTypeChartData.map((d) => d.name),
-        axisLabel: { fontSize: 11 },
-      },
-      yAxis: { type: 'value' },
-      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-      legend: {
-        type: 'scroll',
-        data: [
-          { name: t('aiStatistics.inputTokens'), icon: 'roundRect' },
-          { name: t('aiStatistics.outputTokens'), icon: 'roundRect' },
-          { name: t('aiStatistics.cacheReadTokens'), icon: 'roundRect' },
-          { name: t('aiStatistics.cacheWriteTokens'), icon: 'roundRect' },
-        ],
-        bottom: 0,
-        left: 'center',
-        width: '92%',
-        textStyle: { fontSize: 11 },
-      },
-      series: [
-        {
-          name: t('aiStatistics.inputTokens'),
-          type: 'bar',
-          data: tokenTypeChartData.map((d) => d.input),
-          barMaxWidth: 24,
-          itemStyle: { borderRadius: [4, 4, 0, 0] },
-          emphasis: { focus: 'series' },
-        },
-        {
-          name: t('aiStatistics.outputTokens'),
-          type: 'bar',
-          data: tokenTypeChartData.map((d) => d.output),
-          barMaxWidth: 24,
-          itemStyle: { borderRadius: [4, 4, 0, 0] },
-          emphasis: { focus: 'series' },
-        },
-        {
-          name: t('aiStatistics.cacheReadTokens'),
-          type: 'bar',
-          data: tokenTypeChartData.map((d) => d.cacheRead),
-          barMaxWidth: 24,
-          itemStyle: { borderRadius: [4, 4, 0, 0], color: '#10b981' },
-          emphasis: { focus: 'series' },
-        },
-        {
-          name: t('aiStatistics.cacheWriteTokens'),
-          type: 'bar',
-          data: tokenTypeChartData.map((d) => d.cacheWrite),
-          barMaxWidth: 24,
-          itemStyle: { borderRadius: [4, 4, 0, 0], color: '#f59e0b' },
-          emphasis: { focus: 'series' },
-        },
-      ],
-    }),
-    [tokenTypeChartData, t],
+  // ---- Token 分析：按模型 / 按类型的堆叠横条 ----
+
+  /**
+   * 构成两张卡（以及「数据明细」弹窗里的逐行表）的数据源，跟着顶部时间维度走。
+   *
+   * 原来这两个数组永远是「选中那天」的单日值：切到 30 天档，卡片标题和右上角总量读数
+   * 都写着区间，条形却还是某一天的 —— 数字和标题对不上，看的人无从判断在看哪段时间。
+   * 今日档仍走单日（今日是内存实时值，历史走 summary / token-by-model），
+   * 区间档改吃 token-by-range 的 by_model / by_type：后端已经按区间跨天聚合好了，
+   * 与卡片右上角的总量读数同源，不需要再多打一个请求。
+   */
+  const tokenByModel = useMemo<TokenByModel[]>(
+    () => (rangePreset === 'today' ? dayTokenByModel : (rangeData?.by_model ?? [])),
+    [rangePreset, dayTokenByModel, rangeData],
+  );
+  const tokenByType = useMemo<TokenByType[]>(
+    () => (rangePreset === 'today' ? dayTokenByType : (rangeData?.by_type ?? [])),
+    [rangePreset, dayTokenByType, rangeData],
   );
 
-  // 性能 - 唯一 provider-model 列表(稳定分配颜色)
+  const tokenModelChartData = useMemo(
+    () =>
+      tokenByModel.map((item) => ({
+        name: item.model || 'Unknown',
+        input: item.input_tokens ?? 0,
+        output: item.output_tokens ?? 0,
+        cacheRead: item.cache_read_tokens ?? 0,
+        cacheWrite: item.cache_write_tokens ?? 0,
+      })),
+    [tokenByModel],
+  );
+
+  const tokenTypeChartData = useMemo(
+    () =>
+      tokenByType.map((item) => ({
+        name: item.type || 'Unknown',
+        input: item.input_tokens ?? 0,
+        output: item.output_tokens ?? 0,
+        cacheRead: item.cache_read_tokens ?? 0,
+        cacheWrite: item.cache_write_tokens ?? 0,
+      })),
+    [tokenByType],
+  );
+
+  /**
+   * 四种 token 的量级天然差着数量级（缓存读通常是输入的五六倍），画成并排柱会把
+   * 输入/输出压成贴地细条 —— 那是量级差，不是样式能救的。改成按模型/按类型排序的
+   * 堆叠横条：总量一眼可见，构成也能顺着条读下去。
+   */
+  const buildTokenStackOption = useCallback(
+    (
+      items: {
+        name: string;
+        input: number;
+        output: number;
+        cacheRead: number;
+        cacheWrite: number;
+      }[],
+      limit: number,
+      labelWidth: number,
+    ) => {
+      const { rows } = buildStackRows(items, limit, t('aiStatistics.other'));
+      const names = TOKEN_STACK_FIELDS.map((field) => t(TOKEN_STACK_LABEL_KEYS[field]));
+      const cells = stackedCells(rows.map((r) => r.values));
+      const total = rows.reduce((sum, r) => sum + r.values.reduce((x, v) => x + v, 0), 0);
+      /* 上界自己算，不交给 auto。ECharts 的取整只认 1/2/5/10 档：最大行 17M 会被抬到
+         30M，最长那条只占绘图区 57%，右边空出一大片，看起来像图没画完。
+         钉到 niceMax 之后条形能吃掉 85%~95% 的宽度，占比直接用长度读 ——
+         这正是拿横条代替饼环的理由（上界松了，环和条给的信息量就差远了）。 */
+      const max = niceMax(rows.map((r) => r.values.reduce((x, v) => x + v, 0)));
+      return {
+        rows: rows.length,
+        option: {
+          animationDuration: 700,
+          animationEasing: 'cubicOut',
+          /* bottom 只留网格的呼吸位：四种 token 的色板由两张图共用一行 HTML 图例，
+             再让 ECharts 各画一条就是同一句话讲两遍，还各吃掉 32px。 */
+          grid: { left: 2, right: 14, bottom: 6, top: 6, containLabel: true },
+          xAxis: {
+            ...VALUE_AXIS_BASE,
+            max,
+            interval: max / 2,
+            /* 刻度压缩：原样输出「1,500,000」会被卡片右边缘切掉半个字 */
+            axisLabel: { fontSize: 10, formatter: compactTick },
+            splitNumber: 2,
+          },
+          yAxis: {
+            ...CATEGORY_AXIS_BASE,
+            data: rows.map((r) => r.id),
+            inverse: true,
+            axisLabel: { fontSize: 10, width: labelWidth, overflow: 'truncate' },
+          },
+          tooltip: {
+            trigger: 'axis',
+            axisPointer: { type: 'shadow' },
+            formatter: stackTooltip(names),
+          },
+          /* EChartsWrapper 的 baseOption 里带着 legend.textStyle，legend.show 仍是默认的
+             true —— 不显式关掉，它会照着 series 名字自己长出一条图例来，白占 32px。 */
+          legend: { show: false },
+          series: names.map((name, index) => ({
+            name,
+            type: 'bar' as const,
+            stack: 'total',
+            data: cells.map((row) => row[index]),
+            barMaxWidth: BAR_THICKNESS,
+            itemStyle: { color: ramp[index % 4] },
+            emphasis: { focus: 'series' as const },
+          })),
+        } satisfies EChartsOption,
+        total,
+      };
+    },
+    [ramp, stackTooltip, t],
+  );
+
+  /* 模型名带 provider 前缀（anthropic/claude-opus-4-8），窄列只能露出十几个字符，
+     这张卡占了 7 列，就把标签宽度放开；类型名本来就短，走窄列。
+     条数都收到 4 行以内：再往下排就只是「更多项」，而每一项在「数据明细」弹窗里
+     都有一整张逐行表可查，一级不必替它做完。 */
+  const modelStack = useMemo(
+    () => buildTokenStackOption(tokenModelChartData, 5, 168),
+    [tokenModelChartData, buildTokenStackOption],
+  );
+  const typeStack = useMemo(
+    () => buildTokenStackOption(tokenTypeChartData, 3, 92),
+    [tokenTypeChartData, buildTokenStackOption],
+  );
+
+  // ---- 性能 ----
+
+  /**
+   * 三张 24 小时图的数据源跟着顶部时间维度走，不再由区内的「单日 / 今日」开关决定：
+   * 「今日」用单日 hourly，区间用 hourly-range 按 hour 聚合（跨天合并同一小时）。
+   * 两种返回结构不一样，先拍平成 PerfHourPoint，下面的图表和读数只认这一种形状。
+   */
+  const perfHourSeries = useMemo<PerfHourPoint[]>(
+    () =>
+      rangePreset === 'today'
+        ? toPerfHourSeries(performanceData)
+        : aggregatePerformanceByHour(perfRangeRows),
+    [rangePreset, performanceData, perfRangeRows],
+  );
+
   const perfModelList = useMemo(() => {
     const map = new Map<string, { provider: string; model: string }>();
-    for (const hourItem of performanceData) {
-      for (const p of hourItem.providers) {
+    for (const point of perfHourSeries) {
+      for (const p of point.models) {
         const key = `${p.provider}-${p.model}`;
         if (!map.has(key)) {
           map.set(key, { provider: p.provider, model: p.model });
@@ -997,565 +1179,365 @@ export default function AIStatisticsPage() {
       }
     }
     return Array.from(map.values());
-  }, [performanceData]);
+  }, [perfHourSeries]);
 
-  // 性能 - TTFT 按小时折线图
-  const perfTTFTOption = useMemo<EChartsOption>(() => {
-    const hours = performanceData.map((d) => `${d.hour}:00`);
-    const series = perfModelList.map((pm, idx) => ({
-      name: `${pm.provider}-${pm.model}`,
-      type: 'line' as const,
-      smooth: true,
-      connectNulls: false,
-      data: performanceData.map((h) => {
-        const found = h.providers.find(
-          (pp) => pp.provider === pm.provider && pp.model === pm.model,
-        );
-        if (!found) return null;
-        const v = found.ttft_avg_ms;
-        return v > 0 ? v : null;
-      }),
-      itemStyle: { color: CHART_PALETTE[idx % CHART_PALETTE.length] },
-      lineStyle: { color: CHART_PALETTE[idx % CHART_PALETTE.length] },
-    }));
+  const perfHours = useMemo(
+    () => perfHourSeries.map((d) => `${String(d.hour).padStart(2, '0')}:00`),
+    [perfHourSeries],
+  );
 
-    return {
-      animationDuration: 800,
-      animationEasing: 'cubicOut' as const,
-      // 模型系列动态增长：预留底部单行 scroll 图例空间
-      grid: { left: '3%', right: '4%', bottom: 48, top: 24, containLabel: true },
-      xAxis: {
-        type: 'category',
-        data: hours,
-        axisLabel: { fontSize: 11 },
-      },
-      yAxis: {
-        type: 'value',
-        name: 'ms',
-        axisLabel: { fontSize: 11 },
-      },
-      tooltip: { trigger: 'axis' },
-      legend: scrollBottomLegend(series.map((s) => s.name)),
-      series,
-    };
-  }, [performanceData, perfModelList, scrollBottomLegend]);
+  /** 一项指标一张图：TTFT(ms)、TPS、请求数 量级差着几十倍，共用一根 Y 轴会把小的压平。 */
+  const buildPerfHourOption = useCallback(
+    (kind: 'line' | 'bar', pick: (p: PerfHourModel) => number): EChartsOption => {
+      /* 同一天这些模型多半挂在同一个 provider 下，名字全带一份「openai-」前缀。
+         三条一起就把底部图例撑到框宽之外，后面的色块压在前一个名字的最后一个字母上
+         （Preview 少个 w、deepseek-v4.1-flas 少个 h）。前缀只对多 provider 才有区分度。 */
+      const providerCount = new Set(perfModelList.map((pm) => pm.provider)).size;
+      const names = perfModelList.map((pm) =>
+        providerCount > 1 ? `${pm.provider}-${pm.model}` : pm.model,
+      );
+      const data = perfModelList.map((pm) =>
+        perfHourSeries.map((h) => {
+          const found = h.models.find((pp) => pp.provider === pm.provider && pp.model === pm.model);
+          if (!found) return null;
+          const v = pick(found);
+          return v > 0 ? v : null;
+        }),
+      );
+      const values = data.flat().filter((v): v is number => v !== null);
+      const max = niceMax(values);
+      /* 图例一律关掉。三张图并排时每张只有 2 列宽，模型名（deepseek/deepseek-v4.1-flash
+         这类）根本放不下：ECharts 会分页到 1/3，还把名字截成「…-M」，读者要翻页才能
+         对上颜色。关掉后底部 34px 还给绘图区，模型对应关系由同排「模型分布」的图例
+         统一给（配色同为 ramp 按模型索引取色，tooltip 里也带模型名）。 */
+      const legend: EChartsOption['legend'] = { show: false };
+      const shell = {
+        animationDuration: 700,
+        animationEasing: 'cubicOut' as const,
+        /* 写死余量而不是交给 containLabel：开了之后每格绘图区宽度随自己的标签长度浮动
+           （TTFT 顶到 1k、请求数顶到 100），三格并排就对不齐。余量取 ROW_GRID ——
+           这一行四张图共用同一份，绘图区才能逐像素对齐。 */
+        grid: ROW_GRID,
+        xAxis: {
+          ...CATEGORY_AXIS_BASE,
+          data: perfHours,
+          axisLabel: { fontSize: 9, hideOverlap: true, margin: 6, interval: 'auto' as const },
+        },
+        yAxis: {
+          ...VALUE_AXIS_BASE,
+          min: 0,
+          max,
+          /* 上界自己定等分，不交给 auto split：上界刚好落在 niceMax 的档上时，
+             它会算出一串到不了上界的刻度，再额外补一个上界数字，
+             于是「900」紧贴「1k」两行糊在一起。/5 让最后一档正好落在 max 上。 */
+          interval: max / 5,
+          axisLabel: { fontSize: 9, formatter: compactTick },
+        },
+        tooltip: { trigger: 'axis' as const, axisPointer: { type: 'shadow' as const } },
+        legend,
+      };
+      // 折线与柱状是两种 series 类型，ECharts 的类型是按字面量收窄的，
+      // 这里必须分两支返回，不能把 type 提成变量。
+      if (kind === 'bar') {
+        return {
+          ...shell,
+          series: names.map((name, idx) => {
+            const color = ramp[idx % 4];
+            return {
+              name,
+              type: 'bar' as const,
+              data: data[idx],
+              /* 独占一行的 24 根小时柱。24 个连续时间桶，所以组间距给 0 —— 小时本身
+                 就是连续的，条挨着条才读得出「这是时间轴上的一个连续直方图」。
+                 顺带把条撑满自己的槽位：不设 barCategoryGap 时 ECharts 默认留 20%，
+                 13px 的槽被压成 10px，比全页其它柱细一截，看着像另一套画的。
+                 这张是全页最密的一张（24 类挤 ~350px），槽宽到不了 16，
+                 所以条粗细最多到槽宽为止；槽随视口变宽就会自己追上 16。 */
+              barMaxWidth: BAR_THICKNESS,
+              barCategoryGap: '0%',
+              itemStyle: { color: barFill(color), borderRadius: BAR_RADIUS_TOP },
+              emphasis: { focus: 'series' as const, itemStyle: { color } },
+            };
+          }),
+        };
+      }
+      return {
+        ...shell,
+        series: names.map((name, idx) => {
+          const color = ramp[idx % 4];
+          return {
+            name,
+            type: 'line' as const,
+            smooth: 0.25,
+            connectNulls: false,
+            showSymbol: false,
+            symbol: 'circle',
+            symbolSize: 4,
+            data: data[idx],
+            lineStyle: { width: 2, cap: 'round' as const },
+            itemStyle: { color },
+            /* 24 点折线铺一层主色渐变，和区间趋势同一套画法 */
+            areaStyle: { color: barFill(color) },
+            emphasis: { focus: 'series' as const },
+          };
+        }),
+      };
+    },
+    [perfModelList, perfHourSeries, perfHours, ramp],
+  );
 
-  // 性能 - TPS 按小时折线图
-  const perfTPSOption = useMemo<EChartsOption>(() => {
-    const hours = performanceData.map((d) => `${d.hour}:00`);
-    const series = perfModelList.map((pm, idx) => ({
-      name: `${pm.provider}-${pm.model}`,
-      type: 'line' as const,
-      smooth: true,
-      connectNulls: false,
-      data: performanceData.map((h) => {
-        const found = h.providers.find(
-          (pp) => pp.provider === pm.provider && pp.model === pm.model,
-        );
-        if (!found) return null;
-        const v = found.tps_avg;
-        return v > 0 ? v : null;
-      }),
-      itemStyle: { color: CHART_PALETTE[idx % CHART_PALETTE.length] },
-      lineStyle: { color: CHART_PALETTE[idx % CHART_PALETTE.length] },
-    }));
-
-    return {
-      animationDuration: 800,
-      animationEasing: 'cubicOut' as const,
-      grid: { left: '3%', right: '4%', bottom: 48, top: 24, containLabel: true },
-      xAxis: {
-        type: 'category',
-        data: hours,
-        axisLabel: { fontSize: 11 },
-      },
-      yAxis: {
-        type: 'value',
-        name: 'tokens/s',
-        axisLabel: { fontSize: 11 },
-      },
-      tooltip: { trigger: 'axis' },
-      legend: scrollBottomLegend(series.map((s) => s.name)),
-      series,
-    };
-  }, [performanceData, perfModelList, scrollBottomLegend]);
-
-  // 性能 - 请求数按小时柱状图
-  const perfRequestOption = useMemo<EChartsOption>(() => {
-    const hours = performanceData.map((d) => `${d.hour}:00`);
-    const series = perfModelList.map((pm, idx) => ({
-      name: `${pm.provider}-${pm.model}`,
-      type: 'bar' as const,
-      data: performanceData.map((h) => {
-        const found = h.providers.find(
-          (pp) => pp.provider === pm.provider && pp.model === pm.model,
-        );
-        if (!found) return null;
-        const v = found.request_count;
-        return v > 0 ? v : null;
-      }),
-      itemStyle: { color: CHART_PALETTE[idx % CHART_PALETTE.length] },
-    }));
-
-    return {
-      animationDuration: 800,
-      animationEasing: 'cubicOut' as const,
-      grid: { left: '3%', right: '4%', bottom: 48, top: 24, containLabel: true },
-      xAxis: {
-        type: 'category',
-        data: hours,
-        axisLabel: { fontSize: 11 },
-      },
-      yAxis: { type: 'value', axisLabel: { fontSize: 11 } },
-      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-      legend: scrollBottomLegend(series.map((s) => s.name)),
-      series,
-    };
-  }, [performanceData, perfModelList, scrollBottomLegend]);
+  const perfTTFTOption = useMemo(
+    () => buildPerfHourOption('line', (p) => p.ttft_avg_ms),
+    [buildPerfHourOption],
+  );
+  const perfTPSOption = useMemo(
+    () => buildPerfHourOption('line', (p) => p.tps_avg),
+    [buildPerfHourOption],
+  );
+  const perfRequestOption = useMemo(
+    () => buildPerfHourOption('bar', (p) => p.request_count),
+    [buildPerfHourOption],
+  );
 
   const perfRangeAggregated = useMemo(
     () => aggregatePerformanceByDate(perfRangeRows),
     [perfRangeRows],
   );
 
-  const historyTrendOption = useMemo<EChartsOption>(
-    () => ({
-      animationDuration: 800,
-      animationEasing: 'cubicOut' as const,
-      grid: { left: '3%', right: '4%', bottom: 48, top: '12%', containLabel: true },
-      tooltip: { trigger: 'axis' },
-      legend: {
-        type: 'scroll',
-        data: [
-          t('aiStatistics.inputTokens'),
-          t('aiStatistics.outputTokens'),
-          t('aiStatistics.totalTokens'),
-        ],
-        bottom: 0,
-        left: 'center',
-        width: '92%',
-        textStyle: { fontSize: 11 },
-      },
+  // ---- 时间段 ----
+
+  /* 趋势区吃哪份区间数据。区间档直接复用顶部那份 rangeData；「今日」档一天画不出走势，
+     换成单独取的最近 7 天。放在三个 option 之前算好，它们就不用再关心分支。 */
+  const trendSource = rangePreset === 'today' ? trendData : rangeData;
+  const trendLoadingNow = rangePreset === 'today' ? trendLoading : rangeLoading;
+  const trendErrorNow = rangePreset === 'today' ? trendError : rangeError;
+  const trendIsEmpty =
+    !trendSource ||
+    trendSource.daily.length === 0 ||
+    trendSource.daily.every(
+      (d) => d.total_tokens === 0 && d.input_tokens === 0 && d.output_tokens === 0,
+    );
+
+  /** 区间每日 Token 走势。总 Token 铺主色渐变，四项拆分走细线。 */
+  const rangeTrendOption = useMemo<EChartsOption>(() => {
+    const days = trendSource?.daily ?? [];
+    const totals = days.map((d) => d.total_tokens);
+    const names = [
+      t('aiStatistics.totalTokens'),
+      t('aiStatistics.inputTokens'),
+      t('aiStatistics.outputTokens'),
+      t('aiStatistics.cacheReadTokens'),
+      t('aiStatistics.cacheWriteTokens'),
+    ];
+    const line = (name: string, data: number[], color: string, width: number, area?: boolean) => ({
+      name,
+      type: 'line' as const,
+      smooth: 0.25,
+      showSymbol: false,
+      symbol: 'circle',
+      symbolSize: 4,
+      data,
+      lineStyle: { width, cap: 'round' as const },
+      itemStyle: { color },
+      areaStyle: area ? { color: barFill(color) } : undefined,
+    });
+    return {
+      animationDuration: 700,
+      animationEasing: 'cubicOut',
+      grid: { left: 2, right: 14, bottom: 32, top: 10, containLabel: true },
       xAxis: {
-        type: 'category',
-        data: historySeries.map((d) => d.date),
-        axisLabel: { fontSize: 11 },
+        ...CATEGORY_AXIS_BASE,
+        data: days.map((d) => d.date.slice(5)),
+        axisLabel: { fontSize: 10, hideOverlap: true, margin: 6 },
       },
       yAxis: {
-        type: 'value',
-        axisLabel: { fontSize: 11, formatter: (v: number) => formatCompactNumber(v) },
+        ...VALUE_AXIS_BASE,
+        min: 0,
+        max: niceMax(totals),
+        axisLabel: { fontSize: 10, formatter: compactTick },
       },
+      tooltip: { trigger: 'axis', axisPointer: { type: 'line', lineStyle: { type: 'dashed' } } },
+      legend: bottomLegend(names, true),
       series: [
-        {
-          name: t('aiStatistics.totalTokens'),
-          type: 'line',
-          smooth: true,
-          data: historySeries.map((d) => d.total),
-          itemStyle: { color: '#6366f1' },
-          areaStyle: { color: 'rgba(99, 102, 241, 0.12)' },
-        },
-        {
-          name: t('aiStatistics.inputTokens'),
-          type: 'line',
-          smooth: true,
-          data: historySeries.map((d) => d.input),
-          itemStyle: { color: '#3b82f6' },
-        },
-        {
-          name: t('aiStatistics.outputTokens'),
-          type: 'line',
-          smooth: true,
-          data: historySeries.map((d) => d.output),
-          itemStyle: { color: '#a855f7' },
-        },
-      ],
-    }),
-    [historySeries, t],
-  );
-
-  const efficiency = summary?.efficiency ?? EMPTY_EFFICIENCY;
-
-  // 效率：Root vs Nested 运行占比
-  const efficiencyNestPieOption = useMemo<EChartsOption>(() => {
-    const root = efficiency.root_agent_run_count ?? 0;
-    const nested = efficiency.nested_agent_run_count ?? 0;
-    const data = [
-      {
-        name: t('aiStatistics.rootAgentRuns'),
-        value: root,
-        itemStyle: { color: CHART_PALETTE[0] },
-      },
-      {
-        name: t('aiStatistics.nestedAgentRuns'),
-        value: nested,
-        itemStyle: { color: CHART_PALETTE[2] },
-      },
-    ].filter((d) => d.value > 0);
-    return {
-      animationDuration: 800,
-      tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
-      legend: scrollRightLegend(),
-      series: [
-        {
-          type: 'pie',
-          radius: ['40%', '65%'],
-          center: ['35%', '50%'],
-          data: data.length
-            ? data
-            : [{ name: t('aiStatistics.noData'), value: 1, itemStyle: { color: '#94a3b8' } }],
-          label: { show: false },
-          emphasis: {
-            scale: true,
-            label: { show: true, fontSize: 12, fontWeight: 'bold', formatter: '{b}\n{d}%' },
-          },
-        },
+        line(names[0], totals, ramp[0], 2, true),
+        line(
+          names[1],
+          days.map((d) => d.input_tokens),
+          ramp[1],
+          1.5,
+        ),
+        line(
+          names[2],
+          days.map((d) => d.output_tokens),
+          ramp[2],
+          1.5,
+        ),
+        line(
+          names[3],
+          days.map((d) => d.cache_read_tokens),
+          ramp[3],
+          1.5,
+        ),
+        line(
+          names[4],
+          days.map((d) => d.cache_write_tokens),
+          ramp[4],
+          1.5,
+        ),
       ],
     };
-  }, [efficiency, t, scrollRightLegend]);
+  }, [trendSource, ramp, bottomLegend, t]);
 
-  // 历史效率趋势：回合均耗 / 运行均耗
-  const efficiencyHistoryOption = useMemo<EChartsOption>(
-    () => ({
-      animationDuration: 800,
-      grid: { left: '3%', right: '4%', bottom: 48, top: '12%', containLabel: true },
-      tooltip: { trigger: 'axis' },
-      legend: {
-        type: 'scroll',
-        data: [
-          t('aiStatistics.avgTokensPerUserTurn'),
-          t('aiStatistics.avgTokensPerAgentRun'),
-          t('aiStatistics.avgAgentRunsPerUserTurn'),
-        ],
-        bottom: 0,
-        left: 'center',
-        width: '92%',
-        textStyle: { fontSize: 11 },
-      },
-      xAxis: {
-        type: 'category',
-        data: historySeries.map((d) => d.date),
-        axisLabel: { fontSize: 11 },
-      },
-      yAxis: [
-        {
-          type: 'value',
-          name: 'tokens',
-          axisLabel: { fontSize: 11, formatter: (v: number) => formatCompactNumber(v) },
-        },
-        {
-          type: 'value',
-          name: 'runs',
-          splitLine: { show: false },
-          axisLabel: { fontSize: 11 },
-        },
-      ],
-      series: [
-        {
-          name: t('aiStatistics.avgTokensPerUserTurn'),
-          type: 'line',
-          smooth: true,
-          data: historySeries.map((d) => d.avgPerTurn),
-          itemStyle: { color: '#6366f1' },
-          areaStyle: { color: 'rgba(99, 102, 241, 0.1)' },
-        },
-        {
-          name: t('aiStatistics.avgTokensPerAgentRun'),
-          type: 'line',
-          smooth: true,
-          data: historySeries.map((d) => d.avgPerRun),
-          itemStyle: { color: '#10b981' },
-        },
-        {
-          name: t('aiStatistics.avgAgentRunsPerUserTurn'),
-          type: 'bar',
-          yAxisIndex: 1,
-          data: historySeries.map((d) => d.avgRunsPerTurn),
-          itemStyle: { color: 'rgba(245, 158, 11, 0.65)', borderRadius: [4, 4, 0, 0] },
-          barMaxWidth: 20,
-        },
-      ],
-    }),
-    [historySeries, t],
-  );
-
-  // 时间段效率趋势（range tab 的 daily 字段）
+  /** 区间效率趋势：两项均耗走左轴，用户回合数走右轴柱子。 */
   const rangeEfficiencyOption = useMemo<EChartsOption>(() => {
-    const days = rangeData?.daily ?? [];
+    const days = trendSource?.daily ?? [];
+    const names = [
+      t('aiStatistics.avgTokensPerUserTurn'),
+      t('aiStatistics.avgTokensPerAgentRun'),
+      t('aiStatistics.userTurnCount'),
+    ];
+    // 两根轴各自算自己的上界和等分：共用一个 interval 只会有一边对齐
+    const tokenMax = niceMax(days.map((d) => d.avg_tokens_per_user_turn ?? 0));
+    const turnMax = niceMax(days.map((d) => d.user_turn_count ?? 0));
     return {
-      animationDuration: 800,
-      grid: { left: '3%', right: '4%', bottom: 48, top: '12%', containLabel: true },
-      tooltip: { trigger: 'axis' },
-      legend: {
-        type: 'scroll',
-        data: [
-          t('aiStatistics.avgTokensPerUserTurn'),
-          t('aiStatistics.avgTokensPerAgentRun'),
-          t('aiStatistics.userTurnCount'),
-        ],
-        bottom: 0,
-        left: 'center',
-        width: '92%',
-        textStyle: { fontSize: 11 },
-      },
+      animationDuration: 700,
+      animationEasing: 'cubicOut',
+      /* 双 Y 轴，两侧各留一条数字的宽度，底部三项图例。
+         grid 直接用 ROW_GRID：单轴图与这张双轴图共用同一份余量，
+         绘图区才落在同一个矩形里，x 轴标签才在一条水平线上。 */
+      grid: ROW_GRID,
       xAxis: {
-        type: 'category',
-        data: days.map((d) => d.date),
-        axisLabel: { fontSize: 11 },
+        ...CATEGORY_AXIS_BASE,
+        data: days.map((d) => d.date.slice(5)),
+        axisLabel: { fontSize: 9, hideOverlap: true, margin: 6, interval: 'auto' },
       },
       yAxis: [
         {
-          type: 'value',
-          axisLabel: { fontSize: 11, formatter: (v: number) => formatCompactNumber(v) },
+          ...VALUE_AXIS_BASE,
+          min: 0,
+          max: tokenMax,
+          interval: tokenMax / 5,
+          axisLabel: { fontSize: 9, color: axis.text, formatter: compactTick },
         },
         {
-          type: 'value',
+          ...VALUE_AXIS_BASE,
+          min: 0,
+          max: turnMax,
+          interval: turnMax / 5,
+          /* 次轴必须显式贴到右侧：两轴默认都画在左边，两列数字叠在一起读不出来 */
+          position: 'right',
           splitLine: { show: false },
-          axisLabel: { fontSize: 11 },
+          axisLabel: { fontSize: 9, color: axis.text, formatter: compactTick },
         },
       ],
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+      /* tight：这张图只占 3 列（约 350px），默认尺寸放不下三项中文图例，
+         ECharts 会分页到 1/2，读者得翻页才能对上颜色。压紧后一行放下。 */
+      legend: bottomLegend(names, true),
       series: [
         {
-          name: t('aiStatistics.avgTokensPerUserTurn'),
+          name: names[0],
           type: 'line',
-          smooth: true,
+          yAxisIndex: 0,
+          smooth: 0.25,
+          showSymbol: false,
           data: days.map((d) => d.avg_tokens_per_user_turn ?? 0),
-          itemStyle: { color: '#6366f1' },
+          lineStyle: { width: 2, cap: 'round' },
+          itemStyle: { color: ramp[0] },
+          areaStyle: { color: softAreaFill(ramp[0]) },
         },
         {
-          name: t('aiStatistics.avgTokensPerAgentRun'),
+          name: names[1],
           type: 'line',
-          smooth: true,
+          yAxisIndex: 0,
+          smooth: 0.25,
+          showSymbol: false,
           data: days.map((d) => d.avg_tokens_per_agent_run ?? 0),
-          itemStyle: { color: '#10b981' },
+          lineStyle: { width: 2, cap: 'round' },
+          itemStyle: { color: ramp[1] },
         },
         {
-          name: t('aiStatistics.userTurnCount'),
+          name: names[2],
           type: 'bar',
           yAxisIndex: 1,
           data: days.map((d) => d.user_turn_count ?? 0),
-          itemStyle: { color: 'rgba(59, 130, 246, 0.55)', borderRadius: [4, 4, 0, 0] },
-          barMaxWidth: 18,
+          barMaxWidth: BAR_THICKNESS,
+          itemStyle: { color: withAlpha(ramp[2], 0.75), borderRadius: BAR_RADIUS_TOP },
         },
       ],
     };
-  }, [rangeData, t]);
+  }, [trendSource, ramp, axis.text, bottomLegend, t]);
 
-  const perfRangeTrendOption = useMemo<EChartsOption>(
+  // ---- RAG 文档命中 Top ----
+
+  const ragTopDocs = useMemo(
+    () =>
+      [...ragDocuments]
+        .filter((doc) => (doc?.hit_count ?? 0) > 0)
+        .sort((a, b) => (b.hit_count ?? 0) - (a.hit_count ?? 0))
+        .slice(0, 10),
+    [ragDocuments],
+  );
+
+  const ragDocsOption = useMemo<EChartsOption>(
     () => ({
-      animationDuration: 800,
-      animationEasing: 'cubicOut' as const,
-      grid: { left: '3%', right: '4%', bottom: 48, top: '12%', containLabel: true },
-      tooltip: { trigger: 'axis' },
-      legend: {
-        type: 'scroll',
-        data: [t('aiStatistics.requestCount'), t('aiStatistics.ttftAvg'), t('aiStatistics.tpsAvg')],
-        bottom: 0,
-        left: 'center',
-        width: '92%',
-        textStyle: { fontSize: 11 },
-      },
+      animationDuration: 700,
+      animationEasing: 'cubicOut',
+      grid: { left: 2, right: 14, bottom: 8, top: 8, containLabel: true },
       xAxis: {
-        type: 'category',
-        data: perfRangeAggregated.map((d) => d.date),
-        axisLabel: { fontSize: 11 },
+        ...VALUE_AXIS_BASE,
+        /* 刻度压缩：原样输出「1,500,000」会被卡片右边缘切掉半个字 */
+        axisLabel: { fontSize: 10, formatter: compactTick },
+        splitNumber: 2,
       },
-      yAxis: [
-        { type: 'value', name: t('aiStatistics.requestCount'), axisLabel: { fontSize: 11 } },
-        { type: 'value', name: 'ms / tps', axisLabel: { fontSize: 11 } },
-      ],
+      yAxis: {
+        ...CATEGORY_AXIS_BASE,
+        data: ragTopDocs.map((d) => d.document_name || '-'),
+        inverse: true,
+        axisLabel: { fontSize: 10, width: 140, overflow: 'truncate' },
+      },
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+      legend: { show: false },
       series: [
         {
-          name: t('aiStatistics.requestCount'),
           type: 'bar',
-          data: perfRangeAggregated.map((d) => d.requests),
-          itemStyle: { color: '#6366f1' },
-          barMaxWidth: 28,
-        },
-        {
-          name: t('aiStatistics.ttftAvg'),
-          type: 'line',
-          yAxisIndex: 1,
-          smooth: true,
-          data: perfRangeAggregated.map((d) => Number(d.ttftAvg.toFixed(1))),
-          itemStyle: { color: '#f59e0b' },
-        },
-        {
-          name: t('aiStatistics.tpsAvg'),
-          type: 'line',
-          yAxisIndex: 1,
-          smooth: true,
-          data: perfRangeAggregated.map((d) => Number(d.tpsAvg.toFixed(1))),
-          itemStyle: { color: '#10b981' },
+          data: ragTopDocs.map((d) => d.hit_count),
+          barMaxWidth: BAR_THICKNESS,
+          itemStyle: { color: barFill(ramp[0]), borderRadius: BAR_RADIUS_RIGHT },
+          label: {
+            show: true,
+            position: 'right',
+            fontSize: 10,
+            color: axis.muted,
+            formatter: '{c}',
+          },
+          emphasis: { focus: 'series' },
         },
       ],
     }),
-    [perfRangeAggregated, t],
+    [ragTopDocs, ramp, axis.muted],
   );
 
   // ============================================================================
-  // 时间段统计 - 图表配置
+  // 派生读数
   // ============================================================================
 
-  // 按天趋势 - 多系列堆叠折线图(输入/输出/缓存读/缓存写/总量)
-  const rangeTrendOption = useMemo<EChartsOption>(() => {
-    const days = rangeData?.daily ?? [];
-    const dates = days.map((d) => d.date);
-    return {
-      animationDuration: 800,
-      animationEasing: 'cubicOut' as const,
-      grid: { left: '3%', right: '4%', bottom: 48, top: '12%', containLabel: true },
-      tooltip: {
-        trigger: 'axis',
-        axisPointer: { type: 'cross' },
-      },
-      legend: {
-        type: 'scroll',
-        data: [
-          { name: t('aiStatistics.inputTokens') },
-          { name: t('aiStatistics.outputTokens') },
-          { name: t('aiStatistics.cacheReadTokens') },
-          { name: t('aiStatistics.cacheWriteTokens') },
-          { name: t('aiStatistics.totalTokens') },
-        ],
-        bottom: 0,
-        left: 'center',
-        width: '92%',
-        textStyle: { fontSize: 11 },
-      },
-      xAxis: {
-        type: 'category',
-        data: dates,
-        axisLabel: { fontSize: 11 },
-      },
-      yAxis: {
-        type: 'value',
-        axisLabel: { fontSize: 11, formatter: (v: number) => formatCompactNumber(v) },
-      },
-      series: [
-        {
-          name: t('aiStatistics.totalTokens'),
-          type: 'line',
-          smooth: true,
-          symbol: 'circle',
-          symbolSize: 6,
-          data: days.map((d) => d.total_tokens),
-          lineStyle: { width: 3 },
-          itemStyle: { color: '#6366f1' },
-          emphasis: { focus: 'series' },
-          areaStyle: {
-            color: {
-              type: 'linear',
-              x: 0,
-              y: 0,
-              x2: 0,
-              y2: 1,
-              colorStops: [
-                { offset: 0, color: 'rgba(99, 102, 241, 0.25)' },
-                { offset: 1, color: 'rgba(99, 102, 241, 0.02)' },
-              ],
-            },
-          },
-        },
-        {
-          name: t('aiStatistics.inputTokens'),
-          type: 'line',
-          smooth: true,
-          symbol: 'circle',
-          symbolSize: 5,
-          data: days.map((d) => d.input_tokens),
-          itemStyle: { color: '#3b82f6' },
-          emphasis: { focus: 'series' },
-        },
-        {
-          name: t('aiStatistics.outputTokens'),
-          type: 'line',
-          smooth: true,
-          symbol: 'circle',
-          symbolSize: 5,
-          data: days.map((d) => d.output_tokens),
-          itemStyle: { color: '#a855f7' },
-          emphasis: { focus: 'series' },
-        },
-        {
-          name: t('aiStatistics.cacheReadTokens'),
-          type: 'line',
-          smooth: true,
-          symbol: 'circle',
-          symbolSize: 5,
-          data: days.map((d) => d.cache_read_tokens),
-          itemStyle: { color: '#10b981' },
-          emphasis: { focus: 'series' },
-        },
-        {
-          name: t('aiStatistics.cacheWriteTokens'),
-          type: 'line',
-          smooth: true,
-          symbol: 'circle',
-          symbolSize: 5,
-          data: days.map((d) => d.cache_write_tokens),
-          itemStyle: { color: '#f59e0b' },
-          emphasis: { focus: 'series' },
-        },
-      ],
-    };
-  }, [rangeData, t]);
+  const efficiency = summary?.efficiency ?? EMPTY_EFFICIENCY;
+  const tokenUsage = summary?.token_usage;
+  const inputTokens = tokenUsage?.total_input_tokens ?? 0;
+  const outputTokens = tokenUsage?.total_output_tokens ?? 0;
+  const cacheReadTokens = tokenUsage?.total_cache_read_tokens ?? 0;
+  const cacheWriteTokens = tokenUsage?.total_cache_write_tokens ?? 0;
+  const errorTotal = summary?.errors?.total ?? 0;
 
-  // 按模型分布 - 环形饼图(按 total_tokens)
-  const rangeModelPieOption = useMemo<EChartsOption>(() => {
-    const models = rangeData?.by_model ?? [];
-    return {
-      animationDuration: 800,
-      animationEasing: 'cubicOut' as const,
-      tooltip: {
-        trigger: 'item',
-        formatter: (params: any) => {
-          const v = Number(params.value ?? 0);
-          return `${params.name}<br/>${formatCompactNumber(v)} (${params.percent}%)`;
-        },
-      },
-      legend: scrollRightLegend(),
-      series: [
-        {
-          type: 'pie',
-          radius: ['40%', '65%'],
-          center: ['35%', '50%'],
-          avoidLabelOverlap: false,
-          itemStyle: {
-            borderRadius: 6,
-            borderColor: 'transparent',
-            borderWidth: 2,
-          },
-          label: {
-            show: false,
-            position: 'center',
-          },
-          labelLine: { show: false },
-          emphasis: {
-            scale: true,
-            scaleSize: 8,
-            label: {
-              show: true,
-              fontSize: 13,
-              fontWeight: 'bold',
-              formatter: '{b}\n{d}%',
-            },
-            itemStyle: {
-              shadowBlur: 10,
-              shadowOffsetX: 0,
-              shadowColor: 'rgba(0, 0, 0, 0.2)',
-            },
-          },
-          data: models.map((m, i) => ({
-            name: m.model || 'Unknown',
-            value: m.total_tokens,
-            itemStyle: { color: CHART_PALETTE[i % CHART_PALETTE.length] },
-          })),
-        },
-      ],
-    };
-  }, [rangeData, scrollRightLegend]);
+  /** 占比读数。分母为 0 时给 0%，别把 NaN 印到卡上。 */
+  const shareOf = (part: number, base: number) =>
+    base > 0 ? `${((part / base) * 100).toFixed(1)}%` : '0%';
 
-  // 时间段统计是否全部为 0(用于空态判定)
+  /** 主角卡跟着顶部的「看哪段时间」走：口径只有一套，summary 和 rangeData 各出一次，
+   *  进来先归一成同一个形状，卡片就不需要知道自己现在看的是今天还是近 7 天。
+   *  配色取 ramp[0..3]，和下面「各类型 Token 消耗」的堆叠条同一套 —— 同一页里两种蓝
+   *  会被读成两种含义。 */
   const isRangeEmpty = useMemo(() => {
     if (!rangeData) return true;
     if (rangeData.daily.length === 0) return true;
@@ -1564,1582 +1546,1690 @@ export default function AIStatisticsPage() {
     );
   }, [rangeData]);
 
+  /** 当前时间维度的短标签，弹窗和性能区的区间档都靠它说清「这段是哪段」。 */
+  const scopeLabel = t(
+    RANGE_PRESET_TABS.find((p) => p.value === rangePreset)?.labelKey ?? 'aiStatistics.preset7d',
+  );
+  /** 相对档（7/14/30/90 天）实际解析出来的起止日，喂给页头那条只读日期条。 */
+  const scopeDates = useMemo(() => {
+    const { start_date: s, end_date: e } = computeRangeDates(rangePreset, selectedDate);
+    if (!s) return '';
+    if (!e || s === e) return s.slice(5);
+    return `${s.slice(5)} → ${e.slice(5)}`;
+  }, [rangePreset, selectedDate]);
+  const scopeTotals = useMemo(() => {
+    if (rangeData && !isRangeEmpty) {
+      return {
+        input: rangeData.total.input_tokens,
+        output: rangeData.total.output_tokens,
+        cacheRead: rangeData.total.cache_read_tokens,
+        cacheWrite: rangeData.total.cache_write_tokens,
+        label: `${rangeData.start_date} → ${rangeData.end_date} · ${t('aiStatistics.itemCount', { count: rangeData.days })}`,
+      };
+    }
+    return {
+      input: inputTokens,
+      output: outputTokens,
+      cacheRead: cacheReadTokens,
+      cacheWrite: cacheWriteTokens,
+      label: dateStr,
+    };
+  }, [
+    rangeData,
+    isRangeEmpty,
+    inputTokens,
+    outputTokens,
+    cacheReadTokens,
+    cacheWriteTokens,
+    dateStr,
+    t,
+  ]);
+
+  const scopeTotal =
+    scopeTotals.input + scopeTotals.output + scopeTotals.cacheRead + scopeTotals.cacheWrite;
+
+  const scopeMixSlices = [
+    {
+      label: t('aiStatistics.inputTokens'),
+      value: scopeTotals.input,
+      text: formatCompactNumber(scopeTotals.input),
+      color: ramp[0],
+    },
+    {
+      label: t('aiStatistics.outputTokens'),
+      value: scopeTotals.output,
+      text: formatCompactNumber(scopeTotals.output),
+      color: ramp[1],
+    },
+    {
+      label: t('aiStatistics.cacheReadTokens'),
+      value: scopeTotals.cacheRead,
+      text: formatCompactNumber(scopeTotals.cacheRead),
+      color: ramp[2],
+    },
+    {
+      label: t('aiStatistics.cacheWriteTokens'),
+      value: scopeTotals.cacheWrite,
+      text: formatCompactNumber(scopeTotals.cacheWrite),
+      color: ramp[3],
+    },
+  ];
+
+  /** 缓存命中率的分母是「输入 + 缓存读取」而不是总量：命中与否只跟进来的 prompt 有关，
+   *  输出和缓存写入混进去会把这个比率压到看不出差异。 */
+  const scopeCacheBase = scopeTotals.input + scopeTotals.cacheRead;
+
+  /** 剖面读数给三张图卡的抬头用：请求数求和、TTFT / TPS 各模型均值。
+   *  原来的三格 sparkline 就是同一份数据的缩影 —— 曲线下面就是那三张图，
+   *  等于把同一句话在一行读数里说一遍、在下一行又说一遍，所以一并删掉了。 */
+  const perfTotals = useMemo(
+    () => (perfHourSeries.length === 0 ? null : perfHourTotals(perfHourSeries)),
+    [perfHourSeries],
+  );
+
+  /** 延迟 / 错误率的时间标签：今日档写当天，区间档写起止日。
+   *  这三块原先只跟「选中日」走（/summary 只按 selectedDate 返回），而 Token 和
+   *  三张 24 小时图跟着顶部的范围走 —— 同一屏摆着两段时间，切到 30 天就会读成
+   *  「这 30 天的错误率」，而分子分母其实都只有某一天。后端现在把区间口径一起
+   *  返回（token-by-range 的 latency / errors），两块才真的是同一段。 */
+  const isRangeScope = rangePreset !== 'today';
+  const scopeMark = isRangeScope ? scopeDates : format(selectedDate, 'MM-dd');
+
+  const latencyAvg = isRangeScope ? (rangeData?.latency?.avg ?? 0) : (summary?.latency?.avg ?? 0);
+  const latencyP95 = isRangeScope ? (rangeData?.latency?.p95 ?? 0) : (summary?.latency?.p95 ?? 0);
+  const latencyReady = isRangeScope ? !!rangeData?.latency : !!summary?.latency;
+  /** 区间全是迁移前的历史行时后端拿不到样本数，avg 是「各日均值的算术平均」的估算值。
+   *  标出来，别让它看起来和加权后的精确值一样。 */
+  const latencyEstimated = isRangeScope && !!rangeData?.latency && rangeData.latency.samples === 0;
+
+  const errorBreakdown = useMemo(() => {
+    const err = (isRangeScope ? rangeData?.errors : summary?.errors) ?? ({} as ErrorStats);
+    return [
+      { key: 'timeout', label: t('aiStatistics.timeout'), value: err.timeout ?? 0 },
+      { key: 'rateLimit', label: t('aiStatistics.rateLimit'), value: err.rate_limit ?? 0 },
+      { key: 'networkError', label: t('aiStatistics.networkError'), value: err.network_error ?? 0 },
+      { key: 'usageLimit', label: t('aiStatistics.usageLimit'), value: err.usage_limit ?? 0 },
+      { key: 'agentError', label: t('aiStatistics.agentError'), value: err.agent_error ?? 0 },
+      { key: 'api529Error', label: t('aiStatistics.api529Error'), value: err.api_529_error ?? 0 },
+    ].filter((item) => item.value > 0);
+  }, [isRangeScope, rangeData, summary, t]);
+
+  const memoryStats = summary?.memory;
+  const memoryHealth = useMemo(() => memoryIngestHealth(memoryStats), [memoryStats]);
+
+  /** 错误率 = 区间错误数 / 区间请求数。分母直接取「请求次数」卡上那个数
+   *  （perfTotals.requests），它本来就跟着范围走 —— 分子分母取同一段，
+   *  顺带让两个读数能互相验算。 */
+  const perfErrorTotal = isRangeScope ? (rangeData?.errors?.total ?? 0) : errorTotal;
+  const errorRate = (() => {
+    const requests = perfTotals?.requests ?? 0;
+    return requests > 0 ? (perfErrorTotal / requests) * 100 : null;
+  })();
+
+  // ============================================================================
+  // 渲染
+  // ============================================================================
+
+  /* 「历史趋势」页签已撤：它那两张图（每日走势 / 效率趋势）就是「区间走势」区的
+     同一组数据，只是各占满一整行；内容并进概览后逐行明细没处放，搬进了「数据明细」。 */
+  const tabOptions = [
+    {
+      value: 'overview',
+      label: t('aiStatistics.overview'),
+      icon: <TrendingUp className="w-4 h-4" />,
+    },
+    { value: 'rag', label: t('aiStatistics.ragEffect'), icon: <Database className="w-4 h-4" /> },
+    { value: 'users', label: t('aiStatistics.users'), icon: <Users className="w-4 h-4" /> },
+  ];
+
+  const presetTabs = (values: ReadonlyArray<RangePreset>) =>
+    values.map((value) => {
+      const preset = RANGE_PRESET_TABS.find((p) => p.value === value);
+      return { value, label: t(preset?.labelKey ?? 'aiStatistics.preset7d') };
+    });
+
+  /**
+   * 「查看详情」按钮：概览只给读数与趋势，明细点开成弹窗，不跳走。
+   * 和分段器同一行右对齐 —— 它是那组控件的一部分，不是组标题的一部分。
+   */
+  const detailTrigger = (label: string, onClick: () => void) => (
+    <Button
+      variant="ghost"
+      className="h-10 shrink-0 gap-1 px-3 text-sm text-muted-foreground hover:text-foreground"
+      onClick={onClick}
+    >
+      {label}
+      <ChevronRight className="h-4 w-4" />
+    </Button>
+  );
+
   return (
     <PinnedPage
+      className="gap-4"
       header={
-        /* 页面标题 */
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div className="min-w-0 sm:overflow-x-auto">
-            <h1 className="sm:whitespace-nowrap text-3xl font-bold flex items-center gap-3">
-              <TrendingUp className="w-8 h-8 shrink-0" />
-              {t('aiStatistics.title')}
-            </h1>
-            <p className="sm:whitespace-nowrap text-muted-foreground mt-1">
-              {t('aiStatistics.description')}
-            </p>
-          </div>
-          <div className={headerActionRowClass}>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="gap-2 whitespace-nowrap">
-                  <CalendarIcon className="h-4 w-4" />
-                  {format(selectedDate, 'yyyy-MM-dd')}
-                  {(dailyInputTokens[format(selectedDate, 'yyyy-MM-dd')] ?? 0) > 0 && (
-                    <span className="text-xs text-muted-foreground tabular-nums">
-                      in {formatCompactMetric(dailyInputTokens[format(selectedDate, 'yyyy-MM-dd')])}
+        <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-1">
+          <h1 className="text-3xl font-bold flex items-center gap-3">
+            <TrendingUp className="w-8 h-8" />
+            {t('aiStatistics.title')}
+          </h1>
+          {/* 「更新于」是页面元信息，不是筛选控件 —— 和 H1 底边对齐挂在标题行右端。
+              它原先和 preset、日期、刷新挤在同一行，是那行放不下、右侧页签被顶到
+              第二行的直接原因；挪走后工具栏只剩「选哪段时间 / 看哪一页」两类控件。 */}
+          <span className="flex shrink-0 items-center gap-2 text-xs tabular-nums text-muted-foreground">
+            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+            {t('aiStatistics.lastUpdated')}
+            {updatedAt ? ` ${format(updatedAt, 'HH:mm:ss')}` : ''}
+          </span>
+        </div>
+      }
+      toolbar={
+        /* 时间和分类是两种筛选，都跟着标题常驻。左边这一排是全页唯一的「看哪段时间」
+           入口：主角卡、区间走势、性能区共用它，不再在区块里各摆一排预设。 */
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <TabButtonGroup
+              options={presetTabs(['today', '7d', '14d', '30d', '90d', 'custom'])}
+              value={rangePreset}
+              onValueChange={(v) => setRangePreset(v as RangePreset)}
+              collapseOnMobile
+            />
+            {/* 日期控件恒定占一个 152px 的槽：切档时整行宽度不变，右侧那排页签
+                就不会被挤到第二行、孤零零地靠左摆着（看着最不协调）。
+                相对档没有可选项，就放一条只读的解析结果 —— 只在「今日」冒出一张
+                日历卡、其余档又消失，行宽忽宽忽窄才是「不协调」的真正来源。 */}
+            {rangePreset === 'today' ? (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className={cn(
+                      rangeControlHeightClass,
+                      rangeControlShellClass,
+                      'w-[152px] justify-start gap-2 px-3 font-normal',
+                    )}
+                  >
+                    <CalendarDays className="h-4 w-4 shrink-0" />
+                    <span className="truncate tabular-nums">{dateStr}</span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start" sideOffset={8}>
+                  <MetricDayCalendar
+                    selected={selectedDate}
+                    onSelect={setSelectedDate}
+                    metrics={dailyInputTokens}
+                    disableEmpty
+                    formatMetric={formatCompactMetric}
+                  />
+                </PopoverContent>
+              </Popover>
+            ) : rangePreset === 'custom' ? (
+              /* 起止两个按钮并排会把这行撑到 300px 宽，「自定义」一选就换行。
+                 改成一个区间日历：宽度恒定，还能一次拖出整段。 */
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className={cn(
+                      rangeControlHeightClass,
+                      rangeControlShellClass,
+                      'w-[152px] justify-start gap-2 px-3 font-normal',
+                      (!rangeStartDate || !rangeEndDate) && 'text-muted-foreground',
+                    )}
+                  >
+                    <CalendarDays className="h-4 w-4 shrink-0" />
+                    <span className="truncate tabular-nums">
+                      {rangeStartDate && rangeEndDate
+                        ? `${format(rangeStartDate, 'MM-dd')} → ${format(rangeEndDate, 'MM-dd')}`
+                        : t('aiStatistics.rangeStart')}
                     </span>
-                  )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start" sideOffset={8}>
+                  <CalendarComponent
+                    mode="range"
+                    numberOfMonths={2}
+                    selected={
+                      rangeStartDate || rangeEndDate
+                        ? { from: rangeStartDate, to: rangeEndDate }
+                        : undefined
+                    }
+                    onSelect={(r) => {
+                      setRangeStartDate(r?.from);
+                      setRangeEndDate(r?.to);
+                    }}
+                    defaultMonth={rangeStartDate}
+                  />
+                </PopoverContent>
+              </Popover>
+            ) : (
+              <span
+                className={cn(
+                  rangeControlHeightClass,
+                  rangeControlShellClass,
+                  'flex w-[152px] items-center gap-2 px-3 text-sm tabular-nums text-muted-foreground',
+                )}
+              >
+                <CalendarDays className="h-4 w-4 shrink-0" />
+                <span className="truncate">{scopeDates}</span>
+              </span>
+            )}
+            {/* 刷新收成图标按钮：这行是整页唯一放得下「筛选 + 页签」的地方，
+                45px 的按钮文案换 45px 的留白更划算 —— 页签组因此能在 1366 宽的笔电上
+                也留在同一行。动作本身不常错，Tooltip 报得出它是什么。 */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  onClick={() => void loadData()}
+                  disabled={isLoading}
+                  aria-label={t('common.refresh')}
+                  className={cn(rangeIconButtonClass, rangeControlShellClass, 'px-0')}
+                >
+                  <RefreshCw className={cn('h-4 w-4', isLoading && 'animate-spin')} />
                 </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="end" sideOffset={8}>
-                <MetricDayCalendar
-                  selected={selectedDate}
-                  onSelect={setSelectedDate}
-                  metrics={dailyInputTokens}
-                  disableEmpty
-                  formatMetric={formatCompactMetric}
-                />
-              </PopoverContent>
-            </Popover>
-            <Button onClick={loadData} disabled={isLoading} className="gap-2 whitespace-nowrap">
-              <RefreshCw className={cn('w-4 h-4', isLoading && 'animate-spin')} />
-              {t('common.refresh')}
-            </Button>
+              </TooltipTrigger>
+              <TooltipContent>{t('common.refresh')}</TooltipContent>
+            </Tooltip>
+          </div>
+          {/* 页签组 ml-auto + shrink-0：左侧筛选先吃空隙，实在放不下时才换行，
+              页签组永远贴着右边缘，不会孤零零掉在第二行左边。 */}
+          <div className="ml-auto flex shrink-0 items-center">
+            <TabButtonGroup
+              options={tabOptions}
+              value={activeTab}
+              onValueChange={setActiveTab}
+              collapseOnMobile
+            />
           </div>
         </div>
       }
     >
-      {/* 错误提示 */}
       {error && (
-        <div className="px-0 sm:px-6">
-          <Card
-            className={cn(
-              'border-destructive/50',
-              'glass-card',
-            )}
-          >
-            <CardContent className="flex items-center gap-3 p-4 text-destructive">
-              <AlertTriangle className="w-5 h-5" />
-              <span>{error}</span>
-            </CardContent>
-          </Card>
-        </div>
+        <Card className="glass-card border-destructive/50">
+          <CardContent className="flex items-center gap-3 p-4 text-destructive">
+            <AlertTriangle className="w-5 h-5 shrink-0" />
+            <span className="min-w-0 flex-1 break-words text-sm">{error}</span>
+          </CardContent>
+        </Card>
       )}
 
-      {/* 加载状态 */}
       {isLoading ? (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 px-0 sm:px-6">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Card key={i} className={cn('glass-card')}>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <Skeleton className="h-4 w-24" />
-                <Skeleton className="w-4 h-4" />
-              </CardHeader>
-              <CardContent>
-                <Skeleton className="h-8 w-12 sm:w-16 mb-2" />
-                <Skeleton className="h-3 w-20 sm:w-32" />
-              </CardContent>
-            </Card>
-          ))}
+        <div className="space-y-4">
+          <TileSkeleton count={6} />
+          <TileSkeleton count={6} />
         </div>
       ) : summary ? (
         <>
-          {/* 时间段快速预览 - 7天/30天(单面板双块对比) */}
-          <div className="px-0 sm:px-6">
-            <QuickPreviewPanel
-              isGlass={isGlass}
-              loading7d={quickLoading}
-              loading30d={quickLoading}
-              data7d={quick7d}
-              data30d={quick30d}
-              error={quickError}
-              onSelectPreset={(preset) => {
-                setRangePreset(preset);
-                setActiveTab('range');
-              }}
-              t={t}
-            />
-          </div>
+          {/* ================================================================
+              概览
+              ================================================================ */}
 
-          {/* Token 计量：概览统计卡片 - 一行6列 */}
-          <div className="px-0 sm:px-6 space-y-2">
-            <h2 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Coins className="w-4 h-4" />
-              {t('aiStatistics.tokenMetering')}
-            </h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-              <StatCard
-                title={t('aiStatistics.inputTokens')}
-                value={formatCompactNumber(summary.token_usage?.total_input_tokens ?? 0)}
-                icon={Coins}
-              />
-              <StatCard
-                title={t('aiStatistics.outputTokens')}
-                value={formatCompactNumber(summary.token_usage?.total_output_tokens ?? 0)}
-                icon={Coins}
-              />
-              <StatCard
-                title={t('aiStatistics.cacheReadTokens')}
-                value={formatCompactNumber(summary.token_usage?.total_cache_read_tokens ?? 0)}
-                icon={HardDrive}
-              />
-              <StatCard
-                title={t('aiStatistics.cacheWriteTokens')}
-                value={formatCompactNumber(summary.token_usage?.total_cache_write_tokens ?? 0)}
-                icon={HardDrive}
-              />
-              <StatCard
-                title={t('aiStatistics.latency')}
-                value={`${(summary.latency?.avg ?? 0).toFixed(2)}s`}
-                inlineSuffix={`P95: ${(summary.latency?.p95 ?? 0).toFixed(2)}s`}
-                icon={Clock}
-              />
-              {(() => {
-                const err = summary.errors ?? ({} as ErrorStats);
-                const errEntries: { key: keyof ErrorStats; label: string; value: number }[] = [
-                  { key: 'timeout', label: t('aiStatistics.timeout'), value: err.timeout ?? 0 },
-                  {
-                    key: 'rate_limit',
-                    label: t('aiStatistics.rateLimit'),
-                    value: err.rate_limit ?? 0,
-                  },
-                  {
-                    key: 'network_error',
-                    label: t('aiStatistics.networkError'),
-                    value: err.network_error ?? 0,
-                  },
-                  {
-                    key: 'usage_limit',
-                    label: t('aiStatistics.usageLimit'),
-                    value: err.usage_limit ?? 0,
-                  },
-                  {
-                    key: 'agent_error',
-                    label: t('aiStatistics.agentError'),
-                    value: err.agent_error ?? 0,
-                  },
-                  {
-                    key: 'api_529_error',
-                    label: t('aiStatistics.api529Error'),
-                    value: err.api_529_error ?? 0,
-                  },
-                ];
-                const topErr = errEntries.reduce<(typeof errEntries)[number] | null>(
-                  (acc, cur) => (acc == null || cur.value > acc.value ? cur : acc),
-                  null,
-                );
-                const errSuffix =
-                  topErr && topErr.value > 0 ? `${topErr.label}: ${topErr.value}` : null;
-                return (
-                  <StatCard
-                    title={t('aiStatistics.errors')}
-                    value={err.total ?? 0}
-                    inlineSuffix={errSuffix ?? undefined}
-                    icon={AlertTriangle}
-                  />
-                );
-              })()}
-            </div>
-          </div>
-
-          {/* Token 效率：User Turn / Agent Run */}
-          <div className="px-0 sm:px-6 space-y-2">
-            <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <h2 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <Target className="w-4 h-4" />
-                {t('aiStatistics.efficiencyTitle')}
-              </h2>
-              <p className="text-xs text-muted-foreground max-w-2xl">
-                {t('aiStatistics.efficiencyHint')}
-              </p>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-              <StatCard
-                title={t('aiStatistics.userTurnCount')}
-                value={efficiency.user_turn_count ?? 0}
-                subtitle={
-                  t('aiStatistics.userTurnTokens') +
-                  ': ' +
-                  formatCompactNumber(
-                    (efficiency.user_turn_input_tokens ?? 0) +
-                      (efficiency.user_turn_output_tokens ?? 0),
-                  )
-                }
-                icon={Layers}
-              />
-              <StatCard
-                title={t('aiStatistics.agentRunCount')}
-                value={efficiency.agent_run_count ?? 0}
-                subtitle={`${t('aiStatistics.rootAgentRuns')} ${efficiency.root_agent_run_count ?? 0} · ${t('aiStatistics.nestedAgentRuns')} ${efficiency.nested_agent_run_count ?? 0}`}
-                icon={GitBranch}
-              />
-              <StatCard
-                title={t('aiStatistics.avgTokensPerUserTurn')}
-                value={formatCompactNumber(efficiency.avg_tokens_per_user_turn ?? 0)}
-                subtitle={`${t('aiStatistics.avgInputPerUserTurn')} ${formatCompactNumber(efficiency.avg_input_tokens_per_user_turn ?? 0)}`}
-                icon={Target}
-              />
-              <StatCard
-                title={t('aiStatistics.avgTokensPerAgentRun')}
-                value={formatCompactNumber(efficiency.avg_tokens_per_agent_run ?? 0)}
-                subtitle={`${t('aiStatistics.avgOutputPerUserTurn')} ${formatCompactNumber(efficiency.avg_output_tokens_per_user_turn ?? 0)}`}
-                icon={Gauge}
-              />
-              <StatCard
-                title={t('aiStatistics.avgAgentRunsPerUserTurn')}
-                value={(efficiency.avg_agent_runs_per_user_turn ?? 0).toFixed(2)}
-                icon={Activity}
-              />
-              <StatCard
-                title={t('aiStatistics.nestedAgentRuns')}
-                value={efficiency.nested_agent_run_count ?? 0}
-                subtitle={`${t('aiStatistics.rootAgentRuns')}: ${efficiency.root_agent_run_count ?? 0}`}
-                icon={GitBranch}
-              />
-            </div>
-          </div>
-
-          {/* Tabs 容器 */}
-          <div className="px-0 sm:px-6">
-            <TabButtonGroup
-              options={[
-                {
-                  value: 'overview',
-                  label: t('aiStatistics.overview'),
-                  icon: <TrendingUp className="w-4 h-4" />,
-                },
-                {
-                  value: 'tokens',
-                  label: t('aiStatistics.tokenAnalysis'),
-                  icon: <Coins className="w-4 h-4" />,
-                },
-                {
-                  value: 'range',
-                  label: t('aiStatistics.tokenRange'),
-                  icon: <CalendarDays className="w-4 h-4" />,
-                },
-                {
-                  value: 'history',
-                  label: t('aiStatistics.historyTrend'),
-                  icon: <BarChart3 className="w-4 h-4" />,
-                },
-                {
-                  value: 'performance',
-                  label: t('aiStatistics.performance'),
-                  icon: <Activity className="w-4 h-4" />,
-                },
-                {
-                  value: 'rag',
-                  label: t('aiStatistics.ragEffect'),
-                  icon: <Database className="w-4 h-4" />,
-                },
-                {
-                  value: 'users',
-                  label: t('aiStatistics.users'),
-                  icon: <Users className="w-4 h-4" />,
-                },
-              ]}
-              value={activeTab}
-              onValueChange={setActiveTab}
-            />
-          </div>
-
-          {/* 概览 Tab */}
           {activeTab === 'overview' && (
-            <div className="space-y-4 px-0 sm:px-6">
-              <div className="glass-card-grid grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {/* 效率：Root vs Nested */}
-                <Card className={cn('glass-card')}>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <GitBranch className="w-5 h-5" />
-                      {t('aiStatistics.efficiencyTitle')}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="h-[260px]">
-                      <EChartsWrapper option={efficiencyNestPieOption} height={260} />
-                    </div>
-                    <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-                      <div>
-                        {t('aiStatistics.avgTokensPerUserTurn')}:{' '}
-                        <span className="font-medium text-foreground tabular-nums">
-                          {formatCompactNumber(efficiency.avg_tokens_per_user_turn ?? 0)}
-                        </span>
-                      </div>
-                      <div>
-                        {t('aiStatistics.avgTokensPerAgentRun')}:{' '}
-                        <span className="font-medium text-foreground tabular-nums">
-                          {formatCompactNumber(efficiency.avg_tokens_per_agent_run ?? 0)}
-                        </span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-                {/* 意图分布 */}
-                <Card className={cn('glass-card')}>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Brain className="w-5 h-5" />
-                      {t('aiStatistics.intentDistribution')}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="h-[200px]">
-                      {intentChartData.length > 0 ? (
-                        <EChartsWrapper option={intentPieOption} height={200} />
-                      ) : (
-                        <div className="flex items-center justify-center h-full text-muted-foreground">
-                          {t('common.noData')}
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
+            <div className="glass-card-grid">
+              {/* 用量与性能合成一区：三张 24 小时图讲的是同一段时间的同一批请求，
+                  原来它们被「Token 计量」和「性能」两个区标题、一排「单日 / 今日」
+                  胶囊、一整行读数条隔开，读的时候要在两屏之间来回对时间口径。
+                  现在一区到底：读数 → 一天的形状 → 构成拆解，省掉一个区标题、
+                  一排开关和一整行读数条。 */}
+              <SectionLabel
+                title={t('aiStatistics.usageAndPerformance')}
+                icon={Coins}
+                hint={rangePreset === 'today' ? undefined : t('aiStatistics.hourProfileRangeHint')}
+                action={
+                  <div className="flex items-center gap-1">
+                    {detailTrigger(t('aiStatistics.dataDetail'), () => setDataDetailOpen(true))}
+                    {detailTrigger(t('aiStatistics.performanceDetail'), () => {
+                      setPerfMode(rangePreset === 'today' ? 'day' : 'range');
+                      setPerfDetailOpen(true);
+                    })}
+                  </div>
+                }
+              />
 
-                {/* 触发方式分布 */}
-                <Card className={cn('glass-card')}>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Zap className="w-5 h-5" />
-                      {t('aiStatistics.triggerDistribution')}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="h-[200px]">
-                      {triggerChartData.length > 0 ? (
-                        <EChartsWrapper option={triggerBarOption} height={200} />
-                      ) : (
-                        <div className="flex items-center justify-center h-full text-muted-foreground">
-                          {t('common.noData')}
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
+              {/* 四类 Token 收成主角卡里的一根占比条：原来四张拆分卡各占 1/6 页宽、
+                  各自只装两行字，卡与卡之间还有缝，纵向多花一整行。现在条形给比例、
+                  图例给名字、悬停浮窗给数字。数字跟着顶部的时间维度走，切近 7 天
+                  主角卡就变成这 7 天的合计。
+                  主角卡从 8+4 收成 6+3，右边腾出的 3 列给延迟 / 错误率 ——
+                  原来这两格在三张图的读数条里，那一整行就为了两个数。 */}
+              <div className="mt-2.5 grid grid-cols-1 gap-2.5 md:grid-cols-12">
+                <div className="md:col-span-12 xl:col-span-6">
+                  <MetricHero
+                    title={t('aiStatistics.totalTokens')}
+                    value={formatCompactNumber(scopeTotal)}
+                    desc={scopeTotals.label}
+                    icon={Coins}
+                  >
+                    <RatioBar slices={scopeMixSlices} total={scopeTotal} />
+                  </MetricHero>
+                </div>
+                {/* 缓存命中率只有一行数字，单独一张卡会被主角卡撑出半张白。
+                    拆成「命中 / 未命中」两段条 + 两行图例，高度就和主角卡齐平了。 */}
+                <div className="md:col-span-12 xl:col-span-3">
+                  <MetricHero
+                    title={t('aiStatistics.cacheHitRate')}
+                    value={shareOf(scopeTotals.cacheRead, scopeCacheBase)}
+                    desc={`${formatCompactNumber(scopeTotals.cacheRead)} / ${formatCompactNumber(scopeCacheBase)}`}
+                    icon={Zap}
+                  >
+                    <RatioBar
+                      slices={[
+                        {
+                          label: t('aiStatistics.cacheHit'),
+                          value: scopeTotals.cacheRead,
+                          text: formatCompactNumber(scopeTotals.cacheRead),
+                          color: ramp[2],
+                        },
+                        {
+                          label: t('aiStatistics.cacheMiss'),
+                          value: scopeTotals.input,
+                          text: formatCompactNumber(scopeTotals.input),
+                          color: NEUTRAL_SEGMENT,
+                        },
+                      ]}
+                      total={scopeCacheBase}
+                    />
+                  </MetricHero>
+                </div>
+                {/* 延迟和错误率是仅有的两个「没有对应图表」的指标：后端只给了汇总值，
+                    没有小时级序列。请求次数 / TTFT / TPS 那三格原来也占着位置，
+                    但它们的 sparkline 就是下面三张图本身 —— 数字直接搬进那三张卡的
+                    抬头，这里只留下真正需要单独占一格的。
 
-                {/* RAG 知识库效果 */}
-                <Card className={cn('glass-card')}>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Database className="w-5 h-5" />
-                      {t('aiStatistics.ragEffect')}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <p className="text-2xl font-bold text-green-500">
-                          {(summary.rag?.hit_rate ?? 0).toFixed(1)}%
-                        </p>
-                        <p className="text-sm text-muted-foreground">{t('aiStatistics.hitRate')}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm">
-                          <span className="text-green-500">{summary.rag?.hit_count ?? 0}</span> /{' '}
-                          {(summary.rag?.hit_count ?? 0) + (summary.rag?.miss_count ?? 0)}
-                        </p>
-                      </div>
-                    </div>
-                    <Progress value={summary.rag?.hit_rate ?? 0} className="h-3" />
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>
-                        {t('aiStatistics.hit')}: {summary.rag?.hit_count ?? 0}
-                      </span>
-                      <span>
-                        {t('aiStatistics.miss')}: {summary.rag?.miss_count ?? 0}
-                      </span>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Heartbeat 巡检 */}
-                <Card className={cn('glass-card')}>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Activity className="w-5 h-5" />
-                      {t('aiStatistics.heartbeat')}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <p className="text-2xl font-bold">
-                          {(summary.heartbeat?.conversion_rate ?? 0).toFixed(1)}%
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {t('aiStatistics.conversionRate')}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <ProgressItem
-                        label={t('aiStatistics.shouldSpeak')}
-                        value={summary.heartbeat?.should_speak_true ?? 0}
-                        percentage={
-                          ((summary.heartbeat?.should_speak_true ?? 0) /
-                            ((summary.heartbeat?.should_speak_true ?? 0) +
-                              (summary.heartbeat?.should_speak_false ?? 0))) *
-                            100 || 0
-                        }
-                      />
-                      <ProgressItem
-                        label={t('aiStatistics.shouldNotSpeak')}
-                        value={summary.heartbeat?.should_speak_false ?? 0}
-                        percentage={
-                          ((summary.heartbeat?.should_speak_false ?? 0) /
-                            ((summary.heartbeat?.should_speak_true ?? 0) +
-                              (summary.heartbeat?.should_speak_false ?? 0))) *
-                            100 || 0
-                        }
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
+                    两格都跟着顶部范围走（scopeMark 就是那段日期）：今日档取内存实时值，
+                    区间档取 token-by-range 一起带回来的 latency / errors。描述里把
+                    这段写出来，是为了让人一眼看出这块读数覆盖的是哪几天。 */}
+                <div className="md:col-span-12 xl:col-span-3">
+                  <StatStrip
+                    className="h-full"
+                    items={[
+                      /* 延迟是「整个请求」的口径，和 TTFT（首字）不是一回事，
+                         拿 TTFT 的走势顶替会读错。竖向计：下段是平均，
+                         上段是 P95 减平均的尾巴，一眼看出「尾部有多长」。
+                         区间档的 P95 是各日峰值取最大，标成「峰值」而不是区间 P95 ——
+                         逐日 P95 没法再合并成一个 P95。 */
+                      {
+                        title: t('aiStatistics.latency'),
+                        value: latencyReady ? `${latencyAvg.toFixed(2)}s` : '—',
+                        desc: [
+                          scopeMark,
+                          isRangeScope
+                            ? t('aiStatistics.latencyPeak', { value: latencyP95.toFixed(2) })
+                            : `P95 ${latencyP95.toFixed(2)}s`,
+                          latencyEstimated ? t('aiStatistics.latencyEstimated') : null,
+                        ]
+                          .filter(Boolean)
+                          .join(' · '),
+                        meter: {
+                          max: Math.max(latencyP95, 0.01),
+                          segments: [
+                            { value: latencyAvg, color: ramp[0] },
+                            {
+                              value: Math.max(latencyP95 - latencyAvg, 0),
+                              color: ramp[1],
+                            },
+                          ],
+                        },
+                      },
+                      /* 错误率而不是错误条数：条数会随并发量乱跳，率才看得出
+                         「是不是真的坏了」。刻度取 0~10% 而不是 0~100%：1.4% 在
+                         百刻度上只有一根发丝，看上去和「没数据」没两样。
+                         分母取「请求次数」卡上那个数，分子分母同一段。 */
+                      {
+                        title: t('aiStatistics.errorRate'),
+                        value: errorRate !== null ? `${errorRate.toFixed(1)}%` : '—',
+                        desc: `${scopeMark} · ${t('aiStatistics.errorCount', { count: perfErrorTotal })}`,
+                        meter: {
+                          max: 10,
+                          segments: [{ value: errorRate ?? 0, color: ramp[3] }],
+                        },
+                      },
+                    ]}
+                  />
+                </div>
               </div>
 
-              {/* Memory 管线 7 指标 */}
-              <Card className={cn('glass-card')}>
-                <CardHeader className="pb-2">
-                  <CardTitle className="flex items-center gap-2">
-                    <Brain className="w-5 h-5" />
-                    {t('aiStatistics.memory')}
-                    {(() => {
-                      const health = memoryIngestHealth(summary.memory);
-                      return (
+              {/* 四张时间序列图并成一行，各占 3 列：三张 24 小时剖面 + 一张效率趋势。
+                  「每日走势」原来也挤在这行里（5 张，前三张各 2 列）。三列宽装不下
+                  「首字延迟 (TTFT)」这种标题 —— 右边还有读数，一挤就 truncate 成
+                  「首字延迟 (T...」；而且它讲的是 token，下面那行整行讲的也是 token，
+                  搬过去反而各得其所。这一行空出来的两列，四张图每张从 2/3 列涨到 3 列。 */}
+              <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-2 xl:grid-cols-12">
+                <DataBlock
+                  title={t('aiStatistics.ttft')}
+                  icon={Clock}
+                  className="xl:col-span-3"
+                  extra={
+                    <span className="text-xs tabular-nums text-muted-foreground">
+                      {perfTotals ? `${perfTotals.ttft.toFixed(1)} ms` : '—'}
+                    </span>
+                  }
+                >
+                  <div className="flex h-full items-center">
+                    {perfHourSeries.length > 0 ? (
+                      <EChartsWrapper option={perfTTFTOption} height={ROW_CHART_HEIGHT} />
+                    ) : (
+                      <EmptyChart label={t('common.noData')} />
+                    )}
+                  </div>
+                </DataBlock>
+
+                <DataBlock
+                  title={t('aiStatistics.tps')}
+                  icon={Zap}
+                  className="xl:col-span-3"
+                  extra={
+                    <span className="text-xs tabular-nums text-muted-foreground">
+                      {perfTotals ? perfTotals.tps.toFixed(1) : '—'}
+                    </span>
+                  }
+                >
+                  <div className="flex h-full items-center">
+                    {perfHourSeries.length > 0 ? (
+                      <EChartsWrapper option={perfTPSOption} height={ROW_CHART_HEIGHT} />
+                    ) : (
+                      <EmptyChart label={t('common.noData')} />
+                    )}
+                  </div>
+                </DataBlock>
+
+                <DataBlock
+                  title={t('aiStatistics.requestCount')}
+                  icon={Gauge}
+                  className="xl:col-span-3"
+                  extra={
+                    <span className="text-xs tabular-nums text-muted-foreground">
+                      {perfTotals ? perfTotals.requests.toLocaleString() : '—'}
+                    </span>
+                  }
+                >
+                  <div className="flex h-full items-center">
+                    {perfHourSeries.length > 0 ? (
+                      <EChartsWrapper option={perfRequestOption} height={ROW_CHART_HEIGHT} />
+                    ) : (
+                      <EmptyChart label={t('common.noData')} />
+                    )}
+                  </div>
+                </DataBlock>
+
+                {/* 效率趋势。数据源和错误/空态都跟每日走势共用 trendSource，
+                    早先整块挂在 `scope !== 'today'` 上，于是默认档位下这张图
+                    等于消失了 —— 页签撤掉之后就没有第二个入口能再找到它。 */}
+                {trendErrorNow && !trendLoadingNow ? (
+                  <Card className="glass-card border-destructive/50 xl:col-span-3">
+                    <CardContent className="flex items-center gap-3 p-4 text-destructive">
+                      <AlertTriangle className="w-5 h-5 shrink-0" />
+                      <span className="min-w-0 flex-1 break-words text-sm">{trendErrorNow}</span>
+                      <Button
+                        variant="outline"
+                        onClick={() =>
+                          void (rangePreset === 'today' ? fetchTrendData() : fetchRangeData())
+                        }
+                      >
+                        <RefreshCw className="mr-1 h-4 w-4" />
+                        {t('aiStatistics.refresh')}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ) : trendLoadingNow ? (
+                  <Skeleton className="h-[220px] rounded-[inherit] xl:col-span-3" />
+                ) : trendSource && !trendIsEmpty ? (
+                  <DataBlock
+                    title={t('aiStatistics.efficiencyTrend')}
+                    icon={Target}
+                    className="xl:col-span-3"
+                    extra={
+                      <span className="text-xs tabular-nums text-muted-foreground">
+                        {`${t('aiStatistics.userTurnCount')} ${trendSource.efficiency?.user_turn_count ?? 0}`}
+                        {' · '}
+                        {`${t('aiStatistics.agentRunCount')} ${trendSource.efficiency?.agent_run_count ?? 0}`}
+                      </span>
+                    }
+                  >
+                    <div className="flex h-full items-center">
+                      <EChartsWrapper
+                        option={rangeEfficiencyOption}
+                        height={ROW_CHART_HEIGHT}
+                        lazyUpdate={false}
+                      />
+                    </div>
+                  </DataBlock>
+                ) : (
+                  <DataBlock
+                    title={t('aiStatistics.efficiencyTrend')}
+                    icon={Target}
+                    className="xl:col-span-3"
+                  >
+                    <EmptyChart height={ROW_CHART_HEIGHT} label={t('aiStatistics.noDataInRange')} />
+                  </DataBlock>
+                )}
+              </div>
+
+              {/* token 的三个视角并成一行，各 4 列：随时间的走势、按模型拆、按类型拆。
+                  「每日走势」原来挤在时序行里（那一行塞了 5 张，三张 24h 剖面被压到
+                  2 列，标题直接 truncate 成「首字延迟 (T...」），而构成行只有两张却占了
+                  7+5 列 —— 横条图拉到 790px 宽，条形却只到 57%，右边空出一大片。
+                  合成一行三张，两头都不匀的问题一起消掉。 */}
+              {/* 不加 items-start：这一行三张卡必须等高，底边不齐比卡内留白刺眼得多。
+                  每日走势比两张构成卡略高（TOKEN_TREND_HEIGHT 130），构成图的下限又正好
+                  是 120，所以三张卡实际差在十像素上下，肉眼看不出来。 */}
+              <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-12">
+                {/* 每日走势。跟上一行的效率趋势共用 trendSource，但各自成卡，
+                    所以加载、错误、空态在这一格里单独处理 —— 错误要能就地重试。 */}
+                {trendErrorNow && !trendLoadingNow ? (
+                  <Card className="glass-card border-destructive/50 lg:col-span-6 xl:col-span-4">
+                    <CardContent className="flex items-center gap-3 p-4 text-destructive">
+                      <AlertTriangle className="w-5 h-5 shrink-0" />
+                      <span className="min-w-0 flex-1 break-words text-sm">{trendErrorNow}</span>
+                      <Button
+                        variant="outline"
+                        onClick={() =>
+                          void (rangePreset === 'today' ? fetchTrendData() : fetchRangeData())
+                        }
+                      >
+                        <RefreshCw className="mr-1 h-4 w-4" />
+                        {t('aiStatistics.refresh')}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ) : trendLoadingNow ? (
+                  <Skeleton className="h-[220px] rounded-[inherit] lg:col-span-6 xl:col-span-4" />
+                ) : trendSource && !trendIsEmpty ? (
+                  <DataBlock
+                    title={t('aiStatistics.dailyTrend')}
+                    icon={Activity}
+                    className="lg:col-span-6 xl:col-span-4"
+                    extra={
+                      <span className="text-xs tabular-nums text-muted-foreground">
+                        {formatCompactNumber(trendSource.total.total_tokens)}
+                      </span>
+                    }
+                  >
+                    <div className="flex h-full items-center">
+                      <EChartsWrapper
+                        option={rangeTrendOption}
+                        height={TOKEN_TREND_HEIGHT}
+                        lazyUpdate={false}
+                      />
+                    </div>
+                  </DataBlock>
+                ) : (
+                  <DataBlock
+                    title={t('aiStatistics.dailyTrend')}
+                    icon={Activity}
+                    className="lg:col-span-6 xl:col-span-4"
+                  >
+                    <EmptyChart
+                      height={TOKEN_TREND_HEIGHT}
+                      label={t('aiStatistics.noDataInRange')}
+                    />
+                  </DataBlock>
+                )}
+
+                {/* 「模型分布」环图已删：它和这张横条本来就是同一个东西 —— 同按模型拆、
+                    同一个 total_token，只是一个用区间数据、一个用单日数据。两张并排读者
+                    第一反应就是「这俩有区别吗」，而横条长度本身就是占比，环图没多给信息。
+                    现在两条横条都跟着顶部时间维度走，口径统一，也不存在「一个区间一个
+                    单日」的问题了。 */}
+                <DataBlock
+                  title={t('aiStatistics.tokenByModel')}
+                  icon={Coins}
+                  className="lg:col-span-6 xl:col-span-4"
+                  extra={
+                    <span className="text-xs tabular-nums text-muted-foreground">
+                      {formatCompactNumber(modelStack.total)}
+                    </span>
+                  }
+                >
+                  <div className="flex h-full items-center">
+                    {modelStack.rows > 0 ? (
+                      <EChartsWrapper
+                        option={modelStack.option}
+                        height={stackChartHeight(modelStack.rows)}
+                      />
+                    ) : (
+                      <EmptyChart label={t('common.noData')} />
+                    )}
+                  </div>
+                </DataBlock>
+
+                <DataBlock
+                  title={t('aiStatistics.tokenByType')}
+                  icon={Coins}
+                  className="lg:col-span-6 xl:col-span-4"
+                  extra={
+                    <span className="text-xs tabular-nums text-muted-foreground">
+                      {formatCompactNumber(typeStack.total)}
+                    </span>
+                  }
+                >
+                  <div className="flex h-full items-center">
+                    {typeStack.rows > 0 ? (
+                      <EChartsWrapper
+                        option={typeStack.option}
+                        height={stackChartHeight(typeStack.rows)}
+                      />
+                    ) : (
+                      <EmptyChart label={t('common.noData')} />
+                    )}
+                  </div>
+                </DataBlock>
+
+                {/* 共享色板 + 分组说明：两张堆叠条的四段颜色是同一套，图例只画一次。 */}
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 lg:col-span-12">
+                  <span className="text-[11px] font-medium text-muted-foreground">
+                    {t('aiStatistics.tokenComposition')}
+                  </span>
+                  <ul className="flex flex-wrap items-center gap-x-3.5 gap-y-1">
+                    {TOKEN_STACK_FIELDS.map((field, index) => (
+                      <li key={field} className="flex items-center gap-1.5 text-[11px]">
                         <span
-                          className={cn(
-                            'ml-2 text-xs font-normal px-2 py-0.5 rounded-full',
-                            health.label === 'healthy' && 'bg-emerald-500/15 text-emerald-600',
-                            health.label === 'degraded' && 'bg-amber-500/15 text-amber-600',
-                            health.label === 'empty' && 'bg-muted text-muted-foreground',
-                          )}
-                        >
-                          {t(`aiStatistics.${health.label}`)}
+                          className="h-1.5 w-1.5 shrink-0 rounded-full"
+                          style={{ backgroundColor: ramp[index % 4] }}
+                        />
+                        <span className="text-muted-foreground">
+                          {t(TOKEN_STACK_LABEL_KEYS[field])}
                         </span>
-                      );
-                    })()}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <SectionLabel title={t('aiStatistics.zoneInvocation')} icon={GitBranch} />
+              </div>
+
+              <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-2 xl:grid-cols-12">
+                <DataBlock
+                  title={t('aiStatistics.intentDistribution')}
+                  icon={Brain}
+                  className="xl:col-span-4"
+                  extra={
+                    <span className="text-xs tabular-nums text-muted-foreground">
+                      {t('aiStatistics.itemCount', { count: intentSlices.length })}
+                    </span>
+                  }
+                >
+                  {/* 同行卡片等高后，内容垂直居中，空白均分上下而不是全堆在底部 */}
+                  <div className="flex h-full flex-col justify-center gap-3">
+                    <DonutChart
+                      slices={intentSlices}
+                      total={intentSlices.reduce((sum, s) => sum + s.value, 0)}
+                      centerLabel={t('aiStatistics.totalTokens')}
+                    />
+                    <DonutLegend slices={intentSlices} />
+                  </div>
+                </DataBlock>
+
+                <DataBlock
+                  title={t('aiStatistics.triggerDistribution')}
+                  icon={Zap}
+                  className="xl:col-span-4"
+                  extra={
+                    <span className="text-xs tabular-nums text-muted-foreground">
+                      {t('aiStatistics.itemCount', { count: triggerItems.length })}
+                    </span>
+                  }
+                >
+                  {/* 曾经写死 height="100%" 吃满同行卡片的高度：行数少时分类轴把行距
+                      拉开到 40 多 px，5 行条子稀稀拉拉铺开一整屏，读起来比图更费劲。
+                      现在按行数给固定高度（上下居中，多的那点高度均成上下两条白边），
+                      行距稳在 26px —— 白边是「这格没那么满」，拉开的空条带是「排坏了」。 */}
+                  <div className="flex h-full items-center">
+                    {triggerItems.length > 0 ? (
+                      <EChartsWrapper
+                        option={triggerOption}
+                        height={rowChartHeight(triggerItems.length)}
+                      />
+                    ) : (
+                      <EmptyChart label={t('common.noData')} />
+                    )}
+                  </div>
+                </DataBlock>
+
+                <DataBlock
+                  title={t('aiStatistics.runComposition')}
+                  icon={GitBranch}
+                  className="xl:col-span-4"
+                  extra={
+                    <span className="text-[11px] text-muted-foreground">
+                      {t('aiStatistics.runCompositionHint')}
+                    </span>
+                  }
+                >
+                  {/* 大数字放「总运行数」，Root / 嵌套拆到下面两行。
+                      原来大数字是 Root、总数塞在右上角，两个数没有任何文字说明谁是谁，
+                      读的人会把 130 当成总数，一看下面的 211 就以为数据错了 ——
+                      口径其实是对的（root + nested = 总数），是排版让人误会。 */}
+                  {/* 原来用 justify-between：被同行卡片撑高时，大数字钉在顶上、
+                      两行占比钉在底下，中间空出几十 px，看着像少排了一块内容。
+                      改成整块垂直居中 + 固定间距，多出来的高度均分到上下。 */}
+                  <div className="flex h-full flex-col justify-center gap-3">
+                    <div>
+                      <p className="text-4xl font-bold leading-none tabular-nums tracking-tight">
+                        {(efficiency.agent_run_count ?? 0).toLocaleString()}
+                      </p>
+                      <p className="mt-1.5 text-[11px] text-muted-foreground">
+                        {t('aiStatistics.agentRunCount')}
+                      </p>
+                    </div>
+                    <SplitBar
+                      segments={[
+                        {
+                          label: t('aiStatistics.rootAgentRuns'),
+                          value: efficiency.root_agent_run_count ?? 0,
+                          color: ramp[0],
+                        },
+                        {
+                          label: t('aiStatistics.nestedAgentRuns'),
+                          value: efficiency.nested_agent_run_count ?? 0,
+                          color: ramp[1],
+                        },
+                      ]}
+                    />
+                    <div className="grid grid-cols-2 gap-3 text-xs">
+                      <div className="min-w-0">
+                        <p className="flex items-center gap-1.5 text-muted-foreground">
+                          <span
+                            className="h-2 w-2 shrink-0 rounded-full"
+                            style={{ backgroundColor: ramp[0] }}
+                          />
+                          <span className="truncate">{t('aiStatistics.rootAgentRuns')}</span>
+                        </p>
+                        <p className="tabular-nums font-medium">
+                          {(efficiency.root_agent_run_count ?? 0).toLocaleString()}
+                          <span className="ml-1 text-[10px] text-muted-foreground">
+                            {efficiency.agent_run_count
+                              ? `${((efficiency.root_agent_run_count / efficiency.agent_run_count) * 100).toFixed(1)}%`
+                              : '0%'}
+                          </span>
+                        </p>
+                      </div>
+                      <div className="min-w-0">
+                        <p className="flex items-center gap-1.5 text-muted-foreground">
+                          <span
+                            className="h-2 w-2 shrink-0 rounded-full"
+                            style={{ backgroundColor: ramp[1] }}
+                          />
+                          <span className="truncate">{t('aiStatistics.nestedAgentRuns')}</span>
+                        </p>
+                        <p className="tabular-nums font-medium">
+                          {(efficiency.nested_agent_run_count ?? 0).toLocaleString()}
+                          <span className="ml-1 text-[10px] text-muted-foreground">
+                            {efficiency.agent_run_count
+                              ? `${((efficiency.nested_agent_run_count / efficiency.agent_run_count) * 100).toFixed(1)}%`
+                              : '0%'}
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </DataBlock>
+
+                <DataBlock
+                  title={t('aiStatistics.ragEffect')}
+                  icon={Database}
+                  className="lg:col-span-1 xl:col-span-6"
+                  extra={
+                    <span className="text-xs tabular-nums text-muted-foreground">
+                      {t('aiStatistics.itemCount', {
+                        count: (summary.rag?.hit_count ?? 0) + (summary.rag?.miss_count ?? 0),
+                      })}
+                    </span>
+                  }
+                >
+                  <div className="flex h-full flex-col justify-center gap-3 py-2">
+                    <div className="flex items-baseline justify-between gap-3">
+                      <span className="text-3xl font-bold leading-none tabular-nums tracking-tight">
+                        {(summary.rag?.hit_rate ?? 0).toFixed(1)}%
+                      </span>
+                      <span className="text-[11px] text-muted-foreground">
+                        {t('aiStatistics.hitRate')}
+                      </span>
+                    </div>
+                    <SplitBar
+                      segments={[
+                        {
+                          label: t('aiStatistics.hit'),
+                          value: summary.rag?.hit_count ?? 0,
+                          color: ramp[0],
+                        },
+                        {
+                          label: t('aiStatistics.miss'),
+                          value: summary.rag?.miss_count ?? 0,
+                          color: NEUTRAL_SEGMENT,
+                        },
+                      ]}
+                    />
+                    <div className="grid grid-cols-2 gap-3 text-xs">
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          className="h-2 w-2 shrink-0 rounded-full"
+                          style={{ backgroundColor: ramp[0] }}
+                        />
+                        <span className="truncate text-muted-foreground">
+                          {t('aiStatistics.hit')}
+                        </span>
+                        <span className="ml-auto tabular-nums font-medium">
+                          {(summary.rag?.hit_count ?? 0).toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          className="h-2 w-2 shrink-0 rounded-full"
+                          style={{ backgroundColor: NEUTRAL_SEGMENT }}
+                        />
+                        <span className="truncate text-muted-foreground">
+                          {t('aiStatistics.miss')}
+                        </span>
+                        <span className="ml-auto tabular-nums font-medium">
+                          {(summary.rag?.miss_count ?? 0).toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </DataBlock>
+
+                <DataBlock
+                  title={t('aiStatistics.heartbeat')}
+                  icon={Activity}
+                  className="lg:col-span-1 xl:col-span-6"
+                  extra={
+                    <span className="text-xs tabular-nums text-muted-foreground">
+                      {(summary.heartbeat?.conversion_rate ?? 0).toFixed(1)}%
+                    </span>
+                  }
+                >
+                  <div className="flex h-full flex-col justify-center gap-3 py-2">
+                    <ShareRow
+                      label={t('aiStatistics.shouldSpeak')}
+                      value={summary.heartbeat?.should_speak_true ?? 0}
+                      percentage={
+                        ((summary.heartbeat?.should_speak_true ?? 0) /
+                          ((summary.heartbeat?.should_speak_true ?? 0) +
+                            (summary.heartbeat?.should_speak_false ?? 0))) *
+                          100 || 0
+                      }
+                      color={ramp[0]}
+                    />
+                    <ShareRow
+                      label={t('aiStatistics.shouldNotSpeak')}
+                      value={summary.heartbeat?.should_speak_false ?? 0}
+                      percentage={
+                        ((summary.heartbeat?.should_speak_false ?? 0) /
+                          ((summary.heartbeat?.should_speak_true ?? 0) +
+                            (summary.heartbeat?.should_speak_false ?? 0))) *
+                          100 || 0
+                      }
+                      color={ramp[0]}
+                    />
+                    <p className="text-[11px] text-muted-foreground">
+                      {t('aiStatistics.conversionRate')}{' '}
+                      <span className="tabular-nums font-medium text-foreground">
+                        {(summary.heartbeat?.conversion_rate ?? 0).toFixed(1)}%
+                      </span>
+                    </p>
+                  </div>
+                </DataBlock>
+              </div>
+
+              <div className="mt-4">
+                <SectionLabel title={t('aiStatistics.zoneMemory')} icon={Brain} />
+              </div>
+
+              <div className="mt-2.5 grid grid-cols-2 gap-2.5 sm:grid-cols-3 xl:grid-cols-6">
+                <MetricMini
+                  title={t('aiStatistics.userTurnCount')}
+                  value={(efficiency.user_turn_count ?? 0).toLocaleString()}
+                  desc={`${t('aiStatistics.userTurnTokens')} ${formatCompactNumber(
+                    (efficiency.user_turn_input_tokens ?? 0) +
+                      (efficiency.user_turn_output_tokens ?? 0),
+                  )}`}
+                />
+                <MetricMini
+                  title={t('aiStatistics.agentRunCount')}
+                  value={(efficiency.agent_run_count ?? 0).toLocaleString()}
+                  desc={`${t('aiStatistics.rootAgentRuns')} ${efficiency.root_agent_run_count ?? 0}`}
+                />
+                <MetricMini
+                  title={t('aiStatistics.avgTokensPerUserTurn')}
+                  value={formatCompactNumber(efficiency.avg_tokens_per_user_turn ?? 0)}
+                  desc={`${t('aiStatistics.avgInputPerUserTurn')} ${formatCompactNumber(
+                    efficiency.avg_input_tokens_per_user_turn ?? 0,
+                  )}`}
+                />
+                <MetricMini
+                  title={t('aiStatistics.avgTokensPerAgentRun')}
+                  value={formatCompactNumber(efficiency.avg_tokens_per_agent_run ?? 0)}
+                  desc={`${t('aiStatistics.avgOutputPerUserTurn')} ${formatCompactNumber(
+                    efficiency.avg_output_tokens_per_user_turn ?? 0,
+                  )}`}
+                />
+                <MetricMini
+                  title={t('aiStatistics.avgAgentRunsPerUserTurn')}
+                  value={(efficiency.avg_agent_runs_per_user_turn ?? 0).toFixed(2)}
+                  desc={`${(efficiency.user_turn_count ?? 0).toLocaleString()} ${t('aiStatistics.userTurnCount')}`}
+                />
+                <MetricMini
+                  title={t('aiStatistics.nestedAgentRuns')}
+                  value={(efficiency.nested_agent_run_count ?? 0).toLocaleString()}
+                  desc={`${t('aiStatistics.rootAgentRuns')} ${efficiency.root_agent_run_count ?? 0}`}
+                />
+              </div>
+
+              <div className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-12">
+                <DataBlock
+                  title={t('aiStatistics.memoryPipeline')}
+                  icon={Brain}
+                  className="xl:col-span-12"
+                  extra={
+                    <span
+                      className={cn(
+                        'shrink-0 rounded-full px-2 py-0.5 text-[11px]',
+                        memoryHealth.label === 'healthy' && 'bg-emerald-500/15 text-emerald-600',
+                        memoryHealth.label === 'degraded' && 'bg-amber-500/15 text-amber-600',
+                        memoryHealth.label === 'empty' && 'bg-muted text-muted-foreground',
+                      )}
+                    >
+                      {t(`aiStatistics.${memoryHealth.label}`)}
+                    </span>
+                  }
+                >
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4 xl:grid-cols-7">
                     {(
                       [
-                        ['observations', summary.memory?.observations ?? 0],
-                        ['ingestions', summary.memory?.ingestions ?? 0],
-                        ['ingestionErrors', summary.memory?.ingestion_errors ?? 0],
-                        ['retrievals', summary.memory?.retrievals ?? 0],
-                        ['entitiesCreated', summary.memory?.entities_created ?? 0],
-                        ['edgesCreated', summary.memory?.edges_created ?? 0],
-                        ['episodesCreated', summary.memory?.episodes_created ?? 0],
+                        ['observations', memoryStats?.observations ?? 0],
+                        ['ingestions', memoryStats?.ingestions ?? 0],
+                        ['ingestionErrors', memoryStats?.ingestion_errors ?? 0],
+                        ['retrievals', memoryStats?.retrievals ?? 0],
+                        ['entitiesCreated', memoryStats?.entities_created ?? 0],
+                        ['edgesCreated', memoryStats?.edges_created ?? 0],
+                        ['episodesCreated', memoryStats?.episodes_created ?? 0],
                       ] as const
                     ).map(([key, value]) => (
-                      <div
-                        key={key}
-                        className="rounded-lg border border-border/40 bg-muted/20 px-3 py-2.5"
-                      >
-                        <p className="text-xs text-muted-foreground truncate">
+                      <div key={key} className="min-w-0">
+                        <p className="truncate text-[11px] text-muted-foreground">
                           {t(`aiStatistics.${key}`)}
                         </p>
-                        <p className="text-xl font-bold tabular-nums mt-1">
+                        <p className="mt-0.5 text-lg font-bold tabular-nums tracking-tight">
                           {formatCompactNumber(value)}
                         </p>
                       </div>
                     ))}
                   </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
-          {/* 历史趋势 Tab */}
-          {activeTab === 'history' && (
-            <div className="space-y-4 px-0 sm:px-6">
-              <Card className={cn('glass-card')}>
-                <CardContent className="py-3">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-sm text-muted-foreground shrink-0">
-                      {t('aiStatistics.queryRange')}:
-                    </span>
-                    <TabButtonGroup
-                      options={[
-                        {
-                          value: '7',
-                          label: t('aiStatistics.preset7d'),
-                          icon: <Sparkles className="w-4 h-4" />,
-                        },
-                        {
-                          value: '14',
-                          label: t('aiStatistics.preset14d'),
-                          icon: <Zap className="w-4 h-4" />,
-                        },
-                        {
-                          value: '30',
-                          label: t('aiStatistics.preset30d'),
-                          icon: <BarChart3 className="w-4 h-4" />,
-                        },
-                      ]}
-                      value={String(historyDays)}
-                      onValueChange={(v) => setHistoryDays(Number(v) as 7 | 14 | 30)}
-                    />
-                    <Button
-                      variant="outline"
-                      className={cn(tabToolbarControlClass, 'gap-2')}
-                      onClick={() => void fetchHistory()}
-                      disabled={historyLoading}
-                    >
-                      <RefreshCw className={cn('w-4 h-4', historyLoading && 'animate-spin')} />
-                      {t('common.refresh')}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card className={cn('glass-card')}>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <BarChart3 className="w-5 h-5" />
-                    {t('aiStatistics.historyTrend')}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {historyError ? (
-                    <div className="text-sm text-destructive py-8 text-center">{historyError}</div>
-                  ) : historyLoading ? (
-                    <Skeleton className="h-[320px] w-full" />
-                  ) : historySeries.length === 0 ? (
-                    <div className="flex items-center justify-center h-[320px] text-muted-foreground">
-                      {t('common.noData')}
-                    </div>
-                  ) : (
-                    <EChartsWrapper option={historyTrendOption} height={320} />
-                  )}
-                </CardContent>
-              </Card>
-              <Card className={cn('glass-card')}>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Target className="w-5 h-5" />
-                    {t('aiStatistics.efficiencyTrend')}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {historyError ? (
-                    <div className="text-sm text-destructive py-8 text-center">{historyError}</div>
-                  ) : historyLoading ? (
-                    <Skeleton className="h-[320px] w-full" />
-                  ) : historySeries.length === 0 ? (
-                    <div className="flex items-center justify-center h-[320px] text-muted-foreground">
-                      {t('common.noData')}
-                    </div>
-                  ) : (
-                    <EChartsWrapper option={efficiencyHistoryOption} height={320} />
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
-          {/* Token 分析 Tab */}
-          {activeTab === 'tokens' && (
-            <div className="space-y-4 px-0 sm:px-6">
-              <div className="glass-card-grid grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {/* Token 消耗图表 */}
-                <Card className={cn('glass-card')}>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Coins className="w-5 h-5" />
-                      {t('aiStatistics.tokenByModel')}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="h-[300px]">
-                      {tokenModelChartData.length > 0 ? (
-                        <EChartsWrapper option={tokenModelOption} height={300} />
-                      ) : (
-                        <div className="flex items-center justify-center h-full text-muted-foreground">
-                          {t('common.noData')}
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Token by Type 图表 */}
-                <Card className={cn('glass-card')}>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Coins className="w-5 h-5" />
-                      {t('aiStatistics.tokenByType')}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="h-[300px]">
-                      {tokenTypeChartData.length > 0 ? (
-                        <EChartsWrapper option={tokenTypeOption} height={300} />
-                      ) : (
-                        <div className="flex items-center justify-center h-full text-muted-foreground">
-                          {t('common.noData')}
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
+                </DataBlock>
               </div>
-
-              {/* 模型 Token 详情 */}
-              <Card className={cn('glass-card')}>
-                <CardHeader>
-                  <CardTitle>{t('aiStatistics.tokenByModel')}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b border-border/50">
-                          <th className="text-left py-2 px-3 font-medium text-muted-foreground">
-                            {t('aiStatistics.model')}
-                          </th>
-                          <th className="text-left py-2 px-3 font-medium text-muted-foreground">
-                            {t('aiStatistics.inputTokens')}
-                          </th>
-                          <th className="text-left py-2 px-3 font-medium text-muted-foreground">
-                            {t('aiStatistics.outputTokens')}
-                          </th>
-                          <th className="text-left py-2 px-3 font-medium text-muted-foreground">
-                            {t('aiStatistics.cacheReadTokens')}
-                          </th>
-                          <th className="text-left py-2 px-3 font-medium text-muted-foreground">
-                            {t('aiStatistics.cacheWriteTokens')}
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {tokenByModel.map((item, i) => (
-                          <tr key={i} className="border-b border-border/30">
-                            <td className="py-2 px-3">{item.model ?? '-'}</td>
-                            <td className="py-2 px-3">
-                              {(item.input_tokens ?? 0).toLocaleString()}
-                            </td>
-                            <td className="py-2 px-3">
-                              {(item.output_tokens ?? 0).toLocaleString()}
-                            </td>
-                            <td className="py-2 px-3">
-                              {(item.cache_read_tokens ?? 0).toLocaleString()}
-                            </td>
-                            <td className="py-2 px-3">
-                              {(item.cache_write_tokens ?? 0).toLocaleString()}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Token by Type 详情 */}
-              <Card className={cn('glass-card')}>
-                <CardHeader>
-                  <CardTitle>{t('aiStatistics.tokenByType')}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b border-border/50">
-                          <th className="text-left py-2 px-3 font-medium text-muted-foreground">
-                            {t('aiStatistics.type')}
-                          </th>
-                          <th className="text-left py-2 px-3 font-medium text-muted-foreground">
-                            {t('aiStatistics.inputTokens')}
-                          </th>
-                          <th className="text-left py-2 px-3 font-medium text-muted-foreground">
-                            {t('aiStatistics.outputTokens')}
-                          </th>
-                          <th className="text-left py-2 px-3 font-medium text-muted-foreground">
-                            {t('aiStatistics.cacheReadTokens')}
-                          </th>
-                          <th className="text-left py-2 px-3 font-medium text-muted-foreground">
-                            {t('aiStatistics.cacheWriteTokens')}
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {tokenByType.map((item, i) => (
-                          <tr key={i} className="border-b border-border/30">
-                            <td className="py-2 px-3">{item.type ?? '-'}</td>
-                            <td className="py-2 px-3">
-                              {(item.input_tokens ?? 0).toLocaleString()}
-                            </td>
-                            <td className="py-2 px-3">
-                              {(item.output_tokens ?? 0).toLocaleString()}
-                            </td>
-                            <td className="py-2 px-3">
-                              {(item.cache_read_tokens ?? 0).toLocaleString()}
-                            </td>
-                            <td className="py-2 px-3">
-                              {(item.cache_write_tokens ?? 0).toLocaleString()}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </CardContent>
-              </Card>
             </div>
           )}
 
-          {/* 性能 Tab */}
-          {activeTab === 'performance' && (
-            <div className="space-y-4 px-0 sm:px-6">
-              <Card className={cn('glass-card')}>
-                <CardContent className="py-3">
-                  <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                    <TabButtonGroup
-                      options={[
-                        {
-                          value: 'day',
-                          label: t('aiStatistics.singleDay'),
-                          icon: <Clock className="w-4 h-4" />,
-                        },
-                        {
-                          value: 'range',
-                          label: t('aiStatistics.dateRangePerformance'),
-                          icon: <CalendarDays className="w-4 h-4" />,
-                        },
-                      ]}
-                      value={perfMode}
-                      onValueChange={(v) => setPerfMode(v as 'day' | 'range')}
-                    />
-                    {perfMode === 'range' && (
-                      <TabButtonGroup
-                        options={[
-                          {
-                            value: '7d',
-                            label: t('aiStatistics.preset7d'),
-                            icon: <Sparkles className="w-4 h-4" />,
-                          },
-                          {
-                            value: '14d',
-                            label: t('aiStatistics.preset14d'),
-                            icon: <Zap className="w-4 h-4" />,
-                          },
-                          {
-                            value: '30d',
-                            label: t('aiStatistics.preset30d'),
-                            icon: <BarChart3 className="w-4 h-4" />,
-                          },
-                          {
-                            value: '90d',
-                            label: t('aiStatistics.preset90d'),
-                            icon: <TrendingUp className="w-4 h-4" />,
-                          },
-                        ]}
-                        value={perfRangePreset}
-                        onValueChange={(v) =>
-                          setPerfRangePreset(v as Exclude<RangePreset, 'custom'>)
+          {/* 数据明细弹窗：区间与当日构成逐行可查 */}
+          <Dialog open={dataDetailOpen} onOpenChange={setDataDetailOpen}>
+            <DialogContent className="max-h-[85vh] max-w-6xl overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>{t('aiStatistics.dataDetail')}</DialogTitle>
+                <DialogDescription className="sr-only">
+                  {t('aiStatistics.dataDetailHint')}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="glass-card-grid">
+                {rangeLoading ? (
+                  <TileSkeleton count={3} />
+                ) : rangeData && !isRangeEmpty ? (
+                  <>
+                    <div className="mt-0">
+                      <SectionLabel title={t('aiStatistics.dayDetail')} icon={Layers} />
+                    </div>
+
+                    <div className="mt-2.5 grid grid-cols-1 gap-3 lg:grid-cols-2">
+                      <DataBlock
+                        title={t('aiStatistics.modelDetail')}
+                        icon={Layers}
+                        extra={
+                          <span className="text-xs tabular-nums text-muted-foreground">
+                            {t('aiStatistics.itemCount', { count: tokenByModel.length })}
+                          </span>
                         }
-                      />
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {perfMode === 'range' ? (
-                <>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {perfRangeAggregated.length > 0 &&
-                      (() => {
-                        const totalRequests = perfRangeAggregated.reduce(
-                          (s, d) => s + d.requests,
-                          0,
-                        );
-                        const avgTTFT =
-                          perfRangeAggregated.reduce((s, d) => s + d.ttftAvg, 0) /
-                            perfRangeAggregated.length || 0;
-                        const avgTPS =
-                          perfRangeAggregated.reduce((s, d) => s + d.tpsAvg, 0) /
-                            perfRangeAggregated.length || 0;
-                        return (
-                          <>
-                            <StatCard
-                              title={t('aiStatistics.requestCount')}
-                              value={totalRequests.toLocaleString()}
-                              icon={Gauge}
-                            />
-                            <StatCard
-                              title={t('aiStatistics.ttftAvg')}
-                              value={`${avgTTFT.toFixed(1)} ms`}
-                              icon={Clock}
-                            />
-                            <StatCard
-                              title={t('aiStatistics.tpsAvg')}
-                              value={`${avgTPS.toFixed(1)} tokens/s`}
-                              icon={Zap}
-                            />
-                          </>
-                        );
-                      })()}
-                  </div>
-                  <Card className={cn('glass-card')}>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Activity className="w-5 h-5" />
-                        {t('aiStatistics.dateRangePerformance')}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      {perfRangeLoading ? (
-                        <Skeleton className="h-[320px] w-full" />
-                      ) : perfRangeAggregated.length === 0 ? (
-                        <div className="flex items-center justify-center h-[320px] text-muted-foreground">
-                          {t('common.noData')}
-                        </div>
-                      ) : (
-                        <EChartsWrapper option={perfRangeTrendOption} height={320} />
-                      )}
-                    </CardContent>
-                  </Card>
-                  <Card className={cn('glass-card')}>
-                    <CardHeader>
-                      <CardTitle>{t('aiStatistics.dateRangePerformance')}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
-                          <thead>
-                            <tr className="border-b border-border/50">
-                              <th className="text-left py-2 px-3 font-medium text-muted-foreground">
-                                {t('aiStatistics.date')}
-                              </th>
-                              <th className="text-left py-2 px-3 font-medium text-muted-foreground">
-                                {t('aiStatistics.requestCount')}
-                              </th>
-                              <th className="text-left py-2 px-3 font-medium text-muted-foreground">
-                                {t('aiStatistics.ttftAvg')}
-                              </th>
-                              <th className="text-left py-2 px-3 font-medium text-muted-foreground">
-                                {t('aiStatistics.tpsAvg')}
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {perfRangeAggregated.map((row) => (
-                              <tr key={row.date} className="border-b border-border/30">
-                                <td className="py-2 px-3">{row.date}</td>
-                                <td className="py-2 px-3">{row.requests.toLocaleString()}</td>
-                                <td className="py-2 px-3">{row.ttftAvg.toFixed(1)} ms</td>
-                                <td className="py-2 px-3">{row.tpsAvg.toFixed(1)}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </>
-              ) : (
-                <>
-                  {/* 性能概览卡片 */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {performanceData.length > 0 &&
-                      (() => {
-                        const totalRequests = performanceData.reduce(
-                          (sum, h) => sum + h.providers.reduce((s, p) => s + p.request_count, 0),
-                          0,
-                        );
-                        const avgTTFT =
-                          performanceData.reduce(
-                            (sum, h) => sum + h.providers.reduce((s, p) => s + p.ttft_avg_ms, 0),
-                            0,
-                          ) / performanceData.reduce((sum, h) => sum + h.providers.length, 0) || 0;
-                        const avgTPS =
-                          performanceData.reduce(
-                            (sum, h) => sum + h.providers.reduce((s, p) => s + p.tps_avg, 0),
-                            0,
-                          ) / performanceData.reduce((sum, h) => sum + h.providers.length, 0) || 0;
-                        return (
-                          <>
-                            <StatCard
-                              title={t('aiStatistics.requestCount')}
-                              value={totalRequests.toLocaleString()}
-                              icon={Gauge}
-                            />
-                            <StatCard
-                              title={t('aiStatistics.ttftAvg')}
-                              value={`${avgTTFT.toFixed(1)} ms`}
-                              icon={Clock}
-                            />
-                            <StatCard
-                              title={t('aiStatistics.tpsAvg')}
-                              value={`${avgTPS.toFixed(1)} tokens/s`}
-                              icon={Zap}
-                            />
-                          </>
-                        );
-                      })()}
-                  </div>
-
-                  <div className="glass-card-grid grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    {/* TTFT 趋势 */}
-                    <Card className={cn('glass-card')}>
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <Clock className="w-5 h-5" />
-                          {t('aiStatistics.ttft')}
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="h-[300px]">
-                          {performanceData.length > 0 ? (
-                            <EChartsWrapper option={perfTTFTOption} height={300} />
-                          ) : (
-                            <div className="flex items-center justify-center h-full text-muted-foreground">
-                              {t('common.noData')}
-                            </div>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    {/* TPS 趋势 */}
-                    <Card className={cn('glass-card')}>
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <Zap className="w-5 h-5" />
-                          {t('aiStatistics.tps')}
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="h-[300px]">
-                          {performanceData.length > 0 ? (
-                            <EChartsWrapper option={perfTPSOption} height={300} />
-                          ) : (
-                            <div className="flex items-center justify-center h-full text-muted-foreground">
-                              {t('common.noData')}
-                            </div>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    {/* 请求数趋势 */}
-                    <Card className={cn('glass-card')}>
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <Gauge className="w-5 h-5" />
-                          {t('aiStatistics.requestCount')}
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="h-[300px]">
-                          {performanceData.length > 0 ? (
-                            <EChartsWrapper option={perfRequestOption} height={300} />
-                          ) : (
-                            <div className="flex items-center justify-center h-full text-muted-foreground">
-                              {t('common.noData')}
-                            </div>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    {/* 错误统计 */}
-                    <Card className={cn('glass-card')}>
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <AlertTriangle className="w-5 h-5" />
-                          {t('aiStatistics.errorStats')}
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-3">
-                          <ProgressItem
-                            label={t('aiStatistics.timeout')}
-                            value={summary.errors?.timeout ?? 0}
-                            percentage={
-                              ((summary.errors?.timeout ?? 0) / (summary.errors?.total ?? 1)) *
-                                100 || 0
-                            }
-                          />
-                          <ProgressItem
-                            label={t('aiStatistics.rateLimit')}
-                            value={summary.errors?.rate_limit ?? 0}
-                            percentage={
-                              ((summary.errors?.rate_limit ?? 0) / (summary.errors?.total ?? 1)) *
-                                100 || 0
-                            }
-                          />
-                          <ProgressItem
-                            label={t('aiStatistics.networkError')}
-                            value={summary.errors?.network_error ?? 0}
-                            percentage={
-                              ((summary.errors?.network_error ?? 0) /
-                                (summary.errors?.total ?? 1)) *
-                                100 || 0
-                            }
-                          />
-                          <ProgressItem
-                            label={t('aiStatistics.usageLimit')}
-                            value={summary.errors?.usage_limit ?? 0}
-                            percentage={
-                              ((summary.errors?.usage_limit ?? 0) / (summary.errors?.total ?? 1)) *
-                                100 || 0
-                            }
-                          />
-                          <ProgressItem
-                            label={t('aiStatistics.agentError')}
-                            value={summary.errors?.agent_error ?? 0}
-                            percentage={
-                              ((summary.errors?.agent_error ?? 0) / (summary.errors?.total ?? 1)) *
-                                100 || 0
-                            }
-                          />
-                          <ProgressItem
-                            label={t('aiStatistics.api529Error')}
-                            value={summary.errors?.api_529_error ?? 0}
-                            percentage={
-                              ((summary.errors?.api_529_error ?? 0) /
-                                (summary.errors?.total ?? 1)) *
-                                100 || 0
-                            }
-                          />
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-
-                  {/* 性能详情表格 */}
-                  <Card className={cn('glass-card')}>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Gauge className="w-5 h-5" />
-                        {t('aiStatistics.hourlyPerformance')}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
-                          <thead>
-                            <tr className="border-b border-border/50">
-                              <th className="text-left py-2 px-3 font-medium text-muted-foreground">
-                                {t('aiStatistics.hour')}
-                              </th>
-                              <th className="text-left py-2 px-3 font-medium text-muted-foreground">
-                                {t('aiStatistics.provider')}
-                              </th>
-                              <th className="text-left py-2 px-3 font-medium text-muted-foreground">
-                                {t('aiStatistics.model')}
-                              </th>
-                              <th className="text-left py-2 px-3 font-medium text-muted-foreground">
-                                {t('aiStatistics.requestCount')}
-                              </th>
-                              <th className="text-left py-2 px-3 font-medium text-muted-foreground">
-                                {t('aiStatistics.ttftAvg')}
-                              </th>
-                              <th className="text-left py-2 px-3 font-medium text-muted-foreground">
-                                {t('aiStatistics.tpsAvg')}
-                              </th>
-                              <th className="text-left py-2 px-3 font-medium text-muted-foreground">
-                                {t('aiStatistics.inputTokens')}
-                              </th>
-                              <th className="text-left py-2 px-3 font-medium text-muted-foreground">
-                                {t('aiStatistics.outputTokens')}
-                              </th>
-                              <th className="text-left py-2 px-3 font-medium text-muted-foreground">
-                                {t('aiStatistics.cacheReadTokens')}
-                              </th>
-                              <th className="text-left py-2 px-3 font-medium text-muted-foreground">
-                                {t('aiStatistics.cacheWriteTokens')}
-                              </th>
-                              <th className="text-left py-2 px-3 font-medium text-muted-foreground">
-                                {t('aiStatistics.toolCalls')}
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {performanceData.flatMap((hourItem) =>
-                              hourItem.providers.map((p, idx) => (
-                                <tr
-                                  key={`${hourItem.hour}-${idx}`}
-                                  className="border-b border-border/30"
-                                >
-                                  <td className="py-2 px-3">{hourItem.hour}:00</td>
-                                  <td className="py-2 px-3">{p.provider}</td>
-                                  <td className="py-2 px-3">{p.model}</td>
-                                  <td className="py-2 px-3">{p.request_count.toLocaleString()}</td>
-                                  <td className="py-2 px-3">{p.ttft_avg_ms.toFixed(1)} ms</td>
-                                  <td className="py-2 px-3">{p.tps_avg.toFixed(1)}</td>
-                                  <td className="py-2 px-3">{p.input_tokens.toLocaleString()}</td>
-                                  <td className="py-2 px-3">{p.output_tokens.toLocaleString()}</td>
-                                  <td className="py-2 px-3">
-                                    {p.cache_read_tokens.toLocaleString()}
-                                  </td>
-                                  <td className="py-2 px-3">
-                                    {p.cache_write_tokens.toLocaleString()}
-                                  </td>
-                                  <td className="py-2 px-3">
-                                    {p.tool_call_count.toLocaleString()}
-                                  </td>
-                                </tr>
-                              )),
-                            )}
-                          </tbody>
-                        </table>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </>
-              )}
-            </div>
-          )}
-
-          {/* RAG Tab */}
-          {activeTab === 'rag' && (
-            <div className="space-y-4 px-0 sm:px-6">
-              <div className="grid grid-cols-1 gap-4">
-                {/* RAG 文档命中列表 */}
-                <Card className={cn('glass-card')}>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Database className="w-5 h-5" />
-                      {t('aiStatistics.ragDocuments')}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="border-b border-border/50">
-                            <th className="text-left py-2 px-3 font-medium text-muted-foreground">
-                              {t('aiStatistics.documentName')}
-                            </th>
-                            <th className="text-left py-2 px-3 font-medium text-muted-foreground">
-                              {t('aiStatistics.hitCount')}
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {ragDocuments.map((doc, i) => (
-                            <tr key={i} className="border-b border-border/30">
-                              <td className="py-2 px-3">{doc?.document_name ?? '-'}</td>
-                              <td className="py-2 px-3">{doc?.hit_count ?? 0}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-          )}
-
-          {/* 用户 Tab */}
-          {activeTab === 'users' && (
-            <div className="space-y-4 px-0 sm:px-6">
-              <div className="grid grid-cols-1 gap-4">
-                {/* 活跃用户/群组 */}
-                <Card className={cn('glass-card')}>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Users className="w-5 h-5" />
-                      {t('aiStatistics.activeUsers')}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="border-b border-border/50">
-                            <th className="text-left py-2 px-3 font-medium text-muted-foreground">
-                              {t('aiStatistics.groupId')}
-                            </th>
-                            <th className="text-left py-2 px-3 font-medium text-muted-foreground">
-                              {t('aiStatistics.userId')}
-                            </th>
-                            <th className="text-left py-2 px-3 font-medium text-muted-foreground">
-                              {t('aiStatistics.aiInteraction')}
-                            </th>
-                            <th className="text-left py-2 px-3 font-medium text-muted-foreground">
-                              {t('aiStatistics.messageCount')}
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {activeUsers.map((item, i) => (
-                            <tr key={i} className="border-b border-border/30">
-                              <td className="py-2 px-3">{item?.group_id ?? '-'}</td>
-                              <td className="py-2 px-3">{item?.user_id ?? '-'}</td>
-                              <td className="py-2 px-3">{item?.ai_interaction ?? 0}</td>
-                              <td className="py-2 px-3">{item?.message_count ?? 0}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-          )}
-
-          {/* 时间段统计 Tab */}
-          {activeTab === 'range' && (
-            <div className="space-y-4 px-0 sm:px-6">
-              {/* 工具栏:快捷预设 + 自定义日期范围 */}
-              <Card className={cn('glass-card')}>
-                <CardContent className="py-3">
-                  <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-sm text-muted-foreground shrink-0">
-                        {t('aiStatistics.queryRange')}:
-                      </span>
-                      <TabButtonGroup
-                        options={[
-                          {
-                            value: '7d',
-                            label: t('aiStatistics.preset7d'),
-                            icon: <Sparkles className="w-4 h-4" />,
-                          },
-                          {
-                            value: '14d',
-                            label: t('aiStatistics.preset14d'),
-                            icon: <Zap className="w-4 h-4" />,
-                          },
-                          {
-                            value: '30d',
-                            label: t('aiStatistics.preset30d'),
-                            icon: <BarChart3 className="w-4 h-4" />,
-                          },
-                          {
-                            value: '90d',
-                            label: t('aiStatistics.preset90d'),
-                            icon: <TrendingUp className="w-4 h-4" />,
-                          },
-                          {
-                            value: 'custom',
-                            label: t('aiStatistics.customRange'),
-                            icon: <Pencil className="w-4 h-4" />,
-                          },
-                        ]}
-                        value={rangePreset}
-                        onValueChange={(v) => setRangePreset(v as RangePreset)}
-                      />
-                    </div>
-                    {rangePreset === 'custom' && (
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant="outline"
-                              className={cn(
-                                tabToolbarControlClass,
-                                'gap-2 justify-start font-normal',
-                                !rangeStartDate && 'text-muted-foreground',
-                              )}
-                            >
-                              <CalendarIcon className="h-4 w-4" />
-                              {rangeStartDate
-                                ? format(rangeStartDate, 'yyyy-MM-dd')
-                                : t('aiStatistics.rangeStart')}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="end">
-                            <CalendarComponent
-                              mode="single"
-                              selected={rangeStartDate}
-                              onSelect={setRangeStartDate}
-                              defaultMonth={rangeStartDate}
-                            />
-                          </PopoverContent>
-                        </Popover>
-                        <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant="outline"
-                              className={cn(
-                                tabToolbarControlClass,
-                                'gap-2 justify-start font-normal',
-                                !rangeEndDate && 'text-muted-foreground',
-                              )}
-                            >
-                              <CalendarIcon className="h-4 w-4" />
-                              {rangeEndDate
-                                ? format(rangeEndDate, 'yyyy-MM-dd')
-                                : t('aiStatistics.rangeEnd')}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="end">
-                            <CalendarComponent
-                              mode="single"
-                              selected={rangeEndDate}
-                              onSelect={setRangeEndDate}
-                              defaultMonth={rangeEndDate}
-                            />
-                          </PopoverContent>
-                        </Popover>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* 错误提示 */}
-              {rangeError && !rangeLoading && (
-                <Card
-                  className={cn(
-                    'border-destructive/50',
-                    'glass-card',
-                  )}
-                >
-                  <CardContent className="flex items-center gap-3 p-4 text-destructive">
-                    <AlertTriangle className="w-5 h-5" />
-                    <span className="flex-1">{rangeError}</span>
-                    <Button variant="outline" onClick={fetchRangeData}>
-                      <RefreshCw className="w-4 h-4 mr-1" />
-                      {t('aiStatistics.refresh')}
-                    </Button>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* 加载骨架屏 */}
-              {rangeLoading ? (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <Card
-                        key={i}
-                        className={cn('glass-card')}
                       >
-                        <CardHeader className="flex flex-row items-center justify-between pb-2">
-                          <Skeleton className="h-4 w-20" />
-                          <Skeleton className="w-4 h-4" />
-                        </CardHeader>
-                        <CardContent>
-                          <Skeleton className="h-8 w-24" />
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                  <div className="glass-card-grid grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    <Card className={cn('glass-card')}>
-                      <CardHeader>
-                        <Skeleton className="h-5 w-32" />
-                      </CardHeader>
-                      <CardContent>
-                        <Skeleton className="h-[300px] w-full" />
-                      </CardContent>
-                    </Card>
-                    <Card className={cn('glass-card')}>
-                      <CardHeader>
-                        <Skeleton className="h-5 w-32" />
-                      </CardHeader>
-                      <CardContent>
-                        <Skeleton className="h-[300px] w-full" />
-                      </CardContent>
-                    </Card>
-                  </div>
-                </div>
-              ) : rangeData && !isRangeEmpty ? (
-                <>
-                  {/* 概览统计卡片 - 五类Token */}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-                    <StatCard
-                      title={t('aiStatistics.inputTokens')}
-                      value={formatCompactNumber(rangeData.total.input_tokens)}
-                      icon={Coins}
-                    />
-                    <StatCard
-                      title={t('aiStatistics.outputTokens')}
-                      value={formatCompactNumber(rangeData.total.output_tokens)}
-                      icon={Coins}
-                    />
-                    <StatCard
-                      title={t('aiStatistics.cacheReadTokens')}
-                      value={formatCompactNumber(rangeData.total.cache_read_tokens)}
-                      icon={HardDrive}
-                    />
-                    <StatCard
-                      title={t('aiStatistics.cacheWriteTokens')}
-                      value={formatCompactNumber(rangeData.total.cache_write_tokens)}
-                      icon={HardDrive}
-                    />
-                    <StatCard
-                      title={t('aiStatistics.totalTokens')}
-                      value={formatCompactNumber(rangeData.total.total_tokens)}
-                      icon={TrendingUp}
-                      className="ring-1 ring-primary/30"
-                    />
-                  </div>
-
-                  {/* 折线图 + 饼图 */}
-                  <div className="glass-card-grid grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    {/* 按天趋势 */}
-                    <Card className={cn('glass-card')}>
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <Activity className="w-5 h-5" />
-                          {t('aiStatistics.dailyTrend')}
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="h-[320px]">
-                          <EChartsWrapper option={rangeTrendOption} height={320} />
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    {/* 模型分布 */}
-                    <Card className={cn('glass-card')}>
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <Brain className="w-5 h-5" />
-                          {t('aiStatistics.modelDistribution')}
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="h-[320px]">
-                          {rangeData.by_model.length > 0 ? (
-                            <EChartsWrapper option={rangeModelPieOption} height={320} />
-                          ) : (
-                            <div className="flex items-center justify-center h-full text-muted-foreground">
-                              {t('common.noData')}
-                            </div>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-
-                  {/* 区间效率趋势 */}
-                  <Card className={cn('glass-card')}>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Target className="w-5 h-5" />
-                        {t('aiStatistics.efficiencyTrend')}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="mb-3 flex flex-wrap gap-4 text-sm text-muted-foreground">
-                        <span>
-                          {t('aiStatistics.userTurnCount')}:{' '}
-                          <strong className="text-foreground tabular-nums">
-                            {rangeData.efficiency?.user_turn_count ?? 0}
-                          </strong>
-                        </span>
-                        <span>
-                          {t('aiStatistics.agentRunCount')}:{' '}
-                          <strong className="text-foreground tabular-nums">
-                            {rangeData.efficiency?.agent_run_count ?? 0}
-                          </strong>
-                        </span>
-                        <span>
-                          {t('aiStatistics.avgTokensPerUserTurn')}:{' '}
-                          <strong className="text-foreground tabular-nums">
-                            {formatCompactNumber(
-                              rangeData.efficiency?.avg_tokens_per_user_turn ?? 0,
-                            )}
-                          </strong>
-                        </span>
-                        <span>
-                          {t('aiStatistics.avgTokensPerAgentRun')}:{' '}
-                          <strong className="text-foreground tabular-nums">
-                            {formatCompactNumber(
-                              rangeData.efficiency?.avg_tokens_per_agent_run ?? 0,
-                            )}
-                          </strong>
-                        </span>
-                      </div>
-                      <div className="h-[320px]">
-                        <EChartsWrapper option={rangeEfficiencyOption} height={320} />
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* 模型 Token 详情表 */}
-                  <Card className={cn('glass-card')}>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Coins className="w-5 h-5" />
-                        {t('aiStatistics.modelDistribution')}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
-                          <thead>
-                            <tr className="border-b border-border/50">
-                              <th className="text-left py-2 px-3 font-medium text-muted-foreground">
-                                {t('aiStatistics.model')}
-                              </th>
-                              <th className="text-right py-2 px-3 font-medium text-muted-foreground">
+                        <DataTable
+                          emptyLabel={t('common.noData')}
+                          head={
+                            <>
+                              <th className={TABLE_HEAD}>{t('aiStatistics.model')}</th>
+                              <th className={cn(TABLE_HEAD, 'text-right')}>
                                 {t('aiStatistics.inputTokens')}
                               </th>
-                              <th className="text-right py-2 px-3 font-medium text-muted-foreground">
+                              <th className={cn(TABLE_HEAD, 'text-right')}>
                                 {t('aiStatistics.outputTokens')}
                               </th>
-                              <th className="text-right py-2 px-3 font-medium text-muted-foreground">
+                              <th className={cn(TABLE_HEAD, 'text-right')}>
                                 {t('aiStatistics.cacheReadTokens')}
                               </th>
-                              <th className="text-right py-2 px-3 font-medium text-muted-foreground">
+                              <th className={cn(TABLE_HEAD, 'text-right')}>
                                 {t('aiStatistics.cacheWriteTokens')}
                               </th>
-                              <th className="text-right py-2 px-3 font-medium text-muted-foreground">
+                            </>
+                          }
+                        >
+                          {tokenByModel.map((item, i) => (
+                            <tr
+                              key={`${item.model}-${i}`}
+                              className="border-b border-border/30 last:border-0"
+                            >
+                              <td className={TABLE_CELL}>{item.model ?? '-'}</td>
+                              <td className={TABLE_NUM}>
+                                {(item.input_tokens ?? 0).toLocaleString()}
+                              </td>
+                              <td className={TABLE_NUM}>
+                                {(item.output_tokens ?? 0).toLocaleString()}
+                              </td>
+                              <td className={TABLE_NUM}>
+                                {(item.cache_read_tokens ?? 0).toLocaleString()}
+                              </td>
+                              <td className={TABLE_NUM}>
+                                {(item.cache_write_tokens ?? 0).toLocaleString()}
+                              </td>
+                            </tr>
+                          ))}
+                        </DataTable>
+                      </DataBlock>
+
+                      <DataBlock
+                        title={t('aiStatistics.typeDetail')}
+                        icon={Layers}
+                        extra={
+                          <span className="text-xs tabular-nums text-muted-foreground">
+                            {t('aiStatistics.itemCount', { count: tokenByType.length })}
+                          </span>
+                        }
+                      >
+                        <DataTable
+                          emptyLabel={t('common.noData')}
+                          head={
+                            <>
+                              <th className={TABLE_HEAD}>{t('aiStatistics.type')}</th>
+                              <th className={cn(TABLE_HEAD, 'text-right')}>
+                                {t('aiStatistics.inputTokens')}
+                              </th>
+                              <th className={cn(TABLE_HEAD, 'text-right')}>
+                                {t('aiStatistics.outputTokens')}
+                              </th>
+                              <th className={cn(TABLE_HEAD, 'text-right')}>
+                                {t('aiStatistics.cacheReadTokens')}
+                              </th>
+                              <th className={cn(TABLE_HEAD, 'text-right')}>
+                                {t('aiStatistics.cacheWriteTokens')}
+                              </th>
+                            </>
+                          }
+                        >
+                          {tokenByType.map((item, i) => (
+                            <tr
+                              key={`${item.type}-${i}`}
+                              className="border-b border-border/30 last:border-0"
+                            >
+                              <td className={TABLE_CELL}>{item.type ?? '-'}</td>
+                              <td className={TABLE_NUM}>
+                                {(item.input_tokens ?? 0).toLocaleString()}
+                              </td>
+                              <td className={TABLE_NUM}>
+                                {(item.output_tokens ?? 0).toLocaleString()}
+                              </td>
+                              <td className={TABLE_NUM}>
+                                {(item.cache_read_tokens ?? 0).toLocaleString()}
+                              </td>
+                              <td className={TABLE_NUM}>
+                                {(item.cache_write_tokens ?? 0).toLocaleString()}
+                              </td>
+                            </tr>
+                          ))}
+                        </DataTable>
+                      </DataBlock>
+                    </div>
+
+                    <div className="mt-3">
+                      <DataBlock
+                        title={t('aiStatistics.rangeModelDetail')}
+                        icon={Coins}
+                        extra={
+                          <span className="text-xs tabular-nums text-muted-foreground">
+                            {t('aiStatistics.itemCount', { count: rangeData.by_model.length })}
+                          </span>
+                        }
+                      >
+                        <DataTable
+                          emptyLabel={t('common.noData')}
+                          head={
+                            <>
+                              <th className={TABLE_HEAD}>{t('aiStatistics.model')}</th>
+                              <th className={cn(TABLE_HEAD, 'text-right')}>
+                                {t('aiStatistics.inputTokens')}
+                              </th>
+                              <th className={cn(TABLE_HEAD, 'text-right')}>
+                                {t('aiStatistics.outputTokens')}
+                              </th>
+                              <th className={cn(TABLE_HEAD, 'text-right')}>
+                                {t('aiStatistics.cacheReadTokens')}
+                              </th>
+                              <th className={cn(TABLE_HEAD, 'text-right')}>
+                                {t('aiStatistics.cacheWriteTokens')}
+                              </th>
+                              <th className={cn(TABLE_HEAD, 'text-right')}>
                                 {t('aiStatistics.totalTokens')}
                               </th>
+                            </>
+                          }
+                        >
+                          {rangeData.by_model.map((item, i) => (
+                            <tr
+                              key={`${item.model}-${i}`}
+                              className="border-b border-border/30 last:border-0"
+                            >
+                              <td className={TABLE_CELL}>{item.model ?? '-'}</td>
+                              <td className={TABLE_NUM}>
+                                {(item.input_tokens ?? 0).toLocaleString()}
+                              </td>
+                              <td className={TABLE_NUM}>
+                                {(item.output_tokens ?? 0).toLocaleString()}
+                              </td>
+                              <td className={TABLE_NUM}>
+                                {(item.cache_read_tokens ?? 0).toLocaleString()}
+                              </td>
+                              <td className={TABLE_NUM}>
+                                {(item.cache_write_tokens ?? 0).toLocaleString()}
+                              </td>
+                              <td className={cn(TABLE_NUM, 'font-medium')}>
+                                {(item.total_tokens ?? 0).toLocaleString()}
+                              </td>
                             </tr>
-                          </thead>
-                          <tbody>
-                            {rangeData.by_model.map((item, i) => (
-                              <tr key={i} className="border-b border-border/30">
-                                <td className="py-2 px-3">{item.model ?? '-'}</td>
-                                <td className="py-2 px-3 text-right tabular-nums">
-                                  {(item.input_tokens ?? 0).toLocaleString()}
-                                </td>
-                                <td className="py-2 px-3 text-right tabular-nums">
-                                  {(item.output_tokens ?? 0).toLocaleString()}
-                                </td>
-                                <td className="py-2 px-3 text-right tabular-nums">
-                                  {(item.cache_read_tokens ?? 0).toLocaleString()}
-                                </td>
-                                <td className="py-2 px-3 text-right tabular-nums">
-                                  {(item.cache_write_tokens ?? 0).toLocaleString()}
-                                </td>
-                                <td className="py-2 px-3 text-right tabular-nums font-medium">
-                                  {(item.total_tokens ?? 0).toLocaleString()}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
+                          ))}
+                        </DataTable>
+                      </DataBlock>
+                    </div>
+
+                    {/* 每日明细跟着「历史趋势」页签一起搬进这个弹窗：它本来就是
+                        这两张区间表（按模型 / 按类型）的同源逐日展开，
+                        数据直接读 rangeData.daily，不再单独打 /statistics/history。 */}
+                    <div className="mt-3">
+                      <DataBlock
+                        title={t('aiStatistics.dailyDetail')}
+                        icon={Table2}
+                        extra={
+                          <span className="text-xs tabular-nums text-muted-foreground">
+                            {t('aiStatistics.itemCount', { count: rangeData.daily.length })}
+                          </span>
+                        }
+                      >
+                        <DataTable
+                          emptyLabel={t('common.noData')}
+                          head={
+                            <>
+                              <th className={TABLE_HEAD}>{t('aiStatistics.date')}</th>
+                              <th className={cn(TABLE_HEAD, 'text-right')}>
+                                {t('aiStatistics.inputTokens')}
+                              </th>
+                              <th className={cn(TABLE_HEAD, 'text-right')}>
+                                {t('aiStatistics.outputTokens')}
+                              </th>
+                              <th className={cn(TABLE_HEAD, 'text-right')}>
+                                {t('aiStatistics.totalTokens')}
+                              </th>
+                              <th className={cn(TABLE_HEAD, 'text-right')}>
+                                {t('aiStatistics.userTurnCount')}
+                              </th>
+                              <th className={cn(TABLE_HEAD, 'text-right')}>
+                                {t('aiStatistics.agentRunCount')}
+                              </th>
+                              <th className={cn(TABLE_HEAD, 'text-right')}>
+                                {t('aiStatistics.avgTokensPerUserTurn')}
+                              </th>
+                              <th className={cn(TABLE_HEAD, 'text-right')}>
+                                {t('aiStatistics.avgAgentRunsPerUserTurn')}
+                              </th>
+                            </>
+                          }
+                        >
+                          {rangeData.daily.map((d) => (
+                            <tr key={d.date} className="border-b border-border/30 last:border-0">
+                              <td className={TABLE_CELL}>{d.date}</td>
+                              <td className={TABLE_NUM}>
+                                {(d.input_tokens ?? 0).toLocaleString()}
+                              </td>
+                              <td className={TABLE_NUM}>
+                                {(d.output_tokens ?? 0).toLocaleString()}
+                              </td>
+                              <td className={cn(TABLE_NUM, 'font-medium')}>
+                                {(d.total_tokens ?? 0).toLocaleString()}
+                              </td>
+                              <td className={TABLE_NUM}>
+                                {(d.user_turn_count ?? 0).toLocaleString()}
+                              </td>
+                              <td className={TABLE_NUM}>
+                                {(d.agent_run_count ?? 0).toLocaleString()}
+                              </td>
+                              <td className={TABLE_NUM}>
+                                {Math.round(d.avg_tokens_per_user_turn ?? 0).toLocaleString()}
+                              </td>
+                              <td className={TABLE_NUM}>
+                                {(d.avg_agent_runs_per_user_turn ?? 0).toFixed(2)}
+                              </td>
+                            </tr>
+                          ))}
+                        </DataTable>
+                      </DataBlock>
+                    </div>
+                  </>
+                ) : (
+                  <Card className="glass-card mt-3">
+                    <CardContent className="flex flex-col items-center justify-center !p-8 text-center text-muted-foreground">
+                      <CalendarDays className="mb-4 h-12 w-12 opacity-50" />
+                      <p>{t('aiStatistics.noDataInRange')}</p>
                     </CardContent>
                   </Card>
-                </>
-              ) : (
-                <Card className={cn('glass-card')}>
-                  <CardContent className="flex flex-col items-center justify-center !p-8 text-center text-muted-foreground">
-                    <CalendarDays className="w-12 h-12 mb-4 opacity-50" />
-                    <p>{t('aiStatistics.noDataInRange')}</p>
-                  </CardContent>
-                </Card>
-              )}
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          {/* 性能明细弹窗：概览只留曲线，逐行明细点开看 */}
+          <Dialog open={perfDetailOpen} onOpenChange={setPerfDetailOpen}>
+            <DialogContent className="max-h-[85vh] max-w-6xl overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>{t('aiStatistics.performanceDetail')}</DialogTitle>
+                <DialogDescription className="sr-only">
+                  {t('aiStatistics.performanceDetailHint')}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="glass-card-grid">
+                <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+                  <TabButtonGroup
+                    options={[
+                      {
+                        value: 'day',
+                        label: t('aiStatistics.singleDay'),
+                        icon: <Clock className="w-4 h-4" />,
+                      },
+                      {
+                        value: 'range',
+                        label: t('aiStatistics.dateRangePerformance'),
+                        icon: <CalendarDays className="w-4 h-4" />,
+                      },
+                    ]}
+                    value={perfMode}
+                    onValueChange={(v) => setPerfMode(v as 'day' | 'range')}
+                  />
+                  {perfMode === 'range' && (
+                    /* 弹窗里只读：区间跟着顶部的维度走，这里把当前范围写清楚，
+                       不再放一排会让人以为能在这里改口径的胶囊。 */
+                    <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
+                      {scopeLabel}
+                    </span>
+                  )}
+                </div>
+
+                {perfMode === 'range' ? (
+                  perfRangeLoading ? (
+                    <Skeleton className="mt-3 h-[264px] w-full" />
+                  ) : perfRangeAggregated.length > 0 ? (
+                    <div className="mt-3">
+                      <DataBlock
+                        title={t('aiStatistics.rangePerformanceDetail')}
+                        icon={Gauge}
+                        extra={
+                          <span className="text-xs tabular-nums text-muted-foreground">
+                            {t('aiStatistics.itemCount', { count: perfRangeAggregated.length })}
+                          </span>
+                        }
+                      >
+                        <DataTable
+                          emptyLabel={t('common.noData')}
+                          head={
+                            <>
+                              <th className={TABLE_HEAD}>{t('aiStatistics.date')}</th>
+                              <th className={cn(TABLE_HEAD, 'text-right')}>
+                                {t('aiStatistics.requestCount')}
+                              </th>
+                              <th className={cn(TABLE_HEAD, 'text-right')}>
+                                {t('aiStatistics.ttftAvg')}
+                              </th>
+                              <th className={cn(TABLE_HEAD, 'text-right')}>
+                                {t('aiStatistics.tpsAvg')}
+                              </th>
+                            </>
+                          }
+                        >
+                          {perfRangeAggregated.map((row) => (
+                            <tr key={row.date} className="border-b border-border/30 last:border-0">
+                              <td className={TABLE_CELL}>{row.date}</td>
+                              <td className={TABLE_NUM}>{row.requests.toLocaleString()}</td>
+                              <td className={TABLE_NUM}>{row.ttftAvg.toFixed(1)} ms</td>
+                              <td className={TABLE_NUM}>{row.tpsAvg.toFixed(1)}</td>
+                            </tr>
+                          ))}
+                        </DataTable>
+                      </DataBlock>
+                    </div>
+                  ) : (
+                    <EmptyChart height={TREND_HEIGHT} label={t('common.noData')} />
+                  )
+                ) : (
+                  <div className="mt-3">
+                    <DataBlock
+                      title={t('aiStatistics.hourlyPerformance')}
+                      icon={Gauge}
+                      extra={
+                        <span className="text-xs tabular-nums text-muted-foreground">
+                          {t('aiStatistics.itemCount', {
+                            count: performanceData.reduce((sum, h) => sum + h.providers.length, 0),
+                          })}
+                        </span>
+                      }
+                    >
+                      <DataTable
+                        emptyLabel={t('common.noData')}
+                        head={
+                          <>
+                            <th className={TABLE_HEAD}>{t('aiStatistics.hour')}</th>
+                            <th className={TABLE_HEAD}>{t('aiStatistics.provider')}</th>
+                            <th className={TABLE_HEAD}>{t('aiStatistics.model')}</th>
+                            <th className={cn(TABLE_HEAD, 'text-right')}>
+                              {t('aiStatistics.requestCount')}
+                            </th>
+                            <th className={cn(TABLE_HEAD, 'text-right')}>
+                              {t('aiStatistics.ttftAvg')}
+                            </th>
+                            <th className={cn(TABLE_HEAD, 'text-right')}>
+                              {t('aiStatistics.tpsAvg')}
+                            </th>
+                            <th className={cn(TABLE_HEAD, 'text-right')}>
+                              {t('aiStatistics.inputTokens')}
+                            </th>
+                            <th className={cn(TABLE_HEAD, 'text-right')}>
+                              {t('aiStatistics.outputTokens')}
+                            </th>
+                            <th className={cn(TABLE_HEAD, 'text-right')}>
+                              {t('aiStatistics.cacheReadTokens')}
+                            </th>
+                            <th className={cn(TABLE_HEAD, 'text-right')}>
+                              {t('aiStatistics.cacheWriteTokens')}
+                            </th>
+                            <th className={cn(TABLE_HEAD, 'text-right')}>
+                              {t('aiStatistics.toolCalls')}
+                            </th>
+                          </>
+                        }
+                      >
+                        {performanceData.flatMap((hourItem) =>
+                          hourItem.providers.map((p, idx) => (
+                            <tr
+                              key={`${hourItem.hour}-${idx}`}
+                              className="border-b border-border/30 last:border-0"
+                            >
+                              <td className={TABLE_CELL}>
+                                {String(hourItem.hour).padStart(2, '0')}:00
+                              </td>
+                              <td className={TABLE_CELL}>{p.provider}</td>
+                              <td className={TABLE_CELL}>{p.model}</td>
+                              <td className={TABLE_NUM}>{p.request_count.toLocaleString()}</td>
+                              <td className={TABLE_NUM}>{p.ttft_avg_ms.toFixed(1)} ms</td>
+                              <td className={TABLE_NUM}>{p.tps_avg.toFixed(1)}</td>
+                              <td className={TABLE_NUM}>{p.input_tokens.toLocaleString()}</td>
+                              <td className={TABLE_NUM}>{p.output_tokens.toLocaleString()}</td>
+                              <td className={TABLE_NUM}>{p.cache_read_tokens.toLocaleString()}</td>
+                              <td className={TABLE_NUM}>{p.cache_write_tokens.toLocaleString()}</td>
+                              <td className={TABLE_NUM}>{p.tool_call_count.toLocaleString()}</td>
+                            </tr>
+                          )),
+                        )}
+                      </DataTable>
+                    </DataBlock>
+                  </div>
+                )}
+
+                {/* 错误按类型的构成从概览挪到这里：概览只留一个错误率读数，
+                    那一格撑不起一张图表卡（真实数据常常只有一种错误，卡片半空）。
+                    需要追「到底是超时还是限流」的时候在这里逐行看。
+                    抬头补上时间标签，跟概览那块读数对齐同一段。 */}
+                {errorBreakdown.length > 0 ? (
+                  <div className="mt-3">
+                    <DataBlock
+                      title={t('aiStatistics.errorStats')}
+                      icon={AlertTriangle}
+                      extra={
+                        <span className="text-xs tabular-nums text-muted-foreground">
+                          {scopeMark} · {t('aiStatistics.errorCount', { count: perfErrorTotal })}
+                        </span>
+                      }
+                    >
+                      <div className="flex flex-col gap-3">
+                        <SplitBar
+                          segments={errorBreakdown.map((item, index) => ({
+                            label: item.label,
+                            value: item.value,
+                            color: ramp[index % ramp.length],
+                          }))}
+                        />
+                        <DataTable
+                          emptyLabel={t('common.noData')}
+                          head={
+                            <>
+                              <th className={TABLE_HEAD}>{t('aiStatistics.errorType')}</th>
+                              <th className={cn(TABLE_HEAD, 'text-right')}>
+                                {t('aiStatistics.requestCount')}
+                              </th>
+                              <th className={cn(TABLE_HEAD, 'text-right')}>
+                                {t('aiStatistics.share')}
+                              </th>
+                            </>
+                          }
+                        >
+                          {errorBreakdown.map((item, index) => (
+                            <tr
+                              key={item.key}
+                              className="border-b border-border/30 last:border-b-0"
+                            >
+                              <td className={TABLE_CELL}>
+                                <span className="flex items-center gap-1.5">
+                                  <span
+                                    className="h-2 w-2 shrink-0 rounded-full"
+                                    style={{ backgroundColor: ramp[index % ramp.length] }}
+                                  />
+                                  {item.label}
+                                </span>
+                              </td>
+                              <td className={TABLE_NUM}>{item.value.toLocaleString()}</td>
+                              <td className={TABLE_NUM}>
+                                {((item.value / (perfErrorTotal || 1)) * 100).toFixed(1)}%
+                              </td>
+                            </tr>
+                          ))}
+                        </DataTable>
+                      </div>
+                    </DataBlock>
+                  </div>
+                ) : null}
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          {/* ================================================================
+              RAG
+              ================================================================ */}
+          {activeTab === 'rag' && (
+            <div className="glass-card-grid">
+              <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+                <DataBlock
+                  title={t('aiStatistics.ragDocuments')}
+                  icon={Database}
+                  className="lg:col-span-2"
+                  extra={
+                    <span className="text-xs tabular-nums text-muted-foreground">
+                      {t('aiStatistics.itemCount', { count: ragTopDocs.length })}
+                    </span>
+                  }
+                >
+                  <div className="flex h-full items-center">
+                    {ragTopDocs.length > 0 ? (
+                      <EChartsWrapper
+                        option={ragDocsOption}
+                        height={rowChartHeight(ragTopDocs.length)}
+                      />
+                    ) : (
+                      <EmptyChart label={t('common.noData')} />
+                    )}
+                  </div>
+                </DataBlock>
+
+                <DataBlock
+                  title={t('aiStatistics.ragEffect')}
+                  icon={Target}
+                  extra={
+                    <span className="text-xs tabular-nums text-muted-foreground">
+                      {(summary.rag?.hit_rate ?? 0).toFixed(1)}%
+                    </span>
+                  }
+                >
+                  <div className="flex h-full flex-col justify-center gap-4 py-2">
+                    <div>
+                      <p className="text-4xl font-bold leading-none tabular-nums tracking-tight">
+                        {(summary.rag?.hit_count ?? 0).toLocaleString()}
+                      </p>
+                      <p className="mt-1.5 text-[11px] text-muted-foreground">
+                        {t('aiStatistics.hit')}
+                      </p>
+                    </div>
+                    <SplitBar
+                      segments={[
+                        {
+                          label: t('aiStatistics.hit'),
+                          value: summary.rag?.hit_count ?? 0,
+                          color: ramp[0],
+                        },
+                        {
+                          label: t('aiStatistics.miss'),
+                          value: summary.rag?.miss_count ?? 0,
+                          color: NEUTRAL_SEGMENT,
+                        },
+                      ]}
+                    />
+                    <div className="grid grid-cols-2 gap-3 text-xs">
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          className="h-2 w-2 shrink-0 rounded-full"
+                          style={{ backgroundColor: ramp[0] }}
+                        />
+                        <span className="truncate text-muted-foreground">
+                          {t('aiStatistics.hit')}
+                        </span>
+                        <span className="ml-auto tabular-nums font-medium">
+                          {(summary.rag?.hit_count ?? 0).toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          className="h-2 w-2 shrink-0 rounded-full"
+                          style={{ backgroundColor: NEUTRAL_SEGMENT }}
+                        />
+                        <span className="truncate text-muted-foreground">
+                          {t('aiStatistics.miss')}
+                        </span>
+                        <span className="ml-auto tabular-nums font-medium">
+                          {(summary.rag?.miss_count ?? 0).toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </DataBlock>
+              </div>
+
+              <div className="mt-3">
+                <DataBlock
+                  title={t('aiStatistics.ragDocumentDetail')}
+                  icon={Layers}
+                  extra={
+                    <span className="text-xs tabular-nums text-muted-foreground">
+                      {t('aiStatistics.itemCount', { count: ragDocuments.length })}
+                    </span>
+                  }
+                >
+                  <DataTable
+                    emptyLabel={t('common.noData')}
+                    head={
+                      <>
+                        <th className={TABLE_HEAD}>{t('aiStatistics.documentName')}</th>
+                        <th className={cn(TABLE_HEAD, 'text-right')}>
+                          {t('aiStatistics.hitCount')}
+                        </th>
+                      </>
+                    }
+                  >
+                    {ragDocuments.map((doc, i) => (
+                      <tr
+                        key={`${doc?.document_name}-${i}`}
+                        className="border-b border-border/30 last:border-0"
+                      >
+                        <td className={TABLE_CELL}>{doc?.document_name ?? '-'}</td>
+                        <td className={TABLE_NUM}>{(doc?.hit_count ?? 0).toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </DataTable>
+                </DataBlock>
+              </div>
+            </div>
+          )}
+
+          {/* ================================================================
+              活跃用户
+              ================================================================ */}
+          {activeTab === 'users' && (
+            <div className="glass-card-grid">
+              <DataBlock
+                title={t('aiStatistics.activeUsers')}
+                icon={Users}
+                extra={
+                  <span className="text-xs tabular-nums text-muted-foreground">
+                    {t('aiStatistics.itemCount', { count: activeUsers.length })}
+                  </span>
+                }
+              >
+                <DataTable
+                  emptyLabel={t('common.noData')}
+                  head={
+                    <>
+                      <th className={TABLE_HEAD}>{t('aiStatistics.groupId')}</th>
+                      <th className={TABLE_HEAD}>{t('aiStatistics.userId')}</th>
+                      <th className={cn(TABLE_HEAD, 'text-right')}>
+                        {t('aiStatistics.aiInteraction')}
+                      </th>
+                      <th className={cn(TABLE_HEAD, 'text-right')}>
+                        {t('aiStatistics.messageCount')}
+                      </th>
+                    </>
+                  }
+                >
+                  {activeUsers.map((item, i) => (
+                    <tr
+                      key={`${item?.group_id}-${item?.user_id}-${i}`}
+                      className="border-b border-border/30 last:border-0"
+                    >
+                      <td className={TABLE_CELL}>{item?.group_id ?? '-'}</td>
+                      <td className={TABLE_CELL}>{item?.user_id ?? '-'}</td>
+                      <td className={TABLE_NUM}>{(item?.ai_interaction ?? 0).toLocaleString()}</td>
+                      <td className={TABLE_NUM}>{(item?.message_count ?? 0).toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </DataTable>
+              </DataBlock>
             </div>
           )}
         </>
       ) : (
-        <div className="px-0 sm:px-6">
-          <Card className={cn('glass-card')}>
-            <CardContent className="flex flex-col items-center justify-center !p-8 text-center text-muted-foreground">
-              <TrendingUp className="w-12 h-12 mb-4 opacity-50" />
-              <p>{t('common.noData')}</p>
-            </CardContent>
-          </Card>
-        </div>
+        <Card className="glass-card">
+          <CardContent className="flex flex-col items-center justify-center !p-8 text-center text-muted-foreground">
+            <TrendingUp className="mb-4 h-12 w-12 opacity-50" />
+            <p>{t('common.noData')}</p>
+          </CardContent>
+        </Card>
       )}
     </PinnedPage>
   );

@@ -134,6 +134,13 @@ interface ThemeColorContextType {
   setColor: (color: ThemeColor, autoSave?: boolean) => void;
   themePreset: ThemePreset;
   setThemePreset: (preset: ThemePreset, autoSave?: boolean) => void;
+  /**
+   * 当前主色的 HSL 三元组（如 `220 70% 50%`），未包 `hsl()`。
+   * 图表等 canvas 组件要从它推色阶，但**不能**自己去 `getComputedStyle(--primary)` 读：
+   * 上面那个「批量应用到 DOM」的 effect 是 `requestAnimationFrame` 异步落地的，
+   * 子组件的 effect 必然跑在它前面，读到的只会是 index.css 里的静态默认值。
+   */
+  primary: string;
 }
 
 interface ThemeBackgroundContextType {
@@ -962,8 +969,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const modeContext = useMemo(() => ({ mode, setMode }), [mode, setMode]);
   const styleContext = useMemo(() => ({ style, setStyle }), [style, setStyle]);
   const colorContext = useMemo(
-    () => ({ color, setColor, themePreset, setThemePreset }),
-    [color, setColor, themePreset, setThemePreset],
+    () => ({ color, setColor, themePreset, setThemePreset, primary: themeColors['--primary'] }),
+    [color, setColor, themePreset, setThemePreset, themeColors],
   );
   const backgroundContext = useMemo(
     () => ({
@@ -1073,6 +1080,7 @@ export function useTheme() {
     cardOpacity: backgroundContext.cardOpacity,
     iconColor: iconColorContext.iconColor,
     themePreset: colorContext.themePreset,
+    primary: colorContext.primary,
     language: languageContext.language,
     sidebarLayout: miscContext.sidebarLayout,
     borderRadius: miscContext.borderRadius,

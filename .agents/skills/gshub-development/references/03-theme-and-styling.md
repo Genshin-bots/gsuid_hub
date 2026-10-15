@@ -127,6 +127,43 @@ const isGlass = style === 'glassmorphism';
 | 玻璃弹层宿主必须透明 | `DialogContent` / `AlertDialogContent` 加 `glass-card`。光感 / 磨砂 / 液态下宿主 `background: transparent`，质感画在 `::before`。遮罩用 `[data-dialog-overlay]` 的浅压暗，不要 `bg-white/80`，否则壁纸被盖死，弹层变成实心白卡片 |
 | `glass-card-flat`：无阴影无 blur | 供 overflow 容器内嵌 / 长列表项使用；`overflow-hidden` 安全；`hover:shadow-*` 可用（:hover 特异性更高） |
 
+### 3.4.2 浮层（下拉 / 列表 / Popover）不能用卡片的透明参数 ★★★
+
+浮层族：`[role="menu"]`（DropdownMenu）、`[role="listbox"]`（Select）、`.menu-panel`（PopoverContent）、`.glass-float`（可搜索浮层 / 图谱搜索条）。三套玻璃各给一份 `--overlay-fill` / `--overlay-border` / `--overlay-filter`，在 `index.css`「浮层玻璃」段统一消费。
+
+**为什么不能复用 `.glass-card` 的数字**——两者取值逻辑相反：
+
+| | 背后是谁 | 透明度 |
+|---|---|---|
+| `.glass-card` | 自己的内容（内容长在卡片肚子里） | 可以很透（`card / 0.22~0.25`） |
+| 浮层 | **别人的内容**（整屏列表 / 时间戳 / ID 这类高对比小字） | 必须高（`0.74~0.82`） |
+
+透一点，背后的行就原样浮上来，和菜单项两行字叠在一起，谁都读不了。两个参数必须同时够，只调一个都还是「看得见字」：
+
+- 低模糊 + 低透明 = 背后的列表原样透出；
+- 高模糊 + 低透明 = 一片灰浆，菜单项自己也不干净。
+
+**模糊不许跟 `--card-opacity` 一起缩水。** `--liquid-blur = blur-intensity × card-opacity`，卡片透明度默认 25% → 液态浮层的模糊只剩 3px，等于没糊。浮层走 `--overlay-blur`（`max(20px, blur × 1.6)`）。
+
+**光感 / 液态的 backdrop-filter 性能开关里不要放 `[role=listbox]` / `[role=menu]`。** 那条规则是给「跟着侧栏宽度动画平移的布局表面」用的（每个 input / button / 卡片重采样像素会卡），而 Radix 浮层是 Portal 到 `body` 的 `position: fixed`，侧栏收缩时它不动。把这两项放进去会让所有下拉菜单失去模糊，只剩半透明底 —— 症状和「卡片参数用错」几乎一样，但改透明参数怎么调都没用。
+
+**改浮层后必须开真实页面看一眼**：这类问题在 demo 里尤其容易误判（demo 的初始 state 与后端配置不同，会走不同的 style 分支）。
+
+### 3.4.3 给 Button 套玻璃外壳：必须 `variant="ghost"`，不能 `"outline"` ★★★
+
+工具栏里想跟 `TabButtonGroup` 视觉一致的小控件（日历按钮、只读区间条、刷新图标钮），用外壳类 `glass-card-flat tab-segment-row`——`glass-card-flat` 给基础底色，`tab-segment-row` 在光感 / 液态下补顶刃高光与背后模糊。**参考 `AIStatisticsPage.tsx` 的 `rangeControlShellClass`**。
+
+但这类宿主如果是 `<Button>`，**只能用 `variant="ghost"`**：
+
+| variant | 带的头 | 后果 |
+|---|---|---|
+| `"outline"` | `bg-background` | 命中 `index.css` 里 `[data-style="liquid"] :is(button, a).bg-background:not(.tab-segment-row *)`（那条「页头描边按钮在液态下改成玻璃」的规则），它的 `!important` 描边/内高光跟 `.tab-segment-row` 撞车，**液态下把外壳整个压成透明** |
+| `"ghost"` | 无 `bg-background` | 不命中，按外壳自己走，三套主题一致 |
+
+**为什么难一眼归因**：光感主题的 `.tab-segment-row` 自带白描边，`outline` 的 `bg-background` 压不住它 → 光感正常；液态才翻车。只截一张液态图会以为是「液态主题不支持」，实际是宿主变体选错。规则里的 `:not(.tab-segment-row *)` 只排除**后代**、不排除元素自身，所以外壳自己带这个类也照样被接管。
+
+**验收必须三套主题都截**：这类主题分叉只有把 `data-style` 逐一设过去才看得见。demo 里改 `demoMock.ts` 的 `THEME_CONFIG.style` → Chrome 截图 → 记得还原。
+
 ## 3.5 布局背景与 gutter
 
 `AppLayout.tsx` 负责整页背景渲染：

@@ -18,6 +18,7 @@ import {
   generateDailyCommandUsage,
   generateDailyGroupCommandTriggers,
   generateDailyPersonalCommandTriggers,
+  mockLocalYmd,
 } from './mockData';
 import {
   DEMO_USER,
@@ -74,6 +75,8 @@ import {
   generateErrorStats,
   generateHeartbeatStats,
   generateRAGStats,
+  generateRagDocuments,
+  generateStatisticsHistory,
   generateTokenByRange,
   generatePerformanceHourly,
   generatePerformanceHourlyRange,
@@ -692,7 +695,7 @@ const routes: Route[] = [
       for (let i = 59; i >= 0; i--) {
         const d = new Date(now);
         d.setDate(now.getDate() - i);
-        const date = d.toISOString().slice(0, 10);
+        const date = mockLocalYmd(d);
         days.push({ date, count: i === 0 ? 2 : 0 });
       }
       return days;
@@ -824,7 +827,7 @@ const routes: Route[] = [
       for (let i = days - 1; i >= 0; i -= 1) {
         const d = new Date(today);
         d.setDate(d.getDate() - i);
-        const date = d.toISOString().slice(0, 10);
+        const date = mockLocalYmd(d);
         // 约一半日期有数据，便于测禁用
         const count = i % 3 === 0 ? 0 : Math.floor(Math.random() * 200) + 1;
         out.push({ date, count });
@@ -1037,7 +1040,15 @@ const routes: Route[] = [
   { m: 'GET', re: /^\/api\/ai\/statistics\/summary$/, h: () => generateAIStatisticsSummary() },
   { m: 'GET', re: /^\/api\/ai\/statistics\/token-by-model$/, h: () => generateTokenByModel() },
   { m: 'GET', re: /^\/api\/ai\/statistics\/token-by-type$/, h: () => generateTokenByType() },
-  { m: 'GET', re: /^\/api\/ai\/statistics\/token-by-range$/, h: () => generateTokenByRange() },
+  {
+    m: 'GET',
+    re: /^\/api\/ai\/statistics\/token-by-range$/,
+    h: ({ url }) =>
+      generateTokenByRange(
+        url.searchParams.get('start_date') ?? undefined,
+        url.searchParams.get('end_date') ?? undefined,
+      ),
+  },
   {
     m: 'GET',
     re: /^\/api\/ai\/statistics\/daily-token-counts$/,
@@ -1056,7 +1067,7 @@ const routes: Route[] = [
       for (let i = days - 1; i >= 0; i -= 1) {
         const d = new Date(today);
         d.setDate(d.getDate() - i);
-        const date = d.toISOString().slice(0, 10);
+        const date = mockLocalYmd(d);
         const input_tokens = i % 4 === 0 ? 0 : Math.floor(Math.random() * 5_000_000) + 1000;
         const output_tokens = input_tokens === 0 ? 0 : Math.floor(input_tokens * 0.3);
         out.push({
@@ -1083,6 +1094,18 @@ const routes: Route[] = [
   { m: 'GET', re: /^\/api\/ai\/statistics\/errors$/, h: () => generateErrorStats() },
   { m: 'GET', re: /^\/api\/ai\/statistics\/heartbeat$/, h: () => generateHeartbeatStats() },
   { m: 'GET', re: /^\/api\/ai\/statistics\/rag$/, h: () => generateRAGStats() },
+  { m: 'GET', re: /^\/api\/ai\/statistics\/rag\/documents$/, h: () => generateRagDocuments() },
+  {
+    m: 'GET',
+    re: /^\/api\/ai\/statistics\/history$/,
+    h: ({ url }) => {
+      const days = Math.min(
+        90,
+        Math.max(1, Number(new URL(url, 'http://x').searchParams.get('days') || 7)),
+      );
+      return generateStatisticsHistory(days);
+    },
+  },
   { m: 'GET', re: /^\/api\/ai\/performance\/hourly$/, h: () => generatePerformanceHourly() },
   {
     m: 'GET',

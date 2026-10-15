@@ -27,12 +27,20 @@
   "groups": "Groups",
   "callCount": "Call Count",
   "selectDate": "Select Date",
+  "lastUpdated": "Updated",
   "dauDesc": "Unique active users today",
   "dagDesc": "Unique active groups today",
   "retentionDesc": "User retention rate based on recent activity",
   "newUsersDesc": "Users newly active today",
   "churnedUsersDesc": "Users inactive after previous activity",
   "mauDesc": "Unique active users this month",
+  "dauMauRatioDesc": "Daily active / monthly active",
   "magDesc": "Unique active groups this month",
-  "dagMagRatioDesc": "Daily active groups / monthly active groups"
+  "dagMagRatioDesc": "Daily active groups / monthly active groups",
+  "otherCommands": "Other",
+  "recentTrend": "Commands (last 60 days)",
+  "recentTrendTotal": "{count} total",
+  "expandChart": "Expand full detail",
+  "collapseChart": "Collapse to overview",
+  "itemCount": "{count} items"
 }
