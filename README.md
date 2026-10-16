@@ -15,7 +15,7 @@ GsCore 网页控制台前端项目。该项目为 [gsuid_core](https://github.co
 | 模块 | 覆盖范围 | 主要页面 |
 | --- | --- | --- |
 | **概览与数据** | 系统/Bot 运行概览、指标趋势、数据表浏览 | `/home`、`/dashboard`、`/database` |
-| **配置管理** | 核心 / 框架 / 数据库 / 状态存储 / 群组画像 | `/core-config`、`/framework-config`、`/state-store`、`/group-profile` |
+| **配置管理** | 核心 / 框架 / 数据库 / 群组画像 | `/core-config`、`/framework-config`、`/group-profile` |
 | **插件生态** | 本地插件、商城、安装更新卸载、Git 镜像与更新；插件 ICON 统一组件 | `/plugins`、`/plugin-store`、`/git-update` |
 | **AI 能力** | 提供方与模型、人格、MCP、能力代理、工具/技能/知识/记忆/表情、定时任务、看板、审批、预算、统计、Artifacts、工具落盘、会话与运行日志、运维诊断与调试 | `/ai-*`、`/persona-config`、`/mcp-config`、`/session-management` |
 | **运维与设置** | 实时控制台、**实时聊天（控制台适配器）**、历史日志、命令追踪、调度、备份、主题、账户、品牌、批量推送 | `/console`、`/live-chat`、`/logs`、`/traces`、`/scheduler`、`/backup`、`/themes`、`/settings`、`/brand-settings`、`/batch-push` |
@@ -100,14 +100,12 @@ GsCore 网页控制台前端项目。该项目为 [gsuid_core](https://github.co
 | `/backup` | BackupPage | 备份文件、备份策略与下载 |
 | `/core-config` | CoreConfigPage | 核心配置 |
 | `/framework-config` | FrameworkConfigPage | 框架配置与动态配置表单（库/状态配置内嵌） |
-| `/state-store` | StateStorePage | AI 持久状态（state_store）浏览与批量删除 |
 | `/group-profile` | GroupProfilePage | 群组画像（标签 / 词汇 / 称呼）只读 |
 | `/ai-config` | AIConfigPage | AI 基础配置、模型提供方、嵌入、网络搜索/网页抓取（Jina 多源）、记忆等 |
 | `/persona-config` | PersonaConfigPage | AI 人格创建、编辑、资源与启用范围管理 |
 | `/mcp-config` | MCPConfigPage | MCP 服务器、工具发现、导入与热重载 |
 | `/ai-capability-agents` | AICapabilityAgentsPage | 能力代理（**builtin / plugin / user**；plugin 下拉按插件筛选；工具包/关键词/边界） |
-| `/ai-tools` | AIToolsPage | AI 工具列表、分类与详情 |
-| `/ai-skills` | AISkillsPage | AI 技能列表、详情、克隆、编辑与删除 |
+| `/ai-tools` | AIToolsPage | AI 工具列表、分类与详情；第 4 个页签「技能列表」（详情 / 克隆 / 编辑 / 删除，原 `/ai-skills` 已并入） |
 | `/ai-knowledge` | AIKnowledgePage | AI 知识库分页、搜索、批量导入与文档管理 |
 | `/ai-memory` | AIMemoryPage | AI 记忆浏览、知识图谱、世界枢纽与挂文预览 |
 | `/ai-meme` | AIMemePage | AI 表情包素材管理、上传、打标、移动、按条件清空与删除 |
@@ -117,9 +115,8 @@ GsCore 网页控制台前端项目。该项目为 [gsuid_core](https://github.co
 | `/ai-budget` | AIBudgetPage | AI 预算规则、白名单、用量与诊断 |
 | `/ai-statistics` | AIStatisticsPage | AI Token、费用与模型使用统计 |
 | `/ai-history` | AIHistoryPage | AI Session 运行日志、链路详情与统计 |
-| `/ai-artifacts` | AIArtifactsPage | AI 产出物全局浏览、TTL、下载 |
-| `/ai-tool-outputs` | AIToolOutputsPage | FileOS 工具落盘浏览、筛选、预览与批量删除 |
-| `/ai-ops` | AIOpsPage | AI 运维诊断（触发回放 / 黑白名单 / 试跑 / 安全 / 配置快照） |
+| `/ai-artifacts` | AIOutputsPage | AI 产出物与工具落盘合并页：`产出物` / `工具落盘` 两个页签（`?tab=toolOutputs`），TTL、下载、预览与批量删除 |
+| `/ai-runtime` | AIRuntimePage | Agent 运行时（关系温度 / 套件槽 / Hook / 认知索引 / 群组画像 / 运维诊断），其中运维诊断页签含触发回放 / 黑白名单 / 试跑 / 安全 / 配置快照 |
 | `/session-management` | SessionManagementPage | 会话列表、历史记录、人格内容与消息发送 |
 
 ## 页面骨架（先读这一节再动 UI）★
@@ -157,7 +154,7 @@ import { PinnedPage } from '@/components/layout/PinnedPage';
 **`toolbar` 放什么**：紧贴标题下方那一块，**操作控件**（`TabButtonGroup` / 二级切换 / 筛选搜索栏 /
 与之同行的按钮）→ 放 `toolbar`，随标题常驻；**数据展示**（统计卡 / 看板 / 提示 banner）→ 留在
 `children` 跟着滚。典型有 toolbar 的页面：`/ai-knowledge`、`/ai-capability-agents`、`/database`、
-`/plugins`、`/git-update`、`/ai-artifacts`、`/ai-tool-outputs` 等。
+`/plugins`、`/git-update`、`/ai-artifacts` 等。
 
 机制、对照表、迁移口诀与例外页面见 [`.agents/skills/gshub-development/references/04-page-layout-spec.md`](.agents/skills/gshub-development/references/04-page-layout-spec.md)。
 
@@ -251,8 +248,8 @@ import { PinnedPage } from '@/components/layout/PinnedPage';
 - 知识与记忆：文本/图片知识库、批量分片导入、记忆数据库与图谱可视化（公共 world 枢纽 + 节点挂文）。
 - 表情包管理：素材上传、VLM 打标、标签编辑、使用统计、文件夹管理与**按条件清空**（筛选/全部）。
 - 长任务与审批：任务看板、高危操作审批中心。
-- Artifacts / 工具落盘：全局产出物浏览；FileOS 工具全文落盘（`/ai-tool-outputs`）。
-- 运维诊断：`/ai-ops`。
+- Artifacts / 工具落盘：合并到一个页面 `/ai-artifacts`，用页签在「产出物」与「FileOS 工具全文落盘」之间切换（`/ai-tool-outputs` 会重定向到工具落盘页签）。
+- 运维诊断：`/ai-runtime` 的「运维」页签（旧 `/ai-ops` 会自动跳过去）。
 - 预算与统计：预算规则/白名单/用量诊断、Token 与费用统计。
 - 会话与日志：历史会话、OpenAI 格式消息、运行事件日志、子 Agent 链路与统计。
 

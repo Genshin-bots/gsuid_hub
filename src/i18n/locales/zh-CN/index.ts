@@ -50,8 +50,8 @@ import module48 from './aiArtifacts.json';
 import module49 from './memorySettings.json';
 import module50 from './logsConfig.json';
 import module_aiToolOutputs from './aiToolOutputs.json';
+import module_aiOutputs from './aiOutputs.json';
 
-import module_stateStore from './stateStore.json';
 import module_groupProfile from './groupProfile.json';
 import module_aiOps from './aiOps.json';
 import module_liveChat from './liveChat.json';
@@ -109,8 +109,8 @@ const locale = {
   memorySettings: module49,
   logsConfig: module50,
   aiToolOutputs: module_aiToolOutputs,
+  aiOutputs: module_aiOutputs,
   groupProfile: module_groupProfile,
-  stateStore: module_stateStore,
   aiOps: module_aiOps,
   liveChat: module_liveChat,
   aiRuntime: module_aiRuntime,

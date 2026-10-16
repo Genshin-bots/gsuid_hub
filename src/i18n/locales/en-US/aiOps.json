@@ -1,6 +1,4 @@
 {
-  "title": "AI Ops Diagnostics",
-  "description": "Why enter/skip AI, why outbound text changes, access control, and config backup.",
   "loadFailed": "Load failed",
   "saveFailed": "Save failed",
   "saved": "Saved",

@@ -2,7 +2,7 @@
 
 > 返回 [SKILL 主入口](../SKILL.md)。
 > **全站所有页面共享同一套排版骨架**，这是设计一致性的根基。新页面必须逐项对齐本章。
-> 排版标准参考页：[`AISkillsPage.tsx`](../../../../src/pages/AISkillsPage.tsx)、[`AIMemoryPage.tsx`](../../../../src/pages/AIMemoryPage.tsx)。
+> 排版标准参考页：[`AIToolsPage.tsx`](../../../../src/pages/AIToolsPage.tsx)、[`AIMemoryPage.tsx`](../../../../src/pages/AIMemoryPage.tsx)。
 
 ## 4.0 一张图看懂页面骨架
 
@@ -94,7 +94,7 @@ import { PinnedPage } from '@/components/layout/PinnedPage';
 | 放进 `toolbar`（随标题常驻） | 留在 `children`（跟着滚） |
 |---------------------------|------------------------|
 | `TabButtonGroup` / 二级切换（/ai-knowledge 的「文本知识 / 图片知识」） | 统计卡片 / 数据看板（/ai-memory、/dashboard、/scheduler 的 Stats） |
-| 筛选 + 搜索栏（/ai-capability-agents 的来源 Tab，含 plugin **dropdown** 二级筛选 + 搜索） | 提示 banner / 错误提示（/persona-config 的全局启用提示、/ai-skills 的错误卡） |
+| 筛选 + 搜索栏（/ai-capability-agents 的来源 Tab，含 plugin **dropdown** 二级筛选 + 搜索） | 提示 banner / 错误提示（/persona-config 的全局启用提示、/ai-tools 的错误卡） |
 | 与控件行同行的操作按钮（/themes 的「保存为预设」） | 结果展示（/mcp-config 的 Reload Result） |
 | 两级导航控件（/database 的插件选择 + 数据表选择） | 表单卡片、列表、详情（/core-config、/settings） |
 
@@ -139,7 +139,7 @@ import { PinnedPage } from '@/components/layout/PinnedPage';
 
 | 页面类型 | 例子 | 上边距 | 下/左/右 | 对齐目标 |
 |---------|------|--------|---------|---------|
-| **标题页**（`<PinnedPage>`，H1 + 内容流） | /plugins、/ai-skills、/ai-tools | `--layout-page-top`（2.75rem） | `--layout-gutter`（1.5rem） | 标题上方留足呼吸距，**不**与侧栏顶平齐（平齐会显得顶死） |
+| **标题页**（`<PinnedPage>`，H1 + 内容流） | /plugins、/ai-tools、/persona-config | `--layout-page-top`（2.75rem） | `--layout-gutter`（1.5rem） | 标题上方留足呼吸距，**不**与侧栏顶平齐（平齐会显得顶死） |
 | **全高单卡片页**（`.page-fill`） | /ai-history、会话管理、/live-chat | `--layout-gutter` | `--layout-gutter` | 卡片外框**四边与悬浮侧栏卡片对齐**：顶=侧栏顶、底=侧栏底、中缝=侧栏左右外距 |
 | **视口锁定标题页**（`.page-viewport`） | /ai-kanban | `--layout-page-top` | `--layout-gutter` | 有标题但页面内部自管滚动（横向看板） |
 

@@ -37,7 +37,6 @@ const AIConfigPage = lazy(() => import('@/pages/AIConfigPage'));
 const PersonaConfigPage = lazy(() => import('@/pages/PersonaConfigPage'));
 const AICapabilityAgentsPage = lazy(() => import('@/pages/AICapabilityAgentsPage'));
 const AIToolsPage = lazy(() => import('@/pages/AIToolsPage'));
-const AISkillsPage = lazy(() => import('@/pages/AISkillsPage'));
 const AIStatisticsPage = lazy(() => import('@/pages/AIStatisticsPage'));
 const AIMemoryPage = lazy(() => import('@/pages/AIMemoryPage'));
 const AIScheduledTasksPage = lazy(() => import('@/pages/AIScheduledTasksPage'));
@@ -53,9 +52,7 @@ const SettingsPage = lazy(() => import('@/pages/SettingsPage'));
 const NotFound = lazy(() => import('@/pages/NotFound'));
 const BrandSettingsPage = lazy(() => import('@/pages/BrandSettingsPage'));
 const BatchPushPage = lazy(() => import('@/pages/BatchPushPage'));
-const AIArtifactsPage = lazy(() => import('@/pages/AIArtifactsPage'));
-const AIToolOutputsPage = lazy(() => import('@/pages/AIToolOutputsPage'));
-const StateStorePage = lazy(() => import('@/pages/StateStorePage'));
+const AIOutputsPage = lazy(() => import('@/pages/AIOutputsPage'));
 const GroupProfilePage = lazy(() => import('@/pages/GroupProfilePage'));
 const AIOpsPage = lazy(() => import('@/pages/AIOpsPage'));
 const AIRuntimePage = lazy(() => import('@/pages/AIRuntimePage'));
@@ -136,7 +133,8 @@ function AppRoutes() {
           <Route path="mcp-config" element={<MCPConfigPage />} />
           <Route path="ai-capability-agents" element={<AICapabilityAgentsPage />} />
           <Route path="ai-tools" element={<AIToolsPage />} />
-          <Route path="ai-skills" element={<AISkillsPage />} />
+          {/* 技能已并入 /ai-tools 的右侧列，旧深链重定向过去 */}
+          <Route path="ai-skills" element={<Navigate to="/ai-tools" replace />} />
           <Route path="ai-statistics" element={<AIStatisticsPage />} />
           <Route path="ai-scheduled-tasks" element={<AIScheduledTasksPage />} />
           <Route path="ai-knowledge" element={<AIKnowledgePage />} />
@@ -156,7 +154,8 @@ function AppRoutes() {
               </AdminRoute>
             }
           />
-          <Route path="state-store" element={<StateStorePage />} />
+          {/* 状态存储已并入 /ai-kanban 的「数据模式」，旧深链重定向过去 */}
+          <Route path="state-store" element={<Navigate to="/ai-kanban?mode=data" replace />} />
           <Route path="group-profile" element={<GroupProfilePage />} />
           <Route
             path="backup"
@@ -178,8 +177,12 @@ function AppRoutes() {
           />
           <Route path="ai-ops" element={<AIOpsPage />} />
           <Route path="ai-runtime" element={<AIRuntimePage />} />
-          <Route path="ai-artifacts" element={<AIArtifactsPage />} />
-          <Route path="ai-tool-outputs" element={<AIToolOutputsPage />} />
+          {/* 产出物与工具落盘合并页：页签走 ?tab=，侧边栏仍是单个入口 */}
+          <Route path="ai-artifacts" element={<AIOutputsPage />} />
+          <Route
+            path="ai-tool-outputs"
+            element={<Navigate to="/ai-artifacts?tab=toolOutputs" replace />}
+          />
         </Route>
         <Route path="*" element={<NotFound />} />
       </Routes>

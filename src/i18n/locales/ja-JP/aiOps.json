@@ -1,6 +1,4 @@
 {
-  "title": "AI 運用診断",
-  "description": "なぜ AI に入る/入らないか、なぜ送信文が変わるか、アクセス制御と設定バックアップ。",
   "loadFailed": "読込失敗",
   "saveFailed": "保存失敗",
   "saved": "保存しました",

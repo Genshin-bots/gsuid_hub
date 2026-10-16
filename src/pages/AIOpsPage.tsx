@@ -1,14 +1,14 @@
 /**
- * AI 运维诊断中心 — 只保留「别处没有、排障真用得上」的能力：
+ * AI 运维诊断 — 内容已并入 /ai-runtime 的「运维」页签，本文件只留旧路由重定向。
  *
- * 顶栏状态：Bot 在线 / 存活 Session / 续聊窗口（可展开明细）
- * Tab：触发回放 · 黑白名单 · 输出试跑 · 安全策略 · 配置快照
+ * 页签内容（AIOpsPanel）：顶栏状态（Bot 在线 / 存活 Session / 续聊窗口，可展开明细）
+ * + 触发回放 · 黑白名单 · 输出试跑 · 安全策略 · 配置快照。只保留「别处没有、排障真用得上」的能力。
  *
  * 已下线 UI（API 仍保留，见 docs）：工具拓扑 / 意图 / 生命周期 / 多模态 / 插件诊断
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Navigate } from 'react-router-dom';
 import {
-  Activity,
   Bot,
   ChevronDown,
   Download,
@@ -27,7 +27,6 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { PinnedPage } from '@/components/layout/PinnedPage';
 import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -54,7 +53,7 @@ import {
 type TabId = 'trigger' | 'access' | 'output' | 'security' | 'snapshot';
 type DetailKind = 'bots' | 'sessions' | 'followup' | null;
 
-export default function AIOpsPage() {
+export function AIOpsPanel() {
   const { t } = useLanguage();
   const [tab, setTab] = useState<TabId>('trigger');
 
@@ -70,35 +69,26 @@ export default function AIOpsPage() {
   );
 
   return (
-    <PinnedPage
-      header={
-        <div className="min-w-0 sm:overflow-x-auto">
-          <h1 className="sm:whitespace-nowrap text-3xl font-bold flex items-center gap-3">
-            <Activity className="w-8 h-8 shrink-0" />
-            {t('aiOps.title')}
-          </h1>
-          <p className="sm:whitespace-nowrap text-muted-foreground mt-1">
-            {t('aiOps.description')}
-          </p>
-        </div>
-      }
-    >
-      <div className="space-y-4 px-0 pb-6">
-        <RuntimeStatusBar />
-        <TabButtonGroup
-          options={tabs}
-          value={tab}
-          onValueChange={(v) => setTab(v as TabId)}
-          className="w-full max-w-full"
-        />
-        {tab === 'trigger' && <TriggerPanel />}
-        {tab === 'access' && <AccessPanel />}
-        {tab === 'output' && <OutputPanel />}
-        {tab === 'security' && <SecurityPanel />}
-        {tab === 'snapshot' && <SnapshotPanel />}
-      </div>
-    </PinnedPage>
+    <div className="space-y-4">
+      <RuntimeStatusBar />
+      <TabButtonGroup
+        options={tabs}
+        value={tab}
+        onValueChange={(v) => setTab(v as TabId)}
+        className="w-full max-w-full"
+      />
+      {tab === 'trigger' && <TriggerPanel />}
+      {tab === 'access' && <AccessPanel />}
+      {tab === 'output' && <OutputPanel />}
+      {tab === 'security' && <SecurityPanel />}
+      {tab === 'snapshot' && <SnapshotPanel />}
+    </div>
   );
+}
+
+/** 内容已并入 /ai-runtime?tab=ops。保留重定向，避免旧书签 / 文档里的 /ai-ops 直接 404。 */
+export default function AIOpsPage() {
+  return <Navigate to="/ai-runtime?tab=ops" replace />;
 }
 
 function PanelCard({

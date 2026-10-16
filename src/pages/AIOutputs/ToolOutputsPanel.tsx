@@ -1,11 +1,18 @@
 /**
- * /ai-tool-outputs — FileOS 工具落盘浏览
+ * 工具落盘面板 —— 合并页的「工具落盘」页签（原 /ai-tool-outputs）
  *
  * 后端：tool_outputs_api.py（`/api/ai/tool-outputs*`）
- * 与 /ai-artifacts（Kanban res_*）不同：本页管理 to_/sa_ 等工具全文落盘。
+ * 与产出物面板的 res_* 不同：本面板管 FileOS 工具全文落盘（to_ / sa_ 等）。
+ *
+ * 页面壳（标题 / 页签 / 常驻筛选行）由 AIOutputsPage 负责，本文件只出内容：
+ * - ToolOutputsFilters：受控筛选行，挂到合并页 PinnedPage 的 toolbar
+ * - ToolOutputsPanel：列表卡片 + 详情 Dialog
+ *
+ * 筛选 / 翻页状态提升到合并页，列表加载留在本组件内；
+ * 回车 / 查询 / 刷新由合并页递增 refreshKey 触发，不跨组件传函数引用。
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Check, Copy, Download, Eye, FileSearch, RefreshCw, Trash2 } from 'lucide-react';
+import { Check, Copy, Download, Eye, RefreshCw, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -40,48 +47,97 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { headerActionRowClass, PinnedPage } from '@/components/layout/PinnedPage';
+import { tabToolbarControlClass } from '@/components/ui/TabButtonGroup';
 import {
   aiToolOutputsApi,
   getApiErrorMessage,
   type AIToolOutputDetail,
   type AIToolOutputItem,
 } from '@/lib/api';
+import { cn } from '@/lib/utils';
+import { formatBytes, TOOL_ALL } from './constants';
+import { MetaRow } from './shared';
 
-const TOOL_ALL = '__all__';
 const PAGE_SIZE = 50;
 
-function formatBytes(n: number) {
-  if (n < 1024) return `${n} B`;
-  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
-  return `${(n / 1024 / 1024).toFixed(2)} MB`;
+export interface ToolOutputsPanelProps {
+  /** 已提交的查询词（回车 / 点「查询」才写入） */
+  keyword: string;
+  keywordDraft: string;
+  onKeywordDraftChange: (value: string) => void;
+  onSearch: () => void;
+  toolName: string;
+  onToolNameChange: (value: string) => void;
+  toolNames: string[];
+  includeExpired: boolean;
+  onIncludeExpiredChange: (value: boolean) => void;
+  offset: number;
+  onOffsetChange: (value: number) => void;
+  refreshKey: number;
+  onRefresh: () => void;
 }
 
-function MetaRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+/** 常驻筛选行。控件高度对齐 TabButtonGroup 内钮（h-10），与页签行同一视觉节奏。 */
+export function ToolOutputsFilters(props: ToolOutputsPanelProps) {
+  const { t } = useLanguage();
+  const {
+    keywordDraft,
+    onKeywordDraftChange,
+    onSearch,
+    toolName,
+    onToolNameChange,
+    toolNames,
+    includeExpired,
+    onIncludeExpiredChange,
+  } = props;
+
   return (
-    <div className="flex items-baseline gap-2 min-w-0">
-      <dt className="shrink-0 text-muted-foreground">{label}</dt>
-      <dd
-        className={mono ? 'font-mono truncate min-w-0 flex-1' : 'truncate min-w-0 flex-1'}
-        title={value}
-      >
-        {value}
-      </dd>
+    <div className="flex flex-wrap items-end gap-3">
+      <div className="space-y-1 min-w-[200px] flex-1">
+        <Label>{t('aiToolOutputs.toolbar.keyword')}</Label>
+        <Input
+          className={cn(tabToolbarControlClass, 'min-w-0 w-full')}
+          placeholder={t('aiToolOutputs.toolbar.keywordPlaceholder')}
+          value={keywordDraft}
+          onChange={(e) => onKeywordDraftChange(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') onSearch();
+          }}
+        />
+      </div>
+      <div className="space-y-1 min-w-[180px]">
+        <Label>{t('aiToolOutputs.toolbar.toolName')}</Label>
+        <Select value={toolName} onValueChange={onToolNameChange}>
+          <SelectTrigger className={cn(tabToolbarControlClass, 'min-w-0')}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={TOOL_ALL}>{t('aiToolOutputs.toolbar.toolAll')}</SelectItem>
+            {toolNames.map((n) => (
+              <SelectItem key={n} value={n}>
+                {n}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <Button className={cn(tabToolbarControlClass, 'shrink-0')} onClick={onSearch}>
+        {t('aiToolOutputs.toolbar.search')}
+      </Button>
+      <div className="flex items-center gap-2 pb-2">
+        <Switch checked={includeExpired} onCheckedChange={onIncludeExpiredChange} />
+        <Label>{t('aiToolOutputs.toolbar.includeExpired')}</Label>
+      </div>
     </div>
   );
 }
 
-export default function AIToolOutputsPage() {
+export function ToolOutputsPanel(props: ToolOutputsPanelProps) {
   const { t } = useLanguage();
+  const { keyword, toolName, includeExpired, offset, refreshKey, onOffsetChange } = props;
   const [items, setItems] = useState<AIToolOutputItem[]>([]);
   const [total, setTotal] = useState(0);
-  const [offset, setOffset] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [keyword, setKeyword] = useState('');
-  const [keywordDraft, setKeywordDraft] = useState('');
-  const [toolName, setToolName] = useState(TOOL_ALL);
-  const [toolNames, setToolNames] = useState<string[]>([]);
-  const [includeExpired, setIncludeExpired] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [openId, setOpenId] = useState<string | null>(null);
   const [detail, setDetail] = useState<AIToolOutputDetail | null>(null);
@@ -110,20 +166,12 @@ export default function AIToolOutputsPage() {
     }
   }, [keyword, toolName, includeExpired, offset, t]);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  const loadRef = useRef(load);
+  loadRef.current = load;
 
   useEffect(() => {
-    (async () => {
-      try {
-        const res = await aiToolOutputsApi.toolNames();
-        setToolNames(res.tool_names ?? []);
-      } catch {
-        // 后端未升级时忽略
-      }
-    })();
-  }, []);
+    void loadRef.current();
+  }, [keyword, toolName, includeExpired, offset, refreshKey]);
 
   useEffect(() => {
     if (!openId && payloadCopyTimerRef.current) {
@@ -137,11 +185,6 @@ export default function AIToolOutputsPage() {
       }
     };
   }, [openId]);
-
-  const applySearch = () => {
-    setOffset(0);
-    setKeyword(keywordDraft.trim());
-  };
 
   const openDetail = async (id: string) => {
     setOpenId(id);
@@ -160,7 +203,7 @@ export default function AIToolOutputsPage() {
       await aiToolOutputsApi.delete(id);
       toast.success(t('aiToolOutputs.messages.deleted'));
       if (openId === id) setOpenId(null);
-      load();
+      void loadRef.current();
     } catch (e) {
       toast.error(getApiErrorMessage(e, t('aiToolOutputs.messages.deletedFail')));
     }
@@ -190,7 +233,7 @@ export default function AIToolOutputsPage() {
     try {
       const res = await aiToolOutputsApi.batchDelete(ids);
       toast.success(t('aiToolOutputs.messages.batchDeleted', { count: res.deleted }));
-      load();
+      void loadRef.current();
     } catch (e) {
       toast.error(getApiErrorMessage(e, t('aiToolOutputs.messages.deletedFail')));
     }
@@ -243,93 +286,31 @@ export default function AIToolOutputsPage() {
   const canNext = offset + PAGE_SIZE < total;
 
   return (
-    <PinnedPage
-      className="gap-6"
-      header={
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div className="min-w-0">
-            <h1 className="text-3xl font-bold flex items-center gap-3">
-              <FileSearch className="w-8 h-8 shrink-0" />
-              {t('aiToolOutputs.title')}
-            </h1>
-            <p className="text-muted-foreground mt-1">{t('aiToolOutputs.description')}</p>
+    <>
+      <Card className="glass-card">
+        <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
+          <div className="min-w-0 space-y-1.5">
+            <CardTitle>{t('aiToolOutputs.title')}</CardTitle>
+            <CardDescription>
+              {t('aiToolOutputs.modeSummary', {
+                from: pageFrom,
+                to: pageTo,
+                total,
+              })}
+            </CardDescription>
           </div>
-          <div className={headerActionRowClass}>
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
             {selected.size > 0 && (
               <Button variant="destructive" className="whitespace-nowrap" onClick={removeBatch}>
                 <Trash2 className="w-4 h-4" />
                 {t('aiToolOutputs.toolbar.batchDelete', { count: selected.size })}
               </Button>
             )}
-            <Button variant="outline" className="whitespace-nowrap" onClick={load}>
+            <Button variant="outline" className="whitespace-nowrap" onClick={props.onRefresh}>
               <RefreshCw className="w-4 h-4" />
               {t('aiToolOutputs.toolbar.refresh')}
             </Button>
           </div>
-        </div>
-      }
-      toolbar={
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="space-y-1 min-w-[200px] flex-1">
-            <Label>{t('aiToolOutputs.toolbar.keyword')}</Label>
-            <Input
-              className="h-9"
-              placeholder={t('aiToolOutputs.toolbar.keywordPlaceholder')}
-              value={keywordDraft}
-              onChange={(e) => setKeywordDraft(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') applySearch();
-              }}
-            />
-          </div>
-          <div className="space-y-1 min-w-[180px]">
-            <Label>{t('aiToolOutputs.toolbar.toolName')}</Label>
-            <Select
-              value={toolName}
-              onValueChange={(v) => {
-                setToolName(v);
-                setOffset(0);
-              }}
-            >
-              <SelectTrigger className="h-9">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={TOOL_ALL}>{t('aiToolOutputs.toolbar.toolAll')}</SelectItem>
-                {toolNames.map((n) => (
-                  <SelectItem key={n} value={n}>
-                    {n}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <Button className="h-9" onClick={applySearch}>
-            {t('aiToolOutputs.toolbar.search')}
-          </Button>
-          <div className="flex items-center gap-2 pb-1.5">
-            <Switch
-              checked={includeExpired}
-              onCheckedChange={(v) => {
-                setIncludeExpired(v);
-                setOffset(0);
-              }}
-            />
-            <Label>{t('aiToolOutputs.toolbar.includeExpired')}</Label>
-          </div>
-        </div>
-      }
-    >
-      <Card className="glass-card">
-        <CardHeader>
-          <CardTitle>{t('aiToolOutputs.title')}</CardTitle>
-          <CardDescription>
-            {t('aiToolOutputs.modeSummary', {
-              from: pageFrom,
-              to: pageTo,
-              total,
-            })}
-          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {loading ? (
@@ -496,7 +477,7 @@ export default function AIToolOutputsPage() {
                 variant="outline"
                 className="h-9"
                 disabled={!canPrev || loading}
-                onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}
+                onClick={() => onOffsetChange(Math.max(0, offset - PAGE_SIZE))}
               >
                 {t('aiToolOutputs.pagination.prev')}
               </Button>
@@ -504,7 +485,7 @@ export default function AIToolOutputsPage() {
                 variant="outline"
                 className="h-9"
                 disabled={!canNext || loading}
-                onClick={() => setOffset(offset + PAGE_SIZE)}
+                onClick={() => onOffsetChange(offset + PAGE_SIZE)}
               >
                 {t('aiToolOutputs.pagination.next')}
               </Button>
@@ -601,6 +582,6 @@ export default function AIToolOutputsPage() {
           </Tabs>
         </DialogContent>
       </Dialog>
-    </PinnedPage>
+    </>
   );
 }

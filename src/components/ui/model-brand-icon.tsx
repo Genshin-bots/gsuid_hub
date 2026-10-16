@@ -223,18 +223,45 @@ export function ModelBrandIcon({ modelName, provider, size = 16, className }: Mo
 }
 
 /**
+ * 只按模型名匹配厂商；匹配不到任何规则时返回 `null`（**不做 provider 兜底**）。
+ */
+function matchBrandRule(modelName?: string | null): BrandRule | null {
+  const haystack = `${modelName ?? ''}`.trim();
+  if (!haystack) return null;
+  for (const rule of BRAND_RULES) {
+    if (matches(rule.pattern, haystack)) return rule;
+  }
+  return null;
+}
+
+/**
+ * 「只有模型名、拿不到 provider」场景的品牌图标（如 AI 历史里 span 上的模型名）。
+ *
+ * `ModelBrandIcon` 在匹配不到时会用 provider 兜底 —— 缺 provider 时就一律画出 OpenAI Logo，
+ * 把本地 / 私有模型误标成 OpenAI。这里匹配不到就**什么都不渲染**，由调用方自行决定怎么展示。
+ */
+export function ModelBrandIconIfKnown({
+  modelName,
+  size = 16,
+  className,
+}: {
+  modelName?: string | null;
+  size?: number;
+  className?: string;
+}) {
+  if (!matchBrandRule(modelName)) return null;
+  return <ModelBrandIcon modelName={modelName} size={size} className={className} />;
+}
+
+/**
  * 对外暴露：只解析规则，不渲染。便于在其它组件里复用匹配结果。
  */
 export function resolveBrandRule(
   modelName?: string | null,
   provider?: ProviderName | null,
 ): BrandRule {
-  const haystack = `${modelName ?? ''}`.trim();
-  if (haystack) {
-    for (const rule of BRAND_RULES) {
-      if (matches(rule.pattern, haystack)) return rule;
-    }
-  }
+  const matched = matchBrandRule(modelName);
+  if (matched) return matched;
   // provider 兜底：直接把 `provider` 名映射到厂商图标，避免「Ling」模型用 OpenAI logo
   switch (provider) {
     case 'anthropic':

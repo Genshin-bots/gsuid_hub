@@ -15,8 +15,7 @@
   "personaConfig": "Persona Config",
   "mcpConfig": "MCP Config",
   "aiCapabilityAgents": "Capability Agents",
-  "aiTools": "AI Tools",
-  "aiSkills": "AI Skills",
+  "aiTools": "AI Tools & Skills",
   "aiStatistics": "AI Statistics",
   "aiScheduledTasks": "AI Scheduled Tasks",
   "aiKnowledge": "Knowledge Base",
@@ -28,8 +27,7 @@
   "aiKanban": "Task Kanban",
   "aiApprovals": "Approval Center",
   "aiBudget": "AI Budget",
-  "aiArtifacts": "AI Artifacts",
-  "aiToolOutputs": "Tool Outputs",
+  "aiOutputs": "Artifacts & Outputs",
   "batchPush": "Batch Push",
   "brandSettings": "Brand",
   "plugins": "Plugin Settings",
@@ -76,8 +74,6 @@
   "confirmResumeTitle": "Are you sure you want to resume GsCore?",
   "confirmResumeDesc": "Your bot will continue running after clicking the button",
   "settings": "Settings",
-  "stateStore": "State Store",
   "groupProfile": "Group Profile",
-  "aiOps": "AI Ops Center",
   "aiRuntime": "Agent Runtime"
 }

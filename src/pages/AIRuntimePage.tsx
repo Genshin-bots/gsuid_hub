@@ -7,6 +7,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
+  Activity,
   AlertTriangle,
   Boxes,
   Globe,
@@ -65,6 +66,7 @@ import {
   type RelationshipViewData,
 } from '@/lib/api';
 import { GroupProfilePanel } from '@/pages/GroupProfilePage';
+import { AIOpsPanel } from '@/pages/AIOpsPage';
 import {
   isCognitionBackendMissing,
   isWorldHub,
@@ -72,9 +74,9 @@ import {
   pluginFromWorldRef,
 } from '@/lib/cognition';
 
-type TabId = 'relationship' | 'slots' | 'hooks' | 'cognition' | 'group';
+type TabId = 'relationship' | 'slots' | 'hooks' | 'cognition' | 'group' | 'ops';
 
-const TAB_IDS: TabId[] = ['relationship', 'slots', 'hooks', 'cognition', 'group'];
+const TAB_IDS: TabId[] = ['relationship', 'slots', 'hooks', 'cognition', 'group', 'ops'];
 
 function isTabId(value: string | null): value is TabId {
   return value !== null && (TAB_IDS as string[]).includes(value);
@@ -163,6 +165,7 @@ export default function AIRuntimePage() {
         label: t('aiRuntime.tabs.group'),
         icon: <Users className="w-4 h-4" />,
       },
+      { value: 'ops', label: t('aiRuntime.tabs.ops'), icon: <Activity className="w-4 h-4" /> },
     ],
     [t],
   );
@@ -206,6 +209,7 @@ export default function AIRuntimePage() {
       {tab === 'relationship' && <RelationshipPanel />}
       {tab === 'cognition' && <CognitionPanel />}
       {tab === 'group' && <GroupProfilePanel bindRefresh={bindRefresh} />}
+      {tab === 'ops' && <AIOpsPanel />}
     </PinnedPage>
   );
 }

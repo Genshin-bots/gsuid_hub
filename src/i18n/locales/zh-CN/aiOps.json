@@ -1,6 +1,4 @@
 {
-  "title": "AI 运维诊断中心",
-  "description": "回答：为什么进/不进 AI、为什么出/不出话；以及门禁与配置备份。",
   "loadFailed": "加载失败",
   "saveFailed": "保存失败",
   "saved": "已保存",

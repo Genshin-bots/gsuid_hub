@@ -8,7 +8,8 @@
     "hooks": "Hook",
     "relationship": "关系温度",
     "cognition": "认知索引",
-    "group": "群组画像"
+    "group": "群组画像",
+    "ops": "运维诊断"
   },
   "slots": {
     "count": "共 {count} 个槽",

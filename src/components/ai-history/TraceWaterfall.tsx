@@ -13,6 +13,7 @@ import { cn, formatTokens } from '@/lib/utils';
 import type { SessionLogEntry, HistoryResetReason, AITool } from '@/lib/api';
 import { aiToolsApi } from '@/lib/api';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { ModelBrandIconIfKnown } from '@/components/ui/model-brand-icon';
 import {
   ChevronRight,
   ChevronDown,
@@ -885,6 +886,22 @@ function TokenBadges({ sp }: { sp: TraceSpan }) {
   );
 }
 
+// 模型名胶囊：前缀挂厂商品牌 ICON，匹配规则复用 /ai-config 的 ModelBrandIcon。
+// 这里只有模型名、拿不到 provider，匹配不到已知厂商就不画图标（避免把私有模型标成 OpenAI）。
+function ModelChip({ model, className }: { model: string; className?: string }) {
+  return (
+    <span
+      className={cn(
+        'hidden lg:inline-flex items-center gap-1 min-w-0 max-w-44 shrink-0 text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-muted/70 text-muted-foreground border border-border/40',
+        className,
+      )}
+    >
+      <ModelBrandIconIfKnown modelName={model} size={12} />
+      <span className="truncate">{model}</span>
+    </span>
+  );
+}
+
 // ============================================================================
 // 行渲染（块内：树行 + 局部时间轴）
 // ============================================================================
@@ -1024,11 +1041,7 @@ function SpanRow({ sp, depth, ctx }: { sp: TraceSpan; depth: number; ctx: RowCtx
               {childCount}
             </span>
           )}
-          {sp.kind === 'chat' && sp.model && (
-            <span className="hidden lg:inline-block shrink-0 max-w-44 truncate text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-muted/70 text-muted-foreground border border-border/40">
-              {sp.model}
-            </span>
-          )}
+          {sp.kind === 'chat' && sp.model && <ModelChip model={sp.model} />}
           {preview && (
             <span className="flex-1 min-w-0 truncate text-xs text-muted-foreground/60">
               {preview}
@@ -1149,11 +1162,7 @@ function RunBlock({ sp, base }: { sp: TraceSpan; base: RowBase }) {
               {sp.children.length}
             </span>
           )}
-          {sp.model && (
-            <span className="hidden lg:inline-block shrink-0 max-w-44 truncate text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-muted/70 text-muted-foreground border border-border/40">
-              {sp.model}
-            </span>
-          )}
+          {sp.model && <ModelChip model={sp.model} />}
           <TokenBadges sp={sp} />
           <span className="ml-auto shrink-0 pl-2 text-[11px] text-muted-foreground/60 font-mono tabular-nums">
             {formatTimeOnly(sp.start)}

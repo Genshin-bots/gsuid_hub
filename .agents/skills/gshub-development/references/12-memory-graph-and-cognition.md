@@ -62,8 +62,8 @@
 | handle / kind | 去哪 |
 |---------------|------|
 | `kb_plugin:` / `kb_kbdoc:` / `kb_*` | `/ai-knowledge` |
-| `to_` / `sa_` | `/ai-tool-outputs` |
-| `res_` / `artifact` | `/ai-artifacts` |
+| `to_` / `sa_` | `/ai-artifacts?tab=toolOutputs`（合并页的工具落盘页签） |
+| `res_` / `artifact` | `/ai-artifacts`（合并页的产出物页签） |
 | episode / entity / preference / self_note | `/ai-memory` |
 
 知识页目前没有按 `doc_id` 深链，跳到知识库首页即可。`writable=true` 的是 Agent / 网页补文，只读的是插件篇——UI 必须能分清，避免运维把只读篇当成可改。

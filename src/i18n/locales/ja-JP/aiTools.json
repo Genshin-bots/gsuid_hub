@@ -1,6 +1,6 @@
 {
-  "title": "AI ツール",
-  "description": "AIで利用できるツール関数を表示・管理します。分類やプラグインで絞り込めます",
+  "title": "AI ツールと AI スキル",
+  "description": "AIで利用できるツール関数とスキルパックを表示・管理します。分類やプラグインで絞り込めます",
   "loadFailed": "AIツールの読込に失敗",
   "noTools": "利用可能な AI ツールがありません",
   "filterAll": "すべて",
@@ -10,17 +10,15 @@
   "allPlugins": "すべてのプラグイン",
   "selectCategory": "分類を選択",
   "selectPlugin": "プラグインを選択",
-  "toolCount": "{count} / {total} ツールを表示",
   "searchPlaceholder": "ツール名または説明のキーワード…",
   "tabs": {
     "tools": "ツール一覧",
     "assemble": "組立プレビュー",
-    "entityIndex": "エンティティ索引"
+    "entityIndex": "エンティティ索引",
+    "skills": "スキル一覧"
   },
   "diagnostics": {
-    "ok": "正常",
     "emptyDescription": "説明なし",
-    "meta": "meta",
     "filterAll": "すべて",
     "filterIssues": "問題あり",
     "filterEmpty": "説明なし"

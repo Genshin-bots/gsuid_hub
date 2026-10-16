@@ -1611,7 +1611,8 @@ export default function PersonaConfigPage() {
               </span>
             </div>
           )}
-        {/* 人格列表 - 响应式网格布局 */}
+        {/* 人格列表 - 固定列数的响应式网格。不用 auto-fit：空轨道会被折叠成 0，
+            只剩一张卡时它就被拉满整行；卡片内部本就是 5 等分范围胶囊的窄卡设计。 */}
         {isLoading ? (
           <div className="flex items-center justify-center h-64">
             <Loader2 className="w-8 h-8 animate-spin" />
@@ -1639,7 +1640,7 @@ export default function PersonaConfigPage() {
             </div>
           </>
         ) : (
-          <div className="glass-card-grid grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-[repeat(auto-fit,minmax(min(100%,380px),1fr))]">
+          <div className="glass-card-grid grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-2 2xl:grid-cols-3">
             {personaCards.map(renderPersonaCard)}
           </div>
         )}

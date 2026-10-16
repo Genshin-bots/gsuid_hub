@@ -20,7 +20,6 @@ import {
   ChevronDown,
   ChevronRight,
   Wrench,
-  Sparkles,
   BookOpen,
   History,
   TrendingUp,
@@ -37,7 +36,6 @@ import {
   PackageOpen,
   Send,
   MessageCircle,
-  FileSearch,
   Puzzle,
   Globe,
 } from 'lucide-react';
@@ -183,7 +181,6 @@ const getNavItems = (
           icon: Layers,
         },
         { id: 'ai-tools', title: t('sidebar.aiTools'), url: '/ai-tools', icon: Wrench },
-        { id: 'ai-skills', title: t('sidebar.aiSkills'), url: '/ai-skills', icon: Sparkles },
         {
           id: 'ai-statistics',
           title: t('sidebar.aiStatistics'),
@@ -206,26 +203,19 @@ const getNavItems = (
         { id: 'ai-memory', title: t('sidebar.aiMemory'), url: '/ai-memory', icon: Brain },
         { id: 'ai-history', title: t('sidebar.aiHistory'), url: '/ai-history', icon: ScrollText },
         { id: 'ai-kanban', title: t('sidebar.aiKanban'), url: '/ai-kanban', icon: ClipboardList },
-        { id: 'ai-stateStore', title: t('sidebar.stateStore'), url: '/state-store', icon: HardDrive },
         {
           id: 'ai-approvals',
           title: t('sidebar.aiApprovals'),
           url: '/ai-approvals',
           icon: ShieldCheck,
         },
-        { id: 'ai-ops', title: t('sidebar.aiOps'), url: '/ai-ops', icon: Activity },
         { id: 'ai-runtime', title: t('sidebar.aiRuntime'), url: '/ai-runtime', icon: Puzzle },
+        // 产出物 + 工具落盘合并为一个入口，页内用 TabButtonGroup 切换两块资源
         {
           id: 'ai-artifacts',
-          title: t('sidebar.aiArtifacts'),
+          title: t('sidebar.aiOutputs'),
           url: '/ai-artifacts',
           icon: PackageOpen,
-        },
-        {
-          id: 'ai-tool-outputs',
-          title: t('sidebar.aiToolOutputs'),
-          url: '/ai-tool-outputs',
-          icon: FileSearch,
         },
       ]
     : [

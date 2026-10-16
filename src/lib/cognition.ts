@@ -31,7 +31,8 @@ export function pluginFromWorldRef(ref: string): string {
 }
 
 export function cognitionHandleHref(handle: string, kind?: string): string | null {
-  if (handle.startsWith('to_') || handle.startsWith('sa_')) return '/ai-tool-outputs';
+  // 产出物与工具落盘合并在 /ai-artifacts，用 ?tab= 直接落到对应页签
+  if (handle.startsWith('to_') || handle.startsWith('sa_')) return '/ai-artifacts?tab=toolOutputs';
   if (handle.startsWith('res_') || kind === 'artifact') return '/ai-artifacts';
   if (handle.startsWith('kb_') || kind === 'knowledge') {
     return '/ai-knowledge';

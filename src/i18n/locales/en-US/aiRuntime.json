@@ -8,7 +8,8 @@
     "hooks": "Hooks",
     "relationship": "Relationship",
     "cognition": "Cognition",
-    "group": "Group profile"
+    "group": "Group profile",
+    "ops": "Ops diagnostics"
   },
   "slots": {
     "count": "{count} slots",

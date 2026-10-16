@@ -1,13 +1,16 @@
-import { useState, useEffect, useMemo } from 'react';
-import { useTheme } from '@/contexts/ThemeContext';
-import { useLanguage } from '@/contexts/LanguageContext';
-import { cn } from '@/lib/utils';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
+/**
+ * /ai-tools「技能列表」页签的面板（原 /ai-skills 整页内容）
+ *
+ * 原 /ai-skills 已并入 /ai-tools：技能列表成为工具页签组里的第 4 个页签，
+ * 承担技能列表 + 详情 + Git 克隆安装 + Markdown 编辑 + 删除。
+ *
+ * 「添加技能」按钮不在本组件里：页签同行的操作按钮统一放页面 toolbar
+ * （AGENTS.md §三 页面内操作按钮 1），因此新增弹窗的开合状态由父组件传进来。
+ */
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Sparkles,
   AlertCircle,
-  Plus,
   Trash2,
   Edit2,
   GitBranch,
@@ -18,9 +21,15 @@ import {
   FolderOpen,
   Loader2,
 } from 'lucide-react';
-import { aiSkillsApi, getApiErrorMessage, type AISkill, type AISkillDetail } from '@/lib/api';
-import { toast } from 'sonner';
-import { PinnedPage } from '@/components/layout/PinnedPage';
+import { cn } from '@/lib/utils';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -28,11 +37,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -43,10 +47,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-
-// ============================================================================
-// 类型定义
-// ============================================================================
+import { aiSkillsApi, getApiErrorMessage, type AISkill, type AISkillDetail } from '@/lib/api';
+import { toast } from 'sonner';
 
 interface ParsedSkill {
   name: string;
@@ -56,14 +58,10 @@ interface ParsedSkill {
   content: string;
 }
 
-// ============================================================================
-// 工具函数
-// ============================================================================
-
 function parseSkillDescription(skill: AISkill): ParsedSkill {
   const lines = skill.description.split('\n');
   const firstLine = lines[0];
-  // 如果第一行字数小于11，则作为标题
+  // 第一行很短则视为标题，否则用技能名兜底
   const title = firstLine.length < 11 ? firstLine : skill.name;
 
   // Args 之前的所有内容作为简介
@@ -76,28 +74,25 @@ function parseSkillDescription(skill: AISkill): ParsedSkill {
       summaryLines.push(line.trim());
     }
   }
-  // 去掉第一行（标题行），保留换行
-  const summary = summaryLines.slice(1).join('\n') || skill.description;
 
   return {
     name: skill.name,
     title,
-    summary,
+    summary: summaryLines.slice(1).join('\n') || skill.description,
     fullDescription: skill.description,
     content: skill.content || skill.description,
   };
 }
 
-// ============================================================================
-// 组件定义
-// ============================================================================
+interface SkillsPanelProps {
+  /** 新增技能弹窗的开合状态由页面 toolbar 的按钮持有 */
+  addDialogOpen: boolean;
+  onAddDialogOpenChange: (open: boolean) => void;
+}
 
-export default function AISkillsPage() {
-  const { style } = useTheme();
+export default function SkillsPanel({ addDialogOpen, onAddDialogOpenChange }: SkillsPanelProps) {
   const { t } = useLanguage();
-  const isGlass = style !== 'solid';
 
-  // 状态
   const [skills, setSkills] = useState<AISkill[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -105,8 +100,7 @@ export default function AISkillsPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
 
-  // 新增技能弹窗状态
-  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  // 新增技能弹窗内容
   const [gitUrl, setGitUrl] = useState('');
   const [skillName, setSkillName] = useState('');
   const [updateIfExists, setUpdateIfExists] = useState(false);
@@ -124,28 +118,40 @@ export default function AISkillsPage() {
   const [isLoadingMarkdown, setIsLoadingMarkdown] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // 解析后的技能列表
-  const parsedSkills = useMemo(() => {
-    return skills.map((skill) => parseSkillDescription(skill));
-  }, [skills]);
+  const parsedSkills = useMemo(() => skills.map((skill) => parseSkillDescription(skill)), [skills]);
 
-  // 加载技能列表
+  /** 克隆 / 删除后复用，避免每个操作里重写一遍「刷新列表」 */
+  const reloadSkills = useCallback(async () => {
+    try {
+      const data = await aiSkillsApi.getSkillsList();
+      setSkills(data.skills || []);
+      setError(null);
+    } catch (err) {
+      setError(getApiErrorMessage(err, t('aiSkills.loadFailed')));
+    }
+  }, [t]);
+
   useEffect(() => {
-    const fetchSkills = async () => {
+    let cancelled = false;
+    (async () => {
       try {
         setIsLoading(true);
-        setError(null);
         const data = await aiSkillsApi.getSkillsList();
+        if (cancelled) return;
         setSkills(data.skills || []);
+        setError(null);
       } catch (err) {
-        setError(err instanceof Error ? err.message : t('aiSkills.loadFailed'));
-        toast.error(err instanceof Error ? err.message : t('aiSkills.loadFailed'));
+        if (cancelled) return;
+        const message = getApiErrorMessage(err, t('aiSkills.loadFailed'));
+        setError(message);
+        toast.error(message);
       } finally {
-        setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       }
+    })();
+    return () => {
+      cancelled = true;
     };
-
-    fetchSkills();
   }, [t]);
 
   const handleSkillClick = async (skill: ParsedSkill) => {
@@ -155,14 +161,13 @@ export default function AISkillsPage() {
       const detail = await aiSkillsApi.getSkillDetail(skill.name);
       setSelectedSkill(detail);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t('aiSkills.loadDetailFailed'));
+      toast.error(getApiErrorMessage(err, t('aiSkills.loadDetailFailed')));
       setSelectedSkill(null);
     } finally {
       setIsLoadingDetail(false);
     }
   };
 
-  // 处理新增技能
   const handleAddSkill = async () => {
     if (!gitUrl.trim()) {
       toast.error(t('aiSkills.gitUrlPlaceholder'));
@@ -173,13 +178,11 @@ export default function AISkillsPage() {
     try {
       await aiSkillsApi.cloneSkill(gitUrl.trim(), skillName.trim() || undefined, updateIfExists);
       toast.success(t('aiSkills.cloneSuccess'));
-      setAddDialogOpen(false);
+      onAddDialogOpenChange(false);
       setGitUrl('');
       setSkillName('');
       setUpdateIfExists(false);
-      // 刷新列表
-      const data = await aiSkillsApi.getSkillsList();
-      setSkills(data.skills || []);
+      await reloadSkills();
     } catch (err) {
       toast.error(getApiErrorMessage(err, t('aiSkills.cloneFailed')));
     } finally {
@@ -187,9 +190,7 @@ export default function AISkillsPage() {
     }
   };
 
-  // 处理删除技能
-  const handleDeleteClick = (e: React.MouseEvent, skill: ParsedSkill) => {
-    e.stopPropagation();
+  const handleDeleteClick = (skill: ParsedSkill) => {
     setSkillToDelete(skill);
     setDeleteDialogOpen(true);
   };
@@ -203,36 +204,30 @@ export default function AISkillsPage() {
       toast.success(t('aiSkills.deleteSuccess'));
       setDeleteDialogOpen(false);
       setSkillToDelete(null);
-      // 刷新列表
-      const data = await aiSkillsApi.getSkillsList();
-      setSkills(data.skills || []);
+      await reloadSkills();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t('aiSkills.deleteFailed'));
+      toast.error(getApiErrorMessage(err, t('aiSkills.deleteFailed')));
     } finally {
       setIsDeleting(false);
     }
   };
 
-  // 处理编辑技能
-  const handleEditClick = async (e: React.MouseEvent, skill: ParsedSkill) => {
-    e.stopPropagation();
+  const handleEditClick = async (skill: ParsedSkill) => {
     setSkillToEdit(skill);
     setEditDialogOpen(true);
     setIsLoadingMarkdown(true);
     setEditContent('');
 
     try {
-      // 直接使用 ParsedSkill 中已有的 content 字段（来自列表接口）
+      // 列表接口已带 content，优先直接用；缺失时再打 markdown 接口
       if (skill.content) {
         setEditContent(skill.content);
       } else {
-        // 如果没有 content，调用 markdown 接口作为后备
         const markdown = await aiSkillsApi.getSkillMarkdown(skill.name);
         setEditContent(markdown.content);
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t('aiSkills.loadDetailFailed'));
-      // 使用 fullDescription 作为最后后备
+      toast.error(getApiErrorMessage(err, t('aiSkills.loadDetailFailed')));
       setEditContent(skill.fullDescription);
     } finally {
       setIsLoadingMarkdown(false);
@@ -250,57 +245,27 @@ export default function AISkillsPage() {
       setSkillToEdit(null);
       setEditContent('');
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t('aiSkills.saveFailed'));
+      toast.error(getApiErrorMessage(err, t('aiSkills.saveFailed')));
     } finally {
       setIsSaving(false);
     }
   };
 
   return (
-    <PinnedPage
-      header={
-        /* 页面标题 */
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div className="min-w-0 sm:overflow-x-auto">
-            <h1 className="sm:whitespace-nowrap text-3xl font-bold flex items-center gap-3">
-              <Sparkles className="w-8 h-8 shrink-0" />
-              {t('aiSkills.title')}
-            </h1>
-            <p className="sm:whitespace-nowrap text-muted-foreground mt-1">
-              {t('aiSkills.description')}
-            </p>
-          </div>
-          {/* 新增技能按钮 */}
-          <Button
-            onClick={() => setAddDialogOpen(true)}
-            className="w-full gap-2 whitespace-nowrap sm:w-auto"
-          >
-            <Plus className="h-4 w-4" />
-            {t('aiSkills.addSkill')}
-          </Button>
-        </div>
-      }
-    >
-      {/* 错误提示 */}
+    <>
       {error && (
-        <Card
-          className={cn(
-            'border-destructive/50',
-            'glass-card',
-          )}
-        >
+        <Card className="border-destructive/50 glass-card">
           <CardContent className="flex items-center gap-3 p-4 text-destructive">
-            <AlertCircle className="w-5 h-5" />
-            <span>{error}</span>
+            <AlertCircle className="w-5 h-5 shrink-0" />
+            <span className="min-w-0 break-words">{error}</span>
           </CardContent>
         </Card>
       )}
 
-      {/* 技能列表 */}
       {isLoading ? (
-        <div className="glass-card-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Card key={i} className={cn('glass-card')}>
+        <div className="glass-card-grid grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {['a', 'b', 'c', 'd', 'e', 'f'].map((key) => (
+            <Card key={key} className="glass-card">
               <CardHeader>
                 <Skeleton className="h-6 w-3/4" />
               </CardHeader>
@@ -312,43 +277,45 @@ export default function AISkillsPage() {
           ))}
         </div>
       ) : parsedSkills.length === 0 ? (
-        <Card className={cn('glass-card')}>
+        <Card className="glass-card">
           <CardContent className="flex flex-col items-center justify-center !p-8 text-center text-muted-foreground">
             <Sparkles className="w-12 h-12 mb-4 opacity-50" />
             <p>{t('aiSkills.noSkills')}</p>
           </CardContent>
         </Card>
       ) : (
-        <div className="glass-card-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="glass-card-grid grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           {parsedSkills.map((skill) => (
             <Card
               key={skill.name}
               className={cn(
-                'relative transition-colors hover:border-primary/50',
+                'relative cursor-pointer transition-colors hover:border-primary/50',
                 'glass-card',
               )}
-              onClick={() => handleSkillClick(skill)}
+              onClick={() => void handleSkillClick(skill)}
             >
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 sm:pr-20">
                   <Sparkles className="w-5 h-5 text-primary shrink-0" />
-                  <span className="text-lg truncate">{skill.title}</span>
+                  <span className="truncate text-lg">{skill.title}</span>
                 </CardTitle>
-                <CardDescription className="text-xs text-muted-foreground font-mono break-all">
+                <CardDescription className="break-all font-mono text-xs text-muted-foreground">
                   {skill.name}
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground whitespace-pre-wrap line-clamp-3">
+                <p className="line-clamp-3 whitespace-pre-wrap text-sm text-muted-foreground">
                   {skill.summary}
                 </p>
-                {/* 右下角操作按钮 */}
-                <div className="flex justify-end gap-1 mt-4">
+                <div className="mt-4 flex justify-end gap-1">
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={(e) => handleEditClick(e, skill)}
-                    className="h-8 px-3 gap-1.5"
+                    className="h-8 gap-1.5 px-3"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void handleEditClick(skill);
+                    }}
                   >
                     <Edit2 className="h-3.5 w-3.5" />
                     {t('aiSkills.edit')}
@@ -356,8 +323,11 @@ export default function AISkillsPage() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={(e) => handleDeleteClick(e, skill)}
-                    className="h-8 px-3 text-destructive hover:text-destructive gap-1.5"
+                    className="h-8 gap-1.5 px-3 text-destructive hover:text-destructive"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteClick(skill);
+                    }}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                     {t('aiSkills.delete')}
@@ -387,7 +357,6 @@ export default function AISkillsPage() {
             </div>
           ) : selectedSkill ? (
             <div className="mt-4 space-y-4">
-              {/* 技能描述 */}
               {selectedSkill.description && (
                 <div>
                   <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
@@ -400,7 +369,6 @@ export default function AISkillsPage() {
                 </div>
               )}
 
-              {/* Markdown 内容 */}
               {selectedSkill.content && (
                 <div>
                   <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
@@ -413,7 +381,6 @@ export default function AISkillsPage() {
                 </div>
               )}
 
-              {/* 许可证 */}
               {selectedSkill.license && (
                 <div>
                   <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
@@ -424,7 +391,6 @@ export default function AISkillsPage() {
                 </div>
               )}
 
-              {/* 兼容性 */}
               {selectedSkill.compatibility && (
                 <div>
                   <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
@@ -435,7 +401,6 @@ export default function AISkillsPage() {
                 </div>
               )}
 
-              {/* 资源列表 */}
               {selectedSkill.resources && selectedSkill.resources.length > 0 && (
                 <div>
                   <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
@@ -443,8 +408,11 @@ export default function AISkillsPage() {
                     {t('aiSkills.resources')}
                   </h3>
                   <ul className="space-y-1">
-                    {selectedSkill.resources.map((resource, index) => (
-                      <li key={index} className="text-sm text-muted-foreground">
+                    {selectedSkill.resources.map((resource) => (
+                      <li
+                        key={resource.uri || resource.name}
+                        className="text-sm text-muted-foreground"
+                      >
                         <span className="font-mono">{resource.name}</span>
                         {resource.description && `: ${resource.description}`}
                       </li>
@@ -453,7 +421,6 @@ export default function AISkillsPage() {
                 </div>
               )}
 
-              {/* 脚本列表 */}
               {selectedSkill.scripts && selectedSkill.scripts.length > 0 && (
                 <div>
                   <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
@@ -461,8 +428,8 @@ export default function AISkillsPage() {
                     {t('aiSkills.scripts')}
                   </h3>
                   <ul className="space-y-1">
-                    {selectedSkill.scripts.map((script, index) => (
-                      <li key={index} className="text-sm text-muted-foreground">
+                    {selectedSkill.scripts.map((script) => (
+                      <li key={script.uri || script.name} className="text-sm text-muted-foreground">
                         <span className="font-mono">{script.name}</span>
                         {script.description && `: ${script.description}`}
                       </li>
@@ -471,7 +438,6 @@ export default function AISkillsPage() {
                 </div>
               )}
 
-              {/* 路径信息 */}
               <div>
                 <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
                   <FolderOpen className="w-4 h-4" />
@@ -487,7 +453,7 @@ export default function AISkillsPage() {
       </Dialog>
 
       {/* 新增技能弹窗 */}
-      <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+      <Dialog open={addDialogOpen} onOpenChange={onAddDialogOpenChange}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -498,18 +464,18 @@ export default function AISkillsPage() {
           </DialogHeader>
           <div className="space-y-4 mt-4">
             <div className="space-y-2">
-              <Label htmlFor="gitUrl">{t('aiSkills.gitUrl')}</Label>
+              <Label htmlFor="skillGitUrl">{t('aiSkills.gitUrl')}</Label>
               <Input
-                id="gitUrl"
+                id="skillGitUrl"
                 placeholder={t('aiSkills.gitUrlPlaceholder')}
                 value={gitUrl}
                 onChange={(e) => setGitUrl(e.target.value)}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="skillName">{t('aiSkills.skillName')}</Label>
+              <Label htmlFor="skillNewName">{t('aiSkills.skillName')}</Label>
               <Input
-                id="skillName"
+                id="skillNewName"
                 placeholder={t('aiSkills.skillNamePlaceholder')}
                 value={skillName}
                 onChange={(e) => setSkillName(e.target.value)}
@@ -524,10 +490,10 @@ export default function AISkillsPage() {
             </label>
             <p className="text-xs text-muted-foreground -mt-2">{t('aiSkills.updateHint')}</p>
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setAddDialogOpen(false)}>
+              <Button variant="outline" onClick={() => onAddDialogOpenChange(false)}>
                 {t('aiSkills.cancel')}
               </Button>
-              <Button onClick={handleAddSkill} disabled={isCloning}>
+              <Button onClick={() => void handleAddSkill()} disabled={isCloning}>
                 {isCloning
                   ? t('aiSkills.cloning')
                   : updateIfExists
@@ -552,7 +518,7 @@ export default function AISkillsPage() {
             <AlertDialogCancel onClick={() => setDeleteDialogOpen(false)}>
               {t('aiSkills.cancel')}
             </AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} disabled={isDeleting}>
+            <AlertDialogAction onClick={() => void confirmDelete()} disabled={isDeleting}>
               {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               {t('aiSkills.delete')}
             </AlertDialogAction>
@@ -594,7 +560,7 @@ export default function AISkillsPage() {
               <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
                 {t('aiSkills.cancel')}
               </Button>
-              <Button onClick={confirmEdit} disabled={isSaving || isLoadingMarkdown}>
+              <Button onClick={() => void confirmEdit()} disabled={isSaving || isLoadingMarkdown}>
                 {isSaving ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -608,6 +574,6 @@ export default function AISkillsPage() {
           </div>
         </DialogContent>
       </Dialog>
-    </PinnedPage>
+    </>
   );
 }

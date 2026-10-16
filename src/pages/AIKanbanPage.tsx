@@ -1,4 +1,5 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import {
   AlertTriangle,
@@ -662,7 +663,12 @@ export default function AIKanbanPage() {
   const stateStoreRef = useRef<StateStoreViewerHandle>(null);
   /** 第一层确认 → 第二层确认 时跳过清列状态 */
   const bulkDeleteAdvancingRef = useRef(false);
-  const [viewMode, setViewMode] = useState<'kanban' | 'data'>('kanban');
+  // 视图模式写进 URL，让 /state-store 等旧深链能重定向到「数据模式」而不是看板
+  const [searchParams, setSearchParams] = useSearchParams();
+  const viewMode: 'kanban' | 'data' = searchParams.get('mode') === 'data' ? 'data' : 'kanban';
+  const setViewMode = (mode: 'kanban' | 'data') => {
+    setSearchParams(mode === 'data' ? { mode: 'data' } : {}, { replace: true });
+  };
   const [stateStoreSelectedCount, setStateStoreSelectedCount] = useState(0);
 
   const [board, setBoard] = useState<AIKanbanBoardResponse>({

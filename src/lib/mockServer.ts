@@ -508,7 +508,7 @@ const routes: Route[] = [
     }),
   },
 
-  // ── Ops diagnostics (/ai-ops) ──
+  // ── Ops diagnostics (/ai-runtime?tab=ops) ──
   {
     m: 'GET',
     re: /^\/api\/ops\/bots$/,

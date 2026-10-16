@@ -54,7 +54,6 @@
 |---|---|---|---|
 | `/core-config` | `CoreConfigPage.tsx` | `CoreConfig` 顶层配置项编辑 | `core_config_api.py`（`/api/core/config*`） |
 | `/framework-config` | `FrameworkConfigPage.tsx` | 框架级配置分组浏览 + 动态字段；**数据库配置 / 状态配置**在选中对应条目时内嵌 `DatabaseConfigPage` / `StateConfigPage`（无独立路由） | `/api/framework-config*` |
-| `/state-store` | `StateStorePage.tsx` | AI 持久状态（state_store）scope/key 浏览与批量删除 | `state_store_api.py` |
 
 ### 2.3 插件与市场
 
@@ -72,23 +71,20 @@
 | `/persona-config` | `PersonaConfigPage.tsx` | 多 Persona 卡片列表 + 头像/立绘/音频上传 + Markdown 编辑 + 作用范围 | `persona_api.py`（`/api/persona/*`） | [§08 §8.1](./references/08-page-patterns.md) |
 | `/mcp-config` | `MCPConfigPage.tsx` | MCP 服务器 CRUD、**stdio / SSE / Streamable HTTP** 三传输、环境变量、工具发现、JSON 导入（含 `type: "http"`）、预设、热重载、工具参数映射 | `mcp_config_api.py`（`/api/ai/mcp*`、`/api/ai/mcp-tools-config/*`） | [§03 主题](./references/03-theme-and-styling.md)、[§07 §7.8](./references/07-config-pages-and-state.md)、[§10 P-26](./references/10-pitfalls-and-performance.md) |
 | `/ai-capability-agents` | `AICapabilityAgentsPage.tsx` | 能力代理节点（**builtin / plugin / user**，不含 persona）；plugin Tab 用 **TabButtonGroup dropdown** 按 `plugin` 字段筛选；工具挂载 + 关键词 + 编辑/删除 | `capability_agents_api.py`（`/api/ai/capability-agents*`） | [§06 §6.1 dropdown](./references/06-reusable-component-catalog.md)、[§09](./references/09-sidebar-navigation.md) |
-| `/ai-tool-outputs` | `AIToolOutputsPage.tsx` | FileOS 工具落盘（`to_`/`sa_` 等）浏览、筛选、预览、批量删除 | `tool_outputs_api.py`（`/api/ai/tool-outputs*`） | — |
-| `/ai-tools` | `AIToolsPage.tsx` | 工具列表 + 分类 + 详情 | `ai_tools_api.py`（`/api/ai/tools*`） | [§04 排版参考页](./references/04-page-layout-spec.md) |
-| `/ai-skills` | `AISkillsPage.tsx` | 技能列表 + 详情 + Git 克隆安装 + Markdown 编辑 + 删除 | `ai_skills_api.py`（`/api/ai/skills*`） | [§04 排版参考页](./references/04-page-layout-spec.md) |
+| `/ai-tools` | `AIToolsPage.tsx` + `AITools/SkillsPanel.tsx` | 工具列表 + 分类 + 详情；页签组第 4 个页签「技能列表」（详情 + Git 克隆安装 + Markdown 编辑 + 删除，原 `/ai-skills` 已并入，「添加技能」按钮在页签同行） | `ai_tools_api.py`（`/api/ai/tools*`）+ `ai_skills_api.py`（`/api/ai/skills*`） | [§04 排版参考页](./references/04-page-layout-spec.md) |
 | `/ai-knowledge` | `AIKnowledgePage.tsx` | 文本/图片知识库分页、搜索、批量导入、文档管理、Image RAG | `knowledge_base_api.py`（`/api/ai/knowledge*`）+ `image_rag_api.py`（`/api/ai/images*`） | [§07 渐进式配置](./references/07-config-pages-and-state.md) |
 | `/ai-memory` | `AIMemoryPage.tsx` | Episode / Entity / Edge / Category / Preference / Scope / Hiergraph / Stats；**独立「世界枢纽」页签 + 挂文预览** | `ai_memory_api.py`（`/api/ai/memory*`）+ `cognitionApi` | [§12](./references/12-memory-graph-and-cognition.md)、[§07 §7.1](./references/07-config-pages-and-state.md) |
 | `/ai-meme` | `AIMemePage.tsx` | 表情包素材：上传 / VLM 打标 / 标签 / 文件夹 / 检索；**按条件清空**（筛选/全部，`memeApi.purge`） | `meme_api.py`（`/api/meme*`） | [§10 P-17](./references/10-pitfalls-and-performance.md)、[§11.9](./references/11-live-chat.md) |
 | `/ai-scheduled-tasks` | `AIScheduledTasksPage.tsx` | 内部定时任务 CRUD、暂停/恢复、统计 | `ai_scheduled_task_api.py` | — |
-| `/ai-kanban` | `AIKanbanPage.tsx` | 长任务五列看板、任务详情、Artifacts、Workspace 文件、approve/reject、评估能力代理 | `kanban_api.py`（`/api/ai/kanban*`、`/api/ai/artifacts*`、`/api/ai/kanban/...workspace*`） | [§04 §4.1.1 page-viewport](./references/04-page-layout-spec.md) |
+| `/ai-kanban` | `AIKanbanPage.tsx` | 长任务五列看板、任务详情、Artifacts、Workspace 文件、approve/reject、评估能力代理；**「数据模式」页签即 AI 状态存储浏览器** | `kanban_api.py`（`/api/ai/kanban*`、`/api/ai/artifacts*`、`/api/ai/kanban/...workspace*`）+ `state_store_api.py` | [§04 §4.1.1 page-viewport](./references/04-page-layout-spec.md) |
 | `/ai-approvals` | `AIApprovalsPage.tsx` | 高危操作审批中心 / 通过或拒绝 | `approvals_api.py`（`/api/ai/approvals/list`、`/resolve`） | — |
 | `/ai-budget` | `AIBudgetPage.tsx` | AI 预算规则、白名单、用量排行、scope 窗口、check 干跑预览、reset | `budget_api.py`（`/api/ai/budget*`） | [§05 §5.7 控件规范](./references/05-components-and-form-controls.md) |
 | `/ai-statistics` | `AIStatisticsPage.tsx` | Token 用量（按模型/按类型/按区间）+ **User Turn / Agent Run 效率**（回合均耗、运行均耗、嵌套占比）+ 活跃用户/群 + 触发/意图分布 + 错误 + Heartbeat + RAG + 历史 + **小时级性能** | `ai_statistics_api.py`、`ai_performance_api.py` | [§10 P-26](./references/10-pitfalls-and-performance.md) |
 | `/ai-history` | `AIHistoryPage.tsx` | AI Session 列表 / Trace 瀑布图（链 ↔ 分段 ↔ 子 agent）/ 统计 | `ai_session_logs_api.py`（`/api/ai/session_logs*`）+ `history_api.py`（`/api/history*`） | [§08 §8.7 Trace 瀑布](./references/08-page-patterns.md) |
 | `/session-management` | `SessionManagementPage.tsx` | Session 列表 + 历史对话 + Persona + 给 Session 发消息 | `history_api.py` | [§04 §4.1.1 page-fill](./references/04-page-layout-spec.md) |
-| `/ai-ops` | `AIOpsPage.tsx` | **运维诊断中心（收敛版）**：顶栏 Bot/Session/续聊状态 + 5 Tab（触发回放 / 黑白名单 / 输出试跑 / 安全策略 / 配置快照）。工具拓扑·意图·生命周期·多模态·插件诊断仅保留后端 API | `ops_diagnostics_api.py`（`/api/ops/*`） | 见 [`docs/CHANGELOG-2026-07.md`](../../../docs/CHANGELOG-2026-07.md) §四 |
-| `/ai-runtime` | `AIRuntimePage.tsx` | **Agent 运行时诊断**：套件槽健康（密封槽空占用红字）/ Hook 接线 / 关系温度 / **认知索引（world 枢纽、节点挂文、重建挂载）** | `agent_kits_api.py`（`/api/agent_kits/*`、`/api/relationship/view`、`/api/cognition/nodes`、`/api/cognition/rebuild_mount`） | [§12](./references/12-memory-graph-and-cognition.md)、[§04 PinnedPage](./references/04-page-layout-spec.md) |
+| `/ai-runtime` | `AIRuntimePage.tsx` | **Agent 运行时诊断**：套件槽健康（密封槽空占用红字）/ Hook 接线 / 关系温度 / **认知索引（world 枢纽、节点挂文、重建挂载）** / 群组画像 / **运维诊断**（旧 `/ai-ops` 已并入此页签，见下行） | `agent_kits_api.py`（`/api/agent_kits/*`、`/api/relationship/view`、`/api/cognition/nodes`、`/api/cognition/rebuild_mount`）+ `ops_diagnostics_api.py`（`/api/ops/*`） | [§12](./references/12-memory-graph-and-cognition.md)、[§04 PinnedPage](./references/04-page-layout-spec.md) |
 | `/group-profile` | `GroupProfilePage.tsx` | 群组画像只读（标签/词汇映射/称呼） | state_store `__gscore_group_profile__` | — |
-| `/ai-artifacts` | `AIArtifactsPage.tsx` | Artifact 全局浏览（TTL / 下载 / 过期筛选） | `artifacts_api.py` | — |
+| `/ai-artifacts` | `AIOutputsPage.tsx`（+ `AIOutputs/` 两个面板） | **产出物 + 工具落盘合并页**：一个页面壳 + TabButtonGroup 两页签（`产出物` / `工具落盘`，`?tab=toolOutputs`；`/ai-tool-outputs` 重定向过来）。产出物页签走 `artifacts_api.py`（TTL 延长 / 下载 / root_task_id 过滤），工具落盘页签走 `tool_outputs_api.py`（搜索 / 工具筛选 / 批量删除） | `artifacts_api.py` + `tool_outputs_api.py` | [§04 排版参考页](./references/04-page-layout-spec.md) |
 
 ### 2.5 当前 API 全景（`src/lib/api.ts`）
 
@@ -124,7 +120,7 @@
 | 新页面 | `src/pages/BrandSettingsPage.tsx` | `/brand-settings` 标题/副标题/ICON 编辑与实时预览 |
 | 新页面 | `src/pages/BatchPushPage.tsx` | `/batch-push` HTML 推文 + WS bot / **bot_self_id 可选手填** / 群用户多选 + ALL* 宏 |
 | 新页面 | `src/pages/AIDebugPage.tsx` | `/ai-debug` 三 Tab（2026-10 已删除，勿恢复；边/冲突留在记忆页，编排看看板） |
-| 新页面 | `src/pages/AIArtifactsPage.tsx` | `/ai-artifacts` 全局浏览 + TTL 延长 + 下载 |
+| 新页面 | `src/pages/AIOutputsPage.tsx` | `/ai-artifacts` 合并页：产出物 + 工具落盘双页签（原 `AIArtifactsPage` / `AIToolOutputsPage` 已并入 `src/pages/AIOutputs/`） |
 | 新组件 | `src/components/memory/MemorySettingsDialog.tsx` | AIMemoryPage 弹窗：记忆子系统 14 个常用字段 + HierGraph 重建 |
 | 新组件 | `src/components/logs/LogsConfigDialog.tsx` | LogsPage 弹窗：保留 / 轮转 / 黑名单 |
 | 增强 (frontend) | `src/lib/api.ts` | 新增 `aiArtifactsApi` / `batchPushApi` / `brandSettingsApi` / `memorySettingsApi` / `logsConfigApi`；`agentDebugApi` 补 listTasks / getTask / abortTask / getSelfModel / setSelfModel |
@@ -288,13 +284,13 @@
 | 后端模块 | 端点数 | 前端空缺描述 | 建议页面 |
 |---|---|---|---|
 | **agent_debug_api**（原 Agent 调试台） | 8 | 独立页已删除。边失效与冲突由 `AIMemoryPage` 调用 `agentDebugApi`；任务编排看 `AIKanbanPage`。`self_model` 不再做页面。 | 不要恢复 `/ai-debug` |
-| **artifacts_api**（AI 产出物） | 5 | `AIKanbanPage` 内已调用 artifacts 列表/详情/下载/删除/TTL 延长，但**没有独立页面**做资源全局浏览。 | 新增 `/ai-artifacts` |
+| **artifacts_api**（AI 产出物） | 5 | `AIKanbanPage` 内已调用 artifacts 列表/详情/下载/删除/TTL 延长；全局浏览见 `/ai-artifacts`（与工具落盘合并为双页签）。 | 已有 `/ai-artifacts` 页签 |
 | **workspace_api**（Kanban 任务工作区） | 4 | workspace 文件列表、上传、下载、apply-patch 仅在 Kanban 任务详情 Dialog 部分暴露，缺全局浏览。 | AIKanban 详情弹窗 + 全局工作区 |
-| **state_store_api**（State 状态存储） | 6 | ~~缺独立页~~ → 已有 `/state-store`（`StateStorePage` + `StateStoreViewer`） | — |
+| **state_store_api**（State 状态存储） | 6 | 独立页已删除。浏览/批量删除 UI 是 `/ai-kanban` 的「数据模式」（`StateStoreViewer`），旧深链 `/state-store` 重定向到 `?mode=data`。 | 不要恢复 `/state-store` |
 | **brand_api**（品牌信息） | 5 | 仅 `BrandContext` 读 `GET /api/brand` 在登录页/布局展示，**完全没有 UI 编辑**。 | 新增 `/brand-settings` |
 | **message_api::BatchPush** | 1 | ~~完全无入口~~ → 已有 `/batch-push`（含 `bot_self_id` 手填） | — |
 | **plugin_icon_api** | 1 | ~~未走接口~~ → 已通过 `getPluginIconUrl` / `PluginIcon` 统一接入；`core_command` 用项目 `ICON.png` | — |
-| **ai_skills_api** `/api/ai/skills/...` 中 clip/install/market actions | — | 当前只覆盖 list/detail/clone/markdown；缺**已克隆技能的更新/卸载** UI。 | AISkillsPage |
+| **ai_skills_api** `/api/ai/skills/...` 中 clip/install/market actions | — | 当前只覆盖 list/detail/clone/markdown；缺**已克隆技能的更新/卸载** UI。 | `AITools/SkillsPanel.tsx` |
 
 ### 3.2 API 已封装（`src/lib/api.ts` 有函数）但前端无调用入口 / 调用不全
 
@@ -359,8 +355,8 @@
 | 主题与背景 | `theme_api` + `assets_api` | 🟩 ThemesPage |
 | 账户（头像 / 用户名 / 密码） | `auth_api` | 🟩 SettingsPage |
 | 核心 / 框架配置 | `core_config_api` + `framework-config` | 🟩 CoreConfig + FrameworkConfig（库/状态专项 UI 内嵌） |
-| AI State Store | `state_store_api` | 🟩 `/state-store` |
-| AI 运维诊断 | `ops_diagnostics_api` | 🟩 `/ai-ops` |
+| AI State Store | `state_store_api` | 🟩 `/ai-kanban` 数据模式（`StateStoreViewer`） |
+| AI 运维诊断 | `ops_diagnostics_api` | 🟩 `/ai-runtime` 运维页签（内容自 `/ai-ops` 迁入） |
 | Agent 套件 / Hook / 关系温度 / 认知索引 | `agent_kits_api` | 🟩 `/ai-runtime` + `/ai-config`（含 world 枢纽 / 挂文 / 重建挂载） |
 | 插件启用 / 禁用 / 重载 / 配置 / SV | `plugins_api` | 🟩 PluginsPage |
 | 插件市场（白名单 + URL 安装） | `plugins_api::plugin-store` | 🟩 PluginStorePage |
@@ -374,9 +370,9 @@
 | MCP 服务器 + 工具发现 + 热重载（stdio / SSE / Streamable HTTP） | `mcp_config_api` | 🟩 MCPConfigPage |
 | MCP 工具参数映射 | `mcp_config_api::tools-config` | 🟨 UI 入口弱 |
 | Capability Agent 节点 | `capability_agents_api` | 🟩 AICapabilityAgentsPage（builtin/plugin/user + plugin 下拉筛选） |
-| AI 工具落盘 Tool Outputs | `tool_outputs_api` | 🟩 `/ai-tool-outputs` |
+| AI 工具落盘 Tool Outputs | `tool_outputs_api` | 🟩 `/ai-artifacts`「工具落盘」页签（`?tab=toolOutputs`） |
 | AI 工具与分类 | `ai_tools_api` | 🟩 AIToolsPage |
-| AI 技能（克隆 / 编辑） | `ai_skills_api` | 🟩 AISkillsPage |
+| AI 技能（克隆 / 编辑） | `ai_skills_api` | 🟩 `/ai-tools`「技能列表」页签（`AITools/SkillsPanel.tsx`） |
 | AI 知识库文本/图片 + Image RAG | `knowledge_base_api` + `image_rag_api` | 🟩 AIKnowledgePage |
 | AI 知识备份导入/导出/对账 | 同上（`backup/*`、`reconcile`） | ⬛ 缺 UI |
 | AI 记忆 Episode / Entity / Edge | `ai_memory_api` | 🟩 AIMemoryPage |
@@ -389,7 +385,7 @@
 | AI 内部定时任务 | `ai_scheduled_task_api` | 🟩 AIScheduledTasksPage |
 | AI Kanban 长任务 + 能力代理 | `kanban_api` | 🟩 AIKanbanPage |
 | AI Kanban 工作区文件 | `workspace_api` | 🟨 任务详情有，全局无 |
-| AI Artifacts 全局浏览 | `artifacts_api` | 🟩 `/ai-artifacts` |
+| AI Artifacts 全局浏览 | `artifacts_api` | 🟩 `/ai-artifacts`「产出物」页签 |
 | AI 高危操作审批中心 | `approvals_api` | 🟩 AIApprovalsPage |
 | AI 预算规则 / 白名单 / 用量 | `budget_api` | 🟩 AIBudgetPage |
 | AI 统计（Token / 触发 / 错误 / RAG） | `ai_statistics_api` | 🟩 AIStatisticsPage |
@@ -415,7 +411,7 @@
 
 ## 五、推荐路线（精简）
 
-多数 2026-07-20 清单项已落地。`/ai-ops` 已按「独有 + 排障」收敛为顶栏状态 + 5 Tab。可选增强：
+多数 2026-07-20 清单项已落地。运维诊断已按「独有 + 排障」收敛为顶栏状态 + 5 个子面板，并整体并入 `/ai-runtime?tab=ops`（旧 `/ai-ops` 保留重定向）。可选增强：
 
 1. 配置快照差分预览与导入确认（危险字段高亮）。  
 2. 触发回放扩展「命令优先」路径与步骤时间线导出。  

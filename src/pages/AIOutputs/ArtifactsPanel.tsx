@@ -1,13 +1,15 @@
 /**
- * /ai-artifacts — AI 产出物全局浏览
+ * AI 产出物面板 —— 合并页的「产出物」页签（原 /ai-artifacts）
  *
- * 来源：.agents/skills/gshub-development/README.md §3.1「完全空缺」第 6 项
- * 后端对应：artifacts_api.py (`/api/ai/artifacts*`)，并扩展支持全量浏览
+ * 后端：artifacts_api.py（`/api/ai/artifacts*`）
+ * 页面壳（标题 / 页签 / 常驻筛选行）由 AIOutputsPage 负责，本文件只出内容：
+ * - ArtifactsFilters：受控筛选行，挂到合并页 PinnedPage 的 toolbar
+ * - ArtifactsPanel：列表卡片 + 详情 Dialog
  *
- * UI 风格参照 [§04 §4.6 表格行点击打开详情](.agents/skills/gshub-development/references/04-page-layout-spec.md)，
- * 错误回显统一用 getApiErrorMessage（[§01 §1.5](.agents/skills/gshub-development/references/01-architecture-and-conventions.md)）。
+ * 筛选状态提升到合并页（筛选行在常驻区），列表加载仍留在本组件内；
+ * 回车 / 刷新由合并页递增 refreshKey 触发，不跨组件传函数引用。
  */
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Check, Clock, Copy, Download, Eye, PackageOpen, RefreshCw, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -35,48 +37,77 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { PinnedPage } from '@/components/layout/PinnedPage';
+import { tabToolbarControlClass } from '@/components/ui/TabButtonGroup';
 import { aiArtifactsApi, getApiErrorMessage, type AIArtifactItem } from '@/lib/api';
+import { cn } from '@/lib/utils';
+import { formatBytes } from './constants';
+import { MetaRow } from './shared';
 
-function formatBytes(n: number) {
-  if (n < 1024) return `${n} B`;
-  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
-  return `${(n / 1024 / 1024).toFixed(2)} MB`;
+export interface ArtifactsPanelProps {
+  rootTaskId: string;
+  onRootTaskIdChange: (value: string) => void;
+  /** true = 全局浏览；false = 按 root_task_id 过滤 */
+  useAll: boolean;
+  onUseAllChange: (value: boolean) => void;
+  includeExpired: boolean;
+  onIncludeExpiredChange: (value: boolean) => void;
+  /** 合并页每次点刷新 / 回车搜索 +1，面板内 effect 盯着它重新 load */
+  refreshKey: number;
+  onRefresh: () => void;
 }
 
-/**
- * 元数据 key-value 行：用 <dl>/<dt>/<dd> 保证语义，font-mono 长 ID 不变形。
- * 作为 page-local helper（不在 components/ui 暴露），仅本页 dialog 使用。
- */
-function MetaRow({
-  label,
-  value,
-  mono,
-  className,
-}: {
-  label: string;
-  value: string;
-  mono?: boolean;
-  className?: string;
-}) {
+/** 常驻筛选行。控件高度对齐 TabButtonGroup 内钮（h-10），与页签行同一视觉节奏。 */
+export function ArtifactsFilters(props: ArtifactsPanelProps) {
+  const { t } = useLanguage();
+  const {
+    rootTaskId,
+    onRootTaskIdChange,
+    useAll,
+    onUseAllChange,
+    includeExpired,
+    onIncludeExpiredChange,
+    onRefresh,
+  } = props;
+
   return (
-    <div className={`flex items-baseline gap-2 min-w-0 ${className ?? ''}`}>
-      <dt className="shrink-0 text-muted-foreground">{label}</dt>
-      <dd
-        className={mono ? 'font-mono truncate min-w-0 flex-1' : 'truncate min-w-0 flex-1'}
-        title={value}
+    // 一行放完：输入框 + 「全部」切换 + 含已过期开关。
+    // 不用外置 Label——输入框 disabled 时的框内灰字已经说明了筛选维度，
+    // 再挂一行 Label 会把「全部」按钮挤到第二行。
+    <div className="flex flex-wrap items-center gap-2">
+      <Input
+        className={cn(
+          tabToolbarControlClass,
+          // 内容等宽便于核对 ID；框内灰字是中文，placeholder 单独回正常字体
+          'min-w-0 flex-1 font-mono placeholder:font-sans sm:max-w-[480px]',
+        )}
+        placeholder={t('aiArtifacts.toolbar.filterRoot')}
+        value={rootTaskId}
+        onChange={(e) => onRootTaskIdChange(e.target.value)}
+        onKeyDown={(e) => {
+          // rootTaskId 不进自动加载的依赖（否则每敲一个字都打一次接口），
+          // 回车显式触发一次刷新。
+          if (e.key === 'Enter') onRefresh();
+        }}
+        disabled={useAll}
+      />
+      <Button
+        variant={useAll ? 'default' : 'outline'}
+        className={cn(tabToolbarControlClass, 'shrink-0')}
+        onClick={() => onUseAllChange(!useAll)}
       >
-        {value}
-      </dd>
+        {t('aiArtifacts.toolbar.filterRootAll')}
+      </Button>
+      <div className="flex shrink-0 items-center gap-2 pl-1">
+        <Switch checked={includeExpired} onCheckedChange={onIncludeExpiredChange} />
+        <Label className="whitespace-nowrap">{t('aiArtifacts.toolbar.includeExpired')}</Label>
+      </div>
     </div>
   );
 }
 
-export default function AIArtifactsPage() {
+export function ArtifactsPanel(props: ArtifactsPanelProps) {
   const { t } = useLanguage();
-  const [rootTaskId, setRootTaskId] = useState('');
-  const [useAll, setUseAll] = useState(true);
-  const [includeExpired, setIncludeExpired] = useState(false);
+  const { useAll, rootTaskId, includeExpired, refreshKey } = props;
   const [items, setItems] = useState<AIArtifactItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
@@ -90,11 +121,8 @@ export default function AIArtifactsPage() {
   } | null>(null);
   const [imageObjectUrl, setImageObjectUrl] = useState<string | null>(null);
   const imageObjectUrlRef = useRef<string | null>(null);
-
-  // 仅在「手动切换模式」时跳过下一次自动加载：
-  // 用户点「全部」按钮切到 filter 模式时 rootTaskId 还是空的，
-  // 此时不应该立即弹「请提供 root_task_id」toast，保留输入框给用户填写。
-  const skipNextAutoLoad = useRef(false);
+  const [payloadCopied, setPayloadCopied] = useState(false);
+  const payloadCopyTimerRef = useRef<number | null>(null);
 
   const revokeImageUrl = () => {
     if (imageObjectUrlRef.current) {
@@ -104,7 +132,7 @@ export default function AIArtifactsPage() {
     setImageObjectUrl(null);
   };
 
-  const load = async () => {
+  const load = useCallback(async () => {
     if (!useAll && !rootTaskId.trim()) {
       toast.error(t('aiArtifacts.messages.filterNeeded'));
       return;
@@ -124,7 +152,7 @@ export default function AIArtifactsPage() {
           });
       setItems(res.items ?? []);
     } catch (e) {
-      // 全量浏览失败 → 降级为空列表并提示（与原逻辑一致）
+      // 全量浏览失败 → 降级为空列表并提示（旧版后端缺 scope=all）
       if (useAll) {
         setItems([]);
         console.warn('[AIArtifacts] global list unavailable, backend may need upgrade:', e);
@@ -134,26 +162,22 @@ export default function AIArtifactsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [useAll, rootTaskId, includeExpired, t]);
+
+  // load 跟着 rootTaskId 变，但自动加载只在 useAll / includeExpired / refreshKey 变化时跑，
+  // 所以用 ref 取最新实现，不把 load 放进 effect 依赖。
+  const loadRef = useRef(load);
+  loadRef.current = load;
+  const rootTaskIdRef = useRef(rootTaskId);
+  rootTaskIdRef.current = rootTaskId;
 
   useEffect(() => {
-    // 模式切换触发的 setUseAll 会跳过这次自动加载；
-    // 包含过期与否切换时正常触发。
-    if (skipNextAutoLoad.current) {
-      skipNextAutoLoad.current = false;
-      return;
-    }
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [useAll, includeExpired]);
-
-  const toggleFilterMode = () => {
-    const next = !useAll;
-    skipNextAutoLoad.current = true;
-    setUseAll(next);
-    // 切到「全部」时清掉已填的 rootTaskId，避免「按 ID 过滤」残留文案干扰
-    if (next) setRootTaskId('');
-  };
+    // 「按 root_task_id 过滤」且输入框还空着时不自动拉：此时拉也只会弹「请提供 root_task_id」。
+    // 合并页切页签会卸载本面板，切回来时若正停在「输入框为空」状态，
+    // 原先靠 justToggled 判跳转过的写法会误弹 toast，改成直接判「现在能不能拉」。
+    if (!useAll && !rootTaskIdRef.current.trim()) return;
+    void loadRef.current();
+  }, [useAll, includeExpired, refreshKey]);
 
   const openDetail = async (id: string) => {
     setOpenId(id);
@@ -184,8 +208,6 @@ export default function AIArtifactsPage() {
     }
   };
 
-  const [payloadCopied, setPayloadCopied] = useState(false);
-  const payloadCopyTimerRef = useRef<number | null>(null);
   // 切换 / 关闭 dialog 时重置 copied 反馈与图片 blob URL
   useEffect(() => {
     if (!openId) {
@@ -246,72 +268,28 @@ export default function AIArtifactsPage() {
     try {
       await aiArtifactsApi.extendTtl(id, days);
       toast.success(t('aiArtifacts.messages.extended'));
-      load();
+      void loadRef.current();
     } catch (e) {
       toast.error(getApiErrorMessage(e, t('aiArtifacts.messages.extendedFail')));
     }
   };
 
   return (
-    <PinnedPage
-      className="gap-6"
-      header={
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div className="min-w-0">
-            <h1 className="text-3xl font-bold flex items-center gap-3">
-              <PackageOpen className="w-8 h-8 shrink-0" />
-              {t('aiArtifacts.title')}
-            </h1>
-            <p className="text-muted-foreground mt-1">{t('aiArtifacts.description')}</p>
+    <>
+      <Card className="glass-card">
+        <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
+          <div className="min-w-0 space-y-1.5">
+            <CardTitle>{t('aiArtifacts.title')}</CardTitle>
+            <CardDescription>
+              {useAll
+                ? t('aiArtifacts.modeAll')
+                : t('aiArtifacts.modeRoot', { root: rootTaskId || '—' })}
+            </CardDescription>
           </div>
-          <Button variant="outline" className="w-full sm:w-auto sm:shrink-0" onClick={load}>
+          <Button variant="outline" className="shrink-0" onClick={() => void loadRef.current()}>
             <RefreshCw className="w-4 h-4" />
             {t('aiArtifacts.toolbar.refresh')}
           </Button>
-        </div>
-      }
-      toolbar={
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="space-y-1">
-            <Label>{t('aiArtifacts.toolbar.filterRoot')}</Label>
-            <div className="flex flex-wrap items-center gap-2">
-              <Input
-                className="h-9 font-mono min-w-0 flex-1 sm:min-w-[280px] sm:flex-none"
-                placeholder="root_task_id"
-                value={rootTaskId}
-                onChange={(e) => setRootTaskId(e.target.value)}
-                onKeyDown={(e) => {
-                  // 输入框不支持受控回车搜索（useEffect 只盯 useAll/includeExpired），
-                  // 这里手动触发一次 load，避免用户填完 ID 还要去找刷新按钮。
-                  if (e.key === 'Enter') load();
-                }}
-                disabled={useAll}
-              />
-              <Button
-                size="sm"
-                variant={useAll ? 'default' : 'outline'}
-                className="h-9"
-                onClick={toggleFilterMode}
-              >
-                {t('aiArtifacts.toolbar.filterRootAll')}
-              </Button>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 pb-1.5">
-            <Switch checked={includeExpired} onCheckedChange={setIncludeExpired} />
-            <Label>{t('aiArtifacts.toolbar.includeExpired')}</Label>
-          </div>
-        </div>
-      }
-    >
-      <Card className="glass-card">
-        <CardHeader>
-          <CardTitle>{t('aiArtifacts.title')}</CardTitle>
-          <CardDescription>
-            {useAll
-              ? t('aiArtifacts.modeAll')
-              : t('aiArtifacts.modeRoot', { root: rootTaskId || '—' })}
-          </CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -591,6 +569,6 @@ export default function AIArtifactsPage() {
           </Tabs>
         </DialogContent>
       </Dialog>
-    </PinnedPage>
+    </>
   );
 }

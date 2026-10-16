@@ -57,7 +57,7 @@
 └── scripts/                       # i18n 合并等一次性脚本
 ```
 
-排版标准参考页：`src/pages/AIToolsPage.tsx`、`AISkillsPage.tsx`、`AIHistoryPage.tsx`。
+排版标准参考页：`src/pages/AIToolsPage.tsx`、`AIHistoryPage.tsx`。
 
 ## Skills
 

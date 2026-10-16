@@ -15,8 +15,7 @@
   "personaConfig": "ペルソナ設定",
   "mcpConfig": "MCP 設定",
   "aiCapabilityAgents": "能力エージェント",
-  "aiTools": "AI ツール",
-  "aiSkills": "AI スキル",
+  "aiTools": "AI ツールとスキル",
   "aiStatistics": "AI 統計",
   "aiScheduledTasks": "AI 定時タスク",
   "aiKnowledge": "ナレッジ",
@@ -28,8 +27,7 @@
   "aiKanban": "タスク看板",
   "aiApprovals": "承認センター",
   "aiBudget": "AI 予算",
-  "aiArtifacts": "AI 成果物",
-  "aiToolOutputs": "ツール落盤",
+  "aiOutputs": "成果物と落盤",
   "batchPush": "一括プッシュ",
   "brandSettings": "ブランド情報",
   "plugins": "プラグイン設定",
@@ -76,8 +74,6 @@
   "confirmResumeTitle": "是否确定続行GsCore?",
   "confirmResumeDesc": "クリックで钮後你の机器人続行実行",
   "settings": "設定",
-  "stateStore": "状態ストア",
   "groupProfile": "グループ像",
-  "aiOps": "AI 運用センター",
   "aiRuntime": "Agent ランタイム"
 }

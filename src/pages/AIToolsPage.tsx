@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -33,20 +32,20 @@ import {
   Network,
   Boxes,
   Puzzle,
+  Sparkles,
+  Plus,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   aiToolsApi,
   getApiErrorMessage,
-  personaApi,
   type AITool,
   type AIToolAssemblePreviewResponse,
   type AIEntityIndexResponse,
-  type PersonaConfig,
-  type PersonaListItem,
 } from '@/lib/api';
 import { countToolDiagnostics, diagnoseTool, filterToolsByDiagnostic } from '@/lib/featureUtils';
 import { PersonaToolScopePanel } from '@/components/persona/PersonaToolScopePanel';
+import SkillsPanel from '@/pages/AITools/SkillsPanel';
 import { toast } from 'sonner';
 import {
   Dialog,
@@ -201,15 +200,12 @@ function pluginFilterLabel(plugin: string, count: number, allLabel: string): str
 // ============================================================================
 
 export default function AIToolsPage() {
-  const { style } = useTheme();
   const { t, language } = useLanguage();
-  const isGlass = style !== 'solid';
 
   // 状态
   const [tools, setTools] = useState<AITool[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [plugins, setPlugins] = useState<string[]>([]);
-  const [totalCount, setTotalCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedTool, setSelectedTool] = useState<ParsedTool | null>(null);
@@ -222,7 +218,9 @@ export default function AIToolsPage() {
   const [diagnosticFilter, setDiagnosticFilter] = useState<'all' | 'issues' | 'empty_description'>(
     'all',
   );
-  const [pageTab, setPageTab] = useState<'tools' | 'assemble' | 'entity'>('tools');
+  const [pageTab, setPageTab] = useState<'tools' | 'assemble' | 'entity' | 'skills'>('tools');
+  // 「添加技能」按钮在页签同行（toolbar），弹窗开合状态因此挂在页面层
+  const [skillsAddOpen, setSkillsAddOpen] = useState(false);
 
   // 当前页码（每页 PAGE_SIZE 个工具）
   const [page, setPage] = useState(1);
@@ -380,7 +378,6 @@ export default function AIToolsPage() {
         setTools(data.tools || []);
         setCategories(data.categories || []);
         setPlugins(data.plugins || []);
-        setTotalCount(data.total_count || 0);
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : t('aiTools.loadFailed');
         setError(errorMsg);
@@ -432,9 +429,14 @@ export default function AIToolsPage() {
                   label: t('aiTools.tabs.entityIndex'),
                   icon: <Network className="w-4 h-4" />,
                 },
+                {
+                  value: 'skills',
+                  label: t('aiTools.tabs.skills'),
+                  icon: <Sparkles className="w-4 h-4" />,
+                },
               ]}
               value={pageTab}
-              onValueChange={(v) => setPageTab(v as 'tools' | 'assemble' | 'entity')}
+              onValueChange={(v) => setPageTab(v as 'tools' | 'assemble' | 'entity' | 'skills')}
               className="shrink-0"
             />
           </div>
@@ -522,50 +524,28 @@ export default function AIToolsPage() {
               </div>
             </div>
           )}
+
+          {/* 技能页签的操作按钮：与页签同行右对齐，高度对齐页签内那颗按钮 */}
+          {pageTab === 'skills' && (
+            <Button
+              onClick={() => setSkillsAddOpen(true)}
+              className={cn(tabToolbarControlClass, 'w-full gap-2 md:w-auto')}
+            >
+              <Plus className="h-4 w-4" />
+              {t('aiSkills.addSkill')}
+            </Button>
+          )}
         </div>
       }
     >
       {/* 错误提示 */}
       {error && pageTab === 'tools' && (
-        <Card
-          className={cn(
-            'border-destructive/50',
-            'glass-card',
-          )}
-        >
+        <Card className={cn('border-destructive/50', 'glass-card')}>
           <CardContent className="flex items-center gap-3 p-4 text-destructive">
             <AlertCircle className="w-5 h-5" />
             <span>{error}</span>
           </CardContent>
         </Card>
-      )}
-
-      {/* 诊断徽章 + 工具计数：数据展示，随列表滚动，不占固定 toolbar 高度 */}
-      {pageTab === 'tools' && !isLoading && !error && (
-        <div className="flex min-w-0 items-center justify-between gap-2">
-          {diagnosticCounts.total > 0 ? (
-            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 text-xs">
-              <Badge variant="secondary">
-                {t('aiTools.diagnostics.ok')}: {diagnosticCounts.ok}
-              </Badge>
-              {diagnosticCounts.emptyDescription > 0 && (
-                <Badge variant="destructive">
-                  {t('aiTools.diagnostics.emptyDescription')}: {diagnosticCounts.emptyDescription}
-                </Badge>
-              )}
-              {diagnosticCounts.meta > 0 && (
-                <Badge className="bg-amber-500/15 text-amber-700 hover:bg-amber-500/20 dark:text-amber-300">
-                  {t('aiTools.diagnostics.meta')}: {diagnosticCounts.meta}
-                </Badge>
-              )}
-            </div>
-          ) : (
-            <span />
-          )}
-          <p className="shrink-0 text-sm text-muted-foreground whitespace-nowrap">
-            {t('aiTools.toolCount', { count: filteredTools.length, total: totalCount })}
-          </p>
-        </div>
       )}
 
       {pageTab === 'assemble' && (
@@ -774,7 +754,7 @@ export default function AIToolsPage() {
       {/* 工具列表 */}
       {pageTab === 'tools' &&
         (isLoading ? (
-          <div className="glass-card-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="glass-card-grid grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: 6 }).map((_, i) => (
               <Card key={i} className={cn('glass-card')}>
                 <CardHeader>
@@ -796,7 +776,7 @@ export default function AIToolsPage() {
           </Card>
         ) : (
           <>
-            <div className="glass-card-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="glass-card-grid grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
               {pagedTools.map((tool) => {
                 const diag = diagnoseTool(tools.find((x) => x.name === tool.name) ?? tool);
                 return (
@@ -894,6 +874,11 @@ export default function AIToolsPage() {
             )}
           </>
         ))}
+
+      {/* 技能列表（原 /ai-skills 整页内容，已并入本页签） */}
+      {pageTab === 'skills' && (
+        <SkillsPanel addDialogOpen={skillsAddOpen} onAddDialogOpenChange={setSkillsAddOpen} />
+      )}
 
       {/* 工具详情弹窗 */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
