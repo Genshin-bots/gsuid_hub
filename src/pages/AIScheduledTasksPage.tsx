@@ -3,6 +3,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { GlassAlert } from '@/components/ui/glass-alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -941,9 +942,7 @@ export default function AIScheduledTasksPage() {
                   <p className="text-xs text-muted-foreground">
                     {t('aiScheduledTasks.errorMessage')}
                   </p>
-                  <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-md text-sm text-destructive">
-                    {selectedTask.error_message}
-                  </div>
+                  <GlassAlert tone="danger">{selectedTask.error_message}</GlassAlert>
                 </div>
               )}
 

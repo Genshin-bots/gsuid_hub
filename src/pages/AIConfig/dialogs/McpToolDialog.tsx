@@ -72,7 +72,7 @@ export function McpToolDialog({
         </DialogHeader>
 
         {currentDialogMcpToolId && selectedMcpToolInfo && (
-          <div className="rounded-xl border border-primary/20 bg-primary/5 p-3">
+          <div className="rounded-xl p-3 glass-card glass-alert glass-alert-tint glass-alert-tint-primary">
             <div className="flex items-start justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0">
                 <div className="flex items-center justify-center flex-shrink-0 w-7 h-7 rounded-lg bg-primary/10 text-primary">

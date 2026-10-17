@@ -4,6 +4,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { GlassAlert } from '@/components/ui/glass-alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
 import MemorySearchPanel from '@/components/memory/MemorySearchPanel';
@@ -3198,9 +3199,9 @@ export default function AIMemoryPage() {
                 </div>
               </div>
               {selectedScope === 'all' && (
-                <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-600">
+                <GlassAlert tone="warning">
                   Agent Debug 接口要求指定明确 scope_key，请先选择如 group:789012 的范围。
-                </div>
+                </GlassAlert>
               )}
             </CardContent>
           </Card>

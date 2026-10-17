@@ -136,6 +136,7 @@ export default function AIBudgetPage() {
 
   return (
     <PinnedPage
+      className="gap-4"
       header={
         /* Header */
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -168,7 +169,6 @@ export default function AIBudgetPage() {
           options={tabOptions}
           value={activeTab}
           onValueChange={setActiveTab}
-          className="w-full justify-start"
         />
       }
     >
@@ -235,7 +235,7 @@ function OverviewTab() {
   const topUsersMax = overview.top_users_24h.reduce((m, i) => Math.max(m, i.total_tokens), 0);
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-4">
       {/* Status Banner
           移动端：整行堆叠、状态组允许换行——否则 Badge 自带 whitespace-nowrap 会独占宽度，
           把状态文案挤成一列单字，并把刷新按钮顶出屏幕（en-US 的 tipOff 更长，更容易触发） */}
@@ -510,7 +510,7 @@ function WindowProgressBar({ window: w }: { window: AIBudgetWindowUsage }) {
 
 function OverviewSkeleton() {
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-4">
       <Skeleton className="h-16 w-full rounded-lg" />
       <div className="glass-card-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[1, 2, 3, 4].map((i) => (
@@ -651,7 +651,7 @@ function ConfigTab({
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-4">
       {/* Master Switch */}
       <Card className="glass-card">
         <CardHeader>
@@ -817,7 +817,7 @@ function ConfigTab({
 
 function ConfigSkeleton() {
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-4">
       {[1, 2, 3, 4].map((i) => (
         <Skeleton key={i} className="h-24 rounded-lg" />
       ))}
@@ -943,7 +943,7 @@ function RulesTab() {
   }, [rules]);
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-4">
       {/* Toolbar */}
       <Card className="glass-card">
         <CardContent className="py-3">
@@ -1651,7 +1651,7 @@ function WhitelistTab() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-4">
       {/* Toolbar */}
       <Card className="glass-card">
         <CardContent className="py-3">
@@ -2027,7 +2027,7 @@ function DiagnosticTab() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-4">
       {/* Dry Run Check */}
       <Card className="glass-card">
         <CardHeader>
@@ -2117,10 +2117,10 @@ function DiagnosticTab() {
             {/* Summary */}
             <div
               className={cn(
-                'rounded-lg p-4',
+                'rounded-lg border p-4 glass-card glass-alert glass-alert-tint',
                 checkResult.allowed
-                  ? 'bg-green-500/5 border border-green-500/30'
-                  : 'bg-red-500/5 border border-red-500/30',
+                  ? 'border-green-500/30 glass-alert-tint-success'
+                  : 'border-red-500/30 glass-alert-tint-danger',
               )}
             >
               <div className="flex items-center gap-2 font-medium mb-2">

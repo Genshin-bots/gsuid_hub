@@ -124,12 +124,12 @@ const isGlass = style === 'glassmorphism';
 | 覆盖类默认圆角需 `!rounded-*` | 类自带 `border-radius: var(--radius)` 且声明在 utilities 之后 |
 | 定位/层级声明必须走 `:where(...)`（零特异性） | 表面类默认 `relative + z-index:0`；若写成普通类声明会压掉 Dialog/Sheet 的 `fixed`/`z-50` 工具类——弹层失去定位、沉到遮罩下面，症状是"点开只剩遮罩没内容" |
 | 弹层上的 glass-card 无描边 | `.glass-card[role="dialog"/"alertdialog"]` 已统一 `border: none`——半透明 1px 边框叠在深色遮罩上会混成黑色描边线，弹层靠阴影分层即可。光感 / 液态后面的 `[role=dialog]` 规则会再补回高光描边 |
-| 玻璃弹层宿主必须透明 | `DialogContent` / `AlertDialogContent` 加 `glass-card`。光感 / 磨砂 / 液态下宿主 `background: transparent`，质感画在 `::before`。遮罩用 `[data-dialog-overlay]` 的浅压暗，不要 `bg-white/80`，否则壁纸被盖死，弹层变成实心白卡片 |
+| 玻璃弹层宿主必须透明 | `DialogContent` / `AlertDialogContent` 加 `glass-card`。光感 / 磨砂 / 液态下宿主 `background: transparent`，质感画在 `::before`。遮罩亮色 `white/80`、暗色 `black/80`（`[data-dialog-overlay]`）。亮色不要用深色压暗，半透明弹层会把暗色吃进去，正文发灰 |
 | `glass-card-flat`：无阴影无 blur | 供 overflow 容器内嵌 / 长列表项使用；`overflow-hidden` 安全；`hover:shadow-*` 可用（:hover 特异性更高） |
 
 ### 3.4.2 浮层（下拉 / 列表 / Popover）不能用卡片的透明参数 ★★★
 
-浮层族：`[role="menu"]`（DropdownMenu）、`[role="listbox"]`（Select）、`.menu-panel`（PopoverContent）、`.glass-float`（可搜索浮层 / 图谱搜索条）。三套玻璃各给一份 `--overlay-fill` / `--overlay-border` / `--overlay-filter`，在 `index.css`「浮层玻璃」段统一消费。
+浮层族：`[role="menu"]`（DropdownMenu）、`[role="listbox"]`（Select）、`.menu-panel`（PopoverContent）。三套玻璃各给一份 `--overlay-fill` / `--overlay-border` / `--overlay-filter`，在 `index.css`「浮层玻璃」段统一消费。图谱搜索条等 `.glass-float` 用略高的 `--popover` 填充。**SearchableMenu 的 `.searchable-menu-panel` 不走这档高填充**——它和页头描边按钮共用 `--card / --card-opacity` 以及该主题的描边、高光；模糊仍用 `--overlay-blur`。在卡片透明度上再加一截，菜单会变成实心白，和按钮对不上。
 
 **为什么不能复用 `.glass-card` 的数字**——两者取值逻辑相反：
 

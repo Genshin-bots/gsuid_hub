@@ -2468,7 +2468,6 @@ export interface SpeechTierSpec {
   floor: number;
   bubbles: number;
   soft: number;
-  hard: number;
   segment_hint: string;
 }
 
@@ -2476,7 +2475,6 @@ export interface SpeechShapeSpec {
   chat_style_min: number;
   chat_style_max: number;
   soft_default: number;
-  hard_default: number;
   len_min: number;
   len_max: number;
   tiers: SpeechTierSpec[];
@@ -2499,7 +2497,6 @@ export interface PersonaConfig {
   chat_style?: number;
   /** 等于模板默认时跟随说话强度。 */
   speech_len_soft?: number;
-  speech_len_hard?: number;
   speech_shape?: SpeechShapeSpec;
 }
 
@@ -2521,7 +2518,6 @@ export interface PersonaConfigUpdateRequest {
   prompt_group?: string;
   chat_style?: number;
   speech_len_soft?: number;
-  speech_len_hard?: number;
 }
 
 export interface PersonaConfigUpdateResponse {
@@ -2596,7 +2592,6 @@ export interface PersonaPlaceholderPreview {
   prompt_group: string;
   values: Record<string, string>;
   soft_follows: boolean;
-  hard_follows: boolean;
 }
 
 export interface PlaceholderPreviewData {

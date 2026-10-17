@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { AlertTriangle, Puzzle } from 'lucide-react';
 import { ConfigField, pluginConfigItemToFieldDef, type ConfigValue } from '@/components/config';
 import { Button } from '@/components/ui/button';
+import { GlassAlert } from '@/components/ui/glass-alert';
 import type { PluginConfigItem } from '@/lib/api';
 import { AGENT_KITS_CONFIG_KEYS, isKitSlotConfigKey } from '../runtimeConfigKeys';
 
@@ -51,7 +52,7 @@ export function AgentKitsSettingsSection({
       </div>
 
       {topEntries.length === 0 && slotEntries.length === 0 ? (
-        <div className="text-sm text-muted-foreground p-4 rounded-lg border border-border/30 bg-muted/20">
+        <div className="text-sm text-muted-foreground p-4 rounded-lg glass-card glass-alert border border-border/30">
           {t('aiConfig.agentKitsSettings.empty')}
         </div>
       ) : (
@@ -83,12 +84,9 @@ export function AgentKitsSettingsSection({
           )}
 
           {sealedOff.length > 0 && (
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-lg border border-destructive/40 bg-destructive/5 p-3">
-              <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2 text-sm text-destructive">
-                <AlertTriangle className="w-4 h-4 shrink-0" />
-                <span className="font-medium">{t('aiConfig.agentKitsSettings.sealedOff')}</span>
-              </div>
-            </div>
+            <GlassAlert tone="danger" icon={AlertTriangle}>
+              <span className="font-medium">{t('aiConfig.agentKitsSettings.sealedOff')}</span>
+            </GlassAlert>
           )}
 
           {slotEntries.length > 0 && (

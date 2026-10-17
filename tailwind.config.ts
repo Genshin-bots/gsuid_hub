@@ -136,12 +136,12 @@ export default {
   				'70%': { transform: 'translateX(-1px)' },
   			},
 			'sheet-slide-in-right': {
-				from: { transform: 'translateX(100%)' },
-				to: { transform: 'translateX(0)' },
+				from: { opacity: '0' },
+				to: { opacity: '1' },
 			},
 			'sheet-slide-out-right': {
-				from: { transform: 'translateX(0)' },
-				to: { transform: 'translateX(100%)' },
+				from: { opacity: '1' },
+				to: { opacity: '0' },
 			},
 			'sheet-overlay-in': {
 				from: { opacity: '0' },

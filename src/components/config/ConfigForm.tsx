@@ -86,11 +86,9 @@ export function ConfigForm({
       {(title || description || warningMessage) && (
         <CardHeader>
           {warningMessage && (
-            <Alert variant="destructive" className="mb-4 border-orange-500/50 bg-orange-500/10">
-              <AlertTriangle className="h-4 w-4 text-orange-500" />
-              <AlertDescription className="text-orange-600 dark:text-orange-400">
-                {warningMessage}
-              </AlertDescription>
+            <Alert variant="warning" className="mb-4">
+              <AlertTriangle className="h-4 w-4 text-amber-500" />
+              <AlertDescription>{warningMessage}</AlertDescription>
             </Alert>
           )}
           {title && <CardTitle>{title}</CardTitle>}

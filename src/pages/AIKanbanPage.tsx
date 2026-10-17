@@ -60,6 +60,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { GlassAlert } from '@/components/ui/glass-alert';
 import {
   Dialog,
   DialogContent,
@@ -334,12 +335,12 @@ function logClass(eventType: string) {
       lower.includes(key),
     )
   ) {
-    return 'border-red-500/30 bg-red-500/10';
+    return 'border-red-500/30 glass-alert-tint glass-alert-tint-danger';
   }
   if (['plan_created', 'step_done', 'completed', 'success'].some((key) => lower.includes(key))) {
-    return 'border-green-500/30 bg-green-500/10';
+    return 'border-green-500/30 glass-alert-tint glass-alert-tint-success';
   }
-  return 'border-border/50 bg-muted/20';
+  return 'border-border/50';
 }
 
 function cardSearchBlob(card: AIKanbanCard): string {
@@ -359,12 +360,15 @@ interface KanbanBoardCardProps {
   task: AIKanbanCard;
   onOpen: (task: AIKanbanCard) => void;
   onAction: (action: PendingAction) => void;
+  /** flat：看板列内不叠玻璃层与投影；card：详情弹层里与其它卡片同风格 */
+  surface?: 'flat' | 'card';
 }
 
 const KanbanBoardCard = memo(function KanbanBoardCard({
   task,
   onOpen,
   onAction,
+  surface = 'flat',
 }: KanbanBoardCardProps) {
   const { t } = useLanguage();
   return (
@@ -373,11 +377,19 @@ const KanbanBoardCard = memo(function KanbanBoardCard({
       onDragStart={(event) => event.dataTransfer.setData('text/plain', task.id)}
       onClick={() => onOpen(task)}
       className={cn(
-        'group glass-card-flat relative cursor-pointer rounded-xl p-3 shadow-[0_2px_10px_hsl(0_0%_0%/0.04)] transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[0_10px_30px_hsl(0_0%_0%/0.10)]',
-        task.kind === 'subtask' &&
-          'pl-4 before:absolute before:inset-y-3 before:left-1.5 before:w-1 before:rounded-full before:bg-primary/40',
+        'group relative cursor-pointer rounded-xl p-3 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40',
+        surface === 'card'
+          ? 'glass-card'
+          : 'glass-card-flat shadow-[0_2px_10px_hsl(0_0%_0%/0.04)] hover:shadow-[0_10px_30px_hsl(0_0%_0%/0.10)]',
+        task.kind === 'subtask' && 'pl-4',
       )}
     >
+      {task.kind === 'subtask' && (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-y-3 left-1.5 w-1 rounded-full bg-primary/40"
+        />
+      )}
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1 space-y-2">
           <h3 className="text-sm font-semibold leading-snug line-clamp-2">{task.display}</h3>
@@ -1536,7 +1548,7 @@ export default function AIKanbanPage() {
       <Sheet open={!!selectedTaskId} onOpenChange={(open) => !open && setSelectedTaskId(null)}>
         <SheetContent
           overlayClassName="bg-white/80 dark:bg-black/80"
-          className="flex w-full flex-col bg-background/95 p-0 sm:max-w-[1100px] glass-card"
+          className="flex w-full flex-col gap-0 p-0 sm:max-w-[1100px] glass-card"
         >
           <SheetHeader className="shrink-0 border-b px-6 py-4 text-left">
             <SheetTitle className="flex items-center gap-2">
@@ -1547,7 +1559,7 @@ export default function AIKanbanPage() {
               {detail?.task.goal || t('aiKanban.detail.description')}
             </SheetDescription>
           </SheetHeader>
-          <div className="min-h-0 flex-1 overflow-y-auto p-6">
+          <div className="min-h-0 flex-1 overflow-y-auto p-6 pt-4">
             {isLoadingDetail ? (
               <div className="flex items-center justify-center py-24 text-muted-foreground">
                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
@@ -1632,6 +1644,7 @@ export default function AIKanbanPage() {
                         <KanbanBoardCard
                           key={task.id}
                           task={task}
+                          surface="card"
                           onOpen={openDetail}
                           onAction={openAction}
                         />
@@ -1651,7 +1664,10 @@ export default function AIKanbanPage() {
                     detail.logs.map((log, index) => (
                       <div
                         key={`${log.timestamp}-${index}`}
-                        className={cn('rounded-xl border p-4', logClass(log.event_type))}
+                        className={cn(
+                          'rounded-xl border p-4 glass-card glass-alert',
+                          logClass(log.event_type),
+                        )}
                       >
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <Badge variant="outline">{log.event_type}</Badge>
@@ -1830,10 +1846,9 @@ export default function AIKanbanPage() {
                       )}
                     </CardContent>
                   </Card>
-                  <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-700 dark:text-amber-300">
-                    <AlertTriangle className="mr-2 inline h-4 w-4" />
+                  <GlassAlert tone="warning" icon={AlertTriangle}>
                     {t('aiKanban.workspace.patchWarning')}
-                  </div>
+                  </GlassAlert>
                 </TabsContent>
               </Tabs>
             ) : (
@@ -1856,7 +1871,7 @@ export default function AIKanbanPage() {
           </DialogHeader>
           <div className="min-h-0 flex-1 overflow-auto p-6">
             <div className="grid gap-5 lg:grid-cols-[260px_1fr]">
-              <aside className="space-y-3 rounded-2xl border border-primary/20 bg-primary/5 p-4">
+              <aside className="space-y-3 rounded-2xl p-4 glass-card glass-alert glass-alert-tint glass-alert-tint-primary">
                 <div className="flex items-center gap-2 text-sm font-semibold">
                   <Sparkles className="h-4 w-4 text-primary" />
                   {t('aiKanban.create.guideTitle')}
@@ -2238,7 +2253,7 @@ export default function AIKanbanPage() {
           </AlertDialogHeader>
           <div className="space-y-4">
             {bulkDeleteColumn ? (
-              <div className="rounded-lg border border-border/50 bg-muted/30 p-3 text-xs text-muted-foreground">
+              <div className="rounded-lg border border-border/50 p-3 text-xs text-muted-foreground glass-card glass-alert">
                 <p className="font-medium text-foreground">
                   {t('aiKanban.bulkDelete.columnStatuses')}
                 </p>
@@ -2268,15 +2283,14 @@ export default function AIKanbanPage() {
                 </Select>
               </div>
             )}
-            <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
-              <AlertTriangle className="mr-2 inline h-4 w-4" />
+            <GlassAlert tone="danger" icon={AlertTriangle}>
               {t('aiKanban.bulkDelete.preview', {
                 roots: bulkDeletePreview.rootCount,
                 cards: bulkDeletePreview.cardCount,
                 subtasks: bulkDeletePreview.subtaskCount,
               })}
-            </div>
-            <div className="rounded-lg border border-border/50 bg-muted/30 p-3 text-xs text-muted-foreground">
+            </GlassAlert>
+            <div className="rounded-lg border border-border/50 p-3 text-xs text-muted-foreground glass-card glass-alert">
               <p className="font-medium text-foreground">
                 {t('aiKanban.bulkDelete.activeFilters')}
               </p>
@@ -2330,9 +2344,9 @@ export default function AIKanbanPage() {
               })}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+          <GlassAlert tone="danger" icon={AlertTriangle} className="p-4">
             {t('aiKanban.bulkDelete.irreversible')}
-          </div>
+          </GlassAlert>
           <AlertDialogFooter>
             <AlertDialogCancel
               disabled={isBulkDeleting}
@@ -2452,10 +2466,9 @@ export default function AIKanbanPage() {
               {secondConfirmAction?.description}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
-            <AlertTriangle className="mr-2 inline h-4 w-4" />
+          <GlassAlert tone="danger" icon={AlertTriangle} className="p-4">
             {t('aiKanban.confirm.hardDelete', { name: secondConfirmAction?.task?.display || '' })}
-          </div>
+          </GlassAlert>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isActing} onClick={() => setSecondConfirmAction(null)}>
               {t('common.cancel')}

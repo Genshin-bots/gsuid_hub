@@ -1647,7 +1647,6 @@ export const generatePlaceholderPreview = () => ({
       prompt_group: '默认',
       values: {
         soft: '60',
-        hard: '150',
         segment_hint: '默认一整段说完；只有层次确实不同才用空行分成两条。',
         master_title: '主人',
         char_name: '早柚',
@@ -1657,14 +1656,12 @@ export const generatePlaceholderPreview = () => ({
         lines: '',
       },
       soft_follows: true,
-      hard_follows: true,
     },
     {
       name: '可莉',
       prompt_group: '默认',
       values: {
         soft: '45',
-        hard: '150',
         segment_hint: '默认一整段说完；只有层次确实不同才用空行分成两条。',
         master_title: '主人',
         char_name: '可莉',
@@ -1674,14 +1671,12 @@ export const generatePlaceholderPreview = () => ({
         lines: '',
       },
       soft_follows: false,
-      hard_follows: true,
     },
     {
       name: '派蒙',
       prompt_group: '默认',
       values: {
         soft: '60',
-        hard: '180',
         segment_hint: '默认一整段说完；只有层次确实不同才用空行分成两条。',
         master_title: '旅行者',
         char_name: '派蒙',
@@ -1691,7 +1686,6 @@ export const generatePlaceholderPreview = () => ({
         lines: '',
       },
       soft_follows: true,
-      hard_follows: false,
     },
   ],
   shared: { masters: '10001', date: '2026年10月17日' },

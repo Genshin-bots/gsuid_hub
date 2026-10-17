@@ -428,11 +428,16 @@ All colors MUST be HSL.
   background: transparent !important;
   border-color: transparent !important;
   box-shadow: none !important;
-  color: hsl(var(--primary)) !important;
 }
 
+[data-style="luminous"] .tab-segment-row button.bg-primary,
+[data-style="luminous"] .tab-segment-row div.bg-primary,
 [data-style="luminous"] .tab-segment-row button.bg-primary *,
-[data-style="luminous"] .tab-segment-row div.bg-primary *,
+[data-style="luminous"] .tab-segment-row div.bg-primary * {
+  color: hsl(var(--primary-foreground)) !important;
+}
+
+[data-style="luminous"] .select-tile[data-active="true"],
 [data-style="luminous"] .select-tile[data-active="true"] * {
   color: hsl(var(--primary)) !important;
 }
@@ -441,15 +446,15 @@ All colors MUST be HSL.
 .dark [data-style="luminous"] .tab-segment-row button.bg-primary,
 .dark[data-style="luminous"] .tab-segment-row div.bg-primary,
 .dark [data-style="luminous"] .tab-segment-row div.bg-primary,
-.dark[data-style="luminous"] .select-tile[data-active="true"],
-.dark [data-style="luminous"] .select-tile[data-active="true"] {
-  color: hsl(var(--foreground)) !important;
-}
-
 .dark[data-style="luminous"] .tab-segment-row button.bg-primary *,
 .dark [data-style="luminous"] .tab-segment-row button.bg-primary *,
 .dark[data-style="luminous"] .tab-segment-row div.bg-primary *,
-.dark [data-style="luminous"] .tab-segment-row div.bg-primary *,
+.dark [data-style="luminous"] .tab-segment-row div.bg-primary * {
+  color: hsl(var(--primary-foreground)) !important;
+}
+
+.dark[data-style="luminous"] .select-tile[data-active="true"],
+.dark [data-style="luminous"] .select-tile[data-active="true"],
 .dark[data-style="luminous"] .select-tile[data-active="true"] *,
 .dark [data-style="luminous"] .select-tile[data-active="true"] * {
   color: hsl(var(--foreground)) !important;
@@ -1295,7 +1300,7 @@ All colors MUST be HSL.
   -webkit-backdrop-filter: none !important;
 }
 
-/* 激活态 Tab 按钮：液态水滴晶体胶囊 (通透晶莹，严格对齐 Apple 液态流体胶囊选中质感) */
+/* 激活态 Tab 文字跟实心主色胶囊配套。底色由滑动胶囊画，按钮本身稍后被改成透明。 */
 [data-style="liquid"] .tab-segment-row button.bg-primary,
 [data-style="liquid"] .tab-segment-row div.bg-primary {
   background: linear-gradient(
@@ -1307,12 +1312,12 @@ All colors MUST be HSL.
   box-shadow:
     inset 0 1px 0.5px 0 rgba(255, 255, 255, 0.70),
     0 2px 10px 0 hsl(var(--primary) / 0.45) !important;
-  color: #ffffff !important;
+  color: hsl(var(--primary-foreground)) !important;
 }
 
 [data-style="liquid"] .tab-segment-row button.bg-primary *,
 [data-style="liquid"] .tab-segment-row div.bg-primary * {
-  color: #ffffff !important;
+  color: hsl(var(--primary-foreground)) !important;
 }
 
 [data-style="liquid"]:not(.dark) .tab-segment-row button.bg-primary,
@@ -1326,12 +1331,12 @@ All colors MUST be HSL.
   box-shadow:
     inset 0 1.5px 0.5px 0 rgba(255, 255, 255, 0.95),
     0 2px 8px 0 hsl(var(--primary) / 0.25) !important;
-  color: hsl(var(--primary)) !important;
+  color: hsl(var(--primary-foreground)) !important;
 }
 
 [data-style="liquid"]:not(.dark) .tab-segment-row button.bg-primary *,
 [data-style="liquid"]:not(.dark) .tab-segment-row div.bg-primary * {
-  color: hsl(var(--primary)) !important;
+  color: hsl(var(--primary-foreground)) !important;
 }
 
 /* 未激活态 Tab 按钮 hover：通透水润微折射 */
@@ -1719,7 +1724,10 @@ All colors MUST be HSL.
 [data-style="glassmorphism"] .tab-segment-row button.bg-primary,
 [data-style="glassmorphism"] .tab-segment-row div.bg-primary,
 [data-style="glassmorphism"] .tab-segment-row button.bg-primary *,
-[data-style="glassmorphism"] .tab-segment-row div.bg-primary *,
+[data-style="glassmorphism"] .tab-segment-row div.bg-primary * {
+  color: hsl(var(--primary-foreground)) !important;
+}
+
 [data-style="glassmorphism"] .select-tile[data-active="true"],
 [data-style="glassmorphism"] .select-tile[data-active="true"] * {
   color: hsl(var(--primary)) !important;
@@ -1755,6 +1763,24 @@ All colors MUST be HSL.
   box-shadow: none;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
+}
+
+/* 分段里的选中胶囊：毛玻璃 / 光感 / 液态都用实心主色，不要白描边空心。
+   主题页的大瓷砖仍走原来的描边胶囊，不套这条。 */
+[data-style="glassmorphism"] .tab-segment-row > .liquid-segment-thumb,
+[data-style="luminous"] .tab-segment-row > .liquid-segment-thumb,
+[data-style="liquid"] .tab-segment-row > .liquid-segment-thumb,
+.dark[data-style="glassmorphism"] .tab-segment-row > .liquid-segment-thumb,
+.dark [data-style="glassmorphism"] .tab-segment-row > .liquid-segment-thumb,
+.dark[data-style="luminous"] .tab-segment-row > .liquid-segment-thumb,
+.dark [data-style="luminous"] .tab-segment-row > .liquid-segment-thumb,
+.dark[data-style="liquid"] .tab-segment-row > .liquid-segment-thumb,
+.dark [data-style="liquid"] .tab-segment-row > .liquid-segment-thumb {
+  background: hsl(var(--primary)) !important;
+  border: 1px solid transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
 /* 页头主按钮跟卡片同一层磨砂，壁纸要透出来，不能是实心主色。 */
@@ -1996,6 +2022,12 @@ main:has(.page-fill) .layout-page-inner {
   padding-inline: 0;
 }
 
+/* 视口外的卡片先不画。滚进视口后和原来一样糊，只是打开页面时不用一次糊完全部。 */
+.glass-card-grid > .glass-card {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 22rem;
+}
+
 /*
  * 任意需要阴影安全区的容器：同样仅竖直方向，保证与网格/卡片右缘对齐。
  */
@@ -2097,9 +2129,9 @@ main:has(.page-fill) .layout-page-inner {
 }
 
 /* Solid mode - dialog/popover content */
-[data-style="solid"] [role="dialog"],
+[data-style="solid"] [role="dialog"]:not(.glass-float),
 [data-style="solid"] [class*="DialogContent"],
-[data-style="solid"] [class*="popover"] {
+[data-style="solid"] [class*="popover"]:not(.glass-float) {
   background: hsl(var(--popover)) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
@@ -2107,9 +2139,9 @@ main:has(.page-fill) .layout-page-inner {
 }
 
 /* Apply backdrop-filter only in glassmorphism mode */
-[data-style="glassmorphism"] [role="dialog"],
+[data-style="glassmorphism"] [role="dialog"]:not(.glass-float),
 [data-style="glassmorphism"] [class*="DialogContent"],
-[data-style="glassmorphism"] [class*="popover"] {
+[data-style="glassmorphism"] [class*="popover"]:not(.glass-float) {
   backdrop-filter: blur(var(--blur-intensity, 12px)) !important;
   -webkit-backdrop-filter: blur(var(--blur-intensity, 12px)) !important;
   background: hsl(var(--popover) / 0.7) !important;
@@ -2128,9 +2160,9 @@ main:has(.page-fill) .layout-page-inner {
 }
 
 /* Dark mode glass dialog/popover */
-.dark [data-style="glassmorphism"] [role="dialog"],
+.dark [data-style="glassmorphism"] [role="dialog"]:not(.glass-float),
 .dark [data-style="glassmorphism"] [class*="DialogContent"],
-.dark [data-style="glassmorphism"] [class*="popover"] {
+.dark [data-style="glassmorphism"] [class*="popover"]:not(.glass-float) {
   background: hsl(var(--popover) / 0.6) !important;
   border: 1px solid hsl(var(--border) / 0.4) !important;
 }
@@ -2149,9 +2181,9 @@ main:has(.page-fill) .layout-page-inner {
 }
 
 /* Apply backdrop-filter in luminous mode */
-[data-style="luminous"] [role="dialog"],
+[data-style="luminous"] [role="dialog"]:not(.glass-float),
 [data-style="luminous"] [class*="DialogContent"],
-[data-style="luminous"] [class*="popover"] {
+[data-style="luminous"] [class*="popover"]:not(.glass-float) {
   backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.25)) saturate(190%) contrast(106%) !important;
   -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.25)) saturate(190%) contrast(106%) !important;
   background: hsl(var(--popover) / 0.72) !important;
@@ -2168,15 +2200,15 @@ main:has(.page-fill) .layout-page-inner {
   -webkit-backdrop-filter: none !important;
 }
 
-.dark[data-style="luminous"] [role="dialog"],
+.dark[data-style="luminous"] [role="dialog"]:not(.glass-float),
 .dark[data-style="luminous"] [class*="DialogContent"],
-.dark[data-style="luminous"] [class*="popover"],
-.dark [data-style="luminous"] [role="dialog"],
+.dark[data-style="luminous"] [class*="popover"]:not(.glass-float),
+.dark [data-style="luminous"] [role="dialog"]:not(.glass-float),
 .dark [data-style="luminous"] [class*="DialogContent"],
-.dark [data-style="luminous"] [class*="popover"],
+.dark [data-style="luminous"] [class*="popover"]:not(.glass-float),
 [data-style="luminous"] .dark [role="dialog"],
 [data-style="luminous"] .dark [class*="DialogContent"],
-[data-style="luminous"] .dark [class*="popover"] {
+[data-style="luminous"] .dark [class*="popover"]:not(.glass-float) {
   background: hsl(var(--popover) / 0.62) !important;
   border: 1px solid rgba(255, 255, 255, 0.18) !important;
   box-shadow:
@@ -2192,9 +2224,9 @@ main:has(.page-fill) .layout-page-inner {
 }
 
 /* Apply backdrop-filter in liquid mode */
-[data-style="liquid"] [role="dialog"],
+[data-style="liquid"] [role="dialog"]:not(.glass-float),
 [data-style="liquid"] [class*="DialogContent"],
-[data-style="liquid"] [class*="popover"] {
+[data-style="liquid"] [class*="popover"]:not(.glass-float) {
   backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.4)) saturate(190%) contrast(106%) !important;
   -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.4)) saturate(190%) contrast(106%) !important;
   background: hsl(var(--popover) / 0.70) !important;
@@ -2212,15 +2244,15 @@ main:has(.page-fill) .layout-page-inner {
   -webkit-backdrop-filter: none !important;
 }
 
-.dark[data-style="liquid"] [role="dialog"],
+.dark[data-style="liquid"] [role="dialog"]:not(.glass-float),
 .dark[data-style="liquid"] [class*="DialogContent"],
-.dark[data-style="liquid"] [class*="popover"],
-.dark [data-style="liquid"] [role="dialog"],
+.dark[data-style="liquid"] [class*="popover"]:not(.glass-float),
+.dark [data-style="liquid"] [role="dialog"]:not(.glass-float),
 .dark [data-style="liquid"] [class*="DialogContent"],
-.dark [data-style="liquid"] [class*="popover"],
+.dark [data-style="liquid"] [class*="popover"]:not(.glass-float),
 [data-style="liquid"] .dark [role="dialog"],
 [data-style="liquid"] .dark [class*="DialogContent"],
-[data-style="liquid"] .dark [class*="popover"] {
+[data-style="liquid"] .dark [class*="popover"]:not(.glass-float) {
   background: hsl(var(--popover) / 0.60) !important;
   border: 1px solid rgba(255, 255, 255, 0.20) !important;
   box-shadow:
@@ -2233,7 +2265,7 @@ main:has(.page-fill) .layout-page-inner {
 /*
  * 带 glass-card 的弹层：磨砂画在 ::before。
  * [role=dialog] 写在宿主上的半透明底会把 ::before 盖住，弹层就变成一块实心卡片。
- * 遮罩同理——白 80% 把壁纸盖死后，光感 / 磨砂 / 液态都没有颜色可透。
+ * 遮罩：亮色用白，暗色用黑。亮色下若压一层深色，半透明弹层会把暗色吃进去，正文发灰。
  */
 [data-style="glassmorphism"] .glass-card[role="dialog"],
 [data-style="glassmorphism"] .glass-card[role="alertdialog"],
@@ -2291,7 +2323,7 @@ main:has(.page-fill) .layout-page-inner {
 [data-style="glassmorphism"] [data-dialog-overlay],
 [data-style="luminous"] [data-dialog-overlay],
 [data-style="liquid"] [data-dialog-overlay] {
-  background: hsl(240 20% 12% / 0.22) !important;
+  background: hsl(0 0% 100% / 0.8) !important;
 }
 
 .dark[data-style="glassmorphism"] [data-dialog-overlay],
@@ -2300,12 +2332,56 @@ main:has(.page-fill) .layout-page-inner {
 .dark [data-style="luminous"] [data-dialog-overlay],
 .dark[data-style="liquid"] [data-dialog-overlay],
 .dark [data-style="liquid"] [data-dialog-overlay] {
-  background: hsl(0 0% 0% / 0.5) !important;
+  background: hsl(0 0% 0% / 0.8) !important;
+}
+
+/* 亮色白罩、暗色黑罩都淡入淡出。写在这里，避免和按钮上的 animate-in 抢 animation 后变成瞬间铺满。 */
+@keyframes dialog-overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes dialog-overlay-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+[data-dialog-overlay][data-state="open"] {
+  /* 压过 Tailwind animate-in 的 animation-name/duration，否则入场只剩 150ms，白罩像是瞬间铺上。 */
+  animation: dialog-overlay-in 0.45s cubic-bezier(0.4, 0, 0.2, 1) both !important;
+}
+
+/* 先停在透明。data-overlay-enter=true 才开始淡入，避免动画在首帧绘制前跑完。 */
+[data-dialog-overlay][data-state="open"]:not([data-overlay-enter="true"]),
+[role="dialog"][data-state="open"]:not([data-overlay-enter="true"]),
+[role="alertdialog"][data-state="open"]:not([data-overlay-enter="true"]) {
+  opacity: 0 !important;
+  animation: none !important;
+}
+
+[role="dialog"].glass-card[data-state="open"]:not([data-overlay-enter])::before,
+[role="alertdialog"].glass-card[data-state="open"]:not([data-overlay-enter])::before {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+[data-dialog-overlay][data-state="closed"] {
+  animation: dialog-overlay-out 0.35s cubic-bezier(0.4, 0, 0.2, 1) both !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-dialog-overlay][data-state="open"],
+  [data-dialog-overlay][data-state="closed"] {
+    animation: none !important;
+  }
 }
 
 /*
- * 浮层玻璃：下拉菜单（role=menu）、选择列表（role=listbox）、.menu-panel（Popover）、
- * .glass-float（可搜索浮层）。这一族不能用 .glass-card 的数字 —— 两者的取值逻辑相反：
+ * 浮层玻璃：下拉菜单（role=menu）、选择列表（role=listbox）、.menu-panel（Popover）。
+ * .glass-float（SearchableMenu）不套这一档 76~82% 的高填充。
+ * 可搜索菜单的填充跟页头描边按钮走 --card / --card-opacity，见下方
+ * .searchable-menu-panel；再往透明度上加一截，菜单就会变成实心白。
+ * 这一族不能用 .glass-card 的数字 —— 两者的取值逻辑相反：
  *
  *   卡片：内容长在自己肚子里，画得再透也只透给用户看，所以 0.22~0.25 就够。
  *   浮层：压在别人的内容上，背后是整屏列表 / 时间戳 / ID 这种高对比小字。
@@ -2360,7 +2436,7 @@ main:has(.page-fill) .layout-page-inner {
 }
 
 :is([data-style='glassmorphism'], [data-style='luminous'], [data-style='liquid'])
-  :is([role='menu'], [role='listbox'], .menu-panel, .glass-float) {
+  :is([role='menu'], [role='listbox'], .menu-panel) {
   background: var(--overlay-fill) !important;
   border: 1px solid var(--overlay-border) !important;
   border-radius: var(--radius) !important;
@@ -2372,12 +2448,29 @@ main:has(.page-fill) .layout-page-inner {
 }
 
 :is(.dark[data-style='glassmorphism'], .dark [data-style='luminous'], .dark [data-style='liquid'])
-  :is([role='menu'], [role='listbox'], .menu-panel, .glass-float),
+  :is([role='menu'], [role='listbox'], .menu-panel),
 .dark:is([data-style='glassmorphism'], [data-style='luminous'], [data-style='liquid'])
-  :is([role='menu'], [role='listbox'], .menu-panel, .glass-float) {
+  :is([role='menu'], [role='listbox'], .menu-panel) {
   box-shadow:
     inset 0 1px 0 0 rgba(255, 255, 255, 0.42),
     0 18px 44px -8px hsl(0 0% 0% / calc(0.45 * var(--shadow-strength))) !important;
+}
+
+/*
+ * cmdk 的列表本身是 [role='listbox']，会被上面这族浮层规则和全局字段样式
+ * 一起命中，在玻璃面板里画出一块白色实心卡片。列表必须完全透明，
+ * 材质由外层 .glass-float 面板决定。Tailwind 的 @layer base 是编译期指令，
+ * 规则会被提到文件顶部，所以这条必须写在这里（浮层规则之后）才压得住。
+ */
+[data-style] [data-searchable-menu],
+[data-style] [data-searchable-menu] [role='listbox'] {
+  background: transparent !important;
+  background-image: none !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
 
@@ -2435,7 +2528,10 @@ main:has(.page-fill) .layout-page-inner {
     background: hsl(var(--background) / 0.4) !important;
     border: 1px solid hsl(var(--border)) !important;
     border-radius: var(--radius) !important;
-    transition: all 0.2s ease !important;
+    transition:
+      background-color 0.2s ease,
+      border-color 0.2s ease,
+      box-shadow 0.2s ease !important;
   }
   
   /* Only apply backdrop-filter in glassmorphism mode */
@@ -2669,13 +2765,6 @@ main:has(.page-fill) .layout-page-inner {
   box-shadow: none !important;
 }
 
-[data-searchable-menu] [role='listbox'] {
-  border: 0 !important;
-  border-radius: 0 !important;
-  background: transparent !important;
-  box-shadow: none !important;
-}
-
 .glass-input {
   background: hsl(var(--background) / 0.5);
   backdrop-filter: blur(8px);
@@ -2848,19 +2937,41 @@ button[role="switch"][data-state="unchecked"] span {
 
 @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   [data-style="glassmorphism"] .table-sticky-right {
-    --sticky-bg-alpha: calc(var(--card-opacity, 0.25) + 0.5);
-    -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.5));
-    backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.5));
+    --sticky-bg-alpha: calc(var(--card-opacity, 0.25) + 0.22);
+    -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.25));
+    backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.25));
   }
+  /* 光感 / 液态的表格本身不再糊，壁纸已经模糊。操作列若再叠高不透明度 + 强饱和模糊，
+     会变成一块发白的实心底，和透过去的行对不上。填充跟卡片走，模糊只负责抹掉滑到下面的字。 */
   [data-style="luminous"] .table-sticky-right {
-    --sticky-bg-alpha: calc(var(--card-opacity, 0.25) + 0.45);
-    -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.5)) saturate(190%) contrast(106%);
-    backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.5)) saturate(190%) contrast(106%);
+    --sticky-bg-alpha: var(--card-opacity, 0.22);
+    background-color: hsl(var(--card) / var(--sticky-bg-alpha));
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
+    backdrop-filter: blur(14px) saturate(140%);
+    box-shadow:
+      inset 1px 0 0 0 rgba(255, 255, 255, 0.42),
+      inset 0 -1px 0 0 hsl(var(--border) / 0.4);
   }
   [data-style="liquid"] .table-sticky-right {
-    --sticky-bg-alpha: calc(var(--card-opacity, 0.25) + 0.42);
-    -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.6)) saturate(205%) contrast(108%);
-    backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.6)) saturate(205%) contrast(108%);
+    --sticky-bg-alpha: var(--card-opacity, 0.25);
+    background-color: hsl(var(--card) / var(--sticky-bg-alpha));
+    -webkit-backdrop-filter: blur(14px) saturate(130%);
+    backdrop-filter: blur(14px) saturate(130%);
+    box-shadow:
+      inset 1px 0 0 0 rgba(255, 255, 255, 0.62),
+      inset 0 -1px 0 0 hsl(var(--border) / 0.35);
+  }
+  .dark[data-style="luminous"] .table-sticky-right,
+  .dark [data-style="luminous"] .table-sticky-right {
+    box-shadow:
+      inset 1px 0 0 0 rgba(255, 255, 255, 0.16),
+      inset 0 -1px 0 0 hsl(var(--border) / 0.45);
+  }
+  .dark[data-style="liquid"] .table-sticky-right,
+  .dark [data-style="liquid"] .table-sticky-right {
+    box-shadow:
+      inset 1px 0 0 0 rgba(255, 255, 255, 0.2),
+      inset 0 -1px 0 0 hsl(var(--border) / 0.4);
   }
 }
 
@@ -2897,6 +3008,11 @@ button[role="switch"][data-state="unchecked"] span {
   opacity: 1;
 }
 
+[data-style="luminous"] .table-sticky-right::before,
+[data-style="liquid"] .table-sticky-right::before {
+  width: 3rem;
+}
+
 /* 行悬停面纱：与 hover:bg-muted/50 同色 */
 .table-sticky-right::after {
   content: "";
@@ -2921,6 +3037,24 @@ tbody tr:hover .table-sticky-right::after {
   box-shadow:
     inset 0 -1px 0 0 hsl(var(--border)),
     -16px 0 24px -16px hsl(0 0% 0% / calc(0.8 * var(--shadow-strength, 1)));
+}
+
+[data-style="luminous"] .table-sticky-right.table-sticky-shadow,
+[data-style="liquid"] .table-sticky-right.table-sticky-shadow {
+  box-shadow:
+    inset 1px 0 0 0 rgba(255, 255, 255, 0.5),
+    inset 0 -1px 0 0 hsl(var(--border) / 0.4),
+    -8px 0 16px -12px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength, 1)));
+}
+
+.dark[data-style="luminous"] .table-sticky-right.table-sticky-shadow,
+.dark [data-style="luminous"] .table-sticky-right.table-sticky-shadow,
+.dark[data-style="liquid"] .table-sticky-right.table-sticky-shadow,
+.dark [data-style="liquid"] .table-sticky-right.table-sticky-shadow {
+  box-shadow:
+    inset 1px 0 0 0 rgba(255, 255, 255, 0.16),
+    inset 0 -1px 0 0 hsl(var(--border) / 0.45),
+    -8px 0 16px -12px hsl(0 0% 0% / calc(0.22 * var(--shadow-strength, 1)));
 }
 
 /* ───────────────────────────────────────────────────────────────────────────
@@ -3177,6 +3311,35 @@ html[data-style="liquid"] :is(
 }
 
 /*
+ * 一块玻璃只糊一次。
+ * 卡片 / 弹层的磨砂在自己的 ::before 上。里面的输入框、按钮、再嵌一层卡片
+ * 如果各自再 backdrop-filter，打开配置页时每一层都重采样壁纸，抽屉滑入时逐帧重算。
+ * 内层仍用原来的半透明底、描边和高光，看起来还是同一块玻璃。
+ * 弹层自己的 ::before，以及 Portal 到 body 的菜单，不在这里关掉。
+ */
+[data-style="glassmorphism"] .glass-card :is(
+  input,
+  textarea,
+  select,
+  button,
+  a,
+  [role="combobox"],
+  .ui-input,
+  .ui-select-trigger,
+  .ui-field-trigger
+) {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+[data-style="glassmorphism"] .glass-card .glass-card::before,
+[data-style="luminous"] [role="dialog"] .glass-card::before,
+[data-style="liquid"] [role="dialog"] .glass-card::before {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/*
  * 小块浮层（插件搜索下拉、图谱搜索条）。
  * 上面关掉的是会跟着侧栏变宽的大表面。浮层不参与那次动画，保留一层模糊，
  * 才能透出背后的列表或图谱，而不是一块实心底。
@@ -3184,7 +3347,12 @@ html[data-style="liquid"] :is(
 .glass-float {
   border-radius: var(--radius);
   border: 1px solid hsl(var(--border) / 0.45);
-  background: hsl(var(--popover) / 0.72);
+  background-color: hsl(var(--popover) / 0.72);
+  /* 浮层压在白色卡片上时别和页面融成一块纯白玻璃，补一层均匀的纵深色。 */
+  background-image: linear-gradient(
+    hsl(var(--foreground) / 0.05),
+    hsl(var(--foreground) / 0.05)
+  );
   box-shadow:
     inset 0 1px 0 0 rgba(255, 255, 255, 0.55),
     0 16px 40px -8px hsl(0 0% 0% / calc(0.28 * var(--shadow-strength, 1)));
@@ -3192,8 +3360,19 @@ html[data-style="liquid"] :is(
   -webkit-backdrop-filter: blur(var(--blur-intensity, 12px));
 }
 
+[data-style="glassmorphism"] .glass-float {
+  background-color: hsl(var(--popover) / calc(var(--card-opacity, 0.25) + 0.55));
+  backdrop-filter: blur(var(--overlay-blur)) saturate(150%);
+  -webkit-backdrop-filter: blur(var(--overlay-blur)) saturate(150%);
+}
+
+.dark[data-style="glassmorphism"] .glass-float {
+  background-color: hsl(var(--popover) / calc(var(--card-opacity, 0.2) + 0.55));
+}
+
 [data-style="solid"] .glass-float {
-  background: hsl(var(--popover));
+  background-color: hsl(var(--popover));
+  background-image: none;
   border-color: hsl(var(--border));
   box-shadow: 0 8px 24px hsl(0 0% 0% / 0.12);
   backdrop-filter: none;
@@ -3202,18 +3381,18 @@ html[data-style="liquid"] :is(
 
 [data-style="luminous"] .glass-float {
   border: 1px solid rgba(255, 255, 255, 0.35);
-  background: hsl(var(--popover) / 0.55);
+  background-color: hsl(var(--popover) / calc(var(--card-opacity, 0.22) + 0.55));
   box-shadow:
     inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.5),
     inset 0 -1px 1px 0 rgba(255, 255, 255, 0.15),
     0 16px 40px -4px hsl(0 0% 0% / calc(0.25 * var(--shadow-strength, 1)));
-  backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.25)) saturate(190%) contrast(106%);
-  -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.25)) saturate(190%) contrast(106%);
+  backdrop-filter: blur(var(--overlay-blur)) saturate(190%) contrast(106%) brightness(105%);
+  -webkit-backdrop-filter: blur(var(--overlay-blur)) saturate(190%) contrast(106%) brightness(105%);
 }
 
 .dark[data-style="luminous"] .glass-float {
   border-color: rgba(255, 255, 255, 0.18);
-  background: hsl(var(--popover) / 0.42);
+  background-color: hsl(var(--popover) / calc(var(--card-opacity, 0.2) + 0.55));
   box-shadow:
     inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.3),
     inset 0 -1px 1px 0 rgba(255, 255, 255, 0.1),
@@ -3222,31 +3401,123 @@ html[data-style="liquid"] :is(
 
 [data-style="liquid"] .glass-float {
   border: 1px solid rgba(255, 255, 255, 0.55);
-  background: hsl(var(--popover) / 0.38);
+  background-color: hsl(var(--popover) / calc(var(--card-opacity, 0.25) + 0.55));
   box-shadow:
     inset 0 1px 0 0 rgba(255, 255, 255, 0.8),
     inset 0 0 14px 0 rgba(255, 255, 255, 0.1),
     0 16px 40px -8px hsl(0 0% 0% / calc(0.28 * var(--shadow-strength, 1)));
-  backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.15) brightness(1.05) saturate(1.2);
-  -webkit-backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.15) brightness(1.05) saturate(1.2);
+  /* 浮层压着别的内容，模糊用带下限的 --overlay-blur，不能跟着卡片透明度缩到 3px。 */
+  backdrop-filter: blur(var(--overlay-blur)) contrast(1.15) brightness(1.05) saturate(1.2);
+  -webkit-backdrop-filter: blur(var(--overlay-blur)) contrast(1.15) brightness(1.05) saturate(1.2);
 }
 
 .dark[data-style="liquid"] .glass-float {
   border-color: rgba(255, 255, 255, 0.2);
-  background: hsl(var(--background) / 0.34);
+  background-color: hsl(var(--background) / calc(var(--card-opacity, 0.2) + 0.55));
   box-shadow:
     inset 0 1px 0 0 rgba(255, 255, 255, 0.4),
     inset 0 0 14px 0 rgba(255, 255, 255, 0.06),
     0 18px 44px -8px hsl(0 0% 0% / calc(0.45 * var(--shadow-strength, 1)));
 }
 
-.glass-float input,
-[data-searchable-menu] input {
-  background: transparent !important;
-  border-color: transparent !important;
-  box-shadow: none !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
+/*
+ * SearchableMenu 和页头描边按钮同一层玻璃：--card / --card-opacity，
+ * 再加这一主题自己的描边和高光。不要在透明度上再加一截——卡片透明度
+ * 到 50% 以上时，+0.25 会把菜单涂成实心白，和上面的磨砂按钮拆成两块。
+ * 模糊用 --overlay-blur（有下限）。液态的 --liquid-blur 会跟着卡片透明度
+ * 缩到几像素，菜单压在表单上时背后的字会透出来。
+ * 圆角跟随触发按钮的 rounded-md（--radius - 2px）。
+ */
+.searchable-menu-panel {
+  border-radius: calc(var(--radius) - 2px);
+}
+
+[data-style="glassmorphism"] .searchable-menu-panel {
+  background-color: hsl(var(--card) / var(--card-opacity, 0.25)) !important;
+  background-image: none !important;
+  border: 1px solid hsl(var(--border) / 0.45) !important;
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.45),
+    0 16px 40px -8px hsl(0 0% 0% / calc(0.28 * var(--shadow-strength, 1))) !important;
+  backdrop-filter: blur(var(--overlay-blur)) saturate(150%) !important;
+  -webkit-backdrop-filter: blur(var(--overlay-blur)) saturate(150%) !important;
+}
+
+.dark[data-style="glassmorphism"] .searchable-menu-panel,
+.dark [data-style="glassmorphism"] .searchable-menu-panel,
+[data-style="glassmorphism"] .dark .searchable-menu-panel {
+  background-color: hsl(var(--card) / var(--card-opacity, 0.2)) !important;
+  border-color: hsl(var(--border) / 0.4) !important;
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.16),
+    0 18px 44px -8px hsl(0 0% 0% / calc(0.45 * var(--shadow-strength, 1))) !important;
+}
+
+[data-style="luminous"] .searchable-menu-panel {
+  background-color: hsl(var(--card) / var(--card-opacity, 0.22)) !important;
+  background-image: none !important;
+  border: 1px solid rgba(255, 255, 255, 0.5) !important;
+  box-shadow:
+    inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.75),
+    inset 0 -1px 1px 0 rgba(255, 255, 255, 0.15),
+    0 16px 40px -4px hsl(0 0% 0% / calc(0.25 * var(--shadow-strength, 1))) !important;
+  backdrop-filter: blur(var(--overlay-blur)) saturate(190%) contrast(106%) brightness(105%) !important;
+  -webkit-backdrop-filter: blur(var(--overlay-blur)) saturate(190%) contrast(106%) brightness(105%) !important;
+}
+
+.dark[data-style="luminous"] .searchable-menu-panel,
+.dark [data-style="luminous"] .searchable-menu-panel,
+[data-style="luminous"] .dark .searchable-menu-panel {
+  background-color: hsl(var(--card) / var(--card-opacity, 0.28)) !important;
+  border-color: rgba(255, 255, 255, 0.18) !important;
+  box-shadow:
+    inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.3),
+    inset 0 -1px 1px 0 rgba(255, 255, 255, 0.1),
+    0 18px 44px -4px hsl(0 0% 0% / calc(0.4 * var(--shadow-strength, 1))) !important;
+  backdrop-filter: blur(var(--overlay-blur)) saturate(180%) contrast(108%) brightness(112%) !important;
+  -webkit-backdrop-filter: blur(var(--overlay-blur)) saturate(180%) contrast(108%) brightness(112%) !important;
+}
+
+[data-style="liquid"] .searchable-menu-panel {
+  background-color: hsl(var(--card) / var(--card-opacity, 0.35)) !important;
+  background-image: none !important;
+  border: 1px solid rgba(255, 255, 255, 0.55) !important;
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.8),
+    inset 0 0 14px 0 rgba(255, 255, 255, 0.1),
+    0 20px 48px -4px hsl(0 0% 0% / calc(0.28 * var(--shadow-strength, 1))),
+    0 8px 24px -2px hsl(0 0% 0% / calc(0.12 * var(--shadow-strength, 1))) !important;
+  backdrop-filter: blur(var(--overlay-blur)) contrast(1.15) brightness(1.05) saturate(1.2) !important;
+  -webkit-backdrop-filter: blur(var(--overlay-blur)) contrast(1.15) brightness(1.05) saturate(1.2) !important;
+}
+
+.dark[data-style="liquid"] .searchable-menu-panel,
+.dark [data-style="liquid"] .searchable-menu-panel,
+[data-style="liquid"] .dark .searchable-menu-panel {
+  background-color: hsl(var(--card) / var(--card-opacity, 0.4)) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.4),
+    inset 0 0 14px 0 rgba(255, 255, 255, 0.06),
+    0 22px 52px -4px hsl(0 0% 0% / calc(0.44 * var(--shadow-strength, 1))),
+    0 10px 28px -2px hsl(0 0% 0% / calc(0.2 * var(--shadow-strength, 1))) !important;
+}
+
+/*
+ * 全局输入框底色写在 @layer base 里且带 !important；搜索输入必须也放进 base 层，
+ * 并且排在通用输入样式之后，才能保持透明。
+ */
+@layer base {
+  [data-style] .glass-float input,
+  [data-style] .glass-float input:focus,
+  [data-style] [data-searchable-menu] input,
+  [data-style] [data-searchable-menu] input:focus {
+    background: transparent !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
 }
 
 
@@ -3433,23 +3704,42 @@ html[data-style="liquid"] :is(
 }
 
 [data-style="solid"] {
-  --alert-glass-fill: hsl(var(--card));
+  --alert-glass-fill: hsl(var(--card) / var(--card-opacity, 1));
 }
 
 .glass-alert-tint-primary {
   --alert-tint: hsl(var(--primary) / 0.18);
+  --alert-border: hsl(var(--primary) / 0.35);
 }
 
 .glass-alert-tint-info {
   --alert-tint: hsl(217 91% 60% / 0.18);
+  --alert-border: hsl(217 91% 60% / 0.35);
 }
 
 .glass-alert-tint-warning {
   --alert-tint: hsl(38 92% 50% / 0.18);
+  --alert-border: hsl(38 92% 50% / 0.4);
 }
 
 .glass-alert-tint-danger {
   --alert-tint: hsl(var(--destructive) / 0.18);
+  --alert-border: hsl(var(--destructive) / 0.4);
+}
+
+.glass-alert-tint-success {
+  --alert-tint: hsl(142 71% 45% / 0.16);
+  --alert-border: hsl(142 71% 45% / 0.35);
+}
+
+.glass-alert-tint-accent {
+  --alert-tint: hsl(262 83% 58% / 0.16);
+  --alert-border: hsl(262 83% 58% / 0.35);
+}
+
+/* .glass-card 的通用描边会盖掉工具类的语义色；有色调的提醒条保留自己的边框。 */
+[data-style] .glass-card.glass-alert-tint {
+  border-color: var(--alert-border, hsl(var(--border) / 0.4));
 }
 
 [data-style] .glass-alert-tint::before,
@@ -3459,4 +3749,17 @@ html[data-style="liquid"] :is(
   background:
     linear-gradient(var(--alert-tint), var(--alert-tint)),
     var(--alert-glass-fill) !important;
+}
+
+/*
+ * 有人设立绘的卡片：遮罩跟随用户的卡片透明度，不能再用实底渐变盖死。
+ * 毛玻璃 / 光感 / 液态 / 纯色共用同一套，避免有立绘的卡片比普通卡片更实。
+ */
+.persona-card-image-fade {
+  background: linear-gradient(
+    to top,
+    hsl(var(--card) / calc(var(--card-opacity, 0.25) * 0.5)),
+    hsl(var(--card) / calc(var(--card-opacity, 0.25) * 0.25)),
+    transparent
+  );
 }

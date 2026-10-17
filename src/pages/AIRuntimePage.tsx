@@ -29,6 +29,7 @@ import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { GlassAlert } from '@/components/ui/glass-alert';
 import { CognitionAttachments } from '@/components/cognition/CognitionAttachments';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -289,12 +290,9 @@ function SlotsPanel({
       </div>
 
       {sealedEmpty.length > 0 && (
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center rounded-lg border border-destructive/40 bg-destructive/5 p-3">
-          <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2 text-sm text-destructive">
-            <AlertTriangle className="w-4 h-4 shrink-0" />
-            <span className="font-medium">{t('aiRuntime.slots.sealedEmptyHint')}</span>
-          </div>
-        </div>
+        <GlassAlert tone="danger" icon={AlertTriangle}>
+          <span className="font-medium">{t('aiRuntime.slots.sealedEmptyHint')}</span>
+        </GlassAlert>
       )}
 
       {loading ? (

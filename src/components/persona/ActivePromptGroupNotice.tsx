@@ -28,7 +28,7 @@ export function ActivePromptGroupNotice({
           .join(sep),
       });
   return (
-    <GlassAlert tone={empty ? 'warning' : 'primary'} icon={empty ? AlertCircle : ScrollText}>
+    <GlassAlert tone={empty ? 'warning' : 'info'} icon={empty ? AlertCircle : ScrollText}>
       {text}
     </GlassAlert>
   );

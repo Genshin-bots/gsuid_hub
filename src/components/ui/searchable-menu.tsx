@@ -42,7 +42,7 @@ export function SearchableMenuContent({
   return (
     <Command
       data-searchable-menu=""
-      className="w-full min-w-0 bg-transparent text-inherit [&_[cmdk-input-wrapper]]:h-8 [&_[cmdk-input-wrapper]]:gap-2 [&_[cmdk-input-wrapper]]:border-border/40 [&_[cmdk-input-wrapper]]:px-2.5 [&_[cmdk-input-wrapper]]:py-0 [&_[cmdk-input-wrapper]_svg]:mr-0"
+      className="w-full min-w-0 bg-transparent text-inherit [&_[cmdk-input-wrapper]]:h-8 [&_[cmdk-input-wrapper]]:gap-2 [&_[cmdk-input-wrapper]]:border-b-0 [&_[cmdk-input-wrapper]]:px-2.5 [&_[cmdk-input-wrapper]]:py-0 [&_[cmdk-input-wrapper]_svg]:mr-0"
     >
       <CommandInput
         placeholder={searchPlaceholder ?? t('common.search')}
@@ -180,7 +180,7 @@ export function SearchableMenu({
         ref={panelRef}
         align={align}
         className={cn(
-          'glass-float box-border overflow-hidden p-0',
+          'glass-float searchable-menu-panel box-border overflow-hidden bg-transparent p-0 shadow-none',
           width === 'content' && 'w-max min-w-[16rem] max-w-[24rem]',
           contentClassName,
         )}

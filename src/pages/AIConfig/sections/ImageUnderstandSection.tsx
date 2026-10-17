@@ -1,13 +1,12 @@
 import { AlertTriangle, Eye, Wrench } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { GlassAlert } from '@/components/ui/glass-alert';
 import { ChipGroup } from '@/components/ui/MultiSelectChipGroup';
 import { McpParamMappingEditor } from '@/components/config';
-import { cn } from '@/lib/utils';
 
 export interface ImageUnderstandSectionProps {
   t: (key: string) => string;
-  isGlass: boolean;
 
   /** 提供方当前值与候选 */
   imageUnderstandProvider: string;
@@ -42,7 +41,6 @@ export interface ImageUnderstandSectionProps {
  */
 export function ImageUnderstandSection({
   t,
-  isGlass,
   imageUnderstandProvider,
   imageUnderstandProviderOptions,
   taskModelLacksImage,
@@ -71,19 +69,9 @@ export function ImageUnderstandSection({
       </div>
 
       {taskModelLacksImage && !imageUnderstandProvider && (
-        <div
-          className={cn(
-            'rounded-lg p-3 flex items-start gap-2',
-            isGlass
-              ? 'border border-red-500/50 bg-red-500/10'
-              : 'border border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-950',
-          )}
-        >
-          <AlertTriangle className="w-4 h-4 text-red-500 dark:text-red-400 shrink-0 mt-0.5" />
-          <p className="text-xs text-red-600 dark:text-red-400">
-            {t('aiConfig.imageUnderstand.modelNoImageWarning')}
-          </p>
-        </div>
+        <GlassAlert tone="danger" icon={AlertTriangle} contentClassName="text-xs">
+          {t('aiConfig.imageUnderstand.modelNoImageWarning')}
+        </GlassAlert>
       )}
 
       <ChipGroup

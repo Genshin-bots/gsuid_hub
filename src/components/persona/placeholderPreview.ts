@@ -53,9 +53,8 @@ export function groupPersonaFills(lines: readonly PersonaFill[]): GroupedPersona
 
 export function placeholderFollowsTier(
   token: string,
-  persona: Pick<PersonaPlaceholderPreview, 'soft_follows' | 'hard_follows'>,
+  persona: Pick<PersonaPlaceholderPreview, 'soft_follows'>,
 ): boolean {
   if (token === 'soft') return persona.soft_follows;
-  if (token === 'hard') return persona.hard_follows;
   return false;
 }

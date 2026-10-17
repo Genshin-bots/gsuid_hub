@@ -1,7 +1,6 @@
 const LABELS: Record<string, string> = {
   appearance: '外貌',
   soft: '建议字数',
-  hard: '硬上限',
   segment_hint: '分段说明',
   answer_contract: '作答契约',
   masters: '主人列表',
@@ -24,7 +23,6 @@ const LABELS: Record<string, string> = {
 const HINTS: Record<string, string> = {
   appearance: '发送前填入这份人格的外貌。没有外貌文件时，这一段不出现。',
   soft: '发送前填入建议字数。在人格编辑页修改。等于模板默认时，跟随说话强度。',
-  hard: '发送前填入硬上限。在人格编辑页修改。等于模板默认时，跟随说话强度。',
   segment_hint: '发送前填入说话强度这一档的分段说明。没有单独的文本项。要换说法，删掉标签后自己写。',
   answer_contract: '发送前填入同一组的「作答契约」全文。改那一段即可。',
   masters: '发送前填入核心配置里的主人 ID。',
@@ -63,7 +61,6 @@ export const SHARED_PLACEHOLDER_TOKENS = ['masters', 'date'] as const;
 export const PERSONA_PLACEHOLDER_TOKENS = [
   'appearance',
   'soft',
-  'hard',
   'segment_hint',
   'answer_contract',
   'master_title',

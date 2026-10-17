@@ -230,8 +230,8 @@ export function GsCoreAiMcpServerSection({ t, isGlass = false }: GsCoreAiMcpServ
       {savedEnableMcpServer && (
         <div
           className={cn(
-            'flex items-start gap-3 rounded-lg border p-4 text-sm',
-            'glass-card border-blue-500/30',
+            'flex items-start gap-3 rounded-lg p-4 text-sm',
+            'glass-card glass-alert glass-alert-tint glass-alert-tint-info',
           )}
         >
           <AlertTriangle className="w-4 h-4 mt-0.5 text-blue-600 dark:text-blue-400 shrink-0" />

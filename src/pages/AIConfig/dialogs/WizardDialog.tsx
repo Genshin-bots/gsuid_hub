@@ -1,6 +1,7 @@
 import { AlertTriangle, Bot, CheckCircle, Loader2, Sparkles, Users } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { GlassAlert } from '@/components/ui/glass-alert';
 import {
   Dialog,
   DialogContent,
@@ -64,34 +65,28 @@ export function WizardDialog({
         ) : (
           <div className="space-y-4">
             {/* Overall Status Banner */}
-            <div
-              className={cn(
-                'p-4 rounded-lg border flex items-center gap-3',
-                overallStatus === 'overall_ok' && 'bg-green-500/10 border-green-500/20',
-                overallStatus === 'overall_warning' && 'bg-yellow-500/10 border-yellow-500/20',
-                overallStatus === 'overall_error' && 'bg-red-500/10 border-red-500/20',
-              )}
+            <GlassAlert
+              tone={
+                overallStatus === 'overall_ok'
+                  ? 'success'
+                  : overallStatus === 'overall_warning'
+                    ? 'warning'
+                    : 'danger'
+              }
+              icon={overallStatus === 'overall_ok' ? CheckCircle : AlertTriangle}
+              className="items-center p-4"
             >
-              {overallStatus === 'overall_ok' && <CheckCircle className="w-6 h-6 text-green-500" />}
-              {overallStatus === 'overall_warning' && (
-                <AlertTriangle className="w-6 h-6 text-yellow-500" />
-              )}
-              {overallStatus === 'overall_error' && (
-                <AlertTriangle className="w-6 h-6 text-red-500" />
-              )}
-              <div>
-                <p className="font-medium">
-                  {usable ? t('aiConfig.wizard.aiUsable') : t('aiConfig.wizard.aiNotUsable')}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {t('aiConfig.wizard.summary', {
-                    total: summary.total,
-                    ok: summary.ok,
-                    warning: summary.warning,
-                  })}
-                </p>
-              </div>
-            </div>
+              <p className="font-medium">
+                {usable ? t('aiConfig.wizard.aiUsable') : t('aiConfig.wizard.aiNotUsable')}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {t('aiConfig.wizard.summary', {
+                  total: summary.total,
+                  ok: summary.ok,
+                  warning: summary.warning,
+                })}
+              </p>
+            </GlassAlert>
 
             {/* Persona List Section */}
             {status?.persona && (

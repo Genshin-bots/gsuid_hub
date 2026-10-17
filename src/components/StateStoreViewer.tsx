@@ -34,6 +34,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { GlassAlert } from '@/components/ui/glass-alert';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -641,10 +642,9 @@ const StateStoreViewer = forwardRef<StateStoreViewerHandle, StateStoreViewerProp
                           )}
                         </div>
                         {collectionWarning && (
-                          <div className="mb-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-300">
-                            <AlertTriangle className="mr-2 inline h-4 w-4" />
+                          <GlassAlert tone="warning" icon={AlertTriangle} className="mb-3">
                             {collectionWarning}
-                          </div>
+                          </GlassAlert>
                         )}
                         {isLoadingRecords ? (
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -719,10 +719,9 @@ const StateStoreViewer = forwardRef<StateStoreViewerHandle, StateStoreViewerProp
                 })}
               </AlertDialogDescription>
             </AlertDialogHeader>
-            <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
-              <AlertTriangle className="mr-2 inline h-4 w-4" />
+            <GlassAlert tone="danger" icon={AlertTriangle} className="p-4">
               {t('aiKanban.stateStore.deleteWarning')}
-            </div>
+            </GlassAlert>
             <AlertDialogFooter>
               <AlertDialogCancel disabled={isDeleting}>{t('common.cancel')}</AlertDialogCancel>
               <AlertDialogAction
@@ -763,10 +762,9 @@ const StateStoreViewer = forwardRef<StateStoreViewerHandle, StateStoreViewerProp
                 ))}
               </ul>
             </div>
-            <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
-              <AlertTriangle className="mr-2 inline h-4 w-4" />
+            <GlassAlert tone="danger" icon={AlertTriangle} className="p-4">
               {t('aiKanban.stateStore.batchDelete.warning')}
-            </div>
+            </GlassAlert>
             <AlertDialogFooter>
               <AlertDialogCancel disabled={isBatchDeleting}>{t('common.cancel')}</AlertDialogCancel>
               <AlertDialogAction

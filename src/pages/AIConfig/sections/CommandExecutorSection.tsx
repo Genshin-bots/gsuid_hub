@@ -28,6 +28,7 @@ import {
   type ConfigFieldType,
   type ConfigValue,
 } from '@/components/config';
+import { GlassAlert } from '@/components/ui/glass-alert';
 import { Switch } from '@/components/ui/switch';
 import type { PluginConfigItem } from '@/lib/api';
 
@@ -131,21 +132,19 @@ export function CommandExecutorSection({
 
       {/* 高危提示：开启 + 联网 / 自动安装 时显示 */}
       {enableValue && (allowNetwork || allowAutoProvision) && (
-        <div className="flex items-start gap-3 rounded-lg border border-red-500/40 bg-red-500/5 p-4 text-sm">
-          <ShieldAlert className="w-4 h-4 mt-0.5 text-red-600 dark:text-red-400 shrink-0" />
-          <div className="space-y-1">
-            <p className="font-semibold">{t('aiConfig.commandExecutor.dangerTitle')}</p>
-            <p className="text-muted-foreground">{t('aiConfig.commandExecutor.dangerDesc')}</p>
-          </div>
-        </div>
+        <GlassAlert tone="danger" icon={ShieldAlert} className="p-4">
+          <p className="font-semibold">{t('aiConfig.commandExecutor.dangerTitle')}</p>
+          <p className="mt-1 text-muted-foreground">
+            {t('aiConfig.commandExecutor.dangerDesc')}
+          </p>
+        </GlassAlert>
       )}
 
       {/* 关闭态：占位提示 */}
       {!enableValue && (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground p-4 rounded-lg border border-border/30 bg-muted/20">
-          <AlertTriangle className="w-4 h-4" />
-          <span>{t('aiConfig.commandExecutor.disabledHint')}</span>
-        </div>
+        <GlassAlert tone="neutral" icon={AlertTriangle} className="p-4">
+          {t('aiConfig.commandExecutor.disabledHint')}
+        </GlassAlert>
       )}
 
       {/* 3 列 grid：divider 占整行，其它字段占一格 */}

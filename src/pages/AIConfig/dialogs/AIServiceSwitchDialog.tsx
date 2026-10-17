@@ -9,6 +9,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { GlassAlert } from '@/components/ui/glass-alert';
 import { renderRichText } from '../shared/renderRichText';
 
 export interface AIServiceSwitchDialogProps {
@@ -122,30 +123,22 @@ export function AIServiceSwitchDialog({
             <AlertDialogDescription asChild>
               <div className="space-y-2.5 text-sm leading-relaxed text-foreground/90">
                 {enableLines.map((line, idx) => (
-                  <div
+                  <GlassAlert
                     key={idx}
-                    className={`flex items-start gap-2 rounded-md border p-2.5 ${
-                      line.variant === 'warn'
-                        ? 'bg-amber-500/5 border-amber-500/20'
-                        : 'bg-blue-500/5 border-blue-500/15'
-                    }`}
+                    tone={line.variant === 'warn' ? 'warning' : 'info'}
+                    icon={line.variant === 'warn' ? AlertTriangle : Info}
+                    className="p-2.5"
                   >
-                    {line.variant === 'warn' ? (
-                      <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0 text-amber-500" />
-                    ) : (
-                      <Info className="w-4 h-4 mt-0.5 shrink-0 text-blue-500" />
-                    )}
                     <span>{renderRichText(line.text)}</span>
-                  </div>
+                  </GlassAlert>
                 ))}
               </div>
             </AlertDialogDescription>
           ) : (
             <AlertDialogDescription asChild>
-              <div className="text-sm leading-relaxed text-foreground/90 rounded-md bg-amber-500/5 border border-amber-500/20 p-2.5 flex items-start gap-2">
-                <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0 text-amber-500" />
+              <GlassAlert tone="warning" icon={AlertTriangle} className="p-2.5">
                 <span>{disableLine}</span>
-              </div>
+              </GlassAlert>
             </AlertDialogDescription>
           )}
         </AlertDialogHeader>

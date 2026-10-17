@@ -13,6 +13,7 @@ import {
   Cog,
   SlidersHorizontal,
 } from 'lucide-react';
+import { GlassAlert } from '@/components/ui/glass-alert';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
@@ -24,7 +25,6 @@ import {
   type ConfigValue,
 } from '@/components/config';
 import { InputWithDropdown } from '@/components/ui/input-with-dropdown';
-import { cn } from '@/lib/utils';
 import { renderRichText } from '../shared/renderRichText';
 import { LabelWithHelp } from '../shared';
 import type { EmbeddingExtraProviderConfig, PluginConfigItem } from '@/lib/api';
@@ -42,7 +42,6 @@ import {
 
 export interface VectorDbSectionProps {
   t: (key: string) => string;
-  isGlass: boolean;
   aiConfigId: string;
 
   // Qdrant
@@ -91,7 +90,6 @@ export interface VectorDbSectionProps {
  */
 export function VectorDbSection({
   t,
-  isGlass,
   aiConfigId,
   qdrantProvider,
   qdrantProviderOptions,
@@ -220,31 +218,13 @@ export function VectorDbSection({
           showRadioIndicator
         />
         {qdrantChanged && (
-          <div
-            className={cn(
-              'rounded-lg p-3 flex items-start gap-2',
-              isGlass
-                ? 'border border-amber-500/40 bg-amber-500/10'
-                : 'border border-amber-300 bg-amber-50 dark:border-amber-800/60 dark:bg-amber-950/40',
-            )}
-          >
-            <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-            <p className="text-xs text-amber-700 dark:text-amber-400">
-              {renderRichText(t('aiConfig.vectorDb.switchWarning'))}
-            </p>
-          </div>
+          <GlassAlert tone="warning" icon={AlertTriangle} contentClassName="text-xs">
+            {renderRichText(t('aiConfig.vectorDb.switchWarning'))}
+          </GlassAlert>
         )}
         {qdrantProvider !== 'remote' && (
-          <div
-            className={cn(
-              'rounded-lg p-3 flex items-start gap-2',
-              isGlass
-                ? 'border border-blue-500/40 bg-blue-500/10'
-                : 'border border-blue-200 bg-blue-50 dark:border-blue-800/60 dark:bg-blue-950/40',
-            )}
-          >
-            <HelpCircle className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
-            <div className="text-xs text-blue-700 dark:text-blue-400 space-y-1.5">
+          <GlassAlert tone="info" icon={HelpCircle} contentClassName="text-xs">
+            <div className="space-y-1.5">
               <p>{t('aiConfig.vectorDb.qdrantRecommendTip')}</p>
               <div className="flex flex-wrap gap-2">
                 <a
@@ -266,7 +246,7 @@ export function VectorDbSection({
                 </a>
               </div>
             </div>
-          </div>
+          </GlassAlert>
         )}
         {qdrantProvider === 'remote' && qdrantConfig && (
           <div className="pt-3 border-t border-border/30">
@@ -317,19 +297,9 @@ export function VectorDbSection({
           showRadioIndicator
         />
         {embeddingChanged && (
-          <div
-            className={cn(
-              'rounded-lg p-3 flex items-start gap-2',
-              isGlass
-                ? 'border border-amber-500/40 bg-amber-500/10'
-                : 'border border-amber-300 bg-amber-50 dark:border-amber-800/60 dark:bg-amber-950/40',
-            )}
-          >
-            <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-            <p className="text-xs text-amber-700 dark:text-amber-400">
-              {renderRichText(t('aiConfig.vectorDb.switchWarning'))}
-            </p>
-          </div>
+          <GlassAlert tone="warning" icon={AlertTriangle} contentClassName="text-xs">
+            {renderRichText(t('aiConfig.vectorDb.switchWarning'))}
+          </GlassAlert>
         )}
         <div className="pt-3 border-t border-border/30">
           {isLoadingEmbeddingConfig ? (
@@ -339,29 +309,17 @@ export function VectorDbSection({
           ) : currentExtraProvider ? (
             /* 插件注册的第三方 provider：只读展示 */
             <div className="space-y-3">
-              <div
-                className={cn(
-                  'rounded-lg p-3 flex items-start gap-2',
-                  isGlass
-                    ? 'border border-violet-500/40 bg-violet-500/10'
-                    : 'border border-violet-300 bg-violet-50 dark:border-violet-800/60 dark:bg-violet-950/40',
-                )}
-              >
-                <Globe className="w-4 h-4 text-violet-500 shrink-0 mt-0.5" />
-                <div className="text-xs text-violet-700 dark:text-violet-300 space-y-1">
-                  <p className="font-semibold">
-                    {renderRichText(
-                      t('aiConfig.vectorDb.extraProviderBanner')
-                        .replace('{displayName}', currentExtraProvider.display_name)
-                        .replace('{plugin}', currentExtraProvider.plugin)
-                        .replace('{kind}', currentExtraProvider.kind),
-                    )}
-                  </p>
-                  <p className="text-violet-500 dark:text-violet-400">
-                    {t('aiConfig.vectorDb.extraProviderHint')}
-                  </p>
-                </div>
-              </div>
+              <GlassAlert tone="accent" icon={Globe} contentClassName="text-xs">
+                <p className="font-semibold">
+                  {renderRichText(
+                    t('aiConfig.vectorDb.extraProviderBanner')
+                      .replace('{displayName}', currentExtraProvider.display_name)
+                      .replace('{plugin}', currentExtraProvider.plugin)
+                      .replace('{kind}', currentExtraProvider.kind),
+                  )}
+                </p>
+                <p className="mt-1 opacity-80">{t('aiConfig.vectorDb.extraProviderHint')}</p>
+              </GlassAlert>
               {Object.entries(currentExtraProvider.config || {}).map(([key, field]) => (
                 <div key={key} className="space-y-1.5">
                   <FieldLabel
@@ -492,19 +450,9 @@ export function VectorDbSection({
             onCheckedChange={(checked) => onUpdateConfig(aiConfigId, 'enable_rerank', checked)}
           />
         </div>
-        <div
-          className={cn(
-            'rounded-lg p-3 flex items-start gap-2',
-            isGlass
-              ? 'border border-amber-500/40 bg-amber-500/10'
-              : 'border border-amber-300 bg-amber-50 dark:border-amber-800/60 dark:bg-amber-950/40',
-          )}
-        >
-          <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-          <p className="text-xs text-amber-700 dark:text-amber-400">
-            {t('aiConfig.vectorDb.rerankWarning')}
-          </p>
-        </div>
+        <GlassAlert tone="warning" icon={AlertTriangle} contentClassName="text-xs">
+          {t('aiConfig.vectorDb.rerankWarning')}
+        </GlassAlert>
         {isRerankEnabled && (
           <>
             <ChipGroup
@@ -553,10 +501,9 @@ export function VectorDbSection({
               {t('aiConfig.vectorDb.switchWarningTitle') || '切换 Qdrant 部署方式'}
             </AlertDialogTitle>
             <AlertDialogDescription asChild>
-              <div className="text-sm leading-relaxed text-foreground/90 rounded-md bg-amber-500/5 border border-amber-500/20 p-3 flex items-start gap-2">
-                <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0 text-amber-500" />
+              <GlassAlert tone="warning" icon={AlertTriangle}>
                 <span>{renderRichText(t('aiConfig.vectorDb.switchWarning'))}</span>
-              </div>
+              </GlassAlert>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -579,10 +526,9 @@ export function VectorDbSection({
               {t('aiConfig.vectorDb.switchWarningTitle') || '切换嵌入模型提供方'}
             </AlertDialogTitle>
             <AlertDialogDescription asChild>
-              <div className="text-sm leading-relaxed text-foreground/90 rounded-md bg-amber-500/5 border border-amber-500/20 p-3 flex items-start gap-2">
-                <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0 text-amber-500" />
+              <GlassAlert tone="warning" icon={AlertTriangle}>
                 <span>{renderRichText(t('aiConfig.vectorDb.switchWarning'))}</span>
-              </div>
+              </GlassAlert>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

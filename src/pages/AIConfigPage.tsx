@@ -16,6 +16,7 @@ import { useAIStatus } from '@/contexts/AIStatusContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
+import { GlassAlert } from '@/components/ui/glass-alert';
 import { Switch } from '@/components/ui/switch';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
@@ -786,7 +787,6 @@ export default function AIConfigPage() {
         return (
           <TaskConfigSection
             t={t}
-            isGlass={isGlass}
             allConfigsList={provider.allConfigsList}
             highLevelConfig={provider.highLevelConfig}
             lowLevelConfig={provider.lowLevelConfig}
@@ -881,7 +881,6 @@ export default function AIConfigPage() {
         return (
           <ImageUnderstandSection
             t={t}
-            isGlass={isGlass}
             imageUnderstandProvider={imageUnderstandProvider}
             imageUnderstandProviderOptions={imageUnderstandProviderOptions}
             taskModelLacksImage={provider.taskModelLacksImage}
@@ -908,7 +907,6 @@ export default function AIConfigPage() {
         return (
           <VectorDbSection
             t={t}
-            isGlass={isGlass}
             aiConfigId={aiConfig.id}
             qdrantProvider={qdrantProvider}
             qdrantProviderOptions={qdrantProviderOptions}
@@ -1119,17 +1117,14 @@ export default function AIConfigPage() {
             {/* AI Service Master Switch Banner */}
             <div className="shrink-0 px-3 sm:px-5 pt-3 sm:pt-5 pb-2">
               {wizard.isBackendPendingRestart && (
-                <div className="mb-3 flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-amber-700 dark:text-amber-400">
-                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-                  <div className="text-xs sm:text-sm">
-                    <p className="font-semibold">
-                      {t('aiConfig.serviceSwitch.restartRequiredTitle')}
-                    </p>
-                    <p className="mt-1 opacity-90">
-                      {t('aiConfig.serviceSwitch.restartRequiredDesc')}
-                    </p>
-                  </div>
-                </div>
+                <GlassAlert tone="warning" icon={AlertTriangle} className="mb-3">
+                  <p className="font-semibold text-xs sm:text-sm">
+                    {t('aiConfig.serviceSwitch.restartRequiredTitle')}
+                  </p>
+                  <p className="mt-1 text-xs opacity-90 sm:text-sm">
+                    {t('aiConfig.serviceSwitch.restartRequiredDesc')}
+                  </p>
+                </GlassAlert>
               )}
               <div className="flex items-center gap-3 sm:gap-5 p-3 sm:p-5 rounded-2xl border border-border/30 bg-card/30">
                 <div

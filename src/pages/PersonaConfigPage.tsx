@@ -84,7 +84,6 @@ import {
   Layers,
   ScrollText,
   AlignLeft,
-  Ruler,
 } from 'lucide-react';
 // 支持的音频格式
 const SUPPORTED_AUDIO_FORMATS = ['mp3', 'ogg', 'wav', 'm4a', 'flac'];
@@ -113,7 +112,7 @@ import {
   type PersonaToolCatalog,
   type SpeechShapeSpec,
 } from '@/lib/api';
-import { FALLBACK_SPEECH_SHAPE } from '@/lib/speechShape';
+import { FALLBACK_SPEECH_SHAPE, SPEECH_SOFT_MAX, SPEECH_SOFT_MIN } from '@/lib/speechShape';
 import { toast } from 'sonner';
 import { PinnedPage } from '@/components/layout/PinnedPage';
 import { GlassAlert } from '@/components/ui/glass-alert';
@@ -215,7 +214,7 @@ const SCOPE_OPTIONS: {
   },
 ];
 const CONFIG_OPTION_BUTTON =
-  'flex items-center gap-2.5 px-3 py-2 rounded-lg border-2 transition-all text-left min-h-[3.5rem]';
+  'flex items-center gap-2.5 px-3 py-2 rounded-lg border-2 transition-colors text-left min-h-[3.5rem]';
 /** 常驻直装工具名：每轮必然在场，白名单里默认勾上，其余工具才需要用户显式钉。 */
 function collectAlwaysMountedTools(catalog: PersonaToolCatalog | null): string[] {
   if (!catalog) return [];
@@ -354,28 +353,38 @@ function SpeechSliderField({
   const value = boundInt(raw, min, max, fallback);
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between gap-2">
-        <LabelWithHelp
-          htmlFor={id}
-          icon={icon}
-          label={label}
-          description={description}
-          className="text-base font-medium"
-        />
-        <span className="shrink-0 text-sm font-medium tabular-nums">{value}</span>
-      </div>
-      <Slider
-        id={id}
-        aria-label={label}
-        min={min}
-        max={max}
-        step={1}
-        value={[value]}
-        onValueChange={(next) => {
-          const picked = next[0];
-          if (picked !== undefined) onChange(String(picked));
-        }}
+      <LabelWithHelp
+        htmlFor={id}
+        icon={icon}
+        label={label}
+        description={description}
+        className="text-base font-medium"
       />
+      <div className="flex items-center gap-3">
+        <Slider
+          aria-label={label}
+          className="min-w-0 flex-1"
+          min={min}
+          max={max}
+          step={1}
+          value={[value]}
+          onValueChange={(next) => {
+            const picked = next[0];
+            if (picked !== undefined) onChange(String(picked));
+          }}
+        />
+        <Input
+          id={id}
+          inputMode="numeric"
+          aria-label={label}
+          min={min}
+          max={max}
+          value={raw}
+          onChange={(event) => onChange(event.target.value.replace(/\D/g, ''))}
+          onBlur={() => onChange(String(value))}
+          className="h-10 w-16 shrink-0 px-2 text-center tabular-nums"
+        />
+      </div>
     </div>
   );
 }
@@ -384,22 +393,18 @@ function SpeechFields({
   shape,
   chatStyleText,
   speechSoftText,
-  speechHardText,
   onChatStyleText,
   onSpeechSoftText,
-  onSpeechHardText,
 }: {
   shape: SpeechShapeSpec;
   chatStyleText: string;
   speechSoftText: string;
-  speechHardText: string;
   onChatStyleText: (value: string) => void;
   onSpeechSoftText: (value: string) => void;
-  onSpeechHardText: (value: string) => void;
 }) {
   const { t } = useLanguage();
   return (
-    <div className="grid gap-4 sm:grid-cols-3">
+    <div className="grid gap-4 sm:grid-cols-2">
       <SpeechSliderField
         id="persona-chat-style"
         icon={<MessagesSquare className="h-4 w-4" />}
@@ -417,21 +422,10 @@ function SpeechFields({
         label={t('personaConfig.speechSoft')}
         description={t('personaConfig.speechSoftHint', { count: shape.soft_default })}
         raw={speechSoftText}
-        min={shape.len_min}
-        max={shape.len_max}
+        min={SPEECH_SOFT_MIN}
+        max={SPEECH_SOFT_MAX}
         fallback={shape.soft_default}
         onChange={onSpeechSoftText}
-      />
-      <SpeechSliderField
-        id="persona-speech-hard"
-        icon={<Ruler className="h-4 w-4" />}
-        label={t('personaConfig.speechHard')}
-        description={t('personaConfig.speechHardHint', { count: shape.hard_default })}
-        raw={speechHardText}
-        min={shape.len_min}
-        max={shape.len_max}
-        fallback={shape.hard_default}
-        onChange={onSpeechHardText}
       />
     </div>
   );
@@ -482,7 +476,6 @@ export default function PersonaConfigPage() {
   const [speechShape, setSpeechShape] = useState<SpeechShapeSpec>(FALLBACK_SPEECH_SHAPE);
   const [chatStyleText, setChatStyleText] = useState('50');
   const [speechSoftText, setSpeechSoftText] = useState('60');
-  const [speechHardText, setSpeechHardText] = useState('150');
   const [editContent, setEditContent] = useState('');
   const [editingGroups, setEditingGroups] = useState<string[]>([]);
   const [editingAIModes, setEditingAIModes] = useState<AIMode[]>([]);
@@ -888,8 +881,16 @@ export default function PersonaConfigPage() {
     const shape = speechShapeOf(persona.config);
     setSpeechShape(shape);
     setChatStyleText(String(persona.config?.chat_style ?? 50));
-    setSpeechSoftText(String(persona.config?.speech_len_soft ?? shape.soft_default));
-    setSpeechHardText(String(persona.config?.speech_len_hard ?? shape.hard_default));
+    setSpeechSoftText(
+      String(
+        boundInt(
+          String(persona.config?.speech_len_soft ?? shape.soft_default),
+          SPEECH_SOFT_MIN,
+          SPEECH_SOFT_MAX,
+          shape.soft_default,
+        ),
+      ),
+    );
     setEditingInspectInterval(persona.config?.inspect_interval || 10);
     setEditingKeywords(persona.config?.keywords || []);
     // 常驻直装工具默认就在白名单里：每轮必然在场，不必让用户手动勾一遍
@@ -1093,15 +1094,9 @@ export default function PersonaConfigPage() {
         ),
         speech_len_soft: boundInt(
           speechSoftText,
-          speechShape.len_min,
-          speechShape.len_max,
+          SPEECH_SOFT_MIN,
+          SPEECH_SOFT_MAX,
           speechShape.soft_default,
-        ),
-        speech_len_hard: boundInt(
-          speechHardText,
-          speechShape.len_min,
-          speechShape.len_max,
-          speechShape.hard_default,
         ),
         ...(delegableAgents.length > 0
           ? {
@@ -1262,7 +1257,7 @@ export default function PersonaConfigPage() {
         key={persona.name}
         onClick={() => handleCardClick(persona)}
         className={cn(
-          'relative min-w-0 cursor-pointer transition-all duration-300 group hover:scale-[1.02]',
+          'relative min-w-0 cursor-pointer transition-colors duration-300 group',
           'glass-card border border-primary/20 hover:border-primary/40',
         )}
       >
@@ -1270,10 +1265,12 @@ export default function PersonaConfigPage() {
             圆角裁切放在这一层。 */}
         {hasImage && (
           <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-[inherit]">
-            <img
-              src={imageUrl}
-              alt=""
-              className={cn(
+              <img
+                src={imageUrl}
+                alt=""
+                loading="lazy"
+                decoding="async"
+                className={cn(
                 'w-full h-full object-cover transition-opacity',
                 isGlass ? 'opacity-30 group-hover:opacity-40' : 'opacity-15 group-hover:opacity-20',
               )}
@@ -1281,14 +1278,7 @@ export default function PersonaConfigPage() {
                 (e.target as HTMLImageElement).style.display = 'none';
               }}
             />
-            <div
-              className={cn(
-                'absolute inset-0 bg-gradient-to-t',
-                isGlass
-                  ? 'from-background/80 via-background/50 to-background/30'
-                  : 'from-background via-background/90 to-background/60',
-              )}
-            />
+            <div className="persona-card-image-fade absolute inset-0" />
           </div>
         )}
         <CardContent className="relative z-10 flex h-full flex-col gap-3 p-4 sm:p-6">
@@ -1309,6 +1299,8 @@ export default function PersonaConfigPage() {
                 <img
                   src={avatarUrl}
                   alt={persona.name}
+                  loading="lazy"
+                  decoding="async"
                   className="w-full h-full object-cover"
                   onError={(e) => {
                     (e.target as HTMLImageElement).style.display = 'none';
@@ -1497,7 +1489,7 @@ export default function PersonaConfigPage() {
                 {t('personaConfig.enableScope')}
               </Label>
             </div>
-            {/* 5 个范围挤窄卡片，flex-wrap 必折成 4+1：改 5 等分栅格锁死一行（极端窄卡文案可两行，按钮不换行） */}
+            {/* 5 个范围挤窄卡片：5 等分锁死一行；文案强制单行，超出省略 */}
             <div className="grid grid-cols-5 gap-1">
               {SCOPE_OPTIONS.map((option) => (
                 <button
@@ -1506,7 +1498,7 @@ export default function PersonaConfigPage() {
                   onClick={() => handleScopeChange(persona.name, option.value)}
                   disabled={isSavingConfig}
                   className={cn(
-                    'flex items-center justify-center gap-1 px-1 py-2.5 sm:py-1.5 rounded-full text-[10px] font-medium leading-tight transition-all',
+                    'flex min-w-0 items-center justify-center gap-1 px-1 py-2.5 sm:py-1.5 rounded-full text-[10px] font-medium leading-tight transition-all',
                     'border',
                     scope === option.value
                       ? 'bg-primary/15 text-primary border-primary/40 shadow-sm'
@@ -1516,7 +1508,7 @@ export default function PersonaConfigPage() {
                   <span className="flex h-3 w-3 shrink-0 items-center justify-center [&_svg]:h-3 [&_svg]:w-3">
                     {option.icon}
                   </span>
-                  <span className="min-w-0">{t(option.labelKey)}</span>
+                  <span className="min-w-0 truncate">{t(option.labelKey)}</span>
                 </button>
               ))}
             </div>
@@ -1887,7 +1879,7 @@ export default function PersonaConfigPage() {
               sheetOverlay,
               'data-[state=open]:animate-sheet-overlay-in data-[state=closed]:animate-sheet-overlay-out',
             )}
-            className="flex h-full w-full flex-col gap-0 bg-background/95 p-0 glass-card !fixed !inset-y-0 !right-0 !left-auto !top-0 !rounded-none !border-l !max-w-full sm:!max-w-[60vw] data-[state=open]:will-change-transform data-[state=open]:animate-sheet-slide-in-right data-[state=closed]:animate-sheet-slide-out-right"
+            className="flex h-full w-full flex-col gap-0 bg-background/95 p-0 glass-card !fixed !inset-y-0 !right-0 !left-auto !top-0 !rounded-none !border-l !max-w-full sm:!max-w-[60vw] data-[state=open]:animate-sheet-slide-in-right data-[state=closed]:animate-sheet-slide-out-right"
           >
             <SheetHeader className="shrink-0 border-b px-6 py-4 pr-12 text-left">
               <SheetTitle className="flex items-center gap-2">
@@ -1969,7 +1961,7 @@ export default function PersonaConfigPage() {
                         {t('personaConfig.promptGroupLabel')}
                       </Label>
                       <Select value={editingPromptGroup} onValueChange={setEditingPromptGroup}>
-                        <SelectTrigger>
+                        <SelectTrigger className="h-10 w-full">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -1987,10 +1979,8 @@ export default function PersonaConfigPage() {
                       shape={speechShape}
                       chatStyleText={chatStyleText}
                       speechSoftText={speechSoftText}
-                      speechHardText={speechHardText}
                       onChatStyleText={setChatStyleText}
                       onSpeechSoftText={setSpeechSoftText}
-                      onSpeechHardText={setSpeechHardText}
                     />
                     <div className="space-y-2">
                       <Label className="flex items-center gap-2 text-base">
@@ -2041,18 +2031,15 @@ export default function PersonaConfigPage() {
                     {editingPersona &&
                       findConflictingPersonas(personaConfigs, editingPersona.name, editingScope)
                         .length > 0 && (
-                        <div className="flex items-center gap-2 p-3 rounded-lg text-sm bg-amber-500/10 text-amber-600 border border-amber-500/30">
-                          <AlertCircle className="w-4 h-4" />
-                          <span>
-                            {t('personaConfig.globalConflictHint', {
-                              name: findConflictingPersonas(
-                                personaConfigs,
-                                editingPersona.name,
-                                editingScope,
-                              ).join('、'),
-                            })}
-                          </span>
-                        </div>
+                        <GlassAlert tone="warning" icon={AlertCircle}>
+                          {t('personaConfig.globalConflictHint', {
+                            name: findConflictingPersonas(
+                              personaConfigs,
+                              editingPersona.name,
+                              editingScope,
+                            ).join('、'),
+                          })}
+                        </GlassAlert>
                       )}
                     {/* AI 模式配置 */}
                     <div className="space-y-2">
@@ -2237,7 +2224,7 @@ export default function PersonaConfigPage() {
                       {t('common.loading')}
                     </div>
                   ) : Object.keys(editingSettings).length === 0 ? (
-                    <div className="text-sm text-muted-foreground p-4 rounded-lg border border-border/30 bg-muted/20">
+                    <div className="text-sm text-muted-foreground p-4 rounded-lg glass-card glass-alert border border-border/30">
                       {t('personaConfig.personaSettingsLoadFailed')}
                     </div>
                   ) : (

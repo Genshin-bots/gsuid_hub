@@ -695,6 +695,7 @@ const cs = (el: Element | null) =>
 
 ### B.5 毛玻璃
 - `backdrop-filter` GPU 密集，避免叠在长列表每一项；低端设备/设置中可提供关闭选项。
+- **一块玻璃只糊一次。** 卡片 / 弹层的磨砂在 `::before`。嵌在里面的输入框、按钮、内层卡片不要再各自 `backdrop-filter`（打开配置页、抽屉滑入时会逐层重采样）。内层保留半透明底、描边和高光。视口外的 `.glass-card-grid > .glass-card` 用 `content-visibility: auto`。抽屉打开期间不要挂常驻 `will-change: transform`。
 - 光感/液态的布局表面不要 `backdrop-filter`，也不要在侧栏动画里切换滤镜（会闪）。壁纸用静态 `filter: blur()`。见 P-38。
 
 ### B.6 生产包体积与静态资源（gzip / 缓存 / 懒加载）★★

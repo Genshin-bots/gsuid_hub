@@ -102,7 +102,7 @@ export function MemorySettingsSection({
           )}
         </div>
       ) : (
-        <div className="text-sm text-muted-foreground p-4 rounded-lg border border-border/30 bg-muted/20">
+        <div className="text-sm text-muted-foreground p-4 rounded-lg glass-card glass-alert border border-border/30">
           {t('aiConfig.memorySettings.noConfig')}
         </div>
       )}

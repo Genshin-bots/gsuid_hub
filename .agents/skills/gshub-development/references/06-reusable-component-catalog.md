@@ -534,3 +534,15 @@ import { PluginIcon } from '@/components/ui/plugin-icon';
 - `appearance="outline"`：页头线框按钮，**不要**加 `role="combobox"`（全局输入框样式会改掉底色和边框）。
 - `appearance="field"`：与工具栏 `Select` 同高同色（`/ai-tools` 插件筛选）。
 - `width="trigger"` 时菜单与按钮同宽；`width="content"` 时至少 16rem（分段按钮的 ▾ 很窄，不能跟箭头等宽）。
+- 面板（`.searchable-menu-panel`）和页头描边按钮同一层玻璃：填充用 `--card / --card-opacity`，描边和高光跟毛玻璃 / 光感 / 液态各自的按钮走，模糊用 `--overlay-blur`。不要再在透明度上加一截。
+
+## 6.13 GlassAlert —— 主题玻璃提醒条 ★★
+
+位置：`src/components/ui/glass-alert.tsx`。所有页面级 / 卡片级 / 弹层内的**横幅提醒**统一用它，不要手搓 `border-amber-500/30 bg-amber-500/10` 这类平涂色块。
+
+- `tone`：`primary` / `info` / `success` / `warning` / `danger` / `accent` / `neutral`。色调通过 CSS 变量画进 `glass-card` 的 `::before`，边框由 `.glass-card.glass-alert-tint` 保留语义色，毛玻璃 / 光感 / 液态 / 纯色下都是同一套结构。
+- `icon` 默认 `AlertCircle`，可换成 `AlertTriangle` / `ShieldAlert` 等；`className` 可调 `p-3` / `p-4` / `mb-*`。
+- 纯文字提示用 `tone="neutral"`；加载失败等错误横幅用 `tone="danger"`。
+- shadcn `Alert` 已内置 `glass-card glass-alert` 与 `variant="warning"`，历史 `Alert` 调用直接换 variant 即可。
+- 若提醒条作为 `AlertDialogDescription asChild` 的直接子节点也没问题：`GlassAlert` 已 `forwardRef` 并透传 props。
+- 新增语义色时在 `src/index.css` 的 `.glass-alert-tint-*` 里同时定义 `--alert-tint` 与 `--alert-border`，否则边框会退回通用玻璃描边。

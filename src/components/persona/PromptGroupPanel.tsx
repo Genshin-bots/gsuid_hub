@@ -255,10 +255,10 @@ export const PromptGroupPanel = forwardRef<
   return (
     <div className="-mt-3">
       <div className="mb-3 space-y-3">
-        <ActivePromptGroupNotice lines={activeLines} ready={activeReady} />
         <GlassAlert tone="warning">
           {t('personaConfig.promptBuiltinWarning')}
         </GlassAlert>
+        <ActivePromptGroupNotice lines={activeLines} ready={activeReady} />
       </div>
       {loading ? (
         <div className="flex h-40 items-center justify-center">
@@ -340,7 +340,7 @@ export const PromptGroupPanel = forwardRef<
         <SheetContent
           side="right"
           overlayClassName={cn(sheetOverlay, SHEET_OVERLAY_MOTION)}
-          className="glass-card !fixed !inset-y-0 !right-0 !left-auto !top-0 flex h-full w-full !max-w-full flex-col gap-0 !rounded-none !border-l bg-background/95 p-0 data-[state=open]:animate-sheet-slide-in-right data-[state=closed]:animate-sheet-slide-out-right data-[state=open]:will-change-transform sm:!max-w-[60vw]"
+          className="glass-card !fixed !inset-y-0 !right-0 !left-auto !top-0 flex h-full w-full !max-w-full flex-col gap-0 !rounded-none !border-l bg-background/95 p-0 data-[state=open]:animate-sheet-slide-in-right data-[state=closed]:animate-sheet-slide-out-right sm:!max-w-[60vw]"
           onPointerDownOutside={(event) => {
             if (eventTargetInPlaceholderMenu(event.target)) event.preventDefault();
           }}

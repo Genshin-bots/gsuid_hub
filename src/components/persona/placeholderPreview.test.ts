@@ -10,7 +10,6 @@ const persona = {
   prompt_group: 'ss',
   values: { answer_contract: '已保存', soft: '30', appearance: '' },
   soft_follows: true,
-  hard_follows: false,
 };
 
 describe('displayPlaceholderValue', () => {
@@ -47,9 +46,8 @@ describe('groupPersonaFills', () => {
 });
 
 describe('placeholderFollowsTier', () => {
-  it('marks only soft and hard', () => {
+  it('marks only the suggested length', () => {
     expect(placeholderFollowsTier('soft', persona)).toBe(true);
-    expect(placeholderFollowsTier('hard', persona)).toBe(false);
     expect(placeholderFollowsTier('segment_hint', persona)).toBe(false);
   });
 });
