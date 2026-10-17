@@ -2572,6 +2572,7 @@ export default function AIMemoryPage() {
                               <Button
                                 variant="default"
                                 size="sm"
+                                className="button-solid"
                                 disabled={savingPreference}
                                 onClick={saveEditPreference}
                               >

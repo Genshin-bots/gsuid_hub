@@ -370,7 +370,7 @@ export default function CoreConfigPage() {
             <Button
               onClick={handleSave}
               disabled={!hasChanges || isSaving}
-              className="gap-2 min-w-[160px] h-11"
+              className="button-solid gap-2 min-w-[160px] h-11"
               size="lg"
             >
               <CheckCircle className="w-4 h-4" />

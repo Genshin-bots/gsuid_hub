@@ -268,7 +268,7 @@ export function GsCoreAiMcpServerSection({ t, isGlass = false }: GsCoreAiMcpServ
                 size="sm"
                 onClick={handleSave}
                 disabled={!rawConfig || !isDirty || isSaving}
-                className="gap-1"
+                className="button-solid gap-1"
               >
                 {isSaving ? (
                   <Loader2 className="w-4 h-4 animate-spin" />

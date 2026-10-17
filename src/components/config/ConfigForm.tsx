@@ -112,7 +112,11 @@ export function ConfigForm({
 
         {showActions && (
           <div className="flex items-center justify-center pt-4 border-t border-border">
-            <Button onClick={handleSave} disabled={!hasChanges || isSaving} className="gap-2">
+            <Button
+              onClick={handleSave}
+              disabled={!hasChanges || isSaving}
+              className="button-solid gap-2"
+            >
               <CheckCircle className="w-4 h-4" />
               确认修改
             </Button>

@@ -150,7 +150,7 @@ export default function AIBudgetPage() {
             <Button
               onClick={handleConfigSave}
               disabled={!configDirty || configSaving}
-              className="w-full sm:w-auto"
+              className="button-solid w-full sm:w-auto"
             >
               {configSaving ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -802,7 +802,7 @@ function ConfigTab({
 
       {/* Save Button (Bottom) */}
       <div className="flex justify-end">
-        <Button onClick={handleSave} disabled={!isDirty || saving}>
+        <Button className="button-solid" onClick={handleSave} disabled={!isDirty || saving}>
           {saving ? (
             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
           ) : (

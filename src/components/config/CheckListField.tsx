@@ -325,7 +325,7 @@ export function CheckListField({
           <Button
             type="button"
             variant="outline"
-            className={cn('w-full justify-between gap-2 font-normal', isExclude && 'border-dashed')}
+            className="ui-field-trigger w-full justify-between gap-2 font-normal hover:text-foreground"
           >
             <span
               ref={badgeBoxRef}

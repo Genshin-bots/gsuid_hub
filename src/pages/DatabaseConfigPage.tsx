@@ -872,7 +872,11 @@ export default function DatabaseConfigPage() {
       )}
       {/* Save Button */}
       <div className="flex justify-end pt-4">
-        <Button onClick={handleSaveConfig} disabled={!isDirty || isSaving} className="gap-2">
+        <Button
+          onClick={handleSaveConfig}
+          disabled={!isDirty || isSaving}
+          className="button-solid gap-2"
+        >
           {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
           {t('common.save')}
         </Button>

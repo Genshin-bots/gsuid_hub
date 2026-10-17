@@ -2390,6 +2390,8 @@ export interface PersonaListItem {
   has_avatar: boolean;
   has_image: boolean;
   has_audio: boolean;
+  /** 默认人格「早柚」。人格卡正文每次启动从程序写回。 */
+  builtin?: boolean;
 }
 
 export interface PersonaInfo {
@@ -2462,6 +2464,24 @@ export interface PersonaFrameworkConfig {
 export type PersonaScope = 'disabled' | 'global' | 'specific' | 'global_group' | 'global_private';
 export type AIMode = '提及应答' | '定时巡检' | '趣向捕捉(暂不可用)' | '困境救场(暂不可用)';
 
+export interface SpeechTierSpec {
+  floor: number;
+  bubbles: number;
+  soft: number;
+  hard: number;
+  segment_hint: string;
+}
+
+export interface SpeechShapeSpec {
+  chat_style_min: number;
+  chat_style_max: number;
+  soft_default: number;
+  hard_default: number;
+  len_min: number;
+  len_max: number;
+  tiers: SpeechTierSpec[];
+}
+
 export interface PersonaConfig {
   ai_mode: AIMode[];
   scope: PersonaScope;
@@ -2473,6 +2493,14 @@ export interface PersonaConfig {
   tool_names?: string[]; // 显式工具白名单（常驻直装，不经向量检索）
   /** `*` 全开；`!node_id` 排除。缺省按全开。 */
   capability_agents?: string[];
+  /** 该人格使用的系统提示词组。缺省为「默认」。 */
+  prompt_group?: string;
+  /** 0 到 100。决定气泡条数，以及仍等于模板默认的字数。 */
+  chat_style?: number;
+  /** 等于模板默认时跟随说话强度。 */
+  speech_len_soft?: number;
+  speech_len_hard?: number;
+  speech_shape?: SpeechShapeSpec;
 }
 
 export interface PersonaConfigResponse {
@@ -2490,6 +2518,10 @@ export interface PersonaConfigUpdateRequest {
   enabled_tools?: string[];
   tool_names?: string[];
   capability_agents?: string[];
+  prompt_group?: string;
+  chat_style?: number;
+  speech_len_soft?: number;
+  speech_len_hard?: number;
 }
 
 export interface PersonaConfigUpdateResponse {
@@ -2535,6 +2567,60 @@ export interface GlobalPersonaResponse {
   msg: string;
   data: string | null;
 }
+
+export interface PromptGroupSummary {
+  name: string;
+  builtin: boolean;
+  field_count: number;
+}
+
+export interface PromptField {
+  key: string;
+  section: string;
+  title: string;
+  description: string;
+  placeholders: string[];
+  text: string;
+  /** 从「以严格 JSON 格式输出」起的固定尾句。正文下面只读展示。 */
+  frozen_suffix?: string;
+}
+
+export interface PromptGroupDetail {
+  name: string;
+  builtin: boolean;
+  fields: PromptField[];
+}
+
+export interface PersonaPlaceholderPreview {
+  name: string;
+  prompt_group: string;
+  values: Record<string, string>;
+  soft_follows: boolean;
+  hard_follows: boolean;
+}
+
+export interface PlaceholderPreviewData {
+  personas: PersonaPlaceholderPreview[];
+  shared: Record<string, string>;
+}
+
+export const promptGroupApi = {
+  list: () => api.get<PromptGroupSummary[]>('/api/prompt-groups'),
+  get: (name: string) => api.get<PromptGroupDetail>(`/api/prompt-groups/${encodeURIComponent(name)}`),
+  save: (name: string, prompts: Record<string, string>) =>
+    api.put<PromptGroupDetail>(`/api/prompt-groups/${encodeURIComponent(name)}`, { prompts }),
+  create: (name: string, copyFrom?: string) =>
+    api.post<PromptGroupDetail>('/api/prompt-groups', {
+      name,
+      ...(copyFrom ? { copy_from: copyFrom } : {}),
+    }),
+  copy: (name: string, newName: string) =>
+    api.post<PromptGroupDetail>(`/api/prompt-groups/${encodeURIComponent(name)}/copy`, {
+      name: newName,
+    }),
+  remove: (name: string) =>
+    api.delete<{ name?: string }>(`/api/prompt-groups/${encodeURIComponent(name)}`),
+};
 
 export const personaApi = {
   /** Heartbeat 巡检运行态（每 persona job 是否注册） */
@@ -2655,6 +2741,9 @@ export const personaApi = {
 
   // 获取所有角色配置
   getAllPersonaConfigs: () => api.get<Record<string, PersonaConfig>>('/api/persona/config/all'),
+
+  getPlaceholderPreview: () =>
+    api.get<PlaceholderPreviewData>('/api/persona/config/placeholder-preview'),
 
   // 工具装配目录：启用工具（按插件）/ 显式工具白名单 两个选择器的数据源
   getToolCatalog: () => api.get<PersonaToolCatalog>('/api/persona/tools/catalog'),

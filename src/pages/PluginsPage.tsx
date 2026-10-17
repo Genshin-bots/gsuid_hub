@@ -1411,7 +1411,7 @@ export default function PluginsPage() {
                     <Button
                       className={cn(
                         tabToolbarControlClass,
-                        'shrink-0 justify-center gap-2 px-4 sm:px-8 lg:min-w-[160px]',
+                        'button-solid shrink-0 justify-center gap-2 px-4 sm:px-8 lg:min-w-[160px]',
                       )}
                       disabled={!sectionDirty || sectionSaving}
                       onClick={saveSection}

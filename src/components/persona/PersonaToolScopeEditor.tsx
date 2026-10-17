@@ -161,12 +161,13 @@ export function PersonaToolScopeEditor({
                       type="button"
                       onClick={() => applyPreset(preset.key)}
                       disabled={pluginNames.length === 0}
+                      data-active={currentPreset === preset.key || undefined}
                       className={cn(
-                        // 高度对齐右边「启用工具」触发器（Button 默认 h-10），长语言折行也靠 flex 居中
-                        'flex h-10 items-center justify-center rounded-lg border px-2 text-sm leading-tight transition-colors hover:bg-accent/40 disabled:opacity-50',
+                        // 与右侧字段共用主题玻璃底；选中态只叠主题色薄染
+                        'ui-field-trigger flex h-10 items-center justify-center rounded-lg px-2 text-sm leading-tight transition-colors disabled:opacity-50',
                         currentPreset === preset.key
-                          ? 'border-primary/60 bg-primary/10 font-medium text-primary'
-                          : 'border-border/60 text-muted-foreground',
+                          ? 'font-medium text-primary'
+                          : 'text-muted-foreground',
                       )}
                     >
                       {t(`personaConfig.${preset.label}`)}

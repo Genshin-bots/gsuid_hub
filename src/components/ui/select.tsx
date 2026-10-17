@@ -77,7 +77,8 @@ const SelectContent = React.forwardRef<
       <SelectScrollUpButton />
       <SelectPrimitive.Viewport
         className={cn(
-          'p-1',
+          // 首/末选项离浮层圆角至少留一圈呼吸距：4px 时选中项圆角会被浮层边缘吃掉
+          'px-1 py-2',
           // 只对齐宽度；不要再锁高度——锁成 trigger 高度会让浮层塌成一条缝，
           // 看起来像"改变了排版"而不是浮在上层。
           position === 'popper' && 'w-full min-w-[var(--radix-select-trigger-width)]',

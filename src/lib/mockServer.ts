@@ -60,6 +60,11 @@ import {
   generatePersonaDetail,
   generatePersonaConfigAll,
   generateGlobalPersonaConfig,
+  generatePlaceholderPreview,
+  generatePromptGroups,
+  generatePromptGroupDetail,
+  applyPromptGroupCreate,
+  applyPromptGroupSave,
   generatePersonaSettings,
   applyPersonaSettings,
   applyPersonaCopy,
@@ -991,8 +996,35 @@ const routes: Route[] = [
   },
 
   // /persona-config
+  { m: 'GET', re: /^\/api\/prompt-groups$/, h: () => generatePromptGroups() },
+  {
+    m: 'GET',
+    re: /^\/api\/prompt-groups\/([^/]+)$/,
+    h: ({ url }) => generatePromptGroupDetail(decodeURIComponent(url.pathname.split('/').pop()!)),
+  },
+  {
+    m: 'PUT',
+    re: /^\/api\/prompt-groups\/([^/]+)$/,
+    h: ({ url, body }) =>
+      applyPromptGroupSave(decodeURIComponent(url.pathname.split('/').pop()!), body),
+  },
+  {
+    m: 'POST',
+    re: /^\/api\/prompt-groups\/([^/]+)\/copy$/,
+    h: ({ url, body }) => {
+      const source = decodeURIComponent(url.pathname.split('/').slice(-2)[0] || '');
+      const data = (body ?? {}) as { name?: string };
+      return applyPromptGroupCreate({ name: data.name, copy_from: source });
+    },
+  },
+  { m: 'POST', re: /^\/api\/prompt-groups$/, h: ({ body }) => applyPromptGroupCreate(body) },
   { m: 'GET', re: /^\/api\/persona\/list$/, h: () => generatePersonaList() },
   { m: 'GET', re: /^\/api\/persona\/config\/all$/, h: () => generatePersonaConfigAll() },
+  {
+    m: 'GET',
+    re: /^\/api\/persona\/config\/placeholder-preview$/,
+    h: () => generatePlaceholderPreview(),
+  },
   { m: 'GET', re: /^\/api\/persona\/config\/global$/, h: () => generateGlobalPersonaConfig() },
   {
     m: 'GET',

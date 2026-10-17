@@ -191,7 +191,7 @@ export default function SettingsPage() {
               <Button
                 onClick={handleUpdateName}
                 disabled={isUpdatingName || name === user?.name}
-                className="w-full gap-2"
+                className="button-solid w-full gap-2"
               >
                 {isUpdatingName ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -257,7 +257,7 @@ export default function SettingsPage() {
             <Button
               onClick={handleUpdatePassword}
               disabled={isUpdatingPassword || !oldPassword || !newPassword || !confirmPassword}
-              className="w-full gap-2 mt-4"
+              className="button-solid w-full gap-2 mt-4"
             >
               {isUpdatingPassword ? (
                 <Loader2 className="w-4 h-4 animate-spin" />

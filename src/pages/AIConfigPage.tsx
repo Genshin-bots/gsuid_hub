@@ -1097,7 +1097,7 @@ export default function AIConfigPage() {
               onClick={handleSaveConfig}
               disabled={!isConfigDirty || isSaving}
               className={cn(
-                'gap-2 whitespace-nowrap transition-all duration-300',
+                'button-solid gap-2 whitespace-nowrap transition-all duration-300',
                 isConfigDirty && 'animate-in fade-in slide-in-from-bottom-2',
               )}
             >

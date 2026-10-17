@@ -531,7 +531,11 @@ function AccessPanel() {
       title={t('aiOps.access.title')}
       description={t('aiOps.access.desc')}
       actions={
-        <Button className="h-9" onClick={() => void save()} disabled={saving || loading}>
+        <Button
+          className="button-solid h-9"
+          onClick={() => void save()}
+          disabled={saving || loading}
+        >
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
           {t('common.save')}
         </Button>
@@ -659,7 +663,11 @@ function SecurityPanel() {
       title={t('aiOps.security.title')}
       description={t('aiOps.security.desc')}
       actions={
-        <Button className="h-9" onClick={() => void save()} disabled={saving || loading}>
+        <Button
+          className="button-solid h-9"
+          onClick={() => void save()}
+          disabled={saving || loading}
+        >
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
           {t('common.save')}
         </Button>

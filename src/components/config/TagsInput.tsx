@@ -184,11 +184,11 @@ export const TagsInput: React.FC<TagsInputProps> = ({
 
   return (
     <div
+      data-disabled={disabled || undefined}
       className={cn(
-        'relative border rounded-md bg-background/30 backdrop-blur-sm h-10 w-full overflow-hidden',
-        // 冻结态（disabled）走仓库既有的虚线语言：虚线框 + 灰底。变灰一律用 opacity，
-        // 本主题的 --muted-foreground 与 --foreground 同色，改文字色等于没改
-        disabled && 'border-dashed bg-muted/30',
+        // 与 Select/Input 共用同一套主题字段外观：背景、模糊、描边、圆角都由 .ui-input 驱动
+        'ui-input relative h-10 w-full overflow-hidden',
+        disabled && 'opacity-60',
       )}
     >
       {/* 量尺行：离屏渲染全部标签量真实宽度，不占布局也不可见。

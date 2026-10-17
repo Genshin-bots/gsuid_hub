@@ -436,7 +436,7 @@ export default function FrameworkConfigPage() {
             <Button
               onClick={handleSaveConfig}
               disabled={!isConfigDirty || isSaving}
-              className="gap-2"
+              className="button-solid gap-2"
             >
               {isSaving ? (
                 <Loader2 className="w-4 h-4 animate-spin" />

@@ -1561,6 +1561,142 @@ export const generatePersonaConfigAll = () =>
     scope: p.scope,
     target_groups: p.target_groups,
   }));
+type DemoPromptField = {
+  key: string;
+  section: string;
+  title: string;
+  description: string;
+  placeholders: string[];
+  text: string;
+};
+
+const DEMO_PROMPT_FIELDS: DemoPromptField[] = [
+  {
+    key: 'role_playing_start',
+    section: '会话系统',
+    title: '入戏',
+    description: '会话 system 的第一段。',
+    placeholders: [],
+    text: '## 角色扮演\n完全扮演下列角色。\n',
+  },
+  {
+    key: 'system_constraints',
+    section: '会话系统',
+    title: '基本规矩',
+    description: '主人列表与称呼在发送前填入。',
+    placeholders: ['masters', 'master_title'],
+    text: '{{masters}} 是主人。只有本轮说话人在列表里才称「{{master_title}}」。',
+  },
+];
+
+let demoPromptGroups: { name: string; builtin: boolean; prompts: Record<string, string> }[] = [
+  {
+    name: '默认',
+    builtin: true,
+    prompts: Object.fromEntries(DEMO_PROMPT_FIELDS.map((field) => [field.key, field.text])),
+  },
+];
+
+const demoPromptDetail = (name: string) => {
+  const group = demoPromptGroups.find((item) => item.name === name);
+  if (!group) return null;
+  return {
+    name: group.name,
+    builtin: group.builtin,
+    fields: DEMO_PROMPT_FIELDS.map((field) => ({
+      ...field,
+      text: group.prompts[field.key] ?? field.text,
+    })),
+  };
+};
+
+export const generatePromptGroups = () =>
+  demoPromptGroups.map((group) => ({
+    name: group.name,
+    builtin: group.builtin,
+    field_count: DEMO_PROMPT_FIELDS.length,
+  }));
+
+export const generatePromptGroupDetail = (name: string) => demoPromptDetail(name);
+
+export const applyPromptGroupCreate = (body: unknown) => {
+  const data = (body ?? {}) as { name?: string; copy_from?: string };
+  const name = (data.name ?? '').trim();
+  if (!name || name === '默认' || demoPromptGroups.some((group) => group.name === name))
+    return null;
+  const source = demoPromptGroups.find((group) => group.name === (data.copy_from || '默认'));
+  demoPromptGroups = [
+    ...demoPromptGroups,
+    { name, builtin: false, prompts: { ...(source?.prompts ?? {}) } },
+  ];
+  return demoPromptDetail(name);
+};
+
+export const applyPromptGroupSave = (name: string, body: unknown) => {
+  const group = demoPromptGroups.find((item) => item.name === name);
+  if (!group || group.builtin) return null;
+  const data = (body ?? {}) as { prompts?: Record<string, string> };
+  group.prompts = { ...group.prompts, ...(data.prompts ?? {}) };
+  return demoPromptDetail(name);
+};
+
+export const generatePlaceholderPreview = () => ({
+  personas: [
+    {
+      name: '早柚',
+      prompt_group: '默认',
+      values: {
+        soft: '60',
+        hard: '150',
+        segment_hint: '默认一整段说完；只有层次确实不同才用空行分成两条。',
+        master_title: '主人',
+        char_name: '早柚',
+        render_clause: '',
+        appearance: '',
+        answer_contract: '先答所问。',
+        lines: '',
+      },
+      soft_follows: true,
+      hard_follows: true,
+    },
+    {
+      name: '可莉',
+      prompt_group: '默认',
+      values: {
+        soft: '45',
+        hard: '150',
+        segment_hint: '默认一整段说完；只有层次确实不同才用空行分成两条。',
+        master_title: '主人',
+        char_name: '可莉',
+        render_clause: '多项数据出图；',
+        appearance: '',
+        answer_contract: '先答所问。',
+        lines: '',
+      },
+      soft_follows: false,
+      hard_follows: true,
+    },
+    {
+      name: '派蒙',
+      prompt_group: '默认',
+      values: {
+        soft: '60',
+        hard: '180',
+        segment_hint: '默认一整段说完；只有层次确实不同才用空行分成两条。',
+        master_title: '旅行者',
+        char_name: '派蒙',
+        render_clause: '',
+        appearance: '',
+        answer_contract: '先答所问。',
+        lines: '',
+      },
+      soft_follows: true,
+      hard_follows: false,
+    },
+  ],
+  shared: { masters: '10001', date: '2026年10月17日' },
+});
+
 export const generateGlobalPersonaConfig = () => {
   const enabled = DEMO_PERSONAS.filter((p) => p.enabled);
   return {

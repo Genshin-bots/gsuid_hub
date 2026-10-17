@@ -164,6 +164,15 @@ const isGlass = style === 'glassmorphism';
 
 **验收必须三套主题都截**：这类主题分叉只有把 `data-style` 逐一设过去才看得见。demo 里改 `demoMock.ts` 的 `THEME_CONFIG.style` → Chrome 截图 → 记得还原。
 
+### 3.4.4 保存 / 确定用实心主色 ★★
+
+光感、磨砂、液态把 `button.bg-primary` 画成半透明卡片，看起来和线框一样。页头的新建、立即备份继续用这层磨砂。
+
+- 对话框、抽屉、确认框里的主按钮：`index.css` 在 `[role="dialog"]` 和 `[role="alertdialog"]` 上把主色画实。
+- 页面上的保存、确定、确认修改、确认变更、更新密码：给按钮加 `button-solid`，跳过磨砂。人格编辑页的保存已经是这个类。
+- `AlertDialogAction` 自带 `button-solid`。调用处写了 `bg-destructive` 或 `bg-red-500` 的危险确认仍是红色。
+- 取消、刷新、筛选保持 `variant="outline"`。不要把 `button-solid` 写进 `Button` 的 default variant，否则页头主按钮会变成实心。
+
 ## 3.5 布局背景与 gutter
 
 `AppLayout.tsx` 负责整页背景渲染：

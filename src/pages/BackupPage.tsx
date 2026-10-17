@@ -428,7 +428,7 @@ export default function BackupPage() {
             <Button
               onClick={handleSaveSettings}
               disabled={!hasChanges || isSaving}
-              className="whitespace-nowrap"
+              className="button-solid whitespace-nowrap"
             >
               <Save className="w-4 h-4 mr-2" />
               {isSaving ? t('backup.saving') : t('backup.saveSettings')}

@@ -120,7 +120,11 @@ export default function BrandSettingsPage() {
               <RotateCcw className="w-4 h-4" />
               {t('brandSettings.resetToDefault')}
             </Button>
-            <Button className="whitespace-nowrap" onClick={onSubmit} disabled={saving || loading}>
+            <Button
+              className="button-solid whitespace-nowrap"
+              onClick={onSubmit}
+              disabled={saving || loading}
+            >
               <Save className="w-4 h-4" />
               {saving ? '…' : t('brandSettings.save')}
             </Button>
