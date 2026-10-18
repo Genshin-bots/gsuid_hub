@@ -355,7 +355,7 @@ export default function ThemesPage() {
     applyThemeConfig,
   } = useTheme();
 
-  const [tab, setTab] = useState<ThemeTab>('appearance');
+  const [tab, setTab] = useState<ThemeTab>('presets');
   const [customUrl, setCustomUrl] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -517,13 +517,13 @@ export default function ThemesPage() {
   const currentColorName = themeColors.find((c) => c.id === color)?.name;
 
   const tabOptions = [
+    { value: 'presets', label: t('themes.tabPresets'), icon: <Bookmark className="w-4 h-4" /> },
     {
       value: 'appearance',
       label: t('themes.tabAppearance'),
       icon: <Palette className="w-4 h-4" />,
     },
     { value: 'background', label: t('themes.tabBackground'), icon: <Image className="w-4 h-4" /> },
-    { value: 'presets', label: t('themes.tabPresets'), icon: <Bookmark className="w-4 h-4" /> },
     { value: 'misc', label: t('themes.tabMisc'), icon: <SlidersHorizontal className="w-4 h-4" /> },
   ];
 
