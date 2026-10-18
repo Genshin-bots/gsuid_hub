@@ -348,7 +348,7 @@ export default function FrameworkConfigPage() {
                   </div>
                   <div className="flex-1 w-full">
                     <Select value={selectedConfigId} onValueChange={setSelectedConfigId}>
-                      <SelectTrigger className="w-full sm:w-[300px] bg-background/50">
+                      <SelectTrigger className="h-10 w-full bg-background/50 sm:w-[300px]">
                         <SelectValue placeholder={t('frameworkConfig.selectConfig')} />
                       </SelectTrigger>
                       <SelectContent>

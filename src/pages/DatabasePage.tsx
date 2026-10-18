@@ -1,4 +1,12 @@
-import { useState, useMemo, useEffect, useCallback, useRef, type ChangeEvent } from 'react';
+import {
+  useState,
+  useMemo,
+  useEffect,
+  useLayoutEffect,
+  useCallback,
+  useRef,
+  type ChangeEvent,
+} from 'react';
 import { createPortal } from 'react-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -30,6 +38,8 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
+import { SearchableMenu } from '@/components/ui/searchable-menu';
+import { PluginUsageBar } from '@/components/plugins/PluginUsageBar';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
@@ -58,7 +68,94 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { PinnedPage } from '@/components/layout/PinnedPage';
-import { PluginIcon } from '@/components/ui/plugin-icon';
+
+/** 表名放得下一行就用分段；会换行就收成和插件选择器一样的搜索列表。 */
+function DatabaseTableNav({
+  tables,
+  value,
+  onValueChange,
+}: {
+  tables: DatabaseTableInfo[];
+  value: string;
+  onValueChange: (value: string) => void;
+}) {
+  const { t } = useLanguage();
+  const hostRef = useRef<HTMLDivElement>(null);
+  const probeRef = useRef<HTMLDivElement>(null);
+  const [collapsed, setCollapsed] = useState(false);
+  const labelsKey = tables.map((table) => `${table.table_name}\0${table.label}`).join('\n');
+
+  useLayoutEffect(() => {
+    const host = hostRef.current;
+    const probe = probeRef.current;
+    if (!host || !probe) return;
+
+    const measure = () => {
+      const available = host.clientWidth;
+      if (available <= 0) return;
+      // 探针比真分段窄约 1px，提前两像素收起，避免差一像素又折行。
+      setCollapsed(probe.scrollWidth > available - 2);
+    };
+
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(host);
+    return () => observer.disconnect();
+  }, [labelsKey]);
+
+  return (
+    <div ref={hostRef} className="relative min-w-0 w-full md:flex-1">
+      <div
+        ref={probeRef}
+        aria-hidden
+        className="pointer-events-none invisible absolute left-0 top-0 flex h-10 w-max flex-nowrap items-stretch gap-1 rounded-lg border px-0.5"
+      >
+        {tables.map((table) => (
+          <span
+            key={table.table_name}
+            className="inline-flex h-full items-center gap-2 whitespace-nowrap px-2.5 text-sm font-medium sm:px-4"
+          >
+            <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center">
+              <Database className="h-4 w-4" />
+            </span>
+            {table.label}
+          </span>
+        ))}
+      </div>
+      {collapsed ? (
+        <SearchableMenu
+          appearance="outline"
+          width="trigger"
+          align="start"
+          className="w-full max-w-full sm:w-[16rem]"
+          placeholder={t('database.selectTable')}
+          placeholderIcon={<Database className="h-4 w-4" />}
+          searchPlaceholder={t('database.searchTable')}
+          emptyText={t('database.noMatchingTable')}
+          value={value}
+          onValueChange={onValueChange}
+          items={tables.map((table) => ({
+            value: table.table_name,
+            label: table.label,
+            keywords: [table.label, table.table_name],
+            icon: <Database className="h-4 w-4" />,
+          }))}
+        />
+      ) : (
+        <TabButtonGroup
+          size="line"
+          options={tables.map((table) => ({
+            value: table.table_name,
+            label: table.label,
+            icon: <Database className="w-4 h-4" />,
+          }))}
+          value={value}
+          onValueChange={onValueChange}
+        />
+      )}
+    </div>
+  );
+}
 
 export default function DatabasePage() {
   const { t } = useLanguage();
@@ -532,21 +629,16 @@ export default function DatabasePage() {
           </div>
         }
         toolbar={
-          /* 插件选择 + 数据表选择：两级导航控件，随标题常驻。
-           两者原本是 space-y-6 的兄弟，故这里用 space-y-6 保持同样的行距 */
-          <div className="space-y-6">
-            <div>
-              <TabButtonGroup
-                options={plugins.map((plugin) => ({
-                  value: plugin.plugin_id,
-                  label: plugin.plugin_name,
-                  icon: (
-                    <PluginIcon
-                      pluginName={
-                        plugin.plugin_name === '核心功能' ? 'gsuid_core' : plugin.plugin_name
-                      }
-                    />
-                  ),
+          /* 插件下拉 + 数据表分段。md 起同一行；更窄时分段要通栏，继续上下排。 */
+          <div className="flex flex-col gap-3 md:flex-row md:items-center">
+            <div className="w-full min-w-0 shrink-0 md:w-auto">
+              <PluginUsageBar
+                align="start"
+                className="w-full sm:w-[16rem]"
+                plugins={plugins.map((plugin) => ({
+                  id: plugin.plugin_id,
+                  name: plugin.plugin_name,
+                  iconName: plugin.plugin_name === '核心功能' ? 'gsuid_core' : plugin.plugin_name,
                 }))}
                 value={selectedPluginId}
                 onValueChange={setSelectedPluginId}
@@ -554,17 +646,11 @@ export default function DatabasePage() {
             </div>
 
             {selectedPlugin && selectedPlugin.tables.length > 0 && (
-              <div>
-                <TabButtonGroup
-                  options={selectedPlugin.tables.map((table) => ({
-                    value: table.table_name,
-                    label: table.label,
-                    icon: <Database className="w-4 h-4" />,
-                  }))}
-                  value={activeTable}
-                  onValueChange={setActiveTable}
-                />
-              </div>
+              <DatabaseTableNav
+                tables={selectedPlugin.tables}
+                value={activeTable}
+                onValueChange={setActiveTable}
+              />
             )}
           </div>
         }

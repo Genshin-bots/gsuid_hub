@@ -47,16 +47,16 @@ export function ManageConfigDialog({
 }: ManageConfigDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[600px] max-h-[85vh] flex flex-col p-6 glass-card">
+        <DialogHeader className="shrink-0 pb-1">
           <DialogTitle className="flex items-center gap-2">
-            <Settings className="w-5 h-5" />
+            <Settings className="w-5 h-5 text-primary" />
             {t('aiConfig.manageConfig')}
           </DialogTitle>
           <DialogDescription>{t('aiConfig.manageConfigDesc')}</DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-2 py-2 max-h-[60vh] overflow-y-auto">
+        <div className="flex-1 min-h-0 overflow-y-auto pr-1 py-2 space-y-2">
           {allConfigsList.length === 0 ? (
             <EmptyState
               icon={<Server className="w-8 h-8 text-muted-foreground/50" />}
@@ -70,7 +70,7 @@ export function ManageConfigDialog({
               return (
                 <div
                   key={`manage-${configItem.name}`}
-                  className="flex items-center justify-between gap-2 p-3 rounded-xl border border-border/50 bg-card/50"
+                  className="flex items-center justify-between gap-2 p-3 rounded-xl glass-card transition-all"
                 >
                   <div className="flex items-center gap-3 min-w-0 flex-1">
                     <ModelBrandIcon
@@ -148,7 +148,7 @@ export function ManageConfigDialog({
           )}
         </div>
 
-        <DialogFooter className="flex items-center justify-between">
+        <DialogFooter className="shrink-0 pt-3 border-t border-border/40 flex items-center justify-between">
           <Button
             variant="outline"
             size="sm"

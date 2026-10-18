@@ -55,10 +55,10 @@ export function McpToolDialog({
 }: McpToolDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[560px] max-h-[80vh] glass-card">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[560px] max-h-[85vh] flex flex-col p-6 glass-card">
+        <DialogHeader className="shrink-0 pb-1">
           <DialogTitle className="flex items-center gap-2">
-            <Wrench className="w-5 h-5" />
+            <Wrench className="w-5 h-5 text-primary" />
             {t('aiConfig.mcpTool.selectTool')}
           </DialogTitle>
           <DialogDescription>
@@ -113,7 +113,7 @@ export function McpToolDialog({
           </div>
         )}
 
-        <div className="space-y-1 max-h-[50vh] overflow-y-auto">
+        <div className="flex-1 min-h-0 overflow-y-auto pr-1 py-1 space-y-1">
           {mcpConfigs.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-10 text-center">
               <Server className="h-8 w-8 text-muted-foreground/50 mb-2" />
@@ -205,7 +205,7 @@ export function McpToolDialog({
           )}
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="shrink-0 pt-3 border-t border-border/40">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             {t('common.confirm')}
           </Button>

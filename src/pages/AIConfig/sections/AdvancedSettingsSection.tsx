@@ -32,6 +32,8 @@ const EXCLUDED_KEYS: string[] = [
   'websearch_provider',
   'websearch_lb_strategy',
   'websearch_fallback_order',
+  'render_image_sources',
+  'render_embed_images',
   // 网页抓取：WebFetchSection 专属
   'webfetch_provider',
   'webfetch_lb_strategy',

@@ -48,7 +48,7 @@ export function MemeSettingsSection({ t, memeConfig, onUpdateConfig }: MemeSetti
 
       {memeConfig.config.meme_enable?.value ? (
         <div className="space-y-4">
-          <div className="p-3 rounded-lg border border-border/30 bg-muted/20">
+          <div className="p-3 rounded-lg glass-card transition-all">
             <ToggleRow
               icon={<Sparkles className="w-5 h-5" strokeWidth={1.5} />}
               iconColorClass="text-primary"

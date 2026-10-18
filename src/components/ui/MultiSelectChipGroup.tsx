@@ -48,7 +48,7 @@ export interface ChipGroupProps {
  *   options={[
  *     { value: 'mention', label: '提及应答' },
  *     { value: 'schedule', label: '定时巡检' },
- *     { value: 'capture', label: '趣向捕捉', disabled: true },
+ *     { value: 'aside', label: '命令补充' },
  *   ]}
  *   value={['mention', 'schedule']}
  *   onValueChange={(newValue) => setSelectedModes(newValue)}

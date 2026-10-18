@@ -3,6 +3,8 @@
   "description": "浏览和管理数据库表",
   "selectPlugin": "选择插件",
   "selectTable": "选择数据库表",
+  "searchTable": "搜索数据表",
+  "noMatchingTable": "没有匹配的数据表",
   "refresh": "刷新",
   "addNew": "新增",
   "search": "搜索...",

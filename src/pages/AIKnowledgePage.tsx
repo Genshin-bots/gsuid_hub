@@ -1334,17 +1334,17 @@ export default function AIKnowledgePage() {
 
       {/* 新增/编辑 Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
+        <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col p-6">
+          <DialogHeader className="shrink-0 pb-1">
             <DialogTitle className="flex items-center gap-2">
               {knowledgeType === 'text' ? (
                 <>
-                  <FileText className="w-5 h-5" />
+                  <FileText className="w-5 h-5 text-primary" />
                   {isEditMode ? t('aiKnowledge.editText') : t('aiKnowledge.addText')}
                 </>
               ) : (
                 <>
-                  <Image className="w-5 h-5" />
+                  <Image className="w-5 h-5 text-primary" />
                   {isEditMode ? t('aiKnowledge.editImage') : t('aiKnowledge.addImage')}
                 </>
               )}
@@ -1354,7 +1354,7 @@ export default function AIKnowledgePage() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-4">
+          <div className="flex-1 min-h-0 overflow-y-auto pr-1 py-2 space-y-4">
             {knowledgeType === 'text' ? (
               // 文本知识表单
               <>
@@ -1530,7 +1530,7 @@ export default function AIKnowledgePage() {
             )}
           </div>
 
-          <DialogFooter className="flex items-center justify-between">
+          <DialogFooter className="shrink-0 pt-3 border-t border-border/40 flex items-center justify-between">
             {isEditMode && (
               <span className="text-sm text-muted-foreground">
                 ID: {knowledgeType === 'text' ? textFormData.id : imageFormData.id}
@@ -1588,10 +1588,10 @@ export default function AIKnowledgePage() {
           if (!bulkImporting) setBulkDialogOpen(o);
         }}
       >
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
+        <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col p-6">
+          <DialogHeader className="shrink-0 pb-1">
             <DialogTitle className="flex items-center gap-2">
-              <FileUp className="w-5 h-5" />
+              <FileUp className="w-5 h-5 text-primary" />
               {t('aiKnowledge.bulkImportTitle')}
             </DialogTitle>
             <DialogDescription className="sr-only">
@@ -1599,7 +1599,7 @@ export default function AIKnowledgePage() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-2">
+          <div className="flex-1 min-h-0 overflow-y-auto pr-1 py-2 space-y-4">
             {/* 拖入区 */}
             <div
               className={cn(
@@ -1802,7 +1802,7 @@ export default function AIKnowledgePage() {
             )}
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="shrink-0 pt-3 border-t border-border/40">
             <Button
               variant="outline"
               onClick={() => setBulkDialogOpen(false)}
@@ -1820,10 +1820,10 @@ export default function AIKnowledgePage() {
 
       {/* 文档级浏览 Dialog（按 doc_id） */}
       <Dialog open={docViewerOpen} onOpenChange={setDocViewerOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
+        <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col p-6">
+          <DialogHeader className="shrink-0 pb-1">
             <DialogTitle className="flex items-center gap-2">
-              <ScrollText className="w-5 h-5" />
+              <ScrollText className="w-5 h-5 text-primary" />
               {t('aiKnowledge.docViewerTitle', { docId: docViewerDocId })}
             </DialogTitle>
             <DialogDescription className="sr-only">
@@ -1831,74 +1831,76 @@ export default function AIKnowledgePage() {
             </DialogDescription>
           </DialogHeader>
 
-          {docViewerLoading ? (
-            <div className="flex items-center justify-center py-8 text-muted-foreground">
-              <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-              {t('common.loading')}
-            </div>
-          ) : docViewerChunks.length === 0 ? (
-            <div className="py-8 text-center text-muted-foreground">{t('common.noData')}</div>
-          ) : (
-            <div className="space-y-2">
-              <div className="text-xs text-muted-foreground">
-                {t('aiKnowledge.docViewerTotalChunks', { total: docViewerTotal })}
+          <div className="flex-1 min-h-0 overflow-y-auto pr-1 py-1">
+            {docViewerLoading ? (
+              <div className="flex items-center justify-center py-8 text-muted-foreground">
+                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                {t('common.loading')}
               </div>
-              <div className="space-y-2 max-h-[55vh] overflow-y-auto">
-                {docViewerChunks.map((chunk) => {
-                  const m = /#(\d+)$/.exec(chunk.id);
-                  const idx = m ? m[1] : '?';
-                  return (
-                    <div key={chunk.id} className="border rounded-md p-3 bg-muted/30">
-                      <div className="flex items-center justify-between mb-1">
-                        <Badge variant="secondary" className="text-xs">
-                          #{idx}
-                        </Badge>
-                        <span className="text-xs text-muted-foreground truncate ml-2 font-mono">
-                          {chunk.id}
-                        </span>
-                      </div>
-                      <pre className="whitespace-pre-wrap text-xs font-mono leading-relaxed text-foreground/80 max-h-40 overflow-y-auto">
-                        {chunk.content}
-                      </pre>
-                    </div>
-                  );
-                })}
-              </div>
-              {docViewerTotal > docViewerLimit && (
-                <div className="flex items-center justify-center gap-2 pt-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={docViewerPage <= 1}
-                    onClick={() => {
-                      const np = docViewerPage - 1;
-                      setDocViewerPage(np);
-                      loadDocChunks(docViewerDocId, np);
-                    }}
-                  >
-                    {t('aiKnowledge.docViewerPrev')}
-                  </Button>
-                  <span className="text-sm text-muted-foreground">
-                    {docViewerPage} / {Math.ceil(docViewerTotal / docViewerLimit)}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={docViewerPage >= Math.ceil(docViewerTotal / docViewerLimit)}
-                    onClick={() => {
-                      const np = docViewerPage + 1;
-                      setDocViewerPage(np);
-                      loadDocChunks(docViewerDocId, np);
-                    }}
-                  >
-                    {t('aiKnowledge.docViewerNext')}
-                  </Button>
+            ) : docViewerChunks.length === 0 ? (
+              <div className="py-8 text-center text-muted-foreground">{t('common.noData')}</div>
+            ) : (
+              <div className="space-y-2">
+                <div className="text-xs text-muted-foreground">
+                  {t('aiKnowledge.docViewerTotalChunks', { total: docViewerTotal })}
                 </div>
-              )}
-            </div>
-          )}
+                <div className="space-y-2 max-h-[55vh] overflow-y-auto">
+                  {docViewerChunks.map((chunk) => {
+                    const m = /#(\d+)$/.exec(chunk.id);
+                    const idx = m ? m[1] : '?';
+                    return (
+                      <div key={chunk.id} className="border rounded-md p-3 bg-muted/30">
+                        <div className="flex items-center justify-between mb-1">
+                          <Badge variant="secondary" className="text-xs">
+                            #{idx}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground truncate ml-2 font-mono">
+                            {chunk.id}
+                          </span>
+                        </div>
+                        <pre className="whitespace-pre-wrap text-xs font-mono leading-relaxed text-foreground/80 max-h-40 overflow-y-auto">
+                          {chunk.content}
+                        </pre>
+                      </div>
+                    );
+                  })}
+                </div>
+                {docViewerTotal > docViewerLimit && (
+                  <div className="flex items-center justify-center gap-2 pt-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={docViewerPage <= 1}
+                      onClick={() => {
+                        const np = docViewerPage - 1;
+                        setDocViewerPage(np);
+                        loadDocChunks(docViewerDocId, np);
+                      }}
+                    >
+                      {t('aiKnowledge.docViewerPrev')}
+                    </Button>
+                    <span className="text-sm text-muted-foreground">
+                      {docViewerPage} / {Math.ceil(docViewerTotal / docViewerLimit)}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={docViewerPage >= Math.ceil(docViewerTotal / docViewerLimit)}
+                      onClick={() => {
+                        const np = docViewerPage + 1;
+                        setDocViewerPage(np);
+                        loadDocChunks(docViewerDocId, np);
+                      }}
+                    >
+                      {t('aiKnowledge.docViewerNext')}
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
-          <DialogFooter>
+          <DialogFooter className="shrink-0 pt-3 border-t border-border/40">
             <Button
               variant="destructive"
               onClick={() => setDeletingDoc({ doc_id: docViewerDocId, title: docViewerTitle })}

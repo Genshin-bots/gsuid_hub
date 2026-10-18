@@ -1764,7 +1764,7 @@ export default function AIMemePage() {
         </div>
       }
       toolbar={
-        /* 筛选行：控件高度对齐分段内钮 h-10，不是玻璃外壳 */
+        /* 筛选行：分段用默认高度，输入框和下拉 h-10，同行居中 */
         <div className="flex min-w-0 flex-wrap items-center gap-3">
           <div className={cn(tabToolbarGroupWrapClass, 'max-w-full')}>
             <TabButtonGroup
@@ -1881,7 +1881,7 @@ export default function AIMemePage() {
     >
       {/* Batch Action Bar - shown when any items are selected */}
       {selectedIds.size > 0 && (
-        <Card className={cn('border-primary/30 bg-primary/5', 'glass-card')}>
+        <Card className="glass-card glass-alert glass-alert-tint glass-alert-tint-primary border-primary/35">
           <CardContent className="py-2.5 px-4 flex items-center gap-3 flex-wrap">
             <div className="flex items-center gap-2">
               <Checkbox

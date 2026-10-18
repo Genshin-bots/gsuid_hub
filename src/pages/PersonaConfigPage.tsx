@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent } from '@/components/ui/tabs';
 import {
   Select,
   SelectContent,
@@ -78,7 +78,6 @@ import {
   MessageCircle,
   MessagesSquare,
   Clock,
-  Target,
   HelpCircle,
   X,
   Layers,
@@ -162,11 +161,10 @@ const AI_MODE_OPTIONS: {
     description: '定时检查处理任务',
   },
   {
-    value: '趣向捕捉(暂不可用)',
-    label: '趣向捕捉',
-    icon: <Target className="w-4 h-4" />,
-    description: '识别响应特定内容',
-    disabled: true,
+    value: '命令补充',
+    label: '命令补充',
+    icon: <MessageCircle className="w-4 h-4" />,
+    description: '命令返回后再补一句',
   },
   {
     value: '困境救场(暂不可用)',
@@ -329,6 +327,41 @@ function getScopeLabel(scope: PersonaScope, t: (key: string) => string) {
 // ============================================================================
 // 组件定义
 // ============================================================================
+function clampProbability(value: number, fallback: number): number {
+  if (!Number.isFinite(value)) return fallback;
+  const stepped = Math.round(value * 20) / 20;
+  return Math.min(1, Math.max(0, stepped));
+}
+
+function formatProbability(value: number): string {
+  return String(Math.round(value * 100) / 100);
+}
+
+const ASIDE_IMAGE_DEFAULT = 0.2;
+const ASIDE_TEXT_DEFAULT = 0.35;
+const ASIDE_MIXED_DEFAULT = 0.25;
+
+function knownAIModes(modes: readonly string[] | undefined): AIMode[] {
+  if (!modes) return [];
+  const known = new Set<string>(AI_MODE_OPTIONS.map((mode) => mode.value));
+  const out: AIMode[] = [];
+  for (const mode of modes) {
+    const item = mode === '余韵点评' || mode === '命令接话' ? '命令补充' : mode;
+    if (!known.has(item)) continue;
+    if (out.includes(item as AIMode)) continue;
+    out.push(item as AIMode);
+  }
+  return out;
+}
+
+function asideBadge(config: PersonaConfig | undefined, toolsMark: string): string {
+  const image = Math.round((config?.aside_image_probability ?? ASIDE_IMAGE_DEFAULT) * 100);
+  const text = Math.round((config?.aside_text_probability ?? ASIDE_TEXT_DEFAULT) * 100);
+  const mixed = Math.round((config?.aside_mixed_probability ?? ASIDE_MIXED_DEFAULT) * 100);
+  const probs = `${image}·${text}·${mixed}`;
+  return toolsMark ? `${probs}·${toolsMark}` : probs;
+}
+
 function SpeechSliderField({
   id,
   icon,
@@ -389,6 +422,64 @@ function SpeechSliderField({
   );
 }
 
+function ProbabilityField({
+  id,
+  label,
+  value,
+  disabled,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  value: number;
+  disabled: boolean;
+  onChange: (value: number) => void;
+}) {
+  const [raw, setRaw] = useState(formatProbability(value));
+  useEffect(() => {
+    setRaw(formatProbability(value));
+  }, [value]);
+  return (
+    <div className={cn('space-y-2', disabled && 'opacity-50')}>
+      <Label htmlFor={id} className="text-sm">
+        {label}
+      </Label>
+      <div className="flex items-center gap-3">
+        <Slider
+          aria-label={label}
+          disabled={disabled}
+          className="min-w-0 flex-1"
+          min={0}
+          max={1}
+          step={0.05}
+          value={[value]}
+          onValueChange={(next) => {
+            const picked = next[0];
+            if (picked !== undefined) onChange(clampProbability(picked, value));
+          }}
+        />
+        <Input
+          id={id}
+          disabled={disabled}
+          inputMode="decimal"
+          aria-label={label}
+          min={0}
+          max={1}
+          step={0.05}
+          value={raw}
+          onChange={(event) => setRaw(event.target.value)}
+          onBlur={() => {
+            const parsed = clampProbability(Number(raw), value);
+            onChange(parsed);
+            setRaw(formatProbability(parsed));
+          }}
+          className="h-10 w-16 shrink-0 px-2 text-center tabular-nums"
+        />
+      </div>
+    </div>
+  );
+}
+
 function SpeechFields({
   shape,
   chatStyleText,
@@ -433,7 +524,7 @@ function SpeechFields({
 
 export default function PersonaConfigPage() {
   const { style, mode } = useTheme();
-  const sheetOverlay = mode === 'dark' ? 'bg-black/80' : 'bg-white/80';
+  const sheetOverlay = mode === 'dark' ? 'bg-black/50' : 'bg-white/40';
   const promptPanelRef = useRef<PromptGroupPanelHandle>(null);
   const { t } = useLanguage();
   const isGlass = style !== 'solid';
@@ -482,9 +573,14 @@ export default function PersonaConfigPage() {
   const [editingScope, setEditingScope] = useState<PersonaScope>('disabled');
   const [editingInspectInterval, setEditingInspectInterval] = useState<number>(10);
   const [editingKeywords, setEditingKeywords] = useState<string[]>([]);
-  // 两个字段都由 AI 行动模式带出，同现时要并排一行：提前算出来供布局判断
+  const [asideImage, setAsideImage] = useState(ASIDE_IMAGE_DEFAULT);
+  const [asideText, setAsideText] = useState(ASIDE_TEXT_DEFAULT);
+  const [asideMixed, setAsideMixed] = useState(ASIDE_MIXED_DEFAULT);
+  const [asideAllowTools, setAsideAllowTools] = useState(false);
+  // 字段都由 AI 行动模式带出。关掉时不隐藏、只冻结，避免这一行塌掉。
   const showInspectInterval = editingAIModes.includes('定时巡检');
   const showTriggerKeywords = editingAIModes.includes('提及应答');
+  const showAside = editingAIModes.includes('命令补充');
   const [editingToolNames, setEditingToolNames] = useState<string[]>([]);
   const [editingEnabledPlugins, setEditingEnabledPlugins] = useState<string[]>([]);
   const [toolCatalog, setToolCatalog] = useState<PersonaToolCatalog | null>(null);
@@ -525,11 +621,11 @@ export default function PersonaConfigPage() {
   const [resourceTimestamp, setResourceTimestamp] = useState<number>(Date.now());
   // 获取启用人格列表
   const enabledPersonas = useMemo(() => {
-    return frameworkConfig?.config.enable_persona.value || [];
+    return frameworkConfig?.config?.enable_persona?.value || [];
   }, [frameworkConfig]);
   // 获取人格对应的群聊映射
   const personaGroupsMap = useMemo(() => {
-    return frameworkConfig?.config.persona_for_session.value || {};
+    return frameworkConfig?.config?.persona_for_session?.value || {};
   }, [frameworkConfig]);
   // 可委派能力代理：列表项（node_id 为主键，display_name 兜底）
   const capabilityAgentItems = useMemo(
@@ -875,7 +971,7 @@ export default function PersonaConfigPage() {
     setEditingPersona(persona);
     setEditContent(persona.content);
     setEditingGroups([...persona.groups]);
-    setEditingAIModes(persona.config?.ai_mode || []);
+    setEditingAIModes(knownAIModes(persona.config?.ai_mode));
     setEditingScope(persona.config?.scope || 'disabled');
     setEditingPromptGroup(persona.config?.prompt_group || '默认');
     const shape = speechShapeOf(persona.config);
@@ -893,6 +989,25 @@ export default function PersonaConfigPage() {
     );
     setEditingInspectInterval(persona.config?.inspect_interval || 10);
     setEditingKeywords(persona.config?.keywords || []);
+    setAsideImage(
+      clampProbability(
+        persona.config?.aside_image_probability ?? ASIDE_IMAGE_DEFAULT,
+        ASIDE_IMAGE_DEFAULT,
+      ),
+    );
+    setAsideText(
+      clampProbability(
+        persona.config?.aside_text_probability ?? ASIDE_TEXT_DEFAULT,
+        ASIDE_TEXT_DEFAULT,
+      ),
+    );
+    setAsideMixed(
+      clampProbability(
+        persona.config?.aside_mixed_probability ?? ASIDE_MIXED_DEFAULT,
+        ASIDE_MIXED_DEFAULT,
+      ),
+    );
+    setAsideAllowTools(persona.config?.aside_allow_tools === true);
     // 常驻直装工具默认就在白名单里：每轮必然在场，不必让用户手动勾一遍
     const configuredToolNames = persona.config?.tool_names ?? [];
     setEditingToolNames(
@@ -1071,11 +1186,15 @@ export default function PersonaConfigPage() {
       }
       // 保存 AI 模式和启用范围配置
       await personaApi.updatePersonaConfig(editingPersona.name, {
-        ai_mode: editingAIModes,
+        ai_mode: knownAIModes(editingAIModes),
         scope: editingScope,
         target_groups: editingGroups,
         inspect_interval: editingInspectInterval,
         keywords: editingKeywords,
+        aside_image_probability: asideImage,
+        aside_text_probability: asideText,
+        aside_mixed_probability: asideMixed,
+        aside_allow_tools: asideAllowTools,
         ...(toolCatalog && toolCatalog.plugins.length > 0
           ? {
               enabled_tools: enabledPluginsToSpec(
@@ -1249,7 +1368,7 @@ export default function PersonaConfigPage() {
     const imageUrl = personaApi.getImageUrl(persona.name, resourceTimestamp);
     const hasImage = persona.has_image;
     const scope = persona.config?.scope || 'disabled';
-    const aiModes = persona.config?.ai_mode || [];
+    const aiModes = knownAIModes(persona.config?.ai_mode);
     const inspectInterval = persona.config?.inspect_interval;
     const hb = heartbeatStatus[persona.name];
     return (
@@ -1265,12 +1384,12 @@ export default function PersonaConfigPage() {
             圆角裁切放在这一层。 */}
         {hasImage && (
           <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-[inherit]">
-              <img
-                src={imageUrl}
-                alt=""
-                loading="lazy"
-                decoding="async"
-                className={cn(
+            <img
+              src={imageUrl}
+              alt=""
+              loading="lazy"
+              decoding="async"
+              className={cn(
                 'w-full h-full object-cover transition-opacity',
                 isGlass ? 'opacity-30 group-hover:opacity-40' : 'opacity-15 group-hover:opacity-20',
               )}
@@ -1554,6 +1673,19 @@ export default function PersonaConfigPage() {
                         {t('personaConfig.minutesUnit')}
                       </span>
                     )}
+                    {mode.value === '命令补充' && isSelected && (
+                      <span
+                        title={t('personaConfig.asideBadgeHint')}
+                        className="shrink-0 text-[10px] font-medium text-primary/70"
+                      >
+                        {asideBadge(
+                          persona.config,
+                          persona.config?.aside_allow_tools
+                            ? t('personaConfig.asideToolsShort')
+                            : '',
+                        )}
+                      </span>
+                    )}
                     {mode.value === '提及应答' &&
                       isSelected &&
                       (persona.config?.keywords?.length ?? 0) > 0 && (
@@ -1805,45 +1937,45 @@ export default function PersonaConfigPage() {
           />
         ) : (
           <div className="-mt-3">
-          <div className="mb-3 space-y-3">
-            <GlassAlert tone="warning">{t('personaConfig.builtinPersonaWarning')}</GlassAlert>
-            {/* 全局启用提示 */}
-            {personaCards.some((p) => isGlobalLikeScope(p.config?.scope)) && (
-              <GlassAlert tone="info" icon={Globe}>
-                {t('personaConfig.globalEnabledHint', {
-                  name: personaCards
-                    .filter((p) => isGlobalLikeScope(p.config?.scope))
-                    .map((p) => `${p.name}（${getScopeLabel(p.config?.scope || 'disabled', t)}）`)
-                    .join('、'),
-                })}
-              </GlassAlert>
-            )}
-            {/* 无启用人格警告 */}
-            {!personaCards.some((p) => isGlobalLikeScope(p.config?.scope)) &&
-              !personaCards.some((p) => p.config?.scope === 'specific') &&
-              personaCards.length > 0 && (
-                <GlassAlert tone="warning">
-                  {t('personaConfig.noPersonaEnabledWarning')}
-                </GlassAlert>
-              )}
-            {/* 仅特定群聊启用警告 */}
-            {!personaCards.some((p) => isGlobalLikeScope(p.config?.scope)) &&
-              personaCards.some((p) => p.config?.scope === 'specific') && (
-                <GlassAlert
-                  tone="warning"
-                  className="grid w-full max-w-full grid-cols-[auto_minmax(0,1fr)]"
-                  contentClassName="whitespace-normal break-all"
-                >
-                  {t('personaConfig.specificOnlyWarning', {
-                    groups:
-                      personaCards
-                        .filter((p) => p.config?.scope === 'specific' && p.groups.length > 0)
-                        .flatMap((p) => p.groups)
-                        .join('、') || t('personaConfig.noGroups'),
+            <div className="mb-3 space-y-3">
+              <GlassAlert tone="warning">{t('personaConfig.builtinPersonaWarning')}</GlassAlert>
+              {/* 全局启用提示 */}
+              {personaCards.some((p) => isGlobalLikeScope(p.config?.scope)) && (
+                <GlassAlert tone="info" icon={Globe}>
+                  {t('personaConfig.globalEnabledHint', {
+                    name: personaCards
+                      .filter((p) => isGlobalLikeScope(p.config?.scope))
+                      .map((p) => `${p.name}（${getScopeLabel(p.config?.scope || 'disabled', t)}）`)
+                      .join('、'),
                   })}
                 </GlassAlert>
               )}
-          </div>
+              {/* 无启用人格警告 */}
+              {!personaCards.some((p) => isGlobalLikeScope(p.config?.scope)) &&
+                !personaCards.some((p) => p.config?.scope === 'specific') &&
+                personaCards.length > 0 && (
+                  <GlassAlert tone="warning">
+                    {t('personaConfig.noPersonaEnabledWarning')}
+                  </GlassAlert>
+                )}
+              {/* 仅特定群聊启用警告 */}
+              {!personaCards.some((p) => isGlobalLikeScope(p.config?.scope)) &&
+                personaCards.some((p) => p.config?.scope === 'specific') && (
+                  <GlassAlert
+                    tone="warning"
+                    className="grid w-full max-w-full grid-cols-[auto_minmax(0,1fr)]"
+                    contentClassName="whitespace-normal break-all"
+                  >
+                    {t('personaConfig.specificOnlyWarning', {
+                      groups:
+                        personaCards
+                          .filter((p) => p.config?.scope === 'specific' && p.groups.length > 0)
+                          .flatMap((p) => p.groups)
+                          .join('、') || t('personaConfig.noGroups'),
+                    })}
+                  </GlassAlert>
+                )}
+            </div>
             {/* 人格列表 - 固定列数的响应式网格。不用 auto-fit：空轨道会被折叠成 0，
             只剩一张卡时它就被拉满整行；卡片内部本就是 5 等分范围胶囊的窄卡设计。 */}
             {isLoading ? (
@@ -1853,9 +1985,7 @@ export default function PersonaConfigPage() {
             ) : personaCards.length === 0 ? (
               <>
                 {/* 无人格警告 */}
-                <GlassAlert tone="warning">
-                  {t('personaConfig.noPersonaAtAllWarning')}
-                </GlassAlert>
+                <GlassAlert tone="warning">{t('personaConfig.noPersonaAtAllWarning')}</GlassAlert>
                 <div className="flex flex-col items-center justify-center py-12 text-center">
                   <User className="h-12 w-12 text-muted-foreground mb-4" />
                   <p className="text-muted-foreground">{t('personaConfig.noPersonas')}</p>
@@ -1896,32 +2026,42 @@ export default function PersonaConfigPage() {
               className="flex min-h-0 flex-1 flex-col"
             >
               <div className="shrink-0 px-6 pt-4">
-                <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6">
-                  <TabsTrigger value="markdown" className="gap-2">
-                    <FileText className="h-4 w-4" />
-                    {t('personaConfig.personaMarkdown')}
-                  </TabsTrigger>
-                  <TabsTrigger value="config" className="gap-2">
-                    <Settings className="h-4 w-4" />
-                    {t('personaConfig.config')}
-                  </TabsTrigger>
-                  <TabsTrigger value="settings" className="gap-2">
-                    <Sparkles className="h-4 w-4" />
-                    {t('personaConfig.personaSettings')}
-                  </TabsTrigger>
-                  <TabsTrigger value="avatar" className="gap-2">
-                    <ImageIcon className="h-4 w-4" />
-                    {t('personaConfig.avatar')}
-                  </TabsTrigger>
-                  <TabsTrigger value="image" className="gap-2">
-                    <ImageIcon className="h-4 w-4" />
-                    {t('personaConfig.image')}
-                  </TabsTrigger>
-                  <TabsTrigger value="audio" className="gap-2">
-                    <Music className="h-4 w-4" />
-                    {t('personaConfig.audio')}
-                  </TabsTrigger>
-                </TabsList>
+                <TabButtonGroup
+                  value={activeTab}
+                  onValueChange={setActiveTab}
+                  options={[
+                    {
+                      value: 'markdown',
+                      label: t('personaConfig.personaMarkdown'),
+                      icon: <FileText className="h-4 w-4" />,
+                    },
+                    {
+                      value: 'config',
+                      label: t('personaConfig.config'),
+                      icon: <Settings className="h-4 w-4" />,
+                    },
+                    {
+                      value: 'settings',
+                      label: t('personaConfig.personaSettings'),
+                      icon: <Sparkles className="h-4 w-4" />,
+                    },
+                    {
+                      value: 'avatar',
+                      label: t('personaConfig.avatar'),
+                      icon: <ImageIcon className="h-4 w-4" />,
+                    },
+                    {
+                      value: 'image',
+                      label: t('personaConfig.image'),
+                      icon: <ImageIcon className="h-4 w-4" />,
+                    },
+                    {
+                      value: 'audio',
+                      label: t('personaConfig.audio'),
+                      icon: <Music className="h-4 w-4" />,
+                    },
+                  ]}
+                />
               </div>
               <div className="flex min-h-0 flex-1 flex-col px-6 py-4">
                 {/* 自述文档 Tab */}
@@ -2047,9 +2187,8 @@ export default function PersonaConfigPage() {
                         <Settings className="h-4 w-4" />
                         {t('personaConfig.aiModes')}
                       </Label>
-                      {/* 断点与「启用范围」对齐：sm 就上 5 列会把每格压到 ~130px，
-                          标题里的「(即将推出)」无处安放，只能折行 */}
-                      <div className="grid grid-cols-2 gap-3 items-stretch sm:grid-cols-3 lg:grid-cols-5">
+                      {/* 四个模式：大屏一行四张，窄屏两列，避免「即将推出」被挤折行 */}
+                      <div className="grid grid-cols-2 gap-3 items-stretch lg:grid-cols-4">
                         {AI_MODE_OPTIONS.map((mode) => (
                           <button
                             key={mode.value}
@@ -2185,6 +2324,62 @@ export default function PersonaConfigPage() {
                           value={editingKeywords}
                           onChange={setEditingKeywords}
                           placeholder={t('personaConfig.keywordsPlaceholder')}
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      <Label
+                        className={cn(
+                          'flex items-center gap-2 text-base',
+                          !showAside && 'opacity-50',
+                        )}
+                      >
+                        <MessageCircle className="h-4 w-4" />
+                        {t('personaConfig.asideTitle')}
+                      </Label>
+                      <p
+                        className={cn('text-xs text-muted-foreground', !showAside && 'opacity-50')}
+                      >
+                        {t('personaConfig.asideHint')}
+                      </p>
+                      <div className="grid gap-4 sm:grid-cols-3">
+                        <ProbabilityField
+                          id="aside-image"
+                          label={t('personaConfig.asideImage')}
+                          value={asideImage}
+                          disabled={!showAside}
+                          onChange={setAsideImage}
+                        />
+                        <ProbabilityField
+                          id="aside-text"
+                          label={t('personaConfig.asideText')}
+                          value={asideText}
+                          disabled={!showAside}
+                          onChange={setAsideText}
+                        />
+                        <ProbabilityField
+                          id="aside-mixed"
+                          label={t('personaConfig.asideMixed')}
+                          value={asideMixed}
+                          disabled={!showAside}
+                          onChange={setAsideMixed}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between gap-3">
+                        <div className={cn('min-w-0', !showAside && 'opacity-50')}>
+                          <Label htmlFor="aside-allow-tools" className="text-sm">
+                            {t('personaConfig.asideAllowTools')}
+                          </Label>
+                          <p className="text-xs text-muted-foreground">
+                            {t('personaConfig.asideAllowToolsHint')}
+                          </p>
+                        </div>
+                        <Switch
+                          id="aside-allow-tools"
+                          checked={asideAllowTools}
+                          disabled={!showAside}
+                          onCheckedChange={setAsideAllowTools}
+                          aria-label={t('personaConfig.asideAllowTools')}
                         />
                       </div>
                     </div>

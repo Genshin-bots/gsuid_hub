@@ -23,7 +23,7 @@ import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { GlassAlert } from '@/components/ui/glass-alert';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Dialog,
@@ -358,19 +358,18 @@ export const PromptGroupPanel = forwardRef<
           </SheetHeader>
           {!opening && sections.length > 0 && (
             <div className="shrink-0 px-6 pt-4">
-              <Tabs value={section || sections[0]?.section || ''} onValueChange={selectSection}>
-                <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
-                  {sections.map((block) => {
-                    const Icon = sectionIcon(block.fields);
-                    return (
-                      <TabsTrigger key={block.section} value={block.section} className="gap-2">
-                        {Icon ? <Icon className="h-4 w-4" /> : null}
-                        {block.section}
-                      </TabsTrigger>
-                    );
-                  })}
-                </TabsList>
-              </Tabs>
+              <TabButtonGroup
+                value={section || sections[0]?.section || ''}
+                onValueChange={selectSection}
+                options={sections.map((block) => {
+                  const Icon = sectionIcon(block.fields);
+                  return {
+                    value: block.section,
+                    label: block.section,
+                    icon: Icon ? <Icon className="h-4 w-4" /> : undefined,
+                  };
+                })}
+              />
             </div>
           )}
           <div ref={sheetBodyRef} className="min-h-0 flex-1 overflow-y-auto px-6 py-4">

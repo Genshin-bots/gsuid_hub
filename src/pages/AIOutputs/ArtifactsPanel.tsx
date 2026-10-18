@@ -28,7 +28,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent } from '@/components/ui/tabs';
+import { TabButtonGroup, tabToolbarControlClass } from '@/components/ui/TabButtonGroup';
 import {
   Table,
   TableBody,
@@ -37,7 +38,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { tabToolbarControlClass } from '@/components/ui/TabButtonGroup';
 import { aiArtifactsApi, getApiErrorMessage, type AIArtifactItem } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { formatBytes } from './constants';
@@ -111,6 +111,7 @@ export function ArtifactsPanel(props: ArtifactsPanelProps) {
   const [items, setItems] = useState<AIArtifactItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
+  const [detailTab, setDetailTab] = useState('payload');
   const [detail, setDetail] = useState<{
     item: AIArtifactItem & {
       payload_kind?: string;
@@ -210,6 +211,7 @@ export function ArtifactsPanel(props: ArtifactsPanelProps) {
 
   // 切换 / 关闭 dialog 时重置 copied 反馈与图片 blob URL
   useEffect(() => {
+    setDetailTab('payload');
     if (!openId) {
       revokeImageUrl();
       if (payloadCopyTimerRef.current) {
@@ -433,11 +435,17 @@ export function ArtifactsPanel(props: ArtifactsPanelProps) {
           {/* Tabs：默认切到 Payload（用户主诉求），Overview tab 收纳完整元数据 grid。
               Radix Tabs 内部用 data-state 控制 mount/unmount，所以切回 Overview 时状态保留。
               TabsContent 默认带 mt-2 间距 + display，需要重置为 mt-0 才能贴合 TabsList。 */}
-          <Tabs defaultValue="payload" className="flex-1 min-h-0 flex flex-col">
-            <TabsList className="self-start mx-6 mt-3 shrink-0">
-              <TabsTrigger value="overview">{t('aiArtifacts.detail.tabOverview')}</TabsTrigger>
-              <TabsTrigger value="payload">{t('aiArtifacts.detail.tabPayload')}</TabsTrigger>
-            </TabsList>
+          <Tabs value={detailTab} onValueChange={setDetailTab} className="flex-1 min-h-0 flex flex-col">
+            <div className="mx-6 mt-3 shrink-0 self-start">
+              <TabButtonGroup
+                value={detailTab}
+                onValueChange={setDetailTab}
+                options={[
+                  { value: 'overview', label: t('aiArtifacts.detail.tabOverview') },
+                  { value: 'payload', label: t('aiArtifacts.detail.tabPayload') },
+                ]}
+              />
+            </div>
 
             {/* Overview tab：摘要全文 + 元数据 grid。
                 overflow-auto 让字段超长时整块滚动（少见，但元数据 7 字段 4 行可能撑爆小视口）。 */}

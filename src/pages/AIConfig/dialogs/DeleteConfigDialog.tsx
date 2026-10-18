@@ -30,14 +30,14 @@ export function DeleteConfigDialog({
 }: DeleteConfigDialogProps) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
+      <AlertDialogContent className="glass-card">
         <AlertDialogHeader>
           <AlertDialogTitle className="flex items-center gap-2">
             <AlertTriangle className="w-5 h-5 text-destructive" />
             {t('aiConfig.openaiConfig.deleteTitle')}
           </AlertDialogTitle>
           <AlertDialogDescription>
-            {t('aiConfig.openaiConfig.deleteMessage').replace('{name}', configName)}
+            {t('aiConfig.openaiConfig.deleteMessage', { name: configName })}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

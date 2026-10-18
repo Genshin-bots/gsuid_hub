@@ -265,6 +265,12 @@ export default function AIConfigPage() {
     if (Array.isArray(raw)) return raw.map(String);
     return [] as string[];
   }, [aiConfig?.config.websearch_fallback_order?.value]);
+  const hasRenderImageSources = Boolean(aiConfig?.config.render_image_sources);
+  const renderImageSources = useMemo(() => {
+    const raw = aiConfig?.config.render_image_sources?.value;
+    if (Array.isArray(raw)) return raw.map(String);
+    return [] as string[];
+  }, [aiConfig?.config.render_image_sources?.value]);
   const webfetchProvider = (aiConfig?.config.webfetch_provider?.value as string) ?? 'Jina';
   const webfetchLbStrategy =
     (aiConfig?.config.webfetch_lb_strategy?.value as string) ?? 'error_switch';
@@ -386,6 +392,12 @@ export default function AIConfigPage() {
   ]) as string[];
   const websearchFallbackOptions = (aiConfig?.config.websearch_fallback_order?.options ||
     websearchProviderOptions) as string[];
+  const renderImageSourceOptions = (aiConfig?.config.render_image_sources?.options || [
+    '插件图库',
+    'Firecrawl',
+    '360',
+    'Tavily',
+  ]) as string[];
   const webfetchProviderOptions = (aiConfig?.config.webfetch_provider?.options || [
     'Jina',
     'local',
@@ -838,6 +850,24 @@ export default function AIConfigPage() {
             onChangeFallbackOrder={(order) =>
               updateConfigValue(aiConfig.id, 'websearch_fallback_order', order)
             }
+            renderImageSources={hasRenderImageSources ? renderImageSources : undefined}
+            renderImageSourceOptions={hasRenderImageSources ? renderImageSourceOptions : undefined}
+            renderEmbedImages={
+              aiConfig?.config.render_embed_images
+                ? aiConfig.config.render_embed_images.value !== false &&
+                  aiConfig.config.render_embed_images.value !== 'false'
+                : undefined
+            }
+            onChangeRenderEmbedImages={
+              aiConfig?.config.render_embed_images
+                ? (enabled) => updateConfigValue(aiConfig.id, 'render_embed_images', enabled)
+                : undefined
+            }
+            onChangeRenderImageSources={
+              hasRenderImageSources
+                ? (order) => updateConfigValue(aiConfig.id, 'render_image_sources', order)
+                : undefined
+            }
             onUpdateConfig={updateConfigValue}
             onOpenMcpToolDialog={() => mcp.openMcpToolDialog('websearch')}
             onClearMcpTool={() => mcp.handleClearMcpTool('websearch')}
@@ -1126,7 +1156,7 @@ export default function AIConfigPage() {
                   </p>
                 </GlassAlert>
               )}
-              <div className="flex items-center gap-3 sm:gap-5 p-3 sm:p-5 rounded-2xl border border-border/30 bg-card/30">
+              <div className="flex items-center gap-3 sm:gap-5 p-3 sm:p-5 rounded-2xl glass-card transition-all">
                 <div
                   className={cn(
                     'flex items-center justify-center flex-shrink-0 transition-all duration-500',

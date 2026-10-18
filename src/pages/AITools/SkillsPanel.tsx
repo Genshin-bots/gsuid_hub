@@ -24,6 +24,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { GlassAlert } from '@/components/ui/glass-alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -254,12 +255,9 @@ export default function SkillsPanel({ addDialogOpen, onAddDialogOpenChange }: Sk
   return (
     <>
       {error && (
-        <Card className="border-destructive/50 glass-card">
-          <CardContent className="flex items-center gap-3 p-4 text-destructive">
-            <AlertCircle className="w-5 h-5 shrink-0" />
-            <span className="min-w-0 break-words">{error}</span>
-          </CardContent>
-        </Card>
+        <GlassAlert tone="danger" icon={AlertCircle}>
+          {error}
+        </GlassAlert>
       )}
 
       {isLoading ? (
@@ -341,114 +339,119 @@ export default function SkillsPanel({ addDialogOpen, onAddDialogOpenChange }: Sk
 
       {/* 技能详情弹窗 */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
+        <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col p-6">
+          <DialogHeader className="shrink-0 pb-1">
             <DialogTitle className="flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-primary" />
               {selectedSkill?.name || t('aiSkills.loading')}
             </DialogTitle>
             <DialogDescription className="text-base">{selectedSkill?.name}</DialogDescription>
           </DialogHeader>
-          {isLoadingDetail ? (
-            <div className="mt-4 space-y-3">
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-3/4" />
-              <Skeleton className="h-4 w-1/2" />
-            </div>
-          ) : selectedSkill ? (
-            <div className="mt-4 space-y-4">
-              {selectedSkill.description && (
-                <div>
-                  <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
-                    <ScrollText className="w-4 h-4" />
-                    {t('aiSkills.descriptionField')}
-                  </h3>
-                  <pre className="whitespace-pre-wrap text-sm font-mono bg-muted/50 p-4 rounded-md overflow-x-auto">
-                    {selectedSkill.description}
-                  </pre>
-                </div>
-              )}
-
-              {selectedSkill.content && (
-                <div>
-                  <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
-                    <FileText className="w-4 h-4" />
-                    {t('aiSkills.markdown')}
-                  </h3>
-                  <div className="bg-muted/50 p-4 rounded-md overflow-x-auto">
-                    <pre className="whitespace-pre-wrap text-sm">{selectedSkill.content}</pre>
+          <div className="flex-1 min-h-0 overflow-y-auto pr-1 mt-2">
+            {isLoadingDetail ? (
+              <div className="space-y-3 py-2">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-4 w-1/2" />
+              </div>
+            ) : selectedSkill ? (
+              <div className="space-y-4 py-1">
+                {selectedSkill.description && (
+                  <div>
+                    <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
+                      <ScrollText className="w-4 h-4" />
+                      {t('aiSkills.descriptionField')}
+                    </h3>
+                    <pre className="whitespace-pre-wrap text-sm font-mono bg-muted/50 p-4 rounded-md overflow-x-auto">
+                      {selectedSkill.description}
+                    </pre>
                   </div>
-                </div>
-              )}
+                )}
 
-              {selectedSkill.license && (
-                <div>
-                  <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
-                    <Link className="w-4 h-4" />
-                    {t('aiSkills.license')}
-                  </h3>
-                  <p className="text-sm text-muted-foreground">{selectedSkill.license}</p>
-                </div>
-              )}
+                {selectedSkill.content && (
+                  <div>
+                    <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
+                      <FileText className="w-4 h-4" />
+                      {t('aiSkills.markdown')}
+                    </h3>
+                    <div className="bg-muted/50 p-4 rounded-md overflow-x-auto">
+                      <pre className="whitespace-pre-wrap text-sm">{selectedSkill.content}</pre>
+                    </div>
+                  </div>
+                )}
 
-              {selectedSkill.compatibility && (
-                <div>
-                  <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
-                    <FileCode className="w-4 h-4" />
-                    {t('aiSkills.compatibility')}
-                  </h3>
-                  <p className="text-sm text-muted-foreground">{selectedSkill.compatibility}</p>
-                </div>
-              )}
+                {selectedSkill.license && (
+                  <div>
+                    <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
+                      <Link className="w-4 h-4" />
+                      {t('aiSkills.license')}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">{selectedSkill.license}</p>
+                  </div>
+                )}
 
-              {selectedSkill.resources && selectedSkill.resources.length > 0 && (
+                {selectedSkill.compatibility && (
+                  <div>
+                    <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
+                      <FileCode className="w-4 h-4" />
+                      {t('aiSkills.compatibility')}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">{selectedSkill.compatibility}</p>
+                  </div>
+                )}
+
+                {selectedSkill.resources && selectedSkill.resources.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
+                      <FolderOpen className="w-4 h-4" />
+                      {t('aiSkills.resources')}
+                    </h3>
+                    <ul className="space-y-1">
+                      {selectedSkill.resources.map((resource) => (
+                        <li
+                          key={resource.uri || resource.name}
+                          className="text-sm text-muted-foreground"
+                        >
+                          <span className="font-mono">{resource.name}</span>
+                          {resource.description && `: ${resource.description}`}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {selectedSkill.scripts && selectedSkill.scripts.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
+                      <FileCode className="w-4 h-4" />
+                      {t('aiSkills.scripts')}
+                    </h3>
+                    <ul className="space-y-1">
+                      {selectedSkill.scripts.map((script) => (
+                        <li
+                          key={script.uri || script.name}
+                          className="text-sm text-muted-foreground"
+                        >
+                          <span className="font-mono">{script.name}</span>
+                          {script.description && `: ${script.description}`}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
                 <div>
                   <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
                     <FolderOpen className="w-4 h-4" />
-                    {t('aiSkills.resources')}
+                    {t('aiSkills.uri')}
                   </h3>
-                  <ul className="space-y-1">
-                    {selectedSkill.resources.map((resource) => (
-                      <li
-                        key={resource.uri || resource.name}
-                        className="text-sm text-muted-foreground"
-                      >
-                        <span className="font-mono">{resource.name}</span>
-                        {resource.description && `: ${resource.description}`}
-                      </li>
-                    ))}
-                  </ul>
+                  <p className="text-xs text-muted-foreground font-mono break-all">
+                    {selectedSkill.uri}
+                  </p>
                 </div>
-              )}
-
-              {selectedSkill.scripts && selectedSkill.scripts.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
-                    <FileCode className="w-4 h-4" />
-                    {t('aiSkills.scripts')}
-                  </h3>
-                  <ul className="space-y-1">
-                    {selectedSkill.scripts.map((script) => (
-                      <li key={script.uri || script.name} className="text-sm text-muted-foreground">
-                        <span className="font-mono">{script.name}</span>
-                        {script.description && `: ${script.description}`}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              <div>
-                <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
-                  <FolderOpen className="w-4 h-4" />
-                  {t('aiSkills.uri')}
-                </h3>
-                <p className="text-xs text-muted-foreground font-mono break-all">
-                  {selectedSkill.uri}
-                </p>
               </div>
-            </div>
-          ) : null}
+            ) : null}
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -528,15 +531,15 @@ export default function SkillsPanel({ addDialogOpen, onAddDialogOpenChange }: Sk
 
       {/* 编辑技能弹窗 */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
+        <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col p-6">
+          <DialogHeader className="shrink-0 pb-1">
             <DialogTitle className="flex items-center gap-2">
               <Edit2 className="w-5 h-5 text-primary" />
               {t('aiSkills.editSkill')}: {skillToEdit?.name}
             </DialogTitle>
             <DialogDescription>{t('aiSkills.editSkillDescription')}</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 mt-4">
+          <div className="flex-1 min-h-0 overflow-y-auto pr-1 py-1 space-y-4 mt-2">
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 <FileText className="w-4 h-4" />
@@ -556,22 +559,22 @@ export default function SkillsPanel({ addDialogOpen, onAddDialogOpenChange }: Sk
                 />
               )}
             </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
-                {t('aiSkills.cancel')}
-              </Button>
-              <Button onClick={() => void confirmEdit()} disabled={isSaving || isLoadingMarkdown}>
-                {isSaving ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    {t('aiSkills.saving')}
-                  </>
-                ) : (
-                  t('aiSkills.save')
-                )}
-              </Button>
-            </div>
           </div>
+          <DialogFooter className="shrink-0 pt-3 border-t border-border/40 flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+              {t('aiSkills.cancel')}
+            </Button>
+            <Button onClick={() => void confirmEdit()} disabled={isSaving || isLoadingMarkdown}>
+              {isSaving ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  {t('aiSkills.saving')}
+                </>
+              ) : (
+                t('aiSkills.save')
+              )}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>

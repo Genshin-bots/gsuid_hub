@@ -6,6 +6,7 @@
     "config": "Global Config",
     "rules": "Rules",
     "whitelist": "Whitelist",
+    "manage": "Config & whitelist",
     "diagnostic": "Diagnostics"
   },
   "overview": {
@@ -25,7 +26,19 @@
     "refresh": "Refresh Dashboard",
     "statusOn": "Budget limits are enabled",
     "statusOff": "Budget limits are disabled (usage is still being recorded)",
-    "tipOff": "Usage is still recorded when disabled, observe first then enable"
+    "statusOnDesc": "Budget rules are active and will block calls when limits are exceeded",
+    "tipOff": "Usage is still recorded when disabled, observe first then enable",
+    "healthyDesc": "All session quotas are within limits; no blocked calls detected",
+    "healthyBadge": "Healthy",
+    "quickRulesTitle": "Rule Management",
+    "quickRulesDesc": "Configure Token limits and reset periods for sessions, groups, members, and users",
+    "quickManageTitle": "Config & Whitelist",
+    "quickManageDesc": "Manage master switch, counting modes, notifications, and whitelisted users",
+    "quickDiagTitle": "Diagnostics",
+    "quickDiagDesc": "Simulate quota checks or manually reset quota counters",
+    "manageAction": "Manage",
+    "configAction": "Configure",
+    "diagAction": "Diagnose"
   },
   "config": {
     "title": "Global Budget Configuration",

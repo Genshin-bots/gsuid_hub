@@ -52,7 +52,7 @@ export function MemorySettingsSection({
       </div>
 
       {!isMemoryEnabled ? (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground p-4 rounded-lg border border-border/30 bg-muted/20">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground p-4 rounded-lg glass-card transition-all">
           <ChevronRight className="w-4 h-4" />
           <span>{t('aiConfig.memorySettings.disabledDesc')}</span>
         </div>

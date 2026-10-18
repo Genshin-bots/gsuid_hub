@@ -28,7 +28,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { TabButtonGroup, tabToolbarControlClass } from '@/components/ui/TabButtonGroup';
 import { useLanguage } from '@/contexts/LanguageContext';
 import {
   getApiErrorMessage,
@@ -215,143 +215,141 @@ export default function ErrorReportsPanel() {
   };
 
   return (
-    <div className="space-y-4">
-      <Card className="glass-card shrink-0">
-        <CardContent className="p-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-            <Tabs
-              value={dateMode}
-              onValueChange={(v) => {
-                const mode = v as DateMode;
-                setDateMode(mode);
-                applyDateQuery(mode, selectedDate, startDate, endDate);
-              }}
-            >
-              <TabsList>
-                <TabsTrigger value="all">{t('logs.allDates')}</TabsTrigger>
-                <TabsTrigger value="single">{t('logs.singleDate')}</TabsTrigger>
-                <TabsTrigger value="range">{t('logs.dateRange')}</TabsTrigger>
-              </TabsList>
-            </Tabs>
+    <div className="space-y-3">
+      <div className="glass-card flex shrink-0 flex-col gap-2 px-3 py-2 sm:flex-row sm:flex-wrap sm:items-center">
+        <TabButtonGroup
+          value={dateMode}
+          onValueChange={(v) => {
+            const mode = v as DateMode;
+            setDateMode(mode);
+            applyDateQuery(mode, selectedDate, startDate, endDate);
+          }}
+          options={[
+            { value: 'all', label: t('logs.allDates') },
+            { value: 'single', label: t('logs.singleDate') },
+            { value: 'range', label: t('logs.dateRange') },
+          ]}
+        />
 
-            {dateMode === 'single' ? (
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      'h-9 w-[180px] justify-start text-left font-normal',
-                      !selectedDate && 'text-muted-foreground',
-                    )}
-                  >
-                    <Calendar className="mr-2 h-4 w-4" />
-                    {selectedDate ? toIsoDay(selectedDate) : t('logs.selectDate')}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start" side="bottom" sideOffset={8}>
-                  <CalendarComponent
-                    mode="single"
-                    selected={selectedDate}
-                    onSelect={(date) => {
-                      if (!date) return;
-                      setSelectedDate(date);
-                      applyDateQuery('single', date, startDate, endDate);
-                    }}
-                    defaultMonth={selectedDate}
-                    initialFocus
-                    className="pointer-events-auto"
-                    disabled={disableDay}
-                  />
-                </PopoverContent>
-              </Popover>
-            ) : null}
-
-            {dateMode === 'range' ? (
-              <div className="flex items-center gap-2">
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        'h-9 w-[150px] justify-start text-left font-normal',
-                        !startDate && 'text-muted-foreground',
-                      )}
-                    >
-                      <Calendar className="mr-2 h-4 w-4" />
-                      {startDate ? toIsoDay(startDate) : t('logs.startDate')}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start" side="bottom" sideOffset={8}>
-                    <CalendarComponent
-                      mode="single"
-                      selected={startDate}
-                      onSelect={(date) => {
-                        if (!date) return;
-                        setStartDate(date);
-                        applyDateQuery('range', selectedDate, date, endDate);
-                      }}
-                      defaultMonth={startDate}
-                      initialFocus
-                      className="pointer-events-auto"
-                      disabled={disableDay}
-                    />
-                  </PopoverContent>
-                </Popover>
-                <span className="text-muted-foreground">~</span>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        'h-9 w-[150px] justify-start text-left font-normal',
-                        !endDate && 'text-muted-foreground',
-                      )}
-                    >
-                      <Calendar className="mr-2 h-4 w-4" />
-                      {endDate ? toIsoDay(endDate) : t('logs.endDate')}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start" side="bottom" sideOffset={8}>
-                    <CalendarComponent
-                      mode="single"
-                      selected={endDate}
-                      onSelect={(date) => {
-                        if (!date) return;
-                        setEndDate(date);
-                        applyDateQuery('range', selectedDate, startDate, date);
-                      }}
-                      defaultMonth={endDate || startDate}
-                      initialFocus
-                      className="pointer-events-auto"
-                      disabled={disableDay}
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-            ) : null}
-
-            <div className="relative min-w-0 flex-1">
-              <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                className="h-9 pl-10"
-                placeholder={t('logs.searchErrorReports')}
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
+        {dateMode === 'single' ? (
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  tabToolbarControlClass,
+                  'w-[180px] justify-start text-left font-normal',
+                  !selectedDate && 'text-muted-foreground',
+                )}
+              >
+                <Calendar className="mr-2 h-4 w-4" />
+                {selectedDate ? toIsoDay(selectedDate) : t('logs.selectDate')}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start" side="bottom" sideOffset={8}>
+              <CalendarComponent
+                mode="single"
+                selected={selectedDate}
+                onSelect={(date) => {
+                  if (!date) return;
+                  setSelectedDate(date);
+                  applyDateQuery('single', date, startDate, endDate);
+                }}
+                defaultMonth={selectedDate}
+                initialFocus
+                className="pointer-events-auto"
+                disabled={disableDay}
               />
-            </div>
+            </PopoverContent>
+          </Popover>
+        ) : null}
 
-            <Button
-              variant="outline"
-              className="h-9 shrink-0"
-              onClick={() => void fetchList()}
-              disabled={loading}
-            >
-              <RefreshCw className={cn('mr-2 h-4 w-4', loading && 'animate-spin')} />
-              {t('logs.refresh')}
-            </Button>
+        {dateMode === 'range' ? (
+          <div className="flex items-center gap-2">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    tabToolbarControlClass,
+                    'w-[150px] justify-start text-left font-normal',
+                    !startDate && 'text-muted-foreground',
+                  )}
+                >
+                  <Calendar className="mr-2 h-4 w-4" />
+                  {startDate ? toIsoDay(startDate) : t('logs.startDate')}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start" side="bottom" sideOffset={8}>
+                <CalendarComponent
+                  mode="single"
+                  selected={startDate}
+                  onSelect={(date) => {
+                    if (!date) return;
+                    setStartDate(date);
+                    applyDateQuery('range', selectedDate, date, endDate);
+                  }}
+                  defaultMonth={startDate}
+                  initialFocus
+                  className="pointer-events-auto"
+                  disabled={disableDay}
+                />
+              </PopoverContent>
+            </Popover>
+            <span className="text-muted-foreground">~</span>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    tabToolbarControlClass,
+                    'w-[150px] justify-start text-left font-normal',
+                    !endDate && 'text-muted-foreground',
+                  )}
+                >
+                  <Calendar className="mr-2 h-4 w-4" />
+                  {endDate ? toIsoDay(endDate) : t('logs.endDate')}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start" side="bottom" sideOffset={8}>
+                <CalendarComponent
+                  mode="single"
+                  selected={endDate}
+                  onSelect={(date) => {
+                    if (!date) return;
+                    setEndDate(date);
+                    applyDateQuery('range', selectedDate, startDate, date);
+                  }}
+                  defaultMonth={endDate || startDate}
+                  initialFocus
+                  className="pointer-events-auto"
+                  disabled={disableDay}
+                />
+              </PopoverContent>
+            </Popover>
           </div>
-        </CardContent>
-      </Card>
+        ) : null}
+
+        <div className="relative min-w-0 flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            className={cn(tabToolbarControlClass, 'pl-10')}
+            placeholder={t('logs.searchErrorReports')}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+          />
+        </div>
+
+        <Button
+          variant="outline"
+          className={cn(tabToolbarControlClass, 'shrink-0')}
+          onClick={() => void fetchList()}
+          disabled={loading}
+        >
+          <RefreshCw className={cn('mr-2 h-4 w-4', loading && 'animate-spin')} />
+          {t('logs.refresh')}
+        </Button>
+      </div>
 
       <Card className="glass-card">
         <CardHeader className="py-3">

@@ -59,24 +59,24 @@ const STRATEGY_ICONS: Record<string, ReactNode> = {
 };
 
 function ConfigBlock({
-  role,
+  blockRole,
   title,
   icon,
   roleLabel,
   children,
 }: {
-  role: 'primary' | 'fallback';
+  blockRole: 'primary' | 'fallback';
   title: string;
   icon?: ReactNode;
   roleLabel: string;
   children: ReactNode;
 }) {
-  const isPrimary = role === 'primary';
+  const isPrimary = blockRole === 'primary';
   return (
     <div
       className={cn(
-        'rounded-lg border p-4 space-y-3',
-        isPrimary ? 'border-primary/30 bg-primary/5' : 'border-dashed border-border/60 bg-muted/20',
+        'rounded-lg border p-4 space-y-3 glass-card transition-all',
+        isPrimary ? 'border-primary/40' : 'border-dashed border-border/60',
       )}
     >
       <div className="flex items-center gap-2 min-w-0">
@@ -276,7 +276,7 @@ export function WebFetchSection({
           className="text-xs font-medium text-muted-foreground"
         />
         <ConfigBlock
-          role="primary"
+          blockRole="primary"
           title={providerLabel(primary)}
           icon={getFetchProviderIcon(primary)}
           roleLabel={t('aiConfig.serviceProvider.rolePrimary')}
@@ -297,7 +297,7 @@ export function WebFetchSection({
           {effectiveFallbacks.map((p) => (
             <ConfigBlock
               key={p}
-              role="fallback"
+              blockRole="fallback"
               title={providerLabel(p)}
               icon={getFetchProviderIcon(p)}
               roleLabel={t('aiConfig.serviceProvider.roleFallback')}

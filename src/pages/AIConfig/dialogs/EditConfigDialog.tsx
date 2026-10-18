@@ -141,10 +141,10 @@ export function EditConfigDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[600px] max-h-[85vh] flex flex-col p-6 glass-card">
+        <DialogHeader className="shrink-0 pb-1">
           <DialogTitle className="flex items-center gap-2">
-            <Settings className="w-5 h-5" />
+            <Settings className="w-5 h-5 text-primary" />
             {t('aiConfig.openaiConfig.editConfigTitle')}
           </DialogTitle>
           <DialogDescription>{configName}</DialogDescription>
@@ -154,7 +154,7 @@ export function EditConfigDialog({
             <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
           </div>
         ) : data ? (
-          <div className="space-y-4 py-4">
+          <div className="flex-1 min-h-0 overflow-y-auto pr-1 py-2 space-y-4">
             <div className="space-y-2">
               <Label className="text-sm font-semibold flex items-center gap-2">
                 <Globe className="w-4 h-4" />
@@ -416,7 +416,7 @@ export function EditConfigDialog({
             {t('aiConfig.openaiConfig.noConfig')}
           </div>
         )}
-        <DialogFooter>
+        <DialogFooter className="shrink-0 pt-3 border-t border-border/40">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             {t('common.cancel')}
           </Button>

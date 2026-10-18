@@ -46,8 +46,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { tabToolbarControlClass } from '@/components/ui/TabButtonGroup';
+import { Tabs, TabsContent } from '@/components/ui/tabs';
+import { TabButtonGroup, tabToolbarControlClass } from '@/components/ui/TabButtonGroup';
 import {
   aiToolOutputsApi,
   getApiErrorMessage,
@@ -140,6 +140,7 @@ export function ToolOutputsPanel(props: ToolOutputsPanelProps) {
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [openId, setOpenId] = useState<string | null>(null);
+  const [detailTab, setDetailTab] = useState('payload');
   const [detail, setDetail] = useState<AIToolOutputDetail | null>(null);
   const [payloadCopied, setPayloadCopied] = useState(false);
   const payloadCopyTimerRef = useRef<number | null>(null);
@@ -174,6 +175,7 @@ export function ToolOutputsPanel(props: ToolOutputsPanelProps) {
   }, [keyword, toolName, includeExpired, offset, refreshKey]);
 
   useEffect(() => {
+    setDetailTab('payload');
     if (!openId && payloadCopyTimerRef.current) {
       window.clearTimeout(payloadCopyTimerRef.current);
       payloadCopyTimerRef.current = null;
@@ -510,11 +512,17 @@ export function ToolOutputsPanel(props: ToolOutputsPanelProps) {
             )}
           </DialogHeader>
 
-          <Tabs defaultValue="payload" className="flex-1 min-h-0 flex flex-col">
-            <TabsList className="self-start mx-6 mt-3 shrink-0">
-              <TabsTrigger value="overview">{t('aiToolOutputs.detail.tabOverview')}</TabsTrigger>
-              <TabsTrigger value="payload">{t('aiToolOutputs.detail.tabPayload')}</TabsTrigger>
-            </TabsList>
+          <Tabs value={detailTab} onValueChange={setDetailTab} className="flex-1 min-h-0 flex flex-col">
+            <div className="mx-6 mt-3 shrink-0 self-start">
+              <TabButtonGroup
+                value={detailTab}
+                onValueChange={setDetailTab}
+                options={[
+                  { value: 'overview', label: t('aiToolOutputs.detail.tabOverview') },
+                  { value: 'payload', label: t('aiToolOutputs.detail.tabPayload') },
+                ]}
+              />
+            </div>
 
             <TabsContent
               value="overview"

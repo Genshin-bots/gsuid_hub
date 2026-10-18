@@ -231,6 +231,24 @@ All colors MUST be HSL.
   overflow: visible;
 }
 
+/* 显式溢出控制：当卡片显式声明了 overflow 工具类时，尊重声明，避免 overflow: visible 导致内容溢出无法滚动 */
+.glass-card.overflow-y-auto,
+.glass-card[class*="overflow-y-auto"] {
+  overflow-y: auto !important;
+}
+.glass-card.overflow-x-auto,
+.glass-card[class*="overflow-x-auto"] {
+  overflow-x: auto !important;
+}
+.glass-card.overflow-auto,
+.glass-card[class*="overflow-auto"] {
+  overflow: auto !important;
+}
+.glass-card.overflow-hidden,
+.glass-card[class*="overflow-hidden"] {
+  overflow: hidden !important;
+}
+
 .glass-card::before {
   content: "";
   position: absolute;
@@ -313,10 +331,7 @@ All colors MUST be HSL.
   opacity: 1;
 }
 
-[data-style="luminous"] .glass-card[role="dialog"]::after,
-[data-style="luminous"] .glass-card[role="alertdialog"]::after {
-  display: none !important;
-}
+/* [data-style="luminous"] dialog retains ::after for light surface sheen */
 
 .dark[data-style="luminous"] .glass-card,
 .dark [data-style="luminous"] .glass-card,
@@ -565,10 +580,7 @@ All colors MUST be HSL.
   opacity: 1;
 }
 
-[data-style="liquid"] .glass-card[role="dialog"]::after,
-[data-style="liquid"] .glass-card[role="alertdialog"]::after {
-  display: none !important;
-}
+/* [data-style="liquid"] dialog retains ::after for liquid water surface sheen */
 
 .dark[data-style="liquid"] .glass-card,
 .dark [data-style="liquid"] .glass-card,
@@ -655,13 +667,8 @@ All colors MUST be HSL.
 }
 
 /*
- * 弹层（Dialog/Sheet/AlertDialog，Radix 都带 role）上的 glass-card 不要描边：
- * 半透明 1px 边框叠在深色遮罩上会混成一圈黑色描边线，靠阴影分层即可。
+ * 弹层（Dialog/Sheet/AlertDialog）保留各主题对应的精细边框与折射高光，由下方弹层规则专项管理。
  */
-.glass-card[role="dialog"],
-.glass-card[role="alertdialog"] {
-  border: none !important;
-}
 
 .dark .glass-card {
   border-color: hsl(var(--border) / 0.3);
@@ -1367,7 +1374,7 @@ All colors MUST be HSL.
  * 只匹配独立类名 bg-primary。不要用 [class*="bg-primary"]：
  * hover:bg-primary/10 也会命中，品牌区和语言切换会被涂成实心卡片。
  * ============================================================================ */
-[data-style="liquid"] button.bg-primary:not(.button-solid):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) {
+[data-style="liquid"] button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) {
   background: linear-gradient(
     135deg,
     hsl(var(--primary) / 0.88) 0%,
@@ -1381,11 +1388,11 @@ All colors MUST be HSL.
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
-[data-style="liquid"] button.bg-primary:not(.button-solid):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) * {
+[data-style="liquid"] button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) * {
   color: hsl(var(--primary-foreground)) !important;
 }
 
-[data-style="liquid"] button.bg-primary:not(.button-solid):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):hover {
+[data-style="liquid"] button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):hover {
   background: linear-gradient(
     135deg,
     hsl(var(--primary) / 0.95) 0%,
@@ -1398,7 +1405,7 @@ All colors MUST be HSL.
   transform: translateY(-1px);
 }
 
-[data-style="liquid"]:not(.dark) button.bg-primary:not(.button-solid):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) {
+[data-style="liquid"]:not(.dark) button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) {
   background: hsl(var(--card) / var(--card-opacity, 0.35)) !important;
   border: 1px solid rgba(255, 255, 255, 0.62) !important;
   box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.85) !important;
@@ -1407,11 +1414,11 @@ All colors MUST be HSL.
   color: hsl(var(--foreground)) !important;
 }
 
-[data-style="liquid"]:not(.dark) button.bg-primary:not(.button-solid):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) * {
+[data-style="liquid"]:not(.dark) button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) * {
   color: hsl(var(--foreground)) !important;
 }
 
-[data-style="liquid"]:not(.dark) button.bg-primary:not(.button-solid):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):hover {
+[data-style="liquid"]:not(.dark) button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):hover {
   background: hsl(var(--card) / calc(var(--card-opacity, 0.35) + 0.12)) !important;
   border-color: rgba(255, 255, 255, 0.85) !important;
   box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 1) !important;
@@ -1784,54 +1791,54 @@ All colors MUST be HSL.
 }
 
 /* 页头主按钮跟卡片同一层磨砂，壁纸要透出来，不能是实心主色。 */
-[data-style="glassmorphism"] button.bg-primary:not(.button-solid):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile),
-[data-style="luminous"] button.bg-primary:not(.button-solid):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) {
+[data-style="glassmorphism"] button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile),
+[data-style="luminous"] button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) {
   background: hsl(var(--card) / var(--card-opacity, 0.25)) !important;
   border: 1px solid rgba(255, 255, 255, 0.62) !important;
   box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.8) !important;
   color: hsl(var(--foreground)) !important;
 }
 
-[data-style="glassmorphism"] button.bg-primary:not(.button-solid):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) {
+[data-style="glassmorphism"] button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) {
   backdrop-filter: blur(var(--blur-intensity, 12px));
   -webkit-backdrop-filter: blur(var(--blur-intensity, 12px));
 }
 
-[data-style="luminous"] button.bg-primary:not(.button-solid):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) {
+[data-style="luminous"] button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) {
   backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.2)) saturate(190%) contrast(106%) brightness(105%);
   -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.2)) saturate(190%) contrast(106%) brightness(105%);
 }
 
-[data-style="glassmorphism"] button.bg-primary:not(.button-solid):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) *,
-[data-style="luminous"] button.bg-primary:not(.button-solid):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) * {
+[data-style="glassmorphism"] button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) *,
+[data-style="luminous"] button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) * {
   color: hsl(var(--foreground)) !important;
 }
 
-[data-style="glassmorphism"] button.bg-primary:not(.button-solid):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):hover,
-[data-style="luminous"] button.bg-primary:not(.button-solid):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):hover {
+[data-style="glassmorphism"] button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):hover,
+[data-style="luminous"] button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):hover {
   background: hsl(var(--card) / calc(var(--card-opacity, 0.25) + 0.12)) !important;
   border-color: rgba(255, 255, 255, 0.85) !important;
 }
 
-.dark[data-style="glassmorphism"] button.bg-primary:not(.button-solid):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile),
-.dark [data-style="glassmorphism"] button.bg-primary:not(.button-solid):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile),
-.dark[data-style="luminous"] button.bg-primary:not(.button-solid):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile),
-.dark [data-style="luminous"] button.bg-primary:not(.button-solid):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) {
+.dark[data-style="glassmorphism"] button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile),
+.dark [data-style="glassmorphism"] button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile),
+.dark[data-style="luminous"] button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile),
+.dark [data-style="luminous"] button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) {
   background: hsl(var(--card) / var(--card-opacity, 0.28)) !important;
   border-color: rgba(255, 255, 255, 0.22) !important;
   box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.28) !important;
   color: hsl(var(--foreground)) !important;
 }
 
-.dark[data-style="glassmorphism"] button.bg-primary:not(.button-solid):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) *,
-.dark [data-style="glassmorphism"] button.bg-primary:not(.button-solid):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) *,
-.dark[data-style="luminous"] button.bg-primary:not(.button-solid):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) *,
-.dark [data-style="luminous"] button.bg-primary:not(.button-solid):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) * {
+.dark[data-style="glassmorphism"] button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) *,
+.dark [data-style="glassmorphism"] button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) *,
+.dark[data-style="luminous"] button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) *,
+.dark [data-style="luminous"] button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) * {
   color: hsl(var(--foreground)) !important;
 }
 
 /* 对话框、抽屉、确认框里的主按钮是这一步的最终动作，用实心主色。页头新建仍走上面的磨砂。 */
-html[data-style] :is([role="dialog"], [role="alertdialog"]) button.bg-primary:not(.button-solid):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) {
+html[data-style] :is([role="dialog"], [role="alertdialog"]) button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) {
   background: hsl(var(--primary)) !important;
   border: 1px solid transparent !important;
   box-shadow: none !important;
@@ -1841,7 +1848,7 @@ html[data-style] :is([role="dialog"], [role="alertdialog"]) button.bg-primary:no
   transform: none !important;
 }
 
-html[data-style] :is([role="dialog"], [role="alertdialog"]) button.bg-primary:not(.button-solid):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):hover {
+html[data-style] :is([role="dialog"], [role="alertdialog"]) button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):hover {
   background: hsl(var(--primary) / 0.9) !important;
   border-color: transparent !important;
   box-shadow: none !important;
@@ -1849,7 +1856,21 @@ html[data-style] :is([role="dialog"], [role="alertdialog"]) button.bg-primary:no
   transform: none !important;
 }
 
-html[data-style] :is([role="dialog"], [role="alertdialog"]) button.bg-primary:not(.button-solid):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) * {
+html[data-style] :is([role="dialog"], [role="alertdialog"]) button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) * {
+  color: hsl(var(--primary-foreground)) !important;
+}
+
+/* 页签选中态在毛玻璃 / 光感 / 液态下也是实心主色，不要白底描边。 */
+html[data-style] [role="tab"][data-state="active"] {
+  background: hsl(var(--primary)) !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  color: hsl(var(--primary-foreground)) !important;
+}
+
+html[data-style] [role="tab"][data-state="active"] * {
   color: hsl(var(--primary-foreground)) !important;
 }
 
@@ -2107,6 +2128,17 @@ main:has(.page-fill) .layout-page-inner {
   }
 }
 
+/* 弹窗通用溢出与滚动保障（覆盖桌面与移动端） */
+.dialog-content:is(.overflow-y-auto, [class*="overflow-y-auto"]),
+:is([role="dialog"], [role="alertdialog"]):is(.overflow-y-auto, [class*="overflow-y-auto"]) {
+  overflow-y: auto !important;
+}
+
+.dialog-content:is(.overflow-hidden, [class*="overflow-hidden"]),
+:is([role="dialog"], [role="alertdialog"]):is(.overflow-hidden, [class*="overflow-hidden"]) {
+  overflow: hidden !important;
+}
+
 /* Solid mode - remove glass effect from dropdown/popover elements */
 [data-style="solid"] .bg-popover,
 [data-style="solid"] [data-state="open"].bg-popover,
@@ -2130,6 +2162,7 @@ main:has(.page-fill) .layout-page-inner {
 
 /* Solid mode - dialog/popover content */
 [data-style="solid"] [role="dialog"]:not(.glass-float),
+[data-style="solid"] [role="alertdialog"]:not(.glass-float),
 [data-style="solid"] [class*="DialogContent"],
 [data-style="solid"] [class*="popover"]:not(.glass-float) {
   background: hsl(var(--popover)) !important;
@@ -2140,6 +2173,7 @@ main:has(.page-fill) .layout-page-inner {
 
 /* Apply backdrop-filter only in glassmorphism mode */
 [data-style="glassmorphism"] [role="dialog"]:not(.glass-float),
+[data-style="glassmorphism"] [role="alertdialog"]:not(.glass-float),
 [data-style="glassmorphism"] [class*="DialogContent"],
 [data-style="glassmorphism"] [class*="popover"]:not(.glass-float) {
   backdrop-filter: blur(var(--blur-intensity, 12px)) !important;
@@ -2161,6 +2195,7 @@ main:has(.page-fill) .layout-page-inner {
 
 /* Dark mode glass dialog/popover */
 .dark [data-style="glassmorphism"] [role="dialog"]:not(.glass-float),
+.dark [data-style="glassmorphism"] [role="alertdialog"]:not(.glass-float),
 .dark [data-style="glassmorphism"] [class*="DialogContent"],
 .dark [data-style="glassmorphism"] [class*="popover"]:not(.glass-float) {
   background: hsl(var(--popover) / 0.6) !important;
@@ -2182,6 +2217,7 @@ main:has(.page-fill) .layout-page-inner {
 
 /* Apply backdrop-filter in luminous mode */
 [data-style="luminous"] [role="dialog"]:not(.glass-float),
+[data-style="luminous"] [role="alertdialog"]:not(.glass-float),
 [data-style="luminous"] [class*="DialogContent"],
 [data-style="luminous"] [class*="popover"]:not(.glass-float) {
   backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.25)) saturate(190%) contrast(106%) !important;
@@ -2201,12 +2237,15 @@ main:has(.page-fill) .layout-page-inner {
 }
 
 .dark[data-style="luminous"] [role="dialog"]:not(.glass-float),
+.dark[data-style="luminous"] [role="alertdialog"]:not(.glass-float),
 .dark[data-style="luminous"] [class*="DialogContent"],
 .dark[data-style="luminous"] [class*="popover"]:not(.glass-float),
 .dark [data-style="luminous"] [role="dialog"]:not(.glass-float),
+.dark [data-style="luminous"] [role="alertdialog"]:not(.glass-float),
 .dark [data-style="luminous"] [class*="DialogContent"],
 .dark [data-style="luminous"] [class*="popover"]:not(.glass-float),
 [data-style="luminous"] .dark [role="dialog"],
+[data-style="luminous"] .dark [role="alertdialog"],
 [data-style="luminous"] .dark [class*="DialogContent"],
 [data-style="luminous"] .dark [class*="popover"]:not(.glass-float) {
   background: hsl(var(--popover) / 0.62) !important;
@@ -2225,6 +2264,7 @@ main:has(.page-fill) .layout-page-inner {
 
 /* Apply backdrop-filter in liquid mode */
 [data-style="liquid"] [role="dialog"]:not(.glass-float),
+[data-style="liquid"] [role="alertdialog"]:not(.glass-float),
 [data-style="liquid"] [class*="DialogContent"],
 [data-style="liquid"] [class*="popover"]:not(.glass-float) {
   backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.4)) saturate(190%) contrast(106%) !important;
@@ -2245,12 +2285,15 @@ main:has(.page-fill) .layout-page-inner {
 }
 
 .dark[data-style="liquid"] [role="dialog"]:not(.glass-float),
+.dark[data-style="liquid"] [role="alertdialog"]:not(.glass-float),
 .dark[data-style="liquid"] [class*="DialogContent"],
 .dark[data-style="liquid"] [class*="popover"]:not(.glass-float),
 .dark [data-style="liquid"] [role="dialog"]:not(.glass-float),
+.dark [data-style="liquid"] [role="alertdialog"]:not(.glass-float),
 .dark [data-style="liquid"] [class*="DialogContent"],
 .dark [data-style="liquid"] [class*="popover"]:not(.glass-float),
 [data-style="liquid"] .dark [role="dialog"],
+[data-style="liquid"] .dark [role="alertdialog"],
 [data-style="liquid"] .dark [class*="DialogContent"],
 [data-style="liquid"] .dark [class*="popover"]:not(.glass-float) {
   background: hsl(var(--popover) / 0.60) !important;
@@ -2263,10 +2306,66 @@ main:has(.page-fill) .layout-page-inner {
 }
 
 /*
- * 带 glass-card 的弹层：磨砂画在 ::before。
- * [role=dialog] 写在宿主上的半透明底会把 ::before 盖住，弹层就变成一块实心卡片。
- * 遮罩：亮色用白，暗色用黑。亮色下若压一层深色，半透明弹层会把暗色吃进去，正文发灰。
+ * 弹层在各主题模式下的外框与倒角物理质感
  */
+[data-style="solid"] :is([role="dialog"], [role="alertdialog"]) {
+  border: 1px solid hsl(var(--border)) !important;
+  box-shadow: 0 16px 40px -8px hsl(0 0% 0% / 0.18) !important;
+}
+
+[data-style="glassmorphism"] :is([role="dialog"], [role="alertdialog"]) {
+  border: 1px solid hsl(var(--border) / 0.5) !important;
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.65),
+    0 24px 54px -6px hsl(0 0% 0% / 0.16),
+    0 8px 20px -2px hsl(0 0% 0% / 0.08) !important;
+}
+
+.dark[data-style="glassmorphism"] :is([role="dialog"], [role="alertdialog"]),
+.dark [data-style="glassmorphism"] :is([role="dialog"], [role="alertdialog"]) {
+  border-color: hsl(var(--border) / 0.35) !important;
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.15),
+    0 26px 58px -6px hsl(0 0% 0% / 0.45) !important;
+}
+
+[data-style="luminous"] :is([role="dialog"], [role="alertdialog"]) {
+  border: 1px solid hsl(var(--border) / 0.55) !important;
+  box-shadow:
+    inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.95),
+    inset 0 -1px 1px 0 rgba(255, 255, 255, 0.25),
+    0 24px 56px -4px hsl(0 0% 0% / calc(0.18 * var(--shadow-strength, 1))),
+    0 8px 24px -2px hsl(0 0% 0% / calc(0.08 * var(--shadow-strength, 1))) !important;
+}
+
+.dark[data-style="luminous"] :is([role="dialog"], [role="alertdialog"]),
+.dark [data-style="luminous"] :is([role="dialog"], [role="alertdialog"]) {
+  border-color: rgba(255, 255, 255, 0.22) !important;
+  box-shadow:
+    inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.35),
+    inset 0 -1px 1px 0 rgba(255, 255, 255, 0.10),
+    0 26px 60px -4px hsl(0 0% 0% / calc(0.45 * var(--shadow-strength, 1))) !important;
+}
+
+[data-style="liquid"] :is([role="dialog"], [role="alertdialog"]) {
+  border: 1px solid hsl(var(--border) / 0.6) !important;
+  box-shadow:
+    inset 0 1.5px 0 0 rgba(255, 255, 255, 1),
+    inset 0 0 18px 0 rgba(255, 255, 255, 0.35),
+    0 26px 60px -4px hsl(0 0% 0% / calc(0.20 * var(--shadow-strength, 1))),
+    0 10px 28px -2px hsl(0 0% 0% / calc(0.10 * var(--shadow-strength, 1))) !important;
+}
+
+.dark[data-style="liquid"] :is([role="dialog"], [role="alertdialog"]),
+.dark [data-style="liquid"] :is([role="dialog"], [role="alertdialog"]) {
+  border-color: rgba(255, 255, 255, 0.25) !important;
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.45),
+    inset 0 0 14px 0 rgba(255, 255, 255, 0.06),
+    0 28px 64px -4px hsl(0 0% 0% / calc(0.48 * var(--shadow-strength, 1))),
+    0 12px 30px -2px hsl(0 0% 0% / calc(0.22 * var(--shadow-strength, 1))) !important;
+}
+
 [data-style="glassmorphism"] .glass-card[role="dialog"],
 [data-style="glassmorphism"] .glass-card[role="alertdialog"],
 [data-style="luminous"] .glass-card[role="dialog"],
@@ -2280,21 +2379,21 @@ main:has(.page-fill) .layout-page-inner {
 
 [data-style="glassmorphism"] .glass-card[role="dialog"]::before,
 [data-style="glassmorphism"] .glass-card[role="alertdialog"]::before {
-  background: hsl(var(--popover) / 0.62) !important;
-  backdrop-filter: blur(var(--blur-intensity, 12px)) !important;
-  -webkit-backdrop-filter: blur(var(--blur-intensity, 12px)) !important;
+  background: hsl(var(--popover) / 0.65) !important;
+  backdrop-filter: blur(var(--blur-intensity, 14px)) !important;
+  -webkit-backdrop-filter: blur(var(--blur-intensity, 14px)) !important;
 }
 
 [data-style="luminous"] .glass-card[role="dialog"]::before,
 [data-style="luminous"] .glass-card[role="alertdialog"]::before {
-  background: hsl(var(--card) / 0.58) !important;
+  background: hsl(var(--card) / 0.50) !important;
   backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.25)) saturate(190%) contrast(106%) brightness(105%) !important;
   -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.25)) saturate(190%) contrast(106%) brightness(105%) !important;
 }
 
 [data-style="liquid"] .glass-card[role="dialog"]::before,
 [data-style="liquid"] .glass-card[role="alertdialog"]::before {
-  background: hsl(var(--popover) / 0.42) !important;
+  background: hsl(var(--card) / 0.38) !important;
   backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.4)) saturate(190%) contrast(106%) !important;
   -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.4)) saturate(190%) contrast(106%) !important;
 }
@@ -2320,10 +2419,27 @@ main:has(.page-fill) .layout-page-inner {
   background: hsl(var(--popover) / 0.4) !important;
 }
 
+/*
+ * 遮罩层铁律（严格遵守 AGENTS.md 1.14）：
+ * 亮色主题遮罩必须是白色（hsl(0 0% 100% / 0.38)），暗色主题遮罩必须是黑色（hsl(0 0% 0% / 0.48)）。
+ * 遮罩透明度适中，确保背景内容清晰可见。
+ */
+[data-dialog-overlay] {
+  background: hsl(0 0% 100% / 0.38) !important;
+}
+
 [data-style="glassmorphism"] [data-dialog-overlay],
 [data-style="luminous"] [data-dialog-overlay],
 [data-style="liquid"] [data-dialog-overlay] {
-  background: hsl(0 0% 100% / 0.8) !important;
+  background: hsl(0 0% 100% / 0.38) !important;
+  backdrop-filter: blur(4px) !important;
+  -webkit-backdrop-filter: blur(4px) !important;
+}
+
+.dark [data-dialog-overlay],
+.dark[data-style] [data-dialog-overlay],
+[data-style] .dark [data-dialog-overlay] {
+  background: hsl(0 0% 0% / 0.48) !important;
 }
 
 .dark[data-style="glassmorphism"] [data-dialog-overlay],
@@ -2332,7 +2448,20 @@ main:has(.page-fill) .layout-page-inner {
 .dark [data-style="luminous"] [data-dialog-overlay],
 .dark[data-style="liquid"] [data-dialog-overlay],
 .dark [data-style="liquid"] [data-dialog-overlay] {
-  background: hsl(0 0% 0% / 0.8) !important;
+  background: hsl(0 0% 0% / 0.48) !important;
+  backdrop-filter: blur(4px) !important;
+  -webkit-backdrop-filter: blur(4px) !important;
+}
+
+[data-style="solid"] [data-dialog-overlay] {
+  background: hsl(0 0% 100% / 0.38) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.dark[data-style="solid"] [data-dialog-overlay],
+.dark [data-style="solid"] [data-dialog-overlay] {
+  background: hsl(0 0% 0% / 0.48) !important;
 }
 
 /* 亮色白罩、暗色黑罩都淡入淡出。写在这里，避免和按钮上的 animate-in 抢 animation 后变成瞬间铺满。 */
@@ -2351,16 +2480,14 @@ main:has(.page-fill) .layout-page-inner {
   animation: dialog-overlay-in 0.45s cubic-bezier(0.4, 0, 0.2, 1) both !important;
 }
 
-/* 先停在透明。data-overlay-enter=true 才开始淡入，避免动画在首帧绘制前跑完。 */
-[data-dialog-overlay][data-state="open"]:not([data-overlay-enter="true"]),
-[role="dialog"][data-state="open"]:not([data-overlay-enter="true"]),
-[role="alertdialog"][data-state="open"]:not([data-overlay-enter="true"]) {
+/* 只扣住我们自己的对话框 / 抽屉 / 确认框。Popover 也是 role=dialog，
+   不能一起藏，否则插件选择列表会停在透明，只在关闭时闪一下退场。 */
+[data-deferred-enter][data-state="open"]:not([data-overlay-enter="true"]) {
   opacity: 0 !important;
   animation: none !important;
 }
 
-[role="dialog"].glass-card[data-state="open"]:not([data-overlay-enter])::before,
-[role="alertdialog"].glass-card[data-state="open"]:not([data-overlay-enter])::before {
+[data-deferred-enter].glass-card[data-state="open"]:not([data-overlay-enter])::before {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
@@ -3333,8 +3460,8 @@ html[data-style="liquid"] :is(
 }
 
 [data-style="glassmorphism"] .glass-card .glass-card::before,
-[data-style="luminous"] [role="dialog"] .glass-card::before,
-[data-style="liquid"] [role="dialog"] .glass-card::before {
+[data-style="luminous"] :is([role="dialog"], [role="alertdialog"]) .glass-card::before,
+[data-style="liquid"] :is([role="dialog"], [role="alertdialog"]) .glass-card::before {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }

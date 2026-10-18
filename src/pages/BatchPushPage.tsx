@@ -862,7 +862,7 @@ export default function BatchPushPage() {
                 </div>
               </div>
 
-              {/* 行 2：类型筛选 Tab + 刷新；以默认高度 TabButtonGroup 为基准，同行 h-11 */}
+              {/* 行 2：类型筛选用默认分段，刷新按钮 h-10 并居中 */}
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3">
                 <div className={tabToolbarGroupWrapClass}>
                   <TabButtonGroup

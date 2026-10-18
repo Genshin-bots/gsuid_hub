@@ -69,9 +69,10 @@ interface TabButtonGroupProps {
   /**
    * `sm`：外壳 h-9，只留左右内边距，纵向贴齐外框。
    * 这样分段的可视高度和同行的 h-9 输入框 / 按钮一致。
+   * `line`：外壳 h-10，纵向贴齐外框，和 outline 按钮外框齐平。
    * 默认不传。不要用 className 把默认高度硬压矮。
    */
-  size?: 'default' | 'sm';
+  size?: 'default' | 'sm' | 'line';
   /**
    * 分段在这个断点之前按文案长短撑满所在行（放不下再换行）。
    * 默认 `md`：侧栏出现前（&lt;768px）撑满。
@@ -146,10 +147,18 @@ export function TabButtonGroup({
 }: TabButtonGroupProps) {
   const rowRef = React.useRef<HTMLDivElement>(null);
   const sm = size === 'sm';
+  const line = size === 'line';
+  const hug = sm || line;
   const iconSlotClass = sm ? 'h-4 w-4' : 'h-[22px] w-[22px]';
   // 默认可视高度锁成 h-10，和 tabToolbarControlClass 同一数值。
   // 玻璃外壳另有 p-1，不能拿外壳高度去对齐旁边的按钮。
-  const segmentYClass = sm ? 'h-full py-0' : 'h-10';
+  // line 把外壳本身锁成 h-10，内钮贴齐外框，用来和 outline 下拉并排。
+  const segmentYClass = hug ? 'h-full py-0' : 'h-10';
+  const shellClass = sm
+    ? cn(tabSmShellClass, 'items-stretch px-0.5 py-0')
+    : line
+      ? 'h-10 items-stretch overflow-hidden px-0.5 py-0'
+      : 'p-1';
   // className 作用在按钮容器（内层）上——调用方会传 grid/w-full 等布局类改写整条布局。
   // 外壳用 glass-card-flat：跟主题的底色/描边，不投影。普通按钮也没有这层阴影。
   const fullWidth = typeof className === 'string' && /\b(?:w-full|grid)\b/.test(className);
@@ -178,7 +187,7 @@ export function TabButtonGroup({
         ref={rowRef}
         className={cn(
           'tab-segment-row inline-flex min-w-0 flex-wrap gap-1 rounded-lg glass-card-flat',
-          sm ? cn(tabSmShellClass, 'items-stretch px-0.5 py-0') : 'p-1',
+          shellClass,
           // 窄屏等分成 N 列不换行，好过收成下拉丢掉「分区一眼可见」。
           // 用 grid 而非 flex：flex 下「主区 + ▾」拆分按钮里的 nowrap 文本会把整段
           // 撑到 min-content，flex-1 等分直接失效（实测 82/98/98，grid 才是 93/93/93）。
@@ -222,7 +231,7 @@ export function TabButtonGroup({
                   className={cn(
                     'flex min-w-0 items-center gap-1.5 sm:gap-2 px-2.5 sm:pl-4 sm:pr-2 rounded-none bg-transparent',
                     segmentYClass,
-                    sm && 'h-full',
+                    hug && 'h-full',
                     'hover:bg-transparent focus-visible:outline-none',
                     singleRowOnMobile && 'flex-1 justify-center px-2 sm:flex-none sm:justify-start',
                     isDisabled && 'cursor-not-allowed',
@@ -267,7 +276,7 @@ export function TabButtonGroup({
                       className={cn(
                         'group flex items-center justify-center rounded-none border-0 bg-transparent px-2.5',
                         segmentYClass,
-                        sm && 'h-full',
+                        hug && 'h-full',
                         singleRowOnMobile && 'px-1.5 sm:px-2.5',
                         'hover:bg-black/5 dark:hover:bg-white/10 focus-visible:outline-none',
                         'data-[state=open]:bg-black/5 dark:data-[state=open]:bg-white/10',
@@ -293,7 +302,7 @@ export function TabButtonGroup({
                 tabSegmentClassName(isActive, isDisabled, buttonClassName),
                 'rounded-md px-2.5 sm:px-4',
                 segmentYClass,
-                sm && 'h-full',
+                hug && 'h-full',
                 singleRowOnMobile &&
                   'min-w-0 flex-1 justify-center px-2 text-xs sm:flex-none sm:px-4 sm:text-sm',
               )}
@@ -325,7 +334,7 @@ export function TabButtonGroup({
         <div
           className={cn(
             'inline-flex min-w-0 max-w-full gap-1 rounded-lg glass-card-flat',
-            sm ? cn(tabSmShellClass, 'items-stretch px-0.5 py-0') : 'p-1',
+            shellClass,
           )}
         >
           <DropdownMenu>
@@ -337,7 +346,7 @@ export function TabButtonGroup({
                   tabSegmentClassName(true, disabled, buttonClassName),
                   'max-w-full rounded-md px-4',
                   segmentYClass,
-                  sm && 'h-full',
+                  hug && 'h-full',
                 )}
               >
                 {current?.icon != null && (

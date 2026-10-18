@@ -64,9 +64,9 @@ import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import {
   aiScheduledTasksApi,
-  AIScheduledTask,
-  AIScheduledTaskStats,
-  CreateScheduledTaskRequest,
+  type AIScheduledTask,
+  type AIScheduledTaskStats,
+  type CreateScheduledTaskRequest,
 } from '@/lib/api';
 import { toast } from 'sonner';
 import { PinnedPage } from '@/components/layout/PinnedPage';
@@ -525,17 +525,9 @@ export default function AIScheduledTasksPage() {
 
       {/* 错误提示 */}
       {error && (
-        <Card
-          className={cn(
-            'border-destructive/50',
-            'glass-card',
-          )}
-        >
-          <CardContent className="flex items-center gap-3 p-4 text-destructive">
-            <AlertCircle className="w-5 h-5" />
-            <span>{error}</span>
-          </CardContent>
-        </Card>
+        <GlassAlert tone="danger" icon={AlertCircle}>
+          {error}
+        </GlassAlert>
       )}
 
       {/* 任务列表 */}

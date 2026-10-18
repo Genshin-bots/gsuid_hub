@@ -32,7 +32,7 @@ export function ServiceSwitchSection({ isAIEnabled, t, onChange }: ServiceSwitch
         </p>
       </div>
 
-      <div className="flex items-center gap-5 p-5 rounded-2xl border border-border/30 bg-card/30">
+      <div className="flex items-center gap-5 p-5 rounded-2xl glass-card transition-all">
         <div
           className={cn(
             'flex items-center justify-center flex-shrink-0 transition-all duration-500',

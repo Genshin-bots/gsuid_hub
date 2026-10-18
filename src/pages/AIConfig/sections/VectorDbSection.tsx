@@ -494,7 +494,7 @@ export function VectorDbSection({
 
       {/* Qdrant 部署方式切换确认弹窗 */}
       <AlertDialog open={isQdrantSwitchDialogOpen} onOpenChange={setIsQdrantSwitchDialogOpen}>
-        <AlertDialogContent className="max-w-[500px]">
+        <AlertDialogContent className="max-w-[500px] glass-card">
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <AlertTriangle className="w-5 h-5 text-amber-500" />
@@ -519,7 +519,7 @@ export function VectorDbSection({
 
       {/* 嵌入模型提供方切换确认弹窗 */}
       <AlertDialog open={isEmbeddingSwitchDialogOpen} onOpenChange={setIsEmbeddingSwitchDialogOpen}>
-        <AlertDialogContent className="max-w-[500px]">
+        <AlertDialogContent className="max-w-[500px] glass-card">
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <AlertTriangle className="w-5 h-5 text-amber-500" />

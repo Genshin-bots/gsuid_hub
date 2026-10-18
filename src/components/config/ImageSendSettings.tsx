@@ -17,7 +17,7 @@ import {
   Monitor,
   Link,
 } from 'lucide-react';
-import { frameworkConfigApi, FrameworkConfigListItem } from '@/lib/api';
+import { frameworkConfigApi, type FrameworkConfigListItem } from '@/lib/api';
 import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useConfigDirty } from '@/contexts/ConfigDirtyContext';
@@ -413,7 +413,7 @@ export default function ImageSendSettings() {
   return (
     <div className="space-y-6 flex-1 overflow-visible h-full flex flex-col">
       {/* Help Text - Moved to top with better layout */}
-      <Card className="glass-card border-primary/30 bg-primary/5">
+      <Card className="glass-card glass-alert glass-alert-tint glass-alert-tint-primary border-primary/35">
         <CardHeader className="pb-4">
           <CardTitle className="flex items-center gap-2 text-lg">
             <Globe className="w-5 h-5 text-primary" />

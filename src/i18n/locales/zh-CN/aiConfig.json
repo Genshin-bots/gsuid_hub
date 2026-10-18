@@ -213,7 +213,14 @@
     "searchDepth": "搜索深度",
     "searchType": "搜索类型",
     "apiHost": "API 主机地址",
-    "resourceMode": "资源提供方式"
+    "resourceMode": "资源提供方式",
+    "renderImageSources": "出图配图来源",
+    "renderImageSourcesDesc": "render_agent 出图前按此顺序找配图，前一个来源凑够张数就停。留空则不找配图。插件图库用插件登记的图片；Tavily 用本页的 Tavily 密钥；Firecrawl 是官方图片搜索，没填密钥走免费档；360 是公开图片搜索，不需要密钥。",
+    "renderEmbedImages": "允许嵌入配图",
+    "renderEmbedImagesDesc": "开启后，出图前会按设定的来源搜图并嵌进长图；关闭后不再搜图，页头和对象改用内置图标。默认开启。",
+    "renderCardSection": "卡片出图配图",
+    "renderCardSectionDesc": "配置 AI 生成卡片长图时的配图搜索来源与嵌入行为。",
+    "renderEmbedImagesDisabledHint": "已停用配图嵌入。出图时将直接使用系统与插件图标，不进行网络搜图。"
   },
   "webFetch": {
     "title": "网页抓取服务",

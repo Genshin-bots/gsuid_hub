@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -75,8 +75,8 @@ import {
   api,
   agentDebugApi,
   cognitionApi,
-  AgentDebugMemoryConflict,
-  AgentDebugMemoryEdge,
+  type AgentDebugMemoryConflict,
+  type AgentDebugMemoryEdge,
   type CognitionAttachment,
   type CognitionNode,
 } from '@/lib/api';
@@ -1383,12 +1383,7 @@ function CategoryLayerTree({
         <span className="text-xs text-muted-foreground ml-2">点击展开/收起子分类</span>
       </div>
 
-      <div
-        className={cn(
-          'rounded-lg p-4',
-          'glass-card',
-        )}
-      >
+      <div className={cn('rounded-lg p-4', 'glass-card')}>
         <div className="space-y-1">
           {rootCategories.map((cat) => (
             <CategoryTreeNode
@@ -2128,17 +2123,9 @@ export default function AIMemoryPage() {
         onAfterSave={() => setMemorySettingsVersion((v) => v + 1)}
       />
       {error && (
-        <Card
-          className={cn(
-            'border-destructive/50',
-            'glass-card',
-          )}
-        >
-          <CardContent className="flex items-center gap-3 p-4 text-destructive">
-            <AlertCircle className="w-5 h-5" />
-            <span>{error}</span>
-          </CardContent>
-        </Card>
+        <GlassAlert tone="danger" icon={AlertCircle}>
+          {error}
+        </GlassAlert>
       )}
 
       <Card className="glass-card">
@@ -2417,12 +2404,7 @@ export default function AIMemoryPage() {
       {/* Preferences Tab */}
       {activeTab === 'preferences' && (
         <div className="space-y-4">
-          <div
-            className={cn(
-              'rounded-lg p-3 text-sm',
-              'glass-card',
-            )}
-          >
+          <div className={cn('rounded-lg p-3 text-sm', 'glass-card')}>
             <div className="flex items-start gap-2">
               <ListChecks className="w-4 h-4 mt-0.5 text-primary shrink-0" />
               <div className="space-y-1">
@@ -2522,11 +2504,7 @@ export default function AIMemoryPage() {
                 return (
                   <Card
                     key={pref.id}
-                    className={cn(
-                      'transition-all',
-                      'glass-card',
-                      !pref.is_active && 'opacity-70',
-                    )}
+                    className={cn('transition-all', 'glass-card', !pref.is_active && 'opacity-70')}
                   >
                     <CardContent className="p-4 space-y-3">
                       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -3207,9 +3185,7 @@ export default function AIMemoryPage() {
           </Card>
 
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-            <Card
-              className={cn('xl:col-span-2', 'glass-card')}
-            >
+            <Card className={cn('xl:col-span-2', 'glass-card')}>
               <CardHeader>
                 <CardTitle className="flex items-center justify-between gap-2">
                   <span>Edge 列表</span>
@@ -3506,8 +3482,8 @@ export default function AIMemoryPage() {
 
       {/* Detail Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
+        <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col p-6">
+          <DialogHeader className="shrink-0 pb-1">
             <DialogTitle>
               {dialogType === 'episode' && t('aiMemory.episodeDetail')}
               {dialogType === 'entity' && t('aiMemory.entityDetail')}
@@ -3519,101 +3495,357 @@ export default function AIMemoryPage() {
               {t('aiMemory.detailAriaDesc')}
             </DialogDescription>
           </DialogHeader>
-          {dialogType === 'episode' && selectedEpisode && (
-            <div className="space-y-4">
-              <div>
-                <Label className="text-muted-foreground">{t('aiMemory.scopeKey')}</Label>
-                <p className="font-mono text-sm">{selectedEpisode.scope_key}</p>
-              </div>
-              <div>
-                <Label className="text-muted-foreground">{t('aiMemory.content')}</Label>
-                <p className="mt-1 p-2 bg-muted/50 rounded text-sm whitespace-pre-wrap">
-                  {selectedEpisode.content}
-                </p>
-              </div>
-              <div>
-                <Label className="text-muted-foreground">{t('aiMemory.speakers')}</Label>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {selectedEpisode.speaker_ids.map((id) => (
-                    <Badge key={id} variant="outline">
-                      {id}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4 text-sm">
+          <div className="flex-1 min-h-0 overflow-y-auto pr-1 py-1 space-y-4">
+            {dialogType === 'episode' && selectedEpisode && (
+              <div className="space-y-4">
                 <div>
-                  <Label className="text-muted-foreground">{t('aiMemory.validAt')}</Label>
-                  <p>{formatDate(selectedEpisode.valid_at)}</p>
+                  <Label className="text-muted-foreground">{t('aiMemory.scopeKey')}</Label>
+                  <p className="font-mono text-sm">{selectedEpisode.scope_key}</p>
                 </div>
                 <div>
-                  <Label className="text-muted-foreground">{t('aiMemory.createdAt')}</Label>
-                  <p>{formatDate(selectedEpisode.created_at)}</p>
+                  <Label className="text-muted-foreground">{t('aiMemory.content')}</Label>
+                  <p className="mt-1 p-2 bg-muted/50 rounded text-sm whitespace-pre-wrap">
+                    {selectedEpisode.content}
+                  </p>
                 </div>
-              </div>
-              {selectedEpisode.mentioned_entities.length > 0 && (
                 <div>
-                  <Label className="text-muted-foreground">{t('aiMemory.mentionedEntities')}</Label>
+                  <Label className="text-muted-foreground">{t('aiMemory.speakers')}</Label>
                   <div className="flex flex-wrap gap-2 mt-2">
-                    {selectedEpisode.mentioned_entities.map((e) => (
-                      <Badge key={e.id} variant="secondary">
-                        {e.name}
+                    {selectedEpisode.speaker_ids.map((id) => (
+                      <Badge key={id} variant="outline">
+                        {id}
                       </Badge>
                     ))}
                   </div>
                 </div>
-              )}
-            </div>
-          )}
-          {dialogType === 'entity' && selectedEntity && (
-            <div className="space-y-4">
-              <div
-                className={cn(
-                  'rounded-lg p-4',
-                  'glass-card',
-                )}
-              >
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 text-sm">
+                <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <Label className="text-muted-foreground">{t('aiMemory.scopeKey')}</Label>
-                    <p className="font-mono text-sm break-all">{selectedEntity.scope_key}</p>
+                    <Label className="text-muted-foreground">{t('aiMemory.validAt')}</Label>
+                    <p>{formatDate(selectedEpisode.valid_at)}</p>
                   </div>
-                  <div>
-                    <Label className="text-muted-foreground">{t('aiMemory.name')}</Label>
-                    <p className="font-medium">{selectedEntity.name}</p>
-                  </div>
-                  <div>
-                    <Label className="text-muted-foreground">{t('aiMemory.isSpeaker')}</Label>
-                    <p>{selectedEntity.is_speaker ? t('common.yes') : t('common.no')}</p>
-                  </div>
-                  {selectedEntity.user_id && (
-                    <div>
-                      <Label className="text-muted-foreground">{t('aiMemory.userId')}</Label>
-                      <p className="font-mono">{selectedEntity.user_id}</p>
-                    </div>
-                  )}
                   <div>
                     <Label className="text-muted-foreground">{t('aiMemory.createdAt')}</Label>
-                    <p>{formatDate(selectedEntity.created_at)}</p>
-                  </div>
-                  <div>
-                    <Label className="text-muted-foreground">{t('aiMemory.updatedAt')}</Label>
-                    <p>{formatDate(selectedEntity.updated_at)}</p>
+                    <p>{formatDate(selectedEpisode.created_at)}</p>
                   </div>
                 </div>
-                {selectedEntity.summary && (
-                  <div className="mt-4">
+                {selectedEpisode.mentioned_entities.length > 0 && (
+                  <div>
+                    <Label className="text-muted-foreground">
+                      {t('aiMemory.mentionedEntities')}
+                    </Label>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {selectedEpisode.mentioned_entities.map((e) => (
+                        <Badge key={e.id} variant="secondary">
+                          {e.name}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            {dialogType === 'entity' && selectedEntity && (
+              <div className="space-y-4">
+                <div className={cn('rounded-lg p-4', 'glass-card')}>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 text-sm">
+                    <div>
+                      <Label className="text-muted-foreground">{t('aiMemory.scopeKey')}</Label>
+                      <p className="font-mono text-sm break-all">{selectedEntity.scope_key}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">{t('aiMemory.name')}</Label>
+                      <p className="font-medium">{selectedEntity.name}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">{t('aiMemory.isSpeaker')}</Label>
+                      <p>{selectedEntity.is_speaker ? t('common.yes') : t('common.no')}</p>
+                    </div>
+                    {selectedEntity.user_id && (
+                      <div>
+                        <Label className="text-muted-foreground">{t('aiMemory.userId')}</Label>
+                        <p className="font-mono">{selectedEntity.user_id}</p>
+                      </div>
+                    )}
+                    <div>
+                      <Label className="text-muted-foreground">{t('aiMemory.createdAt')}</Label>
+                      <p>{formatDate(selectedEntity.created_at)}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">{t('aiMemory.updatedAt')}</Label>
+                      <p>{formatDate(selectedEntity.updated_at)}</p>
+                    </div>
+                  </div>
+                  {selectedEntity.summary && (
+                    <div className="mt-4">
+                      <Label className="text-muted-foreground">{t('aiMemory.summary')}</Label>
+                      <p className="mt-1 p-2 bg-muted/50 rounded text-sm whitespace-pre-wrap">
+                        {selectedEntity.summary}
+                      </p>
+                    </div>
+                  )}
+                  {selectedEntity.tag.length > 0 && (
+                    <div className="mt-4">
+                      <Label className="text-muted-foreground">{t('aiMemory.tags')}</Label>
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {selectedEntity.tag.map((tag) => (
+                          <Badge key={tag} variant="outline">
+                            {tag}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {(() => {
+                    const hub = hubForEntity(
+                      selectedEntity.id,
+                      selectedEntity.name,
+                      cognitionNodes,
+                    );
+                    if (!hub) return null;
+                    const articles = hub.attachments ?? [];
+                    return (
+                      <div className="mt-4 space-y-2">
+                        <Label className="text-muted-foreground">
+                          {t('aiMemory.worldKnowledge')}
+                        </Label>
+                        <button
+                          type="button"
+                          className="flex w-full items-center justify-between gap-2 rounded-md border border-border/50 p-3 text-left hover:bg-accent/40"
+                          onClick={() => openDetailDialog('world', worldGraphId(hub))}
+                        >
+                          <span className="min-w-0">
+                            <span className="flex items-center gap-2 font-medium">
+                              <Globe className="w-4 h-4 shrink-0" />
+                              <span className="truncate">{hub.title || hub.ref}</span>
+                            </span>
+                            <span className="mt-1 block font-mono text-xs text-muted-foreground break-all">
+                              {hub.ref}
+                            </span>
+                          </span>
+                          <Badge variant="secondary" className="shrink-0">
+                            {t('aiMemory.articleCount', { count: articles.length })}
+                          </Badge>
+                        </button>
+                        {articles.length > 0 && (
+                          <CognitionAttachments
+                            attachments={articles}
+                            openLabel={t('aiMemory.openArticle')}
+                            writableLabel={t('aiMemory.articleWritable')}
+                            readonlyLabel={t('aiMemory.articleReadonly')}
+                          />
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                <div className={cn('rounded-lg p-4', 'glass-card')}>
+                  <div className="mb-3 flex items-center justify-between gap-2">
+                    <div>
+                      <h3 className="font-semibold">相连实体与关系 Edge</h3>
+                      <p className="text-xs text-muted-foreground">
+                        展示所有与当前实体直接相连的实体，可对错误 Edge 标记失效。
+                      </p>
+                    </div>
+                    <Badge variant="outline">{selectedEntityConnectedEdges.length}</Badge>
+                  </div>
+                  {selectedEntityConnectedEdges.length === 0 ? (
+                    <div className="py-6 text-center text-sm text-muted-foreground">
+                      暂无直接相连实体
+                    </div>
+                  ) : (
+                    <div className="space-y-3 max-h-[360px] overflow-auto pr-1">
+                      {selectedEntityConnectedEdges.map(
+                        ({ edge, connectedEntity, connectedEntityId, direction }) => (
+                          <div
+                            key={edge.id}
+                            className={cn(
+                              'rounded-lg border border-border/50 p-3',
+                              edge.invalid_at && 'opacity-60',
+                            )}
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0 space-y-2">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <Badge variant={edge.invalid_at ? 'destructive' : 'default'}>
+                                    {edge.invalid_at ? '已失效' : '有效'}
+                                  </Badge>
+                                  <Badge variant="outline">
+                                    {direction === 'out' ? '当前实体 → 对方' : '对方 → 当前实体'}
+                                  </Badge>
+                                  <span className="font-mono text-xs text-muted-foreground">
+                                    {edge.id}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2 text-sm">
+                                  <span className="font-medium truncate">
+                                    {selectedEntity.name}
+                                  </span>
+                                  <ChevronRight
+                                    className={cn(
+                                      'h-4 w-4 text-primary/60',
+                                      direction === 'in' && 'rotate-180',
+                                    )}
+                                  />
+                                  <button
+                                    type="button"
+                                    className="font-medium text-primary hover:underline truncate"
+                                    onClick={() => openDetailDialog('entity', connectedEntityId)}
+                                  >
+                                    {connectedEntity?.name || connectedEntityId}
+                                  </button>
+                                </div>
+                                <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                                  {edge.fact}
+                                </p>
+                                <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+                                  <span>
+                                    生效: {edge.valid_at ? formatDate(edge.valid_at) : '-'}
+                                  </span>
+                                  <span>提及: {edge.mention_count ?? '-'}</span>
+                                  <span>
+                                    评分:{' '}
+                                    {typeof edge.decay_score === 'number'
+                                      ? edge.decay_score.toFixed(3)
+                                      : '-'}
+                                  </span>
+                                </div>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="shrink-0 text-destructive hover:text-destructive"
+                                disabled={!!edge.invalid_at}
+                                onClick={() => requestInvalidateEdge(edge)}
+                              >
+                                <Trash2 className="w-4 h-4 mr-1" />
+                                失效
+                              </Button>
+                            </div>
+                          </div>
+                        ),
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+            {dialogType === 'edge' && selectedEdge && (
+              <div className="space-y-4">
+                <div>
+                  <Label className="text-muted-foreground">{t('aiMemory.scopeKey')}</Label>
+                  <p className="font-mono text-sm">{selectedEdge.scope_key}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">{t('aiMemory.fact')}</Label>
+                  <p className="mt-1 p-2 bg-muted/50 rounded text-sm">{selectedEdge.fact}</p>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-muted-foreground">{t('aiMemory.sourceEntity')}</Label>
+                    <p className="font-medium">{selectedEdge.source_entity.name}</p>
+                    {selectedEdge.source_entity.summary && (
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {truncateText(selectedEdge.source_entity.summary, 100)}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">{t('aiMemory.targetEntity')}</Label>
+                    <p className="font-medium">{selectedEdge.target_entity.name}</p>
+                    {selectedEdge.target_entity.summary && (
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {truncateText(selectedEdge.target_entity.summary, 100)}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <Label className="text-muted-foreground">{t('aiMemory.validAt')}</Label>
+                    <p>{formatDate(selectedEdge.valid_at)}</p>
+                  </div>
+                  {selectedEdge.invalid_at && (
+                    <div>
+                      <Label className="text-muted-foreground">{t('aiMemory.invalidAt')}</Label>
+                      <p className="text-destructive">{formatDate(selectedEdge.invalid_at)}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+            {dialogType === 'world' && selectedWorldHub && (
+              <div className="space-y-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge className="gap-1">
+                    <Globe className="w-3 h-3" />
+                    {t('aiMemory.legendWorld')}
+                  </Badge>
+                  {selectedWorldHub.source && (
+                    <Badge variant="outline">{selectedWorldHub.source}</Badge>
+                  )}
+                  {pluginFromWorldRef(selectedWorldHub.ref) && (
+                    <Badge variant="secondary">{pluginFromWorldRef(selectedWorldHub.ref)}</Badge>
+                  )}
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">{t('aiMemory.name')}</Label>
+                  <p className="font-medium">{selectedWorldHub.title || selectedWorldHub.ref}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">ref</Label>
+                  <p className="font-mono text-sm break-all">{selectedWorldHub.ref}</p>
+                </div>
+                {selectedWorldHub.summary && (
+                  <div>
                     <Label className="text-muted-foreground">{t('aiMemory.summary')}</Label>
                     <p className="mt-1 p-2 bg-muted/50 rounded text-sm whitespace-pre-wrap">
-                      {selectedEntity.summary}
+                      {selectedWorldHub.summary}
                     </p>
                   </div>
                 )}
-                {selectedEntity.tag.length > 0 && (
-                  <div className="mt-4">
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                  <span>
+                    {t('aiMemory.scopeKey')}:{' '}
+                    {selectedWorldHub.scope_key || t('aiMemory.publicWorldScope')}
+                  </span>
+                  {selectedWorldHub.as_of && <span>as_of={selectedWorldHub.as_of}</span>}
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-muted-foreground">{t('aiMemory.attachedArticles')}</Label>
+                  <CognitionAttachments
+                    attachments={selectedWorldHub.attachments ?? []}
+                    emptyText={t('aiMemory.noAttachments')}
+                    openLabel={t('aiMemory.openArticle')}
+                    writableLabel={t('aiMemory.articleWritable')}
+                    readonlyLabel={t('aiMemory.articleReadonly')}
+                  />
+                </div>
+              </div>
+            )}
+            {dialogType === 'category' && selectedCategoryDetail && (
+              <div className="space-y-4">
+                <div>
+                  <Label className="text-muted-foreground">{t('aiMemory.scopeKey')}</Label>
+                  <p className="font-mono text-sm">{selectedCategoryDetail.scope_key}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">{t('aiMemory.name')}</Label>
+                  <p className="font-medium">{selectedCategoryDetail.name}</p>
+                </div>
+                {selectedCategoryDetail.summary && (
+                  <div>
+                    <Label className="text-muted-foreground">{t('aiMemory.summary')}</Label>
+                    <p className="mt-1 p-2 bg-muted/50 rounded text-sm">
+                      {selectedCategoryDetail.summary}
+                    </p>
+                  </div>
+                )}
+                {selectedCategoryDetail.tag.length > 0 && (
+                  <div>
                     <Label className="text-muted-foreground">{t('aiMemory.tags')}</Label>
                     <div className="flex flex-wrap gap-2 mt-2">
-                      {selectedEntity.tag.map((tag) => (
+                      {selectedCategoryDetail.tag.map((tag) => (
                         <Badge key={tag} variant="outline">
                           {tag}
                         </Badge>
@@ -3621,283 +3853,29 @@ export default function AIMemoryPage() {
                     </div>
                   </div>
                 )}
-                {(() => {
-                  const hub = hubForEntity(selectedEntity.id, selectedEntity.name, cognitionNodes);
-                  if (!hub) return null;
-                  const articles = hub.attachments ?? [];
-                  return (
-                    <div className="mt-4 space-y-2">
-                      <Label className="text-muted-foreground">
-                        {t('aiMemory.worldKnowledge')}
-                      </Label>
-                      <button
-                        type="button"
-                        className="flex w-full items-center justify-between gap-2 rounded-md border border-border/50 p-3 text-left hover:bg-accent/40"
-                        onClick={() => openDetailDialog('world', worldGraphId(hub))}
-                      >
-                        <span className="min-w-0">
-                          <span className="flex items-center gap-2 font-medium">
-                            <Globe className="w-4 h-4 shrink-0" />
-                            <span className="truncate">{hub.title || hub.ref}</span>
-                          </span>
-                          <span className="mt-1 block font-mono text-xs text-muted-foreground break-all">
-                            {hub.ref}
-                          </span>
-                        </span>
-                        <Badge variant="secondary" className="shrink-0">
-                          {t('aiMemory.articleCount', { count: articles.length })}
-                        </Badge>
-                      </button>
-                      {articles.length > 0 && (
-                        <CognitionAttachments
-                          attachments={articles}
-                          openLabel={t('aiMemory.openArticle')}
-                          writableLabel={t('aiMemory.articleWritable')}
-                          readonlyLabel={t('aiMemory.articleReadonly')}
-                        />
-                      )}
-                    </div>
-                  );
-                })()}
-              </div>
-
-              <div
-                className={cn(
-                  'rounded-lg p-4',
-                  'glass-card',
-                )}
-              >
-                <div className="mb-3 flex items-center justify-between gap-2">
+                <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <h3 className="font-semibold">相连实体与关系 Edge</h3>
-                    <p className="text-xs text-muted-foreground">
-                      展示所有与当前实体直接相连的实体，可对错误 Edge 标记失效。
-                    </p>
+                    <Label className="text-muted-foreground">{t('aiMemory.layer')}</Label>
+                    <p className="font-semibold">{selectedCategoryDetail.layer}</p>
                   </div>
-                  <Badge variant="outline">{selectedEntityConnectedEdges.length}</Badge>
-                </div>
-                {selectedEntityConnectedEdges.length === 0 ? (
-                  <div className="py-6 text-center text-sm text-muted-foreground">
-                    暂无直接相连实体
-                  </div>
-                ) : (
-                  <div className="space-y-3 max-h-[360px] overflow-auto pr-1">
-                    {selectedEntityConnectedEdges.map(
-                      ({ edge, connectedEntity, connectedEntityId, direction }) => (
-                        <div
-                          key={edge.id}
-                          className={cn(
-                            'rounded-lg border border-border/50 p-3',
-                            edge.invalid_at && 'opacity-60',
-                          )}
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0 space-y-2">
-                              <div className="flex flex-wrap items-center gap-2">
-                                <Badge variant={edge.invalid_at ? 'destructive' : 'default'}>
-                                  {edge.invalid_at ? '已失效' : '有效'}
-                                </Badge>
-                                <Badge variant="outline">
-                                  {direction === 'out' ? '当前实体 → 对方' : '对方 → 当前实体'}
-                                </Badge>
-                                <span className="font-mono text-xs text-muted-foreground">
-                                  {edge.id}
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-2 text-sm">
-                                <span className="font-medium truncate">{selectedEntity.name}</span>
-                                <ChevronRight
-                                  className={cn(
-                                    'h-4 w-4 text-primary/60',
-                                    direction === 'in' && 'rotate-180',
-                                  )}
-                                />
-                                <button
-                                  type="button"
-                                  className="font-medium text-primary hover:underline truncate"
-                                  onClick={() => openDetailDialog('entity', connectedEntityId)}
-                                >
-                                  {connectedEntity?.name || connectedEntityId}
-                                </button>
-                              </div>
-                              <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                                {edge.fact}
-                              </p>
-                              <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-                                <span>生效: {edge.valid_at ? formatDate(edge.valid_at) : '-'}</span>
-                                <span>提及: {edge.mention_count ?? '-'}</span>
-                                <span>
-                                  评分:{' '}
-                                  {typeof edge.decay_score === 'number'
-                                    ? edge.decay_score.toFixed(3)
-                                    : '-'}
-                                </span>
-                              </div>
-                            </div>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="shrink-0 text-destructive hover:text-destructive"
-                              disabled={!!edge.invalid_at}
-                              onClick={() => requestInvalidateEdge(edge)}
-                            >
-                              <Trash2 className="w-4 h-4 mr-1" />
-                              失效
-                            </Button>
-                          </div>
-                        </div>
-                      ),
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-          {dialogType === 'edge' && selectedEdge && (
-            <div className="space-y-4">
-              <div>
-                <Label className="text-muted-foreground">{t('aiMemory.scopeKey')}</Label>
-                <p className="font-mono text-sm">{selectedEdge.scope_key}</p>
-              </div>
-              <div>
-                <Label className="text-muted-foreground">{t('aiMemory.fact')}</Label>
-                <p className="mt-1 p-2 bg-muted/50 rounded text-sm">{selectedEdge.fact}</p>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-muted-foreground">{t('aiMemory.sourceEntity')}</Label>
-                  <p className="font-medium">{selectedEdge.source_entity.name}</p>
-                  {selectedEdge.source_entity.summary && (
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {truncateText(selectedEdge.source_entity.summary, 100)}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">{t('aiMemory.targetEntity')}</Label>
-                  <p className="font-medium">{selectedEdge.target_entity.name}</p>
-                  {selectedEdge.target_entity.summary && (
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {truncateText(selectedEdge.target_entity.summary, 100)}
-                    </p>
-                  )}
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <Label className="text-muted-foreground">{t('aiMemory.validAt')}</Label>
-                  <p>{formatDate(selectedEdge.valid_at)}</p>
-                </div>
-                {selectedEdge.invalid_at && (
                   <div>
-                    <Label className="text-muted-foreground">{t('aiMemory.invalidAt')}</Label>
-                    <p className="text-destructive">{formatDate(selectedEdge.invalid_at)}</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-          {dialogType === 'world' && selectedWorldHub && (
-            <div className="space-y-4">
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge className="gap-1">
-                  <Globe className="w-3 h-3" />
-                  {t('aiMemory.legendWorld')}
-                </Badge>
-                {selectedWorldHub.source && (
-                  <Badge variant="outline">{selectedWorldHub.source}</Badge>
-                )}
-                {pluginFromWorldRef(selectedWorldHub.ref) && (
-                  <Badge variant="secondary">{pluginFromWorldRef(selectedWorldHub.ref)}</Badge>
-                )}
-              </div>
-              <div>
-                <Label className="text-muted-foreground">{t('aiMemory.name')}</Label>
-                <p className="font-medium">{selectedWorldHub.title || selectedWorldHub.ref}</p>
-              </div>
-              <div>
-                <Label className="text-muted-foreground">ref</Label>
-                <p className="font-mono text-sm break-all">{selectedWorldHub.ref}</p>
-              </div>
-              {selectedWorldHub.summary && (
-                <div>
-                  <Label className="text-muted-foreground">{t('aiMemory.summary')}</Label>
-                  <p className="mt-1 p-2 bg-muted/50 rounded text-sm whitespace-pre-wrap">
-                    {selectedWorldHub.summary}
-                  </p>
-                </div>
-              )}
-              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                <span>
-                  {t('aiMemory.scopeKey')}:{' '}
-                  {selectedWorldHub.scope_key || t('aiMemory.publicWorldScope')}
-                </span>
-                {selectedWorldHub.as_of && <span>as_of={selectedWorldHub.as_of}</span>}
-              </div>
-              <div className="space-y-2">
-                <Label className="text-muted-foreground">{t('aiMemory.attachedArticles')}</Label>
-                <CognitionAttachments
-                  attachments={selectedWorldHub.attachments ?? []}
-                  emptyText={t('aiMemory.noAttachments')}
-                  openLabel={t('aiMemory.openArticle')}
-                  writableLabel={t('aiMemory.articleWritable')}
-                  readonlyLabel={t('aiMemory.articleReadonly')}
-                />
-              </div>
-            </div>
-          )}
-          {dialogType === 'category' && selectedCategoryDetail && (
-            <div className="space-y-4">
-              <div>
-                <Label className="text-muted-foreground">{t('aiMemory.scopeKey')}</Label>
-                <p className="font-mono text-sm">{selectedCategoryDetail.scope_key}</p>
-              </div>
-              <div>
-                <Label className="text-muted-foreground">{t('aiMemory.name')}</Label>
-                <p className="font-medium">{selectedCategoryDetail.name}</p>
-              </div>
-              {selectedCategoryDetail.summary && (
-                <div>
-                  <Label className="text-muted-foreground">{t('aiMemory.summary')}</Label>
-                  <p className="mt-1 p-2 bg-muted/50 rounded text-sm">
-                    {selectedCategoryDetail.summary}
-                  </p>
-                </div>
-              )}
-              {selectedCategoryDetail.tag.length > 0 && (
-                <div>
-                  <Label className="text-muted-foreground">{t('aiMemory.tags')}</Label>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {selectedCategoryDetail.tag.map((tag) => (
-                      <Badge key={tag} variant="outline">
-                        {tag}
-                      </Badge>
-                    ))}
+                    <Label className="text-muted-foreground">{t('aiMemory.memberEntities')}</Label>
+                    <p className="font-semibold">{selectedCategoryDetail.member_entities_count}</p>
                   </div>
                 </div>
-              )}
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <Label className="text-muted-foreground">{t('aiMemory.layer')}</Label>
-                  <p className="font-semibold">{selectedCategoryDetail.layer}</p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">{t('aiMemory.memberEntities')}</Label>
-                  <p className="font-semibold">{selectedCategoryDetail.member_entities_count}</p>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <Label className="text-muted-foreground">{t('aiMemory.createdAt')}</Label>
-                  <p>{formatDate(selectedCategoryDetail.created_at)}</p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">{t('aiMemory.updatedAt')}</Label>
-                  <p>{formatDate(selectedCategoryDetail.updated_at)}</p>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <Label className="text-muted-foreground">{t('aiMemory.createdAt')}</Label>
+                    <p>{formatDate(selectedCategoryDetail.created_at)}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">{t('aiMemory.updatedAt')}</Label>
+                    <p>{formatDate(selectedCategoryDetail.updated_at)}</p>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </DialogContent>
       </Dialog>
 

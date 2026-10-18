@@ -1,25 +1,22 @@
-import { useEffect } from 'react';
+import { useCallback, useRef } from 'react';
 
 /**
- * 打开弹层时先让浏览器画出「还没开始」的那一帧，再开淡入。
- * 人格抽屉的布局和毛玻璃会占住主线程。入场动画若在插入 DOM 时就开始，
- * 第一帧画出来时已经播完，白罩就像瞬间出现。
+ * 弹层内容往往包在 Portal 里，外层组件比真正的 DOM 更早挂上。
+ * 淡入必须等节点出现再排，否则人格抽屉会停在透明，只剩白色遮罩。
  * prep：仍透明，但允许铺上毛玻璃。true：开始淡入。
  */
-export function useOverlayEnter(ref: { readonly current: HTMLElement | null }) {
-  useEffect(() => {
-    const node = ref.current;
+export function useOverlayEnterCallback() {
+  const frames = useRef({ prep: 0, fade: 0 });
+
+  return useCallback((node: HTMLElement | null) => {
+    cancelAnimationFrame(frames.current.prep);
+    cancelAnimationFrame(frames.current.fade);
     if (!node) return;
-    let fadeFrame = 0;
-    const prepFrame = requestAnimationFrame(() => {
+    frames.current.prep = requestAnimationFrame(() => {
       node.setAttribute('data-overlay-enter', 'prep');
-      fadeFrame = requestAnimationFrame(() => {
+      frames.current.fade = requestAnimationFrame(() => {
         node.setAttribute('data-overlay-enter', 'true');
       });
     });
-    return () => {
-      cancelAnimationFrame(prepFrame);
-      cancelAnimationFrame(fadeFrame);
-    };
-  }, [ref]);
+  }, []);
 }

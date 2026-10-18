@@ -213,7 +213,14 @@
     "searchDepth": "Search Depth",
     "searchType": "Search Type",
     "apiHost": "API Host",
-    "resourceMode": "Resource Mode"
+    "resourceMode": "Resource Mode",
+    "renderImageSources": "Image sources for cards",
+    "renderImageSourcesDesc": "render_agent searches images in this order and stops when a source fills the count. Leave empty to skip image search. Plugin library uses images registered by plugins; Tavily uses the Tavily key on this page; Firecrawl is the official image search and uses the free tier when no key is set; 360 is a public image search and needs no key.",
+    "renderEmbedImages": "Embed photos in cards",
+    "renderEmbedImagesDesc": "When on, cards search the configured sources and embed the photos. When off, cards use built-in icons instead of searching. On by default.",
+    "renderCardSection": "Card Image & Illustration",
+    "renderCardSectionDesc": "Configure image search sources and embedding behavior when generating AI response cards.",
+    "renderEmbedImagesDisabledHint": "Image embedding is disabled. Cards will use built-in icons without searching the web."
   },
   "webFetch": {
     "title": "Web Fetch Service",

@@ -2462,7 +2462,7 @@ export interface PersonaFrameworkConfig {
 
 // 角色配置相关类型
 export type PersonaScope = 'disabled' | 'global' | 'specific' | 'global_group' | 'global_private';
-export type AIMode = '提及应答' | '定时巡检' | '趣向捕捉(暂不可用)' | '困境救场(暂不可用)';
+export type AIMode = '提及应答' | '定时巡检' | '命令补充' | '困境救场(暂不可用)';
 
 export interface SpeechTierSpec {
   floor: number;
@@ -2486,6 +2486,10 @@ export interface PersonaConfig {
   target_groups: string[];
   inspect_interval?: number; // 定时巡检间隔（分钟）�?, 10, 15, 30, 60
   keywords?: string[]; // 触发关键词列表（用于提及应答模式�?
+  aside_image_probability?: number;
+  aside_text_probability?: number;
+  aside_mixed_probability?: number;
+  aside_allow_tools?: boolean;
   /** 启用工具（按插件）：`*` 全开；`!插件名` 排除；只列具体名则仅这些进检索池 */
   enabled_tools?: string[];
   tool_names?: string[]; // 显式工具白名单（常驻直装，不经向量检索）
@@ -2512,6 +2516,10 @@ export interface PersonaConfigUpdateRequest {
   target_groups?: string[];
   inspect_interval?: number;
   keywords?: string[];
+  aside_image_probability?: number;
+  aside_text_probability?: number;
+  aside_mixed_probability?: number;
+  aside_allow_tools?: boolean;
   enabled_tools?: string[];
   tool_names?: string[];
   capability_agents?: string[];
@@ -2601,7 +2609,8 @@ export interface PlaceholderPreviewData {
 
 export const promptGroupApi = {
   list: () => api.get<PromptGroupSummary[]>('/api/prompt-groups'),
-  get: (name: string) => api.get<PromptGroupDetail>(`/api/prompt-groups/${encodeURIComponent(name)}`),
+  get: (name: string) =>
+    api.get<PromptGroupDetail>(`/api/prompt-groups/${encodeURIComponent(name)}`),
   save: (name: string, prompts: Record<string, string>) =>
     api.put<PromptGroupDetail>(`/api/prompt-groups/${encodeURIComponent(name)}`, { prompts }),
   create: (name: string, copyFrom?: string) =>

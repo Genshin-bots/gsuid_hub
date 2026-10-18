@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { GlassAlert } from '@/components/ui/glass-alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
 import { Badge } from '@/components/ui/badge';
@@ -100,12 +101,6 @@ export default function AIBudgetPage() {
   const { t } = useLanguage();
 
   const [activeTab, setActiveTab] = useState('overview');
-  const [isLoading, setIsLoading] = useState(false);
-
-  // Config save state lifted from ConfigTab for header save button
-  const [configDirty, setConfigDirty] = useState(false);
-  const [configSaving, setConfigSaving] = useState(false);
-  const configSaveRef = useRef<(() => void) | null>(null);
 
   const tabOptions = useMemo(
     () => [
@@ -114,12 +109,15 @@ export default function AIBudgetPage() {
         label: t('aiBudget.tabs.overview'),
         icon: <Gauge className="w-4 h-4" />,
       },
-      { value: 'config', label: t('aiBudget.tabs.config'), icon: <Settings className="w-4 h-4" /> },
-      { value: 'rules', label: t('aiBudget.tabs.rules'), icon: <Wallet className="w-4 h-4" /> },
       {
-        value: 'whitelist',
-        label: t('aiBudget.tabs.whitelist'),
-        icon: <Shield className="w-4 h-4" />,
+        value: 'rules',
+        label: t('aiBudget.tabs.rules'),
+        icon: <Wallet className="w-4 h-4" />,
+      },
+      {
+        value: 'manage',
+        label: t('aiBudget.tabs.manage'),
+        icon: <Settings className="w-4 h-4" />,
       },
       {
         value: 'diagnostic',
@@ -129,10 +127,6 @@ export default function AIBudgetPage() {
     ],
     [t],
   );
-
-  const handleConfigSave = () => {
-    if (configSaveRef.current) configSaveRef.current();
-  };
 
   return (
     <PinnedPage
@@ -147,42 +141,16 @@ export default function AIBudgetPage() {
             </h1>
             <p className="text-muted-foreground mt-1">{t('aiBudget.description')}</p>
           </div>
-          {activeTab === 'config' && (
-            <Button
-              onClick={handleConfigSave}
-              disabled={!configDirty || configSaving}
-              className="button-solid w-full sm:w-auto"
-            >
-              {configSaving ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Save className="w-4 h-4 mr-2" />
-              )}
-              {t('aiBudget.config.save')}
-            </Button>
-          )}
         </div>
       }
       toolbar={
-        /* Tab Navigation */
-        <TabButtonGroup
-          options={tabOptions}
-          value={activeTab}
-          onValueChange={setActiveTab}
-        />
+        <TabButtonGroup options={tabOptions} value={activeTab} onValueChange={setActiveTab} />
       }
     >
       {/* Tab Content */}
-      {activeTab === 'overview' && <OverviewTab />}
-      {activeTab === 'config' && (
-        <ConfigTab
-          onDirtyChange={setConfigDirty}
-          onSavingChange={setConfigSaving}
-          saveRef={configSaveRef}
-        />
-      )}
+      {activeTab === 'overview' && <OverviewTab onNavigateTab={setActiveTab} />}
       {activeTab === 'rules' && <RulesTab />}
-      {activeTab === 'whitelist' && <WhitelistTab />}
+      {activeTab === 'manage' && <ManageTab />}
       {activeTab === 'diagnostic' && <DiagnosticTab />}
     </PinnedPage>
   );
@@ -192,7 +160,7 @@ export default function AIBudgetPage() {
 // Overview Tab
 // ============================================================================
 
-function OverviewTab() {
+function OverviewTab({ onNavigateTab }: { onNavigateTab: (tab: string) => void }) {
   const { t } = useLanguage();
   const [overview, setOverview] = useState<AIBudgetOverview | null>(null);
   const [loading, setLoading] = useState(true);
@@ -236,98 +204,224 @@ function OverviewTab() {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Status Banner
-          移动端：整行堆叠、状态组允许换行——否则 Badge 自带 whitespace-nowrap 会独占宽度，
-          把状态文案挤成一列单字，并把刷新按钮顶出屏幕（en-US 的 tipOff 更长，更容易触发） */}
-      <Card className="glass-card">
-        <CardContent className="py-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
-              {overview.enabled ? (
-                <CheckCircle2 className="w-5 h-5 shrink-0 text-green-500" />
-              ) : (
-                <AlertTriangle className="w-5 h-5 shrink-0 text-yellow-500" />
-              )}
-              <span className="font-medium">
+      {/* 顶部全局状态卡片（全宽） */}
+      <div
+        className={cn(
+          'glass-card rounded-xl p-4 border flex flex-col sm:flex-row sm:items-center justify-between gap-4',
+          overview.enabled
+            ? 'border-emerald-500/30 bg-emerald-500/5'
+            : 'border-amber-500/30 bg-amber-500/5',
+        )}
+      >
+        <div className="flex items-start sm:items-center gap-3 min-w-0">
+          <div
+            className={cn(
+              'w-10 h-10 rounded-lg flex items-center justify-center shrink-0',
+              overview.enabled
+                ? 'bg-emerald-500/10 text-emerald-500'
+                : 'bg-amber-500/10 text-amber-500',
+            )}
+          >
+            {overview.enabled ? (
+              <CheckCircle2 className="w-5 h-5" />
+            ) : (
+              <AlertTriangle className="w-5 h-5" />
+            )}
+          </div>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-semibold text-base text-foreground">
                 {overview.enabled
                   ? t('aiBudget.overview.statusOn')
                   : t('aiBudget.overview.statusOff')}
               </span>
-              {!overview.enabled && (
-                // 覆盖 Badge 默认的 whitespace-nowrap：窄屏放不下时在药丸内换行，而不是撑爆一行
-                <Badge
-                  variant="outline"
-                  className="max-w-full whitespace-normal text-yellow-500 border-yellow-500/30"
-                >
-                  {t('aiBudget.overview.tipOff')}
-                </Badge>
-              )}
+              <Badge
+                variant="outline"
+                className={cn(
+                  'text-xs font-medium',
+                  overview.enabled
+                    ? 'text-emerald-500 border-emerald-500/30'
+                    : 'text-amber-500 border-amber-500/30',
+                )}
+              >
+                {overview.enabled
+                  ? t('aiBudget.overview.enabled')
+                  : t('aiBudget.overview.disabled')}
+              </Badge>
             </div>
-            <Button variant="outline" onClick={fetchOverview} className="w-full shrink-0 sm:w-auto">
-              <RefreshCw className="w-4 h-4 mr-2" /> {t('aiBudget.overview.refresh')}
-            </Button>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {overview.enabled
+                ? t('aiBudget.overview.statusOnDesc')
+                : t('aiBudget.overview.tipOff')}
+            </p>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Summary Cards */}
-      <div className="glass-card-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          icon={<Wallet className="w-5 h-5" />}
-          title={t('aiBudget.overview.ruleCount')}
-          value={overview.rule_count}
-        />
-        <StatCard
-          icon={<Zap className="w-5 h-5" />}
-          title={t('aiBudget.overview.enabledRuleCount')}
-          value={overview.enabled_rule_count}
-        />
-        <StatCard
-          icon={<Shield className="w-5 h-5" />}
-          title={t('aiBudget.overview.whitelistCount')}
-          value={overview.whitelist_count}
-        />
-        <StatCard
-          icon={<Activity className="w-5 h-5" />}
-          title={t('aiBudget.overview.totalTokens24h')}
-          value={formatTokens(overview.total_tokens_24h)}
-          valueSuffix=" tokens"
-        />
+        </div>
+        <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+          {!overview.enabled && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onNavigateTab('manage')}
+              className="h-9"
+            >
+              <Settings className="w-4 h-4 mr-1.5" />
+              {t('aiBudget.overview.configAction')}
+            </Button>
+          )}
+          <Button variant="outline" size="sm" onClick={fetchOverview} className="h-9">
+            <RefreshCw className={cn('w-4 h-4 mr-1.5', loading && 'animate-spin')} />
+            {t('aiBudget.overview.refresh')}
+          </Button>
+        </div>
       </div>
 
-      {/* Blocked Rules */}
-      <Card className="glass-card">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <AlertTriangle className="w-5 h-5" />
-            {t('aiBudget.overview.blockedRules')}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {overview.blocked_rules.length === 0 ? (
-            <p className="text-muted-foreground text-center py-4">
-              {t('aiBudget.overview.noBlockedRules')}
+      {/* 4 个核心指标卡片（全宽响应式网格） */}
+      <div className="glass-card-grid grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => onNavigateTab('rules')}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') onNavigateTab('rules');
+          }}
+          className="glass-card p-4 rounded-xl flex items-center justify-between gap-3 cursor-pointer hover:border-primary/40 transition-colors group"
+        >
+          <div className="min-w-0">
+            <p className="text-xs font-medium text-muted-foreground truncate">
+              {t('aiBudget.overview.ruleCount')}
             </p>
-          ) : (
-            <div className="space-y-3">
+            <p className="text-2xl font-bold tabular-nums mt-1 text-foreground">
+              {overview.rule_count}
+            </p>
+            <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1 group-hover:text-primary transition-colors">
+              {t('aiBudget.overview.manageAction')} <ChevronRight className="w-3 h-3" />
+            </p>
+          </div>
+          <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+            <Wallet className="w-5 h-5" />
+          </div>
+        </div>
+
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => onNavigateTab('rules')}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') onNavigateTab('rules');
+          }}
+          className="glass-card p-4 rounded-xl flex items-center justify-between gap-3 cursor-pointer hover:border-primary/40 transition-colors group"
+        >
+          <div className="min-w-0">
+            <p className="text-xs font-medium text-muted-foreground truncate">
+              {t('aiBudget.overview.enabledRuleCount')}
+            </p>
+            <p className="text-2xl font-bold tabular-nums mt-1 text-foreground">
+              {overview.enabled_rule_count}
+            </p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              {overview.rule_count - overview.enabled_rule_count > 0
+                ? `${overview.rule_count - overview.enabled_rule_count} ${t('aiBudget.rules.disabledOnly')}`
+                : t('aiBudget.rules.all')}
+            </p>
+          </div>
+          <div className="w-10 h-10 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0">
+            <Zap className="w-5 h-5" />
+          </div>
+        </div>
+
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => onNavigateTab('manage')}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') onNavigateTab('manage');
+          }}
+          className="glass-card p-4 rounded-xl flex items-center justify-between gap-3 cursor-pointer hover:border-primary/40 transition-colors group"
+        >
+          <div className="min-w-0">
+            <p className="text-xs font-medium text-muted-foreground truncate">
+              {t('aiBudget.overview.whitelistCount')}
+            </p>
+            <p className="text-2xl font-bold tabular-nums mt-1 text-foreground">
+              {overview.whitelist_count}
+            </p>
+            <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1 group-hover:text-primary transition-colors">
+              {t('aiBudget.overview.configAction')} <ChevronRight className="w-3 h-3" />
+            </p>
+          </div>
+          <div className="w-10 h-10 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center shrink-0">
+            <Shield className="w-5 h-5" />
+          </div>
+        </div>
+
+        <div className="glass-card p-4 rounded-xl flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-xs font-medium text-muted-foreground truncate">
+              {t('aiBudget.overview.totalTokens24h')}
+            </p>
+            <p className="text-2xl font-bold tabular-nums mt-1 text-foreground">
+              {formatTokens(overview.total_tokens_24h)}
+            </p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">tokens / 24h</p>
+          </div>
+          <div className="w-10 h-10 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0">
+            <Activity className="w-5 h-5" />
+          </div>
+        </div>
+      </div>
+
+      {/* 超限规则监控区 */}
+      {overview.blocked_rules.length === 0 ? (
+        <div className="glass-card p-3.5 px-4 rounded-xl flex items-center justify-between border border-border/50">
+          <div className="flex items-center gap-2.5 text-sm">
+            <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+            <span className="font-medium text-foreground">
+              {t('aiBudget.overview.noBlockedRules')}
+            </span>
+            <span className="text-xs text-muted-foreground hidden sm:inline">
+              · {t('aiBudget.overview.healthyDesc')}
+            </span>
+          </div>
+          <Badge
+            variant="outline"
+            className="text-xs text-emerald-500 border-emerald-500/30 bg-emerald-500/5 shrink-0"
+          >
+            {t('aiBudget.overview.healthyBadge')}
+          </Badge>
+        </div>
+      ) : (
+        <Card className="glass-card border-red-500/30">
+          <CardHeader className="p-4 py-3 sm:p-4 sm:py-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2 text-base text-red-500">
+                <AlertTriangle className="h-4 w-4" />
+                {t('aiBudget.overview.blockedRules')} ({overview.blocked_rules.length})
+              </CardTitle>
+              <Badge variant="destructive" className="text-xs">
+                {t('aiBudget.rules.usage.over')}
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="px-4 pb-3 pt-0 sm:px-4 sm:pb-3 sm:pt-0">
+            <div className="space-y-2">
               {overview.blocked_rules.map((br) => (
                 <BlockedRuleItem key={br.rule_id} rule={br} />
               ))}
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
-      {/* Top Groups / Users */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card className="glass-card">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="w-5 h-5" />
+      {/* 24h 消耗排行 */}
+      <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-2">
+        <Card className="glass-card h-full">
+          <CardHeader className="p-4 py-3 sm:p-4 sm:py-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Users className="h-4 w-4" />
               {t('aiBudget.overview.topGroups24h')}
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-4 pb-2 pt-0 sm:px-4 sm:pb-2 sm:pt-0">
             {overview.top_groups_24h.length === 0 ? (
               <p className="text-muted-foreground text-center py-4">
                 {t('aiBudget.overview.noData')}
@@ -348,14 +442,14 @@ function OverviewTab() {
           </CardContent>
         </Card>
 
-        <Card className="glass-card">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Globe className="w-5 h-5" />
+        <Card className="glass-card h-full">
+          <CardHeader className="p-4 py-3 sm:p-4 sm:py-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Globe className="h-4 w-4" />
               {t('aiBudget.overview.topUsers24h')}
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-4 pb-2 pt-0 sm:px-4 sm:pb-2 sm:pt-0">
             {overview.top_users_24h.length === 0 ? (
               <p className="text-muted-foreground text-center py-4">
                 {t('aiBudget.overview.noData')}
@@ -376,6 +470,128 @@ function OverviewTab() {
           </CardContent>
         </Card>
       </div>
+
+      {/* 底部快捷入口导航 */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 mt-1">
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => onNavigateTab('rules')}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') onNavigateTab('rules');
+          }}
+          className="glass-card p-4 rounded-xl border border-border/60 hover:border-primary/50 transition-all cursor-pointer flex flex-col justify-between group"
+        >
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <Wallet className="h-4 w-4" />
+              </span>
+              <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+            </div>
+            <h3 className="font-semibold text-sm text-foreground">
+              {t('aiBudget.overview.quickRulesTitle')}
+            </h3>
+            <p className="text-xs text-muted-foreground mt-1">
+              {t('aiBudget.overview.quickRulesDesc')}
+            </p>
+          </div>
+          <div className="mt-3 pt-3 border-t border-border/40 flex items-center justify-between text-xs text-muted-foreground">
+            <span>
+              {overview.rule_count} {t('aiBudget.overview.ruleCount')}
+            </span>
+            <span className="text-primary font-medium group-hover:underline">
+              {t('aiBudget.overview.manageAction')} →
+            </span>
+          </div>
+        </div>
+
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => onNavigateTab('manage')}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') onNavigateTab('manage');
+          }}
+          className="glass-card p-4 rounded-xl border border-border/60 hover:border-primary/50 transition-all cursor-pointer flex flex-col justify-between group"
+        >
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10 text-blue-500">
+                <Settings className="h-4 w-4" />
+              </span>
+              <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+            </div>
+            <h3 className="font-semibold text-sm text-foreground">
+              {t('aiBudget.overview.quickManageTitle')}
+            </h3>
+            <p className="text-xs text-muted-foreground mt-1">
+              {t('aiBudget.overview.quickManageDesc')}
+            </p>
+          </div>
+          <div className="mt-3 pt-3 border-t border-border/40 flex items-center justify-between text-xs text-muted-foreground">
+            <span>
+              {overview.whitelist_count} {t('aiBudget.overview.whitelistCount')}
+            </span>
+            <span className="text-primary font-medium group-hover:underline">
+              {t('aiBudget.overview.configAction')} →
+            </span>
+          </div>
+        </div>
+
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => onNavigateTab('diagnostic')}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') onNavigateTab('diagnostic');
+          }}
+          className="glass-card p-4 rounded-xl border border-border/60 hover:border-primary/50 transition-all cursor-pointer flex flex-col justify-between group"
+        >
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-500/10 text-purple-500">
+                <Eye className="h-4 w-4" />
+              </span>
+              <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+            </div>
+            <h3 className="font-semibold text-sm text-foreground">
+              {t('aiBudget.overview.quickDiagTitle')}
+            </h3>
+            <p className="text-xs text-muted-foreground mt-1">
+              {t('aiBudget.overview.quickDiagDesc')}
+            </p>
+          </div>
+          <div className="mt-3 pt-3 border-t border-border/40 flex items-center justify-between text-xs text-muted-foreground">
+            <span>{t('aiBudget.diagnostic.resultTitle')}</span>
+            <span className="text-primary font-medium group-hover:underline">
+              {t('aiBudget.overview.diagAction')} →
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ManageTab() {
+  const { t } = useLanguage();
+  return (
+    <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-2">
+      <section className="flex min-w-0 flex-col gap-2">
+        <h2 className="flex items-center gap-2 px-1 text-base font-semibold">
+          <Settings className="h-4 w-4" />
+          {t('aiBudget.config.title')}
+        </h2>
+        <ConfigTab />
+      </section>
+      <section className="flex min-w-0 flex-col gap-2">
+        <h2 className="flex items-center gap-2 px-1 text-base font-semibold">
+          <Shield className="h-4 w-4" />
+          {t('aiBudget.whitelist.title')}
+        </h2>
+        <WhitelistTab />
+      </section>
     </div>
   );
 }
@@ -419,37 +635,6 @@ function TopConsumptionRow({
         <div className="h-full rounded-full bg-primary/60" style={{ width: `${pct}%` }} />
       </div>
     </div>
-  );
-}
-
-function StatCard({
-  icon,
-  title,
-  value,
-  valueSuffix = '',
-}: {
-  icon: React.ReactNode;
-  title: string;
-  value: number | string;
-  valueSuffix?: string;
-}) {
-  return (
-    <Card className="glass-card">
-      <CardContent className="py-4">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center rounded-lg w-8 h-8 bg-primary/10 text-primary">
-            {icon}
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">{title}</p>
-            <p className="text-lg font-bold">
-              {value}
-              {valueSuffix}
-            </p>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
   );
 }
 
@@ -511,16 +696,21 @@ function WindowProgressBar({ window: w }: { window: AIBudgetWindowUsage }) {
 function OverviewSkeleton() {
   return (
     <div className="flex flex-col gap-4">
-      <Skeleton className="h-16 w-full rounded-lg" />
-      <div className="glass-card-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <Skeleton className="h-20 w-full rounded-xl" />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {[1, 2, 3, 4].map((i) => (
-          <Skeleton key={i} className="h-16 rounded-lg" />
+          <Skeleton key={i} className="h-24 rounded-xl" />
         ))}
       </div>
-      <Skeleton className="h-48 w-full rounded-lg" />
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Skeleton className="h-32 rounded-lg" />
-        <Skeleton className="h-32 rounded-lg" />
+      <Skeleton className="h-12 w-full rounded-xl" />
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <Skeleton className="h-56 rounded-xl" />
+        <Skeleton className="h-56 rounded-xl" />
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
+        {[1, 2, 3].map((i) => (
+          <Skeleton key={i} className="h-28 rounded-xl" />
+        ))}
       </div>
     </div>
   );
@@ -535,10 +725,10 @@ function ConfigTab({
   onSavingChange,
   saveRef,
 }: {
-  onDirtyChange: (dirty: boolean) => void;
-  onSavingChange: (saving: boolean) => void;
-  saveRef: React.MutableRefObject<(() => void) | null>;
-}) {
+  onDirtyChange?: (dirty: boolean) => void;
+  onSavingChange?: (saving: boolean) => void;
+  saveRef?: React.MutableRefObject<(() => void) | null>;
+} = {}) {
   const { t } = useLanguage();
   const [config, setConfig] = useState<AIBudgetConfig | null>(null);
   const [loading, setLoading] = useState(true);
@@ -579,10 +769,10 @@ function ConfigTab({
 
   // Sync dirty/saving state to parent for header save button
   useEffect(() => {
-    onDirtyChange(isDirty);
+    onDirtyChange?.(isDirty);
   }, [isDirty, onDirtyChange]);
   useEffect(() => {
-    onSavingChange(saving);
+    onSavingChange?.(saving);
   }, [saving, onSavingChange]);
 
   const fetchConfig = useCallback(async () => {
@@ -629,7 +819,7 @@ function ConfigTab({
       setSaving(false);
     }
   };
-  saveRef.current = handleSave;
+  if (saveRef) saveRef.current = handleSave;
 
   if (loading) return <ConfigSkeleton />;
   if (error)
@@ -1014,6 +1204,9 @@ function RulesTab() {
           <CardContent className="!py-8 text-center">
             <Wallet className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
             <p className="text-muted-foreground">{t('aiBudget.rules.noRules')}</p>
+            <Button className="mt-4" onClick={() => setCreateDialogOpen(true)}>
+              <Plus className="w-4 h-4 mr-2" /> {t('aiBudget.rules.createRule')}
+            </Button>
           </CardContent>
         </Card>
       ) : (

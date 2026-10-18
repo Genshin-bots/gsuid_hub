@@ -15,6 +15,7 @@ import {
 } from '@/lib/featureUtils';
 import type { PerfHourModel, PerfHourPoint } from '@/lib/featureUtils';
 import { Card, CardContent } from '@/components/ui/card';
+import { GlassAlert } from '@/components/ui/glass-alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
 import {
@@ -343,17 +344,9 @@ const TREND_LOOKBACK_DAYS = 7;
  */
 const rangeControlShellClass = 'glass-card-flat tab-segment-row';
 
-/* 同行控件的高度跟分段组的**外壳**齐平，而不是里面的按钮。
-   TabButtonGroup 的外壳没有显式高度，是 `p-1`(2×0.25rem) 包着 `h-10` 的内钮，
-   再加外壳自己 `glass-card-flat` 的上下各 1px 描边 —— 外框 3rem + 2px（实测 49px）。
-   而共用的 `tabToolbarControlClass` 是 `h-10`（实测 39px），差出来的 10px 一眼就看得出来，
-   读着像「这几个控件没做完」。
-   写成 rem 而不是 50px：`ui_scale` 改的是根字号，外壳那几项都是 rem，定死 px 会在
-   非 100% 缩放下反过来又错开。
-   共用导出不要动 —— 它是给旁边摆 Input / Select 的场景定的；这几个控件自己也是
-   rangeControlShellClass 的玻璃面外壳，是这一排的同伴而不是旁观者。 */
-const rangeControlHeightClass = 'h-[calc(3rem+2px)]';
-const rangeIconButtonClass = 'h-[calc(3rem+2px)] w-[calc(3rem+2px)]';
+/* 日期槽和刷新按钮 h-10，和分段内钮齐平，不跟外壳垫高。 */
+const rangeControlHeightClass = 'h-10';
+const rangeIconButtonClass = 'h-10 w-10';
 
 function rowChartHeight(rows: number): number {
   return Math.min(Math.max(rows * ROW_HEIGHT + 56, CHART_MIN), CHART_MAX);
@@ -1845,12 +1838,9 @@ export default function AIStatisticsPage() {
       }
     >
       {error && (
-        <Card className="glass-card border-destructive/50">
-          <CardContent className="flex items-center gap-3 p-4 text-destructive">
-            <AlertTriangle className="w-5 h-5 shrink-0" />
-            <span className="min-w-0 flex-1 break-words text-sm">{error}</span>
-          </CardContent>
-        </Card>
+        <GlassAlert tone="danger" icon={AlertTriangle}>
+          {error}
+        </GlassAlert>
       )}
 
       {isLoading ? (
@@ -2565,319 +2555,372 @@ export default function AIStatisticsPage() {
 
           {/* 数据明细弹窗：区间与当日构成逐行可查 */}
           <Dialog open={dataDetailOpen} onOpenChange={setDataDetailOpen}>
-            <DialogContent className="max-h-[85vh] max-w-6xl overflow-y-auto">
-              <DialogHeader>
+            <DialogContent className="max-h-[85vh] max-w-6xl flex flex-col p-6">
+              <DialogHeader className="shrink-0 pb-1">
                 <DialogTitle>{t('aiStatistics.dataDetail')}</DialogTitle>
                 <DialogDescription className="sr-only">
                   {t('aiStatistics.dataDetailHint')}
                 </DialogDescription>
               </DialogHeader>
-              <div className="glass-card-grid">
-                {rangeLoading ? (
-                  <TileSkeleton count={3} />
-                ) : rangeData && !isRangeEmpty ? (
-                  <>
-                    <div className="mt-0">
-                      <SectionLabel title={t('aiStatistics.dayDetail')} icon={Layers} />
-                    </div>
+              <div className="flex-1 min-h-0 overflow-y-auto pr-1 py-1">
+                <div className="glass-card-grid">
+                  {rangeLoading ? (
+                    <TileSkeleton count={3} />
+                  ) : rangeData && !isRangeEmpty ? (
+                    <>
+                      <div className="mt-0">
+                        <SectionLabel title={t('aiStatistics.dayDetail')} icon={Layers} />
+                      </div>
 
-                    <div className="mt-2.5 grid grid-cols-1 gap-3 lg:grid-cols-2">
-                      <DataBlock
-                        title={t('aiStatistics.modelDetail')}
-                        icon={Layers}
-                        extra={
-                          <span className="text-xs tabular-nums text-muted-foreground">
-                            {t('aiStatistics.itemCount', { count: tokenByModel.length })}
-                          </span>
-                        }
-                      >
-                        <DataTable
-                          emptyLabel={t('common.noData')}
-                          head={
-                            <>
-                              <th className={TABLE_HEAD}>{t('aiStatistics.model')}</th>
-                              <th className={cn(TABLE_HEAD, 'text-right')}>
-                                {t('aiStatistics.inputTokens')}
-                              </th>
-                              <th className={cn(TABLE_HEAD, 'text-right')}>
-                                {t('aiStatistics.outputTokens')}
-                              </th>
-                              <th className={cn(TABLE_HEAD, 'text-right')}>
-                                {t('aiStatistics.cacheReadTokens')}
-                              </th>
-                              <th className={cn(TABLE_HEAD, 'text-right')}>
-                                {t('aiStatistics.cacheWriteTokens')}
-                              </th>
-                            </>
+                      <div className="mt-2.5 grid grid-cols-1 gap-3 lg:grid-cols-2">
+                        <DataBlock
+                          title={t('aiStatistics.modelDetail')}
+                          icon={Layers}
+                          extra={
+                            <span className="text-xs tabular-nums text-muted-foreground">
+                              {t('aiStatistics.itemCount', { count: tokenByModel.length })}
+                            </span>
                           }
                         >
-                          {tokenByModel.map((item, i) => (
-                            <tr
-                              key={`${item.model}-${i}`}
-                              className="border-b border-border/30 last:border-0"
-                            >
-                              <td className={TABLE_CELL}>{item.model ?? '-'}</td>
-                              <td className={TABLE_NUM}>
-                                {(item.input_tokens ?? 0).toLocaleString()}
-                              </td>
-                              <td className={TABLE_NUM}>
-                                {(item.output_tokens ?? 0).toLocaleString()}
-                              </td>
-                              <td className={TABLE_NUM}>
-                                {(item.cache_read_tokens ?? 0).toLocaleString()}
-                              </td>
-                              <td className={TABLE_NUM}>
-                                {(item.cache_write_tokens ?? 0).toLocaleString()}
-                              </td>
-                            </tr>
-                          ))}
-                        </DataTable>
-                      </DataBlock>
+                          <DataTable
+                            emptyLabel={t('common.noData')}
+                            head={
+                              <>
+                                <th className={TABLE_HEAD}>{t('aiStatistics.model')}</th>
+                                <th className={cn(TABLE_HEAD, 'text-right')}>
+                                  {t('aiStatistics.inputTokens')}
+                                </th>
+                                <th className={cn(TABLE_HEAD, 'text-right')}>
+                                  {t('aiStatistics.outputTokens')}
+                                </th>
+                                <th className={cn(TABLE_HEAD, 'text-right')}>
+                                  {t('aiStatistics.cacheReadTokens')}
+                                </th>
+                                <th className={cn(TABLE_HEAD, 'text-right')}>
+                                  {t('aiStatistics.cacheWriteTokens')}
+                                </th>
+                              </>
+                            }
+                          >
+                            {tokenByModel.map((item, i) => (
+                              <tr
+                                key={`${item.model}-${i}`}
+                                className="border-b border-border/30 last:border-0"
+                              >
+                                <td className={TABLE_CELL}>{item.model ?? '-'}</td>
+                                <td className={TABLE_NUM}>
+                                  {(item.input_tokens ?? 0).toLocaleString()}
+                                </td>
+                                <td className={TABLE_NUM}>
+                                  {(item.output_tokens ?? 0).toLocaleString()}
+                                </td>
+                                <td className={TABLE_NUM}>
+                                  {(item.cache_read_tokens ?? 0).toLocaleString()}
+                                </td>
+                                <td className={TABLE_NUM}>
+                                  {(item.cache_write_tokens ?? 0).toLocaleString()}
+                                </td>
+                              </tr>
+                            ))}
+                          </DataTable>
+                        </DataBlock>
 
-                      <DataBlock
-                        title={t('aiStatistics.typeDetail')}
-                        icon={Layers}
-                        extra={
-                          <span className="text-xs tabular-nums text-muted-foreground">
-                            {t('aiStatistics.itemCount', { count: tokenByType.length })}
-                          </span>
-                        }
-                      >
-                        <DataTable
-                          emptyLabel={t('common.noData')}
-                          head={
-                            <>
-                              <th className={TABLE_HEAD}>{t('aiStatistics.type')}</th>
-                              <th className={cn(TABLE_HEAD, 'text-right')}>
-                                {t('aiStatistics.inputTokens')}
-                              </th>
-                              <th className={cn(TABLE_HEAD, 'text-right')}>
-                                {t('aiStatistics.outputTokens')}
-                              </th>
-                              <th className={cn(TABLE_HEAD, 'text-right')}>
-                                {t('aiStatistics.cacheReadTokens')}
-                              </th>
-                              <th className={cn(TABLE_HEAD, 'text-right')}>
-                                {t('aiStatistics.cacheWriteTokens')}
-                              </th>
-                            </>
+                        <DataBlock
+                          title={t('aiStatistics.typeDetail')}
+                          icon={Layers}
+                          extra={
+                            <span className="text-xs tabular-nums text-muted-foreground">
+                              {t('aiStatistics.itemCount', { count: tokenByType.length })}
+                            </span>
                           }
                         >
-                          {tokenByType.map((item, i) => (
-                            <tr
-                              key={`${item.type}-${i}`}
-                              className="border-b border-border/30 last:border-0"
-                            >
-                              <td className={TABLE_CELL}>{item.type ?? '-'}</td>
-                              <td className={TABLE_NUM}>
-                                {(item.input_tokens ?? 0).toLocaleString()}
-                              </td>
-                              <td className={TABLE_NUM}>
-                                {(item.output_tokens ?? 0).toLocaleString()}
-                              </td>
-                              <td className={TABLE_NUM}>
-                                {(item.cache_read_tokens ?? 0).toLocaleString()}
-                              </td>
-                              <td className={TABLE_NUM}>
-                                {(item.cache_write_tokens ?? 0).toLocaleString()}
-                              </td>
-                            </tr>
-                          ))}
-                        </DataTable>
-                      </DataBlock>
-                    </div>
+                          <DataTable
+                            emptyLabel={t('common.noData')}
+                            head={
+                              <>
+                                <th className={TABLE_HEAD}>{t('aiStatistics.type')}</th>
+                                <th className={cn(TABLE_HEAD, 'text-right')}>
+                                  {t('aiStatistics.inputTokens')}
+                                </th>
+                                <th className={cn(TABLE_HEAD, 'text-right')}>
+                                  {t('aiStatistics.outputTokens')}
+                                </th>
+                                <th className={cn(TABLE_HEAD, 'text-right')}>
+                                  {t('aiStatistics.cacheReadTokens')}
+                                </th>
+                                <th className={cn(TABLE_HEAD, 'text-right')}>
+                                  {t('aiStatistics.cacheWriteTokens')}
+                                </th>
+                              </>
+                            }
+                          >
+                            {tokenByType.map((item, i) => (
+                              <tr
+                                key={`${item.type}-${i}`}
+                                className="border-b border-border/30 last:border-0"
+                              >
+                                <td className={TABLE_CELL}>{item.type ?? '-'}</td>
+                                <td className={TABLE_NUM}>
+                                  {(item.input_tokens ?? 0).toLocaleString()}
+                                </td>
+                                <td className={TABLE_NUM}>
+                                  {(item.output_tokens ?? 0).toLocaleString()}
+                                </td>
+                                <td className={TABLE_NUM}>
+                                  {(item.cache_read_tokens ?? 0).toLocaleString()}
+                                </td>
+                                <td className={TABLE_NUM}>
+                                  {(item.cache_write_tokens ?? 0).toLocaleString()}
+                                </td>
+                              </tr>
+                            ))}
+                          </DataTable>
+                        </DataBlock>
+                      </div>
 
-                    <div className="mt-3">
-                      <DataBlock
-                        title={t('aiStatistics.rangeModelDetail')}
-                        icon={Coins}
-                        extra={
-                          <span className="text-xs tabular-nums text-muted-foreground">
-                            {t('aiStatistics.itemCount', { count: rangeData.by_model.length })}
-                          </span>
-                        }
-                      >
-                        <DataTable
-                          emptyLabel={t('common.noData')}
-                          head={
-                            <>
-                              <th className={TABLE_HEAD}>{t('aiStatistics.model')}</th>
-                              <th className={cn(TABLE_HEAD, 'text-right')}>
-                                {t('aiStatistics.inputTokens')}
-                              </th>
-                              <th className={cn(TABLE_HEAD, 'text-right')}>
-                                {t('aiStatistics.outputTokens')}
-                              </th>
-                              <th className={cn(TABLE_HEAD, 'text-right')}>
-                                {t('aiStatistics.cacheReadTokens')}
-                              </th>
-                              <th className={cn(TABLE_HEAD, 'text-right')}>
-                                {t('aiStatistics.cacheWriteTokens')}
-                              </th>
-                              <th className={cn(TABLE_HEAD, 'text-right')}>
-                                {t('aiStatistics.totalTokens')}
-                              </th>
-                            </>
+                      <div className="mt-3">
+                        <DataBlock
+                          title={t('aiStatistics.rangeModelDetail')}
+                          icon={Coins}
+                          extra={
+                            <span className="text-xs tabular-nums text-muted-foreground">
+                              {t('aiStatistics.itemCount', { count: rangeData.by_model.length })}
+                            </span>
                           }
                         >
-                          {rangeData.by_model.map((item, i) => (
-                            <tr
-                              key={`${item.model}-${i}`}
-                              className="border-b border-border/30 last:border-0"
-                            >
-                              <td className={TABLE_CELL}>{item.model ?? '-'}</td>
-                              <td className={TABLE_NUM}>
-                                {(item.input_tokens ?? 0).toLocaleString()}
-                              </td>
-                              <td className={TABLE_NUM}>
-                                {(item.output_tokens ?? 0).toLocaleString()}
-                              </td>
-                              <td className={TABLE_NUM}>
-                                {(item.cache_read_tokens ?? 0).toLocaleString()}
-                              </td>
-                              <td className={TABLE_NUM}>
-                                {(item.cache_write_tokens ?? 0).toLocaleString()}
-                              </td>
-                              <td className={cn(TABLE_NUM, 'font-medium')}>
-                                {(item.total_tokens ?? 0).toLocaleString()}
-                              </td>
-                            </tr>
-                          ))}
-                        </DataTable>
-                      </DataBlock>
-                    </div>
+                          <DataTable
+                            emptyLabel={t('common.noData')}
+                            head={
+                              <>
+                                <th className={TABLE_HEAD}>{t('aiStatistics.model')}</th>
+                                <th className={cn(TABLE_HEAD, 'text-right')}>
+                                  {t('aiStatistics.inputTokens')}
+                                </th>
+                                <th className={cn(TABLE_HEAD, 'text-right')}>
+                                  {t('aiStatistics.outputTokens')}
+                                </th>
+                                <th className={cn(TABLE_HEAD, 'text-right')}>
+                                  {t('aiStatistics.cacheReadTokens')}
+                                </th>
+                                <th className={cn(TABLE_HEAD, 'text-right')}>
+                                  {t('aiStatistics.cacheWriteTokens')}
+                                </th>
+                                <th className={cn(TABLE_HEAD, 'text-right')}>
+                                  {t('aiStatistics.totalTokens')}
+                                </th>
+                              </>
+                            }
+                          >
+                            {rangeData.by_model.map((item, i) => (
+                              <tr
+                                key={`${item.model}-${i}`}
+                                className="border-b border-border/30 last:border-0"
+                              >
+                                <td className={TABLE_CELL}>{item.model ?? '-'}</td>
+                                <td className={TABLE_NUM}>
+                                  {(item.input_tokens ?? 0).toLocaleString()}
+                                </td>
+                                <td className={TABLE_NUM}>
+                                  {(item.output_tokens ?? 0).toLocaleString()}
+                                </td>
+                                <td className={TABLE_NUM}>
+                                  {(item.cache_read_tokens ?? 0).toLocaleString()}
+                                </td>
+                                <td className={TABLE_NUM}>
+                                  {(item.cache_write_tokens ?? 0).toLocaleString()}
+                                </td>
+                                <td className={cn(TABLE_NUM, 'font-medium')}>
+                                  {(item.total_tokens ?? 0).toLocaleString()}
+                                </td>
+                              </tr>
+                            ))}
+                          </DataTable>
+                        </DataBlock>
+                      </div>
 
-                    {/* 每日明细跟着「历史趋势」页签一起搬进这个弹窗：它本来就是
+                      {/* 每日明细跟着「历史趋势」页签一起搬进这个弹窗：它本来就是
                         这两张区间表（按模型 / 按类型）的同源逐日展开，
                         数据直接读 rangeData.daily，不再单独打 /statistics/history。 */}
-                    <div className="mt-3">
-                      <DataBlock
-                        title={t('aiStatistics.dailyDetail')}
-                        icon={Table2}
-                        extra={
-                          <span className="text-xs tabular-nums text-muted-foreground">
-                            {t('aiStatistics.itemCount', { count: rangeData.daily.length })}
-                          </span>
-                        }
-                      >
-                        <DataTable
-                          emptyLabel={t('common.noData')}
-                          head={
-                            <>
-                              <th className={TABLE_HEAD}>{t('aiStatistics.date')}</th>
-                              <th className={cn(TABLE_HEAD, 'text-right')}>
-                                {t('aiStatistics.inputTokens')}
-                              </th>
-                              <th className={cn(TABLE_HEAD, 'text-right')}>
-                                {t('aiStatistics.outputTokens')}
-                              </th>
-                              <th className={cn(TABLE_HEAD, 'text-right')}>
-                                {t('aiStatistics.totalTokens')}
-                              </th>
-                              <th className={cn(TABLE_HEAD, 'text-right')}>
-                                {t('aiStatistics.userTurnCount')}
-                              </th>
-                              <th className={cn(TABLE_HEAD, 'text-right')}>
-                                {t('aiStatistics.agentRunCount')}
-                              </th>
-                              <th className={cn(TABLE_HEAD, 'text-right')}>
-                                {t('aiStatistics.avgTokensPerUserTurn')}
-                              </th>
-                              <th className={cn(TABLE_HEAD, 'text-right')}>
-                                {t('aiStatistics.avgAgentRunsPerUserTurn')}
-                              </th>
-                            </>
+                      <div className="mt-3">
+                        <DataBlock
+                          title={t('aiStatistics.dailyDetail')}
+                          icon={Table2}
+                          extra={
+                            <span className="text-xs tabular-nums text-muted-foreground">
+                              {t('aiStatistics.itemCount', { count: rangeData.daily.length })}
+                            </span>
                           }
                         >
-                          {rangeData.daily.map((d) => (
-                            <tr key={d.date} className="border-b border-border/30 last:border-0">
-                              <td className={TABLE_CELL}>{d.date}</td>
-                              <td className={TABLE_NUM}>
-                                {(d.input_tokens ?? 0).toLocaleString()}
-                              </td>
-                              <td className={TABLE_NUM}>
-                                {(d.output_tokens ?? 0).toLocaleString()}
-                              </td>
-                              <td className={cn(TABLE_NUM, 'font-medium')}>
-                                {(d.total_tokens ?? 0).toLocaleString()}
-                              </td>
-                              <td className={TABLE_NUM}>
-                                {(d.user_turn_count ?? 0).toLocaleString()}
-                              </td>
-                              <td className={TABLE_NUM}>
-                                {(d.agent_run_count ?? 0).toLocaleString()}
-                              </td>
-                              <td className={TABLE_NUM}>
-                                {Math.round(d.avg_tokens_per_user_turn ?? 0).toLocaleString()}
-                              </td>
-                              <td className={TABLE_NUM}>
-                                {(d.avg_agent_runs_per_user_turn ?? 0).toFixed(2)}
-                              </td>
-                            </tr>
-                          ))}
-                        </DataTable>
-                      </DataBlock>
-                    </div>
-                  </>
-                ) : (
-                  <Card className="glass-card mt-3">
-                    <CardContent className="flex flex-col items-center justify-center !p-8 text-center text-muted-foreground">
-                      <CalendarDays className="mb-4 h-12 w-12 opacity-50" />
-                      <p>{t('aiStatistics.noDataInRange')}</p>
-                    </CardContent>
-                  </Card>
-                )}
+                          <DataTable
+                            emptyLabel={t('common.noData')}
+                            head={
+                              <>
+                                <th className={TABLE_HEAD}>{t('aiStatistics.date')}</th>
+                                <th className={cn(TABLE_HEAD, 'text-right')}>
+                                  {t('aiStatistics.inputTokens')}
+                                </th>
+                                <th className={cn(TABLE_HEAD, 'text-right')}>
+                                  {t('aiStatistics.outputTokens')}
+                                </th>
+                                <th className={cn(TABLE_HEAD, 'text-right')}>
+                                  {t('aiStatistics.totalTokens')}
+                                </th>
+                                <th className={cn(TABLE_HEAD, 'text-right')}>
+                                  {t('aiStatistics.userTurnCount')}
+                                </th>
+                                <th className={cn(TABLE_HEAD, 'text-right')}>
+                                  {t('aiStatistics.agentRunCount')}
+                                </th>
+                                <th className={cn(TABLE_HEAD, 'text-right')}>
+                                  {t('aiStatistics.avgTokensPerUserTurn')}
+                                </th>
+                                <th className={cn(TABLE_HEAD, 'text-right')}>
+                                  {t('aiStatistics.avgAgentRunsPerUserTurn')}
+                                </th>
+                              </>
+                            }
+                          >
+                            {rangeData.daily.map((d) => (
+                              <tr key={d.date} className="border-b border-border/30 last:border-0">
+                                <td className={TABLE_CELL}>{d.date}</td>
+                                <td className={TABLE_NUM}>
+                                  {(d.input_tokens ?? 0).toLocaleString()}
+                                </td>
+                                <td className={TABLE_NUM}>
+                                  {(d.output_tokens ?? 0).toLocaleString()}
+                                </td>
+                                <td className={cn(TABLE_NUM, 'font-medium')}>
+                                  {(d.total_tokens ?? 0).toLocaleString()}
+                                </td>
+                                <td className={TABLE_NUM}>
+                                  {(d.user_turn_count ?? 0).toLocaleString()}
+                                </td>
+                                <td className={TABLE_NUM}>
+                                  {(d.agent_run_count ?? 0).toLocaleString()}
+                                </td>
+                                <td className={TABLE_NUM}>
+                                  {Math.round(d.avg_tokens_per_user_turn ?? 0).toLocaleString()}
+                                </td>
+                                <td className={TABLE_NUM}>
+                                  {(d.avg_agent_runs_per_user_turn ?? 0).toFixed(2)}
+                                </td>
+                              </tr>
+                            ))}
+                          </DataTable>
+                        </DataBlock>
+                      </div>
+                    </>
+                  ) : (
+                    <Card className="glass-card mt-3">
+                      <CardContent className="flex flex-col items-center justify-center !p-8 text-center text-muted-foreground">
+                        <CalendarDays className="mb-4 h-12 w-12 opacity-50" />
+                        <p>{t('aiStatistics.noDataInRange')}</p>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
               </div>
             </DialogContent>
           </Dialog>
 
           {/* 性能明细弹窗：概览只留曲线，逐行明细点开看 */}
           <Dialog open={perfDetailOpen} onOpenChange={setPerfDetailOpen}>
-            <DialogContent className="max-h-[85vh] max-w-6xl overflow-y-auto">
-              <DialogHeader>
+            <DialogContent className="max-h-[85vh] max-w-6xl flex flex-col p-6">
+              <DialogHeader className="shrink-0 pb-1">
                 <DialogTitle>{t('aiStatistics.performanceDetail')}</DialogTitle>
                 <DialogDescription className="sr-only">
                   {t('aiStatistics.performanceDetailHint')}
                 </DialogDescription>
               </DialogHeader>
-              <div className="glass-card-grid">
-                <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
-                  <TabButtonGroup
-                    options={[
-                      {
-                        value: 'day',
-                        label: t('aiStatistics.singleDay'),
-                        icon: <Clock className="w-4 h-4" />,
-                      },
-                      {
-                        value: 'range',
-                        label: t('aiStatistics.dateRangePerformance'),
-                        icon: <CalendarDays className="w-4 h-4" />,
-                      },
-                    ]}
-                    value={perfMode}
-                    onValueChange={(v) => setPerfMode(v as 'day' | 'range')}
-                  />
-                  {perfMode === 'range' && (
-                    /* 弹窗里只读：区间跟着顶部的维度走，这里把当前范围写清楚，
+              <div className="flex-1 min-h-0 overflow-y-auto pr-1 py-1">
+                <div className="glass-card-grid">
+                  <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+                    <TabButtonGroup
+                      options={[
+                        {
+                          value: 'day',
+                          label: t('aiStatistics.singleDay'),
+                          icon: <Clock className="w-4 h-4" />,
+                        },
+                        {
+                          value: 'range',
+                          label: t('aiStatistics.dateRangePerformance'),
+                          icon: <CalendarDays className="w-4 h-4" />,
+                        },
+                      ]}
+                      value={perfMode}
+                      onValueChange={(v) => setPerfMode(v as 'day' | 'range')}
+                    />
+                    {perfMode === 'range' && (
+                      /* 弹窗里只读：区间跟着顶部的维度走，这里把当前范围写清楚，
                        不再放一排会让人以为能在这里改口径的胶囊。 */
-                    <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
-                      {scopeLabel}
-                    </span>
-                  )}
-                </div>
+                      <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
+                        {scopeLabel}
+                      </span>
+                    )}
+                  </div>
 
-                {perfMode === 'range' ? (
-                  perfRangeLoading ? (
-                    <Skeleton className="mt-3 h-[264px] w-full" />
-                  ) : perfRangeAggregated.length > 0 ? (
+                  {perfMode === 'range' ? (
+                    perfRangeLoading ? (
+                      <Skeleton className="mt-3 h-[264px] w-full" />
+                    ) : perfRangeAggregated.length > 0 ? (
+                      <div className="mt-3">
+                        <DataBlock
+                          title={t('aiStatistics.rangePerformanceDetail')}
+                          icon={Gauge}
+                          extra={
+                            <span className="text-xs tabular-nums text-muted-foreground">
+                              {t('aiStatistics.itemCount', { count: perfRangeAggregated.length })}
+                            </span>
+                          }
+                        >
+                          <DataTable
+                            emptyLabel={t('common.noData')}
+                            head={
+                              <>
+                                <th className={TABLE_HEAD}>{t('aiStatistics.date')}</th>
+                                <th className={cn(TABLE_HEAD, 'text-right')}>
+                                  {t('aiStatistics.requestCount')}
+                                </th>
+                                <th className={cn(TABLE_HEAD, 'text-right')}>
+                                  {t('aiStatistics.ttftAvg')}
+                                </th>
+                                <th className={cn(TABLE_HEAD, 'text-right')}>
+                                  {t('aiStatistics.tpsAvg')}
+                                </th>
+                              </>
+                            }
+                          >
+                            {perfRangeAggregated.map((row) => (
+                              <tr
+                                key={row.date}
+                                className="border-b border-border/30 last:border-0"
+                              >
+                                <td className={TABLE_CELL}>{row.date}</td>
+                                <td className={TABLE_NUM}>{row.requests.toLocaleString()}</td>
+                                <td className={TABLE_NUM}>{row.ttftAvg.toFixed(1)} ms</td>
+                                <td className={TABLE_NUM}>{row.tpsAvg.toFixed(1)}</td>
+                              </tr>
+                            ))}
+                          </DataTable>
+                        </DataBlock>
+                      </div>
+                    ) : (
+                      <EmptyChart height={TREND_HEIGHT} label={t('common.noData')} />
+                    )
+                  ) : (
                     <div className="mt-3">
                       <DataBlock
-                        title={t('aiStatistics.rangePerformanceDetail')}
+                        title={t('aiStatistics.hourlyPerformance')}
                         icon={Gauge}
                         extra={
                           <span className="text-xs tabular-nums text-muted-foreground">
-                            {t('aiStatistics.itemCount', { count: perfRangeAggregated.length })}
+                            {t('aiStatistics.itemCount', {
+                              count: performanceData.reduce(
+                                (sum, h) => sum + h.providers.length,
+                                0,
+                              ),
+                            })}
                           </span>
                         }
                       >
@@ -2885,7 +2928,9 @@ export default function AIStatisticsPage() {
                           emptyLabel={t('common.noData')}
                           head={
                             <>
-                              <th className={TABLE_HEAD}>{t('aiStatistics.date')}</th>
+                              <th className={TABLE_HEAD}>{t('aiStatistics.hour')}</th>
+                              <th className={TABLE_HEAD}>{t('aiStatistics.provider')}</th>
+                              <th className={TABLE_HEAD}>{t('aiStatistics.model')}</th>
                               <th className={cn(TABLE_HEAD, 'text-right')}>
                                 {t('aiStatistics.requestCount')}
                               </th>
@@ -2895,159 +2940,118 @@ export default function AIStatisticsPage() {
                               <th className={cn(TABLE_HEAD, 'text-right')}>
                                 {t('aiStatistics.tpsAvg')}
                               </th>
+                              <th className={cn(TABLE_HEAD, 'text-right')}>
+                                {t('aiStatistics.inputTokens')}
+                              </th>
+                              <th className={cn(TABLE_HEAD, 'text-right')}>
+                                {t('aiStatistics.outputTokens')}
+                              </th>
+                              <th className={cn(TABLE_HEAD, 'text-right')}>
+                                {t('aiStatistics.cacheReadTokens')}
+                              </th>
+                              <th className={cn(TABLE_HEAD, 'text-right')}>
+                                {t('aiStatistics.cacheWriteTokens')}
+                              </th>
+                              <th className={cn(TABLE_HEAD, 'text-right')}>
+                                {t('aiStatistics.toolCalls')}
+                              </th>
                             </>
                           }
                         >
-                          {perfRangeAggregated.map((row) => (
-                            <tr key={row.date} className="border-b border-border/30 last:border-0">
-                              <td className={TABLE_CELL}>{row.date}</td>
-                              <td className={TABLE_NUM}>{row.requests.toLocaleString()}</td>
-                              <td className={TABLE_NUM}>{row.ttftAvg.toFixed(1)} ms</td>
-                              <td className={TABLE_NUM}>{row.tpsAvg.toFixed(1)}</td>
-                            </tr>
-                          ))}
+                          {performanceData.flatMap((hourItem) =>
+                            hourItem.providers.map((p, idx) => (
+                              <tr
+                                key={`${hourItem.hour}-${idx}`}
+                                className="border-b border-border/30 last:border-0"
+                              >
+                                <td className={TABLE_CELL}>
+                                  {String(hourItem.hour).padStart(2, '0')}:00
+                                </td>
+                                <td className={TABLE_CELL}>{p.provider}</td>
+                                <td className={TABLE_CELL}>{p.model}</td>
+                                <td className={TABLE_NUM}>{p.request_count.toLocaleString()}</td>
+                                <td className={TABLE_NUM}>{p.ttft_avg_ms.toFixed(1)} ms</td>
+                                <td className={TABLE_NUM}>{p.tps_avg.toFixed(1)}</td>
+                                <td className={TABLE_NUM}>{p.input_tokens.toLocaleString()}</td>
+                                <td className={TABLE_NUM}>{p.output_tokens.toLocaleString()}</td>
+                                <td className={TABLE_NUM}>
+                                  {p.cache_read_tokens.toLocaleString()}
+                                </td>
+                                <td className={TABLE_NUM}>
+                                  {p.cache_write_tokens.toLocaleString()}
+                                </td>
+                                <td className={TABLE_NUM}>{p.tool_call_count.toLocaleString()}</td>
+                              </tr>
+                            )),
+                          )}
                         </DataTable>
                       </DataBlock>
                     </div>
-                  ) : (
-                    <EmptyChart height={TREND_HEIGHT} label={t('common.noData')} />
-                  )
-                ) : (
-                  <div className="mt-3">
-                    <DataBlock
-                      title={t('aiStatistics.hourlyPerformance')}
-                      icon={Gauge}
-                      extra={
-                        <span className="text-xs tabular-nums text-muted-foreground">
-                          {t('aiStatistics.itemCount', {
-                            count: performanceData.reduce((sum, h) => sum + h.providers.length, 0),
-                          })}
-                        </span>
-                      }
-                    >
-                      <DataTable
-                        emptyLabel={t('common.noData')}
-                        head={
-                          <>
-                            <th className={TABLE_HEAD}>{t('aiStatistics.hour')}</th>
-                            <th className={TABLE_HEAD}>{t('aiStatistics.provider')}</th>
-                            <th className={TABLE_HEAD}>{t('aiStatistics.model')}</th>
-                            <th className={cn(TABLE_HEAD, 'text-right')}>
-                              {t('aiStatistics.requestCount')}
-                            </th>
-                            <th className={cn(TABLE_HEAD, 'text-right')}>
-                              {t('aiStatistics.ttftAvg')}
-                            </th>
-                            <th className={cn(TABLE_HEAD, 'text-right')}>
-                              {t('aiStatistics.tpsAvg')}
-                            </th>
-                            <th className={cn(TABLE_HEAD, 'text-right')}>
-                              {t('aiStatistics.inputTokens')}
-                            </th>
-                            <th className={cn(TABLE_HEAD, 'text-right')}>
-                              {t('aiStatistics.outputTokens')}
-                            </th>
-                            <th className={cn(TABLE_HEAD, 'text-right')}>
-                              {t('aiStatistics.cacheReadTokens')}
-                            </th>
-                            <th className={cn(TABLE_HEAD, 'text-right')}>
-                              {t('aiStatistics.cacheWriteTokens')}
-                            </th>
-                            <th className={cn(TABLE_HEAD, 'text-right')}>
-                              {t('aiStatistics.toolCalls')}
-                            </th>
-                          </>
-                        }
-                      >
-                        {performanceData.flatMap((hourItem) =>
-                          hourItem.providers.map((p, idx) => (
-                            <tr
-                              key={`${hourItem.hour}-${idx}`}
-                              className="border-b border-border/30 last:border-0"
-                            >
-                              <td className={TABLE_CELL}>
-                                {String(hourItem.hour).padStart(2, '0')}:00
-                              </td>
-                              <td className={TABLE_CELL}>{p.provider}</td>
-                              <td className={TABLE_CELL}>{p.model}</td>
-                              <td className={TABLE_NUM}>{p.request_count.toLocaleString()}</td>
-                              <td className={TABLE_NUM}>{p.ttft_avg_ms.toFixed(1)} ms</td>
-                              <td className={TABLE_NUM}>{p.tps_avg.toFixed(1)}</td>
-                              <td className={TABLE_NUM}>{p.input_tokens.toLocaleString()}</td>
-                              <td className={TABLE_NUM}>{p.output_tokens.toLocaleString()}</td>
-                              <td className={TABLE_NUM}>{p.cache_read_tokens.toLocaleString()}</td>
-                              <td className={TABLE_NUM}>{p.cache_write_tokens.toLocaleString()}</td>
-                              <td className={TABLE_NUM}>{p.tool_call_count.toLocaleString()}</td>
-                            </tr>
-                          )),
-                        )}
-                      </DataTable>
-                    </DataBlock>
-                  </div>
-                )}
+                  )}
 
-                {/* 错误按类型的构成从概览挪到这里：概览只留一个错误率读数，
+                  {/* 错误按类型的构成从概览挪到这里：概览只留一个错误率读数，
                     那一格撑不起一张图表卡（真实数据常常只有一种错误，卡片半空）。
                     需要追「到底是超时还是限流」的时候在这里逐行看。
                     抬头补上时间标签，跟概览那块读数对齐同一段。 */}
-                {errorBreakdown.length > 0 ? (
-                  <div className="mt-3">
-                    <DataBlock
-                      title={t('aiStatistics.errorStats')}
-                      icon={AlertTriangle}
-                      extra={
-                        <span className="text-xs tabular-nums text-muted-foreground">
-                          {scopeMark} · {t('aiStatistics.errorCount', { count: perfErrorTotal })}
-                        </span>
-                      }
-                    >
-                      <div className="flex flex-col gap-3">
-                        <SplitBar
-                          segments={errorBreakdown.map((item, index) => ({
-                            label: item.label,
-                            value: item.value,
-                            color: ramp[index % ramp.length],
-                          }))}
-                        />
-                        <DataTable
-                          emptyLabel={t('common.noData')}
-                          head={
-                            <>
-                              <th className={TABLE_HEAD}>{t('aiStatistics.errorType')}</th>
-                              <th className={cn(TABLE_HEAD, 'text-right')}>
-                                {t('aiStatistics.requestCount')}
-                              </th>
-                              <th className={cn(TABLE_HEAD, 'text-right')}>
-                                {t('aiStatistics.share')}
-                              </th>
-                            </>
-                          }
-                        >
-                          {errorBreakdown.map((item, index) => (
-                            <tr
-                              key={item.key}
-                              className="border-b border-border/30 last:border-b-0"
-                            >
-                              <td className={TABLE_CELL}>
-                                <span className="flex items-center gap-1.5">
-                                  <span
-                                    className="h-2 w-2 shrink-0 rounded-full"
-                                    style={{ backgroundColor: ramp[index % ramp.length] }}
-                                  />
-                                  {item.label}
-                                </span>
-                              </td>
-                              <td className={TABLE_NUM}>{item.value.toLocaleString()}</td>
-                              <td className={TABLE_NUM}>
-                                {((item.value / (perfErrorTotal || 1)) * 100).toFixed(1)}%
-                              </td>
-                            </tr>
-                          ))}
-                        </DataTable>
-                      </div>
-                    </DataBlock>
-                  </div>
-                ) : null}
+                  {errorBreakdown.length > 0 ? (
+                    <div className="mt-3">
+                      <DataBlock
+                        title={t('aiStatistics.errorStats')}
+                        icon={AlertTriangle}
+                        extra={
+                          <span className="text-xs tabular-nums text-muted-foreground">
+                            {scopeMark} · {t('aiStatistics.errorCount', { count: perfErrorTotal })}
+                          </span>
+                        }
+                      >
+                        <div className="flex flex-col gap-3">
+                          <SplitBar
+                            segments={errorBreakdown.map((item, index) => ({
+                              label: item.label,
+                              value: item.value,
+                              color: ramp[index % ramp.length],
+                            }))}
+                          />
+                          <DataTable
+                            emptyLabel={t('common.noData')}
+                            head={
+                              <>
+                                <th className={TABLE_HEAD}>{t('aiStatistics.errorType')}</th>
+                                <th className={cn(TABLE_HEAD, 'text-right')}>
+                                  {t('aiStatistics.requestCount')}
+                                </th>
+                                <th className={cn(TABLE_HEAD, 'text-right')}>
+                                  {t('aiStatistics.share')}
+                                </th>
+                              </>
+                            }
+                          >
+                            {errorBreakdown.map((item, index) => (
+                              <tr
+                                key={item.key}
+                                className="border-b border-border/30 last:border-b-0"
+                              >
+                                <td className={TABLE_CELL}>
+                                  <span className="flex items-center gap-1.5">
+                                    <span
+                                      className="h-2 w-2 shrink-0 rounded-full"
+                                      style={{ backgroundColor: ramp[index % ramp.length] }}
+                                    />
+                                    {item.label}
+                                  </span>
+                                </td>
+                                <td className={TABLE_NUM}>{item.value.toLocaleString()}</td>
+                                <td className={TABLE_NUM}>
+                                  {((item.value / (perfErrorTotal || 1)) * 100).toFixed(1)}%
+                                </td>
+                              </tr>
+                            ))}
+                          </DataTable>
+                        </div>
+                      </DataBlock>
+                    </div>
+                  ) : null}
+                </div>
               </div>
             </DialogContent>
           </Dialog>

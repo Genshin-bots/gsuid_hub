@@ -3,7 +3,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import {
@@ -35,11 +34,12 @@ import { logsApi, type LogContextLog, type LogContextResponse } from '@/lib/api'
 import { formatLogTimestamp } from '@/lib/featureUtils';
 import LogsConfigDialog from '@/components/logs/LogsConfigDialog';
 import ErrorReportsPanel from '@/components/logs/ErrorReportsPanel';
-import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
+import { TabButtonGroup, tabToolbarControlClass } from '@/components/ui/TabButtonGroup';
 import { toast } from 'sonner';
 import { StructuredDataViewer } from '@/components/StructuredDataViewer';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { headerActionRowClass, PinnedPage } from '@/components/layout/PinnedPage';
+import { GlassAlert } from '@/components/ui/glass-alert';
 
 type LogLevel = 'info' | 'warn' | 'error' | 'debug' | 'all';
 type DateMode = 'single' | 'range';
@@ -500,8 +500,6 @@ export default function LogsPage() {
 
   return (
     <PinnedPage
-      className="gap-4"
-      bodyClassName="space-y-4"
       header={
         /* Header */
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -543,22 +541,74 @@ export default function LogsPage() {
         </div>
       }
       toolbar={
-        <TabButtonGroup
-          options={[
-            {
-              value: 'runtime',
-              label: t('logs.viewRuntime'),
-              icon: <FileText className="w-4 h-4" />,
-            },
-            {
-              value: 'errors',
-              label: t('logs.viewErrorReports'),
-              icon: <AlertCircle className="w-4 h-4" />,
-            },
-          ]}
-          value={view}
-          onValueChange={(v) => setView(v as LogsView)}
-        />
+        <div className="flex min-w-0 flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+          <TabButtonGroup
+            className="shrink-0"
+            options={[
+              {
+                value: 'runtime',
+                label: t('logs.viewRuntime'),
+                icon: <FileText className="w-4 h-4" />,
+              },
+              {
+                value: 'errors',
+                label: t('logs.viewErrorReports'),
+                icon: <AlertCircle className="w-4 h-4" />,
+              },
+            ]}
+            value={view}
+            onValueChange={(v) => setView(v as LogsView)}
+          />
+          {view === 'runtime' ? (
+            <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 lg:justify-end">
+              {(
+                [
+                  {
+                    key: 'total',
+                    icon: Info,
+                    value: totalCount.toLocaleString(),
+                    label: t('logs.totalLogs'),
+                    color: 'text-blue-500',
+                  },
+                  {
+                    key: 'info',
+                    icon: Info,
+                    value: infoCount,
+                    label: t('logs.info'),
+                    color: 'text-blue-500',
+                  },
+                  {
+                    key: 'warn',
+                    icon: AlertTriangle,
+                    value: warnCount,
+                    label: t('logs.warn'),
+                    color: 'text-yellow-500',
+                  },
+                  {
+                    key: 'error',
+                    icon: AlertCircle,
+                    value: errorCount,
+                    label: t('logs.errorLog'),
+                    color: 'text-red-500',
+                  },
+                  {
+                    key: 'debug',
+                    icon: Bug,
+                    value: debugCount,
+                    label: t('logs.debug'),
+                    color: 'text-gray-500',
+                  },
+                ] as const
+              ).map((item) => (
+                <span key={item.key} className="inline-flex items-center gap-1.5 text-sm">
+                  <item.icon className={cn('h-3.5 w-3.5 shrink-0', item.color)} strokeWidth={1.5} />
+                  <span className="font-semibold tabular-nums">{item.value}</span>
+                  <span className="text-xs text-muted-foreground">{item.label}</span>
+                </span>
+              ))}
+            </div>
+          ) : null}
+        </div>
       }
     >
       <LogsConfigDialog open={logsConfigOpen} onOpenChange={setLogsConfigOpen} />
@@ -567,228 +617,163 @@ export default function LogsPage() {
           <ErrorReportsPanel />
         </div>
       ) : null}
-      <div className={view === 'runtime' ? undefined : 'hidden'}>
-        {/* Stats - 固定高度 */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 shrink-0">
-          <Card className="glass-card border-l-4 border-l-blue-500">
-            <CardContent className="p-4 flex items-center gap-3">
-              <Info className="w-7 h-7 text-blue-500 shrink-0" strokeWidth={1.5} />
-              <div>
-                <p className="text-2xl font-bold">{totalCount.toLocaleString()}</p>
-                <p className="text-xs text-muted-foreground">{t('logs.totalLogs')}</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="glass-card border-l-4 border-l-blue-500">
-            <CardContent className="p-4 flex items-center gap-3">
-              <Info className="w-7 h-7 text-blue-500 shrink-0" strokeWidth={1.5} />
-              <div>
-                <p className="text-2xl font-bold">{infoCount}</p>
-                <p className="text-xs text-muted-foreground">{t('logs.info')}</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="glass-card border-l-4 border-l-yellow-500">
-            <CardContent className="p-4 flex items-center gap-3">
-              <AlertTriangle className="w-7 h-7 text-yellow-500 shrink-0" strokeWidth={1.5} />
-              <div>
-                <p className="text-2xl font-bold">{warnCount}</p>
-                <p className="text-xs text-muted-foreground">{t('logs.warn')}</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="glass-card border-l-4 border-l-red-500">
-            <CardContent className="p-4 flex items-center gap-3">
-              <AlertCircle className="w-7 h-7 text-red-500 shrink-0" strokeWidth={1.5} />
-              <div>
-                <p className="text-2xl font-bold">{errorCount}</p>
-                <p className="text-xs text-muted-foreground">{t('logs.errorLog')}</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="glass-card border-l-4 border-l-gray-500">
-            <CardContent className="p-4 flex items-center gap-3">
-              <Bug className="w-7 h-7 text-gray-500 shrink-0" strokeWidth={1.5} />
-              <div>
-                <p className="text-2xl font-bold">{debugCount}</p>
-                <p className="text-xs text-muted-foreground">{t('logs.debug')}</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Filters - 固定高度 */}
-        <Card className="glass-card shrink-0">
-          <CardContent className="p-4">
-            <div className="flex flex-col sm:flex-row gap-4">
-              {/* Date Mode Toggle */}
-              <Tabs value={dateMode} onValueChange={(v) => handleDateModeChange(v as DateMode)}>
-                <TabsList>
-                  <TabsTrigger value="single">{t('logs.singleDate') || '单日期'}</TabsTrigger>
-                  <TabsTrigger value="range">{t('logs.dateRange') || '日期范围'}</TabsTrigger>
-                </TabsList>
-              </Tabs>
-
-              {/* Date Picker(s) */}
-              {dateMode === 'single' ? (
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        'w-[180px] justify-start text-left font-normal',
-                        !selectedDate && 'text-muted-foreground',
-                      )}
-                    >
-                      <Calendar className="mr-2 h-4 w-4" />
-                      {selectedDate ? format(selectedDate, 'yyyy-MM-dd') : t('logs.selectDate')}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start" side="bottom" sideOffset={8}>
-                    <CalendarComponent
-                      mode="single"
-                      selected={selectedDate}
-                      onSelect={(date) => {
-                        if (date) {
-                          setSelectedDate(date);
-                          setCurrentPage(1);
-                        }
-                      }}
-                      defaultMonth={selectedDate}
-                      initialFocus
-                      className="pointer-events-auto"
-                      disabled={(date) => {
-                        const dateStr = date.toISOString().split('T')[0];
-                        return availableDates.length > 0 && !availableDates.includes(dateStr);
-                      }}
-                    />
-                  </PopoverContent>
-                </Popover>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          'w-[150px] justify-start text-left font-normal',
-                          !startDate && 'text-muted-foreground',
-                        )}
-                      >
-                        <Calendar className="mr-2 h-4 w-4" />
-                        {startDate
-                          ? format(startDate, 'yyyy-MM-dd')
-                          : t('logs.startDate') || '开始日期'}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent
-                      className="w-auto p-0"
-                      align="start"
-                      side="bottom"
-                      sideOffset={8}
-                    >
-                      <CalendarComponent
-                        mode="single"
-                        selected={startDate}
-                        onSelect={(date) => {
-                          if (date) {
-                            setStartDate(date);
-                            setCurrentPage(1);
-                          }
-                        }}
-                        defaultMonth={startDate}
-                        initialFocus
-                        className="pointer-events-auto"
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <span className="text-muted-foreground">~</span>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          'w-[150px] justify-start text-left font-normal',
-                          !endDate && 'text-muted-foreground',
-                        )}
-                      >
-                        <Calendar className="mr-2 h-4 w-4" />
-                        {endDate ? format(endDate, 'yyyy-MM-dd') : t('logs.endDate') || '结束日期'}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent
-                      className="w-auto p-0"
-                      align="start"
-                      side="bottom"
-                      sideOffset={8}
-                    >
-                      <CalendarComponent
-                        mode="single"
-                        selected={endDate}
-                        onSelect={(date) => {
-                          if (date) {
-                            setEndDate(date);
-                            setCurrentPage(1);
-                          }
-                        }}
-                        defaultMonth={endDate || startDate}
-                        initialFocus
-                        className="pointer-events-auto"
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-              )}
-
-              <div className="relative flex-1">
-                <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder={t('logs.searchLogs')}
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-
-              <Tabs value={levelFilter} onValueChange={(v) => setLevelFilter(v as LogLevel)}>
-                <TabsList>
-                  <TabsTrigger value="all">{t('logs.all')}</TabsTrigger>
-                  <TabsTrigger value="error" className="text-red-500">
-                    {t('logs.errorLog')}
-                  </TabsTrigger>
-                  <TabsTrigger value="warn" className="text-yellow-500">
-                    {t('logs.warn')}
-                  </TabsTrigger>
-                  <TabsTrigger value="info" className="text-blue-500">
-                    {t('logs.info')}
-                  </TabsTrigger>
-                  <TabsTrigger value="debug" className="text-gray-500">
-                    {t('logs.debug')}
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* New Logs Notification */}
+      <div className={cn('space-y-3', view !== 'runtime' && 'hidden')}>
         {hasNewLogs && (
-          <div className="shrink-0">
-            <div
-              className="bg-primary/10 border border-primary/30 rounded-lg p-3 flex items-center justify-between cursor-pointer hover:bg-primary/20 transition-colors"
-              onClick={handleRefresh}
-            >
-              <span className="text-sm text-primary font-medium">
-                {t('logs.newLogsAvailable') || '有新日志可用，点击刷新查看'}
-              </span>
-              <RefreshCw className="w-4 h-4 text-primary" />
-            </div>
-          </div>
+          <GlassAlert
+            tone="primary"
+            icon={RefreshCw}
+            role="button"
+            tabIndex={0}
+            className="shrink-0 cursor-pointer items-center"
+            onClick={handleRefresh}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                handleRefresh();
+              }
+            }}
+          >
+            {t('logs.newLogsAvailable') || '有新日志可用，点击刷新查看'}
+          </GlassAlert>
         )}
+
+        <div className="glass-card flex shrink-0 flex-col gap-2 px-3 py-2 sm:flex-row sm:items-center">
+          {/* Date Mode Toggle */}
+          <TabButtonGroup
+            value={dateMode}
+            onValueChange={(v) => handleDateModeChange(v as DateMode)}
+            options={[
+              { value: 'single', label: t('logs.singleDate') || '单日期' },
+              { value: 'range', label: t('logs.dateRange') || '日期范围' },
+            ]}
+          />
+
+          {/* Date Picker(s) */}
+          {dateMode === 'single' ? (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    tabToolbarControlClass,
+                    'w-[180px] justify-start text-left font-normal',
+                    !selectedDate && 'text-muted-foreground',
+                  )}
+                >
+                  <Calendar className="mr-2 h-4 w-4" />
+                  {selectedDate ? format(selectedDate, 'yyyy-MM-dd') : t('logs.selectDate')}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start" side="bottom" sideOffset={8}>
+                <CalendarComponent
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={(date) => {
+                    if (date) {
+                      setSelectedDate(date);
+                      setCurrentPage(1);
+                    }
+                  }}
+                  defaultMonth={selectedDate}
+                  initialFocus
+                  className="pointer-events-auto"
+                  disabled={(date) => {
+                    const dateStr = date.toISOString().split('T')[0];
+                    return availableDates.length > 0 && !availableDates.includes(dateStr);
+                  }}
+                />
+              </PopoverContent>
+            </Popover>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      tabToolbarControlClass,
+                      'w-[150px] justify-start text-left font-normal',
+                      !startDate && 'text-muted-foreground',
+                    )}
+                  >
+                    <Calendar className="mr-2 h-4 w-4" />
+                    {startDate
+                      ? format(startDate, 'yyyy-MM-dd')
+                      : t('logs.startDate') || '开始日期'}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start" side="bottom" sideOffset={8}>
+                  <CalendarComponent
+                    mode="single"
+                    selected={startDate}
+                    onSelect={(date) => {
+                      if (date) {
+                        setStartDate(date);
+                        setCurrentPage(1);
+                      }
+                    }}
+                    defaultMonth={startDate}
+                    initialFocus
+                    className="pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+              <span className="text-muted-foreground">~</span>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      tabToolbarControlClass,
+                      'w-[150px] justify-start text-left font-normal',
+                      !endDate && 'text-muted-foreground',
+                    )}
+                  >
+                    <Calendar className="mr-2 h-4 w-4" />
+                    {endDate ? format(endDate, 'yyyy-MM-dd') : t('logs.endDate') || '结束日期'}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start" side="bottom" sideOffset={8}>
+                  <CalendarComponent
+                    mode="single"
+                    selected={endDate}
+                    onSelect={(date) => {
+                      if (date) {
+                        setEndDate(date);
+                        setCurrentPage(1);
+                      }
+                    }}
+                    defaultMonth={endDate || startDate}
+                    initialFocus
+                    className="pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          )}
+
+          <div className="relative flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder={t('logs.searchLogs')}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className={cn(tabToolbarControlClass, 'pl-10')}
+            />
+          </div>
+
+          <TabButtonGroup
+            value={levelFilter}
+            onValueChange={(v) => setLevelFilter(v as LogLevel)}
+            options={[
+              { value: 'all', label: t('logs.all') },
+              { value: 'error', label: t('logs.errorLog') },
+              { value: 'warn', label: t('logs.warn') },
+              { value: 'info', label: t('logs.info') },
+              { value: 'debug', label: t('logs.debug') },
+            ]}
+          />
+        </div>
 
         {/* Log List */}
         <Card className="glass-card">

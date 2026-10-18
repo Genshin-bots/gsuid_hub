@@ -108,7 +108,7 @@ export function CommandExecutorSection({
       </div>
 
       {/* 总开关（行内：图标 + 标题 + 描述 + Switch），与 MemeSettingsSection 同款 */}
-      <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-lg border border-border/30 bg-card/30">
+      <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-lg glass-card transition-all">
         <div className="flex items-start gap-3 min-w-0 flex-1">
           <div className="flex items-center justify-center w-9 h-9 rounded-md bg-primary/10 text-primary shrink-0">
             <Terminal className="w-5 h-5" />
@@ -134,9 +134,7 @@ export function CommandExecutorSection({
       {enableValue && (allowNetwork || allowAutoProvision) && (
         <GlassAlert tone="danger" icon={ShieldAlert} className="p-4">
           <p className="font-semibold">{t('aiConfig.commandExecutor.dangerTitle')}</p>
-          <p className="mt-1 text-muted-foreground">
-            {t('aiConfig.commandExecutor.dangerDesc')}
-          </p>
+          <p className="mt-1 text-muted-foreground">{t('aiConfig.commandExecutor.dangerDesc')}</p>
         </GlassAlert>
       )}
 

@@ -198,6 +198,11 @@ Live Chat / 控制台 WS：`onMessage` 放 ref，建连 `useEffect` **禁止**�
 
 禁止 npm / yarn / bun 装依赖，以免锁文件冲突。
 
+### 1.14 弹窗遮罩颜色铁律
+
+弹窗遮罩（`AlertDialogOverlay` / `DialogOverlay` / `[data-dialog-overlay]`）：
+**亮色主题遮罩必须是白色，暗色主题遮罩才是黑色**。严禁在亮色主题下使用深色/黑色遮罩，严格按模式区分。**同时遮罩不宜过浓，必须能看清背景内容**（亮色推荐约 35%~40% 白 `hsl(0 0% 100% / 0.38)` / `bg-white/40`，暗色推荐约 45%~50% 黑 `hsl(0 0% 0% / 0.48)` / `bg-black/50`，严禁使用 80% 这类把背景完全漂白或涂黑的遮罩）。
+
 ---
 
 ## 二、代码风格
@@ -289,5 +294,6 @@ window.location.href = getLoginPath(); // 开发 /login，生产 /app/login
 6. **长连接 → handler ref；协议 typo 保持原样**
 7. **分页 → 复用已提交 query，不对当前页二次过滤**
 8. **包管理 → pnpm**
+9. **遮罩 → 亮色白、暗色黑（透明度适中能看清背景，严禁亮色用深色遮罩）**
 
 专题细节按 Skills 表按需加载，不要把整本 `references/` 一次读完。

@@ -3,6 +3,8 @@
   "description": "Browse and manage database tables",
   "selectPlugin": "Select Plugin",
   "selectTable": "Select Database Table",
+  "searchTable": "Search tables",
+  "noMatchingTable": "No matching tables",
   "refresh": "Refresh",
   "addNew": "Add New",
   "search": "Search...",

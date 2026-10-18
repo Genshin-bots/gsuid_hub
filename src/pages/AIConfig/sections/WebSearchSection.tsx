@@ -1,11 +1,13 @@
 import type { ReactNode } from 'react';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { ChipGroup } from '@/components/ui/MultiSelectChipGroup';
 import { DynamicConfigPanel, McpParamMappingEditor, type ConfigValue } from '@/components/config';
 import type { PluginConfigItem } from '@/lib/api';
 import {
   Search,
+  Images,
   Wrench,
   GitBranch,
   Shuffle,
@@ -18,6 +20,8 @@ import { Tavily, Exa, JinaAi, McpModelContextProtocol, Minimax } from '@thesvg/r
 import { cn } from '@/lib/utils';
 import anysearchIcon from '@/assets/search-providers/anysearch.ico';
 import firecrawlIcon from '@/assets/search-providers/firecrawl.ico';
+import so360Icon from '@/assets/search-providers/360.ico';
+import { PluginIcon } from '@/components/ui/plugin-icon';
 import {
   filterOutPrimaryProvider,
   HeadingWithHelp,
@@ -41,7 +45,7 @@ function FaviconIcon({ src, alt }: { src: string; alt: string }) {
 /**
  * 网络搜索提供方 -> 品牌图标。
  * Tavily / Exa / Jina / MCP / MiniMax 走 @thesvg/react；
- * AnySearch / Firecrawl 无 thesvg 条目，用官方 favicon。
+ * AnySearch / Firecrawl / 360 用官方 favicon。
  */
 function getSearchProviderIcon(provider: string) {
   const key = provider.trim().toLowerCase();
@@ -54,10 +58,30 @@ function getSearchProviderIcon(provider: string) {
   if (key === 'firecrawl') {
     return <FaviconIcon src={firecrawlIcon} alt="Firecrawl" />;
   }
+  if (key === '360' || key === 'so') {
+    return <FaviconIcon src={so360Icon} alt="360" />;
+  }
   if (key === 'mcp' || key === 'modelcontextprotocol' || key === 'model_context_protocol') {
     return <McpModelContextProtocol width={14} height={14} variant="default" />;
   }
   if (key === 'minimax') return <Minimax width={14} height={14} variant="default" />;
+  return <Search className="w-3.5 h-3.5" />;
+}
+
+function getImageSourceIcon(source: string) {
+  const key = source.trim().toLowerCase();
+  if (key === 'tavily') return <Tavily width={14} height={14} variant="default" />;
+  if (key === 'firecrawl') return <FaviconIcon src={firecrawlIcon} alt="Firecrawl" />;
+  if (key === '360' || key === 'so') return <FaviconIcon src={so360Icon} alt="360" />;
+  if (key === '插件图库' || key.includes('plugin') || key.includes('gallery')) {
+    return (
+      <PluginIcon
+        pluginName="core_command"
+        className="w-3.5 h-3.5 rounded-[2px]"
+        fallbackClassName="w-3.5 h-3.5 text-muted-foreground"
+      />
+    );
+  }
   return <Search className="w-3.5 h-3.5" />;
 }
 
@@ -77,6 +101,12 @@ export interface WebSearchSectionProps {
   websearchFallbackOrder: string[];
   websearchFallbackOptions?: string[];
 
+  /** 出图配图来源。后端未下发该字段时不传，区块不渲染。 */
+  renderImageSources?: string[];
+  renderImageSourceOptions?: string[];
+  /** 允许嵌入配图。后端未下发时不传。 */
+  renderEmbedImages?: boolean;
+
   tavilyConfig?: { id: string; config: Record<string, PluginConfigItem> };
   exaConfig?: { id: string; config: Record<string, PluginConfigItem> };
   anysearchConfig?: { id: string; config: Record<string, PluginConfigItem> };
@@ -95,6 +125,8 @@ export interface WebSearchSectionProps {
   onChangeProvider: (provider: string) => void;
   onChangeLbStrategy: (strategy: string) => void;
   onChangeFallbackOrder: (order: string[]) => void;
+  onChangeRenderImageSources?: (order: string[]) => void;
+  onChangeRenderEmbedImages?: (enabled: boolean) => void;
   onUpdateConfig: (configId: string, fieldKey: string, value: ConfigValue) => void;
   onOpenMcpToolDialog: () => void;
   onClearMcpTool: () => void;
@@ -112,26 +144,26 @@ const STRATEGY_ICONS: Record<string, ReactNode> = {
 
 /** 主用 / 备用 配置区块外壳 */
 function ConfigBlock({
-  role,
+  blockRole,
   title,
   icon,
   roleLabel,
   children,
   className,
 }: {
-  role: 'primary' | 'fallback';
+  blockRole: 'primary' | 'fallback';
   title: string;
   icon?: ReactNode;
   roleLabel: string;
   children: ReactNode;
   className?: string;
 }) {
-  const isPrimary = role === 'primary';
+  const isPrimary = blockRole === 'primary';
   return (
     <div
       className={cn(
-        'rounded-lg border p-4 space-y-3',
-        isPrimary ? 'border-primary/30 bg-primary/5' : 'border-dashed border-border/60 bg-muted/20',
+        'rounded-lg border p-4 space-y-3 glass-card transition-all',
+        isPrimary ? 'border-primary/40' : 'border-dashed border-border/60',
         className,
       )}
     >
@@ -162,6 +194,11 @@ export function WebSearchSection({
   websearchLbStrategyOptions = ['none', 'error_switch', 'auto_balance'],
   websearchFallbackOrder,
   websearchFallbackOptions,
+  renderImageSources,
+  renderImageSourceOptions,
+  renderEmbedImages,
+  onChangeRenderImageSources,
+  onChangeRenderEmbedImages,
   tavilyConfig,
   exaConfig,
   anysearchConfig,
@@ -474,7 +511,7 @@ export function WebSearchSection({
           className="text-xs font-medium text-muted-foreground"
         />
         <ConfigBlock
-          role="primary"
+          blockRole="primary"
           title={websearchProvider}
           icon={getSearchProviderIcon(websearchProvider)}
           roleLabel={t('aiConfig.serviceProvider.rolePrimary')}
@@ -495,7 +532,7 @@ export function WebSearchSection({
           {effectiveFallbacks.map((p) => (
             <ConfigBlock
               key={p}
-              role="fallback"
+              blockRole="fallback"
               title={p}
               icon={getSearchProviderIcon(p)}
               roleLabel={t('aiConfig.serviceProvider.roleFallback')}
@@ -503,6 +540,110 @@ export function WebSearchSection({
               {renderProviderPanel(p)}
             </ConfigBlock>
           ))}
+        </div>
+      )}
+
+      {/* 卡片出图配图设置 */}
+      {(onChangeRenderEmbedImages !== undefined ||
+        (onChangeRenderImageSources &&
+          renderImageSourceOptions &&
+          renderImageSourceOptions.length > 0)) && (
+        <div className="space-y-2 pt-1 border-t border-border/30">
+          <LabelWithHelp
+            icon={<Images className="w-3.5 h-3.5 text-muted-foreground" />}
+            label={t('aiConfig.serviceProvider.renderCardSection')}
+            description={t('aiConfig.serviceProvider.renderCardSectionDesc')}
+            className="text-xs font-medium text-muted-foreground"
+          />
+          <div
+            className={cn(
+              'rounded-lg border p-4 space-y-3.5 transition-all duration-200 glass-card',
+              renderEmbedImages !== false ? 'border-border/60' : 'border-border/40 opacity-80',
+            )}
+          >
+            {/* 允许嵌入配图 主控开关行 */}
+            {onChangeRenderEmbedImages !== undefined && (
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-start gap-3 min-w-0">
+                  <div
+                    className={cn(
+                      'flex items-center justify-center w-8 h-8 rounded-lg shrink-0 mt-0.5 transition-colors',
+                      renderEmbedImages !== false
+                        ? 'bg-primary/10 text-primary'
+                        : 'bg-muted text-muted-foreground',
+                    )}
+                  >
+                    <Images className="w-4 h-4" />
+                  </div>
+                  <div className="space-y-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-medium">
+                        {t('aiConfig.serviceProvider.renderEmbedImages')}
+                      </span>
+                      <Badge
+                        variant={renderEmbedImages !== false ? 'default' : 'secondary'}
+                        className={cn(
+                          'text-[10px] h-4.5 px-1.5 font-normal',
+                          renderEmbedImages !== false &&
+                            'bg-primary/15 text-primary hover:bg-primary/20 border-primary/20',
+                        )}
+                      >
+                        {renderEmbedImages !== false ? t('common.enabled') : t('common.disabled')}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      {t('aiConfig.serviceProvider.renderEmbedImagesDesc')}
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  checked={renderEmbedImages !== false}
+                  onCheckedChange={onChangeRenderEmbedImages}
+                  aria-label={t('aiConfig.serviceProvider.renderEmbedImages')}
+                  className="shrink-0 mt-0.5"
+                />
+              </div>
+            )}
+
+            {/* 出图配图来源 优先级排序选择 */}
+            {onChangeRenderImageSources &&
+              renderImageSourceOptions &&
+              renderImageSourceOptions.length > 0 &&
+              (renderEmbedImages !== false ? (
+                <div
+                  className={cn(
+                    'space-y-2',
+                    onChangeRenderEmbedImages !== undefined && 'pt-3 border-t border-border/30',
+                  )}
+                >
+                  <LabelWithHelp
+                    icon={<ListOrdered className="w-3.5 h-3.5 text-muted-foreground" />}
+                    label={t('aiConfig.serviceProvider.renderImageSources')}
+                    description={t('aiConfig.serviceProvider.renderImageSourcesDesc')}
+                    className="text-xs font-medium text-muted-foreground"
+                  />
+                  <ChipGroup
+                    options={renderImageSourceOptions.map((source) => ({
+                      value: source,
+                      label: source,
+                      icon: getImageSourceIcon(source),
+                    }))}
+                    value={renderImageSources ?? []}
+                    onValueChange={onChangeRenderImageSources}
+                    selectMode="multiple"
+                    allowEmpty
+                    showOrderIndex
+                  />
+                </div>
+              ) : (
+                <div className="pt-3 border-t border-border/30">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground/80 py-0.5">
+                    <Ban className="w-3.5 h-3.5 shrink-0 text-muted-foreground/60" />
+                    <span>{t('aiConfig.serviceProvider.renderEmbedImagesDisabledHint')}</span>
+                  </div>
+                </div>
+              ))}
+          </div>
         </div>
       )}
     </div>

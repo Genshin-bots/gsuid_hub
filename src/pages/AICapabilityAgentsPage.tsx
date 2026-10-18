@@ -55,7 +55,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
+import { TabButtonGroup, tabToolbarControlClass } from '@/components/ui/TabButtonGroup';
 import { SearchableMenu } from '@/components/ui/searchable-menu';
 import { PluginIcon } from '@/components/ui/plugin-icon';
 import { Textarea } from '@/components/ui/textarea';
@@ -696,7 +696,7 @@ export default function AICapabilityAgentsPage() {
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
               placeholder={t('aiCapabilityAgents.searchPlaceholder')}
-              className="pl-9"
+              className={cn(tabToolbarControlClass, 'pl-9')}
             />
           </div>
         </div>

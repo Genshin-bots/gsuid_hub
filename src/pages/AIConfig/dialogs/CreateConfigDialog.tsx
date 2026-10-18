@@ -211,17 +211,17 @@ export function CreateConfigDialog(props: CreateConfigDialogProps) {
         onOpenChange(next);
       }}
     >
-      <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[600px] max-h-[85vh] flex flex-col p-6 glass-card">
+        <DialogHeader className="shrink-0 pb-1">
           <DialogTitle className="flex items-center gap-2">
-            <Plus className="w-5 h-5" />
+            <Plus className="w-5 h-5 text-primary" />
             {t('aiConfig.openaiConfig.createNew')}
           </DialogTitle>
           <DialogDescription className="sr-only">
             {t('aiConfig.openaiConfig.createConfigAriaDesc')}
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4 py-4">
+        <div className="flex-1 min-h-0 overflow-y-auto pr-1 py-2 space-y-4">
           <div className="space-y-2">
             <Label className="font-semibold">{t('aiConfig.providerConfig.provider')}</Label>
             <div className="flex gap-2">
@@ -533,7 +533,7 @@ export function CreateConfigDialog(props: CreateConfigDialogProps) {
             </>
           )}
         </div>
-        <DialogFooter>
+        <DialogFooter className="shrink-0 pt-3 border-t border-border/40">
           <Button
             variant="outline"
             onClick={() => {

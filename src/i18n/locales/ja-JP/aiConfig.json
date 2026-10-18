@@ -213,7 +213,14 @@
     "searchDepth": "検索深度",
     "searchType": "検索タイプ",
     "apiHost": "API ホスト",
-    "resourceMode": "リソースプロバイダー式"
+    "resourceMode": "リソースプロバイダー式",
+    "renderImageSources": "出図の画像ソース",
+    "renderImageSourcesDesc": "render_agent はこの順で画像を探し、先のソースが枚数を満たしたら止まります。空なら画像検索しません。プラグイン図庫はプラグインが登録した画像、Tavily はこのページの Tavily キー、Firecrawl は公式の画像検索でキーなしは無料枠、360 は公開の画像検索でキー不要です。",
+    "renderEmbedImages": "画像をカードに埋め込む",
+    "renderEmbedImagesDesc": "オンのとき、設定されたソースで画像を探して長図に埋め込みます。オフのときは検索せずアイコンを使います。初期値はオンです。",
+    "renderCardSection": "カード画像・挿絵設定",
+    "renderCardSectionDesc": "AI 応答カード生成時の画像検索ソースと埋め込み動作を設定します。",
+    "renderEmbedImagesDisabledHint": "画像の埋め込みはオフです。画像検索は行われず、組み込みアイコンが使用されます。"
   },
   "webFetch": {
     "title": "Web 取得サービス",

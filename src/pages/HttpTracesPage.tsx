@@ -408,7 +408,7 @@ export default function HttpTracesPage() {
               <RefreshCw className={cn('w-4 h-4 mr-2', isLoading && 'animate-spin')} />
               {t('logs.refresh')}
             </Button>
-            <div className="flex items-center gap-2 h-9 px-2">
+            <div className="flex items-center gap-2 h-10 px-2">
               <Switch
                 id="http-trace-auto-refresh"
                 checked={autoRefresh}
@@ -424,7 +424,7 @@ export default function HttpTracesPage() {
       toolbar={
         <div className="flex flex-wrap gap-2 items-center">
           <Select value={method} onValueChange={setMethod}>
-            <SelectTrigger className="h-9 w-[8.5rem]">
+            <SelectTrigger className="h-10 w-[8.5rem]">
               <SelectValue placeholder={t('httpTraces.filterMethod')} />
             </SelectTrigger>
             <SelectContent>
@@ -437,13 +437,13 @@ export default function HttpTracesPage() {
             </SelectContent>
           </Select>
           <Input
-            className="h-9 w-[14rem]"
+            className="h-10 w-[14rem]"
             placeholder={t('httpTraces.filterPath')}
             value={pathPrefix}
             onChange={(e) => setPathPrefix(e.target.value)}
           />
           <Select value={statusClass} onValueChange={setStatusClass}>
-            <SelectTrigger className="h-9 w-[7.5rem]">
+            <SelectTrigger className="h-10 w-[7.5rem]">
               <SelectValue placeholder={t('httpTraces.filterStatusClass')} />
             </SelectTrigger>
             <SelectContent>
@@ -454,7 +454,7 @@ export default function HttpTracesPage() {
               <SelectItem value="5xx">{t('httpTraces.status5xx')}</SelectItem>
             </SelectContent>
           </Select>
-          <div className="flex items-center gap-2 h-9 px-1">
+          <div className="flex items-center gap-2 h-10 px-1">
             <Switch
               id="http-trace-only-errors"
               checked={onlyErrors}
@@ -465,7 +465,7 @@ export default function HttpTracesPage() {
             </Label>
           </div>
           <Input
-            className="h-9 w-[10rem] hidden xl:flex"
+            className="h-10 w-[10rem] hidden xl:flex"
             placeholder={t('httpTraces.filterUser')}
             value={userId}
             onChange={(e) => setUserId(e.target.value)}

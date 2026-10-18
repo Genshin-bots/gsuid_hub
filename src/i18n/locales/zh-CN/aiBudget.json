@@ -6,6 +6,7 @@
     "config": "全局配置",
     "rules": "规则管理",
     "whitelist": "白名单",
+    "manage": "配置与白名单",
     "diagnostic": "诊断排障"
   },
   "overview": {
@@ -25,7 +26,19 @@
     "refresh": "刷新看板",
     "statusOn": "预算限制已开启",
     "statusOff": "预算限制已关闭（用量仍在记录）",
-    "tipOff": "关闭时仍记录用量，可先观察再启用"
+    "statusOnDesc": "所有会话预算规则已生效，超限将按预设规则拦截",
+    "tipOff": "关闭时仍记录用量，可先观察再启用",
+    "healthyDesc": "当前所有会话配额状态正常，未发生超限拦截",
+    "healthyBadge": "正常",
+    "quickRulesTitle": "预算规则管理",
+    "quickRulesDesc": "按会话、群聊、成员与私聊配置 Token 上限与刷新周期",
+    "quickManageTitle": "配置与白名单",
+    "quickManageDesc": "管理系统总开关、计费口径、通知冷却与豁免名单",
+    "quickDiagTitle": "诊断排障",
+    "quickDiagDesc": "模拟测试用户与群聊的限额状态，或手动重置用量计数",
+    "manageAction": "前往管理",
+    "configAction": "前往配置",
+    "diagAction": "排障检测"
   },
   "config": {
     "title": "全局预算配置",

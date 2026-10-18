@@ -3,6 +3,8 @@
   "description": "閲覧と管理データDB表",
   "selectPlugin": "選択プラグイン",
   "selectTable": "選択データDB表",
+  "searchTable": "テーブルを検索",
+  "noMatchingTable": "一致するテーブルがありません",
   "refresh": "更新",
   "addNew": "新增",
   "search": "検索...",

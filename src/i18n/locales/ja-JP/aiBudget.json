@@ -6,6 +6,7 @@
     "config": "全体設定",
     "rules": "ルール管理",
     "whitelist": "ホワイトリスト",
+    "manage": "設定とホワイトリスト",
     "diagnostic": "診断トラブルシューティング"
   },
   "overview": {
@@ -25,7 +26,19 @@
     "refresh": "ダッシュボード更新",
     "statusOn": "予算制限が有効です",
     "statusOff": "予算制限が無効です（使用量は記録されます）",
-    "tipOff": "無効時も使用量は記録されるため、まず観察してから有効化してください"
+    "statusOnDesc": "すべての予算ルールが有効で、制限超過時は設定どおりブロックされます",
+    "tipOff": "無効時も使用量は記録されるため、まず観察してから有効化してください",
+    "healthyDesc": "現在すべてのセッションクォータは正常で、ブロックは発生していません",
+    "healthyBadge": "正常",
+    "quickRulesTitle": "予算ルール管理",
+    "quickRulesDesc": "セッション、グループ、メンバー、個別チャットのToken上限とリセット周期を設定",
+    "quickManageTitle": "設定とホワイトリスト",
+    "quickManageDesc": "全体スイッチ、課金基準、通知ポリシー、ホワイトリスト免除を管理",
+    "quickDiagTitle": "診断トラブルシューティング",
+    "quickDiagDesc": "ユーザーやグループの制限状態をシミュレーション、またはカウントを手動リセット",
+    "manageAction": "管理へ",
+    "configAction": "設定へ",
+    "diagAction": "診断へ"
   },
   "config": {
     "title": "全体予算設定",

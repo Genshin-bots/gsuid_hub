@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { GlassAlert } from '@/components/ui/glass-alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -540,12 +541,9 @@ export default function AIToolsPage() {
     >
       {/* 错误提示 */}
       {error && pageTab === 'tools' && (
-        <Card className={cn('border-destructive/50', 'glass-card')}>
-          <CardContent className="flex items-center gap-3 p-4 text-destructive">
-            <AlertCircle className="w-5 h-5" />
-            <span>{error}</span>
-          </CardContent>
-        </Card>
+        <GlassAlert tone="danger" icon={AlertCircle}>
+          {error}
+        </GlassAlert>
       )}
 
       {pageTab === 'assemble' && (
@@ -882,15 +880,15 @@ export default function AIToolsPage() {
 
       {/* 工具详情弹窗 */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
+        <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col p-6">
+          <DialogHeader className="shrink-0 pb-1">
             <DialogTitle className="flex items-center gap-2">
               <Wrench className="w-5 h-5 text-primary" />
               {selectedTool?.title}
             </DialogTitle>
             <DialogDescription className="text-base">{selectedTool?.subtitle}</DialogDescription>
           </DialogHeader>
-          <div className="mt-4 space-y-2">
+          <div className="flex-1 min-h-0 overflow-y-auto pr-1 mt-2 space-y-2">
             <div className="flex items-center gap-2 text-sm">
               <span className="px-2 py-0.5 rounded bg-secondary">{selectedTool?.category}</span>
               <span className="px-2 py-0.5 rounded bg-primary/10 text-primary">

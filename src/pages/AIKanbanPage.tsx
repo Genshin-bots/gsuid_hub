@@ -1547,7 +1547,7 @@ export default function AIKanbanPage() {
 
       <Sheet open={!!selectedTaskId} onOpenChange={(open) => !open && setSelectedTaskId(null)}>
         <SheetContent
-          overlayClassName="bg-white/80 dark:bg-black/80"
+          overlayClassName="bg-white/40 dark:bg-black/50"
           className="flex w-full flex-col gap-0 p-0 sm:max-w-[1100px] glass-card"
         >
           <SheetHeader className="shrink-0 border-b px-6 py-4 text-left">
