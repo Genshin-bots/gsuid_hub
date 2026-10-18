@@ -202,6 +202,21 @@ export default function AIConfigPage() {
     [configs],
   );
 
+  const deepseekConfig = useMemo(
+    () =>
+      Object.values(configs).find((c) => {
+        const name = `${c.name} ${c.full_name}`;
+        if (c.name.includes('DeepSeek搜索抓取配置') || c.full_name.includes('DeepSeek搜索抓取配置')) {
+          return true;
+        }
+        return (
+          /deepseek/i.test(name) &&
+          (name.includes('搜索') || name.includes('抓取') || /search|fetch/i.test(name))
+        );
+      }),
+    [configs],
+  );
+
   const webFetchConfig = useMemo(
     () =>
       Object.values(configs).find(
@@ -834,6 +849,7 @@ export default function AIConfigPage() {
             anysearchConfig={anysearchConfig}
             firecrawlConfig={firecrawlConfig}
             jinaConfig={jinaConfig}
+            deepseekConfig={deepseekConfig}
             miniMaxConfig={miniMaxConfig}
             websearchMcpToolId={websearchMcpToolId}
             websearchToolInfo={websearchToolInfo}
@@ -893,6 +909,7 @@ export default function AIConfigPage() {
             webfetchFallbackOptions={webfetchFallbackOptions}
             webFetchConfig={webFetchConfig}
             jinaConfig={jinaConfig}
+            deepseekConfig={deepseekConfig}
             onChangeProvider={(v) => {
               updateConfigValue(aiConfig.id, 'webfetch_provider', v);
               const next = filterOutPrimaryProvider(webfetchFallbackOrder, v);

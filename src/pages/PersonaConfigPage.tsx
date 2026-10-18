@@ -346,7 +346,7 @@ function knownAIModes(modes: readonly string[] | undefined): AIMode[] {
   const known = new Set<string>(AI_MODE_OPTIONS.map((mode) => mode.value));
   const out: AIMode[] = [];
   for (const mode of modes) {
-    const item = mode === '余韵点评' || mode === '命令接话' ? '命令补充' : mode;
+    const item = mode === '余韵点评' || mode === '命令补充' ? '命令补充' : mode;
     if (!known.has(item)) continue;
     if (out.includes(item as AIMode)) continue;
     out.push(item as AIMode);

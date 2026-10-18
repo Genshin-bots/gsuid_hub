@@ -16,7 +16,7 @@ import {
   Settings2,
   Layers,
 } from 'lucide-react';
-import { Tavily, Exa, JinaAi, McpModelContextProtocol, Minimax } from '@thesvg/react';
+import { Tavily, Exa, JinaAi, McpModelContextProtocol, Minimax, Deepseek } from '@thesvg/react';
 import { cn } from '@/lib/utils';
 import anysearchIcon from '@/assets/search-providers/anysearch.ico';
 import firecrawlIcon from '@/assets/search-providers/firecrawl.ico';
@@ -52,6 +52,7 @@ function getSearchProviderIcon(provider: string) {
   if (key === 'tavily') return <Tavily width={14} height={14} variant="default" />;
   if (key === 'exa') return <Exa width={14} height={14} variant="default" />;
   if (key === 'jina') return <JinaAi width={14} height={14} variant="default" />;
+  if (key === 'deepseek') return <Deepseek width={14} height={14} variant="default" />;
   if (key === 'anysearch') {
     return <FaviconIcon src={anysearchIcon} alt="AnySearch" />;
   }
@@ -112,6 +113,7 @@ export interface WebSearchSectionProps {
   anysearchConfig?: { id: string; config: Record<string, PluginConfigItem> };
   firecrawlConfig?: { id: string; config: Record<string, PluginConfigItem> };
   jinaConfig?: { id: string; config: Record<string, PluginConfigItem> };
+  deepseekConfig?: { id: string; config: Record<string, PluginConfigItem> };
   miniMaxConfig?: { id: string; config: Record<string, PluginConfigItem> };
 
   websearchMcpToolId: string;
@@ -204,6 +206,7 @@ export function WebSearchSection({
   anysearchConfig,
   firecrawlConfig,
   jinaConfig,
+  deepseekConfig,
   miniMaxConfig,
   websearchMcpToolId,
   websearchToolInfo,
@@ -325,6 +328,28 @@ export function WebSearchSection({
           configId={jinaConfig.id}
           onChange={onUpdateConfig}
           layout={[['api_key'], ['max_results', 'timeout'], ['search_base_url', 'reader_base_url']]}
+        />
+      );
+    }
+    if (key === 'deepseek') {
+      if (!deepseekConfig) {
+        return (
+          <p className="text-xs text-muted-foreground">
+            {t('aiConfig.serviceProvider.configNotAvailable')}
+          </p>
+        );
+      }
+      return (
+        <DynamicConfigPanel
+          config={deepseekConfig.config}
+          configId={deepseekConfig.id}
+          onChange={onUpdateConfig}
+          layout={[
+            ['api_key'],
+            ['max_results', 'timeout'],
+            ['search_base_url', 'fetch_base_url'],
+            ['need_content'],
+          ]}
         />
       );
     }

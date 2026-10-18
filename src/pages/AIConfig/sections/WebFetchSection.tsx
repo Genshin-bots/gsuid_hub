@@ -9,7 +9,7 @@ import {
   Settings2,
   Shuffle,
 } from 'lucide-react';
-import { JinaAi } from '@thesvg/react';
+import { JinaAi, Deepseek } from '@thesvg/react';
 import { Badge } from '@/components/ui/badge';
 import { ChipGroup } from '@/components/ui/MultiSelectChipGroup';
 import { DynamicConfigPanel, type ConfigValue } from '@/components/config';
@@ -25,7 +25,7 @@ import {
 export interface WebFetchSectionProps {
   t: (key: string) => string;
 
-  /** 主用抓取提供方：Jina | local */
+  /** 主用抓取提供方：Jina | DeepSeek | local */
   webfetchProvider: string;
   webfetchProviderOptions?: string[];
 
@@ -39,6 +39,8 @@ export interface WebFetchSectionProps {
   webFetchConfig?: { id: string; config: Record<string, PluginConfigItem> };
   /** Jina Reader（r.jina.ai）配置，API Key 可选 */
   jinaConfig?: { id: string; config: Record<string, PluginConfigItem> };
+  /** DeepSeek Fetch API 配置，需 API Key */
+  deepseekConfig?: { id: string; config: Record<string, PluginConfigItem> };
 
   onChangeProvider: (provider: string) => void;
   onChangeLbStrategy: (strategy: string) => void;
@@ -49,6 +51,7 @@ export interface WebFetchSectionProps {
 function getFetchProviderIcon(provider: string) {
   const key = provider.trim().toLowerCase();
   if (key === 'jina') return <JinaAi width={14} height={14} variant="default" />;
+  if (key === 'deepseek') return <Deepseek width={14} height={14} variant="default" />;
   return <HardDrive className="w-3.5 h-3.5" />;
 }
 
@@ -100,13 +103,14 @@ function ConfigBlock({
 export function WebFetchSection({
   t,
   webfetchProvider,
-  webfetchProviderOptions = ['Jina', 'local'],
+  webfetchProviderOptions = ['Jina', 'DeepSeek', 'local'],
   webfetchLbStrategy,
   webfetchLbStrategyOptions = ['none', 'error_switch', 'auto_balance'],
   webfetchFallbackOrder,
   webfetchFallbackOptions,
   webFetchConfig,
   jinaConfig,
+  deepseekConfig,
   onChangeProvider,
   onChangeLbStrategy,
   onChangeFallbackOrder,
@@ -115,6 +119,7 @@ export function WebFetchSection({
   const providerLabels: Record<string, string> = {
     local: t('aiConfig.webFetch.providerLocal'),
     Jina: t('aiConfig.webFetch.providerJina'),
+    DeepSeek: t('aiConfig.webFetch.providerDeepSeek'),
   };
 
   const strategyLabels: Record<string, string> = {
@@ -125,6 +130,7 @@ export function WebFetchSection({
 
   const primary = webfetchProvider || 'Jina';
   const isJina = primary.trim().toLowerCase() === 'jina';
+  const isDeepSeek = primary.trim().toLowerCase() === 'deepseek';
 
   // 展示全部候选（含主用）；主用禁用且不以「已选」展示
   const fallbackOpts =
@@ -144,6 +150,7 @@ export function WebFetchSection({
     if (providerLabels[p]) return providerLabels[p];
     const k = p.trim().toLowerCase();
     if (k === 'jina') return providerLabels.Jina || p;
+    if (k === 'deepseek') return providerLabels.DeepSeek || p;
     if (k === 'local') return providerLabels.local || p;
     return p;
   };
@@ -164,6 +171,23 @@ export function WebFetchSection({
           configId={jinaConfig.id}
           onChange={onUpdateConfig}
           layout={[['api_key'], ['timeout', 'reader_base_url']]}
+        />
+      );
+    }
+    if (key === 'deepseek') {
+      if (!deepseekConfig) {
+        return (
+          <p className="text-sm text-muted-foreground">
+            {t('aiConfig.webFetch.deepseekConfigNotLoaded')}
+          </p>
+        );
+      }
+      return (
+        <DynamicConfigPanel
+          config={deepseekConfig.config}
+          configId={deepseekConfig.id}
+          onChange={onUpdateConfig}
+          layout={[['api_key'], ['timeout', 'fetch_base_url']]}
         />
       );
     }
@@ -200,7 +224,13 @@ export function WebFetchSection({
         <LabelWithHelp
           icon={<Layers className="w-3.5 h-3.5 text-muted-foreground" />}
           label={t('aiConfig.webFetch.primaryProvider')}
-          description={isJina ? t('aiConfig.webFetch.jinaHint') : t('aiConfig.webFetch.localHint')}
+          description={
+            isJina
+              ? t('aiConfig.webFetch.jinaHint')
+              : isDeepSeek
+              ? t('aiConfig.webFetch.deepseekHint')
+              : t('aiConfig.webFetch.localHint')
+          }
           className="text-xs font-medium text-muted-foreground"
         />
         <ChipGroup

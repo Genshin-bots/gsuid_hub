@@ -208,6 +208,7 @@
     "anysearchConfig": "AnySearch設定",
     "firecrawlConfig": "Firecrawl設定",
     "jinaConfig": "Jina 設定（s.jina.ai / r.jina.ai）",
+    "deepseekConfig": "DeepSeek 設定（検索・取得）",
     "miniMaxConfig": "MiniMax設定",
     "maxResults": "最大件数",
     "searchDepth": "検索深度",
@@ -224,7 +225,7 @@
   },
   "webFetch": {
     "title": "Web 取得サービス",
-    "description": "web_fetch_tool：メイン Jina / local、エラー切替と自動分散対応。保存後すぐ反映、再起動不要。",
+    "description": "web_fetch_tool：メイン Jina / DeepSeek / local、エラー切替と自動分散対応。保存後すぐ反映、再起動不要。",
     "provider": "取得プロバイダー",
     "primaryProvider": "メイン取得ソース",
     "lbStrategy": "マルチソース戦略",
@@ -237,10 +238,13 @@
     "fallbackConfigSectionDesc": "予備取得ソースのパラメータ。メイン失敗時に使用。",
     "providerLocal": "ローカル (local)",
     "providerJina": "Jina (r.jina.ai)",
+    "providerDeepSeek": "DeepSeek (Fetch API)",
     "localHint": "aiohttp で直接続。プロキシ / UA / タイムアウト設定可。",
     "jinaHint": "r.jina.ai 経由。API Key は任意。デフォルトのメイン。",
+    "deepseekHint": "DeepSeek 公式 Fetch 経由で取得し Markdown を抽出。API Key が必要です。",
     "configNotLoaded": "Web 取得サービス設定が未読込です。バックエンドが起動し WebFetch 設定が登録されているか確認してください",
-    "jinaConfigNotLoaded": "Jina 設定が未読込です。バックエンドの Jina 検索・取得設定を確認してください"
+    "jinaConfigNotLoaded": "Jina 設定が未読込です。バックエンドの Jina 検索・取得設定を確認してください",
+    "deepseekConfigNotLoaded": "DeepSeek 設定が未読込です。バックエンドの DeepSeek 検索・取得設定を確認してください"
   },
   "relationshipSettings": {
     "title": "関係温度",

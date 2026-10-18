@@ -208,6 +208,7 @@
     "anysearchConfig": "AnySearch Configuration",
     "firecrawlConfig": "Firecrawl Configuration",
     "jinaConfig": "Jina config (s.jina.ai / r.jina.ai)",
+    "deepseekConfig": "DeepSeek config (search & fetch)",
     "miniMaxConfig": "MiniMax Configuration",
     "maxResults": "Max Results",
     "searchDepth": "Search Depth",
@@ -224,7 +225,7 @@
   },
   "webFetch": {
     "title": "Web Fetch Service",
-    "description": "Configure web_fetch_tool: primary Jina / local with error switch and auto balance. Changes apply immediately—no restart.",
+    "description": "Configure web_fetch_tool: primary Jina / DeepSeek / local with error switch and auto balance. Changes apply immediately—no restart.",
     "provider": "Fetch provider",
     "primaryProvider": "Primary fetch provider",
     "lbStrategy": "Multi-source strategy",
@@ -237,10 +238,13 @@
     "fallbackConfigSectionDesc": "Options for fallback fetch providers; used when primary fails.",
     "providerLocal": "Local",
     "providerJina": "Jina (r.jina.ai)",
+    "providerDeepSeek": "DeepSeek (Fetch API)",
     "localHint": "Direct aiohttp fetch with optional proxy / UA / timeout.",
     "jinaHint": "Read via r.jina.ai; API key optional (higher quota when set). Default primary.",
+    "deepseekHint": "Fetch and extract Markdown via official DeepSeek Fetch API, requires API Key.",
     "configNotLoaded": "Web fetch service config not loaded. Ensure the backend is running and WebFetch config is registered",
-    "jinaConfigNotLoaded": "Jina config not loaded; ensure backend registered Jina search/fetch settings"
+    "jinaConfigNotLoaded": "Jina config not loaded; ensure backend registered Jina search/fetch settings",
+    "deepseekConfigNotLoaded": "DeepSeek config not loaded; ensure backend registered DeepSeek search/fetch settings"
   },
   "relationshipSettings": {
     "title": "Relationship",

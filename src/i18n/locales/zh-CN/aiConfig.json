@@ -208,6 +208,7 @@
     "anysearchConfig": "AnySearch配置",
     "firecrawlConfig": "Firecrawl配置",
     "jinaConfig": "Jina 配置（s.jina.ai / r.jina.ai）",
+    "deepseekConfig": "DeepSeek 配置（搜索与抓取）",
     "miniMaxConfig": "MiniMax配置",
     "maxResults": "最大结果数",
     "searchDepth": "搜索深度",
@@ -224,7 +225,7 @@
   },
   "webFetch": {
     "title": "网页抓取服务",
-    "description": "配置 web_fetch_tool：主用 Jina / local，支持错误切换与自动分流。保存后即时生效，无需重启。",
+    "description": "配置 web_fetch_tool：主用 Jina / DeepSeek / local，支持错误切换与自动分流。保存后即时生效，无需重启。",
     "provider": "抓取提供方",
     "primaryProvider": "主用抓取源",
     "lbStrategy": "多源策略",
@@ -237,10 +238,13 @@
     "fallbackConfigSectionDesc": "备用抓取源的参数；主用失败时才会用到。",
     "providerLocal": "本机 (local)",
     "providerJina": "Jina (r.jina.ai)",
+    "providerDeepSeek": "DeepSeek (Fetch API)",
     "localHint": "本机用 aiohttp 直连目标站，可配代理 / UA / 超时。",
     "jinaHint": "经 r.jina.ai 读取；API Key 可选，填写可提高额度。默认主用。",
+    "deepseekHint": "经 DeepSeek 官方 Fetch 接口抓取并提取 Markdown，需配置 API Key。",
     "configNotLoaded": "尚未加载网页抓取服务配置，请确认后端已启动并注册 WebFetch 配置项",
-    "jinaConfigNotLoaded": "尚未加载 Jina 配置，请确认后端已注册「Jina搜索抓取配置」"
+    "jinaConfigNotLoaded": "尚未加载 Jina 配置，请确认后端已注册「Jina搜索抓取配置」",
+    "deepseekConfigNotLoaded": "尚未加载 DeepSeek 配置，请确认后端已注册「DeepSeek搜索抓取配置」"
   },
   "relationshipSettings": {
     "title": "关系温度",
