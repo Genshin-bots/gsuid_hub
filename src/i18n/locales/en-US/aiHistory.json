@@ -60,6 +60,7 @@
   "downloadSuccess": "Session JSON saved",
   "waterfall": {
     "agentRun": "Agent Run",
+    "thinkingEffort": "Thinking effort",
     "chat": "Chat",
     "tool": "Tool",
     "subAgent": "Sub-Agent",

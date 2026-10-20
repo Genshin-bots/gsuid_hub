@@ -82,6 +82,8 @@ export interface TraceSpan {
   agentData?: Record<string, unknown>; // subagent span 的 agent_linked data
   sumTokensIn?: number;
   sumTokensOut?: number;
+  // 本轮各次请求 JSON 里的思考档位，按出现顺序去重。没有条目时不显示徽章。
+  thinkingEfforts?: string[];
 }
 
 function asNum(v: unknown): number {
@@ -305,6 +307,17 @@ function buildTrace(entries: SessionLogEntry[]): TraceSpan[] {
       case 'session_resumed':
       case 'session_ended': {
         pushTop({ id: nid(), kind: 'system', start: ts, end: ts, entry: e, children: [] });
+        break;
+      }
+      case 'thinking_effort': {
+        // 挂到当前 Agent 运行头部，不单独成行。字段缺失或 JSON null 显示 null。
+        const raw = d.effort;
+        const label = typeof raw === 'string' && raw !== '' ? raw : 'null';
+        if (run) {
+          const seen = run.thinkingEfforts;
+          if (!seen) run.thinkingEfforts = [label];
+          else if (!seen.includes(label)) seen.push(label);
+        }
         break;
       }
       default:
@@ -886,6 +899,19 @@ function TokenBadges({ sp }: { sp: TraceSpan }) {
   );
 }
 
+function EffortBadge({ efforts, t }: { efforts: string[] | undefined; t: TFunc }) {
+  if (!efforts || efforts.length === 0) return null;
+  return (
+    <span
+      title={t('aiHistory.waterfall.thinkingEffort')}
+      className="hidden md:inline-flex items-center gap-1 shrink-0 text-[10px] font-mono px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 border border-indigo-500/30"
+    >
+      <Lightbulb className="w-2.5 h-2.5 shrink-0" />
+      {efforts.join(' · ')}
+    </span>
+  );
+}
+
 // 模型名胶囊：前缀挂厂商品牌 ICON，匹配规则复用 /ai-config 的 ModelBrandIcon。
 // 这里只有模型名、拿不到 provider，匹配不到已知厂商就不画图标（避免把私有模型标成 OpenAI）。
 function ModelChip({ model, className }: { model: string; className?: string }) {
@@ -1163,6 +1189,7 @@ function RunBlock({ sp, base }: { sp: TraceSpan; base: RowBase }) {
             </span>
           )}
           {sp.model && <ModelChip model={sp.model} />}
+          <EffortBadge efforts={sp.thinkingEfforts} t={t} />
           <TokenBadges sp={sp} />
           <span className="ml-auto shrink-0 pl-2 text-[11px] text-muted-foreground/60 font-mono tabular-nums">
             {formatTimeOnly(sp.start)}

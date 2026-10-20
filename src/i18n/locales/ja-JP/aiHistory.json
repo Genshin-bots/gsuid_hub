@@ -60,6 +60,7 @@
   "downloadSuccess": "セッション JSON を保存しました",
   "waterfall": {
     "agentRun": "エージェント実行",
+    "thinkingEffort": "思考強度",
     "chat": "チャット",
     "tool": "ツール",
     "subAgent": "サブエージェント",
