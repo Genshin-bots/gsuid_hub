@@ -43,5 +43,6 @@
   "sendHint": "対応粘贴、拖拽、点选多グラフ; Ctrl / Cmd + Enter 送信",
   "atSender": "@ 送信对象",
   "selectImages": "選択画像",
-  "removeImage": "移除画像"
+  "removeImage": "移除画像",
+  "imageLoadFailed": "画像の読み込みに失敗しました"
 }

@@ -43,11 +43,12 @@ import {
 import {
   historyApi,
   resolveApiAssetUrl,
-  SessionInfo,
-  SessionHistoryTextResponse,
-  SessionHistoryJSONResponse,
-  SessionHistoryOpenAIResponse,
-  SessionPersonaResponse,
+  type SessionInfo,
+  type SessionHistoryMessage,
+  type SessionHistoryTextResponse,
+  type SessionHistoryJSONResponse,
+  type SessionHistoryOpenAIResponse,
+  type SessionPersonaResponse,
 } from '@/lib/api';
 import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
 import { toast } from 'sonner';
@@ -76,6 +77,8 @@ interface ChatMessage {
   user_name?: string | null;
   user_avatar?: string | null;
   timestamp?: number;
+  images?: string[];
+  metadata?: Record<string, unknown>;
 }
 
 interface PendingImage {
@@ -87,6 +90,84 @@ interface PendingImage {
 // ============================================================================
 // Helper Functions
 // ============================================================================
+
+function ChatImageItem({
+  src,
+  alt,
+  fallbackText,
+}: {
+  src: string;
+  alt?: string;
+  fallbackText?: string;
+}) {
+  const [failed, setFailed] = useState(false);
+  const resolved = resolveApiAssetUrl(src);
+
+  if (failed || !src) {
+    return (
+      <div className="flex items-center gap-1.5 text-xs text-muted-foreground/80 py-1 px-2 rounded-md bg-muted/40 border border-border/30">
+        <ImageIcon className="w-3.5 h-3.5 shrink-0 opacity-70" />
+        <span>{fallbackText || '图片加载失败'}</span>
+      </div>
+    );
+  }
+
+  return (
+    <a
+      href={resolved}
+      target="_blank"
+      rel="noreferrer"
+      className="block max-w-full overflow-hidden rounded-lg border border-border/20 group relative cursor-zoom-in"
+    >
+      <img
+        src={resolved}
+        alt={alt || 'image'}
+        referrerPolicy="no-referrer"
+        loading="lazy"
+        className="max-w-full max-h-72 object-contain rounded-lg transition-transform group-hover:scale-[1.01]"
+        onError={() => setFailed(true)}
+      />
+    </a>
+  );
+}
+
+const extractMessageImages = (msg: SessionHistoryMessage): string[] => {
+  const result: string[] = [];
+  const meta = (msg.metadata || {}) as Record<string, unknown>;
+
+  const metaImages = meta.images || msg.images;
+  if (Array.isArray(metaImages)) {
+    for (const item of metaImages) {
+      if (typeof item === 'string' && item.trim()) {
+        result.push(item.trim());
+      }
+    }
+  }
+
+  if (Array.isArray(meta.image_urls)) {
+    for (const item of meta.image_urls) {
+      if (typeof item === 'string' && item.trim() && !result.includes(item.trim())) {
+        result.push(item.trim());
+      }
+    }
+  }
+
+  if (result.length === 0) {
+    const idList = Array.isArray(meta.image_id_list) ? meta.image_id_list : [];
+    const singleId = typeof meta.image_id === 'string' ? meta.image_id : null;
+    const allIds = [...idList];
+    if (singleId && !allIds.includes(singleId)) {
+      allIds.push(singleId);
+    }
+    for (const id of allIds) {
+      if (typeof id === 'string' && id.trim()) {
+        result.push(historyApi.getResourceImageUrl(id.trim()));
+      }
+    }
+  }
+
+  return result;
+};
 
 const formatTimestamp = (timestamp: number | null | undefined): string => {
   if (!timestamp) return '-';
@@ -423,6 +504,8 @@ export default function SessionManagementPage() {
           user_name: msg.user_name,
           user_avatar: msg.user_avatar,
           timestamp: msg.timestamp,
+          images: extractMessageImages(msg),
+          metadata: msg.metadata as Record<string, unknown> | undefined,
         }));
       }
     }
@@ -496,13 +579,29 @@ export default function SessionManagementPage() {
           </span>
           <div
             className={cn(
-              'px-3 py-1.5 sm:px-4 sm:py-2 rounded-2xl text-sm',
-              isUser
-                ? 'bg-primary text-primary-foreground rounded-tl-none'
-                : 'bg-muted rounded-tr-none',
+              'rounded-2xl text-sm overflow-hidden',
+              msg.content?.trim() || !msg.images?.length
+                ? isUser
+                  ? 'bg-primary text-primary-foreground rounded-tl-none px-3 py-1.5 sm:px-4 sm:py-2'
+                  : 'bg-muted rounded-tr-none px-3 py-1.5 sm:px-4 sm:py-2'
+                : 'p-1 rounded-xl border border-border/30 bg-muted/20',
             )}
           >
-            <p className="whitespace-pre-wrap break-words">{msg.content}</p>
+            {msg.content?.trim() || !msg.images?.length ? (
+              <p className="whitespace-pre-wrap break-words">{msg.content || ''}</p>
+            ) : null}
+            {msg.images && msg.images.length > 0 && (
+              <div className={cn('flex flex-col gap-2', msg.content?.trim() && 'mt-2')}>
+                {msg.images.map((imgSrc, imgIdx) => (
+                  <ChatImageItem
+                    key={`${imgSrc}-${imgIdx}`}
+                    src={imgSrc}
+                    alt={`image-${imgIdx}`}
+                    fallbackText={t('sessionManagement.imageLoadFailed')}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -549,10 +648,7 @@ export default function SessionManagementPage() {
                 placeholder={t('sessionManagement.searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className={cn(
-                  'pl-9 sm:pl-10 h-8 sm:h-9 text-sm rounded-lg',
-                  'glass-card',
-                )}
+                className={cn('pl-9 sm:pl-10 h-8 sm:h-9 text-sm rounded-lg', 'glass-card')}
               />
             </div>
           </div>
@@ -983,9 +1079,7 @@ export default function SessionManagementPage() {
           ) : (
             // Empty State
             <div className="flex-1 flex items-center justify-center p-4">
-              <Card
-                className={cn('max-w-sm sm:max-w-md w-full rounded-xl', 'glass-card')}
-              >
+              <Card className={cn('max-w-sm sm:max-w-md w-full rounded-xl', 'glass-card')}>
                 <CardContent className="!p-6 text-center sm:!p-8">
                   <History className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 text-muted-foreground/50" />
                   <h3 className="text-base sm:text-lg font-medium mb-1 sm:mb-2">
@@ -1003,9 +1097,7 @@ export default function SessionManagementPage() {
 
       {/* Clear Confirmation Dialog */}
       <AlertDialog open={!!sessionToDelete} onOpenChange={() => setSessionToDelete(null)}>
-        <AlertDialogContent
-          className={cn('max-w-sm sm:max-w-lg rounded-xl', 'glass-card')}
-        >
+        <AlertDialogContent className={cn('max-w-sm sm:max-w-lg rounded-xl', 'glass-card')}>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2 text-base sm:text-lg">
               <Trash2 className="w-5 h-5 text-destructive" />

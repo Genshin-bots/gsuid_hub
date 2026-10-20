@@ -3508,7 +3508,17 @@ export interface SessionHistoryMessage {
   user_name?: string | null;
   user_avatar?: string | null;
   timestamp?: number;
-  metadata?: Record<string, unknown>;
+  images?: string[];
+  metadata?: {
+    msg_id?: string;
+    bot_id?: string;
+    user_type?: string;
+    image_id_list?: string[];
+    image_id?: string;
+    images?: string[];
+    image_urls?: string[];
+    [key: string]: unknown;
+  };
 }
 
 export interface SessionHistoryJSONResponse {
@@ -3606,6 +3616,10 @@ export const historyApi = {
 
   // 获取历史管理器统计信�?
   getStats: () => api.get<HistoryStats>('/api/history/stats'),
+
+  // 获取历史消息图片资源 URL
+  getResourceImageUrl: (resourceId: string) =>
+    `/api/history/resource/${encodeURIComponent(resourceId)}`,
 };
 
 // ===================

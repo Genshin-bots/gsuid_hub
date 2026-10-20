@@ -43,5 +43,6 @@
   "sendHint": "支持粘贴、拖拽、点选多图；Ctrl / Cmd + Enter 发送",
   "atSender": "@ 发送对象",
   "selectImages": "选择图片",
-  "removeImage": "移除图片"
+  "removeImage": "移除图片",
+  "imageLoadFailed": "图片加载失败"
 }

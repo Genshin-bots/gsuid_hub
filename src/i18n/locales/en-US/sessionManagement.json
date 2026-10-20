@@ -43,5 +43,6 @@
   "sendHint": "Paste, drag, or select multiple images; Ctrl / Cmd + Enter to send",
   "atSender": "@ target",
   "selectImages": "Select images",
-  "removeImage": "Remove image"
+  "removeImage": "Remove image",
+  "imageLoadFailed": "Failed to load image"
 }
