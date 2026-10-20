@@ -189,6 +189,10 @@ interface ThemeActionsContextType {
   getThemeConfig: () => ThemeConfig;
   /** Apply a full theme config to the live UI without re-persisting to the backend. */
   applyThemeConfig: (config: Partial<ThemeConfig>) => void;
+  /** 从后端重新加载主题配置并应用到界面（支持登录后或更换 Host 后重拉） */
+  reloadTheme: () => Promise<void>;
+  /** 将主题重置为安全默认值（清空背景图、浅色、默认圆角等） */
+  resetThemeToDefaults: () => void;
 }
 
 // ============================================================================
@@ -462,76 +466,115 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     [mode, color, themePreset],
   );
 
-  // 初始�?
+  // 将服务端完整配置应用到 state，对于服务端未提供的字段安全回退到默认值
+  const applyServerConfig = useCallback((config: Partial<ThemeConfig>) => {
+    if (config.mode && ['light', 'dark'].includes(config.mode)) {
+      setModeState(config.mode as ThemeMode);
+    } else {
+      setModeState('light');
+    }
+    const loadedStyle = parseThemeStyle(config.style);
+    setStyleState(loadedStyle ?? 'glassmorphism');
+    if (
+      config.color &&
+      ['red', 'orchid', 'blue', 'green', 'orange', 'pink'].includes(config.color)
+    ) {
+      setColorState(config.color as ThemeColor);
+    } else {
+      setColorState('red');
+    }
+    setBackgroundImageState(config.background_image ?? null);
+    setBlurIntensityState(typeof config.blur_intensity === 'number' ? config.blur_intensity : 12);
+    setBackgroundBlurState(
+      typeof config.background_blur === 'number'
+        ? clampInt(config.background_blur, BACKGROUND_BLUR_MIN, BACKGROUND_BLUR_MAX)
+        : BACKGROUND_BLUR_DEFAULT,
+    );
+    setCardOpacityState(typeof config.card_opacity === 'number' ? config.card_opacity : 25);
+    setIconColorState(
+      config.icon_color && ['white', 'black', 'colored'].includes(config.icon_color)
+        ? (config.icon_color as IconColor)
+        : 'colored',
+    );
+    setThemePresetState(
+      config.theme_preset && ['default', 'shadcn'].includes(config.theme_preset)
+        ? (config.theme_preset as ThemePreset)
+        : 'default',
+    );
+    // 语言：浏览器本地偏好优先（登录页切换后刷新不应被服务端默认中文覆盖）
+    const storedLang = readStoredLanguage();
+    if (storedLang) {
+      setLanguageState(storedLang);
+    } else if (config.language && ['zh-CN', 'en-US', 'ja-JP'].includes(config.language)) {
+      setLanguageState(config.language as Language);
+    }
+    setSidebarLayoutState(
+      config.sidebar_layout &&
+        (SIDEBAR_LAYOUTS as readonly string[]).includes(config.sidebar_layout)
+        ? (config.sidebar_layout as SidebarLayout)
+        : 'floating',
+    );
+    setBorderRadiusState(
+      typeof config.border_radius === 'number'
+        ? clampInt(config.border_radius, BORDER_RADIUS_MIN, BORDER_RADIUS_MAX)
+        : BORDER_RADIUS_DEFAULT,
+    );
+    setUiScaleState(
+      typeof config.ui_scale === 'number'
+        ? clampInt(config.ui_scale, UI_SCALE_MIN, UI_SCALE_MAX)
+        : UI_SCALE_DEFAULT,
+    );
+    setShadowIntensityState(
+      typeof config.shadow_intensity === 'number'
+        ? clampInt(config.shadow_intensity, SHADOW_INTENSITY_MIN, SHADOW_INTENSITY_MAX)
+        : SHADOW_INTENSITY_DEFAULT,
+    );
+    setSidebarDefaultCollapsedState(
+      typeof config.sidebar_default_collapsed === 'boolean'
+        ? config.sidebar_default_collapsed
+        : false,
+    );
+  }, []);
+
+  // 重置主题为安全默认值（清空壁纸等，用于切换 API Host 时清理旧残留）
+  const resetThemeToDefaults = useCallback(() => {
+    setModeState('light');
+    setStyleState('glassmorphism');
+    setColorState('red');
+    setBackgroundImageState(null);
+    setBlurIntensityState(12);
+    setBackgroundBlurState(BACKGROUND_BLUR_DEFAULT);
+    setCardOpacityState(25);
+    setIconColorState('colored');
+    setThemePresetState('default');
+    setSidebarLayoutState('floating');
+    setBorderRadiusState(BORDER_RADIUS_DEFAULT);
+    setUiScaleState(UI_SCALE_DEFAULT);
+    setShadowIntensityState(SHADOW_INTENSITY_DEFAULT);
+    setSidebarDefaultCollapsedState(false);
+  }, []);
+
+  // 从后端重新获取主题配置并应用
+  const reloadTheme = useCallback(async () => {
+    try {
+      const response = await themeApi.getConfig();
+      if (response.status === 0 && response.data) {
+        applyServerConfig(response.data);
+      }
+    } catch (err) {
+      console.warn('[ThemeContext] failed to reload theme from backend:', err);
+    }
+  }, [applyServerConfig]);
+
+  // 初始化
   useEffect(() => {
     const initTheme = async () => {
       try {
         const response = await themeApi.getConfig();
         if (response.status === 0 && response.data) {
-          const config = response.data;
-
-          if (config.mode && ['light', 'dark'].includes(config.mode)) {
-            setModeState(config.mode as ThemeMode);
-          }
-          const loadedStyle = parseThemeStyle(config.style);
-          if (loadedStyle) {
-            setStyleState(loadedStyle);
-          }
-          if (
-            config.color &&
-            ['red', 'orchid', 'blue', 'green', 'orange', 'pink'].includes(config.color)
-          ) {
-            setColorState(config.color as ThemeColor);
-          }
-          if (config.background_image !== undefined) {
-            setBackgroundImageState(config.background_image);
-          }
-          if (config.blur_intensity !== undefined) {
-            setBlurIntensityState(config.blur_intensity);
-          }
-          if (typeof config.background_blur === 'number') {
-            setBackgroundBlurState(
-              clampInt(config.background_blur, BACKGROUND_BLUR_MIN, BACKGROUND_BLUR_MAX),
-            );
-          }
-          if (config.card_opacity !== undefined && config.card_opacity !== null) {
-            setCardOpacityState(config.card_opacity);
-          }
-          if (config.icon_color && ['white', 'black', 'colored'].includes(config.icon_color)) {
-            setIconColorState(config.icon_color as IconColor);
-          }
-          if (config.theme_preset && ['default', 'shadcn'].includes(config.theme_preset)) {
-            setThemePresetState(config.theme_preset as ThemePreset);
-          }
-          // 语言：浏览器本地偏好优先（登录页切换后刷新不应被服务端默认中文覆盖）
-          const storedLang = readStoredLanguage();
-          if (storedLang) {
-            setLanguageState(storedLang);
-          } else if (config.language && ['zh-CN', 'en-US', 'ja-JP'].includes(config.language)) {
-            setLanguageState(config.language as Language);
-          }
-          if (
-            config.sidebar_layout &&
-            (SIDEBAR_LAYOUTS as readonly string[]).includes(config.sidebar_layout)
-          ) {
-            setSidebarLayoutState(config.sidebar_layout as SidebarLayout);
-          }
-          if (typeof config.border_radius === 'number') {
-            setBorderRadiusState(
-              clampInt(config.border_radius, BORDER_RADIUS_MIN, BORDER_RADIUS_MAX),
-            );
-          }
-          if (typeof config.ui_scale === 'number') {
-            setUiScaleState(clampInt(config.ui_scale, UI_SCALE_MIN, UI_SCALE_MAX));
-          }
-          if (typeof config.shadow_intensity === 'number') {
-            setShadowIntensityState(
-              clampInt(config.shadow_intensity, SHADOW_INTENSITY_MIN, SHADOW_INTENSITY_MAX),
-            );
-          }
-          if (typeof config.sidebar_default_collapsed === 'boolean') {
-            setSidebarDefaultCollapsedState(config.sidebar_default_collapsed);
-          }
+          applyServerConfig(response.data);
+        } else {
+          loadFromSessionStorage();
         }
       } catch {
         loadFromSessionStorage();
@@ -540,7 +583,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     };
 
     initTheme();
-  }, []);
+  }, [applyServerConfig]);
 
   const loadFromSessionStorage = () => {
     try {
@@ -1023,8 +1066,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     ],
   );
   const actionsContext = useMemo(
-    () => ({ getThemeConfig, applyThemeConfig }),
-    [getThemeConfig, applyThemeConfig],
+    () => ({ getThemeConfig, applyThemeConfig, reloadTheme, resetThemeToDefaults }),
+    [getThemeConfig, applyThemeConfig, reloadTheme, resetThemeToDefaults],
   );
 
   return (
@@ -1104,6 +1147,8 @@ export function useTheme() {
     setSidebarDefaultCollapsed: miscContext.setSidebarDefaultCollapsed,
     getThemeConfig: actionsContext.getThemeConfig,
     applyThemeConfig: actionsContext.applyThemeConfig,
+    reloadTheme: actionsContext.reloadTheme,
+    resetThemeToDefaults: actionsContext.resetThemeToDefaults,
   };
 }
 

@@ -342,11 +342,13 @@ const TREND_LOOKBACK_DAYS = 7;
  * 光感主题因为 `.tab-segment-row` 自带描边反而正常，所以只有液态翻车，很难一眼归因。
  * ghost 不带 `bg-background`，外壳自己说话，三套主题表现一致。
  */
-const rangeControlShellClass = 'glass-card-flat tab-segment-row';
+const rangeControlShellClass =
+  'tab-segment-row inline-flex items-center rounded-lg glass-card-flat p-1';
+const rangeControlBtnClass = 'h-10 w-[152px] justify-start gap-2 px-3 font-normal rounded-md';
 
-/* 日期槽和刷新按钮 h-10，和分段内钮齐平，不跟外壳垫高。 */
-const rangeControlHeightClass = 'h-10';
-const rangeIconButtonClass = 'h-10 w-10';
+/** 日期槽与刷新按钮的胶囊外壳与尺寸，与 TabButtonGroup 严格保持一致的外层 p-1 + 内层 h-10 */
+
+const rangeIconButtonClass = 'h-10 w-10 p-0 justify-center rounded-md';
 
 function rowChartHeight(rows: number): number {
   return Math.min(Math.max(rows * ROW_HEIGHT + 56, CHART_MIN), CHART_MAX);
@@ -1725,98 +1727,91 @@ export default function AIStatisticsPage() {
                 相对档没有可选项，就放一条只读的解析结果 —— 只在「今日」冒出一张
                 日历卡、其余档又消失，行宽忽宽忽窄才是「不协调」的真正来源。 */}
             {rangePreset === 'today' ? (
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    className={cn(
-                      rangeControlHeightClass,
-                      rangeControlShellClass,
-                      'w-[152px] justify-start gap-2 px-3 font-normal',
-                    )}
-                  >
-                    <CalendarDays className="h-4 w-4 shrink-0" />
-                    <span className="truncate tabular-nums">{dateStr}</span>
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start" sideOffset={8}>
-                  <MetricDayCalendar
-                    selected={selectedDate}
-                    onSelect={setSelectedDate}
-                    metrics={dailyInputTokens}
-                    disableEmpty
-                    formatMetric={formatCompactMetric}
-                  />
-                </PopoverContent>
-              </Popover>
+              <div className={rangeControlShellClass}>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="ghost" className={rangeControlBtnClass}>
+                      <CalendarDays className="h-4 w-4 shrink-0" />
+                      <span className="truncate tabular-nums">{dateStr}</span>
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start" sideOffset={8}>
+                    <MetricDayCalendar
+                      selected={selectedDate}
+                      onSelect={setSelectedDate}
+                      metrics={dailyInputTokens}
+                      disableEmpty
+                      formatMetric={formatCompactMetric}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
             ) : rangePreset === 'custom' ? (
               /* 起止两个按钮并排会把这行撑到 300px 宽，「自定义」一选就换行。
                  改成一个区间日历：宽度恒定，还能一次拖出整段。 */
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    className={cn(
-                      rangeControlHeightClass,
-                      rangeControlShellClass,
-                      'w-[152px] justify-start gap-2 px-3 font-normal',
-                      (!rangeStartDate || !rangeEndDate) && 'text-muted-foreground',
-                    )}
-                  >
-                    <CalendarDays className="h-4 w-4 shrink-0" />
-                    <span className="truncate tabular-nums">
-                      {rangeStartDate && rangeEndDate
-                        ? `${format(rangeStartDate, 'MM-dd')} → ${format(rangeEndDate, 'MM-dd')}`
-                        : t('aiStatistics.rangeStart')}
-                    </span>
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start" sideOffset={8}>
-                  <CalendarComponent
-                    mode="range"
-                    numberOfMonths={2}
-                    selected={
-                      rangeStartDate || rangeEndDate
-                        ? { from: rangeStartDate, to: rangeEndDate }
-                        : undefined
-                    }
-                    onSelect={(r) => {
-                      setRangeStartDate(r?.from);
-                      setRangeEndDate(r?.to);
-                    }}
-                    defaultMonth={rangeStartDate}
-                  />
-                </PopoverContent>
-              </Popover>
+              <div className={rangeControlShellClass}>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      className={cn(
+                        rangeControlBtnClass,
+                        (!rangeStartDate || !rangeEndDate) && 'text-muted-foreground',
+                      )}
+                    >
+                      <CalendarDays className="h-4 w-4 shrink-0" />
+                      <span className="truncate tabular-nums">
+                        {rangeStartDate && rangeEndDate
+                          ? `${format(rangeStartDate, 'MM-dd')} → ${format(rangeEndDate, 'MM-dd')}`
+                          : t('aiStatistics.rangeStart')}
+                      </span>
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start" sideOffset={8}>
+                    <CalendarComponent
+                      mode="range"
+                      numberOfMonths={2}
+                      selected={
+                        rangeStartDate || rangeEndDate
+                          ? { from: rangeStartDate, to: rangeEndDate }
+                          : undefined
+                      }
+                      onSelect={(r) => {
+                        setRangeStartDate(r?.from);
+                        setRangeEndDate(r?.to);
+                      }}
+                      defaultMonth={rangeStartDate}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
             ) : (
-              <span
-                className={cn(
-                  rangeControlHeightClass,
-                  rangeControlShellClass,
-                  'flex w-[152px] items-center gap-2 px-3 text-sm tabular-nums text-muted-foreground',
-                )}
-              >
-                <CalendarDays className="h-4 w-4 shrink-0" />
-                <span className="truncate">{scopeDates}</span>
-              </span>
+              <div className={rangeControlShellClass}>
+                <span className="flex h-10 w-[152px] items-center gap-2 px-3 text-sm tabular-nums text-muted-foreground">
+                  <CalendarDays className="h-4 w-4 shrink-0" />
+                  <span className="truncate">{scopeDates}</span>
+                </span>
+              </div>
             )}
             {/* 刷新收成图标按钮：这行是整页唯一放得下「筛选 + 页签」的地方，
                 45px 的按钮文案换 45px 的留白更划算 —— 页签组因此能在 1366 宽的笔电上
                 也留在同一行。动作本身不常错，Tooltip 报得出它是什么。 */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  onClick={() => void loadData()}
-                  disabled={isLoading}
-                  aria-label={t('common.refresh')}
-                  className={cn(rangeIconButtonClass, rangeControlShellClass, 'px-0')}
-                >
-                  <RefreshCw className={cn('h-4 w-4', isLoading && 'animate-spin')} />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>{t('common.refresh')}</TooltipContent>
-            </Tooltip>
+            <div className={rangeControlShellClass}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    onClick={() => void loadData()}
+                    disabled={isLoading}
+                    aria-label={t('common.refresh')}
+                    className={rangeIconButtonClass}
+                  >
+                    <RefreshCw className={cn('h-4 w-4', isLoading && 'animate-spin')} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{t('common.refresh')}</TooltipContent>
+              </Tooltip>
+            </div>
           </div>
           {/* 页签组 ml-auto + shrink-0：左侧筛选先吃空隙，实在放不下时才换行，
               页签组永远贴着右边缘，不会孤零零掉在第二行左边。 */}
@@ -1907,7 +1902,9 @@ export default function AIStatisticsPage() {
                         {
                           label: t('aiStatistics.cacheMiss'),
                           value: Math.max(0, scopeTotals.input - scopeTotals.cacheRead),
-                          text: formatCompactNumber(Math.max(0, scopeTotals.input - scopeTotals.cacheRead)),
+                          text: formatCompactNumber(
+                            Math.max(0, scopeTotals.input - scopeTotals.cacheRead),
+                          ),
                           color: NEUTRAL_SEGMENT,
                         },
                       ]}

@@ -38,7 +38,14 @@ import {
 } from 'lucide-react';
 import { LanguageFlag } from '@/components/ui/language-flag';
 import { cn } from '@/lib/utils';
-import { getCustomApiHost, setCustomApiHost, authApi } from '@/lib/api';
+import {
+  getCustomApiHost,
+  setCustomApiHost,
+  normalizeCustomApiHost,
+  clearThemeSessionStorage,
+  resolveApiAssetUrl,
+  authApi,
+} from '@/lib/api';
 import { isBackendUnreachable } from '@/lib/backendReachability';
 
 /** 后端连通性：探测中 / 可达 / 不可达 */
@@ -69,9 +76,16 @@ export default function Login() {
   const [customHost, setCustomHost] = useState('');
 
   const { login, register } = useAuth();
-  const { style, backgroundImage, blurIntensity, backgroundBlur } = useTheme();
+  const {
+    style,
+    backgroundImage,
+    blurIntensity,
+    backgroundBlur,
+    reloadTheme,
+    resetThemeToDefaults,
+  } = useTheme();
   const { t, language, setLanguage, availableLanguages } = useLanguage();
-  const { iconUrl: brandIconUrl, title: brandTitle } = useBrand();
+  const { iconUrl: brandIconUrl, title: brandTitle, refresh: refreshBrand } = useBrand();
   const navigate = useNavigate();
 
   // 探测后端可达性 + 是否已存在管理员账号
@@ -86,6 +100,9 @@ export default function Login() {
         if (!alive) return;
         setHasAdmin(!!data.is_admin_exist);
         setBackendState('online');
+        // 后端连接成功：刷新主题与品牌信息
+        void reloadTheme();
+        void refreshBrand();
       } catch (error) {
         if (!alive) return;
         // 网络层失败 = 后端不可达；后端有应答但报错 = 视为可达，只是查不到
@@ -95,6 +112,8 @@ export default function Login() {
           console.error('Failed to check admin exists:', error);
           setBackendState('online');
           setHasAdmin(false);
+          void reloadTheme();
+          void refreshBrand();
         }
       } finally {
         if (alive) setIsCheckingAdmin(false);
@@ -105,7 +124,7 @@ export default function Login() {
     return () => {
       alive = false;
     };
-  }, [probeNonce]);
+  }, [probeNonce, reloadTheme, refreshBrand]);
 
   // Load saved custom host on mount
   useEffect(() => {
@@ -119,12 +138,14 @@ export default function Login() {
 
   // Handle saving custom host
   const handleSaveHost = () => {
-    // Add http:// prefix if no protocol is specified
-    let host = customHost.trim();
-    if (host && !host.startsWith('http://') && !host.startsWith('https://')) {
-      host = 'http://' + host;
+    const host = normalizeCustomApiHost(customHost);
+    const hostChanged = host !== getCustomApiHost();
+    if (hostChanged) {
+      clearThemeSessionStorage();
+      resetThemeToDefaults();
     }
     setCustomApiHost(host);
+    setCustomHost(host);
     setShowSettings(false);
     setError('');
     // 地址变了，必须重新探测连通性与管理员状态
@@ -133,6 +154,8 @@ export default function Login() {
 
   // Handle clearing custom host
   const handleClearHost = () => {
+    clearThemeSessionStorage();
+    resetThemeToDefaults();
     setCustomApiHost('');
     setCustomHost('');
     setShowSettings(false);
@@ -171,6 +194,12 @@ export default function Login() {
     }
 
     if (result.success) {
+      try {
+        await reloadTheme();
+        await refreshBrand();
+      } catch (err) {
+        console.warn('Failed to refresh theme/brand after login:', err);
+      }
       navigate('/home');
     } else {
       // 提交时才发现连不上（例如后端刚好挂了），切到离线态展示连接提示
@@ -211,7 +240,10 @@ export default function Login() {
           ) : (
             <div
               className="h-full w-full bg-cover bg-center bg-no-repeat bg-fixed"
-              style={{ backgroundImage: `url("${backgroundImage}")`, ...wallpaperBlurStyle }}
+              style={{
+                backgroundImage: `url("${resolveApiAssetUrl(backgroundImage)}")`,
+                ...wallpaperBlurStyle,
+              }}
             />
           )}
           <div
@@ -271,7 +303,10 @@ export default function Login() {
           {backgroundImage ? (
             <div
               className="h-full w-full bg-cover bg-center bg-no-repeat bg-fixed"
-              style={{ backgroundImage: `url("${backgroundImage}")`, ...wallpaperBlurStyle }}
+              style={{
+                backgroundImage: `url("${resolveApiAssetUrl(backgroundImage)}")`,
+                ...wallpaperBlurStyle,
+              }}
             />
           ) : (
             <div className="w-full h-full bg-gradient-to-br from-background via-background to-secondary/30" />
@@ -584,9 +619,7 @@ export default function Login() {
               <div className="text-sm text-muted-foreground">
                 {t('login.willUse')}{' '}
                 <span className="font-mono text-foreground">
-                  {customHost.startsWith('http://') || customHost.startsWith('https://')
-                    ? customHost
-                    : `http://${customHost}`}
+                  {normalizeCustomApiHost(customHost)}
                 </span>
               </div>
             )}

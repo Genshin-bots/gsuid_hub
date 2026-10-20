@@ -19,8 +19,95 @@ import { demoPlaceholderImage, demoPluginIcon, demoMemeImageUrl } from './demoMo
 let API_BASE = '';
 
 /** 去掉首尾空白和末尾斜杠，避免和 `/api/...` 拼成 `//api`。 */
-function normalizeCustomApiHost(host: string): string {
-  return host.trim().replace(/\/+$/, '');
+export const THEME_STORAGE_KEYS = [
+  'theme_mode',
+  'theme_style',
+  'theme_color',
+  'theme_bg',
+  'theme_blur',
+  'theme_background_blur',
+  'theme_card_opacity',
+  'theme_icon_color',
+  'theme_preset',
+  'theme_sidebar_layout',
+  'theme_border_radius',
+  'theme_ui_scale',
+  'theme_shadow_intensity',
+  'theme_sidebar_default_collapsed',
+] as const;
+
+/** 清除 sessionStorage 中缓存的主题配置，避免跨后端残留 */
+export function clearThemeSessionStorage(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    for (const key of THEME_STORAGE_KEYS) {
+      sessionStorage.removeItem(key);
+    }
+  } catch {
+    // ignore storage access errors
+  }
+}
+
+/** 校验是否为合法的裸 IPv4 地址（4 段 0-255 数字） */
+export function isIPv4Address(host: string): boolean {
+  const parts = host.split('.');
+  if (parts.length !== 4) return false;
+  return parts.every((p) => {
+    if (!/^\d+$/.test(p)) return false;
+    const n = Number(p);
+    return n >= 0 && n <= 255;
+  });
+}
+
+/** 校验是否为合法的 IPv6 地址 */
+export function isIPv6Address(host: string): boolean {
+  const clean = host.startsWith('[') && host.endsWith(']') ? host.slice(1, -1) : host;
+  return clean.includes(':') && /^[0-9a-fA-F:]+$/.test(clean);
+}
+
+/**
+ * 格式化并归一化用户输入的自定义 API Host：
+ * - 纯 IP（IPv4 / IPv6）且未携带端口时，默认补上 `:8765`
+ * - 已携带其他端口、或已是 8765 端口、或是常规域名/网页地址（非裸 IP），均不补端口
+ * - 去掉末尾斜杠
+ * - 若无协议，默认以 `http://` 补全；若是 `https://` 则保留
+ */
+export function normalizeCustomApiHost(host: string): string {
+  const raw = host.trim();
+  if (!raw) return '';
+
+  let protocol = 'http://';
+  let rest = raw;
+  const protocolMatch = raw.match(/^([a-z][a-z0-9+.-]*:\/\/)/i);
+  if (protocolMatch) {
+    protocol = protocolMatch[1];
+    rest = raw.slice(protocolMatch[0].length);
+  }
+
+  // 去掉 rest 末尾斜杠
+  rest = rest.replace(/\/+$/, '');
+  if (!rest) return '';
+
+  // 裸 IPv6 若无中括号包裹，补充中括号以便 URL 正确解析
+  if (!rest.startsWith('[') && isIPv6Address(rest)) {
+    rest = `[${rest}]`;
+  }
+
+  try {
+    const parsed = new URL(`${protocol}${rest}`);
+    const hostname = parsed.hostname;
+    const hasPort = Boolean(parsed.port);
+
+    // 纯 IP（IPv4 或 IPv6）且没有端口时，默认补上 8765 端口
+    const isBareIp = isIPv4Address(hostname) || isIPv6Address(hostname);
+    if (isBareIp && !hasPort) {
+      parsed.port = '8765';
+    }
+
+    return parsed.toString().replace(/\/+$/, '');
+  } catch {
+    return (protocolMatch ? raw : `${protocol}${raw}`).replace(/\/+$/, '');
+  }
 }
 
 // ===================
@@ -70,6 +157,9 @@ export function getLoginPath(): string {
 
 export function setCustomApiHost(host: string): void {
   const normalized = normalizeCustomApiHost(host);
+  if (normalized !== API_BASE) {
+    clearThemeSessionStorage();
+  }
   API_BASE = normalized;
   // Update the api instance's baseUrl
   api.setBaseUrl(normalized);

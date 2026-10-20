@@ -104,7 +104,7 @@ function LayoutContent() {
       if (isImage) {
         return {
           ...baseStyle,
-          backgroundImage: `url("${backgroundImage}")`,
+          backgroundImage: `url("${resolveApiAssetUrl(backgroundImage)}")`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
@@ -125,7 +125,7 @@ function LayoutContent() {
       if (isImage) {
         return {
           ...baseStyle,
-          backgroundImage: `url("${backgroundImage}")`,
+          backgroundImage: `url("${resolveApiAssetUrl(backgroundImage)}")`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
@@ -146,7 +146,7 @@ function LayoutContent() {
       if (isImage) {
         return {
           ...baseStyle,
-          backgroundImage: `url("${backgroundImage}")`,
+          backgroundImage: `url("${resolveApiAssetUrl(backgroundImage)}")`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
@@ -164,7 +164,7 @@ function LayoutContent() {
     if (isImage) {
       return {
         ...baseStyle,
-        backgroundImage: `url("${backgroundImage}")`,
+        backgroundImage: `url("${resolveApiAssetUrl(backgroundImage)}")`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',
