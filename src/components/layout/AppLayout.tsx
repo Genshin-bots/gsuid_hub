@@ -49,7 +49,7 @@ function LayoutHeader() {
             variant="secondary"
             className="text-xs font-mono font-medium ml-1 shrink-0 bg-muted/80 text-foreground border border-border/50"
           >
-            v{import.meta.env.PACKAGE_VERSION || PACKAGE_VERSION || '0.4.0'}
+            v{import.meta.env.PACKAGE_VERSION || PACKAGE_VERSION || '0.4.1'}
           </Badge>
         </div>
       </div>
