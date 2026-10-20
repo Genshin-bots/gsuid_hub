@@ -420,23 +420,21 @@ interface StackRow {
   values: number[];
 }
 
-/** 堆叠分段固定顺序：输入 → 输出 → 缓存读 → 缓存写。顺序即堆叠顺序，颜色也按序取主题色阶。 */
-const TOKEN_STACK_FIELDS = ['input', 'output', 'cacheRead', 'cacheWrite'] as const;
+/** 堆叠分段固定顺序：未命中输入 → 缓存命中 → 输出。三者合计即为真实 Total Tokens。 */
+const TOKEN_STACK_FIELDS = ['uncachedInput', 'cacheRead', 'output'] as const;
 
 const TOKEN_STACK_LABEL_KEYS: Record<(typeof TOKEN_STACK_FIELDS)[number], string> = {
-  input: 'aiStatistics.inputTokens',
+  uncachedInput: 'aiStatistics.uncachedInput',
+  cacheRead: 'aiStatistics.cacheHit',
   output: 'aiStatistics.outputTokens',
-  cacheRead: 'aiStatistics.cacheReadTokens',
-  cacheWrite: 'aiStatistics.cacheWriteTokens',
 };
 
 function buildStackRows(
   items: {
     name: string;
-    input: number;
-    output: number;
+    uncachedInput: number;
     cacheRead: number;
-    cacheWrite: number;
+    output: number;
   }[],
   limit: number,
   otherLabel: string,
@@ -1039,41 +1037,45 @@ export default function AIStatisticsPage() {
 
   const tokenModelChartData = useMemo(
     () =>
-      tokenByModel.map((item) => ({
-        name: item.model || 'Unknown',
-        input: item.input_tokens ?? 0,
-        output: item.output_tokens ?? 0,
-        cacheRead: item.cache_read_tokens ?? 0,
-        cacheWrite: item.cache_write_tokens ?? 0,
-      })),
+      tokenByModel.map((item) => {
+        const inp = item.input_tokens ?? 0;
+        const cr = item.cache_read_tokens ?? 0;
+        return {
+          name: item.model || 'Unknown',
+          uncachedInput: Math.max(0, inp - cr),
+          cacheRead: cr,
+          output: item.output_tokens ?? 0,
+        };
+      }),
     [tokenByModel],
   );
 
   const tokenTypeChartData = useMemo(
     () =>
-      tokenByType.map((item) => ({
-        name: item.type || 'Unknown',
-        input: item.input_tokens ?? 0,
-        output: item.output_tokens ?? 0,
-        cacheRead: item.cache_read_tokens ?? 0,
-        cacheWrite: item.cache_write_tokens ?? 0,
-      })),
+      tokenByType.map((item) => {
+        const inp = item.input_tokens ?? 0;
+        const cr = item.cache_read_tokens ?? 0;
+        return {
+          name: item.type || 'Unknown',
+          uncachedInput: Math.max(0, inp - cr),
+          cacheRead: cr,
+          output: item.output_tokens ?? 0,
+        };
+      }),
     [tokenByType],
   );
 
   /**
-   * 四种 token 的量级天然差着数量级（缓存读通常是输入的五六倍），画成并排柱会把
-   * 输入/输出压成贴地细条 —— 那是量级差，不是样式能救的。改成按模型/按类型排序的
-   * 堆叠横条：总量一眼可见，构成也能顺着条读下去。
+   * 堆叠条形图：将输入拆为「未命中输入」与「缓存命中」，加上「输出」，
+   * 三段相加正好等于真实总 Token，同时一眼看清缓存结构。
    */
   const buildTokenStackOption = useCallback(
     (
       items: {
         name: string;
-        input: number;
-        output: number;
+        uncachedInput: number;
         cacheRead: number;
-        cacheWrite: number;
+        output: number;
       }[],
       limit: number,
       labelWidth: number,
@@ -1578,15 +1580,20 @@ export default function AIStatisticsPage() {
     t,
   ]);
 
-  const scopeTotal =
-    scopeTotals.input + scopeTotals.output + scopeTotals.cacheRead + scopeTotals.cacheWrite;
+  const scopeTotal = scopeTotals.input + scopeTotals.output;
 
   const scopeMixSlices = [
     {
-      label: t('aiStatistics.inputTokens'),
-      value: scopeTotals.input,
-      text: formatCompactNumber(scopeTotals.input),
+      label: t('aiStatistics.uncachedInput'),
+      value: Math.max(0, scopeTotals.input - scopeTotals.cacheRead),
+      text: formatCompactNumber(Math.max(0, scopeTotals.input - scopeTotals.cacheRead)),
       color: ramp[0],
+    },
+    {
+      label: t('aiStatistics.cacheHit'),
+      value: scopeTotals.cacheRead,
+      text: formatCompactNumber(scopeTotals.cacheRead),
+      color: ramp[2],
     },
     {
       label: t('aiStatistics.outputTokens'),
@@ -1594,23 +1601,10 @@ export default function AIStatisticsPage() {
       text: formatCompactNumber(scopeTotals.output),
       color: ramp[1],
     },
-    {
-      label: t('aiStatistics.cacheReadTokens'),
-      value: scopeTotals.cacheRead,
-      text: formatCompactNumber(scopeTotals.cacheRead),
-      color: ramp[2],
-    },
-    {
-      label: t('aiStatistics.cacheWriteTokens'),
-      value: scopeTotals.cacheWrite,
-      text: formatCompactNumber(scopeTotals.cacheWrite),
-      color: ramp[3],
-    },
   ];
 
-  /** 缓存命中率的分母是「输入 + 缓存读取」而不是总量：命中与否只跟进来的 prompt 有关，
-   *  输出和缓存写入混进去会把这个比率压到看不出差异。 */
-  const scopeCacheBase = scopeTotals.input + scopeTotals.cacheRead;
+  /** 缓存命中率分母为 input_tokens（provider prompt_tokens 本身已包含缓存命中部分）。 */
+  const scopeCacheBase = scopeTotals.input;
 
   /** 剖面读数给三张图卡的抬头用：请求数求和、TTFT / TPS 各模型均值。
    *  原来的三格 sparkline 就是同一份数据的缩影 —— 曲线下面就是那三张图，
@@ -1912,8 +1906,8 @@ export default function AIStatisticsPage() {
                         },
                         {
                           label: t('aiStatistics.cacheMiss'),
-                          value: scopeTotals.input,
-                          text: formatCompactNumber(scopeTotals.input),
+                          value: Math.max(0, scopeTotals.input - scopeTotals.cacheRead),
+                          text: formatCompactNumber(Math.max(0, scopeTotals.input - scopeTotals.cacheRead)),
                           color: NEUTRAL_SEGMENT,
                         },
                       ]}

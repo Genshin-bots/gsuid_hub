@@ -148,5 +148,6 @@
   "runComposition": "运行构成",
   "runCompositionHint": "Root + 嵌套 = 总数",
   "itemCount": "共 {count} 项",
-  "other": "其他"
+  "other": "其他",
+  "uncachedInput": "未命中输入"
 }
