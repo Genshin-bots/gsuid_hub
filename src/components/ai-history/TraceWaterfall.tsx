@@ -891,7 +891,7 @@ function TokenBadges({ sp }: { sp: TraceSpan }) {
   const outTok = sp.kind === 'run' ? sp.sumTokensOut : sp.tokensOut;
   if (!inTok && !outTok) return null;
   return (
-    <span className="hidden md:inline-flex items-center gap-1 text-[10px] text-muted-foreground font-mono px-1.5 py-0.5 rounded bg-muted/60 border border-border/40 shrink-0">
+    <span className="hidden md:inline-flex items-center gap-1 text-[10px] text-muted-foreground font-mono px-1.5 py-0.5 rounded-md bg-muted/60 border border-border/40 shrink-0">
       {sp.kind === 'run' && <span className="opacity-70">Σ</span>}
       <span className="text-sky-500">↗{formatTokens(inTok || 0)}</span>
       <span className="text-emerald-500">↙{formatTokens(outTok || 0)}</span>
@@ -904,21 +904,21 @@ function EffortBadge({ efforts, t }: { efforts: string[] | undefined; t: TFunc }
   return (
     <span
       title={t('aiHistory.waterfall.thinkingEffort')}
-      className="hidden md:inline-flex items-center gap-1 shrink-0 text-[10px] font-mono px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 border border-indigo-500/30"
+      className="hidden md:inline-flex items-center gap-1 shrink-0 text-[10px] font-mono px-1.5 py-0.5 rounded-md bg-muted/60 text-muted-foreground border border-border/40"
     >
-      <Lightbulb className="w-2.5 h-2.5 shrink-0" />
+      <Lightbulb className="w-2.5 h-2.5 shrink-0 text-indigo-500 dark:text-indigo-400" />
       {efforts.join(' · ')}
     </span>
   );
 }
 
-// 模型名胶囊：前缀挂厂商品牌 ICON，匹配规则复用 /ai-config 的 ModelBrandIcon。
+// 模型名徽章：前缀挂厂商品牌 ICON，匹配规则复用 /ai-config 的 ModelBrandIcon。圆角统一走 rounded-md 响应主题设置。
 // 这里只有模型名、拿不到 provider，匹配不到已知厂商就不画图标（避免把私有模型标成 OpenAI）。
 function ModelChip({ model, className }: { model: string; className?: string }) {
   return (
     <span
       className={cn(
-        'hidden lg:inline-flex items-center gap-1 min-w-0 max-w-44 shrink-0 text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-muted/70 text-muted-foreground border border-border/40',
+        'hidden lg:inline-flex items-center gap-1 min-w-0 max-w-44 shrink-0 text-[10px] font-mono px-1.5 py-0.5 rounded-md bg-muted/60 text-muted-foreground border border-border/40',
         className,
       )}
     >
@@ -1063,7 +1063,7 @@ function SpanRow({ sp, depth, ctx }: { sp: TraceSpan; depth: number; ctx: RowCtx
             {spanLabel(sp, t)}
           </span>
           {childCount > 0 && (
-            <span className="shrink-0 text-[10px] font-mono px-1 rounded bg-primary/10 text-primary">
+            <span className="shrink-0 text-[10px] font-mono px-1 rounded-md bg-primary/10 text-primary">
               {childCount}
             </span>
           )}
@@ -1184,7 +1184,7 @@ function RunBlock({ sp, base }: { sp: TraceSpan; base: RowBase }) {
           <Play className="w-3.5 h-3.5 text-primary shrink-0" />
           <span className="text-sm font-bold truncate">{t('aiHistory.waterfall.agentRun')}</span>
           {sp.children.length > 0 && (
-            <span className="shrink-0 text-[10px] font-mono px-1 rounded bg-primary/10 text-primary">
+            <span className="shrink-0 text-[10px] font-mono px-1 rounded-md bg-primary/10 text-primary">
               {sp.children.length}
             </span>
           )}
@@ -1226,7 +1226,7 @@ function ProactiveBlock({ sp, t }: { sp: TraceSpan; t: TFunc }) {
           {t('aiHistory.waterfall.proactive')}
         </span>
         {source && (
-          <span className="shrink-0 text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-pink-500/10 text-pink-600 dark:text-pink-400 border border-pink-500/30">
+          <span className="shrink-0 text-[10px] font-mono px-1.5 py-0.5 rounded-md bg-pink-500/10 text-pink-600 dark:text-pink-400 border border-pink-500/30">
             {source}
           </span>
         )}

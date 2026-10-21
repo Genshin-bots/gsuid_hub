@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import {
   TabButtonGroup,
-  tabToolbarControlClass,
+  tabToolbarShellControlClass,
   tabToolbarGroupWrapClass,
 } from '@/components/ui/TabButtonGroup';
 import { SearchableMenu } from '@/components/ui/searchable-menu';
@@ -451,7 +451,7 @@ export default function AIToolsPage() {
                   placeholder={t('aiTools.searchPlaceholder')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className={cn(tabToolbarControlClass, 'min-w-0 w-full pl-9')}
+                  className={cn(tabToolbarShellControlClass, 'min-w-0 w-full pl-9')}
                 />
               </div>
 
@@ -461,7 +461,10 @@ export default function AIToolsPage() {
                   onValueChange={(v) => setDiagnosticFilter(v as typeof diagnosticFilter)}
                 >
                   <SelectTrigger
-                    className={cn(tabToolbarControlClass, 'w-full min-w-0 px-2 [&>span]:min-w-0')}
+                    className={cn(
+                      tabToolbarShellControlClass,
+                      'w-full min-w-0 px-2 [&>span]:min-w-0',
+                    )}
                   >
                     <SelectValue />
                   </SelectTrigger>
@@ -481,7 +484,10 @@ export default function AIToolsPage() {
               <div className="min-w-0 flex-1">
                 <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                   <SelectTrigger
-                    className={cn(tabToolbarControlClass, 'w-full min-w-0 px-2 [&>span]:min-w-0')}
+                    className={cn(
+                      tabToolbarShellControlClass,
+                      'w-full min-w-0 px-2 [&>span]:min-w-0',
+                    )}
                   >
                     <SelectValue placeholder={t('aiTools.selectCategory')} />
                   </SelectTrigger>
@@ -507,7 +513,7 @@ export default function AIToolsPage() {
                   appearance="field"
                   width="trigger"
                   align="end"
-                  className={cn(tabToolbarControlClass, 'w-full min-w-0 px-2')}
+                  className={cn(tabToolbarShellControlClass, 'w-full min-w-0 px-2')}
                   placeholder={t('aiTools.selectPlugin')}
                   searchPlaceholder={t('common.search')}
                   value={selectedPlugin}
@@ -526,11 +532,11 @@ export default function AIToolsPage() {
             </div>
           )}
 
-          {/* 技能页签的操作按钮：与页签同行右对齐，高度对齐页签内那颗按钮 */}
+          {/* 技能页签的操作按钮：与页签同行右对齐，高度对齐页签外壳 */}
           {pageTab === 'skills' && (
             <Button
               onClick={() => setSkillsAddOpen(true)}
-              className={cn(tabToolbarControlClass, 'w-full gap-2 md:w-auto')}
+              className={cn(tabToolbarShellControlClass, 'w-full gap-2 md:w-auto')}
             >
               <Plus className="h-4 w-4" />
               {t('aiSkills.addSkill')}

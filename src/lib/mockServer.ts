@@ -1068,6 +1068,19 @@ const routes: Route[] = [
   },
   { m: 'GET', re: /^\/api\/ai\/mcp\/([^/]+)\/tools$/, h: () => ({ tools: [] }) },
 
+  // /ai-tools
+  {
+    m: 'GET',
+    re: /^\/api\/ai\/tools\/list/,
+    h: () => ({
+      tools: [
+        { name: 'test_tool', description: '测试工具描述\n详细信息', plugin: 'core', category: 'self' },
+      ],
+      categories: ['self', 'buildin'],
+      plugins: ['core'],
+    }),
+  },
+
   // /ai-statistics
   { m: 'GET', re: /^\/api\/ai\/statistics\/summary$/, h: () => generateAIStatisticsSummary() },
   { m: 'GET', re: /^\/api\/ai\/statistics\/token-by-model$/, h: () => generateTokenByModel() },

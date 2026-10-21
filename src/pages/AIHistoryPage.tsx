@@ -819,7 +819,7 @@ export default function AIHistoryPage() {
                   <div className="flex items-center gap-1.5 shrink-0">
                     {(sessionTokens.tin > 0 || sessionTokens.tout > 0) && (
                       <span
-                        className="hidden lg:inline-flex items-center gap-1 text-[10px] font-mono px-1.5 py-0.5 rounded bg-muted/60 border border-border/40 text-muted-foreground"
+                        className="hidden lg:inline-flex items-center gap-1 text-[10px] font-mono px-1.5 py-0.5 rounded-md bg-muted/60 border border-border/40 text-muted-foreground"
                         title={`${t('aiHistory.inputTokens')} / ${t('aiHistory.outputTokens')}`}
                       >
                         <span className="opacity-70">Σ</span>

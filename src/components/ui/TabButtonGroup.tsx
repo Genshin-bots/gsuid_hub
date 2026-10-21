@@ -90,6 +90,12 @@ interface TabButtonGroupProps {
 export const tabToolbarControlClass = 'h-10';
 export const tabToolbarIconButtonClass = 'h-10 w-10';
 
+/**
+ * 与默认 TabButtonGroup **外壳**对齐的精确高度（内钮 2.5rem + 外壳 p-1 上下 0.5rem + 边框 2px）。
+ * 当工具栏要求与分段外框整体物理高度/上下顶底边缘绝对平齐时使用（如 /ai-tools 工具栏筛选行）。
+ */
+export const tabToolbarShellControlClass = 'h-[calc(3rem+2px)]';
+
 /** `size="sm"` 的外壳高度，与 outline Button / Input 的 h-9 对齐。 */
 export const tabSmShellClass = 'h-9';
 
