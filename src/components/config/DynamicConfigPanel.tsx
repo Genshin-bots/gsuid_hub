@@ -9,6 +9,12 @@ import { PluginConfigItem } from '@/lib/api';
 // 类型映射：后端 type → ConfigField type
 // ============================================================================
 
+/** 字段名或标题里带 key / 密钥的，独占一行，不进三列。 */
+function isSecretKeyField(fieldKey: string, item: PluginConfigItem): boolean {
+  const title = item.title == null ? '' : String(item.title);
+  return /key/i.test(fieldKey) || /key/i.test(title) || title.includes('密钥');
+}
+
 // 归一化选项：所有元素转为字符串
 function normalizeOptions(options: unknown): string[] {
   if (!Array.isArray(options)) return [];
@@ -288,31 +294,44 @@ export function DynamicConfigPanel({
     );
   };
 
-  return (
-    <div className="space-y-4">
-      {layoutGroups.map((group, groupIndex) => {
-        const fields = group
-          .map((key) => {
-            const item = config[key];
-            return item ? { key, item } : null;
-          })
-          .filter(Boolean) as { key: string; item: PluginConfigItem }[];
+  const orderedFields: { key: string; item: PluginConfigItem }[] = [];
+  for (const group of layoutGroups) {
+    for (const key of group) {
+      const item = config[key];
+      if (item) orderedFields.push({ key, item });
+    }
+  }
+  for (const [key, item] of remainingFields) {
+    orderedFields.push({ key, item });
+  }
 
-        if (fields.length === 0) return null;
+  const blocks: React.ReactNode[] = [];
+  let rowBuffer: { key: string; item: PluginConfigItem }[] = [];
+  const flushRow = () => {
+    if (rowBuffer.length === 0) return;
+    const rowKey = rowBuffer.map((field) => field.key).join('-');
+    blocks.push(
+      <div key={`row-${rowKey}`} className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {rowBuffer.map(({ key, item }) => renderField(key, item))}
+      </div>,
+    );
+    rowBuffer = [];
+  };
 
-        if (fields.length === 1) {
-          return renderField(fields[0].key, fields[0].item);
-        }
+  for (const field of orderedFields) {
+    const fieldType = mapBackendTypeToFieldType(field.item);
+    const solo =
+      isSecretKeyField(field.key, field.item) ||
+      fieldType === 'divider' ||
+      fieldType === 'repeatgroup';
+    if (solo) {
+      flushRow();
+      blocks.push(renderField(field.key, field.item));
+      continue;
+    }
+    rowBuffer.push(field);
+  }
+  flushRow();
 
-        return (
-          <div key={groupIndex} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {fields.map(({ key, item }) => renderField(key, item))}
-          </div>
-        );
-      })}
-
-      {/* 渲染未在 layout 中指定的剩余字段 */}
-      {remainingFields.map(([key, item]) => renderField(key, item))}
-    </div>
-  );
+  return <div className="space-y-4">{blocks}</div>;
 }

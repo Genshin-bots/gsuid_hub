@@ -57,7 +57,6 @@
   "errorRate": "Error rate",
   "errorEventsTitle": "Error details",
   "errorEventsHint": "See the type and reason of each error in this range",
-  "errorEventsPending": "This range only has type counts. Per-error reasons appear after Core records new errors.",
   "errorEventsUnavailable": "The per-error endpoint is unavailable. Type counts are shown below.",
   "quotaBreakerOpen": "Quota breaker",
   "quotaExhausted": "Quota exhausted",

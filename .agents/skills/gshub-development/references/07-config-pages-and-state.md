@@ -163,9 +163,9 @@ const configChanged =
 
 ## 7.6 任务配置：主备双配置（Primary + Backup）★
 
-任务配置页（`TaskConfigSection`）展示 **2 个区块**：
-- 高级任务（含主配置 + 备用配置）
-- 低级任务（含主配置 + 备用配置）
+任务配置页（`TaskConfigSection`）展示 **2 个区块**，宽屏并排（`lg:grid-cols-2`）：
+- 左：高级任务（含主配置 + 备用配置）
+- 右：低级任务（含主配置 + 备用配置）
 
 每个区块内的备用配置通过左侧的细竖线 (`border-l-2 border-primary/20 ml-1`) 视觉上
 弱化（图标/文字色用 `text-muted-foreground`），让用户一眼看出主备层级关系。
@@ -294,7 +294,8 @@ provider 的创建 / 编辑弹窗展示。
 ## 7.7 网络搜索 / 网页抓取：多源主备 UI ★★
 
 位置：`AIConfig/sections/WebSearchSection.tsx`、`WebFetchSection.tsx`；装配于
-`AIConfigPage.tsx`。对应后端 `ai_config` 字段 `websearch_*` / `webfetch_*`（热读，**无需重启**）。
+`AIConfigPage.tsx` 的同一个分区「网络搜索 / 抓取」，宽屏左搜索、右抓取。
+对应后端 `ai_config` 字段 `websearch_*` / `webfetch_*`（热读，**无需重启**）。
 
 ### 字段与默认
 

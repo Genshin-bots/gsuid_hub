@@ -259,7 +259,7 @@ export function WebSearchSection({
           config={tavilyConfig.config}
           configId={tavilyConfig.id}
           onChange={onUpdateConfig}
-          layout={[['api_key'], ['max_results', 'search_depth']]}
+          layout={[['api_key', 'max_results', 'search_depth']]}
         />
       );
     }
@@ -276,7 +276,7 @@ export function WebSearchSection({
           config={exaConfig.config}
           configId={exaConfig.id}
           onChange={onUpdateConfig}
-          layout={[['api_key'], ['max_results', 'search_type']]}
+          layout={[['api_key', 'max_results', 'search_type']]}
         />
       );
     }
@@ -293,7 +293,10 @@ export function WebSearchSection({
           config={anysearchConfig.config}
           configId={anysearchConfig.id}
           onChange={onUpdateConfig}
-          layout={[['api_key'], ['max_results', 'timeout'], ['zone', 'language']]}
+          layout={[
+            ['api_key', 'max_results', 'timeout'],
+            ['zone', 'language'],
+          ]}
         />
       );
     }
@@ -310,7 +313,7 @@ export function WebSearchSection({
           config={firecrawlConfig.config}
           configId={firecrawlConfig.id}
           onChange={onUpdateConfig}
-          layout={[['api_key'], ['max_results', 'timeout']]}
+          layout={[['api_key', 'max_results', 'timeout']]}
         />
       );
     }
@@ -327,7 +330,10 @@ export function WebSearchSection({
           config={jinaConfig.config}
           configId={jinaConfig.id}
           onChange={onUpdateConfig}
-          layout={[['api_key'], ['max_results', 'timeout'], ['search_base_url', 'reader_base_url']]}
+          layout={[
+            ['api_key', 'max_results', 'timeout'],
+            ['search_base_url', 'reader_base_url'],
+          ]}
         />
       );
     }
@@ -345,10 +351,8 @@ export function WebSearchSection({
           configId={deepseekConfig.id}
           onChange={onUpdateConfig}
           layout={[
-            ['api_key'],
-            ['max_results', 'timeout'],
-            ['search_base_url', 'fetch_base_url'],
-            ['need_content'],
+            ['api_key', 'max_results', 'timeout'],
+            ['search_base_url', 'fetch_base_url', 'need_content'],
           ]}
         />
       );
@@ -366,7 +370,7 @@ export function WebSearchSection({
           config={miniMaxConfig.config}
           configId={miniMaxConfig.id}
           onChange={onUpdateConfig}
-          layout={[['api_key'], ['api_host', 'resource_mode']]}
+          layout={[['api_key', 'api_host', 'resource_mode']]}
         />
       );
     }

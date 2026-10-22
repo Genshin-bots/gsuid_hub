@@ -83,7 +83,9 @@ import {
   Layers,
   ScrollText,
   AlignLeft,
+  Smile,
 } from 'lucide-react';
+import { PersonaMemePackTab } from '@/components/persona/PersonaMemePackTab';
 // 支持的音频格式
 const SUPPORTED_AUDIO_FORMATS = ['mp3', 'ogg', 'wav', 'm4a', 'flac'];
 const SUPPORTED_AUDIO_MIME_TYPES = [
@@ -577,6 +579,7 @@ export default function PersonaConfigPage() {
   const [asideText, setAsideText] = useState(ASIDE_TEXT_DEFAULT);
   const [asideMixed, setAsideMixed] = useState(ASIDE_MIXED_DEFAULT);
   const [asideAllowTools, setAsideAllowTools] = useState(false);
+  const [allowMemeReply, setAllowMemeReply] = useState(true);
   // 字段都由 AI 行动模式带出。关掉时不隐藏、只冻结，避免这一行塌掉。
   const showInspectInterval = editingAIModes.includes('定时巡检');
   const showTriggerKeywords = editingAIModes.includes('提及应答');
@@ -1008,6 +1011,7 @@ export default function PersonaConfigPage() {
       ),
     );
     setAsideAllowTools(persona.config?.aside_allow_tools === true);
+    setAllowMemeReply(persona.config?.allow_meme_reply !== false);
     // 常驻直装工具默认就在白名单里：每轮必然在场，不必让用户手动勾一遍
     const configuredToolNames = persona.config?.tool_names ?? [];
     setEditingToolNames(
@@ -1195,6 +1199,7 @@ export default function PersonaConfigPage() {
         aside_text_probability: asideText,
         aside_mixed_probability: asideMixed,
         aside_allow_tools: asideAllowTools,
+        allow_meme_reply: allowMemeReply,
         ...(toolCatalog && toolCatalog.plugins.length > 0
           ? {
               enabled_tools: enabledPluginsToSpec(
@@ -2060,10 +2065,27 @@ export default function PersonaConfigPage() {
                       label: t('personaConfig.audio'),
                       icon: <Music className="h-4 w-4" />,
                     },
+                    {
+                      value: 'meme_packs',
+                      label: t('personaConfig.memePacks'),
+                      icon: <Smile className="h-4 w-4" />,
+                    },
                   ]}
                 />
               </div>
               <div className="flex min-h-0 flex-1 flex-col px-6 py-4">
+                <TabsContent
+                  value="meme_packs"
+                  className="mt-0 hidden min-h-0 flex-1 overflow-y-auto data-[state=active]:block"
+                >
+                  {editingPersona && (
+                    <PersonaMemePackTab
+                      personaName={editingPersona.name}
+                      allowReply={allowMemeReply}
+                      onAllowReplyChange={setAllowMemeReply}
+                    />
+                  )}
+                </TabsContent>
                 {/* 自述文档 Tab */}
                 <TabsContent
                   value="markdown"
@@ -2187,8 +2209,8 @@ export default function PersonaConfigPage() {
                         <Settings className="h-4 w-4" />
                         {t('personaConfig.aiModes')}
                       </Label>
-                      {/* 四个模式：大屏一行四张，窄屏两列，避免「即将推出」被挤折行 */}
-                      <div className="grid grid-cols-2 gap-3 items-stretch lg:grid-cols-4">
+                      {/* 只有四个模式，仍按启用范围的五列排，末格留空才能上下对齐 */}
+                      <div className="grid grid-cols-2 items-stretch gap-3 sm:grid-cols-3 lg:grid-cols-5">
                         {AI_MODE_OPTIONS.map((mode) => (
                           <button
                             key={mode.value}

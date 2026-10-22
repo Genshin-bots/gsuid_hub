@@ -18,8 +18,10 @@ export const RELATIONSHIP_CONFIG_KEYS: string[] = [
   'favor_care_signal_enable',
 ];
 
+/** Agent 套件已从控制台撤下。键和 kit_slots.* 仍排除，避免在高级设置里再露出来。 */
 export const AGENT_KITS_CONFIG_KEYS: string[] = ['agent_hooks_enable', 'allow_replace_sealed'];
 
+/** 认知联邦已从控制台撤下。键仍排除，避免在高级设置里再露出来。 */
 export const COGNITION_CONFIG_KEYS: string[] = [
   'cognition_artifact_enable',
   'cognition_min_score_ratio',

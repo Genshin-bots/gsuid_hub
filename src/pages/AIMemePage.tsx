@@ -980,13 +980,14 @@ function UploadDialog({
     // (the original backend behaviour when `folder` is omitted) and is
     // handled accordingly below.
     const persona = personaHint.trim();
+    const packId = persona && persona !== 'common' ? persona : undefined;
 
     // Upload images one by one. For images the backend takes a `folder`
     // parameter; we map our persona selection onto it (folder ↔ persona_hint
     // is bijective on the server side).
     for (const f of imageFiles) {
       try {
-        await memeApi.upload(f, persona || 'common', autoTag);
+        await memeApi.upload(f, 'common', autoTag, packId);
         success++;
       } catch {
         failed++;
@@ -999,7 +1000,7 @@ function UploadDialog({
     // (use the original metadata.json folder / persona_hint).
     for (const f of memeFiles) {
       try {
-        await memeApi.importMemes(f, skipExisting, autoTag, persona || undefined);
+        await memeApi.importMemes(f, skipExisting, autoTag, undefined, packId);
         success++;
       } catch {
         failed++;
@@ -1136,7 +1137,7 @@ function UploadDialog({
                     .map((p) => (
                       <SelectItem key={p.persona_hint} value={p.persona_hint}>
                         <span className="flex items-center gap-2">
-                          <span className="truncate max-w-[200px]">{p.persona_hint}</span>
+                          <span className="truncate max-w-[200px]">{p.folder || p.persona_hint}</span>
                           <span className="text-[10px] text-muted-foreground tabular-nums">
                             {p.count}
                           </span>
@@ -1279,9 +1280,10 @@ export default function AIMemePage() {
       if (filterFolder) params.folder = filterFolder;
       if (filterStatus) params.status = filterStatus;
       if (searchQuery) params.q = searchQuery;
-      if (filterPersona && filterPersona !== PERSONA_ALL) params.persona_hint = filterPersona;
-
-      const data = await memeApi.getList(params);
+      const selectedPack = filterPersona !== PERSONA_ALL ? filterPersona : '';
+      const data = selectedPack
+        ? await memeApi.listPackMembers(selectedPack, params)
+        : await memeApi.getList(params);
       const records = Array.isArray(data?.records) ? data.records : [];
       setMemes(
         records.map((r) => normalizeMemeRecord(r)).filter((r): r is MemeRecord => r != null),
@@ -1324,10 +1326,16 @@ export default function AIMemePage() {
 
   const fetchPersonas = useCallback(async () => {
     try {
-      const data = await memeApi.getPersonas();
-      setPersonas(Array.isArray(data) ? data : []);
+      const data = await memeApi.getPacks();
+      setPersonas(
+        (Array.isArray(data) ? data : []).map((pack) => ({
+          persona_hint: pack.pack_id,
+          count: pack.member_count,
+          folder: pack.name,
+        })),
+      );
     } catch (error) {
-      console.error('Failed to fetch meme personas:', error);
+      console.error('Failed to fetch meme packs:', error);
     }
   }, []);
 
@@ -1847,7 +1855,7 @@ export default function AIMemePage() {
                 {personas.map((p) => (
                   <SelectItem key={p.persona_hint} value={p.persona_hint}>
                     <span className="flex items-center gap-2">
-                      <span className="truncate max-w-[160px]">{p.persona_hint}</span>
+                      <span className="truncate max-w-[160px]">{p.folder}</span>
                       <span className="text-[10px] text-muted-foreground tabular-nums">
                         {p.count}
                       </span>

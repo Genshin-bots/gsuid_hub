@@ -123,8 +123,8 @@ export interface UseProviderConfigReturn {
   ) => Promise<void>;
   fetchConfigDetailForEdit: (provider: string, configName: string) => Promise<void>;
   refreshAllConfigs: () => Promise<void>;
-  handleSetHighLevelConfig: (configFullName: string) => Promise<void>;
-  handleSetLowLevelConfig: (configFullName: string) => Promise<void>;
+  handleSetHighLevelConfig: (configFullName: string) => Promise<boolean>;
+  handleSetLowLevelConfig: (configFullName: string) => Promise<boolean>;
   handleCreateOpenaiConfig: () => Promise<void>;
   handleSaveOpenaiConfig: () => Promise<void>;
   handleDeleteConfig: () => Promise<void>;
@@ -405,9 +405,11 @@ export function useProviderConfig(): UseProviderConfigReturn {
         setHighLevelConfig(configFullName);
         toast.success(t('aiConfig.providerConfig.setHighLevelSuccess', { name: configFullName }));
         await fetchAllConfigs();
+        return true;
       } catch (error) {
         console.error('Failed to set high level config:', error);
         toast.error(t('aiConfig.providerConfig.setFailed'));
+        return false;
       }
     },
     [t, fetchAllConfigs],
@@ -420,9 +422,11 @@ export function useProviderConfig(): UseProviderConfigReturn {
         setLowLevelConfig(configFullName);
         toast.success(t('aiConfig.providerConfig.setLowLevelSuccess', { name: configFullName }));
         await fetchAllConfigs();
+        return true;
       } catch (error) {
         console.error('Failed to set low level config:', error);
         toast.error(t('aiConfig.providerConfig.setFailed'));
+        return false;
       }
     },
     [t, fetchAllConfigs],

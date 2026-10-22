@@ -25,16 +25,18 @@ export function RelationshipSettingsSection({
   });
 
   return (
-    <div className="space-y-5">
-      <div>
-        <h2 className="text-lg font-bold flex items-center gap-2 mb-1">
-          <Heart className="w-5 h-5 text-primary" />
-          {t('aiConfig.relationshipSettings.title')}
-        </h2>
-        <p className="text-sm text-muted-foreground">
-          {t('aiConfig.relationshipSettings.description')}
-        </p>
-        <Button variant="outline" size="sm" className="mt-3 h-9" asChild>
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="mb-1 flex items-center gap-2 text-lg font-bold">
+            <Heart className="h-5 w-5 text-muted-foreground" />
+            {t('aiConfig.relationshipSettings.title')}
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            {t('aiConfig.relationshipSettings.description')}
+          </p>
+        </div>
+        <Button variant="outline" size="sm" className="h-9 shrink-0" asChild>
           <Link to="/ai-runtime?tab=relationship">
             {t('aiConfig.relationshipSettings.openRuntime')}
           </Link>

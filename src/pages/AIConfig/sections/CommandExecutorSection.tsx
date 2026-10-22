@@ -19,7 +19,7 @@
  * 提交，因此本 section 不需要自带保存按钮。
  *
  * 布局约定：与 AdvancedSettingsSection / MemeSettingsSection 一致——
- * 标题 + 描述 + 总开关 + 3 列 grid（divider 占整行），不做 Card 包裹。
+ * 标题 + 描述 + 总开关 + 三列 grid（divider 占整行），不做 Card 包裹。
  */
 import { AlertTriangle, ShieldAlert, Terminal } from 'lucide-react';
 import {
@@ -46,7 +46,7 @@ export interface CommandExecutorSectionProps {
   onUpdateConfig: (configId: string, fieldKey: string, value: ConfigValue) => void;
 }
 
-/** 不放入 3 列 grid 统一渲染的字段（顶部总开关） */
+/** 不放入三列 grid 统一渲染的字段（顶部总开关） */
 const TOP_LEVEL_KEYS: string[] = ['enable'];
 
 /**
@@ -93,7 +93,7 @@ export function CommandExecutorSection({
   const allowNetwork = (config.allow_network?.value as boolean) ?? false;
   const allowAutoProvision = (config.allow_auto_provision?.value as boolean) ?? false;
 
-  // 关闭时不渲染子配置，但保留 3 列 grid 的占位提示
+  // 关闭时不渲染子配置，但保留三列 grid 的占位提示
   const entries = Object.entries(config).filter(([key]) => !TOP_LEVEL_KEYS.includes(key));
 
   return (
@@ -145,7 +145,7 @@ export function CommandExecutorSection({
         </GlassAlert>
       )}
 
-      {/* 3 列 grid：divider 占整行，其它字段占一格 */}
+      {/* 三列：divider 占整行，其它字段占一格 */}
       {enableValue && (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {entries.map(([key, item]) => {

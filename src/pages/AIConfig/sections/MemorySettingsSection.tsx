@@ -21,7 +21,7 @@ export interface MemorySettingsSectionProps {
  * 「记忆设置」Section：
  * - 总开关：是否启用记忆（写入 aiConfig.enable_memory）
  * - 记忆模式（记忆路径）：保留原有 ChipGroup 多选样式
- * - 其余配置项：复用 pluginConfigItemToFieldDef + ConfigField 三列网格布局
+ * - 其余配置项：复用 pluginConfigItemToFieldDef + ConfigField，一行三个
  */
 export function MemorySettingsSection({
   t,
@@ -80,9 +80,9 @@ export function MemorySettingsSection({
             />
           </div>
 
-          {/* 其余配置项 - 复用三列网格布局，与高级设置/插件参数配置一致 */}
+          {/* 其余配置项 - 一行三个，与高级设置一致 */}
           {otherEntries.length > 0 && (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 pt-2">
+            <div className="grid gap-6 pt-2 sm:grid-cols-2 lg:grid-cols-3">
               {otherEntries.map(([key, item]) => {
                 const fieldDef = pluginConfigItemToFieldDef(key, item);
                 const isDivider = fieldDef.type === 'divider';

@@ -195,6 +195,7 @@
     "rerankServiceDisabled": "Rerank有効にしてRAG検索品質を向上",
     "embeddingSaveWarningTitle": "ベクトルデータベース設定を変更",
     "embeddingSaveWarningDesc": "埋め込みモデルサービス / Qdrantデプロイ方式を変更すると、履歴ベクトルデータの移行・再構築が必要になります。先に data/ai_core フォルダをバックアップし、保存後はサービスの再起動が必要です。移行には時間がかかる場合があります。",
+    "webSearchFetch": "ネット検索 / 取得",
     "webSearchService": "ネット検索サービス",
     "webSearchServiceDesc": "設定ネット検索機能",
     "primaryProvider": "メイン検索ソース",
@@ -375,6 +376,9 @@
     "noActiveConfigTitle": "設定未激活",
     "noConfigFileTitle": "なし設定ファイル",
     "noConfigFileWarning": "先にクリック右上「新規設定」追加1つの設定ファイル、然後再に詳細タスクと低レベルタスク選択対応の設定"
+  },
+  "multimodal": {
+    "title": "マルチモーダル"
   },
   "imageUnderstand": {
     "title": "画像理解サービス",

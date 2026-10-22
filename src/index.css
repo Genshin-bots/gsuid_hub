@@ -1426,8 +1426,9 @@ All colors MUST be HSL.
 }
 
 /* 页头描边按钮（outline = bg-background）在液态玻璃下是实心白块。改成和输入框同一层玻璃。
-   文字色单独写：text-destructive（卸载）要留红色，不能跟着前景色走。 */
-[data-style="liquid"] :is(button, a).bg-background:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) {
+   文字色单独写：text-destructive（卸载）要留红色，不能跟着前景色走。
+   .header-outline-control：里面嵌了 Switch，不能再套 button，用同类名挂上同一套材质。 */
+[data-style="liquid"] :is(button, a, .header-outline-control).bg-background:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) {
   background: hsl(var(--card) / var(--card-opacity, 0.35)) !important;
   border: 1px solid rgba(255, 255, 255, 0.55) !important;
   box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.75) !important;
@@ -1435,39 +1436,39 @@ All colors MUST be HSL.
   -webkit-backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.08) brightness(1.04) saturate(1.1);
 }
 
-[data-style="liquid"] :is(button, a).bg-background:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not(.text-destructive):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) {
+[data-style="liquid"] :is(button, a, .header-outline-control).bg-background:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not(.text-destructive):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) {
   color: hsl(var(--foreground)) !important;
 }
 
-[data-style="liquid"] :is(button, a).bg-background:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):hover {
+[data-style="liquid"] :is(button, a, .header-outline-control).bg-background:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):hover {
   background: hsl(var(--card) / calc(var(--card-opacity, 0.35) + 0.1)) !important;
   border-color: rgba(255, 255, 255, 0.82) !important;
   box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.9) !important;
 }
 
-.dark[data-style="liquid"] :is(button, a).bg-background:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile),
-.dark [data-style="liquid"] :is(button, a).bg-background:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile),
-[data-style="liquid"] .dark :is(button, a).bg-background:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) {
+.dark[data-style="liquid"] :is(button, a, .header-outline-control).bg-background:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile),
+.dark [data-style="liquid"] :is(button, a, .header-outline-control).bg-background:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile),
+[data-style="liquid"] .dark :is(button, a, .header-outline-control).bg-background:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) {
   background: hsl(var(--card) / var(--card-opacity, 0.4)) !important;
   border-color: rgba(255, 255, 255, 0.18) !important;
   box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.32) !important;
 }
 
-.dark[data-style="liquid"] :is(button, a).bg-background:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not(.text-destructive):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile),
-.dark [data-style="liquid"] :is(button, a).bg-background:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not(.text-destructive):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile),
-[data-style="liquid"] .dark :is(button, a).bg-background:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not(.text-destructive):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) {
+.dark[data-style="liquid"] :is(button, a, .header-outline-control).bg-background:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not(.text-destructive):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile),
+.dark [data-style="liquid"] :is(button, a, .header-outline-control).bg-background:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not(.text-destructive):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile),
+[data-style="liquid"] .dark :is(button, a, .header-outline-control).bg-background:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not(.text-destructive):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) {
   color: hsl(var(--foreground)) !important;
 }
 
-.dark[data-style="liquid"] :is(button, a).bg-background:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):hover,
-.dark [data-style="liquid"] :is(button, a).bg-background:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):hover,
-[data-style="liquid"] .dark :is(button, a).bg-background:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):hover {
+.dark[data-style="liquid"] :is(button, a, .header-outline-control).bg-background:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):hover,
+.dark [data-style="liquid"] :is(button, a, .header-outline-control).bg-background:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):hover,
+[data-style="liquid"] .dark :is(button, a, .header-outline-control).bg-background:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):hover {
   background: hsl(var(--card) / calc(var(--card-opacity, 0.4) + 0.1)) !important;
   border-color: rgba(255, 255, 255, 0.32) !important;
 }
 
 /* 光感玻璃下的描边小按钮（预设档位等）不要铺实心白底。 */
-[data-style="luminous"] :is(button, a).bg-background:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):not(.bg-primary\/15) {
+[data-style="luminous"] :is(button, a, .header-outline-control).bg-background:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):not(.bg-primary\/15) {
   background: hsl(var(--card) / var(--card-opacity, 0.22)) !important;
   border: 1px solid rgba(255, 255, 255, 0.5) !important;
   box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.75) !important;
@@ -1475,11 +1476,11 @@ All colors MUST be HSL.
   -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.2)) saturate(190%) contrast(106%) brightness(105%);
 }
 
-[data-style="luminous"] :is(button, a).bg-background:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not(.text-destructive):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):not(.bg-primary\/15) {
+[data-style="luminous"] :is(button, a, .header-outline-control).bg-background:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not(.text-destructive):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):not(.bg-primary\/15) {
   color: hsl(var(--foreground)) !important;
 }
 
-[data-style="luminous"] :is(button, a).bg-background:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):not(.bg-primary\/15):hover {
+[data-style="luminous"] :is(button, a, .header-outline-control).bg-background:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):not(.bg-primary\/15):hover {
   background: hsl(var(--card) / calc(var(--card-opacity, 0.22) + 0.1)) !important;
   border-color: rgba(255, 255, 255, 0.78) !important;
 }
@@ -1495,8 +1496,8 @@ All colors MUST be HSL.
   color: hsl(var(--primary)) !important;
 }
 
-.dark[data-style="luminous"] :is(button, a).bg-background:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):not(.bg-primary\/15),
-.dark [data-style="luminous"] :is(button, a).bg-background:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):not(.bg-primary\/15) {
+.dark[data-style="luminous"] :is(button, a, .header-outline-control).bg-background:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):not(.bg-primary\/15),
+.dark [data-style="luminous"] :is(button, a, .header-outline-control).bg-background:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):not(.bg-primary\/15) {
   background: hsl(var(--card) / var(--card-opacity, 0.28)) !important;
   border-color: rgba(255, 255, 255, 0.18) !important;
   box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.28) !important;
@@ -1504,8 +1505,8 @@ All colors MUST be HSL.
   -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.25)) saturate(180%) contrast(108%) brightness(112%);
 }
 
-.dark[data-style="luminous"] :is(button, a).bg-background:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not(.text-destructive):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):not(.bg-primary\/15),
-.dark [data-style="luminous"] :is(button, a).bg-background:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not(.text-destructive):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):not(.bg-primary\/15) {
+.dark[data-style="luminous"] :is(button, a, .header-outline-control).bg-background:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not(.text-destructive):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):not(.bg-primary\/15),
+.dark [data-style="luminous"] :is(button, a, .header-outline-control).bg-background:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not(.text-destructive):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):not(.bg-primary\/15) {
   color: hsl(var(--foreground)) !important;
 }
 
@@ -1517,7 +1518,7 @@ All colors MUST be HSL.
 }
 
 /* 磨砂玻璃下的描边按钮与卡片同一层：卡片色透明度 + blur-intensity。 */
-[data-style="glassmorphism"] :is(button, a).bg-background:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):not(.bg-primary\/15) {
+[data-style="glassmorphism"] :is(button, a, .header-outline-control).bg-background:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):not(.bg-primary\/15) {
   background: hsl(var(--card) / var(--card-opacity, 0.25)) !important;
   border: 1px solid hsl(var(--border) / 0.45) !important;
   box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.45) !important;
@@ -1525,11 +1526,11 @@ All colors MUST be HSL.
   -webkit-backdrop-filter: blur(var(--blur-intensity, 12px));
 }
 
-[data-style="glassmorphism"] :is(button, a).bg-background:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not(.text-destructive):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):not(.bg-primary\/15) {
+[data-style="glassmorphism"] :is(button, a, .header-outline-control).bg-background:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not(.text-destructive):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):not(.bg-primary\/15) {
   color: hsl(var(--foreground)) !important;
 }
 
-[data-style="glassmorphism"] :is(button, a).bg-background:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):not(.bg-primary\/15):hover {
+[data-style="glassmorphism"] :is(button, a, .header-outline-control).bg-background:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):not(.bg-primary\/15):hover {
   background: hsl(var(--card) / calc(var(--card-opacity, 0.25) + 0.1)) !important;
   border-color: hsl(var(--border) / 0.7) !important;
 }
@@ -1543,15 +1544,15 @@ All colors MUST be HSL.
   color: hsl(var(--primary)) !important;
 }
 
-.dark[data-style="glassmorphism"] :is(button, a).bg-background:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):not(.bg-primary\/15),
-.dark [data-style="glassmorphism"] :is(button, a).bg-background:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):not(.bg-primary\/15) {
+.dark[data-style="glassmorphism"] :is(button, a, .header-outline-control).bg-background:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):not(.bg-primary\/15),
+.dark [data-style="glassmorphism"] :is(button, a, .header-outline-control).bg-background:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):not(.bg-primary\/15) {
   background: hsl(var(--card) / var(--card-opacity, 0.2)) !important;
   border-color: hsl(var(--border) / 0.4) !important;
   box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.16) !important;
 }
 
-.dark[data-style="glassmorphism"] :is(button, a).bg-background:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not(.text-destructive):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):not(.bg-primary\/15),
-.dark [data-style="glassmorphism"] :is(button, a).bg-background:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not(.text-destructive):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):not(.bg-primary\/15) {
+.dark[data-style="glassmorphism"] :is(button, a, .header-outline-control).bg-background:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not(.text-destructive):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):not(.bg-primary\/15),
+.dark [data-style="glassmorphism"] :is(button, a, .header-outline-control).bg-background:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not(.text-destructive):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):not(.bg-primary\/15) {
   color: hsl(var(--foreground)) !important;
 }
 
@@ -1560,6 +1561,60 @@ All colors MUST be HSL.
   background: hsl(var(--primary) / 0.28) !important;
   border-color: hsl(var(--primary) / 0.45) !important;
   color: hsl(var(--foreground)) !important;
+}
+
+/* Toast 默认是实色底。玻璃主题下改成和描边按钮同一层材质。 */
+[data-style="liquid"] [data-sonner-toast] {
+  background: hsl(var(--card) / var(--card-opacity, 0.55)) !important;
+  border: 1px solid rgba(255, 255, 255, 0.55) !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.75) !important;
+  color: hsl(var(--foreground)) !important;
+  backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.08) brightness(1.04) saturate(1.1);
+  -webkit-backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.08) brightness(1.04) saturate(1.1);
+}
+
+.dark[data-style="liquid"] [data-sonner-toast],
+.dark [data-style="liquid"] [data-sonner-toast],
+[data-style="liquid"] .dark [data-sonner-toast] {
+  background: hsl(var(--card) / var(--card-opacity, 0.62)) !important;
+  border-color: rgba(255, 255, 255, 0.18) !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.32) !important;
+}
+
+[data-style="luminous"] [data-sonner-toast] {
+  background: hsl(var(--card) / var(--card-opacity, 0.45)) !important;
+  border: 1px solid rgba(255, 255, 255, 0.5) !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.75) !important;
+  color: hsl(var(--foreground)) !important;
+  backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.2)) saturate(190%) contrast(106%) brightness(105%);
+  -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.2)) saturate(190%) contrast(106%) brightness(105%);
+}
+
+.dark[data-style="luminous"] [data-sonner-toast],
+.dark [data-style="luminous"] [data-sonner-toast],
+[data-style="luminous"] .dark [data-sonner-toast] {
+  background: hsl(var(--card) / var(--card-opacity, 0.5)) !important;
+  border-color: rgba(255, 255, 255, 0.18) !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.28) !important;
+  backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.25)) saturate(180%) contrast(108%) brightness(112%);
+  -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.25)) saturate(180%) contrast(108%) brightness(112%);
+}
+
+[data-style="glassmorphism"] [data-sonner-toast] {
+  background: hsl(var(--card) / var(--card-opacity, 0.45)) !important;
+  border: 1px solid hsl(var(--border) / 0.45) !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.45) !important;
+  color: hsl(var(--foreground)) !important;
+  backdrop-filter: blur(var(--blur-intensity, 12px));
+  -webkit-backdrop-filter: blur(var(--blur-intensity, 12px));
+}
+
+.dark[data-style="glassmorphism"] [data-sonner-toast],
+.dark [data-style="glassmorphism"] [data-sonner-toast],
+[data-style="glassmorphism"] .dark [data-sonner-toast] {
+  background: hsl(var(--card) / var(--card-opacity, 0.5)) !important;
+  border-color: hsl(var(--border) / 0.4) !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.16) !important;
 }
 
 /* ============================================================================

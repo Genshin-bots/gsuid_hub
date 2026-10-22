@@ -195,6 +195,7 @@
     "rerankServiceDisabled": "Enable Rerank to improve RAG retrieval quality",
     "embeddingSaveWarningTitle": "Modify Vector Database Configuration",
     "embeddingSaveWarningDesc": "Modifying the embedding model service / Qdrant deployment will require historical vector data to be migrated and rebuilt. It is recommended to back up the data/ai_core folder first; a service restart is required after saving, and migration may take a long time.",
+    "webSearchFetch": "Web Search / Fetch",
     "webSearchService": "Web Search Service",
     "webSearchServiceDesc": "Configure web search capability",
     "primaryProvider": "Primary search provider",
@@ -375,6 +376,9 @@
     "noActiveConfigTitle": "Config Not Activated",
     "noConfigFileTitle": "No Config Files Available",
     "noConfigFileWarning": "Please click \"New Config\" in the top right to create a config file first, then assign it to high level and low level tasks"
+  },
+  "multimodal": {
+    "title": "Multimodal"
   },
   "imageUnderstand": {
     "title": "Image Understanding",

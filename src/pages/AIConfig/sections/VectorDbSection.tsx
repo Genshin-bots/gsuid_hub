@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { GlassAlert } from '@/components/ui/glass-alert';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
+
 import { Switch } from '@/components/ui/switch';
 import { ChipGroup } from '@/components/ui/MultiSelectChipGroup';
 import {
@@ -189,6 +189,7 @@ export function VectorDbSection({
         <p className="text-sm text-muted-foreground">{t('aiConfig.vectorDb.description')}</p>
       </div>
 
+      <div className="grid items-start gap-6 lg:grid-cols-2">
       {/* 1. Qdrant 部署方式 */}
       <div className="space-y-3">
         <LabelWithHelp
@@ -259,8 +260,6 @@ export function VectorDbSection({
           </div>
         )}
       </div>
-
-      <Separator className="bg-border/30" />
 
       {/* 2. 嵌入模型提供方 */}
       <div className="space-y-3">
@@ -434,10 +433,8 @@ export function VectorDbSection({
           })()}
       </div>
 
-      <Separator className="bg-border/30" />
-
-      {/* 3. 重排序模型 */}
-      <div className="space-y-3">
+      {/* 3. 重排序模型：单独占满下一行，避免挤在左栏底下留空 */}
+      <div className="space-y-3 lg:col-span-2">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <ArrowUpDown className="w-4 h-4 text-primary" />
@@ -490,6 +487,7 @@ export function VectorDbSection({
             )}
           </>
         )}
+      </div>
       </div>
 
       {/* Qdrant 部署方式切换确认弹窗 */}

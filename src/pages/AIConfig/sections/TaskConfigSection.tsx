@@ -1,7 +1,6 @@
 import { AlertTriangle, ListChecks, Plus, Settings, Sparkles, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { GlassAlert } from '@/components/ui/glass-alert';
-import { Separator } from '@/components/ui/separator';
 import { ConfigSelectDropdown } from '@/components/config';
 import { HeadingWithHelp, LabelWithHelp } from '../shared';
 import type { AllConfigItem } from '@/lib/api';
@@ -102,7 +101,7 @@ export function TaskConfigSection({
           </Button>
         </GlassAlert>
       ) : (
-        <div className="space-y-5">
+        <div className="grid items-start gap-6 lg:grid-cols-2">
           {/* 高级任务：主 + 备用 */}
           <div className="space-y-3">
             <LabelWithHelp
@@ -141,7 +140,6 @@ export function TaskConfigSection({
               )}
             </div>
           </div>
-          <Separator className="bg-border/30" />
           {/* 低级任务：主 + 备用 */}
           <div className="space-y-3">
             <LabelWithHelp

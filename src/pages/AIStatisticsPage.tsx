@@ -2647,11 +2647,11 @@ export default function AIStatisticsPage() {
                   ))
                 ) : (
                   <div className="space-y-3">
-                    <p className="text-sm text-muted-foreground">
-                      {errorEventsFallback
-                        ? t('aiStatistics.errorEventsUnavailable')
-                        : t('aiStatistics.errorEventsPending')}
-                    </p>
+                    {errorEventsFallback ? (
+                      <p className="text-sm text-muted-foreground">
+                        {t('aiStatistics.errorEventsUnavailable')}
+                      </p>
+                    ) : null}
                     {errorBreakdown.length === 0 ? (
                       <p className="text-sm text-muted-foreground">{t('aiStatistics.noDataInRange')}</p>
                     ) : (

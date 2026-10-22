@@ -954,6 +954,24 @@ const routes: Route[] = [
   { m: 'GET', re: /^\/api\/meme\/list$/, h: ({ url }) => generateMemeList(url.searchParams) },
   { m: 'GET', re: /^\/api\/meme\/personas$/, h: () => generateMemePersonas() },
   { m: 'GET', re: /^\/api\/meme\/stats$/, h: () => generateMemeStats() },
+  {
+    m: 'GET',
+    re: /^\/api\/meme\/packs$/,
+    h: () => [
+      {
+        pack_id: 'default-pack',
+        name: '通用表情包',
+        member_count: 1,
+        tagged_count: 1,
+        bound_personas: [],
+      },
+    ],
+  },
+  {
+    m: 'GET',
+    re: /^\/api\/meme\/packs\/([^/]+)\/members$/,
+    h: ({ url }) => generateMemeList(url.searchParams),
+  },
   // 单条详情（点击表情打开详情弹窗）——必须放在上面三条「具体路径」之后，避免误吞 list/personas/stats。
   // 兼容尾斜杠；返回完整 MemeRecord，缺字段会让 AIMemePage 展开 tags 白屏。
   {

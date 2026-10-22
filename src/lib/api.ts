@@ -2595,6 +2595,8 @@ export interface PersonaConfig {
   capability_agents?: string[];
   /** 该人格使用的系统提示词组。缺省为「默认」。 */
   prompt_group?: string;
+  /** 打开后系统提示写入表情协议。缺省为开。 */
+  allow_meme_reply?: boolean;
   /** 0 到 100。决定气泡条数，以及仍等于模板默认的字数。 */
   chat_style?: number;
   /** 等于模板默认时跟随说话强度。 */
@@ -2622,6 +2624,7 @@ export interface PersonaConfigUpdateRequest {
   tool_names?: string[];
   capability_agents?: string[];
   prompt_group?: string;
+  allow_meme_reply?: boolean;
   chat_style?: number;
   speech_len_soft?: number;
 }
@@ -4187,6 +4190,14 @@ export interface MemePersona {
   folder: string;
 }
 
+export interface MemePackSummary {
+  pack_id: string;
+  name: string;
+  member_count: number;
+  tagged_count: number;
+  bound_personas: string[];
+}
+
 export interface MemeListParams {
   folder?: string;
   status?: string;
@@ -4223,6 +4234,53 @@ export const memeApi = {
   // 获取所有出现过的 persona_hint 及数量（按数量降序）
   getPersonas: () => api.get<MemePersona[]>('/api/meme/personas'),
 
+  getPacks: () => api.get<MemePackSummary[]>('/api/meme/packs'),
+
+  listPackMembers: (packId: string, params: MemeListParams = {}) => {
+    const searchParams = new URLSearchParams();
+    if (params.status) searchParams.set('status', params.status);
+    if (params.sort) searchParams.set('sort', params.sort);
+    if (params.page) searchParams.set('page', String(params.page));
+    if (params.page_size) searchParams.set('page_size', String(params.page_size));
+    if (params.q) searchParams.set('q', params.q);
+    const query = searchParams.toString();
+    return api.get<MemeListResponse>(
+      `/api/meme/packs/${encodeURIComponent(packId)}/members${query ? `?${query}` : ''}`,
+    );
+  },
+
+  getPersonaPacks: (personaName: string) =>
+    api.get<{ pack_ids: string[] }>(
+      `/api/persona/${encodeURIComponent(personaName)}/meme_packs`,
+    ),
+
+  setPersonaPacks: (personaName: string, packIds: string[]) =>
+    api.put<{ pack_ids: string[] }>(
+      `/api/persona/${encodeURIComponent(personaName)}/meme_packs`,
+      { pack_ids: packIds },
+    ),
+
+  exportPersonaBundle: (personaName: string) =>
+    api.postBlob(`/api/persona/${encodeURIComponent(personaName)}/bundle/export`, {}),
+
+  importPersonaBundle: async (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const token = getAuthToken();
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const response = await fetch(`${getCustomApiHost()}/api/persona/bundle/import`, {
+      method: 'POST',
+      headers,
+      body: formData,
+      credentials: 'include',
+    });
+    if (response.status === 401) handleUnauthorized();
+    const data: ApiResponse<{ persona_name: string }> = await response.json();
+    if (!response.ok || data.status !== 0) throw new Error(data.msg || 'Import failed');
+    return data.data;
+  },
+
   // 获取单条记录详情
   getDetail: (memeId: string) => api.get<MemeRecord>(`/api/meme/${memeId}`),
 
@@ -4231,6 +4289,12 @@ export const memeApi = {
     if (import.meta.env.VITE_DEMO) return demoMemeImageUrl(memeId);
     const base = getCustomApiHost();
     return `${base}/api/meme/image/${memeId}`;
+  },
+
+  getThumbUrl: (memeId: string) => {
+    if (import.meta.env.VITE_DEMO) return demoMemeImageUrl(memeId);
+    const base = getCustomApiHost();
+    return `${base}/api/meme/thumb/${encodeURIComponent(memeId)}`;
   },
 
   // 更新标签/描述/归属
@@ -4247,11 +4311,17 @@ export const memeApi = {
   delete: (memeId: string) => api.delete<null>(`/api/meme/${memeId}`),
 
   // 手动上传表情�?
-  upload: async (file: File, folder: string = 'common', autoTag: boolean = true) => {
+  upload: async (
+    file: File,
+    folder: string = 'common',
+    autoTag: boolean = true,
+    packId?: string,
+  ) => {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('folder', folder);
     formData.append('auto_tag', String(autoTag));
+    if (packId) formData.append('pack_id', packId);
 
     const token = getAuthToken();
     const headers: Record<string, string> = {};
@@ -4300,34 +4370,32 @@ export const memeApi = {
       { meme_ids: memeIds },
     ),
 
-  // 批量导出�?.meme 格式
-  exportMemes: async (memeIds?: string[], folder?: string): Promise<Blob> => {
+  exportMemes: async (memeIds?: string[], folder?: string, packId?: string): Promise<Blob> => {
     const body: Record<string, unknown> = {};
     if (memeIds && memeIds.length > 0) body.meme_ids = memeIds;
+    else if (packId) body.pack_id = packId;
     else if (folder) body.folder = folder;
     return api.postBlob('/api/meme/export', body);
   },
 
-  // 导入 .meme 格式文件
-  // - persona_hint: 指定导入后的人格分类（默认 `common`）。后端会保证
-  //   folder <-> persona_hint 双向一致，传 `common` 进通用 folder，
-  //   传 `<persona 名>` 进 `persona_<persona 名>` folder。
-  //   传空字符串 / undefined 则不传，沿用 metadata.json 中原有的值。
+  // 省略包字段时，文件进入后端缺省目录 common，并成为「通用表情包」的成员。
   importMemes: async (
     file: File,
     skipExisting: boolean = true,
     autoTag: boolean = false,
     personaHint?: string,
+    packId?: string,
+    createPack?: boolean,
   ) => {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('skip_existing', String(skipExisting));
     formData.append('auto_tag', String(autoTag));
-    // Only append when the caller explicitly chose a persona (incl. `common`).
-    // An empty string here would mean "no preference" - fall through to backend default.
     if (personaHint && personaHint.length > 0) {
       formData.append('persona_hint', personaHint);
     }
+    if (packId) formData.append('pack_id', packId);
+    if (createPack !== undefined) formData.append('create_pack', String(createPack));
 
     const token = getAuthToken();
     const headers: Record<string, string> = {};

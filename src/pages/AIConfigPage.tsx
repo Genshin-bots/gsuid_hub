@@ -13,30 +13,21 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAIStatus } from '@/contexts/AIStatusContext';
-import { useIsMobile } from '@/hooks/use-mobile';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { GlassAlert } from '@/components/ui/glass-alert';
-import { Switch } from '@/components/ui/switch';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
 import {
   AlertTriangle,
   Bot,
   Brain,
-  Cpu,
   Database,
   Eye,
-  FileText,
-  Globe,
-  Heart,
   ListChecks,
   Loader2,
   MemoryStick,
-  Puzzle,
   Save,
-  ScanSearch,
   Search,
   SlidersHorizontal,
   Smile,
@@ -45,7 +36,7 @@ import {
   Server,
   Terminal,
 } from 'lucide-react';
-import { headerActionRowClass } from '@/components/layout/PinnedPage';
+import { headerActionRowClass, PinnedPage } from '@/components/layout/PinnedPage';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import {
@@ -56,10 +47,8 @@ import {
 } from '@/lib/api';
 import { MCP_SERVICE_TOOLS_CONFIG_KEY_MAP, type McpServiceType } from '@/components/config';
 import { EmptyState } from './AIConfig/shared/EmptyState';
-import { SidebarItem } from './AIConfig/shared/SidebarItem';
 import { filterOutPrimaryProvider } from './AIConfig/shared/providerId';
 import {
-  ServiceSwitchSection,
   TaskConfigSection,
   WebSearchSection,
   WebFetchSection,
@@ -69,9 +58,6 @@ import {
   DocumentExtractSection,
   MemorySettingsSection,
   MemeSettingsSection,
-  RelationshipSettingsSection,
-  AgentKitsSettingsSection,
-  CognitionSettingsSection,
   AdvancedSettingsSection,
   GsCoreAiMcpServerSection,
   CommandExecutorSection,
@@ -97,7 +83,6 @@ export default function AIConfigPage() {
   const { style } = useTheme();
   const isGlass = style !== 'solid';
   const { t } = useLanguage();
-  const isMobile = useIsMobile();
 
   // ====================== Active section ======================
   const [activeSection, setActiveSection] = useState<string>('taskConfig');
@@ -113,6 +98,7 @@ export default function AIConfigPage() {
     updateConfigValue,
     markSaved: markConfigsSaved,
     applyConfigsAndMarkSaved,
+    syncPersistedField,
   } = useFrameworkConfig();
 
   // ====================== Provider / OpenAI Config ======================
@@ -436,12 +422,29 @@ export default function AIConfigPage() {
     'MCP',
   ]) as string[];
 
+  // 主任务配置由 setHigh/LowLevelConfig 即时落库，不参与保存按钮和整包回写。
+  const IMMEDIATE_TASK_CONFIG_KEYS = [
+    'high_level_provider_config_name',
+    'low_level_provider_config_name',
+  ] as const;
+
+  const frameworkConfigsSignature = (source: typeof configs) => {
+    const cloned = JSON.parse(JSON.stringify(source)) as typeof configs;
+    for (const cfg of Object.values(cloned)) {
+      if (!cfg?.config) continue;
+      for (const key of IMMEDIATE_TASK_CONFIG_KEYS) {
+        delete cfg.config[key];
+      }
+    }
+    return JSON.stringify(cloned);
+  };
+
   // ====================== Dirty check + 保存流 ======================
   const isConfigDirty = useMemo(() => {
     const configChanged =
       Object.keys(originalConfig).length === 0
         ? Object.keys(configs).length > 0
-        : JSON.stringify(configs) !== JSON.stringify(originalConfig);
+        : frameworkConfigsSignature(configs) !== frameworkConfigsSignature(originalConfig);
     const embeddingProviderChanged =
       embedding.embeddingSummary?.provider !== embedding.originalEmbeddingProvider;
     const embeddingLocalChanged =
@@ -488,7 +491,10 @@ export default function AIConfigPage() {
       const changedConfigs = Object.values(configs).filter((config) => {
         const original = originalConfig[config.id];
         if (!original) return true;
-        return JSON.stringify(config.config) !== JSON.stringify(original.config);
+        return (
+          frameworkConfigsSignature({ [config.id]: config }) !==
+          frameworkConfigsSignature({ [config.id]: original })
+        );
       });
 
       /** 备用列表里若含主用，保存时剔除并稍后 toast + 回写 UI */
@@ -502,6 +508,12 @@ export default function AIConfigPage() {
         const configToSave: Record<string, unknown> = {};
         Object.entries(config.config).forEach(([key, field]: [string, PluginConfigItem]) => {
           if (!field || typeof field !== 'object' || !('value' in field)) return;
+          if (
+            key === 'high_level_provider_config_name' ||
+            key === 'low_level_provider_config_name'
+          ) {
+            return;
+          }
           const rawType = (field.type || '').toLowerCase();
           let value: unknown = field.value;
 
@@ -724,7 +736,7 @@ export default function AIConfigPage() {
     );
   }
 
-  // ====================== 侧边栏菜单项 ======================
+  // ====================== 顶部分区 ======================
   const sidebarItems = [
     {
       id: 'taskConfig',
@@ -738,29 +750,14 @@ export default function AIConfigPage() {
     },
     {
       id: 'webSearch',
-      title: t('aiConfig.serviceProvider.webSearchService'),
+      title: t('aiConfig.serviceProvider.webSearchFetch'),
       icon: <Search className="w-5 h-5" />,
     },
     {
-      id: 'webFetch',
-      title: t('aiConfig.webFetch.title'),
-      icon: <Globe className="w-5 h-5" />,
-    },
-    {
-      id: 'imageUnderstand',
-      title: t('aiConfig.imageUnderstand.title'),
+      id: 'multimodal',
+      title: t('aiConfig.multimodal.title'),
       icon: <Eye className="w-5 h-5" />,
       alert: provider.taskModelLacksImage && !imageUnderstandProvider,
-    },
-    {
-      id: 'voiceRecognition',
-      title: t('aiConfig.voiceRecognition.title'),
-      icon: <Cpu className="w-5 h-5" />,
-    },
-    {
-      id: 'documentExtract',
-      title: t('aiConfig.documentExtract.title'),
-      icon: <FileText className="w-5 h-5" />,
     },
     {
       id: 'memorySettings',
@@ -787,21 +784,6 @@ export default function AIConfigPage() {
       icon: <Terminal className="w-5 h-5" />,
     },
     {
-      id: 'relationshipSettings',
-      title: t('aiConfig.relationshipSettings.title'),
-      icon: <Heart className="w-5 h-5" />,
-    },
-    {
-      id: 'agentKitsSettings',
-      title: t('aiConfig.agentKitsSettings.title'),
-      icon: <Puzzle className="w-5 h-5" />,
-    },
-    {
-      id: 'cognitionSettings',
-      title: t('aiConfig.cognitionSettings.title'),
-      icon: <ScanSearch className="w-5 h-5" />,
-    },
-    {
       id: 'advancedSettings',
       title: t('aiConfig.advancedSettings.title'),
       icon: <SlidersHorizontal className="w-5 h-5" />,
@@ -823,8 +805,18 @@ export default function AIConfigPage() {
             isLowLevelConfigValid={provider.isLowLevelConfigValid}
             isHighLevel2ndConfigValid={isHighLevel2ndConfigValid}
             isLowLevel2ndConfigValid={isLowLevel2ndConfigValid}
-            onSetHighLevelConfig={provider.handleSetHighLevelConfig}
-            onSetLowLevelConfig={provider.handleSetLowLevelConfig}
+            onSetHighLevelConfig={async (name) => {
+              const ok = await provider.handleSetHighLevelConfig(name);
+              if (ok && aiConfig?.id) {
+                syncPersistedField(aiConfig.id, 'high_level_provider_config_name', name);
+              }
+            }}
+            onSetLowLevelConfig={async (name) => {
+              const ok = await provider.handleSetLowLevelConfig(name);
+              if (ok && aiConfig?.id) {
+                syncPersistedField(aiConfig.id, 'low_level_provider_config_name', name);
+              }
+            }}
             onSetHighLevel2ndConfig={(v) =>
               updateConfigValue(aiConfig.id, 'high_level_2nd_provider_config_name', v)
             }
@@ -835,7 +827,9 @@ export default function AIConfigPage() {
           />
         );
       case 'webSearch':
+      case 'webFetch':
         return (
+          <div className="grid items-start gap-6 lg:grid-cols-2">
           <WebSearchSection
             t={t}
             websearchProvider={websearchProvider}
@@ -896,9 +890,6 @@ export default function AIConfigPage() {
             onAddMcpDetailRow={() => mcp.addMcpDetailRow('websearch_mcp_tool_id')}
             onRemoveMcpDetailRow={(name) => mcp.removeMcpDetailRow('websearch_mcp_tool_id', name)}
           />
-        );
-      case 'webFetch':
-        return (
           <WebFetchSection
             t={t}
             webfetchProvider={webfetchProvider}
@@ -923,9 +914,14 @@ export default function AIConfigPage() {
             }
             onUpdateConfig={updateConfigValue}
           />
+          </div>
         );
+      case 'multimodal':
       case 'imageUnderstand':
+      case 'voiceRecognition':
+      case 'documentExtract':
         return (
+          <div className="grid items-start gap-6 lg:grid-cols-2 xl:grid-cols-3">
           <ImageUnderstandSection
             t={t}
             imageUnderstandProvider={imageUnderstandProvider}
@@ -949,6 +945,51 @@ export default function AIConfigPage() {
               mcp.removeMcpDetailRow('image_understand_mcp_tool_id', name)
             }
           />
+          <VoiceRecognitionSection
+            t={t}
+            aiConfigId={aiConfig.id}
+            asrProvider={asrProvider}
+            asrProviderOptions={asrProviderOptions}
+            asrProviderDesc={aiConfig?.config.asr_provider?.desc}
+            asrMcpToolId={asrMcpToolId}
+            asrToolInfo={asrToolInfo}
+            mcpDetails={mcp.mcpDetailsEditing['asr_mcp_tool_id'] || {}}
+            onChangeProvider={(v) => updateConfigValue(aiConfig.id, 'asr_provider', v)}
+            onOpenMcpToolDialog={() => mcp.openMcpToolDialog('asr')}
+            onClearMcpTool={() => mcp.handleClearMcpTool('asr')}
+            onDetailValueChange={(name, val) =>
+              mcp.updateMcpDetailValue('asr_mcp_tool_id', name, val)
+            }
+            onMcpParamNameChange={(oldN, newN) =>
+              mcp.renameMcpDetailKey('asr_mcp_tool_id', oldN, newN)
+            }
+            onAddMcpDetailRow={() => mcp.addMcpDetailRow('asr_mcp_tool_id')}
+            onRemoveMcpDetailRow={(name) => mcp.removeMcpDetailRow('asr_mcp_tool_id', name)}
+          />
+          <DocumentExtractSection
+            t={t}
+            aiConfigId={aiConfig.id}
+            documentExtractProvider={documentExtractProvider}
+            documentExtractProviderOptions={documentExtractProviderOptions}
+            documentExtractProviderDesc={aiConfig?.config.document_extract_provider?.desc}
+            documentExtractMcpToolId={documentExtractMcpToolId}
+            documentExtractToolInfo={documentExtractToolInfo}
+            mcpDetails={mcp.mcpDetailsEditing['document_extract_mcp_tool_id'] || {}}
+            onChangeProvider={(v) => updateConfigValue(aiConfig.id, 'document_extract_provider', v)}
+            onOpenMcpToolDialog={() => mcp.openMcpToolDialog('document_extract')}
+            onClearMcpTool={() => mcp.handleClearMcpTool('document_extract')}
+            onDetailValueChange={(name, val) =>
+              mcp.updateMcpDetailValue('document_extract_mcp_tool_id', name, val)
+            }
+            onMcpParamNameChange={(oldN, newN) =>
+              mcp.renameMcpDetailKey('document_extract_mcp_tool_id', oldN, newN)
+            }
+            onAddMcpDetailRow={() => mcp.addMcpDetailRow('document_extract_mcp_tool_id')}
+            onRemoveMcpDetailRow={(name) =>
+              mcp.removeMcpDetailRow('document_extract_mcp_tool_id', name)
+            }
+          />
+          </div>
         );
       case 'vectorDb':
         return (
@@ -977,56 +1018,6 @@ export default function AIConfigPage() {
             onUpdateEmbeddingOpenaiField={embedding.updateEmbeddingOpenaiField}
           />
         );
-      case 'voiceRecognition':
-        return (
-          <VoiceRecognitionSection
-            t={t}
-            aiConfigId={aiConfig.id}
-            asrProvider={asrProvider}
-            asrProviderOptions={asrProviderOptions}
-            asrProviderDesc={aiConfig?.config.asr_provider?.desc}
-            asrMcpToolId={asrMcpToolId}
-            asrToolInfo={asrToolInfo}
-            mcpDetails={mcp.mcpDetailsEditing['asr_mcp_tool_id'] || {}}
-            onChangeProvider={(v) => updateConfigValue(aiConfig.id, 'asr_provider', v)}
-            onOpenMcpToolDialog={() => mcp.openMcpToolDialog('asr')}
-            onClearMcpTool={() => mcp.handleClearMcpTool('asr')}
-            onDetailValueChange={(name, val) =>
-              mcp.updateMcpDetailValue('asr_mcp_tool_id', name, val)
-            }
-            onMcpParamNameChange={(oldN, newN) =>
-              mcp.renameMcpDetailKey('asr_mcp_tool_id', oldN, newN)
-            }
-            onAddMcpDetailRow={() => mcp.addMcpDetailRow('asr_mcp_tool_id')}
-            onRemoveMcpDetailRow={(name) => mcp.removeMcpDetailRow('asr_mcp_tool_id', name)}
-          />
-        );
-      case 'documentExtract':
-        return (
-          <DocumentExtractSection
-            t={t}
-            aiConfigId={aiConfig.id}
-            documentExtractProvider={documentExtractProvider}
-            documentExtractProviderOptions={documentExtractProviderOptions}
-            documentExtractProviderDesc={aiConfig?.config.document_extract_provider?.desc}
-            documentExtractMcpToolId={documentExtractMcpToolId}
-            documentExtractToolInfo={documentExtractToolInfo}
-            mcpDetails={mcp.mcpDetailsEditing['document_extract_mcp_tool_id'] || {}}
-            onChangeProvider={(v) => updateConfigValue(aiConfig.id, 'document_extract_provider', v)}
-            onOpenMcpToolDialog={() => mcp.openMcpToolDialog('document_extract')}
-            onClearMcpTool={() => mcp.handleClearMcpTool('document_extract')}
-            onDetailValueChange={(name, val) =>
-              mcp.updateMcpDetailValue('document_extract_mcp_tool_id', name, val)
-            }
-            onMcpParamNameChange={(oldN, newN) =>
-              mcp.renameMcpDetailKey('document_extract_mcp_tool_id', oldN, newN)
-            }
-            onAddMcpDetailRow={() => mcp.addMcpDetailRow('document_extract_mcp_tool_id')}
-            onRemoveMcpDetailRow={(name) =>
-              mcp.removeMcpDetailRow('document_extract_mcp_tool_id', name)
-            }
-          />
-        );
       case 'memorySettings':
         return (
           <MemorySettingsSection
@@ -1053,21 +1044,6 @@ export default function AIConfigPage() {
           />
         );
       case 'relationshipSettings':
-        return (
-          <RelationshipSettingsSection
-            t={t}
-            aiConfig={aiConfig}
-            onUpdateConfig={updateConfigValue}
-          />
-        );
-      case 'agentKitsSettings':
-        return (
-          <AgentKitsSettingsSection t={t} aiConfig={aiConfig} onUpdateConfig={updateConfigValue} />
-        );
-      case 'cognitionSettings':
-        return (
-          <CognitionSettingsSection t={t} aiConfig={aiConfig} onUpdateConfig={updateConfigValue} />
-        );
       case 'advancedSettings':
         return (
           <AdvancedSettingsSection t={t} aiConfig={aiConfig} onUpdateConfig={updateConfigValue} />
@@ -1080,198 +1056,176 @@ export default function AIConfigPage() {
     }
   };
 
+  const sectionTabs = (
+    <TabButtonGroup
+      className="w-full"
+      collapseOnMobile
+      value={activeSection}
+      onValueChange={setActiveSection}
+      disabled={isSectionsLocked}
+      options={sidebarItems.map((item) => ({
+        value: item.id,
+        label: item.title,
+        icon: item.icon,
+        badge:
+          'alert' in item && item.alert ? (
+            <span className="h-2 w-2 shrink-0 rounded-full bg-red-500" aria-hidden />
+          ) : undefined,
+      }))}
+    />
+  );
+
   return (
-    <div className="flex-1 min-h-0 flex flex-col">
-      {/* Header（外边距由 AppLayout --layout-gutter 统一提供） */}
-      <div className="shrink-0 pb-3">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div className="min-w-0 sm:overflow-x-auto">
-            <h1 className="whitespace-nowrap text-xl sm:text-3xl font-bold flex items-center gap-2 sm:gap-3">
-              <Bot className="w-6 h-6 sm:w-8 sm:h-8 shrink-0" />
-              {t('aiConfig.title')}
-            </h1>
-            <p className="sm:whitespace-nowrap text-muted-foreground mt-1 text-xs sm:text-sm">
-              {t('aiConfig.description')}
-            </p>
-          </div>
-          <div className={headerActionRowClass}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className="header-action-fixed inline-flex h-10 items-center">
-                  <Switch
-                    checked={isAIEnabled}
-                    onCheckedChange={aiSwitch.handleAISwitchChange}
+    <>
+      <PinnedPage
+        header={
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div className="min-w-0 sm:overflow-x-auto">
+              <h1 className="flex items-center gap-3 whitespace-nowrap text-3xl font-bold">
+                <Bot className="h-8 w-8 shrink-0" />
+                {t('aiConfig.title')}
+              </h1>
+              <p className="mt-1 text-muted-foreground sm:whitespace-nowrap">
+                {t('aiConfig.description')}
+              </p>
+            </div>
+            <div className={headerActionRowClass}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    aria-pressed={isAIEnabled}
                     aria-label={t('aiConfig.serviceSwitch.title')}
-                  />
-                </span>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">
-                {isAIEnabled
-                  ? t('aiConfig.serviceSwitch.enabledDesc')
-                  : t('aiConfig.serviceSwitch.disabledDesc')}
-              </TooltipContent>
-            </Tooltip>
-            {isAIEnabled && (
-              <Button
-                onClick={aiSwitch.handleOpenHelp}
-                variant="outline"
-                className="gap-2 whitespace-nowrap"
-              >
-                <HelpCircle className="w-4 h-4" />
-                {t('aiConfig.serviceSwitch.usageHelp')}
-              </Button>
-            )}
-            {(() => {
-              const checkConfigBtn = (
+                    onClick={() => aiSwitch.handleAISwitchChange(!isAIEnabled)}
+                    className="header-action-fixed inline-flex h-10 items-center gap-2 whitespace-nowrap rounded-md border border-input bg-background px-4 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
+                  >
+                    <Brain className="h-4 w-4 shrink-0" />
+                    <span>{t('aiConfig.serviceSwitch.title')}</span>
+                    <span
+                      aria-hidden
+                      className={cn(
+                        'pointer-events-none inline-flex h-6 w-11 shrink-0 items-center rounded-full border-2 border-transparent transition-colors',
+                        isAIEnabled ? 'bg-primary' : 'bg-input',
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          'block h-5 w-5 rounded-full bg-background shadow-lg transition-transform',
+                          isAIEnabled ? 'translate-x-5' : 'translate-x-0',
+                        )}
+                      />
+                    </span>
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  {isAIEnabled
+                    ? t('aiConfig.serviceSwitch.enabledDesc')
+                    : t('aiConfig.serviceSwitch.disabledDesc')}
+                </TooltipContent>
+              </Tooltip>
+              {isAIEnabled && (
                 <Button
-                  onClick={() => wizard.fetchWizardChecklist()}
-                  disabled={wizard.isWizardLoading || wizard.isPendingRestart}
+                  onClick={aiSwitch.handleOpenHelp}
                   variant="outline"
                   className="gap-2 whitespace-nowrap"
                 >
-                  {wizard.isWizardLoading ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Sparkles className="w-4 h-4" />
-                  )}
-                  {t('aiConfig.checkConfig')}
+                  <HelpCircle className="w-4 h-4" />
+                  {t('aiConfig.serviceSwitch.usageHelp')}
                 </Button>
-              );
-              // 只有按钮被禁用时才显示提示 tooltip
-              if (wizard.isPendingRestart) {
-                return (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span tabIndex={0} className="header-action-grow inline-flex">
-                        {checkConfigBtn}
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom">
-                      {t('aiConfig.serviceSwitch.checkConfigPendingRestart')}
-                    </TooltipContent>
-                  </Tooltip>
+              )}
+              {(() => {
+                const checkConfigBtn = (
+                  <Button
+                    onClick={() => wizard.fetchWizardChecklist()}
+                    disabled={wizard.isWizardLoading || wizard.isPendingRestart}
+                    variant="outline"
+                    className="gap-2 whitespace-nowrap"
+                  >
+                    {wizard.isWizardLoading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="w-4 h-4" />
+                    )}
+                    {t('aiConfig.checkConfig')}
+                  </Button>
                 );
-              }
-              return checkConfigBtn;
-            })()}
-            <Button
-              onClick={handleSaveConfig}
-              disabled={!isConfigDirty || isSaving}
-              className={cn(
-                'button-solid gap-2 whitespace-nowrap transition-all duration-300',
-                isConfigDirty && 'animate-in fade-in slide-in-from-bottom-2',
-              )}
-            >
-              {isSaving ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Save className="w-4 h-4" />
-              )}
-              {t('aiConfig.saveButton')}
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content Area - banner + sidebar + content in unified glass-card */}
-      <div className="flex-1 flex flex-col min-h-0">
-        <div className="flex-1 min-h-0 glass-card rounded-2xl flex flex-col">
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[inherit]">
-            {/* AI Service Master Switch Banner */}
-            <div className="shrink-0 px-3 sm:px-5 pt-3 sm:pt-5 pb-2">
-              {wizard.isBackendPendingRestart && (
-                <GlassAlert tone="warning" icon={AlertTriangle} className="mb-3">
-                  <p className="font-semibold text-xs sm:text-sm">
-                    {t('aiConfig.serviceSwitch.restartRequiredTitle')}
-                  </p>
-                  <p className="mt-1 text-xs opacity-90 sm:text-sm">
-                    {t('aiConfig.serviceSwitch.restartRequiredDesc')}
-                  </p>
-                </GlassAlert>
-              )}
-              <div className="flex items-center gap-3 sm:gap-5 p-3 sm:p-5 rounded-2xl glass-card transition-all">
-                <div
-                  className={cn(
-                    'flex items-center justify-center flex-shrink-0 transition-all duration-500',
-                    isAIEnabled ? 'text-primary' : 'text-muted-foreground',
-                  )}
-                >
-                  <Brain className="w-6 h-6 sm:w-8 sm:h-8" strokeWidth={1.5} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 sm:gap-3">
-                    <span className="min-w-0 text-sm sm:text-base font-semibold">
-                      {t('aiConfig.serviceSwitch.title')}
-                    </span>
-                    <Badge
-                      variant={isAIEnabled ? 'default' : 'secondary'}
-                      className={cn(
-                        'shrink-0 text-xs font-medium',
-                        isAIEnabled &&
-                          'bg-primary/15 text-primary hover:bg-primary/20 border-primary/20',
-                      )}
-                    >
-                      {isAIEnabled ? t('common.enabled') : t('common.disabled')}
-                    </Badge>
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {isAIEnabled
-                      ? t('aiConfig.serviceSwitch.enabledDesc')
-                      : t('aiConfig.serviceSwitch.disabledDesc')}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Sidebar + Content */}
-            <div className="flex-1 flex min-h-0 border-t border-border/40">
-              <div
+                if (wizard.isPendingRestart) {
+                  return (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span tabIndex={0} className="header-action-grow inline-flex">
+                          {checkConfigBtn}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom">
+                        {t('aiConfig.serviceSwitch.checkConfigPendingRestart')}
+                      </TooltipContent>
+                    </Tooltip>
+                  );
+                }
+                return checkConfigBtn;
+              })()}
+              <Button
+                onClick={handleSaveConfig}
+                disabled={!isConfigDirty || isSaving}
                 className={cn(
-                  'border-r border-border/40 flex flex-col shrink-0',
-                  isMobile ? 'w-14' : 'w-60',
+                  'button-solid gap-2 whitespace-nowrap transition-all duration-300',
+                  isConfigDirty && 'animate-in fade-in slide-in-from-bottom-2',
                 )}
               >
-                <ScrollArea className="flex-1 px-1 pb-2 pt-2 sm:px-2">
-                  <div className="space-y-0.5">
-                    {sidebarItems.map((item) => (
-                      <SidebarItem
-                        key={item.id}
-                        id={item.id}
-                        activeSection={activeSection}
-                        icon={item.icon}
-                        title={item.title}
-                        disabled={isSectionsLocked}
-                        disabledTooltip={isSectionsLocked ? sectionsLockedTooltip : undefined}
-                        alert={'alert' in item ? item.alert : false}
-                        collapsed={isMobile}
-                        onClick={setActiveSection}
-                      />
-                    ))}
-                  </div>
-                </ScrollArea>
-              </div>
-
-              <div className="flex-1 overflow-y-auto">
-                <div
-                  className={cn(
-                    'p-3 sm:p-6 transition-opacity duration-200',
-                    isSectionsLocked && 'pointer-events-none opacity-50 select-none',
-                  )}
-                  aria-disabled={isSectionsLocked}
-                >
-                  {isLoadingDetail && Object.keys(configs).length === 0 ? (
-                    <div className="flex items-center justify-center h-64">
-                      <Loader2 className="w-8 h-8 animate-spin" />
-                    </div>
-                  ) : (
-                    renderActiveSection()
-                  )}
-                </div>
-              </div>
+                {isSaving ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Save className="w-4 h-4" />
+                )}
+                {t('aiConfig.saveButton')}
+              </Button>
             </div>
           </div>
+        }
+        toolbar={
+          <div className="min-w-0">
+            {isSectionsLocked ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="inline-flex w-full max-w-full">{sectionTabs}</span>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">{sectionsLockedTooltip}</TooltipContent>
+              </Tooltip>
+            ) : (
+              sectionTabs
+            )}
+          </div>
+        }
+      >
+        <div className="glass-card rounded-2xl p-3 sm:p-6">
+          {wizard.isBackendPendingRestart && (
+            <GlassAlert tone="warning" icon={AlertTriangle} className="mb-4">
+              <p className="text-xs font-semibold sm:text-sm">
+                {t('aiConfig.serviceSwitch.restartRequiredTitle')}
+              </p>
+              <p className="mt-1 text-xs opacity-90 sm:text-sm">
+                {t('aiConfig.serviceSwitch.restartRequiredDesc')}
+              </p>
+            </GlassAlert>
+          )}
+          <div
+            className={cn(
+              'transition-opacity duration-200',
+              isSectionsLocked && 'pointer-events-none opacity-50 select-none',
+            )}
+            aria-disabled={isSectionsLocked}
+          >
+            {isLoadingDetail && Object.keys(configs).length === 0 ? (
+              <div className="flex h-64 items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin" />
+              </div>
+            ) : (
+              renderActiveSection()
+            )}
+          </div>
         </div>
-      </div>
+      </PinnedPage>
 
       {/* ====================== Dialogs ====================== */}
 
@@ -1405,6 +1359,6 @@ export default function AIConfigPage() {
         status={wizard.wizardStatus}
         onOpenChange={wizard.setIsWizardDialogOpen}
       />
-    </div>
+    </>
   );
 }

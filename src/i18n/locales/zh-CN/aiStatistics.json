@@ -57,7 +57,6 @@
   "errorRate": "错误率",
   "errorEventsTitle": "错误明细",
   "errorEventsHint": "查看这段时间里每一次错误的类型和原因",
-  "errorEventsPending": "这段时间只有分类计数。逐次原因从 Core 重新记录错误之后才会出现。",
   "errorEventsUnavailable": "逐次原因接口还不可用，下面是现有的分类计数。",
   "quotaBreakerOpen": "配额熔断",
   "quotaExhausted": "配额耗尽",

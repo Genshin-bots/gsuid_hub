@@ -47,6 +47,11 @@ export interface UseFrameworkConfigReturn {
    * 避免 updateConfigValue + markSaved 双 setState 不一致）。
    */
   applyConfigsAndMarkSaved: (nextConfigs: Record<string, LocalFrameworkConfig>) => void;
+  /**
+   * 字段已由即时接口落库。同时写入编辑态和快照，避免保存按钮误亮，
+   * 也避免下次保存把旧值写回去。
+   */
+  syncPersistedField: (configId: string, fieldKey: string, value: ConfigValue) => void;
   /** 手动设置 isSaving（保存流使用） */
   setIsSaving: (saving: boolean) => void;
 }
@@ -149,6 +154,29 @@ export function useFrameworkConfig(): UseFrameworkConfigReturn {
     setOriginalConfig(JSON.parse(JSON.stringify(nextConfigs)));
   }, []);
 
+  const syncPersistedField = useCallback(
+    (configId: string, fieldKey: string, value: ConfigValue) => {
+      const apply = (prev: Record<string, LocalFrameworkConfig>) => {
+        const current = prev[configId];
+        const field = current?.config?.[fieldKey];
+        if (!current || !field) return prev;
+        return {
+          ...prev,
+          [configId]: {
+            ...current,
+            config: {
+              ...current.config,
+              [fieldKey]: { ...field, value },
+            },
+          },
+        };
+      };
+      setConfigs(apply);
+      setOriginalConfig(apply);
+    },
+    [],
+  );
+
   const applyConfigsAndMarkSaved = useCallback(
     (nextConfigs: Record<string, LocalFrameworkConfig>) => {
       const cloned = JSON.parse(JSON.stringify(nextConfigs)) as Record<
@@ -180,6 +208,7 @@ export function useFrameworkConfig(): UseFrameworkConfigReturn {
     updateConfigValue,
     markSaved,
     applyConfigsAndMarkSaved,
+    syncPersistedField,
     setIsSaving,
   };
 }

@@ -195,6 +195,7 @@
     "rerankServiceDisabled": "启用 Rerank 以提升 RAG 检索质量",
     "embeddingSaveWarningTitle": "修改向量数据库配置",
     "embeddingSaveWarningDesc": "修改嵌入模型服务 / Qdrant 部署方式将导致历史向量数据需要迁移重构，建议先备份 data/ai_core 文件夹，保存后需重启服务生效，迁移可能耗时较久。",
+    "webSearchFetch": "网络搜索 / 抓取",
     "webSearchService": "网络搜索服务",
     "webSearchServiceDesc": "配置网络搜索能力",
     "primaryProvider": "主用搜索源",
@@ -375,6 +376,9 @@
     "noActiveConfigTitle": "配置未激活",
     "noConfigFileTitle": "暂无配置文件",
     "noConfigFileWarning": "请先点击右上角「新建配置」添加一个配置文件，然后再为高级任务和低级任务选择对应的配置"
+  },
+  "multimodal": {
+    "title": "多模态"
   },
   "imageUnderstand": {
     "title": "图片理解服务",

@@ -170,7 +170,10 @@ export function WebFetchSection({
           config={jinaConfig.config}
           configId={jinaConfig.id}
           onChange={onUpdateConfig}
-          layout={[['api_key'], ['timeout', 'reader_base_url']]}
+          layout={[
+            ['api_key', 'timeout', 'reader_base_url'],
+            ['max_results', 'search_base_url'],
+          ]}
         />
       );
     }
@@ -187,7 +190,10 @@ export function WebFetchSection({
           config={deepseekConfig.config}
           configId={deepseekConfig.id}
           onChange={onUpdateConfig}
-          layout={[['api_key'], ['timeout', 'fetch_base_url']]}
+          layout={[
+            ['api_key', 'timeout', 'fetch_base_url'],
+            ['max_results', 'search_base_url'],
+          ]}
         />
       );
     }
@@ -203,10 +209,9 @@ export function WebFetchSection({
         configId={webFetchConfig.id}
         onChange={onUpdateConfig}
         layout={[
-          ['proxy', 'trust_env'],
-          ['timeout', 'max_download_mb'],
-          ['user_agent'],
-          ['accept_language', 'max_content_length'],
+          ['proxy', 'trust_env', 'timeout'],
+          ['max_download_mb', 'user_agent', 'accept_language'],
+          ['max_content_length'],
         ]}
       />
     );

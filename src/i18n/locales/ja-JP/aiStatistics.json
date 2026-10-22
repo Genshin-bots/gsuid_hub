@@ -57,7 +57,6 @@
   "errorRate": "エラー率",
   "errorEventsTitle": "エラー明細",
   "errorEventsHint": "この期間の各エラーの種類と理由を確認します",
-  "errorEventsPending": "この期間にあるのは種類ごとの件数だけです。個別の理由は Core が新しいエラーを記録してから表示されます。",
   "errorEventsUnavailable": "個別理由の接口はまだ使えません。下は種類ごとの件数です。",
   "quotaBreakerOpen": "クォータ遮断",
   "quotaExhausted": "クォータ枯渇",
