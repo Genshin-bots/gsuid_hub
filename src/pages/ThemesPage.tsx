@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
+import { TabButtonGroup, tabToolbarControlClass } from '@/components/ui/TabButtonGroup';
 import {
   Dialog,
   DialogContent,
@@ -547,7 +547,10 @@ export default function ThemesPage() {
             value={tab}
             onValueChange={(v) => setTab(v as ThemeTab)}
           />
-          <Button onClick={openSaveDialog} className="w-full gap-2 sm:w-auto sm:shrink-0">
+          <Button
+            onClick={openSaveDialog}
+            className={cn(tabToolbarControlClass, 'w-full gap-2 sm:w-auto sm:shrink-0')}
+          >
             <Save className="w-4 h-4" />
             {t('themes.saveAsPreset')}
           </Button>

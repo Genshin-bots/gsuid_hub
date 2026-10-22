@@ -90,12 +90,12 @@ interface TabButtonGroupProps {
   disabled?: boolean;            // 整组禁用
   collapseOnMobile?: boolean;    // <768px 收成「当前项 + ▾」下拉（/plugin-store）
   singleRowOnMobile?: boolean;   // <768px 保持同行等分、超长文案省略（/plugins 分区切换）
-  size?: 'default' | 'sm';       // sm：外壳 h-9，纵向无内边距，与同行 h-9 输入框/按钮对齐
+  size?: 'default' | 'sm' | 'line'; // sm：外壳 h-9；line：外壳 h-10。页面上方操作区用 default
 }
 
-// 同行对齐常量（导出）
-export const tabToolbarControlClass = 'h-10'; // 对齐内钮视觉高度，不是玻璃外壳
-export const tabToolbarIconButtonClass = 'h-10 w-10';
+// 页面上方操作区对齐常量（导出）——对齐默认分段的外壳，不是内钮
+export const tabToolbarControlClass = 'h-[calc(3rem+2px)]';
+export const tabToolbarIconButtonClass = 'h-[calc(3rem+2px)] w-[calc(3rem+2px)]';
 export const tabToolbarGroupWrapClass =
   'flex shrink-0 items-center [&_.shadow-safe]:!my-0 [&_.shadow-safe]:!py-0';
 ```
@@ -213,7 +213,7 @@ profiles.filter((p) => {
 
 ### 6.1.5 与 Input / Button 同行
 
-页面主操作按钮用默认 `Button`（`h-10`）。和分组并排时，对齐内钮视觉高度 `h-10`（`tabToolbarControlClass`），不要按玻璃外壳抬高旁边的按钮：
+页面上方操作区和分组并排时，对齐外壳高度 `h-[calc(3rem+2px)]`（`tabToolbarControlClass`），不要只对齐内钮 `h-10`：
 
 ```tsx
 <div className="flex flex-wrap items-center gap-2">

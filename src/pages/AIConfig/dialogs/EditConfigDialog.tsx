@@ -5,7 +5,6 @@ import {
   Gauge,
   Globe,
   Hash,
-  Info,
   Key,
   KeyRound,
   Loader2,
@@ -15,6 +14,7 @@ import {
   Sparkles,
   TrendingUp,
 } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { ConfigField } from '@/components/config';
 import {
@@ -28,7 +28,9 @@ import {
 import { InputWithDropdown } from '@/components/ui/input-with-dropdown';
 import { ModelSelectDropdown } from '@/components/ui/model-select-dropdown';
 import { Label } from '@/components/ui/label';
+import { LabelWithHelp } from '@/components/ui/label-with-help';
 import { ChipGroup } from '@/components/ui/MultiSelectChipGroup';
+import { passthroughRender } from '../shared/PassthroughOption';
 import { getModelCapabilities } from '../constants.tsx';
 import {
   getModelEffortLabel,
@@ -96,6 +98,8 @@ export function EditConfigDialog({
   onChangeModelEffort,
   onSave,
 }: EditConfigDialogProps) {
+  const { language } = useLanguage();
+  const showRaw = language !== 'en-US';
   const capabilities = getModelCapabilities(t);
   const options = providerConfigOptions?.options;
   const showBaseUrlWarning = data ? baseUrlHasTrailingSlash(data.base_url) : false;
@@ -107,7 +111,7 @@ export function EditConfigDialog({
   const modelEffortOptions =
     options?.model_effort && options.model_effort.length > 0
       ? options.model_effort
-      : ['enable', 'disable', 'minimal', 'low', 'medium', 'high', 'xhigh'];
+      : ['adaptive', 'enable', 'disable', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'];
   const maxConcurrencyOptions =
     options?.max_concurrency && options.max_concurrency.length > 0
       ? options.max_concurrency
@@ -254,6 +258,7 @@ export function EditConfigDialog({
                 onChange={(val) => onChangeModelEffort(val)}
                 options={modelEffortOptions}
                 formatLabel={(raw) => getModelEffortLabel(t, raw)}
+                renderOption={passthroughRender(showRaw, (raw) => getModelEffortLabel(t, raw))}
                 placeholder={t('aiConfig.serviceProvider.modelEffort')}
                 inputPlaceholder={t('aiConfig.serviceProvider.modelEffort')}
               />
@@ -278,22 +283,20 @@ export function EditConfigDialog({
             </div>
             {isAnthropic && (
               <div className="space-y-2">
-                <Label className="text-sm font-semibold flex items-center gap-2">
-                  <Search className="w-4 h-4" />
-                  {t('aiConfig.serviceProvider.remoteWebSearch')}
-                </Label>
+                <LabelWithHelp
+                  icon={<Search className="w-4 h-4" />}
+                  label={t('aiConfig.serviceProvider.remoteWebSearch')}
+                  description={getRemoteWebSearchDescription(t, data.remote_web_search || 'on')}
+                />
                 <InputWithDropdown
                   value={data.remote_web_search || 'on'}
                   onChange={(val) => onChangeField('remote_web_search', val)}
                   options={remoteWebSearchOptions}
                   formatLabel={(raw) => getRemoteWebSearchLabel(t, raw)}
+                  renderOption={passthroughRender(showRaw, (raw) => getRemoteWebSearchLabel(t, raw))}
                   placeholder={t('aiConfig.serviceProvider.remoteWebSearch')}
                   inputPlaceholder={t('aiConfig.serviceProvider.remoteWebSearch')}
                 />
-                <p className="text-xs text-muted-foreground flex items-start gap-1">
-                  <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-                  <span>{getRemoteWebSearchDescription(t, data.remote_web_search || 'on')}</span>
-                </p>
               </div>
             )}
             {/* OpenAI 系列才有 `usage_stats_mode` / `request_method` */}
@@ -309,47 +312,50 @@ export function EditConfigDialog({
                     onChange={(val) => onChangeField('usage_stats_mode', val)}
                     options={usageStatsModeOptions}
                     formatLabel={(raw) => getUsageStatsModeLabel(t, raw)}
+                    renderOption={passthroughRender(showRaw, (raw) =>
+                      getUsageStatsModeLabel(t, raw),
+                    )}
                     placeholder={t('aiConfig.serviceProvider.usageStatsMode')}
                     inputPlaceholder={t('aiConfig.serviceProvider.usageStatsMode')}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-sm font-semibold flex items-center gap-2">
-                    <Plug2 className="w-4 h-4" />
-                    {t('aiConfig.serviceProvider.requestMethod')}
-                  </Label>
+                  <LabelWithHelp
+                    icon={<Plug2 className="w-4 h-4" />}
+                    label={t('aiConfig.serviceProvider.requestMethod')}
+                    description={
+                      data.request_method
+                        ? getRequestMethodDescription(t, data.request_method)
+                        : undefined
+                    }
+                  />
                   <InputWithDropdown
                     value={data.request_method || 'chat_completions'}
                     onChange={(val) => onChangeField('request_method', val)}
                     options={requestMethodOptions}
                     formatLabel={(raw) => getRequestMethodLabel(t, raw)}
+                    renderOption={passthroughRender(showRaw, (raw) => getRequestMethodLabel(t, raw))}
                     placeholder={t('aiConfig.serviceProvider.requestMethod')}
                     inputPlaceholder={t('aiConfig.serviceProvider.requestMethod')}
                   />
-                  {data.request_method && (
-                    <p className="text-xs text-muted-foreground flex items-start gap-1">
-                      <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-                      <span>{getRequestMethodDescription(t, data.request_method)}</span>
-                    </p>
-                  )}
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-sm font-semibold flex items-center gap-2">
-                    <Search className="w-4 h-4" />
-                    {t('aiConfig.serviceProvider.remoteWebSearch')}
-                  </Label>
+                  <LabelWithHelp
+                    icon={<Search className="w-4 h-4" />}
+                    label={t('aiConfig.serviceProvider.remoteWebSearch')}
+                    description={getRemoteWebSearchDescription(t, data.remote_web_search || 'on')}
+                  />
                   <InputWithDropdown
                     value={data.remote_web_search || 'on'}
                     onChange={(val) => onChangeField('remote_web_search', val)}
                     options={remoteWebSearchOptions}
                     formatLabel={(raw) => getRemoteWebSearchLabel(t, raw)}
+                    renderOption={passthroughRender(showRaw, (raw) =>
+                      getRemoteWebSearchLabel(t, raw),
+                    )}
                     placeholder={t('aiConfig.serviceProvider.remoteWebSearch')}
                     inputPlaceholder={t('aiConfig.serviceProvider.remoteWebSearch')}
                   />
-                  <p className="text-xs text-muted-foreground flex items-start gap-1">
-                    <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-                    <span>{getRemoteWebSearchDescription(t, data.remote_web_search || 'on')}</span>
-                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label className="text-sm font-semibold flex items-center gap-2">
@@ -361,35 +367,38 @@ export function EditConfigDialog({
                     onChange={(val) => onChangeField('send_back_thinking', val)}
                     options={sendBackThinkingOptions}
                     formatLabel={(raw) => getSendBackThinkingLabel(t, raw)}
+                    renderOption={passthroughRender(showRaw, (raw) =>
+                      getSendBackThinkingLabel(t, raw),
+                    )}
                     placeholder={t('aiConfig.serviceProvider.sendBackThinking')}
                     inputPlaceholder={t('aiConfig.serviceProvider.sendBackThinking')}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-sm font-semibold flex items-center gap-2">
-                    <Fingerprint className="w-4 h-4" />
-                    {t('aiConfig.serviceProvider.forwardEndUserId')}
-                  </Label>
+                  <LabelWithHelp
+                    icon={<Fingerprint className="w-4 h-4" />}
+                    label={t('aiConfig.serviceProvider.forwardEndUserId')}
+                    description={getForwardEndUserIdDescription(t, forwardEndUserId)}
+                  />
                   <InputWithDropdown
                     value={forwardEndUserId}
                     onChange={(val) => onChangeField('forward_end_user_id', val)}
                     options={forwardEndUserIdOptions}
                     formatLabel={(raw) => getForwardEndUserIdLabel(t, raw)}
+                    renderOption={passthroughRender(showRaw, (raw) =>
+                      getForwardEndUserIdLabel(t, raw),
+                    )}
                     placeholder={t('aiConfig.serviceProvider.forwardEndUserId')}
                     inputPlaceholder={t('aiConfig.serviceProvider.forwardEndUserId')}
                   />
-                  <p className="text-xs text-muted-foreground flex items-start gap-1">
-                    <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-                    <span>{getForwardEndUserIdDescription(t, forwardEndUserId)}</span>
-                  </p>
                 </div>
-                {/* 盐值只在 hashed 模式下有意义，其余模式整块隐藏 */}
                 {forwardEndUserId === 'hashed' && (
                   <div className="space-y-2">
-                    <Label className="text-sm font-semibold flex items-center gap-2">
-                      <KeyRound className="w-4 h-4" />
-                      {t('aiConfig.serviceProvider.endUserIdSalt')}
-                    </Label>
+                    <LabelWithHelp
+                      icon={<KeyRound className="w-4 h-4" />}
+                      label={t('aiConfig.serviceProvider.endUserIdSalt')}
+                      description={t('aiConfig.serviceProvider.endUserIdSaltHint')}
+                    />
                     <ConfigField
                       fieldKey="end_user_id_salt"
                       field={{
@@ -402,10 +411,6 @@ export function EditConfigDialog({
                       showLabel={false}
                       onChange={(_k, v) => onChangeField('end_user_id_salt', v as string)}
                     />
-                    <p className="text-xs text-muted-foreground flex items-start gap-1">
-                      <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-                      <span>{t('aiConfig.serviceProvider.endUserIdSaltHint')}</span>
-                    </p>
                   </div>
                 )}
               </>

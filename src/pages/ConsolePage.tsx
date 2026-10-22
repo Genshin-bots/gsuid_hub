@@ -21,6 +21,7 @@ import {
   computeLineCount,
 } from '@/components/ConsolePanel';
 import { headerActionRowClass, PinnedPage } from '@/components/layout/PinnedPage';
+import { tabToolbarControlClass } from '@/components/ui/TabButtonGroup';
 
 let logCounter = 0;
 
@@ -626,15 +627,28 @@ export default function ConsolePage() {
               <Circle className="w-2 h-2 fill-green-500 text-green-500 animate-pulse" />
               {t('console.connected')}
             </div>
-            <div className="flex items-center gap-2 whitespace-nowrap">
+            <div
+              className={cn(
+                tabToolbarControlClass,
+                'flex items-center gap-2 whitespace-nowrap px-1',
+              )}
+            >
               <span className="text-sm text-muted-foreground">{t('console.autoScroll')}</span>
               <Switch checked={autoScroll} onCheckedChange={setAutoScroll} />
             </div>
-            <Button variant="outline" onClick={exportLogs} className="whitespace-nowrap">
+            <Button
+              variant="outline"
+              onClick={exportLogs}
+              className={cn(tabToolbarControlClass, 'whitespace-nowrap')}
+            >
               <Download className="w-4 h-4 mr-2" />
               {t('console.exportLogs')}
             </Button>
-            <Button variant="outline" onClick={clearLogs} className="whitespace-nowrap">
+            <Button
+              variant="outline"
+              onClick={clearLogs}
+              className={cn(tabToolbarControlClass, 'whitespace-nowrap')}
+            >
               <Trash2 className="w-4 h-4 mr-2" />
               {t('console.clear')}
             </Button>

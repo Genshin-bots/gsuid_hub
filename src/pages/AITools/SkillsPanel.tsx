@@ -308,7 +308,7 @@ export default function SkillsPanel({ addDialogOpen, onAddDialogOpenChange }: Sk
                 </p>
                 <div className="mt-4 flex justify-end gap-1">
                   <Button
-                    variant="ghost"
+                    variant="outline"
                     size="sm"
                     className="h-8 gap-1.5 px-3"
                     onClick={(e) => {
@@ -320,9 +320,9 @@ export default function SkillsPanel({ addDialogOpen, onAddDialogOpenChange }: Sk
                     {t('aiSkills.edit')}
                   </Button>
                   <Button
-                    variant="ghost"
+                    variant="outline"
                     size="sm"
-                    className="h-8 gap-1.5 px-3 text-destructive hover:text-destructive"
+                    className="h-8 gap-1.5 border-destructive/50 px-3 text-destructive hover:bg-destructive/10 hover:text-destructive"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleDeleteClick(skill);

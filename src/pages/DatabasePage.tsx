@@ -37,7 +37,7 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
+import { TabButtonGroup, tabToolbarControlClass, tabToolbarIconButtonClass } from '@/components/ui/TabButtonGroup';
 import { SearchableMenu } from '@/components/ui/searchable-menu';
 import { PluginUsageBar } from '@/components/plugins/PluginUsageBar';
 import { Separator } from '@/components/ui/separator';
@@ -667,7 +667,7 @@ export default function DatabasePage() {
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                    className="w-full sm:w-[200px]"
+                    className={cn(tabToolbarControlClass, 'w-full sm:w-[200px]')}
                   />
                 </div>
 
@@ -677,7 +677,7 @@ export default function DatabasePage() {
                   <div className="flex items-center gap-2 flex-wrap">
                     <Filter className="h-4 w-4 text-muted-foreground" />
                     <Select value={filterColumn} onValueChange={setFilterColumn}>
-                      <SelectTrigger className="h-10 w-full sm:w-[150px]">
+                      <SelectTrigger className={cn(tabToolbarControlClass, 'w-full sm:w-[150px]')}>
                         <SelectValue placeholder={t('database.filterColumn')} />
                       </SelectTrigger>
                       <SelectContent>
@@ -695,14 +695,14 @@ export default function DatabasePage() {
                           value={filterValue}
                           onChange={(e) => setFilterValue(e.target.value)}
                           onKeyDown={(e) => e.key === 'Enter' && addFilter()}
-                          className="w-full sm:w-[150px]"
+                          className={cn(tabToolbarControlClass, 'w-full sm:w-[150px]')}
                         />
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={addFilter}
                           title={t('database.addFilter')}
-                          className="h-10"
+                          className={tabToolbarIconButtonClass}
                         >
                           <PlusCircle className="h-4 w-4" />
                         </Button>
@@ -735,7 +735,11 @@ export default function DatabasePage() {
                   )}
 
                   {/* 搜索按钮 - 紧贴筛选区域 */}
-                  <Button onClick={handleSearch} size="sm" disabled={isSearching} className="h-10">
+                  <Button
+                    onClick={handleSearch}
+                    disabled={isSearching}
+                    className={tabToolbarControlClass}
+                  >
                     {isSearching ? (
                       <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
                     ) : (
@@ -750,7 +754,7 @@ export default function DatabasePage() {
                       onClick={() => void handleExportCsv()}
                       variant="outline"
                       size="sm"
-                      className="h-10"
+                      className={tabToolbarControlClass}
                       disabled={isExporting}
                       title={t('database.exportCsvHint')}
                     >
@@ -765,7 +769,7 @@ export default function DatabasePage() {
                       onClick={openImport}
                       variant="outline"
                       size="sm"
-                      className="h-10"
+                      className={tabToolbarControlClass}
                       disabled={isImporting}
                       title={t('database.importCsvHint')}
                     >
@@ -780,12 +784,12 @@ export default function DatabasePage() {
                       onClick={() => fetchTableData(activeTable, currentPage, perPage)}
                       variant="outline"
                       size="sm"
-                      className="h-10"
+                      className={tabToolbarControlClass}
                     >
                       <RefreshCw className="h-4 w-4 mr-1" />
                       {t('database.refresh')}
                     </Button>
-                    <Button onClick={handleCreate} size="sm" className="h-10">
+                    <Button onClick={handleCreate} className={tabToolbarControlClass}>
                       <Plus className="h-4 w-4 mr-1" />
                       {t('database.addNew')}
                     </Button>

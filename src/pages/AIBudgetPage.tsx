@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { GlassAlert } from '@/components/ui/glass-alert';
 import { Skeleton } from '@/components/ui/skeleton';
-import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
+import { TabButtonGroup, tabToolbarControlClass, tabToolbarIconButtonClass } from '@/components/ui/TabButtonGroup';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -260,15 +260,14 @@ function OverviewTab({ onNavigateTab }: { onNavigateTab: (tab: string) => void }
           {!overview.enabled && (
             <Button
               variant="outline"
-              size="sm"
               onClick={() => onNavigateTab('manage')}
-              className="h-9"
+              className={tabToolbarControlClass}
             >
               <Settings className="w-4 h-4 mr-1.5" />
               {t('aiBudget.overview.configAction')}
             </Button>
           )}
-          <Button variant="outline" size="sm" onClick={fetchOverview} className="h-9">
+          <Button variant="outline" onClick={fetchOverview} className={tabToolbarControlClass}>
             <RefreshCw className={cn('w-4 h-4 mr-1.5', loading && 'animate-spin')} />
             {t('aiBudget.overview.refresh')}
           </Button>
@@ -1145,12 +1144,12 @@ function RulesTab() {
                   placeholder={t('aiBudget.rules.searchPlaceholder')}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="h-9 pl-9"
+                  className={cn(tabToolbarControlClass, 'pl-9')}
                 />
               </div>
             </div>
             <Select value={scopeTypeFilter} onValueChange={setScopeTypeFilter}>
-              <SelectTrigger className="w-[140px] h-9">
+              <SelectTrigger className={cn(tabToolbarControlClass, 'w-[140px]')}>
                 <SelectValue placeholder={t('aiBudget.rules.filterScopeType')} />
               </SelectTrigger>
               <SelectContent>
@@ -1162,7 +1161,7 @@ function RulesTab() {
               </SelectContent>
             </Select>
             <Select value={enabledFilter} onValueChange={setEnabledFilter}>
-              <SelectTrigger className="w-[140px] h-9">
+              <SelectTrigger className={cn(tabToolbarControlClass, 'w-[140px]')}>
                 <SelectValue placeholder={t('aiBudget.rules.filterEnabled')} />
               </SelectTrigger>
               <SelectContent>
@@ -1177,10 +1176,10 @@ function RulesTab() {
               <Switch checked={withUsage} onCheckedChange={setWithUsage} />
               <span className="text-muted-foreground">{t('aiBudget.rules.withUsage')}</span>
             </div>
-            <Button size="sm" className="h-9" onClick={() => setCreateDialogOpen(true)}>
+            <Button className={tabToolbarControlClass} onClick={() => setCreateDialogOpen(true)}>
               <Plus className="w-4 h-4 mr-2" /> {t('aiBudget.rules.createRule')}
             </Button>
-            <Button variant="outline" size="icon" className="h-9 w-9" onClick={fetchRules}>
+            <Button variant="outline" size="icon" className={tabToolbarIconButtonClass} onClick={fetchRules}>
               <RefreshCw className="w-4 h-4" />
             </Button>
           </div>

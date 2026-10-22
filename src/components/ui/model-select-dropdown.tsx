@@ -2,6 +2,7 @@ import * as React from 'react';
 import { useMemo, useRef, useCallback, useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Check, ChevronDown, Copy, Loader2 } from 'lucide-react';
@@ -207,37 +208,21 @@ export function ModelSelectDropdown({
       >
         <div className="space-y-2 p-2 shrink-0">
           {/* Tab 切换按钮 */}
-          <div className="flex gap-1">
-            <Button
-              type="button"
-              variant={activeTab === 'preset' ? 'secondary' : 'ghost'}
-              size="sm"
-              className={cn(
-                'flex-1 text-xs h-8 transition-colors',
-                activeTab === 'preset'
-                  ? 'bg-muted font-medium'
-                  : 'text-muted-foreground hover:text-foreground',
-              )}
-              onClick={() => setActiveTab('preset')}
-            >
-              {tPreset}
-            </Button>
-            <Button
-              type="button"
-              variant={activeTab === 'discovered' ? 'secondary' : 'ghost'}
-              size="sm"
-              className={cn(
-                'flex-1 text-xs h-8 transition-colors gap-1',
-                activeTab === 'discovered'
-                  ? 'bg-muted font-medium'
-                  : 'text-muted-foreground hover:text-foreground',
-              )}
-              onClick={() => setActiveTab('discovered')}
-            >
-              {tDiscovered}
-              {isFetching && <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />}
-            </Button>
-          </div>
+          <TabButtonGroup
+            className="w-full"
+            value={activeTab}
+            onValueChange={(value) => setActiveTab(value as TabType)}
+            options={[
+              { value: 'preset', label: tPreset },
+              {
+                value: 'discovered',
+                label: tDiscovered,
+                icon: isFetching ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : undefined,
+              },
+            ]}
+          />
 
           {/* 复制当前值 */}
           <Button

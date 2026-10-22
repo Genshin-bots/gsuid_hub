@@ -96,7 +96,7 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
-import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
+import { TabButtonGroup, tabToolbarControlClass } from '@/components/ui/TabButtonGroup';
 import StateStoreViewer, { StateStoreViewerHandle } from '@/components/StateStoreViewer';
 
 const COLUMN_KEYS: AIKanbanColumnKey[] = ['target', 'progress', 'Done', 'Blocked', 'failed'];
@@ -1365,7 +1365,7 @@ export default function AIKanbanPage() {
               <Button
                 variant="outline"
                 onClick={() => setEvaluateOpen(true)}
-                className="w-full gap-2 sm:w-auto"
+                className={cn(tabToolbarControlClass, 'w-full gap-2 sm:w-auto')}
               >
                 <Sparkles className="h-4 w-4" />
                 {t('aiKanban.evaluate.title')}
@@ -1373,7 +1373,7 @@ export default function AIKanbanPage() {
               <Button
                 variant="outline"
                 onClick={() => setCreateOpen(true)}
-                className="w-full gap-2 sm:w-auto"
+                className={cn(tabToolbarControlClass, 'w-full gap-2 sm:w-auto')}
               >
                 <Plus className="h-4 w-4" />
                 {t('aiKanban.create.title')}
@@ -1381,7 +1381,10 @@ export default function AIKanbanPage() {
               <Button
                 variant="outline"
                 onClick={openBulkDeleteConfirm}
-                className="w-full gap-2 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive sm:w-auto"
+                className={cn(
+                  tabToolbarControlClass,
+                  'w-full gap-2 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive sm:w-auto',
+                )}
               >
                 <Trash2 className="h-4 w-4" />
                 {t('aiKanban.bulkDelete.button')}
@@ -1389,7 +1392,7 @@ export default function AIKanbanPage() {
               <Button
                 onClick={loadBoard}
                 disabled={isLoadingBoard}
-                className="w-full gap-2 sm:w-auto"
+                className={cn(tabToolbarControlClass, 'w-full gap-2 sm:w-auto')}
               >
                 {isLoadingBoard ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -1405,14 +1408,17 @@ export default function AIKanbanPage() {
                 variant="outline"
                 onClick={() => stateStoreRef.current?.openBatchDelete()}
                 disabled={stateStoreSelectedCount === 0}
-                className="w-full gap-2 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive sm:w-auto"
+                className={cn(
+                  tabToolbarControlClass,
+                  'w-full gap-2 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive sm:w-auto',
+                )}
               >
                 <Trash2 className="h-4 w-4" />
                 {t('aiKanban.stateStore.batchDelete.button')}
               </Button>
               <Button
                 onClick={() => stateStoreRef.current?.refresh()}
-                className="w-full gap-2 sm:w-auto"
+                className={cn(tabToolbarControlClass, 'w-full gap-2 sm:w-auto')}
               >
                 <RefreshCw className="h-4 w-4" />
                 {t('common.refresh') || t('aiKanban.refresh')}
@@ -1432,6 +1438,7 @@ export default function AIKanbanPage() {
                   setFilters((prev) => ({ ...prev, scope_key: event.target.value }))
                 }
                 placeholder={t('aiKanban.filters.scopeKey')}
+                className={tabToolbarControlClass}
               />
               <Input
                 value={filters.bot_id}
@@ -1439,6 +1446,7 @@ export default function AIKanbanPage() {
                   setFilters((prev) => ({ ...prev, bot_id: event.target.value }))
                 }
                 placeholder={t('aiKanban.filters.botId')}
+                className={tabToolbarControlClass}
               />
               <Input
                 value={filters.group_id}
@@ -1446,6 +1454,7 @@ export default function AIKanbanPage() {
                   setFilters((prev) => ({ ...prev, group_id: event.target.value }))
                 }
                 placeholder={t('aiKanban.filters.groupId')}
+                className={tabToolbarControlClass}
               />
               <Input
                 value={filters.owner_user_id}
@@ -1453,12 +1462,13 @@ export default function AIKanbanPage() {
                   setFilters((prev) => ({ ...prev, owner_user_id: event.target.value }))
                 }
                 placeholder={t('aiKanban.filters.ownerUserId')}
+                className={tabToolbarControlClass}
               />
               <Select
                 value={filters.status}
                 onValueChange={(value) => setFilters((prev) => ({ ...prev, status: value }))}
               >
-                <SelectTrigger className="h-10">
+                <SelectTrigger className={tabToolbarControlClass}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -1485,7 +1495,7 @@ export default function AIKanbanPage() {
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.target.value)}
                   placeholder={t('aiKanban.filters.search')}
-                  className="pl-9"
+                  className={cn(tabToolbarControlClass, 'pl-9')}
                 />
               </div>
             </div>

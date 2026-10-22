@@ -663,7 +663,12 @@ export default function AICapabilityAgentsPage() {
             </p>
           </div>
           <div className={headerActionRowWideClass}>
-            <Button variant="outline" onClick={loadData} disabled={isLoading} className="gap-2">
+            <Button
+              variant="outline"
+              onClick={loadData}
+              disabled={isLoading}
+              className={cn(tabToolbarControlClass, 'gap-2')}
+            >
               {isLoading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
@@ -671,7 +676,10 @@ export default function AICapabilityAgentsPage() {
               )}
               {t('common.refresh') || '刷新'}
             </Button>
-            <Button onClick={() => openDialog('create')} className="gap-2">
+            <Button
+              onClick={() => openDialog('create')}
+              className={cn(tabToolbarControlClass, 'gap-2')}
+            >
               <Plus className="w-4 h-4" />
               {t('aiCapabilityAgents.newProfile')}
             </Button>

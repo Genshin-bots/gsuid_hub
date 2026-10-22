@@ -6,6 +6,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { tabToolbarControlClass } from '@/components/ui/TabButtonGroup';
 import {
   RefreshCw,
   Calendar,
@@ -331,6 +332,7 @@ export default function TracesPage() {
                 <Button
                   variant="outline"
                   className={cn(
+                    tabToolbarControlClass,
                     'justify-start text-left font-normal',
                     !selectedDate && 'text-muted-foreground',
                   )}
@@ -395,7 +397,7 @@ export default function TracesPage() {
               variant="outline"
               onClick={fetchTraces}
               disabled={isLoading}
-              className="whitespace-nowrap"
+              className={cn(tabToolbarControlClass, 'whitespace-nowrap')}
             >
               <RefreshCw className={cn('w-4 h-4 mr-2', isLoading && 'animate-spin')} />
               {t('logs.refresh')}

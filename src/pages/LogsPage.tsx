@@ -519,19 +519,23 @@ export default function LogsPage() {
                 variant="outline"
                 onClick={handleRefresh}
                 disabled={isLoading}
-                className="whitespace-nowrap"
+                className={cn(tabToolbarControlClass, 'whitespace-nowrap')}
               >
                 <RefreshCw className={cn('w-4 h-4 mr-2', isLoading && 'animate-spin')} />
                 {t('logs.refresh')}
               </Button>
-              <Button variant="outline" onClick={handleExport} className="whitespace-nowrap">
+              <Button
+                variant="outline"
+                onClick={handleExport}
+                className={cn(tabToolbarControlClass, 'whitespace-nowrap')}
+              >
                 <Download className="w-4 h-4 mr-2" />
                 {t('logs.export')}
               </Button>
               <Button
                 variant="outline"
                 onClick={() => setLogsConfigOpen(true)}
-                className="whitespace-nowrap"
+                className={cn(tabToolbarControlClass, 'whitespace-nowrap')}
               >
                 <FileText className="w-4 h-4 mr-2" />
                 {t('logsConfig.toolbar')}

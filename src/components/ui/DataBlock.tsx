@@ -1,4 +1,5 @@
 import type { LucideIcon } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
@@ -48,6 +49,8 @@ export interface StatStripItem {
    *  但格子高度又得被别的格子撑满，于是用「填充高度 = 当前值」的几何图形占位，
    *  它只说大小，不暗示走势。 */
   meter?: { segments: { value: number; color: string }[]; max?: number };
+  /** 整格可点。用于错误率这类需要打开二级明细的读数。 */
+  onClick?: () => void;
 }
 
 /** 迷你柱状 sparkline。纯 div：24 根柱子不值得一个 ECharts 实例。
@@ -92,10 +95,29 @@ export function StatStrip({ items, className }: { items: StatStripItem[]; classN
             /* 全部格子一律顶对齐：以前没 spark 的格走 justify-center 整格居中，
                标签行和数值行就跟旁边几格错开一截，一排读数看着像散了架。
                现在没有 spark 的格只是下方空着 —— 空白比错位好收拾。 */
-            className="flex min-w-0 flex-1 flex-col gap-2 px-3.5 py-3"
+            className={cn(
+              'flex min-w-0 flex-1 flex-col gap-2 px-3.5 py-3 text-left',
+              item.onClick && 'cursor-pointer transition-colors hover:bg-muted/40',
+            )}
+            role={item.onClick ? 'button' : undefined}
+            tabIndex={item.onClick ? 0 : undefined}
+            onClick={item.onClick}
+            onKeyDown={
+              item.onClick
+                ? (event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      item.onClick?.();
+                    }
+                  }
+                : undefined
+            }
           >
             <div>
-              <p className="truncate text-[11px] font-medium text-muted-foreground">{item.title}</p>
+              <p className="flex items-center gap-1 truncate text-[11px] font-medium text-muted-foreground">
+                <span className="truncate">{item.title}</span>
+                {item.onClick ? <ChevronRight className="h-3.5 w-3.5 shrink-0" /> : null}
+              </p>
               {/* 读数不换行：「6032.8 ms」断成两行会把整格的行高顶起来，
                   连带把 sparkline 压扁，一排读数全乱。 */}
               <p className="mt-1 whitespace-nowrap text-xl font-bold leading-none tabular-nums tracking-tight">

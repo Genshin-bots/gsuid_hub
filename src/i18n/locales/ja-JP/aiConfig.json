@@ -10,6 +10,15 @@
   "checkConfig": "設定確認",
   "manageConfig": "設定を管理",
   "manageConfigDesc": "高レベル / 低レベルタスクで使用するAIモデル設定ファイルを管理します",
+  "copyConfig": "設定を複製",
+  "copyConfigDesc": "「{name}」を複製します。キーとパラメータも一緒にコピーされます。保存前に名前を変更できます。",
+  "copyConfigName": "新しい名前",
+  "copyConfigSuccess": "{name} として複製しました",
+  "copyConfigFailed": "設定の複製に失敗しました",
+  "copyConfigNameRequired": "新しい名前を入力してください",
+  "copyConfigSameName": "新しい名前は元の設定と違う必要があります",
+  "copyConfigNamePlus": "名前に + は使えません",
+  "copyConfigSuffix": " のコピー",
   "aiHistory": "AI履歴",
   "taskConfig": {
     "title": "タスク設定",
@@ -106,7 +115,9 @@
       "low": "低",
       "medium": "中",
       "high": "高",
-      "xhigh": "超高"
+      "xhigh": "超高",
+      "adaptive": "適応",
+      "max": "最大"
     },
     "maxConcurrency": "最大同時実行数",
     "maxTokens": "最大出力トークン",

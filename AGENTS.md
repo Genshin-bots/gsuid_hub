@@ -241,9 +241,9 @@ Toast：`import { toast } from 'sonner'`。
 
 1. 有 `TabButtonGroup` 时把按钮移出 Header，与 group 同行（`sm:items-center`）。
 2. 否则放 Header 右侧，与**副标题底边**对齐（`sm:items-end`）。禁止 Header 内 `items-center` 让按钮夹在 H1 和副标题之间。
-3. **尺寸**：标题栏右侧、卡片头、空态和页面里的主操作按钮，一律用默认 `Button`（`h-10 px-4`，与「创建任务」一致）。不要写 `size="sm"`、`h-9`，也不要手写 `<button class="px-4 py-2">`。表格行内、分页、弹窗底栏、图谱缩放可以保持紧凑。
+3. **尺寸**：页面上方操作区（标题栏右侧按钮、分段、搜索、下拉、筛选）必须同一高度。这一高度是默认 `TabButtonGroup` 的**外壳**：内钮 `h-10` + `p-1` + 1px 边框 = `h-[calc(3rem+2px)]`。同行以及上下叠成一列的 Input / Select / Button 用 `tabToolbarControlClass`，纯图标按钮用 `tabToolbarIconButtonClass`。禁止只对齐内钮 `h-10`，禁止把 group 压矮，禁止同一操作区里混用 `h-9`、默认 `h-10` 和外壳高度。没有分段的操作行也用这一套常量。表格行内、分页、弹窗底栏、卡片内次要操作（如技能卡编辑/删除）保持紧凑。统计页日期控件若套在自己的 `p-1` 外壳里，内钮保持 `h-10`，让外壳去对齐预设分段。同一行已经有 Switch 时，不要单把按钮抬到外壳高度。
 
-筛选行高度：无 Tab → 这一行的 Input / Select / 筛选按钮统一 `h-9`，不套用上面的默认按钮尺寸。有 `TabButtonGroup` 时，对齐的是分段**里面那颗按钮的视觉高度**（内钮固定 `h-10`），不是玻璃外壳，也不是组件外框。外壳有 `p-1`，比内钮高出一圈；把旁边的按钮做成外壳那么高，看起来会明显更高。同行 Input / Select / Button 用 `tabToolbarControlClass`（`h-10`），icon 按钮 `tabToolbarIconButtonClass`。标题栏右侧、和这排分段上下叠成一列的操作按钮，同样用这个视觉高度（当前与默认 `Button` 同高）。禁止把 group 压矮，也禁止按外壳高度去抬同行控件。
+字段、卡片小标题、表单小节如果要写说明，不要在标题下面再放一段介绍。说明放在标题右侧的问号 Tooltip 上，用 `LabelWithHelp`。页面 H1 的副标题仍写在标题下方（见 §1.3）。
 
 Dialog：每个 `DialogContent` 必须有 `DialogTitle` + `DialogDescription`（可 `sr-only`）。双态 UI 的动作 / 图标 / 文案 / Title / Description **同一条件分支**（P-4、P-16、P-18）。
 
@@ -295,5 +295,7 @@ window.location.href = getLoginPath(); // 开发 /login，生产 /app/login
 7. **分页 → 复用已提交 query，不对当前页二次过滤**
 8. **包管理 → pnpm**
 9. **遮罩 → 亮色白、暗色黑（透明度适中能看清背景，严禁亮色用深色遮罩）**
+10. **操作区高度 → 页面上方按钮、分段、搜索同一外壳高度 `tabToolbarControlClass`**
+11. **小节说明 → 标题右侧 `LabelWithHelp` 问号，不写在标题下面**
 
 专题细节按 Skills 表按需加载，不要把整本 `references/` 一次读完。

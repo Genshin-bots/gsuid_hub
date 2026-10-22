@@ -1095,6 +1095,22 @@ export default function AIConfigPage() {
             </p>
           </div>
           <div className={headerActionRowClass}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="header-action-fixed inline-flex h-10 items-center">
+                  <Switch
+                    checked={isAIEnabled}
+                    onCheckedChange={aiSwitch.handleAISwitchChange}
+                    aria-label={t('aiConfig.serviceSwitch.title')}
+                  />
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                {isAIEnabled
+                  ? t('aiConfig.serviceSwitch.enabledDesc')
+                  : t('aiConfig.serviceSwitch.disabledDesc')}
+              </TooltipContent>
+            </Tooltip>
             {isAIEnabled && (
               <Button
                 onClick={aiSwitch.handleOpenHelp}
@@ -1204,11 +1220,6 @@ export default function AIConfigPage() {
                       : t('aiConfig.serviceSwitch.disabledDesc')}
                   </p>
                 </div>
-                <Switch
-                  checked={isAIEnabled}
-                  onCheckedChange={aiSwitch.handleAISwitchChange}
-                  className="scale-110"
-                />
               </div>
             </div>
 
@@ -1277,6 +1288,7 @@ export default function AIConfigPage() {
         }}
         onOpenEdit={provider.openEditDialog}
         onOpenDelete={provider.openDeleteDialog}
+        onCopy={provider.handleCopyConfig}
       />
 
       <CreateConfigDialog

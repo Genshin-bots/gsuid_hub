@@ -26,6 +26,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Button } from '@/components/ui/button';
 import { format, parse } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { tabToolbarControlClass } from '@/components/ui/TabButtonGroup';
 import { dashboardApi, type DailyCommandData, type BotItem } from '@/lib/api';
 import {
   asPercent,
@@ -960,7 +961,7 @@ export default function Dashboard() {
           <div className="flex w-full items-center gap-2 sm:w-auto">
             <Bot className="w-5 h-5 text-muted-foreground shrink-0" />
             <Select value={selectedBot} onValueChange={setSelectedBot}>
-              <SelectTrigger className="h-10 w-full sm:w-[180px]">
+              <SelectTrigger className={cn(tabToolbarControlClass, 'w-full sm:w-[180px]')}>
                 <SelectValue placeholder={t('dashboard.selectBot')} />
               </SelectTrigger>
               <SelectContent>
@@ -987,7 +988,8 @@ export default function Dashboard() {
               <Button
                 variant="outline"
                 className={cn(
-                  'h-10 w-full justify-start px-3 font-normal sm:w-[220px]',
+                  tabToolbarControlClass,
+                  'w-full justify-start px-3 font-normal sm:w-[220px]',
                   !selectedDate && 'text-muted-foreground',
                 )}
               >

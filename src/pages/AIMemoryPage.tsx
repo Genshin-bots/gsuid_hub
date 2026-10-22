@@ -6,7 +6,8 @@ import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { GlassAlert } from '@/components/ui/glass-alert';
 import { Skeleton } from '@/components/ui/skeleton';
-import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
+import { TabButtonGroup, tabToolbarControlClass } from '@/components/ui/TabButtonGroup';
+import { headerActionRowClass, PinnedPage } from '@/components/layout/PinnedPage';
 import MemorySearchPanel from '@/components/memory/MemorySearchPanel';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -91,7 +92,6 @@ import {
   pluginFromWorldRef,
   worldGraphId,
 } from '@/lib/cognition';
-import { PinnedPage } from '@/components/layout/PinnedPage';
 import MemorySettingsDialog from '@/components/memory/MemorySettingsDialog';
 import Graph from 'graphology';
 import Sigma from 'sigma';
@@ -2105,14 +2105,26 @@ export default function AIMemoryPage() {
             </h1>
             <p className="text-muted-foreground mt-1">{t('aiMemory.description')}</p>
           </div>
-          <Button
-            variant="outline"
-            className="w-full sm:w-auto sm:shrink-0"
-            onClick={() => setMemorySettingsOpen(true)}
-          >
-            <Brain className="w-4 h-4" />
-            {t('memorySettings.title')}
-          </Button>
+          <div className={headerActionRowClass}>
+            <Button
+              variant="outline"
+              className={cn(tabToolbarControlClass, 'w-full sm:w-auto sm:shrink-0')}
+              asChild
+            >
+              <Link to="/ai-runtime?tab=cognition">
+                <Globe className="w-4 h-4" />
+                {t('aiMemory.cognitionIndexLink')}
+              </Link>
+            </Button>
+            <Button
+              variant="outline"
+              className={cn(tabToolbarControlClass, 'w-full sm:w-auto sm:shrink-0')}
+              onClick={() => setMemorySettingsOpen(true)}
+            >
+              <Brain className="w-4 h-4" />
+              {t('memorySettings.title')}
+            </Button>
+          </div>
         </div>
       }
     >
@@ -2127,20 +2139,6 @@ export default function AIMemoryPage() {
           {error}
         </GlassAlert>
       )}
-
-      <Card className="glass-card">
-        <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-muted-foreground min-w-0">
-            {t('aiMemory.cognitionIndexHint')}
-          </p>
-          <Button variant="outline" className="w-full shrink-0 sm:w-auto" asChild>
-            <Link to="/ai-runtime?tab=cognition">
-              <Globe className="w-4 h-4" />
-              {t('aiMemory.cognitionIndexLink')}
-            </Link>
-          </Button>
-        </CardContent>
-      </Card>
 
       {/* Stats：8 卡固定两行四列（大屏不再挤成一行） */}
       {stats && (
@@ -2318,13 +2316,15 @@ export default function AIMemoryPage() {
                 onChange={handleScopeChange}
                 scopes={scopes}
                 allLabel={t('aiMemory.allScopes')}
-                className="h-9 min-w-0 flex-1 sm:max-w-[220px] sm:flex-none sm:w-[180px]"
+                className={cn(
+                  tabToolbarControlClass,
+                  'min-w-0 flex-1 sm:max-w-[220px] sm:flex-none sm:w-[180px]',
+                )}
               />
               <div className="ml-auto flex shrink-0 items-center gap-2">
                 <Button
                   variant="outline"
-                  size="sm"
-                  className="h-9 px-2.5 sm:px-3"
+                  className={cn(tabToolbarControlClass, 'px-2.5 sm:px-3')}
                   onClick={() => setClearMemoryDialogOpen(true)}
                   disabled={selectedScope === 'all' || !selectedScope}
                   title={t('aiMemory.clearMemory')}
@@ -2335,8 +2335,7 @@ export default function AIMemoryPage() {
                 </Button>
                 <Button
                   variant="outline"
-                  size="sm"
-                  className="h-9 px-2.5 sm:px-3"
+                  className={cn(tabToolbarControlClass, 'px-2.5 sm:px-3')}
                   onClick={() => {
                     fetchEntities(1);
                     fetchEdges(1);
@@ -2428,7 +2427,7 @@ export default function AIMemoryPage() {
                 onChange={handleScopeChange}
                 scopes={scopes}
                 allLabel={t('aiMemory.preferenceScopeAll')}
-                className="w-[180px] h-9"
+                className={cn(tabToolbarControlClass, 'w-[180px]')}
               />
               <Select
                 value={preferenceFilter}
@@ -2438,7 +2437,7 @@ export default function AIMemoryPage() {
                   setTimeout(() => fetchPreferences(1), 0);
                 }}
               >
-                <SelectTrigger className="h-9 w-[140px]">
+                <SelectTrigger className={cn(tabToolbarControlClass, 'w-[140px]')}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -2458,7 +2457,7 @@ export default function AIMemoryPage() {
                   setTimeout(() => fetchPreferences(1), 0);
                 }}
               >
-                <SelectTrigger className="h-9 w-[120px]">
+                <SelectTrigger className={cn(tabToolbarControlClass, 'w-[120px]')}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -2469,8 +2468,7 @@ export default function AIMemoryPage() {
               </Select>
               <Button
                 variant="outline"
-                size="sm"
-                className="h-9"
+                className={tabToolbarControlClass}
                 onClick={() => fetchPreferences(preferencePage)}
               >
                 <RefreshCw className="w-4 h-4 mr-1" />

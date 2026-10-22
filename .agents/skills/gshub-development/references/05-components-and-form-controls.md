@@ -84,51 +84,32 @@ const buttonVariants = cva(
 
 非 `Button` 的可点击卡片（如 `/home` 快捷导航）自行加 `hoverIconGroupClass` + `SidebarHoverIcon`。
 
-## 5.4 按钮尺寸与一行筛选高度 ★★
+## 5.4 页面上方操作区同一外壳高度 ★★★
 
-页面主操作（标题栏右侧、卡片头、空态）用默认 `Button`：`h-10 px-4`，与「创建任务」一致。不要 `size="sm"`、不要 `h-9`、不要手写 `<button class="px-4 py-2">`。表格行内、分页、弹窗底栏可以保持紧凑。
+页面上方操作区（标题栏右侧按钮、其下或同行的分段、搜索、下拉、筛选）必须同一高度。
 
-默认高度不一致：`Input` = **h-10**、`SelectTrigger` = **h-7**、`Button` 默认 = **h-10**、`Button size="sm"` = **h-9**、`Button size="icon"` = **h-10 w-10**。`TabButtonGroup` 内钮固定 **h-10**，外壳另有 `p-1`，比内钮高出一圈。
+这一高度是默认 `TabButtonGroup` 的**外壳**，不是里面那颗按钮：
 
-按「这一行有没有 TabButtonGroup」分两档，**禁止混用**：
+- 内钮固定 `h-10`（2.5rem）
+- 外壳 `p-1`（上下各 0.25rem）+ 1px 边框
+- 合计 `h-[calc(3rem+2px)]`
 
-### A. 没有 TabButtonGroup → 统一 `h-9`
+常量（`src/components/ui/TabButtonGroup.tsx`）：
 
-搜索框 + 下拉 + 按钮的纯筛选行：
+- `tabToolbarControlClass` = `h-[calc(3rem+2px)]`
+- `tabToolbarIconButtonClass` = 同高的正方形
+- `tabToolbarShellControlClass` 是同一常量的旧名
 
-```tsx
-// ✅ 正确：工具栏所有控件 h-9 对齐
-<div className="flex flex-wrap items-center gap-3">
-  <div className="relative flex-1 min-w-[200px]">
-    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-    <Input className="h-9 pl-9" placeholder={…} value={search} onChange={…} />
-  </div>
-  <Select value={f} onValueChange={setF}>
-    <SelectTrigger className="w-[140px] h-9"><SelectValue /></SelectTrigger>
-    <SelectContent>…</SelectContent>
-  </Select>
-  <Button size="sm" className="h-9"><Plus className="w-4 h-4 mr-2" />新建</Button>
-  <Button size="sm" variant="outline" className="h-9 w-9 p-0"><RefreshCw className="w-4 h-4" /></Button>
-</div>
+同行以及上下叠成一列的 `Input` / `SelectTrigger` / `Button` 都套这个类。没有分段的操作行也用它，不要再混 `h-9` 和默认 `Button` 的 `h-10`。禁止只对齐内钮，禁止把 group 压矮（不要 `h-8` 外壳、不要 `buttonClassName="h-8 py-0"`）。
 
-// ❌ 错误：Input 默认 h-10、Select h-9、Button 默认 h-10 → 一行高低不齐
-<Input className="pl-9" />
-<SelectTrigger className="w-[140px] h-9" />
-<Button>新建</Button>
-```
-
-### B. 有 TabButtonGroup → 对齐内钮的**视觉高度** `h-10`，不是玻璃外壳 ★★★
-
-外壳有 `p-1`，比里面那颗按钮高出一圈。按外壳（或 `h-11` / `h-12`）去抬旁边的按钮，按钮会看起来更高。内钮固定 `h-10`，同行控件用同一个高度。**不要压矮** group（禁止 `h-8` 外壳、禁止 `buttonClassName="h-8 py-0"` 一类矮版）。
-
-同行 `Input` / `SelectTrigger` / `Button` 用组件导出的常量对齐：
+组件默认高度并不相同：`Input` = **h-10**、`SelectTrigger` = **h-7**、`Button` 默认 = **h-10**、`Button size="icon"` = **h-10 w-10**。并排时必须显式套常量，否则一行高低不齐。
 
 ```tsx
 import {
   TabButtonGroup,
-  tabToolbarControlClass,      // 'h-10'，对齐内钮视觉高度
-  tabToolbarIconButtonClass,   // 'h-10 w-10'
-  tabToolbarGroupWrapClass,    // 压掉 shadow-safe 竖直 bleed，便于 items-center
+  tabToolbarControlClass,
+  tabToolbarIconButtonClass,
+  tabToolbarGroupWrapClass,
 } from '@/components/ui/TabButtonGroup';
 
 <div className="flex flex-wrap items-center gap-2">
@@ -137,7 +118,7 @@ import {
   </div>
   <Input className={cn(tabToolbarControlClass, 'pl-9 w-64')} … />
   <Button className={tabToolbarControlClass} variant="outline">…</Button>
-  <Button size="icon" className={cn(tabToolbarIconButtonClass, 'shrink-0')}>
+  <Button variant="outline" className={cn(tabToolbarIconButtonClass, 'shrink-0 p-0')}>
     <Plus className="h-4 w-4" />
   </Button>
 </div>
@@ -145,16 +126,16 @@ import {
 
 | 场景 | 高度 | 说明 |
 |------|------|------|
-| 页面主操作按钮 | 默认 `Button`（`h-10`） | 标题栏、卡片头、空态。不要 `size="sm"` |
-| 纯筛选行（无 Tab） | `h-9` | Input / Select / 这一行的按钮显式 `h-9` |
-| 含默认 `TabButtonGroup` | `h-10` | 对齐内钮视觉高度，不是外壳。用 `tabToolbarControlClass` / `tabToolbarIconButtonClass`。不要按外壳抬到 `h-11` / `h-12` |
-| `TabButtonGroup` 本身 | **内钮 `h-10`，外壳保持 `p-1`** | 禁止压矮外壳；外壳比内钮高是留白，不是按钮高度 |
+| 页面上方操作区 | `tabToolbarControlClass` | 标题栏按钮、分段旁的搜索/下拉/筛选，有没有分段都用这一档 |
+| `TabButtonGroup` 本身 | 内钮 `h-10`，外壳 `p-1` | 禁止压矮；旁边控件对齐外壳 |
+| 统计页日期槽 | 内钮 `h-10`，自己再套 `p-1` 外壳 | 外壳去对齐预设分段，内钮不要再套 `tabToolbarControlClass` |
+| 同一行已有 Switch | 跟开关行对齐 | 不要单把按钮抬到外壳高度 |
+| 表格行内 / 分页 / 弹窗底栏 / 卡片内次要按钮 | 紧凑 | 如技能卡编辑/删除，不要抬到外壳高度 |
+| `size="sm"` / `size="line"` 的分段 | 外壳 `h-9` / `h-10` | 只用于面板内的紧凑分段，不用于页面上方操作区 |
 
-参考页：`/ai-knowledge` 工具栏、`/batch-push` 目标行、`/ai-meme` 筛选行。
+参考页：`/ai-knowledge`、`/ai-meme`、`/ai-capability-agents`。
 
-补充：
-- 单独使用的 `Input`（不与其他控件并排）可用默认高度。
-- 搜索框 `Input` 与旁边的 `Select` 对齐时，按上面 A/B 规则取同一档。
+单独使用、不和操作区并排的 `Input` 可以保持默认高度。
 
 ## 5.5 Radix Select 空值哨兵
 
@@ -174,7 +155,7 @@ if (scopeFilter !== '__all__') params.scope_type = scopeFilter;
 
 ## 5.6 字段说明用 Tooltip + HelpCircle / LabelWithHelp
 
-字段补充说明放 Label 右侧的悬浮 Tooltip，而非独立一行文字（省空间、减视觉噪音）。
+字段、卡片小标题、表单小节的说明放在标题**右侧**的问号 Tooltip 上，不要写在标题下面的正文段落里。页面 H1 的副标题仍写在标题下方（`text-muted-foreground mt-1`），不受这条约束。
 
 ### 通用手搓（简单一行文案）
 

@@ -3,7 +3,12 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 import { aiStatisticsApi, aiPerformanceApi, getApiErrorMessage } from '@/lib/api';
 import { PinnedPage } from '@/components/layout/PinnedPage';
-import type { HourlyPerformanceItem, HourlyPerformanceRangeItem, TokenRangeData } from '@/lib/api';
+import type {
+  AIErrorEvent,
+  HourlyPerformanceItem,
+  HourlyPerformanceRangeItem,
+  TokenRangeData,
+} from '@/lib/api';
 import {
   aggregatePerformanceByDate,
   aggregatePerformanceByHour,
@@ -241,21 +246,32 @@ async function fetchTokenByRange(start_date?: string, end_date?: string): Promis
   return aiStatisticsApi.getTokenByRange(start_date, end_date);
 }
 
-/** 预设范围类型。「今日」也是一段长度为 1 的闭区间，所以和预设统一在一套里。 */
-type RangePreset = 'today' | '7d' | '14d' | '30d' | '90d' | 'custom';
+/** 预设范围类型。「今日 / 昨日」也是一段长度为 1 的闭区间，所以和预设统一在一套里。 */
+type RangePreset = 'today' | 'yesterday' | '7d' | '14d' | '30d' | '90d' | 'custom';
 
-const PRESET_DAYS: Record<Exclude<RangePreset, 'custom' | 'today'>, number> = {
+const PRESET_DAYS: Record<Exclude<RangePreset, 'custom' | 'today' | 'yesterday'>, number> = {
   '7d': 7,
   '14d': 14,
   '30d': 30,
   '90d': 90,
 };
 
+function isSingleDayPreset(preset: RangePreset): boolean {
+  return preset === 'today' || preset === 'yesterday';
+}
+
+/** 昨日固定是自然日的前一天，不跟日历里选中的日期走。 */
+function singleDayDate(preset: RangePreset, selected: Date): Date {
+  if (preset === 'yesterday') return startOfDay(subDays(new Date(), 1));
+  return startOfDay(selected);
+}
+
 /** 预设区间的文案。别在 JSX 里堆三元。
  *  刻意不带图标：六颗图标要多占 180px 横向预算，页头那排页签正是被它们挤到第二行的；
  *  预设文案本身就短（「今日 / 7天 / 自定义」），加了图标反而是一排看不懂的小装饰。 */
 const RANGE_PRESET_TABS = [
   { value: 'today', labelKey: 'aiStatistics.scopeToday' },
+  { value: 'yesterday', labelKey: 'aiStatistics.scopeYesterday' },
   { value: '7d', labelKey: 'aiStatistics.preset7d' },
   { value: '14d', labelKey: 'aiStatistics.preset14d' },
   { value: '30d', labelKey: 'aiStatistics.preset30d' },
@@ -278,8 +294,8 @@ function computeRangeDates(
   }
   /* 「今日」用的是日历里选中的那天而不是自然今天 —— 否则日历翻到别的月份时，
      主角卡的数字和下面所有按日取数的卡片会对不上。 */
-  if (preset === 'today') {
-    const day = start ?? today;
+  if (preset === 'today' || preset === 'yesterday') {
+    const day = preset === 'yesterday' ? startOfDay(subDays(today, 1)) : (start ?? today);
     const s = format(day, 'yyyy-MM-dd');
     return { start_date: s, end_date: s };
   }
@@ -709,6 +725,9 @@ export default function AIStatisticsPage() {
   // 概览里的明细不跳页签，点开成弹窗：明细是补充信息，不该把用户从仪表盘上带走
   const [perfDetailOpen, setPerfDetailOpen] = useState(false);
   const [dataDetailOpen, setDataDetailOpen] = useState(false);
+  const [errorDetailOpen, setErrorDetailOpen] = useState(false);
+  const [errorEvents, setErrorEvents] = useState<AIErrorEvent[] | null>(null);
+  const [errorEventsFallback, setErrorEventsFallback] = useState(false);
 
   // 时间段 Token 统计相关状态
   const [rangeData, setRangeData] = useState<TokenRangeData | null>(null);
@@ -739,7 +758,7 @@ export default function AIStatisticsPage() {
       setIsLoading(true);
       setError(null);
 
-      const dateStr = format(selectedDate, 'yyyy-MM-dd');
+      const dateStr = format(singleDayDate(rangePreset, selectedDate), 'yyyy-MM-dd');
       const [summaryData, tokenData, usersData, ragData, perfData] = await Promise.all([
         fetchStatisticsSummary(dateStr).catch(() => null),
         fetchTokenByModel(dateStr).catch(() => []),
@@ -761,7 +780,7 @@ export default function AIStatisticsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [selectedDate, t]);
+  }, [rangePreset, selectedDate, t]);
 
   useEffect(() => {
     loadData();
@@ -808,7 +827,9 @@ export default function AIStatisticsPage() {
       const { start_date, end_date } = computeRangeDates(
         rangePreset,
         // 「今日」把日历里选中的那天当起点；自定义区间仍用自己那两个选择器
-        rangePreset === 'today' ? selectedDate : rangeStartDate,
+        isSingleDayPreset(rangePreset)
+          ? singleDayDate(rangePreset, selectedDate)
+          : rangeStartDate,
         rangeEndDate,
       );
       const data = await fetchTokenByRange(start_date, end_date);
@@ -833,10 +854,10 @@ export default function AIStatisticsPage() {
   /* 趋势区的窗口。区间档就是顶部那个区间；「今日」档往前带 7 天 ——
      一天的区间在每日走势上只有一个点，那不叫走势。 */
   const trendWindow = useMemo(() => {
-    if (rangePreset !== 'today') {
+    if (!isSingleDayPreset(rangePreset)) {
       return computeRangeDates(rangePreset, rangeStartDate, rangeEndDate);
     }
-    const end = startOfDay(selectedDate ?? new Date());
+    const end = singleDayDate(rangePreset, selectedDate ?? new Date());
     return {
       start_date: format(subDays(end, TREND_LOOKBACK_DAYS - 1), 'yyyy-MM-dd'),
       end_date: format(end, 'yyyy-MM-dd'),
@@ -859,7 +880,7 @@ export default function AIStatisticsPage() {
 
   useEffect(() => {
     // 只有「今日」档需要这份：区间档的趋势区直接读 rangeData，不重复请求
-    if (activeTab === 'overview' && rangePreset === 'today') {
+    if (activeTab === 'overview' && isSingleDayPreset(rangePreset)) {
       void fetchTrendData();
     }
   }, [activeTab, rangePreset, fetchTrendData]);
@@ -870,7 +891,9 @@ export default function AIStatisticsPage() {
       setPerfRangeLoading(true);
       const { start_date, end_date } = computeRangeDates(
         rangePreset,
-        rangePreset === 'today' ? selectedDate : rangeStartDate,
+        isSingleDayPreset(rangePreset)
+          ? singleDayDate(rangePreset, selectedDate)
+          : rangeStartDate,
         rangeEndDate,
       );
       const rows = await aiPerformanceApi.getHourlyRange(start_date, end_date);
@@ -885,12 +908,40 @@ export default function AIStatisticsPage() {
   useEffect(() => {
     // 概览的三张 24 小时图跟着顶部时间维度走：只有区间档需要 hourly-range，
     // 「今日」那一档单日 hourly 已经覆盖了，不用多打一次请求。
-    if (rangePreset !== 'today') {
+    if (!isSingleDayPreset(rangePreset)) {
       void fetchPerfRange();
     } else {
       setPerfRangeRows([]);
     }
   }, [rangePreset, fetchPerfRange]);
+
+  useEffect(() => {
+    if (!errorDetailOpen) return;
+    let cancelled = false;
+    const { start_date, end_date } = computeRangeDates(
+      rangePreset,
+      isSingleDayPreset(rangePreset) ? singleDayDate(rangePreset, selectedDate) : rangeStartDate,
+      rangeEndDate,
+    );
+    if (!start_date || !end_date) return;
+    setErrorEvents(null);
+    setErrorEventsFallback(false);
+    aiStatisticsApi
+      .getErrorEvents(start_date, end_date)
+      .then((rows) => {
+        if (!cancelled) setErrorEvents(rows ?? []);
+      })
+      .catch((err) => {
+        console.warn('[AIStatisticsPage] /api/ai/statistics/error-events 不可用', err);
+        if (!cancelled) {
+          setErrorEvents([]);
+          setErrorEventsFallback(true);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [errorDetailOpen, rangePreset, selectedDate, rangeStartDate, rangeEndDate]);
 
   // ============================================================================
   // 图表装配
@@ -1029,11 +1080,11 @@ export default function AIStatisticsPage() {
    * 与卡片右上角的总量读数同源，不需要再多打一个请求。
    */
   const tokenByModel = useMemo<TokenByModel[]>(
-    () => (rangePreset === 'today' ? dayTokenByModel : (rangeData?.by_model ?? [])),
+    () => (isSingleDayPreset(rangePreset) ? dayTokenByModel : (rangeData?.by_model ?? [])),
     [rangePreset, dayTokenByModel, rangeData],
   );
   const tokenByType = useMemo<TokenByType[]>(
-    () => (rangePreset === 'today' ? dayTokenByType : (rangeData?.by_type ?? [])),
+    () => (isSingleDayPreset(rangePreset) ? dayTokenByType : (rangeData?.by_type ?? [])),
     [rangePreset, dayTokenByType, rangeData],
   );
 
@@ -1159,7 +1210,7 @@ export default function AIStatisticsPage() {
    */
   const perfHourSeries = useMemo<PerfHourPoint[]>(
     () =>
-      rangePreset === 'today'
+      isSingleDayPreset(rangePreset)
         ? toPerfHourSeries(performanceData)
         : aggregatePerformanceByHour(perfRangeRows),
     [rangePreset, performanceData, perfRangeRows],
@@ -1305,9 +1356,9 @@ export default function AIStatisticsPage() {
 
   /* 趋势区吃哪份区间数据。区间档直接复用顶部那份 rangeData；「今日」档一天画不出走势，
      换成单独取的最近 7 天。放在三个 option 之前算好，它们就不用再关心分支。 */
-  const trendSource = rangePreset === 'today' ? trendData : rangeData;
-  const trendLoadingNow = rangePreset === 'today' ? trendLoading : rangeLoading;
-  const trendErrorNow = rangePreset === 'today' ? trendError : rangeError;
+  const trendSource = isSingleDayPreset(rangePreset) ? trendData : rangeData;
+  const trendLoadingNow = isSingleDayPreset(rangePreset) ? trendLoading : rangeLoading;
+  const trendErrorNow = isSingleDayPreset(rangePreset) ? trendError : rangeError;
   const trendIsEmpty =
     !trendSource ||
     trendSource.daily.length === 0 ||
@@ -1621,8 +1672,10 @@ export default function AIStatisticsPage() {
    *  三张 24 小时图跟着顶部的范围走 —— 同一屏摆着两段时间，切到 30 天就会读成
    *  「这 30 天的错误率」，而分子分母其实都只有某一天。后端现在把区间口径一起
    *  返回（token-by-range 的 latency / errors），两块才真的是同一段。 */
-  const isRangeScope = rangePreset !== 'today';
-  const scopeMark = isRangeScope ? scopeDates : format(selectedDate, 'MM-dd');
+  const isRangeScope = !isSingleDayPreset(rangePreset);
+  const scopeMark = isRangeScope
+    ? scopeDates
+    : format(singleDayDate(rangePreset, selectedDate), 'MM-dd');
 
   const latencyAvg = isRangeScope ? (rangeData?.latency?.avg ?? 0) : (summary?.latency?.avg ?? 0);
   const latencyP95 = isRangeScope ? (rangeData?.latency?.p95 ?? 0) : (summary?.latency?.p95 ?? 0);
@@ -1642,6 +1695,23 @@ export default function AIStatisticsPage() {
       { key: 'api529Error', label: t('aiStatistics.api529Error'), value: err.api_529_error ?? 0 },
     ].filter((item) => item.value > 0);
   }, [isRangeScope, rangeData, summary, t]);
+
+  const errorTypeLabel = (raw: string) => {
+    const keyByType: Record<string, string> = {
+      timeout: 'aiStatistics.timeout',
+      rate_limit: 'aiStatistics.rateLimit',
+      network_error: 'aiStatistics.networkError',
+      usage_limit: 'aiStatistics.usageLimit',
+      agent_error: 'aiStatistics.agentError',
+      api_529_error: 'aiStatistics.api529Error',
+      quota_breaker_open: 'aiStatistics.quotaBreakerOpen',
+      quota_exhausted: 'aiStatistics.quotaExhausted',
+      content_rejected: 'aiStatistics.contentRejected',
+      client_error: 'aiStatistics.clientError',
+    };
+    const key = keyByType[raw];
+    return key ? t(key) : raw;
+  };
 
   const memoryStats = summary?.memory;
   const memoryHealth = useMemo(() => memoryIngestHealth(memoryStats), [memoryStats]);
@@ -1717,7 +1787,7 @@ export default function AIStatisticsPage() {
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex flex-wrap items-center gap-2">
             <TabButtonGroup
-              options={presetTabs(['today', '7d', '14d', '30d', '90d', 'custom'])}
+              options={presetTabs(['today', 'yesterday', '7d', '14d', '30d', '90d', 'custom'])}
               value={rangePreset}
               onValueChange={(v) => setRangePreset(v as RangePreset)}
               collapseOnMobile
@@ -1853,12 +1923,12 @@ export default function AIStatisticsPage() {
               <SectionLabel
                 title={t('aiStatistics.usageAndPerformance')}
                 icon={Coins}
-                hint={rangePreset === 'today' ? undefined : t('aiStatistics.hourProfileRangeHint')}
+                hint={isSingleDayPreset(rangePreset) ? undefined : t('aiStatistics.hourProfileRangeHint')}
                 action={
                   <div className="flex items-center gap-1">
                     {detailTrigger(t('aiStatistics.dataDetail'), () => setDataDetailOpen(true))}
                     {detailTrigger(t('aiStatistics.performanceDetail'), () => {
-                      setPerfMode(rangePreset === 'today' ? 'day' : 'range');
+                      setPerfMode(isSingleDayPreset(rangePreset) ? 'day' : 'range');
                       setPerfDetailOpen(true);
                     })}
                   </div>
@@ -1964,6 +2034,7 @@ export default function AIStatisticsPage() {
                           max: 10,
                           segments: [{ value: errorRate ?? 0, color: ramp[3] }],
                         },
+                        onClick: () => setErrorDetailOpen(true),
                       },
                     ]}
                   />
@@ -2044,7 +2115,7 @@ export default function AIStatisticsPage() {
                       <Button
                         variant="outline"
                         onClick={() =>
-                          void (rangePreset === 'today' ? fetchTrendData() : fetchRangeData())
+                          void (isSingleDayPreset(rangePreset) ? fetchTrendData() : fetchRangeData())
                         }
                       >
                         <RefreshCw className="mr-1 h-4 w-4" />
@@ -2105,7 +2176,7 @@ export default function AIStatisticsPage() {
                       <Button
                         variant="outline"
                         onClick={() =>
-                          void (rangePreset === 'today' ? fetchTrendData() : fetchRangeData())
+                          void (isSingleDayPreset(rangePreset) ? fetchTrendData() : fetchRangeData())
                         }
                       >
                         <RefreshCw className="mr-1 h-4 w-4" />
@@ -2543,6 +2614,62 @@ export default function AIStatisticsPage() {
               </div>
             </div>
           )}
+
+          <Dialog open={errorDetailOpen} onOpenChange={setErrorDetailOpen}>
+            <DialogContent className="flex max-h-[85vh] max-w-3xl flex-col p-6">
+              <DialogHeader className="shrink-0 pb-1">
+                <DialogTitle>{t('aiStatistics.errorEventsTitle')}</DialogTitle>
+                <DialogDescription className="sr-only">
+                  {t('aiStatistics.errorEventsHint')}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="min-h-0 flex-1 space-y-3 overflow-y-auto py-1 pr-1">
+                {errorEvents === null ? (
+                  <p className="text-sm text-muted-foreground">{t('aiStatistics.loading')}</p>
+                ) : errorEvents.length > 0 ? (
+                  errorEvents.map((event, index) => (
+                    <div key={`${event.date}-${event.time}-${index}`} className="glass-card p-3">
+                      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                        <span className="tabular-nums">
+                          {event.date} {event.time}
+                        </span>
+                        <span className="font-medium text-foreground">
+                          {errorTypeLabel(event.error_type)}
+                        </span>
+                        <span className="font-mono text-[11px] text-primary">
+                          [{event.error_type}]
+                        </span>
+                      </div>
+                      {event.message ? (
+                        <p className="mt-2 whitespace-pre-wrap break-words text-sm">{event.message}</p>
+                      ) : null}
+                    </div>
+                  ))
+                ) : (
+                  <div className="space-y-3">
+                    <p className="text-sm text-muted-foreground">
+                      {errorEventsFallback
+                        ? t('aiStatistics.errorEventsUnavailable')
+                        : t('aiStatistics.errorEventsPending')}
+                    </p>
+                    {errorBreakdown.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">{t('aiStatistics.noDataInRange')}</p>
+                    ) : (
+                      errorBreakdown.map((item) => (
+                        <div
+                          key={item.key}
+                          className="flex items-center justify-between gap-3 glass-card px-3 py-2 text-sm"
+                        >
+                          <span>{item.label}</span>
+                          <span className="tabular-nums font-medium">{item.value}</span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
 
           {/* 数据明细弹窗：区间与当日构成逐行可查 */}
           <Dialog open={dataDetailOpen} onOpenChange={setDataDetailOpen}>

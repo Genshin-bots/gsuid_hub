@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { OverflowTags } from '@/components/ui/overflow-tags';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   TabButtonGroup,
@@ -1156,17 +1157,7 @@ export default function AIKnowledgePage() {
                             <span className="line-clamp-1">{item.content.split('\n')[0]}</span>
                           </TableCell>
                           <TableCell>
-                            <div className="flex flex-wrap gap-1">
-                              {item.tags && item.tags.length > 0 ? (
-                                item.tags.map((tag, i) => (
-                                  <Badge key={i} variant="outline" className="text-xs">
-                                    {tag}
-                                  </Badge>
-                                ))
-                              ) : (
-                                <span className="text-muted-foreground">-</span>
-                              )}
-                            </div>
+                            <OverflowTags tags={item.tags ?? []} />
                           </TableCell>
                           <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                             <div className="flex justify-end gap-2">
@@ -1244,17 +1235,7 @@ export default function AIKnowledgePage() {
                             <span className="line-clamp-1 text-xs font-mono">{item.path}</span>
                           </TableCell>
                           <TableCell>
-                            <div className="flex flex-wrap gap-1">
-                              {item.tags && item.tags.length > 0 ? (
-                                item.tags.map((tag, i) => (
-                                  <Badge key={i} variant="outline" className="text-xs">
-                                    {tag}
-                                  </Badge>
-                                ))
-                              ) : (
-                                <span className="text-muted-foreground">-</span>
-                              )}
-                            </div>
+                            <OverflowTags tags={item.tags ?? []} />
                           </TableCell>
                           <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                             <div className="flex justify-end gap-2">

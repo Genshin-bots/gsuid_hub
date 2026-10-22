@@ -10,6 +10,15 @@
   "checkConfig": "检查配置",
   "manageConfig": "管理配置",
   "manageConfigDesc": "管理用于高级 / 低级任务的 AI 模型配置文件",
+  "copyConfig": "复制配置",
+  "copyConfigDesc": "复制「{name}」。密钥和参数会一起带过去，保存前可以改名称。",
+  "copyConfigName": "新名称",
+  "copyConfigSuccess": "已复制为 {name}",
+  "copyConfigFailed": "复制配置失败",
+  "copyConfigNameRequired": "请填写新名称",
+  "copyConfigSameName": "新名称不能与原配置相同",
+  "copyConfigNamePlus": "名称不能包含 +",
+  "copyConfigSuffix": " 副本",
   "aiHistory": "AI历史调用",
   "taskConfig": {
     "title": "任务配置",
@@ -106,7 +115,9 @@
       "low": "低",
       "medium": "中",
       "high": "高",
-      "xhigh": "极高"
+      "xhigh": "极高",
+      "adaptive": "自适应",
+      "max": "极限"
     },
     "maxConcurrency": "最大并发数",
     "maxTokens": "最大输出 Token",

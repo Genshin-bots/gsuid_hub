@@ -7,6 +7,7 @@ import { GlassAlert } from '@/components/ui/glass-alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { tabToolbarControlClass, tabToolbarIconButtonClass } from '@/components/ui/TabButtonGroup';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -373,7 +374,7 @@ export default function AIScheduledTasksPage() {
               resetForm();
               setCreateDialogOpen(true);
             }}
-            className="w-full gap-2 whitespace-nowrap sm:w-auto"
+            className={cn(tabToolbarControlClass, 'w-full gap-2 whitespace-nowrap sm:w-auto')}
           >
             <Plus className="w-4 h-4" />
             {t('aiScheduledTasks.createTask')}
@@ -486,12 +487,17 @@ export default function AIScheduledTasksPage() {
                 placeholder={t('aiScheduledTasks.taskPromptPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-9 pl-10"
+                className={cn(tabToolbarControlClass, 'pl-10')}
               />
             </div>
             <div className="flex flex-wrap gap-2 sm:flex-nowrap">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="h-9 w-full min-w-[140px] flex-1 sm:w-[160px] sm:flex-none">
+                <SelectTrigger
+                  className={cn(
+                    tabToolbarControlClass,
+                    'w-full min-w-[140px] flex-1 sm:w-[160px] sm:flex-none',
+                  )}
+                >
                   <Filter className="w-4 h-4 mr-2" />
                   <SelectValue placeholder={t('aiScheduledTasks.filterByStatus')} />
                 </SelectTrigger>
@@ -505,7 +511,12 @@ export default function AIScheduledTasksPage() {
                 </SelectContent>
               </Select>
               <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger className="h-9 w-full min-w-[140px] flex-1 sm:w-[160px] sm:flex-none">
+                <SelectTrigger
+                  className={cn(
+                    tabToolbarControlClass,
+                    'w-full min-w-[140px] flex-1 sm:w-[160px] sm:flex-none',
+                  )}
+                >
                   <Filter className="w-4 h-4 mr-2" />
                   <SelectValue placeholder={t('aiScheduledTasks.filterByType')} />
                 </SelectTrigger>
@@ -515,7 +526,12 @@ export default function AIScheduledTasksPage() {
                   <SelectItem value="interval">{t('aiScheduledTasks.taskTypeInterval')}</SelectItem>
                 </SelectContent>
               </Select>
-              <Button variant="outline" size="icon" className="h-9 w-9" onClick={fetchTasks}>
+              <Button
+                variant="outline"
+                size="icon"
+                className={tabToolbarIconButtonClass}
+                onClick={fetchTasks}
+              >
                 <RefreshCw className="w-4 h-4" />
               </Button>
             </div>

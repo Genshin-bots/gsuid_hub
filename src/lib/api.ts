@@ -1478,6 +1478,14 @@ export const providerConfigApi = {
       data: { name: string; provider: string; config_name: string };
     }>(`/api/provider_config/config/${provider}/${configName}`, { config }),
 
+  // 服务端原样复制 JSON（密钥不经过打码后的读取接口）
+  copyConfig: (provider: string, configName: string, newName: string) =>
+    api.post<{
+      name: string;
+      provider: string;
+      config_name: string;
+    }>(`/api/provider_config/config/${provider}/${configName}/copy`, { new_name: newName }),
+
   // 创建默认配置
   createDefaultConfig: (provider: string, configName: string) =>
     api.post<{
@@ -5730,6 +5738,14 @@ export interface TokenRangeLatency {
   samples: number;
 }
 
+/** 一次失败请求。没有堆栈，只有类型和上游消息。 */
+export interface AIErrorEvent {
+  date: string;
+  time: string;
+  error_type: string;
+  message: string;
+}
+
 /** 区间错误计数，字段与 /summary 的 errors 一致 */
 export interface TokenRangeErrors {
   timeout: number;
@@ -5846,6 +5862,13 @@ export const aiStatisticsApi = {
     if (date) query.set('date', date);
     const queryStr = query.toString();
     return api.get<ErrorStatsData>(`/api/ai/statistics/errors${queryStr ? `?${queryStr}` : ''}`);
+  },
+
+  getErrorEvents: (startDate: string, endDate: string) => {
+    const query = new URLSearchParams();
+    query.set('start_date', startDate);
+    query.set('end_date', endDate);
+    return api.get<AIErrorEvent[]>(`/api/ai/statistics/error-events?${query.toString()}`);
   },
 
   getHeartbeat: (date?: string) => {

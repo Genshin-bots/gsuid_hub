@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { HardDrive, Download, Trash2, Play, Archive, Save } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
+import { TabButtonGroup, tabToolbarControlClass } from '@/components/ui/TabButtonGroup';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -428,12 +429,16 @@ export default function BackupPage() {
             <Button
               onClick={handleSaveSettings}
               disabled={!hasChanges || isSaving}
-              className="button-solid whitespace-nowrap"
+              className={cn(tabToolbarControlClass, 'button-solid whitespace-nowrap')}
             >
               <Save className="w-4 h-4 mr-2" />
               {isSaving ? t('backup.saving') : t('backup.saveSettings')}
             </Button>
-            <Button onClick={handleBackupNow} disabled={isBackingUp} className="whitespace-nowrap">
+            <Button
+              onClick={handleBackupNow}
+              disabled={isBackingUp}
+              className={cn(tabToolbarControlClass, 'whitespace-nowrap')}
+            >
               <Play className="w-4 h-4 mr-2" />
               {isBackingUp ? t('backup.backingUp') : t('backup.backupNow')}
             </Button>

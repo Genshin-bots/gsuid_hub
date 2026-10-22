@@ -17,7 +17,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
+import { TabButtonGroup, tabToolbarControlClass } from '@/components/ui/TabButtonGroup';
 import { Textarea } from '@/components/ui/textarea';
 
 type ViewMode = 'pending' | 'all';
@@ -127,7 +127,7 @@ export default function AIApprovalsPage() {
               variant="outline"
               onClick={() => loadData(viewMode)}
               disabled={isLoading}
-              className="gap-2"
+              className={cn(tabToolbarControlClass, 'gap-2')}
             >
               {isLoading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />

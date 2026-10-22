@@ -17,6 +17,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import {
+  getApiErrorMessage,
   providerConfigApi,
   type AllConfigsSummary,
   type AllConfigItem,
@@ -127,6 +128,7 @@ export interface UseProviderConfigReturn {
   handleCreateOpenaiConfig: () => Promise<void>;
   handleSaveOpenaiConfig: () => Promise<void>;
   handleDeleteConfig: () => Promise<void>;
+  handleCopyConfig: (provider: string, sourceName: string, newName: string) => Promise<boolean>;
 
   // --- 触发 dialog 打开 ---
   openEditDialog: (configName: string, provider: string) => void;
@@ -626,6 +628,35 @@ export function useProviderConfig(): UseProviderConfigReturn {
     allConfigs,
   ]);
 
+  const handleCopyConfig = useCallback(
+    async (sourceProvider: string, sourceName: string, newName: string): Promise<boolean> => {
+      const trimmed = newName.trim();
+      if (!trimmed) {
+        toast.error(t('aiConfig.copyConfigNameRequired'));
+        return false;
+      }
+      if (trimmed === sourceName) {
+        toast.error(t('aiConfig.copyConfigSameName'));
+        return false;
+      }
+      if (trimmed.includes('+')) {
+        toast.error(t('aiConfig.copyConfigNamePlus'));
+        return false;
+      }
+      try {
+        await providerConfigApi.copyConfig(sourceProvider, sourceName, trimmed);
+        toast.success(t('aiConfig.copyConfigSuccess', { name: trimmed }));
+        await fetchAllConfigs();
+        return true;
+      } catch (error) {
+        console.error('Failed to copy config:', error);
+        toast.error(getApiErrorMessage(error, t('aiConfig.copyConfigFailed')));
+        return false;
+      }
+    },
+    [t, fetchAllConfigs],
+  );
+
   const openDeleteDialog = useCallback((configName: string, provider: string) => {
     setEditingConfigName(configName);
     setEditingConfigProvider(provider);
@@ -766,6 +797,7 @@ export function useProviderConfig(): UseProviderConfigReturn {
     handleCreateOpenaiConfig,
     handleSaveOpenaiConfig,
     handleDeleteConfig,
+    handleCopyConfig,
 
     // dialog openers
     openEditDialog,

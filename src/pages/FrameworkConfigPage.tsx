@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
+import { TabButtonGroup, tabToolbarControlClass } from '@/components/ui/TabButtonGroup';
 import { Settings, Loader2, Save, Cpu } from 'lucide-react';
 import {
   ConfigField,
@@ -348,7 +348,12 @@ export default function FrameworkConfigPage() {
                   </div>
                   <div className="flex-1 w-full">
                     <Select value={selectedConfigId} onValueChange={setSelectedConfigId}>
-                      <SelectTrigger className="h-10 w-full bg-background/50 sm:w-[300px]">
+                      <SelectTrigger
+                        className={cn(
+                          tabToolbarControlClass,
+                          'w-full bg-background/50 sm:w-[300px]',
+                        )}
+                      >
                         <SelectValue placeholder={t('frameworkConfig.selectConfig')} />
                       </SelectTrigger>
                       <SelectContent>

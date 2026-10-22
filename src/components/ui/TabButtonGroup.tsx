@@ -88,18 +88,16 @@ interface TabButtonGroupProps {
 }
 
 /**
- * 与默认 TabButtonGroup **内钮**对齐的视觉高度，不是玻璃外壳。
- * 外壳有 p-1，比里面那颗按钮高出一圈；按外壳对齐，旁边的按钮会看起来更高。
- * 内钮固定 `h-10`，同行 Input / Select / Button 用同一个 `h-10`，icon 按钮 `h-10 w-10`。
+ * 页面上方操作区（标题栏按钮、分段、搜索、筛选）共用的外框高度。
+ * 默认 TabButtonGroup 外壳 = 内钮 h-10 + p-1 + 1px 边框，即 `h-[calc(3rem+2px)]`。
+ * 同行 Input / Select / Button 用这个高度，才能和分段外框顶底对齐。
+ * icon 按钮同高，宽度在纯图标时保持正方形。
  */
-export const tabToolbarControlClass = 'h-10';
-export const tabToolbarIconButtonClass = 'h-10 w-10';
+export const tabToolbarControlClass = 'h-[calc(3rem+2px)]';
+export const tabToolbarIconButtonClass = 'h-[calc(3rem+2px)] w-[calc(3rem+2px)]';
 
-/**
- * 与默认 TabButtonGroup **外壳**对齐的精确高度（内钮 2.5rem + 外壳 p-1 上下 0.5rem + 边框 2px）。
- * 当工具栏要求与分段外框整体物理高度/上下顶底边缘绝对平齐时使用（如 /ai-tools 工具栏筛选行）。
- */
-export const tabToolbarShellControlClass = 'h-[calc(3rem+2px)]';
+/** 与 `tabToolbarControlClass` 同一高度。旧名保留，避免已引用外壳高度的页面分叉。 */
+export const tabToolbarShellControlClass = tabToolbarControlClass;
 
 /** `size="sm"` 的外壳高度，与 outline Button / Input 的 h-9 对齐。 */
 export const tabSmShellClass = 'h-9';
@@ -161,8 +159,8 @@ export function TabButtonGroup({
   const line = size === 'line';
   const hug = sm || line;
   const iconSlotClass = sm ? 'h-4 w-4' : 'h-[22px] w-[22px]';
-  // 默认可视高度锁成 h-10，和 tabToolbarControlClass 同一数值。
-  // 玻璃外壳另有 p-1，不能拿外壳高度去对齐旁边的按钮。
+  // 默认可视高度：内钮 h-10。外壳另有 p-1 和 1px 边框。
+  // 页面上方操作区对齐的是外壳，用 tabToolbarControlClass（h-[calc(3rem+2px)]），不要只对齐内钮。
   // line 把外壳本身锁成 h-10，内钮贴齐外框，用来和 outline 下拉并排。
   const segmentYClass = hug ? 'h-full py-0' : 'h-10';
   const shellClass = sm

@@ -42,6 +42,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import GitMirrorDialog, { getMirrorBadge } from '@/components/GitMirrorDialog';
 import {
   TabButtonGroup,
+  tabToolbarControlClass,
   tabToolbarGroupWrapClass,
   tabToolbarShellControlClass,
 } from '@/components/ui/TabButtonGroup';
@@ -718,11 +719,19 @@ export default function PluginStorePage() {
             <p className="text-muted-foreground mt-1">{t('pluginStore.description')}</p>
           </div>
           <div ref={headerActionsRef} className={headerActionRowClass}>
-            <Button variant="outline" onClick={() => setGitMirrorOpen(true)} className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setGitMirrorOpen(true)}
+              className={cn(tabToolbarControlClass, 'gap-2')}
+            >
               <GitBranch className="w-4 h-4" />
               {t('gitMirror.title')}
             </Button>
-            <Button variant="outline" onClick={() => setInstallByUrlOpen(true)} className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setInstallByUrlOpen(true)}
+              className={cn(tabToolbarControlClass, 'gap-2')}
+            >
               <Link2 className="w-4 h-4" />
               {t('pluginStore.installFromUrl')}
             </Button>
@@ -733,7 +742,7 @@ export default function PluginStorePage() {
                 fetchGitMirrorInfo(true);
               }}
               disabled={isLoading}
-              className="gap-2"
+              className={cn(tabToolbarControlClass, 'gap-2')}
             >
               <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
               {t('pluginStore.refresh')}

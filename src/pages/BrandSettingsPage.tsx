@@ -16,6 +16,8 @@ import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Button } from '@/components/ui/button';
+import { tabToolbarControlClass } from '@/components/ui/TabButtonGroup';
+import { cn } from '@/lib/utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -113,7 +115,7 @@ export default function BrandSettingsPage() {
           <div className={headerActionRowClass}>
             <Button
               variant="outline"
-              className="whitespace-nowrap"
+              className={cn(tabToolbarControlClass, 'whitespace-nowrap')}
               onClick={onReset}
               disabled={loading || iconSource === 'default'}
             >
@@ -121,7 +123,7 @@ export default function BrandSettingsPage() {
               {t('brandSettings.resetToDefault')}
             </Button>
             <Button
-              className="button-solid whitespace-nowrap"
+              className={cn(tabToolbarControlClass, 'button-solid whitespace-nowrap')}
               onClick={onSubmit}
               disabled={saving || loading}
             >

@@ -1,4 +1,5 @@
-import { Plus, Settings, Trash2, X } from 'lucide-react';
+import { useState } from 'react';
+import { Copy, Plus, Server, Settings, Trash2, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -9,15 +10,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { EmptyState } from '../shared/EmptyState';
 import { cn } from '@/lib/utils';
-import { Server } from 'lucide-react';
 import { ModelBrandIcon, ProviderBrandIcon } from '@/components/ui/model-brand-icon';
 import type { AllConfigItem } from '@/lib/api';
 
 export interface ManageConfigDialogProps {
   open: boolean;
-  t: (key: string) => string;
+  t: (key: string, params?: Record<string, string | number>) => string;
   allConfigsList: AllConfigItem[];
   highLevelConfig: string;
   lowLevelConfig: string;
@@ -25,6 +27,17 @@ export interface ManageConfigDialogProps {
   onOpenCreate: () => void;
   onOpenEdit: (configName: string, provider: string) => void;
   onOpenDelete: (configName: string, provider: string) => void;
+  onCopy: (provider: string, sourceName: string, newName: string) => Promise<boolean>;
+}
+
+function suggestCopyName(source: string, suffix: string, taken: Set<string>): string {
+  const base = `${source}${suffix}`;
+  if (!taken.has(base)) return base;
+  for (let n = 2; n < 100; n += 1) {
+    const candidate = `${base}${n}`;
+    if (!taken.has(candidate)) return candidate;
+  }
+  return `${base}${Date.now()}`;
 }
 
 /**
@@ -44,8 +57,35 @@ export function ManageConfigDialog({
   onOpenCreate,
   onOpenEdit,
   onOpenDelete,
+  onCopy,
 }: ManageConfigDialogProps) {
+  const [copyTarget, setCopyTarget] = useState<AllConfigItem | null>(null);
+  const [draftName, setDraftName] = useState('');
+  const [copying, setCopying] = useState(false);
+
+  const openCopy = (configItem: AllConfigItem) => {
+    const taken = new Set(
+      allConfigsList
+        .filter((item) => item.provider === configItem.provider)
+        .map((item) => item.config_name),
+    );
+    setDraftName(suggestCopyName(configItem.config_name, t('aiConfig.copyConfigSuffix'), taken));
+    setCopyTarget(configItem);
+  };
+
+  const confirmCopy = async () => {
+    if (!copyTarget || copying) return;
+    setCopying(true);
+    try {
+      const ok = await onCopy(copyTarget.provider, copyTarget.config_name, draftName);
+      if (ok) setCopyTarget(null);
+    } finally {
+      setCopying(false);
+    }
+  };
+
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[85vh] flex flex-col p-6 glass-card">
         <DialogHeader className="shrink-0 pb-1">
@@ -129,6 +169,18 @@ export function ManageConfigDialog({
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8"
+                      title={t('aiConfig.copyConfig')}
+                      aria-label={t('aiConfig.copyConfig')}
+                      onClick={() => openCopy(configItem)}
+                    >
+                      <Copy className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      title={t('common.edit')}
+                      aria-label={t('common.edit')}
                       onClick={() => onOpenEdit(configItem.config_name, configItem.provider)}
                     >
                       <Settings className="w-4 h-4" />
@@ -170,5 +222,49 @@ export function ManageConfigDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    <Dialog
+      open={copyTarget !== null}
+      onOpenChange={(next) => {
+        if (!next && !copying) setCopyTarget(null);
+      }}
+    >
+      <DialogContent className="sm:max-w-[440px] glass-card">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Copy className="w-5 h-5 text-primary" />
+            {t('aiConfig.copyConfig')}
+          </DialogTitle>
+          <DialogDescription>
+            {t('aiConfig.copyConfigDesc', { name: copyTarget?.config_name ?? '' })}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-2">
+          <Label htmlFor="copyConfigName" className="font-semibold">
+            {t('aiConfig.copyConfigName')}
+          </Label>
+          <Input
+            id="copyConfigName"
+            value={draftName}
+            autoFocus
+            onChange={(e) => setDraftName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                void confirmCopy();
+              }
+            }}
+          />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" disabled={copying} onClick={() => setCopyTarget(null)}>
+            {t('common.cancel')}
+          </Button>
+          <Button disabled={copying || !draftName.trim()} onClick={() => void confirmCopy()}>
+            {t('common.confirm')}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }

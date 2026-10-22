@@ -25,7 +25,7 @@ import { toast } from 'sonner';
 
 import { useLanguage } from '@/contexts/LanguageContext';
 import { PinnedPage } from '@/components/layout/PinnedPage';
-import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
+import { TabButtonGroup, tabToolbarControlClass } from '@/components/ui/TabButtonGroup';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -186,7 +186,7 @@ export default function AIRuntimePage() {
           {showRefresh && (
             <Button
               variant="outline"
-              className="shrink-0 self-start sm:self-auto"
+              className={cn(tabToolbarControlClass, 'shrink-0 self-start sm:self-auto')}
               disabled={panelLoading}
               onClick={() => refreshRef.current?.()}
             >

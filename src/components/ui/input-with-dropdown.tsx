@@ -48,6 +48,11 @@ export interface InputWithDropdownProps {
    * 不传则按原值渲染，保持向后兼容。
    */
   formatLabel?: (rawValue: string) => string;
+  /**
+   * 可选：候选项和触发器的可视节点。搜索仍用 `formatLabel` 的纯文本。
+   * 用来在译文后面挂带颜色的原始参数，而不改回传值。
+   */
+  renderOption?: (rawValue: string) => React.ReactNode;
 }
 
 // ============================================================================
@@ -72,6 +77,7 @@ export function InputWithDropdown({
   showClearValueAction = true,
   clearValueLabel,
   formatLabel,
+  renderOption,
 }: InputWithDropdownProps) {
   const { t } = useLanguage();
   // 搜索输入值（独立于选中值）
@@ -95,6 +101,10 @@ export function InputWithDropdown({
   const renderLabel = useCallback(
     (raw: string) => (formatLabel ? formatLabel(raw) : raw),
     [formatLabel],
+  );
+  const renderVisual = useCallback(
+    (raw: string) => (renderOption ? renderOption(raw) : renderLabel(raw)),
+    [renderLabel, renderOption],
   );
 
   // Popover 打开时重置搜索值
@@ -204,7 +214,7 @@ export function InputWithDropdown({
         >
           <span className="truncate">
             {safeValue ? (
-              renderLabel(safeValue)
+              renderVisual(safeValue)
             ) : (
               <span className="text-muted-foreground">{placeholder}</span>
             )}
@@ -290,7 +300,7 @@ export function InputWithDropdown({
                       setOpen(false);
                     }}
                   >
-                    {renderLabel(option)}
+                    {renderVisual(option)}
                   </div>
                 );
               })}

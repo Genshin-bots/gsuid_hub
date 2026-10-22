@@ -10,6 +10,15 @@
   "checkConfig": "Check Configuration",
   "manageConfig": "Manage Configs",
   "manageConfigDesc": "Manage AI model configuration files used by high / low level tasks",
+  "copyConfig": "Copy config",
+  "copyConfigDesc": "Copy \"{name}\". Keys and parameters are copied with it. You can rename it before saving.",
+  "copyConfigName": "New name",
+  "copyConfigSuccess": "Copied as {name}",
+  "copyConfigFailed": "Failed to copy config",
+  "copyConfigNameRequired": "Enter a new name",
+  "copyConfigSameName": "The new name must differ from the original",
+  "copyConfigNamePlus": "The name cannot contain +",
+  "copyConfigSuffix": " copy",
   "aiHistory": "AI History",
   "taskConfig": {
     "title": "Task Configuration",
@@ -106,7 +115,9 @@
       "low": "Low",
       "medium": "Medium",
       "high": "High",
-      "xhigh": "Extra High"
+      "xhigh": "Extra High",
+      "adaptive": "Adaptive",
+      "max": "Max"
     },
     "maxConcurrency": "Max Concurrency",
     "maxTokens": "Max Output Tokens",

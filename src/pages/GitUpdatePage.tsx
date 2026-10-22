@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { SearchableMenu } from '@/components/ui/searchable-menu';
+import { tabToolbarControlClass } from '@/components/ui/TabButtonGroup';
 import GitMirrorDialog, { getMirrorBadge } from '@/components/GitMirrorDialog';
 import {
   AlertDialog,
@@ -800,14 +801,14 @@ export default function GitUpdatePage() {
           {/* 选择器在镜像源按钮左侧。xl 以下独占标题下方一整行，避免和副标题挤在一起 */}
           <div className="flex w-full min-w-0 flex-wrap items-center gap-2 sm:justify-end">
             {isLoadingStatus ? (
-              <Skeleton className="h-10 w-full shrink-0 rounded-md sm:w-64" />
+              <Skeleton className={cn(tabToolbarControlClass, 'w-full shrink-0 rounded-md sm:w-64')} />
             ) : (
               <SearchableMenu
                 appearance="outline"
                 width="trigger"
                 align="end"
                 disabled={plugins.length === 0}
-                className="w-full shrink-0 sm:w-64"
+                className={cn(tabToolbarControlClass, 'w-full shrink-0 sm:w-64')}
                 placeholder={t('gitUpdate.selectPlugin')}
                 placeholderIcon={<LayoutGrid className="h-4 w-4" />}
                 searchPlaceholder={t('plugins.searchPlugin')}
@@ -823,12 +824,17 @@ export default function GitUpdatePage() {
               />
             )}
             <div className={headerActionRowClass}>
-              <Button variant="outline" onClick={() => setGitMirrorOpen(true)}>
+              <Button
+                variant="outline"
+                className={tabToolbarControlClass}
+                onClick={() => setGitMirrorOpen(true)}
+              >
                 <GitBranch className="w-4 h-4" />
                 {t('gitMirror.title')}
               </Button>
               <Button
                 variant="default"
+                className={tabToolbarControlClass}
                 onClick={handleUpdateAllClick}
                 disabled={isLoadingStatus || isForceUpdating}
               >
@@ -838,6 +844,7 @@ export default function GitUpdatePage() {
               {showHeaderReload && (
                 <Button
                   variant="outline"
+                  className={tabToolbarControlClass}
                   onClick={handleReloadPlugin}
                   disabled={!selectedPlugin || isReloadingPlugin}
                 >
@@ -847,6 +854,7 @@ export default function GitUpdatePage() {
               )}
               <Button
                 variant="outline"
+                className={tabToolbarControlClass}
                 onClick={handleRefresh}
                 disabled={isLoadingStatus || isLoadingCommits}
               >
