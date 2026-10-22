@@ -1137,7 +1137,9 @@ function UploadDialog({
                     .map((p) => (
                       <SelectItem key={p.persona_hint} value={p.persona_hint}>
                         <span className="flex items-center gap-2">
-                          <span className="truncate max-w-[200px]">{p.folder || p.persona_hint}</span>
+                          <span className="truncate max-w-[200px]">
+                            {p.folder || p.persona_hint}
+                          </span>
                           <span className="text-[10px] text-muted-foreground tabular-nums">
                             {p.count}
                           </span>
@@ -1256,6 +1258,8 @@ export default function AIMemePage() {
   const [isPurgingAll, setIsPurgingAll] = useState(false);
   // === .meme 导入对话框状态 ===
   const [showImportDotMemeDialog, setShowImportDotMemeDialog] = useState(false);
+  const [showExportDialog, setShowExportDialog] = useState(false);
+  const [exportPackId, setExportPackId] = useState('');
   const [importDotMemeFile, setImportDotMemeFile] = useState<File | null>(null);
   const [importDotMemePersonaHint, setImportDotMemePersonaHint] = useState<string>('');
   const [importDotMemeSkip, setImportDotMemeSkip] = useState(true);
@@ -1377,22 +1381,34 @@ export default function AIMemePage() {
     setPage(1);
   }, [filterFolder, filterStatus, filterPersona, sortBy]);
 
-  // Export current filter view (or selection) to .meme archive
+  const openExportDialog = () => {
+    setExportPackId(filterPersona);
+    setShowExportDialog(true);
+  };
+
   const handleExportDotMeme = async () => {
-    const ids = selectedIds.size > 0 ? Array.from(selectedIds) : undefined;
-    const folder = ids ? undefined : filterFolder || undefined;
+    if (!exportPackId) {
+      toast.warning(t('aiMeme.exportDotMemePackRequired'));
+      return;
+    }
+    const exportAll = exportPackId === PERSONA_ALL;
+    const pack = exportAll ? undefined : personas.find((item) => item.persona_hint === exportPackId);
     try {
       setIsExporting(true);
-      const blob = await memeApi.exportMemes(ids, folder);
+      const blob = exportAll
+        ? await memeApi.exportMemes()
+        : await memeApi.exportMemes(undefined, undefined, exportPackId);
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-      a.download = `memes_${stamp}.meme`;
+      const rawName = exportAll ? t('aiMeme.filter.allPersonas') : pack?.folder || 'memes';
+      const safeName = rawName.replace(/[\\/:*?"<>|]/g, '_');
+      a.download = `${safeName}.meme`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+      setShowExportDialog(false);
       toast.success(t('aiMeme.exportDotMemeSuccess'));
     } catch (e) {
       toast.error(e instanceof Error ? e.message : t('aiMeme.exportDotMemeFailed'));
@@ -1757,13 +1773,12 @@ export default function AIMemePage() {
             </Button>
             <Button
               variant="outline"
-              onClick={handleExportDotMeme}
+              onClick={openExportDialog}
               className={cn(
                 tabToolbarControlClass,
                 'header-action-fixed gap-1.5 whitespace-nowrap',
               )}
               title={t('aiMeme.exportDotMeme')}
-              disabled={memes.length === 0}
             >
               <FileUp className="w-4 h-4" />
               <span>{t('aiMeme.exportDotMeme')}</span>
@@ -2224,6 +2239,48 @@ export default function AIMemePage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={showExportDialog} onOpenChange={setShowExportDialog}>
+        <DialogContent className="glass-card">
+          <DialogHeader>
+            <DialogTitle>{t('aiMeme.exportDotMemeTitle')}</DialogTitle>
+            <DialogDescription>{t('aiMeme.exportDotMemeDesc')}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            <Label>{t('aiMeme.exportDotMemePack')}</Label>
+            <Select value={exportPackId} onValueChange={setExportPackId}>
+              <SelectTrigger className="h-10 w-full py-0 text-sm">
+                <SelectValue placeholder={t('aiMeme.exportDotMemePack')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={PERSONA_ALL}>{t('aiMeme.filter.allPersonas')}</SelectItem>
+                {personas.map((pack) => (
+                  <SelectItem key={pack.persona_hint} value={pack.persona_hint}>
+                    <span className="flex items-center gap-2">
+                      <span className="truncate">{pack.folder}</span>
+                      <span className="text-[10px] text-muted-foreground tabular-nums">
+                        {pack.count}
+                      </span>
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowExportDialog(false)}>
+              {t('common.cancel')}
+            </Button>
+            <Button
+              onClick={() => void handleExportDotMeme()}
+              disabled={isExporting || !exportPackId}
+            >
+              {isExporting && <Loader2 className="w-4 h-4 animate-spin mr-1.5" />}
+              {t('aiMeme.exportDotMeme')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* .meme 导入对话框 */}
       <Dialog open={showImportDotMemeDialog} onOpenChange={setShowImportDotMemeDialog}>
