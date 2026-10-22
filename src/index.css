@@ -1749,6 +1749,43 @@ All colors MUST be HSL.
   color: hsl(var(--primary-foreground)) !important;
 }
 
+/*
+ * 分段里的数量徽标。选中钮的文字被主题规则强制成 primary-foreground（带 !important），
+ * 徽标底必须跟着变浅，否则浅色数字会掉进浅底里看不清。
+ * 可更新且数量大于 0 时用琥珀，选中后仍回到浅色字 + 浅底。
+ */
+.tab-segment-count {
+  display: inline-flex;
+  height: 1.25rem;
+  min-width: 1.25rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: calc(var(--radius) - 2px);
+  background: hsl(var(--foreground) / 0.1);
+  padding: 0 0.375rem;
+  font-size: 0.75rem;
+  line-height: 1;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: hsl(var(--foreground));
+}
+
+.tab-segment-count-alert {
+  background: hsl(38 92% 50% / 0.16);
+  color: hsl(32 95% 40%);
+}
+
+.dark .tab-segment-count-alert {
+  color: hsl(43 96% 64%);
+}
+
+.tab-segment-row :is(button, div).bg-primary .tab-segment-count,
+button.bg-primary .tab-segment-count {
+  background: hsl(var(--primary-foreground) / 0.2);
+  color: hsl(var(--primary-foreground));
+}
+
 [data-style="glassmorphism"] .liquid-segment-thumb {
   background: hsl(var(--card) / calc(var(--card-opacity, 0.25) + 0.2));
   border: 1px solid hsl(var(--border) / 0.55);

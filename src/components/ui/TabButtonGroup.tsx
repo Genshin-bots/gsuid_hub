@@ -24,6 +24,11 @@ export interface TabButtonOption {
   value: string;
   label: string;
   icon?: React.ReactNode;
+  /**
+   * 文案右侧的数量徽标。调用方自己配色。
+   * 选中分段的文字会被主题强制成 primary-foreground，徽标底要能衬住浅色字。
+   */
+  badge?: React.ReactNode;
   disabled?: boolean;
   /**
    * 可选：将此按钮升级为「主 Tab + 下拉二级筛选」。
@@ -255,6 +260,7 @@ export function TabButtonGroup({
                     </span>
                   )}
                   <span className="min-w-0 truncate">{option.label}</span>
+                  {option.badge}
                 </button>
 
                 <span
@@ -325,6 +331,7 @@ export function TabButtonGroup({
                 </span>
               )}
               <span className={cn(singleRowOnMobile && 'min-w-0 truncate')}>{option.label}</span>
+              {option.badge}
             </button>
           );
         })}
@@ -361,6 +368,7 @@ export function TabButtonGroup({
                   </span>
                 )}
                 <span className="min-w-0 truncate">{current?.label}</span>
+                {current?.badge}
                 <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-70" />
               </button>
             </DropdownMenuTrigger>
@@ -385,7 +393,10 @@ export function TabButtonGroup({
                       <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center [&>img]:h-4 [&>img]:w-4 [&>svg]:h-4 [&>svg]:w-4">
                         {option.icon ?? null}
                       </span>
-                      <span className="min-w-0 flex-1 truncate">{option.label}</span>
+                      <span className="flex min-w-0 flex-1 items-center gap-1.5">
+                        <span className="min-w-0 truncate">{option.label}</span>
+                        {option.badge}
+                      </span>
                       <Check
                         className={cn(
                           'h-4 w-4 shrink-0 text-primary',

@@ -63,6 +63,8 @@ export interface TabButtonOption {
   value: string;
   label: string;
   icon?: React.ReactNode;
+  /** 文案右侧数量徽标。选中分段文字会被主题强制成浅色，徽标底要能衬住。 */
+  badge?: React.ReactNode;
   disabled?: boolean;
   /**
    * 可选：将该项升级为「主按钮 + 箭头下拉」。
@@ -102,7 +104,7 @@ export const tabToolbarGroupWrapClass =
 
 | 形态 | 条件 | 外观 | 点击行为 |
 |------|------|------|----------|
-| **普通分段** | 无 `dropdown` 或 `items` 为空 | 图标 + 文案 | `onValueChange(option.value)` |
+| **普通分段** | 无 `dropdown` 或 `items` 为空 | 图标 + 文案 + 可选 `badge` | `onValueChange(option.value)` |
 | **拆分按钮** | 有 `dropdown.items` | 主区（图标+文案）\| ▾ | 见下表 |
 
 **拆分按钮点击语义（必须遵守，禁止再整钮触发菜单）：**

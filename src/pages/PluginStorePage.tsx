@@ -33,17 +33,17 @@ import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import {
   pluginStoreApi,
-  StorePlugin,
+  type StorePlugin,
   gitMirrorApi,
-  GitPluginInfo,
+  type GitPluginInfo,
   getApiErrorMessage,
 } from '@/lib/api';
 import { Skeleton } from '@/components/ui/skeleton';
 import GitMirrorDialog, { getMirrorBadge } from '@/components/GitMirrorDialog';
 import {
   TabButtonGroup,
-  tabToolbarControlClass,
   tabToolbarGroupWrapClass,
+  tabToolbarShellControlClass,
 } from '@/components/ui/TabButtonGroup';
 import { cn } from '@/lib/utils';
 import {
@@ -216,6 +216,12 @@ function PluginAliasTags({ tags }: { tags: string[] }) {
         </Badge>
       </span>
     </span>
+  );
+}
+
+function storeTabCount(text: string, alert = false) {
+  return (
+    <span className={cn('tab-segment-count', alert && 'tab-segment-count-alert')}>{text}</span>
   );
 }
 
@@ -598,22 +604,6 @@ export default function PluginStorePage() {
     return { total: plugins.length, installed, updates };
   }, [plugins]);
 
-  const storeStatItems = [
-    { id: 'all', label: t('pluginStore.statTotal'), value: storeStats.total, icon: Grid3x3 },
-    {
-      id: 'installed',
-      label: t('pluginStore.statInstalled'),
-      value: storeStats.installed,
-      icon: Check,
-    },
-    {
-      id: 'updates',
-      label: t('pluginStore.statUpdates'),
-      value: storeStats.updates,
-      icon: RefreshCw,
-    },
-  ] as const;
-
   // Build README URLs based on mirror type
   const buildReadmeUrls = (plugin: StorePlugin): string[] => {
     const gitInfo = gitPluginsMap[plugin.id.toLowerCase()];
@@ -679,10 +669,7 @@ export default function PluginStorePage() {
             setReadmeContent(text);
             return;
           }
-        } catch {
-          // Try next URL
-          continue;
-        }
+        } catch {}
       }
 
       setReadmeContent(t('pluginStore.noReadme'));
@@ -694,11 +681,26 @@ export default function PluginStorePage() {
     }
   };
 
-  // Tab options for TabButtonGroup
+  const countText = (value: number) => (isLoading ? '—' : String(value));
   const tabOptions = [
-    { value: 'all', label: t('pluginStore.allPlugins'), icon: <Grid3x3 className="w-4 h-4" /> },
-    { value: 'installed', label: t('pluginStore.installed'), icon: <Check className="w-4 h-4" /> },
-    { value: 'updates', label: t('pluginStore.updates'), icon: <RefreshCw className="w-4 h-4" /> },
+    {
+      value: 'all',
+      label: t('pluginStore.allPlugins'),
+      icon: <Grid3x3 className="w-4 h-4" />,
+      badge: storeTabCount(countText(storeStats.total)),
+    },
+    {
+      value: 'installed',
+      label: t('pluginStore.installed'),
+      icon: <Check className="w-4 h-4" />,
+      badge: storeTabCount(countText(storeStats.installed)),
+    },
+    {
+      value: 'updates',
+      label: t('pluginStore.updates'),
+      icon: <RefreshCw className="w-4 h-4" />,
+      badge: storeTabCount(countText(storeStats.updates), !isLoading && storeStats.updates > 0),
+    },
     { value: 'fun', label: t('pluginStore.funPlugins'), icon: <Sparkles className="w-4 h-4" /> },
     { value: 'tool', label: t('pluginStore.toolPlugins'), icon: <Wrench className="w-4 h-4" /> },
   ];
@@ -740,7 +742,7 @@ export default function PluginStorePage() {
         </div>
       }
       toolbar={
-        /* 分类 Tab 与搜索始终同一行。移动端 Tab 收成下拉，搜索吃剩余宽度；桌面搜索跟上头三个按钮同宽 */
+        /* 分类 Tab 与搜索同一行。数量在对应分段上。移动端 Tab 收成下拉，搜索吃剩余宽度；桌面搜索跟上头三个按钮同宽 */
         <div className="flex min-w-0 flex-wrap items-center gap-3">
           <div
             className={cn(tabToolbarGroupWrapClass, 'min-w-0 shrink-0 max-w-[55%] md:max-w-none')}
@@ -771,37 +773,8 @@ export default function PluginStorePage() {
               placeholder={t('pluginStore.searchPlugin')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className={cn(tabToolbarControlClass, 'w-full pl-10')}
+              className={cn(tabToolbarShellControlClass, 'w-full pl-10')}
             />
-          </div>
-          <div className="flex min-h-10 w-full min-w-0 flex-wrap items-center justify-end gap-y-1 sm:h-10 sm:flex-nowrap sm:ml-auto sm:w-auto">
-            {storeStatItems.map((item, index) => {
-              const Icon = item.icon;
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => setActiveTab(item.id)}
-                  className={cn(
-                    'inline-flex h-10 shrink-0 items-center gap-1.5 px-2 text-xs text-muted-foreground sm:px-3',
-                    index > 0 && 'border-l border-border/50',
-                    activeTab === item.id && 'text-foreground',
-                    'hover:text-foreground',
-                  )}
-                >
-                  <Icon className="h-3.5 w-3.5 shrink-0" />
-                  <span className="whitespace-nowrap">{item.label}</span>
-                  <span
-                    className={cn(
-                      'font-semibold tabular-nums text-foreground',
-                      item.id === 'updates' && item.value > 0 && 'text-amber-500',
-                    )}
-                  >
-                    {isLoading ? '—' : item.value}
-                  </span>
-                </button>
-              );
-            })}
           </div>
         </div>
       }
