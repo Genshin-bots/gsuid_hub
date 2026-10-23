@@ -52,11 +52,16 @@ export default function AIOutputsPage() {
   const [rootTaskId, setRootTaskId] = useState('');
   const [useAll, setUseAll] = useState(true);
   const [artifactsExpired, setArtifactsExpired] = useState(false);
+  const [artifactsOffset, setArtifactsOffset] = useState(0);
   const [artifactsRefreshKey, setArtifactsRefreshKey] = useState(0);
 
-  const bumpArtifactsRefresh = useCallback(() => setArtifactsRefreshKey((k) => k + 1), []);
+  const refreshArtifacts = useCallback(() => {
+    setArtifactsOffset(0);
+    setArtifactsRefreshKey((k) => k + 1);
+  }, []);
   const changeUseAll = useCallback((next: boolean) => {
     setUseAll(next);
+    setArtifactsOffset(0);
     // 切回「全部」时清掉已填的 root_task_id，避免「按 ID 过滤」残留文案干扰
     if (next) setRootTaskId('');
   }, []);
@@ -96,9 +101,14 @@ export default function AIOutputsPage() {
     useAll,
     onUseAllChange: changeUseAll,
     includeExpired: artifactsExpired,
-    onIncludeExpiredChange: setArtifactsExpired,
+    onIncludeExpiredChange: (value) => {
+      setArtifactsExpired(value);
+      setArtifactsOffset(0);
+    },
+    offset: artifactsOffset,
+    onOffsetChange: setArtifactsOffset,
     refreshKey: artifactsRefreshKey,
-    onRefresh: bumpArtifactsRefresh,
+    onRefresh: refreshArtifacts,
   };
 
   const toolOutputsProps: ToolOutputsPanelProps = {

@@ -3093,8 +3093,35 @@ export const generateBatchPushTargets = (params?: URLSearchParams) => {
 export const generateKnowledgeBackupExport = () => 'documents';
 export const generateMemeExportName = () => `memes-${new Date().toISOString().split('T')[0]}.meme`;
 
-// ---- AI Artifacts 全局列表（按 root_task_id 列）----
-export const generateAllArtifacts = (params: URLSearchParams) => ({
-  items: (generateKanbanArtifacts().items as any[]).map((a) => ({ ...a })),
-  count: 2,
-});
+// ---- AI Artifacts 全局列表（按 root_task_id / task_id 分页）----
+export const generateAllArtifacts = (params: URLSearchParams) => {
+  const rootTaskId = params.get('root_task_id') ?? '';
+  const taskId = params.get('task_id') ?? '';
+  const includeExpired = params.get('include_expired') === 'true';
+  const limitRaw = Number.parseInt(params.get('limit') ?? '500', 10);
+  const offsetRaw = Number.parseInt(params.get('offset') ?? '0', 10);
+  const limit = Number.isFinite(limitRaw) ? Math.min(2000, Math.max(1, limitRaw)) : 500;
+  const offset = Number.isFinite(offsetRaw) ? Math.max(0, offsetRaw) : 0;
+  const now = Date.now();
+  let items = [...generateKanbanArtifacts().items];
+  if (taskId) items = items.filter((item) => item.task_id === taskId);
+  else if (rootTaskId) items = items.filter((item) => item.root_task_id === rootTaskId);
+  if (!includeExpired) {
+    items = items.filter((item) => {
+      if (!item.expires_at) return true;
+      const expiresAt = Date.parse(item.expires_at);
+      return Number.isNaN(expiresAt) || expiresAt >= now;
+    });
+  }
+  items.sort((a, b) => (b.created_at ?? '').localeCompare(a.created_at ?? ''));
+  const total = items.length;
+  const page = items.slice(offset, offset + limit);
+  return {
+    items: page,
+    count: page.length,
+    total,
+    limit,
+    offset,
+    has_more: offset + page.length < total,
+  };
+};

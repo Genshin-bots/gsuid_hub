@@ -17,6 +17,11 @@
     "actions": "操作",
     "noData": "データなし"
   },
+  "pagination": {
+    "label": "{from}–{to} / 全 {total} 件",
+    "prev": "前へ",
+    "next": "次へ"
+  },
   "detail": {
     "tabOverview": "概要",
     "tabPayload": "ペイロード",

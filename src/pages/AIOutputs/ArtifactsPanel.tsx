@@ -43,6 +43,8 @@ import { cn } from '@/lib/utils';
 import { formatBytes } from './constants';
 import { MetaRow } from './shared';
 
+const PAGE_SIZE = 50;
+
 export interface ArtifactsPanelProps {
   rootTaskId: string;
   onRootTaskIdChange: (value: string) => void;
@@ -51,6 +53,8 @@ export interface ArtifactsPanelProps {
   onUseAllChange: (value: boolean) => void;
   includeExpired: boolean;
   onIncludeExpiredChange: (value: boolean) => void;
+  offset: number;
+  onOffsetChange: (value: number) => void;
   /** 合并页每次点刷新 / 回车搜索 +1，面板内 effect 盯着它重新 load */
   refreshKey: number;
   onRefresh: () => void;
@@ -107,8 +111,11 @@ export function ArtifactsFilters(props: ArtifactsPanelProps) {
 
 export function ArtifactsPanel(props: ArtifactsPanelProps) {
   const { t } = useLanguage();
-  const { useAll, rootTaskId, includeExpired, refreshKey } = props;
+  const { useAll, rootTaskId, includeExpired, offset, onOffsetChange, refreshKey } = props;
   const [items, setItems] = useState<AIArtifactItem[]>([]);
+  const [total, setTotal] = useState(0);
+  // 旧后端不回 total。用本页长度当 total 会忽略 offset，反复拿到同一批。
+  const [paging, setPaging] = useState(false);
   const [loading, setLoading] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
   const [detailTab, setDetailTab] = useState('payload');
@@ -140,22 +147,34 @@ export function ArtifactsPanel(props: ArtifactsPanelProps) {
     }
     setLoading(true);
     try {
-      // 全局浏览必须显式传 scope=all，后端据此走「按 created_at 倒序拉最近 N 条」分支
+      // 全局浏览必须显式传 scope=all，后端据此走「按 created_at 倒序分页」分支
       const res = useAll
         ? await aiArtifactsApi.listByRoot('', {
             includeExpired,
-            limit: 500,
+            limit: PAGE_SIZE,
+            offset,
             scope: 'all',
           })
         : await aiArtifactsApi.listByRoot(rootTaskId.trim(), {
             includeExpired,
-            limit: 500,
+            limit: PAGE_SIZE,
+            offset,
           });
-      setItems(res.items ?? []);
+      const pageItems = res.items ?? [];
+      setItems(pageItems);
+      if (typeof res.total === 'number') {
+        setTotal(res.total);
+        setPaging(true);
+      } else {
+        setTotal(pageItems.length);
+        setPaging(false);
+      }
     } catch (e) {
+      setItems([]);
+      setTotal(0);
+      setPaging(false);
       // 全量浏览失败 → 降级为空列表并提示（旧版后端缺 scope=all）
       if (useAll) {
-        setItems([]);
         console.warn('[AIArtifacts] global list unavailable, backend may need upgrade:', e);
       } else {
         toast.error(getApiErrorMessage(e, t('aiArtifacts.messages.loadFail')));
@@ -163,9 +182,9 @@ export function ArtifactsPanel(props: ArtifactsPanelProps) {
     } finally {
       setLoading(false);
     }
-  }, [useAll, rootTaskId, includeExpired, t]);
+  }, [useAll, rootTaskId, includeExpired, offset, t]);
 
-  // load 跟着 rootTaskId 变，但自动加载只在 useAll / includeExpired / refreshKey 变化时跑，
+  // load 跟着 rootTaskId 变。自动加载只看筛选、翻页和 refreshKey，
   // 所以用 ref 取最新实现，不把 load 放进 effect 依赖。
   const loadRef = useRef(load);
   loadRef.current = load;
@@ -176,9 +195,14 @@ export function ArtifactsPanel(props: ArtifactsPanelProps) {
     // 「按 root_task_id 过滤」且输入框还空着时不自动拉：此时拉也只会弹「请提供 root_task_id」。
     // 合并页切页签会卸载本面板，切回来时若正停在「输入框为空」状态，
     // 原先靠 justToggled 判跳转过的写法会误弹 toast，改成直接判「现在能不能拉」。
-    if (!useAll && !rootTaskIdRef.current.trim()) return;
+    if (!useAll && !rootTaskIdRef.current.trim()) {
+      setItems([]);
+      setTotal(0);
+      setPaging(false);
+      return;
+    }
     void loadRef.current();
-  }, [useAll, includeExpired, refreshKey]);
+  }, [useAll, includeExpired, offset, refreshKey]);
 
   const openDetail = async (id: string) => {
     setOpenId(id);
@@ -258,9 +282,14 @@ export function ArtifactsPanel(props: ArtifactsPanelProps) {
     if (!window.confirm(t('aiArtifacts.confirmDelete', { id }))) return;
     try {
       await aiArtifactsApi.delete(id);
-      setItems((arr) => arr.filter((a) => a.id !== id));
       toast.success(t('aiArtifacts.messages.deleted'));
       if (openId === id) setOpenId(null);
+      // 本页删空后回到上一页，由 offset 变化触发加载，避免和这里再打一次。
+      if (items.length <= 1 && offset > 0) {
+        onOffsetChange(Math.max(0, offset - PAGE_SIZE));
+      } else {
+        void loadRef.current();
+      }
     } catch (e) {
       toast.error(getApiErrorMessage(e, t('aiArtifacts.messages.deletedFail')));
     }
@@ -275,6 +304,11 @@ export function ArtifactsPanel(props: ArtifactsPanelProps) {
       toast.error(getApiErrorMessage(e, t('aiArtifacts.messages.extendedFail')));
     }
   };
+
+  const pageFrom = total === 0 ? 0 : offset + 1;
+  const pageTo = Math.min(offset + items.length, total);
+  const canPrev = offset > 0;
+  const canNext = paging && offset + PAGE_SIZE < total;
 
   return (
     <>
@@ -293,7 +327,7 @@ export function ArtifactsPanel(props: ArtifactsPanelProps) {
             {t('aiArtifacts.toolbar.refresh')}
           </Button>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           {loading ? (
             <Skeleton className="h-32 w-full rounded-md" />
           ) : items.length === 0 ? (
@@ -379,6 +413,30 @@ export function ArtifactsPanel(props: ArtifactsPanelProps) {
               </TableBody>
             </Table>
           )}
+
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="text-xs text-muted-foreground">
+              {t('aiArtifacts.pagination.label', { from: pageFrom, to: pageTo, total })}
+            </span>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                className="h-9"
+                disabled={!canPrev || loading}
+                onClick={() => onOffsetChange(Math.max(0, offset - PAGE_SIZE))}
+              >
+                {t('aiArtifacts.pagination.prev')}
+              </Button>
+              <Button
+                variant="outline"
+                className="h-9"
+                disabled={!canNext || loading}
+                onClick={() => onOffsetChange(offset + PAGE_SIZE)}
+              >
+                {t('aiArtifacts.pagination.next')}
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
@@ -435,7 +493,11 @@ export function ArtifactsPanel(props: ArtifactsPanelProps) {
           {/* Tabs：默认切到 Payload（用户主诉求），Overview tab 收纳完整元数据 grid。
               Radix Tabs 内部用 data-state 控制 mount/unmount，所以切回 Overview 时状态保留。
               TabsContent 默认带 mt-2 间距 + display，需要重置为 mt-0 才能贴合 TabsList。 */}
-          <Tabs value={detailTab} onValueChange={setDetailTab} className="flex-1 min-h-0 flex flex-col">
+          <Tabs
+            value={detailTab}
+            onValueChange={setDetailTab}
+            className="flex-1 min-h-0 flex flex-col"
+          >
             <div className="mx-6 mt-3 shrink-0 self-start">
               <TabButtonGroup
                 value={detailTab}

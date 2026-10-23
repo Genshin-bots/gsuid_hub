@@ -17,6 +17,11 @@
     "actions": "Actions",
     "noData": "No data"
   },
+  "pagination": {
+    "label": "{from}–{to} of {total}",
+    "prev": "Previous",
+    "next": "Next"
+  },
   "detail": {
     "tabOverview": "Overview",
     "tabPayload": "Payload",

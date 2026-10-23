@@ -4250,15 +4250,12 @@ export const memeApi = {
   },
 
   getPersonaPacks: (personaName: string) =>
-    api.get<{ pack_ids: string[] }>(
-      `/api/persona/${encodeURIComponent(personaName)}/meme_packs`,
-    ),
+    api.get<{ pack_ids: string[] }>(`/api/persona/${encodeURIComponent(personaName)}/meme_packs`),
 
   setPersonaPacks: (personaName: string, packIds: string[]) =>
-    api.put<{ pack_ids: string[] }>(
-      `/api/persona/${encodeURIComponent(personaName)}/meme_packs`,
-      { pack_ids: packIds },
-    ),
+    api.put<{ pack_ids: string[] }>(`/api/persona/${encodeURIComponent(personaName)}/meme_packs`, {
+      pack_ids: packIds,
+    }),
 
   exportPersonaBundle: (personaName: string) =>
     api.postBlob(`/api/persona/${encodeURIComponent(personaName)}/bundle/export`, {}),
@@ -4880,6 +4877,11 @@ export interface AIArtifactItem {
 export interface AIArtifactListResponse {
   count: number;
   items: AIArtifactItem[];
+  /** 过滤后的总条数。旧后端没有这个字段时，前端把本页当成全部。 */
+  total?: number;
+  limit?: number;
+  offset?: number;
+  has_more?: boolean;
 }
 
 export interface AIArtifactDetail extends AIArtifactItem {
@@ -5151,31 +5153,35 @@ export const aiToolOutputsApi = {
 /**
  * AI Artifacts 全局浏览（/ai-artifacts 页面专用）。
  * 后端 `artifacts_api.list_artifacts`：
- * - 不传 `root_task_id` / `task_id` 时按 `created_at desc` 全量浏览（最新 N 条）
- * - 支持 `?limit=` 与 `?include_expired=` 参数
+ * - 不传 `root_task_id` / `task_id` 时必须带 `scope=all`，否则后端返回 require_filter
+ * - `limit` / `offset` 分页；`total` 是过滤后的总条数，`count` 是本页条数
  *
- * `scope='all'` 用于显式告诉后端走「全局浏览」分支，否则后端会返回
- * status=1 的 require_filter 错误。传空 rootTaskId + scope='all' 即
- * 「按时间倒序拉最近 N 条」的语义，与后端契约对齐。
+ * `scope='all'` 用于显式告诉后端走「全局浏览」分支。传空 rootTaskId + scope='all'
+ * 即按 created_at 倒序分页。
  */
 export const aiArtifactsApi = {
   listByRoot: (
     rootTaskId: string,
-    opts?: { includeExpired?: boolean; limit?: number; scope?: string },
+    opts?: { includeExpired?: boolean; limit?: number; offset?: number; scope?: string },
   ) => {
     const query = new URLSearchParams();
     if (rootTaskId) query.set('root_task_id', rootTaskId);
     if (opts?.scope) query.set('scope', opts.scope);
     if (opts?.includeExpired) query.set('include_expired', 'true');
     if (opts?.limit !== undefined) query.set('limit', String(opts.limit));
+    if (opts?.offset !== undefined) query.set('offset', String(opts.offset));
     const qs = query.toString();
     return api.get<AIArtifactListResponse>(`/api/ai/artifacts${qs ? `?${qs}` : ''}`);
   },
-  listByTask: (taskId: string, opts?: { includeExpired?: boolean; limit?: number }) => {
+  listByTask: (
+    taskId: string,
+    opts?: { includeExpired?: boolean; limit?: number; offset?: number },
+  ) => {
     const query = new URLSearchParams();
     query.set('task_id', taskId);
     if (opts?.includeExpired) query.set('include_expired', 'true');
     if (opts?.limit !== undefined) query.set('limit', String(opts.limit));
+    if (opts?.offset !== undefined) query.set('offset', String(opts.offset));
     return api.get<AIArtifactListResponse>(`/api/ai/artifacts?${query.toString()}`);
   },
   getDetail: (resId: string) =>
