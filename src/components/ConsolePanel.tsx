@@ -136,25 +136,27 @@ export function buildLogAnchor(timestamp: Date, content: string): string {
 }
 
 /**
- * 行布局用 CSS Grid 固定列宽 + baseline 对齐：
- * 时间 / 等级 / 插件 / 正文首行共用 text-xs + leading-5，文字基线一致，
- * 避免「badge 小字号 flex 居中 + 正文 text-sm」造成的上下错落。
- *
- * time | level | plugin | message
+ * 行布局：
+ * - ≥sm：CSS Grid 固定列宽 + baseline。time | level | plugin | message。
+ *   四列共用 text-xs + leading-5，避免 badge 小字号 flex 居中把正文顶歪。
+ * - <sm：时间 / 等级 / 插件先折成一行，正文另起一行占满宽度。
+ *   固定列（4.75+4.25+7.5rem）在手机上会把正文挤成约 1 字宽，再被 break-all 拆成竖排。
  */
-const LOG_ROW_GRID_CLASS =
-  'grid grid-cols-[4.75rem_4.25rem_7.5rem_minmax(0,1fr)] gap-x-1.5 items-baseline py-0.5';
+const LOG_ROW_CLASS =
+  'flex min-w-0 flex-col gap-0.5 py-1 sm:grid sm:grid-cols-[4.75rem_4.25rem_7.5rem_minmax(0,1fr)] sm:items-baseline sm:gap-x-1.5 sm:gap-y-0 sm:py-0.5';
 
-/** 时间列：与正文同字号行高，参与 baseline */
-const TIME_CELL_CLASS = 'min-w-0 font-mono text-xs tabular-nums leading-5 text-muted-foreground';
+/** 时间列：与正文同字号行高，参与 baseline。窄屏不参与压缩。 */
+const TIME_CELL_CLASS =
+  'shrink-0 font-mono text-xs tabular-nums leading-5 text-muted-foreground sm:min-w-0 sm:shrink';
 
 /**
  * badge：不用固定 h-* / flex 居中（会脱离文字基线）。
  * 与正文同 text-xs leading-5，仅左右 padding，高度 = 行高，与首行齐平。
+ * 窄屏按内容宽度，避免 w-full 把徽章撑成整行。
  */
 const BADGE_CELL_CLASS =
-  'box-border w-full min-w-0 font-mono text-xs leading-5 font-semibold ' +
-  'text-center px-1 rounded truncate whitespace-nowrap select-none';
+  'box-border w-auto max-w-[8.5rem] shrink-0 min-w-0 font-mono text-xs leading-5 font-semibold ' +
+  'text-center px-1 rounded truncate whitespace-nowrap select-none sm:w-full sm:max-w-none';
 
 /** 固定 HH:MM:SS，避免 toLocaleTimeString 在不同 locale 下长短不一 */
 function formatLogTime(ts: Date): string {
@@ -218,32 +220,32 @@ const LogRow = memo(
     { log, style, 'data-index': dataIndex },
     ref,
   ) {
-    // 列宽由 LOG_ROW_GRID_CLASS 固定，不再使用 padBadgeLabel
     const badge = getLevelBadge(log.type);
     const pluginBadge = log.plugin ? getPluginBadge(log.plugin) : null;
     return (
-      <div ref={ref} data-index={dataIndex} style={style} className={LOG_ROW_GRID_CLASS}>
-        <span className={TIME_CELL_CLASS}>[{formatLogTime(log.timestamp)}]</span>
-        <span className={cn(BADGE_CELL_CLASS, badge.bg, badge.text)} title={badge.label}>
-          {badge.label}
-        </span>
-        {pluginBadge ? (
-          <span
-            className={cn(BADGE_CELL_CLASS, pluginBadge.bg, pluginBadge.text)}
-            title={pluginBadge.label}
-          >
-            {pluginBadge.label}
+      <div ref={ref} data-index={dataIndex} style={style} className={LOG_ROW_CLASS}>
+        <div className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5 sm:contents">
+          <span className={TIME_CELL_CLASS}>[{formatLogTime(log.timestamp)}]</span>
+          <span className={cn(BADGE_CELL_CLASS, badge.bg, badge.text)} title={badge.label}>
+            {badge.label}
           </span>
-        ) : (
-          // 占位保持列宽；用同 leading 的空白字符参与 baseline，避免列塌陷错位
-          <span aria-hidden className="font-mono text-xs leading-5">
-            {'\u00a0'}
-          </span>
-        )}
-        {/* 与左侧同 text-xs leading-5，首行基线对齐；多行仍向下延展 */}
+          {pluginBadge ? (
+            <span
+              className={cn(BADGE_CELL_CLASS, pluginBadge.bg, pluginBadge.text)}
+              title={pluginBadge.label}
+            >
+              {pluginBadge.label}
+            </span>
+          ) : (
+            // 桌面占位保持列宽；窄屏不占一行
+            <span aria-hidden className="hidden font-mono text-xs leading-5 sm:inline">
+              {'\u00a0'}
+            </span>
+          )}
+        </div>
         <div
           className={cn(
-            'min-w-0 whitespace-pre-wrap break-all font-mono text-xs leading-5',
+            'min-w-0 whitespace-pre-wrap break-words font-mono text-xs leading-5',
             getLogColor(log.type),
           )}
         >
@@ -429,7 +431,7 @@ export const ConsolePanel = function ConsolePanel({
     <div
       ref={parentRef}
       className={cn(
-        'flex-1 p-4 bg-transparent overflow-y-auto font-mono text-sm relative',
+        'min-h-0 flex-1 min-w-0 overflow-x-clip overflow-y-auto bg-transparent p-2.5 font-mono text-sm relative sm:p-4',
         className,
       )}
     >

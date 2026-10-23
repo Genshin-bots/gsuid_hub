@@ -16,7 +16,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { cn } from '@/lib/utils';
 import {
   ConsolePanel,
-  LogEntry,
+  type LogEntry,
   buildLogAnchor,
   computeLineCount,
 } from '@/components/ConsolePanel';
@@ -611,6 +611,8 @@ export default function ConsolePage() {
 
   return (
     <PinnedPage
+      className="console-mobile-fill max-md:min-h-0 max-md:flex-1 max-md:overflow-hidden"
+      bodyClassName="max-md:flex max-md:min-h-0 max-md:flex-1 max-md:flex-col max-md:overflow-hidden"
       header={
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0 sm:overflow-x-auto">
@@ -639,7 +641,7 @@ export default function ConsolePage() {
             <Button
               variant="outline"
               onClick={exportLogs}
-              className={cn(tabToolbarControlClass, 'whitespace-nowrap')}
+              className={cn(tabToolbarControlClass, 'whitespace-nowrap max-sm:!grow-0')}
             >
               <Download className="w-4 h-4 mr-2" />
               {t('console.exportLogs')}
@@ -647,7 +649,7 @@ export default function ConsolePage() {
             <Button
               variant="outline"
               onClick={clearLogs}
-              className={cn(tabToolbarControlClass, 'whitespace-nowrap')}
+              className={cn(tabToolbarControlClass, 'whitespace-nowrap max-sm:!grow-0')}
             >
               <Trash2 className="w-4 h-4 mr-2" />
               {t('console.clear')}
@@ -688,14 +690,14 @@ export default function ConsolePage() {
       <Card
         className={cn(
           // 非 glass-card 宿主，overflow-hidden 安全；用于裁终端头/输入条的直角底色
-          'flex flex-col overflow-hidden h-[calc(100vh-130px)]',
+          'flex min-w-0 w-full flex-col overflow-hidden max-md:min-h-0 max-md:flex-1 md:h-[calc(100vh-130px)]',
           isGlass
             ? 'backdrop-blur-md bg-white/10 dark:bg-black/10 border border-white/20 dark:border-black/20 shadow-lg'
             : 'bg-card border border-border/50',
         )}
       >
         {/* Terminal Header */}
-        <div className="flex items-center gap-2 px-4 py-3 bg-background/50 border-b border-border/30">
+        <div className="flex shrink-0 items-center gap-2 px-3 py-2.5 bg-background/50 border-b border-border/30 sm:px-4 sm:py-3">
           <div className="flex gap-1.5">
             <div className="w-3 h-3 rounded-full bg-red-500" />
             <div className="w-3 h-3 rounded-full bg-yellow-500" />
@@ -710,7 +712,7 @@ export default function ConsolePage() {
         {/* Input */}
         <form
           onSubmit={handleSubmit}
-          className="flex items-center gap-2 p-4 bg-background/50 border-t border-border/30"
+          className="flex shrink-0 items-center gap-2 p-3 bg-background/50 border-t border-border/30 sm:p-4"
         >
           <span className="text-primary font-mono">$</span>
           <Input
