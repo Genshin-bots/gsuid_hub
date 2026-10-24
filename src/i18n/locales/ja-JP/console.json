@@ -10,5 +10,10 @@
   "commandFailed": "コマンド実行失敗",
   "levelFilter": "ログレベル",
   "selectAll": "すべて選択",
-  "deselectAll": "すべて解除"
+  "deselectAll": "すべて解除",
+  "imageBadge": "画像",
+  "copyBase64": "Base64をコピー",
+  "copied": "コピー済み",
+  "copyFailed": "コピーに失敗しました",
+  "imagePreviewFailed": "プレビューの読み込みに失敗しました（データが切り詰められている可能性があります）"
 }

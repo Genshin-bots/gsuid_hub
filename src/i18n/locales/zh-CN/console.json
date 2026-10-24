@@ -10,5 +10,10 @@
   "commandFailed": "命令执行失败",
   "levelFilter": "日志级别",
   "selectAll": "全选",
-  "deselectAll": "全不选"
+  "deselectAll": "全不选",
+  "imageBadge": "图片",
+  "copyBase64": "复制 Base64",
+  "copied": "已复制",
+  "copyFailed": "复制失败",
+  "imagePreviewFailed": "图片预览加载失败（数据可能已截断）"
 }

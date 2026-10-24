@@ -10,5 +10,10 @@
   "commandFailed": "Command execution failed",
   "levelFilter": "Log Level",
   "selectAll": "Select All",
-  "deselectAll": "Deselect All"
+  "deselectAll": "Deselect All",
+  "imageBadge": "Image",
+  "copyBase64": "Copy Base64",
+  "copied": "Copied",
+  "copyFailed": "Failed to copy",
+  "imagePreviewFailed": "Failed to load preview (data may be truncated)"
 }
