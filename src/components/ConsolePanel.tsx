@@ -1,6 +1,7 @@
 import { useRef, memo, forwardRef, useEffect, useCallback, useLayoutEffect } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { StructuredDataViewer } from '@/components/StructuredDataViewer';
+import { isStructuredDataPreviewOpen } from '@/lib/structuredDataPreview';
 import { cn } from '@/lib/utils';
 
 export type LogEntryType =
@@ -405,18 +406,22 @@ export const ConsolePanel = function ConsolePanel({
     }
   }, [logs, virtualizer]);
 
-  // 自动滚动到底部：仅在 autoScroll 开启 且 用户未上滑 且 logs 增长时执行
+  // 自动滚动到底部：仅在 autoScroll 开启 且 用户未上滑 且 未在悬停预览图片 且 logs 增长时执行
   // 依赖 version 让父组件能精确控制何时尝试滚到底部
   useEffect(() => {
     if (logs.length === 0) return;
     if (!autoScroll) return;
     if (isUserScrolledUpRef.current) return;
+    if (isStructuredDataPreviewOpen()) return;
     virtualizer.scrollToIndex(logs.length - 1, { align: 'end', behavior: 'auto' });
   }, [logs.length, autoScroll, version, virtualizer]);
 
-  // 当用户开启 autoScroll 时，重置用户上滑状态，立即滚到底部
+  // 当用户把 autoScroll 从关切到开时，重置用户上滑状态并立即滚到底部
+  const prevAutoScrollRef = useRef(autoScroll);
   useEffect(() => {
-    if (autoScroll && logs.length > 0) {
+    const wasOff = !prevAutoScrollRef.current;
+    prevAutoScrollRef.current = autoScroll;
+    if (wasOff && autoScroll && logs.length > 0) {
       isUserScrolledUpRef.current = false;
       // 让下一次 layoutEffect 有机会滚到底部
       requestAnimationFrame(() => {
