@@ -259,7 +259,6 @@ export function WebSearchSection({
           config={tavilyConfig.config}
           configId={tavilyConfig.id}
           onChange={onUpdateConfig}
-          layout={[['api_key', 'max_results', 'search_depth']]}
         />
       );
     }
@@ -276,7 +275,8 @@ export function WebSearchSection({
           config={exaConfig.config}
           configId={exaConfig.id}
           onChange={onUpdateConfig}
-          layout={[['api_key', 'max_results', 'search_type']]}
+          // 旧 exa_config 可能仍带 search_type。Core 不读它，面板也不渲染。
+          excludeKeys={['search_type']}
         />
       );
     }
@@ -293,10 +293,6 @@ export function WebSearchSection({
           config={anysearchConfig.config}
           configId={anysearchConfig.id}
           onChange={onUpdateConfig}
-          layout={[
-            ['api_key', 'max_results', 'timeout'],
-            ['zone', 'language'],
-          ]}
         />
       );
     }
@@ -313,7 +309,6 @@ export function WebSearchSection({
           config={firecrawlConfig.config}
           configId={firecrawlConfig.id}
           onChange={onUpdateConfig}
-          layout={[['api_key', 'max_results', 'timeout']]}
         />
       );
     }
@@ -330,10 +325,6 @@ export function WebSearchSection({
           config={jinaConfig.config}
           configId={jinaConfig.id}
           onChange={onUpdateConfig}
-          layout={[
-            ['api_key', 'max_results', 'timeout'],
-            ['search_base_url', 'reader_base_url'],
-          ]}
         />
       );
     }
@@ -350,10 +341,6 @@ export function WebSearchSection({
           config={deepseekConfig.config}
           configId={deepseekConfig.id}
           onChange={onUpdateConfig}
-          layout={[
-            ['api_key', 'max_results', 'timeout'],
-            ['search_base_url', 'fetch_base_url', 'need_content'],
-          ]}
         />
       );
     }
@@ -370,7 +357,6 @@ export function WebSearchSection({
           config={miniMaxConfig.config}
           configId={miniMaxConfig.id}
           onChange={onUpdateConfig}
-          layout={[['api_key', 'api_host', 'resource_mode']]}
         />
       );
     }

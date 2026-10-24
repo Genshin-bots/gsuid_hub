@@ -255,7 +255,6 @@ export function VectorDbSection({
               config={qdrantConfig.config}
               configId={qdrantConfig.id}
               onChange={onUpdateConfig}
-              layout={[['url'], ['api_key']]}
             />
           </div>
         )}

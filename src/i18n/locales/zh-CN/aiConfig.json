@@ -224,7 +224,6 @@
     "miniMaxConfig": "MiniMax配置",
     "maxResults": "最大结果数",
     "searchDepth": "搜索深度",
-    "searchType": "搜索类型",
     "apiHost": "API 主机地址",
     "resourceMode": "资源提供方式",
     "renderImageSources": "出图配图来源",

@@ -173,8 +173,6 @@ interface DynamicConfigPanelProps {
   onChange: (configId: string, fieldKey: string, value: ConfigValue) => void;
   /** 可选：需要排除的字段 key 列表 */
   excludeKeys?: string[];
-  /** 可选：自定义字段布局，指定哪些字段放在同一行（二维数组） */
-  layout?: string[][];
 }
 
 export function DynamicConfigPanel({
@@ -182,18 +180,8 @@ export function DynamicConfigPanel({
   configId,
   onChange,
   excludeKeys = [],
-  layout,
 }: DynamicConfigPanelProps) {
-  // 获取所有需要渲染的字段
   const allFields = Object.entries(config).filter(([key]) => !excludeKeys.includes(key));
-
-  // 如果没有指定 layout，按默认方式渲染（每个字段独占一行）
-  const layoutGroups: string[][] = layout || allFields.map(([key]) => [key]);
-
-  // 收集已布局的字段 key
-  const layoutedKeys = new Set(layoutGroups.flat());
-  // 未在 layout 中指定的字段，追加到末尾
-  const remainingFields = allFields.filter(([key]) => !layoutedKeys.has(key));
 
   const renderField = (fieldKey: string, item: PluginConfigItem) => {
     const fieldType = mapBackendTypeToFieldType(item);
@@ -294,17 +282,6 @@ export function DynamicConfigPanel({
     );
   };
 
-  const orderedFields: { key: string; item: PluginConfigItem }[] = [];
-  for (const group of layoutGroups) {
-    for (const key of group) {
-      const item = config[key];
-      if (item) orderedFields.push({ key, item });
-    }
-  }
-  for (const [key, item] of remainingFields) {
-    orderedFields.push({ key, item });
-  }
-
   const blocks: React.ReactNode[] = [];
   let rowBuffer: { key: string; item: PluginConfigItem }[] = [];
   const flushRow = () => {
@@ -318,18 +295,16 @@ export function DynamicConfigPanel({
     rowBuffer = [];
   };
 
-  for (const field of orderedFields) {
-    const fieldType = mapBackendTypeToFieldType(field.item);
+  for (const [key, item] of allFields) {
+    const fieldType = mapBackendTypeToFieldType(item);
     const solo =
-      isSecretKeyField(field.key, field.item) ||
-      fieldType === 'divider' ||
-      fieldType === 'repeatgroup';
+      isSecretKeyField(key, item) || fieldType === 'divider' || fieldType === 'repeatgroup';
     if (solo) {
       flushRow();
-      blocks.push(renderField(field.key, field.item));
+      blocks.push(renderField(key, item));
       continue;
     }
-    rowBuffer.push(field);
+    rowBuffer.push({ key, item });
   }
   flushRow();
 

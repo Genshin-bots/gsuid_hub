@@ -170,10 +170,6 @@ export function WebFetchSection({
           config={jinaConfig.config}
           configId={jinaConfig.id}
           onChange={onUpdateConfig}
-          layout={[
-            ['api_key', 'timeout', 'reader_base_url'],
-            ['max_results', 'search_base_url'],
-          ]}
         />
       );
     }
@@ -190,10 +186,6 @@ export function WebFetchSection({
           config={deepseekConfig.config}
           configId={deepseekConfig.id}
           onChange={onUpdateConfig}
-          layout={[
-            ['api_key', 'timeout', 'fetch_base_url'],
-            ['max_results', 'search_base_url'],
-          ]}
         />
       );
     }
@@ -208,11 +200,6 @@ export function WebFetchSection({
         config={webFetchConfig.config}
         configId={webFetchConfig.id}
         onChange={onUpdateConfig}
-        layout={[
-          ['proxy', 'trust_env', 'timeout'],
-          ['max_download_mb', 'user_agent', 'accept_language'],
-          ['max_content_length'],
-        ]}
       />
     );
   };
@@ -233,8 +220,8 @@ export function WebFetchSection({
             isJina
               ? t('aiConfig.webFetch.jinaHint')
               : isDeepSeek
-              ? t('aiConfig.webFetch.deepseekHint')
-              : t('aiConfig.webFetch.localHint')
+                ? t('aiConfig.webFetch.deepseekHint')
+                : t('aiConfig.webFetch.localHint')
           }
           className="text-xs font-medium text-muted-foreground"
         />

@@ -224,7 +224,6 @@
     "miniMaxConfig": "MiniMax Configuration",
     "maxResults": "Max Results",
     "searchDepth": "Search Depth",
-    "searchType": "Search Type",
     "apiHost": "API Host",
     "resourceMode": "Resource Mode",
     "renderImageSources": "Image sources for cards",

@@ -224,7 +224,6 @@
     "miniMaxConfig": "MiniMax設定",
     "maxResults": "最大件数",
     "searchDepth": "検索深度",
-    "searchType": "検索タイプ",
     "apiHost": "API ホスト",
     "resourceMode": "リソースプロバイダー式",
     "renderImageSources": "出図の画像ソース",

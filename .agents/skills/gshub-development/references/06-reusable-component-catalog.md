@@ -422,25 +422,23 @@ interface ChipGroupProps {
 | `configId` | `string` | 用于 updateConfigValue |
 | `onChange` | `(configId, fieldKey, value) => void` | 值变更回调 |
 | `excludeKeys?` | `string[]` | 排除的字段（已手动渲染的） |
-| `layout?` | `string[][]` | 自定义布局，同数组内字段并排 |
+
+字段名或标题含 `key` / `密钥` 的独占一行。分隔线和重复组也独占一行。其余字段按后端顺序排进三列（窄屏一列、`sm` 两列）。不要再传字段名单来排版。
 
 ### 用法
 
 ```tsx
 import { DynamicConfigPanel } from '@/components/config';
 
-// 自动渲染所有字段
 <DynamicConfigPanel config={cfg.config} configId={cfg.id} onChange={updateConfigValue} />
 
-// 自定义布局 + 排除已手动渲染的字段
 <DynamicConfigPanel
   config={aiConfig.config} configId={aiConfig.id} onChange={updateConfigValue}
   excludeKeys={['enable', 'enable_rerank', 'enable_memory', 'websearch_provider']}
-  layout={[['white_list', 'black_list']]}
 />
 ```
 
-自动特性：按 `title` 显示标签、按 `desc` 生成 Tooltip 帮助图标、按 key 匹配图标（api_key→Key、max→SlidersHorizontal、host→Globe）、未在 `layout` 指定的字段自动追加末尾。
+自动特性：按 `title` 显示标签、按 `desc` 生成 Tooltip 帮助图标、按 key 匹配图标（api_key→Key、max→SlidersHorizontal、host→Globe）。
 注意：ToggleRow/ChipGroup/Badge 提示等特殊 UI 字段应 `excludeKeys` 排除后手动渲染；type 映射逻辑与 `PluginsPage.tsx` 的 `convertConfigToFields` 一致。
 
 ## 6.6 ConfigField —— 通用配置字段
