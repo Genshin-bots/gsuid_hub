@@ -213,7 +213,7 @@ All colors MUST be HSL.
  *   若写成普通 .glass-card 声明会压掉 fixed/z-50，弹层只剩遮罩、内容沉底。
  * 切勿对子元素强制 position:relative（会破坏 absolute 装饰层，Home 英雄区曾因此被撑高）
  */
-:where(.glass-card, .glass-card-flat, .glass-card-danger, .floating-sidebar, .tab-segment-row) {
+:where(.glass-card, .glass-card-flat, .glass-card-danger, .floating-sidebar, .glass-sidebar, .tab-segment-row) {
   position: relative;
   z-index: 0;
 }
@@ -346,7 +346,7 @@ All colors MUST be HSL.
   -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.2)) saturate(190%) contrast(106%) brightness(105%);
 }
 
-[data-style="luminous"] :where(.glass-card, .floating-sidebar)::after {
+[data-style="luminous"] :where(.glass-card, .floating-sidebar, .glass-sidebar)::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -370,7 +370,7 @@ All colors MUST be HSL.
   transition: opacity 0.3s ease;
 }
 
-[data-style="luminous"] :where(.glass-card, .floating-sidebar):hover::after {
+[data-style="luminous"] :where(.glass-card, .floating-sidebar, .glass-sidebar):hover::after {
   opacity: 1;
 }
 
@@ -595,7 +595,7 @@ All colors MUST be HSL.
 }
 
 /* 玻璃表面微弱的物理弧面反光膜，纯净通透，彻底去除人工涂抹彩色伪边框 */
-[data-style="liquid"] :where(.glass-card, .floating-sidebar)::after {
+[data-style="liquid"] :where(.glass-card, .floating-sidebar, .glass-sidebar)::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -612,7 +612,7 @@ All colors MUST be HSL.
   transition: opacity 0.35s ease;
 }
 
-[data-style="liquid"] :where(.glass-card, .floating-sidebar):hover::after {
+[data-style="liquid"] :where(.glass-card, .floating-sidebar, .glass-sidebar):hover::after {
   opacity: 1;
 }
 
@@ -692,7 +692,7 @@ All colors MUST be HSL.
   -webkit-backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.15) brightness(1.05) saturate(1.2);
 }
 
-.dark[data-style="liquid"] :where(.glass-card, .floating-sidebar)::after {
+.dark[data-style="liquid"] :where(.glass-card, .floating-sidebar, .glass-sidebar)::after {
   background: linear-gradient(
     180deg,
     rgba(255, 255, 255, 0.05) 0%,
@@ -705,6 +705,71 @@ All colors MUST be HSL.
 /*
  * 弹层（Dialog/Sheet/AlertDialog）保留各主题对应的精细边框与折射高光，由下方弹层规则专项管理。
  */
+
+/* ============================================================================
+ * Liquid Glass - Button Group (TabButtonGroup 分段选择器外壳)
+ * ============================================================================ */
+[data-style="liquid"] .tab-segment-row {
+  z-index: 0;
+  background: transparent !important;
+  border: 1px solid rgba(255, 255, 255, 0.55) !important;
+  box-shadow:
+    var(--tw-ring-offset-shadow, 0 0 #0000),
+    var(--tw-ring-shadow, 0 0 #0000),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.75),
+    inset 0 0 12px 0 rgba(255, 255, 255, 0.05),
+    0 4px 16px -2px hsl(0 0% 0% / calc(0.08 * var(--shadow-strength))),
+    0 12px 32px -6px hsl(0 0% 0% / calc(0.12 * var(--shadow-strength))) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.dark[data-style="liquid"] .tab-segment-row,
+.dark [data-style="liquid"] .tab-segment-row,
+[data-style="liquid"] .dark .tab-segment-row {
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  box-shadow:
+    var(--tw-ring-offset-shadow, 0 0 #0000),
+    var(--tw-ring-shadow, 0 0 #0000),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.40),
+    inset 0 0 14px 0 rgba(255, 255, 255, 0.02),
+    0 4px 18px -2px hsl(0 0% 0% / calc(0.35 * var(--shadow-strength))),
+    0 16px 40px -8px hsl(0 0% 0% / calc(0.45 * var(--shadow-strength))) !important;
+}
+
+[data-style="liquid"] .tab-segment-row::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  background: hsl(var(--card) / var(--card-opacity, 0.25)) !important;
+  backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.12) brightness(1.04) saturate(1.15) !important;
+  -webkit-backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.12) brightness(1.04) saturate(1.15) !important;
+}
+
+.dark[data-style="liquid"] .tab-segment-row::before,
+.dark [data-style="liquid"] .tab-segment-row::before,
+[data-style="liquid"] .dark .tab-segment-row::before {
+  background: hsl(var(--card) / var(--card-opacity, 0.22)) !important;
+}
+
+[data-style="liquid"] .tab-segment-row::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.12) 0%,
+    rgba(255, 255, 255, 0.015) 35%,
+    transparent 70%
+  );
+  opacity: 1;
+}
 
 .dark .glass-card {
   border-color: hsl(var(--border) / 0.3);
@@ -719,13 +784,12 @@ All colors MUST be HSL.
   background: hsl(var(--card) / var(--card-opacity, 0.2));
 }
 
-/* Flat glass card：无阴影/无毛玻璃，供 overflow 容器内嵌使用 */
+/* Flat glass card：用于内嵌列表、表格外框、列表卡片等场景，与主题风格全面联动 */
 .glass-card-flat {
   background: transparent !important;
   border: 1px solid hsl(var(--border) / 0.4);
   border-radius: var(--radius);
   min-width: 0;
-  /* 无投影，但保留 ring-* / hover:shadow-*（非 !important，:hover 态可覆盖） */
   box-shadow:
     var(--tw-ring-offset-shadow, 0 0 #0000),
     var(--tw-ring-shadow, 0 0 #0000);
@@ -745,6 +809,59 @@ All colors MUST be HSL.
   background: hsl(var(--card) / var(--card-opacity, 0.2));
 }
 
+[data-style="glassmorphism"] .glass-card-flat::before {
+  backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 0.75));
+  -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 0.75));
+}
+
+[data-style="luminous"] .glass-card-flat {
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  box-shadow:
+    var(--tw-ring-offset-shadow, 0 0 #0000),
+    var(--tw-ring-shadow, 0 0 #0000),
+    inset 0 1px 0.5px 0 rgba(255, 255, 255, 0.45);
+}
+
+.dark[data-style="luminous"] .glass-card-flat,
+.dark [data-style="luminous"] .glass-card-flat,
+[data-style="luminous"] .dark .glass-card-flat {
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow:
+    var(--tw-ring-offset-shadow, 0 0 #0000),
+    var(--tw-ring-shadow, 0 0 #0000),
+    inset 0 1px 0.5px 0 rgba(255, 255, 255, 0.2);
+}
+
+[data-style="luminous"] .glass-card-flat::before {
+  background: hsl(var(--card) / var(--card-opacity, 0.22)) !important;
+  backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 0.9)) saturate(180%) contrast(105%);
+  -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 0.9)) saturate(180%) contrast(105%);
+}
+
+[data-style="liquid"] .glass-card-flat {
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  box-shadow:
+    var(--tw-ring-offset-shadow, 0 0 #0000),
+    var(--tw-ring-shadow, 0 0 #0000),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.55);
+}
+
+.dark[data-style="liquid"] .glass-card-flat,
+.dark [data-style="liquid"] .glass-card-flat,
+[data-style="liquid"] .dark .glass-card-flat {
+  border-color: rgba(255, 255, 255, 0.16);
+  box-shadow:
+    var(--tw-ring-offset-shadow, 0 0 #0000),
+    var(--tw-ring-shadow, 0 0 #0000),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.25);
+}
+
+[data-style="liquid"] .glass-card-flat::before {
+  background: hsl(var(--card) / var(--card-opacity, 0.25)) !important;
+  backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.1) saturate(1.15);
+  -webkit-backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.1) saturate(1.15);
+}
+
 [data-style="solid"] .glass-card-flat::before {
   background: hsl(var(--card) / var(--card-opacity, 1));
 }
@@ -761,6 +878,7 @@ All colors MUST be HSL.
 }
 
 [data-style="solid"] .tab-segment-row::before {
+  background: hsl(var(--card) / var(--card-opacity, 1)) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
@@ -845,11 +963,15 @@ All colors MUST be HSL.
 }
 
 [data-style="solid"] .glass-sidebar {
+  background: transparent !important;
+  border-right: 1px solid hsl(var(--border));
+  box-shadow: 2px 0 12px hsl(0 0% 0% / calc(0.06 * var(--shadow-strength)));
+}
+
+[data-style="solid"] .glass-sidebar::before {
   background: hsl(var(--sidebar) / var(--card-opacity, 1)) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
-  border-right: 1px solid hsl(var(--border));
-  box-shadow: 2px 0 12px hsl(0 0% 0% / calc(0.06 * var(--shadow-strength)));
 }
 
 /* Solid floating sidebar */
@@ -997,73 +1119,114 @@ All colors MUST be HSL.
     0 2px 10px -4px currentColor;
 }
 
-/* Tint for the add button in tag inputs（同 bg-secondary：只上色，不挂 blur） */
-[data-style="glassmorphism"] button.rounded-full,
-[data-style="luminous"] button.rounded-full,
-[data-style="liquid"] button.rounded-full {
-  background: hsl(var(--accent) / 0.3) !important;
-}
+/*
+ * 原「Tint for the add button in tag inputs」规则已删除。
+ *
+ * 它写的是 `button.rounded-full` —— 选择器太宽，命中了**所有**圆角按钮。
+ * 而全库真正用 `button.rounded-full` 的只有「?」问号图标钮（LabelWithHelp /
+ * DynamicConfigPanel / MarkdownTooltip / HeadingWithHelp），标签输入框的添加按钮
+ * 实际用的是 `rounded-lg`，根本没被这条规则覆盖。
+ *
+ * 结果：问号图标本来就是 lucide 的「圆环 + 问号」，外面又套一层
+ * `hsl(var(--accent) / 0.3)` 的圆底，看起来像多了一圈白色 badge 底板。
+ * 问号是纯图标按钮，不该有底色 —— 去掉即可，图标本身就是圆环 + 问号。
+ */
 
 .glass-sidebar {
-  background: hsl(var(--sidebar) / var(--card-opacity, 0.2)) !important;
-  border-right: 1px solid hsl(var(--border) / 0.3);
+  background: transparent !important;
+  border-right: 1px solid hsl(var(--border) / 0.35);
   box-shadow:
     2px 0 12px hsl(0 0% 0% / calc(0.04 * var(--shadow-strength))),
-    6px 0 28px -4px hsl(0 0% 0% / calc(0.06 * var(--shadow-strength))),
-    inset 0 1px 0 hsl(var(--primary) / 0.05);
+    6px 0 28px -4px hsl(0 0% 0% / calc(0.06 * var(--shadow-strength)));
+  overflow: visible;
 }
 
-/* Apply backdrop-filter only in glassmorphism mode */
+.glass-sidebar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: hsl(var(--sidebar) / var(--card-opacity, 0.22));
+}
+
+.dark .glass-sidebar::before {
+  background: hsl(var(--sidebar) / var(--card-opacity, 0.20));
+}
+
+/* Glassmorphism Sidebar */
 [data-style="glassmorphism"] .glass-sidebar {
+  border-right: 1px solid hsl(var(--border) / 0.3);
+}
+
+[data-style="glassmorphism"] .glass-sidebar::before {
   backdrop-filter: blur(var(--blur-intensity, 12px));
   -webkit-backdrop-filter: blur(var(--blur-intensity, 12px));
 }
 
+/* Luminous Glass Sidebar */
 [data-style="luminous"] .glass-sidebar {
-  background: hsl(var(--sidebar) / var(--card-opacity, 0.22)) !important;
-  border-right: 1px solid rgba(255, 255, 255, 0.25);
+  border-right: 1px solid rgba(255, 255, 255, 0.35);
   box-shadow:
     2px 0 16px -2px hsl(var(--primary) / calc(0.08 * var(--shadow-strength))),
     6px 0 32px -4px hsl(0 0% 0% / calc(0.12 * var(--shadow-strength))),
-    inset -1px 0 1px 0 rgba(255, 255, 255, 0.35),
-    inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.45);
-  backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.2)) saturate(190%) contrast(106%);
-  -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.2)) saturate(190%) contrast(106%);
+    inset -1px 0 1px 0 rgba(255, 255, 255, 0.45),
+    inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.55);
+}
+
+[data-style="luminous"] .glass-sidebar::before {
+  background: hsl(var(--sidebar) / var(--card-opacity, 0.20)) !important;
+  backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.2)) saturate(190%) contrast(106%) brightness(105%);
+  -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.2)) saturate(190%) contrast(106%) brightness(105%);
 }
 
 .dark[data-style="luminous"] .glass-sidebar,
 .dark [data-style="luminous"] .glass-sidebar,
 [data-style="luminous"] .dark .glass-sidebar {
-  border-right-color: rgba(255, 255, 255, 0.12);
+  border-right-color: rgba(255, 255, 255, 0.16);
   box-shadow:
     2px 0 18px -2px hsl(var(--primary) / calc(0.18 * var(--shadow-strength))),
     6px 0 36px -4px hsl(0 0% 0% / calc(0.35 * var(--shadow-strength))),
-    inset -1px 0 1px 0 rgba(255, 255, 255, 0.15),
-    inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.2);
+    inset -1px 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.3);
 }
 
+.dark[data-style="luminous"] .glass-sidebar::before,
+.dark [data-style="luminous"] .glass-sidebar::before,
+[data-style="luminous"] .dark .glass-sidebar::before {
+  background: hsl(var(--sidebar) / var(--card-opacity, 0.20)) !important;
+}
+
+/* Liquid Glass Sidebar */
 [data-style="liquid"] .glass-sidebar {
-  background: hsl(var(--sidebar) / var(--card-opacity, 0.25)) !important;
   border-right: 1px solid rgba(255, 255, 255, 0.60) !important;
   box-shadow:
     /* 右侧白水刃晶体反光 */
     inset -1px 0 0 0 rgba(255, 255, 255, 0.85),
     inset 0 1px 0 0 rgba(255, 255, 255, 0.50),
-    /* 自然柔和环境投影 */
     4px 0 20px -2px hsl(0 0% 0% / calc(0.08 * var(--shadow-strength))) !important;
-  backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.08) brightness(1.04) saturate(1.1) !important;
-  -webkit-backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.08) brightness(1.04) saturate(1.1) !important;
+}
+
+[data-style="liquid"] .glass-sidebar::before {
+  background: hsl(var(--sidebar) / var(--card-opacity, 0.22)) !important;
+  backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.15) brightness(1.05) saturate(1.2) !important;
+  -webkit-backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.15) brightness(1.05) saturate(1.2) !important;
 }
 
 .dark[data-style="liquid"] .glass-sidebar,
 .dark [data-style="liquid"] .glass-sidebar,
 [data-style="liquid"] .dark .glass-sidebar {
-  background: hsl(var(--sidebar) / var(--card-opacity, 0.25)) !important;
-  border-right-color: rgba(255, 255, 255, 0.16) !important;
+  border-right-color: rgba(255, 255, 255, 0.18) !important;
   box-shadow:
-    inset -1px 0 0 0 rgba(255, 255, 255, 0.40),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.25),
+    inset -1px 0 0 0 rgba(255, 255, 255, 0.45),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.30),
     4px 0 24px -2px hsl(0 0% 0% / calc(0.35 * var(--shadow-strength))) !important;
+}
+
+.dark[data-style="liquid"] .glass-sidebar::before,
+.dark [data-style="liquid"] .glass-sidebar::before,
+[data-style="liquid"] .dark .glass-sidebar::before {
+  background: hsl(var(--sidebar) / var(--card-opacity, 0.22)) !important;
 }
 
 /* 移动端模式下毛玻璃侧边栏使用直角 */
@@ -1604,6 +1767,115 @@ All colors MUST be HSL.
   background: hsl(var(--primary) / 0.28) !important;
   border-color: hsl(var(--primary) / 0.45) !important;
   color: hsl(var(--foreground)) !important;
+}
+
+/* ============================================================================
+ * Select Tiles (主题设置等页面的选项瓦片未激活态玻璃适配)
+ * ============================================================================ */
+[data-style="glassmorphism"] .select-tile:not([data-active="true"]) {
+  background: hsl(var(--card) / var(--card-opacity, 0.22)) !important;
+  border-color: hsl(var(--border) / 0.45) !important;
+  backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 0.7));
+  -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 0.7));
+}
+
+[data-style="glassmorphism"] .select-tile:not([data-active="true"]):hover {
+  background: hsl(var(--card) / calc(var(--card-opacity, 0.22) + 0.12)) !important;
+  border-color: hsl(var(--border) / 0.7) !important;
+}
+
+[data-style="luminous"] .select-tile:not([data-active="true"]) {
+  background: hsl(var(--card) / var(--card-opacity, 0.20)) !important;
+  border-color: rgba(255, 255, 255, 0.22) !important;
+  box-shadow: inset 0 1px 0.5px 0 rgba(255, 255, 255, 0.40) !important;
+  backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 0.8)) saturate(170%);
+  -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 0.8)) saturate(170%);
+}
+
+.dark[data-style="luminous"] .select-tile:not([data-active="true"]),
+.dark [data-style="luminous"] .select-tile:not([data-active="true"]),
+[data-style="luminous"] .dark .select-tile:not([data-active="true"]) {
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  box-shadow: inset 0 1px 0.5px 0 rgba(255, 255, 255, 0.18) !important;
+}
+
+[data-style="luminous"] .select-tile:not([data-active="true"]):hover {
+  background: hsl(var(--card) / calc(var(--card-opacity, 0.20) + 0.12)) !important;
+  border-color: rgba(255, 255, 255, 0.45) !important;
+  box-shadow: inset 0 1px 1px 0 rgba(255, 255, 255, 0.65) !important;
+}
+
+[data-style="liquid"] .select-tile:not([data-active="true"]) {
+  background: hsl(var(--card) / var(--card-opacity, 0.22)) !important;
+  border-color: rgba(255, 255, 255, 0.35) !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.55) !important;
+  backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.08);
+  -webkit-backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.08);
+}
+
+.dark[data-style="liquid"] .select-tile:not([data-active="true"]),
+.dark [data-style="liquid"] .select-tile:not([data-active="true"]),
+[data-style="liquid"] .dark .select-tile:not([data-active="true"]) {
+  border-color: rgba(255, 255, 255, 0.14) !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.22) !important;
+}
+
+[data-style="liquid"] .select-tile:not([data-active="true"]):hover {
+  background: hsl(var(--card) / calc(var(--card-opacity, 0.22) + 0.12)) !important;
+  border-color: rgba(255, 255, 255, 0.65) !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.8) !important;
+}
+
+[data-style="solid"] .select-tile:not([data-active="true"]) {
+  background: hsl(var(--card) / 0.6) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* ============================================================================
+ * Glass Table & List Row Hover / Selected Transitions
+ * 表格行与列表项在三种玻璃风格下，hover 和选中时呈现清透通透的高光，替代死板的纯灰块
+ * ============================================================================ */
+[data-style="glassmorphism"] tr[class*="hover:bg-muted"]:hover,
+[data-style="glassmorphism"] [data-slot="table-row"]:hover {
+  background: color-mix(in srgb, currentColor 6%, transparent) !important;
+}
+
+.dark[data-style="glassmorphism"] tr[class*="hover:bg-muted"]:hover,
+.dark[data-style="glassmorphism"] [data-slot="table-row"]:hover {
+  background: rgba(255, 255, 255, 0.06) !important;
+}
+
+[data-style="luminous"] tr[class*="hover:bg-muted"]:hover,
+[data-style="luminous"] [data-slot="table-row"]:hover {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, currentColor 8%, transparent) 0%,
+    color-mix(in srgb, currentColor 4%, transparent) 100%
+  ) !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.25) !important;
+}
+
+.dark[data-style="luminous"] tr[class*="hover:bg-muted"]:hover,
+.dark[data-style="luminous"] [data-slot="table-row"]:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.2) !important;
+}
+
+[data-style="liquid"] tr[class*="hover:bg-muted"]:hover,
+[data-style="liquid"] [data-slot="table-row"]:hover {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, currentColor 7%, transparent) 0%,
+    color-mix(in srgb, currentColor 3%, transparent) 100%
+  ) !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.4) !important;
+}
+
+.dark[data-style="liquid"] tr[class*="hover:bg-muted"]:hover,
+.dark[data-style="liquid"] [data-slot="table-row"]:hover {
+  background: rgba(255, 255, 255, 0.07) !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.25) !important;
 }
 
 /* Toast 默认是实色底。玻璃主题下改成和描边按钮同一层材质。 */
@@ -2602,8 +2874,9 @@ main:has(.page-fill) .layout-page-inner {
 
 /* Solid mode - select dropdown */
 [data-style="solid"] [data-radix-select-content],
-[data-style="solid"] [class*="SelectContent"] {
-  background: hsl(var(--popover)) !important;
+[data-style="solid"] [class*="SelectContent"],
+[data-style="solid"] :is([role='menu'], [role='listbox'], .menu-panel) {
+  background: hsl(var(--popover) / var(--card-opacity, 1)) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   border: 1px solid hsl(var(--border));
@@ -2614,7 +2887,7 @@ main:has(.page-fill) .layout-page-inner {
 [data-style="solid"] [role="alertdialog"]:not(.glass-float),
 [data-style="solid"] [class*="DialogContent"],
 [data-style="solid"] [class*="popover"]:not(.glass-float) {
-  background: hsl(var(--popover)) !important;
+  background: hsl(var(--popover) / var(--card-opacity, 1)) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   border: 1px solid hsl(var(--border)) !important;
@@ -2977,37 +3250,37 @@ main:has(.page-fill) .layout-page-inner {
 }
 
 [data-style="glassmorphism"] {
-  --overlay-fill: hsl(var(--background) / 0.82);
-  --overlay-border: hsl(var(--border));
+  --overlay-fill: hsl(var(--background) / var(--card-opacity, 0.25));
+  --overlay-border: hsl(var(--border) / 0.45);
   --overlay-filter: blur(var(--overlay-blur)) saturate(150%);
 }
 
 :is(.dark[data-style='glassmorphism'], .dark [data-style='glassmorphism'], [data-style='glassmorphism'] .dark) {
-  --overlay-fill: hsl(var(--background) / 0.8);
+  --overlay-fill: hsl(var(--background) / var(--card-opacity, 0.2));
   --overlay-border: hsl(var(--border) / 0.45);
 }
 
 /* 光感：比磨砂更亮的水面，模糊外再拉一点饱和与对比。 */
 [data-style="luminous"] {
-  --overlay-fill: hsl(var(--background) / 0.8);
+  --overlay-fill: hsl(var(--background) / var(--card-opacity, 0.22));
   --overlay-border: hsl(var(--border));
   --overlay-filter: blur(var(--overlay-blur)) saturate(190%) contrast(106%) brightness(105%);
 }
 
 :is(.dark[data-style='luminous'], .dark [data-style='luminous'], [data-style='luminous'] .dark) {
-  --overlay-fill: hsl(var(--background) / 0.78);
+  --overlay-fill: hsl(var(--background) / var(--card-opacity, 0.28));
   --overlay-border: rgba(255, 255, 255, 0.2);
 }
 
 /* 液态：外壳保留主题的纯白水层，靠内层水镜和描边分出当前项，不再拿整片白当高亮。 */
 [data-style="liquid"] {
-  --overlay-fill: hsl(0 0% 100% / 0.76);
+  --overlay-fill: hsl(var(--background) / var(--card-opacity, 0.35));
   --overlay-border: hsl(var(--border));
   --overlay-filter: blur(var(--overlay-blur)) contrast(1.15) brightness(1.05) saturate(1.2);
 }
 
 :is(.dark[data-style='liquid'], .dark [data-style='liquid'], [data-style='liquid'] .dark) {
-  --overlay-fill: hsl(var(--background) / 0.74);
+  --overlay-fill: hsl(var(--background) / var(--card-opacity, 0.4));
   --overlay-border: rgba(255, 255, 255, 0.22);
 }
 
@@ -3047,6 +3320,56 @@ main:has(.page-fill) .layout-page-inner {
   box-shadow: none !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
+}
+
+/*
+ * Tooltip（问号提示）：自己的底板保留，但**不画白色描边 / 白色高光内阴影**。
+ *
+ * 两件事要分清：
+ *   - 「?」图标钮外面那圈圆底 → 由下面的规则去掉（问号是纯图标，不该有底板）
+ *   - tooltip 弹窗的底板 → 保留，它要压住身后的文字，否则说明读不了
+ *
+ * 历史包袱：TooltipContent 曾用 bg-popover + border，会命中上面那族
+ * `[class*="popover"]` 浮层玻璃规则 —— 那族是给下拉菜单准备的（内容是整屏高对比
+ * 小字，必须压住背后的行），套到提示框上就成了「一圈白色 badge」。
+ *
+ * 所以单独走 .tooltip-surface：中性底 + 一层柔和投影，**不画白色描边**。
+ */
+.tooltip-surface {
+  background: hsl(var(--popover));
+  color: hsl(var(--popover-foreground));
+  border: none;
+  box-shadow:
+    0 6px 18px -4px hsl(0 0% 0% / calc(0.22 * var(--shadow-strength, 1))),
+    0 2px 6px -2px hsl(0 0% 0% / calc(0.12 * var(--shadow-strength, 1)));
+}
+
+/* 光感 / 液态：透出一点背后的模糊，但不补白色描边和高光内阴影 */
+[data-style="luminous"] .tooltip-surface,
+[data-style="liquid"] .tooltip-surface {
+  backdrop-filter: blur(var(--overlay-blur, 20px)) saturate(150%);
+  -webkit-backdrop-filter: blur(var(--overlay-blur, 20px)) saturate(150%);
+}
+
+[data-style="luminous"] .tooltip-surface {
+  background: hsl(var(--popover) / 0.88);
+}
+
+[data-style="liquid"] .tooltip-surface {
+  background: hsl(var(--popover) / 0.86);
+}
+
+/* 磨砂：卡片本身够实，提示框给高一点填充，保证小字读得清 */
+[data-style="glassmorphism"] .tooltip-surface {
+  backdrop-filter: blur(var(--overlay-blur, 20px));
+  -webkit-backdrop-filter: blur(var(--overlay-blur, 20px));
+  background: hsl(var(--popover) / 0.92);
+}
+
+[data-style="solid"] .tooltip-surface {
+  background: hsl(var(--popover));
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 
@@ -3101,7 +3424,7 @@ main:has(.page-fill) .layout-page-inner {
   .ui-input,
   .ui-select-trigger,
   .ui-field-trigger {
-    background: hsl(var(--background) / 0.4) !important;
+    background: hsl(var(--background) / var(--card-opacity, 0.4)) !important;
     border: 1px solid hsl(var(--border)) !important;
     border-radius: var(--radius) !important;
     box-shadow: 0 1px 2px 0 hsl(0 0% 0% / calc(0.06 * var(--shadow-strength, 1))) !important;
@@ -3135,7 +3458,7 @@ main:has(.page-fill) .layout-page-inner {
   [data-style="luminous"] .ui-field-trigger {
     backdrop-filter: blur(12px) saturate(180%) !important;
     -webkit-backdrop-filter: blur(12px) saturate(180%) !important;
-    background: hsl(var(--background) / 0.5) !important;
+    background: hsl(var(--background) / var(--card-opacity, 0.5)) !important;
     border: 1px solid hsl(var(--border)) !important;
     box-shadow:
       inset 0 1px 1px rgba(255, 255, 255, 0.4),
@@ -3154,7 +3477,7 @@ main:has(.page-fill) .layout-page-inner {
   [data-style="liquid"] .ui-field-trigger {
     backdrop-filter: blur(var(--liquid-blur, 8px)) saturate(190%) contrast(106%) !important;
     -webkit-backdrop-filter: blur(var(--liquid-blur, 8px)) saturate(190%) contrast(106%) !important;
-    background: hsl(var(--background) / 0.48) !important;
+    background: hsl(var(--background) / var(--card-opacity, 0.48)) !important;
     border: 1px solid hsl(var(--border)) !important;
     box-shadow:
       inset 0 1px 0 0 rgba(255, 255, 255, 0.50),
@@ -3188,7 +3511,7 @@ main:has(.page-fill) .layout-page-inner {
   [data-style="luminous"] .dark .ui-input,
   [data-style="luminous"] .dark .ui-select-trigger,
   [data-style="luminous"] .dark .ui-field-trigger {
-    background: hsl(var(--background) / 0.35) !important;
+    background: hsl(var(--background) / var(--card-opacity, 0.35)) !important;
     border: 1px solid hsl(var(--border)) !important;
     box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.15), inset 0 -0.5px 1px rgba(0, 0, 0, 0.15) !important;
   }
@@ -3217,7 +3540,7 @@ main:has(.page-fill) .layout-page-inner {
   [data-style="liquid"] .dark .ui-input,
   [data-style="liquid"] .dark .ui-select-trigger,
   [data-style="liquid"] .dark .ui-field-trigger {
-    background: hsl(var(--background) / 0.32) !important;
+    background: hsl(var(--background) / var(--card-opacity, 0.32)) !important;
     border: 1px solid hsl(var(--border)) !important;
     box-shadow:
       inset 0 1px 0 0 rgba(255, 255, 255, 0.25),
@@ -3233,7 +3556,7 @@ main:has(.page-fill) .layout-page-inner {
   .ui-select-trigger:focus,
   .ui-field-trigger:focus,
   .ui-field-trigger:focus-visible {
-    background: hsl(var(--background) / 0.6) !important;
+    background: hsl(var(--background) / calc(var(--card-opacity, 0.4) + 0.18)) !important;
     border-color: hsl(var(--ring) / 0.6) !important;
     box-shadow: 0 0 0 2px hsl(var(--ring) / 0.1) !important;
   }
@@ -3247,7 +3570,7 @@ main:has(.page-fill) .layout-page-inner {
   .dark .ui-input,
   .dark .ui-select-trigger,
   .dark .ui-field-trigger {
-    background: hsl(var(--background) / 0.3) !important;
+    background: hsl(var(--background) / var(--card-opacity, 0.3)) !important;
     border: 1px solid hsl(var(--border)) !important;
   }
 
@@ -3272,7 +3595,7 @@ main:has(.page-fill) .layout-page-inner {
   .dark .ui-select-trigger:focus,
   .dark .ui-field-trigger:focus,
   .dark .ui-field-trigger:focus-visible {
-    background: hsl(var(--background) / 0.5) !important;
+    background: hsl(var(--background) / calc(var(--card-opacity, 0.3) + 0.18)) !important;
     border-color: hsl(var(--ring) / 0.7) !important;
   }
 
@@ -3330,7 +3653,7 @@ main:has(.page-fill) .layout-page-inner {
 [data-style="solid"] .bg-background {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
-  background: hsl(var(--background)) !important;
+  background: hsl(var(--background) / var(--card-opacity, 1)) !important;
 }
 
 /*
@@ -3340,7 +3663,7 @@ main:has(.page-fill) .layout-page-inner {
   语义：字段本身不消失，只是所属模式没开 → 虚线 + muted 底，读起来是"冻结"而非"出错"。
 */
 [role="combobox"]:disabled {
-  background: hsl(var(--muted) / 0.5) !important;
+  background: hsl(var(--muted) / var(--card-opacity, 0.5)) !important;
   border: 1px dashed hsl(var(--border) / 0.9) !important;
 }
 
@@ -3352,7 +3675,7 @@ main:has(.page-fill) .layout-page-inner {
 .dark[data-style="liquid"] .ui-input[data-disabled],
 .dark [data-style="liquid"] .ui-input[data-disabled],
 [data-style="liquid"] .dark .ui-input[data-disabled] {
-  background: hsl(var(--muted) / 0.5) !important;
+  background: hsl(var(--muted) / var(--card-opacity, 0.5)) !important;
   border: 1px dashed hsl(var(--border) / 0.9) !important;
 }
 
@@ -3883,50 +4206,34 @@ tbody tr:hover .table-sticky-right::after {
  * 侧栏收缩时它们不动，故不在此列。它们是整组里唯一「背后压着别人内容」的表面，
  * 关掉模糊后底下的小字会原样透上来和选项撞在一起（见上方「浮层玻璃」）。
  */
+/*
+ * 光感 / 液态：表单内控件不要重复叠加大面积 backdrop-filter，避免在已有玻璃卡片内深层重采样。
+ * 核心表面（.glass-sidebar、.floating-sidebar、.tab-segment-row、弹层等）保留各自独立的主题滤镜。
+ */
 html[data-style="luminous"] :is(
-  .glass-sidebar,
   .glass-terminal,
   .luminous-refractive,
   .liquid-refractive,
-  [class*="backdrop-blur"],
   input,
   textarea,
   select,
-  button,
-  a,
   [role="combobox"],
   .ui-input,
   .ui-select-trigger,
   .ui-field-trigger
 ),
 html[data-style="liquid"] :is(
-  .glass-sidebar,
   .glass-terminal,
   .luminous-refractive,
   .liquid-refractive,
-  [class*="backdrop-blur"],
   input,
   textarea,
   select,
-  button,
-  a,
   [role="combobox"],
   .ui-input,
   .ui-select-trigger,
   .ui-field-trigger
-),
-html[data-style="luminous"] :is(
-  .glass-card:not([role="dialog"]):not([role="alertdialog"]),
-  .floating-sidebar,
-  .tab-segment-row,
-  .glass-alert
-)::before,
-html[data-style="liquid"] :is(
-  .glass-card:not([role="dialog"]):not([role="alertdialog"]),
-  .floating-sidebar,
-  .tab-segment-row,
-  .glass-alert
-)::before {
+) {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
@@ -3985,17 +4292,17 @@ html[data-style="liquid"] :is(
 }
 
 [data-style="glassmorphism"] .glass-float {
-  background-color: hsl(var(--popover) / calc(var(--card-opacity, 0.25) + 0.55));
+  background-color: hsl(var(--popover) / var(--card-opacity, 0.25));
   backdrop-filter: blur(var(--overlay-blur)) saturate(150%);
   -webkit-backdrop-filter: blur(var(--overlay-blur)) saturate(150%);
 }
 
 .dark[data-style="glassmorphism"] .glass-float {
-  background-color: hsl(var(--popover) / calc(var(--card-opacity, 0.2) + 0.55));
+  background-color: hsl(var(--popover) / var(--card-opacity, 0.2));
 }
 
 [data-style="solid"] .glass-float {
-  background-color: hsl(var(--popover));
+  background-color: hsl(var(--popover) / var(--card-opacity, 1));
   background-image: none;
   border-color: hsl(var(--border));
   box-shadow: 0 8px 24px hsl(0 0% 0% / 0.12);
@@ -4005,7 +4312,7 @@ html[data-style="liquid"] :is(
 
 [data-style="luminous"] .glass-float {
   border: 1px solid rgba(255, 255, 255, 0.35);
-  background-color: hsl(var(--popover) / calc(var(--card-opacity, 0.22) + 0.55));
+  background-color: hsl(var(--popover) / var(--card-opacity, 0.22));
   box-shadow:
     inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.5),
     inset 0 -1px 1px 0 rgba(255, 255, 255, 0.15),
@@ -4016,7 +4323,7 @@ html[data-style="liquid"] :is(
 
 .dark[data-style="luminous"] .glass-float {
   border-color: rgba(255, 255, 255, 0.18);
-  background-color: hsl(var(--popover) / calc(var(--card-opacity, 0.2) + 0.55));
+  background-color: hsl(var(--popover) / var(--card-opacity, 0.28));
   box-shadow:
     inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.3),
     inset 0 -1px 1px 0 rgba(255, 255, 255, 0.1),
@@ -4025,7 +4332,7 @@ html[data-style="liquid"] :is(
 
 [data-style="liquid"] .glass-float {
   border: 1px solid rgba(255, 255, 255, 0.55);
-  background-color: hsl(var(--popover) / calc(var(--card-opacity, 0.25) + 0.55));
+  background-color: hsl(var(--popover) / var(--card-opacity, 0.35));
   box-shadow:
     inset 0 1px 0 0 rgba(255, 255, 255, 0.8),
     inset 0 0 14px 0 rgba(255, 255, 255, 0.1),
@@ -4037,7 +4344,7 @@ html[data-style="liquid"] :is(
 
 .dark[data-style="liquid"] .glass-float {
   border-color: rgba(255, 255, 255, 0.2);
-  background-color: hsl(var(--background) / calc(var(--card-opacity, 0.2) + 0.55));
+  background-color: hsl(var(--background) / var(--card-opacity, 0.4));
   box-shadow:
     inset 0 1px 0 0 rgba(255, 255, 255, 0.4),
     inset 0 0 14px 0 rgba(255, 255, 255, 0.06),

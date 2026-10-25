@@ -1263,6 +1263,7 @@ export default function PluginsPage() {
               usageNames={pluginUsageNames}
               value={selectedPluginId}
               onValueChange={setSelectedPluginId}
+              className={tabToolbarControlClass}
             />
             <div className={headerActionRowClass}>
               <TooltipProvider>
@@ -1355,8 +1356,7 @@ export default function PluginsPage() {
                                 },
                                 allValue: paramsConfigName,
                                 align: 'start' as const,
-                                contentClassName: 'min-w-[14rem]',
-                                items: selectedPlugin.config_names.map((name, index) => ({
+                                                                items: selectedPlugin.config_names.map((name, index) => ({
                                   value: name,
                                   label: name,
                                   icon: getConfigIcon(name, index),

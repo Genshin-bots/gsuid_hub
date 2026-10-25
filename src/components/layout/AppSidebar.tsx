@@ -659,7 +659,7 @@ export function AppSidebar() {
                   variant="secondary"
                   className="text-xs font-mono font-medium shrink-0 bg-muted/80 text-foreground border border-border/50"
                 >
-                  v{import.meta.env.PACKAGE_VERSION || PACKAGE_VERSION || '0.4.1'}
+                  v{import.meta.env.PACKAGE_VERSION || PACKAGE_VERSION || '0.4.2'}
                 </Badge>
               </div>
               <span className="text-xs text-muted-foreground whitespace-nowrap">

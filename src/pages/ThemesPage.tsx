@@ -939,19 +939,12 @@ export default function ThemesPage() {
 
               {/* 主题颜色 */}
               <Card className="glass-card p-4 sm:p-5 space-y-3.5">
-                <div className="flex items-center justify-between gap-2">
-                  <LabelWithHelp
-                    icon={<Palette className="w-4 h-4 text-primary" />}
-                    label={t('themes.themeColor')}
-                    description={t('themes.themeColorDesc')}
-                    className="text-sm font-semibold text-foreground cursor-default"
-                  />
-                  {themePreset === 'shadcn' && (
-                    <span className="text-[11px] text-muted-foreground bg-muted/70 px-2 py-0.5 rounded-full border border-border/40 shrink-0">
-                      {t('themes.shadcnColorNotice')}
-                    </span>
-                  )}
-                </div>
+                <LabelWithHelp
+                  icon={<Palette className="w-4 h-4 text-primary" />}
+                  label={t('themes.themeColor')}
+                  description={t('themes.themeColorDesc')}
+                  className="text-sm font-semibold text-foreground cursor-default"
+                />
                 <SelectTileRow className="grid grid-cols-3 gap-2.5">
                   {themeColors.map((theme) => (
                     <SelectTile

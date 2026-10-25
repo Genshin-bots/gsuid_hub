@@ -192,8 +192,8 @@ const Sidebar = React.forwardRef<
     }
 
     if (isMobile) {
-      const overlayClassName = mode === 'dark' ? 'bg-black/80' : 'bg-white/80';
-      const isGlassmorphism = themeStyle === 'glassmorphism';
+      const overlayClassName = mode === 'dark' ? 'bg-black/50' : 'bg-white/40';
+      const isSolid = themeStyle === 'solid';
 
       return (
         <Sheet open={openMobile} onOpenChange={setOpenMobile} {...props}>
@@ -202,13 +202,11 @@ const Sidebar = React.forwardRef<
             data-mobile="true"
             overlayClassName={overlayClassName}
             className={cn(
-              'w-[--sidebar-width] p-0 text-sidebar-foreground [&>button]:hidden',
-              isGlassmorphism ? 'rounded-none border-none' : 'rounded-r-2xl border-r-0',
-              isGlassmorphism
-                ? 'bg-sidebar'
-                : className?.includes('floating-sidebar')
-                  ? 'floating-sidebar'
-                  : 'bg-sidebar',
+              'w-[--sidebar-width] p-0 text-sidebar-foreground [&>button]:hidden overflow-hidden',
+              isSolid ? 'rounded-r-2xl border-r-0 bg-sidebar' : 'rounded-none border-none',
+              !isSolid &&
+                (className?.includes('floating-sidebar') ? 'floating-sidebar' : 'glass-sidebar'),
+              className,
             )}
             style={
               {

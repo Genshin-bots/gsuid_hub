@@ -216,7 +216,7 @@ export default function ErrorReportsPanel() {
 
   return (
     <div className="space-y-3">
-      <div className="glass-card flex shrink-0 flex-col gap-2 px-3 py-2 sm:flex-row sm:flex-wrap sm:items-center">
+      <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
         <TabButtonGroup
           value={dateMode}
           onValueChange={(v) => {

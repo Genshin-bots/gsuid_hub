@@ -69,7 +69,7 @@ export function InputWithDropdown({
   className,
   // Radix 只重定位、不缩放宽度：固定 400px 在 375px 视口会被裁掉右侧。
   // 窄屏改用视口宽，sm 起恢复 400px。
-  popoverWidth = 'w-[calc(100vw-1.5rem)] sm:w-[400px]',
+  popoverWidth = 'w-[var(--radix-popover-trigger-width)] min-w-[200px] max-w-[calc(100vw-1.5rem)]',
   showCopyValueAction = true,
   copyValueLabel,
   copiedValueLabel,
@@ -223,7 +223,8 @@ export function InputWithDropdown({
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        className={cn('menu-panel overflow-hidden', popoverWidth, 'p-0')}
+        className={cn('menu-panel overflow-hidden p-0', popoverWidth)}
+        style={{ width: 'var(--radix-popover-trigger-width)' }}
         align="start"
         onOpenAutoFocus={handleOpenAutoFocus}
         onWheel={(e) => e.stopPropagation()}

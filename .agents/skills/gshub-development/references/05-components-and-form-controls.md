@@ -157,6 +157,14 @@ if (scopeFilter !== '__all__') params.scope_type = scopeFilter;
 
 字段、卡片小标题、表单小节的说明放在标题**右侧**的问号 Tooltip 上，不要写在标题下面的正文段落里。页面 H1 的副标题仍写在标题下方（`text-muted-foreground mt-1`），不受这条约束。
 
+### Tooltip 底色走 `.tooltip-surface`，不要用 `bg-popover` ★★
+
+`TooltipContent` 的底色由 `.tooltip-surface` 画（`src/index.css`）。**不要**在 `TooltipContent` 上加 `bg-popover` / `border` / `shadow-md`。
+
+原因：`bg-popover` 这个类名会让元素命中 index.css 里那族按 `[class*="popover"]` 匹配的浮层玻璃规则 —— 那族规则是给下拉菜单 / 选择列表（内容是整屏高对比小字，必须压住背后的行）准备的，会给命中元素套上**白色 1px 描边 + 顶部白色高光内阴影 + 高填充**。套在 tooltip 上就变成「一圈白色 badge 一样的背景」，在光感 / 液态下尤其明显。
+
+`.tooltip-surface` 是独立的一套：中性底（跟随 `--popover`）+ 一层柔和投影，**不画白色描边**。改配色时改 `.tooltip-surface` 的规则，不要往 `TooltipContent` 的 className 里塞背景类。
+
 ### 通用手搓（简单一行文案）
 
 ```tsx

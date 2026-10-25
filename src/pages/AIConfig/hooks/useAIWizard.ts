@@ -10,7 +10,12 @@
  */
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { aiWizardApi, type AIWizardChecklistItem, type AIWizardStatusResponse } from '@/lib/api';
+import {
+  aiWizardApi,
+  getCustomApiHost,
+  type AIWizardChecklistItem,
+  type AIWizardStatusResponse,
+} from '@/lib/api';
 
 export type WizardOverallStatus = 'overall_ok' | 'overall_warning' | 'overall_error';
 
@@ -65,7 +70,10 @@ export function useAIWizard(): UseAIWizardReturn {
     let cancelled = false;
     const checkBackendStatus = async () => {
       try {
-        const res = await fetch(`/api/ai/wizard/status?_t=${Date.now()}`, {
+        const host = getCustomApiHost();
+        const path = `/api/ai/wizard/status?_t=${Date.now()}`;
+        const url = host ? `${host}${path}` : path;
+        const res = await fetch(url, {
           credentials: 'include',
         });
         if (cancelled) return;

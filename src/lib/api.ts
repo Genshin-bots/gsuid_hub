@@ -120,7 +120,22 @@ let authEncryptionSupported: boolean | null = null;
 
 // Initialize API_BASE from localStorage
 if (typeof window !== 'undefined') {
-  const stored = localStorage.getItem('custom_api_host');
+  let initial = '';
+  try {
+    const searchParams = new URLSearchParams(window.location.search);
+    const fromSearch = searchParams.get('api_host') || searchParams.get('host');
+    if (fromSearch) {
+      initial = fromSearch;
+    } else if (window.location.hash.includes('?')) {
+      const hashQuery = window.location.hash.slice(window.location.hash.indexOf('?'));
+      const hashParams = new URLSearchParams(hashQuery);
+      const fromHash = hashParams.get('api_host') || hashParams.get('host');
+      if (fromHash) initial = fromHash;
+    }
+  } catch {
+    // ignore URL parse errors
+  }
+  const stored = initial || localStorage.getItem('custom_api_host');
   if (stored) {
     API_BASE = normalizeCustomApiHost(stored);
     if (API_BASE !== stored) {
@@ -1834,6 +1849,18 @@ export const logsApi = {
     const qs = query.toString();
     const path = `/api/logs/error-reports/${encodeURIComponent(reportId)}`;
     return api.get<ErrorReportDetail>(qs ? `${path}?${qs}` : path);
+  },
+
+  getStreamUrl: (token: string, level = 'all', resumeFrom?: string | null) => {
+    const host = getCustomApiHost();
+    const query = new URLSearchParams();
+    query.set('token', token);
+    query.set('level', level);
+    if (resumeFrom) {
+      query.set('last_event_id', resumeFrom);
+    }
+    const path = `/api/logs/stream?${query.toString()}`;
+    return host ? `${host}${path}` : path;
   },
 };
 

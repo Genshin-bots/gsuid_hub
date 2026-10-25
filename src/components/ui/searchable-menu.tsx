@@ -11,6 +11,7 @@ import {
   CommandList,
 } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 export interface SearchableMenuItem {
@@ -54,25 +55,31 @@ export function SearchableMenuContent({
           {items.map((item) => {
             const selected = item.value === value;
             return (
-              <CommandItem
-                key={item.value}
-                value={item.value}
-                keywords={[item.label, ...(item.keywords ?? [])]}
-                disabled={item.disabled}
-                onSelect={() => onSelect(item.value)}
-                className="min-w-0 cursor-pointer gap-2"
-              >
-                <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center [&>img]:h-4 [&>img]:w-4 [&>svg]:h-4 [&>svg]:w-4">
-                  {item.icon ?? null}
-                </span>
-                <span className="min-w-0 flex-1 truncate">{item.label}</span>
-                <Check
-                  className={cn(
-                    'h-4 w-4 shrink-0 text-primary',
-                    selected ? 'opacity-100' : 'opacity-0',
-                  )}
-                />
-              </CommandItem>
+              <Tooltip key={item.value} delayDuration={150}>
+                <TooltipTrigger asChild>
+                  <CommandItem
+                    value={item.value}
+                    keywords={[item.label, ...(item.keywords ?? [])]}
+                    disabled={item.disabled}
+                    onSelect={() => onSelect(item.value)}
+                    className="min-w-0 cursor-pointer gap-2"
+                  >
+                    <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center [&>img]:h-4 [&>img]:w-4 [&>svg]:h-4 [&>svg]:w-4">
+                      {item.icon ?? null}
+                    </span>
+                    <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                    <Check
+                      className={cn(
+                        'h-4 w-4 shrink-0 text-primary',
+                        selected ? 'opacity-100' : 'opacity-0',
+                      )}
+                    />
+                  </CommandItem>
+                </TooltipTrigger>
+                <TooltipContent side="right" sideOffset={8} className="max-w-xs break-words">
+                  {item.label}
+                </TooltipContent>
+              </Tooltip>
             );
           })}
         </CommandGroup>
@@ -140,7 +147,7 @@ export function SearchableMenu({
         aria-expanded={open}
         disabled={disabled}
         className={cn(
-          'flex h-10 w-full min-w-0 items-center justify-between gap-2 rounded-md border border-input bg-background px-2 text-sm ring-offset-background',
+          'ui-field-trigger flex h-10 w-full min-w-0 items-center justify-between gap-2 rounded-md border border-input bg-background px-2 text-sm ring-offset-background',
           'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
           'disabled:cursor-not-allowed disabled:opacity-50',
           className,

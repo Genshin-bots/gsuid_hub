@@ -641,7 +641,7 @@ export default function LogsPage() {
           </GlassAlert>
         )}
 
-        <div className="glass-card flex shrink-0 flex-col gap-2 px-3 py-2 sm:flex-row sm:items-center">
+        <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center">
           {/* Date Mode Toggle */}
           <TabButtonGroup
             value={dateMode}

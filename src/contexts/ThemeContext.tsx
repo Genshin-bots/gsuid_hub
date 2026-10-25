@@ -248,7 +248,7 @@ const THEME_COLORS: Record<
   },
   orchid: {
     light: { primary: '270 50% 50%', primaryForeground: '0 0% 100%', ring: '270 50% 50%' },
-    dark: { primary: '270 70% 70%', primaryForeground: '0 0% 100%', ring: '270 70% 70%' },
+    dark: { primary: '270 70% 70%', primaryForeground: '270 70% 10%', ring: '270 70% 70%' },
   },
   blue: {
     light: { primary: '220 70% 50%', primaryForeground: '0 0% 100%', ring: '220 70% 50%' },

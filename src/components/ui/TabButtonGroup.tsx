@@ -8,8 +8,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { SearchableMenu } from '@/components/ui/searchable-menu';
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+  PopoverAnchor,
+} from '@/components/ui/popover';
+import { SearchableMenuContent } from '@/components/ui/searchable-menu';
 import { LiquidSegmentThumb } from '@/components/ui/LiquidSegmentThumb';
+import { needsFullWidthWrapper, pickWidthTokens } from '@/components/ui/tabGroupWidth';
 
 /** 下拉子项：用于某一主 Tab 的二级筛选 */
 export interface TabButtonDropdownItem {
@@ -48,6 +55,8 @@ export interface TabButtonOption {
     align?: 'start' | 'center' | 'end';
     /** 下拉内容附加 class（如 max-h / min-w） */
     contentClassName?: string;
+    /** 下拉宽度模式：'trigger'（与分段项等宽，默认）或 'content'（按内容自适应） */
+    width?: 'trigger' | 'content';
   };
 }
 
@@ -142,6 +151,150 @@ function omitPaddingClasses(className?: string) {
   );
 }
 
+
+interface TabSegmentDropdownItemProps {
+  option: TabButtonOption;
+  isActive: boolean;
+  isDisabled: boolean;
+  buttonClassName?: string;
+  segmentYClass: string;
+  hug: boolean;
+  singleRowOnMobile?: boolean;
+  iconSlotClass: string;
+  onValueChange: (value: string) => void;
+}
+
+function TabSegmentDropdownItem({
+  option,
+  isActive,
+  isDisabled,
+  buttonClassName,
+  segmentYClass,
+  hug,
+  singleRowOnMobile,
+  iconSlotClass,
+  onValueChange,
+}: TabSegmentDropdownItemProps) {
+  const [open, setOpen] = React.useState(false);
+  const panelRef = React.useRef<HTMLDivElement>(null);
+  const dropdown = option.dropdown!;
+  const allValue = dropdown.allValue ?? dropdown.items[0]?.value;
+  const dividerClass = isActive ? 'bg-primary-foreground/25' : 'bg-border/70';
+  const widthMode = dropdown.width ?? 'trigger';
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverAnchor asChild>
+        <div
+          data-segment-active={isActive ? 'true' : undefined}
+          className={cn(
+            tabSegmentClassName(isActive, isDisabled, omitPaddingClasses(buttonClassName)),
+            // 外层只负责底色/对齐；padding 由内层主区 / ▾ 自己带。
+            // 必须写在 buttonClassName 之后：无前缀 p-0 盖不住 sm:px-*。
+            'inline-flex min-w-0 items-stretch overflow-hidden rounded-md gap-0 p-0',
+            singleRowOnMobile && 'flex-1 text-xs sm:flex-none sm:text-sm',
+          )}
+        >
+          {/* 主按钮：选中该 Tab + 二级筛选回到「全部」 */}
+          <button
+            type="button"
+            disabled={isDisabled}
+            onClick={() => {
+              if (isDisabled) return;
+              onValueChange(option.value);
+              if (allValue !== undefined) {
+                dropdown.onValueChange(allValue);
+              }
+              setOpen(false);
+            }}
+            className={cn(
+              'flex min-w-0 items-center gap-1.5 sm:gap-2 px-2.5 sm:pl-4 sm:pr-2 rounded-none bg-transparent',
+              segmentYClass,
+              hug && 'h-full',
+              'hover:bg-transparent focus-visible:outline-none',
+              singleRowOnMobile && 'flex-1 justify-center px-2 sm:flex-none sm:justify-start',
+              isDisabled && 'cursor-not-allowed',
+            )}
+          >
+            {option.icon != null && (
+              <span
+                className={cn(
+                  'flex shrink-0 items-center justify-center',
+                  iconSlotClass,
+                  singleRowOnMobile && 'hidden sm:flex',
+                )}
+              >
+                {asHoverIcon(option.icon)}
+              </span>
+            )}
+            <span className="min-w-0 truncate">{option.label}</span>
+            {option.badge}
+          </button>
+
+          <span
+            className={cn('my-1.5 w-px shrink-0 self-stretch', dividerClass)}
+            aria-hidden
+          />
+
+          {/* 仅箭头触发下拉 */}
+          <PopoverTrigger asChild disabled={isDisabled}>
+            <button
+              type="button"
+              disabled={isDisabled}
+              aria-label="Open filter menu"
+              className={cn(
+                'group flex items-center justify-center rounded-none border-0 bg-transparent px-2.5',
+                segmentYClass,
+                hug && 'h-full',
+                singleRowOnMobile && 'px-1.5 sm:px-2.5',
+                'hover:bg-black/5 dark:hover:bg-white/10 focus-visible:outline-none',
+                'data-[state=open]:bg-black/5 dark:data-[state=open]:bg-white/10',
+                isDisabled && 'cursor-not-allowed',
+              )}
+            >
+              <ChevronDown
+                className={cn(
+                  'h-3.5 w-3.5 shrink-0 opacity-70 transition-transform duration-200',
+                  open && 'rotate-180',
+                )}
+              />
+            </button>
+          </PopoverTrigger>
+        </div>
+      </PopoverAnchor>
+
+      <PopoverContent
+        ref={panelRef}
+        align={dropdown.align ?? 'start'}
+        sideOffset={4}
+        className={cn(
+          'glass-float searchable-menu-panel box-border overflow-hidden bg-transparent p-0 shadow-none',
+          widthMode === 'trigger'
+            ? 'w-[var(--radix-popover-trigger-width)] min-w-[var(--radix-popover-trigger-width)]'
+            : 'w-max min-w-[14rem] max-w-[24rem]',
+          dropdown.contentClassName,
+        )}
+        style={widthMode === 'trigger' ? { width: 'var(--radix-popover-trigger-width)' } : undefined}
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+          requestAnimationFrame(() => panelRef.current?.querySelector('input')?.focus());
+        }}
+        onWheel={(event) => event.stopPropagation()}
+      >
+        <SearchableMenuContent
+          items={dropdown.items}
+          value={dropdown.value}
+          onSelect={(next) => {
+            onValueChange(option.value);
+            dropdown.onValueChange(next);
+            setOpen(false);
+          }}
+        />
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 export function TabButtonGroup({
   options,
   value,
@@ -170,8 +323,13 @@ export function TabButtonGroup({
       : 'p-1';
   // className 作用在按钮容器（内层）上——调用方会传 grid/w-full 等布局类改写整条布局。
   // 外壳跟主题底色/描边，阴影由 .tab-segment-row 统一跟随 --shadow-strength 阴影强度配置。
-  const fullWidth = typeof className === 'string' && /\b(?:w-full|grid)\b/.test(className);
+  const fullWidth = needsFullWidthWrapper(className);
   const noShrink = typeof className === 'string' && /\bshrink-0\b/.test(className);
+  // 外壳宽度必须跟着调用方的宽度类一起换挡。
+  // 只认「有没有 w-full」会让外壳永久通栏：`w-full sm:w-max` 的本意是窄屏铺满、桌面自适应，
+  // 外壳却钉死在 w-full → 它在 flex-wrap 容器里占满整行，兄弟元素被挤到下一行
+  // （/plugins 卡片头的「插件自带页面」按钮就是这么掉到第二行的）。
+  const widthTokens = pickWidthTokens(className);
   const current = options.find((option) => option.value === value) ?? options[0];
   const fillClass =
     collapseOnMobile || singleRowOnMobile
@@ -186,6 +344,7 @@ export function TabButtonGroup({
     <div
       className={cn(
         fullWidth ? 'flex w-full' : 'inline-flex',
+        widthTokens,
         noShrink && 'shrink-0',
         'max-w-full',
         collapseOnMobile && 'hidden md:inline-flex',
@@ -211,93 +370,19 @@ export function TabButtonGroup({
           const dropdown = option.dropdown;
 
           if (dropdown && dropdown.items.length > 0) {
-            const allValue = dropdown.allValue ?? dropdown.items[0]?.value;
-            const dividerClass = isActive ? 'bg-primary-foreground/25' : 'bg-border/70';
-
             return (
-              <div
+              <TabSegmentDropdownItem
                 key={option.value}
-                data-segment-active={isActive ? 'true' : undefined}
-                className={cn(
-                  tabSegmentClassName(isActive, isDisabled, omitPaddingClasses(buttonClassName)),
-                  // 外层只负责底色/对齐；padding 由内层主区 / ▾ 自己带。
-                  // 必须写在 buttonClassName 之后：无前缀 p-0 盖不住 sm:px-*。
-                  'inline-flex min-w-0 items-stretch overflow-hidden rounded-md gap-0 p-0',
-                  singleRowOnMobile && 'flex-1 text-xs sm:flex-none sm:text-sm',
-                )}
-              >
-                {/* 主按钮：选中该 Tab + 二级筛选回到「全部」 */}
-                <button
-                  type="button"
-                  disabled={isDisabled}
-                  onClick={() => {
-                    if (isDisabled) return;
-                    onValueChange(option.value);
-                    if (allValue !== undefined) {
-                      dropdown.onValueChange(allValue);
-                    }
-                  }}
-                  className={cn(
-                    'flex min-w-0 items-center gap-1.5 sm:gap-2 px-2.5 sm:pl-4 sm:pr-2 rounded-none bg-transparent',
-                    segmentYClass,
-                    hug && 'h-full',
-                    'hover:bg-transparent focus-visible:outline-none',
-                    singleRowOnMobile && 'flex-1 justify-center px-2 sm:flex-none sm:justify-start',
-                    isDisabled && 'cursor-not-allowed',
-                  )}
-                >
-                  {option.icon != null && (
-                    <span
-                      className={cn(
-                        'flex shrink-0 items-center justify-center',
-                        iconSlotClass,
-                        singleRowOnMobile && 'hidden sm:flex',
-                      )}
-                    >
-                      {asHoverIcon(option.icon)}
-                    </span>
-                  )}
-                  <span className="min-w-0 truncate">{option.label}</span>
-                  {option.badge}
-                </button>
-
-                <span
-                  className={cn('my-1.5 w-px shrink-0 self-stretch', dividerClass)}
-                  aria-hidden
-                />
-
-                {/* 仅箭头触发下拉；列表与插件选择器共用 SearchableMenu */}
-                <SearchableMenu
-                  width="content"
-                  align={dropdown.align ?? 'end'}
-                  disabled={isDisabled}
-                  contentClassName={dropdown.contentClassName}
-                  items={dropdown.items}
-                  value={dropdown.value}
-                  onValueChange={(next) => {
-                    onValueChange(option.value);
-                    dropdown.onValueChange(next);
-                  }}
-                  trigger={
-                    <button
-                      type="button"
-                      disabled={isDisabled}
-                      aria-label="Open filter menu"
-                      className={cn(
-                        'group flex items-center justify-center rounded-none border-0 bg-transparent px-2.5',
-                        segmentYClass,
-                        hug && 'h-full',
-                        singleRowOnMobile && 'px-1.5 sm:px-2.5',
-                        'hover:bg-black/5 dark:hover:bg-white/10 focus-visible:outline-none',
-                        'data-[state=open]:bg-black/5 dark:data-[state=open]:bg-white/10',
-                        isDisabled && 'cursor-not-allowed',
-                      )}
-                    >
-                      <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-70 transition-transform group-data-[state=open]:rotate-180" />
-                    </button>
-                  }
-                />
-              </div>
+                option={option}
+                isActive={isActive}
+                isDisabled={isDisabled}
+                buttonClassName={buttonClassName}
+                segmentYClass={segmentYClass}
+                hug={hug}
+                singleRowOnMobile={singleRowOnMobile}
+                iconSlotClass={iconSlotClass}
+                onValueChange={onValueChange}
+              />
             );
           }
 

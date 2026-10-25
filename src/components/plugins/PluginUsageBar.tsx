@@ -3,6 +3,7 @@ import { LayoutGrid } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PluginIcon } from '@/components/ui/plugin-icon';
 import { SearchableMenu } from '@/components/ui/searchable-menu';
+import { tabToolbarControlClass } from '@/components/ui/TabButtonGroup';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 interface PluginUsagePlugin {
@@ -60,7 +61,7 @@ export function PluginUsageBar({
       width="trigger"
       align={align}
       disabled={plugins.length === 0}
-      className={cn('w-full sm:w-[16rem]', className)}
+      className={cn('w-full sm:w-[16rem]', tabToolbarControlClass, className)}
       placeholder={t('plugins.selectPlugin')}
       placeholderIcon={<LayoutGrid className="h-4 w-4" />}
       searchPlaceholder={t('plugins.searchPlugin')}

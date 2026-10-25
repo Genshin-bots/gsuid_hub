@@ -247,6 +247,9 @@ profiles.filter((p) => {
     两者互斥。`singleRowOnMobile` 必须配 `className="w-full sm:w-max"`。
     **坑**：这里不能用 `flex-1` 等分——拆分按钮里 `whitespace-nowrap` 文案是 min-content 撑点，flex 下第一段会被顶到内容宽（实测 82/98/98），grid `minmax(0,1fr)` 才是真等分（93/93/93）。
 11. **拆分按钮不要靠 `buttonClassName` 传 `px-*`**。外层需要 `p-0`，内层主区 / ▾ 自带 padding。`twMerge` 无法用无前缀 `p-0` 覆盖 `sm:px-4`，会在图标前、箭头后各多出一截留空（`/ai-knowledge` 插件知识曾中招）。组件已剥掉拆分外层的 padding 类。
+12. **外壳宽度要跟着调用方的宽度类换挡**：`className="w-full sm:w-max"` 的本意是「窄屏铺满、桌面自适应」，组件会把宽度类（含 `sm:` 等响应式前缀）**同时套到外壳上**，外壳在 sm+ 变回 `max-content`。
+    **坑**：外壳若只认「有没有 `w-full`」就会永久通栏，在 `flex-wrap` 容器里占满整行，把同行兄弟挤到下一行——`/plugins` 卡片头的「插件自带页面」按钮曾因此掉到第二行（明明右边还有大片空白）。
+    宽度解析的纯逻辑在 `src/components/ui/tabGroupWidth.ts`（带单测），改宽度行为先看它。
 
 ### 6.1.7 全站使用面（按页面）
 

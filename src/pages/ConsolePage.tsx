@@ -6,6 +6,7 @@ import { Switch } from '@/components/ui/switch';
 import { Terminal, Trash2, Download, Circle, Check, Minus } from 'lucide-react';
 import {
   remoteCommandApi,
+  getAuthToken,
   logsApi,
   logsConfigApi,
   sanitizeVisibleLevels,
@@ -247,13 +248,11 @@ export default function ConsolePage() {
 
   // SSE stream for real-time logs - 始终接收所有级别，前端通过 filteredLogs 控制显示
   useEffect(() => {
-    const token = localStorage.getItem('auth_token');
+    const token = getAuthToken() || localStorage.getItem('auth_token');
     if (!token) return;
 
     const resumeFrom = lastEventIdRef.current;
-    const url =
-      `/api/logs/stream?token=${encodeURIComponent(token)}&level=all` +
-      (resumeFrom ? `&last_event_id=${encodeURIComponent(resumeFrom)}` : '');
+    const url = logsApi.getStreamUrl(token, 'all', resumeFrom);
     const authEventSource = new EventSource(url, { withCredentials: true });
 
     authEventSource.onmessage = (event) => {
@@ -540,12 +539,12 @@ export default function ConsolePage() {
   // 渲染 badge：根据激活态应用不同主题变�?
   const renderLevelBadge = (lv: { label: string; value: string }, active: boolean) => {
     // 通过 CSS 自定义属性把主题色直接注�?inline style，避免硬编码 Tailwind 颜色
-    // 激活态：根据明暗主题直接使用固定前景色，避免依赖 --primary-foreground 变量
-    // （该变量在不同主题下深浅不一，无法保证 --primary 背景上的可读性）。
+    // 激活态：使用主题变量 --primary-foreground 保证高对比前景色
+    // （避免在暗色模式或 shadcn 预设下文字与背景同色无法阅读）
     const activeStyle: React.CSSProperties = active
       ? {
           backgroundColor: 'hsl(var(--primary) / 0.95)',
-          color: isDark ? '#ffffff' : '#000000',
+          color: 'hsl(var(--primary-foreground))',
           borderColor: 'hsl(var(--primary))',
           boxShadow: isGlass
             ? '0 4px 14px hsl(var(--primary) / 0.25)'

@@ -179,7 +179,6 @@
   "sidebarDefaultCollapsedDesc": "コンソールに入ったときのサイドバーの展開・折りたたみ状態",
   "scaleCompact": "コンパクト",
   "scaleComfortable": "ゆったり",
-  "shadcnColorNotice": "Shadcn スタイルは純粋なモノクロ設計のため、テーマカラーはこのモードでは反映されません",
   "uploadCustomDesc": "ローカル画像のアップロードまたは外部画像 URL の設定に対応",
   "uploadLocalImage": "ローカル画像をアップロード",
   "or": "または",

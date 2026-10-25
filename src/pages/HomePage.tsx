@@ -34,7 +34,7 @@ import { getApiErrorMessage, versionApi } from '@/lib/api';
 import type { VersionInfo, ActiveBotsInfo } from '@/lib/api';
 import { SidebarHoverIcon, hoverIconGroupClass } from '@/components/layout/SidebarHoverIcon';
 
-const frontendVersion = PACKAGE_VERSION || '0.4.1';
+const frontendVersion = PACKAGE_VERSION || '0.4.2';
 
 function getGreetingKey(hour: number) {
   if (hour >= 5 && hour < 11) return 'morning';
