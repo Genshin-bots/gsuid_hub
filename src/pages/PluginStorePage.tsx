@@ -44,7 +44,6 @@ import {
   TabButtonGroup,
   tabToolbarControlClass,
   tabToolbarGroupWrapClass,
-  tabToolbarShellControlClass,
 } from '@/components/ui/TabButtonGroup';
 import { cn } from '@/lib/utils';
 import {
@@ -59,7 +58,7 @@ import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import remarkGfm from 'remark-gfm';
 import type { Components } from 'react-markdown';
-import { headerActionRowClass, PinnedPage } from '@/components/layout/PinnedPage';
+import { PinnedPage } from '@/components/layout/PinnedPage';
 
 // 缓存相关常量
 const PLUGIN_CACHE_KEY = 'pluginStore_cache';
@@ -254,22 +253,6 @@ export default function PluginStorePage() {
   const isDeprecated = (plugin: StorePlugin) => {
     return plugin.type === 'danger' && plugin.content === t('pluginStore.deprecated');
   };
-
-  const headerActionsRef = useRef<HTMLDivElement>(null);
-  const [headerActionsWidth, setHeaderActionsWidth] = useState<number | null>(null);
-
-  useEffect(() => {
-    const el = headerActionsRef.current;
-    if (!el) return;
-    const update = () => {
-      const width = el.getBoundingClientRect().width;
-      if (width > 0) setHeaderActionsWidth(width);
-    };
-    update();
-    const observer = new ResizeObserver(update);
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
 
   // 使用 ref 避免重建 components 对象时造成不必要的重渲染，
   // 同时让 img 组件可以访问当前打开的插件与镜像信息
@@ -598,11 +581,15 @@ export default function PluginStorePage() {
   const storeStats = useMemo(() => {
     let installed = 0;
     let updates = 0;
+    let fun = 0;
+    let tool = 0;
     for (const plugin of plugins) {
       if (plugin.installed) installed += 1;
       if (plugin.hasUpdate) updates += 1;
+      if (plugin.isFun) fun += 1;
+      if (plugin.isTool) tool += 1;
     }
-    return { total: plugins.length, installed, updates };
+    return { total: plugins.length, installed, updates, fun, tool };
   }, [plugins]);
 
   // Build README URLs based on mirror type
@@ -702,60 +689,36 @@ export default function PluginStorePage() {
       icon: <RefreshCw className="w-4 h-4" />,
       badge: storeTabCount(countText(storeStats.updates), !isLoading && storeStats.updates > 0),
     },
-    { value: 'fun', label: t('pluginStore.funPlugins'), icon: <Sparkles className="w-4 h-4" /> },
-    { value: 'tool', label: t('pluginStore.toolPlugins'), icon: <Wrench className="w-4 h-4" /> },
+    {
+      value: 'fun',
+      label: t('pluginStore.funPlugins'),
+      icon: <Sparkles className="w-4 h-4" />,
+      badge: storeTabCount(countText(storeStats.fun)),
+    },
+    {
+      value: 'tool',
+      label: t('pluginStore.toolPlugins'),
+      icon: <Wrench className="w-4 h-4" />,
+      badge: storeTabCount(countText(storeStats.tool)),
+    },
   ];
 
   return (
     <PinnedPage
       className="gap-4"
       header={
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold flex items-center gap-3">
-              <Store className="w-8 h-8" />
-              {t('pluginStore.title')}
-            </h1>
-            <p className="text-muted-foreground mt-1">{t('pluginStore.description')}</p>
-          </div>
-          <div ref={headerActionsRef} className={headerActionRowClass}>
-            <Button
-              variant="outline"
-              onClick={() => setGitMirrorOpen(true)}
-              className={cn(tabToolbarControlClass, 'gap-2')}
-            >
-              <GitBranch className="w-4 h-4" />
-              {t('gitMirror.title')}
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => setInstallByUrlOpen(true)}
-              className={cn(tabToolbarControlClass, 'gap-2')}
-            >
-              <Link2 className="w-4 h-4" />
-              {t('pluginStore.installFromUrl')}
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => {
-                fetchPlugins(true);
-                fetchGitMirrorInfo(true);
-              }}
-              disabled={isLoading}
-              className={cn(tabToolbarControlClass, 'gap-2')}
-            >
-              <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-              {t('pluginStore.refresh')}
-            </Button>
-          </div>
+        <div>
+          <h1 className="text-3xl font-bold flex items-center gap-3">
+            <Store className="w-8 h-8" />
+            {t('pluginStore.title')}
+          </h1>
+          <p className="text-muted-foreground mt-1">{t('pluginStore.description')}</p>
         </div>
       }
       toolbar={
-        /* 分类 Tab 与搜索同一行。数量在对应分段上。移动端 Tab 收成下拉，搜索吃剩余宽度；桌面搜索跟上头三个按钮同宽 */
-        <div className="flex min-w-0 flex-wrap items-center gap-3">
-          <div
-            className={cn(tabToolbarGroupWrapClass, 'min-w-0 shrink-0 max-w-[55%] md:max-w-none')}
-          >
+        /* 分类 Tab、搜索与操作按钮同一行平齐。高度统一为 tabToolbarControlClass */
+        <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
+          <div className={cn(tabToolbarGroupWrapClass, 'min-w-0 shrink-0')}>
             <TabButtonGroup
               options={tabOptions}
               value={activeTab}
@@ -764,26 +727,46 @@ export default function PluginStorePage() {
               collapseOnMobile
             />
           </div>
-          <div
-            className={cn(
-              'relative min-w-0 flex-1',
-              headerActionsWidth != null && 'sm:flex-none sm:w-[var(--ps-actions-w)]',
-            )}
-            style={
-              headerActionsWidth != null
-                ? ({
-                    '--ps-actions-w': `${Math.round(headerActionsWidth)}px`,
-                  } as React.CSSProperties)
-                : undefined
-            }
-          >
-            <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder={t('pluginStore.searchPlugin')}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className={cn(tabToolbarShellControlClass, 'w-full pl-10')}
-            />
+          <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-3 sm:flex-nowrap">
+            <div className="relative min-w-[12rem] flex-1 sm:w-64 sm:flex-none lg:w-72">
+              <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder={t('pluginStore.searchPlugin')}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className={cn(tabToolbarControlClass, 'w-full pl-10')}
+              />
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setGitMirrorOpen(true)}
+                className={cn(tabToolbarControlClass, 'gap-2')}
+              >
+                <GitBranch className="w-4 h-4" />
+                {t('gitMirror.title')}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setInstallByUrlOpen(true)}
+                className={cn(tabToolbarControlClass, 'gap-2')}
+              >
+                <Link2 className="w-4 h-4" />
+                {t('pluginStore.installFromUrl')}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  fetchPlugins(true);
+                  fetchGitMirrorInfo(true);
+                }}
+                disabled={isLoading}
+                className={cn(tabToolbarControlClass, 'gap-2')}
+              >
+                <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+                {t('pluginStore.refresh')}
+              </Button>
+            </div>
           </div>
         </div>
       }

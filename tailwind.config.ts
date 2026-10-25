@@ -191,6 +191,7 @@ export default {
   		transitionTimingFunction: {
   			'out-soft': 'cubic-bezier(0.4, 0, 0.2, 1)',
   			'in-out-soft': 'cubic-bezier(0.45, 0, 0.55, 1)',
+  			spring: 'cubic-bezier(0.34, 1.4, 0.64, 1)',
   		},
   	}
   },

@@ -169,7 +169,7 @@ export function TabButtonGroup({
       ? 'h-10 items-stretch overflow-hidden px-0.5 py-0'
       : 'p-1';
   // className 作用在按钮容器（内层）上——调用方会传 grid/w-full 等布局类改写整条布局。
-  // 外壳用 glass-card-flat：跟主题的底色/描边，不投影。普通按钮也没有这层阴影。
+  // 外壳跟主题底色/描边，阴影由 .tab-segment-row 统一跟随 --shadow-strength 阴影强度配置。
   const fullWidth = typeof className === 'string' && /\b(?:w-full|grid)\b/.test(className);
   const noShrink = typeof className === 'string' && /\bshrink-0\b/.test(className);
   const current = options.find((option) => option.value === value) ?? options[0];
@@ -344,7 +344,7 @@ export function TabButtonGroup({
       <div className="inline-flex max-w-full md:hidden">
         <div
           className={cn(
-            'inline-flex min-w-0 max-w-full gap-1 rounded-lg glass-card-flat',
+            'tab-segment-row inline-flex min-w-0 max-w-full gap-1 rounded-lg glass-card-flat',
             shellClass,
           )}
         >

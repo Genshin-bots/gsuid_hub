@@ -6,7 +6,13 @@ import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { TabButtonGroup, tabToolbarControlClass } from '@/components/ui/TabButtonGroup';
+import {
+  TabButtonGroup,
+  tabToolbarControlClass,
+  tabToolbarIconButtonClass,
+} from '@/components/ui/TabButtonGroup';
+import { KeptPane } from '@/components/ui/KeptPane';
+import { FieldMountBudget, useProgressiveCount } from '@/components/config/fieldMountBudget';
 import {
   Dialog,
   DialogContent,
@@ -27,6 +33,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useTheme } from '@/contexts/ThemeContext';
 import { LiquidSegmentThumb } from '@/components/ui/LiquidSegmentThumb';
+import { LabelWithHelp } from '@/components/ui/label-with-help';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 import { themeApi, type ThemePresetItem, type ThemeConfig, getApiErrorMessage } from '@/lib/api';
@@ -61,6 +68,9 @@ import {
   PanelLeftOpen,
   SeparatorVertical,
   CloudFog,
+  Plus,
+  Settings,
+  ImageOff,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { PinnedPage } from '@/components/layout/PinnedPage';
@@ -261,7 +271,7 @@ function SelectTile({ active, onClick, icon, label }: SelectTileProps) {
       className={cn(
         'select-tile group flex flex-1 min-w-0 flex-col items-center justify-center gap-2 rounded-xl border p-4 min-h-[88px] transition-all',
         active
-          ? 'border-primary bg-primary/15 text-primary font-semibold shadow-sm ring-1 ring-primary/40'
+          ? 'border-primary bg-primary/15 text-primary font-medium shadow-sm ring-1 ring-primary/40'
           : 'border-border/60 text-muted-foreground hover:border-primary/40 hover:text-foreground hover:bg-primary/5',
       )}
     >
@@ -295,22 +305,215 @@ function BgThumb({ active, onClick, label, children }: BgThumbProps) {
       type="button"
       onClick={onClick}
       className={cn(
-        'relative aspect-video w-full rounded-lg overflow-hidden transition-all hover:scale-[1.03]',
+        'group relative aspect-video w-full rounded-lg overflow-hidden transition-all duration-150 hover:scale-[1.02] hover:z-10 focus-visible:outline-none cursor-pointer',
         active
-          ? 'ring-2 ring-primary ring-offset-2 ring-offset-background'
-          : 'ring-1 ring-border/70',
+          ? 'z-10 ring-2 ring-primary ring-offset-2 ring-offset-background shadow-md'
+          : 'ring-1 ring-border/70 hover:ring-primary/40',
       )}
     >
       {children}
       {active && (
-        <div className="absolute inset-0 flex items-center justify-center bg-primary/25">
-          <Check className="w-5 h-5 text-primary-foreground drop-shadow" />
+        <div className="absolute inset-0 flex items-center justify-center bg-primary/20 backdrop-blur-[0.5px]">
+          <div className="rounded-full bg-primary p-1 text-primary-foreground shadow-md">
+            <Check className="w-4 h-4" />
+          </div>
         </div>
       )}
-      <span className="absolute top-1 right-1 max-w-[85%] truncate rounded-full bg-background/85 px-2 py-0.5 text-[10px] font-medium leading-tight backdrop-blur-sm">
+      <span className="absolute top-1.5 right-1.5 max-w-[85%] truncate rounded-full bg-background/90 text-foreground border border-border/40 px-2 py-0.5 text-[10px] font-medium leading-tight shadow-xs pointer-events-none">
         {label}
       </span>
     </button>
+  );
+}
+
+function thumbSrc(url: string): string {
+  if (!url.includes('images.unsplash.com')) return url;
+  return url.replace(/([?&])w=\d+/, '$1w=480').replace(/([?&])q=\d+/, '$1q=60');
+}
+
+function PresetThumbGrid({
+  items,
+  activeValue,
+  onSelect,
+  labelOf,
+}: {
+  items: ReadonlyArray<{ id: string; name: string; value: string }>;
+  activeValue: string | null;
+  onSelect: (value: string) => void;
+  labelOf: (name: string) => string;
+}) {
+  const count = useProgressiveCount(items.length);
+  return (
+    <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+      {items.slice(0, count).map((bg) => {
+        const gradient = bg.value.startsWith('linear-gradient');
+        return (
+          <BgThumb
+            key={bg.id}
+            active={activeValue === bg.value}
+            onClick={() => onSelect(bg.value)}
+            label={labelOf(bg.name)}
+          >
+            {gradient ? (
+              <div className="w-full h-full" style={{ background: bg.value }} />
+            ) : (
+              <img
+                src={thumbSrc(bg.value)}
+                alt={labelOf(bg.name)}
+                className="w-full h-full object-cover"
+                decoding="async"
+              />
+            )}
+          </BgThumb>
+        );
+      })}
+    </div>
+  );
+}
+
+interface PresetOption {
+  v: number;
+  l: string;
+}
+
+interface SliderPresetsProps {
+  min: number;
+  max: number;
+  value: number;
+  onChange: (v: number) => void;
+  presets: PresetOption[];
+}
+
+function SliderPresets({ min, max, value, onChange, presets }: SliderPresetsProps) {
+  const { t } = useLanguage();
+  return (
+    <div className="relative h-6 w-full text-xs select-none">
+      {presets.map((p) => {
+        const pct = Math.max(0, Math.min(100, ((p.v - min) / (max - min)) * 100));
+        const transform = pct <= 3 ? 'none' : pct >= 97 ? 'translateX(-100%)' : 'translateX(-50%)';
+        const active = value === p.v;
+        return (
+          <button
+            key={p.v}
+            type="button"
+            onClick={() => onChange(p.v)}
+            style={{ left: `${pct}%`, transform }}
+            className={cn(
+              'absolute top-0 transition-colors hover:text-primary cursor-pointer py-0.5 whitespace-nowrap',
+              active
+                ? 'font-semibold text-primary underline underline-offset-4 decoration-primary/60'
+                : 'text-muted-foreground',
+            )}
+          >
+            {t(p.l)}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+interface ThemeSliderControlProps {
+  label: React.ReactNode;
+  value: number;
+  unit?: string;
+  min: number;
+  max: number;
+  step?: number;
+  onLiveChange?: (value: number) => void;
+  onCommit: (value: number) => void;
+  presets: PresetOption[];
+}
+
+function ThemeSliderControl({
+  label,
+  value,
+  unit = '%',
+  min,
+  max,
+  step = 1,
+  onLiveChange,
+  onCommit,
+  presets,
+}: ThemeSliderControlProps) {
+  const [localVal, setLocalVal] = useState<number | null>(null);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const animTimerRef = useRef<number | null>(null);
+
+  const displayVal = localVal ?? value;
+
+  useEffect(() => {
+    return () => {
+      if (animTimerRef.current != null) {
+        window.clearTimeout(animTimerRef.current);
+      }
+    };
+  }, []);
+
+  const handleValueChange = (val: number[]) => {
+    if (isAnimating) {
+      setIsAnimating(false);
+      if (animTimerRef.current != null) {
+        window.clearTimeout(animTimerRef.current);
+        animTimerRef.current = null;
+      }
+    }
+    const next = val[0];
+    setLocalVal(next);
+    onLiveChange?.(next);
+  };
+
+  const handleValueCommit = (val: number[]) => {
+    const next = val[0];
+    setLocalVal(null);
+    onCommit(next);
+  };
+
+  const handlePresetChange = (v: number) => {
+    setIsAnimating(true);
+    if (animTimerRef.current != null) {
+      window.clearTimeout(animTimerRef.current);
+    }
+    animTimerRef.current = window.setTimeout(() => {
+      setIsAnimating(false);
+      animTimerRef.current = null;
+    }, 400);
+
+    setLocalVal(null);
+    onLiveChange?.(v);
+    onCommit(v);
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex justify-between items-center">
+        {typeof label === 'string' ? (
+          <span className="text-sm text-muted-foreground">{label}</span>
+        ) : (
+          label
+        )}
+        <span className="text-sm font-medium bg-primary/10 text-primary px-2 py-0.5 rounded">
+          {displayVal}
+          {unit}
+        </span>
+      </div>
+      <Slider
+        animate={isAnimating}
+        value={[displayVal]}
+        onValueChange={handleValueChange}
+        onValueCommit={handleValueCommit}
+        min={min}
+        max={max}
+        step={step}
+      />
+      <SliderPresets
+        min={min}
+        max={max}
+        value={displayVal}
+        onChange={handlePresetChange}
+        presets={presets}
+      />
+    </div>
   );
 }
 
@@ -357,6 +560,15 @@ export default function ThemesPage() {
 
   const [tab, setTab] = useState<ThemeTab>('presets');
   const [customUrl, setCustomUrl] = useState('');
+  const [customDialogOpen, setCustomDialogOpen] = useState(false);
+  const [lastCustomBg, setLastCustomBg] = useState<string | null>(() => {
+    const allPresets = [
+      ...imagePresets.map((p) => p.value),
+      ...gradientPresets.map((p) => p.value),
+      ...animeBgPresets.map((p) => p.value),
+    ];
+    return backgroundImage && !allPresets.includes(backgroundImage) ? backgroundImage : null;
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ---- 预设状态 ----
@@ -415,23 +627,27 @@ export default function ThemesPage() {
     reader.onload = (event) => {
       const dataUrl = event.target?.result as string;
       handleSelectBackground(dataUrl);
+      setLastCustomBg(dataUrl);
       toast.success(t('themes.bgUploaded'));
     };
     reader.readAsDataURL(file);
   };
 
   const handleCustomUrl = () => {
-    if (!customUrl.trim()) {
+    const url = customUrl.trim();
+    if (!url) {
       toast.error(t('themes.enterImageLink'));
       return;
     }
-    handleSelectBackground(customUrl.trim());
+    handleSelectBackground(url);
+    setLastCustomBg(url);
     setCustomUrl('');
     toast.success(t('themes.bgApplied'));
   };
 
   const clearBackground = () => {
     setBackgroundImage(null, true);
+    setLastCustomBg(null);
     toast.success(t('themes.bgCleared'));
   };
 
@@ -444,11 +660,8 @@ export default function ThemesPage() {
     }
   };
 
-  const allPresetValues = [
-    ...imagePresets.map((p) => p.value),
-    ...gradientPresets.map((p) => p.value),
-    ...animeBgPresets.map((p) => p.value),
-  ];
+  const allBgPresets = useMemo(() => [...imagePresets, ...gradientPresets, ...animeBgPresets], []);
+  const allPresetValues = useMemo(() => allBgPresets.map((p) => p.value), [allBgPresets]);
   const isCustomImage = backgroundImage && !allPresetValues.includes(backgroundImage);
 
   // ---- 预设操作 ----
@@ -547,392 +760,855 @@ export default function ThemesPage() {
             value={tab}
             onValueChange={(v) => setTab(v as ThemeTab)}
           />
-          <Button
-            onClick={openSaveDialog}
-            className={cn(tabToolbarControlClass, 'w-full gap-2 sm:w-auto sm:shrink-0')}
-          >
-            <Save className="w-4 h-4" />
-            {t('themes.saveAsPreset')}
-          </Button>
+          <div className="flex items-center gap-2 w-full sm:w-auto sm:shrink-0">
+            {tab === 'presets' && (
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={loadPresets}
+                disabled={presetsLoading}
+                aria-label={t('themes.refresh')}
+                className={tabToolbarIconButtonClass}
+              >
+                <RefreshCw className={cn('w-4 h-4', presetsLoading && 'animate-spin')} />
+              </Button>
+            )}
+            <Button
+              onClick={openSaveDialog}
+              className={cn(tabToolbarControlClass, 'flex-1 sm:flex-initial gap-2')}
+            >
+              <Save className="w-4 h-4" />
+              {t('themes.saveAsPreset')}
+            </Button>
+          </div>
         </div>
       }
     >
       {/* ============================ 外观 Tab ============================ */}
-      {tab === 'appearance' && (
-        <div className="glass-card-grid grid gap-4 lg:grid-cols-2">
-          {/* 颜色模式 */}
-          <Card className="glass-card">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                {mode === 'dark' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
-                {t('themes.colorMode')}
-              </CardTitle>
-              <CardDescription>{t('themes.colorModeDesc')}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <SelectTileRow>
-                <SelectTile
-                  active={mode === 'light'}
-                  onClick={() => setMode('light', true)}
-                  icon={<Sun />}
-                  label={t('themes.lightMode')}
-                />
-                <SelectTile
-                  active={mode === 'dark'}
-                  onClick={() => setMode('dark', true)}
-                  icon={<Moon />}
-                  label={t('themes.darkMode')}
-                />
-              </SelectTileRow>
-            </CardContent>
-          </Card>
-
-          {/* 界面风格 */}
-          <Card className="glass-card">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Sparkles className="w-5 h-5" />
-                {t('themes.interfaceStyle')}
-              </CardTitle>
-              <CardDescription>{t('themes.styleDesc')}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <SelectTileRow>
-                <SelectTile
-                  active={style === 'solid'}
-                  onClick={() => setStyle('solid', true)}
-                  icon={
-                    <span
-                      className={cn(
-                        'block h-6 w-6 rounded-lg',
-                        style === 'solid'
-                          ? 'bg-primary-foreground shadow-[inset_0_0_0_1px_hsl(var(--primary-foreground)/0.45)]'
-                          : 'bg-foreground/70',
-                      )}
-                    />
-                  }
-                  label={t('themes.solidStyle')}
-                />
-                <SelectTile
-                  active={style === 'glassmorphism'}
-                  onClick={() => setStyle('glassmorphism', true)}
-                  icon={
-                    <span className="block w-6 h-6 rounded-lg bg-gradient-to-br from-primary/50 to-accent/50 backdrop-blur border border-border/50" />
-                  }
-                  label={t('themes.glassStyle')}
-                />
-                <SelectTile
-                  active={style === 'luminous'}
-                  onClick={() => setStyle('luminous', true)}
-                  icon={
-                    <span className="relative block w-6 h-6 rounded-lg bg-gradient-to-br from-primary/40 via-sky-400/30 to-accent/50 backdrop-blur-md border border-white/60 shadow-[inset_0_1px_1px_rgba(255,255,255,0.8),0_2px_8px_hsl(var(--primary)/0.25)] overflow-hidden">
-                      <span className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/40 to-transparent animate-pulse" />
-                    </span>
-                  }
-                  label={t('themes.luminousStyle')}
-                />
-                <SelectTile
-                  active={style === 'liquid'}
-                  onClick={() => setStyle('liquid', true)}
-                  icon={
-                    <span className="relative block w-6 h-6 rounded-lg bg-gradient-to-br from-white/40 via-white/10 to-white/25 backdrop-blur-md border border-white/80 shadow-[inset_0_1.5px_0_rgba(255,255,255,0.95),inset_0_0_6px_rgba(255,255,255,0.2),0_2px_8px_rgba(0,0,0,0.15)] overflow-hidden">
-                      <span className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,rgba(255,255,255,0.9)_0%,transparent_60%)]" />
-                      <span className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-cyan-400/30 via-emerald-400/20 to-pink-400/30 blur-[1px] opacity-60" />
-                    </span>
-                  }
-                  label={t('themes.liquidStyle')}
-                />
-              </SelectTileRow>
-            </CardContent>
-          </Card>
-
-          {/* 主题预设风格 */}
-          <Card className="glass-card">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Layers className="w-5 h-5" />
-                {t('themes.themePreset')}
-              </CardTitle>
-              <CardDescription>{t('themes.themePresetDesc')}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <SelectTileRow>
-                <SelectTile
-                  active={themePreset === 'default'}
-                  onClick={() => setThemePreset('default', true)}
-                  icon={<Palette />}
-                  label={t('themes.defaultStyle')}
-                />
-                <SelectTile
-                  active={themePreset === 'shadcn'}
-                  onClick={() => setThemePreset('shadcn', true)}
-                  icon={<span className="block w-6 h-6 rounded border-2 border-current" />}
-                  label={t('themes.shadcnStyle')}
-                />
-              </SelectTileRow>
-              <p className="mt-3 text-sm text-muted-foreground">
-                {themePreset === 'shadcn'
-                  ? t('themes.shadcnStyleDesc')
-                  : t('themes.defaultStyleDesc')}
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* 图标颜色 */}
-          <Card className="glass-card">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Paintbrush className="w-5 h-5" />
-                {t('themes.iconColor')}
-              </CardTitle>
-              <CardDescription>{t('themes.iconColorDesc')}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <SelectTileRow className="grid grid-cols-1 sm:grid-cols-3">
-                {iconColorOptions.map((option) => (
-                  <SelectTile
-                    key={option.id}
-                    active={iconColor === option.id}
-                    onClick={() => setIconColor(option.id, true)}
-                    icon={<span className="text-2xl leading-none">{option.icon}</span>}
-                    label={t(option.name)}
-                  />
-                ))}
-              </SelectTileRow>
-            </CardContent>
-          </Card>
-
-          {/* 主题颜色 */}
-          <Card className="glass-card lg:col-span-2">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Palette className="w-5 h-5" />
-                {t('themes.themeColor')}
-              </CardTitle>
-              <CardDescription>{t('themes.themeColorDesc')}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
-                {themeColors.map((theme) => (
-                  <button
-                    key={theme.id}
-                    type="button"
-                    onClick={() => setColor(theme.id, true)}
-                    className="flex flex-col items-center gap-1.5 group"
-                  >
-                    <span
-                      className={cn(
-                        'relative h-10 w-full rounded-lg transition-all group-hover:scale-105',
-                        color === theme.id
-                          ? 'ring-2 ring-offset-2 ring-offset-background ring-primary'
-                          : '',
-                      )}
-                      style={{ backgroundColor: theme.color }}
-                    >
-                      {color === theme.id && (
-                        <Check className="absolute inset-0 m-auto w-5 h-5 text-white drop-shadow" />
-                      )}
-                    </span>
-                    <span
-                      className={cn(
-                        'text-xs truncate max-w-full',
-                        color === theme.id ? 'text-primary font-medium' : 'text-muted-foreground',
-                      )}
-                    >
-                      {t(theme.name)}
-                    </span>
-                  </button>
-                ))}
+      <KeptPane
+        active={tab === 'appearance'}
+        live
+        preload
+        render={() => (
+          <div className="glass-card-grid grid gap-6 lg:grid-cols-2">
+            {/* ==================== 左列：显示与质感 ==================== */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 px-1 text-sm font-semibold text-muted-foreground">
+                <Sparkles className="w-4 h-4 text-primary" />
+                <span>{t('themes.groupStyle')}</span>
               </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+
+              {/* 颜色模式 */}
+              <Card className="glass-card p-4 sm:p-5 space-y-3.5">
+                <LabelWithHelp
+                  icon={
+                    mode === 'dark' ? (
+                      <Moon className="w-4 h-4 text-primary" />
+                    ) : (
+                      <Sun className="w-4 h-4 text-primary" />
+                    )
+                  }
+                  label={t('themes.colorMode')}
+                  description={t('themes.colorModeDesc')}
+                  className="text-sm font-semibold text-foreground cursor-default"
+                />
+                <SelectTileRow className="grid grid-cols-2 gap-2.5">
+                  <SelectTile
+                    active={mode === 'light'}
+                    onClick={() => setMode('light', true)}
+                    icon={<Sun />}
+                    label={t('themes.lightMode')}
+                  />
+                  <SelectTile
+                    active={mode === 'dark'}
+                    onClick={() => setMode('dark', true)}
+                    icon={<Moon />}
+                    label={t('themes.darkMode')}
+                  />
+                </SelectTileRow>
+              </Card>
+
+              {/* 界面风格 */}
+              <Card className="glass-card p-4 sm:p-5 space-y-3.5">
+                <LabelWithHelp
+                  icon={<Blend className="w-4 h-4 text-primary" />}
+                  label={t('themes.interfaceStyle')}
+                  description={t('themes.styleDesc')}
+                  className="text-sm font-semibold text-foreground cursor-default"
+                />
+                <SelectTileRow className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                  <SelectTile
+                    active={style === 'solid'}
+                    onClick={() => setStyle('solid', true)}
+                    icon={
+                      <span
+                        className={cn(
+                          'block h-5 w-5 rounded-md',
+                          style === 'solid'
+                            ? 'bg-primary-foreground shadow-[inset_0_0_0_1px_hsl(var(--primary-foreground)/0.45)]'
+                            : 'bg-foreground/70',
+                        )}
+                      />
+                    }
+                    label={t('themes.solidStyle')}
+                  />
+                  <SelectTile
+                    active={style === 'glassmorphism'}
+                    onClick={() => setStyle('glassmorphism', true)}
+                    icon={
+                      <span className="block w-5 h-5 rounded-md bg-gradient-to-br from-primary/50 to-accent/50 backdrop-blur border border-border/50" />
+                    }
+                    label={t('themes.glassStyle')}
+                  />
+                  <SelectTile
+                    active={style === 'luminous'}
+                    onClick={() => setStyle('luminous', true)}
+                    icon={
+                      <span className="relative block w-5 h-5 rounded-md bg-gradient-to-br from-primary/40 via-sky-400/30 to-accent/50 backdrop-blur-md border border-white/60 shadow-[inset_0_1px_1px_rgba(255,255,255,0.8),0_2px_8px_hsl(var(--primary)/0.25)] overflow-hidden">
+                        <span className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/40 to-transparent animate-pulse" />
+                      </span>
+                    }
+                    label={t('themes.luminousStyle')}
+                  />
+                  <SelectTile
+                    active={style === 'liquid'}
+                    onClick={() => setStyle('liquid', true)}
+                    icon={
+                      <span className="relative block w-5 h-5 rounded-md bg-gradient-to-br from-white/40 via-white/10 to-white/25 backdrop-blur-md border border-white/80 shadow-[inset_0_1.5px_0_rgba(255,255,255,0.95),inset_0_0_6px_rgba(255,255,255,0.2),0_2px_8px_rgba(0,0,0,0.15)] overflow-hidden">
+                        <span className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,rgba(255,255,255,0.9)_0%,transparent_60%)]" />
+                        <span className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-cyan-400/30 via-emerald-400/20 to-pink-400/30 blur-[1px] opacity-60" />
+                      </span>
+                    }
+                    label={t('themes.liquidStyle')}
+                  />
+                </SelectTileRow>
+              </Card>
+
+              {/* 图标颜色 */}
+              <Card className="glass-card p-4 sm:p-5 space-y-3.5">
+                <LabelWithHelp
+                  icon={<Paintbrush className="w-4 h-4 text-primary" />}
+                  label={t('themes.iconColor')}
+                  description={t('themes.iconColorDesc')}
+                  className="text-sm font-semibold text-foreground cursor-default"
+                />
+                <SelectTileRow className="grid grid-cols-3 gap-2.5">
+                  {iconColorOptions.map((option) => (
+                    <SelectTile
+                      key={option.id}
+                      active={iconColor === option.id}
+                      onClick={() => setIconColor(option.id, true)}
+                      icon={<span className="text-xl leading-none">{option.icon}</span>}
+                      label={t(option.name)}
+                    />
+                  ))}
+                </SelectTileRow>
+              </Card>
+            </div>
+
+            {/* ==================== 右列：主题与色彩 ==================== */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 px-1 text-sm font-semibold text-muted-foreground">
+                <Palette className="w-4 h-4 text-primary" />
+                <span>{t('themes.groupPalette')}</span>
+              </div>
+
+              {/* 主题预设风格 */}
+              <Card className="glass-card p-4 sm:p-5 space-y-3.5">
+                <LabelWithHelp
+                  icon={<Layers className="w-4 h-4 text-primary" />}
+                  label={t('themes.themePreset')}
+                  description={t('themes.themePresetDesc')}
+                  className="text-sm font-semibold text-foreground cursor-default"
+                />
+                <SelectTileRow className="grid grid-cols-2 gap-2.5">
+                  <SelectTile
+                    active={themePreset === 'default'}
+                    onClick={() => setThemePreset('default', true)}
+                    icon={<Palette />}
+                    label={t('themes.defaultStyle')}
+                  />
+                  <SelectTile
+                    active={themePreset === 'shadcn'}
+                    onClick={() => setThemePreset('shadcn', true)}
+                    icon={<span className="block w-5 h-5 rounded border-2 border-current" />}
+                    label={t('themes.shadcnStyle')}
+                  />
+                </SelectTileRow>
+              </Card>
+
+              {/* 主题颜色 */}
+              <Card className="glass-card p-4 sm:p-5 space-y-3.5">
+                <div className="flex items-center justify-between gap-2">
+                  <LabelWithHelp
+                    icon={<Palette className="w-4 h-4 text-primary" />}
+                    label={t('themes.themeColor')}
+                    description={t('themes.themeColorDesc')}
+                    className="text-sm font-semibold text-foreground cursor-default"
+                  />
+                  {themePreset === 'shadcn' && (
+                    <span className="text-[11px] text-muted-foreground bg-muted/70 px-2 py-0.5 rounded-full border border-border/40 shrink-0">
+                      {t('themes.shadcnColorNotice')}
+                    </span>
+                  )}
+                </div>
+                <SelectTileRow className="grid grid-cols-3 gap-2.5">
+                  {themeColors.map((theme) => (
+                    <SelectTile
+                      key={theme.id}
+                      active={color === theme.id}
+                      onClick={() => {
+                        setColor(theme.id, true);
+                        if (themePreset === 'shadcn') {
+                          setThemePreset('default', true);
+                        }
+                      }}
+                      icon={
+                        <span
+                          className={cn(
+                            'relative flex items-center justify-center w-5 h-5 rounded-full shadow-xs transition-transform group-hover:scale-110',
+                            color === theme.id
+                              ? 'ring-2 ring-white/70 shadow-md scale-105'
+                              : 'ring-1 ring-black/15 dark:ring-white/25',
+                          )}
+                          style={{ backgroundColor: theme.color }}
+                        >
+                          {color === theme.id && (
+                            <Check className="w-3.5 h-3.5 text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.5)]" />
+                          )}
+                        </span>
+                      }
+                      label={t(theme.name)}
+                    />
+                  ))}
+                </SelectTileRow>
+              </Card>
+            </div>
+          </div>
+        )}
+      />
 
       {/* ============================ 背景 Tab ============================ */}
-      {tab === 'background' && (
-        <Card className="glass-card">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Image className="w-5 h-5" />
-              {t('themes.bgSettings')}
-            </CardTitle>
-            <CardDescription>{t('themes.bgSettingsDesc')}</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">
-                  {t('themes.backgroundBlurValue')}
-                </span>
-                <span className="rounded bg-primary/10 px-2 py-0.5 text-sm font-medium text-primary">
-                  {backgroundBlur}px
-                </span>
-              </div>
-              <p className="text-sm text-muted-foreground">{t('themes.backgroundBlurDesc')}</p>
-              <Slider
-                value={[backgroundBlur]}
-                onValueChange={(value) => setBackgroundBlur(value[0])}
-                onValueCommit={(value) => setBackgroundBlur(value[0], true)}
+      <KeptPane
+        active={tab === 'background'}
+        live
+        preload
+        render={() => (
+          <div className="space-y-6">
+            {/* 背景模糊 */}
+            <Card className="glass-card p-4 sm:p-5 space-y-4">
+              <ThemeSliderControl
+                label={
+                  <LabelWithHelp
+                    label={t('themes.backgroundBlurValue')}
+                    description={t('themes.backgroundBlurDesc')}
+                    className="text-sm font-semibold text-foreground cursor-default"
+                  />
+                }
+                value={backgroundBlur}
+                unit="px"
                 min={0}
                 max={40}
                 step={1}
-              />
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>{t('themes.clear')}</span>
-                <span>{t('themes.moderate')}</span>
-                <span>{t('themes.blurry')}</span>
-              </div>
-              <div className="flex gap-2">
-                {[
+                onLiveChange={(v) =>
+                  document.documentElement.style.setProperty('--background-blur', `${v}px`)
+                }
+                onCommit={(v) => setBackgroundBlur(v, true)}
+                presets={[
                   { v: 0, l: 'themes.clear' },
-                  { v: 12, l: 'themes.moderate' },
-                  { v: 28, l: 'themes.blurry' },
-                ].map((p) => (
-                  <Button
-                    key={p.v}
-                    variant="outline"
-                    size="sm"
-                    className={cn(
-                      'h-8',
-                      backgroundBlur === p.v &&
-                        'border-primary bg-primary/15 font-semibold text-primary',
-                    )}
-                    onClick={() => setBackgroundBlur(p.v, true)}
-                  >
-                    {t(p.l)}
-                  </Button>
-                ))}
-              </div>
-            </div>
+                  { v: 20, l: 'themes.moderate' },
+                  { v: 40, l: 'themes.blurry' },
+                ]}
+              />
 
-            {/* 无背景 / 默认 */}
-            <div className="space-y-3">
-              <Label className="text-sm font-medium text-primary bg-primary/10 px-2 py-1 rounded-md inline-block">
-                {t('themes.default')}
-              </Label>
-              <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+              {style === 'solid' && (
+                <p className="text-xs text-muted-foreground border-l-2 border-primary/50 pl-2">
+                  {t('themes.tip')}
+                </p>
+              )}
+            </Card>
+
+            {/* 背景壁纸墙 */}
+            <Card className="glass-card p-4 sm:p-5 space-y-3.5">
+              <LabelWithHelp
+                icon={<Image className="w-5 h-5 text-primary" />}
+                label={t('themes.bgSettings')}
+                description={t('themes.bgSettingsDesc')}
+                className="text-base font-semibold"
+              />
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-3.5 p-1.5">
+                {/* 首位：无背景 */}
                 <BgThumb
                   active={backgroundImage === null}
                   onClick={() => handleSelectBackground(null)}
                   label={t('themes.noBg')}
                 >
-                  <div className="w-full h-full bg-gradient-to-br from-muted to-muted/40" />
+                  <div className="w-full h-full bg-muted/40 flex items-center justify-center text-muted-foreground">
+                    <ImageOff className="w-6 h-6 opacity-60" />
+                  </div>
                 </BgThumb>
-              </div>
-            </div>
 
-            {/* 二次元背景 */}
-            <div className="space-y-3">
-              <Label className="text-sm font-medium text-primary bg-primary/10 px-2 py-1 rounded-md inline-block">
-                {t('themes.animeBg')}
-              </Label>
-              <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
-                {animeBgPresets.map((bg) => (
+                {/* 中间：所有预设壁纸直出图片墙 */}
+                {allBgPresets.map((bg) => (
                   <BgThumb
                     key={bg.id}
                     active={backgroundImage === bg.value}
                     onClick={() => handleSelectBackground(bg.value)}
                     label={t(bg.name)}
                   >
-                    <img
-                      src={bg.value}
-                      alt={t(bg.name)}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                    />
+                    {bg.value.startsWith('linear-gradient') ? (
+                      <div className="w-full h-full" style={{ background: bg.value }} />
+                    ) : (
+                      <img
+                        src={thumbSrc(bg.value)}
+                        alt={t(bg.name)}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    )}
                   </BgThumb>
                 ))}
-              </div>
-            </div>
 
-            {/* 图片背景 */}
-            <div className="space-y-3">
-              <Label className="text-sm font-medium text-primary bg-primary/10 px-2 py-1 rounded-md inline-block">
-                {t('themes.imageBg')}
-              </Label>
-              <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
-                {imagePresets.map((bg) => (
-                  <BgThumb
-                    key={bg.id}
-                    active={backgroundImage === bg.value}
-                    onClick={() => handleSelectBackground(bg.value)}
-                    label={t(bg.name)}
-                  >
-                    <img
-                      src={bg.value}
-                      alt={t(bg.name)}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                    />
-                  </BgThumb>
-                ))}
-              </div>
-            </div>
-
-            {/* 渐变背景 */}
-            <div className="space-y-3">
-              <Label className="text-sm font-medium text-primary bg-primary/10 px-2 py-1 rounded-md inline-block">
-                {t('themes.gradientBg')}
-              </Label>
-              <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
-                {gradientPresets.map((bg) => (
-                  <BgThumb
-                    key={bg.id}
-                    active={backgroundImage === bg.value}
-                    onClick={() => handleSelectBackground(bg.value)}
-                    label={t(bg.name)}
-                  >
-                    <div className="w-full h-full" style={{ background: bg.value }} />
-                  </BgThumb>
-                ))}
-              </div>
-            </div>
-
-            {/* 自定义背景 */}
-            <div className="space-y-3">
-              <Label className="text-sm font-medium text-primary bg-primary/10 px-2 py-1 rounded-md inline-block">
-                {t('themes.customBg')}
-              </Label>
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                />
-                <Button
-                  variant="outline"
-                  className="h-9 sm:flex-1"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  <Upload className="w-4 h-4 mr-2" />
-                  {t('themes.uploadImage')}
-                </Button>
-                <div className="flex gap-2 sm:flex-[2]">
-                  <Input
-                    value={customUrl}
-                    onChange={(e) => setCustomUrl(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleCustomUrl();
+                {/* 末位：自定义背景 */}
+                {lastCustomBg ? (
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => {
+                      if (isCustomImage) {
+                        setCustomDialogOpen(true);
+                      } else {
+                        handleSelectBackground(lastCustomBg);
+                      }
                     }}
-                    placeholder={t('themes.imageLink')}
-                    className="h-9 flex-1"
-                  />
-                  <Button
-                    onClick={handleCustomUrl}
-                    size="icon"
-                    variant="outline"
-                    className="h-9 w-9 shrink-0"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        if (isCustomImage) setCustomDialogOpen(true);
+                        else handleSelectBackground(lastCustomBg);
+                      }
+                    }}
+                    className={cn(
+                      'group relative aspect-video w-full rounded-lg overflow-hidden transition-all duration-150 hover:scale-[1.02] hover:z-10 focus-visible:outline-none cursor-pointer',
+                      isCustomImage
+                        ? 'z-10 ring-2 ring-primary ring-offset-2 ring-offset-background shadow-md'
+                        : 'ring-1 ring-border/70 hover:ring-primary/40',
+                    )}
                   >
-                    <Link className="w-4 h-4" />
+                    {lastCustomBg.startsWith('data:') || lastCustomBg.startsWith('http') ? (
+                      <img
+                        src={lastCustomBg}
+                        alt={t('themes.customBg')}
+                        className="h-full w-full object-cover"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    ) : (
+                      <div className="h-full w-full" style={{ background: lastCustomBg }} />
+                    )}
+                    {isCustomImage && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-primary/20 backdrop-blur-[0.5px]">
+                        <div className="rounded-full bg-primary p-1 text-primary-foreground shadow-md">
+                          <Check className="w-4 h-4" />
+                        </div>
+                      </div>
+                    )}
+                    <span className="absolute top-1.5 right-1.5 max-w-[85%] truncate rounded-full bg-background/90 text-foreground border border-border/40 px-2 py-0.5 text-[10px] font-medium leading-tight shadow-xs pointer-events-none">
+                      {t('themes.customBg')}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCustomDialogOpen(true);
+                      }}
+                      className="absolute bottom-1.5 right-1.5 p-1 rounded-full bg-background/90 hover:bg-background text-foreground border border-border/40 shadow-xs transition-transform hover:scale-110"
+                      title={t('themes.customBg')}
+                      aria-label={t('themes.customBg')}
+                    >
+                      <Settings className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground" />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setCustomDialogOpen(true)}
+                    className={cn(
+                      'group relative aspect-video w-full rounded-lg border-2 border-dashed border-border/70 hover:border-primary/60 hover:bg-primary/5 transition-all duration-150 flex flex-col items-center justify-center gap-1.5 text-muted-foreground hover:text-foreground focus-visible:outline-none',
+                      isCustomImage &&
+                        'z-10 ring-2 ring-primary ring-offset-2 ring-offset-background shadow-md',
+                    )}
+                  >
+                    <Plus className="w-5 h-5 text-primary/70 group-hover:text-primary transition-colors" />
+                    <span className="text-xs font-medium">{t('themes.customBg')}</span>
+                  </button>
+                )}
+              </div>
+            </Card>
+          </div>
+        )}
+      />
+
+      {/* ============================ 杂项 Tab ============================ */}
+      <KeptPane
+        active={tab === 'misc'}
+        live
+        preload
+        render={() => (
+          <div className="glass-card-grid grid gap-6 lg:grid-cols-2">
+            {/* ==================== 左列：材质与光影 ==================== */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 px-1 text-sm font-semibold text-muted-foreground">
+                <Paintbrush className="w-4 h-4 text-primary" />
+                <span>{t('themes.groupMaterial')}</span>
+              </div>
+
+              {/* 卡片透明度 */}
+              <Card className="glass-card p-4 sm:p-5 space-y-4">
+                <ThemeSliderControl
+                  label={
+                    <LabelWithHelp
+                      icon={<Droplet className="w-4 h-4 text-primary" />}
+                      label={t('themes.cardOpacity')}
+                      description={t('themes.cardOpacityDesc')}
+                      className="text-sm font-semibold text-foreground cursor-default"
+                    />
+                  }
+                  value={cardOpacity}
+                  unit="%"
+                  min={0}
+                  max={100}
+                  step={1}
+                  onLiveChange={(v) =>
+                    document.documentElement.style.setProperty('--card-opacity', String(v / 100))
+                  }
+                  onCommit={(v) => setCardOpacity(v, true)}
+                  presets={[
+                    { v: 0, l: 'themes.transparent' },
+                    { v: 50, l: 'themes.standardOpacity' },
+                    { v: 100, l: 'themes.opaque' },
+                  ]}
+                />
+              </Card>
+
+              {/* 毛玻璃 / 光感玻璃强度 */}
+              {style !== 'solid' && (
+                <Card className="glass-card p-4 sm:p-5 space-y-4">
+                  <ThemeSliderControl
+                    label={
+                      <LabelWithHelp
+                        icon={<Blend className="w-4 h-4 text-primary" />}
+                        label={t('themes.glassIntensity')}
+                        description={t('themes.glassIntensityDesc')}
+                        className="text-sm font-semibold text-foreground cursor-default"
+                      />
+                    }
+                    value={blurIntensity}
+                    unit="px"
+                    min={0}
+                    max={24}
+                    step={1}
+                    onLiveChange={(v) =>
+                      document.documentElement.style.setProperty('--blur-intensity', `${v}px`)
+                    }
+                    onCommit={(v) => setBlurIntensity(v, true)}
+                    presets={[
+                      { v: 0, l: 'themes.blurNone' },
+                      { v: 6, l: 'themes.slight' },
+                      { v: 12, l: 'themes.moderate' },
+                      { v: 18, l: 'themes.blurry' },
+                      { v: 24, l: 'themes.strong' },
+                    ]}
+                  />
+                </Card>
+              )}
+
+              {/* 圆角强度 */}
+              <Card className="glass-card p-4 sm:p-5 space-y-4">
+                <ThemeSliderControl
+                  label={
+                    <LabelWithHelp
+                      icon={<CornerDownRight className="w-4 h-4 text-primary" />}
+                      label={t('themes.borderRadius')}
+                      description={t('themes.borderRadiusDesc')}
+                      className="text-sm font-semibold text-foreground cursor-default"
+                    />
+                  }
+                  value={borderRadius}
+                  unit="px"
+                  min={0}
+                  max={32}
+                  step={1}
+                  onLiveChange={(v) =>
+                    document.documentElement.style.setProperty('--radius', `${v}px`)
+                  }
+                  onCommit={(v) => setBorderRadius(v, true)}
+                  presets={[
+                    { v: 0, l: 'themes.radiusNone' },
+                    { v: 8, l: 'themes.radiusDefault' },
+                    { v: 16, l: 'themes.standard' },
+                    { v: 24, l: 'themes.radiusMedium' },
+                    { v: 32, l: 'themes.radiusLarge' },
+                  ]}
+                />
+              </Card>
+
+              {/* 阴影强度 */}
+              <Card className="glass-card p-4 sm:p-5 space-y-4">
+                <ThemeSliderControl
+                  label={
+                    <LabelWithHelp
+                      icon={<CloudFog className="w-4 h-4 text-primary" />}
+                      label={t('themes.shadowIntensity')}
+                      description={t('themes.shadowIntensityDesc')}
+                      className="text-sm font-semibold text-foreground cursor-default"
+                    />
+                  }
+                  value={shadowIntensity}
+                  unit="%"
+                  min={0}
+                  max={200}
+                  step={5}
+                  onLiveChange={(v) =>
+                    document.documentElement.style.setProperty('--shadow-strength', String(v / 100))
+                  }
+                  onCommit={(v) => setShadowIntensity(v, true)}
+                  presets={[
+                    { v: 0, l: 'themes.shadowNone' },
+                    { v: 55, l: 'themes.scaleDefault' },
+                    { v: 100, l: 'themes.standard' },
+                    { v: 150, l: 'themes.shadowMedium' },
+                    { v: 200, l: 'themes.shadowStrong' },
+                  ]}
+                />
+              </Card>
+            </div>
+
+            {/* ==================== 右列：布局与缩放 ==================== */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 px-1 text-sm font-semibold text-muted-foreground">
+                <SlidersHorizontal className="w-4 h-4 text-primary" />
+                <span>{t('themes.groupLayout')}</span>
+              </div>
+
+              {/* 侧边栏布局 */}
+              <Card className="glass-card p-4 sm:p-5 space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <LabelWithHelp
+                    icon={<PanelLeft className="w-4 h-4 text-primary" />}
+                    label={t('themes.sidebarLayout')}
+                    description={t('themes.sidebarLayoutDesc')}
+                    className="text-sm font-semibold text-foreground cursor-default"
+                  />
+                  <TabButtonGroup
+                    options={[
+                      {
+                        value: 'floating',
+                        label: t('themes.sidebarFloating'),
+                        icon: <SquareStack className="w-4 h-4" />,
+                      },
+                      {
+                        value: 'docked',
+                        label: t('themes.sidebarDocked'),
+                        icon: <PanelLeft className="w-4 h-4" />,
+                      },
+                      {
+                        value: 'line',
+                        label: t('themes.sidebarLine'),
+                        icon: <SeparatorVertical className="w-4 h-4" />,
+                      },
+                    ]}
+                    value={sidebarLayout}
+                    onValueChange={(v) =>
+                      setSidebarLayout(v as 'floating' | 'docked' | 'line', true)
+                    }
+                  />
+                </div>
+              </Card>
+
+              {/* 默认折叠侧边栏 */}
+              <Card className="glass-card p-4 sm:p-5 space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <LabelWithHelp
+                    icon={
+                      sidebarDefaultCollapsed ? (
+                        <PanelLeftClose className="w-4 h-4 text-primary" />
+                      ) : (
+                        <PanelLeftOpen className="w-4 h-4 text-primary" />
+                      )
+                    }
+                    label={t('themes.sidebarDefaultCollapsed')}
+                    description={t('themes.sidebarDefaultCollapsedDesc')}
+                    className="text-sm font-semibold text-foreground cursor-default"
+                  />
+                  <TabButtonGroup
+                    options={[
+                      { value: 'expanded', label: t('themes.sidebarExpanded') },
+                      { value: 'collapsed', label: t('themes.sidebarCollapsed') },
+                    ]}
+                    value={sidebarDefaultCollapsed ? 'collapsed' : 'expanded'}
+                    onValueChange={(v) => setSidebarDefaultCollapsed(v === 'collapsed', true)}
+                  />
+                </div>
+              </Card>
+
+              {/* 界面缩放 */}
+              <Card className="glass-card p-4 sm:p-5 space-y-4">
+                <ThemeSliderControl
+                  label={
+                    <LabelWithHelp
+                      icon={<Type className="w-4 h-4 text-primary" />}
+                      label={t('themes.uiScale')}
+                      description={t('themes.uiScaleDesc')}
+                      className="text-sm font-semibold text-foreground cursor-default"
+                    />
+                  }
+                  value={uiScale}
+                  unit="%"
+                  min={80}
+                  max={120}
+                  step={5}
+                  onLiveChange={(v) => {
+                    document.documentElement.style.fontSize = v === 100 ? '' : `${v}%`;
+                  }}
+                  onCommit={(v) => setUiScale(v, true)}
+                  presets={[
+                    { v: 80, l: 'themes.scaleCompact' },
+                    { v: 100, l: 'themes.scaleDefault' },
+                    { v: 120, l: 'themes.scaleComfortable' },
+                  ]}
+                />
+              </Card>
+            </div>
+          </div>
+        )}
+      />
+
+      {/* ============================ 预设 Tab ============================ */}
+      <KeptPane
+        active={tab === 'presets'}
+        live
+        preload
+        render={() => (
+          <Card className="glass-card">
+            <CardHeader>
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Bookmark className="w-5 h-5" />
+                  {t('themes.presets')}
+                </CardTitle>
+                <CardDescription>{t('themes.presetsDesc')}</CardDescription>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {presetsLoading ? (
+                <div className="glass-card-grid grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                  {['skel-1', 'skel-2', 'skel-3'].map((id) => (
+                    <Skeleton key={id} className="h-40 rounded-lg" />
+                  ))}
+                </div>
+              ) : presetsError ? (
+                <div className="flex flex-col items-center justify-center gap-3 py-10 text-center">
+                  <AlertTriangle className="w-8 h-8 text-destructive" />
+                  <p className="text-muted-foreground">{presetsError}</p>
+                  <Button variant="outline" onClick={loadPresets}>
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    {t('themes.retry')}
                   </Button>
                 </div>
-              </div>
+              ) : presets.length === 0 ? (
+                <div className="flex flex-col items-center justify-center gap-2 py-10 text-center">
+                  <FolderOpen className="w-10 h-10 text-muted-foreground opacity-50" />
+                  <p className="text-muted-foreground">{t('themes.noPresets')}</p>
+                  <p className="text-sm text-muted-foreground/80 max-w-sm">
+                    {t('themes.noPresetsHint')}
+                  </p>
+                  <Button className="mt-2 gap-2" onClick={openSaveDialog}>
+                    <Save className="w-4 h-4" />
+                    {t('themes.saveAsPreset')}
+                  </Button>
+                </div>
+              ) : (
+                <div className="glass-card-grid grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                  {presets.map((preset) => (
+                    <div
+                      key={preset.name}
+                      className={cn(
+                        'group flex flex-col overflow-hidden rounded-lg border transition-colors',
+                        preset.is_active
+                          ? 'border-primary/60 ring-1 ring-primary/30'
+                          : 'border-border/60 hover:border-primary/40',
+                      )}
+                    >
+                      {/* 背景预览 */}
+                      <div className="relative h-28 w-full">
+                        <PresetPreview config={preset.config} />
+                        {/* 顶部右侧徽标 */}
+                        <div className="absolute top-2 right-2 flex gap-1">
+                          {preset.is_active && (
+                            <Badge className="border-transparent bg-primary text-primary-foreground hover:bg-primary">
+                              {t('themes.activeBadge')}
+                            </Badge>
+                          )}
+                          {!preset.valid && (
+                            <Badge variant="destructive" title={t('themes.invalidHint')}>
+                              {t('themes.invalidBadge')}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                      {/* 底部：名称（+ 时间副标题） + 操作 同一行 */}
+                      <div className="flex items-center justify-between gap-2 p-3">
+                        <div className="flex min-w-0 items-center gap-1.5">
+                          <span
+                            className="h-3 w-3 shrink-0 rounded-full ring-1 ring-border"
+                            style={{ background: colorHslOf(preset.config?.color) }}
+                          />
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium leading-tight">
+                              {preset.name}
+                            </p>
+                            {preset.mtime ? (
+                              <p className="truncate text-xs text-muted-foreground leading-tight">
+                                {formatMtime(preset.mtime)}
+                              </p>
+                            ) : null}
+                          </div>
+                        </div>
+                        <div className="flex shrink-0 gap-1">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8"
+                            disabled={
+                              preset.is_active || !preset.valid || applyingName === preset.name
+                            }
+                            onClick={() => handleApplyPreset(preset)}
+                          >
+                            {applyingName === preset.name ? (
+                              <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+                            ) : (
+                              <CheckCircle2 className="w-4 h-4 mr-1.5" />
+                            )}
+                            {preset.is_active ? t('themes.applied') : t('themes.apply')}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 px-2 text-destructive hover:text-destructive"
+                            onClick={() => setDeleteTarget(preset)}
+                            aria-label={t('themes.delete')}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+      />
 
-              {isCustomImage && (
-                <div className="relative rounded-lg overflow-hidden aspect-video max-w-md">
+      {/* ============================ 自定义背景弹窗 ============================ */}
+      <Dialog open={customDialogOpen} onOpenChange={setCustomDialogOpen}>
+        <DialogContent className="glass-card sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Upload className="w-5 h-5 text-primary" />
+              {t('themes.customBg')}
+            </DialogTitle>
+            <DialogDescription>{t('themes.uploadCustomDesc')}</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            {/* 上传本地图片 */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">{t('themes.uploadLocalImage')}</Label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  handleFileUpload(e);
+                  setCustomDialogOpen(false);
+                }}
+                className="hidden"
+              />
+              <Button
+                variant="outline"
+                className="w-full h-10 border-dashed"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                {t('themes.uploadImage')}
+              </Button>
+            </div>
+
+            <div className="relative flex items-center justify-center my-1">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-border/60" />
+              </div>
+              <span className="relative bg-card px-2 text-xs text-muted-foreground uppercase">
+                {t('themes.or')}
+              </span>
+            </div>
+
+            {/* 输入网络图片链接 */}
+            <div className="space-y-2">
+              <Label htmlFor="custom-bg-url" className="text-sm font-medium">
+                {t('themes.imageUrlTitle')}
+              </Label>
+              <div className="flex gap-2">
+                <Input
+                  id="custom-bg-url"
+                  value={customUrl}
+                  onChange={(e) => setCustomUrl(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleCustomUrl();
+                      setCustomDialogOpen(false);
+                    }
+                  }}
+                  placeholder={t('themes.imageLink')}
+                  className="h-10 flex-1"
+                />
+                <Button
+                  onClick={() => {
+                    handleCustomUrl();
+                    setCustomDialogOpen(false);
+                  }}
+                  className="h-10 shrink-0"
+                >
+                  <Link className="w-4 h-4 mr-1.5" />
+                  {t('themes.apply')}
+                </Button>
+              </div>
+            </div>
+
+            {/* 若当前为自定义背景，展示当前图片与清除按钮 */}
+            {isCustomImage && backgroundImage && (
+              <div className="space-y-2 pt-2 border-t border-border/50">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">{t('themes.currentBg')}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
+                    onClick={() => {
+                      clearBackground();
+                      setCustomDialogOpen(false);
+                    }}
+                  >
+                    <Trash2 className="w-3.5 h-3.5 mr-1" />
+                    {t('themes.clearBg')}
+                  </Button>
+                </div>
+                <div className="relative aspect-video w-full rounded-lg overflow-hidden border border-border/70">
                   {backgroundImage.startsWith('data:') || backgroundImage.startsWith('http') ? (
                     <img
                       src={backgroundImage}
@@ -942,561 +1618,12 @@ export default function ThemesPage() {
                   ) : (
                     <div className="w-full h-full" style={{ background: backgroundImage }} />
                   )}
-                  <Button
-                    size="icon"
-                    variant="destructive"
-                    className="absolute top-1 right-1 h-9 w-9 sm:top-2 sm:right-2 sm:h-7 sm:w-7"
-                    onClick={clearBackground}
-                  >
-                    <X className="w-4 h-4" />
-                  </Button>
-                  <span className="absolute bottom-1 left-1 text-xs bg-background/80 px-2 py-0.5 rounded">
-                    {t('themes.currentBg')}
-                  </span>
                 </div>
-              )}
-            </div>
-
-            {style === 'solid' && (
-              <p className="text-xs text-muted-foreground border-l-2 border-primary/50 pl-2">
-                {t('themes.tip')}
-              </p>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* ============================ 杂项 Tab ============================ */}
-      {tab === 'misc' && (
-        <div className="glass-card-grid grid gap-4 lg:grid-cols-2">
-          {/* 卡片透明度 */}
-          <Card className="glass-card">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Droplet className="w-5 h-5" />
-                {t('themes.cardOpacity')}
-              </CardTitle>
-              <CardDescription>{t('themes.cardOpacityDesc')}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-5">
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">
-                    {t('themes.cardOpacityValue')}
-                  </span>
-                  <span className="text-sm font-medium bg-primary/10 text-primary px-2 py-0.5 rounded">
-                    {cardOpacity}%
-                  </span>
-                </div>
-                <Slider
-                  value={[cardOpacity]}
-                  onValueChange={(value) => setCardOpacity(value[0])}
-                  onValueCommit={(value) => setCardOpacity(value[0], true)}
-                  min={0}
-                  max={100}
-                  step={1}
-                />
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>{t('themes.transparent')}</span>
-                  <span>{t('themes.standardOpacity')}</span>
-                  <span>{t('themes.opaque')}</span>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                {[
-                  { v: 15, l: 'themes.slight' },
-                  { v: 50, l: 'themes.standard' },
-                  { v: 85, l: 'themes.strong' },
-                ].map((p) => (
-                  <Button
-                    key={p.v}
-                    variant="outline"
-                    size="sm"
-                    className={cn(
-                      'h-8',
-                      cardOpacity === p.v &&
-                        'border-primary bg-primary/15 text-primary font-semibold',
-                    )}
-                    onClick={() => setCardOpacity(p.v, true)}
-                  >
-                    {t(p.l)}
-                  </Button>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* 毛玻璃 / 光感玻璃强度 */}
-          {style !== 'solid' && (
-            <Card className="glass-card">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Blend className="w-5 h-5" />
-                  {t('themes.glassIntensity')}
-                </CardTitle>
-                <CardDescription>{t('themes.glassIntensityDesc')}</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-5">
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">
-                      {t('themes.blurIntensity')}
-                    </span>
-                    <span className="text-sm font-medium bg-primary/10 text-primary px-2 py-0.5 rounded">
-                      {blurIntensity}px
-                    </span>
-                  </div>
-                  <Slider
-                    value={[blurIntensity]}
-                    onValueChange={(value) => setBlurIntensity(value[0])}
-                    onValueCommit={(value) => setBlurIntensity(value[0], true)}
-                    min={0}
-                    max={24}
-                    step={1}
-                  />
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>{t('themes.clear')}</span>
-                    <span>{t('themes.moderate')}</span>
-                    <span>{t('themes.blurry')}</span>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  {[
-                    { v: 4, l: 'themes.slight' },
-                    { v: 12, l: 'themes.standard' },
-                    { v: 20, l: 'themes.strong' },
-                  ].map((p) => (
-                    <Button
-                      key={p.v}
-                      variant="outline"
-                      size="sm"
-                      className={cn(
-                        'h-8',
-                        blurIntensity === p.v &&
-                          'border-primary bg-primary/15 text-primary font-semibold',
-                      )}
-                      onClick={() => setBlurIntensity(p.v, true)}
-                    >
-                      {t(p.l)}
-                    </Button>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* 侧边栏布局 */}
-          <Card className="glass-card">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <PanelLeft className="w-5 h-5" />
-                {t('themes.sidebarLayout')}
-              </CardTitle>
-              <CardDescription>{t('themes.sidebarLayoutDesc')}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <SelectTileRow>
-                <SelectTile
-                  active={sidebarLayout === 'floating'}
-                  onClick={() => setSidebarLayout('floating', true)}
-                  icon={<SquareStack />}
-                  label={t('themes.sidebarFloating')}
-                />
-                <SelectTile
-                  active={sidebarLayout === 'docked'}
-                  onClick={() => setSidebarLayout('docked', true)}
-                  icon={<PanelLeft />}
-                  label={t('themes.sidebarDocked')}
-                />
-                <SelectTile
-                  active={sidebarLayout === 'line'}
-                  onClick={() => setSidebarLayout('line', true)}
-                  icon={<SeparatorVertical />}
-                  label={t('themes.sidebarLine')}
-                />
-              </SelectTileRow>
-              <p className="text-sm text-muted-foreground">
-                {sidebarLayout === 'floating'
-                  ? t('themes.sidebarFloatingDesc')
-                  : sidebarLayout === 'line'
-                    ? t('themes.sidebarLineDesc')
-                    : t('themes.sidebarDockedDesc')}
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* 侧边栏默认收起 */}
-          <Card className="glass-card">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <PanelLeftClose className="w-5 h-5" />
-                {t('themes.sidebarDefaultState')}
-              </CardTitle>
-              <CardDescription>{t('themes.sidebarDefaultStateDesc')}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <SelectTileRow>
-                <SelectTile
-                  active={!sidebarDefaultCollapsed}
-                  onClick={() => setSidebarDefaultCollapsed(false, true)}
-                  icon={<PanelLeftOpen />}
-                  label={t('themes.sidebarExpanded')}
-                />
-                <SelectTile
-                  active={sidebarDefaultCollapsed}
-                  onClick={() => setSidebarDefaultCollapsed(true, true)}
-                  icon={<PanelLeftClose />}
-                  label={t('themes.sidebarCollapsed')}
-                />
-              </SelectTileRow>
-              <p className="text-sm text-muted-foreground">
-                {sidebarDefaultCollapsed
-                  ? t('themes.sidebarCollapsedDesc')
-                  : t('themes.sidebarExpandedDesc')}
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* 圆角强度 */}
-          <Card className="glass-card">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CornerDownRight className="w-5 h-5" />
-                {t('themes.borderRadius')}
-              </CardTitle>
-              <CardDescription>{t('themes.borderRadiusDesc')}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-5">
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">
-                    {t('themes.borderRadiusValue')}
-                  </span>
-                  <span className="text-sm font-medium bg-primary/10 text-primary px-2 py-0.5 rounded">
-                    {borderRadius}px
-                  </span>
-                </div>
-                <Slider
-                  value={[borderRadius]}
-                  onValueChange={(value) => setBorderRadius(value[0])}
-                  onValueCommit={(value) => setBorderRadius(value[0], true)}
-                  min={0}
-                  max={32}
-                  step={1}
-                />
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>{t('themes.radiusNone')}</span>
-                  <span>{t('themes.radiusMedium')}</span>
-                  <span>{t('themes.radiusLarge')}</span>
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {[
-                  { v: 0, l: 'themes.radiusNone' },
-                  { v: 8, l: 'themes.radiusDefault' },
-                  { v: 16, l: 'themes.standard' },
-                  { v: 24, l: 'themes.radiusMedium' },
-                  { v: 32, l: 'themes.radiusLarge' },
-                ].map((p) => (
-                  <Button
-                    key={p.v}
-                    variant="outline"
-                    size="sm"
-                    className={cn(
-                      'h-8',
-                      borderRadius === p.v &&
-                        'border-primary bg-primary/15 text-primary font-semibold',
-                    )}
-                    onClick={() => setBorderRadius(p.v, true)}
-                  >
-                    {t(p.l)}
-                  </Button>
-                ))}
-              </div>
-              {/* 实时预览块 */}
-              <div className="flex items-end gap-3 pt-1">
-                {[0.5, 0.75, 1].map((scale) => (
-                  <div
-                    key={scale}
-                    className="bg-primary/15 border border-primary/30 transition-[border-radius]"
-                    style={{
-                      width: `${2 + scale * 2}rem`,
-                      height: `${1.5 + scale}rem`,
-                      borderRadius: `calc(var(--radius) * ${scale})`,
-                    }}
-                  />
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* 阴影强度 */}
-          <Card className="glass-card">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CloudFog className="w-5 h-5" />
-                {t('themes.shadowIntensity')}
-              </CardTitle>
-              <CardDescription>{t('themes.shadowIntensityDesc')}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-5">
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">
-                    {t('themes.shadowIntensityValue')}
-                  </span>
-                  <span className="text-sm font-medium bg-primary/10 text-primary px-2 py-0.5 rounded">
-                    {shadowIntensity}%
-                  </span>
-                </div>
-                <Slider
-                  value={[shadowIntensity]}
-                  onValueChange={(value) => setShadowIntensity(value[0])}
-                  onValueCommit={(value) => setShadowIntensity(value[0], true)}
-                  min={0}
-                  max={200}
-                  step={5}
-                />
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>{t('themes.shadowNone')}</span>
-                  <span>{t('themes.standard')}</span>
-                  <span>{t('themes.shadowStrong')}</span>
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {[
-                  { v: 0, l: 'themes.shadowNone' },
-                  { v: 55, l: 'themes.scaleDefault' },
-                  { v: 100, l: 'themes.standard' },
-                  { v: 150, l: 'themes.shadowStrong' },
-                ].map((p) => (
-                  <Button
-                    key={p.v}
-                    variant="outline"
-                    size="sm"
-                    className={cn('h-8', shadowIntensity === p.v && 'border-primary text-primary')}
-                    onClick={() => setShadowIntensity(p.v, true)}
-                  >
-                    {t(p.l)}
-                  </Button>
-                ))}
-              </div>
-              {/* 实时预览块：直接吃 --shadow-strength */}
-              <div className="flex items-end gap-4 pt-1 pb-2">
-                {[0.5, 1, 1.5].map((scale) => (
-                  <div
-                    key={scale}
-                    className="rounded-lg border border-border/40 bg-card/60"
-                    style={{
-                      width: `${2.5 + scale}rem`,
-                      height: `${2 + scale * 0.5}rem`,
-                      boxShadow: `0 2px 6px hsl(0 0% 0% / calc(0.06 * var(--shadow-strength) * ${scale})), 0 8px 24px -4px hsl(0 0% 0% / calc(0.14 * var(--shadow-strength) * ${scale}))`,
-                    }}
-                  />
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* 字体缩放 */}
-          <Card className="glass-card">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Type className="w-5 h-5" />
-                {t('themes.uiScale')}
-              </CardTitle>
-              <CardDescription>{t('themes.uiScaleDesc')}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-5">
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">{t('themes.uiScaleValue')}</span>
-                  <span className="text-sm font-medium bg-primary/10 text-primary px-2 py-0.5 rounded">
-                    {uiScale}%
-                  </span>
-                </div>
-                <Slider
-                  value={[uiScale]}
-                  onValueChange={(value) => setUiScale(value[0])}
-                  onValueCommit={(value) => setUiScale(value[0], true)}
-                  min={85}
-                  max={120}
-                  step={1}
-                />
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>85%</span>
-                  <span>100%</span>
-                  <span>120%</span>
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {[
-                  { v: 90, l: 'themes.scaleSmall' },
-                  { v: 97, l: 'themes.scaleDefault' },
-                  { v: 100, l: 'themes.standard' },
-                  { v: 110, l: 'themes.scaleLarge' },
-                ].map((p) => (
-                  <Button
-                    key={p.v}
-                    variant="outline"
-                    size="sm"
-                    className={cn(
-                      'h-8',
-                      uiScale === p.v && 'border-primary bg-primary/15 text-primary font-semibold',
-                    )}
-                    onClick={() => setUiScale(p.v, true)}
-                  >
-                    {t(p.l)}
-                  </Button>
-                ))}
-              </div>
-              <p className="text-sm text-muted-foreground" style={{ fontSize: '1rem' }}>
-                {t('themes.uiScalePreview')}
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* ============================ 预设 Tab ============================ */}
-      {tab === 'presets' && (
-        <Card className="glass-card">
-          <CardHeader>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  <Bookmark className="w-5 h-5" />
-                  {t('themes.presets')}
-                </CardTitle>
-                <CardDescription>{t('themes.presetsDesc')}</CardDescription>
-              </div>
-              <div className="flex gap-2 shrink-0">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={loadPresets}
-                  disabled={presetsLoading}
-                  aria-label={t('themes.refresh')}
-                >
-                  <RefreshCw className={cn('w-4 h-4', presetsLoading && 'animate-spin')} />
-                </Button>
-                <Button className="gap-2" onClick={openSaveDialog}>
-                  <Save className="w-4 h-4" />
-                  {t('themes.newPreset')}
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {presetsLoading ? (
-              <div className="glass-card-grid grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <Skeleton key={i} className="h-40 rounded-lg" />
-                ))}
-              </div>
-            ) : presetsError ? (
-              <div className="flex flex-col items-center justify-center gap-3 py-10 text-center">
-                <AlertTriangle className="w-8 h-8 text-destructive" />
-                <p className="text-muted-foreground">{presetsError}</p>
-                <Button variant="outline" onClick={loadPresets}>
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  {t('themes.retry')}
-                </Button>
-              </div>
-            ) : presets.length === 0 ? (
-              <div className="flex flex-col items-center justify-center gap-2 py-10 text-center">
-                <FolderOpen className="w-10 h-10 text-muted-foreground opacity-50" />
-                <p className="text-muted-foreground">{t('themes.noPresets')}</p>
-                <p className="text-sm text-muted-foreground/80 max-w-sm">
-                  {t('themes.noPresetsHint')}
-                </p>
-                <Button className="mt-2 gap-2" onClick={openSaveDialog}>
-                  <Save className="w-4 h-4" />
-                  {t('themes.saveAsPreset')}
-                </Button>
-              </div>
-            ) : (
-              <div className="glass-card-grid grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                {presets.map((preset) => (
-                  <div
-                    key={preset.name}
-                    className={cn(
-                      'group flex flex-col overflow-hidden rounded-lg border transition-colors',
-                      preset.is_active
-                        ? 'border-primary/60 ring-1 ring-primary/30'
-                        : 'border-border/60 hover:border-primary/40',
-                    )}
-                  >
-                    {/* 背景预览 */}
-                    <div className="relative h-28 w-full">
-                      <PresetPreview config={preset.config} />
-                      {/* 顶部右侧徽标 */}
-                      <div className="absolute top-2 right-2 flex gap-1">
-                        {preset.is_active && (
-                          <Badge className="border-transparent bg-primary text-primary-foreground hover:bg-primary">
-                            {t('themes.activeBadge')}
-                          </Badge>
-                        )}
-                        {!preset.valid && (
-                          <Badge variant="destructive" title={t('themes.invalidHint')}>
-                            {t('themes.invalidBadge')}
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                    {/* 底部：名称（+ 时间副标题） + 操作 同一行 */}
-                    <div className="flex items-center justify-between gap-2 p-3">
-                      <div className="flex min-w-0 items-center gap-1.5">
-                        <span
-                          className="h-3 w-3 shrink-0 rounded-full ring-1 ring-border"
-                          style={{ background: colorHslOf(preset.config?.color) }}
-                        />
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-medium leading-tight">
-                            {preset.name}
-                          </p>
-                          {preset.mtime ? (
-                            <p className="truncate text-xs text-muted-foreground leading-tight">
-                              {formatMtime(preset.mtime)}
-                            </p>
-                          ) : null}
-                        </div>
-                      </div>
-                      <div className="flex shrink-0 gap-1">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-8"
-                          disabled={
-                            preset.is_active || !preset.valid || applyingName === preset.name
-                          }
-                          onClick={() => handleApplyPreset(preset)}
-                        >
-                          {applyingName === preset.name ? (
-                            <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
-                          ) : (
-                            <CheckCircle2 className="w-4 h-4 mr-1.5" />
-                          )}
-                          {preset.is_active ? t('themes.applied') : t('themes.apply')}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 px-2 text-destructive hover:text-destructive"
-                          onClick={() => setDeleteTarget(preset)}
-                          aria-label={t('themes.delete')}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
               </div>
             )}
-          </CardContent>
-        </Card>
-      )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* ============================ 保存预设弹窗 ============================ */}
       <Dialog open={saveOpen} onOpenChange={setSaveOpen}>

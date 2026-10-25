@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useBrand } from '@/contexts/BrandContext';
 import { Button } from '@/components/ui/button';
 import { tabToolbarControlClass } from '@/components/ui/TabButtonGroup';
 import { cn } from '@/lib/utils';
@@ -22,17 +23,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { headerActionRowClass, PinnedPage } from '@/components/layout/PinnedPage';
-import { brandApi, getApiErrorMessage, type BrandInfo } from '@/lib/api';
+import { brandApi, getApiErrorMessage, getBrandIconUrl, type BrandInfo } from '@/lib/api';
+
+const PACKAGED_ICON = `${import.meta.env.BASE_URL}ICON.png`;
 
 export default function BrandSettingsPage() {
   const { t } = useLanguage();
   const { mode } = useTheme();
+  const { refresh: refreshGlobalBrand } = useBrand();
   const fileRef = useRef<HTMLInputElement | null>(null);
 
   const [info, setInfo] = useState<BrandInfo | null>(null);
   const [title, setTitle] = useState('');
   const [subtitle, setSubtitle] = useState('');
-  const [iconUrl, setIconUrl] = useState<string | null>(null);
   const [iconSource, setIconSource] = useState<'user' | 'default'>('default');
   const [iconVersion, setIconVersion] = useState(Date.now());
   const [loading, setLoading] = useState(true);
@@ -46,7 +49,7 @@ export default function BrandSettingsPage() {
       setTitle(data.data.title);
       setSubtitle(data.data.subtitle);
       setIconSource(data.data.icon_source);
-      if (data.data.icon_url) setIconUrl(data.data.icon_url);
+      setIconVersion(Date.now());
     } catch (e) {
       toast.error(getApiErrorMessage(e, t('brandSettings.savedFail')));
     } finally {
@@ -67,6 +70,7 @@ export default function BrandSettingsPage() {
         prev ? { ...prev, title: updated.title, subtitle: updated.subtitle } : prev,
       );
       toast.success(t('brandSettings.savedSuccess'));
+      refreshGlobalBrand();
     } catch (e) {
       toast.error(getApiErrorMessage(e, t('brandSettings.savedFail')));
     } finally {
@@ -79,10 +83,10 @@ export default function BrandSettingsPage() {
   const onUpload = async (file: File) => {
     try {
       const res = await brandApi.uploadIcon(file);
-      setIconUrl(res.icon_url);
       setIconSource(res.icon_source);
       setIconVersion(Date.now());
       toast.success(t('brandSettings.uploadSuccess'));
+      refreshGlobalBrand();
     } catch (e) {
       toast.error(getApiErrorMessage(e, t('brandSettings.uploadFail')));
     }
@@ -95,10 +99,13 @@ export default function BrandSettingsPage() {
       setIconSource('default');
       setIconVersion(Date.now());
       toast.success(t('brandSettings.deleted'));
+      refreshGlobalBrand();
     } catch (e) {
       toast.error(getApiErrorMessage(e, t('brandSettings.savedFail')));
     }
   };
+
+  const displayIconUrl = iconSource === 'user' ? getBrandIconUrl(iconVersion) : PACKAGED_ICON;
 
   return (
     <PinnedPage
@@ -173,19 +180,14 @@ export default function BrandSettingsPage() {
               <Label>{t('brandSettings.iconLabel')}</Label>
               <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:gap-4">
                 <div className="w-20 h-20 rounded-2xl overflow-hidden border border-border/40 bg-muted flex items-center justify-center">
-                  {iconUrl ? (
-                    <img
-                      src={
-                        iconSource === 'user'
-                          ? `${iconUrl}${iconUrl.includes('?') ? '&' : '?'}t=${iconVersion}`
-                          : iconUrl
-                      }
-                      alt="brand"
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <ImageIcon className="w-8 h-8 text-muted-foreground" />
-                  )}
+                  <img
+                    src={displayIconUrl}
+                    alt="brand"
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).src = PACKAGED_ICON;
+                    }}
+                  />
                 </div>
                 <div className="flex flex-col gap-1">
                   <p className="text-sm text-muted-foreground">
@@ -238,19 +240,14 @@ export default function BrandSettingsPage() {
               data-style={mode === 'dark' ? 'glassmorphism' : 'glassmorphism'}
             >
               <div className="w-16 h-16 rounded-2xl overflow-hidden bg-muted flex items-center justify-center">
-                {iconUrl ? (
-                  <img
-                    src={
-                      iconSource === 'user'
-                        ? `${iconUrl}${iconUrl.includes('?') ? '&' : '?'}t=${iconVersion}`
-                        : iconUrl
-                    }
-                    alt="brand-preview"
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <ImageIcon className="w-8 h-8 text-muted-foreground" />
-                )}
+                <img
+                  src={displayIconUrl}
+                  alt="brand-preview"
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).src = PACKAGED_ICON;
+                  }}
+                />
               </div>
               <div className="space-y-1">
                 <p className="text-xl font-bold truncate max-w-[220px]">

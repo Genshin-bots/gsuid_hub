@@ -200,13 +200,9 @@ function LayoutContent() {
             ...getBackgroundStyle(),
             position: 'absolute',
             zIndex: 0,
-            ...(Math.max(backgroundBlur, frostBlur) > 0
-              ? {
-                  filter: `blur(${Math.max(backgroundBlur, frostBlur)}px)`,
-                  // 模糊会吃掉四边，略放大后由外层 overflow 裁掉发白的边
-                  ...(frostBlur > 0 ? { transform: 'scale(1.08)' } : null),
-                }
-              : null),
+            filter: `blur(calc(var(--background-blur, ${backgroundBlur}px) + ${frostBlur}px))`,
+            transform: 'scale(1.08)',
+            transition: 'filter 0.15s ease-out',
           }}
         />
       </div>

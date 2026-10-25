@@ -21,7 +21,8 @@
     "useCountDesc": "Use Count (High→Low)",
     "useCountAsc": "Use Count (Low→High)",
     "folder": "Folder",
-    "status": "Status"
+    "status": "Status",
+    "commonPersona": "Common"
   },
   "status": {
     "pending": "Pending",
@@ -85,7 +86,9 @@
     "batchUploadSuccess": "Batch upload complete: {success} succeeded, {failed} failed",
     "batchUploadAllSuccess": "Batch upload successful, {count} files",
     "skipExisting": "Skip Existing",
-    "skipExistingDesc": "Skip already existing memes when importing .meme files"
+    "skipExistingDesc": "Skip already existing memes when importing .meme files",
+    "targetPersona": "Target Persona",
+    "targetPersonaDesc": "Select the exclusive persona for this meme, or leave empty for universal"
   },
   "purgeRejected": "Purge Rejected",
   "purgeRejectedConfirm": "Confirm Purge",
