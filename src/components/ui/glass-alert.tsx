@@ -3,14 +3,7 @@ import { AlertCircle, type LucideIcon } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 
-type GlassAlertTone =
-  | 'primary'
-  | 'info'
-  | 'success'
-  | 'warning'
-  | 'danger'
-  | 'accent'
-  | 'neutral';
+type GlassAlertTone = 'primary' | 'info' | 'success' | 'warning' | 'danger' | 'accent' | 'neutral';
 
 const TONE_STYLES: Record<GlassAlertTone, { shell: string; tint: string; icon: string }> = {
   primary: {
@@ -24,8 +17,7 @@ const TONE_STYLES: Record<GlassAlertTone, { shell: string; tint: string; icon: s
     icon: '',
   },
   success: {
-    shell:
-      'border border-green-500/35 text-green-700 dark:border-green-400/35 dark:text-green-300',
+    shell: 'border border-green-500/35 text-green-700 dark:border-green-400/35 dark:text-green-300',
     tint: 'glass-alert-tint glass-alert-tint-success',
     icon: '',
   },

@@ -163,3 +163,21 @@ export const getRemoteWebSearchDescription = (t: (key: string) => string, raw: s
  */
 export const getForwardEndUserIdDescription = (t: (key: string) => string, raw: string): string =>
   getEnumLabel(t, 'aiConfig.serviceProvider.forwardEndUserIdDescription', raw);
+
+/** `video_input_format`：`file / video_url` */
+export const getVideoInputFormatLabel = (t: (key: string) => string, raw: string): string =>
+  getEnumLabel(t, 'aiConfig.serviceProvider.videoInputFormatOptions', raw);
+
+/** `video_input_format` 说明：`file`（LiteLLM/Gemini中转）vs `video_url`（全模态原生） */
+export const getVideoInputFormatDescription = (t: (key: string) => string, raw: string): string =>
+  getEnumLabel(t, 'aiConfig.serviceProvider.videoInputFormatDescription', raw);
+
+/** `video_url_passthrough`：`off / on` */
+export const getVideoUrlPassthroughLabel = (t: (key: string) => string, raw: string): string =>
+  getEnumLabel(t, 'aiConfig.serviceProvider.videoUrlPassthroughOptions', raw);
+
+/** `video_url_passthrough` 说明：先下载转 DataURI 还是直接透传原始 URL */
+export const getVideoUrlPassthroughDescription = (
+  t: (key: string) => string,
+  raw: string,
+): string => getEnumLabel(t, 'aiConfig.serviceProvider.videoUrlPassthroughDescription', raw);

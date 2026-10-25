@@ -161,12 +161,15 @@ export function ConfigSelectDropdown({
         </div>
       </PopoverTrigger>
       <PopoverContent
-        className="w-[--radix-popover-trigger-width] p-1"
+        className="w-[--radix-popover-trigger-width] p-1 flex flex-col overflow-hidden"
+        style={{ maxHeight: 'var(--radix-popper-available-height)' }}
+        side="bottom"
         align="start"
         sideOffset={4}
+        collisionPadding={8}
         onWheel={(e) => e.stopPropagation()}
       >
-        <div className="max-h-64 overflow-y-auto">
+        <div className="max-h-64 flex-1 min-h-0 overflow-y-auto">
           <div className="space-y-0.5">
             {items.map((item) => {
               const isSelected = item.name === selectedName;

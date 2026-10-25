@@ -302,8 +302,8 @@ export function ProviderBrandIcon({ provider, size = 16, className }: ProviderBr
         <Anthropic
           width={size}
           height={size}
-          variant="default"
-          className={cn('inline-block shrink-0', className)}
+          variant="mono"
+          className={cn('inline-block shrink-0 fill-current [&_path]:!fill-current', className)}
           aria-hidden="true"
         />
       );

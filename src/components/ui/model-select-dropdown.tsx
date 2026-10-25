@@ -54,7 +54,7 @@ export function ModelSelectDropdown({
 
   // 搜索输入值（独立于选中值）
   const [searchValue, setSearchValue] = useState('');
-  const [activeTab, setActiveTab] = useState<TabType>('preset');
+  const [activeTab, setActiveTab] = useState<TabType>('discovered');
   const [isCopied, setIsCopied] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const copyTimerRef = useRef<number | null>(null);
@@ -80,11 +80,12 @@ export function ModelSelectDropdown({
     [discoveredModels],
   );
 
-  // Popover 打开时重置搜索值；关闭时重置复制状态
+  // Popover 打开时重置搜索值并默认回到「模型发现」；关闭时重置复制状态
   const [open, setOpen] = useState(false);
   useEffect(() => {
     if (open) {
       setSearchValue('');
+      setActiveTab('discovered');
     } else {
       setIsCopied(false);
     }
@@ -199,28 +200,30 @@ export function ModelSelectDropdown({
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        className="menu-panel w-[400px] overflow-hidden p-0 flex flex-col data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2"
-        side="top"
+        className="menu-panel w-[400px] max-w-[calc(100vw-1rem)] overflow-hidden p-0 flex flex-col data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2"
+        side="bottom"
         align="start"
-        avoidCollisions={false}
+        sideOffset={4}
+        collisionPadding={8}
+        style={{
+          maxHeight: 'var(--radix-popper-available-height)',
+        }}
         onOpenAutoFocus={handleOpenAutoFocus}
         onWheel={(e) => e.stopPropagation()}
       >
         <div className="space-y-2 p-2 shrink-0">
-          {/* Tab 切换按钮 */}
+          {/* Tab 切换按钮：默认「模型发现」在前 */}
           <TabButtonGroup
             className="w-full"
             value={activeTab}
             onValueChange={(value) => setActiveTab(value as TabType)}
             options={[
-              { value: 'preset', label: tPreset },
               {
                 value: 'discovered',
                 label: tDiscovered,
-                icon: isFetching ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : undefined,
+                icon: isFetching ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : undefined,
               },
+              { value: 'preset', label: tPreset },
             ]}
           />
 
@@ -257,23 +260,27 @@ export function ModelSelectDropdown({
           />
         </div>
 
-        {/*
-          选项列表 —— 核心修复：
-          外层容器固定高度 h-[220px]，内部两个列表层都 h-full。
-          通过 hidden 切换显示哪个层，但 PopoverContent 的总高度
-          永远等于顶部固定区 + 220px，Radix 不会再因内容变化而重算方向。
-        */}
-        <div className="h-[220px] border-t p-1">
-          {/* 预设列表层 —— 始终存在于 DOM，hidden 时只是不可见 */}
+        {/* 选项列表容器：自适应视口高度，空间不足时压缩高度并内部滚动 */}
+        <div className="flex-1 min-h-[120px] max-h-[300px] border-t p-1 flex flex-col overflow-hidden">
+          {/* 模型发现层 —— 始终存在于 DOM，hidden 时只是不可见 */}
           <div
             className={cn(
-              'menu-option-list h-full overflow-y-auto',
-              activeTab !== 'preset' && 'hidden',
+              'menu-option-list flex-1 min-h-0 overflow-y-auto',
+              activeTab !== 'discovered' && 'hidden',
             )}
             onWheel={(e) => e.stopPropagation()}
           >
-            {presetFiltered.length > 0 ? (
-              presetFiltered.map(renderOption)
+            {isFetching && safeDiscoveredModels.length === 0 ? (
+              <div className="flex flex-col items-center justify-center min-h-[120px] h-full text-sm text-muted-foreground">
+                <Loader2 className="w-4 h-4 animate-spin mb-2" />
+                {tFetching}
+              </div>
+            ) : safeDiscoveredModels.length === 0 ? (
+              <div className="flex flex-col items-center justify-center min-h-[120px] h-full text-sm text-muted-foreground">
+                {tNoDiscovered}
+              </div>
+            ) : discoveredFiltered.length > 0 ? (
+              discoveredFiltered.map(renderOption)
             ) : lowerSearch ? (
               <div className="px-3 py-2 text-sm text-muted-foreground">
                 无匹配选项，按 Enter 使用当前输入
@@ -281,25 +288,16 @@ export function ModelSelectDropdown({
             ) : null}
           </div>
 
-          {/* 模型发现层 —— 始终存在于 DOM，hidden 时只是不可见 */}
+          {/* 预设列表层 —— 始终存在于 DOM，hidden 时只是不可见 */}
           <div
             className={cn(
-              'menu-option-list h-full overflow-y-auto',
-              activeTab !== 'discovered' && 'hidden',
+              'menu-option-list flex-1 min-h-0 overflow-y-auto',
+              activeTab !== 'preset' && 'hidden',
             )}
             onWheel={(e) => e.stopPropagation()}
           >
-            {isFetching && safeDiscoveredModels.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-sm text-muted-foreground">
-                <Loader2 className="w-4 h-4 animate-spin mb-2" />
-                {tFetching}
-              </div>
-            ) : safeDiscoveredModels.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-sm text-muted-foreground">
-                {tNoDiscovered}
-              </div>
-            ) : discoveredFiltered.length > 0 ? (
-              discoveredFiltered.map(renderOption)
+            {presetFiltered.length > 0 ? (
+              presetFiltered.map(renderOption)
             ) : lowerSearch ? (
               <div className="px-3 py-2 text-sm text-muted-foreground">
                 无匹配选项，按 Enter 使用当前输入

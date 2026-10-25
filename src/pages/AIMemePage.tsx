@@ -1392,7 +1392,9 @@ export default function AIMemePage() {
       return;
     }
     const exportAll = exportPackId === PERSONA_ALL;
-    const pack = exportAll ? undefined : personas.find((item) => item.persona_hint === exportPackId);
+    const pack = exportAll
+      ? undefined
+      : personas.find((item) => item.persona_hint === exportPackId);
     try {
       setIsExporting(true);
       const blob = exportAll

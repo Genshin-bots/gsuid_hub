@@ -164,6 +164,41 @@
     "endUserIdSalt": "Digest Salt",
     "endUserIdSaltPlaceholder": "Leave empty for an unkeyed digest",
     "endUserIdSaltHint": "An empty salt means an unkeyed digest: when the identity space is small (numeric account IDs), it can be brute-forced back, so it only obfuscates. Changing the salt orphans every previously sent digest and breaks upstream per-caller history.",
+    "sectionBasic": "Basic & Connection",
+    "sectionBasicDesc": "Provider type, profile name, endpoint and credentials",
+    "sectionCapabilities": "Model & Reasoning",
+    "sectionCapabilitiesDesc": "Capabilities, thinking level, and concurrency control",
+    "sectionNetwork": "Protocol & Advanced Network",
+    "sectionNetworkDesc": "Request method, usage stats, identity forwarding, and remote search",
+    "sectionVideo": "Multimodal Video Input",
+    "sectionVideoDesc": "Video block format and sampling settings for OpenAI-compatible interfaces",
+    "sectionVideoAlert": "Optimized for omni models such as Xiaomi MiMo, DashScope compatible mode, and OpenRouter. Effective only with chat_completions.",
+    "videoInputFormat": "Video Input Format",
+    "videoInputFormatOptions": {
+      "file": "file (compatible with LiteLLM / Gemini proxies)",
+      "video_url": "video_url (adapted for MiMo / DashScope / OpenRouter omni models)"
+    },
+    "videoInputFormatDescription": {
+      "file": "OpenAI-compatible video input format using file structure (type=file), ideal for LiteLLM / Gemini proxies.",
+      "video_url": "Generates type=video_url blocks, ideal for Xiaomi MiMo, DashScope compatible mode, and OpenRouter omni models (effective in chat_completions only)."
+    },
+    "videoFps": "Video Sample Rate (FPS)",
+    "videoFpsDescription": "Frame rate (FPS) for video sampling under video_url mode. Values > 0 send fps parameter (e.g. 0.5 or 2.0); 0 means not sent.",
+    "videoInlineMaxMb": "Video Inline Limit (MB)",
+    "videoInlineMaxMbDescription": "Maximum size (MB) for converting video to DataURI under video_url mode. Exceeding videos fall back to frame extraction or placeholders.",
+    "videoUrlPassthrough": "Video Public URL Passthrough",
+    "videoUrlPassthroughOptions": {
+      "off": "Off (download & convert to DataURI, default)",
+      "on": "On (passthrough public URL directly)"
+    },
+    "videoUrlPassthroughDescription": {
+      "off": "Recommended default. Downloads and converts to DataURI to avoid multi-turn failures due to expired temporary URLs.",
+      "on": "Passes the raw http(s) URL directly into video_url.url. Suitable when URLs are persistent and accessible by the upstream provider."
+    },
+    "videoPartExtra": "Video Part Extra Parameters (JSON)",
+    "videoPartExtraDescription": "JSON object merged into the video part under video_url mode. Merged at top level (e.g. {\"media_resolution\":\"default\"}) or inside video_url if key exists.",
+    "videoPartExtraPlaceholder": "e.g.: {\"media_resolution\": \"default\"}",
+    "videoFileModeHint": "Currently in file mode (LiteLLM / Gemini proxy compatible). Switch to video_url to configure sampling rate, inline limit, and extra JSON params.",
     "capabilityText": "Text Chat",
     "capabilityImage": "Image Understanding",
     "capabilityAudio": "Audio Processing",

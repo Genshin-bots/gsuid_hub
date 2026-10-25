@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn, formatTokens } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -46,12 +47,12 @@ import {
 import {
   aiSessionLogsApi,
   personaApi,
-  SessionLogSummary,
-  SessionLogDetail,
-  SessionLogEntry,
-  SegmentMeta,
-  SessionLogStatsOverview,
-  SessionLogCategory,
+  type SessionLogSummary,
+  type SessionLogDetail,
+  type SessionLogEntry,
+  type SegmentMeta,
+  type SessionLogStatsOverview,
+  type SessionLogCategory,
 } from '@/lib/api';
 import { toast } from 'sonner';
 import TraceWaterfall, { type TraceWaterfallHandle } from '@/components/ai-history/TraceWaterfall';
@@ -254,6 +255,9 @@ function cardSegments(card: SessionLogSummary): SegmentMeta[] {
 
 export default function AIHistoryPage() {
   const { t } = useLanguage();
+  const [searchParams] = useSearchParams();
+  const linkedQuery = searchParams.get('q') ?? '';
+  const linkedCreateBy = searchParams.get('create_by') || 'Chat';
 
   // 数据
   const [logs, setLogs] = useState<SessionLogSummary[]>([]);
@@ -271,9 +275,9 @@ export default function AIHistoryPage() {
   const [isLoadingEarlier, setIsLoadingEarlier] = useState(false);
 
   // 筛选
-  const [searchQuery, setSearchQuery] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [filterCreateBy, setFilterCreateBy] = useState<string>('Chat');
+  const [searchQuery, setSearchQuery] = useState(linkedQuery);
+  const [debouncedSearch, setDebouncedSearch] = useState(linkedQuery);
+  const [filterCreateBy, setFilterCreateBy] = useState<string>(linkedCreateBy);
   const [filterPersona, setFilterPersona] = useState<string>(DEFAULT_SELECT_VALUE);
   const [filterDateFrom] = useState('');
   const [filterDateTo] = useState('');
@@ -418,6 +422,18 @@ export default function AIHistoryPage() {
   );
 
   // ── effects ───────────────────────────────────────────────────────────
+  // 产出物页用 ?create_by=&q= 跳过来。页已经开着时也要跟上这次查询。
+  useEffect(() => {
+    const q = searchParams.get('q');
+    const createBy = searchParams.get('create_by');
+    if (q === null && !createBy) return;
+    if (q !== null) {
+      setSearchQuery(q);
+      setDebouncedSearch(q);
+    }
+    if (createBy) setFilterCreateBy(createBy);
+  }, [searchParams]);
+
   useEffect(() => {
     const id = setTimeout(() => setDebouncedSearch(searchQuery), 400);
     return () => clearTimeout(id);
@@ -600,6 +616,10 @@ export default function AIHistoryPage() {
                         {cat.label} ({cat.count})
                       </SelectItem>
                     ))}
+                    {filterCreateBy !== DEFAULT_SELECT_VALUE &&
+                    !categories.some((cat) => cat.create_by === filterCreateBy) ? (
+                      <SelectItem value={filterCreateBy}>{filterCreateBy}</SelectItem>
+                    ) : null}
                   </SelectContent>
                 </Select>
                 <Select value={filterPersona} onValueChange={setFilterPersona}>

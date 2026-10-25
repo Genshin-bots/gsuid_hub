@@ -2,20 +2,21 @@
  * /ai-artifacts —— AI 产出物与工具落盘（合并页）
  *
  * 原 /ai-artifacts 与 /ai-tool-outputs 合并：页面壳（标题 / 页签 / 常驻筛选行）只有一份，
- * 两个数据面板按 TabButtonGroup 页签切换。两块内容同属「Agent 产物落盘」，
- * 但后端不同（artifacts_api.py / tool_outputs_api.py），字段与操作也不同，因此保持两块面板而不是一张混合表。
+ * 三个数据面板按 TabButtonGroup 页签切换。产出物、工具落盘、自主行动后端不同，
+ * 因此各留一块面板，不合成一张表。
  *
- * 页签走 `?tab=`（toolOutputs），因此：
+ * 页签走 `?tab=`（toolOutputs / autonomy），因此：
  * - 侧边栏只有一个入口（/ai-artifacts），pathname 不变，展开态侧栏高亮稳定；
  * - /ai-tool-outputs 旧深链重定向过来，cognition.ts 的 to_ / sa_ 跳转仍落在工具落盘页签；
  * - 分享 / 刷新 URL 能回到同一个页签。
  */
 import { useCallback, useEffect, useState } from 'react';
-import { FileSearch, PackageOpen } from 'lucide-react';
+import { Compass, FileSearch, PackageOpen } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 
 import { useLanguage } from '@/contexts/LanguageContext';
 import { PinnedPage } from '@/components/layout/PinnedPage';
+import { cn } from '@/lib/utils';
 import {
   TabButtonGroup,
   type TabButtonOption,
@@ -32,18 +33,30 @@ import {
   ToolOutputsPanel,
   type ToolOutputsPanelProps,
 } from './AIOutputs/ToolOutputsPanel';
-import { TOOL_ALL } from './AIOutputs/constants';
+import { AutonomyFilters, AutonomyPanel, type AutonomyPanelProps } from './AIOutputs/AutonomyPanel';
+import { AUTONOMY_PERSONA_ALL, TOOL_ALL } from './AIOutputs/constants';
 
 const TAB_OUTPUTS = 'toolOutputs';
+const TAB_AUTONOMY = 'autonomy';
+
+function pageTab(value: string | null): 'artifacts' | typeof TAB_OUTPUTS | typeof TAB_AUTONOMY {
+  if (value === TAB_OUTPUTS) return TAB_OUTPUTS;
+  if (value === TAB_AUTONOMY) return TAB_AUTONOMY;
+  return 'artifacts';
+}
 
 export default function AIOutputsPage() {
   const { t } = useLanguage();
   const [searchParams, setSearchParams] = useSearchParams();
   // 产出物是默认页签，URL 保持干净；只有切到工具落盘才带 ?tab=
-  const tab = searchParams.get('tab') === TAB_OUTPUTS ? TAB_OUTPUTS : 'artifacts';
+  const tab = pageTab(searchParams.get('tab'));
   const changeTab = useCallback(
     (value: string) => {
-      setSearchParams(value === TAB_OUTPUTS ? { tab: TAB_OUTPUTS } : {}, { replace: true });
+      if (value === TAB_OUTPUTS || value === TAB_AUTONOMY) {
+        setSearchParams({ tab: value }, { replace: true });
+        return;
+      }
+      setSearchParams({}, { replace: true });
     },
     [setSearchParams],
   );
@@ -76,6 +89,15 @@ export default function AIOutputsPage() {
   const [outputsRefreshKey, setOutputsRefreshKey] = useState(0);
 
   const bumpOutputsRefresh = useCallback(() => setOutputsRefreshKey((k) => k + 1), []);
+
+  const [autonomyPersona, setAutonomyPersona] = useState(AUTONOMY_PERSONA_ALL);
+  const [autonomyPersonas, setAutonomyPersonas] = useState<string[]>([]);
+  const [autonomyOffset, setAutonomyOffset] = useState(0);
+  const [autonomyRefreshKey, setAutonomyRefreshKey] = useState(0);
+  const refreshAutonomy = useCallback(() => {
+    setAutonomyOffset(0);
+    setAutonomyRefreshKey((k) => k + 1);
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -133,6 +155,20 @@ export default function AIOutputsPage() {
     onRefresh: bumpOutputsRefresh,
   };
 
+  const autonomyProps: AutonomyPanelProps = {
+    personaName: autonomyPersona,
+    onPersonaNameChange: (value) => {
+      setAutonomyPersona(value);
+      setAutonomyOffset(0);
+    },
+    personaNames: autonomyPersonas,
+    onPersonaNames: setAutonomyPersonas,
+    offset: autonomyOffset,
+    onOffsetChange: setAutonomyOffset,
+    refreshKey: autonomyRefreshKey,
+    onRefresh: refreshAutonomy,
+  };
+
   const tabOptions: TabButtonOption[] = [
     {
       value: 'artifacts',
@@ -143,6 +179,11 @@ export default function AIOutputsPage() {
       value: 'toolOutputs',
       label: t('aiToolOutputs.title'),
       icon: <FileSearch className="h-4 w-4" />,
+    },
+    {
+      value: TAB_AUTONOMY,
+      label: t('aiAutonomy.title'),
+      icon: <Compass className="h-4 w-4" />,
     },
   ];
 
@@ -159,31 +200,33 @@ export default function AIOutputsPage() {
         </div>
       }
       toolbar={
-        /* 两行控件行：页签一行（连同刷新等操作留给面板内的卡片头），
-           当前页签的筛选行一行。窄屏各自换行，不横滑。 */
-        <div className="flex min-w-0 flex-col gap-3">
-          <div className="flex min-w-0 max-w-full items-center">
-            <div className={tabToolbarGroupWrapClass}>
-              <TabButtonGroup
-                options={tabOptions}
-                value={tab}
-                onValueChange={changeTab}
-                className="shrink-0"
-              />
-            </div>
+        <div className="flex w-full min-w-0 flex-wrap items-center justify-between gap-3">
+          <div className={cn(tabToolbarGroupWrapClass, 'shrink-0')}>
+            <TabButtonGroup
+              options={tabOptions}
+              value={tab}
+              onValueChange={changeTab}
+              className="shrink-0"
+            />
           </div>
-          {tab === 'artifacts' ? (
-            <ArtifactsFilters {...artifactsProps} />
-          ) : (
-            <ToolOutputsFilters {...toolOutputsProps} />
-          )}
+          <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2">
+            {tab === 'artifacts' ? (
+              <ArtifactsFilters {...artifactsProps} />
+            ) : tab === TAB_OUTPUTS ? (
+              <ToolOutputsFilters {...toolOutputsProps} />
+            ) : (
+              <AutonomyFilters {...autonomyProps} />
+            )}
+          </div>
         </div>
       }
     >
       {tab === 'artifacts' ? (
         <ArtifactsPanel {...artifactsProps} />
-      ) : (
+      ) : tab === TAB_OUTPUTS ? (
         <ToolOutputsPanel {...toolOutputsProps} />
+      ) : (
+        <AutonomyPanel {...autonomyProps} />
       )}
     </PinnedPage>
   );

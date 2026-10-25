@@ -92,41 +92,37 @@ export function ToolOutputsFilters(props: ToolOutputsPanelProps) {
   } = props;
 
   return (
-    <div className="flex flex-wrap items-end gap-3">
-      <div className="space-y-1 min-w-[200px] flex-1">
-        <Label>{t('aiToolOutputs.toolbar.keyword')}</Label>
-        <Input
-          className={cn(tabToolbarControlClass, 'min-w-0 w-full')}
-          placeholder={t('aiToolOutputs.toolbar.keywordPlaceholder')}
-          value={keywordDraft}
-          onChange={(e) => onKeywordDraftChange(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') onSearch();
-          }}
-        />
-      </div>
-      <div className="space-y-1 min-w-[180px]">
-        <Label>{t('aiToolOutputs.toolbar.toolName')}</Label>
-        <Select value={toolName} onValueChange={onToolNameChange}>
-          <SelectTrigger className={cn(tabToolbarControlClass, 'min-w-0')}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={TOOL_ALL}>{t('aiToolOutputs.toolbar.toolAll')}</SelectItem>
-            {toolNames.map((n) => (
-              <SelectItem key={n} value={n}>
-                {n}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+    <div className="flex flex-wrap items-center justify-end gap-2">
+      <Input
+        className={cn(tabToolbarControlClass, 'min-w-0 w-full sm:w-[200px] md:w-[240px]')}
+        placeholder={t('aiToolOutputs.toolbar.keywordPlaceholder')}
+        value={keywordDraft}
+        onChange={(e) => onKeywordDraftChange(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') onSearch();
+        }}
+      />
+      <Select value={toolName} onValueChange={onToolNameChange}>
+        <SelectTrigger className={cn(tabToolbarControlClass, 'w-[130px] sm:w-[150px] shrink-0')}>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={TOOL_ALL}>{t('aiToolOutputs.toolbar.toolAll')}</SelectItem>
+          {toolNames.map((n) => (
+            <SelectItem key={n} value={n}>
+              {n}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
       <Button className={cn(tabToolbarControlClass, 'shrink-0')} onClick={onSearch}>
         {t('aiToolOutputs.toolbar.search')}
       </Button>
-      <div className="flex items-center gap-2 pb-2">
+      <div className="flex shrink-0 items-center gap-2 pl-1">
         <Switch checked={includeExpired} onCheckedChange={onIncludeExpiredChange} />
-        <Label>{t('aiToolOutputs.toolbar.includeExpired')}</Label>
+        <Label className="whitespace-nowrap cursor-pointer">
+          {t('aiToolOutputs.toolbar.includeExpired')}
+        </Label>
       </div>
     </div>
   );
@@ -512,7 +508,11 @@ export function ToolOutputsPanel(props: ToolOutputsPanelProps) {
             )}
           </DialogHeader>
 
-          <Tabs value={detailTab} onValueChange={setDetailTab} className="flex-1 min-h-0 flex flex-col">
+          <Tabs
+            value={detailTab}
+            onValueChange={setDetailTab}
+            className="flex-1 min-h-0 flex flex-col"
+          >
             <div className="mx-6 mt-3 shrink-0 self-start">
               <TabButtonGroup
                 value={detailTab}

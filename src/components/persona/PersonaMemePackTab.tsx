@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
+import { LabelWithHelp } from '@/components/ui/label-with-help';
 import { Switch } from '@/components/ui/switch';
 import { getAuthToken, memeApi, personaApi, type MemePackSummary } from '@/lib/api';
 import { cn } from '@/lib/utils';
@@ -100,7 +100,11 @@ export function PersonaMemePackTab({
       );
       const previewMap = Object.fromEntries(thumbs);
       setPreviews(previewMap);
-      tabCache.set(personaName, { packs: next, selected: bound?.pack_ids ?? [], previews: previewMap });
+      tabCache.set(personaName, {
+        packs: next,
+        selected: bound?.pack_ids ?? [],
+        previews: previewMap,
+      });
     } catch {
       toast.error('表情包列表加载失败');
       setPacks([]);
@@ -180,13 +184,13 @@ export function PersonaMemePackTab({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3 rounded-xl border p-4">
-        <div className="min-w-0">
-          <Label htmlFor="allow-meme-reply" className="flex items-center gap-2 text-base">
-            <Smile className="h-4 w-4" />
-            {t('personaConfig.allowMemeReply')}
-          </Label>
-          <p className="text-xs text-muted-foreground">{t('personaConfig.allowMemeReplyHint')}</p>
-        </div>
+        <LabelWithHelp
+          htmlFor="allow-meme-reply"
+          icon={<Smile className="h-4 w-4" />}
+          label={t('personaConfig.allowMemeReply')}
+          description={t('personaConfig.allowMemeReplyHint')}
+          className="text-base font-medium"
+        />
         <Switch
           id="allow-meme-reply"
           checked={allowReply}
@@ -196,9 +200,11 @@ export function PersonaMemePackTab({
         />
       </div>
       <div className="flex items-center justify-between gap-3">
-        <p className="text-sm text-muted-foreground">
-          只发送已勾选的表情包。全部取消后不再发表情。最多 {MAX_PACKS} 个。
-        </p>
+        <LabelWithHelp
+          label={t('personaConfig.memePacks')}
+          description={t('personaConfig.memePackSelectHint', { max: MAX_PACKS })}
+          className="text-sm font-medium"
+        />
         <span className="shrink-0 text-xs text-muted-foreground">
           已选 {selected.length} / {MAX_PACKS}
         </span>
@@ -258,7 +264,9 @@ export function PersonaMemePackTab({
                     />
                     <span className="truncate font-medium">{pack.name}</span>
                   </div>
-                  <span className="shrink-0 text-xs text-muted-foreground">{pack.member_count} 张</span>
+                  <span className="shrink-0 text-xs text-muted-foreground">
+                    {pack.member_count} 张
+                  </span>
                 </div>
                 <div className="flex gap-2">
                   {pack.member_count === 0 ? (
@@ -284,10 +292,20 @@ export function PersonaMemePackTab({
           {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
           保存挂载
         </Button>
-        <Button type="button" variant="outline" onClick={() => void exportBundle()} disabled={loading}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => void exportBundle()}
+          disabled={loading}
+        >
           导出整包
         </Button>
-        <Button type="button" variant="outline" onClick={() => fileRef.current?.click()} disabled={loading}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => fileRef.current?.click()}
+          disabled={loading}
+        >
           导入整包
         </Button>
         <input

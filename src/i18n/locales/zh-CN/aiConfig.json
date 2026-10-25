@@ -164,6 +164,41 @@
     "endUserIdSalt": "摘要盐值",
     "endUserIdSaltPlaceholder": "留空即无密钥摘要",
     "endUserIdSaltHint": "留空时摘要不带密钥：标识空间小（纯数字账号）时可被枚举反查，只起混淆作用。改动盐值会让此前的摘要全部失去对应关系，上游按调用方的历史聚合会断裂。",
+    "sectionBasic": "基础与连接",
+    "sectionBasicDesc": "服务商类型、名称、基础端点与凭据",
+    "sectionCapabilities": "模型与推理",
+    "sectionCapabilitiesDesc": "模型能力、思考等级、并发控制",
+    "sectionNetwork": "协议与高级网络",
+    "sectionNetworkDesc": "请求方式、用量统计、标识透传与远端搜索",
+    "sectionVideo": "全模态视频输入",
+    "sectionVideoDesc": "OpenAI 兼容接口的视频块格式与采样参数配置",
+    "sectionVideoAlert": "适配小米 MiMo、阿里百炼 DashScope 兼容模式、OpenRouter 等全模态模型。仅在 chat_completions 请求方式下生效。",
+    "videoInputFormat": "视频输入格式",
+    "videoInputFormatOptions": {
+      "file": "file（兼容 LiteLLM / Gemini 等中转网关）",
+      "video_url": "video_url（适配 MiMo / 阿里百炼 / OpenRouter 等全模态模型）"
+    },
+    "videoInputFormatDescription": {
+      "file": "OpenAI 兼容接口视频输入格式：使用 file 方式，适用于 LiteLLM / Gemini 中转（type=file）。",
+      "video_url": "生成 type=video_url 块，适用于小米 MiMo、阿里百炼 DashScope 兼容模式、OpenRouter 等原生全模态模型（仅 chat_completions 生效）。"
+    },
+    "videoFps": "视频采样帧率 (FPS)",
+    "videoFpsDescription": "video_url 模式下的抽样帧率。大于 0 时发送 fps 参数（如 0.5 或 2.0），0 表示不限制/不发送。",
+    "videoInlineMaxMb": "视频内联大小上限 (MB)",
+    "videoInlineMaxMbDescription": "video_url 模式下转为 DataURI 发送的视频体积上限。超过时自动降级为抽帧或占位符，避免请求体过大导致超时或拒收。",
+    "videoUrlPassthrough": "视频公网 URL 直通",
+    "videoUrlPassthroughOptions": {
+      "off": "关闭（先下载转 DataURI，默认）",
+      "on": "开启（直接透传原始 URL）"
+    },
+    "videoUrlPassthroughDescription": {
+      "off": "默认推荐。先下载转为 DataURI，避免临时链接或第三方防盗链过期导致多轮对话卡死 400。",
+      "on": "直接将原始 http(s) 链接填入 video_url.url。适合视频链接稳定且模型服务方可直连公网的情况。"
+    },
+    "videoPartExtra": "视频块额外参数 (JSON)",
+    "videoPartExtraDescription": "video_url 模式下合并进视频块的 JSON 对象。同级合并如 {\"media_resolution\":\"default\"}；若含 video_url 键且为对象则合并至内部 video_url。",
+    "videoPartExtraPlaceholder": "例如: {\"media_resolution\": \"default\"}",
+    "videoFileModeHint": "当前为 file 模式（兼容 LiteLLM / Gemini 中转）。切换为 video_url 可进一步配置采样帧率、内联上限与额外参数。",
     "capabilityText": "文本对话",
     "capabilityImage": "图片理解",
     "capabilityAudio": "语音处理",

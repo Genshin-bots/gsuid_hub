@@ -223,13 +223,19 @@ export function InputWithDropdown({
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        className={cn('menu-panel overflow-hidden p-0', popoverWidth)}
-        style={{ width: 'var(--radix-popover-trigger-width)' }}
+        className={cn('menu-panel overflow-hidden p-0 flex flex-col', popoverWidth)}
+        style={{
+          width: 'var(--radix-popover-trigger-width)',
+          maxHeight: 'var(--radix-popper-available-height)',
+        }}
+        side="bottom"
         align="start"
+        sideOffset={4}
+        collisionPadding={8}
         onOpenAutoFocus={handleOpenAutoFocus}
         onWheel={(e) => e.stopPropagation()}
       >
-        <div className="space-y-2 p-2">
+        <div className="space-y-2 p-2 shrink-0">
           {(showCopyValueAction || showClearValueAction) && (
             // 按钮组：复制（icon+文字，flex-1 占主）+ 清空（右侧 icon-only X）
             // 复制按钮全宽会让清空只能放到下一行，破坏「同排视觉关联」，
@@ -284,9 +290,9 @@ export function InputWithDropdown({
           />
         </div>
         {filteredOptions.length > 0 && (
-          <div className="border-t p-1">
+          <div className="border-t p-1 flex-1 min-h-0 flex flex-col overflow-hidden">
             <div
-              className="menu-option-list max-h-[360px] overflow-y-auto"
+              className="menu-option-list max-h-[300px] flex-1 min-h-0 overflow-y-auto"
               onWheel={(e) => e.stopPropagation()}
             >
               {filteredOptions.map((option) => {
@@ -309,7 +315,7 @@ export function InputWithDropdown({
           </div>
         )}
         {searchValue.trim() && filteredOptions.length === 0 && (
-          <div className="px-3 py-2 text-sm text-muted-foreground border-t">
+          <div className="px-3 py-2 text-sm text-muted-foreground border-t shrink-0">
             无匹配选项，按 Enter 使用当前输入
           </div>
         )}

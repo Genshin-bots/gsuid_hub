@@ -1356,7 +1356,7 @@ export default function PluginsPage() {
                                 },
                                 allValue: paramsConfigName,
                                 align: 'start' as const,
-                                                                items: selectedPlugin.config_names.map((name, index) => ({
+                                items: selectedPlugin.config_names.map((name, index) => ({
                                   value: name,
                                   label: name,
                                   icon: getConfigIcon(name, index),

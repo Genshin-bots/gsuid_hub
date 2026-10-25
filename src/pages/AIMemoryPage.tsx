@@ -480,6 +480,11 @@ function KnowledgeGraph({
   isGlass,
   isDark,
   onNodeClick,
+  selectedScope,
+  onScopeChange,
+  scopes,
+  onClearMemory,
+  onRefresh,
 }: {
   entities: Entity[];
   edges: Edge[];
@@ -487,6 +492,11 @@ function KnowledgeGraph({
   isGlass: boolean;
   isDark: boolean;
   onNodeClick: (type: 'entity' | 'category', id: string) => void;
+  selectedScope?: string;
+  onScopeChange?: (scope: string) => void;
+  scopes?: MemoryScope[];
+  onClearMemory?: () => void;
+  onRefresh?: () => void;
 }) {
   void categories; // categories are not rendered as graph nodes (kept for API compatibility)
   const { t } = useLanguage();
@@ -742,6 +752,68 @@ function KnowledgeGraph({
       onNodeClickRef.current('entity', node);
     });
 
+    // 鼠标中键按住拖动画布（解决密集节点处左键无法点空白平移的问题）
+    let isMiddleDragging = false;
+    let lastClientX = 0;
+    let lastClientY = 0;
+
+    const handlePointerDown = (e: MouseEvent) => {
+      if (e.button === 1) {
+        e.preventDefault();
+        e.stopPropagation();
+        isMiddleDragging = true;
+        lastClientX = e.clientX;
+        lastClientY = e.clientY;
+        container.style.cursor = 'grabbing';
+      }
+    };
+
+    const handlePointerMove = (e: MouseEvent) => {
+      if (!isMiddleDragging) return;
+      e.preventDefault();
+      e.stopPropagation();
+
+      const camera = renderer.getCamera();
+      const rect = container.getBoundingClientRect();
+      const prevX = lastClientX - rect.left;
+      const prevY = lastClientY - rect.top;
+      const curX = e.clientX - rect.left;
+      const curY = e.clientY - rect.top;
+
+      const p1 = renderer.viewportToFramedGraph({ x: prevX, y: prevY });
+      const p2 = renderer.viewportToFramedGraph({ x: curX, y: curY });
+      const dx = p1.x - p2.x;
+      const dy = p1.y - p2.y;
+
+      const state = camera.getState();
+      camera.setState({
+        x: state.x + dx,
+        y: state.y + dy,
+      });
+
+      lastClientX = e.clientX;
+      lastClientY = e.clientY;
+    };
+
+    const handlePointerUp = (e: MouseEvent) => {
+      if (isMiddleDragging || e.button === 1) {
+        isMiddleDragging = false;
+        container.style.cursor = hoveredRef.current ? 'pointer' : 'grab';
+      }
+    };
+
+    const handleAuxClick = (e: MouseEvent) => {
+      if (e.button === 1) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    };
+
+    container.addEventListener('mousedown', handlePointerDown);
+    container.addEventListener('auxclick', handleAuxClick);
+    window.addEventListener('mousemove', handlePointerMove);
+    window.addEventListener('mouseup', handlePointerUp);
+
     // Force layout (off the main thread) for graphs small enough to benefit;
     // larger graphs keep the deterministic phyllotaxis layout.
     let layoutTimer = 0;
@@ -764,6 +836,10 @@ function KnowledgeGraph({
 
     return () => {
       window.clearTimeout(layoutTimer);
+      container.removeEventListener('mousedown', handlePointerDown);
+      container.removeEventListener('auxclick', handleAuxClick);
+      window.removeEventListener('mousemove', handlePointerMove);
+      window.removeEventListener('mouseup', handlePointerUp);
       if (fa2Ref.current) {
         fa2Ref.current.kill();
         fa2Ref.current = null;
@@ -862,58 +938,116 @@ function KnowledgeGraph({
     <div
       ref={wrapperRef}
       className={cn('relative w-full', isFullscreen ? 'fixed inset-0 z-50 bg-background' : '')}
-      style={isFullscreen ? { height: '100vh' } : { height: 'calc(100vh - 280px)', minHeight: 400 }}
+      style={isFullscreen ? { height: '100vh' } : { height: 'calc(100vh - 220px)', minHeight: 450 }}
     >
       <div
         ref={containerRef}
         className={cn('w-full h-full glass-card', isFullscreen ? '' : 'rounded-lg')}
         style={{ cursor: 'grab' }}
       />
-      {/* Search */}
-      <form
-        className="glass-float absolute top-3 left-3 w-[min(360px,calc(100%-88px))] rounded-lg p-2"
-        onSubmit={handleSearchSubmit}
-      >
-        <div className="flex items-center gap-2">
-          <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+      {/* 顶部悬浮工具栏：分离为三个独立组件（范围选择器、搜索框、操作按钮） */}
+      <div className="absolute top-3 left-3 max-w-[calc(100%-88px)] flex flex-wrap items-center gap-2.5 z-10 pointer-events-auto">
+        {/* 组件 1：范围选择器（独立胶囊） */}
+        {scopes && onScopeChange && (
+          <div className="glass-float rounded-lg p-1 border border-border/50 shadow-sm shrink-0">
+            <ScopeSelector
+              value={selectedScope || 'all'}
+              onChange={onScopeChange}
+              scopes={scopes}
+              allLabel={t('aiMemory.allScopes')}
+              className="h-8 text-xs border-0 bg-transparent shadow-none w-[150px] sm:w-[180px]"
+            />
+          </div>
+        )}
+
+        {/* 组件 2：节点搜索框（独立搜索控件，清晰明显的输入底板与边框） */}
+        <form
+          className="glass-float relative flex items-center rounded-lg px-2.5 py-0.5 border border-border/60 shadow-sm w-[210px] sm:w-[280px]"
+          onSubmit={handleSearchSubmit}
+        >
+          <Search className="h-4 w-4 shrink-0 text-primary mr-1.5" />
           <Input
             value={nodeSearchQuery}
             onChange={(e) => setNodeSearchQuery(e.target.value)}
             placeholder="搜索节点名称或 ID，回车定位"
-            className="h-8 border-0 bg-transparent shadow-none"
+            className="h-8 border-0 bg-transparent shadow-none text-xs px-0 focus-visible:ring-0 placeholder:text-muted-foreground"
           />
-        </div>
-        {nodeSearchQuery.trim() && (
-          <div className="mt-2 max-h-56 overflow-auto rounded-md border border-border/30 bg-transparent">
-            {nodeSearchResults.length > 0 ? (
-              nodeSearchResults.map((node) => (
-                <button
-                  key={node.id}
-                  type="button"
-                  className={cn(
-                    'flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-accent/60',
-                    focusedNodeId === node.id && 'bg-accent/70',
-                  )}
-                  onClick={() => focusNode(node.id, { closeResults: true })}
-                >
-                  <span className="min-w-0">
-                    <span className="block truncate font-medium">{node.label}</span>
-                    <span className="block truncate text-xs text-muted-foreground">{node.id}</span>
-                  </span>
-                  <Badge
-                    variant={node.centerRank ? 'default' : 'outline'}
-                    className="shrink-0 text-[10px]"
+          {nodeSearchQuery && (
+            <button
+              type="button"
+              onClick={() => setNodeSearchQuery('')}
+              className="text-muted-foreground hover:text-foreground p-0.5"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+          {nodeSearchQuery.trim() && (
+            <div className="absolute top-full left-0 mt-2 w-[min(360px,calc(100vw-40px))] max-h-56 overflow-auto rounded-md border border-border/40 bg-popover/95 text-popover-foreground shadow-lg backdrop-blur z-50">
+              {nodeSearchResults.length > 0 ? (
+                nodeSearchResults.map((node) => (
+                  <button
+                    key={node.id}
+                    type="button"
+                    className={cn(
+                      'flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-accent/60',
+                      focusedNodeId === node.id && 'bg-accent/70',
+                    )}
+                    onClick={() => focusNode(node.id, { closeResults: true })}
                   >
-                    {node.centerRank ? `TOP ${node.centerRank}` : `${node.degree} 线`}
-                  </Badge>
-                </button>
-              ))
-            ) : (
-              <div className="px-3 py-2 text-sm text-muted-foreground">未找到匹配节点</div>
+                    <span className="min-w-0">
+                      <span className="block truncate font-medium">{node.label}</span>
+                      <span className="block truncate text-xs text-muted-foreground">
+                        {node.id}
+                      </span>
+                    </span>
+                    <Badge
+                      variant={node.centerRank ? 'default' : 'outline'}
+                      className="shrink-0 text-[10px]"
+                    >
+                      {node.centerRank ? `TOP ${node.centerRank}` : `${node.degree} 线`}
+                    </Badge>
+                  </button>
+                ))
+              ) : (
+                <div className="px-3 py-2 text-sm text-muted-foreground">未找到匹配节点</div>
+              )}
+            </div>
+          )}
+        </form>
+
+        {/* 组件 3：操作按钮组（清除当前范围记忆 & 刷新，独立胶囊） */}
+        {(onClearMemory || onRefresh) && (
+          <div className="glass-float flex items-center gap-1 rounded-lg p-1 border border-border/50 shadow-sm shrink-0">
+            {onClearMemory && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 px-2.5 text-xs text-muted-foreground hover:text-destructive"
+                onClick={onClearMemory}
+                disabled={selectedScope === 'all' || !selectedScope}
+                title={t('aiMemory.clearMemory')}
+                aria-label={t('aiMemory.clearMemory')}
+              >
+                <Trash2 className="w-3.5 h-3.5 sm:mr-1 text-destructive/80" />
+                <span className="hidden sm:inline">{t('aiMemory.clearMemory')}</span>
+              </Button>
+            )}
+            {onRefresh && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground"
+                onClick={onRefresh}
+                title={t('common.refresh')}
+                aria-label={t('common.refresh')}
+              >
+                <RefreshCw className="w-3.5 h-3.5 sm:mr-1" />
+                <span className="hidden sm:inline">{t('common.refresh')}</span>
+              </Button>
             )}
           </div>
         )}
-      </form>
+      </div>
       {/* Controls */}
       <div className="absolute top-3 right-3 flex flex-col gap-1">
         <Button
@@ -992,14 +1126,16 @@ function StatsCard({
 }) {
   return (
     <Card className={cn('glass-card')}>
-      <CardContent className="p-3 sm:p-4">
-        <div className="flex items-center gap-2 sm:gap-3">
-          <div className="p-2 sm:p-2.5 rounded-lg bg-primary/10 shrink-0">
-            <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+      <CardContent className="p-2 sm:p-2.5">
+        <div className="flex items-center gap-2">
+          <div className="p-1.5 rounded-lg bg-primary/10 shrink-0">
+            <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" />
           </div>
           <div className="min-w-0">
-            <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{title}</p>
-            <p className="text-lg sm:text-xl font-bold truncate">{value.toLocaleString()}</p>
+            <p className="text-[10px] text-muted-foreground truncate">{title}</p>
+            <p className="text-sm sm:text-base font-bold truncate leading-tight">
+              {value.toLocaleString()}
+            </p>
           </div>
         </div>
       </CardContent>
@@ -2140,9 +2276,9 @@ export default function AIMemoryPage() {
         </GlassAlert>
       )}
 
-      {/* Stats：8 卡固定两行四列（大屏不再挤成一行） */}
+      {/* Stats：8 卡缩略成单行（大屏单行 8 列，小屏自适应） */}
       {stats && (
-        <div className="glass-card-grid grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="glass-card-grid grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
           <StatsCard
             title={t('aiMemory.statsEpisodes')}
             value={stats.episode_count}
@@ -2307,50 +2443,6 @@ export default function AIMemoryPage() {
       {/* Knowledge Graph Tab */}
       {activeTab === 'graph' && (
         <div className="space-y-4">
-          <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">{t('aiMemory.graphDescription')}</p>
-            {/* 移动端：左 scope 列表，右两个操作按钮；桌面同理保持一行 */}
-            <div className="flex w-full min-w-0 items-center gap-2">
-              <ScopeSelector
-                value={selectedScope}
-                onChange={handleScopeChange}
-                scopes={scopes}
-                allLabel={t('aiMemory.allScopes')}
-                className={cn(
-                  tabToolbarControlClass,
-                  'min-w-0 flex-1 sm:max-w-[220px] sm:flex-none sm:w-[180px]',
-                )}
-              />
-              <div className="ml-auto flex shrink-0 items-center gap-2">
-                <Button
-                  variant="outline"
-                  className={cn(tabToolbarControlClass, 'px-2.5 sm:px-3')}
-                  onClick={() => setClearMemoryDialogOpen(true)}
-                  disabled={selectedScope === 'all' || !selectedScope}
-                  title={t('aiMemory.clearMemory')}
-                  aria-label={t('aiMemory.clearMemory')}
-                >
-                  <Trash2 className="w-4 h-4 sm:mr-1" />
-                  <span className="hidden sm:inline">{t('aiMemory.clearMemory')}</span>
-                </Button>
-                <Button
-                  variant="outline"
-                  className={cn(tabToolbarControlClass, 'px-2.5 sm:px-3')}
-                  onClick={() => {
-                    fetchEntities(1);
-                    fetchEdges(1);
-                    fetchCategories(1);
-                    fetchCognition();
-                  }}
-                  title={t('common.refresh')}
-                  aria-label={t('common.refresh')}
-                >
-                  <RefreshCw className="w-4 h-4 sm:mr-1" />
-                  <span className="hidden sm:inline">{t('common.refresh')}</span>
-                </Button>
-              </div>
-            </div>
-          </div>
           {entities.length === 0 && edges.length === 0 ? (
             <Card className={cn('glass-card')}>
               <CardContent className="flex flex-col items-center justify-center !p-8 text-center text-muted-foreground">
@@ -2366,6 +2458,16 @@ export default function AIMemoryPage() {
               isGlass={isGlass}
               isDark={isDark}
               onNodeClick={(type, id) => openDetailDialog(type, id)}
+              selectedScope={selectedScope}
+              onScopeChange={handleScopeChange}
+              scopes={scopes}
+              onClearMemory={() => setClearMemoryDialogOpen(true)}
+              onRefresh={() => {
+                fetchEntities(1);
+                fetchEdges(1);
+                fetchCategories(1);
+                fetchCognition();
+              }}
             />
           )}
         </div>
@@ -2373,15 +2475,6 @@ export default function AIMemoryPage() {
 
       {activeTab === 'world' && (
         <div className="space-y-4">
-          <div className="flex w-full min-w-0 items-center gap-2">
-            <p className="text-sm text-muted-foreground min-w-0 flex-1">
-              {t('aiMemory.worldTabDescription')}
-            </p>
-            <Button variant="outline" className="shrink-0" onClick={() => fetchCognition()}>
-              <RefreshCw className="w-4 h-4 sm:mr-1" />
-              <span className="hidden sm:inline">{t('common.refresh')}</span>
-            </Button>
-          </div>
           {worldHubs.length === 0 ? (
             <Card className={cn('glass-card')}>
               <CardContent className="flex flex-col items-center justify-center !p-8 text-center text-muted-foreground">
@@ -2395,6 +2488,7 @@ export default function AIMemoryPage() {
               isDark={isDark}
               onHubClick={(hub) => openDetailDialog('world', worldGraphId(hub))}
               onArticleClick={setPreviewArticle}
+              onRefresh={() => fetchCognition()}
             />
           )}
         </div>
@@ -2403,17 +2497,6 @@ export default function AIMemoryPage() {
       {/* Preferences Tab */}
       {activeTab === 'preferences' && (
         <div className="space-y-4">
-          <div className={cn('rounded-lg p-3 text-sm', 'glass-card')}>
-            <div className="flex items-start gap-2">
-              <ListChecks className="w-4 h-4 mt-0.5 text-primary shrink-0" />
-              <div className="space-y-1">
-                <p className="font-medium">{t('aiMemory.tabPreferences')}</p>
-                <p className="text-muted-foreground">{t('aiMemory.preferencesDescription')}</p>
-                <p className="text-xs text-muted-foreground">{t('aiMemory.preferencesHint')}</p>
-              </div>
-            </div>
-          </div>
-
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <p className="text-sm text-muted-foreground">
               {t('aiMemory.preferenceCount', {

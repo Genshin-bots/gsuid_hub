@@ -37,7 +37,11 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { TabButtonGroup, tabToolbarControlClass, tabToolbarIconButtonClass } from '@/components/ui/TabButtonGroup';
+import {
+  TabButtonGroup,
+  tabToolbarControlClass,
+  tabToolbarIconButtonClass,
+} from '@/components/ui/TabButtonGroup';
 import { SearchableMenu } from '@/components/ui/searchable-menu';
 import { PluginUsageBar } from '@/components/plugins/PluginUsageBar';
 import { Separator } from '@/components/ui/separator';

@@ -1,0 +1,50 @@
+{
+  "title": "Autonomy",
+  "filters": {
+    "personaAll": "All personas",
+    "refresh": "Refresh"
+  },
+  "latestTitle": "Latest activity",
+  "historyTitle": "Activity log",
+  "empty": "No autonomy runs yet.",
+  "emptyHint": "Turn on Autonomy for a persona. The next run shows up here. A run that called the model can open its session log.",
+  "noSummary": "No summary",
+  "table": {
+    "persona": "Persona",
+    "when": "When",
+    "drive": "What",
+    "delivery": "Delivery",
+    "summary": "Summary",
+    "steps": "Steps"
+  },
+  "drive": {
+    "care_user": "Check on someone",
+    "group_topic": "Group topic",
+    "self_explore": "Look something up",
+    "rest": "Rest"
+  },
+  "delivery": {
+    "immediate_push": "Say it now",
+    "staged_merge": "Mention next time",
+    "silent_only": "Stay quiet"
+  },
+  "detail": {
+    "title": "This run",
+    "target": "Target",
+    "duration": "{seconds} s",
+    "summary": "Summary",
+    "observations": "Facts found",
+    "trails": "Still to look at",
+    "steps": "Tools used",
+    "noSteps": "This run did not call a tool.",
+    "stepError": "Failed",
+    "sessionLog": "Open session log",
+    "noSessionLog": "This row has no session id, so there is no log to open."
+  },
+  "pagination": {
+    "label": "{from}–{to} of {total}",
+    "prev": "Previous",
+    "next": "Next"
+  },
+  "loadFailed": "Could not load autonomy activity"
+}

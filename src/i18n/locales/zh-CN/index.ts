@@ -51,6 +51,7 @@ import module49 from './memorySettings.json';
 import module50 from './logsConfig.json';
 import module_aiToolOutputs from './aiToolOutputs.json';
 import module_aiOutputs from './aiOutputs.json';
+import module_aiAutonomy from './aiAutonomy.json';
 
 import module_groupProfile from './groupProfile.json';
 import module_aiOps from './aiOps.json';
@@ -110,6 +111,7 @@ const locale = {
   logsConfig: module50,
   aiToolOutputs: module_aiToolOutputs,
   aiOutputs: module_aiOutputs,
+  aiAutonomy: module_aiAutonomy,
   groupProfile: module_groupProfile,
   aiOps: module_aiOps,
   liveChat: module_liveChat,

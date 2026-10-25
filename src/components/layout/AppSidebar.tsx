@@ -28,7 +28,6 @@ import {
   GitBranch,
   Image as ImageIcon,
   ScrollText,
-  Layers,
   ClipboardList,
   Activity,
   Wallet,
@@ -174,12 +173,6 @@ const getNavItems = (
         },
         { id: 'ai-budget', title: t('sidebar.aiBudget'), url: '/ai-budget', icon: Wallet },
         { id: 'ai-mcpConfig', title: t('sidebar.mcpConfig'), url: '/mcp-config', icon: Server },
-        {
-          id: 'ai-capabilityAgents',
-          title: t('sidebar.aiCapabilityAgents'),
-          url: '/ai-capability-agents',
-          icon: Layers,
-        },
         { id: 'ai-tools', title: t('sidebar.aiTools'), url: '/ai-tools', icon: Wrench },
         {
           id: 'ai-statistics',

@@ -49,7 +49,7 @@ export function SearchableMenuContent({
         placeholder={searchPlaceholder ?? t('common.search')}
         className="h-8 min-w-0 flex-1 px-2 py-0"
       />
-      <CommandList className="max-h-72">
+      <CommandList className="max-h-72 flex-1 min-h-0 overflow-y-auto">
         <CommandEmpty>{emptyText ?? t('common.noMatches')}</CommandEmpty>
         <CommandGroup>
           {items.map((item) => {
@@ -185,13 +185,19 @@ export function SearchableMenu({
       </PopoverTrigger>
       <PopoverContent
         ref={panelRef}
+        side="bottom"
         align={align}
+        sideOffset={4}
+        collisionPadding={8}
         className={cn(
-          'glass-float searchable-menu-panel box-border overflow-hidden bg-transparent p-0 shadow-none',
+          'glass-float searchable-menu-panel box-border overflow-hidden bg-transparent p-0 shadow-none flex flex-col',
           width === 'content' && 'w-max min-w-[16rem] max-w-[24rem]',
           contentClassName,
         )}
-        style={width === 'trigger' ? { width: 'var(--radix-popover-trigger-width)' } : undefined}
+        style={{
+          maxHeight: 'var(--radix-popper-available-height)',
+          ...(width === 'trigger' ? { width: 'var(--radix-popover-trigger-width)' } : {}),
+        }}
         onOpenAutoFocus={(event) => {
           event.preventDefault();
           focusMenuSearch(panelRef.current);

@@ -1092,7 +1092,12 @@ const routes: Route[] = [
     re: /^\/api\/ai\/tools\/list/,
     h: () => ({
       tools: [
-        { name: 'test_tool', description: '测试工具描述\n详细信息', plugin: 'core', category: 'self' },
+        {
+          name: 'test_tool',
+          description: '测试工具描述\n详细信息',
+          plugin: 'core',
+          category: 'self',
+        },
       ],
       categories: ['self', 'buildin'],
       plugins: ['core'],

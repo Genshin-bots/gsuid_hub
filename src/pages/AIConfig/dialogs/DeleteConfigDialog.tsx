@@ -12,7 +12,7 @@ import {
 
 export interface DeleteConfigDialogProps {
   open: boolean;
-  t: (key: string) => string;
+  t: (key: string, params?: Record<string, string | number>) => string;
   configName: string;
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void;

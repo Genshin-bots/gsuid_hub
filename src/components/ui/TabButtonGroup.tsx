@@ -8,12 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-  PopoverAnchor,
-} from '@/components/ui/popover';
+import { Popover, PopoverTrigger, PopoverContent, PopoverAnchor } from '@/components/ui/popover';
 import { SearchableMenuContent } from '@/components/ui/searchable-menu';
 import { LiquidSegmentThumb } from '@/components/ui/LiquidSegmentThumb';
 import { needsFullWidthWrapper, pickWidthTokens } from '@/components/ui/tabGroupWidth';
@@ -151,7 +146,6 @@ function omitPaddingClasses(className?: string) {
   );
 }
 
-
 interface TabSegmentDropdownItemProps {
   option: TabButtonOption;
   isActive: boolean;
@@ -231,10 +225,7 @@ function TabSegmentDropdownItem({
             {option.badge}
           </button>
 
-          <span
-            className={cn('my-1.5 w-px shrink-0 self-stretch', dividerClass)}
-            aria-hidden
-          />
+          <span className={cn('my-1.5 w-px shrink-0 self-stretch', dividerClass)} aria-hidden />
 
           {/* 仅箭头触发下拉 */}
           <PopoverTrigger asChild disabled={isDisabled}>
@@ -265,16 +256,21 @@ function TabSegmentDropdownItem({
 
       <PopoverContent
         ref={panelRef}
+        side="bottom"
         align={dropdown.align ?? 'start'}
         sideOffset={4}
+        collisionPadding={8}
         className={cn(
-          'glass-float searchable-menu-panel box-border overflow-hidden bg-transparent p-0 shadow-none',
+          'glass-float searchable-menu-panel box-border overflow-hidden bg-transparent p-0 shadow-none flex flex-col',
           widthMode === 'trigger'
             ? 'w-[var(--radix-popover-trigger-width)] min-w-[var(--radix-popover-trigger-width)]'
             : 'w-max min-w-[14rem] max-w-[24rem]',
           dropdown.contentClassName,
         )}
-        style={widthMode === 'trigger' ? { width: 'var(--radix-popover-trigger-width)' } : undefined}
+        style={{
+          maxHeight: 'var(--radix-popper-available-height)',
+          ...(widthMode === 'trigger' ? { width: 'var(--radix-popover-trigger-width)' } : {}),
+        }}
         onOpenAutoFocus={(event) => {
           event.preventDefault();
           requestAnimationFrame(() => panelRef.current?.querySelector('input')?.focus());

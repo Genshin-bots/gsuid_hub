@@ -1310,6 +1310,33 @@ export interface OpenAIConfigData {
    * secret；留空即无密钥摘要（标识空间小时可被枚举反查，只起混淆作用）。
    */
   end_user_id_salt?: string;
+  /**
+   * 视频输入格式。**仅 OpenAI 系列才有此字段**：
+   * `file`（兼容 LiteLLM / Gemini 中转）/
+   * `video_url`（适配 MiMo / 阿里百炼 / OpenRouter 等全模态模型，仅 chat_completions 生效）。
+   */
+  video_input_format?: string;
+  /**
+   * 视频采样帧率 (FPS)。**仅 OpenAI 系列才有此字段**：
+   * video_url 模式下的抽样帧率。大于 0 时写入同级 fps 字段（如 0.5 或 2.0），0 表示不发送。
+   */
+  video_fps?: number;
+  /**
+   * 视频块额外参数 (JSON 字符串)。**仅 OpenAI 系列才有此字段**：
+   * video_url 模式下合并进视频块的 JSON 对象。同级合并如 {"media_resolution":"default"}。
+   */
+  video_part_extra?: string;
+  /**
+   * 视频内联大小上限 (MB)。**仅 OpenAI 系列才有此字段**：
+   * video_url 模式下转为 DataURI 发送的视频原始大小上限 (MB)。超过时自动降级为抽帧或占位。默认 12。
+   */
+  video_inline_max_mb?: number;
+  /**
+   * 视频公网 URL 直通。**仅 OpenAI 系列才有此字段**：
+   * `off`（先下载转 DataURI，默认，避免临时链接过期导致会话卡死）/
+   * `on`（直接透传 URL）。
+   */
+  video_url_passthrough?: string;
 }
 
 export interface OpenAIConfigDetail {
@@ -1444,6 +1471,16 @@ export interface ProviderConfigOptions {
     send_back_thinking?: string[];
     /** 终端用户标识透传候选值（off / hashed / raw）。仅 OpenAI 系列会返回。 */
     forward_end_user_id?: string[];
+    /** 视频输入格式候选值（file / video_url）。仅 OpenAI 系列会返回。 */
+    video_input_format?: string[];
+    /** 视频采样帧率候选值（如 [0, 0.5, 1, 2, 4]）。 */
+    video_fps?: number[];
+    /** 视频块额外参数候选值。 */
+    video_part_extra?: string[];
+    /** 视频内联大小上限 (MB) 候选值（如 [6, 12, 20, 50, 100]）。 */
+    video_inline_max_mb?: number[];
+    /** 视频公网 URL 直通候选值（off / on）。仅 OpenAI 系列会返回。 */
+    video_url_passthrough?: string[];
   };
 }
 
@@ -2587,7 +2624,8 @@ export interface PersonaFrameworkConfig {
 
 // 角色配置相关类型
 export type PersonaScope = 'disabled' | 'global' | 'specific' | 'global_group' | 'global_private';
-export type AIMode = '提及应答' | '定时巡检' | '命令补充' | '困境救场(暂不可用)';
+export type AIMode = '提及应答' | '定时巡检' | '命令补充' | '自主行动';
+export type AutonomyCareZone = 'familiar' | 'close';
 
 export interface SpeechTierSpec {
   floor: number;
@@ -2615,6 +2653,10 @@ export interface PersonaConfig {
   aside_text_probability?: number;
   aside_mixed_probability?: number;
   aside_allow_tools?: boolean;
+  active_hours?: string[];
+  timezone?: string;
+  autonomy_interval_minutes?: number;
+  autonomy_care_min_zone?: AutonomyCareZone;
   /** 启用工具（按插件）：`*` 全开；`!插件名` 排除；只列具体名则仅这些进检索池 */
   enabled_tools?: string[];
   tool_names?: string[]; // 显式工具白名单（常驻直装，不经向量检索）
@@ -2647,6 +2689,10 @@ export interface PersonaConfigUpdateRequest {
   aside_text_probability?: number;
   aside_mixed_probability?: number;
   aside_allow_tools?: boolean;
+  active_hours?: string[];
+  timezone?: string;
+  autonomy_interval_minutes?: number;
+  autonomy_care_min_zone?: AutonomyCareZone;
   enabled_tools?: string[];
   tool_names?: string[];
   capability_agents?: string[];
@@ -5175,6 +5221,62 @@ export const aiToolOutputsApi = {
     api.post<{ deleted: number; ids: string[] }>('/api/ai/tool-outputs/batch-delete', { ids }),
   downloadRaw: (id: string) =>
     api.downloadBlob(`/api/ai/tool-outputs/${encodeURIComponent(id)}/raw`),
+};
+
+export interface AutonomyStepView {
+  step_index: number;
+  tool_name: string;
+  args_summary: string;
+  output_text: string;
+  is_error: boolean;
+  resource_ids: string[];
+  duration_ms: number;
+}
+
+export interface AutonomyFactView {
+  verified_tools: string[];
+  factual_observations: string[];
+  generated_resources: string[];
+  has_substantive_outcome: boolean;
+}
+
+export interface AutonomyActivity {
+  id: number;
+  persona_name: string;
+  bot_id: string;
+  bot_self_id: string;
+  drive_kind: string;
+  target_user_id: string;
+  target_session_key: string;
+  plugins_used: string[];
+  steps: AutonomyStepView[];
+  fact_pack: AutonomyFactView;
+  summary: string;
+  open_trails: string[];
+  delivery_mode: string;
+  step_count: number;
+  duration_ms: number;
+  session_id: string;
+  created_at: number;
+}
+
+export interface AutonomyFeed {
+  items: AutonomyActivity[];
+  total: number;
+  latest: AutonomyActivity[];
+  personas: string[];
+}
+
+/** 产出物页「自主行动」页签。`persona_name` 为空时跨人格。 */
+export const autonomyApi = {
+  feed: (opts?: { personaName?: string; limit?: number; offset?: number }) => {
+    const query = new URLSearchParams();
+    if (opts?.personaName) query.set('persona_name', opts.personaName);
+    if (opts?.limit !== undefined) query.set('limit', String(opts.limit));
+    if (opts?.offset !== undefined) query.set('offset', String(opts.offset));
+    const qs = query.toString();
+    return api.get<AutonomyFeed>(`/api/autonomy/feed${qs ? `?${qs}` : ''}`);
+  },
 };
 
 /**

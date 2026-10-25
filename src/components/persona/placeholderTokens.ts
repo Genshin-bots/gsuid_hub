@@ -23,7 +23,8 @@ const LABELS: Record<string, string> = {
 const HINTS: Record<string, string> = {
   appearance: '发送前填入这份人格的外貌。没有外貌文件时，这一段不出现。',
   soft: '发送前填入建议字数。在人格编辑页修改。等于模板默认时，跟随说话强度。',
-  segment_hint: '发送前填入说话强度这一档的分段说明。没有单独的文本项。要换说法，删掉标签后自己写。',
+  segment_hint:
+    '发送前填入说话强度这一档的分段说明。没有单独的文本项。要换说法，删掉标签后自己写。',
   answer_contract: '发送前填入同一组的「作答契约」全文。改那一段即可。',
   masters: '发送前填入核心配置里的主人 ID。',
   master_title: '发送前填入这份人格对主人的称呼。在人格设置里改。',

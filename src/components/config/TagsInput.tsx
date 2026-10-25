@@ -275,7 +275,14 @@ export const TagsInput: React.FC<TagsInputProps> = ({
                 {t('tagsInput.more')}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-80 p-0" align="start">
+            <PopoverContent
+              className="w-80 p-0 flex flex-col overflow-hidden"
+              style={{ maxHeight: 'var(--radix-popper-available-height)' }}
+              side="bottom"
+              align="start"
+              sideOffset={4}
+              collisionPadding={8}
+            >
               {/* 搜索/输入框 */}
               <div className="p-3 border-b">
                 <div className="flex items-center gap-2">

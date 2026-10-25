@@ -4,7 +4,11 @@ import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { GlassAlert } from '@/components/ui/glass-alert';
 import { Skeleton } from '@/components/ui/skeleton';
-import { TabButtonGroup, tabToolbarControlClass, tabToolbarIconButtonClass } from '@/components/ui/TabButtonGroup';
+import {
+  TabButtonGroup,
+  tabToolbarControlClass,
+  tabToolbarIconButtonClass,
+} from '@/components/ui/TabButtonGroup';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -1179,7 +1183,12 @@ function RulesTab() {
             <Button className={tabToolbarControlClass} onClick={() => setCreateDialogOpen(true)}>
               <Plus className="w-4 h-4 mr-2" /> {t('aiBudget.rules.createRule')}
             </Button>
-            <Button variant="outline" size="icon" className={tabToolbarIconButtonClass} onClick={fetchRules}>
+            <Button
+              variant="outline"
+              size="icon"
+              className={tabToolbarIconButtonClass}
+              onClick={fetchRules}
+            >
               <RefreshCw className="w-4 h-4" />
             </Button>
           </div>

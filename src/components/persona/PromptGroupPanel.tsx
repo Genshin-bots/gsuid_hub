@@ -11,9 +11,11 @@ import {
   AlertCircle,
   CalendarClock,
   Clock,
+  Compass,
   Copy,
   FileText,
   Loader2,
+  MessageCircle,
   MessageSquare,
   MessagesSquare,
   Trash2,
@@ -74,6 +76,8 @@ const SECTION_ICON: Record<string, LucideIcon> = {
   soft_trigger: MessagesSquare,
   heartbeat_decision: Clock,
   scheduled_executor: CalendarClock,
+  aside_comment: MessageCircle,
+  autonomy_system_guide: Compass,
 };
 
 function sectionIcon(fields: PromptField[]): LucideIcon | null {
@@ -255,9 +259,7 @@ export const PromptGroupPanel = forwardRef<
   return (
     <div className="-mt-3">
       <div className="mb-3 space-y-3">
-        <GlassAlert tone="warning">
-          {t('personaConfig.promptBuiltinWarning')}
-        </GlassAlert>
+        <GlassAlert tone="warning">{t('personaConfig.promptBuiltinWarning')}</GlassAlert>
         <ActivePromptGroupNotice lines={activeLines} ready={activeReady} />
       </div>
       {loading ? (

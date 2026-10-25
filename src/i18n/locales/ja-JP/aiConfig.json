@@ -164,6 +164,41 @@
     "endUserIdSalt": "ダイジェストのソルト",
     "endUserIdSaltPlaceholder": "空欄の場合は鍵なしダイジェスト",
     "endUserIdSaltHint": "空欄では鍵なしダイジェストになります。ID 空間が小さい場合（数値のアカウント ID など）は総当たりで逆引きされ得るため、難読化にとどまります。ソルトを変更すると過去のダイジェストとの対応が失われ、上流の呼び出し元ごとの履歴が途切れます。",
+    "sectionBasic": "基本情報と接続",
+    "sectionBasicDesc": "プロバイダーの種類、設定名、エンドポイント、認証情報",
+    "sectionCapabilities": "モデルと推論",
+    "sectionCapabilitiesDesc": "機能、思考レベル、並列制御",
+    "sectionNetwork": "プロトコルと高度なネットワーク",
+    "sectionNetworkDesc": "リクエスト方式、利用統計、ID転送、リモート検索",
+    "sectionVideo": "マルチモーダル動画入力",
+    "sectionVideoDesc": "OpenAI 互換インターフェースの動画ブロック形式とサンプリング設定",
+    "sectionVideoAlert": "Xiaomi MiMo、DashScope 互換モード、OpenRouter などの全モーダルモデルに最適化されています（chat_completions のみ有効）。",
+    "videoInputFormat": "動画入力形式",
+    "videoInputFormatOptions": {
+      "file": "file（LiteLLM / Gemini などのプロキシ互換）",
+      "video_url": "video_url（MiMo / 通義千問 / OpenRouter などの全モーダル対応）"
+    },
+    "videoInputFormatDescription": {
+      "file": "LiteLLM や Gemini 中継向けの file 形式（type=file）。",
+      "video_url": "Xiaomi MiMo、DashScope 互換モード、OpenRouter など全モーダル対応の type=video_url 形式を生成（chat_completions でのみ有効）。"
+    },
+    "videoFps": "動画サンプリングFPS",
+    "videoFpsDescription": "video_url モード時のサンプリングレート（FPS）。0 より大きい場合に fps パラメータ（例: 0.5 や 2.0）を送信し、0 は未送信となります。",
+    "videoInlineMaxMb": "動画インライン上限 (MB)",
+    "videoInlineMaxMbDescription": "video_url モードで DataURI に変換する動画の最大容量（MB）。上限を超えると自動的にサンプリングやプレースホルダーへフォールバックします。",
+    "videoUrlPassthrough": "動画公网URLの直接送信",
+    "videoUrlPassthroughOptions": {
+      "off": "無効（DataURI に事前変換、既定）",
+      "on": "有効（公開 URL をそのまま送信）"
+    },
+    "videoUrlPassthroughDescription": {
+      "off": "推奨。一時リンクの有効期限切れによる会話エラー（400）を防ぐため、事前にダウンロードして DataURI に変換します。",
+      "on": "元の http(s) URL をそのまま video_url.url に設定します。永続的な公開 URL でモデル側から到達可能な場合に適しています。"
+    },
+    "videoPartExtra": "動画ブロック追加パラメータ (JSON)",
+    "videoPartExtraDescription": "video_url モードで動画ブロックにマージされる JSON オブジェクト。同層への結合（例: {\"media_resolution\":\"default\"}）または video_url 内へ結合されます。",
+    "videoPartExtraPlaceholder": "例: {\"media_resolution\": \"default\"}",
+    "videoFileModeHint": "現在は file モードです（LiteLLM / Gemini 中継互換）。video_url に切り替えることでサンプリングFPS、インライン上限、追加JSONパラメータを設定できます。",
     "capabilityText": "テキスト会話",
     "capabilityImage": "画像理解",
     "capabilityAudio": "音声処理",

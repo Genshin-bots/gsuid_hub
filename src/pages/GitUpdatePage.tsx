@@ -801,7 +801,9 @@ export default function GitUpdatePage() {
           {/* 选择器在镜像源按钮左侧。xl 以下独占标题下方一整行，避免和副标题挤在一起 */}
           <div className="flex w-full min-w-0 flex-wrap items-center gap-2 sm:justify-end">
             {isLoadingStatus ? (
-              <Skeleton className={cn(tabToolbarControlClass, 'w-full shrink-0 rounded-md sm:w-64')} />
+              <Skeleton
+                className={cn(tabToolbarControlClass, 'w-full shrink-0 rounded-md sm:w-64')}
+              />
             ) : (
               <SearchableMenu
                 appearance="outline"

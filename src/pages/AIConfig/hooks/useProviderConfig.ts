@@ -65,6 +65,16 @@ export interface UseProviderConfigReturn {
   newConfigForwardEndUserId: string;
   /** 仅 OpenAI 系列在 UI 暴露：`hashed` 模式的盐值 */
   newConfigEndUserIdSalt: string;
+  /** 仅 OpenAI 系列在 UI 暴露：视频输入格式 file/video_url */
+  newConfigVideoInputFormat: string;
+  /** 仅 OpenAI 系列在 UI 暴露：视频采样帧率 */
+  newConfigVideoFps: number;
+  /** 仅 OpenAI 系列在 UI 暴露：视频块额外参数 (JSON) */
+  newConfigVideoPartExtra: string;
+  /** 仅 OpenAI 系列在 UI 暴露：视频内联大小上限 (MB) */
+  newConfigVideoInlineMaxMb: number;
+  /** 仅 OpenAI 系列在 UI 暴露：视频公网 URL 直通 off/on */
+  newConfigVideoUrlPassthrough: string;
   newConfigFetchedModels: string[];
   isFetchingNewConfigModels: boolean;
 
@@ -96,6 +106,11 @@ export interface UseProviderConfigReturn {
   setNewConfigSendBackThinking: (v: string) => void;
   setNewConfigForwardEndUserId: (v: string) => void;
   setNewConfigEndUserIdSalt: (v: string) => void;
+  setNewConfigVideoInputFormat: (v: string) => void;
+  setNewConfigVideoFps: (v: number) => void;
+  setNewConfigVideoPartExtra: (v: string) => void;
+  setNewConfigVideoInlineMaxMb: (v: number) => void;
+  setNewConfigVideoUrlPassthrough: (v: string) => void;
   resetNewConfigForm: () => void;
   setIsCreateDialogOpen: (open: boolean) => void;
   setIsEditDialogOpen: (open: boolean) => void;
@@ -186,6 +201,11 @@ export function useProviderConfig(): UseProviderConfigReturn {
   // 默认 off：透传终端用户标识属于要显式打开的行为，不能默认外发
   const [newConfigForwardEndUserId, setNewConfigForwardEndUserId] = useState('off');
   const [newConfigEndUserIdSalt, setNewConfigEndUserIdSalt] = useState('');
+  const [newConfigVideoInputFormat, setNewConfigVideoInputFormat] = useState('video_url');
+  const [newConfigVideoFps, setNewConfigVideoFps] = useState(0);
+  const [newConfigVideoPartExtra, setNewConfigVideoPartExtra] = useState('');
+  const [newConfigVideoInlineMaxMb, setNewConfigVideoInlineMaxMb] = useState(12);
+  const [newConfigVideoUrlPassthrough, setNewConfigVideoUrlPassthrough] = useState('off');
   const [newConfigFetchedModels, setNewConfigFetchedModels] = useState<string[]>([]);
   const [editConfigFetchedModels, setEditConfigFetchedModels] = useState<string[]>([]);
   const [isFetchingNewConfigModels, setIsFetchingNewConfigModels] = useState(false);
@@ -294,6 +314,15 @@ export function useProviderConfig(): UseProviderConfigReturn {
           send_back_thinking: cfg.send_back_thinking?.data as string | undefined,
           forward_end_user_id: cfg.forward_end_user_id?.data as string | undefined,
           end_user_id_salt: cfg.end_user_id_salt?.data as string | undefined,
+          video_input_format: cfg.video_input_format?.data as string | undefined,
+          video_fps:
+            typeof cfg.video_fps?.data === 'number' ? (cfg.video_fps.data as number) : undefined,
+          video_part_extra: cfg.video_part_extra?.data as string | undefined,
+          video_inline_max_mb:
+            typeof cfg.video_inline_max_mb?.data === 'number'
+              ? (cfg.video_inline_max_mb.data as number)
+              : undefined,
+          video_url_passthrough: cfg.video_url_passthrough?.data as string | undefined,
         };
         setOpenaiConfigData(configData);
         setEditingConfigProvider(provider);
@@ -476,6 +505,24 @@ export function useProviderConfig(): UseProviderConfigReturn {
         configData.end_user_id_salt = {
           data: openaiConfigData.end_user_id_salt ?? '',
         };
+        configData.video_input_format = {
+          data: openaiConfigData.video_input_format || 'video_url',
+        };
+        configData.video_fps = {
+          data: typeof openaiConfigData.video_fps === 'number' ? openaiConfigData.video_fps : 0,
+        };
+        configData.video_part_extra = {
+          data: openaiConfigData.video_part_extra || '',
+        };
+        configData.video_inline_max_mb = {
+          data:
+            typeof openaiConfigData.video_inline_max_mb === 'number'
+              ? openaiConfigData.video_inline_max_mb
+              : 12,
+        };
+        configData.video_url_passthrough = {
+          data: openaiConfigData.video_url_passthrough || 'off',
+        };
       }
       await providerConfigApi.saveConfig(editingConfigProvider, editingConfigName, configData);
       toast.success(t('aiConfig.openaiConfig.saveSuccess'));
@@ -505,6 +552,11 @@ export function useProviderConfig(): UseProviderConfigReturn {
     setNewConfigSendBackThinking('auto');
     setNewConfigForwardEndUserId('off');
     setNewConfigEndUserIdSalt('');
+    setNewConfigVideoInputFormat('video_url');
+    setNewConfigVideoFps(0);
+    setNewConfigVideoPartExtra('');
+    setNewConfigVideoInlineMaxMb(12);
+    setNewConfigVideoUrlPassthrough('off');
     setNewConfigFetchedModels([]);
   }, []);
 
@@ -548,6 +600,11 @@ export function useProviderConfig(): UseProviderConfigReturn {
         configData.send_back_thinking = { data: newConfigSendBackThinking };
         configData.forward_end_user_id = { data: newConfigForwardEndUserId };
         configData.end_user_id_salt = { data: newConfigEndUserIdSalt };
+        configData.video_input_format = { data: newConfigVideoInputFormat };
+        configData.video_fps = { data: newConfigVideoFps };
+        configData.video_part_extra = { data: newConfigVideoPartExtra };
+        configData.video_inline_max_mb = { data: newConfigVideoInlineMaxMb };
+        configData.video_url_passthrough = { data: newConfigVideoUrlPassthrough };
       }
       await providerConfigApi.saveConfig(newConfigProvider, configName, configData);
       toast.success(t('aiConfig.openaiConfig.createSuccess', { name: configName }));
@@ -573,6 +630,11 @@ export function useProviderConfig(): UseProviderConfigReturn {
     newConfigSendBackThinking,
     newConfigForwardEndUserId,
     newConfigEndUserIdSalt,
+    newConfigVideoInputFormat,
+    newConfigVideoFps,
+    newConfigVideoPartExtra,
+    newConfigVideoInlineMaxMb,
+    newConfigVideoUrlPassthrough,
     newConfigProvider,
     t,
     fetchAllConfigs,
@@ -752,6 +814,11 @@ export function useProviderConfig(): UseProviderConfigReturn {
     newConfigSendBackThinking,
     newConfigForwardEndUserId,
     newConfigEndUserIdSalt,
+    newConfigVideoInputFormat,
+    newConfigVideoFps,
+    newConfigVideoPartExtra,
+    newConfigVideoInlineMaxMb,
+    newConfigVideoUrlPassthrough,
     newConfigFetchedModels,
     isFetchingNewConfigModels,
 
@@ -783,6 +850,11 @@ export function useProviderConfig(): UseProviderConfigReturn {
     setNewConfigSendBackThinking,
     setNewConfigForwardEndUserId,
     setNewConfigEndUserIdSalt,
+    setNewConfigVideoInputFormat,
+    setNewConfigVideoFps,
+    setNewConfigVideoPartExtra,
+    setNewConfigVideoInlineMaxMb,
+    setNewConfigVideoUrlPassthrough,
     resetNewConfigForm,
     setIsCreateDialogOpen,
     setIsEditDialogOpen,

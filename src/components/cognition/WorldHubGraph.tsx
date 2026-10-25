@@ -3,7 +3,7 @@ import Graph from 'graphology';
 import Sigma from 'sigma';
 import forceAtlas2 from 'graphology-layout-forceatlas2';
 import FA2Layout from 'graphology-layout-forceatlas2/worker';
-import { Loader2, Maximize2, Search, ZoomIn, ZoomOut } from 'lucide-react';
+import { Loader2, Maximize2, RefreshCw, Search, X, ZoomIn, ZoomOut } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -64,11 +64,13 @@ export function WorldHubGraph({
   isDark,
   onHubClick,
   onArticleClick,
+  onRefresh,
 }: {
   hubs: CognitionNode[];
   isDark: boolean;
   onHubClick: (hub: CognitionNode) => void;
   onArticleClick: (article: CognitionAttachment) => void;
+  onRefresh?: () => void;
 }) {
   const { t } = useLanguage();
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -322,6 +324,68 @@ export function WorldHubGraph({
       if (hub) onHubClickRef.current(hub);
     });
 
+    // 鼠标中键按住拖动画布
+    let isMiddleDragging = false;
+    let lastClientX = 0;
+    let lastClientY = 0;
+
+    const handlePointerDown = (e: MouseEvent) => {
+      if (e.button === 1) {
+        e.preventDefault();
+        e.stopPropagation();
+        isMiddleDragging = true;
+        lastClientX = e.clientX;
+        lastClientY = e.clientY;
+        container.style.cursor = 'grabbing';
+      }
+    };
+
+    const handlePointerMove = (e: MouseEvent) => {
+      if (!isMiddleDragging) return;
+      e.preventDefault();
+      e.stopPropagation();
+
+      const camera = renderer.getCamera();
+      const rect = container.getBoundingClientRect();
+      const prevX = lastClientX - rect.left;
+      const prevY = lastClientY - rect.top;
+      const curX = e.clientX - rect.left;
+      const curY = e.clientY - rect.top;
+
+      const p1 = renderer.viewportToFramedGraph({ x: prevX, y: prevY });
+      const p2 = renderer.viewportToFramedGraph({ x: curX, y: curY });
+      const dx = p1.x - p2.x;
+      const dy = p1.y - p2.y;
+
+      const state = camera.getState();
+      camera.setState({
+        x: state.x + dx,
+        y: state.y + dy,
+      });
+
+      lastClientX = e.clientX;
+      lastClientY = e.clientY;
+    };
+
+    const handlePointerUp = (e: MouseEvent) => {
+      if (isMiddleDragging || e.button === 1) {
+        isMiddleDragging = false;
+        container.style.cursor = hoveredRef.current ? 'pointer' : 'grab';
+      }
+    };
+
+    const handleAuxClick = (e: MouseEvent) => {
+      if (e.button === 1) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    };
+
+    container.addEventListener('mousedown', handlePointerDown);
+    container.addEventListener('auxclick', handleAuxClick);
+    window.addEventListener('mousemove', handlePointerMove);
+    window.addEventListener('mouseup', handlePointerUp);
+
     let layoutTimer = 0;
     if (graph.order > 1) {
       const settings = forceAtlas2.inferSettings(graph);
@@ -342,6 +406,10 @@ export function WorldHubGraph({
 
     return () => {
       window.clearTimeout(layoutTimer);
+      container.removeEventListener('mousedown', handlePointerDown);
+      container.removeEventListener('auxclick', handleAuxClick);
+      window.removeEventListener('mousemove', handlePointerMove);
+      window.removeEventListener('mouseup', handlePointerUp);
       if (fa2Ref.current) {
         fa2Ref.current.kill();
         fa2Ref.current = null;
@@ -427,63 +495,93 @@ export function WorldHubGraph({
     <div
       ref={wrapperRef}
       className={cn('relative w-full', isFullscreen ? 'fixed inset-0 z-50 bg-background' : '')}
-      style={isFullscreen ? { height: '100vh' } : { height: 'calc(100vh - 280px)', minHeight: 400 }}
+      style={isFullscreen ? { height: '100vh' } : { height: 'calc(100vh - 220px)', minHeight: 450 }}
     >
       <div
         ref={containerRef}
         className={cn('w-full h-full glass-card', isFullscreen ? '' : 'rounded-lg')}
         style={{ cursor: 'grab' }}
       />
-      <form
-        className="glass-float absolute top-3 left-3 w-[min(360px,calc(100%-88px))] rounded-lg p-2"
-        onSubmit={(e) => {
-          e.preventDefault();
-          const first = nodeSearchResults[0];
-          if (first) focusNode(first.id, { closeResults: true });
-        }}
-      >
-        <div className="flex items-center gap-2">
-          <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+      {/* 顶部悬浮工具栏：独立搜索框 + 刷新操作按钮 */}
+      <div className="absolute top-3 left-3 max-w-[calc(100%-88px)] flex flex-wrap items-center gap-2.5 z-10 pointer-events-auto">
+        <form
+          className="glass-float relative flex items-center rounded-lg px-2.5 py-0.5 border border-border/60 shadow-sm w-[210px] sm:w-[280px]"
+          onSubmit={(e) => {
+            e.preventDefault();
+            const first = nodeSearchResults[0];
+            if (first) focusNode(first.id, { closeResults: true });
+          }}
+        >
+          <Search className="h-4 w-4 shrink-0 text-primary mr-1.5" />
           <Input
             value={nodeSearchQuery}
             onChange={(e) => setNodeSearchQuery(e.target.value)}
             placeholder={t('aiMemory.searchWorldHubs')}
-            className="h-8 border-0 bg-transparent shadow-none"
+            className="h-8 border-0 bg-transparent shadow-none text-xs px-0 focus-visible:ring-0 placeholder:text-muted-foreground"
           />
-        </div>
-        {nodeSearchQuery.trim() && (
-          <div className="mt-2 max-h-56 overflow-auto rounded-md border border-border/30 bg-transparent">
-            {nodeSearchResults.length > 0 ? (
-              nodeSearchResults.map((node) => (
-                <button
-                  key={node.id}
-                  type="button"
-                  className={cn(
-                    'flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-accent/60',
-                    focusedNodeId === node.id && 'bg-accent/70',
-                  )}
-                  onClick={() => focusNode(node.id, { closeResults: true })}
-                >
-                  <span className="min-w-0">
-                    <span className="block truncate font-medium">{node.label}</span>
-                    <span className="block truncate text-xs text-muted-foreground">{node.id}</span>
-                  </span>
-                  <Badge
-                    variant={node.kind === 'hub' ? 'default' : 'outline'}
-                    className="shrink-0 text-[10px]"
+          {nodeSearchQuery && (
+            <button
+              type="button"
+              onClick={() => setNodeSearchQuery('')}
+              className="text-muted-foreground hover:text-foreground p-0.5"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+          {nodeSearchQuery.trim() && (
+            <div className="absolute top-full left-0 mt-2 w-[min(360px,calc(100vw-40px))] max-h-56 overflow-auto rounded-md border border-border/40 bg-popover/95 text-popover-foreground shadow-lg backdrop-blur z-50">
+              {nodeSearchResults.length > 0 ? (
+                nodeSearchResults.map((node) => (
+                  <button
+                    key={node.id}
+                    type="button"
+                    className={cn(
+                      'flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-accent/60',
+                      focusedNodeId === node.id && 'bg-accent/70',
+                    )}
+                    onClick={() => focusNode(node.id, { closeResults: true })}
                   >
-                    {node.kind === 'hub' ? t('aiMemory.legendWorld') : t('aiMemory.legendArticle')}
-                  </Badge>
-                </button>
-              ))
-            ) : (
-              <div className="px-3 py-2 text-sm text-muted-foreground">
-                {t('aiMemory.worldGraphNoMatch')}
-              </div>
-            )}
+                    <span className="min-w-0">
+                      <span className="block truncate font-medium">{node.label}</span>
+                      <span className="block truncate text-xs text-muted-foreground">
+                        {node.id}
+                      </span>
+                    </span>
+                    <Badge
+                      variant={node.kind === 'hub' ? 'default' : 'outline'}
+                      className="shrink-0 text-[10px]"
+                    >
+                      {node.kind === 'hub'
+                        ? t('aiMemory.legendWorld')
+                        : t('aiMemory.legendArticle')}
+                    </Badge>
+                  </button>
+                ))
+              ) : (
+                <div className="px-3 py-2 text-sm text-muted-foreground">
+                  {t('aiMemory.worldGraphNoMatch')}
+                </div>
+              )}
+            </div>
+          )}
+        </form>
+
+        {onRefresh && (
+          <div className="glass-float flex items-center rounded-lg p-1 border border-border/50 shadow-sm shrink-0">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground"
+              onClick={onRefresh}
+              title={t('common.refresh')}
+              aria-label={t('common.refresh')}
+            >
+              <RefreshCw className="w-3.5 h-3.5 sm:mr-1" />
+              <span className="hidden sm:inline">{t('common.refresh')}</span>
+            </Button>
           </div>
         )}
-      </form>
+      </div>
       <div className="absolute top-3 right-3 flex flex-col gap-1">
         <Button
           variant="outline"

@@ -1,0 +1,50 @@
+{
+  "title": "自主行動",
+  "filters": {
+    "personaAll": "すべての人格",
+    "refresh": "更新"
+  },
+  "latestTitle": "最近の行動",
+  "historyTitle": "行動の記録",
+  "empty": "自主行動の記録はまだありません。",
+  "emptyHint": "人格ページで「自主行動」を開くと、次の行動がここに出ます。モデルを呼んだ回はセッションログを開けます。",
+  "noSummary": "要約なし",
+  "table": {
+    "persona": "人格",
+    "when": "時刻",
+    "drive": "内容",
+    "delivery": "届け方",
+    "summary": "要約",
+    "steps": "手数"
+  },
+  "drive": {
+    "care_user": "誰かを気にかける",
+    "group_topic": "グループの話題",
+    "self_explore": "自分で調べる",
+    "rest": "休息"
+  },
+  "delivery": {
+    "immediate_push": "すぐ話す",
+    "staged_merge": "次に話したとき",
+    "silent_only": "自分から話さない"
+  },
+  "detail": {
+    "title": "この行動",
+    "target": "相手",
+    "duration": "{seconds} 秒",
+    "summary": "要約",
+    "observations": "確かめた事実",
+    "trails": "続きで見たいこと",
+    "steps": "使ったツール",
+    "noSteps": "この回はツールを呼んでいません。",
+    "stepError": "失敗",
+    "sessionLog": "セッションログを開く",
+    "noSessionLog": "この記録にはセッション番号がないので、ログを開けません。"
+  },
+  "pagination": {
+    "label": "{from}–{to} 件 / 全 {total} 件",
+    "prev": "前へ",
+    "next": "次へ"
+  },
+  "loadFailed": "自主行動の記録を読み込めませんでした"
+}

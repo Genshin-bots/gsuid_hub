@@ -35,7 +35,6 @@ const CoreConfigPage = lazy(() => import('@/pages/CoreConfigPage'));
 const BackupPage = lazy(() => import('@/pages/BackupPage'));
 const AIConfigPage = lazy(() => import('@/pages/AIConfigPage'));
 const PersonaConfigPage = lazy(() => import('@/pages/PersonaConfigPage'));
-const AICapabilityAgentsPage = lazy(() => import('@/pages/AICapabilityAgentsPage'));
 const AIToolsPage = lazy(() => import('@/pages/AIToolsPage'));
 const AIStatisticsPage = lazy(() => import('@/pages/AIStatisticsPage'));
 const AIMemoryPage = lazy(() => import('@/pages/AIMemoryPage'));
@@ -131,7 +130,11 @@ function AppRoutes() {
           <Route path="ai-config" element={<AIConfigPage />} />
           <Route path="persona-config" element={<PersonaConfigPage />} />
           <Route path="mcp-config" element={<MCPConfigPage />} />
-          <Route path="ai-capability-agents" element={<AICapabilityAgentsPage />} />
+          {/* 能力代理已并入 /persona-config 的「人格代理」页签，旧深链重定向过去 */}
+          <Route
+            path="ai-capability-agents"
+            element={<Navigate to="/persona-config?tab=capability-agents" replace />}
+          />
           <Route path="ai-tools" element={<AIToolsPage />} />
           {/* 技能已并入 /ai-tools 的右侧列，旧深链重定向过去 */}
           <Route path="ai-skills" element={<Navigate to="/ai-tools" replace />} />

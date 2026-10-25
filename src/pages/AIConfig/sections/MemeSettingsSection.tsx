@@ -35,47 +35,47 @@ export function MemeSettingsSection({ t, memeConfig, onUpdateConfig }: MemeSetti
       </div>
 
       <div className="space-y-4">
-          <div className="p-3 rounded-lg glass-card transition-all">
-            <ToggleRow
-              icon={<Sparkles className="w-5 h-5" strokeWidth={1.5} />}
-              iconColorClass="text-primary"
-              title={t('aiConfig.memeSettings.autoCollect')}
-              description={t('aiConfig.memeSettings.autoCollectDesc')}
-              checked={(memeConfig.config.meme_auto_collect?.value as boolean) ?? false}
-              onCheckedChange={(checked) =>
-                onUpdateConfig(memeConfig.id, 'meme_auto_collect', checked)
-              }
-            />
-          </div>
-
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {(() => {
-              const entries = Object.entries(memeConfig.config).filter(
-                ([key]) => !EXCLUDED_KEYS.includes(key),
-              );
-              if (entries.length === 0) {
-                return (
-                  <div className="col-span-full py-12 text-center text-muted-foreground">
-                    <p>{t('plugins.noConfigItems') || '暂无配置项'}</p>
-                  </div>
-                );
-              }
-              return entries.map(([key, item]) => {
-                const fieldDef = pluginConfigItemToFieldDef(key, item);
-                const isDivider = fieldDef.type === 'divider';
-                return (
-                  <div key={key} className={isDivider ? 'col-span-full' : undefined}>
-                    <ConfigField
-                      fieldKey={key}
-                      field={fieldDef}
-                      onChange={(fieldKey, value) => onUpdateConfig(memeConfig.id, fieldKey, value)}
-                    />
-                  </div>
-                );
-              });
-            })()}
-          </div>
+        <div className="p-3 rounded-lg glass-card transition-all">
+          <ToggleRow
+            icon={<Sparkles className="w-5 h-5" strokeWidth={1.5} />}
+            iconColorClass="text-primary"
+            title={t('aiConfig.memeSettings.autoCollect')}
+            description={t('aiConfig.memeSettings.autoCollectDesc')}
+            checked={(memeConfig.config.meme_auto_collect?.value as boolean) ?? false}
+            onCheckedChange={(checked) =>
+              onUpdateConfig(memeConfig.id, 'meme_auto_collect', checked)
+            }
+          />
         </div>
+
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {(() => {
+            const entries = Object.entries(memeConfig.config).filter(
+              ([key]) => !EXCLUDED_KEYS.includes(key),
+            );
+            if (entries.length === 0) {
+              return (
+                <div className="col-span-full py-12 text-center text-muted-foreground">
+                  <p>{t('plugins.noConfigItems') || '暂无配置项'}</p>
+                </div>
+              );
+            }
+            return entries.map(([key, item]) => {
+              const fieldDef = pluginConfigItemToFieldDef(key, item);
+              const isDivider = fieldDef.type === 'divider';
+              return (
+                <div key={key} className={isDivider ? 'col-span-full' : undefined}>
+                  <ConfigField
+                    fieldKey={key}
+                    field={fieldDef}
+                    onChange={(fieldKey, value) => onUpdateConfig(memeConfig.id, fieldKey, value)}
+                  />
+                </div>
+              );
+            });
+          })()}
+        </div>
+      </div>
     </div>
   );
 }

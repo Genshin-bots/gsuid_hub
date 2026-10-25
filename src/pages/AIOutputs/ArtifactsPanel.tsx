@@ -75,14 +75,12 @@ export function ArtifactsFilters(props: ArtifactsPanelProps) {
 
   return (
     // 一行放完：输入框 + 「全部」切换 + 含已过期开关。
-    // 不用外置 Label——输入框 disabled 时的框内灰字已经说明了筛选维度，
-    // 再挂一行 Label 会把「全部」按钮挤到第二行。
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-wrap items-center justify-end gap-2">
       <Input
         className={cn(
           tabToolbarControlClass,
           // 内容等宽便于核对 ID；框内灰字是中文，placeholder 单独回正常字体
-          'min-w-0 flex-1 font-mono placeholder:font-sans sm:max-w-[480px]',
+          'min-w-0 w-full sm:w-[220px] md:w-[280px] font-mono placeholder:font-sans',
         )}
         placeholder={t('aiArtifacts.toolbar.filterRoot')}
         value={rootTaskId}
@@ -103,7 +101,9 @@ export function ArtifactsFilters(props: ArtifactsPanelProps) {
       </Button>
       <div className="flex shrink-0 items-center gap-2 pl-1">
         <Switch checked={includeExpired} onCheckedChange={onIncludeExpiredChange} />
-        <Label className="whitespace-nowrap">{t('aiArtifacts.toolbar.includeExpired')}</Label>
+        <Label className="whitespace-nowrap cursor-pointer">
+          {t('aiArtifacts.toolbar.includeExpired')}
+        </Label>
       </div>
     </div>
   );

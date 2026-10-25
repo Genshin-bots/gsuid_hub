@@ -192,7 +192,10 @@ export default function AIConfigPage() {
     () =>
       Object.values(configs).find((c) => {
         const name = `${c.name} ${c.full_name}`;
-        if (c.name.includes('DeepSeek搜索抓取配置') || c.full_name.includes('DeepSeek搜索抓取配置')) {
+        if (
+          c.name.includes('DeepSeek搜索抓取配置') ||
+          c.full_name.includes('DeepSeek搜索抓取配置')
+        ) {
           return true;
         }
         return (
@@ -830,90 +833,92 @@ export default function AIConfigPage() {
       case 'webFetch':
         return (
           <div className="grid items-start gap-6 lg:grid-cols-2">
-          <WebSearchSection
-            t={t}
-            websearchProvider={websearchProvider}
-            websearchProviderOptions={websearchProviderOptions}
-            websearchLbStrategy={websearchLbStrategy}
-            websearchLbStrategyOptions={websearchLbStrategyOptions}
-            websearchFallbackOrder={websearchFallbackOrder}
-            websearchFallbackOptions={websearchFallbackOptions}
-            tavilyConfig={tavilyConfig}
-            exaConfig={exaConfig}
-            anysearchConfig={anysearchConfig}
-            firecrawlConfig={firecrawlConfig}
-            jinaConfig={jinaConfig}
-            deepseekConfig={deepseekConfig}
-            miniMaxConfig={miniMaxConfig}
-            websearchMcpToolId={websearchMcpToolId}
-            websearchToolInfo={websearchToolInfo}
-            mcpDetails={mcp.mcpDetailsEditing['websearch_mcp_tool_id'] || {}}
-            onChangeProvider={(v) => {
-              updateConfigValue(aiConfig.id, 'websearch_provider', v);
-              // 静默从备用列表剔除新主用，避免保存时误报 toast
-              const next = filterOutPrimaryProvider(websearchFallbackOrder, v);
-              if (next.length !== websearchFallbackOrder.length) {
-                updateConfigValue(aiConfig.id, 'websearch_fallback_order', next);
+            <WebSearchSection
+              t={t}
+              websearchProvider={websearchProvider}
+              websearchProviderOptions={websearchProviderOptions}
+              websearchLbStrategy={websearchLbStrategy}
+              websearchLbStrategyOptions={websearchLbStrategyOptions}
+              websearchFallbackOrder={websearchFallbackOrder}
+              websearchFallbackOptions={websearchFallbackOptions}
+              tavilyConfig={tavilyConfig}
+              exaConfig={exaConfig}
+              anysearchConfig={anysearchConfig}
+              firecrawlConfig={firecrawlConfig}
+              jinaConfig={jinaConfig}
+              deepseekConfig={deepseekConfig}
+              miniMaxConfig={miniMaxConfig}
+              websearchMcpToolId={websearchMcpToolId}
+              websearchToolInfo={websearchToolInfo}
+              mcpDetails={mcp.mcpDetailsEditing['websearch_mcp_tool_id'] || {}}
+              onChangeProvider={(v) => {
+                updateConfigValue(aiConfig.id, 'websearch_provider', v);
+                // 静默从备用列表剔除新主用，避免保存时误报 toast
+                const next = filterOutPrimaryProvider(websearchFallbackOrder, v);
+                if (next.length !== websearchFallbackOrder.length) {
+                  updateConfigValue(aiConfig.id, 'websearch_fallback_order', next);
+                }
+              }}
+              onChangeLbStrategy={(v) => updateConfigValue(aiConfig.id, 'websearch_lb_strategy', v)}
+              onChangeFallbackOrder={(order) =>
+                updateConfigValue(aiConfig.id, 'websearch_fallback_order', order)
               }
-            }}
-            onChangeLbStrategy={(v) => updateConfigValue(aiConfig.id, 'websearch_lb_strategy', v)}
-            onChangeFallbackOrder={(order) =>
-              updateConfigValue(aiConfig.id, 'websearch_fallback_order', order)
-            }
-            renderImageSources={hasRenderImageSources ? renderImageSources : undefined}
-            renderImageSourceOptions={hasRenderImageSources ? renderImageSourceOptions : undefined}
-            renderEmbedImages={
-              aiConfig?.config.render_embed_images
-                ? aiConfig.config.render_embed_images.value !== false &&
-                  aiConfig.config.render_embed_images.value !== 'false'
-                : undefined
-            }
-            onChangeRenderEmbedImages={
-              aiConfig?.config.render_embed_images
-                ? (enabled) => updateConfigValue(aiConfig.id, 'render_embed_images', enabled)
-                : undefined
-            }
-            onChangeRenderImageSources={
-              hasRenderImageSources
-                ? (order) => updateConfigValue(aiConfig.id, 'render_image_sources', order)
-                : undefined
-            }
-            onUpdateConfig={updateConfigValue}
-            onOpenMcpToolDialog={() => mcp.openMcpToolDialog('websearch')}
-            onClearMcpTool={() => mcp.handleClearMcpTool('websearch')}
-            onDetailValueChange={(name, val) =>
-              mcp.updateMcpDetailValue('websearch_mcp_tool_id', name, val)
-            }
-            onMcpParamNameChange={(oldN, newN) =>
-              mcp.renameMcpDetailKey('websearch_mcp_tool_id', oldN, newN)
-            }
-            onAddMcpDetailRow={() => mcp.addMcpDetailRow('websearch_mcp_tool_id')}
-            onRemoveMcpDetailRow={(name) => mcp.removeMcpDetailRow('websearch_mcp_tool_id', name)}
-          />
-          <WebFetchSection
-            t={t}
-            webfetchProvider={webfetchProvider}
-            webfetchProviderOptions={webfetchProviderOptions}
-            webfetchLbStrategy={webfetchLbStrategy}
-            webfetchLbStrategyOptions={webfetchLbStrategyOptions}
-            webfetchFallbackOrder={webfetchFallbackOrder}
-            webfetchFallbackOptions={webfetchFallbackOptions}
-            webFetchConfig={webFetchConfig}
-            jinaConfig={jinaConfig}
-            deepseekConfig={deepseekConfig}
-            onChangeProvider={(v) => {
-              updateConfigValue(aiConfig.id, 'webfetch_provider', v);
-              const next = filterOutPrimaryProvider(webfetchFallbackOrder, v);
-              if (next.length !== webfetchFallbackOrder.length) {
-                updateConfigValue(aiConfig.id, 'webfetch_fallback_order', next);
+              renderImageSources={hasRenderImageSources ? renderImageSources : undefined}
+              renderImageSourceOptions={
+                hasRenderImageSources ? renderImageSourceOptions : undefined
               }
-            }}
-            onChangeLbStrategy={(v) => updateConfigValue(aiConfig.id, 'webfetch_lb_strategy', v)}
-            onChangeFallbackOrder={(order) =>
-              updateConfigValue(aiConfig.id, 'webfetch_fallback_order', order)
-            }
-            onUpdateConfig={updateConfigValue}
-          />
+              renderEmbedImages={
+                aiConfig?.config.render_embed_images
+                  ? aiConfig.config.render_embed_images.value !== false &&
+                    aiConfig.config.render_embed_images.value !== 'false'
+                  : undefined
+              }
+              onChangeRenderEmbedImages={
+                aiConfig?.config.render_embed_images
+                  ? (enabled) => updateConfigValue(aiConfig.id, 'render_embed_images', enabled)
+                  : undefined
+              }
+              onChangeRenderImageSources={
+                hasRenderImageSources
+                  ? (order) => updateConfigValue(aiConfig.id, 'render_image_sources', order)
+                  : undefined
+              }
+              onUpdateConfig={updateConfigValue}
+              onOpenMcpToolDialog={() => mcp.openMcpToolDialog('websearch')}
+              onClearMcpTool={() => mcp.handleClearMcpTool('websearch')}
+              onDetailValueChange={(name, val) =>
+                mcp.updateMcpDetailValue('websearch_mcp_tool_id', name, val)
+              }
+              onMcpParamNameChange={(oldN, newN) =>
+                mcp.renameMcpDetailKey('websearch_mcp_tool_id', oldN, newN)
+              }
+              onAddMcpDetailRow={() => mcp.addMcpDetailRow('websearch_mcp_tool_id')}
+              onRemoveMcpDetailRow={(name) => mcp.removeMcpDetailRow('websearch_mcp_tool_id', name)}
+            />
+            <WebFetchSection
+              t={t}
+              webfetchProvider={webfetchProvider}
+              webfetchProviderOptions={webfetchProviderOptions}
+              webfetchLbStrategy={webfetchLbStrategy}
+              webfetchLbStrategyOptions={webfetchLbStrategyOptions}
+              webfetchFallbackOrder={webfetchFallbackOrder}
+              webfetchFallbackOptions={webfetchFallbackOptions}
+              webFetchConfig={webFetchConfig}
+              jinaConfig={jinaConfig}
+              deepseekConfig={deepseekConfig}
+              onChangeProvider={(v) => {
+                updateConfigValue(aiConfig.id, 'webfetch_provider', v);
+                const next = filterOutPrimaryProvider(webfetchFallbackOrder, v);
+                if (next.length !== webfetchFallbackOrder.length) {
+                  updateConfigValue(aiConfig.id, 'webfetch_fallback_order', next);
+                }
+              }}
+              onChangeLbStrategy={(v) => updateConfigValue(aiConfig.id, 'webfetch_lb_strategy', v)}
+              onChangeFallbackOrder={(order) =>
+                updateConfigValue(aiConfig.id, 'webfetch_fallback_order', order)
+              }
+              onUpdateConfig={updateConfigValue}
+            />
           </div>
         );
       case 'multimodal':
@@ -922,73 +927,77 @@ export default function AIConfigPage() {
       case 'documentExtract':
         return (
           <div className="grid items-start gap-6 lg:grid-cols-2 xl:grid-cols-3">
-          <ImageUnderstandSection
-            t={t}
-            imageUnderstandProvider={imageUnderstandProvider}
-            imageUnderstandProviderOptions={imageUnderstandProviderOptions}
-            taskModelLacksImage={provider.taskModelLacksImage}
-            providerDesc={aiConfig?.config.image_understand_provider?.desc}
-            imageUnderstandMcpToolId={imageUnderstandMcpToolId}
-            imageUnderstandToolInfo={imageUnderstandToolInfo}
-            mcpDetails={mcp.mcpDetailsEditing['image_understand_mcp_tool_id'] || {}}
-            onChangeProvider={(v) => updateConfigValue(aiConfig.id, 'image_understand_provider', v)}
-            onOpenMcpToolDialog={() => mcp.openMcpToolDialog('image_understand')}
-            onClearMcpTool={() => mcp.handleClearMcpTool('image_understand')}
-            onDetailValueChange={(name, val) =>
-              mcp.updateMcpDetailValue('image_understand_mcp_tool_id', name, val)
-            }
-            onMcpParamNameChange={(oldN, newN) =>
-              mcp.renameMcpDetailKey('image_understand_mcp_tool_id', oldN, newN)
-            }
-            onAddMcpDetailRow={() => mcp.addMcpDetailRow('image_understand_mcp_tool_id')}
-            onRemoveMcpDetailRow={(name) =>
-              mcp.removeMcpDetailRow('image_understand_mcp_tool_id', name)
-            }
-          />
-          <VoiceRecognitionSection
-            t={t}
-            aiConfigId={aiConfig.id}
-            asrProvider={asrProvider}
-            asrProviderOptions={asrProviderOptions}
-            asrProviderDesc={aiConfig?.config.asr_provider?.desc}
-            asrMcpToolId={asrMcpToolId}
-            asrToolInfo={asrToolInfo}
-            mcpDetails={mcp.mcpDetailsEditing['asr_mcp_tool_id'] || {}}
-            onChangeProvider={(v) => updateConfigValue(aiConfig.id, 'asr_provider', v)}
-            onOpenMcpToolDialog={() => mcp.openMcpToolDialog('asr')}
-            onClearMcpTool={() => mcp.handleClearMcpTool('asr')}
-            onDetailValueChange={(name, val) =>
-              mcp.updateMcpDetailValue('asr_mcp_tool_id', name, val)
-            }
-            onMcpParamNameChange={(oldN, newN) =>
-              mcp.renameMcpDetailKey('asr_mcp_tool_id', oldN, newN)
-            }
-            onAddMcpDetailRow={() => mcp.addMcpDetailRow('asr_mcp_tool_id')}
-            onRemoveMcpDetailRow={(name) => mcp.removeMcpDetailRow('asr_mcp_tool_id', name)}
-          />
-          <DocumentExtractSection
-            t={t}
-            aiConfigId={aiConfig.id}
-            documentExtractProvider={documentExtractProvider}
-            documentExtractProviderOptions={documentExtractProviderOptions}
-            documentExtractProviderDesc={aiConfig?.config.document_extract_provider?.desc}
-            documentExtractMcpToolId={documentExtractMcpToolId}
-            documentExtractToolInfo={documentExtractToolInfo}
-            mcpDetails={mcp.mcpDetailsEditing['document_extract_mcp_tool_id'] || {}}
-            onChangeProvider={(v) => updateConfigValue(aiConfig.id, 'document_extract_provider', v)}
-            onOpenMcpToolDialog={() => mcp.openMcpToolDialog('document_extract')}
-            onClearMcpTool={() => mcp.handleClearMcpTool('document_extract')}
-            onDetailValueChange={(name, val) =>
-              mcp.updateMcpDetailValue('document_extract_mcp_tool_id', name, val)
-            }
-            onMcpParamNameChange={(oldN, newN) =>
-              mcp.renameMcpDetailKey('document_extract_mcp_tool_id', oldN, newN)
-            }
-            onAddMcpDetailRow={() => mcp.addMcpDetailRow('document_extract_mcp_tool_id')}
-            onRemoveMcpDetailRow={(name) =>
-              mcp.removeMcpDetailRow('document_extract_mcp_tool_id', name)
-            }
-          />
+            <ImageUnderstandSection
+              t={t}
+              imageUnderstandProvider={imageUnderstandProvider}
+              imageUnderstandProviderOptions={imageUnderstandProviderOptions}
+              taskModelLacksImage={provider.taskModelLacksImage}
+              providerDesc={aiConfig?.config.image_understand_provider?.desc}
+              imageUnderstandMcpToolId={imageUnderstandMcpToolId}
+              imageUnderstandToolInfo={imageUnderstandToolInfo}
+              mcpDetails={mcp.mcpDetailsEditing['image_understand_mcp_tool_id'] || {}}
+              onChangeProvider={(v) =>
+                updateConfigValue(aiConfig.id, 'image_understand_provider', v)
+              }
+              onOpenMcpToolDialog={() => mcp.openMcpToolDialog('image_understand')}
+              onClearMcpTool={() => mcp.handleClearMcpTool('image_understand')}
+              onDetailValueChange={(name, val) =>
+                mcp.updateMcpDetailValue('image_understand_mcp_tool_id', name, val)
+              }
+              onMcpParamNameChange={(oldN, newN) =>
+                mcp.renameMcpDetailKey('image_understand_mcp_tool_id', oldN, newN)
+              }
+              onAddMcpDetailRow={() => mcp.addMcpDetailRow('image_understand_mcp_tool_id')}
+              onRemoveMcpDetailRow={(name) =>
+                mcp.removeMcpDetailRow('image_understand_mcp_tool_id', name)
+              }
+            />
+            <VoiceRecognitionSection
+              t={t}
+              aiConfigId={aiConfig.id}
+              asrProvider={asrProvider}
+              asrProviderOptions={asrProviderOptions}
+              asrProviderDesc={aiConfig?.config.asr_provider?.desc}
+              asrMcpToolId={asrMcpToolId}
+              asrToolInfo={asrToolInfo}
+              mcpDetails={mcp.mcpDetailsEditing['asr_mcp_tool_id'] || {}}
+              onChangeProvider={(v) => updateConfigValue(aiConfig.id, 'asr_provider', v)}
+              onOpenMcpToolDialog={() => mcp.openMcpToolDialog('asr')}
+              onClearMcpTool={() => mcp.handleClearMcpTool('asr')}
+              onDetailValueChange={(name, val) =>
+                mcp.updateMcpDetailValue('asr_mcp_tool_id', name, val)
+              }
+              onMcpParamNameChange={(oldN, newN) =>
+                mcp.renameMcpDetailKey('asr_mcp_tool_id', oldN, newN)
+              }
+              onAddMcpDetailRow={() => mcp.addMcpDetailRow('asr_mcp_tool_id')}
+              onRemoveMcpDetailRow={(name) => mcp.removeMcpDetailRow('asr_mcp_tool_id', name)}
+            />
+            <DocumentExtractSection
+              t={t}
+              aiConfigId={aiConfig.id}
+              documentExtractProvider={documentExtractProvider}
+              documentExtractProviderOptions={documentExtractProviderOptions}
+              documentExtractProviderDesc={aiConfig?.config.document_extract_provider?.desc}
+              documentExtractMcpToolId={documentExtractMcpToolId}
+              documentExtractToolInfo={documentExtractToolInfo}
+              mcpDetails={mcp.mcpDetailsEditing['document_extract_mcp_tool_id'] || {}}
+              onChangeProvider={(v) =>
+                updateConfigValue(aiConfig.id, 'document_extract_provider', v)
+              }
+              onOpenMcpToolDialog={() => mcp.openMcpToolDialog('document_extract')}
+              onClearMcpTool={() => mcp.handleClearMcpTool('document_extract')}
+              onDetailValueChange={(name, val) =>
+                mcp.updateMcpDetailValue('document_extract_mcp_tool_id', name, val)
+              }
+              onMcpParamNameChange={(oldN, newN) =>
+                mcp.renameMcpDetailKey('document_extract_mcp_tool_id', oldN, newN)
+              }
+              onAddMcpDetailRow={() => mcp.addMcpDetailRow('document_extract_mcp_tool_id')}
+              onRemoveMcpDetailRow={(name) =>
+                mcp.removeMcpDetailRow('document_extract_mcp_tool_id', name)
+              }
+            />
           </div>
         );
       case 'vectorDb':
@@ -1237,6 +1246,7 @@ export default function AIConfigPage() {
         lowLevelConfig={provider.lowLevelConfig}
         onOpenChange={provider.setIsManageConfigDialogOpen}
         onOpenCreate={() => {
+          provider.resetNewConfigForm();
           provider.setIsCreateDialogOpen(true);
           provider.fetchProviderConfigOptions(provider.newConfigProvider);
         }}
@@ -1263,6 +1273,11 @@ export default function AIConfigPage() {
         sendBackThinking={provider.newConfigSendBackThinking}
         forwardEndUserId={provider.newConfigForwardEndUserId}
         endUserIdSalt={provider.newConfigEndUserIdSalt}
+        videoInputFormat={provider.newConfigVideoInputFormat}
+        videoFps={provider.newConfigVideoFps}
+        videoPartExtra={provider.newConfigVideoPartExtra}
+        videoInlineMaxMb={provider.newConfigVideoInlineMaxMb}
+        videoUrlPassthrough={provider.newConfigVideoUrlPassthrough}
         fetchedModels={provider.newConfigFetchedModels}
         isFetching={provider.isFetchingNewConfigModels}
         providerConfigOptions={provider.providerConfigOptions}
@@ -1284,6 +1299,11 @@ export default function AIConfigPage() {
         onChangeSendBackThinking={provider.setNewConfigSendBackThinking}
         onChangeForwardEndUserId={provider.setNewConfigForwardEndUserId}
         onChangeEndUserIdSalt={provider.setNewConfigEndUserIdSalt}
+        onChangeVideoInputFormat={provider.setNewConfigVideoInputFormat}
+        onChangeVideoFps={provider.setNewConfigVideoFps}
+        onChangeVideoPartExtra={provider.setNewConfigVideoPartExtra}
+        onChangeVideoInlineMaxMb={provider.setNewConfigVideoInlineMaxMb}
+        onChangeVideoUrlPassthrough={provider.setNewConfigVideoUrlPassthrough}
         onReset={provider.resetNewConfigForm}
         onSubmit={provider.handleCreateOpenaiConfig}
       />

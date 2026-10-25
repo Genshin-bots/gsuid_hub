@@ -1,0 +1,50 @@
+{
+  "title": "自主行动",
+  "filters": {
+    "personaAll": "全部人格",
+    "refresh": "刷新"
+  },
+  "latestTitle": "最近在做什么",
+  "historyTitle": "行动记录",
+  "empty": "还没有自主行动记录。",
+  "emptyHint": "在人格页打开「自主行动」后，下一次行动会出现在这里。问过模型的一轮可以打开会话日志。",
+  "noSummary": "没有写下摘要",
+  "table": {
+    "persona": "人格",
+    "when": "时间",
+    "drive": "在做什么",
+    "delivery": "怎么处理",
+    "summary": "摘要",
+    "steps": "步数"
+  },
+  "drive": {
+    "care_user": "关心某人",
+    "group_topic": "群里的话题",
+    "self_explore": "自己看看",
+    "rest": "休息"
+  },
+  "delivery": {
+    "immediate_push": "立刻说",
+    "staged_merge": "下次开口再提",
+    "silent_only": "不主动说"
+  },
+  "detail": {
+    "title": "这次行动",
+    "target": "对象",
+    "duration": "用时 {seconds} 秒",
+    "summary": "摘要",
+    "observations": "查到的事实",
+    "trails": "还想接着看",
+    "steps": "用过的工具",
+    "noSteps": "这一轮没有调用工具。",
+    "stepError": "失败",
+    "sessionLog": "打开会话日志",
+    "noSessionLog": "这条记录没有会话号，打不开对应的会话日志。"
+  },
+  "pagination": {
+    "label": "第 {from}–{to} 条 / 共 {total} 条",
+    "prev": "上一页",
+    "next": "下一页"
+  },
+  "loadFailed": "自主行动记录加载失败"
+}

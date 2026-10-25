@@ -823,16 +823,36 @@ function RelationshipPanel() {
                   <Table className="w-max min-w-full whitespace-nowrap">
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="whitespace-nowrap">{t('aiRuntime.relationship.colUser')}</TableHead>
-                        <TableHead className="whitespace-nowrap">{t('aiRuntime.relationship.botId')}</TableHead>
-                        <TableHead className="whitespace-nowrap">{t('aiRuntime.relationship.score')}</TableHead>
-                        <TableHead className="whitespace-nowrap">{t('aiRuntime.relationship.colZone')}</TableHead>
-                        <TableHead className="whitespace-nowrap">{t('aiRuntime.relationship.colLine')}</TableHead>
-                        <TableHead className="whitespace-nowrap">{t('aiRuntime.relationship.lastReason')}</TableHead>
-                        <TableHead className="whitespace-nowrap">{t('aiRuntime.relationship.lastDelta')}</TableHead>
-                        <TableHead className="whitespace-nowrap">{t('aiRuntime.relationship.lastEval')}</TableHead>
-                        <TableHead className="whitespace-nowrap">{t('aiRuntime.relationship.daily')}</TableHead>
-                        <TableHead className="whitespace-nowrap">{t('aiRuntime.relationship.interactions')}</TableHead>
+                        <TableHead className="whitespace-nowrap">
+                          {t('aiRuntime.relationship.colUser')}
+                        </TableHead>
+                        <TableHead className="whitespace-nowrap">
+                          {t('aiRuntime.relationship.botId')}
+                        </TableHead>
+                        <TableHead className="whitespace-nowrap">
+                          {t('aiRuntime.relationship.score')}
+                        </TableHead>
+                        <TableHead className="whitespace-nowrap">
+                          {t('aiRuntime.relationship.colZone')}
+                        </TableHead>
+                        <TableHead className="whitespace-nowrap">
+                          {t('aiRuntime.relationship.colLine')}
+                        </TableHead>
+                        <TableHead className="whitespace-nowrap">
+                          {t('aiRuntime.relationship.lastReason')}
+                        </TableHead>
+                        <TableHead className="whitespace-nowrap">
+                          {t('aiRuntime.relationship.lastDelta')}
+                        </TableHead>
+                        <TableHead className="whitespace-nowrap">
+                          {t('aiRuntime.relationship.lastEval')}
+                        </TableHead>
+                        <TableHead className="whitespace-nowrap">
+                          {t('aiRuntime.relationship.daily')}
+                        </TableHead>
+                        <TableHead className="whitespace-nowrap">
+                          {t('aiRuntime.relationship.interactions')}
+                        </TableHead>
                         <TableHead className="sr-only">{t('common.actions')}</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -848,7 +868,9 @@ function RelationshipPanel() {
                         >
                           <TableCell>
                             <div className="flex flex-nowrap items-center gap-2">
-                              <span className="whitespace-nowrap font-medium">{item.user_name || item.user_id}</span>
+                              <span className="whitespace-nowrap font-medium">
+                                {item.user_name || item.user_id}
+                              </span>
                               {item.is_master && (
                                 <Badge variant="default" className="whitespace-nowrap">
                                   {t('aiRuntime.relationship.master')}
@@ -861,7 +883,9 @@ function RelationshipPanel() {
                               </div>
                             )}
                           </TableCell>
-                          <TableCell className="whitespace-nowrap font-mono text-xs">{item.bot_id}</TableCell>
+                          <TableCell className="whitespace-nowrap font-mono text-xs">
+                            {item.bot_id}
+                          </TableCell>
                           <TableCell className="whitespace-nowrap font-medium">
                             {item.score}
                           </TableCell>
@@ -873,7 +897,10 @@ function RelationshipPanel() {
                               {item.zone_label} · {item.zone}
                             </Badge>
                           </TableCell>
-                          <TableCell className="max-w-[16rem] truncate whitespace-nowrap text-xs" title={item.line}>
+                          <TableCell
+                            className="max-w-[16rem] truncate whitespace-nowrap text-xs"
+                            title={item.line}
+                          >
                             {item.line}
                           </TableCell>
                           <TableCell className="whitespace-nowrap font-mono text-xs">
@@ -889,7 +916,9 @@ function RelationshipPanel() {
                             {t('aiRuntime.relationship.gain')} {item.daily_gain ?? 0} /{' '}
                             {t('aiRuntime.relationship.loss')} {item.daily_loss ?? 0}
                           </TableCell>
-                          <TableCell className="whitespace-nowrap">{item.interaction_count ?? 0}</TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            {item.interaction_count ?? 0}
+                          </TableCell>
                           <TableCell>
                             <Button variant="outline" className="h-8" onClick={() => openRow(item)}>
                               {t('aiRuntime.relationship.viewRow')}

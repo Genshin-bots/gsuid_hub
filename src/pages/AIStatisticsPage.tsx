@@ -827,9 +827,7 @@ export default function AIStatisticsPage() {
       const { start_date, end_date } = computeRangeDates(
         rangePreset,
         // 「今日」把日历里选中的那天当起点；自定义区间仍用自己那两个选择器
-        isSingleDayPreset(rangePreset)
-          ? singleDayDate(rangePreset, selectedDate)
-          : rangeStartDate,
+        isSingleDayPreset(rangePreset) ? singleDayDate(rangePreset, selectedDate) : rangeStartDate,
         rangeEndDate,
       );
       const data = await fetchTokenByRange(start_date, end_date);
@@ -891,9 +889,7 @@ export default function AIStatisticsPage() {
       setPerfRangeLoading(true);
       const { start_date, end_date } = computeRangeDates(
         rangePreset,
-        isSingleDayPreset(rangePreset)
-          ? singleDayDate(rangePreset, selectedDate)
-          : rangeStartDate,
+        isSingleDayPreset(rangePreset) ? singleDayDate(rangePreset, selectedDate) : rangeStartDate,
         rangeEndDate,
       );
       const rows = await aiPerformanceApi.getHourlyRange(start_date, end_date);
@@ -1923,7 +1919,11 @@ export default function AIStatisticsPage() {
               <SectionLabel
                 title={t('aiStatistics.usageAndPerformance')}
                 icon={Coins}
-                hint={isSingleDayPreset(rangePreset) ? undefined : t('aiStatistics.hourProfileRangeHint')}
+                hint={
+                  isSingleDayPreset(rangePreset)
+                    ? undefined
+                    : t('aiStatistics.hourProfileRangeHint')
+                }
                 action={
                   <div className="flex items-center gap-1">
                     {detailTrigger(t('aiStatistics.dataDetail'), () => setDataDetailOpen(true))}
@@ -2115,7 +2115,9 @@ export default function AIStatisticsPage() {
                       <Button
                         variant="outline"
                         onClick={() =>
-                          void (isSingleDayPreset(rangePreset) ? fetchTrendData() : fetchRangeData())
+                          void (isSingleDayPreset(rangePreset)
+                            ? fetchTrendData()
+                            : fetchRangeData())
                         }
                       >
                         <RefreshCw className="mr-1 h-4 w-4" />
@@ -2176,7 +2178,9 @@ export default function AIStatisticsPage() {
                       <Button
                         variant="outline"
                         onClick={() =>
-                          void (isSingleDayPreset(rangePreset) ? fetchTrendData() : fetchRangeData())
+                          void (isSingleDayPreset(rangePreset)
+                            ? fetchTrendData()
+                            : fetchRangeData())
                         }
                       >
                         <RefreshCw className="mr-1 h-4 w-4" />
@@ -2641,7 +2645,9 @@ export default function AIStatisticsPage() {
                         </span>
                       </div>
                       {event.message ? (
-                        <p className="mt-2 whitespace-pre-wrap break-words text-sm">{event.message}</p>
+                        <p className="mt-2 whitespace-pre-wrap break-words text-sm">
+                          {event.message}
+                        </p>
                       ) : null}
                     </div>
                   ))
@@ -2653,7 +2659,9 @@ export default function AIStatisticsPage() {
                       </p>
                     ) : null}
                     {errorBreakdown.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">{t('aiStatistics.noDataInRange')}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {t('aiStatistics.noDataInRange')}
+                      </p>
                     ) : (
                       errorBreakdown.map((item) => (
                         <div

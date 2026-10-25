@@ -167,10 +167,7 @@ export default function AIApprovalsPage() {
           {items.map((item) => (
             <Card
               key={item.request_id}
-              className={cn(
-                'transition-all hover:border-primary/40',
-                'glass-card',
-              )}
+              className={cn('transition-all hover:border-primary/40', 'glass-card')}
             >
               <CardContent className="flex flex-col gap-3 p-4 lg:flex-row lg:items-center lg:justify-between">
                 <div className="min-w-0 flex-1 space-y-2">

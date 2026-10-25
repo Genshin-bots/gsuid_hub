@@ -165,6 +165,14 @@ if (scopeFilter !== '__all__') params.scope_type = scopeFilter;
 
 `.tooltip-surface` 是独立的一套：中性底（跟随 `--popover`）+ 一层柔和投影，**不画白色描边**。改配色时改 `.tooltip-surface` 的规则，不要往 `TooltipContent` 的 className 里塞背景类。
 
+### 「?」问号图标钮不要有圆形底板 ★★
+
+问号是**纯图标按钮**，就该只有一个圆环 + 问号（lucide `HelpCircle` 自带圆环），外面**不能**再套一层圆形底色。
+
+历史上 index.css 里有一条 `[data-style=...] button.rounded-full { background: hsl(var(--accent) / 0.3) !important }`（注释写的是「标签输入框的添加按钮」），选择器太宽，命中了**所有** `rounded-full` 按钮 —— 而全库真正用 `button.rounded-full` 的只有「?」问号钮（标签输入框的添加按钮实际用 `rounded-lg`）。问号外面多出的那圈浅色圆底就是它造成的。该规则已删除。
+
+**教训**：写主题级 `button.xxx` 规则时，先确认目标控件的 class 是否唯一。像 `button.rounded-full` 这种「形状类」选择器极易误伤 —— 凡是圆角按钮（图标钮、头像、开关、各种 pill）都会中招。要精确命中就用组件自己的语义 class，别用形状类。
+
 ### 通用手搓（简单一行文案）
 
 ```tsx

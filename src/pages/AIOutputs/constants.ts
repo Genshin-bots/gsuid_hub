@@ -7,6 +7,9 @@
 /** Radix Select 不接受 value=""，用哨兵表示「全部工具」（AGENTS.md §1.6） */
 export const TOOL_ALL = '__all__';
 
+/** 自主行动页签的「全部人格」。真正请求里换成空串。 */
+export const AUTONOMY_PERSONA_ALL = '__all__';
+
 /** 字节数按 KB / MB 两级收敛，避免表格里出现 6 位数 */
 export function formatBytes(n: number) {
   if (n < 1024) return `${n} B`;
