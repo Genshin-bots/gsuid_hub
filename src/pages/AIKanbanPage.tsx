@@ -1430,15 +1430,18 @@ export default function AIKanbanPage() {
 
       {viewMode === 'kanban' && (
         <Card className="glass-card shrink-0">
-          <CardContent className="!p-4 space-y-4">
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-2 xl:grid-cols-6">
+          <CardContent className="!p-3 sm:!p-3.5">
+            <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
               <Input
                 value={filters.scope_key}
                 onChange={(event) =>
                   setFilters((prev) => ({ ...prev, scope_key: event.target.value }))
                 }
                 placeholder={t('aiKanban.filters.scopeKey')}
-                className={tabToolbarControlClass}
+                className={cn(
+                  tabToolbarControlClass,
+                  'w-[calc(50%-0.35rem)] min-w-[120px] sm:w-36 lg:w-40',
+                )}
               />
               <Input
                 value={filters.bot_id}
@@ -1446,7 +1449,10 @@ export default function AIKanbanPage() {
                   setFilters((prev) => ({ ...prev, bot_id: event.target.value }))
                 }
                 placeholder={t('aiKanban.filters.botId')}
-                className={tabToolbarControlClass}
+                className={cn(
+                  tabToolbarControlClass,
+                  'w-[calc(50%-0.35rem)] min-w-[120px] sm:w-32 lg:w-36',
+                )}
               />
               <Input
                 value={filters.group_id}
@@ -1454,7 +1460,10 @@ export default function AIKanbanPage() {
                   setFilters((prev) => ({ ...prev, group_id: event.target.value }))
                 }
                 placeholder={t('aiKanban.filters.groupId')}
-                className={tabToolbarControlClass}
+                className={cn(
+                  tabToolbarControlClass,
+                  'w-[calc(50%-0.35rem)] min-w-[120px] sm:w-32 lg:w-36',
+                )}
               />
               <Input
                 value={filters.owner_user_id}
@@ -1462,13 +1471,21 @@ export default function AIKanbanPage() {
                   setFilters((prev) => ({ ...prev, owner_user_id: event.target.value }))
                 }
                 placeholder={t('aiKanban.filters.ownerUserId')}
-                className={tabToolbarControlClass}
+                className={cn(
+                  tabToolbarControlClass,
+                  'w-[calc(50%-0.35rem)] min-w-[120px] sm:w-36 lg:w-40',
+                )}
               />
               <Select
                 value={filters.status}
                 onValueChange={(value) => setFilters((prev) => ({ ...prev, status: value }))}
               >
-                <SelectTrigger className={tabToolbarControlClass}>
+                <SelectTrigger
+                  className={cn(
+                    tabToolbarControlClass,
+                    'w-[calc(50%-0.35rem)] min-w-[120px] sm:w-36',
+                  )}
+                >
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -1489,36 +1506,34 @@ export default function AIKanbanPage() {
                   ))}
                 </SelectContent>
               </Select>
-              <div className="relative">
+              <div className="relative min-w-[180px] flex-1">
                 <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.target.value)}
                   placeholder={t('aiKanban.filters.search')}
-                  className={cn(tabToolbarControlClass, 'pl-9')}
+                  className={cn(tabToolbarControlClass, 'w-full pl-9')}
                 />
               </div>
-            </div>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-3">
-                <Switch checked={includeChildren} onCheckedChange={setIncludeChildren} />
-                <Label>
+              <div
+                className={cn(
+                  tabToolbarControlClass,
+                  'flex items-center gap-2.5 px-3 shrink-0 rounded-md border border-input/60 bg-background/50',
+                )}
+              >
+                <Switch
+                  id="kanban-include-children"
+                  checked={includeChildren}
+                  onCheckedChange={setIncludeChildren}
+                />
+                <Label
+                  htmlFor="kanban-include-children"
+                  className="cursor-pointer whitespace-nowrap text-xs sm:text-sm font-normal select-none"
+                >
                   {includeChildren
                     ? t('aiKanban.filters.includeChildren')
                     : t('aiKanban.filters.onlyRoot')}
                 </Label>
-              </div>
-              <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
-                <Badge variant="secondary">
-                  {t('aiKanban.summary.root')}: {board.summary.task_count}
-                </Badge>
-                <Badge variant="secondary">
-                  {t('aiKanban.summary.subtask')}: {board.summary.subtask_count}
-                </Badge>
-                <Badge variant="outline">
-                  <Clock className="mr-1 h-3 w-3" />
-                  {formatDate(board.summary.updated_at)}
-                </Badge>
               </div>
             </div>
           </CardContent>

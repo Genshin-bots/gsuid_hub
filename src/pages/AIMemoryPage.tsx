@@ -2231,6 +2231,8 @@ export default function AIMemoryPage() {
 
   return (
     <PinnedPage
+      className="gap-3 sm:gap-4"
+      bodyClassName="space-y-3 sm:space-y-3.5"
       header={
         /* Header */
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">

@@ -357,9 +357,11 @@ export default function AIScheduledTasksPage() {
 
   return (
     <PinnedPage
+      className="gap-3 sm:gap-4"
+      bodyClassName="space-y-2 sm:space-y-2.5"
       header={
         /* 页面标题 */
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0 sm:overflow-x-auto">
             <h1 className="sm:whitespace-nowrap text-3xl font-bold flex items-center gap-3">
               <Clock className="w-8 h-8 shrink-0" />
@@ -384,13 +386,13 @@ export default function AIScheduledTasksPage() {
     >
       {/* 统计卡片 */}
       {stats && (
-        <div className="glass-card-grid grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+        <div className="glass-card-grid grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2 sm:gap-2.5">
           <Card className={cn('glass-card')}>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <Timer className="w-8 h-8 text-primary" />
+            <CardContent className="p-3">
+              <div className="flex items-center gap-2.5">
+                <Timer className="w-7 h-7 text-primary shrink-0" />
                 <div>
-                  <p className="text-2xl font-bold">{stats.total}</p>
+                  <p className="text-xl font-bold">{stats.total}</p>
                   <p className="text-xs text-muted-foreground">
                     {t('aiScheduledTasks.totalTasks')}
                   </p>
@@ -399,11 +401,11 @@ export default function AIScheduledTasksPage() {
             </CardContent>
           </Card>
           <Card className={cn('glass-card')}>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <Clock className="w-8 h-8 text-blue-500" />
+            <CardContent className="p-3">
+              <div className="flex items-center gap-2.5">
+                <Clock className="w-7 h-7 text-blue-500 shrink-0" />
                 <div>
-                  <p className="text-2xl font-bold">{stats.pending}</p>
+                  <p className="text-xl font-bold">{stats.pending}</p>
                   <p className="text-xs text-muted-foreground">
                     {t('aiScheduledTasks.pendingTasks')}
                   </p>
@@ -412,11 +414,11 @@ export default function AIScheduledTasksPage() {
             </CardContent>
           </Card>
           <Card className={cn('glass-card')}>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <Pause className="w-8 h-8 text-yellow-500" />
+            <CardContent className="p-3">
+              <div className="flex items-center gap-2.5">
+                <Pause className="w-7 h-7 text-yellow-500 shrink-0" />
                 <div>
-                  <p className="text-2xl font-bold">{stats.paused}</p>
+                  <p className="text-xl font-bold">{stats.paused}</p>
                   <p className="text-xs text-muted-foreground">
                     {t('aiScheduledTasks.pausedTasks')}
                   </p>
@@ -425,11 +427,11 @@ export default function AIScheduledTasksPage() {
             </CardContent>
           </Card>
           <Card className={cn('glass-card')}>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <CheckCircle className="w-8 h-8 text-green-500" />
+            <CardContent className="p-3">
+              <div className="flex items-center gap-2.5">
+                <CheckCircle className="w-7 h-7 text-green-500 shrink-0" />
                 <div>
-                  <p className="text-2xl font-bold">{stats.executed}</p>
+                  <p className="text-xl font-bold">{stats.executed}</p>
                   <p className="text-xs text-muted-foreground">
                     {t('aiScheduledTasks.executedTasks')}
                   </p>
@@ -438,11 +440,11 @@ export default function AIScheduledTasksPage() {
             </CardContent>
           </Card>
           <Card className={cn('glass-card')}>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <XCircle className="w-8 h-8 text-destructive" />
+            <CardContent className="p-3">
+              <div className="flex items-center gap-2.5">
+                <XCircle className="w-7 h-7 text-destructive shrink-0" />
                 <div>
-                  <p className="text-2xl font-bold">{stats.failed}</p>
+                  <p className="text-xl font-bold">{stats.failed}</p>
                   <p className="text-xs text-muted-foreground">
                     {t('aiScheduledTasks.failedTasks')}
                   </p>
@@ -451,11 +453,11 @@ export default function AIScheduledTasksPage() {
             </CardContent>
           </Card>
           <Card className={cn('glass-card')}>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <RefreshCw className="w-8 h-8 text-purple-500" />
+            <CardContent className="p-3">
+              <div className="flex items-center gap-2.5">
+                <RefreshCw className="w-7 h-7 text-purple-500 shrink-0" />
                 <div>
-                  <p className="text-2xl font-bold">{stats.interval_count}</p>
+                  <p className="text-xl font-bold">{stats.interval_count}</p>
                   <p className="text-xs text-muted-foreground">
                     {t('aiScheduledTasks.intervalTasks')}
                   </p>
@@ -464,11 +466,11 @@ export default function AIScheduledTasksPage() {
             </CardContent>
           </Card>
           <Card className={cn('glass-card')}>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <Calendar className="w-8 h-8 text-orange-500" />
+            <CardContent className="p-3">
+              <div className="flex items-center gap-2.5">
+                <Calendar className="w-7 h-7 text-orange-500 shrink-0" />
                 <div>
-                  <p className="text-2xl font-bold">{stats.once_count}</p>
+                  <p className="text-xl font-bold">{stats.once_count}</p>
                   <p className="text-xs text-muted-foreground">{t('aiScheduledTasks.onceTasks')}</p>
                 </div>
               </div>
@@ -479,8 +481,8 @@ export default function AIScheduledTasksPage() {
 
       {/* 筛选栏 */}
       <Card className={cn('glass-card')}>
-        <CardContent className="p-4">
-          <div className="flex flex-col md:flex-row gap-4">
+        <CardContent className="p-2.5 sm:p-3">
+          <div className="flex flex-col md:flex-row gap-2.5 sm:gap-3">
             <div className="relative flex-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -567,10 +569,14 @@ export default function AIScheduledTasksPage() {
         </Card>
       ) : (
         <Card className={cn('glass-card')}>
-          <CardHeader className="flex flex-row items-center justify-between gap-4 space-y-0">
+          <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0 p-3.5 sm:px-5 sm:py-2.5">
             <div>
-              <CardTitle>{t('aiScheduledTasks.taskList')}</CardTitle>
-              <CardDescription>{t('aiScheduledTasks.taskListDescription')}</CardDescription>
+              <CardTitle className="text-base sm:text-lg">
+                {t('aiScheduledTasks.taskList')}
+              </CardTitle>
+              <CardDescription className="text-xs sm:text-sm">
+                {t('aiScheduledTasks.taskListDescription')}
+              </CardDescription>
             </div>
             <Button
               variant="destructive"
@@ -586,17 +592,21 @@ export default function AIScheduledTasksPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t('aiScheduledTasks.taskPrompt')}</TableHead>
-                  <TableHead className="hidden md:table-cell">
+                  <TableHead className="py-2 px-3 sm:py-2.5 sm:px-4">
+                    {t('aiScheduledTasks.taskPrompt')}
+                  </TableHead>
+                  <TableHead className="hidden md:table-cell py-2 px-3 sm:py-2.5 sm:px-4">
                     {t('aiScheduledTasks.taskType')}
                   </TableHead>
-                  <TableHead className="hidden lg:table-cell">
+                  <TableHead className="hidden lg:table-cell py-2 px-3 sm:py-2.5 sm:px-4">
                     {t('aiScheduledTasks.status')}
                   </TableHead>
-                  <TableHead className="hidden lg:table-cell">
+                  <TableHead className="hidden lg:table-cell py-2 px-3 sm:py-2.5 sm:px-4">
                     {t('aiScheduledTasks.nextRunTime')}
                   </TableHead>
-                  <TableHead className="text-right">{t('aiScheduledTasks.actions')}</TableHead>
+                  <TableHead className="text-right py-2 px-3 sm:py-2.5 sm:px-4">
+                    {t('aiScheduledTasks.actions')}
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -606,30 +616,33 @@ export default function AIScheduledTasksPage() {
                     className="cursor-pointer hover:bg-muted/50"
                     onClick={() => openDetailDialog(task)}
                   >
-                    <TableCell>
+                    <TableCell className="py-2 px-3 sm:py-2.5 sm:px-4">
                       <div>
                         <p className="font-medium truncate max-w-[300px]">{task.task_prompt}</p>
                         <p className="text-xs text-muted-foreground font-mono">{task.task_id}</p>
                       </div>
                     </TableCell>
-                    <TableCell className="hidden md:table-cell">
+                    <TableCell className="hidden md:table-cell py-2 px-3 sm:py-2.5 sm:px-4">
                       <Badge variant="outline">
                         {task.task_type === 'interval'
                           ? t('aiScheduledTasks.taskTypeInterval')
                           : t('aiScheduledTasks.taskTypeOnce')}
                       </Badge>
                     </TableCell>
-                    <TableCell className="hidden lg:table-cell">
+                    <TableCell className="hidden lg:table-cell py-2 px-3 sm:py-2.5 sm:px-4">
                       {getStatusBadge(task.status)}
                     </TableCell>
-                    <TableCell className="hidden lg:table-cell">
+                    <TableCell className="hidden lg:table-cell py-2 px-3 sm:py-2.5 sm:px-4">
                       <div className="text-sm">
                         {task.next_run_time
                           ? format(new Date(task.next_run_time), 'MM-dd HH:mm', { locale: zhCN })
                           : '-'}
                       </div>
                     </TableCell>
-                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                    <TableCell
+                      className="text-right py-2 px-3 sm:py-2.5 sm:px-4"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <div className="flex items-center justify-end gap-1">
                         {task.status === 'pending' && (
                           <Button

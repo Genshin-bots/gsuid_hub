@@ -1745,16 +1745,17 @@ export default function AIStatisticsPage() {
 
   /**
    * 「查看详情」按钮：概览只给读数与趋势，明细点开成弹窗，不跳走。
-   * 和分段器同一行右对齐 —— 它是那组控件的一部分，不是组标题的一部分。
+   * 置于总 Token 卡片右上角。
    */
   const detailTrigger = (label: string, onClick: () => void) => (
     <Button
       variant="ghost"
-      className="h-10 shrink-0 gap-1 px-3 text-sm text-muted-foreground hover:text-foreground"
+      size="sm"
+      className="h-6 shrink-0 gap-0.5 px-1.5 text-xs text-muted-foreground hover:text-foreground"
       onClick={onClick}
     >
       {label}
-      <ChevronRight className="h-4 w-4" />
+      <ChevronRight className="h-3.5 w-3.5" />
     </Button>
   );
 
@@ -1911,43 +1912,28 @@ export default function AIStatisticsPage() {
 
           {activeTab === 'overview' && (
             <div className="glass-card-grid">
-              {/* 用量与性能合成一区：三张 24 小时图讲的是同一段时间的同一批请求，
-                  原来它们被「Token 计量」和「性能」两个区标题、一排「单日 / 今日」
-                  胶囊、一整行读数条隔开，读的时候要在两屏之间来回对时间口径。
-                  现在一区到底：读数 → 一天的形状 → 构成拆解，省掉一个区标题、
-                  一排开关和一整行读数条。 */}
-              <SectionLabel
-                title={t('aiStatistics.usageAndPerformance')}
-                icon={Coins}
-                hint={
-                  isSingleDayPreset(rangePreset)
-                    ? undefined
-                    : t('aiStatistics.hourProfileRangeHint')
-                }
-                action={
-                  <div className="flex items-center gap-1">
-                    {detailTrigger(t('aiStatistics.dataDetail'), () => setDataDetailOpen(true))}
-                    {detailTrigger(t('aiStatistics.performanceDetail'), () => {
-                      setPerfMode(isSingleDayPreset(rangePreset) ? 'day' : 'range');
-                      setPerfDetailOpen(true);
-                    })}
-                  </div>
-                }
-              />
-
               {/* 四类 Token 收成主角卡里的一根占比条：原来四张拆分卡各占 1/6 页宽、
                   各自只装两行字，卡与卡之间还有缝，纵向多花一整行。现在条形给比例、
                   图例给名字、悬停浮窗给数字。数字跟着顶部的时间维度走，切近 7 天
                   主角卡就变成这 7 天的合计。
                   主角卡从 8+4 收成 6+3，右边腾出的 3 列给延迟 / 错误率 ——
                   原来这两格在三张图的读数条里，那一整行就为了两个数。 */}
-              <div className="mt-2.5 grid grid-cols-1 gap-2.5 md:grid-cols-12">
+              <div className="grid grid-cols-1 gap-2.5 md:grid-cols-12">
                 <div className="md:col-span-12 xl:col-span-6">
                   <MetricHero
                     title={t('aiStatistics.totalTokens')}
                     value={formatCompactNumber(scopeTotal)}
                     desc={scopeTotals.label}
                     icon={Coins}
+                    extra={
+                      <div className="flex items-center gap-1">
+                        {detailTrigger(t('aiStatistics.dataDetail'), () => setDataDetailOpen(true))}
+                        {detailTrigger(t('aiStatistics.performanceDetail'), () => {
+                          setPerfMode(isSingleDayPreset(rangePreset) ? 'day' : 'range');
+                          setPerfDetailOpen(true);
+                        })}
+                      </div>
+                    }
                   >
                     <RatioBar slices={scopeMixSlices} total={scopeTotal} />
                   </MetricHero>
@@ -2270,26 +2256,6 @@ export default function AIStatisticsPage() {
                     )}
                   </div>
                 </DataBlock>
-
-                {/* 共享色板 + 分组说明：两张堆叠条的四段颜色是同一套，图例只画一次。 */}
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 lg:col-span-12">
-                  <span className="text-[11px] font-medium text-muted-foreground">
-                    {t('aiStatistics.tokenComposition')}
-                  </span>
-                  <ul className="flex flex-wrap items-center gap-x-3.5 gap-y-1">
-                    {TOKEN_STACK_FIELDS.map((field, index) => (
-                      <li key={field} className="flex items-center gap-1.5 text-[11px]">
-                        <span
-                          className="h-1.5 w-1.5 shrink-0 rounded-full"
-                          style={{ backgroundColor: ramp[index % 4] }}
-                        />
-                        <span className="text-muted-foreground">
-                          {t(TOKEN_STACK_LABEL_KEYS[field])}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
               </div>
 
               <div className="mt-4">

@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -165,19 +166,21 @@ export function AutonomyPanel(props: AutonomyPanelProps) {
             <Skeleton className="h-28" />
           </div>
         ) : latest.length === 0 ? (
-          <div className="rounded-lg border border-dashed px-4 py-8 text-center">
-            <Compass className="mx-auto mb-2 h-6 w-6 text-muted-foreground" />
-            <p className="font-medium">{t('aiAutonomy.empty')}</p>
-            <p className="mt-1 text-sm text-muted-foreground">{t('aiAutonomy.emptyHint')}</p>
-          </div>
+          <Card className="glass-card">
+            <CardContent className="flex flex-col items-center justify-center p-8 text-center text-muted-foreground">
+              <Compass className="mx-auto mb-2 h-8 w-8 opacity-60" />
+              <p className="font-medium text-foreground">{t('aiAutonomy.empty')}</p>
+              <p className="mt-1 text-sm text-muted-foreground">{t('aiAutonomy.emptyHint')}</p>
+            </CardContent>
+          </Card>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="glass-card-grid grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {latest.map((row) => (
               <button
                 key={row.id}
                 type="button"
                 onClick={() => setSelected(row)}
-                className="rounded-lg border bg-card p-3 text-left transition-colors hover:bg-accent/40"
+                className="glass-card rounded-lg border p-3.5 text-left transition-colors hover:bg-accent/40"
               >
                 <div className="flex items-center justify-between gap-2">
                   <span className="truncate font-medium">{row.persona_name}</span>
@@ -202,79 +205,83 @@ export function AutonomyPanel(props: AutonomyPanelProps) {
         <h2 className="text-sm font-medium text-muted-foreground">
           {t('aiAutonomy.historyTitle')}
         </h2>
-        <div className="min-h-0 flex-1 overflow-auto rounded-lg border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t('aiAutonomy.table.when')}</TableHead>
-                <TableHead>{t('aiAutonomy.table.persona')}</TableHead>
-                <TableHead>{t('aiAutonomy.table.drive')}</TableHead>
-                <TableHead>{t('aiAutonomy.table.delivery')}</TableHead>
-                <TableHead>{t('aiAutonomy.table.summary')}</TableHead>
-                <TableHead className="text-right">{t('aiAutonomy.table.steps')}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading && items.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6}>
-                    <Skeleton className="h-8" />
-                  </TableCell>
-                </TableRow>
-              ) : items.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground">
-                    {t('aiAutonomy.empty')}
-                  </TableCell>
-                </TableRow>
-              ) : (
-                items.map((row) => (
-                  <TableRow
-                    key={row.id}
-                    className="cursor-pointer"
-                    onClick={() => setSelected(row)}
-                  >
-                    <TableCell className="whitespace-nowrap text-xs">
-                      {formatWhen(row.created_at)}
-                    </TableCell>
-                    <TableCell>{row.persona_name}</TableCell>
-                    <TableCell>{driveLabel(row.drive_kind)}</TableCell>
-                    <TableCell>{deliveryLabel(row.delivery_mode)}</TableCell>
-                    <TableCell className="max-w-[360px] truncate">
-                      {row.summary || t('aiAutonomy.noSummary')}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">{row.step_count}</TableCell>
+        <Card className="glass-card min-h-0 flex-1 flex flex-col">
+          <CardContent className="p-0 min-h-0 flex-1 flex flex-col">
+            <div className="min-h-0 flex-1 overflow-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t('aiAutonomy.table.when')}</TableHead>
+                    <TableHead>{t('aiAutonomy.table.persona')}</TableHead>
+                    <TableHead>{t('aiAutonomy.table.drive')}</TableHead>
+                    <TableHead>{t('aiAutonomy.table.delivery')}</TableHead>
+                    <TableHead>{t('aiAutonomy.table.summary')}</TableHead>
+                    <TableHead className="text-right">{t('aiAutonomy.table.steps')}</TableHead>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
-        {total > 0 ? (
-          <div className="flex items-center justify-between gap-2 text-sm">
-            <span className="text-muted-foreground">
-              {t('aiAutonomy.pagination.label', { from, to, total })}
-            </span>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={offset === 0 || loading}
-                onClick={() => onOffsetChange(Math.max(0, offset - PAGE_SIZE))}
-              >
-                {t('aiAutonomy.pagination.prev')}
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={offset + PAGE_SIZE >= total || loading}
-                onClick={() => onOffsetChange(offset + PAGE_SIZE)}
-              >
-                {t('aiAutonomy.pagination.next')}
-              </Button>
+                </TableHeader>
+                <TableBody>
+                  {loading && items.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6}>
+                        <Skeleton className="h-8" />
+                      </TableCell>
+                    </TableRow>
+                  ) : items.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
+                        {t('aiAutonomy.empty')}
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    items.map((row) => (
+                      <TableRow
+                        key={row.id}
+                        className="cursor-pointer hover:bg-muted/50"
+                        onClick={() => setSelected(row)}
+                      >
+                        <TableCell className="whitespace-nowrap text-xs">
+                          {formatWhen(row.created_at)}
+                        </TableCell>
+                        <TableCell>{row.persona_name}</TableCell>
+                        <TableCell>{driveLabel(row.drive_kind)}</TableCell>
+                        <TableCell>{deliveryLabel(row.delivery_mode)}</TableCell>
+                        <TableCell className="max-w-[360px] truncate">
+                          {row.summary || t('aiAutonomy.noSummary')}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">{row.step_count}</TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
             </div>
-          </div>
-        ) : null}
+            {total > 0 && (
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border/40 p-3 text-sm">
+                <span className="text-muted-foreground text-xs sm:text-sm">
+                  {t('aiAutonomy.pagination.label', { from, to, total })}
+                </span>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={offset === 0 || loading}
+                    onClick={() => onOffsetChange(Math.max(0, offset - PAGE_SIZE))}
+                  >
+                    {t('aiAutonomy.pagination.prev')}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={offset + PAGE_SIZE >= total || loading}
+                    onClick={() => onOffsetChange(offset + PAGE_SIZE)}
+                  >
+                    {t('aiAutonomy.pagination.next')}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </section>
 
       <ActivityDialog
@@ -307,7 +314,7 @@ function ActivityDialog({
 
   return (
     <Dialog open={row !== null} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
+      <DialogContent className="glass-card max-h-[85vh] overflow-y-auto sm:max-w-2xl">
         {row ? (
           <>
             <DialogHeader>

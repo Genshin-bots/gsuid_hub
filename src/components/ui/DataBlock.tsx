@@ -257,8 +257,10 @@ export function MetricHero({
   value,
   desc,
   icon: Icon,
+  extra,
   children,
 }: MetricTileProps & {
+  extra?: React.ReactNode;
   children?: React.ReactNode;
 }) {
   return (
@@ -267,7 +269,12 @@ export function MetricHero({
         <CardTitle className="truncate text-xs font-medium text-muted-foreground">
           {title}
         </CardTitle>
-        {Icon ? <Icon className="w-4 h-4 shrink-0 text-muted-foreground" /> : null}
+        {extra || Icon ? (
+          <div className="flex items-center gap-1.5">
+            {extra}
+            {Icon ? <Icon className="w-4 h-4 shrink-0 text-muted-foreground" /> : null}
+          </div>
+        ) : null}
       </CardHeader>
       <CardContent className="flex-1 px-3.5 pb-3.5 pt-0 sm:px-4 sm:pb-4 sm:pt-0">
         <p className="text-4xl font-bold leading-none tabular-nums tracking-tight">{value}</p>

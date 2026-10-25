@@ -6,8 +6,8 @@
  * 字符的候选。input[type=email] 走单独排版路径，每次按键都会扫一遍，登录邮箱框会卡死整页。
  */
 @font-face {
-  font-family: 'Twemoji Mozilla';
-  src: url('/__console_font__/TwemojiMozilla-colr.woff2') format('woff2');
+  font-family: "Twemoji Mozilla";
+  src: url("/__console_font__/TwemojiMozilla-colr.woff2") format("woff2");
   font-display: swap;
   unicode-range:
     U+200D, U+203C, U+2049, U+20E3, U+2122, U+2139,
