@@ -3,6 +3,7 @@
   "description": "View and manage AI tool functions and skill packs, filterable by category and plugin",
   "loadFailed": "Failed to load AI tools",
   "noTools": "No AI tools available",
+  "noMatches": "No tools match the current filters",
   "filterAll": "All",
   "filterByCategory": "By Category",
   "filterByPlugin": "By Plugin",
@@ -22,6 +23,9 @@
     "filterAll": "All",
     "filterIssues": "Issues",
     "filterEmpty": "Empty description"
+  },
+  "pagination": {
+    "label": "{total} tools"
   },
   "assemble": {
     "title": "Tool assemble preview",
@@ -43,7 +47,15 @@
     "plugins": "Plugins",
     "ambiguous": "Ambiguous",
     "failed": "Failed to load entity index",
-    "yes": "Yes"
+    "yes": "Yes",
+    "conflictOnly": "Conflicts only",
+    "conflictEmpty": "No ownership conflicts found — turn off “Conflicts only” to see all entries",
+    "pagination": {
+      "label": "{from}–{to} of {total}",
+      "allTotal": "{total} entries in index",
+      "prev": "Previous",
+      "next": "Next"
+    }
   },
   "personaScope": "Availability per Persona"
 }

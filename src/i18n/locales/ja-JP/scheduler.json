@@ -6,6 +6,12 @@
   "paused": "一時停止",
   "error": "異常常",
   "searchTask": "検索タスク名前または説明...",
+  "pagination": {
+    "label": "全 {total} タスク",
+    "page": "{current} / {total} ページ",
+    "prev": "前へ",
+    "next": "次へ"
+  },
   "taskList": "定時タスクリスト",
   "taskName": "タスク名前",
   "executionCycle": "実行周期",

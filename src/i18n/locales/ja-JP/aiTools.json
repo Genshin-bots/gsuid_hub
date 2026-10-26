@@ -3,6 +3,7 @@
   "description": "AIで利用できるツール関数とスキルパックを表示・管理します。分類やプラグインで絞り込めます",
   "loadFailed": "AIツールの読込に失敗",
   "noTools": "利用可能な AI ツールがありません",
+  "noMatches": "現在の絞り込み条件に一致するツールがありません",
   "filterAll": "すべて",
   "filterByCategory": "分類",
   "filterByPlugin": "プラグイン",
@@ -22,6 +23,9 @@
     "filterAll": "すべて",
     "filterIssues": "問題あり",
     "filterEmpty": "説明なし"
+  },
+  "pagination": {
+    "label": "全 {total} ツール"
   },
   "assemble": {
     "title": "ツール組立プレビュー",
@@ -43,7 +47,15 @@
     "plugins": "プラグイン",
     "ambiguous": "曖昧",
     "failed": "索引の読込に失敗",
-    "yes": "はい"
+    "yes": "はい",
+    "conflictOnly": "归属の競合のみ",
+    "conflictEmpty": "归属の競合はありません。「归属の競合のみ」をオフにすると全件を表示します",
+    "pagination": {
+      "label": "{from}–{to} 件 / 全 {total} 件",
+      "allTotal": "索引は全 {total} 件",
+      "prev": "前へ",
+      "next": "次へ"
+    }
   },
   "personaScope": "ペルソナごとの利用可否"
 }

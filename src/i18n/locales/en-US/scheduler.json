@@ -6,6 +6,12 @@
   "paused": "Paused",
   "error": "Error",
   "searchTask": "Search task name or description...",
+  "pagination": {
+    "label": "{total} tasks",
+    "page": "Page {current} / {total}",
+    "prev": "Previous",
+    "next": "Next"
+  },
   "taskList": "Scheduled Task List",
   "taskName": "Task Name",
   "executionCycle": "Execution Cycle",

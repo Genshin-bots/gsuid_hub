@@ -162,6 +162,12 @@
   "deletePresetConfirm": "Are you sure you want to delete preset \"{name}\"? This action cannot be undone.",
   "noPresets": "No theme presets saved yet",
   "noPresetsHint": "After tweaking your theme, click \"Save as Preset\" to store the current combination",
+  "pagination": {
+    "label": "{total} presets",
+    "page": "Page {current} / {total}",
+    "prev": "Previous",
+    "next": "Next"
+  },
   "refresh": "Refresh",
   "retry": "Retry",
   "loadPresetsFailed": "Failed to load theme presets",

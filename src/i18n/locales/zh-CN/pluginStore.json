@@ -14,6 +14,12 @@
   "noFunPlugins": "暂无可用娱乐插件",
   "noToolPlugins": "暂无可用工具插件",
   "noPlugins": "暂无可用插件",
+  "pagination": {
+    "label": "共 {total} 个插件",
+    "page": "第 {current} / {total} 页",
+    "prev": "上一页",
+    "next": "下一页"
+  },
   "adjustSearchKeywords": "请尝试调整搜索关键词",
   "loadFailed": "加载失败",
   "loadPluginListFailed": "无法获取插件列表",

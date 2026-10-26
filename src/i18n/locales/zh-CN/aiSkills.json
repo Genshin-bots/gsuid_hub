@@ -41,5 +41,11 @@
   "cancel": "取消",
   "updateExisting": "同名则更新",
   "updateHint": "覆盖安装已存在技能",
-  "reinstall": "从源更新"
+  "reinstall": "从源更新",
+  "pagination": {
+    "label": "共 {total} 个技能",
+    "page": "第 {current} / {total} 页",
+    "prev": "上一页",
+    "next": "下一页"
+  }
 }

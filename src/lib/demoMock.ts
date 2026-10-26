@@ -611,19 +611,28 @@ const BUILTIN_THEME_PRESETS: Array<{ name: string; config: Record<string, unknow
   },
 ];
 
-export const generateThemePresets = () => {
+export const generateThemePresets = (limit?: number, offset = 0) => {
   const now = Math.floor(Date.now() / 1000);
+  const all = BUILTIN_THEME_PRESETS.map((p, i) => ({
+    name: p.name,
+    filename: `${p.name}.json`,
+    size_bytes: 280 + i * 9,
+    mtime: now - i * 86400,
+    is_active: p.name === '纯色质感', // 默认主题即纯色质感预设 → 预设页高亮「已应用」
+    valid: true,
+    config: p.config,
+  }));
+  const total = all.length;
+  const page = limit === undefined ? all : all.slice(offset, offset + limit);
   return {
     path: 'gsuid_core/webconsole/themes_builtin',
-    presets: BUILTIN_THEME_PRESETS.map((p, i) => ({
-      name: p.name,
-      filename: `${p.name}.json`,
-      size_bytes: 280 + i * 9,
-      mtime: now - i * 86400,
-      is_active: p.name === '纯色质感', // 默认主题即纯色质感预设 → 预设页高亮「已应用」
-      valid: true,
-      config: p.config,
-    })),
+    presets: page,
+    names: all.map((p) => p.name),
+    count: total,
+    total,
+    limit: limit ?? null,
+    offset,
+    has_more: offset + page.length < total,
   };
 };
 

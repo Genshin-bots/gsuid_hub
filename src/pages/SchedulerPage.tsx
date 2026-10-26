@@ -33,10 +33,14 @@ import {
 } from 'lucide-react';
 import { format, addHours, addMinutes, addDays } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
-import { schedulerApi } from '@/lib/api';
+import { schedulerApi, type SchedulerJobsMeta } from '@/lib/api';
+import { resolveSchedulerJobsView } from '@/lib/featureUtils';
 import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { PinnedPage } from '@/components/layout/PinnedPage';
+
+/** 调度任务每页条数（服务端分页；表格行较高，20 行一页） */
+const SCHEDULER_PAGE_SIZE = 20;
 
 interface ScheduledTask {
   id: string;
@@ -56,15 +60,25 @@ export default function SchedulerPage() {
   const { t } = useLanguage();
   const [tasks, setTasks] = useState<ScheduledTask[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  // 已提交的搜索词：每次按键都打一次接口会打爆后端，防抖后再提交
+  const [appliedSearch, setAppliedSearch] = useState('');
+  const [page, setPage] = useState(1);
+  // 服务端返回的分页与统计元数据（缺失 = 旧后端，走前端兜底）
+  const [jobsMeta, setJobsMeta] = useState<SchedulerJobsMeta | null>(null);
   const [selectedTask, setSelectedTask] = useState<ScheduledTask | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   // Fetch jobs from API
   const fetchJobs = async () => {
     setIsLoading(true);
     try {
-      const jobs = await schedulerApi.getJobs();
+      const res = await schedulerApi.getJobs({
+        search: appliedSearch || undefined,
+        limit: SCHEDULER_PAGE_SIZE,
+        offset: (page - 1) * SCHEDULER_PAGE_SIZE,
+      });
+      const jobs = res.data ?? [];
       // Convert to frontend format
-      const formattedJobs = jobs.map((job: any, index: number) => ({
+      const formattedJobs = jobs.map((job) => ({
         id: job.id,
         name: job.name,
         description: job.description || job.name, // Use docstring from backend
@@ -78,6 +92,7 @@ export default function SchedulerPage() {
         avgDuration: 'N/A',
       }));
       setTasks(formattedJobs);
+      setJobsMeta(res.meta ?? null);
     } catch (error) {
       console.error('Failed to fetch scheduler jobs:', error);
       toast.error(t('scheduler.loadFailed') || 'Unable to load task scheduler list');
@@ -86,27 +101,34 @@ export default function SchedulerPage() {
     }
   };
 
+  // 搜索防抖：停手 400ms 才提交，避免每敲一个字打一次接口
   useEffect(() => {
-    fetchJobs();
-  }, []);
+    const id = setTimeout(() => {
+      setAppliedSearch(searchQuery.trim());
+      setPage(1);
+    }, 400);
+    return () => clearTimeout(id);
+  }, [searchQuery]);
 
-  const filteredTasks = useMemo(() => {
-    return tasks.filter(
-      (task) =>
-        task.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        task.description.toLowerCase().includes(searchQuery.toLowerCase()),
-    );
-  }, [tasks, searchQuery]);
+  // 切页 / 改搜索 → 重新取当前页
+  useEffect(() => {
+    void fetchJobs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [appliedSearch, page]);
 
-  const stats = useMemo(
-    () => ({
-      total: tasks.length,
-      running: tasks.filter((t) => t.status === 'running').length,
-      paused: tasks.filter((t) => t.status === 'paused').length,
-      error: tasks.filter((t) => t.status === 'error').length,
-    }),
-    [tasks],
+  const jobsView = useMemo(
+    () =>
+      resolveSchedulerJobsView(
+        { data: tasks, meta: jobsMeta ?? undefined },
+        { search: appliedSearch },
+        page,
+        SCHEDULER_PAGE_SIZE,
+      ),
+    [tasks, jobsMeta, appliedSearch, page],
   );
+
+  // 状态统计：来自服务端的**总数**，不随翻页/搜索变化
+  const stats = jobsView.stats;
 
   const toggleTaskStatus = async (taskId: string) => {
     const task = tasks.find((t) => t.id === taskId);
@@ -279,7 +301,7 @@ export default function SchedulerPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredTasks.map((task) => (
+                {jobsView.items.map((task) => (
                   <TableRow
                     key={task.id}
                     className="cursor-pointer hover:bg-muted/50"
@@ -350,6 +372,33 @@ export default function SchedulerPage() {
             </Table>
           </div>
         </CardContent>
+        {/* 分页控件 */}
+        {jobsView.totalPages > 1 && !isLoading && (
+          <div className="flex flex-wrap items-center justify-center gap-2 border-t border-border/50 p-4">
+            <span className="text-xs text-muted-foreground mr-1">
+              {t('scheduler.pagination.label', { total: jobsView.total })}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page <= 1 || isLoading}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+            >
+              {t('scheduler.pagination.prev')}
+            </Button>
+            <span className="text-xs text-muted-foreground">
+              {t('scheduler.pagination.page', { current: page, total: jobsView.totalPages })}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page >= jobsView.totalPages || isLoading}
+              onClick={() => setPage((p) => Math.min(jobsView.totalPages, p + 1))}
+            >
+              {t('scheduler.pagination.next')}
+            </Button>
+          </div>
+        )}
       </Card>
 
       {/* Task Detail Dialog */}

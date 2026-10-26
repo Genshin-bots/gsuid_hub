@@ -1105,11 +1105,31 @@ export interface StorePlugin {
   isTool?: boolean;
 }
 
+/** 插件商店各页签计数（对全量统计，不随翻页/搜索变化） */
+export interface PluginStoreCounts {
+  all: number;
+  installed: number;
+  updates: number;
+  fun: number;
+  tool: number;
+}
+
 // 插件商城列表响应类型
 export interface PluginStoreListResponse {
+  /** 当前页插件（服务端已按页签/搜索过滤并切片） */
   plugins: StorePlugin[];
   fun_plugins: string[];
   tool_plugins: string[];
+  /** 命中筛选的总条数 */
+  count?: number;
+  /** 全量插件数 */
+  total_count?: number;
+  /** 各页签计数（总数，不随翻页变化） */
+  counts?: PluginStoreCounts;
+  /** 后端分页上限；null = 不分页（返回全量） */
+  limit?: number | null;
+  offset?: number;
+  has_more?: boolean;
 }
 
 export const pluginsApi = {
@@ -1742,7 +1762,18 @@ export const embeddingConfigApi = {
 // ===================
 
 export const pluginStoreApi = {
-  getPluginList: () => api.get<PluginStoreListResponse>('/api/plugin-store/list'),
+  /** 插件商店列表（服务端按页签/搜索过滤并分页；不传 limit 时后端返回全量） */
+  getPluginList: (params?: { tab?: string; search?: string; limit?: number; offset?: number }) => {
+    const query = new URLSearchParams();
+    if (params?.tab) query.set('tab', params.tab);
+    if (params?.search) query.set('search', params.search);
+    if (params?.limit !== undefined) query.set('limit', String(params.limit));
+    if (params?.offset !== undefined) query.set('offset', String(params.offset));
+    const queryStr = query.toString();
+    return api.get<PluginStoreListResponse>(
+      `/api/plugin-store/list${queryStr ? `?${queryStr}` : ''}`,
+    );
+  },
 
   installPlugin: (pluginId: string, repoUrl?: string) =>
     api.post<{ status: number; msg: string }>(`/api/plugin-store/install/${pluginId}`, {
@@ -2040,8 +2071,38 @@ export const httpTraceApi = {
 // Scheduler APIs
 // ===================
 
+export interface SchedulerJobsMeta {
+  /** 命中搜索的任务总数 */
+  total: number;
+  /** 本页条数 */
+  count: number;
+  limit?: number | null;
+  offset: number;
+  has_more: boolean;
+  /** 各状态任务数（对全量统计，不随搜索/翻页变化） */
+  counts: { total: number; running: number; paused: number; error: number };
+}
+
+/** 任务列表响应：`data` 仍是数组，分页信息在信封的 meta 上 */
+export interface SchedulerJobsPage extends ApiResponse<SchedulerJob[]> {
+  meta?: SchedulerJobsMeta;
+}
+
 export const schedulerApi = {
-  getJobs: () => api.get<SchedulerJob[]>('/api/scheduler/jobs'),
+  /** 任务列表（服务端搜索 + 分页；不传 limit 时后端返回全量） */
+  getJobs: (params?: {
+    search?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<SchedulerJobsPage> => {
+    const query = new URLSearchParams();
+    if (params?.search) query.set('search', params.search);
+    if (params?.limit !== undefined) query.set('limit', String(params.limit));
+    if (params?.offset !== undefined) query.set('offset', String(params.offset));
+    const queryStr = query.toString();
+    // 用 getRaw 才能同时拿到 data 和 meta
+    return api.getRaw<SchedulerJob[]>(`/api/scheduler/jobs${queryStr ? `?${queryStr}` : ''}`);
+  },
 
   runJob: (jobId: string) =>
     api.post<{ status: number; msg: string }>(`/api/scheduler/jobs/${jobId}/run`),
@@ -2503,7 +2564,17 @@ export interface ThemePresetItem {
 export interface ThemePresetsData {
   /** Absolute path of the presets directory (for debugging panels). */
   path: string;
+  /** 当前页预设 */
   presets: ThemePresetItem[];
+  /** 全部预设名：分页时也要拿全，用于「同名已存在」判定 */
+  names?: string[];
+  /** 预设总数（不是本页条数） */
+  count?: number;
+  total?: number;
+  /** 后端分页上限；null = 不分页（返回全量） */
+  limit?: number | null;
+  offset?: number;
+  has_more?: boolean;
 }
 
 export interface SavePresetPayload {
@@ -2531,7 +2602,13 @@ export const themeApi = {
     api.post<{ status: number; msg: string }>('/api/theme/config', config),
 
   // 主题预设：列表（公开）/ 保存 / 应用 / 删除
-  getPresets: () => api.getRaw<ThemePresetsData>('/api/theme/presets'),
+  getPresets: (params?: { limit?: number; offset?: number }) => {
+    const query = new URLSearchParams();
+    if (params?.limit !== undefined) query.set('limit', String(params.limit));
+    if (params?.offset !== undefined) query.set('offset', String(params.offset));
+    const queryStr = query.toString();
+    return api.getRaw<ThemePresetsData>(`/api/theme/presets${queryStr ? `?${queryStr}` : ''}`);
+  },
 
   // 用 postRaw 取回原始 {status,msg,data}，以便区分「同名需覆盖」(status=1) 等非异常分支
   savePreset: (payload: SavePresetPayload) =>
@@ -2979,8 +3056,16 @@ export interface AISkillDetail extends AISkill {
 }
 
 export interface AISkillsListResponse {
+  /** 当前页技能（服务端已切片） */
   skills: AISkill[];
+  /** 技能总数（不是本页条数） */
   count: number;
+  /** 同 count，显式别名；旧后端不返回 */
+  total?: number;
+  /** 后端分页上限；null = 不分页（返回全量） */
+  limit?: number | null;
+  offset?: number;
+  has_more?: boolean;
 }
 
 // ===================
@@ -2999,7 +3084,13 @@ export interface AISkillCloneResponse {
 
 export const aiSkillsApi = {
   // 获取 AI 技能列�?
-  getSkillsList: () => api.get<AISkillsListResponse>('/api/ai/skills/list'),
+  getSkillsList: (params?: { limit?: number; offset?: number }) => {
+    const query = new URLSearchParams();
+    if (params?.limit !== undefined) query.set('limit', String(params.limit));
+    if (params?.offset !== undefined) query.set('offset', String(params.offset));
+    const queryStr = query.toString();
+    return api.get<AISkillsListResponse>(`/api/ai/skills/list${queryStr ? `?${queryStr}` : ''}`);
+  },
 
   // 获取指定技能详�?
   getSkillDetail: (skillName: string) =>
@@ -3028,14 +3119,32 @@ export const aiSkillsApi = {
     }),
 };
 
+/** 工具诊断概览（全量工具的健康度，不受筛选影响） */
+export interface ToolDiagnosticCounts {
+  total: number;
+  empty_description: number;
+  meta: number;
+  ok: number;
+}
+
 export interface AIToolsListResponse {
+  /** 当前页工具（服务端已按筛选条件过滤并切片） */
   tools: AITool[];
   by_category: Record<string, AITool[]>;
   by_plugin: Record<string, AITool[]>;
   categories: string[];
   plugins: string[];
+  /** 命中筛选的工具总数（不是本页条数） */
   count: number;
   total_count: number;
+  /** 按分类分组的总数；下拉里的数字，不随分页变化 */
+  category_counts?: Record<string, number>;
+  /** 按插件分组的总数；下拉里的数字，不随分页变化 */
+  plugin_counts?: Record<string, number>;
+  diagnostic_counts?: ToolDiagnosticCounts;
+  limit?: number | null;
+  offset?: number;
+  has_more?: boolean;
 }
 
 export interface AIToolCategoriesResponse {
@@ -3053,17 +3162,47 @@ export interface AIToolAssemblePreviewResponse {
   max_extra: number;
 }
 
+export interface AIEntityIndexEntry {
+  surface: string;
+  plugins: string[];
+  /** 归属歧义：同一 surface 被多个插件注册，框架不会据此路由 */
+  ambiguous: boolean;
+}
+
 export interface AIEntityIndexResponse {
+  /** 过滤后的总条数 */
   count: number;
-  entries: Array<{ surface: string; plugins: string[]; ambiguous: boolean }>;
+  /** 同 count，显式别名；旧后端不返回 */
+  total?: number;
+  /** 未过滤的索引总量；旧后端不返回 */
+  total_all?: number;
+  /** 当前页条目；旧后端不返回（只给 entries 全量） */
+  items?: AIEntityIndexEntry[];
+  /** 兼容旧后端：与 items 同内容 */
+  entries?: AIEntityIndexEntry[];
+  /** 后端分页上限；null = 不分页（返回全量） */
+  limit?: number | null;
+  offset?: number;
+  has_more?: boolean;
 }
 
 export const aiToolsApi = {
-  // 获取 AI 工具列表
-  getToolsList: (params?: { category?: string; plugin?: string }) => {
+  // 获取 AI 工具列表（服务端筛选 + 分页；不传 limit 时后端返回全量）
+  getToolsList: (params?: {
+    category?: string;
+    plugin?: string;
+    search?: string;
+    diagnostic?: 'all' | 'issues' | 'empty_description';
+    limit?: number;
+    offset?: number;
+  }) => {
     const query = new URLSearchParams();
     if (params?.category) query.set('category', params.category);
     if (params?.plugin) query.set('plugin', params.plugin);
+    if (params?.search) query.set('search', params.search);
+    if (params?.diagnostic) query.set('diagnostic', params.diagnostic);
+    if (params?.limit !== undefined) query.set('limit', String(params.limit));
+    if (params?.offset !== undefined) query.set('offset', String(params.offset));
     const queryStr = query.toString();
     return api.get<AIToolsListResponse>(`/api/ai/tools/list${queryStr ? `?${queryStr}` : ''}`);
   },
@@ -3079,8 +3218,22 @@ export const aiToolsApi = {
   assemblePreview: (query: string) =>
     api.post<AIToolAssemblePreviewResponse>('/api/ai/tools/assemble_preview', { query }),
 
-  /** 导出实体身份索引（L0 路由） */
-  getEntityIndex: () => api.get<AIEntityIndexResponse>('/api/ai/entity_index'),
+  /** 导出实体身份索引（L0 路由）。不传 limit 时后端返回全量。 */
+  getEntityIndex: (params?: {
+    search?: string;
+    /** 只看归属歧义（多插件冲突）的条目 */
+    ambiguousOnly?: boolean;
+    limit?: number;
+    offset?: number;
+  }) => {
+    const query = new URLSearchParams();
+    if (params?.search) query.set('search', params.search);
+    if (params?.ambiguousOnly) query.set('ambiguous_only', 'true');
+    if (params?.limit !== undefined) query.set('limit', String(params.limit));
+    if (params?.offset !== undefined) query.set('offset', String(params.offset));
+    const queryStr = query.toString();
+    return api.get<AIEntityIndexResponse>(`/api/ai/entity_index${queryStr ? `?${queryStr}` : ''}`);
+  },
 };
 
 // ===================

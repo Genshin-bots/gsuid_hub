@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useLayoutEffect, useRef } from 'react';
+import { useState, useMemo, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import {
   Card,
   CardContent,
@@ -34,10 +34,12 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import {
   pluginStoreApi,
   type StorePlugin,
+  type PluginStoreListResponse,
   gitMirrorApi,
   type GitPluginInfo,
   getApiErrorMessage,
 } from '@/lib/api';
+import { resolvePluginStoreView } from '@/lib/featureUtils';
 import { Skeleton } from '@/components/ui/skeleton';
 import GitMirrorDialog, { getMirrorBadge } from '@/components/GitMirrorDialog';
 import {
@@ -65,6 +67,9 @@ const PLUGIN_CACHE_KEY = 'pluginStore_cache';
 const GIT_MIRROR_CACHE_KEY = 'pluginStore_gitMirror_cache';
 const CACHE_TTL = 24 * 60 * 60 * 1000; // 24小时
 
+/** 插件商店每页条数（服务端分页） */
+const PLUGIN_PAGE_SIZE = 32;
+
 interface CacheEntry<T> {
   data: T;
   timestamp: number;
@@ -91,6 +96,20 @@ function setCachedData<T>(key: string, data: T): void {
     localStorage.setItem(key, JSON.stringify(entry));
   } catch {
     // localStorage 满或其他错误，静默忽略
+  }
+}
+
+/** 清掉所有插件商店分页缓存。缓存键带页签/页码后缀，逐个 remove 覆盖不到。 */
+function clearPluginCache(): void {
+  try {
+    const keys: string[] = [];
+    for (let i = 0; i < localStorage.length; i += 1) {
+      const key = localStorage.key(i);
+      if (key?.startsWith(PLUGIN_CACHE_KEY)) keys.push(key);
+    }
+    for (const key of keys) localStorage.removeItem(key);
+  } catch {
+    // localStorage 不可用时静默忽略
   }
 }
 
@@ -228,8 +247,12 @@ function storeTabCount(text: string, alert = false) {
 export default function PluginStorePage() {
   const { t } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
+  // 已提交的搜索词：每次按键都打一次接口会打爆后端，防抖后再提交
+  const [appliedSearch, setAppliedSearch] = useState('');
   const [activeTab, setActiveTab] = useState('all');
-  const [plugins, setPlugins] = useState<StorePlugin[]>([]);
+  // 服务端返回的原始分页结果（页 + 计数），视图由 resolvePluginStoreView 推导
+  const [storePayload, setStorePayload] = useState<PluginStoreListResponse | null>(null);
+  const [page, setPage] = useState(1);
   const [funPlugins, setFunPlugins] = useState<string[]>([]);
   const [toolPlugins, setToolPlugins] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -250,9 +273,12 @@ export default function PluginStorePage() {
   const [installByUrlLoading, setInstallByUrlLoading] = useState(false);
 
   // 判断插件是否为"停止维护"
-  const isDeprecated = (plugin: StorePlugin) => {
-    return plugin.type === 'danger' && plugin.content === t('pluginStore.deprecated');
-  };
+  // 用 useCallback 固定引用：visiblePlugins 的 memo 依赖它，否则每次渲染都会重新洗牌
+  const isDeprecated = useCallback(
+    (plugin: StorePlugin) =>
+      plugin.type === 'danger' && plugin.content === t('pluginStore.deprecated'),
+    [t],
+  );
 
   // 使用 ref 避免重建 components 对象时造成不必要的重渲染，
   // 同时让 img 组件可以访问当前打开的插件与镜像信息
@@ -344,24 +370,27 @@ export default function PluginStorePage() {
     [],
   );
 
-  // Fetch plugin list（支持缓存）
+  /** 把接口返回的一页数据落到 state：标记娱乐/工具分类，保留原始分页结果供视图推导。 */
+  const applyPluginPayload = (data: PluginStoreListResponse) => {
+    const pluginsWithCategory = data.plugins.map((plugin) => ({
+      ...plugin,
+      isFun: data.fun_plugins?.includes(plugin.id) || false,
+      isTool: data.tool_plugins?.includes(plugin.id) || false,
+    }));
+    setStorePayload({ ...data, plugins: pluginsWithCategory });
+    setFunPlugins(data.fun_plugins || []);
+    setToolPlugins(data.tool_plugins || []);
+  };
+
+  // Fetch plugin list（服务端按页签/搜索过滤并分页，支持缓存）
   const fetchPlugins = async (forceRefresh = false) => {
+    // 缓存键要带页签/页码/搜索词，否则翻页会命中别的页的缓存
+    const cacheKey = `${PLUGIN_CACHE_KEY}:${activeTab}:${page}:${appliedSearch}`;
     // 尝试从缓存加载
     if (!forceRefresh) {
-      const cached = getCachedData<{
-        plugins: StorePlugin[];
-        fun_plugins: string[];
-        tool_plugins: string[];
-      }>(PLUGIN_CACHE_KEY);
+      const cached = getCachedData<PluginStoreListResponse>(cacheKey);
       if (cached) {
-        const pluginsWithCategory = cached.plugins.map((plugin) => ({
-          ...plugin,
-          isFun: cached.fun_plugins?.includes(plugin.id) || false,
-          isTool: cached.tool_plugins?.includes(plugin.id) || false,
-        }));
-        setPlugins(shufflePlugins(pluginsWithCategory));
-        setFunPlugins(cached.fun_plugins || []);
-        setToolPlugins(cached.tool_plugins || []);
+        applyPluginPayload(cached);
         setIsLoading(false);
         return;
       }
@@ -369,18 +398,15 @@ export default function PluginStorePage() {
 
     try {
       setIsLoading(true);
-      const data = await pluginStoreApi.getPluginList();
-      // 处理返回数据，标记娱乐插件和工具插件
-      const pluginsWithCategory = data.plugins.map((plugin) => ({
-        ...plugin,
-        isFun: data.fun_plugins?.includes(plugin.id) || false,
-        isTool: data.tool_plugins?.includes(plugin.id) || false,
-      }));
-      setPlugins(shufflePlugins(pluginsWithCategory));
-      setFunPlugins(data.fun_plugins || []);
-      setToolPlugins(data.tool_plugins || []);
+      const data = await pluginStoreApi.getPluginList({
+        tab: activeTab,
+        search: appliedSearch || undefined,
+        limit: PLUGIN_PAGE_SIZE,
+        offset: (page - 1) * PLUGIN_PAGE_SIZE,
+      });
+      applyPluginPayload(data);
       // 写入缓存
-      setCachedData(PLUGIN_CACHE_KEY, data);
+      setCachedData(cacheKey, data);
     } catch (error) {
       console.error('Failed to fetch plugins:', error);
       toast.error(t('pluginStore.loadPluginListFailed'));
@@ -415,10 +441,36 @@ export default function PluginStorePage() {
     }
   };
 
+  // 搜索防抖：每次按键都打一次接口会打爆后端，停手 400ms 才提交
+  useEffect(() => {
+    const id = setTimeout(() => {
+      setAppliedSearch(searchQuery.trim());
+      setPage(1);
+    }, 400);
+    return () => clearTimeout(id);
+  }, [searchQuery]);
+
+  // 切页签 / 翻页 / 改搜索 → 重新取当前页
   useEffect(() => {
     fetchPlugins();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, page, appliedSearch]);
+
+  useEffect(() => {
     fetchGitMirrorInfo();
   }, []);
+
+  /** 就地更新当前页某个插件的字段，避免重新请求整页。 */
+  const patchPlugin = (pluginId: string, patch: Partial<StorePlugin>) => {
+    setStorePayload((prev) =>
+      prev
+        ? {
+            ...prev,
+            plugins: prev.plugins.map((p) => (p.id === pluginId ? { ...p, ...patch } : p)),
+          }
+        : prev,
+    );
+  };
 
   // Handle install plugin - 直接更新本地状态，不重新请求 API
   const handleInstall = async (pluginId: string) => {
@@ -427,11 +479,9 @@ export default function PluginStorePage() {
       await pluginStoreApi.installPlugin(pluginId);
       toast.success(t('pluginStore.installSuccess'));
       // 直接更新本地状态，避免触发后端重新加载
-      setPlugins((prev) =>
-        prev.map((p) => (p.id === pluginId ? { ...p, installed: true, hasUpdate: false } : p)),
-      );
+      patchPlugin(pluginId, { installed: true, hasUpdate: false });
       // 清除缓存，确保下次进入页面数据一致
-      localStorage.removeItem(PLUGIN_CACHE_KEY);
+      clearPluginCache();
       localStorage.removeItem(GIT_MIRROR_CACHE_KEY);
     } catch (error) {
       toast.error(t('pluginStore.installError'));
@@ -447,9 +497,9 @@ export default function PluginStorePage() {
       await pluginStoreApi.updatePlugin(pluginId);
       toast.success(t('pluginStore.updateSuccess'));
       // 直接更新本地状态，避免触发后端重新加载
-      setPlugins((prev) => prev.map((p) => (p.id === pluginId ? { ...p, hasUpdate: false } : p)));
+      patchPlugin(pluginId, { hasUpdate: false });
       // 清除缓存，确保下次进入页面数据一致
-      localStorage.removeItem(PLUGIN_CACHE_KEY);
+      clearPluginCache();
     } catch (error) {
       toast.error(t('pluginStore.updateError'));
     } finally {
@@ -463,7 +513,7 @@ export default function PluginStorePage() {
       confirm(
         t('pluginStore.uninstallConfirm') +
           ' "' +
-          plugins.find((p) => p.id === pluginId)?.name +
+          visiblePlugins.find((p) => p.id === pluginId)?.name +
           '" ' +
           t('pluginStore.confirmUninstall'),
       )
@@ -473,11 +523,9 @@ export default function PluginStorePage() {
         await pluginStoreApi.uninstallPlugin(pluginId);
         toast.success(t('pluginStore.uninstallSuccess'));
         // 直接更新本地状态，避免触发后端重新加载
-        setPlugins((prev) =>
-          prev.map((p) => (p.id === pluginId ? { ...p, installed: false, hasUpdate: false } : p)),
-        );
+        patchPlugin(pluginId, { installed: false, hasUpdate: false });
         // 清除缓存，确保下次进入页面数据一致
-        localStorage.removeItem(PLUGIN_CACHE_KEY);
+        clearPluginCache();
         localStorage.removeItem(GIT_MIRROR_CACHE_KEY);
       } catch (error) {
         toast.error(t('pluginStore.uninstallError'));
@@ -540,57 +588,29 @@ export default function PluginStorePage() {
     }
   };
 
-  // Filter plugins based on tab and search
-  const filteredPlugins = useMemo(() => {
-    let filtered = [...plugins];
+  // 列表视图：服务端已按页签/搜索过滤并分页（旧后端走前端兜底）
+  const storeView = useMemo(
+    () =>
+      resolvePluginStoreView(
+        storePayload,
+        { tab: activeTab, search: appliedSearch },
+        page,
+        PLUGIN_PAGE_SIZE,
+        t('pluginStore.deprecated'),
+      ),
+    [storePayload, activeTab, appliedSearch, page, t],
+  );
 
-    // Filter by tab
-    if (activeTab === 'installed') {
-      filtered = filtered.filter((p) => p.installed);
-    } else if (activeTab === 'updates') {
-      filtered = filtered.filter((p) => p.hasUpdate);
-    } else if (activeTab === 'fun') {
-      filtered = filtered.filter((p) => p.isFun);
-    } else if (activeTab === 'tool') {
-      filtered = filtered.filter((p) => p.isTool);
-    }
+  // 展示用洗牌；洗牌后仍要把「停止维护」的压到本页末尾
+  const visiblePlugins = useMemo(() => {
+    const shuffled = shufflePlugins(storeView.items);
+    shuffled.sort((a, b) => Number(isDeprecated(a)) - Number(isDeprecated(b)));
+    return shuffled;
+  }, [storeView.items, isDeprecated]);
 
-    // Filter by search
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(
-        (p) =>
-          p.id.toLowerCase().includes(query) ||
-          p.description.toLowerCase().includes(query) ||
-          p.tags.some((tag) => tag.toLowerCase().includes(query)),
-      );
-    }
-
-    // Sort: deprecated plugins at the bottom
-    filtered.sort((a, b) => {
-      const aDeprecated = isDeprecated(a);
-      const bDeprecated = isDeprecated(b);
-      if (aDeprecated && !bDeprecated) return 1;
-      if (!aDeprecated && bDeprecated) return -1;
-      return 0;
-    });
-
-    return filtered;
-  }, [plugins, activeTab, searchQuery]);
-
-  const storeStats = useMemo(() => {
-    let installed = 0;
-    let updates = 0;
-    let fun = 0;
-    let tool = 0;
-    for (const plugin of plugins) {
-      if (plugin.installed) installed += 1;
-      if (plugin.hasUpdate) updates += 1;
-      if (plugin.isFun) fun += 1;
-      if (plugin.isTool) tool += 1;
-    }
-    return { total: plugins.length, installed, updates, fun, tool };
-  }, [plugins]);
+  // 页签徽标数字：来自服务端的**总数**，不随翻页/搜索变化
+  const storeStats = storeView.counts;
+  const storeTotalPages = storeView.totalPages;
 
   // Build README URLs based on mirror type
   const buildReadmeUrls = (plugin: StorePlugin): string[] => {
@@ -675,7 +695,7 @@ export default function PluginStorePage() {
       value: 'all',
       label: t('pluginStore.allPlugins'),
       icon: <Grid3x3 className="w-4 h-4" />,
-      badge: storeTabCount(countText(storeStats.total)),
+      badge: storeTabCount(countText(storeStats.all)),
     },
     {
       value: 'installed',
@@ -722,12 +742,17 @@ export default function PluginStorePage() {
             <TabButtonGroup
               options={tabOptions}
               value={activeTab}
-              onValueChange={setActiveTab}
+              onValueChange={(v) => {
+                setActiveTab(v);
+                setPage(1);
+              }}
               className="shrink-0"
               collapseOnMobile
             />
           </div>
-          <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-3 sm:flex-nowrap">
+          {/* 右侧搜索 + 操作按钮：不加 sm:flex-nowrap——空间不够时换行，
+              否则 justify-end 的溢出会盖住左边的页签（娱乐/工具点不到） */}
+          <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-3">
             <div className="relative min-w-[12rem] flex-1 sm:w-64 sm:flex-none lg:w-72">
               <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -792,7 +817,7 @@ export default function PluginStorePage() {
             </Card>
           ))}
         </div>
-      ) : filteredPlugins.length === 0 ? (
+      ) : visiblePlugins.length === 0 ? (
         <Card className="glass-card">
           <CardContent className="!py-12 text-center text-muted-foreground">
             <Package className="w-12 h-12 mx-auto mb-4 opacity-50" />
@@ -814,7 +839,7 @@ export default function PluginStorePage() {
         </Card>
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {filteredPlugins.map((plugin) => {
+          {visiblePlugins.map((plugin) => {
             const deprecated = isDeprecated(plugin);
             const pluginLink = plugin.link || `https://github.com/${plugin.id}`;
 
@@ -1034,6 +1059,34 @@ export default function PluginStorePage() {
               </Card>
             );
           })}
+        </div>
+      )}
+
+      {/* 分页控件 */}
+      {storeTotalPages > 1 && !isLoading && (
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <span className="text-xs text-muted-foreground mr-1">
+            {t('pluginStore.pagination.label', { total: storeView.total })}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page <= 1 || isLoading}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+          >
+            {t('pluginStore.pagination.prev')}
+          </Button>
+          <span className="text-xs text-muted-foreground">
+            {t('pluginStore.pagination.page', { current: page, total: storeTotalPages })}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page >= storeTotalPages || isLoading}
+            onClick={() => setPage((p) => Math.min(storeTotalPages, p + 1))}
+          >
+            {t('pluginStore.pagination.next')}
+          </Button>
         </div>
       )}
 

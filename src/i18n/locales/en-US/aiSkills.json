@@ -37,5 +37,11 @@
   "markdown": "Markdown Content",
   "updateExisting": "Update if exists",
   "updateHint": "Overwrite existing skill",
-  "reinstall": "Update from source"
+  "reinstall": "Update from source",
+  "pagination": {
+    "label": "{total} skills",
+    "page": "Page {current} / {total}",
+    "prev": "Previous",
+    "next": "Next"
+  }
 }

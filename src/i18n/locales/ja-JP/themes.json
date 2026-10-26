@@ -162,6 +162,12 @@
   "deletePresetConfirm": "プリセット「{name}」を削除しますか？この操作は取り消せません。",
   "noPresets": "保存されたテーマプリセットはありません",
   "noPresetsHint": "テーマを調整したら「プリセットとして保存」で現在の組み合わせを保存できます",
+  "pagination": {
+    "label": "全 {total} プリセット",
+    "page": "{current} / {total} ページ",
+    "prev": "前へ",
+    "next": "次へ"
+  },
   "refresh": "更新",
   "retry": "再試行",
   "loadPresetsFailed": "テーマプリセットの読み込みに失敗しました",

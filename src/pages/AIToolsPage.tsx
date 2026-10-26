@@ -7,6 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import {
   TabButtonGroup,
   tabToolbarShellControlClass,
@@ -44,7 +45,14 @@ import {
   type AIToolAssemblePreviewResponse,
   type AIEntityIndexResponse,
 } from '@/lib/api';
-import { countToolDiagnostics, diagnoseTool, filterToolsByDiagnostic } from '@/lib/featureUtils';
+import {
+  diagnoseTool,
+  EMPTY_TOOLS_VIEW,
+  entityIndexPageRange,
+  resolveEntityIndexEntries,
+  resolveToolsListView,
+  type ToolsListView,
+} from '@/lib/featureUtils';
 import { PersonaToolScopePanel } from '@/components/persona/PersonaToolScopePanel';
 import SkillsPanel from '@/pages/AITools/SkillsPanel';
 import { toast } from 'sonner';
@@ -170,6 +178,9 @@ function parseToolDescription(tool: AITool, language: string): ParsedTool {
 // 每页展示的工具数量
 const PAGE_SIZE = 100;
 
+// 实体索引每页条数（服务端分页）
+const ENTITY_PAGE_SIZE = 50;
+
 // 生成分页页码列表:始终包含首尾页、当前页及其相邻页,其余以省略号折叠
 function getPageNumbers(current: number, total: number): (number | 'ellipsis')[] {
   if (total <= 7) {
@@ -205,6 +216,7 @@ export default function AIToolsPage() {
 
   // 状态
   const [tools, setTools] = useState<AITool[]>([]);
+  const [toolView, setToolView] = useState<ToolsListView>(EMPTY_TOOLS_VIEW);
   const [categories, setCategories] = useState<string[]>([]);
   const [plugins, setPlugins] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -216,6 +228,8 @@ export default function AIToolsPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedPlugin, setSelectedPlugin] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  // 已提交的搜索词：输入框每次按键都发请求会打爆后端，防抖后再提交
+  const [appliedSearch, setAppliedSearch] = useState<string>('');
   const [diagnosticFilter, setDiagnosticFilter] = useState<'all' | 'issues' | 'empty_description'>(
     'all',
   );
@@ -231,10 +245,18 @@ export default function AIToolsPage() {
   const [assembleLoading, setAssembleLoading] = useState(false);
   const [assembleResult, setAssembleResult] = useState<AIToolAssemblePreviewResponse | null>(null);
 
-  // Entity index
+  // Entity index（服务端分页：搜索 / 冲突筛选 / 翻页都交给后端）
   const [entityIndex, setEntityIndex] = useState<AIEntityIndexResponse | null>(null);
   const [entityLoading, setEntityLoading] = useState(false);
+  // 输入框即时值与已提交值分开：翻页必须复用上次提交的 query（§1.10）
   const [entitySearch, setEntitySearch] = useState('');
+  const [entityFilter, setEntityFilter] = useState<{ search: string; conflictOnly: boolean }>({
+    search: '',
+    // 默认只看归属冲突（同一 surface 被多个插件注册）
+    conflictOnly: true,
+  });
+  const [entityOffset, setEntityOffset] = useState(0);
+  const [entityRefreshKey, setEntityRefreshKey] = useState(0);
 
   // 获取所有插件列表（core 放在最后）
   const pluginList = useMemo(() => {
@@ -259,61 +281,40 @@ export default function AIToolsPage() {
     return ['all', ...sortedCategories];
   }, [categories]);
 
-  // 搜索匹配函数
-  const matchesSearch = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
-    return (tool: AITool) =>
-      !query ||
-      tool.name.toLowerCase().includes(query) ||
-      (tool.description ?? '').toLowerCase().includes(query);
+  // 搜索防抖：输入框每次按键都打一次接口会打爆后端，停手 400ms 才提交
+  useEffect(() => {
+    const id = setTimeout(() => {
+      setAppliedSearch(searchQuery.trim());
+      setPage(1);
+    }, 400);
+    return () => clearTimeout(id);
   }, [searchQuery]);
 
-  const diagnosticCounts = useMemo(() => countToolDiagnostics(tools), [tools]);
-
-  // 按筛选条件过滤后的工具列表
-  const filteredTools = useMemo((): AITool[] => {
-    const base = tools.filter(
-      (tool) =>
-        (selectedCategory === 'all' || tool.category === selectedCategory) &&
-        (selectedPlugin === 'all' || tool.plugin === selectedPlugin) &&
-        matchesSearch(tool),
-    );
-    return filterToolsByDiagnostic(base, diagnosticFilter) as AITool[];
-  }, [tools, selectedCategory, selectedPlugin, matchesSearch, diagnosticFilter]);
-
-  // 分类计数:统计在「当前所选插件 + 搜索」条件下,每个分类还有多少工具
-  const categoryCounts = useMemo(() => {
-    const counts: Record<string, number> = { all: 0 };
-    for (const tool of tools) {
-      if (selectedPlugin !== 'all' && tool.plugin !== selectedPlugin) continue;
-      if (!matchesSearch(tool)) continue;
-      counts[tool.category] = (counts[tool.category] || 0) + 1;
-      counts.all += 1;
-    }
-    return counts;
-  }, [tools, selectedPlugin, matchesSearch]);
-
-  // 插件计数:统计在「当前所选分类 + 搜索」条件下,每个插件还有多少工具
-  const pluginCounts = useMemo(() => {
-    const counts: Record<string, number> = { all: 0 };
-    for (const tool of tools) {
-      if (selectedCategory !== 'all' && tool.category !== selectedCategory) continue;
-      if (!matchesSearch(tool)) continue;
-      counts[tool.plugin] = (counts[tool.plugin] || 0) + 1;
-      counts.all += 1;
-    }
-    return counts;
-  }, [tools, selectedCategory, matchesSearch]);
-
-  // 解析后的工具列表
-  const parsedTools = useMemo(() => {
-    return filteredTools.map((tool) => parseToolDescription(tool, language));
-  }, [filteredTools, language]);
-
-  // 分页:筛选条件变化时回到第 1 页
-  useEffect(() => {
+  // 筛选变化 → 回到第 1 页（否则停在第 3 页时改筛选会看到空列表）
+  const handleCategoryChange = useCallback((value: string) => {
+    setSelectedCategory(value);
     setPage(1);
-  }, [selectedCategory, selectedPlugin, searchQuery, diagnosticFilter]);
+  }, []);
+
+  const handlePluginChange = useCallback((value: string) => {
+    setSelectedPlugin(value);
+    setPage(1);
+  }, []);
+
+  const handleDiagnosticChange = useCallback((value: 'all' | 'issues' | 'empty_description') => {
+    setDiagnosticFilter(value);
+    setPage(1);
+  }, []);
+
+  // 解析后的工具列表（当前页）
+  const parsedTools = useMemo(() => {
+    return tools.map((tool) => parseToolDescription(tool, language));
+  }, [tools, language]);
+
+  // 分类 / 插件 / 诊断计数：来自后端的**总数**，不随翻页变化
+  const categoryCounts = toolView.categoryCounts;
+  const pluginCounts = toolView.pluginCounts;
+  const diagnosticCounts = toolView.diagnosticCounts;
 
   const runAssemblePreview = useCallback(async () => {
     const q = assembleQuery.trim();
@@ -336,7 +337,12 @@ export default function AIToolsPage() {
   const loadEntityIndex = useCallback(async () => {
     setEntityLoading(true);
     try {
-      const data = await aiToolsApi.getEntityIndex();
+      const data = await aiToolsApi.getEntityIndex({
+        search: entityFilter.search || undefined,
+        ambiguousOnly: entityFilter.conflictOnly,
+        limit: ENTITY_PAGE_SIZE,
+        offset: entityOffset,
+      });
       setEntityIndex(data);
     } catch (err) {
       toast.error(getApiErrorMessage(err, t('aiTools.entityIndex.failed')));
@@ -344,52 +350,85 @@ export default function AIToolsPage() {
     } finally {
       setEntityLoading(false);
     }
-  }, [t]);
+  }, [entityFilter, entityOffset, t]);
 
+  // 切到实体页签 / 改筛选 / 翻页 / 点刷新都重新拉。
+  // 依赖里不放 entityIndex，否则加载完写回 state 又会触发一次。
   useEffect(() => {
-    if (pageTab === 'entity' && !entityIndex && !entityLoading) {
-      void loadEntityIndex();
-    }
-  }, [pageTab, entityIndex, entityLoading, loadEntityIndex]);
+    if (pageTab !== 'entity') return;
+    void loadEntityIndex();
+  }, [pageTab, entityRefreshKey, loadEntityIndex]);
 
-  const filteredEntities = useMemo(() => {
-    const entries = entityIndex?.entries ?? [];
-    const q = entitySearch.trim().toLowerCase();
-    if (!q) return entries;
-    return entries.filter(
-      (e) =>
-        e.surface.toLowerCase().includes(q) || e.plugins.some((p) => p.toLowerCase().includes(q)),
-    );
-  }, [entityIndex, entitySearch]);
+  // 提交搜索：把输入框的值落到已提交 filter 并回到第一页
+  const submitEntitySearch = useCallback(() => {
+    setEntityFilter((f) => ({ ...f, search: entitySearch.trim() }));
+    setEntityOffset(0);
+    setEntityRefreshKey((k) => k + 1);
+  }, [entitySearch]);
 
-  const totalPages = Math.max(1, Math.ceil(parsedTools.length / PAGE_SIZE));
+  // 冲突筛选变化 → 回到第一页重查
+  const handleEntityConflictOnlyChange = useCallback((checked: boolean) => {
+    setEntityFilter((f) => ({ ...f, conflictOnly: checked }));
+    setEntityOffset(0);
+  }, []);
+
+  const entityEntries = useMemo(
+    () => resolveEntityIndexEntries(entityIndex, entityFilter),
+    [entityIndex, entityFilter],
+  );
+
+  const entityTotal = entityIndex?.total ?? entityIndex?.count ?? 0;
+  const entityTotalAll = entityIndex?.total_all ?? entityIndex?.count ?? 0;
+  const entityCanPrev = entityOffset > 0;
+  // 旧后端不认分页（没有 items），此时不提供翻页
+  const entityCanNext =
+    entityIndex?.items !== undefined && entityOffset + ENTITY_PAGE_SIZE < entityTotal;
+  const entityRange = entityIndexPageRange(entityOffset, entityEntries.length, entityTotal);
+
+  const totalPages = toolView.totalPages;
   const currentPage = Math.min(page, totalPages);
-  const pagedTools = useMemo(() => {
-    const start = (currentPage - 1) * PAGE_SIZE;
-    return parsedTools.slice(start, start + PAGE_SIZE);
-  }, [parsedTools, currentPage]);
 
-  // 加载工具列表
+  // 加载工具列表：筛选与分页都在服务端做，前端只负责传条件和渲染
+  const fetchTools = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const data = await aiToolsApi.getToolsList({
+        category: selectedCategory === 'all' ? undefined : selectedCategory,
+        plugin: selectedPlugin === 'all' ? undefined : selectedPlugin,
+        search: appliedSearch || undefined,
+        diagnostic: diagnosticFilter,
+        limit: PAGE_SIZE,
+        offset: (currentPage - 1) * PAGE_SIZE,
+      });
+      setTools(data.tools || []);
+      setCategories(data.categories || []);
+      setPlugins(data.plugins || []);
+      setToolView(
+        resolveToolsListView(
+          data,
+          {
+            category: selectedCategory,
+            plugin: selectedPlugin,
+            search: appliedSearch,
+            diagnostic: diagnosticFilter,
+          },
+          currentPage,
+          PAGE_SIZE,
+        ),
+      );
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : t('aiTools.loadFailed');
+      setError(errorMsg);
+      toast.error(errorMsg);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [selectedCategory, selectedPlugin, appliedSearch, diagnosticFilter, currentPage, t]);
+
   useEffect(() => {
-    const fetchTools = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-        const data = await aiToolsApi.getToolsList();
-        setTools(data.tools || []);
-        setCategories(data.categories || []);
-        setPlugins(data.plugins || []);
-      } catch (err) {
-        const errorMsg = err instanceof Error ? err.message : t('aiTools.loadFailed');
-        setError(errorMsg);
-        toast.error(errorMsg);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchTools();
-  }, [t]);
+    void fetchTools();
+  }, [fetchTools]);
 
   const handleToolClick = (tool: ParsedTool) => {
     setSelectedTool(tool);
@@ -458,7 +497,7 @@ export default function AIToolsPage() {
               <div className="min-w-0 flex-1">
                 <Select
                   value={diagnosticFilter}
-                  onValueChange={(v) => setDiagnosticFilter(v as typeof diagnosticFilter)}
+                  onValueChange={(v) => handleDiagnosticChange(v as typeof diagnosticFilter)}
                 >
                   <SelectTrigger
                     className={cn(
@@ -482,7 +521,7 @@ export default function AIToolsPage() {
               </div>
 
               <div className="min-w-0 flex-1">
-                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                <Select value={selectedCategory} onValueChange={handleCategoryChange}>
                   <SelectTrigger
                     className={cn(
                       tabToolbarShellControlClass,
@@ -517,7 +556,7 @@ export default function AIToolsPage() {
                   placeholder={t('aiTools.selectPlugin')}
                   searchPlaceholder={t('common.search')}
                   value={selectedPlugin}
-                  onValueChange={setSelectedPlugin}
+                  onValueChange={handlePluginChange}
                   items={pluginList.map((plugin) => {
                     const count = pluginCounts[plugin] || 0;
                     return {
@@ -528,6 +567,35 @@ export default function AIToolsPage() {
                     };
                   })}
                 />
+              </div>
+            </div>
+          )}
+
+          {/* 实体页签的筛选行：搜索 + 只看归属冲突。高度对齐页签外壳 */}
+          {pageTab === 'entity' && (
+            <div className="flex min-w-0 w-full items-center gap-2 md:flex-1 md:justify-end">
+              <div className="relative min-w-0 flex-[1.3]">
+                <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder={t('aiTools.entityIndex.searchPlaceholder')}
+                  value={entitySearch}
+                  onChange={(e) => setEntitySearch(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') submitEntitySearch();
+                  }}
+                  className={cn(tabToolbarShellControlClass, 'min-w-0 w-full pl-9')}
+                />
+              </div>
+
+              <div className="flex shrink-0 items-center gap-2 pl-1">
+                <Switch
+                  checked={entityFilter.conflictOnly}
+                  onCheckedChange={handleEntityConflictOnlyChange}
+                />
+                <Label className="whitespace-nowrap cursor-pointer">
+                  {t('aiTools.entityIndex.conflictOnly')}
+                </Label>
               </div>
             </div>
           )}
@@ -661,13 +729,13 @@ export default function AIToolsPage() {
                   </CardTitle>
                   <CardDescription>
                     {t('aiTools.entityIndex.description')}
-                    {entityIndex ? ` · ${entityIndex.count}` : ''}
+                    {entityIndex ? ` · ${entityTotal}` : ''}
                   </CardDescription>
                 </div>
                 <Button
                   variant="outline"
                   className="h-9"
-                  onClick={() => void loadEntityIndex()}
+                  onClick={submitEntitySearch}
                   disabled={entityLoading}
                 >
                   {entityLoading ? (
@@ -680,12 +748,6 @@ export default function AIToolsPage() {
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Input
-                className="h-9 max-w-md"
-                value={entitySearch}
-                onChange={(e) => setEntitySearch(e.target.value)}
-                placeholder={t('aiTools.entityIndex.searchPlaceholder')}
-              />
               {entityLoading ? (
                 <div className="space-y-2">
                   <Skeleton className="h-8 w-full" />
@@ -710,17 +772,19 @@ export default function AIToolsPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredEntities.length === 0 ? (
+                      {entityEntries.length === 0 ? (
                         <tr>
                           <td
                             colSpan={3}
                             className="py-8 text-center text-sm text-muted-foreground"
                           >
-                            {t('common.noData')}
+                            {entityFilter.conflictOnly && !entityFilter.search
+                              ? t('aiTools.entityIndex.conflictEmpty')
+                              : t('common.noData')}
                           </td>
                         </tr>
                       ) : (
-                        filteredEntities.map((entry) => (
+                        entityEntries.map((entry) => (
                           <tr key={entry.surface} className="border-b border-border/30">
                             <td className="py-2 px-2 text-sm text-muted-foreground">
                               {entry.surface}
@@ -750,6 +814,37 @@ export default function AIToolsPage() {
                   </table>
                 </div>
               )}
+
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-xs text-muted-foreground">
+                  {t('aiTools.entityIndex.pagination.label', {
+                    from: entityRange.from,
+                    to: entityRange.to,
+                    total: entityTotal,
+                  })}
+                  {entityFilter.conflictOnly && entityTotalAll > entityTotal
+                    ? ` · ${t('aiTools.entityIndex.pagination.allTotal', { total: entityTotalAll })}`
+                    : ''}
+                </span>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="h-9"
+                    disabled={!entityCanPrev || entityLoading}
+                    onClick={() => setEntityOffset(Math.max(0, entityOffset - ENTITY_PAGE_SIZE))}
+                  >
+                    {t('aiTools.entityIndex.pagination.prev')}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="h-9"
+                    disabled={!entityCanNext || entityLoading}
+                    onClick={() => setEntityOffset(entityOffset + ENTITY_PAGE_SIZE)}
+                  >
+                    {t('aiTools.entityIndex.pagination.next')}
+                  </Button>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -775,13 +870,20 @@ export default function AIToolsPage() {
           <Card className={cn('glass-card')}>
             <CardContent className="flex flex-col items-center justify-center !p-8 text-center text-muted-foreground">
               <Wrench className="w-12 h-12 mb-4 opacity-50" />
-              <p>{t('aiTools.noTools')}</p>
+              <p>
+                {selectedCategory === 'all' &&
+                selectedPlugin === 'all' &&
+                !appliedSearch &&
+                diagnosticFilter === 'all'
+                  ? t('aiTools.noTools')
+                  : t('aiTools.noMatches')}
+              </p>
             </CardContent>
           </Card>
         ) : (
           <>
             <div className="glass-card-grid grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {pagedTools.map((tool) => {
+              {parsedTools.map((tool) => {
                 const diag = diagnoseTool(tools.find((x) => x.name === tool.name) ?? tool);
                 return (
                   <Card
@@ -839,7 +941,10 @@ export default function AIToolsPage() {
 
             {/* 分页控件 */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-center gap-2 pt-2">
+              <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+                <span className="text-xs text-muted-foreground mr-1">
+                  {t('aiTools.pagination.label', { total: toolView.total })}
+                </span>
                 <Button
                   variant="outline"
                   size="icon"

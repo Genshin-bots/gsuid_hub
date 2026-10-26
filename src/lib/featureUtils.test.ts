@@ -38,6 +38,11 @@ import {
   multimodalHealthLevel,
   normalizeGroupProfile,
   oocHitLabel,
+  entityIndexPageRange,
+  resolveEntityIndexEntries,
+  resolvePluginStoreView,
+  resolveSchedulerJobsView,
+  resolveToolsListView,
   sessionIdleBucket,
   summarizeTriggerReplay,
   validateMemorySearchInput,
@@ -497,5 +502,350 @@ describe('unwrapSettledRows', () => {
 
   it('works without an onError callback', () => {
     expect(unwrapSettledRows({ status: 'rejected', reason: 'x' })).toEqual([]);
+  });
+});
+
+describe('entity index entries', () => {
+  const all = [
+    { surface: 'xuanlingyangyang', plugins: ['ww'], ambiguous: false },
+    { surface: '秧秧', plugins: ['ww'], ambiguous: false },
+    { surface: '刻晴', plugins: ['gs', 'other'], ambiguous: true },
+    { surface: '刻晴子', plugins: ['other'], ambiguous: false },
+  ];
+
+  it('returns the server page untouched when the backend paginates', () => {
+    const page = [all[2]];
+    const resolved = resolveEntityIndexEntries({ items: page }, { search: '', conflictOnly: true });
+    // 服务端已按提交条件过滤，前端不能再筛一遍
+    expect(resolved).toEqual(page);
+  });
+
+  it('keeps an empty server page empty instead of falling back to the full list', () => {
+    const resolved = resolveEntityIndexEntries(
+      { items: [], entries: all },
+      { search: '', conflictOnly: false },
+    );
+    expect(resolved).toEqual([]);
+  });
+
+  it('filters conflicts only on the legacy full-list response', () => {
+    const resolved = resolveEntityIndexEntries(
+      { entries: all },
+      { search: '', conflictOnly: true },
+    );
+    expect(resolved.map((e) => e.surface)).toEqual(['刻晴']);
+  });
+
+  it('matches the legacy full list by surface and by plugin name', () => {
+    const bySurface = resolveEntityIndexEntries(
+      { entries: all },
+      { search: '刻晴子', conflictOnly: false },
+    );
+    expect(bySurface.map((e) => e.surface)).toEqual(['刻晴子']);
+
+    const byPlugin = resolveEntityIndexEntries(
+      { entries: all },
+      { search: 'gs', conflictOnly: false },
+    );
+    expect(byPlugin.map((e) => e.surface)).toEqual(['刻晴']);
+  });
+
+  it('is case insensitive for ascii surfaces and plugins', () => {
+    const resolved = resolveEntityIndexEntries(
+      { entries: all },
+      { search: 'XuanLing', conflictOnly: false },
+    );
+    expect(resolved.map((e) => e.surface)).toEqual(['xuanlingyangyang']);
+  });
+
+  it('returns nothing for a missing response', () => {
+    expect(resolveEntityIndexEntries(null, { search: '', conflictOnly: true })).toEqual([]);
+  });
+
+  it('reports the visible range of the current page', () => {
+    expect(entityIndexPageRange(50, 50, 120)).toEqual({ from: 51, to: 100 });
+    expect(entityIndexPageRange(100, 20, 120)).toEqual({ from: 101, to: 120 });
+  });
+
+  it('reports a zero range for an empty result set', () => {
+    expect(entityIndexPageRange(0, 0, 0)).toEqual({ from: 0, to: 0 });
+    expect(entityIndexPageRange(50, 0, 120)).toEqual({ from: 0, to: 0 });
+  });
+});
+
+describe('tools list view', () => {
+  const noFilter = { category: 'all', plugin: 'all', search: '', diagnostic: 'all' as const };
+
+  const serverPayload = {
+    tools: [{ name: 'alpha', description: '甲', plugin: 'P1', category: 'self' }],
+    count: 250,
+    category_counts: { self: 10, default: 240 },
+    plugin_counts: { P1: 20, P2: 230 },
+    diagnostic_counts: { total: 250, empty_description: 3, meta: 1, ok: 246 },
+  };
+
+  it('uses the server page as is', () => {
+    const view = resolveToolsListView(serverPayload, noFilter, 1, 100);
+    // 服务端已过滤并切片，前端再筛一遍会让第二页变空
+    expect(view.items).toEqual(serverPayload.tools);
+    expect(view.total).toBe(250);
+    expect(view.totalPages).toBe(3);
+  });
+
+  it('adds an all key to the facet counts', () => {
+    const view = resolveToolsListView(serverPayload, noFilter, 1, 100);
+    expect(view.categoryCounts.all).toBe(250);
+    expect(view.pluginCounts.all).toBe(250);
+    expect(view.categoryCounts.self).toBe(10);
+    expect(view.pluginCounts.P1).toBe(20);
+  });
+
+  it('keeps the facet counts identical across pages', () => {
+    const first = resolveToolsListView(serverPayload, noFilter, 1, 100);
+    const last = resolveToolsListView(serverPayload, noFilter, 3, 100);
+    expect(first.pluginCounts).toEqual(last.pluginCounts);
+    expect(first.categoryCounts).toEqual(last.categoryCounts);
+    expect(first.diagnosticCounts).toEqual(last.diagnosticCounts);
+  });
+
+  it('maps the diagnostic overview', () => {
+    const view = resolveToolsListView(serverPayload, noFilter, 1, 100);
+    expect(view.diagnosticCounts).toEqual({
+      total: 250,
+      emptyDescription: 3,
+      meta: 1,
+      ok: 246,
+    });
+  });
+
+  const oldPayload = {
+    tools: [
+      { name: 'alpha', description: '甲', plugin: 'P1', category: 'self' },
+      { name: 'beta', description: '', plugin: 'P2', category: 'default' },
+      { name: 'gamma', description: '丙', plugin: 'P1', category: 'default' },
+    ],
+    by_category: {
+      self: [{ name: 'alpha', description: '甲', plugin: 'P1', category: 'self' }],
+      default: [
+        { name: 'beta', description: '', plugin: 'P2', category: 'default' },
+        { name: 'gamma', description: '丙', plugin: 'P1', category: 'default' },
+      ],
+    },
+  };
+
+  it('falls back to client filtering and paging for an old backend', () => {
+    const view = resolveToolsListView(oldPayload, { ...noFilter, search: 'alpha' }, 1, 10);
+    expect(view.items.map((t) => t.name)).toEqual(['alpha']);
+    expect(view.total).toBe(1);
+    expect(view.totalPages).toBe(1);
+  });
+
+  it('still slices pages for an old backend', () => {
+    const view = resolveToolsListView(oldPayload, noFilter, 2, 2);
+    expect(view.items.map((t) => t.name)).toEqual(['gamma']);
+    expect(view.total).toBe(3);
+    expect(view.totalPages).toBe(2);
+  });
+
+  it('computes facet totals for an old backend', () => {
+    const view = resolveToolsListView(oldPayload, noFilter, 1, 10);
+    expect(view.categoryCounts).toEqual({ self: 1, default: 2, all: 3 });
+    expect(view.pluginCounts).toEqual({ P1: 2, P2: 1, all: 3 });
+    expect(view.diagnosticCounts).toEqual({
+      total: 3,
+      emptyDescription: 1,
+      meta: 0,
+      ok: 2,
+    });
+  });
+
+  it('applies the diagnostic filter on the old backend path', () => {
+    const view = resolveToolsListView(oldPayload, { ...noFilter, diagnostic: 'issues' }, 1, 10);
+    expect(view.items.map((t) => t.name)).toEqual(['beta']);
+  });
+
+  it('returns an empty view for a missing response', () => {
+    const view = resolveToolsListView(null, noFilter, 1, 10);
+    expect(view.items).toEqual([]);
+    expect(view.total).toBe(0);
+    expect(view.totalPages).toBe(1);
+  });
+});
+
+describe('plugin store view', () => {
+  const deprecatedText = '停止维护';
+  const all = [
+    { id: 'a', description: '甲插件', tags: ['x'], installed: true, hasUpdate: false },
+    { id: 'b', description: '乙插件', tags: ['y'], installed: false, hasUpdate: false },
+    {
+      id: 'old',
+      description: '老插件',
+      tags: [],
+      installed: false,
+      hasUpdate: false,
+      type: 'danger',
+      content: deprecatedText,
+    },
+  ];
+
+  it('uses the server page untouched', () => {
+    const payload = {
+      plugins: [all[0]],
+      count: 64,
+      counts: { all: 64, installed: 3, updates: 0, fun: 2, tool: 1 },
+    };
+    const view = resolvePluginStoreView(payload, { tab: 'all', search: '' }, 1, 32, deprecatedText);
+    expect(view.items).toEqual([all[0]]);
+    expect(view.total).toBe(64);
+    expect(view.totalPages).toBe(2);
+    expect(view.counts.all).toBe(64);
+  });
+
+  it('keeps the tab counts identical across pages', () => {
+    const payload = {
+      plugins: [all[0]],
+      count: 64,
+      counts: { all: 64, installed: 3, updates: 0, fun: 2, tool: 1 },
+    };
+    const first = resolvePluginStoreView(
+      payload,
+      { tab: 'all', search: '' },
+      1,
+      32,
+      deprecatedText,
+    );
+    const last = resolvePluginStoreView(payload, { tab: 'all', search: '' }, 2, 32, deprecatedText);
+    expect(first.counts).toEqual(last.counts);
+  });
+
+  it('falls back to client filtering and paging for an old backend', () => {
+    const view = resolvePluginStoreView(
+      { plugins: all },
+      { tab: 'all', search: '乙' },
+      1,
+      10,
+      deprecatedText,
+    );
+    expect(view.items.map((p) => p.id)).toEqual(['b']);
+    expect(view.total).toBe(1);
+  });
+
+  it('still slices pages for an old backend', () => {
+    const view = resolvePluginStoreView(
+      { plugins: all },
+      { tab: 'all', search: '' },
+      2,
+      2,
+      deprecatedText,
+    );
+    expect(view.items.map((p) => p.id)).toEqual(['old']);
+    expect(view.total).toBe(3);
+    expect(view.totalPages).toBe(2);
+  });
+
+  it('sorts deprecated plugins last on the old backend path', () => {
+    const view = resolvePluginStoreView(
+      { plugins: all },
+      { tab: 'all', search: '' },
+      1,
+      10,
+      deprecatedText,
+    );
+    expect(view.items.map((p) => p.id)).toEqual(['a', 'b', 'old']);
+  });
+
+  it('filters by tab on the old backend path', () => {
+    const installed = resolvePluginStoreView(
+      { plugins: all },
+      { tab: 'installed', search: '' },
+      1,
+      10,
+      deprecatedText,
+    );
+    expect(installed.items.map((p) => p.id)).toEqual(['a']);
+  });
+
+  it('computes tab counts for an old backend', () => {
+    const view = resolvePluginStoreView(
+      { plugins: all },
+      { tab: 'all', search: '' },
+      1,
+      10,
+      deprecatedText,
+    );
+    expect(view.counts).toEqual({ all: 3, installed: 1, updates: 0, fun: 0, tool: 0 });
+  });
+
+  it('returns an empty view for a missing response', () => {
+    const view = resolvePluginStoreView(null, { tab: 'all', search: '' }, 1, 10, deprecatedText);
+    expect(view.items).toEqual([]);
+    expect(view.total).toBe(0);
+    expect(view.totalPages).toBe(1);
+  });
+});
+
+describe('scheduler jobs view', () => {
+  const all = [
+    { id: 'a', name: '任务 A', description: '甲任务', status: 'running' as const },
+    { id: 'b', name: '任务 B', description: '乙任务', status: 'paused' as const },
+    { id: 'c', name: '任务 C', description: '丙任务', status: 'running' as const },
+  ];
+
+  it('uses the server page untouched', () => {
+    const payload = {
+      data: [all[0]],
+      meta: {
+        total: 45,
+        count: 1,
+        has_more: true,
+        counts: { total: 45, running: 40, paused: 5, error: 0 },
+      },
+    };
+    const view = resolveSchedulerJobsView(payload, { search: '' }, 1, 20);
+    expect(view.items).toEqual([all[0]]);
+    expect(view.total).toBe(45);
+    expect(view.totalPages).toBe(3);
+    expect(view.stats.total).toBe(45);
+  });
+
+  it('keeps the stats identical across pages', () => {
+    const payload = {
+      data: [all[0]],
+      meta: {
+        total: 45,
+        count: 1,
+        has_more: true,
+        counts: { total: 45, running: 40, paused: 5, error: 0 },
+      },
+    };
+    const first = resolveSchedulerJobsView(payload, { search: '' }, 1, 20);
+    const last = resolveSchedulerJobsView(payload, { search: '' }, 3, 20);
+    expect(first.stats).toEqual(last.stats);
+  });
+
+  it('falls back to client filtering and paging for an old backend', () => {
+    const view = resolveSchedulerJobsView({ data: all }, { search: '乙' }, 1, 10);
+    expect(view.items.map((j) => j.id)).toEqual(['b']);
+    expect(view.total).toBe(1);
+  });
+
+  it('still slices pages for an old backend', () => {
+    const view = resolveSchedulerJobsView({ data: all }, { search: '' }, 2, 2);
+    expect(view.items.map((j) => j.id)).toEqual(['c']);
+    expect(view.total).toBe(3);
+    expect(view.totalPages).toBe(2);
+  });
+
+  it('computes the stats from the full list on the old backend path', () => {
+    const view = resolveSchedulerJobsView({ data: all }, { search: '乙' }, 1, 10);
+    // 统计对全量任务做，不受搜索影响
+    expect(view.stats).toEqual({ total: 3, running: 2, paused: 1, error: 0 });
+  });
+
+  it('returns an empty view for a missing response', () => {
+    const view = resolveSchedulerJobsView(null, { search: '' }, 1, 10);
+    expect(view.items).toEqual([]);
+    expect(view.total).toBe(0);
+    expect(view.totalPages).toBe(1);
   });
 });

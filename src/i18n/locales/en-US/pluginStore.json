@@ -14,6 +14,12 @@
   "noFunPlugins": "No fun plugins available",
   "noToolPlugins": "No tool plugins available",
   "noPlugins": "No plugins available",
+  "pagination": {
+    "label": "{total} plugins",
+    "page": "Page {current} / {total}",
+    "prev": "Previous",
+    "next": "Next"
+  },
   "adjustSearchKeywords": "Try adjusting your search keywords",
   "loadFailed": "Load Failed",
   "loadPluginListFailed": "Failed to get plugin list",

@@ -41,5 +41,11 @@
   "cancel": "キャンセル",
   "updateExisting": "同名なら更新",
   "updateHint": "既存スキルを上書き",
-  "reinstall": "ソースから更新"
+  "reinstall": "ソースから更新",
+  "pagination": {
+    "label": "全 {total} スキル",
+    "page": "{current} / {total} ページ",
+    "prev": "前へ",
+    "next": "次へ"
+  }
 }

@@ -14,6 +14,12 @@
   "noFunPlugins": "なし利用可娱乐プラグイン",
   "noToolPlugins": "なし利用可ツールプラグイン",
   "noPlugins": "なし利用可プラグイン",
+  "pagination": {
+    "label": "全 {total} プラグイン",
+    "page": "{current} / {total} ページ",
+    "prev": "前へ",
+    "next": "次へ"
+  },
   "adjustSearchKeywords": "尝试調整検索主要词",
   "loadFailed": "読込に失敗",
   "loadPluginListFailed": "できません获取プラグインリスト",

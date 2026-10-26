@@ -856,7 +856,15 @@ const routes: Route[] = [
 
   // ── Tier 1 · 主题 ──
   { m: 'GET', re: /^\/api\/theme\/config$/, h: () => generateThemeConfig() },
-  { m: 'GET', re: /^\/api\/theme\/presets$/, h: () => generateThemePresets() },
+  {
+    m: 'GET',
+    re: /^\/api\/theme\/presets$/,
+    h: ({ url }) => {
+      const limit = url.searchParams.get('limit');
+      const offset = num(url, 'offset', 0);
+      return generateThemePresets(limit === null ? undefined : Number(limit), offset);
+    },
+  },
   // 应用预设：返回 { name, config } → ThemesPage 调 applyThemeConfig 真正切换主题
   {
     m: 'POST',

@@ -92,10 +92,15 @@ interface SkillsPanelProps {
   onAddDialogOpenChange: (open: boolean) => void;
 }
 
+/** 每页技能数（服务端分页） */
+const SKILLS_PAGE_SIZE = 50;
+
 export default function SkillsPanel({ addDialogOpen, onAddDialogOpenChange }: SkillsPanelProps) {
   const { t } = useLanguage();
 
   const [skills, setSkills] = useState<AISkill[]>([]);
+  const [skillTotal, setSkillTotal] = useState(0);
+  const [skillPage, setSkillPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedSkill, setSelectedSkill] = useState<AISkillDetail | null>(null);
@@ -121,26 +126,35 @@ export default function SkillsPanel({ addDialogOpen, onAddDialogOpenChange }: Sk
   const [isSaving, setIsSaving] = useState(false);
 
   const parsedSkills = useMemo(() => skills.map((skill) => parseSkillDescription(skill)), [skills]);
+  const skillTotalPages = Math.max(1, Math.ceil(skillTotal / SKILLS_PAGE_SIZE));
 
   /** 克隆 / 删除后复用，避免每个操作里重写一遍「刷新列表」 */
   const reloadSkills = useCallback(async () => {
     try {
-      const data = await aiSkillsApi.getSkillsList();
+      const data = await aiSkillsApi.getSkillsList({
+        limit: SKILLS_PAGE_SIZE,
+        offset: (skillPage - 1) * SKILLS_PAGE_SIZE,
+      });
       setSkills(data.skills || []);
+      setSkillTotal(data.count ?? 0);
       setError(null);
     } catch (err) {
       setError(getApiErrorMessage(err, t('aiSkills.loadFailed')));
     }
-  }, [t]);
+  }, [skillPage, t]);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
         setIsLoading(true);
-        const data = await aiSkillsApi.getSkillsList();
+        const data = await aiSkillsApi.getSkillsList({
+          limit: SKILLS_PAGE_SIZE,
+          offset: (skillPage - 1) * SKILLS_PAGE_SIZE,
+        });
         if (cancelled) return;
         setSkills(data.skills || []);
+        setSkillTotal(data.count ?? 0);
         setError(null);
       } catch (err) {
         if (cancelled) return;
@@ -154,7 +168,7 @@ export default function SkillsPanel({ addDialogOpen, onAddDialogOpenChange }: Sk
     return () => {
       cancelled = true;
     };
-  }, [t]);
+  }, [skillPage, t]);
 
   const handleSkillClick = async (skill: ParsedSkill) => {
     setDialogOpen(true);
@@ -206,7 +220,12 @@ export default function SkillsPanel({ addDialogOpen, onAddDialogOpenChange }: Sk
       toast.success(t('aiSkills.deleteSuccess'));
       setDeleteDialogOpen(false);
       setSkillToDelete(null);
-      await reloadSkills();
+      // 本页删空后回到上一页，由页码变化触发重新加载
+      if (skills.length <= 1 && skillPage > 1) {
+        setSkillPage((p) => Math.max(1, p - 1));
+      } else {
+        await reloadSkills();
+      }
     } catch (err) {
       toast.error(getApiErrorMessage(err, t('aiSkills.deleteFailed')));
     } finally {
@@ -335,6 +354,34 @@ export default function SkillsPanel({ addDialogOpen, onAddDialogOpenChange }: Sk
               </CardContent>
             </Card>
           ))}
+        </div>
+      )}
+
+      {/* 分页控件 */}
+      {skillTotalPages > 1 && (
+        <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+          <span className="text-xs text-muted-foreground mr-1">
+            {t('aiSkills.pagination.label', { total: skillTotal })}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={skillPage <= 1 || isLoading}
+            onClick={() => setSkillPage((p) => Math.max(1, p - 1))}
+          >
+            {t('aiSkills.pagination.prev')}
+          </Button>
+          <span className="text-xs text-muted-foreground">
+            {t('aiSkills.pagination.page', { current: skillPage, total: skillTotalPages })}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={skillPage >= skillTotalPages || isLoading}
+            onClick={() => setSkillPage((p) => Math.min(skillTotalPages, p + 1))}
+          >
+            {t('aiSkills.pagination.next')}
+          </Button>
         </div>
       )}
 

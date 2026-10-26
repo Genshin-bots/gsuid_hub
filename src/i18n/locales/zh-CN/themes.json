@@ -162,6 +162,12 @@
   "deletePresetConfirm": "确定要删除预设 “{name}” 吗？此操作不可撤销。",
   "noPresets": "还没有保存任何主题预设",
   "noPresetsHint": "调整好主题后，点击“保存为预设”即可保存当前搭配",
+  "pagination": {
+    "label": "共 {total} 个预设",
+    "page": "第 {current} / {total} 页",
+    "prev": "上一页",
+    "next": "下一页"
+  },
   "refresh": "刷新",
   "retry": "重试",
   "loadPresetsFailed": "加载主题预设失败",

@@ -221,6 +221,9 @@ function colorHslOf(color?: string): string {
   return (color && COLOR_HSL[color]) || 'hsl(240 5% 55%)';
 }
 
+/** 主题预设每页条数（服务端分页；卡片网格，12 = 4/6/12 行） */
+const PRESET_PAGE_SIZE = 12;
+
 // 预设背景预览：优先真实背景图/渐变，否则用「主题色 → 模式底色」的渐变占位
 function PresetPreview({ config }: { config?: ThemeConfig }) {
   const colorHsl = colorHslOf(config?.color);
@@ -573,6 +576,9 @@ export default function ThemesPage() {
 
   // ---- 预设状态 ----
   const [presets, setPresets] = useState<ThemePresetItem[]>([]);
+  const [presetNames, setPresetNames] = useState<string[]>([]);
+  const [presetTotal, setPresetTotal] = useState(0);
+  const [presetPage, setPresetPage] = useState(1);
   const [presetsLoading, setPresetsLoading] = useState(true);
   const [presetsError, setPresetsError] = useState<string | null>(null);
   const [applyingName, setApplyingName] = useState<string | null>(null);
@@ -585,18 +591,28 @@ export default function ThemesPage() {
   const [deleting, setDeleting] = useState(false);
 
   const trimmedName = presetName.trim();
+  const presetTotalPages = Math.max(1, Math.ceil(presetTotal / PRESET_PAGE_SIZE));
+  // 同名判定用后端给的**全部**预设名——分页后当前页只是其中一部分
   const nameExists = useMemo(
-    () => presets.some((p) => p.name === trimmedName),
-    [presets, trimmedName],
+    () =>
+      presetNames.length > 0
+        ? presetNames.includes(trimmedName)
+        : presets.some((p) => p.name === trimmedName),
+    [presetNames, presets, trimmedName],
   );
 
   const loadPresets = useCallback(async () => {
     setPresetsLoading(true);
     setPresetsError(null);
     try {
-      const res = await themeApi.getPresets();
+      const res = await themeApi.getPresets({
+        limit: PRESET_PAGE_SIZE,
+        offset: (presetPage - 1) * PRESET_PAGE_SIZE,
+      });
       if (res.status === 0 && res.data) {
         setPresets(res.data.presets || []);
+        setPresetNames(res.data.names || []);
+        setPresetTotal(res.data.count ?? res.data.total ?? (res.data.presets || []).length);
       } else {
         setPresetsError(getApiErrorMessage(res, t('themes.loadPresetsFailed')));
       }
@@ -605,7 +621,7 @@ export default function ThemesPage() {
     } finally {
       setPresetsLoading(false);
     }
-  }, [t]);
+  }, [presetPage, t]);
 
   useEffect(() => {
     loadPresets();
@@ -714,7 +730,12 @@ export default function ThemesPage() {
       await themeApi.deletePreset(deleteTarget.name);
       toast.success(t('themes.deletePresetSuccess'));
       setDeleteTarget(null);
-      loadPresets();
+      // 本页删空后回到上一页，由页码变化触发重新加载
+      if (presets.length <= 1 && presetPage > 1) {
+        setPresetPage((p) => Math.max(1, p - 1));
+      } else {
+        loadPresets();
+      }
     } catch (e) {
       toast.error(getApiErrorMessage(e, t('themes.deletePresetFailed')));
     } finally {
@@ -1411,7 +1432,7 @@ export default function ThemesPage() {
                     {t('themes.retry')}
                   </Button>
                 </div>
-              ) : presets.length === 0 ? (
+              ) : presets.length === 0 && presetTotal === 0 ? (
                 <div className="flex flex-col items-center justify-center gap-2 py-10 text-center">
                   <FolderOpen className="w-10 h-10 text-muted-foreground opacity-50" />
                   <p className="text-muted-foreground">{t('themes.noPresets')}</p>
@@ -1500,6 +1521,37 @@ export default function ThemesPage() {
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+
+              {/* 分页控件 */}
+              {presetTotalPages > 1 && (
+                <div className="flex flex-wrap items-center justify-center gap-2 pt-4">
+                  <span className="text-xs text-muted-foreground mr-1">
+                    {t('themes.pagination.label', { total: presetTotal })}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={presetPage <= 1 || presetsLoading}
+                    onClick={() => setPresetPage((p) => Math.max(1, p - 1))}
+                  >
+                    {t('themes.pagination.prev')}
+                  </Button>
+                  <span className="text-xs text-muted-foreground">
+                    {t('themes.pagination.page', {
+                      current: presetPage,
+                      total: presetTotalPages,
+                    })}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={presetPage >= presetTotalPages || presetsLoading}
+                    onClick={() => setPresetPage((p) => Math.min(presetTotalPages, p + 1))}
+                  >
+                    {t('themes.pagination.next')}
+                  </Button>
                 </div>
               )}
             </CardContent>
