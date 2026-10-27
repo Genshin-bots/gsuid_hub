@@ -3807,6 +3807,24 @@ main:has(.page-fill) .layout-page-inner {
   color: #ef4444 !important;
 }
 
+/*
+ * 插件操作按钮（gsbutton）的状态图标：成功=绿勾、失败=红叉。
+ * 主题会给按钮内图标统一刷一遍继承色（[data-icon-color] button .lucide{color:inherit!important}），
+ * Tailwind 侧写 [&_svg]:!text-* 特异度也不够。这里改用 stroke 单独着色：
+ * 作者样式里的 stroke 永远压得住 SVG 的 stroke="currentColor" 表现属性，主题改 color 也不影响。
+ */
+.lucide[data-state-icon="success"] {
+  stroke: hsl(152 76% 45%) !important;
+}
+
+.lucide[data-state-icon="error"] {
+  stroke: hsl(var(--destructive)) !important;
+}
+
+.dark .lucide[data-state-icon="success"] {
+  stroke: hsl(152 69% 58%) !important;
+}
+
 /* Switch component theme styling */
 button[role="switch"][data-state="checked"] {
   background-color: hsl(var(--primary)) !important;

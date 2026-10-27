@@ -113,6 +113,12 @@ function buildTrace(entries: SessionLogEntry[]): TraceSpan[] {
 
   const pushTop = (sp: TraceSpan) => roots.push(sp);
   const addToRun = (sp: TraceSpan) => (run ? run.children.push(sp) : roots.push(sp));
+  // 工具还没回执时，拒发记在这次调用下面。否则会挂进更早的「对话」，画在工具上面。
+  const openToolFor = (toolCallId: string): TraceSpan | undefined => {
+    if (toolCallId && openTools[toolCallId]) return openTools[toolCallId];
+    const spans = Object.values(openTools);
+    return spans.length > 0 ? spans[spans.length - 1] : undefined;
+  };
 
   for (const e of entries) {
     const ts = e.timestamp;
@@ -168,7 +174,11 @@ function buildTrace(entries: SessionLogEntry[]): TraceSpan[] {
           entry: e,
           children: [],
         };
-        if (e.type === 'output_block' && chat) {
+        const host = e.type === 'output_block' ? openToolFor(asStr(d.tool_call_id)) : undefined;
+        if (host) {
+          host.children.push(sp);
+          host.end = Math.max(host.end, ts);
+        } else if (e.type === 'output_block' && chat) {
           chat.children.push(sp);
           chat.end = Math.max(chat.end, ts);
         } else {
@@ -715,9 +725,7 @@ function spanPreview(sp: TraceSpan): string {
       break;
     }
     case 'output_block':
-      s = [asStr(d.reason_text), asStr(d.reason), asStr(d.policy), asStr(d.content)]
-        .filter(Boolean)
-        .join(' ');
+      s = [asStr(d.reason_text), asStr(d.reason), asStr(d.policy)].filter(Boolean).join(' ');
       break;
     case 'system_injection':
       s = [asStr(d.reason_text), asStr(d.reason), asStr(d.source), asStr(d.content)]
@@ -901,13 +909,25 @@ function EntryBlock({
       </div>
     );
   }
-  if (entry.type === 'output_block' || entry.type === 'system_injection') {
+  if (entry.type === 'output_block') {
+    const reasonText = asStr(d.reason_text);
+    const meta = [asStr(d.reason), asStr(d.policy)].filter(Boolean).join(' · ');
+    if (!reasonText && !meta) return null;
+    return (
+      <div className="space-y-1 min-w-0 max-w-full">
+        {reasonText && <p className={cn('text-xs', WRAP_TEXT)}>{reasonText}</p>}
+        {meta && (
+          <p className={cn('text-xs font-mono text-muted-foreground', WRAP_TEXT)}>{meta}</p>
+        )}
+      </div>
+    );
+  }
+  if (entry.type === 'system_injection') {
     const reasonText = asStr(d.reason_text);
     const reason = asStr(d.reason);
-    const policy = asStr(d.policy);
     const source = asStr(d.source);
     const content = asStr(d.content);
-    const meta = [reason, policy, source].filter(Boolean).join(' · ');
+    const meta = [reason, source].filter(Boolean).join(' · ');
     return (
       <div className="space-y-1 min-w-0 max-w-full">
         {reasonText && <p className={cn('text-xs', WRAP_TEXT)}>{reasonText}</p>}

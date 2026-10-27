@@ -105,5 +105,11 @@
   "openPluginPageConfirm": "ページを開く",
   "openPluginPageDesc": "プラグインが提供するページを開きます。サイドバーは折りたたまれ、ページは埋め込み表示されます。ヘッダーから戻れます。",
   "dontShowAgain": "次回から表示しない",
-  "pluginPageBack": "プラグイン設定に戻る"
+  "pluginPageBack": "プラグイン設定に戻る",
+  "buttonIdle": "未開始",
+  "buttonRunning": "実行中",
+  "buttonSuccess": "完了",
+  "buttonError": "失敗",
+  "buttonConfirmTitle": "実行の確認",
+  "buttonWorking": "実行しています"
 }

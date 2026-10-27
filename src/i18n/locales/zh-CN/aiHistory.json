@@ -41,7 +41,7 @@
     "toolReturn": "工具返回",
     "textOutput": "文本输出",
     "outputBlock": "拦住未发",
-    "systemInjection": "框架纠正",
+    "systemInjection": "框架注入",
     "result": "运行结果",
     "tokenUsage": "Token 用量",
     "error": "错误",

@@ -34,6 +34,7 @@ function mapBackendTypeToFieldType(item: PluginConfigItem): string {
 
   // 精确匹配（优先）
   if (rawType === 'gsrepeatgroup') return 'repeatgroup';
+  if (rawType === 'gsbutton') return 'button';
   if (rawType === 'gsdivider') return 'divider';
   if (rawType === 'gscolor') return 'color';
   if (rawType === 'gsfileupload') return 'fileupload';
@@ -123,8 +124,14 @@ function coerceValue(fieldType: string, rawType: string, rawValue: unknown): Con
     }
     return 0;
   }
-  if (fieldType === 'boolean') return Boolean(rawValue);
-  return rawValue == null ? '' : String(rawValue);
+    if (fieldType === 'boolean') return Boolean(rawValue);
+    if (fieldType === 'button') {
+      if (rawValue && typeof rawValue === 'object' && !Array.isArray(rawValue)) {
+        return rawValue as ConfigValue;
+      }
+      return { phase: 'idle', progress: 0, message: '', fields: {} };
+    }
+    return rawValue == null ? '' : String(rawValue);
 }
 
 export function pluginConfigItemToFieldDef(
@@ -157,6 +164,13 @@ export function pluginConfigItemToFieldDef(
     filename: item.filename,
     suffix: item.suffix,
     rawType: item.type,
+    endpoint: item.endpoint,
+    buttonLabel: item.label,
+    level: item.level,
+    confirmText: item.confirm,
+    statusFields: item.status_fields,
+    showProgress: item.show_progress,
+    pollMs: item.poll_ms,
   };
 }
 
@@ -189,6 +203,30 @@ export function DynamicConfigPanel({
     const icon = getFieldIcon(fieldKey);
     const safeTitle = item.title == null ? fieldKey : String(item.title);
     const safeDesc = item.desc == null ? '' : String(item.desc);
+
+    if (fieldType === 'button') {
+      const value = coerceValue(fieldType, rawType, item.value);
+      return (
+        <ConfigField
+          key={fieldKey}
+          fieldKey={fieldKey}
+          field={{
+            type: 'button',
+            label: safeTitle,
+            value,
+            description: safeDesc,
+            endpoint: item.endpoint,
+            buttonLabel: item.label,
+            level: item.level,
+            confirmText: item.confirm,
+            statusFields: item.status_fields,
+            showProgress: item.show_progress,
+            pollMs: item.poll_ms,
+          }}
+          onChange={(k, v) => onChange(configId, k, v)}
+        />
+      );
+    }
 
     // divider 类型直接渲染，不需要 Label
     if (fieldType === 'divider') {
@@ -298,7 +336,10 @@ export function DynamicConfigPanel({
   for (const [key, item] of allFields) {
     const fieldType = mapBackendTypeToFieldType(item);
     const solo =
-      isSecretKeyField(key, item) || fieldType === 'divider' || fieldType === 'repeatgroup';
+      isSecretKeyField(key, item) ||
+      fieldType === 'divider' ||
+      fieldType === 'repeatgroup' ||
+      fieldType === 'button';
     if (solo) {
       flushRow();
       blocks.push(renderField(key, item));

@@ -80,6 +80,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   ConfigField,
+  ButtonConfigField,
   ConfigFieldDefinition,
   ConfigValue,
   ConfigFieldType,
@@ -455,6 +456,7 @@ const convertToPlugin = (plugin: Plugin): any => {
 
       // 注意：匹配顺序很重要，更具体的类型要先匹配
       if (rawType === 'gsrepeatgroup') type = 'repeatgroup';
+      else if (rawType === 'gsbutton') type = 'button';
       else if (rawType === 'gsdivider') type = 'divider';
       else if (rawType === 'gscolor') type = 'color';
       else if (rawType === 'gsfileupload') type = 'fileupload';
@@ -517,6 +519,13 @@ const convertToPlugin = (plugin: Plugin): any => {
         required: false,
         disabled: false,
         rawType: configItem.type,
+        endpoint: configItem.endpoint,
+        buttonLabel: configItem.label,
+        level: configItem.level,
+        confirmText: configItem.confirm,
+        statusFields: configItem.status_fields,
+        showProgress: configItem.show_progress,
+        pollMs: configItem.poll_ms,
         // 新增字段透传
         secret: configItem.secret,
         regex: configItem.regex,
@@ -550,6 +559,24 @@ function isDefaultConfigEmpty(plugin: Plugin): boolean {
     return Object.keys(group?.config || {}).length === 0;
   }
   return Object.keys(plugin.config || {}).length === 0;
+}
+
+function buttonFieldsOf(plugin: Plugin): ConfigFieldDefinition[] {
+  const sources = [plugin.config, ...(plugin.config_groups || []).map((group) => group.config)];
+  const seen = new Set<string>();
+  const fields: ConfigFieldDefinition[] = [];
+  for (const source of sources) {
+    if (!source) continue;
+    for (const [key, raw] of Object.entries(source)) {
+      const field = raw as unknown as ConfigFieldDefinition;
+      if (field.type !== 'button') continue;
+      const id = field.endpoint || key;
+      if (seen.has(id)) continue;
+      seen.add(id);
+      fields.push(field);
+    }
+  }
+  return fields;
 }
 
 export default function PluginsPage() {
@@ -620,6 +647,10 @@ export default function PluginsPage() {
     if (listed?.pages && listed.pages.length > 0) return listed.pages;
     return selectedPlugin?.pages ?? [];
   }, [pluginList, selectedPluginId, selectedPlugin]);
+  const toolbarButtons = useMemo(
+    () => (selectedPlugin ? buttonFieldsOf(selectedPlugin) : []),
+    [selectedPlugin],
+  );
 
   const goToPluginPage = useCallback(
     (page: PluginPageMeta) => {
@@ -982,6 +1013,9 @@ export default function PluginsPage() {
 
     // divider 类型不需要保存
     if (field.type === 'divider' || rawType === 'gsdivider') {
+      return { skip: true };
+    }
+    if (field.type === 'button' || rawType === 'gsbutton') {
       return { skip: true };
     }
 
@@ -1407,11 +1441,15 @@ export default function PluginsPage() {
                       'w-full min-w-0 flex-1 bg-background sm:w-44 sm:flex-none lg:w-56',
                     )}
                   />
+                  {toolbarButtons.map((field) => (
+                    <ButtonConfigField key={field.endpoint || field.label} field={field} compact />
+                  ))}
                   {pluginSection !== 'sv' && (
                     <Button
                       className={cn(
                         tabToolbarControlClass,
-                        'button-solid shrink-0 justify-center gap-2 px-4 sm:px-8 lg:min-w-[160px]',
+                        // 不加 button-solid：主色按钮跟随当前主题（毛玻璃 / 光感 / 液态 / 纯色）
+                        'shrink-0 justify-center gap-2 px-4 sm:px-8 lg:min-w-[160px]',
                       )}
                       disabled={!sectionDirty || sectionSaving}
                       onClick={saveSection}
@@ -1985,6 +2023,7 @@ export default function PluginsPage() {
                             : '';
                           const isFullWidth =
                             fieldDef.type === 'divider' || fieldDef.type === 'repeatgroup';
+                          if (fieldDef.type === 'button') return null;
                           if (fieldDef.type === 'repeatgroup') {
                             const groupValue = Array.isArray(fieldDef.value)
                               ? (fieldDef.value as unknown as RepeatGroupItem[])

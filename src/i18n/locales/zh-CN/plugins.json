@@ -105,5 +105,11 @@
   "openPluginPageConfirm": "打开页面",
   "openPluginPageDesc": "即将打开插件提供的页面进行配置。确认后侧边栏会收起，并以嵌入方式打开。可通过顶栏返回。",
   "dontShowAgain": "下次不再弹出此提示",
-  "pluginPageBack": "返回插件配置"
+  "pluginPageBack": "返回插件配置",
+  "buttonIdle": "未开始",
+  "buttonRunning": "进行中",
+  "buttonSuccess": "已完成",
+  "buttonError": "失败",
+  "buttonConfirmTitle": "确认执行",
+  "buttonWorking": "正在执行"
 }

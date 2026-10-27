@@ -380,6 +380,14 @@ export interface PluginConfigItem {
   max_value?: number;
   // gsrepeatgroup 专用：template 描述每个子字段(可再嵌套), value 为各组的值列表
   template?: Record<string, PluginConfigItem>;
+  // gsbutton：管理员点击后调用的接口，以及状态行
+  endpoint?: string;
+  label?: string;
+  level?: string;
+  confirm?: string;
+  status_fields?: { key: string; label: string }[];
+  show_progress?: boolean;
+  poll_ms?: number;
 }
 
 export interface PluginConfigGroup {

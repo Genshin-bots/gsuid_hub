@@ -56,12 +56,13 @@ import {
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { assetsApi, PluginConfigItem } from '@/lib/api';
+import { assetsApi, type PluginConfigItem } from '@/lib/api';
 import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { TagsInput } from './TagsInput';
 import { SecretInput } from './SecretInput';
 import { resolveDividerSubtitle } from './dividerDisplay';
+import { ButtonConfigField } from './ButtonConfigField';
 
 // 分隔标题整行的倾斜角度。MiSans 没有斜体，用 skew 模拟；负值向右倾。
 const DIVIDER_TITLE_SKEW_DEG = -6;
@@ -131,7 +132,20 @@ export type ConfigFieldType =
   | 'fileupload'
   | 'filesupload'
   | 'timerange'
-  | 'repeatgroup';
+  | 'repeatgroup'
+  | 'button';
+
+export interface ConfigButtonState {
+  phase: string;
+  progress: number;
+  message: string;
+  fields: Record<string, string>;
+}
+
+export interface ConfigButtonStatusField {
+  key: string;
+  label: string;
+}
 
 export type ConfigValue =
   | string
@@ -140,6 +154,7 @@ export type ConfigValue =
   | string[]
   | [number, number]
   | [[number, number], [number, number]]
+  | ConfigButtonState
   | null;
 
 export interface ConfigFieldDefinition {
@@ -164,6 +179,14 @@ export interface ConfigFieldDefinition {
   rawType?: string; // 原始后端类型标识，用于保存时的类型转换
   // gsrepeatgroup 专用：子字段描述(供 RepeatGroupField 渲染)
   template?: Record<string, PluginConfigItem>;
+  // gsbutton
+  endpoint?: string;
+  buttonLabel?: string;
+  level?: string;
+  confirmText?: string;
+  statusFields?: ConfigButtonStatusField[];
+  showProgress?: boolean;
+  pollMs?: number;
 }
 
 interface ConfigFieldProps {
@@ -867,6 +890,23 @@ export function ConfigField({
   // Divider 类型：不需要 Label，直接渲染
   if (isDividerField) {
     return <div className={cn('col-span-full', className)}>{renderField()}</div>;
+  }
+
+  if (field.type === 'button') {
+    return (
+      <div className={cn('col-span-full space-y-1', className)}>
+        {showLabel && (
+          <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+            {getTitleIcon(displayLabel)}
+            {displayLabel}
+            {displayDescription && (
+              <MarkdownTooltip content={displayDescription} side="top" className="max-w-xs" />
+            )}
+          </Label>
+        )}
+        <ButtonConfigField field={field} />
+      </div>
+    );
   }
 
   return (

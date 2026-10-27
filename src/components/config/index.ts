@@ -1,4 +1,5 @@
 export { ConfigField } from './ConfigField';
+export { ButtonConfigField } from './ButtonConfigField';
 export { SecretInput } from './SecretInput';
 export type { ConfigFieldType, ConfigValue, ConfigFieldDefinition } from './ConfigField';
 export { ConfigForm, ConfigGrid } from './ConfigForm';
