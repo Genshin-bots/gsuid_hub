@@ -4702,6 +4702,8 @@ export type SessionLogEntryType =
   | 'tool_call'
   | 'tool_return'
   | 'text_output'
+  | 'output_block'
+  | 'system_injection'
   | 'result'
   | 'token_usage'
   | 'error'

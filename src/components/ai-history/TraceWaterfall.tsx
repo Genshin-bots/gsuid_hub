@@ -157,6 +157,25 @@ function buildTrace(entries: SessionLogEntry[]): TraceSpan[] {
         addToRun({ id: nid(), kind: 'user', start: ts, end: ts, entry: e, children: [] });
         break;
       }
+      case 'system_injection':
+      case 'output_block': {
+        // 未知 type 仍走 default 丢弃。这两种是后加的可选条目，缺字段时只显示空行。
+        const sp: TraceSpan = {
+          id: nid(),
+          kind: 'generic',
+          start: ts,
+          end: ts,
+          entry: e,
+          children: [],
+        };
+        if (e.type === 'output_block' && chat) {
+          chat.children.push(sp);
+          chat.end = Math.max(chat.end, ts);
+        } else {
+          addToRun(sp);
+        }
+        break;
+      }
       case 'thinking':
       case 'text_output': {
         if (chat) {
@@ -505,6 +524,8 @@ function kindIcon(sp: TraceSpan) {
       // generic：按 entry 类型细分（thinking / text_output 用不同图标，避免全是灯泡）
       const et = sp.entry?.type;
       if (et === 'text_output') return <AlignLeft className="w-3.5 h-3.5" />;
+      if (et === 'output_block') return <AlertTriangle className="w-3.5 h-3.5" />;
+      if (et === 'system_injection') return <Shield className="w-3.5 h-3.5" />;
       return <Lightbulb className="w-3.5 h-3.5" />;
     }
   }
@@ -572,6 +593,18 @@ function kindColor(sp: TraceSpan): { icon: string; bar: string; text: string } {
           bar: 'bg-teal-400/60',
           text: 'text-teal-700 dark:text-teal-300',
         };
+      if (et === 'output_block')
+        return {
+          icon: 'text-amber-600',
+          bar: 'bg-amber-400/70',
+          text: 'text-amber-800 dark:text-amber-300',
+        };
+      if (et === 'system_injection')
+        return {
+          icon: 'text-slate-500',
+          bar: 'bg-slate-400/70',
+          text: 'text-slate-700 dark:text-slate-300',
+        };
       return {
         icon: 'text-muted-foreground',
         bar: 'bg-muted-foreground/40',
@@ -633,6 +666,8 @@ function spanLabel(sp: TraceSpan, t: TFunc): string {
       const map: Record<string, string> = {
         thinking: 'aiHistory.entryType.thinking',
         text_output: 'aiHistory.entryType.textOutput',
+        output_block: 'aiHistory.entryType.outputBlock',
+        system_injection: 'aiHistory.entryType.systemInjection',
         token_usage: 'aiHistory.entryType.tokenUsage',
         node_transition: 'aiHistory.entryType.nodeTransition',
       };
@@ -674,8 +709,20 @@ function spanPreview(sp: TraceSpan): string {
     case 'user_input':
       s = userInputPreview(asStr(d.content) || asStr(d.user_message));
       break;
-    case 'result':
-      s = asStr(d.output);
+    case 'result': {
+      const silence = asStr(d.reason_text) || asStr(d.silence_reason);
+      s = silence ? `${silence} ${asStr(d.output)}` : asStr(d.output);
+      break;
+    }
+    case 'output_block':
+      s = [asStr(d.reason_text), asStr(d.reason), asStr(d.policy), asStr(d.content)]
+        .filter(Boolean)
+        .join(' ');
+      break;
+    case 'system_injection':
+      s = [asStr(d.reason_text), asStr(d.reason), asStr(d.source), asStr(d.content)]
+        .filter(Boolean)
+        .join(' ');
       break;
     case 'error':
       s = asStr(d.message) || asStr(d.error_type);
@@ -702,7 +749,9 @@ function spanExpandable(sp: TraceSpan): boolean {
   if (et === 'user_input' || et === 'text_output') return !!(d.content || d.output);
   if (et === 'system_prompt' || et === 'thinking' || et === 'proactive_emission')
     return !!d.content;
-  if (et === 'result') return !!d.output;
+  if (et === 'result') return !!(d.output || d.silence_reason || d.reason_text);
+  if (et === 'output_block') return !!(d.reason || d.reason_text || d.content);
+  if (et === 'system_injection') return !!(d.content || d.reason || d.reason_text || d.source);
   if (et === 'error') return !!(d.message || d.error_type);
   if (et === 'history_reset') return true;
   if (et === 'tools_list') return Array.isArray(d.tools) && (d.tools as unknown[]).length > 0;
@@ -849,6 +898,42 @@ function EntryBlock({
         {typeof d.persona_name === 'string' && (
           <div className={cn('font-mono', WRAP_TEXT)}>→ {d.persona_name}</div>
         )}
+      </div>
+    );
+  }
+  if (entry.type === 'output_block' || entry.type === 'system_injection') {
+    const reasonText = asStr(d.reason_text);
+    const reason = asStr(d.reason);
+    const policy = asStr(d.policy);
+    const source = asStr(d.source);
+    const content = asStr(d.content);
+    const meta = [reason, policy, source].filter(Boolean).join(' · ');
+    return (
+      <div className="space-y-1 min-w-0 max-w-full">
+        {reasonText && <p className={cn('text-xs', WRAP_TEXT)}>{reasonText}</p>}
+        {meta && (
+          <p className={cn('text-xs font-mono text-muted-foreground', WRAP_TEXT)}>{meta}</p>
+        )}
+        {content && <pre className={PLAIN_BLOCK}>{content}</pre>}
+      </div>
+    );
+  }
+  if (entry.type === 'result') {
+    const reasonText = asStr(d.reason_text);
+    const reason = asStr(d.silence_reason);
+    const output = asStr(d.output);
+    const shown = reasonText || reason;
+    if (!shown && !output) return null;
+    return (
+      <div className="space-y-1 min-w-0 max-w-full">
+        {shown && (
+          <p className={cn('text-xs text-amber-700 dark:text-amber-300', WRAP_TEXT)}>
+            {t('aiHistory.waterfall.silenceReason')}
+            {shown}
+            {reasonText && reason ? `（${reason}）` : ''}
+          </p>
+        )}
+        {output && <pre className={PLAIN_BLOCK}>{output}</pre>}
       </div>
     );
   }
@@ -1371,7 +1456,11 @@ const TraceWaterfallInner = forwardRef<TraceWaterfallHandle, TraceWaterfallProps
       const ids = new Set<string>();
       const walk = (sp: TraceSpan) => {
         if (sp.kind === 'run' || sp.kind === 'chat') ids.add(sp.id);
-        if (sp.kind === 'generic' && sp.entry?.type === 'text_output') ids.add(sp.id);
+        if (
+          sp.kind === 'generic' &&
+          (sp.entry?.type === 'text_output' || sp.entry?.type === 'output_block')
+        )
+          ids.add(sp.id);
         sp.children.forEach(walk);
       };
       roots.forEach(walk);
