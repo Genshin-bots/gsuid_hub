@@ -23,8 +23,8 @@ export function MemeSettingsSection({ t, memeConfig, onUpdateConfig }: MemeSetti
   if (!memeConfig) return null;
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between">
+    <div className="space-y-3 md:space-y-5">
+      <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-lg font-bold flex items-center gap-2 mb-1">
             <Smile className="w-5 h-5 text-primary" />
@@ -34,7 +34,7 @@ export function MemeSettingsSection({ t, memeConfig, onUpdateConfig }: MemeSetti
         </div>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-3 md:space-y-4">
         <div className="p-3 rounded-lg glass-card transition-all">
           <ToggleRow
             icon={<Sparkles className="w-5 h-5" strokeWidth={1.5} />}
@@ -48,7 +48,7 @@ export function MemeSettingsSection({ t, memeConfig, onUpdateConfig }: MemeSetti
           />
         </div>
 
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 md:gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {(() => {
             const entries = Object.entries(memeConfig.config).filter(
               ([key]) => !EXCLUDED_KEYS.includes(key),

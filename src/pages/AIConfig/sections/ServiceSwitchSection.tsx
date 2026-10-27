@@ -19,7 +19,7 @@ export interface ServiceSwitchSectionProps {
  */
 export function ServiceSwitchSection({ isAIEnabled, t, onChange }: ServiceSwitchSectionProps) {
   return (
-    <div className="space-y-5">
+    <div className="space-y-3 md:space-y-5">
       <div>
         <h2 className="text-lg font-semibold flex items-center gap-2 mb-1">
           <Bot className="w-5 h-5 text-primary" />
@@ -32,7 +32,7 @@ export function ServiceSwitchSection({ isAIEnabled, t, onChange }: ServiceSwitch
         </p>
       </div>
 
-      <div className="flex items-center gap-5 p-5 rounded-2xl glass-card transition-all">
+      <div className="flex items-center gap-3 md:gap-5 p-5 rounded-2xl glass-card transition-all">
         <div
           className={cn(
             'flex items-center justify-center flex-shrink-0 transition-all duration-500',

@@ -945,11 +945,11 @@ export default function Dashboard() {
 
   return (
     <PinnedPage
-      /* gap-4：一屏要塞下磁贴 + 两行图表，默认的 gap-6 会在三段之间白掉 24px */
-      className="gap-4"
+      /* gap-3 md:gap-4：一屏要塞下磁贴 + 两行图表，默认的 gap-3 md:gap-6 会在三段之间白掉 24px */
+      className="gap-3 md:gap-4"
       header={
         /* Header with Bot Selector */
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 md:gap-4">
           <div>
             <h1 className="text-3xl font-bold flex items-center gap-3">
               <LayoutGrid className="w-8 h-8" />

@@ -109,9 +109,9 @@ export default function BrandSettingsPage() {
 
   return (
     <PinnedPage
-      className="gap-6"
+      className="gap-3 md:gap-6"
       header={
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex flex-col gap-3 md:gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0">
             <h1 className="text-3xl font-bold flex items-center gap-3">
               <ImageIcon className="w-8 h-8 shrink-0" />
@@ -141,7 +141,7 @@ export default function BrandSettingsPage() {
         </div>
       }
     >
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4">
         {/* 左：表单 */}
         <Card className="glass-card lg:col-span-2">
           <CardHeader>
@@ -151,7 +151,7 @@ export default function BrandSettingsPage() {
             </CardTitle>
             <CardDescription>{t('brandSettings.sectionDesc')}</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-3 md:space-y-6">
             <div className="space-y-2">
               <Label htmlFor="brand-title">{t('brandSettings.titleLabel')}</Label>
               <Input
@@ -178,7 +178,7 @@ export default function BrandSettingsPage() {
 
             <div className="space-y-2">
               <Label>{t('brandSettings.iconLabel')}</Label>
-              <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:gap-4">
+              <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:gap-3 md:gap-4">
                 <div className="w-20 h-20 rounded-2xl overflow-hidden border border-border/40 bg-muted flex items-center justify-center">
                   <img
                     src={displayIconUrl}

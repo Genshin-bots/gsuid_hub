@@ -720,9 +720,9 @@ export default function BatchPushPage() {
 
   return (
     <PinnedPage
-      className="gap-6"
+      className="gap-3 md:gap-6"
       header={
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex flex-col gap-3 md:gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0">
             <h1 className="text-3xl font-bold flex items-center gap-3">
               <Send className="w-8 h-8 shrink-0" />
@@ -737,9 +737,9 @@ export default function BatchPushPage() {
         </div>
       }
     >
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4">
         {/* 左：正文 + 目标 */}
-        <div className="lg:col-span-2 space-y-4">
+        <div className="lg:col-span-2 space-y-3 md:space-y-4">
           <Card className="glass-card">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -825,7 +825,7 @@ export default function BatchPushPage() {
               </CardTitle>
               <CardDescription>{t('batchPush.sectionTargetsDesc')}</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-3 md:space-y-4">
               {/* 行 1：WS Bot + 机器人账号（bot_self_id） */}
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="space-y-2 min-w-0">
@@ -1054,7 +1054,7 @@ export default function BatchPushPage() {
         </div>
 
         {/* 右：预览 + 最近记录 */}
-        <div className="space-y-4">
+        <div className="space-y-3 md:space-y-4">
           <Card className="glass-card">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">

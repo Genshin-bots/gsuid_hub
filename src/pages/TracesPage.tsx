@@ -313,10 +313,10 @@ export default function TracesPage() {
 
   return (
     <PinnedPage
-      className="gap-4"
-      bodyClassName="space-y-4"
+      className="gap-3 md:gap-4"
+      bodyClassName="space-y-3 md:space-y-4"
       header={
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex flex-col gap-3 md:gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0 sm:overflow-x-auto">
             <h1 className="sm:whitespace-nowrap text-3xl font-bold flex items-center gap-3">
               <Terminal className="w-8 h-8 shrink-0" />
@@ -407,7 +407,7 @@ export default function TracesPage() {
       }
     >
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         <Card className="glass-card border-l-4 border-l-primary">
           <CardContent className="p-4 flex items-center gap-3">
             <ScrollText className="w-7 h-7 text-primary shrink-0" strokeWidth={1.5} />

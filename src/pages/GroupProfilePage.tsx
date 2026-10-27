@@ -72,8 +72,8 @@ export function GroupProfilePanel({
   };
 
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+    <div className="space-y-3 md:space-y-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4">
         <Card className={cn('lg:col-span-1', 'glass-card')}>
           <CardHeader className="py-3">
             <CardTitle className="text-sm">
@@ -126,7 +126,7 @@ export function GroupProfilePanel({
               </div>
             )}
             {!detailLoading && profile && (
-              <div className="space-y-4 text-sm">
+              <div className="space-y-3 md:space-y-4 text-sm">
                 <p className="text-muted-foreground">
                   {t('groupProfile.lastUpdated')}: {profile.last_updated || '—'}
                 </p>

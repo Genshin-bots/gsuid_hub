@@ -341,7 +341,7 @@ export default function FrameworkConfigPage() {
           ) : (
             <Card className="glass-card w-full sm:w-fit">
               <CardContent className="p-4">
-                <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                <div className="flex flex-col sm:flex-row gap-3 md:gap-4 items-start sm:items-center">
                   <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                     <Settings className="w-4 h-4" />
                     <span>{t('frameworkConfig.selectConfig')}</span>
@@ -423,7 +423,7 @@ export default function FrameworkConfigPage() {
                   {t('frameworkConfig.noConfigItems')}
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
                   {Object.entries(selectedConfig.config).map(([key, field]: [string, any]) => (
                     <ConfigField
                       key={key}

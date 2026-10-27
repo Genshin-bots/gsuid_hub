@@ -1135,7 +1135,7 @@ export default function LiveChatPage() {
             </DialogTitle>
             <DialogDescription>{t('liveChat.newChatDesc')}</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 pt-0 pb-2">
+          <div className="space-y-3 md:space-y-4 pt-0 pb-2">
             {/* 会话类型：无标题；轻量分段，避免 glass-card 深阴影 */}
             <div className="inline-flex gap-1 rounded-lg border border-border/40 bg-muted/40 p-1">
               {(
@@ -1214,7 +1214,7 @@ export default function LiveChatPage() {
             </DialogTitle>
             <DialogDescription>{t('liveChat.settingsDesc')}</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-2">
+          <div className="space-y-3 md:space-y-4 py-2">
             <div className="space-y-2">
               <Label>{t('liveChat.userIdLabel')}</Label>
               {masters.length > 0 ? (

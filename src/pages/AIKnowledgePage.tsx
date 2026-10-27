@@ -1107,9 +1107,9 @@ export default function AIKnowledgePage() {
       <Card className={cn('glass-card')}>
         <CardContent className="p-0">
           {isLoading ? (
-            <div className="p-6 space-y-4">
+            <div className="p-6 space-y-3 md:space-y-4">
               {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="flex items-center gap-4">
+                <div key={i} className="flex items-center gap-3 md:gap-4">
                   <Skeleton className="h-10 flex-1" />
                   <Skeleton className="h-10 w-20" />
                 </div>
@@ -1335,7 +1335,7 @@ export default function AIKnowledgePage() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex-1 min-h-0 overflow-y-auto pr-1 py-2 space-y-4">
+          <div className="flex-1 min-h-0 overflow-y-auto pr-1 py-2 space-y-3 md:space-y-4">
             {knowledgeType === 'text' ? (
               // 文本知识表单
               <>
@@ -1580,7 +1580,7 @@ export default function AIKnowledgePage() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex-1 min-h-0 overflow-y-auto pr-1 py-2 space-y-4">
+          <div className="flex-1 min-h-0 overflow-y-auto pr-1 py-2 space-y-3 md:space-y-4">
             {/* 拖入区 */}
             <div
               className={cn(
@@ -1915,7 +1915,7 @@ export default function AIKnowledgePage() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-2">
+          <div className="space-y-3 md:space-y-4 py-2">
             <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
               <input
                 type="file"

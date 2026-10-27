@@ -1087,7 +1087,7 @@ function KnowledgeGraph({
         </button>
       )}
       {/* Legend */}
-      <div className="absolute bottom-3 left-3 flex flex-wrap items-center gap-4 text-xs text-muted-foreground bg-background/80 backdrop-blur rounded-md px-3 py-2">
+      <div className="absolute bottom-3 left-3 flex flex-wrap items-center gap-3 md:gap-4 text-xs text-muted-foreground bg-background/80 backdrop-blur rounded-md px-3 py-2">
         <span className="flex items-center gap-1.5">
           <span className="w-3 h-3 rounded-full bg-blue-400/70" />
           {t('aiMemory.legendSpeaker')}
@@ -1175,7 +1175,7 @@ function ScopeCard({
         </div>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 text-sm">
           <div>
             <p className="text-muted-foreground">对话片段</p>
             <p className="font-semibold">{scope.episode_count}</p>
@@ -2231,7 +2231,7 @@ export default function AIMemoryPage() {
 
   return (
     <PinnedPage
-      className="gap-3 sm:gap-4"
+      className="gap-3 sm:gap-3 md:gap-4"
       bodyClassName="space-y-3 sm:space-y-3.5"
       header={
         /* Header */
@@ -2342,7 +2342,7 @@ export default function AIMemoryPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 text-sm">
               <div>
                 <p className="text-muted-foreground">{t('aiMemory.initialized')}</p>
                 <p className="font-semibold">
@@ -2363,7 +2363,7 @@ export default function AIMemoryPage() {
               </div>
             </div>
             {hierGraphStatus.group_summary_cache && (
-              <div className="mt-4">
+              <div className="mt-3 md:mt-4">
                 <p className="text-sm text-muted-foreground">{t('aiMemory.groupSummary')}</p>
                 <p className="text-sm mt-1 p-2 bg-muted/50 rounded">
                   {hierGraphStatus.group_summary_cache}
@@ -2437,14 +2437,14 @@ export default function AIMemoryPage() {
       </div>
 
       {activeTab === 'search' && (
-        <div className="space-y-4">
+        <div className="space-y-3 md:space-y-4">
           <MemorySearchPanel />
         </div>
       )}
 
       {/* Knowledge Graph Tab */}
       {activeTab === 'graph' && (
-        <div className="space-y-4">
+        <div className="space-y-3 md:space-y-4">
           {entities.length === 0 && edges.length === 0 ? (
             <Card className={cn('glass-card')}>
               <CardContent className="flex flex-col items-center justify-center !p-8 text-center text-muted-foreground">
@@ -2476,7 +2476,7 @@ export default function AIMemoryPage() {
       )}
 
       {activeTab === 'world' && (
-        <div className="space-y-4">
+        <div className="space-y-3 md:space-y-4">
           {worldHubs.length === 0 ? (
             <Card className={cn('glass-card')}>
               <CardContent className="flex flex-col items-center justify-center !p-8 text-center text-muted-foreground">
@@ -2498,7 +2498,7 @@ export default function AIMemoryPage() {
 
       {/* Preferences Tab */}
       {activeTab === 'preferences' && (
-        <div className="space-y-4">
+        <div className="space-y-3 md:space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <p className="text-sm text-muted-foreground">
               {t('aiMemory.preferenceCount', {
@@ -2822,7 +2822,7 @@ export default function AIMemoryPage() {
 
       {/* Scopes Tab */}
       {activeTab === 'scopes' && (
-        <div className="space-y-4">
+        <div className="space-y-3 md:space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <p className="text-sm text-muted-foreground">
               {t('aiMemory.scopeCount', { count: scopes.length })}
@@ -2839,7 +2839,7 @@ export default function AIMemoryPage() {
               {t('common.refresh')}
             </Button>
           </div>
-          <div className="glass-card-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="glass-card-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
             {scopes.map((scope) => (
               <ScopeCard
                 key={scope.scope_key}
@@ -2863,7 +2863,7 @@ export default function AIMemoryPage() {
 
       {/* Episodes Tab */}
       {activeTab === 'episodes' && (
-        <div className="space-y-4">
+        <div className="space-y-3 md:space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <p className="text-sm text-muted-foreground">
               {t('aiMemory.episodeCount', { count: episodes.length, total: totalEpisodes })}
@@ -2907,10 +2907,10 @@ export default function AIMemoryPage() {
                   onClick={() => openDetailDialog('episode', episode.id)}
                 >
                   <CardContent className="p-4">
-                    <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-start justify-between gap-3 md:gap-4">
                       <div className="flex-1 min-w-0">
                         <p className="text-sm line-clamp-3">{truncateText(episode.content, 200)}</p>
-                        <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-3 md:gap-4 mt-2 text-xs text-muted-foreground">
                           <span className="flex items-center gap-1">
                             <Users className="w-3 h-3" />
                             {episode.speaker_ids.length} {t('aiMemory.speakers')}
@@ -2966,7 +2966,7 @@ export default function AIMemoryPage() {
 
       {/* Entities Tab */}
       {activeTab === 'entities' && (
-        <div className="space-y-4">
+        <div className="space-y-3 md:space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div className="flex items-center gap-2 flex-1 min-w-0">
               <Search className="w-4 h-4 text-muted-foreground" />
@@ -3019,7 +3019,7 @@ export default function AIMemoryPage() {
             {t('aiMemory.entityCount', { count: entities.length, total: totalEntities })}
           </p>
           {isLoadingData ? (
-            <div className="glass-card-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="glass-card-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
               {Array.from({ length: 6 }).map((_, i) => (
                 <Skeleton key={i} className="h-32 w-full" />
               ))}
@@ -3032,7 +3032,7 @@ export default function AIMemoryPage() {
               </CardContent>
             </Card>
           ) : (
-            <div className="glass-card-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="glass-card-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
               {entities.map((entity) => (
                 <div key={entity.id} className="relative group">
                   <EntityNode
@@ -3084,7 +3084,7 @@ export default function AIMemoryPage() {
 
       {/* Edges Tab */}
       {activeTab === 'edges' && (
-        <div className="space-y-4">
+        <div className="space-y-3 md:space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <p className="text-sm text-muted-foreground">
               {t('aiMemory.edgeCount', { count: edges.length, total: totalEdges })}
@@ -3170,7 +3170,7 @@ export default function AIMemoryPage() {
 
       {/* Categories Tab */}
       {activeTab === 'categories' && (
-        <div className="space-y-4">
+        <div className="space-y-3 md:space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <p className="text-sm text-muted-foreground">
               {t('aiMemory.categoryCount', { count: categories.length, total: totalCategories })}
@@ -3215,7 +3215,7 @@ export default function AIMemoryPage() {
 
       {/* Agent Debug Tab */}
       {activeTab === 'debug' && (
-        <div className="space-y-4">
+        <div className="space-y-3 md:space-y-4">
           <Card className={cn('glass-card')}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -3226,7 +3226,7 @@ export default function AIMemoryPage() {
                 使用 Agent Debug API 查看指定 scope 的 Edge 与矛盾记录，并可软删除错误 Edge。
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-3 md:space-y-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                 <div className="space-y-2">
                   <Label>Scope Key</Label>
@@ -3267,7 +3267,7 @@ export default function AIMemoryPage() {
             </CardContent>
           </Card>
 
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-3 md:gap-4">
             <Card className={cn('xl:col-span-2', 'glass-card')}>
               <CardHeader>
                 <CardTitle className="flex items-center justify-between gap-2">
@@ -3379,7 +3379,7 @@ export default function AIMemoryPage() {
 
       {/* Config Tab */}
       {activeTab === 'config' && (
-        <div className="space-y-4">
+        <div className="space-y-3 md:space-y-4">
           {config && (
             <>
               <Card className={cn('glass-card')}>
@@ -3390,7 +3390,7 @@ export default function AIMemoryPage() {
                   </CardTitle>
                   <CardDescription>{t('aiMemory.observerSettingsDesc')}</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-3 md:space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
                       <Label>{t('aiMemory.observerEnabled')}</Label>
@@ -3422,8 +3422,8 @@ export default function AIMemoryPage() {
                   </CardTitle>
                   <CardDescription>{t('aiMemory.ingestionSettingsDesc')}</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <CardContent className="space-y-3 md:space-y-4">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
                     <div>
                       <Label className="text-muted-foreground">
                         {t('aiMemory.ingestionEnabled')}
@@ -3455,8 +3455,8 @@ export default function AIMemoryPage() {
                   </CardTitle>
                   <CardDescription>{t('aiMemory.retrievalSettingsDesc')}</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <CardContent className="space-y-3 md:space-y-4">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
                     <div>
                       <Label className="text-muted-foreground">
                         {t('aiMemory.enableRetrieval')}
@@ -3493,7 +3493,7 @@ export default function AIMemoryPage() {
                     </div>
                   </div>
                   <Separator />
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
                     <div>
                       <Label className="text-muted-foreground">{t('aiMemory.retrievalTopK')}</Label>
                       <p className="font-semibold">{config.retrieval_top_k}</p>
@@ -3525,8 +3525,8 @@ export default function AIMemoryPage() {
                   </CardTitle>
                   <CardDescription>{t('aiMemory.hierGraphSettingsDesc')}</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <CardContent className="space-y-3 md:space-y-4">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
                     <div>
                       <Label className="text-muted-foreground">
                         {t('aiMemory.minChildrenPerCategory')}
@@ -3578,9 +3578,9 @@ export default function AIMemoryPage() {
               {t('aiMemory.detailAriaDesc')}
             </DialogDescription>
           </DialogHeader>
-          <div className="flex-1 min-h-0 overflow-y-auto pr-1 py-1 space-y-4">
+          <div className="flex-1 min-h-0 overflow-y-auto pr-1 py-1 space-y-3 md:space-y-4">
             {dialogType === 'episode' && selectedEpisode && (
-              <div className="space-y-4">
+              <div className="space-y-3 md:space-y-4">
                 <div>
                   <Label className="text-muted-foreground">{t('aiMemory.scopeKey')}</Label>
                   <p className="font-mono text-sm">{selectedEpisode.scope_key}</p>
@@ -3601,7 +3601,7 @@ export default function AIMemoryPage() {
                     ))}
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="grid grid-cols-2 gap-3 md:gap-4 text-sm">
                   <div>
                     <Label className="text-muted-foreground">{t('aiMemory.validAt')}</Label>
                     <p>{formatDate(selectedEpisode.valid_at)}</p>
@@ -3628,7 +3628,7 @@ export default function AIMemoryPage() {
               </div>
             )}
             {dialogType === 'entity' && selectedEntity && (
-              <div className="space-y-4">
+              <div className="space-y-3 md:space-y-4">
                 <div className={cn('rounded-lg p-4', 'glass-card')}>
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 text-sm">
                     <div>
@@ -3814,7 +3814,7 @@ export default function AIMemoryPage() {
               </div>
             )}
             {dialogType === 'edge' && selectedEdge && (
-              <div className="space-y-4">
+              <div className="space-y-3 md:space-y-4">
                 <div>
                   <Label className="text-muted-foreground">{t('aiMemory.scopeKey')}</Label>
                   <p className="font-mono text-sm">{selectedEdge.scope_key}</p>
@@ -3823,7 +3823,7 @@ export default function AIMemoryPage() {
                   <Label className="text-muted-foreground">{t('aiMemory.fact')}</Label>
                   <p className="mt-1 p-2 bg-muted/50 rounded text-sm">{selectedEdge.fact}</p>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-3 md:gap-4">
                   <div>
                     <Label className="text-muted-foreground">{t('aiMemory.sourceEntity')}</Label>
                     <p className="font-medium">{selectedEdge.source_entity.name}</p>
@@ -3843,7 +3843,7 @@ export default function AIMemoryPage() {
                     )}
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="grid grid-cols-2 gap-3 md:gap-4 text-sm">
                   <div>
                     <Label className="text-muted-foreground">{t('aiMemory.validAt')}</Label>
                     <p>{formatDate(selectedEdge.valid_at)}</p>
@@ -3858,7 +3858,7 @@ export default function AIMemoryPage() {
               </div>
             )}
             {dialogType === 'world' && selectedWorldHub && (
-              <div className="space-y-4">
+              <div className="space-y-3 md:space-y-4">
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge className="gap-1">
                     <Globe className="w-3 h-3" />
@@ -3907,7 +3907,7 @@ export default function AIMemoryPage() {
               </div>
             )}
             {dialogType === 'category' && selectedCategoryDetail && (
-              <div className="space-y-4">
+              <div className="space-y-3 md:space-y-4">
                 <div>
                   <Label className="text-muted-foreground">{t('aiMemory.scopeKey')}</Label>
                   <p className="font-mono text-sm">{selectedCategoryDetail.scope_key}</p>
@@ -3936,7 +3936,7 @@ export default function AIMemoryPage() {
                     </div>
                   </div>
                 )}
-                <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="grid grid-cols-2 gap-3 md:gap-4 text-sm">
                   <div>
                     <Label className="text-muted-foreground">{t('aiMemory.layer')}</Label>
                     <p className="font-semibold">{selectedCategoryDetail.layer}</p>
@@ -3946,7 +3946,7 @@ export default function AIMemoryPage() {
                     <p className="font-semibold">{selectedCategoryDetail.member_entities_count}</p>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="grid grid-cols-2 gap-3 md:gap-4 text-sm">
                   <div>
                     <Label className="text-muted-foreground">{t('aiMemory.createdAt')}</Label>
                     <p>{formatDate(selectedCategoryDetail.created_at)}</p>

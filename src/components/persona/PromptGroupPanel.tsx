@@ -257,7 +257,10 @@ export const PromptGroupPanel = forwardRef<
   };
 
   return (
-    <div className="-mt-3">
+    // -mt-3 只在桌面生效：桌面的 .page-pinned-body 有负 margin + 等量 padding，
+    // 这里要抵消它；窄屏 body 没有那层 padding，负 margin 会把 12px 的页面间距
+    // 吃掉，导致上面的横幅直接贴住工具栏。
+    <div className="md:-mt-3">
       <div className="mb-3 space-y-3">
         <GlassAlert tone="warning">{t('personaConfig.promptBuiltinWarning')}</GlassAlert>
         <ActivePromptGroupNotice lines={activeLines} ready={activeReady} />

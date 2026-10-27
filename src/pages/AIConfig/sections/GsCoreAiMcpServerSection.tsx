@@ -150,7 +150,7 @@ export function GsCoreAiMcpServerSection({ t, isGlass = false }: GsCoreAiMcpServ
 
   // ---------------- 渲染 ----------------
   return (
-    <div className="space-y-5">
+    <div className="space-y-3 md:space-y-5">
       {/* 标题 */}
       <div>
         <h2 className="text-lg font-bold flex items-center gap-2 mb-1">
@@ -161,7 +161,7 @@ export function GsCoreAiMcpServerSection({ t, isGlass = false }: GsCoreAiMcpServ
       </div>
 
       {/* 状态卡片 */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         <StatusCard
           icon={<Activity className="w-5 h-5" />}
           label={t('gsCoreAiMcpServer.status.enable')}

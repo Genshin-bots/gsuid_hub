@@ -415,7 +415,7 @@ export default function BackupPage() {
   return (
     <PinnedPage
       header={
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex flex-col gap-3 md:gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0 sm:overflow-x-auto">
             <h1 className="sm:whitespace-nowrap text-3xl font-bold flex items-center gap-3">
               <HardDrive className="w-8 h-8 shrink-0" />
@@ -464,9 +464,9 @@ export default function BackupPage() {
         />
       }
     >
-      <div className="space-y-4">
+      <div className="space-y-3 md:space-y-4">
         {activeTab === 'settings' && (
-          <div className="space-y-4">
+          <div className="space-y-3 md:space-y-4">
             <Card className="glass-card">
               <CardHeader>
                 <CardTitle>{t('backup.basicSettings')}</CardTitle>

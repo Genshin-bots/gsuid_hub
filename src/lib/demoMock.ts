@@ -1860,8 +1860,10 @@ const DEMO_MCP_CONFIGS = [
     last_loaded_at: new Date(Date.now() - 300_000).toISOString(),
   },
 ];
-export const generateMCPConfigList = () =>
-  DEMO_MCP_CONFIGS.map((c) => ({
+export const generateMCPConfigList = () => {
+  // 后端 MCPConfigListResponse 是 { configs, count }，不是裸数组。
+  // 裸数组会让 /ai-config 的 useMcpToolsConfig 在 `for (const c of mcpConfigs)` 处崩。
+  const configs = DEMO_MCP_CONFIGS.map((c) => ({
     config_id: c.config_id,
     name: c.name,
     description: c.description,
@@ -1880,6 +1882,8 @@ export const generateMCPConfigList = () =>
     tool_permissions: {},
     last_loaded_at: c.last_loaded_at,
   }));
+  return { configs, count: configs.length };
+};
 export const generateMCPConfigDetail = (configId: string) => {
   const c = DEMO_MCP_CONFIGS.find((x) => x.config_id === configId) ?? DEMO_MCP_CONFIGS[0];
   return {
@@ -3132,5 +3136,91 @@ export const generateAllArtifacts = (params: URLSearchParams) => {
     limit,
     offset,
     has_more: offset + page.length < total,
+  };
+};
+
+// ---- 自主行动 feed（/ai-artifacts「自主行动」页签）----
+const AUTONOMY_DRIVE_KINDS = ['care_user', 'group_topic', 'self_explore', 'rest'];
+const AUTONOMY_DELIVERY_MODES = ['immediate_push', 'staged_merge', 'silent_only'];
+const AUTONOMY_SUMMARIES = [
+  '发现群友连续三天问同一件事，整理成一篇小贴士发回群里。',
+  '翻查旧聊天记录，发现上次答错了一个数值，这次主动更正。',
+  '群里安静了一阵，用一句话提醒把话题重新拉起来。',
+  '把上周攒的资料整理成清单，暂存到工具落盘。',
+  '检查了插件更新情况，把两个有新版的插件写进了待办。',
+  '统计本周提及次数，发现「早柚」被叫到的频率明显变高。',
+];
+
+/** 造一条自主行动记录，字段对齐后端 AutonomyActivity（少字段会让详情弹窗炸掉）。 */
+const makeAutonomyActivity = (index: number) => {
+  const persona = DEMO_PERSONAS[index % DEMO_PERSONAS.length];
+  const steps = [
+    {
+      step_index: 1,
+      tool_name: 'chat_history',
+      args_summary: 'limit=50',
+      output_text: '读取最近 50 条群聊记录',
+      is_error: false,
+      resource_ids: [],
+      duration_ms: 320,
+    },
+    {
+      step_index: 2,
+      tool_name: 'web_search',
+      args_summary: 'q=最近讨论的问题',
+      output_text: '检索到 3 条相关资料',
+      is_error: false,
+      resource_ids: [],
+      duration_ms: 860,
+    },
+    {
+      step_index: 3,
+      tool_name: 'file_write',
+      args_summary: 'path=整理清单.md',
+      output_text: '已写入工具落盘',
+      is_error: false,
+      resource_ids: ['to_demo'],
+      duration_ms: 140,
+    },
+  ];
+  return {
+    id: 1000 + index,
+    persona_name: persona.name,
+    bot_id: 'sayu_bot',
+    bot_self_id: 'tg-sayu',
+    drive_kind: AUTONOMY_DRIVE_KINDS[index % AUTONOMY_DRIVE_KINDS.length],
+    target_user_id: index % 2 === 0 ? '114514' : '',
+    target_session_key: 'demo:group:114514',
+    plugins_used: ['SayuStock'],
+    steps,
+    fact_pack: {
+      verified_tools: ['chat_history', 'web_search'],
+      factual_observations: ['群内最近 3 天重复询问了同一个数值问题'],
+      generated_resources: ['工具落盘/整理清单.md'],
+      has_substantive_outcome: index % 3 !== 0,
+    },
+    summary: AUTONOMY_SUMMARIES[index % AUTONOMY_SUMMARIES.length],
+    open_trails: ['口径需要人工确认'],
+    delivery_mode: AUTONOMY_DELIVERY_MODES[index % AUTONOMY_DELIVERY_MODES.length],
+    step_count: steps.length,
+    duration_ms: 1320 + index * 130,
+    session_id: `demo-autonomy-${index}`,
+    created_at: Math.floor(Date.now() / 1000) - index * 1800,
+  };
+};
+
+export const generateAutonomyFeed = (params: URLSearchParams) => {
+  const personaName = params.get('persona_name') ?? '';
+  const limitRaw = Number.parseInt(params.get('limit') ?? '20', 10);
+  const offsetRaw = Number.parseInt(params.get('offset') ?? '0', 10);
+  const limit = Number.isFinite(limitRaw) ? Math.min(100, Math.max(1, limitRaw)) : 20;
+  const offset = Number.isFinite(offsetRaw) ? Math.max(0, offsetRaw) : 0;
+  const all = Array.from({ length: 26 }, (_, i) => makeAutonomyActivity(i));
+  const filtered = personaName ? all.filter((row) => row.persona_name === personaName) : all;
+  return {
+    items: filtered.slice(offset, offset + limit),
+    total: filtered.length,
+    latest: filtered.slice(0, 6),
+    personas: DEMO_PERSONAS.map((p) => p.name),
   };
 };

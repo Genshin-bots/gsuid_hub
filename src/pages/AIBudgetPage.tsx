@@ -134,10 +134,10 @@ export default function AIBudgetPage() {
 
   return (
     <PinnedPage
-      className="gap-4"
+      className="gap-3 md:gap-4"
       header={
         /* Header */
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex flex-col gap-3 md:gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold flex items-center gap-3">
               <Wallet className="w-8 h-8" />
@@ -207,11 +207,11 @@ function OverviewTab({ onNavigateTab }: { onNavigateTab: (tab: string) => void }
   const topUsersMax = overview.top_users_24h.reduce((m, i) => Math.max(m, i.total_tokens), 0);
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3 md:gap-4">
       {/* 顶部全局状态卡片（全宽） */}
       <div
         className={cn(
-          'glass-card rounded-xl p-4 border flex flex-col sm:flex-row sm:items-center justify-between gap-4',
+          'glass-card rounded-xl p-4 border flex flex-col sm:flex-row sm:items-center justify-between gap-3 md:gap-4',
           overview.enabled
             ? 'border-emerald-500/30 bg-emerald-500/5'
             : 'border-amber-500/30 bg-amber-500/5',
@@ -279,7 +279,7 @@ function OverviewTab({ onNavigateTab }: { onNavigateTab: (tab: string) => void }
       </div>
 
       {/* 4 个核心指标卡片（全宽响应式网格） */}
-      <div className="glass-card-grid grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div className="glass-card-grid grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-3 md:gap-4">
         <div
           role="button"
           tabIndex={0}
@@ -416,7 +416,7 @@ function OverviewTab({ onNavigateTab }: { onNavigateTab: (tab: string) => void }
       )}
 
       {/* 24h 消耗排行 */}
-      <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 items-stretch gap-3 md:gap-4 lg:grid-cols-2">
         <Card className="glass-card h-full">
           <CardHeader className="p-4 py-3 sm:p-4 sm:py-3">
             <CardTitle className="flex items-center gap-2 text-base">
@@ -475,7 +475,7 @@ function OverviewTab({ onNavigateTab }: { onNavigateTab: (tab: string) => void }
       </div>
 
       {/* 底部快捷入口导航 */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 mt-1">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-3 md:gap-4 mt-1">
         <div
           role="button"
           tabIndex={0}
@@ -580,7 +580,7 @@ function OverviewTab({ onNavigateTab }: { onNavigateTab: (tab: string) => void }
 function ManageTab() {
   const { t } = useLanguage();
   return (
-    <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-2">
+    <div className="grid grid-cols-1 items-start gap-3 md:gap-4 xl:grid-cols-2">
       <section className="flex min-w-0 flex-col gap-2">
         <h2 className="flex items-center gap-2 px-1 text-base font-semibold">
           <Settings className="h-4 w-4" />
@@ -698,19 +698,19 @@ function WindowProgressBar({ window: w }: { window: AIBudgetWindowUsage }) {
 
 function OverviewSkeleton() {
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3 md:gap-4">
       <Skeleton className="h-20 w-full rounded-xl" />
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-3 md:gap-4">
         {[1, 2, 3, 4].map((i) => (
           <Skeleton key={i} className="h-24 rounded-xl" />
         ))}
       </div>
       <Skeleton className="h-12 w-full rounded-xl" />
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 md:gap-4 lg:grid-cols-2">
         <Skeleton className="h-56 rounded-xl" />
         <Skeleton className="h-56 rounded-xl" />
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-3 md:gap-4">
         {[1, 2, 3].map((i) => (
           <Skeleton key={i} className="h-28 rounded-xl" />
         ))}
@@ -844,7 +844,7 @@ function ConfigTab({
   ];
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3 md:gap-4">
       {/* Master Switch */}
       <Card className="glass-card">
         <CardHeader>
@@ -880,8 +880,8 @@ function ConfigTab({
           </CardTitle>
           <CardDescription>{t('aiBudget.config.countModeDesc')}</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <CardContent className="space-y-3 md:space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
             <div className="space-y-2">
               <div className="flex items-center gap-1.5">
                 <Label>{t('aiBudget.config.countMode')}</Label>
@@ -944,7 +944,7 @@ function ConfigTab({
             {t('aiBudget.config.exemptMasters')}
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3 md:space-y-4">
           <div className="flex items-center justify-between py-2">
             <div>
               <Label className="font-medium">{t('aiBudget.config.exemptMasters')}</Label>
@@ -1010,7 +1010,7 @@ function ConfigTab({
 
 function ConfigSkeleton() {
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3 md:gap-4">
       {[1, 2, 3, 4].map((i) => (
         <Skeleton key={i} className="h-24 rounded-lg" />
       ))}
@@ -1136,7 +1136,7 @@ function RulesTab() {
   }, [rules]);
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3 md:gap-4">
       {/* Toolbar */}
       <Card className="glass-card">
         <CardContent className="py-3">
@@ -1288,7 +1288,7 @@ function RulesTab() {
               <Loader2 className="w-6 h-6 animate-spin mx-auto" />
             </div>
           ) : detailRule && detailRule.usage ? (
-            <div className="space-y-4">
+            <div className="space-y-3 md:space-y-4">
               <RuleInfoSection rule={detailRule} />
               <Separator />
               <div className="space-y-3">
@@ -1327,7 +1327,7 @@ function RuleCard({
   return (
     <Card className={cn('glass-card', rule.enabled ? '' : 'opacity-60')}>
       <CardContent className="py-3">
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex items-start justify-between gap-3 md:gap-4">
           <div className="flex-1 min-w-0 flex items-center gap-2">
             <Switch checked={rule.enabled} onCheckedChange={onToggle} />
             <div className="flex-1 min-w-0">
@@ -1608,7 +1608,7 @@ function RuleFormDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="min-h-0 flex-1 overflow-y-auto space-y-4 py-2 pr-1">
+        <div className="min-h-0 flex-1 overflow-y-auto space-y-3 md:space-y-4 py-2 pr-1">
           {/* Scope Type */}
           <div className="space-y-2">
             <Label className="font-medium">{t('aiBudget.rules.form.scopeType')}</Label>
@@ -1632,7 +1632,7 @@ function RuleFormDialog({
           </div>
 
           {/* Scope ID / Member ID */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
             {scopeType !== 'global' && (
               <div className="space-y-2">
                 <Label>{t('aiBudget.rules.form.scopeId')}</Label>
@@ -1656,7 +1656,7 @@ function RuleFormDialog({
           </div>
 
           {/* Name / Bot ID / Priority */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
             <div className="space-y-2">
               <Label>{t('aiBudget.rules.form.name')}</Label>
               <Input
@@ -1724,7 +1724,7 @@ function RuleFormDialog({
           <div className="space-y-2">
             <Label className="font-medium">{t('aiBudget.rules.columns.limits')}</Label>
             <p className="text-xs text-muted-foreground">{t('aiBudget.rules.form.limitHint')}</p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
               <div className="space-y-1">
                 <Label className="text-xs">{t('aiBudget.rules.form.limitShort')}</Label>
                 <Input
@@ -1765,7 +1765,7 @@ function RuleFormDialog({
           </div>
 
           {/* Enabled / Note */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 md:gap-4">
             <div className="flex items-center gap-2">
               <Switch checked={enabled} onCheckedChange={setEnabled} />
               <Label>{t('aiBudget.rules.form.enabled')}</Label>
@@ -1852,7 +1852,7 @@ function WhitelistTab() {
   };
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3 md:gap-4">
       {/* Toolbar */}
       <Card className="glass-card">
         <CardContent className="py-3">
@@ -2091,7 +2091,7 @@ function WhitelistFormDialog({
             {t('aiBudget.whitelist.whitelistFormAriaDesc')}
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4 py-2">
+        <div className="space-y-3 md:space-y-4 py-2">
           <div className="space-y-2">
             <Label>{t('aiBudget.whitelist.form.userId')} *</Label>
             <Input
@@ -2228,7 +2228,7 @@ function DiagnosticTab() {
   ];
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3 md:gap-4">
       {/* Dry Run Check */}
       <Card className="glass-card">
         <CardHeader>
@@ -2238,8 +2238,8 @@ function DiagnosticTab() {
           </CardTitle>
           <CardDescription>{t('aiBudget.diagnostic.checkDesc')}</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <CardContent className="space-y-3 md:space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
             <div className="space-y-2">
               <div className="flex items-center gap-1.5 min-h-[20px]">
                 <Label>{t('aiBudget.diagnostic.userId')} *</Label>
@@ -2314,7 +2314,7 @@ function DiagnosticTab() {
               {t('aiBudget.diagnostic.resultTitle')}
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3 md:space-y-4">
             {/* Summary */}
             <div
               className={cn(
@@ -2438,8 +2438,8 @@ function DiagnosticTab() {
           </CardTitle>
           <CardDescription>{t('aiBudget.diagnostic.resetDesc')}</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <CardContent className="space-y-3 md:space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
             <div className="space-y-2">
               <Label>{t('aiBudget.diagnostic.resetScopeType')}</Label>
               <Select value={resetScopeType} onValueChange={setResetScopeType}>

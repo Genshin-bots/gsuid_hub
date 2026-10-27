@@ -122,7 +122,9 @@ const GRID_COLS_CLASS: Record<number, string> = {
 function tabSegmentClassName(isActive: boolean, isDisabled: boolean, buttonClassName?: string) {
   return cn(
     hoverIconGroupClass,
-    'relative text-sm font-medium transition-all duration-200 flex items-center gap-2 whitespace-nowrap',
+    // min-w-0：允许分段在窄屏被挤压（配合 label 的 truncate），
+    // 否则 flex item 的 min-width:auto 会让它拒绝收缩，三个分段永远排不下一行。
+    'relative min-w-0 text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2 whitespace-nowrap',
     isActive
       ? 'bg-primary text-primary-foreground [&_svg]:text-current'
       : 'text-muted-foreground hover:text-foreground hover:bg-muted/80 [&_svg]:text-current',
@@ -185,7 +187,7 @@ function TabSegmentDropdownItem({
             tabSegmentClassName(isActive, isDisabled, omitPaddingClasses(buttonClassName)),
             // 外层只负责底色/对齐；padding 由内层主区 / ▾ 自己带。
             // 必须写在 buttonClassName 之后：无前缀 p-0 盖不住 sm:px-*。
-            'inline-flex min-w-0 items-stretch overflow-hidden rounded-md gap-0 p-0',
+            'inline-flex min-w-0 items-stretch justify-center overflow-hidden rounded-md gap-0 p-0',
             singleRowOnMobile && 'flex-1 text-xs sm:flex-none sm:text-sm',
           )}
         >
@@ -355,7 +357,8 @@ export function TabButtonGroup({
           // 窄屏等分成 N 列不换行，好过收成下拉丢掉「分区一眼可见」。
           // 用 grid 而非 flex：flex 下「主区 + ▾」拆分按钮里的 nowrap 文本会把整段
           // 撑到 min-content，flex-1 等分直接失效（实测 82/98/98，grid 才是 93/93/93）。
-          singleRowOnMobile && cn('grid sm:inline-flex', GRID_COLS_CLASS[options.length]),
+          singleRowOnMobile &&
+            cn('tab-segment-single-row grid sm:inline-flex', GRID_COLS_CLASS[options.length]),
           className,
         )}
       >
@@ -409,7 +412,7 @@ export function TabButtonGroup({
                   {asHoverIcon(option.icon)}
                 </span>
               )}
-              <span className={cn(singleRowOnMobile && 'min-w-0 truncate')}>{option.label}</span>
+              <span className={cn('min-w-0 truncate')}>{option.label}</span>
               {option.badge}
             </button>
           );
@@ -422,10 +425,16 @@ export function TabButtonGroup({
 
   return (
     <>
-      <div className="inline-flex max-w-full md:hidden">
+      {/*
+        窄屏折叠态：整行铺满（原来只占内容宽度，右侧留一大片空白），
+        触发器用前景色文字而不是 bg-primary 选中态 ——
+        折叠行里没有滑动胶囊，选中态样式会把底色抹成透明、字又强制成
+        primary-foreground（亮色主题近白），结果白字压在浅色玻璃上读不出来。
+      */}
+      <div className="flex w-full min-w-0 md:hidden">
         <div
           className={cn(
-            'tab-segment-row inline-flex min-w-0 max-w-full gap-1 rounded-lg glass-card-flat',
+            'tab-segment-row tab-segment-collapsed flex w-full min-w-0 max-w-full gap-1 rounded-lg glass-card-flat',
             shellClass,
           )}
         >
@@ -435,8 +444,11 @@ export function TabButtonGroup({
                 type="button"
                 disabled={disabled}
                 className={cn(
-                  tabSegmentClassName(true, disabled, buttonClassName),
-                  'max-w-full rounded-md px-4',
+                  hoverIconGroupClass,
+                  'relative flex w-full min-w-0 items-center gap-2 whitespace-nowrap rounded-md px-3 text-sm font-medium text-foreground transition-all duration-200',
+                  'hover:bg-black/5 dark:hover:bg-white/10',
+                  disabled && 'cursor-not-allowed opacity-40',
+                  buttonClassName,
                   segmentYClass,
                   hug && 'h-full',
                 )}
@@ -446,12 +458,17 @@ export function TabButtonGroup({
                     {asHoverIcon(current.icon)}
                   </span>
                 )}
-                <span className="min-w-0 truncate">{current?.label}</span>
+                <span className="min-w-0 flex-1 truncate text-left">{current?.label}</span>
                 {current?.badge}
-                <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-70" />
+                <ChevronDown className="ml-1 h-3.5 w-3.5 shrink-0 opacity-70" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="min-w-[12rem] max-h-72 overflow-y-auto">
+            {/* 菜单宽度跟触发器一致：触发器在窄屏是通栏的，菜单却只有内容宽，
+                看起来像两个宽度不同的控件 */}
+            <DropdownMenuContent
+              align="start"
+              className="w-[var(--radix-dropdown-menu-trigger-width)] min-w-[12rem] max-h-72 overflow-y-auto"
+            >
               {options.map((option) => {
                 const selected = value === option.value;
                 const isDisabled = disabled || !!option.disabled;

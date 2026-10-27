@@ -662,7 +662,7 @@ export default function DatabasePage() {
         {activeTable && tableMetadata && (
           <Card className="glass-card">
             <CardContent className="pt-6">
-              <div className="flex flex-wrap items-center gap-4 mb-4">
+              <div className="flex flex-wrap items-center gap-3 md:gap-4 mb-4">
                 {/* 全局搜索框 */}
                 <div className="flex items-center gap-2">
                   <Search className="h-4 w-4 text-muted-foreground" />
@@ -1062,7 +1062,7 @@ export default function DatabasePage() {
             )}
 
             {importStep === 0 && (
-              <div className="space-y-4">
+              <div className="space-y-3 md:space-y-4">
                 <div className="flex items-center gap-3 min-w-0">
                   <Button
                     type="button"

@@ -684,7 +684,7 @@ function MemeDetailDialog({
               </DialogHeader>
 
               <ScrollArea className="min-h-0 flex-1 px-6">
-                <div className="space-y-4 pb-4">
+                <div className="space-y-3 md:space-y-4 pb-4">
                   {/* Description */}
                   <div className="space-y-2">
                     <Label className="text-muted-foreground">
@@ -699,7 +699,7 @@ function MemeDetailDialog({
                   </div>
 
                   {/* Tags */}
-                  <div className="space-y-4">
+                  <div className="space-y-3 md:space-y-4">
                     <div className="space-y-2">
                       <Label className="text-muted-foreground">
                         {t('aiMeme.detail.emotionTags')}
@@ -1041,7 +1041,7 @@ function UploadDialog({
           <DialogDescription>{t('aiMeme.upload.dragDropHint')}</DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-2">
+        <div className="space-y-3 md:space-y-4 py-2">
           {/* Drop Zone */}
           <div
             className={cn(
@@ -1694,7 +1694,7 @@ export default function AIMemePage() {
     <PinnedPage
       header={
         /* 标题与操作按钮底对齐。按钮行允许收缩换行，避免被裁出视口 */
-        <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex min-w-0 flex-col gap-3 md:gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0 sm:overflow-x-auto">
             <h1 className="flex items-center gap-3 text-3xl font-bold sm:whitespace-nowrap">
               <ImageIcon className="h-8 w-8 shrink-0" />
@@ -1766,7 +1766,7 @@ export default function AIMemePage() {
               onClick={() => setShowImportDotMemeDialog(true)}
               className={cn(
                 tabToolbarControlClass,
-                'header-action-fixed gap-1.5 whitespace-nowrap',
+                'gap-1.5 whitespace-nowrap',
               )}
               title={t('aiMeme.importDotMeme')}
             >
@@ -1778,7 +1778,7 @@ export default function AIMemePage() {
               onClick={openExportDialog}
               className={cn(
                 tabToolbarControlClass,
-                'header-action-fixed gap-1.5 whitespace-nowrap',
+                'gap-1.5 whitespace-nowrap',
               )}
               title={t('aiMeme.exportDotMeme')}
             >
@@ -1961,7 +1961,7 @@ export default function AIMemePage() {
       )}
 
       {(isLoadingStats || stats) && (
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
+        <div className="grid grid-cols-2 gap-3 md:gap-4 md:grid-cols-3 lg:grid-cols-6">
           {isLoadingStats ? (
             Array.from({ length: 6 }).map((_, i) => (
               <Card key={i} className={cn('glass-card')}>
@@ -2022,7 +2022,7 @@ export default function AIMemePage() {
 
       {/* Meme Grid */}
       {isLoading ? (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+        <div className="grid grid-cols-2 gap-3 md:gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
           {Array.from({ length: 12 }).map((_, i) => (
             <Card key={i} className={cn('glass-card')}>
               <Skeleton className="aspect-square w-full" />
@@ -2055,7 +2055,7 @@ export default function AIMemePage() {
         </Card>
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+          <div className="grid grid-cols-2 gap-3 md:gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
             {memes.map((meme) => (
               <MemeCard
                 key={meme.meme_id}
@@ -2303,7 +2303,7 @@ export default function AIMemePage() {
               value={importDotMemePersonaHint}
               onChange={(e) => setImportDotMemePersonaHint(e.target.value)}
             />
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3 md:gap-4">
               <label className="flex items-center gap-2 text-sm">
                 <Switch checked={importDotMemeSkip} onCheckedChange={setImportDotMemeSkip} />
                 {t('aiMeme.importDotMemeSkipExisting')}

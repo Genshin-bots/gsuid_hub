@@ -25,7 +25,7 @@ export function RelationshipSettingsSection({
   });
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 md:space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h2 className="mb-1 flex items-center gap-2 text-lg font-bold">
@@ -48,7 +48,7 @@ export function RelationshipSettingsSection({
           {t('aiConfig.relationshipSettings.empty')}
         </div>
       ) : (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 md:gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {entries.map(([key, item]) => (
             <ConfigField
               key={key}

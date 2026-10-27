@@ -272,16 +272,19 @@ export function DynamicConfigPanel({
 
     return (
       <div key={fieldKey} className="space-y-2">
-        <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
-          {icon}
-          {safeTitle}
+        {/* 标题永远单行：过长用省略号截断，绝不折行（折行会把同排控件顶歪） */}
+        <Label className="text-xs text-muted-foreground flex min-w-0 items-center gap-1.5">
+          <span className="flex shrink-0 items-center">{icon}</span>
+          <span className="min-w-0 truncate" title={safeTitle}>
+            {safeTitle}
+          </span>
           {item.desc && (
             <TooltipProvider delayDuration={100}>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
                     type="button"
-                    className="inline-flex items-center justify-center rounded-full p-0.5 hover:bg-primary/10 transition-colors focus:outline-none"
+                    className="inline-flex shrink-0 items-center justify-center rounded-full p-0.5 hover:bg-primary/10 transition-colors focus:outline-none"
                     onClick={(e) => e.preventDefault()}
                   >
                     <HelpCircle className="w-3.5 h-3.5 text-muted-foreground/60 hover:text-primary cursor-help" />
@@ -326,7 +329,12 @@ export function DynamicConfigPanel({
     if (rowBuffer.length === 0) return;
     const rowKey = rowBuffer.map((field) => field.key).join('-');
     blocks.push(
-      <div key={`row-${rowKey}`} className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      // 窄屏两列（PC 三列）。items-start：同一行里开关行比输入行矮，
+      // 默认 stretch 会把矮的那格拉到行高，行底多出一截空白，行间距看着忽大忽小。
+      <div
+        key={`row-${rowKey}`}
+        className="grid grid-cols-2 items-start gap-x-3 gap-y-3 sm:grid-cols-2 sm:gap-x-6 lg:grid-cols-3"
+      >
         {rowBuffer.map(({ key, item }) => renderField(key, item))}
       </div>,
     );

@@ -109,6 +109,7 @@ import {
   generateMCPToolsConfigList,
   generateBatchPushTargets,
   generateAllArtifacts,
+  generateAutonomyFeed,
 } from './demoMock';
 
 type Ctx = { url: URL; method: string; body: unknown };
@@ -1219,6 +1220,13 @@ const routes: Route[] = [
     m: 'GET',
     re: /^\/api\/ai\/artifacts$/,
     h: ({ url }) => generateAllArtifacts(url.searchParams),
+  },
+  {
+    // 自主行动 feed：缺这个端点时 /ai-artifacts 自主行动页签拿不到 personas，
+    // 下拉 .map 直接崩掉整页（demo 白屏）。
+    m: 'GET',
+    re: /^\/api\/autonomy\/feed$/,
+    h: ({ url }) => generateAutonomyFeed(url.searchParams),
   },
   {
     m: 'GET',

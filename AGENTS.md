@@ -253,6 +253,24 @@ Switch：不要加冗余 `data-[state=checked]:bg-primary`；被 `TooltipTrigger
 
 滚动容器：`SidebarInset` 自己是 `<main>`，真正滚动的是内部那个。调试用 `document.querySelector('.layout-page-inner').parentElement`（P-23）。桌面下 `.layout-page-inner` 的 `scrollWidth - clientWidth` 必须为 0（P-28）。
 
+### 窄屏与文本排版铁律 ★★★
+
+**① 文本永远单行，过长用 `...` 截断，任何时候都不许折行。** 折行会把同排控件顶成一高一低，整块排版垮掉（两列网格里最明显）。`truncate` 必须配 `min-w-0`（flex item 的 `min-width:auto` 拒绝收缩，文字照样撑出容器）；图标 / 徽标 / `?` 问号一律 `shrink-0`；截断后补 `title`。字段标题见 `ConfigField` / `DynamicConfigPanel`。
+
+**② 行距只有一套刻度**：段落之间 **12px（窄屏）/ 24px（桌面）**（`PinnedPage` 已内置 `gap-3 md:gap-6` + `space-y-3 md:space-y-6`）；同组控件之间 8px；Label → 控件 8px。**禁止靠叠内边距造间距**（卡片头 `py-4` + 内容 `pt-4` = 32px 双倍间距）；窄屏的负 margin 必须写成 `md:-mt-*`（窄屏 body 没有那层 padding）。
+
+   **分割线与它下面的内容必须留空隙**（≥4px）：分割线下方 0px 时，比标签行高的徽章（如「密钥」）会被父级 `overflow` 裁掉半个。
+
+   **不要在 `PinnedPage` 上写死 `className="gap-4"` 之类覆盖默认刻度**，各页保持同一套节奏；要调就整站一起调。页面主体内部用 `space-y-3 md:space-y-4`（窄屏 12px / 桌面原值），不要出现裸的 `space-y-5` / `gap-6`。
+
+**③ 窄屏（<768px）一律两列铺满**：操作区 / 分段组 / 配置网格不要三个挤一行或一个独占；奇数个时最后一个独占整行，**不留半行空白**。想让 flex 换行必须改 `flex-basis` —— `min-width` 的百分比**不参与换行判定**（flex 看的是 hypothetical main size）。≤3 个分段保持一行（`nowrap` + shrink 压进去），不要折行。
+
+**④ 浅底上的文字必须可读**：亮色主题下白字压浅色玻璃读不出来 —— 折叠下拉、浅底徽章的选中态文字用 `--foreground`（亮色=黑），不要用 `primary-foreground`。折叠下拉的下拉菜单宽度 = 触发器宽度。
+
+**⑤ 移动端侧边栏抽屉要跟随主题**：玻璃系必须透出壁纸，不能是实色 —— `SheetContent` 默认的 `bg-background` 会把毛玻璃垫死。
+
+**⑥ 紧凑控件（胶囊 / 小按钮）图标在左、文案在右**横向排列，不上下堆叠；表示「缺失 / 未提供」的态，前置图标换成 X，不要沿用正向资源图标。
+
 ---
 
 ## 四、状态、配置页与 Demo
@@ -297,5 +315,7 @@ window.location.href = getLoginPath(); // 开发 /login，生产 /app/login
 9. **遮罩 → 亮色白、暗色黑（透明度适中能看清背景，严禁亮色用深色遮罩）**
 10. **操作区高度 → 页面上方按钮、分段、搜索同一外壳高度 `tabToolbarControlClass`**
 11. **小节说明 → 标题右侧 `LabelWithHelp` 问号，不写在标题下面**
+12. **文本 → 永远单行 + 省略号截断，绝不折行**（见 §三 排版铁律 ①）
+13. **窄屏 → 两列铺满、行距 12px、不留半行空白**（见 §三 排版铁律 ②③）
 
 专题细节按 Skills 表按需加载，不要把整本 `references/` 一次读完。

@@ -613,7 +613,7 @@ export default function ConsolePage() {
       className="console-mobile-fill max-md:min-h-0 max-md:flex-1 max-md:overflow-hidden"
       bodyClassName="max-md:flex max-md:min-h-0 max-md:flex-1 max-md:flex-col max-md:overflow-hidden"
       header={
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex flex-col gap-3 md:gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0 sm:overflow-x-auto">
             <h1 className="sm:whitespace-nowrap text-3xl font-bold flex items-center gap-3">
               <Terminal className="w-8 h-8 shrink-0" />

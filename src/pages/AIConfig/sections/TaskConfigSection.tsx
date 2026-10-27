@@ -67,8 +67,8 @@ export function TaskConfigSection({
   onOpenManageDialog,
 }: TaskConfigSectionProps) {
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between gap-3">
+    <div className="space-y-3 md:space-y-5">
+      <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
         <HeadingWithHelp
           icon={<ListChecks className="w-5 h-5 text-primary" />}
           title={t('aiConfig.taskConfig.title')}
@@ -101,7 +101,7 @@ export function TaskConfigSection({
           </Button>
         </GlassAlert>
       ) : (
-        <div className="grid items-start gap-6 lg:grid-cols-2">
+        <div className="grid items-start gap-3 md:gap-6 lg:grid-cols-2">
           {/* 高级任务：主 + 备用 */}
           <div className="space-y-3">
             <LabelWithHelp

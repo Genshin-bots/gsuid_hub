@@ -23,7 +23,7 @@ export function ToggleRow({
   onCheckedChange,
 }: ToggleRowProps) {
   return (
-    <div className="flex items-center gap-4 p-3 rounded-lg transition-colors duration-200 hover:bg-muted/30">
+    <div className="flex items-center gap-3 md:gap-4 p-3 rounded-lg transition-colors duration-200 hover:bg-muted/30">
       <div
         className={cn(
           'flex items-center justify-center flex-shrink-0 transition-all duration-300',

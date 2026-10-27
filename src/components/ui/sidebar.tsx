@@ -203,7 +203,10 @@ const Sidebar = React.forwardRef<
             overlayClassName={overlayClassName}
             className={cn(
               'w-[--sidebar-width] p-0 text-sidebar-foreground [&>button]:hidden overflow-hidden',
-              isSolid ? 'rounded-r-2xl border-r-0 bg-sidebar' : 'rounded-none border-none',
+              // 抽屉外壳必须透明：sheetVariants 自带 bg-background（实色），
+              // 会把 ::before 的半透明层 + backdrop-filter 垫成纯色，主题风格全部失效。
+              // 纯色风格才用实色 --sidebar（见 index.css 的移动端抽屉段落）。
+              isSolid ? 'rounded-r-2xl border-r-0 bg-sidebar' : 'rounded-none border-none bg-transparent',
               !isSolid &&
                 (className?.includes('floating-sidebar') ? 'floating-sidebar' : 'glass-sidebar'),
               className,

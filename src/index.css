@@ -1389,6 +1389,45 @@ All colors MUST be HSL.
 }
 
 /* ============================================================================
+ * 移动端侧边栏抽屉（Sheet）
+ *
+ * 抽屉是 fixed 浮层，背景必须跟着主题风格走：
+ * - 玻璃系（毛玻璃 / 光感 / 液态）：外壳透明，靠 ::before 的半透明层 + backdrop-filter
+ *   透出壁纸。SheetContent 默认带 bg-background（实色），会把玻璃垫成纯色 —— 这就是
+ *   「移动端侧边栏永远是纯色、不跟主题」的根因。
+ * - 纯色（solid）：实色 --sidebar。
+ * - 仅分割线（line）：保持透明，只留右侧分割线。
+ *
+ * 选择器带 [data-mobile="true"]，特异性高于 .fixed / .glass-sidebar 等工具类，
+ * 不依赖 Tailwind 的 @layer 顺序。
+ * ============================================================================ */
+[data-sidebar="sidebar"][data-mobile="true"] {
+  position: fixed !important;
+  z-index: 50;
+  border-radius: 0 !important;
+  overflow: hidden;
+}
+
+[data-sidebar="sidebar"][data-mobile="true"]:not(.line-sidebar) {
+  background: transparent !important;
+}
+
+[data-style="solid"] [data-sidebar="sidebar"][data-mobile="true"]:not(.line-sidebar) {
+  background: hsl(var(--sidebar) / var(--card-opacity, 1)) !important;
+}
+
+[data-style="solid"] [data-sidebar="sidebar"][data-mobile="true"]::before {
+  display: none !important;
+}
+
+/* 悬浮侧栏在移动端是贴边抽屉，不留圆角 */
+@media (max-width: 768px) {
+  .floating-sidebar {
+    border-radius: 0 !important;
+  }
+}
+
+/* ============================================================================
  * Liquid Glass - 侧边栏菜单项与交互组件 (Sidebar Menu & Interactive Items)
  * 路由选中走的是 activeClassName 的 bg-primary/20，不是 data-active。
  * 激活态沿用悬停那层通透玻璃，只加厚一点水膜，避免主色实心底把背景盖死。
@@ -4053,11 +4092,24 @@ tbody tr:hover .table-sticky-right::after {
    等分（flex-basis: 0）会把短按钮拉得和长按钮一样宽。
    header-action-fixed：纯图标按钮保持内容宽度。
    header-action-grow：包在 Tooltip 的 span 上（按钮不是行的直接子节点时）。
-   只在按钮行本身是通栏时生效：普通行 sm 起变为 w-auto，wide 行要到 lg。 */
+   只在按钮行本身是通栏时生效：普通行 sm 起变为 w-auto，wide 行要到 lg。
+
+   窄屏（<640px）每行只放两个按钮：flex-basis 给到半行，浏览器会先折行再瓜分，
+   于是「一行两个铺满横向距离」，不会出现「三个挤一行 + 第四个独占」。
+   ⚠️ 必须用 flex-basis，**不能只用 min-width**：flex 换行判定看的是
+   hypothetical main size（basis 被 min/max 夹住后的值），而百分比 min-width
+   在 intrinsic sizing 阶段按 auto 处理、不参与换行判定 —— 只写 min-width 时
+   三个按钮照样会挤在一行。
+   换行后的行距给到 16px，与页面段落节奏一致（原来 8px 显得忽大忽小）。 */
 @media (max-width: 639px) {
+  .header-action-row {
+    column-gap: 0.5rem;
+    row-gap: 0.75rem;
+  }
+
   .header-action-row > button:not(.header-action-fixed),
   .header-action-row > a:not(.header-action-fixed) {
-    flex: 1 1 auto;
+    flex: 1 1 calc(50% - 0.25rem);
     width: auto;
     max-width: 100%;
     min-width: min(100%, max-content);
@@ -4065,7 +4117,7 @@ tbody tr:hover .table-sticky-right::after {
 
   .header-action-row > .header-action-grow {
     display: flex;
-    flex: 1 1 auto;
+    flex: 1 1 calc(50% - 0.25rem);
     width: auto;
     max-width: 100%;
     min-width: min(100%, max-content);
@@ -4122,6 +4174,47 @@ tbody tr:hover .table-sticky-right::after {
   .tab-segment-fill > .tab-segment-row {
     display: flex;
     width: 100%;
+    max-width: 100%;
+  }
+
+  /*
+   * 窄屏分段组：四个以上才折成两列。
+   *
+   * 原来分段按内容宽度自然排布，四个分段会被挤在一行里（后两个被裁掉），
+   * 或者三挤一行 + 一个独占第二行，右侧留一大片空白。
+   * 现在每段占半行（calc(50% - gap)），奇数个时最后一段 flex-grow 独占整行，
+   * 于是「一行两个铺满横向距离」，且不会出现半行空白。
+   *
+   * 只有 2~3 段时保持一行（内容宽度放得下就不折，避免「系统提示词组」被截断）；
+   * :has(> :nth-child(5)) 表示至少 4 段（第一个子元素是滑动胶囊）。
+   */
+  .tab-segment-fill
+    > .tab-segment-row:not(.tab-segment-single-row):has(> :nth-child(5))
+    > *:not(.liquid-segment-thumb) {
+    flex: 1 1 calc(50% - 0.25rem);
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  /*
+   * 2~3 个分段：保持一行，放不下就挤压（label 省略号），不要换行。
+   *
+   * 换行判定看的是 hypothetical main size（basis 被 min/max 夹住后的值），
+   * 只写 min-width:0 拦不住换行 —— 三个分段照样各占 max-content 宽度、被推到第二行。
+   * 必须 flex-wrap:nowrap 让它们留在同一行，再由 flex-shrink 压进去。
+   */
+  .tab-segment-fill
+    > .tab-segment-row:not(.tab-segment-single-row):not(:has(> :nth-child(5))) {
+    flex-wrap: nowrap;
+  }
+
+  .tab-segment-fill
+    > .tab-segment-row:not(.tab-segment-single-row):not(:has(> :nth-child(5)))
+    > *:not(.liquid-segment-thumb) {
+    /* basis 用 auto（内容宽度）+ grow 1：剩下的空间平均分给每一项，
+       整行被填满，又不会像 basis:0 那样把长标签截断（"系统提示词组"→"系统提…"）。 */
+    flex: 1 1 auto;
+    min-width: 0;
     max-width: 100%;
   }
 }

@@ -569,7 +569,7 @@ export default function AIHistoryPage() {
               </div>
 
               {/* 统计概览：一行轻量文本，不做卡片盒子 */}
-              <div className="flex items-center gap-4 text-xs text-muted-foreground min-w-0">
+              <div className="flex items-center gap-3 md:gap-4 text-xs text-muted-foreground min-w-0">
                 <span className="inline-flex items-center gap-1.5 min-w-0">
                   <HardDrive className="w-3.5 h-3.5 shrink-0" />
                   <span className="truncate">{t('aiHistory.statsTotalFiles')}</span>

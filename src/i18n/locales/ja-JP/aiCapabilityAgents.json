@@ -17,9 +17,9 @@
   "toolCount": "{count} 個のツール",
   "toolPacksHint": "dynamic＝実行時の五層自動アセンブル；task_basics＝タスク基礎パック；capability_domain パック名（例：「定時タスク」）も指定できます。",
   "sources": {
-    "builtin": "内蔵 builtin",
-    "plugin": "プラグイン plugin",
-    "user": "自分の user"
+    "builtin": "内蔵",
+    "plugin": "プラグイン",
+    "user": "自分"
   },
   "allPlugins": "すべてのプラグイン",
   "pluginFilterLabel": "{name} {count}",

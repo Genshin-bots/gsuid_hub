@@ -180,7 +180,7 @@ export function VectorDbSection({
   const currentExtraProvider = extraProviders?.[embeddingProvider];
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-3 md:space-y-5">
       <div>
         <h2 className="text-lg font-bold flex items-center gap-2 mb-1">
           <Database className="w-5 h-5 text-primary" />
@@ -189,7 +189,7 @@ export function VectorDbSection({
         <p className="text-sm text-muted-foreground">{t('aiConfig.vectorDb.description')}</p>
       </div>
 
-      <div className="grid items-start gap-6 lg:grid-cols-2">
+      <div className="grid items-start gap-3 md:gap-6 lg:grid-cols-2">
         {/* 1. Qdrant 部署方式 */}
         <div className="space-y-3">
           <LabelWithHelp
@@ -434,7 +434,7 @@ export function VectorDbSection({
 
         {/* 3. 重排序模型：单独占满下一行，避免挤在左栏底下留空 */}
         <div className="space-y-3 lg:col-span-2">
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2">
               <ArrowUpDown className="w-4 h-4 text-primary" />
               <Label className="text-sm font-semibold">

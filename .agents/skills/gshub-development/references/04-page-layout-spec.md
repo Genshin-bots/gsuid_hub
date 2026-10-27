@@ -305,7 +305,7 @@ glass-card 宿主不裁切（`overflow: visible`），所以**顶到卡片边缘
 | 场景 | 类 |
 |------|-----|
 | 页面根容器内边距 | **不写**（由 AppLayout `.layout-page-inner` 统一提供） |
-| 页面块间距 | `space-y-6` |
+| 页面块间距 | `space-y-3 md:space-y-6`（窄屏 12px / 桌面 24px） |
 | 卡片网格间距 | `gap-4` |
 | 表单字段组内间距 | `space-y-2`（Label + 控件）；分组 `space-y-4` |
 | 卡片内边距 | `CardContent` 默认；紧凑工具栏用 `py-3` |
@@ -389,7 +389,107 @@ if (items.length === 0) return <EmptyState icon={…} />;      // 空态：居�
 - 错误态：`<p className="text-muted-foreground">{error}</p>` + `<Button variant="outline" onClick={retry}><RefreshCw …/>重试</Button>`。
 - 空态：居中 `w-8 h-8 text-muted-foreground` 图标 + 说明文字，`py-8 text-center`。
 
-## 4.8 落地自查（页面骨架部分）
+## 4.8 窄屏（移动端 <768px）排版约定 ★★★
+
+窄屏不是「桌面版挤一挤」，有一套自己的节奏。以下五条是全站统一约定，改页面照抄即可。
+
+### 4.8.1 间距刻度：窄屏 16px，桌面 24px
+
+| 场景 | 窄屏 | 桌面 |
+|------|------|------|
+| 页面段落（标题↔控件行↔内容） | 12px | 24px |
+| 同组控件之间 | 8px | 8px |
+| 字段 Label → 控件 | 8px | 8px |
+| 字段组之间 | 16px | 16–24px |
+
+`PinnedPage` 已内置：`gap-3 md:gap-6` + body `space-y-3 md:space-y-6`。
+**不要**再写 `gap-6` / `space-y-6` 覆盖窄屏刻度；页面自己另有节奏时用 `className` / `bodyClassName` 显式覆盖。
+
+⚠️ **分割线与它下面的内容要留空隙**（≥4px）：分割线下方 0px 时，比标签行高的徽章（如「密钥」16px）会被父级 `overflow-y: auto` 裁掉半个。
+卡片头 → 内容区在窄屏拆成「头 8px + 内容 4px = 12px」，桌面仍是「头 16px + 内容 0px = 16px」。
+
+⚠️ 桌面端 `.page-pinned-body` 有 `margin: -0.75rem; padding: 0.75rem`（抵消阴影外溢），
+页面若用负 margin 把内容往上提（如 `-mt-3`），**必须写成 `md:-mt-3`**：
+窄屏 body 没有那层 padding，负 margin 会把首块顶上去，行间距凭空少一截。
+
+### 4.8.2 页面上方操作区：窄屏每行两个按钮，铺满横向距离
+
+`.header-action-row` 在 <640px 时每个按钮 `flex: 1 1 calc(50% - 0.25rem)`：
+浏览器会先折行再瓜分，于是「一行两个铺满」，而不是三个挤一行 + 第四个独占。
+奇数个时最后一个 `flex-grow` 独占整行，**不会**留半行空白。
+换行后的行距 `row-gap: 1rem`，与页面段落节奏一致（`column-gap` 仍是 8px）。
+
+⚠️ **必须用 `flex-basis`，不能用 `min-width` 逼换行。** flex 换行判定看的是
+hypothetical main size（flex-basis 被 min/max 夹住后的值）；百分比 `min-width`
+在 intrinsic sizing 阶段按 `auto` 处理、不参与判定 —— 只写
+`min-width: min(100%, max(50%, max-content))` 时，三个按钮照样会挤在一行
+（实测「启用AI服务 + 使用帮助 + 检查配置」三颗同排，第四颗独占第二行）。
+
+⚠️ `header-action-fixed`（纯图标按钮保持内容宽度）会**被排除**在 50% 规则外，
+以 `max-content` 宽度参与换行判定。带文案的按钮误用它，宽度会恰好比半行多几 px，
+于是它独占第一行、其余被挤成 2+1。带文案的按钮不要加这个类。
+
+### 4.8.3 分段组（TabButtonGroup）：四段以上两列铺满，两三段挤在一行
+
+- **≥4 段**：窄屏两列（`flex: 1 1 calc(50% - 0.25rem)`），一行两个铺满横向距离；奇数个时最后一段独占整行。
+- **2~3 段**：**保持一行**，放不下就挤压（`flex-wrap: nowrap` + `flex: 0 1 auto` + `min-width: 0`，
+  label 走 `truncate`）。同理，`min-width: 0` 拦不住换行 —— 三个分段各按 `max-content`
+  宽度参与判定，照样被推到第二行；必须 `nowrap` 让它们留在同一行再由 shrink 压进去。
+- **`collapseOnMobile`（折叠成下拉）**：窄屏整行铺满，触发器用**前景色**文字而不是 `bg-primary` 选中态 ——
+  折叠行里没有滑动胶囊，选中态样式会把底色抹成透明、文字又强制成 `primary-foreground`（亮色主题近白），
+  结果白字压在浅色玻璃上读不出来。
+  下拉菜单宽度要跟触发器一致（`w-[var(--radix-dropdown-menu-trigger-width)]`）：
+  触发器在窄屏是通栏的，菜单却只有内容宽，看起来像两个宽度不同的控件。
+- **`singleRowOnMobile`**：按 N 等分一行的场景（/plugins 卡片头三分区）不受两列规则影响。
+
+### 4.8.4 配置类网格：窄屏两列
+
+后端配置字段、插件配置项这类「Label + 控件」网格，桌面三列、窄屏**两列**（不要一列铺满，否则一屏放不下几项）。
+配 `items-start`：同一行里开关行比输入行矮，默认 `stretch` 会把矮的那格拉到行高，行底多出一截空白，行间距看着忽大忽小。
+
+### 4.8.4.1 文本永远单行：过长用省略号截断，**绝不折行**
+
+字段标题 / 按钮 / 胶囊 / 分段文案过长一律 `truncate`（省略号），**任何时候都不许折行** ——
+折行会把同排控件顶成一高一低，整块排版垮掉（两列网格里最明显）。
+
+- `truncate` 必须配 `min-w-0`：flex item 的 `min-width: auto` 拒绝收缩，文字照样撑出容器换行。
+- 图标 / 徽标 / `?` 问号一律 `shrink-0`；标题本体 `min-w-0 flex-1 truncate`，截断后补 `title`。
+- 参考实现：`ConfigField` / `DynamicConfigPanel` 的 Label。
+
+### 4.8.5 布尔开关靠上对齐
+
+`ConfigField` 的 boolean 分支在窄屏用 `items-start`（桌面仍 `items-center`）：
+开关在 40px 盒子里居中时「Label → 开关」是 16px，而输入框类字段是 8px，同一列里两种字段的行间距对不上。
+
+### 4.8.6 窄屏标题行：标题块与右侧按钮堆叠
+
+「小节标题 + 右侧操作按钮」的行，窄屏用 `flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between`，
+否则按钮会把标题说明挤成窄柱（一句话断成四行）。
+
+### 4.8.7 窄屏工具栏分行：**不要用 2×2 grid**
+
+窄屏把工具栏拆成两行时，用**两行 flex**（每行「大控件 + 贴着它的小控件」），不要用 `grid-cols-2`：
+
+```tsx
+<div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+  {/* 窄屏第一行：档位 + 刷新；桌面用 sm:contents 拆回同一行，靠 order 还原顺序 */}
+  <div className="flex min-w-0 items-center gap-2 sm:contents">
+    <div className="order-1 min-w-0 flex-1 sm:flex-none">{大控件}</div>
+    <div className="order-2 shrink-0 sm:order-3">{小控件}</div>
+  </div>
+  <div className="flex min-w-0 items-center gap-2 sm:contents">
+    <div className="order-3 min-w-0 flex-1 sm:order-2 sm:flex-none">{日期}</div>
+    <div className="order-4 min-w-0 flex-1 sm:order-4 sm:ml-auto sm:flex-none sm:shrink-0">{页签}</div>
+  </div>
+</div>
+```
+
+- `grid-cols-2` 会让「刷新」这种小控件独占一格、行中间空出一大块，看着像漏排了控件。
+- `sm:contents` 把两组的子元素提升回同一个 flex 行；此时**桌面顺序由 `order` 决定**，
+  别写 `sm:order-none`（= `order: 0`，会把该项排到最前）。窄屏分组顺序与桌面顺序不同时，
+  给每个控件两套 order 值（窄屏 `order-N`、桌面 `sm:order-M`）。
+
+## 4.9 落地自查（页面骨架部分）
 
 - [ ] 根容器：标题页用 `<PinnedPage>`（**无** `p-6` / `overflow-auto` / `max-w-*`）；全高单卡片页 `page-fill flex glass-card` + 内层 clip
 - [ ] `header={…}` 只放标题块 + 同行按钮

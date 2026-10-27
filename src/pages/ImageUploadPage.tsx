@@ -360,7 +360,7 @@ export default function ImageUploadPage() {
 
   if (!imageUploadConfig) {
     return (
-      <div className="space-y-6 flex-1 overflow-visible h-full flex flex-col">
+      <div className="space-y-3 md:space-y-6 flex-1 overflow-visible h-full flex flex-col">
         <Card className="glass-card">
           <CardContent className="!p-6">
             <p className="text-center text-muted-foreground">{t('imageUpload.notFound')}</p>
@@ -374,7 +374,7 @@ export default function ImageUploadPage() {
   const isPicSrvEnabled = uploadConfig.EnablePicSrv.value;
 
   return (
-    <div className="space-y-6 flex-1 overflow-visible h-full flex flex-col">
+    <div className="space-y-3 md:space-y-6 flex-1 overflow-visible h-full flex flex-col">
       {/* Image Service Toggle - First as main switch */}
       <Card className={cn('glass-card', !isPicSrvEnabled && 'opacity-60')}>
         <CardHeader>
@@ -441,7 +441,7 @@ export default function ImageUploadPage() {
           </CardTitle>
           <CardDescription>{t('imageUpload.uploadMethodDesc')}</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3 md:space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
             {UPLOAD_TYPES.map((type) => (
               <button
@@ -485,7 +485,7 @@ export default function ImageUploadPage() {
             </CardTitle>
             <CardDescription>{t('imageUpload.smmsSettingsDesc')}</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3 md:space-y-4">
             <div className="space-y-2">
               <Label
                 htmlFor="upload-smms-cred"
@@ -516,7 +516,7 @@ export default function ImageUploadPage() {
             </CardTitle>
             <CardDescription>{t('imageUpload.s3SettingsDesc')}</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3 md:space-y-4">
             <div className="space-y-2">
               <Label
                 htmlFor="s3_endpoint"
@@ -533,7 +533,7 @@ export default function ImageUploadPage() {
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
               <div className="space-y-2">
                 <Label
                   htmlFor="upload-s3-ak"
@@ -567,7 +567,7 @@ export default function ImageUploadPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
               <div className="space-y-2">
                 <Label
                   htmlFor="s3_bucket"
@@ -615,7 +615,7 @@ export default function ImageUploadPage() {
               </CardTitle>
               <CardDescription>{t('imageUpload.localSettingsDesc')}</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-3 md:space-y-4">
               <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg mb-4">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-lg flex items-center justify-center text-muted-foreground">
@@ -657,7 +657,7 @@ export default function ImageUploadPage() {
               <CardDescription>{t('imageUpload.scheduledCleanDesc')}</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
+              <div className="space-y-3 md:space-y-4">
                 <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-lg flex items-center justify-center text-muted-foreground">
@@ -708,7 +708,7 @@ export default function ImageUploadPage() {
             </CardTitle>
             <CardDescription>{t('imageUpload.customSettingsDesc')}</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3 md:space-y-4">
             <div className="space-y-2">
               <Label
                 htmlFor="custom_url"

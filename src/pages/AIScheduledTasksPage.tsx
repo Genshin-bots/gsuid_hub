@@ -357,7 +357,7 @@ export default function AIScheduledTasksPage() {
 
   return (
     <PinnedPage
-      className="gap-3 sm:gap-4"
+      className="gap-3 sm:gap-3 md:gap-4"
       bodyClassName="space-y-2 sm:space-y-2.5"
       header={
         /* 页面标题 */
@@ -550,7 +550,7 @@ export default function AIScheduledTasksPage() {
 
       {/* 任务列表 */}
       {isLoading ? (
-        <div className="space-y-4">
+        <div className="space-y-3 md:space-y-4">
           {[1, 2, 3].map((i) => (
             <Card key={i} className={cn('glass-card')}>
               <CardContent className="p-4">
@@ -716,7 +716,7 @@ export default function AIScheduledTasksPage() {
             </DialogTitle>
             <DialogDescription>{t('aiScheduledTasks.description')}</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <div className="space-y-3 md:space-y-4 py-4">
             <div className="space-y-2">
               <Label>{t('aiScheduledTasks.taskType')}</Label>
               <Select
@@ -839,7 +839,7 @@ export default function AIScheduledTasksPage() {
               {t('aiScheduledTasks.editTaskAriaDesc')}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <div className="space-y-3 md:space-y-4 py-4">
             <div className="space-y-2">
               <Label>{t('aiScheduledTasks.taskPrompt')}</Label>
               <Textarea
@@ -889,8 +889,8 @@ export default function AIScheduledTasksPage() {
             </DialogDescription>
           </DialogHeader>
           {selectedTask && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="space-y-3 md:space-y-4">
+              <div className="grid grid-cols-1 gap-3 md:gap-4 sm:grid-cols-2">
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground">{t('aiScheduledTasks.status')}</p>
                   {getStatusBadge(selectedTask.status)}

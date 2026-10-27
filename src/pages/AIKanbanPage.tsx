@@ -1330,7 +1330,7 @@ export default function AIKanbanPage() {
   // page-viewport：整页高度锁定视口（main 不再竖直滚动），看板列内滚 + 底部横向滚动条
   // 始终贴视口底端；不要 overflow-hidden（会裁掉筛选卡与看板列的阴影）
   return (
-    <div className="page-viewport flex flex-1 min-h-0 flex-col gap-4">
+    <div className="page-viewport flex flex-1 min-h-0 flex-col gap-3 md:gap-4">
       {/* 页面标题块：纯 H1 + 副标题，无右侧操作（按钮已移至下方 button group 同行） */}
       <div>
         <h1 className="text-3xl font-bold flex items-center gap-3">
@@ -1341,7 +1341,7 @@ export default function AIKanbanPage() {
       </div>
 
       {/* TabButtonGroup 与操作按钮同行平齐（垂直居中） */}
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex flex-col gap-3 md:gap-4 lg:flex-row lg:items-center lg:justify-between">
         <TabButtonGroup
           value={viewMode}
           onValueChange={(v) => setViewMode(v as 'kanban' | 'data')}
@@ -1545,7 +1545,7 @@ export default function AIKanbanPage() {
           纵向平时不滚（列高恰好填满），仅当视口矮于列 min-h 时兜底出现纵向滚动 */}
       {viewMode === 'kanban' && (
         <div className="min-h-0 flex-1 overflow-x-auto [--shadow-bleed:1.5rem]">
-          <div className="flex h-full min-w-max gap-4">
+          <div className="flex h-full min-w-max gap-3 md:gap-4">
             {COLUMN_KEYS.map((column) => (
               <KanbanColumn
                 key={column}
@@ -1591,7 +1591,7 @@ export default function AIKanbanPage() {
                 {t('common.loading')}
               </div>
             ) : detail ? (
-              <Tabs value={detailTab} onValueChange={setDetailTab} className="space-y-4">
+              <Tabs value={detailTab} onValueChange={setDetailTab} className="space-y-3 md:space-y-4">
                 <TabButtonGroup
                   value={detailTab}
                   onValueChange={setDetailTab}
@@ -1621,7 +1621,7 @@ export default function AIKanbanPage() {
                   ]}
                 />
 
-                <TabsContent value="subtasks" className="space-y-4">
+                <TabsContent value="subtasks" className="space-y-3 md:space-y-4">
                   <Card className="glass-card">
                     <CardHeader>
                       <CardTitle className="text-base">{t('aiKanban.detail.rootInfo')}</CardTitle>
@@ -1785,7 +1785,7 @@ export default function AIKanbanPage() {
                   )}
                 </TabsContent>
 
-                <TabsContent value="workspace" className="space-y-4">
+                <TabsContent value="workspace" className="space-y-3 md:space-y-4">
                   <Card className="glass-card">
                     <CardHeader>
                       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
@@ -1895,7 +1895,7 @@ export default function AIKanbanPage() {
             <DialogDescription>{t('aiKanban.create.description')}</DialogDescription>
           </DialogHeader>
           <div className="min-h-0 flex-1 overflow-auto p-6">
-            <div className="grid gap-5 lg:grid-cols-[260px_1fr]">
+            <div className="grid gap-3 md:gap-5 lg:grid-cols-[260px_1fr]">
               <aside className="space-y-3 rounded-2xl p-4 glass-card glass-alert glass-alert-tint glass-alert-tint-primary">
                 <div className="flex items-center gap-2 text-sm font-semibold">
                   <Sparkles className="h-4 w-4 text-primary" />
@@ -1942,13 +1942,13 @@ export default function AIKanbanPage() {
                   {t('aiKanban.create.useEvaluator')}
                 </Button>
               </aside>
-              <div className="space-y-5">
+              <div className="space-y-3 md:space-y-5">
                 <div className="rounded-2xl border border-border/50 p-4">
                   <div className="mb-4 flex items-center gap-2">
                     <Badge>1</Badge>
                     <Label className="text-base">{t('aiKanban.create.basicInfo')}</Label>
                   </div>
-                  <div className="grid gap-4 md:grid-cols-2">
+                  <div className="grid gap-3 md:gap-4 md:grid-cols-2">
                     <div className="md:col-span-2 space-y-2">
                       <Label>{t('aiKanban.create.goal')}</Label>
                       <Textarea
@@ -2154,7 +2154,7 @@ export default function AIKanbanPage() {
             </DialogTitle>
             <DialogDescription>{t('aiKanban.evaluate.description')}</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-3 md:space-y-4">
             <Textarea
               value={evaluateDraft.user_goal}
               onChange={(event) =>
@@ -2276,7 +2276,7 @@ export default function AIKanbanPage() {
                 : t('aiKanban.bulkDelete.description')}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-3 md:space-y-4">
             {bulkDeleteColumn ? (
               <div className="rounded-lg border border-border/50 p-3 text-xs text-muted-foreground glass-card glass-alert">
                 <p className="font-medium text-foreground">

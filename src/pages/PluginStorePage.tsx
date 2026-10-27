@@ -725,7 +725,7 @@ export default function PluginStorePage() {
 
   return (
     <PinnedPage
-      className="gap-4"
+      className="gap-3 md:gap-4"
       header={
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-3">
@@ -797,7 +797,7 @@ export default function PluginStorePage() {
       }
     >
       {isLoading ? (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid gap-3 md:gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
             <Card key={i} className="glass-card">
               <div className="h-32 bg-muted/50 overflow-hidden rounded-t-[inherit]">
@@ -838,7 +838,7 @@ export default function PluginStorePage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid gap-3 md:gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {visiblePlugins.map((plugin) => {
             const deprecated = isDeprecated(plugin);
             const pluginLink = plugin.link || `https://github.com/${plugin.id}`;
@@ -1191,7 +1191,7 @@ export default function PluginStorePage() {
             <DialogDescription>{t('pluginStore.installFromUrlDesc')}</DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-2">
+          <div className="space-y-3 md:space-y-4 py-2">
             <div className="space-y-2">
               <Label htmlFor="install-url" className="flex items-center gap-1">
                 {t('pluginStore.urlLabel')}

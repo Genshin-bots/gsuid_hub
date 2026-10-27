@@ -63,7 +63,7 @@ export function AdvancedSettingsSection({
   onUpdateConfig,
 }: AdvancedSettingsSectionProps) {
   return (
-    <div className="space-y-5">
+    <div className="space-y-3 md:space-y-5">
       <div>
         <h2 className="text-lg font-bold flex items-center gap-2 mb-1">
           <SlidersHorizontal className="w-5 h-5 text-muted-foreground" />
@@ -77,7 +77,7 @@ export function AdvancedSettingsSection({
       <RelationshipSettingsSection t={t} aiConfig={aiConfig} onUpdateConfig={onUpdateConfig} />
       <Separator className="bg-border/30" />
 
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-3 md:gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {(() => {
           const entries = Object.entries(aiConfig.config).filter(
             ([key]) => !EXCLUDED_KEYS.includes(key) && !isKitSlotConfigKey(key),

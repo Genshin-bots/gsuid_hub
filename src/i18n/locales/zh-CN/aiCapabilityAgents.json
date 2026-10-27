@@ -17,9 +17,9 @@
   "toolCount": "{count} 个工具",
   "toolPacksHint": "dynamic=运行时五层自动装配；task_basics=任务基础族；也可填 capability_domain 族名（如「定时任务」）。",
   "sources": {
-    "builtin": "内置 builtin",
-    "plugin": "插件 plugin",
-    "user": "我的 user"
+    "builtin": "内置",
+    "plugin": "插件",
+    "user": "我的"
   },
   "allPlugins": "全部插件",
   "pluginFilterLabel": "{name} {count}",

@@ -811,9 +811,9 @@ export default function ThemesPage() {
         live
         preload
         render={() => (
-          <div className="glass-card-grid grid gap-6 lg:grid-cols-2">
+          <div className="glass-card-grid grid gap-3 md:gap-6 lg:grid-cols-2">
             {/* ==================== 左列：显示与质感 ==================== */}
-            <div className="space-y-4">
+            <div className="space-y-3 md:space-y-4">
               <div className="flex items-center gap-2 px-1 text-sm font-semibold text-muted-foreground">
                 <Sparkles className="w-4 h-4 text-primary" />
                 <span>{t('themes.groupStyle')}</span>
@@ -928,7 +928,7 @@ export default function ThemesPage() {
             </div>
 
             {/* ==================== 右列：主题与色彩 ==================== */}
-            <div className="space-y-4">
+            <div className="space-y-3 md:space-y-4">
               <div className="flex items-center gap-2 px-1 text-sm font-semibold text-muted-foreground">
                 <Palette className="w-4 h-4 text-primary" />
                 <span>{t('themes.groupPalette')}</span>
@@ -1008,9 +1008,9 @@ export default function ThemesPage() {
         live
         preload
         render={() => (
-          <div className="space-y-6">
+          <div className="space-y-3 md:space-y-6">
             {/* 背景模糊 */}
-            <Card className="glass-card p-4 sm:p-5 space-y-4">
+            <Card className="glass-card p-4 sm:p-5 space-y-3 md:space-y-4">
               <ThemeSliderControl
                 label={
                   <LabelWithHelp
@@ -1171,16 +1171,16 @@ export default function ThemesPage() {
         live
         preload
         render={() => (
-          <div className="glass-card-grid grid gap-6 lg:grid-cols-2">
+          <div className="glass-card-grid grid gap-3 md:gap-6 lg:grid-cols-2">
             {/* ==================== 左列：材质与光影 ==================== */}
-            <div className="space-y-4">
+            <div className="space-y-3 md:space-y-4">
               <div className="flex items-center gap-2 px-1 text-sm font-semibold text-muted-foreground">
                 <Paintbrush className="w-4 h-4 text-primary" />
                 <span>{t('themes.groupMaterial')}</span>
               </div>
 
               {/* 卡片透明度 */}
-              <Card className="glass-card p-4 sm:p-5 space-y-4">
+              <Card className="glass-card p-4 sm:p-5 space-y-3 md:space-y-4">
                 <ThemeSliderControl
                   label={
                     <LabelWithHelp
@@ -1209,7 +1209,7 @@ export default function ThemesPage() {
 
               {/* 毛玻璃 / 光感玻璃强度 */}
               {style !== 'solid' && (
-                <Card className="glass-card p-4 sm:p-5 space-y-4">
+                <Card className="glass-card p-4 sm:p-5 space-y-3 md:space-y-4">
                   <ThemeSliderControl
                     label={
                       <LabelWithHelp
@@ -1240,7 +1240,7 @@ export default function ThemesPage() {
               )}
 
               {/* 圆角强度 */}
-              <Card className="glass-card p-4 sm:p-5 space-y-4">
+              <Card className="glass-card p-4 sm:p-5 space-y-3 md:space-y-4">
                 <ThemeSliderControl
                   label={
                     <LabelWithHelp
@@ -1270,7 +1270,7 @@ export default function ThemesPage() {
               </Card>
 
               {/* 阴影强度 */}
-              <Card className="glass-card p-4 sm:p-5 space-y-4">
+              <Card className="glass-card p-4 sm:p-5 space-y-3 md:space-y-4">
                 <ThemeSliderControl
                   label={
                     <LabelWithHelp
@@ -1301,15 +1301,15 @@ export default function ThemesPage() {
             </div>
 
             {/* ==================== 右列：布局与缩放 ==================== */}
-            <div className="space-y-4">
+            <div className="space-y-3 md:space-y-4">
               <div className="flex items-center gap-2 px-1 text-sm font-semibold text-muted-foreground">
                 <SlidersHorizontal className="w-4 h-4 text-primary" />
                 <span>{t('themes.groupLayout')}</span>
               </div>
 
               {/* 侧边栏布局 */}
-              <Card className="glass-card p-4 sm:p-5 space-y-4">
-                <div className="flex flex-wrap items-center justify-between gap-4">
+              <Card className="glass-card p-4 sm:p-5 space-y-3 md:space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-3 md:gap-4">
                   <LabelWithHelp
                     icon={<PanelLeft className="w-4 h-4 text-primary" />}
                     label={t('themes.sidebarLayout')}
@@ -1343,8 +1343,8 @@ export default function ThemesPage() {
               </Card>
 
               {/* 默认折叠侧边栏 */}
-              <Card className="glass-card p-4 sm:p-5 space-y-4">
-                <div className="flex flex-wrap items-center justify-between gap-4">
+              <Card className="glass-card p-4 sm:p-5 space-y-3 md:space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-3 md:gap-4">
                   <LabelWithHelp
                     icon={
                       sidebarDefaultCollapsed ? (
@@ -1369,7 +1369,7 @@ export default function ThemesPage() {
               </Card>
 
               {/* 界面缩放 */}
-              <Card className="glass-card p-4 sm:p-5 space-y-4">
+              <Card className="glass-card p-4 sm:p-5 space-y-3 md:space-y-4">
                 <ThemeSliderControl
                   label={
                     <LabelWithHelp
@@ -1418,7 +1418,7 @@ export default function ThemesPage() {
             </CardHeader>
             <CardContent>
               {presetsLoading ? (
-                <div className="glass-card-grid grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                <div className="glass-card-grid grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-4">
                   {['skel-1', 'skel-2', 'skel-3'].map((id) => (
                     <Skeleton key={id} className="h-40 rounded-lg" />
                   ))}
@@ -1445,7 +1445,7 @@ export default function ThemesPage() {
                   </Button>
                 </div>
               ) : (
-                <div className="glass-card-grid grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                <div className="glass-card-grid grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-4">
                   {presets.map((preset) => (
                     <div
                       key={preset.name}
@@ -1570,7 +1570,7 @@ export default function ThemesPage() {
             <DialogDescription>{t('themes.uploadCustomDesc')}</DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-2">
+          <div className="space-y-3 md:space-y-4 py-2">
             {/* 上传本地图片 */}
             <div className="space-y-2">
               <Label className="text-sm font-medium">{t('themes.uploadLocalImage')}</Label>
@@ -1680,7 +1680,7 @@ export default function ThemesPage() {
             </DialogTitle>
             <DialogDescription>{t('themes.savePresetDesc')}</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-2">
+          <div className="space-y-3 md:space-y-4 py-2">
             <div className="space-y-2">
               <Label htmlFor="preset-name">{t('themes.presetName')}</Label>
               <Input

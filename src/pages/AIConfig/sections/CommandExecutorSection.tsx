@@ -72,7 +72,7 @@ export function CommandExecutorSection({
 }: CommandExecutorSectionProps) {
   if (!commandExecutorConfig) {
     return (
-      <div className="space-y-5">
+      <div className="space-y-3 md:space-y-5">
         <div>
           <h2 className="text-lg font-bold flex items-center gap-2 mb-1">
             <Terminal className="w-5 h-5 text-muted-foreground" />
@@ -97,7 +97,7 @@ export function CommandExecutorSection({
   const entries = Object.entries(config).filter(([key]) => !TOP_LEVEL_KEYS.includes(key));
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-3 md:space-y-5">
       {/* 标题区 */}
       <div>
         <h2 className="text-lg font-bold flex items-center gap-2 mb-1">
@@ -147,7 +147,7 @@ export function CommandExecutorSection({
 
       {/* 三列：divider 占整行，其它字段占一格 */}
       {enableValue && (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 md:gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {entries.map(([key, item]) => {
             let fieldDef = pluginConfigItemToFieldDef(key, item);
 

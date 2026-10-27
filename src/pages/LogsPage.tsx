@@ -502,7 +502,7 @@ export default function LogsPage() {
     <PinnedPage
       header={
         /* Header */
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex flex-col gap-3 md:gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0 sm:overflow-x-auto">
             <h1 className="sm:whitespace-nowrap text-3xl font-bold flex items-center gap-3">
               <FileText className="w-8 h-8 shrink-0" />

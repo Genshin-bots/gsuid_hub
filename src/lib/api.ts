@@ -1699,6 +1699,8 @@ export interface EmbeddingConfigField {
   title: string;
   desc: string;
   data: unknown;
+  /** 与框架配置相同：`gsint` / `gsfloat` / `gsstr` … */
+  type?: string;
   options?: string[];
 }
 

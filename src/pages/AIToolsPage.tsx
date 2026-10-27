@@ -482,8 +482,13 @@ export default function AIToolsPage() {
           </div>
 
           {pageTab === 'tools' && !isLoading && categories.length > 0 && (
-            <div className="flex min-w-0 w-full items-center gap-1.5 md:flex-1 md:justify-end">
-              <div className="relative min-w-0 flex-[1.3]">
+            /*
+             * 窄屏：搜索框独占一行，下面三个筛选下拉一行三列（两行）。
+             * 四个控件挤一行时下拉框只剩 130px，"全部分类"被截成"全部分…"，点不准。
+             * 桌面（md+）：外层回到一行，中间那层用 contents 摊平，顺序与原来一致。
+             */
+            <div className="flex min-w-0 w-full flex-col gap-2 md:flex-1 md:flex-row md:items-center md:justify-end md:gap-1.5">
+              <div className="relative min-w-0 w-full md:w-auto md:flex-[1.3]">
                 <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   type="text"
@@ -494,6 +499,7 @@ export default function AIToolsPage() {
                 />
               </div>
 
+              <div className="flex min-w-0 w-full md:contents">
               <div className="min-w-0 flex-1">
                 <Select
                   value={diagnosticFilter}
@@ -568,6 +574,7 @@ export default function AIToolsPage() {
                   })}
                 />
               </div>
+              </div>
             </div>
           )}
 
@@ -621,7 +628,7 @@ export default function AIToolsPage() {
       )}
 
       {pageTab === 'assemble' && (
-        <div className="space-y-4">
+        <div className="space-y-3 md:space-y-4">
           <Card className={cn('glass-card')}>
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
@@ -657,7 +664,7 @@ export default function AIToolsPage() {
               </div>
               {assembleResult && (
                 <TooltipProvider delayDuration={150}>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 pt-2">
                     <div className="rounded-lg border border-border/50 p-3 space-y-2">
                       <div className="flex items-center justify-between">
                         <h4 className="text-sm font-medium">{t('aiTools.assemble.seeds')}</h4>
@@ -718,7 +725,7 @@ export default function AIToolsPage() {
       )}
 
       {pageTab === 'entity' && (
-        <div className="space-y-4">
+        <div className="space-y-3 md:space-y-4">
           <Card className={cn('glass-card')}>
             <CardHeader className="pb-3">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
@@ -853,7 +860,7 @@ export default function AIToolsPage() {
       {/* 工具列表 */}
       {pageTab === 'tools' &&
         (isLoading ? (
-          <div className="glass-card-grid grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="glass-card-grid grid grid-cols-1 gap-3 md:gap-4 md:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: 6 }).map((_, i) => (
               <Card key={i} className={cn('glass-card')}>
                 <CardHeader>
@@ -882,7 +889,7 @@ export default function AIToolsPage() {
           </Card>
         ) : (
           <>
-            <div className="glass-card-grid grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="glass-card-grid grid grid-cols-1 gap-3 md:gap-4 md:grid-cols-2 lg:grid-cols-3">
               {parsedTools.map((tool) => {
                 const diag = diagnoseTool(tools.find((x) => x.name === tool.name) ?? tool);
                 return (

@@ -538,7 +538,7 @@ function SpeechFields({
 }) {
   const { t } = useLanguage();
   return (
-    <div className="grid gap-4 sm:grid-cols-2">
+    <div className="grid gap-3 md:gap-4 sm:grid-cols-2">
       <SpeechSliderField
         id="persona-chat-style"
         icon={<MessagesSquare className="h-4 w-4" />}
@@ -1715,8 +1715,8 @@ export default function PersonaConfigPage() {
                 {t('personaConfig.enableScope')}
               </Label>
             </div>
-            {/* 5 个范围挤窄卡片：5 等分锁死一行；文案强制单行，超出省略 */}
-            <div className="grid grid-cols-5 gap-1">
+            {/* 5 个范围：窄屏三列（两行）才放得下文案；桌面仍五等分锁一行 */}
+            <div className="grid grid-cols-3 gap-1 sm:grid-cols-5">
               {SCOPE_OPTIONS.map((option) => (
                 <button
                   key={option.value}
@@ -1857,7 +1857,7 @@ export default function PersonaConfigPage() {
           </div>
         }
         toolbar={
-          <div className="flex w-full min-w-0 flex-wrap items-center justify-between gap-3">
+          <div className="flex w-full min-w-0 flex-col gap-3 md:gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-3">
             <div className="flex min-w-0 flex-wrap items-center gap-2">
               <div className={tabToolbarGroupWrapClass}>
                 <TabButtonGroup
@@ -1886,7 +1886,7 @@ export default function PersonaConfigPage() {
               </div>
               {/* 图四红框：切换到人格代理页签后在右侧自动出现的三个 button group（图三） */}
               {libraryView === 'capabilityAgents' && (
-                <div className={cn(tabToolbarGroupWrapClass, 'shrink-0 animate-in fade-in-50')}>
+                <div className={cn(tabToolbarGroupWrapClass, 'shrink animate-in fade-in-50')}>
                   <TabButtonGroup
                     options={capability.sourceOptions}
                     value={capability.activeSource}
@@ -1900,7 +1900,7 @@ export default function PersonaConfigPage() {
                 <>
                   <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
                     <DialogTrigger asChild>
-                      <Button className={cn(tabToolbarControlClass, 'gap-2 whitespace-nowrap')}>
+                      <Button className={cn(tabToolbarControlClass, 'flex-1 gap-2 whitespace-nowrap sm:flex-none')}>
                         <Sparkles className="h-4 w-4" />
                         {t('personaConfig.createNew')}
                       </Button>
@@ -1913,7 +1913,7 @@ export default function PersonaConfigPage() {
                         </DialogTitle>
                         <DialogDescription>{t('personaConfig.createNewDesc')}</DialogDescription>
                       </DialogHeader>
-                      <div className="space-y-4 py-4">
+                      <div className="space-y-3 md:space-y-4 py-4">
                         <div className="space-y-2">
                           <Label htmlFor="persona-name">{t('personaConfig.personaName')}</Label>
                           <Input
@@ -1970,7 +1970,7 @@ export default function PersonaConfigPage() {
                     <DialogTrigger asChild>
                       <Button
                         variant="outline"
-                        className={cn(tabToolbarControlClass, 'gap-2 whitespace-nowrap')}
+                        className={cn(tabToolbarControlClass, 'flex-1 gap-2 whitespace-nowrap sm:flex-none')}
                       >
                         <Plus className="h-4 w-4" />
                         {t('personaConfig.createNewManually')}
@@ -1986,7 +1986,7 @@ export default function PersonaConfigPage() {
                           {t('personaConfig.createNewManuallyDesc')}
                         </DialogDescription>
                       </DialogHeader>
-                      <div className="space-y-4 py-4">
+                      <div className="space-y-3 md:space-y-4 py-4">
                         <div className="space-y-2">
                           <Label htmlFor="persona-name-manual">
                             {t('personaConfig.personaName')}
@@ -2044,7 +2044,7 @@ export default function PersonaConfigPage() {
                 </>
               ) : libraryView === 'prompts' ? (
                 <Button
-                  className={cn(tabToolbarControlClass, 'gap-2 whitespace-nowrap')}
+                  className={cn(tabToolbarControlClass, 'flex-1 gap-2 whitespace-nowrap sm:flex-none')}
                   onClick={() => promptPanelRef.current?.openCreate()}
                 >
                   <Plus className="h-4 w-4" />
@@ -2053,7 +2053,7 @@ export default function PersonaConfigPage() {
               ) : (
                 /* 图 5：能力代理操控与搜索控件（搜索、刷新、新建节点），收成一行靠右对齐 */
                 <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
-                  <div className="relative w-full sm:w-[200px] md:w-[260px]">
+                  <div className="relative min-w-0 flex-1 sm:w-[200px] sm:flex-none md:w-[260px]">
                     <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       value={capability.searchQuery}
@@ -2098,7 +2098,7 @@ export default function PersonaConfigPage() {
         ) : libraryView === 'capabilityAgents' ? (
           <CapabilityAgentsPanel capability={capability} />
         ) : (
-          <div className="-mt-3">
+          <div className="md:-mt-3">
             <div className="mb-3 space-y-3">
               <GlassAlert tone="warning">{t('personaConfig.builtinPersonaWarning')}</GlassAlert>
               {/* 全局启用提示 */}
@@ -2157,7 +2157,7 @@ export default function PersonaConfigPage() {
                 </div>
               </>
             ) : (
-              <div className="glass-card-grid grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-2 2xl:grid-cols-3">
+              <div className="glass-card-grid grid min-w-0 grid-cols-1 gap-3 md:gap-4 lg:grid-cols-2 2xl:grid-cols-3">
                 {personaCards.map(renderPersonaCard)}
               </div>
             )}
@@ -2432,7 +2432,7 @@ export default function PersonaConfigPage() {
                       重新勾上还得再找一遍。冻结态的标签同样变灰，控件走各自的 disabled 样式。
                       值一直随 payload 提交（inspect_interval / keywords），冻结不影响已存的数据。
                     */}
-                    <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="grid gap-3 md:gap-4 sm:grid-cols-2">
                       <div className="space-y-2">
                         <Label
                           className={cn(
@@ -2505,7 +2505,7 @@ export default function PersonaConfigPage() {
                         description={t('personaConfig.asideHint')}
                         className={cn('text-base font-medium', !showAside && 'opacity-50')}
                       />
-                      <div className="grid gap-4 sm:grid-cols-3">
+                      <div className="grid gap-3 md:gap-4 sm:grid-cols-3">
                         <ProbabilityField
                           id="aside-image"
                           label={t('personaConfig.asideImage')}
@@ -2544,7 +2544,7 @@ export default function PersonaConfigPage() {
                         />
                       </div>
                     </div>
-                    <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="grid gap-3 md:gap-4 sm:grid-cols-2">
                       <div className="space-y-2">
                         <LabelWithHelp
                           icon={
@@ -2592,7 +2592,7 @@ export default function PersonaConfigPage() {
                         description={t('personaConfig.autonomyHint')}
                         className={cn('text-base font-medium', !showAutonomy && 'opacity-50')}
                       />
-                      <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="grid gap-3 md:gap-4 sm:grid-cols-2">
                         <div className={cn('space-y-2', !showAutonomy && 'opacity-50')}>
                           <Label htmlFor="autonomy-interval" className="text-sm">
                             {t('personaConfig.autonomyInterval')}
@@ -2681,7 +2681,7 @@ export default function PersonaConfigPage() {
                       {t('personaConfig.personaSettingsLoadFailed')}
                     </div>
                   ) : (
-                    <div className="space-y-4">
+                    <div className="space-y-3 md:space-y-4">
                       <LabelWithHelp
                         label={t('personaConfig.personaSettings')}
                         description={t('personaConfig.personaSettingsHint')}
@@ -2700,7 +2700,7 @@ export default function PersonaConfigPage() {
                   value="avatar"
                   className="mt-0 hidden min-h-0 flex-1 overflow-y-auto data-[state=active]:block"
                 >
-                  <div className="space-y-4">
+                  <div className="space-y-3 md:space-y-4">
                     <div className="flex items-center justify-between">
                       <Label className="flex items-center gap-2">
                         <ImageIcon className="h-4 w-4" />
@@ -2768,7 +2768,7 @@ export default function PersonaConfigPage() {
                   value="image"
                   className="mt-0 hidden min-h-0 flex-1 overflow-y-auto data-[state=active]:block"
                 >
-                  <div className="space-y-4">
+                  <div className="space-y-3 md:space-y-4">
                     <div className="flex items-center justify-between">
                       <Label className="flex items-center gap-2">
                         <ImageIcon className="h-4 w-4" />
@@ -2836,7 +2836,7 @@ export default function PersonaConfigPage() {
                   value="audio"
                   className="mt-0 hidden min-h-0 flex-1 overflow-y-auto data-[state=active]:block"
                 >
-                  <div className="space-y-4">
+                  <div className="space-y-3 md:space-y-4">
                     <div className="flex items-center justify-between">
                       <Label className="flex items-center gap-2">
                         <Music className="h-4 w-4" />
@@ -2867,7 +2867,7 @@ export default function PersonaConfigPage() {
                     </div>
                     <div className="flex items-center justify-center p-8 bg-muted/30 rounded-lg min-h-[200px]">
                       {editingPersona?.has_audio ? (
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-3 md:gap-4">
                           <Button
                             variant="outline"
                             size="lg"

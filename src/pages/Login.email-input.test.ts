@@ -14,7 +14,8 @@ describe('login email input does not use Chrome type=email font fallback (P-37)'
   });
 
   it('restricts Twemoji to emoji unicode-range so ASCII is not a COLR candidate', () => {
-    expect(fontsSrc).toMatch(/font-family:\s*'Twemoji Mozilla'/);
+    // fonts.css 里 font-family 可能用单引号或双引号，两种都算数
+    expect(fontsSrc).toMatch(/font-family:\s*['"]Twemoji Mozilla['"]/);
     expect(fontsSrc).toMatch(/unicode-range:/);
     expect(fontsSrc).toMatch(/U\+1F000-1FAFF/);
   });

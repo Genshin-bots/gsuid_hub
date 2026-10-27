@@ -393,7 +393,7 @@ export default function Login() {
           </CardHeader>
 
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-3 md:space-y-4">
               {/* 后端不可达：先讲清原因与修复路径，别让用户对着一个注定失败的表单反复试 */}
               {isOffline && (
                 <Alert variant="destructive">
@@ -605,7 +605,7 @@ export default function Login() {
             <DialogTitle>{t('login.settingsTitle')}</DialogTitle>
             <DialogDescription>{t('login.settingsDescription')}</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <div className="space-y-3 md:space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="customHost">{t('login.customHost')}</Label>
               <Input

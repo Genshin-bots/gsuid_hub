@@ -75,12 +75,14 @@ export function ArtifactsFilters(props: ArtifactsPanelProps) {
 
   return (
     // 一行放完：输入框 + 「全部」切换 + 含已过期开关。
-    <div className="flex flex-wrap items-center justify-end gap-2">
+    // 窄屏整行铺满：输入框 flex-1 吃掉剩余宽度，三个控件同排占满一行；
+    // ≥768 回到原样（输入框固定 280px，行右对齐）。
+    <div className="flex w-full min-w-0 flex-wrap items-center justify-start gap-2 md:w-auto md:min-w-auto md:justify-end">
       <Input
         className={cn(
           tabToolbarControlClass,
           // 内容等宽便于核对 ID；框内灰字是中文，placeholder 单独回正常字体
-          'min-w-0 w-full sm:w-[220px] md:w-[280px] font-mono placeholder:font-sans',
+          'min-w-0 flex-1 font-mono placeholder:font-sans md:w-[280px] md:flex-initial',
         )}
         placeholder={t('aiArtifacts.toolbar.filterRoot')}
         value={rootTaskId}
@@ -327,7 +329,7 @@ export function ArtifactsPanel(props: ArtifactsPanelProps) {
             {t('aiArtifacts.toolbar.refresh')}
           </Button>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3 md:space-y-4">
           {loading ? (
             <Skeleton className="h-32 w-full rounded-md" />
           ) : items.length === 0 ? (
@@ -513,7 +515,7 @@ export function ArtifactsPanel(props: ArtifactsPanelProps) {
                 overflow-auto 让字段超长时整块滚动（少见，但元数据 7 字段 4 行可能撑爆小视口）。 */}
             <TabsContent
               value="overview"
-              className="flex-1 min-h-0 overflow-auto px-6 py-4 mt-0 space-y-5 data-[state=inactive]:hidden"
+              className="flex-1 min-h-0 overflow-auto px-6 py-4 mt-0 space-y-3 md:space-y-5 data-[state=inactive]:hidden"
             >
               {detail ? (
                 <>

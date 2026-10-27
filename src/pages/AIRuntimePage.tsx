@@ -173,7 +173,7 @@ export default function AIRuntimePage() {
 
   return (
     <PinnedPage
-      className="gap-6"
+      className="gap-3 md:gap-6"
       header={
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0">
@@ -272,7 +272,7 @@ function SlotsPanel({
   if (missing) return <MissingBackendCard />;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 md:space-y-4">
       <div className="flex flex-wrap items-center justify-end gap-2">
         <Badge variant="secondary" className="max-w-full whitespace-normal">
           {t('aiRuntime.slots.count', { count: slots.length })}
@@ -428,7 +428,7 @@ function HooksPanel({
   const unwired = points.filter((p) => !p.wired);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 md:space-y-4">
       <div className="flex flex-wrap items-center justify-end gap-2">
         <Badge
           variant={enabled ? 'default' : 'destructive'}
@@ -627,7 +627,7 @@ function RelationshipPanel() {
   if (missing) return <MissingBackendCard />;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 md:space-y-4">
       <Card className="glass-card">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -636,7 +636,7 @@ function RelationshipPanel() {
           </CardTitle>
           <CardDescription>{t('aiRuntime.relationship.desc')}</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3 md:space-y-4">
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1">
               <Label htmlFor="rel-user">{t('aiRuntime.relationship.userId')}</Label>
@@ -675,7 +675,7 @@ function RelationshipPanel() {
         </CardContent>
       </Card>
 
-      <div ref={detailRef} className="space-y-4">
+      <div ref={detailRef} className="space-y-3 md:space-y-4">
         {view && !view.scored && (
           <Card className="glass-card">
             <CardContent className="!p-6 text-sm text-muted-foreground">
@@ -698,7 +698,7 @@ function RelationshipPanel() {
               </CardTitle>
               <CardDescription>{view.line}</CardDescription>
             </CardHeader>
-            <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 text-sm">
+            <CardContent className="grid gap-3 md:gap-4 sm:grid-cols-2 lg:grid-cols-3 text-sm">
               <Field
                 label={t('aiRuntime.relationship.score')}
                 value={String(view.score ?? '—')}
@@ -762,7 +762,7 @@ function RelationshipPanel() {
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3 md:space-y-4">
           {rosterForbidden ? (
             <p className="text-sm text-muted-foreground">
               {t('aiRuntime.relationship.rosterForbidden')}
@@ -1057,7 +1057,7 @@ function CognitionPanel() {
   if (missing) return <MissingBackendCard />;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 md:space-y-4">
       <Card className="glass-card">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -1066,7 +1066,7 @@ function CognitionPanel() {
           </CardTitle>
           <CardDescription>{t('aiRuntime.cognition.desc')}</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3 md:space-y-4">
           <div className="grid gap-3 sm:grid-cols-3">
             <div className="space-y-1">
               <Label htmlFor="cog-kw">{t('aiRuntime.cognition.keyword')}</Label>

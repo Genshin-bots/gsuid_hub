@@ -281,7 +281,7 @@ export default function SkillsPanel({ addDialogOpen, onAddDialogOpenChange }: Sk
       )}
 
       {isLoading ? (
-        <div className="glass-card-grid grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="glass-card-grid grid grid-cols-1 gap-3 md:gap-4 md:grid-cols-2 lg:grid-cols-3">
           {['a', 'b', 'c', 'd', 'e', 'f'].map((key) => (
             <Card key={key} className="glass-card">
               <CardHeader>
@@ -302,7 +302,7 @@ export default function SkillsPanel({ addDialogOpen, onAddDialogOpenChange }: Sk
           </CardContent>
         </Card>
       ) : (
-        <div className="glass-card-grid grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="glass-card-grid grid grid-cols-1 gap-3 md:gap-4 md:grid-cols-2 lg:grid-cols-3">
           {parsedSkills.map((skill) => (
             <Card
               key={skill.name}
@@ -403,7 +403,7 @@ export default function SkillsPanel({ addDialogOpen, onAddDialogOpenChange }: Sk
                 <Skeleton className="h-4 w-1/2" />
               </div>
             ) : selectedSkill ? (
-              <div className="space-y-4 py-1">
+              <div className="space-y-3 md:space-y-4 py-1">
                 {selectedSkill.description && (
                   <div>
                     <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
@@ -513,7 +513,7 @@ export default function SkillsPanel({ addDialogOpen, onAddDialogOpenChange }: Sk
             </DialogTitle>
             <DialogDescription>{t('aiSkills.addSkillDescription')}</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 mt-4">
+          <div className="space-y-3 md:space-y-4 mt-4">
             <div className="space-y-2">
               <Label htmlFor="skillGitUrl">{t('aiSkills.gitUrl')}</Label>
               <Input
@@ -587,7 +587,7 @@ export default function SkillsPanel({ addDialogOpen, onAddDialogOpenChange }: Sk
             </DialogTitle>
             <DialogDescription>{t('aiSkills.editSkillDescription')}</DialogDescription>
           </DialogHeader>
-          <div className="flex-1 min-h-0 overflow-y-auto pr-1 py-1 space-y-4 mt-2">
+          <div className="flex-1 min-h-0 overflow-y-auto pr-1 py-1 space-y-3 md:space-y-4 mt-2">
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 <FileText className="w-4 h-4" />

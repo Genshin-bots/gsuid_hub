@@ -435,7 +435,11 @@ export function ConfigField({
       // ----------------------------------------------------------
       case 'boolean':
         return (
-          <div className="h-10 flex items-center">
+          // 窄屏靠上对齐：开关在 40px 盒子里居中时，标签→开关是 16px，
+          // 而输入框类字段是 8px —— 同一列里两种字段的行间距对不上。
+          // 靠上后开关与同排输入框的顶边齐平，标签间距统一为 8px。
+          // 桌面保持居中，视觉不变。
+          <div className="flex h-10 items-start sm:items-center">
             <Switch
               checked={value as boolean}
               onCheckedChange={(checked) => onChange(fieldKey, checked)}
@@ -896,11 +900,15 @@ export function ConfigField({
     return (
       <div className={cn('col-span-full space-y-1', className)}>
         {showLabel && (
-          <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-            {getTitleIcon(displayLabel)}
-            {displayLabel}
+          <Label className="text-sm font-medium text-muted-foreground flex h-5 min-w-0 items-center gap-2">
+            <span className="flex shrink-0 items-center">{getTitleIcon(displayLabel)}</span>
+            <span className="min-w-0 truncate" title={displayLabel}>
+              {displayLabel}
+            </span>
             {displayDescription && (
-              <MarkdownTooltip content={displayDescription} side="top" className="max-w-xs" />
+              <span className="shrink-0">
+                <MarkdownTooltip content={displayDescription} side="top" className="max-w-xs" />
+              </span>
             )}
           </Label>
         )}
@@ -913,18 +921,29 @@ export function ConfigField({
     <TooltipProvider delayDuration={100}>
       <div className={cn('flex flex-col', className)}>
         {showLabel && (
-          <Label className="text-sm font-medium text-muted-foreground mb-2 min-h-5 h-auto sm:h-5 flex items-start sm:items-center gap-2 shrink-0">
-            {getTitleIcon(displayLabel)}
-            {displayLabel}
-            {field.required && <span className="text-destructive ml-1">*</span>}
+          /*
+            * 标题永远单行：过长用省略号截断，**绝不折行**。
+            * 折行会把整行控件顶歪 —— 两列网格里尤其明显（同排另一个字段的控件
+            * 还停在原位，一高一低）。min-w-0 + truncate 是关键：光加 truncate
+            * 不加 min-w-0，flex item 仍拒绝收缩，文字照样撑出容器换行。
+            * 原先的 h-auto sm:h-5 更是把折行的第二行溢出到 20px 的盒子里。
+            */
+          <Label className="text-sm font-medium text-muted-foreground mb-2 flex h-5 min-w-0 items-center gap-2">
+            <span className="flex shrink-0 items-center">{getTitleIcon(displayLabel)}</span>
+            <span className="min-w-0 truncate" title={displayLabel}>
+              {displayLabel}
+            </span>
+            {field.required && <span className="shrink-0 text-destructive ml-1">*</span>}
             {isSecret && (
-              <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-full border border-amber-500/50 text-amber-600 dark:text-amber-400 bg-amber-500/5 whitespace-nowrap">
+              <span className="shrink-0 inline-flex h-4 items-center gap-0.5 text-[10px] leading-none px-1.5 rounded-full border border-amber-500/50 text-amber-600 dark:text-amber-400 bg-amber-500/5 whitespace-nowrap">
                 <Eye className="w-2.5 h-2.5" />
                 密钥
               </span>
             )}
             {displayDescription && (
-              <MarkdownTooltip content={displayDescription} side="top" className="max-w-xs" />
+              <span className="shrink-0">
+                <MarkdownTooltip content={displayDescription} side="top" className="max-w-xs" />
+              </span>
             )}
           </Label>
         )}

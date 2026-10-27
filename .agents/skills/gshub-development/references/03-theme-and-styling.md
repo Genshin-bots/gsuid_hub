@@ -196,6 +196,25 @@ const isGlass = style === 'glassmorphism';
 - 移动端优先，用 `md:`、`lg:` 断点。
 - 表格在移动端用卡片布局替代（`hidden md:block` / `md:hidden` 双布局，见 [§08 页面模式](./08-page-patterns.md)）。
 - 表单字段移动端单列、桌面端多列（`grid grid-cols-1 md:grid-cols-2`）。
+- 配置类「Label + 控件」网格：窄屏**两列**、桌面三列（`grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 items-start`），
+  配 `items-start` 避免同排里矮个子被拉高后行底多出空白。详见 [§04 §4.8](./04-page-layout-spec.md)。
+
+### 3.6.1 移动端侧边栏抽屉必须跟随主题 ★★★
+
+桌面侧栏是 `glass-sidebar` / `floating-sidebar`，但**移动端抽屉是另一套壳**：
+`Sidebar` 在 `isMobile` 时渲染成 `Sheet`，`SheetContent` 自带 `bg-background`（**实色**）。
+它会垫在 `::before` 的半透明层下面，把 `backdrop-filter` 糊成一块实色 —— 症状就是
+「移动端侧边栏永远是纯色，不跟纯色/毛玻璃/光感/液态走」。
+
+修法（`src/components/ui/sidebar.tsx` + `src/index.css`）：
+
+1. 抽屉外壳用 `bg-transparent`（纯色风格才用实色 `--sidebar`）。
+2. `index.css` 里用 `[data-sidebar="sidebar"][data-mobile="true"]` 兜底：
+   玻璃系 → `background: transparent !important`，`solid` → `hsl(var(--sidebar) / var(--card-opacity, 1))`；
+   纯色风格同时 `::before { display: none }`（实色底不需要再叠一层）。
+
+选择器带 `[data-mobile="true"]` 是为了拿到足够特异性压过 `.fixed` / `.glass-sidebar` 等工具类，
+不依赖 Tailwind `@layer` 的顺序。抽屉圆角在窄屏统一归零（贴边抽屉不是卡片）。
 
 ## 3.7 插件 iframe 跟随 Hub 主题
 

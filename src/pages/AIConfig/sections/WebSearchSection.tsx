@@ -363,7 +363,7 @@ export function WebSearchSection({
     if (key === 'mcp' || key === 'modelcontextprotocol' || key === 'model_context_protocol') {
       return (
         <div className="space-y-3">
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2 min-w-0 flex-1">
               {websearchToolInfo ? (
                 <>
@@ -439,7 +439,7 @@ export function WebSearchSection({
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-3 md:space-y-5">
       <HeadingWithHelp
         icon={<Search className="w-5 h-5 text-primary" />}
         title={t('aiConfig.serviceProvider.webSearchService')}
@@ -578,7 +578,7 @@ export function WebSearchSection({
           >
             {/* 允许嵌入配图 主控开关行 */}
             {onChangeRenderEmbedImages !== undefined && (
-              <div className="flex items-start justify-between gap-4">
+              <div className="flex items-start justify-between gap-3 md:gap-4">
                 <div className="flex items-start gap-3 min-w-0">
                   <div
                     className={cn(

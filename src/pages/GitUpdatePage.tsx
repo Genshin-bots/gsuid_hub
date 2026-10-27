@@ -784,11 +784,11 @@ export default function GitUpdatePage() {
 
   return (
     <PinnedPage
-      className="gap-4"
-      bodyClassName="space-y-4"
+      className="gap-3 md:gap-4"
+      bodyClassName="space-y-3 md:space-y-4"
       header={
         /* Header */
-        <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between xl:gap-4">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between xl:gap-3 md:gap-4">
           <div className="min-w-0 xl:max-w-sm xl:shrink-0">
             <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-3">
               <GitBranch className="w-7 h-7 sm:w-8 sm:h-8 shrink-0" />
@@ -1010,7 +1010,7 @@ export default function GitUpdatePage() {
           {isLoadingCommits ? (
             <div className="space-y-3 p-4 sm:p-0">
               {[1, 2, 3, 4, 5].map((i) => (
-                <div key={i} className="flex items-center gap-4">
+                <div key={i} className="flex items-center gap-3 md:gap-4">
                   <Skeleton className="h-4 w-16" />
                   <Skeleton className="h-4 w-24" />
                   <Skeleton className="h-4 flex-1" />

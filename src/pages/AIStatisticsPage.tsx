@@ -359,8 +359,9 @@ const TREND_LOOKBACK_DAYS = 7;
  * ghost 不带 `bg-background`，外壳自己说话，三套主题表现一致。
  */
 const rangeControlShellClass =
-  'tab-segment-row inline-flex items-center rounded-lg glass-card-flat p-1';
-const rangeControlBtnClass = 'h-10 w-[152px] justify-start gap-2 px-3 font-normal rounded-md';
+  'tab-segment-row inline-flex w-full items-center rounded-lg glass-card-flat p-1 sm:w-auto';
+const rangeControlBtnClass =
+  'h-10 w-full justify-start gap-2 px-3 font-normal rounded-md sm:w-[152px]';
 
 /** 日期槽与刷新按钮的胶囊外壳与尺寸，与 TabButtonGroup 严格保持一致的外层 p-1 + 内层 h-10 */
 
@@ -1761,7 +1762,7 @@ export default function AIStatisticsPage() {
 
   return (
     <PinnedPage
-      className="gap-4"
+      className="gap-3 md:gap-4"
       header={
         <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-1">
           <h1 className="text-3xl font-bold flex items-center gap-3">
@@ -1779,116 +1780,135 @@ export default function AIStatisticsPage() {
         </div>
       }
       toolbar={
-        /* 时间和分类是两种筛选，都跟着标题常驻。左边这一排是全页唯一的「看哪段时间」
-           入口：主角卡、区间走势、性能区共用它，不再在区块里各摆一排预设。 */
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <TabButtonGroup
-              options={presetTabs(['today', 'yesterday', '7d', '14d', '30d', '90d', 'custom'])}
-              value={rangePreset}
-              onValueChange={(v) => setRangePreset(v as RangePreset)}
-              collapseOnMobile
-            />
+        /* 时间和分类是两种筛选，都跟着标题常驻。
+
+           窄屏拆成两行，每行「大控件 + 贴着它的小控件」，行内不留空档：
+             第一行 [档位 ▾      ] [⟳]
+             第二行 [日期        ] [页签 ▾]
+           之前用 2×2 grid，⟳ 独占一格、行中间空出一大块，看着像漏排了控件。
+           桌面仍是一行：两组用 sm:contents 拆回同一个 flex 行，靠 order 还原
+           「档位 → 日期 → 刷新 → 页签(靠右)」的顺序。 */
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-2">
+          {/* 窄屏第一行：档位 + 刷新 */}
+          <div className="flex min-w-0 items-center gap-2 sm:contents">
+            <div className="order-1 min-w-0 flex-1 sm:flex-none">
+              <TabButtonGroup
+                options={presetTabs(['today', 'yesterday', '7d', '14d', '30d', '90d', 'custom'])}
+                value={rangePreset}
+                onValueChange={(v) => setRangePreset(v as RangePreset)}
+                collapseOnMobile
+                className="w-full"
+              />
+            </div>
+            {/* 刷新收成图标按钮：45px 的按钮文案换 45px 的留白更划算 —— 页签组因此能在
+                1366 宽的笔电上留在同一行。动作本身不常错，Tooltip 报得出它是什么。 */}
+            <div className="order-2 shrink-0 sm:order-3">
+              <div className={rangeControlShellClass}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      onClick={() => void loadData()}
+                      disabled={isLoading}
+                      aria-label={t('common.refresh')}
+                      className={rangeIconButtonClass}
+                    >
+                      <RefreshCw className={cn('h-4 w-4', isLoading && 'animate-spin')} />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>{t('common.refresh')}</TooltipContent>
+                </Tooltip>
+              </div>
+            </div>
+          </div>
+
+          {/* 窄屏第二行：日期 + 页签 */}
+          <div className="flex min-w-0 items-center gap-2 sm:contents">
             {/* 日期控件恒定占一个 152px 的槽：切档时整行宽度不变，右侧那排页签
                 就不会被挤到第二行、孤零零地靠左摆着（看着最不协调）。
                 相对档没有可选项，就放一条只读的解析结果 —— 只在「今日」冒出一张
-                日历卡、其余档又消失，行宽忽宽忽窄才是「不协调」的真正来源。 */}
-            {rangePreset === 'today' ? (
-              <div className={rangeControlShellClass}>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="ghost" className={rangeControlBtnClass}>
-                      <CalendarDays className="h-4 w-4 shrink-0" />
-                      <span className="truncate tabular-nums">{dateStr}</span>
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start" sideOffset={8}>
-                    <MetricDayCalendar
-                      selected={selectedDate}
-                      onSelect={setSelectedDate}
-                      metrics={dailyInputTokens}
-                      disableEmpty
-                      formatMetric={formatCompactMetric}
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-            ) : rangePreset === 'custom' ? (
-              /* 起止两个按钮并排会把这行撑到 300px 宽，「自定义」一选就换行。
-                 改成一个区间日历：宽度恒定，还能一次拖出整段。 */
-              <div className={rangeControlShellClass}>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      className={cn(
-                        rangeControlBtnClass,
-                        (!rangeStartDate || !rangeEndDate) && 'text-muted-foreground',
-                      )}
-                    >
-                      <CalendarDays className="h-4 w-4 shrink-0" />
-                      <span className="truncate tabular-nums">
-                        {rangeStartDate && rangeEndDate
-                          ? `${format(rangeStartDate, 'MM-dd')} → ${format(rangeEndDate, 'MM-dd')}`
-                          : t('aiStatistics.rangeStart')}
-                      </span>
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start" sideOffset={8}>
-                    <CalendarComponent
-                      mode="range"
-                      numberOfMonths={2}
-                      selected={
-                        rangeStartDate || rangeEndDate
-                          ? { from: rangeStartDate, to: rangeEndDate }
-                          : undefined
-                      }
-                      onSelect={(r) => {
-                        setRangeStartDate(r?.from);
-                        setRangeEndDate(r?.to);
-                      }}
-                      defaultMonth={rangeStartDate}
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-            ) : (
-              <div className={rangeControlShellClass}>
-                <span className="flex h-10 w-[152px] items-center gap-2 px-3 text-sm tabular-nums text-muted-foreground">
-                  <CalendarDays className="h-4 w-4 shrink-0" />
-                  <span className="truncate">{scopeDates}</span>
-                </span>
-              </div>
-            )}
-            {/* 刷新收成图标按钮：这行是整页唯一放得下「筛选 + 页签」的地方，
-                45px 的按钮文案换 45px 的留白更划算 —— 页签组因此能在 1366 宽的笔电上
-                也留在同一行。动作本身不常错，Tooltip 报得出它是什么。 */}
-            <div className={rangeControlShellClass}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    onClick={() => void loadData()}
-                    disabled={isLoading}
-                    aria-label={t('common.refresh')}
-                    className={rangeIconButtonClass}
-                  >
-                    <RefreshCw className={cn('h-4 w-4', isLoading && 'animate-spin')} />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>{t('common.refresh')}</TooltipContent>
-              </Tooltip>
+                日历卡、其余档又消失，行宽忽宽忽窄才是「不协调」的真正来源。
+                窄屏改成弹性宽度，跟页签平分一行。 */}
+            <div className="order-3 min-w-0 flex-1 sm:order-2 sm:flex-none">
+              {rangePreset === 'today' ? (
+                <div className={rangeControlShellClass}>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="ghost" className={rangeControlBtnClass}>
+                        <CalendarDays className="h-4 w-4 shrink-0" />
+                        <span className="truncate tabular-nums">{dateStr}</span>
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start" sideOffset={8}>
+                      <MetricDayCalendar
+                        selected={selectedDate}
+                        onSelect={setSelectedDate}
+                        metrics={dailyInputTokens}
+                        disableEmpty
+                        formatMetric={formatCompactMetric}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              ) : rangePreset === 'custom' ? (
+                /* 起止两个按钮并排会把这行撑到 300px 宽，「自定义」一选就换行。
+                   改成一个区间日历：宽度恒定，还能一次拖出整段。 */
+                <div className={rangeControlShellClass}>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        className={cn(
+                          rangeControlBtnClass,
+                          (!rangeStartDate || !rangeEndDate) && 'text-muted-foreground',
+                        )}
+                      >
+                        <CalendarDays className="h-4 w-4 shrink-0" />
+                        <span className="truncate tabular-nums">
+                          {rangeStartDate && rangeEndDate
+                            ? `${format(rangeStartDate, 'MM-dd')} → ${format(rangeEndDate, 'MM-dd')}`
+                            : t('aiStatistics.rangeStart')}
+                        </span>
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start" sideOffset={8}>
+                      <CalendarComponent
+                        mode="range"
+                        numberOfMonths={2}
+                        selected={
+                          rangeStartDate || rangeEndDate
+                            ? { from: rangeStartDate, to: rangeEndDate }
+                            : undefined
+                        }
+                        onSelect={(r) => {
+                          setRangeStartDate(r?.from);
+                          setRangeEndDate(r?.to);
+                        }}
+                        defaultMonth={rangeStartDate}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              ) : (
+                <div className={rangeControlShellClass}>
+                  <span className="flex h-10 w-full items-center gap-2 px-3 text-sm tabular-nums text-muted-foreground sm:w-[152px]">
+                    <CalendarDays className="h-4 w-4 shrink-0" />
+                    <span className="truncate">{scopeDates}</span>
+                  </span>
+                </div>
+              )}
             </div>
-          </div>
-          {/* 页签组 ml-auto + shrink-0：左侧筛选先吃空隙，实在放不下时才换行，
-              页签组永远贴着右边缘，不会孤零零掉在第二行左边。 */}
-          <div className="ml-auto flex shrink-0 items-center">
-            <TabButtonGroup
-              options={tabOptions}
-              value={activeTab}
-              onValueChange={setActiveTab}
-              collapseOnMobile
-            />
+            {/* 页签组 ml-auto + shrink-0：左侧筛选先吃空隙，实在放不下时才换行，
+                页签组永远贴着右边缘，不会孤零零掉在第二行左边。 */}
+            <div className="order-4 min-w-0 flex-1 sm:order-4 sm:ml-auto sm:flex-none sm:shrink-0">
+              <TabButtonGroup
+                options={tabOptions}
+                value={activeTab}
+                onValueChange={setActiveTab}
+                collapseOnMobile
+                className="w-full"
+              />
+            </div>
           </div>
         </div>
       }
@@ -1900,7 +1920,7 @@ export default function AIStatisticsPage() {
       )}
 
       {isLoading ? (
-        <div className="space-y-4">
+        <div className="space-y-3 md:space-y-4">
           <TileSkeleton count={6} />
           <TileSkeleton count={6} />
         </div>
@@ -1918,7 +1938,7 @@ export default function AIStatisticsPage() {
                   主角卡就变成这 7 天的合计。
                   主角卡从 8+4 收成 6+3，右边腾出的 3 列给延迟 / 错误率 ——
                   原来这两格在三张图的读数条里，那一整行就为了两个数。 */}
-              <div className="grid grid-cols-1 gap-2.5 md:grid-cols-12">
+              <div className="grid grid-cols-1 gap-3 md:gap-2.5 md:grid-cols-12">
                 <div className="md:col-span-12 xl:col-span-6">
                   <MetricHero
                     title={t('aiStatistics.totalTokens')}
@@ -2262,7 +2282,7 @@ export default function AIStatisticsPage() {
                 <SectionLabel title={t('aiStatistics.zoneInvocation')} icon={GitBranch} />
               </div>
 
-              <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-2 xl:grid-cols-12">
+              <div className="mt-3 md:mt-4 grid grid-cols-1 gap-3 lg:grid-cols-2 xl:grid-cols-12">
                 <DataBlock
                   title={t('aiStatistics.intentDistribution')}
                   icon={Brain}
@@ -2500,7 +2520,7 @@ export default function AIStatisticsPage() {
                 <SectionLabel title={t('aiStatistics.zoneMemory')} icon={Brain} />
               </div>
 
-              <div className="mt-2.5 grid grid-cols-2 gap-2.5 sm:grid-cols-3 xl:grid-cols-6">
+              <div className="mt-3 md:mt-2.5 grid grid-cols-2 gap-2.5 sm:grid-cols-3 xl:grid-cols-6">
                 <MetricMini
                   title={t('aiStatistics.userTurnCount')}
                   value={(efficiency.user_turn_count ?? 0).toLocaleString()}
@@ -2664,7 +2684,7 @@ export default function AIStatisticsPage() {
                         <SectionLabel title={t('aiStatistics.dayDetail')} icon={Layers} />
                       </div>
 
-                      <div className="mt-2.5 grid grid-cols-1 gap-3 lg:grid-cols-2">
+                      <div className="mt-3 md:mt-2.5 grid grid-cols-1 gap-3 lg:grid-cols-2">
                         <DataBlock
                           title={t('aiStatistics.modelDetail')}
                           icon={Layers}
@@ -3185,7 +3205,7 @@ export default function AIStatisticsPage() {
                     </span>
                   }
                 >
-                  <div className="flex h-full flex-col justify-center gap-4 py-2">
+                  <div className="flex h-full flex-col justify-center gap-3 md:gap-4 py-2">
                     <div>
                       <p className="text-4xl font-bold leading-none tabular-nums tracking-tight">
                         {(summary.rag?.hit_count ?? 0).toLocaleString()}

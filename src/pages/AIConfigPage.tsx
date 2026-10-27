@@ -46,6 +46,7 @@ import {
   type PluginConfigItem,
 } from '@/lib/api';
 import { MCP_SERVICE_TOOLS_CONFIG_KEY_MAP, type McpServiceType } from '@/components/config';
+import { coerceConfigValueForSave, embeddingConfigPayload } from '@/lib/configSaveValue';
 import { EmptyState } from './AIConfig/shared/EmptyState';
 import { filterOutPrimaryProvider } from './AIConfig/shared/providerId';
 import {
@@ -520,10 +521,8 @@ export default function AIConfigPage() {
           const rawType = (field.type || '').toLowerCase();
           let value: unknown = field.value;
 
-          if (rawType === 'gsint') {
-            if (typeof value === 'string') value = parseInt(value, 10);
-          } else if (rawType === 'gsfloat') {
-            if (typeof value === 'string') value = parseFloat(value);
+          if (rawType === 'gsint' || rawType === 'gsfloat') {
+            value = coerceConfigValueForSave(rawType, value);
           } else if (rawType === 'gsbool') {
             if (typeof value === 'string') value = value === 'true';
             else value = !!value;
@@ -616,20 +615,14 @@ export default function AIConfigPage() {
         JSON.stringify(embedding.embeddingLocalConfig) !==
         JSON.stringify(embedding.originalEmbeddingLocalConfig)
       ) {
-        const localPayload: Record<string, unknown> = {};
-        Object.entries(embedding.embeddingLocalConfig).forEach(([key, field]) => {
-          localPayload[key] = field.data;
-        });
+        const localPayload = embeddingConfigPayload(embedding.embeddingLocalConfig);
         await embeddingConfigApi.saveLocalConfig(localPayload);
       }
       if (
         JSON.stringify(embedding.embeddingOpenaiConfig) !==
         JSON.stringify(embedding.originalEmbeddingOpenaiConfig)
       ) {
-        const openaiPayload: Record<string, unknown> = {};
-        Object.entries(embedding.embeddingOpenaiConfig).forEach(([key, field]) => {
-          openaiPayload[key] = field.data;
-        });
+        const openaiPayload = embeddingConfigPayload(embedding.embeddingOpenaiConfig);
         await embeddingConfigApi.saveOpenaiConfig(openaiPayload);
       }
       embedding.markSaved(
@@ -730,7 +723,7 @@ export default function AIConfigPage() {
 
   if (!aiConfig) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-3 md:space-y-6">
         <EmptyState
           icon={<Bot className="w-8 h-8 text-muted-foreground" />}
           title={t('aiConfig.noAIConfig')}
@@ -832,7 +825,7 @@ export default function AIConfigPage() {
       case 'webSearch':
       case 'webFetch':
         return (
-          <div className="grid items-start gap-6 lg:grid-cols-2">
+          <div className="grid items-start gap-3 md:gap-6 lg:grid-cols-2">
             <WebSearchSection
               t={t}
               websearchProvider={websearchProvider}
@@ -926,7 +919,7 @@ export default function AIConfigPage() {
       case 'voiceRecognition':
       case 'documentExtract':
         return (
-          <div className="grid items-start gap-6 lg:grid-cols-2 xl:grid-cols-3">
+          <div className="grid items-start gap-3 md:gap-6 lg:grid-cols-2 xl:grid-cols-3">
             <ImageUnderstandSection
               t={t}
               imageUnderstandProvider={imageUnderstandProvider}
@@ -1088,7 +1081,7 @@ export default function AIConfigPage() {
     <>
       <PinnedPage
         header={
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div className="flex flex-col gap-3 md:gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div className="min-w-0 sm:overflow-x-auto">
               <h1 className="flex items-center gap-3 whitespace-nowrap text-3xl font-bold">
                 <Bot className="h-8 w-8 shrink-0" />
@@ -1101,12 +1094,16 @@ export default function AIConfigPage() {
             <div className={headerActionRowClass}>
               <Tooltip>
                 <TooltipTrigger asChild>
+                  {/* 不要用 header-action-fixed：那个类是给「纯图标按钮保持内容宽度」用的，
+                      这里带文案 + 开关，被排除后会以 max-content 宽度参与换行判定，
+                      恰好比半行多 1px，导致「启用AI服务」独占第一行、后面三个被挤成 2+1。
+                      窄屏用 px-3 收一收内边距，四颗按钮正好两行两列。 */}
                   <button
                     type="button"
                     aria-pressed={isAIEnabled}
                     aria-label={t('aiConfig.serviceSwitch.title')}
                     onClick={() => aiSwitch.handleAISwitchChange(!isAIEnabled)}
-                    className="header-action-fixed inline-flex h-10 items-center gap-2 whitespace-nowrap rounded-md border border-input bg-background px-4 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
+                    className="inline-flex h-10 items-center justify-center gap-2 whitespace-nowrap rounded-md border border-input bg-background px-3 text-sm font-medium hover:bg-accent hover:text-accent-foreground sm:px-4"
                   >
                     <Brain className="h-4 w-4 shrink-0" />
                     <span>{t('aiConfig.serviceSwitch.title')}</span>

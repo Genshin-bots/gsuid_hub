@@ -112,7 +112,7 @@ export default function AIApprovalsPage() {
   return (
     <PinnedPage
       header={
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div className="flex flex-col gap-3 md:gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="min-w-0 sm:overflow-x-auto">
             <h1 className="sm:whitespace-nowrap text-3xl font-bold flex items-center gap-3">
               <ShieldCheck className="w-8 h-8 shrink-0" />

@@ -34,7 +34,7 @@ import { getApiErrorMessage, versionApi } from '@/lib/api';
 import type { VersionInfo, ActiveBotsInfo } from '@/lib/api';
 import { SidebarHoverIcon, hoverIconGroupClass } from '@/components/layout/SidebarHoverIcon';
 
-const frontendVersion = PACKAGE_VERSION || '0.4.2';
+const frontendVersion = PACKAGE_VERSION || '0.4.3';
 
 function getGreetingKey(hour: number) {
   if (hour >= 5 && hour < 11) return 'morning';
@@ -236,7 +236,7 @@ function NavRow({
 
 /* 规格行：发丝线分隔的「标签 / 值」，可悬停但不可点击 */
 const specRowClass = cn(
-  'group/spec flex min-w-0 items-start justify-between gap-4 rounded-lg px-2 py-1.5',
+  'group/spec flex min-w-0 items-start justify-between gap-3 md:gap-4 rounded-lg px-2 py-1.5',
   'transition-all duration-200 ease-out hover:translate-x-0.5 hover:bg-primary/[0.07]',
 );
 
@@ -389,7 +389,7 @@ export default function HomePage() {
   ];
 
   return (
-    <div className="flex w-full min-w-0 flex-col gap-5 sm:gap-6">
+    <div className="flex w-full min-w-0 flex-col gap-3 md:gap-5 sm:gap-3 md:gap-6">
       {/* ── 身份带 ── */}
       <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
@@ -508,7 +508,7 @@ export default function HomePage() {
       </section>
 
       {/* ── 导航 + 运行环境：并排两张卡，卡片数从 5 降到 3 ── */}
-      <div className="grid gap-5 lg:grid-cols-2">
+      <div className="grid gap-3 md:gap-5 lg:grid-cols-2">
         <section className="glass-card relative flex flex-col rounded-3xl">
           <CardHead icon={LayoutDashboard} title={t('home.quickNav')} />
           <CardContent className="flex flex-1 flex-col gap-1 px-3 pb-4 pt-3 sm:px-4">

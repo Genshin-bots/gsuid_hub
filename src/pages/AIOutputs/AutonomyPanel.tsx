@@ -85,9 +85,11 @@ export function AutonomyFilters(props: AutonomyPanelProps) {
   const known = personaName === AUTONOMY_PERSONA_ALL || personaNames.includes(personaName);
 
   return (
-    <div className="flex flex-wrap items-center justify-end gap-2">
+    // 窄屏整行铺满：下拉 flex-1 吃掉剩余宽度，和「刷新」同排占满一行；
+    // ≥768 回到原样（下拉固定 200px，行右对齐）。
+    <div className="flex w-full min-w-0 flex-wrap items-center justify-start gap-2 md:w-auto md:min-w-auto md:justify-end">
       <Select value={personaName} onValueChange={onPersonaNameChange}>
-        <SelectTrigger className={cn(tabToolbarControlClass, 'w-[160px] sm:w-[200px] shrink-0')}>
+        <SelectTrigger className={cn(tabToolbarControlClass, 'w-full min-w-0 flex-1 md:w-[200px] md:flex-none')}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -134,10 +136,11 @@ export function AutonomyPanel(props: AutonomyPanelProps) {
           offset,
         });
         if (cancelled) return;
-        setItems(data.items);
-        setLatest(data.latest);
-        setTotal(data.total);
-        onPersonaNames(data.personas);
+        // 后端字段缺失时兜底成空数组：personas 缺失会让下拉 .map 直接崩掉整个页面
+        setItems(data?.items ?? []);
+        setLatest(data?.latest ?? []);
+        setTotal(data?.total ?? 0);
+        onPersonaNames(data?.personas ?? []);
       } catch (err: unknown) {
         if (!cancelled) toast.error(getApiErrorMessage(err, copy.current('aiAutonomy.loadFailed')));
       } finally {
@@ -156,7 +159,7 @@ export function AutonomyPanel(props: AutonomyPanelProps) {
   const to = Math.min(offset + items.length, total);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4">
+    <div className="flex min-h-0 flex-1 flex-col gap-3 md:gap-4">
       <section className="space-y-3">
         <h2 className="text-sm font-medium text-muted-foreground">{t('aiAutonomy.latestTitle')}</h2>
         {loading && latest.length === 0 ? (

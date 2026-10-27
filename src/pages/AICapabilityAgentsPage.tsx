@@ -318,7 +318,7 @@ function ToolMultiSelectDropdown({
               className="max-h-[430px] overflow-y-scroll overscroll-contain pr-1"
               onWheel={(event) => event.stopPropagation()}
             >
-              <div className="space-y-4 p-3">
+              <div className="space-y-3 md:space-y-4 p-3">
                 {Object.keys(groupedTools).length === 0 ? (
                   <div className="py-10 text-center text-sm text-muted-foreground">
                     {t('aiCapabilityAgents.tools.noMatched')}
@@ -650,9 +650,9 @@ export default function AICapabilityAgentsPage() {
 
   return (
     <PinnedPage
-      className="gap-4"
+      className="gap-3 md:gap-4"
       header={
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div className="flex flex-col gap-3 md:gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="min-w-0 sm:overflow-x-auto">
             <h1 className="sm:whitespace-nowrap text-3xl font-bold flex items-center gap-3">
               <Bot className="w-8 h-8 shrink-0" />
@@ -688,7 +688,7 @@ export default function AICapabilityAgentsPage() {
       }
       toolbar={
         /* 来源筛选 + 搜索 */
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+        <div className="flex flex-col gap-3 md:gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div className="min-w-0">
             <TabButtonGroup
               options={sourceOptions}
@@ -723,7 +723,7 @@ export default function AICapabilityAgentsPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="glass-card-grid grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3">
+        <div className="glass-card-grid grid grid-cols-1 gap-3 md:gap-4 md:grid-cols-2 2xl:grid-cols-3">
           {filteredProfiles.map((profile) => {
             const locked = profile.source !== 'user';
             return (
@@ -762,7 +762,7 @@ export default function AICapabilityAgentsPage() {
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-3 md:space-y-4">
                   <p className="min-h-[3rem] text-sm text-muted-foreground line-clamp-3">
                     {profile.when_to_use || t('aiCapabilityAgents.noUsage')}
                   </p>
@@ -858,9 +858,9 @@ export default function AICapabilityAgentsPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="min-h-0 flex-1 overflow-y-auto">
-            <div className="grid gap-6 p-6 lg:grid-cols-2">
-              <div className="space-y-5">
-                <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-3 md:gap-6 p-6 lg:grid-cols-2">
+              <div className="space-y-3 md:space-y-5">
+                <div className="grid gap-3 md:gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label>{t('aiCapabilityAgents.fields.nodeId')}</Label>
                     <Input
@@ -969,7 +969,7 @@ export default function AICapabilityAgentsPage() {
                 </div>
               </div>
 
-              <div className="space-y-5">
+              <div className="space-y-3 md:space-y-5">
                 <Card className={cn('glass-card')}>
                   <CardHeader>
                     <CardTitle className="text-base">

@@ -404,7 +404,7 @@ export default function DatabaseConfigPage() {
 
   if (!databaseConfig) {
     return (
-      <div className="space-y-6 flex-1 overflow-visible h-full flex flex-col">
+      <div className="space-y-3 md:space-y-6 flex-1 overflow-visible h-full flex flex-col">
         <Card className="glass-card">
           <CardContent className="!p-6">
             <p className="text-center text-muted-foreground">{t('databaseConfig.notFound')}</p>
@@ -417,7 +417,7 @@ export default function DatabaseConfigPage() {
   const dbConfig = databaseConfig.config;
 
   return (
-    <div className="space-y-6 flex-1 overflow-visible h-full flex flex-col">
+    <div className="space-y-3 md:space-y-6 flex-1 overflow-visible h-full flex flex-col">
       {/* Database Type Selection - Always Visible */}
       <Card className="glass-card">
         <CardHeader>
@@ -427,7 +427,7 @@ export default function DatabaseConfigPage() {
           </CardTitle>
           <CardDescription>{t('databaseConfig.databaseTypeDesc')}</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3 md:space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
             {DB_TYPES.map((type) => (
               <button
@@ -469,7 +469,7 @@ export default function DatabaseConfigPage() {
             </CardTitle>
             <CardDescription>{t('databaseConfig.sqliteSettingsDesc')}</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3 md:space-y-4">
             <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg flex items-center justify-center text-muted-foreground">
@@ -539,8 +539,8 @@ export default function DatabaseConfigPage() {
               <CardDescription>{t('databaseConfig.connectionSettingsDesc')}</CardDescription>
             </CardHeader>
             {expandedSections.connection && (
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <CardContent className="space-y-3 md:space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="db_host">{t('databaseConfig.host')}</Label>
                     <Input
@@ -561,7 +561,7 @@ export default function DatabaseConfigPage() {
                   </div>
                 </div>
                 <Separator />
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="db-auth-user">{t('databaseConfig.username')}</Label>
                     <Input
@@ -616,8 +616,8 @@ export default function DatabaseConfigPage() {
               <CardDescription>{t('databaseConfig.poolSettingsDesc')}</CardDescription>
             </CardHeader>
             {expandedSections.pool && (
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <CardContent className="space-y-3 md:space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="db_pool_size">{t('databaseConfig.poolSize')}</Label>
                     <Select
@@ -697,8 +697,8 @@ export default function DatabaseConfigPage() {
               </CardTitle>
               <CardDescription>{t('databaseConfig.connectionSettingsDesc')}</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <CardContent className="space-y-3 md:space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="db_host">{t('databaseConfig.host')}</Label>
                   <Input
@@ -719,7 +719,7 @@ export default function DatabaseConfigPage() {
                 </div>
               </div>
               <Separator />
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="db-pg-auth-user">{t('databaseConfig.username')}</Label>
                   <Input
@@ -773,8 +773,8 @@ export default function DatabaseConfigPage() {
               <CardDescription>{t('databaseConfig.poolSettingsDesc')}</CardDescription>
             </CardHeader>
             {expandedSections.pool && (
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <CardContent className="space-y-3 md:space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="db_pool_size">{t('databaseConfig.poolSize')}</Label>
                     <Select
@@ -852,7 +852,7 @@ export default function DatabaseConfigPage() {
             </CardTitle>
             <CardDescription>{t('databaseConfig.customUrlDesc')}</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3 md:space-y-4">
             <div className="space-y-2">
               <Label htmlFor="db_custom_url">{t('databaseConfig.connectionUrl')}</Label>
               <Input

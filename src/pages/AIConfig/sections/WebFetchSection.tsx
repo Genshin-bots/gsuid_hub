@@ -205,7 +205,7 @@ export function WebFetchSection({
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-3 md:space-y-5">
       <HeadingWithHelp
         icon={<Globe className="w-5 h-5 text-primary" />}
         title={t('aiConfig.webFetch.title')}

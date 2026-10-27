@@ -100,6 +100,7 @@ import {
   PluginListItem,
   PluginPageMeta,
 } from '@/lib/api';
+import { convertPluginConfigValueForSave } from '@/lib/configSaveValue';
 import {
   isPluginServiceDirty as pluginServiceFieldsDirty,
   isSvItemDirty,
@@ -1004,38 +1005,6 @@ export default function PluginsPage() {
     return true;
   };
 
-  // 保存前对值进行类型特定的转换
-  const convertValueForSave = (
-    key: string,
-    field: ConfigFieldDefinition,
-  ): { skip: boolean; value?: unknown } => {
-    const rawType = (field as any).rawType?.toLowerCase?.() || '';
-
-    // divider 类型不需要保存
-    if (field.type === 'divider' || rawType === 'gsdivider') {
-      return { skip: true };
-    }
-    if (field.type === 'button' || rawType === 'gsbutton') {
-      return { skip: true };
-    }
-
-    // gsdict: 将 JSON 字符串转回对象
-    if (rawType === 'gsdict') {
-      try {
-        return { skip: false, value: JSON.parse(field.value as string) };
-      } catch {
-        return { skip: false, value: field.value };
-      }
-    }
-
-    // gslist: 将字符串数组转为整数数组
-    if (rawType === 'gslist' && Array.isArray(field.value)) {
-      return { skip: false, value: (field.value as string[]).map(Number).filter((n) => !isNaN(n)) };
-    }
-
-    return { skip: false, value: field.value };
-  };
-
   const handleSaveConfig = async () => {
     if (!selectedPlugin) return;
 
@@ -1049,7 +1018,7 @@ export default function PluginsPage() {
       const buildConfigPayload = (config: Record<string, any>) => {
         const entries: [string, unknown][] = [];
         for (const [k, v] of Object.entries(config)) {
-          const result = convertValueForSave(k, v as ConfigFieldDefinition);
+          const result = convertPluginConfigValueForSave(v as ConfigFieldDefinition);
           if (!result.skip) {
             entries.push([k, result.value]);
           }
@@ -1283,7 +1252,7 @@ export default function PluginsPage() {
     <PinnedPage
       bodyClassName="flex min-h-0 flex-col"
       header={
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-3 md:gap-4">
           <div className="min-w-0 sm:overflow-x-auto">
             <h1 className="sm:whitespace-nowrap text-3xl font-bold tracking-tight flex items-center gap-3">
               <Settings className="h-8 w-8 shrink-0" />
@@ -1291,7 +1260,7 @@ export default function PluginsPage() {
             </h1>
             <p className="sm:whitespace-nowrap text-muted-foreground">{t('plugins.description')}</p>
           </div>
-          <div className="flex w-full flex-col gap-2 sm:w-auto sm:shrink-0 sm:flex-row sm:items-center sm:justify-end">
+          <div className="flex w-full flex-col gap-3 sm:w-auto sm:shrink-0 sm:flex-row sm:items-center sm:justify-end sm:gap-2">
             <PluginUsageBar
               plugins={pluginList}
               usageNames={pluginUsageNames}
@@ -1356,8 +1325,8 @@ export default function PluginsPage() {
         </Card>
       ) : selectedPlugin ? (
         <Card key={selectedPlugin.id} className="glass-card flex min-h-0 flex-1 flex-col">
-          <div className="shrink-0 border-b border-border/40 px-4 py-4 sm:px-6">
-            <div className="flex flex-col gap-4">
+          <div className="shrink-0 border-b border-border/40 px-4 pt-3 pb-2 sm:px-6 sm:py-4">
+            <div className="flex flex-col gap-3 sm:gap-3 md:gap-4">
               <div className="flex items-center gap-3">
                 <div className="flex items-center justify-center overflow-hidden">
                   <PluginIcon pluginName={selectedPlugin.name} className="h-8 w-8" />
@@ -1367,7 +1336,7 @@ export default function PluginsPage() {
                   <p className="text-sm text-muted-foreground">{selectedPlugin.description}</p>
                 </div>
               </div>
-              <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between [&_.shadow-safe]:!my-0 [&_.shadow-safe]:!py-0">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between lg:gap-2 [&_.shadow-safe]:!my-0 [&_.shadow-safe]:!py-0">
                 <div className="flex w-full min-w-0 flex-wrap items-center gap-2 sm:gap-3 lg:w-auto">
                   <TabButtonGroup
                     className="w-full sm:w-max"
@@ -1467,7 +1436,9 @@ export default function PluginsPage() {
             </div>
           </div>
 
-          <CardContent className="min-h-0 flex-1 space-y-4 overflow-y-auto pt-4 sm:pt-4">
+          {/* 不要加 pt-*：卡片头部已有 py-4 的下内边距，再叠一层 pt 会让
+        「工具栏 → 第一行字段」的间距变成 16+16=31px，是全页唯一一处双倍间距 */}
+          <CardContent className="min-h-0 flex-1 space-y-3 overflow-y-auto pt-1 sm:pt-0 md:space-y-4">
             {pluginSection === 'plugin' && (
               <>
                 {/* 汇总所有SV命令Tags - 默认折叠，展开时才渲染 */}
@@ -1547,7 +1518,7 @@ export default function PluginsPage() {
                     </CollapsibleContent>
                   </Collapsible>
                 )}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-5">
+                <div className="grid grid-cols-2 items-start gap-x-3 gap-y-4 md:grid-cols-2 md:gap-x-6 md:gap-y-5 lg:grid-cols-3">
                   {/* 插件状态 */}
                   <div
                     data-config-hit={
@@ -1768,7 +1739,7 @@ export default function PluginsPage() {
                       ),
                     )}
                   >
-                    <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center justify-between gap-3 md:gap-4">
                       <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2 shrink-0">
                         <Key className="w-4 h-4" />
                         {t('plugins.disablePrefix')}
@@ -2000,7 +1971,7 @@ export default function PluginsPage() {
                     <div
                       key={group.config_name}
                       className={cn(
-                        'grid gap-6 sm:grid-cols-2 lg:grid-cols-3',
+                        'grid grid-cols-2 items-start gap-x-3 gap-y-3 sm:grid-cols-2 sm:gap-x-6 sm:gap-y-6 lg:grid-cols-3',
                         !active && 'hidden',
                       )}
                     >
@@ -2092,7 +2063,7 @@ export default function PluginsPage() {
             <DialogDescription>{t('plugins.svEditDesc')}</DialogDescription>
           </DialogHeader>
           {svDraft && (
-            <div className="max-h-[60vh] space-y-4 overflow-y-auto py-2">
+            <div className="max-h-[60vh] space-y-3 md:space-y-4 overflow-y-auto py-2">
               <div className="flex items-center justify-between">
                 <Label className="text-sm font-medium text-muted-foreground">
                   {t('plugins.pluginStatus')}

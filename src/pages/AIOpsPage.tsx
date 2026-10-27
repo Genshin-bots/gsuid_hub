@@ -69,7 +69,7 @@ export function AIOpsPanel() {
   );
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 md:space-y-4">
       <RuntimeStatusBar />
       <TabButtonGroup
         options={tabs}
@@ -434,7 +434,7 @@ function TriggerPanel() {
             />
           </div>
         </div>
-        <div className="flex flex-wrap gap-4">
+        <div className="flex flex-wrap gap-3 md:gap-4">
           <div className="flex items-center gap-2">
             <Switch checked={isTome} onCheckedChange={setIsTome} id="is-tome" />
             <Label htmlFor="is-tome">is_tome / @bot</Label>
@@ -544,7 +544,7 @@ function AccessPanel() {
       {loading ? (
         <Skeleton className="h-24 w-full" />
       ) : (
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-3 md:gap-4 md:grid-cols-2">
           <div className="space-y-2">
             <Label>{t('aiOps.access.blackList')}</Label>
             <p className="text-xs text-muted-foreground">{t('aiOps.access.blackHint')}</p>
@@ -676,7 +676,7 @@ function SecurityPanel() {
       {loading ? (
         <Skeleton className="h-24 w-full" />
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3 md:space-y-4">
           <div className="grid gap-3 sm:grid-cols-2">
             {boolKeys.map((k) => (
               <div

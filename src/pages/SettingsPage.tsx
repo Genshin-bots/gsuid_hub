@@ -127,7 +127,7 @@ export default function SettingsPage() {
         </div>
       }
     >
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-6">
         {/* Avatar & Name Section */}
         <Card className="glass-card">
           <CardHeader>
@@ -136,9 +136,9 @@ export default function SettingsPage() {
               {t('settings.profileInfo')}
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-3 md:space-y-6">
             {/* Avatar */}
-            <div className="flex flex-col items-center gap-4">
+            <div className="flex flex-col items-center gap-3 md:gap-4">
               <div className="relative group">
                 <Avatar
                   className="w-24 h-24 ring-4 ring-primary/20 cursor-pointer transition-all group-hover:ring-primary/40"
@@ -178,7 +178,7 @@ export default function SettingsPage() {
             <Separator />
 
             {/* Name */}
-            <div className="space-y-4">
+            <div className="space-y-3 md:space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="name">{t('login.name')}</Label>
                 <Input
@@ -223,7 +223,7 @@ export default function SettingsPage() {
               {t('settings.changePassword')}
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3 md:space-y-4">
             <div className="space-y-2">
               <Label htmlFor="oldPassword">{t('settings.oldPassword')}</Label>
               <Input

@@ -211,7 +211,7 @@ export default function SchedulerPage() {
       }
     >
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         <Card className="glass-card">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -412,8 +412,8 @@ export default function SchedulerPage() {
             <DialogDescription>{selectedTask?.description}</DialogDescription>
           </DialogHeader>
           {selectedTask && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="space-y-3 md:space-y-4">
+              <div className="grid grid-cols-1 gap-3 md:gap-4 sm:grid-cols-2">
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground">{t('scheduler.status')}</p>
                   {getStatusBadge(selectedTask.status)}

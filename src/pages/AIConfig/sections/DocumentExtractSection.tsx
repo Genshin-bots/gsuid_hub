@@ -50,7 +50,7 @@ export function DocumentExtractSection({
   onRemoveMcpDetailRow,
 }: DocumentExtractSectionProps) {
   return (
-    <div className="space-y-5">
+    <div className="space-y-3 md:space-y-5">
       <div>
         <h2 className="text-lg font-bold flex items-center gap-2 mb-1">
           <FileText className="w-5 h-5 text-primary" />
@@ -73,7 +73,7 @@ export function DocumentExtractSection({
       />
       {documentExtractProvider === 'MCP' && (
         <div className="pt-3 border-t border-border/30 space-y-3">
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2 min-w-0 flex-1">
               {documentExtractToolInfo ? (
                 <>
