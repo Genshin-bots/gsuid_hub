@@ -157,5 +157,14 @@
   "runCompositionHint": "Root + ネスト = 合計",
   "itemCount": "計 {count} 件",
   "other": "その他",
-  "uncachedInput": "未ヒット入力"
+  "uncachedInput": "未ヒット入力",
+  "currency": "通貨",
+  "currencyUSD": "米ドル ($)",
+  "currencyCNY": "人民元 (¥)",
+  "exchangeRate": "USD/CNY 為替レート",
+  "costUnit": "費用 ({symbol})",
+  "calendarViewMode": "表示",
+  "calendarViewBoth": "すべて",
+  "calendarViewTokens": "使用量",
+  "calendarViewCost": "費用"
 }

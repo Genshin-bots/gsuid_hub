@@ -157,5 +157,14 @@
   "runCompositionHint": "Root + nested = total",
   "itemCount": "{count} items",
   "other": "Other",
-  "uncachedInput": "Uncached Input"
+  "uncachedInput": "Uncached Input",
+  "currency": "Currency",
+  "currencyUSD": "USD ($)",
+  "currencyCNY": "CNY (¥)",
+  "exchangeRate": "USD to CNY Rate",
+  "costUnit": "Cost ({symbol})",
+  "calendarViewMode": "View",
+  "calendarViewBoth": "All",
+  "calendarViewTokens": "Usage",
+  "calendarViewCost": "Cost"
 }

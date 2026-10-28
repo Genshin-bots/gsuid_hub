@@ -5980,6 +5980,7 @@ export interface TokenByModelItem {
   output_tokens: number;
   cache_read_tokens: number;
   cache_write_tokens: number;
+  cost?: number;
 }
 
 export interface TokenByTypeItem {
@@ -5995,6 +5996,7 @@ export interface TokenUsageData {
   total_output_tokens: number;
   total_cache_read_tokens: number;
   total_cache_write_tokens: number;
+  total_cost?: number;
   by_model: TokenByModelItem[];
   by_type: TokenByTypeItem[];
 }
@@ -6048,6 +6050,8 @@ export interface TokenRangeBucket {
   cache_read_tokens: number;
   cache_write_tokens: number;
   total_tokens: number;
+  total_cost?: number;
+  cost?: number;
 }
 
 export interface TokenRangeDailyItem extends TokenRangeBucket {
@@ -6197,6 +6201,7 @@ export const aiStatisticsApi = {
         input_tokens: number;
         output_tokens: number;
         total_tokens: number;
+        total_cost?: number;
       }>
     >(`/api/ai/statistics/daily-token-counts?days=${days}`),
 

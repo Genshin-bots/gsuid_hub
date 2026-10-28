@@ -157,5 +157,14 @@
   "runCompositionHint": "Root + 嵌套 = 总数",
   "itemCount": "共 {count} 项",
   "other": "其他",
-  "uncachedInput": "未命中输入"
+  "uncachedInput": "未命中输入",
+  "currency": "货币",
+  "currencyUSD": "美元 ($)",
+  "currencyCNY": "人民币 (¥)",
+  "exchangeRate": "USD 兑 CNY 汇率",
+  "costUnit": "费用 ({symbol})",
+  "calendarViewMode": "视图",
+  "calendarViewBoth": "全部",
+  "calendarViewTokens": "用量",
+  "calendarViewCost": "费用"
 }
