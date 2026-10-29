@@ -201,20 +201,41 @@ const isGlass = style === 'glassmorphism';
 
 ### 3.6.1 移动端侧边栏抽屉必须跟随主题 ★★★
 
-桌面侧栏是 `glass-sidebar` / `floating-sidebar`，但**移动端抽屉是另一套壳**：
-`Sidebar` 在 `isMobile` 时渲染成 `Sheet`，`SheetContent` 自带 `bg-background`（**实色**）。
-它会垫在 `::before` 的半透明层下面，把 `backdrop-filter` 糊成一块实色 —— 症状就是
-「移动端侧边栏永远是纯色，不跟纯色/毛玻璃/光感/液态走」。
+桌面侧栏是 `glass-sidebar` / `floating-sidebar` / `line-sidebar`，但**移动端抽屉是另一套壳**：
+`Sidebar` 在 `isMobile` 时渲染成 `Sheet`，而 `SheetContent` 是 Radix `Dialog.Content` → **自带
+`role="dialog"`**。全站的通用弹层表面规则（`[data-style] [role="dialog"]`）于是把它当普通弹层处理：
+铺一层 `hsl(var(--popover) / 0.6~0.72)` 的**实色** + 自己再糊一次 `backdrop-filter` + 四边描边。
+
+**弹层与侧栏的取值逻辑是相反的**（同 §3.4.2）：
+
+| | 背后是谁 | 透明度 |
+|---|---|---|
+| 弹层 | 别人的内容（整屏列表 / 小字） | 必须高（0.6~0.72） |
+| 侧栏 | 自己的内容（内容长在肚子里） | 可以很透（`--sidebar / --card-opacity`） |
+
+抽屉吃弹层那套 → 「移动端侧边栏永远是块实色板，完全不跟纯色/毛玻璃/光感/液态走」。
 
 修法（`src/components/ui/sidebar.tsx` + `src/index.css`）：
 
-1. 抽屉外壳用 `bg-transparent`（纯色风格才用实色 `--sidebar`）。
-2. `index.css` 里用 `[data-sidebar="sidebar"][data-mobile="true"]` 兜底：
-   玻璃系 → `background: transparent !important`，`solid` → `hsl(var(--sidebar) / var(--card-opacity, 1))`；
-   纯色风格同时 `::before { display: none }`（实色底不需要再叠一层）。
+1. **抽屉挂 `.sidebar-drawer` 标记**，把通用弹层表面规则全部排除掉：
+   `index.css` 弹层段落的每条表面规则都加 `:not(:where(.sidebar-drawer))`。
+   用 `:not(:where(...))` 而不是 `:not(.sidebar-drawer)`：`:where()` 特异性为 0，
+   排除抽屉**不会抬高**这些规则自己的特异性 —— 否则会盖掉后面的
+   `.glass-card[role="dialog"]` 规则，把弹层玻璃的「只糊一层」又打回两层。
+2. **抽屉复用桌面侧栏的表面类**（`glass-sidebar` / `floating-sidebar` / `line-sidebar`），
+   底色与毛玻璃继续由 `::before` 画（和桌面同一套结构），主题自然跟随，PC 侧零影响。
+   `solid` 也用表面类（走 `[data-style="solid"] .glass-sidebar::before` 的实色 `--sidebar`），
+   **不要**再给抽屉单独写一条 `::before { display: none }`。
+3. 抽屉是贴边浮层：`border-radius` 归零、只留右边缘描边（悬浮布局去掉上/左/下三边）；
+   `line` 布局的抽屉要 `hsl(var(--background) / 0.92)` 底色（全透明会让菜单字直接叠在内容上），
+   这条选择器必须带 `[data-mobile="true"]`，否则压不过桌面规则
+   `[data-style="solid"] .line-sidebar`（整块透明）。
 
 选择器带 `[data-mobile="true"]` 是为了拿到足够特异性压过 `.fixed` / `.glass-sidebar` 等工具类，
-不依赖 Tailwind `@layer` 的顺序。抽屉圆角在窄屏统一归零（贴边抽屉不是卡片）。
+不依赖 Tailwind `@layer` 的顺序。
+
+> **验收**：改完必须开真实页面，把 `data-style` 逐个设成 solid / glassmorphism / luminous / liquid
+> 截一遍移动端抽屉，确认背景各不相同（跟随主题）。只看桌面不算数。
 
 ## 3.7 插件 iframe 跟随 Hub 主题
 

@@ -539,6 +539,16 @@ const rangeControlShellClass =
 const rangeControlBtnClass =
   'h-10 w-full justify-start gap-2 px-3 font-normal rounded-md sm:w-[152px]';
 
+/**
+ * 货币胶囊与刷新按钮的外壳：内容定宽，不跟着整行拉伸。
+ *
+ * `rangeControlShellClass` 的 `w-full` 是给「日期槽」用的 —— 它挂在 flex-1 的槽里，
+ * 需要铺满槽宽。货币胶囊挂在 `shrink-0` 的行尾，沿用 `w-full` 会被 flex 挤到比内容
+ * 还窄（实测外壳 58.7px < 内容所需 68.9px），里面的「¥ CNY」于是溢出按钮右边缘，
+ * 文字看着像没居中。故这里改成 `w-auto`，由内容撑开。
+ */
+const compactShellClass = cn(rangeControlShellClass, 'w-auto shrink-0');
+
 /** 日期槽与刷新按钮的胶囊外壳与尺寸，与 TabButtonGroup 严格保持一致的外层 p-1 + 内层 h-10 */
 
 const rangeIconButtonClass = 'h-10 w-10 p-0 justify-center rounded-md';
@@ -2832,7 +2842,7 @@ export default function AIStatisticsPage() {
             </div>
             {/* 货币选择与汇率配置 */}
             <div className="order-2 shrink-0 sm:order-3 flex items-center gap-2">
-              <div className={rangeControlShellClass}>
+              <div className={compactShellClass}>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
@@ -2840,7 +2850,7 @@ export default function AIStatisticsPage() {
                       className={cn(
                         rangeControlBtnClass,
 
-                        'h-10 sm:w-auto px-2.5 gap-1.5 text-xs font-medium',
+                        'h-10 w-auto sm:w-auto justify-center px-2.5 gap-1.5 text-xs font-medium',
                       )}
                     >
                       <span className="font-bold text-emerald-500 text-sm leading-none">
@@ -2898,7 +2908,7 @@ export default function AIStatisticsPage() {
               </div>
 
               {/* 刷新按钮 */}
-              <div className={rangeControlShellClass}>
+              <div className={compactShellClass}>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button

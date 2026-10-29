@@ -1264,8 +1264,11 @@ All colors MUST be HSL.
 }
 
 @media (max-width: 768px) {
-  .line-sidebar {
-    /* 抽屉全高时仍用底色可读，仅保留右边分割语义 */
+  /* 抽屉全高时仍用底色可读，仅保留右边分割语义。
+     选择器带上 [data-mobile="true"]：纯色风格的 [data-style="solid"] .line-sidebar
+     是桌面规则（整块透明），特异性更高，会盖掉这条 —— 移动端抽屉压在内容上，
+     全透明会让菜单文字直接叠在页面上，读不了。 */
+  [data-sidebar="sidebar"][data-mobile="true"].line-sidebar {
     background: hsl(var(--background) / 0.92) !important;
     border-right: 1px solid hsl(var(--border) / 0.45) !important;
   }
@@ -1391,13 +1394,20 @@ All colors MUST be HSL.
 /* ============================================================================
  * 移动端侧边栏抽屉（Sheet）
  *
- * 抽屉是 fixed 浮层，背景必须跟着主题风格走：
- * - 玻璃系（毛玻璃 / 光感 / 液态）：外壳透明，靠 ::before 的半透明层 + backdrop-filter
- *   透出壁纸。SheetContent 默认带 bg-background（实色），会把玻璃垫成纯色 —— 这就是
- *   「移动端侧边栏永远是纯色、不跟主题」的根因。
- * - 纯色（solid）：实色 --sidebar。
- * - 仅分割线（line）：保持透明，只留右侧分割线。
+ * 抽屉是 Radix Sheet → SheetContent 自带 role="dialog"。通用弹层表面规则
+ * ([data-style] [role="dialog"]) 会把它当成普通弹层：铺一层
+ * hsl(var(--popover) / 0.6~0.72) 的实色 + 自己再糊一次 backdrop-filter + 四边描边。
+ * 但弹层与侧栏的取值逻辑是相反的：
+ *   弹层：浮在「别人的内容」之上 → 填充必须高（0.6~0.72），背后的高对比小字才读得出；
+ *   侧栏：内容长在「自己肚子里」→ 填充要低（hsl(var(--sidebar) / --card-opacity)）。
+ * 抽屉吃弹层那套，就是「移动端侧边栏永远是块实色板，完全不跟纯色/毛玻璃/光感/液态走」。
  *
+ * 修法：给抽屉挂 .sidebar-drawer 标记，把通用弹层表面规则全部排除掉
+ * （弹层段落里的 :not(:where(.sidebar-drawer))）。排除之后抽屉只剩侧栏表面类
+ * （glass-sidebar / floating-sidebar / line-sidebar），与桌面侧栏走同一套 CSS，
+ * 主题自然跟随，PC 侧一点不受影响。
+ *
+ * 宿主只做定位与裁切：底色交给 ::before（玻璃系）或 --sidebar（纯色）。
  * 选择器带 [data-mobile="true"]，特异性高于 .fixed / .glass-sidebar 等工具类，
  * 不依赖 Tailwind 的 @layer 顺序。
  * ============================================================================ */
@@ -1412,12 +1422,11 @@ All colors MUST be HSL.
   background: transparent !important;
 }
 
-[data-style="solid"] [data-sidebar="sidebar"][data-mobile="true"]:not(.line-sidebar) {
-  background: hsl(var(--sidebar) / var(--card-opacity, 1)) !important;
-}
-
-[data-style="solid"] [data-sidebar="sidebar"][data-mobile="true"]::before {
-  display: none !important;
+/* 悬浮布局在移动端是贴边抽屉：不要沿屏幕边画三面描边，只留右边缘 */
+[data-sidebar="sidebar"][data-mobile="true"].floating-sidebar {
+  border-top: none !important;
+  border-left: none !important;
+  border-bottom: none !important;
 }
 
 /* 悬浮侧栏在移动端是贴边抽屉，不留圆角 */
@@ -2922,8 +2931,8 @@ main:has(.page-fill) .layout-page-inner {
 }
 
 /* Solid mode - dialog/popover content */
-[data-style="solid"] [role="dialog"]:not(.glass-float),
-[data-style="solid"] [role="alertdialog"]:not(.glass-float),
+[data-style="solid"] [role="dialog"]:not(.glass-float):not(:where(.sidebar-drawer)),
+[data-style="solid"] [role="alertdialog"]:not(.glass-float):not(:where(.sidebar-drawer)),
 [data-style="solid"] [class*="DialogContent"],
 [data-style="solid"] [class*="popover"]:not(.glass-float) {
   background: hsl(var(--popover) / var(--card-opacity, 1)) !important;
@@ -2933,8 +2942,8 @@ main:has(.page-fill) .layout-page-inner {
 }
 
 /* Apply backdrop-filter only in glassmorphism mode */
-[data-style="glassmorphism"] [role="dialog"]:not(.glass-float),
-[data-style="glassmorphism"] [role="alertdialog"]:not(.glass-float),
+[data-style="glassmorphism"] [role="dialog"]:not(.glass-float):not(:where(.sidebar-drawer)),
+[data-style="glassmorphism"] [role="alertdialog"]:not(.glass-float):not(:where(.sidebar-drawer)),
 [data-style="glassmorphism"] [class*="DialogContent"],
 [data-style="glassmorphism"] [class*="popover"]:not(.glass-float) {
   backdrop-filter: blur(var(--blur-intensity, 12px)) !important;
@@ -2955,8 +2964,8 @@ main:has(.page-fill) .layout-page-inner {
 }
 
 /* Dark mode glass dialog/popover */
-.dark [data-style="glassmorphism"] [role="dialog"]:not(.glass-float),
-.dark [data-style="glassmorphism"] [role="alertdialog"]:not(.glass-float),
+.dark [data-style="glassmorphism"] [role="dialog"]:not(.glass-float):not(:where(.sidebar-drawer)),
+.dark [data-style="glassmorphism"] [role="alertdialog"]:not(.glass-float):not(:where(.sidebar-drawer)),
 .dark [data-style="glassmorphism"] [class*="DialogContent"],
 .dark [data-style="glassmorphism"] [class*="popover"]:not(.glass-float) {
   background: hsl(var(--popover) / 0.6) !important;
@@ -2977,8 +2986,8 @@ main:has(.page-fill) .layout-page-inner {
 }
 
 /* Apply backdrop-filter in luminous mode */
-[data-style="luminous"] [role="dialog"]:not(.glass-float),
-[data-style="luminous"] [role="alertdialog"]:not(.glass-float),
+[data-style="luminous"] [role="dialog"]:not(.glass-float):not(:where(.sidebar-drawer)),
+[data-style="luminous"] [role="alertdialog"]:not(.glass-float):not(:where(.sidebar-drawer)),
 [data-style="luminous"] [class*="DialogContent"],
 [data-style="luminous"] [class*="popover"]:not(.glass-float) {
   backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.25)) saturate(190%) contrast(106%) !important;
@@ -2997,16 +3006,16 @@ main:has(.page-fill) .layout-page-inner {
   -webkit-backdrop-filter: none !important;
 }
 
-.dark[data-style="luminous"] [role="dialog"]:not(.glass-float),
-.dark[data-style="luminous"] [role="alertdialog"]:not(.glass-float),
+.dark[data-style="luminous"] [role="dialog"]:not(.glass-float):not(:where(.sidebar-drawer)),
+.dark[data-style="luminous"] [role="alertdialog"]:not(.glass-float):not(:where(.sidebar-drawer)),
 .dark[data-style="luminous"] [class*="DialogContent"],
 .dark[data-style="luminous"] [class*="popover"]:not(.glass-float),
-.dark [data-style="luminous"] [role="dialog"]:not(.glass-float),
-.dark [data-style="luminous"] [role="alertdialog"]:not(.glass-float),
+.dark [data-style="luminous"] [role="dialog"]:not(.glass-float):not(:where(.sidebar-drawer)),
+.dark [data-style="luminous"] [role="alertdialog"]:not(.glass-float):not(:where(.sidebar-drawer)),
 .dark [data-style="luminous"] [class*="DialogContent"],
 .dark [data-style="luminous"] [class*="popover"]:not(.glass-float),
-[data-style="luminous"] .dark [role="dialog"],
-[data-style="luminous"] .dark [role="alertdialog"],
+[data-style="luminous"] .dark [role="dialog"]:not(:where(.sidebar-drawer)),
+[data-style="luminous"] .dark [role="alertdialog"]:not(:where(.sidebar-drawer)),
 [data-style="luminous"] .dark [class*="DialogContent"],
 [data-style="luminous"] .dark [class*="popover"]:not(.glass-float) {
   background: hsl(var(--popover) / 0.62) !important;
@@ -3024,8 +3033,8 @@ main:has(.page-fill) .layout-page-inner {
 }
 
 /* Apply backdrop-filter in liquid mode */
-[data-style="liquid"] [role="dialog"]:not(.glass-float),
-[data-style="liquid"] [role="alertdialog"]:not(.glass-float),
+[data-style="liquid"] [role="dialog"]:not(.glass-float):not(:where(.sidebar-drawer)),
+[data-style="liquid"] [role="alertdialog"]:not(.glass-float):not(:where(.sidebar-drawer)),
 [data-style="liquid"] [class*="DialogContent"],
 [data-style="liquid"] [class*="popover"]:not(.glass-float) {
   backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.4)) saturate(190%) contrast(106%) !important;
@@ -3045,16 +3054,16 @@ main:has(.page-fill) .layout-page-inner {
   -webkit-backdrop-filter: none !important;
 }
 
-.dark[data-style="liquid"] [role="dialog"]:not(.glass-float),
-.dark[data-style="liquid"] [role="alertdialog"]:not(.glass-float),
+.dark[data-style="liquid"] [role="dialog"]:not(.glass-float):not(:where(.sidebar-drawer)),
+.dark[data-style="liquid"] [role="alertdialog"]:not(.glass-float):not(:where(.sidebar-drawer)),
 .dark[data-style="liquid"] [class*="DialogContent"],
 .dark[data-style="liquid"] [class*="popover"]:not(.glass-float),
-.dark [data-style="liquid"] [role="dialog"]:not(.glass-float),
-.dark [data-style="liquid"] [role="alertdialog"]:not(.glass-float),
+.dark [data-style="liquid"] [role="dialog"]:not(.glass-float):not(:where(.sidebar-drawer)),
+.dark [data-style="liquid"] [role="alertdialog"]:not(.glass-float):not(:where(.sidebar-drawer)),
 .dark [data-style="liquid"] [class*="DialogContent"],
 .dark [data-style="liquid"] [class*="popover"]:not(.glass-float),
-[data-style="liquid"] .dark [role="dialog"],
-[data-style="liquid"] .dark [role="alertdialog"],
+[data-style="liquid"] .dark [role="dialog"]:not(:where(.sidebar-drawer)),
+[data-style="liquid"] .dark [role="alertdialog"]:not(:where(.sidebar-drawer)),
 [data-style="liquid"] .dark [class*="DialogContent"],
 [data-style="liquid"] .dark [class*="popover"]:not(.glass-float) {
   background: hsl(var(--popover) / 0.60) !important;
@@ -3069,12 +3078,12 @@ main:has(.page-fill) .layout-page-inner {
 /*
  * 弹层在各主题模式下的外框与倒角物理质感
  */
-[data-style="solid"] :is([role="dialog"], [role="alertdialog"]) {
+[data-style="solid"] :is([role="dialog"], [role="alertdialog"]):not(:where(.sidebar-drawer)) {
   border: 1px solid hsl(var(--border)) !important;
   box-shadow: 0 16px 40px -8px hsl(0 0% 0% / 0.18) !important;
 }
 
-[data-style="glassmorphism"] :is([role="dialog"], [role="alertdialog"]) {
+[data-style="glassmorphism"] :is([role="dialog"], [role="alertdialog"]):not(:where(.sidebar-drawer)) {
   border: 1px solid hsl(var(--border) / 0.5) !important;
   box-shadow:
     inset 0 1px 0 0 rgba(255, 255, 255, 0.65),
@@ -3082,15 +3091,15 @@ main:has(.page-fill) .layout-page-inner {
     0 8px 20px -2px hsl(0 0% 0% / 0.08) !important;
 }
 
-.dark[data-style="glassmorphism"] :is([role="dialog"], [role="alertdialog"]),
-.dark [data-style="glassmorphism"] :is([role="dialog"], [role="alertdialog"]) {
+.dark[data-style="glassmorphism"] :is([role="dialog"], [role="alertdialog"]):not(:where(.sidebar-drawer)),
+.dark [data-style="glassmorphism"] :is([role="dialog"], [role="alertdialog"]):not(:where(.sidebar-drawer)) {
   border-color: hsl(var(--border) / 0.35) !important;
   box-shadow:
     inset 0 1px 0 0 rgba(255, 255, 255, 0.15),
     0 26px 58px -6px hsl(0 0% 0% / 0.45) !important;
 }
 
-[data-style="luminous"] :is([role="dialog"], [role="alertdialog"]) {
+[data-style="luminous"] :is([role="dialog"], [role="alertdialog"]):not(:where(.sidebar-drawer)) {
   border: 1px solid hsl(var(--border) / 0.55) !important;
   box-shadow:
     inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.95),
@@ -3099,8 +3108,8 @@ main:has(.page-fill) .layout-page-inner {
     0 8px 24px -2px hsl(0 0% 0% / calc(0.08 * var(--shadow-strength, 1))) !important;
 }
 
-.dark[data-style="luminous"] :is([role="dialog"], [role="alertdialog"]),
-.dark [data-style="luminous"] :is([role="dialog"], [role="alertdialog"]) {
+.dark[data-style="luminous"] :is([role="dialog"], [role="alertdialog"]):not(:where(.sidebar-drawer)),
+.dark [data-style="luminous"] :is([role="dialog"], [role="alertdialog"]):not(:where(.sidebar-drawer)) {
   border-color: rgba(255, 255, 255, 0.22) !important;
   box-shadow:
     inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.35),
@@ -3108,7 +3117,7 @@ main:has(.page-fill) .layout-page-inner {
     0 26px 60px -4px hsl(0 0% 0% / calc(0.45 * var(--shadow-strength, 1))) !important;
 }
 
-[data-style="liquid"] :is([role="dialog"], [role="alertdialog"]) {
+[data-style="liquid"] :is([role="dialog"], [role="alertdialog"]):not(:where(.sidebar-drawer)) {
   border: 1px solid hsl(var(--border) / 0.6) !important;
   box-shadow:
     inset 0 1.5px 0 0 rgba(255, 255, 255, 1),
@@ -3117,8 +3126,8 @@ main:has(.page-fill) .layout-page-inner {
     0 10px 28px -2px hsl(0 0% 0% / calc(0.10 * var(--shadow-strength, 1))) !important;
 }
 
-.dark[data-style="liquid"] :is([role="dialog"], [role="alertdialog"]),
-.dark [data-style="liquid"] :is([role="dialog"], [role="alertdialog"]) {
+.dark[data-style="liquid"] :is([role="dialog"], [role="alertdialog"]):not(:where(.sidebar-drawer)),
+.dark [data-style="liquid"] :is([role="dialog"], [role="alertdialog"]):not(:where(.sidebar-drawer)) {
   border-color: rgba(255, 255, 255, 0.25) !important;
   box-shadow:
     inset 0 1px 0 0 rgba(255, 255, 255, 0.45),

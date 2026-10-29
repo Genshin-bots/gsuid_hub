@@ -174,7 +174,7 @@ const Sidebar = React.forwardRef<
     // ⚠️ Hooks 必须按相同顺序在每次渲染中调用：这里在条件分支之前统一读取，
     // 避免在不同 `collapsible` / `isMobile` 分支中重复调用 `useTheme()`，
     // 否则 React 会报 "change in the order of Hooks called" 警告。
-    const { mode, style: themeStyle } = useTheme();
+    const { mode } = useTheme();
 
     if (collapsible === 'none') {
       return (
@@ -193,7 +193,14 @@ const Sidebar = React.forwardRef<
 
     if (isMobile) {
       const overlayClassName = mode === 'dark' ? 'bg-black/50' : 'bg-white/40';
-      const isSolid = themeStyle === 'solid';
+      // 抽屉与桌面侧栏共用同一套表面类（floating / glass / line）：底色、毛玻璃、
+      // 描边、投影全部由这些类决定，抽屉才会跟纯色/毛玻璃/光感/液态一起走。
+      // `sidebar-drawer` 用来把抽屉从通用弹层表面规则里排除（见 index.css）：
+      // 抽屉是 Radix Sheet → role="dialog"，不吃这层规则就会被铺成实色 popover 面板。
+      const hasSurfaceClass =
+        className?.includes('floating-sidebar') ||
+        className?.includes('glass-sidebar') ||
+        className?.includes('line-sidebar');
 
       return (
         <Sheet open={openMobile} onOpenChange={setOpenMobile} {...props}>
@@ -203,12 +210,9 @@ const Sidebar = React.forwardRef<
             overlayClassName={overlayClassName}
             className={cn(
               'w-[--sidebar-width] p-0 text-sidebar-foreground [&>button]:hidden overflow-hidden',
-              // 抽屉外壳必须透明：sheetVariants 自带 bg-background（实色），
-              // 会把 ::before 的半透明层 + backdrop-filter 垫成纯色，主题风格全部失效。
-              // 纯色风格才用实色 --sidebar（见 index.css 的移动端抽屉段落）。
-              isSolid ? 'rounded-r-2xl border-r-0 bg-sidebar' : 'rounded-none border-none bg-transparent',
-              !isSolid &&
-                (className?.includes('floating-sidebar') ? 'floating-sidebar' : 'glass-sidebar'),
+              'rounded-none border-none bg-transparent',
+              'sidebar-drawer',
+              hasSurfaceClass ? '' : 'glass-sidebar',
               className,
             )}
             style={
