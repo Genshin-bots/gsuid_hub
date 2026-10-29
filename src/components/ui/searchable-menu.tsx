@@ -1,5 +1,5 @@
 import { useRef, useState, type ReactNode } from 'react';
-import { Check, ChevronDown } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
@@ -61,6 +61,7 @@ export function SearchableMenuContent({
                     value={item.value}
                     keywords={[item.label, ...(item.keywords ?? [])]}
                     disabled={item.disabled}
+                    data-active={selected ? 'true' : undefined}
                     onSelect={() => onSelect(item.value)}
                     className="min-w-0 cursor-pointer gap-2"
                   >
@@ -68,12 +69,6 @@ export function SearchableMenuContent({
                       {item.icon ?? null}
                     </span>
                     <span className="min-w-0 flex-1 truncate">{item.label}</span>
-                    <Check
-                      className={cn(
-                        'h-4 w-4 shrink-0 text-primary',
-                        selected ? 'opacity-100' : 'opacity-0',
-                      )}
-                    />
                   </CommandItem>
                 </TooltipTrigger>
                 <TooltipContent side="right" sideOffset={8} className="max-w-xs break-words">

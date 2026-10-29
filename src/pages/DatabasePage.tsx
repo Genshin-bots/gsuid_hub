@@ -147,7 +147,6 @@ function DatabaseTableNav({
         />
       ) : (
         <TabButtonGroup
-          size="line"
           options={tables.map((table) => ({
             value: table.table_name,
             label: table.label,

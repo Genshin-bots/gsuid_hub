@@ -43,7 +43,6 @@ import {
   Palette,
   Image,
   Sparkles,
-  Check,
   Upload,
   Link,
   X,
@@ -315,13 +314,6 @@ function BgThumb({ active, onClick, label, children }: BgThumbProps) {
       )}
     >
       {children}
-      {active && (
-        <div className="absolute inset-0 flex items-center justify-center bg-primary/20 backdrop-blur-[0.5px]">
-          <div className="rounded-full bg-primary p-1 text-primary-foreground shadow-md">
-            <Check className="w-4 h-4" />
-          </div>
-        </div>
-      )}
       <span className="absolute top-1.5 right-1.5 max-w-[85%] truncate rounded-full bg-background/90 text-foreground border border-border/40 px-2 py-0.5 text-[10px] font-medium leading-tight shadow-xs pointer-events-none">
         {label}
       </span>
@@ -986,11 +978,7 @@ export default function ThemesPage() {
                               : 'ring-1 ring-black/15 dark:ring-white/25',
                           )}
                           style={{ backgroundColor: theme.color }}
-                        >
-                          {color === theme.id && (
-                            <Check className="w-3.5 h-3.5 text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.5)]" />
-                          )}
-                        </span>
+                        />
                       }
                       label={t(theme.name)}
                     />
@@ -1121,13 +1109,6 @@ export default function ThemesPage() {
                       />
                     ) : (
                       <div className="h-full w-full" style={{ background: lastCustomBg }} />
-                    )}
-                    {isCustomImage && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-primary/20 backdrop-blur-[0.5px]">
-                        <div className="rounded-full bg-primary p-1 text-primary-foreground shadow-md">
-                          <Check className="w-4 h-4" />
-                        </div>
-                      </div>
                     )}
                     <span className="absolute top-1.5 right-1.5 max-w-[85%] truncate rounded-full bg-background/90 text-foreground border border-border/40 px-2 py-0.5 text-[10px] font-medium leading-tight shadow-xs pointer-events-none">
                       {t('themes.customBg')}

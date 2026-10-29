@@ -90,12 +90,12 @@ interface TabButtonGroupProps {
   disabled?: boolean;            // 整组禁用
   collapseOnMobile?: boolean;    // <768px 收成「当前项 + ▾」下拉（/plugin-store）
   singleRowOnMobile?: boolean;   // <768px 保持同行等分、超长文案省略（/plugins 分区切换）
-  size?: 'default' | 'sm' | 'line'; // sm：外壳 h-9；line：外壳 h-10。页面上方操作区用 default
+  size?: 'default' | 'sm' | 'line'; // sm：外壳 min-h-9；line：与默认等价（兼容旧调用）。页面上方操作区用 default
 }
 
-// 页面上方操作区对齐常量（导出）——对齐默认分段的外壳，不是内钮
-export const tabToolbarControlClass = 'h-[calc(3rem+2px)]';
-export const tabToolbarIconButtonClass = 'h-[calc(3rem+2px)] w-[calc(3rem+2px)]';
+// 页面上方操作区对齐常量（导出）——对齐默认分段的外壳（min-h-10，整组 40px）
+export const tabToolbarControlClass = 'h-10';
+export const tabToolbarIconButtonClass = 'h-10 w-10';
 export const tabToolbarGroupWrapClass =
   'flex shrink-0 items-center [&_.shadow-safe]:!my-0 [&_.shadow-safe]:!py-0';
 ```
@@ -114,7 +114,7 @@ export const tabToolbarGroupWrapClass =
 | **点击主区**（文字/左侧图标） | 选中该 `option.value` | 重置为 `allValue`（默认首项，通常 `__all__`） |
 | **点击右侧 ▾** | 不切换主 Tab，只展开菜单 | 不变，直到用户点菜单项 |
 | **点菜单某子项** | 选中该主 Tab | `dropdown.onValueChange(item.value)` |
-| 当前子项 | — | 右侧 ✓ 标记（`DropdownMenuItem` + `Check`，非 RadioItem） |
+| 当前子项 | — | `data-active` 高亮（不再画 ✓，见 §05） |
 
 实现要点（源码契约）：
 

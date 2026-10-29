@@ -88,21 +88,21 @@ const buttonVariants = cva(
 
 页面上方操作区（标题栏右侧按钮、其下或同行的分段、搜索、下拉、筛选）必须同一高度。
 
-这一高度是默认 `TabButtonGroup` 的**外壳**，不是里面那颗按钮：
+这一高度是 **`h-10`（40px）**。默认 `TabButtonGroup` 的外壳就是这个高度：
 
-- 内钮固定 `h-10`（2.5rem）
-- 外壳 `p-1`（上下各 0.25rem）+ 1px 边框
-- 合计 `h-[calc(3rem+2px)]`
+- 外壳 `min-h-10`（含 1px 边框），内钮为外壳内高 `h-[calc(2.5rem-2px)]` = 38px
+- 分段过多折行的组（窄屏 `.tab-segment-fill` 两列布局）外壳照常撑高，不裁第二行
+- 单行整组 = 40px，与 `h-10` 控件顶底对齐
 
 常量（`src/components/ui/TabButtonGroup.tsx`）：
 
-- `tabToolbarControlClass` = `h-[calc(3rem+2px)]`
-- `tabToolbarIconButtonClass` = 同高的正方形
+- `tabToolbarControlClass` = `h-10`
+- `tabToolbarIconButtonClass` = `h-10 w-10`（正方形）
 - `tabToolbarShellControlClass` 是同一常量的旧名
 
-同行以及上下叠成一列的 `Input` / `SelectTrigger` / `Button` 都套这个类。没有分段的操作行也用它，不要再混 `h-9` 和默认 `Button` 的 `h-10`。禁止只对齐内钮，禁止把 group 压矮（不要 `h-8` 外壳、不要 `buttonClassName="h-8 py-0"`）。
+同行以及上下叠成一列的 `Input` / `SelectTrigger` / `Button` 都套这个类。没有分段的操作行也用它，不要混 `h-9` 和默认 `Button` 的 `h-10`。禁止只对齐内钮，禁止把 group 压矮（不要 `h-8` 外壳、不要 `buttonClassName="h-8 py-0"`）。
 
-组件默认高度并不相同：`Input` = **h-10**、`SelectTrigger` = **h-7**、`Button` 默认 = **h-10**、`Button size="icon"` = **h-10 w-10**。并排时必须显式套常量，否则一行高低不齐。
+组件默认高度并不相同：`Input` = **h-10**、`SelectTrigger` = **h-7**、`Button` 默认 = **h-10**、`Button size="icon"` = **h-10 w-10**。并排时必须显式套常量，否则一行高低不齐（`SelectTrigger` 的 h-7 最容易漏）。
 
 ```tsx
 import {
@@ -127,11 +127,11 @@ import {
 | 场景 | 高度 | 说明 |
 |------|------|------|
 | 页面上方操作区 | `tabToolbarControlClass` | 标题栏按钮、分段旁的搜索/下拉/筛选，有没有分段都用这一档 |
-| `TabButtonGroup` 本身 | 内钮 `h-10`，外壳 `p-1` | 禁止压矮；旁边控件对齐外壳 |
-| 统计页日期槽 | 内钮 `h-10`，自己再套 `p-1` 外壳 | 外壳去对齐预设分段，内钮不要再套 `tabToolbarControlClass` |
+| `TabButtonGroup` 本身 | 外壳 `min-h-10`，内钮 38px | 禁止压矮；单行整组正好 40px |
+| 统计页日期槽 | 外壳 `min-h-10`，内钮 `h-full` | 外壳去对齐预设分段，内钮不要再套 `tabToolbarControlClass` |
 | 同一行已有 Switch | 跟开关行对齐 | 不要单把按钮抬到外壳高度 |
 | 表格行内 / 分页 / 弹窗底栏 / 卡片内次要按钮 | 紧凑 | 如技能卡编辑/删除，不要抬到外壳高度 |
-| `size="sm"` / `size="line"` 的分段 | 外壳 `h-9` / `h-10` | 只用于面板内的紧凑分段，不用于页面上方操作区 |
+| `size="sm"` / `size="line"` 的分段 | 外壳 `min-h-9` / 同默认 | `line` 是默认的兼容别名；`sm` 只用于面板内紧凑分段，不用于页面上方操作区 |
 
 参考页：`/ai-knowledge`、`/ai-meme`、`/ai-capability-agents`。
 

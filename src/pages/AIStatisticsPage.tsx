@@ -534,10 +534,10 @@ const TREND_LOOKBACK_DAYS = 7;
  */
 
 const rangeControlShellClass =
-  'tab-segment-row inline-flex w-full items-center rounded-lg glass-card-flat p-1 sm:w-auto';
+  'tab-segment-row inline-flex h-10 w-full items-center rounded-lg glass-card-flat px-0.5 py-0 sm:w-auto';
 
 const rangeControlBtnClass =
-  'h-10 w-full justify-start gap-2 px-3 font-normal rounded-md sm:w-[152px]';
+  'h-full w-full justify-start gap-2 px-3 font-normal rounded-md sm:w-[152px]';
 
 /**
  * 货币胶囊与刷新按钮的外壳：内容定宽，不跟着整行拉伸。
@@ -549,9 +549,9 @@ const rangeControlBtnClass =
  */
 const compactShellClass = cn(rangeControlShellClass, 'w-auto shrink-0');
 
-/** 日期槽与刷新按钮的胶囊外壳与尺寸，与 TabButtonGroup 严格保持一致的外层 p-1 + 内层 h-10 */
+/** 日期槽与刷新按钮的胶囊外壳与尺寸，与 TabButtonGroup 一致：h-10 外壳 + 纵向撑满的内钮 */
 
-const rangeIconButtonClass = 'h-10 w-10 p-0 justify-center rounded-md';
+const rangeIconButtonClass = 'h-full w-[38px] p-0 justify-center rounded-md';
 
 function rowChartHeight(rows: number): number {
   return Math.min(Math.max(rows * ROW_HEIGHT + 56, CHART_MIN), CHART_MAX);
@@ -2850,7 +2850,7 @@ export default function AIStatisticsPage() {
                       className={cn(
                         rangeControlBtnClass,
 
-                        'h-10 w-auto sm:w-auto justify-center px-2.5 gap-1.5 text-xs font-medium',
+                        'w-auto sm:w-auto justify-center px-2.5 gap-1.5 text-xs font-medium',
                       )}
                     >
                       <span className="font-bold text-emerald-500 text-sm leading-none">
@@ -3032,7 +3032,7 @@ export default function AIStatisticsPage() {
                 </div>
               ) : (
                 <div className={rangeControlShellClass}>
-                  <span className="flex h-10 w-full items-center gap-2 px-3 text-sm tabular-nums text-muted-foreground sm:w-[152px]">
+                  <span className="flex h-full w-full items-center gap-2 px-3 text-sm tabular-nums text-muted-foreground sm:w-[152px]">
                     <CalendarDays className="h-4 w-4 shrink-0" />
                     <span className="truncate">{scopeDates}</span>
                   </span>

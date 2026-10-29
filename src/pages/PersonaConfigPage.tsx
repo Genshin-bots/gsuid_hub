@@ -2338,9 +2338,6 @@ export default function PersonaConfigPage() {
                                 {t(option.descKey)}
                               </div>
                             </div>
-                            {editingScope === option.value && (
-                              <Check className="w-4 h-4 text-primary shrink-0" />
-                            )}
                           </button>
                         ))}
                       </div>
@@ -2404,9 +2401,6 @@ export default function PersonaConfigPage() {
                                 {mode.description}
                               </div>
                             </div>
-                            {editingAIModes.includes(mode.value) && (
-                              <Check className="w-4 h-4 text-primary shrink-0" />
-                            )}
                           </button>
                         ))}
                       </div>

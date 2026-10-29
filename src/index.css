@@ -2537,7 +2537,7 @@ html[data-style] [role="tab"][data-state="active"] * {
   .page-pinned-header,
   .header-action-row
 ) button.bg-primary:not(.tab-segment-row *):not(.select-tile),
-button.bg-primary[class*="calc(3rem"]:not(.tab-segment-row *):not(.select-tile) {
+button.bg-primary.toolbar-control:not(.tab-segment-row *):not(.select-tile) {
   box-shadow:
     var(--tw-ring-offset-shadow, 0 0 #0000),
     var(--tw-ring-shadow, 0 0 #0000),
@@ -2550,7 +2550,7 @@ button.bg-primary[class*="calc(3rem"]:not(.tab-segment-row *):not(.select-tile) 
   .page-pinned-header,
   .header-action-row
 ) button.bg-primary:not(.tab-segment-row *):not(.select-tile),
-.dark button.bg-primary[class*="calc(3rem"]:not(.tab-segment-row *):not(.select-tile) {
+.dark button.bg-primary.toolbar-control:not(.tab-segment-row *):not(.select-tile) {
   box-shadow:
     var(--tw-ring-offset-shadow, 0 0 #0000),
     var(--tw-ring-shadow, 0 0 #0000),
@@ -2565,7 +2565,7 @@ button.bg-primary[class*="calc(3rem"]:not(.tab-segment-row *):not(.select-tile) 
   .page-pinned-header,
   .header-action-row
 ) button.bg-primary:not(.tab-segment-row *):not(.select-tile):hover,
-button.bg-primary[class*="calc(3rem"]:not(.tab-segment-row *):not(.select-tile):hover {
+button.bg-primary.toolbar-control:not(.tab-segment-row *):not(.select-tile):hover {
   filter: brightness(1.06);
 }
 
@@ -2574,7 +2574,7 @@ button.bg-primary[class*="calc(3rem"]:not(.tab-segment-row *):not(.select-tile):
   .page-pinned-header,
   .header-action-row
 ) button.bg-primary:not(.tab-segment-row *):not(.select-tile):hover,
-.dark button.bg-primary[class*="calc(3rem"]:not(.tab-segment-row *):not(.select-tile):hover {
+.dark button.bg-primary.toolbar-control:not(.tab-segment-row *):not(.select-tile):hover {
   box-shadow:
     var(--tw-ring-offset-shadow, 0 0 #0000),
     var(--tw-ring-shadow, 0 0 #0000),
@@ -2590,7 +2590,7 @@ button.bg-primary[class*="calc(3rem"]:not(.tab-segment-row *):not(.select-tile):
   .page-pinned-header,
   .header-action-row
 ) :is(button:not(.bg-primary), a:not(.bg-primary), [role="combobox"]):not(.tab-segment-row *):not(.select-tile):not([data-sidebar="menu-button"]):not([data-radix-collection-item]),
-:is(button:not(.bg-primary), a:not(.bg-primary), [role="combobox"])[class*="calc(3rem"]:not(.tab-segment-row *):not(.select-tile):not([data-sidebar="menu-button"]):not([data-radix-collection-item]) {
+:is(button:not(.bg-primary), a:not(.bg-primary), [role="combobox"]).toolbar-control:not(.tab-segment-row *):not(.select-tile):not([data-sidebar="menu-button"]):not([data-radix-collection-item]) {
   box-shadow:
     var(--tw-ring-offset-shadow, 0 0 #0000),
     var(--tw-ring-shadow, 0 0 #0000),
@@ -2603,7 +2603,7 @@ button.bg-primary[class*="calc(3rem"]:not(.tab-segment-row *):not(.select-tile):
   .page-pinned-header,
   .header-action-row
 ) :is(button:not(.bg-primary), a:not(.bg-primary), [role="combobox"]):not(.tab-segment-row *):not(.select-tile):not([data-sidebar="menu-button"]):not([data-radix-collection-item]),
-.dark :is(button:not(.bg-primary), a:not(.bg-primary), [role="combobox"])[class*="calc(3rem"]:not(.tab-segment-row *):not(.select-tile):not([data-sidebar="menu-button"]):not([data-radix-collection-item]) {
+.dark :is(button:not(.bg-primary), a:not(.bg-primary), [role="combobox"]).toolbar-control:not(.tab-segment-row *):not(.select-tile):not([data-sidebar="menu-button"]):not([data-radix-collection-item]) {
   box-shadow:
     var(--tw-ring-offset-shadow, 0 0 #0000),
     var(--tw-ring-shadow, 0 0 #0000),
@@ -2616,7 +2616,7 @@ button.bg-primary[class*="calc(3rem"]:not(.tab-segment-row *):not(.select-tile):
   .page-pinned-header,
   .header-action-row
 ) :is(button:not(.bg-primary), a:not(.bg-primary), [role="combobox"]):not(.tab-segment-row *):not(.select-tile):not([data-sidebar="menu-button"]):not([data-radix-collection-item]):hover,
-:is(button:not(.bg-primary), a:not(.bg-primary), [role="combobox"])[class*="calc(3rem"]:not(.tab-segment-row *):not(.select-tile):not([data-sidebar="menu-button"]):not([data-radix-collection-item]):hover {
+:is(button:not(.bg-primary), a:not(.bg-primary), [role="combobox"]).toolbar-control:not(.tab-segment-row *):not(.select-tile):not([data-sidebar="menu-button"]):not([data-radix-collection-item]):hover {
   filter: brightness(1.04);
 }
 

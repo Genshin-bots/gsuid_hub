@@ -8,7 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Ban, Check, Server, Wrench } from 'lucide-react';
+import { Ban, Server, Wrench } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { MCPConfig } from '@/lib/api';
 import type { McpServiceType } from '@/components/config';
@@ -175,18 +175,13 @@ export function McpToolDialog({
                               )}
                             />
                             <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between gap-2">
-                                <span
-                                  className={cn(
-                                    'text-sm truncate',
-                                    isSelected ? 'font-semibold text-primary' : 'font-medium',
-                                  )}
-                                >
-                                  {tool.name}
-                                </span>
-                                {isSelected && (
-                                  <Check className="h-3.5 w-3.5 text-primary shrink-0" />
+                              <div
+                                className={cn(
+                                  'text-sm truncate',
+                                  isSelected ? 'font-semibold text-primary' : 'font-medium',
                                 )}
+                              >
+                                {tool.name}
                               </div>
                               {tool.description && (
                                 <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">

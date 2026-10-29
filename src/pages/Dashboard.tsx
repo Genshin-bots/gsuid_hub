@@ -7,8 +7,6 @@ import {
   UserRound,
   TrendingUp,
   Activity,
-  Calendar,
-  Bot,
   MessageSquare,
   LayoutGrid,
   ChartColumn,
@@ -948,48 +946,25 @@ export default function Dashboard() {
       /* gap-3 md:gap-4：一屏要塞下磁贴 + 两行图表，默认的 gap-3 md:gap-6 会在三段之间白掉 24px */
       className="gap-3 md:gap-4"
       header={
-        /* Header with Bot Selector */
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 md:gap-4">
-          <div>
-            <h1 className="text-3xl font-bold flex items-center gap-3">
-              <LayoutGrid className="w-8 h-8" />
-              {t('dashboard.title')}
-            </h1>
-            <p className="text-muted-foreground mt-1">{t('dashboard.description')}</p>
-          </div>
-
-          <div className="flex w-full items-center gap-2 sm:w-auto">
-            <Bot className="w-5 h-5 text-muted-foreground shrink-0" />
-            <Select value={selectedBot} onValueChange={setSelectedBot}>
-              <SelectTrigger className={cn(tabToolbarControlClass, 'w-full sm:w-[180px]')}>
-                <SelectValue placeholder={t('dashboard.selectBot')} />
-              </SelectTrigger>
-              <SelectContent>
-                {botList.map((bot) => (
-                  <SelectItem key={bot.id} value={bot.id}>
-                    {bot.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+        <div>
+          <h1 className="text-3xl font-bold flex items-center gap-3">
+            <LayoutGrid className="w-8 h-8" />
+            {t('dashboard.title')}
+          </h1>
+          <p className="text-muted-foreground mt-1">{t('dashboard.description')}</p>
         </div>
       }
       toolbar={
         /* 日期是下方三块图表的筛选条件，跟着标题常驻；切换后不用滚回中间。
             右侧的「更新于」是常驻刷新的心跳，让一屏的数据有明确的新鲜度。 */
         <div className="flex flex-wrap items-center gap-2">
-          <span className="flex shrink-0 items-center gap-2 text-sm font-medium text-muted-foreground">
-            <Calendar className="h-4 w-4" />
-            {t('dashboard.dateDetails')}
-          </span>
           <Popover>
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
                 className={cn(
                   tabToolbarControlClass,
-                  'w-full justify-start px-3 font-normal sm:w-[220px]',
+                  'ui-field-trigger min-w-0 flex-1 justify-start px-3 font-normal sm:w-[220px] sm:flex-none',
                   !selectedDate && 'text-muted-foreground',
                 )}
               >
@@ -1013,6 +988,20 @@ export default function Dashboard() {
               />
             </PopoverContent>
           </Popover>
+          <span className="flex min-w-0 flex-1 items-center sm:flex-none">
+            <Select value={selectedBot} onValueChange={setSelectedBot}>
+              <SelectTrigger className={cn(tabToolbarControlClass, 'w-full sm:w-[180px]')}>
+                <SelectValue placeholder={t('dashboard.selectBot')} />
+              </SelectTrigger>
+              <SelectContent>
+                {botList.map((bot) => (
+                  <SelectItem key={bot.id} value={bot.id}>
+                    {bot.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </span>
           <span className="ml-auto flex shrink-0 items-center gap-2 text-xs text-muted-foreground tabular-nums">
             <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-primary" />
             {t('dashboard.lastUpdated')}

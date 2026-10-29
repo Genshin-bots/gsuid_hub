@@ -22,10 +22,10 @@ toast.error((mode === 'create' ? t('…createFailed') : t('…updateFailed')) + 
 
 ### P-3 一行筛选/表单控件高度不统一 ★★
 
-`Input`(h-10) + `SelectTrigger`(h-7) + `Button`(h-10) 并排，又和 `TabButtonGroup` 外壳（内钮 h-10 + `p-1` + 边框）放在同一操作区 → 高低不齐。
+`Input`(h-10) + `SelectTrigger`(h-7) + `Button`(h-10) 并排，又和 `TabButtonGroup` 外壳（`min-h-10`，整组 40px）放在同一操作区 → 高低不齐。
 
-- **页面上方操作区**（标题栏按钮、分段、搜索、下拉、筛选）统一外壳高度 `tabToolbarControlClass`（`h-[calc(3rem+2px)]`）。有没有分段都用这一档。
-- **禁止**只对齐内钮 `h-10`，也禁止把 group 压成 `h-8` 矮版。
+- **页面上方操作区**（标题栏按钮、分段、搜索、下拉、筛选）统一 `h-10`，用 `tabToolbarControlClass`。有没有分段都用这一档。
+- **禁止**只对齐内钮（分段内钮是外壳内高 38px），也禁止把 group 压成 `h-8` 矮版。
 - 表格行内、分页、弹窗底栏、卡片内次要按钮保持紧凑。
 - 小节说明用 `LabelWithHelp` 放在标题右侧，不要写在标题下面。
 

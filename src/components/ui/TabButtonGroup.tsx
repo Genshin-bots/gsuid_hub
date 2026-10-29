@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Check, ChevronDown } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { asHoverIcon, hoverIconGroupClass } from '@/components/layout/SidebarHoverIcon';
 import {
@@ -64,7 +64,7 @@ interface TabButtonGroupProps {
   disabled?: boolean;
   /**
    * 窄屏（&lt;768px）收成「当前项 + ▾」下拉，避免一长串分段撑破边距。
-   * 形态对齐 /ai-capability-agents 的 DropdownMenu 列表（图标槽 + 文案 + ✓）。
+   * 形态对齐 /ai-capability-agents 的 DropdownMenu 列表（图标槽 + 文案）。
    * 桌面仍是分段按钮。有二级 `dropdown` 的项在收起态只切主 Tab。
    */
   collapseOnMobile?: boolean;
@@ -76,10 +76,9 @@ interface TabButtonGroupProps {
    */
   singleRowOnMobile?: boolean;
   /**
-   * `sm`：外壳 h-9，只留左右内边距，纵向贴齐外框。
-   * 这样分段的可视高度和同行的 h-9 输入框 / 按钮一致。
-   * `line`：外壳 h-10，纵向贴齐外框，和 outline 按钮外框齐平。
-   * 默认不传。不要用 className 把默认高度硬压矮。
+   * `sm`：外壳 min-h-9，和同行的 h-9 输入框 / 按钮一致。
+   * `line`：与默认等价（外壳 min-h-10）。仅为兼容旧调用方保留。
+   * 默认外壳 min-h-10、整组单行 40px。不要用 className 把默认高度硬压矮。
    */
   size?: 'default' | 'sm' | 'line';
   /**
@@ -92,13 +91,12 @@ interface TabButtonGroupProps {
 }
 
 /**
- * 页面上方操作区（标题栏按钮、分段、搜索、筛选）共用的外框高度。
- * 默认 TabButtonGroup 外壳 = 内钮 h-10 + p-1 + 1px 边框，即 `h-[calc(3rem+2px)]`。
- * 同行 Input / Select / Button 用这个高度，才能和分段外框顶底对齐。
- * icon 按钮同高，宽度在纯图标时保持正方形。
+ * 页面上方操作区（标题栏按钮、分段、搜索、筛选）共用的控件高度。
+ * 统一 h-10：与分段内钮、SearchableMenu / Select 字段触发器同高。
+ * 同行 Input / Select / Button 用这个高度；纯图标按钮保持正方形。
  */
-export const tabToolbarControlClass = 'h-[calc(3rem+2px)]';
-export const tabToolbarIconButtonClass = 'h-[calc(3rem+2px)] w-[calc(3rem+2px)]';
+export const tabToolbarControlClass = 'toolbar-control h-10';
+export const tabToolbarIconButtonClass = 'toolbar-control h-10 w-10';
 
 /** 与 `tabToolbarControlClass` 同一高度。旧名保留，避免已引用外壳高度的页面分叉。 */
 export const tabToolbarShellControlClass = tabToolbarControlClass;
@@ -154,7 +152,6 @@ interface TabSegmentDropdownItemProps {
   isDisabled: boolean;
   buttonClassName?: string;
   segmentYClass: string;
-  hug: boolean;
   singleRowOnMobile?: boolean;
   iconSlotClass: string;
   onValueChange: (value: string) => void;
@@ -166,7 +163,6 @@ function TabSegmentDropdownItem({
   isDisabled,
   buttonClassName,
   segmentYClass,
-  hug,
   singleRowOnMobile,
   iconSlotClass,
   onValueChange,
@@ -206,7 +202,6 @@ function TabSegmentDropdownItem({
             className={cn(
               'flex min-w-0 items-center gap-1.5 sm:gap-2 px-2.5 sm:pl-4 sm:pr-2 rounded-none bg-transparent',
               segmentYClass,
-              hug && 'h-full',
               'hover:bg-transparent focus-visible:outline-none',
               singleRowOnMobile && 'flex-1 justify-center px-2 sm:flex-none sm:justify-start',
               isDisabled && 'cursor-not-allowed',
@@ -238,7 +233,6 @@ function TabSegmentDropdownItem({
               className={cn(
                 'group flex items-center justify-center rounded-none border-0 bg-transparent px-2.5',
                 segmentYClass,
-                hug && 'h-full',
                 singleRowOnMobile && 'px-1.5 sm:px-2.5',
                 'hover:bg-black/5 dark:hover:bg-white/10 focus-visible:outline-none',
                 'data-[state=open]:bg-black/5 dark:data-[state=open]:bg-white/10',
@@ -307,18 +301,14 @@ export function TabButtonGroup({
 }: TabButtonGroupProps) {
   const rowRef = React.useRef<HTMLDivElement>(null);
   const sm = size === 'sm';
-  const line = size === 'line';
-  const hug = sm || line;
+  // 外壳最小高度 = 操作区控件高度（含边框）：默认 40px、sm 36px。
+  // 内钮显式给外壳内高（扣掉上下 1px 边框）：38px / 34px，单行时整组与同行
+  // tabToolbarControlClass 控件顶底对齐；窄屏折成两列的分段组照常撑高，不裁第二行。
   const iconSlotClass = sm ? 'h-4 w-4' : 'h-[22px] w-[22px]';
-  // 默认可视高度：内钮 h-10。外壳另有 p-1 和 1px 边框。
-  // 页面上方操作区对齐的是外壳，用 tabToolbarControlClass（h-[calc(3rem+2px)]），不要只对齐内钮。
-  // line 把外壳本身锁成 h-10，内钮贴齐外框，用来和 outline 下拉并排。
-  const segmentYClass = hug ? 'h-full py-0' : 'h-10';
+  const segmentYClass = sm ? 'h-[calc(2.25rem-2px)] py-0' : 'h-[calc(2.5rem-2px)] py-0';
   const shellClass = sm
-    ? cn(tabSmShellClass, 'items-stretch px-0.5 py-0')
-    : line
-      ? 'h-10 items-stretch overflow-hidden px-0.5 py-0'
-      : 'p-1';
+    ? 'min-h-9 items-stretch px-0.5 py-0'
+    : 'min-h-10 items-stretch overflow-hidden px-0.5 py-0';
   // className 作用在按钮容器（内层）上——调用方会传 grid/w-full 等布局类改写整条布局。
   // 外壳跟主题底色/描边，阴影由 .tab-segment-row 统一跟随 --shadow-strength 阴影强度配置。
   const fullWidth = needsFullWidthWrapper(className);
@@ -377,7 +367,6 @@ export function TabButtonGroup({
                 isDisabled={isDisabled}
                 buttonClassName={buttonClassName}
                 segmentYClass={segmentYClass}
-                hug={hug}
                 singleRowOnMobile={singleRowOnMobile}
                 iconSlotClass={iconSlotClass}
                 onValueChange={onValueChange}
@@ -396,7 +385,6 @@ export function TabButtonGroup({
                 tabSegmentClassName(isActive, isDisabled, buttonClassName),
                 'rounded-md px-2.5 sm:px-4',
                 segmentYClass,
-                hug && 'h-full',
                 singleRowOnMobile &&
                   'min-w-0 flex-1 justify-center px-2 text-xs sm:flex-none sm:px-4 sm:text-sm',
               )}
@@ -450,7 +438,6 @@ export function TabButtonGroup({
                   disabled && 'cursor-not-allowed opacity-40',
                   buttonClassName,
                   segmentYClass,
-                  hug && 'h-full',
                 )}
               >
                 {current?.icon != null && (
@@ -478,6 +465,7 @@ export function TabButtonGroup({
                   <React.Fragment key={option.value}>
                     <DropdownMenuItem
                       disabled={isDisabled}
+                      data-active={selected ? 'true' : undefined}
                       onSelect={() => {
                         onValueChange(option.value);
                         if (dropdown) {
@@ -493,12 +481,6 @@ export function TabButtonGroup({
                         <span className="min-w-0 truncate">{option.label}</span>
                         {option.badge}
                       </span>
-                      <Check
-                        className={cn(
-                          'h-4 w-4 shrink-0 text-primary',
-                          selected ? 'opacity-100' : 'opacity-0',
-                        )}
-                      />
                     </DropdownMenuItem>
                     {/* 二级筛选摊平进同一张菜单：收起态只有一个菜单可点，
                         不摊平会让带 dropdown 的主 Tab 在窄屏丢掉切换能力 */}
@@ -509,6 +491,7 @@ export function TabButtonGroup({
                           <DropdownMenuItem
                             key={`${option.value}:${item.value}`}
                             disabled={item.disabled}
+                            data-active={subSelected ? 'true' : undefined}
                             onSelect={() => {
                               onValueChange(option.value);
                               dropdown.onValueChange(item.value);
@@ -519,12 +502,6 @@ export function TabButtonGroup({
                               {item.icon ?? null}
                             </span>
                             <span className="min-w-0 flex-1 truncate">{item.label}</span>
-                            <Check
-                              className={cn(
-                                'h-4 w-4 shrink-0 text-primary',
-                                subSelected ? 'opacity-100' : 'opacity-0',
-                              )}
-                            />
                           </DropdownMenuItem>
                         );
                       })}
