@@ -147,7 +147,7 @@ export default function MemorySettingsDialog({
             <Skeleton className="h-8 w-full" />
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 py-2">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-3 py-2 sm:gap-x-6">
             <SwitchRow
               label={t('memorySettings.fields.observerEnabled')}
               value={!!cfg.observer_enabled}
@@ -260,7 +260,7 @@ export default function MemorySettingsDialog({
               max={86400}
             />
 
-            <div className="md:col-span-2 space-y-1.5">
+            <div className="col-span-2 space-y-1.5">
               <Label>{t('memorySettings.fields.observerBlacklist')}</Label>
               <TagsInput
                 value={cfg.observer_blacklist ?? []}
@@ -271,9 +271,9 @@ export default function MemorySettingsDialog({
               />
             </div>
 
-            <div className="md:col-span-2 rounded-md border border-border/50 p-3 space-y-2 bg-muted/20">
+            <div className="col-span-2 rounded-md border border-border/50 p-3 space-y-2 bg-muted/20">
               <p className="text-xs text-muted-foreground">{t('memorySettings.readonlyHint')}</p>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm">
+              <div className="grid grid-cols-3 gap-2 text-sm">
                 <div>
                   <span className="text-muted-foreground">
                     {t('memorySettings.fields.enablePreferenceMemory')}:{' '}
@@ -340,9 +340,11 @@ function SwitchRow({
   onChange: (v: boolean) => void;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3">
-      <Label>{label}</Label>
-      <Switch checked={value} onCheckedChange={onChange} />
+    <div className="flex items-center justify-between gap-2 sm:gap-3">
+      <Label className="min-w-0 truncate" title={label}>
+        {label}
+      </Label>
+      <Switch className="shrink-0" checked={value} onCheckedChange={onChange} />
     </div>
   );
 }
@@ -363,11 +365,13 @@ function NumberRow({
   step?: number;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3">
-      <Label>{label}</Label>
+    <div className="flex items-center justify-between gap-2 sm:gap-3">
+      <Label className="min-w-0 truncate" title={label}>
+        {label}
+      </Label>
       <Input
         type="number"
-        className="h-9 w-32"
+        className="h-9 w-20 shrink-0 sm:w-32"
         value={Number.isFinite(value) ? value : 0}
         min={min}
         max={max}

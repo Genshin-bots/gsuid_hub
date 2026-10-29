@@ -788,7 +788,7 @@ function MemeDetailDialog({
                   <Separator className="bg-border/30" />
 
                   {/* Timestamps - compact */}
-                  <div className="grid grid-cols-1 gap-x-4 gap-y-2 text-sm text-muted-foreground sm:grid-cols-2">
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm text-muted-foreground">
                     <div className="flex items-center gap-1">
                       <span>{t('aiMeme.detail.createdAt')}</span>
                     </div>

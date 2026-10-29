@@ -76,9 +76,9 @@ export function ConfigForm({
 
   const gridCols = {
     1: 'grid-cols-1',
-    2: 'grid-cols-1 md:grid-cols-2',
-    3: 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3',
-    4: 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4',
+    2: 'grid-cols-2',
+    3: 'grid-cols-2 lg:grid-cols-3',
+    4: 'grid-cols-2 lg:grid-cols-4',
   };
 
   return (
@@ -136,9 +136,9 @@ interface ConfigGridProps {
 export function ConfigGrid({ config, onChange, columns = 3, className }: ConfigGridProps) {
   const gridCols = {
     1: 'grid-cols-1',
-    2: 'grid-cols-1 md:grid-cols-2',
-    3: 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3',
-    4: 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4',
+    2: 'grid-cols-2',
+    3: 'grid-cols-2 lg:grid-cols-3',
+    4: 'grid-cols-2 lg:grid-cols-4',
   };
 
   return (

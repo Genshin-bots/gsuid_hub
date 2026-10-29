@@ -637,7 +637,7 @@ function RelationshipPanel() {
           <CardDescription>{t('aiRuntime.relationship.desc')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3 md:space-y-4">
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label htmlFor="rel-user">{t('aiRuntime.relationship.userId')}</Label>
               <Input
@@ -698,7 +698,7 @@ function RelationshipPanel() {
               </CardTitle>
               <CardDescription>{view.line}</CardDescription>
             </CardHeader>
-            <CardContent className="grid gap-3 md:gap-4 sm:grid-cols-2 lg:grid-cols-3 text-sm">
+            <CardContent className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-3 text-sm">
               <Field
                 label={t('aiRuntime.relationship.score')}
                 value={String(view.score ?? '—')}

@@ -147,7 +147,7 @@ export function CommandExecutorSection({
 
       {/* 三列：divider 占整行，其它字段占一格 */}
       {enableValue && (
-        <div className="grid gap-3 md:gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-2 items-start gap-3 md:gap-6 lg:grid-cols-3">
           {entries.map(([key, item]) => {
             let fieldDef = pluginConfigItemToFieldDef(key, item);
 

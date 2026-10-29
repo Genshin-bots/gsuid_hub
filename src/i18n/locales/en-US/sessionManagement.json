@@ -44,5 +44,10 @@
   "atSender": "@ target",
   "selectImages": "Select images",
   "removeImage": "Remove image",
-  "imageLoadFailed": "Failed to load image"
+  "imageLoadFailed": "Failed to load image",
+  "forwardTitle": "Forwarded messages",
+  "forwardCount": "View {count} forwarded messages",
+  "nodeAudio": "Audio",
+  "nodeVideo": "Video",
+  "nodeFile": "File"
 }

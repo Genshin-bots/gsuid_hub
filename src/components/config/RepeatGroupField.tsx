@@ -184,7 +184,7 @@ export function RepeatGroupField({
             </div>
 
             {isOpen && (
-              <div className="px-4 py-4 border-t border-border/40 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-4">
+              <div className="px-4 py-4 border-t border-border/40 grid grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-4">
                 {bodyEntries.map(([key, tItem]) => {
                   const raw = item[key];
                   if (isGroupField(tItem) && tItem.template) {

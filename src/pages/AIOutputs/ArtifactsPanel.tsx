@@ -531,7 +531,7 @@ export function ArtifactsPanel(props: ArtifactsPanelProps) {
                     <h4 className="text-xs font-medium text-muted-foreground mb-2">
                       {t('aiArtifacts.detail.metadataTitle')}
                     </h4>
-                    <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5 text-xs">
+                    <dl className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-xs">
                       <MetaRow label="root_task_id" value={detail.item.root_task_id} mono />
                       <MetaRow label="task_id" value={detail.item.task_id} mono />
                       <MetaRow

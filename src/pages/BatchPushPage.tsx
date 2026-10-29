@@ -827,7 +827,7 @@ export default function BatchPushPage() {
             </CardHeader>
             <CardContent className="space-y-3 md:space-y-4">
               {/* 行 1：WS Bot + 机器人账号（bot_self_id） */}
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2 min-w-0">
                   <Label>{t('batchPush.botsLabel')}</Label>
                   <Select value={bot} onValueChange={setBot}>

@@ -660,7 +660,7 @@ export default function LogsPage() {
                   variant="outline"
                   className={cn(
                     tabToolbarControlClass,
-                    'w-[180px] justify-start text-left font-normal',
+                    'w-full sm:w-[180px] justify-start text-left font-normal',
                     !selectedDate && 'text-muted-foreground',
                   )}
                 >
@@ -696,7 +696,7 @@ export default function LogsPage() {
                     variant="outline"
                     className={cn(
                       tabToolbarControlClass,
-                      'w-[150px] justify-start text-left font-normal',
+                      'flex-1 sm:w-[150px] sm:flex-none justify-start text-left font-normal',
                       !startDate && 'text-muted-foreground',
                     )}
                   >
@@ -729,7 +729,7 @@ export default function LogsPage() {
                     variant="outline"
                     className={cn(
                       tabToolbarControlClass,
-                      'w-[150px] justify-start text-left font-normal',
+                      'flex-1 sm:w-[150px] sm:flex-none justify-start text-left font-normal',
                       !endDate && 'text-muted-foreground',
                     )}
                   >

@@ -35,6 +35,12 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import {
@@ -44,7 +50,6 @@ import {
 } from '@/components/ui/TabButtonGroup';
 import { SearchableMenu } from '@/components/ui/searchable-menu';
 import { PluginUsageBar } from '@/components/plugins/PluginUsageBar';
-import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   Search,
@@ -60,6 +65,8 @@ import {
   PlusCircle,
   Download,
   Upload,
+  FileSpreadsheet,
+  ChevronDown,
 } from 'lucide-react';
 import {
   databaseApi,
@@ -632,8 +639,11 @@ export default function DatabasePage() {
           </div>
         }
         toolbar={
-          /* 插件下拉 + 数据表分段。md 起同一行；更窄时分段要通栏，继续上下排。 */
-          <div className="flex flex-col gap-3 md:flex-row md:items-center">
+          /* 单行操作区：插件 + 表分段 + 搜索/筛选 + CSV/刷新/新增，nav flex-1
+             吃掉中段空白，一行放不下时 flex-wrap 自然折行。窄屏 grid-cols-2
+             两列铺满；md:contents 让格子在桌面消失、子控件直接成为 flex 项。
+             导出/导入合并进 CSV 下拉，省出一个按钮位。 */
+          <div className="grid grid-cols-2 gap-2 md:flex md:flex-wrap md:items-center md:gap-3">
             <div className="w-full min-w-0 shrink-0 md:w-auto">
               <PluginUsageBar
                 align="start"
@@ -641,7 +651,8 @@ export default function DatabasePage() {
                 plugins={plugins.map((plugin) => ({
                   id: plugin.plugin_id,
                   name: plugin.plugin_name,
-                  iconName: plugin.plugin_name === '核心功能' ? 'gsuid_core' : plugin.plugin_name,
+                  iconName:
+                    plugin.plugin_name === '核心功能' ? 'gsuid_core' : plugin.plugin_name,
                 }))}
                 value={selectedPluginId}
                 onValueChange={setSelectedPluginId}
@@ -655,153 +666,170 @@ export default function DatabasePage() {
                 onValueChange={setActiveTable}
               />
             )}
+
+            {activeTable && tableMetadata && (
+              <>
+                {/* 筛选 + 搜索合成一格：没选列时 [筛选列|搜索框|🔍] 一行；
+                    选了列后 flex-wrap 折成 [筛选列|筛选值|+] / [搜索框|🔍] 两行，
+                    多出的控件紧跟筛选本身、不掉到远处。桌面 md:contents 全部摊平。 */}
+                <div className="col-span-2 flex flex-wrap gap-2 md:contents">
+                  <Select value={filterColumn} onValueChange={setFilterColumn}>
+                    <SelectTrigger
+                      className={cn(
+                        tabToolbarControlClass,
+                        /* trigger 自带 justify-between，会让图标/文案/箭头三者散开；
+                           值 span flex-1 占住中段，文案贴住图标、箭头仍在最右 */
+                        'min-w-0 flex-1 gap-2 md:w-[150px] md:flex-none [&>span]:flex-1',
+                      )}
+                    >
+                      <Filter className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      <SelectValue placeholder={t('database.filterColumn')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {columns.map((col) => (
+                        <SelectItem key={col.name} value={col.name}>
+                          {col.title}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {filterColumn && (
+                    <div className="flex min-w-0 flex-1 gap-2 md:contents">
+                      <Input
+                        placeholder={t('database.filterValue')}
+                        value={filterValue}
+                        onChange={(e) => setFilterValue(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && addFilter()}
+                        className={cn(
+                          tabToolbarControlClass,
+                          'min-w-0 flex-1 md:w-[150px] md:flex-none',
+                        )}
+                      />
+                      <Button
+                        variant="outline"
+                        onClick={addFilter}
+                        title={t('database.addFilter')}
+                        className={cn(tabToolbarIconButtonClass, 'shrink-0')}
+                      >
+                        <PlusCircle className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                  <div
+                    className={cn(
+                      'flex min-w-0 gap-2 md:contents',
+                      filterColumn ? 'w-full' : 'flex-1',
+                    )}
+                  >
+                    <div className="relative min-w-0 flex-1 md:w-[200px] md:flex-none">
+                      <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        placeholder={t('database.search')}
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                        className={cn(tabToolbarControlClass, 'w-full pl-9')}
+                      />
+                    </div>
+                    <Button
+                      onClick={handleSearch}
+                      disabled={isSearching}
+                      title={t('database.search')}
+                      className={cn(
+                        tabToolbarIconButtonClass,
+                        'shrink-0 md:w-auto md:px-3',
+                      )}
+                    >
+                      {isSearching ? (
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Search className="h-4 w-4" />
+                      )}
+                      <span className="hidden md:ml-1 md:inline">
+                        {t('database.search')}
+                      </span>
+                    </Button>
+                  </div>
+                </div>
+
+                {/* 已添加的筛选条件 */}
+                {filters.length > 0 && (
+                  <div className="col-span-2 flex flex-wrap items-center gap-2">
+                    {filters.map((filter, index) => {
+                      const col = columns.find((c) => c.name === filter.column);
+                      return (
+                        <Badge
+                          key={index}
+                          variant="secondary"
+                          className="flex items-center gap-1 px-2 py-1"
+                        >
+                          {col?.title || filter.column}: {filter.value}
+                          <button
+                            onClick={() => removeFilter(index)}
+                            className="ml-1 hover:text-destructive"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* CSV / 刷新 / 新增：窄屏三等分一行，桌面摊平随行 */}
+                <div className="col-span-2 grid grid-cols-3 gap-2 md:contents">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(tabToolbarControlClass, 'w-full md:w-auto')}
+                        disabled={isExporting || isImporting}
+                        title={t('database.exportCsvHint')}
+                      >
+                        {isExporting || isImporting ? (
+                          <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+                        ) : (
+                          <FileSpreadsheet className="h-4 w-4 mr-1" />
+                        )}
+                        CSV
+                        <ChevronDown className="h-4 w-4 ml-1" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => void handleExportCsv()}>
+                        <Download className="h-4 w-4 mr-2" />
+                        {t('database.exportCsv')}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={openImport}>
+                        <Upload className="h-4 w-4 mr-2" />
+                        {t('database.importCsv')}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  <Button
+                    onClick={() => fetchTableData(activeTable, currentPage, perPage)}
+                    variant="outline"
+                    className={cn(tabToolbarControlClass, 'w-full md:w-auto')}
+                  >
+                    <RefreshCw className="h-4 w-4 mr-1" />
+                    {t('database.refresh')}
+                  </Button>
+                  <Button
+                    onClick={handleCreate}
+                    className={cn(tabToolbarControlClass, 'w-full md:w-auto')}
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    {t('database.addNew')}
+                  </Button>
+                </div>
+              </>
+            )}
           </div>
         }
       >
         {activeTable && tableMetadata && (
           <Card className="glass-card">
             <CardContent className="pt-6">
-              <div className="flex flex-wrap items-center gap-3 md:gap-4 mb-4">
-                {/* 全局搜索框 */}
-                <div className="flex items-center gap-2">
-                  <Search className="h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder={t('database.search')}
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                    className={cn(tabToolbarControlClass, 'w-full sm:w-[200px]')}
-                  />
-                </div>
-
-                {/* 筛选区域 + 搜索按钮 */}
-                <div className="flex items-center gap-2 flex-wrap flex-1">
-                  {/* 筛选区域 */}
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <Filter className="h-4 w-4 text-muted-foreground" />
-                    <Select value={filterColumn} onValueChange={setFilterColumn}>
-                      <SelectTrigger className={cn(tabToolbarControlClass, 'w-full sm:w-[150px]')}>
-                        <SelectValue placeholder={t('database.filterColumn')} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {columns.map((col) => (
-                          <SelectItem key={col.name} value={col.name}>
-                            {col.title}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {filterColumn && (
-                      <>
-                        <Input
-                          placeholder={t('database.filterValue')}
-                          value={filterValue}
-                          onChange={(e) => setFilterValue(e.target.value)}
-                          onKeyDown={(e) => e.key === 'Enter' && addFilter()}
-                          className={cn(tabToolbarControlClass, 'w-full sm:w-[150px]')}
-                        />
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={addFilter}
-                          title={t('database.addFilter')}
-                          className={tabToolbarIconButtonClass}
-                        >
-                          <PlusCircle className="h-4 w-4" />
-                        </Button>
-                      </>
-                    )}
-                  </div>
-
-                  {/* 已添加的筛选条件 */}
-                  {filters.length > 0 && (
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {filters.map((filter, index) => {
-                        const col = columns.find((c) => c.name === filter.column);
-                        return (
-                          <Badge
-                            key={index}
-                            variant="secondary"
-                            className="flex items-center gap-1 px-2 py-1"
-                          >
-                            {col?.title || filter.column}: {filter.value}
-                            <button
-                              onClick={() => removeFilter(index)}
-                              className="ml-1 hover:text-destructive"
-                            >
-                              <X className="h-3 w-3" />
-                            </button>
-                          </Badge>
-                        );
-                      })}
-                    </div>
-                  )}
-
-                  {/* 搜索按钮 - 紧贴筛选区域 */}
-                  <Button
-                    onClick={handleSearch}
-                    disabled={isSearching}
-                    className={tabToolbarControlClass}
-                  >
-                    {isSearching ? (
-                      <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
-                    ) : (
-                      <Search className="h-4 w-4 mr-1" />
-                    )}
-                    {t('database.search')}
-                  </Button>
-
-                  {/* 导出 / 刷新 / 新增 - 推到最右 */}
-                  <div className="flex flex-wrap gap-2 ml-auto">
-                    <Button
-                      onClick={() => void handleExportCsv()}
-                      variant="outline"
-                      size="sm"
-                      className={tabToolbarControlClass}
-                      disabled={isExporting}
-                      title={t('database.exportCsvHint')}
-                    >
-                      {isExporting ? (
-                        <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
-                      ) : (
-                        <Download className="h-4 w-4 mr-1" />
-                      )}
-                      {t('database.exportCsv')}
-                    </Button>
-                    <Button
-                      onClick={openImport}
-                      variant="outline"
-                      size="sm"
-                      className={tabToolbarControlClass}
-                      disabled={isImporting}
-                      title={t('database.importCsvHint')}
-                    >
-                      {isImporting ? (
-                        <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
-                      ) : (
-                        <Upload className="h-4 w-4 mr-1" />
-                      )}
-                      {t('database.importCsv')}
-                    </Button>
-                    <Button
-                      onClick={() => fetchTableData(activeTable, currentPage, perPage)}
-                      variant="outline"
-                      size="sm"
-                      className={tabToolbarControlClass}
-                    >
-                      <RefreshCw className="h-4 w-4 mr-1" />
-                      {t('database.refresh')}
-                    </Button>
-                    <Button onClick={handleCreate} className={tabToolbarControlClass}>
-                      <Plus className="h-4 w-4 mr-1" />
-                      {t('database.addNew')}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-
-              <Separator className="my-2" />
-
               <div className="relative">
                 <Table
                   wrapperRef={tableContainerRef}
@@ -949,8 +977,8 @@ export default function DatabasePage() {
                 标签区预留两行高并底对齐（min-h-10 + justify-end）：同行字段一长一短时，
                 下方输入框仍水平对齐，多出的空隙留在标签上方、不挤压输入框；
                 line-clamp-2 兜底超长标签（全文悬停 title 可见），杜绝三行破对齐；
-                桌面双列压缩表单高度，移动端退回单列；bool 字段内联 Switch，高度与 Input 对齐 */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-5">
+                两列铺满压缩表单高度；bool 字段内联 Switch，高度与 Input 对齐 */}
+              <div className="grid grid-cols-2 gap-x-4 gap-y-5">
                 {columns.map((col) => {
                   const isNumber = col.type === 'int' || col.type === 'float';
                   // 编辑时主键只读：handleSave 用 editingItem[pk] 定位记录，
@@ -1084,7 +1112,7 @@ export default function DatabasePage() {
                   className="hidden"
                   onChange={onImportFile}
                 />
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
                     aria-pressed={importMode === 'merge'}

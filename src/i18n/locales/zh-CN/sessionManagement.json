@@ -44,5 +44,10 @@
   "atSender": "@ 发送对象",
   "selectImages": "选择图片",
   "removeImage": "移除图片",
-  "imageLoadFailed": "图片加载失败"
+  "imageLoadFailed": "图片加载失败",
+  "forwardTitle": "合并转发",
+  "forwardCount": "查看{count}条转发消息",
+  "nodeAudio": "语音",
+  "nodeVideo": "视频",
+  "nodeFile": "文件"
 }

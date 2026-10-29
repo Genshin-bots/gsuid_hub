@@ -522,7 +522,7 @@ export function CapabilityAgentsPanel({ capability }: { capability: UseCapabilit
               )}
 
               {/* 基础字段 */}
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="node_id">
                     {t('aiCapabilityAgents.fields.nodeId')}

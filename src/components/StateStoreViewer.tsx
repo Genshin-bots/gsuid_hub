@@ -362,7 +362,7 @@ const StateStoreViewer = forwardRef<StateStoreViewerHandle, StateStoreViewerProp
         {/* Filter bar - single row, consistent height */}
         <Card className="glass-card shrink-0">
           <CardContent className="p-4">
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_220px_auto_auto] md:items-center">
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-[1fr_220px_auto_auto] md:items-center">
               {/* Scope selector */}
               <div className="flex items-center gap-2 min-w-0 max-w-full">
                 <Label className="text-xs text-muted-foreground shrink-0">

@@ -412,23 +412,15 @@ export default function HttpTracesPage() {
               <RefreshCw className={cn('w-4 h-4 mr-2', isLoading && 'animate-spin')} />
               {t('logs.refresh')}
             </Button>
-            <div className={cn(tabToolbarControlClass, 'flex items-center gap-2 px-2')}>
-              <Switch
-                id="http-trace-auto-refresh"
-                checked={autoRefresh}
-                onCheckedChange={setAutoRefresh}
-              />
-              <Label htmlFor="http-trace-auto-refresh" className="text-sm whitespace-nowrap">
-                {t('httpTraces.autoRefresh')}
-              </Label>
-            </div>
           </div>
         </div>
       }
       toolbar={
-        <div className="flex flex-wrap gap-2 items-center">
+        /* 窄屏 grid-cols-2 两列铺满（select/select → 路径整行 → 两个开关并排），
+           桌面回到 flex-wrap 一行；自动刷新挪进筛选行，避免在标题行独占一行留半行空白 */
+        <div className="grid grid-cols-2 gap-2 md:flex md:flex-wrap md:items-center">
           <Select value={method} onValueChange={setMethod}>
-            <SelectTrigger className={cn(tabToolbarControlClass, 'w-[8.5rem]')}>
+            <SelectTrigger className={cn(tabToolbarControlClass, 'w-full md:w-[8.5rem]')}>
               <SelectValue placeholder={t('httpTraces.filterMethod')} />
             </SelectTrigger>
             <SelectContent>
@@ -440,14 +432,8 @@ export default function HttpTracesPage() {
               ))}
             </SelectContent>
           </Select>
-          <Input
-            className={cn(tabToolbarControlClass, 'w-[14rem]')}
-            placeholder={t('httpTraces.filterPath')}
-            value={pathPrefix}
-            onChange={(e) => setPathPrefix(e.target.value)}
-          />
           <Select value={statusClass} onValueChange={setStatusClass}>
-            <SelectTrigger className={cn(tabToolbarControlClass, 'w-[7.5rem]')}>
+            <SelectTrigger className={cn(tabToolbarControlClass, 'w-full md:w-[7.5rem]')}>
               <SelectValue placeholder={t('httpTraces.filterStatusClass')} />
             </SelectTrigger>
             <SelectContent>
@@ -458,7 +444,13 @@ export default function HttpTracesPage() {
               <SelectItem value="5xx">{t('httpTraces.status5xx')}</SelectItem>
             </SelectContent>
           </Select>
-          <div className={cn(tabToolbarControlClass, 'flex items-center gap-2 px-1')}>
+          <Input
+            className={cn(tabToolbarControlClass, 'col-span-2 w-full md:col-span-1 md:w-[14rem]')}
+            placeholder={t('httpTraces.filterPath')}
+            value={pathPrefix}
+            onChange={(e) => setPathPrefix(e.target.value)}
+          />
+          <div className={cn(tabToolbarControlClass, 'flex items-center gap-2 px-3')}>
             <Switch
               id="http-trace-only-errors"
               checked={onlyErrors}
@@ -466,6 +458,16 @@ export default function HttpTracesPage() {
             />
             <Label htmlFor="http-trace-only-errors" className="text-sm whitespace-nowrap">
               {t('httpTraces.onlyErrors')}
+            </Label>
+          </div>
+          <div className={cn(tabToolbarControlClass, 'flex items-center gap-2 px-3')}>
+            <Switch
+              id="http-trace-auto-refresh"
+              checked={autoRefresh}
+              onCheckedChange={setAutoRefresh}
+            />
+            <Label htmlFor="http-trace-auto-refresh" className="text-sm whitespace-nowrap">
+              {t('httpTraces.autoRefresh')}
             </Label>
           </div>
           <Input

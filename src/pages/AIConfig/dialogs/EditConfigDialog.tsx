@@ -281,7 +281,7 @@ export function EditConfigDialog({
               {/* OpenAI 系列：请求方式 + 思考等级 并排 */}
               {isOpenAISeries ? (
                 <>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+                  <div className="grid grid-cols-2 gap-4 sm:gap-5">
                     <div className="space-y-1.5">
                       <LabelWithHelp
                         icon={<Plug2 className="w-3.5 h-3.5" />}
@@ -343,7 +343,7 @@ export function EditConfigDialog({
               ) : (
                 /* Anthropic / Gemini 系列 */
                 <>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+                  <div className="grid grid-cols-2 gap-4 sm:gap-5">
                     <div className="space-y-1.5">
                       <LabelWithHelp
                         icon={<Gauge className="w-3.5 h-3.5" />}
@@ -430,7 +430,7 @@ export function EditConfigDialog({
                 {/* 当选择 video_url 时展开全模态视频参数 */}
                 {videoInputFormat === 'video_url' ? (
                   <div className="space-y-5 pt-2 border-t border-border/20">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+                    <div className="grid grid-cols-2 gap-4 sm:gap-5">
                       {/* 采样帧率 */}
                       <div className="space-y-1.5">
                         <LabelWithHelp
@@ -545,7 +545,7 @@ export function EditConfigDialog({
                 {/* OpenAI 系列字段 */}
                 {isOpenAISeries && (
                   <>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+                    <div className="grid grid-cols-2 gap-4 sm:gap-5">
                       <div className="space-y-1.5">
                         <LabelWithHelp
                           icon={<TrendingUp className="w-3.5 h-3.5" />}
@@ -582,7 +582,7 @@ export function EditConfigDialog({
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+                    <div className="grid grid-cols-2 gap-4 sm:gap-5">
                       <div className="space-y-1.5">
                         <LabelWithHelp
                           icon={<Brain className="w-3.5 h-3.5" />}

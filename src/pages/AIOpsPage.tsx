@@ -419,7 +419,7 @@ function TriggerPanel() {
   return (
     <PanelCard title={t('aiOps.trigger.title')} description={t('aiOps.trigger.desc')}>
       <div className="space-y-3">
-        <div className="grid gap-2 sm:grid-cols-2">
+        <div className="grid grid-cols-2 gap-2">
           <div className="space-y-1">
             <Label>user_id</Label>
             <Input className="h-9" value={userId} onChange={(e) => setUserId(e.target.value)} />
@@ -544,7 +544,7 @@ function AccessPanel() {
       {loading ? (
         <Skeleton className="h-24 w-full" />
       ) : (
-        <div className="grid gap-3 md:gap-4 md:grid-cols-2">
+        <div className="grid grid-cols-2 gap-3 md:gap-4">
           <div className="space-y-2">
             <Label>{t('aiOps.access.blackList')}</Label>
             <p className="text-xs text-muted-foreground">{t('aiOps.access.blackHint')}</p>
@@ -677,24 +677,29 @@ function SecurityPanel() {
         <Skeleton className="h-24 w-full" />
       ) : (
         <div className="space-y-3 md:space-y-4">
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-2 gap-3">
             {boolKeys.map((k) => (
               <div
                 key={k}
-                className="flex items-center justify-between gap-3 rounded-md border border-border/40 px-3 py-2"
+                className="flex min-w-0 items-center justify-between gap-2 rounded-md border border-border/40 px-3 py-2"
               >
-                <Label className="text-sm">{t(`aiOps.security.fields.${k}`)}</Label>
+                <Label className="min-w-0 truncate text-sm">
+                  {t(`aiOps.security.fields.${k}`)}
+                </Label>
                 <Switch
+                  className="shrink-0"
                   checked={Boolean(values[k])}
                   onCheckedChange={(v) => setValues((prev) => ({ ...prev, [k]: v }))}
                 />
               </div>
             ))}
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-2 gap-3">
             {numKeys.map((k) => (
               <div key={k} className="space-y-1">
-                <Label className="text-sm">{t(`aiOps.security.fields.${k}`)}</Label>
+                <Label className="block truncate text-sm">
+                  {t(`aiOps.security.fields.${k}`)}
+                </Label>
                 <Input
                   className="h-9"
                   type="number"

@@ -34,8 +34,10 @@ import {
   Send,
   Bot,
   ChevronLeft,
+  ChevronDown,
   MessageCircle,
   FileText,
+  Forward,
   Image as ImageIcon,
   Upload,
   X,
@@ -85,6 +87,12 @@ interface PendingImage {
   id: string;
   file: File;
   previewUrl: string;
+}
+
+/** metadata.node 序列化后的合并转发子项（后端 node_items_to_history 产出） */
+interface ForwardNodeItem {
+  type: string;
+  data: string;
 }
 
 // ============================================================================
@@ -168,6 +176,94 @@ const extractMessageImages = (msg: SessionHistoryMessage): string[] => {
 
   return result;
 };
+
+const extractNodeItems = (msg: ChatMessage): ForwardNodeItem[] => {
+  const raw = (msg.metadata || {}).node;
+  if (!Array.isArray(raw)) return [];
+  return raw.filter(
+    (item): item is ForwardNodeItem =>
+      !!item && typeof item === 'object' && typeof (item as ForwardNodeItem).data === 'string',
+  );
+};
+
+/** 合并转发块：默认只露预览 + 条数，点开才展开全部子项（对位 QQ 转发卡片） */
+function ForwardNodeBlock({ items }: { items: ForwardNodeItem[] }) {
+  const { t } = useLanguage();
+  const [open, setOpen] = useState(false);
+  const previewLines = items
+    .filter((item) => item.type === 'text' && item.data.trim())
+    .slice(0, 4);
+
+  const mediaLabel = (type: string): string => {
+    if (type === 'record') return t('sessionManagement.nodeAudio');
+    if (type === 'video') return t('sessionManagement.nodeVideo');
+    if (type === 'file') return t('sessionManagement.nodeFile');
+    return `[${type}]`;
+  };
+
+  return (
+    <div className="rounded-lg border border-border/40 bg-background/50 overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen((prev) => !prev)}
+        className="flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-accent/40 transition-colors"
+      >
+        <Forward className="w-4 h-4 shrink-0 text-muted-foreground" />
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-medium truncate">
+            {t('sessionManagement.forwardTitle')}
+          </span>
+          {previewLines.length > 0 && (
+            <span className="mt-0.5 block text-xs text-muted-foreground">
+              {previewLines.map((item, idx) => (
+                <span key={idx} className="block truncate">
+                  {item.data}
+                </span>
+              ))}
+            </span>
+          )}
+        </span>
+        <ChevronDown
+          className={cn('w-4 h-4 shrink-0 text-muted-foreground transition-transform', open && 'rotate-180')}
+        />
+      </button>
+      <div className="border-t border-border/40 px-3 py-1.5 text-xs text-muted-foreground">
+        {t('sessionManagement.forwardCount').replace('{count}', String(items.length))}
+      </div>
+      {open && (
+        <div className="border-t border-border/40 px-3 py-2 space-y-2 max-h-80 overflow-y-auto">
+          {items.map((item, idx) => {
+            if (item.type === 'image') {
+              return (
+                <ChatImageItem
+                  key={idx}
+                  src={item.data}
+                  alt={`forward-${idx}`}
+                  fallbackText={t('sessionManagement.imageLoadFailed')}
+                />
+              );
+            }
+            if (item.type === 'text' || item.type === 'at' || item.type === 'reply') {
+              return (
+                <p key={idx} className="text-sm whitespace-pre-wrap [overflow-wrap:anywhere]">
+                  {item.type === 'at' ? `@${item.data}` : item.data}
+                </p>
+              );
+            }
+            return (
+              <span
+                key={idx}
+                className="inline-flex items-center rounded-md bg-muted/60 px-2 py-0.5 text-xs text-muted-foreground"
+              >
+                {mediaLabel(item.type)}
+              </span>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 const formatTimestamp = (timestamp: number | null | undefined): string => {
   if (!timestamp) return '-';
@@ -517,6 +613,7 @@ export default function SessionManagementPage() {
   // Render chat message
   const renderChatMessage = (msg: ChatMessage, idx: number) => {
     const isUser = msg.role === 'user';
+    const nodeItems = extractNodeItems(msg);
 
     return (
       <div
@@ -587,8 +684,15 @@ export default function SessionManagementPage() {
                 : 'p-1 rounded-xl border border-border/30 bg-muted/20',
             )}
           >
-            {msg.content?.trim() || !msg.images?.length ? (
-              <p className="whitespace-pre-wrap break-words">{msg.content || ''}</p>
+            {/* overflow-wrap:anywhere：break-words 断不开无空格长串
+                （如 oneBot2:onebot:3399214199:group:xxx / 模型名），窄屏会被裁掉；
+                有 node 子项时正文就是摘要，交给转发块渲染，不再重复显示 */}
+            {nodeItems.length > 0 ? (
+              <ForwardNodeBlock items={nodeItems} />
+            ) : msg.content?.trim() || !msg.images?.length ? (
+              <p className="whitespace-pre-wrap [overflow-wrap:anywhere]">
+                {msg.content || ''}
+              </p>
             ) : null}
             {msg.images && msg.images.length > 0 && (
               <div className={cn('flex flex-col gap-2', msg.content?.trim() && 'mt-2')}>
@@ -1036,7 +1140,7 @@ export default function SessionManagementPage() {
                     <ScrollArea ref={textScrollRef} className="flex-1 p-4">
                       <div className="max-w-4xl mx-auto">
                         {selectedSession.history ? (
-                          <pre className="text-sm whitespace-pre-wrap font-mono leading-relaxed bg-muted/50 p-4 rounded-lg">
+                          <pre className="text-sm whitespace-pre-wrap [overflow-wrap:anywhere] font-mono leading-relaxed bg-muted/50 p-4 rounded-lg">
                             {(selectedSession.history as SessionHistoryTextResponse).content ||
                               t('sessionManagement.noHistory')}
                           </pre>
@@ -1067,7 +1171,7 @@ export default function SessionManagementPage() {
                     </div>
                     <ScrollArea className="h-[calc(100vh-10rem)]">
                       <div className="p-3 sm:p-4">
-                        <pre className="text-xs whitespace-pre-wrap font-mono leading-relaxed text-muted-foreground">
+                        <pre className="text-xs whitespace-pre-wrap [overflow-wrap:anywhere] font-mono leading-relaxed text-muted-foreground">
                           {selectedSession.persona.persona_content}
                         </pre>
                       </div>
@@ -1077,8 +1181,9 @@ export default function SessionManagementPage() {
               </div>
             </>
           ) : (
-            // Empty State
-            <div className="flex-1 flex items-center justify-center p-4">
+            // Empty State：移动端不渲染——会话列表以 absolute inset-0 盖满全屏，
+            // 半透明毛玻璃会把这层空态透出来与列表重叠（P-19 同类坑），桌面分栏才需要它
+            <div className="hidden flex-1 items-center justify-center p-4 sm:flex">
               <Card className={cn('max-w-sm sm:max-w-md w-full rounded-xl', 'glass-card')}>
                 <CardContent className="!p-6 text-center sm:!p-8">
                   <History className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 text-muted-foreground/50" />

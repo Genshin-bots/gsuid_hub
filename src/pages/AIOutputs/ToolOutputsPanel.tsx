@@ -534,7 +534,7 @@ export function ToolOutputsPanel(props: ToolOutputsPanelProps) {
               className="flex-1 min-h-0 overflow-auto px-6 py-4 mt-0 space-y-3 md:space-y-4 data-[state=inactive]:hidden"
             >
               {detail ? (
-                <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5 text-xs">
+                <dl className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-xs">
                   <MetaRow label="id" value={detail.id} mono />
                   <MetaRow label="tool_name" value={detail.tool_name || '—'} mono />
                   <MetaRow label="owner_user_id" value={detail.owner_user_id || '—'} mono />

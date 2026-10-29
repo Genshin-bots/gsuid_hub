@@ -442,7 +442,7 @@ export default function ImageUploadPage() {
           <CardDescription>{t('imageUpload.uploadMethodDesc')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3 md:space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {UPLOAD_TYPES.map((type) => (
               <button
                 key={type}
@@ -533,7 +533,7 @@ export default function ImageUploadPage() {
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+            <div className="grid grid-cols-2 gap-3 md:gap-4">
               <div className="space-y-2">
                 <Label
                   htmlFor="upload-s3-ak"
@@ -567,7 +567,7 @@ export default function ImageUploadPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+            <div className="grid grid-cols-2 gap-3 md:gap-4">
               <div className="space-y-2">
                 <Label
                   htmlFor="s3_bucket"

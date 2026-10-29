@@ -880,7 +880,7 @@ export default function GitUpdatePage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="min-w-0">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
               <div className="flex items-center gap-2 min-w-0">
                 <GitBranch className="w-4 h-4 text-muted-foreground shrink-0" />
                 <span className="text-sm text-muted-foreground whitespace-nowrap shrink-0">
@@ -913,7 +913,7 @@ export default function GitUpdatePage() {
               </div>
             </div>
             <div className="mt-3 pt-3 border-t">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                 <div className="flex items-center gap-2 min-w-0">
                   <MessageSquare className="w-4 h-4 text-muted-foreground shrink-0" />
                   <span className="text-sm break-words leading-relaxed line-clamp-2 sm:truncate">

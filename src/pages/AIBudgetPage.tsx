@@ -475,7 +475,7 @@ function OverviewTab({ onNavigateTab }: { onNavigateTab: (tab: string) => void }
       </div>
 
       {/* 底部快捷入口导航 */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-3 md:gap-4 mt-1">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-3 md:gap-4 mt-1">
         <div
           role="button"
           tabIndex={0}
@@ -549,7 +549,7 @@ function OverviewTab({ onNavigateTab }: { onNavigateTab: (tab: string) => void }
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') onNavigateTab('diagnostic');
           }}
-          className="glass-card p-4 rounded-xl border border-border/60 hover:border-primary/50 transition-all cursor-pointer flex flex-col justify-between group"
+          className="glass-card p-4 rounded-xl border border-border/60 hover:border-primary/50 transition-all cursor-pointer flex flex-col justify-between group col-span-2 md:col-span-1"
         >
           <div>
             <div className="flex items-center justify-between mb-2">
@@ -710,7 +710,7 @@ function OverviewSkeleton() {
         <Skeleton className="h-56 rounded-xl" />
         <Skeleton className="h-56 rounded-xl" />
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-3 md:gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-3 md:gap-4">
         {[1, 2, 3].map((i) => (
           <Skeleton key={i} className="h-28 rounded-xl" />
         ))}
@@ -881,7 +881,7 @@ function ConfigTab({
           <CardDescription>{t('aiBudget.config.countModeDesc')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3 md:space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+          <div className="grid grid-cols-2 gap-3 md:gap-4">
             <div className="space-y-2">
               <div className="flex items-center gap-1.5">
                 <Label>{t('aiBudget.config.countMode')}</Label>
@@ -1632,7 +1632,7 @@ function RuleFormDialog({
           </div>
 
           {/* Scope ID / Member ID */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+          <div className="grid grid-cols-2 gap-3 md:gap-4">
             {scopeType !== 'global' && (
               <div className="space-y-2">
                 <Label>{t('aiBudget.rules.form.scopeId')}</Label>
@@ -1656,7 +1656,7 @@ function RuleFormDialog({
           </div>
 
           {/* Name / Bot ID / Priority */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
             <div className="space-y-2">
               <Label>{t('aiBudget.rules.form.name')}</Label>
               <Input
@@ -1724,7 +1724,7 @@ function RuleFormDialog({
           <div className="space-y-2">
             <Label className="font-medium">{t('aiBudget.rules.columns.limits')}</Label>
             <p className="text-xs text-muted-foreground">{t('aiBudget.rules.form.limitHint')}</p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
               <div className="space-y-1">
                 <Label className="text-xs">{t('aiBudget.rules.form.limitShort')}</Label>
                 <Input
@@ -2239,7 +2239,7 @@ function DiagnosticTab() {
           <CardDescription>{t('aiBudget.diagnostic.checkDesc')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3 md:space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
             <div className="space-y-2">
               <div className="flex items-center gap-1.5 min-h-[20px]">
                 <Label>{t('aiBudget.diagnostic.userId')} *</Label>
@@ -2439,7 +2439,7 @@ function DiagnosticTab() {
           <CardDescription>{t('aiBudget.diagnostic.resetDesc')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3 md:space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
             <div className="space-y-2">
               <Label>{t('aiBudget.diagnostic.resetScopeType')}</Label>
               <Select value={resetScopeType} onValueChange={setResetScopeType}>

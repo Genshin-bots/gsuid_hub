@@ -1661,7 +1661,7 @@ export default function AIKnowledgePage() {
             </div>
 
             {/* 元信息 */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label>
                   {t('aiKnowledge.bulkDocTitle')} <span className="text-destructive">*</span>
@@ -1684,7 +1684,7 @@ export default function AIKnowledgePage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label>{t('aiKnowledge.bulkPlugin')}</Label>
                 <Input
@@ -1704,7 +1704,7 @@ export default function AIKnowledgePage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label>{t('aiKnowledge.bulkChunkSize')}</Label>
                 <Input

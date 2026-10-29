@@ -61,8 +61,8 @@ export default function MemorySearchPanel() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div className="md:col-span-2 space-y-1.5">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="col-span-2 space-y-1.5">
               <Label>{t('aiMemory.search.query')}</Label>
               <Input
                 className="h-9"
@@ -101,7 +101,7 @@ export default function MemorySearchPanel() {
                 onChange={(e) => setTopK(Number(e.target.value) || 10)}
               />
             </div>
-            <div className="flex flex-wrap items-center gap-4 pt-6">
+            <div className="col-span-2 flex flex-wrap items-center gap-x-4 gap-y-2 pt-1">
               <div className="flex items-center gap-2 text-sm">
                 <Switch
                   id="mem-search-s2"

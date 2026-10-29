@@ -359,7 +359,7 @@ export default function CoreConfigPage() {
           )}
 
           {/* Config Grid - 3 columns with consistent alignment */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-5">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-5">
             {Object.entries(config).map(([key, field]) => (
               <ConfigField key={key} fieldKey={key} field={field} onChange={handleChange} />
             ))}

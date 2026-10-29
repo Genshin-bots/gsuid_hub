@@ -1629,7 +1629,7 @@ export default function AIKanbanPage() {
                         {detail.root?.id}
                       </CardDescription>
                     </CardHeader>
-                    <CardContent className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                    <CardContent className="grid grid-cols-2 gap-3 md:grid-cols-3">
                       <div className="rounded-lg bg-muted/40 p-3">
                         <Label className="text-muted-foreground">
                           {t('aiKanban.fields.status')}
@@ -1647,7 +1647,7 @@ export default function AIKanbanPage() {
                         </Label>
                         <p>{detail.task.agent_profile || '-'}</p>
                       </div>
-                      <div className="rounded-lg bg-muted/40 p-3">
+                      <div className="col-span-2 rounded-lg bg-muted/40 p-3 md:col-span-1">
                         <Label className="text-muted-foreground">
                           {t('aiKanban.fields.workspace')}
                         </Label>
@@ -1948,8 +1948,8 @@ export default function AIKanbanPage() {
                     <Badge>1</Badge>
                     <Label className="text-base">{t('aiKanban.create.basicInfo')}</Label>
                   </div>
-                  <div className="grid gap-3 md:gap-4 md:grid-cols-2">
-                    <div className="md:col-span-2 space-y-2">
+                  <div className="grid grid-cols-2 gap-3 md:gap-4">
+                    <div className="col-span-2 space-y-2">
                       <Label>{t('aiKanban.create.goal')}</Label>
                       <Textarea
                         value={createDraft.goal}
@@ -2163,7 +2163,7 @@ export default function AIKanbanPage() {
               rows={4}
               placeholder={t('aiKanban.evaluate.goalPlaceholder')}
             />
-            <div className="grid gap-3 md:grid-cols-2">
+            <div className="grid grid-cols-2 gap-3">
               <Input
                 value={evaluateDraft.owner_user_id}
                 onChange={(event) =>

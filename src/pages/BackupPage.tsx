@@ -473,7 +473,7 @@ export default function BackupPage() {
                 <CardDescription>{t('backup.backupMethod')}</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-5">
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-5">
                   {Object.entries(config)
                     .filter(([key]) => {
                       // 排除 backup_dir，在备份内容中单独处理
@@ -499,7 +499,7 @@ export default function BackupPage() {
                 {showWebDAVConfig && (
                   <div className="mt-6 pt-6 border-t">
                     <h4 className="text-sm font-medium mb-4">{t('backup.webdavConfig')}</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-5">
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-5">
                       <ConfigField
                         fieldKey="webdav_url"
                         field={webdavUrlField}

@@ -538,7 +538,7 @@ function SpeechFields({
 }) {
   const { t } = useLanguage();
   return (
-    <div className="grid gap-3 md:gap-4 sm:grid-cols-2">
+    <div className="grid grid-cols-2 gap-3 md:gap-4">
       <SpeechSliderField
         id="persona-chat-style"
         icon={<MessagesSquare className="h-4 w-4" />}
@@ -2426,7 +2426,7 @@ export default function PersonaConfigPage() {
                       重新勾上还得再找一遍。冻结态的标签同样变灰，控件走各自的 disabled 样式。
                       值一直随 payload 提交（inspect_interval / keywords），冻结不影响已存的数据。
                     */}
-                    <div className="grid gap-3 md:gap-4 sm:grid-cols-2">
+                    <div className="grid grid-cols-2 gap-3 md:gap-4">
                       <div className="space-y-2">
                         <Label
                           className={cn(
@@ -2538,7 +2538,7 @@ export default function PersonaConfigPage() {
                         />
                       </div>
                     </div>
-                    <div className="grid gap-3 md:gap-4 sm:grid-cols-2">
+                    <div className="grid grid-cols-2 gap-3 md:gap-4">
                       <div className="space-y-2">
                         <LabelWithHelp
                           icon={
@@ -2586,7 +2586,7 @@ export default function PersonaConfigPage() {
                         description={t('personaConfig.autonomyHint')}
                         className={cn('text-base font-medium', !showAutonomy && 'opacity-50')}
                       />
-                      <div className="grid gap-3 md:gap-4 sm:grid-cols-2">
+                      <div className="grid grid-cols-2 gap-3 md:gap-4">
                         <div className={cn('space-y-2', !showAutonomy && 'opacity-50')}>
                           <Label htmlFor="autonomy-interval" className="text-sm">
                             {t('personaConfig.autonomyInterval')}

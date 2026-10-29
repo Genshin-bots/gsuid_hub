@@ -2694,7 +2694,7 @@ export default function AIMemoryPage() {
                               maxLength={2000}
                             />
                           </div>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-1">
                               <Label>{t('aiMemory.preferencePolarity')}</Label>
                               <Select
@@ -3630,7 +3630,7 @@ export default function AIMemoryPage() {
             {dialogType === 'entity' && selectedEntity && (
               <div className="space-y-3 md:space-y-4">
                 <div className={cn('rounded-lg p-4', 'glass-card')}>
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 text-sm">
+                  <div className="grid grid-cols-2 gap-3 text-sm">
                     <div>
                       <Label className="text-muted-foreground">{t('aiMemory.scopeKey')}</Label>
                       <p className="font-mono text-sm break-all">{selectedEntity.scope_key}</p>

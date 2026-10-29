@@ -1025,7 +1025,7 @@ export default function MCPConfigPage() {
                     {/* Expanded Details */}
                     {expandedConfigId === config.config_id && (
                       <div className="mt-4 ml-4 sm:ml-12 p-3 sm:p-4 rounded-xl border bg-muted/30 border-border/40 space-y-3">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="grid grid-cols-2 gap-3">
                           <div>
                             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
                               {t('mcpConfig.configId')}
@@ -1052,7 +1052,7 @@ export default function MCPConfigPage() {
                         {/* stdio mode details */}
                         {!itemHttp && (
                           <>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div className="grid grid-cols-2 gap-3">
                               <div>
                                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
                                   {t('mcpConfig.command')}

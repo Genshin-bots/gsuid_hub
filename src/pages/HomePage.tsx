@@ -480,13 +480,13 @@ export default function HomePage() {
 
           {/* Bot 列表。0 个时用紧凑单行提示，不留大片空白箱 */}
           {isLoading ? (
-            <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="mt-5 grid grid-cols-2 gap-3 xl:grid-cols-3">
               {[0, 1, 2].map((i) => (
                 <Skeleton key={i} className="h-28 rounded-2xl" />
               ))}
             </div>
           ) : error ? null : botsInfo?.bots.length ? (
-            <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="mt-5 grid grid-cols-2 gap-3 xl:grid-cols-3">
               {botsInfo.bots.map((bot) => (
                 <BotCard
                   key={bot.ws_bot_id}
@@ -542,13 +542,13 @@ export default function HomePage() {
               </span>
             </div>
             {isLoading ? (
-              <div className="mt-2 grid gap-2 sm:grid-cols-2">
+              <div className="mt-2 grid grid-cols-2 gap-2">
                 {[0, 1].map((i) => (
                   <Skeleton key={i} className="h-4" />
                 ))}
               </div>
             ) : dependencies.length > 0 ? (
-              <dl className="mt-1 grid gap-x-6 sm:grid-cols-2">
+              <dl className="mt-1 grid grid-cols-2 gap-x-6">
                 {dependencies.map(([name, version]) => (
                   <div key={name} className="flex items-baseline justify-between gap-3 py-1">
                     <dt
@@ -571,7 +571,7 @@ export default function HomePage() {
       </div>
 
       {/* ── 项目地址 ── */}
-      <footer className="grid gap-3 sm:grid-cols-2">
+      <footer className="grid grid-cols-2 gap-3">
         {projectLinks.map((item) => (
           <a
             key={item.href}

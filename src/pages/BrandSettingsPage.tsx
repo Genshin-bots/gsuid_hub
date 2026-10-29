@@ -152,28 +152,34 @@ export default function BrandSettingsPage() {
             <CardDescription>{t('brandSettings.sectionDesc')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 md:space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="brand-title">{t('brandSettings.titleLabel')}</Label>
-              <Input
-                id="brand-title"
-                className="h-9"
-                value={title}
-                placeholder={t('brandSettings.titlePlaceholder') ?? ''}
-                onChange={(e) => setTitle(e.target.value)}
-                disabled={loading}
-              />
-            </div>
+            <div className="grid grid-cols-2 gap-3 md:gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="brand-title" className="block truncate">
+                  {t('brandSettings.titleLabel')}
+                </Label>
+                <Input
+                  id="brand-title"
+                  className="h-9"
+                  value={title}
+                  placeholder={t('brandSettings.titlePlaceholder') ?? ''}
+                  onChange={(e) => setTitle(e.target.value)}
+                  disabled={loading}
+                />
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="brand-subtitle">{t('brandSettings.subtitleLabel')}</Label>
-              <Input
-                id="brand-subtitle"
-                className="h-9"
-                value={subtitle}
-                placeholder={t('brandSettings.subtitlePlaceholder') ?? ''}
-                onChange={(e) => setSubtitle(e.target.value)}
-                disabled={loading}
-              />
+              <div className="space-y-2">
+                <Label htmlFor="brand-subtitle" className="block truncate">
+                  {t('brandSettings.subtitleLabel')}
+                </Label>
+                <Input
+                  id="brand-subtitle"
+                  className="h-9"
+                  value={subtitle}
+                  placeholder={t('brandSettings.subtitlePlaceholder') ?? ''}
+                  onChange={(e) => setSubtitle(e.target.value)}
+                  disabled={loading}
+                />
+              </div>
             </div>
 
             <div className="space-y-2">

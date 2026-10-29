@@ -44,5 +44,10 @@
   "atSender": "@ 送信对象",
   "selectImages": "選択画像",
   "removeImage": "移除画像",
-  "imageLoadFailed": "画像の読み込みに失敗しました"
+  "imageLoadFailed": "画像の読み込みに失敗しました",
+  "forwardTitle": "転送メッセージ",
+  "forwardCount": "{count}件の転送メッセージを見る",
+  "nodeAudio": "音声",
+  "nodeVideo": "動画",
+  "nodeFile": "ファイル"
 }

@@ -428,7 +428,7 @@ export default function DatabaseConfigPage() {
           <CardDescription>{t('databaseConfig.databaseTypeDesc')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3 md:space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {DB_TYPES.map((type) => (
               <button
                 key={type}
@@ -540,7 +540,7 @@ export default function DatabaseConfigPage() {
             </CardHeader>
             {expandedSections.connection && (
               <CardContent className="space-y-3 md:space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+                <div className="grid grid-cols-2 gap-3 md:gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="db_host">{t('databaseConfig.host')}</Label>
                     <Input
@@ -561,7 +561,7 @@ export default function DatabaseConfigPage() {
                   </div>
                 </div>
                 <Separator />
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+                <div className="grid grid-cols-2 gap-3 md:gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="db-auth-user">{t('databaseConfig.username')}</Label>
                     <Input
@@ -617,7 +617,7 @@ export default function DatabaseConfigPage() {
             </CardHeader>
             {expandedSections.pool && (
               <CardContent className="space-y-3 md:space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+                <div className="grid grid-cols-2 gap-3 md:gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="db_pool_size">{t('databaseConfig.poolSize')}</Label>
                     <Select
@@ -698,7 +698,7 @@ export default function DatabaseConfigPage() {
               <CardDescription>{t('databaseConfig.connectionSettingsDesc')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3 md:space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+              <div className="grid grid-cols-2 gap-3 md:gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="db_host">{t('databaseConfig.host')}</Label>
                   <Input
@@ -719,7 +719,7 @@ export default function DatabaseConfigPage() {
                 </div>
               </div>
               <Separator />
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+              <div className="grid grid-cols-2 gap-3 md:gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="db-pg-auth-user">{t('databaseConfig.username')}</Label>
                   <Input
@@ -774,7 +774,7 @@ export default function DatabaseConfigPage() {
             </CardHeader>
             {expandedSections.pool && (
               <CardContent className="space-y-3 md:space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+                <div className="grid grid-cols-2 gap-3 md:gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="db_pool_size">{t('databaseConfig.poolSize')}</Label>
                     <Select

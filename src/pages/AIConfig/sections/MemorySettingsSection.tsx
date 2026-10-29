@@ -82,7 +82,7 @@ export function MemorySettingsSection({
 
           {/* 其余配置项 - 一行三个，与高级设置一致 */}
           {otherEntries.length > 0 && (
-            <div className="grid gap-3 md:gap-6 pt-2 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-2 items-start gap-3 pt-2 md:gap-6 lg:grid-cols-3">
               {otherEntries.map(([key, item]) => {
                 const fieldDef = pluginConfigItemToFieldDef(key, item);
                 const isDivider = fieldDef.type === 'divider';

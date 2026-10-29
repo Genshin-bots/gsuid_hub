@@ -624,19 +624,6 @@ export default function ConsolePage() {
             </p>
           </div>
           <div className={headerActionRowClass}>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground whitespace-nowrap">
-              <Circle className="w-2 h-2 fill-green-500 text-green-500 animate-pulse" />
-              {t('console.connected')}
-            </div>
-            <div
-              className={cn(
-                tabToolbarControlClass,
-                'flex items-center gap-2 whitespace-nowrap px-1',
-              )}
-            >
-              <span className="text-sm text-muted-foreground">{t('console.autoScroll')}</span>
-              <Switch checked={autoScroll} onCheckedChange={setAutoScroll} />
-            </div>
             <Button
               variant="outline"
               onClick={exportLogs}
@@ -660,7 +647,9 @@ export default function ConsolePage() {
         /* 日志级别过滤 */
         <div
           className={cn(
-            'flex flex-wrap items-center gap-2 p-3 rounded-xl border',
+            // 窄屏压扁：标签与「全选」占首行（order 提前），徽章另起一行；
+            // 桌面保持原来的 [标签][徽章…][全选] 单行流式排布
+            'flex flex-wrap items-center gap-1.5 p-2 md:gap-2 md:p-3 rounded-xl border',
             isGlass ? 'bg-white/5 border-white/15 backdrop-blur-sm' : 'bg-card/40 border-border/50',
           )}
           style={{
@@ -671,8 +660,10 @@ export default function ConsolePage() {
           <span className="text-sm font-medium text-muted-foreground whitespace-nowrap mr-1">
             {t('console.levelFilter') || '日志级别'}:
           </span>
-          {renderableLevels.map((lv) => renderLevelBadge(lv, visibleLevels.has(lv.value)))}
-          <div className="ml-auto flex items-center gap-1">
+          <div className="flex flex-wrap items-center gap-1.5 md:gap-2 max-md:order-3 max-md:w-full">
+            {renderableLevels.map((lv) => renderLevelBadge(lv, visibleLevels.has(lv.value)))}
+          </div>
+          <div className="ml-auto flex items-center gap-1 max-md:order-2">
             <Button
               variant="ghost"
               size="sm"
@@ -695,14 +686,34 @@ export default function ConsolePage() {
             : 'bg-card border border-border/50',
         )}
       >
-        {/* Terminal Header */}
+        {/* Terminal Header：右侧顺带放下连接状态与自动滚动的紧凑控件，
+            不再在标题区单独占一行；窄屏只留圆点和开关，文案收到 title/aria */}
         <div className="flex shrink-0 items-center gap-2 px-3 py-2.5 bg-background/50 border-b border-border/30 sm:px-4 sm:py-3">
-          <div className="flex gap-1.5">
+          <div className="flex shrink-0 gap-1.5">
             <div className="w-3 h-3 rounded-full bg-red-500" />
             <div className="w-3 h-3 rounded-full bg-yellow-500" />
             <div className="w-3 h-3 rounded-full bg-green-500" />
           </div>
-          <span className="text-xs text-muted-foreground ml-2 font-mono">admin@server:~</span>
+          <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground ml-2 font-mono">
+            admin@server:~
+          </span>
+          <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3">
+            <span
+              className="flex items-center gap-1.5 text-xs text-muted-foreground whitespace-nowrap"
+              title={t('console.connected')}
+            >
+              <Circle className="w-2 h-2 fill-green-500 text-green-500 animate-pulse" />
+              <span className="hidden sm:inline">{t('console.connected')}</span>
+            </span>
+            <span className="flex items-center gap-1.5 whitespace-nowrap">
+              <span className="text-xs text-muted-foreground">{t('console.autoScroll')}</span>
+              <Switch
+                checked={autoScroll}
+                onCheckedChange={setAutoScroll}
+                aria-label={t('console.autoScroll')}
+              />
+            </span>
+          </div>
         </div>
 
         {/* Terminal Content - Virtual Scroll */}
