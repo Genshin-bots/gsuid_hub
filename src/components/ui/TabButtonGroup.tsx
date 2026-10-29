@@ -153,6 +153,7 @@ interface TabSegmentDropdownItemProps {
   buttonClassName?: string;
   segmentYClass: string;
   singleRowOnMobile?: boolean;
+  fillUntil?: 'md' | 'lg' | 'xl';
   iconSlotClass: string;
   onValueChange: (value: string) => void;
 }
@@ -164,6 +165,7 @@ function TabSegmentDropdownItem({
   buttonClassName,
   segmentYClass,
   singleRowOnMobile,
+  fillUntil = 'md',
   iconSlotClass,
   onValueChange,
 }: TabSegmentDropdownItemProps) {
@@ -173,6 +175,16 @@ function TabSegmentDropdownItem({
   const allValue = dropdown.allValue ?? dropdown.items[0]?.value;
   const dividerClass = isActive ? 'bg-primary-foreground/25' : 'bg-border/70';
   const widthMode = dropdown.width ?? 'trigger';
+  // ▾ 槽位在 fill 断点以下绝对定位、不占内容宽度：拆分段和纯按钮段 basis 相同，
+  // 与上下叠放的分段组分界线对齐（/ai-knowledge 插件知识行），label 也不被挤窄。
+  // 断点以上 contents 回到流内，桌面形态不变。singleRowOnMobile 的窄屏档是 sm。
+  const chevronFlowClass = singleRowOnMobile
+    ? 'sm:contents'
+    : fillUntil === 'xl'
+      ? 'xl:contents'
+      : fillUntil === 'lg'
+        ? 'lg:contents'
+        : 'md:contents';
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -187,7 +199,8 @@ function TabSegmentDropdownItem({
             singleRowOnMobile && 'flex-1 text-xs sm:flex-none sm:text-sm',
           )}
         >
-          {/* 主按钮：选中该 Tab + 二级筛选回到「全部」 */}
+          {/* 主按钮：选中该 Tab + 二级筛选回到「全部」。
+              窄屏 flex:1 撑满分段格（见 tab-segment-fill 规则），▾ 叠在右缘 padding 区。 */}
           <button
             type="button"
             disabled={isDisabled}
@@ -200,7 +213,7 @@ function TabSegmentDropdownItem({
               setOpen(false);
             }}
             className={cn(
-              'flex min-w-0 items-center gap-1.5 sm:gap-2 px-2.5 sm:pl-4 sm:pr-2 rounded-none bg-transparent',
+              'flex min-w-0 items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 rounded-none bg-transparent',
               segmentYClass,
               'hover:bg-transparent focus-visible:outline-none',
               singleRowOnMobile && 'flex-1 justify-center px-2 sm:flex-none sm:justify-start',
@@ -222,31 +235,37 @@ function TabSegmentDropdownItem({
             {option.badge}
           </button>
 
-          <span className={cn('my-1.5 w-px shrink-0 self-stretch', dividerClass)} aria-hidden />
+          {/* ▾ 槽位绝对定位，不占内容宽度 */}
+          <div className={cn('absolute inset-y-0 right-0 flex items-stretch', chevronFlowClass)}>
+            <span
+              className={cn('my-1.5 w-px shrink-0 self-stretch', dividerClass)}
+              aria-hidden
+            />
 
-          {/* 仅箭头触发下拉 */}
-          <PopoverTrigger asChild disabled={isDisabled}>
-            <button
-              type="button"
-              disabled={isDisabled}
-              aria-label="Open filter menu"
-              className={cn(
-                'group flex items-center justify-center rounded-none border-0 bg-transparent px-2.5',
-                segmentYClass,
-                singleRowOnMobile && 'px-1.5 sm:px-2.5',
-                'hover:bg-black/5 dark:hover:bg-white/10 focus-visible:outline-none',
-                'data-[state=open]:bg-black/5 dark:data-[state=open]:bg-white/10',
-                isDisabled && 'cursor-not-allowed',
-              )}
-            >
-              <ChevronDown
+            {/* 仅箭头触发下拉 */}
+            <PopoverTrigger asChild disabled={isDisabled}>
+              <button
+                type="button"
+                disabled={isDisabled}
+                aria-label="Open filter menu"
                 className={cn(
-                  'h-3.5 w-3.5 shrink-0 opacity-70 transition-transform duration-200',
-                  open && 'rotate-180',
+                  'group flex items-center justify-center rounded-none border-0 bg-transparent px-2.5',
+                  segmentYClass,
+                  singleRowOnMobile && 'px-1.5 sm:px-2.5',
+                  'hover:bg-black/5 dark:hover:bg-white/10 focus-visible:outline-none',
+                  'data-[state=open]:bg-black/5 dark:data-[state=open]:bg-white/10',
+                  isDisabled && 'cursor-not-allowed',
                 )}
-              />
-            </button>
-          </PopoverTrigger>
+              >
+                <ChevronDown
+                  className={cn(
+                    'h-3.5 w-3.5 shrink-0 opacity-70 transition-transform duration-200',
+                    open && 'rotate-180',
+                  )}
+                />
+              </button>
+            </PopoverTrigger>
+          </div>
         </div>
       </PopoverAnchor>
 
@@ -368,6 +387,7 @@ export function TabButtonGroup({
                 buttonClassName={buttonClassName}
                 segmentYClass={segmentYClass}
                 singleRowOnMobile={singleRowOnMobile}
+                fillUntil={fillUntil}
                 iconSlotClass={iconSlotClass}
                 onValueChange={onValueChange}
               />
@@ -410,6 +430,12 @@ export function TabButtonGroup({
   );
 
   if (!collapseOnMobile) return expanded;
+
+  /* 图标槽只为对齐图标存在：整份菜单都没图标时（如 /ai-statistics 预设区间）
+     每行会多出 ~30px 空白，标签还和触发器对不齐。 */
+  const collapsedHasIcons = options.some(
+    (option) => option.icon != null || option.dropdown?.items.some((item) => item.icon != null),
+  );
 
   return (
     <>
@@ -474,9 +500,11 @@ export function TabButtonGroup({
                       }}
                       className="cursor-pointer gap-2"
                     >
-                      <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center [&>img]:h-4 [&>img]:w-4 [&>svg]:h-4 [&>svg]:w-4">
-                        {option.icon ?? null}
-                      </span>
+                      {collapsedHasIcons && (
+                        <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center [&>img]:h-4 [&>img]:w-4 [&>svg]:h-4 [&>svg]:w-4">
+                          {option.icon ?? null}
+                        </span>
+                      )}
                       <span className="flex min-w-0 flex-1 items-center gap-1.5">
                         <span className="min-w-0 truncate">{option.label}</span>
                         {option.badge}
@@ -498,9 +526,11 @@ export function TabButtonGroup({
                             }}
                             className="cursor-pointer gap-2 pl-8"
                           >
-                            <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center [&>img]:h-4 [&>img]:w-4 [&>svg]:h-4 [&>svg]:w-4">
-                              {item.icon ?? null}
-                            </span>
+                            {collapsedHasIcons && (
+                              <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center [&>img]:h-4 [&>img]:w-4 [&>svg]:h-4 [&>svg]:w-4">
+                                {item.icon ?? null}
+                              </span>
+                            )}
                             <span className="min-w-0 flex-1 truncate">{item.label}</span>
                           </DropdownMenuItem>
                         );

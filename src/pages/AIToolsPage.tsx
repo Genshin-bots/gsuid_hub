@@ -36,6 +36,8 @@ import {
   Puzzle,
   Sparkles,
   Plus,
+  Layers,
+  Stethoscope,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -205,6 +207,15 @@ function PluginFilterIcon({ plugin }: { plugin: string }) {
 
 function pluginFilterLabel(plugin: string, count: number, allLabel: string): string {
   return plugin === 'all' ? `${allLabel} (${count})` : `${plugin} (${count})`;
+}
+
+// 诊断筛选触发器图标：选中问题态时换成对应告警色，与工具卡上的诊断徽章同色
+function DiagnosticFilterIcon({ value }: { value: 'all' | 'issues' | 'empty_description' }) {
+  if (value === 'issues') return <AlertTriangle className="h-4 w-4 shrink-0 text-amber-500" />;
+  if (value === 'empty_description') {
+    return <AlertCircle className="h-4 w-4 shrink-0 text-destructive" />;
+  }
+  return <Stethoscope className="h-4 w-4 shrink-0 text-muted-foreground" />;
 }
 
 // ============================================================================
@@ -499,7 +510,7 @@ export default function AIToolsPage() {
                 />
               </div>
 
-              <div className="flex min-w-0 w-full md:contents">
+              <div className="flex min-w-0 w-full gap-2 md:contents">
               <div className="min-w-0 flex-1">
                 <Select
                   value={diagnosticFilter}
@@ -508,9 +519,12 @@ export default function AIToolsPage() {
                   <SelectTrigger
                     className={cn(
                       tabToolbarShellControlClass,
-                      'w-full min-w-0 px-2 [&>span]:min-w-0',
+                      /* trigger 自带 justify-between：值 span flex-1 占住中段，
+                         文案贴住前缀图标、箭头仍在最右（同 /database 筛选列） */
+                      'w-full min-w-0 gap-2 px-2 [&>span]:min-w-0 [&>span]:flex-1',
                     )}
                   >
+                    <DiagnosticFilterIcon value={diagnosticFilter} />
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -531,9 +545,10 @@ export default function AIToolsPage() {
                   <SelectTrigger
                     className={cn(
                       tabToolbarShellControlClass,
-                      'w-full min-w-0 px-2 [&>span]:min-w-0',
+                      'w-full min-w-0 gap-2 px-2 [&>span]:min-w-0 [&>span]:flex-1',
                     )}
                   >
+                    <Layers className="h-4 w-4 shrink-0 text-muted-foreground" />
                     <SelectValue placeholder={t('aiTools.selectCategory')} />
                   </SelectTrigger>
                   <SelectContent>

@@ -1,7 +1,6 @@
 {
   "title": "Plugin Store",
   "description": "Browse, install and manage system plugins",
-  "refresh": "Refresh",
   "searchPlugin": "Search name, description or tags...",
   "allPlugins": "All",
   "installed": "Installed",

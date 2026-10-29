@@ -618,7 +618,11 @@ export default function AIScheduledTasksPage() {
                   >
                     <TableCell className="py-2 px-3 sm:py-2.5 sm:px-4">
                       <div>
-                        <p className="font-medium truncate max-w-[300px]">{task.task_prompt}</p>
+                        <div className="flex min-w-0 items-center gap-2">
+                          {/* 状态列 lg 以下被隐藏，窄屏把徽章挪到描述前面 */}
+                          <span className="shrink-0 lg:hidden">{getStatusBadge(task.status)}</span>
+                          <p className="font-medium truncate max-w-[300px]">{task.task_prompt}</p>
+                        </div>
                         <p className="text-xs text-muted-foreground font-mono">{task.task_id}</p>
                       </div>
                     </TableCell>

@@ -2392,11 +2392,6 @@ export default function AIMemoryPage() {
               icon: <BookOpen className="w-4 h-4" />,
             },
             {
-              value: 'search',
-              label: t('aiMemory.tabSearch'),
-              icon: <Search className="w-4 h-4" />,
-            },
-            {
               value: 'preferences',
               label: t('aiMemory.tabPreferences'),
               icon: <ListChecks className="w-4 h-4" />,
@@ -2435,12 +2430,6 @@ export default function AIMemoryPage() {
           ]}
         />
       </div>
-
-      {activeTab === 'search' && (
-        <div className="space-y-3 md:space-y-4">
-          <MemorySearchPanel />
-        </div>
-      )}
 
       {/* Knowledge Graph Tab */}
       {activeTab === 'graph' && (
@@ -2969,7 +2958,6 @@ export default function AIMemoryPage() {
         <div className="space-y-3 md:space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div className="flex items-center gap-2 flex-1 min-w-0">
-              <Search className="w-4 h-4 text-muted-foreground" />
               <Input
                 placeholder={t('aiMemory.searchEntities')}
                 value={entitySearch}
@@ -3374,6 +3362,9 @@ export default function AIMemoryPage() {
               </CardContent>
             </Card>
           </div>
+
+          {/* 检索试跑（原独立页签，并入调试视图） */}
+          <MemorySearchPanel />
         </div>
       )}
 

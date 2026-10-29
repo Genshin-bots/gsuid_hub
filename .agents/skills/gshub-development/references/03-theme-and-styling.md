@@ -149,6 +149,8 @@ const isGlass = style === 'glassmorphism';
 
 **改浮层后必须开真实页面看一眼**：这类问题在 demo 里尤其容易误判（demo 的初始 state 与后端配置不同，会走不同的 style 分支）。
 
+**`.glass-float` 胶囊是表面，里面的字段控件必须透明。** 全局字段规则（`input` / `select` / `[role=combobox]` / `.ui-select-trigger` / `.ui-field-trigger` 等）是 `@layer base` + `!important` 的涂底+描边，写在调用方的 `bg-transparent` 打不赢它。`index.css` 末尾的 `@layer base` 段已把 `.glass-float` 内的这类触发器统一还原成透明（不含 `[role=listbox]`——选项面板自己要保持涂底）。所以胶囊里直接放 `InputWithDropdown` / Select / Input 即可，材质由胶囊出；**不要**在胶囊里再叠一层字段底色，也不要给触发器补 `bg-background`。
+
 ### 3.4.3 给 Button 套玻璃外壳：必须 `variant="ghost"`，不能 `"outline"` ★★★
 
 工具栏里想跟 `TabButtonGroup` 视觉一致的小控件（日历按钮、只读区间条、刷新图标钮），用外壳类 `glass-card-flat tab-segment-row`——`glass-card-flat` 给基础底色，`tab-segment-row` 在光感 / 液态下补顶刃高光与背后模糊。**参考 `AIStatisticsPage.tsx` 的 `rangeControlShellClass`**。

@@ -211,52 +211,91 @@ export function AutonomyPanel(props: AutonomyPanelProps) {
         <Card className="glass-card min-h-0 flex-1 flex flex-col">
           <CardContent className="p-0 min-h-0 flex-1 flex flex-col">
             <div className="min-h-0 flex-1 overflow-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t('aiAutonomy.table.when')}</TableHead>
-                    <TableHead>{t('aiAutonomy.table.persona')}</TableHead>
-                    <TableHead>{t('aiAutonomy.table.drive')}</TableHead>
-                    <TableHead>{t('aiAutonomy.table.delivery')}</TableHead>
-                    <TableHead>{t('aiAutonomy.table.summary')}</TableHead>
-                    <TableHead className="text-right">{t('aiAutonomy.table.steps')}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {loading && items.length === 0 ? (
+              {/* ≥lg：6 列表格；窄屏表格被挤成单字竖排，改走下方卡片列表 */}
+              <div className="hidden lg:block">
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell colSpan={6}>
-                        <Skeleton className="h-8" />
-                      </TableCell>
+                      <TableHead>{t('aiAutonomy.table.when')}</TableHead>
+                      <TableHead>{t('aiAutonomy.table.persona')}</TableHead>
+                      <TableHead>{t('aiAutonomy.table.drive')}</TableHead>
+                      <TableHead>{t('aiAutonomy.table.delivery')}</TableHead>
+                      <TableHead>{t('aiAutonomy.table.summary')}</TableHead>
+                      <TableHead className="text-right">{t('aiAutonomy.table.steps')}</TableHead>
                     </TableRow>
-                  ) : items.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
-                        {t('aiAutonomy.empty')}
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    items.map((row) => (
-                      <TableRow
-                        key={row.id}
-                        className="cursor-pointer hover:bg-muted/50"
-                        onClick={() => setSelected(row)}
-                      >
-                        <TableCell className="whitespace-nowrap text-xs">
-                          {formatWhen(row.created_at)}
+                  </TableHeader>
+                  <TableBody>
+                    {loading && items.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={6}>
+                          <Skeleton className="h-8" />
                         </TableCell>
-                        <TableCell>{row.persona_name}</TableCell>
-                        <TableCell>{driveLabel(row.drive_kind)}</TableCell>
-                        <TableCell>{deliveryLabel(row.delivery_mode)}</TableCell>
-                        <TableCell className="max-w-[360px] truncate">
-                          {row.summary || t('aiAutonomy.noSummary')}
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">{row.step_count}</TableCell>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
+                    ) : items.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
+                          {t('aiAutonomy.empty')}
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      items.map((row) => (
+                        <TableRow
+                          key={row.id}
+                          className="cursor-pointer hover:bg-muted/50"
+                          onClick={() => setSelected(row)}
+                        >
+                          <TableCell className="whitespace-nowrap text-xs">
+                            {formatWhen(row.created_at)}
+                          </TableCell>
+                          <TableCell>{row.persona_name}</TableCell>
+                          <TableCell>{driveLabel(row.drive_kind)}</TableCell>
+                          <TableCell>{deliveryLabel(row.delivery_mode)}</TableCell>
+                          <TableCell className="max-w-[360px] truncate">
+                            {row.summary || t('aiAutonomy.noSummary')}
+                          </TableCell>
+                          <TableCell className="text-right tabular-nums">{row.step_count}</TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+              {/* <lg：与上方「最近在做什么」卡片同构的信息卡，点开同一详情 */}
+              <div className="space-y-2.5 p-3 lg:hidden">
+                {loading && items.length === 0 ? (
+                  <Skeleton className="h-24" />
+                ) : items.length === 0 ? (
+                  <p className="py-8 text-center text-sm text-muted-foreground">
+                    {t('aiAutonomy.empty')}
+                  </p>
+                ) : (
+                  items.map((row) => (
+                    <button
+                      key={row.id}
+                      type="button"
+                      onClick={() => setSelected(row)}
+                      className="w-full rounded-xl border border-border/50 bg-muted/30 p-3 text-left transition-colors hover:bg-accent/40"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="truncate font-medium">{row.persona_name}</span>
+                        <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                          {formatWhen(row.created_at)}
+                        </span>
+                      </div>
+                      <div className="mt-1.5 flex items-center gap-1.5">
+                        <Badge variant="secondary">{driveLabel(row.drive_kind)}</Badge>
+                        <Badge variant="outline">{deliveryLabel(row.delivery_mode)}</Badge>
+                        <span className="ml-auto shrink-0 text-xs text-muted-foreground tabular-nums">
+                          {t('aiAutonomy.table.steps')} {row.step_count}
+                        </span>
+                      </div>
+                      <p className="mt-1.5 line-clamp-2 text-sm text-muted-foreground">
+                        {row.summary || t('aiAutonomy.noSummary')}
+                      </p>
+                    </button>
+                  ))
+                )}
+              </div>
             </div>
             {total > 0 && (
               <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border/40 p-3 text-sm">

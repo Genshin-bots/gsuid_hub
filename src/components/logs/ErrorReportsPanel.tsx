@@ -415,12 +415,12 @@ export default function ErrorReportsPanel() {
 
       <Card className="glass-card shrink-0">
         <CardContent className="p-3">
-          <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div className="text-sm text-muted-foreground">
               {t('common.pageInfo', { current: query.page, total: totalPages })} (
               {t('common.totalRecords', { total: count })})
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-center gap-2">
               <Button
                 variant="outline"
                 size="sm"

@@ -435,6 +435,10 @@ hypothetical main size（flex-basis 被 min/max 夹住后的值）；百分比 `
 - **2~3 段**：**保持一行**，放不下就挤压（`flex-wrap: nowrap` + `flex: 0 1 auto` + `min-width: 0`，
   label 走 `truncate`）。同理，`min-width: 0` 拦不住换行 —— 三个分段各按 `max-content`
   宽度参与判定，照样被推到第二行；必须 `nowrap` 让它们留在同一行再由 shrink 压进去。
+- **含拆分按钮（主 Tab + ▾）的行**：▾ 槽位在 fill 断点以下**绝对定位挂在分段右缘**（`TabSegmentDropdownItem`），
+  不占内容宽度 —— 拆分段和纯按钮段 `flex-basis` 相同，与上下叠放的分段组分界线对齐
+  （/ai-knowledge「插件知识▾ | 手动添加」对不齐「文本知识 | 图片知识」的修法），label 也能撑满整格居中。
+  断点以上 `display:contents` 回到流内，桌面形态不变。不要用 `flex-basis:0` 等分来修 —— 长标签会被截断。
 - **`collapseOnMobile`（折叠成下拉）**：窄屏整行铺满，触发器用**前景色**文字而不是 `bg-primary` 选中态 ——
   折叠行里没有滑动胶囊，选中态样式会把底色抹成透明、文字又强制成 `primary-foreground`（亮色主题近白），
   结果白字压在浅色玻璃上读不出来。

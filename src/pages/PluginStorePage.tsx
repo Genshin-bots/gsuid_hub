@@ -736,9 +736,11 @@ export default function PluginStorePage() {
         </div>
       }
       toolbar={
-        /* 分类 Tab、搜索与操作按钮同一行平齐。高度统一为 tabToolbarControlClass */
-        <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
-          <div className={cn(tabToolbarGroupWrapClass, 'min-w-0 shrink-0')}>
+        /* 分类 Tab、搜索与操作按钮同一行平齐。高度统一为 tabToolbarControlClass。
+           窄屏 2 列网格两行：搜索 + 分类一行，两个操作按钮一行；
+           sm 起还原 flex 行（search ml-auto 顶回右侧组、按钮 w-auto） */
+        <div className="grid min-w-0 grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-between sm:gap-3">
+          <div className={cn(tabToolbarGroupWrapClass, 'min-w-0')}>
             <TabButtonGroup
               options={tabOptions}
               value={activeTab}
@@ -746,53 +748,35 @@ export default function PluginStorePage() {
                 setActiveTab(v);
                 setPage(1);
               }}
-              className="shrink-0"
+              className="w-full sm:w-auto"
               collapseOnMobile
             />
           </div>
-          {/* 右侧搜索 + 操作按钮：不加 sm:flex-nowrap——空间不够时换行，
-              否则 justify-end 的溢出会盖住左边的页签（娱乐/工具点不到） */}
-          <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-3">
-            <div className="relative min-w-[12rem] flex-1 sm:w-64 sm:flex-none lg:w-72">
-              <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder={t('pluginStore.searchPlugin')}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className={cn(tabToolbarControlClass, 'w-full pl-10')}
-              />
-            </div>
-            <div className="flex shrink-0 items-center gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setGitMirrorOpen(true)}
-                className={cn(tabToolbarControlClass, 'gap-2')}
-              >
-                <GitBranch className="w-4 h-4" />
-                {t('gitMirror.title')}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setInstallByUrlOpen(true)}
-                className={cn(tabToolbarControlClass, 'gap-2')}
-              >
-                <Link2 className="w-4 h-4" />
-                {t('pluginStore.installFromUrl')}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  fetchPlugins(true);
-                  fetchGitMirrorInfo(true);
-                }}
-                disabled={isLoading}
-                className={cn(tabToolbarControlClass, 'gap-2')}
-              >
-                <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-                {t('pluginStore.refresh')}
-              </Button>
-            </div>
+          <div className="relative order-first min-w-0 sm:order-none sm:ml-auto sm:w-64 sm:flex-none lg:w-72">
+            <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder={t('pluginStore.searchPlugin')}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className={cn(tabToolbarControlClass, 'w-full pl-10')}
+            />
           </div>
+          <Button
+            variant="outline"
+            onClick={() => setGitMirrorOpen(true)}
+            className={cn(tabToolbarControlClass, 'w-full gap-2 sm:w-auto')}
+          >
+            <GitBranch className="w-4 h-4" />
+            {t('gitMirror.title')}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setInstallByUrlOpen(true)}
+            className={cn(tabToolbarControlClass, 'w-full gap-2 sm:w-auto')}
+          >
+            <Link2 className="w-4 h-4" />
+            {t('pluginStore.installFromUrl')}
+          </Button>
         </div>
       }
     >

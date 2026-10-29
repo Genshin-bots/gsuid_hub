@@ -40,12 +40,13 @@ import {
 import { toast } from 'sonner';
 
 import { useLanguage } from '@/contexts/LanguageContext';
+import { MarkdownTooltip } from '@/components/config';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { LabelWithHelp } from '@/components/ui/label-with-help';
 import {
   Select,
   SelectContent,
@@ -745,13 +746,17 @@ export default function BatchPushPage() {
               <CardTitle className="flex items-center gap-2">
                 <Send className="w-5 h-5" />
                 {t('batchPush.sectionTextTitle')}
+                <MarkdownTooltip content={t('batchPush.sectionTextDesc')} />
               </CardTitle>
-              <CardDescription>{t('batchPush.sectionTextDesc')}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <Label htmlFor="push-text">{t('batchPush.pushTextLabel')}</Label>
+                  <LabelWithHelp
+                    htmlFor="push-text"
+                    label={t('batchPush.pushTextLabel')}
+                    description={t('batchPush.imageHint')}
+                  />
                   <div className="flex items-center gap-2">
                     <input
                       ref={fileInputRef}
@@ -784,7 +789,6 @@ export default function BatchPushPage() {
                     </Button>
                   </div>
                 </div>
-                <p className="text-xs text-muted-foreground">{t('batchPush.imageHint')}</p>
                 <div
                   className={cn(
                     'relative rounded-md transition-colors',
@@ -822,14 +826,17 @@ export default function BatchPushPage() {
               <CardTitle className="flex items-center gap-2">
                 <ListChecks className="w-5 h-5" />
                 {t('batchPush.sectionTargetsTitle')}
+                <MarkdownTooltip content={t('batchPush.sectionTargetsDesc')} />
               </CardTitle>
-              <CardDescription>{t('batchPush.sectionTargetsDesc')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3 md:space-y-4">
               {/* 行 1：WS Bot + 机器人账号（bot_self_id） */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2 min-w-0">
-                  <Label>{t('batchPush.botsLabel')}</Label>
+                  <LabelWithHelp
+                    label={t('batchPush.botsLabel')}
+                    description={t('batchPush.botsHint')}
+                  />
                   <Select value={bot} onValueChange={setBot}>
                     <SelectTrigger className={cn(tabToolbarControlClass, 'w-full')}>
                       <SelectValue placeholder={t('batchPush.botsAll') ?? ''} />
@@ -844,10 +851,12 @@ export default function BatchPushPage() {
                       ))}
                     </SelectContent>
                   </Select>
-                  <p className="text-xs text-muted-foreground">{t('batchPush.botsHint')}</p>
                 </div>
                 <div className="space-y-2 min-w-0">
-                  <Label>{t('batchPush.botSelfLabel')}</Label>
+                  <LabelWithHelp
+                    label={t('batchPush.botSelfLabel')}
+                    description={t('batchPush.botSelfHint')}
+                  />
                   <InputWithDropdown
                     value={botSelfInput}
                     onChange={setBotSelfInput}
@@ -858,7 +867,6 @@ export default function BatchPushPage() {
                     className={cn(tabToolbarControlClass, 'w-full')}
                     popoverWidth="w-[var(--radix-popover-trigger-width)] min-w-[280px]"
                   />
-                  <p className="text-xs text-muted-foreground">{t('batchPush.botSelfHint')}</p>
                 </div>
               </div>
 

@@ -1,7 +1,6 @@
 {
   "title": "プラグイン商城",
   "description": "閲覧、安装と管理システムプラグイン",
-  "refresh": "更新",
   "searchPlugin": "名前、説明またはタグで検索...",
   "allPlugins": "すべて",
   "installed": "安装",

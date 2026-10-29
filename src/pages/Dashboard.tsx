@@ -947,16 +947,26 @@ export default function Dashboard() {
       className="gap-3 md:gap-4"
       header={
         <div>
-          <h1 className="text-3xl font-bold flex items-center gap-3">
-            <LayoutGrid className="w-8 h-8" />
-            {t('dashboard.title')}
-          </h1>
-          <p className="text-muted-foreground mt-1">{t('dashboard.description')}</p>
+          {/* 「更新于」与副标题底边对齐：窄屏筛选独占整行后，toolbar 没有它的位置 */}
+          <div className="flex items-end justify-between gap-3">
+            <div className="min-w-0">
+              <h1 className="text-3xl font-bold flex items-center gap-3">
+                <LayoutGrid className="w-8 h-8 shrink-0" />
+                <span className="truncate">{t('dashboard.title')}</span>
+              </h1>
+              <p className="text-muted-foreground mt-1">{t('dashboard.description')}</p>
+            </div>
+            <span className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground tabular-nums">
+              <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-primary" />
+              {t('dashboard.lastUpdated')}
+              {updatedAt ? ` ${format(updatedAt, 'HH:mm:ss')}` : ''}
+            </span>
+          </div>
         </div>
       }
       toolbar={
         /* 日期是下方三块图表的筛选条件，跟着标题常驻；切换后不用滚回中间。
-            右侧的「更新于」是常驻刷新的心跳，让一屏的数据有明确的新鲜度。 */
+            窄屏下两个 flex-1 筛选各占半行铺满 */
         <div className="flex flex-wrap items-center gap-2">
           <Popover>
             <PopoverTrigger asChild>
@@ -1001,11 +1011,6 @@ export default function Dashboard() {
                 ))}
               </SelectContent>
             </Select>
-          </span>
-          <span className="ml-auto flex shrink-0 items-center gap-2 text-xs text-muted-foreground tabular-nums">
-            <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-primary" />
-            {t('dashboard.lastUpdated')}
-            {updatedAt ? ` ${format(updatedAt, 'HH:mm:ss')}` : ''}
           </span>
         </div>
       }

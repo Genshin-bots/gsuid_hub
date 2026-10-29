@@ -104,6 +104,13 @@ const ALL_VALUE = '__all__';
 const BOARD_FILTER_DEBOUNCE_MS = 300;
 const CARD_ESTIMATE_PX = 120;
 
+// HTML5 DnD 只在精确指针（鼠标）下有意义：触屏浏览器上 draggable 会把卡片变成
+// 「无法从这里起滚」的区域——Android Chrome 的长按拖拽会吃掉滑动手势，看板既不能
+// 横滑换列、列内也滚不动。触屏看板本来就只能看不能拖，直接不挂 draggable。
+const CAN_NATIVE_DND =
+  typeof window !== 'undefined' &&
+  window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+
 interface PendingAction {
   type:
     | 'pause'
@@ -373,7 +380,7 @@ const KanbanBoardCard = memo(function KanbanBoardCard({
   const { t } = useLanguage();
   return (
     <div
-      draggable
+      draggable={CAN_NATIVE_DND}
       onDragStart={(event) => event.dataTransfer.setData('text/plain', task.id)}
       onClick={() => onOpen(task)}
       className={cn(

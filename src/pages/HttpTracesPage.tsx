@@ -755,14 +755,14 @@ export default function HttpTracesPage() {
       </Card>
       <Card className="glass-card shrink-0">
         <CardContent className="p-3">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div className="text-sm text-muted-foreground">
               {t('common.pageInfo')
                 .replace('{current}', String(page))
                 .replace('{total}', String(totalPages))}{' '}
               ({t('common.totalRecords').replace('{total}', totalCount.toLocaleString())})
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-center gap-2">
               <Button variant="outline" size="sm" onClick={() => goPage(1)} disabled={page === 1}>
                 {t('common.firstPage')}
               </Button>

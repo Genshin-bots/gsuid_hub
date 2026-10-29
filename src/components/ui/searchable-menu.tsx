@@ -142,14 +142,17 @@ export function SearchableMenu({
         aria-expanded={open}
         disabled={disabled}
         className={cn(
-          'ui-field-trigger flex h-10 w-full min-w-0 items-center justify-between gap-2 rounded-md border border-input bg-background px-2 text-sm ring-offset-background',
+          /* 字号对齐 ui-select-trigger（text-base md:text-sm）：与同行 Select 一致 */
+          'ui-field-trigger flex h-10 w-full min-w-0 items-center justify-between gap-2 rounded-md border border-input bg-background px-2 text-base ring-offset-background md:text-sm',
           'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
           'disabled:cursor-not-allowed disabled:opacity-50',
           className,
         )}
       >
         <span className="flex min-w-0 items-center gap-2">
-          {selected?.icon ?? placeholderIcon}
+          <span className="flex h-4 w-4 shrink-0 items-center justify-center">
+            {selected?.icon ?? placeholderIcon}
+          </span>
           <span className="truncate">{selected?.label ?? placeholder}</span>
         </span>
         <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />

@@ -4557,10 +4557,21 @@ html[data-style="liquid"] :is(
 /*
  * 全局输入框底色写在 @layer base 里且带 !important；搜索输入必须也放进 base 层，
  * 并且排在通用输入样式之后，才能保持透明。
+ * 胶囊内的字段触发器（combobox / select 触发器同理：如 InputWithDropdown）默认
+ * 被同一套通用字段规则涂底+描边，会盖住胶囊自身的玻璃面，这里一并还原成透明。
+ * 注意不含 [role="listbox"]：选项面板自身要保持涂底。
  */
 @layer base {
   [data-style] .glass-float input,
   [data-style] .glass-float input:focus,
+  [data-style] .glass-float :is(
+    select,
+    textarea,
+    [role="combobox"],
+    .ui-input,
+    .ui-select-trigger,
+    .ui-field-trigger
+  ),
   [data-style] [data-searchable-menu] input,
   [data-style] [data-searchable-menu] input:focus {
     background: transparent !important;

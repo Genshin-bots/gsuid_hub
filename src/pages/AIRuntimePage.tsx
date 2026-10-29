@@ -819,7 +819,14 @@ function RelationshipPanel() {
                   {t('aiRuntime.relationship.rosterEmpty')}
                 </p>
               ) : roster ? (
-                <div className={cn('overflow-x-auto', rosterLoading && 'opacity-60')}>
+                <>
+                {/* ≥lg：完整表格（11 列，宽屏横滚兜底）；窄屏走下方卡片列表 */}
+                <div
+                  className={cn(
+                    'hidden lg:block overflow-x-auto',
+                    rosterLoading && 'opacity-60',
+                  )}
+                >
                   <Table className="w-max min-w-full whitespace-nowrap">
                     <TableHeader>
                       <TableRow>
@@ -929,6 +936,87 @@ function RelationshipPanel() {
                     </TableBody>
                   </Table>
                 </div>
+                {/* <lg：名单卡片——11 列表格在手机上只能横拖，改成信息卡逐条排 */}
+                <div className={cn('space-y-2.5 lg:hidden', rosterLoading && 'opacity-60')}>
+                  {roster.items.map((item) => (
+                    <div
+                      key={`${item.bot_id}:${item.user_id}:${item.id}`}
+                      className={cn(
+                        'rounded-xl border border-border/50 bg-muted/30 p-3 space-y-2',
+                        view?.user_id === item.user_id &&
+                          view.bot_id === item.bot_id &&
+                          'border-primary/40 bg-primary/5',
+                      )}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex min-w-0 items-center gap-1.5">
+                          <span className="truncate font-medium">
+                            {item.user_name || item.user_id}
+                          </span>
+                          {item.is_master && (
+                            <Badge variant="default" className="shrink-0 whitespace-nowrap">
+                              {t('aiRuntime.relationship.master')}
+                            </Badge>
+                          )}
+                        </div>
+                        <span className="shrink-0 font-semibold tabular-nums">{item.score}</span>
+                      </div>
+                      {item.user_name && item.user_name !== item.user_id && (
+                        <p className="truncate font-mono text-[11px] text-muted-foreground">
+                          {item.user_id}
+                        </p>
+                      )}
+                      <div className="flex items-center gap-2">
+                        <span className="min-w-0 truncate font-mono text-[11px] text-muted-foreground">
+                          {item.bot_id}
+                        </span>
+                        <Badge
+                          variant={zoneBadgeVariant(item.zone)}
+                          className="ml-auto shrink-0 whitespace-nowrap"
+                        >
+                          {item.zone_label} · {item.zone}
+                        </Badge>
+                      </div>
+                      {item.line ? (
+                        <p className="truncate text-xs text-muted-foreground" title={item.line}>
+                          {item.line}
+                        </p>
+                      ) : null}
+                      <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs">
+                        <Field
+                          label={t('aiRuntime.relationship.lastReason')}
+                          value={item.last_reason || t('aiRuntime.relationship.none')}
+                        />
+                        <Field
+                          label={t('aiRuntime.relationship.lastDelta')}
+                          value={formatDelta(item.last_delta, t('aiRuntime.relationship.none'))}
+                        />
+                        <Field
+                          label={t('aiRuntime.relationship.lastEval')}
+                          value={formatUnix(item.last_eval_at, t('aiRuntime.relationship.none'))}
+                        />
+                        <Field
+                          label={t('aiRuntime.relationship.daily')}
+                          value={`${t('aiRuntime.relationship.gain')} ${item.daily_gain ?? 0} / ${t('aiRuntime.relationship.loss')} ${item.daily_loss ?? 0}`}
+                        />
+                        <div className="col-span-2">
+                          <Field
+                            label={t('aiRuntime.relationship.interactions')}
+                            value={String(item.interaction_count ?? 0)}
+                          />
+                        </div>
+                      </div>
+                      <Button
+                        variant="outline"
+                        className="h-8 w-full"
+                        onClick={() => openRow(item)}
+                      >
+                        {t('aiRuntime.relationship.viewRow')}
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+                </>
               ) : null}
 
               {roster && roster.total > ROSTER_PAGE_SIZE && (

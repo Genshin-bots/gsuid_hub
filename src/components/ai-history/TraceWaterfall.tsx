@@ -991,12 +991,17 @@ function EntryBlock({
 }
 
 // token 徽章（chat：↗in ↙out；run：Σ 合计）
-function TokenBadges({ sp }: { sp: TraceSpan }) {
+function TokenBadges({ sp, className }: { sp: TraceSpan; className?: string }) {
   const inTok = sp.kind === 'run' ? sp.sumTokensIn : sp.tokensIn;
   const outTok = sp.kind === 'run' ? sp.sumTokensOut : sp.tokensOut;
   if (!inTok && !outTok) return null;
   return (
-    <span className="hidden md:inline-flex items-center gap-1 text-[10px] text-muted-foreground font-mono px-1.5 py-0.5 rounded-md bg-muted/60 border border-border/40 shrink-0">
+    <span
+      className={cn(
+        'hidden md:inline-flex items-center gap-1 text-[10px] text-muted-foreground font-mono px-1.5 py-0.5 rounded-md bg-muted/60 border border-border/40 shrink-0',
+        className,
+      )}
+    >
       {sp.kind === 'run' && <span className="opacity-70">Σ</span>}
       <span className="text-sky-500">↗{formatTokens(inTok || 0)}</span>
       <span className="text-emerald-500">↙{formatTokens(outTok || 0)}</span>
@@ -1004,12 +1009,23 @@ function TokenBadges({ sp }: { sp: TraceSpan }) {
   );
 }
 
-function EffortBadge({ efforts, t }: { efforts: string[] | undefined; t: TFunc }) {
+function EffortBadge({
+  efforts,
+  t,
+  className,
+}: {
+  efforts: string[] | undefined;
+  t: TFunc;
+  className?: string;
+}) {
   if (!efforts || efforts.length === 0) return null;
   return (
     <span
       title={t('aiHistory.waterfall.thinkingEffort')}
-      className="hidden md:inline-flex items-center gap-1 shrink-0 text-[10px] font-mono px-1.5 py-0.5 rounded-md bg-muted/60 text-muted-foreground border border-border/40"
+      className={cn(
+        'hidden md:inline-flex items-center gap-1 shrink-0 text-[10px] font-mono px-1.5 py-0.5 rounded-md bg-muted/60 text-muted-foreground border border-border/40',
+        className,
+      )}
     >
       <Lightbulb className="w-2.5 h-2.5 shrink-0 text-indigo-500 dark:text-indigo-400" />
       {efforts.join(' · ')}
@@ -1278,7 +1294,9 @@ function RunBlock({ sp, base }: { sp: TraceSpan; base: RowBase }) {
         }}
         className="flex items-center gap-2 rounded-lg bg-primary/5 hover:bg-primary/10 px-2.5 py-1.5 cursor-pointer select-none transition-colors"
       >
-        <div className="flex items-center gap-1.5 min-w-0 flex-1">
+        {/* 窄屏固定两行：第一行标题+Σ用量，第二行模型/思考徽章（缩进对齐 ▶ 列）；
+            sm 起还原单行（order/basis 均还原 DOM 顺序，与桌面完全一致） */}
+        <div className="flex flex-wrap sm:flex-nowrap items-center gap-x-1.5 gap-y-0.5 min-w-0 flex-1">
           <span className="w-4 shrink-0 flex items-center justify-center text-muted-foreground/50">
             {isOpen ? (
               <ChevronDown className="w-3.5 h-3.5" />
@@ -1293,17 +1311,30 @@ function RunBlock({ sp, base }: { sp: TraceSpan; base: RowBase }) {
               {sp.children.length}
             </span>
           )}
-          {sp.model && <ModelChip model={sp.model} />}
-          <EffortBadge efforts={sp.thinkingEfforts} t={t} />
-          <TokenBadges sp={sp} />
-          <span className="ml-auto shrink-0 pl-2 text-[11px] text-muted-foreground/60 font-mono tabular-nums">
+          {(sp.model || (sp.thinkingEfforts?.length ?? 0) > 0) && (
+            <div className="order-last sm:order-none basis-full sm:basis-auto pl-[22px] sm:pl-0 flex items-center gap-1.5 min-w-0">
+              {sp.model && (
+                <ModelChip
+                  model={sp.model}
+                  className="inline-flex max-w-28 sm:max-w-44 shrink"
+                />
+              )}
+              <EffortBadge efforts={sp.thinkingEfforts} t={t} className="inline-flex" />
+            </div>
+          )}
+          <TokenBadges sp={sp} className="inline-flex" />
+        </div>
+        {/* 窄屏右侧 meta 列：时间在上、时长在下，竖排居中右对齐；
+            sm 起 contents 拆回外层行内（时间 → 时间轴 → 时长，顺序不变） */}
+        <div className="flex flex-col items-end gap-0.5 sm:contents">
+          <span className="shrink-0 text-[11px] text-muted-foreground/60 font-mono tabular-nums">
             {formatTimeOnly(sp.start)}
           </span>
+          <TimelineCell sp={sp} ctx={ctx} strong />
+          <span className="w-14 shrink-0 text-right text-xs font-medium text-foreground/80 font-mono tabular-nums">
+            {dur > 0 ? formatDuration(dur) : ''}
+          </span>
         </div>
-        <TimelineCell sp={sp} ctx={ctx} strong />
-        <span className="w-14 shrink-0 text-right text-xs font-medium text-foreground/80 font-mono tabular-nums">
-          {dur > 0 ? formatDuration(dur) : ''}
-        </span>
       </div>
       {isOpen && sp.children.length > 0 && (
         <div className="mt-1 min-w-0 max-w-full">

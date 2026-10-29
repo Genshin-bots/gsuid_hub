@@ -808,14 +808,14 @@ export default function LogsPage() {
         {/* Pagination - 固定高度 */}
         <Card className="glass-card shrink-0">
           <CardContent className="p-3">
-            <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div className="text-sm text-muted-foreground">
                 {t('common.pageInfo')
                   .replace('{current}', currentPage.toString())
                   .replace('{total}', totalPages.toString())}{' '}
                 ({t('common.totalRecords').replace('{total}', totalCount.toLocaleString())})
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center justify-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"

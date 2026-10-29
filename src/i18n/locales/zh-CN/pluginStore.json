@@ -1,7 +1,6 @@
 {
   "title": "插件商城",
   "description": "浏览、安装和管理系统插件",
-  "refresh": "刷新",
   "searchPlugin": "搜索名称、描述或标签...",
   "allPlugins": "全部",
   "installed": "已安装",
