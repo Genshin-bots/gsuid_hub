@@ -92,6 +92,8 @@ pnpm exec tsc --noEmit -p tsconfig.app.json
 
 开发联调先起 Core：`http://localhost:8765`，再 `pnpm dev`。控制台地址开发期是 `http://localhost:8080/#/...`。
 
+**Agent 不要执行 `pnpm build:core`，也不要用 `--outDir` 写进任何 gsuid_core 的 `webconsole/dist`。** 构建并同步 dist 由维护者自己做。交付闸只跑 test / lint / tsc。
+
 ## Testing
 
 - 测试文件：`src/**/*.{test,spec}.{ts,tsx}`，Vitest，环境 `node`。

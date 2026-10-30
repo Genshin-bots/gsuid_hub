@@ -74,6 +74,8 @@ export interface TraceSpan {
   tokensIn?: number;
   tokensOut?: number;
   cacheRead?: number;
+  cacheWrite?: number;
+  ttftMs?: number;
   toolName?: string;
   isError?: boolean;
   resetReason?: HistoryResetReason;
@@ -82,6 +84,8 @@ export interface TraceSpan {
   agentData?: Record<string, unknown>; // subagent span 的 agent_linked data
   sumTokensIn?: number;
   sumTokensOut?: number;
+  sumCacheRead?: number;
+  sumCacheWrite?: number;
   // 本轮各次请求 JSON 里的思考档位，按出现顺序去重。没有条目时不显示徽章。
   thinkingEfforts?: string[];
 }
@@ -210,18 +214,29 @@ function buildTrace(entries: SessionLogEntry[]): TraceSpan[] {
       case 'token_usage': {
         const inp = asNum(d.input_tokens);
         const out = asNum(d.output_tokens);
-        if (chat) {
-          chat.tokensIn = inp;
-          chat.tokensOut = out;
-          chat.model = asStr(d.model_name);
-          chat.cacheRead = asNum(d.cache_read_tokens);
-          chat.end = Math.max(chat.end, ts);
-          chat.contentEntries!.push(e);
-        }
+        // token_usage 是整 run 的权威总量：只进 run 合计，不再错挂到末轮 chat
+        if (chat && !chat.model) chat.model = asStr(d.model_name);
         if (run) {
           run.sumTokensIn = (run.sumTokensIn || 0) + inp;
           run.sumTokensOut = (run.sumTokensOut || 0) + out;
+          run.sumCacheRead = (run.sumCacheRead || 0) + asNum(d.cache_read_tokens);
+          run.sumCacheWrite = (run.sumCacheWrite || 0) + asNum(d.cache_write_tokens);
           if (!run.model) run.model = asStr(d.model_name);
+        }
+        break;
+      }
+      case 'step_usage': {
+        // 每步模型请求的用量：挂到当前 chat span（run 合计仍由 token_usage 提供）
+        if (chat) {
+          chat.tokensIn = asNum(d.input_tokens);
+          chat.tokensOut = asNum(d.output_tokens);
+          chat.cacheRead = asNum(d.cache_read_tokens);
+          chat.cacheWrite = asNum(d.cache_write_tokens);
+          chat.ttftMs = asNum(d.ttft_ms);
+          const m = asStr(d.model_name);
+          if (m) chat.model = m;
+          chat.end = Math.max(chat.end, ts);
+          chat.contentEntries!.push(e);
         }
         break;
       }
@@ -917,6 +932,23 @@ function EntryBlock({
   if (entry.type === 'token_usage') {
     return null; // token 已作徽章展示，内容面板不重复
   }
+  if (entry.type === 'step_usage') {
+    const parts = [
+      `${t('aiHistory.waterfall.usage.input')} ${formatTokens(asNum(d.input_tokens))}`,
+      `${t('aiHistory.waterfall.usage.cacheRead')}/${t('aiHistory.waterfall.usage.cacheWrite')} ${formatTokens(asNum(d.cache_read_tokens))}/${formatTokens(asNum(d.cache_write_tokens))}`,
+      `${t('aiHistory.waterfall.usage.output')} ${formatTokens(asNum(d.output_tokens))}`,
+    ];
+    if (asNum(d.ttft_ms) > 0) parts.push(`TTFT ${d.ttft_ms}ms`);
+    if (asNum(d.tps) > 0) parts.push(`TPS ${d.tps}`);
+    if (asNum(d.tool_calls) > 0)
+      parts.push(`${t('aiHistory.waterfall.usage.toolCalls')} ${d.tool_calls}`);
+    return (
+      <div className="min-w-0 max-w-full">
+        {label('aiHistory.entryType.stepUsage')}
+        <p className="text-xs font-mono text-muted-foreground break-words">{parts.join(' · ')}</p>
+      </div>
+    );
+  }
   if (entry.type === 'error') {
     return (
       <div className="min-w-0 max-w-full">
@@ -1085,22 +1117,52 @@ function EntryBlock({
   return <pre className={PLAIN_BLOCK}>{content}</pre>;
 }
 
-// token 徽章（chat：↗in ↙out；run：Σ 合计）
-function TokenBadges({ sp, className }: { sp: TraceSpan; className?: string }) {
+// token 徽章（chat：↗in ↙out ⚡hit%；run：Σ 合计）。hover 展开 input/缓存/未命中/output/TTFT 明细。
+function TokenBadges({ sp, t, className }: { sp: TraceSpan; t: TFunc; className?: string }) {
   const inTok = sp.kind === 'run' ? sp.sumTokensIn : sp.tokensIn;
   const outTok = sp.kind === 'run' ? sp.sumTokensOut : sp.tokensOut;
+  const cacheR = sp.kind === 'run' ? sp.sumCacheRead : sp.cacheRead;
+  const cacheW = sp.kind === 'run' ? sp.sumCacheWrite : sp.cacheWrite;
   if (!inTok && !outTok) return null;
+  // input_tokens 已含 cache_read+cache_write（pydantic-ai UsageBase 归一），命中率只按读算
+  const pct = inTok ? Math.round(((cacheR || 0) / inTok) * 100) : null;
+  const rows: [string, string][] = [
+    [t('aiHistory.waterfall.usage.input'), formatTokens(inTok || 0)],
+    [t('aiHistory.waterfall.usage.cacheRead'), formatTokens(cacheR || 0)],
+    [t('aiHistory.waterfall.usage.cacheWrite'), formatTokens(cacheW || 0)],
+    [t('aiHistory.waterfall.usage.uncached'), formatTokens((inTok || 0) - (cacheR || 0))],
+    [t('aiHistory.waterfall.usage.output'), formatTokens(outTok || 0)],
+  ];
   return (
-    <span
-      className={cn(
-        'hidden md:inline-flex items-center gap-1 text-[10px] text-muted-foreground font-mono px-1.5 py-0.5 rounded-md bg-muted/60 border border-border/40 shrink-0',
-        className,
-      )}
-    >
-      {sp.kind === 'run' && <span className="opacity-70">Σ</span>}
-      <span className="text-sky-500">↗{formatTokens(inTok || 0)}</span>
-      <span className="text-emerald-500">↙{formatTokens(outTok || 0)}</span>
-    </span>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span
+          className={cn(
+            'hidden md:inline-flex items-center gap-1 text-[10px] text-muted-foreground font-mono px-1.5 py-0.5 rounded-md bg-muted/60 border border-border/40 shrink-0 cursor-help',
+            className,
+          )}
+        >
+          {sp.kind === 'run' && <span className="opacity-70">Σ</span>}
+          <span className="text-sky-500">↗{formatTokens(inTok || 0)}</span>
+          <span className="text-emerald-500">↙{formatTokens(outTok || 0)}</span>
+          {pct !== null && <span className="text-amber-500">⚡{pct}%</span>}
+        </span>
+      </TooltipTrigger>
+      <TooltipContent className="space-y-0.5 text-xs font-mono">
+        {rows.map(([k, v]) => (
+          <p key={k} className="flex justify-between gap-4">
+            <span className="text-muted-foreground">{k}</span>
+            <span>{v}</span>
+          </p>
+        ))}
+        {sp.ttftMs ? (
+          <p className="flex justify-between gap-4">
+            <span className="text-muted-foreground">{t('aiHistory.waterfall.usage.ttft')}</span>
+            <span>{sp.ttftMs}ms</span>
+          </p>
+        ) : null}
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -1290,7 +1352,7 @@ function SpanRow({ sp, depth, ctx }: { sp: TraceSpan; depth: number; ctx: RowCtx
             </span>
           )}
           <span className="ml-auto shrink-0">
-            <TokenBadges sp={sp} />
+            <TokenBadges sp={sp} t={t} />
           </span>
         </div>
 
@@ -1417,7 +1479,7 @@ function RunBlock({ sp, base }: { sp: TraceSpan; base: RowBase }) {
               <EffortBadge efforts={sp.thinkingEfforts} t={t} className="inline-flex" />
             </div>
           )}
-          <TokenBadges sp={sp} className="inline-flex" />
+          <TokenBadges sp={sp} t={t} className="inline-flex" />
         </div>
         {/* 窄屏右侧 meta 列：时间在上、时长在下，竖排居中右对齐；
             sm 起 contents 拆回外层行内（时间 → 时间轴 → 时长，顺序不变） */}
@@ -1590,6 +1652,22 @@ const TraceWaterfallInner = forwardRef<TraceWaterfallHandle, TraceWaterfallProps
   function TraceWaterfallInner({ entries, t, loadSubAgent }, ref) {
     const roots = useMemo(() => buildTrace(entries), [entries]);
     const blocks = useMemo(() => groupBlocks(roots), [roots]);
+    // 主会话 token_usage 合计（子 Agent 的 entries 不在此列表，随各自子瀑布单独汇总）
+    const sessionUsage = useMemo(() => {
+      let inp = 0;
+      let out = 0;
+      let cr = 0;
+      let runs = 0;
+      for (const e of entries) {
+        if (e.type !== 'token_usage') continue;
+        const d = (e.data || {}) as Record<string, unknown>;
+        inp += asNum(d.input_tokens);
+        out += asNum(d.output_tokens);
+        cr += asNum(d.cache_read_tokens);
+        runs += 1;
+      }
+      return { inp, out, cr, runs };
+    }, [entries]);
     const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
     const [subCache, setSubCache] = useState<
       Record<string, SessionLogEntry[] | 'loading' | 'error'>
@@ -1655,6 +1733,23 @@ const TraceWaterfallInner = forwardRef<TraceWaterfallHandle, TraceWaterfallProps
 
     return (
       <div className="flex min-w-0 max-w-full flex-col gap-3">
+        {sessionUsage.runs > 0 && (
+          <div className="flex min-w-0">
+            <span className="inline-flex items-center gap-1 min-w-0 text-[10px] text-muted-foreground font-mono px-1.5 py-0.5 rounded-md bg-muted/60 border border-border/40">
+              <span className="shrink-0 opacity-70">Σ</span>
+              <span className="shrink-0 text-sky-500">↗{formatTokens(sessionUsage.inp)}</span>
+              <span className="shrink-0 text-emerald-500">↙{formatTokens(sessionUsage.out)}</span>
+              {sessionUsage.inp > 0 && (
+                <span className="shrink-0 text-amber-500">
+                  ⚡{Math.round((sessionUsage.cr / sessionUsage.inp) * 100)}%
+                </span>
+              )}
+              <span className="truncate">
+                {t('aiHistory.waterfall.usage.sessionTotal', { runs: sessionUsage.runs })}
+              </span>
+            </span>
+          </div>
+        )}
         {blocks.map((b) => {
           if (b.type === 'run')
             return (

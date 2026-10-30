@@ -49,6 +49,7 @@
     "agentLinked": "Sub Agent",
     "toolsList": "Tools List",
     "toolsChange": "Tools Change",
+    "stepUsage": "Step Usage",
     "proactiveEmission": "Proactive Emission"
   },
   "filterTitle": "Filters",
@@ -95,6 +96,18 @@
       "hintedGroup": "Hinted only",
       "fromFindToolsTag": "last-turn find_tools",
       "cacheNote": "The tool list changed; this request's prefix cache is invalidated from the tools section on."
+    },
+    "usage": {
+      "input": "Input",
+      "output": "Output",
+      "cacheRead": "Cache read",
+      "cacheWrite": "Cache write",
+      "uncached": "Uncached",
+      "cacheHit": "Cache hit",
+      "ttft": "TTFT",
+      "tps": "TPS",
+      "toolCalls": "Tool calls",
+      "sessionTotal": "{runs} runs"
     }
   },
   "linkedAgents": "Linked agents",

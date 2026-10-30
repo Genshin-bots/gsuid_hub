@@ -49,6 +49,7 @@
     "agentLinked": "子Agent",
     "toolsList": "工具列表",
     "toolsChange": "工具变化",
+    "stepUsage": "每步用量",
     "proactiveEmission": "主动发言"
   },
   "filterTitle": "筛选条件",
@@ -95,6 +96,18 @@
       "hintedGroup": "仅提示未挂载",
       "fromFindToolsTag": "上轮 find_tools",
       "cacheNote": "工具列表变了，这次请求的前缀缓存从工具段起失效"
+    },
+    "usage": {
+      "input": "输入",
+      "output": "输出",
+      "cacheRead": "缓存读",
+      "cacheWrite": "缓存写",
+      "uncached": "未命中",
+      "cacheHit": "缓存命中",
+      "ttft": "TTFT",
+      "tps": "TPS",
+      "toolCalls": "工具调用",
+      "sessionTotal": "{runs} 轮"
     }
   },
   "linkedAgents": "关联 Agent",

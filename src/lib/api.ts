@@ -4721,6 +4721,7 @@ export type SessionLogEntryType =
   | 'agent_linked'
   | 'tools_list'
   | 'tools_change'
+  | 'step_usage'
   | 'proactive_emission'
   | 'history_reset'
   | 'mode_change'

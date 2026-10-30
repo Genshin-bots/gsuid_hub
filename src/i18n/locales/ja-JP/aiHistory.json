@@ -49,6 +49,7 @@
     "agentLinked": "子Agent",
     "toolsList": "ツールリスト",
     "toolsChange": "ツール変化",
+    "stepUsage": "ステップ用量",
     "proactiveEmission": "主動発言"
   },
   "filterTitle": "絞込件件",
@@ -95,6 +96,18 @@
       "hintedGroup": "ヒントのみ未マウント",
       "fromFindToolsTag": "前回 find_tools",
       "cacheNote": "ツール一覧が変わったため、このリクエストのプレフィックスキャッシュはツール区間から無効になります"
+    },
+    "usage": {
+      "input": "入力",
+      "output": "出力",
+      "cacheRead": "キャッシュ読",
+      "cacheWrite": "キャッシュ書",
+      "uncached": "未ヒット",
+      "cacheHit": "キャッシュヒット",
+      "ttft": "TTFT",
+      "tps": "TPS",
+      "toolCalls": "ツール呼出",
+      "sessionTotal": "{runs} ラン"
     }
   },
   "linkedAgents": "関連 Agent",
