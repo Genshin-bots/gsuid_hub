@@ -4720,6 +4720,7 @@ export type SessionLogEntryType =
   | 'node_transition'
   | 'agent_linked'
   | 'tools_list'
+  | 'tools_change'
   | 'proactive_emission'
   | 'history_reset'
   | 'mode_change'

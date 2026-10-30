@@ -48,6 +48,7 @@
     "nodeTransition": "节点转换",
     "agentLinked": "子Agent",
     "toolsList": "工具列表",
+    "toolsChange": "工具变化",
     "proactiveEmission": "主动发言"
   },
   "filterTitle": "筛选条件",
@@ -85,6 +86,15 @@
     "mode": {
       "toReactive": "进入被动聊天",
       "toProactive": "转为主动发言"
+    },
+    "toolsChange": {
+      "hintedCount": "提示 {count}",
+      "sourceFindTools": "find_tools 挂载",
+      "addedGroup": "新增",
+      "removedGroup": "移除",
+      "hintedGroup": "仅提示未挂载",
+      "fromFindToolsTag": "上轮 find_tools",
+      "cacheNote": "工具列表变了，这次请求的前缀缓存从工具段起失效"
     }
   },
   "linkedAgents": "关联 Agent",

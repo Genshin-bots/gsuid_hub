@@ -48,6 +48,7 @@
     "nodeTransition": "Node Transition",
     "agentLinked": "Sub Agent",
     "toolsList": "Tools List",
+    "toolsChange": "Tools Change",
     "proactiveEmission": "Proactive Emission"
   },
   "filterTitle": "Filters",
@@ -85,6 +86,15 @@
     "mode": {
       "toReactive": "User message · reactive",
       "toProactive": "AI proactive message"
+    },
+    "toolsChange": {
+      "hintedCount": "{count} hinted",
+      "sourceFindTools": "find_tools mount",
+      "addedGroup": "Added",
+      "removedGroup": "Removed",
+      "hintedGroup": "Hinted only",
+      "fromFindToolsTag": "last-turn find_tools",
+      "cacheNote": "The tool list changed; this request's prefix cache is invalidated from the tools section on."
     }
   },
   "linkedAgents": "Linked agents",

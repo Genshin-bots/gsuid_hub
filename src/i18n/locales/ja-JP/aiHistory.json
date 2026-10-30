@@ -48,6 +48,7 @@
     "nodeTransition": "ノード转换",
     "agentLinked": "子Agent",
     "toolsList": "ツールリスト",
+    "toolsChange": "ツール変化",
     "proactiveEmission": "主動発言"
   },
   "filterTitle": "絞込件件",
@@ -85,6 +86,15 @@
     "mode": {
       "toReactive": "受動チャットへ",
       "toProactive": "AIから発話"
+    },
+    "toolsChange": {
+      "hintedCount": "ヒント {count}",
+      "sourceFindTools": "find_tools マウント",
+      "addedGroup": "追加",
+      "removedGroup": "削除",
+      "hintedGroup": "ヒントのみ未マウント",
+      "fromFindToolsTag": "前回 find_tools",
+      "cacheNote": "ツール一覧が変わったため、このリクエストのプレフィックスキャッシュはツール区間から無効になります"
     }
   },
   "linkedAgents": "関連 Agent",

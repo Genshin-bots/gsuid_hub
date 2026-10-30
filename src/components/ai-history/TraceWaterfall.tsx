@@ -92,6 +92,9 @@ function asNum(v: unknown): number {
 function asStr(v: unknown): string {
   return typeof v === 'string' ? v : '';
 }
+function asStrArr(v: unknown): string[] {
+  return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [];
+}
 
 /**
  * 把一段（可能跨分段拼接后的）扁平 entries 重建为 span 树。
@@ -328,7 +331,8 @@ function buildTrace(entries: SessionLogEntry[]): TraceSpan[] {
         pushTop({ id: nid(), kind: 'system', start: ts, end: ts, entry: e, children: [] });
         break;
       }
-      case 'tools_list': {
+      case 'tools_list':
+      case 'tools_change': {
         addToRun({ id: nid(), kind: 'system', start: ts, end: ts, entry: e, children: [] });
         break;
       }
@@ -664,6 +668,7 @@ function spanLabel(sp: TraceSpan, t: TFunc): string {
       const map: Record<string, string> = {
         system_prompt: 'aiHistory.entryType.systemPrompt',
         tools_list: 'aiHistory.entryType.toolsList',
+        tools_change: 'aiHistory.entryType.toolsChange',
         session_created: 'aiHistory.entryType.sessionCreated',
         session_resumed: 'aiHistory.entryType.sessionResumed',
         session_ended: 'aiHistory.entryType.sessionEnded',
@@ -698,7 +703,7 @@ function userInputPreview(raw: string): string {
 
 // 行内单行内容预览：不展开也能扫读「用户说了什么 / AI 回了什么 / 工具传了什么」。
 // 展开后行下方会有完整内容面板，预览随之隐藏（避免同屏重复）。
-function spanPreview(sp: TraceSpan): string {
+function spanPreview(sp: TraceSpan, t: TFunc): string {
   const e = sp.entry;
   if (!e) return '';
   const d = (e.data || {}) as Record<string, unknown>;
@@ -736,8 +741,21 @@ function spanPreview(sp: TraceSpan): string {
       s = asStr(d.message) || asStr(d.error_type);
       break;
     case 'tools_list': {
-      const tools = Array.isArray(d.tools) ? (d.tools as string[]) : [];
-      s = tools.join(' · ');
+      s = asStrArr(d.tools).join(' · ');
+      break;
+    }
+    case 'tools_change': {
+      const addedN = asStrArr(d.added).length;
+      const removedN = asStrArr(d.removed).length;
+      const hintedN = asStrArr(d.hinted).length;
+      const segs: string[] = [];
+      if (addedN) segs.push(`+${addedN}`);
+      if (removedN) segs.push(`−${removedN}`);
+      if (hintedN) segs.push(t('aiHistory.waterfall.toolsChange.hintedCount', { count: hintedN }));
+      s = segs.join(' · ');
+      if (asStr(d.source) === 'find_tools') {
+        s = `[${t('aiHistory.waterfall.toolsChange.sourceFindTools')}] ${s}`;
+      }
       break;
     }
     default:
@@ -763,6 +781,8 @@ function spanExpandable(sp: TraceSpan): boolean {
   if (et === 'error') return !!(d.message || d.error_type);
   if (et === 'history_reset') return true;
   if (et === 'tools_list') return Array.isArray(d.tools) && (d.tools as unknown[]).length > 0;
+  if (et === 'tools_change')
+    return asStrArr(d.added).length > 0 || asStrArr(d.removed).length > 0 || asStrArr(d.hinted).length > 0;
   if (et === 'tool_call' || et === 'tool_return') return true;
   return false;
 }
@@ -790,6 +810,59 @@ const WRAP_TEXT = 'min-w-0 max-w-full whitespace-pre-wrap break-words [overflow-
 const CODE_BLOCK = cn('text-xs bg-muted/50 rounded-md p-2 font-mono', WRAP_TEXT);
 const PLAIN_BLOCK = cn('text-sm font-sans leading-relaxed', WRAP_TEXT);
 
+type ToolChipVariant = 'default' | 'added' | 'removed' | 'hinted';
+
+const TOOL_CHIP_VARIANT_CLASS: Record<ToolChipVariant, string> = {
+  default: 'bg-muted text-muted-foreground border-border/50',
+  added: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/40',
+  removed: 'bg-red-500/10 text-red-700 dark:text-red-300 border-red-500/40 line-through',
+  hinted: 'bg-muted text-muted-foreground border-dashed border-border',
+};
+
+// 单个工具名芯片（tools_list / tools_change 共用）：hover 弹工具元数据 tooltip。
+function ToolChip({
+  name,
+  variant = 'default',
+  suffix,
+  t,
+}: {
+  name: string;
+  variant?: ToolChipVariant;
+  suffix?: string;
+  t: TFunc;
+}) {
+  const toolInfo = useContext(ToolInfoContext);
+  const info = toolInfo[name];
+  const meta = [info?.plugin, info?.category].filter(Boolean).join(' · ');
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span
+          className={cn(
+            'inline-flex max-w-full items-center gap-1 cursor-help text-[10px] font-mono px-1.5 py-0.5 rounded border hover:bg-accent hover:text-foreground transition-colors [overflow-wrap:anywhere]',
+            TOOL_CHIP_VARIANT_CLASS[variant],
+          )}
+        >
+          <Wrench className="w-2.5 h-2.5 shrink-0 opacity-60" />
+          <span className="min-w-0 break-all">{name}</span>
+          {suffix && <span className="shrink-0 opacity-70">· {suffix}</span>}
+        </span>
+      </TooltipTrigger>
+      <TooltipContent className="max-w-sm">
+        <p className="text-xs font-mono font-medium break-all">{name}</p>
+        {info?.description ? (
+          <p className={cn('mt-1 text-xs text-muted-foreground', WRAP_TEXT)}>{info.description}</p>
+        ) : (
+          <p className="mt-1 text-xs text-muted-foreground/70 italic">
+            {t('aiHistory.waterfall.toolNoInfo')}
+          </p>
+        )}
+        {meta && <p className="mt-1 text-[10px] text-muted-foreground/70 break-all">{meta}</p>}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
 function EntryBlock({
   entry,
   t,
@@ -800,7 +873,6 @@ function EntryBlock({
   showLabel?: boolean;
 }) {
   const d = (entry.data || {}) as Record<string, unknown>;
-  const toolInfo = useContext(ToolInfoContext);
   const label = (key: string) =>
     showLabel ? (
       <div className="text-[10px] uppercase tracking-wide text-muted-foreground/70 mb-1">
@@ -854,38 +926,61 @@ function EntryBlock({
     );
   }
   if (entry.type === 'tools_list') {
-    const tools = Array.isArray(d.tools) ? (d.tools as string[]) : [];
+    const tools = asStrArr(d.tools);
     return (
       <div className="flex flex-wrap gap-1 min-w-0 max-w-full">
-        {tools.map((tool, i) => {
-          const info = toolInfo[tool];
-          const meta = [info?.plugin, info?.category].filter(Boolean).join(' · ');
-          return (
-            <Tooltip key={i}>
-              <TooltipTrigger asChild>
-                <span className="inline-flex max-w-full items-center gap-1 cursor-help text-[10px] font-mono px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border/50 hover:bg-accent hover:text-foreground transition-colors [overflow-wrap:anywhere]">
-                  <Wrench className="w-2.5 h-2.5 shrink-0 opacity-60" />
-                  <span className="min-w-0 break-all">{tool}</span>
-                </span>
-              </TooltipTrigger>
-              <TooltipContent className="max-w-sm">
-                <p className="text-xs font-mono font-medium break-all">{tool}</p>
-                {info?.description ? (
-                  <p className={cn('mt-1 text-xs text-muted-foreground', WRAP_TEXT)}>
-                    {info.description}
-                  </p>
-                ) : (
-                  <p className="mt-1 text-xs text-muted-foreground/70 italic">
-                    {t('aiHistory.waterfall.toolNoInfo')}
-                  </p>
-                )}
-                {meta && (
-                  <p className="mt-1 text-[10px] text-muted-foreground/70 break-all">{meta}</p>
-                )}
-              </TooltipContent>
-            </Tooltip>
-          );
-        })}
+        {tools.map((tool) => (
+          <ToolChip key={tool} name={tool} t={t} />
+        ))}
+      </div>
+    );
+  }
+  if (entry.type === 'tools_change') {
+    const added = asStrArr(d.added);
+    const removed = asStrArr(d.removed);
+    const hinted = asStrArr(d.hinted);
+    const fromFindTools = new Set(asStrArr(d.from_find_tools));
+    const groups: { names: string[]; variant: ToolChipVariant; labelKey: string }[] = [
+      { names: added, variant: 'added', labelKey: 'aiHistory.waterfall.toolsChange.addedGroup' },
+      { names: removed, variant: 'removed', labelKey: 'aiHistory.waterfall.toolsChange.removedGroup' },
+      { names: hinted, variant: 'hinted', labelKey: 'aiHistory.waterfall.toolsChange.hintedGroup' },
+    ];
+    return (
+      <div className="space-y-2 min-w-0 max-w-full">
+        {asStr(d.source) === 'find_tools' && (
+          <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border/50">
+            {t('aiHistory.waterfall.toolsChange.sourceFindTools')}
+          </span>
+        )}
+        {groups
+          .filter((g) => g.names.length > 0)
+          .map((g) => (
+            <div key={g.variant}>
+              <div className="text-[10px] uppercase tracking-wide text-muted-foreground/70 mb-1">
+                {t(g.labelKey)}
+              </div>
+              <div className="flex flex-wrap gap-1 min-w-0 max-w-full">
+                {g.names.map((name) => (
+                  <ToolChip
+                    key={name}
+                    name={name}
+                    variant={g.variant}
+                    suffix={
+                      fromFindTools.has(name)
+                        ? t('aiHistory.waterfall.toolsChange.fromFindToolsTag')
+                        : undefined
+                    }
+                    t={t}
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
+        {(added.length > 0 || removed.length > 0) && (
+          <div className={cn('text-xs text-muted-foreground', WRAP_TEXT)}>
+            {t('aiHistory.waterfall.toolsChange.cacheNote')}
+          </div>
+        )}
       </div>
     );
   }
@@ -1112,7 +1207,7 @@ function SpanRow({ sp, depth, ctx }: { sp: TraceSpan; depth: number; ctx: RowCtx
   const dur = sp.end - sp.start;
   const childCount = sp.children.length;
   // 展开后完整内容就在行下方，预览隐藏避免重复
-  const preview = isOpen ? '' : spanPreview(sp);
+  const preview = isOpen ? '' : spanPreview(sp, t);
 
   const handleClick = () => {
     if (!expandable) return;
