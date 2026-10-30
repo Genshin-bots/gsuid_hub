@@ -1,4 +1,4 @@
-import React, { useState, useRef, useLayoutEffect } from 'react';
+import React, { useState, useRef, useLayoutEffect, useEffect, useCallback } from 'react';
 import { X, Search, Plus, Copy, Check } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
@@ -16,9 +16,10 @@ interface TagsInputProps {
 /**
  * 标签芯片。量尺行与可见行必须引用同一份，否则量出来的宽度对不上真实渲染宽度。
  * rounded-lg = var(--radius)，随主题圆角强度变化。
+ * h-7：与 h-10 外壳内 6px 留白配套——h-6 芯片在框里上下各空 8px，整块显得空高。
  */
 const TAG_CHIP =
-  'flex items-center rounded-lg border gap-1 h-6 text-xs px-2.5 font-semibold shrink-0';
+  'flex items-center rounded-lg border gap-1 h-7 text-xs px-2.5 font-semibold shrink-0';
 
 export const TagsInput: React.FC<TagsInputProps> = ({
   value,
@@ -121,34 +122,55 @@ export const TagsInput: React.FC<TagsInputProps> = ({
   // 量尺行离屏渲染全部标签量真实宽度；尾部（+N 与「更多」）永不收缩，让位的是标签轨自己。
   const TAG_GAP = 8;
   const railRef = useRef<HTMLDivElement>(null);
+  const tailRef = useRef<HTMLDivElement>(null);
+  const moreBtnRef = useRef<HTMLButtonElement>(null);
   const gaugeRef = useRef<HTMLDivElement>(null);
   const badgeRef = useRef<HTMLDivElement>(null);
-  const [metrics, setMetrics] = useState({ rail: 0, badge: 0, widths: [] as number[] });
+  const [metrics, setMetrics] = useState({ rail: 0, tailExtra: 0, badge: 0, widths: [] as number[] });
 
-  // 无依赖：每次渲染后同步一次几何。相同值原样返回 prev，React 会跳过重渲染，不会自激。
-  useLayoutEffect(() => {
+  // avail = 胶囊可用总宽 = rail 现宽 + 徽标在尾部的占位（tail - 更多按钮）。
+  // rail 是 flex-1 让位后的剩余，徽标渲染时 rail 已被扣掉它——必须以「rail + 徽标占位」
+  // 为不变量来算 fits，否则徽标被扣两次、平白少放一颗胶囊。
+  const measure = useCallback(() => {
     const rail = railRef.current;
+    const tail = tailRef.current;
+    const more = moreBtnRef.current;
     const gauge = gaugeRef.current;
     const badge = badgeRef.current;
     const chips = gauge?.firstElementChild;
-    if (!rail || !chips || !badge) return;
+    if (!rail || !tail || !more || !chips || !badge) return;
     const widths = Array.from(chips.children, (el) => Math.round(el.getBoundingClientRect().width));
     const next = {
       rail: rail.clientWidth,
-      // 徽标按最坏位数（+9999）预留：按真实位数预留会和「徽标出没出现」互为因果，
-      // 每次多渲染一轮都可能换一个 k，最后一个胶囊被裁成半个。
+      tailExtra: Math.round(
+        tail.getBoundingClientRect().width - more.getBoundingClientRect().width,
+      ),
       badge: Math.round(badge.getBoundingClientRect().width),
       widths,
     };
     setMetrics((prev) => {
       const same =
         prev.rail === next.rail &&
+        prev.tailExtra === next.tailExtra &&
         prev.badge === next.badge &&
         prev.widths.length === widths.length &&
         prev.widths.every((w, i) => w === widths[i]);
       return same ? prev : next;
     });
-  });
+  }, []);
+
+  // 无依赖：每次渲染后同步一次几何。相同值原样返回 prev，React 会跳过重渲染，不会自激。
+  useLayoutEffect(measure);
+
+  // 收起侧边栏 / 窗口缩放 / 父级网格变宽这类不改 React 树的尺寸变化，靠 RO 补量尺，
+  // 否则 rail 变了而 metrics 还是旧值，胶囊数不跟着长。
+  useEffect(() => {
+    const rail = railRef.current;
+    if (!rail) return;
+    const observer = new ResizeObserver(() => measure());
+    observer.observe(rail);
+    return () => observer.disconnect();
+  }, [measure]);
 
   const fitCount = (total: number): number => {
     let used = 0;
@@ -163,12 +185,25 @@ export const TagsInput: React.FC<TagsInputProps> = ({
     }
     return n;
   };
-  // 先试「不出徽标」；放不下才按预留宽度重算。只放得下部分胶囊时，最后一个必定完整。
-  const withoutBadge = fitCount(metrics.rail);
-  const visibleCount =
-    withoutBadge >= listValue.length
-      ? withoutBadge
-      : fitCount(metrics.rail - metrics.badge - TAG_GAP);
+  // 先试「不出徽标」；放不下才按徽标占位重算（徽标已渲染就用真实占位，没渲染按 +9999 量尺
+  // 兜底，免得和「徽标出没出现」互为因果来回换 k）。只放得下部分胶囊时，最后一个必定完整。
+  // 徽标占位大到一颗都挤不下时，宁可完整放出不带徽标的胶囊，也不让行里只剩 +N。
+  const avail = metrics.rail + metrics.tailExtra;
+  const reserve = metrics.tailExtra > 0 ? metrics.tailExtra : metrics.badge + 6;
+  const withoutBadge = fitCount(avail);
+  let visibleCount: number;
+  let showBadge = false;
+  if (withoutBadge >= listValue.length) {
+    visibleCount = listValue.length;
+  } else {
+    const withBadge = fitCount(avail - reserve);
+    if (withBadge > 0) {
+      visibleCount = withBadge;
+      showBadge = true;
+    } else {
+      visibleCount = Math.max(withoutBadge, Math.min(1, listValue.length));
+    }
+  }
   const visibleTags = listValue.slice(0, visibleCount);
   const hiddenCount = listValue.length - visibleCount;
 
@@ -222,7 +257,9 @@ export const TagsInput: React.FC<TagsInputProps> = ({
               key={item}
               className={cn(
                 TAG_CHIP,
-                'text-secondary-foreground backdrop-blur-sm transition-colors',
+                // 保底那颗胶囊允许收缩截断（轨道比它窄时显示半个词也比只有 +N 强）；
+                // 正常情况下按量尺放宽、不会触发收缩
+                'min-w-0 shrink text-secondary-foreground backdrop-blur-sm transition-colors',
                 disabled
                   ? 'bg-muted/40 border-dashed opacity-60'
                   : 'border-transparent bg-secondary/30 hover:bg-secondary/50',
@@ -242,8 +279,8 @@ export const TagsInput: React.FC<TagsInputProps> = ({
         </div>
 
         {/* 尾部：+N 与「更多」永不收缩，窄屏也始终完整可点 */}
-        <div className="flex items-center gap-1.5 shrink-0">
-          {hiddenCount > 0 && (
+        <div ref={tailRef} className="flex items-center gap-1.5 shrink-0">
+          {showBadge && hiddenCount > 0 && (
             <div
               className={cn(
                 TAG_CHIP,
@@ -255,16 +292,18 @@ export const TagsInput: React.FC<TagsInputProps> = ({
               +{hiddenCount}
             </div>
           )}
-          {/* 更多按钮 - 点击打开下拉框 */}
+          {/* 更多按钮 - 点击打开下拉框；窄屏收成 + 图标，给胶囊腾宽度 */}
           <Popover open={isOpen} onOpenChange={handleOpenChange}>
             <PopoverTrigger asChild>
               <Button
+                ref={moreBtnRef}
                 type="button"
                 variant="ghost"
                 size="sm"
+                title={t('tagsInput.more')}
                 className={cn(
                   // size="sm" 给的是 h-9 / rounded-md / 16px 图标，这里要和标签芯片同高，圆角跟主题
-                  'h-6 rounded-lg px-2.5 gap-1 text-xs font-semibold [&_svg]:size-3',
+                  'h-7 rounded-lg px-2.5 gap-1 text-xs font-semibold [&_svg]:size-3',
                   disabled
                     ? 'bg-muted/40 text-secondary-foreground hover:bg-muted/40'
                     : 'bg-primary/20 text-primary hover:bg-primary/30',
@@ -272,7 +311,7 @@ export const TagsInput: React.FC<TagsInputProps> = ({
                 disabled={disabled}
               >
                 <Plus className="w-3 h-3" />
-                {t('tagsInput.more')}
+                <span className="hidden md:inline">{t('tagsInput.more')}</span>
               </Button>
             </PopoverTrigger>
             <PopoverContent

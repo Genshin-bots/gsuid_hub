@@ -29,6 +29,7 @@ import {
   ChevronUp,
   ChevronLeft,
   ChevronRight,
+  List,
 } from 'lucide-react';
 import { logsApi, type LogContextLog, type LogContextResponse } from '@/lib/api';
 import { formatLogTimestamp } from '@/lib/featureUtils';
@@ -69,6 +70,19 @@ const levelColors = {
   error: 'bg-red-500/20 text-red-500 border-red-500/30',
   debug: 'bg-gray-500/20 text-gray-400 border-gray-500/30',
 };
+
+// 级别分段里的数量徽标，与插件商店 tab-segment-count 同款；error>0 时琥珀告警。
+// <640px 分段转成竖排（label 在上徽标在下），徽标缩小一号塞进 5 等分列。
+const logLevelBadge = (count: number, alert = false) => (
+  <span
+    className={cn(
+      'tab-segment-count max-sm:h-4 max-sm:min-w-4 max-sm:px-1 max-sm:text-[10px]',
+      alert && 'tab-segment-count-alert',
+    )}
+  >
+    {count.toLocaleString()}
+  </span>
+);
 
 // 日志条目组件 - 使用memo优化
 const LogEntryItem = memo(function LogEntryItem({
@@ -519,7 +533,7 @@ export default function LogsPage() {
                 variant="outline"
                 onClick={handleRefresh}
                 disabled={isLoading}
-                className={cn(tabToolbarControlClass, 'whitespace-nowrap')}
+                className={cn(tabToolbarControlClass, 'whitespace-nowrap max-sm:!flex-1')}
               >
                 <RefreshCw className={cn('w-4 h-4 mr-2', isLoading && 'animate-spin')} />
                 {t('logs.refresh')}
@@ -527,7 +541,7 @@ export default function LogsPage() {
               <Button
                 variant="outline"
                 onClick={handleExport}
-                className={cn(tabToolbarControlClass, 'whitespace-nowrap')}
+                className={cn(tabToolbarControlClass, 'whitespace-nowrap max-sm:!flex-1')}
               >
                 <Download className="w-4 h-4 mr-2" />
                 {t('logs.export')}
@@ -535,7 +549,7 @@ export default function LogsPage() {
               <Button
                 variant="outline"
                 onClick={() => setLogsConfigOpen(true)}
-                className={cn(tabToolbarControlClass, 'whitespace-nowrap')}
+                className={cn(tabToolbarControlClass, 'whitespace-nowrap max-sm:!flex-1')}
               >
                 <FileText className="w-4 h-4 mr-2" />
                 {t('logsConfig.toolbar')}
@@ -563,57 +577,11 @@ export default function LogsPage() {
             value={view}
             onValueChange={(v) => setView(v as LogsView)}
           />
-          {view === 'runtime' ? (
-            <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 lg:justify-end">
-              {(
-                [
-                  {
-                    key: 'total',
-                    icon: Info,
-                    value: totalCount.toLocaleString(),
-                    label: t('logs.totalLogs'),
-                    color: 'text-blue-500',
-                  },
-                  {
-                    key: 'info',
-                    icon: Info,
-                    value: infoCount,
-                    label: t('logs.info'),
-                    color: 'text-blue-500',
-                  },
-                  {
-                    key: 'warn',
-                    icon: AlertTriangle,
-                    value: warnCount,
-                    label: t('logs.warn'),
-                    color: 'text-yellow-500',
-                  },
-                  {
-                    key: 'error',
-                    icon: AlertCircle,
-                    value: errorCount,
-                    label: t('logs.errorLog'),
-                    color: 'text-red-500',
-                  },
-                  {
-                    key: 'debug',
-                    icon: Bug,
-                    value: debugCount,
-                    label: t('logs.debug'),
-                    color: 'text-gray-500',
-                  },
-                ] as const
-              ).map((item) => (
-                <span key={item.key} className="inline-flex items-center gap-1.5 text-sm">
-                  <item.icon className={cn('h-3.5 w-3.5 shrink-0', item.color)} strokeWidth={1.5} />
-                  <span className="font-semibold tabular-nums">{item.value}</span>
-                  <span className="text-xs text-muted-foreground">{item.label}</span>
-                </span>
-              ))}
-            </div>
-          ) : null}
         </div>
       }
+      // 两页签互斥、只有一个可见，兄弟间不需要 space-y；hidden 兄弟仍会被
+      // space-y 的 * + * 选择器算成「非首元素」，在运行视图平白压出一段 margin
+      bodyClassName="space-y-0"
     >
       <LogsConfigDialog open={logsConfigOpen} onOpenChange={setLogsConfigOpen} />
       {errorsVisited ? (
@@ -641,7 +609,7 @@ export default function LogsPage() {
           </GlassAlert>
         )}
 
-        <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
           {/* Date Mode Toggle */}
           <TabButtonGroup
             value={dateMode}
@@ -660,7 +628,7 @@ export default function LogsPage() {
                   variant="outline"
                   className={cn(
                     tabToolbarControlClass,
-                    'w-full sm:w-[180px] justify-start text-left font-normal',
+                    'min-w-[140px] flex-1 sm:w-[180px] sm:flex-none justify-start text-left font-normal',
                     !selectedDate && 'text-muted-foreground',
                   )}
                 >
@@ -689,7 +657,7 @@ export default function LogsPage() {
               </PopoverContent>
             </Popover>
           ) : (
-            <div className="flex items-center gap-2">
+            <div className="flex w-full items-center gap-2 sm:w-auto">
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -756,7 +724,7 @@ export default function LogsPage() {
             </div>
           )}
 
-          <div className="relative flex-1">
+          <div className="relative min-w-[120px] flex-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder={t('logs.searchLogs')}
@@ -766,15 +734,46 @@ export default function LogsPage() {
             />
           </div>
 
+          {/* 级别筛选 + 各级数量徽标（原统计条并入分段，插件商店同款 tab-segment-count）。
+              w-full sm:w-auto：窄屏独占一行（singleRowOnMobile 5 等分竖排：文字在上、
+              徽标缩到下方），桌面自然宽度、剩余空间交给搜索框。 */}
           <TabButtonGroup
+            className="w-full sm:w-auto"
+            buttonClassName="max-sm:h-auto max-sm:flex-col max-sm:gap-0.5 max-sm:py-1"
+            singleRowOnMobile
             value={levelFilter}
             onValueChange={(v) => setLevelFilter(v as LogLevel)}
             options={[
-              { value: 'all', label: t('logs.all') },
-              { value: 'error', label: t('logs.errorLog') },
-              { value: 'warn', label: t('logs.warn') },
-              { value: 'info', label: t('logs.info') },
-              { value: 'debug', label: t('logs.debug') },
+              {
+                value: 'all',
+                label: t('logs.all'),
+                icon: <List className="w-4 h-4" />,
+                badge: logLevelBadge(totalCount),
+              },
+              {
+                value: 'error',
+                label: t('logs.errorLog'),
+                icon: <AlertCircle className="w-4 h-4" />,
+                badge: logLevelBadge(errorCount, errorCount > 0),
+              },
+              {
+                value: 'warn',
+                label: t('logs.warn'),
+                icon: <AlertTriangle className="w-4 h-4" />,
+                badge: logLevelBadge(warnCount),
+              },
+              {
+                value: 'info',
+                label: t('logs.info'),
+                icon: <Info className="w-4 h-4" />,
+                badge: logLevelBadge(infoCount),
+              },
+              {
+                value: 'debug',
+                label: t('logs.debug'),
+                icon: <Bug className="w-4 h-4" />,
+                badge: logLevelBadge(debugCount),
+              },
             ]}
           />
         </div>

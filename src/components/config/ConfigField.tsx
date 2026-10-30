@@ -311,7 +311,9 @@ export function ConfigField({
       );
       if (dividerTitle && dividerSubtitle) {
         return (
-          <div className="w-full pt-4 pb-2">
+          // 分节边界上方的留白必须明显大于普通字段行距（pt-8 + 外层行距），
+          // 否则标题/分割线几乎顶到上一组控件，看不出「新一节」的断点。
+          <div className="w-full pt-8 pb-2">
             {dividerHeading}
             <Separator className="my-1.5" />
             <p className="text-xs text-muted-foreground">{dividerSubtitle}</p>
@@ -320,7 +322,7 @@ export function ConfigField({
       }
       if (dividerTitle) {
         return (
-          <div className="flex w-full items-center gap-3 pt-4 pb-2">
+          <div className="flex w-full items-center gap-3 pt-8 pb-2">
             {dividerHeading}
             <Separator className="flex-1" />
           </div>
@@ -328,14 +330,14 @@ export function ConfigField({
       }
       if (dividerSubtitle) {
         return (
-          <div className="flex w-full flex-col gap-1 py-2">
+          <div className="flex w-full flex-col gap-1 pt-6 pb-2">
             <Separator className="w-full" />
             <p className="text-xs text-muted-foreground">{dividerSubtitle}</p>
           </div>
         );
       }
       return (
-        <div className="flex items-center w-full py-2">
+        <div className="flex items-center w-full pt-6 pb-2">
           <Separator className="flex-1" />
         </div>
       );

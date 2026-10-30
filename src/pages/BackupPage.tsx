@@ -415,16 +415,34 @@ export default function BackupPage() {
   return (
     <PinnedPage
       header={
-        <div className="flex flex-col gap-3 md:gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div className="min-w-0 sm:overflow-x-auto">
-            <h1 className="sm:whitespace-nowrap text-3xl font-bold flex items-center gap-3">
-              <HardDrive className="w-8 h-8 shrink-0" />
-              {t('backup.title')}
-            </h1>
-            <p className="sm:whitespace-nowrap text-muted-foreground mt-1">
-              {t('backup.description')}
-            </p>
-          </div>
+        <div className="min-w-0 sm:overflow-x-auto">
+          <h1 className="sm:whitespace-nowrap text-3xl font-bold flex items-center gap-3">
+            <HardDrive className="w-8 h-8 shrink-0" />
+            {t('backup.title')}
+          </h1>
+          <p className="sm:whitespace-nowrap text-muted-foreground mt-1">
+            {t('backup.description')}
+          </p>
+        </div>
+      }
+      toolbar={
+        <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <TabButtonGroup
+            options={[
+              {
+                value: 'settings',
+                label: t('backup.backupSettings'),
+                icon: <Archive className="w-4 h-4" />,
+              },
+              {
+                value: 'downloads',
+                label: t('backup.backupDownload'),
+                icon: <Download className="w-4 h-4" />,
+              },
+            ]}
+            value={activeTab}
+            onValueChange={setActiveTab}
+          />
           <div className={headerActionRowClass}>
             <Button
               onClick={handleSaveSettings}
@@ -444,24 +462,6 @@ export default function BackupPage() {
             </Button>
           </div>
         </div>
-      }
-      toolbar={
-        <TabButtonGroup
-          options={[
-            {
-              value: 'settings',
-              label: t('backup.backupSettings'),
-              icon: <Archive className="w-4 h-4" />,
-            },
-            {
-              value: 'downloads',
-              label: t('backup.backupDownload'),
-              icon: <Download className="w-4 h-4" />,
-            },
-          ]}
-          value={activeTab}
-          onValueChange={setActiveTab}
-        />
       }
     >
       <div className="space-y-3 md:space-y-4">

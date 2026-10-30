@@ -35,6 +35,8 @@
   "yes": "はい",
   "no": "いいえ",
   "addFilter": "フィルターを追加",
+  "expandFields": "残り {count} 件のフィールドを表示",
+  "collapseFields": "折りたたむ",
   "paginationInfo": "全 {total} 件、{current} / {totalPages} ページ",
   "exportCsv": "CSV をエクスポート",
   "exportCsvHint": "現在の絞り込みに一致する全件をエクスポートします（このページのみではありません）",

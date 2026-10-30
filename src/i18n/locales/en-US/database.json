@@ -35,6 +35,8 @@
   "yes": "Yes",
   "no": "No",
   "addFilter": "Add filter",
+  "expandFields": "Show {count} more fields",
+  "collapseFields": "Show less",
   "paginationInfo": "Total {total} records, page {current} / {totalPages}",
   "exportCsv": "Export CSV",
   "exportCsvHint": "Export every matching record, not just this page",

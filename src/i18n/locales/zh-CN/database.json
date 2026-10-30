@@ -35,6 +35,8 @@
   "yes": "是",
   "no": "否",
   "addFilter": "添加筛选",
+  "expandFields": "展开其余 {count} 个字段",
+  "collapseFields": "收起字段",
   "paginationInfo": "共 {total} 条记录，第 {current} / {totalPages} 页",
   "exportCsv": "导出 CSV",
   "exportCsvHint": "导出当前筛选条件下的全部记录，不只是当前页",

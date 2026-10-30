@@ -67,6 +67,7 @@ import {
   Upload,
   FileSpreadsheet,
   ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import {
   databaseApi,
@@ -192,6 +193,8 @@ export default function DatabasePage() {
   const importInputRef = useRef<HTMLInputElement>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage, setPerPage] = useState(20);
+  // 移动端卡片行展开态，key 为主键值
+  const [expandedRowKeys, setExpandedRowKeys] = useState<Set<string>>(new Set());
 
   // 上次真正发给后端的查询。翻页 / 刷新 / 增删改必须复用它，
   // 不能读搜索框的即时值（用户可能改了字但还没点搜索）。
@@ -256,6 +259,7 @@ export default function DatabasePage() {
       setImportFile(null);
       setConfirmName('');
       setImportMode('merge');
+      setExpandedRowKeys(new Set());
       appliedQueryRef.current = {};
 
       fetchTableMetadata(activeTable);
@@ -432,6 +436,16 @@ export default function DatabasePage() {
   const columns = tableMetadata?.columns || [];
   const tableRows = data?.items ?? [];
   const totalPages = data ? Math.ceil(data.total / perPage) : 0;
+  const pkName = tableMetadata?.pk_name || 'id';
+
+  const toggleMobileRow = (rowKey: string) => {
+    setExpandedRowKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(rowKey)) next.delete(rowKey);
+      else next.add(rowKey);
+      return next;
+    });
+  };
 
   const handlePageChange = (newPage: number) => {
     if (activeTable && newPage >= 1 && newPage <= totalPages) {
@@ -579,7 +593,6 @@ export default function DatabasePage() {
         await databaseApi.createRecord(activeTable, editingItem);
         toast.success(t('database.recordCreated'));
       } else {
-        const pkName = tableMetadata?.pk_name || 'id';
         const recordId = editingItem[pkName];
         await databaseApi.updateRecord(activeTable, recordId as string | number, editingItem);
         toast.success(t('database.recordUpdated'));
@@ -598,7 +611,6 @@ export default function DatabasePage() {
     if (!activeTable || !tableMetadata) return;
 
     try {
-      const pkName = tableMetadata.pk_name || 'id';
       const recordId = item[pkName];
       await databaseApi.deleteRecord(activeTable, recordId as string | number);
       toast.success(t('database.recordDeleted'));
@@ -795,7 +807,10 @@ export default function DatabasePage() {
                         <ChevronDown className="h-4 w-4 ml-1" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
+                    <DropdownMenuContent
+                      align="end"
+                      className="w-[var(--radix-dropdown-menu-trigger-width)] min-w-max"
+                    >
                       <DropdownMenuItem onClick={() => void handleExportCsv()}>
                         <Download className="h-4 w-4 mr-2" />
                         {t('database.exportCsv')}
@@ -830,7 +845,8 @@ export default function DatabasePage() {
         {activeTable && tableMetadata && (
           <Card className="glass-card">
             <CardContent className="pt-6">
-              <div className="relative">
+              {/* 桌面端横向滚动表格（窄屏改用下方卡片列表，二三十列横滚不可用） */}
+              <div className="relative hidden md:block">
                 <Table
                   wrapperRef={tableContainerRef}
                   wrapperClassName="scrollbar-hide"
@@ -917,6 +933,112 @@ export default function DatabasePage() {
                 </Table>
               </div>
 
+              {/* 移动端卡片列表：首列（一般是主键）当卡片头，其余字段两列网格，
+                  超过 4 个字段先折叠、按需展开；编辑/删除常驻卡片头右侧 */}
+              <div className="md:hidden space-y-3">
+                {tableRows.length === 0 ? (
+                  <div className="py-6 text-center text-sm text-muted-foreground">
+                    {t('database.noData')}
+                  </div>
+                ) : (
+                  tableRows.map((item, index) => {
+                    const rowKey = String(item[pkName] ?? index);
+                    const isRowExpanded = expandedRowKeys.has(rowKey);
+                    const headerCol =
+                      columns.find((col) => col.name === pkName) ?? columns[0];
+                    const fieldCols = columns.filter((col) => col !== headerCol);
+                    const visibleCols = isRowExpanded ? fieldCols : fieldCols.slice(0, 4);
+                    const hiddenCount = fieldCols.length - visibleCols.length;
+                    return (
+                      <div key={rowKey} className="rounded-lg border border-border/50 p-3">
+                        <div className="flex items-center justify-between gap-2">
+                          {headerCol && (
+                            <div className="min-w-0 flex-1">
+                              <div
+                                className="truncate text-xs text-muted-foreground"
+                                title={headerCol.title}
+                              >
+                                {headerCol.title}
+                              </div>
+                              <div
+                                className="truncate text-sm font-medium"
+                                title={String(item[headerCol.name] ?? '')}
+                              >
+                                {String(item[headerCol.name] ?? '')}
+                              </div>
+                            </div>
+                          )}
+                          <div className="flex shrink-0 gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEdit(item)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDelete(item)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                        {visibleCols.length > 0 && (
+                          <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-2 border-t border-border/40 pt-2">
+                            {visibleCols.map((col) => {
+                              const cellValue = item[col.name];
+                              const isBool = typeof cellValue === 'boolean';
+                              return (
+                                <div key={col.name} className="min-w-0">
+                                  <div
+                                    className="truncate text-xs text-muted-foreground"
+                                    title={col.title}
+                                  >
+                                    {col.title}
+                                  </div>
+                                  {isBool ? (
+                                    <Badge
+                                      variant={cellValue ? 'default' : 'secondary'}
+                                    >
+                                      {cellValue ? t('database.yes') : t('database.no')}
+                                    </Badge>
+                                  ) : (
+                                    <div
+                                      className="truncate text-sm"
+                                      title={String(cellValue ?? '')}
+                                    >
+                                      {String(cellValue ?? '')}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                        {fieldCols.length > 4 && (
+                          <button
+                            type="button"
+                            onClick={() => toggleMobileRow(rowKey)}
+                            className="mt-2 flex w-full items-center justify-center gap-1 text-xs text-muted-foreground"
+                          >
+                            {isRowExpanded ? (
+                              <ChevronUp className="h-3.5 w-3.5" />
+                            ) : (
+                              <ChevronDown className="h-3.5 w-3.5" />
+                            )}
+                            {isRowExpanded
+                              ? t('database.collapseFields')
+                              : t('database.expandFields', { count: hiddenCount })}
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
               {data && data.total > 0 && (
                 <div className="flex items-center justify-between mt-4">
                   <div className="text-sm text-muted-foreground">
@@ -967,8 +1089,8 @@ export default function DatabasePage() {
                     )
                   : t('database.editRecordDescription')
                       .replace('{table}', tableMetadata?.label || activeTable)
-                      .replace('{pk}', tableMetadata?.pk_name || 'id')
-                      .replace('{id}', String(editingItem?.[tableMetadata?.pk_name || 'id'] ?? ''))}
+                      .replace('{pk}', pkName)
+                      .replace('{id}', String(editingItem?.[pkName] ?? ''))}
               </DialogDescription>
             </DialogHeader>
 

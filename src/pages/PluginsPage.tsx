@@ -1436,9 +1436,10 @@ export default function PluginsPage() {
             </div>
           </div>
 
-          {/* 不要加 pt-*：卡片头部已有 py-4 的下内边距，再叠一层 pt 会让
-        「工具栏 → 第一行字段」的间距变成 16+16=31px，是全页唯一一处双倍间距 */}
-          <CardContent className="min-h-0 flex-1 space-y-3 overflow-y-auto pt-1 sm:pt-0 md:space-y-4">
+          {/* 头部 border-b 是工具栏与内容区的分割线，两侧都要留气：
+              py-4 垫的是「工具栏 → 分割线」，pt 垫的是「分割线 → 第一行字段」。
+              缺了 pt 第一排字段会紧贴分割线（不是双倍间距，是 0 间距）。 */}
+          <CardContent className="min-h-0 flex-1 space-y-3 overflow-y-auto pt-3 sm:pt-4 md:space-y-4">
             {pluginSection === 'plugin' && (
               <>
                 {/* 汇总所有SV命令Tags - 默认折叠，展开时才渲染 */}
