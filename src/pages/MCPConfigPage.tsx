@@ -7,6 +7,7 @@ import { tabToolbarControlClass } from '@/components/ui/TabButtonGroup';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { TruncatedText } from '@/components/ui/truncated-text';
 import { Separator } from '@/components/ui/separator';
 import {
   Server,
@@ -913,10 +914,10 @@ export default function MCPConfigPage() {
                       {/* Info */}
                       <div className="flex-1 min-w-0">
                         <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 sm:flex-nowrap sm:items-center sm:gap-2">
-                          <p className="order-1 min-w-0 flex-1 truncate font-medium text-sm">
+                          <p className="min-w-0 max-w-full truncate font-medium text-sm">
                             {config.name}
                           </p>
-                          <div className="order-3 flex w-full flex-wrap items-center gap-1.5 sm:order-none sm:w-auto sm:contents">
+                          <div className="flex w-full flex-wrap items-center gap-1.5 sm:w-auto sm:contents">
                           <Badge variant="outline" className="text-xs shrink-0">
                             <itemMeta.Icon className="h-3 w-3 mr-1" />
                             {itemMeta.short}
@@ -942,84 +943,77 @@ export default function MCPConfigPage() {
                             </Badge>
                           )}
                           </div>
-                          <div className="order-2 flex shrink-0 items-center gap-1 sm:order-none">
-                                  {/* Actions */}
-                                  <div className="flex items-center gap-1 shrink-0">
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <span>
-                                          <Switch
-                                            checked={config.enabled}
-                                            onCheckedChange={() => handleToggle(config)}
-                                          />
-                                        </span>
-                                      </TooltipTrigger>
-                                      <TooltipContent>
-                                        <p>{t('mcpConfig.toggleEnabled')}</p>
-                                      </TooltipContent>
-                                    </Tooltip>
-
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <Button
-                                          variant="ghost"
-                                          size="icon"
-                                          className="h-8 w-8"
-                                          onClick={() => openEditDialog(config)}
-                                        >
-                                          <Pencil className="h-4 w-4" />
-                                        </Button>
-                                      </TooltipTrigger>
-                                      <TooltipContent>
-                                        <p>{t('mcpConfig.editConfig')}</p>
-                                      </TooltipContent>
-                                    </Tooltip>
-
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <Button
-                                          variant="ghost"
-                                          size="icon"
-                                          className="h-8 w-8 text-destructive hover:text-destructive"
-                                          onClick={() => openDeleteDialog(config)}
-                                        >
-                                          <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                      </TooltipTrigger>
-                                      <TooltipContent>
-                                        <p>{t('mcpConfig.deleteConfig')}</p>
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  </div>
-                          </div>
                         </div>
                         {itemHttp ? (
-                          <p className="text-xs text-muted-foreground mt-0.5 break-all">
-                            <Globe className="h-3 w-3 inline mr-1" />
-                            <code className="bg-muted px-1 py-0.5 rounded text-[10px]">
-                              {config.url}
-                            </code>
-                          </p>
+                          <Badge variant="outline" className="mt-0.5 max-w-full font-normal">
+                            <Globe className="h-3 w-3 mr-1 shrink-0" />
+                            <TruncatedText
+                              text={config.url ?? ''}
+                              className="font-mono text-[10px]"
+                            />
+                          </Badge>
                         ) : (
-                          <p className="text-xs text-muted-foreground mt-0.5 break-all">
-                            <code className="bg-muted px-1 py-0.5 rounded text-[10px]">
-                              {config.command}
-                            </code>
-                            {itemArgs.length > 0 && (
-                              <span className="ml-1">
-                                {itemArgs.map((arg, i) => (
-                                  <span key={i}>
-                                    <code className="bg-muted px-1 py-0.5 rounded text-[10px] ml-1">
-                                      {arg}
-                                    </code>
-                                  </span>
-                                ))}
-                              </span>
-                            )}
-                          </p>
+                          <Badge variant="outline" className="mt-0.5 max-w-full font-normal">
+                            <TruncatedText
+                              text={
+                                itemArgs.length > 0
+                                  ? itemArgs.join(' ')
+                                  : (config.command ?? '')
+                              }
+                              className="font-mono text-[10px]"
+                            />
+                          </Badge>
                         )}
                       </div>
 
+                      {/* 操作区：行右端。窄屏 items-start 时与折叠钮同排对齐，sm+ 行内垂直居中 */}
+                      <div className="mt-0.5 flex shrink-0 items-center gap-1 sm:mt-0">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span>
+                              <Switch
+                                checked={config.enabled}
+                                onCheckedChange={() => handleToggle(config)}
+                              />
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{t('mcpConfig.toggleEnabled')}</p>
+                          </TooltipContent>
+                        </Tooltip>
+
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => openEditDialog(config)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{t('mcpConfig.editConfig')}</p>
+                          </TooltipContent>
+                        </Tooltip>
+
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive hover:text-destructive"
+                              onClick={() => openDeleteDialog(config)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{t('mcpConfig.deleteConfig')}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
                     </div>
 
                     {/* Expanded Details */}

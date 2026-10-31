@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { TruncatedText } from '@/components/ui/truncated-text';
 import {
   Table,
   TableBody,
@@ -309,10 +310,11 @@ export default function SchedulerPage() {
                   >
                     <TableCell>
                       <div>
-                        <p className="font-medium">{task.name}</p>
-                        <p className="text-xs text-muted-foreground truncate max-w-[200px]">
-                          {task.description}
-                        </p>
+                        <TruncatedText text={task.name} className="max-w-[28ch] font-medium" />
+                        <TruncatedText
+                          text={task.description}
+                          className="max-w-[200px] text-xs text-muted-foreground"
+                        />
                       </div>
                     </TableCell>
                     <TableCell className="hidden md:table-cell">

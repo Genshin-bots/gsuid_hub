@@ -5,6 +5,7 @@ import { TabButtonGroup, tabToolbarControlClass } from '@/components/ui/TabButto
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { TruncatedText } from '@/components/ui/truncated-text';
 import {
   Table,
   TableBody,
@@ -562,7 +563,9 @@ export default function BackupPage() {
                 <TableBody>
                   {backupList.map((backup) => (
                     <TableRow key={backup.id}>
-                      <TableCell className="font-medium">{backup.filename}</TableCell>
+                      <TableCell className="font-medium">
+                        <TruncatedText text={backup.filename} className="max-w-[40ch]" />
+                      </TableCell>
                       <TableCell>{formatBytes(backup.size)}</TableCell>
                       <TableCell>
                         {format(backup.createdAt, 'yyyy-MM-dd HH:mm', { locale: zhCN })}

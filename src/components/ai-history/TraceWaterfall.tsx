@@ -1,6 +1,7 @@
 import {
   useMemo,
   useState,
+  useRef,
   useCallback,
   useEffect,
   useImperativeHandle,
@@ -11,7 +12,7 @@ import {
 } from 'react';
 import { cn, formatTokens } from '@/lib/utils';
 import type { SessionLogEntry, HistoryResetReason, AITool } from '@/lib/api';
-import { aiToolsApi } from '@/lib/api';
+import { aiStatisticsApi, aiToolsApi } from '@/lib/api';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ModelBrandIconIfKnown } from '@/components/ui/model-brand-icon';
 import {
@@ -33,6 +34,12 @@ import {
   Loader2,
   AlignLeft,
   Sparkles,
+  Zap,
+  PenLine,
+  CircleSlash,
+  ArrowDownRight,
+  Coins,
+  Timer,
 } from 'lucide-react';
 
 // 工具名 → 元数据（description/plugin/category）。由顶层 TraceWaterfall 拉一次 /api/ai/tools/list
@@ -782,7 +789,8 @@ function spanPreview(sp: TraceSpan, t: TFunc): string {
 // span 是否可展开（有子 span、有附属内容、或有可读主内容）
 function spanExpandable(sp: TraceSpan): boolean {
   if (sp.children.length > 0) return true;
-  if (sp.contentEntries && sp.contentEntries.length > 0) return true;
+  // step_usage 已由 chat 行尾用量徽章覆盖，展开面板不渲染，不算可展开内容
+  if (sp.contentEntries?.some((e) => e.type !== 'step_usage')) return true;
   if (sp.kind === 'subagent') return true;
   const et = sp.entry?.type;
   if (!et) return false;
@@ -933,21 +941,7 @@ function EntryBlock({
     return null; // token 已作徽章展示，内容面板不重复
   }
   if (entry.type === 'step_usage') {
-    const parts = [
-      `${t('aiHistory.waterfall.usage.input')} ${formatTokens(asNum(d.input_tokens))}`,
-      `${t('aiHistory.waterfall.usage.cacheRead')}/${t('aiHistory.waterfall.usage.cacheWrite')} ${formatTokens(asNum(d.cache_read_tokens))}/${formatTokens(asNum(d.cache_write_tokens))}`,
-      `${t('aiHistory.waterfall.usage.output')} ${formatTokens(asNum(d.output_tokens))}`,
-    ];
-    if (asNum(d.ttft_ms) > 0) parts.push(`TTFT ${d.ttft_ms}ms`);
-    if (asNum(d.tps) > 0) parts.push(`TPS ${d.tps}`);
-    if (asNum(d.tool_calls) > 0)
-      parts.push(`${t('aiHistory.waterfall.usage.toolCalls')} ${d.tool_calls}`);
-    return (
-      <div className="min-w-0 max-w-full">
-        {label('aiHistory.entryType.stepUsage')}
-        <p className="text-xs font-mono text-muted-foreground break-words">{parts.join(' · ')}</p>
-      </div>
-    );
+    return null; // 每步用量已由 chat 行尾徽章覆盖，内容面板不重复
   }
   if (entry.type === 'error') {
     return (
@@ -1117,24 +1111,143 @@ function EntryBlock({
   return <pre className={PLAIN_BLOCK}>{content}</pre>;
 }
 
-// token 徽章（chat：↗in ↙out ⚡hit%；run：Σ 合计）。hover 展开 input/缓存/未命中/output/TTFT 明细。
-function TokenBadges({ sp, t, className }: { sp: TraceSpan; t: TFunc; className?: string }) {
+// 费用估算缓存：模型+用量相同的请求只问一次后端（Promise 级缓存，并发 hover 去重）
+const costCache = new Map<string, Promise<number | null>>();
+
+function estimateCostOnce(model: string, inp: number, out: number, cr: number, cw: number) {
+  const key = `${model}|${inp}|${out}|${cr}|${cw}`;
+  let p = costCache.get(key);
+  if (!p) {
+    p = aiStatisticsApi
+      .estimateCost({
+        model,
+        input_tokens: inp,
+        output_tokens: out,
+        cache_read_tokens: cr,
+        cache_write_tokens: cw,
+      })
+      .then((d) => (d && typeof d.cost === 'number' ? d.cost : 0))
+      // 旧后端无此接口 → 返回 null，费用项不显示
+      .catch(() => null);
+    costCache.set(key, p);
+  }
+  return p;
+}
+
+// 与 /ai-statistics 同口径：USD 按用户的币种设置折算（同一对 localStorage key）
+function formatEstimatedCost(usd: number): string {
+  let cur = 'CNY';
+  let rate = 7.2;
+  try {
+    const c = localStorage.getItem('gsuid_stat_currency');
+    if (c === 'USD' || c === 'CNY') cur = c;
+    const r = parseFloat(localStorage.getItem('gsuid_stat_cny_rate') || '');
+    if (!Number.isNaN(r) && r > 0) rate = r;
+  } catch {
+    // localStorage 不可用（隐私模式）用默认 CNY / 7.2
+  }
+  const val = cur === 'CNY' ? usd * rate : usd;
+  const sym = cur === 'CNY' ? '¥' : '$';
+  return val < 0.01 ? `${sym}${val.toFixed(4)}` : `${sym}${val.toFixed(2)}`;
+}
+
+// token 徽章（chat：↗in ↙out ⚡hit%；run：Σ 合计）。hover 展开图例（缓存/未命中/输出/TTFT/估算费用）+ 构成细条。
+// leading：徽章最前面的附加图标位（chat 模型与 run 一致时，品牌 ICON 并入徽章）。
+function TokenBadges({
+  sp,
+  t,
+  className,
+  leading,
+}: {
+  sp: TraceSpan;
+  t: TFunc;
+  className?: string;
+  leading?: JSX.Element;
+}) {
   const inTok = sp.kind === 'run' ? sp.sumTokensIn : sp.tokensIn;
   const outTok = sp.kind === 'run' ? sp.sumTokensOut : sp.tokensOut;
   const cacheR = sp.kind === 'run' ? sp.sumCacheRead : sp.cacheRead;
   const cacheW = sp.kind === 'run' ? sp.sumCacheWrite : sp.cacheWrite;
+  const [cost, setCost] = useState<number | null>(null);
+  const costRequested = useRef(false);
   if (!inTok && !outTok) return null;
   // input_tokens 已含 cache_read+cache_write（pydantic-ai UsageBase 归一），命中率只按读算
   const pct = inTok ? Math.round(((cacheR || 0) / inTok) * 100) : null;
-  const rows: [string, string][] = [
-    [t('aiHistory.waterfall.usage.input'), formatTokens(inTok || 0)],
-    [t('aiHistory.waterfall.usage.cacheRead'), formatTokens(cacheR || 0)],
-    [t('aiHistory.waterfall.usage.cacheWrite'), formatTokens(cacheW || 0)],
-    [t('aiHistory.waterfall.usage.uncached'), formatTokens((inTok || 0) - (cacheR || 0))],
-    [t('aiHistory.waterfall.usage.output'), formatTokens(outTok || 0)],
+  // 未命中 = 输入 − 缓存读 − 缓存写（写入缓存的 prompt 不算 miss），与构成条同口径
+  const uncached = Math.max(0, (inTok || 0) - (cacheR || 0) - (cacheW || 0));
+  // 图例 + 构成条共用一套分段：缓存读 → 缓存写 → 未命中输入 → 输出，合计 = in + out
+  const segments: { label: string; value: number; bar: string; icon: JSX.Element }[] = [
+    {
+      label: t('aiHistory.waterfall.usage.cacheRead'),
+      value: cacheR || 0,
+      bar: 'bg-amber-500',
+      icon: <Zap className="w-3 h-3 text-amber-500" />,
+    },
+    {
+      label: t('aiHistory.waterfall.usage.cacheWrite'),
+      value: cacheW || 0,
+      bar: 'bg-amber-300',
+      icon: <PenLine className="w-3 h-3 text-amber-500/80" />,
+    },
+    {
+      label: t('aiHistory.waterfall.usage.uncached'),
+      value: uncached,
+      bar: 'bg-muted-foreground/30',
+      icon: <CircleSlash className="w-3 h-3 text-muted-foreground" />,
+    },
+    {
+      label: t('aiHistory.waterfall.usage.output'),
+      value: outTok || 0,
+      bar: 'bg-emerald-500',
+      icon: <ArrowDownRight className="w-3 h-3 text-emerald-500" />,
+    },
   ];
+  const total = (inTok || 0) + (outTok || 0);
+  const barSegs = segments.filter((s) => s.value > 0);
+
+  // 计价单元：chat 用自身用量；run 按各子 chat 逐一估算后求和（Σ 合计可能跨模型）
+  const costUnits = (() => {
+    if (sp.kind === 'chat' && sp.model)
+      return [
+        {
+          model: sp.model,
+          inp: inTok || 0,
+          out: outTok || 0,
+          cr: cacheR || 0,
+          cw: cacheW || 0,
+        },
+      ];
+    if (sp.kind === 'run')
+      return sp.children.flatMap((c) =>
+        c.kind === 'chat' && c.model
+          ? [
+              {
+                model: c.model,
+                inp: c.tokensIn || 0,
+                out: c.tokensOut || 0,
+                cr: c.cacheRead || 0,
+                cw: c.cacheWrite || 0,
+              },
+            ]
+          : [],
+      );
+    return [];
+  })();
+
+  const fetchCost = () => {
+    if (costRequested.current || costUnits.length === 0) return;
+    costRequested.current = true;
+    Promise.all(costUnits.map((u) => estimateCostOnce(u.model, u.inp, u.out, u.cr, u.cw))).then(
+      (vals) => {
+        // 全部失败 = 后端无此接口：不显示费用项
+        if (vals.every((v) => v === null)) return;
+        setCost(vals.reduce<number>((s, v) => s + (v ?? 0), 0));
+      },
+    );
+  };
+
   return (
-    <Tooltip>
+    <Tooltip onOpenChange={(open) => open && fetchCost()}>
       <TooltipTrigger asChild>
         <span
           className={cn(
@@ -1142,25 +1255,57 @@ function TokenBadges({ sp, t, className }: { sp: TraceSpan; t: TFunc; className?
             className,
           )}
         >
+          {leading}
           {sp.kind === 'run' && <span className="opacity-70">Σ</span>}
           <span className="text-sky-500">↗{formatTokens(inTok || 0)}</span>
           <span className="text-emerald-500">↙{formatTokens(outTok || 0)}</span>
           {pct !== null && <span className="text-amber-500">⚡{pct}%</span>}
         </span>
       </TooltipTrigger>
-      <TooltipContent className="space-y-0.5 text-xs font-mono">
-        {rows.map(([k, v]) => (
-          <p key={k} className="flex justify-between gap-4">
-            <span className="text-muted-foreground">{k}</span>
-            <span>{v}</span>
-          </p>
-        ))}
-        {sp.ttftMs ? (
-          <p className="flex justify-between gap-4">
-            <span className="text-muted-foreground">{t('aiHistory.waterfall.usage.ttft')}</span>
-            <span>{sp.ttftMs}ms</span>
-          </p>
-        ) : null}
+      <TooltipContent className="px-3 py-2">
+        {/* 图例行：icon + 名称 + 数值单行不换行；细条独占一行，颜色与图例一致 */}
+        <div className="flex items-center gap-x-3 whitespace-nowrap text-[10px] font-mono">
+          {segments
+            .filter((s) => s.value > 0)
+            .map((s) => (
+              <span key={s.label} className="inline-flex items-center gap-1 whitespace-nowrap">
+                {s.icon}
+                <span className="text-muted-foreground">{s.label}</span>
+                <span>{formatTokens(s.value)}</span>
+              </span>
+            ))}
+          {sp.ttftMs ? (
+            <span className="inline-flex items-center gap-1 whitespace-nowrap">
+              <Timer className="w-3 h-3 text-indigo-400" />
+              <span className="text-muted-foreground">
+                {t('aiHistory.waterfall.usage.ttft')}
+              </span>
+              <span>{sp.ttftMs}ms</span>
+            </span>
+          ) : null}
+          {cost !== null && cost > 0 && (
+            <span className="inline-flex items-center gap-1 whitespace-nowrap">
+              <Coins className="w-3 h-3 text-yellow-500" />
+              <span className="text-muted-foreground">{t('aiHistory.waterfall.usage.cost')}</span>
+              <span>≈{formatEstimatedCost(cost)}</span>
+            </span>
+          )}
+        </div>
+        <div className="mt-1.5 flex h-1.5 w-full overflow-hidden rounded-full bg-muted/60">
+          {barSegs.map((s, i) => (
+            <div
+              key={s.label}
+              title={`${s.label} ${formatTokens(s.value)}`}
+              className={cn(
+                'h-full',
+                s.bar,
+                i === 0 && 'rounded-l-full',
+                i === barSegs.length - 1 && 'rounded-r-full',
+              )}
+              style={{ width: `${(s.value / total) * 100}%` }}
+            />
+          ))}
+        </div>
       </TooltipContent>
     </Tooltip>
   );
@@ -1220,6 +1365,8 @@ interface RowCtx {
   t: TFunc;
   loadSubAgent?: (agentData: Record<string, unknown>) => Promise<SessionLogEntry[] | null>;
   subCache: Record<string, SessionLogEntry[] | 'loading' | 'error'>;
+  // 所在 run 的模型：chat 行模型名与之一致时只画品牌 ICON，不再重复整串名字
+  runModel?: string;
   requestSub: (id: string, agentData: Record<string, unknown>) => void;
 }
 
@@ -1345,15 +1492,40 @@ function SpanRow({ sp, depth, ctx }: { sp: TraceSpan; depth: number; ctx: RowCtx
               {childCount}
             </span>
           )}
-          {sp.kind === 'chat' && sp.model && <ModelChip model={sp.model} />}
+          {/* 模型与 run 一致时品牌 ICON 并进用量徽章（run 头已显示全名），不同才画完整徽章；
+              chat 的用量徽章紧跟模型徽章，其余 span 仍在行尾 */}
+          {sp.kind === 'chat' && sp.model && sp.model !== ctx.runModel && (
+            <ModelChip model={sp.model} />
+          )}
+          {sp.kind === 'chat' &&
+            sp.model &&
+            sp.model === ctx.runModel &&
+            !(sp.tokensIn || sp.tokensOut) && (
+              <span className="hidden lg:inline-flex items-center shrink-0" title={sp.model}>
+                <ModelBrandIconIfKnown modelName={sp.model} size={12} />
+              </span>
+            )}
+          {sp.kind === 'chat' && (
+            <TokenBadges
+              sp={sp}
+              t={t}
+              leading={
+                sp.model && sp.model === ctx.runModel ? (
+                  <ModelBrandIconIfKnown modelName={sp.model} size={12} />
+                ) : undefined
+              }
+            />
+          )}
           {preview && (
             <span className="flex-1 min-w-0 truncate text-xs text-muted-foreground/60">
               {preview}
             </span>
           )}
-          <span className="ml-auto shrink-0">
-            <TokenBadges sp={sp} t={t} />
-          </span>
+          {sp.kind !== 'chat' && (
+            <span className="ml-auto shrink-0">
+              <TokenBadges sp={sp} t={t} />
+            </span>
+          )}
         </div>
 
         {/* 局部时间轴（相对所在 run 块的时间窗） */}
@@ -1368,7 +1540,7 @@ function SpanRow({ sp, depth, ctx }: { sp: TraceSpan; depth: number; ctx: RowCtx
       {/* 展开：内容面板 + 子 span */}
       {isOpen && expandable && (
         <div>
-          {(sp.entry || (sp.contentEntries && sp.contentEntries.length > 0)) && (
+          {(sp.entry || sp.contentEntries?.some((e) => e.type !== 'step_usage')) && (
             <div
               // marginLeft 缩进后宽度必须扣掉缩进，否则 max-w-full 仍按父宽 100% 计算，总宽会溢出
               style={{
@@ -1435,6 +1607,7 @@ function RunBlock({ sp, base }: { sp: TraceSpan; base: RowBase }) {
     windowStart: sp.start,
     windowSpan: Math.max(sp.end - sp.start, 0.001),
     showTimeline: true,
+    runModel: sp.model,
   };
   const dur = sp.end - sp.start;
   return (

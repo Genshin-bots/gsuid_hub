@@ -1,6 +1,6 @@
 {
   "title": "Agent ランタイム",
-  "description": "キット槽の健全性、Hook の装着、関係温度の照会、全員の好感度、認知インデックス（世界ハブ / ノード記事）。キットと関係は読み取り専用。再マウントは記憶グラフを触りません。",
+  "description": "キット槽の健全性、Hook の装着、全員の関係温度、認知インデックス（世界ハブ / ノード記事）。キットと関係は読み取り専用。再マウントは記憶グラフを触りません。",
   "backendTooOld": "この gsuid_core は古く、ランタイム診断 API がありません。バックエンドをアップグレードしてください。",
   "loadFailed": "読み込みに失敗しました",
   "tabs": {
@@ -12,7 +12,6 @@
     "ops": "運用診断"
   },
   "slots": {
-    "count": "{count} 槽",
     "sealedEmptyCount": "密封槽が空 {count}",
     "unhealthyCount": "不健全 {count}",
     "sealedEmptyHint": "密封槽（発話方針 / 身元アンカー）に占有者がいません。安全面が開いています。",
@@ -27,12 +26,6 @@
     "exclusive": "独占槽"
   },
   "hooks": {
-    "enabled": "バス ON",
-    "disabled": "バス OFF",
-    "total": "{count} 件装着",
-    "wiredEmpty": "配線済・空き {count}",
-    "unwiredCount": "未発火 {count}",
-    "hint": "wired=false は契約のみでカーネルがまだ発火していない状態であり、障害ではありません。配線済で owners が空なら、対応する槽がオフである場合が多いです。",
     "empty": "Hook 点がありません。",
     "colName": "ポイント",
     "colWired": "配線",
@@ -45,15 +38,8 @@
     "notFired": "未発火"
   },
   "relationship": {
-    "title": "関係温度を照会",
-    "desc": "スコアは内部量で、このページのみに表示します。last_reason が急冷の理由です。",
-    "userId": "ユーザー ID",
     "botId": "Bot ID",
-    "botPlaceholder": "空欄可",
-    "lookup": "照会",
-    "userRequired": "ユーザー ID を入力してください",
-    "unscored": "ユーザー {user} はまだ採点されていません。",
-    "score": "スコア（コンソールのみ）",
+    "score": "スコア",
     "scoreHint": "スコアをモデルやチャット UI に出さないでください。",
     "lastReason": "前回理由",
     "lastDelta": "前回変化",

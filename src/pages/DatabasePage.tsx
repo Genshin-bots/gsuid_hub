@@ -51,6 +51,7 @@ import {
 import { SearchableMenu } from '@/components/ui/searchable-menu';
 import { PluginUsageBar } from '@/components/plugins/PluginUsageBar';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { TruncatedText } from '@/components/ui/truncated-text';
 import {
   Search,
   Plus,
@@ -903,7 +904,10 @@ export default function DatabasePage() {
                                   {item[col.name] ? t('database.yes') : t('database.no')}
                                 </Badge>
                               ) : (
-                                String(item[col.name] ?? '')
+                                <TruncatedText
+                                  text={String(item[col.name] ?? '')}
+                                  className="max-w-[24ch]"
+                                />
                               )}
                             </TableCell>
                           ))}
@@ -954,18 +958,14 @@ export default function DatabasePage() {
                         <div className="flex items-center justify-between gap-2">
                           {headerCol && (
                             <div className="min-w-0 flex-1">
-                              <div
-                                className="truncate text-xs text-muted-foreground"
-                                title={headerCol.title}
-                              >
-                                {headerCol.title}
-                              </div>
-                              <div
-                                className="truncate text-sm font-medium"
-                                title={String(item[headerCol.name] ?? '')}
-                              >
-                                {String(item[headerCol.name] ?? '')}
-                              </div>
+                              <TruncatedText
+                                text={headerCol.title}
+                                className="text-xs text-muted-foreground"
+                              />
+                              <TruncatedText
+                                text={String(item[headerCol.name] ?? '')}
+                                className="text-sm font-medium"
+                              />
                             </div>
                           )}
                           <div className="flex shrink-0 gap-1">
@@ -992,12 +992,10 @@ export default function DatabasePage() {
                               const isBool = typeof cellValue === 'boolean';
                               return (
                                 <div key={col.name} className="min-w-0">
-                                  <div
-                                    className="truncate text-xs text-muted-foreground"
-                                    title={col.title}
-                                  >
-                                    {col.title}
-                                  </div>
+                                  <TruncatedText
+                                    text={col.title}
+                                    className="text-xs text-muted-foreground"
+                                  />
                                   {isBool ? (
                                     <Badge
                                       variant={cellValue ? 'default' : 'secondary'}
@@ -1005,12 +1003,10 @@ export default function DatabasePage() {
                                       {cellValue ? t('database.yes') : t('database.no')}
                                     </Badge>
                                   ) : (
-                                    <div
-                                      className="truncate text-sm"
-                                      title={String(cellValue ?? '')}
-                                    >
-                                      {String(cellValue ?? '')}
-                                    </div>
+                                    <TruncatedText
+                                      text={String(cellValue ?? '')}
+                                      className="text-sm"
+                                    />
                                   )}
                                 </div>
                               );

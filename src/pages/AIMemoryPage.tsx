@@ -945,9 +945,9 @@ function KnowledgeGraph({
         className={cn('w-full h-full glass-card', isFullscreen ? '' : 'rounded-lg')}
         style={{ cursor: 'grab' }}
       />
-      {/* 顶部悬浮工具栏：分离为三个独立组件（范围选择器、搜索框、操作按钮） */}
-      <div className="absolute top-3 left-3 max-w-[calc(100%-88px)] flex flex-wrap items-center gap-2.5 z-10 pointer-events-auto">
-        {/* 组件 1：范围选择器（独立胶囊） */}
+      {/* 顶部悬浮工具栏：左 = 范围选择器 + 搜索框；右 = 操作胶囊 + 缩放控件 */}
+      <div className="absolute top-3 left-3 max-w-[calc(100%-130px)] sm:max-w-[calc(100%-250px)] flex flex-wrap items-center gap-2.5 z-10 pointer-events-auto">
+        {/* 范围选择器（独立胶囊，scope 名较长给足宽度） */}
         {scopes && onScopeChange && (
           <div className="glass-float rounded-lg p-1 border border-border/50 shadow-sm shrink-0">
             <ScopeSelector
@@ -955,14 +955,14 @@ function KnowledgeGraph({
               onChange={onScopeChange}
               scopes={scopes}
               allLabel={t('aiMemory.allScopes')}
-              className="h-8 text-xs border-0 bg-transparent shadow-none w-[150px] sm:w-[180px]"
+              className="h-8 text-xs border-0 bg-transparent shadow-none w-[200px] sm:w-[260px]"
             />
           </div>
         )}
 
-        {/* 组件 2：节点搜索框（独立搜索控件，清晰明显的输入底板与边框） */}
+        {/* 节点搜索框（独立搜索控件，清晰明显的输入底板与边框） */}
         <form
-          className="glass-float relative flex items-center rounded-lg px-2.5 py-0.5 border border-border/60 shadow-sm w-[210px] sm:w-[280px]"
+          className="glass-float relative flex items-center rounded-lg px-2.5 py-0.5 border border-border/60 shadow-sm w-[150px] sm:w-[190px]"
           onSubmit={handleSearchSubmit}
         >
           <Search className="h-4 w-4 shrink-0 text-primary mr-1.5" />
@@ -1014,8 +1014,9 @@ function KnowledgeGraph({
             </div>
           )}
         </form>
-
-        {/* 组件 3：操作按钮组（清除当前范围记忆 & 刷新，独立胶囊） */}
+      </div>
+      {/* 右上角：操作胶囊（清除当前范围记忆 & 刷新）+ 缩放控件 */}
+      <div className="absolute top-3 right-3 z-10 flex flex-col items-end gap-2">
         {(onClearMemory || onRefresh) && (
           <div className="glass-float flex items-center gap-1 rounded-lg p-1 border border-border/50 shadow-sm shrink-0">
             {onClearMemory && (
@@ -1047,10 +1048,8 @@ function KnowledgeGraph({
             )}
           </div>
         )}
-      </div>
-      {/* Controls */}
-      <div className="absolute top-3 right-3 flex flex-col gap-1">
-        <Button
+        <div className="flex flex-col gap-1">
+          <Button
           variant="outline"
           size="icon"
           className="h-8 w-8 bg-background/80 backdrop-blur"
@@ -1066,14 +1065,15 @@ function KnowledgeGraph({
         >
           <ZoomOut className="w-4 h-4" />
         </Button>
-        <Button
-          variant="outline"
-          size="icon"
-          className="h-8 w-8 bg-background/80 backdrop-blur"
-          onClick={toggleFullscreen}
-        >
-          <Maximize2 className="w-4 h-4" />
-        </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-8 w-8 bg-background/80 backdrop-blur"
+            onClick={toggleFullscreen}
+          >
+            <Maximize2 className="w-4 h-4" />
+          </Button>
+        </div>
       </div>
       {/* Layout indicator */}
       {isLayoutRunning && (

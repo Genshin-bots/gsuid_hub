@@ -49,7 +49,6 @@
     "agentLinked": "Sub Agent",
     "toolsList": "Tools List",
     "toolsChange": "Tools Change",
-    "stepUsage": "Step Usage",
     "proactiveEmission": "Proactive Emission"
   },
   "filterTitle": "Filters",
@@ -107,6 +106,7 @@
       "ttft": "TTFT",
       "tps": "TPS",
       "toolCalls": "Tool calls",
+      "cost": "Cost",
       "sessionTotal": "{runs} runs"
     }
   },

@@ -35,6 +35,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { tabToolbarControlClass } from '@/components/ui/TabButtonGroup';
+import { TruncatedText } from '@/components/ui/truncated-text';
 import { autonomyApi, getApiErrorMessage, type AutonomyActivity } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { AUTONOMY_PERSONA_ALL } from './constants';
@@ -247,11 +248,13 @@ export function AutonomyPanel(props: AutonomyPanelProps) {
                           <TableCell className="whitespace-nowrap text-xs">
                             {formatWhen(row.created_at)}
                           </TableCell>
-                          <TableCell>{row.persona_name}</TableCell>
+                          <TableCell>
+                            <TruncatedText text={row.persona_name} className="max-w-[20ch]" />
+                          </TableCell>
                           <TableCell>{driveLabel(row.drive_kind)}</TableCell>
                           <TableCell>{deliveryLabel(row.delivery_mode)}</TableCell>
-                          <TableCell className="max-w-[360px] truncate">
-                            {row.summary || t('aiAutonomy.noSummary')}
+                          <TableCell className="max-w-[360px]">
+                            <TruncatedText text={row.summary || t('aiAutonomy.noSummary')} />
                           </TableCell>
                           <TableCell className="text-right tabular-nums">{row.step_count}</TableCell>
                         </TableRow>

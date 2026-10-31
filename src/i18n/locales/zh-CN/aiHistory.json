@@ -49,7 +49,6 @@
     "agentLinked": "子Agent",
     "toolsList": "工具列表",
     "toolsChange": "工具变化",
-    "stepUsage": "每步用量",
     "proactiveEmission": "主动发言"
   },
   "filterTitle": "筛选条件",
@@ -107,6 +106,7 @@
       "ttft": "TTFT",
       "tps": "TPS",
       "toolCalls": "工具调用",
+      "cost": "费用",
       "sessionTotal": "{runs} 轮"
     }
   },

@@ -6224,6 +6224,26 @@ export const aiStatisticsApi = {
     return api.get<ActiveUserItem[]>(`/api/ai/statistics/active-users?${query.toString()}`);
   },
 
+  /** 估算单次模型调用费用（USD）。旧后端无此接口时调用方静默降级（不显示费用项）。 */
+  estimateCost: (params: {
+    model: string;
+    input_tokens: number;
+    output_tokens: number;
+    cache_read_tokens?: number;
+    cache_write_tokens?: number;
+  }) => {
+    const query = new URLSearchParams();
+    query.set('model', params.model);
+    query.set('input_tokens', String(params.input_tokens));
+    query.set('output_tokens', String(params.output_tokens));
+    if (params.cache_read_tokens) query.set('cache_read_tokens', String(params.cache_read_tokens));
+    if (params.cache_write_tokens)
+      query.set('cache_write_tokens', String(params.cache_write_tokens));
+    return api.get<{ cost: number; currency: string }>(
+      `/api/ai/statistics/estimate-cost?${query.toString()}`,
+    );
+  },
+
   getTriggerDistribution: (date?: string) => {
     const query = new URLSearchParams();
     if (date) query.set('date', date);

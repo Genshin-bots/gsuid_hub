@@ -255,6 +255,8 @@ Switch：不要加冗余 `data-[state=checked]:bg-primary`；被 `TooltipTrigger
 
 滚动容器：`SidebarInset` 自己是 `<main>`，真正滚动的是内部那个。调试用 `document.querySelector('.layout-page-inner').parentElement`（P-23）。桌面下 `.layout-page-inner` 的 `scrollWidth - clientWidth` 必须为 0（P-28）。
 
+溢出容器会硬切子元素投影（控件下方的「黑色切割边」就是 `box-shadow` 被裁）：装带阴影控件的横向滚动容器必须走内置规则——`.page-pinned-toolbar` 与 `.layout-page-inner .overflow-x-auto/.overflow-x-scroll` 已内置「`overflow-y: clip` + 下 padding 3rem + 等量负 margin」；新容器照抄，不要裸写 `overflow`，也别指望 `overflow-clip-margin`（x 滚动轴旁 y 的 clip 计算成 hidden，该属性无效）（P-39）。
+
 ### 窄屏与文本排版铁律 ★★★
 
 **① 文本永远单行，过长用 `...` 截断，任何时候都不许折行。** 折行会把同排控件顶成一高一低，整块排版垮掉（两列网格里最明显）。`truncate` 必须配 `min-w-0`（flex item 的 `min-width:auto` 拒绝收缩，文字照样撑出容器）；图标 / 徽标 / `?` 问号一律 `shrink-0`；截断后补 `title`。字段标题见 `ConfigField` / `DynamicConfigPanel`。

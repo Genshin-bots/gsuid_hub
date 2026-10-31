@@ -1,6 +1,6 @@
 {
   "title": "Agent 运行时",
-  "description": "套件槽健康、Hook 挂载、关系温度查询、全部角色好感度、认知索引（世界枢纽 / 节点挂文）。套件与关系只读；重建挂载不碰记忆图。",
+  "description": "套件槽健康、Hook 挂载、全部角色关系温度、认知索引（世界枢纽 / 节点挂文）。套件与关系只读；重建挂载不碰记忆图。",
   "backendTooOld": "当前 gsuid_core 版本过旧，缺少运行时诊断接口。请升级后端。",
   "loadFailed": "加载失败",
   "tabs": {
@@ -12,7 +12,6 @@
     "ops": "运维诊断"
   },
   "slots": {
-    "count": "共 {count} 个槽",
     "sealedEmptyCount": "{count} 个密封槽为空",
     "unhealthyCount": "{count} 个不健康",
     "sealedEmptyHint": "密封槽（出站话术 / 身份锚）当前没有占用者，安全面已被拆开。",
@@ -27,12 +26,6 @@
     "exclusive": "独占槽"
   },
   "hooks": {
-    "enabled": "总线已开",
-    "disabled": "总线已关",
-    "total": "{count} 个挂载",
-    "wiredEmpty": "{count} 个已接线无占用",
-    "unwiredCount": "{count} 个未开火",
-    "hint": "wired=false 表示契约已定、内核尚未在该点开火，不是故障。已接线但 owners 为空，通常是对应槽被关了。",
     "empty": "没有 Hook 点位。",
     "colName": "点位",
     "colWired": "接线",
@@ -45,15 +38,8 @@
     "notFired": "内核未开火"
   },
   "relationship": {
-    "title": "查询关系温度",
-    "desc": "分数是内部量，只在本页展示。last_reason 解释「为什么突然变冷」。",
-    "userId": "用户 ID",
     "botId": "Bot ID",
-    "botPlaceholder": "可留空",
-    "lookup": "查询",
-    "userRequired": "请填写用户 ID",
-    "unscored": "用户 {user} 尚未打分。",
-    "score": "分数（仅控制台）",
+    "score": "分数",
     "scoreHint": "不要把分数展示给模型或聊天界面。",
     "lastReason": "上次原因",
     "lastDelta": "上次变化",

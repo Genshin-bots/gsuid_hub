@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { SearchableMenu } from '@/components/ui/searchable-menu';
+import { TruncatedText } from '@/components/ui/truncated-text';
 import { tabToolbarControlClass } from '@/components/ui/TabButtonGroup';
 import GitMirrorDialog, { getMirrorBadge } from '@/components/GitMirrorDialog';
 import {
@@ -1282,8 +1283,8 @@ export default function GitUpdatePage() {
                   <TableRow key={plugin.name}>
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-2">
-                        <PluginIcon pluginName={plugin.name} className="w-5 h-5" />
-                        <span>{plugin.name}</span>
+                        <PluginIcon pluginName={plugin.name} className="w-5 h-5 shrink-0" />
+                        <TruncatedText text={plugin.name} className="max-w-[24ch]" />
                       </div>
                     </TableCell>
                     <TableCell>
@@ -1309,8 +1310,8 @@ export default function GitUpdatePage() {
                         </span>
                       )}
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground max-w-xs truncate">
-                      {plugin.message || '-'}
+                    <TableCell className="text-sm text-muted-foreground max-w-xs">
+                      <TruncatedText text={plugin.message || '-'} />
                     </TableCell>
                   </TableRow>
                 ))}

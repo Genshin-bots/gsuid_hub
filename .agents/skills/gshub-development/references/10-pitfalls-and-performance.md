@@ -674,6 +674,31 @@ const cs = (el: Element | null) =>
 - 侧栏宽度过渡不要加 `will-change`，图标模式不要写 `transform: translateX(0)`。
 - 液态菜单项不要 `transition: all`。
 
+### P-39 溢出容器把子元素投影硬切成「黑边」★★
+
+**症状**：分段组 / 卡片正下方贴着一条深色横带，边缘笔直，像被刀切——TabButtonGroup 下方最明显。
+
+**根因**：`.tab-segment-row`、`.glass-card` 等都带向下延伸 30~50px 的 `box-shadow` 尾巴。任何 `overflow: hidden/clip/auto` 祖先都会在自己的 **padding 边缘**把它硬裁掉：
+
+- `overflow-x: auto` 按规范会把 `overflow-y` 也变成 `auto`；写 `overflow-y: clip` 同样会在 x 滚动轴旁计算成 **`hidden`**（不是 clip！），多余竖向滚动条不出现，但裁边固定在 padding 边；
+- 所以 **`overflow-clip-margin` 在横向滚动容器上永远不生效**——它只对 `clip` 轴有效，而这里 y 轴算出来是 `hidden`。
+
+`--shadow-bleed`（12px）安全区只够阴影开头一段，尾巴被切就成了黑带。
+
+**修法（index.css 已全局铺好；新容器照抄，不要裸写 overflow）**：
+
+```css
+overflow-y: clip;   /* 意图声明：y 轴不滚动（规范下落成 hidden） */
+padding: var(--shadow-bleed) var(--shadow-bleed) 3rem; /* 下 padding 加大，让投影尾巴完整落在裁切区内 */
+margin: calc(var(--shadow-bleed) * -1) calc(var(--shadow-bleed) * -1) -3rem; /* 负 margin 抵消布局位移 */
+```
+
+后续兄弟元素在 DOM 后绘制，覆盖延出来的 padding 空白区，命中测试与间距节奏都不受影响。
+
+- `.page-pinned-toolbar` 与 `.layout-page-inner .overflow-x-auto/.overflow-x-scroll` 已内置。
+- 真正的双轴滚动容器（表格 `overflow-auto`）裁边固定在 padding 边，别拿来放带投影的控件，或接受裁切。
+- `.overflow-x-auto` 容器不要再叠 `max-h` 指望纵向滚动（hidden 后内容不可达）。
+
 ## B. 性能优化
 
 ### B.1 图片
@@ -744,4 +769,5 @@ const cs = (el: Element | null) =>
 - [ ] 浮层里的懒加载/懒初始化不靠 effect 读 ref：Radix `Portal` 晚一 tick 挂载，observer 永远建不起来（P-35）
 - [ ] 「变灰/冻结」用 `opacity` + 虚线边框，不用 `text-muted-foreground`；`input` / `[role=combobox]` 的边框背景要去 `index.css` 改（P-36）
 - [ ] 邮箱输入用 `type="text"` + `inputMode="email"`，Twemoji `@font-face` 必须带 emoji `unicode-range`（P-37）
+- [ ] 装带投影控件的横向滚动容器走内置规则（`.page-pinned-toolbar` / `.layout-page-inner .overflow-x-*` 已内置）；新溢出容器照抄「`overflow-y: clip` + 下 padding 3rem + 负 margin」三件套，`overflow-clip-margin` 在 x 滚动轴旁无效（P-39）
 - [ ] `npx tsc --noEmit -p tsconfig.app.json` 不新增报错

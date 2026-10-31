@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { tabToolbarControlClass, tabToolbarIconButtonClass } from '@/components/ui/TabButtonGroup';
 import { Input } from '@/components/ui/input';
+import { TruncatedText } from '@/components/ui/truncated-text';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import {
@@ -621,9 +622,15 @@ export default function AIScheduledTasksPage() {
                         <div className="flex min-w-0 items-center gap-2">
                           {/* 状态列 lg 以下被隐藏，窄屏把徽章挪到描述前面 */}
                           <span className="shrink-0 lg:hidden">{getStatusBadge(task.status)}</span>
-                          <p className="font-medium truncate max-w-[300px]">{task.task_prompt}</p>
+                          <TruncatedText
+                            text={task.task_prompt}
+                            className="max-w-[300px] font-medium"
+                          />
                         </div>
-                        <p className="text-xs text-muted-foreground font-mono">{task.task_id}</p>
+                        <TruncatedText
+                          text={task.task_id}
+                          className="max-w-[36ch] font-mono text-xs text-muted-foreground"
+                        />
                       </div>
                     </TableCell>
                     <TableCell className="hidden md:table-cell py-2 px-3 sm:py-2.5 sm:px-4">

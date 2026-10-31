@@ -2,7 +2,7 @@
  * /ai-runtime — Agent 套件槽 / Hook / 关系温度 / 认知索引
  *
  * 后端：agent_kits_api.py
- * 套件、单人关系、花名册都是 GET。花名册只对管理员开放。密封槽空占用必须红字。
+ * 套件、花名册都是 GET。花名册只对管理员开放。密封槽空占用必须红字。
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
@@ -33,6 +33,7 @@ import { GlassAlert } from '@/components/ui/glass-alert';
 import { CognitionAttachments } from '@/components/cognition/CognitionAttachments';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { TruncatedText } from '@/components/ui/truncated-text';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   AlertDialog,
@@ -64,7 +65,6 @@ import {
   type CognitionRebuildMountData,
   type RelationshipListData,
   type RelationshipListItem,
-  type RelationshipViewData,
 } from '@/lib/api';
 import { GroupProfilePanel } from '@/pages/GroupProfilePage';
 import { AIOpsPanel } from '@/pages/AIOpsPage';
@@ -135,6 +135,8 @@ export default function AIRuntimePage() {
   const tab: TabId = isTabId(tabFromUrl) ? tabFromUrl : 'relationship';
   const refreshRef = useRef<(() => void) | null>(null);
   const [panelLoading, setPanelLoading] = useState(false);
+  // slots 数量由 SlotsPanel 拉数后上报，挂在「套件槽」分段上（同插件商店 tab 计数）
+  const [slotCount, setSlotCount] = useState<number | null>(null);
   const bindRefresh = useCallback((fn: (() => void) | null, loading: boolean) => {
     refreshRef.current = fn;
     setPanelLoading(loading);
@@ -154,7 +156,15 @@ export default function AIRuntimePage() {
         label: t('aiRuntime.tabs.relationship'),
         icon: <Heart className="w-4 h-4" />,
       },
-      { value: 'slots', label: t('aiRuntime.tabs.slots'), icon: <Puzzle className="w-4 h-4" /> },
+      {
+        value: 'slots',
+        label: t('aiRuntime.tabs.slots'),
+        icon: <Puzzle className="w-4 h-4" />,
+        badge:
+          slotCount !== null ? (
+            <span className="tab-segment-count">{slotCount}</span>
+          ) : undefined,
+      },
       { value: 'hooks', label: t('aiRuntime.tabs.hooks'), icon: <Unplug className="w-4 h-4" /> },
       {
         value: 'cognition',
@@ -168,25 +178,33 @@ export default function AIRuntimePage() {
       },
       { value: 'ops', label: t('aiRuntime.tabs.ops'), icon: <Activity className="w-4 h-4" /> },
     ],
-    [t],
+    [t, slotCount],
   );
 
   return (
     <PinnedPage
       className="gap-3 md:gap-6"
       header={
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div className="min-w-0">
-            <h1 className="text-3xl font-bold flex items-center gap-3">
-              <Puzzle className="w-8 h-8 shrink-0" />
-              {t('aiRuntime.title')}
-            </h1>
-            <p className="text-muted-foreground mt-1">{t('aiRuntime.description')}</p>
-          </div>
+        <div className="min-w-0">
+          <h1 className="text-3xl font-bold flex items-center gap-3">
+            <Puzzle className="w-8 h-8 shrink-0" />
+            {t('aiRuntime.title')}
+          </h1>
+          <p className="text-muted-foreground mt-1">{t('aiRuntime.description')}</p>
+        </div>
+      }
+      toolbar={
+        <div className="flex flex-wrap items-center gap-2">
+          <TabButtonGroup
+            options={tabs}
+            value={tab}
+            onValueChange={(v) => setTab(v as TabId)}
+            className="w-full sm:w-max"
+          />
           {showRefresh && (
             <Button
               variant="outline"
-              className={cn(tabToolbarControlClass, 'shrink-0 self-start sm:self-auto')}
+              className={cn(tabToolbarControlClass, 'shrink-0')}
               disabled={panelLoading}
               onClick={() => refreshRef.current?.()}
             >
@@ -196,16 +214,8 @@ export default function AIRuntimePage() {
           )}
         </div>
       }
-      toolbar={
-        <TabButtonGroup
-          options={tabs}
-          value={tab}
-          onValueChange={(v) => setTab(v as TabId)}
-          className="w-full max-w-full"
-        />
-      }
     >
-      {tab === 'slots' && <SlotsPanel bindRefresh={bindRefresh} />}
+      {tab === 'slots' && <SlotsPanel bindRefresh={bindRefresh} onCount={setSlotCount} />}
       {tab === 'hooks' && <HooksPanel bindRefresh={bindRefresh} />}
       {tab === 'relationship' && <RelationshipPanel />}
       {tab === 'cognition' && <CognitionPanel />}
@@ -228,8 +238,10 @@ function MissingBackendCard() {
 
 function SlotsPanel({
   bindRefresh,
+  onCount,
 }: {
   bindRefresh: (fn: (() => void) | null, loading: boolean) => void;
+  onCount?: (count: number | null) => void;
 }) {
   const { t } = useLanguage();
   const [loading, setLoading] = useState(true);
@@ -242,18 +254,20 @@ function SlotsPanel({
     try {
       const data = await agentKitsApi.getSlots();
       setSlots(data.slots ?? []);
+      onCount?.(data.slots?.length ?? 0);
     } catch (e) {
       if (isBackendMissing(e)) {
         console.warn('[AIRuntimePage] /api/agent_kits/slots 不可用：请升级 gsuid_core。', e);
         setMissing(true);
         setSlots([]);
+        onCount?.(null);
       } else {
         toast.error(getApiErrorMessage(e, t('aiRuntime.loadFailed')));
       }
     } finally {
       setLoading(false);
     }
-  }, [t]);
+  }, [t, onCount]);
 
   useEffect(() => {
     void load();
@@ -273,21 +287,20 @@ function SlotsPanel({
 
   return (
     <div className="space-y-3 md:space-y-4">
-      <div className="flex flex-wrap items-center justify-end gap-2">
-        <Badge variant="secondary" className="max-w-full whitespace-normal">
-          {t('aiRuntime.slots.count', { count: slots.length })}
-        </Badge>
-        {sealedEmpty.length > 0 && (
-          <Badge variant="destructive" className="max-w-full whitespace-normal">
-            {t('aiRuntime.slots.sealedEmptyCount', { count: sealedEmpty.length })}
-          </Badge>
-        )}
-        {unhealthy.length > 0 && (
-          <Badge variant="outline" className="max-w-full whitespace-normal">
-            {t('aiRuntime.slots.unhealthyCount', { count: unhealthy.length })}
-          </Badge>
-        )}
-      </div>
+      {(sealedEmpty.length > 0 || unhealthy.length > 0) && (
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {sealedEmpty.length > 0 && (
+            <Badge variant="destructive" className="max-w-full whitespace-normal">
+              {t('aiRuntime.slots.sealedEmptyCount', { count: sealedEmpty.length })}
+            </Badge>
+          )}
+          {unhealthy.length > 0 && (
+            <Badge variant="outline" className="max-w-full whitespace-normal">
+              {t('aiRuntime.slots.unhealthyCount', { count: unhealthy.length })}
+            </Badge>
+          )}
+        </div>
+      )}
 
       {sealedEmpty.length > 0 && (
         <GlassAlert tone="danger" icon={AlertTriangle}>
@@ -386,8 +399,6 @@ function HooksPanel({
   const { t } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [missing, setMissing] = useState(false);
-  const [enabled, setEnabled] = useState(true);
-  const [total, setTotal] = useState(0);
   const [points, setPoints] = useState<AgentHookPointInfo[]>([]);
 
   const load = useCallback(async () => {
@@ -395,8 +406,6 @@ function HooksPanel({
     setMissing(false);
     try {
       const data = await agentKitsApi.getHooks();
-      setEnabled(Boolean(data.enabled));
-      setTotal(data.total_hooks ?? 0);
       setPoints(data.points ?? []);
     } catch (e) {
       if (isBackendMissing(e)) {
@@ -424,31 +433,8 @@ function HooksPanel({
 
   if (missing) return <MissingBackendCard />;
 
-  const wiredEmpty = points.filter((p) => p.wired && p.owners.length === 0);
-  const unwired = points.filter((p) => !p.wired);
-
   return (
     <div className="space-y-3 md:space-y-4">
-      <div className="flex flex-wrap items-center justify-end gap-2">
-        <Badge
-          variant={enabled ? 'default' : 'destructive'}
-          className="max-w-full whitespace-normal"
-        >
-          {enabled ? t('aiRuntime.hooks.enabled') : t('aiRuntime.hooks.disabled')}
-        </Badge>
-        <Badge variant="secondary" className="max-w-full whitespace-normal">
-          {t('aiRuntime.hooks.total', { count: total })}
-        </Badge>
-        <Badge variant="outline" className="max-w-full whitespace-normal">
-          {t('aiRuntime.hooks.wiredEmpty', { count: wiredEmpty.length })}
-        </Badge>
-        <Badge variant="outline" className="max-w-full whitespace-normal">
-          {t('aiRuntime.hooks.unwiredCount', { count: unwired.length })}
-        </Badge>
-      </div>
-
-      <p className="text-xs text-muted-foreground">{t('aiRuntime.hooks.hint')}</p>
-
       <Card className="glass-card">
         <CardContent className="p-0">
           {loading ? (
@@ -473,11 +459,15 @@ function HooksPanel({
                   {points.map((point) => (
                     <TableRow key={point.id}>
                       <TableCell>
-                        <div className="font-mono text-xs">{point.name}</div>
+                        <TruncatedText
+                          text={point.name}
+                          className="max-w-[28ch] font-mono text-xs"
+                        />
                         {point.capabilities.length > 0 && (
-                          <div className="mt-1 text-[11px] text-muted-foreground">
-                            {point.capabilities.join(', ')}
-                          </div>
+                          <TruncatedText
+                            text={point.capabilities.join(', ')}
+                            className="mt-1 max-w-[28ch] text-[11px] text-muted-foreground"
+                          />
                         )}
                       </TableCell>
                       <TableCell>
@@ -488,15 +478,20 @@ function HooksPanel({
                         )}
                       </TableCell>
                       <TableCell className="font-mono text-xs">
-                        {point.owners.length > 0
-                          ? point.owners.join(', ')
-                          : point.wired
-                            ? t('aiRuntime.hooks.noOwner')
-                            : t('aiRuntime.hooks.notFired')}
+                        <TruncatedText
+                          text={
+                            point.owners.length > 0
+                              ? point.owners.join(', ')
+                              : point.wired
+                                ? t('aiRuntime.hooks.noOwner')
+                                : t('aiRuntime.hooks.notFired')
+                          }
+                          className="max-w-[32ch]"
+                        />
                       </TableCell>
                       <TableCell className="text-xs">{point.default_timeout_ms}ms</TableCell>
                       <TableCell className="font-mono text-[11px] text-muted-foreground">
-                        {point.anchor}
+                        <TruncatedText text={point.anchor} className="max-w-[40ch]" />
                       </TableCell>
                     </TableRow>
                   ))}
@@ -512,11 +507,7 @@ function HooksPanel({
 
 function RelationshipPanel() {
   const { t } = useLanguage();
-  const [userId, setUserId] = useState('');
-  const [botId, setBotId] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [missing, setMissing] = useState(false);
-  const [view, setView] = useState<RelationshipViewData | null>(null);
+  const [view, setView] = useState<RelationshipListItem | null>(null);
   const [draftKeyword, setDraftKeyword] = useState('');
   const [draftBot, setDraftBot] = useState('');
   const [rosterQuery, setRosterQuery] = useState<RosterQuery>({
@@ -531,6 +522,27 @@ function RelationshipPanel() {
   const [rosterForbidden, setRosterForbidden] = useState(false);
   const detailRef = useRef<HTMLDivElement | null>(null);
   const pendingScroll = useRef(false);
+  const rosterTableRef = useRef<HTMLDivElement | null>(null);
+  // 右侧还有隐藏列（scrollLeft < maxScroll）时给固定操作列加遮罩/阴影提示；
+  // 同值 setState 会被 React 跳过，1px 容差消化 HiDPI 亚像素舍入
+  const [hasMoreRight, setHasMoreRight] = useState(false);
+
+  const syncMoreRight = useCallback(() => {
+    const el = rosterTableRef.current;
+    if (!el) return;
+    const canRight = el.scrollLeft < el.scrollWidth - el.clientWidth - 1;
+    setHasMoreRight((prev) => (prev === canRight ? prev : canRight));
+  }, []);
+
+  // 数据刷新 / 容器尺寸变化后 scrollLeft 可能被浏览器重置，重新同步一次
+  useEffect(() => {
+    syncMoreRight();
+    const el = rosterTableRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(syncMoreRight);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [roster, syncMoreRight]);
 
   useEffect(() => {
     let cancelled = false;
@@ -577,37 +589,7 @@ function RelationshipPanel() {
     detailRef.current?.scrollIntoView({ block: 'nearest' });
   }, [view]);
 
-  const lookup = async () => {
-    const uid = userId.trim();
-    if (!uid) {
-      toast.error(t('aiRuntime.relationship.userRequired'));
-      return;
-    }
-    setLoading(true);
-    setMissing(false);
-    try {
-      const data = await relationshipApi.getView({
-        user_id: uid,
-        bot_id: botId.trim() || undefined,
-      });
-      setView(data);
-    } catch (e) {
-      if (isBackendMissing(e)) {
-        console.warn('[AIRuntimePage] /api/relationship/view 不可用：请升级 gsuid_core。', e);
-        setMissing(true);
-        setView(null);
-      } else {
-        toast.error(getApiErrorMessage(e, t('aiRuntime.loadFailed')));
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const openRow = (item: RelationshipListItem) => {
-    setUserId(item.user_id);
-    setBotId(item.bot_id);
-    setMissing(false);
     setView(item);
     pendingScroll.current = true;
   };
@@ -624,67 +606,10 @@ function RelationshipPanel() {
   const pageCount = Math.max(1, Math.ceil((roster?.total ?? 0) / ROSTER_PAGE_SIZE));
   const pageCurrent = Math.floor(rosterQuery.offset / ROSTER_PAGE_SIZE) + 1;
 
-  if (missing) return <MissingBackendCard />;
-
   return (
     <div className="space-y-3 md:space-y-4">
-      <Card className="glass-card">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Heart className="w-5 h-5" />
-            {t('aiRuntime.relationship.title')}
-          </CardTitle>
-          <CardDescription>{t('aiRuntime.relationship.desc')}</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3 md:space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label htmlFor="rel-user">{t('aiRuntime.relationship.userId')}</Label>
-              <Input
-                id="rel-user"
-                className="h-9 font-mono"
-                value={userId}
-                onChange={(e) => setUserId(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') void lookup();
-                }}
-              />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="rel-bot">{t('aiRuntime.relationship.botId')}</Label>
-              <Input
-                id="rel-bot"
-                className="h-9 font-mono"
-                value={botId}
-                onChange={(e) => setBotId(e.target.value)}
-                placeholder={t('aiRuntime.relationship.botPlaceholder')}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') void lookup();
-                }}
-              />
-            </div>
-          </div>
-          <Button className="h-9" onClick={() => void lookup()} disabled={loading}>
-            {loading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Search className="w-4 h-4" />
-            )}
-            {t('aiRuntime.relationship.lookup')}
-          </Button>
-        </CardContent>
-      </Card>
-
-      <div ref={detailRef} className="space-y-3 md:space-y-4">
-        {view && !view.scored && (
-          <Card className="glass-card">
-            <CardContent className="!p-6 text-sm text-muted-foreground">
-              {t('aiRuntime.relationship.unscored', { user: view.user_id })}
-            </CardContent>
-          </Card>
-        )}
-
-        {view && view.scored && (
+      {view && (
+        <div ref={detailRef} className="space-y-3 md:space-y-4">
           <Card className="glass-card">
             <CardHeader>
               <CardTitle className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -738,8 +663,8 @@ function RelationshipPanel() {
               />
             </CardContent>
           </Card>
-        )}
-      </div>
+        </div>
+      )}
 
       <Card className="glass-card">
         <CardHeader>
@@ -827,7 +752,11 @@ function RelationshipPanel() {
                     rosterLoading && 'opacity-60',
                   )}
                 >
-                  <Table className="w-max min-w-full whitespace-nowrap">
+                  <Table
+                    className="w-max min-w-full whitespace-nowrap"
+                    wrapperRef={rosterTableRef}
+                    onWrapperScroll={syncMoreRight}
+                  >
                     <TableHeader>
                       <TableRow>
                         <TableHead className="whitespace-nowrap">
@@ -860,7 +789,14 @@ function RelationshipPanel() {
                         <TableHead className="whitespace-nowrap">
                           {t('aiRuntime.relationship.interactions')}
                         </TableHead>
-                        <TableHead className="sr-only">{t('common.actions')}</TableHead>
+                        <TableHead
+                          className={cn(
+                            'table-sticky-right',
+                            hasMoreRight && 'table-sticky-fade table-sticky-shadow',
+                          )}
+                        >
+                          <span className="sr-only">{t('common.actions')}</span>
+                        </TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -873,25 +809,30 @@ function RelationshipPanel() {
                               'bg-muted/40',
                           )}
                         >
-                          <TableCell>
-                            <div className="flex flex-nowrap items-center gap-2">
-                              <span className="whitespace-nowrap font-medium">
-                                {item.user_name || item.user_id}
-                              </span>
+                          <TableCell className="max-w-[24ch]">
+                            <div className="flex items-center gap-2">
+                              <TruncatedText
+                                text={item.user_name || item.user_id}
+                                className="font-medium"
+                              />
                               {item.is_master && (
-                                <Badge variant="default" className="whitespace-nowrap">
+                                <Badge
+                                  variant="default"
+                                  className="shrink-0 whitespace-nowrap"
+                                >
                                   {t('aiRuntime.relationship.master')}
                                 </Badge>
                               )}
                             </div>
                             {item.user_name && item.user_name !== item.user_id && (
-                              <div className="font-mono text-[11px] text-muted-foreground">
-                                {item.user_id}
-                              </div>
+                              <TruncatedText
+                                text={item.user_id}
+                                className="font-mono text-[11px] text-muted-foreground"
+                              />
                             )}
                           </TableCell>
-                          <TableCell className="whitespace-nowrap font-mono text-xs">
-                            {item.bot_id}
+                          <TableCell className="font-mono text-xs">
+                            <TruncatedText text={item.bot_id} className="max-w-[20ch]" />
                           </TableCell>
                           <TableCell className="whitespace-nowrap font-medium">
                             {item.score}
@@ -904,14 +845,14 @@ function RelationshipPanel() {
                               {item.zone_label} · {item.zone}
                             </Badge>
                           </TableCell>
-                          <TableCell
-                            className="max-w-[16rem] truncate whitespace-nowrap text-xs"
-                            title={item.line}
-                          >
-                            {item.line}
+                          <TableCell className="max-w-[16rem] text-xs">
+                            <TruncatedText text={item.line} />
                           </TableCell>
-                          <TableCell className="whitespace-nowrap font-mono text-xs">
-                            {item.last_reason || t('aiRuntime.relationship.none')}
+                          <TableCell className="font-mono text-xs">
+                            <TruncatedText
+                              text={item.last_reason || t('aiRuntime.relationship.none')}
+                              className="max-w-[24ch]"
+                            />
                           </TableCell>
                           <TableCell className="whitespace-nowrap">
                             {formatDelta(item.last_delta, t('aiRuntime.relationship.none'))}
@@ -926,7 +867,12 @@ function RelationshipPanel() {
                           <TableCell className="whitespace-nowrap">
                             {item.interaction_count ?? 0}
                           </TableCell>
-                          <TableCell>
+                          <TableCell
+                            className={cn(
+                              'table-sticky-right',
+                              hasMoreRight && 'table-sticky-fade table-sticky-shadow',
+                            )}
+                          >
                             <Button variant="outline" className="h-8" onClick={() => openRow(item)}>
                               {t('aiRuntime.relationship.viewRow')}
                             </Button>

@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { TruncatedText } from '@/components/ui/truncated-text';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
@@ -354,8 +355,12 @@ export function ArtifactsPanel(props: ArtifactsPanelProps) {
                     <TableCell>
                       <Badge>{a.artifact_kind}</Badge>
                     </TableCell>
-                    <TableCell className="max-w-[300px] truncate">{a.summary}</TableCell>
-                    <TableCell className="font-mono text-xs">{a.from_profile}</TableCell>
+                    <TableCell className="max-w-[300px]">
+                      <TruncatedText text={a.summary} />
+                    </TableCell>
+                    <TableCell className="font-mono text-xs">
+                      <TruncatedText text={a.from_profile} className="max-w-[20ch]" />
+                    </TableCell>
                     <TableCell>{formatBytes(a.size_bytes)}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">
                       {a.expires_at ?? '—'}

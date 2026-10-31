@@ -49,7 +49,6 @@
     "agentLinked": "子Agent",
     "toolsList": "ツールリスト",
     "toolsChange": "ツール変化",
-    "stepUsage": "ステップ用量",
     "proactiveEmission": "主動発言"
   },
   "filterTitle": "絞込件件",
@@ -107,6 +106,7 @@
       "ttft": "TTFT",
       "tps": "TPS",
       "toolCalls": "ツール呼出",
+      "cost": "費用",
       "sessionTotal": "{runs} ラン"
     }
   },

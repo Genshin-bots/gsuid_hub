@@ -29,6 +29,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { TruncatedText } from '@/components/ui/truncated-text';
 import {
   Select,
   SelectContent,
@@ -360,11 +361,11 @@ export function ToolOutputsPanel(props: ToolOutputsPanelProps) {
                           {row.tool_name || '—'}
                         </Badge>
                       </TableCell>
-                      <TableCell className="max-w-[280px] truncate" title={row.summary}>
-                        {row.summary || row.id}
+                      <TableCell className="max-w-[280px]">
+                        <TruncatedText text={row.summary || row.id} />
                       </TableCell>
-                      <TableCell className="font-mono text-xs max-w-[120px] truncate">
-                        {row.owner_user_id || '—'}
+                      <TableCell className="font-mono text-xs max-w-[120px]">
+                        <TruncatedText text={row.owner_user_id || '—'} />
                       </TableCell>
                       <TableCell>{formatBytes(row.size_bytes)}</TableCell>
                       <TableCell className="text-xs text-muted-foreground">

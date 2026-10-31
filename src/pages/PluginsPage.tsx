@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
+import { TruncatedText } from '@/components/ui/truncated-text';
 import { Separator } from '@/components/ui/separator';
 import {
   Select,
@@ -2334,7 +2335,9 @@ export default function PluginsPage() {
                 <TableBody>
                   {pluginUpdateList.map((plugin) => (
                     <TableRow key={plugin.name}>
-                      <TableCell className="font-medium">{plugin.name}</TableCell>
+                      <TableCell className="font-medium">
+                        <TruncatedText text={plugin.name} className="max-w-[24ch]" />
+                      </TableCell>
                       <TableCell>
                         {plugin.status === 'pending' && (
                           <Badge variant="secondary">{t('plugins.updatePending')}</Badge>
@@ -2357,8 +2360,8 @@ export default function PluginsPage() {
                           <Badge variant="destructive">{t('plugins.updateFailed')}</Badge>
                         )}
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground max-w-xs truncate">
-                        {plugin.message || '-'}
+                      <TableCell className="text-sm text-muted-foreground max-w-xs">
+                        <TruncatedText text={plugin.message || '-'} />
                       </TableCell>
                     </TableRow>
                   ))}

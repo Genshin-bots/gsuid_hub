@@ -2754,11 +2754,16 @@ button.bg-primary.toolbar-control:not(.tab-segment-row *):not(.select-tile):hove
    */
   .page-pinned-toolbar {
     overflow-x: auto;
-    /* overflow-x:auto 会把 overflow-y 算成 auto。阴影安全区已经留过位，
-       这里用 clip 去掉按钮组旁那条多余的纵向滚动条，同时不把阴影裁成直角。 */
+    /* overflow-x 是滚动轴时，另一轴的 clip 按规范计算成 hidden（写 clip 是
+       声明意图），多余竖向滚动条因此不会出现。hidden 的裁边固定在 padding
+       边且 overflow-clip-margin 不生效：bleed 只有 12px，分段组向下 ~48px
+       的投影尾巴会被硬切成一条黑边。
+       所以把下 padding 加到 3rem 让阴影完整落在裁切区内，再用等量负
+       margin 抵消布局位移；body 在 DOM 后绘制，覆盖延出来的空白区，
+       命中测试与节奏都不受影响。 */
     overflow-y: clip;
-    margin: calc(var(--shadow-bleed) * -1);
-    padding: var(--shadow-bleed);
+    padding: var(--shadow-bleed) var(--shadow-bleed) 3rem;
+    margin: calc(var(--shadow-bleed) * -1) calc(var(--shadow-bleed) * -1) -3rem;
   }
 }
 
@@ -2782,8 +2787,12 @@ main:has(.page-fill) .layout-page-inner {
  */
 .layout-page-inner .overflow-x-auto,
 .layout-page-inner .overflow-x-scroll {
-  padding: var(--shadow-bleed);
-  margin: calc(var(--shadow-bleed) * -1);
+  /* 同 .page-pinned-toolbar：clip 在 x 滚动轴旁计算成 hidden，裁边固定
+     在 padding 边，overflow-clip-margin 无效。下 padding 加到 3rem 容下
+     子元素投影尾巴，负 margin 抵消位移。 */
+  overflow-y: clip;
+  padding: var(--shadow-bleed) var(--shadow-bleed) 3rem;
+  margin: calc(var(--shadow-bleed) * -1) calc(var(--shadow-bleed) * -1) -3rem;
 }
 
 /*
@@ -3371,17 +3380,16 @@ main:has(.page-fill) .layout-page-inner {
 }
 
 /*
- * Tooltip（问号提示）：自己的底板保留，但**不画白色描边 / 白色高光内阴影**。
+ * Tooltip（问号提示）：底板走 .tooltip-surface，与下拉菜单同族的浮层处理。
  *
  * 两件事要分清：
  *   - 「?」图标钮外面那圈圆底 → 由下面的规则去掉（问号是纯图标，不该有底板）
- *   - tooltip 弹窗的底板 → 保留，它要压住身后的文字，否则说明读不了
+ *   - tooltip 弹窗的底板 → 用 --overlay-fill / --overlay-border / --overlay-filter，
+ *     与菜单一致地跟随主题风格（磨砂/光感/液态）、卡片透明度与模糊度
  *
  * 历史包袱：TooltipContent 曾用 bg-popover + border，会命中上面那族
  * `[class*="popover"]` 浮层玻璃规则 —— 那族是给下拉菜单准备的（内容是整屏高对比
  * 小字，必须压住背后的行），套到提示框上就成了「一圈白色 badge」。
- *
- * 所以单独走 .tooltip-surface：中性底 + 一层柔和投影，**不画白色描边**。
  */
 .tooltip-surface {
   background: hsl(var(--popover));
@@ -3392,30 +3400,18 @@ main:has(.page-fill) .layout-page-inner {
     0 2px 6px -2px hsl(0 0% 0% / calc(0.12 * var(--shadow-strength, 1)));
 }
 
-/* 光感 / 液态：透出一点背后的模糊，但不补白色描边和高光内阴影 */
-[data-style="luminous"] .tooltip-surface,
-[data-style="liquid"] .tooltip-surface {
-  backdrop-filter: blur(var(--overlay-blur, 20px)) saturate(150%);
-  -webkit-backdrop-filter: blur(var(--overlay-blur, 20px)) saturate(150%);
-}
-
-[data-style="luminous"] .tooltip-surface {
-  background: hsl(var(--popover) / 0.88);
-}
-
-[data-style="liquid"] .tooltip-surface {
-  background: hsl(var(--popover) / 0.86);
-}
-
-/* 磨砂：卡片本身够实，提示框给高一点填充，保证小字读得清 */
-[data-style="glassmorphism"] .tooltip-surface {
-  backdrop-filter: blur(var(--overlay-blur, 20px));
-  -webkit-backdrop-filter: blur(var(--overlay-blur, 20px));
-  background: hsl(var(--popover) / 0.92);
+/* 玻璃系（磨砂 / 光感 / 液态）：与菜单浮层同族，透明度与模糊度跟随主题设置 */
+:is([data-style='glassmorphism'], [data-style='luminous'], [data-style='liquid'])
+  .tooltip-surface {
+  background: var(--overlay-fill);
+  border: 1px solid var(--overlay-border);
+  backdrop-filter: var(--overlay-filter);
+  -webkit-backdrop-filter: var(--overlay-filter);
 }
 
 [data-style="solid"] .tooltip-surface {
   background: hsl(var(--popover));
+  border: 1px solid hsl(var(--border));
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
 }

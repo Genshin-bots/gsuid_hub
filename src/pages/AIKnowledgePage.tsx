@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { OverflowTags } from '@/components/ui/overflow-tags';
+import { TruncatedText } from '@/components/ui/truncated-text';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   TabButtonGroup,
@@ -1149,12 +1150,14 @@ export default function AIKnowledgePage() {
                           className="cursor-pointer"
                           onClick={() => handleOpenEdit(item)}
                         >
-                          <TableCell className="font-medium truncate">{item.title}</TableCell>
+                          <TableCell className="font-medium">
+                            <TruncatedText text={item.title} className="max-w-[28ch]" />
+                          </TableCell>
                           <TableCell className="text-center">
                             <Badge variant="secondary">{item.plugin}</Badge>
                           </TableCell>
-                          <TableCell className="text-muted-foreground">
-                            <span className="line-clamp-1">{item.content.split('\n')[0]}</span>
+                          <TableCell className="max-w-[40ch] text-muted-foreground">
+                            <TruncatedText text={item.content.split('\n')[0]} />
                           </TableCell>
                           <TableCell>
                             <OverflowTags tags={item.tags ?? []} />
@@ -1231,8 +1234,8 @@ export default function AIKnowledgePage() {
                           <TableCell className="text-center">
                             <Badge variant="secondary">{item.plugin}</Badge>
                           </TableCell>
-                          <TableCell className="text-muted-foreground">
-                            <span className="line-clamp-1 text-xs font-mono">{item.path}</span>
+                          <TableCell className="max-w-[40ch] text-muted-foreground">
+                            <TruncatedText text={item.path} className="font-mono text-xs" />
                           </TableCell>
                           <TableCell>
                             <OverflowTags tags={item.tags ?? []} />
