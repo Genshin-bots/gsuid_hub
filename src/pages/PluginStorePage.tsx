@@ -28,6 +28,7 @@ import {
   Wrench,
   Link2,
   Loader2,
+  Cable,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -39,7 +40,7 @@ import {
   type GitPluginInfo,
   getApiErrorMessage,
 } from '@/lib/api';
-import { resolvePluginStoreView } from '@/lib/featureUtils';
+import { resolvePluginStoreView, resolvePluginStoreGroups } from '@/lib/featureUtils';
 import { Skeleton } from '@/components/ui/skeleton';
 import GitMirrorDialog, { getMirrorBadge } from '@/components/GitMirrorDialog';
 import {
@@ -253,8 +254,6 @@ export default function PluginStorePage() {
   // 服务端返回的原始分页结果（页 + 计数），视图由 resolvePluginStoreView 推导
   const [storePayload, setStorePayload] = useState<PluginStoreListResponse | null>(null);
   const [page, setPage] = useState(1);
-  const [funPlugins, setFunPlugins] = useState<string[]>([]);
-  const [toolPlugins, setToolPlugins] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [gitMirrorOpen, setGitMirrorOpen] = useState(false);
@@ -370,16 +369,26 @@ export default function PluginStorePage() {
     [],
   );
 
-  /** 把接口返回的一页数据落到 state：标记娱乐/工具分类，保留原始分页结果供视图推导。 */
+  /** 把接口返回的一页数据落到 state：标记娱乐/工具/适配器分类，保留原始分页结果供视图推导。 */
   const applyPluginPayload = (data: PluginStoreListResponse) => {
-    const pluginsWithCategory = data.plugins.map((plugin) => ({
-      ...plugin,
-      isFun: data.fun_plugins?.includes(plugin.id) || false,
-      isTool: data.tool_plugins?.includes(plugin.id) || false,
-    }));
+    // 远端 JSON 不受控：plugins 可能不是数组、条目可能缺字段、分组键随时可能新增，
+    // 全部在这里归一化——下游渲染路径拿到的必须是合法结构，畸形数据绝不抛错。
+    const groups = resolvePluginStoreGroups(data);
+    const rawPlugins = Array.isArray(data?.plugins) ? data.plugins : [];
+    const pluginsWithCategory = rawPlugins.map((plugin) => {
+      const id = typeof plugin?.id === 'string' ? plugin.id : String(plugin?.id ?? '');
+      return {
+        ...plugin,
+        id,
+        description: typeof plugin?.description === 'string' ? plugin.description : '',
+        tags: Array.isArray(plugin?.tags) ? plugin.tags : [],
+        alias: Array.isArray(plugin?.alias) ? plugin.alias : [],
+        isFun: groups.fun.includes(id),
+        isTool: groups.tool.includes(id),
+        isAdapter: groups.adapter.includes(id),
+      };
+    });
     setStorePayload({ ...data, plugins: pluginsWithCategory });
-    setFunPlugins(data.fun_plugins || []);
-    setToolPlugins(data.tool_plugins || []);
   };
 
   // Fetch plugin list（服务端按页签/搜索过滤并分页，支持缓存）
@@ -677,7 +686,9 @@ export default function PluginStorePage() {
             setReadmeContent(text);
             return;
           }
-        } catch {}
+        } catch {
+          // 当前镜像拉 README 失败时换下一个候选地址
+        }
       }
 
       setReadmeContent(t('pluginStore.noReadme'));
@@ -720,6 +731,12 @@ export default function PluginStorePage() {
       label: t('pluginStore.toolPlugins'),
       icon: <Wrench className="w-4 h-4" />,
       badge: storeTabCount(countText(storeStats.tool)),
+    },
+    {
+      value: 'adapter',
+      label: t('pluginStore.adapterPlugins'),
+      icon: <Cable className="w-4 h-4" />,
+      badge: storeTabCount(countText(storeStats.adapter)),
     },
   ];
 
@@ -816,7 +833,9 @@ export default function PluginStorePage() {
                       ? t('pluginStore.noFunPlugins')
                       : activeTab === 'tool'
                         ? t('pluginStore.noToolPlugins')
-                        : t('pluginStore.noPlugins')}
+                        : activeTab === 'adapter'
+                          ? t('pluginStore.noAdapterPlugins')
+                          : t('pluginStore.noPlugins')}
             </p>
             {searchQuery && <p className="text-sm">{t('pluginStore.adjustSearchKeywords')}</p>}
           </CardContent>
@@ -915,6 +934,14 @@ export default function PluginStorePage() {
                               className="theme-chip theme-chip-tint text-xs font-normal text-green-500 border-green-500"
                             >
                               {t('pluginStore.tool')}
+                            </Badge>
+                          )}
+                          {plugin.isAdapter && (
+                            <Badge
+                              variant="outline"
+                              className="theme-chip theme-chip-tint text-xs font-normal text-violet-500 border-violet-500"
+                            >
+                              {t('pluginStore.adapter')}
                             </Badge>
                           )}
                           {deprecated && (

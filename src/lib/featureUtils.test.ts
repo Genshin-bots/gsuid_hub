@@ -40,6 +40,7 @@ import {
   oocHitLabel,
   entityIndexPageRange,
   resolveEntityIndexEntries,
+  resolvePluginStoreGroups,
   resolvePluginStoreView,
   resolveSchedulerJobsView,
   resolveToolsListView,
@@ -773,7 +774,83 @@ describe('plugin store view', () => {
       10,
       deprecatedText,
     );
-    expect(view.counts).toEqual({ all: 3, installed: 1, updates: 0, fun: 0, tool: 0 });
+    expect(view.counts).toEqual({
+      all: 3,
+      installed: 1,
+      updates: 0,
+      fun: 0,
+      tool: 0,
+      adapter: 0,
+    });
+  });
+
+  it('filters the adapter tab and counts adapters on the old backend path', () => {
+    const withAdapter = [
+      all[0],
+      { ...all[1], isAdapter: true },
+      { id: 'adp', description: '适配器', tags: [], installed: false, hasUpdate: false, isAdapter: true },
+    ];
+    const view = resolvePluginStoreView(
+      { plugins: withAdapter },
+      { tab: 'adapter', search: '' },
+      1,
+      10,
+      deprecatedText,
+    );
+    expect(view.items.map((p) => p.id)).toEqual(['b', 'adp']);
+    expect(view.counts.adapter).toBe(2);
+    expect(view.counts.all).toBe(3);
+  });
+
+  it('returns an empty list for the adapter tab when the backend predates adapters', () => {
+    const payload = {
+      plugins: all,
+      count: 3,
+      // 旧后端的 counts 没有 adapter 键，也认不出 tab=adapter → 返回的是全量
+      counts: { all: 3, installed: 1, updates: 0, fun: 0, tool: 0 },
+    };
+    const view = resolvePluginStoreView(payload, { tab: 'adapter', search: '' }, 1, 10, deprecatedText);
+    expect(view.items).toEqual([]);
+    expect(view.total).toBe(0);
+    expect(view.counts.adapter).toBe(0);
+  });
+
+  it('normalizes a missing adapter count to zero on the new backend path', () => {
+    const payload = {
+      plugins: [all[0]],
+      count: 1,
+      counts: { all: 3, installed: 1, updates: 0, fun: 0, tool: 0, adapter: undefined },
+    };
+    const view = resolvePluginStoreView(payload, { tab: 'all', search: '' }, 1, 10, deprecatedText);
+    expect(view.counts.adapter).toBe(0);
+  });
+
+  it('survives a malformed plugins field without throwing', () => {
+    // 远端 JSON 变更（如 plugins 变成 dict）时视图必须降级为空，绝不能抛错炸页面
+    const view = resolvePluginStoreView(
+      { plugins: { a: { info: 'x' } } as never },
+      { tab: 'all', search: 'a' },
+      1,
+      10,
+      deprecatedText,
+    );
+    expect(view.items).toEqual([]);
+    expect(view.total).toBe(0);
+  });
+
+  it('survives items with missing id/description/tags during search', () => {
+    const broken = [
+      { installed: false, hasUpdate: false },
+      all[0],
+    ] as (typeof all)[number][];
+    const view = resolvePluginStoreView(
+      { plugins: broken },
+      { tab: 'all', search: '甲' },
+      1,
+      10,
+      deprecatedText,
+    );
+    expect(view.items.map((p) => p.id)).toEqual(['a']);
   });
 
   it('returns an empty view for a missing response', () => {
@@ -781,6 +858,38 @@ describe('plugin store view', () => {
     expect(view.items).toEqual([]);
     expect(view.total).toBe(0);
     expect(view.totalPages).toBe(1);
+  });
+});
+
+describe('plugin store groups', () => {
+  it('reads the explicit fun/tool/adapter lists', () => {
+    const groups = resolvePluginStoreGroups({
+      fun_plugins: ['a'],
+      tool_plugins: ['b'],
+      adapter_plugins: ['OneBotUID'],
+      extra_plugins: ['ignored'],
+    });
+    expect(groups).toEqual({ fun: ['a'], tool: ['b'], adapter: ['OneBotUID'] });
+  });
+
+  it('falls back to plugin_groups for backends that only passthrough', () => {
+    const groups = resolvePluginStoreGroups({
+      plugin_groups: { fun_plugins: ['a'], adapter_plugins: ['OneBotUID'], future_plugins: ['x'] },
+    });
+    expect(groups.fun).toEqual(['a']);
+    expect(groups.adapter).toEqual(['OneBotUID']);
+    expect(groups.tool).toEqual([]);
+  });
+
+  it('drops non-string members and non-array groups instead of throwing', () => {
+    const groups = resolvePluginStoreGroups({
+      fun_plugins: ['a', 1, null] as never,
+      adapter_plugins: 'not-a-list' as never,
+      plugin_groups: { tool_plugins: { b: 1 } as never },
+    });
+    expect(groups.fun).toEqual(['a']);
+    expect(groups.tool).toEqual([]);
+    expect(groups.adapter).toEqual([]);
   });
 });
 

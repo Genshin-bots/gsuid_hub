@@ -1111,6 +1111,7 @@ export interface StorePlugin {
   status?: 'installed' | 'update_available' | 'not_installed';
   isFun?: boolean;
   isTool?: boolean;
+  isAdapter?: boolean;
 }
 
 /** 插件商店各页签计数（对全量统计，不随翻页/搜索变化） */
@@ -1120,6 +1121,8 @@ export interface PluginStoreCounts {
   updates: number;
   fun: number;
   tool: number;
+  /** 旧后端不返回该字段，前端读取时按 0 兜底 */
+  adapter?: number;
 }
 
 // 插件商城列表响应类型
@@ -1128,6 +1131,13 @@ export interface PluginStoreListResponse {
   plugins: StorePlugin[];
   fun_plugins: string[];
   tool_plugins: string[];
+  /** 适配器分组 ID 列表；旧后端不返回该字段 */
+  adapter_plugins?: string[];
+  /**
+   * 后端透传的全部 `*_plugins` 分组（含 fun/tool/adapter 及未来新增分组）。
+   * 远端 JSON 新增分组键时无需改接口，前端按 key 自取。
+   */
+  plugin_groups?: Record<string, string[]>;
   /** 命中筛选的总条数 */
   count?: number;
   /** 全量插件数 */
