@@ -680,6 +680,8 @@ export default function PersonaConfigPage() {
   const [curiosityFocus, setCuriosityFocus] = useState<CuriosityFocus>('balanced');
   const [arcPersistence, setArcPersistence] = useState(ARC_PERSISTENCE_DEFAULT);
   const [allowMemeReply, setAllowMemeReply] = useState(true);
+  const [memeFrequency, setMemeFrequency] = useState(50);
+  const [memeSendCooldownSec, setMemeSendCooldownSec] = useState(0);
   // 字段都由 AI 行动模式带出。关掉时不隐藏、只冻结，避免这一行塌掉。
   const showInspectInterval = editingAIModes.includes('定时巡检');
   const showTriggerKeywords = editingAIModes.includes('提及应答');
@@ -1103,6 +1105,12 @@ export default function PersonaConfigPage() {
     setCuriosityFocus(persona.config?.curiosity_focus ?? 'balanced');
     setArcPersistence(persona.config?.arc_persistence ?? ARC_PERSISTENCE_DEFAULT);
     setAllowMemeReply(persona.config?.allow_meme_reply !== false);
+    setMemeFrequency(typeof persona.config?.meme_frequency === 'number' ? persona.config.meme_frequency : 50);
+    setMemeSendCooldownSec(
+      typeof persona.config?.meme_send_cooldown_sec === 'number'
+        ? persona.config.meme_send_cooldown_sec
+        : 0,
+    );
     // 常驻直装工具默认就在白名单里：每轮必然在场，不必让用户手动勾一遍
     const configuredToolNames = persona.config?.tool_names ?? [];
     setEditingToolNames(
@@ -1324,6 +1332,8 @@ export default function PersonaConfigPage() {
           curiosity_focus: curiosityFocus,
           arc_persistence: arcPersistence,
           allow_meme_reply: allowMemeReply,
+          meme_frequency: memeFrequency,
+          meme_send_cooldown_sec: memeSendCooldownSec,
           ...(toolCatalog && toolCatalog.plugins.length > 0
             ? {
                 enabled_tools: enabledPluginsToSpec(
@@ -2296,6 +2306,10 @@ export default function PersonaConfigPage() {
                       personaName={editingPersona.name}
                       allowReply={allowMemeReply}
                       onAllowReplyChange={setAllowMemeReply}
+                      frequency={memeFrequency}
+                      onFrequencyChange={setMemeFrequency}
+                      cooldownSec={memeSendCooldownSec}
+                      onCooldownSecChange={setMemeSendCooldownSec}
                       readOnly={managedPersona}
                     />
                   )}

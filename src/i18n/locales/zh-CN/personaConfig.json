@@ -269,5 +269,11 @@
   "managedHint": "该人格由人格市场 Git 仓库管理，内容只读；可复制一份后再编辑。",
   "managedPersonaWarning": "该人格由人格市场管理，人设文档与上游仓库同步，不可在本地修改。请复制副本后编辑。",
   "managedConfigHint": "该人格的行为配置随仓库同步，仅「启用范围 / 关联群聊」作为部署状态可修改。",
-  "managedResourceReadonly": "市场托管人格的资源不可修改，可复制副本后编辑。"
+  "managedResourceReadonly": "市场托管人格的资源不可修改，可复制副本后编辑。",
+  "memeFrequency": "表情发送倾向 / 频率",
+  "memeFrequencyHint": "控制系统提示中表情包契约说明与正向触发场景（0-100）。0 为禁用，数值越高发表情越积极。",
+  "memeCooldownSec": "发图冷却间隔",
+  "memeCooldownSecHint": "同一会话连续发送表情包的最小间隔（秒）。0 为跟随频率档位自适应（当前自动算得 {sec} 秒）。",
+  "memeCooldownAuto": "自适应（{sec}秒）",
+  "memeCooldownUnit": "秒"
 }

@@ -269,5 +269,11 @@
   "managedHint": "ペルソナストアの Git リポジトリ管理下で内容は読み取り専用です。編集は複製してから。",
   "managedPersonaWarning": "このペルソナはストア管理下で上流リポジトリと同期されます。ローカルでは編集できません。複製してから編集してください。",
   "managedConfigHint": "行動設定はリポジトリと同期されます。「有効範囲 / 関連グループ」のみデプロイ状態として変更できます。",
-  "managedResourceReadonly": "ストア管理ペルソナのリソースは変更できません。複製してから編集してください。"
+  "managedResourceReadonly": "ストア管理ペルソナのリソースは変更できません。複製してから編集してください。",
+  "memeFrequency": "スタンプ送信傾向 / 頻度",
+  "memeFrequencyHint": "システムプロンプト内のスタンプ送信条件と頻度指示を制御します（0-100）。0で無効化、高いほど積極的に送信します。",
+  "memeCooldownSec": "スタンプ送信クールダウン",
+  "memeCooldownSecHint": "同一セッションで連続してスタンプを送信する最小間隔（秒）。0にすると頻度段階から自動算出されます（現在: {sec}秒）。",
+  "memeCooldownAuto": "自動適応（{sec}秒）",
+  "memeCooldownUnit": "秒"
 }

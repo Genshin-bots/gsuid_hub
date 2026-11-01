@@ -269,5 +269,11 @@
   "managedHint": "Managed by a persona store Git repo; content is read-only. Make a copy to edit.",
   "managedPersonaWarning": "This persona is managed by the persona store and synced with the upstream repository. It cannot be edited locally; copy it first.",
   "managedConfigHint": "Behavior config is synced from the repo. Only enable scope / linked groups can be changed as deployment state.",
-  "managedResourceReadonly": "Store-managed persona resources are read-only. Copy the persona to edit."
+  "managedResourceReadonly": "Store-managed persona resources are read-only. Copy the persona to edit.",
+  "memeFrequency": "Sticker send tendency / frequency",
+  "memeFrequencyHint": "Controls system prompt trigger contract and positive triggers (0-100). 0 disables stickers, higher values send stickers more actively.",
+  "memeCooldownSec": "Sticker send cooldown",
+  "memeCooldownSecHint": "Minimum interval between stickers in the same conversation (seconds). 0 automatically derives cooldown from frequency ({sec}s currently).",
+  "memeCooldownAuto": "Auto ({sec}s)",
+  "memeCooldownUnit": "s"
 }

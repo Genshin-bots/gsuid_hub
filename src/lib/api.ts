@@ -2874,6 +2874,10 @@ export interface PersonaConfig {
   prompt_group?: string;
   /** 打开后系统提示写入表情协议。缺省为开。 */
   allow_meme_reply?: boolean;
+  /** 表情发送频率（0-100）。0为禁用，默认50。 */
+  meme_frequency?: number;
+  /** 表情发送冷却（秒）。0为跟随频率档位自适应。 */
+  meme_send_cooldown_sec?: number;
   /** 0 到 100。决定气泡条数，以及仍等于模板默认的字数。 */
   chat_style?: number;
   /** 等于模板默认时跟随说话强度。 */
@@ -2914,6 +2918,8 @@ export interface PersonaConfigUpdateRequest {
   capability_agents?: string[];
   prompt_group?: string;
   allow_meme_reply?: boolean;
+  meme_frequency?: number;
+  meme_send_cooldown_sec?: number;
   chat_style?: number;
   speech_len_soft?: number;
   social_initiative?: number;
