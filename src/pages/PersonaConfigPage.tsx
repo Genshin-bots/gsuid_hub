@@ -83,6 +83,7 @@ import {
   MessagesSquare,
   Clock,
   Compass,
+  Gauge,
   X,
   Layers,
   ScrollText,
@@ -114,6 +115,7 @@ import {
   type PersonaScope,
   type AIMode,
   type AutonomyCareZone,
+  type CuriosityFocus,
   type PluginConfigItem,
   type PersonaToolCatalog,
   type SpeechShapeSpec,
@@ -349,6 +351,8 @@ const ASIDE_TEXT_DEFAULT = 0.35;
 const ASIDE_MIXED_DEFAULT = 0.25;
 const ACTIVE_HOURS_DEFAULT = ['08:00-23:30'];
 const AUTONOMY_INTERVAL_DEFAULT = 45;
+const DRIVE_TRAIT_DEFAULT = 50;
+const ARC_PERSISTENCE_DEFAULT = 2;
 const TIMEZONE_OPTIONS = [
   'Asia/Shanghai',
   'Asia/Hong_Kong',
@@ -414,6 +418,7 @@ function SpeechSliderField({
   min,
   max,
   fallback,
+  disabled,
   onChange,
 }: {
   id: string;
@@ -424,21 +429,23 @@ function SpeechSliderField({
   min: number;
   max: number;
   fallback: number;
+  disabled?: boolean;
   onChange: (value: string) => void;
 }) {
   const value = boundInt(raw, min, max, fallback);
   return (
-    <div className="space-y-3">
+    <div className={cn('space-y-3', disabled && 'opacity-50')}>
       <LabelWithHelp
         htmlFor={id}
         icon={icon}
         label={label}
         description={description}
-        className="text-base font-medium"
+        className={cn('text-base font-medium', disabled && 'opacity-50')}
       />
       <div className="flex items-center gap-3">
         <Slider
           aria-label={label}
+          disabled={disabled}
           className="min-w-0 flex-1"
           min={min}
           max={max}
@@ -453,6 +460,7 @@ function SpeechSliderField({
           id={id}
           inputMode="numeric"
           aria-label={label}
+          disabled={disabled}
           min={min}
           max={max}
           value={raw}
@@ -662,6 +670,10 @@ export default function PersonaConfigPage() {
   const [timezone, setTimezone] = useState('Asia/Shanghai');
   const [autonomyInterval, setAutonomyInterval] = useState(AUTONOMY_INTERVAL_DEFAULT);
   const [careMinZone, setCareMinZone] = useState<AutonomyCareZone>('familiar');
+  const [driveInitiativeText, setDriveInitiativeText] = useState(String(DRIVE_TRAIT_DEFAULT));
+  const [driveEnduranceText, setDriveEnduranceText] = useState(String(DRIVE_TRAIT_DEFAULT));
+  const [curiosityFocus, setCuriosityFocus] = useState<CuriosityFocus>('balanced');
+  const [arcPersistence, setArcPersistence] = useState(ARC_PERSISTENCE_DEFAULT);
   const [allowMemeReply, setAllowMemeReply] = useState(true);
   // 字段都由 AI 行动模式带出。关掉时不隐藏、只冻结，避免这一行塌掉。
   const showInspectInterval = editingAIModes.includes('定时巡检');
@@ -669,6 +681,8 @@ export default function PersonaConfigPage() {
   const showAside = editingAIModes.includes('命令补充');
   const showAutonomy = editingAIModes.includes('自主行动');
   const showActiveHours = showInspectInterval || showAutonomy;
+  // 驱动参数同时喂巡检与自主行动的稳态，任一主动模式开启才可改。
+  const showDriveTraits = showInspectInterval || showAutonomy;
   const [editingToolNames, setEditingToolNames] = useState<string[]>([]);
   const [editingEnabledPlugins, setEditingEnabledPlugins] = useState<string[]>([]);
   const [toolCatalog, setToolCatalog] = useState<PersonaToolCatalog | null>(null);
@@ -1104,6 +1118,10 @@ export default function PersonaConfigPage() {
     setTimezone(persona.config?.timezone || 'Asia/Shanghai');
     setAutonomyInterval(persona.config?.autonomy_interval_minutes ?? AUTONOMY_INTERVAL_DEFAULT);
     setCareMinZone(persona.config?.autonomy_care_min_zone === 'close' ? 'close' : 'familiar');
+    setDriveInitiativeText(String(persona.config?.social_initiative ?? DRIVE_TRAIT_DEFAULT));
+    setDriveEnduranceText(String(persona.config?.energy_endurance ?? DRIVE_TRAIT_DEFAULT));
+    setCuriosityFocus(persona.config?.curiosity_focus ?? 'balanced');
+    setArcPersistence(persona.config?.arc_persistence ?? ARC_PERSISTENCE_DEFAULT);
     setAllowMemeReply(persona.config?.allow_meme_reply !== false);
     // 常驻直装工具默认就在白名单里：每轮必然在场，不必让用户手动勾一遍
     const configuredToolNames = persona.config?.tool_names ?? [];
@@ -1301,6 +1319,10 @@ export default function PersonaConfigPage() {
           AUTONOMY_INTERVAL_DEFAULT,
         ),
         autonomy_care_min_zone: careMinZone,
+        social_initiative: boundInt(driveInitiativeText, 0, 100, DRIVE_TRAIT_DEFAULT),
+        energy_endurance: boundInt(driveEnduranceText, 0, 100, DRIVE_TRAIT_DEFAULT),
+        curiosity_focus: curiosityFocus,
+        arc_persistence: arcPersistence,
         allow_meme_reply: allowMemeReply,
         ...(toolCatalog && toolCatalog.plugins.length > 0
           ? {
@@ -2633,6 +2655,89 @@ export default function PersonaConfigPage() {
                             </SelectContent>
                           </Select>
                         </div>
+                        <div className="space-y-2">
+                          <LabelWithHelp
+                            label={t('personaConfig.curiosityFocus')}
+                            description={t('personaConfig.curiosityFocusHint')}
+                            className={cn('text-sm', !showAutonomy && 'opacity-50')}
+                          />
+                          <Select
+                            disabled={!showAutonomy}
+                            value={curiosityFocus}
+                            onValueChange={(value) => setCuriosityFocus(value as CuriosityFocus)}
+                          >
+                            <SelectTrigger className="h-10 w-full">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="balanced">
+                                {t('personaConfig.focusBalanced')}
+                              </SelectItem>
+                              <SelectItem value="people">
+                                {t('personaConfig.focusPeople')}
+                              </SelectItem>
+                              <SelectItem value="analytical">
+                                {t('personaConfig.focusAnalytical')}
+                              </SelectItem>
+                              <SelectItem value="whimsical">
+                                {t('personaConfig.focusWhimsical')}
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <LabelWithHelp
+                            label={t('personaConfig.arcPersistence')}
+                            description={t('personaConfig.arcPersistenceHint')}
+                            className={cn('text-sm', !showAutonomy && 'opacity-50')}
+                          />
+                          <Select
+                            disabled={!showAutonomy}
+                            value={String(arcPersistence)}
+                            onValueChange={(value) => setArcPersistence(parseInt(value, 10))}
+                          >
+                            <SelectTrigger className="h-10 w-full">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="1">1</SelectItem>
+                              <SelectItem value="2">2</SelectItem>
+                              <SelectItem value="3">3</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      <LabelWithHelp
+                        icon={<Gauge className={cn('h-4 w-4', !showDriveTraits && 'opacity-50')} />}
+                        label={t('personaConfig.driveTraits')}
+                        description={t('personaConfig.driveTraitsHint')}
+                        className={cn('text-base font-medium', !showDriveTraits && 'opacity-50')}
+                      />
+                      <div className="grid gap-3 md:gap-4 sm:grid-cols-2">
+                        <SpeechSliderField
+                          id="drive-initiative"
+                          label={t('personaConfig.socialInitiative')}
+                          description={t('personaConfig.socialInitiativeHint')}
+                          raw={driveInitiativeText}
+                          min={0}
+                          max={100}
+                          fallback={DRIVE_TRAIT_DEFAULT}
+                          disabled={!showDriveTraits}
+                          onChange={setDriveInitiativeText}
+                        />
+                        <SpeechSliderField
+                          id="drive-endurance"
+                          label={t('personaConfig.energyEndurance')}
+                          description={t('personaConfig.energyEnduranceHint')}
+                          raw={driveEnduranceText}
+                          min={0}
+                          max={100}
+                          fallback={DRIVE_TRAIT_DEFAULT}
+                          disabled={!showDriveTraits}
+                          onChange={setDriveEnduranceText}
+                        />
                       </div>
                     </div>
                     {/* 工具装配：启用工具（按插件）/ 显式工具白名单 */}

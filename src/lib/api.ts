@@ -2728,6 +2728,8 @@ export interface PersonaFrameworkConfig {
 export type PersonaScope = 'disabled' | 'global' | 'specific' | 'global_group' | 'global_private';
 export type AIMode = '提及应答' | '定时巡检' | '命令补充' | '自主行动';
 export type AutonomyCareZone = 'familiar' | 'close';
+/** 自主行动闲时关注点：先看人 / 先查群话题 / 均衡 / 随性。 */
+export type CuriosityFocus = 'balanced' | 'people' | 'analytical' | 'whimsical';
 
 export interface SpeechTierSpec {
   floor: number;
@@ -2773,6 +2775,14 @@ export interface PersonaConfig {
   /** 等于模板默认时跟随说话强度。 */
   speech_len_soft?: number;
   speech_shape?: SpeechShapeSpec;
+  /** 0-100，越高越想主动找人搭话。 */
+  social_initiative?: number;
+  /** 0-100，越高连续互动越不容易倦。 */
+  energy_endurance?: number;
+  /** 自主行动先看人还是先查群聊话题。 */
+  curiosity_focus?: CuriosityFocus;
+  /** 1-3，自主行动同一话题最多跟进几轮。 */
+  arc_persistence?: number;
 }
 
 export interface PersonaConfigResponse {
@@ -2802,6 +2812,10 @@ export interface PersonaConfigUpdateRequest {
   allow_meme_reply?: boolean;
   chat_style?: number;
   speech_len_soft?: number;
+  social_initiative?: number;
+  energy_endurance?: number;
+  curiosity_focus?: CuriosityFocus;
+  arc_persistence?: number;
 }
 
 export interface PersonaConfigUpdateResponse {
