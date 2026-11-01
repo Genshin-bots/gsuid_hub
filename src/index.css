@@ -4821,3 +4821,164 @@ html[data-style="liquid"] :is(
     transparent
   );
 }
+
+/*
+ * 会话管理：markdown 段的排版。
+ * 内容由 marked 生成、DOMPurify 过滤，这里只补「在气泡里看着像聊天」所需的间距，
+ * 不引 prose 插件（会连带改动别的页面）。
+ */
+.seg-md > :first-child {
+  margin-top: 0;
+}
+.seg-md > :last-child {
+  margin-bottom: 0;
+}
+.seg-md p,
+.seg-md ul,
+.seg-md ol,
+.seg-md pre,
+.seg-md table,
+.seg-md blockquote {
+  margin: 0.4em 0;
+}
+.seg-md h1,
+.seg-md h2,
+.seg-md h3,
+.seg-md h4 {
+  margin: 0.5em 0 0.3em;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.seg-md h1 {
+  font-size: 1.15em;
+}
+.seg-md h2 {
+  font-size: 1.08em;
+}
+.seg-md h3,
+.seg-md h4 {
+  font-size: 1em;
+}
+.seg-md ul,
+.seg-md ol {
+  padding-left: 1.2em;
+  list-style: disc;
+}
+.seg-md ol {
+  list-style: decimal;
+}
+.seg-md a {
+  color: hsl(var(--primary));
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+/* 内联指令链接 */
+.seg-md a[href^='#inlinecmd:']:not(.seg-btn) {
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+.seg-md a[href^='#inlinecmd:']:not(.seg-btn):hover {
+  color: hsl(var(--primary));
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+/* 按钮 */
+.seg-btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0.5em 0;
+}
+.seg-btn {
+  position: relative;
+  display: inline-flex;
+  flex: 1 1 0;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 110px;
+  padding: 10px 14px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 10px;
+  background: transparent;
+  color: hsl(var(--foreground));
+  font-size: 0.95em;
+  line-height: 1.4;
+  text-decoration: none;
+  cursor: pointer;
+}
+/* 配色照 QQ 客户端的 style：0/2 灰线框、1 蓝线框、3 灰线框红字、4 蓝底白字 */
+.seg-btn--plain {
+  border-color: hsl(var(--border));
+  color: hsl(var(--foreground));
+}
+.seg-btn--primary {
+  border-color: #2f9bff;
+  color: #1f8fff;
+}
+.seg-btn--danger {
+  border-color: hsl(var(--border));
+  color: #e05252;
+}
+.seg-btn--solid {
+  border-color: #0f9bff;
+  background: #0f9bff;
+  color: #fff;
+}
+/* 跳转类按钮右上角的小链接角标 */
+.seg-btn__link {
+  position: absolute;
+  top: 4px;
+  right: 5px;
+  width: 12px;
+  height: 12px;
+  opacity: 0.7;
+}
+.seg-md img.seg-inline-img {
+  display: inline-block;
+  max-width: none;
+  border-radius: 0;
+  object-fit: contain;
+  vertical-align: middle;
+}
+.seg-md code {
+  padding: 0.1em 0.3em;
+  border-radius: 3px;
+  background: hsl(var(--muted));
+  font-size: 0.9em;
+}
+.seg-md pre {
+  padding: 0.5em 0.7em;
+  border-radius: 6px;
+  background: hsl(var(--muted));
+  overflow-x: auto;
+}
+.seg-md pre code {
+  padding: 0;
+  background: transparent;
+}
+.seg-md blockquote {
+  padding-left: 0.7em;
+  border-left: 3px solid hsl(var(--border));
+  color: hsl(var(--muted-foreground));
+}
+.seg-md table {
+  border-collapse: collapse;
+  font-size: 0.92em;
+}
+.seg-md th,
+.seg-md td {
+  padding: 0.25em 0.5em;
+  border: 1px solid hsl(var(--border));
+}
+.seg-md img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+  vertical-align: middle;
+}
+.seg-md hr {
+  margin: 0.6em 0;
+  border-color: hsl(var(--border));
+}

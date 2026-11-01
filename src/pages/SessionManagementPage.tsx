@@ -1,14 +1,25 @@
-import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
-import type { ClipboardEvent, DragEvent } from 'react';
-import { useTheme } from '@/contexts/ThemeContext';
+/**
+ * 会话管理（消息记录）
+ *
+ * 数据全部来自 `/api/history/chat/*`，新消息由 `/api/history/chat/ws` 实时推送。
+ * 消息段是**收发原始数据**：入站是适配器上报的段，出站是转换与 markdown 之后实际下发的那条。
+ */
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Ban,
+  Database,
+  FileText,
+  MessageCircle,
+  Pin,
+  RefreshCw,
+  Trash2,
+  Wifi,
+  WifiOff,
+} from 'lucide-react';
+import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,1231 +30,580 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Composer, type MentionItem } from '@/components/session-chat/Composer';
+import { SessionList, type ChatType } from '@/components/session-chat/SessionList';
+import { SessionAvatar } from '@/components/session-chat/SessionAvatar';
+import { MessageRow } from '@/components/session-chat/MessageRow';
+import { TargetInfoCard } from '@/components/session-chat/TargetInfoCard';
+import { CacheSettingsDialog } from '@/components/session-chat/CacheSettingsDialog';
 import {
-  History,
-  Trash2,
-  User,
-  Users,
-  MessageSquare,
-  Loader2,
-  RefreshCw,
-  Search,
-  Brain,
-  Clock,
-  Hash,
-  Send,
-  Bot,
-  ChevronLeft,
-  ChevronDown,
-  MessageCircle,
-  FileText,
-  Forward,
-  Image as ImageIcon,
-  Upload,
-  X,
-} from 'lucide-react';
-import {
+  getApiErrorMessage,
   historyApi,
-  resolveApiAssetUrl,
-  type SessionInfo,
-  type SessionHistoryMessage,
+  sessionChatApi,
   type SessionHistoryTextResponse,
-  type SessionHistoryJSONResponse,
-  type SessionHistoryOpenAIResponse,
-  type SessionPersonaResponse,
 } from '@/lib/api';
-import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
-import { toast } from 'sonner';
+import {
+  botKeyOf,
+  formatDay,
+  needDayDivider,
+  SessionChatWs,
+  type ChatMsg,
+  type SendPayload,
+  type SessionItem,
+  type TargetInfo,
+  type WsFrame,
+} from '@/lib/sessionChat';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
-
-// ============================================================================
-// Types
-// ============================================================================
-
-type ViewMode = 'text' | 'json' | 'messages';
-
-interface SessionDetail {
-  session: SessionInfo;
-  history:
-    | SessionHistoryTextResponse
-    | SessionHistoryJSONResponse
-    | SessionHistoryOpenAIResponse
-    | null;
-  persona: SessionPersonaResponse | null;
-}
-
-interface ChatMessage {
-  role: 'user' | 'assistant';
-  content: string;
-  user_name?: string | null;
-  user_avatar?: string | null;
-  timestamp?: number;
-  images?: string[];
-  metadata?: Record<string, unknown>;
-}
-
-interface PendingImage {
-  id: string;
-  file: File;
-  previewUrl: string;
-}
-
-/** metadata.node 序列化后的合并转发子项（后端 node_items_to_history 产出） */
-interface ForwardNodeItem {
-  type: string;
-  data: string;
-}
-
-// ============================================================================
-// Helper Functions
-// ============================================================================
-
-function ChatImageItem({
-  src,
-  alt,
-  fallbackText,
-}: {
-  src: string;
-  alt?: string;
-  fallbackText?: string;
-}) {
-  const [failed, setFailed] = useState(false);
-  const resolved = resolveApiAssetUrl(src);
-
-  if (failed || !src) {
-    return (
-      <div className="flex items-center gap-1.5 text-xs text-muted-foreground/80 py-1 px-2 rounded-md bg-muted/40 border border-border/30">
-        <ImageIcon className="w-3.5 h-3.5 shrink-0 opacity-70" />
-        <span>{fallbackText || '图片加载失败'}</span>
-      </div>
-    );
-  }
-
-  return (
-    <a
-      href={resolved}
-      target="_blank"
-      rel="noreferrer"
-      className="block max-w-full overflow-hidden rounded-lg border border-border/20 group relative cursor-zoom-in"
-    >
-      <img
-        src={resolved}
-        alt={alt || 'image'}
-        referrerPolicy="no-referrer"
-        loading="lazy"
-        className="max-w-full max-h-72 object-contain rounded-lg transition-transform group-hover:scale-[1.01]"
-        onError={() => setFailed(true)}
-      />
-    </a>
-  );
-}
-
-const extractMessageImages = (msg: SessionHistoryMessage): string[] => {
-  const result: string[] = [];
-  const meta = (msg.metadata || {}) as Record<string, unknown>;
-
-  const metaImages = meta.images || msg.images;
-  if (Array.isArray(metaImages)) {
-    for (const item of metaImages) {
-      if (typeof item === 'string' && item.trim()) {
-        result.push(item.trim());
-      }
-    }
-  }
-
-  if (Array.isArray(meta.image_urls)) {
-    for (const item of meta.image_urls) {
-      if (typeof item === 'string' && item.trim() && !result.includes(item.trim())) {
-        result.push(item.trim());
-      }
-    }
-  }
-
-  if (result.length === 0) {
-    const idList = Array.isArray(meta.image_id_list) ? meta.image_id_list : [];
-    const singleId = typeof meta.image_id === 'string' ? meta.image_id : null;
-    const allIds = [...idList];
-    if (singleId && !allIds.includes(singleId)) {
-      allIds.push(singleId);
-    }
-    for (const id of allIds) {
-      if (typeof id === 'string' && id.trim()) {
-        result.push(historyApi.getResourceImageUrl(id.trim()));
-      }
-    }
-  }
-
-  return result;
-};
-
-const extractNodeItems = (msg: ChatMessage): ForwardNodeItem[] => {
-  const raw = (msg.metadata || {}).node;
-  if (!Array.isArray(raw)) return [];
-  return raw.filter(
-    (item): item is ForwardNodeItem =>
-      !!item && typeof item === 'object' && typeof (item as ForwardNodeItem).data === 'string',
-  );
-};
-
-/** 合并转发块：默认只露预览 + 条数，点开才展开全部子项（对位 QQ 转发卡片） */
-function ForwardNodeBlock({ items }: { items: ForwardNodeItem[] }) {
-  const { t } = useLanguage();
-  const [open, setOpen] = useState(false);
-  const previewLines = items
-    .filter((item) => item.type === 'text' && item.data.trim())
-    .slice(0, 4);
-
-  const mediaLabel = (type: string): string => {
-    if (type === 'record') return t('sessionManagement.nodeAudio');
-    if (type === 'video') return t('sessionManagement.nodeVideo');
-    if (type === 'file') return t('sessionManagement.nodeFile');
-    return `[${type}]`;
-  };
-
-  return (
-    <div className="rounded-lg border border-border/40 bg-background/50 overflow-hidden">
-      <button
-        type="button"
-        onClick={() => setOpen((prev) => !prev)}
-        className="flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-accent/40 transition-colors"
-      >
-        <Forward className="w-4 h-4 shrink-0 text-muted-foreground" />
-        <span className="min-w-0 flex-1">
-          <span className="block text-sm font-medium truncate">
-            {t('sessionManagement.forwardTitle')}
-          </span>
-          {previewLines.length > 0 && (
-            <span className="mt-0.5 block text-xs text-muted-foreground">
-              {previewLines.map((item, idx) => (
-                <span key={idx} className="block truncate">
-                  {item.data}
-                </span>
-              ))}
-            </span>
-          )}
-        </span>
-        <ChevronDown
-          className={cn('w-4 h-4 shrink-0 text-muted-foreground transition-transform', open && 'rotate-180')}
-        />
-      </button>
-      <div className="border-t border-border/40 px-3 py-1.5 text-xs text-muted-foreground">
-        {t('sessionManagement.forwardCount').replace('{count}', String(items.length))}
-      </div>
-      {open && (
-        <div className="border-t border-border/40 px-3 py-2 space-y-2 max-h-80 overflow-y-auto">
-          {items.map((item, idx) => {
-            if (item.type === 'image') {
-              return (
-                <ChatImageItem
-                  key={idx}
-                  src={item.data}
-                  alt={`forward-${idx}`}
-                  fallbackText={t('sessionManagement.imageLoadFailed')}
-                />
-              );
-            }
-            if (item.type === 'text' || item.type === 'at' || item.type === 'reply') {
-              return (
-                <p key={idx} className="text-sm whitespace-pre-wrap [overflow-wrap:anywhere]">
-                  {item.type === 'at' ? `@${item.data}` : item.data}
-                </p>
-              );
-            }
-            return (
-              <span
-                key={idx}
-                className="inline-flex items-center rounded-md bg-muted/60 px-2 py-0.5 text-xs text-muted-foreground"
-              >
-                {mediaLabel(item.type)}
-              </span>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
-
-const formatTimestamp = (timestamp: number | null | undefined): string => {
-  if (!timestamp) return '-';
-  try {
-    return format(new Date(timestamp * 1000), 'yyyy-MM-dd HH:mm:ss');
-  } catch {
-    return '-';
-  }
-};
-
-const formatTime = (timestamp: number | null | undefined): string => {
-  if (!timestamp) return '';
-  try {
-    return format(new Date(timestamp * 1000), 'HH:mm:ss');
-  } catch {
-    return '';
-  }
-};
-
-const getSessionDisplayId = (session: SessionInfo): string => {
-  // 新格式: bot:{bot_id}:group:{group_id} 或 bot:{bot_id}:private:{user_id}
-  // 优先使用 API 返回的 group_id 和 user_id 字段
-  if (session.type === 'group' && session.group_id) {
-    return session.group_id;
-  }
-  if (session.type === 'private' && session.user_id) {
-    return session.user_id;
-  }
-
-  // 如果 API 没有返回 group_id/user_id，尝试从 session_id 解析
-  // 格式: bot:{bot_id}:group:{group_id} 或 bot:{bot_id}:private:{user_id}
-  const groupMatch = session.session_id.match(/^bot:\d+:group:(.+)$/);
-  const privateMatch = session.session_id.match(/^bot:\d+:private:(.+)$/);
-
-  if (groupMatch) {
-    return groupMatch[1];
-  }
-  if (privateMatch) {
-    return privateMatch[1];
-  }
-
-  return session.session_id;
-};
-
-const getBotId = (session: SessionInfo): string => {
-  // 从 session_id 解析 bot_id
-  // 格式: bot:{bot_id}:group:{group_id} 或 bot:{bot_id}:private:{user_id}
-  const match = session.session_id.match(/^bot:(\d+):/);
-  return match ? match[1] : '0';
-};
-
-// ============================================================================
-// Component
-// ============================================================================
 
 export default function SessionManagementPage() {
-  const { style } = useTheme();
-  const isGlass = style !== 'solid';
   const { t } = useLanguage();
 
-  // State
-  const [sessions, setSessions] = useState<SessionInfo[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedSession, setSelectedSession] = useState<SessionDetail | null>(null);
-  const [viewMode, setViewMode] = useState<ViewMode>('json');
-  const [isLoadingDetail, setIsLoadingDetail] = useState(false);
-  const [sessionToDelete, setSessionToDelete] = useState<SessionInfo | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [deleteCompletely, setDeleteCompletely] = useState(false);
-  const [messageText, setMessageText] = useState('');
-  const [isSending, setIsSending] = useState(false);
-  const [pendingImages, setPendingImages] = useState<PendingImage[]>([]);
-  const [isDraggingImages, setIsDraggingImages] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const pendingImagesRef = useRef<PendingImage[]>([]);
-  const chatScrollRef = useRef<HTMLDivElement>(null);
-  const textScrollRef = useRef<HTMLDivElement>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [sessions, setSessions] = useState<SessionItem[]>([]);
+  const [sessionsLoading, setSessionsLoading] = useState(true);
+  const [keyword, setKeyword] = useState('');
+  const [activeId, setActiveId] = useState('');
+  // Bot 与群/私聊分组：只影响列表的可见范围，会话本身不区分
+  const [botKey, setBotKey] = useState('all');
+  const [chatType, setChatType] = useState<ChatType>('all');
 
-  // 自动滚动到底部：进入会话 / 视图模式切换 / 消息更新时触发
-  const scrollToBottom = useCallback((behavior: ScrollBehavior = 'auto') => {
-    // 1) 优先使用 messagesEndRef 锚点（chat mode）
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior, block: 'end' });
-      return;
-    }
-    // 2) 兜底：通过 chatScrollRef 找到 Radix 的 viewport 并滚动到底
-    const viewport = chatScrollRef.current?.querySelector<HTMLElement>(
-      '[data-radix-scroll-area-viewport]',
-    );
-    if (viewport) {
-      viewport.scrollTop = viewport.scrollHeight;
-    }
+  const [messages, setMessages] = useState<ChatMsg[]>([]);
+  const [messagesLoading, setMessagesLoading] = useState(false);
+  const [sending, setSending] = useState(false);
+
+  // 聊天模式看缓存表里的分段消息，文本模式直接看内存里那份历史原文（HistoryManager）
+  const [viewMode, setViewMode] = useState<'chat' | 'text'>('chat');
+  const [historyText, setHistoryText] = useState('');
+  const [historyTextLoading, setHistoryTextLoading] = useState(false);
+
+  const [replyTo, setReplyTo] = useState<ChatMsg | null>(null);
+  const [mention, setMention] = useState<MentionItem | null>(null);
+
+  const [wsState, setWsState] = useState<'connecting' | 'open' | 'closed'>('closed');
+
+  const [infoOpen, setInfoOpen] = useState(false);
+  const [info, setInfo] = useState<TargetInfo | null>(null);
+  const [infoLoading, setInfoLoading] = useState(false);
+
+  const [clearOpen, setClearOpen] = useState(false);
+  const [cacheOpen, setCacheOpen] = useState(false);
+  // 发送失败的原始报错
+  const [sendError, setSendError] = useState<string | null>(null);
+
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const activeIdRef = useRef('');
+  activeIdRef.current = activeId;
+  const viewModeRef = useRef<'chat' | 'text'>('chat');
+  viewModeRef.current = viewMode;
+  const sessionsRef = useRef<SessionItem[]>([]);
+  sessionsRef.current = sessions;
+
+  const activeSession = useMemo(
+    () => sessions.find((item) => item.session_id === activeId) ?? null,
+    [sessions, activeId],
+  );
+
+  const scrollToBottom = useCallback((smooth = false) => {
+    const node = scrollRef.current;
+    if (!node) return;
+    node.scrollTo({ top: node.scrollHeight, behavior: smooth ? 'smooth' : 'auto' });
   }, []);
 
-  useEffect(() => {
-    pendingImagesRef.current = pendingImages;
-  }, [pendingImages]);
-
-  useEffect(() => {
-    return () => {
-      pendingImagesRef.current.forEach((image) => URL.revokeObjectURL(image.previewUrl));
-    };
-  }, []);
-
-  // 选中会话 / 视图模式切换 / 消息更新后，自动滚动到底部
-  useEffect(() => {
-    if (!selectedSession) return;
-
-    if (viewMode === 'json' || viewMode === 'messages') {
-      // 需要等消息渲染完成后再滚动
-      const timer = window.setTimeout(() => {
-        scrollToBottom('auto');
-      }, 0);
-      return () => window.clearTimeout(timer);
-    }
-
-    if (viewMode === 'text') {
-      const viewport = textScrollRef.current?.querySelector<HTMLElement>(
-        '[data-radix-scroll-area-viewport]',
-      );
-      if (viewport) {
-        viewport.scrollTop = viewport.scrollHeight;
-      }
-    }
-  }, [selectedSession, viewMode, selectedSession?.history, scrollToBottom]);
-
-  const addImageFiles = (files: FileList | File[]) => {
-    const imageFiles = Array.from(files).filter((file) => file.type.startsWith('image/'));
-    if (imageFiles.length === 0) return;
-
-    setPendingImages((prev) => [
-      ...prev,
-      ...imageFiles.map((file) => ({
-        id: `${file.name}-${file.size}-${file.lastModified}-${crypto.randomUUID?.() || Math.random().toString(36).slice(2)}`,
-        file,
-        previewUrl: URL.createObjectURL(file),
-      })),
-    ]);
-  };
-
-  const removePendingImage = (imageId: string) => {
-    setPendingImages((prev) => {
-      const image = prev.find((item) => item.id === imageId);
-      if (image) URL.revokeObjectURL(image.previewUrl);
-      return prev.filter((item) => item.id !== imageId);
-    });
-  };
-
-  const clearPendingImages = () => {
-    setPendingImages((prev) => {
-      prev.forEach((image) => URL.revokeObjectURL(image.previewUrl));
-      return [];
-    });
-  };
-
-  // Fetch sessions
-  const fetchSessions = useCallback(async () => {
+  // 会话列表
+  const loadSessions = useCallback(async () => {
     try {
-      setIsLoading(true);
-      const data = await historyApi.getSessions();
-      // Sort by last_access desc
-      const sorted = data.sort((a, b) => (b.last_access || 0) - (a.last_access || 0));
-      setSessions(sorted);
+      const data = await sessionChatApi.getSessions();
+      setSessions(data.sessions ?? []);
+      return data.sessions ?? [];
     } catch (error) {
-      console.error('Failed to fetch sessions:', error);
-      toast.error(t('sessionManagement.loadFailed'));
+      toast.error(getApiErrorMessage(error, t('sessionManagement.loadFailed')));
+      return [];
     } finally {
-      setIsLoading(false);
+      setSessionsLoading(false);
     }
   }, [t]);
 
   useEffect(() => {
-    fetchSessions();
-  }, [fetchSessions]);
+    void loadSessions().then((list) => {
+      if (list.length > 0) setActiveId((prev) => prev || list[0].session_id);
+    });
+  }, [loadSessions]);
 
-  // Filter sessions
-  const filteredSessions = useMemo(() => {
-    if (!searchQuery.trim()) return sessions;
-    const query = searchQuery.toLowerCase();
-    return sessions.filter(
-      (s) =>
-        s.session_id.toLowerCase().includes(query) ||
-        (s.user_id && s.user_id.toLowerCase().includes(query)) ||
-        (s.group_id && s.group_id.toLowerCase().includes(query)),
+  // 消息
+  const loadMessages = useCallback(
+    async (sessionId: string) => {
+      if (!sessionId) return;
+      setMessagesLoading(true);
+      try {
+        const data = await sessionChatApi.getMessages(sessionId);
+        setMessages(data.messages ?? []);
+        requestAnimationFrame(() => scrollToBottom());
+      } catch (error) {
+        toast.error(getApiErrorMessage(error, t('sessionManagement.loadDetailFailed')));
+      } finally {
+        setMessagesLoading(false);
+      }
+    },
+    [t, scrollToBottom],
+  );
+
+  // 文本模式：/api/history/{id}?format_type=text 读的是内存里的 HistoryManager，
+  // 和聊天模式用的消息缓存表不是同一份数据，所以单独拉一次
+  const loadHistoryText = useCallback(
+    async (sessionId: string) => {
+      if (!sessionId) return;
+      setHistoryTextLoading(true);
+      try {
+        const data = (await historyApi.getSessionHistory(
+          sessionId,
+          'text',
+        )) as SessionHistoryTextResponse;
+        // 请求在路上时可能已经切走了，别把旧会话的原文贴上去
+        if (activeIdRef.current !== sessionId) return;
+        setHistoryText(data?.content ?? '');
+        requestAnimationFrame(() => scrollToBottom());
+      } catch (error) {
+        toast.error(getApiErrorMessage(error, t('sessionManagement.loadDetailFailed')));
+      } finally {
+        setHistoryTextLoading(false);
+      }
+    },
+    [t, scrollToBottom],
+  );
+
+  useEffect(() => {
+    setReplyTo(null);
+    setMessages([]);
+    setHistoryText('');
+    if (!activeId) return;
+    if (viewMode === 'text') void loadHistoryText(activeId);
+    else void loadMessages(activeId);
+  }, [activeId, viewMode, loadMessages, loadHistoryText]);
+
+  // WebSocket
+  useEffect(() => {
+    const client = new SessionChatWs({
+      onState: setWsState,
+      onFrame: (frame: WsFrame) => {
+        if (frame.type === 'ping') return;
+
+        if (frame.type === 'message') {
+          const incoming = frame.message;
+          // 之前没见过的会话（新群第一次说话）：整表重拉，不然它不会出现在列表里
+          if (!sessionsRef.current.some((item) => item.session_id === frame.session_id)) {
+            void loadSessions();
+          }
+          // 会话列表：更新预览与时间并重排（置顶优先）
+          setSessions((prev) => {
+            const next = prev.map((item) =>
+              item.session_id === frame.session_id
+                ? {
+                    ...item,
+                    last_preview: incoming.preview ?? '',
+                    last_role: incoming.role,
+                    last_time: incoming.timestamp,
+                    last_access: incoming.timestamp,
+                    message_count: item.message_count + 1,
+                  }
+                : item,
+            );
+            next.sort(
+              (a, b) =>
+                Number(b.pinned) - Number(a.pinned) || (b.last_time || 0) - (a.last_time || 0),
+            );
+            return next;
+          });
+
+          if (frame.session_id !== activeIdRef.current) return;
+          // 文本模式渲染的是内存历史的一份快照，来新消息只能整段重取
+          if (viewModeRef.current === 'text') {
+            void loadHistoryText(frame.session_id);
+            return;
+          }
+          setMessages((prev) => {
+            // 发完消息后本地也会重拉一次，这里按「同一秒同一角色同一内容」去重
+            const last = prev[prev.length - 1];
+            if (
+              last &&
+              last.role === incoming.role &&
+              Math.abs((last.timestamp || 0) - (incoming.timestamp || 0)) < 0.001 &&
+              last.content === incoming.content
+            ) {
+              return prev;
+            }
+            return [...prev, incoming];
+          });
+          requestAnimationFrame(() => scrollToBottom(true));
+          return;
+        }
+
+        if (frame.type === 'cleared' || frame.type === 'deleted') {
+          if (frame.session_id === activeIdRef.current) {
+            setMessages([]);
+            setHistoryText('');
+          }
+          void loadSessions();
+        }
+      },
+    });
+    client.connect();
+    return () => client.disconnect();
+  }, [loadSessions, loadHistoryText, scrollToBottom]);
+
+  // 操作
+  const patchSession = useCallback((sessionId: string, patch: Partial<SessionItem>) => {
+    setSessions((prev) =>
+      prev.map((item) => (item.session_id === sessionId ? { ...item, ...patch } : item)),
     );
-  }, [sessions, searchQuery]);
+  }, []);
 
-  const loadSessionDetail = async (session: SessionInfo, mode: ViewMode = viewMode) => {
-    let historyData = null;
-    let personaData = null;
-
-    try {
-      historyData = await historyApi.getSessionHistory(session.session_id, mode);
-    } catch (historyError) {
-      console.log('History fetch error (may be normal for empty sessions):', historyError);
-    }
-
-    try {
-      personaData = await historyApi.getSessionPersona(session.session_id);
-    } catch (personaError) {
-      console.log(
-        'Persona fetch error (may be normal for sessions without persona):',
-        personaError,
-      );
-    }
-
-    return {
-      session,
-      history: historyData,
-      persona: personaData,
-    };
+  const handleSelect = (session: SessionItem) => {
+    setActiveId(session.session_id);
   };
 
-  // View session detail
-  const handleSelectSession = async (session: SessionInfo) => {
-    // 如果已经选中，则取消选中
-    if (selectedSession?.session.session_id === session.session_id) {
-      return;
-    }
+  // 切 Bot 或群/私聊后，当前打开的会话可能已经不在可见范围里，右侧跟着清空
+  useEffect(() => {
+    if (!activeId) return;
+    const current = sessions.find((item) => item.session_id === activeId);
+    if (!current) return;
+    const hiddenByType = chatType !== 'all' && current.type !== chatType;
+    const hiddenByBot = botKey !== 'all' && botKeyOf(current) !== botKey;
+    if (!hiddenByType && !hiddenByBot) return;
+    setActiveId('');
+    setMessages([]);
+    setHistoryText('');
+  }, [activeId, sessions, botKey, chatType]);
 
+  const handleTogglePin = async (session: SessionItem) => {
     try {
-      setIsLoadingDetail(true);
-
-      setSelectedSession(await loadSessionDetail(session));
-      setMessageText('');
-      clearPendingImages();
-    } catch (error) {
-      console.error('Failed to fetch session detail:', error);
-      toast.error(t('sessionManagement.loadDetailFailed'));
-    } finally {
-      setIsLoadingDetail(false);
-    }
-  };
-
-  // Handle view mode change
-  const handleViewModeChange = async (newMode: ViewMode) => {
-    if (!selectedSession) return;
-
-    setViewMode(newMode);
-    try {
-      const historyData = await historyApi.getSessionHistory(
-        selectedSession.session.session_id,
-        newMode,
-      );
-      setSelectedSession((prev) => (prev ? { ...prev, history: historyData } : null));
-    } catch (error) {
-      console.error('Failed to fetch history:', error);
-    }
-  };
-
-  const handleSendMessage = async () => {
-    if (!selectedSession || (!messageText.trim() && pendingImages.length === 0)) return;
-
-    try {
-      setIsSending(true);
-      await historyApi.sendSessionMessage(selectedSession.session.session_id, {
-        message: messageText.trim(),
-        images: pendingImages.map((image) => image.file),
-        at_sender: false,
+      const result = await sessionChatApi.updatePrefs(session.session_id, {
+        pinned: !session.pinned,
       });
-
-      toast.success(t('sessionManagement.sendSuccess'));
-
-      setMessageText('');
-      clearPendingImages();
-      setSelectedSession(await loadSessionDetail(selectedSession.session, viewMode));
-      await fetchSessions();
-    } catch (error) {
-      console.error('Failed to send session message:', error);
-      toast.error(error instanceof Error ? error.message : t('sessionManagement.sendFailed'));
-    } finally {
-      setIsSending(false);
-    }
-  };
-
-  // Clear session history
-  const handleClearSession = async () => {
-    if (!sessionToDelete) return;
-
-    try {
-      setIsDeleting(true);
-      await historyApi.clearSessionHistory(sessionToDelete.session_id, deleteCompletely);
-
-      toast.success(
-        deleteCompletely
-          ? t('sessionManagement.deleteSuccess', { id: sessionToDelete.session_id })
-          : t('sessionManagement.clearSuccess', { id: sessionToDelete.session_id }),
+      // 改完置顶要立刻重排，和 patch 合成一次 setState，别渲染两遍
+      setSessions((prev) =>
+        prev
+          .map((item) => (item.session_id === session.session_id ? { ...item, pinned: result.pinned } : item))
+          .sort((a, b) => Number(b.pinned) - Number(a.pinned) || (b.last_time || 0) - (a.last_time || 0)),
       );
-
-      // Refresh list
-      await fetchSessions();
-
-      // Close detail if viewing this session
-      if (selectedSession?.session.session_id === sessionToDelete.session_id) {
-        setSelectedSession(null);
-      }
     } catch (error) {
-      console.error('Failed to clear session:', error);
-      toast.error(t('sessionManagement.clearFailed'));
-    } finally {
-      setIsDeleting(false);
-      setSessionToDelete(null);
-      setDeleteCompletely(false);
+      toast.error(getApiErrorMessage(error, t('sessionManagement.saveFailed')));
     }
   };
 
-  const handlePasteImages = (event: ClipboardEvent<HTMLTextAreaElement>) => {
-    const files = Array.from(event.clipboardData.files).filter((file) =>
-      file.type.startsWith('image/'),
-    );
-    if (files.length > 0) {
-      addImageFiles(files);
+  const handleEditNote = async (session: SessionItem, note: string) => {
+    try {
+      const result = await sessionChatApi.updatePrefs(session.session_id, { note });
+      patchSession(session.session_id, { note: result.note });
+      toast.success(t('sessionManagement.noteSaved'));
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, t('sessionManagement.saveFailed')));
     }
   };
 
-  const handleDropImages = (event: DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    setIsDraggingImages(false);
-    addImageFiles(event.dataTransfer.files);
+  const handleToggleBlacklist = async (session: SessionItem) => {
+    try {
+      const result = await sessionChatApi.updatePrefs(session.session_id, {
+        blacklisted: !session.blacklisted,
+      });
+      patchSession(session.session_id, { blacklisted: result.blacklisted });
+      toast.success(
+        result.blacklisted ? t('sessionManagement.blacklistedOn') : t('sessionManagement.blacklistedOff'),
+      );
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, t('sessionManagement.saveFailed')));
+    }
   };
 
-  // Parse messages for chat display
-  const getChatMessages = (): ChatMessage[] => {
-    if (!selectedSession?.history) return [];
-
-    if (viewMode === 'json' || viewMode === 'messages') {
-      const jsonData = selectedSession.history as SessionHistoryJSONResponse;
-      if (jsonData.messages) {
-        return jsonData.messages.map((msg) => ({
-          role: msg.role === 'assistant' ? 'assistant' : 'user',
-          content: msg.content,
-          user_name: msg.user_name,
-          user_avatar: msg.user_avatar,
-          timestamp: msg.timestamp,
-          images: extractMessageImages(msg),
-          metadata: msg.metadata as Record<string, unknown> | undefined,
-        }));
+  const openInfo = useCallback(
+    async (session: SessionItem, userId = '') => {
+      setInfo(null);
+      setInfoOpen(true);
+      setInfoLoading(true);
+      try {
+        const data = await sessionChatApi.getInfo(session.session_id, { userId });
+        setInfo(data);
+      } catch (error) {
+        toast.error(getApiErrorMessage(error, t('sessionManagement.loadDetailFailed')));
+      } finally {
+        setInfoLoading(false);
       }
+    },
+    [t],
+  );
+
+  const handleSend = async (payload: SendPayload): Promise<boolean> => {
+    if (!activeId) return false;
+    setSending(true);
+    try {
+      await sessionChatApi.send(activeId, payload);
+      toast.success(t('sessionManagement.sendSuccess'));
+      // WS 断着的时候推不过来，补一次拉取
+      if (wsState !== 'open') await loadMessages(activeId);
+      return true;
+    } catch (error) {
+      setSendError(getApiErrorMessage(error, t('sessionManagement.sendFailed')));
+      // 告诉输入框别清空，用户还能改了再发
+      return false;
+    } finally {
+      setSending(false);
     }
-
-    // For text mode, we can't easily parse into chat bubbles
-    return [];
   };
 
-  // Render chat message
-  const renderChatMessage = (msg: ChatMessage, idx: number) => {
-    const isUser = msg.role === 'user';
-    const nodeItems = extractNodeItems(msg);
-
-    return (
-      <div
-        key={idx}
-        className={cn('flex gap-2 sm:gap-3 mb-3 sm:mb-4', isUser ? 'flex-row' : 'flex-row-reverse')}
-      >
-        {/* Avatar */}
-        <div
-          className={cn(
-            'w-7 h-7 sm:w-8 sm:h-8 shrink-0 rounded-full flex items-center justify-center',
-            isUser
-              ? msg.user_avatar
-                ? ''
-                : 'bg-primary/20 text-primary'
-              : 'bg-muted text-muted-foreground',
-          )}
-        >
-          {isUser && msg.user_avatar ? (
-            <Avatar className="w-full h-full">
-              <AvatarImage
-                src={resolveApiAssetUrl(msg.user_avatar)}
-                alt={msg.user_name || 'User'}
-              />
-              <AvatarFallback className="bg-primary/20 text-primary text-[10px] sm:text-xs font-medium">
-                {msg.user_name ? (
-                  msg.user_name.charAt(0).toUpperCase()
-                ) : (
-                  <User className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                )}
-              </AvatarFallback>
-            </Avatar>
-          ) : isUser ? (
-            msg.user_name ? (
-              <span className="text-[10px] sm:text-xs font-medium">
-                {msg.user_name.charAt(0).toUpperCase()}
-              </span>
-            ) : (
-              <User className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            )
-          ) : (
-            <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-          )}
-        </div>
-
-        {/* Message Content */}
-        <div
-          className={cn(
-            'flex flex-col max-w-[80%] sm:max-w-[70%]',
-            isUser ? 'items-start' : 'items-end',
-          )}
-        >
-          <span
-            className={cn(
-              'text-[10px] sm:text-xs text-muted-foreground mb-0.5 sm:mb-1',
-              isUser ? 'text-left' : 'text-right',
-            )}
-          >
-            {msg.user_name && <span className="mr-1 sm:mr-2">{msg.user_name}</span>}
-            {formatTime(msg.timestamp)}
-          </span>
-          <div
-            className={cn(
-              'rounded-2xl text-sm overflow-hidden',
-              msg.content?.trim() || !msg.images?.length
-                ? isUser
-                  ? 'bg-primary text-primary-foreground rounded-tl-none px-3 py-1.5 sm:px-4 sm:py-2'
-                  : 'bg-muted rounded-tr-none px-3 py-1.5 sm:px-4 sm:py-2'
-                : 'p-1 rounded-xl border border-border/30 bg-muted/20',
-            )}
-          >
-            {/* overflow-wrap:anywhere：break-words 断不开无空格长串
-                （如 oneBot2:onebot:3399214199:group:xxx / 模型名），窄屏会被裁掉；
-                有 node 子项时正文就是摘要，交给转发块渲染，不再重复显示 */}
-            {nodeItems.length > 0 ? (
-              <ForwardNodeBlock items={nodeItems} />
-            ) : msg.content?.trim() || !msg.images?.length ? (
-              <p className="whitespace-pre-wrap [overflow-wrap:anywhere]">
-                {msg.content || ''}
-              </p>
-            ) : null}
-            {msg.images && msg.images.length > 0 && (
-              <div className={cn('flex flex-col gap-2', msg.content?.trim() && 'mt-2')}>
-                {msg.images.map((imgSrc, imgIdx) => (
-                  <ChatImageItem
-                    key={`${imgSrc}-${imgIdx}`}
-                    src={imgSrc}
-                    alt={`image-${imgIdx}`}
-                    fallbackText={t('sessionManagement.imageLoadFailed')}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    );
+  const handleClear = async () => {
+    if (!activeId) return;
+    try {
+      await historyApi.clearSessionHistory(activeId, false);
+      setMessages([]);
+      setHistoryText('');
+      toast.success(t('sessionManagement.clearSuccess', { id: activeId }));
+      void loadSessions();
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, t('sessionManagement.clearFailed')));
+    } finally {
+      setClearOpen(false);
+    }
   };
 
+  // 渲染
   return (
     <div className="page-fill flex glass-card">
       <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden rounded-[inherit]">
-        {/* Left Sidebar - Session List */}
-        <div
-          className={cn(
-            'border-r border-border/40 flex flex-col shrink-0',
-            'w-full absolute inset-0 z-10 sm:relative sm:w-72 md:w-80 lg:w-[340px]',
-            selectedSession ? 'hidden sm:flex' : 'flex',
-          )}
-        >
-          {/* Sidebar Header */}
-          <div className="p-3 sm:p-4 border-b border-border/50">
-            <div className="flex items-center justify-between mb-3 sm:mb-4">
-              <h1 className="text-base sm:text-lg font-semibold flex items-center gap-2">
-                <History className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
-                {t('sessionManagement.title')}
-              </h1>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={fetchSessions}
-                disabled={isLoading}
-                className="h-7 w-7 sm:h-8 sm:w-8"
-              >
-                {isLoading ? (
-                  <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" />
-                ) : (
-                  <RefreshCw className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                )}
-              </Button>
-            </div>
+        <SessionList
+          sessions={sessions}
+          activeId={activeId}
+          keyword={keyword}
+          onKeywordChange={setKeyword}
+          botKey={botKey}
+          onBotChange={setBotKey}
+          chatType={chatType}
+          onChatTypeChange={setChatType}
+          onSelect={handleSelect}
+          onTogglePin={handleTogglePin}
+          onEditNote={handleEditNote}
+          onViewInfo={(session) => void openInfo(session)}
+          onToggleBlacklist={handleToggleBlacklist}
+        />
 
-            {/* Search */}
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-3.5 w-3.5 sm:h-4 sm:w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder={t('sessionManagement.searchPlaceholder')}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className={cn('pl-9 sm:pl-10 h-8 sm:h-9 text-sm rounded-lg', 'glass-card')}
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+          {/* 头部：点头像就是看群/用户信息，不再单独放一个信息按钮 */}
+          <div className="flex shrink-0 items-center gap-2 border-b border-border/60 px-3 py-2">
+            <button
+              type="button"
+              disabled={!activeSession}
+              onClick={() => activeSession && void openInfo(activeSession)}
+              title={activeSession ? t('sessionManagement.viewInfo') : undefined}
+              className="shrink-0 rounded-full transition-opacity hover:opacity-80 disabled:cursor-default"
+            >
+              <SessionAvatar
+                src={activeSession?.avatar}
+                name={activeSession?.note || activeSession?.title}
+                type={activeSession?.type}
+                className="h-8 w-8"
               />
+            </button>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5">
+                <span className="truncate text-sm font-semibold">
+                  {activeSession?.note || activeSession?.title || t('sessionManagement.title')}
+                </span>
+                {activeSession?.pinned && <Pin className="h-3 w-3 text-primary" />}
+                {activeSession?.blacklisted && (
+                  <Badge variant="destructive" className="h-4 px-1 text-[10px]">
+                    <Ban className="mr-0.5 h-2.5 w-2.5" />
+                    {t('sessionManagement.blacklisted')}
+                  </Badge>
+                )}
+              </div>
+              <div className="text-[11px] text-muted-foreground">
+                {activeSession
+                  ? activeSession.type === 'group'
+                    ? t('sessionManagement.groupChat')
+                    : t('sessionManagement.privateChat')
+                  : t('sessionManagement.selectSession')}
+                {activeSession && ` · ${activeSession.message_count} ${t('sessionManagement.messages')}`}
+              </div>
             </div>
-          </div>
 
-          {/* Session List */}
-          <ScrollArea className="flex-1">
-            {isLoading ? (
-              <div className="flex items-center justify-center h-32">
-                <Loader2 className="w-5 h-5 sm:w-6 sm:h-6 animate-spin text-primary" />
-              </div>
-            ) : filteredSessions.length === 0 ? (
-              <div className="text-center text-muted-foreground py-8 px-4 text-sm">
-                {searchQuery
-                  ? t('sessionManagement.noSearchResults')
-                  : t('sessionManagement.noSessions')}
-              </div>
-            ) : (
-              <div className="p-1.5 sm:p-2 pr-2.5 sm:pr-3 space-y-1">
-                {filteredSessions.map((session) => {
-                  const isSelected = selectedSession?.session.session_id === session.session_id;
-                  const displayId = getSessionDisplayId(session);
-                  const botId = getBotId(session);
-                  const isGroup = session.type === 'group';
-                  const userAvatar = session.last_user?.user_avatar
-                    ? resolveApiAssetUrl(session.last_user.user_avatar)
-                    : undefined;
-
+            <div className="ml-auto flex items-center gap-1">
+              {/* 聊天模式 / 文本模式：文本模式直接看内存里的历史原文，不发消息 */}
+              <div className="mr-1 inline-flex items-center rounded-lg bg-muted/60 p-0.5">
+                {(
+                  [
+                    { value: 'chat', label: t('sessionManagement.chatMode'), icon: MessageCircle },
+                    { value: 'text', label: t('sessionManagement.textMode'), icon: FileText },
+                  ] as const
+                ).map((mode) => {
+                  const Icon = mode.icon;
                   return (
                     <button
-                      key={session.session_id}
-                      onClick={() => handleSelectSession(session)}
+                      key={mode.value}
+                      type="button"
+                      disabled={!activeSession}
+                      onClick={() => setViewMode(mode.value)}
+                      title={mode.label}
                       className={cn(
-                        'w-full p-2.5 sm:p-3 rounded-xl text-left transition-all',
-                        'hover:bg-accent/50',
-                        isSelected && 'bg-primary/10 hover:bg-primary/10 border-l-2 border-primary',
+                        'flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium transition-all disabled:cursor-default disabled:opacity-40',
+                        viewMode === mode.value
+                          ? 'bg-background text-foreground shadow-sm'
+                          : 'text-muted-foreground hover:text-foreground',
                       )}
                     >
-                      <div className="flex items-center gap-2.5 sm:gap-3">
-                        {/* Avatar */}
-                        <Avatar className="w-8 h-8 sm:w-10 sm:h-10 shrink-0">
-                          {!isGroup && userAvatar && (
-                            <AvatarImage src={userAvatar} alt={displayId} />
-                          )}
-                          <AvatarFallback
-                            className={cn(isGroup ? 'bg-green-500/20' : 'bg-blue-500/20')}
-                          >
-                            {isGroup ? (
-                              <Users className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
-                            ) : (
-                              <User className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />
-                            )}
-                          </AvatarFallback>
-                        </Avatar>
-
-                        {/* Info */}
-                        <div className="flex-1 min-w-0">
-                          {/* First row: ID and Bot Badge */}
-                          <div className="flex items-center gap-2">
-                            <div className="font-medium text-sm truncate" title={displayId}>
-                              {displayId}
-                            </div>
-                            {botId !== '0' && (
-                              <Badge
-                                variant="outline"
-                                className="text-[10px] px-1.5 py-0 h-4 shrink-0 bg-orange-500/20 text-orange-600 border-orange-500/30"
-                              >
-                                Bot {botId}
-                              </Badge>
-                            )}
-                          </div>
-                          {/* Second row: Last user message preview */}
-                          {session.last_user?.message && (
-                            <p className="text-xs text-muted-foreground truncate mt-0.5">
-                              {session.last_user.user_name && (
-                                <span className="font-medium text-foreground/70">
-                                  {session.last_user.user_name}:{' '}
-                                </span>
-                              )}
-                              {session.last_user.message}
-                            </p>
-                          )}
-                          {/* Third row: Badge and Stats */}
-                          <div className="flex items-center gap-2 mt-1">
-                            <Badge
-                              variant="secondary"
-                              className={cn(
-                                'text-[10px] px-1.5 py-0 h-4 shrink-0',
-                                isGroup
-                                  ? 'bg-green-500/20 text-green-600 hover:bg-green-500/30'
-                                  : 'bg-primary/20 text-primary hover:bg-primary/30',
-                              )}
-                            >
-                              {isGroup
-                                ? t('sessionManagement.group')
-                                : t('sessionManagement.private')}
-                            </Badge>
-                            <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                              <MessageSquare className="w-3 h-3" />
-                              {session.message_count}
-                            </span>
-                            {session.last_access && (
-                              <span className="flex items-center gap-1 text-xs text-muted-foreground truncate">
-                                <Clock className="w-3 h-3 shrink-0" />
-                                <span className="truncate">
-                                  {formatTimestamp(session.last_access)}
-                                </span>
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
+                      <Icon className="h-3.5 w-3.5" />
+                      <span className="hidden sm:inline">{mode.label}</span>
                     </button>
                   );
                 })}
               </div>
-            )}
-          </ScrollArea>
-        </div>
-
-        {/* Right Content Area */}
-        <div
-          className={cn(
-            'flex-1 flex flex-col min-w-0 rounded-r-xl overflow-hidden',
-            isGlass
-              ? 'bg-background/50 backdrop-blur-md border border-white/10'
-              : 'bg-background border border-border',
-          )}
-        >
-          {selectedSession ? (
-            <>
-              {/* Chat Header */}
-              <div
+              <span
                 className={cn(
-                  'h-14 sm:h-16 border-b px-3 sm:px-4 flex items-center justify-between shrink-0',
-                  isGlass ? 'border-white/10 bg-background/50' : 'border-border bg-card',
+                  'mr-1 inline-flex items-center gap-1 text-[11px]',
+                  wsState === 'open' ? 'text-emerald-600' : 'text-muted-foreground',
                 )}
+                title={wsState === 'open' ? t('sessionManagement.wsConnected') : t('sessionManagement.wsDisconnected')}
               >
-                <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="sm:hidden h-11 w-11 shrink-0"
-                    onClick={() => setSelectedSession(null)}
-                  >
-                    <ChevronLeft className="w-5 h-5" />
-                  </Button>
+                {wsState === 'open' ? <Wifi className="h-3.5 w-3.5" /> : <WifiOff className="h-3.5 w-3.5" />}
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2"
+                onClick={() => setCacheOpen(true)}
+                title={t('sessionManagement.cacheSettings')}
+              >
+                <Database className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2"
+                onClick={() => void loadSessions()}
+                title={t('sessionManagement.refresh')}
+              >
+                <RefreshCw className={cn('h-3.5 w-3.5', sessionsLoading && 'animate-spin')} />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 text-destructive"
+                disabled={!activeSession}
+                onClick={() => setClearOpen(true)}
+                title={t('sessionManagement.confirmClear')}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </div>
 
-                  <Avatar
-                    key={selectedSession.session.session_id}
-                    className="w-8 h-8 sm:w-10 sm:h-10 shrink-0"
-                  >
-                    {selectedSession.session.type !== 'group' &&
-                      selectedSession.session.last_user?.user_avatar && (
-                        <AvatarImage
-                          src={resolveApiAssetUrl(selectedSession.session.last_user.user_avatar)}
-                          alt={getSessionDisplayId(selectedSession.session)}
-                        />
-                      )}
-                    <AvatarFallback
-                      className={cn(
-                        selectedSession.session.type === 'group'
-                          ? 'bg-green-500/20'
-                          : 'bg-blue-500/20',
-                      )}
-                    >
-                      {selectedSession.session.type === 'group' ? (
-                        <Users className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
-                      ) : (
-                        <User className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />
-                      )}
-                    </AvatarFallback>
-                  </Avatar>
-
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <h2 className="font-semibold text-sm sm:text-base truncate">
-                        {getSessionDisplayId(selectedSession.session)}
-                      </h2>
-                      {getBotId(selectedSession.session) !== '0' && (
-                        <Badge
-                          variant="outline"
-                          className="text-[10px] px-1.5 py-0 h-4 shrink-0 bg-orange-500/20 text-orange-600 border-orange-500/30"
-                        >
-                          Bot {getBotId(selectedSession.session)}
-                        </Badge>
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {selectedSession.session.type === 'group'
-                        ? t('sessionManagement.groupChat')
-                        : t('sessionManagement.privateChat')}
-                      {selectedSession.persona?.persona_content && (
-                        <span className="ml-1 sm:ml-2 text-primary">
-                          · {t('sessionManagement.hasPersona')}
+          {/* 消息流 */}
+          <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
+            {!activeSession ? (
+              <div className="flex h-full flex-col items-center justify-center gap-1 text-sm text-muted-foreground">
+                <p>{t('sessionManagement.selectSession')}</p>
+                <p className="text-xs">{t('sessionManagement.selectSessionDesc')}</p>
+              </div>
+            ) : viewMode === 'text' ? (
+              historyTextLoading && !historyText ? (
+                <p className="py-8 text-center text-xs text-muted-foreground">
+                  {t('sessionManagement.loading')}
+                </p>
+              ) : historyText ? (
+                <pre className="whitespace-pre-wrap rounded-lg bg-muted/50 p-3 font-mono text-xs leading-relaxed [overflow-wrap:anywhere]">
+                  {historyText}
+                </pre>
+              ) : (
+                <p className="py-8 text-center text-xs text-muted-foreground">
+                  {t('sessionManagement.noHistory')}
+                </p>
+              )
+            ) : messagesLoading && messages.length === 0 ? (
+              <p className="py-8 text-center text-xs text-muted-foreground">
+                {t('sessionManagement.loading')}
+              </p>
+            ) : messages.length === 0 ? (
+              <p className="py-8 text-center text-xs text-muted-foreground">
+                {t('sessionManagement.emptyMessages')}
+              </p>
+            ) : (
+              messages.map((msg, idx) => {
+                const prev = idx > 0 ? messages[idx - 1] : undefined;
+                return (
+                  <div key={`${msg.timestamp}-${idx}`}>
+                    {needDayDivider(prev?.timestamp, msg.timestamp) && (
+                      <div className="my-3 flex justify-center">
+                        <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">
+                          {formatDay(msg.timestamp)}
                         </span>
-                      )}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-                  {/* View Mode Toggle - TabButtonGroup */}
-                  <div className="hidden sm:block">
-                    <TabButtonGroup
-                      options={[
-                        {
-                          value: 'json',
-                          label: t('sessionManagement.chatMode'),
-                          icon: <MessageCircle className="w-4 h-4" />,
-                        },
-                        {
-                          value: 'text',
-                          label: t('sessionManagement.textMode'),
-                          icon: <FileText className="w-4 h-4" />,
-                        },
-                      ]}
-                      value={viewMode}
-                      onValueChange={(value) => handleViewModeChange(value as ViewMode)}
+                      </div>
+                    )}
+                    <MessageRow
+                      msg={msg}
+                      onReply={(target) => {
+                        if (!target.msg_id) {
+                          toast.info(t('sessionManagement.noMessageId'));
+                          return;
+                        }
+                        setReplyTo(target);
+                      }}
+                      onAt={(target) =>
+                        setMention({
+                          userId: target.user_id,
+                          name: target.sender?.card || target.sender?.nickname || target.user_id,
+                        })
+                      }
                     />
                   </div>
+                );
+              })
+            )}
+          </div>
 
-                  {/* Mobile view mode toggle - icon only */}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="sm:hidden h-8 w-8 rounded-lg"
-                    onClick={() => handleViewModeChange(viewMode === 'json' ? 'text' : 'json')}
-                  >
-                    {viewMode === 'json' ? (
-                      <MessageSquare className="w-4 h-4" />
-                    ) : (
-                      <Hash className="w-4 h-4" />
-                    )}
-                  </Button>
-
-                  <Button
-                    variant="destructive"
-                    onClick={() => setSessionToDelete(selectedSession.session)}
-                    className="gap-2 px-4 py-2 h-auto rounded-md"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    <span className="hidden sm:inline">{t('common.clear')}</span>
-                  </Button>
-                </div>
-              </div>
-
-              {/* Chat Content */}
-              <div className="flex-1 overflow-hidden flex">
-                {/* Messages Area */}
-                <div className="flex-1 flex flex-col min-w-0">
-                  {isLoadingDetail ? (
-                    <div className="flex-1 flex items-center justify-center">
-                      <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                    </div>
-                  ) : viewMode === 'json' ? (
-                    <>
-                      <ScrollArea ref={chatScrollRef} className="flex-1 p-4">
-                        <div className="space-y-2">
-                          {getChatMessages().length > 0 ? (
-                            getChatMessages().map((msg, idx) => renderChatMessage(msg, idx))
-                          ) : (
-                            <div className="text-center text-muted-foreground py-12">
-                              <MessageSquare className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                              <p>{t('sessionManagement.noHistory')}</p>
-                            </div>
-                          )}
-                          <div ref={messagesEndRef} />
-                        </div>
-                      </ScrollArea>
-
-                      {/* Send Message Area */}
-                      <div
-                        className={cn(
-                          'p-2 sm:p-4 border-t',
-                          isGlass
-                            ? 'border-white/10 bg-background/30'
-                            : 'border-border bg-muted/30',
-                        )}
-                      >
-                        <div
-                          className={cn(
-                            'max-w-4xl mx-auto space-y-2 rounded-xl border border-dashed p-2 transition-colors',
-                            isDraggingImages
-                              ? 'border-primary bg-primary/10'
-                              : 'border-transparent',
-                          )}
-                          onDragOver={(e) => {
-                            e.preventDefault();
-                            setIsDraggingImages(true);
-                          }}
-                          onDragLeave={() => setIsDraggingImages(false)}
-                          onDrop={handleDropImages}
-                        >
-                          {pendingImages.length > 0 && (
-                            <div className="flex flex-wrap gap-2">
-                              {pendingImages.map((image) => (
-                                <div
-                                  key={image.id}
-                                  className="relative group w-16 h-16 rounded-lg overflow-hidden border bg-muted"
-                                >
-                                  <img
-                                    src={image.previewUrl}
-                                    alt={image.file.name}
-                                    className="w-full h-full object-cover"
-                                  />
-                                  <button
-                                    type="button"
-                                    onClick={() => removePendingImage(image.id)}
-                                    className="absolute top-1 right-1 w-5 h-5 rounded-full bg-background/90 text-foreground flex items-center justify-center opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity"
-                                    title={t('sessionManagement.removeImage')}
-                                  >
-                                    <X className="w-3 h-3" />
-                                  </button>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                          <div className="flex items-end gap-2">
-                            <input
-                              ref={fileInputRef}
-                              type="file"
-                              accept="image/*"
-                              multiple
-                              className="hidden"
-                              onChange={(e) => {
-                                if (e.target.files) addImageFiles(e.target.files);
-                                e.target.value = '';
-                              }}
-                            />
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="icon"
-                              disabled={isSending}
-                              onClick={() => fileInputRef.current?.click()}
-                              className="h-11 w-11 shrink-0 rounded-lg"
-                              title={t('sessionManagement.selectImages')}
-                            >
-                              <ImageIcon className="w-4 h-4" />
-                            </Button>
-                            <Textarea
-                              placeholder={t('sessionManagement.inputPlaceholder')}
-                              value={messageText}
-                              onChange={(e) => setMessageText(e.target.value)}
-                              onPaste={handlePasteImages}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-                                  e.preventDefault();
-                                  handleSendMessage();
-                                }
-                              }}
-                              disabled={isSending}
-                              className={cn(
-                                'flex-1 min-h-[44px] max-h-28 text-sm rounded-lg resize-none',
-                                'glass-card',
-                              )}
-                            />
-                            <Button
-                              size="icon"
-                              disabled={
-                                isSending || (!messageText.trim() && pendingImages.length === 0)
-                              }
-                              onClick={handleSendMessage}
-                              className="h-11 w-11 shrink-0 rounded-lg"
-                              title={t('sessionManagement.send')}
-                            >
-                              {isSending ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                              ) : (
-                                <Send className="w-4 h-4" />
-                              )}
-                            </Button>
-                          </div>
-                          <div className="flex items-center justify-end gap-2 text-xs text-muted-foreground">
-                            <span className="flex items-center gap-1">
-                              <Upload className="w-3 h-3" />
-                              {t('sessionManagement.sendHint')}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </>
-                  ) : (
-                    // Text Mode
-                    <ScrollArea ref={textScrollRef} className="flex-1 p-4">
-                      <div className="max-w-4xl mx-auto">
-                        {selectedSession.history ? (
-                          <pre className="text-sm whitespace-pre-wrap [overflow-wrap:anywhere] font-mono leading-relaxed bg-muted/50 p-4 rounded-lg">
-                            {(selectedSession.history as SessionHistoryTextResponse).content ||
-                              t('sessionManagement.noHistory')}
-                          </pre>
-                        ) : (
-                          <div className="text-center text-muted-foreground py-12">
-                            <MessageSquare className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                            <p>{t('sessionManagement.noHistory')}</p>
-                          </div>
-                        )}
-                      </div>
-                    </ScrollArea>
-                  )}
-                </div>
-
-                {/* Persona Sidebar (Right) */}
-                {selectedSession.persona?.persona_content && (
-                  <div
-                    className={cn(
-                      'w-64 lg:w-72 border-l shrink-0 hidden lg:block',
-                      isGlass ? 'border-white/10 bg-background/30' : 'border-border bg-muted/30',
-                    )}
-                  >
-                    <div className="p-3 sm:p-4 border-b border-border/50">
-                      <h3 className="font-medium flex items-center gap-2 text-sm sm:text-base">
-                        <Brain className="w-4 h-4" />
-                        {t('sessionManagement.persona')}
-                      </h3>
-                    </div>
-                    <ScrollArea className="h-[calc(100vh-10rem)]">
-                      <div className="p-3 sm:p-4">
-                        <pre className="text-xs whitespace-pre-wrap [overflow-wrap:anywhere] font-mono leading-relaxed text-muted-foreground">
-                          {selectedSession.persona.persona_content}
-                        </pre>
-                      </div>
-                    </ScrollArea>
-                  </div>
-                )}
-              </div>
-            </>
-          ) : (
-            // Empty State：移动端不渲染——会话列表以 absolute inset-0 盖满全屏，
-            // 半透明毛玻璃会把这层空态透出来与列表重叠（P-19 同类坑），桌面分栏才需要它
-            <div className="hidden flex-1 items-center justify-center p-4 sm:flex">
-              <Card className={cn('max-w-sm sm:max-w-md w-full rounded-xl', 'glass-card')}>
-                <CardContent className="!p-6 text-center sm:!p-8">
-                  <History className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 text-muted-foreground/50" />
-                  <h3 className="text-base sm:text-lg font-medium mb-1 sm:mb-2">
-                    {t('sessionManagement.selectSession')}
-                  </h3>
-                  <p className="text-xs sm:text-sm text-muted-foreground">
-                    {t('sessionManagement.selectSessionDesc')}
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
+          {viewMode === 'chat' && (
+            <Composer
+              disabled={!activeSession}
+              sending={sending}
+              replyTo={replyTo}
+              onClearReply={() => setReplyTo(null)}
+              mention={mention}
+              onClearMention={() => setMention(null)}
+              onSend={handleSend}
+            />
           )}
         </div>
       </div>
 
-      {/* Clear Confirmation Dialog */}
-      <AlertDialog open={!!sessionToDelete} onOpenChange={() => setSessionToDelete(null)}>
-        <AlertDialogContent className={cn('max-w-sm sm:max-w-lg rounded-xl', 'glass-card')}>
+      <TargetInfoCard open={infoOpen} onOpenChange={setInfoOpen} info={info} loading={infoLoading} />
+
+      <CacheSettingsDialog open={cacheOpen} onOpenChange={setCacheOpen} />
+
+      <AlertDialog open={clearOpen} onOpenChange={setClearOpen}>
+        <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2 text-base sm:text-lg">
-              <Trash2 className="w-5 h-5 text-destructive" />
-              {t('sessionManagement.confirmClear')}
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-sm">
-              {t('sessionManagement.confirmClearMessage', { id: sessionToDelete?.session_id })}
+            <AlertDialogTitle>{t('sessionManagement.confirmClear')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('sessionManagement.confirmClearMessage', { id: activeId })}
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('sessionManagement.cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => void handleClear()}>
+              {t('sessionManagement.confirmClear')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
-          <div className="flex items-center gap-2 py-3 sm:py-4">
-            <input
-              type="checkbox"
-              id="delete-completely"
-              checked={deleteCompletely}
-              onChange={(e) => setDeleteCompletely(e.target.checked)}
-              className="rounded border-gray-300 w-4 h-4"
-            />
-            <label
-              htmlFor="delete-completely"
-              className="text-sm text-muted-foreground cursor-pointer"
-            >
-              {t('sessionManagement.deleteCompletely')}
-            </label>
-          </div>
-
-          <AlertDialogFooter className="gap-2">
-            <AlertDialogCancel onClick={() => setDeleteCompletely(false)} className="h-9 sm:h-10">
-              {t('common.cancel')}
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleClearSession}
-              disabled={isDeleting}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 h-9 sm:h-10"
-            >
-              {isDeleting ? (
-                <Loader2 className="w-4 h-4 animate-spin mr-1" />
-              ) : (
-                <Trash2 className="w-4 h-4 mr-1" />
-              )}
-              {t('common.confirm')}
+      <AlertDialog open={sendError !== null} onOpenChange={(open) => !open && setSendError(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('sessionManagement.sendFailed')}</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-all rounded-md bg-muted/60 p-2 text-left font-mono text-xs text-foreground/80">
+                {sendError}
+              </pre>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setSendError(null)}>
+              {t('sessionManagement.close')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -13,6 +13,9 @@ import { BackendUnreachableError, isUnreachableResponse } from './backendReachab
 // Demo 模式：<img src> 不走 fetch（mockServer 拦不到），故图片 URL 构造函数在 VITE_DEMO 下
 // 直接返回内置 SVG 占位图，避免一墙裂图。普通构建下分支为 dead code，import 会被 tree-shake。
 import { demoPlaceholderImage, demoPluginIcon, demoMemeImageUrl } from './demoMock';
+// 会话管理的段 / 消息类型。type-only 导入，编译后不产生运行时依赖，
+// 所以不会和 sessionChat 里对 getAuthToken 的引用形成循环。
+import type { ChatMsg, SendPayload, SessionItem, SessionPrefs, TargetInfo } from './sessionChat';
 
 // Base URL - empty string means relative to current origin
 // Can be customized by user in settings (e.g., 127.0.0.1:8765)
@@ -3879,6 +3882,89 @@ export const historyApi = {
   // 获取历史消息图片资源 URL
   getResourceImageUrl: (resourceId: string) =>
     `/api/history/resource/${encodeURIComponent(resourceId)}`,
+};
+
+// ===================
+// 会话管理（消息记录）- /api/history/chat/*
+//
+// 附带置顶 / 备注 / 拉黑等面板状态。类型定义在 @/lib/sessionChat。
+// ===================
+
+export interface SessionChatListData {
+  sessions: SessionItem[];
+  count: number;
+}
+
+export interface SessionChatMessagesData {
+  session_id: string;
+  messages: ChatMsg[];
+  count: number;
+}
+
+export interface SessionChatSendData {
+  session_id: string;
+  segments: number;
+}
+
+export interface SessionChatCacheConfig {
+  /** 保留时长，单位小时；0 表示不缓存 */
+  hours: number;
+  enabled: boolean;
+  /** 库里已缓存的消息条数 */
+  count: number;
+  /** 刚清理掉的超期条数 */
+  removed?: number;
+}
+
+export const sessionChatApi = {
+  getSessions: () => api.get<SessionChatListData>('/api/history/chat/sessions'),
+
+  /** 消息缓存配置：保留时长（小时）、是否开启、已缓存条数 */
+  getCacheConfig: () => api.get<SessionChatCacheConfig>('/api/history/chat/cache'),
+
+  setCacheConfig: (hours: number) =>
+    api.post<SessionChatCacheConfig>('/api/history/chat/cache', { hours }),
+
+  clearCache: () => api.post<{ removed: number }>('/api/history/chat/cache/clear', {}),
+
+  getMessages: (sessionId: string, limit = 500) =>
+    api.get<SessionChatMessagesData>(
+      `/api/history/chat/${encodeURIComponent(sessionId)}/messages?limit=${limit}`,
+    ),
+
+  /** 发送消息。图片 / 语音 / 视频 / 文件都走 multipart，避免 base64 撑大 JSON */
+  send: (sessionId: string, payload: SendPayload) => {
+    const form = new FormData();
+    form.append('mode', payload.mode);
+    form.append('text', payload.text ?? '');
+    form.append('markdown', payload.markdown ?? '');
+    form.append('card', payload.card ?? '');
+    form.append('at', payload.at ?? '');
+    form.append('reply', payload.reply ?? '');
+    payload.images?.forEach((file) => form.append('images', file));
+    payload.records?.forEach((file) => form.append('records', file));
+    payload.videos?.forEach((file) => form.append('videos', file));
+    payload.files?.forEach((file) => form.append('files', file));
+    return api.postFormData<SessionChatSendData>(
+      `/api/history/chat/${encodeURIComponent(sessionId)}/send`,
+      form,
+    );
+  },
+
+  updatePrefs: (
+    sessionId: string,
+    prefs: { pinned?: boolean; note?: string; blacklisted?: boolean },
+  ) => api.post<SessionPrefs>(`/api/history/chat/${encodeURIComponent(sessionId)}/prefs`, prefs),
+
+  /** 群 / 用户信息卡；refresh=true 时先向适配器现取一次 */
+  getInfo: (sessionId: string, params?: { userId?: string }) => {
+    const query = new URLSearchParams();
+    if (params?.userId) query.set('user_id', params.userId);
+    const suffix = query.toString() ? `?${query.toString()}` : '';
+    return api.get<TargetInfo>(
+      `/api/history/chat/${encodeURIComponent(sessionId)}/info${suffix}`,
+    );
+  },
 };
 
 // ===================

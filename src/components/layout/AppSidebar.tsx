@@ -264,12 +264,6 @@ const getNavItems = (
         { id: 'historyLogs', title: t('sidebar.historyLogs'), url: '/logs', icon: FileText },
         { id: 'traces', title: t('sidebar.traces'), url: '/traces', icon: Activity },
         { id: 'httpTraces', title: t('sidebar.httpTraces'), url: '/http-traces', icon: Globe },
-        {
-          id: 'sessionManagement',
-          title: t('sidebar.sessionManagement'),
-          url: '/session-management',
-          icon: History,
-        },
         { id: 'liveChat', title: t('sidebar.liveChat'), url: '/live-chat', icon: MessageCircle },
         {
           id: 'batchPush',
@@ -285,6 +279,12 @@ const getNavItems = (
       title: t('sidebar.aiConfig'),
       icon: Brain,
       children: aiConfigChildren,
+    },
+    {
+      id: 'sessionManagement',
+      title: t('sidebar.sessionManagement'),
+      url: '/session-management',
+      icon: History,
     },
     {
       id: 'plugins',
