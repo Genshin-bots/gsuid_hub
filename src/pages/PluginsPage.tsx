@@ -58,6 +58,8 @@ import {
   Filter,
   Zap,
   MessageSquare,
+  Bot,
+  BotOff,
   Key,
   Command,
   Package,
@@ -85,12 +87,14 @@ import {
   ConfigFieldDefinition,
   ConfigValue,
   ConfigFieldType,
+  MarkdownTooltip,
   RepeatGroupField,
   RepeatGroupItem,
 } from '@/components/config';
 import {
   pluginsApi,
   gitUpdateApi,
+  dashboardApi,
   getApiErrorMessage,
   Plugin,
   ServiceConfig,
@@ -637,6 +641,33 @@ export default function PluginsPage() {
   const [editedSvList, setEditedSvList] = useState<SvItem[]>([]);
   const [originalEnabled, setOriginalEnabled] = useState<boolean>(true);
   const [editedEnabled, setEditedEnabled] = useState<boolean>(true);
+
+  // 已出现过的 Bot 账号，供「响应 Bot / 禁用 Bot」直接挑选
+  const [botOptions, setBotOptions] = useState<string[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    dashboardApi
+      .getBots()
+      .then((bots) => {
+        if (cancelled) return;
+        const ids = new Set<string>();
+        for (const bot of bots) {
+          // 接口 id 形如「机器人账号:平台」，取前半段与 bot_self_id 对齐
+          const selfId = String(bot.id || '')
+            .split(':')[0]
+            .trim();
+          if (selfId && selfId !== 'all') ids.add(selfId);
+        }
+        setBotOptions([...ids]);
+      })
+      .catch(() => {
+        // 取不到候选就退化成手动输入，不影响保存
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const selectedPlugin = plugins.find((p) => p.id === selectedPluginId);
   const paramsConfigName = selectedConfigName || selectedPlugin?.config_names?.[0] || '';
@@ -1544,6 +1575,7 @@ export default function PluginsPage() {
                     <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                       <Settings className="w-4 h-4" />
                       {t('plugins.pluginStatus')}
+                      <MarkdownTooltip content={t('plugins.pluginStatusDesc')} />
                     </Label>
                     <div className="flex items-center space-x-2 pt-2">
                       <Switch
@@ -1565,6 +1597,7 @@ export default function PluginsPage() {
                     <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                       <Shield className="w-4 h-4" />
                       {t('plugins.permissionLevel')}
+                      <MarkdownTooltip content={t('plugins.permissionLevelDesc')} />
                     </Label>
                     <Select
                       value={String(editedServiceConfig.pm || 0)}
@@ -1600,6 +1633,7 @@ export default function PluginsPage() {
                     <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                       <Zap className="w-4 h-4" />
                       {t('plugins.priority')}
+                      <MarkdownTooltip content={t('plugins.priorityDesc')} />
                     </Label>
                     <Input
                       type="number"
@@ -1640,6 +1674,7 @@ export default function PluginsPage() {
                     <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                       <MessageSquare className="w-4 h-4" />
                       {t('plugins.responseArea')}
+                      <MarkdownTooltip content={t('plugins.responseAreaDesc')} />
                     </Label>
                     <Select
                       value={editedServiceConfig.area || 'ALL'}
@@ -1659,6 +1694,72 @@ export default function PluginsPage() {
                     </Select>
                   </div>
 
+                  {/* {t('plugins.botWhiteList')} */}
+                  <div
+                    data-config-hit={
+                      configHitClass(t('plugins.botWhiteList'), t('plugins.botWhiteListDesc'))
+                        ? 'true'
+                        : undefined
+                    }
+                    className={cn(
+                      'space-y-2',
+                      configHitClass(t('plugins.botWhiteList'), t('plugins.botWhiteListDesc')),
+                    )}
+                  >
+                    <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                      <Bot className="w-4 h-4" />
+                      {t('plugins.botWhiteList')}
+                      <MarkdownTooltip content={t('plugins.botWhiteListDesc')} />
+                    </Label>
+                    <ConfigField
+                      fieldKey="bot_white_list"
+                      field={{
+                        type: 'tags',
+                        label: t('plugins.botWhiteList'),
+                        value: editedServiceConfig.bot_white_list || [],
+                        placeholder: t('plugins.enterBotWhiteListContent'),
+                        options: botOptions,
+                      }}
+                      onChange={(fieldKey, value) =>
+                        setEditedServiceConfig((prev) => ({ ...prev, [fieldKey]: value }))
+                      }
+                      showLabel={false}
+                    />
+                  </div>
+
+                  {/* {t('plugins.botBlackList')} */}
+                  <div
+                    data-config-hit={
+                      configHitClass(t('plugins.botBlackList'), t('plugins.botBlackListDesc'))
+                        ? 'true'
+                        : undefined
+                    }
+                    className={cn(
+                      'space-y-2',
+                      configHitClass(t('plugins.botBlackList'), t('plugins.botBlackListDesc')),
+                    )}
+                  >
+                    <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                      <BotOff className="w-4 h-4" />
+                      {t('plugins.botBlackList')}
+                      <MarkdownTooltip content={t('plugins.botBlackListDesc')} />
+                    </Label>
+                    <ConfigField
+                      fieldKey="bot_black_list"
+                      field={{
+                        type: 'tags',
+                        label: t('plugins.botBlackList'),
+                        value: editedServiceConfig.bot_black_list || [],
+                        placeholder: t('plugins.enterBotBlackListContent'),
+                        options: botOptions,
+                      }}
+                      onChange={(fieldKey, value) =>
+                        setEditedServiceConfig((prev) => ({ ...prev, [fieldKey]: value }))
+                      }
+                      showLabel={false}
+                    />
+                  </div>
+
                   {/* {t('plugins.pluginWhiteList')} */}
                   <div
                     data-config-hit={
@@ -1674,6 +1775,7 @@ export default function PluginsPage() {
                     <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                       <Filter className="w-4 h-4" />
                       {t('plugins.pluginWhiteList')}
+                      <MarkdownTooltip content={t('plugins.pluginWhiteListDesc')} />
                     </Label>
                     <ConfigField
                       fieldKey="white_list"
@@ -1705,6 +1807,7 @@ export default function PluginsPage() {
                     <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                       <Users className="w-4 h-4" />
                       {t('plugins.pluginBlackList')}
+                      <MarkdownTooltip content={t('plugins.pluginBlackListDesc')} />
                     </Label>
                     <ConfigField
                       fieldKey="black_list"
@@ -1827,6 +1930,7 @@ export default function PluginsPage() {
                     <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                       <Key className="w-4 h-4" />
                       prefix
+                      <MarkdownTooltip content={t('plugins.prefixDesc')} />
                     </Label>
                     <ConfigField
                       fieldKey="prefix"

@@ -607,6 +607,7 @@ export function ConfigField({
             onChange={(newValue) => onChange(fieldKey, newValue)}
             placeholder={displayPlaceholder}
             disabled={field.disabled}
+            options={field.options}
           />
         );
 

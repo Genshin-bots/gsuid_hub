@@ -9,6 +9,8 @@ const base: ServiceConfig = {
   area: 'ALL',
   black_list: [],
   white_list: [],
+  bot_white_list: [],
+  bot_black_list: [],
   prefix: ['/'],
   force_prefix: [],
   disable_force_prefix: false,
@@ -24,6 +26,15 @@ describe('plugin service dirty', () => {
   it('turns on after a permission or plugin switch change', () => {
     expect(isPluginServiceDirty({ ...base, pm: 1 }, base, true, true)).toBe(true);
     expect(isPluginServiceDirty(base, base, false, true)).toBe(true);
+  });
+
+  it('turns on after editing the response bot list', () => {
+    expect(isPluginServiceDirty({ ...base, bot_white_list: ['123456'] }, base, true, true)).toBe(
+      true,
+    );
+    expect(isPluginServiceDirty({ ...base, bot_black_list: ['123456'] }, base, true, true)).toBe(
+      true,
+    );
   });
 
   it('treats an empty priority as unchanged when the form shows 0', () => {

@@ -324,6 +324,8 @@ export interface ServiceConfig {
   area: string;
   black_list: string[];
   white_list: string[];
+  bot_white_list: string[];
+  bot_black_list: string[];
   prefix: string[];
   force_prefix: string[];
   disable_force_prefix: boolean;
