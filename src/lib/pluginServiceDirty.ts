@@ -14,6 +14,8 @@ export function serviceConfigSnapshot(cfg: Partial<ServiceConfig> | null | undef
     area: cfg?.area || 'ALL',
     black_list: cfg?.black_list || [],
     white_list: cfg?.white_list || [],
+    bot_white_list: cfg?.bot_white_list || [],
+    bot_black_list: cfg?.bot_black_list || [],
     prefix,
     force_prefix: cfg?.force_prefix || [],
     disable_force_prefix: !!cfg?.disable_force_prefix,

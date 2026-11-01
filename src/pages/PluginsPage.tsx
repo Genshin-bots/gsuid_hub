@@ -58,6 +58,8 @@ import {
   Filter,
   Zap,
   MessageSquare,
+  Bot,
+  BotOff,
   Key,
   Command,
   Package,
@@ -85,12 +87,14 @@ import {
   ConfigFieldDefinition,
   ConfigValue,
   ConfigFieldType,
+  MarkdownTooltip,
   RepeatGroupField,
   RepeatGroupItem,
 } from '@/components/config';
 import {
   pluginsApi,
   gitUpdateApi,
+  dashboardApi,
   getApiErrorMessage,
   Plugin,
   ServiceConfig,
@@ -102,6 +106,7 @@ import {
   PluginPageMeta,
 } from '@/lib/api';
 import { convertPluginConfigValueForSave } from '@/lib/configSaveValue';
+import { simplifyRegexKeyword } from '@/lib/regexCommand';
 import {
   isPluginServiceDirty as pluginServiceFieldsDirty,
   isSvItemDirty,
@@ -268,161 +273,6 @@ const fallbackConfigIcons = [
   <Layers className="w-4 h-4" />,
   <Database className="w-4 h-4" />,
 ];
-
-/**
- * 简化正则命令关键字用于显示。
- * 算法：
- * 1. 剥离字符类 [...], 转义序列(\d \w \uXXXX 等), 量词({1,15} + *)
- * 2. 递归解析分组(含命名、非捕获等)，多选项优先选中文最多的
- * 3. 拼接分组间的字面文本
- *
- * 示例：
- *   "^(?P<kind>删除全部)(?P<char>[\u4e00-...]{1,15})(?P<type>面板|面包|bg)图$"
- *   → "删除全部面板图"
- *   "^(?P<waves_id>\d{9})?(?P<char>[\u4e00-...]{1,15})(权重|qz)$"
- *   → "权重"
- *   "^(?:第?(?P<period_pre>\d+|下期|下下期|...)期?...)$"
- *   → "第下期期矩阵信息"
- */
-const _regexSimplifyCache = new Map<string, string>();
-
-/** 用 O(n) 扫描剥离字符类 [...]，避免灾难性回溯 */
-function stripCharClass(s: string): string {
-  let out = '',
-    i = 0;
-  while (i < s.length) {
-    if (s[i] === '[' && (i === 0 || s[i - 1] !== '\\')) {
-      i++; // skip '['
-      while (i < s.length && !(s[i] === ']' && s[i - 1] !== '\\')) i++;
-      i++; // skip ']'
-    } else {
-      out += s[i];
-      i++;
-    }
-  }
-  return out;
-}
-
-/** 用 O(n) 扫描剥离常见正则元字符和转义序列 */
-function stripEscapeMeta(s: string): string {
-  let out = '',
-    i = 0;
-  while (i < s.length) {
-    if (s[i] === '\\' && i + 1 < s.length) {
-      const c = s[i + 1];
-      if ('dwWsSbDBntrfv'.includes(c)) {
-        i += 2;
-        continue;
-      }
-      if (c === 'u' && i + 5 < s.length && /^[\da-fA-F]{4}$/.test(s.slice(i + 2, i + 6))) {
-        i += 6;
-        continue;
-      }
-      if (c === 'U' && i + 9 < s.length && /^[\da-fA-F]{8}$/.test(s.slice(i + 2, i + 10))) {
-        i += 10;
-        continue;
-      }
-      if (c === 'x' && i + 3 < s.length && /^[\da-fA-F]{2}$/.test(s.slice(i + 2, i + 4))) {
-        i += 4;
-        continue;
-      }
-      if (c === '{') {
-        let j = i + 2;
-        while (j < s.length && s[j] !== '}') j++;
-        i = j + 1;
-        continue;
-      }
-      out += s[i];
-      i++;
-    } else if (s[i] === '{') {
-      i++;
-      while (i < s.length && s[i] !== '}') i++;
-      i++;
-      continue;
-    } else if ('*+^$'.includes(s[i])) {
-      i++;
-      continue;
-    } else {
-      out += s[i];
-      i++;
-    }
-  }
-  return out;
-}
-
-/** 计算字符串中可读字符(CJK×10 + 字母数字×1)的权重 */
-function countReadableScore(s: string): number {
-  let cjk = 0,
-    alpha = 0;
-  for (let i = 0; i < s.length; i++) {
-    const c = s.charCodeAt(i);
-    if (c >= 0x4e00 && c <= 0x9fa5) cjk++;
-    else if ((c >= 65 && c <= 90) || (c >= 97 && c <= 122) || (c >= 48 && c <= 57)) alpha++;
-  }
-  return cjk * 10 + alpha;
-}
-
-/**
- * 快速简化正则命令关键字用于显示（非递归版）。
- * 算法：
- * 1. O(n) 扫描剥离字符类 [...] 和转义序列
- * 2. 剥离分组前缀 (?P<name>, ?:, ?=, ?!, 等)
- * 3. 迭代简化最内层分组：从内到外逐层处理 (…)，
- *    对 | 多选项选可读性最高的
- * 4. 剥离剩余元字符，提取可读文本，截断至 20 字符
- *
- * 相比旧递归版 extractReadable → processGroupBody → extractReadable，
- * 此版本无递归调用，对 500+ 正则的处理速度大幅提升。
- */
-function simplifyRegexKeyword(keyword: string): string {
-  if (!keyword) return keyword;
-  const cached = _regexSimplifyCache.get(keyword);
-  if (cached !== undefined) return cached;
-
-  // Step 1: O(n) 扫描剥离字符类和转义序列
-  let s = stripEscapeMeta(stripCharClass(keyword));
-
-  // Step 2: 剥离分组前缀
-  s = s.replace(/\?P<[^>]+>/g, '');
-  s = s.replace(/\?[=:!]/g, '');
-  s = s.replace(/\?<[=!]/g, '');
-
-  // Step 3: 迭代简化最内层分组 — 从内到外逐层处理
-  // 每次只匹配不含嵌套括号的最内层 (...)，选择 | 多选项中可读性最高的
-  let prev = '';
-  let maxIter = 10;
-  while (prev !== s && maxIter-- > 0) {
-    prev = s;
-    s = s.replace(/\(([^()]*)\)/g, (_match: string, content: string) => {
-      const alts = content.split('|');
-      if (alts.length > 1) {
-        let best = alts[0];
-        let bestScore = countReadableScore(best);
-        for (const alt of alts) {
-          const score = countReadableScore(alt);
-          if (score > bestScore) {
-            best = alt;
-            bestScore = score;
-          }
-        }
-        return best;
-      }
-      return content;
-    });
-  }
-
-  // Step 4: 剥离剩余元字符，反转义
-  s = s.replace(/[()|*+?]/g, '');
-  s = s.replace(/\\(.)/g, '$1');
-  s = s.trim();
-
-  // Step 5: 提取可读文本序列，截断
-  const readable = s.match(/[\u4e00-\u9fa5]+|[a-zA-Z]{2,}|[a-zA-Z0-9]+/g) || [];
-  const result = readable.join('').slice(0, 20) || s.slice(0, 20) || keyword.slice(0, 20);
-
-  _regexSimplifyCache.set(keyword, result);
-  return result;
-}
 
 // 简单哈希函数，用于根据名称生成稳定的索引
 function simpleHash(str: string): number {
@@ -637,6 +487,33 @@ export default function PluginsPage() {
   const [editedSvList, setEditedSvList] = useState<SvItem[]>([]);
   const [originalEnabled, setOriginalEnabled] = useState<boolean>(true);
   const [editedEnabled, setEditedEnabled] = useState<boolean>(true);
+
+  // 已出现过的 Bot 账号，供「响应 Bot / 禁用 Bot」直接挑选
+  const [botOptions, setBotOptions] = useState<string[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    dashboardApi
+      .getBots()
+      .then((bots) => {
+        if (cancelled) return;
+        const ids = new Set<string>();
+        for (const bot of bots) {
+          // 接口 id 形如「机器人账号:平台」，取前半段与 bot_self_id 对齐
+          const selfId = String(bot.id || '')
+            .split(':')[0]
+            .trim();
+          if (selfId && selfId !== 'all') ids.add(selfId);
+        }
+        setBotOptions([...ids]);
+      })
+      .catch(() => {
+        // 取不到候选就退化成手动输入，不影响保存
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const selectedPlugin = plugins.find((p) => p.id === selectedPluginId);
   const paramsConfigName = selectedConfigName || selectedPlugin?.config_names?.[0] || '';
@@ -1544,6 +1421,7 @@ export default function PluginsPage() {
                     <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                       <Settings className="w-4 h-4" />
                       {t('plugins.pluginStatus')}
+                      <MarkdownTooltip content={t('plugins.pluginStatusDesc')} />
                     </Label>
                     <div className="flex items-center space-x-2 pt-2">
                       <Switch
@@ -1565,6 +1443,7 @@ export default function PluginsPage() {
                     <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                       <Shield className="w-4 h-4" />
                       {t('plugins.permissionLevel')}
+                      <MarkdownTooltip content={t('plugins.permissionLevelDesc')} />
                     </Label>
                     <Select
                       value={String(editedServiceConfig.pm || 0)}
@@ -1600,6 +1479,7 @@ export default function PluginsPage() {
                     <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                       <Zap className="w-4 h-4" />
                       {t('plugins.priority')}
+                      <MarkdownTooltip content={t('plugins.priorityDesc')} />
                     </Label>
                     <Input
                       type="number"
@@ -1640,6 +1520,7 @@ export default function PluginsPage() {
                     <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                       <MessageSquare className="w-4 h-4" />
                       {t('plugins.responseArea')}
+                      <MarkdownTooltip content={t('plugins.responseAreaDesc')} />
                     </Label>
                     <Select
                       value={editedServiceConfig.area || 'ALL'}
@@ -1659,6 +1540,72 @@ export default function PluginsPage() {
                     </Select>
                   </div>
 
+                  {/* {t('plugins.botWhiteList')} */}
+                  <div
+                    data-config-hit={
+                      configHitClass(t('plugins.botWhiteList'), t('plugins.botWhiteListDesc'))
+                        ? 'true'
+                        : undefined
+                    }
+                    className={cn(
+                      'space-y-2',
+                      configHitClass(t('plugins.botWhiteList'), t('plugins.botWhiteListDesc')),
+                    )}
+                  >
+                    <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                      <Bot className="w-4 h-4" />
+                      {t('plugins.botWhiteList')}
+                      <MarkdownTooltip content={t('plugins.botWhiteListDesc')} />
+                    </Label>
+                    <ConfigField
+                      fieldKey="bot_white_list"
+                      field={{
+                        type: 'tags',
+                        label: t('plugins.botWhiteList'),
+                        value: editedServiceConfig.bot_white_list || [],
+                        placeholder: t('plugins.enterBotWhiteListContent'),
+                        options: botOptions,
+                      }}
+                      onChange={(fieldKey, value) =>
+                        setEditedServiceConfig((prev) => ({ ...prev, [fieldKey]: value }))
+                      }
+                      showLabel={false}
+                    />
+                  </div>
+
+                  {/* {t('plugins.botBlackList')} */}
+                  <div
+                    data-config-hit={
+                      configHitClass(t('plugins.botBlackList'), t('plugins.botBlackListDesc'))
+                        ? 'true'
+                        : undefined
+                    }
+                    className={cn(
+                      'space-y-2',
+                      configHitClass(t('plugins.botBlackList'), t('plugins.botBlackListDesc')),
+                    )}
+                  >
+                    <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                      <BotOff className="w-4 h-4" />
+                      {t('plugins.botBlackList')}
+                      <MarkdownTooltip content={t('plugins.botBlackListDesc')} />
+                    </Label>
+                    <ConfigField
+                      fieldKey="bot_black_list"
+                      field={{
+                        type: 'tags',
+                        label: t('plugins.botBlackList'),
+                        value: editedServiceConfig.bot_black_list || [],
+                        placeholder: t('plugins.enterBotBlackListContent'),
+                        options: botOptions,
+                      }}
+                      onChange={(fieldKey, value) =>
+                        setEditedServiceConfig((prev) => ({ ...prev, [fieldKey]: value }))
+                      }
+                      showLabel={false}
+                    />
+                  </div>
+
                   {/* {t('plugins.pluginWhiteList')} */}
                   <div
                     data-config-hit={
@@ -1674,6 +1621,7 @@ export default function PluginsPage() {
                     <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                       <Filter className="w-4 h-4" />
                       {t('plugins.pluginWhiteList')}
+                      <MarkdownTooltip content={t('plugins.pluginWhiteListDesc')} />
                     </Label>
                     <ConfigField
                       fieldKey="white_list"
@@ -1705,6 +1653,7 @@ export default function PluginsPage() {
                     <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                       <Users className="w-4 h-4" />
                       {t('plugins.pluginBlackList')}
+                      <MarkdownTooltip content={t('plugins.pluginBlackListDesc')} />
                     </Label>
                     <ConfigField
                       fieldKey="black_list"
@@ -1827,6 +1776,7 @@ export default function PluginsPage() {
                     <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                       <Key className="w-4 h-4" />
                       prefix
+                      <MarkdownTooltip content={t('plugins.prefixDesc')} />
                     </Label>
                     <ConfigField
                       fieldKey="prefix"

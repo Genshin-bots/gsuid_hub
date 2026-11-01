@@ -33,6 +33,7 @@ import {
   sparkHeadline,
   unwrapSettledRows,
 } from '@/lib/featureUtils';
+import { displayCommandName } from '@/lib/regexCommand';
 import { MetricDayCalendar } from '@/components/ui/metric-day-calendar';
 import { useLanguage } from '@/contexts/LanguageContext';
 import {
@@ -70,6 +71,42 @@ interface TopSeries {
   /** 行，按总量降序 —— 配合 yAxis.inverse 让 #1 落在最上面 */
   rows: { id: string; values: number[] }[];
   hasOther: boolean;
+}
+
+/** tooltip 用 HTML 字符串渲染，命令关键字来自插件注册，转义一次免得 `<` 把结构撑坏。 */
+const HTML_ESCAPES: Record<string, string> = {
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  '"': '&quot;',
+  "'": '&#39;',
+};
+
+function escapeHtmlText(text: string): string {
+  return text.replace(/[&<>"']/g, (c) => HTML_ESCAPES[c] ?? c);
+}
+
+/**
+ * 触发统计的行键是原始命令关键字（正则也可能是 `^(?:...)` 原文），
+ * 显示前统一按插件配置页那套规则简化。简化后撞名的命令在这里合并累加，
+ * 否则图上会出现两条同名序列。
+ */
+function simplifyTriggerRows(
+  rows: Record<string, unknown>[],
+  idKeys: readonly string[] = ['group', 'user'],
+): Record<string, unknown>[] {
+  return rows.map((row) => {
+    const out: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(row)) {
+      if (idKeys.includes(key)) {
+        out[key] = value;
+        continue;
+      }
+      const label = displayCommandName(key);
+      out[label] = (Number(out[label]) || 0) + (Number(value) || 0);
+    }
+    return out;
+  });
 }
 
 /**
@@ -381,8 +418,9 @@ export default function Dashboard() {
 
     const onError = (reason: unknown) => console.error('Failed to fetch daily data:', reason);
     const commandRows = unwrapSettledRows<DailyCommandData>(commands, onError);
-    const groupRows = unwrapSettledRows<Record<string, unknown>>(groupTriggers, onError);
-    const personalRows = unwrapSettledRows<Record<string, unknown>>(personalTriggers, onError);
+    // 触发统计的键是原始命令关键字，先统一简化再进图；命令排行保留原值给 tooltip
+    const groupRows = simplifyTriggerRows(unwrapSettledRows<Record<string, unknown>>(groupTriggers, onError));
+    const personalRows = simplifyTriggerRows(unwrapSettledRows<Record<string, unknown>>(personalTriggers, onError));
 
     setDailyCommandUsage(commandRows);
     setDailyGroupTriggers(groupRows);
@@ -393,7 +431,8 @@ export default function Dashboard() {
       ['group', 'user'],
     );
     for (const row of commandRows) {
-      if (row?.command && !cmds.includes(row.command)) cmds.push(row.command);
+      const label = row?.command ? displayCommandName(row.command) : '';
+      if (label && !cmds.includes(label)) cmds.push(label);
     }
     setCommandTypeList(cmds);
     setIsLoadingDaily(false);
@@ -720,6 +759,13 @@ export default function Dashboard() {
     [dailyCommandUsage],
   );
 
+  /* Y 轴用简化名（与插件配置页同一套规则），原始关键字留给 tooltip。
+     后端返回的是注册时的原始关键字，正则命令会是一整串 `^(?:...)`。 */
+  const rankedLabels = useMemo(
+    () => rankedUsage.map((d) => displayCommandName(d.command)),
+    [rankedUsage],
+  );
+
   const commandUsageOption = useMemo<EChartsOption>(
     () => ({
       animationDuration: 700,
@@ -735,13 +781,37 @@ export default function Dashboard() {
       },
       yAxis: {
         type: 'category',
-        data: rankedUsage.map((d) => d.command),
+        data: rankedLabels,
         inverse: true,
         axisLine: { show: false },
         axisTick: { show: false },
         axisLabel: { fontSize: 11, width: 76, overflow: 'truncate' },
       },
-      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: { type: 'shadow' },
+        formatter: (params: any) => {
+          const p = Array.isArray(params) ? params[0] : params;
+          if (!p) return '';
+          const label = escapeHtmlText(String(p.axisValue ?? ''));
+          const raw = rankedUsage[p.dataIndex]?.command ?? '';
+          const rawLine =
+            raw && raw !== p.axisValue
+              ? `<div style="margin-top:4px;font-family:ui-monospace,monospace;font-size:11px;opacity:.65;word-break:break-all">${escapeHtmlText(raw)}</div>`
+              : '';
+          return `<div style="min-width:120px">
+            <div style="font-weight:600;margin-bottom:4px">${label}</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:16px">
+              <span style="display:flex;align-items:center;gap:6px">
+                <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${p.color}"></span>
+                ${t('dashboard.callCount')}
+              </span>
+              <span style="font-weight:600">${p.value}</span>
+            </div>
+            ${rawLine}
+          </div>`;
+        },
+      },
       // 单序列：ECharts 会按 series 名自动长出一个图例，压在 X 轴刻度上，必须显式关掉
       legend: { show: false },
       series: [
@@ -757,7 +827,7 @@ export default function Dashboard() {
         },
       ],
     }),
-    [rankedUsage, ramp, t],
+    [rankedUsage, rankedLabels, ramp, t],
   );
 
   // 两张堆叠图的图例：分段已归一成「前 4 + 其他」，最多 5 项，单行放得下，不需要翻页。
