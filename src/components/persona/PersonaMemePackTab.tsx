@@ -54,10 +54,13 @@ export function PersonaMemePackTab({
   personaName,
   allowReply,
   onAllowReplyChange,
+  readOnly = false,
 }: {
   personaName: string;
   allowReply: boolean;
   onAllowReplyChange: (value: boolean) => void;
+  /** git 市场人格：包绑定由仓库拥有，只允许预览/导出，不允许改挂载或导入 */
+  readOnly?: boolean;
 }) {
   const { t } = useLanguage();
   const cached = tabCache.get(personaName);
@@ -119,6 +122,7 @@ export function PersonaMemePackTab({
   }, [load]);
 
   const toggle = (packId: string) => {
+    if (readOnly) return;
     setSelected((current) => {
       if (current.includes(packId)) return current.filter((id) => id !== packId);
       if (current.length >= MAX_PACKS) {
@@ -194,7 +198,7 @@ export function PersonaMemePackTab({
         <Switch
           id="allow-meme-reply"
           checked={allowReply}
-          disabled={savingAllow}
+          disabled={savingAllow || readOnly}
           onCheckedChange={(value) => void changeAllow(value)}
           aria-label={t('personaConfig.allowMemeReply')}
         />
@@ -257,6 +261,7 @@ export function PersonaMemePackTab({
                   <div className="flex min-w-0 items-center gap-2">
                     <Checkbox
                       checked={on}
+                      disabled={readOnly}
                       onCheckedChange={() => toggle(pack.pack_id)}
                       onClick={(event) => event.stopPropagation()}
                       onKeyDown={(event) => event.stopPropagation()}
@@ -288,7 +293,7 @@ export function PersonaMemePackTab({
       )}
 
       <div className="flex flex-wrap gap-2">
-        <Button type="button" onClick={() => void save()} disabled={saving || loading}>
+        <Button type="button" onClick={() => void save()} disabled={saving || loading || readOnly}>
           {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
           保存挂载
         </Button>
@@ -304,7 +309,7 @@ export function PersonaMemePackTab({
           type="button"
           variant="outline"
           onClick={() => fileRef.current?.click()}
-          disabled={loading}
+          disabled={loading || readOnly}
         >
           导入整包
         </Button>

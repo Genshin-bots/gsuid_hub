@@ -95,6 +95,8 @@ interface NavItem {
   icon?: React.ElementType;
   children?: NavItem[];
   adminOnly?: boolean;
+  /** 额外视为该导航项激活的路径前缀（非导航页的子页面，如 /persona-store） */
+  activePaths?: string[];
 }
 
 // 静态导航配置 - 避免每次渲染重新创建
@@ -170,6 +172,7 @@ const getNavItems = (
           title: t('sidebar.personaConfig'),
           url: '/persona-config',
           icon: User,
+          activePaths: ['/persona-store'],
         },
         { id: 'ai-budget', title: t('sidebar.aiBudget'), url: '/ai-budget', icon: Wallet },
         { id: 'ai-mcpConfig', title: t('sidebar.mcpConfig'), url: '/mcp-config', icon: Server },
@@ -347,8 +350,8 @@ const MemoizedNavItem = memo(function MemoizedNavItem({
     if (!hasChildren || !item.children) return false;
     const currentPath = location.pathname;
     return item.children.some((child) => {
-      if (!child.url) return false;
-      return currentPath === child.url || currentPath.startsWith(child.url + '/');
+      const paths = [child.url, ...(child.activePaths ?? [])].filter(Boolean) as string[];
+      return paths.some((p) => currentPath === p || currentPath.startsWith(`${p}/`));
     });
   }, [location.pathname, item.children, hasChildren]);
 
@@ -390,6 +393,7 @@ const MemoizedNavItem = memo(function MemoizedNavItem({
                 <DropdownMenuItem key={child.id} asChild>
                   <NavLink
                     to={child.url || '#'}
+                    activePaths={child.activePaths}
                     className={cn(
                       sidebarNavItemGroupClass,
                       'cursor-pointer flex items-center gap-2 py-2',
@@ -445,6 +449,7 @@ const MemoizedNavItem = memo(function MemoizedNavItem({
                   <SidebarMenuButton asChild tooltip={child.title}>
                     <NavLink
                       to={child.url || '#'}
+                      activePaths={child.activePaths}
                       className={cn(
                         sidebarNavItemGroupClass,
                         'flex items-center rounded-lg transition-all',
@@ -568,8 +573,10 @@ export function AppSidebar() {
       const currentPath = location.pathname;
       navItems.forEach((item) => {
         if (item.children) {
-          const hasActiveChild = item.children.some(
-            (child) => currentPath === child.url || currentPath.startsWith((child.url || '') + '/'),
+          const hasActiveChild = item.children.some((child) =>
+            [child.url, ...(child.activePaths ?? [])]
+              .filter(Boolean)
+              .some((p) => currentPath === p || currentPath.startsWith(`${p}/`)),
           );
           if (hasActiveChild) {
             setExpandedItems((prev) => ({ ...prev, [item.id]: true }));

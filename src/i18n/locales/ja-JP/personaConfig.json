@@ -263,5 +263,11 @@
   "placeholderResolvedMissed": "有効なペルソナの値を読み込めませんでした。",
   "placeholderResolvedPersona": "{name}：{value}",
   "placeholderResolvedNoted": "{line}（{notes}）",
-  "placeholderResolvedNoteSep": "、"
+  "placeholderResolvedNoteSep": "、",
+  "personaStore": "ペルソナストア",
+  "managedBadge": "ストア管理",
+  "managedHint": "ペルソナストアの Git リポジトリ管理下で内容は読み取り専用です。編集は複製してから。",
+  "managedPersonaWarning": "このペルソナはストア管理下で上流リポジトリと同期されます。ローカルでは編集できません。複製してから編集してください。",
+  "managedConfigHint": "行動設定はリポジトリと同期されます。「有効範囲 / 関連グループ」のみデプロイ状態として変更できます。",
+  "managedResourceReadonly": "ストア管理ペルソナのリソースは変更できません。複製してから編集してください。"
 }

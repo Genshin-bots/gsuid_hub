@@ -1828,6 +1828,99 @@ export const pluginStoreApi = {
 };
 
 // ===================
+// Persona Store APIs
+// ===================
+
+/** 人格市场条目。tags/alias 只是展示元数据；能否导入由仓库整包结构决定。 */
+export interface StorePersona {
+  id: string;
+  name: string;
+  description: string;
+  link: string;
+  branch: string;
+  avatar: string;
+  cover: string;
+  type: string;
+  content: string;
+  info: string;
+  installMsg: string;
+  tags: string[];
+  alias: string[];
+  installed: boolean;
+  /** 已导入的本地人格名（installed 时存在） */
+  persona_name?: string | null;
+  hasUpdate: boolean;
+  status: 'installed' | 'not_installed';
+}
+
+export interface PersonaStoreCounts {
+  all: number;
+  installed: number;
+  updates: number;
+}
+
+export interface PersonaStoreListResponse {
+  personas: StorePersona[];
+  count: number;
+  total_count: number;
+  counts: PersonaStoreCounts;
+  limit: number | null;
+  offset: number;
+  has_more: boolean;
+}
+
+export interface PersonaStoreInstallResult {
+  persona_name: string;
+  created: boolean;
+  pack_ids: string[];
+  imported: number;
+  linked: number;
+}
+
+export const personaStoreApi = {
+  /** 人格市场列表（服务端按页签/搜索过滤并分页） */
+  getPersonaList: (params?: {
+    tab?: string;
+    search?: string;
+    limit?: number;
+    offset?: number;
+    check_updates?: boolean;
+  }) => {
+    const query = new URLSearchParams();
+    if (params?.tab) query.set('tab', params.tab);
+    if (params?.search) query.set('search', params.search);
+    if (params?.limit !== undefined) query.set('limit', String(params.limit));
+    if (params?.offset !== undefined) query.set('offset', String(params.offset));
+    if (params?.check_updates) query.set('check_updates', '1');
+    const queryStr = query.toString();
+    return api.get<PersonaStoreListResponse>(
+      `/api/persona-store/list${queryStr ? `?${queryStr}` : ''}`,
+    );
+  },
+
+  /** 从市场白名单安装（后端按 id 解析 link + branch） */
+  install: (personaId: string) =>
+    api.post<PersonaStoreInstallResult>(
+      `/api/persona-store/install/${encodeURIComponent(personaId)}`,
+    ),
+
+  /** 通过任意 git URL 导入人格整包仓库 */
+  installByUrl: (url: string, branch?: string) =>
+    api.post<PersonaStoreInstallResult>('/api/persona-store/install-url', {
+      url,
+      branch: branch || undefined,
+    }),
+
+  /** 同步远端更新：pull 后按整包结构重新导入 */
+  update: (personaName: string) =>
+    api.post<null>(`/api/persona-store/update/${encodeURIComponent(personaName)}`),
+
+  /** 卸载：删除人格并清掉克隆仓库 */
+  uninstall: (personaName: string) =>
+    api.delete<null>(`/api/persona-store/uninstall/${encodeURIComponent(personaName)}`),
+};
+
+// ===================
 // Logs APIs
 // ===================
 
@@ -2649,6 +2742,14 @@ export const themeApi = {
 // Persona APIs
 // ===================
 
+/** git 导入人格的来源信息（人格目录里的 persona_store.json 标记） */
+export interface PersonaSourceInfo {
+  repo_url: string;
+  repo_name: string;
+  branch: string;
+  commit: string;
+}
+
 export interface PersonaListItem {
   name: string;
   has_avatar: boolean;
@@ -2656,6 +2757,9 @@ export interface PersonaListItem {
   has_audio: boolean;
   /** 默认人格「早柚」。人格卡正文每次启动从程序写回。 */
   builtin?: boolean;
+  /** 从人格市场 git 仓库导入：内容只读，仅启用范围可改，可复制副本后编辑。 */
+  managed?: boolean;
+  source?: PersonaSourceInfo;
 }
 
 export interface PersonaInfo {
@@ -3975,9 +4079,7 @@ export const sessionChatApi = {
     const query = new URLSearchParams();
     if (params?.userId) query.set('user_id', params.userId);
     const suffix = query.toString() ? `?${query.toString()}` : '';
-    return api.get<TargetInfo>(
-      `/api/history/chat/${encodeURIComponent(sessionId)}/info${suffix}`,
-    );
+    return api.get<TargetInfo>(`/api/history/chat/${encodeURIComponent(sessionId)}/info${suffix}`);
   },
 };
 

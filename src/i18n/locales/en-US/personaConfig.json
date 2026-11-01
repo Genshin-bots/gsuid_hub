@@ -263,5 +263,11 @@
   "placeholderResolvedMissed": "Could not load the values for enabled personas.",
   "placeholderResolvedPersona": "{name}: {value}",
   "placeholderResolvedNoted": "{line} ({notes})",
-  "placeholderResolvedNoteSep": ", "
+  "placeholderResolvedNoteSep": ", ",
+  "personaStore": "Persona Store",
+  "managedBadge": "Store-managed",
+  "managedHint": "Managed by a persona store Git repo; content is read-only. Make a copy to edit.",
+  "managedPersonaWarning": "This persona is managed by the persona store and synced with the upstream repository. It cannot be edited locally; copy it first.",
+  "managedConfigHint": "Behavior config is synced from the repo. Only enable scope / linked groups can be changed as deployment state.",
+  "managedResourceReadonly": "Store-managed persona resources are read-only. Copy the persona to edit."
 }

@@ -263,5 +263,11 @@
   "placeholderResolvedMissed": "没有读到已激活人格的填入值。",
   "placeholderResolvedPersona": "{name}：{value}",
   "placeholderResolvedNoted": "{line}（{notes}）",
-  "placeholderResolvedNoteSep": "，"
+  "placeholderResolvedNoteSep": "，",
+  "personaStore": "人格市场",
+  "managedBadge": "市场托管",
+  "managedHint": "该人格由人格市场 Git 仓库管理，内容只读；可复制一份后再编辑。",
+  "managedPersonaWarning": "该人格由人格市场管理，人设文档与上游仓库同步，不可在本地修改。请复制副本后编辑。",
+  "managedConfigHint": "该人格的行为配置随仓库同步，仅「启用范围 / 关联群聊」作为部署状态可修改。",
+  "managedResourceReadonly": "市场托管人格的资源不可修改，可复制副本后编辑。"
 }

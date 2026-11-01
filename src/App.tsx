@@ -35,6 +35,7 @@ const CoreConfigPage = lazy(() => import('@/pages/CoreConfigPage'));
 const BackupPage = lazy(() => import('@/pages/BackupPage'));
 const AIConfigPage = lazy(() => import('@/pages/AIConfigPage'));
 const PersonaConfigPage = lazy(() => import('@/pages/PersonaConfigPage'));
+const PersonaStorePage = lazy(() => import('@/pages/PersonaStorePage'));
 const AIToolsPage = lazy(() => import('@/pages/AIToolsPage'));
 const AIStatisticsPage = lazy(() => import('@/pages/AIStatisticsPage'));
 const AIMemoryPage = lazy(() => import('@/pages/AIMemoryPage'));
@@ -129,6 +130,7 @@ function AppRoutes() {
           <Route path="framework-config" element={<FrameworkConfigPage />} />
           <Route path="ai-config" element={<AIConfigPage />} />
           <Route path="persona-config" element={<PersonaConfigPage />} />
+          <Route path="persona-store" element={<PersonaStorePage />} />
           <Route path="mcp-config" element={<MCPConfigPage />} />
           {/* 能力代理已并入 /persona-config 的「人格代理」页签，旧深链重定向过去 */}
           <Route
