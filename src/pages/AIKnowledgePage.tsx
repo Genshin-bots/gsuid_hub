@@ -12,7 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import {
   TabButtonGroup,
   tabToolbarControlClass,
-  tabToolbarGroupWrapClass,
+  tabToolbarGroupWrapShrinkClass,
   tabToolbarIconButtonClass,
 } from '@/components/ui/TabButtonGroup';
 import { Label } from '@/components/ui/label';
@@ -44,6 +44,13 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
   Pagination,
   PaginationContent,
   PaginationEllipsis,
@@ -60,6 +67,8 @@ import {
   Trash2,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  ArrowDownUp,
   X,
   Loader2,
   Sparkles,
@@ -965,10 +974,11 @@ export default function AIKnowledgePage() {
         </div>
       }
       toolbar={
-        /* 两组 Tab：够宽同一行，不够第二组换行（不横滑，避免「手动添加」被裁掉）。右栏勿用 w-full */
+        /* 永不折行：桌面单行，放不下时分段/按钮文字压省略号（min-w-0 + truncate），
+           仍超出由 .page-pinned-toolbar 横向滚动兜底。窄屏照旧竖排 + 图标钮 */
         <div className="flex min-w-0 flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div className="flex min-w-0 max-w-full flex-wrap items-center gap-1.5">
-            <div className={tabToolbarGroupWrapClass}>
+          <div className="flex min-w-0 max-w-full flex-wrap items-center gap-1.5 md:flex-nowrap">
+            <div className={tabToolbarGroupWrapShrinkClass}>
               <TabButtonGroup
                 options={knowledgeTypeOptions}
                 value={knowledgeType}
@@ -978,10 +988,10 @@ export default function AIKnowledgePage() {
                   setShowSearchResults(false);
                   setSearchQuery('');
                 }}
-                className="shrink-0"
+                className="md:flex-nowrap"
               />
             </div>
-            <div className={tabToolbarGroupWrapClass}>
+            <div className={tabToolbarGroupWrapShrinkClass}>
               <TabButtonGroup
                 options={sourceOptions}
                 value={sourceFilter}
@@ -990,13 +1000,13 @@ export default function AIKnowledgePage() {
                   setPage(1);
                   if (value !== 'plugin') setSelectedPluginFilter(ALL_PLUGINS);
                 }}
-                className="shrink-0"
+                className="md:flex-nowrap"
               />
             </div>
           </div>
 
           <div className="flex min-w-0 w-full items-center gap-2 md:w-auto md:flex-1 md:justify-end">
-            <div className="relative min-w-0 flex-1 md:max-w-64 md:flex-none md:w-56">
+            <div className="relative min-w-0 flex-1 md:max-w-64">
               <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder={
@@ -1023,56 +1033,61 @@ export default function AIKnowledgePage() {
                 <Search className="h-4 w-4" />
               )}
             </Button>
-            <Button
-              onClick={() => {
-                setKnowledgeType('text');
-                setSourceFilter('manual');
-                setSelectedPluginFilter(ALL_PLUGINS);
-                resetBulkDialog();
-                setBulkDialogOpen(true);
-              }}
-              variant="outline"
-              className={cn(tabToolbarIconButtonClass, 'shrink-0 md:w-auto md:px-3')}
-              title={t('aiKnowledge.bulkImport')}
-            >
-              <FileUp className="h-4 w-4" />
-              <span className="hidden md:inline ml-1">{t('aiKnowledge.bulkImport')}</span>
-            </Button>
-            <Button
-              onClick={handleExportBackup}
-              variant="outline"
-              className={cn(tabToolbarIconButtonClass, 'shrink-0 md:w-auto md:px-3')}
-              title={t('aiKnowledge.exportBackup')}
-            >
-              <Download className="h-4 w-4" />
-              <span className="hidden md:inline ml-1">{t('aiKnowledge.exportBackup')}</span>
-            </Button>
-            <Button
-              onClick={() => {
-                setBackupFile(null);
-                setBackupDialogOpen(true);
-              }}
-              variant="outline"
-              className={cn(tabToolbarIconButtonClass, 'shrink-0 md:w-auto md:px-3')}
-              title={t('aiKnowledge.importBackup')}
-            >
-              <FolderOpen className="h-4 w-4" />
-              <span className="hidden md:inline ml-1">{t('aiKnowledge.importBackup')}</span>
-            </Button>
-            <Button
-              onClick={handleReconcile}
-              variant="outline"
-              className={cn(tabToolbarIconButtonClass, 'shrink-0 md:w-auto md:px-3')}
-              title={t('aiKnowledge.reconcile') ?? ''}
-              disabled={reconciling}
-            >
-              {reconciling ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Sparkles className="h-4 w-4" />
-              )}
-              <span className="hidden md:inline ml-1">{t('aiKnowledge.reconcile')}</span>
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    tabToolbarIconButtonClass,
+                    'overflow-hidden md:w-auto md:min-w-10 md:px-3',
+                  )}
+                  title={t('aiKnowledge.importExport')}
+                >
+                  <ArrowDownUp className="h-4 w-4 shrink-0" />
+                  <span className="hidden min-w-0 truncate md:inline">
+                    {t('aiKnowledge.importExport')}
+                  </span>
+                  <ChevronDown className="hidden h-3.5 w-3.5 shrink-0 opacity-70 md:inline" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onClick={() => {
+                    setKnowledgeType('text');
+                    setSourceFilter('manual');
+                    setSelectedPluginFilter(ALL_PLUGINS);
+                    resetBulkDialog();
+                    setBulkDialogOpen(true);
+                  }}
+                >
+                  <FileUp className="h-4 w-4 mr-2" />
+                  {t('aiKnowledge.bulkImport')}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleExportBackup}>
+                  <Download className="h-4 w-4 mr-2" />
+                  {t('aiKnowledge.exportBackup')}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    setBackupFile(null);
+                    setBackupDialogOpen(true);
+                  }}
+                >
+                  <FolderOpen className="h-4 w-4 mr-2" />
+                  {t('aiKnowledge.importBackup')}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleReconcile} disabled={reconciling}>
+                  {reconciling ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-4 w-4 mr-2" />
+                  )}
+                  {t('aiKnowledge.reconcile')}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Button
               onClick={handleOpenAddDialog}
               size="icon"

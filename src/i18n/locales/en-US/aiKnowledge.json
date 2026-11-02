@@ -93,6 +93,7 @@
   "bulkDeleteDocSuccess": "Deleted {count} chunk(s)",
   "exportBackup": "Export backup",
   "importBackup": "Import backup",
+  "importExport": "Import / Export",
   "importBackupTitle": "Restore from JSONL backup",
   "importBackupHint": "Choose a manual_knowledge.jsonl produced by \"Export backup\". The server restores idempotently by primary key.",
   "importBackupNote": "Tip: records carrying id/doc_id overwrite existing chunks; records missing id will get a new id.",

@@ -108,6 +108,10 @@ export const tabSmShellClass = 'h-9';
 export const tabToolbarGroupWrapClass =
   'flex shrink-0 items-center [&_.shadow-safe]:!my-0 [&_.shadow-safe]:!py-0';
 
+/** 同 `tabToolbarGroupWrapClass`，但允许收缩：永不折行的操作行靠它让分段缩到 label 省略号。 */
+export const tabToolbarGroupWrapShrinkClass =
+  'flex min-w-0 shrink items-center [&_.shadow-safe]:!my-0 [&_.shadow-safe]:!py-0';
+
 /** `singleRowOnMobile` 的等分列数。必须写成字面量类名，JIT 扫不到模板拼出来的类。 */
 const GRID_COLS_CLASS: Record<number, string> = {
   2: 'grid-cols-2',
@@ -353,7 +357,9 @@ export function TabButtonGroup({
         fullWidth ? 'flex w-full' : 'inline-flex',
         widthTokens,
         noShrink && 'shrink-0',
-        'max-w-full',
+        // min-w-0：作为 flex item 时允许缩到内容 min-content 以下，永不折行的
+        // 操作行靠它把分段压成 label 省略号（否则默认 min-width:auto 拒绝收缩）
+        'min-w-0 max-w-full',
         collapseOnMobile && 'hidden md:inline-flex',
         fillClass,
       )}

@@ -93,6 +93,7 @@
   "bulkDeleteDocSuccess": "{count} チャンクを削除しました",
   "exportBackup": "バックアップ書き出し",
   "importBackup": "バックアップ取り込み",
+  "importExport": "インポート / エクスポート",
   "importBackupTitle": "JSONL バックアップから復元",
   "importBackupHint": "「バックアップ書き出し」で生成された manual_knowledge.jsonl を選択してください。主キーで冪等復元します。",
   "importBackupNote": "ヒント: id/doc_id を含むレコードは既存チャンクを上書きします。id が無いレコードは新規 ID が採番されます。",

@@ -10,7 +10,6 @@
   "adapterPlugins": "Adapters",
   "noMatchedPlugins": "No matching plugins found",
   "noInstalledPlugins": "No plugins installed yet",
-  "allPluginsUpdated": "All plugins are up to date",
   "noFunPlugins": "No fun plugins available",
   "noToolPlugins": "No tool plugins available",
   "noAdapterPlugins": "No adapters available",

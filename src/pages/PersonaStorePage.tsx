@@ -33,7 +33,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import {
   TabButtonGroup,
   tabToolbarControlClass,
-  tabToolbarGroupWrapClass,
+  tabToolbarGroupWrapShrinkClass,
 } from '@/components/ui/TabButtonGroup';
 import { cn } from '@/lib/utils';
 import {
@@ -359,8 +359,10 @@ export default function PersonaStorePage() {
         </div>
       }
       toolbar={
-        <div className="grid min-w-0 grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-between sm:gap-3">
-          <div className={cn(tabToolbarGroupWrapClass, 'min-w-0')}>
+        /* 永不折行：md 起单行不 wrap，放不下时分段/按钮文字压省略号（min-w-0 + truncate），
+           仍超出由 .page-pinned-toolbar 横向滚动兜底。窄屏 2 列网格两行照旧 */
+        <div className="grid min-w-0 grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-between sm:gap-3 md:flex-nowrap">
+          <div className={tabToolbarGroupWrapShrinkClass}>
             <TabButtonGroup
               options={tabOptions}
               value={activeTab}
@@ -368,11 +370,11 @@ export default function PersonaStorePage() {
                 setActiveTab(v);
                 setPage(1);
               }}
-              className="w-full sm:w-auto"
+              className="w-full sm:w-auto flex-nowrap"
               collapseOnMobile
             />
           </div>
-          <div className="relative order-first min-w-0 sm:order-none sm:ml-auto sm:w-64 sm:flex-none lg:w-72">
+          <div className="relative order-first min-w-0 sm:order-none sm:ml-auto sm:flex-1 sm:max-w-64 lg:max-w-72">
             <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder={t('personaStore.searchPersona')}
@@ -384,18 +386,24 @@ export default function PersonaStorePage() {
           <Button
             variant="outline"
             onClick={() => void fetchPersonas(true)}
-            className={cn(tabToolbarControlClass, 'w-full gap-2 sm:w-auto')}
+            className={cn(
+              tabToolbarControlClass,
+              'w-full gap-2 sm:w-auto sm:min-w-0 sm:overflow-hidden',
+            )}
           >
-            <RefreshCw className="w-4 h-4" />
-            {t('personaStore.checkUpdates')}
+            <RefreshCw className="w-4 h-4 shrink-0" />
+            <span className="min-w-0 truncate">{t('personaStore.checkUpdates')}</span>
           </Button>
           <Button
             variant="outline"
             onClick={() => setInstallByUrlOpen(true)}
-            className={cn(tabToolbarControlClass, 'w-full gap-2 sm:w-auto')}
+            className={cn(
+              tabToolbarControlClass,
+              'w-full gap-2 sm:w-auto sm:min-w-0 sm:overflow-hidden',
+            )}
           >
-            <Link2 className="w-4 h-4" />
-            {t('personaStore.installFromUrl')}
+            <Link2 className="w-4 h-4 shrink-0" />
+            <span className="min-w-0 truncate">{t('personaStore.installFromUrl')}</span>
           </Button>
         </div>
       }

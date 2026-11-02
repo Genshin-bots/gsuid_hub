@@ -46,7 +46,7 @@ import GitMirrorDialog, { getMirrorBadge } from '@/components/GitMirrorDialog';
 import {
   TabButtonGroup,
   tabToolbarControlClass,
-  tabToolbarGroupWrapClass,
+  tabToolbarGroupWrapShrinkClass,
 } from '@/components/ui/TabButtonGroup';
 import { cn } from '@/lib/utils';
 import {
@@ -256,6 +256,7 @@ export default function PluginStorePage() {
   const [storePayload, setStorePayload] = useState<PluginStoreListResponse | null>(null);
   const [page, setPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
+  // `${pluginId}:${action}`：同卡多按钮（安装/更新/卸载）各自转圈、互不误转
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [gitMirrorOpen, setGitMirrorOpen] = useState(false);
   const [gitPluginsMap, setGitPluginsMap] = useState<Record<string, GitPluginInfo>>({});
@@ -482,10 +483,15 @@ export default function PluginStorePage() {
     );
   };
 
+  const isPluginBusy = (pluginId: string) =>
+    actionLoading?.startsWith(`${pluginId}:`) ?? false;
+  const isPluginAction = (pluginId: string, action: string) =>
+    actionLoading === `${pluginId}:${action}`;
+
   // Handle install plugin - 直接更新本地状态，不重新请求 API
   const handleInstall = async (pluginId: string) => {
     try {
-      setActionLoading(pluginId);
+      setActionLoading(`${pluginId}:install`);
       await pluginStoreApi.installPlugin(pluginId);
       toast.success(t('pluginStore.installSuccess'));
       // 直接更新本地状态，避免触发后端重新加载
@@ -503,7 +509,7 @@ export default function PluginStorePage() {
   // Handle update plugin - 直接更新本地状态，不重新请求 API
   const handleUpdate = async (pluginId: string) => {
     try {
-      setActionLoading(pluginId);
+      setActionLoading(`${pluginId}:update`);
       await pluginStoreApi.updatePlugin(pluginId);
       toast.success(t('pluginStore.updateSuccess'));
       // 直接更新本地状态，避免触发后端重新加载
@@ -529,7 +535,7 @@ export default function PluginStorePage() {
       )
     ) {
       try {
-        setActionLoading(pluginId);
+        setActionLoading(`${pluginId}:uninstall`);
         await pluginStoreApi.uninstallPlugin(pluginId);
         toast.success(t('pluginStore.uninstallSuccess'));
         // 直接更新本地状态，避免触发后端重新加载
@@ -611,12 +617,18 @@ export default function PluginStorePage() {
     [storePayload, activeTab, appliedSearch, page, t],
   );
 
-  // 展示用洗牌；洗牌后仍要把「停止维护」的压到本页末尾
+  // 展示用洗牌；洗牌后仍要把「停止维护」的压到本页末尾。
+  // 已安装页签再把「可更新」提到最前，便于一眼看到待更新插件。
   const visiblePlugins = useMemo(() => {
     const shuffled = shufflePlugins(storeView.items);
-    shuffled.sort((a, b) => Number(isDeprecated(a)) - Number(isDeprecated(b)));
+    shuffled.sort((a, b) => {
+      const depDiff = Number(isDeprecated(a)) - Number(isDeprecated(b));
+      if (depDiff !== 0) return depDiff;
+      if (activeTab === 'installed') return Number(b.hasUpdate) - Number(a.hasUpdate);
+      return 0;
+    });
     return shuffled;
-  }, [storeView.items, isDeprecated]);
+  }, [storeView.items, isDeprecated, activeTab]);
 
   // 页签徽标数字：来自服务端的**总数**，不随翻页/搜索变化
   const storeStats = storeView.counts;
@@ -713,13 +725,18 @@ export default function PluginStorePage() {
       value: 'installed',
       label: t('pluginStore.installed'),
       icon: <Check className="w-4 h-4" />,
-      badge: storeTabCount(countText(storeStats.installed)),
-    },
-    {
-      value: 'updates',
-      label: t('pluginStore.updates'),
-      icon: <RefreshCw className="w-4 h-4" />,
-      badge: storeTabCount(countText(storeStats.updates), !isLoading && storeStats.updates > 0),
+      // 可更新数/已安装数（如 1/10）；有可更新时上琥珀警示色
+      badge: (
+        <span
+          className={cn(
+            'tab-segment-count',
+            !isLoading && storeStats.updates > 0 && 'tab-segment-count-alert',
+          )}
+          title={`${t('pluginStore.updates')} / ${t('pluginStore.installed')}`}
+        >
+          {isLoading ? '—' : `${storeStats.updates}/${storeStats.installed}`}
+        </span>
+      ),
     },
     {
       value: 'fun',
@@ -755,10 +772,10 @@ export default function PluginStorePage() {
       }
       toolbar={
         /* 分类 Tab、搜索与操作按钮同一行平齐。高度统一为 tabToolbarControlClass。
-           窄屏 2 列网格两行：搜索 + 分类一行，两个操作按钮一行；
-           sm 起还原 flex 行（search ml-auto 顶回右侧组、按钮 w-auto） */
-        <div className="grid min-w-0 grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-between sm:gap-3">
-          <div className={cn(tabToolbarGroupWrapClass, 'min-w-0')}>
+           永不折行：md 起单行不 wrap，放不下时分段/按钮文字压省略号（min-w-0 + truncate），
+           仍超出由 .page-pinned-toolbar 横向滚动兜底。窄屏 2 列网格两行照旧 */
+        <div className="grid min-w-0 grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-between sm:gap-3 md:flex-nowrap">
+          <div className={tabToolbarGroupWrapShrinkClass}>
             <TabButtonGroup
               options={tabOptions}
               value={activeTab}
@@ -766,11 +783,11 @@ export default function PluginStorePage() {
                 setActiveTab(v);
                 setPage(1);
               }}
-              className="w-full sm:w-auto"
+              className="w-full sm:w-auto flex-nowrap"
               collapseOnMobile
             />
           </div>
-          <div className="relative order-first min-w-0 sm:order-none sm:ml-auto sm:w-64 sm:flex-none lg:w-72">
+          <div className="relative order-first min-w-0 sm:order-none sm:ml-auto sm:flex-1 sm:max-w-64 lg:max-w-72">
             <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder={t('pluginStore.searchPlugin')}
@@ -782,18 +799,24 @@ export default function PluginStorePage() {
           <Button
             variant="outline"
             onClick={() => setGitMirrorOpen(true)}
-            className={cn(tabToolbarControlClass, 'w-full gap-2 sm:w-auto')}
+            className={cn(
+              tabToolbarControlClass,
+              'w-full gap-2 sm:w-auto sm:min-w-0 sm:overflow-hidden',
+            )}
           >
-            <GitBranch className="w-4 h-4" />
-            {t('gitMirror.title')}
+            <GitBranch className="w-4 h-4 shrink-0" />
+            <span className="min-w-0 truncate">{t('gitMirror.title')}</span>
           </Button>
           <Button
             variant="outline"
             onClick={() => setInstallByUrlOpen(true)}
-            className={cn(tabToolbarControlClass, 'w-full gap-2 sm:w-auto')}
+            className={cn(
+              tabToolbarControlClass,
+              'w-full gap-2 sm:w-auto sm:min-w-0 sm:overflow-hidden',
+            )}
           >
-            <Link2 className="w-4 h-4" />
-            {t('pluginStore.installFromUrl')}
+            <Link2 className="w-4 h-4 shrink-0" />
+            <span className="min-w-0 truncate">{t('pluginStore.installFromUrl')}</span>
           </Button>
         </div>
       }
@@ -828,9 +851,7 @@ export default function PluginStorePage() {
                 ? t('pluginStore.noMatchedPlugins')
                 : activeTab === 'installed'
                   ? t('pluginStore.noInstalledPlugins')
-                  : activeTab === 'updates'
-                    ? t('pluginStore.allPluginsUpdated')
-                    : activeTab === 'fun'
+                  : activeTab === 'fun'
                       ? t('pluginStore.noFunPlugins')
                       : activeTab === 'tool'
                         ? t('pluginStore.noToolPlugins')
@@ -1006,6 +1027,25 @@ export default function PluginStorePage() {
                     </Button>
                   ) : plugin.installed ? (
                     <div className="flex gap-1.5 w-full">
+                      {plugin.hasUpdate && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1 gap-1 text-xs text-primary hover:text-primary [&_svg]:!text-current"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleUpdate(plugin.id);
+                          }}
+                          disabled={isPluginBusy(plugin.id)}
+                        >
+                          {isPluginAction(plugin.id, 'update') ? (
+                            <RefreshCw className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <Download className="w-3 h-3" />
+                          )}
+                          {t('pluginStore.update')}
+                        </Button>
+                      )}
                       <Button
                         size="sm"
                         variant="outline"
@@ -1014,9 +1054,9 @@ export default function PluginStorePage() {
                           e.stopPropagation();
                           handleUninstall(plugin.id);
                         }}
-                        disabled={actionLoading === plugin.id}
+                        disabled={isPluginBusy(plugin.id)}
                       >
-                        {actionLoading === plugin.id ? (
+                        {isPluginAction(plugin.id, 'uninstall') ? (
                           <RefreshCw className="w-3 h-3 animate-spin" />
                         ) : (
                           <Trash2 className="w-3 h-3" />
@@ -1045,9 +1085,9 @@ export default function PluginStorePage() {
                           e.stopPropagation();
                           handleInstall(plugin.id);
                         }}
-                        disabled={actionLoading === plugin.id}
+                        disabled={isPluginBusy(plugin.id)}
                       >
-                        {actionLoading === plugin.id ? (
+                        {isPluginAction(plugin.id, 'install') ? (
                           <RefreshCw className="w-3 h-3 animate-spin" />
                         ) : (
                           <Download className="w-3 h-3" />

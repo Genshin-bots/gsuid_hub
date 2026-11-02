@@ -93,6 +93,7 @@
   "bulkDeleteDocSuccess": "已删除 {count} 个分片",
   "exportBackup": "导出备份",
   "importBackup": "导入备份",
+  "importExport": "导入 / 导出",
   "importBackupTitle": "从 JSONL 备份恢复",
   "importBackupHint": "选择之前由「导出备份」生成的 manual_knowledge.jsonl 文件，服务端会按主键幂等恢复。",
   "importBackupNote": "提示：带原 id/doc_id 的记录将覆盖现有分片；id 缺失时会自动生成。",
