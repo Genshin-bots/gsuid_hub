@@ -56,6 +56,12 @@ interface SessionListProps {
   onBotChange: (value: string) => void;
   chatType: ChatType;
   onChatTypeChange: (value: ChatType) => void;
+  /** 后面还有没有下一页，滚到底时去拉 */
+  hasMore?: boolean;
+  loadingMore?: boolean;
+  /** 服务端统计的会话总数；分页后 sessions 只是一页，计数不能拿它算 */
+  total?: number;
+  onLoadMore?: () => void;
   onSelect: (session: SessionItem) => void;
   onTogglePin: (session: SessionItem) => void;
   onEditNote: (session: SessionItem, note: string) => void;
@@ -72,6 +78,10 @@ export function SessionList({
   onBotChange,
   chatType,
   onChatTypeChange,
+  hasMore = false,
+  loadingMore = false,
+  total,
+  onLoadMore,
   onSelect,
   onTogglePin,
   onEditNote,
@@ -123,8 +133,12 @@ export function SessionList({
     );
   });
 
+  // 有筛选（搜索 / Bot / 群私聊）时只能数已经加载的；没筛选就报服务端的总数
+  const filtered = Boolean(keyword.trim()) || botKey !== 'all' || chatType !== 'all';
+  const shownCount = filtered ? visible.length : Math.max(total ?? 0, visible.length);
+
   return (
-    <div className="flex h-full min-h-0 w-72 shrink-0 flex-col border-r border-border/60">
+    <div className="flex h-full min-h-0 w-full shrink-0 flex-col border-r border-border/60 sm:w-72">
       <div className="shrink-0 space-y-2 px-3 pb-2 pt-3">
         <Select value={botKey} onValueChange={onBotChange}>
           <SelectTrigger className="h-9 text-xs">
@@ -153,6 +167,11 @@ export function SessionList({
           <Input
             value={keyword}
             onChange={(event) => onKeywordChange(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' && hasMore && !loadingMore) {
+                onLoadMore?.();
+              }
+            }}
             placeholder={
               chatType === 'private'
                 ? t('sessionManagement.searchPrivatePlaceholder')
@@ -164,7 +183,7 @@ export function SessionList({
           />
         </div>
         <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-          <span>{t('sessionManagement.sessionCount', { count: visible.length })}</span>
+          <span>{t('sessionManagement.sessionCount', { count: shownCount })}</span>
           <span>
             {t('sessionManagement.pinnedCount', {
               count: visible.filter((item) => item.pinned).length,
@@ -173,17 +192,38 @@ export function SessionList({
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-3">
+      <div
+        className="min-h-0 flex-1 overflow-y-auto px-2 pb-3"
+        onScroll={(event) => {
+          const node = event.currentTarget;
+          if (!hasMore || loadingMore) return;
+          if (node.scrollHeight - node.scrollTop - node.clientHeight > 80) return;
+          onLoadMore?.();
+        }}
+      >
         {visible.length === 0 && (
-          <p className="px-2 py-6 text-center text-xs text-muted-foreground">
-            {keyword.trim()
-              ? t('sessionManagement.noSearchResults')
-              : chatType === 'group'
-                ? t('sessionManagement.noGroupSessions')
-                : chatType === 'private'
-                  ? t('sessionManagement.noPrivateSessions')
-                  : t('sessionManagement.noSessions')}
-          </p>
+          <div className="flex flex-col items-center justify-center px-2 py-8 text-center text-xs text-muted-foreground">
+            <p>
+              {keyword.trim()
+                ? t('sessionManagement.noSearchResults')
+                : chatType === 'group'
+                  ? t('sessionManagement.noGroupSessions')
+                  : chatType === 'private'
+                    ? t('sessionManagement.noPrivateSessions')
+                    : t('sessionManagement.noSessions')}
+            </p>
+            {hasMore && (
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={loadingMore}
+                onClick={onLoadMore}
+                className="mt-3 h-7 text-xs"
+              >
+                {loadingMore ? t('sessionManagement.loadingMore') : t('sessionManagement.loadMore')}
+              </Button>
+            )}
+          </div>
         )}
         {visible.map((item) => (
           <ContextMenu key={item.session_id}>
@@ -212,7 +252,11 @@ export function SessionList({
                   title={t('sessionManagement.viewInfo')}
                   className="shrink-0 rounded-full transition-opacity hover:opacity-80"
                 >
-                  <SessionAvatar src={item.avatar} name={item.note || item.title} type={item.type} />
+                  <SessionAvatar
+                    src={item.avatar}
+                    name={item.note || item.title}
+                    type={item.type}
+                  />
                 </button>
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center gap-1">
@@ -258,11 +302,26 @@ export function SessionList({
                 className="text-destructive focus:text-destructive"
               >
                 <Ban className="mr-2 h-3.5 w-3.5" />
-                {item.blacklisted ? t('sessionManagement.unblacklist') : t('sessionManagement.blacklist')}
+                {item.blacklisted
+                  ? t('sessionManagement.unblacklist')
+                  : t('sessionManagement.blacklist')}
               </ContextMenuItem>
             </ContextMenuContent>
           </ContextMenu>
         ))}
+        {visible.length > 0 && hasMore && (
+          <div className="pt-2 text-center">
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={loadingMore}
+              onClick={onLoadMore}
+              className="h-7 w-full text-xs text-muted-foreground hover:text-foreground"
+            >
+              {loadingMore ? t('sessionManagement.loadingMore') : t('sessionManagement.loadMore')}
+            </Button>
+          </div>
+        )}
       </div>
 
       <Dialog open={noteTarget !== null} onOpenChange={(open) => !open && setNoteTarget(null)}>

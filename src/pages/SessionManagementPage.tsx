@@ -4,9 +4,11 @@
  * 数据全部来自 `/api/history/chat/*`，新消息由 `/api/history/chat/ws` 实时推送。
  * 消息段是**收发原始数据**：入站是适配器上报的段，出站是转换与 markdown 之后实际下发的那条。
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   Ban,
+  ArrowDown,
+  ChevronLeft,
   Database,
   FileText,
   MessageCircle,
@@ -55,11 +57,46 @@ import {
 } from '@/lib/sessionChat';
 import { cn } from '@/lib/utils';
 
+// 首屏只加载一页，列表滚到底 / 消息划到顶再各自往后拉
+const SESSION_PAGE_SIZE = 30;
+// 搜索要遍历全部会话才找得全，按大页补
+const SESSION_SEARCH_PAGE_SIZE = 200;
+const MESSAGE_PAGE_SIZE = 20;
+// 离顶部这么近就预取更早的消息
+const LOAD_OLDER_THRESHOLD = 60;
+
+/** 列表顺序：置顶优先，其次按最后一条消息时间倒序。 */
+const sortSessions = (a: SessionItem, b: SessionItem) =>
+  Number(b.pinned) - Number(a.pinned) || (b.last_time || 0) - (a.last_time || 0);
+
+/**
+ * 同一条消息的指纹：翻页和 WS 推送可能把同一条给两次。
+ * 也当 React key 用 —— 往前插入历史时下标会整体后移，用下标会让整列重挂载。
+ */
+const messageKey = (msg: ChatMsg) =>
+  msg.key || `${msg.role}|${msg.timestamp}|${msg.user_id}|${msg.content}`;
+
+/**
+ * WS 帧和库里那条其实是同一条消息，但 key 对不上（实时没有 key，落库后是 `c{id}`）。
+ * 只在「列表里那条来自库、角色 / 内容 / 时间戳完全一致」时才认定重复：
+ * 机器人连发两条一样的话，key 不同、时间戳通常也不同，不会被误伤。
+ */
+const sameAsCached = (item: ChatMsg, incoming: ChatMsg) =>
+  Boolean(item.key?.startsWith('c')) &&
+  item.role === incoming.role &&
+  item.content === incoming.content &&
+  item.timestamp === incoming.timestamp;
+
 export default function SessionManagementPage() {
   const { t } = useLanguage();
 
   const [sessions, setSessions] = useState<SessionItem[]>([]);
   const [sessionsLoading, setSessionsLoading] = useState(true);
+  // 列表滚到底再往后拉，首屏只拿一页
+  const [sessionsHasMore, setSessionsHasMore] = useState(false);
+  const [sessionsLoadingMore, setSessionsLoadingMore] = useState(false);
+  // 服务端统计的会话总数
+  const [sessionsTotal, setSessionsTotal] = useState(0);
   const [keyword, setKeyword] = useState('');
   const [activeId, setActiveId] = useState('');
   // Bot 与群/私聊分组：只影响列表的可见范围，会话本身不区分
@@ -68,6 +105,11 @@ export default function SessionManagementPage() {
 
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [messagesLoading, setMessagesLoading] = useState(false);
+  // 消息划到顶再往前接，首屏只拿最新一页
+  const [messagesHasMore, setMessagesHasMore] = useState(false);
+  const [messagesLoadingMore, setMessagesLoadingMore] = useState(false);
+  // 往上翻历史时来了新消息：不把人拽回底部，只在右下角挂个提醒
+  const [hasNewWhileAway, setHasNewWhileAway] = useState(false);
   const [sending, setSending] = useState(false);
 
   // 聊天模式看缓存表里的分段消息，文本模式直接看内存里那份历史原文（HistoryManager）
@@ -96,11 +138,35 @@ export default function SessionManagementPage() {
   viewModeRef.current = viewMode;
   const sessionsRef = useRef<SessionItem[]>([]);
   sessionsRef.current = sessions;
+  const messagesRef = useRef<ChatMsg[]>([]);
+  messagesRef.current = messages;
+  // 列表下一页的游标，空串表示到底；刷新时清空
+  const sessionsCursorRef = useRef('');
+  // 正在为「列表里还没有的会话」补数据的，别同一条帧来两次就查两次
+  const pendingSessionRef = useRef<Set<string>>(new Set());
+  // 往上翻的请求在飞的时候别再发一次，滚动事件触发得太密
+  const loadingOlderRef = useRef(false);
+  // 向上翻页接历史消息时，记录 DOM 变更前的高度和位置，在 useLayoutEffect 里精准补齐偏移
+  const scrollAnchorRef = useRef<{ prevHeight: number; prevTop: number } | null>(null);
 
   const activeSession = useMemo(
     () => sessions.find((item) => item.session_id === activeId) ?? null,
     [sessions, activeId],
   );
+
+  /**
+   * React key。库主键（`c{id}`）本身唯一；内存记录没有 key，退回内容指纹后
+   * 给重复的加个序号，免得 React 报 key 冲突、翻页时又把同内容的两条当成一条吃掉。
+   */
+  const messageKeys = useMemo(() => {
+    const seen = new Map<string, number>();
+    return messages.map((msg) => {
+      const base = messageKey(msg);
+      const nth = seen.get(base) ?? 0;
+      seen.set(base, nth + 1);
+      return nth === 0 ? base : `${base}#${nth}`;
+    });
+  }, [messages]);
 
   const scrollToBottom = useCallback((smooth = false) => {
     const node = scrollRef.current;
@@ -108,34 +174,76 @@ export default function SessionManagementPage() {
     node.scrollTo({ top: node.scrollHeight, behavior: smooth ? 'smooth' : 'auto' });
   }, []);
 
-  // 会话列表
-  const loadSessions = useCallback(async () => {
-    try {
-      const data = await sessionChatApi.getSessions();
-      setSessions(data.sessions ?? []);
-      return data.sessions ?? [];
-    } catch (error) {
-      toast.error(getApiErrorMessage(error, t('sessionManagement.loadFailed')));
-      return [];
-    } finally {
-      setSessionsLoading(false);
-    }
-  }, [t]);
+  // 用户是不是就在底部附近。翻历史的时候来新消息不该把人拽走
+  const nearBottom = useCallback(() => {
+    const node = scrollRef.current;
+    if (!node) return true;
+    return node.scrollHeight - node.scrollTop - node.clientHeight < 80;
+  }, []);
+
+  // 会话列表：append=false 是重拉第一页，append=true 是滚到底接下一页
+  const loadSessions = useCallback(
+    async (append = false, size = SESSION_PAGE_SIZE) => {
+      if (append) setSessionsLoadingMore(true);
+      else setSessionsLoading(true);
+      try {
+        // 游标分页：新消息插进来导致排序变化也不会漏项
+        const cursor = append ? sessionsCursorRef.current : '';
+        const data = await sessionChatApi.getSessions(size, cursor);
+        const list = data.sessions ?? [];
+        sessionsCursorRef.current = data.next_cursor ?? '';
+        setSessionsHasMore(Boolean(data.has_more));
+        // 总数只在重拉第一页时更新
+        if (!append) setSessionsTotal(Number(data.total ?? list.length));
+        setSessions((prev) => {
+          if (append) {
+            const seen = new Set(prev.map((item) => item.session_id));
+            return [...prev, ...list.filter((item) => !seen.has(item.session_id))];
+          }
+          // 刷新只回第一页：正在看的会话可能落在后面几页，留着它，别让右侧突然空掉
+          const keep = prev.find((item) => item.session_id === activeIdRef.current);
+          if (!keep || list.some((item) => item.session_id === keep.session_id)) return list;
+          // 按「置顶优先 + 最后时间倒序」插回它该在的位置，别一律丢到末尾
+          const merged = [...list];
+          const at = merged.findIndex((item) => sortSessions(keep, item) < 0);
+          merged.splice(at < 0 ? merged.length : at, 0, keep);
+          return merged;
+        });
+        return list;
+      } catch (error) {
+        toast.error(getApiErrorMessage(error, t('sessionManagement.loadFailed')));
+        return [];
+      } finally {
+        setSessionsLoading(false);
+        setSessionsLoadingMore(false);
+      }
+    },
+    [t],
+  );
+
+  const handleLoadMoreSessions = useCallback(() => {
+    if (!sessionsHasMore || sessionsLoading || sessionsLoadingMore) return;
+    void loadSessions(true, keyword.trim() ? SESSION_SEARCH_PAGE_SIZE : SESSION_PAGE_SIZE);
+  }, [sessionsHasMore, sessionsLoading, sessionsLoadingMore, keyword, loadSessions]);
 
   useEffect(() => {
     void loadSessions().then((list) => {
-      if (list.length > 0) setActiveId((prev) => prev || list[0].session_id);
+      const wide = window.matchMedia('(min-width: 640px)').matches;
+      if (list.length > 0 && wide) setActiveId((prev) => prev || list[0].session_id);
     });
   }, [loadSessions]);
 
-  // 消息
+  // 消息：首屏只拿最新一页
   const loadMessages = useCallback(
     async (sessionId: string) => {
       if (!sessionId) return;
       setMessagesLoading(true);
       try {
-        const data = await sessionChatApi.getMessages(sessionId);
+        const data = await sessionChatApi.getMessages(sessionId, MESSAGE_PAGE_SIZE);
+        // 请求在路上时可能已经切走了，别把旧会话的消息贴上去
+        if (activeIdRef.current !== sessionId) return;
         setMessages(data.messages ?? []);
+        setMessagesHasMore(Boolean(data.has_more));
         requestAnimationFrame(() => scrollToBottom());
       } catch (error) {
         toast.error(getApiErrorMessage(error, t('sessionManagement.loadDetailFailed')));
@@ -145,6 +253,79 @@ export default function SessionManagementPage() {
     },
     [t, scrollToBottom],
   );
+
+  // 消息划到顶：以当前最早一条的时间为游标往前接一页，接完把视野按新增高度补回来
+  const loadOlderMessages = useCallback(async () => {
+    const sessionId = activeIdRef.current;
+    if (!sessionId || loadingOlderRef.current || !messagesHasMore) return;
+    const first = messagesRef.current[0];
+    if (!first) return;
+
+    loadingOlderRef.current = true;
+    setMessagesLoadingMore(true);
+    const node = scrollRef.current;
+    const prevHeight = node?.scrollHeight ?? 0;
+    const prevTop = node?.scrollTop ?? 0;
+    try {
+      const data = await sessionChatApi.getMessages(sessionId, MESSAGE_PAGE_SIZE, first.timestamp);
+      if (activeIdRef.current !== sessionId) return;
+      setMessagesHasMore(Boolean(data.has_more));
+      const older = data.messages ?? [];
+      if (older.length === 0) return;
+      scrollAnchorRef.current = { prevHeight, prevTop };
+      setMessages((prev) => {
+        const seen = new Set(prev.map(messageKey));
+        const head = older.filter((item) => !seen.has(messageKey(item)));
+        if (head.length === 0) {
+          scrollAnchorRef.current = null;
+          return prev;
+        }
+        return [...head, ...prev];
+      });
+    } catch (error) {
+      scrollAnchorRef.current = null;
+      toast.error(getApiErrorMessage(error, t('sessionManagement.loadDetailFailed')));
+    } finally {
+      loadingOlderRef.current = false;
+      setMessagesLoadingMore(false);
+    }
+  }, [messagesHasMore, t]);
+
+  const handleScroll = useCallback(() => {
+    const node = scrollRef.current;
+    if (!node) return;
+    if (nearBottom()) setHasNewWhileAway(false);
+    if (!messagesHasMore) return;
+    if (node.scrollTop > LOAD_OLDER_THRESHOLD) return;
+    void loadOlderMessages();
+  }, [messagesHasMore, loadOlderMessages, nearBottom]);
+
+  // 往上翻历史消息后，在 DOM 提交但未绘制前根据高度差补齐 scrollTop，保证视野不跳动
+  useLayoutEffect(() => {
+    if (!scrollAnchorRef.current) return;
+    const { prevHeight, prevTop } = scrollAnchorRef.current;
+    scrollAnchorRef.current = null;
+    const el = scrollRef.current;
+    if (!el) return;
+    const heightDiff = el.scrollHeight - prevHeight;
+    if (heightDiff > 0) {
+      el.scrollTop = prevTop + heightDiff;
+    }
+  }, [messages]);
+
+  useEffect(() => {
+    if (viewMode !== 'chat' || !messagesHasMore || messagesLoading || messagesLoadingMore) return;
+    const node = scrollRef.current;
+    if (!node || node.scrollHeight > node.clientHeight + 4) return;
+    void loadOlderMessages();
+  }, [
+    messages,
+    messagesHasMore,
+    messagesLoading,
+    messagesLoadingMore,
+    viewMode,
+    loadOlderMessages,
+  ]);
 
   // 文本模式：/api/history/{id}?format_type=text 读的是内存里的 HistoryManager，
   // 和聊天模式用的消息缓存表不是同一份数据，所以单独拉一次
@@ -170,10 +351,24 @@ export default function SessionManagementPage() {
     [t, scrollToBottom],
   );
 
+  /** 右下角「有新消息」：回到最新位置，并收掉提醒 */
+  const jumpToLatest = useCallback(() => {
+    setHasNewWhileAway(false);
+    if (viewModeRef.current === 'text') {
+      void loadHistoryText(activeIdRef.current);
+      return;
+    }
+    scrollToBottom(true);
+  }, [loadHistoryText, scrollToBottom]);
+
   useEffect(() => {
     setReplyTo(null);
+    scrollAnchorRef.current = null;
     setMessages([]);
+    setMessagesHasMore(false);
+    setHasNewWhileAway(false);
     setHistoryText('');
+    messagesRef.current = [];
     if (!activeId) return;
     if (viewMode === 'text') void loadHistoryText(activeId);
     else void loadMessages(activeId);
@@ -188,9 +383,30 @@ export default function SessionManagementPage() {
 
         if (frame.type === 'message') {
           const incoming = frame.message;
-          // 之前没见过的会话（新群第一次说话）：整表重拉，不然它不会出现在列表里
-          if (!sessionsRef.current.some((item) => item.session_id === frame.session_id)) {
-            void loadSessions();
+          // 之前没见过的会话（新群第一次说话）：只把这一个取回来插进列表。
+          if (
+            !sessionsRef.current.some((item) => item.session_id === frame.session_id) &&
+            !pendingSessionRef.current.has(frame.session_id)
+          ) {
+            const newId = frame.session_id;
+            pendingSessionRef.current.add(newId);
+            void sessionChatApi
+              .getSessionsByIds([newId])
+              .then((data) => {
+                const item = data.sessions?.[0];
+                // 会话元数据慢半拍（消息刚落地还没登记）：退回整表刷新兜底
+                if (!item) {
+                  void loadSessions();
+                  return;
+                }
+                setSessions((prev) =>
+                  prev.some((row) => row.session_id === item.session_id)
+                    ? prev
+                    : [...prev, item].sort(sortSessions),
+                );
+              })
+              .catch(() => {})
+              .finally(() => pendingSessionRef.current.delete(newId));
           }
           // 会话列表：更新预览与时间并重排（置顶优先）
           setSessions((prev) => {
@@ -206,33 +422,28 @@ export default function SessionManagementPage() {
                   }
                 : item,
             );
-            next.sort(
-              (a, b) =>
-                Number(b.pinned) - Number(a.pinned) || (b.last_time || 0) - (a.last_time || 0),
-            );
+            next.sort(sortSessions);
             return next;
           });
 
           if (frame.session_id !== activeIdRef.current) return;
-          // 文本模式渲染的是内存历史的一份快照，来新消息只能整段重取
+          const stick = nearBottom();
+          // 文本模式渲染的是内存历史的一份快照，来新消息只能整段重取；
+          // 正在上面看历史就别重取（会把人拽回底部），等点提醒再取
           if (viewModeRef.current === 'text') {
-            void loadHistoryText(frame.session_id);
+            if (stick) void loadHistoryText(frame.session_id);
+            else setHasNewWhileAway(true);
             return;
           }
-          setMessages((prev) => {
-            // 发完消息后本地也会重拉一次，这里按「同一秒同一角色同一内容」去重
-            const last = prev[prev.length - 1];
-            if (
-              last &&
-              last.role === incoming.role &&
-              Math.abs((last.timestamp || 0) - (incoming.timestamp || 0)) < 0.001 &&
-              last.content === incoming.content
-            ) {
-              return prev;
-            }
-            return [...prev, incoming];
-          });
-          requestAnimationFrame(() => scrollToBottom(true));
+          setMessages((prev) =>
+            prev.some(
+              (item) => (incoming.key && item.key === incoming.key) || sameAsCached(item, incoming),
+            )
+              ? prev
+              : [...prev, incoming],
+          );
+          if (stick) requestAnimationFrame(() => scrollToBottom(true));
+          else setHasNewWhileAway(true);
           return;
         }
 
@@ -247,7 +458,7 @@ export default function SessionManagementPage() {
     });
     client.connect();
     return () => client.disconnect();
-  }, [loadSessions, loadHistoryText, scrollToBottom]);
+  }, [loadSessions, loadHistoryText, scrollToBottom, nearBottom]);
 
   // 操作
   const patchSession = useCallback((sessionId: string, patch: Partial<SessionItem>) => {
@@ -281,9 +492,13 @@ export default function SessionManagementPage() {
       // 改完置顶要立刻重排，和 patch 合成一次 setState，别渲染两遍
       setSessions((prev) =>
         prev
-          .map((item) => (item.session_id === session.session_id ? { ...item, pinned: result.pinned } : item))
-          .sort((a, b) => Number(b.pinned) - Number(a.pinned) || (b.last_time || 0) - (a.last_time || 0)),
+          .map((item) =>
+            item.session_id === session.session_id ? { ...item, pinned: result.pinned } : item,
+          )
+          .sort(sortSessions),
       );
+      // 置顶会改变排序，已翻过的页边界跟着失效；后面还有页就从头重拉
+      if (sessionsHasMore) void loadSessions();
     } catch (error) {
       toast.error(getApiErrorMessage(error, t('sessionManagement.saveFailed')));
     }
@@ -306,7 +521,9 @@ export default function SessionManagementPage() {
       });
       patchSession(session.session_id, { blacklisted: result.blacklisted });
       toast.success(
-        result.blacklisted ? t('sessionManagement.blacklistedOn') : t('sessionManagement.blacklistedOff'),
+        result.blacklisted
+          ? t('sessionManagement.blacklistedOn')
+          : t('sessionManagement.blacklistedOff'),
       );
     } catch (error) {
       toast.error(getApiErrorMessage(error, t('sessionManagement.saveFailed')));
@@ -366,26 +583,48 @@ export default function SessionManagementPage() {
   // 渲染
   return (
     <div className="page-fill flex glass-card">
-      <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden rounded-[inherit]">
-        <SessionList
-          sessions={sessions}
-          activeId={activeId}
-          keyword={keyword}
-          onKeywordChange={setKeyword}
-          botKey={botKey}
-          onBotChange={setBotKey}
-          chatType={chatType}
-          onChatTypeChange={setChatType}
-          onSelect={handleSelect}
-          onTogglePin={handleTogglePin}
-          onEditNote={handleEditNote}
-          onViewInfo={(session) => void openInfo(session)}
-          onToggleBlacklist={handleToggleBlacklist}
-        />
+      <div className="relative flex min-h-0 min-w-0 flex-1 overflow-hidden rounded-[inherit]">
+        {/* 移动端：列表与聊天各占一屏，选中会话后列表收起（返回按钮清空 activeId） */}
+        <div
+          className={cn(
+            'absolute inset-0 z-10 flex min-h-0 w-full sm:relative sm:inset-auto sm:z-auto sm:w-72 sm:shrink-0',
+            activeId && 'hidden sm:flex',
+          )}
+        >
+          <SessionList
+            sessions={sessions}
+            activeId={activeId}
+            keyword={keyword}
+            onKeywordChange={setKeyword}
+            botKey={botKey}
+            onBotChange={setBotKey}
+            chatType={chatType}
+            onChatTypeChange={setChatType}
+            hasMore={sessionsHasMore}
+            loadingMore={sessionsLoadingMore}
+            total={sessionsTotal}
+            onLoadMore={handleLoadMoreSessions}
+            onSelect={handleSelect}
+            onTogglePin={handleTogglePin}
+            onEditNote={handleEditNote}
+            onViewInfo={(session) => void openInfo(session)}
+            onToggleBlacklist={handleToggleBlacklist}
+          />
+        </div>
 
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <div className={cn('flex min-h-0 min-w-0 flex-1 flex-col', !activeId && 'hidden sm:flex')}>
           {/* 头部：点头像就是看群/用户信息，不再单独放一个信息按钮 */}
           <div className="flex shrink-0 items-center gap-2 border-b border-border/60 px-3 py-2">
+            {/* 移动端返回列表：清空 activeId 即回到列表屏 */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 shrink-0 sm:hidden"
+              onClick={() => setActiveId('')}
+              title={t('sessionManagement.title')}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
             <button
               type="button"
               disabled={!activeSession}
@@ -413,13 +652,14 @@ export default function SessionManagementPage() {
                   </Badge>
                 )}
               </div>
-              <div className="text-[11px] text-muted-foreground">
+              <div className="truncate text-[11px] text-muted-foreground">
                 {activeSession
                   ? activeSession.type === 'group'
                     ? t('sessionManagement.groupChat')
                     : t('sessionManagement.privateChat')
                   : t('sessionManagement.selectSession')}
-                {activeSession && ` · ${activeSession.message_count} ${t('sessionManagement.messages')}`}
+                {activeSession &&
+                  ` · ${activeSession.message_count} ${t('sessionManagement.messages')}`}
               </div>
             </div>
 
@@ -441,13 +681,13 @@ export default function SessionManagementPage() {
                       onClick={() => setViewMode(mode.value)}
                       title={mode.label}
                       className={cn(
-                        'flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium transition-all disabled:cursor-default disabled:opacity-40',
+                        'flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium transition-all disabled:cursor-default disabled:opacity-40 sm:px-2 sm:py-1',
                         viewMode === mode.value
                           ? 'bg-background text-foreground shadow-sm'
                           : 'text-muted-foreground hover:text-foreground',
                       )}
                     >
-                      <Icon className="h-3.5 w-3.5" />
+                      <Icon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                       <span className="hidden sm:inline">{mode.label}</span>
                     </button>
                   );
@@ -458,101 +698,138 @@ export default function SessionManagementPage() {
                   'mr-1 inline-flex items-center gap-1 text-[11px]',
                   wsState === 'open' ? 'text-emerald-600' : 'text-muted-foreground',
                 )}
-                title={wsState === 'open' ? t('sessionManagement.wsConnected') : t('sessionManagement.wsDisconnected')}
+                title={
+                  wsState === 'open'
+                    ? t('sessionManagement.wsConnected')
+                    : t('sessionManagement.wsDisconnected')
+                }
               >
-                {wsState === 'open' ? <Wifi className="h-3.5 w-3.5" /> : <WifiOff className="h-3.5 w-3.5" />}
+                {wsState === 'open' ? (
+                  <Wifi className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                ) : (
+                  <WifiOff className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                )}
               </span>
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-7 px-2"
+                className="h-6 px-1.5 sm:h-7 sm:px-2"
                 onClick={() => setCacheOpen(true)}
                 title={t('sessionManagement.cacheSettings')}
               >
-                <Database className="h-3.5 w-3.5" />
+                <Database className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-7 px-2"
+                className="h-6 px-1.5 sm:h-7 sm:px-2"
                 onClick={() => void loadSessions()}
                 title={t('sessionManagement.refresh')}
               >
-                <RefreshCw className={cn('h-3.5 w-3.5', sessionsLoading && 'animate-spin')} />
+                <RefreshCw
+                  className={cn('h-3 w-3 sm:h-3.5 sm:w-3.5', sessionsLoading && 'animate-spin')}
+                />
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-7 px-2 text-destructive"
+                className="h-6 px-1.5 text-destructive sm:h-7 sm:px-2"
                 disabled={!activeSession}
                 onClick={() => setClearOpen(true)}
                 title={t('sessionManagement.confirmClear')}
               >
-                <Trash2 className="h-3.5 w-3.5" />
+                <Trash2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
               </Button>
             </div>
           </div>
 
           {/* 消息流 */}
-          <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
-            {!activeSession ? (
-              <div className="flex h-full flex-col items-center justify-center gap-1 text-sm text-muted-foreground">
-                <p>{t('sessionManagement.selectSession')}</p>
-                <p className="text-xs">{t('sessionManagement.selectSessionDesc')}</p>
-              </div>
-            ) : viewMode === 'text' ? (
-              historyTextLoading && !historyText ? (
+          <div className="relative flex min-h-0 min-w-0 flex-1">
+            <div
+              ref={scrollRef}
+              onScroll={handleScroll}
+              className="min-h-0 flex-1 overflow-y-auto px-3 py-3"
+            >
+              {!activeSession ? (
+                <div className="flex h-full flex-col items-center justify-center gap-1 text-sm text-muted-foreground">
+                  <p>{t('sessionManagement.selectSession')}</p>
+                  <p className="text-xs">{t('sessionManagement.selectSessionDesc')}</p>
+                </div>
+              ) : viewMode === 'text' ? (
+                historyTextLoading && !historyText ? (
+                  <p className="py-8 text-center text-xs text-muted-foreground">
+                    {t('sessionManagement.loading')}
+                  </p>
+                ) : historyText ? (
+                  <pre className="whitespace-pre-wrap rounded-lg bg-muted/50 p-3 font-mono text-xs leading-relaxed [overflow-wrap:anywhere]">
+                    {historyText}
+                  </pre>
+                ) : (
+                  <p className="py-8 text-center text-xs text-muted-foreground">
+                    {t('sessionManagement.noHistory')}
+                  </p>
+                )
+              ) : messagesLoading && messages.length === 0 ? (
                 <p className="py-8 text-center text-xs text-muted-foreground">
                   {t('sessionManagement.loading')}
                 </p>
-              ) : historyText ? (
-                <pre className="whitespace-pre-wrap rounded-lg bg-muted/50 p-3 font-mono text-xs leading-relaxed [overflow-wrap:anywhere]">
-                  {historyText}
-                </pre>
-              ) : (
+              ) : messages.length === 0 ? (
                 <p className="py-8 text-center text-xs text-muted-foreground">
-                  {t('sessionManagement.noHistory')}
+                  {t('sessionManagement.emptyMessages')}
                 </p>
-              )
-            ) : messagesLoading && messages.length === 0 ? (
-              <p className="py-8 text-center text-xs text-muted-foreground">
-                {t('sessionManagement.loading')}
-              </p>
-            ) : messages.length === 0 ? (
-              <p className="py-8 text-center text-xs text-muted-foreground">
-                {t('sessionManagement.emptyMessages')}
-              </p>
-            ) : (
-              messages.map((msg, idx) => {
-                const prev = idx > 0 ? messages[idx - 1] : undefined;
-                return (
-                  <div key={`${msg.timestamp}-${idx}`}>
-                    {needDayDivider(prev?.timestamp, msg.timestamp) && (
-                      <div className="my-3 flex justify-center">
-                        <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">
-                          {formatDay(msg.timestamp)}
-                        </span>
+              ) : (
+                <>
+                  {(messagesLoadingMore ||
+                    (messages.length > MESSAGE_PAGE_SIZE && !messagesHasMore)) && (
+                    <div className="pb-1 text-center text-[10px] text-muted-foreground">
+                      {messagesLoadingMore
+                        ? t('sessionManagement.loadingMore')
+                        : t('sessionManagement.noMoreMessages')}
+                    </div>
+                  )}
+                  {messages.map((msg, idx) => {
+                    const prev = idx > 0 ? messages[idx - 1] : undefined;
+                    return (
+                      <div key={messageKeys[idx]}>
+                        {needDayDivider(prev?.timestamp, msg.timestamp) && (
+                          <div className="my-3 flex justify-center">
+                            <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">
+                              {formatDay(msg.timestamp)}
+                            </span>
+                          </div>
+                        )}
+                        <MessageRow
+                          msg={msg}
+                          onReply={(target) => {
+                            if (!target.msg_id) {
+                              toast.info(t('sessionManagement.noMessageId'));
+                              return;
+                            }
+                            setReplyTo(target);
+                          }}
+                          onAt={(target) =>
+                            setMention({
+                              userId: target.user_id,
+                              name:
+                                target.sender?.card || target.sender?.nickname || target.user_id,
+                            })
+                          }
+                        />
                       </div>
-                    )}
-                    <MessageRow
-                      msg={msg}
-                      onReply={(target) => {
-                        if (!target.msg_id) {
-                          toast.info(t('sessionManagement.noMessageId'));
-                          return;
-                        }
-                        setReplyTo(target);
-                      }}
-                      onAt={(target) =>
-                        setMention({
-                          userId: target.user_id,
-                          name: target.sender?.card || target.sender?.nickname || target.user_id,
-                        })
-                      }
-                    />
-                  </div>
-                );
-              })
+                    );
+                  })}
+                </>
+              )}
+            </div>
+            {hasNewWhileAway && (
+              <button
+                type="button"
+                onClick={jumpToLatest}
+                className="absolute bottom-3 right-3 z-10 flex items-center gap-1 rounded-full border border-border bg-background/95 px-3 py-1.5 text-xs font-medium shadow-lg backdrop-blur transition-colors hover:bg-accent"
+              >
+                <ArrowDown className="h-3.5 w-3.5" />
+                {t('sessionManagement.newMessages')}
+              </button>
             )}
           </div>
 
@@ -570,7 +847,12 @@ export default function SessionManagementPage() {
         </div>
       </div>
 
-      <TargetInfoCard open={infoOpen} onOpenChange={setInfoOpen} info={info} loading={infoLoading} />
+      <TargetInfoCard
+        open={infoOpen}
+        onOpenChange={setInfoOpen}
+        info={info}
+        loading={infoLoading}
+      />
 
       <CacheSettingsDialog open={cacheOpen} onOpenChange={setCacheOpen} />
 
