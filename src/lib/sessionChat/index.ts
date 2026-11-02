@@ -78,6 +78,7 @@ export interface MsgSender {
 }
 
 export interface ChatMsg {
+  key?: string;
   role: 'user' | 'assistant';
   self: boolean;
   user_id: string;

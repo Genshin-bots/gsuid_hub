@@ -4017,12 +4017,20 @@ export const historyApi = {
 export interface SessionChatListData {
   sessions: SessionItem[];
   count: number;
+  /** 会话总数（分页前） */
+  total?: number;
+  /** 后面还有没有下一页 */
+  has_more?: boolean;
+  /** 下一页游标，空串表示到底了 */
+  next_cursor?: string;
 }
 
 export interface SessionChatMessagesData {
   session_id: string;
   messages: ChatMsg[];
   count: number;
+  /** 这一页之前还有没有更早的消息 */
+  has_more?: boolean;
 }
 
 export interface SessionChatSendData {
@@ -4041,7 +4049,17 @@ export interface SessionChatCacheConfig {
 }
 
 export const sessionChatApi = {
-  getSessions: () => api.get<SessionChatListData>('/api/history/chat/sessions'),
+  /** 会话列表分页：cursor 传上一页的 next_cursor，响应里的 has_more 决定要不要再拉 */
+  getSessions: (limit = 30, cursor = '') =>
+    api.get<SessionChatListData>(
+      `/api/history/chat/sessions?limit=${limit}${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`,
+    ),
+
+  /** 只取指定的几个会话（不分页）：新会话第一次说话时插进列表用，不重拉已翻的页 */
+  getSessionsByIds: (ids: string[]) =>
+    api.get<SessionChatListData>(
+      `/api/history/chat/sessions?ids=${ids.map((id) => encodeURIComponent(id)).join(',')}`,
+    ),
 
   /** 消息缓存配置：保留时长（小时）、是否开启、已缓存条数 */
   getCacheConfig: () => api.get<SessionChatCacheConfig>('/api/history/chat/cache'),
@@ -4051,9 +4069,12 @@ export const sessionChatApi = {
 
   clearCache: () => api.post<{ removed: number }>('/api/history/chat/cache/clear', {}),
 
-  getMessages: (sessionId: string, limit = 500) =>
+  /** 消息分页：默认最新 20 条，往上翻时把当前最早一条的 timestamp 传成 before */
+  getMessages: (sessionId: string, limit = 20, before = 0) =>
     api.get<SessionChatMessagesData>(
-      `/api/history/chat/${encodeURIComponent(sessionId)}/messages?limit=${limit}`,
+      `/api/history/chat/${encodeURIComponent(sessionId)}/messages?limit=${limit}${
+        before > 0 ? `&before=${before}` : ''
+      }`,
     ),
 
   /** 发送消息。图片 / 语音 / 视频 / 文件都走 multipart，避免 base64 撑大 JSON */

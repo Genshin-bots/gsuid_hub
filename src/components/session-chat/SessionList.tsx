@@ -56,6 +56,12 @@ interface SessionListProps {
   onBotChange: (value: string) => void;
   chatType: ChatType;
   onChatTypeChange: (value: ChatType) => void;
+  /** 后面还有没有下一页，滚到底时去拉 */
+  hasMore?: boolean;
+  loadingMore?: boolean;
+  /** 服务端统计的会话总数；分页后 sessions 只是一页，计数不能拿它算 */
+  total?: number;
+  onLoadMore?: () => void;
   onSelect: (session: SessionItem) => void;
   onTogglePin: (session: SessionItem) => void;
   onEditNote: (session: SessionItem, note: string) => void;
@@ -72,6 +78,10 @@ export function SessionList({
   onBotChange,
   chatType,
   onChatTypeChange,
+  hasMore = false,
+  loadingMore = false,
+  total,
+  onLoadMore,
   onSelect,
   onTogglePin,
   onEditNote,
@@ -110,6 +120,12 @@ export function SessionList({
     if (botOptions.length > 0) onBotChange('all');
   }, [botKey, botOptions, onBotChange]);
 
+  // 搜索只筛已加载的会话，所以边搜边把后面的页补齐，别让后面的会话搜不到
+  useEffect(() => {
+    if (!keyword.trim() || !hasMore || loadingMore) return;
+    onLoadMore?.();
+  }, [keyword, hasMore, loadingMore, onLoadMore]);
+
   const visible = sessions.filter((item) => {
     if (botKey !== 'all' && botKeyOf(item) !== botKey) return false;
     if (chatType !== 'all' && item.type !== chatType) return false;
@@ -122,6 +138,10 @@ export function SessionList({
       String(item.user_id ?? '').includes(q)
     );
   });
+
+  // 有筛选（搜索 / Bot / 群私聊）时只能数已经加载的；没筛选就报服务端的总数
+  const filtered = Boolean(keyword.trim()) || botKey !== 'all' || chatType !== 'all';
+  const shownCount = filtered ? visible.length : Math.max(total ?? 0, visible.length);
 
   return (
     <div className="flex h-full min-h-0 w-full shrink-0 flex-col border-r border-border/60 sm:w-72">
@@ -164,7 +184,7 @@ export function SessionList({
           />
         </div>
         <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-          <span>{t('sessionManagement.sessionCount', { count: visible.length })}</span>
+          <span>{t('sessionManagement.sessionCount', { count: shownCount })}</span>
           <span>
             {t('sessionManagement.pinnedCount', {
               count: visible.filter((item) => item.pinned).length,
@@ -173,7 +193,15 @@ export function SessionList({
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-3">
+      <div
+        className="min-h-0 flex-1 overflow-y-auto px-2 pb-3"
+        onScroll={(event) => {
+          const node = event.currentTarget;
+          if (!hasMore || loadingMore) return;
+          if (node.scrollHeight - node.scrollTop - node.clientHeight > 80) return;
+          onLoadMore?.();
+        }}
+      >
         {visible.length === 0 && (
           <p className="px-2 py-6 text-center text-xs text-muted-foreground">
             {keyword.trim()
@@ -263,6 +291,11 @@ export function SessionList({
             </ContextMenuContent>
           </ContextMenu>
         ))}
+        {loadingMore && (
+          <p className="px-2 py-2 text-center text-[11px] text-muted-foreground">
+            {t('sessionManagement.loadingMore')}
+          </p>
+        )}
       </div>
 
       <Dialog open={noteTarget !== null} onOpenChange={(open) => !open && setNoteTarget(null)}>
