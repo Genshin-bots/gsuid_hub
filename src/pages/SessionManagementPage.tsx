@@ -4,7 +4,7 @@
  * 数据全部来自 `/api/history/chat/*`，新消息由 `/api/history/chat/ws` 实时推送。
  * 消息段是**收发原始数据**：入站是适配器上报的段，出站是转换与 markdown 之后实际下发的那条。
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   Ban,
   ArrowDown,
@@ -146,6 +146,8 @@ export default function SessionManagementPage() {
   const pendingSessionRef = useRef<Set<string>>(new Set());
   // 往上翻的请求在飞的时候别再发一次，滚动事件触发得太密
   const loadingOlderRef = useRef(false);
+  // 向上翻页接历史消息时，记录 DOM 变更前的高度和位置，在 useLayoutEffect 里精准补齐偏移
+  const scrollAnchorRef = useRef<{ prevHeight: number; prevTop: number } | null>(null);
 
   const activeSession = useMemo(
     () => sessions.find((item) => item.session_id === activeId) ?? null,
@@ -270,16 +272,18 @@ export default function SessionManagementPage() {
       setMessagesHasMore(Boolean(data.has_more));
       const older = data.messages ?? [];
       if (older.length === 0) return;
+      scrollAnchorRef.current = { prevHeight, prevTop };
       setMessages((prev) => {
         const seen = new Set(prev.map(messageKey));
         const head = older.filter((item) => !seen.has(messageKey(item)));
-        return head.length > 0 ? [...head, ...prev] : prev;
-      });
-      requestAnimationFrame(() => {
-        const el = scrollRef.current;
-        if (el) el.scrollTop = prevTop + (el.scrollHeight - prevHeight);
+        if (head.length === 0) {
+          scrollAnchorRef.current = null;
+          return prev;
+        }
+        return [...head, ...prev];
       });
     } catch (error) {
+      scrollAnchorRef.current = null;
       toast.error(getApiErrorMessage(error, t('sessionManagement.loadDetailFailed')));
     } finally {
       loadingOlderRef.current = false;
@@ -296,12 +300,32 @@ export default function SessionManagementPage() {
     void loadOlderMessages();
   }, [messagesHasMore, loadOlderMessages, nearBottom]);
 
+  // 往上翻历史消息后，在 DOM 提交但未绘制前根据高度差补齐 scrollTop，保证视野不跳动
+  useLayoutEffect(() => {
+    if (!scrollAnchorRef.current) return;
+    const { prevHeight, prevTop } = scrollAnchorRef.current;
+    scrollAnchorRef.current = null;
+    const el = scrollRef.current;
+    if (!el) return;
+    const heightDiff = el.scrollHeight - prevHeight;
+    if (heightDiff > 0) {
+      el.scrollTop = prevTop + heightDiff;
+    }
+  }, [messages]);
+
   useEffect(() => {
     if (viewMode !== 'chat' || !messagesHasMore || messagesLoading || messagesLoadingMore) return;
     const node = scrollRef.current;
     if (!node || node.scrollHeight > node.clientHeight + 4) return;
     void loadOlderMessages();
-  }, [messages, messagesHasMore, messagesLoading, messagesLoadingMore, viewMode, loadOlderMessages]);
+  }, [
+    messages,
+    messagesHasMore,
+    messagesLoading,
+    messagesLoadingMore,
+    viewMode,
+    loadOlderMessages,
+  ]);
 
   // 文本模式：/api/history/{id}?format_type=text 读的是内存里的 HistoryManager，
   // 和聊天模式用的消息缓存表不是同一份数据，所以单独拉一次
@@ -339,6 +363,7 @@ export default function SessionManagementPage() {
 
   useEffect(() => {
     setReplyTo(null);
+    scrollAnchorRef.current = null;
     setMessages([]);
     setMessagesHasMore(false);
     setHasNewWhileAway(false);
@@ -380,8 +405,7 @@ export default function SessionManagementPage() {
                     : [...prev, item].sort(sortSessions),
                 );
               })
-              .catch(() => {
-              })
+              .catch(() => {})
               .finally(() => pendingSessionRef.current.delete(newId));
           }
           // 会话列表：更新预览与时间并重排（置顶优先）
@@ -468,7 +492,9 @@ export default function SessionManagementPage() {
       // 改完置顶要立刻重排，和 patch 合成一次 setState，别渲染两遍
       setSessions((prev) =>
         prev
-          .map((item) => (item.session_id === session.session_id ? { ...item, pinned: result.pinned } : item))
+          .map((item) =>
+            item.session_id === session.session_id ? { ...item, pinned: result.pinned } : item,
+          )
           .sort(sortSessions),
       );
       // 置顶会改变排序，已翻过的页边界跟着失效；后面还有页就从头重拉
@@ -495,7 +521,9 @@ export default function SessionManagementPage() {
       });
       patchSession(session.session_id, { blacklisted: result.blacklisted });
       toast.success(
-        result.blacklisted ? t('sessionManagement.blacklistedOn') : t('sessionManagement.blacklistedOff'),
+        result.blacklisted
+          ? t('sessionManagement.blacklistedOn')
+          : t('sessionManagement.blacklistedOff'),
       );
     } catch (error) {
       toast.error(getApiErrorMessage(error, t('sessionManagement.saveFailed')));
@@ -584,12 +612,7 @@ export default function SessionManagementPage() {
           />
         </div>
 
-        <div
-          className={cn(
-            'flex min-h-0 min-w-0 flex-1 flex-col',
-            !activeId && 'hidden sm:flex',
-          )}
-        >
+        <div className={cn('flex min-h-0 min-w-0 flex-1 flex-col', !activeId && 'hidden sm:flex')}>
           {/* 头部：点头像就是看群/用户信息，不再单独放一个信息按钮 */}
           <div className="flex shrink-0 items-center gap-2 border-b border-border/60 px-3 py-2">
             {/* 移动端返回列表：清空 activeId 即回到列表屏 */}
@@ -635,7 +658,8 @@ export default function SessionManagementPage() {
                     ? t('sessionManagement.groupChat')
                     : t('sessionManagement.privateChat')
                   : t('sessionManagement.selectSession')}
-                {activeSession && ` · ${activeSession.message_count} ${t('sessionManagement.messages')}`}
+                {activeSession &&
+                  ` · ${activeSession.message_count} ${t('sessionManagement.messages')}`}
               </div>
             </div>
 
@@ -674,7 +698,11 @@ export default function SessionManagementPage() {
                   'mr-1 inline-flex items-center gap-1 text-[11px]',
                   wsState === 'open' ? 'text-emerald-600' : 'text-muted-foreground',
                 )}
-                title={wsState === 'open' ? t('sessionManagement.wsConnected') : t('sessionManagement.wsDisconnected')}
+                title={
+                  wsState === 'open'
+                    ? t('sessionManagement.wsConnected')
+                    : t('sessionManagement.wsDisconnected')
+                }
               >
                 {wsState === 'open' ? (
                   <Wifi className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
@@ -698,7 +726,9 @@ export default function SessionManagementPage() {
                 onClick={() => void loadSessions()}
                 title={t('sessionManagement.refresh')}
               >
-                <RefreshCw className={cn('h-3 w-3 sm:h-3.5 sm:w-3.5', sessionsLoading && 'animate-spin')} />
+                <RefreshCw
+                  className={cn('h-3 w-3 sm:h-3.5 sm:w-3.5', sessionsLoading && 'animate-spin')}
+                />
               </Button>
               <Button
                 variant="ghost"
@@ -715,7 +745,11 @@ export default function SessionManagementPage() {
 
           {/* 消息流 */}
           <div className="relative flex min-h-0 min-w-0 flex-1">
-            <div ref={scrollRef} onScroll={handleScroll} className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
+            <div
+              ref={scrollRef}
+              onScroll={handleScroll}
+              className="min-h-0 flex-1 overflow-y-auto px-3 py-3"
+            >
               {!activeSession ? (
                 <div className="flex h-full flex-col items-center justify-center gap-1 text-sm text-muted-foreground">
                   <p>{t('sessionManagement.selectSession')}</p>
@@ -776,7 +810,8 @@ export default function SessionManagementPage() {
                           onAt={(target) =>
                             setMention({
                               userId: target.user_id,
-                              name: target.sender?.card || target.sender?.nickname || target.user_id,
+                              name:
+                                target.sender?.card || target.sender?.nickname || target.user_id,
                             })
                           }
                         />
@@ -812,7 +847,12 @@ export default function SessionManagementPage() {
         </div>
       </div>
 
-      <TargetInfoCard open={infoOpen} onOpenChange={setInfoOpen} info={info} loading={infoLoading} />
+      <TargetInfoCard
+        open={infoOpen}
+        onOpenChange={setInfoOpen}
+        info={info}
+        loading={infoLoading}
+      />
 
       <CacheSettingsDialog open={cacheOpen} onOpenChange={setCacheOpen} />
 

@@ -50,6 +50,7 @@
   "nodeVideo": "動画",
   "nodeFile": "ファイル",
   "loading": "読み込み中…",
+  "loadMore": "さらに読み込む",
   "loadingMore": "さらに読み込み中…",
   "noMoreMessages": "これより前のメッセージはありません",
   "newMessages": "新着メッセージ",

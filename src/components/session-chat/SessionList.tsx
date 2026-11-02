@@ -120,12 +120,6 @@ export function SessionList({
     if (botOptions.length > 0) onBotChange('all');
   }, [botKey, botOptions, onBotChange]);
 
-  // 搜索只筛已加载的会话，所以边搜边把后面的页补齐，别让后面的会话搜不到
-  useEffect(() => {
-    if (!keyword.trim() || !hasMore || loadingMore) return;
-    onLoadMore?.();
-  }, [keyword, hasMore, loadingMore, onLoadMore]);
-
   const visible = sessions.filter((item) => {
     if (botKey !== 'all' && botKeyOf(item) !== botKey) return false;
     if (chatType !== 'all' && item.type !== chatType) return false;
@@ -173,6 +167,11 @@ export function SessionList({
           <Input
             value={keyword}
             onChange={(event) => onKeywordChange(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' && hasMore && !loadingMore) {
+                onLoadMore?.();
+              }
+            }}
             placeholder={
               chatType === 'private'
                 ? t('sessionManagement.searchPrivatePlaceholder')
@@ -203,15 +202,28 @@ export function SessionList({
         }}
       >
         {visible.length === 0 && (
-          <p className="px-2 py-6 text-center text-xs text-muted-foreground">
-            {keyword.trim()
-              ? t('sessionManagement.noSearchResults')
-              : chatType === 'group'
-                ? t('sessionManagement.noGroupSessions')
-                : chatType === 'private'
-                  ? t('sessionManagement.noPrivateSessions')
-                  : t('sessionManagement.noSessions')}
-          </p>
+          <div className="flex flex-col items-center justify-center px-2 py-8 text-center text-xs text-muted-foreground">
+            <p>
+              {keyword.trim()
+                ? t('sessionManagement.noSearchResults')
+                : chatType === 'group'
+                  ? t('sessionManagement.noGroupSessions')
+                  : chatType === 'private'
+                    ? t('sessionManagement.noPrivateSessions')
+                    : t('sessionManagement.noSessions')}
+            </p>
+            {hasMore && (
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={loadingMore}
+                onClick={onLoadMore}
+                className="mt-3 h-7 text-xs"
+              >
+                {loadingMore ? t('sessionManagement.loadingMore') : t('sessionManagement.loadMore')}
+              </Button>
+            )}
+          </div>
         )}
         {visible.map((item) => (
           <ContextMenu key={item.session_id}>
@@ -240,7 +252,11 @@ export function SessionList({
                   title={t('sessionManagement.viewInfo')}
                   className="shrink-0 rounded-full transition-opacity hover:opacity-80"
                 >
-                  <SessionAvatar src={item.avatar} name={item.note || item.title} type={item.type} />
+                  <SessionAvatar
+                    src={item.avatar}
+                    name={item.note || item.title}
+                    type={item.type}
+                  />
                 </button>
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center gap-1">
@@ -286,15 +302,25 @@ export function SessionList({
                 className="text-destructive focus:text-destructive"
               >
                 <Ban className="mr-2 h-3.5 w-3.5" />
-                {item.blacklisted ? t('sessionManagement.unblacklist') : t('sessionManagement.blacklist')}
+                {item.blacklisted
+                  ? t('sessionManagement.unblacklist')
+                  : t('sessionManagement.blacklist')}
               </ContextMenuItem>
             </ContextMenuContent>
           </ContextMenu>
         ))}
-        {loadingMore && (
-          <p className="px-2 py-2 text-center text-[11px] text-muted-foreground">
-            {t('sessionManagement.loadingMore')}
-          </p>
+        {visible.length > 0 && hasMore && (
+          <div className="pt-2 text-center">
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={loadingMore}
+              onClick={onLoadMore}
+              className="h-7 w-full text-xs text-muted-foreground hover:text-foreground"
+            >
+              {loadingMore ? t('sessionManagement.loadingMore') : t('sessionManagement.loadMore')}
+            </Button>
+          </div>
         )}
       </div>
 
