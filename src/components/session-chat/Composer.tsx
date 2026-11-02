@@ -263,6 +263,7 @@ export function Composer({
           value={mode}
           onValueChange={(value) => setMode(value as Mode)}
           size="sm"
+          scrollOnMobile
         />
         <span className="ml-auto text-[11px] text-muted-foreground">{t(MODE_TIP_KEY[mode])}</span>
       </div>

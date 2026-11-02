@@ -7,6 +7,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Ban,
+  ChevronLeft,
   Database,
   FileText,
   MessageCircle,
@@ -124,7 +125,8 @@ export default function SessionManagementPage() {
 
   useEffect(() => {
     void loadSessions().then((list) => {
-      if (list.length > 0) setActiveId((prev) => prev || list[0].session_id);
+      const wide = window.matchMedia('(min-width: 640px)').matches;
+      if (list.length > 0 && wide) setActiveId((prev) => prev || list[0].session_id);
     });
   }, [loadSessions]);
 
@@ -366,26 +368,49 @@ export default function SessionManagementPage() {
   // 渲染
   return (
     <div className="page-fill flex glass-card">
-      <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden rounded-[inherit]">
-        <SessionList
-          sessions={sessions}
-          activeId={activeId}
-          keyword={keyword}
-          onKeywordChange={setKeyword}
-          botKey={botKey}
-          onBotChange={setBotKey}
-          chatType={chatType}
-          onChatTypeChange={setChatType}
-          onSelect={handleSelect}
-          onTogglePin={handleTogglePin}
-          onEditNote={handleEditNote}
-          onViewInfo={(session) => void openInfo(session)}
-          onToggleBlacklist={handleToggleBlacklist}
-        />
+      <div className="relative flex min-h-0 min-w-0 flex-1 overflow-hidden rounded-[inherit]">
+        {/* 移动端：列表与聊天各占一屏，选中会话后列表收起（返回按钮清空 activeId） */}
+        <div
+          className={cn(
+            'absolute inset-0 z-10 flex min-h-0 w-full sm:relative sm:inset-auto sm:z-auto sm:w-72 sm:shrink-0',
+            activeId && 'hidden sm:flex',
+          )}
+        >
+          <SessionList
+            sessions={sessions}
+            activeId={activeId}
+            keyword={keyword}
+            onKeywordChange={setKeyword}
+            botKey={botKey}
+            onBotChange={setBotKey}
+            chatType={chatType}
+            onChatTypeChange={setChatType}
+            onSelect={handleSelect}
+            onTogglePin={handleTogglePin}
+            onEditNote={handleEditNote}
+            onViewInfo={(session) => void openInfo(session)}
+            onToggleBlacklist={handleToggleBlacklist}
+          />
+        </div>
 
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <div
+          className={cn(
+            'flex min-h-0 min-w-0 flex-1 flex-col',
+            !activeId && 'hidden sm:flex',
+          )}
+        >
           {/* 头部：点头像就是看群/用户信息，不再单独放一个信息按钮 */}
           <div className="flex shrink-0 items-center gap-2 border-b border-border/60 px-3 py-2">
+            {/* 移动端返回列表：清空 activeId 即回到列表屏 */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 shrink-0 sm:hidden"
+              onClick={() => setActiveId('')}
+              title={t('sessionManagement.title')}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
             <button
               type="button"
               disabled={!activeSession}
@@ -413,7 +438,7 @@ export default function SessionManagementPage() {
                   </Badge>
                 )}
               </div>
-              <div className="text-[11px] text-muted-foreground">
+              <div className="truncate text-[11px] text-muted-foreground">
                 {activeSession
                   ? activeSession.type === 'group'
                     ? t('sessionManagement.groupChat')
@@ -441,13 +466,13 @@ export default function SessionManagementPage() {
                       onClick={() => setViewMode(mode.value)}
                       title={mode.label}
                       className={cn(
-                        'flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium transition-all disabled:cursor-default disabled:opacity-40',
+                        'flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium transition-all disabled:cursor-default disabled:opacity-40 sm:px-2 sm:py-1',
                         viewMode === mode.value
                           ? 'bg-background text-foreground shadow-sm'
                           : 'text-muted-foreground hover:text-foreground',
                       )}
                     >
-                      <Icon className="h-3.5 w-3.5" />
+                      <Icon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                       <span className="hidden sm:inline">{mode.label}</span>
                     </button>
                   );
@@ -460,35 +485,39 @@ export default function SessionManagementPage() {
                 )}
                 title={wsState === 'open' ? t('sessionManagement.wsConnected') : t('sessionManagement.wsDisconnected')}
               >
-                {wsState === 'open' ? <Wifi className="h-3.5 w-3.5" /> : <WifiOff className="h-3.5 w-3.5" />}
+                {wsState === 'open' ? (
+                  <Wifi className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                ) : (
+                  <WifiOff className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                )}
               </span>
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-7 px-2"
+                className="h-6 px-1.5 sm:h-7 sm:px-2"
                 onClick={() => setCacheOpen(true)}
                 title={t('sessionManagement.cacheSettings')}
               >
-                <Database className="h-3.5 w-3.5" />
+                <Database className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-7 px-2"
+                className="h-6 px-1.5 sm:h-7 sm:px-2"
                 onClick={() => void loadSessions()}
                 title={t('sessionManagement.refresh')}
               >
-                <RefreshCw className={cn('h-3.5 w-3.5', sessionsLoading && 'animate-spin')} />
+                <RefreshCw className={cn('h-3 w-3 sm:h-3.5 sm:w-3.5', sessionsLoading && 'animate-spin')} />
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-7 px-2 text-destructive"
+                className="h-6 px-1.5 text-destructive sm:h-7 sm:px-2"
                 disabled={!activeSession}
                 onClick={() => setClearOpen(true)}
                 title={t('sessionManagement.confirmClear')}
               >
-                <Trash2 className="h-3.5 w-3.5" />
+                <Trash2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
               </Button>
             </div>
           </div>

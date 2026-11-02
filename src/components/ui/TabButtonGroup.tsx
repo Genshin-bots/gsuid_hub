@@ -76,6 +76,13 @@ interface TabButtonGroupProps {
    */
   singleRowOnMobile?: boolean;
   /**
+   * 窄屏（&lt;768px）不分行、不折列，整条保持一行并可横向滑动。
+   * 与 `singleRowOnMobile` 互斥：后者等分铺满，段数多时文案被压扁；
+   * 这里保持每段原宽，超出部分横向滚动（滚动条隐藏）。
+   * 用于「段数多、文案长，但不能换行占两行高度」的场景（输入框上方的模式页签）。
+   */
+  scrollOnMobile?: boolean;
+  /**
    * `sm`：外壳 min-h-9，和同行的 h-9 输入框 / 按钮一致。
    * `line`：与默认等价（外壳 min-h-10）。仅为兼容旧调用方保留。
    * 默认外壳 min-h-10、整组单行 40px。不要用 className 把默认高度硬压矮。
@@ -153,6 +160,7 @@ interface TabSegmentDropdownItemProps {
   buttonClassName?: string;
   segmentYClass: string;
   singleRowOnMobile?: boolean;
+  scrollOnMobile?: boolean;
   fillUntil?: 'md' | 'lg' | 'xl';
   iconSlotClass: string;
   onValueChange: (value: string) => void;
@@ -165,6 +173,7 @@ function TabSegmentDropdownItem({
   buttonClassName,
   segmentYClass,
   singleRowOnMobile,
+  scrollOnMobile,
   fillUntil = 'md',
   iconSlotClass,
   onValueChange,
@@ -197,6 +206,7 @@ function TabSegmentDropdownItem({
             // 必须写在 buttonClassName 之后：无前缀 p-0 盖不住 sm:px-*。
             'inline-flex min-w-0 items-stretch justify-center overflow-hidden rounded-md gap-0 p-0',
             singleRowOnMobile && 'flex-1 text-xs sm:flex-none sm:text-sm',
+            scrollOnMobile && 'max-md:shrink-0',
           )}
         >
           {/* 主按钮：选中该 Tab + 二级筛选回到「全部」。
@@ -315,6 +325,7 @@ export function TabButtonGroup({
   disabled = false,
   collapseOnMobile = false,
   singleRowOnMobile = false,
+  scrollOnMobile = false,
   size = 'default',
   fillUntil = 'md',
 }: TabButtonGroupProps) {
@@ -339,7 +350,7 @@ export function TabButtonGroup({
   const widthTokens = pickWidthTokens(className);
   const current = options.find((option) => option.value === value) ?? options[0];
   const fillClass =
-    collapseOnMobile || singleRowOnMobile
+    collapseOnMobile || singleRowOnMobile || scrollOnMobile
       ? undefined
       : fillUntil === 'xl'
         ? 'tab-segment-fill tab-segment-fill-xl'
@@ -355,6 +366,7 @@ export function TabButtonGroup({
         noShrink && 'shrink-0',
         'max-w-full',
         collapseOnMobile && 'hidden md:inline-flex',
+        scrollOnMobile && 'scrollbar-hide max-md:w-full max-md:overflow-x-auto',
         fillClass,
       )}
     >
@@ -368,6 +380,8 @@ export function TabButtonGroup({
           // 撑到 min-content，flex-1 等分直接失效（实测 82/98/98，grid 才是 93/93/93）。
           singleRowOnMobile &&
             cn('tab-segment-single-row grid sm:inline-flex', GRID_COLS_CLASS[options.length]),
+          // 横向滚动形态：不换行，宽度跟内容走；内容不足时铺满整行，超出时由外层滚动
+          scrollOnMobile && 'max-md:w-max max-md:min-w-full max-md:flex-nowrap',
           className,
         )}
       >
@@ -387,6 +401,7 @@ export function TabButtonGroup({
                 buttonClassName={buttonClassName}
                 segmentYClass={segmentYClass}
                 singleRowOnMobile={singleRowOnMobile}
+                scrollOnMobile={scrollOnMobile}
                 fillUntil={fillUntil}
                 iconSlotClass={iconSlotClass}
                 onValueChange={onValueChange}
@@ -407,6 +422,7 @@ export function TabButtonGroup({
                 segmentYClass,
                 singleRowOnMobile &&
                   'min-w-0 flex-1 justify-center px-2 text-xs sm:flex-none sm:px-4 sm:text-sm',
+                scrollOnMobile && 'max-md:shrink-0',
               )}
             >
               {option.icon != null && (

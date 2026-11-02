@@ -4884,9 +4884,13 @@ html[data-style="liquid"] :is(
   text-underline-offset: 2px;
 }
 /* 按钮 */
+/*
+ * 一行（协议侧的一个 rows 分组）永远保持一行：不换行，宽度不够就压窄按钮、
+ * 由文字省略号兜底。写成 wrap 时按钮一多就会被挤到下一行，和协议里排好的行对不上。
+ */
 .seg-btn-row {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 8px;
   margin: 0.5em 0;
 }
@@ -4897,7 +4901,8 @@ html[data-style="liquid"] :is(
   align-items: center;
   justify-content: center;
   gap: 6px;
-  min-width: 110px;
+  /* 0 而不是 110px：设了最小宽，nowrap 下按钮多了会顶出气泡而不是压缩 */
+  min-width: 0;
   padding: 10px 14px;
   border: 1px solid hsl(var(--border));
   border-radius: 10px;
@@ -4934,6 +4939,20 @@ html[data-style="liquid"] :is(
   width: 12px;
   height: 12px;
   opacity: 0.7;
+}
+/*
+ * 窄屏按钮组：排版完全照搬桌面（每行几等分、整行撑满），只把尺寸等比缩小一档。
+ * flex 分配与 nowrap 都不动，只收 padding / 字号 / 圆角 / 间距。
+ */
+@media (max-width: 767px) {
+  .seg-btn-row {
+    gap: 6px;
+  }
+  .seg-btn {
+    padding: 7px 10px;
+    border-radius: 8px;
+    font-size: 0.9em;
+  }
 }
 .seg-md img.seg-inline-img {
   display: inline-block;

@@ -124,7 +124,7 @@ export function SessionList({
   });
 
   return (
-    <div className="flex h-full min-h-0 w-72 shrink-0 flex-col border-r border-border/60">
+    <div className="flex h-full min-h-0 w-full shrink-0 flex-col border-r border-border/60 sm:w-72">
       <div className="shrink-0 space-y-2 px-3 pb-2 pt-3">
         <Select value={botKey} onValueChange={onBotChange}>
           <SelectTrigger className="h-9 text-xs">
