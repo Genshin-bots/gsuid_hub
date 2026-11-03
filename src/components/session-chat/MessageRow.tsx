@@ -75,6 +75,11 @@ export function MessageRow({ msg, onReply, onAt }: MessageRowProps) {
   const avatar = avatarOf(msg);
   const identity = identityOf(msg, t);
   const isSelf = msg.self || msg.role === 'assistant';
+  // reply_id 渲染时丢掉
+  const segments = (msg.segments ?? []).filter((seg) => !(seg.type === 'unknown' && seg.kind === 'reply_id'));
+  // 引用内容都在 reply 段自己身上，正文是其余段
+  const quoteSegs = segments.filter((seg) => seg.type === 'reply');
+  const bodySegs = segments.filter((seg) => seg.type !== 'reply');
 
   const copyMessage = async () => {
     const text = messageToText(msg);
@@ -172,13 +177,18 @@ export function MessageRow({ msg, onReply, onAt }: MessageRowProps) {
                   : 'rounded-tl-none border-border/60 bg-card',
               )}
             >
-              {(msg.segments ?? []).length > 0 ? (
-                (msg.segments ?? []).map((seg, idx) => (
-                  <SegmentView key={idx} seg={seg} />
-                ))
-              ) : (
-                <span className="text-muted-foreground">{t('sessionManagement.emptyMessage')}</span>
+              {quoteSegs.length > 0 && (
+                <div className="mb-1">
+                  {quoteSegs.map((seg, idx) => (
+                    <SegmentView key={`q${idx}`} seg={seg} compact />
+                  ))}
+                </div>
               )}
+              {bodySegs.length > 0
+                ? bodySegs.map((seg, idx) => <SegmentView key={`b${idx}`} seg={seg} />)
+                : quoteSegs.length === 0 && (
+                    <span className="text-muted-foreground">{t('sessionManagement.emptyMessage')}</span>
+                  )}
             </div>
           </ContextMenuTrigger>
           <ContextMenuContent className="w-44">
