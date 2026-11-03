@@ -57,6 +57,9 @@ export interface MsgSeg {
   error?: string;
   count?: number;
   items?: MsgSeg[][];
+  images?: MsgSeg[];
+  files?: MsgSeg[];
+  node?: MsgSeg;
   content?: string;
   template?: Record<string, unknown>;
   rows?: BtnItem[][];

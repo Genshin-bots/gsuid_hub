@@ -13,16 +13,21 @@ import { INLINE_CMD_PREFIX, assetUrl, markdownToHtml, type BtnItem, type MsgSeg 
 
 /** 缩略宽度 */
 const IMG_W = 320;
+/** 引用块里的预览宽度：只是提示「引用的是哪条」，别占满一行 */
+const QUOTE_IMG_W = 120;
 
 interface SegmentViewProps {
   seg: MsgSeg;
+  /** 引用块里的小图，按预览尺寸渲染 */
+  compact?: boolean;
 }
 
-function ImageSeg({ seg }: { seg: MsgSeg }) {
+function ImageSeg({ seg, compact }: { seg: MsgSeg; compact?: boolean }) {
   const { t } = useLanguage();
   const src = assetUrl(seg.url);
   const [failed, setFailed] = useState(false);
   const [preview, setPreview] = useState(false);
+  const maxW = compact ? QUOTE_IMG_W : IMG_W;
 
   if (!src) {
     // 非直链（本地路径）原样显示路径：内容没有进内存，浏览器也就取不到
@@ -54,8 +59,8 @@ function ImageSeg({ seg }: { seg: MsgSeg }) {
   return (
     <>
       <span
-        className="inline-block max-w-full cursor-zoom-in overflow-hidden rounded-lg border border-border/40 align-top"
-        style={{ maxWidth: IMG_W }}
+        className="my-1 block w-fit max-w-full cursor-zoom-in overflow-hidden rounded-lg border border-border/40"
+        style={{ maxWidth: maxW }}
         onClick={() => setPreview(true)}
       >
         <img
@@ -113,10 +118,10 @@ function MediaSeg({ seg, kind }: { seg: MsgSeg; kind: 'record' | 'video' }) {
       src={src}
       controls
       onError={() => setFailed(true)}
-      className="my-1 max-h-[280px] max-w-full rounded-lg"
+      className="my-1 block max-h-[280px] max-w-full rounded-lg"
     />
   ) : (
-    <audio src={src} controls onError={() => setFailed(true)} className="my-1 max-w-[280px]" />
+    <audio src={src} controls onError={() => setFailed(true)} className="my-1 block max-w-[280px]" />
   );
 }
 
@@ -148,6 +153,36 @@ function ForwardSeg({ seg }: { seg: MsgSeg }) {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+/** 引用段：被引用的文字 + 图片 / 文件 / 合并转发都挂在 reply 段上 */
+function ReplySeg({ seg }: { seg: MsgSeg }) {
+  const { t } = useLanguage();
+  const images = seg.images ?? [];
+  const files = seg.files ?? [];
+  return (
+    <div className="rounded-md border-l-2 border-primary/30 bg-muted/40 px-2 py-1 text-[11px] text-muted-foreground">
+      <span className="inline-flex items-center gap-1">
+        <Quote className="h-3 w-3" />
+        {t('sessionManagement.quote')} {seg.id ? `#${seg.id}` : ''}
+      </span>
+      {images.length > 0 && (
+        <div className="mt-1 flex flex-wrap items-start gap-1">
+          {images.map((img, idx) => (
+            <ImageSeg key={idx} seg={img} compact />
+          ))}
+        </div>
+      )}
+      {files.length > 0 && (
+        <div className="mt-1 flex flex-wrap items-center gap-1">
+          {files.map((file, idx) => (
+            <SegmentView key={idx} seg={file} compact />
+          ))}
+        </div>
+      )}
+      {seg.node && <ForwardSeg seg={seg.node} />}
     </div>
   );
 }
@@ -317,7 +352,7 @@ function ArkSeg({ seg }: { seg: MsgSeg }) {
   );
 }
 
-export function SegmentView({ seg }: SegmentViewProps) {
+export function SegmentView({ seg, compact }: SegmentViewProps) {
   const { t } = useLanguage();
   switch (seg.type) {
     case 'text':
@@ -331,15 +366,10 @@ export function SegmentView({ seg }: SegmentViewProps) {
       );
 
     case 'reply':
-      return (
-        <span className="mr-1 inline-flex items-center gap-1 rounded bg-muted/70 px-1.5 py-0.5 text-[11px] text-muted-foreground">
-          <Quote className="h-3 w-3" />
-          {t('sessionManagement.quote')} {seg.id ? `#${seg.id}` : ''}
-        </span>
-      );
+      return <ReplySeg seg={seg} />;
 
     case 'image':
-      return <ImageSeg seg={seg} />;
+      return <ImageSeg seg={seg} compact={compact} />;
 
     case 'record':
       return <MediaSeg seg={seg} kind="record" />;
