@@ -869,7 +869,7 @@ export default function ThemesPage() {
                     active={style === 'glassmorphism'}
                     onClick={() => setStyle('glassmorphism', true)}
                     icon={
-                      <span className="block w-5 h-5 rounded-md bg-gradient-to-br from-primary/50 to-accent/50 backdrop-blur border border-border/50" />
+                      <span className="block w-5 h-5 rounded-md bg-primary/70 backdrop-blur-md border border-white/40 shadow-xs" />
                     }
                     label={t('themes.glassStyle')}
                   />
@@ -877,7 +877,7 @@ export default function ThemesPage() {
                     active={style === 'luminous'}
                     onClick={() => setStyle('luminous', true)}
                     icon={
-                      <span className="relative block w-5 h-5 rounded-md bg-gradient-to-br from-primary/40 via-sky-400/30 to-accent/50 backdrop-blur-md border border-white/60 shadow-[inset_0_1px_1px_rgba(255,255,255,0.8),0_2px_8px_hsl(var(--primary)/0.25)] overflow-hidden">
+                      <span className="relative block w-5 h-5 rounded-md bg-gradient-to-b from-primary/60 via-primary/30 to-transparent backdrop-blur-md border border-white/70 shadow-[0_0_12px_hsl(var(--primary)/0.65),inset_0_1.5px_1px_rgba(255,255,255,0.95)] overflow-hidden">
                         <span className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/40 to-transparent animate-pulse" />
                       </span>
                     }
@@ -887,10 +887,7 @@ export default function ThemesPage() {
                     active={style === 'liquid'}
                     onClick={() => setStyle('liquid', true)}
                     icon={
-                      <span className="relative block w-5 h-5 rounded-md bg-gradient-to-br from-white/40 via-white/10 to-white/25 backdrop-blur-md border border-white/80 shadow-[inset_0_1.5px_0_rgba(255,255,255,0.95),inset_0_0_6px_rgba(255,255,255,0.2),0_2px_8px_rgba(0,0,0,0.15)] overflow-hidden">
-                        <span className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,rgba(255,255,255,0.9)_0%,transparent_60%)]" />
-                        <span className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-cyan-400/30 via-emerald-400/20 to-pink-400/30 blur-[1px] opacity-60" />
-                      </span>
+                      <span className="relative block w-5 h-5 rounded-md bg-white/10 dark:bg-white/5 backdrop-blur-[2px] border border-white/80 dark:border-white/50 shadow-[0_0_0_1px_rgba(255,255,255,0.25),inset_0_1.5px_0_rgba(255,255,255,0.95),inset_0_-1px_1px_rgba(0,0,0,0.35)]" />
                     }
                     label={t('themes.liquidStyle')}
                   />

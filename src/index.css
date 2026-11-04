@@ -537,28 +537,42 @@ All colors MUST be HSL.
  * - 动态流光：覆着在水体表面的微角度动态棱镜色散流光水膜 (Prismatic Sheen via ::after)
  * ============================================================================ */
 [data-style="liquid"] .glass-card {
-  border: 1px solid rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.70);
   box-shadow:
     var(--tw-ring-offset-shadow, 0 0 #0000),
     var(--tw-ring-shadow, 0 0 #0000),
-    /* 顶刃超细晶体水刀高光线 */
-    inset 0 1.5px 0 0 rgba(255, 255, 255, 0.90),
-    /* 玻璃内壁微弱漫反射，营造真实厚度感 */
-    inset 0 0 16px 0 rgba(255, 255, 255, 0.15),
-    /* 自然柔和的物理下沉投影 */
+    /* 1. 外层全反射白金光轮廓与微折射水圈 */
+    0 0 0 1px rgba(255, 255, 255, 0.50),
+    0 0 0 2.5px rgba(255, 255, 255, 0.15),
+    /* 2. 外部物理投影 */
     0 4px 16px -2px hsl(0 0% 0% / calc(0.06 * var(--shadow-strength))),
-    0 12px 36px -6px hsl(0 0% 0% / calc(0.10 * var(--shadow-strength))) !important;
+    0 14px 38px -6px hsl(0 0% 0% / calc(0.10 * var(--shadow-strength))),
+    /* 3. 顶刃极致耀眼的全反射白水刀 */
+    inset 0 2px 1px 0 rgba(255, 255, 255, 0.98),
+    /* 4. 内部凸透镜立体内折射倒角环（营造4px真实弧面玻璃厚度） */
+    inset 0 0 0 1px rgba(255, 255, 255, 0.40),
+    inset 0 4px 8px 0 rgba(255, 255, 255, 0.20),
+    inset 3px 0 5px 0 rgba(255, 255, 255, 0.35),
+    inset -3px 0 5px 0 rgba(0, 0, 0, 0.08),
+    inset 0 -3px 5px 0 rgba(0, 0, 0, 0.12) !important;
   transition: border-color 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 [data-style="liquid"] .glass-card:hover {
-  border-color: rgba(255, 255, 255, 0.85);
+  border-color: rgba(255, 255, 255, 0.90);
   box-shadow:
     var(--tw-ring-offset-shadow, 0 0 #0000),
     var(--tw-ring-shadow, 0 0 #0000),
-    inset 0 1.5px 0 0 rgba(255, 255, 255, 1),
+    0 0 0 1px rgba(255, 255, 255, 0.65),
+    0 0 0 3px rgba(255, 255, 255, 0.20),
     0 6px 20px -2px hsl(0 0% 0% / calc(0.08 * var(--shadow-strength))),
-    0 16px 44px -6px hsl(0 0% 0% / calc(0.14 * var(--shadow-strength))) !important;
+    0 18px 48px -6px hsl(0 0% 0% / calc(0.14 * var(--shadow-strength))),
+    inset 0 2px 1px 0 rgba(255, 255, 255, 1),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.55),
+    inset 0 4px 10px 0 rgba(255, 255, 255, 0.30),
+    inset 3px 0 6px 0 rgba(255, 255, 255, 0.45),
+    inset -3px 0 6px 0 rgba(0, 0, 0, 0.10),
+    inset 0 -3.5px 6px 0 rgba(0, 0, 0, 0.16) !important;
 }
 
 /* 卡片里的可点区域不要铺 accent 实色。实色会盖住玻璃，方角还会冒出圆角。 */
@@ -594,7 +608,7 @@ All colors MUST be HSL.
   -webkit-backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.15) brightness(1.05) saturate(1.2);
 }
 
-/* 玻璃表面微弱的物理弧面反光膜，纯净通透，彻底去除人工涂抹彩色伪边框 */
+/* 玻璃表面迎光面物理弧面反光膜与微角度三棱镜色散（完全还原水滴边缘自然光谱） */
 [data-style="liquid"] :where(.glass-card, .floating-sidebar, .glass-sidebar)::after {
   content: "";
   position: absolute;
@@ -602,12 +616,15 @@ All colors MUST be HSL.
   z-index: -1;
   border-radius: inherit;
   pointer-events: none;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.08) 0%,
-    rgba(255, 255, 255, 0.015) 30%,
-    transparent 60%
-  );
+  background:
+    radial-gradient(circle at 10% 0%, rgba(56, 189, 248, 0.14) 0%, transparent 35%),
+    radial-gradient(circle at 90% 0%, rgba(244, 114, 182, 0.12) 0%, transparent 35%),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.12) 0%,
+      rgba(255, 255, 255, 0.02) 25%,
+      transparent 55%
+    );
   opacity: 1;
   transition: opacity 0.35s ease;
 }
@@ -621,29 +638,43 @@ All colors MUST be HSL.
 .dark[data-style="liquid"] .glass-card,
 .dark [data-style="liquid"] .glass-card,
 [data-style="liquid"] .dark .glass-card {
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.28);
   box-shadow:
     var(--tw-ring-offset-shadow, 0 0 #0000),
     var(--tw-ring-shadow, 0 0 #0000),
-    /* 顶刃极细白水反光线（纯白透明，绝无人工紫红/青蓝怪异条纹） */
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.40),
-    /* 内部极微弱玻璃深邃环境反射 */
-    inset 0 0 16px 0 rgba(255, 255, 255, 0.03),
-    /* 自然深邃的物理投影 */
+    /* 1. 外层晶体透镜水圈轮廓与微散射环 */
+    0 0 0 1px rgba(255, 255, 255, 0.20),
+    0 0 0 2.5px rgba(255, 255, 255, 0.06),
+    /* 2. 自然深邃的物理投影 */
     0 4px 18px -2px hsl(0 0% 0% / calc(0.35 * var(--shadow-strength))),
-    0 16px 44px -8px hsl(0 0% 0% / calc(0.50 * var(--shadow-strength))) !important;
+    0 16px 44px -8px hsl(0 0% 0% / calc(0.50 * var(--shadow-strength))),
+    /* 3. 顶刃极致耀眼的全反射白水刀（纯净纯白，凸透镜直射光） */
+    inset 0 1.5px 0.5px 0 rgba(255, 255, 255, 0.90),
+    /* 4. 边缘4px凸透镜倒角折射带（内暗外亮，形成深邃水体弧面折射） */
+    inset 0 0 0 1px rgba(255, 255, 255, 0.18),
+    inset 0 3px 6px 0 rgba(255, 255, 255, 0.10),
+    inset 3px 0 5px 0 rgba(255, 255, 255, 0.16),
+    inset -3px 0 5px 0 rgba(0, 0, 0, 0.40),
+    inset 0 -3.5px 6px 0 rgba(0, 0, 0, 0.55) !important;
 }
 
 .dark[data-style="liquid"] .glass-card:hover,
 .dark [data-style="liquid"] .glass-card:hover,
 [data-style="liquid"] .dark .glass-card:hover {
-  border-color: rgba(255, 255, 255, 0.30);
+  border-color: rgba(255, 255, 255, 0.45);
   box-shadow:
     var(--tw-ring-offset-shadow, 0 0 #0000),
     var(--tw-ring-shadow, 0 0 #0000),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.60),
+    0 0 0 1px rgba(255, 255, 255, 0.32),
+    0 0 0 3px rgba(255, 255, 255, 0.10),
     0 6px 24px -2px hsl(0 0% 0% / calc(0.40 * var(--shadow-strength))),
-    0 20px 52px -8px hsl(0 0% 0% / calc(0.55 * var(--shadow-strength))) !important;
+    0 20px 52px -8px hsl(0 0% 0% / calc(0.55 * var(--shadow-strength))),
+    inset 0 2px 1px 0 rgba(255, 255, 255, 0.98),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.28),
+    inset 0 4px 8px 0 rgba(255, 255, 255, 0.15),
+    inset 3px 0 6px 0 rgba(255, 255, 255, 0.24),
+    inset -3px 0 6px 0 rgba(0, 0, 0, 0.45),
+    inset 0 -4px 7px 0 rgba(0, 0, 0, 0.65) !important;
 }
 
 /* 矮提示条不要用卡片的整面内晕和凸透镜。那两层在大卡片上只沾到边缘，
@@ -712,14 +743,18 @@ All colors MUST be HSL.
 [data-style="liquid"] .tab-segment-row {
   z-index: 0;
   background: transparent !important;
-  border: 1px solid rgba(255, 255, 255, 0.55) !important;
+  border: 1px solid rgba(255, 255, 255, 0.70) !important;
   box-shadow:
     var(--tw-ring-offset-shadow, 0 0 #0000),
     var(--tw-ring-shadow, 0 0 #0000),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.75),
-    inset 0 0 12px 0 rgba(255, 255, 255, 0.05),
+    0 0 0 1px rgba(255, 255, 255, 0.45),
     0 4px 16px -2px hsl(0 0% 0% / calc(0.08 * var(--shadow-strength))),
-    0 12px 32px -6px hsl(0 0% 0% / calc(0.12 * var(--shadow-strength))) !important;
+    0 12px 32px -6px hsl(0 0% 0% / calc(0.12 * var(--shadow-strength))),
+    inset 0 2px 0.5px 0 rgba(255, 255, 255, 0.95),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.35),
+    inset 2.5px 0 4px 0 rgba(255, 255, 255, 0.40),
+    inset -2.5px 0 4px 0 rgba(0, 0, 0, 0.06),
+    inset 0 -2.5px 4px 0 rgba(0, 0, 0, 0.10) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
@@ -727,14 +762,18 @@ All colors MUST be HSL.
 .dark[data-style="liquid"] .tab-segment-row,
 .dark [data-style="liquid"] .tab-segment-row,
 [data-style="liquid"] .dark .tab-segment-row {
-  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  border: 1px solid rgba(255, 255, 255, 0.26) !important;
   box-shadow:
     var(--tw-ring-offset-shadow, 0 0 #0000),
     var(--tw-ring-shadow, 0 0 #0000),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.40),
-    inset 0 0 14px 0 rgba(255, 255, 255, 0.02),
+    0 0 0 1px rgba(255, 255, 255, 0.16),
     0 4px 18px -2px hsl(0 0% 0% / calc(0.35 * var(--shadow-strength))),
-    0 16px 40px -8px hsl(0 0% 0% / calc(0.45 * var(--shadow-strength))) !important;
+    0 16px 40px -8px hsl(0 0% 0% / calc(0.45 * var(--shadow-strength))),
+    inset 0 1.5px 0.5px 0 rgba(255, 255, 255, 0.85),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.16),
+    inset 2.5px 0 4px 0 rgba(255, 255, 255, 0.18),
+    inset -2.5px 0 4px 0 rgba(0, 0, 0, 0.35),
+    inset 0 -2.5px 4px 0 rgba(0, 0, 0, 0.45) !important;
 }
 
 [data-style="liquid"] .tab-segment-row::before {
@@ -1567,27 +1606,45 @@ All colors MUST be HSL.
 }
 
 /* 激活态 Tab 与 SelectTile 文字跟液态水滴胶囊配套。底色由滑动胶囊画，按钮本身透明。 */
-[data-style="liquid"] .tab-segment-row button.bg-primary,
-[data-style="liquid"] .tab-segment-row div.bg-primary,
-[data-style="liquid"] .tab-segment-row button.bg-primary *,
-[data-style="liquid"] .tab-segment-row div.bg-primary *,
-[data-style="liquid"] .select-tile[data-active="true"],
-[data-style="liquid"] .select-tile[data-active="true"] *:not(.text-white):not([class*="text-white"]),
-.dark[data-style="liquid"] .tab-segment-row button.bg-primary,
-.dark [data-style="liquid"] .tab-segment-row button.bg-primary,
-.dark[data-style="liquid"] .tab-segment-row div.bg-primary,
-.dark [data-style="liquid"] .tab-segment-row div.bg-primary,
-.dark[data-style="liquid"] .tab-segment-row button.bg-primary *,
-.dark [data-style="liquid"] .tab-segment-row button.bg-primary *,
-.dark[data-style="liquid"] .tab-segment-row div.bg-primary *,
-.dark [data-style="liquid"] .tab-segment-row div.bg-primary *,
-.dark[data-style="liquid"] .select-tile[data-active="true"],
-.dark [data-style="liquid"] .select-tile[data-active="true"],
-.dark[data-style="liquid"] .select-tile[data-active="true"] *:not(.text-white):not([class*="text-white"]),
-.dark [data-style="liquid"] .select-tile[data-active="true"] *:not(.text-white):not([class*="text-white"]) {
-  color: hsl(var(--primary-foreground)) !important;
-  font-weight: 500 !important;
-  text-shadow: none !important;
+/* 液态玻璃 & 光感玻璃激活项：严格黑白高对比度文字，拒绝彩色看不清 */
+:is([data-style="liquid"], [data-style="luminous"]) .tab-segment-row button.bg-primary,
+:is([data-style="liquid"], [data-style="luminous"]) .tab-segment-row div.bg-primary,
+:is([data-style="liquid"], [data-style="luminous"]) .tab-segment-row button.bg-primary *,
+:is([data-style="liquid"], [data-style="luminous"]) .tab-segment-row div.bg-primary *,
+:is([data-style="liquid"], [data-style="luminous"]) .select-tile[data-active="true"],
+:is([data-style="liquid"], [data-style="luminous"]) .select-tile[data-active="true"] *:not(.text-white):not([class*="text-white"]),
+:is([data-style="liquid"], [data-style="luminous"]) :is(.tab-segment-row, .select-tile-row) > :is(.select-tile, button, div)[data-active="true"],
+:is([data-style="liquid"], [data-style="luminous"]) :is(.tab-segment-row, .select-tile-row) > :is(.select-tile, button, div)[data-active="true"] *:not(.text-white):not([class*="text-white"]),
+:is([data-style="liquid"], [data-style="luminous"]) .tab-segment-row :is(button, div).bg-primary,
+:is([data-style="liquid"], [data-style="luminous"]) .tab-segment-row :is(button, div).bg-primary *:not(.text-white):not([class*="text-white"]) {
+  color: #000000 !important;
+  font-weight: 600 !important;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.75) !important;
+}
+
+.dark:is([data-style="liquid"], [data-style="luminous"]) .tab-segment-row button.bg-primary,
+.dark:is([data-style="liquid"], [data-style="luminous"]) .tab-segment-row div.bg-primary,
+.dark:is([data-style="liquid"], [data-style="luminous"]) .tab-segment-row button.bg-primary *,
+.dark:is([data-style="liquid"], [data-style="luminous"]) .tab-segment-row div.bg-primary *,
+.dark:is([data-style="liquid"], [data-style="luminous"]) .select-tile[data-active="true"],
+.dark:is([data-style="liquid"], [data-style="luminous"]) .select-tile[data-active="true"] *:not(.text-white):not([class*="text-white"]),
+.dark:is([data-style="liquid"], [data-style="luminous"]) :is(.tab-segment-row, .select-tile-row) > :is(.select-tile, button, div)[data-active="true"],
+.dark:is([data-style="liquid"], [data-style="luminous"]) :is(.tab-segment-row, .select-tile-row) > :is(.select-tile, button, div)[data-active="true"] *:not(.text-white):not([class*="text-white"]),
+.dark:is([data-style="liquid"], [data-style="luminous"]) .tab-segment-row :is(button, div).bg-primary,
+.dark:is([data-style="liquid"], [data-style="luminous"]) .tab-segment-row :is(button, div).bg-primary *:not(.text-white):not([class*="text-white"]),
+.dark :is([data-style="liquid"], [data-style="luminous"]) .tab-segment-row button.bg-primary,
+.dark :is([data-style="liquid"], [data-style="luminous"]) .tab-segment-row div.bg-primary,
+.dark :is([data-style="liquid"], [data-style="luminous"]) .tab-segment-row button.bg-primary *,
+.dark :is([data-style="liquid"], [data-style="luminous"]) .tab-segment-row div.bg-primary *,
+.dark :is([data-style="liquid"], [data-style="luminous"]) .select-tile[data-active="true"],
+.dark :is([data-style="liquid"], [data-style="luminous"]) .select-tile[data-active="true"] *:not(.text-white):not([class*="text-white"]),
+.dark :is([data-style="liquid"], [data-style="luminous"]) :is(.tab-segment-row, .select-tile-row) > :is(.select-tile, button, div)[data-active="true"],
+.dark :is([data-style="liquid"], [data-style="luminous"]) :is(.tab-segment-row, .select-tile-row) > :is(.select-tile, button, div)[data-active="true"] *:not(.text-white):not([class*="text-white"]),
+.dark :is([data-style="liquid"], [data-style="luminous"]) .tab-segment-row :is(button, div).bg-primary,
+.dark :is([data-style="liquid"], [data-style="luminous"]) .tab-segment-row :is(button, div).bg-primary *:not(.text-white):not([class*="text-white"]) {
+  color: #FFFFFF !important;
+  font-weight: 600 !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8) !important;
 }
 
 /* 未激活态 Tab 按钮 hover：通透水润微折射 */
@@ -1619,29 +1676,21 @@ All colors MUST be HSL.
  * hover:bg-primary/10 也会命中，品牌区和语言切换会被涂成实心卡片。
  * ============================================================================ */
 [data-style="liquid"] button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) {
-  background: radial-gradient(
-    ellipse at 50% 12%,
-    hsl(var(--primary) / 0.90) 0%,
-    hsl(222 36% 10% / 0.92) 75%,
-    hsl(224 40% 6% / 0.96) 100%
-  ) !important;
-  border: 1px solid rgba(255, 255, 255, 0.45) !important;
+  background: hsl(var(--primary)) !important;
+  border: 1px solid rgba(255, 255, 255, 0.65) !important;
   box-shadow:
-    inset 0 2px 1.5px 0 rgba(255, 255, 255, 0.70),
-    inset 0 -1.5px 2px 0 rgba(0, 0, 0, 0.45),
-    0 6px 18px -3px hsl(var(--primary) / calc(0.30 * var(--shadow-strength, 1))) !important;
+    inset 0 1.5px 0 0 rgba(255, 255, 255, 0.85),
+    inset 0 0 10px 0 rgba(255, 255, 255, 0.20),
+    0 4px 14px -2px hsl(var(--primary) / calc(0.35 * var(--shadow-strength, 1))) !important;
   color: hsl(var(--primary-foreground)) !important;
+  backdrop-filter: blur(var(--liquid-blur, 12px)) saturate(160%);
+  -webkit-backdrop-filter: blur(var(--liquid-blur, 12px)) saturate(160%);
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 [data-preset="shadcn"][data-style="liquid"] button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile),
 [data-preset="shadcn"] [data-style="liquid"] button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) {
-  background: radial-gradient(
-    ellipse at 50% 12%,
-    hsl(220 30% 20% / 0.88) 0%,
-    hsl(222 36% 10% / 0.92) 75%,
-    hsl(224 40% 6% / 0.96) 100%
-  ) !important;
+  background: hsl(var(--primary)) !important;
 }
 
 [data-style="liquid"] button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) * {
@@ -1649,31 +1698,23 @@ All colors MUST be HSL.
 }
 
 [data-style="liquid"] button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):hover {
-  background: radial-gradient(
-    ellipse at 50% 12%,
-    hsl(var(--primary) / 0.98) 0%,
-    hsl(222 36% 10% / 0.95) 75%,
-    hsl(224 40% 6% / 0.98) 100%
-  ) !important;
-  border-color: rgba(255, 255, 255, 0.70) !important;
+  background: hsl(var(--primary)) !important;
+  filter: brightness(1.08);
+  border-color: rgba(255, 255, 255, 0.85) !important;
   box-shadow:
-    inset 0 2px 2px 0 rgba(255, 255, 255, 0.85),
+    inset 0 1.5px 0 0 rgba(255, 255, 255, 0.95),
+    inset 0 0 12px 0 rgba(255, 255, 255, 0.25),
     0 6px 20px -2px hsl(var(--primary) / calc(0.45 * var(--shadow-strength, 1))) !important;
   transform: translateY(-1px);
 }
 
 .dark[data-style="liquid"] button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile),
 .dark [data-style="liquid"] button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) {
-  background: radial-gradient(
-    ellipse at 50% 15%,
-    hsl(var(--primary) / 0.95) 0%,
-    hsl(var(--primary) / 0.84) 65%,
-    hsl(var(--primary) / 0.72) 100%
-  ) !important;
-  border-color: rgba(255, 255, 255, 0.75) !important;
+  background: hsl(var(--primary)) !important;
+  border-color: rgba(255, 255, 255, 0.65) !important;
   box-shadow:
-    inset 0 2px 1.5px 0 rgba(255, 255, 255, 0.85),
-    inset 0 -1.5px 1.5px 0 rgba(0, 0, 0, 0.25),
+    inset 0 1.5px 0 0 rgba(255, 255, 255, 0.75),
+    inset 0 0 10px 0 rgba(255, 255, 255, 0.15),
     0 4px 14px -2px hsl(var(--primary) / calc(0.45 * var(--shadow-strength, 1))),
     0 0 18px -2px hsl(var(--primary) / calc(0.40 * var(--shadow-strength, 1))) !important;
   color: hsl(var(--primary-foreground)) !important;
@@ -1995,23 +2036,59 @@ All colors MUST be HSL.
 }
 
 [data-style="liquid"] .select-tile:not([data-active="true"]) {
-  background: transparent !important;
-  border-color: transparent !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.55) !important;
   color: hsl(var(--muted-foreground)) !important;
-  box-shadow: none !important;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.25),
+    inset 0 1.5px 0.5px 0 rgba(255, 255, 255, 0.80),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.25),
+    inset 2px 0 3px 0 rgba(255, 255, 255, 0.30),
+    inset -2px 0 3px 0 rgba(0, 0, 0, 0.05),
+    inset 0 -2px 3px 0 rgba(0, 0, 0, 0.08) !important;
+  backdrop-filter: blur(8px) contrast(1.05) !important;
+  -webkit-backdrop-filter: blur(8px) contrast(1.05) !important;
 }
 
 [data-style="liquid"] .select-tile:not([data-active="true"]):hover {
-  background: rgba(255, 255, 255, 0.14) !important;
-  border-color: transparent !important;
-  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.45) !important;
+  background: rgba(255, 255, 255, 0.12) !important;
+  border-color: rgba(255, 255, 255, 0.80) !important;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.45),
+    inset 0 2px 1px 0 rgba(255, 255, 255, 0.95),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.35),
+    inset 2.5px 0 4px 0 rgba(255, 255, 255, 0.45),
+    inset -2.5px 0 4px 0 rgba(0, 0, 0, 0.08),
+    inset 0 -2.5px 4px 0 rgba(0, 0, 0, 0.12) !important;
   color: hsl(var(--foreground)) !important;
+}
+
+.dark[data-style="liquid"] .select-tile:not([data-active="true"]) {
+  background: rgba(255, 255, 255, 0.015) !important;
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  color: hsl(var(--muted-foreground)) !important;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.10),
+    inset 0 1.5px 0.5px 0 rgba(255, 255, 255, 0.50),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.10),
+    inset 2px 0 3px 0 rgba(255, 255, 255, 0.14),
+    inset -2px 0 3px 0 rgba(0, 0, 0, 0.28),
+    inset 0 -2px 3px 0 rgba(0, 0, 0, 0.35) !important;
+  backdrop-filter: blur(8px) contrast(1.05) !important;
+  -webkit-backdrop-filter: blur(8px) contrast(1.05) !important;
 }
 
 .dark[data-style="liquid"] .select-tile:not([data-active="true"]):hover,
 .dark [data-style="liquid"] .select-tile:not([data-active="true"]):hover {
-  background: rgba(255, 255, 255, 0.08) !important;
-  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.25) !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: rgba(255, 255, 255, 0.35) !important;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.22),
+    inset 0 2px 1px 0 rgba(255, 255, 255, 0.75),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.16),
+    inset 2.5px 0 4px 0 rgba(255, 255, 255, 0.22),
+    inset -2.5px 0 4px 0 rgba(0, 0, 0, 0.38),
+    inset 0 -2.5px 4px 0 rgba(0, 0, 0, 0.48) !important;
 }
 
 [data-style="liquid"] .select-tile[data-active="true"],
@@ -2194,28 +2271,24 @@ button.bg-primary .tab-segment-count {
  * 液态玻璃：凸透水滴质感 + WebGL 动态曲面流体与边缘色散。
  */
 [data-style="glassmorphism"] :is(.tab-segment-row, .select-tile-row) > .liquid-segment-thumb {
-  background: linear-gradient(
-    135deg,
-    hsl(var(--primary) / 0.85) 0%,
-    hsl(222 45% 7% / 0.94) 100%
-  ) !important;
+  background: hsl(var(--primary)) !important;
   border: 1px solid rgba(255, 255, 255, 0.35) !important;
   box-shadow:
     inset 0 1px 0 0 rgba(255, 255, 255, 0.45),
-    0 4px 16px -2px hsl(0 0% 0% / calc(0.32 * var(--shadow-strength, 1))) !important;
+    0 4px 14px -2px hsl(var(--primary) / calc(0.32 * var(--shadow-strength, 1))) !important;
   backdrop-filter: blur(var(--blur-intensity, 16px)) saturate(160%) !important;
   -webkit-backdrop-filter: blur(var(--blur-intensity, 16px)) saturate(160%) !important;
 }
 
 [data-preset="shadcn"][data-style="glassmorphism"] :is(.tab-segment-row, .select-tile-row) > .liquid-segment-thumb,
 [data-preset="shadcn"] [data-style="glassmorphism"] :is(.tab-segment-row, .select-tile-row) > .liquid-segment-thumb {
-  background: hsl(222 45% 7% / 0.94) !important;
+  background: hsl(var(--primary)) !important;
   border: 1px solid rgba(255, 255, 255, 0.35) !important;
 }
 
 .dark[data-style="glassmorphism"] :is(.tab-segment-row, .select-tile-row) > .liquid-segment-thumb,
 .dark [data-style="glassmorphism"] :is(.tab-segment-row, .select-tile-row) > .liquid-segment-thumb {
-  background: hsl(var(--primary) / 0.88) !important;
+  background: hsl(var(--primary)) !important;
   border: 1px solid rgba(255, 255, 255, 0.70) !important;
   box-shadow:
     inset 0 1px 0 0 rgba(255, 255, 255, 0.90),
@@ -2225,112 +2298,122 @@ button.bg-primary .tab-segment-count {
   -webkit-backdrop-filter: blur(var(--blur-intensity, 16px)) !important;
 }
 
-[data-style="luminous"] :is(.tab-segment-row, .select-tile-row) > .liquid-segment-thumb {
-  background: linear-gradient(
-    135deg,
-    hsl(var(--primary) / 0.88) 0%,
-    hsl(224 45% 8% / 0.94) 48%,
-    hsl(var(--primary) / 0.75) 100%
-  ) !important;
-  border: 1px solid rgba(255, 255, 255, 0.45) !important;
-  box-shadow:
-    inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.70),
-    inset 0 -1.5px 1.5px 0 hsl(var(--primary) / 0.35),
-    0 4px 18px -2px hsl(var(--primary) / calc(0.40 * var(--shadow-strength, 1))) !important;
-  backdrop-filter: blur(var(--blur-intensity, 14px)) saturate(200%) contrast(106%) !important;
-  -webkit-backdrop-filter: blur(var(--blur-intensity, 14px)) saturate(200%) contrast(106%) !important;
-}
-
+/* ============================================================================
+ * Luminous Glass (光感玻璃) - 滑动高亮胶囊
+ * 物理质感：外部漫射柔光溢出 (Caustic Scattering Halo) + 内部体积光核 + 迎光晶体倒角水刃
+ * 承接完整的光感系统：深邃主题色光晕与体积漫反射，通体柔光溢出
+ * ============================================================================ */
+[data-style="luminous"] :is(.tab-segment-row, .select-tile-row) > .liquid-segment-thumb,
 [data-preset="shadcn"][data-style="luminous"] :is(.tab-segment-row, .select-tile-row) > .liquid-segment-thumb,
 [data-preset="shadcn"] [data-style="luminous"] :is(.tab-segment-row, .select-tile-row) > .liquid-segment-thumb {
   background: linear-gradient(
-    135deg,
-    hsl(224 35% 20% / 0.92) 0%,
-    hsl(224 45% 8% / 0.94) 50%,
-    hsl(224 35% 15% / 0.90) 100%
+    180deg,
+    rgba(255, 255, 255, 0.75) 0%,
+    hsl(var(--primary) / 0.12) 50%,
+    rgba(255, 255, 255, 0.15) 100%
   ) !important;
+  border: 1px solid rgba(255, 255, 255, 0.75) !important;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.65),
+    0 0 20px 2px hsl(var(--primary) / 0.28),
+    0 4px 14px -2px rgba(0, 0, 0, 0.10),
+    inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.95),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.50),
+    inset 0 -1.5px 1px 0 rgba(255, 255, 255, 0.40),
+    inset 0 0 16px 2px hsl(var(--primary) / 0.18) !important;
+  backdrop-filter: blur(16px) saturate(180%) contrast(115%) brightness(1.05) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(180%) contrast(115%) brightness(1.05) !important;
 }
 
 .dark[data-style="luminous"] :is(.tab-segment-row, .select-tile-row) > .liquid-segment-thumb,
 .dark [data-style="luminous"] :is(.tab-segment-row, .select-tile-row) > .liquid-segment-thumb {
   background: linear-gradient(
-    135deg,
-    hsl(var(--primary) / 0.95) 0%,
-    hsl(var(--primary) / 0.85) 50%,
-    hsl(var(--primary) / 0.92) 100%
+    180deg,
+    hsl(var(--primary) / 0.32) 0%,
+    hsl(var(--primary) / 0.12) 60%,
+    rgba(255, 255, 255, 0.02) 100%
   ) !important;
-  border: 1px solid rgba(255, 255, 255, 0.85) !important;
+  border: 1px solid rgba(255, 255, 255, 0.38) !important;
   box-shadow:
-    inset 0 1.5px 1px 0 rgba(255, 255, 255, 1),
-    0 0 20px -2px hsl(var(--primary) / 0.60) !important;
-  backdrop-filter: blur(var(--blur-intensity, 14px)) saturate(200%) contrast(110%) !important;
-  -webkit-backdrop-filter: blur(var(--blur-intensity, 14px)) saturate(200%) contrast(110%) !important;
+    0 0 0 1px rgba(255, 255, 255, 0.32),
+    0 0 24px 3px hsl(var(--primary) / 0.45),
+    0 8px 24px -2px rgba(0, 0, 0, 0.50),
+    inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.95),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.28),
+    inset 0 -1.5px 1px 0 rgba(255, 255, 255, 0.25),
+    inset 0 0 20px 2px hsl(var(--primary) / 0.28) !important;
+  backdrop-filter: blur(16px) saturate(190%) contrast(115%) brightness(1.08) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(190%) contrast(115%) brightness(1.08) !important;
 }
 
-[data-style="liquid"] :is(.tab-segment-row, .select-tile-row) > .liquid-segment-thumb {
-  background: radial-gradient(
-    ellipse at 50% 12%,
-    hsl(var(--primary) / 0.90) 0%,
-    hsl(222 36% 10% / 0.92) 75%,
-    hsl(224 40% 6% / 0.96) 100%
-  ) !important;
-  border: 1px solid rgba(255, 255, 255, 0.45) !important;
-  box-shadow:
-    inset 0 2px 1.5px 0 rgba(255, 255, 255, 0.70),
-    inset 0 -1.5px 2px 0 rgba(0, 0, 0, 0.45),
-    0 6px 18px -3px hsl(var(--primary) / calc(0.30 * var(--shadow-strength, 1))) !important;
-  backdrop-filter: blur(var(--blur-intensity, 12px)) !important;
-  -webkit-backdrop-filter: blur(var(--blur-intensity, 12px)) !important;
-}
-
+/* ============================================================================
+ * Liquid Glass (真正的液态玻璃) - 只在边缘有折射！
+ * 物理质感：主体纯净清澈完全透出底层壁纸，无大白雾、无大蓝块、无多颜色漫反射；
+ * 边缘凸透镜折射：全反射晶体水刃 + 倒角内折射散射 + 贴边 1px 晶莹水圈轮廓
+ * ============================================================================ */
+[data-style="liquid"] :is(.tab-segment-row, .select-tile-row) > .liquid-segment-thumb,
 [data-preset="shadcn"][data-style="liquid"] :is(.tab-segment-row, .select-tile-row) > .liquid-segment-thumb,
 [data-preset="shadcn"] [data-style="liquid"] :is(.tab-segment-row, .select-tile-row) > .liquid-segment-thumb {
-  background: radial-gradient(
-    ellipse at 50% 12%,
-    hsl(220 30% 20% / 0.88) 0%,
-    hsl(222 36% 10% / 0.92) 75%,
-    hsl(224 40% 6% / 0.96) 100%
-  ) !important;
+  background: rgba(255, 255, 255, 0.15) !important;
+  border: 1px solid rgba(255, 255, 255, 0.85) !important;
+  box-shadow:
+    /* 1. 外层全反射白金光轮廓与微折射水圈 */
+    0 0 0 1px rgba(255, 255, 255, 0.70),
+    0 0 0 2.5px rgba(255, 255, 255, 0.20),
+    0 3px 8px 0 rgba(0, 0, 0, 0.08),
+    0 8px 20px -2px rgba(0, 0, 0, 0.10),
+    /* 2. 顶刃极致耀眼的全反射白水刀 */
+    inset 0 2px 0.5px 0 rgba(255, 255, 255, 0.98),
+    /* 3. 内部透镜立体内折射倒角环（营造5px真实水滴凸透镜弧面与厚度） */
+    inset 0 0 0 1px rgba(255, 255, 255, 0.50),
+    inset 0 4px 8px 0 rgba(255, 255, 255, 0.35),
+    inset 3px 0 6px 0 rgba(255, 255, 255, 0.55),
+    inset -3px 0 6px 0 rgba(0, 0, 0, 0.10),
+    inset 0 -3px 6px 0 rgba(0, 0, 0, 0.18) !important;
+  backdrop-filter: blur(12px) contrast(1.12) saturate(145%) !important;
+  -webkit-backdrop-filter: blur(12px) contrast(1.12) saturate(145%) !important;
 }
 
 .dark[data-style="liquid"] :is(.tab-segment-row, .select-tile-row) > .liquid-segment-thumb,
 .dark [data-style="liquid"] :is(.tab-segment-row, .select-tile-row) > .liquid-segment-thumb {
-  background: radial-gradient(
-    ellipse at 50% 15%,
-    hsl(var(--primary) / 0.95) 0%,
-    hsl(var(--primary) / 0.84) 65%,
-    hsl(var(--primary) / 0.72) 100%
-  ) !important;
-  border: 1px solid rgba(255, 255, 255, 0.75) !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  border: 1px solid rgba(255, 255, 255, 0.45) !important;
   box-shadow:
-    inset 0 2px 1.5px 0 rgba(255, 255, 255, 0.85),
-    inset 0 -1.5px 1.5px 0 rgba(0, 0, 0, 0.25),
-    0 4px 14px -2px hsl(var(--primary) / calc(0.45 * var(--shadow-strength, 1))),
-    0 0 18px -2px hsl(var(--primary) / 0.40) !important;
-  backdrop-filter: blur(var(--blur-intensity, 12px)) !important;
-  -webkit-backdrop-filter: blur(var(--blur-intensity, 12px)) !important;
+    /* 1. 外层晶体透镜水圈轮廓与微散射环 */
+    0 0 0 1px rgba(255, 255, 255, 0.32),
+    0 0 0 2.5px rgba(255, 255, 255, 0.10),
+    0 4px 14px 0 rgba(0, 0, 0, 0.45),
+    0 12px 30px -4px rgba(0, 0, 0, 0.65),
+    /* 2. 顶刃极致耀眼的全反射白水刀（纯净纯白，绝无死蓝） */
+    inset 0 1.5px 0.5px 0 rgba(255, 255, 255, 0.98),
+    /* 3. 边缘凸透镜折射倒角内带（透光与暗带并存，产生极强烈的立体折射深度） */
+    inset 0 0 0 1px rgba(255, 255, 255, 0.28),
+    inset 0 4px 8px 0 rgba(255, 255, 255, 0.16),
+    inset 3px 0 6px 0 rgba(255, 255, 255, 0.30),
+    inset -3px 0 6px 0 rgba(0, 0, 0, 0.38),
+    inset 0 -3.5px 6px 0 rgba(0, 0, 0, 0.60) !important;
+  backdrop-filter: blur(12px) contrast(1.12) saturate(145%) !important;
+  -webkit-backdrop-filter: blur(12px) contrast(1.12) saturate(145%) !important;
 }
 
 [data-style="solid"] :is(.tab-segment-row, .select-tile-row) > .liquid-segment-thumb {
-  background: linear-gradient(180deg, hsl(var(--primary) / 0.92) 0%, hsl(222 36% 12%) 100%) !important;
-  border: 1px solid hsl(var(--primary) / 0.4) !important;
-  box-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.15),
-    0 3px 10px -1px hsl(0 0% 0% / calc(0.25 * var(--shadow-strength, 1))) !important;
+  background: hsl(var(--primary)) !important;
+  border: 1px solid hsl(var(--primary)) !important;
+  box-shadow: 0 1px 3px 0 hsl(0 0% 0% / calc(0.12 * var(--shadow-strength, 1))) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
 
 [data-preset="shadcn"][data-style="solid"] :is(.tab-segment-row, .select-tile-row) > .liquid-segment-thumb,
 [data-preset="shadcn"] [data-style="solid"] :is(.tab-segment-row, .select-tile-row) > .liquid-segment-thumb {
-  background: linear-gradient(180deg, hsl(222 32% 16%) 0%, hsl(222 36% 11%) 100%) !important;
-  border-color: hsl(222 28% 22%) !important;
+  background: hsl(var(--primary)) !important;
+  border-color: hsl(var(--primary)) !important;
 }
 
 .dark[data-style="solid"] :is(.tab-segment-row, .select-tile-row) > .liquid-segment-thumb,
 .dark [data-style="solid"] :is(.tab-segment-row, .select-tile-row) > .liquid-segment-thumb {
   background: hsl(var(--primary)) !important;
-  border: 1px solid rgba(255, 255, 255, 0.35) !important;
+  border: 1px solid hsl(var(--primary)) !important;
   box-shadow: 0 4px 14px -2px hsl(var(--primary) / 0.35) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
@@ -2350,28 +2433,59 @@ button.bg-primary .tab-segment-count {
   box-shadow: none !important;
 }
 
-.select-tile-row > .select-tile[data-active="true"],
-.select-tile-row > .select-tile[data-active="true"] *:not(.text-white):not([class*="text-white"]),
-.dark .select-tile-row > .select-tile[data-active="true"],
-.dark .select-tile-row > .select-tile[data-active="true"] *:not(.text-white):not([class*="text-white"]),
-[data-style="solid"] .select-tile-row > .select-tile[data-active="true"],
-[data-style="solid"] .select-tile-row > .select-tile[data-active="true"] *:not(.text-white):not([class*="text-white"]) {
+:is([data-style="solid"], [data-style="glassmorphism"]) .select-tile-row > .select-tile[data-active="true"],
+:is([data-style="solid"], [data-style="glassmorphism"]) .select-tile-row > .select-tile[data-active="true"] *:not(.text-white):not([class*="text-white"]),
+.dark:is([data-style="solid"], [data-style="glassmorphism"]) .select-tile-row > .select-tile[data-active="true"],
+.dark:is([data-style="solid"], [data-style="glassmorphism"]) .select-tile-row > .select-tile[data-active="true"] *:not(.text-white):not([class*="text-white"]) {
   color: hsl(var(--primary-foreground)) !important;
   font-weight: 500 !important;
   text-shadow: none !important;
 }
 
+/* 液态玻璃 & 光感玻璃激活项：统一黑白纯色，亮色纯黑、暗色纯白，保证在任何壁纸下均清晰 */
+:is([data-style="liquid"], [data-style="luminous"]) :is(.tab-segment-row, .select-tile-row) > :is(.select-tile, button, div)[data-active="true"],
+:is([data-style="liquid"], [data-style="luminous"]) :is(.tab-segment-row, .select-tile-row) > :is(.select-tile, button, div)[data-active="true"] *:not(.text-white):not([class*="text-white"]),
+:is([data-style="liquid"], [data-style="luminous"]) .tab-segment-row :is(button, div).bg-primary,
+:is([data-style="liquid"], [data-style="luminous"]) .tab-segment-row :is(button, div).bg-primary *:not(.text-white):not([class*="text-white"]) {
+  color: #000000 !important;
+  font-weight: 600 !important;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.75) !important;
+}
+
+.dark:is([data-style="liquid"], [data-style="luminous"]) :is(.tab-segment-row, .select-tile-row) > :is(.select-tile, button, div)[data-active="true"],
+.dark:is([data-style="liquid"], [data-style="luminous"]) :is(.tab-segment-row, .select-tile-row) > :is(.select-tile, button, div)[data-active="true"] *:not(.text-white):not([class*="text-white"]),
+.dark:is([data-style="liquid"], [data-style="luminous"]) .tab-segment-row :is(button, div).bg-primary,
+.dark:is([data-style="liquid"], [data-style="luminous"]) .tab-segment-row :is(button, div).bg-primary *:not(.text-white):not([class*="text-white"]),
+.dark :is([data-style="liquid"], [data-style="luminous"]) :is(.tab-segment-row, .select-tile-row) > :is(.select-tile, button, div)[data-active="true"],
+.dark :is([data-style="liquid"], [data-style="luminous"]) :is(.tab-segment-row, .select-tile-row) > :is(.select-tile, button, div)[data-active="true"] *:not(.text-white):not([class*="text-white"]),
+.dark :is([data-style="liquid"], [data-style="luminous"]) .tab-segment-row :is(button, div).bg-primary,
+.dark :is([data-style="liquid"], [data-style="luminous"]) .tab-segment-row :is(button, div).bg-primary *:not(.text-white):not([class*="text-white"]) {
+  color: #FFFFFF !important;
+  font-weight: 600 !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8) !important;
+}
+
+:is([data-style="liquid"], [data-style="luminous"]) .tab-segment-row :is(button, div).bg-primary .tab-segment-count,
+:is([data-style="liquid"], [data-style="luminous"]) .tab-segment-row :is(button, div)[data-active="true"] .tab-segment-count {
+  background: rgba(0, 0, 0, 0.12) !important;
+  color: #000000 !important;
+}
+
+.dark:is([data-style="liquid"], [data-style="luminous"]) .tab-segment-row :is(button, div).bg-primary .tab-segment-count,
+.dark:is([data-style="liquid"], [data-style="luminous"]) .tab-segment-row :is(button, div)[data-active="true"] .tab-segment-count,
+.dark :is([data-style="liquid"], [data-style="luminous"]) .tab-segment-row :is(button, div).bg-primary .tab-segment-count,
+.dark :is([data-style="liquid"], [data-style="luminous"]) .tab-segment-row :is(button, div)[data-active="true"] .tab-segment-count {
+  background: rgba(255, 255, 255, 0.22) !important;
+  color: #FFFFFF !important;
+}
+
 /* 页头主按钮跟随主色半透磨砂，保持高对比度与反色。 */
 [data-style="glassmorphism"] button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) {
-  background: linear-gradient(
-    135deg,
-    hsl(var(--primary) / 0.85) 0%,
-    hsl(222 45% 7% / 0.94) 100%
-  ) !important;
+  background: hsl(var(--primary)) !important;
   border: 1px solid rgba(255, 255, 255, 0.35) !important;
   box-shadow:
     inset 0 1px 0 0 rgba(255, 255, 255, 0.45),
-    0 4px 16px -2px hsl(0 0% 0% / calc(0.32 * var(--shadow-strength, 1))) !important;
+    0 4px 14px -2px hsl(var(--primary) / calc(0.32 * var(--shadow-strength, 1))) !important;
   color: hsl(var(--primary-foreground)) !important;
   backdrop-filter: blur(var(--blur-intensity, 16px));
   -webkit-backdrop-filter: blur(var(--blur-intensity, 16px));
@@ -2379,22 +2493,16 @@ button.bg-primary .tab-segment-count {
 
 [data-preset="shadcn"][data-style="glassmorphism"] button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile),
 [data-preset="shadcn"] [data-style="glassmorphism"] button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) {
-  background: hsl(222 45% 7% / 0.94) !important;
+  background: hsl(var(--primary)) !important;
   border: 1px solid rgba(255, 255, 255, 0.35) !important;
 }
 
 [data-style="luminous"] button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) {
-  background: linear-gradient(
-    135deg,
-    hsl(var(--primary) / 0.88) 0%,
-    hsl(224 45% 8% / 0.94) 48%,
-    hsl(var(--primary) / 0.75) 100%
-  ) !important;
-  border: 1px solid rgba(255, 255, 255, 0.45) !important;
+  background: hsl(var(--primary)) !important;
+  border: 1px solid rgba(255, 255, 255, 0.55) !important;
   box-shadow:
     inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.70),
-    inset 0 -1.5px 1.5px 0 hsl(var(--primary) / 0.35),
-    0 4px 18px -2px hsl(var(--primary) / calc(0.40 * var(--shadow-strength, 1))) !important;
+    0 0 18px -2px hsl(var(--primary) / calc(0.40 * var(--shadow-strength, 1))) !important;
   color: hsl(var(--primary-foreground)) !important;
   backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.2)) saturate(190%) contrast(106%) brightness(105%);
   -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.2)) saturate(190%) contrast(106%) brightness(105%);
@@ -2402,12 +2510,7 @@ button.bg-primary .tab-segment-count {
 
 [data-preset="shadcn"][data-style="luminous"] button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile),
 [data-preset="shadcn"] [data-style="luminous"] button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) {
-  background: linear-gradient(
-    135deg,
-    hsl(224 35% 20% / 0.92) 0%,
-    hsl(224 45% 8% / 0.94) 50%,
-    hsl(224 35% 15% / 0.90) 100%
-  ) !important;
+  background: hsl(var(--primary)) !important;
 }
 
 [data-style="glassmorphism"] button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) *,
@@ -2416,35 +2519,28 @@ button.bg-primary .tab-segment-count {
 }
 
 [data-style="glassmorphism"] button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):hover {
-  background: linear-gradient(
-    135deg,
-    hsl(var(--primary) / 0.92) 0%,
-    hsl(222 45% 7% / 0.98) 100%
-  ) !important;
+  background: hsl(var(--primary)) !important;
+  filter: brightness(1.08);
   border-color: rgba(255, 255, 255, 0.50) !important;
   box-shadow:
     inset 0 1px 0 0 rgba(255, 255, 255, 0.60),
-    0 4px 16px -2px hsl(0 0% 0% / calc(0.40 * var(--shadow-strength, 1))) !important;
+    0 4px 16px -2px hsl(var(--primary) / calc(0.40 * var(--shadow-strength, 1))) !important;
 }
 
 [data-style="luminous"] button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):hover {
-  background: linear-gradient(
-    135deg,
-    hsl(var(--primary) / 0.95) 0%,
-    hsl(224 45% 8% / 0.98) 50%,
-    hsl(var(--primary) / 0.85) 100%
-  ) !important;
-  border-color: rgba(255, 255, 255, 0.65) !important;
+  background: hsl(var(--primary)) !important;
+  filter: brightness(1.08);
+  border-color: rgba(255, 255, 255, 0.75) !important;
   box-shadow:
     inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.85),
-    0 4px 18px -2px hsl(var(--primary) / calc(0.50 * var(--shadow-strength, 1))) !important;
+    0 0 22px -2px hsl(var(--primary) / calc(0.55 * var(--shadow-strength, 1))) !important;
 }
 
 .dark[data-style="glassmorphism"] button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile),
 .dark [data-style="glassmorphism"] button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile),
 .dark[data-style="luminous"] button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile),
 .dark [data-style="luminous"] button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) {
-  background: hsl(var(--primary) / 0.90) !important;
+  background: hsl(var(--primary)) !important;
   border-color: rgba(255, 255, 255, 0.70) !important;
   box-shadow:
     inset 0 1px 0 0 rgba(255, 255, 255, 0.85),
