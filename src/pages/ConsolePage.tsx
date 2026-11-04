@@ -37,6 +37,25 @@ const LOG_VERSION_THROTTLE_MS = 100;
 const LEVEL_ORDER = ['trace', 'debug', 'info', 'success', 'warning', 'error', 'critical'];
 
 const VISIBLE_LEVELS_STORAGE_KEY = 'console_visible_levels';
+const AUTO_SCROLL_STORAGE_KEY = 'console_auto_scroll';
+
+function loadAutoScrollFromStorage(): boolean {
+  try {
+    const raw = localStorage.getItem(AUTO_SCROLL_STORAGE_KEY);
+    if (raw === null) return true; // 默认激活
+    return raw === 'true';
+  } catch {
+    return true;
+  }
+}
+
+function saveAutoScrollToStorage(value: boolean) {
+  try {
+    localStorage.setItem(AUTO_SCROLL_STORAGE_KEY, String(value));
+  } catch {
+    /* ignore quota errors */
+  }
+}
 
 // 持久化读�?写入：使�?localStorage 实现跨刷新记�?
 function loadVisibleLevelsFromStorage(): string[] | null {
@@ -144,10 +163,15 @@ export default function ConsolePage() {
   const [input, setInput] = useState('');
   const [commandHistory, setCommandHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
-  const [autoScroll, setAutoScroll] = useState(false);
+  const [autoScroll, setAutoScroll] = useState<boolean>(() => loadAutoScrollFromStorage());
   // ref 镜像：让 SSE handler / addLogs 等闭包内能读到最新值
   const autoScrollRef = useRef(autoScroll);
   autoScrollRef.current = autoScroll;
+
+  const handleAutoScrollChange = useCallback((checked: boolean) => {
+    setAutoScroll(checked);
+    saveAutoScrollToStorage(checked);
+  }, []);
 
   const [availableLevels, setAvailableLevels] = useState<Array<{ label: string; value: string }>>(
     [],
@@ -517,69 +541,39 @@ export default function ConsolePage() {
    * - 非激活态：低饱和度背景 + 主题色边�?+ 主题色文字（�?color-mix 让色阶跟随明暗）
    * - 玻璃风格下叠�?backdrop-blur
    */
-  const levelBadgeStyle = (value: string, active: boolean) => {
-    const base =
-      'group inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full ' +
-      'font-medium transition-all duration-200 border select-none ' +
-      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1';
-
-    // 激活态：实心主题�?+ 微阴�?
-    if (active) {
-      return cn(
-        base,
-        'shadow-sm hover:shadow-md hover:-translate-y-px',
-        isGlass && 'backdrop-blur-sm',
-      );
-    }
-
-    // 非激活态：低饱和度背景 + 主题色细�?
-    return cn(base, 'hover:-translate-y-px', isGlass && 'backdrop-blur-sm');
-  };
-
-  // 渲染 badge：根据激活态应用不同主题变�?
+  // 渲染日志级别过滤徽章：在所有明暗模式、界面风格（纯色/毛玻璃/光感/液态）与主题色下保证清晰对比度
   const renderLevelBadge = (lv: { label: string; value: string }, active: boolean) => {
-    // 通过 CSS 自定义属性把主题色直接注�?inline style，避免硬编码 Tailwind 颜色
-    // 激活态：使用主题变量 --primary-foreground 保证高对比前景色
-    // （避免在暗色模式或 shadcn 预设下文字与背景同色无法阅读）
-    const activeStyle: React.CSSProperties = active
-      ? {
-          backgroundColor: 'hsl(var(--primary) / 0.95)',
-          color: 'hsl(var(--primary-foreground))',
-          borderColor: 'hsl(var(--primary))',
-          boxShadow: isGlass
-            ? '0 4px 14px hsl(var(--primary) / 0.25)'
-            : '0 1px 3px hsl(var(--primary) / 0.35)',
-        }
-      : {
-          // 非激活：背景用极淡的主题色，边框/文字用主题色
-          backgroundColor: isGlass
-            ? 'hsl(var(--primary) / 0.08)'
-            : isDark
-              ? 'hsl(var(--primary) / 0.08)'
-              : 'hsl(var(--primary) / 0.06)',
-          color: isDark ? 'hsl(var(--primary) / 0.85)' : 'hsl(var(--primary) / 0.75)',
-          borderColor: 'hsl(var(--primary) / 0.25)',
-        };
-
     return (
       <button
         key={lv.value}
         type="button"
         onClick={() => toggleLevel(lv.value)}
         aria-pressed={active}
-        className={levelBadgeStyle(lv.value, active)}
-        style={activeStyle}
+        className={cn(
+          'group inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full font-medium transition-all duration-200 border select-none cursor-pointer',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
+          active
+            ? cn(
+                'bg-primary text-primary-foreground border-primary shadow-sm hover:shadow-md hover:brightness-105 active:scale-95',
+                isGlass && 'backdrop-blur-sm',
+              )
+            : cn(
+                'border-border/60 text-muted-foreground hover:text-foreground hover:border-border hover:bg-accent/40 active:scale-95',
+                isGlass ? 'bg-background/40 backdrop-blur-sm' : 'bg-muted/30',
+              ),
+        )}
       >
         <span
           className={cn(
             'inline-flex items-center justify-center w-3.5 h-3.5 rounded-full border transition-colors',
-            // 激活态：圆点描边/背景继承父级文字色，确保深色主题下与白色文字一致
-            active ? 'bg-current/20 border-current/40' : 'border-current/50 bg-current/10',
+            active
+              ? 'bg-primary-foreground/20 border-primary-foreground/40 text-primary-foreground'
+              : 'border-muted-foreground/40 bg-muted-foreground/10 text-muted-foreground',
           )}
           aria-hidden="true"
         >
           {active ? (
-            <Check className="w-2.5 h-2.5" />
+            <Check className="w-2.5 h-2.5 stroke-[2.5]" />
           ) : (
             <Minus className="w-2.5 h-2.5 opacity-70 group-hover:opacity-100 transition-opacity" />
           )}
@@ -610,8 +604,8 @@ export default function ConsolePage() {
 
   return (
     <PinnedPage
-      className="console-mobile-fill max-md:min-h-0 max-md:flex-1 max-md:overflow-hidden"
-      bodyClassName="max-md:flex max-md:min-h-0 max-md:flex-1 max-md:flex-col max-md:overflow-hidden"
+      className="console-mobile-fill min-h-0 flex-1 overflow-hidden gap-2 md:gap-3"
+      bodyClassName="flex min-h-0 flex-1 flex-col !overflow-hidden"
       header={
         <div className="flex flex-col gap-3 md:gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0 sm:overflow-x-auto">
@@ -649,7 +643,7 @@ export default function ConsolePage() {
           className={cn(
             // 窄屏压扁：标签与「全选」占首行（order 提前），徽章另起一行；
             // 桌面保持原来的 [标签][徽章…][全选] 单行流式排布
-            'flex flex-wrap items-center gap-1.5 p-2 md:gap-2 md:p-3 rounded-xl border',
+            'flex flex-wrap items-center gap-1.5 px-2.5 py-1.5 md:gap-2 md:px-3 md:py-2 rounded-xl border',
             isGlass ? 'bg-white/5 border-white/15 backdrop-blur-sm' : 'bg-card/40 border-border/50',
           )}
           style={{
@@ -680,7 +674,7 @@ export default function ConsolePage() {
       <Card
         className={cn(
           // 非 glass-card 宿主，overflow-hidden 安全；用于裁终端头/输入条的直角底色
-          'flex min-w-0 w-full flex-col overflow-hidden max-md:min-h-0 max-md:flex-1 md:h-[calc(100vh-130px)]',
+          'flex min-w-0 w-full flex-col overflow-hidden min-h-0 flex-1',
           isGlass
             ? 'backdrop-blur-md bg-white/10 dark:bg-black/10 border border-white/20 dark:border-black/20 shadow-lg'
             : 'bg-card border border-border/50',
@@ -709,7 +703,7 @@ export default function ConsolePage() {
               <span className="text-xs text-muted-foreground">{t('console.autoScroll')}</span>
               <Switch
                 checked={autoScroll}
-                onCheckedChange={setAutoScroll}
+                onCheckedChange={handleAutoScrollChange}
                 aria-label={t('console.autoScroll')}
               />
             </span>

@@ -248,23 +248,23 @@ const THEME_COLORS: Record<
   },
   orchid: {
     light: { primary: '270 50% 50%', primaryForeground: '0 0% 100%', ring: '270 50% 50%' },
-    dark: { primary: '270 70% 70%', primaryForeground: '270 70% 10%', ring: '270 70% 70%' },
+    dark: { primary: '270 70% 70%', primaryForeground: '0 0% 100%', ring: '270 70% 70%' },
   },
   blue: {
     light: { primary: '220 70% 50%', primaryForeground: '0 0% 100%', ring: '220 70% 50%' },
-    dark: { primary: '220 70% 60%', primaryForeground: '220 70% 10%', ring: '220 70% 60%' },
+    dark: { primary: '220 70% 60%', primaryForeground: '0 0% 100%', ring: '220 70% 60%' },
   },
   green: {
     light: { primary: '150 60% 35%', primaryForeground: '0 0% 100%', ring: '150 60% 35%' },
-    dark: { primary: '150 60% 50%', primaryForeground: '150 60% 10%', ring: '150 60% 50%' },
+    dark: { primary: '150 60% 50%', primaryForeground: '0 0% 100%', ring: '150 60% 50%' },
   },
   orange: {
     light: { primary: '30 90% 45%', primaryForeground: '0 0% 100%', ring: '30 90% 45%' },
-    dark: { primary: '30 90% 55%', primaryForeground: '30 90% 10%', ring: '30 90% 55%' },
+    dark: { primary: '30 90% 55%', primaryForeground: '0 0% 100%', ring: '30 90% 55%' },
   },
   pink: {
     light: { primary: '330 70% 50%', primaryForeground: '0 0% 100%', ring: '330 70% 50%' },
-    dark: { primary: '330 70% 65%', primaryForeground: '330 70% 10%', ring: '330 70% 65%' },
+    dark: { primary: '330 70% 65%', primaryForeground: '0 0% 100%', ring: '330 70% 65%' },
   },
 };
 

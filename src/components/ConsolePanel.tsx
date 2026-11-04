@@ -267,7 +267,7 @@ interface ConsolePanelProps {
 export const ConsolePanel = function ConsolePanel({
   logs,
   className,
-  autoScroll = false,
+  autoScroll = true,
   version,
 }: ConsolePanelProps) {
   const parentRef = useRef<HTMLDivElement>(null);

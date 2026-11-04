@@ -2987,19 +2987,23 @@ main:has(.page-fill) .layout-page-inner {
     overscroll-behavior: contain;
   }
 
-  /*
-   * 实时控制台：标题和级别筛选留在视口里，终端占剩余高度，日志只在卡片内滚。
-   * 移动端 page-pinned 默认整页滚，终端再按接近 100vh 往下排，输入条会掉出首屏。
-   */
-  main:has(.console-mobile-fill) {
-    overflow: hidden;
-  }
+}
 
-  main:has(.console-mobile-fill) .layout-page-inner {
-    min-height: 0;
-    height: 100%;
-    overflow: hidden;
-  }
+/*
+ * 实时控制台：标题和级别筛选留在视口里，终端占满剩余高度，仅内部 ConsolePanel 虚拟列表滚动，外层容器一律不滚。
+ */
+main:has(.console-mobile-fill) {
+  overflow: hidden !important;
+}
+
+main:has(.console-mobile-fill) .layout-page-inner {
+  min-height: 0;
+  height: 100%;
+  overflow: hidden !important;
+}
+
+.console-mobile-fill .page-pinned-body {
+  overflow: hidden !important;
 }
 
 /* 弹窗通用溢出与滚动保障（覆盖桌面与移动端） */
