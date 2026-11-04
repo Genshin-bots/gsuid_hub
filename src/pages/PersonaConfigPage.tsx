@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { ConfigGrid, TagsInput, pluginConfigItemToFieldDef } from '@/components/config';
+import { convertPluginConfigValueForSave } from '@/lib/configSaveValue';
 import type { ConfigFormData, ConfigValue } from '@/components/config';
 import { CheckListField } from '@/components/config/CheckListField';
 import { LabelWithHelp } from '@/components/ui/label-with-help';
@@ -253,19 +254,44 @@ function findConflictingPersonas(
 // 工具函数
 // ============================================================================
 // 截取 markdown 文本的预览内容
-function settingsToFormData(config: Record<string, PluginConfigItem>): ConfigFormData {
+/**
+ * 表情三键（总开关 / 频率 / 冷却）已在独立的「表情包」Tab 完整呈现与管理。
+ * 人格设定 Tab 聚焦称呼与失败短句，排除这组字段以避免重复和类型脱节。
+ */
+const PERSONA_SETTINGS_EXCLUDED_KEYS = new Set([
+  '_MemeDivider',
+  'allow_meme_reply',
+  'meme_frequency',
+  'meme_send_cooldown_sec',
+]);
+
+function settingsToFormData(
+  config: Record<string, PluginConfigItem>,
+  excludeKeys: Set<string> = PERSONA_SETTINGS_EXCLUDED_KEYS,
+): ConfigFormData {
   const out: ConfigFormData = {};
   for (const [key, item] of Object.entries(config)) {
+    if (excludeKeys.has(key)) continue;
     out[key] = pluginConfigItemToFieldDef(key, item);
   }
   return out;
 }
-function settingsToPayload(config: Record<string, PluginConfigItem>): Record<string, unknown> {
+
+function settingsToPayload(
+  config: Record<string, PluginConfigItem>,
+  excludeKeys: Set<string> = PERSONA_SETTINGS_EXCLUDED_KEYS,
+): Record<string, unknown> {
   const payload: Record<string, unknown> = {};
   for (const [key, item] of Object.entries(config)) {
-    const rawType = (item.type || '').toLowerCase();
-    if (rawType === 'gsdivider') continue;
-    payload[key] = item.value;
+    if (excludeKeys.has(key)) continue;
+    const result = convertPluginConfigValueForSave({
+      type: item.type,
+      rawType: item.type,
+      value: item.value,
+    });
+    if (!result.skip) {
+      payload[key] = result.value;
+    }
   }
   return payload;
 }
@@ -696,6 +722,15 @@ export default function PersonaConfigPage() {
   const [delegableAgents, setDelegableAgents] = useState<AgentNodeItem[]>([]);
   const [editingEnabledAgents, setEditingEnabledAgents] = useState<string[]>([]);
   const [editingSettings, setEditingSettings] = useState<Record<string, PluginConfigItem>>({});
+  const displaySettings = useMemo(() => {
+    const result: Record<string, PluginConfigItem> = {};
+    for (const [k, v] of Object.entries(editingSettings)) {
+      if (!PERSONA_SETTINGS_EXCLUDED_KEYS.has(k)) {
+        result[k] = v;
+      }
+    }
+    return result;
+  }, [editingSettings]);
   const [settingsLoaded, setSettingsLoaded] = useState(false);
   const [settingsLoading, setSettingsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('markdown');
@@ -1105,7 +1140,9 @@ export default function PersonaConfigPage() {
     setCuriosityFocus(persona.config?.curiosity_focus ?? 'balanced');
     setArcPersistence(persona.config?.arc_persistence ?? ARC_PERSISTENCE_DEFAULT);
     setAllowMemeReply(persona.config?.allow_meme_reply !== false);
-    setMemeFrequency(typeof persona.config?.meme_frequency === 'number' ? persona.config.meme_frequency : 50);
+    setMemeFrequency(
+      typeof persona.config?.meme_frequency === 'number' ? persona.config.meme_frequency : 50,
+    );
     setMemeSendCooldownSec(
       typeof persona.config?.meme_send_cooldown_sec === 'number'
         ? persona.config.meme_send_cooldown_sec
@@ -2868,7 +2905,7 @@ export default function PersonaConfigPage() {
                       <Loader2 className="h-4 w-4 animate-spin" />
                       {t('common.loading')}
                     </div>
-                  ) : Object.keys(editingSettings).length === 0 ? (
+                  ) : Object.keys(displaySettings).length === 0 ? (
                     <div className="text-sm text-muted-foreground p-4 rounded-lg glass-card glass-alert border border-border/30">
                       {t('personaConfig.personaSettingsLoadFailed')}
                     </div>
@@ -2886,7 +2923,7 @@ export default function PersonaConfigPage() {
                         )}
                       >
                         <ConfigGrid
-                          config={settingsToFormData(editingSettings)}
+                          config={settingsToFormData(displaySettings)}
                           onChange={handleSettingsChange}
                           columns={3}
                         />
