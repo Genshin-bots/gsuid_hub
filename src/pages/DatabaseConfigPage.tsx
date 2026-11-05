@@ -121,6 +121,20 @@ interface DatabaseConfig {
     title: string;
     desc: string;
   };
+  sqlite_cache_size?: {
+    value: number;
+    default: number;
+    options: number[];
+    title: string;
+    desc: string;
+  };
+  sqlite_synchronous?: {
+    value: string;
+    default: string;
+    options: string[];
+    title: string;
+    desc: string;
+  };
 }
 
 interface LocalDatabaseConfig {
@@ -296,6 +310,24 @@ export default function DatabaseConfigPage() {
                 desc: data.config.db_pool_recycle.desc || '连接回收时间（秒）',
               }
             : undefined,
+          sqlite_cache_size: data.config.sqlite_cache_size
+            ? {
+                value: data.config.sqlite_cache_size.value as number,
+                default: (data.config.sqlite_cache_size.default ?? -64000) as number,
+                options: (data.config.sqlite_cache_size.options || [-2000, -16000, -32000, -64000, -128000, -256000]) as number[],
+                title: data.config.sqlite_cache_size.title || 'SQLite缓存大小',
+                desc: data.config.sqlite_cache_size.desc || '设置SQLite每个连接的页面缓存大小(负数表示KiB，默认-64000表示64MB)',
+              }
+            : undefined,
+          sqlite_synchronous: data.config.sqlite_synchronous
+            ? {
+                value: data.config.sqlite_synchronous.value as string,
+                default: (data.config.sqlite_synchronous.default || 'NORMAL') as string,
+                options: (data.config.sqlite_synchronous.options || ['NORMAL', 'FULL', 'OFF']) as string[],
+                title: data.config.sqlite_synchronous.title || 'SQLite同步模式',
+                desc: data.config.sqlite_synchronous.desc || 'WAL模式下推荐NORMAL(兼顾安全性与性能)，也可选FULL',
+              }
+            : undefined,
         },
       };
 
@@ -469,7 +501,7 @@ export default function DatabaseConfigPage() {
             </CardTitle>
             <CardDescription>{t('databaseConfig.sqliteSettingsDesc')}</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3 md:space-y-4">
+          <CardContent className="space-y-4 md:space-y-6">
             <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg flex items-center justify-center text-muted-foreground">
@@ -483,6 +515,62 @@ export default function DatabaseConfigPage() {
                 </div>
               </div>
               <Badge variant="secondary">{t('databaseConfig.recommended')}</Badge>
+            </div>
+
+            <Separator />
+
+            {/* Performance Tuning Settings */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Cache Size */}
+              <div className="space-y-2">
+                <Label htmlFor="sqlite_cache_size" className="flex items-center gap-2">
+                  <Server className="w-4 h-4 text-muted-foreground" />
+                  {t('databaseConfig.sqliteCacheSize') || '页面缓存大小'}
+                </Label>
+                <Select
+                  value={String(dbConfig.sqlite_cache_size?.value ?? -64000)}
+                  onValueChange={(value) => handleChange('sqlite_cache_size', Number(value))}
+                >
+                  <SelectTrigger id="sqlite_cache_size">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="-2000">-2000 (2MB - 默认基础)</SelectItem>
+                    <SelectItem value="-16000">-16000 (16MB)</SelectItem>
+                    <SelectItem value="-32000">-32000 (32MB)</SelectItem>
+                    <SelectItem value="-64000">-64000 (64MB - 推荐推荐)</SelectItem>
+                    <SelectItem value="-128000">-128000 (128MB - 大库推荐)</SelectItem>
+                    <SelectItem value="-256000">-256000 (256MB - 极速)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  {t('databaseConfig.sqliteCacheSizeDesc')}
+                </p>
+              </div>
+
+              {/* Synchronous Mode */}
+              <div className="space-y-2">
+                <Label htmlFor="sqlite_synchronous" className="flex items-center gap-2">
+                  <Settings className="w-4 h-4 text-muted-foreground" />
+                  {t('databaseConfig.sqliteSynchronous') || '同步模式'}
+                </Label>
+                <Select
+                  value={(dbConfig.sqlite_synchronous?.value as string) || 'NORMAL'}
+                  onValueChange={(value) => handleChange('sqlite_synchronous', value)}
+                >
+                  <SelectTrigger id="sqlite_synchronous">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="NORMAL">NORMAL (推荐，WAL模式下性能高且安全)</SelectItem>
+                    <SelectItem value="FULL">FULL (完全等待磁盘fsync，吞吐低)</SelectItem>
+                    <SelectItem value="OFF">OFF (最高速度，掉电可能损坏)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  {t('databaseConfig.sqliteSynchronousDesc')}
+                </p>
+              </div>
             </div>
           </CardContent>
         </Card>
