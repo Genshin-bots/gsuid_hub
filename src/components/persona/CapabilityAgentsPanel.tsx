@@ -10,6 +10,7 @@ import {
   Package,
   Plus,
   Puzzle,
+  RotateCcw,
   Save,
   Search,
   Sparkles,
@@ -55,6 +56,7 @@ import { BUILTIN_TOOL_PACKS, type UseCapabilityAgentsReturn } from './useCapabil
 function sourceClass(source: AgentNodeSource) {
   if (source === 'builtin') return 'bg-blue-500/15 text-blue-600 border-blue-500/30';
   if (source === 'plugin') return 'bg-violet-500/15 text-violet-600 border-violet-500/30';
+  if (source === 'mcp') return 'bg-amber-500/15 text-amber-600 border-amber-500/30';
   return 'bg-emerald-500/15 text-emerald-600 border-emerald-500/30';
 }
 
@@ -376,7 +378,8 @@ export function CapabilityAgentsPanel({ capability }: { capability: UseCapabilit
       ) : (
         <div className="glass-card-grid grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3">
           {filteredProfiles.map((profile) => {
-            const locked = profile.source !== 'user';
+            const locked = profile.source !== 'user' && profile.source !== 'mcp';
+            const editable = profile.source === 'user' || profile.source === 'mcp';
             return (
               <Card
                 key={profile.node_id}
@@ -398,8 +401,15 @@ export function CapabilityAgentsPanel({ capability }: { capability: UseCapabilit
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge variant="outline" className={sourceClass(profile.source)}>
-                        {profile.source}
+                        {profile.source === 'mcp'
+                          ? t('aiCapabilityAgents.sources.mcp')
+                          : profile.source}
                       </Badge>
+                      {profile.source === 'mcp' && profile.desc_origin && (
+                        <Badge variant="secondary" className="text-[10px]">
+                          {t(`aiCapabilityAgents.descOrigin.${profile.desc_origin}`)}
+                        </Badge>
+                      )}
                       {locked && (
                         <TooltipProvider delayDuration={100}>
                           <Tooltip>
@@ -459,7 +469,7 @@ export function CapabilityAgentsPanel({ capability }: { capability: UseCapabilit
                       <Eye className="h-4 w-4" />
                       {t('common.view')}
                     </Button>
-                    {profile.source === 'user' && (
+                    {editable && (
                       <Button
                         variant="outline"
                         size="sm"
@@ -477,6 +487,24 @@ export function CapabilityAgentsPanel({ capability }: { capability: UseCapabilit
                       <Copy className="h-4 w-4" />
                       {t('aiCapabilityAgents.copyAsNew')}
                     </Button>
+                    {profile.source === 'mcp' && (
+                      <TooltipProvider delayDuration={100}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setDeleteTarget(profile)}
+                            >
+                              <RotateCcw className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {t('aiCapabilityAgents.restoreTooltip')}
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
                     {profile.source === 'user' && (
                       <Button
                         variant="ghost"
@@ -725,11 +753,19 @@ export function CapabilityAgentsPanel({ capability }: { capability: UseCapabilit
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t('aiCapabilityAgents.deleteConfirmTitle')}</AlertDialogTitle>
+            <AlertDialogTitle>
+              {deleteTarget?.source === 'mcp'
+                ? t('aiCapabilityAgents.restoreConfirmTitle')
+                : t('aiCapabilityAgents.deleteConfirmTitle')}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              {t('aiCapabilityAgents.deleteConfirmDesc', {
-                name: deleteTarget?.display_name || deleteTarget?.node_id || '',
-              })}
+              {deleteTarget?.source === 'mcp'
+                ? t('aiCapabilityAgents.restoreConfirmDesc', {
+                    name: deleteTarget?.display_name || deleteTarget?.node_id || '',
+                  })
+                : t('aiCapabilityAgents.deleteConfirmDesc', {
+                    name: deleteTarget?.display_name || deleteTarget?.node_id || '',
+                  })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -737,14 +773,22 @@ export function CapabilityAgentsPanel({ capability }: { capability: UseCapabilit
             <AlertDialogAction
               onClick={deleteProfile}
               disabled={isDeleting}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className={
+                deleteTarget?.source === 'mcp'
+                  ? undefined
+                  : 'bg-destructive text-destructive-foreground hover:bg-destructive/90'
+              }
             >
               {isDeleting ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : deleteTarget?.source === 'mcp' ? (
+                <RotateCcw className="mr-2 h-4 w-4" />
               ) : (
                 <Trash2 className="mr-2 h-4 w-4" />
               )}
-              {t('common.delete')}
+              {deleteTarget?.source === 'mcp'
+                ? t('aiCapabilityAgents.restoreAction')
+                : t('common.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

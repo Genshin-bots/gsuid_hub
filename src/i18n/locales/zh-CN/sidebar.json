@@ -75,5 +75,6 @@
   "confirmResumeDesc": "点击按钮后你的机器人将继续运行",
   "settings": "设置",
   "groupProfile": "群组画像",
-  "aiRuntime": "Agent 运行时"
+  "aiRuntime": "Agent 运行时",
+  "mcpMarket": "MCP 广场"
 }

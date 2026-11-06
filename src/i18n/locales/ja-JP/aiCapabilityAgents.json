@@ -19,7 +19,8 @@
   "sources": {
     "builtin": "内蔵",
     "plugin": "プラグイン",
-    "user": "自分"
+    "user": "自分",
+    "mcp": "MCP"
   },
   "allPlugins": "すべてのプラグイン",
   "pluginFilterLabel": "{name} {count}",
@@ -73,5 +74,16 @@
   "deleteDialog": {
     "title": "ノードを削除",
     "description": "「{name}」のディスクファイルとメモリ登録情報を削除します。この操作は元に戻せません。"
-  }
+  },
+  "descOrigin": {
+    "user": "カスタム",
+    "market": "マーケット",
+    "generated": "AI 生成",
+    "auto": "自動生成"
+  },
+  "restoreTooltip": "ローカル上書きを消去し自動生成に戻す",
+  "restoreConfirmTitle": "自動生成ノードに戻しますか？",
+  "restoreConfirmDesc": "「{name}」は MCP 自動生成の capability ノードです。名前・説明・キーワードなどの上書きを消去し、自動生成版に戻します。",
+  "restoreAction": "復元",
+  "restoreSuccess": "自動生成版に復元しました"
 }

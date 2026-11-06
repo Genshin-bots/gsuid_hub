@@ -49,6 +49,7 @@ import module46 from './batchPush.json';
 import module48 from './aiArtifacts.json';
 import module49 from './memorySettings.json';
 import module50 from './logsConfig.json';
+import module51 from './mcpMarket.json';
 import module_aiToolOutputs from './aiToolOutputs.json';
 import module_aiOutputs from './aiOutputs.json';
 import module_aiAutonomy from './aiAutonomy.json';
@@ -110,6 +111,7 @@ const locale = {
   aiArtifacts: module48,
   memorySettings: module49,
   logsConfig: module50,
+  mcpMarket: module51,
   aiToolOutputs: module_aiToolOutputs,
   aiOutputs: module_aiOutputs,
   aiAutonomy: module_aiAutonomy,

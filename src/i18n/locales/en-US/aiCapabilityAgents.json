@@ -19,7 +19,8 @@
   "sources": {
     "builtin": "Builtin",
     "plugin": "Plugin",
-    "user": "Mine"
+    "user": "Mine",
+    "mcp": "MCP"
   },
   "allPlugins": "All plugins",
   "pluginFilterLabel": "{name} {count}",
@@ -73,5 +74,16 @@
   "deleteDialog": {
     "title": "Delete Node",
     "description": "This will remove the disk file and in-memory registry entry for {name}. This action cannot be undone."
-  }
+  },
+  "descOrigin": {
+    "user": "Custom",
+    "market": "Market",
+    "generated": "AI-generated",
+    "auto": "Auto"
+  },
+  "restoreTooltip": "Clear local overrides and restore auto-generated",
+  "restoreConfirmTitle": "Restore auto-generated node?",
+  "restoreConfirmDesc": "「{name}」 is an auto-generated MCP capability node. This clears your overrides (name / description / keywords) and restores the generated version.",
+  "restoreAction": "Restore",
+  "restoreSuccess": "Restored to auto-generated version"
 }

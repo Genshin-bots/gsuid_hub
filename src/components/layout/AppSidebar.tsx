@@ -37,6 +37,7 @@ import {
   MessageCircle,
   Puzzle,
   Globe,
+  ShoppingBag,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { Badge } from '@/components/ui/badge';
@@ -176,6 +177,12 @@ const getNavItems = (
         },
         { id: 'ai-budget', title: t('sidebar.aiBudget'), url: '/ai-budget', icon: Wallet },
         { id: 'ai-mcpConfig', title: t('sidebar.mcpConfig'), url: '/mcp-config', icon: Server },
+        {
+          id: 'ai-mcpMarket',
+          title: t('sidebar.mcpMarket'),
+          url: '/mcp-market',
+          icon: ShoppingBag,
+        },
         { id: 'ai-tools', title: t('sidebar.aiTools'), url: '/ai-tools', icon: Wrench },
         {
           id: 'ai-statistics',

@@ -75,5 +75,6 @@
   "confirmResumeDesc": "Your bot will continue running after clicking the button",
   "settings": "Settings",
   "groupProfile": "Group Profile",
-  "aiRuntime": "Agent Runtime"
+  "aiRuntime": "Agent Runtime",
+  "mcpMarket": "MCP Market"
 }

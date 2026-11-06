@@ -19,7 +19,8 @@
   "sources": {
     "builtin": "内置",
     "plugin": "插件",
-    "user": "我的"
+    "user": "我的",
+    "mcp": "MCP"
   },
   "allPlugins": "全部插件",
   "pluginFilterLabel": "{name} {count}",
@@ -73,5 +74,16 @@
   "deleteDialog": {
     "title": "确认删除节点",
     "description": "将删除「{name}」的磁盘文件与内存注册表条目，该操作不可撤销。"
-  }
+  },
+  "descOrigin": {
+    "user": "自定义",
+    "market": "市场",
+    "generated": "AI 生成",
+    "auto": "自动生成"
+  },
+  "restoreTooltip": "清除本地覆盖层，恢复自动生成",
+  "restoreConfirmTitle": "恢复自动生成节点？",
+  "restoreConfirmDesc": "「{name}」是 MCP 自动生成的能力节点。此操作会清除你修改的名称 / 描述 / 关键词等覆盖层，恢复为自动生成版本。",
+  "restoreAction": "恢复自动",
+  "restoreSuccess": "已恢复自动生成版本"
 }

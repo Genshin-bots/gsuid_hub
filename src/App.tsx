@@ -45,6 +45,7 @@ const AIMemePage = lazy(() => import('@/pages/AIMemePage'));
 const SessionManagementPage = lazy(() => import('@/pages/SessionManagementPage'));
 const AIHistoryPage = lazy(() => import('@/pages/AIHistoryPage'));
 const MCPConfigPage = lazy(() => import('@/pages/MCPConfigPage'));
+const MCPMarketPage = lazy(() => import('@/pages/MCPMarketPage'));
 const AIKanbanPage = lazy(() => import('@/pages/AIKanbanPage'));
 const AIApprovalsPage = lazy(() => import('@/pages/AIApprovalsPage'));
 const AIBudgetPage = lazy(() => import('@/pages/AIBudgetPage'));
@@ -132,6 +133,7 @@ function AppRoutes() {
           <Route path="persona-config" element={<PersonaConfigPage />} />
           <Route path="persona-store" element={<PersonaStorePage />} />
           <Route path="mcp-config" element={<MCPConfigPage />} />
+          <Route path="mcp-market" element={<MCPMarketPage />} />
           {/* 能力代理已并入 /persona-config 的「人格代理」页签，旧深链重定向过去 */}
           <Route
             path="ai-capability-agents"

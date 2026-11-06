@@ -1,12 +1,22 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
 /**
- * 标签只占一行。放不下的收成 +N，悬停展开。
+ * 标签只占一行。放不下的收成 +N。
+ * expandOnHover=true 时悬停展开全部；false 时 +N 徽标悬停出 tooltip（卡片布局不抖动）。
  * 宽度记在 ref 里：收起后被拿掉的标签不再参与布局，不能靠当次 offsetWidth 重算。
  */
-export function OverflowTags({ tags, className }: { tags: string[]; className?: string }) {
+export function OverflowTags({
+  tags,
+  className,
+  expandOnHover = true,
+}: {
+  tags: string[];
+  className?: string;
+  expandOnHover?: boolean;
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const widthsRef = useRef<number[]>([]);
   const [expanded, setExpanded] = useState(false);
@@ -49,6 +59,33 @@ export function OverflowTags({ tags, className }: { tags: string[]; className?: 
 
   const hidden = expanded ? 0 : Math.max(0, tags.length - visible);
   const shown = expanded ? tags : tags.slice(0, visible);
+  const hiddenTags = tags.slice(visible);
+
+  const moreBadge =
+    hidden > 0 ? (
+      expandOnHover ? (
+        <Badge variant="secondary" className="text-xs">
+          +{hidden}
+        </Badge>
+      ) : (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Badge variant="secondary" className="cursor-default text-xs">
+              +{hidden}
+            </Badge>
+          </TooltipTrigger>
+          <TooltipContent className="max-w-xs">
+            <div className="flex flex-wrap gap-1">
+              {hiddenTags.map((tag) => (
+                <Badge key={tag} variant="outline" className="text-xs">
+                  {tag}
+                </Badge>
+              ))}
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      )
+    ) : null;
 
   return (
     <div
@@ -58,19 +95,15 @@ export function OverflowTags({ tags, className }: { tags: string[]; className?: 
         expanded ? 'flex-wrap' : 'overflow-hidden',
         className,
       )}
-      onMouseEnter={() => setExpanded(true)}
-      onMouseLeave={() => setExpanded(false)}
+      onMouseEnter={expandOnHover ? () => setExpanded(true) : undefined}
+      onMouseLeave={expandOnHover ? () => setExpanded(false) : undefined}
     >
       {shown.map((tag, index) => (
         <Badge key={`${tag}-${index}`} data-tag-item variant="outline" className="text-xs">
           {tag}
         </Badge>
       ))}
-      {hidden > 0 && (
-        <Badge variant="secondary" className="text-xs">
-          +{hidden}
-        </Badge>
-      )}
+      {moreBadge}
     </div>
   );
 }

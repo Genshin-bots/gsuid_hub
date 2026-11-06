@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -20,6 +21,8 @@ import {
   ChevronRight,
   AlertTriangle,
   CheckCircle,
+  CheckCircle2,
+  XCircle,
   X,
   HelpCircle,
   Download,
@@ -27,7 +30,6 @@ import {
   Search,
   Wrench,
   Settings2,
-  ListChecks,
   Package,
   Globe,
   Terminal,
@@ -39,17 +41,23 @@ import {
   Shield,
   Eye,
   EyeOff,
+  Store,
+  Sparkles,
 } from 'lucide-react';
 import { AutoBrandIcon } from '@/components/ui/mcp-icon-lookup';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   mcpConfigApi,
+  mcpMarketApi,
   MCPConfig,
   MCPTransport,
   MCPReloadResponse,
   MCPPreset,
   MCPToolFromServer,
   MCPToolDefinition,
+  MCPBindCandidate,
+  MCPBindingItem,
+  getApiErrorMessage,
 } from '@/lib/api';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -82,7 +90,16 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { headerActionRowClass, PinnedPage } from '@/components/layout/PinnedPage';
+import {
+  McpBindSection,
+  McpDiscoveringHint,
+  McpEnvBindableControl,
+  McpSwitchRow,
+  McpToolSelectSection,
+} from '@/components/mcp/McpToolControls';
+import { defaultToolMeta, type ToolMeta } from '@/components/mcp/toolMeta';
 
 // ============================================================================
 // MCP Server -> Brand Icon (auto-resolver wrapper)
@@ -131,6 +148,8 @@ function McpBrandIcon({ name, command, url, className }: McpBrandIconProps) {
 interface EnvVar {
   key: string;
   value: string;
+  /** 可按用户绑定（fail-closed 默认 true）：勾选=逐人凭据，取消=共享装机值 */
+  bindable: boolean;
 }
 
 interface HeaderVar {
@@ -147,8 +166,11 @@ interface FormData {
   url: string;
   headerVars: HeaderVar[];
   enabled: boolean;
-  registerAsAiTools: boolean;
   toolPermissions: Record<string, number>;
+  bindHelp: string;
+  bindUrl: string;
+  bindAliasText: string;
+  allowAutonomousPrivate: boolean;
 }
 
 // pm value type: 0-6, higher value = lower permission, 6 = all users (default)
@@ -179,8 +201,12 @@ function argsToText(args: string[]): string {
   return args.join('\n');
 }
 
-function envToVars(env: Record<string, string>): EnvVar[] {
-  return Object.entries(env).map(([key, value]) => ({ key, value }));
+function envToVars(env: Record<string, string>, userEnvKeys?: string[]): EnvVar[] {
+  return Object.entries(env).map(([key, value]) => ({
+    key,
+    value,
+    bindable: userEnvKeys === undefined || userEnvKeys.includes(key),
+  }));
 }
 
 function varsToEnv(vars: EnvVar[]): Record<string, string> {
@@ -255,8 +281,11 @@ function getEmptyFormData(): FormData {
     url: '',
     headerVars: [],
     enabled: true,
-    registerAsAiTools: false,
     toolPermissions: {},
+    bindHelp: '',
+    bindUrl: '',
+    bindAliasText: '',
+    allowAutonomousPrivate: false,
   };
 }
 
@@ -264,9 +293,35 @@ function getEmptyFormData(): FormData {
 // Component
 // ============================================================================
 
+/** 有市场 logo 时用后端代理图；拉取失败回退品牌占位图标。 */
+function McpServerIcon({ config, className }: { config: MCPConfig; className?: string }) {
+  const [failed, setFailed] = useState(false);
+  const logo = config.market_meta?.logo_url;
+  if (logo && !failed) {
+    return (
+      <img
+        src={mcpMarketApi.logoUrl(logo)}
+        alt=""
+        loading="lazy"
+        onError={() => setFailed(true)}
+        className={cn('object-contain', className)}
+      />
+    );
+  }
+  return (
+    <McpBrandIcon
+      name={config.name}
+      command={config.command}
+      url={config.url}
+      className={className}
+    />
+  );
+}
+
 export default function MCPConfigPage() {
   const { style } = useTheme();
   const { t } = useLanguage();
+  const navigate = useNavigate();
   const isGlass = style !== 'solid';
 
   // State
@@ -293,6 +348,8 @@ export default function MCPConfigPage() {
   const [discoveredTools, setDiscoveredTools] = useState<MCPToolFromServer[]>([]);
   const [isDiscovering, setIsDiscovering] = useState(false);
   const [selectedToolNames, setSelectedToolNames] = useState<Set<string>>(new Set());
+  // 载入时的工具描述基线（商店/已存配置），用于「发现工具」覆盖后的逐行还原
+  const [originalToolDescs, setOriginalToolDescs] = useState<Record<string, string>>({});
 
   // Delete dialog
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -325,6 +382,27 @@ export default function MCPConfigPage() {
   // Preset dialog
   const [presetDialogOpen, setPresetDialogOpen] = useState(false);
   const [presetSearchText, setPresetSearchText] = useState('');
+
+  // 生成/采纳介绍进行中的 config_id
+  const [profileBusy, setProfileBusy] = useState<string | null>(null);
+
+  // 工具安全分级（exposure/mutating/sensitive/credential_params）按工具名存
+  const [toolMeta, setToolMeta] = useState<Record<string, ToolMeta>>({});
+  // 工具权限折叠：null=按是否有规则自动判定
+  const [permOpenOverride, setPermOpenOverride] = useState<boolean | null>(null);
+  // public_ack 确认弹窗：首次 private→public 拨档前的强制确认
+  const [publicAckOpen, setPublicAckOpen] = useState(false);
+  const pendingSubmitRef = useRef<(() => Promise<void>) | null>(null);
+
+  // 凭据绑定管理弹窗
+  const [bindingsConfig, setBindingsConfig] = useState<MCPConfig | null>(null);
+  const [bindings, setBindings] = useState<MCPBindingItem[]>([]);
+  const [bindingsLoading, setBindingsLoading] = useState(false);
+  const [bindCandidates, setBindCandidates] = useState<MCPBindCandidate[] | null>(null);
+  const [selectedPairs, setSelectedPairs] = useState<Set<string>>(new Set());
+  const [bindInstalling, setBindInstalling] = useState(false);
+  const [revokeTarget, setRevokeTarget] = useState<MCPBindingItem | null>(null);
+  const [revoking, setRevoking] = useState(false);
 
   // ============================================================================
   // Data Loading
@@ -424,8 +502,11 @@ export default function MCPConfigPage() {
       url: preset.url || '',
       headerVars: headersToVars(preset.headers || {}),
       enabled: true,
-      registerAsAiTools: false,
       toolPermissions: {},
+      bindHelp: '',
+      bindUrl: '',
+      bindAliasText: '',
+      allowAutonomousPrivate: false,
     });
     // Pre-populate discovered tools from preset defaults
     const presetTools: MCPToolFromServer[] = (preset.default_tools || []).map((dt) => ({
@@ -434,6 +515,12 @@ export default function MCPConfigPage() {
     }));
     setDiscoveredTools(presetTools);
     setSelectedToolNames(new Set(presetTools.map((t) => t.name)));
+    setToolMeta({});
+    setOriginalToolDescs(
+      Object.fromEntries(
+        presetTools.filter((t) => t.description).map((t) => [t.name, t.description as string]),
+      ),
+    );
     setPresetDialogOpen(false);
     setFormDialogOpen(true);
   };
@@ -470,12 +557,28 @@ export default function MCPConfigPage() {
 
       setDiscoveredTools(result.tools);
       setSelectedToolNames(new Set(result.tools.map((t) => t.name)));
-      toast.success(`${t('mcpConfig.toolsCount', { count: result.count })}`);
+      if (result.count > 0) {
+        toast.success(`${t('mcpConfig.toolsCount', { count: result.count })}`);
+      } else {
+        toast.warning(t('mcpConfig.discoverEmpty'));
+      }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : '');
+      toast.error(
+        error instanceof DOMException && error.name === 'TimeoutError'
+          ? t('mcpConfig.discoverTimeout')
+          : getApiErrorMessage(error, t('mcpConfig.discoverFailed')),
+      );
     } finally {
       setIsDiscovering(false);
     }
+  };
+
+  const handleRestoreToolDesc = (toolName: string) => {
+    const orig = originalToolDescs[toolName];
+    if (!orig) return;
+    setDiscoveredTools((prev) =>
+      prev.map((dt) => (dt.name === toolName ? { ...dt, description: orig } : dt)),
+    );
   };
 
   const handleToggleTool = (toolName: string) => {
@@ -501,6 +604,8 @@ export default function MCPConfigPage() {
     setSelectedPresetName('');
     setDiscoveredTools([]);
     setSelectedToolNames(new Set());
+    setToolMeta({});
+    setOriginalToolDescs({});
     setFormDialogOpen(true);
   };
 
@@ -512,12 +617,15 @@ export default function MCPConfigPage() {
       transport,
       command: config.command || '',
       argsText: argsToText(config.args || []),
-      envVars: envToVars(config.env || {}),
+      envVars: envToVars(config.env || {}, config.user_env_keys),
       url: config.url || '',
       headerVars: headersToVars(config.headers || {}),
       enabled: config.enabled,
-      registerAsAiTools: config.register_as_ai_tools,
       toolPermissions: config.tool_permissions || {},
+      bindHelp: config.bind_help || '',
+      bindUrl: config.bind_url || '',
+      bindAliasText: (config.bind_alias || []).join(','),
+      allowAutonomousPrivate: config.allow_autonomous_private ?? false,
     });
     setConnectionMethod('manual');
     setSelectedPresetName('');
@@ -531,7 +639,108 @@ export default function MCPConfigPage() {
     }));
     setDiscoveredTools(configTools);
     setSelectedToolNames(new Set(existingTools.map((t) => t.name)));
+    const meta: Record<string, ToolMeta> = {};
+    for (const td of existingTools) {
+      meta[td.name] = {
+        exposure: td.exposure === 'public' ? 'public' : 'private',
+        mutating: td.mutating ?? false,
+        sensitiveArgs: td.sensitive_args ?? false,
+        credParamsText: (td.credential_params ?? []).join(','),
+      };
+    }
+    setToolMeta(meta);
+    setOriginalToolDescs(
+      Object.fromEntries(
+        existingTools.filter((t) => t.description).map((t) => [t.name, t.description as string]),
+      ),
+    );
     setFormDialogOpen(true);
+  };
+
+  const doSubmit = async (publicAck: boolean) => {
+    const args = parseArgsText(formData.argsText);
+    const env = varsToEnv(formData.envVars);
+    const headers = varsToHeaders(formData.headerVars);
+    const userEnvKeys = formData.envVars
+      .filter((v) => v.key.trim() && v.bindable)
+      .map((v) => v.key.trim());
+
+    // Build tools list from selected discovered tools
+    // Include parameters and input_schema from discover response
+    const tools: MCPToolDefinition[] = discoveredTools
+      .filter((dt) => selectedToolNames.has(dt.name))
+      .map((dt) => {
+        const meta = toolMeta[dt.name] ?? defaultToolMeta(userEnvKeys.length > 0);
+        return {
+          name: dt.name,
+          description: dt.description,
+          ...(dt.parameters && { parameters: dt.parameters }),
+          ...(dt.input_schema && { input_schema: dt.input_schema }),
+          exposure: meta.exposure,
+          mutating: meta.mutating,
+          sensitive_args: meta.sensitiveArgs,
+          credential_params: meta.credParamsText
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean),
+        };
+      });
+
+    try {
+      setIsSubmitting(true);
+      const credBindFields = {
+        user_env_keys: userEnvKeys,
+        allow_autonomous_private: formData.allowAutonomousPrivate,
+        bind_help: formData.bindHelp.trim(),
+        bind_url: formData.bindUrl.trim(),
+        bind_alias: formData.bindAliasText
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean),
+      };
+      if (editingConfig) {
+        await mcpConfigApi.update(editingConfig.config_id, {
+          name: formData.name.trim(),
+          transport: formData.transport,
+          command: formData.transport === 'stdio' ? formData.command.trim() : '',
+          args: formData.transport === 'stdio' ? args : [],
+          env,
+          url: isHttpMcpTransport(formData.transport) ? formData.url.trim() : '',
+          headers: isHttpMcpTransport(formData.transport) ? headers : {},
+          enabled: formData.enabled,
+          register_as_ai_tools: true,
+          tools,
+          tool_permissions: formData.toolPermissions,
+          ...credBindFields,
+          ...(publicAck ? { public_ack: true } : {}),
+        });
+        toast.success(t('mcpConfig.updateSuccess'));
+      } else {
+        await mcpConfigApi.create({
+          name: formData.name.trim(),
+          transport: formData.transport,
+          command: formData.transport === 'stdio' ? formData.command.trim() : '',
+          args: formData.transport === 'stdio' ? args : [],
+          env,
+          url: isHttpMcpTransport(formData.transport) ? formData.url.trim() : '',
+          headers: isHttpMcpTransport(formData.transport) ? headers : {},
+          enabled: formData.enabled,
+          register_as_ai_tools: true,
+          tools,
+          tool_permissions: formData.toolPermissions,
+          ...credBindFields,
+        });
+        toast.success(t('mcpConfig.createSuccess'));
+      }
+
+      setFormDialogOpen(false);
+      await loadConfigs();
+      handleReload();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : '');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleSubmit = async () => {
@@ -550,66 +759,24 @@ export default function MCPConfigPage() {
       return;
     }
 
-    try {
-      setIsSubmitting(true);
-      const args = parseArgsText(formData.argsText);
-      const env = varsToEnv(formData.envVars);
-      const headers = varsToHeaders(formData.headerVars);
-
-      // Build tools list from selected discovered tools
-      // Include parameters and input_schema from discover response
-      const tools: MCPToolDefinition[] = discoveredTools
-        .filter((dt) => selectedToolNames.has(dt.name))
-        .map((dt) => ({
-          name: dt.name,
-          description: dt.description,
-          ...(dt.parameters && { parameters: dt.parameters }),
-          ...(dt.input_schema && { input_schema: dt.input_schema }),
-        }));
-
-      if (editingConfig) {
-        // Update
-        await mcpConfigApi.update(editingConfig.config_id, {
-          name: formData.name.trim(),
-          transport: formData.transport,
-          command: formData.transport === 'stdio' ? formData.command.trim() : '',
-          args: formData.transport === 'stdio' ? args : [],
-          env: formData.transport === 'stdio' ? env : {},
-          url: isHttpMcpTransport(formData.transport) ? formData.url.trim() : '',
-          headers: isHttpMcpTransport(formData.transport) ? headers : {},
-          enabled: formData.enabled,
-          register_as_ai_tools: formData.registerAsAiTools,
-          tools,
-          tool_permissions: formData.toolPermissions,
-        });
-        toast.success(t('mcpConfig.updateSuccess'));
-      } else {
-        // Create
-        await mcpConfigApi.create({
-          name: formData.name.trim(),
-          transport: formData.transport,
-          command: formData.transport === 'stdio' ? formData.command.trim() : '',
-          args: formData.transport === 'stdio' ? args : [],
-          env: formData.transport === 'stdio' ? env : {},
-          url: isHttpMcpTransport(formData.transport) ? formData.url.trim() : '',
-          headers: isHttpMcpTransport(formData.transport) ? headers : {},
-          enabled: formData.enabled,
-          register_as_ai_tools: formData.registerAsAiTools,
-          tools,
-          tool_permissions: formData.toolPermissions,
-        });
-        toast.success(t('mcpConfig.createSuccess'));
+    // 首次 private→public 拨档强制确认（与后端 public_ack 校验一致）
+    if (editingConfig && !editingConfig.public_ack) {
+      const oldExposure = new Map(
+        (editingConfig.tools ?? []).map((t) => [t.name, t.exposure ?? 'private']),
+      );
+      const goingPublic = discoveredTools.some(
+        (dt) =>
+          selectedToolNames.has(dt.name) &&
+          toolMeta[dt.name]?.exposure === 'public' &&
+          oldExposure.get(dt.name) !== 'public',
+      );
+      if (goingPublic) {
+        pendingSubmitRef.current = () => doSubmit(true);
+        setPublicAckOpen(true);
+        return;
       }
-
-      setFormDialogOpen(false);
-      await loadConfigs();
-      // Auto reload after create/update
-      handleReload();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : '');
-    } finally {
-      setIsSubmitting(false);
     }
+    await doSubmit(false);
   };
 
   // ============================================================================
@@ -653,6 +820,35 @@ export default function MCPConfigPage() {
       handleReload();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : '');
+    }
+  };
+
+  // ============================================================================
+  // 生成 / 采纳中文介绍
+  // ============================================================================
+
+  const handleGenerateProfile = async (config: MCPConfig) => {
+    try {
+      setProfileBusy(config.config_id);
+      await mcpConfigApi.generateProfile(config.config_id);
+      toast.success(t('mcpConfig.generateProfileScheduled'));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : '');
+    } finally {
+      setProfileBusy(null);
+    }
+  };
+
+  const handleAdoptProfile = async (config: MCPConfig) => {
+    try {
+      setProfileBusy(config.config_id);
+      await mcpConfigApi.adoptProfile(config.config_id);
+      toast.success(t('mcpConfig.adoptProfileSuccess'));
+      await loadConfigs();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : '');
+    } finally {
+      setProfileBusy(null);
     }
   };
 
@@ -705,8 +901,94 @@ export default function MCPConfigPage() {
   const addEnvVar = () => {
     setFormData((prev) => ({
       ...prev,
-      envVars: [...prev.envVars, { key: '', value: '' }],
+      envVars: [...prev.envVars, { key: '', value: '', bindable: true }],
     }));
+  };
+
+  const toggleEnvBindable = (index: number, bindable: boolean) => {
+    setFormData((prev) => ({
+      ...prev,
+      envVars: prev.envVars.map((v, i) => (i === index ? { ...v, bindable } : v)),
+    }));
+  };
+
+  // ============================================================================
+  // 凭据绑定管理
+  // ============================================================================
+
+  const openBindingsDialog = async (config: MCPConfig) => {
+    setBindingsConfig(config);
+    setBindings([]);
+    setBindCandidates(null);
+    setSelectedPairs(new Set());
+    setBindingsLoading(true);
+    try {
+      const res = await mcpConfigApi.getBindings(config.config_id);
+      setBindings(res.bindings ?? []);
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, t('mcpConfig.bindingsLoadFailed')));
+    } finally {
+      setBindingsLoading(false);
+    }
+  };
+
+  const loadBindCandidates = async () => {
+    try {
+      const res = await mcpConfigApi.getBindCandidates();
+      setBindCandidates(res.candidates ?? []);
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, t('mcpConfig.installBindFailed')));
+    }
+  };
+
+  const togglePair = (key: string) => {
+    setSelectedPairs((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const handleInstallBinds = async () => {
+    if (!bindingsConfig || selectedPairs.size === 0 || !bindCandidates) return;
+    const pairs = bindCandidates
+      .filter((c) => selectedPairs.has(`${c.bot_id}|${c.user_id}`))
+      .map((c) => ({ bot_id: c.bot_id, user_id: c.user_id }));
+    try {
+      setBindInstalling(true);
+      const res = await mcpConfigApi.adminBind(bindingsConfig.config_id, pairs);
+      toast.success(t('mcpConfig.installBindSuccess', { count: res.bound_count }));
+      const fresh = await mcpConfigApi.getBindings(bindingsConfig.config_id);
+      setBindings(fresh.bindings ?? []);
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, t('mcpConfig.installBindFailed')));
+    } finally {
+      setBindInstalling(false);
+    }
+  };
+
+  const handleRevoke = async () => {
+    if (!bindingsConfig || !revokeTarget) return;
+    try {
+      setRevoking(true);
+      await mcpConfigApi.revokeBinding(
+        bindingsConfig.config_id,
+        revokeTarget.bot_id,
+        revokeTarget.user_id,
+      );
+      toast.success(t('mcpConfig.revokeSuccess'));
+      setRevokeTarget(null);
+      setBindings((prev) =>
+        prev.filter(
+          (b) => !(b.bot_id === revokeTarget.bot_id && b.user_id === revokeTarget.user_id),
+        ),
+      );
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, t('mcpConfig.revokeFailed')));
+    } finally {
+      setRevoking(false);
+    }
   };
 
   const removeEnvVar = (index: number) => {
@@ -752,6 +1034,9 @@ export default function MCPConfigPage() {
   // Render
   // ============================================================================
 
+  const permHasRules = Object.keys(formData.toolPermissions).length > 0;
+  const permSectionOpen = permOpenOverride ?? permHasRules;
+
   return (
     <TooltipProvider>
       <PinnedPage
@@ -792,6 +1077,14 @@ export default function MCPConfigPage() {
                   </p>
                 </TooltipContent>
               </Tooltip>
+              <Button
+                variant="outline"
+                className={tabToolbarControlClass}
+                onClick={() => navigate('/mcp-market')}
+              >
+                <Store className="h-4 w-4 mr-1" />
+                {t('mcpConfig.market')}
+              </Button>
               <Button
                 variant="outline"
                 className={tabToolbarControlClass}
@@ -893,23 +1186,14 @@ export default function MCPConfigPage() {
                         )}
                       </Button>
 
-                      {/* Icon - hidden on mobile, shown on sm+ */}
-                      <div
+                      {/* Icon - hidden on mobile, shown on sm+；无底盒，图标直接占满 */}
+                      <McpServerIcon
+                        config={config}
                         className={cn(
-                          'hidden sm:flex w-10 h-10 rounded-xl items-center justify-center flex-shrink-0 transition-all duration-300',
-                          config.enabled ? 'bg-primary/10' : 'bg-muted',
+                          'hidden sm:block w-8 h-8 shrink-0 transition-colors duration-300',
+                          config.enabled ? 'text-primary' : 'text-muted-foreground',
                         )}
-                      >
-                        <McpBrandIcon
-                          name={config.name}
-                          command={config.command}
-                          url={config.url}
-                          className={cn(
-                            'w-5 h-5 transition-colors duration-300',
-                            config.enabled ? 'text-primary' : 'text-muted-foreground',
-                          )}
-                        />
-                      </div>
+                      />
 
                       {/* Info */}
                       <div className="flex-1 min-w-0">
@@ -918,30 +1202,39 @@ export default function MCPConfigPage() {
                             {config.name}
                           </p>
                           <div className="flex w-full flex-wrap items-center gap-1.5 sm:w-auto sm:contents">
-                          <Badge variant="outline" className="text-xs shrink-0">
-                            <itemMeta.Icon className="h-3 w-3 mr-1" />
-                            {itemMeta.short}
-                          </Badge>
-                          <Badge
-                            variant={config.enabled ? 'default' : 'secondary'}
-                            className="text-xs shrink-0"
-                          >
-                            {config.enabled ? t('mcpConfig.enabled') : t('mcpConfig.disabled')}
-                          </Badge>
-                          {config.register_as_ai_tools && (
-                            <Badge
-                              variant="outline"
-                              className="text-xs shrink-0 bg-blue-500/10 text-blue-600 border-blue-200"
-                            >
-                              AI Tools
-                            </Badge>
-                          )}
-                          {itemTools.length > 0 && (
                             <Badge variant="outline" className="text-xs shrink-0">
-                              <Wrench className="h-3 w-3 mr-1" />
-                              {t('mcpConfig.toolsCount', { count: itemTools.length })}
+                              <itemMeta.Icon className="h-3 w-3 mr-1" />
+                              {itemMeta.short}
                             </Badge>
-                          )}
+                            <Badge
+                              variant={config.enabled ? 'default' : 'secondary'}
+                              className="text-xs shrink-0"
+                            >
+                              {config.enabled ? t('mcpConfig.enabled') : t('mcpConfig.disabled')}
+                            </Badge>
+                            {config.register_as_ai_tools && (
+                              <Badge
+                                variant="outline"
+                                className="text-xs shrink-0 bg-blue-500/10 text-blue-600 border-blue-200"
+                              >
+                                AI Tools
+                              </Badge>
+                            )}
+                            {config.market_meta?.qualified_name && (
+                              <Badge
+                                variant="outline"
+                                className="text-xs shrink-0 bg-amber-500/10 text-amber-600 border-amber-200"
+                              >
+                                <Store className="h-3 w-3 mr-1" />
+                                {config.market_meta.chinese_name || t('mcpConfig.market')}
+                              </Badge>
+                            )}
+                            {itemTools.length > 0 && (
+                              <Badge variant="outline" className="text-xs shrink-0">
+                                <Wrench className="h-3 w-3 mr-1" />
+                                {t('mcpConfig.toolsCount', { count: itemTools.length })}
+                              </Badge>
+                            )}
                           </div>
                         </div>
                         {itemHttp ? (
@@ -956,9 +1249,7 @@ export default function MCPConfigPage() {
                           <Badge variant="outline" className="mt-0.5 max-w-full font-normal">
                             <TruncatedText
                               text={
-                                itemArgs.length > 0
-                                  ? itemArgs.join(' ')
-                                  : (config.command ?? '')
+                                itemArgs.length > 0 ? itemArgs.join(' ') : (config.command ?? '')
                               }
                               className="font-mono text-[10px]"
                             />
@@ -979,6 +1270,22 @@ export default function MCPConfigPage() {
                           </TooltipTrigger>
                           <TooltipContent>
                             <p>{t('mcpConfig.toggleEnabled')}</p>
+                          </TooltipContent>
+                        </Tooltip>
+
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => openBindingsDialog(config)}
+                            >
+                              <Key className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{t('mcpConfig.bindings')}</p>
                           </TooltipContent>
                         </Tooltip>
 
@@ -1058,6 +1365,48 @@ export default function MCPConfigPage() {
                                 </p>
                               </div>
                             </div>
+                            {config.runtime_check && (
+                              <div
+                                className={cn(
+                                  'flex items-start gap-2 rounded-lg border p-3 text-xs',
+                                  config.runtime_check.available
+                                    ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
+                                    : 'border-destructive/30 bg-destructive/10 text-destructive',
+                                )}
+                              >
+                                {config.runtime_check.available ? (
+                                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+                                ) : (
+                                  <XCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                                )}
+                                <div className="min-w-0">
+                                  <p className="font-medium">
+                                    {config.runtime_check.available
+                                      ? t('mcpConfig.runtimeOk', {
+                                          command: config.runtime_check.command,
+                                        })
+                                      : t('mcpConfig.runtimeMissing', {
+                                          command:
+                                            config.runtime_check.command ||
+                                            config.command ||
+                                            'stdio',
+                                        })}
+                                  </p>
+                                  {config.runtime_check.available &&
+                                    config.runtime_check.resolved && (
+                                      <p
+                                        className="mt-0.5 truncate font-mono opacity-80"
+                                        title={config.runtime_check.resolved}
+                                      >
+                                        {config.runtime_check.resolved}
+                                      </p>
+                                    )}
+                                  {!config.runtime_check.available && (
+                                    <p className="mt-1 opacity-90">{t('mcpConfig.runtimeFix')}</p>
+                                  )}
+                                </div>
+                              </div>
+                            )}
                             {itemArgs.length > 0 && (
                               <div>
                                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
@@ -1142,6 +1491,75 @@ export default function MCPConfigPage() {
                           </Badge>
                         </div>
 
+                        {/* 用户描述 / AI 生成介绍 */}
+                        {config.description && (
+                          <div>
+                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+                              {t('mcpConfig.descriptionLabel')}
+                            </p>
+                            <p className="text-sm">{config.description}</p>
+                          </div>
+                        )}
+                        {config.generated_profile && (
+                          <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-2">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Sparkles className="h-4 w-4 shrink-0 text-primary" />
+                              <p className="text-xs font-semibold">
+                                {t('mcpConfig.generatedProfile')}
+                              </p>
+                              {config.generated_profile.model && (
+                                <Badge variant="outline" className="text-[10px]">
+                                  {config.generated_profile.model}
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-sm">{config.generated_profile.description}</p>
+                            {config.generated_profile.keywords.length > 0 && (
+                              <div className="flex flex-wrap gap-1">
+                                {config.generated_profile.keywords.map((kw) => (
+                                  <Badge key={kw} variant="secondary" className="text-[10px]">
+                                    {kw}
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
+                            <div className="flex flex-wrap gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8"
+                                disabled={profileBusy === config.config_id}
+                                onClick={() => handleAdoptProfile(config)}
+                              >
+                                {profileBusy === config.config_id ? (
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+                                ) : null}
+                                {t('mcpConfig.adoptProfile')}
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                        {config.register_as_ai_tools && (
+                          <div>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-8 px-2 text-xs"
+                              disabled={profileBusy === config.config_id}
+                              onClick={() => handleGenerateProfile(config)}
+                            >
+                              {profileBusy === config.config_id ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+                              ) : (
+                                <Sparkles className="h-3.5 w-3.5 mr-1" />
+                              )}
+                              {config.generated_profile
+                                ? t('mcpConfig.regenerateProfile')
+                                : t('mcpConfig.generateProfile')}
+                            </Button>
+                          </div>
+                        )}
+
                         {/* Tools List */}
                         {itemTools.length > 0 && (
                           <div>
@@ -1197,7 +1615,7 @@ export default function MCPConfigPage() {
 
         {/* Create/Edit Dialog */}
         <Dialog open={formDialogOpen} onOpenChange={setFormDialogOpen}>
-          <DialogContent className="w-[95vw] max-w-[600px] max-h-[85vh] flex flex-col overflow-hidden p-0 glass-card">
+          <DialogContent className="w-[95vw] max-w-[560px] lg:max-w-[1180px] max-h-[85vh] flex flex-col overflow-hidden p-0 glass-card">
             <DialogHeader className="px-6 pt-6 pb-2 shrink-0">
               <DialogTitle className="flex items-center gap-2">
                 {(() => {
@@ -1227,171 +1645,296 @@ export default function MCPConfigPage() {
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-3 md:space-y-5 py-2 px-6 flex-1 min-h-0 overflow-y-auto">
-              {/* Connection Method (only for create) */}
-              {!editingConfig && (
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-1.5">
-                    <ArrowLeftRight className="h-3.5 w-3.5 text-muted-foreground" />
-                    {t('mcpConfig.connectionMethod')}
-                  </Label>
-                  <ToggleGroup
-                    type="single"
-                    value={connectionMethod}
-                    onValueChange={(v) => {
-                      if (v) setConnectionMethod(v as ConnectionMethod);
-                    }}
-                    variant="outline"
-                    className="justify-start"
-                  >
-                    <ToggleGroupItem value="manual" className="flex items-center gap-1.5 px-4">
-                      <Pencil className="h-3.5 w-3.5" />
-                      {t('mcpConfig.manualFill')}
-                    </ToggleGroupItem>
-                    <ToggleGroupItem value="preset" className="flex items-center gap-1.5 px-4">
-                      <Package className="h-3.5 w-3.5" />
-                      {t('mcpConfig.selectPreset')}
-                    </ToggleGroupItem>
-                  </ToggleGroup>
-
-                  {connectionMethod === 'preset' && (
-                    <Button
+            {/* 双栏独立滚动：移动端单列长滚，sm+ 左右各自滚动 */}
+            <div className="flex-1 min-h-0 px-6 py-2 overflow-y-auto lg:overflow-visible lg:flex lg:gap-5">
+              {/* 左栏：连接与凭据 */}
+              <div className="space-y-3 md:space-y-4 lg:w-1/2 lg:min-h-0 lg:overflow-y-auto lg:pr-1">
+                {/* Connection Method (only for create) */}
+                {!editingConfig && (
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-1.5">
+                      <ArrowLeftRight className="h-3.5 w-3.5 text-muted-foreground" />
+                      {t('mcpConfig.connectionMethod')}
+                    </Label>
+                    <ToggleGroup
+                      type="single"
+                      value={connectionMethod}
+                      onValueChange={(v) => {
+                        if (v) setConnectionMethod(v as ConnectionMethod);
+                      }}
                       variant="outline"
-                      size="sm"
-                      onClick={handleOpenPresetDialog}
-                      className="w-full"
+                      className="justify-start"
                     >
-                      <Package className="h-4 w-4 mr-2" />
-                      {selectedPresetName
-                        ? `${t('mcpConfig.selectPreset')}: ${selectedPresetName}`
-                        : t('mcpConfig.selectPresetPlaceholder')}
-                    </Button>
-                  )}
-                </div>
-              )}
+                      <ToggleGroupItem value="manual" className="flex items-center gap-1.5 px-4">
+                        <Pencil className="h-3.5 w-3.5" />
+                        {t('mcpConfig.manualFill')}
+                      </ToggleGroupItem>
+                      <ToggleGroupItem value="preset" className="flex items-center gap-1.5 px-4">
+                        <Package className="h-3.5 w-3.5" />
+                        {t('mcpConfig.selectPreset')}
+                      </ToggleGroupItem>
+                    </ToggleGroup>
 
-              {/* Name */}
-              <div className="space-y-2">
-                <div className="flex items-center gap-1.5">
-                  <Tag className="h-3.5 w-3.5 text-muted-foreground" />
-                  <Label htmlFor="mcp-name">{t('mcpConfig.configName')} *</Label>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>{t('mcpConfig.nameHelp')}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
-                <Input
-                  id="mcp-name"
-                  placeholder={t('mcpConfig.configNamePlaceholder')}
-                  value={formData.name}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
-                />
-              </div>
-
-              {/* Transport Type */}
-              <div className="space-y-2">
-                <div className="flex items-center gap-1.5">
-                  <Settings2 className="h-3.5 w-3.5 text-muted-foreground" />
-                  <Label>{t('mcpConfig.transport')}</Label>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>{t('mcpConfig.transportHelp')}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
-                <ToggleGroup
-                  type="single"
-                  value={formData.transport}
-                  onValueChange={(v) => {
-                    if (v) setFormData((prev) => ({ ...prev, transport: v as MCPTransport }));
-                  }}
-                  variant="outline"
-                  className="justify-start flex-wrap"
-                >
-                  <ToggleGroupItem value="stdio" className="flex items-center gap-1.5 px-3">
-                    <Terminal className="h-3.5 w-3.5" />
-                    {t('mcpConfig.transportStdio')}
-                  </ToggleGroupItem>
-                  <ToggleGroupItem
-                    value="streamable_http"
-                    className="flex items-center gap-1.5 px-3"
-                  >
-                    <Network className="h-3.5 w-3.5" />
-                    {t('mcpConfig.transportStreamableHttp')}
-                  </ToggleGroupItem>
-                  <ToggleGroupItem value="sse" className="flex items-center gap-1.5 px-3">
-                    <Globe className="h-3.5 w-3.5" />
-                    {t('mcpConfig.transportSse')}
-                  </ToggleGroupItem>
-                </ToggleGroup>
-              </div>
-
-              {/* stdio mode fields */}
-              {formData.transport === 'stdio' && (
-                <>
-                  {/* Command */}
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-1.5">
-                      <Terminal className="h-3.5 w-3.5 text-muted-foreground" />
-                      <Label htmlFor="mcp-command">{t('mcpConfig.command')} *</Label>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>{t('mcpConfig.commandHelp')}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
-                    <Input
-                      id="mcp-command"
-                      placeholder={t('mcpConfig.commandPlaceholder')}
-                      value={formData.command}
-                      onChange={(e) =>
-                        setFormData((prev) => ({ ...prev, command: e.target.value }))
-                      }
-                    />
-                  </div>
-
-                  {/* Args */}
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-1.5">
-                      <Braces className="h-3.5 w-3.5 text-muted-foreground" />
-                      <Label htmlFor="mcp-args">{t('mcpConfig.args')}</Label>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>{t('mcpConfig.argsHelp')}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
-                    <Textarea
-                      id="mcp-args"
-                      placeholder={t('mcpConfig.argsPlaceholder')}
-                      value={formData.argsText}
-                      onChange={(e) =>
-                        setFormData((prev) => ({ ...prev, argsText: e.target.value }))
-                      }
-                      rows={3}
-                      className="font-mono text-sm"
-                    />
-                    {!formData.argsText.trim() && (
-                      <p className="text-xs text-muted-foreground/60 italic">
-                        {t('mcpConfig.noArgs')}
-                      </p>
+                    {connectionMethod === 'preset' && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleOpenPresetDialog}
+                        className="w-full"
+                      >
+                        <Package className="h-4 w-4 mr-2" />
+                        {selectedPresetName
+                          ? `${t('mcpConfig.selectPreset')}: ${selectedPresetName}`
+                          : t('mcpConfig.selectPresetPlaceholder')}
+                      </Button>
                     )}
                   </div>
+                )}
 
-                  {/* Environment Variables */}
+                {/* Name */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-1.5">
+                    <Tag className="h-3.5 w-3.5 text-muted-foreground" />
+                    <Label htmlFor="mcp-name">{t('mcpConfig.configName')} *</Label>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{t('mcpConfig.nameHelp')}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                  <Input
+                    id="mcp-name"
+                    placeholder={t('mcpConfig.configNamePlaceholder')}
+                    value={formData.name}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
+                  />
+                </div>
+
+                {/* Transport Type */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-1.5">
+                    <Settings2 className="h-3.5 w-3.5 text-muted-foreground" />
+                    <Label>{t('mcpConfig.transport')}</Label>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{t('mcpConfig.transportHelp')}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                  <ToggleGroup
+                    type="single"
+                    value={formData.transport}
+                    onValueChange={(v) => {
+                      if (v) setFormData((prev) => ({ ...prev, transport: v as MCPTransport }));
+                    }}
+                    variant="outline"
+                    className="justify-start flex-wrap"
+                  >
+                    <ToggleGroupItem value="stdio" className="flex items-center gap-1.5 px-3">
+                      <Terminal className="h-3.5 w-3.5" />
+                      {t('mcpConfig.transportStdio')}
+                    </ToggleGroupItem>
+                    <ToggleGroupItem
+                      value="streamable_http"
+                      className="flex items-center gap-1.5 px-3"
+                    >
+                      <Network className="h-3.5 w-3.5" />
+                      {t('mcpConfig.transportStreamableHttp')}
+                    </ToggleGroupItem>
+                    <ToggleGroupItem value="sse" className="flex items-center gap-1.5 px-3">
+                      <Globe className="h-3.5 w-3.5" />
+                      {t('mcpConfig.transportSse')}
+                    </ToggleGroupItem>
+                  </ToggleGroup>
+                </div>
+
+                {/* stdio mode fields */}
+                {formData.transport === 'stdio' && (
+                  <>
+                    {/* Command */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-1.5">
+                        <Terminal className="h-3.5 w-3.5 text-muted-foreground" />
+                        <Label htmlFor="mcp-command">{t('mcpConfig.command')} *</Label>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{t('mcpConfig.commandHelp')}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <Input
+                        id="mcp-command"
+                        placeholder={t('mcpConfig.commandPlaceholder')}
+                        value={formData.command}
+                        onChange={(e) =>
+                          setFormData((prev) => ({ ...prev, command: e.target.value }))
+                        }
+                      />
+                    </div>
+
+                    {/* Args */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-1.5">
+                        <Braces className="h-3.5 w-3.5 text-muted-foreground" />
+                        <Label htmlFor="mcp-args">{t('mcpConfig.args')}</Label>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{t('mcpConfig.argsHelp')}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <Textarea
+                        id="mcp-args"
+                        placeholder={t('mcpConfig.argsPlaceholder')}
+                        value={formData.argsText}
+                        onChange={(e) =>
+                          setFormData((prev) => ({ ...prev, argsText: e.target.value }))
+                        }
+                        rows={3}
+                        className="font-mono text-sm"
+                      />
+                      {!formData.argsText.trim() && (
+                        <p className="text-xs text-muted-foreground/60 italic">
+                          {t('mcpConfig.noArgs')}
+                        </p>
+                      )}
+                    </div>
+                  </>
+                )}
+
+                {/* remote HTTP fields (sse / streamable_http) */}
+                {isHttpMcpTransport(formData.transport) && (
+                  <>
+                    {/* URL */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-1.5">
+                        <Globe className="h-3.5 w-3.5 text-muted-foreground" />
+                        <Label htmlFor="mcp-url">{t('mcpConfig.url')} *</Label>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{t('mcpConfig.urlHelp')}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <Input
+                        id="mcp-url"
+                        placeholder={t('mcpConfig.urlPlaceholder')}
+                        value={formData.url}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, url: e.target.value }))}
+                        className="font-mono text-sm"
+                      />
+                    </div>
+
+                    {/* HTTP Headers */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <Shield className="h-3.5 w-3.5 text-muted-foreground" />
+                          <Label>{t('mcpConfig.headers')}</Label>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{t('mcpConfig.headersHelp')}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={addHeaderVar}
+                          className="h-7 text-xs"
+                        >
+                          <Plus className="h-3 w-3 mr-1" />
+                          {t('mcpConfig.addHeader')}
+                        </Button>
+                      </div>
+                      {formData.headerVars.length > 0 ? (
+                        <div className="space-y-2">
+                          {formData.headerVars.map((headerVar, index) => (
+                            <div
+                              key={index}
+                              className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2"
+                            >
+                              <Input
+                                placeholder={t('mcpConfig.headersKeyPlaceholder')}
+                                value={headerVar.key}
+                                onChange={(e) => updateHeaderVar(index, 'key', e.target.value)}
+                                className="flex-1 font-mono text-sm"
+                              />
+                              <span className="text-muted-foreground hidden sm:inline">:</span>
+                              <div className="relative flex-1">
+                                <Input
+                                  placeholder={t('mcpConfig.headersValuePlaceholder')}
+                                  value={headerVar.value}
+                                  onChange={(e) => updateHeaderVar(index, 'value', e.target.value)}
+                                  className="flex-1 font-mono text-sm pr-9"
+                                  type={visibleSecrets.has(`header-${index}`) ? 'text' : 'password'}
+                                />
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="absolute right-0 top-0 h-full w-9 px-0 hover:bg-transparent text-muted-foreground hover:text-foreground"
+                                  onClick={() => toggleSecretVisibility(`header-${index}`)}
+                                  aria-label={
+                                    visibleSecrets.has(`header-${index}`)
+                                      ? t('common.hide')
+                                      : t('common.show')
+                                  }
+                                  title={
+                                    visibleSecrets.has(`header-${index}`)
+                                      ? t('common.hide')
+                                      : t('common.show')
+                                  }
+                                >
+                                  {visibleSecrets.has(`header-${index}`) ? (
+                                    <EyeOff className="h-4 w-4" />
+                                  ) : (
+                                    <Eye className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              </div>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 shrink-0 text-destructive hover:text-destructive self-start sm:self-auto"
+                                onClick={() => removeHeaderVar(index)}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-muted-foreground/60 italic">
+                          {t('mcpConfig.noHeaders')}
+                        </p>
+                      )}
+                    </div>
+                  </>
+                )}
+
+                {/* Environment Variables（stdio 必填；http 服务有凭据 env 时也显示） */}
+                {(formData.transport === 'stdio' || formData.envVars.length > 0) && (
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5">
@@ -1463,6 +2006,11 @@ export default function MCPConfigPage() {
                                 )}
                               </Button>
                             </div>
+                            <McpEnvBindableControl
+                              envKey={envVar.key}
+                              checked={envVar.bindable}
+                              onCheckedChange={(c) => toggleEnvBindable(index, c)}
+                            />
                             <Button
                               type="button"
                               variant="ghost"
@@ -1481,319 +2029,205 @@ export default function MCPConfigPage() {
                       </p>
                     )}
                   </div>
-                </>
-              )}
+                )}
+                {/* 凭据绑定（无凭据时折叠展示，别名字段与 env 无关） */}
+                <div>
+                  <McpBindSection
+                    bindHelp={formData.bindHelp}
+                    bindUrl={formData.bindUrl}
+                    bindAliasText={formData.bindAliasText}
+                    onChange={(patch) => setFormData((prev) => ({ ...prev, ...patch }))}
+                  />
+                </div>
 
-              {/* remote HTTP fields (sse / streamable_http) */}
-              {isHttpMcpTransport(formData.transport) && (
-                <>
-                  {/* URL */}
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-1.5">
-                      <Globe className="h-3.5 w-3.5 text-muted-foreground" />
-                      <Label htmlFor="mcp-url">{t('mcpConfig.url')} *</Label>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>{t('mcpConfig.urlHelp')}</p>
-                        </TooltipContent>
-                      </Tooltip>
+                {/* Tool Permissions */}
+                <Collapsible open={permSectionOpen} onOpenChange={setPermOpenOverride}>
+                  <CollapsibleTrigger asChild>
+                    <button
+                      type="button"
+                      className="flex w-full items-center gap-1.5 py-1 text-left"
+                    >
+                      <Shield className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      <span className="min-w-0 flex-1 flex items-center gap-1.5 text-sm font-medium">
+                        {t('mcpConfig.toolPermissions')}
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span onClick={(e) => e.stopPropagation()}>
+                              <HelpCircle className="h-3.5 w-3.5 shrink-0 text-muted-foreground cursor-help" />
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            <p>{t('mcpConfig.toolPermissionsHelp')}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                        {!permHasRules && (
+                          <span className="text-xs font-normal text-muted-foreground">
+                            {t('mcpConfig.bindSectionOptional')}
+                          </span>
+                        )}
+                      </span>
+                      <ChevronDown
+                        className={cn(
+                          'h-4 w-4 shrink-0 text-muted-foreground transition-transform',
+                          permSectionOpen && 'rotate-180',
+                        )}
+                      />
+                    </button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="space-y-3 pt-3">
+                    <div className="flex justify-end">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="shrink-0"
+                        onClick={() => {
+                          // Add default permission (pm=6, all users) for each selected tool
+                          const newPerms = { ...formData.toolPermissions };
+                          selectedToolNames.forEach((toolName) => {
+                            if (newPerms[toolName] === undefined) {
+                              newPerms[toolName] = 6;
+                            }
+                          });
+                          setFormData((prev) => ({ ...prev, toolPermissions: newPerms }));
+                        }}
+                      >
+                        <Plus className="h-3 w-3 mr-1" />
+                        {t('mcpConfig.addPermissionRule')}
+                      </Button>
                     </div>
-                    <Input
-                      id="mcp-url"
-                      placeholder={t('mcpConfig.urlPlaceholder')}
-                      value={formData.url}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, url: e.target.value }))}
-                      className="font-mono text-sm"
+
+                    {Object.keys(formData.toolPermissions).length === 0 ? (
+                      <div className="text-center py-4 text-sm text-muted-foreground">
+                        <p>{t('mcpConfig.noPermissionRules')}</p>
+                        <p className="text-xs">{t('mcpConfig.noPermissionRulesDesc')}</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                        {Array.from(selectedToolNames).map((toolName) => {
+                          const currentPm = formData.toolPermissions[toolName] ?? 6;
+                          return (
+                            <div
+                              key={toolName}
+                              className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 p-2 bg-muted/30 rounded"
+                            >
+                              <span className="text-sm font-mono flex-1 truncate">{toolName}</span>
+                              <Select
+                                value={String(currentPm)}
+                                onValueChange={(value) => {
+                                  const newPerms = { ...formData.toolPermissions };
+                                  newPerms[toolName] = Number(value);
+                                  setFormData((prev) => ({ ...prev, toolPermissions: newPerms }));
+                                }}
+                              >
+                                <SelectTrigger className="w-full sm:w-[180px] h-8">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {PERMISSION_OPTIONS.map((opt) => (
+                                    <SelectItem key={opt.value} value={String(opt.value)}>
+                                      {t(opt.labelKey)} (pm={opt.value})
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                                      onClick={() => {
+                                        const newPerms = { ...formData.toolPermissions };
+                                        delete newPerms[toolName];
+                                        setFormData((prev) => ({
+                                          ...prev,
+                                          toolPermissions: newPerms,
+                                        }));
+                                      }}
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </Button>
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>{t('mcpConfig.removePermissionRule')}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </CollapsibleContent>
+                </Collapsible>
+              </div>
+
+              {/* 右栏：工具与权限 */}
+              <div className="mt-3 space-y-3 lg:mt-0 lg:w-1/2 lg:min-h-0 lg:overflow-y-auto lg:px-1 md:space-y-4">
+                {/* Discover Tools Button */}
+                <div className="space-y-3">
+                  <Button
+                    variant="outline"
+                    onClick={handleDiscoverTools}
+                    disabled={
+                      isDiscovering ||
+                      !formData.name.trim() ||
+                      (formData.transport === 'stdio' && !formData.command.trim()) ||
+                      (isHttpMcpTransport(formData.transport) && !formData.url.trim())
+                    }
+                    className="w-full"
+                  >
+                    {isDiscovering ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      <Search className="h-4 w-4 mr-2" />
+                    )}
+                    {isDiscovering ? t('mcpConfig.discoveringTools') : t('mcpConfig.discoverTools')}
+                  </Button>
+                  <McpDiscoveringHint active={isDiscovering} />
+
+                  {/* Enabled + 无人任务私有凭据 */}
+                  <div className="flex flex-wrap items-center gap-x-1 gap-y-1">
+                    <McpSwitchRow
+                      checked={formData.enabled}
+                      onCheckedChange={(c) => setFormData((prev) => ({ ...prev, enabled: c }))}
+                      label={t('mcpConfig.enabled')}
+                      description={t('mcpConfig.enabledHelp')}
+                    />
+                    <McpSwitchRow
+                      checked={formData.allowAutonomousPrivate}
+                      onCheckedChange={(c) =>
+                        setFormData((prev) => ({ ...prev, allowAutonomousPrivate: c }))
+                      }
+                      label={t('mcpConfig.allowAutonomousPrivateShort')}
+                      description={t('mcpConfig.allowAutonomousPrivateHelp')}
                     />
                   </div>
 
-                  {/* HTTP Headers */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5">
-                        <Shield className="h-3.5 w-3.5 text-muted-foreground" />
-                        <Label>{t('mcpConfig.headers')}</Label>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>{t('mcpConfig.headersHelp')}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={addHeaderVar}
-                        className="h-7 text-xs"
-                      >
-                        <Plus className="h-3 w-3 mr-1" />
-                        {t('mcpConfig.addHeader')}
-                      </Button>
-                    </div>
-                    {formData.headerVars.length > 0 ? (
-                      <div className="space-y-2">
-                        {formData.headerVars.map((headerVar, index) => (
-                          <div
-                            key={index}
-                            className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2"
-                          >
-                            <Input
-                              placeholder={t('mcpConfig.headersKeyPlaceholder')}
-                              value={headerVar.key}
-                              onChange={(e) => updateHeaderVar(index, 'key', e.target.value)}
-                              className="flex-1 font-mono text-sm"
-                            />
-                            <span className="text-muted-foreground hidden sm:inline">:</span>
-                            <div className="relative flex-1">
-                              <Input
-                                placeholder={t('mcpConfig.headersValuePlaceholder')}
-                                value={headerVar.value}
-                                onChange={(e) => updateHeaderVar(index, 'value', e.target.value)}
-                                className="flex-1 font-mono text-sm pr-9"
-                                type={visibleSecrets.has(`header-${index}`) ? 'text' : 'password'}
-                              />
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="absolute right-0 top-0 h-full w-9 px-0 hover:bg-transparent text-muted-foreground hover:text-foreground"
-                                onClick={() => toggleSecretVisibility(`header-${index}`)}
-                                aria-label={
-                                  visibleSecrets.has(`header-${index}`)
-                                    ? t('common.hide')
-                                    : t('common.show')
-                                }
-                                title={
-                                  visibleSecrets.has(`header-${index}`)
-                                    ? t('common.hide')
-                                    : t('common.show')
-                                }
-                              >
-                                {visibleSecrets.has(`header-${index}`) ? (
-                                  <EyeOff className="h-4 w-4" />
-                                ) : (
-                                  <Eye className="h-4 w-4" />
-                                )}
-                              </Button>
-                            </div>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 shrink-0 text-destructive hover:text-destructive self-start sm:self-auto"
-                              onClick={() => removeHeaderVar(index)}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-xs text-muted-foreground/60 italic">
-                        {t('mcpConfig.noHeaders')}
-                      </p>
-                    )}
-                  </div>
-                </>
-              )}
-
-              <Separator />
-
-              {/* Discover Tools Button */}
-              <div className="space-y-3">
-                <Button
-                  variant="outline"
-                  onClick={handleDiscoverTools}
-                  disabled={
-                    isDiscovering ||
-                    !formData.name.trim() ||
-                    (formData.transport === 'stdio' && !formData.command.trim()) ||
-                    (isHttpMcpTransport(formData.transport) && !formData.url.trim())
-                  }
-                  className="w-full"
-                >
-                  {isDiscovering ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  ) : (
-                    <Search className="h-4 w-4 mr-2" />
-                  )}
-                  {isDiscovering ? t('mcpConfig.discoveringTools') : t('mcpConfig.discoverTools')}
-                </Button>
-
-                {/* Discovered Tools */}
-                {discoveredTools.length > 0 && (
-                  <div className="space-y-2">
-                    <Label className="flex items-center gap-1.5">
-                      <ListChecks className="h-4 w-4" />
-                      {t('mcpConfig.discoveredTools')}
-                    </Label>
-                    <div className="space-y-1.5 max-h-[200px] overflow-y-auto">
-                      {discoveredTools.map((tool, i) => (
-                        <div
-                          key={i}
-                          className={cn(
-                            'flex items-start gap-3 p-2.5 rounded-lg border cursor-pointer transition-colors',
-                            selectedToolNames.has(tool.name)
-                              ? 'bg-primary/5 border-primary/30'
-                              : 'bg-muted/30 border-border/30 hover:bg-muted/50',
-                          )}
-                          onClick={() => handleToggleTool(tool.name)}
-                        >
-                          <Checkbox
-                            checked={selectedToolNames.has(tool.name)}
-                            onCheckedChange={() => handleToggleTool(tool.name)}
-                            className="mt-0.5"
-                          />
-                          <div className="min-w-0 flex-1">
-                            <p className="text-sm font-medium">{tool.name}</p>
-                            {tool.description && (
-                              <p className="text-xs text-muted-foreground line-clamp-2">
-                                {tool.description}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <Separator />
-
-              {/* Enabled */}
-              <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/30">
-                <Switch
-                  checked={formData.enabled}
-                  onCheckedChange={(checked) =>
-                    setFormData((prev) => ({ ...prev, enabled: checked }))
-                  }
-                />
-                <div>
-                  <p className="text-sm font-medium">{t('mcpConfig.enabled')}</p>
-                  <p className="text-xs text-muted-foreground">{t('mcpConfig.enabledHelp')}</p>
-                </div>
-              </div>
-
-              {/* Register as AI Tools */}
-              <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/30">
-                <Switch
-                  checked={formData.registerAsAiTools}
-                  onCheckedChange={(checked) =>
-                    setFormData((prev) => ({ ...prev, registerAsAiTools: checked }))
-                  }
-                />
-                <div>
-                  <p className="text-sm font-medium">{t('mcpConfig.registerAsAiTools')}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {t('mcpConfig.registerAsAiToolsHelp')}
-                  </p>
-                </div>
-              </div>
-
-              {/* Tool Permissions - only show when registerAsAiTools is true */}
-              {formData.registerAsAiTools && (
-                <div className="space-y-3 p-3 border border-border rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium">{t('mcpConfig.toolPermissions')}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {t('mcpConfig.toolPermissionsHelp')}
-                      </p>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        // Add default permission (pm=6, all users) for each selected tool
-                        const newPerms = { ...formData.toolPermissions };
-                        selectedToolNames.forEach((toolName) => {
-                          if (newPerms[toolName] === undefined) {
-                            newPerms[toolName] = 6;
-                          }
-                        });
-                        setFormData((prev) => ({ ...prev, toolPermissions: newPerms }));
-                      }}
-                    >
-                      <Plus className="h-3 w-3 mr-1" />
-                      {t('mcpConfig.addPermissionRule')}
-                    </Button>
-                  </div>
-
-                  {Object.keys(formData.toolPermissions).length === 0 ? (
-                    <div className="text-center py-4 text-sm text-muted-foreground">
-                      <p>{t('mcpConfig.noPermissionRules')}</p>
-                      <p className="text-xs">{t('mcpConfig.noPermissionRulesDesc')}</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-2 max-h-[200px] overflow-y-auto">
-                      {Array.from(selectedToolNames).map((toolName) => {
-                        const currentPm = formData.toolPermissions[toolName] ?? 6;
-                        return (
-                          <div
-                            key={toolName}
-                            className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 p-2 bg-muted/30 rounded"
-                          >
-                            <span className="text-sm font-mono flex-1 truncate">{toolName}</span>
-                            <Select
-                              value={String(currentPm)}
-                              onValueChange={(value) => {
-                                const newPerms = { ...formData.toolPermissions };
-                                newPerms[toolName] = Number(value);
-                                setFormData((prev) => ({ ...prev, toolPermissions: newPerms }));
-                              }}
-                            >
-                              <SelectTrigger className="w-full sm:w-[180px] h-8">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {PERMISSION_OPTIONS.map((opt) => (
-                                  <SelectItem key={opt.value} value={String(opt.value)}>
-                                    {t(opt.labelKey)} (pm={opt.value})
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <span>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
-                                    onClick={() => {
-                                      const newPerms = { ...formData.toolPermissions };
-                                      delete newPerms[toolName];
-                                      setFormData((prev) => ({
-                                        ...prev,
-                                        toolPermissions: newPerms,
-                                      }));
-                                    }}
-                                  >
-                                    <Trash2 className="h-3 w-3" />
-                                  </Button>
-                                </span>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>{t('mcpConfig.removePermissionRule')}</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </div>
-                        );
-                      })}
-                    </div>
+                  {/* Discovered Tools */}
+                  {discoveredTools.length > 0 && (
+                    <McpToolSelectSection
+                      tools={discoveredTools.map((tool) => ({
+                        name: tool.name,
+                        description: tool.description,
+                      }))}
+                      selected={selectedToolNames}
+                      onToggle={handleToggleTool}
+                      toolMeta={toolMeta}
+                      onMetaChange={(name, meta) =>
+                        setToolMeta((prev) => ({ ...prev, [name]: meta }))
+                      }
+                      fallbackMeta={defaultToolMeta(formData.envVars.some((v) => v.bindable))}
+                      originalDescriptions={originalToolDescs}
+                      onRestoreDescription={handleRestoreToolDesc}
+                    />
                   )}
                 </div>
-              )}
+              </div>
             </div>
 
-            <DialogFooter className="px-6 pb-6 pt-2 shrink-0 border-t bg-background">
+            <DialogFooter className="px-6 pb-6 pt-2 shrink-0 border-t">
               <Button variant="outline" onClick={() => setFormDialogOpen(false)}>
                 {t('common.cancel')}
               </Button>
@@ -1887,7 +2321,7 @@ export default function MCPConfigPage() {
               />
             </div>
 
-            <DialogFooter className="px-6 pb-6 pt-2 shrink-0 border-t bg-background">
+            <DialogFooter className="px-6 pb-6 pt-2 shrink-0 border-t">
               <Button variant="outline" onClick={() => setImportDialogOpen(false)}>
                 {t('common.cancel')}
               </Button>
@@ -2029,6 +2463,201 @@ export default function MCPConfigPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* 凭据绑定管理弹窗 */}
+        <Dialog
+          open={bindingsConfig !== null}
+          onOpenChange={(open) => !open && setBindingsConfig(null)}
+        >
+          <DialogContent className="w-[95vw] max-w-2xl max-h-[85vh] overflow-y-auto glass-card">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Key className="h-5 w-5" />
+                {t('mcpConfig.bindingsTitle', { name: bindingsConfig?.name ?? '' })}
+              </DialogTitle>
+              <DialogDescription>{t('mcpConfig.bindingsHint')}</DialogDescription>
+            </DialogHeader>
+
+            {bindingsLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : bindings.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">
+                {t('mcpConfig.bindingsEmpty')}
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {bindings.map((b) => (
+                  <div
+                    key={`${b.bot_id}|${b.user_id}`}
+                    className="flex flex-col gap-2 rounded-lg border border-border/50 bg-muted/30 p-3 sm:flex-row sm:items-center"
+                  >
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <p className="truncate text-sm font-medium">
+                        {b.user_id}
+                        <span className="ml-2 font-mono text-xs text-muted-foreground">
+                          @{b.bot_id}
+                        </span>
+                      </p>
+                      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                        <Badge
+                          variant="outline"
+                          className="whitespace-normal max-w-full text-[10px]"
+                        >
+                          {b.bound_via === 'admin_install'
+                            ? t('mcpConfig.viaAdmin')
+                            : t('mcpConfig.viaChat')}
+                        </Badge>
+                        <Badge
+                          variant="outline"
+                          className="whitespace-normal max-w-full text-[10px]"
+                        >
+                          {b.status}
+                        </Badge>
+                        <span>
+                          {b.bound_at ? new Date(b.bound_at * 1000).toLocaleDateString() : '-'}
+                        </span>
+                      </div>
+                      {Object.keys(b.masked_creds || {}).length > 0 && (
+                        <p className="truncate font-mono text-[11px] text-muted-foreground">
+                          {Object.entries(b.masked_creds)
+                            .map(([k, v]) => `${k}=${v}`)
+                            .join('  ')}
+                        </p>
+                      )}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="shrink-0 text-destructive hover:text-destructive"
+                      onClick={() => setRevokeTarget(b)}
+                    >
+                      {t('mcpConfig.revoke')}
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* 为主人安装绑定 */}
+            <div className="mt-2 rounded-lg border border-border/50 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">{t('mcpConfig.bindToMasters')}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {t('mcpConfig.bindToMastersDesc')}
+                  </p>
+                </div>
+                {bindCandidates === null && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="shrink-0"
+                    onClick={loadBindCandidates}
+                  >
+                    {t('mcpConfig.bindToMasters')}
+                  </Button>
+                )}
+              </div>
+              {bindCandidates !== null &&
+                (bindCandidates.length === 0 ? (
+                  <p className="mt-3 text-xs text-muted-foreground">
+                    {t('mcpConfig.candidatesEmpty')}
+                  </p>
+                ) : (
+                  <div className="mt-3 space-y-2">
+                    {bindCandidates.map((c) => {
+                      const key = `${c.bot_id}|${c.user_id}`;
+                      return (
+                        <label
+                          key={key}
+                          className="flex cursor-pointer items-center gap-2 rounded-md border border-border/40 px-2.5 py-2 text-sm hover:bg-muted/40"
+                        >
+                          <Checkbox
+                            checked={selectedPairs.has(key)}
+                            onCheckedChange={() => togglePair(key)}
+                          />
+                          <span className="min-w-0 flex-1 truncate">
+                            {c.user_name || c.user_id}
+                            <span className="ml-2 font-mono text-xs text-muted-foreground">
+                              {c.user_id}@{c.bot_id}
+                            </span>
+                          </span>
+                        </label>
+                      );
+                    })}
+                    <Button
+                      size="sm"
+                      className="mt-1"
+                      disabled={selectedPairs.size === 0 || bindInstalling}
+                      onClick={handleInstallBinds}
+                    >
+                      {bindInstalling && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      {t('mcpConfig.installBind', { count: selectedPairs.size })}
+                    </Button>
+                  </div>
+                ))}
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* 吊销确认 */}
+        <AlertDialog
+          open={revokeTarget !== null}
+          onOpenChange={(open) => !open && setRevokeTarget(null)}
+        >
+          <AlertDialogContent className="w-[95vw] max-w-lg glass-card">
+            <AlertDialogHeader>
+              <AlertDialogTitle>{t('mcpConfig.revokeConfirmTitle')}</AlertDialogTitle>
+              <AlertDialogDescription>
+                {t('mcpConfig.revokeConfirmDesc', {
+                  bot: revokeTarget?.bot_id ?? '',
+                  user: revokeTarget?.user_id ?? '',
+                })}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleRevoke}
+                disabled={revoking}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {revoking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {t('mcpConfig.revokeConfirm')}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* 首次 private→public 风险确认 */}
+        <AlertDialog open={publicAckOpen} onOpenChange={setPublicAckOpen}>
+          <AlertDialogContent className="w-[95vw] max-w-lg glass-card">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-amber-500" />
+                {t('mcpConfig.publicAckTitle')}
+              </AlertDialogTitle>
+              <AlertDialogDescription>{t('mcpConfig.publicAckDesc')}</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => (pendingSubmitRef.current = null)}>
+                {t('mcpConfig.publicAckCancel')}
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  const fn = pendingSubmitRef.current;
+                  pendingSubmitRef.current = null;
+                  setPublicAckOpen(false);
+                  void fn?.();
+                }}
+              >
+                {t('mcpConfig.publicAckConfirm')}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </PinnedPage>
     </TooltipProvider>
   );

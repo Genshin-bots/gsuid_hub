@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Package, Puzzle, UserRound } from 'lucide-react';
+import { Package, Plug, Puzzle, UserRound } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -12,7 +12,7 @@ import {
   type CapabilityAgentTool,
 } from '@/lib/api';
 
-const SOURCES: AgentNodeSource[] = ['builtin', 'plugin', 'user'];
+const SOURCES: AgentNodeSource[] = ['builtin', 'plugin', 'user', 'mcp'];
 export const NODE_ID_PATTERN = /^[a-zA-Z][a-zA-Z0-9_]{0,63}$/;
 export const BUILTIN_TOOL_PACKS = ['task_basics', 'dynamic'];
 
@@ -104,13 +104,17 @@ export function useCapabilityAgents() {
         if (
           profile.source === 'builtin' ||
           profile.source === 'plugin' ||
-          profile.source === 'user'
+          profile.source === 'user' ||
+          profile.source === 'mcp'
         ) {
           acc[profile.source] += 1;
         }
         return acc;
       },
-      { builtin: 0, plugin: 0, user: 0 } as Record<'builtin' | 'plugin' | 'user', number>,
+      { builtin: 0, plugin: 0, user: 0, mcp: 0 } as Record<
+        'builtin' | 'plugin' | 'user' | 'mcp',
+        number
+      >,
     );
   }, [profiles]);
 
@@ -143,6 +147,8 @@ export function useCapabilityAgents() {
             icon:
               source === 'builtin' ? (
                 <Package className="h-4 w-4" />
+              ) : source === 'mcp' ? (
+                <Plug className="h-4 w-4" />
               ) : (
                 <UserRound className="h-4 w-4" />
               ),
@@ -283,7 +289,9 @@ export function useCapabilityAgents() {
       }
       setDialogOpen(false);
       await loadData();
-      setActiveSource('user');
+      if (dialogMode === 'create') {
+        setActiveSource('user');
+      }
     } catch (error) {
       const msg = error instanceof Error ? error.message : t('aiCapabilityAgents.saveFailed');
       toast.error(msg);
@@ -297,7 +305,13 @@ export function useCapabilityAgents() {
     try {
       setIsDeleting(true);
       await capabilityAgentsApi.delete(deleteTarget.node_id);
-      toast.success(t('aiCapabilityAgents.deleteSuccess'));
+      toast.success(
+        t(
+          deleteTarget.source === 'mcp'
+            ? 'aiCapabilityAgents.restoreSuccess'
+            : 'aiCapabilityAgents.deleteSuccess',
+        ),
+      );
       setDeleteTarget(null);
       await loadData();
     } catch (error) {
@@ -308,7 +322,9 @@ export function useCapabilityAgents() {
     }
   }, [deleteTarget, loadData, t]);
 
-  const isReadOnly = dialogMode === 'view' || (dialogMode === 'edit' && activeSource !== 'user');
+  const isReadOnly =
+    dialogMode === 'view' ||
+    (dialogMode === 'edit' && activeSource !== 'user' && activeSource !== 'mcp');
 
   return {
     activeSource,

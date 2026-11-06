@@ -3390,7 +3390,7 @@ export const aiToolsApi = {
 // 预算字段移除，新增 tool_packs / prompt_style / boundary_override，来源新增 persona）
 // ===================
 
-export type AgentNodeSource = 'builtin' | 'plugin' | 'user' | 'persona';
+export type AgentNodeSource = 'builtin' | 'plugin' | 'user' | 'persona' | 'mcp';
 
 export interface AgentNodeItem {
   node_id: string;
@@ -3406,6 +3406,10 @@ export interface AgentNodeItem {
   source: AgentNodeSource;
   /** 插件来源节点所属插件名；builtin/user/persona 通常为空 */
   plugin?: string | null;
+  /** 是否进主人格花名册；mcp 节点固定 false 且不可配 */
+  in_roster?: boolean;
+  /** when_to_use 文案来源：user / market / generated / auto（mcp 节点才有） */
+  desc_origin?: string;
   version: number;
 }
 
@@ -4311,6 +4315,8 @@ export interface MCPToolParameter {
   required: boolean;
 }
 
+export type MCPToolExposure = 'private' | 'public';
+
 export interface MCPToolDefinition {
   name: string;
   description: string;
@@ -4321,6 +4327,14 @@ export interface MCPToolDefinition {
     required?: string[];
     title?: string;
   };
+  /** private=调用方凭据（需用户绑定）；public=共享凭据全群可用 */
+  exposure?: MCPToolExposure;
+  /** 写操作（下单/取消等）：命中后强制走发起人确认审批 */
+  mutating?: boolean;
+  /** 参数含 PII/地址类内容：群上下文摘要打码 */
+  sensitive_args?: boolean;
+  /** 调用参数中的凭据位（从 LLM 可见签名剔除，执行期注入） */
+  credential_params?: string[];
 }
 
 export interface MCPToolFromServer {
@@ -4337,6 +4351,35 @@ export interface MCPToolFromServer {
 
 export type MCPTransport = 'stdio' | 'sse' | 'streamable_http';
 
+export interface MCPMarketMeta {
+  source?: 'modelscope' | 'preset' | string;
+  qualified_name?: string;
+  chinese_name?: string;
+  categories?: string[];
+  logo_url?: string;
+  variant_label?: string;
+  /** 源码检出型变体的仓库地址（自动克隆用） */
+  source_url?: string;
+  /** true = 该变体引用仓库内脚本，安装时后端自动克隆到工作目录 */
+  requires_checkout?: boolean;
+}
+
+export interface MCPGeneratedProfile {
+  description: string;
+  keywords: string[];
+  source_hash: string;
+  model: string;
+  generated_at: number;
+}
+
+// stdio 服务的本机运行时检测结果（后端 shutil.which 检测）
+export interface MCPRuntimeCheck {
+  command: string;
+  available: boolean;
+  resolved: string | null;
+  runtime: string;
+}
+
 export interface MCPConfig {
   config_id: string;
   name: string;
@@ -4350,6 +4393,26 @@ export interface MCPConfig {
   register_as_ai_tools: boolean;
   tools?: MCPToolDefinition[];
   tool_permissions?: Record<string, number>;
+  schema_version?: number;
+  description?: string;
+  market_meta?: MCPMarketMeta;
+  generated_profile?: MCPGeneratedProfile | null;
+  runtime_check?: MCPRuntimeCheck | null;
+  /** 需要用户逐人绑定的 env 凭据键（fail-closed：默认全 env） */
+  user_env_keys?: string[];
+  /** 首次把工具拨为 public 时的风险确认留痕 */
+  public_ack?: boolean;
+  /** 允许无人任务（定时/看板）以绑定凭据跑私有工具 */
+  allow_autonomous_private?: boolean;
+  /** 绑定引导自定义说明（拼在 BIND_GUIDE 尾部） */
+  bind_help?: string;
+  bind_url?: string;
+  /** 绑定命令可接受的服务别名（服务名之外） */
+  bind_alias?: string[];
+  /** stdio 子进程工作目录（源码检出型服务指向 clone 的仓库目录） */
+  cwd?: string;
+  /** 后端建议「配置值非凭据、可取消绑定」的 env key 提示徽章 */
+  suggest_shared_env_keys?: string[];
 }
 
 export interface MCPConfigListResponse {
@@ -4369,6 +4432,13 @@ export interface MCPConfigCreateData {
   register_as_ai_tools?: boolean;
   tools?: MCPToolDefinition[];
   tool_permissions?: Record<string, number>;
+  description?: string;
+  market_meta?: MCPMarketMeta;
+  user_env_keys?: string[];
+  bind_help?: string;
+  bind_url?: string;
+  bind_alias?: string[];
+  allow_autonomous_private?: boolean;
 }
 
 export interface MCPConfigUpdateData {
@@ -4383,6 +4453,13 @@ export interface MCPConfigUpdateData {
   register_as_ai_tools?: boolean;
   tools?: MCPToolDefinition[];
   tool_permissions?: Record<string, number>;
+  description?: string;
+  user_env_keys?: string[];
+  public_ack?: boolean;
+  allow_autonomous_private?: boolean;
+  bind_help?: string;
+  bind_url?: string;
+  bind_alias?: string[];
 }
 
 export interface MCPReloadResponse {
@@ -4494,6 +4571,9 @@ export const mcpConfigApi = {
     env?: Record<string, string>;
     url?: string;
     headers?: Record<string, string>;
+    /** 源码检出型变体：仓库地址，后端自动克隆到默认工作目录 */
+    source_url?: string;
+    requires_checkout?: boolean;
   }) => api.post<MCPDiscoverToolsResponse>('/api/ai/mcp/tools/discover', data),
 
   // �?JSON 导入 MCP 配置
@@ -4520,6 +4600,218 @@ export const mcpConfigApi = {
       `/api/ai/mcp-tools-config/${encodeURIComponent(itemKey)}`,
       data,
     ),
+
+  // 触发该服务的中文介绍 LLM 补全
+  generateProfile: (configId: string) =>
+    api.post<{ profile_status: string; scheduled: boolean }>(
+      `/api/ai/mcp/${encodeURIComponent(configId)}/generate-profile`,
+    ),
+
+  // 采纳生成的中文介绍到用户描述
+  adoptProfile: (configId: string) =>
+    api.post<MCPConfig>(`/api/ai/mcp/${encodeURIComponent(configId)}/adopt-profile`),
+
+  // ===================
+  // 用户凭据绑定
+  // ===================
+
+  // 该服务的全部用户绑定行（凭据只露掩码尾号）
+  getBindings: (configId: string) =>
+    api.get<MCPBindingsResponse>(`/api/ai/mcp/${encodeURIComponent(configId)}/bindings`),
+
+  // 用共享凭据值为勾选的主人身份批量落 admin_install 绑定
+  adminBind: (configId: string, pairs: MCPBindPair[]) =>
+    api.post<{ bound_count: number }>(`/api/ai/mcp/${encodeURIComponent(configId)}/bind`, {
+      pairs,
+    }),
+
+  // 吊销一条用户绑定
+  revokeBinding: (configId: string, botId: string, userId: string) =>
+    api.delete<{ revoked: boolean }>(
+      `/api/ai/mcp/${encodeURIComponent(configId)}/bindings/${encodeURIComponent(botId)}/${encodeURIComponent(userId)}`,
+    ),
+
+  // 订阅表「主人用户」候选（真实 master × bot 平台对，不去重）
+  getBindCandidates: () => api.get<MCPBindCandidatesResponse>('/api/ai/mcp/bind-candidates'),
+};
+
+export interface MCPBindPair {
+  bot_id: string;
+  user_id: string;
+}
+
+export interface MCPBindCandidate extends MCPBindPair {
+  bot_self_id: string;
+  user_name: string;
+}
+
+export interface MCPBindCandidatesResponse {
+  candidates: MCPBindCandidate[];
+  count: number;
+}
+
+export interface MCPBindingItem {
+  bot_id: string;
+  user_id: string;
+  bound_via: 'chat' | 'admin_install' | string;
+  status: string;
+  bound_at: number;
+  last_ok_at: number;
+  masked_creds: Record<string, string>;
+}
+
+export interface MCPBindingsResponse {
+  bindings: MCPBindingItem[];
+  count: number;
+}
+
+// ===================
+// MCP 市场（ModelScope 广场）
+// ===================
+
+export interface MCPMarketEntry {
+  qualified_name: string;
+  name: string;
+  chinese_name?: string;
+  description?: string;
+  categories?: string[];
+  author?: string;
+  logo_url?: string;
+  view_count?: number;
+  tags?: string[];
+  source?: string;
+}
+
+export interface MCPMarketVariant {
+  label?: string;
+  name?: string;
+  transport?: string;
+  command?: string;
+  args?: string[];
+  env?: Record<string, string>;
+  url?: string;
+  headers?: Record<string, string>;
+  /** true = 该 stdio 配置引用了仓库内脚本/占位路径，安装时后端自动克隆源码到默认工作目录 */
+  requires_checkout?: boolean;
+}
+
+export interface MCPMarketToolParam {
+  name: string;
+  type?: string;
+  required?: boolean;
+  description?: string;
+}
+
+export interface MCPMarketTool {
+  name: string;
+  description?: string;
+  params?: MCPMarketToolParam[];
+}
+
+export interface MCPMarketDetail extends MCPMarketEntry {
+  variants: MCPMarketVariant[];
+  default_variant?: number;
+  readme?: string;
+  source_url?: string;
+  is_hosted?: boolean;
+  is_verified?: boolean;
+  page_url?: string;
+  /** mcpmarket 源：认证方式中文说明 */
+  auth_help?: string;
+  /** mcpmarket 源：token 获取页 URL */
+  obtain_url?: string;
+  /** mcpmarket 源：env 变量的中文说明 */
+  env_hints?: Record<string, string>;
+  /** mcpmarket 源：工具清单（名称 + 中文说明 + 参数） */
+  tools?: MCPMarketTool[];
+}
+
+export interface MCPMarketListData {
+  entries: MCPMarketEntry[];
+  /** 可浏览总数（未配 token 时按上游匿名窗口截断） */
+  total: number;
+  /** 上游真实总数（不受窗口截断） */
+  upstream_total?: number;
+  page: number;
+  page_size: number;
+  degraded: boolean;
+  categories?: string[];
+  /** sort!=default 时本地排序只覆盖有限条数，true 表示上游还有更多未参与排序 */
+  truncated?: boolean;
+  /** true 表示未配 token，上游只允许浏览前 100 条 */
+  window_limited?: boolean;
+  /** true 表示可装性判定仍在后台进行，本页只是已完成部分，稍后自动刷新即完整 */
+  partial?: boolean;
+}
+
+export interface MCPMarketInstallPreview {
+  name: string;
+  transport: string;
+  command: string;
+  args: string[];
+  url: string;
+  headers: Record<string, string>;
+  env: Record<string, string>;
+  description: string;
+  market_meta: MCPMarketMeta;
+  tools?: MCPToolDefinition[];
+  env_required: string[];
+  runs_local_command: boolean;
+  requires_checkout?: boolean;
+  source_url?: string;
+  runtime_check?: MCPRuntimeCheck | null;
+  name_conflict: boolean;
+  /** 后端探活判死链的 http 变体 URL：前端隐藏这些安装方式/拦截安装 */
+  dead_urls?: string[];
+}
+
+export const mcpMarketApi = {
+  // 广场列表（搜索/筛选/排序/分页，上游不可达时 degraded + 预置回落）
+  list: (params: {
+    search?: string;
+    category?: string;
+    hosted?: boolean;
+    sort?: string;
+    source?: string;
+    page?: number;
+    page_size?: number;
+  }) => {
+    const query = new URLSearchParams();
+    if (params.search) query.set('search', params.search);
+    if (params.category) query.set('category', params.category);
+    if (params.hosted) query.set('hosted', 'true');
+    if (params.sort && params.sort !== 'default') query.set('sort', params.sort);
+    if (params.source && params.source !== 'all') query.set('source', params.source);
+    if (params.page) query.set('page', String(params.page));
+    if (params.page_size) query.set('page_size', String(params.page_size));
+    const suffix = query.toString() ? `?${query.toString()}` : '';
+    return api.get<MCPMarketListData>(`/api/ai/mcp/market/entries${suffix}`);
+  },
+
+  // 服务详情（含全部传输变体）
+  detail: (qualifiedName: string) =>
+    api.get<MCPMarketDetail>(`/api/ai/mcp/market/entries/${qualifiedName}`),
+
+  // 批量查询服务可用的传输方式（卡片徽章；详情缓存支撑）
+  transports: (qualifiedNames: string[]) =>
+    api.post<{ transports: Record<string, string[]> }>('/api/ai/mcp/market/transports', {
+      qualified_names: qualifiedNames,
+    }),
+
+  // 按选定变体生成安装草稿（不落盘）
+  installPreview: (qualifiedName: string, variantIndex = -1) =>
+    api.post<MCPMarketInstallPreview>('/api/ai/mcp/market/install-preview', {
+      qualified_name: qualifiedName,
+      variant_index: variantIndex,
+    }),
+
+  // 后端代理 logo URL（本地缓存；失败 404，前端 onError 兜底）。
+  // <img> 不走 ApiClient，必须像 getPluginIconUrl 一样把登录 token 拼进 query。
+  logoUrl: (upstream: string) => {
+    const base = `/api/ai/mcp/market/logo?u=${encodeURIComponent(upstream)}`;
+    const token = getAuthToken();
+    return resolveApiAssetUrl(token ? `${base}&token=${encodeURIComponent(token)}` : base);
+  },
 };
 
 // ===================
