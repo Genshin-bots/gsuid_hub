@@ -281,9 +281,7 @@ export function PersonaMemePackTab({
                 description={t('personaConfig.memeFrequencyHint')}
                 className="text-sm font-medium"
               />
-              <span className="shrink-0 text-xs font-semibold text-primary">
-                {tierLabel}
-              </span>
+              <span className="shrink-0 text-xs font-semibold text-primary">{tierLabel}</span>
             </div>
             <div className="flex items-center gap-3">
               <Input
@@ -295,7 +293,10 @@ export function PersonaMemePackTab({
                 max={100}
                 value={currentFreq}
                 onChange={(e) => {
-                  const num = Math.min(100, Math.max(0, parseInt(e.target.value.replace(/\D/g, '') || '0', 10)));
+                  const num = Math.min(
+                    100,
+                    Math.max(0, parseInt(e.target.value.replace(/\D/g, '') || '0', 10)),
+                  );
                   void handleFreqChange(num);
                 }}
                 className="h-9 w-20 shrink-0 px-2 text-center text-sm tabular-nums"
@@ -317,11 +318,11 @@ export function PersonaMemePackTab({
                     className={cn(
                       'h-9 rounded-md px-2.5 sm:px-3 text-xs transition-colors inline-flex items-center justify-center',
                       (val === 0 && currentFreq === 0) ||
-                      (val === 10 && currentFreq > 0 && currentFreq < 20) ||
-                      (val === 25 && currentFreq >= 20 && currentFreq < 40) ||
-                      (val === 50 && currentFreq >= 40 && currentFreq < 65) ||
-                      (val === 75 && currentFreq >= 65 && currentFreq < 85) ||
-                      (val === 100 && currentFreq >= 85)
+                        (val === 10 && currentFreq > 0 && currentFreq < 20) ||
+                        (val === 25 && currentFreq >= 20 && currentFreq < 40) ||
+                        (val === 50 && currentFreq >= 40 && currentFreq < 65) ||
+                        (val === 75 && currentFreq >= 65 && currentFreq < 85) ||
+                        (val === 100 && currentFreq >= 85)
                         ? 'bg-primary text-primary-foreground font-medium'
                         : 'bg-muted text-muted-foreground hover:bg-accent hover:text-foreground',
                     )}
@@ -357,7 +358,10 @@ export function PersonaMemePackTab({
                 max={3600}
                 value={currentCd}
                 onChange={(e) => {
-                  const num = Math.min(3600, Math.max(0, parseInt(e.target.value.replace(/\D/g, '') || '0', 10)));
+                  const num = Math.min(
+                    3600,
+                    Math.max(0, parseInt(e.target.value.replace(/\D/g, '') || '0', 10)),
+                  );
                   void handleCooldownChange(num);
                 }}
                 className="h-9 w-20 shrink-0 px-2 text-center text-sm tabular-nums"

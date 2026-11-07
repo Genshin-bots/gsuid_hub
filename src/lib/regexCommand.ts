@@ -66,10 +66,8 @@ function stripEscapeMeta(s: string): string {
       i++;
       while (i < s.length && s[i] !== '}') i++;
       i++;
-      continue;
     } else if ('*+^$'.includes(s[i])) {
       i++;
-      continue;
     } else {
       out += s[i];
       i++;

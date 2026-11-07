@@ -515,7 +515,7 @@ export default function BatchPushPage() {
           const start = el?.selectionStart ?? prev.length;
           const end = el?.selectionEnd ?? prev.length;
           const needLeadingNl = start > 0 && prev[start - 1] !== '\n';
-          const insert = (needLeadingNl ? '\n' : '') + placeholders.join('\n') + '\n';
+          const insert = `${(needLeadingNl ? '\n' : '') + placeholders.join('\n')}\n`;
           const { next, caret } = insertTextAt(prev, insert, start, end);
           caretAfter = caret;
           return next;

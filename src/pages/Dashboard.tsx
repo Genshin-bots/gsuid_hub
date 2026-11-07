@@ -308,7 +308,7 @@ export default function Dashboard() {
   const [dailyPersonalTriggers, setDailyPersonalTriggers] = useState<
     Array<Record<string, unknown>>
   >([]);
-  const [isLoadingDaily, setIsLoadingDaily] = useState(false);
+  const [_isLoadingDaily, setIsLoadingDaily] = useState(false);
 
   // Dynamic command list from API
   const [commandTypeList, setCommandTypeList] = useState<string[]>([]);
@@ -347,7 +347,7 @@ export default function Dashboard() {
         dag: Math.floor(Math.random() * 800) + 200,
         mau: Math.floor(Math.random() * 20000) + 5000,
         mag: Math.floor(Math.random() * 3000) + 500,
-        retention: (Math.random() * 30 + 60).toFixed(1) + '%',
+        retention: `${(Math.random() * 30 + 60).toFixed(1)}%`,
         newUsers: Math.floor(Math.random() * 300) + 50,
         churnedUsers: Math.floor(Math.random() * 100) + 20,
         // 按后端契约给「百分数本身」：dauMauRatio/dagMagRatio 是 rstrip 掉 % 的 DAU_MAU/DAG_MAG，
@@ -419,8 +419,12 @@ export default function Dashboard() {
     const onError = (reason: unknown) => console.error('Failed to fetch daily data:', reason);
     const commandRows = unwrapSettledRows<DailyCommandData>(commands, onError);
     // 触发统计的键是原始命令关键字，先统一简化再进图；命令排行保留原值给 tooltip
-    const groupRows = simplifyTriggerRows(unwrapSettledRows<Record<string, unknown>>(groupTriggers, onError));
-    const personalRows = simplifyTriggerRows(unwrapSettledRows<Record<string, unknown>>(personalTriggers, onError));
+    const groupRows = simplifyTriggerRows(
+      unwrapSettledRows<Record<string, unknown>>(groupTriggers, onError),
+    );
+    const personalRows = simplifyTriggerRows(
+      unwrapSettledRows<Record<string, unknown>>(personalTriggers, onError),
+    );
 
     setDailyCommandUsage(commandRows);
     setDailyGroupTriggers(groupRows);

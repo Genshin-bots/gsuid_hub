@@ -50,7 +50,7 @@ import {
 } from '@/components/ui/TabButtonGroup';
 import { SearchableMenu } from '@/components/ui/searchable-menu';
 import { PluginUsageBar } from '@/components/plugins/PluginUsageBar';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { TruncatedText } from '@/components/ui/truncated-text';
 import {
   Search,
@@ -73,9 +73,9 @@ import {
 import {
   databaseApi,
   getApiErrorMessage,
-  PluginDatabaseInfo,
-  DatabaseTableInfo,
-  PaginatedData,
+  type PluginDatabaseInfo,
+  type DatabaseTableInfo,
+  type PaginatedData,
 } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -193,7 +193,7 @@ export default function DatabasePage() {
   const [isImporting, setIsImporting] = useState(false);
   const importInputRef = useRef<HTMLInputElement>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [perPage, setPerPage] = useState(20);
+  const [perPage, _setPerPage] = useState(20);
   // 移动端卡片行展开态，key 为主键值
   const [expandedRowKeys, setExpandedRowKeys] = useState<Set<string>>(new Set());
 
@@ -664,8 +664,7 @@ export default function DatabasePage() {
                 plugins={plugins.map((plugin) => ({
                   id: plugin.plugin_id,
                   name: plugin.plugin_name,
-                  iconName:
-                    plugin.plugin_name === '核心功能' ? 'gsuid_core' : plugin.plugin_name,
+                  iconName: plugin.plugin_name === '核心功能' ? 'gsuid_core' : plugin.plugin_name,
                 }))}
                 value={selectedPluginId}
                 onValueChange={setSelectedPluginId}
@@ -748,19 +747,14 @@ export default function DatabasePage() {
                       onClick={handleSearch}
                       disabled={isSearching}
                       title={t('database.search')}
-                      className={cn(
-                        tabToolbarIconButtonClass,
-                        'shrink-0 md:w-auto md:px-3',
-                      )}
+                      className={cn(tabToolbarIconButtonClass, 'shrink-0 md:w-auto md:px-3')}
                     >
                       {isSearching ? (
                         <RefreshCw className="h-4 w-4 animate-spin" />
                       ) : (
                         <Search className="h-4 w-4" />
                       )}
-                      <span className="hidden md:ml-1 md:inline">
-                        {t('database.search')}
-                      </span>
+                      <span className="hidden md:ml-1 md:inline">{t('database.search')}</span>
                     </Button>
                   </div>
                 </div>
@@ -948,8 +942,7 @@ export default function DatabasePage() {
                   tableRows.map((item, index) => {
                     const rowKey = String(item[pkName] ?? index);
                     const isRowExpanded = expandedRowKeys.has(rowKey);
-                    const headerCol =
-                      columns.find((col) => col.name === pkName) ?? columns[0];
+                    const headerCol = columns.find((col) => col.name === pkName) ?? columns[0];
                     const fieldCols = columns.filter((col) => col !== headerCol);
                     const visibleCols = isRowExpanded ? fieldCols : fieldCols.slice(0, 4);
                     const hiddenCount = fieldCols.length - visibleCols.length;
@@ -969,18 +962,10 @@ export default function DatabasePage() {
                             </div>
                           )}
                           <div className="flex shrink-0 gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleEdit(item)}
-                            >
+                            <Button variant="ghost" size="icon" onClick={() => handleEdit(item)}>
                               <Pencil className="h-4 w-4" />
                             </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleDelete(item)}
-                            >
+                            <Button variant="ghost" size="icon" onClick={() => handleDelete(item)}>
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
@@ -997,9 +982,7 @@ export default function DatabasePage() {
                                     className="text-xs text-muted-foreground"
                                   />
                                   {isBool ? (
-                                    <Badge
-                                      variant={cellValue ? 'default' : 'secondary'}
-                                    >
+                                    <Badge variant={cellValue ? 'default' : 'secondary'}>
                                       {cellValue ? t('database.yes') : t('database.no')}
                                     </Badge>
                                   ) : (
@@ -1131,7 +1114,7 @@ export default function DatabasePage() {
                               col.name,
                               isNumber
                                 ? col.type === 'int'
-                                  ? parseInt(e.target.value) || 0
+                                  ? parseInt(e.target.value, 10) || 0
                                   : parseFloat(e.target.value) || 0
                                 : e.target.value,
                             )

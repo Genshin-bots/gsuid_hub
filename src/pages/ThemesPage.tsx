@@ -12,7 +12,6 @@ import {
   tabToolbarIconButtonClass,
 } from '@/components/ui/TabButtonGroup';
 import { KeptPane } from '@/components/ui/KeptPane';
-import { FieldMountBudget, useProgressiveCount } from '@/components/config/fieldMountBudget';
 import {
   Dialog,
   DialogContent,
@@ -45,7 +44,6 @@ import {
   Sparkles,
   Upload,
   Link,
-  X,
   Blend,
   Paintbrush,
   Layers,
@@ -324,46 +322,6 @@ function BgThumb({ active, onClick, label, children }: BgThumbProps) {
 function thumbSrc(url: string): string {
   if (!url.includes('images.unsplash.com')) return url;
   return url.replace(/([?&])w=\d+/, '$1w=480').replace(/([?&])q=\d+/, '$1q=60');
-}
-
-function PresetThumbGrid({
-  items,
-  activeValue,
-  onSelect,
-  labelOf,
-}: {
-  items: ReadonlyArray<{ id: string; name: string; value: string }>;
-  activeValue: string | null;
-  onSelect: (value: string) => void;
-  labelOf: (name: string) => string;
-}) {
-  const count = useProgressiveCount(items.length);
-  return (
-    <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
-      {items.slice(0, count).map((bg) => {
-        const gradient = bg.value.startsWith('linear-gradient');
-        return (
-          <BgThumb
-            key={bg.id}
-            active={activeValue === bg.value}
-            onClick={() => onSelect(bg.value)}
-            label={labelOf(bg.name)}
-          >
-            {gradient ? (
-              <div className="w-full h-full" style={{ background: bg.value }} />
-            ) : (
-              <img
-                src={thumbSrc(bg.value)}
-                alt={labelOf(bg.name)}
-                className="w-full h-full object-cover"
-                decoding="async"
-              />
-            )}
-          </BgThumb>
-        );
-      })}
-    </div>
-  );
 }
 
 interface PresetOption {

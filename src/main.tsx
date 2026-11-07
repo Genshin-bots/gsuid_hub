@@ -64,7 +64,9 @@ if (import.meta.env.VITE_DEMO) {
     } catch {
       // 退而求其次：至少清掉主题相关键，避免跨刷新残留。
       try {
-        THEME_KEYS.forEach((k) => window[name].removeItem(k));
+        THEME_KEYS.forEach((k) => {
+          window[name].removeItem(k);
+        });
       } catch {
         /* ignore */
       }
@@ -83,7 +85,7 @@ if (import.meta.env.VITE_DEMO) {
     // （如 AI 记忆力导图）停掉自己的 JS 动画，避免离屏面板抢主线程拖累滚动。
     window.addEventListener('message', (ev) => {
       const d = ev.data;
-      if (!d || d.source !== 'gshub-docs' || d.type !== 'embed-visibility') return;
+      if (d?.source !== 'gshub-docs' || d.type !== 'embed-visibility') return;
       const hidden = d.visible === false;
       document.documentElement.classList.toggle('embed-hidden', hidden);
       window.dispatchEvent(

@@ -8,6 +8,11 @@
   "files": {
     "includes": ["src/**", "scripts/**", "vite.config.ts", "vitest.config.ts", "eslint.config.js"]
   },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
+  },
   "formatter": {
     "enabled": true,
     "indentStyle": "space",
@@ -26,7 +31,12 @@
     "rules": {
       "recommended": true,
       "suspicious": {
-        "noExplicitAny": "off"
+        "noExplicitAny": "off",
+        "noArrayIndexKey": "warn",
+        "noUnknownAtRules": "off"
+      },
+      "security": {
+        "noDangerouslySetInnerHtml": "warn"
       },
       "style": {
         "noNonNullAssertion": "off"
@@ -34,7 +44,13 @@
       "a11y": {
         "useKeyWithClickEvents": "off",
         "noSvgWithoutTitle": "off",
-        "noLabelWithoutControl": "off"
+        "noLabelWithoutControl": "off",
+        "noStaticElementInteractions": "warn",
+        "useSemanticElements": "warn",
+        "useButtonType": "warn",
+        "useMediaCaption": "warn",
+        "useFocusableInteractive": "warn",
+        "useAriaPropsForRole": "warn"
       },
       "correctness": {
         "useExhaustiveDependencies": "off"

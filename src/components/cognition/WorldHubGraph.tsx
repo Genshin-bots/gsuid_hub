@@ -202,7 +202,7 @@ export function WorldHubGraph({
       context.beginPath();
       context.roundRect(data.x - boxW / 2, data.y - boxH / 2, boxW, boxH, 4);
       context.fill();
-      context.fillStyle = (settings.labelColor && settings.labelColor.color) || palette.label;
+      context.fillStyle = settings.labelColor?.color || palette.label;
       context.textAlign = 'center';
       context.textBaseline = 'middle';
       context.fillText(data.label, data.x, data.y);
@@ -450,7 +450,7 @@ export function WorldHubGraph({
   const focusNode = useCallback((nodeId: string, options?: { closeResults?: boolean }) => {
     const renderer = sigmaRef.current;
     const graph = graphRef.current;
-    if (!renderer || !graph || !graph.hasNode(nodeId)) return;
+    if (!renderer || !graph?.hasNode(nodeId)) return;
     focusedRef.current = nodeId;
     setFocusedNodeId(nodeId);
     if (options?.closeResults) setNodeSearchQuery('');

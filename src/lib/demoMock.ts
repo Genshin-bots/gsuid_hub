@@ -2873,7 +2873,7 @@ export const generateProviderList = () => ({
   default_provider: 'anthropic',
 });
 export const generateTaskConfig = (task: string) => {
-  const all = DEMO_PROVIDERS.flatMap((p) =>
+  const _all = DEMO_PROVIDERS.flatMap((p) =>
     p.presets.map((m) => ({ provider: p.provider, model_name: m })),
   );
   return {

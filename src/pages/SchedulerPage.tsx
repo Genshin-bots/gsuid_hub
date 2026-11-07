@@ -30,9 +30,8 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
-  History,
 } from 'lucide-react';
-import { format, addHours, addMinutes, addDays } from 'date-fns';
+import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { schedulerApi, type SchedulerJobsMeta } from '@/lib/api';
 import { resolveSchedulerJobsView } from '@/lib/featureUtils';

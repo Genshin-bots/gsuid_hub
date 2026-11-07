@@ -70,7 +70,11 @@ export function TargetInfoCard({ open, onOpenChange, info, loading }: TargetInfo
             <div className="mb-3 flex items-center gap-3 border-b border-border/60 pb-3">
               <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted text-sm">
                 {info?.avatar ? (
-                  <img src={assetUrl(info.avatar)} alt={info.name} className="h-full w-full object-cover" />
+                  <img
+                    src={assetUrl(info.avatar)}
+                    alt={info.name}
+                    className="h-full w-full object-cover"
+                  />
                 ) : (
                   (info?.name ?? '?').slice(0, 1)
                 )}

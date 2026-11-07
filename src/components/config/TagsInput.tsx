@@ -1,4 +1,5 @@
-import React, { useState, useRef, useLayoutEffect, useEffect, useCallback } from 'react';
+import type React from 'react';
+import { useState, useRef, useLayoutEffect, useEffect, useCallback } from 'react';
 import { X, Search, Plus, Copy, Check } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
@@ -32,7 +33,7 @@ export const TagsInput: React.FC<TagsInputProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const _inputRef = useRef<HTMLInputElement>(null);
   const popoverInputRef = useRef<HTMLInputElement>(null);
 
   const listValue = Array.isArray(value) ? value : [];
@@ -93,7 +94,7 @@ export const TagsInput: React.FC<TagsInputProps> = ({
       result += char;
       currentWidth += charWidth;
     }
-    return result + '...';
+    return `${result}...`;
   };
 
   // 过滤已添加的标签（支持搜索）
@@ -126,7 +127,12 @@ export const TagsInput: React.FC<TagsInputProps> = ({
   const moreBtnRef = useRef<HTMLButtonElement>(null);
   const gaugeRef = useRef<HTMLDivElement>(null);
   const badgeRef = useRef<HTMLDivElement>(null);
-  const [metrics, setMetrics] = useState({ rail: 0, tailExtra: 0, badge: 0, widths: [] as number[] });
+  const [metrics, setMetrics] = useState({
+    rail: 0,
+    tailExtra: 0,
+    badge: 0,
+    widths: [] as number[],
+  });
 
   // avail = 胶囊可用总宽 = rail 现宽 + 徽标在尾部的占位（tail - 更多按钮）。
   // rail 是 flex-1 让位后的剩余，徽标渲染时 rail 已被扣掉它——必须以「rail + 徽标占位」

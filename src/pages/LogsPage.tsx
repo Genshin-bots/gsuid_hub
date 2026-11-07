@@ -229,7 +229,7 @@ export default function LogsPage() {
   const [debugCount, setDebugCount] = useState(0);
 
   // 增量更新相关状态
-  const [lastLogId, setLastLogId] = useState<number | null>(null);
+  const [_lastLogId, setLastLogId] = useState<number | null>(null);
   const [hasNewLogs, setHasNewLogs] = useState(false);
 
   // 上下文查看相关状态

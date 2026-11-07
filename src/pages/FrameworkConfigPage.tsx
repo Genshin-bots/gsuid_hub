@@ -3,13 +3,8 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useConfigDirty } from '@/contexts/ConfigDirtyContext';
 import { cn } from '@/lib/utils';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import {
   Select,
   SelectContent,
@@ -21,11 +16,11 @@ import { TabButtonGroup, tabToolbarControlClass } from '@/components/ui/TabButto
 import { Settings, Loader2, Save, Cpu } from 'lucide-react';
 import {
   ConfigField,
-  ConfigFieldDefinition,
-  ConfigValue,
-  ConfigFieldType,
+  type ConfigFieldDefinition,
+  type ConfigValue,
+  type ConfigFieldType,
 } from '@/components/config';
-import { frameworkConfigApi, PluginConfigItem, FrameworkConfigListItem } from '@/lib/api';
+import { frameworkConfigApi, type PluginConfigItem, type FrameworkConfigListItem } from '@/lib/api';
 import { toast } from 'sonner';
 import ImageUploadPage from '@/pages/ImageUploadPage';
 import DatabaseConfigPage from '@/pages/DatabaseConfigPage';
@@ -122,9 +117,9 @@ const FRAMEWORK_CONFIG_NAME_I18N_KEYS: Record<string, string> = {
 
 export default function FrameworkConfigPage() {
   const { style } = useTheme();
-  const isGlass = style !== 'solid';
+  const _isGlass = style !== 'solid';
   const { t } = useLanguage();
-  const { isDirty, setDirty } = useConfigDirty();
+  const { setDirty } = useConfigDirty();
   const [configList, setConfigList] = useState<FrameworkConfigListItem[]>([]);
   const [configs, setConfigs] = useState<LocalFrameworkConfig[]>([]);
   const [selectedConfigId, setSelectedConfigId] = useState<string>('');
@@ -304,7 +299,7 @@ export default function FrameworkConfigPage() {
       setOriginalConfig(JSON.parse(JSON.stringify(currentConfig.config)));
       setDirty(false);
       toast.success(t('frameworkConfig.configSaved'));
-    } catch (error) {
+    } catch (_error) {
       toast.error(t('frameworkConfig.saveFailed') || 'Failed to update framework configuration');
     } finally {
       setIsSaving(false);

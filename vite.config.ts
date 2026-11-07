@@ -1,8 +1,8 @@
-import { defineConfig, type Plugin, type ViteDevServer } from 'vite';
+import { defineConfig, type Plugin, type ResolvedConfig, type ViteDevServer } from 'vite';
 import react from '@vitejs/plugin-react-swc';
-import path from 'path';
+import path from 'node:path';
 import { componentTagger } from 'lovable-tagger';
-import fs from 'fs';
+import fs from 'node:fs';
 import { precompressDist } from './src/lib/staticAssets';
 
 // 读取 package.json 获取版本号
@@ -25,7 +25,7 @@ function hubFontsPlugin(isDemo: boolean): Plugin {
   let outDir = '';
   return {
     name: 'hub-fonts',
-    configResolved(config) {
+    configResolved(config: ResolvedConfig) {
       outDir = path.resolve(config.root, config.build.outDir);
     },
     configureServer(server) {
@@ -130,7 +130,7 @@ function pluginSdkDevPlugin(): Plugin {
 //   · 167 个图标打包后：~1.18MB → ~360KB（-69%）。
 // ============================================================================
 
-const THESVG_PREFIX = `${path.resolve(__dirname, 'node_modules/@thesvg/react/dist')}`;
+const _THESVG_PREFIX = `${path.resolve(__dirname, 'node_modules/@thesvg/react/dist')}`;
 
 function stripThesvgVariantsPlugin() {
   return {
@@ -265,16 +265,16 @@ function parseVariants(code: string): Record<string, unknown> | null {
 
   let depth = 0;
   let inStr = false;
-  let escape = false;
+  let escaped = false;
   const startBrace = i;
   for (; i < code.length; i++) {
     const ch = code[i];
-    if (escape) {
-      escape = false;
+    if (escaped) {
+      escaped = false;
       continue;
     }
     if (inStr) {
-      if (ch === '\\') escape = true;
+      if (ch === '\\') escaped = true;
       else if (ch === '"') inStr = false;
       continue;
     }
@@ -359,7 +359,7 @@ export default defineConfig(({ command, mode }) => {
         let outDir = '';
         return {
           name: 'generate-version-json',
-          configResolved(config) {
+          configResolved(config: ResolvedConfig) {
             outDir = path.resolve(config.root, config.build.outDir);
           },
           closeBundle() {
@@ -399,7 +399,7 @@ export default defineConfig(({ command, mode }) => {
           let outDir = '';
           return {
             name: 'copy-demo-assets',
-            configResolved(config) {
+            configResolved(config: ResolvedConfig) {
               outDir = path.resolve(config.root, config.build.outDir);
             },
             closeBundle() {
@@ -419,7 +419,7 @@ export default defineConfig(({ command, mode }) => {
         return {
           name: 'precompress-static',
           apply: 'build' as const,
-          configResolved(config) {
+          configResolved(config: ResolvedConfig) {
             outDir = path.resolve(config.root, config.build.outDir);
           },
           async closeBundle() {

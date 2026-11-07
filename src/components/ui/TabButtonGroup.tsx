@@ -251,10 +251,7 @@ function TabSegmentDropdownItem({
 
           {/* ▾ 槽位绝对定位，不占内容宽度 */}
           <div className={cn('absolute inset-y-0 right-0 flex items-stretch', chevronFlowClass)}>
-            <span
-              className={cn('my-1.5 w-px shrink-0 self-stretch', dividerClass)}
-              aria-hidden
-            />
+            <span className={cn('my-1.5 w-px shrink-0 self-stretch', dividerClass)} aria-hidden />
 
             {/* 仅箭头触发下拉 */}
             <PopoverTrigger asChild disabled={isDisabled}>

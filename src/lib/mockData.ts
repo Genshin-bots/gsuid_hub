@@ -21,10 +21,10 @@ export const mockBotList = [
 ];
 
 // #TODO: Fetch key metrics from backend API
-export const generateKeyMetrics = (botId: string = 'all') => ({
+export const generateKeyMetrics = (_botId: string = 'all') => ({
   dau: Math.floor(Math.random() * 5000) + 1000, // Daily Active Users
   dag: Math.floor(Math.random() * 800) + 200, // Daily Active Groups
-  retention: (Math.random() * 30 + 60).toFixed(1) + '%', // User Retention
+  retention: `${(Math.random() * 30 + 60).toFixed(1)}%`, // User Retention
   newUsers: Math.floor(Math.random() * 300) + 50, // New Users
   churnedUsers: Math.floor(Math.random() * 100) + 20, // Churned Users
   mau: Math.floor(Math.random() * 20000) + 5000, // Monthly Active Users
@@ -36,7 +36,7 @@ export const generateKeyMetrics = (botId: string = 'all') => ({
 });
 
 // #TODO: Fetch monthly command data from backend API
-export const generateMonthlyCommandData = (botId: string = 'all') => {
+export const generateMonthlyCommandData = (_botId: string = 'all') => {
   const data = [];
   const now = new Date();
   for (let i = 29; i >= 0; i--) {
@@ -54,7 +54,7 @@ export const generateMonthlyCommandData = (botId: string = 'all') => {
 };
 
 // #TODO: Fetch monthly user and group data from backend API
-export const generateMonthlyUserGroupData = (botId: string = 'all') => {
+export const generateMonthlyUserGroupData = (_botId: string = 'all') => {
   const data = [];
   const now = new Date();
   for (let i = 29; i >= 0; i--) {
@@ -70,7 +70,7 @@ export const generateMonthlyUserGroupData = (botId: string = 'all') => {
 };
 
 // #TODO: Fetch daily command usage data from backend API
-export const generateDailyCommandUsage = (botId: string = 'all', date: string) => {
+export const generateDailyCommandUsage = (_botId: string = 'all', _date: string) => {
   const commands = [
     '/start',
     '/help',
@@ -115,7 +115,7 @@ export { COMMAND_COLOR_OVERRIDES as commandColors, getCommandColor } from '@/lib
 
 // #TODO: Fetch daily group command triggers from backend API
 // Returns stacked data format for different commands per group
-export const generateDailyGroupCommandTriggers = (botId: string = 'all', date: string) => {
+export const generateDailyGroupCommandTriggers = (_botId: string = 'all', _date: string) => {
   const groups = [
     '群组 A',
     '群组 B',
@@ -140,7 +140,7 @@ export const generateDailyGroupCommandTriggers = (botId: string = 'all', date: s
 
 // #TODO: Fetch daily personal command triggers from backend API
 // Returns stacked data format for different commands per user
-export const generateDailyPersonalCommandTriggers = (botId: string = 'all', date: string) => {
+export const generateDailyPersonalCommandTriggers = (_botId: string = 'all', _date: string) => {
   const users = [
     '748203226',
     '1098345874',
@@ -384,7 +384,7 @@ export const generateLogs = () => {
       timestamp: time.toISOString(),
       details:
         level === 'error'
-          ? { stack: 'Error: ' + message + '\n    at Function.execute (/app/src/index.ts:42:15)' }
+          ? { stack: `Error: ${message}\n    at Function.execute (/app/src/index.ts:42:15)` }
           : undefined,
     });
   }

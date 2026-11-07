@@ -1,9 +1,9 @@
-import React, {
+import {
   createContext,
   useContext,
   useState,
   useEffect,
-  ReactNode,
+  type ReactNode,
   useCallback,
   useMemo,
 } from 'react';
@@ -93,7 +93,7 @@ const LANGUAGE_STORAGE_KEY = 'gsuid_hub_language';
 // 工具函数：获取嵌套属性
 // ============================================================================
 
-function getNestedValue(obj: Record<string, unknown>, path: string): string {
+function _getNestedValue(obj: Record<string, unknown>, path: string): string {
   const keys = path.split('.');
   let current: unknown = obj;
 

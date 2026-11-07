@@ -80,7 +80,7 @@ import { PinnedPage } from '@/components/layout/PinnedPage';
 export default function AIScheduledTasksPage() {
   const { style } = useTheme();
   const { t } = useLanguage();
-  const isGlass = style !== 'solid';
+  const _isGlass = style !== 'solid';
 
   // 状态
   const [tasks, setTasks] = useState<AIScheduledTask[]>([]);
@@ -210,7 +210,7 @@ export default function AIScheduledTasksPage() {
       toast.success(t('aiScheduledTasks.pauseSuccess'));
       fetchTasks();
       fetchStats();
-    } catch (err) {
+    } catch (_err) {
       toast.error(t('aiScheduledTasks.pauseFailed'));
     }
   };
@@ -222,7 +222,7 @@ export default function AIScheduledTasksPage() {
       toast.success(t('aiScheduledTasks.resumeSuccess'));
       fetchTasks();
       fetchStats();
-    } catch (err) {
+    } catch (_err) {
       toast.error(t('aiScheduledTasks.resumeFailed'));
     }
   };
@@ -297,7 +297,7 @@ export default function AIScheduledTasksPage() {
       resetForm();
       fetchTasks();
       fetchStats();
-    } catch (err) {
+    } catch (_err) {
       toast.error(t('aiScheduledTasks.createFailed'));
     } finally {
       setIsSaving(false);
@@ -318,7 +318,7 @@ export default function AIScheduledTasksPage() {
       setSelectedTask(null);
       resetForm();
       fetchTasks();
-    } catch (err) {
+    } catch (_err) {
       toast.error(t('aiScheduledTasks.updateFailed'));
     } finally {
       setIsSaving(false);
@@ -777,7 +777,10 @@ export default function AIScheduledTasksPage() {
                       min={1}
                       value={formData.interval_value}
                       onChange={(e) =>
-                        setFormData({ ...formData, interval_value: parseInt(e.target.value) || 1 })
+                        setFormData({
+                          ...formData,
+                          interval_value: parseInt(e.target.value, 10) || 1,
+                        })
                       }
                       className="flex-1"
                     />
@@ -793,7 +796,7 @@ export default function AIScheduledTasksPage() {
                     onChange={(e) =>
                       setFormData({
                         ...formData,
-                        max_executions: e.target.value ? parseInt(e.target.value) : undefined,
+                        max_executions: e.target.value ? parseInt(e.target.value, 10) : undefined,
                       })
                     }
                   />
@@ -809,7 +812,7 @@ export default function AIScheduledTasksPage() {
                     setFormData({
                       ...formData,
                       run_time: e.target.value
-                        ? e.target.value.replace('T', ' ') + ':00'
+                        ? `${e.target.value.replace('T', ' ')}:00`
                         : undefined,
                     })
                   }
@@ -870,7 +873,7 @@ export default function AIScheduledTasksPage() {
                 onChange={(e) =>
                   setFormData({
                     ...formData,
-                    max_executions: e.target.value ? parseInt(e.target.value) : undefined,
+                    max_executions: e.target.value ? parseInt(e.target.value, 10) : undefined,
                   })
                 }
               />

@@ -1,33 +1,29 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
 import {
   Loader2,
   Save,
-  Settings,
   Layout,
   FileText,
   List,
-  Columns,
   ToggleLeft,
   ToggleRight,
   SplitSquareHorizontal,
   Cog,
 } from 'lucide-react';
-import { frameworkConfigApi, FrameworkConfigListItem, PluginConfigItem } from '@/lib/api';
+import { frameworkConfigApi, type FrameworkConfigListItem, type PluginConfigItem } from '@/lib/api';
 import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useConfigDirty } from '@/contexts/ConfigDirtyContext';
 import { cn } from '@/lib/utils';
 import {
   ConfigField,
-  ConfigFieldDefinition,
-  ConfigFieldType,
-  ConfigValue,
+  type ConfigFieldDefinition,
+  type ConfigFieldType,
+  type ConfigValue,
 } from '@/components/config';
 
 // 平台配置接口 - 适配后端返回的 gsliststr 类型
@@ -126,7 +122,7 @@ const getPlatformsFromOptions = (options: string[]) => {
 export default function ButtonMarkdownSettings() {
   const { t } = useLanguage();
   const { setDirty } = useConfigDirty();
-  const [configList, setConfigList] = useState<FrameworkConfigListItem[]>([]);
+  const [_configList, setConfigList] = useState<FrameworkConfigListItem[]>([]);
   const [configs, setConfigs] = useState<LocalButtonMarkdownConfig[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
@@ -423,7 +419,7 @@ export default function ButtonMarkdownSettings() {
       setOriginalRawConfig(JSON.parse(JSON.stringify(buttonMdConfig.rawConfig)));
       setDirty(false);
       toast.success(t('buttonMdConfig.configSaved'));
-    } catch (error) {
+    } catch (_error) {
       toast.error(
         t('buttonMdConfig.saveFailed') || 'Failed to update button markdown configuration',
       );

@@ -52,10 +52,10 @@ import {
   gitUpdateApi,
   gitMirrorApi,
   pluginsApi,
-  GitPluginStatus,
-  GitCommitInfo,
-  GitCommitListResponse,
-  GitPluginInfo,
+  type GitPluginStatus,
+  type GitCommitInfo,
+  type GitCommitListResponse,
+  type GitPluginInfo,
 } from '@/lib/api';
 import {
   Table,
@@ -117,7 +117,9 @@ function clearCommitsCache(pluginName?: string) {
         keysToRemove.push(key);
       }
     }
-    keysToRemove.forEach((k) => localStorage.removeItem(k));
+    keysToRemove.forEach((k) => {
+      localStorage.removeItem(k);
+    });
   }
 }
 
@@ -343,7 +345,7 @@ const CommitRow = memo(function CommitRow({
 export default function GitUpdatePage() {
   const { t } = useLanguage();
   const { style } = useTheme();
-  const isGlass = style !== 'solid';
+  const _isGlass = style !== 'solid';
   const isMobile = useIsMobile();
 
   // State
@@ -367,7 +369,7 @@ export default function GitUpdatePage() {
   // 更新全部插件相关状态
   const [updateAllDialogOpen, setUpdateAllDialogOpen] = useState(false);
   const [updateAllPanelOpen, setUpdateAllPanelOpen] = useState(false);
-  const [isUpdatingAll, setIsUpdatingAll] = useState(false);
+  const [_isUpdatingAll, setIsUpdatingAll] = useState(false);
   type PluginUpdateStatus = 'pending' | 'updating' | 'success' | 'failed';
   interface PluginUpdateItem {
     name: string;
@@ -872,7 +874,7 @@ export default function GitUpdatePage() {
       }
     >
       {/* Current Status */}
-      {currentPlugin && currentPlugin.current_commit && (
+      {currentPlugin?.current_commit && (
         <Card className="glass-card">
           <CardHeader className="pb-3">
             <CardTitle className="text-base sm:text-lg flex items-center gap-2">

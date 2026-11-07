@@ -90,7 +90,9 @@ export function AutonomyFilters(props: AutonomyPanelProps) {
     // ≥768 回到原样（下拉固定 200px，行右对齐）。
     <div className="flex w-full min-w-0 flex-wrap items-center justify-start gap-2 md:w-auto md:min-w-auto md:justify-end">
       <Select value={personaName} onValueChange={onPersonaNameChange}>
-        <SelectTrigger className={cn(tabToolbarControlClass, 'w-full min-w-0 flex-1 md:w-[200px] md:flex-none')}>
+        <SelectTrigger
+          className={cn(tabToolbarControlClass, 'w-full min-w-0 flex-1 md:w-[200px] md:flex-none')}
+        >
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -256,7 +258,9 @@ export function AutonomyPanel(props: AutonomyPanelProps) {
                           <TableCell className="max-w-[360px]">
                             <TruncatedText text={row.summary || t('aiAutonomy.noSummary')} />
                           </TableCell>
-                          <TableCell className="text-right tabular-nums">{row.step_count}</TableCell>
+                          <TableCell className="text-right tabular-nums">
+                            {row.step_count}
+                          </TableCell>
                         </TableRow>
                       ))
                     )}

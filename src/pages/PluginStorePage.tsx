@@ -1,12 +1,5 @@
 import { useState, useMemo, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardFooter,
-} from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -142,7 +135,6 @@ const buildRawUrl = (
       return `https://raw.gitcode.com/${owner}/${repo}/raw/${branch}/${path}`;
     case 'ghproxy':
       return `https://ghproxy.com/https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${path}`;
-    case 'github':
     default:
       return `https://raw.githubusercontent.com/${owner}/${repo}/refs/heads/${branch}/${path}`;
   }
@@ -483,8 +475,7 @@ export default function PluginStorePage() {
     );
   };
 
-  const isPluginBusy = (pluginId: string) =>
-    actionLoading?.startsWith(`${pluginId}:`) ?? false;
+  const isPluginBusy = (pluginId: string) => actionLoading?.startsWith(`${pluginId}:`) ?? false;
   const isPluginAction = (pluginId: string, action: string) =>
     actionLoading === `${pluginId}:${action}`;
 
@@ -499,7 +490,7 @@ export default function PluginStorePage() {
       // 清除缓存，确保下次进入页面数据一致
       clearPluginCache();
       localStorage.removeItem(GIT_MIRROR_CACHE_KEY);
-    } catch (error) {
+    } catch (_error) {
       toast.error(t('pluginStore.installError'));
     } finally {
       setActionLoading(null);
@@ -516,7 +507,7 @@ export default function PluginStorePage() {
       patchPlugin(pluginId, { hasUpdate: false });
       // 清除缓存，确保下次进入页面数据一致
       clearPluginCache();
-    } catch (error) {
+    } catch (_error) {
       toast.error(t('pluginStore.updateError'));
     } finally {
       setActionLoading(null);
@@ -543,7 +534,7 @@ export default function PluginStorePage() {
         // 清除缓存，确保下次进入页面数据一致
         clearPluginCache();
         localStorage.removeItem(GIT_MIRROR_CACHE_KEY);
-      } catch (error) {
+      } catch (_error) {
         toast.error(t('pluginStore.uninstallError'));
       } finally {
         setActionLoading(null);
@@ -670,7 +661,6 @@ export default function PluginStorePage() {
           `https://ghproxy.com/https://raw.githubusercontent.com/${owner}/${repo}/main/README.md`,
         );
         break;
-      case 'github':
       default:
         // Direct raw.githubusercontent.com format
         urls.push(`https://raw.githubusercontent.com/${owner}/${repo}/refs/heads/master/README.md`);
@@ -852,12 +842,12 @@ export default function PluginStorePage() {
                 : activeTab === 'installed'
                   ? t('pluginStore.noInstalledPlugins')
                   : activeTab === 'fun'
-                      ? t('pluginStore.noFunPlugins')
-                      : activeTab === 'tool'
-                        ? t('pluginStore.noToolPlugins')
-                        : activeTab === 'adapter'
-                          ? t('pluginStore.noAdapterPlugins')
-                          : t('pluginStore.noPlugins')}
+                    ? t('pluginStore.noFunPlugins')
+                    : activeTab === 'tool'
+                      ? t('pluginStore.noToolPlugins')
+                      : activeTab === 'adapter'
+                        ? t('pluginStore.noAdapterPlugins')
+                        : t('pluginStore.noPlugins')}
             </p>
             {searchQuery && <p className="text-sm">{t('pluginStore.adjustSearchKeywords')}</p>}
           </CardContent>
@@ -926,7 +916,7 @@ export default function PluginStorePage() {
                           {plugin.installed &&
                             (() => {
                               const gitInfo = gitPluginsMap[plugin.id.toLowerCase()];
-                              if (gitInfo && gitInfo.is_git_repo && gitInfo.remote_url) {
+                              if (gitInfo?.is_git_repo && gitInfo.remote_url) {
                                 const badge = getMirrorBadge(gitInfo.mirror, gitInfo.remote_url, t);
                                 return (
                                   <Badge

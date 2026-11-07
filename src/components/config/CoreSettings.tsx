@@ -4,20 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
-import {
-  Loader2,
-  Save,
-  Cpu,
-  Play,
-  RefreshCw,
-  Clock,
-  Package,
-  Zap,
-  GitBranch,
-  AlertCircle,
-} from 'lucide-react';
-import { frameworkConfigApi, FrameworkConfigListItem } from '@/lib/api';
+import { Loader2, Save, Cpu, RefreshCw, Clock, Package, Zap } from 'lucide-react';
+import { frameworkConfigApi, type FrameworkConfigListItem } from '@/lib/api';
 import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useConfigDirty } from '@/contexts/ConfigDirtyContext';
@@ -117,7 +105,7 @@ const VENV_OPTIONS = ['pdm', 'poetry', 'python', 'uv', 'auto'];
 export default function CoreSettings() {
   const { t } = useLanguage();
   const { setDirty } = useConfigDirty();
-  const [configList, setConfigList] = useState<FrameworkConfigListItem[]>([]);
+  const [_configList, setConfigList] = useState<FrameworkConfigListItem[]>([]);
   const [configs, setConfigs] = useState<LocalCoreConfig[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
@@ -321,7 +309,7 @@ export default function CoreSettings() {
       setOriginalConfig(JSON.parse(JSON.stringify(currentConfig.config)));
       setDirty(false);
       toast.success(t('coreConfig.configSaved'));
-    } catch (error) {
+    } catch (_error) {
       toast.error(t('coreConfig.saveFailed') || 'Failed to update core configuration');
     } finally {
       setIsSaving(false);
@@ -458,7 +446,7 @@ export default function CoreSettings() {
                     value={config.AutoUpdateCoreTime.value[0]}
                     onChange={(e) =>
                       handleChange('AutoUpdateCoreTime', [
-                        parseInt(e.target.value) || 0,
+                        parseInt(e.target.value, 10) || 0,
                         config.AutoUpdateCoreTime.value[1],
                       ])
                     }
@@ -475,7 +463,7 @@ export default function CoreSettings() {
                     onChange={(e) =>
                       handleChange('AutoUpdateCoreTime', [
                         config.AutoUpdateCoreTime.value[0],
-                        parseInt(e.target.value) || 0,
+                        parseInt(e.target.value, 10) || 0,
                       ])
                     }
                     className="w-20"
@@ -515,7 +503,7 @@ export default function CoreSettings() {
                     value={config.AutoUpdatePluginsTime.value[0]}
                     onChange={(e) =>
                       handleChange('AutoUpdatePluginsTime', [
-                        parseInt(e.target.value) || 0,
+                        parseInt(e.target.value, 10) || 0,
                         config.AutoUpdatePluginsTime.value[1],
                       ])
                     }
@@ -532,7 +520,7 @@ export default function CoreSettings() {
                     onChange={(e) =>
                       handleChange('AutoUpdatePluginsTime', [
                         config.AutoUpdatePluginsTime.value[0],
-                        parseInt(e.target.value) || 0,
+                        parseInt(e.target.value, 10) || 0,
                       ])
                     }
                     className="w-20"
@@ -572,7 +560,7 @@ export default function CoreSettings() {
                     value={config.AutoRestartCoreTime.value[0]}
                     onChange={(e) =>
                       handleChange('AutoRestartCoreTime', [
-                        parseInt(e.target.value) || 0,
+                        parseInt(e.target.value, 10) || 0,
                         config.AutoRestartCoreTime.value[1],
                       ])
                     }
@@ -589,7 +577,7 @@ export default function CoreSettings() {
                     onChange={(e) =>
                       handleChange('AutoRestartCoreTime', [
                         config.AutoRestartCoreTime.value[0],
-                        parseInt(e.target.value) || 0,
+                        parseInt(e.target.value, 10) || 0,
                       ])
                     }
                     className="w-20"

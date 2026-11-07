@@ -597,7 +597,7 @@ export default function LiveChatPage() {
         );
       };
 
-      if (!client || client.connectionState !== 'connected') {
+      if (client?.connectionState !== 'connected') {
         markStatus('failed');
         toast.error(t('liveChat.notConnected'));
         return false;
@@ -763,7 +763,7 @@ export default function LiveChatPage() {
     appendMessage(conv.id, local);
 
     const client = clientRef.current;
-    if (!client || client.connectionState !== 'connected') {
+    if (client?.connectionState !== 'connected') {
       toast.error(t('liveChat.notConnected'));
       return;
     }
@@ -816,7 +816,7 @@ export default function LiveChatPage() {
     appendMessage(conv.id, sysMsg);
 
     const client = clientRef.current;
-    if (!client || client.connectionState !== 'connected') {
+    if (client?.connectionState !== 'connected') {
       toast.error(t('liveChat.notConnected'));
       return;
     }

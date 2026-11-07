@@ -22,7 +22,7 @@ describe('login email input does not use Chrome type=email font fallback (P-37)'
 
   it('keeps form controls on MiSans without Twemoji in @layer base', () => {
     expect(indexCss).toMatch(
-      /input,\s*\n\s*textarea,\s*\n\s*select \{\s*\n\s*font-family: 'MiSans VF', sans-serif;/,
+      /input,\s*\n\s*textarea,\s*\n\s*select \{\s*\n\s*font-family: ['"]MiSans VF['"], sans-serif;/,
     );
   });
 });

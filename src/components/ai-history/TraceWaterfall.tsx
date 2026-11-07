@@ -98,7 +98,7 @@ export interface TraceSpan {
 }
 
 function asNum(v: unknown): number {
-  return typeof v === 'number' && isFinite(v) ? v : 0;
+  return typeof v === 'number' && Number.isFinite(v) ? v : 0;
 }
 function asStr(v: unknown): string {
   return typeof v === 'string' ? v : '';
@@ -469,7 +469,7 @@ function formatTimeOnly(ts: number): string {
 }
 
 function formatDuration(seconds: number): string {
-  if (!isFinite(seconds) || seconds < 0) return '';
+  if (!Number.isFinite(seconds) || seconds < 0) return '';
   const ms = seconds * 1000;
   if (ms < 1000) return `${Math.round(ms)}ms`;
   if (seconds < 60) return `${seconds.toFixed(seconds < 10 ? 2 : 1)}s`;
@@ -805,7 +805,11 @@ function spanExpandable(sp: TraceSpan): boolean {
   if (et === 'history_reset') return true;
   if (et === 'tools_list') return Array.isArray(d.tools) && (d.tools as unknown[]).length > 0;
   if (et === 'tools_change')
-    return asStrArr(d.added).length > 0 || asStrArr(d.removed).length > 0 || asStrArr(d.hinted).length > 0;
+    return (
+      asStrArr(d.added).length > 0 ||
+      asStrArr(d.removed).length > 0 ||
+      asStrArr(d.hinted).length > 0
+    );
   if (et === 'tool_call' || et === 'tool_return') return true;
   return false;
 }
@@ -968,7 +972,11 @@ function EntryBlock({
     const fromFindTools = new Set(asStrArr(d.from_find_tools));
     const groups: { names: string[]; variant: ToolChipVariant; labelKey: string }[] = [
       { names: added, variant: 'added', labelKey: 'aiHistory.waterfall.toolsChange.addedGroup' },
-      { names: removed, variant: 'removed', labelKey: 'aiHistory.waterfall.toolsChange.removedGroup' },
+      {
+        names: removed,
+        variant: 'removed',
+        labelKey: 'aiHistory.waterfall.toolsChange.removedGroup',
+      },
       { names: hinted, variant: 'hinted', labelKey: 'aiHistory.waterfall.toolsChange.hintedGroup' },
     ];
     return (
@@ -1037,9 +1045,7 @@ function EntryBlock({
     return (
       <div className="space-y-1 min-w-0 max-w-full">
         {reasonText && <p className={cn('text-xs', WRAP_TEXT)}>{reasonText}</p>}
-        {meta && (
-          <p className={cn('text-xs font-mono text-muted-foreground', WRAP_TEXT)}>{meta}</p>
-        )}
+        {meta && <p className={cn('text-xs font-mono text-muted-foreground', WRAP_TEXT)}>{meta}</p>}
       </div>
     );
   }
@@ -1052,9 +1058,7 @@ function EntryBlock({
     return (
       <div className="space-y-1 min-w-0 max-w-full">
         {reasonText && <p className={cn('text-xs', WRAP_TEXT)}>{reasonText}</p>}
-        {meta && (
-          <p className={cn('text-xs font-mono text-muted-foreground', WRAP_TEXT)}>{meta}</p>
-        )}
+        {meta && <p className={cn('text-xs font-mono text-muted-foreground', WRAP_TEXT)}>{meta}</p>}
         {content && <pre className={PLAIN_BLOCK}>{content}</pre>}
       </div>
     );
@@ -1277,9 +1281,7 @@ function TokenBadges({
           {sp.ttftMs ? (
             <span className="inline-flex items-center gap-1 whitespace-nowrap">
               <Timer className="w-3 h-3 text-indigo-400" />
-              <span className="text-muted-foreground">
-                {t('aiHistory.waterfall.usage.ttft')}
-              </span>
+              <span className="text-muted-foreground">{t('aiHistory.waterfall.usage.ttft')}</span>
               <span>{sp.ttftMs}ms</span>
             </span>
           ) : null}
@@ -1644,10 +1646,7 @@ function RunBlock({ sp, base }: { sp: TraceSpan; base: RowBase }) {
           {(sp.model || (sp.thinkingEfforts?.length ?? 0) > 0) && (
             <div className="order-last sm:order-none basis-full sm:basis-auto pl-[22px] sm:pl-0 flex items-center gap-1.5 min-w-0">
               {sp.model && (
-                <ModelChip
-                  model={sp.model}
-                  className="inline-flex max-w-28 sm:max-w-44 shrink"
-                />
+                <ModelChip model={sp.model} className="inline-flex max-w-28 sm:max-w-44 shrink" />
               )}
               <EffortBadge efforts={sp.thinkingEfforts} t={t} className="inline-flex" />
             </div>

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -65,8 +65,6 @@ import {
   Search,
   Pencil,
   Trash2,
-  ChevronLeft,
-  ChevronRight,
   ChevronDown,
   ArrowDownUp,
   X,
@@ -86,14 +84,12 @@ import {
 } from 'lucide-react';
 import {
   aiKnowledgeApi,
-  AIKnowledgeItem,
-  AIKnowledgeBulkRequest,
-  AIKnowledgeBulkResponse,
-  AIKnowledgeBackupResponse,
-  AIKnowledgeDocDeleteResponse,
+  type AIKnowledgeItem,
+  type AIKnowledgeBulkRequest,
+  type AIKnowledgeBackupResponse,
+  type AIKnowledgeDocDeleteResponse,
   aiImageApi,
-  AIImageItem,
-  AIImageUploadResponse,
+  type AIImageItem,
   assetsApi,
 } from '@/lib/api';
 import { toast } from 'sonner';
@@ -151,7 +147,7 @@ const initialImageFormData: ImageKnowledgeFormData = {
 export default function AIKnowledgePage() {
   const { style } = useTheme();
   const { t } = useLanguage();
-  const isGlass = style !== 'solid';
+  const _isGlass = style !== 'solid';
 
   // 知识类型筛选（文本/图片）
   const [knowledgeType, setKnowledgeType] = useState<KnowledgeType>('text');
@@ -176,7 +172,7 @@ export default function AIKnowledgePage() {
 
   // 分页状态
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(20);
+  const [limit, _setLimit] = useState(20);
   const [total, setTotal] = useState(0);
   const [pageSize, setPageSize] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -232,8 +228,8 @@ export default function AIKnowledgePage() {
   const [itemToDelete, setItemToDelete] = useState<AIKnowledgeItem | AIImageItem | null>(null);
 
   // 图片预览 Dialog
-  const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
-  const [previewImageUrl, setPreviewImageUrl] = useState('');
+  const [_previewDialogOpen, setPreviewDialogOpen] = useState(false);
+  const [_previewImageUrl, setPreviewImageUrl] = useState('');
 
   const pluginQuery =
     sourceFilter === 'plugin' && selectedPluginFilter !== ALL_PLUGINS

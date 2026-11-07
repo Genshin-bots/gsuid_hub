@@ -10,7 +10,6 @@ import { toast } from 'sonner';
 import { authApi, resolveApiAssetUrl } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { cn } from '@/lib/utils';
 import { PinnedPage } from '@/components/layout/PinnedPage';
 
 export default function SettingsPage() {
@@ -47,7 +46,7 @@ export default function SettingsPage() {
 
     setIsUploadingAvatar(true);
     try {
-      const result = await authApi.uploadAvatar(file);
+      const _result = await authApi.uploadAvatar(file);
       // Refresh user data
       await refreshUser();
       toast.success(t('settings.avatarUpdated'));

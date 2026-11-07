@@ -19,15 +19,6 @@
     "preview": "vite preview",
     "start": "vite preview"
   },
-  "pnpm": {
-    "overrides": {
-      "caniuse-lite": "^1.0.30001793"
-    },
-    "onlyBuiltDependencies": [
-      "@swc/core",
-      "esbuild"
-    ]
-  },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
     "@noble/ciphers": "^2.2.0",
@@ -123,5 +114,5 @@
     "vite": "^5.4.19",
     "vitest": "^2.1.9"
   },
-  "packageManager": "pnpm@10.28.2"
+  "packageManager": "pnpm@12.18.0"
 }

@@ -9,7 +9,13 @@ import { ChevronRight, ExternalLink, FileText, ImageOff, Quote } from 'lucide-re
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
-import { INLINE_CMD_PREFIX, assetUrl, markdownToHtml, type BtnItem, type MsgSeg } from '@/lib/sessionChat';
+import {
+  INLINE_CMD_PREFIX,
+  assetUrl,
+  markdownToHtml,
+  type BtnItem,
+  type MsgSeg,
+} from '@/lib/sessionChat';
 
 /** 缩略宽度 */
 const IMG_W = 320;
@@ -94,7 +100,9 @@ function MediaSeg({ seg, kind }: { seg: MsgSeg; kind: 'record' | 'video' }) {
 
   if (!src) {
     // 没留内容时只显示类型占位；只有后端明确说过期了才带「已过期」
-    const label = t(kind === 'video' ? 'sessionManagement.nodeVideo' : 'sessionManagement.nodeAudio');
+    const label = t(
+      kind === 'video' ? 'sessionManagement.nodeVideo' : 'sessionManagement.nodeAudio',
+    );
     return <span className="text-xs text-muted-foreground">{seg.error || `[${label}]`}</span>;
   }
 
@@ -108,7 +116,8 @@ function MediaSeg({ seg, kind }: { seg: MsgSeg; kind: 'record' | 'video' }) {
         className="inline-flex items-center gap-1 rounded-md border border-border/60 px-2 py-1 text-xs text-primary hover:bg-primary/10"
       >
         <FileText className="h-3.5 w-3.5" />
-        {seg.error || t(kind === 'video' ? 'sessionManagement.nodeVideo' : 'sessionManagement.nodeAudio')}
+        {seg.error ||
+          t(kind === 'video' ? 'sessionManagement.nodeVideo' : 'sessionManagement.nodeAudio')}
       </a>
     );
   }
@@ -121,7 +130,12 @@ function MediaSeg({ seg, kind }: { seg: MsgSeg; kind: 'record' | 'video' }) {
       className="my-1 block max-h-[280px] max-w-full rounded-lg"
     />
   ) : (
-    <audio src={src} controls onError={() => setFailed(true)} className="my-1 block max-w-[280px]" />
+    <audio
+      src={src}
+      controls
+      onError={() => setFailed(true)}
+      className="my-1 block max-w-[280px]"
+    />
   );
 }
 
@@ -142,7 +156,9 @@ function ForwardSeg({ seg }: { seg: MsgSeg }) {
       {open && (
         <div className="max-h-72 space-y-1.5 overflow-y-auto border-t border-border/40 px-2.5 py-2">
           {items.length === 0 && (
-            <p className="text-xs text-muted-foreground">{t('sessionManagement.forwardTruncated')}</p>
+            <p className="text-xs text-muted-foreground">
+              {t('sessionManagement.forwardTruncated')}
+            </p>
           )}
           {items.map((row, idx) => (
             <div key={idx} className="rounded-md bg-background/70 px-2 py-1 text-xs">
@@ -273,7 +289,9 @@ function ButtonSeg({ seg }: { seg: MsgSeg }) {
                   {isLinkButton(btn) && <ExternalLink className="seg-btn__link" aria-hidden />}
                   <span className="min-w-0 truncate">{label}</span>
                   {btn.limited && (
-                    <span className="text-[10px] opacity-70">{t('sessionManagement.buttonLimited')}</span>
+                    <span className="text-[10px] opacity-70">
+                      {t('sessionManagement.buttonLimited')}
+                    </span>
                   )}
                 </button>
               );

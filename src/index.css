@@ -88,25 +88,35 @@ All colors MUST be HSL.
 
     --sidebar: 0 0% 98%;
 
-    --font-sans: 'MiSans VF', 'Twemoji Mozilla', sans-serif;
+    --font-sans: "MiSans VF", "Twemoji Mozilla", sans-serif;
 
-    --font-serif: 'MiSans VF', 'Twemoji Mozilla', sans-serif;
+    --font-serif: "MiSans VF", "Twemoji Mozilla", sans-serif;
 
-    --font-mono: 'MiSans VF', 'Twemoji Mozilla', sans-serif;
+    --font-mono: "MiSans VF", "Twemoji Mozilla", sans-serif;
 
     --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / calc(0.05 * var(--shadow-strength)));
 
     --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / calc(0.05 * var(--shadow-strength)));
 
-    --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength))), 0 1px 2px -1px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength)));
+    --shadow-sm:
+      0 1px 3px 0px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength))),
+      0 1px 2px -1px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength)));
 
-    --shadow: 0 1px 3px 0px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength))), 0 1px 2px -1px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength)));
+    --shadow:
+      0 1px 3px 0px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength))),
+      0 1px 2px -1px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength)));
 
-    --shadow-md: 0 1px 3px 0px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength))), 0 2px 4px -1px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength)));
+    --shadow-md:
+      0 1px 3px 0px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength))),
+      0 2px 4px -1px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength)));
 
-    --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength))), 0 4px 6px -1px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength)));
+    --shadow-lg:
+      0 1px 3px 0px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength))),
+      0 4px 6px -1px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength)));
 
-    --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength))), 0 8px 10px -1px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength)));
+    --shadow-xl:
+      0 1px 3px 0px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength))),
+      0 8px 10px -1px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength)));
 
     --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / calc(0.25 * var(--shadow-strength)));
 
@@ -159,11 +169,21 @@ All colors MUST be HSL.
     --sidebar: 240 3% 15%;
     --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / calc(0.05 * var(--shadow-strength)));
     --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / calc(0.05 * var(--shadow-strength)));
-    --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength))), 0 1px 2px -1px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength)));
-    --shadow: 0 1px 3px 0px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength))), 0 1px 2px -1px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength)));
-    --shadow-md: 0 1px 3px 0px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength))), 0 2px 4px -1px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength)));
-    --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength))), 0 4px 6px -1px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength)));
-    --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength))), 0 8px 10px -1px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength)));
+    --shadow-sm:
+      0 1px 3px 0px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength))),
+      0 1px 2px -1px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength)));
+    --shadow:
+      0 1px 3px 0px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength))),
+      0 1px 2px -1px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength)));
+    --shadow-md:
+      0 1px 3px 0px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength))),
+      0 2px 4px -1px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength)));
+    --shadow-lg:
+      0 1px 3px 0px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength))),
+      0 4px 6px -1px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength)));
+    --shadow-xl:
+      0 1px 3px 0px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength))),
+      0 8px 10px -1px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength)));
     --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / calc(0.25 * var(--shadow-strength)));
   }
 }
@@ -192,7 +212,7 @@ All colors MUST be HSL.
   input,
   textarea,
   select {
-    font-family: 'MiSans VF', sans-serif;
+    font-family: "MiSans VF", sans-serif;
   }
 }
 
@@ -213,7 +233,14 @@ All colors MUST be HSL.
  *   若写成普通 .glass-card 声明会压掉 fixed/z-50，弹层只剩遮罩、内容沉底。
  * 切勿对子元素强制 position:relative（会破坏 absolute 装饰层，Home 英雄区曾因此被撑高）
  */
-:where(.glass-card, .glass-card-flat, .glass-card-danger, .floating-sidebar, .glass-sidebar, .tab-segment-row) {
+:where(
+  .glass-card,
+  .glass-card-flat,
+  .glass-card-danger,
+  .floating-sidebar,
+  .glass-sidebar,
+  .tab-segment-row
+) {
   position: relative;
   z-index: 0;
 }
@@ -302,7 +329,9 @@ All colors MUST be HSL.
 }
 
 /* 嵌在已有毛玻璃卡片或弹窗内部时，避免双重采样致使卡片发灰 */
-[data-style="glassmorphism"] :is(.glass-card, [role="dialog"], [role="alertdialog"]) .tab-segment-row::before {
+[data-style="glassmorphism"]
+  :is(.glass-card, [role="dialog"], [role="alertdialog"])
+  .tab-segment-row::before {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
@@ -324,7 +353,9 @@ All colors MUST be HSL.
     inset 0 -1.5px 1.5px 0 rgba(255, 255, 255, 0.12),
     0 3px 12px -2px hsl(var(--primary) / calc(0.08 * var(--shadow-strength))),
     0 14px 38px -6px hsl(0 0% 0% / calc(0.14 * var(--shadow-strength))) !important;
-  transition: border-color 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transition:
+    border-color 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 [data-style="luminous"] .glass-card:hover {
@@ -342,8 +373,10 @@ All colors MUST be HSL.
 
 [data-style="luminous"] .glass-card::before {
   background: hsl(var(--card) / var(--card-opacity, 0.22)) !important;
-  backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.2)) saturate(190%) contrast(106%) brightness(105%);
-  -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.2)) saturate(190%) contrast(106%) brightness(105%);
+  backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.2)) saturate(190%) contrast(106%)
+    brightness(105%);
+  -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.2)) saturate(190%)
+    contrast(106%) brightness(105%);
 }
 
 [data-style="luminous"] :where(.glass-card, .floating-sidebar, .glass-sidebar)::after {
@@ -354,11 +387,7 @@ All colors MUST be HSL.
   border-radius: inherit;
   pointer-events: none;
   background:
-    radial-gradient(
-      circle at 20% 15%,
-      hsl(var(--primary) / 0.08) 0%,
-      transparent 45%
-    ),
+    radial-gradient(circle at 20% 15%, hsl(var(--primary) / 0.08) 0%, transparent 45%),
     linear-gradient(
       135deg,
       rgba(255, 255, 255, 0.08) 0%,
@@ -410,8 +439,10 @@ All colors MUST be HSL.
 .dark [data-style="luminous"] .glass-card::before,
 [data-style="luminous"] .dark .glass-card::before {
   background: hsl(var(--card) / var(--card-opacity, 0.22)) !important;
-  backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.25)) saturate(180%) contrast(108%) brightness(112%);
-  -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.25)) saturate(180%) contrast(108%) brightness(112%);
+  backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.25)) saturate(180%) contrast(108%)
+    brightness(112%);
+  -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.25)) saturate(180%)
+    contrast(108%) brightness(112%);
 }
 
 /* 分段条和 glass-card 同一层光感玻璃。底色只画在 ::before，宿主不再叠一层不透明底。 */
@@ -449,16 +480,20 @@ All colors MUST be HSL.
 
 [data-style="luminous"] .tab-segment-row::before {
   background: hsl(var(--card) / var(--card-opacity, 0.22)) !important;
-  backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.2)) saturate(190%) contrast(106%) brightness(105%) !important;
-  -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.2)) saturate(190%) contrast(106%) brightness(105%) !important;
+  backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.2)) saturate(190%) contrast(106%)
+    brightness(105%) !important;
+  -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.2)) saturate(190%)
+    contrast(106%) brightness(105%) !important;
 }
 
 .dark[data-style="luminous"] .tab-segment-row::before,
 .dark [data-style="luminous"] .tab-segment-row::before,
 [data-style="luminous"] .dark .tab-segment-row::before {
   background: hsl(var(--card) / var(--card-opacity, 0.22)) !important;
-  backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.25)) saturate(180%) contrast(108%) brightness(112%) !important;
-  -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.25)) saturate(180%) contrast(108%) brightness(112%) !important;
+  backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.25)) saturate(180%) contrast(108%)
+    brightness(112%) !important;
+  -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.25)) saturate(180%)
+    contrast(108%) brightness(112%) !important;
 }
 
 [data-style="luminous"] .tab-segment-row::after {
@@ -493,7 +528,9 @@ All colors MUST be HSL.
 [data-style="luminous"] .tab-segment-row button.bg-primary *,
 [data-style="luminous"] .tab-segment-row div.bg-primary *,
 [data-style="luminous"] .select-tile[data-active="true"],
-[data-style="luminous"] .select-tile[data-active="true"] *:not(.text-white):not([class*="text-white"]),
+[data-style="luminous"]
+  .select-tile[data-active="true"]
+  *:not(.text-white):not([class*="text-white"]),
 .dark[data-style="luminous"] .tab-segment-row button.bg-primary,
 .dark [data-style="luminous"] .tab-segment-row button.bg-primary,
 .dark[data-style="luminous"] .tab-segment-row div.bg-primary,
@@ -504,8 +541,13 @@ All colors MUST be HSL.
 .dark [data-style="luminous"] .tab-segment-row div.bg-primary *,
 .dark[data-style="luminous"] .select-tile[data-active="true"],
 .dark [data-style="luminous"] .select-tile[data-active="true"],
-.dark[data-style="luminous"] .select-tile[data-active="true"] *:not(.text-white):not([class*="text-white"]),
-.dark [data-style="luminous"] .select-tile[data-active="true"] *:not(.text-white):not([class*="text-white"]) {
+.dark[data-style="luminous"]
+  .select-tile[data-active="true"]
+  *:not(.text-white):not([class*="text-white"]),
+.dark
+  [data-style="luminous"]
+  .select-tile[data-active="true"]
+  *:not(.text-white):not([class*="text-white"]) {
   color: hsl(var(--primary-foreground)) !important;
   font-weight: 500 !important;
   text-shadow: none !important;
@@ -537,41 +579,43 @@ All colors MUST be HSL.
  * - 动态流光：覆着在水体表面的微角度动态棱镜色散流光水膜 (Prismatic Sheen via ::after)
  * ============================================================================ */
 [data-style="liquid"] .glass-card {
-  border: 1px solid rgba(255, 255, 255, 0.70);
+  border: 1px solid rgba(255, 255, 255, 0.7);
   box-shadow:
     var(--tw-ring-offset-shadow, 0 0 #0000),
     var(--tw-ring-shadow, 0 0 #0000),
     /* 1. 外层全反射白金光轮廓与微折射水圈 */
-    0 0 0 1px rgba(255, 255, 255, 0.50),
+    0 0 0 1px rgba(255, 255, 255, 0.5),
     0 0 0 2.5px rgba(255, 255, 255, 0.15),
     /* 2. 外部物理投影 */
     0 4px 16px -2px hsl(0 0% 0% / calc(0.06 * var(--shadow-strength))),
-    0 14px 38px -6px hsl(0 0% 0% / calc(0.10 * var(--shadow-strength))),
+    0 14px 38px -6px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength))),
     /* 3. 顶刃极致耀眼的全反射白水刀 */
     inset 0 2px 1px 0 rgba(255, 255, 255, 0.98),
     /* 4. 内部凸透镜立体内折射倒角环（营造4px真实弧面玻璃厚度） */
-    inset 0 0 0 1px rgba(255, 255, 255, 0.40),
-    inset 0 4px 8px 0 rgba(255, 255, 255, 0.20),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.4),
+    inset 0 4px 8px 0 rgba(255, 255, 255, 0.2),
     inset 3px 0 5px 0 rgba(255, 255, 255, 0.35),
     inset -3px 0 5px 0 rgba(0, 0, 0, 0.08),
     inset 0 -3px 5px 0 rgba(0, 0, 0, 0.12) !important;
-  transition: border-color 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  transition:
+    border-color 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 [data-style="liquid"] .glass-card:hover {
-  border-color: rgba(255, 255, 255, 0.90);
+  border-color: rgba(255, 255, 255, 0.9);
   box-shadow:
     var(--tw-ring-offset-shadow, 0 0 #0000),
     var(--tw-ring-shadow, 0 0 #0000),
     0 0 0 1px rgba(255, 255, 255, 0.65),
-    0 0 0 3px rgba(255, 255, 255, 0.20),
+    0 0 0 3px rgba(255, 255, 255, 0.2),
     0 6px 20px -2px hsl(0 0% 0% / calc(0.08 * var(--shadow-strength))),
     0 18px 48px -6px hsl(0 0% 0% / calc(0.14 * var(--shadow-strength))),
     inset 0 2px 1px 0 rgba(255, 255, 255, 1),
     inset 0 0 0 1px rgba(255, 255, 255, 0.55),
-    inset 0 4px 10px 0 rgba(255, 255, 255, 0.30),
+    inset 0 4px 10px 0 rgba(255, 255, 255, 0.3),
     inset 3px 0 6px 0 rgba(255, 255, 255, 0.45),
-    inset -3px 0 6px 0 rgba(0, 0, 0, 0.10),
+    inset -3px 0 6px 0 rgba(0, 0, 0, 0.1),
     inset 0 -3.5px 6px 0 rgba(0, 0, 0, 0.16) !important;
 }
 
@@ -605,7 +649,8 @@ All colors MUST be HSL.
 [data-style="liquid"] .glass-card::before {
   background: hsl(var(--card) / var(--card-opacity, 0.25)) !important;
   backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.15) brightness(1.05) saturate(1.2);
-  -webkit-backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.15) brightness(1.05) saturate(1.2);
+  -webkit-backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.15) brightness(1.05)
+    saturate(1.2);
 }
 
 /* 玻璃表面迎光面物理弧面反光膜与微角度三棱镜色散（完全还原水滴边缘自然光谱） */
@@ -643,18 +688,18 @@ All colors MUST be HSL.
     var(--tw-ring-offset-shadow, 0 0 #0000),
     var(--tw-ring-shadow, 0 0 #0000),
     /* 1. 外层晶体透镜水圈轮廓与微散射环 */
-    0 0 0 1px rgba(255, 255, 255, 0.20),
+    0 0 0 1px rgba(255, 255, 255, 0.2),
     0 0 0 2.5px rgba(255, 255, 255, 0.06),
     /* 2. 自然深邃的物理投影 */
     0 4px 18px -2px hsl(0 0% 0% / calc(0.35 * var(--shadow-strength))),
-    0 16px 44px -8px hsl(0 0% 0% / calc(0.50 * var(--shadow-strength))),
+    0 16px 44px -8px hsl(0 0% 0% / calc(0.5 * var(--shadow-strength))),
     /* 3. 顶刃极致耀眼的全反射白水刀（纯净纯白，凸透镜直射光） */
-    inset 0 1.5px 0.5px 0 rgba(255, 255, 255, 0.90),
+    inset 0 1.5px 0.5px 0 rgba(255, 255, 255, 0.9),
     /* 4. 边缘4px凸透镜倒角折射带（内暗外亮，形成深邃水体弧面折射） */
     inset 0 0 0 1px rgba(255, 255, 255, 0.18),
-    inset 0 3px 6px 0 rgba(255, 255, 255, 0.10),
+    inset 0 3px 6px 0 rgba(255, 255, 255, 0.1),
     inset 3px 0 5px 0 rgba(255, 255, 255, 0.16),
-    inset -3px 0 5px 0 rgba(0, 0, 0, 0.40),
+    inset -3px 0 5px 0 rgba(0, 0, 0, 0.4),
     inset 0 -3.5px 6px 0 rgba(0, 0, 0, 0.55) !important;
 }
 
@@ -666,8 +711,8 @@ All colors MUST be HSL.
     var(--tw-ring-offset-shadow, 0 0 #0000),
     var(--tw-ring-shadow, 0 0 #0000),
     0 0 0 1px rgba(255, 255, 255, 0.32),
-    0 0 0 3px rgba(255, 255, 255, 0.10),
-    0 6px 24px -2px hsl(0 0% 0% / calc(0.40 * var(--shadow-strength))),
+    0 0 0 3px rgba(255, 255, 255, 0.1),
+    0 6px 24px -2px hsl(0 0% 0% / calc(0.4 * var(--shadow-strength))),
     0 20px 52px -8px hsl(0 0% 0% / calc(0.55 * var(--shadow-strength))),
     inset 0 2px 1px 0 rgba(255, 255, 255, 0.98),
     inset 0 0 0 1px rgba(255, 255, 255, 0.28),
@@ -708,7 +753,8 @@ All colors MUST be HSL.
 .dark [data-style="liquid"] .glass-alert::before,
 [data-style="liquid"] .dark .glass-alert::before {
   backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.15) brightness(1.05) saturate(1.2) !important;
-  -webkit-backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.15) brightness(1.05) saturate(1.2) !important;
+  -webkit-backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.15) brightness(1.05)
+    saturate(1.2) !important;
 }
 
 [data-style="liquid"] .glass-alert::after {
@@ -720,7 +766,8 @@ All colors MUST be HSL.
 [data-style="liquid"] .dark .glass-card::before {
   background: hsl(var(--card) / var(--card-opacity, 0.25)) !important;
   backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.15) brightness(1.05) saturate(1.2);
-  -webkit-backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.15) brightness(1.05) saturate(1.2);
+  -webkit-backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.15) brightness(1.05)
+    saturate(1.2);
 }
 
 .dark[data-style="liquid"] :where(.glass-card, .floating-sidebar, .glass-sidebar)::after {
@@ -743,7 +790,7 @@ All colors MUST be HSL.
 [data-style="liquid"] .tab-segment-row {
   z-index: 0;
   background: transparent !important;
-  border: 1px solid rgba(255, 255, 255, 0.70) !important;
+  border: 1px solid rgba(255, 255, 255, 0.7) !important;
   box-shadow:
     var(--tw-ring-offset-shadow, 0 0 #0000),
     var(--tw-ring-shadow, 0 0 #0000),
@@ -752,9 +799,9 @@ All colors MUST be HSL.
     0 12px 32px -6px hsl(0 0% 0% / calc(0.12 * var(--shadow-strength))),
     inset 0 2px 0.5px 0 rgba(255, 255, 255, 0.95),
     inset 0 0 0 1px rgba(255, 255, 255, 0.35),
-    inset 2.5px 0 4px 0 rgba(255, 255, 255, 0.40),
+    inset 2.5px 0 4px 0 rgba(255, 255, 255, 0.4),
     inset -2.5px 0 4px 0 rgba(0, 0, 0, 0.06),
-    inset 0 -2.5px 4px 0 rgba(0, 0, 0, 0.10) !important;
+    inset 0 -2.5px 4px 0 rgba(0, 0, 0, 0.1) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
@@ -785,7 +832,8 @@ All colors MUST be HSL.
   pointer-events: none;
   background: hsl(var(--card) / var(--card-opacity, 0.25)) !important;
   backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.12) brightness(1.04) saturate(1.15) !important;
-  -webkit-backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.12) brightness(1.04) saturate(1.15) !important;
+  -webkit-backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.12) brightness(1.04)
+    saturate(1.15) !important;
 }
 
 .dark[data-style="liquid"] .tab-segment-row::before,
@@ -829,9 +877,7 @@ All colors MUST be HSL.
   border: 1px solid hsl(var(--border) / 0.4);
   border-radius: var(--radius);
   min-width: 0;
-  box-shadow:
-    var(--tw-ring-offset-shadow, 0 0 #0000),
-    var(--tw-ring-shadow, 0 0 #0000);
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000);
 }
 
 .glass-card-flat::before {
@@ -874,7 +920,8 @@ All colors MUST be HSL.
 [data-style="luminous"] .glass-card-flat::before {
   background: hsl(var(--card) / var(--card-opacity, 0.22)) !important;
   backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 0.9)) saturate(180%) contrast(105%);
-  -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 0.9)) saturate(180%) contrast(105%);
+  -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 0.9)) saturate(180%)
+    contrast(105%);
 }
 
 [data-style="liquid"] .glass-card-flat {
@@ -1058,7 +1105,11 @@ All colors MUST be HSL.
 }
 
 [data-style="luminous"] [data-slot="badge"]:not(.bg-primary):not(.bg-destructive) {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0.22)) !important;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.62),
+    rgba(255, 255, 255, 0.22)
+  ) !important;
   border-color: rgba(255, 255, 255, 0.72) !important;
   box-shadow:
     inset 0 1px 0 0 rgba(255, 255, 255, 0.95),
@@ -1067,7 +1118,11 @@ All colors MUST be HSL.
 
 [data-style="liquid"] [data-slot="badge"]:not(.bg-primary):not(.bg-destructive) {
   border-radius: 999px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.16)) !important;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.5),
+    rgba(255, 255, 255, 0.16)
+  ) !important;
   border-color: rgba(255, 255, 255, 0.62) !important;
   box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.9);
 }
@@ -1081,7 +1136,11 @@ All colors MUST be HSL.
 
 .dark[data-style="luminous"] [data-slot="badge"]:not(.bg-primary):not(.bg-destructive),
 .dark [data-style="luminous"] [data-slot="badge"]:not(.bg-primary):not(.bg-destructive) {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.05)) !important;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.18),
+    rgba(255, 255, 255, 0.05)
+  ) !important;
   border-color: rgba(255, 255, 255, 0.28) !important;
   box-shadow:
     inset 0 1px 0 0 rgba(255, 255, 255, 0.45),
@@ -1090,18 +1149,50 @@ All colors MUST be HSL.
 
 .dark[data-style="liquid"] [data-slot="badge"]:not(.bg-primary):not(.bg-destructive),
 .dark [data-style="liquid"] [data-slot="badge"]:not(.bg-primary):not(.bg-destructive) {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.04)) !important;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.16),
+    rgba(255, 255, 255, 0.04)
+  ) !important;
   border-color: rgba(255, 255, 255, 0.24) !important;
   box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.42);
 }
 
-[data-style="glassmorphism"] [data-slot="badge"]:is(.theme-chip-tint, .text-blue-500, .text-blue-600, .text-green-500, .text-green-600, .text-emerald-500, .text-emerald-600, .text-amber-500, .text-amber-600, .text-orange-500, .text-red-500, .text-primary):not(.bg-primary):not(.bg-destructive) {
+[data-style="glassmorphism"]
+  [data-slot="badge"]:is(
+    .theme-chip-tint,
+    .text-blue-500,
+    .text-blue-600,
+    .text-green-500,
+    .text-green-600,
+    .text-emerald-500,
+    .text-emerald-600,
+    .text-amber-500,
+    .text-amber-600,
+    .text-orange-500,
+    .text-red-500,
+    .text-primary
+  ):not(.bg-primary):not(.bg-destructive) {
   background: color-mix(in srgb, currentColor 18%, transparent) !important;
   border-color: color-mix(in srgb, currentColor 42%, transparent) !important;
   box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.28);
 }
 
-[data-style="luminous"] [data-slot="badge"]:is(.theme-chip-tint, .text-blue-500, .text-blue-600, .text-green-500, .text-green-600, .text-emerald-500, .text-emerald-600, .text-amber-500, .text-amber-600, .text-orange-500, .text-red-500, .text-primary):not(.bg-primary):not(.bg-destructive) {
+[data-style="luminous"]
+  [data-slot="badge"]:is(
+    .theme-chip-tint,
+    .text-blue-500,
+    .text-blue-600,
+    .text-green-500,
+    .text-green-600,
+    .text-emerald-500,
+    .text-emerald-600,
+    .text-amber-500,
+    .text-amber-600,
+    .text-orange-500,
+    .text-red-500,
+    .text-primary
+  ):not(.bg-primary):not(.bg-destructive) {
   background: linear-gradient(
     180deg,
     color-mix(in srgb, currentColor 34%, white),
@@ -1113,7 +1204,21 @@ All colors MUST be HSL.
     0 0 12px -2px currentColor;
 }
 
-[data-style="liquid"] [data-slot="badge"]:is(.theme-chip-tint, .text-blue-500, .text-blue-600, .text-green-500, .text-green-600, .text-emerald-500, .text-emerald-600, .text-amber-500, .text-amber-600, .text-orange-500, .text-red-500, .text-primary):not(.bg-primary):not(.bg-destructive) {
+[data-style="liquid"]
+  [data-slot="badge"]:is(
+    .theme-chip-tint,
+    .text-blue-500,
+    .text-blue-600,
+    .text-green-500,
+    .text-green-600,
+    .text-emerald-500,
+    .text-emerald-600,
+    .text-amber-500,
+    .text-amber-600,
+    .text-orange-500,
+    .text-red-500,
+    .text-primary
+  ):not(.bg-primary):not(.bg-destructive) {
   background: linear-gradient(
     180deg,
     color-mix(in srgb, currentColor 24%, rgba(255, 255, 255, 0.72)),
@@ -1125,15 +1230,73 @@ All colors MUST be HSL.
     0 2px 8px -3px currentColor;
 }
 
-.dark[data-style="glassmorphism"] [data-slot="badge"]:is(.theme-chip-tint, .text-blue-500, .text-blue-600, .text-green-500, .text-green-600, .text-emerald-500, .text-emerald-600, .text-amber-500, .text-amber-600, .text-orange-500, .text-red-500, .text-primary):not(.bg-primary):not(.bg-destructive),
-.dark [data-style="glassmorphism"] [data-slot="badge"]:is(.theme-chip-tint, .text-blue-500, .text-blue-600, .text-green-500, .text-green-600, .text-emerald-500, .text-emerald-600, .text-amber-500, .text-amber-600, .text-orange-500, .text-red-500, .text-primary):not(.bg-primary):not(.bg-destructive) {
+.dark[data-style="glassmorphism"]
+  [data-slot="badge"]:is(
+    .theme-chip-tint,
+    .text-blue-500,
+    .text-blue-600,
+    .text-green-500,
+    .text-green-600,
+    .text-emerald-500,
+    .text-emerald-600,
+    .text-amber-500,
+    .text-amber-600,
+    .text-orange-500,
+    .text-red-500,
+    .text-primary
+  ):not(.bg-primary):not(.bg-destructive),
+.dark
+  [data-style="glassmorphism"]
+  [data-slot="badge"]:is(
+    .theme-chip-tint,
+    .text-blue-500,
+    .text-blue-600,
+    .text-green-500,
+    .text-green-600,
+    .text-emerald-500,
+    .text-emerald-600,
+    .text-amber-500,
+    .text-amber-600,
+    .text-orange-500,
+    .text-red-500,
+    .text-primary
+  ):not(.bg-primary):not(.bg-destructive) {
   background: color-mix(in srgb, currentColor 22%, transparent) !important;
   border-color: color-mix(in srgb, currentColor 48%, transparent) !important;
   box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.14);
 }
 
-.dark[data-style="luminous"] [data-slot="badge"]:is(.theme-chip-tint, .text-blue-500, .text-blue-600, .text-green-500, .text-green-600, .text-emerald-500, .text-emerald-600, .text-amber-500, .text-amber-600, .text-orange-500, .text-red-500, .text-primary):not(.bg-primary):not(.bg-destructive),
-.dark [data-style="luminous"] [data-slot="badge"]:is(.theme-chip-tint, .text-blue-500, .text-blue-600, .text-green-500, .text-green-600, .text-emerald-500, .text-emerald-600, .text-amber-500, .text-amber-600, .text-orange-500, .text-red-500, .text-primary):not(.bg-primary):not(.bg-destructive) {
+.dark[data-style="luminous"]
+  [data-slot="badge"]:is(
+    .theme-chip-tint,
+    .text-blue-500,
+    .text-blue-600,
+    .text-green-500,
+    .text-green-600,
+    .text-emerald-500,
+    .text-emerald-600,
+    .text-amber-500,
+    .text-amber-600,
+    .text-orange-500,
+    .text-red-500,
+    .text-primary
+  ):not(.bg-primary):not(.bg-destructive),
+.dark
+  [data-style="luminous"]
+  [data-slot="badge"]:is(
+    .theme-chip-tint,
+    .text-blue-500,
+    .text-blue-600,
+    .text-green-500,
+    .text-green-600,
+    .text-emerald-500,
+    .text-emerald-600,
+    .text-amber-500,
+    .text-amber-600,
+    .text-orange-500,
+    .text-red-500,
+    .text-primary
+  ):not(.bg-primary):not(.bg-destructive) {
   background: linear-gradient(
     180deg,
     color-mix(in srgb, currentColor 46%, transparent),
@@ -1145,8 +1308,37 @@ All colors MUST be HSL.
     0 0 14px -2px currentColor;
 }
 
-.dark[data-style="liquid"] [data-slot="badge"]:is(.theme-chip-tint, .text-blue-500, .text-blue-600, .text-green-500, .text-green-600, .text-emerald-500, .text-emerald-600, .text-amber-500, .text-amber-600, .text-orange-500, .text-red-500, .text-primary):not(.bg-primary):not(.bg-destructive),
-.dark [data-style="liquid"] [data-slot="badge"]:is(.theme-chip-tint, .text-blue-500, .text-blue-600, .text-green-500, .text-green-600, .text-emerald-500, .text-emerald-600, .text-amber-500, .text-amber-600, .text-orange-500, .text-red-500, .text-primary):not(.bg-primary):not(.bg-destructive) {
+.dark[data-style="liquid"]
+  [data-slot="badge"]:is(
+    .theme-chip-tint,
+    .text-blue-500,
+    .text-blue-600,
+    .text-green-500,
+    .text-green-600,
+    .text-emerald-500,
+    .text-emerald-600,
+    .text-amber-500,
+    .text-amber-600,
+    .text-orange-500,
+    .text-red-500,
+    .text-primary
+  ):not(.bg-primary):not(.bg-destructive),
+.dark
+  [data-style="liquid"]
+  [data-slot="badge"]:is(
+    .theme-chip-tint,
+    .text-blue-500,
+    .text-blue-600,
+    .text-green-500,
+    .text-green-600,
+    .text-emerald-500,
+    .text-emerald-600,
+    .text-amber-500,
+    .text-amber-600,
+    .text-orange-500,
+    .text-red-500,
+    .text-primary
+  ):not(.bg-primary):not(.bg-destructive) {
   background: linear-gradient(
     180deg,
     color-mix(in srgb, currentColor 36%, transparent),
@@ -1190,7 +1382,7 @@ All colors MUST be HSL.
 }
 
 .dark .glass-sidebar::before {
-  background: hsl(var(--sidebar) / var(--card-opacity, 0.20));
+  background: hsl(var(--sidebar) / var(--card-opacity, 0.2));
 }
 
 /* Glassmorphism Sidebar */
@@ -1214,9 +1406,11 @@ All colors MUST be HSL.
 }
 
 [data-style="luminous"] .glass-sidebar::before {
-  background: hsl(var(--sidebar) / var(--card-opacity, 0.20)) !important;
-  backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.2)) saturate(190%) contrast(106%) brightness(105%);
-  -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.2)) saturate(190%) contrast(106%) brightness(105%);
+  background: hsl(var(--sidebar) / var(--card-opacity, 0.2)) !important;
+  backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.2)) saturate(190%) contrast(106%)
+    brightness(105%);
+  -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.2)) saturate(190%)
+    contrast(106%) brightness(105%);
 }
 
 .dark[data-style="luminous"] .glass-sidebar,
@@ -1233,23 +1427,24 @@ All colors MUST be HSL.
 .dark[data-style="luminous"] .glass-sidebar::before,
 .dark [data-style="luminous"] .glass-sidebar::before,
 [data-style="luminous"] .dark .glass-sidebar::before {
-  background: hsl(var(--sidebar) / var(--card-opacity, 0.20)) !important;
+  background: hsl(var(--sidebar) / var(--card-opacity, 0.2)) !important;
 }
 
 /* Liquid Glass Sidebar */
 [data-style="liquid"] .glass-sidebar {
-  border-right: 1px solid rgba(255, 255, 255, 0.60) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.6) !important;
   box-shadow:
-    /* 右侧白水刃晶体反光 */
+/* 右侧白水刃晶体反光 */
     inset -1px 0 0 0 rgba(255, 255, 255, 0.85),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.50),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.5),
     4px 0 20px -2px hsl(0 0% 0% / calc(0.08 * var(--shadow-strength))) !important;
 }
 
 [data-style="liquid"] .glass-sidebar::before {
   background: hsl(var(--sidebar) / var(--card-opacity, 0.22)) !important;
   backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.15) brightness(1.05) saturate(1.2) !important;
-  -webkit-backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.15) brightness(1.05) saturate(1.2) !important;
+  -webkit-backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.15) brightness(1.05)
+    saturate(1.2) !important;
 }
 
 .dark[data-style="liquid"] .glass-sidebar,
@@ -1258,7 +1453,7 @@ All colors MUST be HSL.
   border-right-color: rgba(255, 255, 255, 0.18) !important;
   box-shadow:
     inset -1px 0 0 0 rgba(255, 255, 255, 0.45),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.30),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.3),
     4px 0 24px -2px hsl(0 0% 0% / calc(0.35 * var(--shadow-strength))) !important;
 }
 
@@ -1366,7 +1561,8 @@ All colors MUST be HSL.
 [data-style="luminous"] .floating-sidebar::before {
   background: hsl(var(--sidebar) / var(--card-opacity, 0.22)) !important;
   backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.2)) saturate(190%) contrast(106%);
-  -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.2)) saturate(190%) contrast(106%);
+  -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.2)) saturate(190%)
+    contrast(106%);
 }
 
 .dark[data-style="luminous"] .floating-sidebar,
@@ -1388,8 +1584,10 @@ All colors MUST be HSL.
 .dark [data-style="luminous"] .floating-sidebar::before,
 [data-style="luminous"] .dark .floating-sidebar::before {
   background: hsl(var(--sidebar) / var(--card-opacity, 0.22)) !important;
-  backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.25)) saturate(180%) contrast(108%) brightness(112%);
-  -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.25)) saturate(180%) contrast(108%) brightness(112%);
+  backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.25)) saturate(180%) contrast(108%)
+    brightness(112%);
+  -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.25)) saturate(180%)
+    contrast(108%) brightness(112%);
 }
 
 [data-style="liquid"] .floating-sidebar {
@@ -1397,16 +1595,17 @@ All colors MUST be HSL.
   box-shadow:
     var(--tw-ring-offset-shadow, 0 0 #0000),
     var(--tw-ring-shadow, 0 0 #0000),
-    inset 0 1.5px 0 0 rgba(255, 255, 255, 0.90),
+    inset 0 1.5px 0 0 rgba(255, 255, 255, 0.9),
     inset 0 0 16px 0 rgba(255, 255, 255, 0.15),
     0 4px 16px -2px hsl(0 0% 0% / calc(0.06 * var(--shadow-strength))),
-    0 12px 36px -6px hsl(0 0% 0% / calc(0.10 * var(--shadow-strength))) !important;
+    0 12px 36px -6px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength))) !important;
 }
 
 [data-style="liquid"] .floating-sidebar::before {
   background: hsl(var(--sidebar) / var(--card-opacity, 0.25)) !important;
   backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.15) brightness(1.05) saturate(1.2);
-  -webkit-backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.15) brightness(1.05) saturate(1.2);
+  -webkit-backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.15) brightness(1.05)
+    saturate(1.2);
 }
 
 .dark[data-style="liquid"] .floating-sidebar,
@@ -1416,10 +1615,10 @@ All colors MUST be HSL.
   box-shadow:
     var(--tw-ring-offset-shadow, 0 0 #0000),
     var(--tw-ring-shadow, 0 0 #0000),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.40),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.4),
     inset 0 0 16px 0 rgba(255, 255, 255, 0.03),
     0 4px 18px -2px hsl(0 0% 0% / calc(0.35 * var(--shadow-strength))),
-    0 16px 44px -8px hsl(0 0% 0% / calc(0.50 * var(--shadow-strength))) !important;
+    0 16px 44px -8px hsl(0 0% 0% / calc(0.5 * var(--shadow-strength))) !important;
 }
 
 .dark[data-style="liquid"] .floating-sidebar::before,
@@ -1427,7 +1626,8 @@ All colors MUST be HSL.
 [data-style="liquid"] .dark .floating-sidebar::before {
   background: hsl(var(--sidebar) / var(--card-opacity, 0.25)) !important;
   backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.15) brightness(1.05) saturate(1.2);
-  -webkit-backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.15) brightness(1.05) saturate(1.2);
+  -webkit-backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.15) brightness(1.05)
+    saturate(1.2);
 }
 
 /* ============================================================================
@@ -1493,15 +1693,19 @@ All colors MUST be HSL.
 }
 
 /* 侧边栏悬停态项：通透水润微折射 */
-[data-style="liquid"] [data-sidebar="menu-button"]:not([data-active="true"]):not(.bg-primary\/20):hover {
+[data-style="liquid"]
+[data-sidebar="menu-button"]:not([data-active="true"]):not(.bg-primary\/20):hover {
   background: rgba(255, 255, 255, 0.14) !important;
-  border-color: rgba(255, 255, 255, 0.30) !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
   box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.45) !important;
   color: hsl(var(--foreground)) !important;
 }
 
-.dark[data-style="liquid"] [data-sidebar="menu-button"]:not([data-active="true"]):not(.bg-primary\/20):hover,
-.dark [data-style="liquid"] [data-sidebar="menu-button"]:not([data-active="true"]):not(.bg-primary\/20):hover {
+.dark[data-style="liquid"]
+  [data-sidebar="menu-button"]:not([data-active="true"]):not(.bg-primary\/20):hover,
+.dark
+  [data-style="liquid"]
+  [data-sidebar="menu-button"]:not([data-active="true"]):not(.bg-primary\/20):hover {
   background: rgba(255, 255, 255, 0.08) !important;
   border-color: rgba(255, 255, 255, 0.16) !important;
   box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.25) !important;
@@ -1553,9 +1757,9 @@ All colors MUST be HSL.
   box-shadow:
     var(--tw-ring-offset-shadow, 0 0 #0000),
     var(--tw-ring-shadow, 0 0 #0000),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.90),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.9),
     0 4px 16px -2px hsl(0 0% 0% / calc(0.06 * var(--shadow-strength))),
-    0 12px 36px -6px hsl(0 0% 0% / calc(0.10 * var(--shadow-strength))) !important;
+    0 12px 36px -6px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength))) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
@@ -1567,9 +1771,9 @@ All colors MUST be HSL.
   box-shadow:
     var(--tw-ring-offset-shadow, 0 0 #0000),
     var(--tw-ring-shadow, 0 0 #0000),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.40),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.4),
     0 4px 18px -2px hsl(0 0% 0% / calc(0.35 * var(--shadow-strength))),
-    0 16px 44px -8px hsl(0 0% 0% / calc(0.50 * var(--shadow-strength))) !important;
+    0 16px 44px -8px hsl(0 0% 0% / calc(0.5 * var(--shadow-strength))) !important;
 }
 
 [data-style="liquid"] .tab-segment-row::before,
@@ -1583,7 +1787,8 @@ All colors MUST be HSL.
   pointer-events: none;
   background: hsl(var(--card) / var(--card-opacity, 0.25)) !important;
   backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.15) brightness(1.05) saturate(1.2) !important;
-  -webkit-backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.15) brightness(1.05) saturate(1.2) !important;
+  -webkit-backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.15) brightness(1.05)
+    saturate(1.2) !important;
 }
 
 /* 选项槽嵌在 glass-card 里。卡片已经是这层玻璃，再铺一层会更深、更白。槽保持透明。 */
@@ -1612,11 +1817,21 @@ All colors MUST be HSL.
 :is([data-style="liquid"], [data-style="luminous"]) .tab-segment-row button.bg-primary *,
 :is([data-style="liquid"], [data-style="luminous"]) .tab-segment-row div.bg-primary *,
 :is([data-style="liquid"], [data-style="luminous"]) .select-tile[data-active="true"],
-:is([data-style="liquid"], [data-style="luminous"]) .select-tile[data-active="true"] *:not(.text-white):not([class*="text-white"]),
-:is([data-style="liquid"], [data-style="luminous"]) :is(.tab-segment-row, .select-tile-row) > :is(.select-tile, button, div)[data-active="true"],
-:is([data-style="liquid"], [data-style="luminous"]) :is(.tab-segment-row, .select-tile-row) > :is(.select-tile, button, div)[data-active="true"] *:not(.text-white):not([class*="text-white"]),
+:is([data-style="liquid"], [data-style="luminous"])
+  .select-tile[data-active="true"]
+  *:not(.text-white):not([class*="text-white"]),
+:is([data-style="liquid"], [data-style="luminous"])
+  :is(.tab-segment-row, .select-tile-row)
+  > :is(.select-tile, button, div)[data-active="true"],
+:is([data-style="liquid"], [data-style="luminous"])
+  :is(.tab-segment-row, .select-tile-row)
+  > :is(.select-tile, button, div)[data-active="true"]
+  *:not(.text-white):not([class*="text-white"]),
 :is([data-style="liquid"], [data-style="luminous"]) .tab-segment-row :is(button, div).bg-primary,
-:is([data-style="liquid"], [data-style="luminous"]) .tab-segment-row :is(button, div).bg-primary *:not(.text-white):not([class*="text-white"]) {
+:is([data-style="liquid"], [data-style="luminous"])
+  .tab-segment-row
+  :is(button, div).bg-primary
+  *:not(.text-white):not([class*="text-white"]) {
   color: #000000 !important;
   font-weight: 600 !important;
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.75) !important;
@@ -1627,22 +1842,51 @@ All colors MUST be HSL.
 .dark:is([data-style="liquid"], [data-style="luminous"]) .tab-segment-row button.bg-primary *,
 .dark:is([data-style="liquid"], [data-style="luminous"]) .tab-segment-row div.bg-primary *,
 .dark:is([data-style="liquid"], [data-style="luminous"]) .select-tile[data-active="true"],
-.dark:is([data-style="liquid"], [data-style="luminous"]) .select-tile[data-active="true"] *:not(.text-white):not([class*="text-white"]),
-.dark:is([data-style="liquid"], [data-style="luminous"]) :is(.tab-segment-row, .select-tile-row) > :is(.select-tile, button, div)[data-active="true"],
-.dark:is([data-style="liquid"], [data-style="luminous"]) :is(.tab-segment-row, .select-tile-row) > :is(.select-tile, button, div)[data-active="true"] *:not(.text-white):not([class*="text-white"]),
-.dark:is([data-style="liquid"], [data-style="luminous"]) .tab-segment-row :is(button, div).bg-primary,
-.dark:is([data-style="liquid"], [data-style="luminous"]) .tab-segment-row :is(button, div).bg-primary *:not(.text-white):not([class*="text-white"]),
+.dark:is([data-style="liquid"], [data-style="luminous"])
+  .select-tile[data-active="true"]
+  *:not(.text-white):not([class*="text-white"]),
+.dark:is([data-style="liquid"], [data-style="luminous"])
+  :is(.tab-segment-row, .select-tile-row)
+  > :is(.select-tile, button, div)[data-active="true"],
+.dark:is([data-style="liquid"], [data-style="luminous"])
+  :is(.tab-segment-row, .select-tile-row)
+  > :is(.select-tile, button, div)[data-active="true"]
+  *:not(.text-white):not([class*="text-white"]),
+.dark:is([data-style="liquid"], [data-style="luminous"])
+  .tab-segment-row
+  :is(button, div).bg-primary,
+.dark:is([data-style="liquid"], [data-style="luminous"])
+  .tab-segment-row
+  :is(button, div).bg-primary
+  *:not(.text-white):not([class*="text-white"]),
 .dark :is([data-style="liquid"], [data-style="luminous"]) .tab-segment-row button.bg-primary,
 .dark :is([data-style="liquid"], [data-style="luminous"]) .tab-segment-row div.bg-primary,
 .dark :is([data-style="liquid"], [data-style="luminous"]) .tab-segment-row button.bg-primary *,
 .dark :is([data-style="liquid"], [data-style="luminous"]) .tab-segment-row div.bg-primary *,
 .dark :is([data-style="liquid"], [data-style="luminous"]) .select-tile[data-active="true"],
-.dark :is([data-style="liquid"], [data-style="luminous"]) .select-tile[data-active="true"] *:not(.text-white):not([class*="text-white"]),
-.dark :is([data-style="liquid"], [data-style="luminous"]) :is(.tab-segment-row, .select-tile-row) > :is(.select-tile, button, div)[data-active="true"],
-.dark :is([data-style="liquid"], [data-style="luminous"]) :is(.tab-segment-row, .select-tile-row) > :is(.select-tile, button, div)[data-active="true"] *:not(.text-white):not([class*="text-white"]),
-.dark :is([data-style="liquid"], [data-style="luminous"]) .tab-segment-row :is(button, div).bg-primary,
-.dark :is([data-style="liquid"], [data-style="luminous"]) .tab-segment-row :is(button, div).bg-primary *:not(.text-white):not([class*="text-white"]) {
-  color: #FFFFFF !important;
+.dark
+  :is([data-style="liquid"], [data-style="luminous"])
+  .select-tile[data-active="true"]
+  *:not(.text-white):not([class*="text-white"]),
+.dark
+  :is([data-style="liquid"], [data-style="luminous"])
+  :is(.tab-segment-row, .select-tile-row)
+  > :is(.select-tile, button, div)[data-active="true"],
+.dark
+  :is([data-style="liquid"], [data-style="luminous"])
+  :is(.tab-segment-row, .select-tile-row)
+  > :is(.select-tile, button, div)[data-active="true"]
+  *:not(.text-white):not([class*="text-white"]),
+.dark
+  :is([data-style="liquid"], [data-style="luminous"])
+  .tab-segment-row
+  :is(button, div).bg-primary,
+.dark
+  :is([data-style="liquid"], [data-style="luminous"])
+  .tab-segment-row
+  :is(button, div).bg-primary
+  *:not(.text-white):not([class*="text-white"]) {
+  color: #ffffff !important;
   font-weight: 600 !important;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8) !important;
 }
@@ -1675,12 +1919,15 @@ All colors MUST be HSL.
  * 只匹配独立类名 bg-primary。不要用 [class*="bg-primary"]：
  * hover:bg-primary/10 也会命中，品牌区和语言切换会被涂成实心卡片。
  * ============================================================================ */
-[data-style="liquid"] button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) {
+[data-style="liquid"]
+button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(
+  .tab-segment-row *
+):not(.select-tile) {
   background: hsl(var(--primary)) !important;
   border: 1px solid rgba(255, 255, 255, 0.65) !important;
   box-shadow:
     inset 0 1.5px 0 0 rgba(255, 255, 255, 0.85),
-    inset 0 0 10px 0 rgba(255, 255, 255, 0.20),
+    inset 0 0 10px 0 rgba(255, 255, 255, 0.2),
     0 4px 14px -2px hsl(var(--primary) / calc(0.35 * var(--shadow-strength, 1))) !important;
   color: hsl(var(--primary-foreground)) !important;
   backdrop-filter: blur(var(--liquid-blur, 12px)) saturate(160%);
@@ -1688,16 +1935,30 @@ All colors MUST be HSL.
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
-[data-preset="shadcn"][data-style="liquid"] button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile),
-[data-preset="shadcn"] [data-style="liquid"] button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) {
+[data-preset="shadcn"][data-style="liquid"]
+  button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(
+    .tab-segment-row *
+  ):not(.select-tile),
+[data-preset="shadcn"]
+  [data-style="liquid"]
+  button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(
+    .tab-segment-row *
+  ):not(.select-tile) {
   background: hsl(var(--primary)) !important;
 }
 
-[data-style="liquid"] button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) * {
+[data-style="liquid"]
+  button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(
+    .tab-segment-row *
+  ):not(.select-tile)
+  * {
   color: hsl(var(--primary-foreground)) !important;
 }
 
-[data-style="liquid"] button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):hover {
+[data-style="liquid"]
+  button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(
+    .tab-segment-row *
+  ):not(.select-tile):hover {
   background: hsl(var(--primary)) !important;
   filter: brightness(1.08);
   border-color: rgba(255, 255, 255, 0.85) !important;
@@ -1708,112 +1969,284 @@ All colors MUST be HSL.
   transform: translateY(-1px);
 }
 
-.dark[data-style="liquid"] button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile),
-.dark [data-style="liquid"] button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) {
+.dark[data-style="liquid"]
+  button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(
+    .tab-segment-row *
+  ):not(.select-tile),
+.dark
+  [data-style="liquid"]
+  button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(
+    .tab-segment-row *
+  ):not(.select-tile) {
   background: hsl(var(--primary)) !important;
   border-color: rgba(255, 255, 255, 0.65) !important;
   box-shadow:
     inset 0 1.5px 0 0 rgba(255, 255, 255, 0.75),
     inset 0 0 10px 0 rgba(255, 255, 255, 0.15),
     0 4px 14px -2px hsl(var(--primary) / calc(0.45 * var(--shadow-strength, 1))),
-    0 0 18px -2px hsl(var(--primary) / calc(0.40 * var(--shadow-strength, 1))) !important;
+    0 0 18px -2px hsl(var(--primary) / calc(0.4 * var(--shadow-strength, 1))) !important;
   color: hsl(var(--primary-foreground)) !important;
 }
 
 /* 页头描边按钮（outline = bg-background）在液态玻璃下是实心白块。改成和输入框同一层玻璃。
    文字色单独写：text-destructive（卸载）要留红色，不能跟着前景色走。
    .header-outline-control：里面嵌了 Switch，不能再套 button，用同类名挂上同一套材质。 */
-[data-style="liquid"] :is(button, a, .header-outline-control)[class~="bg-background"]:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) {
+[data-style="liquid"]
+:is(button, a, .header-outline-control)[class~="bg-background"]:not(
+  [role="combobox"],
+  .ui-field-trigger,
+  .ui-input,
+  .ui-select-trigger
+):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) {
   background: hsl(var(--card) / var(--card-opacity, 0.35)) !important;
   border: 1px solid rgba(255, 255, 255, 0.55) !important;
   box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.75) !important;
   backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.08) brightness(1.04) saturate(1.1);
-  -webkit-backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.08) brightness(1.04) saturate(1.1);
+  -webkit-backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.08) brightness(1.04)
+    saturate(1.1);
 }
 
-[data-style="liquid"] :is(button, a, .header-outline-control)[class~="bg-background"]:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not(.text-destructive):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) {
+[data-style="liquid"]
+  :is(button, a, .header-outline-control)[class~="bg-background"]:not(
+    [role="combobox"],
+    .ui-field-trigger,
+    .ui-input,
+    .ui-select-trigger
+  ):not(.text-destructive):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(
+    .select-tile
+  ) {
   color: hsl(var(--foreground)) !important;
 }
 
-[data-style="liquid"] :is(button, a, .header-outline-control)[class~="bg-background"]:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):hover {
+[data-style="liquid"]
+  :is(button, a, .header-outline-control)[class~="bg-background"]:not(
+    [role="combobox"],
+    .ui-field-trigger,
+    .ui-input,
+    .ui-select-trigger
+  ):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):hover {
   background: hsl(var(--card) / calc(var(--card-opacity, 0.35) + 0.1)) !important;
   border-color: rgba(255, 255, 255, 0.82) !important;
   box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.9) !important;
 }
 
-.dark[data-style="liquid"] :is(button, a, .header-outline-control)[class~="bg-background"]:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile),
-.dark [data-style="liquid"] :is(button, a, .header-outline-control)[class~="bg-background"]:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile),
-[data-style="liquid"] .dark :is(button, a, .header-outline-control)[class~="bg-background"]:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) {
+.dark[data-style="liquid"]
+  :is(button, a, .header-outline-control)[class~="bg-background"]:not(
+    [role="combobox"],
+    .ui-field-trigger,
+    .ui-input,
+    .ui-select-trigger
+  ):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile),
+.dark
+  [data-style="liquid"]
+  :is(button, a, .header-outline-control)[class~="bg-background"]:not(
+    [role="combobox"],
+    .ui-field-trigger,
+    .ui-input,
+    .ui-select-trigger
+  ):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile),
+[data-style="liquid"]
+  .dark
+  :is(button, a, .header-outline-control)[class~="bg-background"]:not(
+    [role="combobox"],
+    .ui-field-trigger,
+    .ui-input,
+    .ui-select-trigger
+  ):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) {
   background: hsl(var(--card) / var(--card-opacity, 0.4)) !important;
   border-color: rgba(255, 255, 255, 0.18) !important;
   box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.32) !important;
 }
 
-.dark[data-style="liquid"] :is(button, a, .header-outline-control)[class~="bg-background"]:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not(.text-destructive):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile),
-.dark [data-style="liquid"] :is(button, a, .header-outline-control)[class~="bg-background"]:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not(.text-destructive):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile),
-[data-style="liquid"] .dark :is(button, a, .header-outline-control)[class~="bg-background"]:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not(.text-destructive):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) {
+.dark[data-style="liquid"]
+  :is(button, a, .header-outline-control)[class~="bg-background"]:not(
+    [role="combobox"],
+    .ui-field-trigger,
+    .ui-input,
+    .ui-select-trigger
+  ):not(.text-destructive):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(
+    .select-tile
+  ),
+.dark
+  [data-style="liquid"]
+  :is(button, a, .header-outline-control)[class~="bg-background"]:not(
+    [role="combobox"],
+    .ui-field-trigger,
+    .ui-input,
+    .ui-select-trigger
+  ):not(.text-destructive):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(
+    .select-tile
+  ),
+[data-style="liquid"]
+  .dark
+  :is(button, a, .header-outline-control)[class~="bg-background"]:not(
+    [role="combobox"],
+    .ui-field-trigger,
+    .ui-input,
+    .ui-select-trigger
+  ):not(.text-destructive):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(
+    .select-tile
+  ) {
   color: hsl(var(--foreground)) !important;
 }
 
-.dark[data-style="liquid"] :is(button, a, .header-outline-control)[class~="bg-background"]:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):hover,
-.dark [data-style="liquid"] :is(button, a, .header-outline-control)[class~="bg-background"]:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):hover,
-[data-style="liquid"] .dark :is(button, a, .header-outline-control)[class~="bg-background"]:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):hover {
+.dark[data-style="liquid"]
+  :is(button, a, .header-outline-control)[class~="bg-background"]:not(
+    [role="combobox"],
+    .ui-field-trigger,
+    .ui-input,
+    .ui-select-trigger
+  ):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):hover,
+.dark
+  [data-style="liquid"]
+  :is(button, a, .header-outline-control)[class~="bg-background"]:not(
+    [role="combobox"],
+    .ui-field-trigger,
+    .ui-input,
+    .ui-select-trigger
+  ):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):hover,
+[data-style="liquid"]
+  .dark
+  :is(button, a, .header-outline-control)[class~="bg-background"]:not(
+    [role="combobox"],
+    .ui-field-trigger,
+    .ui-input,
+    .ui-select-trigger
+  ):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):hover {
   background: hsl(var(--card) / calc(var(--card-opacity, 0.4) + 0.1)) !important;
   border-color: rgba(255, 255, 255, 0.32) !important;
 }
 
 /* 光感玻璃下的描边小按钮（预设档位等）不要铺实心白底。 */
-[data-style="luminous"] :is(button, a, .header-outline-control)[class~="bg-background"]:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):not(.bg-primary\/15) {
+[data-style="luminous"]
+:is(button, a, .header-outline-control)[class~="bg-background"]:not(
+  [role="combobox"],
+  .ui-field-trigger,
+  .ui-input,
+  .ui-select-trigger
+):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):not(.bg-primary\/15) {
   background: hsl(var(--card) / var(--card-opacity, 0.22)) !important;
   border: 1px solid rgba(255, 255, 255, 0.5) !important;
   box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.75) !important;
-  backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.2)) saturate(190%) contrast(106%) brightness(105%);
-  -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.2)) saturate(190%) contrast(106%) brightness(105%);
+  backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.2)) saturate(190%) contrast(106%)
+    brightness(105%);
+  -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.2)) saturate(190%)
+    contrast(106%) brightness(105%);
 }
 
-[data-style="luminous"] :is(button, a, .header-outline-control)[class~="bg-background"]:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not(.text-destructive):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):not(.bg-primary\/15) {
+[data-style="luminous"]
+  :is(button, a, .header-outline-control)[class~="bg-background"]:not(
+    [role="combobox"],
+    .ui-field-trigger,
+    .ui-input,
+    .ui-select-trigger
+  ):not(.text-destructive):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(
+    .select-tile
+  ):not(.bg-primary\/15) {
   color: hsl(var(--foreground)) !important;
 }
 
-[data-style="luminous"] :is(button, a, .header-outline-control)[class~="bg-background"]:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):not(.bg-primary\/15):hover {
+[data-style="luminous"]
+  :is(button, a, .header-outline-control)[class~="bg-background"]:not(
+    [role="combobox"],
+    .ui-field-trigger,
+    .ui-input,
+    .ui-select-trigger
+  ):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):not(
+    .bg-primary\/15
+  ):hover {
   background: hsl(var(--card) / calc(var(--card-opacity, 0.22) + 0.1)) !important;
   border-color: rgba(255, 255, 255, 0.78) !important;
 }
 
-[data-style="luminous"] :is(button, a).bg-primary\/15:not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) {
+[data-style="luminous"]
+  :is(button, a).bg-primary\/15:not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(
+    .select-tile
+  ) {
   background: hsl(var(--primary) / 0.16) !important;
   border: 1px solid hsl(var(--primary) / 0.45) !important;
   box-shadow:
     inset 0 1px 0 0 rgba(255, 255, 255, 0.85),
     0 4px 12px -4px hsl(var(--primary) / 0.35) !important;
-  backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.2)) saturate(190%) contrast(106%) brightness(105%);
-  -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.2)) saturate(190%) contrast(106%) brightness(105%);
+  backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.2)) saturate(190%) contrast(106%)
+    brightness(105%);
+  -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.2)) saturate(190%)
+    contrast(106%) brightness(105%);
   color: hsl(var(--primary)) !important;
 }
 
-.dark[data-style="luminous"] :is(button, a, .header-outline-control)[class~="bg-background"]:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):not(.bg-primary\/15),
-.dark [data-style="luminous"] :is(button, a, .header-outline-control)[class~="bg-background"]:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):not(.bg-primary\/15) {
+.dark[data-style="luminous"]
+  :is(button, a, .header-outline-control)[class~="bg-background"]:not(
+    [role="combobox"],
+    .ui-field-trigger,
+    .ui-input,
+    .ui-select-trigger
+  ):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):not(
+    .bg-primary\/15
+  ),
+.dark
+  [data-style="luminous"]
+  :is(button, a, .header-outline-control)[class~="bg-background"]:not(
+    [role="combobox"],
+    .ui-field-trigger,
+    .ui-input,
+    .ui-select-trigger
+  ):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):not(
+    .bg-primary\/15
+  ) {
   background: hsl(var(--card) / var(--card-opacity, 0.28)) !important;
   border-color: rgba(255, 255, 255, 0.18) !important;
   box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.28) !important;
-  backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.25)) saturate(180%) contrast(108%) brightness(112%);
-  -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.25)) saturate(180%) contrast(108%) brightness(112%);
+  backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.25)) saturate(180%) contrast(108%)
+    brightness(112%);
+  -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.25)) saturate(180%)
+    contrast(108%) brightness(112%);
 }
 
-.dark[data-style="luminous"] :is(button, a, .header-outline-control)[class~="bg-background"]:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not(.text-destructive):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):not(.bg-primary\/15),
-.dark [data-style="luminous"] :is(button, a, .header-outline-control)[class~="bg-background"]:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not(.text-destructive):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):not(.bg-primary\/15) {
+.dark[data-style="luminous"]
+  :is(button, a, .header-outline-control)[class~="bg-background"]:not(
+    [role="combobox"],
+    .ui-field-trigger,
+    .ui-input,
+    .ui-select-trigger
+  ):not(.text-destructive):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(
+    .select-tile
+  ):not(.bg-primary\/15),
+.dark
+  [data-style="luminous"]
+  :is(button, a, .header-outline-control)[class~="bg-background"]:not(
+    [role="combobox"],
+    .ui-field-trigger,
+    .ui-input,
+    .ui-select-trigger
+  ):not(.text-destructive):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(
+    .select-tile
+  ):not(.bg-primary\/15) {
   color: hsl(var(--foreground)) !important;
 }
 
-.dark[data-style="luminous"] :is(button, a).bg-primary\/15:not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile),
-.dark [data-style="luminous"] :is(button, a).bg-primary\/15:not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) {
+.dark[data-style="luminous"]
+  :is(button, a).bg-primary\/15:not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(
+    .select-tile
+  ),
+.dark
+  [data-style="luminous"]
+  :is(button, a).bg-primary\/15:not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(
+    .select-tile
+  ) {
   background: hsl(var(--primary) / 0.28) !important;
   border-color: hsl(var(--primary) / 0.5) !important;
   color: hsl(var(--foreground)) !important;
 }
 
 /* 磨砂玻璃下的描边按钮与卡片同一层：卡片色透明度 + blur-intensity。 */
-[data-style="glassmorphism"] :is(button, a, .header-outline-control)[class~="bg-background"]:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):not(.bg-primary\/15) {
+[data-style="glassmorphism"]
+:is(button, a, .header-outline-control)[class~="bg-background"]:not(
+  [role="combobox"],
+  .ui-field-trigger,
+  .ui-input,
+  .ui-select-trigger
+):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):not(.bg-primary\/15) {
   background: hsl(var(--card) / var(--card-opacity, 0.25)) !important;
   border: 1px solid hsl(var(--border) / 0.45) !important;
   box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.45) !important;
@@ -1821,16 +2254,35 @@ All colors MUST be HSL.
   -webkit-backdrop-filter: blur(var(--blur-intensity, 12px));
 }
 
-[data-style="glassmorphism"] :is(button, a, .header-outline-control)[class~="bg-background"]:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not(.text-destructive):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):not(.bg-primary\/15) {
+[data-style="glassmorphism"]
+  :is(button, a, .header-outline-control)[class~="bg-background"]:not(
+    [role="combobox"],
+    .ui-field-trigger,
+    .ui-input,
+    .ui-select-trigger
+  ):not(.text-destructive):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(
+    .select-tile
+  ):not(.bg-primary\/15) {
   color: hsl(var(--foreground)) !important;
 }
 
-[data-style="glassmorphism"] :is(button, a, .header-outline-control)[class~="bg-background"]:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):not(.bg-primary\/15):hover {
+[data-style="glassmorphism"]
+  :is(button, a, .header-outline-control)[class~="bg-background"]:not(
+    [role="combobox"],
+    .ui-field-trigger,
+    .ui-input,
+    .ui-select-trigger
+  ):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):not(
+    .bg-primary\/15
+  ):hover {
   background: hsl(var(--card) / calc(var(--card-opacity, 0.25) + 0.1)) !important;
   border-color: hsl(var(--border) / 0.7) !important;
 }
 
-[data-style="glassmorphism"] :is(button, a).bg-primary\/15:not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) {
+[data-style="glassmorphism"]
+  :is(button, a).bg-primary\/15:not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(
+    .select-tile
+  ) {
   background: hsl(var(--primary) / 0.16) !important;
   border: 1px solid hsl(var(--primary) / 0.4) !important;
   box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.55) !important;
@@ -1839,20 +2291,61 @@ All colors MUST be HSL.
   color: hsl(var(--primary)) !important;
 }
 
-.dark[data-style="glassmorphism"] :is(button, a, .header-outline-control)[class~="bg-background"]:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):not(.bg-primary\/15),
-.dark [data-style="glassmorphism"] :is(button, a, .header-outline-control)[class~="bg-background"]:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):not(.bg-primary\/15) {
+.dark[data-style="glassmorphism"]
+  :is(button, a, .header-outline-control)[class~="bg-background"]:not(
+    [role="combobox"],
+    .ui-field-trigger,
+    .ui-input,
+    .ui-select-trigger
+  ):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):not(
+    .bg-primary\/15
+  ),
+.dark
+  [data-style="glassmorphism"]
+  :is(button, a, .header-outline-control)[class~="bg-background"]:not(
+    [role="combobox"],
+    .ui-field-trigger,
+    .ui-input,
+    .ui-select-trigger
+  ):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):not(
+    .bg-primary\/15
+  ) {
   background: hsl(var(--card) / var(--card-opacity, 0.2)) !important;
   border-color: hsl(var(--border) / 0.4) !important;
   box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.16) !important;
 }
 
-.dark[data-style="glassmorphism"] :is(button, a, .header-outline-control)[class~="bg-background"]:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not(.text-destructive):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):not(.bg-primary\/15),
-.dark [data-style="glassmorphism"] :is(button, a, .header-outline-control)[class~="bg-background"]:not([role="combobox"], .ui-field-trigger, .ui-input, .ui-select-trigger):not(.text-destructive):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):not(.bg-primary\/15) {
+.dark[data-style="glassmorphism"]
+  :is(button, a, .header-outline-control)[class~="bg-background"]:not(
+    [role="combobox"],
+    .ui-field-trigger,
+    .ui-input,
+    .ui-select-trigger
+  ):not(.text-destructive):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(
+    .select-tile
+  ):not(.bg-primary\/15),
+.dark
+  [data-style="glassmorphism"]
+  :is(button, a, .header-outline-control)[class~="bg-background"]:not(
+    [role="combobox"],
+    .ui-field-trigger,
+    .ui-input,
+    .ui-select-trigger
+  ):not(.text-destructive):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(
+    .select-tile
+  ):not(.bg-primary\/15) {
   color: hsl(var(--foreground)) !important;
 }
 
-.dark[data-style="glassmorphism"] :is(button, a).bg-primary\/15:not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile),
-.dark [data-style="glassmorphism"] :is(button, a).bg-primary\/15:not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) {
+.dark[data-style="glassmorphism"]
+  :is(button, a).bg-primary\/15:not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(
+    .select-tile
+  ),
+.dark
+  [data-style="glassmorphism"]
+  :is(button, a).bg-primary\/15:not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(
+    .select-tile
+  ) {
   background: hsl(var(--primary) / 0.28) !important;
   border-color: hsl(var(--primary) / 0.45) !important;
   color: hsl(var(--foreground)) !important;
@@ -1874,9 +2367,9 @@ All colors MUST be HSL.
 }
 
 [data-style="luminous"] .select-tile:not([data-active="true"]) {
-  background: hsl(var(--card) / var(--card-opacity, 0.20)) !important;
+  background: hsl(var(--card) / var(--card-opacity, 0.2)) !important;
   border-color: rgba(255, 255, 255, 0.22) !important;
-  box-shadow: inset 0 1px 0.5px 0 rgba(255, 255, 255, 0.40) !important;
+  box-shadow: inset 0 1px 0.5px 0 rgba(255, 255, 255, 0.4) !important;
   backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 0.8)) saturate(170%);
   -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 0.8)) saturate(170%);
 }
@@ -1889,7 +2382,7 @@ All colors MUST be HSL.
 }
 
 [data-style="luminous"] .select-tile:not([data-active="true"]):hover {
-  background: hsl(var(--card) / calc(var(--card-opacity, 0.20) + 0.12)) !important;
+  background: hsl(var(--card) / calc(var(--card-opacity, 0.2) + 0.12)) !important;
   border-color: rgba(255, 255, 255, 0.45) !important;
   box-shadow: inset 0 1px 1px 0 rgba(255, 255, 255, 0.65) !important;
 }
@@ -1974,7 +2467,8 @@ All colors MUST be HSL.
   box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.75) !important;
   color: hsl(var(--foreground)) !important;
   backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.08) brightness(1.04) saturate(1.1);
-  -webkit-backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.08) brightness(1.04) saturate(1.1);
+  -webkit-backdrop-filter: blur(var(--liquid-blur, 8px)) contrast(1.08) brightness(1.04)
+    saturate(1.1);
 }
 
 .dark[data-style="liquid"] [data-sonner-toast],
@@ -1990,8 +2484,10 @@ All colors MUST be HSL.
   border: 1px solid rgba(255, 255, 255, 0.5) !important;
   box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.75) !important;
   color: hsl(var(--foreground)) !important;
-  backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.2)) saturate(190%) contrast(106%) brightness(105%);
-  -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.2)) saturate(190%) contrast(106%) brightness(105%);
+  backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.2)) saturate(190%) contrast(106%)
+    brightness(105%);
+  -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.2)) saturate(190%)
+    contrast(106%) brightness(105%);
 }
 
 .dark[data-style="luminous"] [data-sonner-toast],
@@ -2000,8 +2496,10 @@ All colors MUST be HSL.
   background: hsl(var(--card) / var(--card-opacity, 0.5)) !important;
   border-color: rgba(255, 255, 255, 0.18) !important;
   box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.28) !important;
-  backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.25)) saturate(180%) contrast(108%) brightness(112%);
-  -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.25)) saturate(180%) contrast(108%) brightness(112%);
+  backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.25)) saturate(180%) contrast(108%)
+    brightness(112%);
+  -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.25)) saturate(180%)
+    contrast(108%) brightness(112%);
 }
 
 [data-style="glassmorphism"] [data-sonner-toast] {
@@ -2041,9 +2539,9 @@ All colors MUST be HSL.
   color: hsl(var(--muted-foreground)) !important;
   box-shadow:
     0 0 0 1px rgba(255, 255, 255, 0.25),
-    inset 0 1.5px 0.5px 0 rgba(255, 255, 255, 0.80),
+    inset 0 1.5px 0.5px 0 rgba(255, 255, 255, 0.8),
     inset 0 0 0 1px rgba(255, 255, 255, 0.25),
-    inset 2px 0 3px 0 rgba(255, 255, 255, 0.30),
+    inset 2px 0 3px 0 rgba(255, 255, 255, 0.3),
     inset -2px 0 3px 0 rgba(0, 0, 0, 0.05),
     inset 0 -2px 3px 0 rgba(0, 0, 0, 0.08) !important;
   backdrop-filter: blur(8px) contrast(1.05) !important;
@@ -2052,7 +2550,7 @@ All colors MUST be HSL.
 
 [data-style="liquid"] .select-tile:not([data-active="true"]):hover {
   background: rgba(255, 255, 255, 0.12) !important;
-  border-color: rgba(255, 255, 255, 0.80) !important;
+  border-color: rgba(255, 255, 255, 0.8) !important;
   box-shadow:
     0 0 0 1px rgba(255, 255, 255, 0.45),
     inset 0 2px 1px 0 rgba(255, 255, 255, 0.95),
@@ -2068,9 +2566,9 @@ All colors MUST be HSL.
   border: 1px solid rgba(255, 255, 255, 0.18) !important;
   color: hsl(var(--muted-foreground)) !important;
   box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.10),
-    inset 0 1.5px 0.5px 0 rgba(255, 255, 255, 0.50),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.10),
+    0 0 0 1px rgba(255, 255, 255, 0.1),
+    inset 0 1.5px 0.5px 0 rgba(255, 255, 255, 0.5),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1),
     inset 2px 0 3px 0 rgba(255, 255, 255, 0.14),
     inset -2px 0 3px 0 rgba(0, 0, 0, 0.28),
     inset 0 -2px 3px 0 rgba(0, 0, 0, 0.35) !important;
@@ -2199,7 +2697,9 @@ All colors MUST be HSL.
 [data-style="glassmorphism"] .tab-segment-row button.bg-primary *,
 [data-style="glassmorphism"] .tab-segment-row div.bg-primary *,
 [data-style="glassmorphism"] .select-tile[data-active="true"],
-[data-style="glassmorphism"] .select-tile[data-active="true"] *:not(.text-white):not([class*="text-white"]),
+[data-style="glassmorphism"]
+  .select-tile[data-active="true"]
+  *:not(.text-white):not([class*="text-white"]),
 .dark[data-style="glassmorphism"] .tab-segment-row button.bg-primary,
 .dark [data-style="glassmorphism"] .tab-segment-row button.bg-primary,
 .dark[data-style="glassmorphism"] .tab-segment-row div.bg-primary,
@@ -2210,8 +2710,13 @@ All colors MUST be HSL.
 .dark [data-style="glassmorphism"] .tab-segment-row div.bg-primary *,
 .dark[data-style="glassmorphism"] .select-tile[data-active="true"],
 .dark [data-style="glassmorphism"] .select-tile[data-active="true"],
-.dark[data-style="glassmorphism"] .select-tile[data-active="true"] *:not(.text-white):not([class*="text-white"]),
-.dark [data-style="glassmorphism"] .select-tile[data-active="true"] *:not(.text-white):not([class*="text-white"]) {
+.dark[data-style="glassmorphism"]
+  .select-tile[data-active="true"]
+  *:not(.text-white):not([class*="text-white"]),
+.dark
+  [data-style="glassmorphism"]
+  .select-tile[data-active="true"]
+  *:not(.text-white):not([class*="text-white"]) {
   color: hsl(var(--primary-foreground)) !important;
   font-weight: 500 !important;
   text-shadow: none !important;
@@ -2280,8 +2785,13 @@ button.bg-primary .tab-segment-count {
   -webkit-backdrop-filter: blur(var(--blur-intensity, 16px)) saturate(160%) !important;
 }
 
-[data-preset="shadcn"][data-style="glassmorphism"] :is(.tab-segment-row, .select-tile-row) > .liquid-segment-thumb,
-[data-preset="shadcn"] [data-style="glassmorphism"] :is(.tab-segment-row, .select-tile-row) > .liquid-segment-thumb {
+[data-preset="shadcn"][data-style="glassmorphism"]
+  :is(.tab-segment-row, .select-tile-row)
+  > .liquid-segment-thumb,
+[data-preset="shadcn"]
+  [data-style="glassmorphism"]
+  :is(.tab-segment-row, .select-tile-row)
+  > .liquid-segment-thumb {
   background: hsl(var(--primary)) !important;
   border: 1px solid rgba(255, 255, 255, 0.35) !important;
 }
@@ -2289,9 +2799,9 @@ button.bg-primary .tab-segment-count {
 .dark[data-style="glassmorphism"] :is(.tab-segment-row, .select-tile-row) > .liquid-segment-thumb,
 .dark [data-style="glassmorphism"] :is(.tab-segment-row, .select-tile-row) > .liquid-segment-thumb {
   background: hsl(var(--primary)) !important;
-  border: 1px solid rgba(255, 255, 255, 0.70) !important;
+  border: 1px solid rgba(255, 255, 255, 0.7) !important;
   box-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.90),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.9),
     0 2px 10px 0 rgba(0, 0, 0, 0.25),
     0 0 18px -2px hsl(var(--primary) / 0.45) !important;
   backdrop-filter: blur(var(--blur-intensity, 16px)) saturate(160%) !important;
@@ -2304,8 +2814,13 @@ button.bg-primary .tab-segment-count {
  * 承接完整的光感系统：深邃主题色光晕与体积漫反射，通体柔光溢出
  * ============================================================================ */
 [data-style="luminous"] :is(.tab-segment-row, .select-tile-row) > .liquid-segment-thumb,
-[data-preset="shadcn"][data-style="luminous"] :is(.tab-segment-row, .select-tile-row) > .liquid-segment-thumb,
-[data-preset="shadcn"] [data-style="luminous"] :is(.tab-segment-row, .select-tile-row) > .liquid-segment-thumb {
+[data-preset="shadcn"][data-style="luminous"]
+  :is(.tab-segment-row, .select-tile-row)
+  > .liquid-segment-thumb,
+[data-preset="shadcn"]
+  [data-style="luminous"]
+  :is(.tab-segment-row, .select-tile-row)
+  > .liquid-segment-thumb {
   background: linear-gradient(
     180deg,
     rgba(255, 255, 255, 0.75) 0%,
@@ -2316,10 +2831,10 @@ button.bg-primary .tab-segment-count {
   box-shadow:
     0 0 0 1px rgba(255, 255, 255, 0.65),
     0 0 20px 2px hsl(var(--primary) / 0.28),
-    0 4px 14px -2px rgba(0, 0, 0, 0.10),
+    0 4px 14px -2px rgba(0, 0, 0, 0.1),
     inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.95),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.50),
-    inset 0 -1.5px 1px 0 rgba(255, 255, 255, 0.40),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.5),
+    inset 0 -1.5px 1px 0 rgba(255, 255, 255, 0.4),
     inset 0 0 16px 2px hsl(var(--primary) / 0.18) !important;
   backdrop-filter: blur(16px) saturate(180%) contrast(115%) brightness(1.05) !important;
   -webkit-backdrop-filter: blur(16px) saturate(180%) contrast(115%) brightness(1.05) !important;
@@ -2337,7 +2852,7 @@ button.bg-primary .tab-segment-count {
   box-shadow:
     0 0 0 1px rgba(255, 255, 255, 0.32),
     0 0 24px 3px hsl(var(--primary) / 0.45),
-    0 8px 24px -2px rgba(0, 0, 0, 0.50),
+    0 8px 24px -2px rgba(0, 0, 0, 0.5),
     inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.95),
     inset 0 0 0 1px rgba(255, 255, 255, 0.28),
     inset 0 -1.5px 1px 0 rgba(255, 255, 255, 0.25),
@@ -2352,23 +2867,28 @@ button.bg-primary .tab-segment-count {
  * 边缘凸透镜折射：全反射晶体水刃 + 倒角内折射散射 + 贴边 1px 晶莹水圈轮廓
  * ============================================================================ */
 [data-style="liquid"] :is(.tab-segment-row, .select-tile-row) > .liquid-segment-thumb,
-[data-preset="shadcn"][data-style="liquid"] :is(.tab-segment-row, .select-tile-row) > .liquid-segment-thumb,
-[data-preset="shadcn"] [data-style="liquid"] :is(.tab-segment-row, .select-tile-row) > .liquid-segment-thumb {
+[data-preset="shadcn"][data-style="liquid"]
+  :is(.tab-segment-row, .select-tile-row)
+  > .liquid-segment-thumb,
+[data-preset="shadcn"]
+  [data-style="liquid"]
+  :is(.tab-segment-row, .select-tile-row)
+  > .liquid-segment-thumb {
   background: rgba(255, 255, 255, 0.15) !important;
   border: 1px solid rgba(255, 255, 255, 0.85) !important;
   box-shadow:
-    /* 1. 外层全反射白金光轮廓与微折射水圈 */
-    0 0 0 1px rgba(255, 255, 255, 0.70),
-    0 0 0 2.5px rgba(255, 255, 255, 0.20),
+/* 1. 外层全反射白金光轮廓与微折射水圈 */
+    0 0 0 1px rgba(255, 255, 255, 0.7),
+    0 0 0 2.5px rgba(255, 255, 255, 0.2),
     0 3px 8px 0 rgba(0, 0, 0, 0.08),
-    0 8px 20px -2px rgba(0, 0, 0, 0.10),
+    0 8px 20px -2px rgba(0, 0, 0, 0.1),
     /* 2. 顶刃极致耀眼的全反射白水刀 */
     inset 0 2px 0.5px 0 rgba(255, 255, 255, 0.98),
     /* 3. 内部透镜立体内折射倒角环（营造5px真实水滴凸透镜弧面与厚度） */
-    inset 0 0 0 1px rgba(255, 255, 255, 0.50),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.5),
     inset 0 4px 8px 0 rgba(255, 255, 255, 0.35),
     inset 3px 0 6px 0 rgba(255, 255, 255, 0.55),
-    inset -3px 0 6px 0 rgba(0, 0, 0, 0.10),
+    inset -3px 0 6px 0 rgba(0, 0, 0, 0.1),
     inset 0 -3px 6px 0 rgba(0, 0, 0, 0.18) !important;
   backdrop-filter: blur(12px) contrast(1.12) saturate(145%) !important;
   -webkit-backdrop-filter: blur(12px) contrast(1.12) saturate(145%) !important;
@@ -2379,9 +2899,9 @@ button.bg-primary .tab-segment-count {
   background: rgba(255, 255, 255, 0.04) !important;
   border: 1px solid rgba(255, 255, 255, 0.45) !important;
   box-shadow:
-    /* 1. 外层晶体透镜水圈轮廓与微散射环 */
+/* 1. 外层晶体透镜水圈轮廓与微散射环 */
     0 0 0 1px rgba(255, 255, 255, 0.32),
-    0 0 0 2.5px rgba(255, 255, 255, 0.10),
+    0 0 0 2.5px rgba(255, 255, 255, 0.1),
     0 4px 14px 0 rgba(0, 0, 0, 0.45),
     0 12px 30px -4px rgba(0, 0, 0, 0.65),
     /* 2. 顶刃极致耀眼的全反射白水刀（纯净纯白，绝无死蓝） */
@@ -2389,9 +2909,9 @@ button.bg-primary .tab-segment-count {
     /* 3. 边缘凸透镜折射倒角内带（透光与暗带并存，产生极强烈的立体折射深度） */
     inset 0 0 0 1px rgba(255, 255, 255, 0.28),
     inset 0 4px 8px 0 rgba(255, 255, 255, 0.16),
-    inset 3px 0 6px 0 rgba(255, 255, 255, 0.30),
+    inset 3px 0 6px 0 rgba(255, 255, 255, 0.3),
     inset -3px 0 6px 0 rgba(0, 0, 0, 0.38),
-    inset 0 -3.5px 6px 0 rgba(0, 0, 0, 0.60) !important;
+    inset 0 -3.5px 6px 0 rgba(0, 0, 0, 0.6) !important;
   backdrop-filter: blur(12px) contrast(1.12) saturate(145%) !important;
   -webkit-backdrop-filter: blur(12px) contrast(1.12) saturate(145%) !important;
 }
@@ -2404,8 +2924,13 @@ button.bg-primary .tab-segment-count {
   -webkit-backdrop-filter: none !important;
 }
 
-[data-preset="shadcn"][data-style="solid"] :is(.tab-segment-row, .select-tile-row) > .liquid-segment-thumb,
-[data-preset="shadcn"] [data-style="solid"] :is(.tab-segment-row, .select-tile-row) > .liquid-segment-thumb {
+[data-preset="shadcn"][data-style="solid"]
+  :is(.tab-segment-row, .select-tile-row)
+  > .liquid-segment-thumb,
+[data-preset="shadcn"]
+  [data-style="solid"]
+  :is(.tab-segment-row, .select-tile-row)
+  > .liquid-segment-thumb {
   background: hsl(var(--primary)) !important;
   border-color: hsl(var(--primary)) !important;
 }
@@ -2433,54 +2958,119 @@ button.bg-primary .tab-segment-count {
   box-shadow: none !important;
 }
 
-:is([data-style="solid"], [data-style="glassmorphism"]) .select-tile-row > .select-tile[data-active="true"],
-:is([data-style="solid"], [data-style="glassmorphism"]) .select-tile-row > .select-tile[data-active="true"] *:not(.text-white):not([class*="text-white"]),
-.dark:is([data-style="solid"], [data-style="glassmorphism"]) .select-tile-row > .select-tile[data-active="true"],
-.dark:is([data-style="solid"], [data-style="glassmorphism"]) .select-tile-row > .select-tile[data-active="true"] *:not(.text-white):not([class*="text-white"]) {
+:is([data-style="solid"], [data-style="glassmorphism"])
+  .select-tile-row
+  > .select-tile[data-active="true"],
+:is([data-style="solid"], [data-style="glassmorphism"])
+  .select-tile-row
+  > .select-tile[data-active="true"]
+  *:not(.text-white):not([class*="text-white"]),
+.dark:is([data-style="solid"], [data-style="glassmorphism"])
+  .select-tile-row
+  > .select-tile[data-active="true"],
+.dark:is([data-style="solid"], [data-style="glassmorphism"])
+  .select-tile-row
+  > .select-tile[data-active="true"]
+  *:not(.text-white):not([class*="text-white"]) {
   color: hsl(var(--primary-foreground)) !important;
   font-weight: 500 !important;
   text-shadow: none !important;
 }
 
 /* 液态玻璃 & 光感玻璃激活项：统一黑白纯色，亮色纯黑、暗色纯白，保证在任何壁纸下均清晰 */
-:is([data-style="liquid"], [data-style="luminous"]) :is(.tab-segment-row, .select-tile-row) > :is(.select-tile, button, div)[data-active="true"],
-:is([data-style="liquid"], [data-style="luminous"]) :is(.tab-segment-row, .select-tile-row) > :is(.select-tile, button, div)[data-active="true"] *:not(.text-white):not([class*="text-white"]),
+:is([data-style="liquid"], [data-style="luminous"])
+  :is(.tab-segment-row, .select-tile-row)
+  > :is(.select-tile, button, div)[data-active="true"],
+:is([data-style="liquid"], [data-style="luminous"])
+  :is(.tab-segment-row, .select-tile-row)
+  > :is(.select-tile, button, div)[data-active="true"]
+  *:not(.text-white):not([class*="text-white"]),
 :is([data-style="liquid"], [data-style="luminous"]) .tab-segment-row :is(button, div).bg-primary,
-:is([data-style="liquid"], [data-style="luminous"]) .tab-segment-row :is(button, div).bg-primary *:not(.text-white):not([class*="text-white"]) {
+:is([data-style="liquid"], [data-style="luminous"])
+  .tab-segment-row
+  :is(button, div).bg-primary
+  *:not(.text-white):not([class*="text-white"]) {
   color: #000000 !important;
   font-weight: 600 !important;
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.75) !important;
 }
 
-.dark:is([data-style="liquid"], [data-style="luminous"]) :is(.tab-segment-row, .select-tile-row) > :is(.select-tile, button, div)[data-active="true"],
-.dark:is([data-style="liquid"], [data-style="luminous"]) :is(.tab-segment-row, .select-tile-row) > :is(.select-tile, button, div)[data-active="true"] *:not(.text-white):not([class*="text-white"]),
-.dark:is([data-style="liquid"], [data-style="luminous"]) .tab-segment-row :is(button, div).bg-primary,
-.dark:is([data-style="liquid"], [data-style="luminous"]) .tab-segment-row :is(button, div).bg-primary *:not(.text-white):not([class*="text-white"]),
-.dark :is([data-style="liquid"], [data-style="luminous"]) :is(.tab-segment-row, .select-tile-row) > :is(.select-tile, button, div)[data-active="true"],
-.dark :is([data-style="liquid"], [data-style="luminous"]) :is(.tab-segment-row, .select-tile-row) > :is(.select-tile, button, div)[data-active="true"] *:not(.text-white):not([class*="text-white"]),
-.dark :is([data-style="liquid"], [data-style="luminous"]) .tab-segment-row :is(button, div).bg-primary,
-.dark :is([data-style="liquid"], [data-style="luminous"]) .tab-segment-row :is(button, div).bg-primary *:not(.text-white):not([class*="text-white"]) {
-  color: #FFFFFF !important;
+.dark:is([data-style="liquid"], [data-style="luminous"])
+  :is(.tab-segment-row, .select-tile-row)
+  > :is(.select-tile, button, div)[data-active="true"],
+.dark:is([data-style="liquid"], [data-style="luminous"])
+  :is(.tab-segment-row, .select-tile-row)
+  > :is(.select-tile, button, div)[data-active="true"]
+  *:not(.text-white):not([class*="text-white"]),
+.dark:is([data-style="liquid"], [data-style="luminous"])
+  .tab-segment-row
+  :is(button, div).bg-primary,
+.dark:is([data-style="liquid"], [data-style="luminous"])
+  .tab-segment-row
+  :is(button, div).bg-primary
+  *:not(.text-white):not([class*="text-white"]),
+.dark
+  :is([data-style="liquid"], [data-style="luminous"])
+  :is(.tab-segment-row, .select-tile-row)
+  > :is(.select-tile, button, div)[data-active="true"],
+.dark
+  :is([data-style="liquid"], [data-style="luminous"])
+  :is(.tab-segment-row, .select-tile-row)
+  > :is(.select-tile, button, div)[data-active="true"]
+  *:not(.text-white):not([class*="text-white"]),
+.dark
+  :is([data-style="liquid"], [data-style="luminous"])
+  .tab-segment-row
+  :is(button, div).bg-primary,
+.dark
+  :is([data-style="liquid"], [data-style="luminous"])
+  .tab-segment-row
+  :is(button, div).bg-primary
+  *:not(.text-white):not([class*="text-white"]) {
+  color: #ffffff !important;
   font-weight: 600 !important;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8) !important;
 }
 
-:is([data-style="liquid"], [data-style="luminous"]) .tab-segment-row :is(button, div).bg-primary .tab-segment-count,
-:is([data-style="liquid"], [data-style="luminous"]) .tab-segment-row :is(button, div)[data-active="true"] .tab-segment-count {
+:is([data-style="liquid"], [data-style="luminous"])
+  .tab-segment-row
+  :is(button, div).bg-primary
+  .tab-segment-count,
+:is([data-style="liquid"], [data-style="luminous"])
+  .tab-segment-row
+  :is(button, div)[data-active="true"]
+  .tab-segment-count {
   background: rgba(0, 0, 0, 0.12) !important;
   color: #000000 !important;
 }
 
-.dark:is([data-style="liquid"], [data-style="luminous"]) .tab-segment-row :is(button, div).bg-primary .tab-segment-count,
-.dark:is([data-style="liquid"], [data-style="luminous"]) .tab-segment-row :is(button, div)[data-active="true"] .tab-segment-count,
-.dark :is([data-style="liquid"], [data-style="luminous"]) .tab-segment-row :is(button, div).bg-primary .tab-segment-count,
-.dark :is([data-style="liquid"], [data-style="luminous"]) .tab-segment-row :is(button, div)[data-active="true"] .tab-segment-count {
+.dark:is([data-style="liquid"], [data-style="luminous"])
+  .tab-segment-row
+  :is(button, div).bg-primary
+  .tab-segment-count,
+.dark:is([data-style="liquid"], [data-style="luminous"])
+  .tab-segment-row
+  :is(button, div)[data-active="true"]
+  .tab-segment-count,
+.dark
+  :is([data-style="liquid"], [data-style="luminous"])
+  .tab-segment-row
+  :is(button, div).bg-primary
+  .tab-segment-count,
+.dark
+  :is([data-style="liquid"], [data-style="luminous"])
+  .tab-segment-row
+  :is(button, div)[data-active="true"]
+  .tab-segment-count {
   background: rgba(255, 255, 255, 0.22) !important;
-  color: #FFFFFF !important;
+  color: #ffffff !important;
 }
 
 /* 页头主按钮跟随主色半透磨砂，保持高对比度与反色。 */
-[data-style="glassmorphism"] button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) {
+[data-style="glassmorphism"]
+button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(
+  .tab-segment-row *
+):not(.select-tile) {
   background: hsl(var(--primary)) !important;
   border: 1px solid rgba(255, 255, 255, 0.35) !important;
   box-shadow:
@@ -2491,43 +3081,76 @@ button.bg-primary .tab-segment-count {
   -webkit-backdrop-filter: blur(var(--blur-intensity, 16px));
 }
 
-[data-preset="shadcn"][data-style="glassmorphism"] button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile),
-[data-preset="shadcn"] [data-style="glassmorphism"] button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) {
+[data-preset="shadcn"][data-style="glassmorphism"]
+  button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(
+    .tab-segment-row *
+  ):not(.select-tile),
+[data-preset="shadcn"]
+  [data-style="glassmorphism"]
+  button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(
+    .tab-segment-row *
+  ):not(.select-tile) {
   background: hsl(var(--primary)) !important;
   border: 1px solid rgba(255, 255, 255, 0.35) !important;
 }
 
-[data-style="luminous"] button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) {
+[data-style="luminous"]
+  button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(
+    .tab-segment-row *
+  ):not(.select-tile) {
   background: hsl(var(--primary)) !important;
   border: 1px solid rgba(255, 255, 255, 0.55) !important;
   box-shadow:
-    inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.70),
-    0 0 18px -2px hsl(var(--primary) / calc(0.40 * var(--shadow-strength, 1))) !important;
+    inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.7),
+    0 0 18px -2px hsl(var(--primary) / calc(0.4 * var(--shadow-strength, 1))) !important;
   color: hsl(var(--primary-foreground)) !important;
-  backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.2)) saturate(190%) contrast(106%) brightness(105%);
-  -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.2)) saturate(190%) contrast(106%) brightness(105%);
+  backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.2)) saturate(190%) contrast(106%)
+    brightness(105%);
+  -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.2)) saturate(190%)
+    contrast(106%) brightness(105%);
 }
 
-[data-preset="shadcn"][data-style="luminous"] button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile),
-[data-preset="shadcn"] [data-style="luminous"] button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) {
+[data-preset="shadcn"][data-style="luminous"]
+  button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(
+    .tab-segment-row *
+  ):not(.select-tile),
+[data-preset="shadcn"]
+  [data-style="luminous"]
+  button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(
+    .tab-segment-row *
+  ):not(.select-tile) {
   background: hsl(var(--primary)) !important;
 }
 
-[data-style="glassmorphism"] button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) *,
-[data-style="luminous"] button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) * {
+[data-style="glassmorphism"]
+  button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(
+    .tab-segment-row *
+  ):not(.select-tile)
+  *,
+[data-style="luminous"]
+  button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(
+    .tab-segment-row *
+  ):not(.select-tile)
+  * {
   color: hsl(var(--primary-foreground)) !important;
 }
 
-[data-style="glassmorphism"] button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):hover {
+[data-style="glassmorphism"]
+  button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(
+    .tab-segment-row *
+  ):not(.select-tile):hover {
   background: hsl(var(--primary)) !important;
   filter: brightness(1.08);
-  border-color: rgba(255, 255, 255, 0.50) !important;
+  border-color: rgba(255, 255, 255, 0.5) !important;
   box-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.60),
-    0 4px 16px -2px hsl(var(--primary) / calc(0.40 * var(--shadow-strength, 1))) !important;
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.6),
+    0 4px 16px -2px hsl(var(--primary) / calc(0.4 * var(--shadow-strength, 1))) !important;
 }
 
-[data-style="luminous"] button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):hover {
+[data-style="luminous"]
+  button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(
+    .tab-segment-row *
+  ):not(.select-tile):hover {
   background: hsl(var(--primary)) !important;
   filter: brightness(1.08);
   border-color: rgba(255, 255, 255, 0.75) !important;
@@ -2536,22 +3159,40 @@ button.bg-primary .tab-segment-count {
     0 0 22px -2px hsl(var(--primary) / calc(0.55 * var(--shadow-strength, 1))) !important;
 }
 
-.dark[data-style="glassmorphism"] button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile),
-.dark [data-style="glassmorphism"] button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile),
-.dark[data-style="luminous"] button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile),
-.dark [data-style="luminous"] button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) {
+.dark[data-style="glassmorphism"]
+  button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(
+    .tab-segment-row *
+  ):not(.select-tile),
+.dark
+  [data-style="glassmorphism"]
+  button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(
+    .tab-segment-row *
+  ):not(.select-tile),
+.dark[data-style="luminous"]
+  button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(
+    .tab-segment-row *
+  ):not(.select-tile),
+.dark
+  [data-style="luminous"]
+  button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(
+    .tab-segment-row *
+  ):not(.select-tile) {
   background: hsl(var(--primary)) !important;
-  border-color: rgba(255, 255, 255, 0.70) !important;
+  border-color: rgba(255, 255, 255, 0.7) !important;
   box-shadow:
     inset 0 1px 0 0 rgba(255, 255, 255, 0.85),
-    0 2px 8px hsl(0 0% 0% / calc(0.20 * var(--shadow-strength, 1))),
+    0 2px 8px hsl(0 0% 0% / calc(0.2 * var(--shadow-strength, 1))),
     0 10px 28px -4px hsl(0 0% 0% / calc(0.38 * var(--shadow-strength, 1))),
     0 0 16px -2px hsl(var(--primary) / calc(0.35 * var(--shadow-strength, 1))) !important;
   color: hsl(var(--primary-foreground)) !important;
 }
 
 /* 对话框、抽屉、确认框里的主按钮是这一步的最终动作，用实心主色。页头新建仍走上面的磨砂。 */
-html[data-style] :is([role="dialog"], [role="alertdialog"]) button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) {
+html[data-style]
+  :is([role="dialog"], [role="alertdialog"])
+  button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(
+    .tab-segment-row *
+  ):not(.select-tile) {
   background: hsl(var(--primary)) !important;
   border: 1px solid transparent !important;
   box-shadow: none !important;
@@ -2561,7 +3202,11 @@ html[data-style] :is([role="dialog"], [role="alertdialog"]) button.bg-primary:no
   transform: none !important;
 }
 
-html[data-style] :is([role="dialog"], [role="alertdialog"]) button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile):hover {
+html[data-style]
+  :is([role="dialog"], [role="alertdialog"])
+  button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(
+    .tab-segment-row *
+  ):not(.select-tile):hover {
   background: hsl(var(--primary) / 0.9) !important;
   border-color: transparent !important;
   box-shadow: none !important;
@@ -2569,7 +3214,12 @@ html[data-style] :is([role="dialog"], [role="alertdialog"]) button.bg-primary:no
   transform: none !important;
 }
 
-html[data-style] :is([role="dialog"], [role="alertdialog"]) button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(.tab-segment-row *):not(.select-tile) * {
+html[data-style]
+  :is([role="dialog"], [role="alertdialog"])
+  button.bg-primary:not(.button-solid):not([role="tab"]):not([data-sidebar="menu-button"]):not(
+    .tab-segment-row *
+  ):not(.select-tile)
+  * {
   color: hsl(var(--primary-foreground)) !important;
 }
 
@@ -2598,7 +3248,7 @@ html[data-style] [role="tab"][data-state="active"] * {
     var(--tw-ring-offset-shadow, 0 0 #0000),
     var(--tw-ring-shadow, 0 0 #0000),
     0 2px 6px hsl(0 0% 0% / calc(0.04 * var(--shadow-strength, 1))),
-    0 8px 20px -4px hsl(0 0% 0% / calc(0.10 * var(--shadow-strength, 1))) !important;
+    0 8px 20px -4px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength, 1))) !important;
 }
 
 .dark .tab-segment-row {
@@ -2623,16 +3273,13 @@ html[data-style] [role="tab"][data-state="active"] * {
     var(--tw-ring-offset-shadow, 0 0 #0000),
     var(--tw-ring-shadow, 0 0 #0000),
     0 2px 8px hsl(0 0% 0% / calc(0.15 * var(--shadow-strength, 1))),
-    0 10px 24px -4px hsl(0 0% 0% / calc(0.20 * var(--shadow-strength, 1))) !important;
+    0 10px 24px -4px hsl(0 0% 0% / calc(0.2 * var(--shadow-strength, 1))) !important;
 }
 
 /* 2. 界面上方操作区的按钮（Toolbar / Header 按钮 / 与分段同高的控件） */
 /* 2.1 主色按钮（如 [保存为预设]） */
-:is(
-  .page-pinned-toolbar,
-  .page-pinned-header,
-  .header-action-row
-) button.bg-primary:not(.tab-segment-row *):not(.select-tile),
+:is(.page-pinned-toolbar, .page-pinned-header, .header-action-row)
+button.bg-primary:not(.tab-segment-row *):not(.select-tile),
 button.bg-primary.toolbar-control:not(.tab-segment-row *):not(.select-tile) {
   box-shadow:
     var(--tw-ring-offset-shadow, 0 0 #0000),
@@ -2641,52 +3288,46 @@ button.bg-primary.toolbar-control:not(.tab-segment-row *):not(.select-tile) {
     0 8px 20px -3px hsl(var(--primary) / calc(0.35 * var(--shadow-strength, 1))) !important;
 }
 
-.dark :is(
-  .page-pinned-toolbar,
-  .page-pinned-header,
-  .header-action-row
-) button.bg-primary:not(.tab-segment-row *):not(.select-tile),
+.dark
+  :is(.page-pinned-toolbar, .page-pinned-header, .header-action-row)
+  button.bg-primary:not(.tab-segment-row *):not(.select-tile),
 .dark button.bg-primary.toolbar-control:not(.tab-segment-row *):not(.select-tile) {
   box-shadow:
     var(--tw-ring-offset-shadow, 0 0 #0000),
     var(--tw-ring-shadow, 0 0 #0000),
     inset 0 1px 0 0 rgba(255, 255, 255, 0.65),
-    0 2px 8px hsl(0 0% 0% / calc(0.20 * var(--shadow-strength, 1))),
+    0 2px 8px hsl(0 0% 0% / calc(0.2 * var(--shadow-strength, 1))),
     0 10px 28px -4px hsl(0 0% 0% / calc(0.38 * var(--shadow-strength, 1))),
     0 0 16px -2px hsl(var(--primary) / calc(0.35 * var(--shadow-strength, 1))) !important;
 }
 
-:is(
-  .page-pinned-toolbar,
-  .page-pinned-header,
-  .header-action-row
-) button.bg-primary:not(.tab-segment-row *):not(.select-tile):hover,
+:is(.page-pinned-toolbar, .page-pinned-header, .header-action-row)
+  button.bg-primary:not(.tab-segment-row *):not(.select-tile):hover,
 button.bg-primary.toolbar-control:not(.tab-segment-row *):not(.select-tile):hover {
   filter: brightness(1.06);
 }
 
-.dark :is(
-  .page-pinned-toolbar,
-  .page-pinned-header,
-  .header-action-row
-) button.bg-primary:not(.tab-segment-row *):not(.select-tile):hover,
+.dark
+  :is(.page-pinned-toolbar, .page-pinned-header, .header-action-row)
+  button.bg-primary:not(.tab-segment-row *):not(.select-tile):hover,
 .dark button.bg-primary.toolbar-control:not(.tab-segment-row *):not(.select-tile):hover {
   box-shadow:
     var(--tw-ring-offset-shadow, 0 0 #0000),
     var(--tw-ring-shadow, 0 0 #0000),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.80),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.8),
     0 4px 12px hsl(0 0% 0% / calc(0.22 * var(--shadow-strength, 1))),
     0 12px 32px -4px hsl(0 0% 0% / calc(0.42 * var(--shadow-strength, 1))),
     0 0 20px -2px hsl(var(--primary) / calc(0.45 * var(--shadow-strength, 1))) !important;
 }
 
 /* 2.2 描边按钮、次要按钮、图标按钮与下拉输入控件 */
-:is(
-  .page-pinned-toolbar,
-  .page-pinned-header,
-  .header-action-row
-) :is(button:not(.bg-primary), a:not(.bg-primary), [role="combobox"]):not(.tab-segment-row *):not(.select-tile):not([data-sidebar="menu-button"]):not([data-radix-collection-item]),
-:is(button:not(.bg-primary), a:not(.bg-primary), [role="combobox"]).toolbar-control:not(.tab-segment-row *):not(.select-tile):not([data-sidebar="menu-button"]):not([data-radix-collection-item]) {
+:is(.page-pinned-toolbar, .page-pinned-header, .header-action-row)
+:is(button:not(.bg-primary), a:not(.bg-primary), [role="combobox"]):not(.tab-segment-row *):not(
+  .select-tile
+):not([data-sidebar="menu-button"]):not([data-radix-collection-item]),
+:is(button:not(.bg-primary), a:not(.bg-primary), [role="combobox"]).toolbar-control:not(
+  .tab-segment-row *
+):not(.select-tile):not([data-sidebar="menu-button"]):not([data-radix-collection-item]) {
   box-shadow:
     var(--tw-ring-offset-shadow, 0 0 #0000),
     var(--tw-ring-shadow, 0 0 #0000),
@@ -2694,12 +3335,15 @@ button.bg-primary.toolbar-control:not(.tab-segment-row *):not(.select-tile):hove
     0 6px 16px -3px hsl(0 0% 0% / calc(0.08 * var(--shadow-strength, 1))) !important;
 }
 
-.dark :is(
-  .page-pinned-toolbar,
-  .page-pinned-header,
-  .header-action-row
-) :is(button:not(.bg-primary), a:not(.bg-primary), [role="combobox"]):not(.tab-segment-row *):not(.select-tile):not([data-sidebar="menu-button"]):not([data-radix-collection-item]),
-.dark :is(button:not(.bg-primary), a:not(.bg-primary), [role="combobox"]).toolbar-control:not(.tab-segment-row *):not(.select-tile):not([data-sidebar="menu-button"]):not([data-radix-collection-item]) {
+.dark
+  :is(.page-pinned-toolbar, .page-pinned-header, .header-action-row)
+  :is(button:not(.bg-primary), a:not(.bg-primary), [role="combobox"]):not(.tab-segment-row *):not(
+    .select-tile
+  ):not([data-sidebar="menu-button"]):not([data-radix-collection-item]),
+.dark
+  :is(button:not(.bg-primary), a:not(.bg-primary), [role="combobox"]).toolbar-control:not(
+    .tab-segment-row *
+  ):not(.select-tile):not([data-sidebar="menu-button"]):not([data-radix-collection-item]) {
   box-shadow:
     var(--tw-ring-offset-shadow, 0 0 #0000),
     var(--tw-ring-shadow, 0 0 #0000),
@@ -2707,12 +3351,13 @@ button.bg-primary.toolbar-control:not(.tab-segment-row *):not(.select-tile):hove
     0 8px 24px -4px hsl(0 0% 0% / calc(0.24 * var(--shadow-strength, 1))) !important;
 }
 
-:is(
-  .page-pinned-toolbar,
-  .page-pinned-header,
-  .header-action-row
-) :is(button:not(.bg-primary), a:not(.bg-primary), [role="combobox"]):not(.tab-segment-row *):not(.select-tile):not([data-sidebar="menu-button"]):not([data-radix-collection-item]):hover,
-:is(button:not(.bg-primary), a:not(.bg-primary), [role="combobox"]).toolbar-control:not(.tab-segment-row *):not(.select-tile):not([data-sidebar="menu-button"]):not([data-radix-collection-item]):hover {
+:is(.page-pinned-toolbar, .page-pinned-header, .header-action-row)
+  :is(button:not(.bg-primary), a:not(.bg-primary), [role="combobox"]):not(.tab-segment-row *):not(
+    .select-tile
+  ):not([data-sidebar="menu-button"]):not([data-radix-collection-item]):hover,
+:is(button:not(.bg-primary), a:not(.bg-primary), [role="combobox"]).toolbar-control:not(
+  .tab-segment-row *
+):not(.select-tile):not([data-sidebar="menu-button"]):not([data-radix-collection-item]):hover {
   filter: brightness(1.04);
 }
 
@@ -2986,7 +3631,6 @@ main:has(.page-fill) .layout-page-inner {
     overflow-y: auto;
     overscroll-behavior: contain;
   }
-
 }
 
 /*
@@ -3032,7 +3676,7 @@ main:has(.console-mobile-fill) .layout-page-inner {
 /* Solid mode - select dropdown */
 [data-style="solid"] [data-radix-select-content],
 [data-style="solid"] [class*="SelectContent"],
-[data-style="solid"] :is([role='menu'], [role='listbox'], .menu-panel) {
+[data-style="solid"] :is([role="menu"], [role="listbox"], .menu-panel) {
   background: hsl(var(--popover) / var(--card-opacity, 1)) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
@@ -3074,7 +3718,9 @@ main:has(.console-mobile-fill) .layout-page-inner {
 
 /* Dark mode glass dialog/popover */
 .dark [data-style="glassmorphism"] [role="dialog"]:not(.glass-float):not(:where(.sidebar-drawer)),
-.dark [data-style="glassmorphism"] [role="alertdialog"]:not(.glass-float):not(:where(.sidebar-drawer)),
+.dark
+  [data-style="glassmorphism"]
+  [role="alertdialog"]:not(.glass-float):not(:where(.sidebar-drawer)),
 .dark [data-style="glassmorphism"] [class*="DialogContent"],
 .dark [data-style="glassmorphism"] [class*="popover"]:not(.glass-float) {
   background: hsl(var(--popover) / 0.6) !important;
@@ -3100,7 +3746,8 @@ main:has(.console-mobile-fill) .layout-page-inner {
 [data-style="luminous"] [class*="DialogContent"],
 [data-style="luminous"] [class*="popover"]:not(.glass-float) {
   backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.25)) saturate(190%) contrast(106%) !important;
-  -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.25)) saturate(190%) contrast(106%) !important;
+  -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.25)) saturate(190%)
+    contrast(106%) !important;
   background: hsl(var(--popover) / 0.72) !important;
   border: 1px solid rgba(255, 255, 255, 0.35) !important;
   box-shadow:
@@ -3147,12 +3794,13 @@ main:has(.console-mobile-fill) .layout-page-inner {
 [data-style="liquid"] [class*="DialogContent"],
 [data-style="liquid"] [class*="popover"]:not(.glass-float) {
   backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.4)) saturate(190%) contrast(106%) !important;
-  -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.4)) saturate(190%) contrast(106%) !important;
-  background: hsl(var(--popover) / 0.70) !important;
+  -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.4)) saturate(190%)
+    contrast(106%) !important;
+  background: hsl(var(--popover) / 0.7) !important;
   border: 1px solid rgba(255, 255, 255, 0.45) !important;
   box-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.80),
-    inset 0 0 14px 0 rgba(255, 255, 255, 0.10),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.8),
+    inset 0 0 14px 0 rgba(255, 255, 255, 0.1),
     0 20px 48px -4px hsl(0 0% 0% / calc(0.28 * var(--shadow-strength))),
     0 8px 24px -2px hsl(0 0% 0% / calc(0.12 * var(--shadow-strength))) !important;
 }
@@ -3175,13 +3823,13 @@ main:has(.console-mobile-fill) .layout-page-inner {
 [data-style="liquid"] .dark [role="alertdialog"]:not(:where(.sidebar-drawer)),
 [data-style="liquid"] .dark [class*="DialogContent"],
 [data-style="liquid"] .dark [class*="popover"]:not(.glass-float) {
-  background: hsl(var(--popover) / 0.60) !important;
-  border: 1px solid rgba(255, 255, 255, 0.20) !important;
+  background: hsl(var(--popover) / 0.6) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
   box-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.40),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.4),
     inset 0 0 14px 0 rgba(255, 255, 255, 0.04),
     0 22px 52px -4px hsl(0 0% 0% / calc(0.44 * var(--shadow-strength))),
-    0 10px 28px -2px hsl(0 0% 0% / calc(0.20 * var(--shadow-strength))) !important;
+    0 10px 28px -2px hsl(0 0% 0% / calc(0.2 * var(--shadow-strength))) !important;
 }
 
 /*
@@ -3192,7 +3840,8 @@ main:has(.console-mobile-fill) .layout-page-inner {
   box-shadow: 0 16px 40px -8px hsl(0 0% 0% / 0.18) !important;
 }
 
-[data-style="glassmorphism"] :is([role="dialog"], [role="alertdialog"]):not(:where(.sidebar-drawer)) {
+[data-style="glassmorphism"]
+  :is([role="dialog"], [role="alertdialog"]):not(:where(.sidebar-drawer)) {
   border: 1px solid hsl(var(--border) / 0.5) !important;
   box-shadow:
     inset 0 1px 0 0 rgba(255, 255, 255, 0.65),
@@ -3200,8 +3849,11 @@ main:has(.console-mobile-fill) .layout-page-inner {
     0 8px 20px -2px hsl(0 0% 0% / 0.08) !important;
 }
 
-.dark[data-style="glassmorphism"] :is([role="dialog"], [role="alertdialog"]):not(:where(.sidebar-drawer)),
-.dark [data-style="glassmorphism"] :is([role="dialog"], [role="alertdialog"]):not(:where(.sidebar-drawer)) {
+.dark[data-style="glassmorphism"]
+  :is([role="dialog"], [role="alertdialog"]):not(:where(.sidebar-drawer)),
+.dark
+  [data-style="glassmorphism"]
+  :is([role="dialog"], [role="alertdialog"]):not(:where(.sidebar-drawer)) {
   border-color: hsl(var(--border) / 0.35) !important;
   box-shadow:
     inset 0 1px 0 0 rgba(255, 255, 255, 0.15),
@@ -3217,12 +3869,15 @@ main:has(.console-mobile-fill) .layout-page-inner {
     0 8px 24px -2px hsl(0 0% 0% / calc(0.08 * var(--shadow-strength, 1))) !important;
 }
 
-.dark[data-style="luminous"] :is([role="dialog"], [role="alertdialog"]):not(:where(.sidebar-drawer)),
-.dark [data-style="luminous"] :is([role="dialog"], [role="alertdialog"]):not(:where(.sidebar-drawer)) {
+.dark[data-style="luminous"]
+  :is([role="dialog"], [role="alertdialog"]):not(:where(.sidebar-drawer)),
+.dark
+  [data-style="luminous"]
+  :is([role="dialog"], [role="alertdialog"]):not(:where(.sidebar-drawer)) {
   border-color: rgba(255, 255, 255, 0.22) !important;
   box-shadow:
     inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.35),
-    inset 0 -1px 1px 0 rgba(255, 255, 255, 0.10),
+    inset 0 -1px 1px 0 rgba(255, 255, 255, 0.1),
     0 26px 60px -4px hsl(0 0% 0% / calc(0.45 * var(--shadow-strength, 1))) !important;
 }
 
@@ -3231,12 +3886,14 @@ main:has(.console-mobile-fill) .layout-page-inner {
   box-shadow:
     inset 0 1.5px 0 0 rgba(255, 255, 255, 1),
     inset 0 0 18px 0 rgba(255, 255, 255, 0.35),
-    0 26px 60px -4px hsl(0 0% 0% / calc(0.20 * var(--shadow-strength, 1))),
-    0 10px 28px -2px hsl(0 0% 0% / calc(0.10 * var(--shadow-strength, 1))) !important;
+    0 26px 60px -4px hsl(0 0% 0% / calc(0.2 * var(--shadow-strength, 1))),
+    0 10px 28px -2px hsl(0 0% 0% / calc(0.1 * var(--shadow-strength, 1))) !important;
 }
 
 .dark[data-style="liquid"] :is([role="dialog"], [role="alertdialog"]):not(:where(.sidebar-drawer)),
-.dark [data-style="liquid"] :is([role="dialog"], [role="alertdialog"]):not(:where(.sidebar-drawer)) {
+.dark
+  [data-style="liquid"]
+  :is([role="dialog"], [role="alertdialog"]):not(:where(.sidebar-drawer)) {
   border-color: rgba(255, 255, 255, 0.25) !important;
   box-shadow:
     inset 0 1px 0 0 rgba(255, 255, 255, 0.45),
@@ -3265,16 +3922,19 @@ main:has(.console-mobile-fill) .layout-page-inner {
 
 [data-style="luminous"] .glass-card[role="dialog"]::before,
 [data-style="luminous"] .glass-card[role="alertdialog"]::before {
-  background: hsl(var(--card) / 0.50) !important;
-  backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.25)) saturate(190%) contrast(106%) brightness(105%) !important;
-  -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.25)) saturate(190%) contrast(106%) brightness(105%) !important;
+  background: hsl(var(--card) / 0.5) !important;
+  backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.25)) saturate(190%) contrast(106%)
+    brightness(105%) !important;
+  -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.25)) saturate(190%)
+    contrast(106%) brightness(105%) !important;
 }
 
 [data-style="liquid"] .glass-card[role="dialog"]::before,
 [data-style="liquid"] .glass-card[role="alertdialog"]::before {
   background: hsl(var(--card) / 0.38) !important;
   backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.4)) saturate(190%) contrast(106%) !important;
-  -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.4)) saturate(190%) contrast(106%) !important;
+  -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.4)) saturate(190%)
+    contrast(106%) !important;
 }
 
 .dark[data-style="glassmorphism"] .glass-card[role="dialog"]::before,
@@ -3345,13 +4005,21 @@ main:has(.console-mobile-fill) .layout-page-inner {
 
 /* 亮色白罩、暗色黑罩都淡入淡出。写在这里，避免和按钮上的 animate-in 抢 animation 后变成瞬间铺满。 */
 @keyframes dialog-overlay-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes dialog-overlay-out {
-  from { opacity: 1; }
-  to { opacity: 0; }
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
 }
 
 [data-dialog-overlay][data-state="open"] {
@@ -3412,7 +4080,11 @@ main:has(.console-mobile-fill) .layout-page-inner {
   --overlay-filter: blur(var(--overlay-blur)) saturate(150%);
 }
 
-:is(.dark[data-style='glassmorphism'], .dark [data-style='glassmorphism'], [data-style='glassmorphism'] .dark) {
+:is(
+  .dark[data-style="glassmorphism"],
+  .dark [data-style="glassmorphism"],
+  [data-style="glassmorphism"] .dark
+) {
   --overlay-fill: hsl(var(--background) / var(--card-opacity, 0.2));
   --overlay-border: hsl(var(--border) / 0.45);
 }
@@ -3424,7 +4096,7 @@ main:has(.console-mobile-fill) .layout-page-inner {
   --overlay-filter: blur(var(--overlay-blur)) saturate(190%) contrast(106%) brightness(105%);
 }
 
-:is(.dark[data-style='luminous'], .dark [data-style='luminous'], [data-style='luminous'] .dark) {
+:is(.dark[data-style="luminous"], .dark [data-style="luminous"], [data-style="luminous"] .dark) {
   --overlay-fill: hsl(var(--background) / var(--card-opacity, 0.28));
   --overlay-border: rgba(255, 255, 255, 0.2);
 }
@@ -3436,13 +4108,13 @@ main:has(.console-mobile-fill) .layout-page-inner {
   --overlay-filter: blur(var(--overlay-blur)) contrast(1.15) brightness(1.05) saturate(1.2);
 }
 
-:is(.dark[data-style='liquid'], .dark [data-style='liquid'], [data-style='liquid'] .dark) {
+:is(.dark[data-style="liquid"], .dark [data-style="liquid"], [data-style="liquid"] .dark) {
   --overlay-fill: hsl(var(--background) / var(--card-opacity, 0.4));
   --overlay-border: rgba(255, 255, 255, 0.22);
 }
 
-:is([data-style='glassmorphism'], [data-style='luminous'], [data-style='liquid'])
-  :is([role='menu'], [role='listbox'], .menu-panel) {
+:is([data-style="glassmorphism"], [data-style="luminous"], [data-style="liquid"])
+  :is([role="menu"], [role="listbox"], .menu-panel) {
   background: var(--overlay-fill) !important;
   border: 1px solid var(--overlay-border) !important;
   border-radius: var(--radius) !important;
@@ -3453,10 +4125,10 @@ main:has(.console-mobile-fill) .layout-page-inner {
     0 16px 40px -8px hsl(0 0% 0% / calc(0.28 * var(--shadow-strength))) !important;
 }
 
-:is(.dark[data-style='glassmorphism'], .dark [data-style='luminous'], .dark [data-style='liquid'])
-  :is([role='menu'], [role='listbox'], .menu-panel),
-.dark:is([data-style='glassmorphism'], [data-style='luminous'], [data-style='liquid'])
-  :is([role='menu'], [role='listbox'], .menu-panel) {
+:is(.dark[data-style="glassmorphism"], .dark [data-style="luminous"], .dark [data-style="liquid"])
+  :is([role="menu"], [role="listbox"], .menu-panel),
+.dark:is([data-style="glassmorphism"], [data-style="luminous"], [data-style="liquid"])
+  :is([role="menu"], [role="listbox"], .menu-panel) {
   box-shadow:
     inset 0 1px 0 0 rgba(255, 255, 255, 0.42),
     0 18px 44px -8px hsl(0 0% 0% / calc(0.45 * var(--shadow-strength))) !important;
@@ -3469,7 +4141,7 @@ main:has(.console-mobile-fill) .layout-page-inner {
  * 规则会被提到文件顶部，所以这条必须写在这里（浮层规则之后）才压得住。
  */
 [data-style] [data-searchable-menu],
-[data-style] [data-searchable-menu] [role='listbox'] {
+[data-style] [data-searchable-menu] [role="listbox"] {
   background: transparent !important;
   background-image: none !important;
   border: 0 !important;
@@ -3501,8 +4173,7 @@ main:has(.console-mobile-fill) .layout-page-inner {
 }
 
 /* 玻璃系（磨砂 / 光感 / 液态）：与菜单浮层同族，透明度与模糊度跟随主题设置 */
-:is([data-style='glassmorphism'], [data-style='luminous'], [data-style='liquid'])
-  .tooltip-surface {
+:is([data-style="glassmorphism"], [data-style="luminous"], [data-style="liquid"]) .tooltip-surface {
   background: var(--overlay-fill);
   border: 1px solid var(--overlay-border);
   backdrop-filter: var(--overlay-filter);
@@ -3516,11 +4187,11 @@ main:has(.console-mobile-fill) .layout-page-inner {
   -webkit-backdrop-filter: none;
 }
 
-
 /* Terminal specific liquid style */
 [data-style="liquid"] .glass-terminal {
   backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.3)) saturate(195%) contrast(108%);
-  -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.3)) saturate(195%) contrast(108%);
+  -webkit-backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.3)) saturate(195%)
+    contrast(108%);
 }
 
 /* Icon color variations based on data-icon-color attribute */
@@ -3577,7 +4248,7 @@ main:has(.console-mobile-fill) .layout-page-inner {
       border-color 0.2s ease,
       box-shadow 0.2s ease !important;
   }
-  
+
   /* Only apply backdrop-filter in glassmorphism mode */
   [data-style="glassmorphism"] input,
   [data-style="glassmorphism"] select,
@@ -3624,7 +4295,7 @@ main:has(.console-mobile-fill) .layout-page-inner {
     background: hsl(var(--background) / var(--card-opacity, 0.48)) !important;
     border: 1px solid hsl(var(--border)) !important;
     box-shadow:
-      inset 0 1px 0 0 rgba(255, 255, 255, 0.50),
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.5),
       inset 0 0 8px 0 rgba(255, 255, 255, 0.08),
       0 1px 3px 0 hsl(0 0% 0% / calc(0.08 * var(--shadow-strength, 1))) !important;
   }
@@ -3657,7 +4328,9 @@ main:has(.console-mobile-fill) .layout-page-inner {
   [data-style="luminous"] .dark .ui-field-trigger {
     background: hsl(var(--background) / var(--card-opacity, 0.35)) !important;
     border: 1px solid hsl(var(--border)) !important;
-    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.15), inset 0 -0.5px 1px rgba(0, 0, 0, 0.15) !important;
+    box-shadow:
+      inset 0 1px 1px rgba(255, 255, 255, 0.15),
+      inset 0 -0.5px 1px rgba(0, 0, 0, 0.15) !important;
   }
 
   .dark[data-style="liquid"] input,
@@ -3691,7 +4364,7 @@ main:has(.console-mobile-fill) .layout-page-inner {
       inset 0 0 8px 0 rgba(255, 255, 255, 0.03),
       0 1px 2px 0 hsl(0 0% 0% / 0.15) !important;
   }
-  
+
   input:focus,
   select:focus,
   textarea:focus,
@@ -3731,7 +4404,7 @@ main:has(.console-mobile-fill) .layout-page-inner {
     padding: 0 0.5rem !important;
     margin: 0.25rem 0 !important;
   }
-  
+
   .dark input:focus,
   .dark select:focus,
   .dark textarea:focus,
@@ -3753,33 +4426,37 @@ main:has(.console-mobile-fill) .layout-page-inner {
    * 光感 / 液态：磨砂在壁纸的静态 blur 上，表单控件不再糊。
    * [role=listbox] 不在这里：下拉层要盖住底下的字，保留自己的一层模糊。
    */
-  [data-style="glassmorphism"] .glass-card :is(
-    input,
-    textarea,
-    select,
-    [role="combobox"],
-    .ui-input,
-    .ui-select-trigger,
-    .ui-field-trigger
-  ),
-  html[data-style="luminous"] :is(
-    input,
-    textarea,
-    select,
-    [role="combobox"],
-    .ui-input,
-    .ui-select-trigger,
-    .ui-field-trigger
-  ),
-  html[data-style="liquid"] :is(
-    input,
-    textarea,
-    select,
-    [role="combobox"],
-    .ui-input,
-    .ui-select-trigger,
-    .ui-field-trigger
-  ) {
+  [data-style="glassmorphism"]
+    .glass-card
+    :is(
+      input,
+      textarea,
+      select,
+      [role="combobox"],
+      .ui-input,
+      .ui-select-trigger,
+      .ui-field-trigger
+    ),
+  html[data-style="luminous"]
+    :is(
+      input,
+      textarea,
+      select,
+      [role="combobox"],
+      .ui-input,
+      .ui-select-trigger,
+      .ui-field-trigger
+    ),
+  html[data-style="liquid"]
+    :is(
+      input,
+      textarea,
+      select,
+      [role="combobox"],
+      .ui-input,
+      .ui-select-trigger,
+      .ui-field-trigger
+    ) {
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
   }
@@ -4083,13 +4760,17 @@ button[role="switch"][data-state="unchecked"] span {
 
 /* SVG Displacement Refraction utility */
 .luminous-refractive {
-  backdrop-filter: url(#luminous-glass-refraction) blur(calc(var(--blur-intensity, 12px) * 1.2)) saturate(190%);
-  -webkit-backdrop-filter: url(#luminous-glass-refraction) blur(calc(var(--blur-intensity, 12px) * 1.2)) saturate(190%);
+  backdrop-filter: url(#luminous-glass-refraction) blur(calc(var(--blur-intensity, 12px) * 1.2))
+    saturate(190%);
+  -webkit-backdrop-filter: url(#luminous-glass-refraction)
+    blur(calc(var(--blur-intensity, 12px) * 1.2)) saturate(190%);
 }
 
 .liquid-refractive {
-  backdrop-filter: url(#liquid-glass-dispersion) blur(calc(var(--blur-intensity, 12px) * 1.35)) saturate(205%);
-  -webkit-backdrop-filter: url(#liquid-glass-dispersion) blur(calc(var(--blur-intensity, 12px) * 1.35)) saturate(205%);
+  backdrop-filter: url(#liquid-glass-dispersion) blur(calc(var(--blur-intensity, 12px) * 1.35))
+    saturate(205%);
+  -webkit-backdrop-filter: url(#liquid-glass-dispersion)
+    blur(calc(var(--blur-intensity, 12px) * 1.35)) saturate(205%);
 }
 
 /* 左侧渐变遮罩：始终挂在固定格左缘（right: 100%，随 sticky 移动），
@@ -4308,8 +4989,7 @@ tbody tr:hover .table-sticky-right::after {
    * 只写 min-width:0 拦不住换行 —— 三个分段照样各占 max-content 宽度、被推到第二行。
    * 必须 flex-wrap:nowrap 让它们留在同一行，再由 flex-shrink 压进去。
    */
-  .tab-segment-fill
-    > .tab-segment-row:not(.tab-segment-single-row):not(:has(> :nth-child(5))) {
+  .tab-segment-fill > .tab-segment-row:not(.tab-segment-single-row):not(:has(> :nth-child(5))) {
     flex-wrap: nowrap;
   }
 
@@ -4426,7 +5106,8 @@ tbody tr:hover .table-sticky-right::after {
  * 光感 / 液态：表单内控件不要重复叠加大面积 backdrop-filter，避免在已有玻璃卡片内深层重采样。
  * 核心表面（.glass-sidebar、.floating-sidebar、.tab-segment-row、弹层等）保留各自独立的主题滤镜。
  */
-html[data-style="luminous"] :is(
+html[data-style="luminous"]
+:is(
   .glass-terminal,
   .luminous-refractive,
   .liquid-refractive,
@@ -4438,18 +5119,19 @@ html[data-style="luminous"] :is(
   .ui-select-trigger,
   .ui-field-trigger
 ),
-html[data-style="liquid"] :is(
-  .glass-terminal,
-  .luminous-refractive,
-  .liquid-refractive,
-  input,
-  textarea,
-  select,
-  [role="combobox"],
-  .ui-input,
-  .ui-select-trigger,
-  .ui-field-trigger
-) {
+html[data-style="liquid"]
+  :is(
+    .glass-terminal,
+    .luminous-refractive,
+    .liquid-refractive,
+    input,
+    textarea,
+    select,
+    [role="combobox"],
+    .ui-input,
+    .ui-select-trigger,
+    .ui-field-trigger
+  ) {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
@@ -4464,17 +5146,19 @@ html[data-style="liquid"] :is(
  * 输入框上的 blur 在 @layer base 里且是 !important，层外的 none 压不住。
  * 真正关掉表单控件模糊的规则在上面那个 @layer base 末尾。
  */
-[data-style="glassmorphism"] .glass-card :is(
-  input,
-  textarea,
-  select,
-  button,
-  a,
-  [role="combobox"],
-  .ui-input,
-  .ui-select-trigger,
-  .ui-field-trigger
-) {
+[data-style="glassmorphism"]
+  .glass-card
+  :is(
+    input,
+    textarea,
+    select,
+    button,
+    a,
+    [role="combobox"],
+    .ui-input,
+    .ui-select-trigger,
+    .ui-field-trigger
+  ) {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
@@ -4496,10 +5180,7 @@ html[data-style="liquid"] :is(
   border: 1px solid hsl(var(--border) / 0.45);
   background-color: hsl(var(--popover) / 0.72);
   /* 浮层压在白色卡片上时别和页面融成一块纯白玻璃，补一层均匀的纵深色。 */
-  background-image: linear-gradient(
-    hsl(var(--foreground) / 0.05),
-    hsl(var(--foreground) / 0.05)
-  );
+  background-image: linear-gradient(hsl(var(--foreground) / 0.05), hsl(var(--foreground) / 0.05));
   box-shadow:
     inset 0 1px 0 0 rgba(255, 255, 255, 0.55),
     0 16px 40px -8px hsl(0 0% 0% / calc(0.28 * var(--shadow-strength, 1)));
@@ -4660,14 +5341,9 @@ html[data-style="liquid"] :is(
 @layer base {
   [data-style] .glass-float input,
   [data-style] .glass-float input:focus,
-  [data-style] .glass-float :is(
-    select,
-    textarea,
-    [role="combobox"],
-    .ui-input,
-    .ui-select-trigger,
-    .ui-field-trigger
-  ),
+  [data-style]
+    .glass-float
+    :is(select, textarea, [role="combobox"], .ui-input, .ui-select-trigger, .ui-field-trigger),
   [data-style] [data-searchable-menu] input,
   [data-style] [data-searchable-menu] input:focus {
     background: transparent !important;
@@ -4677,7 +5353,6 @@ html[data-style="liquid"] :is(
     -webkit-backdrop-filter: none !important;
   }
 }
-
 
 /* 描边按钮的危险色不要被玻璃主题的前景色盖掉。卸载等操作用 text-destructive。 */
 :is(button, a).text-destructive,
@@ -4712,29 +5387,33 @@ html[data-style="liquid"] :is(
 }
 
 .menu-option {
-  border-radius: max(0px, calc(var(--menu-radius, var(--radius)) - var(--menu-pad, 0.25rem))) !important;
+  border-radius: max(
+    0px,
+    calc(var(--menu-radius, var(--radius)) - var(--menu-pad, 0.25rem))
+  ) !important;
   transition:
     background-color 0.15s ease,
     box-shadow 0.15s ease,
     color 0.15s ease;
 }
 
-.menu-option:is(:hover, [data-highlighted], [data-selected='true'], [data-state='open']),
-.menu-option:is([data-active='true'], [data-state='checked']) {
+.menu-option:is(:hover, [data-highlighted], [data-selected="true"], [data-state="open"]),
+.menu-option:is([data-active="true"], [data-state="checked"]) {
   background: hsl(var(--accent));
   color: hsl(var(--accent-foreground));
 }
 
-[data-style='glassmorphism'] .menu-option,
-[data-style='luminous'] .menu-option,
-[data-style='liquid'] .menu-option {
+[data-style="glassmorphism"] .menu-option,
+[data-style="luminous"] .menu-option,
+[data-style="liquid"] .menu-option {
   background: transparent !important;
   color: hsl(var(--foreground)) !important;
   box-shadow: none !important;
 }
 
 /* 磨砂：中性霜面。壳本身已经是白玻璃，再铺白底会看不见，用前景色的薄罩区分悬停和激活。 */
-[data-style='glassmorphism'] .menu-option:is(:hover, [data-highlighted], [data-selected='true'], [data-state='open']) {
+[data-style="glassmorphism"]
+.menu-option:is(:hover, [data-highlighted], [data-selected="true"], [data-state="open"]) {
   background: hsl(var(--foreground) / 0.06) !important;
   box-shadow:
     inset 0 1px 0 0 rgba(255, 255, 255, 0.55),
@@ -4742,7 +5421,7 @@ html[data-style="liquid"] :is(
   color: hsl(var(--foreground)) !important;
 }
 
-[data-style='glassmorphism'] .menu-option:is([data-active='true'], [data-state='checked']) {
+[data-style="glassmorphism"] .menu-option:is([data-active="true"], [data-state="checked"]) {
   background: hsl(var(--foreground) / 0.1) !important;
   box-shadow:
     inset 0 0 0 1px hsl(var(--border) / 0.9),
@@ -4750,16 +5429,24 @@ html[data-style="liquid"] :is(
   color: hsl(var(--foreground)) !important;
 }
 
-:is(.dark[data-style='glassmorphism'], .dark [data-style='glassmorphism'], [data-style='glassmorphism'] .dark)
-  .menu-option:is(:hover, [data-highlighted], [data-selected='true'], [data-state='open']) {
+:is(
+    .dark[data-style="glassmorphism"],
+    .dark [data-style="glassmorphism"],
+    [data-style="glassmorphism"] .dark
+  )
+  .menu-option:is(:hover, [data-highlighted], [data-selected="true"], [data-state="open"]) {
   background: hsl(var(--foreground) / 0.08) !important;
   box-shadow:
     inset 0 0 0 1px hsl(var(--border) / 0.5),
     inset 0 1px 0 0 rgba(255, 255, 255, 0.16) !important;
 }
 
-:is(.dark[data-style='glassmorphism'], .dark [data-style='glassmorphism'], [data-style='glassmorphism'] .dark)
-  .menu-option:is([data-active='true'], [data-state='checked']) {
+:is(
+    .dark[data-style="glassmorphism"],
+    .dark [data-style="glassmorphism"],
+    [data-style="glassmorphism"] .dark
+  )
+  .menu-option:is([data-active="true"], [data-state="checked"]) {
   background: hsl(var(--foreground) / 0.14) !important;
   box-shadow:
     inset 0 0 0 1px hsl(var(--border) / 0.7),
@@ -4768,7 +5455,8 @@ html[data-style="liquid"] :is(
 }
 
 /* 光感：悬停带一点主题色高光，激活是更亮的透镜。 */
-[data-style='luminous'] .menu-option:is(:hover, [data-highlighted], [data-selected='true'], [data-state='open']) {
+[data-style="luminous"]
+.menu-option:is(:hover, [data-highlighted], [data-selected="true"], [data-state="open"]) {
   background: hsl(var(--primary) / 0.08) !important;
   box-shadow:
     inset 0 0 0 1px hsl(var(--primary) / 0.25),
@@ -4776,7 +5464,7 @@ html[data-style="liquid"] :is(
   color: hsl(var(--foreground)) !important;
 }
 
-[data-style='luminous'] .menu-option:is([data-active='true'], [data-state='checked']) {
+[data-style="luminous"] .menu-option:is([data-active="true"], [data-state="checked"]) {
   background: hsl(var(--primary) / 0.16) !important;
   box-shadow:
     inset 0 0 0 1px hsl(var(--primary) / 0.45),
@@ -4784,15 +5472,15 @@ html[data-style="liquid"] :is(
   color: hsl(var(--primary)) !important;
 }
 
-:is(.dark[data-style='luminous'], .dark [data-style='luminous'], [data-style='luminous'] .dark)
-  .menu-option:is(:hover, [data-highlighted], [data-selected='true'], [data-state='open']) {
+:is(.dark[data-style="luminous"], .dark [data-style="luminous"], [data-style="luminous"] .dark)
+  .menu-option:is(:hover, [data-highlighted], [data-selected="true"], [data-state="open"]) {
   background: rgba(255, 255, 255, 0.1) !important;
   box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.28) !important;
   color: hsl(var(--foreground)) !important;
 }
 
-:is(.dark[data-style='luminous'], .dark [data-style='luminous'], [data-style='luminous'] .dark)
-  .menu-option:is([data-active='true'], [data-state='checked']) {
+:is(.dark[data-style="luminous"], .dark [data-style="luminous"], [data-style="luminous"] .dark)
+  .menu-option:is([data-active="true"], [data-state="checked"]) {
   background: hsl(var(--primary) / 0.34) !important;
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.3),
@@ -4802,7 +5490,8 @@ html[data-style="liquid"] :is(
 
 /* 液态：悬停是薄水膜，激活是更厚的水镜。外壳本身已是白水层，当前项再铺纯白会消失，
    故改用主题色染一层水 + 描边把水滴托出来（外壳提亮后白底白字已经不成立）。 */
-[data-style='liquid'] .menu-option:is(:hover, [data-highlighted], [data-selected='true'], [data-state='open']) {
+[data-style="liquid"]
+.menu-option:is(:hover, [data-highlighted], [data-selected="true"], [data-state="open"]) {
   background: linear-gradient(
     180deg,
     rgba(255, 255, 255, 0.5) 0%,
@@ -4814,7 +5503,7 @@ html[data-style="liquid"] :is(
   color: hsl(var(--foreground)) !important;
 }
 
-[data-style='liquid'] .menu-option:is([data-active='true'], [data-state='checked']) {
+[data-style="liquid"] .menu-option:is([data-active="true"], [data-state="checked"]) {
   background: linear-gradient(
     180deg,
     hsl(var(--primary) / 0.16) 0%,
@@ -4826,15 +5515,15 @@ html[data-style="liquid"] :is(
   color: hsl(var(--foreground)) !important;
 }
 
-:is(.dark[data-style='liquid'], .dark [data-style='liquid'], [data-style='liquid'] .dark)
-  .menu-option:is(:hover, [data-highlighted], [data-selected='true'], [data-state='open']) {
+:is(.dark[data-style="liquid"], .dark [data-style="liquid"], [data-style="liquid"] .dark)
+  .menu-option:is(:hover, [data-highlighted], [data-selected="true"], [data-state="open"]) {
   background: rgba(255, 255, 255, 0.1) !important;
   box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.32) !important;
   color: hsl(var(--foreground)) !important;
 }
 
-:is(.dark[data-style='liquid'], .dark [data-style='liquid'], [data-style='liquid'] .dark)
-  .menu-option:is([data-active='true'], [data-state='checked']) {
+:is(.dark[data-style="liquid"], .dark [data-style="liquid"], [data-style="liquid"] .dark)
+  .menu-option:is([data-active="true"], [data-state="checked"]) {
   background: linear-gradient(
     180deg,
     rgba(255, 255, 255, 0.24) 0%,
@@ -4905,8 +5594,7 @@ html[data-style="liquid"] :is(
 .dark [data-style] .glass-alert-tint::before,
 [data-style] .dark .glass-alert-tint::before {
   background:
-    linear-gradient(var(--alert-tint), var(--alert-tint)),
-    var(--alert-glass-fill) !important;
+    linear-gradient(var(--alert-tint), var(--alert-tint)), var(--alert-glass-fill) !important;
 }
 
 /*
@@ -4973,12 +5661,12 @@ html[data-style="liquid"] :is(
   text-underline-offset: 2px;
 }
 /* 内联指令链接 */
-.seg-md a[href^='#inlinecmd:']:not(.seg-btn) {
+.seg-md a[href^="#inlinecmd:"]:not(.seg-btn) {
   color: inherit;
   text-decoration: none;
   cursor: pointer;
 }
-.seg-md a[href^='#inlinecmd:']:not(.seg-btn):hover {
+.seg-md a[href^="#inlinecmd:"]:not(.seg-btn):hover {
   color: hsl(var(--primary));
   text-decoration: underline;
   text-underline-offset: 2px;

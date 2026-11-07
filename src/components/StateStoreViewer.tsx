@@ -16,9 +16,9 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { cn } from '@/lib/utils';
 import {
   aiStateStoreApi,
-  AIStateStoreKeyItem,
-  AIStateStoreScope,
-  AIStateStoreRecordItem,
+  type AIStateStoreKeyItem,
+  type AIStateStoreScope,
+  type AIStateStoreRecordItem,
 } from '@/lib/api';
 import {
   AlertDialog,
@@ -87,13 +87,13 @@ const StateStoreViewer = forwardRef<StateStoreViewerHandle, StateStoreViewerProp
   function StateStoreViewer(props, ref) {
     const { t } = useLanguage();
     const { style, cardOpacity, blurIntensity } = useTheme();
-    const isGlass = style !== 'solid';
+    const _isGlass = style !== 'solid';
     const { onSelectionChange } = props;
 
     const [scopes, setScopes] = useState<AIStateStoreScope[]>([]);
     const [selectedScope, setSelectedScope] = useState<string>('');
     const [keys, setKeys] = useState<AIStateStoreKeyItem[]>([]);
-    const [isLoadingScopes, setIsLoadingScopes] = useState(false);
+    const [_isLoadingScopes, setIsLoadingScopes] = useState(false);
     const [isLoadingKeys, setIsLoadingKeys] = useState(false);
     const [prefixFilter, setPrefixFilter] = useState('');
     const [includeExpired, setIncludeExpired] = useState(false);

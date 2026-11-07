@@ -494,7 +494,9 @@ export default function AIHistoryPage() {
 
   const personaOptions = useMemo(() => {
     const set = new Set<string>();
-    logs.forEach((l) => l.persona_name && set.add(l.persona_name));
+    logs.forEach((l) => {
+      if (l.persona_name) set.add(l.persona_name);
+    });
     return Array.from(set);
   }, [logs]);
 

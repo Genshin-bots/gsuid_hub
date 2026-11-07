@@ -788,7 +788,14 @@ describe('plugin store view', () => {
     const withAdapter = [
       all[0],
       { ...all[1], isAdapter: true },
-      { id: 'adp', description: '适配器', tags: [], installed: false, hasUpdate: false, isAdapter: true },
+      {
+        id: 'adp',
+        description: '适配器',
+        tags: [],
+        installed: false,
+        hasUpdate: false,
+        isAdapter: true,
+      },
     ];
     const view = resolvePluginStoreView(
       { plugins: withAdapter },
@@ -809,7 +816,13 @@ describe('plugin store view', () => {
       // 旧后端的 counts 没有 adapter 键，也认不出 tab=adapter → 返回的是全量
       counts: { all: 3, installed: 1, updates: 0, fun: 0, tool: 0 },
     };
-    const view = resolvePluginStoreView(payload, { tab: 'adapter', search: '' }, 1, 10, deprecatedText);
+    const view = resolvePluginStoreView(
+      payload,
+      { tab: 'adapter', search: '' },
+      1,
+      10,
+      deprecatedText,
+    );
     expect(view.items).toEqual([]);
     expect(view.total).toBe(0);
     expect(view.counts.adapter).toBe(0);
@@ -839,10 +852,7 @@ describe('plugin store view', () => {
   });
 
   it('survives items with missing id/description/tags during search', () => {
-    const broken = [
-      { installed: false, hasUpdate: false },
-      all[0],
-    ] as (typeof all)[number][];
+    const broken = [{ installed: false, hasUpdate: false }, all[0]] as (typeof all)[number][];
     const view = resolvePluginStoreView(
       { plugins: broken },
       { tab: 'all', search: '甲' },

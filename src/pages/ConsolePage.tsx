@@ -120,7 +120,7 @@ export default function ConsolePage() {
   const { t } = useLanguage();
   const { style, mode } = useTheme();
   const isGlass = style !== 'solid';
-  const isDark = mode === 'dark';
+  const _isDark = mode === 'dark';
 
   // 数据存在 ref 中，避免 React 遍历大数�?
   const allLogsRef = useRef<LogEntry[]>([]);

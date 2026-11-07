@@ -12,7 +12,7 @@ import {
 import { BackendUnreachableError, isUnreachableResponse } from './backendReachability';
 // Demo 模式：<img src> 不走 fetch（mockServer 拦不到），故图片 URL 构造函数在 VITE_DEMO 下
 // 直接返回内置 SVG 占位图，避免一墙裂图。普通构建下分支为 dead code，import 会被 tree-shake。
-import { demoPlaceholderImage, demoPluginIcon, demoMemeImageUrl } from './demoMock';
+import { demoPluginIcon, demoMemeImageUrl } from './demoMock';
 // 会话管理的段 / 消息类型。type-only 导入，编译后不产生运行时依赖，
 // 所以不会和 sessionChat 里对 getAuthToken 的引用形成循环。
 import type { ChatMsg, SendPayload, SessionItem, SessionPrefs, TargetInfo } from './sessionChat';
@@ -3686,7 +3686,7 @@ export const aiKnowledgeApi = {
         const txt = await response.text();
         try {
           const j = JSON.parse(txt);
-          if (j && j.msg) msg = j.msg;
+          if (j?.msg) msg = j.msg;
         } catch {
           if (txt) msg = txt;
         }
@@ -3995,8 +3995,12 @@ export const historyApi = {
     const formData = new FormData();
     formData.append('message', data.message || '');
     formData.append('at_sender', String(data.at_sender ?? false));
-    data.images?.forEach((image) => formData.append('images', image));
-    data.image_urls?.forEach((url) => formData.append('image_urls', url));
+    data.images?.forEach((image) => {
+      formData.append('images', image);
+    });
+    data.image_urls?.forEach((url) => {
+      formData.append('image_urls', url);
+    });
 
     return api.postFormData<SendSessionMessageResponse>(
       `/api/history/${encodeURIComponent(sessionId)}/send`,
@@ -4090,10 +4094,18 @@ export const sessionChatApi = {
     form.append('card', payload.card ?? '');
     form.append('at', payload.at ?? '');
     form.append('reply', payload.reply ?? '');
-    payload.images?.forEach((file) => form.append('images', file));
-    payload.records?.forEach((file) => form.append('records', file));
-    payload.videos?.forEach((file) => form.append('videos', file));
-    payload.files?.forEach((file) => form.append('files', file));
+    payload.images?.forEach((file) => {
+      form.append('images', file);
+    });
+    payload.records?.forEach((file) => {
+      form.append('records', file);
+    });
+    payload.videos?.forEach((file) => {
+      form.append('videos', file);
+    });
+    payload.files?.forEach((file) => {
+      form.append('files', file);
+    });
     return api.postFormData<SessionChatSendData>(
       `/api/history/chat/${encodeURIComponent(sessionId)}/send`,
       form,

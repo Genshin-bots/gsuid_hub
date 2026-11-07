@@ -277,7 +277,9 @@ function layoutInline(html: string): string {
   });
 
   holder.querySelectorAll('p').forEach((p) => {
-    const anchors = Array.from(p.querySelectorAll<HTMLAnchorElement>(`a[href^="${INLINE_CMD_PREFIX}"]`));
+    const anchors = Array.from(
+      p.querySelectorAll<HTMLAnchorElement>(`a[href^="${INLINE_CMD_PREFIX}"]`),
+    );
     if (!anchors.length) return;
     // 段落里除了这些链接没有别的文字，才算纯按钮行；混着正文就保持内联小标签
     const bare = (p.textContent ?? '').replace(/\s+/g, '');
@@ -299,7 +301,9 @@ function layoutInline(html: string): string {
 
     if (groups.length <= 1) {
       p.classList.add('seg-btn-row');
-      anchors.forEach((a) => a.classList.add('seg-btn', 'seg-btn--primary'));
+      anchors.forEach((a) => {
+        a.classList.add('seg-btn', 'seg-btn--primary');
+      });
       return;
     }
 
@@ -491,7 +495,7 @@ export class SessionChatWs {
   private scheduleRetry() {
     if (this.closed) return;
     this.retry += 1;
-    const delay = Math.min(3000 * Math.pow(1.6, this.retry - 1), 30000);
+    const delay = Math.min(3000 * 1.6 ** (this.retry - 1), 30000);
     if (this.timer) clearTimeout(this.timer);
     this.timer = setTimeout(() => this.open(), delay);
   }

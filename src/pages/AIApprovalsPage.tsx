@@ -4,7 +4,12 @@ import { toast } from 'sonner';
 import { headerActionRowWideClass, PinnedPage } from '@/components/layout/PinnedPage';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
-import { aiApprovalsApi, getApiErrorMessage, AIApprovalItem, AIApprovalStatus } from '@/lib/api';
+import {
+  aiApprovalsApi,
+  getApiErrorMessage,
+  type AIApprovalItem,
+  type AIApprovalStatus,
+} from '@/lib/api';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';

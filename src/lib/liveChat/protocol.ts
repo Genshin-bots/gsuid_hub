@@ -433,7 +433,7 @@ export function isControlPacket(msg: MessageSend): {
   kind: 'delete' | 'ban' | null;
   data: Record<string, unknown> | null;
 } {
-  if (!msg.content || msg.content.length !== 1) return { kind: null, data: null };
+  if (msg.content?.length !== 1) return { kind: null, data: null };
   const seg = msg.content[0];
   if (seg.type === 'excute_delete_message') {
     const d =

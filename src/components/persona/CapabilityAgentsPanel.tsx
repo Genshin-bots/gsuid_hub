@@ -8,7 +8,6 @@ import {
   Loader2,
   Lock,
   Package,
-  Plus,
   Puzzle,
   RotateCcw,
   Save,
@@ -21,7 +20,7 @@ import {
 
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
-import type { AgentNodeItem, AgentNodeSource, CapabilityAgentTool } from '@/lib/api';
+import type { AgentNodeSource, CapabilityAgentTool } from '@/lib/api';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -499,9 +498,7 @@ export function CapabilityAgentsPanel({ capability }: { capability: UseCapabilit
                               <RotateCcw className="h-4 w-4" />
                             </Button>
                           </TooltipTrigger>
-                          <TooltipContent>
-                            {t('aiCapabilityAgents.restoreTooltip')}
-                          </TooltipContent>
+                          <TooltipContent>{t('aiCapabilityAgents.restoreTooltip')}</TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
                     )}

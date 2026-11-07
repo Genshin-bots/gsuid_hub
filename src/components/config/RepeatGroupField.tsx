@@ -5,8 +5,8 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { PluginConfigItem } from '@/lib/api';
-import { ConfigField, ConfigValue } from './ConfigField';
+import type { PluginConfigItem } from '@/lib/api';
+import { ConfigField, type ConfigValue } from './ConfigField';
 import { pluginConfigItemToFieldDef } from './DynamicConfigPanel';
 
 // gsrepeatgroup 的一项：字段名 -> 值(嵌套组则为值数组)

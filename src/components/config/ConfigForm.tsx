@@ -2,8 +2,8 @@ import { useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { ConfigField, ConfigFieldDefinition, ConfigValue } from './ConfigField';
-import { Save, RotateCcw, AlertTriangle, CheckCircle } from 'lucide-react';
+import { ConfigField, type ConfigFieldDefinition, type ConfigValue } from './ConfigField';
+import { AlertTriangle, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -55,7 +55,7 @@ export function ConfigForm({
         await onSave(config);
         toast.success('配置已成功保存');
         setHasChanges(false);
-      } catch (error) {
+      } catch (_error) {
         toast.error('保存配置时发生错误');
       } finally {
         setIsSaving(false);
@@ -63,7 +63,7 @@ export function ConfigForm({
     }
   };
 
-  const handleReset = () => {
+  const _handleReset = () => {
     if (initialConfig) {
       setConfig(initialConfig);
     } else {

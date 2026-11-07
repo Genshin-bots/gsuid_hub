@@ -1,33 +1,18 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import {
-  Loader2,
-  Save,
-  Settings,
-  Sun,
-  Moon,
-  MessageSquare,
-  UserX,
-  Shield,
-  Clock,
-  ListFilter,
-  HelpCircle,
-  Cog,
-} from 'lucide-react';
-import { frameworkConfigApi, FrameworkConfigListItem, PluginConfigItem } from '@/lib/api';
+import { Loader2, Save, MessageSquare, UserX, Clock, HelpCircle, Cog } from 'lucide-react';
+import { frameworkConfigApi, type FrameworkConfigListItem, type PluginConfigItem } from '@/lib/api';
 import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useConfigDirty } from '@/contexts/ConfigDirtyContext';
 import { cn } from '@/lib/utils';
 import {
   ConfigField,
-  ConfigFieldDefinition,
-  ConfigValue,
-  ConfigFieldType,
+  type ConfigFieldDefinition,
+  type ConfigValue,
+  type ConfigFieldType,
   TagsInput,
 } from '@/components/config';
 
@@ -90,7 +75,7 @@ const CD_OPTIONS = [0, 1, 2, 3, 5, 10, 15, 30];
 export default function MiscSettings() {
   const { t } = useLanguage();
   const { setDirty } = useConfigDirty();
-  const [configList, setConfigList] = useState<FrameworkConfigListItem[]>([]);
+  const [_configList, setConfigList] = useState<FrameworkConfigListItem[]>([]);
   const [configs, setConfigs] = useState<LocalMiscConfig[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
@@ -340,7 +325,7 @@ export default function MiscSettings() {
       setOriginalRawConfig(JSON.parse(JSON.stringify(miscConfig.rawConfig)));
       setDirty(false);
       toast.success(t('miscConfig.configSaved'));
-    } catch (error) {
+    } catch (_error) {
       toast.error(t('miscConfig.saveFailed') || 'Failed to update misc configuration');
     } finally {
       setIsSaving(false);

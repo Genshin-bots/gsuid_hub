@@ -198,7 +198,9 @@ export function CacheSettingsDialog({ open, onOpenChange }: CacheSettingsDialogP
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{t('sessionManagement.cacheClearConfirmTitle')}</AlertDialogTitle>
-            <AlertDialogDescription>{t('sessionManagement.cacheClearConfirm')}</AlertDialogDescription>
+            <AlertDialogDescription>
+              {t('sessionManagement.cacheClearConfirm')}
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{t('sessionManagement.cancel')}</AlertDialogCancel>

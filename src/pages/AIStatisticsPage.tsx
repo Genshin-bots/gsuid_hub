@@ -1079,7 +1079,9 @@ export default function AIStatisticsPage() {
       const saved = localStorage.getItem('gsuid_stat_currency');
 
       if (saved === 'USD' || saved === 'CNY') return saved;
-    } catch {}
+    } catch {
+      // localStorage 不可用时用默认值
+    }
 
     return 'CNY';
   });
@@ -1093,7 +1095,9 @@ export default function AIStatisticsPage() {
 
         if (!Number.isNaN(parsed) && parsed > 0) return parsed;
       }
-    } catch {}
+    } catch {
+      // localStorage 不可用时用默认值
+    }
 
     return 7.2;
   });
@@ -1103,7 +1107,9 @@ export default function AIStatisticsPage() {
 
     try {
       localStorage.setItem('gsuid_stat_currency', cur);
-    } catch {}
+    } catch {
+      // 写入失败不影响本次切换
+    }
   }, []);
 
   const handleRateChange = useCallback((rate: number) => {
@@ -1111,7 +1117,9 @@ export default function AIStatisticsPage() {
 
     try {
       localStorage.setItem('gsuid_stat_cny_rate', String(rate));
-    } catch {}
+    } catch {
+      // 写入失败不影响本次切换
+    }
   }, []);
 
   // 时间段 Token 统计相关状态

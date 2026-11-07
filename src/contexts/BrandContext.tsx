@@ -1,13 +1,13 @@
-import React, {
+import {
   createContext,
   useContext,
   useState,
   useEffect,
-  ReactNode,
+  type ReactNode,
   useCallback,
   useMemo,
 } from 'react';
-import { brandApi, BrandInfo, getBrandIconUrl } from '@/lib/api';
+import { brandApi, type BrandInfo, getBrandIconUrl } from '@/lib/api';
 import { afterFirstPaint } from '@/lib/afterFirstPaint';
 import { useLanguage } from './LanguageContext';
 
@@ -78,10 +78,6 @@ const BrandContext = createContext<BrandContextType | undefined>(undefined);
 // ============================================================================
 // Provider 组件
 // ============================================================================
-
-interface BrandProviderProps {
-  children: ReactNode;
-}
 
 export function BrandProvider({ children }: { children: ReactNode }) {
   const { t, language } = useLanguage();

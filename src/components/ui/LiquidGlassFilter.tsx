@@ -300,7 +300,6 @@ export function LiquidGlassFilter() {
           {cardMap && (
             <feImage
               href={cardMap}
-              // @ts-expect-error xlinkHref compatibility for SVG in React
               xlinkHref={cardMap}
               result="cardMapImg"
               preserveAspectRatio="none"
@@ -396,7 +395,6 @@ export function LiquidGlassFilter() {
           {pillMap && (
             <feImage
               href={pillMap}
-              // @ts-expect-error xlinkHref compatibility for SVG in React
               xlinkHref={pillMap}
               result="pillMapImg"
               preserveAspectRatio="none"
@@ -486,7 +484,6 @@ export function LiquidGlassFilter() {
           {lensMap && (
             <feImage
               href={lensMap}
-              // @ts-expect-error xlinkHref compatibility for SVG in React
               xlinkHref={lensMap}
               result="lensMapImg"
               preserveAspectRatio="none"
@@ -515,7 +512,6 @@ export function LiquidGlassFilter() {
           {edgeMap && (
             <feImage
               href={edgeMap}
-              // @ts-expect-error xlinkHref compatibility for SVG in React
               xlinkHref={edgeMap}
               result="edgeMapImg"
               preserveAspectRatio="none"
@@ -598,7 +594,6 @@ export function LiquidGlassFilter() {
           {cardMap && (
             <feImage
               href={cardMap}
-              // @ts-expect-error xlinkHref compatibility for SVG in React
               xlinkHref={cardMap}
               result="cardRefractImg"
               preserveAspectRatio="none"
@@ -617,7 +612,6 @@ export function LiquidGlassFilter() {
           {cardMap && (
             <feImage
               href={cardMap}
-              // @ts-expect-error xlinkHref compatibility for SVG in React
               xlinkHref={cardMap}
               result="dispMapImg"
               preserveAspectRatio="none"

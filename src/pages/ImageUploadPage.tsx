@@ -5,19 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import {
-  Image,
-  Loader2,
-  Save,
-  Cloud,
-  Server,
-  HardDrive,
-  Code,
-  Globe,
-  Trash2,
-  Clock,
-} from 'lucide-react';
-import { frameworkConfigApi, FrameworkConfigListItem } from '@/lib/api';
+import { Loader2, Save, Cloud, Server, HardDrive, Code, Globe, Trash2, Clock } from 'lucide-react';
+import { frameworkConfigApi, type FrameworkConfigListItem } from '@/lib/api';
 import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
@@ -123,7 +112,7 @@ interface LocalImageUploadConfig {
 
 export default function ImageUploadPage() {
   const { t } = useLanguage();
-  const [configList, setConfigList] = useState<FrameworkConfigListItem[]>([]);
+  const [_configList, setConfigList] = useState<FrameworkConfigListItem[]>([]);
   const [configs, setConfigs] = useState<LocalImageUploadConfig[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
@@ -338,14 +327,14 @@ export default function ImageUploadPage() {
       await frameworkConfigApi.updateFrameworkConfig(imageUploadConfig.full_name, configToSave);
       setOriginalConfig(JSON.parse(JSON.stringify(imageUploadConfig.config)));
       toast.success(t('imageUpload.configSaved'));
-    } catch (error) {
+    } catch (_error) {
       toast.error(t('imageUpload.saveFailed') || 'Failed to update image upload configuration');
     } finally {
       setIsSaving(false);
     }
   };
 
-  const isConfigDirty = useMemo(() => {
+  const _isConfigDirty = useMemo(() => {
     if (!imageUploadConfig) return false;
     return JSON.stringify(imageUploadConfig.config) !== JSON.stringify(originalConfig);
   }, [imageUploadConfig, originalConfig]);

@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
   Loader2,
@@ -13,7 +13,6 @@ import {
   Users,
   Building,
   Gamepad2,
-  Cpu,
   Monitor,
   Link,
 } from 'lucide-react';
@@ -145,7 +144,7 @@ const PLATFORMS = [
 export default function ImageSendSettings() {
   const { t } = useLanguage();
   const { setDirty } = useConfigDirty();
-  const [configList, setConfigList] = useState<FrameworkConfigListItem[]>([]);
+  const [_configList, setConfigList] = useState<FrameworkConfigListItem[]>([]);
   const [configs, setConfigs] = useState<LocalImageSendConfig[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
@@ -358,7 +357,7 @@ export default function ImageSendSettings() {
       setOriginalConfig(JSON.parse(JSON.stringify(imageSendConfig.config)));
       setDirty(false);
       toast.success(t('imageSendConfig.configSaved'));
-    } catch (error) {
+    } catch (_error) {
       toast.error(t('imageSendConfig.saveFailed') || 'Failed to update image send configuration');
     } finally {
       setIsSaving(false);

@@ -10,7 +10,6 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { TruncatedText } from '@/components/ui/truncated-text';
-import { Separator } from '@/components/ui/separator';
 import {
   Select,
   SelectContent,
@@ -52,7 +51,6 @@ import {
   ChevronDown,
   Save,
   Server,
-  LayoutGrid,
   Users,
   Shield,
   Filter,
@@ -84,26 +82,25 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import {
   ConfigField,
   ButtonConfigField,
-  ConfigFieldDefinition,
-  ConfigValue,
-  ConfigFieldType,
+  type ConfigFieldDefinition,
+  type ConfigValue,
+  type ConfigFieldType,
   MarkdownTooltip,
   RepeatGroupField,
-  RepeatGroupItem,
+  type RepeatGroupItem,
 } from '@/components/config';
 import {
   pluginsApi,
   gitUpdateApi,
   dashboardApi,
   getApiErrorMessage,
-  Plugin,
-  ServiceConfig,
-  SvItem,
-  SvCommand,
-  PluginConfigItem,
-  PluginConfigGroup,
-  PluginListItem,
-  PluginPageMeta,
+  type Plugin,
+  type ServiceConfig,
+  type SvItem,
+  type SvCommand,
+  type PluginConfigItem,
+  type PluginListItem,
+  type PluginPageMeta,
 } from '@/lib/api';
 import { convertPluginConfigValueForSave } from '@/lib/configSaveValue';
 import { simplifyRegexKeyword } from '@/lib/regexCommand';
@@ -266,12 +263,12 @@ const configNameIconMap: Record<string, React.ReactNode> = {
 
 // 用于无法匹配关键词时的循环图标列表
 const fallbackConfigIcons = [
-  <Settings className="w-4 h-4" />,
-  <Cog className="w-4 h-4" />,
-  <Sliders className="w-4 h-4" />,
-  <Wrench className="w-4 h-4" />,
-  <Layers className="w-4 h-4" />,
-  <Database className="w-4 h-4" />,
+  <Settings key="settings" className="w-4 h-4" />,
+  <Cog key="cog" className="w-4 h-4" />,
+  <Sliders key="sliders" className="w-4 h-4" />,
+  <Wrench key="wrench" className="w-4 h-4" />,
+  <Layers key="layers" className="w-4 h-4" />,
+  <Database key="database" className="w-4 h-4" />,
 ];
 
 // 简单哈希函数，用于根据名称生成稳定的索引
@@ -285,7 +282,7 @@ function simpleHash(str: string): number {
   return Math.abs(hash);
 }
 
-function getConfigIcon(name: string, index: number): React.ReactNode {
+function getConfigIcon(name: string, _index: number): React.ReactNode {
   const lowerName = name.toLowerCase();
   // 尝试关键词匹配
   for (const [keyword, icon] of Object.entries(configNameIconMap)) {
@@ -433,7 +430,7 @@ function buttonFieldsOf(plugin: Plugin): ConfigFieldDefinition[] {
 
 export default function PluginsPage() {
   const { style } = useTheme();
-  const isGlass = style !== 'solid';
+  const _isGlass = style !== 'solid';
   const { t, language } = useLanguage();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -468,7 +465,7 @@ export default function PluginsPage() {
   // 更新全部插件相关状态
   const [updateAllDialogOpen, setUpdateAllDialogOpen] = useState(false);
   const [updateAllPanelOpen, setUpdateAllPanelOpen] = useState(false);
-  const [isUpdatingAll, setIsUpdatingAll] = useState(false);
+  const [_isUpdatingAll, setIsUpdatingAll] = useState(false);
   type PluginUpdateStatus = 'pending' | 'updating' | 'success' | 'failed';
   interface PluginUpdateItem {
     name: string;
@@ -478,7 +475,7 @@ export default function PluginsPage() {
   const [pluginUpdateList, setPluginUpdateList] = useState<PluginUpdateItem[]>([]);
 
   // Track original state for change detection
-  const [originalConfig, setOriginalConfig] = useState<Record<string, any>>({});
+  const [_originalConfig, setOriginalConfig] = useState<Record<string, any>>({});
   const [originalServiceConfig, setOriginalServiceConfig] = useState<ServiceConfig | null>(null);
   const [originalSvList, setOriginalSvList] = useState<SvItem[]>([]);
 
@@ -922,7 +919,7 @@ export default function PluginsPage() {
       });
       setParamsDirty(false);
       toast.success(t('plugins.pluginConfigUpdated'));
-    } catch (error) {
+    } catch (_error) {
       toast.error(t('plugins.updatePluginConfigFailed'));
     } finally {
       setIsSavingConfig(false);
@@ -1448,7 +1445,7 @@ export default function PluginsPage() {
                     <Select
                       value={String(editedServiceConfig.pm || 0)}
                       onValueChange={(v) =>
-                        setEditedServiceConfig((prev) => ({ ...prev, pm: parseInt(v) }))
+                        setEditedServiceConfig((prev) => ({ ...prev, pm: parseInt(v, 10) }))
                       }
                     >
                       <SelectTrigger className="bg-background h-10">
@@ -1457,7 +1454,7 @@ export default function PluginsPage() {
                       <SelectContent>
                         {[0, 1, 2, 3, 4, 5, 6, 7, 8].map((v) => (
                           <SelectItem key={v} value={String(v)}>
-                            {t('plugins.permissionLevels.' + v)}
+                            {t(`plugins.permissionLevels.${v}`)}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -1488,7 +1485,7 @@ export default function PluginsPage() {
                       onChange={(e) =>
                         setEditedServiceConfig((prev) => ({
                           ...prev,
-                          priority: parseInt(e.target.value),
+                          priority: parseInt(e.target.value, 10),
                         }))
                       }
                       placeholder={t('plugins.enterPriority')}
@@ -1796,202 +1793,191 @@ export default function PluginsPage() {
               </>
             )}
 
-            {pluginSection === 'sv' && (
-              <>
-                {editedSvList && editedSvList.length > 0 ? (
-                  <div className="space-y-3">
-                    {editedSvList.every((sv) => !svMatchesQuery(sv, svQuery)) && (
-                      <p className="text-sm text-muted-foreground">{t('plugins.noSvMatch')}</p>
-                    )}
-                    {groupSvByPm(
-                      editedSvList
-                        .map((sv, index) => ({ sv, index }))
-                        .filter(({ sv }) => svMatchesQuery(sv, svQuery)),
-                    ).map((group, groupIndex) => (
-                      <div
-                        key={group.pm}
-                        className={cn(
-                          'grid grid-cols-1 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(16rem,1fr))]',
-                          groupIndex > 0 && 'border-t border-border/40 pt-3',
-                        )}
-                      >
-                        {group.items.map(({ sv, index }) => {
-                          const areaLabel =
-                            sv.area === 'DIRECT'
-                              ? t('plugins.directOnly')
-                              : sv.area === 'GROUP'
-                                ? t('plugins.groupOnly')
-                                : t('plugins.global');
-                          return (
-                            <button
-                              key={`${sv.name}-${index}`}
-                              type="button"
-                              className="min-w-0 w-full rounded-lg border bg-background p-3 text-left"
-                              onClick={() => {
-                                setEditingSvIndex(index);
-                                setSvDraft(JSON.parse(JSON.stringify(sv)) as SvItem);
-                              }}
-                            >
-                              <div className="flex items-center gap-2">
-                                <span className="min-w-0 flex-1 truncate font-medium">
-                                  {sv.name}
-                                </span>
-                                <Badge
-                                  className={cn(
-                                    SV_BADGE,
-                                    'shrink-0',
-                                    svPriorityBadgeClass(sv.priority || 0),
-                                  )}
-                                >
-                                  {t('plugins.priorityShort', { n: sv.priority || 0 })}
-                                </Badge>
-                                <Badge
-                                  className={cn(
-                                    SV_BADGE,
-                                    'shrink-0',
-                                    sv.enabled
-                                      ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200'
-                                      : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300',
-                                  )}
-                                >
-                                  {sv.enabled ? (
-                                    <CircleCheck className="h-3 w-3" />
-                                  ) : (
-                                    <CircleOff className="h-3 w-3" />
-                                  )}
-                                  {sv.enabled ? t('plugins.enabled') : t('plugins.disabled')}
-                                </Badge>
-                              </div>
-                              <div className="mt-1.5 flex flex-wrap gap-1">
-                                <Badge
-                                  className={cn(
-                                    SV_BADGE,
-                                    SV_PM_BADGE[sv.pm || 0] || SV_PM_BADGE[6],
-                                  )}
-                                >
-                                  {t(`plugins.permissionLevels.${sv.pm || 0}`)}
-                                </Badge>
-                                <Badge
-                                  className={cn(
-                                    SV_BADGE,
-                                    SV_AREA_BADGE[sv.area] || SV_AREA_BADGE.ALL,
-                                  )}
-                                >
-                                  {areaLabel}
-                                </Badge>
-                                <Badge variant="secondary" className="font-normal">
-                                  {t('plugins.whiteList')} {sv.white_list?.length || 0}
-                                </Badge>
-                                <Badge variant="secondary" className="font-normal">
-                                  {t('plugins.blackList')} {sv.black_list?.length || 0}
-                                </Badge>
-                              </div>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-muted-foreground">{t('plugins.noSvServices')}</p>
-                )}
-              </>
-            )}
-
-            {pluginSection === 'params' && (
-              <>
-                {(selectedPlugin.config_groups && selectedPlugin.config_groups.length > 0
-                  ? selectedPlugin.config_groups.filter(
-                      (group) =>
-                        group.config_name === selectedConfigName ||
-                        warmConfigNames.includes(group.config_name),
-                    )
-                  : [
-                      {
-                        config_name: paramsConfigName || '__default__',
-                        config: selectedPlugin.config,
-                      },
-                    ]
-                ).map((group) => {
-                  const groupName =
-                    selectedPlugin.config_groups && selectedPlugin.config_groups.length > 0
-                      ? group.config_name
-                      : selectedConfigName;
-                  const active = group.config_name === (selectedConfigName || group.config_name);
-                  const entries = Object.entries(group.config || {});
-                  return (
+            {pluginSection === 'sv' &&
+              (editedSvList && editedSvList.length > 0 ? (
+                <div className="space-y-3">
+                  {editedSvList.every((sv) => !svMatchesQuery(sv, svQuery)) && (
+                    <p className="text-sm text-muted-foreground">{t('plugins.noSvMatch')}</p>
+                  )}
+                  {groupSvByPm(
+                    editedSvList
+                      .map((sv, index) => ({ sv, index }))
+                      .filter(({ sv }) => svMatchesQuery(sv, svQuery)),
+                  ).map((group, groupIndex) => (
                     <div
-                      key={group.config_name}
+                      key={group.pm}
                       className={cn(
-                        'grid grid-cols-2 items-start gap-x-3 gap-y-3 sm:grid-cols-2 sm:gap-x-6 sm:gap-y-6 lg:grid-cols-3',
-                        !active && 'hidden',
+                        'grid grid-cols-1 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(16rem,1fr))]',
+                        groupIndex > 0 && 'border-t border-border/40 pt-3',
                       )}
                     >
-                      {entries.length === 0 ? (
-                        <div className="col-span-full py-12 text-center text-muted-foreground">
-                          <p>{t('plugins.noConfigItems')}</p>
-                        </div>
-                      ) : (
-                        entries.map(([key, field]) => {
-                          const fieldDef = field as unknown as ConfigFieldDefinition;
-                          const shown = (text?: string) =>
-                            !text ? '' : text.includes('.') ? t(text) : text;
-                          const hit = active
-                            ? configHitClass(
-                                shown(fieldDef.label),
-                                shown(fieldDef.description),
-                                typeof fieldDef.value === 'string' ? shown(fieldDef.value) : '',
-                                key,
-                              )
-                            : '';
-                          const isFullWidth =
-                            fieldDef.type === 'divider' || fieldDef.type === 'repeatgroup';
-                          if (fieldDef.type === 'button') return null;
-                          if (fieldDef.type === 'repeatgroup') {
-                            const groupValue = Array.isArray(fieldDef.value)
-                              ? (fieldDef.value as unknown as RepeatGroupItem[])
-                              : [];
-                            return (
-                              <div
-                                key={`${group.config_name}_${key}`}
-                                data-config-hit={hit ? 'true' : undefined}
-                                className={cn('col-span-full', hit)}
+                      {group.items.map(({ sv, index }) => {
+                        const areaLabel =
+                          sv.area === 'DIRECT'
+                            ? t('plugins.directOnly')
+                            : sv.area === 'GROUP'
+                              ? t('plugins.groupOnly')
+                              : t('plugins.global');
+                        return (
+                          <button
+                            key={`${sv.name}-${index}`}
+                            type="button"
+                            className="min-w-0 w-full rounded-lg border bg-background p-3 text-left"
+                            onClick={() => {
+                              setEditingSvIndex(index);
+                              setSvDraft(JSON.parse(JSON.stringify(sv)) as SvItem);
+                            }}
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="min-w-0 flex-1 truncate font-medium">{sv.name}</span>
+                              <Badge
+                                className={cn(
+                                  SV_BADGE,
+                                  'shrink-0',
+                                  svPriorityBadgeClass(sv.priority || 0),
+                                )}
                               >
-                                <RepeatGroupField
-                                  fieldKey={key}
-                                  template={fieldDef.template || {}}
-                                  value={groupValue}
-                                  onChange={(fieldKey, value) =>
-                                    updateConfigValue(selectedPlugin.id, fieldKey, value, groupName)
-                                  }
-                                  title={fieldDef.label}
-                                  description={fieldDef.description}
-                                />
-                              </div>
-                            );
-                          }
+                                {t('plugins.priorityShort', { n: sv.priority || 0 })}
+                              </Badge>
+                              <Badge
+                                className={cn(
+                                  SV_BADGE,
+                                  'shrink-0',
+                                  sv.enabled
+                                    ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200'
+                                    : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300',
+                                )}
+                              >
+                                {sv.enabled ? (
+                                  <CircleCheck className="h-3 w-3" />
+                                ) : (
+                                  <CircleOff className="h-3 w-3" />
+                                )}
+                                {sv.enabled ? t('plugins.enabled') : t('plugins.disabled')}
+                              </Badge>
+                            </div>
+                            <div className="mt-1.5 flex flex-wrap gap-1">
+                              <Badge
+                                className={cn(SV_BADGE, SV_PM_BADGE[sv.pm || 0] || SV_PM_BADGE[6])}
+                              >
+                                {t(`plugins.permissionLevels.${sv.pm || 0}`)}
+                              </Badge>
+                              <Badge
+                                className={cn(
+                                  SV_BADGE,
+                                  SV_AREA_BADGE[sv.area] || SV_AREA_BADGE.ALL,
+                                )}
+                              >
+                                {areaLabel}
+                              </Badge>
+                              <Badge variant="secondary" className="font-normal">
+                                {t('plugins.whiteList')} {sv.white_list?.length || 0}
+                              </Badge>
+                              <Badge variant="secondary" className="font-normal">
+                                {t('plugins.blackList')} {sv.black_list?.length || 0}
+                              </Badge>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-muted-foreground">{t('plugins.noSvServices')}</p>
+              ))}
+
+            {pluginSection === 'params' &&
+              (selectedPlugin.config_groups && selectedPlugin.config_groups.length > 0
+                ? selectedPlugin.config_groups.filter(
+                    (group) =>
+                      group.config_name === selectedConfigName ||
+                      warmConfigNames.includes(group.config_name),
+                  )
+                : [
+                    {
+                      config_name: paramsConfigName || '__default__',
+                      config: selectedPlugin.config,
+                    },
+                  ]
+              ).map((group) => {
+                const groupName =
+                  selectedPlugin.config_groups && selectedPlugin.config_groups.length > 0
+                    ? group.config_name
+                    : selectedConfigName;
+                const active = group.config_name === (selectedConfigName || group.config_name);
+                const entries = Object.entries(group.config || {});
+                return (
+                  <div
+                    key={group.config_name}
+                    className={cn(
+                      'grid grid-cols-2 items-start gap-x-3 gap-y-3 sm:grid-cols-2 sm:gap-x-6 sm:gap-y-6 lg:grid-cols-3',
+                      !active && 'hidden',
+                    )}
+                  >
+                    {entries.length === 0 ? (
+                      <div className="col-span-full py-12 text-center text-muted-foreground">
+                        <p>{t('plugins.noConfigItems')}</p>
+                      </div>
+                    ) : (
+                      entries.map(([key, field]) => {
+                        const fieldDef = field as unknown as ConfigFieldDefinition;
+                        const shown = (text?: string) =>
+                          !text ? '' : text.includes('.') ? t(text) : text;
+                        const hit = active
+                          ? configHitClass(
+                              shown(fieldDef.label),
+                              shown(fieldDef.description),
+                              typeof fieldDef.value === 'string' ? shown(fieldDef.value) : '',
+                              key,
+                            )
+                          : '';
+                        const isFullWidth =
+                          fieldDef.type === 'divider' || fieldDef.type === 'repeatgroup';
+                        if (fieldDef.type === 'button') return null;
+                        if (fieldDef.type === 'repeatgroup') {
+                          const groupValue = Array.isArray(fieldDef.value)
+                            ? (fieldDef.value as unknown as RepeatGroupItem[])
+                            : [];
                           return (
                             <div
                               key={`${group.config_name}_${key}`}
                               data-config-hit={hit ? 'true' : undefined}
-                              className={cn(isFullWidth && 'col-span-full', hit)}
+                              className={cn('col-span-full', hit)}
                             >
-                              <ConfigField
+                              <RepeatGroupField
                                 fieldKey={key}
-                                field={fieldDef}
+                                template={fieldDef.template || {}}
+                                value={groupValue}
                                 onChange={(fieldKey, value) =>
                                   updateConfigValue(selectedPlugin.id, fieldKey, value, groupName)
                                 }
+                                title={fieldDef.label}
+                                description={fieldDef.description}
                               />
                             </div>
                           );
-                        })
-                      )}
-                    </div>
-                  );
-                })}
-              </>
-            )}
+                        }
+                        return (
+                          <div
+                            key={`${group.config_name}_${key}`}
+                            data-config-hit={hit ? 'true' : undefined}
+                            className={cn(isFullWidth && 'col-span-full', hit)}
+                          >
+                            <ConfigField
+                              fieldKey={key}
+                              field={fieldDef}
+                              onChange={(fieldKey, value) =>
+                                updateConfigValue(selectedPlugin.id, fieldKey, value, groupName)
+                              }
+                            />
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                );
+              })}
           </CardContent>
         </Card>
       ) : (

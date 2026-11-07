@@ -31,7 +31,7 @@ function formatBytes(bytes: number): string {
   const k = 1024;
   const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
   const i = Math.min(sizes.length - 1, Math.floor(Math.log(bytes) / Math.log(k)));
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
+  return `${parseFloat((bytes / k ** i).toFixed(1))} ${sizes[i]}`;
 }
 
 function pathIsUnder(parent: string, child: string): boolean {

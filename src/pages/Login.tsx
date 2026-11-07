@@ -31,7 +31,6 @@ import {
   EyeOff,
   UserPlus,
   Settings,
-  ChevronDown,
   HelpCircle,
   WifiOff,
   RefreshCw,
@@ -164,7 +163,7 @@ export default function Login() {
   };
 
   const isGradient = backgroundImage?.startsWith('linear-gradient');
-  const isImage = backgroundImage && !isGradient;
+  const _isImage = backgroundImage && !isGradient;
   const isGlassmorphism = style === 'glassmorphism';
   const isLuminous = style === 'luminous';
   const isLiquid = style === 'liquid';
@@ -174,14 +173,14 @@ export default function Login() {
   const hasDefaultGlass = isGlassmorphism && !backgroundImage;
   const hasDefaultLuminous = isLuminous && !backgroundImage;
   const hasDefaultLiquid = isLiquid && !backgroundImage;
-  const hasSolidBackground = isSolid && (backgroundImage || !isGlass);
+  const _hasSolidBackground = isSolid && (backgroundImage || !isGlass);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
 
-    let result;
+    let result: Awaited<ReturnType<typeof login>>;
     if (isRegisterMode) {
       if (password !== confirmPassword) {
         setError(t('login.passwordMismatch'));

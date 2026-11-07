@@ -511,84 +511,84 @@ export default function AIToolsPage() {
               </div>
 
               <div className="flex min-w-0 w-full gap-2 md:contents">
-              <div className="min-w-0 flex-1">
-                <Select
-                  value={diagnosticFilter}
-                  onValueChange={(v) => handleDiagnosticChange(v as typeof diagnosticFilter)}
-                >
-                  <SelectTrigger
-                    className={cn(
-                      tabToolbarShellControlClass,
-                      /* trigger 自带 justify-between：值 span flex-1 占住中段，
+                <div className="min-w-0 flex-1">
+                  <Select
+                    value={diagnosticFilter}
+                    onValueChange={(v) => handleDiagnosticChange(v as typeof diagnosticFilter)}
+                  >
+                    <SelectTrigger
+                      className={cn(
+                        tabToolbarShellControlClass,
+                        /* trigger 自带 justify-between：值 span flex-1 占住中段，
                          文案贴住前缀图标、箭头仍在最右（同 /database 筛选列） */
-                      'w-full min-w-0 gap-2 px-2 [&>span]:min-w-0 [&>span]:flex-1',
-                    )}
-                  >
-                    <DiagnosticFilterIcon value={diagnosticFilter} />
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">{t('aiTools.diagnostics.filterAll')}</SelectItem>
-                    <SelectItem value="issues">
-                      {t('aiTools.diagnostics.filterIssues')} (
-                      {diagnosticCounts.emptyDescription + diagnosticCounts.meta})
-                    </SelectItem>
-                    <SelectItem value="empty_description">
-                      {t('aiTools.diagnostics.filterEmpty')} ({diagnosticCounts.emptyDescription})
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                        'w-full min-w-0 gap-2 px-2 [&>span]:min-w-0 [&>span]:flex-1',
+                      )}
+                    >
+                      <DiagnosticFilterIcon value={diagnosticFilter} />
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{t('aiTools.diagnostics.filterAll')}</SelectItem>
+                      <SelectItem value="issues">
+                        {t('aiTools.diagnostics.filterIssues')} (
+                        {diagnosticCounts.emptyDescription + diagnosticCounts.meta})
+                      </SelectItem>
+                      <SelectItem value="empty_description">
+                        {t('aiTools.diagnostics.filterEmpty')} ({diagnosticCounts.emptyDescription})
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              <div className="min-w-0 flex-1">
-                <Select value={selectedCategory} onValueChange={handleCategoryChange}>
-                  <SelectTrigger
-                    className={cn(
-                      tabToolbarShellControlClass,
-                      'w-full min-w-0 gap-2 px-2 [&>span]:min-w-0 [&>span]:flex-1',
-                    )}
-                  >
-                    <Layers className="h-4 w-4 shrink-0 text-muted-foreground" />
-                    <SelectValue placeholder={t('aiTools.selectCategory')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categoryList.map((category) => {
-                      const count = categoryCounts[category] || 0;
-                      const disabled =
-                        category !== 'all' && category !== selectedCategory && count === 0;
-                      return (
-                        <SelectItem key={category} value={category} disabled={disabled}>
-                          {category === 'all'
-                            ? `${t('aiTools.allCategories')} (${categoryCounts.all || 0})`
-                            : `${category} (${count})`}
-                        </SelectItem>
-                      );
+                <div className="min-w-0 flex-1">
+                  <Select value={selectedCategory} onValueChange={handleCategoryChange}>
+                    <SelectTrigger
+                      className={cn(
+                        tabToolbarShellControlClass,
+                        'w-full min-w-0 gap-2 px-2 [&>span]:min-w-0 [&>span]:flex-1',
+                      )}
+                    >
+                      <Layers className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      <SelectValue placeholder={t('aiTools.selectCategory')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categoryList.map((category) => {
+                        const count = categoryCounts[category] || 0;
+                        const disabled =
+                          category !== 'all' && category !== selectedCategory && count === 0;
+                        return (
+                          <SelectItem key={category} value={category} disabled={disabled}>
+                            {category === 'all'
+                              ? `${t('aiTools.allCategories')} (${categoryCounts.all || 0})`
+                              : `${category} (${count})`}
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <SearchableMenu
+                    appearance="field"
+                    width="trigger"
+                    align="end"
+                    className={cn(tabToolbarShellControlClass, 'w-full min-w-0 px-2')}
+                    placeholder={t('aiTools.selectPlugin')}
+                    searchPlaceholder={t('common.search')}
+                    value={selectedPlugin}
+                    onValueChange={handlePluginChange}
+                    items={pluginList.map((plugin) => {
+                      const count = pluginCounts[plugin] || 0;
+                      return {
+                        value: plugin,
+                        label: pluginFilterLabel(plugin, count, t('aiTools.allPlugins')),
+                        icon: <PluginFilterIcon plugin={plugin} />,
+                        disabled: plugin !== 'all' && plugin !== selectedPlugin && count === 0,
+                      };
                     })}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="min-w-0 flex-1">
-                <SearchableMenu
-                  appearance="field"
-                  width="trigger"
-                  align="end"
-                  className={cn(tabToolbarShellControlClass, 'w-full min-w-0 px-2')}
-                  placeholder={t('aiTools.selectPlugin')}
-                  searchPlaceholder={t('common.search')}
-                  value={selectedPlugin}
-                  onValueChange={handlePluginChange}
-                  items={pluginList.map((plugin) => {
-                    const count = pluginCounts[plugin] || 0;
-                    return {
-                      value: plugin,
-                      label: pluginFilterLabel(plugin, count, t('aiTools.allPlugins')),
-                      icon: <PluginFilterIcon plugin={plugin} />,
-                      disabled: plugin !== 'all' && plugin !== selectedPlugin && count === 0,
-                    };
-                  })}
-                />
-              </div>
+                  />
+                </div>
               </div>
             </div>
           )}

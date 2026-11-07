@@ -76,7 +76,9 @@ export function MessageRow({ msg, onReply, onAt }: MessageRowProps) {
   const identity = identityOf(msg, t);
   const isSelf = msg.self || msg.role === 'assistant';
   // reply_id 渲染时丢掉
-  const segments = (msg.segments ?? []).filter((seg) => !(seg.type === 'unknown' && seg.kind === 'reply_id'));
+  const segments = (msg.segments ?? []).filter(
+    (seg) => !(seg.type === 'unknown' && seg.kind === 'reply_id'),
+  );
   // 引用内容都在 reply 段自己身上，正文是其余段
   const quoteSegs = segments.filter((seg) => seg.type === 'reply');
   const bodySegs = segments.filter((seg) => seg.type !== 'reply');
@@ -97,7 +99,11 @@ export function MessageRow({ msg, onReply, onAt }: MessageRowProps) {
 
   const userRows: Array<{ label: string; value: string }> = [];
   const sender = msg.sender ?? {};
-  if (isSelf) userRows.push({ label: t('sessionManagement.senderSource'), value: t('sessionManagement.senderBot') });
+  if (isSelf)
+    userRows.push({
+      label: t('sessionManagement.senderSource'),
+      value: t('sessionManagement.senderBot'),
+    });
   if (sender.card && sender.card !== sender.nickname) {
     userRows.push({ label: t('sessionManagement.senderCard'), value: sender.card });
   }
@@ -107,7 +113,8 @@ export function MessageRow({ msg, onReply, onAt }: MessageRowProps) {
       value: ROLE_KEY[sender.role] ? t(ROLE_KEY[sender.role]) : sender.role,
     });
   }
-  if (sender.title) userRows.push({ label: t('sessionManagement.senderTitle'), value: sender.title });
+  if (sender.title)
+    userRows.push({ label: t('sessionManagement.senderTitle'), value: sender.title });
   if (sender.openid) userRows.push({ label: 'openid', value: sender.openid });
   userRows.push({
     label: t('sessionManagement.senderAccount'),
@@ -134,7 +141,11 @@ export function MessageRow({ msg, onReply, onAt }: MessageRowProps) {
               />
             ) : (
               <span className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
-                {isSelf ? <Bot className="h-4 w-4" /> : name.slice(0, 1) || <User className="h-4 w-4" />}
+                {isSelf ? (
+                  <Bot className="h-4 w-4" />
+                ) : (
+                  name.slice(0, 1) || <User className="h-4 w-4" />
+                )}
               </span>
             )}
           </button>
@@ -159,10 +170,17 @@ export function MessageRow({ msg, onReply, onAt }: MessageRowProps) {
       </Popover>
 
       <div className={cn('min-w-0 max-w-[78%]', isSelf && 'text-right')}>
-        <div className={cn('mb-0.5 flex items-baseline gap-1.5 text-[11px] text-muted-foreground', isSelf && 'flex-row-reverse')}>
+        <div
+          className={cn(
+            'mb-0.5 flex items-baseline gap-1.5 text-[11px] text-muted-foreground',
+            isSelf && 'flex-row-reverse',
+          )}
+        >
           <span className="max-w-[160px] truncate">{name}</span>
           {identity && (
-            <span className="rounded bg-muted px-1 text-[10px] text-muted-foreground">{identity}</span>
+            <span className="rounded bg-muted px-1 text-[10px] text-muted-foreground">
+              {identity}
+            </span>
           )}
           <span>{formatClock(msg.timestamp)}</span>
         </div>
@@ -187,7 +205,9 @@ export function MessageRow({ msg, onReply, onAt }: MessageRowProps) {
               {bodySegs.length > 0
                 ? bodySegs.map((seg, idx) => <SegmentView key={`b${idx}`} seg={seg} />)
                 : quoteSegs.length === 0 && (
-                    <span className="text-muted-foreground">{t('sessionManagement.emptyMessage')}</span>
+                    <span className="text-muted-foreground">
+                      {t('sessionManagement.emptyMessage')}
+                    </span>
                   )}
             </div>
           </ContextMenuTrigger>

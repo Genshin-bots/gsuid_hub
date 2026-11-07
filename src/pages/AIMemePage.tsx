@@ -610,7 +610,7 @@ function MemeDetailDialog({
       });
       toast.success(t('aiMeme.detail.updateSuccess'));
       onUpdate();
-    } catch (error) {
+    } catch (_error) {
       toast.error(t('aiMeme.detail.updateFailed'));
     } finally {
       setIsSaving(false);
@@ -624,7 +624,7 @@ function MemeDetailDialog({
       toast.success(t('aiMeme.detail.retagSuccess'));
       setShowRetagDialog(false);
       onUpdate();
-    } catch (error) {
+    } catch (_error) {
       toast.error(t('aiMeme.detail.retagFailed'));
     } finally {
       setIsRetagging(false);
@@ -639,7 +639,7 @@ function MemeDetailDialog({
       toast.success(t('aiMeme.detail.moveSuccess', { folder: moveTarget }));
       setShowMoveDialog(false);
       onUpdate();
-    } catch (error) {
+    } catch (_error) {
       toast.error(t('aiMeme.detail.moveFailed'));
     } finally {
       setIsMoving(false);
@@ -652,7 +652,7 @@ function MemeDetailDialog({
       toast.success(t('aiMeme.detail.deleteSuccess'));
       setShowDeleteDialog(false);
       onDelete();
-    } catch (error) {
+    } catch (_error) {
       toast.error(t('aiMeme.detail.deleteFailed'));
     }
   };
@@ -1230,7 +1230,7 @@ export default function AIMemePage() {
   const [filterPersona, setFilterPersona] = useState<string>(PERSONA_ALL);
 
   // Filters
-  const [filterFolder, setFilterFolder] = useState<string>('');
+  const [filterFolder, _setFilterFolder] = useState<string>('');
   const [filterStatus, setFilterStatus] = useState<string>('tagged');
   const [sortBy, setSortBy] = useState<SortOption>('created_at_desc');
   const [searchQuery, setSearchQuery] = useState('');
@@ -1539,7 +1539,7 @@ export default function AIMemePage() {
       fetchMemes();
       fetchStats();
       fetchPersonas();
-    } catch (error) {
+    } catch (_error) {
       toast.error(t('aiMeme.batchDeleteFailed'));
     } finally {
       setIsBatchDeleting(false);
@@ -1566,7 +1566,7 @@ export default function AIMemePage() {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
       toast.success(t('aiMeme.batchExportSuccess'));
-    } catch (error) {
+    } catch (_error) {
       toast.error(t('aiMeme.batchExportFailed'));
     } finally {
       setIsExporting(false);
@@ -1677,7 +1677,7 @@ export default function AIMemePage() {
       fetchMemes();
       fetchStats();
       fetchPersonas();
-    } catch (error) {
+    } catch (_error) {
       toast.error(t('aiMeme.batchRetagPendingFailed'));
     } finally {
       setIsRetaggingPending(false);
@@ -1764,10 +1764,7 @@ export default function AIMemePage() {
             <Button
               variant="outline"
               onClick={() => setShowImportDotMemeDialog(true)}
-              className={cn(
-                tabToolbarControlClass,
-                'gap-1.5 whitespace-nowrap',
-              )}
+              className={cn(tabToolbarControlClass, 'gap-1.5 whitespace-nowrap')}
               title={t('aiMeme.importDotMeme')}
             >
               <FileDown className="w-4 h-4" />
@@ -1776,10 +1773,7 @@ export default function AIMemePage() {
             <Button
               variant="outline"
               onClick={openExportDialog}
-              className={cn(
-                tabToolbarControlClass,
-                'gap-1.5 whitespace-nowrap',
-              )}
+              className={cn(tabToolbarControlClass, 'gap-1.5 whitespace-nowrap')}
               title={t('aiMeme.exportDotMeme')}
             >
               <FileUp className="w-4 h-4" />

@@ -414,7 +414,7 @@ function formatDate(dateStr: string): string {
 
 function truncateText(text: string, maxLength: number): string {
   if (text.length <= maxLength) return text;
-  return text.slice(0, maxLength) + '...';
+  return `${text.slice(0, maxLength)}...`;
 }
 
 // ============================================================================
@@ -631,7 +631,7 @@ function KnowledgeGraph({
       context.beginPath();
       context.roundRect(data.x - boxW / 2, data.y - boxH / 2, boxW, boxH, 4);
       context.fill();
-      context.fillStyle = (settings.labelColor && settings.labelColor.color) || palette.label;
+      context.fillStyle = settings.labelColor?.color || palette.label;
       context.textAlign = 'center';
       context.textBaseline = 'middle';
       context.fillText(data.label, data.x, data.y);
@@ -884,7 +884,7 @@ function KnowledgeGraph({
   const focusNode = useCallback((nodeId: string, options?: { closeResults?: boolean }) => {
     const renderer = sigmaRef.current;
     const graph = graphRef.current;
-    if (!renderer || !graph || !graph.hasNode(nodeId)) return;
+    if (!renderer || !graph?.hasNode(nodeId)) return;
     focusedRef.current = nodeId;
     setFocusedNodeId(nodeId);
     if (options?.closeResults) setNodeSearchQuery('');
@@ -1050,21 +1050,21 @@ function KnowledgeGraph({
         )}
         <div className="flex flex-col gap-1">
           <Button
-          variant="outline"
-          size="icon"
-          className="h-8 w-8 bg-background/80 backdrop-blur"
-          onClick={() => sigmaRef.current?.getCamera().animatedZoom()}
-        >
-          <ZoomIn className="w-4 h-4" />
-        </Button>
-        <Button
-          variant="outline"
-          size="icon"
-          className="h-8 w-8 bg-background/80 backdrop-blur"
-          onClick={() => sigmaRef.current?.getCamera().animatedUnzoom()}
-        >
-          <ZoomOut className="w-4 h-4" />
-        </Button>
+            variant="outline"
+            size="icon"
+            className="h-8 w-8 bg-background/80 backdrop-blur"
+            onClick={() => sigmaRef.current?.getCamera().animatedZoom()}
+          >
+            <ZoomIn className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-8 w-8 bg-background/80 backdrop-blur"
+            onClick={() => sigmaRef.current?.getCamera().animatedUnzoom()}
+          >
+            <ZoomOut className="w-4 h-4" />
+          </Button>
           <Button
             variant="outline"
             size="icon"
@@ -1319,7 +1319,7 @@ function EdgeItem({
 
 function CategoryTreeNode({
   category,
-  children,
+  childCategories,
   isGlass,
   depth,
   onToggle,
@@ -1329,7 +1329,7 @@ function CategoryTreeNode({
   childrenMap,
 }: {
   category: Category;
-  children: Category[];
+  childCategories: Category[];
   isGlass: boolean;
   depth: number;
   onToggle: (id: string) => void;
@@ -1340,7 +1340,7 @@ function CategoryTreeNode({
 }) {
   const isExpanded = expandedIds.has(category.id);
   const isLoading = loadingIds.has(category.id);
-  const hasChildren = category.child_categories_count > 0 || children.length > 0;
+  const hasChildren = category.child_categories_count > 0 || childCategories.length > 0;
 
   const layerColors = [
     'bg-violet-500',
@@ -1421,13 +1421,13 @@ function CategoryTreeNode({
         </div>
       </div>
 
-      {isExpanded && children.length > 0 && (
+      {isExpanded && childCategories.length > 0 && (
         <div className="mt-1">
-          {children.map((child) => (
+          {childCategories.map((child) => (
             <CategoryTreeNode
               key={child.id}
               category={child}
-              children={childrenMap ? childrenMap.get(child.id) || [] : []}
+              childCategories={childrenMap ? childrenMap.get(child.id) || [] : []}
               isGlass={isGlass}
               depth={depth + 1}
               onToggle={onToggle}
@@ -1525,7 +1525,7 @@ function CategoryLayerTree({
             <CategoryTreeNode
               key={cat.id}
               category={cat}
-              children={childrenMap.get(cat.id) || []}
+              childCategories={childrenMap.get(cat.id) || []}
               isGlass={isGlass}
               depth={0}
               onToggle={handleToggle}
@@ -2571,8 +2571,8 @@ export default function AIMemoryPage() {
                 const draft = isEditing ? editingPreferenceDraft : null;
                 const ruleText = draft?.preference_rule ?? pref.preference_rule;
                 const polarity = draft?.polarity ?? pref.polarity;
-                const ctx = draft?.target_context ?? pref.target_context;
-                const active = draft?.is_active ?? pref.is_active;
+                const _ctx = draft?.target_context ?? pref.target_context;
+                const _active = draft?.is_active ?? pref.is_active;
                 return (
                   <Card
                     key={pref.id}
@@ -4033,7 +4033,7 @@ export default function AIMemoryPage() {
                   fetchEdges(1);
                   fetchCategories(1);
                   fetchEpisodes(1);
-                } catch (error) {
+                } catch (_error) {
                   toast.error(t('aiMemory.clearMemoryFailed'));
                 } finally {
                   setClearMemoryLoading(false);

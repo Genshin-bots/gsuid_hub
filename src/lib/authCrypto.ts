@@ -165,7 +165,7 @@ export async function fetchAuthPubkey(
   }
 
   const json = await res.json();
-  if (!json || json.status !== 0 || !json.data) {
+  if (json?.status !== 0 || !json.data) {
     throw new Error(`Invalid pubkey response: ${json?.msg ?? 'unknown error'}`);
   }
   const data = json.data as ServerPubkey;

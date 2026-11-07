@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { GlassAlert } from '@/components/ui/glass-alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   TabButtonGroup,
@@ -55,7 +54,6 @@ import {
   AlertTriangle,
   CheckCircle2,
   XCircle,
-  ChevronDown,
   ChevronRight,
   Activity,
   Users,
@@ -72,12 +70,12 @@ import { toast } from 'sonner';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   aiBudgetApi,
-  AIBudgetConfig,
-  AIBudgetRule,
-  AIBudgetWhitelistEntry,
-  AIBudgetOverview,
-  AIBudgetCheckResult,
-  AIBudgetWindowUsage,
+  type AIBudgetConfig,
+  type AIBudgetRule,
+  type AIBudgetWhitelistEntry,
+  type AIBudgetOverview,
+  type AIBudgetCheckResult,
+  type AIBudgetWindowUsage,
 } from '@/lib/api';
 import { PinnedPage } from '@/components/layout/PinnedPage';
 
@@ -817,7 +815,7 @@ function ConfigTab({
       setConfig(res);
       toast.success(t('aiBudget.config.saveSuccess'));
     } catch (e: any) {
-      toast.error(t('aiBudget.config.saveFailed') + ': ' + e.message);
+      toast.error(`${t('aiBudget.config.saveFailed')}: ${e.message}`);
     } finally {
       setSaving(false);
     }
@@ -1079,7 +1077,7 @@ function RulesTab() {
       );
       fetchRules();
     } catch (e: any) {
-      toast.error(t('aiBudget.rules.form.toggleFailed') + ': ' + e.message);
+      toast.error(`${t('aiBudget.rules.form.toggleFailed')}: ${e.message}`);
     }
   };
 
@@ -1092,7 +1090,7 @@ function RulesTab() {
       setDeletingRule(null);
       fetchRules();
     } catch (e: any) {
-      toast.error(t('aiBudget.rules.form.deleteFailed') + ': ' + e.message);
+      toast.error(`${t('aiBudget.rules.form.deleteFailed')}: ${e.message}`);
     }
   };
 
@@ -1287,7 +1285,7 @@ function RulesTab() {
             <div className="py-8 text-center">
               <Loader2 className="w-6 h-6 animate-spin mx-auto" />
             </div>
-          ) : detailRule && detailRule.usage ? (
+          ) : detailRule?.usage ? (
             <div className="space-y-3 md:space-y-4">
               <RuleInfoSection rule={detailRule} />
               <Separator />
@@ -1847,7 +1845,7 @@ function WhitelistTab() {
       setDeletingEntry(null);
       fetchEntries();
     } catch (e: any) {
-      toast.error(t('aiBudget.whitelist.form.deleteFailed') + ': ' + e.message);
+      toast.error(`${t('aiBudget.whitelist.form.deleteFailed')}: ${e.message}`);
     }
   };
 
@@ -2206,7 +2204,7 @@ function DiagnosticTab() {
       });
       toast.success(t('aiBudget.diagnostic.resetSuccess').replace('{count}', String(res.deleted)));
     } catch (e: any) {
-      toast.error(t('aiBudget.diagnostic.resetFailed') + ': ' + e.message);
+      toast.error(`${t('aiBudget.diagnostic.resetFailed')}: ${e.message}`);
     } finally {
       setResetting(false);
       setResetConfirmOpen(false);
@@ -2256,7 +2254,7 @@ function DiagnosticTab() {
                 <TooltipProvider delayDuration={200}>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <span className="inline-flex text-muted-foreground cursor-help" tabIndex={0}>
+                      <span className="inline-flex text-muted-foreground cursor-help">
                         <HelpCircle className="w-3.5 h-3.5" />
                       </span>
                     </TooltipTrigger>

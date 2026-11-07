@@ -21,16 +21,10 @@ import {
   ChevronDown,
   ChevronUp,
   Server,
-  Lock,
   Network,
   HardDrive,
 } from 'lucide-react';
-import {
-  frameworkConfigApi,
-  PluginConfigItem,
-  FrameworkConfigListItem,
-  FrameworkConfigDetail,
-} from '@/lib/api';
+import { frameworkConfigApi, type FrameworkConfigListItem } from '@/lib/api';
 import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
@@ -146,7 +140,7 @@ interface LocalDatabaseConfig {
 
 export default function DatabaseConfigPage() {
   const { t } = useLanguage();
-  const [configList, setConfigList] = useState<FrameworkConfigListItem[]>([]);
+  const [_configList, setConfigList] = useState<FrameworkConfigListItem[]>([]);
   const [configs, setConfigs] = useState<LocalDatabaseConfig[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
@@ -314,18 +308,28 @@ export default function DatabaseConfigPage() {
             ? {
                 value: data.config.sqlite_cache_size.value as number,
                 default: (data.config.sqlite_cache_size.default ?? -64000) as number,
-                options: (data.config.sqlite_cache_size.options || [-2000, -16000, -32000, -64000, -128000, -256000]) as number[],
+                options: (data.config.sqlite_cache_size.options || [
+                  -2000, -16000, -32000, -64000, -128000, -256000,
+                ]) as number[],
                 title: data.config.sqlite_cache_size.title || 'SQLite缓存大小',
-                desc: data.config.sqlite_cache_size.desc || '设置SQLite每个连接的页面缓存大小(负数表示KiB，默认-64000表示64MB)',
+                desc:
+                  data.config.sqlite_cache_size.desc ||
+                  '设置SQLite每个连接的页面缓存大小(负数表示KiB，默认-64000表示64MB)',
               }
             : undefined,
           sqlite_synchronous: data.config.sqlite_synchronous
             ? {
                 value: data.config.sqlite_synchronous.value as string,
                 default: (data.config.sqlite_synchronous.default || 'NORMAL') as string,
-                options: (data.config.sqlite_synchronous.options || ['NORMAL', 'FULL', 'OFF']) as string[],
+                options: (data.config.sqlite_synchronous.options || [
+                  'NORMAL',
+                  'FULL',
+                  'OFF',
+                ]) as string[],
                 title: data.config.sqlite_synchronous.title || 'SQLite同步模式',
-                desc: data.config.sqlite_synchronous.desc || 'WAL模式下推荐NORMAL(兼顾安全性与性能)，也可选FULL',
+                desc:
+                  data.config.sqlite_synchronous.desc ||
+                  'WAL模式下推荐NORMAL(兼顾安全性与性能)，也可选FULL',
               }
             : undefined,
         },
@@ -399,7 +403,7 @@ export default function DatabaseConfigPage() {
       await frameworkConfigApi.updateFrameworkConfig(databaseConfig.full_name, configToSave);
       setOriginalConfig(JSON.parse(JSON.stringify(databaseConfig.config)));
       toast.success(t('databaseConfig.configSaved'));
-    } catch (error) {
+    } catch (_error) {
       toast.error(t('databaseConfig.saveFailed') || 'Failed to update database configuration');
     } finally {
       setIsSaving(false);
@@ -407,7 +411,7 @@ export default function DatabaseConfigPage() {
   };
 
   // Check if config has changes
-  const isConfigDirty = useMemo(() => {
+  const _isConfigDirty = useMemo(() => {
     if (!databaseConfig) return false;
     return JSON.stringify(databaseConfig.config) !== JSON.stringify(originalConfig);
   }, [databaseConfig, originalConfig]);

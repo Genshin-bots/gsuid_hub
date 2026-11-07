@@ -1,4 +1,5 @@
 import { promisify } from 'node:util';
+import type { Dirent } from 'node:fs';
 import { gzip, brotliCompress, constants as zlibConstants } from 'node:zlib';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -32,7 +33,7 @@ export function isCompressibleAsset(filePath: string): boolean {
 
 async function walkFiles(dir: string): Promise<string[]> {
   const out: string[] = [];
-  let entries;
+  let entries: Dirent[];
   try {
     entries = await fs.readdir(dir, { withFileTypes: true });
   } catch {
@@ -62,7 +63,7 @@ export async function precompressDist(distDir: string): Promise<{ files: number 
         return;
       }
       // mtime 固定 epoch，避免每次构建 gzip 头都变、git 跟踪的 .gz 无意义抖动。
-      const gz = await gzipAsync(data, { level: 9, mtime: new Date(0) });
+      const gz = await gzipAsync(data, { level: 9 });
       if (gz.length < data.length) {
         await fs.writeFile(`${file}.gz`, gz);
       }

@@ -8,7 +8,6 @@ import {
   useState,
 } from 'react';
 import {
-  AlertCircle,
   CalendarClock,
   Clock,
   Compass,

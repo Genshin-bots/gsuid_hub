@@ -137,7 +137,7 @@ function toDto(state: LiveChatPersistedState): LiveChatStateDto {
 }
 
 function fromDto(data: LiveChatStateDto | null | undefined): LiveChatPersistedState | null {
-  if (!data || !data.identity) return null;
+  if (!data?.identity) return null;
   const identity: LiveChatIdentity = {
     userId: data.identity.userId || 'master',
     nickname: data.identity.nickname || 'Master',

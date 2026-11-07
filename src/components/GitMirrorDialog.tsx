@@ -47,7 +47,7 @@ import {
 import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
-import { gitMirrorApi, GitMirrorInfo, GitMirrorOption } from '@/lib/api';
+import { gitMirrorApi, type GitMirrorInfo } from '@/lib/api';
 import { PluginIcon } from '@/components/ui/plugin-icon';
 
 // Radix UI Select 不允许空字符串作为 value，使用此常量作为默认值的占位符

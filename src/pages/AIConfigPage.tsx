@@ -45,7 +45,6 @@ import {
   mcpConfigApi,
   type PluginConfigItem,
 } from '@/lib/api';
-import { MCP_SERVICE_TOOLS_CONFIG_KEY_MAP, type McpServiceType } from '@/components/config';
 import { coerceConfigValueForSave, embeddingConfigPayload } from '@/lib/configSaveValue';
 import { EmptyState } from './AIConfig/shared/EmptyState';
 import { filterOutPrimaryProvider } from './AIConfig/shared/providerId';
@@ -535,7 +534,8 @@ export default function AIConfigPage() {
               }
             }
           } else if (rawType === 'gslist') {
-            if (Array.isArray(value)) value = value.map(Number).filter((n: number) => !isNaN(n));
+            if (Array.isArray(value))
+              value = value.map(Number).filter((n: number) => !Number.isNaN(n));
           } else if (rawType === 'gsliststr') {
             if (Array.isArray(value)) value = value.map(String);
           } else if (rawType === 'gsdivider') {
@@ -1159,9 +1159,7 @@ export default function AIConfigPage() {
                   return (
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <span tabIndex={0} className="header-action-grow inline-flex">
-                          {checkConfigBtn}
-                        </span>
+                        <span className="header-action-grow inline-flex">{checkConfigBtn}</span>
                       </TooltipTrigger>
                       <TooltipContent side="bottom">
                         {t('aiConfig.serviceSwitch.checkConfigPendingRestart')}

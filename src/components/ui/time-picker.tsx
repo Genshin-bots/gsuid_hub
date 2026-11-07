@@ -68,7 +68,7 @@ export function TimePicker({ value, onChange, disabled, className }: TimePickerP
 
   const handleHourInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = parseInt(e.target.value, 10);
-    if (!isNaN(val) && val >= 0 && val <= 23) {
+    if (!Number.isNaN(val) && val >= 0 && val <= 23) {
       setHours(val);
       onChange(formatTime(val, minutes));
     }
@@ -76,7 +76,7 @@ export function TimePicker({ value, onChange, disabled, className }: TimePickerP
 
   const handleMinuteInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = parseInt(e.target.value, 10);
-    if (!isNaN(val) && val >= 0 && val <= 59) {
+    if (!Number.isNaN(val) && val >= 0 && val <= 59) {
       setMinutes(val);
       onChange(formatTime(hours, val));
     }

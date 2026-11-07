@@ -235,7 +235,7 @@ export class LiveChatWsClient {
     }
     this.retryCount += 1;
     // 指数退避，上限 30s
-    const delay = Math.min(this.opts.retryBaseMs * Math.pow(1.5, this.retryCount - 1), 30000);
+    const delay = Math.min(this.opts.retryBaseMs * 1.5 ** (this.retryCount - 1), 30000);
     this.setState('reconnecting', `retry #${this.retryCount} in ${Math.round(delay)}ms`);
     this.clearRetry();
     this.retryTimer = setTimeout(() => this.openSocket(), delay);

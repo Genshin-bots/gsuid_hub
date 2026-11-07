@@ -1,5 +1,3 @@
-import React from 'react';
-
 /**
  * Global SVG filter providing optical refraction for Luminous Glass surfaces.
  * Hidden from layout and screen readers; referenced via CSS url(#luminous-glass-refraction).

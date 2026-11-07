@@ -15,12 +15,10 @@ import {
   ChevronDown,
   Clock,
   Hash,
-  User,
   Users,
   ScrollText,
   Activity,
   Terminal,
-  Search,
   Download,
   MessageCircle,
 } from 'lucide-react';
@@ -53,7 +51,7 @@ function parseTraceTimestamp(ts: string, dateStr: string): Date {
     const year = dateStr.split('-')[0];
     const isoStr = `${year}-${monthDay}T${time}`;
     const d = new Date(isoStr);
-    if (!isNaN(d.getTime())) return d;
+    if (!Number.isNaN(d.getTime())) return d;
   } catch {
     /* ignore */
   }
@@ -114,7 +112,7 @@ export default function TracesPage() {
     log_count: number;
   } | null>(null);
   const [dailyCounts, setDailyCounts] = useState<Record<string, number>>({});
-  const [countsLoading, setCountsLoading] = useState(false);
+  const [_countsLoading, setCountsLoading] = useState(false);
 
   useEffect(() => {
     if (typeof document === 'undefined') return;
@@ -146,8 +144,8 @@ export default function TracesPage() {
   const disabledMatchers = useMemo(() => {
     const dates = Object.keys(dailyCounts).sort();
     if (dates.length === 0) return undefined;
-    const minDate = new Date(dates[0] + 'T00:00:00');
-    const maxDate = new Date(dates[dates.length - 1] + 'T00:00:00');
+    const minDate = new Date(`${dates[0]}T00:00:00`);
+    const maxDate = new Date(`${dates[dates.length - 1]}T00:00:00`);
     return [{ before: minDate }, { after: maxDate }];
   }, [dailyCounts]);
 

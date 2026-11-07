@@ -16,7 +16,6 @@ import {
   Settings,
   Sparkles,
   TrendingUp,
-  Video,
 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';

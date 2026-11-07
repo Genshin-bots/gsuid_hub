@@ -1,4 +1,4 @@
-import React, {
+import {
   createContext,
   useContext,
   useState,
@@ -290,7 +290,7 @@ function computeThemeColors(
   preset: ThemePreset,
 ): Record<string, string> {
   const base = BASE_COLORS[mode];
-  let primaryConfig;
+  let primaryConfig: { primary: string; primaryForeground: string; ring: string };
   if (preset === 'shadcn') {
     primaryConfig = SHADCN_COLORS[mode];
   } else {
@@ -298,7 +298,7 @@ function computeThemeColors(
   }
 
   const accentHsl = primaryConfig.primary.split(' ');
-  const accentHue = parseInt(accentHsl[0]);
+  const accentHue = parseInt(accentHsl[0], 10);
   const accentSaturation = mode === 'dark' ? '30%' : '40%';
   const accentLightness = mode === 'dark' ? '20%' : '96%';
   const accent = `${accentHue} ${accentSaturation} ${accentLightness}`;

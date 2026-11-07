@@ -16,7 +16,6 @@ import {
   Server,
   Sparkles,
   TrendingUp,
-  Video,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ConfigField } from '@/components/config';

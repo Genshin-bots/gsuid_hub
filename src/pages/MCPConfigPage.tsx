@@ -2,14 +2,13 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { tabToolbarControlClass } from '@/components/ui/TabButtonGroup';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { TruncatedText } from '@/components/ui/truncated-text';
-import { Separator } from '@/components/ui/separator';
 import {
   Server,
   Loader2,
@@ -49,14 +48,14 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import {
   mcpConfigApi,
   mcpMarketApi,
-  MCPConfig,
-  MCPTransport,
-  MCPReloadResponse,
-  MCPPreset,
-  MCPToolFromServer,
-  MCPToolDefinition,
-  MCPBindCandidate,
-  MCPBindingItem,
+  type MCPConfig,
+  type MCPTransport,
+  type MCPReloadResponse,
+  type MCPPreset,
+  type MCPToolFromServer,
+  type MCPToolDefinition,
+  type MCPBindCandidate,
+  type MCPBindingItem,
   getApiErrorMessage,
 } from '@/lib/api';
 import { toast } from 'sonner';
@@ -322,7 +321,7 @@ export default function MCPConfigPage() {
   const { style } = useTheme();
   const { t } = useLanguage();
   const navigate = useNavigate();
-  const isGlass = style !== 'solid';
+  const _isGlass = style !== 'solid';
 
   // State
   const [configs, setConfigs] = useState<MCPConfig[]>([]);
@@ -535,7 +534,7 @@ export default function MCPConfigPage() {
       setDiscoveredTools([]);
       setSelectedToolNames(new Set());
 
-      let result;
+      let result: Awaited<ReturnType<typeof mcpConfigApi.discoverTools>>;
       if (editingConfig) {
         // Discover from existing config
         result = await mcpConfigApi.discoverTools(editingConfig.config_id);
@@ -745,7 +744,7 @@ export default function MCPConfigPage() {
 
   const handleSubmit = async () => {
     if (!formData.name.trim()) {
-      toast.error(t('mcpConfig.configName') + ' ' + t('common.required'));
+      toast.error(`${t('mcpConfig.configName')} ${t('common.required')}`);
       return;
     }
 
@@ -1427,7 +1426,7 @@ export default function MCPConfigPage() {
                                   {t('mcpConfig.env')}
                                 </p>
                                 <div className="space-y-1">
-                                  {Object.entries(itemEnv).map(([key, value]) => (
+                                  {Object.entries(itemEnv).map(([key, _value]) => (
                                     <div key={key} className="flex items-center gap-2 text-xs">
                                       <code className="bg-muted px-1.5 py-0.5 rounded font-mono">
                                         {key}
@@ -1461,7 +1460,7 @@ export default function MCPConfigPage() {
                                   {t('mcpConfig.headers')}
                                 </p>
                                 <div className="space-y-1">
-                                  {Object.entries(config.headers).map(([key, value]) => (
+                                  {Object.entries(config.headers).map(([key, _value]) => (
                                     <div key={key} className="flex items-center gap-2 text-xs">
                                       <code className="bg-muted px-1.5 py-0.5 rounded font-mono">
                                         {key}

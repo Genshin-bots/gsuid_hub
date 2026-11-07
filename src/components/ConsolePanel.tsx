@@ -52,9 +52,9 @@ const ROW_BASE = 8;
 const LINE_HEIGHT = 20;
 // 单字符宽度：按 CJK 偏宽估算（14px），保证估算行数 >= 真实行数，
 // 宁可初次布局短暂留白也不要重叠，measureElement 会随后收紧到真实高度。
-const AVG_CHAR_WIDTH = 14;
+const _AVG_CHAR_WIDTH = 14;
 // 内容区之外的预留宽度：时间戳 + level badge + plugin badge + gap + 容器 p-4 内边距
-const RESERVED_WIDTH = 320;
+const _RESERVED_WIDTH = 320;
 
 /** 与后端 _CORE_ORIGIN_LABEL 对齐的框架本体名 */
 const CORE_PLUGIN_LABELS = new Set(['sayucore', 'core', 'gscore']);
@@ -301,7 +301,7 @@ export const ConsolePanel = function ConsolePanel({
     // 跨过滤/跨追加也都稳定，因此用它作 key。
     getItemKey: (index) => {
       const log = logs[index];
-      if (!log || !log.id) return `__missing_${index}`;
+      if (!log?.id) return `__missing_${index}`;
       return log.id;
     },
     measureElement:

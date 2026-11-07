@@ -1,20 +1,18 @@
 import { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Loader2, Palette, Image, Type, Save, Bot } from 'lucide-react';
+import { Loader2, Image, Type, Save, Bot } from 'lucide-react';
 import {
   ConfigField,
-  ConfigFieldDefinition,
-  ConfigValue,
-  ConfigFieldType,
+  type ConfigFieldDefinition,
+  type ConfigValue,
+  type ConfigFieldType,
 } from '@/components/config';
-import { frameworkConfigApi, PluginConfigItem } from '@/lib/api';
+import { frameworkConfigApi, type PluginConfigItem } from '@/lib/api';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
 
 // Convert API config to local config type
 const convertToConfig = (
@@ -107,7 +105,7 @@ export default function StateConfigPage() {
       setOriginalConfig(JSON.parse(JSON.stringify(config)));
       setIsDirty(false);
       toast.success('状态配置已保存');
-    } catch (error) {
+    } catch (_error) {
       toast.error('保存状态配置失败');
     } finally {
       setIsSaving(false);

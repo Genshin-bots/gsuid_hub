@@ -697,9 +697,7 @@ function SecurityPanel() {
           <div className="grid grid-cols-2 gap-3">
             {numKeys.map((k) => (
               <div key={k} className="space-y-1">
-                <Label className="block truncate text-sm">
-                  {t(`aiOps.security.fields.${k}`)}
-                </Label>
+                <Label className="block truncate text-sm">{t(`aiOps.security.fields.${k}`)}</Label>
                 <Input
                   className="h-9"
                   type="number"

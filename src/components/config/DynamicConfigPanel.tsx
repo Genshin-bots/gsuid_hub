@@ -1,9 +1,14 @@
 import { Key, HelpCircle, SlidersHorizontal, Search, Globe, Cog } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { ConfigField, ConfigValue, ConfigFieldType, ConfigFieldDefinition } from './ConfigField';
-import { RepeatGroupField, RepeatGroupItem } from './RepeatGroupField';
-import { PluginConfigItem } from '@/lib/api';
+import {
+  ConfigField,
+  type ConfigValue,
+  type ConfigFieldType,
+  type ConfigFieldDefinition,
+} from './ConfigField';
+import { RepeatGroupField, type RepeatGroupItem } from './RepeatGroupField';
+import type { PluginConfigItem } from '@/lib/api';
 
 // ============================================================================
 // 类型映射：后端 type → ConfigField type
@@ -22,7 +27,7 @@ function normalizeOptions(options: unknown): string[] {
 }
 
 // 返回归一化后的 item（不修改原对象），避免下游 .trim()/.toLowerCase() 崩溃
-function normalizeItem(item: PluginConfigItem): PluginConfigItem {
+function _normalizeItem(item: PluginConfigItem): PluginConfigItem {
   return {
     ...item,
     options: normalizeOptions(item.options),
@@ -119,19 +124,19 @@ function coerceValue(fieldType: string, rawType: string, rawValue: unknown): Con
   }
   if (fieldType === 'number') {
     if (typeof rawValue === 'number') return rawValue;
-    if (typeof rawValue === 'string' && rawValue.trim() !== '' && !isNaN(Number(rawValue))) {
+    if (typeof rawValue === 'string' && rawValue.trim() !== '' && !Number.isNaN(Number(rawValue))) {
       return Number(rawValue);
     }
     return 0;
   }
-    if (fieldType === 'boolean') return Boolean(rawValue);
-    if (fieldType === 'button') {
-      if (rawValue && typeof rawValue === 'object' && !Array.isArray(rawValue)) {
-        return rawValue as ConfigValue;
-      }
-      return { phase: 'idle', progress: 0, message: '', fields: {} };
+  if (fieldType === 'boolean') return Boolean(rawValue);
+  if (fieldType === 'button') {
+    if (rawValue && typeof rawValue === 'object' && !Array.isArray(rawValue)) {
+      return rawValue as ConfigValue;
     }
-    return rawValue == null ? '' : String(rawValue);
+    return { phase: 'idle', progress: 0, message: '', fields: {} };
+  }
+  return rawValue == null ? '' : String(rawValue);
 }
 
 export function pluginConfigItemToFieldDef(

@@ -742,7 +742,7 @@ export function useProviderConfig(): UseProviderConfigReturn {
     [fetchConfigDetailForEdit, fetchProviderConfigOptions],
   );
 
-  const toggleNewConfigCapability = useCallback((cap: string) => {
+  const _toggleNewConfigCapability = useCallback((cap: string) => {
     setNewConfigModelSupport((prev) =>
       prev.includes(cap) ? prev.filter((v) => v !== cap) : [...prev, cap],
     );

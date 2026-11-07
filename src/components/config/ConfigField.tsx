@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -32,7 +31,6 @@ import {
   CalendarIcon,
   X,
   Upload,
-  HelpCircle,
   Bell,
   CreditCard,
   Settings,
@@ -49,9 +47,7 @@ import {
   Eye,
   FileText,
   Files,
-  Palette,
   AlertCircle,
-  Minus,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
@@ -646,7 +642,7 @@ export function ConfigField({
                     value={hexValue}
                     onChange={(e) => {
                       let val = e.target.value;
-                      if (!val.startsWith('#')) val = '#' + val;
+                      if (!val.startsWith('#')) val = `#${val}`;
                       onChange(fieldKey, val);
                     }}
                     placeholder="#RRGGBB"
@@ -925,12 +921,12 @@ export function ConfigField({
       <div className={cn('flex flex-col', className)}>
         {showLabel && (
           /*
-            * 标题永远单行：过长用省略号截断，**绝不折行**。
-            * 折行会把整行控件顶歪 —— 两列网格里尤其明显（同排另一个字段的控件
-            * 还停在原位，一高一低）。min-w-0 + truncate 是关键：光加 truncate
-            * 不加 min-w-0，flex item 仍拒绝收缩，文字照样撑出容器换行。
-            * 原先的 h-auto sm:h-5 更是把折行的第二行溢出到 20px 的盒子里。
-            */
+           * 标题永远单行：过长用省略号截断，**绝不折行**。
+           * 折行会把整行控件顶歪 —— 两列网格里尤其明显（同排另一个字段的控件
+           * 还停在原位，一高一低）。min-w-0 + truncate 是关键：光加 truncate
+           * 不加 min-w-0，flex item 仍拒绝收缩，文字照样撑出容器换行。
+           * 原先的 h-auto sm:h-5 更是把折行的第二行溢出到 20px 的盒子里。
+           */
           <Label className="text-sm font-medium text-muted-foreground mb-2 flex h-5 min-w-0 items-center gap-2">
             <span className="flex shrink-0 items-center">{getTitleIcon(displayLabel)}</span>
             <span className="min-w-0 truncate" title={displayLabel}>

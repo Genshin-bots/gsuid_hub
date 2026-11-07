@@ -97,10 +97,7 @@ export function ToolOutputsFilters(props: ToolOutputsPanelProps) {
     // ≥768 回到原样（一行自适应，工具下拉 150px）。
     <div className="flex w-full min-w-0 flex-wrap items-center justify-start gap-2 md:w-auto md:min-w-auto md:justify-end">
       <Input
-        className={cn(
-          tabToolbarControlClass,
-          'min-w-0 basis-full md:w-[240px] md:flex-initial',
-        )}
+        className={cn(tabToolbarControlClass, 'min-w-0 basis-full md:w-[240px] md:flex-initial')}
         placeholder={t('aiToolOutputs.toolbar.keywordPlaceholder')}
         value={keywordDraft}
         onChange={(e) => onKeywordDraftChange(e.target.value)}
@@ -109,7 +106,9 @@ export function ToolOutputsFilters(props: ToolOutputsPanelProps) {
         }}
       />
       <Select value={toolName} onValueChange={onToolNameChange}>
-        <SelectTrigger className={cn(tabToolbarControlClass, 'w-full min-w-0 flex-1 md:w-[150px] md:flex-none')}>
+        <SelectTrigger
+          className={cn(tabToolbarControlClass, 'w-full min-w-0 flex-1 md:w-[150px] md:flex-none')}
+        >
           <SelectValue />
         </SelectTrigger>
         <SelectContent>

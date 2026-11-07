@@ -5,12 +5,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Save, Settings, Shield, AlertTriangle, Key, Eye, EyeOff } from 'lucide-react';
-import { frameworkConfigApi, FrameworkConfigListItem } from '@/lib/api';
+import { Loader2, Save, Shield, AlertTriangle, Eye, EyeOff } from 'lucide-react';
+import { frameworkConfigApi, type FrameworkConfigListItem } from '@/lib/api';
 import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useConfigDirty } from '@/contexts/ConfigDirtyContext';
-import { cn } from '@/lib/utils';
 
 interface VerificationConfig {
   _pass_API: {
@@ -43,7 +42,7 @@ interface LocalVerificationConfig {
 export default function VerificationSettings() {
   const { t } = useLanguage();
   const { setDirty } = useConfigDirty();
-  const [configList, setConfigList] = useState<FrameworkConfigListItem[]>([]);
+  const [_configList, setConfigList] = useState<FrameworkConfigListItem[]>([]);
   const [configs, setConfigs] = useState<LocalVerificationConfig[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
@@ -190,7 +189,7 @@ export default function VerificationSettings() {
       setOriginalConfig(JSON.parse(JSON.stringify(verificationConfig.config)));
       setDirty(false);
       toast.success(t('verificationConfig.configSaved'));
-    } catch (error) {
+    } catch (_error) {
       toast.error(
         t('verificationConfig.saveFailed') || 'Failed to update verification configuration',
       );

@@ -25,9 +25,9 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { cn } from '@/lib/utils';
 import {
   capabilityAgentsApi,
-  AgentNodeItem,
-  AgentNodeSource,
-  CapabilityAgentTool,
+  type AgentNodeItem,
+  type AgentNodeSource,
+  type CapabilityAgentTool,
 } from '@/lib/api';
 import { headerActionRowWideClass, PinnedPage } from '@/components/layout/PinnedPage';
 import { Badge } from '@/components/ui/badge';
@@ -54,7 +54,6 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { TabButtonGroup, tabToolbarControlClass } from '@/components/ui/TabButtonGroup';
 import { SearchableMenu } from '@/components/ui/searchable-menu';
 import { PluginIcon } from '@/components/ui/plugin-icon';
@@ -390,7 +389,7 @@ function ToolMultiSelectDropdown({
 export default function AICapabilityAgentsPage() {
   const { t } = useLanguage();
   const { style } = useTheme();
-  const isGlass = style !== 'solid';
+  const _isGlass = style !== 'solid';
 
   const [activeSource, setActiveSource] = useState<AgentNodeSource>('builtin');
   /** 插件 Tab 二级筛选：`__all__` = 全部插件；其它值为 list 接口里的 plugin 字段 */

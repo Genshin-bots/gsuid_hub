@@ -109,7 +109,7 @@ export function AdvancedSettingsSection({
                   onChange={(fieldKey, value) => {
                     const finalValue =
                       fieldKey === 'multi_agent_lenth' && typeof value === 'string'
-                        ? parseInt(value)
+                        ? parseInt(value, 10)
                         : value;
                     onUpdateConfig(aiConfig.id, fieldKey, finalValue);
                   }}

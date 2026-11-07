@@ -30,15 +30,13 @@ import {
   Numpy,
   Zhipu,
   Kuaishou,
-  Wenxin,
   Cogvideo,
-  Cogview,
   Tencent,
   Huawei,
   Huaweicloud,
 } from '@thesvg/react';
 import { Bot } from 'lucide-react';
-import type { ComponentType, SVGProps } from 'react';
+import type { ComponentType } from 'react';
 import { cn } from '@/lib/utils';
 
 /**
@@ -268,7 +266,6 @@ export function resolveBrandRule(
       return { pattern: /^anthropic$/, Component: Anthropic, variant: 'default' };
     case 'gemini':
       return { pattern: /^gemini$/, Component: Gemini, variant: 'default' };
-    case 'openai':
     default:
       return { pattern: /^openai$/, Component: Openai, variant: 'default' };
   }
@@ -317,7 +314,6 @@ export function ProviderBrandIcon({ provider, size = 16, className }: ProviderBr
           aria-hidden="true"
         />
       );
-    case 'openai':
     default:
       return (
         <Openai

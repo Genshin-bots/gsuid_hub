@@ -98,7 +98,7 @@ pnpm exec tsc --noEmit -p tsconfig.app.json
 
 - 测试文件：`src/**/*.{test,spec}.{ts,tsx}`，Vitest，环境 `node`。
 - 纯逻辑放 `src/lib/featureUtils.ts` 再测；页面交互优先按 Skill §10 落地清单自查。
-- `tsc` 仓库里有历史报错（`EChartsWrapper.tsx`、`use-toast.ts` 等）。核对改动时**只看自己文件是否新增**，不要试图一次清掉全部旧债。
+- `tsc`（`tsconfig.app.json` / `tsconfig.node.json`）目前是**全绿基线**，`pnpm lint` 0 error、`pnpm check` 0 error（warnings 为存量，见 §二）。新增报错一律当本次改动引入，修掉再交付。
 - `pnpm dev:demo` 下若干路由会因 Mock 缺口崩溃（P-26），与本次页面改动无关。先用 HEAD 对照再判责。
 
 ## Security notes
@@ -229,6 +229,33 @@ import { cn } from '@/lib/utils';
 `ease-[cubic-bezier(...)]` 会触发 Tailwind 歧义警告：timing function 提到 `tailwind.config.ts` 再引用（P-15）。
 
 Toast：`import { toast } from 'sonner'`。
+
+### Lint 与类型检查约定
+
+**基线与姿势**
+
+- 交付闸：`pnpm test` + `pnpm lint`（0 error）+ `tsc` 两个 project（0 error）。`pnpm check` 要求 0 error；现有 ~900 warnings 是刻意保留的存量水位（a11y / `noArrayIndexKey` / `noImportantStyles` / `noDescendingSpecificity` / `noDangerouslySetInnerHtml` 已在 `biome.json` 降为 warn），**不要为了消 warning 改运行时行为，也别把 warn 升回 error**。
+- **禁止对 CSS 跑 `biome check --write --unsafe` 或全局批处理 `--fix`**：`noImportantStyles` 的 unsafe fix 会剥掉 `index.css` 里全部 `!important`（有意覆盖，剥了就是行为回归）。`--unsafe` 前先看会动哪些文件；`index.css` 只允许 `format`。
+- 行尾一律 **LF**（`.gitattributes` 钉死 `eol=lf`）。Windows `autocrlf` 会让整文件报 format error——先查行尾，别逐个改内容。
+- 测试断言别钉死 CSS 引号 / 排版细节（`['"]` 兼容），只断意图；formatter 是格式唯一事实源。
+
+**tsconfig 纪律**
+
+- 不写 `baseUrl`（TS6 弃用、TS7 移除）；`paths` 相对 tsconfig 所在目录解析。
+- 根目录新增 `*.config.ts` 必须加进 `tsconfig.node.json` 的 `include`，否则文件落进无 node 类型的推断项目（`require` / `__dirname` 爆红）。
+
+**TS/ESLint 写法红线**（犯过一次都别再犯）
+
+- 不留失效 `@ts-expect-error` / `@ts-ignore`：Suppress 掉的行一旦不再报错，指令本身就变 error（TS2578）。升级类型库后顺手清。
+- 不给 Node API 传 `@types` 里没有的选项（如 `zlib` 的 `mtime`），类型不认就是真的不认。
+- 条件收窄别把后面的分支写死：`A || B` 已成立时，else 侧再判 `B` 报 TS2367。
+- Vite 插件 hook 参数显式标注（`configResolved(config: ResolvedConfig)`），隐式 any 会炸。
+- `let x;` 必须初始化或标类型（`noImplicitAnyLet`）；`catch {}` 空块内留一句注释（eslint `no-empty`）。
+- `parseInt` 必带 radix；`isNaN` / `isFinite` 用 `Number.isNaN` / `Number.isFinite`。
+- `forEach` 回调写块体 `(x) => { … }` 或 `if`，不用隐式返回值的简写、`x && do()`（`useIterableCallbackReturn`）。
+- 变量不用 JS 受限名（`escape` 等）；JSX 数组元素必须 `key`；组件函数必须 PascalCase、禁止 `_` 前缀（`_Foo` 会被当普通函数，内部 hook 判为非顶层调用）。
+- prop 名 `children` 只给 ReactNode/JSX 子节点；数据数组叫别的名字（如 `childCategories`）。
+- 未使用的 import / 变量 / 参数当场删或 `_` 前缀，不留着等 biome 代劳。
 
 ---
 

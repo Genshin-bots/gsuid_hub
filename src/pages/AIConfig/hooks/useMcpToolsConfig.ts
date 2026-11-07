@@ -182,7 +182,7 @@ export function useMcpToolsConfig(args: UseMcpToolsConfigArgs): UseMcpToolsConfi
       const config = mcpConfigs.find((c) => c.config_id === configId);
       if (!config) return [];
       const tool = config.tools.find((t) => t.name === toolName);
-      if (!tool || !tool.parameters) return [];
+      if (!tool?.parameters) return [];
       return Object.keys(tool.parameters);
     },
     [mcpConfigs],

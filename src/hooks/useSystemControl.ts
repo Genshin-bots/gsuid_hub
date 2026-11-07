@@ -55,7 +55,7 @@ export function useSystemControl() {
           const url = apiHost ? `${apiHost}/api/system/health` : '/api/system/health';
           const response = await fetch(url, { method: 'GET' }).catch(() => null);
 
-          if (response && response.ok) {
+          if (response?.ok) {
             backendResponded = true;
             setRestartProgress(100);
             setRestartCompleted(true);
@@ -117,7 +117,7 @@ export function useSystemControl() {
           const url = apiHost ? `${apiHost}/api/system/health` : '/api/system/health';
           const response = await fetch(url, { method: 'GET' }).catch(() => null);
 
-          if (!response || !response.ok) {
+          if (!response?.ok) {
             backendStopped = true;
             setIsPaused(true);
             setPauseProgress(100);
@@ -166,7 +166,7 @@ export function useSystemControl() {
           const url = apiHost ? `${apiHost}/api/system/health` : '/api/system/health';
           const response = await fetch(url, { method: 'GET' }).catch(() => null);
 
-          if (response && response.ok) {
+          if (response?.ok) {
             backendResponded = true;
             setIsPaused(false);
             setPauseProgress(100);

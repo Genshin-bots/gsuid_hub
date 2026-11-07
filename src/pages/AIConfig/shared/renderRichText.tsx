@@ -1,4 +1,4 @@
-import React from 'react';
+import type React from 'react';
 
 /**
  * 将包含 `**bold**` 和 `[text](url)` 语法的字符串渲染为 JSX 元素。

@@ -6,7 +6,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { cn } from '@/lib/utils';
 import { TagsInput } from '@/components/config/TagsInput';
 import { Tag, AlignLeft, BookOpen, HelpCircle } from 'lucide-react';
 
@@ -95,7 +94,7 @@ export function FormCard({ type, mode, data, onChange, showId = false }: FormCar
     ...section,
     fields: section.fields.filter((f) => f.key !== 'id' || showId),
   }));
-  const renderField = (field: FormField, value: any, dataId?: string) => {
+  const renderField = (field: FormField, value: any, _dataId?: string) => {
     const handleChange = (newValue: any) => {
       if (onChange) {
         onChange(field.key, newValue);

@@ -27,7 +27,7 @@ export function ConnectionBadge({ state, label, className }: ConnectionBadgeProp
           ? Loader2
           : WifiOff;
 
-  const spinning = state === 'connecting' || state === 'reconnecting';
+  const spinning = state === 'connecting';
 
   return (
     <Badge

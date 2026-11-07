@@ -7,7 +7,6 @@ import {
   Boxes,
   CheckCircle2,
   ClipboardList,
-  Clock,
   Database,
   Download,
   Eye,
@@ -85,7 +84,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
 import {
   Sheet,
   SheetContent,
@@ -97,7 +95,7 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { TabButtonGroup, tabToolbarControlClass } from '@/components/ui/TabButtonGroup';
-import StateStoreViewer, { StateStoreViewerHandle } from '@/components/StateStoreViewer';
+import StateStoreViewer, { type StateStoreViewerHandle } from '@/components/StateStoreViewer';
 
 const COLUMN_KEYS: AIKanbanColumnKey[] = ['target', 'progress', 'Done', 'Blocked', 'failed'];
 const ALL_VALUE = '__all__';
@@ -108,8 +106,7 @@ const CARD_ESTIMATE_PX = 120;
 // 「无法从这里起滚」的区域——Android Chrome 的长按拖拽会吃掉滑动手势，看板既不能
 // 横滑换列、列内也滚不动。触屏看板本来就只能看不能拖，直接不挂 draggable。
 const CAN_NATIVE_DND =
-  typeof window !== 'undefined' &&
-  window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+  typeof window !== 'undefined' && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 
 interface PendingAction {
   type:
@@ -797,15 +794,15 @@ export default function AIKanbanPage() {
         setIsLoadingDetail(true);
         setDetailTab('subtasks');
         setArtifactPreview((prev) => {
-          Object.values(prev).forEach(
-            (item) => item.objectUrl && URL.revokeObjectURL(item.objectUrl),
-          );
+          Object.values(prev).forEach((item) => {
+            if (item.objectUrl) URL.revokeObjectURL(item.objectUrl);
+          });
           return {};
         });
         setWorkspacePreview((prev) => {
-          Object.values(prev).forEach(
-            (item) => item.objectUrl && URL.revokeObjectURL(item.objectUrl),
-          );
+          Object.values(prev).forEach((item) => {
+            if (item.objectUrl) URL.revokeObjectURL(item.objectUrl);
+          });
           return {};
         });
         const data = await aiKanbanApi.getTaskDetail(taskId, 200);
@@ -1298,12 +1295,12 @@ export default function AIKanbanPage() {
 
   useEffect(
     () => () => {
-      Object.values(artifactPreviewRef.current).forEach(
-        (item) => item.objectUrl && URL.revokeObjectURL(item.objectUrl),
-      );
-      Object.values(workspacePreviewRef.current).forEach(
-        (item) => item.objectUrl && URL.revokeObjectURL(item.objectUrl),
-      );
+      Object.values(artifactPreviewRef.current).forEach((item) => {
+        if (item.objectUrl) URL.revokeObjectURL(item.objectUrl);
+      });
+      Object.values(workspacePreviewRef.current).forEach((item) => {
+        if (item.objectUrl) URL.revokeObjectURL(item.objectUrl);
+      });
     },
     [],
   );
@@ -1598,7 +1595,11 @@ export default function AIKanbanPage() {
                 {t('common.loading')}
               </div>
             ) : detail ? (
-              <Tabs value={detailTab} onValueChange={setDetailTab} className="space-y-3 md:space-y-4">
+              <Tabs
+                value={detailTab}
+                onValueChange={setDetailTab}
+                className="space-y-3 md:space-y-4"
+              >
                 <TabButtonGroup
                   value={detailTab}
                   onValueChange={setDetailTab}

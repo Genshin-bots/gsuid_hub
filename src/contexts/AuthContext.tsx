@@ -1,13 +1,13 @@
-import React, {
+import {
   createContext,
   useContext,
   useState,
   useEffect,
-  ReactNode,
+  type ReactNode,
   useMemo,
   useCallback,
 } from 'react';
-import { authApi, User, getAuthToken, setAuthToken } from '@/lib/api';
+import { authApi, type User, getAuthToken, setAuthToken } from '@/lib/api';
 import { isBackendUnreachable } from '@/lib/backendReachability';
 
 /**

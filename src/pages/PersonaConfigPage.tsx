@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -51,7 +51,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Loader2,
   Plus,
@@ -71,7 +70,6 @@ import {
   Play,
   Pause,
   Eye,
-  Volume2,
   ImagePlus,
   Music2,
   Globe,
@@ -305,7 +303,7 @@ function getMarkdownPreview(content: string, maxLength: number = 100): string {
     .replace(/\[(.*?)\]\(.*?\)/g, '$1')
     .trim();
   if (cleaned.length <= maxLength) return cleaned;
-  return cleaned.substring(0, maxLength) + '...';
+  return `${cleaned.substring(0, maxLength)}...`;
 }
 // 将文件转换为 base64
 function fileToBase64(file: File): Promise<string> {
@@ -327,7 +325,6 @@ function getScopeBadgeStyle(scope: PersonaScope) {
       return 'bg-violet-500/15 text-violet-600 border border-violet-500/30';
     case 'specific':
       return 'bg-green-500/15 text-green-600 border border-green-500/30';
-    case 'disabled':
     default:
       return 'bg-gray-500/15 text-gray-500 border border-gray-500/30';
   }
@@ -356,7 +353,6 @@ function getScopeLabel(scope: PersonaScope, t: (key: string) => string) {
       return t('personaConfig.scopeGlobalPrivate');
     case 'specific':
       return t('personaConfig.scopeSpecific');
-    case 'disabled':
     default:
       return t('personaConfig.scopeDisabled');
   }
@@ -973,7 +969,7 @@ export default function PersonaConfigPage() {
     }
   };
   // 切换人格启用状态（旧版兼容）
-  const handleToggleEnabled = async (personaName: string, enabled: boolean) => {
+  const _handleToggleEnabled = async (personaName: string, enabled: boolean) => {
     if (!frameworkConfig) return;
     try {
       const newEnabledList = enabled

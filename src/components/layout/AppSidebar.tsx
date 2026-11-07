@@ -74,7 +74,8 @@ import { LanguageFlag } from '@/components/ui/language-flag';
 import { BrandSettingsDialog } from '@/components/brand/BrandSettingsDialog';
 import { cn } from '@/lib/utils';
 import { resolveApiAssetUrl } from '@/lib/api';
-import React, { useState, useEffect, useRef, memo, useMemo } from 'react';
+import type React from 'react';
+import { useState, useEffect, useRef, memo, useMemo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -101,7 +102,7 @@ interface NavItem {
 }
 
 // 静态导航配置 - 避免每次渲染重新创建
-const NAV_ITEMS_KEYS = [
+const _NAV_ITEMS_KEYS = [
   'home',
   'dashboard',
   'database',
@@ -116,7 +117,7 @@ const NAV_ITEMS_KEYS = [
 ] as const;
 
 // 图标映射 - 使用静态对象避免每次渲染重新创建
-const ICON_MAP: Record<string, React.ElementType> = {
+const _ICON_MAP: Record<string, React.ElementType> = {
   Home,
   LayoutDashboard,
   Database,
@@ -522,7 +523,7 @@ export function AppSidebar() {
   // 移动端模式下侧边栏总是展开（抽屉打开后需要展示完整菜单，而不是仅 icon）
   // 桌面端才遵循用户的收起/展开偏好
   const isCollapsed = !isMobile && sidebarState === 'collapsed';
-  const isGlassmorphism = themeStyle === 'glassmorphism';
+  const _isGlassmorphism = themeStyle === 'glassmorphism';
 
   // 品牌设置对话框开关
   const [showBrandDialog, setShowBrandDialog] = useState(false);

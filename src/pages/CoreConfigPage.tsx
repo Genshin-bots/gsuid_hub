@@ -4,13 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   ConfigField,
-  ConfigFieldDefinition,
-  ConfigFieldType,
-  ConfigValue,
+  type ConfigFieldDefinition,
+  type ConfigFieldType,
+  type ConfigValue,
 } from '@/components/config/ConfigField';
 import { AlertTriangle, CheckCircle, Settings, X } from 'lucide-react';
 import { toast } from 'sonner';
-import { configApi, CoreConfigOptionMeta } from '@/lib/api';
+import { configApi, type CoreConfigOptionMeta } from '@/lib/api';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { PinnedPage } from '@/components/layout/PinnedPage';
 
@@ -234,7 +234,7 @@ export default function CoreConfigPage() {
   const [hasChanges, setHasChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [showWarning, setShowWarning] = useState(true);
-  const [isLoading, setIsLoading] = useState(true);
+  const [_isLoading, setIsLoading] = useState(true);
 
   // Fetch config from API on mount
   useEffect(() => {
@@ -316,7 +316,7 @@ export default function CoreConfigPage() {
       await configApi.setCoreConfig(configData);
       toast.success(t('coreConfig.configSaved'));
       setHasChanges(false);
-    } catch (error) {
+    } catch (_error) {
       toast.error(t('coreConfig.saveFailed') || 'Error saving configuration');
     } finally {
       setIsSaving(false);

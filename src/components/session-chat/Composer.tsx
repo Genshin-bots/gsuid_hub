@@ -30,7 +30,7 @@ interface ComposerProps {
   onClearReply: () => void;
   mention?: MentionItem | null;
   onClearMention: () => void;
-  onSend: (payload: SendPayload) => Promise<boolean> | boolean | void;
+  onSend: (payload: SendPayload) => Promise<boolean> | boolean | undefined;
 }
 
 const MODE_VALUES: Mode[] = ['plain', 'markdown', 'card', 'rich'];
@@ -75,9 +75,14 @@ const CARD_FIELDS: CardField[] = [
 function classifyFile(file: File): 'image' | 'record' | 'video' | 'file' {
   const type = file.type || '';
   const ext = (file.name.split('.').pop() ?? '').toLowerCase();
-  if (type.startsWith('image/') || ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'].includes(ext)) return 'image';
-  if (type.startsWith('video/') || ['mp4', 'mov', 'mkv', 'avi', 'webm'].includes(ext)) return 'video';
-  if (type.startsWith('audio/') || ['mp3', 'wav', 'flac', 'aac', 'ogg', 'm4a', 'silk', 'amr'].includes(ext)) {
+  if (type.startsWith('image/') || ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'].includes(ext))
+    return 'image';
+  if (type.startsWith('video/') || ['mp4', 'mov', 'mkv', 'avi', 'webm'].includes(ext))
+    return 'video';
+  if (
+    type.startsWith('audio/') ||
+    ['mp3', 'wav', 'flac', 'aac', 'ogg', 'm4a', 'silk', 'amr'].includes(ext)
+  ) {
     return 'record';
   }
   return 'file';
@@ -111,7 +116,9 @@ export function Composer({
   // 右键 @ 塞进来的人，去重后追加
   useEffect(() => {
     if (!mention) return;
-    setAts((prev) => (prev.some((item) => item.userId === mention.userId) ? prev : [...prev, mention]));
+    setAts((prev) =>
+      prev.some((item) => item.userId === mention.userId) ? prev : [...prev, mention],
+    );
     onClearMention();
   }, [mention, onClearMention]);
 
@@ -121,7 +128,9 @@ export function Composer({
   };
 
   const onPaste = (event: ClipboardEvent<HTMLTextAreaElement>) => {
-    const picked = Array.from(event.clipboardData?.files ?? []).filter((file) => file.type.startsWith('image/'));
+    const picked = Array.from(event.clipboardData?.files ?? []).filter((file) =>
+      file.type.startsWith('image/'),
+    );
     if (picked.length) {
       event.preventDefault();
       addImages(picked);
@@ -131,7 +140,12 @@ export function Composer({
   /** 富媒体：一个入口收所有类型，按 MIME 自动分到四个桶里 */
   const addMedia = (picked: File[]) => {
     if (!picked.length) return;
-    const next = { image: [] as File[], record: [] as File[], video: [] as File[], file: [] as File[] };
+    const next = {
+      image: [] as File[],
+      record: [] as File[],
+      video: [] as File[],
+      file: [] as File[],
+    };
     for (const item of picked) next[classifyFile(item)].push(item);
     if (next.image.length) setImages((prev) => [...prev, ...next.image]);
     if (next.record.length) setRecords((prev) => [...prev, ...next.record]);
@@ -240,7 +254,9 @@ export function Composer({
           className={`inline-flex items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-[11px] ${maxWidth}`}
         >
           {showKind && (
-            <span className="shrink-0 text-muted-foreground">{t(ATTACHMENT_KIND_KEY[item.kind])}</span>
+            <span className="shrink-0 text-muted-foreground">
+              {t(ATTACHMENT_KIND_KEY[item.kind])}
+            </span>
           )}
           <span className="truncate">{item.file.name}</span>
           <button
@@ -278,7 +294,11 @@ export function Composer({
           <span className="min-w-0 flex-1 truncate text-foreground/70">
             {messageToText(replyTo) || t('sessionManagement.messageFallback')}
           </span>
-          <button type="button" onClick={onClearReply} className="shrink-0 text-muted-foreground hover:text-foreground">
+          <button
+            type="button"
+            onClick={onClearReply}
+            className="shrink-0 text-muted-foreground hover:text-foreground"
+          >
             <X className="h-3.5 w-3.5" />
           </button>
         </div>
@@ -293,7 +313,10 @@ export function Composer({
             >
               <AtSign className="h-3 w-3" />
               {item.name || item.userId}
-              <button type="button" onClick={() => setAts((prev) => prev.filter((a) => a.userId !== item.userId))}>
+              <button
+                type="button"
+                onClick={() => setAts((prev) => prev.filter((a) => a.userId !== item.userId))}
+              >
                 <X className="h-3 w-3" />
               </button>
             </span>
@@ -304,17 +327,25 @@ export function Composer({
       {mode === 'card' ? (
         <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">tuwen</span>
-            <span className="text-[11px] text-muted-foreground">{t('sessionManagement.cardHint')}</span>
+            <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">
+              tuwen
+            </span>
+            <span className="text-[11px] text-muted-foreground">
+              {t('sessionManagement.cardHint')}
+            </span>
           </div>
 
           <div className="space-y-1.5">
             {CARD_FIELDS.map((field) => (
               <div key={field.key} className="flex items-center gap-2">
-                <span className="w-[74px] shrink-0 font-mono text-[11px] text-muted-foreground">{field.key}</span>
+                <span className="w-[74px] shrink-0 font-mono text-[11px] text-muted-foreground">
+                  {field.key}
+                </span>
                 <Input
                   value={cardValues[field.key] ?? ''}
-                  onChange={(event) => setCardValues((prev) => ({ ...prev, [field.key]: event.target.value }))}
+                  onChange={(event) =>
+                    setCardValues((prev) => ({ ...prev, [field.key]: event.target.value }))
+                  }
                   placeholder={t(field.placeholderKey)}
                   className="h-7 text-xs"
                   disabled={disabled}
@@ -337,21 +368,29 @@ export function Composer({
               <FileUp className="mr-1 h-3.5 w-3.5" />
               {t('sessionManagement.selectFiles')}
             </Button>
-            <span className="text-[11px] text-muted-foreground">{t('sessionManagement.richHint')}</span>
+            <span className="text-[11px] text-muted-foreground">
+              {t('sessionManagement.richHint')}
+            </span>
           </div>
           {attachments.length > 0 && renderAttachments(true, 'max-w-[200px]')}
         </div>
       ) : (
         <Textarea
           value={mode === 'markdown' ? markdown : text}
-          onChange={(event) => (mode === 'markdown' ? setMarkdown(event.target.value) : setText(event.target.value))}
+          onChange={(event) =>
+            mode === 'markdown' ? setMarkdown(event.target.value) : setText(event.target.value)
+          }
           onPaste={onPaste}
           placeholder={
             mode === 'markdown'
               ? t('sessionManagement.markdownPlaceholder')
               : t('sessionManagement.inputPlaceholder')
           }
-          className={mode === 'markdown' ? 'min-h-[72px] resize-y font-mono text-xs' : 'min-h-[64px] resize-y text-sm'}
+          className={
+            mode === 'markdown'
+              ? 'min-h-[72px] resize-y font-mono text-xs'
+              : 'min-h-[64px] resize-y text-sm'
+          }
           disabled={disabled}
           onKeyDown={(event) => {
             if (event.key === 'Enter' && !event.shiftKey) {
@@ -388,7 +427,11 @@ export function Composer({
               t('sessionManagement.attachmentCount', { count: totalAttachments })}
           </span>
           <Button size="sm" className="h-8" onClick={() => void submit()} disabled={!canSend}>
-            {sending ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : <Send className="mr-1 h-3.5 w-3.5" />}
+            {sending ? (
+              <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Send className="mr-1 h-3.5 w-3.5" />
+            )}
             {t('sessionManagement.send')}
           </Button>
         </div>

@@ -94,7 +94,6 @@ import {
   generateBackupConfig,
   generateKanbanBoard,
   generateKanbanTaskDetail,
-  generateKanbanArtifacts,
   generateKanbanCandidates,
   generateKanbanWorkspaceFiles,
   generateProviderList,

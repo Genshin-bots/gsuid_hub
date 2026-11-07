@@ -3,11 +3,11 @@ import {
   useContext,
   useState,
   useCallback,
-  ReactNode,
+  type ReactNode,
   useMemo,
   useEffect,
 } from 'react';
-import { aiWizardApi, getAuthToken } from '@/lib/api';
+import { aiWizardApi } from '@/lib/api';
 
 interface AIStatusContextType {
   /** AI 服务是否启用（来自 wizard/status 接口） */
