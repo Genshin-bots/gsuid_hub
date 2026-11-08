@@ -1153,6 +1153,8 @@ export interface PluginStoreListResponse {
   limit?: number | null;
   offset?: number;
   has_more?: boolean;
+  /** 后端采用的全局随机排序种子；旧后端不返回该字段 */
+  order_seed?: string | null;
 }
 
 export const pluginsApi = {
@@ -1788,12 +1790,19 @@ export const embeddingConfigApi = {
 
 export const pluginStoreApi = {
   /** 插件商店列表（服务端按页签/搜索过滤并分页；不传 limit 时后端返回全量） */
-  getPluginList: (params?: { tab?: string; search?: string; limit?: number; offset?: number }) => {
+  getPluginList: (params?: {
+    tab?: string;
+    search?: string;
+    limit?: number;
+    offset?: number;
+    order_seed?: string;
+  }) => {
     const query = new URLSearchParams();
     if (params?.tab) query.set('tab', params.tab);
     if (params?.search) query.set('search', params.search);
     if (params?.limit !== undefined) query.set('limit', String(params.limit));
     if (params?.offset !== undefined) query.set('offset', String(params.offset));
+    if (params?.order_seed) query.set('order_seed', params.order_seed);
     const queryStr = query.toString();
     return api.get<PluginStoreListResponse>(
       `/api/plugin-store/list${queryStr ? `?${queryStr}` : ''}`,

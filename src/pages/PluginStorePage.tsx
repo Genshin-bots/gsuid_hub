@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
+import { useState, useMemo, useEffect, useLayoutEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -108,16 +108,10 @@ function clearPluginCache(): void {
   }
 }
 
-/** 展示用洗牌。缓存仍存接口原序，每次进入页面再打乱。 */
-function shufflePlugins<T>(items: T[]): T[] {
-  const next = [...items];
-  for (let i = next.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(Math.random() * (i + 1));
-    const current = next[i];
-    next[i] = next[j];
-    next[j] = current;
-  }
-  return next;
+function createPluginOrderSeed(): string {
+  const values = new Uint32Array(4);
+  crypto.getRandomValues(values);
+  return Array.from(values, (value) => value.toString(16).padStart(8, '0')).join('');
 }
 
 // 根据 README 中图片 src 拼出 raw URL；处理 main / master 分支回退
@@ -244,6 +238,7 @@ export default function PluginStorePage() {
   // 已提交的搜索词：每次按键都打一次接口会打爆后端，防抖后再提交
   const [appliedSearch, setAppliedSearch] = useState('');
   const [activeTab, setActiveTab] = useState('all');
+  const [pluginOrderSeed] = useState(createPluginOrderSeed);
   // 服务端返回的原始分页结果（页 + 计数），视图由 resolvePluginStoreView 推导
   const [storePayload, setStorePayload] = useState<PluginStoreListResponse | null>(null);
   const [page, setPage] = useState(1);
@@ -265,13 +260,8 @@ export default function PluginStorePage() {
   const [installByUrlBranch, setInstallByUrlBranch] = useState('');
   const [installByUrlLoading, setInstallByUrlLoading] = useState(false);
 
-  // 判断插件是否为"停止维护"
-  // 用 useCallback 固定引用：visiblePlugins 的 memo 依赖它，否则每次渲染都会重新洗牌
-  const isDeprecated = useCallback(
-    (plugin: StorePlugin) =>
-      plugin.type === 'danger' && plugin.content === t('pluginStore.deprecated'),
-    [t],
-  );
+  const isDeprecated = (plugin: StorePlugin) =>
+    plugin.type === 'danger' && plugin.content === t('pluginStore.deprecated');
 
   // 使用 ref 避免重建 components 对象时造成不必要的重渲染，
   // 同时让 img 组件可以访问当前打开的插件与镜像信息
@@ -392,7 +382,7 @@ export default function PluginStorePage() {
     // 尝试从缓存加载
     if (!forceRefresh) {
       const cached = getCachedData<PluginStoreListResponse>(cacheKey);
-      if (cached) {
+      if (cached?.order_seed === pluginOrderSeed) {
         applyPluginPayload(cached);
         setIsLoading(false);
         return;
@@ -406,6 +396,7 @@ export default function PluginStorePage() {
         search: appliedSearch || undefined,
         limit: PLUGIN_PAGE_SIZE,
         offset: (page - 1) * PLUGIN_PAGE_SIZE,
+        order_seed: pluginOrderSeed,
       });
       applyPluginPayload(data);
       // 写入缓存
@@ -608,18 +599,7 @@ export default function PluginStorePage() {
     [storePayload, activeTab, appliedSearch, page, t],
   );
 
-  // 展示用洗牌；洗牌后仍要把「停止维护」的压到本页末尾。
-  // 已安装页签再把「可更新」提到最前，便于一眼看到待更新插件。
-  const visiblePlugins = useMemo(() => {
-    const shuffled = shufflePlugins(storeView.items);
-    shuffled.sort((a, b) => {
-      const depDiff = Number(isDeprecated(a)) - Number(isDeprecated(b));
-      if (depDiff !== 0) return depDiff;
-      if (activeTab === 'installed') return Number(b.hasUpdate) - Number(a.hasUpdate);
-      return 0;
-    });
-    return shuffled;
-  }, [storeView.items, isDeprecated, activeTab]);
+  const visiblePlugins = storeView.items;
 
   // 页签徽标数字：来自服务端的**总数**，不随翻页/搜索变化
   const storeStats = storeView.counts;
