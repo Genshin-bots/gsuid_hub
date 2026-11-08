@@ -1451,6 +1451,8 @@ export default function AIMemoryPage() {
   const [edges, setEdges] = useState<Edge[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingData, setIsLoadingData] = useState(false);
+  const [isLoadingGraph, setIsLoadingGraph] = useState(true);
+  const loadedTabDataRef = useRef<Set<string>>(new Set());
   const [isReconciling, setIsReconciling] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [episodePage, setEpisodePage] = useState(1);
@@ -1522,11 +1524,9 @@ export default function AIMemoryPage() {
       try {
         setIsLoading(true);
         setError(null);
-        const [statsData, scopesData, hierData, configData] = await Promise.all([
+        const [statsData, scopesData] = await Promise.all([
           memoryApi.getStats().catch(() => null),
           memoryApi.getScopes().catch(() => null),
-          memoryApi.getHierGraphStatus({}).catch(() => null),
-          memoryApi.getConfig().catch(() => null),
         ]);
         if (statsData) setStats(statsData);
 
@@ -1540,18 +1540,14 @@ export default function AIMemoryPage() {
           setSelectedScope(targetScope);
         }
 
-        if (hierData) setHierGraphStatus(hierData);
-        if (configData) setConfig(configData);
-
-        // Load data for the first scope (or all if no scopes)
-        await Promise.all([
-          fetchEpisodes(1, targetScope),
-          fetchEntities(1, targetScope),
-          fetchEdges(1, targetScope),
-          fetchThreads(1, targetScope),
-          fetchCognition(targetScope),
-          fetchPreferences(1, targetScope),
-        ]);
+        // 次要元数据不挡首屏
+        void Promise.all([
+          memoryApi.getHierGraphStatus({}).catch(() => null),
+          memoryApi.getConfig().catch(() => null),
+        ]).then(([hierData, configData]) => {
+          if (hierData) setHierGraphStatus(hierData);
+          if (configData) setConfig(configData);
+        });
       } catch (err) {
         setError(err instanceof Error ? err.message : t('aiMemory.loadFailed'));
       } finally {
@@ -1561,7 +1557,7 @@ export default function AIMemoryPage() {
     fetchData();
   }, [t]);
 
-  const fetchEpisodes = async (page = 1, scopeOverride?: string) => {
+  const fetchEpisodes = async (page = 1, scopeOverride?: string): Promise<boolean> => {
     try {
       setIsLoadingData(true);
       const scope = scopeOverride ?? selectedScope;
@@ -1576,14 +1572,16 @@ export default function AIMemoryPage() {
       setEpisodes(data.items);
       setTotalEpisodes(data.total);
       setEpisodePage(page);
+      return true;
     } catch {
       toast.error(t('aiMemory.loadEpisodesFailed'));
+      return false;
     } finally {
       setIsLoadingData(false);
     }
   };
 
-  const fetchEntities = async (page = 1, scopeOverride?: string) => {
+  const fetchEntities = async (page = 1, scopeOverride?: string): Promise<boolean> => {
     try {
       setIsLoadingData(true);
       const scope = scopeOverride ?? selectedScope;
@@ -1609,14 +1607,16 @@ export default function AIMemoryPage() {
       setEntities(data.items);
       setTotalEntities(data.total);
       setEntityPage(page);
+      return true;
     } catch {
       toast.error(t('aiMemory.loadEntitiesFailed'));
+      return false;
     } finally {
       setIsLoadingData(false);
     }
   };
 
-  const fetchEdges = async (page = 1, scopeOverride?: string) => {
+  const fetchEdges = async (page = 1, scopeOverride?: string): Promise<boolean> => {
     try {
       setIsLoadingData(true);
       const scope = scopeOverride ?? selectedScope;
@@ -1636,14 +1636,16 @@ export default function AIMemoryPage() {
       setEdges(data.items);
       setTotalEdges(data.total);
       setEdgePage(page);
+      return true;
     } catch {
       toast.error(t('aiMemory.loadEdgesFailed'));
+      return false;
     } finally {
       setIsLoadingData(false);
     }
   };
 
-  const fetchThreads = async (page = 1, scopeOverride?: string) => {
+  const fetchThreads = async (page = 1, scopeOverride?: string): Promise<boolean> => {
     try {
       setIsLoadingThreads(true);
       const scope = scopeOverride ?? selectedScope;
@@ -1658,14 +1660,16 @@ export default function AIMemoryPage() {
       setThreads(data.items);
       setTotalThreads(data.total);
       setThreadPage(page);
+      return true;
     } catch {
       toast.error(t('aiMemory.loadThreadsFailed'));
+      return false;
     } finally {
       setIsLoadingThreads(false);
     }
   };
 
-  const fetchCognition = async (scopeOverride?: string) => {
+  const fetchCognition = async (scopeOverride?: string): Promise<boolean> => {
     const scope = scopeOverride ?? selectedScope;
     try {
       const [publicData, scopedData] = await Promise.all([
@@ -1675,6 +1679,7 @@ export default function AIMemoryPage() {
           : Promise.resolve({ nodes: [] as CognitionNode[] }),
       ]);
       setCognitionNodes(mergeCognitionNodes(publicData.nodes, scopedData.nodes));
+      return true;
     } catch (error) {
       if (isCognitionBackendMissing(error)) {
         console.warn('[AIMemoryPage] /api/cognition/nodes 不可用：请升级 gsuid_core。', error);
@@ -1682,17 +1687,18 @@ export default function AIMemoryPage() {
         console.warn('[AIMemoryPage] load cognition overlay failed:', error);
       }
       setCognitionNodes([]);
+      return false;
     }
   };
 
   const worldHubs = useMemo(() => cognitionNodes.filter(isWorldHub), [cognitionNodes]);
 
-  const fetchDebugMemory = async (scopeOverride?: string) => {
+  const fetchDebugMemory = async (scopeOverride?: string): Promise<boolean> => {
     const scope = scopeOverride ?? selectedScope;
     if (!scope || scope === 'all') {
       setDebugEdges([]);
       setDebugConflicts([]);
-      return;
+      return true;
     }
     try {
       setIsLoadingDebug(true);
@@ -1706,9 +1712,11 @@ export default function AIMemoryPage() {
       ]);
       setDebugEdges(edgeData);
       setDebugConflicts(conflictData);
+      return true;
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : '';
       toast.error(errorMsg ? `加载调试记忆失败: ${errorMsg}` : '加载调试记忆失败');
+      return false;
     } finally {
       setIsLoadingDebug(false);
     }
@@ -1740,32 +1748,72 @@ export default function AIMemoryPage() {
     }
   };
 
+  const loadTabData = async (tab: string, scope: string) => {
+    const key = `${tab}:${scope}`;
+    if (loadedTabDataRef.current.has(key)) return;
+    loadedTabDataRef.current.add(key);
+    let ok = true;
+    switch (tab) {
+      case 'graph':
+        setIsLoadingGraph(true);
+        try {
+          const results = await Promise.all([
+            fetchEntities(1, scope),
+            fetchEdges(1, scope),
+            fetchCognition(scope),
+          ]);
+          ok = results.every(Boolean);
+          if (ok) {
+            loadedTabDataRef.current.add(`entities:${scope}`);
+            loadedTabDataRef.current.add(`edges:${scope}`);
+            loadedTabDataRef.current.add(`world:${scope}`);
+          }
+        } finally {
+          setIsLoadingGraph(false);
+        }
+        break;
+      case 'episodes':
+        ok = await fetchEpisodes(1, scope);
+        break;
+      case 'entities':
+        ok = await fetchEntities(1, scope);
+        break;
+      case 'edges':
+        ok = await fetchEdges(1, scope);
+        break;
+      case 'threads':
+        ok = await fetchThreads(1, scope);
+        break;
+      case 'preferences':
+        ok = await fetchPreferences(1, scope);
+        break;
+      case 'debug':
+        ok = await fetchDebugMemory(scope);
+        break;
+      case 'world':
+        ok = await fetchCognition(scope);
+        break;
+      default:
+        break;
+    }
+    if (!ok) loadedTabDataRef.current.delete(key);
+  };
+
   const handleScopeChange = (scope: string) => {
+    loadedTabDataRef.current.clear();
     setSelectedScope(scope);
     setEpisodePage(1);
     setEntityPage(1);
     setEdgePage(1);
     setThreadPage(1);
-    // Pass scope explicitly to avoid stale closure
-    fetchEpisodes(1, scope);
-    fetchEntities(1, scope);
-    fetchEdges(1, scope);
-    fetchThreads(1, scope);
-    fetchCognition(scope);
-    fetchPreferences(1, scope);
-    if (activeTab === 'debug') fetchDebugMemory(scope);
+    void loadTabData(activeTab, scope);
   };
 
-  // Lazy-load preferences when entering the tab so initial mount stays cheap
   useEffect(() => {
-    if (activeTab === 'preferences' && preferences.length === 0 && !isLoadingPreferences) {
-      fetchPreferences(1);
-    }
-    if (activeTab === 'threads' && threads.length === 0 && !isLoadingThreads) {
-      fetchThreads(1);
-    }
+    if (isLoading) return;
+    void loadTabData(activeTab, selectedScope);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab]);
+  }, [activeTab, isLoading]);
 
   const handleDeleteScope = async (scopeKey: string) => {
     if (!confirm(t('aiMemory.confirmDeleteScope'))) return;
@@ -1834,7 +1882,7 @@ export default function AIMemoryPage() {
     }
   };
 
-  const fetchPreferences = async (page = 1, scopeOverride?: string) => {
+  const fetchPreferences = async (page = 1, scopeOverride?: string): Promise<boolean> => {
     try {
       setIsLoadingPreferences(true);
       const scope = scopeOverride ?? selectedScope;
@@ -1860,8 +1908,10 @@ export default function AIMemoryPage() {
       setPreferences(data.items);
       setTotalPreferences(data.total);
       setPreferencePage(page);
+      return true;
     } catch {
       toast.error(t('aiMemory.loadPreferencesFailed'));
+      return false;
     } finally {
       setIsLoadingPreferences(false);
     }
@@ -2508,8 +2558,17 @@ export default function AIMemoryPage() {
           {entities.length === 0 && edges.length === 0 ? (
             <Card className={cn('glass-card')}>
               <CardContent className="flex flex-col items-center justify-center !p-8 text-center text-muted-foreground">
-                <Network className="w-12 h-12 mb-4 opacity-50" />
-                <p>{t('aiMemory.noGraphData')}</p>
+                {isLoadingGraph ? (
+                  <>
+                    <Loader2 className="w-12 h-12 mb-4 animate-spin text-primary" />
+                    <p>{t('common.loading')}</p>
+                  </>
+                ) : (
+                  <>
+                    <Network className="w-12 h-12 mb-4 opacity-50" />
+                    <p>{t('aiMemory.noGraphData')}</p>
+                  </>
+                )}
               </CardContent>
             </Card>
           ) : (
@@ -2524,9 +2583,11 @@ export default function AIMemoryPage() {
               scopes={scopes}
               onClearMemory={() => setClearMemoryDialogOpen(true)}
               onRefresh={() => {
-                fetchEntities(1);
-                fetchEdges(1);
-                fetchCognition();
+                loadedTabDataRef.current.delete(`graph:${selectedScope}`);
+                loadedTabDataRef.current.delete(`entities:${selectedScope}`);
+                loadedTabDataRef.current.delete(`edges:${selectedScope}`);
+                loadedTabDataRef.current.delete(`world:${selectedScope}`);
+                void loadTabData('graph', selectedScope);
               }}
             />
           )}
