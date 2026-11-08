@@ -42,5 +42,18 @@
   "recentTrendTotal": "{count} total",
   "expandChart": "Expand full detail",
   "collapseChart": "Collapse to overview",
-  "itemCount": "{count} items"
+  "itemCount": "{count} items",
+  "scopeToday": "Today",
+  "scopeYesterday": "Yesterday",
+  "preset7d": "7 Days",
+  "preset14d": "14 Days",
+  "preset30d": "30 Days",
+  "customRange": "Custom",
+  "rangeStart": "Select range",
+  "userActivity": "User Activity",
+  "groupActivity": "Group Activity",
+  "retainedUsers": "Retained Active",
+  "otherMonthlyActive": "Other MAU",
+  "otherMonthlyGroups": "Other MAG",
+  "groupRetention": "Group Retention"
 }

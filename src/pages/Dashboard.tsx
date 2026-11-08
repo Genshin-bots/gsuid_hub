@@ -12,6 +12,9 @@ import {
   ChartColumn,
   Maximize2,
   Minimize2,
+  Bot,
+  CalendarDays,
+  RefreshCw,
 } from 'lucide-react';
 import {
   Select,
@@ -22,9 +25,9 @@ import {
 } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
-import { format, parse } from 'date-fns';
+import { format, parse, startOfDay, subDays, addDays } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { tabToolbarControlClass } from '@/components/ui/TabButtonGroup';
+import { TabButtonGroup, tabToolbarControlClass } from '@/components/ui/TabButtonGroup';
 import { dashboardApi, type DailyCommandData, type BotItem } from '@/lib/api';
 import {
   asPercent,
@@ -35,6 +38,8 @@ import {
 } from '@/lib/featureUtils';
 import { displayCommandName } from '@/lib/regexCommand';
 import { MetricDayCalendar } from '@/components/ui/metric-day-calendar';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useLanguage } from '@/contexts/LanguageContext';
 import {
   BAR_RADIUS_RIGHT,
@@ -50,7 +55,16 @@ import {
 } from '@/components/charts';
 import type { EChartsOption } from 'echarts';
 import { PinnedPage } from '@/components/layout/PinnedPage';
-import { DataBlock, MetricHero, MetricMini } from '@/components/ui/DataBlock';
+import {
+  DataBlock,
+  MetricHero,
+  RatioBar,
+  StatStrip,
+  type RatioSlice,
+} from '@/components/ui/DataBlock';
+
+/** 占比条中「未激活 / 其余月活」的中性底色。 */
+const NEUTRAL_SEGMENT = 'hsl(var(--muted-foreground) / 0.28)';
 
 // ============================================================================
 // 视觉基元
@@ -107,6 +121,41 @@ function simplifyTriggerRows(
     }
     return out;
   });
+}
+
+/** 多日触发排行聚合：按 group/user 汇总各命令调用量并降序取前 20 */
+function mergeTriggerRows(
+  rows: Record<string, unknown>[],
+  idKey: 'group' | 'user',
+): Record<string, unknown>[] {
+  const map = new Map<string, Record<string, unknown>>();
+  for (const row of rows) {
+    const id = String(row[idKey] ?? '');
+    if (!id) continue;
+    let existing = map.get(id);
+    if (!existing) {
+      existing = { [idKey]: id };
+      map.set(id, existing);
+    }
+    for (const [key, val] of Object.entries(row)) {
+      if (key === idKey) continue;
+      const num = Number(val) || 0;
+      existing[key] = (Number(existing[key]) || 0) + num;
+    }
+  }
+  const result = Array.from(map.values());
+  result.sort((a, b) => {
+    const sumA = Object.entries(a).reduce(
+      (acc, [k, v]) => (k !== idKey ? acc + (Number(v) || 0) : acc),
+      0,
+    );
+    const sumB = Object.entries(b).reduce(
+      (acc, [k, v]) => (k !== idKey ? acc + (Number(v) || 0) : acc),
+      0,
+    );
+    return sumB - sumA;
+  });
+  return result.slice(0, 20);
 }
 
 /**
@@ -265,6 +314,33 @@ function DayBlock({
   );
 }
 
+type RangePreset = 'today' | 'yesterday' | '7d' | '14d' | '30d' | 'custom';
+
+const RANGE_PRESET_TABS = [
+  { value: 'today', labelKey: 'dashboard.scopeToday' },
+  { value: 'yesterday', labelKey: 'dashboard.scopeYesterday' },
+  { value: '7d', labelKey: 'dashboard.preset7d' },
+  { value: '14d', labelKey: 'dashboard.preset14d' },
+  { value: '30d', labelKey: 'dashboard.preset30d' },
+  { value: 'custom', labelKey: 'dashboard.customRange' },
+] as const;
+
+const PRESET_DAYS: Record<'7d' | '14d' | '30d', number> = {
+  '7d': 7,
+  '14d': 14,
+  '30d': 30,
+};
+
+const rangeControlShellClass =
+  'tab-segment-row inline-flex h-10 w-full items-center rounded-lg glass-card-flat px-0.5 py-0 sm:w-auto';
+
+const rangeControlBtnClass =
+  'h-full w-full justify-start gap-2 px-3 font-normal rounded-md sm:w-auto sm:min-w-[152px]';
+
+const compactShellClass = cn(rangeControlShellClass, 'w-auto shrink-0');
+
+const rangeIconButtonClass = 'h-full w-[38px] p-0 justify-center rounded-md';
+
 export default function Dashboard() {
   const { t } = useLanguage();
   /** 全页图表共用一套主题色阶：切主题时所有图一起换色。 */
@@ -272,7 +348,10 @@ export default function Dashboard() {
   // State for bot list from API
   const [botList, setBotList] = useState<BotItem[]>([{ id: 'all', name: t('dashboard.summary') }]);
   const [selectedBot, setSelectedBot] = useState('all');
+  const [rangePreset, setRangePreset] = useState<RangePreset>('today');
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [customStartDate, setCustomStartDate] = useState<Date | undefined>(undefined);
+  const [customEndDate, setCustomEndDate] = useState<Date | undefined>(undefined);
 
   // Data states from API
   const [keyMetrics, setKeyMetrics] = useState({
@@ -308,7 +387,7 @@ export default function Dashboard() {
   const [dailyPersonalTriggers, setDailyPersonalTriggers] = useState<
     Array<Record<string, unknown>>
   >([]);
-  const [_isLoadingDaily, setIsLoadingDaily] = useState(false);
+  const [isLoadingDaily, setIsLoadingDaily] = useState(false);
 
   // Dynamic command list from API
   const [commandTypeList, setCommandTypeList] = useState<string[]>([]);
@@ -369,9 +448,68 @@ export default function Dashboard() {
   /** 最近一次成功拉取的时刻，供工具栏显示「更新于」 */
   const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
 
+  const { rangeStartDate, rangeEndDate } = useMemo(() => {
+    const today = startOfDay(new Date());
+    if (rangePreset === 'today') {
+      const d = startOfDay(selectedDate);
+      return { rangeStartDate: d, rangeEndDate: d };
+    }
+    if (rangePreset === 'yesterday') {
+      const yest = startOfDay(subDays(today, 1));
+      return { rangeStartDate: yest, rangeEndDate: yest };
+    }
+    if (rangePreset === 'custom') {
+      const s = customStartDate ? startOfDay(customStartDate) : today;
+      const e = customEndDate ? startOfDay(customEndDate) : today;
+      return s <= e
+        ? { rangeStartDate: s, rangeEndDate: e }
+        : { rangeStartDate: e, rangeEndDate: s };
+    }
+    const days = PRESET_DAYS[rangePreset] ?? 7;
+    const start = startOfDay(subDays(today, days - 1));
+    return { rangeStartDate: start, rangeEndDate: today };
+  }, [rangePreset, selectedDate, customStartDate, customEndDate]);
+
   const dateStr = format(selectedDate, 'yyyy-MM-dd');
   /** 月度序列末尾那个「今天」的 MM-DD，用于给读数挂「今日」角标 */
   const todayMD = format(new Date(), 'MM-dd');
+
+  const scopeDates = useMemo(() => {
+    const s = format(rangeStartDate, 'yyyy-MM-dd');
+    const e = format(rangeEndDate, 'yyyy-MM-dd');
+    if (s === e) return s;
+    return `${s.slice(5)} → ${e.slice(5)}`;
+  }, [rangeStartDate, rangeEndDate]);
+
+  const rangeTotalCount = useMemo(() => {
+    let total = 0;
+    let cur = startOfDay(rangeStartDate);
+    const end = startOfDay(rangeEndDate);
+    while (cur <= end) {
+      const key = format(cur, 'yyyy-MM-dd');
+      total += dailyCommandCounts[key] ?? 0;
+      cur = addDays(cur, 1);
+    }
+    return total;
+  }, [rangeStartDate, rangeEndDate, dailyCommandCounts]);
+
+  const presetTabs = useCallback(
+    (values: ReadonlyArray<RangePreset>) =>
+      values.map((value) => {
+        const preset = RANGE_PRESET_TABS.find((p) => p.value === value);
+        return { value, label: t(preset?.labelKey ?? 'dashboard.scopeToday') };
+      }),
+    [t],
+  );
+
+  const handlePresetChange = useCallback((preset: RangePreset) => {
+    setRangePreset(preset);
+    if (preset === 'today') {
+      setSelectedDate(new Date());
+    } else if (preset === 'yesterday') {
+      setSelectedDate(startOfDay(subDays(new Date(), 1)));
+    }
+  }, []);
 
   // 日历：近 60 天每日命令总数（随 bot 变化）
   useEffect(() => {
@@ -405,48 +543,142 @@ export default function Dashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional
   }, [selectedBot]);
 
-  // 按日三张图。堆叠图的可见性默认「没被显式关掉就是显示」，
-  // 所以这里不用重建图例状态，定时刷新也不会把用户关掉的分段重新打开。
+  // 按日/时间范围三张图。支持单日直接拉取与多日聚合
   const loadDaily = useCallback(async () => {
     setIsLoadingDaily(true);
-    // 三个接口各自降级：任一失败只影响自己的图，不连带清空其它已成功的数据
-    const [commands, groupTriggers, personalTriggers] = await Promise.allSettled([
-      dashboardApi.getDailyCommands(dateStr, selectedBot),
-      dashboardApi.getDailyGroupTriggers(dateStr, selectedBot),
-      dashboardApi.getDailyPersonalTriggers(dateStr, selectedBot),
-    ]);
+    const startStr = format(rangeStartDate, 'yyyy-MM-dd');
+    const endStr = format(rangeEndDate, 'yyyy-MM-dd');
 
     const onError = (reason: unknown) => console.error('Failed to fetch daily data:', reason);
-    const commandRows = unwrapSettledRows<DailyCommandData>(commands, onError);
-    // 触发统计的键是原始命令关键字，先统一简化再进图；命令排行保留原值给 tooltip
-    const groupRows = simplifyTriggerRows(
-      unwrapSettledRows<Record<string, unknown>>(groupTriggers, onError),
-    );
-    const personalRows = simplifyTriggerRows(
-      unwrapSettledRows<Record<string, unknown>>(personalTriggers, onError),
-    );
 
-    setDailyCommandUsage(commandRows);
-    setDailyGroupTriggers(groupRows);
-    setDailyPersonalTriggers(personalRows);
+    // 单日查询分支
+    if (startStr === endStr) {
+      const [commands, groupTriggers, personalTriggers] = await Promise.allSettled([
+        dashboardApi.getDailyCommands(startStr, selectedBot),
+        dashboardApi.getDailyGroupTriggers(startStr, selectedBot),
+        dashboardApi.getDailyPersonalTriggers(startStr, selectedBot),
+      ]);
+
+      const commandRows = unwrapSettledRows<DailyCommandData>(commands, onError);
+      const groupRows = simplifyTriggerRows(
+        unwrapSettledRows<Record<string, unknown>>(groupTriggers, onError),
+      );
+      const personalRows = simplifyTriggerRows(
+        unwrapSettledRows<Record<string, unknown>>(personalTriggers, onError),
+      );
+
+      setDailyCommandUsage(commandRows);
+      setDailyGroupTriggers(groupRows);
+      setDailyPersonalTriggers(personalRows);
+
+      const cmds = collectCommandKeysFromTriggerRows(
+        [...groupRows, ...personalRows],
+        ['group', 'user'],
+      );
+      for (const row of commandRows) {
+        const label = row?.command ? displayCommandName(row.command) : '';
+        if (label && !cmds.includes(label)) cmds.push(label);
+      }
+      setCommandTypeList(cmds);
+      setIsLoadingDaily(false);
+      return;
+    }
+
+    // 多日聚合分支
+    const datesInRange: string[] = [];
+    let curDate = startOfDay(rangeStartDate);
+    const targetEnd = startOfDay(rangeEndDate);
+    while (curDate <= targetEnd) {
+      datesInRange.push(format(curDate, 'yyyy-MM-dd'));
+      curDate = addDays(curDate, 1);
+    }
+
+    const hasCounts = Object.keys(dailyCommandCounts).length > 0;
+    const activeDates = hasCounts
+      ? datesInRange.filter((d) => (dailyCommandCounts[d] ?? 0) > 0)
+      : datesInRange;
+
+    if (activeDates.length === 0) {
+      setDailyCommandUsage([]);
+      setDailyGroupTriggers([]);
+      setDailyPersonalTriggers([]);
+      setCommandTypeList([]);
+      setIsLoadingDaily(false);
+      return;
+    }
+
+    const allCmdRows: DailyCommandData[] = [];
+    const allGroupRows: Record<string, unknown>[] = [];
+    const allPersonalRows: Record<string, unknown>[] = [];
+
+    for (let i = 0; i < activeDates.length; i += 4) {
+      const chunk = activeDates.slice(i, i + 4);
+      const chunkResults = await Promise.allSettled(
+        chunk.map((d) =>
+          Promise.allSettled([
+            dashboardApi.getDailyCommands(d, selectedBot),
+            dashboardApi.getDailyGroupTriggers(d, selectedBot),
+            dashboardApi.getDailyPersonalTriggers(d, selectedBot),
+          ]),
+        ),
+      );
+
+      for (const res of chunkResults) {
+        if (res.status === 'fulfilled') {
+          const [cmds, grps, pers] = res.value;
+          allCmdRows.push(...unwrapSettledRows<DailyCommandData>(cmds, onError));
+          allGroupRows.push(
+            ...simplifyTriggerRows(unwrapSettledRows<Record<string, unknown>>(grps, onError)),
+          );
+          allPersonalRows.push(
+            ...simplifyTriggerRows(unwrapSettledRows<Record<string, unknown>>(pers, onError)),
+          );
+        }
+      }
+    }
+
+    const cmdMap = new Map<string, number>();
+    for (const row of allCmdRows) {
+      if (row?.command) {
+        cmdMap.set(row.command, (cmdMap.get(row.command) ?? 0) + (row.count ?? 0));
+      }
+    }
+    const aggregatedCmds: DailyCommandData[] = Array.from(cmdMap.entries())
+      .map(([command, count]) => ({ command, count }))
+      .sort((a, b) => b.count - a.count);
+
+    const mergedGroups = mergeTriggerRows(allGroupRows, 'group');
+    const mergedPersonal = mergeTriggerRows(allPersonalRows, 'user');
+
+    setDailyCommandUsage(aggregatedCmds);
+    setDailyGroupTriggers(mergedGroups);
+    setDailyPersonalTriggers(mergedPersonal);
 
     const cmds = collectCommandKeysFromTriggerRows(
-      [...groupRows, ...personalRows],
+      [...mergedGroups, ...mergedPersonal],
       ['group', 'user'],
     );
-    for (const row of commandRows) {
+    for (const row of aggregatedCmds) {
       const label = row?.command ? displayCommandName(row.command) : '';
       if (label && !cmds.includes(label)) cmds.push(label);
     }
     setCommandTypeList(cmds);
     setIsLoadingDaily(false);
-  }, [dateStr, selectedBot]);
+  }, [rangeStartDate, rangeEndDate, selectedBot, dailyCommandCounts]);
+
+  const handleRefresh = useCallback(async () => {
+    await Promise.allSettled([loadSummary(), loadDaily()]);
+    setUpdatedAt(new Date());
+  }, [loadSummary, loadDaily]);
 
   useEffect(() => {
     void loadSummary();
+  }, [loadSummary]);
+
+  useEffect(() => {
     void loadDaily();
     setUpdatedAt(new Date());
-  }, [loadSummary, loadDaily]);
+  }, [loadDaily]);
 
   /**
    * 常驻刷新：定时重拉，且在标签页重新可见时立刻补一次（切走期间错过的数据不留着）。
@@ -471,75 +703,124 @@ export default function Dashboard() {
     };
   }, [loadSummary, loadDaily]);
 
-  const metricTiles = [
-    {
-      key: 'dau',
-      title: 'DAU',
-      value: keyMetrics.dau.toLocaleString(),
-      icon: Users,
-      desc: t('dashboard.dauDesc'),
-    },
-    {
-      key: 'dag',
-      title: 'DAG',
-      value: keyMetrics.dag.toLocaleString(),
-      icon: UsersRound,
-      desc: t('dashboard.dagDesc'),
-    },
-    {
-      key: 'retention',
-      title: t('dashboard.retention'),
-      value: keyMetrics.retention,
-      icon: TrendingUp,
-      desc: t('dashboard.retentionDesc'),
-    },
-    {
-      key: 'newUsers',
-      title: t('dashboard.newUsers'),
-      value: keyMetrics.newUsers.toLocaleString(),
-      icon: UserPlus,
-      desc: t('dashboard.newUsersDesc'),
-    },
-    {
-      key: 'churnedUsers',
-      title: t('dashboard.churnedUsers'),
-      value: keyMetrics.churnedUsers.toLocaleString(),
-      icon: UserMinus,
-      desc: t('dashboard.churnedUsersDesc'),
-    },
-    {
-      key: 'mau',
-      title: 'MAU',
-      value: keyMetrics.mau.toLocaleString(),
-      icon: Activity,
-      desc: t('dashboard.mauDesc'),
-    },
-    {
-      key: 'dauMauRatio',
-      title: t('dashboard.dauMauRatio'),
-      value: asPercent(keyMetrics.dauMauRatio),
-      icon: Activity,
-      desc: t('dashboard.dauMauRatioDesc'),
-    },
-    {
-      key: 'mag',
-      title: 'MAG',
-      value: keyMetrics.mag.toLocaleString(),
-      icon: UsersRound,
-      desc: t('dashboard.magDesc'),
-    },
-    {
-      key: 'dagMagRatio',
-      title: t('dashboard.dagMagRatio'),
-      value: asPercent(keyMetrics.dagMagRatio),
-      icon: TrendingUp,
-      desc: t('dashboard.dagMagRatioDesc'),
-    },
-  ];
+  const dauNum = Number(keyMetrics.dau) || 0;
+  const mauNum = Number(keyMetrics.mau) || 0;
+  const newUsersNum = Number(keyMetrics.newUsers) || 0;
+  const churnedNum = Number(keyMetrics.churnedUsers) || 0;
+  const retPct = Number.parseFloat(keyMetrics.retention) || 0;
+  const dauMauPct = Number.parseFloat(keyMetrics.dauMauRatio) || 0;
 
-  /** 主指标固定取第一个（DAU —— 今天到底有多少人在用，是这块板子上最该被看见的数字）。 */
-  const heroMetric = metricTiles[0];
-  const restMetrics = metricTiles.slice(1);
+  const dagNum = Number(keyMetrics.dag) || 0;
+  const magNum = Number(keyMetrics.mag) || 0;
+
+  // 用户维度占比分段（留存活跃 / 新增 / 其他月活）
+  const userTotal = Math.max(mauNum, dauNum, 1);
+  const retainedActive = Math.max(0, dauNum - newUsersNum);
+  const otherMonthlyUsers = Math.max(0, mauNum - dauNum);
+
+  const userSlices: RatioSlice[] = useMemo(() => {
+    const list: RatioSlice[] = [];
+    if (newUsersNum > 0) {
+      if (retainedActive > 0) {
+        list.push({
+          label: t('dashboard.retainedUsers'),
+          value: retainedActive,
+          text: retainedActive.toLocaleString(),
+          color: ramp[0],
+        });
+      }
+      list.push({
+        label: t('dashboard.newUsers'),
+        value: newUsersNum,
+        text: newUsersNum.toLocaleString(),
+        color: ramp[1],
+      });
+    } else if (dauNum > 0) {
+      list.push({
+        label: t('dashboard.dau'),
+        value: dauNum,
+        text: dauNum.toLocaleString(),
+        color: ramp[0],
+      });
+    }
+    if (otherMonthlyUsers > 0) {
+      list.push({
+        label: t('dashboard.otherMonthlyActive'),
+        value: otherMonthlyUsers,
+        text: otherMonthlyUsers.toLocaleString(),
+        color: NEUTRAL_SEGMENT,
+      });
+    }
+    return list;
+  }, [dauNum, newUsersNum, retainedActive, otherMonthlyUsers, ramp, t]);
+
+  // 群组维度占比分段（日活群组 / 其他月活群组）
+  const groupTotal = Math.max(magNum, dagNum, 1);
+  const otherMonthlyGroups = Math.max(0, magNum - dagNum);
+
+  const groupSlices: RatioSlice[] = useMemo(() => {
+    const list: RatioSlice[] = [];
+    if (dagNum > 0) {
+      list.push({
+        label: t('dashboard.dag'),
+        value: dagNum,
+        text: dagNum.toLocaleString(),
+        color: ramp[2],
+      });
+    }
+    if (otherMonthlyGroups > 0) {
+      list.push({
+        label: t('dashboard.otherMonthlyGroups'),
+        value: otherMonthlyGroups,
+        text: otherMonthlyGroups.toLocaleString(),
+        color: NEUTRAL_SEGMENT,
+      });
+    }
+    return list;
+  }, [dagNum, otherMonthlyGroups, ramp, t]);
+
+  const retentionChurnItems = useMemo(
+    () => [
+      {
+        title: 'DAU / MAU',
+        value: asPercent(keyMetrics.dauMauRatio),
+        desc: t('dashboard.dauMauRatioDesc'),
+        meter: {
+          segments: [{ value: dauMauPct, color: ramp[0] }],
+          max: 100,
+        },
+      },
+      {
+        title: t('dashboard.retention'),
+        value: keyMetrics.retention,
+        desc: t('dashboard.retentionDesc'),
+        meter: {
+          segments: [{ value: retPct, color: ramp[1] }],
+          max: 100,
+        },
+      },
+      {
+        title: t('dashboard.churnedUsers'),
+        value: keyMetrics.churnedUsers.toLocaleString(),
+        desc: t('dashboard.churnedUsersDesc'),
+        meter: {
+          segments: [{ value: churnedNum, color: NEUTRAL_SEGMENT }],
+          max: Math.max(churnedNum, dauNum, 1),
+        },
+      },
+    ],
+    [
+      keyMetrics.dauMauRatio,
+      keyMetrics.retention,
+      keyMetrics.churnedUsers,
+      dauMauPct,
+      retPct,
+      churnedNum,
+      dauNum,
+      ramp,
+      t,
+    ],
+  );
 
   // ============================================================================
   // ECharts 配置
@@ -612,6 +893,7 @@ export default function Dashboard() {
         tooltip: {
           trigger: 'axis',
           axisPointer: { type: 'line', lineStyle: { type: 'dashed' } },
+          confine: true,
         },
         series: [
           {
@@ -685,7 +967,7 @@ export default function Dashboard() {
           monthlyCommandData.map((d) => d.date.slice(5)),
           monthlyCommandData.map((d) => d[s.field]),
           ramp[i % 4],
-          i === 0,
+          true,
         ),
       ),
     // renderSpark 每次渲染都是新函数，只让它依赖真正影响产出的量
@@ -701,7 +983,7 @@ export default function Dashboard() {
           monthlyUserGroupData.map((d) => d.date.slice(5)),
           monthlyUserGroupData.map((d) => d[s.field]),
           ramp[i % 4],
-          i === 0,
+          true,
         ),
       ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -725,7 +1007,7 @@ export default function Dashboard() {
     () => ({
       animationDuration: 700,
       animationEasing: 'cubicOut' as const,
-      grid: { left: 2, right: 8, top: 12, bottom: 4, containLabel: true },
+      grid: { left: 2, right: 8, top: 18, bottom: 4, containLabel: true },
       xAxis: {
         type: 'category',
         data: recentCommandTotals.dates,
@@ -737,11 +1019,12 @@ export default function Dashboard() {
         type: 'value',
         axisLine: { show: false },
         axisTick: { show: false },
-        axisLabel: { showMinLabel: false, hideOverlap: true, fontSize: 9, formatter: compactTick },
+        axisLabel: { show: false },
         splitNumber: 2,
         splitLine: { lineStyle: { type: 'dashed', opacity: 0.45 } },
+        max: (value: { max: number }) => (value.max > 0 ? Math.ceil(value.max * 1.15) : 1),
       },
-      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, confine: true },
       series: [
         {
           type: 'bar',
@@ -749,6 +1032,16 @@ export default function Dashboard() {
           barMaxWidth: 12,
           itemStyle: { color: barFill(ramp[0]), borderRadius: [3, 3, 0, 0] },
           emphasis: { itemStyle: { color: ramp[0] } },
+          label: {
+            show: true,
+            position: 'top',
+            distance: 2,
+            fontSize: 8,
+            formatter: (params: any) => {
+              const val = Number(params?.value);
+              return val > 0 ? compactTick(val) : '';
+            },
+          },
         },
       ],
     }),
@@ -794,17 +1087,20 @@ export default function Dashboard() {
       tooltip: {
         trigger: 'axis',
         axisPointer: { type: 'shadow' },
+        confine: true,
+        extraCssText: 'max-width: 320px; white-space: normal; word-break: break-all;',
         formatter: (params: any) => {
           const p = Array.isArray(params) ? params[0] : params;
           if (!p) return '';
           const label = escapeHtmlText(String(p.axisValue ?? ''));
           const raw = rankedUsage[p.dataIndex]?.command ?? '';
+          const displayRaw = raw.length > 80 ? `${raw.slice(0, 77)}...` : raw;
           const rawLine =
             raw && raw !== p.axisValue
-              ? `<div style="margin-top:4px;font-family:ui-monospace,monospace;font-size:11px;opacity:.65;word-break:break-all">${escapeHtmlText(raw)}</div>`
+              ? `<div style="margin-top:6px;padding-top:4px;border-top:1px dashed rgba(128,128,128,0.25);font-family:ui-monospace,monospace;font-size:10px;opacity:.7;line-height:1.35;word-break:break-all" title="${escapeHtmlText(raw)}">${escapeHtmlText(displayRaw)}</div>`
               : '';
-          return `<div style="min-width:120px">
-            <div style="font-weight:600;margin-bottom:4px">${label}</div>
+          return `<div style="min-width:140px;max-width:280px;white-space:normal;word-break:break-all">
+            <div style="font-weight:600;margin-bottom:4px;word-break:break-word">${label}</div>
             <div style="display:flex;align-items:center;justify-content:space-between;gap:16px">
               <span style="display:flex;align-items:center;gap:6px">
                 <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${p.color}"></span>
@@ -860,18 +1156,21 @@ export default function Dashboard() {
       params.forEach((p: any) => {
         if (p.value > 0) {
           total += p.value;
-          const name = p.seriesName === OTHER_SERIES ? t('dashboard.otherCommands') : p.seriesName;
+          const rawName =
+            p.seriesName === OTHER_SERIES ? t('dashboard.otherCommands') : p.seriesName;
+          const name = displayCommandName(rawName);
+          const displayName = name.length > 20 ? `${name.slice(0, 19)}...` : name;
           rows += `<div style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin:2px 0">
-          <span style="display:flex;align-items:center;gap:6px">
-            <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${p.color}"></span>
-            ${name}
+          <span style="display:flex;align-items:center;gap:6px;min-width:0;overflow:hidden;text-overflow:ellipsis">
+            <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${p.color};flex-shrink:0"></span>
+            <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escapeHtmlText(name)}">${escapeHtmlText(displayName)}</span>
           </span>
-          <span style="font-weight:600">${p.value}</span>
+          <span style="font-weight:600;margin-left:8px;flex-shrink:0">${p.value}</span>
         </div>`;
         }
       });
-      return `<div style="min-width:120px">
-      <div style="font-weight:600;margin-bottom:6px">${label}</div>
+      return `<div style="min-width:140px;max-width:280px;white-space:normal;word-break:break-all">
+      <div style="font-weight:600;margin-bottom:6px;word-break:break-word">${escapeHtmlText(label)}</div>
       ${rows}
       <div style="border-top:1px solid rgba(128,128,128,0.2);margin-top:6px;padding-top:6px;display:flex;justify-content:space-between">
         <span>${t('dashboard.total')}</span><span style="font-weight:700">${total}</span>
@@ -918,6 +1217,8 @@ export default function Dashboard() {
         tooltip: {
           trigger: 'axis',
           axisPointer: { type: 'shadow' },
+          confine: true,
+          extraCssText: 'max-width: 320px; white-space: normal; word-break: break-all;',
           formatter: stackedTriggerTooltipFormatter,
         },
         legend: buildStackLegend(data.names, selected),
@@ -1021,100 +1322,222 @@ export default function Dashboard() {
       className="gap-3 md:gap-4"
       header={
         <div>
-          {/* 「更新于」与副标题底边对齐：窄屏筛选独占整行后，toolbar 没有它的位置 */}
-          <div className="flex items-end justify-between gap-3">
-            <div className="min-w-0">
-              <h1 className="text-3xl font-bold flex items-center gap-3">
-                <LayoutGrid className="w-8 h-8 shrink-0" />
-                <span className="truncate">{t('dashboard.title')}</span>
-              </h1>
-              <p className="text-muted-foreground mt-1">{t('dashboard.description')}</p>
+          <h1 className="text-3xl font-bold flex items-center gap-3">
+            <LayoutGrid className="w-8 h-8 shrink-0" />
+            <span className="truncate">{t('dashboard.title')}</span>
+          </h1>
+          <p className="text-muted-foreground mt-1">{t('dashboard.description')}</p>
+        </div>
+      }
+      toolbar={
+        /* 快捷时间范围 + 日期选择器 + Bot 筛选 + 刷新，紧凑排列（gap-2）
+            窄屏两列铺满，桌面单行展示，更新时间对齐控件行右侧 */
+        <div className="flex flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2">
+          {/* 窄屏第一行：档位 + 刷新 */}
+          <div className="flex min-w-0 items-center gap-2 sm:contents">
+            <div className="order-1 min-w-0 flex-1 sm:order-1 sm:flex-none">
+              <TabButtonGroup
+                options={presetTabs(['today', 'yesterday', '7d', '14d', '30d', 'custom'])}
+                value={rangePreset}
+                onValueChange={(v) => handlePresetChange(v as RangePreset)}
+                collapseOnMobile
+                className="w-full sm:w-auto"
+              />
             </div>
-            <span className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground tabular-nums">
-              <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-primary" />
+
+            {/* 刷新按钮 */}
+            <div className={cn(compactShellClass, 'order-2 shrink-0 sm:order-4')}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    onClick={() => void handleRefresh()}
+                    disabled={isLoadingDaily}
+                    aria-label={t('common.refresh')}
+                    className={rangeIconButtonClass}
+                  >
+                    <RefreshCw className={cn('h-4 w-4', isLoadingDaily && 'animate-spin')} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{t('common.refresh')}</TooltipContent>
+              </Tooltip>
+            </div>
+          </div>
+
+          {/* 窄屏第二行：日期 + Bot 列表选择器 */}
+          <div className="flex min-w-0 items-center gap-2 sm:contents">
+            {/* 日期选择器 */}
+            <div className="order-3 min-w-0 flex-1 sm:order-2 sm:flex-none">
+              {rangePreset === 'today' || rangePreset === 'yesterday' ? (
+                <div className={rangeControlShellClass}>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="ghost" className={rangeControlBtnClass}>
+                        <CalendarDays className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        <span className="truncate tabular-nums">{dateStr}</span>
+                        {(dailyCommandCounts[dateStr] ?? 0) > 0 && (
+                          <span className="ml-auto pl-2 text-xs text-muted-foreground tabular-nums">
+                            {dailyCommandCounts[dateStr]}
+                          </span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      className="w-auto p-0 z-[60]"
+                      align="start"
+                      side="bottom"
+                      sideOffset={8}
+                    >
+                      <MetricDayCalendar
+                        selected={selectedDate}
+                        onSelect={(date) => {
+                          setSelectedDate(date);
+                          setRangePreset('today');
+                        }}
+                        metrics={dailyCommandCounts}
+                        disableEmpty
+                        formatMetric={(n) => String(n)}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              ) : rangePreset === 'custom' ? (
+                <div className={rangeControlShellClass}>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        className={cn(
+                          rangeControlBtnClass,
+                          (!customStartDate || !customEndDate) && 'text-muted-foreground',
+                        )}
+                      >
+                        <CalendarDays className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        <span className="truncate tabular-nums">
+                          {customStartDate && customEndDate
+                            ? `${format(customStartDate, 'MM-dd')} → ${format(customEndDate, 'MM-dd')}`
+                            : t('dashboard.rangeStart')}
+                        </span>
+                        {rangeTotalCount > 0 && (
+                          <span className="ml-auto pl-2 text-xs text-muted-foreground tabular-nums">
+                            {rangeTotalCount}
+                          </span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      className="w-auto p-1 z-[60]"
+                      align="start"
+                      side="bottom"
+                      sideOffset={8}
+                    >
+                      <CalendarComponent
+                        mode="range"
+                        numberOfMonths={2}
+                        selected={
+                          customStartDate || customEndDate
+                            ? { from: customStartDate, to: customEndDate }
+                            : undefined
+                        }
+                        onSelect={(r) => {
+                          setCustomStartDate(r?.from);
+                          setCustomEndDate(r?.to);
+                        }}
+                        defaultMonth={customStartDate}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              ) : (
+                <div className={rangeControlShellClass}>
+                  <span className="flex h-full w-full items-center gap-2 px-3 text-sm tabular-nums text-muted-foreground sm:w-auto sm:min-w-[152px]">
+                    <CalendarDays className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    <span className="truncate tabular-nums">{scopeDates}</span>
+                    {rangeTotalCount > 0 && (
+                      <span className="ml-auto pl-2 text-xs text-muted-foreground tabular-nums">
+                        {rangeTotalCount}
+                      </span>
+                    )}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Bot 列表选择器 */}
+            <div className="order-4 min-w-0 flex-1 sm:order-3 sm:flex-none">
+              <Select value={selectedBot} onValueChange={setSelectedBot}>
+                <SelectTrigger
+                  className={cn(
+                    tabToolbarControlClass,
+                    'w-full sm:w-[180px] min-w-0 px-3 [&>span]:min-w-0',
+                  )}
+                >
+                  <div className="flex min-w-0 items-center gap-2">
+                    <Bot className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    <SelectValue placeholder={t('dashboard.selectBot')} />
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  {botList.map((bot) => (
+                    <SelectItem key={bot.id} value={bot.id}>
+                      {bot.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* 更新于时间戳：下移至操作栏右侧，与左侧控件对齐 */}
+          <div className="order-5 flex items-center justify-end gap-2 text-xs text-muted-foreground tabular-nums sm:order-5 sm:ml-auto sm:justify-start">
+            <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-primary" />
+            <span>
               {t('dashboard.lastUpdated')}
               {updatedAt ? ` ${format(updatedAt, 'HH:mm:ss')}` : ''}
             </span>
           </div>
         </div>
       }
-      toolbar={
-        /* 日期是下方三块图表的筛选条件，跟着标题常驻；切换后不用滚回中间。
-            窄屏下两个 flex-1 筛选各占半行铺满 */
-        <div className="flex flex-wrap items-center gap-2">
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className={cn(
-                  tabToolbarControlClass,
-                  'ui-field-trigger min-w-0 flex-1 justify-start px-3 font-normal sm:w-[220px] sm:flex-none',
-                  !selectedDate && 'text-muted-foreground',
-                )}
-              >
-                <span className="truncate tabular-nums">
-                  {selectedDate ? format(selectedDate, 'yyyy-MM-dd') : t('dashboard.selectDate')}
-                </span>
-                {(dailyCommandCounts[dateStr] ?? 0) > 0 && (
-                  <span className="ml-auto pl-2 text-xs text-muted-foreground tabular-nums">
-                    {dailyCommandCounts[dateStr]}
-                  </span>
-                )}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start" side="bottom" sideOffset={8}>
-              <MetricDayCalendar
-                selected={selectedDate}
-                onSelect={setSelectedDate}
-                metrics={dailyCommandCounts}
-                disableEmpty
-                formatMetric={(n) => String(n)}
-              />
-            </PopoverContent>
-          </Popover>
-          <span className="flex min-w-0 flex-1 items-center sm:flex-none">
-            <Select value={selectedBot} onValueChange={setSelectedBot}>
-              <SelectTrigger className={cn(tabToolbarControlClass, 'w-full sm:w-[180px]')}>
-                <SelectValue placeholder={t('dashboard.selectBot')} />
-              </SelectTrigger>
-              <SelectContent>
-                {botList.map((bot) => (
-                  <SelectItem key={bot.id} value={bot.id}>
-                    {bot.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </span>
-        </div>
-      }
     >
       {/* 整页一块一块的磁贴：外层 glass-card-grid 统一留阴影安全区，内层网格用纯工具类控间距
           （glass-card-grid 自带 margin-block，会压掉 Tailwind 的 mt-*，别叠着用） */}
       <div className="glass-card-grid">
-        {/* 指标区：1 个主指标 + 8 个次要指标，同一行、齐高。
-Hero 只占 2 列：它是三行短文本，给 3 列会在右侧留出一大片空白，
-主次差距靠字号拉开就够了，不必靠面积。
-次要区用 col-span-10 / grid-cols-8 —— 容器宽度是 10 列，格子按 8 等分（每格约 150px），
-容器和网格列数不必相等，这样 8 个指标刚好一行排满。 */}
-        <div className="grid grid-cols-1 gap-2.5 md:grid-cols-12">
-          <div className="md:col-span-12 xl:col-span-2">
+        {/* 指标区：对齐 /ai-statistics 的主角卡 + 分段条 + 统计读数条模式（5 + 3 + 4 栅格，等高对齐） */}
+        <div className="grid grid-cols-1 gap-3 md:gap-2.5 md:grid-cols-12">
+          {/* 用户活跃主角卡（DAU / MAU / 新增 / 留存） */}
+          <div className="md:col-span-12 xl:col-span-5">
             <MetricHero
-              title={heroMetric.title}
-              value={heroMetric.value}
-              desc={heroMetric.desc}
-              icon={heroMetric.icon}
-            />
+              className="h-full"
+              title={`DAU · ${t('dashboard.userActivity')}`}
+              value={keyMetrics.dau.toLocaleString()}
+              desc={`MAU ${keyMetrics.mau.toLocaleString()}${newUsersNum > 0 ? ` · ${t('dashboard.newUsers')} ${newUsersNum.toLocaleString()}` : ''}`}
+              icon={Users}
+              extra={
+                <span className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2 py-0.5 text-xs font-semibold tabular-nums text-primary ring-1 ring-inset ring-primary/20">
+                  DAU/MAU {asPercent(keyMetrics.dauMauRatio)}
+                </span>
+              }
+            >
+              <RatioBar slices={userSlices} total={userTotal} />
+            </MetricHero>
           </div>
-          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 md:col-span-12 xl:col-span-10 xl:grid-cols-8">
-            {restMetrics.map((metric) => (
-              <MetricMini
-                key={metric.key}
-                title={metric.title}
-                value={metric.value}
-                desc={metric.desc}
-              />
-            ))}
+
+          {/* 群组活跃次级卡（DAG / MAG） */}
+          <div className="md:col-span-6 xl:col-span-3">
+            <MetricHero
+              className="h-full"
+              title={`DAG · ${t('dashboard.groupActivity')}`}
+              value={keyMetrics.dag.toLocaleString()}
+              desc={`MAG ${keyMetrics.mag.toLocaleString()} · ${t('dashboard.groupRetention')} ${asPercent(keyMetrics.dagMagRatio)}`}
+              icon={UsersRound}
+            >
+              <RatioBar slices={groupSlices} total={groupTotal} />
+            </MetricHero>
+          </div>
+
+          {/* 活跃粘性、留存率与流失量 */}
+          <div className="md:col-span-6 xl:col-span-4">
+            <StatStrip className="h-full" items={retentionChurnItems} />
           </div>
         </div>
 

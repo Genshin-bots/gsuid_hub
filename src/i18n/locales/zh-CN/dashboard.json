@@ -42,5 +42,18 @@
   "recentTrendTotal": "合计 {count} 次",
   "expandChart": "展开完整明细",
   "collapseChart": "收起回到概览",
-  "itemCount": "共 {count} 条"
+  "itemCount": "共 {count} 条",
+  "scopeToday": "今日",
+  "scopeYesterday": "昨日",
+  "preset7d": "7天",
+  "preset14d": "14天",
+  "preset30d": "30天",
+  "customRange": "自定义",
+  "rangeStart": "选择区间",
+  "userActivity": "用户活跃度",
+  "groupActivity": "群组活跃度",
+  "retainedUsers": "留存活跃",
+  "otherMonthlyActive": "其他月活",
+  "otherMonthlyGroups": "其他月活群组",
+  "groupRetention": "群组留存"
 }

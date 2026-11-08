@@ -42,5 +42,18 @@
   "recentTrendTotal": "合計 {count} 回",
   "expandChart": "詳細を展開",
   "collapseChart": "概要に戻す",
-  "itemCount": "全 {count} 件"
+  "itemCount": "全 {count} 件",
+  "scopeToday": "今日",
+  "scopeYesterday": "昨日",
+  "preset7d": "7日間",
+  "preset14d": "14日間",
+  "preset30d": "30日間",
+  "customRange": "カスタム",
+  "rangeStart": "期間を選択",
+  "userActivity": "ユーザー活動",
+  "groupActivity": "グループ活動",
+  "retainedUsers": "継続アクティブ",
+  "otherMonthlyActive": "その他月活",
+  "otherMonthlyGroups": "その他月活グループ",
+  "groupRetention": "グループ継続"
 }

@@ -3114,6 +3114,7 @@ export default function AIStatisticsPage() {
               <div className="grid grid-cols-1 gap-3 md:gap-2.5 md:grid-cols-12">
                 <div className="md:col-span-12 xl:col-span-6">
                   <MetricHero
+                    className="h-full"
                     title={t('aiStatistics.totalTokens')}
                     value={formatCompactNumber(scopeTotal)}
                     desc={`${scopeTotals.label}${scopeCost > 0 ? ` · ${t('aiStatistics.totalCost')} ≈ ${formatCostWithCurrency(scopeCost, currency, cnyRate)}` : ''}`}
@@ -3144,6 +3145,7 @@ export default function AIStatisticsPage() {
                     拆成「命中 / 未命中」两段条 + 两行图例，高度就和主角卡齐平了。 */}
                 <div className="md:col-span-12 xl:col-span-3">
                   <MetricHero
+                    className="h-full"
                     title={t('aiStatistics.cacheHitRate')}
                     value={shareOf(scopeTotals.cacheRead, scopeCacheBase)}
                     desc={`${formatCompactNumber(scopeTotals.cacheRead)} / ${formatCompactNumber(scopeCacheBase)}`}

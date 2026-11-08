@@ -202,7 +202,18 @@ export function RatioBar({
 }) {
   const visible = slices.filter((s) => s.value > 0);
   if (total <= 0) {
-    return <div className={cn('h-2 w-full rounded-full bg-muted', className)} />;
+    return (
+      <div className={className}>
+        <div className="h-2 w-full rounded-full bg-muted/60" />
+        {showLegend && (
+          <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+            <li className="flex items-center gap-1.5 text-[11px] text-muted-foreground/60 leading-4">
+              —
+            </li>
+          </ul>
+        )}
+      </div>
+    );
   }
   return (
     <div className={className}>
@@ -231,7 +242,7 @@ export function RatioBar({
       {showLegend && (
         <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
           {visible.map((slice) => (
-            <li key={slice.label} className="flex items-center gap-1.5 text-[11px]">
+            <li key={slice.label} className="flex items-center gap-1.5 text-[11px] leading-4">
               <span
                 className="h-1.5 w-1.5 shrink-0 rounded-full"
                 style={{ backgroundColor: slice.color }}
@@ -259,13 +270,15 @@ export function MetricHero({
   icon: Icon,
   extra,
   children,
+  className,
 }: MetricTileProps & {
   extra?: React.ReactNode;
   children?: React.ReactNode;
+  className?: string;
 }) {
   return (
-    <Card className="glass-card flex flex-col">
-      <CardHeader className="flex-row items-center justify-between gap-2 space-y-0 p-3.5 pb-1 sm:p-4 sm:pb-1.5">
+    <Card className={cn('glass-card flex flex-col', className)}>
+      <CardHeader className="flex-row items-center justify-between gap-2 space-y-0 p-3.5 pb-1 sm:p-4 sm:pb-1.5 min-h-[44px] sm:min-h-[46px]">
         <CardTitle className="truncate text-xs font-medium text-muted-foreground">
           {title}
         </CardTitle>
@@ -278,7 +291,7 @@ export function MetricHero({
       </CardHeader>
       <CardContent className="flex-1 px-3.5 pb-3.5 pt-0 sm:px-4 sm:pb-4 sm:pt-0">
         <p className="text-4xl font-bold leading-none tabular-nums tracking-tight">{value}</p>
-        <p className="mt-1.5 truncate text-[11px] text-muted-foreground">{desc}</p>
+        <p className="mt-1.5 h-4 truncate text-[11px] leading-4 text-muted-foreground">{desc}</p>
         {children ? <div className="mt-3">{children}</div> : null}
       </CardContent>
     </Card>

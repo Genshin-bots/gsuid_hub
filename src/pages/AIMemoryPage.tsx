@@ -6,8 +6,13 @@ import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { GlassAlert } from '@/components/ui/glass-alert';
 import { Skeleton } from '@/components/ui/skeleton';
-import { TabButtonGroup, tabToolbarControlClass } from '@/components/ui/TabButtonGroup';
+import { tabToolbarControlClass } from '@/components/ui/TabButtonGroup';
 import { headerActionRowClass, PinnedPage } from '@/components/layout/PinnedPage';
+import {
+  MetricHero,
+  RatioBar,
+  type RatioSlice,
+} from '@/components/ui/DataBlock';
 import MemorySearchPanel from '@/components/memory/MemorySearchPanel';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -109,7 +114,9 @@ interface MemoryStats {
   speaker_entity_count: number;
   edge_count: number;
   active_edge_count: number;
-  category_count: number;
+  category_count?: number;
+  thread_count?: number;
+  edge_state_counts?: Partial<Record<ResolutionState, number>>;
   observation_queue_size: number;
   scope_keys: string[];
 }
@@ -121,7 +128,8 @@ interface MemoryScope {
   episode_count: number;
   entity_count: number;
   edge_count: number;
-  category_count: number;
+  category_count?: number;
+  thread_count?: number;
 }
 
 interface Episode {
@@ -145,6 +153,9 @@ interface Entity {
   updated_at: string;
 }
 
+type ResolutionState = 'active' | 'staging' | 'superseded' | 'contradicted';
+type EdgeKind = 'attribute' | 'relation' | 'milestone';
+
 interface Edge {
   id: string;
   scope_key: string;
@@ -154,54 +165,88 @@ interface Edge {
   valid_at: string;
   invalid_at: string | null;
   created_at: string;
+  edge_kind?: EdgeKind;
+  slot_key?: string;
+  resolution_state?: ResolutionState;
+  provenance_tier?: string;
+  superseded_by_id?: string | null;
+  contradicts_edge_id?: string | null;
+  thread_id?: string | null;
+  event_at?: string | null;
   mention_count?: number;
   decay_score?: number;
   last_accessed?: string | null;
 }
 
-interface Category {
+interface MemoryThread {
   id: string;
   scope_key: string;
+  title: string;
+  aliases: string[];
+  summary: string;
+  status: string;
+  milestone_count: number;
+  first_at: string | null;
+  last_at: string | null;
+}
+
+interface ThreadMilestone {
+  id: string;
+  fact: string;
+  slot_key?: string;
+  source_entity_id: string;
+  target_entity_id: string;
+  event_at: string | null;
+  valid_at: string | null;
+}
+
+interface ThreadEpisode {
+  id: string;
+  content: string;
+  valid_at: string | null;
+  session_id?: string;
+}
+
+interface ThreadEntity {
+  id: string;
   name: string;
   summary: string;
-  tag: string[];
-  layer: number;
-  parent_id: string | null;
-  child_categories_count: number;
-  member_entities_count: number;
-  created_at: string;
-  updated_at: string;
+  entity_type?: string;
+  is_speaker: boolean;
+}
+
+interface ThreadDetail extends MemoryThread {
+  milestones: ThreadMilestone[];
+  episodes: ThreadEpisode[];
+  entities: ThreadEntity[];
 }
 
 interface MemoryConfig {
   observer_enabled: boolean;
   observer_blacklist: string[];
   ingestion_enabled: boolean;
-  batch_interval_seconds: number;
-  batch_max_size: number;
   llm_semaphore_limit: number;
   enable_retrieval: boolean;
-  enable_system2: boolean;
   enable_user_global_memory: boolean;
   enable_heartbeat_memory: boolean;
   retrieval_top_k: number;
   dedup_similarity_threshold: number;
   edge_conflict_threshold: number;
-  min_children_per_category: number;
-  max_layers: number;
-  hiergraph_rebuild_ratio: number;
-  hiergraph_rebuild_interval_seconds: number;
 }
 
 interface HierGraphStatus {
-  scope_key: string;
+  scope_key?: string | null;
   initialized: boolean;
+  mode?: string;
+  l1_count?: number;
+  thread_count?: number;
+  active_edges?: number;
   max_layer: number;
-  last_rebuild_at: string;
+  last_rebuild_at: string | null;
   entity_count_at_last_rebuild: number;
   current_entity_count: number;
-  group_summary_cache: string;
-  group_summary_updated_at: string;
+  group_summary_cache?: string | null;
+  group_summary_updated_at?: string | null;
 }
 
 interface PaginatedResponse<T> {
@@ -287,6 +332,7 @@ const memoryApi = {
     scope_key?: string;
     all_scopes?: boolean;
     entity_id?: string;
+    include_history?: boolean;
     page?: number;
     page_size?: number;
   }) => {
@@ -295,6 +341,7 @@ const memoryApi = {
     if (params.scope_key) query.set('scope_key', params.scope_key);
     if (params.all_scopes) query.set('all_scopes', 'true');
     if (params.entity_id) query.set('entity_id', params.entity_id);
+    if (params.include_history) query.set('include_history', 'true');
     if (params.page) query.set('page', String(params.page));
     if (params.page_size) query.set('page_size', String(params.page_size));
     return api.get<PaginatedResponse<Edge>>(`/api/ai/memory/edges?${query.toString()}`);
@@ -304,31 +351,23 @@ const memoryApi = {
       `/api/ai/memory/edges/${edgeId}`,
     ),
   deleteEdge: (edgeId: string) => api.delete<void>(`/api/ai/memory/edges/${edgeId}`),
-  getCategories: (params: {
+  getThreadDetail: (threadId: string) =>
+    api.get<ThreadDetail>(`/api/ai/memory/threads/${threadId}`),
+  getThreads: (params: {
     group_id?: string;
     scope_key?: string;
-    all_scopes?: boolean;
-    layer?: number;
+    status?: string;
     page?: number;
     page_size?: number;
   }) => {
     const query = new URLSearchParams();
     if (params.group_id) query.set('group_id', params.group_id);
     if (params.scope_key) query.set('scope_key', params.scope_key);
-    if (params.all_scopes) query.set('all_scopes', 'true');
-    if (params.layer) query.set('layer', String(params.layer));
+    if (params.status) query.set('status', params.status);
     if (params.page) query.set('page', String(params.page));
     if (params.page_size) query.set('page_size', String(params.page_size));
-    return api.get<PaginatedResponse<Category>>(`/api/ai/memory/categories?${query.toString()}`);
+    return api.get<PaginatedResponse<MemoryThread>>(`/api/ai/memory/threads?${query.toString()}`);
   },
-  getCategoryDetail: (categoryId: string) =>
-    api.get<
-      Category & {
-        parent_categories: { id: string; name: string; layer: number }[];
-        child_categories: { id: string; name: string; layer: number }[];
-        member_entities: Entity[];
-      }
-    >(`/api/ai/memory/categories/${categoryId}`),
   getHierGraphStatus: (params: { group_id?: string; scope_key?: string }) => {
     const query = new URLSearchParams();
     if (params.group_id) query.set('group_id', params.group_id);
@@ -346,6 +385,17 @@ const memoryApi = {
       deleted_edges: number;
       deleted_categories: number;
     }>(`/api/ai/memory/scopes/${encodeURIComponent(scopeKey)}`),
+  rebuildProjection: (params: { group_id?: string; scope_key?: string }) => {
+    const query = new URLSearchParams();
+    if (params.group_id) query.set('group_id', params.group_id);
+    if (params.scope_key) query.set('scope_key', params.scope_key);
+    return api.post<{
+      scope_key: string;
+      fts_rows: number;
+      vectors_repaired: number;
+      elapsed_ms: number;
+    }>(`/api/ai/memory/hiergraph/rebuild?${query.toString()}`, {});
+  },
   clearMemory: (params: { scope_key?: string; scope_pattern?: string; dry_run?: boolean }) =>
     api.post<{
       affected_scope_keys: string[];
@@ -404,7 +454,8 @@ function formatScopeType(scopeKey: string): { type: string; id: string } {
   return { type: 'unknown', id: scopeKey };
 }
 
-function formatDate(dateStr: string): string {
+function formatDate(dateStr: string | null | undefined): string {
+  if (!dateStr) return '-';
   try {
     return new Date(dateStr).toLocaleString();
   } catch {
@@ -476,7 +527,6 @@ function getGraphPalette(isDark: boolean) {
 function KnowledgeGraph({
   entities,
   edges,
-  categories,
   isGlass,
   isDark,
   onNodeClick,
@@ -488,17 +538,15 @@ function KnowledgeGraph({
 }: {
   entities: Entity[];
   edges: Edge[];
-  categories: Category[];
   isGlass: boolean;
   isDark: boolean;
-  onNodeClick: (type: 'entity' | 'category', id: string) => void;
+  onNodeClick: (type: 'entity', id: string) => void;
   selectedScope?: string;
   onScopeChange?: (scope: string) => void;
   scopes?: MemoryScope[];
   onClearMemory?: () => void;
   onRefresh?: () => void;
 }) {
-  void categories; // categories are not rendered as graph nodes (kept for API compatibility)
   const { t } = useLanguage();
   const wrapperRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -960,6 +1008,21 @@ function KnowledgeGraph({
           </div>
         )}
 
+        {/* 实体与边数量统计徽标 */}
+        <div className="glass-float hidden md:flex items-center gap-2 h-[42px] rounded-lg px-3 border border-border/50 shadow-sm text-xs shrink-0 select-none">
+          <span className="flex items-center gap-1.5 font-medium text-foreground">
+            <Brain className="w-3.5 h-3.5 text-primary" />
+            <span className="text-muted-foreground">{t('aiMemory.legendEntity')}:</span>
+            <span className="font-mono font-semibold tabular-nums">{entities.length.toLocaleString()}</span>
+          </span>
+          <span className="text-border/60">|</span>
+          <span className="flex items-center gap-1.5 font-medium text-foreground">
+            <GitBranch className="w-3.5 h-3.5 text-emerald-500" />
+            <span className="text-muted-foreground">{t('aiMemory.statsEdges')}:</span>
+            <span className="font-mono font-semibold tabular-nums">{edges.length.toLocaleString()}</span>
+          </span>
+        </div>
+
         {/* 节点搜索框（独立搜索控件，清晰明显的输入底板与边框） */}
         <form
           className="glass-float relative flex items-center rounded-lg px-2.5 py-0.5 border border-border/60 shadow-sm w-[150px] sm:w-[190px]"
@@ -1154,6 +1217,7 @@ function ScopeCard({
   onDelete: () => void;
   onSelect: () => void;
 }) {
+  const { t } = useLanguage();
   const { type, id } = formatScopeType(scope.scope_key);
   return (
     <Card
@@ -1189,8 +1253,8 @@ function ScopeCard({
             <p className="font-semibold">{scope.edge_count}</p>
           </div>
           <div>
-            <p className="text-muted-foreground">分类</p>
-            <p className="font-semibold">{scope.category_count}</p>
+            <p className="text-muted-foreground">{t('aiMemory.statsThreads')}</p>
+            <p className="font-semibold">{scope.thread_count ?? 0}</p>
           </div>
         </div>
         <div className="flex justify-end mt-4">
@@ -1283,6 +1347,7 @@ function EdgeItem({
   sourceName?: string;
   targetName?: string;
 }) {
+  const { t } = useLanguage();
   return (
     <Card
       className={cn(
@@ -1303,9 +1368,27 @@ function EdgeItem({
           </span>
         </div>
         <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{edge.fact}</p>
-        <div className="flex items-center gap-2 mt-2">
+        <div className="flex flex-wrap items-center gap-2 mt-2">
           <Clock className="w-3 h-3 text-muted-foreground" />
           <span className="text-xs text-muted-foreground">{formatDate(edge.valid_at)}</span>
+          {edge.edge_kind && (
+            <Badge variant="outline" className="text-xs">
+              {t(`aiMemory.edgeKind_${edge.edge_kind}`)}
+            </Badge>
+          )}
+          {edge.slot_key && (
+            <Badge variant="secondary" className="text-xs font-mono">
+              {edge.slot_key}
+            </Badge>
+          )}
+          {edge.resolution_state && edge.resolution_state !== 'active' && (
+            <Badge
+              variant={edge.resolution_state === 'contradicted' ? 'destructive' : 'outline'}
+              className="text-xs"
+            >
+              {t(`aiMemory.edgeState_${edge.resolution_state}`)}
+            </Badge>
+          )}
           {edge.invalid_at && (
             <Badge variant="destructive" className="text-xs">
               已失效
@@ -1314,229 +1397,6 @@ function EdgeItem({
         </div>
       </CardContent>
     </Card>
-  );
-}
-
-function CategoryTreeNode({
-  category,
-  childCategories,
-  isGlass,
-  depth,
-  onToggle,
-  onClick,
-  expandedIds,
-  loadingIds,
-  childrenMap,
-}: {
-  category: Category;
-  childCategories: Category[];
-  isGlass: boolean;
-  depth: number;
-  onToggle: (id: string) => void;
-  onClick: (id: string) => void;
-  expandedIds: Set<string>;
-  loadingIds?: Set<string>;
-  childrenMap?: Map<string, Category[]>;
-}) {
-  const isExpanded = expandedIds.has(category.id);
-  const isLoading = loadingIds.has(category.id);
-  const hasChildren = category.child_categories_count > 0 || childCategories.length > 0;
-
-  const layerColors = [
-    'bg-violet-500',
-    'bg-blue-500',
-    'bg-emerald-500',
-    'bg-amber-500',
-    'bg-red-500',
-    'bg-pink-500',
-  ];
-
-  return (
-    <div className="animate-in fade-in duration-200">
-      <div
-        className={cn(
-          'group flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer transition-all hover:shadow-sm',
-          isGlass ? 'hover:bg-accent/30' : 'hover:bg-accent/50',
-        )}
-        style={{ paddingLeft: `${12 + depth * 16}px` }}
-        onClick={() => onClick(category.id)}
-      >
-        {hasChildren ? (
-          <button
-            className="w-5 h-5 flex items-center justify-center rounded hover:bg-accent shrink-0 transition-colors"
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggle(category.id);
-            }}
-          >
-            {isLoading ? (
-              <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
-            ) : (
-              <ChevronRight
-                className={cn(
-                  'w-3.5 h-3.5 text-muted-foreground transition-transform duration-200',
-                  isExpanded && 'rotate-90',
-                )}
-              />
-            )}
-          </button>
-        ) : (
-          <div className="w-5 h-5 shrink-0" />
-        )}
-
-        <div
-          className={cn(
-            'w-6 h-6 rounded flex items-center justify-center text-[10px] font-bold text-white shrink-0',
-            layerColors[depth % layerColors.length],
-          )}
-        >
-          L{category.layer}
-        </div>
-
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <FolderTree className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
-            <span className="font-medium text-sm truncate">{category.name}</span>
-          </div>
-          {category.summary && (
-            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1 ml-5.5">
-              {category.summary}
-            </p>
-          )}
-        </div>
-
-        <div className="flex items-center gap-1.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-          {category.child_categories_count > 0 && (
-            <Badge variant="outline" className="text-xs h-5 px-1.5">
-              <Layers className="w-3 h-3 mr-0.5" />
-              {category.child_categories_count}
-            </Badge>
-          )}
-          {category.member_entities_count > 0 && (
-            <Badge variant="outline" className="text-xs h-5 px-1.5">
-              <Brain className="w-3 h-3 mr-0.5" />
-              {category.member_entities_count}
-            </Badge>
-          )}
-        </div>
-      </div>
-
-      {isExpanded && childCategories.length > 0 && (
-        <div className="mt-1">
-          {childCategories.map((child) => (
-            <CategoryTreeNode
-              key={child.id}
-              category={child}
-              childCategories={childrenMap ? childrenMap.get(child.id) || [] : []}
-              isGlass={isGlass}
-              depth={depth + 1}
-              onToggle={onToggle}
-              onClick={onClick}
-              expandedIds={expandedIds}
-              loadingIds={loadingIds}
-              childrenMap={childrenMap}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function CategoryLayerTree({
-  categories,
-  isGlass,
-  isDark,
-  onClick,
-}: {
-  categories: Category[];
-  isGlass: boolean;
-  isDark: boolean;
-  onClick: (id: string) => void;
-}) {
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
-
-  // Find max layer to determine root level
-  const maxLayer = categories.length > 0 ? Math.max(...categories.map((c) => c.layer)) : 0;
-
-  // Build tree structure from categories using parent_id
-  const { rootIds, childrenMap } = useMemo(() => {
-    const roots = new Set<string>();
-    const children = new Map<string, Category[]>();
-
-    // Initialize children map for all categories
-    for (const cat of categories) {
-      children.set(cat.id, []);
-    }
-
-    // Build parent-child relationships
-    for (const cat of categories) {
-      if (cat.parent_id && children.has(cat.parent_id)) {
-        const parentChildren = children.get(cat.parent_id)!;
-        parentChildren.push(cat);
-      } else {
-        // No parent found, this is a root (only max layer roots are true roots)
-        roots.add(cat.id);
-      }
-    }
-
-    return { rootIds: roots, childrenMap: children };
-  }, [categories]);
-
-  // Filter to only show roots at max layer (Layer 3 in this case)
-  const rootCategories = categories.filter((c) => rootIds.has(c.id) && c.layer === maxLayer);
-
-  const handleToggle = useCallback((id: string) => {
-    setExpandedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  }, []);
-
-  if (categories.length === 0) return null;
-
-  const layerColors = [
-    'bg-violet-500',
-    'bg-blue-500',
-    'bg-emerald-500',
-    'bg-amber-500',
-    'bg-red-500',
-    'bg-pink-500',
-  ];
-
-  return (
-    <div className="space-y-1">
-      <div className="flex items-center gap-3 mb-4 flex-wrap">
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <span className={cn('w-2.5 h-2.5 rounded-sm', layerColors[0])} />
-          <span>Layer {maxLayer}</span>
-        </div>
-        <span className="text-xs text-muted-foreground ml-2">点击展开/收起子分类</span>
-      </div>
-
-      <div className={cn('rounded-lg p-4', 'glass-card')}>
-        <div className="space-y-1">
-          {rootCategories.map((cat) => (
-            <CategoryTreeNode
-              key={cat.id}
-              category={cat}
-              childCategories={childrenMap.get(cat.id) || []}
-              isGlass={isGlass}
-              depth={0}
-              onToggle={handleToggle}
-              onClick={onClick}
-              expandedIds={expandedIds}
-              loadingIds={new Set()}
-            />
-          ))}
-        </div>
-      </div>
-    </div>
   );
 }
 
@@ -1589,18 +1449,16 @@ export default function AIMemoryPage() {
   const [episodes, setEpisodes] = useState<Episode[]>([]);
   const [entities, setEntities] = useState<Entity[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingData, setIsLoadingData] = useState(false);
+  const [isReconciling, setIsReconciling] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [episodePage, setEpisodePage] = useState(1);
   const [entityPage, setEntityPage] = useState(1);
   const [edgePage, setEdgePage] = useState(1);
-  const [categoryPage, setCategoryPage] = useState(1);
   const [totalEpisodes, setTotalEpisodes] = useState(0);
   const [totalEntities, setTotalEntities] = useState(0);
   const [totalEdges, setTotalEdges] = useState(0);
-  const [totalCategories, setTotalCategories] = useState(0);
   const [selectedScope, setSelectedScope] = useState<string>('all');
   const [entitySearch, setEntitySearch] = useState('');
   const [entityFilterSpeaker, setEntityFilterSpeaker] = useState<boolean | undefined>(undefined);
@@ -1611,18 +1469,16 @@ export default function AIMemoryPage() {
   const [selectedEdge, setSelectedEdge] = useState<
     ({ source_entity: Entity; target_entity: Entity } & Edge) | null
   >(null);
-  const [selectedCategoryDetail, setSelectedCategoryDetail] = useState<
-    | (Category & {
-        parent_categories: { id: string; name: string; layer: number }[];
-        child_categories: { id: string; name: string; layer: number }[];
-        member_entities: Entity[];
-      })
-    | null
-  >(null);
+  const [selectedThreadDetail, setSelectedThreadDetail] = useState<ThreadDetail | null>(null);
   const [activeTab, setActiveTab] = useState('graph');
   const [debugEdges, setDebugEdges] = useState<AgentDebugMemoryEdge[]>([]);
   const [debugConflicts, setDebugConflicts] = useState<AgentDebugMemoryConflict[]>([]);
   const [includeInvalidEdges, setIncludeInvalidEdges] = useState(false);
+  const [includeEdgeHistory, setIncludeEdgeHistory] = useState(false);
+  const [threads, setThreads] = useState<MemoryThread[]>([]);
+  const [totalThreads, setTotalThreads] = useState(0);
+  const [threadPage, setThreadPage] = useState(1);
+  const [isLoadingThreads, setIsLoadingThreads] = useState(false);
   const [isLoadingDebug, setIsLoadingDebug] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [pendingInvalidateEdge, setPendingInvalidateEdge] = useState<Pick<
@@ -1633,7 +1489,7 @@ export default function AIMemoryPage() {
   const [clearMemoryDialogOpen, setClearMemoryDialogOpen] = useState(false);
   const [clearMemoryLoading, setClearMemoryLoading] = useState(false);
   const [dialogType, setDialogType] = useState<
-    'episode' | 'entity' | 'edge' | 'category' | 'world'
+    'episode' | 'entity' | 'edge' | 'thread' | 'world'
   >('episode');
   const [cognitionNodes, setCognitionNodes] = useState<CognitionNode[]>([]);
   const [selectedWorldHub, setSelectedWorldHub] = useState<CognitionNode | null>(null);
@@ -1692,8 +1548,9 @@ export default function AIMemoryPage() {
           fetchEpisodes(1, targetScope),
           fetchEntities(1, targetScope),
           fetchEdges(1, targetScope),
-          fetchCategories(1, targetScope),
+          fetchThreads(1, targetScope),
           fetchCognition(targetScope),
+          fetchPreferences(1, targetScope),
         ]);
       } catch (err) {
         setError(err instanceof Error ? err.message : t('aiMemory.loadFailed'));
@@ -1763,8 +1620,13 @@ export default function AIMemoryPage() {
     try {
       setIsLoadingData(true);
       const scope = scopeOverride ?? selectedScope;
-      const params: { page: number; page_size: number; scope_key?: string; all_scopes?: boolean } =
-        { page, page_size: 9999 };
+      const params: {
+        page: number;
+        page_size: number;
+        scope_key?: string;
+        all_scopes?: boolean;
+        include_history?: boolean;
+      } = { page, page_size: 9999, include_history: includeEdgeHistory };
       if (scope !== 'all') {
         params.scope_key = scope;
       } else {
@@ -1778,6 +1640,28 @@ export default function AIMemoryPage() {
       toast.error(t('aiMemory.loadEdgesFailed'));
     } finally {
       setIsLoadingData(false);
+    }
+  };
+
+  const fetchThreads = async (page = 1, scopeOverride?: string) => {
+    try {
+      setIsLoadingThreads(true);
+      const scope = scopeOverride ?? selectedScope;
+      const params: { page: number; page_size: number; scope_key?: string } = {
+        page,
+        page_size: 20,
+      };
+      if (scope !== 'all') {
+        params.scope_key = scope;
+      }
+      const data = await memoryApi.getThreads(params);
+      setThreads(data.items);
+      setTotalThreads(data.total);
+      setThreadPage(page);
+    } catch {
+      toast.error(t('aiMemory.loadThreadsFailed'));
+    } finally {
+      setIsLoadingThreads(false);
     }
   };
 
@@ -1802,28 +1686,6 @@ export default function AIMemoryPage() {
   };
 
   const worldHubs = useMemo(() => cognitionNodes.filter(isWorldHub), [cognitionNodes]);
-
-  const fetchCategories = async (page = 1, scopeOverride?: string) => {
-    try {
-      setIsLoadingData(true);
-      const scope = scopeOverride ?? selectedScope;
-      const params: { page: number; page_size: number; scope_key?: string; all_scopes?: boolean } =
-        { page, page_size: 9999 };
-      if (scope !== 'all') {
-        params.scope_key = scope;
-      } else {
-        params.all_scopes = true;
-      }
-      const data = await memoryApi.getCategories(params);
-      setCategories(data.items);
-      setTotalCategories(data.total);
-      setCategoryPage(page);
-    } catch {
-      toast.error(t('aiMemory.loadCategoriesFailed'));
-    } finally {
-      setIsLoadingData(false);
-    }
-  };
 
   const fetchDebugMemory = async (scopeOverride?: string) => {
     const scope = scopeOverride ?? selectedScope;
@@ -1883,21 +1745,24 @@ export default function AIMemoryPage() {
     setEpisodePage(1);
     setEntityPage(1);
     setEdgePage(1);
-    setCategoryPage(1);
+    setThreadPage(1);
     // Pass scope explicitly to avoid stale closure
     fetchEpisodes(1, scope);
     fetchEntities(1, scope);
     fetchEdges(1, scope);
-    fetchCategories(1, scope);
+    fetchThreads(1, scope);
     fetchCognition(scope);
+    fetchPreferences(1, scope);
     if (activeTab === 'debug') fetchDebugMemory(scope);
-    if (activeTab === 'preferences') fetchPreferences(1, scope);
   };
 
   // Lazy-load preferences when entering the tab so initial mount stays cheap
   useEffect(() => {
     if (activeTab === 'preferences' && preferences.length === 0 && !isLoadingPreferences) {
       fetchPreferences(1);
+    }
+    if (activeTab === 'threads' && threads.length === 0 && !isLoadingThreads) {
+      fetchThreads(1);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
@@ -2098,8 +1963,34 @@ export default function AIMemoryPage() {
     }
   };
 
+  const handleReconcileIndex = async () => {
+    try {
+      setIsReconciling(true);
+      const result = await memoryApi.rebuildProjection({
+        scope_key: selectedScope === 'all' ? undefined : selectedScope,
+      });
+      toast.success(
+        t('aiMemory.reconcileDone', {
+          rows: result.fts_rows,
+          vectors: result.vectors_repaired,
+        }),
+      );
+      const statsData = await memoryApi.getStats({
+        scope_key: selectedScope === 'all' ? undefined : selectedScope,
+      });
+      if (statsData) setStats(statsData);
+      if (activeTab === 'threads') {
+        await fetchThreads(threadPage);
+      }
+    } catch {
+      toast.error(t('aiMemory.reconcileFailed'));
+    } finally {
+      setIsReconciling(false);
+    }
+  };
+
   const openDetailDialog = async (
-    type: 'episode' | 'entity' | 'edge' | 'category' | 'world',
+    type: 'episode' | 'entity' | 'edge' | 'thread' | 'world',
     id: string,
   ) => {
     setDialogType(type);
@@ -2132,9 +2023,9 @@ export default function AIMemoryPage() {
           setSelectedEdge(data);
           break;
         }
-        case 'category': {
-          const data = await memoryApi.getCategoryDetail(id);
-          setSelectedCategoryDetail(data);
+        case 'thread': {
+          const data = await memoryApi.getThreadDetail(id);
+          setSelectedThreadDetail(data);
           break;
         }
       }
@@ -2186,14 +2077,14 @@ export default function AIMemoryPage() {
           } else setDialogOpen(false);
           break;
         }
-        case 'category': {
-          const cat = categories.find((c) => c.id === id);
-          if (cat)
-            setSelectedCategoryDetail({
-              ...cat,
-              parent_categories: [],
-              child_categories: [],
-              member_entities: [],
+        case 'thread': {
+          const th = threads.find((t) => t.id === id);
+          if (th)
+            setSelectedThreadDetail({
+              ...th,
+              milestones: [],
+              episodes: [],
+              entities: [],
             });
           else setDialogOpen(false);
           break;
@@ -2221,6 +2112,80 @@ export default function AIMemoryPage() {
       });
   }, [edges, entities, selectedEntity]);
 
+  const edgeSlices: RatioSlice[] = useMemo(() => {
+    if (!stats) return [];
+    const counts = stats.edge_state_counts ?? {};
+    const active = counts.active ?? stats.active_edge_count ?? 0;
+    const staging = counts.staging ?? 0;
+    const superseded = counts.superseded ?? 0;
+    const contradicted = counts.contradicted ?? 0;
+    const classifiedTotal = active + staging + superseded + contradicted;
+    const inactiveOrHistorical = Math.max(0, stats.edge_count - classifiedTotal);
+
+    const slices: RatioSlice[] = [];
+    if (active > 0) {
+      slices.push({
+        label: t('aiMemory.edgeState_active'),
+        value: active,
+        text: active.toLocaleString(),
+        color: '#10b981',
+      });
+    }
+    if (staging > 0) {
+      slices.push({
+        label: t('aiMemory.resolutionStaging'),
+        value: staging,
+        text: staging.toLocaleString(),
+        color: '#f59e0b',
+      });
+    }
+    if (superseded > 0) {
+      slices.push({
+        label: t('aiMemory.resolutionSuperseded'),
+        value: superseded,
+        text: superseded.toLocaleString(),
+        color: '#64748b',
+      });
+    }
+    if (contradicted > 0) {
+      slices.push({
+        label: t('aiMemory.resolutionContradicted'),
+        value: contradicted,
+        text: contradicted.toLocaleString(),
+        color: '#f43f5e',
+      });
+    }
+    if (inactiveOrHistorical > 0) {
+      slices.push({
+        label: t('aiMemory.edgeState_inactive'),
+        value: inactiveOrHistorical,
+        text: inactiveOrHistorical.toLocaleString(),
+        color: '#94a3b8',
+      });
+    }
+    return slices;
+  }, [stats, t]);
+
+  const entitySlices: RatioSlice[] = useMemo(() => {
+    if (!stats) return [];
+    const speakers = stats.speaker_entity_count ?? 0;
+    const others = Math.max(0, stats.entity_count - speakers);
+    return [
+      {
+        label: t('aiMemory.statsSpeakers'),
+        value: speakers,
+        text: speakers.toLocaleString(),
+        color: '#6366f1',
+      },
+      {
+        label: t('aiMemory.legendEntity'),
+        value: others,
+        text: others.toLocaleString(),
+        color: '#06b6d4',
+      },
+    ];
+  }, [stats, t]);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -2247,12 +2212,33 @@ export default function AIMemoryPage() {
             <Button
               variant="outline"
               className={cn(tabToolbarControlClass, 'w-full sm:w-auto sm:shrink-0')}
+              disabled={isReconciling}
+              onClick={handleReconcileIndex}
+            >
+              <Zap className={cn('w-4 h-4', isReconciling && 'animate-spin')} />
+              {t('aiMemory.reconcile')}
+            </Button>
+            <Button
+              variant="outline"
+              className={cn(tabToolbarControlClass, 'w-full sm:w-auto sm:shrink-0')}
               asChild
             >
               <Link to="/ai-runtime?tab=cognition">
                 <Globe className="w-4 h-4" />
                 {t('aiMemory.cognitionIndexLink')}
               </Link>
+            </Button>
+            <Button
+              variant="outline"
+              className={cn(
+                tabToolbarControlClass,
+                'w-full sm:w-auto sm:shrink-0',
+                activeTab === 'debug' && 'bg-primary/20 text-primary border-primary/50 font-medium',
+              )}
+              onClick={() => setActiveTab('debug')}
+            >
+              <AlertCircle className="w-4 h-4" />
+              调试视图
             </Button>
             <Button
               variant="outline"
@@ -2278,158 +2264,243 @@ export default function AIMemoryPage() {
         </GlassAlert>
       )}
 
-      {/* Stats：8 卡缩略成单行（大屏单行 8 列，小屏自适应） */}
+      {/* Dashboard Metrics：对称三列 4+4+4 排布，承载全局核心指标与视图切换 */}
       {stats && (
-        <div className="glass-card-grid grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
-          <StatsCard
-            title={t('aiMemory.statsEpisodes')}
-            value={stats.episode_count}
-            icon={MessageSquare}
-            isGlass={isGlass}
-          />
-          <StatsCard
-            title={t('aiMemory.statsEntities')}
-            value={stats.entity_count}
-            icon={Brain}
-            isGlass={isGlass}
-          />
-          <StatsCard
-            title={t('aiMemory.statsEdges')}
-            value={stats.edge_count}
-            icon={GitBranch}
-            isGlass={isGlass}
-          />
-          <StatsCard
-            title={t('aiMemory.statsCategories')}
-            value={stats.category_count}
-            icon={FolderTree}
-            isGlass={isGlass}
-          />
-          <StatsCard
-            title={t('aiMemory.statsSpeakers')}
-            value={stats.speaker_entity_count}
-            icon={Users}
-            isGlass={isGlass}
-          />
-          <StatsCard
-            title={t('aiMemory.statsActiveEdges')}
-            value={stats.active_edge_count}
-            icon={Zap}
-            isGlass={isGlass}
-          />
-          <StatsCard
-            title={t('aiMemory.statsScopes')}
-            value={stats.scope_keys.length}
-            icon={Network}
-            isGlass={isGlass}
-          />
-          <StatsCard
-            title={t('aiMemory.statsQueue')}
-            value={stats.observation_queue_size}
-            icon={Clock}
-            isGlass={isGlass}
-          />
+        <div className="grid grid-cols-1 gap-3 md:gap-2.5 md:grid-cols-12">
+          {/* Card 1: 记忆边与事实 (4列，主体切换至边列表，右上角含偏好统计与图谱入口) */}
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={() => setActiveTab('edges')}
+            className="md:col-span-6 xl:col-span-4 cursor-pointer group"
+          >
+            <MetricHero
+              className={cn(
+                'h-full transition-all duration-200 hover:border-border/80',
+                activeTab === 'edges' &&
+                  'ring-1 ring-primary/40 border-primary/50 shadow-sm bg-primary/[0.02]',
+              )}
+              title={t('aiMemory.statsEdges')}
+              value={stats.edge_count.toLocaleString()}
+              desc={`${stats.active_edge_count.toLocaleString()} ${t('aiMemory.edgeState_active')} · ${(
+                (stats.active_edge_count / Math.max(stats.edge_count, 1)) *
+                100
+              ).toFixed(1)}% ${t('aiMemory.activeRatio')}`}
+              icon={GitBranch}
+              extra={
+                <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={cn(
+                      'h-6 shrink-0 gap-1 px-2 text-xs text-muted-foreground hover:text-foreground rounded-md bg-muted/20 hover:bg-muted/40 border border-border/30 transition-all',
+                      activeTab === 'preferences' &&
+                        'bg-indigo-500/15 text-indigo-400 border-indigo-500/30 font-medium',
+                    )}
+                    onClick={() => setActiveTab('preferences')}
+                  >
+                    <ListChecks className="w-3.5 h-3.5 text-indigo-400" />
+                    <span>{t('aiMemory.tabPreferences')}</span>
+                    <span className="font-semibold tabular-nums text-foreground">
+                      {totalPreferences}
+                    </span>
+                    <ChevronRight className="w-3 h-3 opacity-60" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={cn(
+                      'h-6 shrink-0 gap-1 px-2 text-xs text-muted-foreground hover:text-foreground rounded-md bg-muted/20 hover:bg-muted/40 border border-border/30 transition-all',
+                      activeTab === 'graph' &&
+                        'bg-emerald-500/15 text-emerald-400 border-emerald-500/30 font-medium',
+                    )}
+                    onClick={() => setActiveTab('graph')}
+                  >
+                    <Network className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>{t('aiMemory.tabGraph')}</span>
+                    <ChevronRight className="w-3 h-3 opacity-60" />
+                  </Button>
+                </div>
+              }
+            >
+              <RatioBar slices={edgeSlices} total={stats.edge_count} />
+            </MetricHero>
+          </div>
+
+          {/* Card 2: 记忆实体与发言人 (4列，主体切换至实体列表，右上角含世界枢纽统计与入口) */}
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={() => setActiveTab('entities')}
+            className="md:col-span-6 xl:col-span-4 cursor-pointer group"
+          >
+            <MetricHero
+              className={cn(
+                'h-full transition-all duration-200 hover:border-border/80',
+                activeTab === 'entities' &&
+                  'ring-1 ring-primary/40 border-primary/50 shadow-sm bg-primary/[0.02]',
+              )}
+              title={t('aiMemory.statsEntities')}
+              value={stats.entity_count.toLocaleString()}
+              desc={`${stats.speaker_entity_count.toLocaleString()} ${t('aiMemory.statsSpeakers')} · ${(
+                (stats.speaker_entity_count / Math.max(stats.entity_count, 1)) *
+                100
+              ).toFixed(1)}% ${t('aiMemory.speakerRatio')}`}
+              icon={Brain}
+              extra={
+                <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={cn(
+                      'h-6 shrink-0 gap-1 px-2 text-xs text-muted-foreground hover:text-foreground rounded-md bg-muted/20 hover:bg-muted/40 border border-border/30 transition-all',
+                      activeTab === 'world' &&
+                        'bg-cyan-500/15 text-cyan-400 border-cyan-500/30 font-medium',
+                    )}
+                    onClick={() => setActiveTab('world')}
+                  >
+                    <BookOpen className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>{t('aiMemory.tabWorld')}</span>
+                    <span className="font-semibold tabular-nums text-foreground">
+                      {worldHubs.length}
+                    </span>
+                    <ChevronRight className="w-3 h-3 opacity-60" />
+                  </Button>
+                </div>
+              }
+            >
+              <RatioBar slices={entitySlices} total={stats.entity_count} />
+            </MetricHero>
+          </div>
+
+          {/* Card 3: 运行与流转概览 (2x2 紧凑四格，无多余头部，削减空白) (4列) */}
+          <div className="md:col-span-12 xl:col-span-4">
+            <Card className="glass-card flex flex-col h-full">
+              <CardContent className="flex-1 p-3 sm:p-3.5 flex flex-col justify-center">
+                <div className="grid grid-cols-2 gap-2 h-full">
+                  {/* Item 1: 对话片段 */}
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setActiveTab('episodes')}
+                    className={cn(
+                      'flex flex-col justify-between p-2.5 rounded-lg bg-muted/20 hover:bg-muted/40 transition-colors cursor-pointer border border-border/30',
+                      activeTab === 'episodes' &&
+                        'border-primary/50 bg-primary/10 shadow-sm font-medium',
+                    )}
+                  >
+                    <div className="flex items-center justify-between text-muted-foreground">
+                      <span className="text-[11px] font-medium flex items-center gap-1">
+                        <MessageSquare className="w-3.5 h-3.5 text-primary" />
+                        {t('aiMemory.statsEpisodes')}
+                      </span>
+                      <ChevronRight className="w-3.5 h-3.5 opacity-60" />
+                    </div>
+                    <div className="mt-1 flex items-baseline justify-between gap-1">
+                      <p className="text-lg font-bold tabular-nums leading-none">
+                        {stats.episode_count.toLocaleString()}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground truncate">{t('aiMemory.episodesDesc')}</p>
+                    </div>
+                  </div>
+
+                  {/* Item 2: 故事线 */}
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setActiveTab('threads')}
+                    className={cn(
+                      'flex flex-col justify-between p-2.5 rounded-lg bg-muted/20 hover:bg-muted/40 transition-colors cursor-pointer border border-border/30',
+                      activeTab === 'threads' &&
+                        'border-indigo-500/50 bg-indigo-500/10 shadow-sm font-medium',
+                    )}
+                  >
+                    <div className="flex items-center justify-between text-muted-foreground">
+                      <span className="text-[11px] font-medium flex items-center gap-1">
+                        <Layers className="w-3.5 h-3.5 text-indigo-400" />
+                        {t('aiMemory.statsThreads')}
+                      </span>
+                      <ChevronRight className="w-3.5 h-3.5 opacity-60" />
+                    </div>
+                    <div className="mt-1 flex items-baseline justify-between gap-1">
+                      <p className="text-lg font-bold tabular-nums leading-none">
+                        {(stats.thread_count ?? 0).toLocaleString()}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground truncate">{t('aiMemory.threadsDesc')}</p>
+                    </div>
+                  </div>
+
+                  {/* Item 3: 记忆范围 */}
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setActiveTab('scopes')}
+                    className={cn(
+                      'flex flex-col justify-between p-2.5 rounded-lg bg-muted/20 hover:bg-muted/40 transition-colors cursor-pointer border border-border/30',
+                      activeTab === 'scopes' &&
+                        'border-cyan-500/50 bg-cyan-500/10 shadow-sm font-medium',
+                    )}
+                  >
+                    <div className="flex items-center justify-between text-muted-foreground">
+                      <span className="text-[11px] font-medium flex items-center gap-1">
+                        <Globe className="w-3.5 h-3.5 text-cyan-400" />
+                        {t('aiMemory.statsScopes')}
+                      </span>
+                      <ChevronRight className="w-3.5 h-3.5 opacity-60" />
+                    </div>
+                    <div className="mt-1 flex items-baseline justify-between gap-1">
+                      <p className="text-lg font-bold tabular-nums leading-none">
+                        {stats.scope_keys.length.toLocaleString()}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground truncate">{t('aiMemory.scopesDesc')}</p>
+                    </div>
+                  </div>
+
+                  {/* Item 4: 摄入队列 */}
+                  <div className="flex flex-col justify-between p-2.5 rounded-lg bg-muted/20 border border-border/30">
+                    <div className="flex items-center justify-between text-muted-foreground">
+                      <span className="text-[11px] font-medium flex items-center gap-1">
+                        <Clock className="w-3.5 h-3.5 text-amber-400" />
+                        {t('aiMemory.statsQueue')}
+                      </span>
+                      <span
+                        className={cn(
+                          'w-2 h-2 rounded-full',
+                          stats.observation_queue_size === 0
+                            ? 'bg-emerald-500'
+                            : 'bg-amber-500 animate-pulse',
+                        )}
+                      />
+                    </div>
+                    <div className="mt-1 flex items-baseline justify-between gap-1">
+                      <p className="text-lg font-bold tabular-nums leading-none">
+                        {stats.observation_queue_size.toLocaleString()}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground truncate">
+                        {stats.observation_queue_size === 0
+                          ? t('aiMemory.queueEmpty')
+                          : t('aiMemory.queuePending')}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       )}
 
-      {/* Hierarchical Graph Status */}
-      {hierGraphStatus && (
+      {/* Group Summary Cache */}
+      {hierGraphStatus?.group_summary_cache && (
         <Card className={cn('glass-card')}>
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Layers className="w-5 h-5 text-primary" />
-              {t('aiMemory.hierGraphStatus')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 text-sm">
-              <div>
-                <p className="text-muted-foreground">{t('aiMemory.initialized')}</p>
-                <p className="font-semibold">
-                  {hierGraphStatus.initialized ? t('common.yes') : t('common.no')}
-                </p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">{t('aiMemory.maxLayer')}</p>
-                <p className="font-semibold">{hierGraphStatus.max_layer}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">{t('aiMemory.lastRebuild')}</p>
-                <p className="font-semibold">{formatDate(hierGraphStatus.last_rebuild_at)}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">{t('aiMemory.entityCountAtRebuild')}</p>
-                <p className="font-semibold">{hierGraphStatus.entity_count_at_last_rebuild}</p>
-              </div>
-            </div>
-            {hierGraphStatus.group_summary_cache && (
-              <div className="mt-3 md:mt-4">
-                <p className="text-sm text-muted-foreground">{t('aiMemory.groupSummary')}</p>
-                <p className="text-sm mt-1 p-2 bg-muted/50 rounded">
-                  {hierGraphStatus.group_summary_cache}
-                </p>
-              </div>
-            )}
+          <CardContent className="p-3">
+            <p className="text-xs text-muted-foreground">{t('aiMemory.groupSummary')}</p>
+            <p className="mt-1 text-sm bg-muted/50 rounded p-2">
+              {hierGraphStatus.group_summary_cache}
+            </p>
           </CardContent>
         </Card>
       )}
-
-      {/* Tabs：与上方统计卡同宽，避免 shadow 负边距导致右边不齐 */}
-      <div className="w-full min-w-0">
-        <TabButtonGroup
-          value={activeTab}
-          onValueChange={setActiveTab}
-          className="w-full max-w-full"
-          options={[
-            {
-              value: 'graph',
-              label: t('aiMemory.tabGraph'),
-              icon: <Network className="w-4 h-4" />,
-            },
-            {
-              value: 'world',
-              label: t('aiMemory.tabWorld'),
-              icon: <BookOpen className="w-4 h-4" />,
-            },
-            {
-              value: 'preferences',
-              label: t('aiMemory.tabPreferences'),
-              icon: <ListChecks className="w-4 h-4" />,
-            },
-            {
-              value: 'scopes',
-              label: t('aiMemory.tabScopes'),
-              icon: <Globe className="w-4 h-4" />,
-            },
-            {
-              value: 'episodes',
-              label: t('aiMemory.tabEpisodes'),
-              icon: <MessageSquare className="w-4 h-4" />,
-            },
-            {
-              value: 'entities',
-              label: t('aiMemory.tabEntities'),
-              icon: <Brain className="w-4 h-4" />,
-            },
-            {
-              value: 'edges',
-              label: t('aiMemory.tabEdges'),
-              icon: <GitBranch className="w-4 h-4" />,
-            },
-            {
-              value: 'categories',
-              label: t('aiMemory.tabCategories'),
-              icon: <FolderTree className="w-4 h-4" />,
-            },
-            { value: 'debug', label: '调试视图', icon: <AlertCircle className="w-4 h-4" /> },
-            {
-              value: 'config',
-              label: t('aiMemory.tabConfig'),
-              icon: <Settings className="w-4 h-4" />,
-            },
-          ]}
-        />
-      </div>
 
       {/* Knowledge Graph Tab */}
       {activeTab === 'graph' && (
@@ -2445,7 +2516,6 @@ export default function AIMemoryPage() {
             <KnowledgeGraph
               entities={entities}
               edges={edges}
-              categories={categories}
               isGlass={isGlass}
               isDark={isDark}
               onNodeClick={(type, id) => openDetailDialog(type, id)}
@@ -2456,7 +2526,6 @@ export default function AIMemoryPage() {
               onRefresh={() => {
                 fetchEntities(1);
                 fetchEdges(1);
-                fetchCategories(1);
                 fetchCognition();
               }}
             />
@@ -3085,6 +3154,16 @@ export default function AIMemoryPage() {
                 allLabel={t('aiMemory.allScopes')}
                 className="w-[180px]"
               />
+              <label className="flex items-center gap-2 text-xs text-muted-foreground whitespace-nowrap">
+                <Switch
+                  checked={includeEdgeHistory}
+                  onCheckedChange={(checked) => {
+                    setIncludeEdgeHistory(checked);
+                    setTimeout(() => fetchEdges(1), 0);
+                  }}
+                />
+                {t('aiMemory.showEdgeHistory')}
+              </label>
               <Button variant="outline" size="sm" onClick={() => fetchEdges(edgePage)}>
                 <RefreshCw className="w-4 h-4 mr-1" />
                 {t('common.refresh')}
@@ -3156,12 +3235,12 @@ export default function AIMemoryPage() {
         </div>
       )}
 
-      {/* Categories Tab */}
-      {activeTab === 'categories' && (
+      {/* Threads Tab */}
+      {activeTab === 'threads' && (
         <div className="space-y-3 md:space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <p className="text-sm text-muted-foreground">
-              {t('aiMemory.categoryCount', { count: categories.length, total: totalCategories })}
+              {t('aiMemory.threadCount', { count: threads.length, total: totalThreads })}
             </p>
             <div className="flex gap-2">
               <ScopeSelector
@@ -3171,32 +3250,93 @@ export default function AIMemoryPage() {
                 allLabel={t('aiMemory.allScopes')}
                 className="w-[180px]"
               />
-              <Button variant="outline" size="sm" onClick={() => fetchCategories(categoryPage)}>
+              <Button variant="outline" size="sm" onClick={() => fetchThreads(threadPage)}>
                 <RefreshCw className="w-4 h-4 mr-1" />
                 {t('common.refresh')}
               </Button>
             </div>
           </div>
-          {isLoadingData ? (
-            <div className="space-y-3">
-              {Array.from({ length: 4 }).map((_, i) => (
+          {isLoadingThreads ? (
+            <div className="space-y-2">
+              {Array.from({ length: 5 }).map((_, i) => (
                 <Skeleton key={i} className="h-24 w-full" />
               ))}
             </div>
-          ) : categories.length === 0 ? (
+          ) : threads.length === 0 ? (
             <Card className={cn('glass-card')}>
               <CardContent className="flex flex-col items-center justify-center !p-8 text-center text-muted-foreground">
-                <FolderTree className="w-12 h-12 mb-4 opacity-50" />
-                <p>{t('aiMemory.noCategories')}</p>
+                <Layers className="w-12 h-12 mb-4 opacity-50" />
+                <p>{t('aiMemory.noThreads')}</p>
               </CardContent>
             </Card>
           ) : (
-            <CategoryLayerTree
-              categories={categories}
-              isGlass={isGlass}
-              isDark={isDark}
-              onClick={(id) => openDetailDialog('category', id)}
-            />
+            <div className="space-y-2">
+              {threads.map((thread) => (
+                <Card
+                  key={thread.id}
+                  className={cn('glass-card cursor-pointer transition-all hover:border-primary/50')}
+                  onClick={() => openDetailDialog('thread', thread.id)}
+                >
+                  <CardContent className="p-4 space-y-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="font-medium truncate">{thread.title || thread.id}</p>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-xs">
+                          {t('aiMemory.milestones')} {thread.milestone_count}
+                        </Badge>
+                        <Badge variant="secondary" className="text-xs">
+                          {thread.status}
+                        </Badge>
+                      </div>
+                    </div>
+                    {thread.summary && (
+                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                        {thread.summary}
+                      </p>
+                    )}
+                    {thread.aliases.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {thread.aliases.map((alias) => (
+                          <Badge key={alias} variant="outline" className="text-xs">
+                            {alias}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {t('aiMemory.lastActive')}: {formatDate(thread.last_at ?? '')}
+                      </span>
+                      <span className="font-mono truncate">{thread.scope_key}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+          {totalThreads > 20 && (
+            <div className="flex justify-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={threadPage <= 1}
+                onClick={() => fetchThreads(threadPage - 1)}
+              >
+                {t('common.previousPage')}
+              </Button>
+              <span className="flex items-center text-sm text-muted-foreground">
+                {threadPage} / {Math.ceil(totalThreads / 20)}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={threadPage >= Math.ceil(totalThreads / 20)}
+                onClick={() => fetchThreads(threadPage + 1)}
+              >
+                {t('common.nextPage')}
+              </Button>
+            </div>
           )}
         </div>
       )}
@@ -3424,14 +3564,6 @@ export default function AIMemoryPage() {
                       </p>
                     </div>
                     <div>
-                      <Label className="text-muted-foreground">{t('aiMemory.batchInterval')}</Label>
-                      <p className="font-semibold">{config.batch_interval_seconds}s</p>
-                    </div>
-                    <div>
-                      <Label className="text-muted-foreground">{t('aiMemory.batchMaxSize')}</Label>
-                      <p className="font-semibold">{config.batch_max_size}</p>
-                    </div>
-                    <div>
                       <Label className="text-muted-foreground">{t('aiMemory.llmSemaphore')}</Label>
                       <p className="font-semibold">{config.llm_semaphore_limit}</p>
                     </div>
@@ -3454,12 +3586,6 @@ export default function AIMemoryPage() {
                       </Label>
                       <p className="font-semibold">
                         {config.enable_retrieval ? t('common.enabled') : t('common.disabled')}
-                      </p>
-                    </div>
-                    <div>
-                      <Label className="text-muted-foreground">{t('aiMemory.enableSystem2')}</Label>
-                      <p className="font-semibold">
-                        {config.enable_system2 ? t('common.enabled') : t('common.disabled')}
                       </p>
                     </div>
                     <div>
@@ -3508,45 +3634,6 @@ export default function AIMemoryPage() {
                   </div>
                 </CardContent>
               </Card>
-              <Card className={cn('glass-card')}>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Layers className="w-5 h-5" />
-                    {t('aiMemory.hierGraphSettings')}
-                  </CardTitle>
-                  <CardDescription>{t('aiMemory.hierGraphSettingsDesc')}</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3 md:space-y-4">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-                    <div>
-                      <Label className="text-muted-foreground">
-                        {t('aiMemory.minChildrenPerCategory')}
-                      </Label>
-                      <p className="font-semibold">{config.min_children_per_category}</p>
-                    </div>
-                    <div>
-                      <Label className="text-muted-foreground">{t('aiMemory.maxLayers')}</Label>
-                      <p className="font-semibold">{config.max_layers}</p>
-                    </div>
-                    <div>
-                      <Label className="text-muted-foreground">
-                        {t('aiMemory.hierGraphRebuildRatio')}
-                      </Label>
-                      <p className="font-semibold">
-                        {(config.hiergraph_rebuild_ratio * 100).toFixed(0)}%
-                      </p>
-                    </div>
-                    <div>
-                      <Label className="text-muted-foreground">
-                        {t('aiMemory.hierGraphRebuildInterval')}
-                      </Label>
-                      <p className="font-semibold">
-                        {(config.hiergraph_rebuild_interval_seconds / 3600).toFixed(0)}h
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
             </>
           )}
         </div>
@@ -3562,7 +3649,7 @@ export default function AIMemoryPage() {
               {dialogType === 'episode' && t('aiMemory.episodeDetail')}
               {dialogType === 'entity' && t('aiMemory.entityDetail')}
               {dialogType === 'edge' && t('aiMemory.edgeDetail')}
-              {dialogType === 'category' && t('aiMemory.categoryDetail')}
+              {dialogType === 'thread' && t('aiMemory.threadDetail')}
               {dialogType === 'world' && t('aiMemory.worldHubDetail')}
             </DialogTitle>
             <DialogDescription className="sr-only">
@@ -3897,56 +3984,116 @@ export default function AIMemoryPage() {
                 </div>
               </div>
             )}
-            {dialogType === 'category' && selectedCategoryDetail && (
+            {dialogType === 'thread' && selectedThreadDetail && (
               <div className="space-y-3 md:space-y-4">
                 <div>
                   <Label className="text-muted-foreground">{t('aiMemory.scopeKey')}</Label>
-                  <p className="font-mono text-sm">{selectedCategoryDetail.scope_key}</p>
+                  <p className="font-mono text-sm">{selectedThreadDetail.scope_key}</p>
                 </div>
-                <div>
-                  <Label className="text-muted-foreground">{t('aiMemory.name')}</Label>
-                  <p className="font-medium">{selectedCategoryDetail.name}</p>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <Label className="text-muted-foreground">{t('aiMemory.title')}</Label>
+                    <p className="font-medium text-base">
+                      {selectedThreadDetail.title || selectedThreadDetail.id}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-xs">
+                      {t('aiMemory.milestones')}{' '}
+                      {selectedThreadDetail.milestones?.length ??
+                        selectedThreadDetail.milestone_count}
+                    </Badge>
+                    <Badge variant="secondary" className="text-xs">
+                      {selectedThreadDetail.status}
+                    </Badge>
+                  </div>
                 </div>
-                {selectedCategoryDetail.summary && (
+                {selectedThreadDetail.summary && (
                   <div>
                     <Label className="text-muted-foreground">{t('aiMemory.summary')}</Label>
-                    <p className="mt-1 p-2 bg-muted/50 rounded text-sm">
-                      {selectedCategoryDetail.summary}
+                    <p className="mt-1 p-2.5 bg-muted/50 rounded-md text-sm whitespace-pre-wrap">
+                      {selectedThreadDetail.summary}
                     </p>
                   </div>
                 )}
-                {selectedCategoryDetail.tag.length > 0 && (
+                {selectedThreadDetail.aliases && selectedThreadDetail.aliases.length > 0 && (
                   <div>
-                    <Label className="text-muted-foreground">{t('aiMemory.tags')}</Label>
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {selectedCategoryDetail.tag.map((tag) => (
-                        <Badge key={tag} variant="outline">
-                          {tag}
+                    <Label className="text-muted-foreground">{t('aiMemory.aliases')}</Label>
+                    <div className="flex flex-wrap gap-1.5 mt-1">
+                      {selectedThreadDetail.aliases.map((alias) => (
+                        <Badge key={alias} variant="outline" className="text-xs">
+                          {alias}
                         </Badge>
                       ))}
                     </div>
                   </div>
                 )}
-                <div className="grid grid-cols-2 gap-3 md:gap-4 text-sm">
+                <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
-                    <Label className="text-muted-foreground">{t('aiMemory.layer')}</Label>
-                    <p className="font-semibold">{selectedCategoryDetail.layer}</p>
+                    <Label className="text-muted-foreground">{t('aiMemory.firstAt')}</Label>
+                    <p className="font-mono text-xs">{formatDate(selectedThreadDetail.first_at)}</p>
                   </div>
                   <div>
-                    <Label className="text-muted-foreground">{t('aiMemory.memberEntities')}</Label>
-                    <p className="font-semibold">{selectedCategoryDetail.member_entities_count}</p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3 md:gap-4 text-sm">
-                  <div>
-                    <Label className="text-muted-foreground">{t('aiMemory.createdAt')}</Label>
-                    <p>{formatDate(selectedCategoryDetail.created_at)}</p>
-                  </div>
-                  <div>
-                    <Label className="text-muted-foreground">{t('aiMemory.updatedAt')}</Label>
-                    <p>{formatDate(selectedCategoryDetail.updated_at)}</p>
+                    <Label className="text-muted-foreground">{t('aiMemory.lastAt')}</Label>
+                    <p className="font-mono text-xs">{formatDate(selectedThreadDetail.last_at)}</p>
                   </div>
                 </div>
+                {selectedThreadDetail.milestones && selectedThreadDetail.milestones.length > 0 && (
+                  <div>
+                    <Label className="text-muted-foreground">{t('aiMemory.threadMilestones')}</Label>
+                    <div className="space-y-1.5 mt-1.5 max-h-56 overflow-y-auto">
+                      {selectedThreadDetail.milestones.map((m) => (
+                        <div
+                          key={m.id}
+                          className="rounded-md border border-border/40 p-2 text-sm flex items-start gap-2"
+                        >
+                          <span className="text-[11px] font-mono text-muted-foreground whitespace-nowrap mt-0.5">
+                            {formatDate(m.event_at || m.valid_at)}
+                          </span>
+                          <span className="min-w-0 flex-1">{m.fact}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {selectedThreadDetail.entities && selectedThreadDetail.entities.length > 0 && (
+                  <div>
+                    <Label className="text-muted-foreground">{t('aiMemory.threadEntities')}</Label>
+                    <div className="flex flex-wrap gap-1.5 mt-1.5">
+                      {selectedThreadDetail.entities.map((ent) => (
+                        <Badge
+                          key={ent.id}
+                          variant="outline"
+                          className="text-xs cursor-pointer hover:bg-muted"
+                          onClick={() => openDetailDialog('entity', ent.id)}
+                        >
+                          {ent.name}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {selectedThreadDetail.episodes && selectedThreadDetail.episodes.length > 0 && (
+                  <div>
+                    <Label className="text-muted-foreground">{t('aiMemory.threadEpisodes')}</Label>
+                    <div className="space-y-1.5 mt-1.5 max-h-48 overflow-y-auto">
+                      {selectedThreadDetail.episodes.map((ep) => (
+                        <div
+                          key={ep.id}
+                          className="rounded-md border border-border/40 p-2 text-sm cursor-pointer hover:bg-muted/40 transition-colors"
+                          onClick={() => openDetailDialog('episode', ep.id)}
+                        >
+                          <p className="text-[11px] font-mono text-muted-foreground mb-0.5">
+                            {formatDate(ep.valid_at)}
+                          </p>
+                          <p className="whitespace-pre-wrap break-words">
+                            {truncateText(ep.content, 200)}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -4031,7 +4178,7 @@ export default function AIMemoryPage() {
                   if (statsData) setStats(statsData);
                   fetchEntities(1);
                   fetchEdges(1);
-                  fetchCategories(1);
+                  fetchThreads(1);
                   fetchEpisodes(1);
                 } catch (_error) {
                   toast.error(t('aiMemory.clearMemoryFailed'));
