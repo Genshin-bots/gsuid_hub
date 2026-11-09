@@ -576,7 +576,7 @@ export function CapabilityAgentsPanel({ capability }: { capability: UseCapabilit
                     disabled={isReadOnly}
                     value={form.display_name}
                     onChange={(e) => updateForm('display_name', e.target.value)}
-                    placeholder={t('aiCapabilityAgents.fields.displayNamePlaceholder')}
+                    placeholder={t('aiCapabilityAgents.placeholders.displayName')}
                   />
                 </div>
               </div>
@@ -589,7 +589,7 @@ export function CapabilityAgentsPanel({ capability }: { capability: UseCapabilit
                   disabled={isReadOnly}
                   value={form.when_to_use}
                   onChange={(e) => updateForm('when_to_use', e.target.value)}
-                  placeholder={t('aiCapabilityAgents.fields.whenToUsePlaceholder')}
+                  placeholder={t('aiCapabilityAgents.placeholders.whenToUse')}
                   rows={2}
                 />
               </div>
@@ -609,7 +609,7 @@ export function CapabilityAgentsPanel({ capability }: { capability: UseCapabilit
                     id="prompt"
                     value={form.prompt}
                     onChange={(e) => updateForm('prompt', e.target.value)}
-                    placeholder={t('aiCapabilityAgents.fields.promptPlaceholder')}
+                    placeholder={t('aiCapabilityAgents.placeholders.prompt')}
                     rows={8}
                     className="font-mono text-sm"
                   />
@@ -618,7 +618,7 @@ export function CapabilityAgentsPanel({ capability }: { capability: UseCapabilit
 
               {/* 触发关键词 */}
               <div className="space-y-2">
-                <Label>{t('aiCapabilityAgents.fields.keywords')}</Label>
+                <Label>{t('aiCapabilityAgents.fields.matchKeywords')}</Label>
                 {isReadOnly ? (
                   <div className="flex flex-wrap gap-2">
                     {form.match_keywords.length > 0 ? (
@@ -637,7 +637,7 @@ export function CapabilityAgentsPanel({ capability }: { capability: UseCapabilit
                   <TagInput
                     value={form.match_keywords}
                     onChange={(keywords) => updateForm('match_keywords', keywords)}
-                    placeholder={t('aiCapabilityAgents.fields.keywordsPlaceholder')}
+                    placeholder={t('aiCapabilityAgents.placeholders.matchKeywords')}
                   />
                 )}
               </div>
@@ -680,7 +680,7 @@ export function CapabilityAgentsPanel({ capability }: { capability: UseCapabilit
                 </div>
 
                 <div className="space-y-2">
-                  <Label>{t('aiCapabilityAgents.fields.specificTools')}</Label>
+                  <Label>{t('aiCapabilityAgents.fields.toolNames')}</Label>
                   <ToolMultiSelectDropdown
                     tools={tools}
                     value={form.tool_names}
@@ -704,7 +704,7 @@ export function CapabilityAgentsPanel({ capability }: { capability: UseCapabilit
                     disabled={isReadOnly}
                     value={form.tool_query}
                     onChange={(e) => updateForm('tool_query', e.target.value)}
-                    placeholder={t('aiCapabilityAgents.fields.toolQueryPlaceholder')}
+                    placeholder={t('aiCapabilityAgents.placeholders.toolQuery')}
                   />
                 </div>
 
@@ -717,7 +717,7 @@ export function CapabilityAgentsPanel({ capability }: { capability: UseCapabilit
                     disabled={isReadOnly}
                     value={form.boundary_override}
                     onChange={(e) => updateForm('boundary_override', e.target.value)}
-                    placeholder={t('aiCapabilityAgents.fields.boundaryOverridePlaceholder')}
+                    placeholder={t('aiCapabilityAgents.placeholders.boundaryOverride')}
                     rows={3}
                   />
                 </div>
@@ -753,14 +753,14 @@ export function CapabilityAgentsPanel({ capability }: { capability: UseCapabilit
             <AlertDialogTitle>
               {deleteTarget?.source === 'mcp'
                 ? t('aiCapabilityAgents.restoreConfirmTitle')
-                : t('aiCapabilityAgents.deleteConfirmTitle')}
+                : t('aiCapabilityAgents.deleteDialog.title')}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {deleteTarget?.source === 'mcp'
                 ? t('aiCapabilityAgents.restoreConfirmDesc', {
                     name: deleteTarget?.display_name || deleteTarget?.node_id || '',
                   })
-                : t('aiCapabilityAgents.deleteConfirmDesc', {
+                : t('aiCapabilityAgents.deleteDialog.description', {
                     name: deleteTarget?.display_name || deleteTarget?.node_id || '',
                   })}
             </AlertDialogDescription>

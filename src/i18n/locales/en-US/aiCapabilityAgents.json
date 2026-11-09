@@ -29,18 +29,26 @@
     "editTitle": "Edit Agent Node",
     "viewTitle": "View Agent Node",
     "description": "A node consists of an identity prompt, tool packs, a tool allowlist, and matching keywords. The framework appends the delivery boundary automatically in task mode.",
-    "baseDesc": "Using {base} as a template. Empty fields can be copied by the backend on creation."
+    "baseDesc": "Using {base} as a template. Empty fields can be copied by the backend on creation.",
+    "createDesc": "Create a custom agent node for delegated complex multi-step tasks.",
+    "editDesc": "Modify the identity prompt, tool packs, and configuration of the agent node.",
+    "viewDesc": "View the configuration details of the agent node."
   },
+  "inheritedFrom": "Inherited from template: {base}",
   "fields": {
     "nodeId": "Node ID",
+    "nodeIdHelp": "Start with a letter, lowercase letters, numbers, and underscores only. Cannot be changed after creation.",
     "displayName": "Display Name",
     "whenToUse": "When to Use",
     "prompt": "Identity Prompt",
     "matchKeywords": "Match Keywords",
+    "noKeywords": "No trigger keywords configured",
     "toolPacks": "Tool Packs",
     "toolNames": "Tool Allowlist",
+    "toolSection": "Tools & Tool Packs",
     "toolQuery": "Tool Query",
-    "boundaryOverride": "Delivery Boundary Override"
+    "boundaryOverride": "Delivery Boundary Override",
+    "advancedSection": "Advanced Settings"
   },
   "placeholders": {
     "displayName": "e.g. Trading Assistant",

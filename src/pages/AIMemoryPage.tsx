@@ -8,11 +8,7 @@ import { GlassAlert } from '@/components/ui/glass-alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { tabToolbarControlClass } from '@/components/ui/TabButtonGroup';
 import { headerActionRowClass, PinnedPage } from '@/components/layout/PinnedPage';
-import {
-  MetricHero,
-  RatioBar,
-  type RatioSlice,
-} from '@/components/ui/DataBlock';
+import { MetricHero, RatioBar, type RatioSlice } from '@/components/ui/DataBlock';
 import MemorySearchPanel from '@/components/memory/MemorySearchPanel';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -1024,13 +1020,17 @@ function KnowledgeGraph({
           <span className="flex items-center gap-1.5 font-medium text-foreground">
             <Brain className="w-3.5 h-3.5 text-primary" />
             <span className="text-muted-foreground">{t('aiMemory.legendEntity')}:</span>
-            <span className="font-mono font-semibold tabular-nums">{entities.length.toLocaleString()}</span>
+            <span className="font-mono font-semibold tabular-nums">
+              {entities.length.toLocaleString()}
+            </span>
           </span>
           <span className="text-border/60">|</span>
           <span className="flex items-center gap-1.5 font-medium text-foreground">
             <GitBranch className="w-3.5 h-3.5 text-emerald-500" />
             <span className="text-muted-foreground">{t('aiMemory.statsEdges')}:</span>
-            <span className="font-mono font-semibold tabular-nums">{edges.length.toLocaleString()}</span>
+            <span className="font-mono font-semibold tabular-nums">
+              {edges.length.toLocaleString()}
+            </span>
           </span>
         </div>
 
@@ -1402,7 +1402,7 @@ function EdgeItem({
           )}
           {edge.invalid_at && (
             <Badge variant="destructive" className="text-xs">
-              已失效
+              {t('aiMemory.legendInvalid')}
             </Badge>
           )}
         </div>
@@ -1501,9 +1501,9 @@ export default function AIMemoryPage() {
   const [invalidateEdgeLoading, setInvalidateEdgeLoading] = useState(false);
   const [clearMemoryDialogOpen, setClearMemoryDialogOpen] = useState(false);
   const [clearMemoryLoading, setClearMemoryLoading] = useState(false);
-  const [dialogType, setDialogType] = useState<
-    'episode' | 'entity' | 'edge' | 'thread' | 'world'
-  >('episode');
+  const [dialogType, setDialogType] = useState<'episode' | 'entity' | 'edge' | 'thread' | 'world'>(
+    'episode',
+  );
   const [cognitionNodes, setCognitionNodes] = useState<CognitionNode[]>([]);
   const [selectedWorldHub, setSelectedWorldHub] = useState<CognitionNode | null>(null);
   const [previewArticle, setPreviewArticle] = useState<CognitionAttachment | null>(null);
@@ -2212,7 +2212,7 @@ export default function AIMemoryPage() {
     }
     if (staging > 0) {
       slices.push({
-        label: t('aiMemory.resolutionStaging'),
+        label: t('aiMemory.edgeState_staging'),
         value: staging,
         text: staging.toLocaleString(),
         color: '#f59e0b',
@@ -2220,7 +2220,7 @@ export default function AIMemoryPage() {
     }
     if (superseded > 0) {
       slices.push({
-        label: t('aiMemory.resolutionSuperseded'),
+        label: t('aiMemory.edgeState_superseded'),
         value: superseded,
         text: superseded.toLocaleString(),
         color: '#64748b',
@@ -2228,7 +2228,7 @@ export default function AIMemoryPage() {
     }
     if (contradicted > 0) {
       slices.push({
-        label: t('aiMemory.resolutionContradicted'),
+        label: t('aiMemory.edgeState_contradicted'),
         value: contradicted,
         text: contradicted.toLocaleString(),
         color: '#f43f5e',
@@ -2362,8 +2362,7 @@ export default function AIMemoryPage() {
               title={t('aiMemory.statsEdges')}
               value={stats.edge_count.toLocaleString()}
               desc={`${stats.active_edge_count.toLocaleString()} ${t('aiMemory.edgeState_active')} · ${(
-                (stats.active_edge_count / Math.max(stats.edge_count, 1)) *
-                100
+                (stats.active_edge_count / Math.max(stats.edge_count, 1)) * 100
               ).toFixed(1)}% ${t('aiMemory.activeRatio')}`}
               icon={GitBranch}
               extra={
@@ -2422,8 +2421,7 @@ export default function AIMemoryPage() {
               title={t('aiMemory.statsEntities')}
               value={stats.entity_count.toLocaleString()}
               desc={`${stats.speaker_entity_count.toLocaleString()} ${t('aiMemory.statsSpeakers')} · ${(
-                (stats.speaker_entity_count / Math.max(stats.entity_count, 1)) *
-                100
+                (stats.speaker_entity_count / Math.max(stats.entity_count, 1)) * 100
               ).toFixed(1)}% ${t('aiMemory.speakerRatio')}`}
               icon={Brain}
               extra={
@@ -2479,7 +2477,9 @@ export default function AIMemoryPage() {
                       <p className="text-lg font-bold tabular-nums leading-none">
                         {stats.episode_count.toLocaleString()}
                       </p>
-                      <p className="text-[10px] text-muted-foreground truncate">{t('aiMemory.episodesDesc')}</p>
+                      <p className="text-[10px] text-muted-foreground truncate">
+                        {t('aiMemory.episodesDesc')}
+                      </p>
                     </div>
                   </div>
 
@@ -2505,7 +2505,9 @@ export default function AIMemoryPage() {
                       <p className="text-lg font-bold tabular-nums leading-none">
                         {(stats.thread_count ?? 0).toLocaleString()}
                       </p>
-                      <p className="text-[10px] text-muted-foreground truncate">{t('aiMemory.threadsDesc')}</p>
+                      <p className="text-[10px] text-muted-foreground truncate">
+                        {t('aiMemory.threadsDesc')}
+                      </p>
                     </div>
                   </div>
 
@@ -2531,7 +2533,9 @@ export default function AIMemoryPage() {
                       <p className="text-lg font-bold tabular-nums leading-none">
                         {stats.scope_keys.length.toLocaleString()}
                       </p>
-                      <p className="text-[10px] text-muted-foreground truncate">{t('aiMemory.scopesDesc')}</p>
+                      <p className="text-[10px] text-muted-foreground truncate">
+                        {t('aiMemory.scopesDesc')}
+                      </p>
                     </div>
                   </div>
 
@@ -4184,7 +4188,9 @@ export default function AIMemoryPage() {
                 </div>
                 {selectedThreadDetail.milestones && selectedThreadDetail.milestones.length > 0 && (
                   <div>
-                    <Label className="text-muted-foreground">{t('aiMemory.threadMilestones')}</Label>
+                    <Label className="text-muted-foreground">
+                      {t('aiMemory.threadMilestones')}
+                    </Label>
                     <div className="space-y-1.5 mt-1.5 max-h-56 overflow-y-auto">
                       {selectedThreadDetail.milestones.map((m) => (
                         <div

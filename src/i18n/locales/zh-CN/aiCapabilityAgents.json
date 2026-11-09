@@ -29,18 +29,26 @@
     "editTitle": "编辑 Agent 节点",
     "viewTitle": "查看 Agent 节点",
     "description": "节点由身份提示词、工具能力族、工具白名单和匹配关键词组成；task-mode 派活时框架自动叠加交付边界。",
-    "baseDesc": "当前以 {base} 为模板，新建时未填写字段可由后端回退复制。"
+    "baseDesc": "当前以 {base} 为模板，新建时未填写字段可由后端回退复制。",
+    "createDesc": "创建自定义能力代理节点，用于长任务与复杂多步任务委派。",
+    "editDesc": "修改能力代理节点的提示词、工具能力族与配置。",
+    "viewDesc": "查看能力代理节点的配置信息。"
   },
+  "inheritedFrom": "继承自基底模板：{base}",
   "fields": {
     "nodeId": "Node ID",
+    "nodeIdHelp": "字母开头，仅包含小写字母、数字和下划线，保存后不可更改",
     "displayName": "展示名称",
     "whenToUse": "使用场景",
     "prompt": "身份提示词",
     "matchKeywords": "匹配关键词",
+    "noKeywords": "未配置触发关键词",
     "toolPacks": "工具能力族",
     "toolNames": "工具白名单",
+    "toolSection": "工具与能力族",
     "toolQuery": "工具补充查询",
-    "boundaryOverride": "交付边界覆写"
+    "boundaryOverride": "交付边界覆写",
+    "advancedSection": "高级设置"
   },
   "placeholders": {
     "displayName": "例如：操盘助手",

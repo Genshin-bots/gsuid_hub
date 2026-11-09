@@ -29,18 +29,26 @@
     "editTitle": "Agent ノードを編集",
     "viewTitle": "Agent ノードを表示",
     "description": "ノードはアイデンティティプロンプト、ツールパック、ツール許可リスト、マッチキーワードで構成されます。task モードではフレームワークが納品境界を自動付加します。",
-    "baseDesc": "{base} をテンプレートとして使用しています。作成時の空欄はバックエンドでコピーできます。"
+    "baseDesc": "{base} をテンプレートとして使用しています。作成時の空欄はバックエンドでコピーできます。",
+    "createDesc": "委託された複雑なタスク向けにカスタム Agent ノードを作成します。",
+    "editDesc": "Agent ノードのプロンプト、ツールパック、設定を変更します。",
+    "viewDesc": "Agent ノードの設定詳細を表示します。"
   },
+  "inheritedFrom": "テンプレートから継承：{base}",
   "fields": {
     "nodeId": "Node ID",
+    "nodeIdHelp": "英字で始まり、半角英小文字、数字、アンダースコアのみ使用可能。作成後は変更できません。",
     "displayName": "表示名",
     "whenToUse": "使用場面",
     "prompt": "アイデンティティプロンプト",
     "matchKeywords": "マッチキーワード",
+    "noKeywords": "トリガーキーワード未設定",
     "toolPacks": "ツールパック",
     "toolNames": "ツール許可リスト",
+    "toolSection": "ツールと能力グループ",
     "toolQuery": "ツール補足クエリ",
-    "boundaryOverride": "納品境界の上書き"
+    "boundaryOverride": "納品境界の上書き",
+    "advancedSection": "詳細設定"
   },
   "placeholders": {
     "displayName": "例：取引アシスタント",
