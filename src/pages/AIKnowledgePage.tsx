@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
@@ -231,6 +231,11 @@ export default function AIKnowledgePage() {
   const [_previewDialogOpen, setPreviewDialogOpen] = useState(false);
   const [_previewImageUrl, setPreviewImageUrl] = useState('');
 
+  // 竞态版本号，用于抛弃切换来源/分页/搜索时的过期异步响应
+  const fetchRequestRef = useRef(0);
+  const searchRequestRef = useRef(0);
+  const docViewerRequestRef = useRef(0);
+
   const pluginQuery =
     sourceFilter === 'plugin' && selectedPluginFilter !== ALL_PLUGINS
       ? selectedPluginFilter
@@ -238,6 +243,7 @@ export default function AIKnowledgePage() {
 
   // 加载知识列表
   const fetchKnowledgeList = useCallback(async () => {
+    const requestId = ++fetchRequestRef.current;
     try {
       setIsLoading(true);
 
@@ -248,6 +254,7 @@ export default function AIKnowledgePage() {
           source: sourceFilter,
           plugin: pluginQuery,
         });
+        if (fetchRequestRef.current !== requestId) return;
         setTextKnowledgeList(data.list || []);
         setTotal(data.total);
         setPageSize(data.page_size);
@@ -257,6 +264,7 @@ export default function AIKnowledgePage() {
           limit,
           plugin: 'manual',
         });
+        if (fetchRequestRef.current !== requestId) return;
         setImageKnowledgeList(data.list || []);
         setTotal(data.total);
         setPageSize(data.page_size);
@@ -266,14 +274,18 @@ export default function AIKnowledgePage() {
           limit,
           ...(pluginQuery ? { plugin: pluginQuery } : { source: 'plugin' }),
         });
+        if (fetchRequestRef.current !== requestId) return;
         setImageKnowledgeList(data.list || []);
         setTotal(data.total);
         setPageSize(data.page_size);
       }
     } catch (err) {
+      if (fetchRequestRef.current !== requestId) return;
       toast.error(err instanceof Error ? err.message : t('common.loadFailed'));
     } finally {
-      setIsLoading(false);
+      if (fetchRequestRef.current === requestId) {
+        setIsLoading(false);
+      }
     }
   }, [page, limit, sourceFilter, pluginQuery, knowledgeType, t]);
 
@@ -318,6 +330,7 @@ export default function AIKnowledgePage() {
       return;
     }
 
+    const requestId = ++searchRequestRef.current;
     try {
       setIsSearching(true);
 
@@ -328,9 +341,11 @@ export default function AIKnowledgePage() {
           sourceFilter,
           pluginQuery,
         );
+        if (searchRequestRef.current !== requestId) return;
         setTextSearchResults(data.results || []);
       } else if (sourceFilter === 'manual') {
         const data = await aiImageApi.searchImages(searchQuery, 50, 'manual');
+        if (searchRequestRef.current !== requestId) return;
         setImageSearchResults(data.results || []);
       } else {
         const data = await aiImageApi.searchImages(
@@ -339,14 +354,19 @@ export default function AIKnowledgePage() {
           pluginQuery,
           pluginQuery ? undefined : 'plugin',
         );
+        if (searchRequestRef.current !== requestId) return;
         setImageSearchResults(data.results || []);
       }
 
+      if (searchRequestRef.current !== requestId) return;
       setShowSearchResults(true);
     } catch (err) {
+      if (searchRequestRef.current !== requestId) return;
       toast.error(err instanceof Error ? err.message : t('common.loadFailed'));
     } finally {
-      setIsSearching(false);
+      if (searchRequestRef.current === requestId) {
+        setIsSearching(false);
+      }
     }
   };
 
@@ -737,6 +757,7 @@ export default function AIKnowledgePage() {
   };
 
   const loadDocChunks = async (docId: string, pageNum: number) => {
+    const requestId = ++docViewerRequestRef.current;
     try {
       setDocViewerLoading(true);
       const data = await aiKnowledgeApi.getKnowledgeList({
@@ -745,12 +766,16 @@ export default function AIKnowledgePage() {
         page: pageNum,
         limit: docViewerLimit,
       });
+      if (docViewerRequestRef.current !== requestId) return;
       setDocViewerChunks(data.list || []);
       setDocViewerTotal(data.total || 0);
     } catch (err) {
+      if (docViewerRequestRef.current !== requestId) return;
       toast.error(err instanceof Error ? err.message : t('common.loadFailed'));
     } finally {
-      setDocViewerLoading(false);
+      if (docViewerRequestRef.current === requestId) {
+        setDocViewerLoading(false);
+      }
     }
   };
 
@@ -855,7 +880,10 @@ export default function AIKnowledgePage() {
   const currentPage = page;
 
   const handlePageChange = (newPage: number) => {
+    if (newPage === page) return;
+    fetchRequestRef.current++;
     setPage(newPage);
+    setIsLoading(true);
   };
 
   // 计算页码范围
@@ -928,8 +956,18 @@ export default function AIKnowledgePage() {
         dropdown: {
           value: selectedPluginFilter,
           onValueChange: (value: string) => {
+            fetchRequestRef.current++;
+            searchRequestRef.current++;
             setSelectedPluginFilter(value);
             setPage(1);
+            setShowSearchResults(false);
+            setSearchQuery('');
+            setTextSearchResults([]);
+            setImageSearchResults([]);
+            setTextKnowledgeList([]);
+            setImageKnowledgeList([]);
+            setTotal(0);
+            setIsLoading(true);
           },
           allValue: ALL_PLUGINS,
           align: 'start' as const,
@@ -979,10 +1017,18 @@ export default function AIKnowledgePage() {
                 options={knowledgeTypeOptions}
                 value={knowledgeType}
                 onValueChange={(value) => {
+                  fetchRequestRef.current++;
+                  searchRequestRef.current++;
                   setKnowledgeType(value as KnowledgeType);
                   setPage(1);
                   setShowSearchResults(false);
                   setSearchQuery('');
+                  setTextSearchResults([]);
+                  setImageSearchResults([]);
+                  setTextKnowledgeList([]);
+                  setImageKnowledgeList([]);
+                  setTotal(0);
+                  setIsLoading(true);
                 }}
                 className="md:flex-nowrap"
               />
@@ -992,9 +1038,20 @@ export default function AIKnowledgePage() {
                 options={sourceOptions}
                 value={sourceFilter}
                 onValueChange={(value) => {
-                  setSourceFilter(value as SourceFilter);
+                  const nextSource = value as SourceFilter;
+                  fetchRequestRef.current++;
+                  searchRequestRef.current++;
+                  setSourceFilter(nextSource);
                   setPage(1);
-                  if (value !== 'plugin') setSelectedPluginFilter(ALL_PLUGINS);
+                  setShowSearchResults(false);
+                  setSearchQuery('');
+                  setTextSearchResults([]);
+                  setImageSearchResults([]);
+                  setTextKnowledgeList([]);
+                  setImageKnowledgeList([]);
+                  setTotal(0);
+                  setIsLoading(true);
+                  if (nextSource !== 'plugin') setSelectedPluginFilter(ALL_PLUGINS);
                 }}
                 className="md:flex-nowrap"
               />
@@ -1049,9 +1106,20 @@ export default function AIKnowledgePage() {
               <DropdownMenuContent align="end">
                 <DropdownMenuItem
                   onClick={() => {
+                    fetchRequestRef.current++;
+                    searchRequestRef.current++;
                     setKnowledgeType('text');
                     setSourceFilter('manual');
                     setSelectedPluginFilter(ALL_PLUGINS);
+                    setPage(1);
+                    setShowSearchResults(false);
+                    setSearchQuery('');
+                    setTextSearchResults([]);
+                    setImageSearchResults([]);
+                    setTextKnowledgeList([]);
+                    setImageKnowledgeList([]);
+                    setTotal(0);
+                    setIsLoading(true);
                     resetBulkDialog();
                     setBulkDialogOpen(true);
                   }}
