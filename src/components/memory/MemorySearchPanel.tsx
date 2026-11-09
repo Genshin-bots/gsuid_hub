@@ -12,7 +12,19 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { getApiErrorMessage, memoryApi, type MemorySearchResponse } from '@/lib/api';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  getApiErrorMessage,
+  memoryApi,
+  type MemorySearchIntent,
+  type MemorySearchResponse,
+} from '@/lib/api';
 import { validateMemorySearchInput } from '@/lib/featureUtils';
 
 export default function MemorySearchPanel() {
@@ -21,7 +33,7 @@ export default function MemorySearchPanel() {
   const [groupId, setGroupId] = useState('');
   const [userId, setUserId] = useState('');
   const [topK, setTopK] = useState(10);
-  const [enableSystem2, setEnableSystem2] = useState(true);
+  const [memoryIntent, setMemoryIntent] = useState<MemorySearchIntent>('point_latest');
   const [enableUserGlobal, setEnableUserGlobal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<MemorySearchResponse | null>(null);
@@ -39,8 +51,8 @@ export default function MemorySearchPanel() {
         group_id: groupId.trim(),
         user_id: userId.trim() || null,
         top_k: topK,
-        enable_system2: enableSystem2,
         enable_user_global: enableUserGlobal,
+        memory_intent: memoryIntent,
       });
       setResult(data);
     } catch (e) {
@@ -101,15 +113,32 @@ export default function MemorySearchPanel() {
                 onChange={(e) => setTopK(Number(e.target.value) || 10)}
               />
             </div>
+            <div className="space-y-1.5">
+              <Label>{t('aiMemory.search.memoryIntent')}</Label>
+              <Select
+                value={memoryIntent}
+                onValueChange={(v) => setMemoryIntent(v as MemorySearchIntent)}
+              >
+                <SelectTrigger className="h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="point_latest">
+                    {t('aiMemory.search.intents.point_latest')}
+                  </SelectItem>
+                  <SelectItem value="version_diff">
+                    {t('aiMemory.search.intents.version_diff')}
+                  </SelectItem>
+                  <SelectItem value="timeline_order">
+                    {t('aiMemory.search.intents.timeline_order')}
+                  </SelectItem>
+                  <SelectItem value="broad_summary">
+                    {t('aiMemory.search.intents.broad_summary')}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div className="col-span-2 flex flex-wrap items-center gap-x-4 gap-y-2 pt-1">
-              <div className="flex items-center gap-2 text-sm">
-                <Switch
-                  id="mem-search-s2"
-                  checked={enableSystem2}
-                  onCheckedChange={setEnableSystem2}
-                />
-                <Label htmlFor="mem-search-s2">System-2</Label>
-              </div>
               <div className="flex items-center gap-2 text-sm">
                 <Switch
                   id="mem-search-ug"
@@ -132,32 +161,58 @@ export default function MemorySearchPanel() {
       </Card>
 
       {result && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-          <ResultColumn
-            title={`${t('aiMemory.search.episodes')} (${result.episodes?.length ?? 0})`}
-            items={(result.episodes ?? []).map((e) => ({
-              id: String(e.id ?? ''),
-              primary: String(e.content ?? ''),
-              score: e.score,
-            }))}
-          />
-          <ResultColumn
-            title={`${t('aiMemory.search.entities')} (${result.entities?.length ?? 0})`}
-            items={(result.entities ?? []).map((e) => ({
-              id: String(e.id ?? ''),
-              primary: String(e.name ?? e.summary ?? ''),
-              secondary: e.summary ? String(e.summary) : undefined,
-              score: e.score,
-            }))}
-          />
-          <ResultColumn
-            title={`${t('aiMemory.search.edges')} (${result.edges?.length ?? 0})`}
-            items={(result.edges ?? []).map((e) => ({
-              id: String(e.id ?? ''),
-              primary: String(e.fact ?? ''),
-              score: e.score,
-            }))}
-          />
+        <div className="space-y-3">
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-3">
+            <ResultColumn
+              title={`${t('aiMemory.search.episodes')} (${result.episodes?.length ?? 0})`}
+              items={(result.episodes ?? []).map((e) => ({
+                id: String(e.id ?? ''),
+                primary: String(e.content ?? ''),
+                score: e.score,
+              }))}
+            />
+            <ResultColumn
+              title={`${t('aiMemory.search.entities')} (${result.entities?.length ?? 0})`}
+              items={(result.entities ?? []).map((e) => ({
+                id: String(e.id ?? ''),
+                primary: String(e.name ?? e.summary ?? ''),
+                secondary: e.summary ? String(e.summary) : undefined,
+                score: e.score,
+              }))}
+            />
+            <ResultColumn
+              title={`${t('aiMemory.search.edges')} (${result.edges?.length ?? 0})`}
+              items={(result.edges ?? []).map((e) => ({
+                id: String(e.id ?? ''),
+                primary: String(e.fact ?? ''),
+                score: e.score,
+              }))}
+            />
+            <ResultColumn
+              title={`${t('aiMemory.search.preferences')} (${result.preferences?.length ?? 0})`}
+              items={(result.preferences ?? []).map((p) => ({
+                id: String(p.id ?? ''),
+                primary: String(p.preference_rule ?? p.content ?? ''),
+                secondary: p.target_context
+                  ? `[${String(p.polarity ?? 'do')}] ${String(p.target_context)}`
+                  : undefined,
+              }))}
+            />
+          </div>
+          {result.prompt_text && (
+            <Card className="glass-card border border-border/50">
+              <CardHeader className="py-3">
+                <CardTitle className="text-sm">{t('aiMemory.search.promptPreview')}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-[220px] pr-2">
+                  <pre className="text-xs font-mono whitespace-pre-wrap break-words text-muted-foreground">
+                    {result.prompt_text}
+                  </pre>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          )}
         </div>
       )}
     </div>

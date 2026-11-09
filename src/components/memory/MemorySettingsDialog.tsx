@@ -36,7 +36,6 @@ interface MemoryConfig {
   observer_blacklist?: string[];
   ingestion_enabled?: boolean;
   enable_retrieval?: boolean;
-  enable_system2?: boolean;
   enable_user_global_memory?: boolean;
   enable_heartbeat_memory?: boolean;
   retrieval_top_k?: number;
@@ -45,15 +44,10 @@ interface MemoryConfig {
   idle_flush_seconds?: number;
   llm_semaphore_limit?: number;
   dedup_similarity_threshold?: number;
-  edge_conflict_threshold?: number;
-  min_children_per_category?: number;
-  max_layers?: number;
-  hiergraph_rebuild_ratio?: number;
-  hiergraph_rebuild_interval_seconds?: number;
   // read-only reflections from MEMORY_CONFIG
   enable_preference_memory?: boolean;
-  enable_familiarity_routing?: boolean;
-  enable_recollection_path?: boolean;
+  memory_inject_max_chars?: number;
+  session_gap_seconds?: number;
   preference_max_inject?: number;
   [k: string]: unknown;
 }
@@ -164,11 +158,6 @@ export default function MemorySettingsDialog({
               onChange={(v) => onSwitch('enable_retrieval', v)}
             />
             <SwitchRow
-              label={t('memorySettings.fields.enableSystem2')}
-              value={!!cfg.enable_system2}
-              onChange={(v) => onSwitch('enable_system2', v)}
-            />
-            <SwitchRow
               label={t('memorySettings.fields.enableUserGlobalMemory')}
               value={!!cfg.enable_user_global_memory}
               onChange={(v) => onSwitch('enable_user_global_memory', v)}
@@ -216,48 +205,11 @@ export default function MemorySettingsDialog({
             />
             <NumberRow
               label={t('memorySettings.fields.dedupSimilarityThreshold')}
-              value={cfg.dedup_similarity_threshold ?? 0.86}
+              value={cfg.dedup_similarity_threshold ?? 0.92}
               onChange={(v) => onNumber('dedup_similarity_threshold', v)}
-              min={0}
+              min={0.5}
               max={1}
               step={0.01}
-            />
-            <NumberRow
-              label={t('memorySettings.fields.edgeConflictThreshold')}
-              value={cfg.edge_conflict_threshold ?? 0.8}
-              onChange={(v) => onNumber('edge_conflict_threshold', v)}
-              min={0}
-              max={1}
-              step={0.01}
-            />
-            <NumberRow
-              label={t('memorySettings.fields.minChildrenPerCategory')}
-              value={cfg.min_children_per_category ?? 3}
-              onChange={(v) => onNumber('min_children_per_category', v)}
-              min={1}
-              max={20}
-            />
-            <NumberRow
-              label={t('memorySettings.fields.maxLayers')}
-              value={cfg.max_layers ?? 3}
-              onChange={(v) => onNumber('max_layers', v)}
-              min={1}
-              max={8}
-            />
-            <NumberRow
-              label={t('memorySettings.fields.hiergraphRebuildRatio')}
-              value={cfg.hiergraph_rebuild_ratio ?? 0.2}
-              onChange={(v) => onNumber('hiergraph_rebuild_ratio', v)}
-              min={0}
-              max={1}
-              step={0.05}
-            />
-            <NumberRow
-              label={t('memorySettings.fields.hiergraphRebuildIntervalSeconds')}
-              value={cfg.hiergraph_rebuild_interval_seconds ?? 3600}
-              onChange={(v) => onNumber('hiergraph_rebuild_interval_seconds', v)}
-              min={60}
-              max={86400}
             />
 
             <div className="col-span-2 space-y-1.5">
@@ -282,15 +234,15 @@ export default function MemorySettingsDialog({
                 </div>
                 <div>
                   <span className="text-muted-foreground">
-                    {t('memorySettings.fields.enableFamiliarityRouting')}:{' '}
+                    {t('memorySettings.fields.memoryInjectMaxChars')}:{' '}
                   </span>
-                  {cfg.enable_familiarity_routing ? 'ON' : 'OFF'}
+                  {cfg.memory_inject_max_chars ?? 8000}
                 </div>
                 <div>
                   <span className="text-muted-foreground">
-                    {t('memorySettings.fields.enableRecollectionPath')}:{' '}
+                    {t('memorySettings.fields.sessionGapSeconds')}:{' '}
                   </span>
-                  {cfg.enable_recollection_path ? 'ON' : 'OFF'}
+                  {cfg.session_gap_seconds ?? 1800}s
                 </div>
               </div>
             </div>

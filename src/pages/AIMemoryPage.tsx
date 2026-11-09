@@ -117,6 +117,8 @@ interface MemoryStats {
   category_count?: number;
   thread_count?: number;
   edge_state_counts?: Partial<Record<ResolutionState, number>>;
+  preference_count?: number;
+  preference_correction_count?: number;
   observation_queue_size: number;
   scope_keys: string[];
 }
@@ -130,6 +132,7 @@ interface MemoryScope {
   edge_count: number;
   category_count?: number;
   thread_count?: number;
+  preference_count?: number;
 }
 
 interface Episode {
@@ -231,7 +234,9 @@ interface MemoryConfig {
   enable_heartbeat_memory: boolean;
   retrieval_top_k: number;
   dedup_similarity_threshold: number;
-  edge_conflict_threshold: number;
+  memory_inject_max_chars?: number;
+  session_gap_seconds?: number;
+  enable_preference_memory?: boolean;
 }
 
 interface HierGraphStatus {
@@ -383,7 +388,9 @@ const memoryApi = {
       deleted_episodes: number;
       deleted_entities: number;
       deleted_edges: number;
+      deleted_threads?: number;
       deleted_categories: number;
+      deleted_preferences?: number;
     }>(`/api/ai/memory/scopes/${encodeURIComponent(scopeKey)}`),
   rebuildProjection: (params: { group_id?: string; scope_key?: string }) => {
     const query = new URLSearchParams();
@@ -402,7 +409,9 @@ const memoryApi = {
       deleted_episodes: number;
       deleted_entities: number;
       deleted_edges: number;
+      deleted_threads?: number;
       deleted_categories: number;
+      deleted_preferences?: number;
     }>('/api/ai/memory/clear', params),
   getPreferences: (params: {
     scope_key?: string;
@@ -414,6 +423,7 @@ const memoryApi = {
     all_scopes?: boolean;
     page?: number;
     page_size?: number;
+    keyword?: string;
   }) => {
     const query = new URLSearchParams();
     if (params.scope_key) query.set('scope_key', params.scope_key);
@@ -426,6 +436,7 @@ const memoryApi = {
     if (params.all_scopes) query.set('all_scopes', 'true');
     if (params.page) query.set('page', String(params.page));
     if (params.page_size) query.set('page_size', String(params.page_size));
+    if (params.keyword) query.set('keyword', params.keyword);
     return api.get<PaginatedResponse<Preference>>(`/api/ai/memory/preferences?${query.toString()}`);
   },
   getPreferenceDetail: (prefId: string) =>
@@ -1501,6 +1512,7 @@ export default function AIMemoryPage() {
   const [preferences, setPreferences] = useState<Preference[]>([]);
   const [totalPreferences, setTotalPreferences] = useState(0);
   const [preferencePage, setPreferencePage] = useState(1);
+  const [preferenceSearch, setPreferenceSearch] = useState<string>('');
   const [isLoadingPreferences, setIsLoadingPreferences] = useState(false);
   const [preferenceFilter, setPreferenceFilter] = useState<
     'all' | 'active' | 'inactive' | 'correction'
@@ -1528,15 +1540,30 @@ export default function AIMemoryPage() {
           memoryApi.getStats().catch(() => null),
           memoryApi.getScopes().catch(() => null),
         ]);
-        if (statsData) setStats(statsData);
+        if (statsData) {
+          setStats(statsData);
+          if (typeof statsData.preference_count === 'number') {
+            setTotalPreferences(statsData.preference_count);
+          }
+        }
 
         let targetScope = 'all';
         if (scopesData && scopesData.length > 0) {
           setScopes(scopesData);
+          const firstWithData = scopesData.find(
+            (s) =>
+              s.scope_key !== 'all' &&
+              !s.scope_key.includes('assistant') &&
+              ((s.entity_count ?? 0) > 0 || (s.edge_count ?? 0) > 0),
+          );
           const firstValid = scopesData.find(
             (s) => s.scope_key !== 'all' && !s.scope_key.includes('assistant'),
           );
-          targetScope = firstValid ? firstValid.scope_key : 'all';
+          targetScope = firstWithData
+            ? firstWithData.scope_key
+            : firstValid
+              ? firstValid.scope_key
+              : 'all';
           setSelectedScope(targetScope);
         }
 
@@ -1894,12 +1921,14 @@ export default function AIMemoryPage() {
         is_active?: boolean;
         is_correction?: boolean;
         polarity?: 'do' | 'dont';
+        keyword?: string;
       } = { page, page_size: 20 };
       if (scope !== 'all') {
         params.scope_key = scope;
       } else {
         params.all_scopes = true;
       }
+      if (preferenceSearch.trim()) params.keyword = preferenceSearch.trim();
       if (preferenceFilter === 'active') params.is_active = true;
       if (preferenceFilter === 'inactive') params.is_active = false;
       if (preferenceFilter === 'correction') params.is_correction = true;
@@ -2557,6 +2586,19 @@ export default function AIMemoryPage() {
         <div className="space-y-3 md:space-y-4">
           {entities.length === 0 && edges.length === 0 ? (
             <Card className={cn('glass-card')}>
+              <div className="p-3 border-b border-border/30 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Network className="w-4 h-4 text-emerald-400" />
+                  <span className="text-sm font-medium">{t('aiMemory.tabGraph')}</span>
+                </div>
+                <ScopeSelector
+                  value={selectedScope || 'all'}
+                  onChange={handleScopeChange}
+                  scopes={scopes}
+                  allLabel={t('aiMemory.allScopes')}
+                  className={cn(tabToolbarControlClass, 'w-[200px] sm:w-[240px]')}
+                />
+              </div>
               <CardContent className="flex flex-col items-center justify-center !p-8 text-center text-muted-foreground">
                 {isLoadingGraph ? (
                   <>
@@ -2626,6 +2668,33 @@ export default function AIMemoryPage() {
               })}
             </p>
             <div className="flex flex-wrap items-center gap-2">
+              <div className="relative w-[180px]">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                <Input
+                  value={preferenceSearch}
+                  onChange={(e) => setPreferenceSearch(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      setPreferencePage(1);
+                      void fetchPreferences(1);
+                    }
+                  }}
+                  placeholder="搜索偏好 / 用户ID..."
+                  className={cn(tabToolbarControlClass, 'pl-8 pr-7 h-8')}
+                />
+                {preferenceSearch && (
+                  <button
+                    onClick={() => {
+                      setPreferenceSearch('');
+                      setPreferencePage(1);
+                      setTimeout(() => fetchPreferences(1), 0);
+                    }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
               <ScopeSelector
                 value={selectedScope}
                 onChange={handleScopeChange}
@@ -3669,6 +3738,16 @@ export default function AIMemoryPage() {
                           : t('common.disabled')}
                       </p>
                     </div>
+                    <div>
+                      <Label className="text-muted-foreground">
+                        {t('memorySettings.fields.enablePreferenceMemory')}
+                      </Label>
+                      <p className="font-semibold">
+                        {config.enable_preference_memory
+                          ? t('common.enabled')
+                          : t('common.disabled')}
+                      </p>
+                    </div>
                   </div>
                   <Separator />
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
@@ -3686,11 +3765,15 @@ export default function AIMemoryPage() {
                     </div>
                     <div>
                       <Label className="text-muted-foreground">
-                        {t('aiMemory.edgeConflictThreshold')}
+                        {t('memorySettings.fields.memoryInjectMaxChars')}
                       </Label>
-                      <p className="font-semibold">
-                        {(config.edge_conflict_threshold * 100).toFixed(0)}%
-                      </p>
+                      <p className="font-semibold">{config.memory_inject_max_chars ?? 8000}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">
+                        {t('memorySettings.fields.sessionGapSeconds')}
+                      </Label>
+                      <p className="font-semibold">{config.session_gap_seconds ?? 1800}s</p>
                     </div>
                   </div>
                 </CardContent>
@@ -4228,7 +4311,8 @@ export default function AIMemoryPage() {
                       episodes: result.deleted_episodes,
                       entities: result.deleted_entities,
                       edges: result.deleted_edges,
-                      categories: result.deleted_categories,
+                      threads: result.deleted_threads ?? 0,
+                      preferences: result.deleted_preferences ?? 0,
                     }),
                   );
                   setClearMemoryDialogOpen(false);

@@ -6157,13 +6157,19 @@ export const brandSettingsApi = {
  * 历史：原本这是 AIMemoryPage 内私有 const，现在提到 api.ts 让
  * 记忆设置 Dialog 等都能复用。
  */
+export type MemorySearchIntent =
+  | 'point_latest'
+  | 'version_diff'
+  | 'timeline_order'
+  | 'broad_summary';
+
 export interface MemorySearchRequest {
   query: string;
   group_id: string;
   user_id?: string | null;
   top_k?: number;
-  enable_system2?: boolean;
   enable_user_global?: boolean;
+  memory_intent?: MemorySearchIntent;
 }
 
 export interface MemorySearchResultItem {
@@ -6172,6 +6178,9 @@ export interface MemorySearchResultItem {
   name?: string;
   summary?: string;
   fact?: string;
+  preference_rule?: string;
+  target_context?: string;
+  polarity?: string;
   score?: number;
   valid_at?: string;
   [key: string]: unknown;
@@ -6183,6 +6192,7 @@ export interface MemorySearchResponse {
   edges: MemorySearchResultItem[];
   preferences?: MemorySearchResultItem[];
   retrieval_meta?: Record<string, unknown>;
+  prompt_text?: string;
 }
 
 export const memoryApi = {
