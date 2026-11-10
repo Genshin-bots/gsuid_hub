@@ -1,5 +1,16 @@
 import { useCallback, useEffect, useState } from 'react';
-import { BookOpen, Check, Clock, Edit3, Loader2, RefreshCw, RotateCcw, Save, Sparkles, Tag } from 'lucide-react';
+import {
+  BookOpen,
+  Check,
+  Clock,
+  Edit3,
+  Loader2,
+  RefreshCw,
+  RotateCcw,
+  Save,
+  Sparkles,
+  Tag,
+} from 'lucide-react';
 import { toast } from 'sonner';
 
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -23,7 +34,8 @@ interface ParsedTimelineEntry {
   count: string;
 }
 
-const LINE_RE = /^- \[(?<time>[^\]|]+)(?: \| (?<tag>[^\]]+))?\] (?<text>.*?)(?: \(群:(?<gid>\d+)\))?(?: \(句柄: (?<hid>[^)]+)\))?(?: \((?<cnt>×\d+)\))?$/;
+const LINE_RE =
+  /^- \[(?<time>[^\]|]+)(?: \| (?<tag>[^\]]+))?\] (?<text>.*?)(?: \(群:(?<gid>\d+)\))?(?: \(句柄: (?<hid>[^)]+)\))?(?: \((?<cnt>×\d+)\))?$/;
 
 function parseTimelineLine(line: string): ParsedTimelineEntry {
   const m = line.match(LINE_RE);

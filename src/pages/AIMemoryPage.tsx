@@ -458,7 +458,27 @@ function formatScopeType(scopeKey: string): { type: string; id: string } {
     const parts = scopeKey.replace('user_in_group:', '').split('@');
     return { type: 'user_in_group', id: parts[0] };
   }
+  if (scopeKey.startsWith('self:')) return { type: 'self', id: scopeKey.replace('self:', '') };
   return { type: 'unknown', id: scopeKey };
+}
+
+function sanitizeScopes(rawScopes: MemoryScope[] | null | undefined): MemoryScope[] {
+  if (!rawScopes || rawScopes.length === 0) return [];
+  const knownGroupIds = new Set(
+    rawScopes
+      .filter((s) => s.scope_key.startsWith('group:'))
+      .map((s) => s.scope_key.slice('group:'.length)),
+  );
+  return rawScopes.filter((s) => {
+    if (!s.scope_key.startsWith('user_global:')) return true;
+    const id = s.scope_key.slice('user_global:'.length);
+    return (
+      !id.startsWith('__assistant_') &&
+      !id.startsWith('self:') &&
+      !id.startsWith('group:') &&
+      !knownGroupIds.has(id)
+    );
+  });
 }
 
 function formatDate(dateStr: string | null | undefined): string {
@@ -1424,8 +1444,78 @@ function ScopeSelector({
   allLabel: string;
   className?: string;
 }) {
+  const scopeByKey = useMemo(() => {
+    const map = new Map<string, MemoryScope>();
+    for (const s of scopes) {
+      map.set(s.scope_key, s);
+    }
+    return map;
+  }, [scopes]);
   const options = useMemo(() => [allLabel, ...scopes.map((s) => s.scope_key)], [allLabel, scopes]);
   const displayValue = value === 'all' ? allLabel : value;
+
+  const formatLabel = useCallback(
+    (rawValue: string) => {
+      if (rawValue === allLabel) return allLabel;
+      const { type, id } = formatScopeType(rawValue);
+      const tag =
+        type === 'group'
+          ? '群聊'
+          : type === 'user_global'
+            ? '用户'
+            : type === 'self'
+              ? '人格'
+              : type;
+      return `${tag} ${id} (${rawValue})`;
+    },
+    [allLabel],
+  );
+
+  const renderOption = useCallback(
+    (rawValue: string) => {
+      if (rawValue === allLabel) return allLabel;
+      const { type, id } = formatScopeType(rawValue);
+      const s = scopeByKey.get(rawValue);
+      const tag =
+        type === 'group'
+          ? '群聊'
+          : type === 'user_global'
+            ? '用户'
+            : type === 'self'
+              ? '人格'
+              : type;
+      const badgeColor =
+        type === 'group'
+          ? 'bg-emerald-500/15 text-emerald-500 border-emerald-500/30'
+          : type === 'user_global'
+            ? 'bg-blue-500/15 text-blue-500 border-blue-500/30'
+            : 'bg-muted text-muted-foreground border-border/50';
+      return (
+        <span className="inline-flex items-center gap-1.5 min-w-0 max-w-full">
+          <span
+            className={cn(
+              'shrink-0 rounded border px-1 py-0.5 text-[10px] font-medium leading-none',
+              badgeColor,
+            )}
+          >
+            {tag}
+          </span>
+          <span className="font-mono text-xs truncate">{id}</span>
+          {s && (
+            <span className="shrink-0 text-[10px] text-muted-foreground tabular-nums">
+              {type === 'user_global' &&
+              (s.entity_count ?? 0) === 0 &&
+              (s.edge_count ?? 0) === 0 &&
+              (s.preference_count ?? 0) > 0
+                ? `偏好:${s.preference_count}`
+                : `${s.entity_count ?? 0}/${s.edge_count ?? 0}`}
+            </span>
+          )}
+        </span>
+      );
+    },
+    [allLabel, scopeByKey],
+  );
 
   return (
     <InputWithDropdown
@@ -1434,9 +1524,11 @@ function ScopeSelector({
         onChange(val === allLabel ? 'all' : val);
       }}
       options={options}
+      formatLabel={formatLabel}
+      renderOption={renderOption}
       placeholder={allLabel}
       className={className}
-      popoverWidth="w-[260px]"
+      popoverWidth="w-[280px]"
     />
   );
 }
@@ -1548,15 +1640,16 @@ export default function AIMemoryPage() {
         }
 
         let targetScope = 'all';
-        if (scopesData && scopesData.length > 0) {
-          setScopes(scopesData);
-          const firstWithData = scopesData.find(
+        const cleanScopes = sanitizeScopes(scopesData);
+        if (cleanScopes.length > 0) {
+          setScopes(cleanScopes);
+          const firstWithData = cleanScopes.find(
             (s) =>
               s.scope_key !== 'all' &&
               !s.scope_key.includes('assistant') &&
               ((s.entity_count ?? 0) > 0 || (s.edge_count ?? 0) > 0),
           );
-          const firstValid = scopesData.find(
+          const firstValid = cleanScopes.find(
             (s) => s.scope_key !== 'all' && !s.scope_key.includes('assistant'),
           );
           targetScope = firstWithData
@@ -1848,7 +1941,7 @@ export default function AIMemoryPage() {
       await memoryApi.deleteScope(scopeKey);
       toast.success(t('aiMemory.scopeDeleted'));
       const scopesData = await memoryApi.getScopes();
-      setScopes(scopesData);
+      setScopes(sanitizeScopes(scopesData));
       const statsData = await memoryApi.getStats();
       if (statsData) setStats(statsData);
     } catch (error) {
@@ -3024,7 +3117,7 @@ export default function AIMemoryPage() {
               size="sm"
               onClick={async () => {
                 const data = await memoryApi.getScopes();
-                setScopes(data);
+                setScopes(sanitizeScopes(data));
               }}
             >
               <RefreshCw className="w-4 h-4 mr-1" />
@@ -4324,7 +4417,7 @@ export default function AIMemoryPage() {
                   setClearMemoryDialogOpen(false);
                   // Refresh all data
                   const scopesData = await memoryApi.getScopes();
-                  setScopes(scopesData);
+                  setScopes(sanitizeScopes(scopesData));
                   const statsData = await memoryApi.getStats();
                   if (statsData) setStats(statsData);
                   fetchEntities(1);

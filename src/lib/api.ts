@@ -3184,10 +3184,9 @@ export const personaApi = {
 
   // 更新角色生活手账
   updatePersonaJournal: (personaName: string, content: string) =>
-    api.put<{ persona_name: string }>(
-      `/api/persona/${encodeURIComponent(personaName)}/journal`,
-      { content },
-    ),
+    api.put<{ persona_name: string }>(`/api/persona/${encodeURIComponent(personaName)}/journal`, {
+      content,
+    }),
 
   // 整理角色生活手账
   compactPersonaJournal: (personaName: string) =>

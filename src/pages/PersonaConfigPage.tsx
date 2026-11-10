@@ -2358,9 +2358,7 @@ export default function PersonaConfigPage() {
                   value="journal"
                   className="mt-0 hidden min-h-0 flex-1 overflow-y-auto data-[state=active]:block"
                 >
-                  {editingPersona && (
-                    <PersonaJournalTab personaName={editingPersona.name} />
-                  )}
+                  {editingPersona && <PersonaJournalTab personaName={editingPersona.name} />}
                 </TabsContent>
                 {/* 自述文档 Tab */}
                 <TabsContent
