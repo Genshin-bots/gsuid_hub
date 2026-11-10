@@ -507,7 +507,10 @@ export function ToolOutputsPanel(props: ToolOutputsPanelProps) {
               {detail?.tool_name ?? '…'} · {formatBytes(detail?.size_bytes ?? 0)}
             </DialogDescription>
             {detail?.summary && (
-              <p className="text-xs text-muted-foreground line-clamp-2" title={detail.summary}>
+              <p
+                className="text-xs text-muted-foreground line-clamp-2 break-all"
+                title={detail.summary}
+              >
                 {detail.summary}
               </p>
             )}

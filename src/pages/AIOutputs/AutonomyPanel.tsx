@@ -186,10 +186,10 @@ export function AutonomyPanel(props: AutonomyPanelProps) {
                 key={row.id}
                 type="button"
                 onClick={() => setSelected(row)}
-                className="glass-card rounded-lg border p-3.5 text-left transition-colors hover:bg-accent/40"
+                className="glass-card min-w-0 w-full rounded-lg border p-3.5 text-left transition-colors hover:bg-accent/40"
               >
-                <div className="flex items-center justify-between gap-2">
-                  <span className="truncate font-medium">{row.persona_name}</span>
+                <div className="flex items-center justify-between gap-2 min-w-0">
+                  <span className="truncate min-w-0 font-medium">{row.persona_name}</span>
                   <span className="shrink-0 text-xs text-muted-foreground">
                     {formatWhen(row.created_at)}
                   </span>
@@ -198,7 +198,7 @@ export function AutonomyPanel(props: AutonomyPanelProps) {
                   <Badge variant="secondary">{driveLabel(row.drive_kind)}</Badge>
                   <Badge variant="outline">{deliveryLabel(row.delivery_mode)}</Badge>
                 </div>
-                <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
+                <p className="mt-2 line-clamp-2 break-all text-sm text-muted-foreground">
                   {row.summary || t('aiAutonomy.noSummary')}
                 </p>
               </button>
@@ -281,22 +281,22 @@ export function AutonomyPanel(props: AutonomyPanelProps) {
                       key={row.id}
                       type="button"
                       onClick={() => setSelected(row)}
-                      className="w-full rounded-xl border border-border/50 bg-muted/30 p-3 text-left transition-colors hover:bg-accent/40"
+                      className="w-full min-w-0 rounded-xl border border-border/50 bg-muted/30 p-3 text-left transition-colors hover:bg-accent/40"
                     >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="truncate font-medium">{row.persona_name}</span>
+                      <div className="flex items-center justify-between gap-2 min-w-0">
+                        <span className="truncate min-w-0 font-medium">{row.persona_name}</span>
                         <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
                           {formatWhen(row.created_at)}
                         </span>
                       </div>
-                      <div className="mt-1.5 flex items-center gap-1.5">
+                      <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                         <Badge variant="secondary">{driveLabel(row.drive_kind)}</Badge>
                         <Badge variant="outline">{deliveryLabel(row.delivery_mode)}</Badge>
                         <span className="ml-auto shrink-0 text-xs text-muted-foreground tabular-nums">
                           {t('aiAutonomy.table.steps')} {row.step_count}
                         </span>
                       </div>
-                      <p className="mt-1.5 line-clamp-2 text-sm text-muted-foreground">
+                      <p className="mt-1.5 line-clamp-2 break-all text-sm text-muted-foreground">
                         {row.summary || t('aiAutonomy.noSummary')}
                       </p>
                     </button>
@@ -363,16 +363,18 @@ function ActivityDialog({
 
   return (
     <Dialog open={row !== null} onOpenChange={onOpenChange}>
-      <DialogContent className="glass-card max-h-[85vh] overflow-y-auto sm:max-w-2xl">
+      <DialogContent className="glass-card max-h-[85vh] min-w-0 overflow-y-auto sm:max-w-2xl">
         {row ? (
           <>
-            <DialogHeader>
-              <DialogTitle>
+            <DialogHeader className="min-w-0">
+              <DialogTitle className="break-all pr-6">
                 {row.persona_name} · {t('aiAutonomy.detail.title')}
               </DialogTitle>
-              <DialogDescription>{formatWhen(row.created_at)}</DialogDescription>
+              <DialogDescription className="break-all">
+                {formatWhen(row.created_at)}
+              </DialogDescription>
             </DialogHeader>
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex min-w-0 flex-wrap gap-1.5">
               <Badge variant="secondary">{driveLabel(row.drive_kind)}</Badge>
               <Badge variant="outline">{deliveryLabel(row.delivery_mode)}</Badge>
               {row.duration_ms > 0 ? (
@@ -382,56 +384,62 @@ function ActivityDialog({
               ) : null}
             </div>
             {row.target_user_id ? (
-              <p className="text-sm">
+              <p className="min-w-0 break-all text-sm">
                 <span className="text-muted-foreground">{t('aiAutonomy.detail.target')}</span>{' '}
                 {row.target_user_id}
               </p>
             ) : null}
-            <div>
+            <div className="min-w-0">
               <h3 className="mb-1 text-sm font-medium">{t('aiAutonomy.detail.summary')}</h3>
-              <p className="whitespace-pre-wrap text-sm">
+              <p className="whitespace-pre-wrap break-all text-sm">
                 {row.summary || t('aiAutonomy.noSummary')}
               </p>
             </div>
             {observations.length > 0 ? (
-              <div>
+              <div className="min-w-0">
                 <h3 className="mb-1 text-sm font-medium">{t('aiAutonomy.detail.observations')}</h3>
-                <ul className="list-disc space-y-1 pl-4 text-sm">
-                  {observations.map((line) => (
-                    <li key={line}>{line}</li>
+                <ul className="list-disc space-y-1 pl-4 text-sm min-w-0">
+                  {observations.map((line, index) => (
+                    <li key={`${line}-${index}`} className="break-all">
+                      {line}
+                    </li>
                   ))}
                 </ul>
               </div>
             ) : null}
             {trails.length > 0 ? (
-              <div>
+              <div className="min-w-0">
                 <h3 className="mb-1 text-sm font-medium">{t('aiAutonomy.detail.trails')}</h3>
-                <ul className="list-disc space-y-1 pl-4 text-sm">
-                  {trails.map((line) => (
-                    <li key={line}>{line}</li>
+                <ul className="list-disc space-y-1 pl-4 text-sm min-w-0">
+                  {trails.map((line, index) => (
+                    <li key={`${line}-${index}`} className="break-all">
+                      {line}
+                    </li>
                   ))}
                 </ul>
               </div>
             ) : null}
-            <div>
+            <div className="min-w-0">
               <h3 className="mb-1 text-sm font-medium">{t('aiAutonomy.detail.steps')}</h3>
               {steps.length === 0 ? (
                 <p className="text-sm text-muted-foreground">{t('aiAutonomy.detail.noSteps')}</p>
               ) : (
-                <ul className="space-y-2">
+                <ul className="space-y-2 min-w-0">
                   {steps.map((step) => (
                     <li
                       key={`${step.step_index}-${step.tool_name}`}
-                      className="rounded-md border p-2"
+                      className="min-w-0 rounded-md border p-2"
                     >
-                      <div className="flex items-center gap-2 text-sm font-medium">
-                        <span className="font-mono">{step.tool_name || '—'}</span>
+                      <div className="flex min-w-0 items-center gap-2 text-sm font-medium">
+                        <span className="min-w-0 truncate font-mono">{step.tool_name || '—'}</span>
                         {step.is_error ? (
-                          <Badge variant="destructive">{t('aiAutonomy.detail.stepError')}</Badge>
+                          <Badge variant="destructive" className="shrink-0">
+                            {t('aiAutonomy.detail.stepError')}
+                          </Badge>
                         ) : null}
                       </div>
                       {step.output_text ? (
-                        <p className="mt-1 line-clamp-4 whitespace-pre-wrap text-xs text-muted-foreground">
+                        <p className="mt-1 line-clamp-4 whitespace-pre-wrap break-all text-xs text-muted-foreground">
                           {step.output_text}
                         </p>
                       ) : null}

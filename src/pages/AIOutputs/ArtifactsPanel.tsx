@@ -473,7 +473,7 @@ export function ArtifactsPanel(props: ArtifactsPanelProps) {
                 line-clamp-2 让超长摘要只显示前 2 行；title= 提供 hover 完整内容。 */}
             {detail?.item.summary && (
               <p
-                className="text-xs text-muted-foreground line-clamp-2 whitespace-pre-wrap"
+                className="text-xs text-muted-foreground line-clamp-2 whitespace-pre-wrap break-all"
                 title={detail.item.summary}
               >
                 {detail.item.summary}
@@ -528,7 +528,7 @@ export function ArtifactsPanel(props: ArtifactsPanelProps) {
                     <h4 className="text-xs font-medium text-muted-foreground mb-2">
                       {t('aiArtifacts.detail.summaryTitle')}
                     </h4>
-                    <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap break-all">
                       {detail.item.summary || '…'}
                     </p>
                   </section>

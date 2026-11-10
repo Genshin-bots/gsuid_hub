@@ -82,11 +82,11 @@ export function PersonaJournalTab({ personaName }: PersonaJournalTabProps) {
     try {
       setLoading(true);
       const res = await personaApi.getPersonaJournal(personaName);
-      if (res && res.data) {
-        setContent(res.data.content || '');
-        setStandingSummary(res.data.standing_summary || '');
-        setTimeline(res.data.timeline || []);
-        setEditContent(res.data.content || '');
+      if (res) {
+        setContent(res.content || '');
+        setStandingSummary(res.standing_summary || '');
+        setTimeline(res.timeline || []);
+        setEditContent(res.content || '');
       }
     } catch {
       toast.error(t('personaConfig.loadFailed'));
@@ -117,7 +117,7 @@ export function PersonaJournalTab({ personaName }: PersonaJournalTabProps) {
     try {
       setCompacting(true);
       const res = await personaApi.compactPersonaJournal(personaName);
-      if (res && res.data && res.data.compacted) {
+      if (res && res.compacted) {
         toast.success(t('personaConfig.journalCompactSuccess'));
       } else {
         toast.info(t('personaConfig.journalCompactSuccess'));
