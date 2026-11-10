@@ -52,6 +52,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import {
+  BookOpen,
   Loader2,
   Plus,
   Copy,
@@ -92,6 +93,7 @@ import {
   Lock,
 } from 'lucide-react';
 import { PersonaMemePackTab } from '@/components/persona/PersonaMemePackTab';
+import { PersonaJournalTab } from '@/components/persona/PersonaJournalTab';
 // 支持的音频格式
 const SUPPORTED_AUDIO_FORMATS = ['mp3', 'ogg', 'wav', 'm4a', 'flac'];
 const SUPPORTED_AUDIO_MIME_TYPES = [
@@ -2326,6 +2328,11 @@ export default function PersonaConfigPage() {
                       label: t('personaConfig.memePacks'),
                       icon: <Smile className="h-4 w-4" />,
                     },
+                    {
+                      value: 'journal',
+                      label: t('personaConfig.journal'),
+                      icon: <BookOpen className="h-4 w-4" />,
+                    },
                   ]}
                 />
               </div>
@@ -2345,6 +2352,14 @@ export default function PersonaConfigPage() {
                       onCooldownSecChange={setMemeSendCooldownSec}
                       readOnly={managedPersona}
                     />
+                  )}
+                </TabsContent>
+                <TabsContent
+                  value="journal"
+                  className="mt-0 hidden min-h-0 flex-1 overflow-y-auto data-[state=active]:block"
+                >
+                  {editingPersona && (
+                    <PersonaJournalTab personaName={editingPersona.name} />
                   )}
                 </TabsContent>
                 {/* 自述文档 Tab */}

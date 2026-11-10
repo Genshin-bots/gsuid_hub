@@ -3171,6 +3171,29 @@ export const personaApi = {
       `/api/persona/${encodeURIComponent(personaName)}/settings`,
       values,
     ),
+
+  // 获取角色生活手账
+  getPersonaJournal: (personaName: string) =>
+    api.get<{
+      persona_name: string;
+      content: string;
+      standing_summary: string;
+      timeline: string[];
+      timeline_count: number;
+    }>(`/api/persona/${encodeURIComponent(personaName)}/journal`),
+
+  // 更新角色生活手账
+  updatePersonaJournal: (personaName: string, content: string) =>
+    api.put<{ persona_name: string }>(
+      `/api/persona/${encodeURIComponent(personaName)}/journal`,
+      { content },
+    ),
+
+  // 整理角色生活手账
+  compactPersonaJournal: (personaName: string) =>
+    api.post<{ persona_name: string; compacted: boolean }>(
+      `/api/persona/${encodeURIComponent(personaName)}/journal/compact`,
+    ),
 };
 
 // ===================

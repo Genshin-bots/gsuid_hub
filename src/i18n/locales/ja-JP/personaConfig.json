@@ -275,5 +275,17 @@
   "memeCooldownSec": "スタンプ送信クールダウン",
   "memeCooldownSecHint": "同一セッションで連続してスタンプを送信する最小間隔（秒）。0にすると頻度段階から自動算出されます（現在: {sec}秒）。",
   "memeCooldownAuto": "自動適応（{sec}秒）",
-  "memeCooldownUnit": "秒"
+  "memeCooldownUnit": "秒",
+  "journal": "ライフジャーナル",
+  "journalDesc": "対話、定期点検、長期タスク、自律行動におけるAIペルソナの活動記録と近況を表示します。",
+  "journalSummaryTitle": "常駐ステータスと近況まとめ",
+  "journalTimelineTitle": "本日の行動タイムライン",
+  "journalEditMarkdown": "ジャーナルMarkdownを編集",
+  "journalSaveSuccess": "ジャーナルを保存しました",
+  "journalSaveFailed": "ジャーナルの保存に失敗しました",
+  "journalCompact": "ジャーナルを整理",
+  "journalCompactSuccess": "ジャーナルを整理しました",
+  "journalCompactFailed": "ジャーナルの整理に失敗しました",
+  "journalEmptyTimeline": "本日の行動記録はありません",
+  "journalTotalEntries": "全 {count} 件"
 }

@@ -275,5 +275,17 @@
   "memeCooldownSec": "Sticker send cooldown",
   "memeCooldownSecHint": "Minimum interval between stickers in the same conversation (seconds). 0 automatically derives cooldown from frequency ({sec}s currently).",
   "memeCooldownAuto": "Auto ({sec}s)",
-  "memeCooldownUnit": "s"
+  "memeCooldownUnit": "s",
+  "journal": "Life Journal",
+  "journalDesc": "Records and displays the persona's experiences across passive chat, proactive inspection, long-running tasks, and autonomous runs.",
+  "journalSummaryTitle": "Standing Status & Recent Summary",
+  "journalTimelineTitle": "Today's Action Timeline",
+  "journalEditMarkdown": "Edit Journal Markdown",
+  "journalSaveSuccess": "Journal saved successfully",
+  "journalSaveFailed": "Failed to save journal",
+  "journalCompact": "Compact Journal",
+  "journalCompactSuccess": "Journal compacted successfully",
+  "journalCompactFailed": "Failed to compact journal",
+  "journalEmptyTimeline": "No timeline records today",
+  "journalTotalEntries": "{count} entries total"
 }

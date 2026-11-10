@@ -275,5 +275,17 @@
   "memeCooldownSec": "发图冷却间隔",
   "memeCooldownSecHint": "同一会话连续发送表情包的最小间隔（秒）。0 为跟随频率档位自适应（当前自动算得 {sec} 秒）。",
   "memeCooldownAuto": "自适应（{sec}秒）",
-  "memeCooldownUnit": "秒"
+  "memeCooldownUnit": "秒",
+  "journal": "生活手账",
+  "journalDesc": "记录与展示 AI 人格在被动对话、主动巡检、长任务与自主行动中的真实经历与近期状态。",
+  "journalSummaryTitle": "常驻状态与近期小结",
+  "journalTimelineTitle": "今日行动流水",
+  "journalEditMarkdown": "编辑手账 Markdown",
+  "journalSaveSuccess": "手账保存成功",
+  "journalSaveFailed": "手账保存失败",
+  "journalCompact": "整理手账",
+  "journalCompactSuccess": "手账整理成功",
+  "journalCompactFailed": "手账整理失败",
+  "journalEmptyTimeline": "暂无今日流水记录",
+  "journalTotalEntries": "共 {count} 条流水"
 }
