@@ -7,7 +7,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import type { ClipboardEvent } from 'react';
-import { AtSign, FileUp, ImagePlus, Loader2, Send, X } from 'lucide-react';
+import { AtSign, FileUp, Hand, ImagePlus, Loader2, Send, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
 import { messageToText, type ChatMsg, type SendPayload } from '@/lib/sessionChat';
+import { cn } from '@/lib/utils';
 
 type Mode = 'plain' | 'markdown' | 'card' | 'rich';
 
@@ -31,6 +32,19 @@ interface ComposerProps {
   mention?: MentionItem | null;
   onClearMention: () => void;
   onSend: (payload: SendPayload) => Promise<boolean> | boolean | undefined;
+  /** 是否为虚拟会话（视角反转：以用户身份发给 Agent） */
+  isVirtual?: boolean;
+  /** 虚拟会话是否为群聊（控制 @Bot 开关显示） */
+  isGroup?: boolean;
+  /** 虚拟群聊是否自动 @Bot */
+  atBot?: boolean;
+  onToggleAtBot?: () => void;
+  /** 虚拟会话发送戳一戳 */
+  onPoke?: () => void;
+  /** 外部填入输入框草稿（如点击消息「复制到输入框」或按钮 action=2） */
+  externalDraft?: { text: string; seq: number };
+  /** 虚拟会话当前扮演的用户名 */
+  virtualIdentityName?: string;
 }
 
 const MODE_VALUES: Mode[] = ['plain', 'markdown', 'card', 'rich'];
@@ -96,6 +110,13 @@ export function Composer({
   mention,
   onClearMention,
   onSend,
+  isVirtual = false,
+  isGroup = false,
+  atBot = false,
+  onToggleAtBot,
+  onPoke,
+  externalDraft,
+  virtualIdentityName,
 }: ComposerProps) {
   const { t } = useLanguage();
   const [mode, setMode] = useState<Mode>('plain');
@@ -112,6 +133,7 @@ export function Composer({
 
   const imageInput = useRef<HTMLInputElement>(null);
   const mediaInput = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // 右键 @ 塞进来的人，去重后追加
   useEffect(() => {
@@ -121,6 +143,14 @@ export function Composer({
     );
     onClearMention();
   }, [mention, onClearMention]);
+
+  // 外部填入草稿（复制到输入框 / 按钮 action=2）
+  useEffect(() => {
+    if (!externalDraft || externalDraft.seq === 0) return;
+    setMode('plain');
+    setText(externalDraft.text);
+    requestAnimationFrame(() => textareaRef.current?.focus());
+  }, [externalDraft]);
 
   const addImages = (picked: File[]) => {
     if (!picked.length) return;
@@ -243,7 +273,8 @@ export function Composer({
     if (kind === 'file') setFiles(drop);
   };
 
-  const modeOptions = MODE_VALUES.map((value) => ({ value, label: t(MODE_LABEL_KEY[value]) }));
+  const availableModes = isVirtual ? MODE_VALUES.filter((m) => m !== 'card') : MODE_VALUES;
+  const modeOptions = availableModes.map((value) => ({ value, label: t(MODE_LABEL_KEY[value]) }));
 
   /** 附件条：富媒体和普通两处只差「显不显示类型」，其余一样 */
   const renderAttachments = (showKind: boolean, maxWidth: string) => (
@@ -272,7 +303,12 @@ export function Composer({
   );
 
   return (
-    <div className="border-t border-border/60 px-3 pb-3 pt-2">
+    <div
+      className={cn(
+        'border-t border-border/60 px-3 pb-3 pt-2',
+        isVirtual && 'border-t-emerald-500/25 bg-emerald-500/[0.02]',
+      )}
+    >
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <TabButtonGroup
           options={modeOptions}
@@ -281,6 +317,37 @@ export function Composer({
           size="sm"
           scrollOnMobile
         />
+        {isVirtual && isGroup && onToggleAtBot && (
+          <Button
+            type="button"
+            variant={atBot ? 'default' : 'outline'}
+            size="sm"
+            className={cn(
+              'h-7 px-2 text-xs gap-1',
+              atBot && 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-600',
+            )}
+            onClick={onToggleAtBot}
+            disabled={disabled}
+            title={t('liveChat.atBot')}
+          >
+            <AtSign className="h-3.5 w-3.5" />
+            <span>{t('liveChat.atBot')}</span>
+          </Button>
+        )}
+        {isVirtual && onPoke && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-7 px-2 text-xs gap-1"
+            onClick={onPoke}
+            disabled={disabled}
+            title={t('liveChat.poke')}
+          >
+            <Hand className="h-3.5 w-3.5" />
+            <span>{t('liveChat.poke')}</span>
+          </Button>
+        )}
         <span className="ml-auto text-[11px] text-muted-foreground">{t(MODE_TIP_KEY[mode])}</span>
       </div>
 
@@ -376,6 +443,7 @@ export function Composer({
         </div>
       ) : (
         <Textarea
+          ref={textareaRef}
           value={mode === 'markdown' ? markdown : text}
           onChange={(event) =>
             mode === 'markdown' ? setMarkdown(event.target.value) : setText(event.target.value)
@@ -384,7 +452,11 @@ export function Composer({
           placeholder={
             mode === 'markdown'
               ? t('sessionManagement.markdownPlaceholder')
-              : t('sessionManagement.inputPlaceholder')
+              : isVirtual
+                ? t('sessionManagement.virtualInputPlaceholder', {
+                    name: virtualIdentityName || 'User',
+                  })
+                : t('sessionManagement.inputPlaceholder')
           }
           className={
             mode === 'markdown'
@@ -426,7 +498,12 @@ export function Composer({
             {totalAttachments > 0 &&
               t('sessionManagement.attachmentCount', { count: totalAttachments })}
           </span>
-          <Button size="sm" className="h-8" onClick={() => void submit()} disabled={!canSend}>
+          <Button
+            size="sm"
+            className={cn('h-8', isVirtual && 'bg-emerald-600 hover:bg-emerald-500 text-white')}
+            onClick={() => void submit()}
+            disabled={!canSend}
+          >
             {sending ? (
               <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
             ) : (

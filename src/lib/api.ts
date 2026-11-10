@@ -6332,6 +6332,9 @@ export interface AIStateStoreKeyItem {
 export interface AIStateStoreKeysResponse {
   items: AIStateStoreKeyItem[];
   count: number;
+  total?: number;
+  limit?: number;
+  offset?: number;
 }
 
 export interface AIStateStoreGetValueResponse {
@@ -6383,12 +6386,21 @@ export const aiStateStoreApi = {
   getScopes: () => api.get<AIStateStoreScopesResponse>('/api/ai/state-store/scopes'),
 
   // 列出�?scope 下的 keys
-  getKeys: (params: { scope: string; prefix?: string; include_expired?: boolean }) => {
+  // 列出某 scope 下的 keys
+  getKeys: (params: {
+    scope: string;
+    prefix?: string;
+    include_expired?: boolean;
+    limit?: number;
+    offset?: number;
+  }) => {
     const query = new URLSearchParams();
     query.set('scope', params.scope);
     if (params.prefix) query.set('prefix', params.prefix);
     if (params.include_expired !== undefined)
       query.set('include_expired', String(params.include_expired));
+    if (params.limit !== undefined) query.set('limit', String(params.limit));
+    if (params.offset !== undefined) query.set('offset', String(params.offset));
     return api.get<AIStateStoreKeysResponse>(`/api/ai/state-store/keys?${query.toString()}`);
   },
 

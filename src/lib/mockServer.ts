@@ -109,6 +109,12 @@ import {
   generateBatchPushTargets,
   generateAllArtifacts,
   generateAutonomyFeed,
+  generateSystemCoreConfig,
+  generateSystemCoreConfigOptions,
+  applySystemCoreConfigSave,
+  generateCoreFrameworkConfigList,
+  generateCoreFrameworkConfigDetail,
+  applyCoreFrameworkConfigSave,
 } from './demoMock';
 
 type Ctx = { url: URL; method: string; body: unknown };
@@ -1282,6 +1288,43 @@ const routes: Route[] = [
       conversations: [],
       activeId: null,
     }),
+  },
+  // ── Core & Framework Config（/framework-config）────────────────────────────
+  {
+    m: 'GET',
+    re: /^\/api\/core\/config\/options$/,
+    h: () => generateSystemCoreConfigOptions(),
+  },
+  {
+    m: 'GET',
+    re: /^\/api\/core\/config$/,
+    h: () => generateSystemCoreConfig(),
+  },
+  {
+    m: 'POST',
+    re: /^\/api\/core\/config$/,
+    h: ({ body }) => applySystemCoreConfigSave(body),
+  },
+  {
+    m: 'GET',
+    re: /^\/api\/framework-config\/list$/,
+    h: ({ url }) => generateCoreFrameworkConfigList(url.searchParams.get('prefix') ?? ''),
+  },
+  {
+    m: 'GET',
+    re: /^\/api\/framework-config\/([^/]+)$/,
+    h: ({ url }) => {
+      const seg = url.pathname.split('/').pop() ?? '';
+      return generateCoreFrameworkConfigDetail(seg) ?? emptyFor(url.pathname);
+    },
+  },
+  {
+    m: 'POST',
+    re: /^\/api\/framework-config\/([^/]+)$/,
+    h: ({ url, body }) => {
+      const seg = url.pathname.split('/').pop() ?? '';
+      return applyCoreFrameworkConfigSave(seg, body);
+    },
   },
 ];
 

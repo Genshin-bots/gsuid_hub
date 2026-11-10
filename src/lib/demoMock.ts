@@ -3226,3 +3226,669 @@ export const generateAutonomyFeed = (params: URLSearchParams) => {
     personas: DEMO_PERSONAS.map((p) => p.name),
   };
 };
+
+// ---- Framework Config（/framework-config 渐进式配置演示数据）----
+const DEMO_FRAMEWORK_CONFIG_STORE: Record<
+  string,
+  {
+    id: string;
+    name: string;
+    full_name: string;
+    config: Record<
+      string,
+      {
+        type: string;
+        title: string;
+        desc: string;
+        value: unknown;
+        options?: string[];
+        secret?: boolean;
+      }
+    >;
+  }
+> = {
+  GsCore: {
+    id: 'GsCore',
+    name: '核心配置',
+    full_name: 'GsCore',
+    config: {
+      StartVENV: {
+        type: 'GsStr',
+        title: 'Python 运行环境',
+        desc: '启动与重启 GsCore 时使用的包管理器环境',
+        value: 'uv',
+        options: ['auto', 'uv', 'poetry', 'pdm', 'python'],
+      },
+      is_use_custom_restart_command: {
+        type: 'GsBool',
+        title: '使用自定义重启命令',
+        desc: '开启后重启操作将执行下方指定的系统指令',
+        value: false,
+      },
+      restart_command: {
+        type: 'GsStr',
+        title: '自定义重启指令',
+        desc: '完整 shell 启动命令',
+        value: 'uv run core',
+      },
+      AutoUpdateCore: {
+        type: 'GsBool',
+        title: '每日自动更新核心',
+        desc: '定时拉取 GsCore 主分支更新',
+        value: true,
+      },
+      AutoUpdateCoreTime: {
+        type: 'GsList',
+        title: '核心更新时间',
+        desc: '格式 [时, 分]',
+        value: [3, 40],
+      },
+      AutoUpdatePlugins: {
+        type: 'GsBool',
+        title: '每日自动更新插件',
+        desc: '定时拉取已安装插件仓库更新',
+        value: true,
+      },
+      AutoUpdatePluginsTime: {
+        type: 'GsList',
+        title: '插件更新时间',
+        desc: '格式 [时, 分]',
+        value: [4, 10],
+      },
+      AutoRestartCore: {
+        type: 'GsBool',
+        title: '定时自动重启核心',
+        desc: '低峰期自动重启释放内存资源',
+        value: false,
+      },
+      AutoRestartCoreTime: {
+        type: 'GsList',
+        title: '核心重启时间',
+        desc: '格式 [时, 分]',
+        value: [4, 40],
+      },
+      AutoUpdateNotify: {
+        type: 'GsBool',
+        title: '自动更新结果推送给主人',
+        desc: '自动更新完成后向超级管理员发送变更摘要',
+        value: true,
+      },
+      AutoReloadPlugins: {
+        type: 'GsBool',
+        title: '监听插件文件热重载',
+        desc: '插件代码变动后自动热重载模块',
+        value: true,
+      },
+      AutoInstallDep: {
+        type: 'GsBool',
+        title: '新插件自动安装依赖',
+        desc: '安装插件后自动补齐缺失的 Python 依赖',
+        value: true,
+      },
+      AutoUpdateDep: {
+        type: 'GsBool',
+        title: '更新时同步升级依赖',
+        desc: '更新核心或插件时同步检查依赖版本',
+        value: false,
+      },
+      GitMirror: {
+        type: 'GsStr',
+        title: 'Git 镜像加速前缀',
+        desc: '插件商城拉取 GitHub 仓库时使用的镜像地址前缀，留空表示直连 GitHub',
+        value: '',
+        options: [
+          '',
+          'https://gitcode.com/gscore-mirror/',
+          'https://cnb.cool/gscore-mirror/',
+          'https://ghproxy.mihomo.me/',
+          'ssh://',
+        ],
+      },
+    },
+  },
+  GsCore日志配置: {
+    id: 'GsCore日志配置',
+    name: '日志配置',
+    full_name: 'GsCore日志配置',
+    config: {
+      Level: {
+        type: 'GsStr',
+        title: '控制台日志等级',
+        desc: '低于该等级的调试信息将不在终端输出',
+        value: 'INFO',
+        options: ['TRACE', 'DEBUG', 'INFO', 'SUCCESS', 'WARNING', 'ERROR'],
+      },
+      RetentionDays: {
+        type: 'GsInt',
+        title: '日志文件保留天数',
+        desc: '超过天数的历史日志自动归档清理',
+        value: 14,
+      },
+    },
+  },
+  GsCore数据库配置: {
+    id: 'GsCore数据库配置',
+    name: '数据库配置',
+    full_name: 'GsCore数据库配置',
+    config: {
+      db_type: {
+        type: 'GsStr',
+        title: '存储引擎类型',
+        desc: '单机部署推荐 SQLite，集群高并发可选 PostgreSQL / MySql',
+        value: 'SQLite',
+        options: ['SQLite', 'MySql', 'PostgreSQL', '自定义'],
+      },
+      db_driver: {
+        type: 'GsStr',
+        title: 'MySQL 异步驱动',
+        desc: '选择 SQLAlchemy MySQL 异步连接驱动',
+        value: 'aiomysql',
+        options: ['aiomysql', 'asyncmy'],
+      },
+      db_host: {
+        type: 'GsStr',
+        title: '主机地址',
+        desc: '数据库服务器 IP 或域名',
+        value: '127.0.0.1',
+      },
+      db_port: {
+        type: 'GsStr',
+        title: '端口',
+        desc: 'MySQL 默认 3306，PostgreSQL 默认 5432',
+        value: '3306',
+      },
+      db_name: { type: 'GsStr', title: '数据库名', desc: '目标库名称', value: 'GsData' },
+      db_user: { type: 'GsStr', title: '用户名', desc: '数据库登录账号', value: 'root' },
+      db_password: {
+        type: 'GsStr',
+        title: '密码',
+        desc: '数据库登录密钥',
+        value: '',
+        secret: true,
+      },
+      db_custom_url: {
+        type: 'GsStr',
+        title: '自定义连接串',
+        desc: '完整 SQLAlchemy Async DSN',
+        value: '',
+      },
+      db_pool_size: { type: 'GsInt', title: '连接池常驻大小', desc: '并发连接上限', value: 5 },
+      db_pool_recycle: {
+        type: 'GsInt',
+        title: '连接回收周期（秒）',
+        desc: '防止长连接被服务端断开',
+        value: 3600,
+      },
+      db_echo: {
+        type: 'GsBool',
+        title: '输出 SQL 调试语句',
+        desc: '开启后打印所有 SQL 查询日志',
+        value: false,
+      },
+      sqlite_cache_size: {
+        type: 'GsInt',
+        title: 'SQLite 页缓存大小',
+        desc: '负值代表 KiB（如 -64000 约 64MB）',
+        value: -64000,
+      },
+      sqlite_synchronous: {
+        type: 'GsStr',
+        title: 'SQLite 落盘同步级别',
+        desc: 'WAL 模式下推荐 NORMAL 兼顾性能与安全',
+        value: 'NORMAL',
+        options: ['NORMAL', 'FULL', 'OFF'],
+      },
+    },
+  },
+  GsCore图片上传: {
+    id: 'GsCore图片上传',
+    name: '图片上传配置',
+    full_name: 'GsCore图片上传',
+    config: {
+      EnablePicSrv: {
+        type: 'GsBool',
+        title: '启用图片外链托管服务',
+        desc: '为官方机器人或需要公网 URL 的适配器提供图床转换',
+        value: true,
+      },
+      PicUploader: {
+        type: 'GsStr',
+        title: '图床托管后端',
+        desc: '选择外链上传目标服务',
+        value: 's3',
+        options: ['smms', 's3', 'local', 'custom'],
+      },
+      AutoDelete: {
+        type: 'GsBool',
+        title: '发送后自动销毁远端临时图片',
+        desc: '节省对象存储容量并保护隐私',
+        value: false,
+      },
+      smms_token: {
+        type: 'GsStr',
+        title: 'SM.MS Token',
+        desc: 'SM.MS API 密钥',
+        value: '',
+        secret: true,
+      },
+      s3_endpoint: {
+        type: 'GsStr',
+        title: 'S3 Endpoint',
+        desc: '兼容 S3 / Cloudflare R2 / 阿里云 OSS',
+        value: 'https://r2.example.cloudflarestorage.com',
+      },
+      s3_bucket: { type: 'GsStr', title: 'Bucket 桶名', desc: '存储桶名称', value: 'gscore-media' },
+      s3_region: {
+        type: 'GsStr',
+        title: 'Region 区域',
+        desc: '如 auto 或 ap-east-1',
+        value: 'auto',
+      },
+      s3_access_key: {
+        type: 'GsStr',
+        title: 'Access Key',
+        desc: '访问密钥 ID',
+        value: 'AKIA_DEMO_KEY',
+        secret: true,
+      },
+      s3_secret_key: {
+        type: 'GsStr',
+        title: 'Secret Key',
+        desc: '私有访问密钥',
+        value: 'DEMO_SECRET_KEY',
+        secret: true,
+      },
+      PicSrv: {
+        type: 'GsStr',
+        title: '本地图床公网访问地址',
+        desc: 'Core 内置静态图片服务映射地址',
+        value: 'http://127.0.0.1:8765',
+      },
+      EnableCleanPicSrv: {
+        type: 'GsBool',
+        title: '定时清理本地图床缓存',
+        desc: '自动清理过期图片文件',
+        value: true,
+      },
+      ScheduledCleanPicSrv: {
+        type: 'GsStr',
+        title: '缓存过期秒数',
+        desc: '默认 180 秒',
+        value: '180',
+      },
+      custom_url: {
+        type: 'GsStr',
+        title: '自定义图床上传接口',
+        desc: 'HTTP POST 上传地址',
+        value: '',
+      },
+      custom_header: {
+        type: 'GsStr',
+        title: '自定义请求头',
+        desc: 'JSON 格式鉴权头',
+        value: '',
+        secret: true,
+      },
+    },
+  },
+  发送图片: {
+    id: '发送图片',
+    name: '发送图片',
+    full_name: '发送图片',
+    config: Object.fromEntries(
+      [
+        ['onebot', 'OneBot v11', 'base64'],
+        ['onebot_v12', 'OneBot v12', 'base64'],
+        ['qqgroup', 'QQ 官方群聊', 'link_remote'],
+        ['qqguild', 'QQ 频道', 'link_remote'],
+        ['telegram', 'Telegram', 'base64'],
+        ['discord', 'Discord', 'base64'],
+        ['kook', 'KOOK', 'base64'],
+        ['feishu', '飞书 Feishu', 'base64'],
+        ['red', 'Red 协议', 'link_local'],
+        ['dodo', 'DoDo', 'base64'],
+        ['villa', '米游社大别野', 'link_remote'],
+        ['console', 'Web 控制台', 'base64'],
+      ].map(([key, title, mode]) => [
+        key,
+        {
+          type: 'GsStr',
+          title,
+          desc: `${title} 适配器图片传输方式`,
+          value: mode,
+          options: ['base64', 'link_local', 'link_remote', 'link'],
+        },
+      ]),
+    ),
+  },
+  杂项配置: {
+    id: '杂项配置',
+    name: '杂项配置',
+    full_name: '杂项配置',
+    config: {
+      AtSenderPos: {
+        type: 'GsStr',
+        title: '回复消息 @发送者位置',
+        desc: '控制机器人回复时提及用户的位置',
+        value: '消息最前',
+        options: ['消息最前', '消息最后'],
+      },
+      HelpMode: {
+        type: 'GsStr',
+        title: '全局帮助卡片配色',
+        desc: '内置帮助面板渲染亮色或暗色风格',
+        value: 'dark',
+        options: ['light', 'dark'],
+      },
+      EnableForwardMessage: {
+        type: 'GsStr',
+        title: '合并转发消息策略',
+        desc: '长列表响应时是否启用合并转发或按条数阈值触发',
+        value: '允许',
+        options: [
+          '允许',
+          '禁止(不发送任何消息)',
+          '合并为一条消息',
+          '全部拆成单独消息',
+          '2',
+          '3',
+          '4',
+          '5',
+        ],
+      },
+      SameUserEventCD: {
+        type: 'GsInt',
+        title: '单用户指令触发冷却（秒）',
+        desc: '0 表示不限制，防止高频刷屏',
+        value: 2,
+      },
+      CommandSemaphore: {
+        type: 'GsInt',
+        title: '全局指令并发上限',
+        desc: '同时执行的指令协程信号量上限',
+        value: 25,
+      },
+      BlackList: {
+        type: 'GsListStr',
+        title: '全局封禁用户 / 群号黑名单',
+        desc: '黑名单内的会话将被框架静默忽略',
+        value: [],
+      },
+      ShieldQQBot: {
+        type: 'GsListStr',
+        title: '屏蔽其他 QQ 机器人账号列表',
+        desc: '自动忽略指定 QQ Bot ID 发送的消息避免互刷',
+        value: [],
+      },
+    },
+  },
+  GsCore消息缓存: {
+    id: 'GsCore消息缓存',
+    name: '消息缓存',
+    full_name: 'GsCore消息缓存',
+    config: {
+      CacheHours: {
+        type: 'GsInt',
+        title: '会话消息落盘缓存时长（小时）',
+        desc: '0 表示关闭历史消息缓存；开启后按设定小时数保留消息供撤回/上下文查询',
+        value: 0,
+      },
+    },
+  },
+  按钮和MD配置: {
+    id: '按钮和MD配置',
+    name: '按钮和MD配置',
+    full_name: '按钮和MD配置',
+    config: {
+      SendMDPlatform: {
+        type: 'GsListStr',
+        title: '启用原生 Markdown 平台',
+        desc: '勾选支持并允许发送 Markdown 的适配器',
+        value: ['qqgroup', 'villa', 'discord'],
+        options: [
+          'qqgroup',
+          'qqguild',
+          'villa',
+          'kook',
+          'dodo',
+          'discord',
+          'telegram',
+          'feishu',
+          'console',
+        ],
+      },
+      SendButtonsPlatform: {
+        type: 'GsListStr',
+        title: '启用交互按钮面板平台',
+        desc: '勾选发送可点击内联按钮的适配器',
+        value: ['qqgroup', 'qqguild', 'discord', 'telegram', 'console'],
+        options: [
+          'qqgroup',
+          'qqguild',
+          'villa',
+          'kook',
+          'dodo',
+          'discord',
+          'telegram',
+          'feishu',
+          'console',
+        ],
+      },
+      SendTemplatePlatform: {
+        type: 'GsListStr',
+        title: '启用审核模板 Markdown 平台',
+        desc: '使用平台备案模板 ID 发送富文本',
+        value: ['qqgroup'],
+        options: ['qqgroup', 'qqguild'],
+      },
+      ButtonRow: {
+        type: 'GsInt',
+        title: '每行默认排列按钮数',
+        desc: '未指定排布时的默认单行按钮个数',
+        value: 2,
+        options: ['1', '2', '3', '4', '5'],
+      },
+      TryTemplateForQQ: {
+        type: 'GsBool',
+        title: 'QQ 平台优先尝试匹配模板库',
+        desc: '自动将自由 Markdown 匹配至本地已备案模板',
+        value: true,
+      },
+      ForceSendMD: {
+        type: 'GsBool',
+        title: '强制所有响应转为 Markdown',
+        desc: '仅调试使用，未获权限的机器人开启会导致发送失败',
+        value: false,
+      },
+      UseCRLFReplaceLFForMD: {
+        type: 'GsBool',
+        title: '使用 CRLF 替换 LF 换行符',
+        desc: '兼容部分客户端对单 LF 不换行的渲染差异',
+        value: true,
+      },
+      SplitMDAndButtons: {
+        type: 'GsBool',
+        title: '拆分图文与按钮为两条独立消息',
+        desc: '当平台不支持单条消息混排图片与按钮时启用',
+        value: false,
+      },
+    },
+  },
+  GsCore状态配置: {
+    id: 'GsCore状态配置',
+    name: '状态配置',
+    full_name: 'GsCore状态配置',
+    config: {
+      CustomName: {
+        type: 'GsStr',
+        title: '自定义名称',
+        desc: '状态面板顶部展示的机器人昵称',
+        value: '早柚 GsCore',
+      },
+      CustomNameAlias: {
+        type: 'GsListStr',
+        title: '机器人名称别名',
+        desc: '状态查询或触发识别的额外昵称列表',
+        value: ['早柚', 'gscore'],
+      },
+      CustomSubtitle: {
+        type: 'GsStr',
+        title: '自定义副标题',
+        desc: '状态卡片副标题签名',
+        value: 'High-Performance Bot Core',
+      },
+      CustomTheme: {
+        type: 'GsStr',
+        title: '主题强调色',
+        desc: '状态面板卡片主色调（支持十六进制色值）',
+        value: '#5E4FA9',
+        options: ['#5E4FA9', '#38A1F3', '#FFC107', '#4CAF50', '#F44336'],
+      },
+      StatusCacheTTL: {
+        type: 'GsInt',
+        title: '状态卡片缓存时长（秒）',
+        desc: '短时间内重复查询状态图时复用渲染结果，0 为每次实时生成',
+        value: 60,
+      },
+      CustomBg: {
+        type: 'GsBool',
+        title: '是否开启自定义背景',
+        desc: '开启后可上传专属状态卡片背景图覆盖默认壁纸',
+        value: false,
+      },
+      CustomBgPath: {
+        type: 'GsImage',
+        title: '自定义背景图片',
+        desc: '上传状态面板背景图片素材',
+        value: '',
+      },
+      CustomIcon: {
+        type: 'GsBool',
+        title: '是否开启自定义头像',
+        desc: '开启后可上传专属状态面板头像替换默认图标',
+        value: false,
+      },
+      CustomIconPath: {
+        type: 'GsImage',
+        title: '自定义头像图片',
+        desc: '上传状态面板方形头像图片',
+        value: '',
+      },
+    },
+  },
+  验证配置: {
+    id: '验证配置',
+    name: '验证配置',
+    full_name: '验证配置',
+    config: {
+      _pass_API: {
+        type: 'GsStr',
+        title: '外部验证码识别 API',
+        desc: '配置自建验证网关地址以处理风控校验',
+        value: '',
+        secret: true,
+      },
+      CaptchaPass: {
+        type: 'GsBool',
+        title: '启用旧版图形验证透传',
+        desc: '已弃用选项，不建议在新环境中开启',
+        value: false,
+      },
+      MysPass: {
+        type: 'GsBool',
+        title: '启用旧版米游社验证透传',
+        desc: '已弃用选项，可能触发上游接口风控',
+        value: false,
+      },
+    },
+  },
+};
+
+const DEMO_SYSTEM_CORE_CONFIG: Record<string, unknown> = {
+  HOST: '0.0.0.0',
+  PORT: '8765',
+  ENABLE_HTTP: true,
+  WS_TOKEN: 'demo-ws-token-9f8e7d6c',
+  REGISTER_CODE: 'GSCORE-DEMO-2026',
+  LANGUAGE: 'zh-cn',
+  TRUSTED_IPS: ['127.0.0.1', '::1'],
+  web_max_sessions: 3,
+  web_cors_origins: ['http://localhost:8080'],
+  masters: ['10001'],
+  superusers: ['10002', '10003'],
+  command_start: ['/', '#'],
+  framework_aliases: ['GsCore', 'gsuid_core'],
+  enable_empty_start: true,
+  misfire_grace_time: 60,
+  default_bg: '',
+  log: {
+    level: 'INFO',
+    output: ['stdout', 'file'],
+    module: true,
+  },
+};
+
+export const generateSystemCoreConfig = () => structuredClone(DEMO_SYSTEM_CORE_CONFIG);
+
+export const generateSystemCoreConfigOptions = () => ({
+  LANGUAGE: {
+    type: 'strictselect',
+    options: ['zh-cn', 'en'],
+    labels: {
+      'zh-cn': '简体中文 (zh-cn)',
+      en: 'English (en)',
+    },
+  },
+  log_level: {
+    type: 'strictselect',
+    options: ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
+  },
+  log_output: {
+    type: 'multiselect',
+    options: ['stdout', 'file'],
+  },
+});
+
+export const applySystemCoreConfigSave = (body: unknown) => {
+  if (body && typeof body === 'object') {
+    Object.assign(DEMO_SYSTEM_CORE_CONFIG, structuredClone(body as Record<string, unknown>));
+  }
+  return { updated: true };
+};
+
+export const generateCoreFrameworkConfigList = (prefix: string) => {
+  if (prefix !== 'GsCore') return [];
+  return Object.values(DEMO_FRAMEWORK_CONFIG_STORE).map(({ id, name, full_name }) => ({
+    id,
+    name,
+    full_name,
+  }));
+};
+
+export const generateCoreFrameworkConfigDetail = (rawName: string) => {
+  const decoded = decodeURIComponent(rawName);
+  const entry =
+    DEMO_FRAMEWORK_CONFIG_STORE[decoded] ??
+    Object.values(DEMO_FRAMEWORK_CONFIG_STORE).find(
+      (g) => g.full_name === decoded || g.name === decoded || g.id === decoded,
+    );
+  if (!entry) return null;
+  return structuredClone(entry);
+};
+
+export const applyCoreFrameworkConfigSave = (rawName: string, body: unknown) => {
+  const decoded = decodeURIComponent(rawName);
+  const entry =
+    DEMO_FRAMEWORK_CONFIG_STORE[decoded] ??
+    Object.values(DEMO_FRAMEWORK_CONFIG_STORE).find(
+      (g) => g.full_name === decoded || g.name === decoded || g.id === decoded,
+    );
+  if (entry && body && typeof body === 'object') {
+    for (const [k, v] of Object.entries(body as Record<string, unknown>)) {
+      if (entry.config[k]) {
+        entry.config[k].value = v;
+      }
+    }
+  }
+  return { updated: true };
+};

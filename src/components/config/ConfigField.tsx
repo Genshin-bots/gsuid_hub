@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
+import { NumberInput } from '@/components/ui/number-input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
@@ -43,7 +44,6 @@ import {
   Zap,
   Key,
   Loader2,
-  ChevronDown,
   Eye,
   FileText,
   Files,
@@ -379,52 +379,26 @@ export function ConfigField({
       // 数字
       // ----------------------------------------------------------
       case 'number': {
-        const numValue = value as number;
-        const increment = () => {
-          const next = (numValue || 0) + 1;
-          if (field.max_value !== undefined && next > field.max_value) return;
-          onChange(fieldKey, next);
-        };
-        const decrement = () => {
-          const next = (numValue || 0) - 1;
-          if (field.min_value !== undefined && next < field.min_value) return;
-          onChange(fieldKey, next);
-        };
         return (
-          <div className="relative">
-            <Input
-              type="number"
-              value={numValue}
-              step="any"
-              onChange={(e) => {
-                let val = Number(e.target.value);
-                if (field.min_value !== undefined && val < field.min_value) val = field.min_value;
-                if (field.max_value !== undefined && val > field.max_value) val = field.max_value;
-                onChange(fieldKey, val);
-              }}
-              placeholder={displayPlaceholder}
-              disabled={field.disabled}
-              min={field.min_value}
-              max={field.max_value}
-              className="bg-background h-10 pr-10 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-            />
-            <div className="absolute right-0 top-0 h-full w-8 flex flex-col">
-              <button
-                onClick={increment}
-                disabled={field.disabled}
-                className="flex-1 flex items-center justify-center hover:bg-accent rounded-tr-md border-b border-border/50 text-muted-foreground opacity-60 hover:text-foreground transition-colors"
-              >
-                <ChevronDown className="h-3 w-3 rotate-180 -mt-0.5" />
-              </button>
-              <button
-                onClick={decrement}
-                disabled={field.disabled}
-                className="flex-1 flex items-center justify-center hover:bg-accent rounded-br-md text-muted-foreground opacity-60 hover:text-foreground transition-colors"
-              >
-                <ChevronDown className="h-3 w-3 -mt-0.5" />
-              </button>
-            </div>
-          </div>
+          <NumberInput
+            value={value === undefined || value === null ? '' : (value as number | string)}
+            allowFloat
+            min={field.min_value}
+            max={field.max_value}
+            placeholder={displayPlaceholder}
+            disabled={field.disabled}
+            onValueChange={(next) => {
+              onChange(fieldKey, next);
+            }}
+            onBlur={() => {
+              if (typeof value !== 'number') {
+                const parsed = Number(value);
+                const fallback = field.min_value ?? 0;
+                onChange(fieldKey, Number.isNaN(parsed) ? fallback : parsed);
+              }
+            }}
+            className="bg-background"
+          />
         );
       }
 

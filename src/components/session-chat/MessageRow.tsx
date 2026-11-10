@@ -5,7 +5,19 @@
  * 操作收敛到右键菜单：@提及 / 复制 / 查看原始消息 / 引用回复。点头像弹出这个人的信息卡。
  */
 import { useState } from 'react';
-import { Bot, AtSign, Copy, Code2, Quote, User } from 'lucide-react';
+import {
+  AlertCircle,
+  AtSign,
+  Bot,
+  ClipboardPaste,
+  Code2,
+  Copy,
+  Loader2,
+  Quote,
+  Repeat,
+  RotateCcw,
+  User,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -30,6 +42,7 @@ import {
   assetUrl,
   formatClock,
   messageToText,
+  type BtnItem,
   type ChatMsg,
   type MsgSender,
 } from '@/lib/sessionChat';
@@ -41,6 +54,20 @@ interface MessageRowProps {
   onReply: (msg: ChatMsg) => void;
   /** 右键「@提及」：把发送者塞进输入框的 @ 列表 */
   onAt: (msg: ChatMsg) => void;
+  /**
+   * 虚拟会话视角反转：
+   * - false（默认）：右侧为机器人（assistant），左侧为用户（user）
+   * - true（虚拟会话）：右侧为自己（user），左侧为 Agent（assistant）
+   */
+  invertPerspective?: boolean;
+  /** 虚拟会话：失败重发 */
+  onRetry?: (msg: ChatMsg) => void;
+  /** 虚拟会话：+1 再发一次 */
+  onPlusOne?: (msg: ChatMsg) => void;
+  /** 虚拟会话：复制文本到输入框 */
+  onCopyToInput?: (msg: ChatMsg) => void;
+  /** 虚拟会话：点击消息内交互按钮 */
+  onButtonClick?: (btn: BtnItem) => void;
 }
 
 /** 头像 / 昵称取值的兜底链：群名片 → 昵称 → id */
@@ -67,14 +94,24 @@ function identityOf(msg: ChatMsg, t: (key: string) => string): string {
   return key ? t(key) : '';
 }
 
-export function MessageRow({ msg, onReply, onAt }: MessageRowProps) {
+export function MessageRow({
+  msg,
+  onReply,
+  onAt,
+  invertPerspective = false,
+  onRetry,
+  onPlusOne,
+  onCopyToInput,
+  onButtonClick,
+}: MessageRowProps) {
   const { t } = useLanguage();
   const [avatarFailed, setAvatarFailed] = useState(false);
   const [rawOpen, setRawOpen] = useState(false);
   const name = displayName(msg, t('sessionManagement.unknown'));
   const avatar = avatarOf(msg);
   const identity = identityOf(msg, t);
-  const isSelf = msg.self || msg.role === 'assistant';
+  const isBotSender = msg.role === 'assistant';
+  const isSelf = invertPerspective ? msg.role === 'user' : msg.self || msg.role === 'assistant';
   // reply_id 渲染时丢掉
   const segments = (msg.segments ?? []).filter(
     (seg) => !(seg.type === 'unknown' && seg.kind === 'reply_id'),
@@ -97,9 +134,19 @@ export function MessageRow({ msg, onReply, onAt }: MessageRowProps) {
     }
   };
 
+  if (msg.isSystem) {
+    return (
+      <div className="my-2 flex justify-center">
+        <div className="max-w-[85%] rounded-full border border-border/50 bg-muted/60 px-3 py-1 text-center text-xs text-muted-foreground">
+          {msg.content || messageToText(msg)}
+        </div>
+      </div>
+    );
+  }
+
   const userRows: Array<{ label: string; value: string }> = [];
   const sender = msg.sender ?? {};
-  if (isSelf)
+  if (isBotSender)
     userRows.push({
       label: t('sessionManagement.senderSource'),
       value: t('sessionManagement.senderBot'),
@@ -128,7 +175,13 @@ export function MessageRow({ msg, onReply, onAt }: MessageRowProps) {
         <PopoverTrigger asChild>
           <button
             type="button"
-            className="mt-0.5 h-8 w-8 shrink-0 overflow-hidden rounded-full bg-muted"
+            className={cn(
+              'mt-0.5 h-8 w-8 shrink-0 overflow-hidden rounded-full bg-muted',
+              invertPerspective &&
+                (isSelf
+                  ? 'ring-2 ring-emerald-500/35 bg-emerald-500/10'
+                  : 'ring-2 ring-violet-500/35 bg-violet-500/10'),
+            )}
             title={t('sessionManagement.clickForUserInfo')}
           >
             {avatar && !avatarFailed ? (
@@ -140,8 +193,16 @@ export function MessageRow({ msg, onReply, onAt }: MessageRowProps) {
                 onError={() => setAvatarFailed(true)}
               />
             ) : (
-              <span className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
-                {isSelf ? (
+              <span
+                className={cn(
+                  'flex h-full w-full items-center justify-center text-xs text-muted-foreground',
+                  invertPerspective &&
+                    (isSelf
+                      ? 'text-emerald-600 dark:text-emerald-400 font-semibold'
+                      : 'text-violet-600 dark:text-violet-400'),
+                )}
+              >
+                {isBotSender ? (
                   <Bot className="h-4 w-4" />
                 ) : (
                   name.slice(0, 1) || <User className="h-4 w-4" />
@@ -177,12 +238,41 @@ export function MessageRow({ msg, onReply, onAt }: MessageRowProps) {
           )}
         >
           <span className="max-w-[160px] truncate">{name}</span>
+          {invertPerspective && (
+            <span
+              className={cn(
+                'rounded px-1.5 py-0.2 text-[10px] font-medium shrink-0',
+                isSelf
+                  ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25'
+                  : 'bg-violet-500/15 text-violet-600 dark:text-violet-400 border border-violet-500/25',
+              )}
+            >
+              {isSelf ? t('sessionManagement.roleSelfUser') : t('sessionManagement.roleAgentBot')}
+            </span>
+          )}
           {identity && (
             <span className="rounded bg-muted px-1 text-[10px] text-muted-foreground">
               {identity}
             </span>
           )}
           <span>{formatClock(msg.timestamp)}</span>
+          {msg.status === 'sending' && (
+            <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+              <Loader2 className="h-2.5 w-2.5 animate-spin" />
+              {t('liveChat.sending')}
+            </span>
+          )}
+          {msg.status === 'failed' && (
+            <span className="inline-flex items-center gap-1 text-[10px] text-destructive">
+              <AlertCircle className="h-2.5 w-2.5" />
+              {t('liveChat.sendFailed')}
+            </span>
+          )}
+          {msg.recalled && (
+            <span className="rounded bg-amber-500/15 px-1 text-[10px] text-amber-600">
+              {t('liveChat.messageRecalled')}
+            </span>
+          )}
         </div>
 
         <ContextMenu>
@@ -190,20 +280,28 @@ export function MessageRow({ msg, onReply, onAt }: MessageRowProps) {
             <div
               className={cn(
                 'inline-block max-w-full cursor-default whitespace-normal break-words rounded-lg border p-2.5 text-left text-sm leading-relaxed shadow-sm',
-                isSelf
-                  ? 'rounded-tr-none border-primary/25 bg-primary/10'
-                  : 'rounded-tl-none border-border/60 bg-card',
+                invertPerspective
+                  ? isSelf
+                    ? 'rounded-tr-none border-emerald-500/30 bg-emerald-500/10 dark:border-emerald-400/25 dark:bg-emerald-500/15'
+                    : 'rounded-tl-none border-violet-500/25 bg-card'
+                  : isSelf
+                    ? 'rounded-tr-none border-primary/25 bg-primary/10'
+                    : 'rounded-tl-none border-border/60 bg-card',
+                msg.status === 'failed' && 'border-destructive/50',
+                msg.recalled && 'opacity-55 line-through',
               )}
             >
               {quoteSegs.length > 0 && (
                 <div className="mb-1">
                   {quoteSegs.map((seg, idx) => (
-                    <SegmentView key={`q${idx}`} seg={seg} compact />
+                    <SegmentView key={`q${idx}`} seg={seg} compact onButtonClick={onButtonClick} />
                   ))}
                 </div>
               )}
               {bodySegs.length > 0
-                ? bodySegs.map((seg, idx) => <SegmentView key={`b${idx}`} seg={seg} />)
+                ? bodySegs.map((seg, idx) => (
+                    <SegmentView key={`b${idx}`} seg={seg} onButtonClick={onButtonClick} />
+                  ))
                 : quoteSegs.length === 0 && (
                     <span className="text-muted-foreground">
                       {t('sessionManagement.emptyMessage')}
@@ -211,7 +309,7 @@ export function MessageRow({ msg, onReply, onAt }: MessageRowProps) {
                   )}
             </div>
           </ContextMenuTrigger>
-          <ContextMenuContent className="w-44">
+          <ContextMenuContent className="w-48">
             <ContextMenuItem onSelect={() => onAt(msg)}>
               <AtSign className="mr-2 h-3.5 w-3.5" />
               {t('sessionManagement.mention')}
@@ -220,6 +318,24 @@ export function MessageRow({ msg, onReply, onAt }: MessageRowProps) {
               <Copy className="mr-2 h-3.5 w-3.5" />
               {t('sessionManagement.copy')}
             </ContextMenuItem>
+            {invertPerspective && onCopyToInput && (
+              <ContextMenuItem onSelect={() => onCopyToInput(msg)}>
+                <ClipboardPaste className="mr-2 h-3.5 w-3.5" />
+                {t('liveChat.copyToInput')}
+              </ContextMenuItem>
+            )}
+            {invertPerspective && isSelf && onPlusOne && (
+              <ContextMenuItem onSelect={() => onPlusOne(msg)}>
+                <Repeat className="mr-2 h-3.5 w-3.5" />
+                {t('liveChat.plusOne')}
+              </ContextMenuItem>
+            )}
+            {invertPerspective && isSelf && msg.status === 'failed' && onRetry && (
+              <ContextMenuItem onSelect={() => onRetry(msg)}>
+                <RotateCcw className="mr-2 h-3.5 w-3.5" />
+                {t('liveChat.retrySend')}
+              </ContextMenuItem>
+            )}
             <ContextMenuItem onSelect={() => setRawOpen(true)}>
               <Code2 className="mr-2 h-3.5 w-3.5" />
               {t('sessionManagement.viewRaw')}
@@ -231,6 +347,55 @@ export function MessageRow({ msg, onReply, onAt }: MessageRowProps) {
             </ContextMenuItem>
           </ContextMenuContent>
         </ContextMenu>
+
+        {invertPerspective && (
+          <div
+            className={cn(
+              'mt-0.5 flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100',
+              isSelf && 'justify-end',
+              msg.status === 'failed' && 'opacity-100',
+            )}
+          >
+            {isSelf && msg.status === 'failed' && onRetry && (
+              <button
+                type="button"
+                onClick={() => onRetry(msg)}
+                className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-destructive hover:bg-destructive/10"
+              >
+                <RotateCcw className="h-3 w-3" />
+                <span>{t('liveChat.retrySend')}</span>
+              </button>
+            )}
+            {isSelf && onPlusOne && (
+              <button
+                type="button"
+                onClick={() => onPlusOne(msg)}
+                className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground hover:bg-muted/70 hover:text-foreground"
+              >
+                <Repeat className="h-3 w-3" />
+                <span>+1</span>
+              </button>
+            )}
+            {onCopyToInput && (
+              <button
+                type="button"
+                onClick={() => onCopyToInput(msg)}
+                className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[11px] text-muted-foreground hover:bg-muted/70 hover:text-foreground"
+              >
+                <ClipboardPaste className="h-3 w-3" />
+                <span>{t('liveChat.copyToInput')}</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => onReply(msg)}
+              className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[11px] text-muted-foreground hover:bg-muted/70 hover:text-foreground"
+            >
+              <Quote className="h-3 w-3" />
+              <span>{t('liveChat.reply')}</span>
+            </button>
+          </div>
+        )}
       </div>
 
       <Dialog open={rawOpen} onOpenChange={setRawOpen}>

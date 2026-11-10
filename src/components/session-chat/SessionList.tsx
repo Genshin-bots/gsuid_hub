@@ -7,8 +7,21 @@
  * 拉黑写的是框架级全局黑名单 `sp_config.BlackList`，命中后真的不再触发命令。
  */
 import { useEffect, useMemo, useState } from 'react';
-import { Ban, Info, Pin, PinOff, Pencil, Search } from 'lucide-react';
+import {
+  Ban,
+  Eraser,
+  Info,
+  Pencil,
+  Pin,
+  PinOff,
+  Plus,
+  Search,
+  Sparkles,
+  Trash2,
+  UserCog,
+} from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
@@ -38,17 +51,20 @@ import { cn } from '@/lib/utils';
 import { botKeyOf, formatListTime, type SessionItem } from '@/lib/sessionChat';
 import { SessionAvatar } from './SessionAvatar';
 
-export type ChatType = 'all' | 'group' | 'private';
+export type ChatType = 'all' | 'group' | 'private' | 'virtual';
 
-const CHAT_TYPE_VALUES = ['all', 'group', 'private'] as const;
+const CHAT_TYPE_VALUES = ['all', 'group', 'private', 'virtual'] as const;
 const CHAT_TYPE_LABEL_KEY: Record<ChatType, string> = {
   all: 'sessionManagement.all',
   group: 'sessionManagement.groupChat',
   private: 'sessionManagement.privateChat',
+  virtual: 'sessionManagement.virtualChat',
 };
 
 interface SessionListProps {
   sessions: SessionItem[];
+  /** 自主创建的持久化虚拟会话列表 */
+  virtualSessions?: SessionItem[];
   activeId?: string;
   keyword: string;
   onKeywordChange: (value: string) => void;
@@ -67,10 +83,19 @@ interface SessionListProps {
   onEditNote: (session: SessionItem, note: string) => void;
   onViewInfo: (session: SessionItem) => void;
   onToggleBlacklist: (session: SessionItem) => void;
+  /** 点击创建持久化虚拟会话 */
+  onCreateVirtual?: (defaultType?: 'group' | 'direct') => void;
+  /** 打开虚拟身份设置 */
+  onOpenIdentitySettings?: () => void;
+  /** 清空虚拟会话消息 */
+  onClearVirtualMessages?: (session: SessionItem) => void;
+  /** 删除虚拟会话 */
+  onDeleteVirtualSession?: (session: SessionItem) => void;
 }
 
 export function SessionList({
   sessions,
+  virtualSessions = [],
   activeId,
   keyword,
   onKeywordChange,
@@ -87,6 +112,10 @@ export function SessionList({
   onEditNote,
   onViewInfo,
   onToggleBlacklist,
+  onCreateVirtual,
+  onOpenIdentitySettings,
+  onClearVirtualMessages,
+  onDeleteVirtualSession,
 }: SessionListProps) {
   const { t } = useLanguage();
   const [noteTarget, setNoteTarget] = useState<SessionItem | null>(null);
@@ -104,14 +133,14 @@ export function SessionList({
   // Bot 列表直接从会话里聚合：只列出发过消息的号，冷启动时也不会空
   const botOptions = useMemo(() => {
     const map = new Map<string, string>();
-    for (const item of sessions) {
+    for (const item of [...sessions, ...virtualSessions]) {
       const key = botKeyOf(item);
       if (!map.has(key)) {
         map.set(key, item.bot_self_id || item.bot_id || t('sessionManagement.botUnnamed'));
       }
     }
     return Array.from(map, ([value, label]) => ({ value, label }));
-  }, [sessions, t]);
+  }, [sessions, virtualSessions, t]);
 
   // 当前选中的 Bot 被删干净了就退回「全部」，否则列表会一直空着
   useEffect(() => {
@@ -120,9 +149,28 @@ export function SessionList({
     if (botOptions.length > 0) onBotChange('all');
   }, [botKey, botOptions, onBotChange]);
 
-  const visible = sessions.filter((item) => {
-    if (botKey !== 'all' && botKeyOf(item) !== botKey) return false;
-    if (chatType !== 'all' && item.type !== chatType) return false;
+  const combinedSource = useMemo(() => {
+    if (chatType === 'virtual') {
+      return [...virtualSessions].sort((a, b) => {
+        if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+        return (b.last_time || 0) - (a.last_time || 0);
+      });
+    }
+    if (chatType === 'all') {
+      const all = [...virtualSessions, ...sessions];
+      return all.sort((a, b) => {
+        if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+        return (b.last_time || 0) - (a.last_time || 0);
+      });
+    }
+    return sessions;
+  }, [chatType, sessions, virtualSessions]);
+
+  const visible = combinedSource.filter((item) => {
+    if (chatType !== 'virtual' && botKey !== 'all' && botKeyOf(item) !== botKey) return false;
+    if (chatType === 'group' && (item.virtual || item.type !== 'group')) return false;
+    if (chatType === 'private' && (item.virtual || item.type !== 'private')) return false;
+    if (chatType === 'virtual' && !item.virtual) return false;
     const q = keyword.trim().toLowerCase();
     if (!q) return true;
     return (
@@ -133,9 +181,11 @@ export function SessionList({
     );
   });
 
-  // 有筛选（搜索 / Bot / 群私聊）时只能数已经加载的；没筛选就报服务端的总数
+  // 有筛选（搜索 / Bot / 群私聊 / 虚拟）时只能数已经加载的；没筛选就报服务端的总数 + 虚拟会话数
   const filtered = Boolean(keyword.trim()) || botKey !== 'all' || chatType !== 'all';
-  const shownCount = filtered ? visible.length : Math.max(total ?? 0, visible.length);
+  const shownCount = filtered
+    ? visible.length
+    : Math.max((total ?? 0) + virtualSessions.length, visible.length);
 
   return (
     <div className="flex h-full min-h-0 w-full shrink-0 flex-col border-r border-border/60 sm:w-72">
@@ -159,7 +209,8 @@ export function SessionList({
           value={chatType}
           onValueChange={(value) => onChatTypeChange(value as ChatType)}
           size="sm"
-          className="w-full"
+          className="w-full flex-nowrap"
+          buttonClassName="flex-1 !px-1.5 sm:!px-2 text-xs"
         />
 
         <div className="relative">
@@ -168,27 +219,41 @@ export function SessionList({
             value={keyword}
             onChange={(event) => onKeywordChange(event.target.value)}
             onKeyDown={(event) => {
-              if (event.key === 'Enter' && hasMore && !loadingMore) {
+              if (event.key === 'Enter' && hasMore && !loadingMore && chatType !== 'virtual') {
                 onLoadMore?.();
               }
             }}
             placeholder={
-              chatType === 'private'
-                ? t('sessionManagement.searchPrivatePlaceholder')
-                : chatType === 'group'
-                  ? t('sessionManagement.searchGroupPlaceholder')
-                  : t('sessionManagement.searchPlaceholder')
+              chatType === 'virtual'
+                ? t('sessionManagement.searchVirtualPlaceholder')
+                : chatType === 'private'
+                  ? t('sessionManagement.searchPrivatePlaceholder')
+                  : chatType === 'group'
+                    ? t('sessionManagement.searchGroupPlaceholder')
+                    : t('sessionManagement.searchPlaceholder')
             }
             className="h-8 pl-7 text-xs"
           />
         </div>
         <div className="flex items-center justify-between text-[11px] text-muted-foreground">
           <span>{t('sessionManagement.sessionCount', { count: shownCount })}</span>
-          <span>
-            {t('sessionManagement.pinnedCount', {
-              count: visible.filter((item) => item.pinned).length,
-            })}
-          </span>
+          <div className="flex items-center gap-2">
+            {chatType === 'virtual' && onOpenIdentitySettings && (
+              <button
+                type="button"
+                onClick={onOpenIdentitySettings}
+                className="inline-flex items-center gap-1 text-primary hover:underline"
+              >
+                <UserCog className="h-3 w-3" />
+                <span>{t('sessionManagement.identitySettings')}</span>
+              </button>
+            )}
+            <span>
+              {t('sessionManagement.pinnedCount', {
+                count: visible.filter((item) => item.pinned).length,
+              })}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -196,23 +261,25 @@ export function SessionList({
         className="min-h-0 flex-1 overflow-y-auto px-2 pb-3"
         onScroll={(event) => {
           const node = event.currentTarget;
-          if (!hasMore || loadingMore) return;
+          if (chatType === 'virtual' || !hasMore || loadingMore) return;
           if (node.scrollHeight - node.scrollTop - node.clientHeight > 80) return;
           onLoadMore?.();
         }}
       >
         {visible.length === 0 && (
-          <div className="flex flex-col items-center justify-center px-2 py-8 text-center text-xs text-muted-foreground">
+          <div className="flex flex-col items-center justify-center px-2 py-6 text-center text-xs text-muted-foreground">
             <p>
               {keyword.trim()
                 ? t('sessionManagement.noSearchResults')
-                : chatType === 'group'
-                  ? t('sessionManagement.noGroupSessions')
-                  : chatType === 'private'
-                    ? t('sessionManagement.noPrivateSessions')
-                    : t('sessionManagement.noSessions')}
+                : chatType === 'virtual'
+                  ? t('sessionManagement.noVirtualSessions')
+                  : chatType === 'group'
+                    ? t('sessionManagement.noGroupSessions')
+                    : chatType === 'private'
+                      ? t('sessionManagement.noPrivateSessions')
+                      : t('sessionManagement.noSessions')}
             </p>
-            {hasMore && (
+            {chatType !== 'virtual' && hasMore && (
               <Button
                 variant="outline"
                 size="sm"
@@ -239,7 +306,11 @@ export function SessionList({
                 }}
                 className={cn(
                   'mb-1 flex w-full cursor-pointer items-center gap-2 rounded-lg px-2 py-2 text-left transition-colors',
-                  activeId === item.session_id ? 'bg-primary/10' : 'hover:bg-muted/60',
+                  activeId === item.session_id
+                    ? item.virtual
+                      ? 'bg-violet-500/15 ring-1 ring-violet-500/30'
+                      : 'bg-primary/10'
+                    : 'hover:bg-muted/60',
                   item.blacklisted && 'opacity-60',
                 )}
               >
@@ -247,9 +318,17 @@ export function SessionList({
                   type="button"
                   onClick={(event) => {
                     event.stopPropagation();
-                    onViewInfo(item);
+                    if (item.virtual && onOpenIdentitySettings) {
+                      onOpenIdentitySettings();
+                    } else {
+                      onViewInfo(item);
+                    }
                   }}
-                  title={t('sessionManagement.viewInfo')}
+                  title={
+                    item.virtual
+                      ? t('sessionManagement.identitySettings')
+                      : t('sessionManagement.viewInfo')
+                  }
                   className="shrink-0 rounded-full transition-opacity hover:opacity-80"
                 >
                   <SessionAvatar
@@ -261,6 +340,17 @@ export function SessionList({
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center gap-1">
                     {item.pinned && <Pin className="h-3 w-3 shrink-0 text-primary" />}
+                    {item.virtual && (
+                      <Badge
+                        variant="outline"
+                        className="h-4 shrink-0 border-violet-500/35 bg-violet-500/10 px-1 py-0 text-[10px] font-normal text-violet-600 dark:text-violet-400"
+                      >
+                        <Sparkles className="mr-0.5 h-2.5 w-2.5" />
+                        {item.type === 'group'
+                          ? t('sessionManagement.virtualBadgeGroup')
+                          : t('sessionManagement.virtualBadgePrivate')}
+                      </Badge>
+                    )}
                     <span className="truncate text-sm font-medium">{item.note || item.title}</span>
                     <span className="ml-auto shrink-0 text-[10px] text-muted-foreground">
                       {formatListTime(item.last_time || item.last_access)}
@@ -276,7 +366,7 @@ export function SessionList({
                 </span>
               </div>
             </ContextMenuTrigger>
-            <ContextMenuContent className="w-44">
+            <ContextMenuContent className="w-48">
               <ContextMenuItem onSelect={() => onTogglePin(item)}>
                 {item.pinned ? (
                   <PinOff className="mr-2 h-3.5 w-3.5" />
@@ -290,26 +380,58 @@ export function SessionList({
                 <Pencil className="mr-2 h-3.5 w-3.5" />
                 {t('sessionManagement.editNote')}
               </ContextMenuItem>
-              <ContextMenuItem onSelect={() => onViewInfo(item)}>
-                <Info className="mr-2 h-3.5 w-3.5" />
-                {item.type === 'group'
-                  ? t('sessionManagement.viewGroupInfo')
-                  : t('sessionManagement.viewUserInfo')}
-              </ContextMenuItem>
-              <ContextMenuSeparator />
-              <ContextMenuItem
-                onSelect={() => onToggleBlacklist(item)}
-                className="text-destructive focus:text-destructive"
-              >
-                <Ban className="mr-2 h-3.5 w-3.5" />
-                {item.blacklisted
-                  ? t('sessionManagement.unblacklist')
-                  : t('sessionManagement.blacklist')}
-              </ContextMenuItem>
+              {item.virtual ? (
+                <>
+                  {onOpenIdentitySettings && (
+                    <ContextMenuItem onSelect={onOpenIdentitySettings}>
+                      <UserCog className="mr-2 h-3.5 w-3.5" />
+                      {t('sessionManagement.identitySettings')}
+                    </ContextMenuItem>
+                  )}
+                  {onClearVirtualMessages && (
+                    <ContextMenuItem onSelect={() => onClearVirtualMessages(item)}>
+                      <Eraser className="mr-2 h-3.5 w-3.5" />
+                      {t('sessionManagement.clearVirtualMessages')}
+                    </ContextMenuItem>
+                  )}
+                  {onDeleteVirtualSession && (
+                    <>
+                      <ContextMenuSeparator />
+                      <ContextMenuItem
+                        onSelect={() => onDeleteVirtualSession(item)}
+                        className="text-destructive focus:text-destructive"
+                      >
+                        <Trash2 className="mr-2 h-3.5 w-3.5" />
+                        {t('sessionManagement.deleteVirtualSession')}
+                      </ContextMenuItem>
+                    </>
+                  )}
+                </>
+              ) : (
+                <>
+                  <ContextMenuItem onSelect={() => onViewInfo(item)}>
+                    <Info className="mr-2 h-3.5 w-3.5" />
+                    {item.type === 'group'
+                      ? t('sessionManagement.viewGroupInfo')
+                      : t('sessionManagement.viewUserInfo')}
+                  </ContextMenuItem>
+                  <ContextMenuSeparator />
+                  <ContextMenuItem
+                    onSelect={() => onToggleBlacklist(item)}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    <Ban className="mr-2 h-3.5 w-3.5" />
+                    {item.blacklisted
+                      ? t('sessionManagement.unblacklist')
+                      : t('sessionManagement.blacklist')}
+                  </ContextMenuItem>
+                </>
+              )}
             </ContextMenuContent>
           </ContextMenu>
         ))}
-        {visible.length > 0 && hasMore && (
+
+        {chatType !== 'virtual' && visible.length > 0 && hasMore && (
           <div className="pt-2 text-center">
             <Button
               variant="ghost"
@@ -320,6 +442,32 @@ export function SessionList({
             >
               {loadingMore ? t('sessionManagement.loadingMore') : t('sessionManagement.loadMore')}
             </Button>
+          </div>
+        )}
+
+        {onCreateVirtual && (
+          <div className="mt-2 px-0.5">
+            <button
+              type="button"
+              onClick={() =>
+                onCreateVirtual(
+                  chatType === 'group' ? 'group' : chatType === 'private' ? 'direct' : undefined,
+                )
+              }
+              className="group flex w-full items-center gap-2.5 rounded-lg border border-dashed border-violet-500/40 bg-violet-500/[0.04] px-2.5 py-2 text-left transition-all hover:border-violet-500/70 hover:bg-violet-500/10"
+            >
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-violet-500/15 text-violet-600 dark:text-violet-400 transition-transform group-hover:scale-105">
+                <Plus className="h-4 w-4" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="flex items-center gap-1 truncate text-xs font-medium text-foreground">
+                  <span className="truncate">{t('sessionManagement.createVirtualSession')}</span>
+                </span>
+                <span className="block truncate text-[10px] text-muted-foreground">
+                  {t('sessionManagement.createVirtualSessionHint')}
+                </span>
+              </span>
+            </button>
           </div>
         )}
       </div>

@@ -1334,7 +1334,7 @@ export default function AIKanbanPage() {
   // page-viewport：整页高度锁定视口（main 不再竖直滚动），看板列内滚 + 底部横向滚动条
   // 始终贴视口底端；不要 overflow-hidden（会裁掉筛选卡与看板列的阴影）
   return (
-    <div className="page-viewport flex flex-1 min-h-0 flex-col gap-3 md:gap-4">
+    <div className="page-viewport flex flex-1 min-h-0 h-full flex-col gap-3 md:gap-4">
       {/* 页面标题块：纯 H1 + 副标题，无右侧操作（按钮已移至下方 button group 同行） */}
       <div>
         <h1 className="text-3xl font-bold flex items-center gap-3">
@@ -1569,7 +1569,7 @@ export default function AIKanbanPage() {
       )}
 
       {viewMode === 'data' && (
-        <div className="min-h-0 flex-1">
+        <div className="min-h-0 flex-1 flex flex-col">
           <StateStoreViewer ref={stateStoreRef} onSelectionChange={setStateStoreSelectedCount} />
         </div>
       )}

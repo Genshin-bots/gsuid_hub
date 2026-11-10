@@ -26,6 +26,8 @@ interface SegmentViewProps {
   seg: MsgSeg;
   /** 引用块里的小图，按预览尺寸渲染 */
   compact?: boolean;
+  /** 虚拟会话中点击交互按钮或内联命令时触发（不传则查看按钮原始 JSON） */
+  onButtonClick?: (btn: BtnItem) => void;
 }
 
 function ImageSeg({ seg, compact }: { seg: MsgSeg; compact?: boolean }) {
@@ -257,7 +259,13 @@ function RawDataDialog({
   );
 }
 
-function ButtonSeg({ seg }: { seg: MsgSeg }) {
+function ButtonSeg({
+  seg,
+  onButtonClick,
+}: {
+  seg: MsgSeg;
+  onButtonClick?: (btn: BtnItem) => void;
+}) {
   const { t } = useLanguage();
   const rows = seg.rows ?? [];
   const [raw, setRaw] = useState<BtnItem | null>(null);
@@ -284,7 +292,13 @@ function ButtonSeg({ seg }: { seg: MsgSeg }) {
                   key={btnIdx}
                   type="button"
                   className={cn('seg-btn', tone)}
-                  onClick={() => setRaw(btn)}
+                  onClick={() => {
+                    if (onButtonClick) {
+                      onButtonClick(btn);
+                      return;
+                    }
+                    setRaw(btn);
+                  }}
                 >
                   {isLinkButton(btn) && <ExternalLink className="seg-btn__link" aria-hidden />}
                   <span className="min-w-0 truncate">{label}</span>
@@ -309,7 +323,13 @@ function ButtonSeg({ seg }: { seg: MsgSeg }) {
   );
 }
 
-function MarkdownSeg({ seg }: { seg: MsgSeg }) {
+function MarkdownSeg({
+  seg,
+  onButtonClick,
+}: {
+  seg: MsgSeg;
+  onButtonClick?: (btn: BtnItem) => void;
+}) {
   const { t } = useLanguage();
   const html = useMemo(() => markdownToHtml(seg.content ?? ''), [seg.content]);
   const [raw, setRaw] = useState<{ command: string; href: string } | null>(null);
@@ -333,7 +353,12 @@ function MarkdownSeg({ seg }: { seg: MsgSeg }) {
           const href = anchor?.getAttribute('href') ?? '';
           if (!href.startsWith(INLINE_CMD_PREFIX)) return;
           event.preventDefault();
-          setRaw({ command: decodeURIComponent(href.slice(INLINE_CMD_PREFIX.length)), href });
+          const command = decodeURIComponent(href.slice(INLINE_CMD_PREFIX.length));
+          if (onButtonClick) {
+            onButtonClick({ text: command, data: command, action: 1 });
+            return;
+          }
+          setRaw({ command, href });
         }}
         dangerouslySetInnerHTML={{ __html: html }}
       />
@@ -370,7 +395,7 @@ function ArkSeg({ seg }: { seg: MsgSeg }) {
   );
 }
 
-export function SegmentView({ seg, compact }: SegmentViewProps) {
+export function SegmentView({ seg, compact, onButtonClick }: SegmentViewProps) {
   const { t } = useLanguage();
   switch (seg.type) {
     case 'text':
@@ -427,10 +452,10 @@ export function SegmentView({ seg, compact }: SegmentViewProps) {
       return <ForwardSeg seg={seg} />;
 
     case 'markdown':
-      return <MarkdownSeg seg={seg} />;
+      return <MarkdownSeg seg={seg} onButtonClick={onButtonClick} />;
 
     case 'button':
-      return <ButtonSeg seg={seg} />;
+      return <ButtonSeg seg={seg} onButtonClick={onButtonClick} />;
 
     case 'ark':
       return <ArkSeg seg={seg} />;

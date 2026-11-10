@@ -242,13 +242,7 @@ const getNavItems = (
       title: t('sidebar.adminCore'),
       icon: Cog,
       children: [
-        {
-          id: 'coreConfig',
-          title: t('sidebar.coreConfig'),
-          url: '/core-config',
-          icon: Cog,
-          adminOnly: true,
-        },
+        // 核心配置已并入 /framework-config 的首个页签
         {
           id: 'frameworkConfig',
           title: t('sidebar.frameworkConfig'),
@@ -275,7 +269,6 @@ const getNavItems = (
         { id: 'historyLogs', title: t('sidebar.historyLogs'), url: '/logs', icon: FileText },
         { id: 'traces', title: t('sidebar.traces'), url: '/traces', icon: Activity },
         { id: 'httpTraces', title: t('sidebar.httpTraces'), url: '/http-traces', icon: Globe },
-        { id: 'liveChat', title: t('sidebar.liveChat'), url: '/live-chat', icon: MessageCircle },
         {
           id: 'batchPush',
           title: t('sidebar.batchPush'),

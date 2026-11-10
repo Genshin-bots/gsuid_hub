@@ -3,15 +3,15 @@
 > 返回 [SKILL 主入口](../SKILL.md)。
 >
 > 源码入口：
-> - 页面：`src/pages/LiveChatPage.tsx`（路由 `/live-chat`）
-> - 协议与客户端：`src/lib/liveChat/`
-> - UI 组件：`src/components/live-chat/`
+> - 页面：`src/pages/SessionManagementPage.tsx`（路由 `/session-management`，`/live-chat` 重定向至此）
+> - 协议与客户端：`src/lib/liveChat/` + 桥接转换 `src/lib/sessionChat/index.ts`
+> - UI 组件：`src/components/session-chat/`（复用 `SessionList`、`MessageRow`、`SegmentView`、`Composer`、`ConnectionBadge`）
 > - REST：`liveChatApi`（`src/lib/api.ts` → `/api/live-chat/*`）
 > - WS：`/ws/webconsole_livechat`（二进制 JSON 帧）
 
-Live Chat 不是「Session 管理」的聊天 UI，而是**控制台内嵌的 GsCore 适配器**：浏览器扮演一个
+Live Chat（持久化虚拟会话）已完全融合进「会话管理（`/session-management`）」的「自主创建」页签：浏览器扮演一个
 平台适配器，通过 WebSocket 完整上报 `MessageReceive`、接收 `MessageSend`，用于调试 AI /
-插件 / 按钮 / 戳一戳 / 撤回等早柚协议行为。
+插件 / 按钮 / 戳一戳 / 撤回等早柚协议行为。在虚拟会话中视角反转：**右侧为自己（扮演的用户），左侧为 Agent / 机器人**。
 
 ---
 
@@ -26,13 +26,14 @@ src/lib/liveChat/
 ├── storage.ts    # 后端多文件状态 + localStorage 兜底与一次性迁移
 └── index.ts      # 统一 re-export
 
-src/components/live-chat/
+src/components/session-chat/
 ├── ConnectionBadge.tsx      # 连接态徽章
-├── ConversationSidebar.tsx  # 左侧会话列表 / 搜索 / 新建 / 设置入口
-├── MessageBubble.tsx        # 气泡 + 段渲染（图/音/视/文件/MD/按钮/node/meta）
-└── MessageComposer.tsx      # 输入框 + 附件 + @机器人 + 戳一戳 + 引用条
+├── SessionList.tsx          # 左侧会话列表（全部 / 群聊 / 私聊 / 自主创建 + 创建持久化虚拟会话按钮）
+├── MessageRow.tsx           # 消息气泡（支持 invertPerspective 视角反转、重发、+1、复制到输入框）
+├── SegmentView.tsx          # 段渲染（支持虚拟会话按钮点击回调 onButtonClick）
+└── Composer.tsx             # 输入框（支持虚拟会话 @Bot 开关、戳一戳、外部草稿填入）
 
-src/pages/LiveChatPage.tsx   # 编排：状态 / WS 生命周期 / 发送与等待 / 会话 CRUD
+src/pages/SessionManagementPage.tsx   # 编排：真实会话 + 持久化虚拟会话状态 / WS 生命周期 / 发送与等待
 ```
 
 **约定**：

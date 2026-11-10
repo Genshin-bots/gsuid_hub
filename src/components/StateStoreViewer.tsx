@@ -96,7 +96,14 @@ const StateStoreViewer = forwardRef<StateStoreViewerHandle, StateStoreViewerProp
     const [_isLoadingScopes, setIsLoadingScopes] = useState(false);
     const [isLoadingKeys, setIsLoadingKeys] = useState(false);
     const [prefixFilter, setPrefixFilter] = useState('');
+    const [appliedPrefix, setAppliedPrefix] = useState('');
     const [includeExpired, setIncludeExpired] = useState(false);
+    const [reloadTick, setReloadTick] = useState(0);
+
+    // Keys pagination state
+    const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(20);
+    const [totalKeys, setTotalKeys] = useState(0);
 
     // Value viewer state
     const [expandedKey, setExpandedKey] = useState<string | null>(null);
@@ -124,6 +131,8 @@ const StateStoreViewer = forwardRef<StateStoreViewerHandle, StateStoreViewerProp
     const [batchDeleteOpen, setBatchDeleteOpen] = useState(false);
     const [isBatchDeleting, setIsBatchDeleting] = useState(false);
 
+    const totalPages = Math.max(1, Math.ceil(totalKeys / pageSize));
+
     const loadScopes = useCallback(async () => {
       try {
         setIsLoadingScopes(true);
@@ -140,48 +149,92 @@ const StateStoreViewer = forwardRef<StateStoreViewerHandle, StateStoreViewerProp
       }
     }, [t]);
 
-    const loadKeys = useCallback(async () => {
-      if (!selectedScope) {
-        setKeys([]);
-        return;
+    const handleScopeChange = (scope: string) => {
+      setSelectedScope(scope);
+      setPage(1);
+    };
+
+    const handleApplyPrefix = () => {
+      const trimmed = prefixFilter.trim();
+      if (trimmed !== appliedPrefix) {
+        setAppliedPrefix(trimmed);
+        setPage(1);
+      } else {
+        setReloadTick((t) => t + 1);
       }
-      try {
-        setIsLoadingKeys(true);
-        const data = await aiStateStoreApi.getKeys({
-          scope: selectedScope,
-          prefix: prefixFilter.trim() || undefined,
-          include_expired: includeExpired,
-        });
-        setKeys(data.items || []);
-        setSelectedKeys(new Set());
-      } catch (error) {
-        toast.error(
-          error instanceof Error ? error.message : t('aiKanban.stateStore.messages.loadKeysFailed'),
-        );
-        setKeys([]);
-      } finally {
-        setIsLoadingKeys(false);
-      }
-    }, [selectedScope, prefixFilter, includeExpired, t]);
+    };
+
+    const handleIncludeExpiredChange = (checked: boolean) => {
+      setIncludeExpired(checked);
+      setPage(1);
+    };
+
+    const handlePageChange = (newPage: number) => {
+      const clamped = Math.max(1, Math.min(totalPages, newPage));
+      setPage(clamped);
+    };
+
+    const handlePageSizeChange = (newSize: number) => {
+      setPageSize(newSize);
+      setPage(1);
+    };
 
     useEffect(() => {
       loadScopes();
     }, [loadScopes]);
 
     useEffect(() => {
-      if (selectedScope) {
-        loadKeys();
-        setExpandedKey(null);
-        setExpandedValue(null);
-        setExpandedCollection(null);
-        setCollectionRecords([]);
-      } else {
+      setSelectedKeys(new Set());
+      setExpandedKey(null);
+      setExpandedValue(null);
+      setExpandedCollection(null);
+      setCollectionRecords([]);
+      if (!selectedScope) {
         setKeys([]);
-        setExpandedKey(null);
-        setExpandedValue(null);
-        setExpandedCollection(null);
+        setTotalKeys(0);
+        return;
       }
-    }, [selectedScope, loadKeys]);
+      let cancelled = false;
+      const fetchKeys = async () => {
+        try {
+          setIsLoadingKeys(true);
+          const offset = (page - 1) * pageSize;
+          const data = await aiStateStoreApi.getKeys({
+            scope: selectedScope,
+            prefix: appliedPrefix || undefined,
+            include_expired: includeExpired,
+            limit: pageSize,
+            offset,
+          });
+          if (cancelled) return;
+          const isServerPaged = data.total !== undefined;
+          const total = isServerPaged ? (data.total ?? 0) : (data.count ?? data.items?.length ?? 0);
+          setTotalKeys(total);
+          if (isServerPaged) {
+            setKeys(data.items || []);
+          } else {
+            // 兼容旧版后端（未分页返回全部数据时在前端切片）
+            const allItems = data.items || [];
+            setKeys(allItems.slice(offset, offset + pageSize));
+          }
+        } catch (error) {
+          if (cancelled) return;
+          toast.error(
+            error instanceof Error
+              ? error.message
+              : t('aiKanban.stateStore.messages.loadKeysFailed'),
+          );
+          setKeys([]);
+          setTotalKeys(0);
+        } finally {
+          if (!cancelled) setIsLoadingKeys(false);
+        }
+      };
+      fetchKeys();
+      return () => {
+        cancelled = true;
+      };
+    }, [selectedScope, appliedPrefix, includeExpired, page, pageSize, reloadTick, t]);
 
     // Notify parent of selection changes
     useEffect(() => {
@@ -194,13 +247,13 @@ const StateStoreViewer = forwardRef<StateStoreViewerHandle, StateStoreViewerProp
       () => ({
         refresh: () => {
           loadScopes();
-          if (selectedScope) loadKeys();
+          setReloadTick((t) => t + 1);
         },
         openBatchDelete: () => {
           if (selectedKeys.size > 0) setBatchDeleteOpen(true);
         },
       }),
-      [loadScopes, loadKeys, selectedScope, selectedKeys],
+      [loadScopes, selectedKeys],
     );
 
     const toggleValue = async (keyItem: AIStateStoreKeyItem) => {
@@ -275,7 +328,11 @@ const StateStoreViewer = forwardRef<StateStoreViewerHandle, StateStoreViewerProp
         });
         toast.success(t('aiKanban.stateStore.messages.deleteSuccess'));
         setDeletePending(null);
-        await loadKeys();
+        if (keys.length <= 1 && page > 1) {
+          setPage((p) => Math.max(1, p - 1));
+        } else {
+          setReloadTick((t) => t + 1);
+        }
         await loadScopes();
         if (expandedKey === deletePending.state_key) {
           setExpandedKey(null);
@@ -301,16 +358,24 @@ const StateStoreViewer = forwardRef<StateStoreViewerHandle, StateStoreViewerProp
       });
     };
 
-    const toggleAll = (checked: boolean) => {
-      if (checked) {
-        setSelectedKeys(new Set(keys.map((k) => k.state_key)));
-      } else {
-        setSelectedKeys(new Set());
-      }
-    };
+    const allSelected = keys.length > 0 && keys.every((k) => selectedKeys.has(k.state_key));
+    const someSelected = keys.some((k) => selectedKeys.has(k.state_key)) && !allSelected;
 
-    const allSelected = keys.length > 0 && selectedKeys.size === keys.length;
-    const someSelected = selectedKeys.size > 0 && !allSelected;
+    const toggleAll = (checked: boolean) => {
+      setSelectedKeys((prev) => {
+        const next = new Set(prev);
+        if (checked) {
+          keys.forEach((k) => {
+            next.add(k.state_key);
+          });
+        } else {
+          keys.forEach((k) => {
+            next.delete(k.state_key);
+          });
+        }
+        return next;
+      });
+    };
 
     // Batch delete
     const runBatchDelete = async () => {
@@ -331,7 +396,11 @@ const StateStoreViewer = forwardRef<StateStoreViewerHandle, StateStoreViewerProp
         );
         setBatchDeleteOpen(false);
         setSelectedKeys(new Set());
-        await loadKeys();
+        if (keys.length <= deletedCount && page > 1) {
+          setPage((p) => Math.max(1, p - 1));
+        } else {
+          setReloadTick((t) => t + 1);
+        }
         await loadScopes();
         // Clear expanded if any deleted key was expanded
         if (expandedKey && selectedKeys.has(expandedKey)) {
@@ -355,10 +424,10 @@ const StateStoreViewer = forwardRef<StateStoreViewerHandle, StateStoreViewerProp
       return Object.keys(collectionRecords[0]);
     }, [collectionRecords]);
 
-    const totalPages = Math.ceil(collectionTotal / 50);
+    const totalCollectionPages = Math.ceil(collectionTotal / 50);
 
     return (
-      <div className="flex min-h-0 flex-1 flex-col">
+      <div className="flex min-h-0 flex-1 flex-col gap-3">
         {/* Filter bar - single row, consistent height */}
         <Card className="glass-card shrink-0">
           <CardContent className="p-4">
@@ -368,7 +437,7 @@ const StateStoreViewer = forwardRef<StateStoreViewerHandle, StateStoreViewerProp
                 <Label className="text-xs text-muted-foreground shrink-0">
                   {t('aiKanban.stateStore.selectScope')}
                 </Label>
-                <Select value={selectedScope} onValueChange={setSelectedScope}>
+                <Select value={selectedScope} onValueChange={handleScopeChange}>
                   <SelectTrigger className="h-9 min-w-0">
                     <SelectValue
                       placeholder={t('aiKanban.stateStore.selectScopePlaceholder')}
@@ -399,8 +468,8 @@ const StateStoreViewer = forwardRef<StateStoreViewerHandle, StateStoreViewerProp
                   value={prefixFilter}
                   onChange={(e) => setPrefixFilter(e.target.value)}
                   placeholder="record:"
-                  onBlur={() => selectedScope && loadKeys()}
-                  onKeyDown={(e) => e.key === 'Enter' && selectedScope && loadKeys()}
+                  onBlur={handleApplyPrefix}
+                  onKeyDown={(e) => e.key === 'Enter' && handleApplyPrefix()}
                   className="h-9"
                 />
               </div>
@@ -410,7 +479,7 @@ const StateStoreViewer = forwardRef<StateStoreViewerHandle, StateStoreViewerProp
                 <Checkbox
                   id="includeExpired"
                   checked={includeExpired}
-                  onCheckedChange={(checked) => setIncludeExpired(!!checked)}
+                  onCheckedChange={(checked) => handleIncludeExpiredChange(!!checked)}
                 />
                 <Label
                   htmlFor="includeExpired"
@@ -425,7 +494,7 @@ const StateStoreViewer = forwardRef<StateStoreViewerHandle, StateStoreViewerProp
                 variant="outline"
                 size="sm"
                 className="h-9 shrink-0"
-                onClick={loadKeys}
+                onClick={handleApplyPrefix}
                 disabled={!selectedScope || isLoadingKeys}
               >
                 {isLoadingKeys ? (
@@ -439,8 +508,8 @@ const StateStoreViewer = forwardRef<StateStoreViewerHandle, StateStoreViewerProp
           </CardContent>
         </Card>
 
-        {/* Keys list - scrollable area；仅竖直留 p-2 给阴影/间距，水平贴齐上方筛选卡外缘 */}
-        <div className="min-h-0 flex-1 overflow-y-auto py-2 px-0">
+        {/* Keys list - scrollable area；仅竖直留 py-1 给阴影/间距，水平贴齐上方筛选卡外缘 */}
+        <div className="min-h-0 flex-1 overflow-y-auto py-1 px-0">
           {!selectedScope ? (
             <Card className="glass-card-flat shadow-none">
               <CardContent className="!py-12 text-center text-muted-foreground">
@@ -479,7 +548,12 @@ const StateStoreViewer = forwardRef<StateStoreViewerHandle, StateStoreViewerProp
                 <span className="text-sm text-muted-foreground">
                   {allSelected
                     ? t('aiKanban.stateStore.deselectAll')
-                    : t('aiKanban.stateStore.selectAll', { count: keys.length })}
+                    : t('aiKanban.stateStore.selectAllPage', { count: keys.length })}
+                  {selectedKeys.size > 0 && (
+                    <span className="ml-2 text-xs text-primary font-medium">
+                      ({t('aiKanban.stateStore.selectedSummary', { count: selectedKeys.size })})
+                    </span>
+                  )}
                 </span>
               </div>
 
@@ -605,7 +679,7 @@ const StateStoreViewer = forwardRef<StateStoreViewerHandle, StateStoreViewerProp
                               {collectionTotal}
                             </Badge>
                           </div>
-                          {totalPages > 1 && (
+                          {totalCollectionPages > 1 && (
                             <div className="flex items-center gap-2">
                               <Button
                                 variant="outline"
@@ -621,7 +695,7 @@ const StateStoreViewer = forwardRef<StateStoreViewerHandle, StateStoreViewerProp
                                 {t('aiKanban.stateStore.prevPage')}
                               </Button>
                               <span className="text-xs text-muted-foreground">
-                                {Math.floor(collectionOffset / 50) + 1} / {totalPages}
+                                {Math.floor(collectionOffset / 50) + 1} / {totalCollectionPages}
                               </span>
                               <Button
                                 variant="outline"
@@ -700,6 +774,50 @@ const StateStoreViewer = forwardRef<StateStoreViewerHandle, StateStoreViewerProp
             </div>
           )}
         </div>
+
+        {/* Keys pagination bar */}
+        {totalKeys > 0 && (
+          <div className="shrink-0 flex flex-wrap items-center justify-between gap-3 border-t border-border/40 pt-2 px-1 text-xs text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <span>{t('aiKanban.stateStore.pageInfo', { current: page, total: totalPages })}</span>
+              <span>·</span>
+              <span>{t('aiKanban.stateStore.totalCount', { total: totalKeys })}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Select
+                value={String(pageSize)}
+                onValueChange={(val) => handlePageSizeChange(Number(val))}
+              >
+                <SelectTrigger className="h-8 w-[95px] text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="20">20 / {t('common.page')}</SelectItem>
+                  <SelectItem value="50">50 / {t('common.page')}</SelectItem>
+                  <SelectItem value="100">100 / {t('common.page')}</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 px-2.5 text-xs"
+                disabled={page <= 1 || isLoadingKeys}
+                onClick={() => handlePageChange(page - 1)}
+              >
+                {t('aiKanban.stateStore.prevPage')}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 px-2.5 text-xs"
+                disabled={page >= totalPages || isLoadingKeys}
+                onClick={() => handlePageChange(page + 1)}
+              >
+                {t('aiKanban.stateStore.nextPage')}
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* Single delete confirmation dialog */}
         <AlertDialog

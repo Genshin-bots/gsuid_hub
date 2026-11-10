@@ -1,7 +1,7 @@
-import { cn } from '@/lib/utils';
-import type { ConnectionState } from '@/lib/liveChat';
-import { Loader2, Wifi, WifiOff, RefreshCw, AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Loader2, RefreshCw, Wifi, WifiOff } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import type { ConnectionState } from '@/lib/liveChat';
+import { cn } from '@/lib/utils';
 
 interface ConnectionBadgeProps {
   state: ConnectionState;

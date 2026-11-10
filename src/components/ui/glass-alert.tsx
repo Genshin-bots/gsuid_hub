@@ -72,7 +72,7 @@ export const GlassAlert = forwardRef<HTMLDivElement, GlassAlertProps>(function G
       {...props}
     >
       <Icon className={cn('mt-0.5 h-4 w-4 shrink-0', toneStyle.icon)} />
-      <div className={cn('min-w-0 break-words', contentClassName)}>{children}</div>
+      <div className={cn('min-w-0 flex-1 break-words', contentClassName)}>{children}</div>
     </div>
   );
 });

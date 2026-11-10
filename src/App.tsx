@@ -31,7 +31,6 @@ const SchedulerPage = lazy(() => import('@/pages/SchedulerPage'));
 const PluginStorePage = lazy(() => import('@/pages/PluginStorePage'));
 const GitUpdatePage = lazy(() => import('@/pages/GitUpdatePage'));
 const FrameworkConfigPage = lazy(() => import('@/pages/FrameworkConfigPage'));
-const CoreConfigPage = lazy(() => import('@/pages/CoreConfigPage'));
 const BackupPage = lazy(() => import('@/pages/BackupPage'));
 const AIConfigPage = lazy(() => import('@/pages/AIConfigPage'));
 const PersonaConfigPage = lazy(() => import('@/pages/PersonaConfigPage'));
@@ -57,7 +56,6 @@ const AIOutputsPage = lazy(() => import('@/pages/AIOutputsPage'));
 const GroupProfilePage = lazy(() => import('@/pages/GroupProfilePage'));
 const AIOpsPage = lazy(() => import('@/pages/AIOpsPage'));
 const AIRuntimePage = lazy(() => import('@/pages/AIRuntimePage'));
-const LiveChatPage = lazy(() => import('@/pages/LiveChatPage'));
 
 const queryClient = new QueryClient();
 
@@ -148,18 +146,16 @@ function AppRoutes() {
           <Route path="ai-meme" element={<AIMemePage />} />
           <Route path="ai-memory" element={<AIMemoryPage />} />
           <Route path="session-management" element={<SessionManagementPage />} />
-          <Route path="live-chat" element={<LiveChatPage />} />
+          {/* 实时聊天已并入 /session-management 的「自主创建」虚拟会话，旧深链重定向过去 */}
+          <Route path="live-chat" element={<Navigate to="/session-management" replace />} />
           <Route path="ai-history" element={<AIHistoryPage />} />
           <Route path="ai-kanban" element={<AIKanbanPage />} />
           <Route path="ai-approvals" element={<AIApprovalsPage />} />
           <Route path="ai-budget" element={<AIBudgetPage />} />
+          {/* 核心配置已并入 /framework-config 的首个页签，旧深链重定向过去 */}
           <Route
             path="core-config"
-            element={
-              <AdminRoute>
-                <CoreConfigPage />
-              </AdminRoute>
-            }
+            element={<Navigate to="/framework-config?tab=core" replace />}
           />
           {/* 状态存储已并入 /ai-kanban 的「数据模式」，旧深链重定向过去 */}
           <Route path="state-store" element={<Navigate to="/ai-kanban?mode=data" replace />} />

@@ -1,452 +1,412 @@
-import { useState, useCallback, useEffect, useMemo, useRef, useLayoutEffect } from 'react';
-import { useTheme } from '@/contexts/ThemeContext';
-import { useLanguage } from '@/contexts/LanguageContext';
-import { useConfigDirty } from '@/contexts/ConfigDirtyContext';
-import { cn } from '@/lib/utils';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import * as React from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { TabButtonGroup, tabToolbarControlClass } from '@/components/ui/TabButtonGroup';
-import { Settings, Loader2, Save, Cpu } from 'lucide-react';
-import {
-  ConfigField,
-  type ConfigFieldDefinition,
-  type ConfigValue,
-  type ConfigFieldType,
-} from '@/components/config';
-import { frameworkConfigApi, type PluginConfigItem, type FrameworkConfigListItem } from '@/lib/api';
-import { toast } from 'sonner';
-import ImageUploadPage from '@/pages/ImageUploadPage';
-import DatabaseConfigPage from '@/pages/DatabaseConfigPage';
-import StateConfigPage from '@/pages/StateConfigPage';
-import CoreSettings from '@/components/config/CoreSettings';
-import MiscSettings from '@/components/config/MiscSettings';
-import VerificationSettings from '@/components/config/VerificationSettings';
-import ImageSendSettings from '@/components/config/ImageSendSettings';
-import ButtonMarkdownSettings from '@/components/config/ButtonMarkdownSettings';
+  AlertTriangle,
+  Cog,
+  Cpu,
+  Database,
+  Filter,
+  Image as ImageIcon,
+  Loader2,
+  MessageSquare,
+  RefreshCw,
+  RotateCcw,
+  Save,
+  Search,
+  Sliders,
+  Sparkles,
+  X,
+} from 'lucide-react';
 import { PinnedPage } from '@/components/layout/PinnedPage';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { GlassAlert } from '@/components/ui/glass-alert';
+import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  TabButtonGroup,
+  type TabButtonOption,
+  tabToolbarControlClass,
+  tabToolbarGroupWrapClass,
+  tabToolbarIconButtonClass,
+} from '@/components/ui/TabButtonGroup';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { cn } from '@/lib/utils';
+import { searchFrameworkFields } from './FrameworkConfig/classifyGroups';
+import { DatabaseSection } from './FrameworkConfig/sections/DatabaseSection';
+import { GlobalSearchResults } from './FrameworkConfig/sections/GlobalSearchResults';
+import { IdentitySection } from './FrameworkConfig/sections/IdentitySection';
+import { InteractionSection } from './FrameworkConfig/sections/InteractionSection';
+import { MediaSection } from './FrameworkConfig/sections/MediaSection';
+import { RuntimeSection } from './FrameworkConfig/sections/RuntimeSection';
+import { SystemCoreSection } from './FrameworkConfig/sections/SystemCoreSection';
+import { EmptyState } from './FrameworkConfig/shared/ProgressivePrimitives';
+import { DOMAIN_ORDER, type DomainId } from './FrameworkConfig/types';
+import { useCoreFrameworkConfigs } from './FrameworkConfig/useCoreFrameworkConfigs';
 
-// Local config type with converted fields
-interface LocalFrameworkConfig {
-  id: string;
-  name: string;
-  full_name: string;
-  config: Record<string, ConfigFieldDefinition>;
+const DOMAIN_ICONS: Record<DomainId, React.ReactNode> = {
+  core: <Cog className="h-4 w-4" />,
+  runtime: <Cpu className="h-4 w-4" />,
+  database: <Database className="h-4 w-4" />,
+  media: <ImageIcon className="h-4 w-4" />,
+  interaction: <MessageSquare className="h-4 w-4" />,
+  identity: <Sparkles className="h-4 w-4" />,
+};
+
+function isValidDomainId(val: string | null): val is DomainId {
+  return Boolean(val && (DOMAIN_ORDER as readonly string[]).includes(val));
 }
 
-// Convert API config to local config type
-const convertToConfig = (
-  config: Record<string, PluginConfigItem>,
-): Record<string, ConfigFieldDefinition> => {
-  const result: Record<string, ConfigFieldDefinition> = {};
-  for (const [key, value] of Object.entries(config)) {
-    const configItem = value as PluginConfigItem;
-    let type: ConfigFieldType = 'text';
-    const rawType = configItem.type?.toLowerCase() || '';
-
-    if (rawType.includes('bool')) {
-      type = 'boolean';
-    } else if (rawType.includes('int')) {
-      type = 'number';
-    } else if (rawType.includes('list') || rawType.includes('array')) {
-      type = configItem.options ? 'multiselect' : 'tags';
-    } else if (rawType.includes('gstimer')) {
-      type = 'time';
-    } else if (rawType.includes('time') || rawType.includes('date')) {
-      type = 'date';
-    } else if (rawType.includes('str') || rawType.includes('string')) {
-      type = configItem.options ? 'select' : 'text';
-    } else if (rawType.includes('dict') || rawType.includes('object')) {
-      type = 'text';
-      if (typeof configItem.value === 'object' && configItem.value !== null) {
-        configItem.value = JSON.stringify(configItem.value, null, 2);
-      }
-      if (typeof configItem.default === 'object' && configItem.default !== null) {
-        configItem.default = JSON.stringify(configItem.default, null, 2);
-      }
-    } else if (rawType.includes('image')) {
-      type = 'image';
-    }
-
-    result[key] = {
-      value: configItem.value as ConfigValue,
-      default: configItem.default,
-      type,
-      label: configItem.title || key,
-      placeholder: configItem.desc || '请输入内容',
-      options: configItem.options,
-      description: configItem.desc || key,
-      required: false,
-      disabled: false,
-      rawType: configItem.type,
-      upload_to: configItem.upload_to,
-      filename: configItem.filename,
-      suffix: configItem.suffix,
-    } as unknown as ConfigFieldDefinition & { default: unknown; rawType: string };
-  }
-  return result;
-};
-
-const FRAMEWORK_CONFIG_NAME_I18N_KEYS: Record<string, string> = {
-  GsCore: 'frameworkConfig.configNames.core',
-  核心配置: 'frameworkConfig.configNames.core',
-  GsCore图片上传: 'frameworkConfig.configNames.imageUpload',
-  图片上传配置: 'frameworkConfig.configNames.imageUpload',
-  GsCore数据库配置: 'frameworkConfig.configNames.database',
-  数据库配置: 'frameworkConfig.configNames.database',
-  GsCore状态配置: 'frameworkConfig.configNames.state',
-  状态配置: 'frameworkConfig.configNames.state',
-  杂项配置: 'frameworkConfig.configNames.misc',
-  验证配置: 'frameworkConfig.configNames.verification',
-  发送图片: 'frameworkConfig.configNames.imageSend',
-  日志配置: 'frameworkConfig.configNames.log',
-  GsCore日志配置: 'frameworkConfig.configNames.log',
-  图片生成: 'frameworkConfig.configNames.imageGeneration',
-  图片生成配置: 'frameworkConfig.configNames.imageGeneration',
-  GsCore图片生成: 'frameworkConfig.configNames.imageGeneration',
-  GsCore图片生成配置: 'frameworkConfig.configNames.imageGeneration',
-  按钮和MD配置: 'frameworkConfig.configNames.buttonMarkdown',
-  按钮和Markdown配置: 'frameworkConfig.configNames.buttonMarkdown',
-};
-
 export default function FrameworkConfigPage() {
-  const { style } = useTheme();
-  const _isGlass = style !== 'solid';
   const { t } = useLanguage();
-  const { setDirty } = useConfigDirty();
-  const [configList, setConfigList] = useState<FrameworkConfigListItem[]>([]);
-  const [configs, setConfigs] = useState<LocalFrameworkConfig[]>([]);
-  const [selectedConfigId, setSelectedConfigId] = useState<string>('');
-  const [isLoading, setIsLoading] = useState(true);
-  const [isLoadingDetail, setIsLoadingDetail] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  // Track original state for change detection
-  const [originalConfig, setOriginalConfig] = useState<Record<string, any>>({});
+  const {
+    isLoading,
+    isRefreshing,
+    isSaving,
+    loadError,
+    failedGroupNames,
+    coreOptionsMeta,
+    originalConfigs,
+    groupsList,
+    groupsByDomain,
+    dirtySummary,
+    updateField,
+    batchUpdateFields,
+    resetField,
+    resetGroup,
+    resetAll,
+    refresh,
+    saveChanged,
+  } = useCoreFrameworkConfigs(isAdmin);
 
-  // Check if tabs can fit in one row
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [canFitTabs, setCanFitTabs] = useState(true);
+  const [searchQuery, setSearchQuery] = React.useState('');
+  const [onlyChanged, setOnlyChanged] = React.useState(false);
 
-  useLayoutEffect(() => {
-    const checkFit = () => {
-      if (!containerRef.current) return;
-      const containerWidth = containerRef.current.offsetWidth;
-      // Estimate each tab needs about 100px (text + icon + padding), plus 8px gap between tabs
-      const tabWidth = configList.length * 100 + (configList.length - 1) * 8 + 16;
-      // Only switch to dropdown if container is significantly narrower than needed
-      setCanFitTabs(containerWidth >= tabWidth);
-    };
+  // 所有改动已撤销或已保存后，若无搜索词则自动退出「仅看改动」空过滤态
+  React.useEffect(() => {
+    if (onlyChanged && !dirtySummary.isDirty && !searchQuery.trim()) {
+      setOnlyChanged(false);
+    }
+  }, [dirtySummary.isDirty, onlyChanged, searchQuery]);
 
-    checkFit();
-    window.addEventListener('resize', checkFit);
-    return () => window.removeEventListener('resize', checkFit);
-  }, [configList.length]);
+  const populatedDomains = React.useMemo(
+    () => DOMAIN_ORDER.filter((d) => groupsByDomain[d].length > 0),
+    [groupsByDomain],
+  );
 
-  const getConfigDisplayName = useCallback(
-    (
-      config:
-        | Pick<FrameworkConfigListItem, 'name' | 'full_name'>
-        | Pick<LocalFrameworkConfig, 'name' | 'full_name'>,
-    ) => {
-      const nameKey = FRAMEWORK_CONFIG_NAME_I18N_KEYS[config.name];
-      const fullNameKey = FRAMEWORK_CONFIG_NAME_I18N_KEYS[config.full_name];
-      if (nameKey) {
-        const translated = t(nameKey);
-        if (translated !== nameKey) return translated;
+  const paramTab = searchParams.get('tab');
+  const activeDomain: DomainId = React.useMemo(() => {
+    if (isValidDomainId(paramTab) && groupsByDomain[paramTab].length > 0) {
+      return paramTab;
+    }
+    return populatedDomains[0] ?? (isAdmin ? 'core' : 'runtime');
+  }, [groupsByDomain, isAdmin, paramTab, populatedDomains]);
+
+  const handleDomainChange = React.useCallback(
+    (next: string) => {
+      if (!isValidDomainId(next)) return;
+      if (searchQuery.trim() || onlyChanged) {
+        setSearchQuery('');
+        setOnlyChanged(false);
       }
-      if (fullNameKey) {
-        const translated = t(fullNameKey);
-        if (translated !== fullNameKey) return translated;
-      }
-      return config.name;
+      setSearchParams(
+        (prev) => {
+          const updated = new URLSearchParams(prev);
+          updated.set('tab', next);
+          return updated;
+        },
+        { replace: true },
+      );
     },
+    [onlyChanged, searchQuery, setSearchParams],
+  );
+
+  const getDomainLabel = React.useCallback(
+    (domain: DomainId) => t(`frameworkConfig.domains.${domain}`),
     [t],
   );
 
-  // Get current selected config
-  const selectedConfig = useMemo(() => {
-    return configs.find((c) => c.id === selectedConfigId);
-  }, [configs, selectedConfigId]);
+  const isFiltering = Boolean(searchQuery.trim()) || onlyChanged;
 
-  // Change detection
-  const isConfigDirty = useMemo(() => {
-    if (!selectedConfig) return false;
-    return JSON.stringify(selectedConfig.config) !== JSON.stringify(originalConfig);
-  }, [selectedConfig?.config, originalConfig]);
-
-  // Fetch config list from API (轻量级接口)
-  const fetchConfigList = async () => {
-    try {
-      setIsLoading(true);
-      const data = await frameworkConfigApi.getFrameworkConfigList('GsCore');
-      // Filter out backup config and AI configs as they're handled in separate pages
-      const filtered = data.filter((c) => {
-        const nameLower = c.name.toLowerCase();
-        const fullNameLower = c.full_name.toLowerCase();
-        return (
-          nameLower !== 'backup' &&
-          nameLower !== '备份配置' &&
-          !nameLower.startsWith('gscore ai') &&
-          !fullNameLower.startsWith('gscore ai')
-        );
-      });
-      setConfigList(filtered);
-
-      // If has configs and none selected, select first
-      if (filtered.length > 0 && !selectedConfigId) {
-        setSelectedConfigId(filtered[0].id);
-      }
-    } catch (error) {
-      console.error('Failed to fetch framework config list:', error);
-      toast.error(t('frameworkConfig.loadFailed') || 'Unable to load framework configuration');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Fetch config detail for a specific config
-  const fetchConfigDetail = async (configName: string) => {
-    try {
-      setIsLoadingDetail(true);
-      const data = await frameworkConfigApi.getFrameworkConfig(configName);
-      const converted = {
-        ...data,
-        config: convertToConfig(data.config),
-      };
-
-      setConfigs((prev) => {
-        // Remove existing config with same id if exists, then add new one
-        const filtered = prev.filter((c) => c.id !== data.id);
-        return [...filtered, converted];
-      });
-
-      // If this is the selected config, set original config
-      if (data.id === selectedConfigId) {
-        setOriginalConfig(JSON.parse(JSON.stringify(converted.config)));
-      }
-    } catch (error) {
-      console.error('Failed to fetch framework config detail:', error);
-      toast.error(t('frameworkConfig.loadFailed') || 'Unable to load framework configuration');
-    } finally {
-      setIsLoadingDetail(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchConfigList();
-  }, []);
-
-  // Fetch detail when selected config changes
-  useEffect(() => {
-    if (selectedConfigId) {
-      // Check if we already have the detail for this config
-      const existingConfig = configs.find((c) => c.id === selectedConfigId);
-      if (!existingConfig) {
-        // Need to fetch detail for this config
-        const configInfo = configList.find((c) => c.id === selectedConfigId);
-        if (configInfo) {
-          fetchConfigDetail(configInfo.full_name);
-        }
-      }
-    }
-  }, [selectedConfigId, configList, configs]);
-
-  // Update original state when selected config changes
-  useEffect(() => {
-    if (selectedConfig) {
-      setOriginalConfig(JSON.parse(JSON.stringify(selectedConfig.config)));
-      setDirty(false);
-    }
-  }, [selectedConfigId, setDirty]);
-
-  const updateConfigValue = useCallback(
-    (fieldKey: string, value: ConfigValue) => {
-      setConfigs((prev) =>
-        prev.map((c) =>
-          c.id === selectedConfigId
-            ? {
-                ...c,
-                config: {
-                  ...c.config,
-                  [fieldKey]: { ...c.config[fieldKey], value },
-                },
-              }
-            : c,
-        ),
-      );
-      setDirty(true);
-    },
-    [selectedConfigId, setDirty],
+  const searchHits = React.useMemo(
+    () =>
+      isFiltering
+        ? searchFrameworkFields(groupsList, originalConfigs, searchQuery, onlyChanged)
+        : [],
+    [groupsList, isFiltering, onlyChanged, originalConfigs, searchQuery],
   );
 
-  const handleSaveConfig = async () => {
-    const currentConfig = configs.find((c) => c.id === selectedConfigId);
-    if (!currentConfig) return;
-    try {
-      setIsSaving(true);
-      const configToSave: Record<string, any> = {};
-      Object.entries(currentConfig.config).forEach(([key, field]: [string, any]) => {
-        configToSave[key] = field.value;
-      });
-      await frameworkConfigApi.updateFrameworkConfig(currentConfig.full_name, configToSave);
-      setOriginalConfig(JSON.parse(JSON.stringify(currentConfig.config)));
-      setDirty(false);
-      toast.success(t('frameworkConfig.configSaved'));
-    } catch (_error) {
-      toast.error(t('frameworkConfig.saveFailed') || 'Failed to update framework configuration');
-    } finally {
-      setIsSaving(false);
+  const domainTabOptions: TabButtonOption[] = React.useMemo(() => {
+    const fallbackDomains = DOMAIN_ORDER.filter((d) => d !== 'core' || isAdmin);
+    const visibleDomains = populatedDomains.length > 0 ? populatedDomains : fallbackDomains;
+    return visibleDomains.map((domain) => {
+      const changed = dirtySummary.domainChangedCounts[domain];
+      return {
+        value: domain,
+        label: getDomainLabel(domain),
+        icon: DOMAIN_ICONS[domain],
+        badge:
+          changed > 0 ? (
+            <span className="inline-flex h-4 min-w-[1rem] shrink-0 items-center justify-center rounded-full bg-current/15 px-1 text-[10px] font-semibold tabular-nums">
+              {changed}
+            </span>
+          ) : undefined,
+      };
+    });
+  }, [dirtySummary.domainChangedCounts, getDomainLabel, isAdmin, populatedDomains]);
+
+  const pageHeader = (
+    <div>
+      <h1 className="flex items-center gap-2 text-3xl font-bold tracking-tight">
+        <Sliders className="h-8 w-8 shrink-0 text-primary" />
+        <span className="min-w-0 truncate">{t('frameworkConfig.title')}</span>
+      </h1>
+      <p className="mt-1 text-muted-foreground">{t('frameworkConfig.description')}</p>
+    </div>
+  );
+
+  if (isLoading) {
+    return (
+      <PinnedPage header={pageHeader}>
+        <Card className="glass-card space-y-4 p-5">
+          <Skeleton className="h-5 w-48" />
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {[0, 1, 2, 3].map((idx) => (
+              <Skeleton key={idx} className="h-10 rounded-lg" />
+            ))}
+          </div>
+          <Skeleton className="h-20 w-full rounded-lg" />
+        </Card>
+        <Card className="glass-card space-y-3 p-5">
+          <Skeleton className="h-5 w-40" />
+          <Skeleton className="h-10 w-full rounded-lg" />
+          <Skeleton className="h-10 w-full rounded-lg" />
+        </Card>
+      </PinnedPage>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <PinnedPage header={pageHeader}>
+        <GlassAlert tone="danger" icon={AlertTriangle} className="sm:items-center">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs font-medium sm:text-sm">{loadError}</p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => void refresh()}
+              className="h-9 shrink-0 gap-1.5 self-start sm:self-auto"
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+              {t('common.refresh')}
+            </Button>
+          </div>
+        </GlassAlert>
+      </PinnedPage>
+    );
+  }
+
+  if (groupsList.length === 0) {
+    return (
+      <PinnedPage header={pageHeader}>
+        <Card className="glass-card p-6">
+          <EmptyState
+            icon={<Sliders className="h-8 w-8" />}
+            title={t('frameworkConfig.noFrameworkConfig')}
+            action={
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => void refresh()}
+                className="gap-1.5"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                {t('common.refresh')}
+              </Button>
+            }
+          />
+        </Card>
+      </PinnedPage>
+    );
+  }
+
+  const sharedSectionProps = {
+    groups: groupsByDomain[activeDomain],
+    originalConfigs,
+    changedFieldsByGroup: dirtySummary.changedFieldsByGroup,
+    coreOptionsMeta,
+    onUpdateField: updateField,
+    onBatchUpdateFields: batchUpdateFields,
+    onResetField: resetField,
+    onResetGroup: resetGroup,
+  };
+
+  const renderDomainSection = () => {
+    switch (activeDomain) {
+      case 'core':
+        return <SystemCoreSection {...sharedSectionProps} />;
+      case 'runtime':
+        return <RuntimeSection {...sharedSectionProps} />;
+      case 'database':
+        return <DatabaseSection {...sharedSectionProps} />;
+      case 'media':
+        return <MediaSection {...sharedSectionProps} />;
+      case 'interaction':
+        return <InteractionSection {...sharedSectionProps} />;
+      case 'identity':
+        return <IdentitySection {...sharedSectionProps} />;
     }
   };
 
   return (
     <PinnedPage
-      header={
-        <div className="min-w-0 overflow-visible">
-          <h1 className="break-words text-3xl font-bold leading-tight flex items-start gap-3">
-            <Cpu className="w-8 h-8 shrink-0" />
-            <span className="min-w-0 break-words">{t('frameworkConfig.title')}</span>
-          </h1>
-          <p className="break-words text-muted-foreground mt-1">
-            {t('frameworkConfig.description')}
-          </p>
-        </div>
-      }
+      header={pageHeader}
       toolbar={
-        /* 配置选择：窄屏放不下 Tab 时降级为下拉（containerRef 供 useLayoutEffect 测宽） */
-        <div ref={containerRef} className="flex items-center justify-between">
-          {canFitTabs ? (
+        /* 顶栏统一 h-10：左分区 Tab，右全局搜索 + 过滤已改 + 刷新 / 重置 / 保存 */
+        <div className="flex min-w-0 flex-col gap-2.5 xl:flex-row xl:items-center xl:justify-between">
+          <div className={cn(tabToolbarGroupWrapClass, 'max-w-full')}>
             <TabButtonGroup
-              options={configList.map((config) => ({
-                value: config.id,
-                label: getConfigDisplayName(config),
-                icon: <Settings className="w-4 h-4" />,
-              }))}
-              value={selectedConfigId}
-              onValueChange={setSelectedConfigId}
-              disabled={isLoading}
+              options={domainTabOptions}
+              value={isFiltering ? '' : activeDomain}
+              onValueChange={handleDomainChange}
+              className="shrink-0"
             />
-          ) : (
-            <Card className="glass-card w-full sm:w-fit">
-              <CardContent className="p-4">
-                <div className="flex flex-col sm:flex-row gap-3 md:gap-4 items-start sm:items-center">
-                  <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                    <Settings className="w-4 h-4" />
-                    <span>{t('frameworkConfig.selectConfig')}</span>
-                  </div>
-                  <div className="flex-1 w-full">
-                    <Select value={selectedConfigId} onValueChange={setSelectedConfigId}>
-                      <SelectTrigger
-                        className={cn(
-                          tabToolbarControlClass,
-                          'w-full bg-background/50 sm:w-[300px]',
-                        )}
-                      >
-                        <SelectValue placeholder={t('frameworkConfig.selectConfig')} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {configList.map((config) => (
-                          <SelectItem key={config.id} value={config.id}>
-                            <span className="flex items-center gap-2">
-                              <Settings className="w-4 h-4" />
-                              {getConfigDisplayName(config)}
-                            </span>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          </div>
+
+          <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
+            <div className="relative min-w-0 flex-1 sm:w-56 md:w-64 xl:w-56 xl:min-w-[9rem] xl:flex-initial xl:shrink 2xl:w-64">
+              <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={t('frameworkConfig.search.placeholder')}
+                className={cn(tabToolbarControlClass, 'w-full bg-background/60 pl-9 pr-8')}
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-muted-foreground hover:text-foreground"
+                  aria-label={t('frameworkConfig.search.clearFilter')}
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+
+            <div className="flex shrink-0 items-center gap-2">
+              {(dirtySummary.isDirty || onlyChanged) && (
+                <Button
+                  type="button"
+                  variant={onlyChanged ? 'default' : 'outline'}
+                  onClick={() => setOnlyChanged((prev) => !prev)}
+                  className={cn(
+                    tabToolbarControlClass,
+                    'gap-1.5 whitespace-nowrap px-3 text-xs sm:text-sm',
+                    onlyChanged && 'button-solid',
+                  )}
+                >
+                  <Filter className="h-3.5 w-3.5 shrink-0" />
+                  <span>{t('frameworkConfig.search.onlyModified')}</span>
+                </Button>
+              )}
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => void refresh()}
+                    disabled={isRefreshing || isSaving}
+                    className={cn(tabToolbarIconButtonClass, 'shrink-0')}
+                    aria-label={t('common.refresh')}
+                  >
+                    <RefreshCw className={cn('h-4 w-4', isRefreshing && 'animate-spin')} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">{t('common.refresh')}</TooltipContent>
+              </Tooltip>
+
+              {dirtySummary.isDirty && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={resetAll}
+                  disabled={isSaving}
+                  className={cn(
+                    tabToolbarControlClass,
+                    'flex-1 gap-1.5 whitespace-nowrap px-3 sm:flex-none',
+                  )}
+                >
+                  <RotateCcw className="h-4 w-4 shrink-0" />
+                  <span>{t('frameworkConfig.progressive.resetAll')}</span>
+                </Button>
+              )}
+
+              <Button
+                type="button"
+                onClick={() => void saveChanged()}
+                disabled={!dirtySummary.isDirty || isSaving}
+                className={cn(
+                  tabToolbarControlClass,
+                  'button-solid flex-1 gap-2 whitespace-nowrap px-4 sm:flex-none',
+                )}
+              >
+                {isSaving ? (
+                  <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4 shrink-0" />
+                )}
+                <span>
+                  {dirtySummary.isDirty
+                    ? t('frameworkConfig.progressive.saveWithCount', {
+                        count: dirtySummary.totalChangedFields,
+                      })
+                    : t('common.save')}
+                </span>
+              </Button>
+            </div>
+          </div>
         </div>
       }
     >
-      {isLoading ? (
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="w-8 h-8 animate-spin" />
-        </div>
-      ) : !selectedConfig || isLoadingDetail ? (
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="w-8 h-8 animate-spin" />
-        </div>
-      ) : selectedConfig.name === 'GsCore图片上传' ||
-        selectedConfig.full_name === 'GsCore图片上传' ? (
-        <ImageUploadPage />
-      ) : selectedConfig.name === 'GsCore数据库配置' ||
-        selectedConfig.full_name === 'GsCore数据库配置' ? (
-        <DatabaseConfigPage />
-      ) : selectedConfig.name === 'GsCore状态配置' ||
-        selectedConfig.full_name === 'GsCore状态配置' ? (
-        <StateConfigPage />
-      ) : selectedConfig.name === '核心配置' || selectedConfig.full_name === 'GsCore' ? (
-        <CoreSettings />
-      ) : selectedConfig.name === '杂项配置' || selectedConfig.full_name === '杂项配置' ? (
-        <MiscSettings />
-      ) : selectedConfig.name === '验证配置' || selectedConfig.full_name === '验证配置' ? (
-        <VerificationSettings />
-      ) : selectedConfig.name === '发送图片' || selectedConfig.full_name === '发送图片' ? (
-        <ImageSendSettings />
-      ) : (selectedConfig.name.includes('按钮') &&
-          (selectedConfig.name.includes('MD') || selectedConfig.name.includes('Markdown'))) ||
-        (selectedConfig.full_name.includes('按钮') &&
-          (selectedConfig.full_name.includes('MD') ||
-            selectedConfig.full_name.includes('Markdown'))) ? (
-        <ButtonMarkdownSettings />
-      ) : !selectedConfig.config || Object.keys(selectedConfig.config).length === 0 ? (
-        <Card className="glass-card">
-          <CardContent className="p-4 sm:p-6">
-            <div className="text-center py-8 text-muted-foreground">
-              {t('frameworkConfig.noFrameworkConfig')}
-            </div>
-          </CardContent>
-        </Card>
+      {failedGroupNames.length > 0 && (
+        <GlassAlert tone="warning" icon={AlertTriangle}>
+          <p className="truncate text-xs sm:text-sm">
+            {t('frameworkConfig.progressive.partialLoadWarning', {
+              names: failedGroupNames.join(', '),
+            })}
+          </p>
+        </GlassAlert>
+      )}
+
+      {isFiltering ? (
+        <GlobalSearchResults
+          hits={searchHits}
+          searchQuery={searchQuery}
+          onlyChanged={onlyChanged}
+          getDomainLabel={getDomainLabel}
+          onJumpToDomain={handleDomainChange}
+          onClearFilter={() => {
+            setSearchQuery('');
+            setOnlyChanged(false);
+          }}
+          onUpdateField={updateField}
+          onResetField={resetField}
+        />
       ) : (
-        <>
-          <Card className="glass-card">
-            <CardContent className="p-4 sm:p-6">
-              {Object.keys(selectedConfig.config).length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  {t('frameworkConfig.noConfigItems')}
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-                  {Object.entries(selectedConfig.config).map(([key, field]: [string, any]) => (
-                    <ConfigField
-                      key={key}
-                      fieldKey={key}
-                      field={field}
-                      onChange={updateConfigValue}
-                    />
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-          {/* Save Button */}
-          <div className="flex justify-end pt-4">
-            <Button
-              onClick={handleSaveConfig}
-              disabled={!isConfigDirty || isSaving}
-              className="button-solid gap-2"
-            >
-              {isSaving ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Save className="w-4 h-4" />
-              )}
-              {t('common.save')}
-            </Button>
-          </div>
-        </>
+        renderDomainSection()
       )}
     </PinnedPage>
   );

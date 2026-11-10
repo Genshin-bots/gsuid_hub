@@ -7,6 +7,22 @@
 import DOMPurify from 'dompurify';
 import { marked } from 'marked';
 import { getAuthToken, getCustomApiHost, resolveApiAssetUrl } from '@/lib/api';
+import {
+  type ChatBlock,
+  type ChatMessage,
+  type Conversation,
+  type LiveChatIdentity,
+  type MessageSegment,
+  PLATFORM_BOT_ID,
+  WS_BOT_ID,
+  blocksPreview,
+} from '@/lib/liveChat';
+
+export const VIRTUAL_SESSION_PREFIX = 'virtual:';
+
+export function isVirtualSessionId(sessionId: string | null | undefined): boolean {
+  return Boolean(sessionId?.startsWith(VIRTUAL_SESSION_PREFIX));
+}
 
 type SegType =
   | 'text'
@@ -43,6 +59,11 @@ export interface BtnItem {
   /** `0` 跳转链接、`1` 回调、`2` 命令、`-1` 自适应 */
   action?: number;
   permission?: number;
+  /** 早柚协议原始拼写（历史 typo 保留） */
+  permisson?: number;
+  specify_role_ids?: string[];
+  specify_user_ids?: string[];
+  unsupport_tips?: string;
   limited?: boolean;
   enter?: boolean;
 }
@@ -94,6 +115,14 @@ export interface ChatMsg {
   msg_id?: string;
   /** WS 实时帧才有：后端算好的列表摘要，前端不再自己压一遍 */
   preview?: string;
+  /** 虚拟会话消息发送状态 */
+  status?: 'sending' | 'sent' | 'failed';
+  /** 虚拟会话消息是否已撤回 */
+  recalled?: boolean;
+  /** 是否为系统提示消息（如禁言控制、元事件） */
+  isSystem?: boolean;
+  /** 虚拟会话原始早柚协议段（用于重试 / +1 / 复制） */
+  rawSegments?: MessageSegment[];
 }
 
 export interface SessionItem {
@@ -115,6 +144,219 @@ export interface SessionItem {
   pinned: boolean;
   blacklisted: boolean;
   note: string;
+  /** 是否为自主创建的持久化虚拟会话（webconsole_livechat） */
+  virtual?: boolean;
+  /** 虚拟会话在 liveChat state 中的原始 id（如 group:xxx 或 direct:xxx） */
+  virtualConvId?: string;
+}
+
+/** 将 LiveChat 的 ChatBlock[] 转换为 SessionManagement 的 MsgSeg[] */
+export function chatBlocksToMsgSegs(
+  blocks: ChatBlock[],
+  allMessages: ChatMessage[],
+  identity: LiveChatIdentity,
+  replyToId?: string,
+  agentName?: string,
+): MsgSeg[] {
+  const segs: MsgSeg[] = [];
+
+  for (const b of blocks) {
+    switch (b.kind) {
+      case 'text':
+        segs.push({ type: 'text', text: b.text });
+        break;
+      case 'at':
+        segs.push({
+          type: 'at',
+          qq: b.userId,
+          name: `@${b.userId}`,
+        });
+        break;
+      case 'reply': {
+        const targetId = replyToId || b.msgId;
+        const quoted = allMessages.find((x) => x.id === targetId || x.msgId === targetId);
+        const quotedSender = quoted
+          ? quoted.role === 'user'
+            ? quoted.senderName || identity.nickname || identity.userId
+            : agentName || quoted.senderName || 'Agent'
+          : undefined;
+        const quotedText = quoted ? blocksPreview(quoted.blocks) : undefined;
+        segs.push({
+          type: 'reply',
+          id: b.msgId,
+          text: quotedSender
+            ? `${quotedSender}${quotedText ? `: ${quotedText}` : ''}`
+            : quotedText || `#${b.msgId}`,
+        });
+        break;
+      }
+      case 'image':
+        segs.push({ type: 'image', url: b.src, raw: b.raw });
+        break;
+      case 'record':
+        segs.push({ type: 'record', url: b.src });
+        break;
+      case 'video':
+        segs.push({ type: 'video', url: b.src });
+        break;
+      case 'file':
+        segs.push({ type: 'file', name: b.name, url: b.src });
+        break;
+      case 'markdown':
+        segs.push({ type: 'markdown', content: b.text });
+        break;
+      case 'buttons':
+        segs.push({
+          type: 'button',
+          rows: b.rows.map((row) =>
+            row.map(
+              (btn): BtnItem => ({
+                text: btn.text,
+                data: btn.data || btn.text,
+                pressed_text: btn.pressed_text ?? undefined,
+                style: btn.style ?? 1,
+                action: btn.action ?? -1,
+                permission: btn.permisson ?? 2,
+                permisson: btn.permisson ?? 2,
+                specify_role_ids: btn.specify_role_ids ?? [],
+                specify_user_ids: btn.specify_user_ids ?? [],
+                unsupport_tips: btn.unsupport_tips ?? '',
+                limited:
+                  (btn.permisson !== undefined && btn.permisson !== 2) ||
+                  Boolean(btn.specify_user_ids?.length) ||
+                  Boolean(btn.specify_role_ids?.length),
+              }),
+            ),
+          ),
+        });
+        break;
+      case 'node':
+        segs.push({
+          type: 'forward',
+          count: b.items.length,
+          items: b.items.map((itemBlocks) =>
+            chatBlocksToMsgSegs(itemBlocks, allMessages, identity, undefined, agentName),
+          ),
+        });
+        break;
+      case 'meta':
+        segs.push({
+          type: 'text',
+          text: `[Meta · ${b.event}] ${JSON.stringify(b.data)}`,
+        });
+        break;
+      case 'control':
+        segs.push({
+          type: 'text',
+          text: `[${b.type}] ${typeof b.data === 'string' ? b.data : JSON.stringify(b.data)}`,
+        });
+        break;
+      case 'unknown':
+        segs.push({
+          type: 'unknown',
+          kind: b.type,
+          raw: typeof b.data === 'string' ? b.data : JSON.stringify(b.data),
+        });
+        break;
+    }
+  }
+
+  return segs;
+}
+
+export interface VirtualAgentProfile {
+  name?: string;
+  avatar?: string;
+}
+
+/** 将 LiveChat 的单条 ChatMessage 转换为 SessionManagement 的 ChatMsg */
+export function liveChatMessageToChatMsg(
+  msg: ChatMessage,
+  allMessages: ChatMessage[],
+  identity: LiveChatIdentity,
+  agentProfile?: VirtualAgentProfile,
+): ChatMsg {
+  const isUser = msg.role === 'user';
+  const isSystem = msg.role === 'system';
+  const agentName = agentProfile?.name?.trim() || msg.senderName || 'Agent';
+  const senderName = isUser
+    ? msg.senderName || identity.nickname || identity.userId
+    : isSystem
+      ? 'System'
+      : agentName;
+  const senderAvatar = isUser
+    ? msg.senderAvatar || identity.avatar || ''
+    : isSystem
+      ? ''
+      : agentProfile?.avatar || msg.senderAvatar || '';
+  const senderId = isUser
+    ? identity.userId
+    : agentProfile?.name?.trim() || identity.botSelfId || PLATFORM_BOT_ID;
+  const segments = chatBlocksToMsgSegs(msg.blocks, allMessages, identity, msg.replyTo, agentName);
+  const content = blocksPreview(msg.blocks);
+
+  return {
+    key: msg.id,
+    msg_id: msg.msgId || msg.id,
+    role: isUser ? 'user' : 'assistant',
+    // 在虚拟会话中，用户自己发送的消息在右侧（self = isUser）
+    self: isUser,
+    user_id: senderId,
+    user_name: senderName,
+    user_avatar: senderAvatar,
+    timestamp: Math.floor((msg.timestamp || Date.now()) / 1000),
+    content,
+    segments,
+    sender: {
+      user_id: senderId,
+      nickname: senderName,
+      avatar: senderAvatar || undefined,
+    },
+    status: msg.status,
+    recalled: msg.recalled,
+    isSystem,
+    rawSegments: msg.rawContent,
+  };
+}
+
+export interface VirtualSessionMeta {
+  pinned?: boolean;
+  note?: string;
+  avatar?: string;
+  personaName?: string;
+}
+
+/** 将 LiveChat 的 Conversation 转换为 SessionList 可渲染的 SessionItem */
+export function conversationToSessionItem(
+  conv: Conversation,
+  identity: LiveChatIdentity,
+  meta?: VirtualSessionMeta,
+): SessionItem {
+  const lastMsg = conv.messages[conv.messages.length - 1];
+  const lastRole = lastMsg ? (lastMsg.role === 'bot' ? 'assistant' : 'user') : '';
+  const lastTimeSec = Math.floor((conv.updatedAt || Date.now()) / 1000);
+  const personaName = meta?.personaName?.trim();
+
+  return {
+    session_id: `${VIRTUAL_SESSION_PREFIX}${conv.id}`,
+    type: conv.type === 'group' ? 'group' : 'private',
+    WS_BOT_ID: WS_BOT_ID,
+    bot_id: PLATFORM_BOT_ID,
+    bot_self_id: personaName || identity.botSelfId || 'gscore_bot',
+    group_id: conv.type === 'group' ? conv.targetId : null,
+    user_id: conv.type === 'direct' ? conv.targetId : identity.userId,
+    title: conv.name || conv.targetId,
+    avatar: meta?.avatar || '',
+    message_count: conv.messages.length,
+    last_preview: conv.lastPreview || (lastMsg ? blocksPreview(lastMsg.blocks) : ''),
+    last_role: lastRole,
+    last_time: lastTimeSec,
+    pinned: Boolean(meta?.pinned),
+    blacklisted: false,
+    note: meta?.note || '',
+    virtual: true,
+    virtualConvId: conv.id,
+  };
 }
 
 export interface SessionPrefs {

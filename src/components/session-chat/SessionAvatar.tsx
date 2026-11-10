@@ -20,8 +20,8 @@ interface SessionAvatarProps {
 }
 
 export function SessionAvatar({ src, name, type, className }: SessionAvatarProps) {
-  const [failed, setFailed] = useState(false);
-  const url = src && !failed ? assetUrl(src) : '';
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  const url = src && failedSrc !== src ? assetUrl(src) : '';
   const initial = (name ?? '').trim().slice(0, 1);
 
   return (
@@ -37,7 +37,7 @@ export function SessionAvatar({ src, name, type, className }: SessionAvatarProps
           alt={name ?? ''}
           className="h-full w-full object-cover"
           loading="lazy"
-          onError={() => setFailed(true)}
+          onError={() => setFailedSrc(src ?? null)}
         />
       ) : initial ? (
         <span>{initial}</span>

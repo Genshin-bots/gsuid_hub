@@ -20,7 +20,7 @@ describe('App route splitting', () => {
       'Dashboard',
       'AIMemoryPage',
       'AIStatisticsPage',
-      'LiveChatPage',
+      'SessionManagementPage',
     ]) {
       expect(src).toMatch(new RegExp(`lazy\\(\\(\\) => import\\(['"]@/pages/${page}['"]\\)\\)`));
     }

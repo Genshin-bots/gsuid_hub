@@ -38,6 +38,8 @@ import { resolveSchedulerJobsView } from '@/lib/featureUtils';
 import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { PinnedPage } from '@/components/layout/PinnedPage';
+import { tabToolbarControlClass } from '@/components/ui/TabButtonGroup';
+import { cn } from '@/lib/utils';
 
 /** 调度任务每页条数（服务端分页；表格行较高，20 行一页） */
 const SCHEDULER_PAGE_SIZE = 20;
@@ -198,6 +200,7 @@ export default function SchedulerPage() {
 
   return (
     <PinnedPage
+      bodyClassName="space-y-3 md:space-y-4"
       header={
         <div className="min-w-0 sm:overflow-x-auto">
           <h1 className="sm:whitespace-nowrap text-3xl font-bold flex items-center gap-3">
@@ -211,9 +214,9 @@ export default function SchedulerPage() {
       }
     >
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+      <div className="glass-card-grid grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         <Card className="glass-card">
-          <CardContent className="p-4">
+          <CardContent className="p-3.5 sm:p-4">
             <div className="flex items-center gap-3">
               <Timer className="w-8 h-8 text-primary" />
               <div>
@@ -224,7 +227,7 @@ export default function SchedulerPage() {
           </CardContent>
         </Card>
         <Card className="glass-card">
-          <CardContent className="p-4">
+          <CardContent className="p-3.5 sm:p-4">
             <div className="flex items-center gap-3">
               <Play className="w-8 h-8 text-green-500" />
               <div>
@@ -235,7 +238,7 @@ export default function SchedulerPage() {
           </CardContent>
         </Card>
         <Card className="glass-card">
-          <CardContent className="p-4">
+          <CardContent className="p-3.5 sm:p-4">
             <div className="flex items-center gap-3">
               <Pause className="w-8 h-8 text-yellow-500" />
               <div>
@@ -246,7 +249,7 @@ export default function SchedulerPage() {
           </CardContent>
         </Card>
         <Card className="glass-card">
-          <CardContent className="p-4">
+          <CardContent className="p-3.5 sm:p-4">
             <div className="flex items-center gap-3">
               <XCircle className="w-8 h-8 text-destructive" />
               <div>
@@ -260,14 +263,14 @@ export default function SchedulerPage() {
 
       {/* Search */}
       <Card className="glass-card">
-        <CardContent className="p-4">
+        <CardContent className="p-2.5 sm:p-3">
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder={t('scheduler.searchTask')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+              className={cn(tabToolbarControlClass, 'pl-10')}
             />
           </div>
         </CardContent>
@@ -275,7 +278,7 @@ export default function SchedulerPage() {
 
       {/* Tasks Table */}
       <Card className="glass-card">
-        <CardHeader>
+        <CardHeader className="p-3.5 pb-2 sm:p-4 sm:pb-3">
           <CardTitle className="flex items-center gap-2">
             <Clock className="w-5 h-5" />
             {t('scheduler.taskList')}
