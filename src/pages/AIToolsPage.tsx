@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -239,7 +239,7 @@ export default function AIToolsPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedPlugin, setSelectedPlugin] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
-  // 已提交的搜索词：输入框每次按键都发请求会打爆后端，防抖后再提交
+  // 已提交的搜索词：防抖后再提交，避免频繁请求打爆后端
   const [appliedSearch, setAppliedSearch] = useState<string>('');
   const [diagnosticFilter, setDiagnosticFilter] = useState<'all' | 'issues' | 'empty_description'>(
     'all',
@@ -292,14 +292,56 @@ export default function AIToolsPage() {
     return ['all', ...sortedCategories];
   }, [categories]);
 
-  // 搜索防抖：输入框每次按键都打一次接口会打爆后端，停手 400ms 才提交
-  useEffect(() => {
-    const id = setTimeout(() => {
-      setAppliedSearch(searchQuery.trim());
+  // 输入法合成状态（IME composition）标记：中文拼音组词未完成时禁止触发防抖提交
+  const isComposingRef = useRef(false);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const scheduleSearch = useCallback((query: string) => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    debounceTimerRef.current = setTimeout(() => {
+      if (isComposingRef.current) return;
+      setAppliedSearch(query.trim());
       setPage(1);
     }, 400);
-    return () => clearTimeout(id);
-  }, [searchQuery]);
+  }, []);
+
+  const handleSearchChange = (val: string) => {
+    setSearchQuery(val);
+    if (!isComposingRef.current) {
+      scheduleSearch(val);
+    }
+  };
+
+  const handleCompositionStart = () => {
+    isComposingRef.current = true;
+  };
+
+  const handleCompositionEnd = (e: React.CompositionEvent<HTMLInputElement>) => {
+    isComposingRef.current = false;
+    const val = e.currentTarget.value;
+    setSearchQuery(val);
+    scheduleSearch(val);
+  };
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && !isComposingRef.current && !e.nativeEvent.isComposing) {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+      setAppliedSearch(searchQuery.trim());
+      setPage(1);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, []);
 
   // 筛选变化 → 回到第 1 页（否则停在第 3 页时改筛选会看到空列表）
   const handleCategoryChange = useCallback((value: string) => {
@@ -492,7 +534,7 @@ export default function AIToolsPage() {
             />
           </div>
 
-          {pageTab === 'tools' && !isLoading && categories.length > 0 && (
+          {pageTab === 'tools' && (
             /*
              * 窄屏：搜索框独占一行，下面三个筛选下拉一行三列（两行）。
              * 四个控件挤一行时下拉框只剩 130px，"全部分类"被截成"全部分…"，点不准。
@@ -505,7 +547,10 @@ export default function AIToolsPage() {
                   type="text"
                   placeholder={t('aiTools.searchPlaceholder')}
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                  onCompositionStart={handleCompositionStart}
+                  onCompositionEnd={handleCompositionEnd}
+                  onKeyDown={handleSearchKeyDown}
                   className={cn(tabToolbarShellControlClass, 'min-w-0 w-full pl-9')}
                 />
               </div>
