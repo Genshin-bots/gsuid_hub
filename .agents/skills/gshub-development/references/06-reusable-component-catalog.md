@@ -459,7 +459,8 @@ URL 构建：`getPluginIconUrl(name)`（`src/lib/api.ts`）。
 export interface PluginIconProps {
   pluginName: string;
   className?: string;          // 默认 'w-[18px] h-[18px]'
-  fallbackClassName?: string;  // 失败时 Package 图标附加 class
+  fallbackClassName?: string;  // 失败时 Package 图标或字母圆标附加 class
+  variant?: 'default' | 'avatar'; // avatar：圆形裁切 + 无 PNG 时确定性渐变底色与 1~2 字母回退
 }
 ```
 
@@ -486,8 +487,16 @@ import { PluginIcon } from '@/components/ui/plugin-icon';
 <PluginIcon pluginName={name === '核心功能' ? 'gsuid_core' : name} />
 ```
 
-组件行为：加载失败 → `Package` 兜底；切换 `pluginName` 时重置错误态。  
+组件行为：加载失败 → `Package` 兜底（`variant="avatar"` 为渐变圆标 + 缩写字母）；切换 `pluginName` 时重置错误态。  
 若需为其它无 ICON 的内置插件复用项目 LOGO，只需在 `PROJECT_LOGO_PLUGIN_NAMES` 追加小写名（**不要**在各页面写死路径）。
+
+### 6.7b PluginGridSelector（别名 `PluginUsageBar`）—— Popover 网格插件选择器 ★★
+
+位置：`src/components/plugins/PluginUsageBar.tsx`。用于「一次只操作一个目标插件/仓库」的页面（`/plugins`、`/database`、`/git-update`；带「全部插件」过滤的场景仍用 `TabButtonGroup.dropdown` 或 `SearchableMenu`）。
+
+- 形态与快捷键：标准主题圆角 `Button variant="outline"` 触发按钮（圆形 `PluginIcon variant="avatar"` + 插件名 + `Ctrl K` / `⌘ K` 徽标 + 箭头，圆角跟随 `--radius`）；支持 `Ctrl+K` / `⌘K` 全局打开并自动聚焦搜索框。
+- 浮层面板：顶部即时搜索框 + 后端持久化（`GET/POST /api/plugins/recent`，旧后端自动降级本地缓存）的「最近使用」按钮行（最多 4 项，不足时以 7 日触发热度补齐）+ 3 列（窄屏 2 列）大按钮网格（网格容器**不设** `role="listbox"` 以免触发全局内陷菜单框）+ 底部 `↑ ↓ ← →` / `Enter` / `Esc` 2D 网格键盘导航。
+- 可选字段：传 `enabled?: boolean`（`false` 时右下角显示灰色停用圆点）；传 `iconName?: string` 覆盖图标查询名（如数据库页 `name: '核心功能'` 映射 `iconName: 'gsuid_core'`）。触发按钮**不设** `role="combobox"`（遵守 §6.12）。
 
 ## 6.8 ModelBrandIcon / ProviderBrandIcon —— 厂商品牌图标
 

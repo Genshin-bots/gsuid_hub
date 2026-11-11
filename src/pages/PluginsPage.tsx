@@ -9,7 +9,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { TruncatedText } from '@/components/ui/truncated-text';
 import {
   Select,
   SelectContent,
@@ -38,14 +37,6 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
   Settings,
   Loader2,
   ChevronDown,
@@ -62,7 +53,6 @@ import {
   Command,
   Package,
   RotateCw,
-  Download,
   Sliders,
   Cog,
   Database,
@@ -91,7 +81,6 @@ import {
 } from '@/components/config';
 import {
   pluginsApi,
-  gitUpdateApi,
   dashboardApi,
   getApiErrorMessage,
   type Plugin,
@@ -110,15 +99,18 @@ import {
   isSvListDirty,
 } from '@/lib/pluginServiceDirty';
 import { toast } from 'sonner';
-import { headerActionRowClass, PinnedPage } from '@/components/layout/PinnedPage';
+import { PinnedPage } from '@/components/layout/PinnedPage';
 import { PluginIcon } from '@/components/ui/plugin-icon';
 import { PluginUsageBar } from '@/components/plugins/PluginUsageBar';
 import {
-  matchPluginListId,
+  fetchSharedPluginPrefs,
   pickPluginPageText,
   pluginViewPath,
   pluginsListPath,
   readPluginsListPluginId,
+  recordSharedRecentPlugin,
+  resolveInitialPluginId,
+  setLastEditedPluginId,
   setSkipPluginPageConfirm,
   shouldSkipPluginPageConfirm,
 } from '@/lib/pluginPage';
@@ -462,18 +454,6 @@ export default function PluginsPage() {
   const [pendingPage, setPendingPage] = useState<PluginPageMeta | null>(null);
   const [dontShowAgain, setDontShowAgain] = useState(false);
 
-  // 更新全部插件相关状态
-  const [updateAllDialogOpen, setUpdateAllDialogOpen] = useState(false);
-  const [updateAllPanelOpen, setUpdateAllPanelOpen] = useState(false);
-  const [_isUpdatingAll, setIsUpdatingAll] = useState(false);
-  type PluginUpdateStatus = 'pending' | 'updating' | 'success' | 'failed';
-  interface PluginUpdateItem {
-    name: string;
-    status: PluginUpdateStatus;
-    message?: string;
-  }
-  const [pluginUpdateList, setPluginUpdateList] = useState<PluginUpdateItem[]>([]);
-
   // Track original state for change detection
   const [_originalConfig, setOriginalConfig] = useState<Record<string, any>>({});
   const [originalServiceConfig, setOriginalServiceConfig] = useState<ServiceConfig | null>(null);
@@ -531,9 +511,11 @@ export default function PluginsPage() {
   const goToPluginPage = useCallback(
     (page: PluginPageMeta) => {
       const returnId = selectedPluginId || page.plugin_id;
+      setLastEditedPluginId(returnId);
+      recordSharedRecentPlugin(selectedPlugin?.name || returnId, true);
       navigate(pluginViewPath(page), { state: { from: pluginsListPath(returnId), page } });
     },
-    [navigate, selectedPluginId],
+    [navigate, selectedPlugin?.name, selectedPluginId],
   );
 
   const requestOpenPluginPage = useCallback(
@@ -652,15 +634,20 @@ export default function PluginsPage() {
   const fetchPluginList = async () => {
     try {
       setIsLoading(true);
-      const data = await pluginsApi.getPluginList();
+      const [data, prefs] = await Promise.all([
+        pluginsApi.getPluginList(),
+        fetchSharedPluginPrefs(),
+      ]);
       setPluginList(data);
 
-      const wanted = readPluginsListPluginId(searchParams.toString()) || selectedPluginId;
-      const matched = matchPluginListId(data, wanted);
-      if (matched) {
-        setSelectedPluginId(matched);
-      } else if (data.length > 0 && !selectedPluginId) {
-        setSelectedPluginId(data[0].id);
+      const nextId = resolveInitialPluginId(
+        data,
+        searchParams.toString(),
+        selectedPluginId,
+        prefs.lastEditedPlugin,
+      );
+      if (nextId !== selectedPluginId) {
+        setSelectedPluginId(nextId);
       }
     } catch (error) {
       console.error('Failed to fetch plugin list:', error);
@@ -918,6 +905,8 @@ export default function PluginsPage() {
         groups: JSON.parse(JSON.stringify(selectedPlugin.config_groups || [])),
       });
       setParamsDirty(false);
+      setLastEditedPluginId(selectedPlugin.id);
+      recordSharedRecentPlugin(selectedPlugin.name, true);
       toast.success(t('plugins.pluginConfigUpdated'));
     } catch (_error) {
       toast.error(t('plugins.updatePluginConfigFailed'));
@@ -948,6 +937,13 @@ export default function PluginsPage() {
         ),
       );
       setOriginalEnabled(editedEnabled);
+      setPluginList((prev) =>
+        prev.map((item) =>
+          item.id === selectedPlugin.id ? { ...item, enabled: editedEnabled } : item,
+        ),
+      );
+      setLastEditedPluginId(selectedPlugin.id);
+      recordSharedRecentPlugin(selectedPlugin.name, true);
       toast.success(t('plugins.serviceConfigUpdated'));
     } catch (error) {
       toast.error(getApiErrorMessage(error, t('plugins.updateServiceConfigFailed')));
@@ -968,6 +964,8 @@ export default function PluginsPage() {
         );
       }
       setOriginalSvList(JSON.parse(JSON.stringify(editedSvList)));
+      setLastEditedPluginId(selectedPlugin.id);
+      recordSharedRecentPlugin(selectedPlugin.name, true);
       toast.success(t('plugins.serviceConfigUpdated'));
     } catch (error) {
       toast.error(getApiErrorMessage(error, t('plugins.updateServiceConfigFailed')));
@@ -998,6 +996,8 @@ export default function PluginsPage() {
           index === editingSvIndex ? (JSON.parse(JSON.stringify(svDraft)) as SvItem) : item,
         ),
       );
+      setLastEditedPluginId(selectedPlugin.id);
+      recordSharedRecentPlugin(selectedPlugin.name, true);
       toast.success(t('plugins.serviceConfigUpdated'));
       closeSvEditor();
     } catch (error) {
@@ -1018,6 +1018,8 @@ export default function PluginsPage() {
     try {
       const result = await pluginsApi.reloadPlugin(name);
       if (result?.status === 0) {
+        setLastEditedPluginId(selectedPlugin.id);
+        recordSharedRecentPlugin(name, true);
         toast.success(result.msg || t('plugins.reloadPluginSuccess', { name }));
         // 重载会重建 SL：清本地详情缓存并刷新列表/详情
         setPlugins((prev) => prev.filter((p) => p.name !== name && p.id !== selectedPlugin.id));
@@ -1031,68 +1033,6 @@ export default function PluginsPage() {
     } finally {
       setIsReloadingPlugin(false);
     }
-  };
-
-  // 更新全部插件 - 打开确认对话框
-  const handleUpdateAllClick = () => {
-    setUpdateAllDialogOpen(true);
-  };
-
-  // 更新全部插件 - 开始执行
-  const handleUpdateAllConfirm = async () => {
-    setUpdateAllDialogOpen(false);
-    setUpdateAllPanelOpen(true);
-    setIsUpdatingAll(true);
-
-    // 初始化所有插件状态为 pending
-    const initialList: PluginUpdateItem[] = pluginList.map((p) => ({
-      name: p.name,
-      status: 'pending',
-    }));
-    setPluginUpdateList(initialList);
-
-    // 并行更新所有插件
-    const updatePromises = pluginList.map(async (plugin) => {
-      // 更新状态为 updating
-      setPluginUpdateList((prev) =>
-        prev.map((p) => (p.name === plugin.name ? { ...p, status: 'updating' } : p)),
-      );
-
-      try {
-        // api.post 已解包：返回 GitForceUpdateResponse（{ success, message, current_commit }）
-        const result = await gitUpdateApi.forceUpdate(plugin.name);
-        if (result?.success) {
-          setPluginUpdateList((prev) =>
-            prev.map((p) =>
-              p.name === plugin.name ? { ...p, status: 'success', message: result.message } : p,
-            ),
-          );
-        } else {
-          setPluginUpdateList((prev) =>
-            prev.map((p) =>
-              p.name === plugin.name
-                ? { ...p, status: 'failed', message: result?.message || t('plugins.updateFailed') }
-                : p,
-            ),
-          );
-        }
-      } catch (error) {
-        setPluginUpdateList((prev) =>
-          prev.map((p) =>
-            p.name === plugin.name
-              ? {
-                  ...p,
-                  status: 'failed',
-                  message: error instanceof Error ? error.message : String(error),
-                }
-              : p,
-          ),
-        );
-      }
-    });
-
-    await Promise.all(updatePromises);
-    setIsUpdatingAll(false);
   };
 
   const configHitClass = (...parts: Array<string | undefined>) => {
@@ -1127,58 +1067,40 @@ export default function PluginsPage() {
     <PinnedPage
       bodyClassName="flex min-h-0 flex-col"
       header={
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-3 md:gap-4">
-          <div className="min-w-0 sm:overflow-x-auto">
+        <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between md:gap-4">
+          <div className="min-w-0 shrink-0">
             <h1 className="sm:whitespace-nowrap text-3xl font-bold tracking-tight flex items-center gap-3">
               <Settings className="h-8 w-8 shrink-0" />
               {t('plugins.title')}
             </h1>
-            <p className="sm:whitespace-nowrap text-muted-foreground">{t('plugins.description')}</p>
+            <p className="sm:whitespace-nowrap text-muted-foreground mt-1">
+              {t('plugins.description')}
+            </p>
           </div>
-          <div className="flex w-full flex-col gap-3 sm:w-auto sm:shrink-0 sm:flex-row sm:items-center sm:justify-end sm:gap-2">
+          <div className="flex w-full min-w-0 flex-wrap items-center gap-2.5 md:w-auto md:justify-end">
             <PluginUsageBar
+              align="end"
+              className="min-w-0 flex-1 sm:flex-none"
               plugins={pluginList}
               usageNames={pluginUsageNames}
               value={selectedPluginId}
               onValueChange={setSelectedPluginId}
-              className={tabToolbarControlClass}
             />
-            <div className={headerActionRowClass}>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="outline"
-                      onClick={handleUpdateAllClick}
-                      disabled={isLoading || pluginList.length === 0}
-                      className={cn(
-                        tabToolbarControlClass,
-                        'justify-center gap-2 whitespace-nowrap',
-                      )}
-                    >
-                      <Download className="w-4 h-4" />
-                      {t('plugins.updateAllPlugins')}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>{t('plugins.updateAllPluginsDesc')}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+            {selectedPlugin && (
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
                       variant="outline"
                       onClick={handleReloadPlugin}
-                      disabled={!selectedPlugin || isReloadingPlugin}
+                      disabled={isReloadingPlugin}
                       className={cn(
                         tabToolbarControlClass,
-                        'justify-center gap-2 whitespace-nowrap',
+                        'shrink-0 justify-center gap-2 whitespace-nowrap px-3.5',
                       )}
                     >
-                      <RotateCw className={`w-4 h-4 ${isReloadingPlugin ? 'animate-spin' : ''}`} />
-                      {t('plugins.reloadPlugin')}
+                      <RotateCw className={cn('h-4 w-4', isReloadingPlugin && 'animate-spin')} />
+                      <span className="hidden sm:inline">{t('plugins.reloadPlugin')}</span>
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
@@ -1186,7 +1108,7 @@ export default function PluginsPage() {
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
-            </div>
+            )}
           </div>
         </div>
       }
@@ -1202,13 +1124,20 @@ export default function PluginsPage() {
         <Card key={selectedPlugin.id} className="glass-card flex min-h-0 flex-1 flex-col">
           <div className="shrink-0 border-b border-border/40 px-4 pt-3 pb-2 sm:px-6 sm:py-4">
             <div className="flex flex-col gap-3 sm:gap-3 md:gap-4">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center justify-center overflow-hidden">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="flex shrink-0 items-center justify-center overflow-hidden">
                   <PluginIcon pluginName={selectedPlugin.name} className="h-8 w-8" />
                 </div>
-                <div>
-                  <h3 className="text-xl font-bold">{selectedPlugin.name}</h3>
-                  <p className="text-sm text-muted-foreground">{selectedPlugin.description}</p>
+                <div className="min-w-0">
+                  <h3 className="truncate text-xl font-bold" title={selectedPlugin.name}>
+                    {selectedPlugin.name}
+                  </h3>
+                  <p
+                    className="truncate text-sm text-muted-foreground"
+                    title={selectedPlugin.description}
+                  >
+                    {selectedPlugin.description}
+                  </p>
                 </div>
               </div>
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between lg:gap-2 [&_.shadow-safe]:!my-0 [&_.shadow-safe]:!py-0">
@@ -2229,84 +2158,6 @@ export default function PluginsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {/* 更新全部插件确认对话框 */}
-      <AlertDialog open={updateAllDialogOpen} onOpenChange={setUpdateAllDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t('plugins.updateAllPlugins')}</AlertDialogTitle>
-            <AlertDialogDescription>{t('plugins.updateAllPluginsConfirm')}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-            <AlertDialogAction onClick={handleUpdateAllConfirm}>
-              {t('common.confirm')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* 更新全部插件状态面板 */}
-      {updateAllPanelOpen && (
-        <Card className="glass-card">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold flex items-center gap-2">
-                <Download className="w-5 h-5" />
-                {t('plugins.updateAllPlugins')}
-              </h3>
-              <Button variant="ghost" size="sm" onClick={() => setUpdateAllPanelOpen(false)}>
-                {t('common.close')}
-              </Button>
-            </div>
-            <div className="border rounded-lg overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t('plugins.pluginSelection')}</TableHead>
-                    <TableHead>{t('common.status')}</TableHead>
-                    <TableHead>{t('common.error')}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {pluginUpdateList.map((plugin) => (
-                    <TableRow key={plugin.name}>
-                      <TableCell className="font-medium">
-                        <TruncatedText text={plugin.name} className="max-w-[24ch]" />
-                      </TableCell>
-                      <TableCell>
-                        {plugin.status === 'pending' && (
-                          <Badge variant="secondary">{t('plugins.updatePending')}</Badge>
-                        )}
-                        {plugin.status === 'updating' && (
-                          <Badge variant="default" className="gap-1">
-                            <Loader2 className="w-3 h-3 animate-spin" />
-                            {t('plugins.updating')}
-                          </Badge>
-                        )}
-                        {plugin.status === 'success' && (
-                          <Badge
-                            variant="outline"
-                            className="bg-green-500/10 text-green-600 border-green-500/20"
-                          >
-                            {t('plugins.updateSuccess')}
-                          </Badge>
-                        )}
-                        {plugin.status === 'failed' && (
-                          <Badge variant="destructive">{t('plugins.updateFailed')}</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground max-w-xs">
-                        <TruncatedText text={plugin.message || '-'} />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </PinnedPage>
   );
 }

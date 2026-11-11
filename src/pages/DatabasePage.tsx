@@ -117,7 +117,7 @@ function DatabaseTableNav({
   }, [labelsKey]);
 
   return (
-    <div ref={hostRef} className="relative min-w-0 w-full md:flex-1">
+    <div ref={hostRef} className="relative col-span-2 min-w-0 w-full md:flex-1">
       <div
         ref={probeRef}
         aria-hidden
@@ -657,10 +657,10 @@ export default function DatabasePage() {
              两列铺满；md:contents 让格子在桌面消失、子控件直接成为 flex 项。
              导出/导入合并进 CSV 下拉，省出一个按钮位。 */
           <div className="grid grid-cols-2 gap-2 md:flex md:flex-wrap md:items-center md:gap-3">
-            <div className="w-full min-w-0 shrink-0 md:w-auto">
+            <div className="col-span-2 w-full min-w-0 shrink-0 md:w-auto">
               <PluginUsageBar
                 align="start"
-                className="w-full sm:w-[16rem]"
+                className="w-full md:w-auto md:max-w-[20rem]"
                 plugins={plugins.map((plugin) => ({
                   id: plugin.plugin_id,
                   name: plugin.plugin_name,

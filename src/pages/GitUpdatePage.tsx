@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { SearchableMenu } from '@/components/ui/searchable-menu';
+import { PluginUsageBar } from '@/components/plugins/PluginUsageBar';
 import { TruncatedText } from '@/components/ui/truncated-text';
 import { tabToolbarControlClass } from '@/components/ui/TabButtonGroup';
 import GitMirrorDialog, { getMirrorBadge } from '@/components/GitMirrorDialog';
@@ -41,7 +41,6 @@ import {
   MessageSquare,
   Link,
   Globe,
-  LayoutGrid,
   Loader2,
   XCircle,
 } from 'lucide-react';
@@ -791,7 +790,7 @@ export default function GitUpdatePage() {
       bodyClassName="space-y-3 md:space-y-4"
       header={
         /* Header */
-        <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between xl:gap-3 md:gap-4">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between xl:gap-6 md:gap-4">
           <div className="min-w-0 xl:max-w-sm xl:shrink-0">
             <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-3">
               <GitBranch className="w-7 h-7 sm:w-8 sm:h-8 shrink-0" />
@@ -801,34 +800,24 @@ export default function GitUpdatePage() {
               {t('gitUpdate.description')}
             </p>
           </div>
-          {/* 选择器在镜像源按钮左侧。xl 以下独占标题下方一整行，避免和副标题挤在一起 */}
-          <div className="flex w-full min-w-0 flex-wrap items-center gap-2 sm:justify-end">
+          {/* 选择器位于镜像源按钮左侧，xl 以下与操作按钮在标题下方自然折行右对齐 */}
+          <div className="flex w-full min-w-0 flex-wrap items-center gap-3 sm:justify-end xl:flex-1">
             {isLoadingStatus ? (
-              <Skeleton
-                className={cn(tabToolbarControlClass, 'w-full shrink-0 rounded-md sm:w-64')}
-              />
+              <Skeleton className="h-10 w-44 rounded-md" />
             ) : (
-              <SearchableMenu
-                appearance="outline"
-                width="trigger"
+              <PluginUsageBar
                 align="end"
-                disabled={plugins.length === 0}
-                className={cn(tabToolbarControlClass, 'w-full shrink-0 sm:w-64')}
-                placeholder={t('gitUpdate.selectPlugin')}
-                placeholderIcon={<LayoutGrid className="h-4 w-4" />}
-                searchPlaceholder={t('plugins.searchPlugin')}
-                emptyText={t('plugins.noMatchingPlugin')}
+                className="w-full sm:w-auto"
+                plugins={plugins.map((plugin) => ({
+                  id: plugin.name,
+                  name: getPluginDisplayName(plugin.name),
+                  iconName: plugin.name,
+                }))}
                 value={selectedPlugin}
                 onValueChange={setSelectedPlugin}
-                items={plugins.map((plugin) => ({
-                  value: plugin.name,
-                  label: getPluginDisplayName(plugin.name),
-                  keywords: [plugin.name],
-                  icon: <PluginIcon pluginName={plugin.name} className="h-4 w-4" />,
-                }))}
               />
             )}
-            <div className={headerActionRowClass}>
+            <div className={cn(headerActionRowClass, 'shrink-0')}>
               <Button
                 variant="outline"
                 className={tabToolbarControlClass}
@@ -877,9 +866,19 @@ export default function GitUpdatePage() {
       {currentPlugin?.current_commit && (
         <Card className="glass-card">
           <CardHeader className="pb-3">
-            <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5 text-primary" />
-              {t('gitUpdate.currentStatus')}
+            <CardTitle className="text-base sm:text-lg flex items-center gap-2 min-w-0">
+              <CheckCircle2 className="w-5 h-5 text-primary shrink-0" />
+              <span className="shrink-0">{t('gitUpdate.currentStatus')}</span>
+              {selectedPlugin && (
+                <Badge variant="secondary" className="ml-1 gap-1.5 font-normal min-w-0">
+                  <PluginIcon
+                    pluginName={selectedPlugin}
+                    variant="avatar"
+                    className="h-4 w-4 shrink-0"
+                  />
+                  <span className="truncate">{getPluginDisplayName(selectedPlugin)}</span>
+                </Badge>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent className="min-w-0">
@@ -971,9 +970,19 @@ export default function GitUpdatePage() {
         <div className="px-4 sm:px-6 pt-10 pb-6">
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-3">
             <div className="flex-1 min-w-0">
-              <CardTitle className="text-base sm:text-lg flex items-center gap-2 mb-1">
-                <ArrowDownToLine className="w-5 h-5 text-primary" />
-                {t('gitUpdate.remoteCommits')}
+              <CardTitle className="text-base sm:text-lg flex items-center gap-2 mb-1 min-w-0">
+                <ArrowDownToLine className="w-5 h-5 text-primary shrink-0" />
+                <span className="shrink-0">{t('gitUpdate.remoteCommits')}</span>
+                {!currentPlugin?.current_commit && selectedPlugin && (
+                  <Badge variant="secondary" className="ml-1 gap-1.5 font-normal min-w-0">
+                    <PluginIcon
+                      pluginName={selectedPlugin}
+                      variant="avatar"
+                      className="h-4 w-4 shrink-0"
+                    />
+                    <span className="truncate">{getPluginDisplayName(selectedPlugin)}</span>
+                  </Badge>
+                )}
               </CardTitle>
               <CardDescription>{t('gitUpdate.detachedHeadWarning')}</CardDescription>
             </div>

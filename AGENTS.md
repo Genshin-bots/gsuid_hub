@@ -182,6 +182,7 @@ Live Chat / 控制台 WS：`onMessage` 放 ref，建连 `useEffect` **禁止**�
 | 标题页骨架 | `PinnedPage` |
 | 分段切换 / 主+二级筛选 | `TabButtonGroup`（`dropdown` 拆分按钮） |
 | 插件 ICON | `PluginIcon` / `getPluginIconUrl` |
+| 单插件工作区选择器（Popover 网格选择器 + 搜索 + 最近使用） | `PluginGridSelector` / `PluginUsageBar` |
 | 输入 + 下拉 | `InputWithDropdown` |
 | 标签 | `TagsInput` |
 | 多选/单选 Chip | `ChipGroup` / `MultiSelectChipGroup` |

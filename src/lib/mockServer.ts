@@ -125,6 +125,11 @@ interface Route {
   h: Handler;
 }
 
+let mockPluginPrefs: { recent_plugins: string[]; last_edited_plugin: string } = {
+  recent_plugins: ['GenshinUID', 'ZZZeroUID', 'StarRailUID', 'SayuStock'],
+  last_edited_plugin: 'GenshinUID',
+};
+
 const DEMO_COGNITION_NODES = [
   {
     id: 101,
@@ -849,6 +854,29 @@ const routes: Route[] = [
 
   // ── Tier 1 · 插件库 / 配置 ──
   { m: 'GET', re: /^\/api\/plugins\/list$/, h: () => generatePluginList() },
+  {
+    m: 'GET',
+    re: /^\/api\/plugins\/recent$/,
+    h: () => mockPluginPrefs,
+  },
+  {
+    m: 'POST',
+    re: /^\/api\/plugins\/recent$/,
+    h: ({ body }) => {
+      const payload = (body || {}) as { plugin?: string; edited?: boolean };
+      const name = String(payload.plugin || '').trim();
+      if (name) {
+        mockPluginPrefs = {
+          recent_plugins: [
+            name,
+            ...mockPluginPrefs.recent_plugins.filter((p) => p.toLowerCase() !== name.toLowerCase()),
+          ].slice(0, 16),
+          last_edited_plugin: payload.edited ? name : mockPluginPrefs.last_edited_plugin,
+        };
+      }
+      return mockPluginPrefs;
+    },
+  },
   {
     m: 'GET',
     re: /^\/api\/plugins$/,

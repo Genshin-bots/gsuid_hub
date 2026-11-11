@@ -1157,12 +1157,24 @@ export interface PluginStoreListResponse {
   order_seed?: string | null;
 }
 
+export interface PluginPrefsDto {
+  recent_plugins: string[];
+  last_edited_plugin: string;
+}
+
 export const pluginsApi = {
   // 获取插件列表（轻量级接口�?
   getPluginList: () => api.get<PluginListItem[]>(`/api/plugins/list?_t=${Date.now()}`),
 
   /** 近几天命令触发热度。后端有缓存；旧后端没有这个接口时调用方自行降级。 */
   getPluginUsage: () => api.get<PluginUsageRank>(`/api/plugins/usage`),
+
+  /** 获取面板持久化的最近使用插件（MRU）与最后编辑插件；旧后端无此接口时调用方降级本地缓存。 */
+  getRecentPlugins: () => api.get<PluginPrefsDto>(`/api/plugins/recent`),
+
+  /** 记录最近使用插件；edited=true 时同步更新最后编辑插件。 */
+  recordRecentPlugin: (plugin: string, edited = false) =>
+    api.post<PluginPrefsDto>(`/api/plugins/recent`, { plugin, edited }),
 
   // 获取插件详情（包含完整配置）
   getPlugin: (pluginName: string) => api.get<Plugin>(`/api/plugins/${pluginName}?_t=${Date.now()}`),
