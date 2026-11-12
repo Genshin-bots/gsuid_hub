@@ -23,8 +23,6 @@ const DatabasePage = lazy(() => import('@/pages/DatabasePage'));
 const PluginsPage = lazy(() => import('@/pages/PluginsPage'));
 const PluginViewPage = lazy(() => import('@/pages/PluginViewPage'));
 const LogsPage = lazy(() => import('@/pages/LogsPage'));
-const TracesPage = lazy(() => import('@/pages/TracesPage'));
-const HttpTracesPage = lazy(() => import('@/pages/HttpTracesPage'));
 const ThemesPage = lazy(() => import('@/pages/ThemesPage'));
 const ConsolePage = lazy(() => import('@/pages/ConsolePage'));
 const SchedulerPage = lazy(() => import('@/pages/SchedulerPage'));
@@ -119,8 +117,9 @@ function AppRoutes() {
           <Route path="plugins" element={<PluginsPage />} />
           <Route path="plugin-view/:pluginId/:pageId?" element={<PluginViewPage />} />
           <Route path="logs" element={<LogsPage />} />
-          <Route path="traces" element={<TracesPage />} />
-          <Route path="http-traces" element={<HttpTracesPage />} />
+          {/* 命令追踪与 HTTP 追踪已并入 /logs，旧深链重定向过去 */}
+          <Route path="traces" element={<Navigate to="/logs" replace />} />
+          <Route path="http-traces" element={<Navigate to="/logs?tab=http-traces" replace />} />
           <Route path="themes" element={<ThemesPage />} />
           <Route path="console" element={<ConsolePage />} />
           <Route path="scheduler" element={<SchedulerPage />} />

@@ -1,12 +1,9 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import {
   Select,
   SelectContent,
@@ -14,12 +11,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { tabToolbarControlClass } from '@/components/ui/TabButtonGroup';
 import {
   RefreshCw,
-  Calendar,
   ChevronRight,
   ChevronLeft,
   ChevronDown,
@@ -30,81 +25,20 @@ import {
   Globe,
   AlertTriangle,
 } from 'lucide-react';
-import {
-  httpTraceApi,
-  type HttpTraceItem,
-  type HttpTraceLog,
-  type HttpTraceDetail,
-  getApiErrorMessage,
-} from '@/lib/api';
-import { toast } from 'sonner';
+import type { HttpTraceItem } from '@/lib/api';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTheme } from '@/contexts/ThemeContext';
-import { ConsolePanel, type LogEntry } from '@/components/ConsolePanel';
-import { headerActionRowClass, pageGapClass, PinnedPage } from '@/components/layout/PinnedPage';
-
-const METHOD_ALL = '__all__';
-const STATUS_ALL = '__all__';
-const PAGE_SIZE = 100;
-
-function formatStartTime(seconds: number): string {
-  if (seconds > 1_000_000_000) {
-    return format(new Date(seconds * 1000), 'HH:mm:ss');
-  }
-  const totalSeconds = Math.floor(seconds % 86400);
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const secs = totalSeconds % 60;
-  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-}
-
-function parseTraceTimestamp(ts: string, dateStr: string): Date {
-  try {
-    const [monthDay, time] = ts.split(' ');
-    const year = dateStr.split('-')[0];
-    const isoStr = `${year}-${monthDay}T${time}`;
-    const d = new Date(isoStr);
-    if (!Number.isNaN(d.getTime())) return d;
-  } catch {
-    /* ignore */
-  }
-  return new Date();
-}
-
-function httpLogToLogEntry(log: HttpTraceLog, index: number, dateStr: string): LogEntry {
-  let type: LogEntry['type'] = 'info';
-  switch (log.level.toLowerCase()) {
-    case 'trace':
-      type = 'trace';
-      break;
-    case 'debug':
-      type = 'debug';
-      break;
-    case 'info':
-      type = 'info';
-      break;
-    case 'success':
-      type = 'success';
-      break;
-    case 'warning':
-    case 'warn':
-      type = 'warning';
-      break;
-    case 'error':
-      type = 'error';
-      break;
-    case 'critical':
-      type = 'critical';
-      break;
-  }
-  return {
-    id: `${log.timestamp}-${index}`,
-    type,
-    content: log.event,
-    timestamp: parseTraceTimestamp(log.timestamp, dateStr),
-    plugin: log.plugin,
-  };
-}
+import { ConsolePanel } from '@/components/ConsolePanel';
+import { pageGapClass, PinnedPage } from '@/components/layout/PinnedPage';
+import { TraceDateRefreshActions } from '@/components/logs/TraceDateRefreshActions';
+import { formatTraceStartTime } from '@/components/logs/traceUtils';
+import {
+  HTTP_METHOD_ALL,
+  HTTP_STATUS_ALL,
+  TRACE_PAGE_SIZE,
+  useHttpTracesController,
+  type HttpTracesController,
+} from '@/components/logs/useTraceControllers';
 
 function statusCodeClass(code: number | null): string {
   if (code === null) return 'text-muted-foreground';
@@ -114,163 +48,132 @@ function statusCodeClass(code: number | null): string {
   return 'text-muted-foreground';
 }
 
-export default function HttpTracesPage() {
+export function HttpTracesHeaderActions({
+  controller,
+  className,
+}: {
+  controller: HttpTracesController;
+  className?: string;
+}) {
+  return (
+    <TraceDateRefreshActions
+      calendarClassName="http-traces-date-calendar"
+      styleId="http-traces-calendar-overrides"
+      selectedDate={controller.selectedDate}
+      onSelectDate={controller.selectDate}
+      dailyCounts={controller.dailyCounts}
+      isLoading={controller.isLoading}
+      onRefresh={() => void controller.fetchList(false)}
+      className={className}
+    />
+  );
+}
+
+export function HttpTracesFilters({ controller }: { controller: HttpTracesController }) {
+  const { t } = useLanguage();
+  const {
+    method,
+    updateMethod,
+    statusClass,
+    updateStatusClass,
+    pathPrefix,
+    updatePathPrefix,
+    onlyErrors,
+    updateOnlyErrors,
+    autoRefresh,
+    setAutoRefresh,
+    userId,
+    updateUserId,
+  } = controller;
+
+  return (
+    /* 窄屏 grid-cols-2 两列铺满（select/select → 路径整行 → 两个开关并排），
+       桌面回到 flex-wrap 一行；自动刷新挪进筛选行，避免在标题行独占一行留半行空白 */
+    <div className="grid grid-cols-2 gap-2 md:flex md:flex-wrap md:items-center">
+      <Select value={method} onValueChange={updateMethod}>
+        <SelectTrigger className={cn(tabToolbarControlClass, 'w-full md:w-[8.5rem]')}>
+          <SelectValue placeholder={t('httpTraces.filterMethod')} />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={HTTP_METHOD_ALL}>{t('httpTraces.filterAll')}</SelectItem>
+          {['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'].map((m) => (
+            <SelectItem key={m} value={m}>
+              {m}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <Select value={statusClass} onValueChange={updateStatusClass}>
+        <SelectTrigger className={cn(tabToolbarControlClass, 'w-full md:w-[7.5rem]')}>
+          <SelectValue placeholder={t('httpTraces.filterStatusClass')} />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={HTTP_STATUS_ALL}>{t('httpTraces.filterAll')}</SelectItem>
+          <SelectItem value="2xx">{t('httpTraces.status2xx')}</SelectItem>
+          <SelectItem value="3xx">{t('httpTraces.status3xx')}</SelectItem>
+          <SelectItem value="4xx">{t('httpTraces.status4xx')}</SelectItem>
+          <SelectItem value="5xx">{t('httpTraces.status5xx')}</SelectItem>
+        </SelectContent>
+      </Select>
+      <Input
+        className={cn(tabToolbarControlClass, 'col-span-2 w-full md:col-span-1 md:w-[14rem]')}
+        placeholder={t('httpTraces.filterPath')}
+        value={pathPrefix}
+        onChange={(e) => updatePathPrefix(e.target.value)}
+      />
+      <div className={cn(tabToolbarControlClass, 'flex items-center gap-2 px-3')}>
+        <Switch
+          id="http-trace-only-errors"
+          checked={onlyErrors}
+          onCheckedChange={updateOnlyErrors}
+        />
+        <Label htmlFor="http-trace-only-errors" className="text-sm whitespace-nowrap">
+          {t('httpTraces.onlyErrors')}
+        </Label>
+      </div>
+      <div className={cn(tabToolbarControlClass, 'flex items-center gap-2 px-3')}>
+        <Switch
+          id="http-trace-auto-refresh"
+          checked={autoRefresh}
+          onCheckedChange={setAutoRefresh}
+        />
+        <Label htmlFor="http-trace-auto-refresh" className="text-sm whitespace-nowrap">
+          {t('httpTraces.autoRefresh')}
+        </Label>
+      </div>
+      <Input
+        className={cn(tabToolbarControlClass, 'w-[10rem] hidden xl:flex')}
+        placeholder={t('httpTraces.filterUser')}
+        value={userId}
+        onChange={(e) => updateUserId(e.target.value)}
+      />
+    </div>
+  );
+}
+
+export function HttpTracesPanel({
+  controller,
+  showFilters = true,
+}: {
+  controller: HttpTracesController;
+  showFilters?: boolean;
+}) {
   const { t } = useLanguage();
   const { style } = useTheme();
   const isGlass = style !== 'solid';
-  const [traces, setTraces] = useState<HttpTraceItem[]>([]);
-  const [totalCount, setTotalCount] = useState(0);
-  const [page, setPage] = useState(1);
-  const [isLoading, setIsLoading] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [expandedTraceId, setExpandedTraceId] = useState<string | null>(null);
-  const [traceLogs, setTraceLogs] = useState<LogEntry[]>([]);
-  const [traceLoading, setTraceLoading] = useState(false);
-  const [traceDetail, setTraceDetail] = useState<HttpTraceDetail | null>(null);
-  const [dailyCounts, setDailyCounts] = useState<Record<string, number>>({});
-  const [autoRefresh, setAutoRefresh] = useState(true);
-  const [method, setMethod] = useState(METHOD_ALL);
-  const [pathPrefix, setPathPrefix] = useState('');
-  const [statusClass, setStatusClass] = useState(STATUS_ALL);
-  const [userId, setUserId] = useState('');
-  const [onlyErrors, setOnlyErrors] = useState(false);
-
-  useEffect(() => {
-    if (typeof document === 'undefined') return;
-    const styleId = 'http-traces-calendar-overrides';
-    if (document.getElementById(styleId)) return;
-    const el = document.createElement('style');
-    el.id = styleId;
-    el.textContent = `
-      .http-traces-date-calendar .rdp-day,
-      .http-traces-date-calendar .rdp-day_button {
-        overflow: visible !important;
-        border-radius: 8px !important;
-      }
-      .http-traces-date-calendar .rdp-day,
-      .http-traces-date-calendar .rdp-day_button,
-      .http-traces-date-calendar .rdp-cell {
-        width: 2.75rem !important;
-        height: 2.75rem !important;
-      }
-      .http-traces-date-calendar .rdp-day_button {
-        font-size: 0.875rem !important;
-      }
-    `;
-    document.head.appendChild(el);
-  }, []);
-
-  const dateStr = useMemo(() => format(selectedDate, 'yyyy-MM-dd'), [selectedDate]);
-
-  const disabledMatchers = useMemo(() => {
-    const dates = Object.keys(dailyCounts).sort();
-    if (dates.length === 0) return undefined;
-    const minDate = new Date(`${dates[0]}T00:00:00`);
-    const maxDate = new Date(`${dates[dates.length - 1]}T00:00:00`);
-    return [{ before: minDate }, { after: maxDate }];
-  }, [dailyCounts]);
-
-  const fetchDailyCounts = useCallback(async () => {
-    try {
-      const data = await httpTraceApi.getDailyCounts(60);
-      const record: Record<string, number> = {};
-      for (const item of data) {
-        record[item.date] = item.count;
-      }
-      setDailyCounts(record);
-    } catch (error) {
-      toast.error(getApiErrorMessage(error, t('common.loadFailed')));
-    }
-  }, [t]);
-
-  useEffect(() => {
-    fetchDailyCounts();
-  }, [fetchDailyCounts]);
-
-  useEffect(() => {
-    setPage(1);
-  }, [dateStr, method, pathPrefix, statusClass, userId, onlyErrors]);
-
-  const fetchList = useCallback(
-    async (silent = false) => {
-      if (!silent) setIsLoading(true);
-      try {
-        const data = await httpTraceApi.getTraces({
-          date: dateStr,
-          page,
-          per_page: PAGE_SIZE,
-          method: method === METHOD_ALL ? undefined : method,
-          path_prefix: pathPrefix.trim() || undefined,
-          status_class: statusClass === STATUS_ALL ? undefined : statusClass,
-          user_id: userId.trim() || undefined,
-          errors_only: onlyErrors || undefined,
-        });
-        setTraces(data.rows);
-        setTotalCount(data.count);
-        if (data.page !== page) setPage(data.page);
-      } catch (error) {
-        toast.error(getApiErrorMessage(error, t('common.loadFailed')));
-        setTraces([]);
-        setTotalCount(0);
-      } finally {
-        if (!silent) setIsLoading(false);
-      }
-    },
-    [dateStr, page, method, pathPrefix, statusClass, userId, onlyErrors, t],
-  );
-
-  useEffect(() => {
-    fetchList(false);
-  }, [fetchList]);
-
-  const fetchDetail = useCallback(
-    async (traceId: string) => {
-      setTraceLoading(true);
-      try {
-        const detail = await httpTraceApi.getTraceDetail(traceId, { date: dateStr });
-        setTraceDetail(detail);
-        setTraceLogs(detail.logs.map((log, idx) => httpLogToLogEntry(log, idx, dateStr)));
-      } catch (error) {
-        toast.error(getApiErrorMessage(error, t('common.loadFailed')));
-        setTraceLogs([]);
-        setTraceDetail(null);
-      } finally {
-        setTraceLoading(false);
-      }
-    },
-    [dateStr, t],
-  );
-
-  useEffect(() => {
-    if (!autoRefresh) return;
-    const tick = () => {
-      if (document.visibilityState !== 'visible') return;
-      fetchList(true);
-      if (expandedTraceId && traceDetail?.status === 'running') {
-        void fetchDetail(expandedTraceId);
-      }
-    };
-    const id = window.setInterval(tick, 5000);
-    return () => window.clearInterval(id);
-  }, [autoRefresh, fetchList, fetchDetail, expandedTraceId, traceDetail?.status]);
-
-  const sortedTraces = useMemo(
-    () => [...traces].sort((a, b) => b.start_time - a.start_time),
-    [traces],
-  );
-
-  const handleExpandTrace = async (trace: HttpTraceItem) => {
-    if (expandedTraceId === trace.trace_id) {
-      setExpandedTraceId(null);
-      setTraceLogs([]);
-      setTraceDetail(null);
-      return;
-    }
-    setExpandedTraceId(trace.trace_id);
-    setTraceDetail(null);
-    setTraceLogs([]);
-    await fetchDetail(trace.trace_id);
-  };
+  const {
+    traces,
+    sortedTraces,
+    totalCount,
+    page,
+    expandedTraceId,
+    traceLogs,
+    traceLoading,
+    traceDetail,
+    handleExpandTrace,
+    handleDownloadTrace,
+    goPage,
+  } = controller;
 
   const statusBadge = (status: HttpTraceItem['status']) => {
     if (status === 'running') {
@@ -294,189 +197,17 @@ export default function HttpTracesPage() {
     );
   };
 
-  const handleDownloadTrace = useCallback(
-    async (trace: HttpTraceItem) => {
-      try {
-        const detail = await httpTraceApi.getTraceDetail(trace.trace_id, { date: dateStr });
-        const blob = new Blob([JSON.stringify(detail, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `http-trace-${trace.trace_id}.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      } catch (error) {
-        toast.error(getApiErrorMessage(error, t('common.loadFailed')));
-      }
-    },
-    [dateStr, t],
-  );
-
   const isSlow = (ms: number | null) => ms !== null && ms > 1000;
   const httpErrorCount = traces.filter(
     (row) => row.status_code !== null && row.status_code >= 400,
   ).length;
-  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE) || 1);
+  const totalPages = Math.max(1, Math.ceil(totalCount / TRACE_PAGE_SIZE) || 1);
   const gridClass = 'grid-cols-[92px_72px_minmax(0,1fr)_56px_90px_80px_70px_56px_56px_80px_44px]';
-  const goPage = (next: number) => {
-    setExpandedTraceId(null);
-    setPage(next);
-  };
 
   return (
-    <PinnedPage
-      header={
-        <div className="flex flex-col gap-3 md:gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div className="min-w-0 sm:overflow-x-auto">
-            <h1 className="sm:whitespace-nowrap text-3xl font-bold flex items-center gap-3">
-              <Globe className="w-8 h-8 shrink-0" />
-              {t('httpTraces.title')}
-            </h1>
-            <p className="sm:whitespace-nowrap text-muted-foreground mt-1">
-              {t('httpTraces.description')}
-            </p>
-          </div>
-          <div className={headerActionRowClass}>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(tabToolbarControlClass, 'justify-start text-left font-normal')}
-                >
-                  <Calendar className="mr-2 h-4 w-4" />
-                  {format(selectedDate, 'yyyy-MM-dd')}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start" side="bottom" sideOffset={8}>
-                <div className="http-traces-date-calendar">
-                  <CalendarComponent
-                    mode="single"
-                    selected={selectedDate}
-                    onSelect={(date) => {
-                      if (date) setSelectedDate(date);
-                    }}
-                    disabled={disabledMatchers}
-                    defaultMonth={selectedDate}
-                    initialFocus
-                    className="pointer-events-auto"
-                    components={{
-                      DayContent: ({
-                        date: dayDate,
-                        activeModifiers,
-                      }: {
-                        date: Date;
-                        activeModifiers: { selected?: boolean };
-                      }) => {
-                        const ds = format(dayDate, 'yyyy-MM-dd');
-                        const count = dailyCounts[ds];
-                        const hasData = count !== undefined && count > 0;
-                        const isSelected = !!activeModifiers?.selected;
-                        return (
-                          <div className="flex flex-col items-center justify-center w-full h-full leading-none">
-                            <span
-                              className={cn(
-                                'text-[0.85rem]',
-                                !hasData && 'text-muted-foreground opacity-50',
-                              )}
-                            >
-                              {dayDate.getDate()}
-                            </span>
-                            {hasData && (
-                              <span
-                                className={cn(
-                                  'text-[0.55rem] mt-0.5',
-                                  isSelected ? 'text-primary-foreground' : 'text-muted-foreground',
-                                )}
-                              >
-                                {count}
-                              </span>
-                            )}
-                          </div>
-                        );
-                      },
-                    }}
-                  />
-                </div>
-              </PopoverContent>
-            </Popover>
-            <Button
-              variant="outline"
-              onClick={() => fetchList(false)}
-              disabled={isLoading}
-              className={cn(tabToolbarControlClass, 'whitespace-nowrap')}
-            >
-              <RefreshCw className={cn('w-4 h-4 mr-2', isLoading && 'animate-spin')} />
-              {t('logs.refresh')}
-            </Button>
-          </div>
-        </div>
-      }
-      toolbar={
-        /* 窄屏 grid-cols-2 两列铺满（select/select → 路径整行 → 两个开关并排），
-           桌面回到 flex-wrap 一行；自动刷新挪进筛选行，避免在标题行独占一行留半行空白 */
-        <div className="grid grid-cols-2 gap-2 md:flex md:flex-wrap md:items-center">
-          <Select value={method} onValueChange={setMethod}>
-            <SelectTrigger className={cn(tabToolbarControlClass, 'w-full md:w-[8.5rem]')}>
-              <SelectValue placeholder={t('httpTraces.filterMethod')} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={METHOD_ALL}>{t('httpTraces.filterAll')}</SelectItem>
-              {['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'].map((m) => (
-                <SelectItem key={m} value={m}>
-                  {m}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={statusClass} onValueChange={setStatusClass}>
-            <SelectTrigger className={cn(tabToolbarControlClass, 'w-full md:w-[7.5rem]')}>
-              <SelectValue placeholder={t('httpTraces.filterStatusClass')} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={STATUS_ALL}>{t('httpTraces.filterAll')}</SelectItem>
-              <SelectItem value="2xx">{t('httpTraces.status2xx')}</SelectItem>
-              <SelectItem value="3xx">{t('httpTraces.status3xx')}</SelectItem>
-              <SelectItem value="4xx">{t('httpTraces.status4xx')}</SelectItem>
-              <SelectItem value="5xx">{t('httpTraces.status5xx')}</SelectItem>
-            </SelectContent>
-          </Select>
-          <Input
-            className={cn(tabToolbarControlClass, 'col-span-2 w-full md:col-span-1 md:w-[14rem]')}
-            placeholder={t('httpTraces.filterPath')}
-            value={pathPrefix}
-            onChange={(e) => setPathPrefix(e.target.value)}
-          />
-          <div className={cn(tabToolbarControlClass, 'flex items-center gap-2 px-3')}>
-            <Switch
-              id="http-trace-only-errors"
-              checked={onlyErrors}
-              onCheckedChange={setOnlyErrors}
-            />
-            <Label htmlFor="http-trace-only-errors" className="text-sm whitespace-nowrap">
-              {t('httpTraces.onlyErrors')}
-            </Label>
-          </div>
-          <div className={cn(tabToolbarControlClass, 'flex items-center gap-2 px-3')}>
-            <Switch
-              id="http-trace-auto-refresh"
-              checked={autoRefresh}
-              onCheckedChange={setAutoRefresh}
-            />
-            <Label htmlFor="http-trace-auto-refresh" className="text-sm whitespace-nowrap">
-              {t('httpTraces.autoRefresh')}
-            </Label>
-          </div>
-          <Input
-            className={cn(tabToolbarControlClass, 'w-[10rem] hidden xl:flex')}
-            placeholder={t('httpTraces.filterUser')}
-            value={userId}
-            onChange={(e) => setUserId(e.target.value)}
-          />
-        </div>
-      }
-    >
+    <>
+      {showFilters ? <HttpTracesFilters controller={controller} /> : null}
+
       <div className={cn('grid grid-cols-2 md:grid-cols-4', pageGapClass)}>
         <Card className="glass-card border-l-4 border-l-primary">
           <CardContent className="p-4 flex items-center gap-3">
@@ -558,7 +289,7 @@ export default function HttpTracesPage() {
                   <div key={trace.trace_id} className="transition-colors">
                     <button
                       type="button"
-                      onClick={() => handleExpandTrace(trace)}
+                      onClick={() => void handleExpandTrace(trace)}
                       className={cn(
                         'hidden md:grid w-full text-left items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors',
                         gridClass,
@@ -587,7 +318,7 @@ export default function HttpTracesPage() {
                         {trace.user_name || trace.user_id || t('httpTraces.emptyUser')}
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        {formatStartTime(trace.start_time)}
+                        {formatTraceStartTime(trace.start_time)}
                       </div>
                       <div
                         className={cn(
@@ -635,7 +366,7 @@ export default function HttpTracesPage() {
 
                     <button
                       type="button"
-                      onClick={() => handleExpandTrace(trace)}
+                      onClick={() => void handleExpandTrace(trace)}
                       className="md:hidden w-full text-left px-4 py-3 hover:bg-muted/50 transition-colors"
                     >
                       <div className="flex items-center gap-2 mb-1">
@@ -792,6 +523,33 @@ export default function HttpTracesPage() {
           </div>
         </CardContent>
       </Card>
+    </>
+  );
+}
+
+export default function HttpTracesPage() {
+  const { t } = useLanguage();
+  const controller = useHttpTracesController({ enabled: true, active: true });
+
+  return (
+    <PinnedPage
+      header={
+        <div className="flex flex-col gap-3 md:gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0 sm:overflow-x-auto">
+            <h1 className="sm:whitespace-nowrap text-3xl font-bold flex items-center gap-3">
+              <Globe className="w-8 h-8 shrink-0" />
+              {t('httpTraces.title')}
+            </h1>
+            <p className="sm:whitespace-nowrap text-muted-foreground mt-1">
+              {t('httpTraces.description')}
+            </p>
+          </div>
+          <HttpTracesHeaderActions controller={controller} />
+        </div>
+      }
+      toolbar={<HttpTracesFilters controller={controller} />}
+    >
+      <HttpTracesPanel controller={controller} showFilters={false} />
     </PinnedPage>
   );
 }

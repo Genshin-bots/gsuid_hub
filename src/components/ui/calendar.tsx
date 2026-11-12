@@ -2,6 +2,8 @@ import * as React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { DayPicker } from 'react-day-picker';
 
+import { useLanguage } from '@/contexts/LanguageContext';
+import { formatCalendarCaption, getCalendarLocale } from '@/lib/calendarLocale';
 import { cn } from '@/lib/utils';
 
 export type CalendarProps = React.ComponentProps<typeof DayPicker>;
@@ -38,11 +40,25 @@ const Calendar = React.memo(function Calendar({
   classNames,
   showOutsideDays = true,
   components: userComponents,
+  locale: userLocale,
+  formatters: userFormatters,
   ...props
 }: CalendarProps) {
+  const { language } = useLanguage();
+  const resolvedLocale = userLocale ?? getCalendarLocale(language);
+  const resolvedFormatters = React.useMemo(
+    () => ({
+      formatCaption: (month: Date) => formatCalendarCaption(month, language),
+      ...userFormatters,
+    }),
+    [language, userFormatters],
+  );
+
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
+      locale={resolvedLocale}
+      formatters={resolvedFormatters}
       className={cn('p-3', className)}
       classNames={{
         ...defaultClassNames,

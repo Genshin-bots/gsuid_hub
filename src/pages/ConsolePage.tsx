@@ -550,17 +550,11 @@ export default function ConsolePage() {
         onClick={() => toggleLevel(lv.value)}
         aria-pressed={active}
         className={cn(
-          'group inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full font-medium transition-all duration-200 border select-none cursor-pointer',
+          'group inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium transition-all duration-200 border select-none cursor-pointer',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
           active
-            ? cn(
-                'bg-primary text-primary-foreground border-primary shadow-sm hover:shadow-md hover:brightness-105 active:scale-95',
-                isGlass && 'backdrop-blur-sm',
-              )
-            : cn(
-                'border-border/60 text-muted-foreground hover:text-foreground hover:border-border hover:bg-accent/40 active:scale-95',
-                isGlass ? 'bg-background/40 backdrop-blur-sm' : 'bg-muted/30',
-              ),
+            ? 'bg-primary text-primary-foreground border-primary shadow-sm hover:shadow-md hover:brightness-105 active:scale-95'
+            : 'border-border/60 bg-muted/40 text-muted-foreground hover:text-foreground hover:border-border hover:bg-accent/40 active:scale-95',
         )}
       >
         <span
@@ -607,17 +601,37 @@ export default function ConsolePage() {
       className="console-mobile-fill min-h-0 flex-1 overflow-hidden"
       bodyClassName="flex min-h-0 flex-1 flex-col !overflow-hidden"
       header={
-        <div className="flex flex-col gap-3 md:gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div className="min-w-0 sm:overflow-x-auto">
-            <h1 className="sm:whitespace-nowrap text-3xl font-bold flex items-center gap-3">
+        <div className="flex flex-wrap items-end justify-between gap-x-3 gap-y-2.5">
+          <div className="order-1 min-w-0 max-w-full min-[1360px]:flex-1">
+            <h1 className="truncate text-3xl font-bold flex items-center gap-3">
               <Terminal className="w-8 h-8 shrink-0" />
-              {t('console.title')}
+              <span className="truncate">{t('console.title')}</span>
             </h1>
-            <p className="sm:whitespace-nowrap text-muted-foreground mt-1">
+            <p className="truncate text-muted-foreground mt-1" title={t('console.description')}>
               {t('console.description')}
             </p>
           </div>
-          <div className={headerActionRowClass}>
+          {/* 日志级别过滤并入标题栏右侧（宽屏与标题/操作按钮同排底对齐），节省整行纵向空间 */}
+          <div className="order-3 w-full min-w-0 min-[1360px]:order-2 min-[1360px]:w-auto min-[1360px]:shrink-0 glass-card flex flex-wrap items-center gap-1.5 min-h-10 px-2.5 py-1">
+            <span className="text-xs font-medium text-muted-foreground whitespace-nowrap mr-0.5">
+              {t('console.levelFilter') || '日志级别'}:
+            </span>
+            <div className="flex flex-wrap items-center gap-1.5 max-md:order-3 max-md:w-full">
+              {renderableLevels.map((lv) => renderLevelBadge(lv, visibleLevels.has(lv.value)))}
+            </div>
+            <div className="ml-auto flex items-center gap-1 max-md:order-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 text-xs"
+                onClick={allActive ? disableAllLevels : enableAllLevels}
+                aria-label={allActive ? t('console.deselectAll') : t('console.selectAll')}
+              >
+                {allActive ? t('console.deselectAll') : t('console.selectAll')}
+              </Button>
+            </div>
+          </div>
+          <div className={cn(headerActionRowClass, 'order-2 min-[1360px]:order-3 shrink-0')}>
             <Button
               variant="outline"
               onClick={exportLogs}
@@ -633,39 +647,6 @@ export default function ConsolePage() {
             >
               <Trash2 className="w-4 h-4 mr-2" />
               {t('console.clear')}
-            </Button>
-          </div>
-        </div>
-      }
-      toolbar={
-        /* 日志级别过滤 */
-        <div
-          className={cn(
-            // 窄屏压扁：标签与「全选」占首行（order 提前），徽章另起一行；
-            // 桌面保持原来的 [标签][徽章…][全选] 单行流式排布
-            'flex flex-wrap items-center gap-1.5 px-2.5 py-1.5 md:gap-2 md:px-3 md:py-2 rounded-xl border',
-            isGlass ? 'bg-white/5 border-white/15 backdrop-blur-sm' : 'bg-card/40 border-border/50',
-          )}
-          style={{
-            // 注入一个很淡的主题色背景渐变，让整个过滤器与主题联动
-            backgroundImage: 'linear-gradient(90deg, hsl(var(--primary) / 0.04), transparent 60%)',
-          }}
-        >
-          <span className="text-sm font-medium text-muted-foreground whitespace-nowrap mr-1">
-            {t('console.levelFilter') || '日志级别'}:
-          </span>
-          <div className="flex flex-wrap items-center gap-1.5 md:gap-2 max-md:order-3 max-md:w-full">
-            {renderableLevels.map((lv) => renderLevelBadge(lv, visibleLevels.has(lv.value)))}
-          </div>
-          <div className="ml-auto flex items-center gap-1 max-md:order-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 px-2 text-xs"
-              onClick={allActive ? disableAllLevels : enableAllLevels}
-              aria-label={allActive ? t('console.deselectAll') : t('console.selectAll')}
-            >
-              {allActive ? t('console.deselectAll') : t('console.selectAll')}
             </Button>
           </div>
         </div>

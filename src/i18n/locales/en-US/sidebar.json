@@ -5,6 +5,7 @@
   "databaseConfig": "Database Config",
   "stateConfig": "Status Config",
   "adminCore": "Admin Core",
+  "opsMisc": "Ops & Misc",
   "console": "Real-time Console",
   "scheduler": "Task Scheduler",
   "coreConfig": "Core Config",

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, memo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,6 +16,7 @@ import {
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import {
+  Activity,
   Search,
   RefreshCw,
   Download,
@@ -26,25 +28,45 @@ import {
   FileText,
   Calendar,
   Eye,
+  Globe,
   ChevronUp,
   ChevronLeft,
   ChevronRight,
   List,
 } from 'lucide-react';
-import { logsApi, type LogContextLog, type LogContextResponse } from '@/lib/api';
+import {
+  getApiErrorMessage,
+  logsApi,
+  type LogContextLog,
+  type LogContextResponse,
+} from '@/lib/api';
 import { formatLogTimestamp } from '@/lib/featureUtils';
 import LogsConfigDialog from '@/components/logs/LogsConfigDialog';
 import ErrorReportsPanel from '@/components/logs/ErrorReportsPanel';
-import { TabButtonGroup, tabToolbarControlClass } from '@/components/ui/TabButtonGroup';
+import { type LogsView, parseLogsTab } from '@/components/logs/traceUtils';
+import {
+  useHttpTracesController,
+  useTracesController,
+} from '@/components/logs/useTraceControllers';
+import { TracesHeaderActions, TracesPanel } from '@/pages/TracesPage';
+import { HttpTracesHeaderActions, HttpTracesPanel } from '@/pages/HttpTracesPage';
+import {
+  TabButtonGroup,
+  tabToolbarControlClass,
+  tabToolbarGroupWrapClass,
+} from '@/components/ui/TabButtonGroup';
 import { toast } from 'sonner';
 import { StructuredDataViewer } from '@/components/StructuredDataViewer';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { headerActionRowClass, pageStackClass, PinnedPage } from '@/components/layout/PinnedPage';
+import {
+  headerActionRowWideClass,
+  pageStackClass,
+  PinnedPage,
+} from '@/components/layout/PinnedPage';
 import { GlassAlert } from '@/components/ui/glass-alert';
 
 type LogLevel = 'info' | 'warn' | 'error' | 'debug' | 'all';
 type DateMode = 'single' | 'range';
-type LogsView = 'runtime' | 'errors';
 
 interface LogEntry {
   id?: number;
@@ -204,23 +226,34 @@ const ContextLogItem = memo(function ContextLogItem({
 
 export default function LogsPage() {
   const { t } = useLanguage();
-  const [view, setView] = useState<LogsView>('runtime');
-  const [errorsVisited, setErrorsVisited] = useState(false);
-  const viewRef = useRef(view);
-  viewRef.current = view;
+  const [searchParams, setSearchParams] = useSearchParams();
+  const view = parseLogsTab(searchParams.get('tab'));
+  const [visited, setVisited] = useState<Record<LogsView, boolean>>(() => ({
+    traces: view === 'traces',
+    errors: view === 'errors',
+    runtime: view === 'runtime',
+    'http-traces': view === 'http-traces',
+  }));
+  const tracesController = useTracesController(visited.traces);
+  const httpTracesController = useHttpTracesController({
+    enabled: visited['http-traces'],
+    active: view === 'http-traces',
+  });
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage] = useState(100);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [levelFilter, setLevelFilter] = useState<LogLevel>('all');
   const [logsConfigOpen, setLogsConfigOpen] = useState(false);
   const [dateMode, setDateMode] = useState<DateMode>('single');
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
   const [availableDates, setAvailableDates] = useState<string[]>([]);
+  const availableDatesFetchedRef = useRef(false);
   const [expandedLogs, setExpandedLogs] = useState<Set<number>>(new Set());
   const [isLoading, setIsLoading] = useState(false);
   const [infoCount, setInfoCount] = useState(0);
@@ -237,6 +270,18 @@ export default function LogsPage() {
   const [contextData, setContextData] = useState<LogContextResponse | null>(null);
   const [contextLoading, setContextLoading] = useState(false);
   const contextScrollRef = useRef<HTMLDivElement>(null);
+
+  const handleViewChange = useCallback(
+    (next: string) => {
+      const parsed = parseLogsTab(next);
+      if (parsed === 'traces') {
+        setSearchParams({}, { replace: true });
+        return;
+      }
+      setSearchParams({ tab: parsed }, { replace: true });
+    },
+    [setSearchParams],
+  );
 
   // 获取当前日期字符串（根据模式）
   const getDateParams = useCallback(() => {
@@ -259,7 +304,7 @@ export default function LogsPage() {
       const statsData = await logsApi.getStats({
         ...dateParams,
         level: levelFilter === 'all' ? undefined : levelFilter,
-        search: searchTerm || undefined,
+        search: debouncedSearchTerm || undefined,
         per_page: perPage,
       });
       setTotalCount(statsData.total);
@@ -273,7 +318,7 @@ export default function LogsPage() {
       const data = await logsApi.getLogs({
         ...dateParams,
         level: levelFilter === 'all' ? undefined : levelFilter,
-        search: searchTerm || undefined,
+        search: debouncedSearchTerm || undefined,
         page: currentPage,
         per_page: perPage,
       });
@@ -304,17 +349,16 @@ export default function LogsPage() {
       setHasNewLogs(false);
     } catch (error) {
       console.error('Failed to fetch logs:', error);
-      const errorMessage = error instanceof Error ? error.message : t('common.loadFailed');
-      toast.error(errorMessage);
+      toast.error(getApiErrorMessage(error, t('common.loadFailed')));
     } finally {
       setIsLoading(false);
     }
-  }, [getDateParams, levelFilter, currentPage, perPage, searchTerm, t]);
+  }, [getDateParams, levelFilter, currentPage, perPage, debouncedSearchTerm, t]);
 
   // 增量获取新日志 - 只获取比lastLogId更新的日志
   const fetchIncrementalLogs = useCallback(async () => {
     // 只在第一页且没有搜索条件且单日期模式时进行增量更新
-    if (currentPage !== 1 || searchTerm || dateMode !== 'single') return;
+    if (currentPage !== 1 || debouncedSearchTerm || dateMode !== 'single') return;
 
     const dateParams = getDateParams();
     try {
@@ -337,29 +381,45 @@ export default function LogsPage() {
     } catch (error) {
       console.error('Failed to fetch incremental logs:', error);
     }
-  }, [getDateParams, levelFilter, perPage, currentPage, searchTerm, dateMode, totalCount]);
+  }, [getDateParams, levelFilter, perPage, currentPage, debouncedSearchTerm, dateMode, totalCount]);
 
   useEffect(() => {
-    if (view === 'errors') setErrorsVisited(true);
+    setVisited((prev) => (prev[view] ? prev : { ...prev, [view]: true }));
   }, [view]);
 
-  // Fetch logs when filters change; keep data when switching to 错误报告
+  // 防抖搜索（不随切页签重复触发）
   useEffect(() => {
-    if (viewRef.current !== 'runtime') return;
-    fetchLogs();
-  }, [fetchLogs]);
+    const timer = window.setTimeout(() => {
+      setDebouncedSearchTerm((prev) => {
+        if (prev !== searchTerm) {
+          setCurrentPage(1);
+        }
+        return searchTerm;
+      });
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [searchTerm]);
 
-  // Auto-refresh every 60 seconds - 使用增量更新代替全量刷新
+  // 首次进入「历史日志」页签及筛选条件变化时拉取日志
+  useEffect(() => {
+    if (!visited.runtime) return;
+    void fetchLogs();
+  }, [fetchLogs, visited.runtime]);
+
+  // Auto-refresh every 60 seconds - 仅在激活「历史日志」页签时轮询
   useEffect(() => {
     if (view !== 'runtime') return;
     const interval = setInterval(() => {
-      fetchIncrementalLogs();
+      void fetchIncrementalLogs();
     }, 60000);
     return () => clearInterval(interval);
   }, [fetchIncrementalLogs, view]);
 
-  // Fetch available dates on mount
+  // Fetch available dates when runtime tab is first visited
   useEffect(() => {
+    if (!visited.runtime || availableDatesFetchedRef.current) return;
+    availableDatesFetchedRef.current = true;
+
     const fetchAvailableDates = async () => {
       try {
         const dates = await logsApi.getAvailableDates();
@@ -377,18 +437,8 @@ export default function LogsPage() {
       }
     };
 
-    fetchAvailableDates();
-  }, []);
-
-  // 防抖搜索
-  useEffect(() => {
-    if (view !== 'runtime') return;
-    const timer = setTimeout(() => {
-      setCurrentPage(1); // 搜索时重置到第一页
-      fetchLogs();
-    }, 300); // 300ms防抖
-    return () => clearTimeout(timer);
-  }, [searchTerm, view]);
+    void fetchAvailableDates();
+  }, [selectedDate, visited.runtime]);
 
   const handleRefresh = () => {
     fetchLogs();
@@ -516,19 +566,60 @@ export default function LogsPage() {
     <PinnedPage
       header={
         /* Header */
-        <div className="flex flex-col gap-3 md:gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div className="min-w-0 sm:overflow-x-auto">
-            <h1 className="sm:whitespace-nowrap text-3xl font-bold flex items-center gap-3">
-              <FileText className="w-8 h-8 shrink-0" />
-              {t('logs.title')}
-            </h1>
-            <p className="sm:whitespace-nowrap text-muted-foreground mt-1">
-              {t('logs.description')}
-            </p>
+        <div className="min-w-0 sm:overflow-x-auto">
+          <h1 className="sm:whitespace-nowrap text-3xl font-bold flex items-center gap-3">
+            <FileText className="w-8 h-8 shrink-0" />
+            {t('logs.title')}
+          </h1>
+          <p className="sm:whitespace-nowrap text-muted-foreground mt-1">{t('logs.description')}</p>
+        </div>
+      }
+      toolbar={
+        <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className={cn(tabToolbarGroupWrapClass, 'max-w-full')}>
+            <TabButtonGroup
+              className="shrink-0"
+              options={[
+                {
+                  value: 'traces',
+                  label: t('logs.viewTraces'),
+                  icon: <Activity className="w-4 h-4" />,
+                },
+                {
+                  value: 'errors',
+                  label: t('logs.viewErrorReports'),
+                  icon: <AlertCircle className="w-4 h-4" />,
+                },
+                {
+                  value: 'runtime',
+                  label: t('logs.viewRuntime'),
+                  icon: <FileText className="w-4 h-4" />,
+                },
+                {
+                  value: 'http-traces',
+                  label: t('logs.viewHttpTraces'),
+                  icon: <Globe className="w-4 h-4" />,
+                },
+              ]}
+              value={view}
+              onValueChange={handleViewChange}
+            />
           </div>
 
+          {view === 'traces' ? (
+            <TracesHeaderActions
+              controller={tracesController}
+              className={headerActionRowWideClass}
+            />
+          ) : null}
+          {view === 'http-traces' ? (
+            <HttpTracesHeaderActions
+              controller={httpTracesController}
+              className={headerActionRowWideClass}
+            />
+          ) : null}
           {view === 'runtime' ? (
-            <div className={headerActionRowClass}>
+            <div className={headerActionRowWideClass}>
               <Button
                 variant="outline"
                 onClick={handleRefresh}
@@ -558,373 +649,366 @@ export default function LogsPage() {
           ) : null}
         </div>
       }
-      toolbar={
-        <div className="flex min-w-0 flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
-          <TabButtonGroup
-            className="shrink-0"
-            options={[
-              {
-                value: 'runtime',
-                label: t('logs.viewRuntime'),
-                icon: <FileText className="w-4 h-4" />,
-              },
-              {
-                value: 'errors',
-                label: t('logs.viewErrorReports'),
-                icon: <AlertCircle className="w-4 h-4" />,
-              },
-            ]}
-            value={view}
-            onValueChange={(v) => setView(v as LogsView)}
-          />
-        </div>
-      }
     >
       <LogsConfigDialog open={logsConfigOpen} onOpenChange={setLogsConfigOpen} />
-      {errorsVisited ? (
+      {visited.traces ? (
+        <div className={view === 'traces' ? pageStackClass : 'hidden'}>
+          <TracesPanel controller={tracesController} />
+        </div>
+      ) : null}
+      {visited.errors ? (
         <div className={view === 'errors' ? undefined : 'hidden'}>
           <ErrorReportsPanel />
         </div>
       ) : null}
-      <div className={cn(pageStackClass, view !== 'runtime' && 'hidden')}>
-        {hasNewLogs && (
-          <GlassAlert
-            tone="primary"
-            icon={RefreshCw}
-            role="button"
-            tabIndex={0}
-            className="shrink-0 cursor-pointer items-center"
-            onClick={handleRefresh}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault();
-                handleRefresh();
-              }
-            }}
-          >
-            {t('logs.newLogsAvailable') || '有新日志可用，点击刷新查看'}
-          </GlassAlert>
-        )}
-
-        <div className="flex shrink-0 flex-wrap items-center gap-2">
-          {/* Date Mode Toggle */}
-          <TabButtonGroup
-            value={dateMode}
-            onValueChange={(v) => handleDateModeChange(v as DateMode)}
-            options={[
-              { value: 'single', label: t('logs.singleDate') || '单日期' },
-              { value: 'range', label: t('logs.dateRange') || '日期范围' },
-            ]}
-          />
-
-          {/* Date Picker(s) */}
-          {dateMode === 'single' ? (
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    tabToolbarControlClass,
-                    'min-w-[140px] flex-1 sm:w-[180px] sm:flex-none justify-start text-left font-normal',
-                    !selectedDate && 'text-muted-foreground',
-                  )}
-                >
-                  <Calendar className="mr-2 h-4 w-4" />
-                  {selectedDate ? format(selectedDate, 'yyyy-MM-dd') : t('logs.selectDate')}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start" side="bottom" sideOffset={8}>
-                <CalendarComponent
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={(date) => {
-                    if (date) {
-                      setSelectedDate(date);
-                      setCurrentPage(1);
-                    }
-                  }}
-                  defaultMonth={selectedDate}
-                  initialFocus
-                  className="pointer-events-auto"
-                  disabled={(date) => {
-                    const dateStr = date.toISOString().split('T')[0];
-                    return availableDates.length > 0 && !availableDates.includes(dateStr);
-                  }}
-                />
-              </PopoverContent>
-            </Popover>
-          ) : (
-            <div className="flex w-full items-center gap-2 sm:w-auto">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      tabToolbarControlClass,
-                      'flex-1 sm:w-[150px] sm:flex-none justify-start text-left font-normal',
-                      !startDate && 'text-muted-foreground',
-                    )}
-                  >
-                    <Calendar className="mr-2 h-4 w-4" />
-                    {startDate
-                      ? format(startDate, 'yyyy-MM-dd')
-                      : t('logs.startDate') || '开始日期'}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start" side="bottom" sideOffset={8}>
-                  <CalendarComponent
-                    mode="single"
-                    selected={startDate}
-                    onSelect={(date) => {
-                      if (date) {
-                        setStartDate(date);
-                        setCurrentPage(1);
-                      }
-                    }}
-                    defaultMonth={startDate}
-                    initialFocus
-                    className="pointer-events-auto"
-                  />
-                </PopoverContent>
-              </Popover>
-              <span className="text-muted-foreground">~</span>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      tabToolbarControlClass,
-                      'flex-1 sm:w-[150px] sm:flex-none justify-start text-left font-normal',
-                      !endDate && 'text-muted-foreground',
-                    )}
-                  >
-                    <Calendar className="mr-2 h-4 w-4" />
-                    {endDate ? format(endDate, 'yyyy-MM-dd') : t('logs.endDate') || '结束日期'}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start" side="bottom" sideOffset={8}>
-                  <CalendarComponent
-                    mode="single"
-                    selected={endDate}
-                    onSelect={(date) => {
-                      if (date) {
-                        setEndDate(date);
-                        setCurrentPage(1);
-                      }
-                    }}
-                    defaultMonth={endDate || startDate}
-                    initialFocus
-                    className="pointer-events-auto"
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
+      {visited.runtime ? (
+        <div className={cn(pageStackClass, view !== 'runtime' && 'hidden')}>
+          {hasNewLogs && (
+            <GlassAlert
+              tone="primary"
+              icon={RefreshCw}
+              role="button"
+              tabIndex={0}
+              className="shrink-0 cursor-pointer items-center"
+              onClick={handleRefresh}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  handleRefresh();
+                }
+              }}
+            >
+              {t('logs.newLogsAvailable') || '有新日志可用，点击刷新查看'}
+            </GlassAlert>
           )}
 
-          <div className="relative min-w-[120px] flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder={t('logs.searchLogs')}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className={cn(tabToolbarControlClass, 'pl-10')}
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
+            {/* Date Mode Toggle */}
+            <TabButtonGroup
+              value={dateMode}
+              onValueChange={(v) => handleDateModeChange(v as DateMode)}
+              options={[
+                { value: 'single', label: t('logs.singleDate') || '单日期' },
+                { value: 'range', label: t('logs.dateRange') || '日期范围' },
+              ]}
+            />
+
+            {/* Date Picker(s) */}
+            {dateMode === 'single' ? (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      tabToolbarControlClass,
+                      'min-w-[140px] flex-1 sm:w-[180px] sm:flex-none justify-start text-left font-normal',
+                      !selectedDate && 'text-muted-foreground',
+                    )}
+                  >
+                    <Calendar className="mr-2 h-4 w-4" />
+                    {selectedDate ? format(selectedDate, 'yyyy-MM-dd') : t('logs.selectDate')}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start" side="bottom" sideOffset={8}>
+                  <CalendarComponent
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={(date) => {
+                      if (date) {
+                        setSelectedDate(date);
+                        setCurrentPage(1);
+                      }
+                    }}
+                    defaultMonth={selectedDate}
+                    initialFocus
+                    className="pointer-events-auto"
+                    disabled={(date) => {
+                      const dateStr = date.toISOString().split('T')[0];
+                      return availableDates.length > 0 && !availableDates.includes(dateStr);
+                    }}
+                  />
+                </PopoverContent>
+              </Popover>
+            ) : (
+              <div className="flex w-full items-center gap-2 sm:w-auto">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        tabToolbarControlClass,
+                        'flex-1 sm:w-[150px] sm:flex-none justify-start text-left font-normal',
+                        !startDate && 'text-muted-foreground',
+                      )}
+                    >
+                      <Calendar className="mr-2 h-4 w-4" />
+                      {startDate
+                        ? format(startDate, 'yyyy-MM-dd')
+                        : t('logs.startDate') || '开始日期'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start" side="bottom" sideOffset={8}>
+                    <CalendarComponent
+                      mode="single"
+                      selected={startDate}
+                      onSelect={(date) => {
+                        if (date) {
+                          setStartDate(date);
+                          setCurrentPage(1);
+                        }
+                      }}
+                      defaultMonth={startDate}
+                      initialFocus
+                      className="pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+                <span className="text-muted-foreground">~</span>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        tabToolbarControlClass,
+                        'flex-1 sm:w-[150px] sm:flex-none justify-start text-left font-normal',
+                        !endDate && 'text-muted-foreground',
+                      )}
+                    >
+                      <Calendar className="mr-2 h-4 w-4" />
+                      {endDate ? format(endDate, 'yyyy-MM-dd') : t('logs.endDate') || '结束日期'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start" side="bottom" sideOffset={8}>
+                    <CalendarComponent
+                      mode="single"
+                      selected={endDate}
+                      onSelect={(date) => {
+                        if (date) {
+                          setEndDate(date);
+                          setCurrentPage(1);
+                        }
+                      }}
+                      defaultMonth={endDate || startDate}
+                      initialFocus
+                      className="pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            )}
+
+            <div className="relative min-w-[120px] flex-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder={t('logs.searchLogs')}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className={cn(tabToolbarControlClass, 'pl-10')}
+              />
+            </div>
+
+            {/* 级别筛选 + 各级数量徽标（原统计条并入分段，插件商店同款 tab-segment-count）。
+              w-full sm:w-auto：窄屏独占一行（singleRowOnMobile 5 等分竖排：文字在上、
+              徽标缩到下方），桌面自然宽度、剩余空间交给搜索框。 */}
+            <TabButtonGroup
+              className="w-full sm:w-auto"
+              buttonClassName="max-sm:h-auto max-sm:flex-col max-sm:gap-0.5 max-sm:py-1"
+              singleRowOnMobile
+              value={levelFilter}
+              onValueChange={(v) => setLevelFilter(v as LogLevel)}
+              options={[
+                {
+                  value: 'all',
+                  label: t('logs.all'),
+                  icon: <List className="w-4 h-4" />,
+                  badge: logLevelBadge(totalCount),
+                },
+                {
+                  value: 'error',
+                  label: t('logs.errorLog'),
+                  icon: <AlertCircle className="w-4 h-4" />,
+                  badge: logLevelBadge(errorCount, errorCount > 0),
+                },
+                {
+                  value: 'warn',
+                  label: t('logs.warn'),
+                  icon: <AlertTriangle className="w-4 h-4" />,
+                  badge: logLevelBadge(warnCount),
+                },
+                {
+                  value: 'info',
+                  label: t('logs.info'),
+                  icon: <Info className="w-4 h-4" />,
+                  badge: logLevelBadge(infoCount),
+                },
+                {
+                  value: 'debug',
+                  label: t('logs.debug'),
+                  icon: <Bug className="w-4 h-4" />,
+                  badge: logLevelBadge(debugCount),
+                },
+              ]}
             />
           </div>
 
-          {/* 级别筛选 + 各级数量徽标（原统计条并入分段，插件商店同款 tab-segment-count）。
-              w-full sm:w-auto：窄屏独占一行（singleRowOnMobile 5 等分竖排：文字在上、
-              徽标缩到下方），桌面自然宽度、剩余空间交给搜索框。 */}
-          <TabButtonGroup
-            className="w-full sm:w-auto"
-            buttonClassName="max-sm:h-auto max-sm:flex-col max-sm:gap-0.5 max-sm:py-1"
-            singleRowOnMobile
-            value={levelFilter}
-            onValueChange={(v) => setLevelFilter(v as LogLevel)}
-            options={[
-              {
-                value: 'all',
-                label: t('logs.all'),
-                icon: <List className="w-4 h-4" />,
-                badge: logLevelBadge(totalCount),
-              },
-              {
-                value: 'error',
-                label: t('logs.errorLog'),
-                icon: <AlertCircle className="w-4 h-4" />,
-                badge: logLevelBadge(errorCount, errorCount > 0),
-              },
-              {
-                value: 'warn',
-                label: t('logs.warn'),
-                icon: <AlertTriangle className="w-4 h-4" />,
-                badge: logLevelBadge(warnCount),
-              },
-              {
-                value: 'info',
-                label: t('logs.info'),
-                icon: <Info className="w-4 h-4" />,
-                badge: logLevelBadge(infoCount),
-              },
-              {
-                value: 'debug',
-                label: t('logs.debug'),
-                icon: <Bug className="w-4 h-4" />,
-                badge: logLevelBadge(debugCount),
-              },
-            ]}
-          />
-        </div>
+          {/* Log List */}
+          <Card className="glass-card">
+            <CardHeader className="py-3">
+              <CardTitle className="text-base">
+                {t('logs.logList').replace('{count}', String(logs.length))}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              {logs.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  {t('logs.noMatchingLogs')}
+                </div>
+              ) : (
+                logs.map((log) => (
+                  <LogEntryItem
+                    key={log.id ?? log.log_id ?? Math.random()}
+                    log={log}
+                    isExpanded={expandedLogs.has(log.id ?? 0)}
+                    onToggle={() => log.details && toggleExpand(log.id ?? 0)}
+                    onViewContext={() => handleViewContext(log)}
+                  />
+                ))
+              )}
+            </CardContent>
+          </Card>
 
-        {/* Log List */}
-        <Card className="glass-card">
-          <CardHeader className="py-3">
-            <CardTitle className="text-base">
-              {t('logs.logList').replace('{count}', String(logs.length))}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            {logs.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                {t('logs.noMatchingLogs')}
-              </div>
-            ) : (
-              logs.map((log) => (
-                <LogEntryItem
-                  key={log.id ?? log.log_id ?? Math.random()}
-                  log={log}
-                  isExpanded={expandedLogs.has(log.id ?? 0)}
-                  onToggle={() => log.details && toggleExpand(log.id ?? 0)}
-                  onViewContext={() => handleViewContext(log)}
-                />
-              ))
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Pagination - 固定高度 */}
-        <Card className="glass-card shrink-0">
-          <CardContent className="p-3">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div className="text-sm text-muted-foreground">
-                {t('common.pageInfo')
-                  .replace('{current}', currentPage.toString())
-                  .replace('{total}', totalPages.toString())}{' '}
-                ({t('common.totalRecords').replace('{total}', totalCount.toLocaleString())})
-              </div>
-              <div className="flex items-center justify-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(1)}
-                  disabled={currentPage === 1}
-                >
-                  {t('common.firstPage')}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={currentPage >= totalPages}
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(totalPages)}
-                  disabled={currentPage >= totalPages}
-                >
-                  {t('common.lastPage')}
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Log Context Dialog */}
-        <Dialog open={contextOpen} onOpenChange={setContextOpen}>
-          <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Eye className="w-5 h-5" />
-                {t('logs.contextTitle') || '日志上下文'}
-              </DialogTitle>
-              <DialogDescription className="sr-only">{t('logs.contextAriaDesc')}</DialogDescription>
-            </DialogHeader>
-
-            {contextLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <RefreshCw className="w-6 h-6 animate-spin text-muted-foreground" />
-                <span className="ml-2 text-muted-foreground">{t('common.loading')}</span>
-              </div>
-            ) : contextData ? (
-              <div ref={contextScrollRef} className="flex-1 overflow-auto space-y-2 px-2 py-1">
-                {/* Load More Before */}
-                {contextData.has_more_before && (
-                  <div className="flex justify-center py-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleLoadMoreContext('before')}
-                      className="text-xs text-muted-foreground"
-                    >
-                      <ChevronUp className="w-3 h-3 mr-1" />
-                      {t('logs.loadMoreBefore') || '加载更早的日志'}
-                    </Button>
-                  </div>
-                )}
-
-                {/* Before Logs */}
-                {contextData.before_logs.map((log) => (
-                  <ContextLogItem key={`before-${log.log_id}`} log={log} />
-                ))}
-
-                {/* Target Log */}
-                <ContextLogItem log={contextData.target} isTarget />
-
-                {/* After Logs */}
-                {contextData.after_logs.map((log) => (
-                  <ContextLogItem key={`after-${log.log_id}`} log={log} />
-                ))}
-
-                {/* Load More After */}
-                {contextData.has_more_after && (
-                  <div className="flex justify-center py-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleLoadMoreContext('after')}
-                      className="text-xs text-muted-foreground"
-                    >
-                      <ChevronDown className="w-3 h-3 mr-1" />
-                      {t('logs.loadMoreAfter') || '加载更晚的日志'}
-                    </Button>
-                  </div>
-                )}
-
-                {/* Context Info */}
-                <div className="text-xs text-muted-foreground text-center pt-2 border-t">
-                  {(
-                    t('logs.contextInfo') ||
-                    '当天共 {total} 条日志，当前显示前 {before} 条 + 后 {after} 条'
-                  )
-                    .replace('{total}', String(contextData.total_in_date))
-                    .replace('{before}', String(contextData.before_count))
-                    .replace('{after}', String(contextData.after_count))}
+          {/* Pagination - 固定高度 */}
+          <Card className="glass-card shrink-0">
+            <CardContent className="p-3">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div className="text-sm text-muted-foreground">
+                  {t('common.pageInfo')
+                    .replace('{current}', currentPage.toString())
+                    .replace('{total}', totalPages.toString())}{' '}
+                  ({t('common.totalRecords').replace('{total}', totalCount.toLocaleString())})
+                </div>
+                <div className="flex items-center justify-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(1)}
+                    disabled={currentPage === 1}
+                  >
+                    {t('common.firstPage')}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={currentPage >= totalPages}
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(totalPages)}
+                    disabled={currentPage >= totalPages}
+                  >
+                    {t('common.lastPage')}
+                  </Button>
                 </div>
               </div>
-            ) : null}
-          </DialogContent>
-        </Dialog>
-      </div>
+            </CardContent>
+          </Card>
+
+          {/* Log Context Dialog */}
+          <Dialog open={contextOpen} onOpenChange={setContextOpen}>
+            <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Eye className="w-5 h-5" />
+                  {t('logs.contextTitle') || '日志上下文'}
+                </DialogTitle>
+                <DialogDescription className="sr-only">
+                  {t('logs.contextAriaDesc')}
+                </DialogDescription>
+              </DialogHeader>
+
+              {contextLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <RefreshCw className="w-6 h-6 animate-spin text-muted-foreground" />
+                  <span className="ml-2 text-muted-foreground">{t('common.loading')}</span>
+                </div>
+              ) : contextData ? (
+                <div ref={contextScrollRef} className="flex-1 overflow-auto space-y-2 px-2 py-1">
+                  {/* Load More Before */}
+                  {contextData.has_more_before && (
+                    <div className="flex justify-center py-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleLoadMoreContext('before')}
+                        className="text-xs text-muted-foreground"
+                      >
+                        <ChevronUp className="w-3 h-3 mr-1" />
+                        {t('logs.loadMoreBefore') || '加载更早的日志'}
+                      </Button>
+                    </div>
+                  )}
+
+                  {/* Before Logs */}
+                  {contextData.before_logs.map((log) => (
+                    <ContextLogItem key={`before-${log.log_id}`} log={log} />
+                  ))}
+
+                  {/* Target Log */}
+                  <ContextLogItem log={contextData.target} isTarget />
+
+                  {/* After Logs */}
+                  {contextData.after_logs.map((log) => (
+                    <ContextLogItem key={`after-${log.log_id}`} log={log} />
+                  ))}
+
+                  {/* Load More After */}
+                  {contextData.has_more_after && (
+                    <div className="flex justify-center py-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleLoadMoreContext('after')}
+                        className="text-xs text-muted-foreground"
+                      >
+                        <ChevronDown className="w-3 h-3 mr-1" />
+                        {t('logs.loadMoreAfter') || '加载更晚的日志'}
+                      </Button>
+                    </div>
+                  )}
+
+                  {/* Context Info */}
+                  <div className="text-xs text-muted-foreground text-center pt-2 border-t">
+                    {(
+                      t('logs.contextInfo') ||
+                      '当天共 {total} 条日志，当前显示前 {before} 条 + 后 {after} 条'
+                    )
+                      .replace('{total}', String(contextData.total_in_date))
+                      .replace('{before}', String(contextData.before_count))
+                      .replace('{after}', String(contextData.after_count))}
+                  </div>
+                </div>
+              ) : null}
+            </DialogContent>
+          </Dialog>
+        </div>
+      ) : null}
+      {visited['http-traces'] ? (
+        <div className={view === 'http-traces' ? pageStackClass : 'hidden'}>
+          <HttpTracesPanel controller={httpTracesController} />
+        </div>
+      ) : null}
     </PinnedPage>
   );
 }

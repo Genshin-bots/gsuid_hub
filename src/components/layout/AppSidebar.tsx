@@ -201,6 +201,7 @@ const MemoizedNavItem = memo(function MemoizedNavItem({
       <SidebarMenuButton asChild tooltip={item.title}>
         <NavLink
           to={item.url || '#'}
+          activePaths={item.activePaths}
           className={cn(
             sidebarNavItemGroupClass,
             'flex items-center rounded-lg transition-all',

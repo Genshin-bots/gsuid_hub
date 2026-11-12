@@ -33,7 +33,11 @@ import {
   type GitPluginInfo,
   getApiErrorMessage,
 } from '@/lib/api';
-import { resolvePluginStoreView, resolvePluginStoreGroups } from '@/lib/featureUtils';
+import {
+  isPluginAiContent,
+  resolvePluginStoreGroups,
+  resolvePluginStoreView,
+} from '@/lib/featureUtils';
 import { Skeleton } from '@/components/ui/skeleton';
 import GitMirrorDialog, { getMirrorBadge } from '@/components/GitMirrorDialog';
 import {
@@ -835,6 +839,7 @@ export default function PluginStorePage() {
         <div className={cn('grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4', pageGapClass)}>
           {visiblePlugins.map((plugin) => {
             const deprecated = isDeprecated(plugin);
+            const isAi = isPluginAiContent(plugin);
             const pluginLink = plugin.link || `https://github.com/${plugin.id}`;
 
             return (
@@ -935,6 +940,14 @@ export default function PluginStorePage() {
                               {t('pluginStore.adapter')}
                             </Badge>
                           )}
+                          {isAi && (
+                            <Badge
+                              variant="outline"
+                              className="theme-chip theme-chip-tint text-xs font-normal text-cyan-500 border-cyan-500"
+                            >
+                              AI
+                            </Badge>
+                          )}
                           {deprecated && (
                             <Badge
                               variant="secondary"
@@ -943,7 +956,7 @@ export default function PluginStorePage() {
                               {t('pluginStore.deprecated')}
                             </Badge>
                           )}
-                          {plugin.type === 'danger' && !deprecated && (
+                          {plugin.type === 'danger' && !deprecated && !isAi && (
                             <Badge variant="destructive" className="text-xs font-normal">
                               {plugin.content}
                             </Badge>

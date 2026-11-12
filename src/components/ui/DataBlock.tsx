@@ -58,10 +58,10 @@ export interface StatStripItem {
 function Sparkline({ values, color }: { values: number[]; color: string }) {
   const max = Math.max(...values, 0);
   if (values.length === 0 || max <= 0) {
-    return <div className="h-full min-h-10 w-full rounded-sm bg-muted/40" />;
+    return <div className="h-full min-h-8 sm:min-h-10 w-full rounded-sm bg-muted/40" />;
   }
   return (
-    <div className="flex h-full min-h-10 w-full items-end gap-px" aria-hidden>
+    <div className="flex h-full min-h-8 sm:min-h-10 w-full items-end gap-px" aria-hidden>
       {values.map((v, i) => (
         <div
           key={i}
@@ -88,7 +88,7 @@ function Sparkline({ values, color }: { values: number[]; color: string }) {
 export function StatStrip({ items, className }: { items: StatStripItem[]; className?: string }) {
   return (
     <Card className={cn('glass-card flex flex-col', className)}>
-      <div className="flex flex-1 flex-col divide-y divide-border/50 sm:flex-row sm:divide-x sm:divide-y-0">
+      <div className="flex flex-1 flex-row divide-x divide-border/50">
         {items.map((item) => (
           <div
             key={item.title}
@@ -96,7 +96,7 @@ export function StatStrip({ items, className }: { items: StatStripItem[]; classN
                标签行和数值行就跟旁边几格错开一截，一排读数看着像散了架。
                现在没有 spark 的格只是下方空着 —— 空白比错位好收拾。 */
             className={cn(
-              'flex min-w-0 flex-1 flex-col gap-2 px-3.5 py-3 text-left',
+              'flex min-w-0 flex-1 flex-col gap-1.5 px-2 py-2.5 text-left sm:gap-2 sm:px-3.5 sm:py-3',
               item.onClick && 'cursor-pointer transition-colors hover:bg-muted/40',
             )}
             role={item.onClick ? 'button' : undefined}
@@ -114,28 +114,36 @@ export function StatStrip({ items, className }: { items: StatStripItem[]; classN
             }
           >
             <div>
-              <p className="flex items-center gap-1 truncate text-[11px] font-medium text-muted-foreground">
+              <p
+                className="flex items-center gap-1 truncate text-[11px] font-medium text-muted-foreground"
+                title={item.title}
+              >
                 <span className="truncate">{item.title}</span>
                 {item.onClick ? <ChevronRight className="h-3.5 w-3.5 shrink-0" /> : null}
               </p>
               {/* 读数不换行：「6032.8 ms」断成两行会把整格的行高顶起来，
                   连带把 sparkline 压扁，一排读数全乱。 */}
-              <p className="mt-1 whitespace-nowrap text-xl font-bold leading-none tabular-nums tracking-tight">
+              <p
+                className="mt-1 truncate whitespace-nowrap text-base font-bold leading-none tabular-nums tracking-tight sm:text-xl"
+                title={item.value}
+              >
                 {item.value}
               </p>
               {item.desc ? (
-                <p className="mt-1 truncate text-[10px] text-muted-foreground">{item.desc}</p>
+                <p className="mt-1 truncate text-[10px] text-muted-foreground" title={item.desc}>
+                  {item.desc}
+                </p>
               ) : null}
             </div>
             {item.spark ? (
-              <div className="min-h-10 flex-1">
+              <div className="min-h-8 flex-1 sm:min-h-10">
                 <Sparkline values={item.spark} color={item.sparkColor ?? 'hsl(var(--primary))'} />
               </div>
             ) : item.meter ? (
               /* flexGrow 是「比例」不是百分比：只渲染分段的话，单段永远吃满 100%。
                  所以补一段透明的余量段（rest = max - 各段之和）参与分配，
                  填充高度才是真正的 value / max。 */
-              <div className="flex min-h-10 flex-1">
+              <div className="flex min-h-8 flex-1 sm:min-h-10">
                 <div className="flex w-full flex-col-reverse overflow-hidden rounded-sm bg-muted/40">
                   {(() => {
                     const sum = item.meter!.segments.reduce((s, x) => s + x.value, 0);

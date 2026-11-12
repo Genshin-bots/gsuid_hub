@@ -712,6 +712,7 @@ export default function Dashboard() {
 
   const dagNum = Number(keyMetrics.dag) || 0;
   const magNum = Number(keyMetrics.mag) || 0;
+  const dagMagPct = Number.parseFloat(keyMetrics.dagMagRatio) || 0;
 
   // 用户维度占比分段（留存活跃 / 新增 / 其他月活）
   const userTotal = Math.max(mauNum, dauNum, 1);
@@ -782,7 +783,7 @@ export default function Dashboard() {
   const retentionChurnItems = useMemo(
     () => [
       {
-        title: 'DAU / MAU',
+        title: t('dashboard.dauMauRatio'),
         value: asPercent(keyMetrics.dauMauRatio),
         desc: t('dashboard.dauMauRatioDesc'),
         meter: {
@@ -800,6 +801,15 @@ export default function Dashboard() {
         },
       },
       {
+        title: t('dashboard.groupRetention'),
+        value: asPercent(keyMetrics.dagMagRatio),
+        desc: t('dashboard.dagMagRatioDesc'),
+        meter: {
+          segments: [{ value: dagMagPct, color: ramp[2] }],
+          max: 100,
+        },
+      },
+      {
         title: t('dashboard.churnedUsers'),
         value: keyMetrics.churnedUsers.toLocaleString(),
         desc: t('dashboard.churnedUsersDesc'),
@@ -811,9 +821,11 @@ export default function Dashboard() {
     ],
     [
       keyMetrics.dauMauRatio,
+      keyMetrics.dagMagRatio,
       keyMetrics.retention,
       keyMetrics.churnedUsers,
       dauMauPct,
+      dagMagPct,
       retPct,
       churnedNum,
       dauNum,
@@ -1319,17 +1331,29 @@ export default function Dashboard() {
   return (
     <PinnedPage
       header={
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-3">
-            <LayoutGrid className="w-8 h-8 shrink-0" />
-            <span className="truncate">{t('dashboard.title')}</span>
-          </h1>
-          <p className="text-muted-foreground mt-1">{t('dashboard.description')}</p>
+        <div className="flex items-end justify-between gap-3 sm:gap-4">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-3xl font-bold flex items-center gap-3">
+              <LayoutGrid className="w-8 h-8 shrink-0" />
+              <span className="truncate">{t('dashboard.title')}</span>
+            </h1>
+            <p className="mt-1 truncate text-muted-foreground" title={t('dashboard.description')}>
+              {t('dashboard.description')}
+            </p>
+          </div>
+          {/* 「更新于」属于页面元信息，放在标题右侧并与副标题底边对齐 */}
+          <span className="flex shrink-0 items-center gap-2 whitespace-nowrap text-xs tabular-nums text-muted-foreground">
+            <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-primary" />
+            <span>
+              {t('dashboard.lastUpdated')}
+              {updatedAt ? ` ${format(updatedAt, 'HH:mm:ss')}` : ''}
+            </span>
+          </span>
         </div>
       }
       toolbar={
         /* 快捷时间范围 + 日期选择器 + Bot 筛选 + 刷新，紧凑排列（gap-2）
-            窄屏两列铺满，桌面单行展示，更新时间对齐控件行右侧 */
+            窄屏两列铺满，桌面单行展示 */
         <div className="flex flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2">
           {/* 窄屏第一行：档位 + 刷新 */}
           <div className="flex min-w-0 items-center gap-2 sm:contents">
@@ -1381,7 +1405,7 @@ export default function Dashboard() {
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent
-                      className="w-auto p-0 z-[60]"
+                      className="w-auto p-1 z-[60]"
                       align="start"
                       side="bottom"
                       sideOffset={8}
@@ -1394,7 +1418,8 @@ export default function Dashboard() {
                         }}
                         metrics={dailyCommandCounts}
                         disableEmpty
-                        formatMetric={(n) => String(n)}
+                        metricLabel={t('dashboard.callCount')}
+                        metricUnitLabel={t('dashboard.callsUnit')}
                       />
                     </PopoverContent>
                   </Popover>
@@ -1485,15 +1510,6 @@ export default function Dashboard() {
               </Select>
             </div>
           </div>
-
-          {/* 更新于时间戳：下移至操作栏右侧，与左侧控件对齐 */}
-          <div className="order-5 flex items-center justify-end gap-2 text-xs text-muted-foreground tabular-nums sm:order-5 sm:ml-auto sm:justify-start">
-            <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-primary" />
-            <span>
-              {t('dashboard.lastUpdated')}
-              {updatedAt ? ` ${format(updatedAt, 'HH:mm:ss')}` : ''}
-            </span>
-          </div>
         </div>
       }
     >
@@ -1502,37 +1518,32 @@ export default function Dashboard() {
       <div className={cn('glass-card-grid', pageStackClass)}>
         <div className={cn('grid grid-cols-1 md:grid-cols-12', pageGapClass)}>
           {/* 用户活跃主角卡（DAU / MAU / 新增 / 留存） */}
-          <div className="md:col-span-12 xl:col-span-5">
+          <div className="md:col-span-12 xl:col-span-4">
             <MetricHero
               className="h-full"
               title={`DAU · ${t('dashboard.userActivity')}`}
               value={keyMetrics.dau.toLocaleString()}
               desc={`MAU ${keyMetrics.mau.toLocaleString()}${newUsersNum > 0 ? ` · ${t('dashboard.newUsers')} ${newUsersNum.toLocaleString()}` : ''}`}
               icon={Users}
-              extra={
-                <span className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2 py-0.5 text-xs font-semibold tabular-nums text-primary ring-1 ring-inset ring-primary/20">
-                  DAU/MAU {asPercent(keyMetrics.dauMauRatio)}
-                </span>
-              }
             >
               <RatioBar slices={userSlices} total={userTotal} />
             </MetricHero>
           </div>
 
           {/* 群组活跃次级卡（DAG / MAG） */}
-          <div className="md:col-span-6 xl:col-span-3">
+          <div className="md:col-span-6 xl:col-span-4">
             <MetricHero
               className="h-full"
               title={`DAG · ${t('dashboard.groupActivity')}`}
               value={keyMetrics.dag.toLocaleString()}
-              desc={`MAG ${keyMetrics.mag.toLocaleString()} · ${t('dashboard.groupRetention')} ${asPercent(keyMetrics.dagMagRatio)}`}
+              desc={`MAG ${keyMetrics.mag.toLocaleString()}`}
               icon={UsersRound}
             >
               <RatioBar slices={groupSlices} total={groupTotal} />
             </MetricHero>
           </div>
 
-          {/* 活跃粘性、留存率与流失量 */}
+          {/* 用户粘性、用户/群组留存与流失量 */}
           <div className="md:col-span-6 xl:col-span-4">
             <StatStrip className="h-full" items={retentionChurnItems} />
           </div>

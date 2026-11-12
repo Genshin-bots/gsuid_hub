@@ -1,5 +1,4 @@
 import {
-  Activity,
   BookOpen,
   Brain,
   Calendar,
@@ -10,7 +9,6 @@ import {
   Database,
   FileText,
   GitBranch,
-  Globe,
   HardDrive,
   History,
   Home,
@@ -166,6 +164,14 @@ export function getNavItems(
   const items: NavItem[] = [
     { id: 'home', title: t('sidebar.home'), url: '/home', icon: Home },
     { id: 'dashboard', title: t('sidebar.dashboard'), url: '/dashboard', icon: LayoutDashboard },
+    { id: 'console', title: t('sidebar.console'), url: '/console', icon: Terminal },
+    {
+      id: 'historyLogs',
+      title: t('sidebar.historyLogs'),
+      url: '/logs',
+      icon: FileText,
+      activePaths: ['/traces', '/http-traces'],
+    },
     {
       id: 'database',
       title: t('sidebar.database'),
@@ -173,52 +179,13 @@ export function getNavItems(
       icon: Database,
       adminOnly: true,
     },
+    // 核心配置已并入 /framework-config 的首个页签
     {
-      id: 'adminCore',
-      title: t('sidebar.adminCore'),
-      icon: Cog,
-      children: [
-        // 核心配置已并入 /framework-config 的首个页签
-        {
-          id: 'frameworkConfig',
-          title: t('sidebar.frameworkConfig'),
-          url: '/framework-config',
-          icon: Cpu,
-          adminOnly: true,
-        },
-        {
-          id: 'backup',
-          title: t('sidebar.backup'),
-          url: '/backup',
-          icon: HardDrive,
-          adminOnly: true,
-        },
-        { id: 'scheduler', title: t('sidebar.scheduler'), url: '/scheduler', icon: Calendar },
-      ],
-    },
-    {
-      id: 'logsView',
-      title: t('sidebar.logsView'),
-      icon: FileText,
-      children: [
-        { id: 'console', title: t('sidebar.console'), url: '/console', icon: Terminal },
-        { id: 'historyLogs', title: t('sidebar.historyLogs'), url: '/logs', icon: FileText },
-        { id: 'traces', title: t('sidebar.traces'), url: '/traces', icon: Activity },
-        { id: 'httpTraces', title: t('sidebar.httpTraces'), url: '/http-traces', icon: Globe },
-        {
-          id: 'batchPush',
-          title: t('sidebar.batchPush'),
-          url: '/batch-push',
-          icon: Send,
-          adminOnly: true,
-        },
-      ],
-    },
-    {
-      id: 'aiConfig',
-      title: t('sidebar.aiConfig'),
-      icon: Brain,
-      children: aiConfigChildren,
+      id: 'frameworkConfig',
+      title: t('sidebar.frameworkConfig'),
+      url: '/framework-config',
+      icon: Cpu,
+      adminOnly: true,
     },
     {
       id: 'sessionManagement',
@@ -235,6 +202,34 @@ export function getNavItems(
     },
     { id: 'pluginStore', title: t('sidebar.pluginStore'), url: '/plugin-store', icon: Store },
     { id: 'gitUpdate', title: t('sidebar.gitUpdate'), url: '/git-update', icon: GitBranch },
+    {
+      id: 'aiConfig',
+      title: t('sidebar.aiConfig'),
+      icon: Brain,
+      children: aiConfigChildren,
+    },
+    {
+      id: 'opsMisc',
+      title: t('sidebar.opsMisc'),
+      icon: Wrench,
+      children: [
+        {
+          id: 'batchPush',
+          title: t('sidebar.batchPush'),
+          url: '/batch-push',
+          icon: Send,
+          adminOnly: true,
+        },
+        {
+          id: 'backup',
+          title: t('sidebar.backup'),
+          url: '/backup',
+          icon: HardDrive,
+          adminOnly: true,
+        },
+        { id: 'scheduler', title: t('sidebar.scheduler'), url: '/scheduler', icon: Calendar },
+      ],
+    },
     {
       id: 'consoleManagement',
       title: t('sidebar.consoleManagement'),

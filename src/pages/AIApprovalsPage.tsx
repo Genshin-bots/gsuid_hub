@@ -1,11 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Check, Clock, Loader2, RefreshCw, ShieldCheck, User, X } from 'lucide-react';
 import { toast } from 'sonner';
-import {
-  headerActionRowWideClass,
-  pageStackClass,
-  PinnedPage,
-} from '@/components/layout/PinnedPage';
+import { pageStackClass, PinnedPage } from '@/components/layout/PinnedPage';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 import {
@@ -121,40 +117,38 @@ export default function AIApprovalsPage() {
   return (
     <PinnedPage
       header={
-        <div className="flex flex-col gap-3 md:gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="min-w-0 sm:overflow-x-auto">
-            <h1 className="sm:whitespace-nowrap text-3xl font-bold flex items-center gap-3">
-              <ShieldCheck className="w-8 h-8 shrink-0" />
-              {t('aiApprovals.title')}
-            </h1>
-            <p className="sm:whitespace-nowrap text-muted-foreground mt-1">
-              {t('aiApprovals.description')}
-            </p>
-          </div>
-          <div className={headerActionRowWideClass}>
-            <Button
-              variant="outline"
-              onClick={() => loadData(viewMode)}
-              disabled={isLoading}
-              className={cn(tabToolbarControlClass, 'gap-2')}
-            >
-              {isLoading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <RefreshCw className="w-4 h-4" />
-              )}
-              {t('common.refresh') || '刷新'}
-            </Button>
-          </div>
+        <div className="min-w-0 sm:overflow-x-auto">
+          <h1 className="sm:whitespace-nowrap text-3xl font-bold flex items-center gap-3">
+            <ShieldCheck className="w-8 h-8 shrink-0" />
+            {t('aiApprovals.title')}
+          </h1>
+          <p className="sm:whitespace-nowrap text-muted-foreground mt-1">
+            {t('aiApprovals.description')}
+          </p>
         </div>
       }
       toolbar={
-        <TabButtonGroup
-          options={viewOptions}
-          value={viewMode}
-          onValueChange={(value) => setViewMode(value as ViewMode)}
-          className="w-max"
-        />
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <TabButtonGroup
+            options={viewOptions}
+            value={viewMode}
+            onValueChange={(value) => setViewMode(value as ViewMode)}
+            className="w-full sm:w-max"
+          />
+          <Button
+            variant="outline"
+            onClick={() => loadData(viewMode)}
+            disabled={isLoading}
+            className={cn(tabToolbarControlClass, 'w-full gap-2 sm:w-auto sm:shrink-0')}
+          >
+            {isLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <RefreshCw className="w-4 h-4" />
+            )}
+            {t('common.refresh') || '刷新'}
+          </Button>
+        </div>
       }
     >
       {isLoading ? (

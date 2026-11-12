@@ -5,6 +5,7 @@
   "databaseConfig": "数据库配置",
   "stateConfig": "状态配置",
   "adminCore": "管理核心",
+  "opsMisc": "运维杂项",
   "console": "实时控制台",
   "scheduler": "任务调度",
   "coreConfig": "核心配置",

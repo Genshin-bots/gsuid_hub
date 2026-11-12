@@ -10,16 +10,19 @@ import {
   Cpu,
   Database,
   ExternalLink,
+  FileText,
   GitBranch,
   Github,
   GitCommit,
   HardDrive,
+  History,
   LayoutDashboard,
   Monitor,
   Plug,
   Radio,
   RefreshCw,
   Server,
+  Store,
   Terminal,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -204,7 +207,7 @@ function NavRow({
       to={href}
       className={cn(
         hoverIconGroupClass,
-        'group/nav flex min-w-0 items-center gap-3 rounded-xl px-3 py-2.5 transition-colors duration-200',
+        'group/nav flex min-w-0 items-center gap-2.5 rounded-xl px-2.5 py-2 transition-colors duration-200 sm:gap-3 sm:px-3 sm:py-2.5',
         'hover:bg-primary/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60',
         primary && 'bg-primary/[0.07]',
       )}
@@ -213,8 +216,8 @@ function NavRow({
         className={cn(
           'flex shrink-0 items-center justify-center rounded-lg transition-colors',
           primary
-            ? 'h-9 w-9 bg-primary/15 text-primary'
-            : 'h-8 w-8 bg-muted/60 text-muted-foreground group-hover/nav:text-primary',
+            ? 'h-8 w-8 bg-primary/15 text-primary sm:h-9 sm:w-9'
+            : 'h-7 w-7 bg-muted/60 text-muted-foreground group-hover/nav:text-primary sm:h-8 sm:w-8',
         )}
       >
         <SidebarHoverIcon icon={icon} className={primary ? 'h-[18px] w-[18px]' : 'h-4 w-4'} />
@@ -228,7 +231,7 @@ function NavRow({
         </span>
       </span>
       <ArrowUpRight
-        className="h-4 w-4 shrink-0 text-muted-foreground/40 transition-all duration-200 group-hover/nav:-translate-y-0.5 group-hover/nav:translate-x-0.5 group-hover/nav:text-primary"
+        className="h-3.5 w-3.5 shrink-0 text-muted-foreground/40 transition-all duration-200 group-hover/nav:-translate-y-0.5 group-hover/nav:translate-x-0.5 group-hover/nav:text-primary sm:h-4 sm:w-4"
         aria-hidden
       />
     </Link>
@@ -276,7 +279,7 @@ function SpecStack({ label, value }: { label: string; value?: string | number | 
 /* 区块标题：图标 + 标题，用于卡片左上角 */
 function CardHead({ icon: Icon, title }: { icon: ElementType; title: string }) {
   return (
-    <div className="flex items-center gap-2.5 px-5 pt-5 sm:px-6 sm:pt-6">
+    <div className="flex items-center gap-2.5 px-5 pt-3.5 sm:px-6 sm:pt-4">
       <Icon className="h-5 w-5 shrink-0 text-primary" />
       <CardTitle className="truncate text-lg">{title}</CardTitle>
     </div>
@@ -357,8 +360,32 @@ export default function HomePage() {
             href: '/database',
             icon: Database,
           },
+          {
+            label: t('home.goToBackup'),
+            description: t('home.goToBackupDesc'),
+            href: '/backup',
+            icon: HardDrive,
+          },
         ]
       : []),
+    {
+      label: t('home.goToLogs'),
+      description: t('home.goToLogsDesc'),
+      href: '/logs',
+      icon: FileText,
+    },
+    {
+      label: t('home.goToSessionManagement'),
+      description: t('home.goToSessionManagementDesc'),
+      href: '/session-management',
+      icon: History,
+    },
+    {
+      label: t('home.goToPluginStore'),
+      description: t('home.goToPluginStoreDesc'),
+      href: '/plugin-store',
+      icon: Store,
+    },
     {
       label: t('home.goToGitUpdate'),
       description: t('home.goToGitUpdateDesc'),
@@ -512,20 +539,24 @@ export default function HomePage() {
       <div className={cn('grid lg:grid-cols-2', pageGapClass)}>
         <section className="glass-card relative flex flex-col rounded-3xl">
           <CardHead icon={LayoutDashboard} title={t('home.quickNav')} />
-          <CardContent className="flex flex-1 flex-col gap-1 px-3 pb-4 pt-3 sm:px-4">
-            {primaryNav.map((item) => (
-              <NavRow key={item.href} {...item} primary />
-            ))}
-            <Separator className="my-1.5" />
-            {secondaryNav.map((item) => (
-              <NavRow key={item.href} {...item} />
-            ))}
+          <CardContent className="flex flex-1 flex-col gap-2 px-3 pb-4 pt-2.5 sm:px-4 sm:pt-3">
+            <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
+              {primaryNav.map((item) => (
+                <NavRow key={item.href} {...item} primary />
+              ))}
+            </div>
+            <Separator className="my-0.5" />
+            <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
+              {secondaryNav.map((item) => (
+                <NavRow key={item.href} {...item} />
+              ))}
+            </div>
           </CardContent>
         </section>
 
         <section className="glass-card relative flex flex-col rounded-3xl">
           <CardHead icon={HardDrive} title={t('home.systemInfo')} />
-          <CardContent className="flex-1 px-5 pb-4 pt-2 sm:px-6">
+          <CardContent className="flex-1 px-5 pb-4 pt-2 sm:px-6 sm:pt-2.5">
             <dl className="divide-y divide-border/40">
               <SpecRow label={t('home.os')} value={osLabel} />
               <SpecRow label={t('home.architecture')} value={versionInfo?.platform.machine} />

@@ -5,6 +5,7 @@
   "databaseConfig": "データDB設定",
   "stateConfig": "状態設定",
   "adminCore": "管理コア",
+  "opsMisc": "運用・その他",
   "console": "リアルタイムコンソール",
   "scheduler": "タスクスケジュール",
   "coreConfig": "コア設定",

@@ -2818,21 +2818,14 @@ export default function AIStatisticsPage() {
   return (
     <PinnedPage
       header={
-        <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-1">
-          <h1 className="text-3xl font-bold flex items-center gap-3">
-            <TrendingUp className="w-8 h-8" />
-            {t('aiStatistics.title')}
+        <div className="flex items-end justify-between gap-3 sm:gap-4">
+          <h1 className="min-w-0 flex-1 text-3xl font-bold flex items-center gap-3">
+            <TrendingUp className="w-8 h-8 shrink-0" />
+            <span className="truncate">{t('aiStatistics.title')}</span>
           </h1>
           {/* 「更新于」是页面元信息，不是筛选控件 —— 和 H1 底边对齐挂在标题行右端。
-
-
-
-              它原先和 preset、日期、刷新挤在同一行，是那行放不下、右侧页签被顶到
-
-
-
-              第二行的直接原因；挪走后工具栏只剩「选哪段时间 / 看哪一页」两类控件。 */}
-          <span className="flex shrink-0 items-center gap-2 text-xs tabular-nums text-muted-foreground">
+              窄屏也不允许折行掉到下一行。 */}
+          <span className="flex shrink-0 items-center gap-2 whitespace-nowrap text-xs tabular-nums text-muted-foreground">
             <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
             {t('aiStatistics.lastUpdated')}
             {updatedAt ? ` ${format(updatedAt, 'HH:mm:ss')}` : ''}

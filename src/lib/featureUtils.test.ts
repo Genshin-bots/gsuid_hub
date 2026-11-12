@@ -34,6 +34,7 @@ import {
   isEmptyToolDescription,
   isGroupProfileScope,
   isImageFile,
+  isPluginAiContent,
   memoryIngestHealth,
   multimodalHealthLevel,
   normalizeGroupProfile,
@@ -900,6 +901,14 @@ describe('plugin store groups', () => {
     expect(groups.fun).toEqual(['a']);
     expect(groups.tool).toEqual([]);
     expect(groups.adapter).toEqual([]);
+  });
+
+  it('detects AI badge content regardless of case or surrounding whitespace', () => {
+    expect(isPluginAiContent({ content: 'AI' })).toBe(true);
+    expect(isPluginAiContent({ content: ' ai ' })).toBe(true);
+    expect(isPluginAiContent({ content: '停止维护' })).toBe(false);
+    expect(isPluginAiContent({ content: undefined })).toBe(false);
+    expect(isPluginAiContent({ content: 123 as never })).toBe(false);
   });
 });
 

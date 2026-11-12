@@ -29,7 +29,7 @@ import {
   type AgentNodeSource,
   type CapabilityAgentTool,
 } from '@/lib/api';
-import { headerActionRowWideClass, pageGapClass, PinnedPage } from '@/components/layout/PinnedPage';
+import { pageGapClass, PinnedPage } from '@/components/layout/PinnedPage';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -54,7 +54,11 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { TabButtonGroup, tabToolbarControlClass } from '@/components/ui/TabButtonGroup';
+import {
+  TabButtonGroup,
+  tabToolbarControlClass,
+  tabToolbarIconButtonClass,
+} from '@/components/ui/TabButtonGroup';
 import { PluginGridSelector, PluginSelectorPanel } from '@/components/plugins/PluginUsageBar';
 import { PluginIcon } from '@/components/ui/plugin-icon';
 import { Textarea } from '@/components/ui/textarea';
@@ -652,43 +656,19 @@ export default function AICapabilityAgentsPage() {
   return (
     <PinnedPage
       header={
-        <div className="flex flex-col gap-3 md:gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="min-w-0 sm:overflow-x-auto">
-            <h1 className="sm:whitespace-nowrap text-3xl font-bold flex items-center gap-3">
-              <Bot className="w-8 h-8 shrink-0" />
-              {t('aiCapabilityAgents.title')}
-            </h1>
-            <p className="sm:whitespace-nowrap text-muted-foreground mt-1">
-              {t('aiCapabilityAgents.description')}
-            </p>
-          </div>
-          <div className={headerActionRowWideClass}>
-            <Button
-              variant="outline"
-              onClick={loadData}
-              disabled={isLoading}
-              className={cn(tabToolbarControlClass, 'gap-2')}
-            >
-              {isLoading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <RefreshCw className="w-4 h-4" />
-              )}
-              {t('common.refresh') || '刷新'}
-            </Button>
-            <Button
-              onClick={() => openDialog('create')}
-              className={cn(tabToolbarControlClass, 'gap-2')}
-            >
-              <Plus className="w-4 h-4" />
-              {t('aiCapabilityAgents.newProfile')}
-            </Button>
-          </div>
+        <div className="min-w-0 sm:overflow-x-auto">
+          <h1 className="sm:whitespace-nowrap text-3xl font-bold flex items-center gap-3">
+            <Bot className="w-8 h-8 shrink-0" />
+            {t('aiCapabilityAgents.title')}
+          </h1>
+          <p className="sm:whitespace-nowrap text-muted-foreground mt-1">
+            {t('aiCapabilityAgents.description')}
+          </p>
         </div>
       }
       toolbar={
-        /* 来源筛选 + 搜索 */
-        <div className="flex flex-col gap-3 md:gap-4 xl:flex-row xl:items-center xl:justify-between">
+        /* 来源筛选 + 搜索 + 操作按钮同行 */
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
           <div className="min-w-0">
             <TabButtonGroup
               options={sourceOptions}
@@ -698,14 +678,44 @@ export default function AICapabilityAgentsPage() {
               className="w-full xl:w-max"
             />
           </div>
-          <div className="relative w-full xl:max-w-md">
-            <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
-              placeholder={t('aiCapabilityAgents.searchPlaceholder')}
-              className={cn(tabToolbarControlClass, 'pl-9')}
-            />
+          <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
+            <div className="relative min-w-0 flex-1 sm:w-56 md:w-64 xl:w-52 2xl:w-64">
+              <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder={t('aiCapabilityAgents.searchPlaceholder')}
+                className={cn(tabToolbarControlClass, 'pl-9')}
+              />
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={loadData}
+                    disabled={isLoading}
+                    aria-label={t('common.refresh') || '刷新'}
+                    className={cn(tabToolbarIconButtonClass, 'shrink-0')}
+                  >
+                    {isLoading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <RefreshCw className="w-4 h-4" />
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">{t('common.refresh') || '刷新'}</TooltipContent>
+              </Tooltip>
+              <Button
+                onClick={() => openDialog('create')}
+                className={cn(tabToolbarControlClass, 'flex-1 gap-2 sm:flex-none')}
+              >
+                <Plus className="w-4 h-4" />
+                {t('aiCapabilityAgents.newProfile')}
+              </Button>
+            </div>
           </div>
         </div>
       }
