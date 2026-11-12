@@ -6844,6 +6844,21 @@ export const aiStatisticsApi = {
     );
   },
 
+  /** 批量估算模型调用费用（USD）。整 session 或多 step 时批量并发取回。 */
+  estimateCostBatch: (
+    items: Array<{
+      model: string;
+      input_tokens: number;
+      output_tokens: number;
+      cache_read_tokens?: number;
+      cache_write_tokens?: number;
+    }>,
+  ) =>
+    api.post<{ total_cost: number; costs: number[]; currency: string }>(
+      '/api/ai/statistics/estimate-cost-batch',
+      { items },
+    ),
+
   getTriggerDistribution: (date?: string) => {
     const query = new URLSearchParams();
     if (date) query.set('date', date);

@@ -56,6 +56,8 @@ import {
 } from '@/lib/api';
 import { toast } from 'sonner';
 import TraceWaterfall, { type TraceWaterfallHandle } from '@/components/ai-history/TraceWaterfall';
+import { TokenBadges } from '@/components/ai-history/TokenBadges';
+import { extractSessionUsage } from '@/components/ai-history/usage';
 
 const DEFAULT_SELECT_VALUE = '__all__';
 
@@ -500,18 +502,8 @@ export default function AIHistoryPage() {
     return Array.from(set);
   }, [logs]);
 
-  // 会话 token 总量（Σ 输入/输出）：从已加载 entries 的 token_usage 汇总，显示在详情头部
-  const sessionTokens = useMemo(() => {
-    let tin = 0;
-    let tout = 0;
-    for (const e of mainEntries) {
-      if (e.type !== 'token_usage') continue;
-      const d = (e.data || {}) as Record<string, unknown>;
-      if (typeof d.input_tokens === 'number') tin += d.input_tokens;
-      if (typeof d.output_tokens === 'number') tout += d.output_tokens;
-    }
-    return { tin, tout };
-  }, [mainEntries]);
+  // 会话 token 总量与计费单元：从已加载 entries 汇总，显示在详情头部
+  const sessionUsage = useMemo(() => extractSessionUsage(mainEntries), [mainEntries]);
 
   const personaName = mainDetail?.persona_name || selectedCard?.persona_name || '';
   const avatarUrl = personaName ? personaApi.getAvatarUrl(personaName) : '';
@@ -839,17 +831,17 @@ export default function AIHistoryPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
-                    {(sessionTokens.tin > 0 || sessionTokens.tout > 0) && (
-                      <span
-                        className="hidden lg:inline-flex items-center gap-1 text-[10px] font-mono px-1.5 py-0.5 rounded-md bg-muted/60 border border-border/40 text-muted-foreground"
-                        title={`${t('aiHistory.inputTokens')} / ${t('aiHistory.outputTokens')}`}
-                      >
-                        <span className="opacity-70">Σ</span>
-                        <span className="text-sky-500">↗{formatTokens(sessionTokens.tin)}</span>
-                        <span className="text-emerald-500">
-                          ↙{formatTokens(sessionTokens.tout)}
-                        </span>
-                      </span>
+                    {(sessionUsage.inp > 0 || sessionUsage.out > 0) && (
+                      <TokenBadges
+                        inTok={sessionUsage.inp}
+                        outTok={sessionUsage.out}
+                        cacheR={sessionUsage.cr}
+                        cacheW={sessionUsage.cw}
+                        costUnits={sessionUsage.costUnits}
+                        showSigma
+                        className="hidden lg:inline-flex"
+                        t={t}
+                      />
                     )}
                     <span className="text-xs text-muted-foreground hidden sm:inline">
                       {formatTimestamp(selectedCard.created_at)}

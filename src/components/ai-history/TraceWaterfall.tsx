@@ -13,6 +13,8 @@ import {
 import { cn, formatTokens } from '@/lib/utils';
 import type { SessionLogEntry, HistoryResetReason, AITool } from '@/lib/api';
 import { aiStatisticsApi, aiToolsApi } from '@/lib/api';
+import { TokenBadges } from './TokenBadges';
+import { extractSessionUsage } from './usage';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ModelBrandIconIfKnown } from '@/components/ui/model-brand-icon';
 import {
@@ -1115,203 +1117,7 @@ function EntryBlock({
   return <pre className={PLAIN_BLOCK}>{content}</pre>;
 }
 
-// 费用估算缓存：模型+用量相同的请求只问一次后端（Promise 级缓存，并发 hover 去重）
-const costCache = new Map<string, Promise<number | null>>();
 
-function estimateCostOnce(model: string, inp: number, out: number, cr: number, cw: number) {
-  const key = `${model}|${inp}|${out}|${cr}|${cw}`;
-  let p = costCache.get(key);
-  if (!p) {
-    p = aiStatisticsApi
-      .estimateCost({
-        model,
-        input_tokens: inp,
-        output_tokens: out,
-        cache_read_tokens: cr,
-        cache_write_tokens: cw,
-      })
-      .then((d) => (d && typeof d.cost === 'number' ? d.cost : 0))
-      // 旧后端无此接口 → 返回 null，费用项不显示
-      .catch(() => null);
-    costCache.set(key, p);
-  }
-  return p;
-}
-
-// 与 /ai-statistics 同口径：USD 按用户的币种设置折算（同一对 localStorage key）
-function formatEstimatedCost(usd: number): string {
-  let cur = 'CNY';
-  let rate = 7.2;
-  try {
-    const c = localStorage.getItem('gsuid_stat_currency');
-    if (c === 'USD' || c === 'CNY') cur = c;
-    const r = parseFloat(localStorage.getItem('gsuid_stat_cny_rate') || '');
-    if (!Number.isNaN(r) && r > 0) rate = r;
-  } catch {
-    // localStorage 不可用（隐私模式）用默认 CNY / 7.2
-  }
-  const val = cur === 'CNY' ? usd * rate : usd;
-  const sym = cur === 'CNY' ? '¥' : '$';
-  return val < 0.01 ? `${sym}${val.toFixed(4)}` : `${sym}${val.toFixed(2)}`;
-}
-
-// token 徽章（chat：↗in ↙out ⚡hit%；run：Σ 合计）。hover 展开图例（缓存/未命中/输出/TTFT/估算费用）+ 构成细条。
-// leading：徽章最前面的附加图标位（chat 模型与 run 一致时，品牌 ICON 并入徽章）。
-function TokenBadges({
-  sp,
-  t,
-  className,
-  leading,
-}: {
-  sp: TraceSpan;
-  t: TFunc;
-  className?: string;
-  leading?: JSX.Element;
-}) {
-  const inTok = sp.kind === 'run' ? sp.sumTokensIn : sp.tokensIn;
-  const outTok = sp.kind === 'run' ? sp.sumTokensOut : sp.tokensOut;
-  const cacheR = sp.kind === 'run' ? sp.sumCacheRead : sp.cacheRead;
-  const cacheW = sp.kind === 'run' ? sp.sumCacheWrite : sp.cacheWrite;
-  const [cost, setCost] = useState<number | null>(null);
-  const costRequested = useRef(false);
-  if (!inTok && !outTok) return null;
-  // input_tokens 已含 cache_read+cache_write（pydantic-ai UsageBase 归一），命中率只按读算
-  const pct = inTok ? Math.round(((cacheR || 0) / inTok) * 100) : null;
-  // 未命中 = 输入 − 缓存读 − 缓存写（写入缓存的 prompt 不算 miss），与构成条同口径
-  const uncached = Math.max(0, (inTok || 0) - (cacheR || 0) - (cacheW || 0));
-  // 图例 + 构成条共用一套分段：缓存读 → 缓存写 → 未命中输入 → 输出，合计 = in + out
-  const segments: { label: string; value: number; bar: string; icon: JSX.Element }[] = [
-    {
-      label: t('aiHistory.waterfall.usage.cacheRead'),
-      value: cacheR || 0,
-      bar: 'bg-amber-500',
-      icon: <Zap className="w-3 h-3 text-amber-500" />,
-    },
-    {
-      label: t('aiHistory.waterfall.usage.cacheWrite'),
-      value: cacheW || 0,
-      bar: 'bg-amber-300',
-      icon: <PenLine className="w-3 h-3 text-amber-500/80" />,
-    },
-    {
-      label: t('aiHistory.waterfall.usage.uncached'),
-      value: uncached,
-      bar: 'bg-muted-foreground/30',
-      icon: <CircleSlash className="w-3 h-3 text-muted-foreground" />,
-    },
-    {
-      label: t('aiHistory.waterfall.usage.output'),
-      value: outTok || 0,
-      bar: 'bg-emerald-500',
-      icon: <ArrowDownRight className="w-3 h-3 text-emerald-500" />,
-    },
-  ];
-  const total = (inTok || 0) + (outTok || 0);
-  const barSegs = segments.filter((s) => s.value > 0);
-
-  // 计价单元：chat 用自身用量；run 按各子 chat 逐一估算后求和（Σ 合计可能跨模型）
-  const costUnits = (() => {
-    if (sp.kind === 'chat' && sp.model)
-      return [
-        {
-          model: sp.model,
-          inp: inTok || 0,
-          out: outTok || 0,
-          cr: cacheR || 0,
-          cw: cacheW || 0,
-        },
-      ];
-    if (sp.kind === 'run')
-      return sp.children.flatMap((c) =>
-        c.kind === 'chat' && c.model
-          ? [
-              {
-                model: c.model,
-                inp: c.tokensIn || 0,
-                out: c.tokensOut || 0,
-                cr: c.cacheRead || 0,
-                cw: c.cacheWrite || 0,
-              },
-            ]
-          : [],
-      );
-    return [];
-  })();
-
-  const fetchCost = () => {
-    if (costRequested.current || costUnits.length === 0) return;
-    costRequested.current = true;
-    Promise.all(costUnits.map((u) => estimateCostOnce(u.model, u.inp, u.out, u.cr, u.cw))).then(
-      (vals) => {
-        // 全部失败 = 后端无此接口：不显示费用项
-        if (vals.every((v) => v === null)) return;
-        setCost(vals.reduce<number>((s, v) => s + (v ?? 0), 0));
-      },
-    );
-  };
-
-  return (
-    <Tooltip onOpenChange={(open) => open && fetchCost()}>
-      <TooltipTrigger asChild>
-        <span
-          className={cn(
-            'hidden md:inline-flex items-center gap-1 text-[10px] text-muted-foreground font-mono px-1.5 py-0.5 rounded-md bg-muted/60 border border-border/40 shrink-0 cursor-help',
-            className,
-          )}
-        >
-          {leading}
-          {sp.kind === 'run' && <span className="opacity-70">Σ</span>}
-          <span className="text-sky-500">↗{formatTokens(inTok || 0)}</span>
-          <span className="text-emerald-500">↙{formatTokens(outTok || 0)}</span>
-          {pct !== null && <span className="text-amber-500">⚡{pct}%</span>}
-        </span>
-      </TooltipTrigger>
-      <TooltipContent className="px-3 py-2">
-        {/* 图例行：icon + 名称 + 数值单行不换行；细条独占一行，颜色与图例一致 */}
-        <div className="flex items-center gap-x-3 whitespace-nowrap text-[10px] font-mono">
-          {segments
-            .filter((s) => s.value > 0)
-            .map((s) => (
-              <span key={s.label} className="inline-flex items-center gap-1 whitespace-nowrap">
-                {s.icon}
-                <span className="text-muted-foreground">{s.label}</span>
-                <span>{formatTokens(s.value)}</span>
-              </span>
-            ))}
-          {sp.ttftMs ? (
-            <span className="inline-flex items-center gap-1 whitespace-nowrap">
-              <Timer className="w-3 h-3 text-indigo-400" />
-              <span className="text-muted-foreground">{t('aiHistory.waterfall.usage.ttft')}</span>
-              <span>{sp.ttftMs}ms</span>
-            </span>
-          ) : null}
-          {cost !== null && cost > 0 && (
-            <span className="inline-flex items-center gap-1 whitespace-nowrap">
-              <Coins className="w-3 h-3 text-yellow-500" />
-              <span className="text-muted-foreground">{t('aiHistory.waterfall.usage.cost')}</span>
-              <span>≈{formatEstimatedCost(cost)}</span>
-            </span>
-          )}
-        </div>
-        <div className="mt-1.5 flex h-1.5 w-full overflow-hidden rounded-full bg-muted/60">
-          {barSegs.map((s, i) => (
-            <div
-              key={s.label}
-              title={`${s.label} ${formatTokens(s.value)}`}
-              className={cn(
-                'h-full',
-                s.bar,
-                i === 0 && 'rounded-l-full',
-                i === barSegs.length - 1 && 'rounded-r-full',
-              )}
-              style={{ width: `${(s.value / total) * 100}%` }}
-            />
-          ))}
-        </div>
-      </TooltipContent>
-    </Tooltip>
-  );
-}
 
 function EffortBadge({
   efforts,
@@ -1825,21 +1631,7 @@ const TraceWaterfallInner = forwardRef<TraceWaterfallHandle, TraceWaterfallProps
     const roots = useMemo(() => buildTrace(entries), [entries]);
     const blocks = useMemo(() => groupBlocks(roots), [roots]);
     // 主会话 token_usage 合计（子 Agent 的 entries 不在此列表，随各自子瀑布单独汇总）
-    const sessionUsage = useMemo(() => {
-      let inp = 0;
-      let out = 0;
-      let cr = 0;
-      let runs = 0;
-      for (const e of entries) {
-        if (e.type !== 'token_usage') continue;
-        const d = (e.data || {}) as Record<string, unknown>;
-        inp += asNum(d.input_tokens);
-        out += asNum(d.output_tokens);
-        cr += asNum(d.cache_read_tokens);
-        runs += 1;
-      }
-      return { inp, out, cr, runs };
-    }, [entries]);
+    const sessionUsage = useMemo(() => extractSessionUsage(entries), [entries]);
     const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
     const [subCache, setSubCache] = useState<
       Record<string, SessionLogEntry[] | 'loading' | 'error'>
@@ -1907,19 +1699,20 @@ const TraceWaterfallInner = forwardRef<TraceWaterfallHandle, TraceWaterfallProps
       <div className="flex min-w-0 max-w-full flex-col gap-3">
         {sessionUsage.runs > 0 && (
           <div className="flex min-w-0">
-            <span className="inline-flex items-center gap-1 min-w-0 text-[10px] text-muted-foreground font-mono px-1.5 py-0.5 rounded-md bg-muted/60 border border-border/40">
-              <span className="shrink-0 opacity-70">Σ</span>
-              <span className="shrink-0 text-sky-500">↗{formatTokens(sessionUsage.inp)}</span>
-              <span className="shrink-0 text-emerald-500">↙{formatTokens(sessionUsage.out)}</span>
-              {sessionUsage.inp > 0 && (
-                <span className="shrink-0 text-amber-500">
-                  ⚡{Math.round((sessionUsage.cr / sessionUsage.inp) * 100)}%
+            <TokenBadges
+              inTok={sessionUsage.inp}
+              outTok={sessionUsage.out}
+              cacheR={sessionUsage.cr}
+              cacheW={sessionUsage.cw}
+              costUnits={sessionUsage.costUnits}
+              showSigma
+              suffix={
+                <span className="truncate">
+                  {t('aiHistory.waterfall.usage.sessionTotal', { runs: sessionUsage.runs })}
                 </span>
-              )}
-              <span className="truncate">
-                {t('aiHistory.waterfall.usage.sessionTotal', { runs: sessionUsage.runs })}
-              </span>
-            </span>
+              }
+              t={t}
+            />
           </div>
         )}
         {blocks.map((b) => {
