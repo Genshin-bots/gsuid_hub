@@ -61,7 +61,7 @@ import {
 } from '@/components/ui/TabButtonGroup';
 import { InputWithDropdown } from '@/components/ui/input-with-dropdown';
 import { Textarea } from '@/components/ui/textarea';
-import { PinnedPage } from '@/components/layout/PinnedPage';
+import { pageGapClass, pageStackClass, PinnedPage } from '@/components/layout/PinnedPage';
 import {
   batchPushApi,
   getApiErrorMessage,
@@ -721,7 +721,6 @@ export default function BatchPushPage() {
 
   return (
     <PinnedPage
-      className="gap-3 md:gap-6"
       header={
         <div className="flex flex-col gap-3 md:gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0">
@@ -738,9 +737,9 @@ export default function BatchPushPage() {
         </div>
       }
     >
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4">
+      <div className={cn('grid grid-cols-1 lg:grid-cols-3', pageGapClass)}>
         {/* 左：正文 + 目标 */}
-        <div className="lg:col-span-2 space-y-3 md:space-y-4">
+        <div className={cn('lg:col-span-2', pageStackClass)}>
           <Card className="glass-card">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -1062,7 +1061,7 @@ export default function BatchPushPage() {
         </div>
 
         {/* 右：预览 + 最近记录 */}
-        <div className="space-y-3 md:space-y-4">
+        <div className={pageStackClass}>
           <Card className="glass-card">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">

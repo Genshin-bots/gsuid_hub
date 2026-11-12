@@ -1,4 +1,5 @@
 import { AlertTriangle, Eye, Wrench } from 'lucide-react';
+import { pageStackClass } from '@/components/layout/PinnedPage';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { GlassAlert } from '@/components/ui/glass-alert';
@@ -57,7 +58,7 @@ export function ImageUnderstandSection({
   onRemoveMcpDetailRow,
 }: ImageUnderstandSectionProps) {
   return (
-    <div className="space-y-3 md:space-y-5">
+    <div className={pageStackClass}>
       <div>
         <h2 className="text-lg font-bold flex items-center gap-2 mb-1">
           <Eye className="w-5 h-5 text-primary" />

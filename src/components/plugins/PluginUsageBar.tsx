@@ -6,8 +6,9 @@ import {
   useState,
   useSyncExternalStore,
   type KeyboardEvent,
+  type RefObject,
 } from 'react';
-import { Check, ChevronDown, Search, X } from 'lucide-react';
+import { Check, ChevronDown, Puzzle, Search, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { PluginIcon } from '@/components/ui/plugin-icon';
@@ -17,6 +18,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import {
   fetchSharedPluginPrefs,
   getSharedRecentPluginsSnapshot,
+  MAX_RECENT_PLUGIN_PILLS,
   orderPluginsByUsage,
   recordSharedRecentPlugin,
   resolveRecentPluginItems,
@@ -31,6 +33,28 @@ export interface PluginSelectorItem {
   iconName?: string;
   /** 可选启用态：传入 false 时在图标右下角显示停用圆点。 */
   enabled?: boolean;
+  /** 可选关联数量（如工具数、知识条目数）。 */
+  count?: number;
+  /** 是否禁用选择（保留展示但不可点选）。 */
+  disabled?: boolean;
+}
+
+export interface PluginAllOption {
+  value: string;
+  label: string;
+  count?: number;
+}
+
+export interface PluginSelectorPanelProps {
+  plugins: PluginSelectorItem[];
+  usageNames?: string[];
+  value: string;
+  onValueChange: (pluginId: string) => void;
+  allOption?: PluginAllOption;
+  maxRecent?: number;
+  open?: boolean;
+  onClose?: () => void;
+  searchInputRef?: RefObject<HTMLInputElement | null>;
 }
 
 export interface PluginGridSelectorProps {
@@ -39,10 +63,15 @@ export interface PluginGridSelectorProps {
   usageNames?: string[];
   value: string;
   onValueChange: (pluginId: string) => void;
+  allOption?: PluginAllOption;
+  placeholder?: string;
+  appearance?: 'outline' | 'field';
   className?: string;
   align?: 'start' | 'center' | 'end';
   /** 是否注册全局 `Ctrl+K` / `⌘K` 快捷键唤起选择器，默认开启。 */
   enableShortcut?: boolean;
+  maxRecent?: number;
+  disabled?: boolean;
 }
 
 const KBD_KEY_CLASS =
@@ -54,26 +83,26 @@ function detectMacPlatform(): boolean {
 }
 
 /**
- * Popover 网格插件选择器（主题圆角触发按钮 + 搜索 + 后端持久化的最近使用 + 多列大按钮网格 + 2D 键盘导航）。
- * 用于 `/plugins`、`/database`、`/git-update` 等需要切换当前插件的页面。
+ * 网格插件选择面板正文（搜索 + 后端持久化的最近使用 + 多列网格 + 2D 键盘导航）。
+ * 同时用于 `PluginGridSelector` 与 `TabButtonGroup` 下拉面板。
  */
-export function PluginGridSelector({
+export function PluginSelectorPanel({
   plugins,
   usageNames = [],
   value,
   onValueChange,
-  className,
-  align = 'end',
-  enableShortcut = true,
-}: PluginGridSelectorProps) {
+  allOption,
+  maxRecent = MAX_RECENT_PLUGIN_PILLS,
+  open = true,
+  onClose,
+  searchInputRef: externalSearchRef,
+}: PluginSelectorPanelProps) {
   const { t } = useLanguage();
-  const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [highlightedIndex, setHighlightedIndex] = useState(0);
-  const searchInputRef = useRef<HTMLInputElement>(null);
+  const internalSearchRef = useRef<HTMLInputElement>(null);
+  const searchInputRef = externalSearchRef ?? internalSearchRef;
   const cellRefs = useRef<Array<HTMLButtonElement | null>>([]);
-  const isMac = useMemo(() => detectMacPlatform(), []);
-  const shortcutLabel = isMac ? '⌘ K' : 'Ctrl K';
 
   const recentNames = useSyncExternalStore(
     subscribeSharedPluginPrefs,
@@ -81,23 +110,19 @@ export function PluginGridSelector({
     getSharedRecentPluginsSnapshot,
   );
 
-  useEffect(() => {
-    void fetchSharedPluginPrefs();
-  }, []);
-
   const orderedPlugins = useMemo(
     () => orderPluginsByUsage(plugins, usageNames),
     [plugins, usageNames],
   );
 
-  const selectedPlugin = useMemo(
-    () => plugins.find((item) => item.id === value) ?? orderedPlugins[0],
-    [plugins, orderedPlugins, value],
+  const selectablePlugins = useMemo(
+    () => orderedPlugins.filter((plugin) => !plugin.disabled),
+    [orderedPlugins],
   );
 
   const recentItems = useMemo(
-    () => resolveRecentPluginItems(orderedPlugins, recentNames, usageNames, 4),
-    [orderedPlugins, recentNames, usageNames],
+    () => resolveRecentPluginItems(selectablePlugins, recentNames, usageNames, maxRecent),
+    [selectablePlugins, recentNames, usageNames, maxRecent],
   );
 
   const trimmedQuery = query.trim().toLowerCase();
@@ -112,22 +137,22 @@ export function PluginGridSelector({
     );
   }, [orderedPlugins, trimmedQuery]);
 
-  const handleOpenChange = useCallback(
-    (nextOpen: boolean) => {
-      setOpen(nextOpen);
-      if (nextOpen) {
-        setQuery('');
-        const activeIdx = orderedPlugins.findIndex((item) => item.id === value);
-        const initialIdx = activeIdx >= 0 ? activeIdx : 0;
-        setHighlightedIndex(initialIdx);
-        void fetchSharedPluginPrefs();
-        requestAnimationFrame(() => {
-          cellRefs.current[initialIdx]?.scrollIntoView({ block: 'nearest' });
-        });
-      }
-    },
-    [orderedPlugins, value],
-  );
+  const showAllOption =
+    Boolean(allOption) &&
+    (!trimmedQuery || Boolean(allOption && allOption.label.toLowerCase().includes(trimmedQuery)));
+
+  useEffect(() => {
+    if (!open) return;
+    setQuery('');
+    void fetchSharedPluginPrefs(true);
+    const activeIdx = orderedPlugins.findIndex((item) => item.id === value);
+    const initialIdx = activeIdx >= 0 ? activeIdx : 0;
+    setHighlightedIndex(initialIdx);
+    requestAnimationFrame(() => {
+      searchInputRef.current?.focus();
+      cellRefs.current[initialIdx]?.scrollIntoView({ block: 'nearest' });
+    });
+  }, [open, orderedPlugins, searchInputRef, value]);
 
   useEffect(() => {
     if (!open) return;
@@ -139,34 +164,26 @@ export function PluginGridSelector({
     }
   }, [trimmedQuery, open, orderedPlugins, value]);
 
-  useEffect(() => {
-    if (!enableShortcut || plugins.length === 0) return;
-
-    const onWindowKeyDown = (event: globalThis.KeyboardEvent) => {
-      if (!(event.metaKey || event.ctrlKey) || event.altKey || event.shiftKey) return;
-      if (event.key.toLowerCase() !== 'k') return;
-      if (!open && document.querySelector('[role="dialog"], [role="alertdialog"]')) {
-        return;
-      }
-      event.preventDefault();
-      handleOpenChange(!open);
-    };
-
-    window.addEventListener('keydown', onWindowKeyDown);
-    return () => window.removeEventListener('keydown', onWindowKeyDown);
-  }, [enableShortcut, plugins.length, open, handleOpenChange]);
-
   const handleSelectPlugin = useCallback(
     (plugin: PluginSelectorItem) => {
+      if (plugin.disabled) return;
       const recordKey = plugin.iconName ?? plugin.name;
       recordSharedRecentPlugin(recordKey, false);
       if (plugin.id !== value) {
         onValueChange(plugin.id);
       }
-      setOpen(false);
+      onClose?.();
     },
-    [onValueChange, value],
+    [onClose, onValueChange, value],
   );
+
+  const handleSelectAll = useCallback(() => {
+    if (!allOption) return;
+    if (allOption.value !== value) {
+      onValueChange(allOption.value);
+    }
+    onClose?.();
+  }, [allOption, onClose, onValueChange, value]);
 
   const activeHighlightIndex =
     filteredPlugins.length === 0
@@ -213,7 +230,7 @@ export function PluginGridSelector({
 
       if (event.key === 'Enter' && activeHighlightIndex >= 0) {
         const picked = filteredPlugins[activeHighlightIndex];
-        if (picked) {
+        if (picked && !picked.disabled) {
           event.preventDefault();
           handleSelectPlugin(picked);
         }
@@ -222,73 +239,380 @@ export function PluginGridSelector({
     [activeHighlightIndex, filteredPlugins, handleSelectPlugin, query.length],
   );
 
-  if (plugins.length === 0) {
+  return (
+    <div className="flex min-h-0 flex-1 flex-col" onKeyDown={handlePanelKeyDown}>
+      <div className="flex h-11 shrink-0 items-center gap-2.5 border-b border-border/50 px-3.5">
+        <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+        <input
+          ref={searchInputRef}
+          type="text"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder={t('plugins.searchPlugin')}
+          aria-label={t('plugins.searchPlugin')}
+          className="h-full min-w-0 flex-1 border-0 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none focus:outline-none focus:ring-0"
+        />
+        {query.length > 0 && (
+          <button
+            type="button"
+            onClick={() => {
+              setQuery('');
+              searchInputRef.current?.focus();
+            }}
+            aria-label={t('common.clearCurrentValue')}
+            className="flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        )}
+      </div>
+
+      <div className="flex min-h-0 flex-1 flex-col gap-3 p-3.5">
+        {allOption && showAllOption && (
+          <button
+            type="button"
+            aria-pressed={value === allOption.value}
+            onClick={handleSelectAll}
+            className={cn(
+              'flex h-9 w-full shrink-0 cursor-pointer items-center justify-between gap-2 rounded-md border px-3 text-left text-sm transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-ring',
+              value === allOption.value
+                ? 'border-primary/70 bg-primary/12 font-semibold text-foreground'
+                : 'border-border/65 bg-muted/25 text-foreground/90 hover:border-primary/40 hover:bg-accent/65 hover:text-accent-foreground',
+            )}
+          >
+            <span className="flex min-w-0 items-center gap-2">
+              <Puzzle className="h-4 w-4 shrink-0 text-muted-foreground" />
+              <span className="truncate">{allOption.label}</span>
+              {allOption.count !== undefined && (
+                <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+                  {allOption.count}
+                </span>
+              )}
+            </span>
+            {value === allOption.value && <Check className="h-4 w-4 shrink-0 text-primary" />}
+          </button>
+        )}
+
+        {!trimmedQuery && recentItems.length > 0 && (
+          <div className="flex shrink-0 flex-col gap-2">
+            <div className="text-xs font-medium text-muted-foreground">
+              {t('plugins.recentPlugins')}
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {recentItems.map((item) => {
+                const isCurrent = item.id === value;
+                const iconKey = item.iconName ?? item.name;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    title={item.name}
+                    onClick={() => handleSelectPlugin(item)}
+                    className={cn(
+                      'inline-flex h-8 max-w-[156px] min-w-0 cursor-pointer items-center gap-2 rounded-md border px-2.5 text-xs font-medium transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                      isCurrent
+                        ? 'border-primary/65 bg-primary/12 text-foreground'
+                        : 'border-border/70 bg-muted/25 text-foreground/90 hover:border-primary/40 hover:bg-accent/65 hover:text-accent-foreground',
+                    )}
+                  >
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center overflow-hidden rounded-full">
+                      <PluginIcon pluginName={iconKey} variant="avatar" className="h-5 w-5" />
+                    </span>
+                    <span className="min-w-0 truncate">{item.name}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        <div className="flex min-h-0 flex-1 flex-col gap-2">
+          <div className="text-xs font-medium text-muted-foreground">
+            {trimmedQuery
+              ? t('plugins.matchedPluginsCount', { count: filteredPlugins.length })
+              : t('plugins.allPluginsCount', { count: orderedPlugins.length })}
+          </div>
+
+          {filteredPlugins.length === 0 ? (
+            <div className="py-10 text-center text-sm text-muted-foreground">
+              {t('plugins.noMatchingPlugin')}
+            </div>
+          ) : (
+            <div className="grid max-h-[304px] min-h-0 grid-cols-2 gap-2 overflow-y-auto pr-1 sm:grid-cols-3">
+              {filteredPlugins.map((plugin, index) => {
+                const isSelected = plugin.id === value;
+                const isHighlighted = index === activeHighlightIndex && !plugin.disabled;
+                const iconKey = plugin.iconName ?? plugin.name;
+                const isDisabledPlugin = plugin.enabled === false || plugin.disabled === true;
+
+                return (
+                  <button
+                    ref={(el) => {
+                      cellRefs.current[index] = el;
+                    }}
+                    key={plugin.id}
+                    type="button"
+                    disabled={plugin.disabled}
+                    aria-pressed={isSelected}
+                    title={
+                      plugin.enabled === false
+                        ? `${plugin.name} (${t('plugins.pluginDisabled')})`
+                        : plugin.name
+                    }
+                    onMouseEnter={() => {
+                      if (!plugin.disabled) setHighlightedIndex(index);
+                    }}
+                    onClick={() => handleSelectPlugin(plugin)}
+                    className={cn(
+                      'group flex h-12 min-w-0 items-center gap-2.5 rounded-md border px-3 text-left transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                      plugin.disabled
+                        ? 'cursor-not-allowed border-border/40 bg-muted/15 text-muted-foreground/60 opacity-55'
+                        : 'cursor-pointer active:scale-[0.99]',
+                      isSelected
+                        ? 'border-primary/70 bg-primary/12 font-semibold text-foreground'
+                        : isHighlighted
+                          ? 'border-primary/45 bg-accent/70 text-accent-foreground'
+                          : !plugin.disabled &&
+                            'border-border/65 bg-muted/25 text-foreground/90 hover:border-primary/40 hover:bg-accent/65 hover:text-accent-foreground',
+                    )}
+                  >
+                    <span className="relative flex h-7 w-7 shrink-0 items-center justify-center">
+                      <span
+                        className={cn(
+                          'flex h-7 w-7 items-center justify-center overflow-hidden rounded-full',
+                          isDisabledPlugin && !isSelected && 'opacity-70 grayscale-[30%]',
+                        )}
+                      >
+                        <PluginIcon pluginName={iconKey} variant="avatar" className="h-7 w-7" />
+                      </span>
+                      {plugin.enabled === false && (
+                        <span
+                          aria-hidden
+                          className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-[1.5px] border-popover bg-zinc-400 dark:bg-zinc-500"
+                        />
+                      )}
+                    </span>
+
+                    <span className="min-w-0 flex-1 truncate text-sm">{plugin.name}</span>
+
+                    {plugin.count !== undefined && (
+                      <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+                        {plugin.count}
+                      </span>
+                    )}
+
+                    {isSelected && <Check className="h-4 w-4 shrink-0 text-primary" />}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="hidden shrink-0 items-center gap-4 border-t border-border/50 bg-muted/20 px-3.5 py-2 text-xs text-muted-foreground sm:flex">
+        <span className="inline-flex items-center gap-1">
+          <kbd className={KBD_KEY_CLASS}>↑</kbd>
+          <kbd className={KBD_KEY_CLASS}>↓</kbd>
+          <kbd className={KBD_KEY_CLASS}>←</kbd>
+          <kbd className={KBD_KEY_CLASS}>→</kbd>
+          <span className="ml-0.5">{t('plugins.kbdMove')}</span>
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <kbd className={KBD_KEY_CLASS}>Enter</kbd>
+          <span>{t('plugins.kbdSelect')}</span>
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <kbd className={KBD_KEY_CLASS}>Esc</kbd>
+          <span>{t('plugins.kbdClose')}</span>
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Popover 网格插件选择器（主题圆角触发按钮 + 搜索 + 后端持久化的最近使用 + 多列大按钮网格 + 2D 键盘导航）。
+ * 用于 `/plugins`、`/database`、`/git-update` 及各筛选栏/表单插件选择。
+ */
+export function PluginGridSelector({
+  plugins,
+  usageNames = [],
+  value,
+  onValueChange,
+  allOption,
+  placeholder,
+  appearance = 'outline',
+  className,
+  align = 'end',
+  enableShortcut = true,
+  maxRecent = MAX_RECENT_PLUGIN_PILLS,
+  disabled,
+}: PluginGridSelectorProps) {
+  const { t } = useLanguage();
+  const [open, setOpen] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const isMac = useMemo(() => detectMacPlatform(), []);
+  const shortcutLabel = isMac ? '⌘ K' : 'Ctrl K';
+
+  useEffect(() => {
+    void fetchSharedPluginPrefs();
+  }, []);
+
+  const orderedPlugins = useMemo(
+    () => orderPluginsByUsage(plugins, usageNames),
+    [plugins, usageNames],
+  );
+
+  const isAllSelected = Boolean(allOption && value === allOption.value);
+
+  const selectedPlugin = useMemo(() => {
+    if (isAllSelected) return undefined;
+    const hit = plugins.find((item) => item.id === value);
+    if (hit) return hit;
+    return allOption ? undefined : orderedPlugins[0];
+  }, [allOption, isAllSelected, orderedPlugins, plugins, value]);
+
+  const handleOpenChange = useCallback(
+    (nextOpen: boolean) => {
+      if (disabled && nextOpen) return;
+      setOpen(nextOpen);
+      if (nextOpen) {
+        void fetchSharedPluginPrefs(true);
+      }
+    },
+    [disabled],
+  );
+
+  useEffect(() => {
+    if (!enableShortcut || disabled || (plugins.length === 0 && !allOption)) return;
+
+    const onWindowKeyDown = (event: globalThis.KeyboardEvent) => {
+      if (!(event.metaKey || event.ctrlKey) || event.altKey || event.shiftKey) return;
+      if (event.key.toLowerCase() !== 'k') return;
+      if (!open && document.querySelector('[role="dialog"], [role="alertdialog"]')) {
+        return;
+      }
+      event.preventDefault();
+      handleOpenChange(!open);
+    };
+
+    window.addEventListener('keydown', onWindowKeyDown);
+    return () => window.removeEventListener('keydown', onWindowKeyDown);
+  }, [allOption, disabled, enableShortcut, handleOpenChange, open, plugins.length]);
+
+  if (plugins.length === 0 && !allOption) {
     return null;
   }
 
-  const selectedLabel = selectedPlugin?.name ?? t('plugins.selectPlugin');
+  const selectedLabel = isAllSelected
+    ? allOption!.label
+    : (selectedPlugin?.name ?? placeholder ?? t('plugins.selectPlugin'));
   const selectedIconKey = selectedPlugin ? (selectedPlugin.iconName ?? selectedPlugin.name) : '';
   const selectedDisabled = selectedPlugin?.enabled === false;
+  const triggerTitle = selectedDisabled
+    ? `${selectedLabel} (${t('plugins.pluginDisabled')})`
+    : selectedLabel;
+
+  const triggerLeft = (
+    <span className="flex min-w-0 items-center gap-2">
+      {isAllSelected ? (
+        <Puzzle className="h-4 w-4 shrink-0 text-muted-foreground" />
+      ) : selectedIconKey ? (
+        <span className="relative flex h-[22px] w-[22px] shrink-0 items-center justify-center">
+          <span
+            className={cn(
+              'flex h-[22px] w-[22px] items-center justify-center overflow-hidden rounded-full',
+              selectedDisabled && 'opacity-75 grayscale-[30%]',
+            )}
+          >
+            <PluginIcon
+              pluginName={selectedIconKey}
+              variant="avatar"
+              className="h-[22px] w-[22px]"
+            />
+          </span>
+          {selectedDisabled && (
+            <span
+              aria-hidden
+              className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border border-background bg-zinc-400 dark:bg-zinc-500"
+            />
+          )}
+        </span>
+      ) : (
+        <Puzzle className="h-4 w-4 shrink-0 text-muted-foreground" />
+      )}
+      <span className="min-w-0 truncate text-sm font-medium">
+        {selectedLabel}
+        {isAllSelected && allOption?.count !== undefined
+          ? ` (${allOption.count})`
+          : !isAllSelected && selectedPlugin?.count !== undefined
+            ? ` (${selectedPlugin.count})`
+            : ''}
+      </span>
+    </span>
+  );
 
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
-      <PopoverTrigger asChild>
-        <Button
-          type="button"
-          variant="outline"
-          aria-expanded={open}
-          aria-haspopup="dialog"
-          aria-label={t('plugins.pluginSelection')}
-          title={
-            selectedDisabled ? `${selectedLabel} (${t('plugins.pluginDisabled')})` : selectedLabel
-          }
-          className={cn(
-            tabToolbarControlClass,
-            'w-full min-w-0 justify-between gap-2.5 px-3 sm:w-auto sm:max-w-[20rem]',
-            open && 'border-primary/50',
-            className,
-          )}
-        >
-          <span className="flex min-w-0 items-center gap-2">
-            {selectedIconKey && (
-              <span className="relative flex h-[22px] w-[22px] shrink-0 items-center justify-center">
-                <span
-                  className={cn(
-                    'flex h-[22px] w-[22px] items-center justify-center overflow-hidden rounded-full',
-                    selectedDisabled && 'opacity-75 grayscale-[30%]',
-                  )}
-                >
-                  <PluginIcon
-                    pluginName={selectedIconKey}
-                    variant="avatar"
-                    className="h-[22px] w-[22px]"
-                  />
-                </span>
-                {selectedDisabled && (
-                  <span
-                    aria-hidden
-                    className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border border-background bg-zinc-400 dark:bg-zinc-500"
-                  />
-                )}
-              </span>
+      <PopoverTrigger asChild disabled={disabled}>
+        {appearance === 'field' ? (
+          <button
+            type="button"
+            role="combobox"
+            aria-expanded={open}
+            aria-haspopup="dialog"
+            aria-label={t('plugins.pluginSelection')}
+            disabled={disabled}
+            title={triggerTitle}
+            className={cn(
+              'ui-field-trigger flex h-10 w-full min-w-0 items-center justify-between gap-2 rounded-md border border-input bg-background px-2.5 text-base ring-offset-background md:text-sm',
+              'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
+              'disabled:cursor-not-allowed disabled:opacity-50',
+              open && 'border-primary/50',
+              className,
             )}
-            <span className="min-w-0 truncate text-sm font-medium">{selectedLabel}</span>
-          </span>
-
-          <span className="flex shrink-0 items-center gap-1.5">
-            {enableShortcut && (
-              <kbd className="hidden h-5 items-center rounded-sm border border-border/75 bg-muted/65 px-1.5 font-sans text-[11px] font-medium text-muted-foreground sm:inline-flex">
-                {shortcutLabel}
-              </kbd>
-            )}
+          >
+            {triggerLeft}
             <ChevronDown
               className={cn(
-                'h-4 w-4 shrink-0 opacity-70 transition-transform duration-200',
+                'h-4 w-4 shrink-0 opacity-50 transition-transform duration-200',
                 open && 'rotate-180',
               )}
             />
-          </span>
-        </Button>
+          </button>
+        ) : (
+          <Button
+            type="button"
+            variant="outline"
+            aria-expanded={open}
+            aria-haspopup="dialog"
+            aria-label={t('plugins.pluginSelection')}
+            disabled={disabled}
+            title={triggerTitle}
+            className={cn(
+              tabToolbarControlClass,
+              'w-full min-w-0 justify-between gap-2.5 px-3 sm:w-auto sm:max-w-[20rem]',
+              open && 'border-primary/50',
+              className,
+            )}
+          >
+            {triggerLeft}
+            <span className="flex shrink-0 items-center gap-1.5">
+              {enableShortcut && (
+                <kbd className="hidden h-5 items-center rounded-sm border border-border/75 bg-muted/65 px-1.5 font-sans text-[11px] font-medium text-muted-foreground sm:inline-flex">
+                  {shortcutLabel}
+                </kbd>
+              )}
+              <ChevronDown
+                className={cn(
+                  'h-4 w-4 shrink-0 opacity-70 transition-transform duration-200',
+                  open && 'rotate-180',
+                )}
+              />
+            </span>
+          </Button>
+        )}
       </PopoverTrigger>
 
       <PopoverContent
@@ -303,157 +627,18 @@ export function PluginGridSelector({
           requestAnimationFrame(() => searchInputRef.current?.focus());
         }}
         onWheel={(event) => event.stopPropagation()}
-        onKeyDown={handlePanelKeyDown}
       >
-        <div className="flex h-11 shrink-0 items-center gap-2.5 border-b border-border/50 px-3.5">
-          <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
-          <input
-            ref={searchInputRef}
-            type="text"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder={t('plugins.searchPlugin')}
-            aria-label={t('plugins.searchPlugin')}
-            className="h-full min-w-0 flex-1 border-0 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none focus:outline-none focus:ring-0"
-          />
-          {query.length > 0 && (
-            <button
-              type="button"
-              onClick={() => {
-                setQuery('');
-                searchInputRef.current?.focus();
-              }}
-              aria-label={t('common.clearCurrentValue')}
-              className="flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          )}
-        </div>
-
-        <div className="flex min-h-0 flex-1 flex-col gap-3.5 p-3.5">
-          {!trimmedQuery && recentItems.length > 0 && (
-            <div className="flex shrink-0 flex-col gap-2">
-              <div className="text-xs font-medium text-muted-foreground">
-                {t('plugins.recentPlugins')}
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                {recentItems.map((item) => {
-                  const isCurrent = item.id === value;
-                  const iconKey = item.iconName ?? item.name;
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      title={item.name}
-                      onClick={() => handleSelectPlugin(item)}
-                      className={cn(
-                        'inline-flex h-8 max-w-[156px] min-w-0 cursor-pointer items-center gap-2 rounded-md border px-2.5 text-xs font-medium transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                        isCurrent
-                          ? 'border-primary/65 bg-primary/12 text-foreground'
-                          : 'border-border/70 bg-muted/25 text-foreground/90 hover:border-primary/40 hover:bg-accent/65 hover:text-accent-foreground',
-                      )}
-                    >
-                      <span className="flex h-5 w-5 shrink-0 items-center justify-center overflow-hidden rounded-full">
-                        <PluginIcon pluginName={iconKey} variant="avatar" className="h-5 w-5" />
-                      </span>
-                      <span className="min-w-0 truncate">{item.name}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          <div className="flex min-h-0 flex-1 flex-col gap-2">
-            <div className="text-xs font-medium text-muted-foreground">
-              {trimmedQuery
-                ? t('plugins.matchedPluginsCount', { count: filteredPlugins.length })
-                : t('plugins.allPluginsCount', { count: orderedPlugins.length })}
-            </div>
-
-            {filteredPlugins.length === 0 ? (
-              <div className="py-10 text-center text-sm text-muted-foreground">
-                {t('plugins.noMatchingPlugin')}
-              </div>
-            ) : (
-              /* 不挂 role="listbox"，避免命中全局内陷深色菜单底板，直接以主题圆角大按钮平铺 */
-              <div className="grid max-h-[304px] min-h-0 grid-cols-2 gap-2 overflow-y-auto pr-1 sm:grid-cols-3">
-                {filteredPlugins.map((plugin, index) => {
-                  const isSelected = plugin.id === value;
-                  const isHighlighted = index === activeHighlightIndex;
-                  const iconKey = plugin.iconName ?? plugin.name;
-                  const isDisabledPlugin = plugin.enabled === false;
-
-                  return (
-                    <button
-                      ref={(el) => {
-                        cellRefs.current[index] = el;
-                      }}
-                      key={plugin.id}
-                      type="button"
-                      aria-pressed={isSelected}
-                      title={
-                        isDisabledPlugin
-                          ? `${plugin.name} (${t('plugins.pluginDisabled')})`
-                          : plugin.name
-                      }
-                      onMouseEnter={() => setHighlightedIndex(index)}
-                      onClick={() => handleSelectPlugin(plugin)}
-                      className={cn(
-                        'group flex h-12 min-w-0 cursor-pointer items-center gap-2.5 rounded-md border px-3 text-left transition-colors duration-150 outline-none active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-ring',
-                        isSelected
-                          ? 'border-primary/70 bg-primary/12 font-semibold text-foreground'
-                          : isHighlighted
-                            ? 'border-primary/45 bg-accent/70 text-accent-foreground'
-                            : 'border-border/65 bg-muted/25 text-foreground/90 hover:border-primary/40 hover:bg-accent/65 hover:text-accent-foreground',
-                      )}
-                    >
-                      <span className="relative flex h-7 w-7 shrink-0 items-center justify-center">
-                        <span
-                          className={cn(
-                            'flex h-7 w-7 items-center justify-center overflow-hidden rounded-full',
-                            isDisabledPlugin && !isSelected && 'opacity-70 grayscale-[30%]',
-                          )}
-                        >
-                          <PluginIcon pluginName={iconKey} variant="avatar" className="h-7 w-7" />
-                        </span>
-                        {isDisabledPlugin && (
-                          <span
-                            aria-hidden
-                            className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-[1.5px] border-popover bg-zinc-400 dark:bg-zinc-500"
-                          />
-                        )}
-                      </span>
-
-                      <span className="min-w-0 flex-1 truncate text-sm">{plugin.name}</span>
-
-                      {isSelected && <Check className="h-4 w-4 shrink-0 text-primary" />}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="hidden shrink-0 items-center gap-4 border-t border-border/50 bg-muted/20 px-3.5 py-2 text-xs text-muted-foreground sm:flex">
-          <span className="inline-flex items-center gap-1">
-            <kbd className={KBD_KEY_CLASS}>↑</kbd>
-            <kbd className={KBD_KEY_CLASS}>↓</kbd>
-            <kbd className={KBD_KEY_CLASS}>←</kbd>
-            <kbd className={KBD_KEY_CLASS}>→</kbd>
-            <span className="ml-0.5">{t('plugins.kbdMove')}</span>
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <kbd className={KBD_KEY_CLASS}>Enter</kbd>
-            <span>{t('plugins.kbdSelect')}</span>
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <kbd className={KBD_KEY_CLASS}>Esc</kbd>
-            <span>{t('plugins.kbdClose')}</span>
-          </span>
-        </div>
+        <PluginSelectorPanel
+          plugins={plugins}
+          usageNames={usageNames}
+          value={value}
+          onValueChange={onValueChange}
+          allOption={allOption}
+          maxRecent={maxRecent}
+          open={open}
+          onClose={() => setOpen(false)}
+          searchInputRef={searchInputRef}
+        />
       </PopoverContent>
     </Popover>
   );

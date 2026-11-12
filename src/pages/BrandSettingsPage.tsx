@@ -22,7 +22,7 @@ import { cn } from '@/lib/utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { headerActionRowClass, PinnedPage } from '@/components/layout/PinnedPage';
+import { headerActionRowClass, pageGapClass, PinnedPage } from '@/components/layout/PinnedPage';
 import { brandApi, getApiErrorMessage, getBrandIconUrl, type BrandInfo } from '@/lib/api';
 
 const PACKAGED_ICON = `${import.meta.env.BASE_URL}ICON.png`;
@@ -109,7 +109,6 @@ export default function BrandSettingsPage() {
 
   return (
     <PinnedPage
-      className="gap-3 md:gap-6"
       header={
         <div className="flex flex-col gap-3 md:gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0">
@@ -141,7 +140,7 @@ export default function BrandSettingsPage() {
         </div>
       }
     >
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4">
+      <div className={cn('grid grid-cols-1 lg:grid-cols-3', pageGapClass)}>
         {/* 左：表单 */}
         <Card className="glass-card lg:col-span-2">
           <CardHeader>

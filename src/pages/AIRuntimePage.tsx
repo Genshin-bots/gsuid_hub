@@ -24,7 +24,7 @@ import {
 import { toast } from 'sonner';
 
 import { useLanguage } from '@/contexts/LanguageContext';
-import { PinnedPage } from '@/components/layout/PinnedPage';
+import { pageGapClass, pageStackClass, PinnedPage } from '@/components/layout/PinnedPage';
 import { TabButtonGroup, tabToolbarControlClass } from '@/components/ui/TabButtonGroup';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -181,7 +181,6 @@ export default function AIRuntimePage() {
 
   return (
     <PinnedPage
-      className="gap-3 md:gap-6"
       header={
         <div className="min-w-0">
           <h1 className="text-3xl font-bold flex items-center gap-3">
@@ -284,7 +283,7 @@ function SlotsPanel({
   if (missing) return <MissingBackendCard />;
 
   return (
-    <div className="space-y-3 md:space-y-4">
+    <div className={pageStackClass}>
       {(sealedEmpty.length > 0 || unhealthy.length > 0) && (
         <div className="flex flex-wrap items-center justify-end gap-2">
           {sealedEmpty.length > 0 && (
@@ -307,7 +306,7 @@ function SlotsPanel({
       )}
 
       {loading ? (
-        <div className="glass-card-grid grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className={cn('glass-card-grid grid sm:grid-cols-2 lg:grid-cols-3', pageGapClass)}>
           {Array.from({ length: 6 }).map((_, i) => (
             <Skeleton key={i} className="h-36 w-full rounded-lg" />
           ))}
@@ -319,7 +318,7 @@ function SlotsPanel({
           </CardContent>
         </Card>
       ) : (
-        <div className="glass-card-grid grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className={cn('glass-card-grid grid sm:grid-cols-2 lg:grid-cols-3', pageGapClass)}>
           {slots.map((slot) => {
             const sealedEmptySlot = slot.sealed && slot.occupants.length === 0;
             return (
@@ -432,7 +431,7 @@ function HooksPanel({
   if (missing) return <MissingBackendCard />;
 
   return (
-    <div className="space-y-3 md:space-y-4">
+    <div className={pageStackClass}>
       <Card className="glass-card">
         <CardContent className="p-0">
           {loading ? (
@@ -605,9 +604,9 @@ function RelationshipPanel() {
   const pageCurrent = Math.floor(rosterQuery.offset / ROSTER_PAGE_SIZE) + 1;
 
   return (
-    <div className="space-y-3 md:space-y-4">
+    <div className={pageStackClass}>
       {view && (
-        <div ref={detailRef} className="space-y-3 md:space-y-4">
+        <div ref={detailRef} className={pageStackClass}>
           <Card className="glass-card">
             <CardHeader>
               <CardTitle className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -1087,7 +1086,7 @@ function CognitionPanel() {
   if (missing) return <MissingBackendCard />;
 
   return (
-    <div className="space-y-3 md:space-y-4">
+    <div className={pageStackClass}>
       <Card className="glass-card">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">

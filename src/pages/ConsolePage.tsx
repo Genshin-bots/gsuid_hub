@@ -604,7 +604,7 @@ export default function ConsolePage() {
 
   return (
     <PinnedPage
-      className="console-mobile-fill min-h-0 flex-1 overflow-hidden gap-2 md:gap-3"
+      className="console-mobile-fill min-h-0 flex-1 overflow-hidden"
       bodyClassName="flex min-h-0 flex-1 flex-col !overflow-hidden"
       header={
         <div className="flex flex-col gap-3 md:gap-4 sm:flex-row sm:items-end sm:justify-between">

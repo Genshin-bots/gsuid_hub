@@ -80,7 +80,6 @@ import {
   FolderOpen,
   ScrollText,
   FilePlus,
-  Puzzle,
 } from 'lucide-react';
 import {
   aiKnowledgeApi,
@@ -95,6 +94,7 @@ import {
 import { toast } from 'sonner';
 import { PinnedPage } from '@/components/layout/PinnedPage';
 import { TagsInput } from '@/components/config/TagsInput';
+import { PluginSelectorPanel } from '@/components/plugins/PluginUsageBar';
 import { PluginIcon } from '@/components/ui/plugin-icon';
 
 const ALL_PLUGINS = '__all__';
@@ -971,18 +971,22 @@ export default function AIKnowledgePage() {
           },
           allValue: ALL_PLUGINS,
           align: 'start' as const,
-          items: [
-            {
-              value: ALL_PLUGINS,
-              label: t('aiKnowledge.allPlugins'),
-              icon: <Puzzle className="h-4 w-4 shrink-0" />,
-            },
-            ...pluginNames.map((name) => ({
-              value: name,
-              label: name,
-              icon: <PluginIcon pluginName={name} className="h-4 w-4" />,
-            })),
-          ],
+          width: 'panel' as const,
+          renderContent: ({ open, select }) => (
+            <PluginSelectorPanel
+              open={open}
+              value={selectedPluginFilter}
+              onValueChange={select}
+              allOption={{
+                value: ALL_PLUGINS,
+                label: t('aiKnowledge.allPlugins'),
+              }}
+              plugins={pluginNames.map((name) => ({
+                id: name,
+                name,
+              }))}
+            />
+          ),
         },
       },
       {

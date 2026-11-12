@@ -31,7 +31,11 @@ import {
 import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTheme } from '@/contexts/ThemeContext';
-import { headerActionRowWideClass } from '@/components/layout/PinnedPage';
+import {
+  headerActionRowWideClass,
+  pageGapClass,
+  pageStackClass,
+} from '@/components/layout/PinnedPage';
 import { cn } from '@/lib/utils';
 import {
   aiKanbanApi,
@@ -1334,7 +1338,7 @@ export default function AIKanbanPage() {
   // page-viewport：整页高度锁定视口（main 不再竖直滚动），看板列内滚 + 底部横向滚动条
   // 始终贴视口底端；不要 overflow-hidden（会裁掉筛选卡与看板列的阴影）
   return (
-    <div className="page-viewport flex flex-1 min-h-0 h-full flex-col gap-3 md:gap-4">
+    <div className={cn('page-viewport flex flex-1 min-h-0 h-full flex-col', pageGapClass)}>
       {/* 页面标题块：纯 H1 + 副标题，无右侧操作（按钮已移至下方 button group 同行） */}
       <div>
         <h1 className="text-3xl font-bold flex items-center gap-3">
@@ -1345,7 +1349,9 @@ export default function AIKanbanPage() {
       </div>
 
       {/* TabButtonGroup 与操作按钮同行平齐（垂直居中） */}
-      <div className="flex flex-col gap-3 md:gap-4 lg:flex-row lg:items-center lg:justify-between">
+      <div
+        className={cn('flex flex-col lg:flex-row lg:items-center lg:justify-between', pageGapClass)}
+      >
         <TabButtonGroup
           value={viewMode}
           onValueChange={(v) => setViewMode(v as 'kanban' | 'data')}
@@ -1549,7 +1555,7 @@ export default function AIKanbanPage() {
           纵向平时不滚（列高恰好填满），仅当视口矮于列 min-h 时兜底出现纵向滚动 */}
       {viewMode === 'kanban' && (
         <div className="min-h-0 flex-1 overflow-x-auto [--shadow-bleed:1.5rem]">
-          <div className="flex h-full min-w-max gap-3 md:gap-4">
+          <div className={cn('flex h-full min-w-max', pageGapClass)}>
             {COLUMN_KEYS.map((column) => (
               <KanbanColumn
                 key={column}

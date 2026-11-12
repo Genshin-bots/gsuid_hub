@@ -786,8 +786,6 @@ export default function GitUpdatePage() {
 
   return (
     <PinnedPage
-      className="gap-3 md:gap-4"
-      bodyClassName="space-y-3 md:space-y-4"
       header={
         /* Header */
         <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between xl:gap-6 md:gap-4">

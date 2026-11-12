@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { pageStackClass } from '@/components/layout/PinnedPage';
 import { cn } from '@/lib/utils';
 import { isFieldModified } from '../classifyGroups';
 import {
@@ -143,7 +144,7 @@ export function SystemCoreSection({
   };
 
   return (
-    <div className="space-y-3 md:space-y-4">
+    <div className={pageStackClass}>
       {showRestartHint && (
         <GlassAlert tone="warning" icon={AlertTriangle} className="items-center">
           <div className="flex min-w-0 items-center justify-between gap-2">

@@ -102,7 +102,7 @@ export function PersonaToolScopeEditor({
       (catalog?.plugins ?? []).map((p) => ({
         value: p.name,
         label: p.name,
-        icon: <PluginIcon pluginName={p.name} className="h-4 w-4" />,
+        count: p.tool_count,
       })),
     [catalog],
   );
@@ -220,6 +220,7 @@ export function PersonaToolScopeEditor({
         groups={toolGroups}
         onChange={onToolNamesChange}
         filter={{
+          kind: 'plugin',
           options: pluginFilterOptions,
           allLabel: t('personaConfig.toolNamesAllPlugins'),
         }}

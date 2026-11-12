@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/select';
 import { TimePicker } from '@/components/ui/time-picker';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { pageStackClass } from '@/components/layout/PinnedPage';
 import { cn } from '@/lib/utils';
 import { isFieldModified, isNonEditableField } from '../classifyGroups';
 import {
@@ -167,7 +168,7 @@ export function RuntimeSection({
       Boolean(coreGroup && isFieldModified(coreGroup, origCore, 'AutoUpdateNotify')));
 
   return (
-    <div className="space-y-3 md:space-y-4">
+    <div className={pageStackClass}>
       {coreGroup && (
         <>
           <ProgressiveSectionCard

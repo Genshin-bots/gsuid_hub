@@ -37,7 +37,7 @@ import { schedulerApi, type SchedulerJobsMeta } from '@/lib/api';
 import { resolveSchedulerJobsView } from '@/lib/featureUtils';
 import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { PinnedPage } from '@/components/layout/PinnedPage';
+import { pageGapClass, PinnedPage } from '@/components/layout/PinnedPage';
 import { tabToolbarControlClass } from '@/components/ui/TabButtonGroup';
 import { cn } from '@/lib/utils';
 
@@ -200,7 +200,6 @@ export default function SchedulerPage() {
 
   return (
     <PinnedPage
-      bodyClassName="space-y-3 md:space-y-4"
       header={
         <div className="min-w-0 sm:overflow-x-auto">
           <h1 className="sm:whitespace-nowrap text-3xl font-bold flex items-center gap-3">
@@ -214,7 +213,7 @@ export default function SchedulerPage() {
       }
     >
       {/* Stats Cards */}
-      <div className="glass-card-grid grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+      <div className={cn('glass-card-grid grid grid-cols-2 md:grid-cols-4', pageGapClass)}>
         <Card className="glass-card">
           <CardContent className="p-3.5 sm:p-4">
             <div className="flex items-center gap-3">

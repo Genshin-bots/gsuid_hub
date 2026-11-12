@@ -1,4 +1,5 @@
 import { Cpu, Wrench } from 'lucide-react';
+import { pageStackClass } from '@/components/layout/PinnedPage';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ChipGroup } from '@/components/ui/MultiSelectChipGroup';
@@ -51,7 +52,7 @@ export function VoiceRecognitionSection({
   onRemoveMcpDetailRow,
 }: VoiceRecognitionSectionProps) {
   return (
-    <div className="space-y-3 md:space-y-5">
+    <div className={pageStackClass}>
       <div>
         <h2 className="text-lg font-bold flex items-center gap-2 mb-1">
           <Cpu className="w-5 h-5 text-primary" />

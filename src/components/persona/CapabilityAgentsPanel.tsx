@@ -8,7 +8,6 @@ import {
   Loader2,
   Lock,
   Package,
-  Puzzle,
   RotateCcw,
   Save,
   Search,
@@ -19,6 +18,7 @@ import {
 } from 'lucide-react';
 
 import { useLanguage } from '@/contexts/LanguageContext';
+import { pageGapClass } from '@/components/layout/PinnedPage';
 import { cn } from '@/lib/utils';
 import type { AgentNodeSource, CapabilityAgentTool } from '@/lib/api';
 import { Badge } from '@/components/ui/badge';
@@ -46,8 +46,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { SearchableMenu } from '@/components/ui/searchable-menu';
-import { PluginIcon } from '@/components/ui/plugin-icon';
+import { PluginGridSelector } from '@/components/plugins/PluginUsageBar';
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { BUILTIN_TOOL_PACKS, type UseCapabilityAgentsReturn } from './useCapabilityAgents';
@@ -236,26 +235,22 @@ function ToolMultiSelectDropdown({
                     className="pl-9"
                   />
                 </div>
-                <SearchableMenu
+                <PluginGridSelector
                   appearance="field"
-                  width="trigger"
                   align="end"
+                  enableShortcut={false}
                   className="h-10"
                   placeholder={t('aiCapabilityAgents.tools.allPlugins')}
                   value={pluginFilter}
                   onValueChange={setPluginFilter}
-                  items={[
-                    {
-                      value: 'all',
-                      label: t('aiCapabilityAgents.tools.allPlugins'),
-                      icon: <Puzzle className="h-4 w-4" />,
-                    },
-                    ...pluginOptions.map((plugin) => ({
-                      value: plugin,
-                      label: plugin,
-                      icon: <PluginIcon pluginName={plugin} className="h-4 w-4" />,
-                    })),
-                  ]}
+                  allOption={{
+                    value: 'all',
+                    label: t('aiCapabilityAgents.tools.allPlugins'),
+                  }}
+                  plugins={pluginOptions.map((plugin) => ({
+                    id: plugin,
+                    name: plugin,
+                  }))}
                 />
               </div>
             </div>
@@ -375,7 +370,12 @@ export function CapabilityAgentsPanel({ capability }: { capability: UseCapabilit
           </CardContent>
         </Card>
       ) : (
-        <div className="glass-card-grid grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3">
+        <div
+          className={cn(
+            'glass-card-grid grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3',
+            pageGapClass,
+          )}
+        >
           {filteredProfiles.map((profile) => {
             const locked = profile.source !== 'user' && profile.source !== 'mcp';
             const editable = profile.source === 'user' || profile.source === 'mcp';

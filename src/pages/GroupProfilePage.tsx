@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
+import { pageGapClass, pageStackClass } from '@/components/layout/PinnedPage';
 import { cn } from '@/lib/utils';
 import { aiStateStoreApi, getApiErrorMessage, type AIStateStoreKeyItem } from '@/lib/api';
 import { GROUP_PROFILE_STATE_SCOPE, normalizeGroupProfile } from '@/lib/featureUtils';
@@ -72,8 +73,8 @@ export function GroupProfilePanel({
   };
 
   return (
-    <div className="space-y-3 md:space-y-4">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4">
+    <div className={pageStackClass}>
+      <div className={cn('grid grid-cols-1 lg:grid-cols-3', pageGapClass)}>
         <Card className={cn('lg:col-span-1', 'glass-card')}>
           <CardHeader className="py-3">
             <CardTitle className="text-sm">

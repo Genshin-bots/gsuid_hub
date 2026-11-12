@@ -29,7 +29,9 @@ import {
   type ConfigValue,
 } from '@/components/config';
 import { GlassAlert } from '@/components/ui/glass-alert';
+import { pageGapClass, pageStackClass } from '@/components/layout/PinnedPage';
 import { Switch } from '@/components/ui/switch';
+import { cn } from '@/lib/utils';
 import type { PluginConfigItem } from '@/lib/api';
 
 export interface CommandExecutorSectionProps {
@@ -72,7 +74,7 @@ export function CommandExecutorSection({
 }: CommandExecutorSectionProps) {
   if (!commandExecutorConfig) {
     return (
-      <div className="space-y-3 md:space-y-5">
+      <div className={pageStackClass}>
         <div>
           <h2 className="text-lg font-bold flex items-center gap-2 mb-1">
             <Terminal className="w-5 h-5 text-muted-foreground" />
@@ -97,7 +99,7 @@ export function CommandExecutorSection({
   const entries = Object.entries(config).filter(([key]) => !TOP_LEVEL_KEYS.includes(key));
 
   return (
-    <div className="space-y-3 md:space-y-5">
+    <div className={pageStackClass}>
       {/* 标题区 */}
       <div>
         <h2 className="text-lg font-bold flex items-center gap-2 mb-1">
@@ -147,7 +149,7 @@ export function CommandExecutorSection({
 
       {/* 三列：divider 占整行，其它字段占一格 */}
       {enableValue && (
-        <div className="grid grid-cols-2 items-start gap-3 md:gap-6 lg:grid-cols-3">
+        <div className={cn('grid grid-cols-2 items-start lg:grid-cols-3', pageGapClass)}>
           {entries.map(([key, item]) => {
             let fieldDef = pluginConfigItemToFieldDef(key, item);
 

@@ -40,6 +40,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { TagsInput } from '@/components/config/TagsInput';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
+import { pageStackClass } from '@/components/layout/PinnedPage';
 import { getApiErrorMessage, opsApi } from '@/lib/api';
 import {
   botConnectionSummary,
@@ -69,7 +70,7 @@ export function AIOpsPanel() {
   );
 
   return (
-    <div className="space-y-3 md:space-y-4">
+    <div className={pageStackClass}>
       <RuntimeStatusBar />
       <TabButtonGroup
         options={tabs}

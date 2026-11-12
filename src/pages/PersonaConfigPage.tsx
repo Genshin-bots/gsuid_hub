@@ -125,7 +125,7 @@ import {
 } from '@/lib/api';
 import { FALLBACK_SPEECH_SHAPE, SPEECH_SOFT_MAX, SPEECH_SOFT_MIN } from '@/lib/speechShape';
 import { toast } from 'sonner';
-import { PinnedPage } from '@/components/layout/PinnedPage';
+import { pageGapClass, PinnedPage } from '@/components/layout/PinnedPage';
 import { GlassAlert } from '@/components/ui/glass-alert';
 import {
   TabButtonGroup,
@@ -2258,7 +2258,12 @@ export default function PersonaConfigPage() {
                 </div>
               </>
             ) : (
-              <div className="glass-card-grid grid min-w-0 grid-cols-1 gap-3 md:gap-4 lg:grid-cols-2 2xl:grid-cols-3">
+              <div
+                className={cn(
+                  'glass-card-grid grid min-w-0 grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3',
+                  pageGapClass,
+                )}
+              >
                 {personaCards.map(renderPersonaCard)}
               </div>
             )}

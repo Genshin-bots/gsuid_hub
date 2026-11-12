@@ -227,24 +227,28 @@ describe('plugin grid selector MRU & navigation helpers', () => {
     pushLocalRecentPlugin('starrailuid');
     expect(readLocalRecentPlugins()).toEqual(['starrailuid', 'gsuid_core']);
 
-    const pills = resolveRecentPluginItems(
-      items,
-      readLocalRecentPlugins(),
-      ['GenshinUID', 'StarRailUID', 'SayuStock', 'ZZZeroUID'],
-      4,
-    );
-    expect(pills.map((p) => p.id)).toEqual(['sr', 'core', 'gs', 'stock']);
+    const pills = resolveRecentPluginItems(items, readLocalRecentPlugins(), [
+      'GenshinUID',
+      'StarRailUID',
+      'SayuStock',
+      'ZZZeroUID',
+    ]);
+    expect(pills.map((p) => p.id)).toEqual(['sr', 'core', 'gs', 'stock', 'zzz']);
   });
 
-  it('syncs shared recent and lastEdited state with backend API', async () => {
+  it('syncs shared recent and lastEdited state with backend API and retries after failure', async () => {
+    pushLocalRecentPlugin('StaleLocalPlugin');
+    mockGetRecentPlugins.mockRejectedValueOnce(new Error('network glitch'));
+    await fetchSharedPluginPrefs(true);
+
     mockGetRecentPlugins.mockResolvedValueOnce({
       recent_plugins: ['GenshinUID', 'ZZZeroUID'],
-      last_edited_plugin: 'ZZZeroUID',
+      last_edited_plugin: 'SayuStock',
     });
-    const loaded = await fetchSharedPluginPrefs(true);
-    expect(loaded.recentPlugins).toEqual(['GenshinUID', 'ZZZeroUID']);
-    expect(loaded.lastEditedPlugin).toBe('ZZZeroUID');
-    expect(readLastEditedPluginId()).toBe('ZZZeroUID');
+    const loaded = await fetchSharedPluginPrefs();
+    expect(loaded.recentPlugins).toEqual(['SayuStock', 'GenshinUID', 'ZZZeroUID']);
+    expect(loaded.lastEditedPlugin).toBe('SayuStock');
+    expect(readLastEditedPluginId()).toBe('SayuStock');
 
     mockRecordRecentPlugin.mockResolvedValueOnce({
       recent_plugins: ['SayuStock', 'GenshinUID', 'ZZZeroUID'],

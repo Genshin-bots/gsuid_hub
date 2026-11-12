@@ -1,4 +1,6 @@
 import { Brain, ChevronRight, MemoryStick } from 'lucide-react';
+import { pageGapClass, pageStackClass } from '@/components/layout/PinnedPage';
+import { cn } from '@/lib/utils';
 import { Switch } from '@/components/ui/switch';
 import { ChipGroup } from '@/components/ui/MultiSelectChipGroup';
 import { ConfigField, pluginConfigItemToFieldDef, type ConfigValue } from '@/components/config';
@@ -37,7 +39,7 @@ export function MemorySettingsSection({
     : [];
 
   return (
-    <div className="space-y-3 md:space-y-5">
+    <div className={pageStackClass}>
       <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-lg font-bold flex items-center gap-2 mb-1">
@@ -57,7 +59,7 @@ export function MemorySettingsSection({
           <span>{t('aiConfig.memorySettings.disabledDesc')}</span>
         </div>
       ) : memoryConfig ? (
-        <div className="space-y-3 md:space-y-4">
+        <div className={pageStackClass}>
           {/* 记忆模式（记忆路径）- 保留原有 ChipGroup 多选样式 */}
           <div className="space-y-2">
             <LabelWithHelp
@@ -82,7 +84,7 @@ export function MemorySettingsSection({
 
           {/* 其余配置项 - 一行三个，与高级设置一致 */}
           {otherEntries.length > 0 && (
-            <div className="grid grid-cols-2 items-start gap-3 pt-2 md:gap-6 lg:grid-cols-3">
+            <div className={cn('grid grid-cols-2 items-start pt-2 lg:grid-cols-3', pageGapClass)}>
               {otherEntries.map(([key, item]) => {
                 const fieldDef = pluginConfigItemToFieldDef(key, item);
                 const isDivider = fieldDef.type === 'divider';

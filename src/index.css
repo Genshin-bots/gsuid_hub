@@ -53,6 +53,8 @@ All colors MUST be HSL.
      */
     --layout-gutter: 1.5rem;
     --layout-page-top: 2.75rem;
+    /* 页面组件行间距的唯一收口值（标题↔控件行↔内容、内容区块竖向堆叠、卡片网格间距） */
+    --page-row-gap: 0.75rem;
     /* 圆角阴影外溢安全距：overflow 容器内侧至少留这么多 */
     --shadow-bleed: 0.75rem;
     /* 阴影强度系数：主题杂项 shadow_intensity(0-200%) 写入 0-2。表面类阴影和 shadow-* 工具类的 alpha 都乘以它。默认 55% */

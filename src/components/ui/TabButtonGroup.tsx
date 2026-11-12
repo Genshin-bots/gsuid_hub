@@ -39,7 +39,7 @@ export interface TabButtonOption {
    * - 不传时保持普通分段按钮，既有调用方零改动
    */
   dropdown?: {
-    items: TabButtonDropdownItem[];
+    items?: TabButtonDropdownItem[];
     value: string;
     onValueChange: (value: string) => void;
     /**
@@ -50,8 +50,14 @@ export interface TabButtonOption {
     align?: 'start' | 'center' | 'end';
     /** 下拉内容附加 class（如 max-h / min-w） */
     contentClassName?: string;
-    /** 下拉宽度模式：'trigger'（与分段项等宽，默认）或 'content'（按内容自适应） */
-    width?: 'trigger' | 'content';
+    /** 下拉宽度模式：'trigger'（与分段项等宽，默认）、'content'（按内容自适应）或 'panel'（宽面板） */
+    width?: 'trigger' | 'content' | 'panel';
+    /** 自定义下拉面板内容（如插件网格选择器），传入后替代默认的列表菜单 */
+    renderContent?: (helpers: {
+      open: boolean;
+      close: () => void;
+      select: (next: string) => void;
+    }) => React.ReactNode;
   };
 }
 
@@ -185,7 +191,7 @@ function TabSegmentDropdownItem({
   const [open, setOpen] = React.useState(false);
   const panelRef = React.useRef<HTMLDivElement>(null);
   const dropdown = option.dropdown!;
-  const allValue = dropdown.allValue ?? dropdown.items[0]?.value;
+  const allValue = dropdown.allValue ?? dropdown.items?.[0]?.value;
   const dividerClass = isActive ? 'bg-primary-foreground/25' : 'bg-border/70';
   const widthMode = dropdown.width ?? 'trigger';
   // ▾ 槽位在 fill 断点以下绝对定位、不占内容宽度：拆分段和纯按钮段 basis 相同，
@@ -290,7 +296,9 @@ function TabSegmentDropdownItem({
           'glass-float searchable-menu-panel box-border overflow-hidden bg-transparent p-0 shadow-none flex flex-col',
           widthMode === 'trigger'
             ? 'w-[var(--radix-popover-trigger-width)] min-w-[var(--radix-popover-trigger-width)]'
-            : 'w-max min-w-[14rem] max-w-[24rem]',
+            : widthMode === 'panel'
+              ? 'w-[min(560px,calc(100vw-2rem))]'
+              : 'w-max min-w-[14rem] max-w-[24rem]',
           dropdown.contentClassName,
         )}
         style={{
@@ -303,15 +311,27 @@ function TabSegmentDropdownItem({
         }}
         onWheel={(event) => event.stopPropagation()}
       >
-        <SearchableMenuContent
-          items={dropdown.items}
-          value={dropdown.value}
-          onSelect={(next) => {
-            onValueChange(option.value);
-            dropdown.onValueChange(next);
-            setOpen(false);
-          }}
-        />
+        {dropdown.renderContent ? (
+          dropdown.renderContent({
+            open,
+            close: () => setOpen(false),
+            select: (next) => {
+              onValueChange(option.value);
+              dropdown.onValueChange(next);
+              setOpen(false);
+            },
+          })
+        ) : (
+          <SearchableMenuContent
+            items={dropdown.items ?? []}
+            value={dropdown.value}
+            onSelect={(next) => {
+              onValueChange(option.value);
+              dropdown.onValueChange(next);
+              setOpen(false);
+            }}
+          />
+        )}
       </PopoverContent>
     </Popover>
   );
@@ -394,7 +414,10 @@ export function TabButtonGroup({
           const isDisabled = disabled || !!option.disabled;
           const dropdown = option.dropdown;
 
-          if (dropdown && dropdown.items.length > 0) {
+          if (
+            dropdown &&
+            (dropdown.renderContent || (dropdown.items && dropdown.items.length > 0))
+          ) {
             return (
               <TabSegmentDropdownItem
                 key={option.value}
@@ -453,7 +476,7 @@ export function TabButtonGroup({
   /* 图标槽只为对齐图标存在：整份菜单都没图标时（如 /ai-statistics 预设区间）
      每行会多出 ~30px 空白，标签还和触发器对不齐。 */
   const collapsedHasIcons = options.some(
-    (option) => option.icon != null || option.dropdown?.items.some((item) => item.icon != null),
+    (option) => option.icon != null || option.dropdown?.items?.some((item) => item.icon != null),
   );
 
   return (
@@ -505,7 +528,8 @@ export function TabButtonGroup({
                 const selected = value === option.value;
                 const isDisabled = disabled || !!option.disabled;
                 const dropdown = option.dropdown;
-                const hasSubItems = !!dropdown && dropdown.items.length > 0;
+                const dropdownItems = dropdown?.items ?? [];
+                const hasSubItems = dropdownItems.length > 0;
                 return (
                   <React.Fragment key={option.value}>
                     <DropdownMenuItem
@@ -514,7 +538,10 @@ export function TabButtonGroup({
                       onSelect={() => {
                         onValueChange(option.value);
                         if (dropdown) {
-                          dropdown.onValueChange(dropdown.allValue ?? dropdown.items[0]?.value);
+                          const fallbackAll = dropdown.allValue ?? dropdownItems[0]?.value;
+                          if (fallbackAll !== undefined) {
+                            dropdown.onValueChange(fallbackAll);
+                          }
                         }
                       }}
                       className="cursor-pointer gap-2"
@@ -532,7 +559,8 @@ export function TabButtonGroup({
                     {/* 二级筛选摊平进同一张菜单：收起态只有一个菜单可点，
                         不摊平会让带 dropdown 的主 Tab 在窄屏丢掉切换能力 */}
                     {hasSubItems &&
-                      dropdown.items.map((item) => {
+                      dropdown &&
+                      dropdownItems.map((item) => {
                         const subSelected = dropdown.value === item.value;
                         return (
                           <DropdownMenuItem

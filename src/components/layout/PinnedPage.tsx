@@ -48,16 +48,20 @@ interface PinnedPageProps {
   /** 滚动区内容 */
   children: React.ReactNode;
   /**
-   * 滚动区的布局类，默认 `space-y-3 md:space-y-6`（窄屏 12px / 桌面 24px 的块间距）。
-   * 页面原本是 space-y-3 / space-y-4 的，原样传进来即可。
+   * 滚动区的布局类，默认使用 `pageStackClass`（与全局 `--page-row-gap` 一致）。
    */
   bodyClassName?: string;
   /**
-   * 根容器附加类。默认 `gap-3 md:gap-6`——它同时决定「标题↔控件行↔内容」三段间距；
-   * 传 `gap-3` / `gap-6` 可覆盖（cn 用的是 tailwind-merge，后传的赢）。
+   * 根容器附加类。默认使用 `pageGapClass`（决定「标题↔控件行↔内容」三段间距，与 `--page-row-gap` 一致）。
    */
   className?: string;
 }
+
+/** 全局收口后的页面组件/网格/行间距类，唯一数值来源为 index.css 的 `--page-row-gap`。 */
+export const pageGapClass = 'gap-[var(--page-row-gap)]';
+
+/** 全局收口后的页面竖向区块堆叠类（flex-col + `--page-row-gap`，避免 space-y 与负 margin 冲突）。 */
+export const pageStackClass = 'flex flex-col gap-[var(--page-row-gap)]';
 
 /**
  * 标题栏右侧操作按钮组。
@@ -80,13 +84,11 @@ export function PinnedPage({
   className,
 }: PinnedPageProps) {
   return (
-    <div className={cn('page-pinned flex flex-col gap-3 md:gap-6', className)}>
+    <div className={cn('page-pinned', pageStackClass, className)}>
       <div className="page-pinned-header">{header}</div>
       {/* falsy 时整段不渲染，避免留下一个空 flex item 撑出多余 gap */}
       {toolbar ? <div className="page-pinned-toolbar">{toolbar}</div> : null}
-      <div className={cn('page-pinned-body', bodyClassName ?? 'space-y-3 md:space-y-6')}>
-        {children}
-      </div>
+      <div className={cn('page-pinned-body', pageStackClass, bodyClassName)}>{children}</div>
     </div>
   );
 }

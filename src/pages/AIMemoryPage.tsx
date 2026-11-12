@@ -7,7 +7,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { GlassAlert } from '@/components/ui/glass-alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { tabToolbarControlClass } from '@/components/ui/TabButtonGroup';
-import { headerActionRowClass, PinnedPage } from '@/components/layout/PinnedPage';
+import {
+  headerActionRowClass,
+  pageGapClass,
+  pageStackClass,
+  PinnedPage,
+} from '@/components/layout/PinnedPage';
 import { MetricHero, RatioBar, type RatioSlice } from '@/components/ui/DataBlock';
 import MemorySearchPanel from '@/components/memory/MemorySearchPanel';
 import { Badge } from '@/components/ui/badge';
@@ -2368,8 +2373,6 @@ export default function AIMemoryPage() {
 
   return (
     <PinnedPage
-      className="gap-3 sm:gap-3 md:gap-4"
-      bodyClassName="space-y-3 sm:space-y-3.5"
       header={
         /* Header */
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -2680,7 +2683,7 @@ export default function AIMemoryPage() {
 
       {/* Knowledge Graph Tab */}
       {activeTab === 'graph' && (
-        <div className="space-y-3 md:space-y-4">
+        <div className={pageStackClass}>
           {entities.length === 0 && edges.length === 0 ? (
             <Card className={cn('glass-card')}>
               <div className="p-3 border-b border-border/30 flex items-center justify-between">
@@ -2734,7 +2737,7 @@ export default function AIMemoryPage() {
       )}
 
       {activeTab === 'world' && (
-        <div className="space-y-3 md:space-y-4">
+        <div className={pageStackClass}>
           {worldHubs.length === 0 ? (
             <Card className={cn('glass-card')}>
               <CardContent className="flex flex-col items-center justify-center !p-8 text-center text-muted-foreground">
@@ -2756,7 +2759,7 @@ export default function AIMemoryPage() {
 
       {/* Preferences Tab */}
       {activeTab === 'preferences' && (
-        <div className="space-y-3 md:space-y-4">
+        <div className={pageStackClass}>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <p className="text-sm text-muted-foreground">
               {t('aiMemory.preferenceCount', {
@@ -3107,7 +3110,7 @@ export default function AIMemoryPage() {
 
       {/* Scopes Tab */}
       {activeTab === 'scopes' && (
-        <div className="space-y-3 md:space-y-4">
+        <div className={pageStackClass}>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <p className="text-sm text-muted-foreground">
               {t('aiMemory.scopeCount', { count: scopes.length })}
@@ -3124,7 +3127,12 @@ export default function AIMemoryPage() {
               {t('common.refresh')}
             </Button>
           </div>
-          <div className="glass-card-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+          <div
+            className={cn(
+              'glass-card-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3',
+              pageGapClass,
+            )}
+          >
             {scopes.map((scope) => (
               <ScopeCard
                 key={scope.scope_key}
@@ -3148,7 +3156,7 @@ export default function AIMemoryPage() {
 
       {/* Episodes Tab */}
       {activeTab === 'episodes' && (
-        <div className="space-y-3 md:space-y-4">
+        <div className={pageStackClass}>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <p className="text-sm text-muted-foreground">
               {t('aiMemory.episodeCount', { count: episodes.length, total: totalEpisodes })}
@@ -3251,7 +3259,7 @@ export default function AIMemoryPage() {
 
       {/* Entities Tab */}
       {activeTab === 'entities' && (
-        <div className="space-y-3 md:space-y-4">
+        <div className={pageStackClass}>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div className="flex items-center gap-2 flex-1 min-w-0">
               <Input
@@ -3303,7 +3311,12 @@ export default function AIMemoryPage() {
             {t('aiMemory.entityCount', { count: entities.length, total: totalEntities })}
           </p>
           {isLoadingData ? (
-            <div className="glass-card-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+            <div
+              className={cn(
+                'glass-card-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3',
+                pageGapClass,
+              )}
+            >
               {Array.from({ length: 6 }).map((_, i) => (
                 <Skeleton key={i} className="h-32 w-full" />
               ))}
@@ -3316,7 +3329,12 @@ export default function AIMemoryPage() {
               </CardContent>
             </Card>
           ) : (
-            <div className="glass-card-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+            <div
+              className={cn(
+                'glass-card-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3',
+                pageGapClass,
+              )}
+            >
               {entities.map((entity) => (
                 <div key={entity.id} className="relative group">
                   <EntityNode
@@ -3368,7 +3386,7 @@ export default function AIMemoryPage() {
 
       {/* Edges Tab */}
       {activeTab === 'edges' && (
-        <div className="space-y-3 md:space-y-4">
+        <div className={pageStackClass}>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <p className="text-sm text-muted-foreground">
               {t('aiMemory.edgeCount', { count: edges.length, total: totalEdges })}
@@ -3464,7 +3482,7 @@ export default function AIMemoryPage() {
 
       {/* Threads Tab */}
       {activeTab === 'threads' && (
-        <div className="space-y-3 md:space-y-4">
+        <div className={pageStackClass}>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <p className="text-sm text-muted-foreground">
               {t('aiMemory.threadCount', { count: threads.length, total: totalThreads })}
@@ -3570,7 +3588,7 @@ export default function AIMemoryPage() {
 
       {/* Agent Debug Tab */}
       {activeTab === 'debug' && (
-        <div className="space-y-3 md:space-y-4">
+        <div className={pageStackClass}>
           <Card className={cn('glass-card')}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -3622,7 +3640,7 @@ export default function AIMemoryPage() {
             </CardContent>
           </Card>
 
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-3 md:gap-4">
+          <div className={cn('grid grid-cols-1 xl:grid-cols-3', pageGapClass)}>
             <Card className={cn('xl:col-span-2', 'glass-card')}>
               <CardHeader>
                 <CardTitle className="flex items-center justify-between gap-2">
@@ -3737,7 +3755,7 @@ export default function AIMemoryPage() {
 
       {/* Config Tab */}
       {activeTab === 'config' && (
-        <div className="space-y-3 md:space-y-4">
+        <div className={pageStackClass}>
           {config && (
             <>
               <Card className={cn('glass-card')}>

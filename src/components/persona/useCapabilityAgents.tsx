@@ -3,6 +3,7 @@ import { Package, Plug, Puzzle, UserRound } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { useLanguage } from '@/contexts/LanguageContext';
+import { PluginSelectorPanel } from '@/components/plugins/PluginUsageBar';
 import { PluginIcon } from '@/components/ui/plugin-icon';
 import type { TabButtonOption } from '@/components/ui/TabButtonGroup';
 import {
@@ -176,18 +177,24 @@ export function useCapabilityAgents() {
             onValueChange: setSelectedPlugin,
             allValue: '__all__',
             align: 'start' as const,
-            items: [
-              {
-                value: '__all__',
-                label: `${t('aiCapabilityAgents.allPlugins')} (${sourceCounts.plugin})`,
-                icon: <Puzzle className="h-4 w-4 shrink-0" />,
-              },
-              ...pluginFilterMeta.names.map((name) => ({
-                value: name,
-                label: `${name} (${pluginFilterMeta.counts.get(name) || 0})`,
-                icon: <PluginIcon pluginName={name} className="h-4 w-4" />,
-              })),
-            ],
+            width: 'panel' as const,
+            renderContent: ({ open, select }) => (
+              <PluginSelectorPanel
+                open={open}
+                value={selectedPlugin}
+                onValueChange={select}
+                allOption={{
+                  value: '__all__',
+                  label: t('aiCapabilityAgents.allPlugins'),
+                  count: sourceCounts.plugin,
+                }}
+                plugins={pluginFilterMeta.names.map((name) => ({
+                  id: name,
+                  name,
+                  count: pluginFilterMeta.counts.get(name) || 0,
+                }))}
+              />
+            ),
           },
         };
       }),

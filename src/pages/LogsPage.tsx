@@ -39,7 +39,7 @@ import { TabButtonGroup, tabToolbarControlClass } from '@/components/ui/TabButto
 import { toast } from 'sonner';
 import { StructuredDataViewer } from '@/components/StructuredDataViewer';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { headerActionRowClass, PinnedPage } from '@/components/layout/PinnedPage';
+import { headerActionRowClass, pageStackClass, PinnedPage } from '@/components/layout/PinnedPage';
 import { GlassAlert } from '@/components/ui/glass-alert';
 
 type LogLevel = 'info' | 'warn' | 'error' | 'debug' | 'all';
@@ -579,9 +579,6 @@ export default function LogsPage() {
           />
         </div>
       }
-      // 两页签互斥、只有一个可见，兄弟间不需要 space-y；hidden 兄弟仍会被
-      // space-y 的 * + * 选择器算成「非首元素」，在运行视图平白压出一段 margin
-      bodyClassName="space-y-0"
     >
       <LogsConfigDialog open={logsConfigOpen} onOpenChange={setLogsConfigOpen} />
       {errorsVisited ? (
@@ -589,7 +586,7 @@ export default function LogsPage() {
           <ErrorReportsPanel />
         </div>
       ) : null}
-      <div className={cn('space-y-3', view !== 'runtime' && 'hidden')}>
+      <div className={cn(pageStackClass, view !== 'runtime' && 'hidden')}>
         {hasNewLogs && (
           <GlassAlert
             tone="primary"

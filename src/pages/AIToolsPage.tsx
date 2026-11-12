@@ -13,8 +13,7 @@ import {
   tabToolbarShellControlClass,
   tabToolbarGroupWrapClass,
 } from '@/components/ui/TabButtonGroup';
-import { SearchableMenu } from '@/components/ui/searchable-menu';
-import { PluginIcon } from '@/components/ui/plugin-icon';
+import { PluginGridSelector } from '@/components/plugins/PluginUsageBar';
 import {
   Select,
   SelectContent,
@@ -22,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { PinnedPage } from '@/components/layout/PinnedPage';
+import { pageGapClass, pageStackClass, PinnedPage } from '@/components/layout/PinnedPage';
 import {
   Wrench,
   AlertCircle,
@@ -33,7 +32,6 @@ import {
   Search,
   Network,
   Boxes,
-  Puzzle,
   Sparkles,
   Plus,
   Layers,
@@ -196,17 +194,6 @@ function getPageNumbers(current: number, total: number): (number | 'ellipsis')[]
   if (end < total - 1) pages.push('ellipsis');
   pages.push(total);
   return pages;
-}
-
-// 插件筛选项前缀图标：'all' 用 Puzzle 占位（与 /ai-capability-agents 的「全部插件」一致），
-// 其余走统一 PluginIcon（core_command 等内置名由 getPluginIconUrl 映射到项目 LOGO）
-function PluginFilterIcon({ plugin }: { plugin: string }) {
-  if (plugin === 'all') return <Puzzle className="h-4 w-4 shrink-0 text-muted-foreground" />;
-  return <PluginIcon pluginName={plugin} className="h-4 w-4" />;
-}
-
-function pluginFilterLabel(plugin: string, count: number, allLabel: string): string {
-  return plugin === 'all' ? `${allLabel} (${count})` : `${plugin} (${count})`;
 }
 
 // 诊断筛选触发器图标：选中问题态时换成对应告警色，与工具卡上的诊断徽章同色
@@ -614,24 +601,30 @@ export default function AIToolsPage() {
                 </div>
 
                 <div className="min-w-0 flex-1">
-                  <SearchableMenu
+                  <PluginGridSelector
                     appearance="field"
-                    width="trigger"
                     align="end"
+                    enableShortcut={false}
                     className={cn(tabToolbarShellControlClass, 'w-full min-w-0 px-2')}
                     placeholder={t('aiTools.selectPlugin')}
-                    searchPlaceholder={t('common.search')}
                     value={selectedPlugin}
                     onValueChange={handlePluginChange}
-                    items={pluginList.map((plugin) => {
-                      const count = pluginCounts[plugin] || 0;
-                      return {
-                        value: plugin,
-                        label: pluginFilterLabel(plugin, count, t('aiTools.allPlugins')),
-                        icon: <PluginFilterIcon plugin={plugin} />,
-                        disabled: plugin !== 'all' && plugin !== selectedPlugin && count === 0,
-                      };
-                    })}
+                    allOption={{
+                      value: 'all',
+                      label: t('aiTools.allPlugins'),
+                      count: pluginCounts.all || 0,
+                    }}
+                    plugins={pluginList
+                      .filter((plugin) => plugin !== 'all')
+                      .map((plugin) => {
+                        const count = pluginCounts[plugin] || 0;
+                        return {
+                          id: plugin,
+                          name: plugin,
+                          count,
+                          disabled: plugin !== selectedPlugin && count === 0,
+                        };
+                      })}
                   />
                 </div>
               </div>
@@ -688,7 +681,7 @@ export default function AIToolsPage() {
       )}
 
       {pageTab === 'assemble' && (
-        <div className="space-y-3 md:space-y-4">
+        <div className={pageStackClass}>
           <Card className={cn('glass-card')}>
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
@@ -785,7 +778,7 @@ export default function AIToolsPage() {
       )}
 
       {pageTab === 'entity' && (
-        <div className="space-y-3 md:space-y-4">
+        <div className={pageStackClass}>
           <Card className={cn('glass-card')}>
             <CardHeader className="pb-3">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
@@ -920,7 +913,12 @@ export default function AIToolsPage() {
       {/* 工具列表 */}
       {pageTab === 'tools' &&
         (isLoading ? (
-          <div className="glass-card-grid grid grid-cols-1 gap-3 md:gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div
+            className={cn(
+              'glass-card-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3',
+              pageGapClass,
+            )}
+          >
             {Array.from({ length: 6 }).map((_, i) => (
               <Card key={i} className={cn('glass-card')}>
                 <CardHeader>
@@ -949,7 +947,12 @@ export default function AIToolsPage() {
           </Card>
         ) : (
           <>
-            <div className="glass-card-grid grid grid-cols-1 gap-3 md:gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div
+              className={cn(
+                'glass-card-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3',
+                pageGapClass,
+              )}
+            >
               {parsedTools.map((tool) => {
                 const diag = diagnoseTool(tools.find((x) => x.name === tool.name) ?? tool);
                 return (

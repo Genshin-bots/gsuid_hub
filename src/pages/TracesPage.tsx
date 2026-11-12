@@ -27,7 +27,7 @@ import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { ConsolePanel, type LogEntry } from '@/components/ConsolePanel';
-import { headerActionRowClass, PinnedPage } from '@/components/layout/PinnedPage';
+import { headerActionRowClass, pageGapClass, PinnedPage } from '@/components/layout/PinnedPage';
 
 const PAGE_SIZE = 100;
 
@@ -311,8 +311,6 @@ export default function TracesPage() {
 
   return (
     <PinnedPage
-      className="gap-3 md:gap-4"
-      bodyClassName="space-y-3 md:space-y-4"
       header={
         <div className="flex flex-col gap-3 md:gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0 sm:overflow-x-auto">
@@ -405,7 +403,7 @@ export default function TracesPage() {
       }
     >
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+      <div className={cn('grid grid-cols-2 md:grid-cols-4', pageGapClass)}>
         <Card className="glass-card border-l-4 border-l-primary">
           <CardContent className="p-4 flex items-center gap-3">
             <ScrollText className="w-7 h-7 text-primary shrink-0" strokeWidth={1.5} />

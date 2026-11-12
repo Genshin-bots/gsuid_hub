@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Check, Clock, Loader2, RefreshCw, ShieldCheck, User, X } from 'lucide-react';
 import { toast } from 'sonner';
-import { headerActionRowWideClass, PinnedPage } from '@/components/layout/PinnedPage';
+import {
+  headerActionRowWideClass,
+  pageStackClass,
+  PinnedPage,
+} from '@/components/layout/PinnedPage';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 import {
@@ -168,7 +172,7 @@ export default function AIApprovalsPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-3">
+        <div className={pageStackClass}>
           {items.map((item) => (
             <Card
               key={item.request_id}

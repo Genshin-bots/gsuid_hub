@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { pageStackClass } from '@/components/layout/PinnedPage';
 import { cn } from '@/lib/utils';
 import { isFieldModified } from '../classifyGroups';
 import {
@@ -163,7 +164,7 @@ export function DatabaseSection({
   };
 
   return (
-    <div className="space-y-3 md:space-y-4">
+    <div className={pageStackClass}>
       <ProgressiveSectionCard
         icon={<Database className="h-5 w-5" />}
         title={t('frameworkConfig.database.engineCardTitle')}

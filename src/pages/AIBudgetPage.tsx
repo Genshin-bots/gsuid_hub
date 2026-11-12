@@ -77,7 +77,7 @@ import {
   type AIBudgetCheckResult,
   type AIBudgetWindowUsage,
 } from '@/lib/api';
-import { PinnedPage } from '@/components/layout/PinnedPage';
+import { pageGapClass, pageStackClass, PinnedPage } from '@/components/layout/PinnedPage';
 
 // ============================================================================
 // Helpers
@@ -132,7 +132,6 @@ export default function AIBudgetPage() {
 
   return (
     <PinnedPage
-      className="gap-3 md:gap-4"
       header={
         /* Header */
         <div className="flex flex-col gap-3 md:gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -205,7 +204,7 @@ function OverviewTab({ onNavigateTab }: { onNavigateTab: (tab: string) => void }
   const topUsersMax = overview.top_users_24h.reduce((m, i) => Math.max(m, i.total_tokens), 0);
 
   return (
-    <div className="flex flex-col gap-3 md:gap-4">
+    <div className={pageStackClass}>
       {/* 顶部全局状态卡片（全宽） */}
       <div
         className={cn(
@@ -277,7 +276,7 @@ function OverviewTab({ onNavigateTab }: { onNavigateTab: (tab: string) => void }
       </div>
 
       {/* 4 个核心指标卡片（全宽响应式网格） */}
-      <div className="glass-card-grid grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-3 md:gap-4">
+      <div className={cn('glass-card-grid grid grid-cols-2 lg:grid-cols-4', pageGapClass)}>
         <div
           role="button"
           tabIndex={0}
@@ -414,7 +413,7 @@ function OverviewTab({ onNavigateTab }: { onNavigateTab: (tab: string) => void }
       )}
 
       {/* 24h 消耗排行 */}
-      <div className="grid grid-cols-1 items-stretch gap-3 md:gap-4 lg:grid-cols-2">
+      <div className={cn('grid grid-cols-1 items-stretch lg:grid-cols-2', pageGapClass)}>
         <Card className="glass-card h-full">
           <CardHeader className="p-4 py-3 sm:p-4 sm:py-3">
             <CardTitle className="flex items-center gap-2 text-base">
@@ -473,7 +472,7 @@ function OverviewTab({ onNavigateTab }: { onNavigateTab: (tab: string) => void }
       </div>
 
       {/* 底部快捷入口导航 */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-3 md:gap-4 mt-1">
+      <div className={cn('grid grid-cols-2 md:grid-cols-3', pageGapClass)}>
         <div
           role="button"
           tabIndex={0}
@@ -578,7 +577,7 @@ function OverviewTab({ onNavigateTab }: { onNavigateTab: (tab: string) => void }
 function ManageTab() {
   const { t } = useLanguage();
   return (
-    <div className="grid grid-cols-1 items-start gap-3 md:gap-4 xl:grid-cols-2">
+    <div className={cn('grid grid-cols-1 items-start xl:grid-cols-2', pageGapClass)}>
       <section className="flex min-w-0 flex-col gap-2">
         <h2 className="flex items-center gap-2 px-1 text-base font-semibold">
           <Settings className="h-4 w-4" />
@@ -696,7 +695,7 @@ function WindowProgressBar({ window: w }: { window: AIBudgetWindowUsage }) {
 
 function OverviewSkeleton() {
   return (
-    <div className="flex flex-col gap-3 md:gap-4">
+    <div className={pageStackClass}>
       <Skeleton className="h-20 w-full rounded-xl" />
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-3 md:gap-4">
         {[1, 2, 3, 4].map((i) => (
@@ -704,11 +703,11 @@ function OverviewSkeleton() {
         ))}
       </div>
       <Skeleton className="h-12 w-full rounded-xl" />
-      <div className="grid grid-cols-1 gap-3 md:gap-4 lg:grid-cols-2">
+      <div className={cn('grid grid-cols-1 lg:grid-cols-2', pageGapClass)}>
         <Skeleton className="h-56 rounded-xl" />
         <Skeleton className="h-56 rounded-xl" />
       </div>
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-3 md:gap-4">
+      <div className={cn('grid grid-cols-2 md:grid-cols-3', pageGapClass)}>
         {[1, 2, 3].map((i) => (
           <Skeleton key={i} className="h-28 rounded-xl" />
         ))}
@@ -842,7 +841,7 @@ function ConfigTab({
   ];
 
   return (
-    <div className="flex flex-col gap-3 md:gap-4">
+    <div className={pageStackClass}>
       {/* Master Switch */}
       <Card className="glass-card">
         <CardHeader>
@@ -1008,7 +1007,7 @@ function ConfigTab({
 
 function ConfigSkeleton() {
   return (
-    <div className="flex flex-col gap-3 md:gap-4">
+    <div className={pageStackClass}>
       {[1, 2, 3, 4].map((i) => (
         <Skeleton key={i} className="h-24 rounded-lg" />
       ))}
@@ -1134,7 +1133,7 @@ function RulesTab() {
   }, [rules]);
 
   return (
-    <div className="flex flex-col gap-3 md:gap-4">
+    <div className={pageStackClass}>
       {/* Toolbar */}
       <Card className="glass-card">
         <CardContent className="py-3">
@@ -1850,7 +1849,7 @@ function WhitelistTab() {
   };
 
   return (
-    <div className="flex flex-col gap-3 md:gap-4">
+    <div className={pageStackClass}>
       {/* Toolbar */}
       <Card className="glass-card">
         <CardContent className="py-3">
@@ -2226,7 +2225,7 @@ function DiagnosticTab() {
   ];
 
   return (
-    <div className="flex flex-col gap-3 md:gap-4">
+    <div className={pageStackClass}>
       {/* Dry Run Check */}
       <Card className="glass-card">
         <CardHeader>

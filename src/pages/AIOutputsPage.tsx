@@ -189,7 +189,6 @@ export default function AIOutputsPage() {
 
   return (
     <PinnedPage
-      className="gap-3 md:gap-4"
       header={
         <div className="min-w-0">
           <h1 className="text-3xl font-bold flex items-center gap-3">

@@ -21,6 +21,7 @@ import {
   FolderOpen,
   Loader2,
 } from 'lucide-react';
+import { pageGapClass } from '@/components/layout/PinnedPage';
 import { cn } from '@/lib/utils';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -281,7 +282,12 @@ export default function SkillsPanel({ addDialogOpen, onAddDialogOpenChange }: Sk
       )}
 
       {isLoading ? (
-        <div className="glass-card-grid grid grid-cols-1 gap-3 md:gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div
+          className={cn(
+            'glass-card-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3',
+            pageGapClass,
+          )}
+        >
           {['a', 'b', 'c', 'd', 'e', 'f'].map((key) => (
             <Card key={key} className="glass-card">
               <CardHeader>
@@ -302,7 +308,12 @@ export default function SkillsPanel({ addDialogOpen, onAddDialogOpenChange }: Sk
           </CardContent>
         </Card>
       ) : (
-        <div className="glass-card-grid grid grid-cols-1 gap-3 md:gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div
+          className={cn(
+            'glass-card-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3',
+            pageGapClass,
+          )}
+        >
           {parsedSkills.map((skill) => (
             <Card
               key={skill.name}

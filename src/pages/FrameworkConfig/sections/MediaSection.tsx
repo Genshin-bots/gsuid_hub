@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { pageStackClass } from '@/components/layout/PinnedPage';
 import { cn } from '@/lib/utils';
 import { isFieldModified, isNonEditableField } from '../classifyGroups';
 import { PlatformBrandIcon } from '../shared/PlatformBrandIcon';
@@ -174,7 +175,7 @@ export function MediaSection({
   );
 
   return (
-    <div className="space-y-3 md:space-y-4">
+    <div className={pageStackClass}>
       {hasPicSrvConflict && uploadGroup && (
         <GlassAlert tone="warning" icon={AlertTriangle}>
           <div className="flex w-full min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">

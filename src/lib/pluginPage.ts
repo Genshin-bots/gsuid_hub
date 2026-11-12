@@ -307,6 +307,22 @@ export function getSharedRecentPluginsSnapshot(): string[] {
   return sharedRecentCache;
 }
 
+export const MAX_RECENT_PLUGIN_PILLS = 5;
+
+function mergeBackendRecentPlugins(
+  recentPlugins: ReadonlyArray<string>,
+  lastEditedPlugin: string,
+): string[] {
+  const cleanRecent = dedupePluginNames(recentPlugins);
+  const lastTrimmed = lastEditedPlugin.trim();
+  if (!lastTrimmed) return cleanRecent;
+  const lastLower = lastTrimmed.toLowerCase();
+  if (cleanRecent.some((name) => name.toLowerCase() === lastLower)) {
+    return cleanRecent;
+  }
+  return dedupePluginNames([lastTrimmed, ...cleanRecent]);
+}
+
 export function fetchSharedPluginPrefs(force = false): Promise<SharedPluginPrefsState> {
   if (!force && sharedPrefsFetched && sharedRecentCache !== null) {
     return Promise.resolve({
@@ -322,9 +338,12 @@ export function fetchSharedPluginPrefs(force = false): Promise<SharedPluginPrefs
     .getRecentPlugins()
     .then((dto) => {
       const backendRecent = Array.isArray(dto?.recent_plugins) ? dto.recent_plugins : [];
-      const mergedRecent = dedupePluginNames([...backendRecent, ...readLocalRecentPlugins()]);
       const backendLast =
         typeof dto?.last_edited_plugin === 'string' ? dto.last_edited_plugin.trim() : '';
+      const hasBackendData = backendRecent.length > 0 || backendLast.length > 0;
+      const mergedRecent = hasBackendData
+        ? mergeBackendRecentPlugins(backendRecent, backendLast)
+        : readLocalRecentPlugins();
       const effectiveLast = backendLast || readLastEditedPluginId();
 
       writeLocalRecentPlugins(mergedRecent);
@@ -354,7 +373,6 @@ export function fetchSharedPluginPrefs(force = false): Promise<SharedPluginPrefs
       const fallbackLast = readLastEditedPluginId();
       sharedRecentCache = fallbackRecent;
       sharedLastEditedCache = fallbackLast;
-      sharedPrefsFetched = true;
       return {
         recentPlugins: fallbackRecent,
         lastEditedPlugin: fallbackLast,
@@ -385,11 +403,11 @@ export function recordSharedRecentPlugin(pluginName: string, edited = false): vo
   pluginsApi
     .recordRecentPlugin(trimmed, edited)
     .then((dto) => {
-      const serverRecent = Array.isArray(dto?.recent_plugins)
-        ? dedupePluginNames(dto.recent_plugins)
-        : nextLocal;
       const serverLast =
         typeof dto?.last_edited_plugin === 'string' ? dto.last_edited_plugin.trim() : '';
+      const serverRecent = Array.isArray(dto?.recent_plugins)
+        ? mergeBackendRecentPlugins(dto.recent_plugins, serverLast)
+        : nextLocal;
 
       writeLocalRecentPlugins(serverRecent);
       if (serverLast) {
@@ -487,14 +505,14 @@ export function orderPluginsByUsage<T extends OrderablePluginItem>(
 }
 
 /**
- * 组装选择器顶部的「最近使用」胶囊列表（默认最多 4 项）：
+ * 组装选择器顶部的「最近使用」胶囊列表（默认最多 5 项）：
  * 优先按后端 MRU 顺序匹配当前可选列表，不足时用触发热度榜单补齐。
  */
 export function resolveRecentPluginItems<T extends OrderablePluginItem & { iconName?: string }>(
   plugins: ReadonlyArray<T>,
   recentNames: ReadonlyArray<string>,
   usageNames: ReadonlyArray<string> = [],
-  maxRecent = 4,
+  maxRecent = MAX_RECENT_PLUGIN_PILLS,
 ): T[] {
   if (plugins.length === 0 || maxRecent <= 0) return [];
   const picked: T[] = [];

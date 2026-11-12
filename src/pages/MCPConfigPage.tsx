@@ -1039,8 +1039,6 @@ export default function MCPConfigPage() {
   return (
     <TooltipProvider>
       <PinnedPage
-        className="gap-3 sm:gap-3 md:gap-6"
-        bodyClassName="space-y-3 sm:space-y-3 md:space-y-6"
         header={
           /* Header */
           <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">

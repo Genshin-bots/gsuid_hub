@@ -37,6 +37,7 @@ import {
 import { tabToolbarControlClass } from '@/components/ui/TabButtonGroup';
 import { TruncatedText } from '@/components/ui/truncated-text';
 import { autonomyApi, getApiErrorMessage, type AutonomyActivity } from '@/lib/api';
+import { pageGapClass, pageStackClass } from '@/components/layout/PinnedPage';
 import { cn } from '@/lib/utils';
 import { AUTONOMY_PERSONA_ALL } from './constants';
 
@@ -162,11 +163,11 @@ export function AutonomyPanel(props: AutonomyPanelProps) {
   const to = Math.min(offset + items.length, total);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3 md:gap-4">
-      <section className="space-y-3">
+    <div className={cn('min-h-0 flex-1', pageStackClass)}>
+      <section className={pageStackClass}>
         <h2 className="text-sm font-medium text-muted-foreground">{t('aiAutonomy.latestTitle')}</h2>
         {loading && latest.length === 0 ? (
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <div className={cn('grid sm:grid-cols-2 xl:grid-cols-3', pageGapClass)}>
             <Skeleton className="h-28" />
             <Skeleton className="h-28" />
             <Skeleton className="h-28" />
@@ -180,7 +181,7 @@ export function AutonomyPanel(props: AutonomyPanelProps) {
             </CardContent>
           </Card>
         ) : (
-          <div className="glass-card-grid grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <div className={cn('glass-card-grid grid sm:grid-cols-2 xl:grid-cols-3', pageGapClass)}>
             {latest.map((row) => (
               <button
                 key={row.id}

@@ -14,6 +14,8 @@ import {
   SlidersHorizontal,
 } from 'lucide-react';
 import { GlassAlert } from '@/components/ui/glass-alert';
+import { pageGapClass, pageStackClass } from '@/components/layout/PinnedPage';
+import { cn } from '@/lib/utils';
 import { Label } from '@/components/ui/label';
 
 import { Switch } from '@/components/ui/switch';
@@ -180,7 +182,7 @@ export function VectorDbSection({
   const currentExtraProvider = extraProviders?.[embeddingProvider];
 
   return (
-    <div className="space-y-3 md:space-y-5">
+    <div className={pageStackClass}>
       <div>
         <h2 className="text-lg font-bold flex items-center gap-2 mb-1">
           <Database className="w-5 h-5 text-primary" />
@@ -189,7 +191,7 @@ export function VectorDbSection({
         <p className="text-sm text-muted-foreground">{t('aiConfig.vectorDb.description')}</p>
       </div>
 
-      <div className="grid items-start gap-3 md:gap-6 lg:grid-cols-2">
+      <div className={cn('grid items-start lg:grid-cols-2', pageGapClass)}>
         {/* 1. Qdrant 部署方式 */}
         <div className="space-y-3">
           <LabelWithHelp

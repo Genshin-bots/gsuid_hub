@@ -5,7 +5,9 @@ import {
   type ConfigFieldType,
   type ConfigValue,
 } from '@/components/config';
+import { pageGapClass, pageStackClass } from '@/components/layout/PinnedPage';
 import { Separator } from '@/components/ui/separator';
+import { cn } from '@/lib/utils';
 import type { PluginConfigItem } from '@/lib/api';
 import { isKitSlotConfigKey, RUNTIME_EXCLUDED_KEYS } from '../runtimeConfigKeys';
 import { RelationshipSettingsSection } from './RelationshipSettingsSection';
@@ -65,7 +67,7 @@ export function AdvancedSettingsSection({
   onUpdateConfig,
 }: AdvancedSettingsSectionProps) {
   return (
-    <div className="space-y-3 md:space-y-5">
+    <div className={pageStackClass}>
       <div>
         <h2 className="text-lg font-bold flex items-center gap-2 mb-1">
           <SlidersHorizontal className="w-5 h-5 text-muted-foreground" />
@@ -79,7 +81,7 @@ export function AdvancedSettingsSection({
       <RelationshipSettingsSection t={t} aiConfig={aiConfig} onUpdateConfig={onUpdateConfig} />
       <Separator className="bg-border/30" />
 
-      <div className="grid grid-cols-2 items-start gap-3 md:gap-6 lg:grid-cols-3">
+      <div className={cn('grid grid-cols-2 items-start lg:grid-cols-3', pageGapClass)}>
         {(() => {
           const entries = Object.entries(aiConfig.config).filter(
             ([key]) => !EXCLUDED_KEYS.includes(key) && !isKitSlotConfigKey(key),

@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { ChipGroup } from '@/components/ui/MultiSelectChipGroup';
 import { DynamicConfigPanel, type ConfigValue } from '@/components/config';
 import type { PluginConfigItem } from '@/lib/api';
+import { pageStackClass } from '@/components/layout/PinnedPage';
 import { cn } from '@/lib/utils';
 import {
   filterOutPrimaryProvider,
@@ -205,7 +206,7 @@ export function WebFetchSection({
   };
 
   return (
-    <div className="space-y-3 md:space-y-5">
+    <div className={pageStackClass}>
       <HeadingWithHelp
         icon={<Globe className="w-5 h-5 text-primary" />}
         title={t('aiConfig.webFetch.title')}

@@ -1,5 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Heart } from 'lucide-react';
+import { pageGapClass, pageStackClass } from '@/components/layout/PinnedPage';
+import { cn } from '@/lib/utils';
 import { ConfigField, pluginConfigItemToFieldDef, type ConfigValue } from '@/components/config';
 import { Button } from '@/components/ui/button';
 import type { PluginConfigItem } from '@/lib/api';
@@ -25,7 +27,7 @@ export function RelationshipSettingsSection({
   });
 
   return (
-    <div className="space-y-3 md:space-y-4">
+    <div className={pageStackClass}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h2 className="mb-1 flex items-center gap-2 text-lg font-bold">
@@ -48,7 +50,7 @@ export function RelationshipSettingsSection({
           {t('aiConfig.relationshipSettings.empty')}
         </div>
       ) : (
-        <div className="grid grid-cols-2 items-start gap-3 md:gap-6 lg:grid-cols-3">
+        <div className={cn('grid grid-cols-2 items-start lg:grid-cols-3', pageGapClass)}>
           {entries.map(([key, item]) => (
             <ConfigField
               key={key}

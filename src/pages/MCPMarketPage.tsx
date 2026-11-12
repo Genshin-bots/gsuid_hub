@@ -129,7 +129,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { PinnedPage } from '@/components/layout/PinnedPage';
+import { pageGapClass, PinnedPage } from '@/components/layout/PinnedPage';
 import { tabToolbarControlClass } from '@/components/ui/TabButtonGroup';
 
 const PAGE_SIZE = 24;
@@ -1026,7 +1026,7 @@ export default function MCPMarketPage() {
           </Card>
         ) : (
           <>
-            <div className="grid gap-3 md:gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div className={`grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 ${pageGapClass}`}>
               {entries.map((entry) => {
                 const chips = [...(entry.categories || []), ...(entry.tags || [])];
                 const installedCfg = installedMap.get(entry.qualified_name);

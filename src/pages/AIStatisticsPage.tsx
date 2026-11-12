@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 
 import { aiStatisticsApi, aiPerformanceApi, aiTaskModelsApi, getApiErrorMessage } from '@/lib/api';
 
-import { PinnedPage } from '@/components/layout/PinnedPage';
+import { pageGapClass, pageStackClass, PinnedPage } from '@/components/layout/PinnedPage';
 
 import type {
   AIErrorEvent,
@@ -2817,7 +2817,6 @@ export default function AIStatisticsPage() {
 
   return (
     <PinnedPage
-      className="gap-3 md:gap-4"
       header={
         <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-1">
           <h1 className="text-3xl font-bold flex items-center gap-3">
@@ -3107,7 +3106,7 @@ export default function AIStatisticsPage() {
       )}
 
       {isLoading ? (
-        <div className="space-y-3 md:space-y-4">
+        <div className={pageStackClass}>
           <TileSkeleton count={6} />
           <TileSkeleton count={6} />
         </div>
@@ -3124,7 +3123,7 @@ export default function AIStatisticsPage() {
               ================================================================ */}
 
           {activeTab === 'overview' && (
-            <div className="glass-card-grid">
+            <div className={cn('glass-card-grid', pageStackClass)}>
               {/* 四类 Token 收成主角卡里的一根占比条：原来四张拆分卡各占 1/6 页宽、
 
 
@@ -3146,7 +3145,7 @@ export default function AIStatisticsPage() {
 
 
                   原来这两格在三张图的读数条里，那一整行就为了两个数。 */}
-              <div className="grid grid-cols-1 gap-3 md:gap-2.5 md:grid-cols-12">
+              <div className={cn('grid grid-cols-1 md:grid-cols-12', pageGapClass)}>
                 <div className="md:col-span-12 xl:col-span-6">
                   <MetricHero
                     className="h-full"
@@ -3350,7 +3349,7 @@ export default function AIStatisticsPage() {
 
 
                   搬过去反而各得其所。这一行空出来的两列，四张图每张从 2/3 列涨到 3 列。 */}
-              <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-2 xl:grid-cols-12">
+              <div className={cn('grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-12', pageGapClass)}>
                 <DataBlock
                   title={t('aiStatistics.ttft')}
                   icon={Clock}
@@ -3495,7 +3494,7 @@ export default function AIStatisticsPage() {
 
 
                   是 120，所以三张卡实际差在十像素上下，肉眼看不出来。 */}
-              <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-12">
+              <div className={cn('grid grid-cols-1 lg:grid-cols-12', pageGapClass)}>
                 {/* 每日走势。跟上一行的效率趋势共用 trendSource，但各自成卡，
 
 
@@ -3618,11 +3617,11 @@ export default function AIStatisticsPage() {
                 </DataBlock>
               </div>
 
-              <div className="mt-4">
+              <div>
                 <SectionLabel title={t('aiStatistics.zoneInvocation')} icon={GitBranch} />
               </div>
 
-              <div className="mt-3 md:mt-4 grid grid-cols-1 gap-3 lg:grid-cols-2 xl:grid-cols-12">
+              <div className={cn('grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-12', pageGapClass)}>
                 <DataBlock
                   title={t('aiStatistics.intentDistribution')}
                   icon={Brain}
@@ -3890,11 +3889,11 @@ export default function AIStatisticsPage() {
                 </DataBlock>
               </div>
 
-              <div className="mt-4">
+              <div>
                 <SectionLabel title={t('aiStatistics.zoneMemory')} icon={Brain} />
               </div>
 
-              <div className="mt-3 md:mt-2.5 grid grid-cols-2 gap-2.5 sm:grid-cols-3 xl:grid-cols-6">
+              <div className={cn('grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6', pageGapClass)}>
                 <MetricMini
                   title={t('aiStatistics.userTurnCount')}
                   value={(efficiency.user_turn_count ?? 0).toLocaleString()}
@@ -3934,7 +3933,7 @@ export default function AIStatisticsPage() {
                 />
               </div>
 
-              <div className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-12">
+              <div className={cn('grid grid-cols-1 xl:grid-cols-12', pageGapClass)}>
                 <DataBlock
                   title={t('aiStatistics.memoryPipeline')}
                   icon={Brain}
@@ -4067,7 +4066,7 @@ export default function AIStatisticsPage() {
                         <SectionLabel title={t('aiStatistics.dayDetail')} icon={Layers} />
                       </div>
 
-                      <div className="mt-3 md:mt-2.5 grid grid-cols-1 gap-4 xl:grid-cols-2">
+                      <div className={cn('grid grid-cols-1 xl:grid-cols-2', pageGapClass)}>
                         <DataBlock
                           title={t('aiStatistics.modelDetail')}
                           icon={Layers}
@@ -4609,7 +4608,7 @@ export default function AIStatisticsPage() {
               ================================================================ */}
           {activeTab === 'rag' && (
             <div className="glass-card-grid">
-              <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+              <div className={cn('grid grid-cols-1 lg:grid-cols-3', pageGapClass)}>
                 <DataBlock
                   title={t('aiStatistics.ragDocuments')}
                   icon={Database}
@@ -4699,7 +4698,7 @@ export default function AIStatisticsPage() {
                 </DataBlock>
               </div>
 
-              <div className="mt-3">
+              <div>
                 <DataBlock
                   title={t('aiStatistics.ragDocumentDetail')}
                   icon={Layers}

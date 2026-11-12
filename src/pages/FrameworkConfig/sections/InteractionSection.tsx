@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { pageStackClass } from '@/components/layout/PinnedPage';
 import { cn } from '@/lib/utils';
 import { isFieldModified } from '../classifyGroups';
 import { PlatformBrandIcon } from '../shared/PlatformBrandIcon';
@@ -279,7 +280,7 @@ export function InteractionSection({
   const tplPlatformPool = getPlatformListForField('SendTemplatePlatform', tplPlatforms);
 
   return (
-    <div className="space-y-3 md:space-y-4">
+    <div className={pageStackClass}>
       {(miscGroup || cacheGroup) && (
         <>
           <ProgressiveSectionCard

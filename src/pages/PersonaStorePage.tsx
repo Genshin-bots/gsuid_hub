@@ -49,7 +49,7 @@ import rehypeRaw from 'rehype-raw';
 import rehypeSanitize from 'rehype-sanitize';
 import remarkGfm from 'remark-gfm';
 import type { Components } from 'react-markdown';
-import { PinnedPage } from '@/components/layout/PinnedPage';
+import { pageGapClass, PinnedPage } from '@/components/layout/PinnedPage';
 
 const PERSONA_PAGE_SIZE = 32;
 
@@ -337,7 +337,6 @@ export default function PersonaStorePage() {
 
   return (
     <PinnedPage
-      className="gap-3 md:gap-4"
       header={
         <div className="flex items-start gap-1">
           <Button
@@ -409,7 +408,7 @@ export default function PersonaStorePage() {
       }
     >
       {isLoading ? (
-        <div className="grid gap-3 md:gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className={cn('grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4', pageGapClass)}>
           {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
             <Card key={i} className="glass-card">
               <CardHeader>
@@ -443,7 +442,7 @@ export default function PersonaStorePage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-3 md:gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className={cn('grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4', pageGapClass)}>
           {visiblePersonas.map((persona) => (
             <Card
               key={persona.id}

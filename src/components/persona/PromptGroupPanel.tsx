@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
+import { pageGapClass } from '@/components/layout/PinnedPage';
 import { Button } from '@/components/ui/button';
 import { GlassAlert } from '@/components/ui/glass-alert';
 import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
@@ -269,7 +270,12 @@ export const PromptGroupPanel = forwardRef<
           <Loader2 className="h-8 w-8 animate-spin" />
         </div>
       ) : (
-        <div className="glass-card-grid grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-2 2xl:grid-cols-3">
+        <div
+          className={cn(
+            'glass-card-grid grid min-w-0 grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3',
+            pageGapClass,
+          )}
+        >
           {groups.map((group) => (
             <Card
               key={group.name}

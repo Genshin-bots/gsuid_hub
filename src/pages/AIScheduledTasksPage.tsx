@@ -71,7 +71,7 @@ import {
   type CreateScheduledTaskRequest,
 } from '@/lib/api';
 import { toast } from 'sonner';
-import { PinnedPage } from '@/components/layout/PinnedPage';
+import { pageGapClass, pageStackClass, PinnedPage } from '@/components/layout/PinnedPage';
 
 // ============================================================================
 // 组件定义
@@ -358,8 +358,6 @@ export default function AIScheduledTasksPage() {
 
   return (
     <PinnedPage
-      className="gap-3 sm:gap-3 md:gap-4"
-      bodyClassName="space-y-2 sm:space-y-2.5"
       header={
         /* 页面标题 */
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -387,7 +385,12 @@ export default function AIScheduledTasksPage() {
     >
       {/* 统计卡片 */}
       {stats && (
-        <div className="glass-card-grid grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2 sm:gap-2.5">
+        <div
+          className={cn(
+            'glass-card-grid grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7',
+            pageGapClass,
+          )}
+        >
           <Card className={cn('glass-card')}>
             <CardContent className="p-3">
               <div className="flex items-center gap-2.5">
@@ -551,7 +554,7 @@ export default function AIScheduledTasksPage() {
 
       {/* 任务列表 */}
       {isLoading ? (
-        <div className="space-y-3 md:space-y-4">
+        <div className={pageStackClass}>
           {[1, 2, 3].map((i) => (
             <Card key={i} className={cn('glass-card')}>
               <CardContent className="p-4">

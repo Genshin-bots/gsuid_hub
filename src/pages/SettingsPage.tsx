@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import { authApi, resolveApiAssetUrl } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { PinnedPage } from '@/components/layout/PinnedPage';
+import { pageGapClass, PinnedPage } from '@/components/layout/PinnedPage';
 
 export default function SettingsPage() {
   const { t } = useLanguage();
@@ -126,7 +126,7 @@ export default function SettingsPage() {
         </div>
       }
     >
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-6">
+      <div className={`grid grid-cols-1 lg:grid-cols-2 ${pageGapClass}`}>
         {/* Avatar & Name Section */}
         <Card className="glass-card">
           <CardHeader>

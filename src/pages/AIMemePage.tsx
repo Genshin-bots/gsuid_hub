@@ -77,7 +77,7 @@ import {
   type MemePersona,
   getApiErrorMessage,
 } from '@/lib/api';
-import { headerActionRowClass, PinnedPage } from '@/components/layout/PinnedPage';
+import { headerActionRowClass, pageGapClass, PinnedPage } from '@/components/layout/PinnedPage';
 import { toast } from 'sonner';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
@@ -1955,7 +1955,7 @@ export default function AIMemePage() {
       )}
 
       {(isLoadingStats || stats) && (
-        <div className="grid grid-cols-2 gap-3 md:gap-4 md:grid-cols-3 lg:grid-cols-6">
+        <div className={cn('grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6', pageGapClass)}>
           {isLoadingStats ? (
             Array.from({ length: 6 }).map((_, i) => (
               <Card key={i} className={cn('glass-card')}>
@@ -2016,7 +2016,12 @@ export default function AIMemePage() {
 
       {/* Meme Grid */}
       {isLoading ? (
-        <div className="grid grid-cols-2 gap-3 md:gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+        <div
+          className={cn(
+            'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6',
+            pageGapClass,
+          )}
+        >
           {Array.from({ length: 12 }).map((_, i) => (
             <Card key={i} className={cn('glass-card')}>
               <Skeleton className="aspect-square w-full" />
@@ -2049,7 +2054,12 @@ export default function AIMemePage() {
         </Card>
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-3 md:gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+          <div
+            className={cn(
+              'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6',
+              pageGapClass,
+            )}
+          >
             {memes.map((meme) => (
               <MemeCard
                 key={meme.meme_id}

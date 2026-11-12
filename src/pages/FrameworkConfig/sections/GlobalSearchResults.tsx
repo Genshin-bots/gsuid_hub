@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { pageStackClass } from '@/components/layout/PinnedPage';
 import type { PluginConfigItem } from '@/lib/api';
 import { EmptyState } from '../shared/ProgressivePrimitives';
 import type { DomainId, FrameworkSearchHit } from '../types';
@@ -88,7 +89,7 @@ export function GlobalSearchResults({
   }
 
   return (
-    <div className="space-y-3 md:space-y-4">
+    <div className={pageStackClass}>
       <div className="flex min-w-0 items-center justify-between gap-2 px-1">
         <div className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
           <SlidersHorizontal className="h-3.5 w-3.5 shrink-0 text-primary" />

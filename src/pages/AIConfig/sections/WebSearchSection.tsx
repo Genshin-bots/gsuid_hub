@@ -22,6 +22,7 @@ import anysearchIcon from '@/assets/search-providers/anysearch.ico';
 import firecrawlIcon from '@/assets/search-providers/firecrawl.ico';
 import so360Icon from '@/assets/search-providers/360.ico';
 import { PluginIcon } from '@/components/ui/plugin-icon';
+import { pageStackClass } from '@/components/layout/PinnedPage';
 import {
   filterOutPrimaryProvider,
   HeadingWithHelp,
@@ -439,7 +440,7 @@ export function WebSearchSection({
   };
 
   return (
-    <div className="space-y-3 md:space-y-5">
+    <div className={pageStackClass}>
       <HeadingWithHelp
         icon={<Search className="w-5 h-5 text-primary" />}
         title={t('aiConfig.serviceProvider.webSearchService')}

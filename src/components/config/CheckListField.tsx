@@ -7,6 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { LabelWithHelp } from '@/components/ui/label-with-help';
+import { PluginGridSelector } from '@/components/plugins/PluginUsageBar';
 import { SearchableMenu } from '@/components/ui/searchable-menu';
 
 type TFn = (key: string, params?: Record<string, string | number>) => string;
@@ -76,7 +77,8 @@ interface CheckListFieldProps {
   mode?: SelectionMode;
   groups?: CheckListGroup[];
   filter?: {
-    options: { value: string; label: string; icon?: React.ReactNode }[];
+    kind?: 'default' | 'plugin';
+    options: { value: string; label: string; icon?: React.ReactNode; count?: number }[];
     allLabel: string;
   };
   searchPlaceholder?: string;
@@ -417,25 +419,42 @@ export function CheckListField({
                   className={cn(CONTROL_H, 'pl-9 text-sm')}
                 />
               </div>
-              {filter && (
-                <SearchableMenu
-                  appearance="field"
-                  width="trigger"
-                  align="end"
-                  className={cn(CONTROL_H, 'text-sm')}
-                  placeholder={filter.allLabel}
-                  value={filterValue}
-                  onValueChange={setFilterValue}
-                  items={[
-                    { value: '__all__', label: filter.allLabel },
-                    ...filter.options.map((opt) => ({
-                      value: opt.value,
-                      label: opt.label,
-                      icon: opt.icon,
-                    })),
-                  ]}
-                />
-              )}
+              {filter &&
+                (filter.kind === 'plugin' ? (
+                  <PluginGridSelector
+                    appearance="field"
+                    align="end"
+                    enableShortcut={false}
+                    className={cn(CONTROL_H, 'text-sm')}
+                    placeholder={filter.allLabel}
+                    value={filterValue}
+                    onValueChange={setFilterValue}
+                    allOption={{ value: '__all__', label: filter.allLabel }}
+                    plugins={filter.options.map((opt) => ({
+                      id: opt.value,
+                      name: opt.label,
+                      count: opt.count,
+                    }))}
+                  />
+                ) : (
+                  <SearchableMenu
+                    appearance="field"
+                    width="trigger"
+                    align="end"
+                    className={cn(CONTROL_H, 'text-sm')}
+                    placeholder={filter.allLabel}
+                    value={filterValue}
+                    onValueChange={setFilterValue}
+                    items={[
+                      { value: '__all__', label: filter.allLabel },
+                      ...filter.options.map((opt) => ({
+                        value: opt.value,
+                        label: opt.label,
+                        icon: opt.icon,
+                      })),
+                    ]}
+                  />
+                ))}
             </div>
 
             {/*

@@ -70,7 +70,7 @@ import {
   ImageOff,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { PinnedPage } from '@/components/layout/PinnedPage';
+import { pageGapClass, pageStackClass, PinnedPage } from '@/components/layout/PinnedPage';
 
 // ============================================================================
 // 静态预设数据
@@ -761,9 +761,9 @@ export default function ThemesPage() {
         live
         preload
         render={() => (
-          <div className="glass-card-grid grid gap-3 md:gap-6 lg:grid-cols-2">
+          <div className={cn('glass-card-grid grid lg:grid-cols-2', pageGapClass)}>
             {/* ==================== 左列：显示与质感 ==================== */}
-            <div className="space-y-3 md:space-y-4">
+            <div className={pageStackClass}>
               <div className="flex items-center gap-2 px-1 text-sm font-semibold text-muted-foreground">
                 <Sparkles className="w-4 h-4 text-primary" />
                 <span>{t('themes.groupStyle')}</span>
@@ -875,7 +875,7 @@ export default function ThemesPage() {
             </div>
 
             {/* ==================== 右列：主题与色彩 ==================== */}
-            <div className="space-y-3 md:space-y-4">
+            <div className={pageStackClass}>
               <div className="flex items-center gap-2 px-1 text-sm font-semibold text-muted-foreground">
                 <Palette className="w-4 h-4 text-primary" />
                 <span>{t('themes.groupPalette')}</span>
@@ -951,7 +951,7 @@ export default function ThemesPage() {
         live
         preload
         render={() => (
-          <div className="space-y-3 md:space-y-6">
+          <div className={pageStackClass}>
             {/* 背景模糊 */}
             <Card className="glass-card p-4 sm:p-5 space-y-3 md:space-y-4">
               <ThemeSliderControl
@@ -1107,9 +1107,9 @@ export default function ThemesPage() {
         live
         preload
         render={() => (
-          <div className="glass-card-grid grid gap-3 md:gap-6 lg:grid-cols-2">
+          <div className={cn('glass-card-grid grid lg:grid-cols-2', pageGapClass)}>
             {/* ==================== 左列：材质与光影 ==================== */}
-            <div className="space-y-3 md:space-y-4">
+            <div className={pageStackClass}>
               <div className="flex items-center gap-2 px-1 text-sm font-semibold text-muted-foreground">
                 <Paintbrush className="w-4 h-4 text-primary" />
                 <span>{t('themes.groupMaterial')}</span>
@@ -1237,7 +1237,7 @@ export default function ThemesPage() {
             </div>
 
             {/* ==================== 右列：布局与缩放 ==================== */}
-            <div className="space-y-3 md:space-y-4">
+            <div className={pageStackClass}>
               <div className="flex items-center gap-2 px-1 text-sm font-semibold text-muted-foreground">
                 <SlidersHorizontal className="w-4 h-4 text-primary" />
                 <span>{t('themes.groupLayout')}</span>
@@ -1354,7 +1354,12 @@ export default function ThemesPage() {
             </CardHeader>
             <CardContent>
               {presetsLoading ? (
-                <div className="glass-card-grid grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-4">
+                <div
+                  className={cn(
+                    'glass-card-grid grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3',
+                    pageGapClass,
+                  )}
+                >
                   {['skel-1', 'skel-2', 'skel-3'].map((id) => (
                     <Skeleton key={id} className="h-40 rounded-lg" />
                   ))}
@@ -1381,7 +1386,12 @@ export default function ThemesPage() {
                   </Button>
                 </div>
               ) : (
-                <div className="glass-card-grid grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-4">
+                <div
+                  className={cn(
+                    'glass-card-grid grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3',
+                    pageGapClass,
+                  )}
+                >
                   {presets.map((preset) => (
                     <div
                       key={preset.name}

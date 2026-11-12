@@ -55,7 +55,7 @@ import rehypeRaw from 'rehype-raw';
 import rehypeSanitize from 'rehype-sanitize';
 import remarkGfm from 'remark-gfm';
 import type { Components } from 'react-markdown';
-import { PinnedPage } from '@/components/layout/PinnedPage';
+import { pageGapClass, PinnedPage } from '@/components/layout/PinnedPage';
 
 // 缓存相关常量
 const PLUGIN_CACHE_KEY = 'pluginStore_cache';
@@ -730,7 +730,6 @@ export default function PluginStorePage() {
 
   return (
     <PinnedPage
-      className="gap-3 md:gap-4"
       header={
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-3">
@@ -792,7 +791,7 @@ export default function PluginStorePage() {
       }
     >
       {isLoading ? (
-        <div className="grid gap-3 md:gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className={cn('grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4', pageGapClass)}>
           {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
             <Card key={i} className="glass-card">
               <div className="h-32 bg-muted/50 overflow-hidden rounded-t-[inherit]">
@@ -833,7 +832,7 @@ export default function PluginStorePage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-3 md:gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className={cn('grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4', pageGapClass)}>
           {visiblePlugins.map((plugin) => {
             const deprecated = isDeprecated(plugin);
             const pluginLink = plugin.link || `https://github.com/${plugin.id}`;

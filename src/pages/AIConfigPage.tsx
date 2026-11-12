@@ -36,7 +36,12 @@ import {
   Server,
   Terminal,
 } from 'lucide-react';
-import { headerActionRowClass, PinnedPage } from '@/components/layout/PinnedPage';
+import {
+  headerActionRowClass,
+  pageGapClass,
+  pageStackClass,
+  PinnedPage,
+} from '@/components/layout/PinnedPage';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import {
@@ -731,7 +736,7 @@ export default function AIConfigPage() {
 
   if (!aiConfig) {
     return (
-      <div className="space-y-3 md:space-y-6">
+      <div className={pageStackClass}>
         <EmptyState
           icon={<Bot className="w-8 h-8 text-muted-foreground" />}
           title={t('aiConfig.noAIConfig')}
@@ -834,7 +839,7 @@ export default function AIConfigPage() {
       case 'webSearch':
       case 'webFetch':
         return (
-          <div className="grid items-start gap-3 md:gap-6 lg:grid-cols-2">
+          <div className={cn('grid items-start lg:grid-cols-2', pageGapClass)}>
             <WebSearchSection
               t={t}
               websearchProvider={websearchProvider}
@@ -928,7 +933,7 @@ export default function AIConfigPage() {
       case 'voiceRecognition':
       case 'documentExtract':
         return (
-          <div className="grid items-start gap-3 md:gap-6 lg:grid-cols-2 xl:grid-cols-3">
+          <div className={cn('grid items-start lg:grid-cols-2 xl:grid-cols-3', pageGapClass)}>
             <ImageUnderstandSection
               t={t}
               imageUnderstandProvider={imageUnderstandProvider}

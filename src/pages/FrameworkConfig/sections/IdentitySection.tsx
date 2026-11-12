@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { InputWithDropdown } from '@/components/ui/input-with-dropdown';
 import { NumberInput } from '@/components/ui/number-input';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { pageStackClass } from '@/components/layout/PinnedPage';
 import { cn } from '@/lib/utils';
 import { isFieldModified, isNonEditableField } from '../classifyGroups';
 import {
@@ -105,7 +106,7 @@ export function IdentitySection({
     : undefined;
 
   return (
-    <div className="space-y-3 md:space-y-4">
+    <div className={pageStackClass}>
       {stateGroup && (
         <>
           <ProgressiveSectionCard

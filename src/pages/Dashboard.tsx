@@ -54,7 +54,7 @@ import {
   withAlpha,
 } from '@/components/charts';
 import type { EChartsOption } from 'echarts';
-import { PinnedPage } from '@/components/layout/PinnedPage';
+import { pageGapClass, pageStackClass, PinnedPage } from '@/components/layout/PinnedPage';
 import {
   DataBlock,
   MetricHero,
@@ -1318,8 +1318,6 @@ export default function Dashboard() {
 
   return (
     <PinnedPage
-      /* gap-3 md:gap-4：一屏要塞下磁贴 + 两行图表，默认的 gap-3 md:gap-6 会在三段之间白掉 24px */
-      className="gap-3 md:gap-4"
       header={
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-3">
@@ -1501,9 +1499,8 @@ export default function Dashboard() {
     >
       {/* 整页一块一块的磁贴：外层 glass-card-grid 统一留阴影安全区，内层网格用纯工具类控间距
           （glass-card-grid 自带 margin-block，会压掉 Tailwind 的 mt-*，别叠着用） */}
-      <div className="glass-card-grid">
-        {/* 指标区：对齐 /ai-statistics 的主角卡 + 分段条 + 统计读数条模式（5 + 3 + 4 栅格，等高对齐） */}
-        <div className="grid grid-cols-1 gap-3 md:gap-2.5 md:grid-cols-12">
+      <div className={cn('glass-card-grid', pageStackClass)}>
+        <div className={cn('grid grid-cols-1 md:grid-cols-12', pageGapClass)}>
           {/* 用户活跃主角卡（DAU / MAU / 新增 / 留存） */}
           <div className="md:col-span-12 xl:col-span-5">
             <MetricHero
@@ -1541,8 +1538,12 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* 月度对照独占一个栅格：8+4 一行，展开按日图时不会被它挤动。 */}
-        <div className="mt-3 grid grid-cols-1 items-start gap-3 md:grid-cols-2 xl:grid-cols-12">
+        <div
+          className={cn(
+            'grid grid-cols-1 items-start md:grid-cols-2 xl:grid-cols-12',
+            pageGapClass,
+          )}
+        >
           <DataBlock
             title={t('dashboard.monthlyCommandStats')}
             icon={MessageSquare}
@@ -1558,10 +1559,12 @@ export default function Dashboard() {
           </DataBlock>
         </div>
 
-        {/* 三张按日图自己一个栅格。单独拆出来是给展开用的：展开时要把该卡 order-first
-            顶到本组最前，若和月度卡共用栅格，顶的会是整个数据区，月度对照会被压下去。
-            收起时 4+4+4 铺一行，展开时 12 / 6+6 两行，两种排法都填满整行。 */}
-        <div className="mt-3 grid grid-cols-1 items-start gap-3 md:grid-cols-2 xl:grid-cols-12">
+        <div
+          className={cn(
+            'grid grid-cols-1 items-start md:grid-cols-2 xl:grid-cols-12',
+            pageGapClass,
+          )}
+        >
           <DayBlock
             blockKey="command"
             expandedKey={expandedDay}

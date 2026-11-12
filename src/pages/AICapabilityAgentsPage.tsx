@@ -29,7 +29,7 @@ import {
   type AgentNodeSource,
   type CapabilityAgentTool,
 } from '@/lib/api';
-import { headerActionRowWideClass, PinnedPage } from '@/components/layout/PinnedPage';
+import { headerActionRowWideClass, pageGapClass, PinnedPage } from '@/components/layout/PinnedPage';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -55,7 +55,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { TabButtonGroup, tabToolbarControlClass } from '@/components/ui/TabButtonGroup';
-import { SearchableMenu } from '@/components/ui/searchable-menu';
+import { PluginGridSelector, PluginSelectorPanel } from '@/components/plugins/PluginUsageBar';
 import { PluginIcon } from '@/components/ui/plugin-icon';
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -290,26 +290,22 @@ function ToolMultiSelectDropdown({
                     className="pl-9"
                   />
                 </div>
-                <SearchableMenu
+                <PluginGridSelector
                   appearance="field"
-                  width="trigger"
                   align="end"
+                  enableShortcut={false}
                   className="h-10"
                   placeholder={t('aiCapabilityAgents.tools.allPlugins')}
                   value={pluginFilter}
                   onValueChange={setPluginFilter}
-                  items={[
-                    {
-                      value: 'all',
-                      label: t('aiCapabilityAgents.tools.allPlugins'),
-                      icon: <Puzzle className="h-4 w-4" />,
-                    },
-                    ...pluginOptions.map((plugin) => ({
-                      value: plugin,
-                      label: plugin,
-                      icon: <PluginIcon pluginName={plugin} className="h-4 w-4" />,
-                    })),
-                  ]}
+                  allOption={{
+                    value: 'all',
+                    label: t('aiCapabilityAgents.tools.allPlugins'),
+                  }}
+                  plugins={pluginOptions.map((plugin) => ({
+                    id: plugin,
+                    name: plugin,
+                  }))}
                 />
               </div>
             </div>
@@ -506,18 +502,24 @@ export default function AICapabilityAgentsPage() {
             onValueChange: setSelectedPlugin,
             allValue: '__all__',
             align: 'start' as const,
-            items: [
-              {
-                value: '__all__',
-                label: `${t('aiCapabilityAgents.allPlugins')} (${sourceCounts.plugin})`,
-                icon: <Puzzle className="h-4 w-4 shrink-0" />,
-              },
-              ...pluginFilterMeta.names.map((name) => ({
-                value: name,
-                label: `${name} (${pluginFilterMeta.counts.get(name) || 0})`,
-                icon: <PluginIcon pluginName={name} className="h-4 w-4" />,
-              })),
-            ],
+            width: 'panel' as const,
+            renderContent: ({ open, select }) => (
+              <PluginSelectorPanel
+                open={open}
+                value={selectedPlugin}
+                onValueChange={select}
+                allOption={{
+                  value: '__all__',
+                  label: t('aiCapabilityAgents.allPlugins'),
+                  count: sourceCounts.plugin,
+                }}
+                plugins={pluginFilterMeta.names.map((name) => ({
+                  id: name,
+                  name,
+                  count: pluginFilterMeta.counts.get(name) || 0,
+                }))}
+              />
+            ),
           },
         };
       }),
@@ -649,7 +651,6 @@ export default function AICapabilityAgentsPage() {
 
   return (
     <PinnedPage
-      className="gap-3 md:gap-4"
       header={
         <div className="flex flex-col gap-3 md:gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="min-w-0 sm:overflow-x-auto">
@@ -722,7 +723,12 @@ export default function AICapabilityAgentsPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="glass-card-grid grid grid-cols-1 gap-3 md:gap-4 md:grid-cols-2 2xl:grid-cols-3">
+        <div
+          className={cn(
+            'glass-card-grid grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3',
+            pageGapClass,
+          )}
+        >
           {filteredProfiles.map((profile) => {
             const locked = profile.source !== 'user';
             return (

@@ -1,4 +1,6 @@
 import { Smile, Sparkles } from 'lucide-react';
+import { pageGapClass, pageStackClass } from '@/components/layout/PinnedPage';
+import { cn } from '@/lib/utils';
 import { ConfigField, pluginConfigItemToFieldDef, type ConfigValue } from '@/components/config';
 import { ToggleRow } from '../shared';
 import type { PluginConfigItem } from '@/lib/api';
@@ -23,7 +25,7 @@ export function MemeSettingsSection({ t, memeConfig, onUpdateConfig }: MemeSetti
   if (!memeConfig) return null;
 
   return (
-    <div className="space-y-3 md:space-y-5">
+    <div className={pageStackClass}>
       <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-lg font-bold flex items-center gap-2 mb-1">
@@ -34,7 +36,7 @@ export function MemeSettingsSection({ t, memeConfig, onUpdateConfig }: MemeSetti
         </div>
       </div>
 
-      <div className="space-y-3 md:space-y-4">
+      <div className={pageStackClass}>
         <div className="p-3 rounded-lg glass-card transition-all">
           <ToggleRow
             icon={<Sparkles className="w-5 h-5" strokeWidth={1.5} />}
@@ -48,7 +50,7 @@ export function MemeSettingsSection({ t, memeConfig, onUpdateConfig }: MemeSetti
           />
         </div>
 
-        <div className="grid grid-cols-2 items-start gap-3 md:gap-6 lg:grid-cols-3">
+        <div className={cn('grid grid-cols-2 items-start lg:grid-cols-3', pageGapClass)}>
           {(() => {
             const entries = Object.entries(memeConfig.config).filter(
               ([key]) => !EXCLUDED_KEYS.includes(key),

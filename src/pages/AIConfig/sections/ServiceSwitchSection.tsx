@@ -1,4 +1,5 @@
 import { Brain, Bot } from 'lucide-react';
+import { pageStackClass } from '@/components/layout/PinnedPage';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -19,7 +20,7 @@ export interface ServiceSwitchSectionProps {
  */
 export function ServiceSwitchSection({ isAIEnabled, t, onChange }: ServiceSwitchSectionProps) {
   return (
-    <div className="space-y-3 md:space-y-5">
+    <div className={pageStackClass}>
       <div>
         <h2 className="text-lg font-semibold flex items-center gap-2 mb-1">
           <Bot className="w-5 h-5 text-primary" />

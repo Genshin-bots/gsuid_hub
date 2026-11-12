@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, AppWindow } from 'lucide-react';
+import { pageGapClass } from '@/components/layout/PinnedPage';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { PluginIcon } from '@/components/ui/plugin-icon';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -97,7 +99,7 @@ export default function PluginViewPage() {
   const from = navState?.from || pluginsListPath(pluginId);
 
   return (
-    <div className="page-fill flex flex-col min-h-0 gap-3">
+    <div className={cn('page-fill flex flex-col min-h-0', pageGapClass)}>
       <div className="flex items-center gap-3 shrink-0 min-w-0">
         <Button
           variant="outline"
