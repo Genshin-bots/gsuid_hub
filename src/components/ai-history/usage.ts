@@ -194,9 +194,7 @@ export function estimateCostOnce(
 export function estimateCosts(units: CostUnit[]): Promise<number | null> {
   // 先按模型聚合用量：数千轮对话如果使用同一模型，合并为 1 条请求，消除海量计价单位的网络与计算负担
   const validUnits = groupCostUnitsByModel(
-    units.filter(
-      (u) => (u.inp > 0 || u.out > 0 || u.cr > 0 || u.cw > 0) && Boolean(u.model),
-    ),
+    units.filter((u) => (u.inp > 0 || u.out > 0 || u.cr > 0 || u.cw > 0) && Boolean(u.model)),
   );
   if (validUnits.length === 0) return Promise.resolve(null);
 
@@ -227,8 +225,8 @@ export function estimateCosts(units: CostUnit[]): Promise<number | null> {
     const batchPromise = aiStatisticsApi
       .estimateCostBatch(batchPayload)
       .then((res) => {
-        if (res && res.data && Array.isArray(res.data.costs)) {
-          return res.data.costs;
+        if (res && Array.isArray(res.costs)) {
+          return res.costs;
         }
         return null;
       })

@@ -1117,8 +1117,6 @@ function EntryBlock({
   return <pre className={PLAIN_BLOCK}>{content}</pre>;
 }
 
-
-
 function EffortBadge({
   efforts,
   t,

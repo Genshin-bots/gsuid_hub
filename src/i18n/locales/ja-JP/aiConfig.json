@@ -26,6 +26,145 @@
     "notSelectedWarning": "設定が未選択です。このタスクはAIを利用できません。設定を選択してください",
     "emptyHint": "設定ファイルがありません。「新規設定」で作成してからタスクに割り当ててください"
   },
+  "taskModels": {
+    "title": "タスク別モデル指定",
+    "advancedBadge": "上級",
+    "description": "既定では各タスクは「高級 / 低級」の 2 段階で設定を選びます。ここでは個別のタスクの段階を変更したり、任意の設定ファイルを指定したりできます。変更は即時反映され、保存は不要です。",
+    "overriddenCount": "{count} 件を上書き中",
+    "overriddenBadge": "上書き中",
+    "fastBadge": "高速モデル",
+    "levelHigh": "高級",
+    "levelLow": "低級",
+    "modeDefault": "既定（{level}）",
+    "modeConfig": "設定を指定",
+    "followsCaller": "呼び出し元に従う",
+    "followsCallerHint": "（常に呼び出し元の段階の設定を使用）",
+    "lockedBadge": "変更不可",
+    "lockedDefaultTooltip": "このタスクは呼び出し元の段階に固定で従うため変更できません",
+    "primaryLabel": "メイン設定",
+    "secondaryLabel": "予備設定（任意）",
+    "pickConfig": "設定ファイルを選択…",
+    "noSecondary": "予備設定を使わない",
+    "clearSecondary": "予備をクリア",
+    "effective": "使用中",
+    "effectiveSecondary": "予備",
+    "notConfigured": "未設定",
+    "invalidOverride": "上書き先の設定ファイルが存在しないため、既定の段階に戻しています。別の設定を選ぶか既定に戻してください。",
+    "searchPlaceholder": "タスク名または ID で検索…",
+    "sortGroup": "グループ順",
+    "sortUsage": "使用量順",
+    "usage90d": "90日間 {count} tokens",
+    "onlyOverridden": "上書き中のみ",
+    "resetAll": "すべて既定に戻す",
+    "resetAllTitle": "すべてのタスクを既定に戻しますか？",
+    "resetAllDesc": "{count} 件のタスク別上書きを削除し、すべて「高級 / 低級」の既定に戻します。",
+    "resetAllDone": "すべてのタスクを既定に戻しました",
+    "updated": "「{name}」のモデル設定を更新しました",
+    "orphans": "次のタスクは存在しません（プラグイン削除など）が、上書きが残っています：{ids}",
+    "clearOrphans": "整理",
+    "orphansCleared": "無効な上書きを削除しました",
+    "loadFailed": "タスク一覧の読み込みに失敗しました",
+    "retry": "再試行",
+    "empty": "一致するタスクがありません",
+    "groups": {
+      "conversation": "会話",
+      "agent": "エージェントと編成",
+      "proactive": "自発的発言",
+      "memory": "記憶と関係",
+      "multimodal": "マルチモーダル",
+      "plugin": "プラグイン"
+    },
+    "kinds": {
+      "chat": {
+        "title": "メイン会話",
+        "desc": "グループ / 個別チャットでの人格との通常会話（ツール呼び出しを含む）。"
+      },
+      "turn_router": {
+        "title": "事前ルーティング",
+        "desc": "返信前に意図とツールの要否を判定します。頻繁に呼ばれるため高速モデル向き。"
+      },
+      "temp_assistant": {
+        "title": "一時タスク助手",
+        "desc": "/btw など人格・履歴なしの単発質問。"
+      },
+      "eval_judge": {
+        "title": "評価ジャッジ",
+        "desc": "WebConsole / HTTP 評価で返信を採点するモデル。"
+      },
+      "subagent": {
+        "title": "サブエージェント",
+        "desc": "メインエージェントが派生させるサブタスク（render_agent を含む）。"
+      },
+      "capability_agent": {
+        "title": "能力エージェント",
+        "desc": "能力プロファイルに沿って長時間タスクを実行するエージェント。"
+      },
+      "capability_eval": {
+        "title": "能力エージェント評価",
+        "desc": "能力エージェントの成果が基準を満たすか評価します。"
+      },
+      "kanban_relay": {
+        "title": "カンバン中継",
+        "desc": "長時間タスクの結果を人格の口調に書き直して送信します。"
+      },
+      "scheduled_task": {
+        "title": "定時タスク",
+        "desc": "ユーザーが予約したタスクを時刻に実行します。"
+      },
+      "autonomy": {
+        "title": "自律行動",
+        "desc": "トリガーなしで人格が自ら計画・実行する行動。"
+      },
+      "build_persona": {
+        "title": "人格生成",
+        "desc": "説明から新しい人格プロンプトを生成します。"
+      },
+      "mcp_profile": {
+        "title": "MCP プロファイル生成",
+        "desc": "接続した MCP サービスの能力説明を生成します。"
+      },
+      "heartbeat_decision": {
+        "title": "巡回判断",
+        "desc": "定期巡回で自発的に発言するかを判断します。"
+      },
+      "heartbeat_output": {
+        "title": "巡回発言",
+        "desc": "巡回で発言すると決めた後に内容を生成します。"
+      },
+      "reactive_gate": {
+        "title": "継続会話判定",
+        "desc": "メンションされていない時に会話へ入るか判定します。"
+      },
+      "memory_algebra": {
+        "title": "記憶抽出",
+        "desc": "会話から事実・エンティティ・好みを抽出します。"
+      },
+      "memory_window_router": {
+        "title": "記憶トピック分類",
+        "desc": "会話断片を既存のトピックに振り分けます。"
+      },
+      "journal_compact": {
+        "title": "日誌圧縮",
+        "desc": "人格の日誌を要約に圧縮します。"
+      },
+      "relationship_distill": {
+        "title": "関係抽出",
+        "desc": "人格と特定ユーザーの間の約束事を抽出します。"
+      },
+      "image_understand": {
+        "title": "画像理解",
+        "desc": "画像を文章に変換します。呼び出し元の段階に固定で従い、ここでは変更できません。"
+      },
+      "image_desc_summary": {
+        "title": "画像説明の要約",
+        "desc": "長い画像説明を質問に関係する要約へ短縮します。"
+      },
+      "meme_tagger": {
+        "title": "スタンプのタグ付け",
+        "desc": "収集したスタンプにタグと説明を付けます。"
+      }
+    }
+  },
   "searchImage": {
     "title": "Web検索 / 画像理解",
     "description": "Web検索と画像理解機能を設定します"

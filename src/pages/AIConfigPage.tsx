@@ -79,6 +79,14 @@ import {
   useAIServiceSwitch,
 } from './AIConfig/hooks';
 
+// 主任务配置由 setHigh/LowLevelConfig 即时落库；按任务覆盖由高级面板经
+// /api/ai_task_models 即时落库。三者都不参与保存按钮和整包回写，否则旧值会覆盖新值。
+const IMMEDIATE_TASK_CONFIG_KEYS: readonly string[] = [
+  'high_level_provider_config_name',
+  'low_level_provider_config_name',
+  'task_model_overrides',
+];
+
 export default function AIConfigPage() {
   const { style } = useTheme();
   const isGlass = style !== 'solid';
@@ -309,6 +317,15 @@ export default function AIConfigPage() {
     !!lowLevel2ndConfigValue &&
     provider.allConfigsList.some((c) => c.name === lowLevel2ndConfigValue);
 
+  // 高级面板「实际生效」依赖已落库的档位主/备配置，只在落库值变化时重新拉取
+  const persistedAiConfig = aiConfig?.id ? originalConfig[aiConfig.id]?.config : undefined;
+  const taskModelsRefreshKey = [
+    provider.highLevelConfig,
+    provider.lowLevelConfig,
+    String(persistedAiConfig?.high_level_2nd_provider_config_name?.value ?? ''),
+    String(persistedAiConfig?.low_level_2nd_provider_config_name?.value ?? ''),
+  ].join('|');
+
   // ====================== MCP tools ======================
   const mcp = useMcpToolsConfig({ mcpToolsConfig, updateConfigValue });
 
@@ -425,12 +442,6 @@ export default function AIConfigPage() {
     'MCP',
   ]) as string[];
 
-  // 主任务配置由 setHigh/LowLevelConfig 即时落库，不参与保存按钮和整包回写。
-  const IMMEDIATE_TASK_CONFIG_KEYS = [
-    'high_level_provider_config_name',
-    'low_level_provider_config_name',
-  ] as const;
-
   const frameworkConfigsSignature = (source: typeof configs) => {
     const cloned = JSON.parse(JSON.stringify(source)) as typeof configs;
     for (const cfg of Object.values(cloned)) {
@@ -511,10 +522,7 @@ export default function AIConfigPage() {
         const configToSave: Record<string, unknown> = {};
         Object.entries(config.config).forEach(([key, field]: [string, PluginConfigItem]) => {
           if (!field || typeof field !== 'object' || !('value' in field)) return;
-          if (
-            key === 'high_level_provider_config_name' ||
-            key === 'low_level_provider_config_name'
-          ) {
+          if (IMMEDIATE_TASK_CONFIG_KEYS.includes(key)) {
             return;
           }
           const rawType = (field.type || '').toLowerCase();
@@ -820,6 +828,7 @@ export default function AIConfigPage() {
               updateConfigValue(aiConfig.id, 'low_level_2nd_provider_config_name', v)
             }
             onOpenManageDialog={() => provider.setIsManageConfigDialogOpen(true)}
+            taskModelsRefreshKey={taskModelsRefreshKey}
           />
         );
       case 'webSearch':

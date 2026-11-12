@@ -49,6 +49,8 @@ const EXCLUDED_KEYS: string[] = [
   'low_level_provider_config_name',
   'high_level_2nd_provider_config_name',
   'low_level_2nd_provider_config_name',
+  // 按任务覆盖：TaskConfigSection 高级面板专属，经专用接口即时落库
+  'task_model_overrides',
   'asr_provider',
   'tts_provider',
   'video_understand_provider',

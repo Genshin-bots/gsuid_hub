@@ -1286,6 +1286,61 @@ const routes: Route[] = [
   },
   {
     m: 'GET',
+    re: /^\/api\/ai_task_models$/,
+    h: () => {
+      const high = 'high-main';
+      const low = 'low-main';
+      const kind = (
+        id: string,
+        title: string,
+        group: string,
+        level: 'high' | 'low',
+        extra: { fast?: boolean; follows_caller?: boolean; stats?: string[] } = {},
+      ) => ({
+        id,
+        title,
+        desc: '',
+        group,
+        default_level: level,
+        follows_caller: extra.follows_caller ?? false,
+        fast: extra.fast ?? false,
+        stats_keys: extra.stats ?? [id],
+        override: null,
+        effective: {
+          primary: level === 'high' ? high : low,
+          secondary: '',
+          source: 'default',
+          level,
+        },
+      });
+      return {
+        groups: ['conversation', 'agent', 'proactive', 'memory', 'multimodal', 'plugin'],
+        levels: { high: { primary: high, secondary: '' }, low: { primary: low, secondary: '' } },
+        kinds: [
+          kind('chat', '主对话', 'conversation', 'high', {
+            stats: ['chat', 'http_chat', '命令补充'],
+          }),
+          kind('turn_router', '前置路由', 'conversation', 'low', {
+            fast: true,
+            stats: ['turnrouter'],
+          }),
+          kind('subagent', '子 Agent', 'agent', 'high', { stats: ['autoplanner'] }),
+          kind('heartbeat_decision', '巡检决策', 'proactive', 'high'),
+          kind('memory_algebra', '记忆抽取', 'memory', 'low', {
+            fast: true,
+            stats: ['memalgebra'],
+          }),
+          kind('image_understand', '图片理解', 'multimodal', 'high', {
+            follows_caller: true,
+            stats: ['imageunderstand'],
+          }),
+        ],
+        orphans: [],
+      };
+    },
+  },
+  {
+    m: 'GET',
     re: /^\/api\/provider_config\/config\/([^/]+)\/options$/,
     h: ({ url }) => generateProviderOptions(),
   },

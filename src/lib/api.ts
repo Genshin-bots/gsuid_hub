@@ -1765,6 +1765,72 @@ export interface EmbeddingConfigSummary {
   extra_providers?: Record<string, EmbeddingExtraProviderConfig>;
 }
 
+// ============================================================================
+// 按任务覆盖模型（AI 配置 → 任务配置 → 高级面板）
+// ============================================================================
+
+export type AITaskLevel = 'high' | 'low';
+export type AITaskGroup =
+  | 'conversation'
+  | 'agent'
+  | 'proactive'
+  | 'memory'
+  | 'multimodal'
+  | 'plugin';
+/** 覆盖主配置里「改用某档位」的记号；其余非空值是 provider++name 配置全名 */
+export const AI_TASK_LEVEL_REFS = { high: '@high', low: '@low' } as const;
+
+export interface AITaskModelOverride {
+  primary: string;
+  secondary: string;
+  /** false：覆盖指向的配置文件已被删除，后端已回退默认档位 */
+  valid: boolean;
+}
+
+export interface AITaskModelEffective {
+  primary: string;
+  secondary: string;
+  /** default=未覆盖；level=改用某档位；config=指定配置文件 */
+  source: 'default' | 'level' | 'config';
+  level: AITaskLevel | null;
+}
+
+export interface AITaskKindInfo {
+  id: string;
+  title: string;
+  desc: string;
+  group: AITaskGroup;
+  default_level: AITaskLevel;
+  /** 档位跟随调用方（如图片理解跟随主对话），default_level 仅作展示 */
+  follows_caller: boolean;
+  /** 走无思考快模型通道 */
+  fast: boolean;
+  /** 该任务在 token 统计（by_type）里的记账键（lower(create_by)），可能多个 */
+  stats_keys: string[];
+  override: AITaskModelOverride | null;
+  effective: AITaskModelEffective;
+}
+
+export interface AITaskModelsData {
+  groups: AITaskGroup[];
+  levels: Record<AITaskLevel, { primary: string; secondary: string }>;
+  kinds: AITaskKindInfo[];
+  /** 已保存但当前未登记的任务 ID（如插件已卸载） */
+  orphans: string[];
+}
+
+export const aiTaskModelsApi = {
+  list: () => api.get<AITaskModelsData>('/api/ai_task_models'),
+  set: (taskKind: string, primary: string, secondary = '') =>
+    api.put<AITaskModelsData>(`/api/ai_task_models/${encodeURIComponent(taskKind)}`, {
+      primary,
+      secondary,
+    }),
+  clear: (taskKind: string) =>
+    api.delete<AITaskModelsData>(`/api/ai_task_models/${encodeURIComponent(taskKind)}`),
+  clearAll: () => api.delete<AITaskModelsData>('/api/ai_task_models'),
+};
+
 export const embeddingConfigApi = {
   // 获取当前嵌入模型提供�?
   getProvider: () => api.get<EmbeddingProviderData>('/api/embedding_config/provider'),

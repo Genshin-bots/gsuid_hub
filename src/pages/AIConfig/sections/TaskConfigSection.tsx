@@ -4,9 +4,10 @@ import { GlassAlert } from '@/components/ui/glass-alert';
 import { ConfigSelectDropdown } from '@/components/config';
 import { HeadingWithHelp, LabelWithHelp } from '../shared';
 import type { AllConfigItem } from '@/lib/api';
+import { TaskModelOverridesPanel } from './TaskModelOverridesPanel';
 
 export interface TaskConfigSectionProps {
-  t: (key: string) => string;
+  t: (key: string, params?: Record<string, string | number>) => string;
   allConfigsList: AllConfigItem[];
   highLevelConfig: string;
   lowLevelConfig: string;
@@ -33,6 +34,8 @@ export interface TaskConfigSectionProps {
   onSetHighLevel2ndConfig: (fullName: string) => void;
   onSetLowLevel2ndConfig: (fullName: string) => void;
   onOpenManageDialog: () => void;
+  /** 已落库的档位主/备配置签名，变化时高级面板重新拉取「实际生效」 */
+  taskModelsRefreshKey: string;
 }
 
 /**
@@ -41,6 +44,7 @@ export interface TaskConfigSectionProps {
  * 1. 「当前没有配置文件」的红色空状态 + 入口按钮
  * 2. 高级任务（含主 + 备用）
  * 3. 低级任务（含主 + 备用）
+ * 4. 高级面板（默认折叠）：按任务类型覆盖上面两档的默认配置
  *
  * 主备双配置语义：主配置用于正常请求；备用配置由后端策略在主配置
  * 失败 / 限流时切换，避免单点故障导致的全部请求失败。
@@ -65,6 +69,7 @@ export function TaskConfigSection({
   onSetHighLevel2ndConfig,
   onSetLowLevel2ndConfig,
   onOpenManageDialog,
+  taskModelsRefreshKey,
 }: TaskConfigSectionProps) {
   return (
     <div className="space-y-3 md:space-y-5">
@@ -179,6 +184,14 @@ export function TaskConfigSection({
             </div>
           </div>
         </div>
+      )}
+
+      {allConfigsList.length > 0 && (
+        <TaskModelOverridesPanel
+          t={t}
+          allConfigsList={allConfigsList}
+          refreshKey={taskModelsRefreshKey}
+        />
       )}
     </div>
   );

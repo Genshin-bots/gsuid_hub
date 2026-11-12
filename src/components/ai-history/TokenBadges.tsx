@@ -1,19 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { cn, formatTokens } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import {
-  Zap,
-  PenLine,
-  CircleSlash,
-  ArrowDownRight,
-  Timer,
-  Coins,
-} from 'lucide-react';
-import {
-  estimateCosts,
-  formatEstimatedCost,
-  type CostUnit,
-} from './usage';
+import { Zap, PenLine, CircleSlash, ArrowDownRight, Timer, Coins } from 'lucide-react';
+import { estimateCosts, formatEstimatedCost, type CostUnit } from './usage';
 import type { TraceSpan } from './TraceWaterfall';
 
 type TFunc = (key: string, options?: Record<string, unknown>) => string;
@@ -56,7 +45,7 @@ export function TokenBadges({
   const cacheR = cacheRProp ?? (sp?.kind === 'run' ? sp.sumCacheRead : sp?.cacheRead) ?? 0;
   const cacheW = cacheWProp ?? (sp?.kind === 'run' ? sp.sumCacheWrite : sp?.cacheWrite) ?? 0;
   const ttftMs = ttftMsProp ?? sp?.ttftMs;
-  const showSigma = showSigmaProp ?? (sp?.kind === 'run');
+  const showSigma = showSigmaProp ?? sp?.kind === 'run';
 
   const [cost, setCost] = useState<number | null>(null);
   const costRequested = useRef(false);

@@ -26,6 +26,145 @@
     "notSelectedWarning": "No config selected. This task cannot use AI — please select a configuration",
     "emptyHint": "No config files yet. Click \"New Config\" to create one, then assign it to tasks"
   },
+  "taskModels": {
+    "title": "Per-task model override",
+    "advancedBadge": "Advanced",
+    "description": "By default every task uses the High or Low tier config. Here you can move a single task to another tier or pin it to any config file. Changes apply immediately; no need to save.",
+    "overriddenCount": "{count} overridden",
+    "overriddenBadge": "Overridden",
+    "fastBadge": "Fast model",
+    "levelHigh": "High",
+    "levelLow": "Low",
+    "modeDefault": "Default ({level})",
+    "modeConfig": "Custom config",
+    "followsCaller": "follows caller",
+    "followsCallerHint": "(always uses the caller's tier)",
+    "lockedBadge": "Locked",
+    "lockedDefaultTooltip": "This task always follows the caller's tier and cannot be modified",
+    "primaryLabel": "Primary config",
+    "secondaryLabel": "Fallback config (optional)",
+    "pickConfig": "Choose a config file…",
+    "noSecondary": "No fallback config",
+    "clearSecondary": "Clear fallback",
+    "effective": "In use",
+    "effectiveSecondary": "fallback",
+    "notConfigured": "Not configured",
+    "invalidOverride": "The config file this override points to no longer exists, so the default tier is used. Choose another config or reset to default.",
+    "searchPlaceholder": "Search task name or ID…",
+    "sortGroup": "By group",
+    "sortUsage": "By usage",
+    "usage90d": "{count} tokens in 90d",
+    "onlyOverridden": "Overridden only",
+    "resetAll": "Reset all",
+    "resetAllTitle": "Reset every task to its default?",
+    "resetAllDesc": "This removes {count} per-task overrides. All tasks go back to the High / Low default tier.",
+    "resetAllDone": "All tasks reset to default",
+    "updated": "Model config for \"{name}\" updated",
+    "orphans": "These tasks no longer exist (maybe the plugin was removed) but still have overrides: {ids}",
+    "clearOrphans": "Clean up",
+    "orphansCleared": "Stale overrides removed",
+    "loadFailed": "Failed to load tasks",
+    "retry": "Retry",
+    "empty": "No matching tasks",
+    "groups": {
+      "conversation": "Conversation",
+      "agent": "Agents & orchestration",
+      "proactive": "Proactive speech",
+      "memory": "Memory & relationships",
+      "multimodal": "Multimodal",
+      "plugin": "Plugins"
+    },
+    "kinds": {
+      "chat": {
+        "title": "Main chat",
+        "desc": "Normal group / private conversation with the persona, including tool calls."
+      },
+      "turn_router": {
+        "title": "Turn router",
+        "desc": "Classifies intent and tool need before each reply. Runs often; a fast model fits well."
+      },
+      "temp_assistant": {
+        "title": "Temporary assistant",
+        "desc": "One-off Q&A such as /btw, with no persona and no history."
+      },
+      "eval_judge": {
+        "title": "Evaluation judge",
+        "desc": "Scores replies in WebConsole / HTTP evaluations."
+      },
+      "subagent": {
+        "title": "Sub-agent",
+        "desc": "Sub-tasks spawned by the main agent (including render_agent)."
+      },
+      "capability_agent": {
+        "title": "Capability agent",
+        "desc": "Long-running agent that works from a capability profile."
+      },
+      "capability_eval": {
+        "title": "Capability evaluation",
+        "desc": "Checks whether a capability agent result is good enough."
+      },
+      "kanban_relay": {
+        "title": "Kanban relay",
+        "desc": "Rewrites long-task results in the persona voice before sending."
+      },
+      "scheduled_task": {
+        "title": "Scheduled task",
+        "desc": "Runs tasks the user booked for a given time."
+      },
+      "autonomy": {
+        "title": "Autonomy",
+        "desc": "Actions the persona plans and runs by itself without a trigger."
+      },
+      "build_persona": {
+        "title": "Persona builder",
+        "desc": "Generates a new persona prompt from a description."
+      },
+      "mcp_profile": {
+        "title": "MCP profile",
+        "desc": "Writes capability descriptions for connected MCP servers."
+      },
+      "heartbeat_decision": {
+        "title": "Heartbeat decision",
+        "desc": "Decides during scheduled checks whether to speak up."
+      },
+      "heartbeat_output": {
+        "title": "Heartbeat message",
+        "desc": "Writes the message after the heartbeat decides to speak."
+      },
+      "reactive_gate": {
+        "title": "Follow-up gate",
+        "desc": "Decides whether to join in when the bot was not mentioned."
+      },
+      "memory_algebra": {
+        "title": "Memory extraction",
+        "desc": "Extracts facts, entities and preferences from chat windows."
+      },
+      "memory_window_router": {
+        "title": "Memory topic routing",
+        "desc": "Assigns chat fragments to existing topic threads."
+      },
+      "journal_compact": {
+        "title": "Journal compaction",
+        "desc": "Compresses the persona journal into a summary."
+      },
+      "relationship_distill": {
+        "title": "Relationship distillation",
+        "desc": "Distills the agreements between the persona and one user."
+      },
+      "image_understand": {
+        "title": "Image understanding",
+        "desc": "Turns images into text. Always follows the caller's tier and cannot be modified here."
+      },
+      "image_desc_summary": {
+        "title": "Image description summary",
+        "desc": "Shortens long image descriptions to what matters for the question."
+      },
+      "meme_tagger": {
+        "title": "Meme tagging",
+        "desc": "Generates tags and descriptions for collected memes."
+      }
+    }
+  },
   "searchImage": {
     "title": "Web Search / Image Understanding",
     "description": "Configure web search and image understanding capabilities"

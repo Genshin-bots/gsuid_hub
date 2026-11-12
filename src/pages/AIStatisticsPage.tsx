@@ -4,12 +4,13 @@ import { useLanguage } from '@/contexts/LanguageContext';
 
 import { cn } from '@/lib/utils';
 
-import { aiStatisticsApi, aiPerformanceApi, getApiErrorMessage } from '@/lib/api';
+import { aiStatisticsApi, aiPerformanceApi, aiTaskModelsApi, getApiErrorMessage } from '@/lib/api';
 
 import { PinnedPage } from '@/components/layout/PinnedPage';
 
 import type {
   AIErrorEvent,
+  AITaskKindInfo,
   HourlyPerformanceItem,
   HourlyPerformanceRangeItem,
   TokenRangeData,
@@ -1072,6 +1073,10 @@ export default function AIStatisticsPage() {
 
   const [errorEventsFallback, setErrorEventsFallback] = useState(false);
 
+  /** 记账 chat_type → 已注册任务的映射；旧后端无此接口时为 null，by_type 原样显示 */
+
+  const [taskKinds, setTaskKinds] = useState<AITaskKindInfo[] | null>(null);
+
   // 货币与汇率设置（用户可在前端自定义默认货币及汇率）
 
   const [currency, setCurrency] = useState<Currency>(() => {
@@ -1209,6 +1214,23 @@ export default function AIStatisticsPage() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // 拉一次任务注册表，仅用于把 by_type 的记账键翻译成任务名；失败时原样显示
+
+  useEffect(() => {
+    let cancelled = false;
+    void aiTaskModelsApi
+      .list()
+      .then((d) => {
+        if (!cancelled) setTaskKinds(d.kinds);
+      })
+      .catch(() => {
+        // 旧后端无 /api/ai_task_models 时降级为显示原始 chat_type
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // 日历：近 60 天每日 input token
 
@@ -1694,6 +1716,19 @@ export default function AIStatisticsPage() {
     [tokenByModel],
   );
 
+  /** by_type 的 chat_type 先查 stats_keys 归属到已登记任务，再取该任务的本地化标题 */
+
+  const typeLabel = useCallback(
+    (raw: string) => {
+      const kind = taskKinds?.find((k) => (k.stats_keys ?? []).includes(raw));
+      if (!kind) return raw;
+      const key = `aiConfig.taskModels.kinds.${kind.id}.title`;
+      const translated = t(key);
+      return translated === key ? kind.title : translated;
+    },
+    [taskKinds, t],
+  );
+
   const tokenTypeChartData = useMemo(
     () =>
       tokenByType.map((item) => {
@@ -1702,7 +1737,7 @@ export default function AIStatisticsPage() {
         const cr = item.cache_read_tokens ?? 0;
 
         return {
-          name: item.type || 'Unknown',
+          name: item.type ? typeLabel(item.type) : 'Unknown',
 
           uncachedInput: Math.max(0, inp - cr),
 
@@ -1712,7 +1747,7 @@ export default function AIStatisticsPage() {
         };
       }),
 
-    [tokenByType],
+    [tokenByType, typeLabel],
   );
 
   /**
@@ -4125,7 +4160,9 @@ export default function AIStatisticsPage() {
                                 key={`${item.type}-${i}`}
                                 className="border-b border-border/30 last:border-0"
                               >
-                                <td className={TABLE_CELL}>{item.type ?? '-'}</td>
+                                <td className={TABLE_CELL}>
+                                  {item.type ? typeLabel(item.type) : '-'}
+                                </td>
                                 <td className={TABLE_NUM}>
                                   {(item.input_tokens ?? 0).toLocaleString()}
                                 </td>

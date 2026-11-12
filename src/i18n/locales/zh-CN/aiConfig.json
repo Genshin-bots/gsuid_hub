@@ -26,6 +26,145 @@
     "notSelectedWarning": "尚未选择配置，该任务将无法使用 AI，请选择一个配置",
     "emptyHint": "暂无配置文件，请点击「新增配置」创建后再为任务选择配置"
   },
+  "taskModels": {
+    "title": "按任务指定模型",
+    "advancedBadge": "高级",
+    "description": "默认情况下每个任务按「高级 / 低级」两档取配置。在这里可以为单个任务改档，或直接指定任意配置文件。改动立即生效，无需点保存。",
+    "overriddenCount": "{count} 项已覆盖",
+    "overriddenBadge": "已覆盖",
+    "fastBadge": "快模型",
+    "levelHigh": "高级",
+    "levelLow": "低级",
+    "modeDefault": "默认（{level}）",
+    "modeConfig": "指定配置",
+    "followsCaller": "跟随调用方",
+    "followsCallerHint": "（固定按发起方的档位取配置）",
+    "lockedBadge": "不可修改",
+    "lockedDefaultTooltip": "该任务固定跟随调用方的档位，仅此默认配置且不可修改",
+    "primaryLabel": "主配置",
+    "secondaryLabel": "备用配置（可选）",
+    "pickConfig": "选择一个配置文件…",
+    "noSecondary": "不使用备用配置",
+    "clearSecondary": "清除备用",
+    "effective": "实际使用",
+    "effectiveSecondary": "备用",
+    "notConfigured": "未配置",
+    "invalidOverride": "覆盖指向的配置文件已不存在，当前已回退到默认档位。请重新选择或恢复默认。",
+    "searchPlaceholder": "搜索任务名称或 ID…",
+    "sortGroup": "按分组",
+    "sortUsage": "按用量",
+    "usage90d": "近90天 {count} tokens",
+    "onlyOverridden": "只看已覆盖",
+    "resetAll": "全部恢复默认",
+    "resetAllTitle": "恢复全部任务的默认配置？",
+    "resetAllDesc": "将清除 {count} 项按任务覆盖，所有任务回到「高级 / 低级」默认档位。",
+    "resetAllDone": "已恢复全部任务的默认配置",
+    "updated": "已更新「{name}」的模型配置",
+    "orphans": "以下任务已不存在（可能是插件已卸载），但仍保留覆盖记录：{ids}",
+    "clearOrphans": "清理",
+    "orphansCleared": "已清理失效的覆盖记录",
+    "loadFailed": "加载任务列表失败",
+    "retry": "重试",
+    "empty": "没有匹配的任务",
+    "groups": {
+      "conversation": "对话",
+      "agent": "智能体与编排",
+      "proactive": "主动发言",
+      "memory": "记忆与关系",
+      "multimodal": "多模态",
+      "plugin": "插件"
+    },
+    "kinds": {
+      "chat": {
+        "title": "主对话",
+        "desc": "群聊 / 私聊里与人格的正常对话，含工具调用。"
+      },
+      "turn_router": {
+        "title": "前置路由",
+        "desc": "每轮回复前判断消息意图与是否需要工具，调用频繁，适合快模型。"
+      },
+      "temp_assistant": {
+        "title": "临时任务助手",
+        "desc": "/btw 等无人格、无历史的一次性问答。"
+      },
+      "eval_judge": {
+        "title": "评测裁判",
+        "desc": "网页控制台 / HTTP 评测里给回复打分的裁判模型。"
+      },
+      "subagent": {
+        "title": "子 Agent",
+        "desc": "主 Agent 派生的子任务（含出图 render_agent）。"
+      },
+      "capability_agent": {
+        "title": "能力代理",
+        "desc": "按能力画像执行的长任务 Agent。"
+      },
+      "capability_eval": {
+        "title": "能力代理评估",
+        "desc": "评估能力代理的产出是否达标。"
+      },
+      "kanban_relay": {
+        "title": "看板转述",
+        "desc": "把长任务结果转述成人格口吻发出。"
+      },
+      "scheduled_task": {
+        "title": "定时任务",
+        "desc": "到点执行用户预约的任务。"
+      },
+      "autonomy": {
+        "title": "自主行动",
+        "desc": "人格在无人触发时自主规划并执行的行动。"
+      },
+      "build_persona": {
+        "title": "人格生成",
+        "desc": "根据描述生成新的人格提示词。"
+      },
+      "mcp_profile": {
+        "title": "MCP 画像生成",
+        "desc": "为接入的 MCP 服务生成能力描述。"
+      },
+      "heartbeat_decision": {
+        "title": "巡检决策",
+        "desc": "定时巡检时判断要不要主动发言。"
+      },
+      "heartbeat_output": {
+        "title": "巡检发言",
+        "desc": "巡检决定发言后生成实际内容。"
+      },
+      "reactive_gate": {
+        "title": "免唤醒续聊判定",
+        "desc": "未被 @ 时判断是否接话。"
+      },
+      "memory_algebra": {
+        "title": "记忆抽取",
+        "desc": "从对话窗口中抽取事实、实体与偏好。"
+      },
+      "memory_window_router": {
+        "title": "记忆话题归类",
+        "desc": "把对话片段归入已有话题线程。"
+      },
+      "journal_compact": {
+        "title": "日志压缩",
+        "desc": "把人格日志压缩成摘要。"
+      },
+      "relationship_distill": {
+        "title": "关系提炼",
+        "desc": "提炼人格与单个用户之间的相处约定。"
+      },
+      "image_understand": {
+        "title": "图片理解",
+        "desc": "把图片转述成文字。固定跟随调用方的档位，不可在此修改。"
+      },
+      "image_desc_summary": {
+        "title": "图片描述精简",
+        "desc": "把过长的图片描述压缩成与问题相关的摘要。"
+      },
+      "meme_tagger": {
+        "title": "表情包打标",
+        "desc": "为收集到的表情包生成标签与描述。"
+      }
+    }
+  },
   "searchImage": {
     "title": "网络搜索 / 图片理解",
     "description": "配置联网搜索与图片理解能力"

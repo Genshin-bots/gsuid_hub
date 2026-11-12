@@ -1939,6 +1939,7 @@ export const generateAIStatisticsSummary = () => ({
     total_cache_write_tokens: 16_882,
     by_model: [],
     // 四段分项加总与上面四个 total 严格对齐，堆叠条才不会看着缺一块
+    // chat_type 用真实记账键：前三行会经任务注册表映射成中文任务名，embedding 演示未映射回退
     by_type: [
       {
         type: 'chat',
@@ -1948,7 +1949,7 @@ export const generateAIStatisticsSummary = () => ({
         cache_write_tokens: 13_882,
       },
       {
-        type: 'tool_call',
+        type: 'turnrouter',
         input_tokens: 132_000,
         output_tokens: 124_000,
         cache_read_tokens: 40_000,
@@ -1962,7 +1963,7 @@ export const generateAIStatisticsSummary = () => ({
         cache_write_tokens: 0,
       },
       {
-        type: 'rerank',
+        type: 'memalgebra',
         input_tokens: 8_000,
         output_tokens: 29_000,
         cache_read_tokens: 2_000,
@@ -2219,13 +2220,14 @@ export const generateTokenByRange = (startDate?: string, endDate?: string) => {
     };
   });
 
-  // 类型构成同理：与后端 by_type 同口径（跨天按 chat_type 聚合，按总量降序）
+  // 类型构成同理：与后端 by_type 同口径（跨天按 chat_type 聚合，按总量降序）；
+  // 键名对齐任务注册表 stats_keys，统计页与任务配置面板才能映射出中文任务名
   const by_type = (
     [
       { type: 'chat', share: 0.58, inShare: 0.44, outShare: 0.71 },
-      { type: 'tool_call', share: 0.24, inShare: 0.31, outShare: 0.18 },
-      { type: 'rerank', share: 0.11, inShare: 0.16, outShare: 0.07 },
-      { type: 'memory_text_extract', share: 0.07, inShare: 0.09, outShare: 0.04 },
+      { type: 'turnrouter', share: 0.24, inShare: 0.31, outShare: 0.18 },
+      { type: 'memalgebra', share: 0.11, inShare: 0.16, outShare: 0.07 },
+      { type: 'imageunderstand', share: 0.07, inShare: 0.09, outShare: 0.04 },
     ] as const
   ).map((ty) => {
     const input = Math.round(total.input_tokens * ty.inShare);
