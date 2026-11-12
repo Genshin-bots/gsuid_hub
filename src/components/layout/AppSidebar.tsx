@@ -1,44 +1,4 @@
-import {
-  Home,
-  LayoutDashboard,
-  Database,
-  Settings,
-  FileText,
-  LogOut,
-  Palette,
-  Terminal,
-  Calendar,
-  Store,
-  Cpu,
-  HardDrive,
-  PanelLeftClose,
-  Cog,
-  Power,
-  RotateCw,
-  User,
-  Brain,
-  ChevronDown,
-  ChevronRight,
-  Wrench,
-  BookOpen,
-  History,
-  TrendingUp,
-  Clock,
-  Server,
-  GitBranch,
-  Image as ImageIcon,
-  ScrollText,
-  ClipboardList,
-  Activity,
-  Wallet,
-  ShieldCheck,
-  PackageOpen,
-  Send,
-  MessageCircle,
-  Puzzle,
-  Globe,
-  ShoppingBag,
-} from 'lucide-react';
+import { ChevronDown, ChevronRight, LogOut, PanelLeftClose, Power, RotateCw } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -63,7 +23,6 @@ import {
 } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
-import { Progress } from '@/components/ui/progress';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -76,252 +35,11 @@ import { cn } from '@/lib/utils';
 import { resolveApiAssetUrl } from '@/lib/api';
 import type React from 'react';
 import { useState, useEffect, useRef, memo, useMemo } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useSystemControl } from '@/hooks/useSystemControl';
 import { SidebarHoverIcon, sidebarNavItemGroupClass } from '@/components/layout/SidebarHoverIcon';
-
-// 导航项类型定义
-interface NavItem {
-  // 稳定标识符，不随语言变化，用于追踪展开/选中状态
-  id: string;
-  title: string;
-  url?: string;
-  icon?: React.ElementType;
-  children?: NavItem[];
-  adminOnly?: boolean;
-  /** 额外视为该导航项激活的路径前缀（非导航页的子页面，如 /persona-store） */
-  activePaths?: string[];
-}
-
-// 静态导航配置 - 避免每次渲染重新创建
-const _NAV_ITEMS_KEYS = [
-  'home',
-  'dashboard',
-  'database',
-  'adminCore',
-  'logsView',
-  'aiConfig',
-  'aiPersona',
-  'plugins',
-  'pluginStore',
-  'gitUpdate',
-  'consoleManagement',
-] as const;
-
-// 图标映射 - 使用静态对象避免每次渲染重新创建
-const _ICON_MAP: Record<string, React.ElementType> = {
-  Home,
-  LayoutDashboard,
-  Database,
-  Cog,
-  Cpu,
-  HardDrive,
-  Calendar,
-  FileText,
-  ImageIcon,
-  Terminal,
-  Brain,
-  Settings,
-  Store,
-  Palette,
-  User,
-  Server,
-  GitBranch,
-  Wallet,
-  MessageCircle,
-  Puzzle,
-};
-
-function filterAdminNav(items: NavItem[], isAdmin: boolean): NavItem[] {
-  const out: NavItem[] = [];
-  for (const item of items) {
-    if (item.adminOnly && !isAdmin) {
-      continue;
-    }
-    if (item.children && item.children.length > 0) {
-      const children = filterAdminNav(item.children, isAdmin);
-      if (children.length === 0) {
-        continue;
-      }
-      out.push({ ...item, children });
-      continue;
-    }
-    out.push(item);
-  }
-  return out;
-}
-
-// 导航项配置
-const getNavItems = (
-  t: (key: string) => string,
-  isAIEnabled: boolean,
-  isAdmin: boolean,
-): NavItem[] => {
-  // AI 配置的子菜单：未启用 AI 时只保留 基础配置 / AI历史调用
-  const aiConfigChildren: NavItem[] = isAIEnabled
-    ? [
-        { id: 'ai-basicConfig', title: t('sidebar.basicConfig'), url: '/ai-config', icon: Cog },
-        {
-          id: 'ai-personaConfig',
-          title: t('sidebar.personaConfig'),
-          url: '/persona-config',
-          icon: User,
-          activePaths: ['/persona-store'],
-        },
-        { id: 'ai-budget', title: t('sidebar.aiBudget'), url: '/ai-budget', icon: Wallet },
-        { id: 'ai-mcpConfig', title: t('sidebar.mcpConfig'), url: '/mcp-config', icon: Server },
-        {
-          id: 'ai-mcpMarket',
-          title: t('sidebar.mcpMarket'),
-          url: '/mcp-market',
-          icon: ShoppingBag,
-        },
-        { id: 'ai-tools', title: t('sidebar.aiTools'), url: '/ai-tools', icon: Wrench },
-        {
-          id: 'ai-statistics',
-          title: t('sidebar.aiStatistics'),
-          url: '/ai-statistics',
-          icon: TrendingUp,
-        },
-        {
-          id: 'ai-scheduledTasks',
-          title: t('sidebar.aiScheduledTasks'),
-          url: '/ai-scheduled-tasks',
-          icon: Clock,
-        },
-        {
-          id: 'ai-knowledge',
-          title: t('sidebar.aiKnowledge'),
-          url: '/ai-knowledge',
-          icon: BookOpen,
-        },
-        { id: 'ai-meme', title: t('sidebar.aiMeme'), url: '/ai-meme', icon: ImageIcon },
-        { id: 'ai-memory', title: t('sidebar.aiMemory'), url: '/ai-memory', icon: Brain },
-        { id: 'ai-history', title: t('sidebar.aiHistory'), url: '/ai-history', icon: ScrollText },
-        { id: 'ai-kanban', title: t('sidebar.aiKanban'), url: '/ai-kanban', icon: ClipboardList },
-        {
-          id: 'ai-approvals',
-          title: t('sidebar.aiApprovals'),
-          url: '/ai-approvals',
-          icon: ShieldCheck,
-        },
-        { id: 'ai-runtime', title: t('sidebar.aiRuntime'), url: '/ai-runtime', icon: Puzzle },
-        // 产出物 + 工具落盘合并为一个入口，页内用 TabButtonGroup 切换两块资源
-        {
-          id: 'ai-artifacts',
-          title: t('sidebar.aiOutputs'),
-          url: '/ai-artifacts',
-          icon: PackageOpen,
-        },
-      ]
-    : [
-        { id: 'ai-basicConfig', title: t('sidebar.basicConfig'), url: '/ai-config', icon: Cog },
-        { id: 'ai-history', title: t('sidebar.aiHistory'), url: '/ai-history', icon: ScrollText },
-      ];
-
-  const items: NavItem[] = [
-    { id: 'home', title: t('sidebar.home'), url: '/home', icon: Home },
-    { id: 'dashboard', title: t('sidebar.dashboard'), url: '/dashboard', icon: LayoutDashboard },
-    {
-      id: 'database',
-      title: t('sidebar.database'),
-      url: '/database',
-      icon: Database,
-      adminOnly: true,
-    },
-    {
-      id: 'adminCore',
-      title: t('sidebar.adminCore'),
-      icon: Cog,
-      children: [
-        // 核心配置已并入 /framework-config 的首个页签
-        {
-          id: 'frameworkConfig',
-          title: t('sidebar.frameworkConfig'),
-          url: '/framework-config',
-          icon: Cpu,
-          adminOnly: true,
-        },
-        {
-          id: 'backup',
-          title: t('sidebar.backup'),
-          url: '/backup',
-          icon: HardDrive,
-          adminOnly: true,
-        },
-        { id: 'scheduler', title: t('sidebar.scheduler'), url: '/scheduler', icon: Calendar },
-      ],
-    },
-    {
-      id: 'logsView',
-      title: t('sidebar.logsView'),
-      icon: FileText,
-      children: [
-        { id: 'console', title: t('sidebar.console'), url: '/console', icon: Terminal },
-        { id: 'historyLogs', title: t('sidebar.historyLogs'), url: '/logs', icon: FileText },
-        { id: 'traces', title: t('sidebar.traces'), url: '/traces', icon: Activity },
-        { id: 'httpTraces', title: t('sidebar.httpTraces'), url: '/http-traces', icon: Globe },
-        {
-          id: 'batchPush',
-          title: t('sidebar.batchPush'),
-          url: '/batch-push',
-          icon: Send,
-          adminOnly: true,
-        },
-      ],
-    },
-    {
-      id: 'aiConfig',
-      title: t('sidebar.aiConfig'),
-      icon: Brain,
-      children: aiConfigChildren,
-    },
-    {
-      id: 'sessionManagement',
-      title: t('sidebar.sessionManagement'),
-      url: '/session-management',
-      icon: History,
-    },
-    {
-      id: 'plugins',
-      title: t('sidebar.plugins'),
-      url: '/plugins',
-      icon: Settings,
-      adminOnly: true,
-    },
-    { id: 'pluginStore', title: t('sidebar.pluginStore'), url: '/plugin-store', icon: Store },
-    { id: 'gitUpdate', title: t('sidebar.gitUpdate'), url: '/git-update', icon: GitBranch },
-    {
-      id: 'consoleManagement',
-      title: t('sidebar.consoleManagement'),
-      icon: Settings,
-      children: [
-        { id: 'themes', title: t('sidebar.themes'), url: '/themes', icon: Palette },
-        {
-          id: 'brandSettings',
-          title: t('sidebar.brandSettings'),
-          url: '/brand-settings',
-          icon: ImageIcon,
-        },
-        {
-          id: 'accountSettings',
-          title: t('sidebar.accountSettings'),
-          url: '/settings',
-          icon: User,
-        },
-      ],
-    },
-  ];
-  return filterAdminNav(items, isAdmin);
-};
+import { getNavItems, isNavGroupActive, type NavItem } from '@/components/layout/navItems';
+import { SystemControlDialogs } from '@/components/layout/SystemControlDialogs';
 
 // 使用memo优化NavItem渲染
 interface NavItemProps {
@@ -573,15 +291,8 @@ export function AppSidebar() {
       isInitialMount.current = false;
       const currentPath = location.pathname;
       navItems.forEach((item) => {
-        if (item.children) {
-          const hasActiveChild = item.children.some((child) =>
-            [child.url, ...(child.activePaths ?? [])]
-              .filter(Boolean)
-              .some((p) => currentPath === p || currentPath.startsWith(`${p}/`)),
-          );
-          if (hasActiveChild) {
-            setExpandedItems((prev) => ({ ...prev, [item.id]: true }));
-          }
+        if (item.children && isNavGroupActive(item, currentPath)) {
+          setExpandedItems((prev) => ({ ...prev, [item.id]: true }));
         }
       });
     }
@@ -607,6 +318,11 @@ export function AppSidebar() {
       : sidebarLayout === 'line'
         ? 'line-sidebar'
         : 'glass-sidebar';
+
+  // 移动端导航已由底部 Floating Tab Bar 与原位上弹菜单承接，不再渲染侧边栏抽屉
+  if (isMobile) {
+    return null;
+  }
 
   return (
     <Sidebar variant={sidebarVariant} collapsible="icon" className={sidebarChromeClass}>
@@ -833,127 +549,22 @@ export function AppSidebar() {
         </Button>
       </SidebarFooter>
 
-      {/* 重启对话框 */}
-      <Dialog open={showRestartDialog} onOpenChange={setShowRestartDialog}>
-        <DialogContent>
-          <DialogHeader>
-            {restartCompleted ? (
-              <>
-                <DialogTitle className="flex items-center gap-2">
-                  <RotateCw className="w-5 h-5 animate-spin text-green-500" />
-                  {t('sidebar.restartSuccess')}
-                </DialogTitle>
-                <DialogDescription>{t('sidebar.restartSuccessDesc')}</DialogDescription>
-              </>
-            ) : isRestarting ? (
-              <>
-                <DialogTitle className="flex items-center gap-2">
-                  <RotateCw className="w-5 h-5 animate-spin" />
-                  {t('sidebar.restartSystem')}
-                </DialogTitle>
-                <DialogDescription>{t('sidebar.restartingDesc')}</DialogDescription>
-              </>
-            ) : (
-              <>
-                <DialogTitle>{t('sidebar.confirmRestartTitle')}</DialogTitle>
-                <DialogDescription className="text-red-500 italic">
-                  {t('sidebar.confirmRestartDesc')}
-                </DialogDescription>
-              </>
-            )}
-          </DialogHeader>
-
-          {isRestarting && (
-            <div className="py-4">
-              <Progress value={restartProgress} className="h-2" />
-              <p className="text-sm text-muted-foreground mt-2 text-center">
-                {Math.round(restartProgress)}%
-              </p>
-            </div>
-          )}
-
-          <DialogFooter>
-            {restartCompleted ? (
-              <Button variant="default" onClick={() => setShowRestartDialog(false)}>
-                {t('common.confirm')}
-              </Button>
-            ) : isRestarting ? null : (
-              <>
-                <Button variant="outline" onClick={() => setShowRestartDialog(false)}>
-                  {t('common.cancel')}
-                </Button>
-                <Button variant="destructive" onClick={handleRestart}>
-                  {t('sidebar.restartSystem')}
-                </Button>
-              </>
-            )}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* 暂停/恢复对话框 */}
-      <Dialog open={showPauseDialog} onOpenChange={setShowPauseDialog}>
-        <DialogContent>
-          <DialogHeader>
-            {pauseCompleted ? (
-              <>
-                <DialogTitle className="flex items-center gap-2">
-                  <RotateCw className="w-5 h-5 animate-spin text-green-500" />
-                  {isPaused ? t('sidebar.pauseSuccess') : t('sidebar.resumeSuccess')}
-                </DialogTitle>
-                <DialogDescription>
-                  {isPaused ? t('sidebar.pauseSuccessDesc') : t('sidebar.resumeSuccessDesc')}
-                </DialogDescription>
-              </>
-            ) : isPausing ? (
-              <>
-                <DialogTitle className="flex items-center gap-2">
-                  <RotateCw className="w-5 h-5 animate-spin" />
-                  {isPaused ? t('sidebar.resumingSystem') : t('sidebar.pausingSystem')}
-                </DialogTitle>
-                <DialogDescription>
-                  {isPaused ? t('sidebar.resumingDesc') : t('sidebar.pausingDesc')}
-                </DialogDescription>
-              </>
-            ) : (
-              <>
-                <DialogTitle>
-                  {isPaused ? t('sidebar.confirmResumeTitle') : t('sidebar.confirmPauseTitle')}
-                </DialogTitle>
-                <DialogDescription className="text-red-500 italic">
-                  {isPaused ? t('sidebar.confirmResumeDesc') : t('sidebar.confirmPauseDesc')}
-                </DialogDescription>
-              </>
-            )}
-          </DialogHeader>
-
-          {isPausing && (
-            <div className="py-4">
-              <Progress value={pauseProgress} className="h-2" />
-              <p className="text-sm text-muted-foreground mt-2 text-center">
-                {Math.round(pauseProgress)}%
-              </p>
-            </div>
-          )}
-
-          <DialogFooter>
-            {pauseCompleted ? (
-              <Button variant="default" onClick={() => setShowPauseDialog(false)}>
-                {t('common.confirm')}
-              </Button>
-            ) : isPausing ? null : (
-              <>
-                <Button variant="outline" onClick={() => setShowPauseDialog(false)}>
-                  {t('common.cancel')}
-                </Button>
-                <Button variant="destructive" onClick={isPaused ? handleResume : handlePause}>
-                  {isPaused ? t('sidebar.resumeSystem') : t('sidebar.pauseSystem')}
-                </Button>
-              </>
-            )}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <SystemControlDialogs
+        showRestartDialog={showRestartDialog}
+        setShowRestartDialog={setShowRestartDialog}
+        isRestarting={isRestarting}
+        restartProgress={restartProgress}
+        restartCompleted={restartCompleted}
+        handleRestart={handleRestart}
+        showPauseDialog={showPauseDialog}
+        setShowPauseDialog={setShowPauseDialog}
+        isPaused={isPaused}
+        isPausing={isPausing}
+        pauseProgress={pauseProgress}
+        pauseCompleted={pauseCompleted}
+        handlePause={handlePause}
+        handleResume={handleResume}
+      />
 
       {/* 品牌信息配置对话框 */}
       <BrandSettingsDialog open={showBrandDialog} onOpenChange={setShowBrandDialog} />

@@ -1,80 +1,11 @@
-import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Suspense, useEffect, useMemo, useState } from 'react';
+import { Outlet, useLocation } from 'react-router-dom';
 import { PageSpinner } from '@/components/layout/PageSpinner';
+import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { useTheme } from '@/contexts/ThemeContext';
-import { SidebarProvider, SidebarInset, useSidebar } from '@/components/ui/sidebar';
-import { AppSidebar } from './AppSidebar';
-import { useIsMobile } from '@/hooks/use-mobile';
-import { useAuth } from '@/contexts/AuthContext';
-import { useBrand } from '@/contexts/BrandContext';
-import { Menu } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 import { resolveApiAssetUrl } from '@/lib/api';
-
-function LayoutHeader() {
-  const { toggleSidebar } = useSidebar();
-  const isMobile = useIsMobile();
-  const { user } = useAuth();
-  const { title: brandTitle, iconUrl: brandIconUrl } = useBrand();
-  const navigate = useNavigate();
-
-  if (!isMobile) return null;
-
-  return (
-    <div className="sticky top-0 z-10 w-full bg-background/80 backdrop-blur-sm border-b border-border/40 px-4 py-2 flex items-center justify-between gap-2">
-      <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={toggleSidebar}
-          aria-label="打开菜单"
-          className="shrink-0"
-        >
-          <Menu className="h-5 w-5" />
-        </Button>
-        {/* 品牌区：min-w-0 + truncate，品牌名过长时收缩而不是把右侧头像挤出屏幕 */}
-        <div className="flex min-w-0 items-center gap-1">
-          <div className="w-8 h-8 flex items-center justify-center shrink-0 overflow-hidden">
-            <img
-              src={brandIconUrl}
-              alt={brandTitle}
-              className="w-8 h-8 object-contain"
-              key={brandIconUrl}
-            />
-          </div>
-          <span className="min-w-0 truncate font-semibold">{brandTitle}</span>
-          <Badge
-            variant="secondary"
-            className="text-xs font-mono font-medium ml-1 shrink-0 bg-muted/80 text-foreground border border-border/50"
-          >
-            v{PACKAGE_VERSION}
-          </Badge>
-        </div>
-      </div>
-      <button
-        onClick={() => navigate('/settings')}
-        aria-label={user?.name || '设置'}
-        className="flex shrink-0 cursor-pointer items-center rounded-full transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-      >
-        <Avatar className="w-8 h-8">
-          {user?.avatar ? (
-            <img
-              src={resolveApiAssetUrl(user.avatar)}
-              alt={user.name}
-              className="w-full h-full object-cover rounded-full"
-            />
-          ) : (
-            <AvatarFallback className="bg-primary/20 text-primary text-xs font-medium">
-              {user?.name?.charAt(0) || 'U'}
-            </AvatarFallback>
-          )}
-        </Avatar>
-      </button>
-    </div>
-  );
-}
+import { AppSidebar } from './AppSidebar';
+import { MobileTabBar } from './MobileTabBar';
 
 function LayoutContent() {
   const { style, backgroundImage, blurIntensity, backgroundBlur } = useTheme();
@@ -218,7 +149,6 @@ function LayoutContent() {
       */}
       <AppSidebar />
       <SidebarInset className="flex flex-col overflow-hidden">
-        <LayoutHeader />
         {/*
           滚动容器与内边距拆开：
           - main 只负责 overflow，避免 padding+overflow 把卡片阴影竖直裁切
@@ -232,6 +162,7 @@ function LayoutContent() {
             </Suspense>
           </div>
         </main>
+        <MobileTabBar />
       </SidebarInset>
     </>
   );

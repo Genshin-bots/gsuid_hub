@@ -3623,6 +3623,19 @@ main:has(.page-fill) .layout-page-inner {
   :root {
     --layout-gutter: 1rem;
     --layout-page-top: 1.5rem;
+    --mobile-tabbar-height: 3.5rem;
+    --mobile-tabbar-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+    --mobile-tabbar-clearance: calc(
+      var(--mobile-tabbar-height) +
+      var(--mobile-tabbar-bottom) +
+      0.75rem
+    );
+  }
+
+  /* 底部悬浮导航栏避让，避免正文、全高卡片与控制台被遮挡 */
+  .layout-page-inner,
+  main:has(.page-fill) .layout-page-inner {
+    padding-bottom: var(--mobile-tabbar-clearance);
   }
 
   /* 抽屉宽度随 gutter 收窄，菜单不至于盖满整屏 */
@@ -3633,6 +3646,87 @@ main:has(.page-fill) .layout-page-inner {
     overflow-y: auto;
     overscroll-behavior: contain;
   }
+}
+
+/* 移动端底部悬浮 Tab Bar 与原位上弹菜单：表面直接复用 .tab-segment-row / .glass-card，完整跟随用户圆角、透明度与四套玻璃主题 */
+.mobile-floating-tabbar-dock {
+  position: fixed;
+  left: 0.75rem;
+  right: 0.75rem;
+  bottom: var(--mobile-tabbar-bottom, max(0.75rem, env(safe-area-inset-bottom, 0px)));
+  z-index: 46;
+  margin-inline: auto;
+  max-width: 28rem;
+}
+
+.mobile-floating-menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 42;
+  transition:
+    opacity 200ms ease-out,
+    visibility 0s linear 200ms;
+}
+
+.mobile-floating-menu-backdrop[data-state="closed"] {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.mobile-floating-menu-backdrop[data-state="open"] {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition:
+    opacity 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    visibility 0s linear 0s;
+}
+
+.mobile-floating-menu-dock {
+  position: fixed;
+  left: 0.75rem;
+  right: 0.75rem;
+  bottom: calc(
+    var(--mobile-tabbar-height, 3.5rem) +
+    var(--mobile-tabbar-bottom, max(0.75rem, env(safe-area-inset-bottom, 0px))) +
+    0.5rem
+  );
+  z-index: 45;
+  margin-inline: auto;
+  max-width: 28rem;
+  transform-origin: 88% 100%;
+  transition:
+    opacity 180ms ease-out,
+    transform 200ms cubic-bezier(0.4, 0, 1, 1),
+    visibility 0s linear 200ms;
+}
+
+.mobile-floating-menu-dock[data-state="closed"] {
+  opacity: 0;
+  visibility: hidden;
+  transform: translate3d(0, 16px, 0) scale(0.92);
+  pointer-events: none;
+}
+
+.mobile-floating-menu-dock[data-state="open"] {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  pointer-events: auto;
+  transition:
+    opacity 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 300ms cubic-bezier(0.22, 1.15, 0.36, 1),
+    visibility 0s linear 0s;
+}
+
+.mobile-floating-tabbar {
+  border-radius: var(--radius) !important;
+}
+
+.mobile-floating-tabbar > .liquid-segment-thumb,
+.mobile-floating-tabbar > button {
+  border-radius: max(0px, calc(var(--radius) - 4px)) !important;
 }
 
 /*

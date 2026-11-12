@@ -76,5 +76,12 @@
   "settings": "Settings",
   "groupProfile": "Group Profile",
   "aiRuntime": "Agent Runtime",
-  "mcpMarket": "MCP Market"
+  "mcpMarket": "MCP Market",
+  "mobileNav": {
+    "home": "Home",
+    "dashboard": "Dashboard",
+    "console": "Console",
+    "plugins": "Plugins",
+    "menu": "Menu"
+  }
 }

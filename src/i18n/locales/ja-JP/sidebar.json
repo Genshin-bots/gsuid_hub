@@ -76,5 +76,12 @@
   "settings": "設定",
   "groupProfile": "グループ像",
   "aiRuntime": "Agent ランタイム",
-  "mcpMarket": "MCP マーケット"
+  "mcpMarket": "MCP マーケット",
+  "mobileNav": {
+    "home": "ホーム",
+    "dashboard": "看板",
+    "console": "コンソール",
+    "plugins": "プラグイン",
+    "menu": "メニュー"
+  }
 }

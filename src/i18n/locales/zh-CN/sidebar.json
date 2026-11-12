@@ -76,5 +76,12 @@
   "settings": "设置",
   "groupProfile": "群组画像",
   "aiRuntime": "Agent 运行时",
-  "mcpMarket": "MCP 广场"
+  "mcpMarket": "MCP 广场",
+  "mobileNav": {
+    "home": "主页",
+    "dashboard": "看板",
+    "console": "控制台",
+    "plugins": "插件配置",
+    "menu": "菜单"
+  }
 }
