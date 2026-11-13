@@ -101,6 +101,35 @@ export interface MsgSender {
   unionid?: string;
 }
 
+/** A 轨会话内链接（后端 EventLink）：seq 序号、引用边、@ 关系、证据观测 ID */
+export interface ChatMsgLink {
+  seq?: number;
+  msg_id?: string;
+  reply_to_seq?: number | null;
+  reply_to_author?: string | null;
+  at_targets?: string[];
+  at_self?: boolean;
+  in_reply_to_seqs?: number[];
+  seen_seq?: number;
+  evidence?: string[];
+}
+
+/** 工具证据观测（/api/history/chat/{id}/evidence 返回） */
+export interface EvidenceObservation {
+  obs_id: string;
+  tool_name: string;
+  service: string;
+  requested_by: string;
+  requested_by_seq: number;
+  credential_owner: string | null;
+  outcome: string;
+  outcome_label: string;
+  stale: boolean;
+  observed_at: number;
+  summary: string;
+  handle: string;
+}
+
 export interface ChatMsg {
   key?: string;
   role: 'user' | 'assistant';
@@ -113,6 +142,8 @@ export interface ChatMsg {
   segments: MsgSeg[];
   sender: MsgSender;
   msg_id?: string;
+  /** A 轨链接：seq / 引用边 / 证据观测 ID；老记录或未分配时为 null */
+  link?: ChatMsgLink | null;
   /** WS 实时帧才有：后端算好的列表摘要，前端不再自己压一遍 */
   preview?: string;
   /** 虚拟会话消息发送状态 */

@@ -173,5 +173,12 @@
   "cacheClear": "清空缓存",
   "cacheClearConfirmTitle": "确认清空缓存",
   "cacheClearConfirm": "确定要清空全部缓存消息吗？此操作无法撤销。",
-  "close": "关闭"
+  "close": "关闭",
+  "evidenceBasis": "依据（{count}）",
+  "evidenceLoading": "加载中…",
+  "evidenceEmpty": "（证据已不在缓存）",
+  "evidenceFailed": "加载证据失败",
+  "evidenceFor": "替{name}查",
+  "evidenceCredShared": "共享凭据",
+  "evidenceCredPersonal": "{name}的凭据"
 }

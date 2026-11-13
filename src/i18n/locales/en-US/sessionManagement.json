@@ -173,5 +173,12 @@
   "cacheClear": "Clear cache",
   "cacheClearConfirmTitle": "Confirm clearing cache",
   "cacheClearConfirm": "Are you sure you want to clear all cached messages? This action cannot be undone.",
-  "close": "Close"
+  "close": "Close",
+  "evidenceBasis": "Basis ({count})",
+  "evidenceLoading": "Loading…",
+  "evidenceEmpty": "(Evidence no longer cached)",
+  "evidenceFailed": "Failed to load evidence",
+  "evidenceFor": "For {name}",
+  "evidenceCredShared": "shared credential",
+  "evidenceCredPersonal": "{name}'s credential"
 }

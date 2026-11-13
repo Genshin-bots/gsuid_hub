@@ -406,6 +406,18 @@ export default function SessionManagementPage() {
     });
   }, [displayedMessages]);
 
+  // 证据「替谁查」的 uid → 昵称映射：从已加载消息的 sender/user_name 里收集
+  const resolveMessageName = useCallback(
+    (uid: string) => {
+      for (let i = displayedMessages.length - 1; i >= 0; i -= 1) {
+        const m = displayedMessages[i];
+        if (m.user_id === uid) return m.sender?.card || m.sender?.nickname || m.user_name || uid;
+      }
+      return undefined;
+    },
+    [displayedMessages],
+  );
+
   const scrollToBottom = useCallback((smooth = false) => {
     const node = scrollRef.current;
     if (!node) return;
@@ -1935,6 +1947,8 @@ export default function SessionManagementPage() {
                         )}
                         <MessageRow
                           msg={msg}
+                          sessionId={isVirtualActive ? undefined : activeId}
+                          resolveName={resolveMessageName}
                           invertPerspective={isVirtualActive}
                           onRetry={isVirtualActive ? handleVirtualRetry : undefined}
                           onPlusOne={isVirtualActive ? handleVirtualPlusOne : undefined}

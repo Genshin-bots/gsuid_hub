@@ -15,7 +15,14 @@ import { BackendUnreachableError, isUnreachableResponse } from './backendReachab
 import { demoPluginIcon, demoMemeImageUrl } from './demoMock';
 // 会话管理的段 / 消息类型。type-only 导入，编译后不产生运行时依赖，
 // 所以不会和 sessionChat 里对 getAuthToken 的引用形成循环。
-import type { ChatMsg, SendPayload, SessionItem, SessionPrefs, TargetInfo } from './sessionChat';
+import type {
+  ChatMsg,
+  EvidenceObservation,
+  SendPayload,
+  SessionItem,
+  SessionPrefs,
+  TargetInfo,
+} from './sessionChat';
 
 // Base URL - empty string means relative to current origin
 // Can be customized by user in settings (e.g., 127.0.0.1:8765)
@@ -4155,6 +4162,16 @@ export interface SessionChatSendData {
   segments: number;
 }
 
+export interface SessionChatThreadViewData {
+  session_id: string;
+  thread_view: string;
+}
+
+export interface SessionChatEvidenceData {
+  session_id: string;
+  observations: EvidenceObservation[];
+}
+
 export interface SessionChatCacheConfig {
   /** 保留时长，单位小时；0 表示不缓存 */
   hours: number;
@@ -4185,6 +4202,20 @@ export const sessionChatApi = {
     api.post<SessionChatCacheConfig>('/api/history/chat/cache', { hours }),
 
   clearCache: () => api.post<{ removed: number }>('/api/history/chat/cache/clear', {}),
+
+  /** 线程视图文本：A 轨历史的 render_window 输出，给「查看线程」用 */
+  getThreadView: (sessionId: string, limit = 40) =>
+    api.get<SessionChatThreadViewData>(
+      `/api/history/chat/${encodeURIComponent(sessionId)}/thread_view?limit=${limit}`,
+    ),
+
+  /** 出站消息的证据观测明细：obsIds 来自 msg.link.evidence，已逐出的会被跳过 */
+  getEvidence: (sessionId: string, obsIds: string[]) =>
+    api.get<SessionChatEvidenceData>(
+      `/api/history/chat/${encodeURIComponent(sessionId)}/evidence?obs_ids=${obsIds
+        .map(encodeURIComponent)
+        .join(',')}`,
+    ),
 
   /** 消息分页：默认最新 20 条，往上翻时把当前最早一条的 timestamp 传成 before */
   getMessages: (sessionId: string, limit = 20, before = 0) =>

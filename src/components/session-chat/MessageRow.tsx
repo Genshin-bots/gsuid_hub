@@ -9,6 +9,7 @@ import {
   AlertCircle,
   AtSign,
   Bot,
+  ChevronDown,
   ClipboardPaste,
   Code2,
   Copy,
@@ -37,6 +38,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
+import { sessionChatApi } from '@/lib/api';
 import {
   ROLE_KEY,
   assetUrl,
@@ -44,6 +46,7 @@ import {
   messageToText,
   type BtnItem,
   type ChatMsg,
+  type EvidenceObservation,
   type MsgSender,
 } from '@/lib/sessionChat';
 import { SegmentView } from './SegmentView';
@@ -68,6 +71,10 @@ interface MessageRowProps {
   onCopyToInput?: (msg: ChatMsg) => void;
   /** 虚拟会话：点击消息内交互按钮 */
   onButtonClick?: (btn: BtnItem) => void;
+  /** 真实会话 ID：出站消息展开「依据」时按它拉取证据观测 */
+  sessionId?: string;
+  /** uid → 显示名（证据行「替谁查」用） */
+  resolveName?: (uid: string) => string | undefined;
 }
 
 /** 头像 / 昵称取值的兜底链：群名片 → 昵称 → id */
@@ -94,6 +101,85 @@ function identityOf(msg: ChatMsg, t: (key: string) => string): string {
   return key ? t(key) : '';
 }
 
+/** 出站消息的证据观测明细：点「依据」才请求接口，空结果说明观测已被逐出缓存。 */
+function EvidenceDetails({
+  sessionId,
+  obsIds,
+  resolveName,
+}: {
+  sessionId: string;
+  obsIds: string[];
+  resolveName?: (uid: string) => string | undefined;
+}) {
+  const { t } = useLanguage();
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [items, setItems] = useState<EvidenceObservation[] | null>(null);
+
+  const toggle = async () => {
+    const next = !open;
+    setOpen(next);
+    if (!next || items !== null || loading) return;
+    setLoading(true);
+    try {
+      const res = await sessionChatApi.getEvidence(sessionId, obsIds);
+      setItems(res.observations);
+    } catch {
+      toast.error(t('sessionManagement.evidenceFailed'));
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const nameOf = (uid: string) => resolveName?.(uid) || uid;
+  const credLabel = (obs: EvidenceObservation): string => {
+    if (obs.credential_owner === 'shared') return t('sessionManagement.evidenceCredShared');
+    if (obs.credential_owner)
+      return t('sessionManagement.evidenceCredPersonal', { name: nameOf(obs.credential_owner) });
+    return '';
+  };
+
+  return (
+    <div className="mt-0.5 text-left">
+      <button
+        type="button"
+        onClick={() => void toggle()}
+        className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] text-muted-foreground hover:bg-muted/70 hover:text-foreground"
+      >
+        <ChevronDown className={cn('h-3 w-3 transition-transform', !open && '-rotate-90')} />
+        {t('sessionManagement.evidenceBasis', { count: obsIds.length })}
+      </button>
+      {open && (
+        <div className="mt-0.5 space-y-0.5 rounded-md border border-border/50 bg-muted/40 px-2 py-1.5 text-[11px] text-muted-foreground">
+          {loading && (
+            <span className="inline-flex items-center gap-1">
+              <Loader2 className="h-2.5 w-2.5 animate-spin" />
+              {t('sessionManagement.evidenceLoading')}
+            </span>
+          )}
+          {!loading && items !== null && items.length === 0 && (
+            <span>{t('sessionManagement.evidenceEmpty')}</span>
+          )}
+          {!loading &&
+            items?.map((obs) => {
+              const cred = credLabel(obs);
+              return (
+                <div key={obs.obs_id} className="break-all">
+                  {t('sessionManagement.evidenceFor', { name: nameOf(obs.requested_by) })}
+                  {cred ? ` · ${cred}` : ''} · {obs.outcome_label} · {formatClock(obs.observed_at)}
+                  <span className="block text-[10px] opacity-70">
+                    {obs.obs_id} · {obs.service} · {obs.summary}
+                  </span>
+                </div>
+              );
+            })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function MessageRow({
   msg,
   onReply,
@@ -103,6 +189,8 @@ export function MessageRow({
   onPlusOne,
   onCopyToInput,
   onButtonClick,
+  sessionId,
+  resolveName,
 }: MessageRowProps) {
   const { t } = useLanguage();
   const [avatarFailed, setAvatarFailed] = useState(false);
@@ -255,6 +343,16 @@ export function MessageRow({
               {identity}
             </span>
           )}
+          {msg.link?.seq != null && (
+            <span className="rounded bg-muted px-1 font-mono text-[10px] text-muted-foreground">
+              #{msg.link.seq}
+            </span>
+          )}
+          {msg.link?.reply_to_seq != null && (
+            <span className="rounded bg-muted px-1 font-mono text-[10px] text-muted-foreground">
+              ↩#{msg.link.reply_to_seq}
+            </span>
+          )}
           <span>{formatClock(msg.timestamp)}</span>
           {msg.status === 'sending' && (
             <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
@@ -347,6 +445,16 @@ export function MessageRow({
             </ContextMenuItem>
           </ContextMenuContent>
         </ContextMenu>
+
+        {msg.link?.evidence && msg.link.evidence.length > 0 && sessionId && (
+          <div className={cn(isSelf && 'flex justify-end')}>
+            <EvidenceDetails
+              sessionId={sessionId}
+              obsIds={msg.link.evidence}
+              resolveName={resolveName}
+            />
+          </div>
+        )}
 
         {invertPerspective && (
           <div
