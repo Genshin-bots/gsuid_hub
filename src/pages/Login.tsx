@@ -36,6 +36,8 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { LanguageFlag } from '@/components/ui/language-flag';
+import { BgMedia } from '@/components/ui/BgMedia';
+import { isVideoBackgroundUrl } from '@/lib/backgroundMedia';
 import { cn } from '@/lib/utils';
 import {
   getCustomApiHost,
@@ -236,6 +238,8 @@ export default function Login() {
               className="h-full w-full"
               style={{ background: backgroundImage, ...wallpaperBlurStyle }}
             />
+          ) : backgroundImage && isVideoBackgroundUrl(backgroundImage) ? (
+            <BgMedia url={backgroundImage} className="h-full w-full" style={wallpaperBlurStyle} />
           ) : (
             <div
               className="h-full w-full bg-cover bg-center bg-no-repeat bg-fixed"
@@ -300,13 +304,17 @@ export default function Login() {
       {isSolid && (
         <div className="fixed inset-0 z-0 overflow-hidden">
           {backgroundImage ? (
-            <div
-              className="h-full w-full bg-cover bg-center bg-no-repeat bg-fixed"
-              style={{
-                backgroundImage: `url("${resolveApiAssetUrl(backgroundImage)}")`,
-                ...wallpaperBlurStyle,
-              }}
-            />
+            isVideoBackgroundUrl(backgroundImage) ? (
+              <BgMedia url={backgroundImage} className="h-full w-full" style={wallpaperBlurStyle} />
+            ) : (
+              <div
+                className="h-full w-full bg-cover bg-center bg-no-repeat bg-fixed"
+                style={{
+                  backgroundImage: `url("${resolveApiAssetUrl(backgroundImage)}")`,
+                  ...wallpaperBlurStyle,
+                }}
+              />
+            )
           ) : (
             <div className="w-full h-full bg-gradient-to-br from-background via-background to-secondary/30" />
           )}

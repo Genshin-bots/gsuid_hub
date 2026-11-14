@@ -4,6 +4,8 @@ import { PageSpinner } from '@/components/layout/PageSpinner';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { useTheme } from '@/contexts/ThemeContext';
 import { resolveApiAssetUrl } from '@/lib/api';
+import { isVideoBackgroundUrl } from '@/lib/backgroundMedia';
+import { BgMedia } from '@/components/ui/BgMedia';
 import { AppSidebar } from './AppSidebar';
 import { MobileTabBar } from './MobileTabBar';
 
@@ -126,16 +128,28 @@ function LayoutContent() {
     <>
       {/* 壁纸。光感/液态的模糊画在这层静态 filter 上，结果可被缓存。 */}
       <div className="pointer-events-none fixed inset-0 z-[-10] overflow-hidden" aria-hidden="true">
-        <div
-          style={{
-            ...getBackgroundStyle(),
-            position: 'absolute',
-            zIndex: 0,
-            filter: `blur(calc(var(--background-blur, ${backgroundBlur}px) + ${frostBlur}px))`,
-            transform: 'scale(1.08)',
-            transition: 'filter 0.15s ease-out',
-          }}
-        />
+        {isImage && isVideoBackgroundUrl(backgroundImage) ? (
+          <BgMedia
+            url={backgroundImage}
+            className="absolute inset-0 h-full w-full"
+            style={{
+              filter: `blur(calc(var(--background-blur, ${backgroundBlur}px) + ${frostBlur}px))`,
+              transform: 'scale(1.08)',
+              transition: 'filter 0.15s ease-out',
+            }}
+          />
+        ) : (
+          <div
+            style={{
+              ...getBackgroundStyle(),
+              position: 'absolute',
+              zIndex: 0,
+              filter: `blur(calc(var(--background-blur, ${backgroundBlur}px) + ${frostBlur}px))`,
+              transform: 'scale(1.08)',
+              transition: 'filter 0.15s ease-out',
+            }}
+          />
+        )}
       </div>
 
       {/* 毛玻璃模式下的额外叠加层（仅毛玻璃模式且无背景图时需要） */}

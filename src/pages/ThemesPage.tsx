@@ -36,6 +36,9 @@ import { LabelWithHelp } from '@/components/ui/label-with-help';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 import { themeApi, type ThemePresetItem, type ThemeConfig, getApiErrorMessage } from '@/lib/api';
+import { animeWallpaperPresets, type WallpaperPreset } from '@/lib/wallpaperPresets';
+import { isVideoBackgroundUrl } from '@/lib/backgroundMedia';
+import { BgMedia } from '@/components/ui/BgMedia';
 import {
   Sun,
   Moon,
@@ -68,6 +71,7 @@ import {
   Plus,
   Settings,
   ImageOff,
+  Film,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { pageGapClass, pageStackClass, PinnedPage } from '@/components/layout/PinnedPage';
@@ -85,53 +89,8 @@ const themeColors = [
   { id: 'pink', name: 'themes.pink', color: 'hsl(330 70% 60%)' },
 ] as const;
 
-// 二次元背景预设
-const animeBgPresets = [
-  {
-    id: 'anime3',
-    name: 'themes.animeStreet',
-    value: 'https://cdn.pixabay.com/photo/2024/05/26/15/27/anime-8788959_1280.jpg',
-  },
-  {
-    id: 'anime4',
-    name: 'themes.animeRail',
-    value: 'https://files.seeusercontent.com/2026/03/13/5nQg/gg.jpg',
-  },
-  { id: 'anime5', name: 'themes.randomWife', value: 'https://api.paugram.com/wallpaper' },
-  {
-    id: 'anime6',
-    name: 'themes.ruinsGirl',
-    value: 'https://files.seeusercontent.com/2026/03/13/w5oD/aa.jpg',
-  },
-  {
-    id: 'anime7',
-    name: 'themes.kamisatoAyaka',
-    value: 'https://files.seeusercontent.com/2026/06/20/Jth9/aeb070e9498a448d60e76caddd36432b.jpg',
-  },
-  {
-    id: 'anime8',
-    name: 'themes.sayu',
-    value: 'https://files.seeusercontent.com/2026/06/20/sgO1/2026-06-21-06-13-29.png',
-  },
-  {
-    id: 'anime9',
-    name: 'themes.bidens',
-    value: 'https://files.seeusercontent.com/2026/06/20/u2Sj/a694927.jpg',
-  },
-  {
-    id: 'anime10',
-    name: 'themes.blueGirl',
-    value: 'https://files.seeusercontent.com/2026/06/20/qS9l/44873217_p0.jpg',
-  },
-  {
-    id: 'anime11',
-    name: 'themes.miku',
-    value: 'https://files.seeusercontent.com/2026/06/20/kL1z/wallpaper894.jpg',
-  },
-];
-
 // 图片预设背景
-const imagePresets = [
+const imagePresets: WallpaperPreset[] = [
   {
     id: 'starry',
     name: 'themes.black',
@@ -165,7 +124,7 @@ const imagePresets = [
 ];
 
 // 渐变预设背景
-const gradientPresets = [
+const gradientPresets: WallpaperPreset[] = [
   {
     id: 'gradient1',
     name: 'themes.auroraPurple',
@@ -228,24 +187,39 @@ function PresetPreview({ config }: { config?: ThemeConfig }) {
   const themedGradient = `linear-gradient(135deg, ${colorHsl} 0%, ${modeBg} 100%)`;
   const bg = config?.background_image ?? null;
   const isGradient = !!bg && bg.startsWith('linear-gradient');
-  const isImage = !!bg && !isGradient;
+  const isMedia = !!bg && !isGradient;
+  // 已知预设优先用降档动图/官方缩略图当预览，密集卡片下不挂 <video>
+  const presetMatch = isMedia ? animeWallpaperPresets.find((p) => p.value === bg) : undefined;
+  const previewImg = presetMatch
+    ? (presetMatch.anim ?? presetMatch.thumb ?? presetMatch.value)
+    : null;
+  const hideOnError = (e: React.SyntheticEvent<HTMLElement>) => {
+    e.currentTarget.style.display = 'none';
+  };
 
   return (
     <div
       className="absolute inset-0"
       style={{ background: isGradient ? (bg as string) : themedGradient }}
     >
-      {isImage && (
-        <img
-          src={bg as string}
-          alt=""
-          className="h-full w-full object-cover"
-          loading="lazy"
-          onError={(e) => {
-            (e.currentTarget as HTMLImageElement).style.display = 'none';
-          }}
-        />
-      )}
+      {isMedia &&
+        (previewImg ? (
+          <img
+            src={previewImg}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            className="h-full w-full object-cover"
+            onError={hideOnError}
+          />
+        ) : (
+          <BgMedia
+            url={bg as string}
+            playTrigger="hover"
+            className="h-full w-full"
+            onError={hideOnError}
+          />
+        ))}
     </div>
   );
 }
@@ -305,7 +279,7 @@ function BgThumb({ active, onClick, label, children }: BgThumbProps) {
       type="button"
       onClick={onClick}
       className={cn(
-        'group relative aspect-video w-full rounded-lg overflow-hidden transition-all duration-150 hover:scale-[1.02] hover:z-10 focus-visible:outline-none cursor-pointer',
+        'group relative aspect-video w-full rounded-lg overflow-hidden transition-all duration-150 hover:scale-[1.02] hover:z-10 focus-visible:outline-none cursor-pointer [content-visibility:auto]',
         active
           ? 'z-10 ring-2 ring-primary ring-offset-2 ring-offset-background shadow-md'
           : 'ring-1 ring-border/70 hover:ring-primary/40',
@@ -518,7 +492,7 @@ export default function ThemesPage() {
     const allPresets = [
       ...imagePresets.map((p) => p.value),
       ...gradientPresets.map((p) => p.value),
-      ...animeBgPresets.map((p) => p.value),
+      ...animeWallpaperPresets.map((p) => p.value),
     ];
     return backgroundImage && !allPresets.includes(backgroundImage) ? backgroundImage : null;
   });
@@ -626,7 +600,10 @@ export default function ThemesPage() {
     }
   };
 
-  const allBgPresets = useMemo(() => [...imagePresets, ...gradientPresets, ...animeBgPresets], []);
+  const allBgPresets = useMemo(
+    () => [...imagePresets, ...gradientPresets, ...animeWallpaperPresets],
+    [],
+  );
   const allPresetValues = useMemo(() => allBgPresets.map((p) => p.value), [allBgPresets]);
   const isCustomImage = backgroundImage && !allPresetValues.includes(backgroundImage);
 
@@ -1006,29 +983,7 @@ export default function ThemesPage() {
                   </div>
                 </BgThumb>
 
-                {/* 中间：所有预设壁纸直出图片墙 */}
-                {allBgPresets.map((bg) => (
-                  <BgThumb
-                    key={bg.id}
-                    active={backgroundImage === bg.value}
-                    onClick={() => handleSelectBackground(bg.value)}
-                    label={t(bg.name)}
-                  >
-                    {bg.value.startsWith('linear-gradient') ? (
-                      <div className="w-full h-full" style={{ background: bg.value }} />
-                    ) : (
-                      <img
-                        src={thumbSrc(bg.value)}
-                        alt={t(bg.name)}
-                        className="w-full h-full object-cover"
-                        loading="lazy"
-                        decoding="async"
-                      />
-                    )}
-                  </BgThumb>
-                ))}
-
-                {/* 末位：自定义背景 */}
+                {/* 第二位：自定义背景 */}
                 {lastCustomBg ? (
                   <div
                     role="button"
@@ -1054,7 +1009,9 @@ export default function ThemesPage() {
                         : 'ring-1 ring-border/70 hover:ring-primary/40',
                     )}
                   >
-                    {lastCustomBg.startsWith('data:') || lastCustomBg.startsWith('http') ? (
+                    {isVideoBackgroundUrl(lastCustomBg) ? (
+                      <BgMedia url={lastCustomBg} playTrigger="hover" className="h-full w-full" />
+                    ) : lastCustomBg.startsWith('data:') || lastCustomBg.startsWith('http') ? (
                       <img
                         src={lastCustomBg}
                         alt={t('themes.customBg')}
@@ -1095,6 +1052,31 @@ export default function ThemesPage() {
                     <span className="text-xs font-medium">{t('themes.customBg')}</span>
                   </button>
                 )}
+
+                {/* 其后：所有预设壁纸直出图片墙（视频预设用 thumb 静图 + Film 角标） */}
+                {allBgPresets.map((bg) => (
+                  <BgThumb
+                    key={bg.id}
+                    active={backgroundImage === bg.value}
+                    onClick={() => handleSelectBackground(bg.value)}
+                    label={t(bg.name)}
+                  >
+                    {bg.value.startsWith('linear-gradient') ? (
+                      <div className="w-full h-full" style={{ background: bg.value }} />
+                    ) : (
+                      <img
+                        src={bg.anim ?? thumbSrc(bg.thumb ?? bg.value)}
+                        alt={t(bg.name)}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    )}
+                    {isVideoBackgroundUrl(bg.value) && (
+                      <Film className="absolute bottom-1.5 left-1.5 w-3.5 h-3.5 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]" />
+                    )}
+                  </BgThumb>
+                ))}
               </div>
             </Card>
           </div>
@@ -1600,7 +1582,9 @@ export default function ThemesPage() {
                   </Button>
                 </div>
                 <div className="relative aspect-video w-full rounded-lg overflow-hidden border border-border/70">
-                  {backgroundImage.startsWith('data:') || backgroundImage.startsWith('http') ? (
+                  {isVideoBackgroundUrl(backgroundImage) ? (
+                    <BgMedia url={backgroundImage} className="h-full w-full" />
+                  ) : backgroundImage.startsWith('data:') || backgroundImage.startsWith('http') ? (
                     <img
                       src={backgroundImage}
                       alt={t('themes.currentBg')}
