@@ -5462,6 +5462,25 @@ export interface SegmentMeta {
   source: 'memory' | 'disk';
 }
 
+// 按模型归并的计价单元（同模型合并即可线性计价，供费用估算）
+export interface SessionUsageModelUnit {
+  model: string;
+  input_tokens: number;
+  output_tokens: number;
+  cache_read_tokens: number;
+  cache_write_tokens: number;
+}
+
+// 会话链 token 用量聚合：覆盖链内全部分段（含未懒加载段），由 /usage 接口或列表卡片携带
+export interface SessionChainUsage {
+  input_tokens: number;
+  output_tokens: number;
+  cache_read_tokens: number;
+  cache_write_tokens: number;
+  runs: number;
+  models: SessionUsageModelUnit[];
+}
+
 export interface SessionLogSummary {
   session_id: string;
   session_uuid: string;
@@ -5488,6 +5507,8 @@ export interface SessionLogSummary {
   // 链卡片专有：分段数与各分段有序元数据（单分段会话 segment_count===1）
   segment_count?: number;
   segments?: SegmentMeta[];
+  // 整链用量：仅当全部分段摘要齐备时由后端携带；缺省调 getChainUsage 补齐
+  usage?: SessionChainUsage;
 }
 
 export interface SessionLogListResponse {
@@ -5602,6 +5623,13 @@ export const aiSessionLogsApi = {
     return api.get<LinkedAgentsResponse>(
       `/api/ai/session_logs/${encodeURIComponent(sessionId)}/linked_agents${queryStr ? `?${queryStr}` : ''}`,
     );
+  },
+
+  // 获取整条会话链的 token 用量（覆盖全部分段，含未懒加载段）
+  getChainUsage: (chainId: string) => {
+    const query = new URLSearchParams();
+    query.set('chain_id', chainId);
+    return api.get<SessionChainUsage>(`/api/ai/session_logs/usage?${query.toString()}`);
   },
 
   // 获取日志统计概览

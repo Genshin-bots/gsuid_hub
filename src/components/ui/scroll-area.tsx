@@ -5,8 +5,11 @@ import { cn } from '@/lib/utils';
 
 const ScrollArea = React.forwardRef<
   React.ElementRef<typeof ScrollAreaPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof ScrollAreaPrimitive.Root>
->(({ className, children, ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof ScrollAreaPrimitive.Root> & {
+    /** 暴露内部 Viewport（真正滚动的元素），供 scrollTo / scrollTop 等程序化滚动 */
+    viewportRef?: React.Ref<HTMLDivElement>;
+  }
+>(({ className, children, viewportRef, ...props }, ref) => (
   <ScrollAreaPrimitive.Root
     ref={ref}
     className={cn('relative overflow-hidden', className)}
@@ -17,7 +20,10 @@ const ScrollArea = React.forwardRef<
       文本即使设了 overflow-wrap 也换不了行。改为 block + min-w-0，让内容以视口宽度为约束正常换行。
       需要横向滚动的宽内容请在子元素上自管 overflow-x-auto。
     */}
-    <ScrollAreaPrimitive.Viewport className="h-full w-full rounded-[inherit] [&>div]:!block [&>div]:!min-w-0">
+    <ScrollAreaPrimitive.Viewport
+      ref={viewportRef}
+      className="h-full w-full rounded-[inherit] [&>div]:!block [&>div]:!min-w-0"
+    >
       {children}
     </ScrollAreaPrimitive.Viewport>
     <ScrollBar />

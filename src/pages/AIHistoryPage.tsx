@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useLayoutEffect, useCallback, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn, formatTokens } from '@/lib/utils';
@@ -53,11 +53,12 @@ import {
   type SegmentMeta,
   type SessionLogStatsOverview,
   type SessionLogCategory,
+  type SessionChainUsage,
 } from '@/lib/api';
 import { toast } from 'sonner';
 import TraceWaterfall, { type TraceWaterfallHandle } from '@/components/ai-history/TraceWaterfall';
 import { TokenBadges } from '@/components/ai-history/TokenBadges';
-import { extractSessionUsage } from '@/components/ai-history/usage';
+import { extractSessionUsage, type SessionUsage } from '@/components/ai-history/usage';
 
 const DEFAULT_SELECT_VALUE = '__all__';
 
@@ -230,6 +231,25 @@ function ChatTypeBadge({ sessionId, t }: { sessionId: string; t: (k: string) => 
   return null;
 }
 
+// 后端整链用量 → 前端 SessionUsage 展示结构（costUnits 即按模型归并的计价单元）
+function chainUsageToSessionUsage(u: SessionChainUsage): SessionUsage {
+  return {
+    inp: u.input_tokens,
+    out: u.output_tokens,
+    cr: u.cache_read_tokens,
+    cw: u.cache_write_tokens,
+    runs: u.runs,
+    pct: u.input_tokens > 0 ? Math.round((u.cache_read_tokens / u.input_tokens) * 100) : null,
+    costUnits: u.models.map((m) => ({
+      model: m.model,
+      inp: m.input_tokens,
+      out: m.output_tokens,
+      cr: m.cache_read_tokens,
+      cw: m.cache_write_tokens,
+    })),
+  };
+}
+
 // 从卡片派生分段列表（旧卡片无 segments 时回退为单分段）
 function cardSegments(card: SessionLogSummary): SegmentMeta[] {
   if (card.segments && card.segments.length > 0) {
@@ -275,6 +295,15 @@ export default function AIHistoryPage() {
   const [segEntries, setSegEntries] = useState<Record<number, SessionLogEntry[]>>({});
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [isLoadingEarlier, setIsLoadingEarlier] = useState(false);
+  // 整链 token 用量（后端 /usage 接口，覆盖未懒加载分段）；取不到时回退已加载 entries 统计
+  const [chainUsage, setChainUsage] = useState<SessionUsage | null>(null);
+
+  // 详情滚动：打开会话定位到最新；「加载更早」前置内容时锚定视口不跳动
+  const detailViewportRef = useRef<HTMLDivElement>(null);
+  const pendingScrollBottomRef = useRef(false);
+  const scrollAnchorRef = useRef<{ prevHeight: number; prevTop: number } | null>(null);
+  // 整链用量竞态守卫：快速切换卡片时只允许最后一次请求落地
+  const usageSeqRef = useRef(0);
 
   // 筛选
   const [searchQuery, setSearchQuery] = useState(linkedQuery);
@@ -363,7 +392,23 @@ export default function AIHistoryPage() {
       setSelectedCard(card);
       setMainDetail(null);
       setSegEntries({});
+      setChainUsage(null);
       setIsLoadingDetail(true);
+      pendingScrollBottomRef.current = true;
+      scrollAnchorRef.current = null;
+      // 整链用量实时重取（活跃链卡片 usage 可能滞后）；旧后端无此接口 → 回退已加载统计
+      const usageSeq = ++usageSeqRef.current;
+      void aiSessionLogsApi
+        .getChainUsage(card.chain_id)
+        .then((u) => {
+          if (usageSeq === usageSeqRef.current) setChainUsage(chainUsageToSessionUsage(u));
+        })
+        .catch((err) => {
+          console.warn('Failed to fetch chain usage, fallback to loaded entries:', err);
+          if (usageSeq === usageSeqRef.current && card.usage) {
+            setChainUsage(chainUsageToSessionUsage(card.usage));
+          }
+        });
       try {
         const segs = cardSegments(card);
         const latest = segs[segs.length - 1];
@@ -393,6 +438,10 @@ export default function AIHistoryPage() {
       const results = await Promise.all(
         missing.map((s) => fetchSegment(s).then((d) => [s.segment_index, d] as const)),
       );
+      const vp = detailViewportRef.current;
+      if (vp) {
+        scrollAnchorRef.current = { prevHeight: vp.scrollHeight, prevTop: vp.scrollTop };
+      }
       setSegEntries((prev) => {
         const next = { ...prev };
         for (const [idx, d] of results) {
@@ -450,6 +499,23 @@ export default function AIHistoryPage() {
     fetchLogs(0);
   }, [fetchLogs]);
 
+  // 打开会话定位到最新消息；「加载更早」把内容前置时按高度差锚定视口不跳动
+  useLayoutEffect(() => {
+    const vp = detailViewportRef.current;
+    if (!vp) return;
+    const anchor = scrollAnchorRef.current;
+    if (anchor) {
+      scrollAnchorRef.current = null;
+      const diff = vp.scrollHeight - anchor.prevHeight;
+      if (diff > 0) vp.scrollTop = anchor.prevTop + diff;
+      return;
+    }
+    if (pendingScrollBottomRef.current && !isLoadingDetail) {
+      pendingScrollBottomRef.current = false;
+      vp.scrollTop = vp.scrollHeight;
+    }
+  }, [segEntries, isLoadingDetail]);
+
   // ── 操作 ──────────────────────────────────────────────────────────────
   const handleRefresh = useCallback(() => {
     fetchStats();
@@ -502,8 +568,11 @@ export default function AIHistoryPage() {
     return Array.from(set);
   }, [logs]);
 
-  // 会话 token 总量与计费单元：从已加载 entries 汇总，显示在详情头部
-  const sessionUsage = useMemo(() => extractSessionUsage(mainEntries), [mainEntries]);
+  // 会话 token 总量与计费单元：整链接口优先（含未加载分段），取不到时回退已加载 entries 汇总
+  const sessionUsage = useMemo(
+    () => chainUsage ?? extractSessionUsage(mainEntries),
+    [chainUsage, mainEntries],
+  );
 
   const personaName = mainDetail?.persona_name || selectedCard?.persona_name || '';
   const avatarUrl = personaName ? personaApi.getAvatarUrl(personaName) : '';
@@ -908,7 +977,7 @@ export default function AIHistoryPage() {
                 </div>
 
                 {/* 瀑布内容 */}
-                <ScrollArea className="flex-1 min-w-0">
+                <ScrollArea className="flex-1 min-w-0" viewportRef={detailViewportRef}>
                   <div className="min-w-0 max-w-full px-3 sm:px-5 pt-3 pb-8">
                     {/* 加载更早分段 */}
                     {hasEarlier && (

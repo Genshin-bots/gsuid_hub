@@ -172,16 +172,16 @@ export default function AIToolsPage() {
   const [diagnosticFilter, setDiagnosticFilter] = useState<'all' | 'issues' | 'empty_description'>(
     'all',
   );
-  // 页签走 ?tab=（skills / mcp），与 /ai-debug、/ai-artifacts 同一约定；
-  // 装配预览、实体索引已挪到 /ai-debug，本页只留能力编排（工具 / 技能 / MCP）。
+  // 页签走 ?tab=（tools / skills），缺省落在第一个页签 MCP；与 /ai-debug、/ai-artifacts 同一约定；
+  // 装配预览、实体索引已挪到 /ai-debug，本页只留能力编排（MCP / 技能 / 工具）。
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
-  const pageTab: 'tools' | 'skills' | 'mcp' =
-    tabParam === 'skills' || tabParam === 'mcp' ? tabParam : 'tools';
+  const pageTab: 'mcp' | 'skills' | 'tools' =
+    tabParam === 'tools' || tabParam === 'skills' ? tabParam : 'mcp';
   const setPageTab = useCallback(
-    (next: 'tools' | 'skills' | 'mcp') => {
+    (next: 'mcp' | 'skills' | 'tools') => {
       const params = new URLSearchParams(searchParams);
-      if (next === 'tools') params.delete('tab');
+      if (next === 'mcp') params.delete('tab');
       else params.set('tab', next);
       setSearchParams(params, { replace: true });
     },
@@ -367,9 +367,9 @@ export default function AIToolsPage() {
             <TabButtonGroup
               options={[
                 {
-                  value: 'tools',
-                  label: t('aiTools.tabs.tools'),
-                  icon: <Wrench className="w-4 h-4" />,
+                  value: 'mcp',
+                  label: t('aiTools.tabs.mcp'),
+                  icon: <Server className="w-4 h-4" />,
                 },
                 {
                   value: 'skills',
@@ -377,13 +377,13 @@ export default function AIToolsPage() {
                   icon: <Sparkles className="w-4 h-4" />,
                 },
                 {
-                  value: 'mcp',
-                  label: t('aiTools.tabs.mcp'),
-                  icon: <Server className="w-4 h-4" />,
+                  value: 'tools',
+                  label: t('aiTools.tabs.tools'),
+                  icon: <Wrench className="w-4 h-4" />,
                 },
               ]}
               value={pageTab}
-              onValueChange={(v) => setPageTab(v as 'tools' | 'skills' | 'mcp')}
+              onValueChange={(v) => setPageTab(v as 'mcp' | 'skills' | 'tools')}
               className="shrink-0"
             />
           </div>
