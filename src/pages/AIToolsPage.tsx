@@ -1,15 +1,15 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { GlassAlert } from '@/components/ui/glass-alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
 import {
   TabButtonGroup,
+  tabToolbarControlClass,
   tabToolbarShellControlClass,
   tabToolbarGroupWrapClass,
 } from '@/components/ui/TabButtonGroup';
@@ -21,40 +21,36 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { pageGapClass, pageStackClass, PinnedPage } from '@/components/layout/PinnedPage';
+import { headerActionRowClass, pageGapClass, PinnedPage } from '@/components/layout/PinnedPage';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   Wrench,
   AlertCircle,
   AlertTriangle,
   ChevronLeft,
   ChevronRight,
-  Loader2,
   Search,
-  Network,
-  Boxes,
+  Server,
   Sparkles,
   Plus,
   Layers,
   Stethoscope,
+  Loader2,
+  RefreshCw,
+  Store,
+  FileJson,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import {
-  aiToolsApi,
-  getApiErrorMessage,
-  type AITool,
-  type AIToolAssemblePreviewResponse,
-  type AIEntityIndexResponse,
-} from '@/lib/api';
+import { aiToolsApi, type AITool } from '@/lib/api';
 import {
   diagnoseTool,
   EMPTY_TOOLS_VIEW,
-  entityIndexPageRange,
-  resolveEntityIndexEntries,
   resolveToolsListView,
   type ToolsListView,
 } from '@/lib/featureUtils';
 import { PersonaToolScopePanel } from '@/components/persona/PersonaToolScopePanel';
 import SkillsPanel from '@/pages/AITools/SkillsPanel';
+import { MCPConfigPanel, type MCPConfigActions } from '@/pages/AITools/MCPConfigPanel';
 import { toast } from 'sonner';
 import {
   Dialog,
@@ -63,62 +59,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 // ============================================================================
 // 类型定义
 // ============================================================================
-
-/** Assemble seed/pool chip with hover tooltip (same pattern as AI History tools_list). */
-function AssembleToolChip({
-  name,
-  plugin,
-  variant,
-  toolMeta,
-  noInfoLabel,
-}: {
-  name: string;
-  plugin?: string;
-  variant: 'outline' | 'secondary';
-  toolMeta?: AITool | null;
-  noInfoLabel: string;
-}) {
-  const description = (toolMeta?.description ?? '').trim();
-  const category = toolMeta?.category;
-  const metaLine = [plugin || toolMeta?.plugin, category].filter(Boolean).join(' · ');
-
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Badge
-          variant={variant}
-          className="font-mono text-xs cursor-help max-w-full hover:bg-accent hover:text-foreground transition-colors"
-        >
-          <span className="inline-flex items-center gap-1 min-w-0">
-            <Wrench className="w-3 h-3 shrink-0 opacity-60" />
-            <span className="truncate">
-              {name}
-              {plugin ? ` · ${plugin}` : ''}
-            </span>
-          </span>
-        </Badge>
-      </TooltipTrigger>
-      <TooltipContent className="max-w-sm">
-        <p className="text-xs font-mono font-medium break-all">{name}</p>
-        {description ? (
-          <p className="mt-1 text-xs text-muted-foreground whitespace-pre-wrap break-words">
-            {description.split('\n')[0]}
-          </p>
-        ) : (
-          <p className="mt-1 text-xs text-muted-foreground/70 italic">{noInfoLabel}</p>
-        )}
-        {metaLine ? (
-          <p className="mt-1 text-[10px] text-muted-foreground/70 break-all">{metaLine}</p>
-        ) : null}
-      </TooltipContent>
-    </Tooltip>
-  );
-}
 
 interface ParsedTool {
   name: string;
@@ -178,9 +122,6 @@ function parseToolDescription(tool: AITool, language: string): ParsedTool {
 // 每页展示的工具数量
 const PAGE_SIZE = 100;
 
-// 实体索引每页条数（服务端分页）
-const ENTITY_PAGE_SIZE = 50;
-
 // 生成分页页码列表:始终包含首尾页、当前页及其相邻页,其余以省略号折叠
 function getPageNumbers(current: number, total: number): (number | 'ellipsis')[] {
   if (total <= 7) {
@@ -231,30 +172,29 @@ export default function AIToolsPage() {
   const [diagnosticFilter, setDiagnosticFilter] = useState<'all' | 'issues' | 'empty_description'>(
     'all',
   );
-  const [pageTab, setPageTab] = useState<'tools' | 'assemble' | 'entity' | 'skills'>('tools');
+  // 页签走 ?tab=（skills / mcp），与 /ai-debug、/ai-artifacts 同一约定；
+  // 装配预览、实体索引已挪到 /ai-debug，本页只留能力编排（工具 / 技能 / MCP）。
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const pageTab: 'tools' | 'skills' | 'mcp' =
+    tabParam === 'skills' || tabParam === 'mcp' ? tabParam : 'tools';
+  const setPageTab = useCallback(
+    (next: 'tools' | 'skills' | 'mcp') => {
+      const params = new URLSearchParams(searchParams);
+      if (next === 'tools') params.delete('tab');
+      else params.set('tab', next);
+      setSearchParams(params, { replace: true });
+    },
+    [searchParams, setSearchParams],
+  );
   // 「添加技能」按钮在页签同行（toolbar），弹窗开合状态因此挂在页面层
   const [skillsAddOpen, setSkillsAddOpen] = useState(false);
+  // MCP 页签的操作按钮同样在页签同行；面板通过 bindActions 把操作与加载态暴露上来
+  const [mcpActions, setMcpActions] = useState<MCPConfigActions | null>(null);
+  const navigate = useNavigate();
 
   // 当前页码（每页 PAGE_SIZE 个工具）
   const [page, setPage] = useState(1);
-
-  // Assemble preview
-  const [assembleQuery, setAssembleQuery] = useState('');
-  const [assembleLoading, setAssembleLoading] = useState(false);
-  const [assembleResult, setAssembleResult] = useState<AIToolAssemblePreviewResponse | null>(null);
-
-  // Entity index（服务端分页：搜索 / 冲突筛选 / 翻页都交给后端）
-  const [entityIndex, setEntityIndex] = useState<AIEntityIndexResponse | null>(null);
-  const [entityLoading, setEntityLoading] = useState(false);
-  // 输入框即时值与已提交值分开：翻页必须复用上次提交的 query（§1.10）
-  const [entitySearch, setEntitySearch] = useState('');
-  const [entityFilter, setEntityFilter] = useState<{ search: string; conflictOnly: boolean }>({
-    search: '',
-    // 默认只看归属冲突（同一 surface 被多个插件注册）
-    conflictOnly: true,
-  });
-  const [entityOffset, setEntityOffset] = useState(0);
-  const [entityRefreshKey, setEntityRefreshKey] = useState(0);
 
   // 获取所有插件列表（core 放在最后）
   const pluginList = useMemo(() => {
@@ -356,75 +296,6 @@ export default function AIToolsPage() {
   const pluginCounts = toolView.pluginCounts;
   const diagnosticCounts = toolView.diagnosticCounts;
 
-  const runAssemblePreview = useCallback(async () => {
-    const q = assembleQuery.trim();
-    if (!q) {
-      toast.error(t('aiTools.assemble.queryRequired'));
-      return;
-    }
-    setAssembleLoading(true);
-    try {
-      const data = await aiToolsApi.assemblePreview(q);
-      setAssembleResult(data);
-    } catch (err) {
-      toast.error(getApiErrorMessage(err, t('aiTools.assemble.failed')));
-      setAssembleResult(null);
-    } finally {
-      setAssembleLoading(false);
-    }
-  }, [assembleQuery, t]);
-
-  const loadEntityIndex = useCallback(async () => {
-    setEntityLoading(true);
-    try {
-      const data = await aiToolsApi.getEntityIndex({
-        search: entityFilter.search || undefined,
-        ambiguousOnly: entityFilter.conflictOnly,
-        limit: ENTITY_PAGE_SIZE,
-        offset: entityOffset,
-      });
-      setEntityIndex(data);
-    } catch (err) {
-      toast.error(getApiErrorMessage(err, t('aiTools.entityIndex.failed')));
-      setEntityIndex(null);
-    } finally {
-      setEntityLoading(false);
-    }
-  }, [entityFilter, entityOffset, t]);
-
-  // 切到实体页签 / 改筛选 / 翻页 / 点刷新都重新拉。
-  // 依赖里不放 entityIndex，否则加载完写回 state 又会触发一次。
-  useEffect(() => {
-    if (pageTab !== 'entity') return;
-    void loadEntityIndex();
-  }, [pageTab, entityRefreshKey, loadEntityIndex]);
-
-  // 提交搜索：把输入框的值落到已提交 filter 并回到第一页
-  const submitEntitySearch = useCallback(() => {
-    setEntityFilter((f) => ({ ...f, search: entitySearch.trim() }));
-    setEntityOffset(0);
-    setEntityRefreshKey((k) => k + 1);
-  }, [entitySearch]);
-
-  // 冲突筛选变化 → 回到第一页重查
-  const handleEntityConflictOnlyChange = useCallback((checked: boolean) => {
-    setEntityFilter((f) => ({ ...f, conflictOnly: checked }));
-    setEntityOffset(0);
-  }, []);
-
-  const entityEntries = useMemo(
-    () => resolveEntityIndexEntries(entityIndex, entityFilter),
-    [entityIndex, entityFilter],
-  );
-
-  const entityTotal = entityIndex?.total ?? entityIndex?.count ?? 0;
-  const entityTotalAll = entityIndex?.total_all ?? entityIndex?.count ?? 0;
-  const entityCanPrev = entityOffset > 0;
-  // 旧后端不认分页（没有 items），此时不提供翻页
-  const entityCanNext =
-    entityIndex?.items !== undefined && entityOffset + ENTITY_PAGE_SIZE < entityTotal;
-  const entityRange = entityIndexPageRange(entityOffset, entityEntries.length, entityTotal);
-
   const totalPages = toolView.totalPages;
   const currentPage = Math.min(page, totalPages);
 
@@ -489,7 +360,8 @@ export default function AIToolsPage() {
         </div>
       }
       toolbar={
-        /* 主 Tab 左、筛选右：桌面同一行。筛选控件全部 min-w-0 + flex-1，窄屏均分宽度并截断，不撑出边距 */
+        /* 主 Tab 左、筛选右：桌面同一行。控件 min-w-0 + flex-1 仅在窄屏收缩，
+           md 起各自 max-w 封顶，余量由 justify-end 留在左侧，筛选组靠右不拉宽 */
         <div className="flex min-w-0 flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className={cn(tabToolbarGroupWrapClass, 'max-w-full')}>
             <TabButtonGroup
@@ -500,23 +372,18 @@ export default function AIToolsPage() {
                   icon: <Wrench className="w-4 h-4" />,
                 },
                 {
-                  value: 'assemble',
-                  label: t('aiTools.tabs.assemble'),
-                  icon: <Boxes className="w-4 h-4" />,
-                },
-                {
-                  value: 'entity',
-                  label: t('aiTools.tabs.entityIndex'),
-                  icon: <Network className="w-4 h-4" />,
-                },
-                {
                   value: 'skills',
                   label: t('aiTools.tabs.skills'),
                   icon: <Sparkles className="w-4 h-4" />,
                 },
+                {
+                  value: 'mcp',
+                  label: t('aiTools.tabs.mcp'),
+                  icon: <Server className="w-4 h-4" />,
+                },
               ]}
               value={pageTab}
-              onValueChange={(v) => setPageTab(v as 'tools' | 'assemble' | 'entity' | 'skills')}
+              onValueChange={(v) => setPageTab(v as 'tools' | 'skills' | 'mcp')}
               className="shrink-0"
             />
           </div>
@@ -528,7 +395,7 @@ export default function AIToolsPage() {
              * 桌面（md+）：外层回到一行，中间那层用 contents 摊平，顺序与原来一致。
              */
             <div className="flex min-w-0 w-full flex-col gap-2 md:flex-1 md:flex-row md:items-center md:justify-end md:gap-1.5">
-              <div className="relative min-w-0 w-full md:w-auto md:flex-[1.3]">
+              <div className="relative min-w-0 w-full md:w-auto md:flex-[1.3] md:max-w-[20rem]">
                 <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   type="text"
@@ -543,7 +410,7 @@ export default function AIToolsPage() {
               </div>
 
               <div className="flex min-w-0 w-full gap-2 md:contents">
-                <div className="min-w-0 flex-1">
+                <div className="min-w-0 flex-1 md:max-w-[9rem]">
                   <Select
                     value={diagnosticFilter}
                     onValueChange={(v) => handleDiagnosticChange(v as typeof diagnosticFilter)}
@@ -572,7 +439,7 @@ export default function AIToolsPage() {
                   </Select>
                 </div>
 
-                <div className="min-w-0 flex-1">
+                <div className="min-w-0 flex-1 md:max-w-[12rem]">
                   <Select value={selectedCategory} onValueChange={handleCategoryChange}>
                     <SelectTrigger
                       className={cn(
@@ -600,7 +467,7 @@ export default function AIToolsPage() {
                   </Select>
                 </div>
 
-                <div className="min-w-0 flex-1">
+                <div className="min-w-0 flex-1 md:max-w-[11rem]">
                   <PluginGridSelector
                     appearance="field"
                     align="end"
@@ -631,35 +498,6 @@ export default function AIToolsPage() {
             </div>
           )}
 
-          {/* 实体页签的筛选行：搜索 + 只看归属冲突。高度对齐页签外壳 */}
-          {pageTab === 'entity' && (
-            <div className="flex min-w-0 w-full items-center gap-2 md:flex-1 md:justify-end">
-              <div className="relative min-w-0 flex-[1.3]">
-                <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  type="text"
-                  placeholder={t('aiTools.entityIndex.searchPlaceholder')}
-                  value={entitySearch}
-                  onChange={(e) => setEntitySearch(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') submitEntitySearch();
-                  }}
-                  className={cn(tabToolbarShellControlClass, 'min-w-0 w-full pl-9')}
-                />
-              </div>
-
-              <div className="flex shrink-0 items-center gap-2 pl-1">
-                <Switch
-                  checked={entityFilter.conflictOnly}
-                  onCheckedChange={handleEntityConflictOnlyChange}
-                />
-                <Label className="whitespace-nowrap cursor-pointer">
-                  {t('aiTools.entityIndex.conflictOnly')}
-                </Label>
-              </div>
-            </div>
-          )}
-
           {/* 技能页签的操作按钮：与页签同行右对齐，高度对齐页签外壳 */}
           {pageTab === 'skills' && (
             <Button
@@ -670,6 +508,54 @@ export default function AIToolsPage() {
               {t('aiSkills.addSkill')}
             </Button>
           )}
+
+          {/* MCP 页签的操作按钮：面板尚未挂载（bindActions 未回传）时先不渲染 */}
+          {pageTab === 'mcp' && mcpActions && (
+            <div className={headerActionRowClass}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={tabToolbarControlClass}
+                    onClick={mcpActions.reload}
+                    disabled={mcpActions.isReloading}
+                  >
+                    {mcpActions.isReloading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-4 w-4" />
+                    )}
+                    <span className="ml-1">{t('mcpConfig.reload')}</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>
+                    {t('mcpConfig.reload')} - {t('mcpConfig.description')}
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+              <Button
+                variant="outline"
+                className={tabToolbarControlClass}
+                onClick={() => navigate('/mcp-market')}
+              >
+                <Store className="h-4 w-4 mr-1" />
+                {t('mcpConfig.market')}
+              </Button>
+              <Button
+                variant="outline"
+                className={tabToolbarControlClass}
+                onClick={mcpActions.openImport}
+              >
+                <FileJson className="h-4 w-4 mr-1" />
+                {t('mcpConfig.importJson')}
+              </Button>
+              <Button className={tabToolbarControlClass} onClick={mcpActions.openCreate}>
+                <Plus className="h-4 w-4 mr-1" />
+                {t('mcpConfig.addConfig')}
+              </Button>
+            </div>
+          )}
         </div>
       }
     >
@@ -678,236 +564,6 @@ export default function AIToolsPage() {
         <GlassAlert tone="danger" icon={AlertCircle}>
           {error}
         </GlassAlert>
-      )}
-
-      {pageTab === 'assemble' && (
-        <div className={pageStackClass}>
-          <Card className={cn('glass-card')}>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Boxes className="w-4 h-4" />
-                {t('aiTools.assemble.title')}
-              </CardTitle>
-              <CardDescription>{t('aiTools.assemble.description')}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="space-y-1.5">
-                <Label>{t('aiTools.assemble.query')}</Label>
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <Input
-                    className="h-9 flex-1"
-                    value={assembleQuery}
-                    onChange={(e) => setAssembleQuery(e.target.value)}
-                    placeholder={t('aiTools.assemble.queryPlaceholder')}
-                    onKeyDown={(e) => e.key === 'Enter' && void runAssemblePreview()}
-                  />
-                  <Button
-                    className="h-9"
-                    onClick={() => void runAssemblePreview()}
-                    disabled={assembleLoading}
-                  >
-                    {assembleLoading ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Search className="w-4 h-4" />
-                    )}
-                    {t('aiTools.assemble.run')}
-                  </Button>
-                </div>
-              </div>
-              {assembleResult && (
-                <TooltipProvider delayDuration={150}>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 pt-2">
-                    <div className="rounded-lg border border-border/50 p-3 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <h4 className="text-sm font-medium">{t('aiTools.assemble.seeds')}</h4>
-                        <Badge variant="secondary">{assembleResult.seeds?.length ?? 0}</Badge>
-                      </div>
-                      <div className="flex flex-wrap gap-1.5">
-                        {(assembleResult.seeds ?? []).length === 0 && (
-                          <span className="text-xs text-muted-foreground">
-                            {t('common.noData')}
-                          </span>
-                        )}
-                        {(assembleResult.seeds ?? []).map((s) => (
-                          <AssembleToolChip
-                            key={`seed-${s.name}`}
-                            name={s.name}
-                            plugin={s.plugin}
-                            variant="outline"
-                            toolMeta={tools.find((x) => x.name === s.name)}
-                            noInfoLabel={t('aiTools.assemble.toolNoInfo')}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                    <div className="rounded-lg border border-border/50 p-3 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <h4 className="text-sm font-medium">{t('aiTools.assemble.pool')}</h4>
-                        <Badge variant="secondary">{assembleResult.pool?.length ?? 0}</Badge>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        core={assembleResult.core_pool_size ?? 0} · recall=
-                        {assembleResult.recall ?? 0} · max_extra=
-                        {assembleResult.max_extra ?? 0}
-                      </p>
-                      <div className="flex flex-wrap gap-1.5 max-h-48 overflow-auto">
-                        {(assembleResult.pool ?? []).length === 0 && (
-                          <span className="text-xs text-muted-foreground">
-                            {t('common.noData')}
-                          </span>
-                        )}
-                        {(assembleResult.pool ?? []).map((s) => (
-                          <AssembleToolChip
-                            key={`pool-${s.name}`}
-                            name={s.name}
-                            plugin={s.plugin}
-                            variant="secondary"
-                            toolMeta={tools.find((x) => x.name === s.name)}
-                            noInfoLabel={t('aiTools.assemble.toolNoInfo')}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </TooltipProvider>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {pageTab === 'entity' && (
-        <div className={pageStackClass}>
-          <Card className={cn('glass-card')}>
-            <CardHeader className="pb-3">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                <div>
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Network className="w-4 h-4" />
-                    {t('aiTools.entityIndex.title')}
-                  </CardTitle>
-                  <CardDescription>
-                    {t('aiTools.entityIndex.description')}
-                    {entityIndex ? ` · ${entityTotal}` : ''}
-                  </CardDescription>
-                </div>
-                <Button
-                  variant="outline"
-                  className="h-9"
-                  onClick={submitEntitySearch}
-                  disabled={entityLoading}
-                >
-                  {entityLoading ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Search className="w-4 h-4" />
-                  )}
-                  {t('common.refresh')}
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {entityLoading ? (
-                <div className="space-y-2">
-                  <Skeleton className="h-8 w-full" />
-                  <Skeleton className="h-8 w-full" />
-                  <Skeleton className="h-8 w-2/3" />
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  {/* 列表正文与上方 CardDescription 同为系统 UI 字体（不用 mono），字号/颜色对齐 subtitle */}
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-border/50">
-                        <th className="text-left py-2 px-2 font-medium text-muted-foreground">
-                          {t('aiTools.entityIndex.surface')}
-                        </th>
-                        <th className="text-left py-2 px-2 font-medium text-muted-foreground">
-                          {t('aiTools.entityIndex.plugins')}
-                        </th>
-                        <th className="text-left py-2 px-2 font-medium text-muted-foreground">
-                          {t('aiTools.entityIndex.ambiguous')}
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {entityEntries.length === 0 ? (
-                        <tr>
-                          <td
-                            colSpan={3}
-                            className="py-8 text-center text-sm text-muted-foreground"
-                          >
-                            {entityFilter.conflictOnly && !entityFilter.search
-                              ? t('aiTools.entityIndex.conflictEmpty')
-                              : t('common.noData')}
-                          </td>
-                        </tr>
-                      ) : (
-                        entityEntries.map((entry) => (
-                          <tr key={entry.surface} className="border-b border-border/30">
-                            <td className="py-2 px-2 text-sm text-muted-foreground">
-                              {entry.surface}
-                            </td>
-                            <td className="py-2 px-2">
-                              <div className="flex flex-wrap gap-1">
-                                {entry.plugins.map((p) => (
-                                  <Badge key={p} variant="outline" className="text-xs font-normal">
-                                    {p}
-                                  </Badge>
-                                ))}
-                              </div>
-                            </td>
-                            <td className="py-2 px-2">
-                              {entry.ambiguous ? (
-                                <Badge variant="destructive" className="text-xs font-normal">
-                                  {t('aiTools.entityIndex.yes')}
-                                </Badge>
-                              ) : (
-                                <span className="text-sm text-muted-foreground">—</span>
-                              )}
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="text-xs text-muted-foreground">
-                  {t('aiTools.entityIndex.pagination.label', {
-                    from: entityRange.from,
-                    to: entityRange.to,
-                    total: entityTotal,
-                  })}
-                  {entityFilter.conflictOnly && entityTotalAll > entityTotal
-                    ? ` · ${t('aiTools.entityIndex.pagination.allTotal', { total: entityTotalAll })}`
-                    : ''}
-                </span>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    className="h-9"
-                    disabled={!entityCanPrev || entityLoading}
-                    onClick={() => setEntityOffset(Math.max(0, entityOffset - ENTITY_PAGE_SIZE))}
-                  >
-                    {t('aiTools.entityIndex.pagination.prev')}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="h-9"
-                    disabled={!entityCanNext || entityLoading}
-                    onClick={() => setEntityOffset(entityOffset + ENTITY_PAGE_SIZE)}
-                  >
-                    {t('aiTools.entityIndex.pagination.next')}
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
       )}
 
       {/* 工具列表 */}
@@ -1058,6 +714,9 @@ export default function AIToolsPage() {
       {pageTab === 'skills' && (
         <SkillsPanel addDialogOpen={skillsAddOpen} onAddDialogOpenChange={setSkillsAddOpen} />
       )}
+
+      {/* MCP 配置（原 /mcp-config 整页内容，已并入本页签） */}
+      {pageTab === 'mcp' && <MCPConfigPanel bindActions={setMcpActions} />}
 
       {/* 工具详情弹窗 */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

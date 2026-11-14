@@ -1,6 +1,4 @@
 {
-  "title": "AI 定时任务",
-  "description": "管理 AI 创建的定时任务，包括增删改查和启停操作",
   "createTask": "创建任务",
   "editTask": "编辑任务",
   "editTaskAriaDesc": "修改定时任务的提示词和最大执行次数",

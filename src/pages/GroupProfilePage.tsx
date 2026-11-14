@@ -190,5 +190,5 @@ export function GroupProfilePanel({
 }
 
 export default function GroupProfilePage() {
-  return <Navigate to="/ai-runtime?tab=group" replace />;
+  return <Navigate to="/ai-debug?tab=group" replace />;
 }

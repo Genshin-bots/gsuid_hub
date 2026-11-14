@@ -55,7 +55,7 @@ import { cn } from '@/lib/utils';
  *
  * 添加新的厂商识别时，只需要在 `BRAND_RULES` 里加一条 `{ pattern, Component }` 即可。
  *
- * 注意：因为 `/mcp-config` 不再展示品牌图标（见 `mcp-icon-lookup.tsx`），本文件
+ * 注意：因为 MCP 配置页（/ai-tools 页签）不再展示品牌图标（见 `mcp-icon-lookup.tsx`），本文件
  * 是**唯一**还会从 `@thesvg/react` 拉厂商图标的入口；`/ai-config` 必须是完整列表，
  * 包括 longcat、日日新、yi、baichuan、zhipu、huawei、kuaishou 等冷门厂商。
  */

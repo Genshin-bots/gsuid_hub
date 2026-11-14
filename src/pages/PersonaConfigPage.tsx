@@ -2199,7 +2199,7 @@ export default function PersonaConfigPage() {
         ) : libraryView === 'capabilityAgents' ? (
           <CapabilityAgentsPanel capability={capability} />
         ) : (
-          <div className="md:-mt-3">
+          <div>
             <div className="mb-3 space-y-3">
               <GlassAlert tone="warning">{t('personaConfig.builtinPersonaWarning')}</GlassAlert>
               {/* 全局启用提示 */}

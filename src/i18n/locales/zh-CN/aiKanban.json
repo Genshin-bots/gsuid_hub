@@ -3,6 +3,7 @@
   "description": "面向 v2 多代理任务树的 Kanban 编排视图，支持根任务与子任务流转、审批、产物与工作区审查。",
   "mode": {
     "kanban": "看板模式",
+    "tasks": "定时任务",
     "data": "数据模式"
   },
   "refresh": "刷新",

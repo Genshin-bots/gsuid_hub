@@ -1,5 +1,5 @@
 /**
- * AI 运维诊断 — 内容已并入 /ai-runtime 的「运维」页签，本文件只留旧路由重定向。
+ * AI 运维诊断 — 内容已并入 /ai-debug 的「运维诊断」页签，本文件只留旧路由重定向。
  *
  * 页签内容（AIOpsPanel）：顶栏状态（Bot 在线 / 存活 Session / 续聊窗口，可展开明细）
  * + 触发回放 · 黑白名单 · 输出试跑 · 安全策略 · 配置快照。只保留「别处没有、排障真用得上」的能力。
@@ -87,9 +87,9 @@ export function AIOpsPanel() {
   );
 }
 
-/** 内容已并入 /ai-runtime?tab=ops。保留重定向，避免旧书签 / 文档里的 /ai-ops 直接 404。 */
+/** 内容已并入 /ai-debug?tab=ops。保留重定向，避免旧书签 / 文档里的 /ai-ops 直接 404。 */
 export default function AIOpsPage() {
-  return <Navigate to="/ai-runtime?tab=ops" replace />;
+  return <Navigate to="/ai-debug?tab=ops" replace />;
 }
 
 function PanelCard({

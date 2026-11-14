@@ -1,6 +1,4 @@
 {
-  "title": "AI Scheduled Tasks",
-  "description": "Manage AI-created scheduled tasks including CRUD and enable/disable operations",
   "createTask": "Create Task",
   "editTask": "Edit Task",
   "editTaskAriaDesc": "Modify the scheduled task prompt and max execution count",

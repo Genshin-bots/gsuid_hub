@@ -1,6 +1,6 @@
 {
-  "title": "AI Tools & Skills",
-  "description": "View and manage AI tool functions and skill packs, filterable by category and plugin",
+  "title": "AI Capabilities",
+  "description": "View and manage AI tool functions, skill packs, and MCP server configs, filterable by category and plugin",
   "loadFailed": "Failed to load AI tools",
   "noTools": "No AI tools available",
   "noMatches": "No tools match the current filters",
@@ -16,7 +16,8 @@
     "tools": "Tools",
     "assemble": "Assemble Preview",
     "entityIndex": "Entity Index",
-    "skills": "Skills"
+    "skills": "Skills",
+    "mcp": "MCP Config"
   },
   "diagnostics": {
     "emptyDescription": "Empty description",

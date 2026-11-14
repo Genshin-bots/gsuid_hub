@@ -39,7 +39,7 @@ export function RelationshipSettingsSection({
           </p>
         </div>
         <Button variant="outline" size="sm" className="h-9 shrink-0" asChild>
-          <Link to="/ai-runtime?tab=relationship">
+          <Link to="/ai-artifacts?tab=relationship">
             {t('aiConfig.relationshipSettings.openRuntime')}
           </Link>
         </Button>

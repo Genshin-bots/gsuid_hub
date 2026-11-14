@@ -1,6 +1,4 @@
 {
-  "title": "AI 定時タスク",
-  "description": "管理 AI 作成の定時タスク、含む追加・削除・編集・検索と開始・停止操作",
   "createTask": "作成タスク",
   "editTask": "編集タスク",
   "editTaskAriaDesc": "定时タスクのプロンプトと最大実行回数を変更します",

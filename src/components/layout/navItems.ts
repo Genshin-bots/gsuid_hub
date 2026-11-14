@@ -3,7 +3,6 @@ import {
   Brain,
   Calendar,
   ClipboardList,
-  Clock,
   Cog,
   Cpu,
   Database,
@@ -17,13 +16,11 @@ import {
   type LucideIcon,
   PackageOpen,
   Palette,
-  Puzzle,
   ScrollText,
   Send,
-  Server,
   Settings,
   ShieldCheck,
-  ShoppingBag,
+  Stethoscope,
   Store,
   Terminal,
   TrendingUp,
@@ -94,7 +91,8 @@ export function filterNavItemsByExcludeIds(
   return out;
 }
 
-export function getNavItems(
+// AI 侧边栏（桌面双菜单模式的 AI 侧）与「AI 配置」子菜单共用的条目源
+export function getAiNavItems(
   t: (key: string) => string,
   isAIEnabled: boolean,
   isAdmin: boolean,
@@ -111,25 +109,12 @@ export function getNavItems(
           activePaths: ['/persona-store'],
         },
         { id: 'ai-budget', title: t('sidebar.aiBudget'), url: '/ai-budget', icon: Wallet },
-        { id: 'ai-mcpConfig', title: t('sidebar.mcpConfig'), url: '/mcp-config', icon: Server },
-        {
-          id: 'ai-mcpMarket',
-          title: t('sidebar.mcpMarket'),
-          url: '/mcp-market',
-          icon: ShoppingBag,
-        },
         { id: 'ai-tools', title: t('sidebar.aiTools'), url: '/ai-tools', icon: Wrench },
         {
           id: 'ai-statistics',
           title: t('sidebar.aiStatistics'),
           url: '/ai-statistics',
           icon: TrendingUp,
-        },
-        {
-          id: 'ai-scheduledTasks',
-          title: t('sidebar.aiScheduledTasks'),
-          url: '/ai-scheduled-tasks',
-          icon: Clock,
         },
         {
           id: 'ai-knowledge',
@@ -147,7 +132,6 @@ export function getNavItems(
           url: '/ai-approvals',
           icon: ShieldCheck,
         },
-        { id: 'ai-runtime', title: t('sidebar.aiRuntime'), url: '/ai-runtime', icon: Puzzle },
         // 产出物 + 工具落盘合并为一个入口，页内用 TabButtonGroup 切换两块资源
         {
           id: 'ai-artifacts',
@@ -155,11 +139,28 @@ export function getNavItems(
           url: '/ai-artifacts',
           icon: PackageOpen,
         },
+        // 运维排查：原 /ai-runtime 改名并挪到 AI 菜单最后
+        {
+          id: 'ai-debug',
+          title: t('sidebar.aiDebug'),
+          url: '/ai-debug',
+          icon: Stethoscope,
+          activePaths: ['/ai-runtime', '/ai-ops', '/group-profile'],
+        },
       ]
     : [
         { id: 'ai-basicConfig', title: t('sidebar.basicConfig'), url: '/ai-config', icon: Cog },
         { id: 'ai-history', title: t('sidebar.aiHistory'), url: '/ai-history', icon: ScrollText },
       ];
+  return filterAdminNav(aiConfigChildren, isAdmin);
+}
+
+export function getNavItems(
+  t: (key: string) => string,
+  isAIEnabled: boolean,
+  isAdmin: boolean,
+): NavItem[] {
+  const aiConfigChildren = getAiNavItems(t, isAIEnabled, isAdmin);
 
   const items: NavItem[] = [
     { id: 'home', title: t('sidebar.home'), url: '/home', icon: Home },

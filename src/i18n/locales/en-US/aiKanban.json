@@ -3,6 +3,7 @@
   "description": "Kanban orchestration for v2 multi-agent task trees, with root/subtask flow, approvals, Artifact and Workspace review.",
   "mode": {
     "kanban": "Kanban",
+    "tasks": "Scheduled",
     "data": "Data"
   },
   "refresh": "Refresh",

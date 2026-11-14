@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
@@ -71,13 +71,22 @@ import {
   type CreateScheduledTaskRequest,
 } from '@/lib/api';
 import { toast } from 'sonner';
-import { pageGapClass, pageStackClass, PinnedPage } from '@/components/layout/PinnedPage';
+import { pageGapClass, pageStackClass } from '@/components/layout/PinnedPage';
 
 // ============================================================================
 // 组件定义
 // ============================================================================
 
-export default function AIScheduledTasksPage() {
+/** 面板暴露给宿主页面 toolbar 的操作：「新建任务」与页签同行，表单状态仍在面板内 */
+export interface ScheduledTasksActions {
+  openCreate: () => void;
+}
+
+export function ScheduledTasksPanel({
+  bindActions,
+}: {
+  bindActions?: (actions: ScheduledTasksActions) => void;
+}) {
   const { style } = useTheme();
   const { t } = useLanguage();
   const _isGlass = style !== 'solid';
@@ -356,33 +365,20 @@ export default function AIScheduledTasksPage() {
     setDetailDialogOpen(true);
   };
 
+  const openCreate = useCallback(() => {
+    resetForm();
+    setCreateDialogOpen(true);
+  }, []);
+
+  // 「新建任务」渲染在 /ai-kanban 页签同行；actions 稳定，不会反复回绑父级
+  const actions = useMemo<ScheduledTasksActions>(() => ({ openCreate }), [openCreate]);
+
+  useEffect(() => {
+    bindActions?.(actions);
+  }, [bindActions, actions]);
+
   return (
-    <PinnedPage
-      header={
-        /* 页面标题 */
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div className="min-w-0 sm:overflow-x-auto">
-            <h1 className="sm:whitespace-nowrap text-3xl font-bold flex items-center gap-3">
-              <Clock className="w-8 h-8 shrink-0" />
-              {t('aiScheduledTasks.title')}
-            </h1>
-            <p className="sm:whitespace-nowrap text-muted-foreground mt-1">
-              {t('aiScheduledTasks.description')}
-            </p>
-          </div>
-          <Button
-            onClick={() => {
-              resetForm();
-              setCreateDialogOpen(true);
-            }}
-            className={cn(tabToolbarControlClass, 'w-full gap-2 whitespace-nowrap sm:w-auto')}
-          >
-            <Plus className="w-4 h-4" />
-            {t('aiScheduledTasks.createTask')}
-          </Button>
-        </div>
-      }
-    >
+    <div className={pageStackClass}>
       {/* 统计卡片 */}
       {stats && (
         <div
@@ -1106,6 +1102,6 @@ export default function AIScheduledTasksPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </PinnedPage>
+    </div>
   );
 }

@@ -11,6 +11,7 @@ import {
   BookOpen,
   Brain,
   Briefcase,
+  ArrowLeft,
   Building2,
   Calendar,
   CheckCircle2,
@@ -744,7 +745,7 @@ export default function MCPMarketPage() {
       if (Object.keys(payload.env ?? {}).length > 0) {
         setCredConfig({ id: created.config_id, name });
       } else {
-        navigate('/mcp-config');
+        navigate('/ai-tools?tab=mcp');
       }
     } catch (error) {
       toast.error(getApiErrorMessage(error, t('mcpMarket.install.failed')));
@@ -774,7 +775,7 @@ export default function MCPMarketPage() {
     setCredConfig(null);
     setCredCandidates(null);
     setCredSelected(new Set());
-    navigate('/mcp-config');
+    navigate('/ai-tools?tab=mcp');
   };
 
   const handleCredBind = async () => {
@@ -831,14 +832,25 @@ export default function MCPMarketPage() {
     <TooltipProvider>
       <PinnedPage
         header={
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2 sm:gap-3">
-              <ShoppingBag width={32} height={32} className="text-foreground" />
-              {t('mcpMarket.title')}
-            </h1>
-            <p className="text-muted-foreground mt-1 text-sm sm:text-base">
-              {t('mcpMarket.description')}
-            </p>
+          <div className="flex items-start gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="mt-1.5 h-8 w-8 shrink-0"
+              onClick={() => navigate('/ai-tools?tab=mcp')}
+              title={t('mcpMarket.back')}
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <div className="min-w-0">
+              <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2 sm:gap-3">
+                <ShoppingBag width={32} height={32} className="text-foreground" />
+                {t('mcpMarket.title')}
+              </h1>
+              <p className="text-muted-foreground mt-1 text-sm sm:text-base">
+                {t('mcpMarket.description')}
+              </p>
+            </div>
           </div>
         }
       >
@@ -1246,7 +1258,7 @@ export default function MCPMarketPage() {
                     variant="outline"
                     size="sm"
                     className="mt-1"
-                    onClick={() => navigate('/mcp-config')}
+                    onClick={() => navigate('/ai-tools?tab=mcp')}
                   >
                     {t('mcpMarket.install.manualConfig')}
                   </Button>

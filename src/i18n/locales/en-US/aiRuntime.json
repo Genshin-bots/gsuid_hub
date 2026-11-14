@@ -1,6 +1,6 @@
 {
-  "title": "Agent Runtime",
-  "description": "Kit slot health, hook mounts, all scored relationship users, and cognition index (world hubs / node articles). Kits and relationship stay read-only; rebuild mount never touches the memory graph.",
+  "title": "Ops & Debug",
+  "description": "Ops diagnostics (trigger replay / lists / output dry-run), tool assembly preview, entity index, kit slot health, hook mounts, cognition index (world hubs / node articles), and group profile. Rebuild mount never touches the memory graph.",
   "backendTooOld": "This gsuid_core build is too old and lacks the runtime diagnostics APIs. Please upgrade the backend.",
   "loadFailed": "Failed to load",
   "tabs": {

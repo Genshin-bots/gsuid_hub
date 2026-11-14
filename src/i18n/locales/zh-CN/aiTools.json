@@ -1,6 +1,6 @@
 {
-  "title": "AI 工具与 AI 技能",
-  "description": "查看和管理 AI 可用的工具函数与技能包，支持按分类和插件筛选",
+  "title": "AI 能力",
+  "description": "查看和管理 AI 可用的工具函数、技能包与 MCP 服务配置，支持按分类和插件筛选",
   "loadFailed": "加载 AI 工具失败",
   "noTools": "暂无可用的 AI 工具",
   "noMatches": "没有符合当前筛选条件的工具",
@@ -16,7 +16,8 @@
     "tools": "工具列表",
     "assemble": "装配预览",
     "entityIndex": "实体索引",
-    "skills": "技能列表"
+    "skills": "技能列表",
+    "mcp": "MCP 配置"
   },
   "diagnostics": {
     "emptyDescription": "空描述",

@@ -2,16 +2,17 @@
  * /ai-artifacts —— AI 产出物与工具落盘（合并页）
  *
  * 原 /ai-artifacts 与 /ai-tool-outputs 合并：页面壳（标题 / 页签 / 常驻筛选行）只有一份，
- * 三个数据面板按 TabButtonGroup 页签切换。产出物、工具落盘、自主行动后端不同，
- * 因此各留一块面板，不合成一张表。
+ * 数据面板按 TabButtonGroup 页签切换。产出物、工具落盘、自主行动后端不同，
+ * 因此各留一块面板，不合成一张表。「关系温度」从 /ai-runtime（现 /ai-debug）挪入，
+ * 作为最后一个页签——它属于 AI 运行产物（人格关系分），不是运维诊断。
  *
- * 页签走 `?tab=`（toolOutputs / autonomy），因此：
+ * 页签走 `?tab=`（toolOutputs / autonomy / relationship），因此：
  * - 侧边栏只有一个入口（/ai-artifacts），pathname 不变，展开态侧栏高亮稳定；
  * - /ai-tool-outputs 旧深链重定向过来，cognition.ts 的 to_ / sa_ 跳转仍落在工具落盘页签；
  * - 分享 / 刷新 URL 能回到同一个页签。
  */
 import { useCallback, useEffect, useState } from 'react';
-import { Compass, FileSearch, PackageOpen } from 'lucide-react';
+import { Compass, FileSearch, Heart, PackageOpen } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -34,14 +35,19 @@ import {
   type ToolOutputsPanelProps,
 } from './AIOutputs/ToolOutputsPanel';
 import { AutonomyFilters, AutonomyPanel, type AutonomyPanelProps } from './AIOutputs/AutonomyPanel';
+import { RelationshipPanel } from './AIOutputs/RelationshipPanel';
 import { AUTONOMY_PERSONA_ALL, TOOL_ALL } from './AIOutputs/constants';
 
 const TAB_OUTPUTS = 'toolOutputs';
 const TAB_AUTONOMY = 'autonomy';
+const TAB_RELATIONSHIP = 'relationship';
 
-function pageTab(value: string | null): 'artifacts' | typeof TAB_OUTPUTS | typeof TAB_AUTONOMY {
+function pageTab(
+  value: string | null,
+): 'artifacts' | typeof TAB_OUTPUTS | typeof TAB_AUTONOMY | typeof TAB_RELATIONSHIP {
   if (value === TAB_OUTPUTS) return TAB_OUTPUTS;
   if (value === TAB_AUTONOMY) return TAB_AUTONOMY;
+  if (value === TAB_RELATIONSHIP) return TAB_RELATIONSHIP;
   return 'artifacts';
 }
 
@@ -52,7 +58,7 @@ export default function AIOutputsPage() {
   const tab = pageTab(searchParams.get('tab'));
   const changeTab = useCallback(
     (value: string) => {
-      if (value === TAB_OUTPUTS || value === TAB_AUTONOMY) {
+      if (value === TAB_OUTPUTS || value === TAB_AUTONOMY || value === TAB_RELATIONSHIP) {
         setSearchParams({ tab: value }, { replace: true });
         return;
       }
@@ -185,6 +191,11 @@ export default function AIOutputsPage() {
       label: t('aiAutonomy.title'),
       icon: <Compass className="h-4 w-4" />,
     },
+    {
+      value: TAB_RELATIONSHIP,
+      label: t('aiRuntime.tabs.relationship'),
+      icon: <Heart className="h-4 w-4" />,
+    },
   ];
 
   return (
@@ -213,9 +224,9 @@ export default function AIOutputsPage() {
               <ArtifactsFilters {...artifactsProps} />
             ) : tab === TAB_OUTPUTS ? (
               <ToolOutputsFilters {...toolOutputsProps} />
-            ) : (
+            ) : tab === TAB_AUTONOMY ? (
               <AutonomyFilters {...autonomyProps} />
-            )}
+            ) : null}
           </div>
         </div>
       }
@@ -224,8 +235,10 @@ export default function AIOutputsPage() {
         <ArtifactsPanel {...artifactsProps} />
       ) : tab === TAB_OUTPUTS ? (
         <ToolOutputsPanel {...toolOutputsProps} />
-      ) : (
+      ) : tab === TAB_AUTONOMY ? (
         <AutonomyPanel {...autonomyProps} />
+      ) : (
+        <RelationshipPanel />
       )}
     </PinnedPage>
   );

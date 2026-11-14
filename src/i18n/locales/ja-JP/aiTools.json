@@ -1,6 +1,6 @@
 {
-  "title": "AI ツールと AI スキル",
-  "description": "AIで利用できるツール関数とスキルパックを表示・管理します。分類やプラグインで絞り込めます",
+  "title": "AI 機能",
+  "description": "AIで利用できるツール関数・スキルパック・MCP 設定を表示・管理します。分類やプラグインで絞り込めます",
   "loadFailed": "AIツールの読込に失敗",
   "noTools": "利用可能な AI ツールがありません",
   "noMatches": "現在の絞り込み条件に一致するツールがありません",
@@ -16,7 +16,8 @@
     "tools": "ツール一覧",
     "assemble": "組立プレビュー",
     "entityIndex": "エンティティ索引",
-    "skills": "スキル一覧"
+    "skills": "スキル一覧",
+    "mcp": "MCP 設定"
   },
   "diagnostics": {
     "emptyDescription": "説明なし",

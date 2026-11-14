@@ -7,6 +7,7 @@ import {
   Boxes,
   CheckCircle2,
   ClipboardList,
+  Clock,
   Database,
   Download,
   Eye,
@@ -100,6 +101,10 @@ import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { TabButtonGroup, tabToolbarControlClass } from '@/components/ui/TabButtonGroup';
 import StateStoreViewer, { type StateStoreViewerHandle } from '@/components/StateStoreViewer';
+import {
+  ScheduledTasksPanel,
+  type ScheduledTasksActions,
+} from '@/pages/AIKanban/ScheduledTasksPanel';
 
 const COLUMN_KEYS: AIKanbanColumnKey[] = ['target', 'progress', 'Done', 'Blocked', 'failed'];
 const ALL_VALUE = '__all__';
@@ -685,11 +690,17 @@ export default function AIKanbanPage() {
   const bulkDeleteAdvancingRef = useRef(false);
   // 视图模式写进 URL，让 /state-store 等旧深链能重定向到「数据模式」而不是看板
   const [searchParams, setSearchParams] = useSearchParams();
-  const viewMode: 'kanban' | 'data' = searchParams.get('mode') === 'data' ? 'data' : 'kanban';
-  const setViewMode = (mode: 'kanban' | 'data') => {
-    setSearchParams(mode === 'data' ? { mode: 'data' } : {}, { replace: true });
+  const modeParam = searchParams.get('mode');
+  const viewMode: 'kanban' | 'tasks' | 'data' =
+    modeParam === 'data' || modeParam === 'tasks' ? modeParam : 'kanban';
+  const setViewMode = (mode: 'kanban' | 'tasks' | 'data') => {
+    setSearchParams(mode === 'kanban' ? {} : { mode }, { replace: true });
   };
   const [stateStoreSelectedCount, setStateStoreSelectedCount] = useState(0);
+  // 「新建任务」按钮在页签同行，面板通过 bindActions 把操作暴露上来
+  const [scheduledTasksActions, setScheduledTasksActions] = useState<ScheduledTasksActions | null>(
+    null,
+  );
 
   const [board, setBoard] = useState<AIKanbanBoardResponse>({
     columns: emptyColumns,
@@ -1354,13 +1365,18 @@ export default function AIKanbanPage() {
       >
         <TabButtonGroup
           value={viewMode}
-          onValueChange={(v) => setViewMode(v as 'kanban' | 'data')}
+          onValueChange={(v) => setViewMode(v as 'kanban' | 'tasks' | 'data')}
           fillUntil="lg"
           options={[
             {
               value: 'kanban',
               label: t('aiKanban.mode.kanban'),
               icon: <ClipboardList className="h-4 h-4" />,
+            },
+            {
+              value: 'tasks',
+              label: t('aiKanban.mode.tasks'),
+              icon: <Clock className="h-4 h-4" />,
             },
             {
               value: 'data',
@@ -1370,7 +1386,7 @@ export default function AIKanbanPage() {
           ]}
         />
         <div className={headerActionRowWideClass}>
-          {viewMode === 'kanban' ? (
+          {viewMode === 'kanban' && (
             <>
               <Button
                 variant="outline"
@@ -1412,7 +1428,18 @@ export default function AIKanbanPage() {
                 {t('common.refresh') || t('aiKanban.refresh')}
               </Button>
             </>
-          ) : (
+          )}
+          {viewMode === 'tasks' && (
+            <Button
+              onClick={() => scheduledTasksActions?.openCreate()}
+              disabled={!scheduledTasksActions}
+              className={cn(tabToolbarControlClass, 'w-full gap-2 sm:w-auto')}
+            >
+              <Plus className="h-4 w-4" />
+              {t('aiScheduledTasks.createTask')}
+            </Button>
+          )}
+          {viewMode === 'data' && (
             <>
               <Button
                 variant="outline"
@@ -1571,6 +1598,13 @@ export default function AIKanbanPage() {
               />
             ))}
           </div>
+        </div>
+      )}
+
+      {/* 定时任务：内容长，桌面端复用 .page-pinned-body 作为页内唯一竖向滚动容器 */}
+      {viewMode === 'tasks' && (
+        <div className="page-pinned-body">
+          <ScheduledTasksPanel bindActions={setScheduledTasksActions} />
         </div>
       )}
 

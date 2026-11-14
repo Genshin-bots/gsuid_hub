@@ -281,7 +281,7 @@ const routes: Route[] = [
     h: () => ({ names: generateActiveBots().names }),
   },
 
-  // ── Agent runtime (/ai-runtime) ──
+  // ── Agent runtime (/ai-debug) ──
   {
     m: 'GET',
     re: /^\/api\/agent_kits\/slots$/,
@@ -524,7 +524,7 @@ const routes: Route[] = [
     }),
   },
 
-  // ── Ops diagnostics (/ai-runtime?tab=ops) ──
+  // ── Ops diagnostics (/ai-debug?tab=ops) ──
   {
     m: 'GET',
     re: /^\/api\/ops\/bots$/,
@@ -1116,7 +1116,7 @@ const routes: Route[] = [
     h: ({ url }) => generatePersonaDetail(decodeURIComponent(url.pathname.split('/').pop()!)),
   },
 
-  // /mcp-config
+  // MCP 配置（/ai-tools?tab=mcp，原 /mcp-config）
   { m: 'GET', re: /^\/api\/ai\/mcp\/list$/, h: () => generateMCPConfigList() },
   { m: 'GET', re: /^\/api\/ai\/mcp\/presets$/, h: () => generateMCPPresets() },
   { m: 'GET', re: /^\/api\/ai\/mcp-tools-config\/list$/, h: () => generateMCPToolsConfigList() },

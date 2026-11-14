@@ -1,6 +1,7 @@
 {
   "title": "MCP マーケット",
   "description": "MCPMarket と ModelScope から MCP サービスを選んでローカル設定としてインストール",
+  "back": "MCP 設定へ戻る",
   "searchPlaceholder": "名前または説明で検索...",
   "loadFailed": "マーケットの読み込みに失敗しました",
   "empty": "一致する MCP サービスがありません",

@@ -3418,10 +3418,20 @@ export interface AIToolCategoriesResponse {
   data: Array<{ name: string; count: number }>;
 }
 
+export interface AIToolAssemblePreviewItem {
+  name: string;
+  plugin: string;
+  /** 新版后端返回；旧后端缺省时前端回退工具列表数据 */
+  description?: string;
+  category?: string;
+}
+
 export interface AIToolAssemblePreviewResponse {
   query: string;
-  seeds: Array<{ name: string; plugin: string }>;
-  pool: Array<{ name: string; plugin: string }>;
+  seeds: AIToolAssemblePreviewItem[];
+  pool: AIToolAssemblePreviewItem[];
+  /** 保底池工具（后端恒返回，前端暂不展示） */
+  core?: AIToolAssemblePreviewItem[];
   core_pool_size: number;
   recall: number;
   max_extra: number;

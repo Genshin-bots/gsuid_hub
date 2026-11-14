@@ -2398,7 +2398,7 @@ export default function AIMemoryPage() {
               className={cn(tabToolbarControlClass, 'w-full sm:w-auto sm:shrink-0')}
               asChild
             >
-              <Link to="/ai-runtime?tab=cognition">
+              <Link to="/ai-debug?tab=cognition">
                 <Globe className="w-4 h-4" />
                 {t('aiMemory.cognitionIndexLink')}
               </Link>

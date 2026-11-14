@@ -1,10 +1,8 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { tabToolbarControlClass } from '@/components/ui/TabButtonGroup';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
@@ -15,7 +13,6 @@ import {
   Plus,
   Pencil,
   Trash2,
-  RefreshCw,
   ChevronDown,
   ChevronRight,
   AlertTriangle,
@@ -90,7 +87,7 @@ import {
 } from '@/components/ui/select';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { headerActionRowClass, PinnedPage } from '@/components/layout/PinnedPage';
+import { pageStackClass } from '@/components/layout/PinnedPage';
 import {
   McpBindSection,
   McpDiscoveringHint,
@@ -107,7 +104,7 @@ import { defaultToolMeta, type ToolMeta } from '@/components/mcp/toolMeta';
 /**
  * MCP 预设 / 配置 共用的品牌图标组件（占位）。
  *
- * 当前实现永远渲染 lucide 的 `<Server />` 占位——`/mcp-config` 不再展示
+ * 当前实现永远渲染 lucide 的 `<Server />` 占位——MCP 配置页（/ai-tools 页签）不再展示
  * 具体厂商的品牌图标，避免把整库的 brand icon 拉进 bundle。
  *
  * `hints` 仍保留以匹配调用方签名：`name`、`command`、`url` 都会传过去，
@@ -127,7 +124,7 @@ interface McpBrandIconProps {
 }
 
 function McpBrandIcon({ name, command, url, className }: McpBrandIconProps) {
-  // /mcp-config 决定不再展示具体厂商 brand icon，统一由 AutoBrandIcon
+  // MCP 配置页（/ai-tools 页签）决定不再展示具体厂商 brand icon，统一由 AutoBrandIcon
   // 渲染 lucide 的 <Server /> 占位。这里只需要把提示文本透传过去即可。
   void name;
   void command;
@@ -317,10 +314,21 @@ function McpServerIcon({ config, className }: { config: MCPConfig; className?: s
   );
 }
 
-export default function MCPConfigPage() {
+/** 面板暴露给宿主页面 toolbar 的操作：按钮与页签同行，状态仍在面板内（同 bindRefresh 约定） */
+export interface MCPConfigActions {
+  reload: () => void;
+  isReloading: boolean;
+  openImport: () => void;
+  openCreate: () => void;
+}
+
+export function MCPConfigPanel({
+  bindActions,
+}: {
+  bindActions?: (actions: MCPConfigActions) => void;
+}) {
   const { style } = useTheme();
   const { t } = useLanguage();
-  const navigate = useNavigate();
   const _isGlass = style !== 'solid';
 
   // State
@@ -441,7 +449,7 @@ export default function MCPConfigPage() {
   // Reload
   // ============================================================================
 
-  const handleReload = async () => {
+  const handleReload = useCallback(async () => {
     try {
       setIsReloading(true);
       const result = await mcpConfigApi.reload();
@@ -455,7 +463,7 @@ export default function MCPConfigPage() {
     } finally {
       setIsReloading(false);
     }
-  };
+  }, [t, loadConfigs]);
 
   // ============================================================================
   // Preset Selection
@@ -596,7 +604,7 @@ export default function MCPConfigPage() {
   // Create / Edit
   // ============================================================================
 
-  const openCreateDialog = () => {
+  const openCreateDialog = useCallback(() => {
     setEditingConfig(null);
     setFormData(getEmptyFormData());
     setConnectionMethod('manual');
@@ -606,7 +614,7 @@ export default function MCPConfigPage() {
     setToolMeta({});
     setOriginalToolDescs({});
     setFormDialogOpen(true);
-  };
+  }, []);
 
   const openEditDialog = (config: MCPConfig) => {
     setEditingConfig(config);
@@ -855,10 +863,10 @@ export default function MCPConfigPage() {
   // JSON Import
   // ============================================================================
 
-  const handleOpenImportDialog = () => {
+  const handleOpenImportDialog = useCallback(() => {
     setImportJsonText('');
     setImportDialogOpen(true);
-  };
+  }, []);
 
   const handleImportJson = async () => {
     if (!importJsonText.trim()) {
@@ -1036,68 +1044,24 @@ export default function MCPConfigPage() {
   const permHasRules = Object.keys(formData.toolPermissions).length > 0;
   const permSectionOpen = permOpenOverride ?? permHasRules;
 
+  // 操作按钮渲染在 /ai-tools 页签同行；actions 必须稳定，否则每次重渲都触发父级回绑
+  const actions = useMemo<MCPConfigActions>(
+    () => ({
+      reload: () => void handleReload(),
+      isReloading,
+      openImport: handleOpenImportDialog,
+      openCreate: openCreateDialog,
+    }),
+    [handleReload, isReloading, handleOpenImportDialog, openCreateDialog],
+  );
+
+  useEffect(() => {
+    bindActions?.(actions);
+  }, [bindActions, actions]);
+
   return (
     <TooltipProvider>
-      <PinnedPage
-        header={
-          /* Header */
-          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2 sm:gap-3">
-                <Server width={32} height={32} className="text-foreground" />
-                {t('mcpConfig.title')}
-              </h1>
-              <p className="text-muted-foreground mt-1 text-sm sm:text-base">
-                {t('mcpConfig.description')}
-              </p>
-            </div>
-            <div className={headerActionRowClass}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={tabToolbarControlClass}
-                    onClick={handleReload}
-                    disabled={isReloading}
-                  >
-                    {isReloading ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <RefreshCw className="h-4 w-4" />
-                    )}
-                    <span className="ml-1">{t('mcpConfig.reload')}</span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>
-                    {t('mcpConfig.reload')} - {t('mcpConfig.description')}
-                  </p>
-                </TooltipContent>
-              </Tooltip>
-              <Button
-                variant="outline"
-                className={tabToolbarControlClass}
-                onClick={() => navigate('/mcp-market')}
-              >
-                <Store className="h-4 w-4 mr-1" />
-                {t('mcpConfig.market')}
-              </Button>
-              <Button
-                variant="outline"
-                className={tabToolbarControlClass}
-                onClick={handleOpenImportDialog}
-              >
-                <FileJson className="h-4 w-4 mr-1" />
-                {t('mcpConfig.importJson')}
-              </Button>
-              <Button className={tabToolbarControlClass} onClick={openCreateDialog}>
-                <Plus className="h-4 w-4 mr-1" />
-                {t('mcpConfig.addConfig')}
-              </Button>
-            </div>
-          </div>
-        }
-      >
+      <div className={pageStackClass}>
         {/* Reload Result */}
         {reloadResult && (
           <Card className="glass-card">
@@ -2655,7 +2619,7 @@ export default function MCPConfigPage() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-      </PinnedPage>
+      </div>
     </TooltipProvider>
   );
 }

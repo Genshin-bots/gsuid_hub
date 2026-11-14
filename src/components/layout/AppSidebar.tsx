@@ -1,4 +1,13 @@
-import { ChevronDown, ChevronRight, LogOut, PanelLeftClose, Power, RotateCw } from 'lucide-react';
+import {
+  Brain,
+  ChevronDown,
+  ChevronRight,
+  LayoutGrid,
+  LogOut,
+  PanelLeftClose,
+  Power,
+  RotateCw,
+} from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -14,7 +23,6 @@ import {
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
@@ -38,8 +46,16 @@ import { useState, useEffect, useRef, memo, useMemo } from 'react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useSystemControl } from '@/hooks/useSystemControl';
 import { SidebarHoverIcon, sidebarNavItemGroupClass } from '@/components/layout/SidebarHoverIcon';
-import { getNavItems, isNavGroupActive, type NavItem } from '@/components/layout/navItems';
+import {
+  filterNavItemsByExcludeIds,
+  getAiNavItems,
+  getNavItems,
+  isNavGroupActive,
+  isNavItemActive,
+  type NavItem,
+} from '@/components/layout/navItems';
 import { SystemControlDialogs } from '@/components/layout/SystemControlDialogs';
+import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
 
 // 使用memo优化NavItem渲染
 interface NavItemProps {
@@ -220,6 +236,10 @@ const MemoizedNavItem = memo(function MemoizedNavItem({
   );
 });
 
+// AI 配置菜单的稳定 id（正常侧用它把整组 AI 条目剔出去）
+const AI_CONFIG_ID = 'aiConfig';
+const NORMAL_EXCLUDED_IDS = new Set([AI_CONFIG_ID]);
+
 // 主组件
 export function AppSidebar() {
   const navigate = useNavigate();
@@ -231,7 +251,12 @@ export function AppSidebar() {
   const { isAIEnabled, refresh: refreshAIStatus } = useAIStatus();
   const { title: brandTitle, subtitle: brandSubtitle, iconUrl: brandIconUrl } = useBrand();
 
-  const navItems = useMemo(() => getNavItems(t, isAIEnabled, isAdmin), [t, isAIEnabled, isAdmin]);
+  // 桌面侧边栏是「正常 / AI」双菜单：正常侧剔除 aiConfig 组，AI 侧直接平铺其子项
+  const navItems = useMemo(
+    () => filterNavItemsByExcludeIds(getNavItems(t, isAIEnabled, isAdmin), NORMAL_EXCLUDED_IDS),
+    [t, isAIEnabled, isAdmin],
+  );
+  const aiItems = useMemo(() => getAiNavItems(t, isAIEnabled, isAdmin), [t, isAIEnabled, isAdmin]);
   // 移动端模式下侧边栏总是展开（抽屉打开后需要展示完整菜单，而不是仅 icon）
   // 桌面端才遵循用户的收起/展开偏好
   const isCollapsed = !isMobile && sidebarState === 'collapsed';
@@ -262,6 +287,30 @@ export function AppSidebar() {
   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
   const location = useLocation();
 
+  // 菜单模式：跟随当前路由自动落到对应侧，也可手动切换浏览另一侧菜单
+  const [navMode, setNavMode] = useState<'normal' | 'ai'>(() =>
+    aiItems.some((item) => isNavItemActive(item, location.pathname)) ? 'ai' : 'normal',
+  );
+
+  useEffect(() => {
+    const path = location.pathname;
+    if (aiItems.some((item) => isNavItemActive(item, path))) {
+      setNavMode('ai');
+    } else if (
+      navItems.some((item) => isNavItemActive(item, path) || isNavGroupActive(item, path))
+    ) {
+      setNavMode('normal');
+    }
+  }, [location.pathname, aiItems, navItems]);
+
+  const switchNavMode = (mode: 'normal' | 'ai') => {
+    setNavMode(mode);
+    // 切到 AI 菜单时重新校验 AI 启用状态，保证子菜单完整（沿用原展开即校验的意图）
+    if (mode === 'ai') refreshAIStatus();
+  };
+
+  const visibleItems = navMode === 'ai' ? aiItems : navItems;
+
   // 路由进入 /ai-config 页面后，从后端同步最新 AI 启用状态
   useEffect(() => {
     if (location.pathname === '/ai-config') {
@@ -270,20 +319,11 @@ export function AppSidebar() {
   }, [location.pathname, refreshAIStatus]);
   const isInitialMount = useRef(true);
 
-  // AI 配置菜单的稳定 id
-  const AI_CONFIG_ID = 'aiConfig';
-
   const toggleExpanded = (id: string) => {
-    const willExpand = !expandedItems[id];
     setExpandedItems((prev) => ({
       ...prev,
-      [id]: willExpand,
+      [id]: !prev[id],
     }));
-    // 展开 AI 配置菜单时，重新从后端校验 AI 是否启动，
-    // 以保证未点击 /ai-config 时也能显示完整的 AI 子菜单
-    if (willExpand && id === AI_CONFIG_ID) {
-      refreshAIStatus();
-    }
   };
 
   // 首次加载时根据当前路由自动展开对应的一级菜单
@@ -403,16 +443,56 @@ export function AppSidebar() {
 
       <Separator className="opacity-30 mx-2" />
 
+      {/* 正常 / AI 菜单切换：固定在滚动区外，位置即「导航菜单」标签上方 */}
+      {isCollapsed ? (
+        <div className="flex flex-col items-center gap-1 py-2">
+          {[
+            { value: 'normal' as const, icon: LayoutGrid, label: t('sidebar.navModeNormal') },
+            { value: 'ai' as const, icon: Brain, label: t('sidebar.aiConfig') },
+          ].map((mode) => (
+            <SidebarMenuButton
+              key={mode.value}
+              tooltip={mode.label}
+              onClick={() => switchNavMode(mode.value)}
+              className={cn(
+                sidebarNavItemGroupClass,
+                'flex items-center rounded-lg transition-all cursor-pointer',
+                'justify-center w-10 h-10 p-0',
+                'hover:bg-primary/10',
+                navMode === mode.value && 'bg-primary/20 text-primary font-medium shadow-sm',
+              )}
+            >
+              <SidebarHoverIcon icon={mode.icon} className="w-5 h-5" style={iconStyle} />
+            </SidebarMenuButton>
+          ))}
+        </div>
+      ) : (
+        <div className="px-3 py-2">
+          <TabButtonGroup
+            value={navMode}
+            onValueChange={(v) => switchNavMode(v as 'normal' | 'ai')}
+            className="grid w-full grid-cols-2"
+            options={[
+              {
+                value: 'normal',
+                label: t('sidebar.navModeNormal'),
+                icon: <LayoutGrid className="h-4 w-4" />,
+              },
+              {
+                value: 'ai',
+                label: t('sidebar.aiConfig'),
+                icon: <Brain className="h-4 w-4" />,
+              },
+            ]}
+          />
+        </div>
+      )}
+
       <SidebarContent className={cn(isCollapsed ? 'px-1' : 'p-2')}>
         <SidebarGroup className={cn(isCollapsed && 'p-0')}>
-          {!isCollapsed && (
-            <SidebarGroupLabel className="text-muted-foreground/70">
-              {t('sidebar.navMenu')}
-            </SidebarGroupLabel>
-          )}
           <SidebarGroupContent>
             <SidebarMenu className={cn(isCollapsed && 'items-center')}>
-              {navItems.map((item) => (
+              {visibleItems.map((item) => (
                 <MemoizedNavItem
                   key={item.id}
                   item={item}

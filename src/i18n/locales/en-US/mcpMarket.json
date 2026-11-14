@@ -1,6 +1,7 @@
 {
   "title": "MCP Marketplace",
   "description": "Pick MCP servers from MCPMarket & ModelScope and install them as local configs",
+  "back": "Back to MCP Config",
   "searchPlaceholder": "Search by name or description...",
   "loadFailed": "Failed to load marketplace",
   "empty": "No matching MCP servers",

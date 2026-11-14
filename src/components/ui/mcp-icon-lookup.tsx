@@ -1,7 +1,7 @@
 import { Server } from 'lucide-react';
 
 /**
- * /mcp-config 页面用图标占位组件
+ * MCP 配置页（/ai-tools 页签，原 /mcp-config）用图标占位组件
  * ============================================================================
  * 历史变更：
  *   1. 旧版用 `import.meta.glob` 扫整个 `@thesvg/react/dist/`（6,400+ 图标），
@@ -9,7 +9,7 @@ import { Server } from 'lucide-react';
  *   2. 中期改成 200+ 白名单命名 import + Vite plugin 把 `default / light / dark /
  *      color / wordmark` 等 variant 砍到只剩 `mono`，dist 砍到 4.4MB，icons
  *      chunk ≈ 380KB。
- *   3. **当前版**：业务上决定 /mcp-config 不展示具体厂商的 brand icon 了——
+ *   3. **当前版**：业务上决定 MCP 配置页不展示具体厂商的 brand icon 了——
  *      一律用 lucide-react 的 `<Server />` 占位。这样所有图标 import 都可以
  *      从这里删掉，bundle 里不再有 `thesvg-icons` 这个 chunk。MCP 官方
  *      Logo (`McpModelContextProtocol`) 也不再需要。
@@ -76,7 +76,7 @@ export interface AutoBrandIconProps {
 }
 
 /**
- * 渲染一个 lucide-react 的 `<Server />` 作为 /mcp-config 的品牌图标占位。
+ * 渲染一个 lucide-react 的 `<Server />` 作为 MCP 配置页的品牌图标占位。
  *
  * - 当前实现完全静态（无 useEffect / setState），渲染开销 ≈ 0；
  * - 字体 / 主题跟随父级 currentColor 与 Tailwind color utilities；

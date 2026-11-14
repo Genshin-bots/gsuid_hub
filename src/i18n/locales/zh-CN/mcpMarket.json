@@ -1,6 +1,7 @@
 {
   "title": "MCP 服务广场",
   "description": "从 MCP市场 与 ModelScope 挑选 MCP 服务，一键安装为本地配置",
+  "back": "返回 MCP 配置",
   "searchPlaceholder": "搜索服务名称或描述...",
   "loadFailed": "加载服务广场失败",
   "empty": "没有找到匹配的 MCP 服务",

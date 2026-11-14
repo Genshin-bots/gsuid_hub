@@ -348,7 +348,15 @@ export function Composer({
             <span>{t('liveChat.poke')}</span>
           </Button>
         )}
-        <span className="ml-auto text-[11px] text-muted-foreground">{t(MODE_TIP_KEY[mode])}</span>
+        <span
+          className={cn(
+            'ml-auto text-[11px] text-muted-foreground',
+            // Enter/Shift+Enter 提示只对桌面键盘有意义，移动端隐藏
+            mode === 'plain' && 'hidden md:inline',
+          )}
+        >
+          {t(MODE_TIP_KEY[mode])}
+        </span>
       </div>
 
       {replyTo && (
