@@ -4,7 +4,7 @@ import { X, Search, Plus, Copy, Check } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { cn } from '@/lib/utils';
+import { cn, copyTextToClipboard } from '@/lib/utils';
 
 interface TagsInputProps {
   value: string[];
@@ -52,24 +52,7 @@ export const TagsInput: React.FC<TagsInputProps> = ({
 
   const handleCopy = async (text: string, index: number) => {
     try {
-      if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(text);
-      } else {
-        // Fallback for non-secure contexts (HTTP on public network)
-        const textarea = document.createElement('textarea');
-        textarea.value = text;
-        textarea.style.position = 'fixed';
-        textarea.style.left = '-9999px';
-        textarea.style.top = '-9999px';
-        document.body.appendChild(textarea);
-        textarea.focus();
-        textarea.select();
-        const success = document.execCommand('copy');
-        document.body.removeChild(textarea);
-        if (!success) {
-          throw new Error('execCommand copy failed');
-        }
-      }
+      await copyTextToClipboard(text);
       setCopiedIndex(index);
       setTimeout(() => setCopiedIndex(null), 1500);
     } catch (err) {

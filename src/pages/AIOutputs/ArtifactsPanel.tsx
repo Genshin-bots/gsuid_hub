@@ -40,7 +40,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { aiArtifactsApi, getApiErrorMessage, type AIArtifactItem } from '@/lib/api';
-import { cn } from '@/lib/utils';
+import { cn, copyTextToClipboard } from '@/lib/utils';
 import { formatBytes } from './constants';
 import { MetaRow } from './shared';
 
@@ -258,19 +258,7 @@ export function ArtifactsPanel(props: ArtifactsPanelProps) {
     const text = detail?.payloadPreview;
     if (!text) return;
     try {
-      if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(text);
-      } else {
-        const ta = document.createElement('textarea');
-        ta.value = text;
-        ta.style.position = 'fixed';
-        ta.style.left = '-9999px';
-        document.body.appendChild(ta);
-        ta.focus();
-        ta.select();
-        document.execCommand('copy');
-        document.body.removeChild(ta);
-      }
+      await copyTextToClipboard(text);
       setPayloadCopied(true);
       if (payloadCopyTimerRef.current) {
         window.clearTimeout(payloadCopyTimerRef.current);

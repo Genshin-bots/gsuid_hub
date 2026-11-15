@@ -1,4 +1,5 @@
 import type {
+  BackupFile,
   BackupFileTreeSort,
   BackupHintEntry,
   BackupHintInfo,
@@ -220,4 +221,33 @@ export function resolveTopLevelPluginMap(
     }
   }
   return resolved;
+}
+
+export type BackupSourceKind = 'manual' | 'auto' | 'pre_restore' | 'uploaded' | 'unknown';
+
+/** 按核心命名规范识别备份来源：NowFile-* 为手动，日期格式为定时自动。 */
+export function classifyBackupSource(fileName: string): BackupSourceKind {
+  const name = fileName.trim();
+  if (/^NowFile-/i.test(name)) return 'manual';
+  if (/^\d{4}-\d{2}-\d{2}(?:-\d{4}-\d{2}-\d{2})?\.zip$/i.test(name)) return 'auto';
+  if (/^pre-restore-/i.test(name)) return 'pre_restore';
+  if (/^upload-/i.test(name)) return 'uploaded';
+  return 'unknown';
+}
+
+function parseBackupTimestamp(created: string | null | undefined): number {
+  if (!created) return Number.NEGATIVE_INFINITY;
+  const ms = Date.parse(created);
+  return Number.isNaN(ms) ? Number.NEGATIVE_INFINITY : ms;
+}
+
+/** 备份列表按创建时间倒序排列，最新创建的排在最前。 */
+export function sortBackupFilesNewestFirst<T extends Pick<BackupFile, 'fileName' | 'created'>>(
+  files: readonly T[],
+): T[] {
+  return [...files].sort((a, b) => {
+    const diff = parseBackupTimestamp(b.created) - parseBackupTimestamp(a.created);
+    if (diff !== 0) return diff;
+    return b.fileName.localeCompare(a.fileName);
+  });
 }

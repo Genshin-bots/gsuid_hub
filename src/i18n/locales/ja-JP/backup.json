@@ -88,5 +88,9 @@
   "restoreConflictChanged": "競合リストが変わりました。再度確認してください",
   "uncoverTitle": "チェックを外しますか？",
   "uncoverDesc": "以下のユーザーデータはバックアップ対象外になります：",
-  "uncoverConfirm": "それでも外す"
+  "uncoverConfirm": "それでも外す",
+  "sourceManual": "手動",
+  "sourceAuto": "自動",
+  "sourcePreRestore": "復元前",
+  "sourceUploaded": "アップロード"
 }

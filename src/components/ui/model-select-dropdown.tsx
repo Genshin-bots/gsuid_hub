@@ -1,6 +1,6 @@
 import type * as React from 'react';
 import { useMemo, useRef, useCallback, useState, useEffect } from 'react';
-import { cn } from '@/lib/utils';
+import { cn, copyTextToClipboard } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
 import { Input } from '@/components/ui/input';
@@ -112,26 +112,6 @@ export function ModelSelectDropdown({
     });
   }, []);
 
-  const copyTextToClipboard = useCallback(async (text: string) => {
-    if (navigator.clipboard && window.isSecureContext) {
-      await navigator.clipboard.writeText(text);
-      return;
-    }
-    const textarea = document.createElement('textarea');
-    textarea.value = text;
-    textarea.style.position = 'fixed';
-    textarea.style.left = '-9999px';
-    textarea.style.top = '-9999px';
-    document.body.appendChild(textarea);
-    textarea.focus();
-    textarea.select();
-    const success = document.execCommand('copy');
-    document.body.removeChild(textarea);
-    if (!success) {
-      throw new Error('execCommand copy failed');
-    }
-  }, []);
-
   const handleCopyValue = useCallback(async () => {
     const text = safeValue.trim();
     if (!text) return;
@@ -141,7 +121,7 @@ export function ModelSelectDropdown({
       window.clearTimeout(copyTimerRef.current);
     }
     copyTimerRef.current = window.setTimeout(() => setIsCopied(false), 1500);
-  }, [copyTextToClipboard, safeValue]);
+  }, [safeValue]);
 
   // 提交输入（按 Enter）
   const handleCommitInput = useCallback(() => {

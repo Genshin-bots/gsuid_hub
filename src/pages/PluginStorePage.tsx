@@ -75,7 +75,7 @@ import {
   tabToolbarControlClass,
   tabToolbarGroupWrapShrinkClass,
 } from '@/components/ui/TabButtonGroup';
-import { cn } from '@/lib/utils';
+import { cn, copyTextToClipboard } from '@/lib/utils';
 import {
   Dialog,
   DialogContent,
@@ -1693,12 +1693,8 @@ export default function PluginStorePage() {
                       className="h-14 w-14 shrink-0"
                       title={t('pluginStore.github.copy')}
                       onClick={async () => {
-                        if (!(navigator.clipboard && window.isSecureContext)) {
-                          toast.error(t('pluginStore.github.copyFailed'));
-                          return;
-                        }
                         try {
-                          await navigator.clipboard.writeText(deviceInfo.user_code);
+                          await copyTextToClipboard(deviceInfo.user_code);
                           toast.success(t('pluginStore.github.copied'));
                         } catch {
                           toast.error(t('pluginStore.github.copyFailed'));

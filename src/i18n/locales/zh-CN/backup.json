@@ -88,5 +88,9 @@
   "restoreConflictChanged": "冲突列表已变化，请重新确认",
   "uncoverTitle": "确认取消勾选？",
   "uncoverDesc": "以下用户数据将不再包含在备份中：",
-  "uncoverConfirm": "仍然取消勾选"
+  "uncoverConfirm": "仍然取消勾选",
+  "sourceManual": "手动",
+  "sourceAuto": "自动",
+  "sourcePreRestore": "还原前",
+  "sourceUploaded": "上传"
 }

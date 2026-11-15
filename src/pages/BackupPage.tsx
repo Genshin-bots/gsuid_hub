@@ -46,7 +46,12 @@ import {
 } from '@/components/config';
 import { FileTreeSelector } from '@/components/backup/FileTreeSelector';
 import { readZipDirectory } from '@/lib/zipCentralDirectory';
-import { diffSelection } from '@/lib/backupFileTree';
+import {
+  type BackupSourceKind,
+  classifyBackupSource,
+  diffSelection,
+  sortBackupFilesNewestFirst,
+} from '@/lib/backupFileTree';
 import {
   backupApi,
   systemApi,
@@ -162,6 +167,58 @@ function formatBytes(bytes: number): string {
   return `${parseFloat((bytes / k ** i).toFixed(2))} ${sizes[i]}`;
 }
 
+interface BackupFileWithMeta extends BackupFile {
+  id: number;
+  filename: string;
+  createdAt: Date;
+  status: 'completed' | 'in_progress' | 'failed';
+  source: BackupSourceKind;
+}
+
+const BACKUP_SOURCE_BADGE: Record<
+  Exclude<BackupSourceKind, 'unknown'>,
+  {
+    labelKey: string;
+    variant: 'outline' | 'secondary';
+    className?: string;
+  }
+> = {
+  manual: {
+    labelKey: 'backup.sourceManual',
+    variant: 'outline',
+    className:
+      'theme-chip theme-chip-tint text-blue-600 dark:text-blue-400 border-blue-500/40 bg-blue-500/10',
+  },
+  auto: {
+    labelKey: 'backup.sourceAuto',
+    variant: 'secondary',
+  },
+  pre_restore: {
+    labelKey: 'backup.sourcePreRestore',
+    variant: 'outline',
+    className:
+      'theme-chip theme-chip-tint text-amber-600 dark:text-amber-400 border-amber-500/40 bg-amber-500/10',
+  },
+  uploaded: {
+    labelKey: 'backup.sourceUploaded',
+    variant: 'outline',
+    className:
+      'theme-chip theme-chip-tint text-violet-600 dark:text-violet-400 border-violet-500/40 bg-violet-500/10',
+  },
+};
+
+function toBackupList(files: unknown): BackupFileWithMeta[] {
+  const fileList = Array.isArray(files) ? (files as BackupFile[]) : [];
+  return sortBackupFilesNewestFirst(fileList).map((file, index) => ({
+    ...file,
+    id: index + 1,
+    filename: file.fileName,
+    createdAt: new Date(file.created),
+    status: 'completed' as const,
+    source: classifyBackupSource(file.fileName),
+  }));
+}
+
 export default function BackupPage() {
   const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<string>('settings');
@@ -175,21 +232,13 @@ export default function BackupPage() {
     'data/db',
     'data/db/main.sqlite',
   ]);
-  // Extend BackupFile with frontend-specific fields
-  interface BackupFileWithMeta extends BackupFile {
-    id: number;
-    filename: string;
-    createdAt: Date;
-    status: 'completed' | 'in_progress' | 'failed';
-  }
-
   const [backupList, setBackupList] = useState<BackupFileWithMeta[]>([]);
   const [originalConfig, setOriginalConfig] = useState<Record<string, any>>({});
   const [hasChanges, setHasChanges] = useState(false);
   const [isBackingUp, setIsBackingUp] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<BackupFileWithMeta | null>(null);
-  const [hints, setHints] = useState<BackupHintEntry[] | null>(null);
+  const [hints, setHints] = useState<BackupHintEntry[] | null | undefined>(undefined);
   const [restoreDialog, setRestoreDialog] = useState<{
     preview: RestorePreview;
     /** null = 本地文件，确认后先走分块上传 */
@@ -218,16 +267,7 @@ export default function BackupPage() {
         ]);
 
         if (filesResult.status === 'fulfilled') {
-          const fileList = Array.isArray(filesResult.value) ? filesResult.value : [];
-          setBackupList(
-            fileList.map((file: BackupFile, index: number) => ({
-              ...file,
-              id: index + 1,
-              filename: file.fileName,
-              createdAt: new Date(file.created),
-              status: 'completed' as const,
-            })),
-          );
+          setBackupList(toBackupList(filesResult.value));
         } else {
           console.warn('Failed to fetch backup files:', filesResult.reason);
           toast.error(getApiErrorMessage(filesResult.reason, t('backup.loadFailed')));
@@ -250,9 +290,11 @@ export default function BackupPage() {
           setHints(Array.isArray(hintsResult.value) ? hintsResult.value : []);
         } else {
           console.warn('Backup hints unavailable:', hintsResult.reason);
+          setHints(null);
         }
       } catch (error) {
         console.warn('Failed to fetch backup data:', error);
+        setHints(null);
         toast.error(getApiErrorMessage(error, t('backup.loadFailed')));
       }
     };
@@ -399,15 +441,7 @@ export default function BackupPage() {
       await backupApi.createBackup();
       // Refresh backup list
       const files = await backupApi.getFiles();
-      const fileList = Array.isArray(files) ? files : [];
-      const formattedFiles = fileList.map((file: BackupFile, index: number) => ({
-        ...file,
-        id: index + 1,
-        filename: file.fileName,
-        createdAt: new Date(file.created),
-        status: 'completed' as const,
-      }));
-      setBackupList(formattedFiles);
+      setBackupList(toBackupList(files));
       toast.success(t('backup.backupSuccess'));
     } catch (error) {
       toast.error(getApiErrorMessage(error, t('backup.backupFailed')));
@@ -456,16 +490,7 @@ export default function BackupPage() {
 
   const refreshBackupFiles = async () => {
     const files = await backupApi.getFiles();
-    const fileList = Array.isArray(files) ? files : [];
-    setBackupList(
-      fileList.map((file: BackupFile, index: number) => ({
-        ...file,
-        id: index + 1,
-        filename: file.fileName,
-        createdAt: new Date(file.created),
-        status: 'completed' as const,
-      })),
-    );
+    setBackupList(toBackupList(files));
   };
 
   const openRestorePreview = async (fileId: string) => {
@@ -761,13 +786,28 @@ export default function BackupPage() {
                 </TableHeader>
                 <TableBody>
                   {backupList.map((backup) => (
-                    <TableRow key={backup.id}>
+                    <TableRow key={backup.fileName}>
                       <TableCell className="font-medium">
-                        <TruncatedText text={backup.filename} className="max-w-[40ch]" />
+                        <div className="flex items-center gap-2 min-w-0">
+                          <TruncatedText text={backup.filename} className="max-w-[36ch]" />
+                          {backup.source !== 'unknown' && (
+                            <Badge
+                              variant={BACKUP_SOURCE_BADGE[backup.source].variant}
+                              className={cn(
+                                'shrink-0',
+                                BACKUP_SOURCE_BADGE[backup.source].className,
+                              )}
+                            >
+                              {t(BACKUP_SOURCE_BADGE[backup.source].labelKey)}
+                            </Badge>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell>{formatBytes(backup.size)}</TableCell>
                       <TableCell>
-                        {format(backup.createdAt, 'yyyy-MM-dd HH:mm', { locale: zhCN })}
+                        {Number.isNaN(backup.createdAt.getTime())
+                          ? '—'
+                          : format(backup.createdAt, 'yyyy-MM-dd HH:mm', { locale: zhCN })}
                       </TableCell>
                       <TableCell>
                         <Badge

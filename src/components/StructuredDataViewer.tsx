@@ -15,7 +15,7 @@ import {
   buildBase64DataUrl,
   tryParseStructuredData,
 } from '@/lib/structuredDataPreview';
-import { cn } from '@/lib/utils';
+import { cn, copyTextToClipboard } from '@/lib/utils';
 
 interface StructuredDataViewerProps {
   data: string;
@@ -34,31 +34,6 @@ const colors = {
   normal: 'text-gray-700 dark:text-gray-300',
   text: 'text-sky-500 dark:text-sky-400 font-medium',
 };
-
-/**
- * 复制文本到剪贴板：优先使用现代 Clipboard API，
- * 在非安全上下文（如内网 HTTP IP 访问）或权限受限时降级为 execCommand('copy')。
- */
-async function copyTextToClipboard(text: string): Promise<void> {
-  if (navigator.clipboard && window.isSecureContext) {
-    await navigator.clipboard.writeText(text);
-    return;
-  }
-
-  const textarea = document.createElement('textarea');
-  textarea.value = text;
-  textarea.style.position = 'fixed';
-  textarea.style.left = '-9999px';
-  textarea.style.top = '-9999px';
-  document.body.appendChild(textarea);
-  textarea.focus();
-  textarea.select();
-  const success = document.execCommand('copy');
-  document.body.removeChild(textarea);
-  if (!success) {
-    throw new Error('execCommand copy failed');
-  }
-}
 
 interface Base64ImageBadgeProps {
   rawValue: string;

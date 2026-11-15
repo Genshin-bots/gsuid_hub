@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
+  classifyBackupSource,
   diffSelection,
   extractFileTreeChildren,
   normalizeFileTreeListing,
   resolveTopLevelPluginMap,
+  sortBackupFilesNewestFirst,
   toLoadedFileTreeNode,
   userDataUncoveredByChange,
 } from './backupFileTree';
@@ -290,5 +292,36 @@ describe('resolveTopLevelPluginMap', () => {
     expect(map.get('GenshinUID')).toBe('GenshinUID');
     expect(map.has('shared')).toBe(false);
     expect(resolveTopLevelPluginMap(null).size).toBe(0);
+  });
+});
+
+describe('classifyBackupSource', () => {
+  it('distinguishes manual NowFile, scheduled date archives, pre-restore, and uploads', () => {
+    expect(classifyBackupSource('NowFile-2026-11-16.zip')).toBe('manual');
+    expect(classifyBackupSource('2026-11-16-2026-11-16.zip')).toBe('auto');
+    expect(classifyBackupSource('2026-11-16.zip')).toBe('auto');
+    expect(classifyBackupSource('pre-restore-1700000000-2026-11-16.zip')).toBe('pre_restore');
+    expect(classifyBackupSource('upload-backup-2026-11-16.zip')).toBe('uploaded');
+    expect(classifyBackupSource('custom-archive.zip')).toBe('unknown');
+  });
+});
+
+describe('sortBackupFilesNewestFirst', () => {
+  it('places newest created backups at the top and handles invalid dates cleanly', () => {
+    const input = [
+      { fileName: '2026-11-09-2026-11-09.zip', created: '2026-11-09T00:55:00' },
+      { fileName: '2026-11-16-2026-11-16.zip', created: '2026-11-16T00:55:00' },
+      { fileName: 'NowFile-2026-11-16.zip', created: '2026-11-16T04:56:00' },
+      { fileName: 'missing-date.zip', created: '' },
+    ];
+    const sorted = sortBackupFilesNewestFirst(input);
+    expect(sorted.map((f) => f.fileName)).toEqual([
+      'NowFile-2026-11-16.zip',
+      '2026-11-16-2026-11-16.zip',
+      '2026-11-09-2026-11-09.zip',
+      'missing-date.zip',
+    ]);
+    // 不修改原数组顺序
+    expect(input[0].fileName).toBe('2026-11-09-2026-11-09.zip');
   });
 });

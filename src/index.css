@@ -3530,18 +3530,41 @@ button.bg-primary.toolbar-control:not(.tab-segment-row *):not(.select-tile):hove
    * TabButtonGroup 的 glass-card 阴影，故同样上下留 --shadow-bleed。
    * 负 margin 与内边距相抵后，「标题 ↔ 控件行 ↔ 内容」仍是 1.5rem 节奏（净位移 0）。
    */
+  /*
+   * 固定区（header / toolbar）必须画在 .page-pinned-body 之上：
+   * 若保持默认 DOM 顺序让 body 后绘，body 内滚上来的磨砂卡片（backdrop-filter）
+   * 会把画在背后的深色按钮本体及其阴影一起采样模糊，产生"按钮透过磨砂卡片"的黑影。
+   * 提升 z-index（低于弹层/全屏的 z-50，高于卡片内 sticky 表头的 z-10），
+   * 并让外层 3rem 阴影安全区透传指针事件，不挡住 body 顶部的点击与滚动。
+   */
+  .page-pinned-header {
+    position: relative;
+    z-index: 19;
+    pointer-events: none;
+  }
+
+  .page-pinned-header > * {
+    pointer-events: auto;
+  }
+
   .page-pinned-toolbar {
+    position: relative;
+    z-index: 20;
+    pointer-events: none;
     overflow-x: auto;
     /* overflow-x 是滚动轴时，另一轴的 clip 按规范计算成 hidden（写 clip 是
        声明意图），多余竖向滚动条因此不会出现。hidden 的裁边固定在 padding
        边且 overflow-clip-margin 不生效：bleed 只有 12px，分段组向下 ~48px
        的投影尾巴会被硬切成一条黑边。
        所以把下 padding 加到 3rem 让阴影完整落在裁切区内，再用等量负
-       margin 抵消布局位移；body 在 DOM 后绘制，覆盖延出来的空白区，
-       命中测试与节奏都不受影响。 */
+       margin 抵消布局位移；pointer-events 透传，命中测试与节奏都不受影响。 */
     overflow-y: clip;
     padding: var(--shadow-bleed) var(--shadow-bleed) 3rem;
     margin: calc(var(--shadow-bleed) * -1) calc(var(--shadow-bleed) * -1) -3rem;
+  }
+
+  .page-pinned-toolbar > * {
+    pointer-events: auto;
   }
 }
 

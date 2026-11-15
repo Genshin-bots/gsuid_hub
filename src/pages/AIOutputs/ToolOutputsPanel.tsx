@@ -55,7 +55,7 @@ import {
   type AIToolOutputDetail,
   type AIToolOutputItem,
 } from '@/lib/api';
-import { cn } from '@/lib/utils';
+import { cn, copyTextToClipboard } from '@/lib/utils';
 import { formatBytes, TOOL_ALL } from './constants';
 import { MetaRow } from './shared';
 
@@ -260,19 +260,7 @@ export function ToolOutputsPanel(props: ToolOutputsPanelProps) {
     const text = detail?.payload_preview;
     if (!text) return;
     try {
-      if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(text);
-      } else {
-        const ta = document.createElement('textarea');
-        ta.value = text;
-        ta.style.position = 'fixed';
-        ta.style.left = '-9999px';
-        document.body.appendChild(ta);
-        ta.focus();
-        ta.select();
-        document.execCommand('copy');
-        document.body.removeChild(ta);
-      }
+      await copyTextToClipboard(text);
       setPayloadCopied(true);
       if (payloadCopyTimerRef.current) {
         window.clearTimeout(payloadCopyTimerRef.current);

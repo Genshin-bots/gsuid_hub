@@ -37,7 +37,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { cn } from '@/lib/utils';
+import { cn, copyTextToClipboard } from '@/lib/utils';
 import { sessionChatApi } from '@/lib/api';
 import {
   ROLE_KEY,
@@ -215,7 +215,7 @@ export function MessageRow({
       return;
     }
     try {
-      await navigator.clipboard.writeText(text);
+      await copyTextToClipboard(text);
       toast.success(t('sessionManagement.copied'));
     } catch {
       toast.error(t('sessionManagement.copyFailed'));

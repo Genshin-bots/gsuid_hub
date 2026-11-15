@@ -88,5 +88,9 @@
   "restoreConflictChanged": "Conflict list changed, please confirm again",
   "uncoverTitle": "Uncheck these items?",
   "uncoverDesc": "The following user data will no longer be backed up:",
-  "uncoverConfirm": "Uncheck anyway"
+  "uncoverConfirm": "Uncheck anyway",
+  "sourceManual": "Manual",
+  "sourceAuto": "Auto",
+  "sourcePreRestore": "Pre-restore",
+  "sourceUploaded": "Uploaded"
 }

@@ -385,9 +385,10 @@ export function FileTreeSelector({
   const selectedSet = useMemo(() => new Set(selectedPaths), [selectedPaths]);
   const topLevelPluginMap = useMemo(() => resolveTopLevelPluginMap(hints), [hints]);
   const sortGen = useRef(0);
+  const hintsUnavailable = hints === null;
   const hintsAvailable = Array.isArray(hints);
 
-  // 旧 Core 无 hints 接口：不提供「按建议」，已选中时回退 size
+  // 仅当确认后端不支持 hints（hints === null）时回退 size；加载中（undefined）保持默认 'hint'
   useEffect(() => {
     if (hints === null && sort === 'hint') setSort('size');
   }, [hints, sort]);
@@ -522,7 +523,7 @@ export function FileTreeSelector({
   );
 
   const sortOptions = [
-    ...(hintsAvailable
+    ...(!hintsUnavailable
       ? [{ value: 'hint', label: t('backup.sortByHint'), icon: <Lightbulb className="w-4 h-4" /> }]
       : []),
     {
@@ -540,13 +541,20 @@ export function FileTreeSelector({
         value={sort}
         onValueChange={(v) => setSort(v as BackupFileTreeSort)}
       />
-      {sort === 'hint' && hintsAvailable ? (
+      {sort === 'hint' && !hintsUnavailable ? (
         <div className={cn('rounded-lg border border-border/40 bg-transparent p-3', className)}>
-          <HintListView
-            hints={hints}
-            selectedPaths={selectedPaths}
-            onSelectionChange={requestSelectionChange}
-          />
+          {hintsAvailable ? (
+            <HintListView
+              hints={hints}
+              selectedPaths={selectedPaths}
+              onSelectionChange={requestSelectionChange}
+            />
+          ) : (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground px-2 py-3">
+              <HardDrive className="w-4 h-4" />
+              {t('backup.treeLoading')}
+            </div>
+          )}
         </div>
       ) : (
         <div

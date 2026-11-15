@@ -36,7 +36,7 @@ import {
   type ErrorReportDetail,
   type ErrorReportListItem,
 } from '@/lib/api';
-import { cn } from '@/lib/utils';
+import { cn, copyTextToClipboard } from '@/lib/utils';
 
 type DateMode = 'all' | 'single' | 'range';
 
@@ -207,7 +207,7 @@ export default function ErrorReportsPanel() {
   const copyReport = async () => {
     if (!detail) return;
     try {
-      await navigator.clipboard.writeText(JSON.stringify(detail.report, null, 2));
+      await copyTextToClipboard(JSON.stringify(detail.report, null, 2));
       toast.success(t('logs.errorReportCopied'));
     } catch (err) {
       toast.error(getApiErrorMessage(err, t('logs.errorReportLoadFailed')));
