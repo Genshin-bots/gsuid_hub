@@ -1061,7 +1061,7 @@ function KnowledgeGraph({
 
         {/* 节点搜索框（独立搜索控件，清晰明显的输入底板与边框） */}
         <form
-          className="glass-float relative flex items-center rounded-lg px-2.5 py-0.5 border border-border/60 shadow-sm w-[150px] sm:w-[190px]"
+          className="glass-float relative flex items-center rounded-lg px-2.5 py-1 border border-border/60 shadow-sm w-[150px] sm:w-[190px]"
           onSubmit={handleSearchSubmit}
         >
           <Search className="h-4 w-4 shrink-0 text-primary mr-1.5" />
@@ -1456,7 +1456,24 @@ function ScopeSelector({
     }
     return map;
   }, [scopes]);
-  const options = useMemo(() => [allLabel, ...scopes.map((s) => s.scope_key)], [allLabel, scopes]);
+  const options = useMemo(
+    () => [
+      allLabel,
+      ...scopes
+        .filter(
+          (s) =>
+            s.episode_count +
+              s.entity_count +
+              s.edge_count +
+              (s.category_count ?? 0) +
+              (s.thread_count ?? 0) +
+              (s.preference_count ?? 0) >
+            0,
+        )
+        .map((s) => s.scope_key),
+    ],
+    [allLabel, scopes],
+  );
   const displayValue = value === 'all' ? allLabel : value;
 
   const formatLabel = useCallback(
@@ -1533,7 +1550,7 @@ function ScopeSelector({
       renderOption={renderOption}
       placeholder={allLabel}
       className={className}
-      popoverWidth="w-[280px]"
+      popoverWidth="w-[360px] max-w-[calc(100vw-1.5rem)]"
     />
   );
 }
@@ -2569,14 +2586,9 @@ export default function AIMemoryPage() {
                       </span>
                       <ChevronRight className="w-3.5 h-3.5 opacity-60" />
                     </div>
-                    <div className="mt-1 flex items-baseline justify-between gap-1">
-                      <p className="text-lg font-bold tabular-nums leading-none">
-                        {stats.episode_count.toLocaleString()}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground truncate">
-                        {t('aiMemory.episodesDesc')}
-                      </p>
-                    </div>
+                    <p className="mt-1 text-lg font-bold tabular-nums leading-none">
+                      {stats.episode_count.toLocaleString()}
+                    </p>
                   </div>
 
                   {/* Item 2: 故事线 */}
@@ -2597,14 +2609,9 @@ export default function AIMemoryPage() {
                       </span>
                       <ChevronRight className="w-3.5 h-3.5 opacity-60" />
                     </div>
-                    <div className="mt-1 flex items-baseline justify-between gap-1">
-                      <p className="text-lg font-bold tabular-nums leading-none">
-                        {(stats.thread_count ?? 0).toLocaleString()}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground truncate">
-                        {t('aiMemory.threadsDesc')}
-                      </p>
-                    </div>
+                    <p className="mt-1 text-lg font-bold tabular-nums leading-none">
+                      {(stats.thread_count ?? 0).toLocaleString()}
+                    </p>
                   </div>
 
                   {/* Item 3: 记忆范围 */}
@@ -2625,14 +2632,9 @@ export default function AIMemoryPage() {
                       </span>
                       <ChevronRight className="w-3.5 h-3.5 opacity-60" />
                     </div>
-                    <div className="mt-1 flex items-baseline justify-between gap-1">
-                      <p className="text-lg font-bold tabular-nums leading-none">
-                        {stats.scope_keys.length.toLocaleString()}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground truncate">
-                        {t('aiMemory.scopesDesc')}
-                      </p>
-                    </div>
+                    <p className="mt-1 text-lg font-bold tabular-nums leading-none">
+                      {stats.scope_keys.length.toLocaleString()}
+                    </p>
                   </div>
 
                   {/* Item 4: 摄入队列 */}
@@ -2651,16 +2653,9 @@ export default function AIMemoryPage() {
                         )}
                       />
                     </div>
-                    <div className="mt-1 flex items-baseline justify-between gap-1">
-                      <p className="text-lg font-bold tabular-nums leading-none">
-                        {stats.observation_queue_size.toLocaleString()}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground truncate">
-                        {stats.observation_queue_size === 0
-                          ? t('aiMemory.queueEmpty')
-                          : t('aiMemory.queuePending')}
-                      </p>
-                    </div>
+                    <p className="mt-1 text-lg font-bold tabular-nums leading-none">
+                      {stats.observation_queue_size.toLocaleString()}
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -2686,11 +2681,7 @@ export default function AIMemoryPage() {
         <div className={pageStackClass}>
           {entities.length === 0 && edges.length === 0 ? (
             <Card className={cn('glass-card')}>
-              <div className="p-3 border-b border-border/30 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Network className="w-4 h-4 text-emerald-400" />
-                  <span className="text-sm font-medium">{t('aiMemory.tabGraph')}</span>
-                </div>
+              <div className="p-3 border-b border-border/30 flex flex-wrap items-center gap-3">
                 <ScopeSelector
                   value={selectedScope || 'all'}
                   onChange={handleScopeChange}
@@ -2698,6 +2689,10 @@ export default function AIMemoryPage() {
                   allLabel={t('aiMemory.allScopes')}
                   className={cn(tabToolbarControlClass, 'w-[200px] sm:w-[240px]')}
                 />
+                <div className="flex items-center gap-2">
+                  <Network className="w-4 h-4 text-emerald-400" />
+                  <span className="text-sm font-medium">{t('aiMemory.tabGraph')}</span>
+                </div>
               </div>
               <CardContent className="flex flex-col items-center justify-center !p-8 text-center text-muted-foreground">
                 {isLoadingGraph ? (
@@ -2780,7 +2775,7 @@ export default function AIMemoryPage() {
                     }
                   }}
                   placeholder="搜索偏好 / 用户ID..."
-                  className={cn(tabToolbarControlClass, 'pl-8 pr-7 h-8')}
+                  className={cn(tabToolbarControlClass, 'pl-8 pr-7')}
                 />
                 {preferenceSearch && (
                   <button
@@ -2800,7 +2795,7 @@ export default function AIMemoryPage() {
                 onChange={handleScopeChange}
                 scopes={scopes}
                 allLabel={t('aiMemory.preferenceScopeAll')}
-                className={cn(tabToolbarControlClass, 'w-[180px]')}
+                className={cn(tabToolbarControlClass, 'w-[240px]')}
               />
               <Select
                 value={preferenceFilter}
@@ -2810,7 +2805,7 @@ export default function AIMemoryPage() {
                   setTimeout(() => fetchPreferences(1), 0);
                 }}
               >
-                <SelectTrigger className={cn(tabToolbarControlClass, 'w-[140px]')}>
+                <SelectTrigger className={cn(tabToolbarControlClass, 'w-28')}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -2830,7 +2825,7 @@ export default function AIMemoryPage() {
                   setTimeout(() => fetchPreferences(1), 0);
                 }}
               >
-                <SelectTrigger className={cn(tabToolbarControlClass, 'w-[120px]')}>
+                <SelectTrigger className={cn(tabToolbarControlClass, 'w-28')}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

@@ -1,4 +1,11 @@
-import type { BackupFileTreeSort, FileTreeListing, FileTreeNode } from '@/lib/api';
+import type {
+  BackupFileTreeSort,
+  BackupHintEntry,
+  BackupHintInfo,
+  BackupHintKind,
+  FileTreeListing,
+  FileTreeNode,
+} from '@/lib/api';
 
 export interface LoadedFileTreeNode extends FileTreeNode {
   children: LoadedFileTreeNode[];
@@ -23,6 +30,33 @@ function asNumber(value: unknown, fallback = 0): number {
 
 function asNodeType(value: unknown): FileTreeNode['type'] {
   return value === 'file' ? 'file' : 'directory';
+}
+
+const HINT_KINDS = new Set<BackupHintKind>(['user_data', 'config', 'regenerable']);
+const FILE_TREE_SORTS = new Set<BackupFileTreeSort>(['hint', 'size', 'count']);
+
+export const HINT_KIND_KEYS: Record<BackupHintKind, string> = {
+  user_data: 'backup.hintKindUserData',
+  config: 'backup.hintKindConfig',
+  regenerable: 'backup.hintKindRegenerable',
+};
+
+export const HINT_BADGE_VARIANT: Record<BackupHintKind, 'default' | 'secondary' | 'outline'> = {
+  user_data: 'default',
+  config: 'secondary',
+  regenerable: 'outline',
+};
+
+function asHint(value: unknown): BackupHintInfo | null {
+  if (!isRecord(value)) return null;
+  const kind = asString(value.kind);
+  if (!HINT_KINDS.has(kind as BackupHintKind)) return null;
+  return {
+    kind: kind as BackupHintKind,
+    plugin: asString(value.plugin),
+    desc: asString(value.desc),
+    default_selected: value.default_selected === true,
+  };
 }
 
 /**
@@ -69,6 +103,8 @@ export function toLoadedFileTreeNode(raw: unknown): LoadedFileTreeNode | null {
     size_bytes: asNumber(raw.size_bytes),
     file_count: asNumber(raw.file_count, type === 'file' ? 1 : hasNested ? nested.length : 0),
     has_children: typeof raw.has_children === 'boolean' ? raw.has_children : hasNested,
+    hint: asHint(raw.hint),
+    hint_count: asNumber(raw.hint_count),
     children: nested,
     childTotal: nested.length,
     omittedCount: 0,
@@ -98,7 +134,9 @@ export function normalizeFileTreeListing(
       limit: asNumber(raw.limit, children.length),
       truncated: Boolean(raw.truncated),
       omitted_count: asNumber(raw.omitted_count),
-      sort: raw.sort === 'count' ? 'count' : fallbackSort,
+      sort: FILE_TREE_SORTS.has(raw.sort as BackupFileTreeSort)
+        ? (raw.sort as BackupFileTreeSort)
+        : fallbackSort,
       children,
     };
   }
@@ -117,4 +155,41 @@ export function normalizeFileTreeListing(
     sort: fallbackSort,
     children,
   };
+}
+
+export interface SelectionDiff {
+  added: string[];
+  removed: string[];
+}
+
+export function diffSelection(original: string[], current: string[]): SelectionDiff {
+  const cur = new Set(current);
+  const orig = new Set(original);
+  return {
+    added: current.filter((p) => !orig.has(p)),
+    removed: original.filter((p) => !cur.has(p)),
+  };
+}
+
+function isPathCoveredBySelection(path: string, selection: Set<string>): boolean {
+  for (const s of selection) {
+    if (path === s || path.startsWith(`${s}/`)) return true;
+  }
+  return false;
+}
+
+/** `before` 勾选覆盖、`after` 勾选不再覆盖的 user_data 建议项。 */
+export function userDataUncoveredByChange(
+  hints: BackupHintEntry[],
+  before: string[],
+  after: string[],
+): BackupHintEntry[] {
+  const beforeSet = new Set(before);
+  const afterSet = new Set(after);
+  return hints.filter(
+    (h) =>
+      h.kind === 'user_data' &&
+      isPathCoveredBySelection(h.path, beforeSet) &&
+      !isPathCoveredBySelection(h.path, afterSet),
+  );
 }

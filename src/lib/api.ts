@@ -902,6 +902,40 @@ class ApiClient {
     return this.parseEnvelope<T>(response);
   }
 
+  // PUT with raw bytes body（分块上传）：无 JSON Content-Type，可传 AbortSignal 取消。
+  async putRawBytes<T>(endpoint: string, body: Blob, signal?: AbortSignal): Promise<T> {
+    const url = `${this.baseUrl}${endpoint}`;
+
+    const token = getAuthToken();
+    const headers: Record<string, string> = {};
+
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers,
+      body,
+      credentials: 'include',
+      signal,
+    });
+
+    // Handle 401 Unauthorized - redirect to login（demo 不整页跳，见 handleUnauthorized）
+    if (response.status === 401) {
+      handleUnauthorized();
+    }
+
+    const data = await this.parseEnvelope<T>(response);
+    if (!response.ok) {
+      throw new Error(getApiErrorMessage(data, `HTTP Error: ${response.status}`));
+    }
+    if (data.status !== 0) {
+      throw new Error(getApiErrorMessage(data, 'Upload failed'));
+    }
+    return data.data;
+  }
+
   // Download file as Blob with auth header
   async downloadBlob(endpoint: string): Promise<Blob> {
     const url = `${this.baseUrl}${endpoint}`;
@@ -2406,7 +2440,24 @@ export const schedulerApi = {
 // Backup APIs
 // ===================
 
-export type BackupFileTreeSort = 'size' | 'count';
+export type BackupFileTreeSort = 'hint' | 'size' | 'count';
+
+export type BackupHintKind = 'user_data' | 'config' | 'regenerable';
+
+export interface BackupHintInfo {
+  kind: BackupHintKind;
+  plugin: string;
+  desc: string;
+  default_selected: boolean;
+}
+
+export interface BackupHintEntry extends BackupHintInfo {
+  path: string;
+  exists: boolean;
+  selected: boolean;
+  size_bytes: number;
+  file_count: number;
+}
 
 export interface FileTreeNode {
   id: string;
@@ -2416,6 +2467,8 @@ export interface FileTreeNode {
   size_bytes: number;
   file_count: number;
   has_children: boolean;
+  hint?: BackupHintInfo | null;
+  hint_count?: number;
 }
 
 export interface FileTreeListing {
@@ -2431,6 +2484,93 @@ export interface FileTreeListing {
   omitted_count: number;
   sort: BackupFileTreeSort;
   children: FileTreeNode[];
+}
+
+export interface BackupManifestHint {
+  path: string;
+  plugin: string;
+  kind: BackupHintKind;
+}
+
+export interface BackupManifest {
+  format: string;
+  format_version: number;
+  created_at: string;
+  core_version: string;
+  platform: string;
+  file_id: string;
+  roots: string[];
+  hints: BackupManifestHint[];
+  file_count: number;
+  total_bytes: number;
+}
+
+export interface RestoreEntryInput {
+  path: string;
+  size: number;
+  is_dir: boolean;
+  is_symlink: boolean;
+  encrypted: boolean;
+}
+
+export interface RestoreConflictItem {
+  path: string;
+  backup_size: number;
+  local_size: number;
+}
+
+export interface RestoreConflictRoot {
+  root: string;
+  count: number;
+}
+
+export interface RestoreRejectedItem {
+  path: string;
+  reason: string;
+}
+
+export interface RestorePreview {
+  manifest: BackupManifest | null;
+  warnings: string[];
+  total_files: number;
+  total_bytes: number;
+  new_files: number;
+  conflict_count: number;
+  conflict_same_size: number;
+  conflicts: RestoreConflictItem[];
+  conflict_roots: RestoreConflictRoot[];
+  rejected: RestoreRejectedItem[];
+  rejected_count: number;
+  type_conflicts: string[];
+  type_conflict_count: number;
+  pending_db: boolean;
+  free_bytes: number;
+  enough_space: boolean;
+  digest: string;
+  can_restore: boolean;
+}
+
+export type RestoreMode = 'overwrite' | 'skip';
+
+export interface RestoreResult {
+  written: number;
+  overwritten: number;
+  skipped: number;
+  pending_db: boolean;
+  pre_restore_file: string | null;
+}
+
+export interface BackupUploadInit {
+  upload_id: string;
+  chunk_size: number;
+}
+
+export interface BackupUploadChunkResult {
+  received: number;
+}
+
+export interface BackupUploadComplete {
+  file_id: string;
 }
 
 export const backupApi = {
@@ -2458,11 +2598,13 @@ export const backupApi = {
   setConfig: (config: {
     backup_time?: string;
     backup_dir?: string[];
+    backup_dir_added?: string[];
+    backup_dir_removed?: string[];
     backup_method?: string[];
     webdav_url?: string;
     webdav_username?: string;
     webdav_password?: string;
-  }) => api.post<{ status: number; msg: string }>('/api/backup/config', config),
+  }) => api.post<{ backup_dir?: string[] } | undefined>('/api/backup/config', config),
 
   getFileTree: (
     opts: { path?: string; sort?: BackupFileTreeSort; offset?: number; limit?: number } = {},
@@ -2476,8 +2618,32 @@ export const backupApi = {
     return api.get<FileTreeListing>(qs ? `/api/backup/file-tree?${qs}` : '/api/backup/file-tree');
   },
 
+  getHints: () => api.get<BackupHintEntry[]>('/api/backup/hints'),
+
   downloadFile: (fileId: string): Promise<Blob> =>
     api.downloadBlob(`/api/backup/download?file_id=${encodeURIComponent(fileId)}`),
+
+  previewRestore: (fileId: string) =>
+    api.post<RestorePreview>('/api/backup/restore/preview', { file_id: fileId }),
+
+  previewRestoreEntries: (entries: RestoreEntryInput[], manifest: unknown | null) =>
+    api.post<RestorePreview>('/api/backup/restore/preview-entries', { entries, manifest }),
+
+  initUpload: (fileName: string, size: number) =>
+    api.post<BackupUploadInit>('/api/backup/upload/init', { file_name: fileName, size }),
+
+  uploadChunk: (uploadId: string, offset: number, data: Blob, signal?: AbortSignal) =>
+    api.putRawBytes<BackupUploadChunkResult>(
+      `/api/backup/upload/${encodeURIComponent(uploadId)}?offset=${offset}`,
+      data,
+      signal,
+    ),
+
+  completeUpload: (uploadId: string) =>
+    api.post<BackupUploadComplete>(`/api/backup/upload/${encodeURIComponent(uploadId)}/complete`),
+
+  applyRestore: (fileId: string, mode: RestoreMode, digest: string) =>
+    api.post<RestoreResult>('/api/backup/restore/apply', { file_id: fileId, mode, digest }),
 };
 
 // ===================

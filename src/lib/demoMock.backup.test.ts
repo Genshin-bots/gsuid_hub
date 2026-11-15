@@ -27,4 +27,21 @@ describe('generateBackupFileTree pagination', () => {
     expect(byCount.children[0].name).toBe('plugin-res');
     expect(byCount.children[0].file_count).toBeGreaterThan(byCount.children[1].file_count);
   });
+
+  it('orders by hint rank when sort=hint', () => {
+    const byHint = generateBackupFileTree(new URLSearchParams({ sort: 'hint' }));
+    expect(byHint.sort).toBe('hint');
+    expect(byHint.children.map((c) => c.name)).toEqual([
+      'GsData.db',
+      'ai_core',
+      'config',
+      'GenshinUID',
+      'plugin-res',
+    ]);
+    const pluginRes = byHint.children[4];
+    expect(pluginRes.hint?.kind).toBe('regenerable');
+    const genshin = byHint.children[3];
+    expect(genshin.hint).toBeNull();
+    expect(genshin.hint_count).toBe(3);
+  });
 });

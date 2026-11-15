@@ -505,7 +505,7 @@ export function WorldHubGraph({
       {/* 顶部悬浮工具栏：独立搜索框 + 刷新操作按钮 */}
       <div className="absolute top-3 left-3 max-w-[calc(100%-88px)] flex flex-wrap items-center gap-2.5 z-10 pointer-events-auto">
         <form
-          className="glass-float relative flex items-center rounded-lg px-2.5 py-0.5 border border-border/60 shadow-sm w-[210px] sm:w-[280px]"
+          className="glass-float relative flex items-center rounded-lg px-2.5 py-1 border border-border/60 shadow-sm w-[210px] sm:w-[280px]"
           onSubmit={(e) => {
             e.preventDefault();
             const first = nodeSearchResults[0];

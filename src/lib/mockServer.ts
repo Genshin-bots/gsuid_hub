@@ -92,6 +92,9 @@ import {
   generateBackupFileTree,
   generateBackupFiles,
   generateBackupConfig,
+  generateBackupHints,
+  generateRestorePreview,
+  generateRestoreResult,
   generateKanbanBoard,
   generateKanbanTaskDetail,
   generateKanbanCandidates,
@@ -124,6 +127,8 @@ interface Route {
   re: RegExp;
   h: Handler;
 }
+
+const mockUploadDeclared = new Map<string, number>();
 
 let mockPluginPrefs: { recent_plugins: string[]; last_edited_plugin: string } = {
   recent_plugins: ['GenshinUID', 'ZZZeroUID', 'StarRailUID', 'SayuStock'],
@@ -1259,6 +1264,57 @@ const routes: Route[] = [
     h: ({ url }) => generateBackupFileTree(url.searchParams),
   },
   { m: 'GET', re: /^\/api\/backup\/config$/, h: () => generateBackupConfig() },
+  {
+    m: 'POST',
+    re: /^\/api\/backup\/config$/,
+    h: ({ body }) => {
+      const b = typeof body === 'object' && body !== null ? (body as Record<string, unknown>) : {};
+      if (Array.isArray(b.backup_dir)) return { backup_dir: b.backup_dir };
+      const added = Array.isArray(b.backup_dir_added) ? (b.backup_dir_added as string[]) : [];
+      const removed = new Set(
+        Array.isArray(b.backup_dir_removed) ? (b.backup_dir_removed as string[]) : [],
+      );
+      const base = ['GsData.db', 'config.json', 'configs', 'plugins_configs'].filter(
+        (p) => !removed.has(p),
+      );
+      for (const a of added) {
+        if (!base.includes(a)) base.push(a);
+      }
+      return { backup_dir: base };
+    },
+  },
+  { m: 'GET', re: /^\/api\/backup\/hints$/, h: () => generateBackupHints() },
+  { m: 'POST', re: /^\/api\/backup\/restore\/preview$/, h: () => generateRestorePreview() },
+  { m: 'POST', re: /^\/api\/backup\/restore\/preview-entries$/, h: () => generateRestorePreview() },
+  { m: 'POST', re: /^\/api\/backup\/restore\/apply$/, h: () => generateRestoreResult() },
+  {
+    m: 'POST',
+    re: /^\/api\/backup\/upload\/init$/,
+    h: ({ body }) => {
+      const declared =
+        typeof body === 'object' && body !== null && 'size' in body
+          ? Number((body as { size: number }).size)
+          : 0;
+      const uploadId = `demo-upload-${Date.now()}`;
+      mockUploadDeclared.set(uploadId, declared);
+      return { upload_id: uploadId, chunk_size: 8 * 1024 * 1024 };
+    },
+  },
+  {
+    m: 'PUT',
+    re: /^\/api\/backup\/upload\/([^/]+)$/,
+    h: ({ url }) => {
+      const id = /^\/api\/backup\/upload\/([^/]+)$/.exec(url.pathname)?.[1] ?? '';
+      const declared = mockUploadDeclared.get(id) ?? 0;
+      const offset = Number(url.searchParams.get('offset') ?? 0);
+      return { received: Math.min(offset + 8 * 1024 * 1024, declared) };
+    },
+  },
+  {
+    m: 'POST',
+    re: /^\/api\/backup\/upload\/([^/]+)\/complete$/,
+    h: () => ({ file_id: 'upload-demo-backup.zip' }),
+  },
 
   // /ai-kanban
   { m: 'GET', re: /^\/api\/ai\/kanban\/board$/, h: () => generateKanbanBoard() },

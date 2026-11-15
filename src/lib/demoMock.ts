@@ -13,7 +13,14 @@
 
 import { DEMO_MEME_META } from './demoMemeMeta';
 // 形状必须对齐 api.ts 的契约，否则页面读 .length 时整页 TypeError
-import type { AIBudgetOverview, AIBudgetWindowUsage } from '@/lib/api';
+import type {
+  AIBudgetOverview,
+  AIBudgetWindowUsage,
+  BackupHintEntry,
+  BackupHintInfo,
+  RestorePreview,
+  RestoreResult,
+} from '@/lib/api';
 
 // ───────────────────────── 工具：种子 RNG / 取值 ─────────────────────────
 
@@ -2490,8 +2497,17 @@ type DemoTreeNode = {
   size_bytes: number;
   file_count: number;
   has_children: boolean;
+  hint?: BackupHintInfo | null;
+  hint_count?: number;
   children?: DemoTreeNode[];
 };
+
+const demoHint = (
+  plugin: string,
+  kind: BackupHintInfo['kind'],
+  desc: string,
+  default_selected: boolean,
+): BackupHintInfo => ({ kind, plugin, desc, default_selected });
 
 const DEMO_BACKUP_TREE: DemoTreeNode[] = (() => {
   const files = Array.from({ length: 120 }, (_, i) => {
@@ -2512,9 +2528,21 @@ const DEMO_BACKUP_TREE: DemoTreeNode[] = (() => {
     size_bytes: files.reduce((s, f) => s + f.size_bytes, 0),
     file_count: files.length,
     has_children: true,
+    hint: demoHint('GsCore', 'regenerable', '可重新下载的演示素材', false),
+    hint_count: 0,
     children: files,
   };
   return [
+    {
+      name: 'GsData.db',
+      path: 'GsData.db',
+      type: 'file',
+      size_bytes: 8_388_608,
+      file_count: 1,
+      has_children: false,
+      hint: demoHint('GsCore', 'user_data', '主数据库：UID 绑定、Cookie、订阅等', true),
+      hint_count: 0,
+    },
     {
       name: 'config',
       path: 'config',
@@ -2522,6 +2550,8 @@ const DEMO_BACKUP_TREE: DemoTreeNode[] = (() => {
       size_bytes: 12_288,
       file_count: 3,
       has_children: true,
+      hint: demoHint('GsCore', 'config', '核心组件配置', true),
+      hint_count: 0,
       children: [
         {
           name: 'settings.json',
@@ -2549,6 +2579,8 @@ const DEMO_BACKUP_TREE: DemoTreeNode[] = (() => {
       size_bytes: 48_000,
       file_count: 8,
       has_children: true,
+      hint: demoHint('GsCore', 'config', 'AI 子系统配置', true),
+      hint_count: 0,
       children: [
         {
           name: 'ai_config.json',
@@ -2560,12 +2592,77 @@ const DEMO_BACKUP_TREE: DemoTreeNode[] = (() => {
         },
       ],
     },
+    {
+      name: 'GenshinUID',
+      path: 'GenshinUID',
+      type: 'directory',
+      size_bytes: 40_960,
+      file_count: 3,
+      has_children: true,
+      hint: null,
+      hint_count: 3,
+      children: [
+        {
+          name: 'players',
+          path: 'GenshinUID/players',
+          type: 'directory',
+          size_bytes: 28_672,
+          file_count: 2,
+          has_children: true,
+          hint: demoHint('GenshinUID', 'user_data', '按 UID 存档的抽卡记录与面板数据', true),
+          hint_count: 0,
+          children: [
+            {
+              name: 'gacha_logs.json',
+              path: 'GenshinUID/players/gacha_logs.json',
+              type: 'file',
+              size_bytes: 18_432,
+              file_count: 1,
+              has_children: false,
+            },
+          ],
+        },
+        {
+          name: 'config.json',
+          path: 'GenshinUID/config.json',
+          type: 'file',
+          size_bytes: 4_096,
+          file_count: 1,
+          has_children: false,
+          hint: demoHint('GenshinUID', 'config', '插件配置', true),
+          hint_count: 0,
+        },
+        {
+          name: 'resource',
+          path: 'GenshinUID/resource',
+          type: 'directory',
+          size_bytes: 8_192,
+          file_count: 1,
+          has_children: true,
+          hint: demoHint('GenshinUID', 'regenerable', '可用命令重新下载的素材', false),
+          hint_count: 0,
+        },
+      ],
+    },
   ];
 })();
 
+const DEMO_HINT_RANK: Record<BackupHintInfo['kind'], number> = {
+  user_data: 0,
+  config: 1,
+  regenerable: 4,
+};
+
+const demoNodeHintRank = (node: DemoTreeNode): number => {
+  if (node.hint) return DEMO_HINT_RANK[node.hint.kind];
+  if (node.type === 'directory' && (node.hint_count ?? 0) > 0) return 2;
+  return 3;
+};
+
 export const generateBackupFileTree = (params: URLSearchParams = new URLSearchParams()) => {
   const path = params.get('path') ?? '';
-  const sort = params.get('sort') === 'count' ? 'count' : 'size';
+  const sortParam = params.get('sort');
+  const sort = sortParam === 'count' || sortParam === 'hint' ? sortParam : 'size';
   const offset = Math.max(0, Number(params.get('offset') ?? 0) || 0);
   const limit = Math.min(100, Math.max(1, Number(params.get('limit') ?? 100) || 100));
   let nodes = DEMO_BACKUP_TREE;
@@ -2584,8 +2681,15 @@ export const generateBackupFileTree = (params: URLSearchParams = new URLSearchPa
     nodes = found?.children ?? [];
   }
   const sorted = [...nodes].sort((a, b) => {
+    if (sort === 'hint') {
+      return (
+        demoNodeHintRank(a) - demoNodeHintRank(b) ||
+        b.size_bytes - a.size_bytes ||
+        a.name.localeCompare(b.name)
+      );
+    }
     const key = sort === 'count' ? 'file_count' : 'size_bytes';
-    return (b[key] as number) - (a[key] as number) || a.name.localeCompare(b.name);
+    return b[key] - a[key] || a.name.localeCompare(b.name);
   });
   const sliced = sorted.slice(offset, offset + limit).map(({ children: _c, ...rest }) => rest);
   const omitted = Math.max(0, sorted.length - offset - sliced.length);
@@ -2635,6 +2739,128 @@ export const generateBackupConfig = () => ({
   retention_count: 14,
   auto_upload: false,
   upload_target: null,
+});
+
+const demoHintEntry = (
+  path: string,
+  plugin: string,
+  kind: BackupHintInfo['kind'],
+  desc: string,
+  default_selected: boolean,
+  selected: boolean,
+  size_bytes: number,
+  file_count: number,
+): BackupHintEntry => ({
+  path,
+  plugin,
+  kind,
+  desc,
+  default_selected,
+  exists: true,
+  selected,
+  size_bytes,
+  file_count,
+});
+
+export const generateBackupHints = (): BackupHintEntry[] => [
+  demoHintEntry(
+    'GsData.db',
+    'GsCore',
+    'user_data',
+    '主数据库：UID 绑定、Cookie、订阅等',
+    true,
+    true,
+    8_388_608,
+    1,
+  ),
+  demoHintEntry(
+    'GenshinUID/players',
+    'GenshinUID',
+    'user_data',
+    '按 UID 存档的抽卡记录与面板数据',
+    true,
+    false,
+    28_672,
+    2,
+  ),
+  demoHintEntry('config', 'GsCore', 'config', '核心组件配置', true, true, 12_288, 3),
+  demoHintEntry('ai_core', 'GsCore', 'config', 'AI 子系统配置', true, false, 48_000, 8),
+  demoHintEntry(
+    'GenshinUID/config.json',
+    'GenshinUID',
+    'config',
+    '插件配置',
+    true,
+    false,
+    4_096,
+    1,
+  ),
+  demoHintEntry(
+    'plugin-res',
+    'GsCore',
+    'regenerable',
+    '可重新下载的演示素材',
+    false,
+    false,
+    7_434_240,
+    120,
+  ),
+  demoHintEntry(
+    'GenshinUID/resource',
+    'GenshinUID',
+    'regenerable',
+    '可用命令重新下载的素材',
+    false,
+    false,
+    8_192,
+    1,
+  ),
+];
+
+export const generateRestorePreview = (): RestorePreview => ({
+  manifest: {
+    format: 'gscore-backup',
+    format_version: 1,
+    created_at: '2026-11-16T00:55:00+08:00',
+    core_version: '0.12.1',
+    platform: 'win32',
+    file_id: 'NowFile-2026-11-16',
+    roots: ['GsData.db', 'GenshinUID/players'],
+    hints: [{ path: 'GenshinUID/players', plugin: 'GenshinUID', kind: 'user_data' }],
+    file_count: 1234,
+    total_bytes: 56_789,
+  },
+  warnings: [],
+  total_files: 1234,
+  total_bytes: 56_789,
+  new_files: 890,
+  conflict_count: 2,
+  conflict_same_size: 1,
+  conflicts: [
+    { path: 'config.json', backup_size: 512, local_size: 512 },
+    { path: 'GenshinUID/players/u_1.json', backup_size: 2048, local_size: 1500 },
+  ],
+  conflict_roots: [
+    { root: 'config.json', count: 1 },
+    { root: 'GenshinUID', count: 1 },
+  ],
+  rejected: [],
+  rejected_count: 0,
+  type_conflicts: [],
+  type_conflict_count: 0,
+  pending_db: false,
+  free_bytes: 60 * 1024 * 1024 * 1024,
+  enough_space: true,
+  digest: 'demo-digest',
+  can_restore: true,
+});
+
+export const generateRestoreResult = (): RestoreResult => ({
+  written: 890,
+  overwritten: 2,
+  skipped: 0,
+  pending_db: false,
+  pre_restore_file: 'pre-restore-20261116-120000-2026-11-16.zip',
 });
 
 // ---- AI Kanban（AIKanbanPage） ----

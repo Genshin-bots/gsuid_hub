@@ -1,10 +1,24 @@
-import { useState, useEffect } from 'react';
-import { HardDrive, Download, Trash2, Play, Archive, Save } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import {
+  HardDrive,
+  Download,
+  Trash2,
+  Play,
+  Archive,
+  Save,
+  Lightbulb,
+  RotateCcw,
+  FileUp,
+  Loader2,
+} from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { TabButtonGroup, tabToolbarControlClass } from '@/components/ui/TabButtonGroup';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
 import { TruncatedText } from '@/components/ui/truncated-text';
 import {
   Table,
@@ -31,7 +45,18 @@ import {
   type ConfigFieldType,
 } from '@/components/config';
 import { FileTreeSelector } from '@/components/backup/FileTreeSelector';
-import { backupApi, type BackupFile, getApiErrorMessage } from '@/lib/api';
+import { readZipDirectory } from '@/lib/zipCentralDirectory';
+import { diffSelection } from '@/lib/backupFileTree';
+import {
+  backupApi,
+  systemApi,
+  type BackupFile,
+  type BackupHintEntry,
+  type RestoreMode,
+  type RestorePreview,
+  type RestoreResult,
+  getApiErrorMessage,
+} from '@/lib/api';
 import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { format } from 'date-fns';
@@ -164,14 +189,32 @@ export default function BackupPage() {
   const [isBackingUp, setIsBackingUp] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<BackupFileWithMeta | null>(null);
+  const [hints, setHints] = useState<BackupHintEntry[] | null>(null);
+  const [restoreDialog, setRestoreDialog] = useState<{
+    preview: RestorePreview;
+    /** null = 本地文件，确认后先走分块上传 */
+    fileId: string | null;
+    mode: RestoreMode;
+  } | null>(null);
+  const [pendingLocalFile, setPendingLocalFile] = useState<File | null>(null);
+  const [restoreBusy, setRestoreBusy] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<{
+    name: string;
+    sent: number;
+    total: number;
+  } | null>(null);
+  const uploadAbortRef = useRef<AbortController | null>(null);
+  const zipInputRef = useRef<HTMLInputElement>(null);
+  const [restoreDone, setRestoreDone] = useState<RestoreResult | null>(null);
 
   // Fetch backup files and config from API
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [filesResult, configResult] = await Promise.allSettled([
+        const [filesResult, configResult, hintsResult] = await Promise.allSettled([
           backupApi.getFiles(),
           backupApi.getConfig(),
+          backupApi.getHints(),
         ]);
 
         if (filesResult.status === 'fulfilled') {
@@ -201,6 +244,13 @@ export default function BackupPage() {
           console.warn('Failed to fetch backup config:', configResult.reason);
           toast.error(getApiErrorMessage(configResult.reason, t('backup.loadFailed')));
         }
+
+        // 旧版 Core 没有 /api/backup/hints，整块建议区直接隐藏
+        if (hintsResult.status === 'fulfilled') {
+          setHints(Array.isArray(hintsResult.value) ? hintsResult.value : []);
+        } else {
+          console.warn('Backup hints unavailable:', hintsResult.reason);
+        }
       } catch (error) {
         console.warn('Failed to fetch backup data:', error);
         toast.error(getApiErrorMessage(error, t('backup.loadFailed')));
@@ -208,6 +258,9 @@ export default function BackupPage() {
     };
     fetchData();
   }, []);
+
+  const isPathCovered = (path: string) =>
+    selectedPaths.some((s) => s === path || path.startsWith(`${s}/`));
 
   const handleTreeSelection = (paths: string[]) => {
     setSelectedPaths(paths);
@@ -268,16 +321,33 @@ export default function BackupPage() {
     try {
       const configData: Record<string, any> = {};
       Object.entries(config).forEach(([key, field]) => {
+        if (key === 'backup_hint_applied') return;
         configData[key] = field.value;
       });
-      configData.backup_dir = selectedPaths;
+      // 增量提交勾选变化，避免整表覆盖其他端口的改动
+      const originalDir = Array.isArray(originalConfig.backup_dir?.data)
+        ? (originalConfig.backup_dir.data as string[])
+        : [];
+      const { added, removed } = diffSelection(originalDir, selectedPaths);
+      configData.backup_dir_added = added;
+      configData.backup_dir_removed = removed;
 
       // 确保 WebDAV 配置也被保存
       if (config.webdav_url?.value) configData.webdav_url = config.webdav_url.value;
       if (config.webdav_username?.value) configData.webdav_username = config.webdav_username.value;
       if (config.webdav_password?.value) configData.webdav_password = config.webdav_password.value;
 
-      await backupApi.setConfig(configData);
+      let res = await backupApi.setConfig(configData);
+      let finalDir = res?.backup_dir;
+      if (!finalDir) {
+        // 老 core 不识别增量字段，回退整表提交
+        delete configData.backup_dir_added;
+        delete configData.backup_dir_removed;
+        configData.backup_dir = selectedPaths;
+        res = await backupApi.setConfig(configData);
+        finalDir = res?.backup_dir ?? selectedPaths;
+      }
+      setSelectedPaths(finalDir);
 
       // Update original config after successful save
       const updatedOriginal = { ...originalConfig };
@@ -287,9 +357,9 @@ export default function BackupPage() {
         }
       });
       if (updatedOriginal.backup_dir) {
-        updatedOriginal.backup_dir.data = selectedPaths;
+        updatedOriginal.backup_dir.data = finalDir;
       } else {
-        updatedOriginal.backup_dir = { type: 'GsListStrConfig', data: selectedPaths };
+        updatedOriginal.backup_dir = { type: 'GsListStrConfig', data: finalDir };
       }
 
       // Update WebDAV config in original
@@ -384,6 +454,122 @@ export default function BackupPage() {
     handleDeleteBackup(deleteTarget);
   };
 
+  const refreshBackupFiles = async () => {
+    const files = await backupApi.getFiles();
+    const fileList = Array.isArray(files) ? files : [];
+    setBackupList(
+      fileList.map((file: BackupFile, index: number) => ({
+        ...file,
+        id: index + 1,
+        filename: file.fileName,
+        createdAt: new Date(file.created),
+        status: 'completed' as const,
+      })),
+    );
+  };
+
+  const openRestorePreview = async (fileId: string) => {
+    try {
+      const preview = await backupApi.previewRestore(fileId);
+      setRestoreDialog({ preview, fileId, mode: 'overwrite' });
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, t('backup.restorePreviewFailed')));
+    }
+  };
+
+  const handlePickLocalZip = async (file: File) => {
+    try {
+      const dir = await readZipDirectory(file);
+      const entries = dir.entries.map((e) => ({
+        path: e.path,
+        size: e.size,
+        is_dir: e.is_dir,
+        is_symlink: e.is_symlink,
+        encrypted: e.encrypted,
+      }));
+      const preview = await backupApi.previewRestoreEntries(entries, dir.manifest);
+      setPendingLocalFile(file);
+      setRestoreDialog({ preview, fileId: null, mode: 'overwrite' });
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, t('backup.zipParseFailed')));
+    }
+  };
+
+  const uploadLocalZip = async (file: File): Promise<string | null> => {
+    const abort = new AbortController();
+    uploadAbortRef.current = abort;
+    setUploadProgress({ name: file.name, sent: 0, total: file.size });
+    try {
+      const init = await backupApi.initUpload(file.name, file.size);
+      let offset = 0;
+      while (offset < file.size) {
+        const blob = file.slice(offset, offset + init.chunk_size);
+        let done = false;
+        for (let attempt = 0; attempt < 3 && !done; attempt += 1) {
+          try {
+            const res = await backupApi.uploadChunk(init.upload_id, offset, blob, abort.signal);
+            offset = res.received;
+            done = true;
+          } catch (error) {
+            if (abort.signal.aborted) return null;
+            if (attempt === 2) throw error;
+          }
+        }
+        setUploadProgress({ name: file.name, sent: offset, total: file.size });
+      }
+      const completed = await backupApi.completeUpload(init.upload_id);
+      return completed.file_id;
+    } finally {
+      setUploadProgress(null);
+      uploadAbortRef.current = null;
+    }
+  };
+
+  const handleConfirmRestore = async () => {
+    if (!restoreDialog) return;
+    setRestoreBusy(true);
+    try {
+      let fileId = restoreDialog.fileId;
+      let digest = restoreDialog.preview.digest;
+      if (fileId === null) {
+        if (!pendingLocalFile) return;
+        const uploadedId = await uploadLocalZip(pendingLocalFile);
+        if (uploadedId === null) return;
+        // 上传完拿服务器预检：本地目录解析可能与服务端不一致
+        const serverPreview = await backupApi.previewRestore(uploadedId);
+        if (serverPreview.digest !== digest) {
+          setRestoreDialog({
+            preview: serverPreview,
+            fileId: uploadedId,
+            mode: restoreDialog.mode,
+          });
+          toast.warning(t('backup.restoreConflictChanged'));
+          return;
+        }
+        fileId = uploadedId;
+        digest = serverPreview.digest;
+      }
+      const result = await backupApi.applyRestore(fileId, restoreDialog.mode, digest);
+      setRestoreDone(result);
+      setRestoreDialog(null);
+      setPendingLocalFile(null);
+      void refreshBackupFiles();
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, t('backup.restoreFailed')));
+    } finally {
+      setRestoreBusy(false);
+    }
+  };
+
+  const handleRestartCore = async () => {
+    try {
+      await systemApi.restartCore();
+      toast.success(t('backup.restartRequested'));
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, t('backup.restartFailed')));
+    }
+  };
+
   const showWebDAVConfig = Array.isArray(config.backup_method?.value)
     ? (config.backup_method.value as string[]).includes('web_dav')
     : String(config.backup_method?.value || '').includes('web_dav');
@@ -412,6 +598,10 @@ export default function BackupPage() {
       t('backup.webdavPasswordPlaceholder'),
       t('backup.webdavPassword'),
     );
+
+  const hasUncheckedUserData = (hints ?? []).some(
+    (h) => h.kind === 'user_data' && !isPathCovered(h.path),
+  );
 
   return (
     <PinnedPage
@@ -479,8 +669,10 @@ export default function BackupPage() {
                     .filter(([key]) => {
                       // 排除 backup_dir，在备份内容中单独处理
                       // 排除 WebDAV 配置，在下方单独展示
+                      // 排除 backup_hint_applied，建议应用的内部状态不展示
                       return (
                         key !== 'backup_dir' &&
+                        key !== 'backup_hint_applied' &&
                         key !== 'webdav_url' &&
                         key !== 'webdav_username' &&
                         key !== 'webdav_password'
@@ -530,9 +722,16 @@ export default function BackupPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
+                {hasUncheckedUserData && (
+                  <p className="text-xs text-amber-600 mb-2 flex items-center gap-1">
+                    <Lightbulb className="w-3.5 h-3.5 shrink-0" />
+                    {t('backup.hintUserDataWarning')}
+                  </p>
+                )}
                 <FileTreeSelector
                   selectedPaths={selectedPaths}
                   onSelectionChange={handleTreeSelection}
+                  hints={hints}
                   className="max-h-[600px] overflow-auto"
                 />
                 <p className="text-sm text-muted-foreground mt-3">
@@ -592,6 +791,15 @@ export default function BackupPage() {
                           <Button
                             variant="outline"
                             size="sm"
+                            onClick={() => openRestorePreview(backup.fileName)}
+                            disabled={backup.status !== 'completed'}
+                            title={t('backup.restoreAction')}
+                          >
+                            <RotateCcw className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
                             onClick={() => handleDownload(backup)}
                             disabled={backup.status !== 'completed'}
                           >
@@ -617,6 +825,62 @@ export default function BackupPage() {
                   {t('backup.noBackupRecords')}
                 </div>
               )}
+
+              <div className="mt-6 pt-6 border-t space-y-3">
+                <h4 className="text-sm font-medium flex items-center gap-2">
+                  <FileUp className="w-4 h-4" />
+                  {t('backup.restoreFromFile')}
+                </h4>
+                <label
+                  className="block rounded-lg border border-dashed border-border/60 p-6 text-center cursor-pointer hover:bg-accent/30 transition-colors"
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const file = e.dataTransfer.files?.[0];
+                    if (file) void handlePickLocalZip(file);
+                  }}
+                >
+                  <p className="text-sm text-muted-foreground">{t('backup.restoreDropHint')}</p>
+                  <span className="mt-3 inline-flex items-center justify-center rounded-md border border-input bg-background px-3 py-1.5 text-sm font-medium">
+                    {t('backup.restoreChooseFile')}
+                  </span>
+                  <input
+                    ref={zipInputRef}
+                    type="file"
+                    accept=".zip,application/zip"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) void handlePickLocalZip(file);
+                      e.target.value = '';
+                    }}
+                  />
+                </label>
+                {uploadProgress && (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span className="min-w-0 truncate">{uploadProgress.name}</span>
+                      <span className="ml-auto text-xs text-muted-foreground tabular-nums">
+                        {Math.round((uploadProgress.sent / uploadProgress.total) * 100)}%
+                      </span>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => uploadAbortRef.current?.abort()}
+                      >
+                        {t('backup.cancel')}
+                      </Button>
+                    </div>
+                    <Progress value={(uploadProgress.sent / uploadProgress.total) * 100} />
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
         )}
@@ -638,6 +902,188 @@ export default function BackupPage() {
             >
               {t('backup.delete')}
             </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={!!restoreDialog}
+        onOpenChange={(open) => {
+          if (!open) {
+            setRestoreDialog(null);
+            setPendingLocalFile(null);
+          }
+        }}
+      >
+        <AlertDialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('backup.restoreDialogTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {restoreDialog?.preview.manifest
+                ? t('backup.restoreManifestSummary', {
+                    fileId: restoreDialog.preview.manifest.file_id,
+                    version: restoreDialog.preview.manifest.core_version,
+                    files: restoreDialog.preview.manifest.file_count,
+                    size: formatBytes(restoreDialog.preview.manifest.total_bytes),
+                  })
+                : t('backup.restoreNoManifest')}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {restoreDialog && (
+            <div className="space-y-3 text-sm">
+              {restoreDialog.preview.warnings.map((w) => (
+                <p key={w} className="text-xs text-amber-600">
+                  {w}
+                </p>
+              ))}
+              {restoreDialog.preview.manifest && (
+                <div className="text-xs text-muted-foreground space-y-0.5">
+                  <p>{restoreDialog.preview.manifest.created_at}</p>
+                  <p className="truncate">
+                    {restoreDialog.preview.manifest.roots.join(', ') || '—'}
+                  </p>
+                </div>
+              )}
+              {(restoreDialog.preview.rejected_count > 0 ||
+                restoreDialog.preview.type_conflict_count > 0 ||
+                !restoreDialog.preview.enough_space) && (
+                <div className="rounded-md border border-destructive/40 p-3 space-y-1.5">
+                  <p className="text-sm font-medium text-destructive">
+                    {t('backup.restoreBlockedTitle')}
+                  </p>
+                  {!restoreDialog.preview.enough_space && (
+                    <p className="text-xs">
+                      {t('backup.restoreNoSpace', {
+                        need: formatBytes(restoreDialog.preview.total_bytes),
+                        free: formatBytes(restoreDialog.preview.free_bytes),
+                      })}
+                    </p>
+                  )}
+                  {restoreDialog.preview.rejected.map((r) => (
+                    <p key={r.path} className="text-xs font-mono truncate">
+                      {r.path} — {r.reason}
+                    </p>
+                  ))}
+                  {restoreDialog.preview.type_conflicts.map((p) => (
+                    <p key={p} className="text-xs font-mono truncate">
+                      {p} — {t('backup.restoreTypeConflict')}
+                    </p>
+                  ))}
+                  {(restoreDialog.preview.rejected_count > restoreDialog.preview.rejected.length ||
+                    restoreDialog.preview.type_conflict_count >
+                      restoreDialog.preview.type_conflicts.length) && (
+                    <p className="text-xs text-muted-foreground">
+                      {t('backup.restoreMoreBlocked', {
+                        count:
+                          restoreDialog.preview.rejected_count +
+                          restoreDialog.preview.type_conflict_count -
+                          restoreDialog.preview.rejected.length -
+                          restoreDialog.preview.type_conflicts.length,
+                      })}
+                    </p>
+                  )}
+                </div>
+              )}
+              {restoreDialog.preview.conflict_count === 0 ? (
+                <p className="text-sm text-muted-foreground">{t('backup.restoreNoConflicts')}</p>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-amber-600">
+                    {t('backup.restoreConflictWarning', {
+                      count: restoreDialog.preview.conflict_count,
+                    })}
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {restoreDialog.preview.conflict_roots.map((r) => (
+                      <Badge key={r.root} variant="outline">
+                        {r.root} × {r.count}
+                      </Badge>
+                    ))}
+                  </div>
+                  <ul className="max-h-40 overflow-y-auto space-y-0.5 rounded-md border border-border/40 p-2">
+                    {restoreDialog.preview.conflicts.slice(0, 200).map((c) => (
+                      <li key={c.path} className="text-xs font-mono truncate">
+                        {c.path}
+                        <span className="text-muted-foreground">
+                          {' '}
+                          {formatBytes(c.local_size)} → {formatBytes(c.backup_size)}
+                        </span>
+                      </li>
+                    ))}
+                    {restoreDialog.preview.conflicts.length > 200 && (
+                      <li className="text-xs text-muted-foreground">
+                        {t('backup.restoreMoreConflicts', {
+                          count: restoreDialog.preview.conflict_count,
+                        })}
+                      </li>
+                    )}
+                  </ul>
+                  <RadioGroup
+                    value={restoreDialog.mode}
+                    onValueChange={(v) =>
+                      setRestoreDialog((prev) =>
+                        prev ? { ...prev, mode: v as RestoreMode } : prev,
+                      )
+                    }
+                    className="space-y-1.5"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="overwrite" id="mode-overwrite" />
+                      <Label htmlFor="mode-overwrite" className="font-normal">
+                        {t('backup.restoreModeOverwrite')}
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="skip" id="mode-skip" />
+                      <Label htmlFor="mode-skip" className="font-normal">
+                        {t('backup.restoreModeSkip')}
+                      </Label>
+                    </div>
+                  </RadioGroup>
+                  <p className="text-xs text-muted-foreground">{t('backup.restorePreSaveNote')}</p>
+                </div>
+              )}
+              {restoreDialog.preview.pending_db && (
+                <p className="text-xs text-amber-600">{t('backup.restorePendingDb')}</p>
+              )}
+            </div>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={restoreBusy}>{t('backup.cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={!restoreDialog?.preview.can_restore || restoreBusy}
+              onClick={(e) => {
+                e.preventDefault();
+                void handleConfirmRestore();
+              }}
+            >
+              {restoreBusy ? t('backup.restoring') : t('backup.restoreConfirm')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!restoreDone} onOpenChange={(open) => !open && setRestoreDone(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('backup.restoreDoneTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {restoreDone &&
+                t('backup.restoreResultSummary', {
+                  written: restoreDone.written,
+                  overwritten: restoreDone.overwritten,
+                  skipped: restoreDone.skipped,
+                })}
+              {restoreDone?.pending_db ? ` ${t('backup.restorePendingDb')}` : ''}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('backup.cancel')}</AlertDialogCancel>
+            {restoreDone && (restoreDone.pending_db || restoreDone.overwritten > 0) && (
+              <AlertDialogAction onClick={() => void handleRestartCore()}>
+                {t('backup.restartNow')}
+              </AlertDialogAction>
+            )}
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

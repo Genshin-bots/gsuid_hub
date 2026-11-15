@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
+  diffSelection,
   extractFileTreeChildren,
   normalizeFileTreeListing,
   toLoadedFileTreeNode,
+  userDataUncoveredByChange,
 } from './backupFileTree';
+import type { BackupHintEntry } from './api';
 
 describe('extractFileTreeChildren', () => {
   it('reads children from the current listing object', () => {
@@ -114,6 +117,76 @@ describe('normalizeFileTreeListing', () => {
     expect(listing.children[0].name).toBe('a.bin');
   });
 
+  it('keeps hint/hint_count fields and the hint sort from the current API', () => {
+    const listing = normalizeFileTreeListing({
+      path: '',
+      name: 'data',
+      type: 'directory',
+      size_bytes: 10,
+      file_count: 1,
+      child_total: 2,
+      offset: 0,
+      limit: 100,
+      truncated: false,
+      omitted_count: 0,
+      sort: 'hint',
+      children: [
+        {
+          id: 'GenshinUID',
+          name: 'GenshinUID',
+          type: 'directory',
+          path: 'GenshinUID',
+          size_bytes: 10,
+          file_count: 2,
+          has_children: true,
+          hint: null,
+          hint_count: 3,
+        },
+        {
+          id: 'GsData.db',
+          name: 'GsData.db',
+          type: 'file',
+          path: 'GsData.db',
+          size_bytes: 10,
+          file_count: 1,
+          has_children: false,
+          hint: {
+            kind: 'user_data',
+            plugin: 'GsCore',
+            desc: '主数据库',
+            default_selected: true,
+          },
+          hint_count: 0,
+        },
+      ],
+    });
+    expect(listing.sort).toBe('hint');
+    expect(listing.children[0].hint).toBeNull();
+    expect(listing.children[0].hint_count).toBe(3);
+    expect(listing.children[1].hint).toMatchObject({ kind: 'user_data', plugin: 'GsCore' });
+  });
+
+  it('defaults hint to null and hint_count to 0 on old Core payloads', () => {
+    const node = toLoadedFileTreeNode({
+      id: 'config',
+      name: 'config',
+      type: 'directory',
+      path: 'config',
+    });
+    expect(node?.hint).toBeNull();
+    expect(node?.hint_count).toBe(0);
+  });
+
+  it('drops hint objects whose kind is unknown', () => {
+    const node = toLoadedFileTreeNode({
+      path: 'x',
+      name: 'x',
+      type: 'file',
+      hint: { kind: 'mystery', plugin: 'p', desc: 'd', default_selected: false },
+    });
+    expect(node?.hint).toBeNull();
+  });
+
   it('does not throw when mapping children of an old [root] payload', () => {
     const listing = normalizeFileTreeListing([
       {
@@ -157,5 +230,48 @@ describe('toLoadedFileTreeNode', () => {
       loaded: false,
       children: [],
     });
+  });
+});
+
+const hintEntry = (path: string, kind: BackupHintEntry['kind']): BackupHintEntry => ({
+  path,
+  plugin: 'TestPlugin',
+  kind,
+  desc: 'desc',
+  default_selected: false,
+  exists: true,
+  selected: false,
+  size_bytes: 0,
+  file_count: 0,
+});
+
+describe('diffSelection', () => {
+  it('computes added/removed without touching unchanged entries', () => {
+    expect(diffSelection(['a', 'b/c'], ['b/c', 'd'])).toEqual({
+      added: ['d'],
+      removed: ['a'],
+    });
+    expect(diffSelection([], [])).toEqual({ added: [], removed: [] });
+    expect(diffSelection(['x'], [])).toEqual({ added: [], removed: ['x'] });
+  });
+});
+
+describe('userDataUncoveredByChange', () => {
+  const hints = [
+    hintEntry('GsData.db', 'user_data'),
+    hintEntry('GenshinUID/players', 'user_data'),
+    hintEntry('config.json', 'config'),
+  ];
+
+  it('flags user_data hints covered before but not after, incl. ancestor uncheck', () => {
+    // 取消祖先 GenshinUID → players 提示失去覆盖
+    const hit = userDataUncoveredByChange(hints, ['GsData.db', 'GenshinUID'], ['GsData.db']);
+    expect(hit.map((h) => h.path)).toEqual(['GenshinUID/players']);
+  });
+
+  it('ignores non-user_data kinds and still-covered hints', () => {
+    const hit = userDataUncoveredByChange(hints, ['GsData.db', 'config.json'], ['config.json']);
+    expect(hit.map((h) => h.path)).toEqual(['GsData.db']);
+    expect(userDataUncoveredByChange(hints, ['GsData.db', 'config.json'], [])).toHaveLength(1); // config 不是 user_data，不报
   });
 });
