@@ -193,3 +193,31 @@ export function userDataUncoveredByChange(
       !isPathCoveredBySelection(h.path, afterSet),
   );
 }
+
+/** 根据建议路径归属反查顶层目录对应的唯一插件名（如 `RHComfyUI` → `RH_ComfyUI`）。 */
+export function resolveTopLevelPluginMap(
+  hints: readonly BackupHintEntry[] | null | undefined,
+): Map<string, string> {
+  const buckets = new Map<string, Set<string>>();
+  if (!hints) return new Map();
+  for (const h of hints) {
+    if (!h.path || !h.plugin) continue;
+    const slashIdx = h.path.indexOf('/');
+    const top = slashIdx === -1 ? h.path : h.path.slice(0, slashIdx);
+    if (!top) continue;
+    let set = buckets.get(top);
+    if (!set) {
+      set = new Set();
+      buckets.set(top, set);
+    }
+    set.add(h.plugin);
+  }
+  const resolved = new Map<string, string>();
+  for (const [top, plugins] of buckets) {
+    if (plugins.size === 1) {
+      const [only] = plugins;
+      resolved.set(top, only);
+    }
+  }
+  return resolved;
+}

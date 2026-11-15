@@ -14,6 +14,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { PluginIcon } from '@/components/ui/plugin-icon';
 import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
 import {
   AlertDialog,
@@ -37,6 +38,7 @@ import {
   HINT_BADGE_VARIANT,
   HINT_KIND_KEYS,
   normalizeFileTreeListing,
+  resolveTopLevelPluginMap,
   userDataUncoveredByChange,
   type LoadedFileTreeNode,
 } from '@/lib/backupFileTree';
@@ -86,18 +88,29 @@ function getSelectionState(
 interface TreeNodeProps {
   node: LoadedNode;
   selectedPaths: Set<string>;
+  topLevelPluginMap: Map<string, string>;
   onToggle: (node: LoadedNode) => void;
   onExpand: (node: LoadedNode) => void;
   onLoadMore: (node: LoadedNode) => void;
   level: number;
 }
 
-function TreeNode({ node, selectedPaths, onToggle, onExpand, onLoadMore, level }: TreeNodeProps) {
+function TreeNode({
+  node,
+  selectedPaths,
+  topLevelPluginMap,
+  onToggle,
+  onExpand,
+  onLoadMore,
+  level,
+}: TreeNodeProps) {
   const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const state = getSelectionState(node, selectedPaths);
   const isFolder = node.type === 'directory';
   const canExpand = isFolder && node.has_children;
+  const pluginOwner =
+    node.hint?.plugin || (level === 0 ? topLevelPluginMap.get(node.path) : undefined);
 
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open);
@@ -153,7 +166,11 @@ function TreeNode({ node, selectedPaths, onToggle, onExpand, onLoadMore, level }
         <File className="w-4 h-4 text-muted-foreground shrink-0" />
       )}
 
-      <span className="text-sm select-none truncate">{node.name}</span>
+      {pluginOwner && <PluginIcon pluginName={pluginOwner} className="w-4 h-4 shrink-0" />}
+
+      <span className="text-sm select-none truncate" title={node.name}>
+        {node.name}
+      </span>
       {node.hint ? (
         <Badge
           variant={HINT_BADGE_VARIANT[node.hint.kind]}
@@ -207,6 +224,7 @@ function TreeNode({ node, selectedPaths, onToggle, onExpand, onLoadMore, level }
             key={child.id}
             node={child}
             selectedPaths={selectedPaths}
+            topLevelPluginMap={topLevelPluginMap}
             onToggle={onToggle}
             onExpand={onExpand}
             onLoadMore={onLoadMore}
@@ -272,17 +290,24 @@ function HintListView({ hints, selectedPaths, onSelectionChange }: HintListProps
               return (
                 <li
                   key={h.path}
-                  className="flex items-start gap-2 rounded-md px-2 py-1.5 hover:bg-accent/50 transition-colors"
+                  className="flex items-start gap-2.5 rounded-md px-2 py-1.5 hover:bg-accent/50 transition-colors"
                 >
                   <Checkbox
-                    className="mt-0.5 shrink-0"
+                    className="mt-2.5 shrink-0"
                     checked={checked}
                     disabled={!!coverer}
                     onCheckedChange={() => togglePath(h.path, checked)}
                   />
+                  <PluginIcon
+                    pluginName={h.plugin}
+                    className="w-7 h-7 mt-1 shrink-0 rounded-md"
+                    fallbackClassName="p-1"
+                  />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-sm font-mono truncate">{h.path}</span>
+                      <span className="text-sm font-mono truncate" title={h.path}>
+                        {h.path}
+                      </span>
                       {!h.exists && (
                         <Badge variant="outline" className="shrink-0 text-muted-foreground">
                           {t('backup.hintNotExists')}
@@ -297,7 +322,10 @@ function HintListView({ hints, selectedPaths, onSelectionChange }: HintListProps
                           : '—'}
                       </span>
                     </div>
-                    <div className="text-xs text-muted-foreground truncate">
+                    <div
+                      className="text-xs text-muted-foreground truncate"
+                      title={`${h.plugin} · ${h.desc}`}
+                    >
                       {h.plugin} · {h.desc}
                     </div>
                     {coverer && (
@@ -355,6 +383,7 @@ export function FileTreeSelector({
     loading: false,
   });
   const selectedSet = useMemo(() => new Set(selectedPaths), [selectedPaths]);
+  const topLevelPluginMap = useMemo(() => resolveTopLevelPluginMap(hints), [hints]);
   const sortGen = useRef(0);
   const hintsAvailable = Array.isArray(hints);
 
@@ -542,6 +571,7 @@ export function FileTreeSelector({
                 key={item.id}
                 node={item}
                 selectedPaths={selectedSet}
+                topLevelPluginMap={topLevelPluginMap}
                 onToggle={handleToggle}
                 onExpand={(n) => void loadChildren(n, false)}
                 onLoadMore={(n) => void loadChildren(n, true)}
@@ -579,10 +609,22 @@ export function FileTreeSelector({
           </AlertDialogHeader>
           <ul className="max-h-48 overflow-y-auto space-y-1.5">
             {uncoverConfirm?.hints.map((h) => (
-              <li key={h.path} className="text-sm min-w-0">
-                <div className="font-mono truncate">{h.path}</div>
-                <div className="text-xs text-muted-foreground truncate">
-                  {h.plugin} · {h.desc}
+              <li key={h.path} className="flex items-start gap-2.5 text-sm min-w-0">
+                <PluginIcon
+                  pluginName={h.plugin}
+                  className="w-6 h-6 mt-0.5 shrink-0 rounded"
+                  fallbackClassName="p-0.5"
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="font-mono truncate" title={h.path}>
+                    {h.path}
+                  </div>
+                  <div
+                    className="text-xs text-muted-foreground truncate"
+                    title={`${h.plugin} · ${h.desc}`}
+                  >
+                    {h.plugin} · {h.desc}
+                  </div>
                 </div>
               </li>
             ))}

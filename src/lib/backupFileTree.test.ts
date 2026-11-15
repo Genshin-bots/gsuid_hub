@@ -3,6 +3,7 @@ import {
   diffSelection,
   extractFileTreeChildren,
   normalizeFileTreeListing,
+  resolveTopLevelPluginMap,
   toLoadedFileTreeNode,
   userDataUncoveredByChange,
 } from './backupFileTree';
@@ -273,5 +274,21 @@ describe('userDataUncoveredByChange', () => {
     const hit = userDataUncoveredByChange(hints, ['GsData.db', 'config.json'], ['config.json']);
     expect(hit.map((h) => h.path)).toEqual(['GsData.db']);
     expect(userDataUncoveredByChange(hints, ['GsData.db', 'config.json'], [])).toHaveLength(1); // config 不是 user_data，不报
+  });
+});
+
+describe('resolveTopLevelPluginMap', () => {
+  it('maps top-level directories to unique plugin names and omits conflicts', () => {
+    const map = resolveTopLevelPluginMap([
+      { ...hintEntry('RHComfyUI/gemini', 'config'), plugin: 'RH_ComfyUI' },
+      { ...hintEntry('RHComfyUI/output', 'user_data'), plugin: 'RH_ComfyUI' },
+      { ...hintEntry('GenshinUID/players', 'user_data'), plugin: 'GenshinUID' },
+      { ...hintEntry('shared/a', 'config'), plugin: 'PluginA' },
+      { ...hintEntry('shared/b', 'config'), plugin: 'PluginB' },
+    ]);
+    expect(map.get('RHComfyUI')).toBe('RH_ComfyUI');
+    expect(map.get('GenshinUID')).toBe('GenshinUID');
+    expect(map.has('shared')).toBe(false);
+    expect(resolveTopLevelPluginMap(null).size).toBe(0);
   });
 });
