@@ -44,6 +44,7 @@ if (import.meta.env.VITE_DEMO) {
   const THEME_KEYS = [
     'theme_mode',
     'theme_style',
+    'theme_liquid_refraction',
     'theme_color',
     'theme_bg',
     'theme_blur',

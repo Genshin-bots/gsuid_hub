@@ -287,14 +287,14 @@ export default function Login() {
       {/* Default Liquid Glass Background */}
       {hasDefaultLiquid && (
         <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/15 via-background to-accent/15" />
-          <div className="absolute -top-32 left-1/5 w-[520px] h-[520px] bg-gradient-to-tr from-sky-400/25 via-primary/20 to-transparent rounded-full blur-[90px] animate-pulse" />
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-background to-accent/20" />
+          <div className="absolute -top-32 left-1/5 w-[520px] h-[520px] bg-gradient-to-tr from-sky-400/40 via-primary/30 to-transparent rounded-full blur-[90px] animate-pulse" />
           <div
-            className="absolute -bottom-28 right-1/5 w-[560px] h-[560px] bg-gradient-to-bl from-pink-500/20 via-purple-500/15 to-transparent rounded-full blur-[100px] animate-pulse"
+            className="absolute -bottom-28 right-1/5 w-[560px] h-[560px] bg-gradient-to-bl from-pink-500/30 via-purple-500/25 to-transparent rounded-full blur-[100px] animate-pulse"
             style={{ animationDelay: '1.5s' }}
           />
           <div
-            className="absolute top-1/3 right-1/4 w-[380px] h-[380px] bg-gradient-to-br from-amber-400/15 to-teal-400/10 rounded-full blur-[80px] animate-pulse"
+            className="absolute top-1/3 right-1/4 w-[380px] h-[380px] bg-gradient-to-br from-amber-400/25 to-teal-400/20 rounded-full blur-[80px] animate-pulse"
             style={{ animationDelay: '3s' }}
           />
         </div>

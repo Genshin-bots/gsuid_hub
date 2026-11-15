@@ -106,6 +106,22 @@ function readStoredStyle(): ThemeStyle | null {
   return null;
 }
 
+const LIQUID_REFRACTION_STORAGE_KEY = 'gsuid_hub_liquid_refraction';
+
+/** 液态玻璃全表面 SVG 折射开关为设备本地性能偏好，默认关闭以保证流畅度。 */
+function readStoredLiquidRefraction(): boolean {
+  try {
+    const localVal = localStorage.getItem(LIQUID_REFRACTION_STORAGE_KEY);
+    if (localVal === '1' || localVal === 'true') return true;
+    if (localVal === '0' || localVal === 'false') return false;
+    const sessionVal = sessionStorage.getItem('theme_liquid_refraction');
+    if (sessionVal === '1' || sessionVal === 'true') return true;
+  } catch {
+    // ignore
+  }
+  return false;
+}
+
 function readSessionInt(key: string, min: number, max: number): number | null {
   try {
     const raw = sessionStorage.getItem(key);
@@ -127,6 +143,9 @@ interface ThemeModeContextType {
 interface ThemeStyleContextType {
   style: ThemeStyle;
   setStyle: (style: ThemeStyle, autoSave?: boolean) => void;
+  /** 是否开启液态玻璃全表面 SVG 边缘折射（仅 Chromium 生效，默认关闭以保障流畅度） */
+  liquidRefraction: boolean;
+  setLiquidRefraction: (enabled: boolean) => void;
 }
 
 interface ThemeColorContextType {
@@ -371,6 +390,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   // 大概率会渲染离线警告，浅底比深底更可读，也比硬编码 dark 更符合直觉。
   const [mode, setModeState] = useState<ThemeMode>(() => readStoredMode() ?? 'light');
   const [style, setStyleState] = useState<ThemeStyle>(() => readStoredStyle() ?? 'glassmorphism');
+  const [liquidRefraction, setLiquidRefractionState] = useState<boolean>(
+    readStoredLiquidRefraction,
+  );
   const [color, setColorState] = useState<ThemeColor>('red');
   const [backgroundImage, setBackgroundImageState] = useState<string | null>(null);
   const [blurIntensity, setBlurIntensityState] = useState<number>(12);
@@ -540,6 +562,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const resetThemeToDefaults = useCallback(() => {
     setModeState('light');
     setStyleState('glassmorphism');
+    setLiquidRefractionState(false);
+    try {
+      localStorage.removeItem(LIQUID_REFRACTION_STORAGE_KEY);
+      sessionStorage.removeItem('theme_liquid_refraction');
+    } catch {
+      // ignore
+    }
     setColorState('red');
     setBackgroundImageState(null);
     setBlurIntensityState(12);
@@ -777,6 +806,17 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     [isInitialized, saveToBackend],
   );
 
+  const setLiquidRefraction = useCallback((enabled: boolean) => {
+    setLiquidRefractionState(enabled);
+    try {
+      const val = enabled ? '1' : '0';
+      localStorage.setItem(LIQUID_REFRACTION_STORAGE_KEY, val);
+      sessionStorage.setItem('theme_liquid_refraction', val);
+    } catch {
+      // ignore storage access errors
+    }
+  }, []);
+
   const setColor = useCallback(
     (newColor: ThemeColor, autoSave?: boolean) => {
       setColorState(newColor);
@@ -1010,7 +1050,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   // Context values
   const modeContext = useMemo(() => ({ mode, setMode }), [mode, setMode]);
-  const styleContext = useMemo(() => ({ style, setStyle }), [style, setStyle]);
+  const styleContext = useMemo(
+    () => ({ style, setStyle, liquidRefraction, setLiquidRefraction }),
+    [style, setStyle, liquidRefraction, setLiquidRefraction],
+  );
   const colorContext = useMemo(
     () => ({ color, setColor, themePreset, setThemePreset, primary: themeColors['--primary'] }),
     [color, setColor, themePreset, setThemePreset, themeColors],
@@ -1113,6 +1156,7 @@ export function useTheme() {
   return {
     mode: modeContext.mode,
     style: styleContext.style,
+    liquidRefraction: styleContext.liquidRefraction,
     isGlass: styleContext.style !== 'solid',
     isLuminous: styleContext.style === 'luminous',
     isLiquid: styleContext.style === 'liquid',
@@ -1132,6 +1176,7 @@ export function useTheme() {
     sidebarDefaultCollapsed: miscContext.sidebarDefaultCollapsed,
     setMode: modeContext.setMode,
     setStyle: styleContext.setStyle,
+    setLiquidRefraction: styleContext.setLiquidRefraction,
     setColor: colorContext.setColor,
     setBackgroundImage: backgroundContext.setBackgroundImage,
     setBlurIntensity: backgroundContext.setBlurIntensity,

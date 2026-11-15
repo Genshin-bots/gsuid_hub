@@ -36,6 +36,8 @@ function readTranslation(el: HTMLElement): { x: number; y: number } {
  */
 function writeInPlaceBounce(el: HTMLElement, box: Box) {
   for (const animation of el.getAnimations()) animation.cancel();
+  // 原地轻弹不算抬起；兜底清掉可能残留的抬起态
+  delete el.dataset.lifted;
   el.style.opacity = '1';
   el.style.width = `${box.w}px`;
   el.style.height = `${box.h}px`;
@@ -79,33 +81,40 @@ function writeSpringMove(el: HTMLElement, fromBox: Box, toBox: Box) {
   const travel = Math.hypot(toBox.x - fromX, toBox.y - fromY);
   if (travel < 1) return;
 
-  const stretch = 1 + Math.min(0.18, travel / 480);
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const stretch = reduceMotion ? 1 : 1 + Math.min(0.18, travel / 480);
+  const swellY = reduceMotion ? 1 : 1.14;
   const dir = toBox.x >= fromX ? 1 : -1;
   const pastX = toBox.x + dir * Math.min(8, travel * 0.06);
   const midX = (fromX + toBox.x) / 2;
   const midY = (fromY + toBox.y) / 2;
 
-  el.animate(
+  // 抬起态令牌：finish/cancel 只允许清掉自己那次，不能抢删更新动画刚写下的 lifted
+  const liftId = String((Number(el.dataset.liftedId) || 0) + 1);
+  el.dataset.liftedId = liftId;
+  el.dataset.lifted = 'true';
+
+  const animation = el.animate(
     [
       {
-        transform: `translate3d(${fromX}px, ${fromY}px, 0) scaleX(1)`,
+        transform: `translate3d(${fromX}px, ${fromY}px, 0) scale(1)`,
         width: `${fromW}px`,
         height: `${fromH}px`,
       },
       {
-        transform: `translate3d(${midX}px, ${midY}px, 0) scaleX(${stretch})`,
+        transform: `translate3d(${midX}px, ${midY}px, 0) scale(${stretch}, ${swellY})`,
         width: `${(fromW + toBox.w) / 2}px`,
         height: `${(fromH + toBox.h) / 2}px`,
         offset: 0.45,
       },
       {
-        transform: `translate3d(${pastX}px, ${toBox.y}px, 0) scaleX(0.97)`,
+        transform: `translate3d(${pastX}px, ${toBox.y}px, 0) scale(0.97, 0.99)`,
         width: `${toBox.w}px`,
         height: `${toBox.h}px`,
         offset: 0.78,
       },
       {
-        transform: `translate3d(${toBox.x}px, ${toBox.y}px, 0) scaleX(1)`,
+        transform: `translate3d(${toBox.x}px, ${toBox.y}px, 0) scale(1)`,
         width: `${toBox.w}px`,
         height: `${toBox.h}px`,
       },
@@ -116,6 +125,12 @@ function writeSpringMove(el: HTMLElement, fromBox: Box, toBox: Box) {
       fill: 'none',
     },
   );
+
+  const clearLift = () => {
+    if (el.dataset.liftedId === liftId) delete el.dataset.lifted;
+  };
+  animation.addEventListener('finish', clearLift);
+  animation.addEventListener('cancel', clearLift);
 }
 
 /**
@@ -246,6 +261,7 @@ export function LiquidSegmentThumb({
 
       // 视口尺寸变化时直接重置位置尺寸，不播放多余动画
       for (const animation of el.getAnimations()) animation.cancel();
+      delete el.dataset.lifted;
       el.style.opacity = '1';
       el.style.width = `${next.w}px`;
       el.style.height = `${next.h}px`;

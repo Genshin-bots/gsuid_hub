@@ -22,23 +22,53 @@ import {
   Link2,
   Loader2,
   Cable,
+  Github,
+  Star,
+  Copy,
+  AlertTriangle,
+  ArrowUpDown,
+  ChevronDown,
+  MoreHorizontal,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   pluginStoreApi,
   type StorePlugin,
   type PluginStoreListResponse,
+  type PluginStoreSort,
   gitMirrorApi,
   type GitPluginInfo,
+  githubApi,
+  type GitHubStatus,
+  type GitHubDeviceStart,
+  type GitHubStarInfo,
   getApiErrorMessage,
 } from '@/lib/api';
 import {
   isPluginAiContent,
+  formatStarCount,
+  parseGitHubRepo,
   resolvePluginStoreGroups,
   resolvePluginStoreView,
 } from '@/lib/featureUtils';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import GitMirrorDialog, { getMirrorBadge } from '@/components/GitMirrorDialog';
 import {
   TabButtonGroup,
@@ -54,6 +84,16 @@ import {
   DialogFooter,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize from 'rehype-sanitize';
@@ -62,7 +102,7 @@ import type { Components } from 'react-markdown';
 import { pageGapClass, PinnedPage } from '@/components/layout/PinnedPage';
 
 // 缓存相关常量
-const PLUGIN_CACHE_KEY = 'pluginStore_cache';
+const PLUGIN_CACHE_KEY = 'pluginStore_cache_v2';
 const GIT_MIRROR_CACHE_KEY = 'pluginStore_gitMirror_cache';
 const CACHE_TTL = 24 * 60 * 60 * 1000; // 24小时
 
@@ -238,10 +278,13 @@ function storeTabCount(text: string, alert = false) {
 
 export default function PluginStorePage() {
   const { t } = useLanguage();
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const [searchQuery, setSearchQuery] = useState('');
   // 已提交的搜索词：每次按键都打一次接口会打爆后端，防抖后再提交
   const [appliedSearch, setAppliedSearch] = useState('');
   const [activeTab, setActiveTab] = useState('all');
+  const [sortBy, setSortBy] = useState<PluginStoreSort>('default');
   const [pluginOrderSeed] = useState(createPluginOrderSeed);
   // 服务端返回的原始分页结果（页 + 计数），视图由 resolvePluginStoreView 推导
   const [storePayload, setStorePayload] = useState<PluginStoreListResponse | null>(null);
@@ -263,6 +306,22 @@ export default function PluginStorePage() {
   const [installByUrlUrl, setInstallByUrlUrl] = useState('');
   const [installByUrlBranch, setInstallByUrlBranch] = useState('');
   const [installByUrlLoading, setInstallByUrlLoading] = useState(false);
+
+  // GitHub 连接（Device Flow）+ 插件 star 状态
+  const [githubStatus, setGithubStatus] = useState<GitHubStatus | null>(null);
+  const [starsMap, setStarsMap] = useState<Record<string, GitHubStarInfo>>({});
+  const [starLoadingRepo, setStarLoadingRepo] = useState<string | null>(null);
+  const [githubConnectOpen, setGithubConnectOpen] = useState(false);
+  const [githubDisconnectOpen, setGithubDisconnectOpen] = useState(false);
+  const [deviceInfo, setDeviceInfo] = useState<GitHubDeviceStart | null>(null);
+  const [deviceState, setDeviceState] = useState<'loading' | 'waiting' | 'expired' | 'denied'>(
+    'loading',
+  );
+  // 连接成功后 bump 一下，让 star 数据在 reposKey 没变时也重拉
+  const [starsVersion, setStarsVersion] = useState(0);
+  // session 自增 + timer：关掉弹窗 / 重新发起后，旧的轮询回调直接作废
+  const githubPollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const githubPollSessionRef = useRef(0);
 
   const isDeprecated = (plugin: StorePlugin) =>
     plugin.type === 'danger' && plugin.content === t('pluginStore.deprecated');
@@ -324,9 +383,9 @@ export default function PluginStorePage() {
         let resolved = srcStr;
         // 仅处理相对路径（不带协议 / 非 data URI）
         if (srcStr && !/^(https?:)?\/\//i.test(srcStr) && !srcStr.startsWith('data:')) {
-          const match = remoteUrl.match(/github\.com[/:]([^/]+)\/([^/.]+)/);
-          if (match) {
-            const [, owner, repo] = match;
+          const repoSlug = parseGitHubRepo(remoteUrl);
+          if (repoSlug) {
+            const [owner, repo] = repoSlug.split('/');
             const mirror = gitInfo?.mirror || 'github';
             const path = srcStr.replace(/^\.?\//, '');
             // 默认走 main 分支；若加载失败会回退到 master
@@ -379,14 +438,15 @@ export default function PluginStorePage() {
     setStorePayload({ ...data, plugins: pluginsWithCategory });
   };
 
-  // Fetch plugin list（服务端按页签/搜索过滤并分页，支持缓存）
+  // Fetch plugin list（服务端按页签/搜索过滤与排序并分页，支持缓存）
   const fetchPlugins = async (forceRefresh = false) => {
-    // 缓存键要带页签/页码/搜索词，否则翻页会命中别的页的缓存
-    const cacheKey = `${PLUGIN_CACHE_KEY}:${activeTab}:${page}:${appliedSearch}`;
-    // 尝试从缓存加载
+    // 缓存键要带页签/页码/搜索词/排序，否则切条件会命中旧缓存
+    const cacheKey = `${PLUGIN_CACHE_KEY}:${activeTab}:${page}:${appliedSearch}:${sortBy}`;
+    // 尝试从缓存加载（要求种子和排序模式均匹配，避免旧后端无 sort 字段时误命中）
     if (!forceRefresh) {
       const cached = getCachedData<PluginStoreListResponse>(cacheKey);
-      if (cached?.order_seed === pluginOrderSeed) {
+      const sortMatched = sortBy === 'default' || cached?.sort === sortBy;
+      if (cached?.order_seed === pluginOrderSeed && sortMatched) {
         applyPluginPayload(cached);
         setIsLoading(false);
         return;
@@ -398,13 +458,15 @@ export default function PluginStorePage() {
       const data = await pluginStoreApi.getPluginList({
         tab: activeTab,
         search: appliedSearch || undefined,
+        sort: sortBy === 'default' ? undefined : sortBy,
         limit: PLUGIN_PAGE_SIZE,
         offset: (page - 1) * PLUGIN_PAGE_SIZE,
         order_seed: pluginOrderSeed,
       });
       applyPluginPayload(data);
-      // 写入缓存
-      setCachedData(cacheKey, data);
+      if (sortBy === 'default' || data.sort === sortBy) {
+        setCachedData(cacheKey, data);
+      }
     } catch (error) {
       console.error('Failed to fetch plugins:', error);
       toast.error(t('pluginStore.loadPluginListFailed'));
@@ -448,15 +510,132 @@ export default function PluginStorePage() {
     return () => clearTimeout(id);
   }, [searchQuery]);
 
-  // 切页签 / 翻页 / 改搜索 → 重新取当前页
+  // 切页签 / 翻页 / 改搜索 / 改排序 → 重新取当前页
   useEffect(() => {
     fetchPlugins();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, page, appliedSearch]);
+  }, [activeTab, page, appliedSearch, sortBy]);
 
   useEffect(() => {
     fetchGitMirrorInfo();
   }, []);
+
+  /** GitHub 连接状态（所有登录用户可查；star 操作仅管理员）。 */
+  const fetchGithubStatus = async () => {
+    try {
+      setGithubStatus(await githubApi.getStatus());
+    } catch (error) {
+      // 老后端没有 /api/github 接口：静默降级，页面仍显示匿名 star 数
+      console.warn('Failed to fetch GitHub status:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchGithubStatus();
+  }, []);
+
+  const stopGithubPolling = () => {
+    githubPollSessionRef.current += 1;
+    if (githubPollTimerRef.current) {
+      clearTimeout(githubPollTimerRef.current);
+      githubPollTimerRef.current = null;
+    }
+  };
+
+  const scheduleGithubPoll = (intervalSec: number) => {
+    const session = githubPollSessionRef.current;
+    githubPollTimerRef.current = setTimeout(async () => {
+      if (session !== githubPollSessionRef.current) return;
+      try {
+        const res = await githubApi.pollDevice();
+        if (session !== githubPollSessionRef.current) return;
+        if (res.state === 'pending' || res.state === 'slow_down') {
+          scheduleGithubPoll(res.interval ?? 5);
+        } else if (res.state === 'connected') {
+          setGithubConnectOpen(false);
+          toast.success(t('pluginStore.github.connectSuccess'));
+          fetchGithubStatus();
+          setStarsVersion((v) => v + 1);
+        } else {
+          setDeviceState(res.state);
+        }
+      } catch (error) {
+        if (session !== githubPollSessionRef.current) return;
+        // 单次轮询失败不终止流程，按原节奏继续等
+        console.warn('GitHub device poll failed:', error);
+        scheduleGithubPoll(intervalSec);
+      }
+    }, Math.max(1, intervalSec) * 1000);
+  };
+
+  const startGithubConnect = async () => {
+    stopGithubPolling();
+    setDeviceInfo(null);
+    setDeviceState('loading');
+    try {
+      const info = await githubApi.startDevice();
+      setDeviceInfo(info);
+      setDeviceState('waiting');
+      scheduleGithubPoll(info.interval);
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, t('pluginStore.github.connectFailed')));
+      setGithubConnectOpen(false);
+    }
+  };
+
+  // 打开弹窗才发起 device 授权；关掉即停轮询
+  useEffect(() => {
+    if (githubConnectOpen) startGithubConnect();
+    else stopGithubPolling();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [githubConnectOpen]);
+
+  useEffect(() => () => stopGithubPolling(), []);
+
+  const handleGithubDisconnect = async () => {
+    try {
+      const res = await githubApi.disconnect();
+      toast.success(res.msg || t('pluginStore.github.disconnected'));
+      fetchGithubStatus();
+      setStarsVersion((v) => v + 1);
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, t('pluginStore.github.disconnectFailed')));
+    }
+  };
+
+  /** star 切换：乐观更新，失败回滚。star 请求失败不影响列表展示。 */
+  const handleStarToggle = async (repo: string, starred: boolean) => {
+    const key = repo.toLowerCase();
+    const prev = starsMap[key];
+    setStarLoadingRepo(key);
+    setStarsMap((m) => ({
+      ...m,
+      [key]: {
+        count: prev?.count != null ? prev.count + (starred ? 1 : -1) : null,
+        starred,
+      },
+    }));
+    try {
+      if (starred) await githubApi.star(repo);
+      else await githubApi.unstar(repo);
+    } catch (error) {
+      setStarsMap((m) => ({ ...m, [key]: prev ?? { count: null, starred: null } }));
+      toast.error(getApiErrorMessage(error, t('pluginStore.github.starFailed')));
+    } finally {
+      setStarLoadingRepo(null);
+    }
+  };
+
+  const handleStarClick = (plugin: StorePlugin) => {
+    const repo = parseGitHubRepo(plugin.link || `https://github.com/${plugin.id}`);
+    if (!repo) return;
+    if (!githubStatus?.connected) {
+      setGithubConnectOpen(true);
+      return;
+    }
+    const info = starsMap[repo.toLowerCase()];
+    handleStarToggle(repo, info?.starred !== true);
+  };
 
   /** 就地更新当前页某个插件的字段，避免重新请求整页。 */
   const patchPlugin = (pluginId: string, patch: Partial<StorePlugin>) => {
@@ -605,6 +784,43 @@ export default function PluginStorePage() {
 
   const visiblePlugins = storeView.items;
 
+  // 当前页插件对应的 GitHub 仓库（大小写不敏感去重；link 解析不出时按 id 兜底）
+  const storeRepos = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const plugin of visiblePlugins) {
+      const repo = parseGitHubRepo(plugin.link || `https://github.com/${plugin.id}`);
+      if (repo) map.set(repo.toLowerCase(), repo);
+    }
+    return Array.from(map.values());
+  }, [visiblePlugins]);
+  const storeReposKey = storeRepos.map((r) => r.toLowerCase()).join(',');
+
+  // 当前页 star 数 / 已 star 状态；请求失败只记日志，不影响列表展示
+  useEffect(() => {
+    if (storeRepos.length === 0) {
+      setStarsMap({});
+      return;
+    }
+    let cancelled = false;
+    githubApi
+      .getStars(storeRepos)
+      .then((data) => {
+        if (cancelled) return;
+        const map: Record<string, GitHubStarInfo> = {};
+        for (const [repo, info] of Object.entries(data.stars)) {
+          map[repo.toLowerCase()] = info;
+        }
+        setStarsMap(map);
+      })
+      .catch((error) => {
+        console.warn('Failed to fetch GitHub stars:', error);
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storeReposKey, starsVersion]);
+
   // 页签徽标数字：来自服务端的**总数**，不随翻页/搜索变化
   const storeStats = storeView.counts;
   const storeTotalPages = storeView.totalPages;
@@ -616,12 +832,12 @@ export default function PluginStorePage() {
     const remoteUrl = gitInfo?.remote_url || plugin.link || `https://github.com/${plugin.id}`;
 
     // Extract owner and repo from remote URL
-    const match = remoteUrl.match(/github\.com[/:]([^/]+)\/([^/.]+)/);
-    if (!match) {
+    const repoSlug = parseGitHubRepo(remoteUrl);
+    if (!repoSlug) {
       // Fallback if URL parsing fails
       return [`${remoteUrl}/raw/main/README.md`, `${remoteUrl}/raw/master/README.md`];
     }
-    const [, owner, repo] = match;
+    const [owner, repo] = repoSlug.split('/');
 
     const urls: string[] = [];
 
@@ -769,28 +985,86 @@ export default function PluginStorePage() {
               className={cn(tabToolbarControlClass, 'w-full pl-10')}
             />
           </div>
-          <Button
-            variant="outline"
-            onClick={() => setGitMirrorOpen(true)}
-            className={cn(
-              tabToolbarControlClass,
-              'w-full gap-2 sm:w-auto sm:min-w-0 sm:overflow-hidden',
-            )}
+          <Select
+            value={sortBy}
+            onValueChange={(v) => {
+              setSortBy(v as PluginStoreSort);
+              setPage(1);
+            }}
           >
-            <GitBranch className="w-4 h-4 shrink-0" />
-            <span className="min-w-0 truncate">{t('gitMirror.title')}</span>
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => setInstallByUrlOpen(true)}
-            className={cn(
-              tabToolbarControlClass,
-              'w-full gap-2 sm:w-auto sm:min-w-0 sm:overflow-hidden',
-            )}
-          >
-            <Link2 className="w-4 h-4 shrink-0" />
-            <span className="min-w-0 truncate">{t('pluginStore.installFromUrl')}</span>
-          </Button>
+            <SelectTrigger
+              className={cn(
+                tabToolbarControlClass,
+                'w-full min-w-0 gap-1.5 px-3 sm:w-auto sm:shrink-0 [&>span]:min-w-0 [&>span]:truncate',
+              )}
+            >
+              <ArrowUpDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="default">{t('pluginStore.sortDefault')}</SelectItem>
+              <SelectItem value="stars_desc">{t('pluginStore.sortStarsDesc')}</SelectItem>
+              <SelectItem value="stars_asc">{t('pluginStore.sortStarsAsc')}</SelectItem>
+            </SelectContent>
+          </Select>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  tabToolbarControlClass,
+                  'w-full justify-start gap-2 px-3 sm:w-auto sm:min-w-0 sm:shrink-0 sm:justify-center sm:overflow-hidden',
+                )}
+              >
+                <MoreHorizontal className="h-4 w-4 shrink-0" />
+                <span className="min-w-0 truncate">{t('pluginStore.moreActions')}</span>
+                <ChevronDown className="ml-auto h-3.5 w-3.5 shrink-0 opacity-70 sm:ml-0" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="end"
+              className="w-[var(--radix-dropdown-menu-trigger-width)] min-w-max"
+            >
+              <DropdownMenuItem onClick={() => setGitMirrorOpen(true)}>
+                <GitBranch className="mr-2 h-4 w-4 shrink-0" />
+                <span>{t('gitMirror.title')}</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setInstallByUrlOpen(true)}>
+                <Link2 className="mr-2 h-4 w-4 shrink-0" />
+                <span>{t('pluginStore.installFromUrl')}</span>
+              </DropdownMenuItem>
+              {isAdmin && githubStatus && (
+                <>
+                  <DropdownMenuSeparator />
+                  {githubStatus.connected ? (
+                    <DropdownMenuItem
+                      onClick={() => setGithubDisconnectOpen(true)}
+                      title={t('pluginStore.github.disconnectHint')}
+                    >
+                      {githubStatus.avatar_url ? (
+                        <img
+                          src={githubStatus.avatar_url}
+                          alt={githubStatus.login}
+                          className="mr-2 h-4 w-4 shrink-0 rounded-full"
+                        />
+                      ) : (
+                        <Github className="mr-2 h-4 w-4 shrink-0" />
+                      )}
+                      <span className="truncate">{githubStatus.login}</span>
+                      <span className="ml-auto pl-4 text-xs text-muted-foreground">
+                        {t('pluginStore.github.disconnect')}
+                      </span>
+                    </DropdownMenuItem>
+                  ) : (
+                    <DropdownMenuItem onClick={() => setGithubConnectOpen(true)}>
+                      <Github className="mr-2 h-4 w-4 shrink-0" />
+                      <span>{t('pluginStore.github.connect')}</span>
+                    </DropdownMenuItem>
+                  )}
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       }
     >
@@ -892,9 +1166,68 @@ export default function PluginStorePage() {
 
                     {/* 右侧：标题和描述 */}
                     <div className="flex-1 min-w-0">
-                      {/* 标题行 + 右上角 badges */}
+                      {/* 标题行（名称 + Star）+ 右上角 badges */}
                       <div className="flex items-center justify-between gap-2">
-                        <h3 className="font-semibold text-base truncate">{plugin.id}</h3>
+                        <div className="flex min-w-0 flex-1 items-center gap-1.5">
+                          <h3 className="font-semibold text-base truncate">{plugin.id}</h3>
+                          {/* GitHub star：放在名称右侧；非管理员只展示数量；管理员可点，未连接时点开连接弹窗 */}
+                          {(() => {
+                            const repo = parseGitHubRepo(pluginLink);
+                            if (!repo) return null;
+                            const key = repo.toLowerCase();
+                            const info = starsMap[key];
+                            const starred = info?.starred === true;
+                            const busy = starLoadingRepo === key;
+                            const noScope =
+                              githubStatus?.connected === true && githubStatus.can_star === false;
+                            const starTitle = !githubStatus?.connected
+                              ? t('pluginStore.github.connectToStar')
+                              : noScope
+                                ? t('pluginStore.github.starNeedScope')
+                                : starred
+                                  ? t('pluginStore.github.unstar')
+                                  : t('pluginStore.github.star');
+                            const starBadgeClass = cn(
+                              'theme-chip theme-chip-tint shrink-0 gap-1 px-1.5 py-0 text-xs font-medium leading-[18px] text-amber-500 border-amber-500/60 bg-amber-500/10',
+                              starred && 'border-amber-500 bg-amber-500/20',
+                              isAdmin && !noScope && 'hover:bg-amber-500/20',
+                            );
+                            const inner = (
+                              <Badge variant="outline" className={starBadgeClass}>
+                                {busy ? (
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                ) : (
+                                  <Star className={cn('w-3 h-3', starred && 'fill-current')} />
+                                )}
+                                {info?.count != null && <span>{formatStarCount(info.count)}</span>}
+                              </Badge>
+                            );
+                            if (!isAdmin) {
+                              return info?.count != null ? (
+                                <span className="inline-flex shrink-0 items-center" title={repo}>
+                                  {inner}
+                                </span>
+                              ) : null;
+                            }
+                            return (
+                              <button
+                                type="button"
+                                disabled={busy || noScope}
+                                title={starTitle}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleStarClick(plugin);
+                                }}
+                                className={cn(
+                                  'inline-flex shrink-0 items-center rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                                  !noScope ? 'cursor-pointer' : 'cursor-not-allowed opacity-60',
+                                )}
+                              >
+                                {inner}
+                              </button>
+                            );
+                          })()}
+                        </div>
                         <div className="flex flex-wrap items-center justify-end gap-1.5 sm:shrink-0">
                           {/* 镜像来源 badge（仅已安装插件） */}
                           {plugin.installed &&
@@ -1294,6 +1627,140 @@ export default function PluginStorePage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* GitHub 连接 Dialog（Device Flow：大号验证码 + 打开 GitHub + 后端轮询） */}
+      <Dialog open={githubConnectOpen} onOpenChange={setGithubConnectOpen}>
+        <DialogContent className="glass-card sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Github className="w-5 h-5" />
+              {t('pluginStore.github.connectTitle')}
+            </DialogTitle>
+            <DialogDescription>{t('pluginStore.github.connectDesc')}</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <Alert variant="warning" className="p-3 [&>svg]:left-3 [&>svg]:top-3 [&>svg~*]:pl-6">
+              <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+              <AlertTitle className="text-xs font-bold text-amber-800 dark:text-amber-200">
+                {t('pluginStore.github.securityTitle')}
+              </AlertTitle>
+              <AlertDescription className="mt-1 space-y-1 text-xs leading-snug text-foreground/90">
+                <ul className="list-disc space-y-0.5 pl-4">
+                  <li>
+                    <strong className="font-semibold text-amber-700 dark:text-amber-300">
+                      {t('pluginStore.github.securityWhoLabel')}
+                    </strong>
+                    <span>{t('pluginStore.github.securityWhoText')}</span>
+                  </li>
+                  <li>
+                    <strong className="font-semibold text-emerald-700 dark:text-emerald-400">
+                      {t('pluginStore.github.securitySafeLabel')}
+                    </strong>
+                    <span>{t('pluginStore.github.securitySafeText')}</span>
+                  </li>
+                  <li>
+                    <strong className="font-semibold text-red-600 dark:text-red-400">
+                      {t('pluginStore.github.securityDangerLabel')}
+                    </strong>
+                    <span className="font-medium text-red-700 dark:text-red-300">
+                      {t('pluginStore.github.securityDangerText')}
+                    </span>
+                  </li>
+                </ul>
+                <p className="font-medium text-muted-foreground">
+                  {t('pluginStore.github.securityAnonTip')}
+                </p>
+              </AlertDescription>
+            </Alert>
+
+            {deviceState === 'loading' ? (
+              <div className="flex items-center justify-center gap-2 py-6 text-muted-foreground">
+                <Loader2 className="w-5 h-5 animate-spin" />
+                {t('pluginStore.github.loading')}
+              </div>
+            ) : deviceState === 'waiting' && deviceInfo ? (
+              <>
+                <div className="space-y-2">
+                  <Label>{t('pluginStore.github.codeLabel')}</Label>
+                  <div className="flex items-stretch gap-2">
+                    <code className="flex h-14 flex-1 items-center justify-center rounded-md bg-muted px-4 font-mono text-2xl font-semibold tracking-widest">
+                      {deviceInfo.user_code}
+                    </code>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-14 w-14 shrink-0"
+                      title={t('pluginStore.github.copy')}
+                      onClick={async () => {
+                        if (!(navigator.clipboard && window.isSecureContext)) {
+                          toast.error(t('pluginStore.github.copyFailed'));
+                          return;
+                        }
+                        try {
+                          await navigator.clipboard.writeText(deviceInfo.user_code);
+                          toast.success(t('pluginStore.github.copied'));
+                        } catch {
+                          toast.error(t('pluginStore.github.copyFailed'));
+                        }
+                      }}
+                    >
+                      <Copy className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  className="w-full gap-2 text-primary hover:text-primary [&_svg]:!text-current"
+                  onClick={() =>
+                    window.open(deviceInfo.verification_uri, '_blank', 'noopener,noreferrer')
+                  }
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  {t('pluginStore.github.openGithub')}
+                </Button>
+                <p className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  {t('pluginStore.github.waiting')}
+                </p>
+              </>
+            ) : (
+              <div className="space-y-3 py-2 text-center">
+                <p className="text-sm text-muted-foreground">
+                  {deviceState === 'expired'
+                    ? t('pluginStore.github.expired')
+                    : t('pluginStore.github.denied')}
+                </p>
+                <Button variant="outline" className="gap-2" onClick={startGithubConnect}>
+                  <RefreshCw className="w-4 h-4" />
+                  {t('pluginStore.github.retry')}
+                </Button>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 断开 GitHub 连接确认 */}
+      <AlertDialog open={githubDisconnectOpen} onOpenChange={setGithubDisconnectOpen}>
+        <AlertDialogContent className="glass-card">
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('pluginStore.github.disconnectTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('pluginStore.github.disconnectDesc')}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('pluginStore.cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleGithubDisconnect}
+              className="bg-red-500 hover:bg-red-600"
+            >
+              {t('pluginStore.github.disconnect')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </PinnedPage>
   );
 }

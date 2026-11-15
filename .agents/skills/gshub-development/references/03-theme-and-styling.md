@@ -175,6 +175,18 @@ const isGlass = style === 'glassmorphism';
 - `AlertDialogAction` 自带 `button-solid`。调用处写了 `bg-destructive` 或 `bg-red-500` 的危险确认仍是红色。
 - 取消、刷新、筛选保持 `variant="outline"`。不要把 `button-solid` 写进 `Button` 的 default variant，否则页头主按钮会变成实心。
 
+### 3.4.5 液态折射与边缘色散（Chromium 可选开关）★★
+
+为兼顾流畅度与折射质感，液态玻璃默认以**纯 CSS 贴边高光与色散渐变**渲染；用户可在主题设置中开启「启用真实边缘折射（实验性）」（设备本地偏好 `liquidRefraction`，默认 `false`）以在 Chromium 下启用按元素尺寸生成的 SVG 像素折射：
+
+- **`src/lib/liquidRefraction.ts`**：纯函数按元素尺寸生成位移图（圆角矩形 SDF，斜面内位移沿向内法线、t^1.6 剖面，中心恒 128 中性，默认采样率 `0.25`）。`bezelFor` 把斜面宽钳在短边的 25% / 8~28px，所以地图必须**逐元素尺寸正确**。`fringe` 边带默认关闭（改由 CSS `--lg-fringe` 承担色散边），仅显式传 `{ includeFringe: true }` 时计算。
+- **`src/components/ui/LiquidRefraction.tsx`**（挂在 `App.tsx`）：仅 `style === 'liquid' && liquidRefraction && detectChromium()` 时激活，置 `html[data-lg-refraction="on"]`。目标 = 卡片 / 两侧栏 / 分段条 / `.glass-float` / `.searchable-menu-panel` / 独立液态玻璃钮（`.glass-card-flat` 不挂折射，且所有位于玻璃/弹层祖先内的按钮一律跳过）。使用 `IntersectionObserver` 仅对视口内目标挂载滤镜（上限 20），`MutationObserver` 过滤无关属性变动，共享 `ResizeObserver` 160ms 防抖重建、精确尺寸缓存引用计数。滤镜区向右 +256/向下 +64 预留生长余量，动画中长大不会切出空条。
+- **一块玻璃只折射一次**：祖先已是目标或平卡/弹层的全部跳过；嵌套卡片与卡片内按钮拿不到 `--lg-refract`，且在 `index.css` 中关闭内部嵌套按钮与平卡的 `backdrop-filter`，避免二次重采样。
+- **滤镜图**：单张 `feImage`(尺寸正确的位移图) → 单个 `feDisplacementMap`，色散边直接由 CSS `::after` 贴边环 `--lg-fringe` 呈现，大幅减少 GPU RenderPass。
+- **`--lg-refract` 不能写进自定义属性 token**：`var()` 在自定义属性里于**声明处**求值——`--lg-filter` 挂在 `[data-style=liquid]`（html）上，里面的 `var(--lg-refract,)` 在 html 处就解析成空，后代继承的是已解析值，元素内联的 `--lg-refract` 永远到不了。所以每个消费方的 `backdrop-filter` 必须直接写 `var(--lg-refract,) var(--lg-blur-fn) var(--lg-vibrancy)`。**顺序必须 url 在前**：`blur()` 在前时位移图作用在已糊的均匀场上，弯折在数学上不可见；先弯后糊才有透镜边缘。`[data-style=liquid] * { --lg-refract: initial }` 防止继承错位。
+- **边缘色散层**：`--lg-fringe` 在 `[data-style="liquid"]` 下始终提供青→品红对角渐变，叠进 `::after` 贴边环（卡片 / 分段条 / 拇指）；未开启或非 Chromium 时停靠侧栏右缘仍保留青色细缝。
+- 性能约束与防抖原因见 [§10 P-38](./10-pitfalls-and-performance.md)。
+
 ## 3.5 布局背景与 gutter
 
 `AppLayout.tsx` 负责整页背景渲染：

@@ -2,6 +2,7 @@ import { lazy, Suspense, type ReactNode } from 'react';
 import { Toaster as Sonner } from '@/components/ui/sonner';
 import { LuminousGlassFilter } from '@/components/ui/LuminousGlassFilter';
 import { LiquidGlassFilter } from '@/components/ui/LiquidGlassFilter';
+import { LiquidRefraction } from '@/components/ui/LiquidRefraction';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { HashRouter, Routes, Route, Navigate, useSearchParams } from 'react-router-dom';
@@ -238,6 +239,7 @@ const App = () => (
                   <Sonner />
                   <LuminousGlassFilter />
                   <LiquidGlassFilter />
+                  <LiquidRefraction />
                   <HashRouter>
                     <AppRoutes />
                   </HashRouter>

@@ -661,14 +661,19 @@ const cs = (el: Element | null) =>
 **根因**：
 
 1. 侧栏动画改的是 `width`（主内容区跟着重排）。`backdrop-filter` 的区域每帧都变，浏览器必须重采样背后的像素。
-2. 光感/液态在 blur 上又叠了 `saturate` / `contrast` / `brightness`，走不了 Chrome 的 blur 快速路径。液态的 SVG `feDisplacementMap`（`url(#liquid-glass-lens-filter)`）更重：大面积表面禁止挂这个滤镜，曲面靠倒角和 `::after`。光是把置换滤镜从每张卡上摘掉就要掉一帧。
+2. 光感/液态在 blur 上又叠了 `saturate` / `contrast` / `brightness`，走不了 Chrome 的 blur 快速路径。液态的 SVG `feDisplacementMap` 默认关闭（由主题页「启用真实边缘折射（实验性）」开关控制，`LiquidRefraction` 按元素尺寸生成单通道位移 map，经 `--lg-refract` 注入，仅 Chromium）。开启时须守住以下约束：
+   - 尺寸变化期间**不换滤镜**（拉伸旧 map 可接受），安静 160ms 后才重建；侧栏宽度动画逐帧触发 ResizeObserver，逐帧重建就是卡死与闪烁；
+   - 动画中途**不得**增删 `--lg-refract`（摘挂 = 整条 backdrop 链重排，闪一下）；滤镜区右 +256/下 +64 留生长余量，长出的部分走中性区不弯，而不是切出空条；
+   - 一块玻璃只折射/糊一次：祖先已是玻璃或弹层的元素（含内部按钮）与 `.glass-card-flat` 全部跳过；
+   - 通过 `IntersectionObserver` 仅对视口内目标挂载滤镜、活动目标上限 20，map 按**精确尺寸**缓存、引用计数释放（只有 acquire 成功才计引用）；
+   - 拇指抬起态的 `url(#liquid-glass-lens-filter)` 仅在 `style === 'liquid'` 时挂载。
 3. 默认壁纸如果再铺一层整屏 `backdrop-filter`，会垫在每张卡下面，变成嵌套 backdrop，侧栏一动就整屏重算。
 4. `will-change: width` 和常驻 `translateX(0)` / `transform-gpu` 会把玻璃所在元素变成 backdrop 根，宽度动画时整层失效。`width` 本身也不能合成。
 
 **修法**：
 
 - **不要**在动画中途切换 `backdrop-filter`（例如临时改成 `blur(8px)` 再恢复）。参数一变，玻璃的亮度/模糊就会跳一下，看起来是闪烁，而且切换本身要重铺所有层。
-- 光感/液态里会跟着布局移动的表面（卡片、侧栏、分段条、输入框、带 `backdrop-blur` 的小块）**不要** `backdrop-filter`。磨砂放在壁纸的静态 `filter: blur()` 上，表面只用半透明底、倒角和高光。见 `index.css` 末尾那条覆盖。
+- 光感/液态里会跟着布局移动的表面（卡片、侧栏、分段条、输入框、带 `backdrop-blur` 的小块）**不要** `backdrop-filter`。磨砂放在壁纸的静态 `filter: blur()` 上，表面只用半透明底、倒角和高光。见 `index.css` 末尾那条覆盖。**例外**：液态折射（上面第 2 条）是用户拍板的全表面位移，靠防抖重建与目标上限控制代价，不是可以随意再加大面积滤镜的口子。
 - 弹层不参与侧栏宽度动画，可以保留自己的模糊。表格固定列要盖住滑过的文字，也不要关掉。
 - 不要整屏 `backdrop-filter`。普通毛玻璃仍可以用那层叠加。
 - 侧栏宽度过渡不要加 `will-change`，图标模式不要写 `transform: translateX(0)`。

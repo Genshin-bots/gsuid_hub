@@ -1,8 +1,15 @@
+import { useThemeStyle } from '@/contexts/ThemeContext';
+
 /**
  * Global SVG filter providing optical refraction for Luminous Glass surfaces.
- * Hidden from layout and screen readers; referenced via CSS url(#luminous-glass-refraction).
+ * Hidden from layout and screen readers; mounted only when luminous style is active.
  */
 export function LuminousGlassFilter() {
+  const { style } = useThemeStyle();
+  if (style !== 'luminous') {
+    return null;
+  }
+
   return (
     <svg
       className="pointer-events-none fixed -top-full -left-full w-0 h-0 opacity-0 overflow-hidden"

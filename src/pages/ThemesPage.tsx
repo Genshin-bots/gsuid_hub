@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
+import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -455,6 +456,7 @@ export default function ThemesPage() {
   const {
     mode,
     style,
+    liquidRefraction,
     color,
     backgroundImage,
     blurIntensity,
@@ -469,6 +471,7 @@ export default function ThemesPage() {
     sidebarDefaultCollapsed,
     setMode,
     setStyle,
+    setLiquidRefraction,
     setColor,
     setBackgroundImage,
     setBlurIntensity,
@@ -827,6 +830,21 @@ export default function ThemesPage() {
                     label={t('themes.liquidStyle')}
                   />
                 </SelectTileRow>
+                {style === 'liquid' && (
+                  <div className="mt-1 flex items-center justify-between gap-3 border-t border-border/40 pt-3.5">
+                    <LabelWithHelp
+                      label={t('themes.liquidRefraction')}
+                      description={t('themes.liquidRefractionDesc')}
+                      className="min-w-0 truncate text-sm font-medium text-foreground cursor-default"
+                    />
+                    <Switch
+                      checked={liquidRefraction}
+                      onCheckedChange={setLiquidRefraction}
+                      aria-label={t('themes.liquidRefraction')}
+                      className="shrink-0"
+                    />
+                  </div>
+                )}
               </Card>
 
               {/* 图标颜色 */}

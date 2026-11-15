@@ -1162,6 +1162,8 @@ export interface PluginStoreListResponse {
   has_more?: boolean;
   /** 后端采用的全局随机排序种子；旧后端不返回该字段 */
   order_seed?: string | null;
+  /** 后端实际采用的排序模式（default / stars_desc / stars_asc） */
+  sort?: string;
 }
 
 export interface PluginPrefsDto {
@@ -1873,11 +1875,14 @@ export const embeddingConfigApi = {
 // Plugin Store APIs
 // ===================
 
+export type PluginStoreSort = 'default' | 'stars_desc' | 'stars_asc';
+
 export const pluginStoreApi = {
   /** 插件商店列表（服务端按页签/搜索过滤并分页；不传 limit 时后端返回全量） */
   getPluginList: (params?: {
     tab?: string;
     search?: string;
+    sort?: PluginStoreSort;
     limit?: number;
     offset?: number;
     order_seed?: string;
@@ -1885,6 +1890,7 @@ export const pluginStoreApi = {
     const query = new URLSearchParams();
     if (params?.tab) query.set('tab', params.tab);
     if (params?.search) query.set('search', params.search);
+    if (params?.sort && params.sort !== 'default') query.set('sort', params.sort);
     if (params?.limit !== undefined) query.set('limit', String(params.limit));
     if (params?.offset !== undefined) query.set('offset', String(params.offset));
     if (params?.order_seed) query.set('order_seed', params.order_seed);
@@ -1919,6 +1925,73 @@ export const pluginStoreApi = {
 
   uninstallPlugin: (pluginId: string) =>
     api.delete<{ status: number; msg: string }>(`/api/plugin-store/uninstall/${pluginId}`),
+};
+
+// ===================
+// GitHub APIs
+// ===================
+
+/** GitHub 连接状态（一个 core 绑定一个账号，can_star=false 表示授权缺 public_repo scope）。 */
+export interface GitHubStatus {
+  connected: boolean;
+  login: string;
+  avatar_url: string;
+  can_star: boolean;
+}
+
+/** Device Flow 发起结果：device_code 只留后端，前端只拿用户验证码与跳转地址。 */
+export interface GitHubDeviceStart {
+  user_code: string;
+  verification_uri: string;
+  expires_in: number;
+  interval: number;
+}
+
+/** 轮询状态机：pending/slow_down 继续轮询（slow_down 用新 interval），其余终止。 */
+export interface GitHubDevicePoll {
+  state: 'pending' | 'slow_down' | 'expired' | 'denied' | 'connected';
+  interval?: number;
+  login?: string;
+  avatar_url?: string;
+  can_star?: boolean;
+}
+
+export interface GitHubStarInfo {
+  count: number | null;
+  starred: boolean | null;
+}
+
+export interface GitHubStarsResponse {
+  connected: boolean;
+  /** key 为后端规范化后的 "owner/repo"（大小写保留原始输入） */
+  stars: Record<string, GitHubStarInfo>;
+}
+
+export const githubApi = {
+  getStatus: () => api.get<GitHubStatus>('/api/github/status'),
+
+  startDevice: () => api.post<GitHubDeviceStart>('/api/github/device/start'),
+
+  pollDevice: () => api.post<GitHubDevicePoll>('/api/github/device/poll'),
+
+  /** 断开用 postRaw：响应没有 data 字段，msg 里带「请到 GitHub 设置撤销」提示。 */
+  disconnect: () => api.postRaw<undefined>('/api/github/disconnect'),
+
+  getStars: (repos: string[]) => api.post<GitHubStarsResponse>('/api/github/stars', { repos }),
+
+  star: (repo: string) => {
+    const [owner, name] = repo.split('/');
+    return api.put<{ starred: boolean }>(
+      `/api/github/star/${encodeURIComponent(owner)}/${encodeURIComponent(name)}`,
+    );
+  },
+
+  unstar: (repo: string) => {
+    const [owner, name] = repo.split('/');
+    return api.delete<{ starred: boolean }>(
+      `/api/github/star/${encodeURIComponent(owner)}/${encodeURIComponent(name)}`,
+    );
+  },
 };
 
 // ===================

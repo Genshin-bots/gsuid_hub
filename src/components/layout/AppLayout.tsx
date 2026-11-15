@@ -41,13 +41,13 @@ function LayoutContent() {
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
-          backgroundAttachment: 'fixed',
         };
       }
-      // 苹果液态玻璃默认背景：三原色散流体透镜光斑 (Cyan/Magenta/Amber) 与高通透底色
+      // 苹果液态玻璃默认背景：大而饱和的柔光斑（类 iOS 壁纸），让玻璃的通透度与
+      // 提饱和可感知；暗色模式下落在近黑底上呈彩色辉光，不冲淡文字。
       return {
         ...baseStyle,
-        background: `radial-gradient(ellipse 65% 55% at 18% 12%, hsl(var(--primary) / 0.22) 0%, transparent 60%), radial-gradient(ellipse 55% 45% at 85% 20%, rgba(0, 210, 255, 0.16) 0%, transparent 55%), radial-gradient(ellipse 60% 50% at 78% 82%, rgba(255, 60, 160, 0.14) 0%, transparent 60%), radial-gradient(circle 35% at 30% 75%, rgba(255, 190, 70, 0.10) 0%, transparent 50%), hsl(var(--background))`,
+        background: `radial-gradient(ellipse 85% 70% at 15% 10%, hsl(var(--primary) / 0.38) 0%, transparent 65%), radial-gradient(ellipse 75% 60% at 88% 18%, rgba(0, 210, 255, 0.3) 0%, transparent 60%), radial-gradient(ellipse 90% 70% at 80% 85%, rgba(255, 60, 160, 0.26) 0%, transparent 62%), radial-gradient(ellipse 60% 55% at 28% 78%, rgba(255, 190, 70, 0.22) 0%, transparent 55%), hsl(var(--background))`,
       };
     }
 
@@ -62,7 +62,6 @@ function LayoutContent() {
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
-          backgroundAttachment: 'fixed',
         };
       }
       // 光感玻璃默认背景：有机流体折射光斑，提供丰富的光学折射源
@@ -83,7 +82,6 @@ function LayoutContent() {
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
-          backgroundAttachment: 'fixed',
         };
       }
       // 默认毛玻璃渐变 - 使用更简单的渐变减少GPU计算
@@ -101,7 +99,6 @@ function LayoutContent() {
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',
-        backgroundAttachment: 'fixed',
       };
     }
     return {

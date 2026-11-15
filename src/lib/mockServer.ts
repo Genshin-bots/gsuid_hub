@@ -130,6 +130,24 @@ let mockPluginPrefs: { recent_plugins: string[]; last_edited_plugin: string } = 
   last_edited_plugin: 'GenshinUID',
 };
 
+// GitHub 连接演示态：device 流程模拟两次 pending 后 connected
+const mockGithub = { connected: false, pollCount: 0 };
+
+const mockGithubStars = (repos: unknown) => {
+  const stars: Record<string, { count: number | null; starred: boolean | null }> = {};
+  if (Array.isArray(repos)) {
+    for (const item of repos) {
+      if (typeof item !== 'string') continue;
+      const hash = [...item].reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
+      stars[item] = {
+        count: 80 + (hash % 3000),
+        starred: mockGithub.connected ? hash % 3 === 0 : null,
+      };
+    }
+  }
+  return { connected: mockGithub.connected, stars };
+};
+
 const DEMO_COGNITION_NODES = [
   {
     id: 101,
@@ -1408,6 +1426,62 @@ const routes: Route[] = [
       const seg = url.pathname.split('/').pop() ?? '';
       return applyCoreFrameworkConfigSave(seg, body);
     },
+  },
+
+  // ── GitHub 连接（插件商店 star 数 / Device Flow）──
+  {
+    m: 'GET',
+    re: /^\/api\/github\/status$/,
+    h: () =>
+      mockGithub.connected
+        ? { connected: true, login: 'demo-user', avatar_url: '', can_star: true }
+        : { connected: false, login: '', avatar_url: '', can_star: false },
+  },
+  {
+    m: 'POST',
+    re: /^\/api\/github\/device\/start$/,
+    h: () => {
+      mockGithub.pollCount = 0;
+      return {
+        user_code: 'DEMO-1234',
+        verification_uri: 'https://github.com/login/device',
+        expires_in: 900,
+        interval: 1,
+      };
+    },
+  },
+  {
+    m: 'POST',
+    re: /^\/api\/github\/device\/poll$/,
+    h: () => {
+      mockGithub.pollCount += 1;
+      if (mockGithub.pollCount < 3) return { state: 'pending', interval: 1 };
+      mockGithub.connected = true;
+      return { state: 'connected', login: 'demo-user', avatar_url: '', can_star: true };
+    },
+  },
+  {
+    m: 'POST',
+    re: /^\/api\/github\/disconnect$/,
+    h: () => {
+      mockGithub.connected = false;
+      return {};
+    },
+  },
+  {
+    m: 'POST',
+    re: /^\/api\/github\/stars$/,
+    h: ({ body }) => mockGithubStars((body as { repos?: unknown } | null)?.repos),
+  },
+  {
+    m: 'PUT',
+    re: /^\/api\/github\/star\/[^/]+\/[^/]+$/,
+    h: () => ({ starred: true }),
+  },
+  {
+    m: 'DELETE',
+    re: /^\/api\/github\/star\/[^/]+\/[^/]+$/,
+    h: () => ({ starred: false }),
   },
 ];
 

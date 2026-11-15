@@ -40,6 +40,8 @@ import {
   normalizeGroupProfile,
   oocHitLabel,
   entityIndexPageRange,
+  formatStarCount,
+  parseGitHubRepo,
   resolveEntityIndexEntries,
   resolvePluginStoreGroups,
   resolvePluginStoreView,
@@ -975,5 +977,33 @@ describe('scheduler jobs view', () => {
     expect(view.items).toEqual([]);
     expect(view.total).toBe(0);
     expect(view.totalPages).toBe(1);
+  });
+});
+
+describe('parseGitHubRepo', () => {
+  it('parses https links and strips .git / extra path / query', () => {
+    expect(parseGitHubRepo('https://github.com/Genshin-bots/gsuid_core')).toBe(
+      'Genshin-bots/gsuid_core',
+    );
+    expect(parseGitHubRepo('https://github.com/Owner/Repo.git')).toBe('Owner/Repo');
+    expect(parseGitHubRepo('https://github.com/o/r.name/tree/main?x=1')).toBe('o/r.name');
+    expect(parseGitHubRepo('git@github.com:o/r.git')).toBe('o/r');
+  });
+
+  it('rejects non-github or malformed links', () => {
+    expect(parseGitHubRepo('https://gitlab.com/o/r')).toBeNull();
+    expect(parseGitHubRepo('https://github.com/onlyowner')).toBeNull();
+    expect(parseGitHubRepo('')).toBeNull();
+    expect(parseGitHubRepo(undefined)).toBeNull();
+  });
+});
+
+describe('formatStarCount', () => {
+  it('keeps small counts and compacts thousands', () => {
+    expect(formatStarCount(0)).toBe('0');
+    expect(formatStarCount(999)).toBe('999');
+    expect(formatStarCount(1200)).toBe('1.2k');
+    expect(formatStarCount(1000)).toBe('1k');
+    expect(formatStarCount(10400)).toBe('10k');
   });
 });
