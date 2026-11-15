@@ -18,10 +18,9 @@
  * 检测到该 config 变化时调用 `frameworkConfigApi.updateFrameworkConfig`
  * 提交，因此本 section 不需要自带保存按钮。
  *
- * 布局约定：与 AdvancedSettingsSection / MemeSettingsSection 一致——
- * 标题 + 描述 + 总开关 + 三列 grid（divider 占整行），不做 Card 包裹。
+ * 布局约定：ConfigCard 卡片 + 总开关 SettingRow + 三列 grid（divider 占整行）。
  */
-import { AlertTriangle, ShieldAlert, Terminal } from 'lucide-react';
+import { ShieldAlert, Terminal } from 'lucide-react';
 import {
   ConfigField,
   pluginConfigItemToFieldDef,
@@ -29,13 +28,13 @@ import {
   type ConfigValue,
 } from '@/components/config';
 import { GlassAlert } from '@/components/ui/glass-alert';
-import { pageGapClass, pageStackClass } from '@/components/layout/PinnedPage';
+import { pageStackClass } from '@/components/layout/PinnedPage';
 import { Switch } from '@/components/ui/switch';
-import { cn } from '@/lib/utils';
+import { ConfigCard, fieldGridClass, SettingRow, settingListClass } from '../shared';
 import type { PluginConfigItem } from '@/lib/api';
 
 export interface CommandExecutorSectionProps {
-  t: (key: string) => string;
+  t: (key: string, params?: Record<string, string | number>) => string;
   /**
    * 「命令执行器」配置。后端返回的 id 为 `GsCore AI 命令执行器配置`，
    * 由父级从 `configs` 中按名称匹配后传入；找不到时本 section 不渲染。
@@ -75,13 +74,12 @@ export function CommandExecutorSection({
   if (!commandExecutorConfig) {
     return (
       <div className={pageStackClass}>
-        <div>
-          <h2 className="text-lg font-bold flex items-center gap-2 mb-1">
-            <Terminal className="w-5 h-5 text-muted-foreground" />
-            {t('aiConfig.commandExecutor.title')}
-          </h2>
+        <ConfigCard
+          icon={<Terminal className="w-5 h-5 text-primary" />}
+          title={t('aiConfig.commandExecutor.title')}
+        >
           <p className="text-sm text-muted-foreground">{t('aiConfig.commandExecutor.notFound')}</p>
-        </div>
+        </ConfigCard>
       </div>
     );
   }
@@ -100,94 +98,87 @@ export function CommandExecutorSection({
 
   return (
     <div className={pageStackClass}>
-      {/* 标题区 */}
-      <div>
-        <h2 className="text-lg font-bold flex items-center gap-2 mb-1">
-          <Terminal className="w-5 h-5 text-primary" />
-          {t('aiConfig.commandExecutor.title')}
-        </h2>
-        <p className="text-sm text-muted-foreground">{t('aiConfig.commandExecutor.description')}</p>
-      </div>
-
-      {/* 总开关（行内：图标 + 标题 + 描述 + Switch），与 MemeSettingsSection 同款 */}
-      <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-lg glass-card transition-all">
-        <div className="flex items-start gap-3 min-w-0 flex-1">
-          <div className="flex items-center justify-center w-9 h-9 rounded-md bg-primary/10 text-primary shrink-0">
-            <Terminal className="w-5 h-5" />
-          </div>
-          <div className="min-w-0">
-            <div className="text-sm font-semibold">
-              {t('aiConfig.commandExecutor.configCard.enableLabel')}
-            </div>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {config.enable?.desc
+      <ConfigCard
+        icon={<Terminal className="w-5 h-5 text-primary" />}
+        title={t('aiConfig.commandExecutor.title')}
+        description={t('aiConfig.commandExecutor.description')}
+      >
+        {/* 总开关：分隔线列表的第一行 */}
+        <div className={settingListClass}>
+          <SettingRow
+            icon={<Terminal className="w-5 h-5 text-primary" />}
+            title={t('aiConfig.commandExecutor.configCard.enableLabel')}
+            description={
+              config.enable?.desc
                 ? String(config.enable.desc)
-                : t('aiConfig.commandExecutor.enableDesc')}
+                : t('aiConfig.commandExecutor.enableDesc')
+            }
+            control={
+              <Switch
+                checked={enableValue}
+                onCheckedChange={(checked) => onUpdateConfig(configId, 'enable', checked)}
+              />
+            }
+          />
+        </div>
+
+        {/* 高危提示：开启 + 联网 / 自动安装 时显示 */}
+        {enableValue && (allowNetwork || allowAutoProvision) && (
+          <GlassAlert tone="danger" icon={ShieldAlert}>
+            <p className="font-semibold">{t('aiConfig.commandExecutor.dangerTitle')}</p>
+            <p className="mt-1 text-muted-foreground">{t('aiConfig.commandExecutor.dangerDesc')}</p>
+          </GlassAlert>
+        )}
+
+        {/* 参数字段：divider 占整行，关闭时用一行说明替代 */}
+        {enableValue ? (
+          <div className="border-t border-border/40 pt-4 space-y-4">
+            <div className={fieldGridClass}>
+              {entries.map(([key, item]) => {
+                let fieldDef = pluginConfigItemToFieldDef(key, item);
+
+                // 「审批模式」/「参数路径越界策略」是 enum，原始 ConfigField 会把 options
+                // 渲染为 select，但 label 是英文 key。这里把 label 映射成 i18n 友好文案。
+                if (key === 'approval_mode') {
+                  const rawOptions = (item.options || []) as string[];
+                  fieldDef = {
+                    ...fieldDef,
+                    options: rawOptions.map((opt) =>
+                      APPROVAL_MODE_LABEL_KEYS[opt] ? t(APPROVAL_MODE_LABEL_KEYS[opt]) : opt,
+                    ),
+                  };
+                } else if (key === 'path_arg_policy') {
+                  const rawOptions = (item.options || []) as string[];
+                  fieldDef = {
+                    ...fieldDef,
+                    options: rawOptions.map((opt) =>
+                      PATH_ARG_POLICY_LABEL_KEYS[opt] ? t(PATH_ARG_POLICY_LABEL_KEYS[opt]) : opt,
+                    ),
+                  };
+                }
+
+                const isDivider = fieldDef.type === ('divider' as ConfigFieldType);
+                return (
+                  <div key={key} className={isDivider ? 'col-span-full' : undefined}>
+                    <ConfigField
+                      fieldKey={key}
+                      field={fieldDef}
+                      onChange={(fieldKey, value) => onUpdateConfig(configId, fieldKey, value)}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {t('aiConfig.commandExecutor.footnote')}
             </p>
           </div>
-        </div>
-        <Switch
-          checked={enableValue}
-          onCheckedChange={(checked) => onUpdateConfig(configId, 'enable', checked)}
-        />
-      </div>
-
-      {/* 高危提示：开启 + 联网 / 自动安装 时显示 */}
-      {enableValue && (allowNetwork || allowAutoProvision) && (
-        <GlassAlert tone="danger" icon={ShieldAlert} className="p-4">
-          <p className="font-semibold">{t('aiConfig.commandExecutor.dangerTitle')}</p>
-          <p className="mt-1 text-muted-foreground">{t('aiConfig.commandExecutor.dangerDesc')}</p>
-        </GlassAlert>
-      )}
-
-      {/* 关闭态：占位提示 */}
-      {!enableValue && (
-        <GlassAlert tone="neutral" icon={AlertTriangle} className="p-4">
-          {t('aiConfig.commandExecutor.disabledHint')}
-        </GlassAlert>
-      )}
-
-      {/* 三列：divider 占整行，其它字段占一格 */}
-      {enableValue && (
-        <div className={cn('grid grid-cols-2 items-start lg:grid-cols-3', pageGapClass)}>
-          {entries.map(([key, item]) => {
-            let fieldDef = pluginConfigItemToFieldDef(key, item);
-
-            // 「审批模式」/「参数路径越界策略」是 enum，原始 ConfigField 会把 options
-            // 渲染为 select，但 label 是英文 key。这里把 label 映射成 i18n 友好文案。
-            if (key === 'approval_mode') {
-              const rawOptions = (item.options || []) as string[];
-              fieldDef = {
-                ...fieldDef,
-                options: rawOptions.map((opt) =>
-                  APPROVAL_MODE_LABEL_KEYS[opt] ? t(APPROVAL_MODE_LABEL_KEYS[opt]) : opt,
-                ),
-              };
-            } else if (key === 'path_arg_policy') {
-              const rawOptions = (item.options || []) as string[];
-              fieldDef = {
-                ...fieldDef,
-                options: rawOptions.map((opt) =>
-                  PATH_ARG_POLICY_LABEL_KEYS[opt] ? t(PATH_ARG_POLICY_LABEL_KEYS[opt]) : opt,
-                ),
-              };
-            }
-
-            const isDivider = fieldDef.type === ('divider' as ConfigFieldType);
-            return (
-              <div key={key} className={isDivider ? 'col-span-full' : undefined}>
-                <ConfigField
-                  fieldKey={key}
-                  field={fieldDef}
-                  onChange={(fieldKey, value) => onUpdateConfig(configId, fieldKey, value)}
-                />
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      <p className="text-xs text-muted-foreground">{t('aiConfig.commandExecutor.footnote')}</p>
+        ) : (
+          <p className="text-xs text-muted-foreground">
+            {t('aiConfig.commandExecutor.disabledHint')}
+          </p>
+        )}
+      </ConfigCard>
     </div>
   );
 }

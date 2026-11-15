@@ -9,16 +9,14 @@
  */
 
 // shared
-export { ToggleRow } from './shared/ToggleRow';
-export type { ToggleRowProps } from './shared/ToggleRow';
+export { SettingRow, settingListClass } from './shared/SettingRow';
+export type { SettingRowProps } from './shared/SettingRow';
 export { PersonaAvatar } from './shared/PersonaAvatar';
 export type { PersonaAvatarProps } from './shared/PersonaAvatar';
 export { EmptyState } from './shared/EmptyState';
 export type { EmptyStateProps } from './shared/EmptyState';
 export { SidebarItem } from './shared/SidebarItem';
 export type { SidebarItemProps } from './shared/SidebarItem';
-export { HeadingWithHelp } from './shared/HeadingWithHelp';
-export type { HeadingWithHelpProps } from './shared/HeadingWithHelp';
 export { LabelWithHelp } from './shared';
 export type { LabelWithHelpProps } from './shared';
 export { renderRichText } from './shared/renderRichText';
@@ -28,6 +26,8 @@ export { ServiceSwitchSection } from './sections/ServiceSwitchSection';
 export type { ServiceSwitchSectionProps } from './sections/ServiceSwitchSection';
 export { TaskConfigSection } from './sections/TaskConfigSection';
 export type { TaskConfigSectionProps } from './sections/TaskConfigSection';
+export { TaskModelOverridesPanel } from './sections/TaskModelOverridesPanel';
+export type { TaskModelOverridesPanelProps } from './sections/TaskModelOverridesPanel';
 export { WebSearchSection } from './sections/WebSearchSection';
 export type { WebSearchSectionProps } from './sections/WebSearchSection';
 export { WebFetchSection } from './sections/WebFetchSection';

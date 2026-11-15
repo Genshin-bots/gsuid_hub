@@ -169,6 +169,10 @@
     "title": "Web Search / Image Understanding",
     "description": "Configure web search and image understanding capabilities"
   },
+  "groups": {
+    "webSearch": "Web Search",
+    "webFetch": "Web Fetch"
+  },
   "vectorDb": {
     "title": "Vector Database Service",
     "description": "Configure Qdrant deployment, embedding and reranking models",
@@ -183,6 +187,9 @@
     "rerankWarning": "The reranking model service is heavy and increases latency and resource usage — enable it with caution.",
     "extraProviderBanner": "Currently using embedding provider **{displayName}** registered by plugin **{plugin}** ({kind} mode).",
     "extraProviderHint": "To modify configuration, please go to the Plugin Management page.",
+    "apiKeyPlaceholder": "Enter API keys (multiple supported)",
+    "selectOrInput": "Select or enter {name}",
+    "emptyValue": "(empty)",
     "embeddingModalities": "Embedding Modalities",
     "embeddingModalityText": "Text",
     "embeddingModalityImage": "Image",
@@ -383,6 +390,8 @@
     "fallbackOrderDesc": "Multi-select fallbacks; numbers show priority (1 first). Empty = backend uses all configured sources. Primary cannot be a fallback; switching primary strips it from this list.",
     "primaryConfigSection": "Primary provider config",
     "primaryConfigSectionDesc": "API keys and options for the primary search provider.",
+    "sourceConfig": "Source config",
+    "sourceConfigDesc": "Keys and options for the primary and fallback sources.",
     "fallbackConfigSection": "Fallback provider config",
     "fallbackConfigSectionDesc": "API keys and options for fallback providers; used when primary fails.",
     "rolePrimary": "Primary",
@@ -419,6 +428,8 @@
     "fallbackOrderDesc": "Multi-select fallbacks; numbers show priority. Empty = backend default (usually includes local). Primary cannot be a fallback.",
     "primaryConfigSection": "Primary provider config",
     "primaryConfigSectionDesc": "Keys and options for the primary fetch provider.",
+    "sourceConfig": "Source config",
+    "sourceConfigDesc": "Keys and options for the primary and fallback fetch sources.",
     "fallbackConfigSection": "Fallback provider config",
     "fallbackConfigSectionDesc": "Options for fallback fetch providers; used when primary fails.",
     "providerLocal": "Local",
@@ -549,9 +560,6 @@
     "noActiveConfigTitle": "Config Not Activated",
     "noConfigFileTitle": "No Config Files Available",
     "noConfigFileWarning": "Please click \"New Config\" in the top right to create a config file first, then assign it to high level and low level tasks"
-  },
-  "multimodal": {
-    "title": "Multimodal"
   },
   "imageUnderstand": {
     "title": "Image Understanding",

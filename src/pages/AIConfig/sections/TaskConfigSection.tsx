@@ -1,12 +1,10 @@
 import { AlertTriangle, ListChecks, Plus, Settings, Sparkles, Zap } from 'lucide-react';
-import { pageGapClass, pageStackClass } from '@/components/layout/PinnedPage';
-import { cn } from '@/lib/utils';
+import { pageStackClass } from '@/components/layout/PinnedPage';
 import { Button } from '@/components/ui/button';
 import { GlassAlert } from '@/components/ui/glass-alert';
 import { ConfigSelectDropdown } from '@/components/config';
-import { HeadingWithHelp, LabelWithHelp } from '../shared';
+import { ConfigCard, LabelWithHelp } from '../shared';
 import type { AllConfigItem } from '@/lib/api';
-import { TaskModelOverridesPanel } from './TaskModelOverridesPanel';
 
 export interface TaskConfigSectionProps {
   t: (key: string, params?: Record<string, string | number>) => string;
@@ -36,8 +34,6 @@ export interface TaskConfigSectionProps {
   onSetHighLevel2ndConfig: (fullName: string) => void;
   onSetLowLevel2ndConfig: (fullName: string) => void;
   onOpenManageDialog: () => void;
-  /** 已落库的档位主/备配置签名，变化时高级面板重新拉取「实际生效」 */
-  taskModelsRefreshKey: string;
 }
 
 /**
@@ -46,7 +42,6 @@ export interface TaskConfigSectionProps {
  * 1. 「当前没有配置文件」的红色空状态 + 入口按钮
  * 2. 高级任务（含主 + 备用）
  * 3. 低级任务（含主 + 备用）
- * 4. 高级面板（默认折叠）：按任务类型覆盖上面两档的默认配置
  *
  * 主备双配置语义：主配置用于正常请求；备用配置由后端策略在主配置
  * 失败 / 限流时切换，避免单点故障导致的全部请求失败。
@@ -71,130 +66,122 @@ export function TaskConfigSection({
   onSetHighLevel2ndConfig,
   onSetLowLevel2ndConfig,
   onOpenManageDialog,
-  taskModelsRefreshKey,
 }: TaskConfigSectionProps) {
   return (
     <div className={pageStackClass}>
-      <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <HeadingWithHelp
-          icon={<ListChecks className="w-5 h-5 text-primary" />}
-          title={t('aiConfig.taskConfig.title')}
-          subtitle={t('aiConfig.taskConfig.description')}
-          className="mb-0 min-w-0"
-        />
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-8 gap-1.5 whitespace-nowrap text-xs shrink-0"
-          onClick={onOpenManageDialog}
-        >
-          <Settings className="w-3.5 h-3.5" />
-          {t('aiConfig.manageConfig')}
-        </Button>
-      </div>
-
-      {allConfigsList.length === 0 ? (
-        <GlassAlert tone="danger" icon={AlertTriangle} className="p-4">
-          <p className="text-sm font-medium">{t('aiConfig.providerConfig.noConfigFileTitle')}</p>
-          <p className="mt-1 text-xs opacity-80">{t('aiConfig.taskConfig.emptyHint')}</p>
+      <ConfigCard
+        icon={<ListChecks className="w-5 h-5 text-primary" />}
+        title={t('aiConfig.taskConfig.title')}
+        description={t('aiConfig.taskConfig.description')}
+        actions={
           <Button
             variant="outline"
             size="sm"
-            className="mt-3 h-8 gap-1.5 text-xs"
+            className="h-8 gap-1.5 whitespace-nowrap text-xs shrink-0"
             onClick={onOpenManageDialog}
           >
-            <Plus className="w-3.5 h-3.5" />
-            {t('aiConfig.openaiConfig.createNew')}
+            <Settings className="w-3.5 h-3.5" />
+            {t('aiConfig.manageConfig')}
           </Button>
-        </GlassAlert>
-      ) : (
-        <div className={cn('grid items-start lg:grid-cols-2', pageGapClass)}>
-          {/* 高级任务：主 + 备用 */}
-          <div className="space-y-3">
-            <LabelWithHelp
-              icon={<Sparkles className="w-4 h-4 text-primary" />}
-              label={t('aiConfig.providerConfig.highLevelTask')}
-              description={t('aiConfig.providerConfig.highLevelTaskDesc')}
-            />
-            <ConfigSelectDropdown
-              items={allConfigsList}
-              selectedName={highLevelConfig}
-              onSelect={onSetHighLevelConfig}
-            />
-            {!isHighLevelConfigValid && (
-              <p className="text-xs text-red-600 dark:text-red-400 flex items-center gap-1.5">
-                <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-                {t('aiConfig.taskConfig.notSelectedWarning')}
-              </p>
-            )}
-            <div className="pt-1 pl-1 space-y-2 border-l-2 border-primary/20 ml-1">
+        }
+      >
+        {allConfigsList.length === 0 ? (
+          <GlassAlert tone="danger" icon={AlertTriangle}>
+            <p className="text-sm font-medium">{t('aiConfig.providerConfig.noConfigFileTitle')}</p>
+            <p className="mt-1 text-xs opacity-80">{t('aiConfig.taskConfig.emptyHint')}</p>
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-3 h-8 gap-1.5 text-xs"
+              onClick={onOpenManageDialog}
+            >
+              <Plus className="w-3.5 h-3.5" />
+              {t('aiConfig.openaiConfig.createNew')}
+            </Button>
+          </GlassAlert>
+        ) : (
+          <div className="grid gap-6 lg:grid-cols-2 lg:gap-0 lg:divide-x lg:divide-border/40">
+            {/* 高级任务：主 + 备用 */}
+            <div className="min-w-0 space-y-3 lg:pr-6">
               <LabelWithHelp
-                icon={<Sparkles className="w-3.5 h-3.5 text-muted-foreground" />}
-                label={t('aiConfig.providerConfig.highLevelTask2nd')}
-                description={t('aiConfig.providerConfig.highLevelTask2ndDesc')}
-                className="text-xs font-medium text-muted-foreground"
+                icon={<Sparkles className="w-4 h-4 text-muted-foreground" />}
+                label={t('aiConfig.providerConfig.highLevelTask')}
+                description={t('aiConfig.providerConfig.highLevelTaskDesc')}
+                className="text-sm font-medium"
               />
               <ConfigSelectDropdown
                 items={allConfigsList}
-                selectedName={highLevel2ndConfig}
-                onSelect={onSetHighLevel2ndConfig}
+                selectedName={highLevelConfig}
+                onSelect={onSetHighLevelConfig}
               />
-              {!isHighLevel2ndConfigValid && (
+              {!isHighLevelConfigValid && (
                 <p className="text-xs text-red-600 dark:text-red-400 flex items-center gap-1.5">
                   <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
                   {t('aiConfig.taskConfig.notSelectedWarning')}
                 </p>
               )}
+              <div className="space-y-2 border-t border-border/40 pt-3">
+                <LabelWithHelp
+                  icon={<Sparkles className="w-3.5 h-3.5 text-muted-foreground" />}
+                  label={t('aiConfig.providerConfig.highLevelTask2nd')}
+                  description={t('aiConfig.providerConfig.highLevelTask2ndDesc')}
+                  className="text-xs font-medium text-muted-foreground"
+                />
+                <ConfigSelectDropdown
+                  items={allConfigsList}
+                  selectedName={highLevel2ndConfig}
+                  onSelect={onSetHighLevel2ndConfig}
+                />
+                {!isHighLevel2ndConfigValid && (
+                  <p className="text-xs text-red-600 dark:text-red-400 flex items-center gap-1.5">
+                    <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                    {t('aiConfig.taskConfig.notSelectedWarning')}
+                  </p>
+                )}
+              </div>
             </div>
-          </div>
-          {/* 低级任务：主 + 备用 */}
-          <div className="space-y-3">
-            <LabelWithHelp
-              icon={<Zap className="w-4 h-4 text-primary" />}
-              label={t('aiConfig.providerConfig.lowLevelTask')}
-              description={t('aiConfig.providerConfig.lowLevelTaskDesc')}
-            />
-            <ConfigSelectDropdown
-              items={allConfigsList}
-              selectedName={lowLevelConfig}
-              onSelect={onSetLowLevelConfig}
-            />
-            {!isLowLevelConfigValid && (
-              <p className="text-xs text-red-600 dark:text-red-400 flex items-center gap-1.5">
-                <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-                {t('aiConfig.taskConfig.notSelectedWarning')}
-              </p>
-            )}
-            <div className="pt-1 pl-1 space-y-2 border-l-2 border-primary/20 ml-1">
+            {/* 低级任务：主 + 备用 */}
+            <div className="min-w-0 space-y-3 lg:pl-6">
               <LabelWithHelp
-                icon={<Zap className="w-3.5 h-3.5 text-muted-foreground" />}
-                label={t('aiConfig.providerConfig.lowLevelTask2nd')}
-                description={t('aiConfig.providerConfig.lowLevelTask2ndDesc')}
-                className="text-xs font-medium text-muted-foreground"
+                icon={<Zap className="w-4 h-4 text-muted-foreground" />}
+                label={t('aiConfig.providerConfig.lowLevelTask')}
+                description={t('aiConfig.providerConfig.lowLevelTaskDesc')}
+                className="text-sm font-medium"
               />
               <ConfigSelectDropdown
                 items={allConfigsList}
-                selectedName={lowLevel2ndConfig}
-                onSelect={onSetLowLevel2ndConfig}
+                selectedName={lowLevelConfig}
+                onSelect={onSetLowLevelConfig}
               />
-              {!isLowLevel2ndConfigValid && (
+              {!isLowLevelConfigValid && (
                 <p className="text-xs text-red-600 dark:text-red-400 flex items-center gap-1.5">
                   <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
                   {t('aiConfig.taskConfig.notSelectedWarning')}
                 </p>
               )}
+              <div className="space-y-2 border-t border-border/40 pt-3">
+                <LabelWithHelp
+                  icon={<Zap className="w-3.5 h-3.5 text-muted-foreground" />}
+                  label={t('aiConfig.providerConfig.lowLevelTask2nd')}
+                  description={t('aiConfig.providerConfig.lowLevelTask2ndDesc')}
+                  className="text-xs font-medium text-muted-foreground"
+                />
+                <ConfigSelectDropdown
+                  items={allConfigsList}
+                  selectedName={lowLevel2ndConfig}
+                  onSelect={onSetLowLevel2ndConfig}
+                />
+                {!isLowLevel2ndConfigValid && (
+                  <p className="text-xs text-red-600 dark:text-red-400 flex items-center gap-1.5">
+                    <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                    {t('aiConfig.taskConfig.notSelectedWarning')}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      )}
-
-      {allConfigsList.length > 0 && (
-        <TaskModelOverridesPanel
-          t={t}
-          allConfigsList={allConfigsList}
-          refreshKey={taskModelsRefreshKey}
-        />
-      )}
+        )}
+      </ConfigCard>
     </div>
   );
 }

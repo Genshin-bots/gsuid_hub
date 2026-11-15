@@ -169,6 +169,10 @@
     "title": "网络搜索 / 图片理解",
     "description": "配置联网搜索与图片理解能力"
   },
+  "groups": {
+    "webSearch": "网络搜索",
+    "webFetch": "网页抓取"
+  },
   "vectorDb": {
     "title": "向量数据库服务",
     "description": "配置 Qdrant 向量库部署方式、嵌入模型与重排序模型",
@@ -183,6 +187,9 @@
     "rerankWarning": "重排序模型服务较重，会增加响应延迟与资源占用，建议谨慎启用。",
     "extraProviderBanner": "当前使用由插件 **{plugin}** 注册的嵌入模型提供方 **{displayName}**（{kind} 模式）。",
     "extraProviderHint": "如需修改配置，请前往「插件管理」页面操作。",
+    "apiKeyPlaceholder": "输入 API 密钥（支持多个）",
+    "selectOrInput": "选择或输入{name}",
+    "emptyValue": "（空）",
     "embeddingModalities": "嵌入模型支持的模态",
     "embeddingModalityText": "文本",
     "embeddingModalityImage": "图片",
@@ -383,6 +390,8 @@
     "fallbackOrderDesc": "多选备用源，数字为优先级（1 最先）。留空则由后端使用所有已配置源。主用源不可勾选为备用；切换主用时会自动从备用列表剔除。",
     "primaryConfigSection": "主用源配置",
     "primaryConfigSectionDesc": "当前主用搜索源的密钥与参数。",
+    "sourceConfig": "源配置",
+    "sourceConfigDesc": "主用与备用源的密钥与参数。",
     "fallbackConfigSection": "备用源配置",
     "fallbackConfigSectionDesc": "备用搜索源的密钥与参数；主用失败时才会用到。",
     "rolePrimary": "主用",
@@ -419,6 +428,8 @@
     "fallbackOrderDesc": "多选备用源，数字为优先级。留空则由后端默认（通常含 local）。主用源不可作备用。",
     "primaryConfigSection": "主用源配置",
     "primaryConfigSectionDesc": "当前主用抓取源的密钥与参数。",
+    "sourceConfig": "源配置",
+    "sourceConfigDesc": "主用与备用抓取源的密钥与参数。",
     "fallbackConfigSection": "备用源配置",
     "fallbackConfigSectionDesc": "备用抓取源的参数；主用失败时才会用到。",
     "providerLocal": "本机 (local)",
@@ -549,9 +560,6 @@
     "noActiveConfigTitle": "配置未激活",
     "noConfigFileTitle": "暂无配置文件",
     "noConfigFileWarning": "请先点击右上角「新建配置」添加一个配置文件，然后再为高级任务和低级任务选择对应的配置"
-  },
-  "multimodal": {
-    "title": "多模态"
   },
   "imageUnderstand": {
     "title": "图片理解服务",

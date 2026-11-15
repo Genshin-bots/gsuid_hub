@@ -370,7 +370,7 @@ export function McpParamMappingEditor({
   }
 
   return (
-    <div className="rounded-lg border border-border/40 bg-muted/20 p-3 space-y-2">
+    <div className="space-y-2 border-t border-border/40 pt-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1.5">
           <SlidersHorizontal className="w-3.5 h-3.5 text-muted-foreground" />

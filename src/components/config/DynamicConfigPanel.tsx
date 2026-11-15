@@ -192,6 +192,11 @@ interface DynamicConfigPanelProps {
   onChange: (configId: string, fieldKey: string, value: ConfigValue) => void;
   /** 可选：需要排除的字段 key 列表 */
   excludeKeys?: string[];
+  /**
+   * 每行字段最大列数：默认 3（窄屏 2、PC 3）。
+   * `2` 用于半宽卡片内的面板，全断点下固定两列。
+   */
+  columns?: 2 | 3;
 }
 
 export function DynamicConfigPanel({
@@ -199,6 +204,7 @@ export function DynamicConfigPanel({
   configId,
   onChange,
   excludeKeys = [],
+  columns = 3,
 }: DynamicConfigPanelProps) {
   const allFields = Object.entries(config).filter(([key]) => !excludeKeys.includes(key));
 
@@ -338,7 +344,11 @@ export function DynamicConfigPanel({
       // 默认 stretch 会把矮的那格拉到行高，行底多出一截空白，行间距看着忽大忽小。
       <div
         key={`row-${rowKey}`}
-        className="grid grid-cols-2 items-start gap-x-3 gap-y-3 sm:grid-cols-2 sm:gap-x-6 lg:grid-cols-3"
+        className={
+          columns === 2
+            ? 'grid grid-cols-2 items-start gap-x-3 gap-y-3 sm:gap-x-6'
+            : 'grid grid-cols-2 items-start gap-x-3 gap-y-3 sm:grid-cols-2 sm:gap-x-6 lg:grid-cols-3'
+        }
       >
         {rowBuffer.map(({ key, item }) => renderField(key, item))}
       </div>,

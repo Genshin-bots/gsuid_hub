@@ -1,4 +1,5 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
+import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
 import {
   Ban,
   GitBranch,
@@ -15,16 +16,16 @@ import { ChipGroup } from '@/components/ui/MultiSelectChipGroup';
 import { DynamicConfigPanel, type ConfigValue } from '@/components/config';
 import type { PluginConfigItem } from '@/lib/api';
 import { pageStackClass } from '@/components/layout/PinnedPage';
-import { cn } from '@/lib/utils';
 import {
+  ConfigCard,
+  ConfigGroup,
+  ConfigGroupList,
   filterOutPrimaryProvider,
-  HeadingWithHelp,
-  LabelWithHelp,
   sameProviderId,
 } from '../shared';
 
 export interface WebFetchSectionProps {
-  t: (key: string) => string;
+  t: (key: string, params?: Record<string, string | number>) => string;
 
   /** 主用抓取提供方：Jina | DeepSeek | local */
   webfetchProvider: string;
@@ -61,42 +62,6 @@ const STRATEGY_ICONS: Record<string, ReactNode> = {
   error_switch: <GitBranch className="w-3.5 h-3.5" />,
   auto_balance: <Shuffle className="w-3.5 h-3.5" />,
 };
-
-function ConfigBlock({
-  blockRole,
-  title,
-  icon,
-  roleLabel,
-  children,
-}: {
-  blockRole: 'primary' | 'fallback';
-  title: string;
-  icon?: ReactNode;
-  roleLabel: string;
-  children: ReactNode;
-}) {
-  const isPrimary = blockRole === 'primary';
-  return (
-    <div
-      className={cn(
-        'rounded-lg border p-4 space-y-3 glass-card transition-all',
-        isPrimary ? 'border-primary/40' : 'border-dashed border-border/60',
-      )}
-    >
-      <div className="flex items-center gap-2 min-w-0">
-        <Badge
-          variant={isPrimary ? 'default' : 'outline'}
-          className={cn('shrink-0 text-[10px] h-5 px-1.5', !isPrimary && 'text-muted-foreground')}
-        >
-          {roleLabel}
-        </Badge>
-        {icon}
-        <span className="text-sm font-medium truncate">{title}</span>
-      </div>
-      {children}
-    </div>
-  );
-}
 
 /**
  * 「网页抓取服务」配置：主用源 + 多源策略 + 主用/备用分区配置。
@@ -146,6 +111,14 @@ export function WebFetchSection({
   const effectiveFallbacks = filterOutPrimaryProvider(webfetchFallbackOrder, primary);
 
   const fallbackChipValue = effectiveFallbacks;
+
+  // 源配置卡片内的 provider 切换器：主用在首位，备用按顺序
+  const panelProviders = showFallbackUi ? [primary, ...effectiveFallbacks] : [primary];
+  const [selectedProvider, setSelectedProvider] = useState(primary);
+  // 选中项失效（换主用 / 被移出备用顺序）时回落到主用
+  const activePanelProvider = panelProviders.some((p) => sameProviderId(p, selectedProvider))
+    ? selectedProvider
+    : primary;
 
   const providerLabel = (p: string) => {
     if (providerLabels[p]) return providerLabels[p];
@@ -207,129 +180,136 @@ export function WebFetchSection({
 
   return (
     <div className={pageStackClass}>
-      <HeadingWithHelp
+      {/* 抓取源：主用 / 多源策略 / 备用顺序 */}
+      <ConfigCard
         icon={<Globe className="w-5 h-5 text-primary" />}
         title={t('aiConfig.webFetch.title')}
         description={t('aiConfig.webFetch.description')}
-      />
-
-      <div className="space-y-2">
-        <LabelWithHelp
-          icon={<Layers className="w-3.5 h-3.5 text-muted-foreground" />}
-          label={t('aiConfig.webFetch.primaryProvider')}
-          description={
-            isJina
-              ? t('aiConfig.webFetch.jinaHint')
-              : isDeepSeek
-                ? t('aiConfig.webFetch.deepseekHint')
-                : t('aiConfig.webFetch.localHint')
-          }
-          className="text-xs font-medium text-muted-foreground"
-        />
-        <ChipGroup
-          options={webfetchProviderOptions.map((p) => ({
-            value: p,
-            label: providerLabel(p),
-            icon: getFetchProviderIcon(p),
-          }))}
-          value={[primary]}
-          onValueChange={(v) => onChangeProvider(v[0] || 'Jina')}
-          selectMode="single"
-          showRadioIndicator
-        />
-      </div>
-
-      <div className="space-y-2 pt-1 border-t border-border/30">
-        <LabelWithHelp
-          icon={<GitBranch className="w-3.5 h-3.5 text-muted-foreground" />}
-          label={t('aiConfig.webFetch.lbStrategy')}
-          description={t('aiConfig.webFetch.lbStrategyDesc')}
-          className="text-xs font-medium text-muted-foreground"
-        />
-        <ChipGroup
-          options={webfetchLbStrategyOptions.map((s) => ({
-            value: s,
-            label: strategyLabels[s] || s,
-            icon: STRATEGY_ICONS[s] ?? <GitBranch className="w-3.5 h-3.5" />,
-          }))}
-          value={[webfetchLbStrategy || 'error_switch']}
-          onValueChange={(newValue) => onChangeLbStrategy(newValue[0] || 'error_switch')}
-          selectMode="single"
-          showRadioIndicator
-        />
-      </div>
-
-      {showFallbackUi && (
-        <div className="space-y-2">
-          <LabelWithHelp
-            icon={<ListOrdered className="w-3.5 h-3.5 text-muted-foreground" />}
-            label={t('aiConfig.webFetch.fallbackOrder')}
-            description={t('aiConfig.webFetch.fallbackOrderDesc')}
-            className="text-xs font-medium text-muted-foreground"
-          />
-          <ChipGroup
-            options={fallbackOpts.map((p) => {
-              const isPrimary = sameProviderId(p, primary);
-              const base = providerLabel(p);
-              return {
+      >
+        <ConfigGroupList>
+          <ConfigGroup
+            layout="inline"
+            icon={<Layers className="w-4 h-4 text-muted-foreground" />}
+            label={t('aiConfig.webFetch.primaryProvider')}
+            description={
+              isJina
+                ? t('aiConfig.webFetch.jinaHint')
+                : isDeepSeek
+                  ? t('aiConfig.webFetch.deepseekHint')
+                  : t('aiConfig.webFetch.localHint')
+            }
+          >
+            <ChipGroup
+              options={webfetchProviderOptions.map((p) => ({
                 value: p,
-                label: isPrimary ? `${base} (${t('aiConfig.serviceProvider.rolePrimary')})` : base,
+                label: providerLabel(p),
                 icon: getFetchProviderIcon(p),
-                disabled: isPrimary,
-              };
-            })}
-            value={fallbackChipValue}
-            onValueChange={(visibleSelected) => {
-              // 绝不把当前主用写入 fallback_order
-              onChangeFallbackOrder(filterOutPrimaryProvider(visibleSelected, primary));
-            }}
-            selectMode="multiple"
-            allowEmpty
-            showOrderIndex
-          />
-        </div>
-      )}
+              }))}
+              value={[primary]}
+              onValueChange={(v) => onChangeProvider(v[0] || 'Jina')}
+              selectMode="single"
+              showRadioIndicator
+            />
+          </ConfigGroup>
 
-      {/* 主用源配置 */}
-      <div className="space-y-2 pt-1 border-t border-border/30">
-        <LabelWithHelp
-          icon={<Settings2 className="w-3.5 h-3.5 text-muted-foreground" />}
-          label={t('aiConfig.webFetch.primaryConfigSection')}
-          description={t('aiConfig.webFetch.primaryConfigSectionDesc')}
-          className="text-xs font-medium text-muted-foreground"
-        />
-        <ConfigBlock
-          blockRole="primary"
-          title={providerLabel(primary)}
-          icon={getFetchProviderIcon(primary)}
-          roleLabel={t('aiConfig.serviceProvider.rolePrimary')}
-        >
-          {renderProviderPanel(primary)}
-        </ConfigBlock>
-      </div>
+          <ConfigGroup
+            layout="inline"
+            icon={<GitBranch className="w-4 h-4 text-muted-foreground" />}
+            label={t('aiConfig.webFetch.lbStrategy')}
+            description={t('aiConfig.webFetch.lbStrategyDesc')}
+          >
+            <TabButtonGroup
+              size="sm"
+              value={webfetchLbStrategy || 'error_switch'}
+              onValueChange={(v) => onChangeLbStrategy(v || 'error_switch')}
+              options={webfetchLbStrategyOptions.map((s) => ({
+                value: s,
+                label: strategyLabels[s] || s,
+                icon: STRATEGY_ICONS[s] ?? <GitBranch className="w-3.5 h-3.5" />,
+              }))}
+            />
+          </ConfigGroup>
 
-      {/* 备用源配置 */}
-      {showFallbackUi && effectiveFallbacks.length > 0 && (
-        <div className="space-y-3">
-          <LabelWithHelp
-            icon={<Layers className="w-3.5 h-3.5 text-muted-foreground" />}
-            label={t('aiConfig.webFetch.fallbackConfigSection')}
-            description={t('aiConfig.webFetch.fallbackConfigSectionDesc')}
-            className="text-xs font-medium text-muted-foreground"
-          />
-          {effectiveFallbacks.map((p) => (
-            <ConfigBlock
-              key={p}
-              blockRole="fallback"
-              title={providerLabel(p)}
-              icon={getFetchProviderIcon(p)}
-              roleLabel={t('aiConfig.serviceProvider.roleFallback')}
+          {showFallbackUi && (
+            <ConfigGroup
+              layout="inline"
+              icon={<ListOrdered className="w-4 h-4 text-muted-foreground" />}
+              label={t('aiConfig.webFetch.fallbackOrder')}
+              description={t('aiConfig.webFetch.fallbackOrderDesc')}
             >
-              {renderProviderPanel(p)}
-            </ConfigBlock>
-          ))}
+              <ChipGroup
+                options={fallbackOpts.map((p) => {
+                  const isPrimary = sameProviderId(p, primary);
+                  const base = providerLabel(p);
+                  return {
+                    value: p,
+                    label: isPrimary
+                      ? `${base} (${t('aiConfig.serviceProvider.rolePrimary')})`
+                      : base,
+                    icon: getFetchProviderIcon(p),
+                    disabled: isPrimary,
+                  };
+                })}
+                value={fallbackChipValue}
+                onValueChange={(visibleSelected) => {
+                  // 绝不把当前主用写入 fallback_order
+                  onChangeFallbackOrder(filterOutPrimaryProvider(visibleSelected, primary));
+                }}
+                selectMode="multiple"
+                allowEmpty
+                showOrderIndex
+              />
+            </ConfigGroup>
+          )}
+        </ConfigGroupList>
+      </ConfigCard>
+
+      {/* 源配置：主用 + 备用，TabButtonGroup 切换当前编辑的 provider */}
+      <ConfigCard
+        icon={<Settings2 className="w-5 h-5 text-primary" />}
+        title={t('aiConfig.webFetch.sourceConfig')}
+        description={t('aiConfig.webFetch.sourceConfigDesc')}
+      >
+        {panelProviders.length > 1 ? (
+          <TabButtonGroup
+            size="sm"
+            value={activePanelProvider}
+            onValueChange={setSelectedProvider}
+            options={panelProviders.map((p, i) => ({
+              value: p,
+              label: providerLabel(p),
+              icon: getFetchProviderIcon(p),
+              badge:
+                i === 0 ? (
+                  <Badge
+                    variant="outline"
+                    className="h-4 px-1 text-[10px] border-primary/30 text-primary"
+                  >
+                    {t('aiConfig.serviceProvider.rolePrimary')}
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="h-4 px-1 text-[10px]">
+                    {i}
+                  </Badge>
+                ),
+            }))}
+          />
+        ) : (
+          <div className="flex items-center gap-2">
+            {getFetchProviderIcon(primary)}
+            <span className="text-sm font-medium">{providerLabel(primary)}</span>
+            <Badge
+              variant="outline"
+              className="h-4 px-1 text-[10px] border-primary/30 text-primary"
+            >
+              {t('aiConfig.serviceProvider.rolePrimary')}
+            </Badge>
+          </div>
+        )}
+        <div className="border-t border-border/40 pt-4">
+          {renderProviderPanel(activePanelProvider)}
         </div>
-      )}
+      </ConfigCard>
     </div>
   );
 }

@@ -61,9 +61,13 @@ export function LabelWithHelp({
 }: LabelWithHelpProps) {
   const resolvedClassName = className ?? 'text-sm font-semibold';
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex min-w-0 items-center gap-2">
       {icon}
-      <Label htmlFor={htmlFor} className={resolvedClassName}>
+      <Label
+        htmlFor={htmlFor}
+        className={resolvedClassName}
+        title={typeof label === 'string' ? label : undefined}
+      >
         {label}
       </Label>
       {description !== undefined && description !== null && description !== '' && (

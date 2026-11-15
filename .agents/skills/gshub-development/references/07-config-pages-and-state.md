@@ -294,7 +294,7 @@ provider 的创建 / 编辑弹窗展示。
 ## 7.7 网络搜索 / 网页抓取：多源主备 UI ★★
 
 位置：`AIConfig/sections/WebSearchSection.tsx`、`WebFetchSection.tsx`；装配于
-`AIConfigPage.tsx` 的同一个分区「网络搜索 / 抓取」，宽屏左搜索、右抓取。
+`AIConfigPage.tsx` 顶部页签栏相邻的两个独立页签（`webSearch` / `webFetch`）。
 对应后端 `ai_config` 字段 `websearch_*` / `webfetch_*`（热读，**无需重启**）。
 
 ### 字段与默认
@@ -314,7 +314,8 @@ provider 的创建 / 编辑弹窗展示。
 ### UI 结构（两 section 同构）
 
 1. **主用源** `ChipGroup` 单选（`selectMode="single"` + 品牌图标 `@thesvg/react`）。
-2. **多源策略** 单选 Chip：无 / 错误切换 / 自动分流；文案用 `LabelWithHelp` + **Markdown 多行 tooltip**。
+2. **多源策略** `TabButtonGroup size="sm"` 分段控件：无 / 错误切换 / 自动分流（带策略图标）；
+   文案用 `LabelWithHelp` + **Markdown 多行 tooltip**。
 3. **备用顺序** 仅当策略为 `error_switch` | `auto_balance` 时显示（`none` 时整块隐藏）：
    - 多选 Chip，`allowEmpty` + **`showOrderIndex`**（选中 chip 显示 1-based 优先级）；
    - **主用项仍展示**，但 `disabled: true`，标签可标「主用」；
@@ -323,8 +324,13 @@ provider 的创建 / 编辑弹窗展示。
      **无 soft-memory**——旧主用不会自动回到备用勾选，需用户再次点选；
    - provider 身份用 `sameProviderId`（trim + 大小写不敏感）比较；
    - `onValueChange` 只写回可见选中（已过滤主用）。
-4. **配置分区**：主用块 `border-primary/30 bg-primary/5` + 实心 Badge；备用块虚线边框 + 仅渲染
-   `effectiveFallbacks`（过滤掉主用）的配置面板；**无备用勾选则不渲染备用配置区**。
+4. **源配置卡**：主用与所有备用 provider 合并在一张「源配置」`ConfigCard` 内，
+   用 `TabButtonGroup size="sm"` 切换当前编辑的 provider——主用在首位（徽标「主用」），
+   备用按 `fallback_order` 顺序（徽标为 1-based 顺序号），均带品牌图标；
+   下方整宽渲染所选源的 `DynamicConfigPanel`（默认 3 列）或 MCP 关联 UI。
+   本地 `selectedProvider` 状态在选中项离开列表时回落到主用；
+   策略为 `none` / 仅主用一个源时隐藏切换器，改为一行「图标 + 名称 + 主用徽标」。
+   仅渲染 `effectiveFallbacks`（过滤掉主用）。
 
 ### 保存时剥离「备用=主用」
 

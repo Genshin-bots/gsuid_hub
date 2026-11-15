@@ -1,12 +1,12 @@
 import { Smile, Sparkles } from 'lucide-react';
-import { pageGapClass, pageStackClass } from '@/components/layout/PinnedPage';
-import { cn } from '@/lib/utils';
+import { pageStackClass } from '@/components/layout/PinnedPage';
+import { Switch } from '@/components/ui/switch';
 import { ConfigField, pluginConfigItemToFieldDef, type ConfigValue } from '@/components/config';
-import { ToggleRow } from '../shared';
+import { ConfigCard, fieldGridClass, SettingRow } from '../shared';
 import type { PluginConfigItem } from '@/lib/api';
 
 export interface MemeSettingsSectionProps {
-  t: (key: string) => string;
+  t: (key: string, params?: Record<string, string | number>) => string;
   memeConfig?: {
     id: string;
     config: Record<string, PluginConfigItem>;
@@ -26,31 +26,26 @@ export function MemeSettingsSection({ t, memeConfig, onUpdateConfig }: MemeSetti
 
   return (
     <div className={pageStackClass}>
-      <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="text-lg font-bold flex items-center gap-2 mb-1">
-            <Smile className="w-5 h-5 text-primary" />
-            {t('aiConfig.memeSettings.title')}
-          </h2>
-          <p className="text-sm text-muted-foreground">{t('aiConfig.memeSettings.description')}</p>
-        </div>
-      </div>
+      <ConfigCard
+        icon={<Smile className="w-5 h-5 text-primary" />}
+        title={t('aiConfig.memeSettings.title')}
+        description={t('aiConfig.memeSettings.description')}
+      >
+        <SettingRow
+          icon={<Sparkles className="w-5 h-5 text-primary" strokeWidth={1.5} />}
+          title={t('aiConfig.memeSettings.autoCollect')}
+          description={t('aiConfig.memeSettings.autoCollectDesc')}
+          control={
+            <Switch
+              checked={(memeConfig.config.meme_auto_collect?.value as boolean) ?? false}
+              onCheckedChange={(checked) =>
+                onUpdateConfig(memeConfig.id, 'meme_auto_collect', checked)
+              }
+            />
+          }
+        />
 
-      <div className={pageStackClass}>
-        <div className="p-3 rounded-lg glass-card transition-all">
-          <ToggleRow
-            icon={<Sparkles className="w-5 h-5" strokeWidth={1.5} />}
-            iconColorClass="text-primary"
-            title={t('aiConfig.memeSettings.autoCollect')}
-            description={t('aiConfig.memeSettings.autoCollectDesc')}
-            checked={(memeConfig.config.meme_auto_collect?.value as boolean) ?? false}
-            onCheckedChange={(checked) =>
-              onUpdateConfig(memeConfig.id, 'meme_auto_collect', checked)
-            }
-          />
-        </div>
-
-        <div className={cn('grid grid-cols-2 items-start lg:grid-cols-3', pageGapClass)}>
+        <div className={`${fieldGridClass} border-t border-border/40 pt-4`}>
           {(() => {
             const entries = Object.entries(memeConfig.config).filter(
               ([key]) => !EXCLUDED_KEYS.includes(key),
@@ -58,7 +53,7 @@ export function MemeSettingsSection({ t, memeConfig, onUpdateConfig }: MemeSetti
             if (entries.length === 0) {
               return (
                 <div className="col-span-full py-12 text-center text-muted-foreground">
-                  <p>{t('plugins.noConfigItems') || '暂无配置项'}</p>
+                  <p>{t('plugins.noConfigItems')}</p>
                 </div>
               );
             }
@@ -77,7 +72,7 @@ export function MemeSettingsSection({ t, memeConfig, onUpdateConfig }: MemeSetti
             });
           })()}
         </div>
-      </div>
+      </ConfigCard>
     </div>
   );
 }

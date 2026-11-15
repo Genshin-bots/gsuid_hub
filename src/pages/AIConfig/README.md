@@ -41,24 +41,30 @@ src/pages/AIConfig/
 │   ├── useAIWizard              ← AI 配置体检（wizard checklist / status）
 │   └── useAIServiceSwitch.ts    ← AI 服务总开关（确认 dialog + pending restart）
 ├── shared/                      ← 与具体 section 解耦的通用组件
-│   ├── ToggleRow.tsx
+│   ├── ConfigCard.tsx           ← section 卡片：图标 + 标题 + ? 帮助 tooltip + 右侧操作 + 正文；`collapsible` 可折叠
+│   ├── ConfigGroup.tsx          ← 卡片内分组标题（label + 帮助 + 子内容；`layout="inline"` 标签与控件同行）
+│   ├── ConfigGroupList.tsx      ← 连续 inline ConfigGroup 的容器：标签共享 max-content 列、单行不换行
+│   ├── SettingRow.tsx           ← 卡片内「标题 + 说明 + 右侧控件」行（divide-y 列表）
+│   ├── fieldGrid.ts             ← 手写字段列表统一网格 class（fieldGridClass / fieldWideClass）
+│   ├── providerId.ts            ← sameProviderId / filterOutPrimaryProvider
 │   ├── PersonaAvatar.tsx
 │   ├── EmptyState.tsx
-│   ├── LabelWithHelp.tsx        ← 字段标签 + Markdown 帮助 tooltip
-│   ├── HeadingWithHelp.tsx
 │   ├── SidebarItem.tsx
+│   ├── PassthroughOption.tsx
 │   └── renderRichText.tsx
 ├── sections/                    ← 页面右侧 section（含搜索/抓取多源）
 │   ├── ServiceSwitchSection.tsx
 │   ├── TaskConfigSection.tsx
-│   ├── WebSearchSection.tsx     ← 网络搜索：主用 + 多源策略 + 备用分区
-│   ├── WebFetchSection.tsx      ← 网页抓取：Jina / local 同构 UI
+│   ├── TaskModelOverridesPanel.tsx  ← 任务模型档位覆写面板（独立存取，挂在 TaskConfig 卡内）
+│   ├── WebSearchSection.tsx     ← 网络搜索：主用 + 多源策略 + 备用分区（独立页签）
+│   ├── WebFetchSection.tsx      ← 网页抓取：Jina / local 同构 UI（独立页签）
 │   ├── ImageUnderstandSection.tsx
 │   ├── VectorDbSection.tsx
 │   ├── VoiceRecognitionSection.tsx
 │   ├── DocumentExtractSection.tsx
 │   ├── MemorySettingsSection.tsx
 │   ├── MemeSettingsSection.tsx
+│   ├── RelationshipSettingsSection.tsx
 │   ├── CommandExecutorSection.tsx
 │   ├── GsCoreAiMcpServerSection.tsx
 │   └── AdvancedSettingsSection.tsx
@@ -98,7 +104,24 @@ src/pages/AIConfig/
 
 - **派生**：`aiConfig` / `embeddingConfig` / `rerankConfig` / `tavilyConfig` / `exaConfig` / `miniMaxConfig` / `memoryConfig` / `memeConfig` / `mcpToolsConfig` / `qdrantConfig` / `isAIEnabled` / `websearchProvider` / `imageUnderstandProvider` / `embeddingProvider` / `asrProvider` / `documentExtractProvider` / `*ProviderOptions` / `isConfigDirty`
 - **保存流**：`executeSave` / `handleSaveConfig` / `handleConfirmEmbeddingSave` + `EmbeddingWarningDialog` 逻辑
-- **渲染**：Header + AI 总开关 + Sidebar + 右侧激活 Section + 8 个 Dialog
+- **渲染**：Header + AI 总开关 + 页签栏 + 激活 Section + 8 个 Dialog
+- **页签**（`TabButtonGroup`，`collapseOnMobile`）：`taskConfig`（红点提示）/ `vectorDb` /
+  `webSearch` / `webFetch` / `memorySettings` / `memeSettings`（有 `memeConfig` 时）/
+  `gsCoreAiMcpServer` / `commandExecutor` / `advancedSettings`。
+  `webSearch` 与 `webFetch` 是相邻的两个独立页签；多模态三张卡
+  （图片理解 / 语音识别 / 文档提取）并入 `taskConfig` 页签内，
+  旧 id `multimodal` / `imageUnderstand` / `voiceRecognition` / `documentExtract`
+  在 `renderActiveSection` 里回退到 `taskConfig`。
+- **布局**：section 根容器为 `pageStackClass` 卡片栈；卡片用 `ConfigCard`（`collapsible` 时
+  整个标题行可点击折叠），子区块用 `ConfigGroup`（`layout="inline"` 时 sm+ 标签与单行控件同行；
+  连续多个 inline 组放进 `ConfigGroupList` 让标签共享同一列宽；半宽卡片内一律 stacked）。
+  **一张卡只有一层玻璃面**：卡内不再放带边框/底色的嵌套盒，结构靠留白、
+  字级与发丝分隔线（`divide-y divide-border/40` / `border-t` / `lg:divide-x`）；
+  「标题 + 说明 + 右侧控件」行用 `SettingRow`（列表容器配 `settingListClass`）。
+  半宽卡（`xl:grid-cols-2`）内字段面板用 `DynamicConfigPanel columns={2}` /
+  `fieldGrid2Class` + `fieldWide2Class`；全宽卡沿用默认 3 列。
+  Web 搜索 / 抓取的「源配置」卡用 `TabButtonGroup size="sm"` 在主用 + 备用源之间
+  切换（主用徽标「主用」，备用徽标为顺序号），下方整宽渲染所选源的字段。
 
 ### sections
 
@@ -133,9 +156,12 @@ src/pages/AIConfig/
 
 | 组件 | 用途 |
 | --- | --- |
-| `ToggleRow` | 「图标 + 标题 + 描述 + Switch」通用行 |
+| `ConfigCard` | section 卡片：`glass-card` + 图标 + `text-base` 标题 + `?` 帮助 tooltip + 右侧操作区；`collapsible` 时标题行可折叠、收起即纯头部高度 |
+| `ConfigGroup` | 卡片内分组：`text-sm` 分组 label（可选图标 / 帮助 / 右侧操作）+ 子内容；`layout="inline"` 标签同行单行不换行 |
+| `ConfigGroupList` | 连续 inline `ConfigGroup` 的容器：sm+ 标签列宽按最长标签共享（上限 14rem 截断） |
+| `SettingRow` / `settingListClass` | 卡片内「图标 + 标题 + 说明 + 右侧控件」行；放进 `divide-y divide-border/40` 列表 |
+| `fieldGridClass` / `fieldWideClass` | 手写字段列表的统一网格（1/2/3 列）与跨列 class，与 DynamicConfigPanel 对齐 |
 | `LabelWithHelp` | 字段 Label + `?`；string description 按 Markdown 渲染 |
-| `HeadingWithHelp` | section 标题 + 帮助 |
 | `PersonaAvatar` | 角色头像：远程 + 失败回退 + 禁用置灰 |
 | `EmptyState` | 居中图标 + 标题 + 副标题 |
 | `SidebarItem` | 桌面 / 移动（折叠）双形态 |

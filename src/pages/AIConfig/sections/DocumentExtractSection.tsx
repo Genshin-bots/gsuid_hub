@@ -1,12 +1,12 @@
 import { FileText, Wrench } from 'lucide-react';
-import { pageStackClass } from '@/components/layout/PinnedPage';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ChipGroup } from '@/components/ui/MultiSelectChipGroup';
 import { McpParamMappingEditor } from '@/components/config';
+import { ConfigCard } from '../shared';
 
 export interface DocumentExtractSectionProps {
-  t: (key: string) => string;
+  t: (key: string, params?: Record<string, string | number>) => string;
   aiConfigId: string;
   documentExtractProvider: string;
   documentExtractProviderOptions: string[];
@@ -51,16 +51,12 @@ export function DocumentExtractSection({
   onRemoveMcpDetailRow,
 }: DocumentExtractSectionProps) {
   return (
-    <div className={pageStackClass}>
-      <div>
-        <h2 className="text-lg font-bold flex items-center gap-2 mb-1">
-          <FileText className="w-5 h-5 text-primary" />
-          {t('aiConfig.documentExtract.title')}
-        </h2>
-        <p className="text-sm text-muted-foreground">
-          {documentExtractProviderDesc || t('aiConfig.documentExtract.providerDesc')}
-        </p>
-      </div>
+    <ConfigCard
+      icon={<FileText className="w-5 h-5 text-primary" />}
+      title={t('aiConfig.documentExtract.title')}
+      description={documentExtractProviderDesc || t('aiConfig.documentExtract.providerDesc')}
+      className="h-full"
+    >
       <ChipGroup
         options={documentExtractProviderOptions.map((p) => ({
           value: p,
@@ -73,14 +69,12 @@ export function DocumentExtractSection({
         showRadioIndicator
       />
       {documentExtractProvider === 'MCP' && (
-        <div className="pt-3 border-t border-border/30 space-y-3">
+        <div className="pt-4 border-t border-border/40 space-y-3">
           <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2 min-w-0 flex-1">
               {documentExtractToolInfo ? (
                 <>
-                  <div className="flex items-center justify-center flex-shrink-0 w-6 h-6 rounded-md bg-primary/10 text-primary">
-                    <Wrench className="w-3 h-3" />
-                  </div>
+                  <Wrench className="w-3.5 h-3.5 shrink-0 text-primary" />
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5">
                       <span className="text-sm font-medium truncate">
@@ -141,6 +135,6 @@ export function DocumentExtractSection({
           )}
         </div>
       )}
-    </div>
+    </ConfigCard>
   );
 }

@@ -10,10 +10,9 @@
  * 即使 AI 未启用，作为 MCP Server 的开关仍可独立配置。
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
+import { GlassAlert } from '@/components/ui/glass-alert';
 import { DynamicConfigPanel } from '@/components/config';
 import type { ConfigValue } from '@/components/config';
 import { frameworkConfigApi, type PluginConfigItem } from '@/lib/api';
@@ -33,6 +32,7 @@ import {
 import { toast } from 'sonner';
 import { pageGapClass, pageStackClass } from '@/components/layout/PinnedPage';
 import { cn } from '@/lib/utils';
+import { ConfigCard } from '../shared';
 
 const MCP_SERVER_CONFIG_ENCODED = 'GsCore%20AI%20MCP%20Server%E9%85%8D%E7%BD%AE';
 const MCP_SERVER_CONFIG_FULL_NAME = 'GsCore AI MCP Server配置';
@@ -45,12 +45,10 @@ interface RawServerConfig {
 }
 
 export interface GsCoreAiMcpServerSectionProps {
-  t: (key: string) => string;
-  /** 玻璃拟态样式开关，用于卡片样式 */
-  isGlass?: boolean;
+  t: (key: string, params?: Record<string, string | number>) => string;
 }
 
-export function GsCoreAiMcpServerSection({ t, isGlass = false }: GsCoreAiMcpServerSectionProps) {
+export function GsCoreAiMcpServerSection({ t }: GsCoreAiMcpServerSectionProps) {
   const [rawConfig, setRawConfig] = useState<RawServerConfig | null>(null);
   const [editedConfig, setEditedConfig] = useState<Record<string, PluginConfigItem>>({});
 
@@ -152,109 +150,93 @@ export function GsCoreAiMcpServerSection({ t, isGlass = false }: GsCoreAiMcpServ
   // ---------------- 渲染 ----------------
   return (
     <div className={pageStackClass}>
-      {/* 标题 */}
-      <div>
-        <h2 className="text-lg font-bold flex items-center gap-2 mb-1">
-          <Server className="w-5 h-5 text-muted-foreground" />
-          {t('gsCoreAiMcpServer.title')}
-        </h2>
-        <p className="text-sm text-muted-foreground">{t('gsCoreAiMcpServer.description')}</p>
-      </div>
-
-      {/* 状态卡片 */}
-      <div className={cn('grid grid-cols-2 lg:grid-cols-4', pageGapClass)}>
-        <StatusCard
-          icon={<Activity className="w-5 h-5" />}
-          label={t('gsCoreAiMcpServer.status.enable')}
-          value={
-            <Badge
-              variant={savedEnableMcpServer ? 'default' : 'secondary'}
-              className={cn(
-                'text-sm',
-                savedEnableMcpServer && 'bg-green-500/15 text-green-700 dark:text-green-400',
-              )}
-            >
-              {savedEnableMcpServer
-                ? t('gsCoreAiMcpServer.status.enabled')
-                : t('gsCoreAiMcpServer.status.disabled')}
-            </Badge>
-          }
-          glassClassName={'glass-card'}
-        />
-        <StatusCard
-          icon={
-            savedTransport === 'stdio' ? (
-              <Terminal className="w-5 h-5" />
-            ) : (
-              <Globe className="w-5 h-5" />
-            )
-          }
-          label={t('gsCoreAiMcpServer.status.transport')}
-          value={
-            <span className="text-sm font-mono">
-              {savedTransport === 'stdio' ? 'stdio' : `SSE :${savedPort}`}
-            </span>
-          }
-          glassClassName={'glass-card'}
-        />
-        <StatusCard
-          icon={<ShieldCheck className="w-5 h-5" />}
-          label={t('gsCoreAiMcpServer.status.auth')}
-          value={
-            <Badge
-              variant={savedApiKey ? 'default' : 'secondary'}
-              className={cn(
-                'text-sm',
-                savedApiKey && 'bg-blue-500/15 text-blue-700 dark:text-blue-400',
-              )}
-            >
-              {savedApiKey
-                ? t('gsCoreAiMcpServer.status.authEnabled')
-                : t('gsCoreAiMcpServer.status.authDisabled')}
-            </Badge>
-          }
-          glassClassName={'glass-card'}
-        />
-        <StatusCard
-          icon={<Plug className="w-5 h-5" />}
-          label={t('gsCoreAiMcpServer.status.endpoints')}
-          value={
-            <span className="text-sm font-mono break-all">
-              {savedTransport === 'stdio' ? 'stdin / stdout' : `http(s)://<host>:${savedPort}/...`}
-            </span>
-          }
-          glassClassName={'glass-card'}
-        />
-      </div>
-
-      {/* 提示横幅：仅在服务端已实际启用时显示 */}
-      {savedEnableMcpServer && (
-        <div
-          className={cn(
-            'flex items-start gap-3 rounded-lg p-4 text-sm',
-            'glass-card glass-alert glass-alert-tint glass-alert-tint-info',
-          )}
-        >
-          <AlertTriangle className="w-4 h-4 mt-0.5 text-blue-600 dark:text-blue-400 shrink-0" />
-          <div className="space-y-1">
-            <p className="font-semibold">{t('gsCoreAiMcpServer.banner.activeTitle')}</p>
-            <p className="text-muted-foreground">{t('gsCoreAiMcpServer.banner.activeDesc')}</p>
-          </div>
+      {/* 状态总览 */}
+      <ConfigCard
+        icon={<Server className="w-5 h-5 text-primary" />}
+        title={t('gsCoreAiMcpServer.title')}
+        description={t('gsCoreAiMcpServer.description')}
+      >
+        <div className="grid grid-cols-2 gap-y-3 lg:grid-cols-4 lg:divide-x lg:divide-border/40">
+          <StatusTile
+            icon={<Activity className="w-5 h-5" />}
+            label={t('gsCoreAiMcpServer.status.enable')}
+            value={
+              <Badge
+                variant={savedEnableMcpServer ? 'default' : 'secondary'}
+                className={cn(
+                  'text-sm',
+                  savedEnableMcpServer && 'bg-green-500/15 text-green-700 dark:text-green-400',
+                )}
+              >
+                {savedEnableMcpServer
+                  ? t('gsCoreAiMcpServer.status.enabled')
+                  : t('gsCoreAiMcpServer.status.disabled')}
+              </Badge>
+            }
+          />
+          <StatusTile
+            icon={
+              savedTransport === 'stdio' ? (
+                <Terminal className="w-5 h-5" />
+              ) : (
+                <Globe className="w-5 h-5" />
+              )
+            }
+            label={t('gsCoreAiMcpServer.status.transport')}
+            value={
+              <span className="text-sm font-mono">
+                {savedTransport === 'stdio' ? 'stdio' : `SSE :${savedPort}`}
+              </span>
+            }
+          />
+          <StatusTile
+            icon={<ShieldCheck className="w-5 h-5" />}
+            label={t('gsCoreAiMcpServer.status.auth')}
+            value={
+              <Badge
+                variant={savedApiKey ? 'default' : 'secondary'}
+                className={cn(
+                  'text-sm',
+                  savedApiKey && 'bg-blue-500/15 text-blue-700 dark:text-blue-400',
+                )}
+              >
+                {savedApiKey
+                  ? t('gsCoreAiMcpServer.status.authEnabled')
+                  : t('gsCoreAiMcpServer.status.authDisabled')}
+              </Badge>
+            }
+          />
+          <StatusTile
+            icon={<Plug className="w-5 h-5" />}
+            label={t('gsCoreAiMcpServer.status.endpoints')}
+            value={
+              <span className="text-sm font-mono break-all">
+                {savedTransport === 'stdio'
+                  ? 'stdin / stdout'
+                  : `http(s)://<host>:${savedPort}/...`}
+              </span>
+            }
+          />
         </div>
-      )}
 
-      {/* 配置面板 */}
-      <Card className={cn('glass-card')}>
-        <CardHeader>
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Server className="w-5 h-5" />
-                {t('gsCoreAiMcpServer.configCard.title')}
-              </CardTitle>
-              <CardDescription>{t('gsCoreAiMcpServer.configCard.description')}</CardDescription>
-            </div>
-            <div className="flex items-center gap-2">
+        {/* 提示横幅：仅在服务端已实际启用时显示 */}
+        {savedEnableMcpServer && (
+          <GlassAlert tone="info" icon={AlertTriangle}>
+            <p className="font-semibold">{t('gsCoreAiMcpServer.banner.activeTitle')}</p>
+            <p className="mt-1 text-muted-foreground">{t('gsCoreAiMcpServer.banner.activeDesc')}</p>
+          </GlassAlert>
+        )}
+      </ConfigCard>
+
+      {/* 配置面板 + API Key：xl 双列（均非长面板） */}
+      <div className={cn('grid items-start xl:grid-cols-2', pageGapClass)}>
+        <ConfigCard
+          icon={<Server className="w-5 h-5 text-primary" />}
+          title={t('gsCoreAiMcpServer.configCard.title')}
+          description={t('gsCoreAiMcpServer.configCard.description')}
+          className="min-w-0"
+          actions={
+            <>
               <Button
                 variant="outline"
                 size="sm"
@@ -278,10 +260,9 @@ export function GsCoreAiMcpServerSection({ t, isGlass = false }: GsCoreAiMcpServ
                 )}
                 {t('common.save')}
               </Button>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
+            </>
+          }
+        >
           {isLoading ? (
             <div className="flex items-center justify-center py-16">
               <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
@@ -296,55 +277,54 @@ export function GsCoreAiMcpServerSection({ t, isGlass = false }: GsCoreAiMcpServ
               config={editedConfig}
               configId={rawConfig.id}
               onChange={handleFieldChange}
+              columns={2}
             />
           )}
-        </CardContent>
-      </Card>
+        </ConfigCard>
 
-      {/* API Key 提示 */}
-      <Card className={cn('glass-card')}>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Key className="w-4 h-4" />
-            {t('gsCoreAiMcpServer.apiKeyCard.title')}
-          </CardTitle>
-          <CardDescription>{t('gsCoreAiMcpServer.apiKeyCard.description')}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <pre className="rounded-md bg-muted/60 p-3 text-xs font-mono overflow-x-auto whitespace-pre-wrap break-all">
-            {savedApiKey
-              ? `Authorization: Bearer ${savedApiKey}`
-              : t('gsCoreAiMcpServer.apiKeyCard.empty')}
-          </pre>
-        </CardContent>
-      </Card>
+        {/* API Key 提示 */}
+        <ConfigCard
+          icon={<Key className="w-5 h-5 text-primary" />}
+          title={t('gsCoreAiMcpServer.apiKeyCard.title')}
+          description={t('gsCoreAiMcpServer.apiKeyCard.description')}
+          className="min-w-0"
+        >
+          {savedApiKey ? (
+            // 不加 overflow-x-auto：.layout-page-inner 下的全局规则会给它套
+            // 工具栏阴影负 margin，把 muted 块拖出卡片内边距。
+            <pre className="rounded-md bg-muted/40 p-3 text-xs font-mono whitespace-pre-wrap break-all">
+              {`Authorization: Bearer ${savedApiKey}`}
+            </pre>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              {t('gsCoreAiMcpServer.apiKeyCard.empty')}
+            </p>
+          )}
+        </ConfigCard>
+      </div>
 
-      <Separator className="opacity-30" />
       <p className="text-xs text-muted-foreground">{t('gsCoreAiMcpServer.footnote')}</p>
     </div>
   );
 }
 
 // =====================================================================
-// 小组件：状态卡片
+// 小组件：状态条内的一格（分隔线列表，非嵌套面板）
 // =====================================================================
-interface StatusCardProps {
+interface StatusTileProps {
   icon: React.ReactNode;
   label: string;
   value: React.ReactNode;
-  glassClassName?: string;
 }
 
-function StatusCard({ icon, label, value, glassClassName }: StatusCardProps) {
+function StatusTile({ icon, label, value }: StatusTileProps) {
   return (
-    <Card className={cn(glassClassName)}>
-      <CardContent className="p-4 flex flex-col gap-2">
-        <div className="flex items-center gap-2 text-muted-foreground text-xs uppercase tracking-wide">
-          {icon}
-          <span>{label}</span>
-        </div>
-        <div className="text-base font-medium">{value}</div>
-      </CardContent>
-    </Card>
+    <div className="flex min-w-0 flex-col gap-1.5 lg:px-5 lg:first:pl-0 lg:last:pr-0">
+      <div className="flex items-center gap-1.5 text-muted-foreground text-xs">
+        {icon}
+        <span className="truncate">{label}</span>
+      </div>
+      <div className="text-sm font-medium min-w-0">{value}</div>
+    </div>
   );
 }

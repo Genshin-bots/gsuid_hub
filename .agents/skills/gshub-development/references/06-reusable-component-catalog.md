@@ -425,8 +425,9 @@ interface ChipGroupProps {
 | `configId` | `string` | 用于 updateConfigValue |
 | `onChange` | `(configId, fieldKey, value) => void` | 值变更回调 |
 | `excludeKeys?` | `string[]` | 排除的字段（已手动渲染的） |
+| `columns?` | `2 \| 3` | 每行字段最大列数，默认 `3`；`2` 用于半宽卡片内的面板（全断点两列） |
 
-字段名或标题含 `key` / `密钥` 的独占一行。分隔线和重复组也独占一行。其余字段按后端顺序排进三列（窄屏一列、`sm` 两列）。不要再传字段名单来排版。
+字段名或标题含 `key` / `密钥` 的独占一行。分隔线和重复组也独占一行。其余字段按后端顺序排进三列（窄屏一列、`sm` 两列；`columns={2}` 时固定两列）。不要再传字段名单来排版。
 
 ### 用法
 
@@ -558,3 +559,25 @@ import { PluginIcon } from '@/components/ui/plugin-icon';
 - shadcn `Alert` 已内置 `glass-card glass-alert` 与 `variant="warning"`，历史 `Alert` 调用直接换 variant 即可。
 - 若提醒条作为 `AlertDialogDescription asChild` 的直接子节点也没问题：`GlassAlert` 已 `forwardRef` 并透传 props。
 - 新增语义色时在 `src/index.css` 的 `.glass-alert-tint-*` 里同时定义 `--alert-tint` 与 `--alert-border`，否则边框会退回通用玻璃描边。
+
+## 6.14 AIConfig shared —— 配置卡片基元（`/ai-config` 专用）
+
+位置：`src/pages/AIConfig/shared/`。`/ai-config` 各 section 的卡片骨架；**一张卡只有一层玻璃面**。
+
+- `ConfigCard`：`glass-card` 外壳 + 图标 + `text-base` 标题 + `?` 帮助 + 右侧 `actions`；
+  传 `collapsible={{ open, onOpenChange }}` 时标题行可点击折叠（收起即纯头部高度、
+  chevron 自动渲染、actions 不触发折叠）。
+- `ConfigGroup`：卡片内分组 label（`layout="inline"` 时 sm+ 标签与单行控件同行、
+  标签单行不换行、上限 14rem 截断）。
+- `ConfigGroupList`：连续 inline `ConfigGroup` 的容器，sm+ 让各组标签共享同一
+  `max-content` 列宽；**半宽（`xl:grid-cols-2` 内）卡片一律用 stacked**。
+- `SettingRow` + `settingListClass`：卡片内「图标 + 标题 + 说明 + 右侧控件」行，
+  放进 `divide-y divide-border/40` 列表。
+- `fieldGridClass` / `fieldGrid2Class` + `fieldWide*Class`：手写字段列表的栅格 class。
+
+**卡内不再放嵌套边框/底色盒**（无 SubPanel、无虚线框、无统计格边框）：结构靠留白、
+字级与发丝分隔线（`divide-y` / `border-t` / `lg:divide-x`）；卡片里允许带边框的只有
+表单控件与必要的 `GlassAlert` 警告。静态说明信息用 muted 文本行，不要套提示条。
+
+注意 `.layout-page-inner .overflow-x-auto` 全局规则会给滚动容器加负 margin 阴影出血，
+**卡片内的代码块 / 小区域不要加 `overflow-x-auto`**（改用 `whitespace-pre-wrap break-all`）。

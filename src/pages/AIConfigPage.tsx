@@ -11,7 +11,6 @@
  * 详见 ./AIConfig/README.md 中的"状态 / 事件流向"图。
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useTheme } from '@/contexts/ThemeContext';
 import { useAIStatus } from '@/contexts/AIStatusContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
@@ -23,7 +22,6 @@ import {
   Bot,
   Brain,
   Database,
-  Eye,
   ListChecks,
   Loader2,
   MemoryStick,
@@ -33,6 +31,7 @@ import {
   Smile,
   Sparkles,
   HelpCircle,
+  Globe,
   Server,
   Terminal,
 } from 'lucide-react';
@@ -55,6 +54,7 @@ import { EmptyState } from './AIConfig/shared/EmptyState';
 import { filterOutPrimaryProvider } from './AIConfig/shared/providerId';
 import {
   TaskConfigSection,
+  TaskModelOverridesPanel,
   WebSearchSection,
   WebFetchSection,
   ImageUnderstandSection,
@@ -93,8 +93,6 @@ const IMMEDIATE_TASK_CONFIG_KEYS: readonly string[] = [
 ];
 
 export default function AIConfigPage() {
-  const { style } = useTheme();
-  const isGlass = style !== 'solid';
   const { t } = useLanguage();
 
   // ====================== Active section ======================
@@ -746,11 +744,12 @@ export default function AIConfigPage() {
   }
 
   // ====================== 顶部分区 ======================
-  const sidebarItems = [
+  const sectionTabDefs = [
     {
       id: 'taskConfig',
       title: t('aiConfig.taskConfig.title'),
       icon: <ListChecks className="w-5 h-5" />,
+      alert: provider.taskModelLacksImage && !imageUnderstandProvider,
     },
     {
       id: 'vectorDb',
@@ -759,14 +758,13 @@ export default function AIConfigPage() {
     },
     {
       id: 'webSearch',
-      title: t('aiConfig.serviceProvider.webSearchFetch'),
+      title: t('aiConfig.groups.webSearch'),
       icon: <Search className="w-5 h-5" />,
     },
     {
-      id: 'multimodal',
-      title: t('aiConfig.multimodal.title'),
-      icon: <Eye className="w-5 h-5" />,
-      alert: provider.taskModelLacksImage && !imageUnderstandProvider,
+      id: 'webFetch',
+      title: t('aiConfig.groups.webFetch'),
+      icon: <Globe className="w-5 h-5" />,
     },
     {
       id: 'memorySettings',
@@ -802,211 +800,221 @@ export default function AIConfigPage() {
   const renderActiveSection = () => {
     switch (activeSection) {
       case 'taskConfig':
-        return (
-          <TaskConfigSection
-            t={t}
-            allConfigsList={provider.allConfigsList}
-            highLevelConfig={provider.highLevelConfig}
-            lowLevelConfig={provider.lowLevelConfig}
-            highLevel2ndConfig={highLevel2ndConfigValue}
-            lowLevel2ndConfig={lowLevel2ndConfigValue}
-            isHighLevelConfigValid={provider.isHighLevelConfigValid}
-            isLowLevelConfigValid={provider.isLowLevelConfigValid}
-            isHighLevel2ndConfigValid={isHighLevel2ndConfigValid}
-            isLowLevel2ndConfigValid={isLowLevel2ndConfigValid}
-            onSetHighLevelConfig={async (name) => {
-              const ok = await provider.handleSetHighLevelConfig(name);
-              if (ok && aiConfig?.id) {
-                syncPersistedField(aiConfig.id, 'high_level_provider_config_name', name);
-              }
-            }}
-            onSetLowLevelConfig={async (name) => {
-              const ok = await provider.handleSetLowLevelConfig(name);
-              if (ok && aiConfig?.id) {
-                syncPersistedField(aiConfig.id, 'low_level_provider_config_name', name);
-              }
-            }}
-            onSetHighLevel2ndConfig={(v) =>
-              updateConfigValue(aiConfig.id, 'high_level_2nd_provider_config_name', v)
-            }
-            onSetLowLevel2ndConfig={(v) =>
-              updateConfigValue(aiConfig.id, 'low_level_2nd_provider_config_name', v)
-            }
-            onOpenManageDialog={() => provider.setIsManageConfigDialogOpen(true)}
-            taskModelsRefreshKey={taskModelsRefreshKey}
-          />
-        );
-      case 'webSearch':
-      case 'webFetch':
-        return (
-          <div className={cn('grid items-start lg:grid-cols-2', pageGapClass)}>
-            <WebSearchSection
-              t={t}
-              websearchProvider={websearchProvider}
-              websearchProviderOptions={websearchProviderOptions}
-              websearchLbStrategy={websearchLbStrategy}
-              websearchLbStrategyOptions={websearchLbStrategyOptions}
-              websearchFallbackOrder={websearchFallbackOrder}
-              websearchFallbackOptions={websearchFallbackOptions}
-              tavilyConfig={tavilyConfig}
-              exaConfig={exaConfig}
-              anysearchConfig={anysearchConfig}
-              firecrawlConfig={firecrawlConfig}
-              jinaConfig={jinaConfig}
-              deepseekConfig={deepseekConfig}
-              miniMaxConfig={miniMaxConfig}
-              websearchMcpToolId={websearchMcpToolId}
-              websearchToolInfo={websearchToolInfo}
-              mcpDetails={mcp.mcpDetailsEditing['websearch_mcp_tool_id'] || {}}
-              onChangeProvider={(v) => {
-                updateConfigValue(aiConfig.id, 'websearch_provider', v);
-                // 静默从备用列表剔除新主用，避免保存时误报 toast
-                const next = filterOutPrimaryProvider(websearchFallbackOrder, v);
-                if (next.length !== websearchFallbackOrder.length) {
-                  updateConfigValue(aiConfig.id, 'websearch_fallback_order', next);
-                }
-              }}
-              onChangeLbStrategy={(v) => updateConfigValue(aiConfig.id, 'websearch_lb_strategy', v)}
-              onChangeFallbackOrder={(order) =>
-                updateConfigValue(aiConfig.id, 'websearch_fallback_order', order)
-              }
-              renderImageSources={hasRenderImageSources ? renderImageSources : undefined}
-              renderImageSourceOptions={
-                hasRenderImageSources ? renderImageSourceOptions : undefined
-              }
-              renderEmbedImages={
-                aiConfig?.config.render_embed_images
-                  ? aiConfig.config.render_embed_images.value !== false &&
-                    aiConfig.config.render_embed_images.value !== 'false'
-                  : undefined
-              }
-              onChangeRenderEmbedImages={
-                aiConfig?.config.render_embed_images
-                  ? (enabled) => updateConfigValue(aiConfig.id, 'render_embed_images', enabled)
-                  : undefined
-              }
-              onChangeRenderImageSources={
-                hasRenderImageSources
-                  ? (order) => updateConfigValue(aiConfig.id, 'render_image_sources', order)
-                  : undefined
-              }
-              onUpdateConfig={updateConfigValue}
-              onOpenMcpToolDialog={() => mcp.openMcpToolDialog('websearch')}
-              onClearMcpTool={() => mcp.handleClearMcpTool('websearch')}
-              onDetailValueChange={(name, val) =>
-                mcp.updateMcpDetailValue('websearch_mcp_tool_id', name, val)
-              }
-              onMcpParamNameChange={(oldN, newN) =>
-                mcp.renameMcpDetailKey('websearch_mcp_tool_id', oldN, newN)
-              }
-              onAddMcpDetailRow={() => mcp.addMcpDetailRow('websearch_mcp_tool_id')}
-              onRemoveMcpDetailRow={(name) => mcp.removeMcpDetailRow('websearch_mcp_tool_id', name)}
-            />
-            <WebFetchSection
-              t={t}
-              webfetchProvider={webfetchProvider}
-              webfetchProviderOptions={webfetchProviderOptions}
-              webfetchLbStrategy={webfetchLbStrategy}
-              webfetchLbStrategyOptions={webfetchLbStrategyOptions}
-              webfetchFallbackOrder={webfetchFallbackOrder}
-              webfetchFallbackOptions={webfetchFallbackOptions}
-              webFetchConfig={webFetchConfig}
-              jinaConfig={jinaConfig}
-              deepseekConfig={deepseekConfig}
-              onChangeProvider={(v) => {
-                updateConfigValue(aiConfig.id, 'webfetch_provider', v);
-                const next = filterOutPrimaryProvider(webfetchFallbackOrder, v);
-                if (next.length !== webfetchFallbackOrder.length) {
-                  updateConfigValue(aiConfig.id, 'webfetch_fallback_order', next);
-                }
-              }}
-              onChangeLbStrategy={(v) => updateConfigValue(aiConfig.id, 'webfetch_lb_strategy', v)}
-              onChangeFallbackOrder={(order) =>
-                updateConfigValue(aiConfig.id, 'webfetch_fallback_order', order)
-              }
-              onUpdateConfig={updateConfigValue}
-            />
-          </div>
-        );
       case 'multimodal':
       case 'imageUnderstand':
       case 'voiceRecognition':
       case 'documentExtract':
         return (
-          <div className={cn('grid items-start lg:grid-cols-2 xl:grid-cols-3', pageGapClass)}>
-            <ImageUnderstandSection
+          <div className={pageStackClass}>
+            <TaskConfigSection
               t={t}
-              imageUnderstandProvider={imageUnderstandProvider}
-              imageUnderstandProviderOptions={imageUnderstandProviderOptions}
-              taskModelLacksImage={provider.taskModelLacksImage}
-              providerDesc={aiConfig?.config.image_understand_provider?.desc}
-              imageUnderstandMcpToolId={imageUnderstandMcpToolId}
-              imageUnderstandToolInfo={imageUnderstandToolInfo}
-              mcpDetails={mcp.mcpDetailsEditing['image_understand_mcp_tool_id'] || {}}
-              onChangeProvider={(v) =>
-                updateConfigValue(aiConfig.id, 'image_understand_provider', v)
+              allConfigsList={provider.allConfigsList}
+              highLevelConfig={provider.highLevelConfig}
+              lowLevelConfig={provider.lowLevelConfig}
+              highLevel2ndConfig={highLevel2ndConfigValue}
+              lowLevel2ndConfig={lowLevel2ndConfigValue}
+              isHighLevelConfigValid={provider.isHighLevelConfigValid}
+              isLowLevelConfigValid={provider.isLowLevelConfigValid}
+              isHighLevel2ndConfigValid={isHighLevel2ndConfigValid}
+              isLowLevel2ndConfigValid={isLowLevel2ndConfigValid}
+              onSetHighLevelConfig={async (name) => {
+                const ok = await provider.handleSetHighLevelConfig(name);
+                if (ok && aiConfig?.id) {
+                  syncPersistedField(aiConfig.id, 'high_level_provider_config_name', name);
+                }
+              }}
+              onSetLowLevelConfig={async (name) => {
+                const ok = await provider.handleSetLowLevelConfig(name);
+                if (ok && aiConfig?.id) {
+                  syncPersistedField(aiConfig.id, 'low_level_provider_config_name', name);
+                }
+              }}
+              onSetHighLevel2ndConfig={(v) =>
+                updateConfigValue(aiConfig.id, 'high_level_2nd_provider_config_name', v)
               }
-              onOpenMcpToolDialog={() => mcp.openMcpToolDialog('image_understand')}
-              onClearMcpTool={() => mcp.handleClearMcpTool('image_understand')}
-              onDetailValueChange={(name, val) =>
-                mcp.updateMcpDetailValue('image_understand_mcp_tool_id', name, val)
+              onSetLowLevel2ndConfig={(v) =>
+                updateConfigValue(aiConfig.id, 'low_level_2nd_provider_config_name', v)
               }
-              onMcpParamNameChange={(oldN, newN) =>
-                mcp.renameMcpDetailKey('image_understand_mcp_tool_id', oldN, newN)
-              }
-              onAddMcpDetailRow={() => mcp.addMcpDetailRow('image_understand_mcp_tool_id')}
-              onRemoveMcpDetailRow={(name) =>
-                mcp.removeMcpDetailRow('image_understand_mcp_tool_id', name)
-              }
+              onOpenManageDialog={() => provider.setIsManageConfigDialogOpen(true)}
             />
-            <VoiceRecognitionSection
-              t={t}
-              aiConfigId={aiConfig.id}
-              asrProvider={asrProvider}
-              asrProviderOptions={asrProviderOptions}
-              asrProviderDesc={aiConfig?.config.asr_provider?.desc}
-              asrMcpToolId={asrMcpToolId}
-              asrToolInfo={asrToolInfo}
-              mcpDetails={mcp.mcpDetailsEditing['asr_mcp_tool_id'] || {}}
-              onChangeProvider={(v) => updateConfigValue(aiConfig.id, 'asr_provider', v)}
-              onOpenMcpToolDialog={() => mcp.openMcpToolDialog('asr')}
-              onClearMcpTool={() => mcp.handleClearMcpTool('asr')}
-              onDetailValueChange={(name, val) =>
-                mcp.updateMcpDetailValue('asr_mcp_tool_id', name, val)
-              }
-              onMcpParamNameChange={(oldN, newN) =>
-                mcp.renameMcpDetailKey('asr_mcp_tool_id', oldN, newN)
-              }
-              onAddMcpDetailRow={() => mcp.addMcpDetailRow('asr_mcp_tool_id')}
-              onRemoveMcpDetailRow={(name) => mcp.removeMcpDetailRow('asr_mcp_tool_id', name)}
-            />
-            <DocumentExtractSection
-              t={t}
-              aiConfigId={aiConfig.id}
-              documentExtractProvider={documentExtractProvider}
-              documentExtractProviderOptions={documentExtractProviderOptions}
-              documentExtractProviderDesc={aiConfig?.config.document_extract_provider?.desc}
-              documentExtractMcpToolId={documentExtractMcpToolId}
-              documentExtractToolInfo={documentExtractToolInfo}
-              mcpDetails={mcp.mcpDetailsEditing['document_extract_mcp_tool_id'] || {}}
-              onChangeProvider={(v) =>
-                updateConfigValue(aiConfig.id, 'document_extract_provider', v)
-              }
-              onOpenMcpToolDialog={() => mcp.openMcpToolDialog('document_extract')}
-              onClearMcpTool={() => mcp.handleClearMcpTool('document_extract')}
-              onDetailValueChange={(name, val) =>
-                mcp.updateMcpDetailValue('document_extract_mcp_tool_id', name, val)
-              }
-              onMcpParamNameChange={(oldN, newN) =>
-                mcp.renameMcpDetailKey('document_extract_mcp_tool_id', oldN, newN)
-              }
-              onAddMcpDetailRow={() => mcp.addMcpDetailRow('document_extract_mcp_tool_id')}
-              onRemoveMcpDetailRow={(name) =>
-                mcp.removeMcpDetailRow('document_extract_mcp_tool_id', name)
-              }
-            />
+            <div
+              className={cn(
+                'grid items-stretch lg:grid-cols-2 xl:grid-cols-3 glass-card-grid',
+                pageGapClass,
+              )}
+            >
+              <ImageUnderstandSection
+                t={t}
+                imageUnderstandProvider={imageUnderstandProvider}
+                imageUnderstandProviderOptions={imageUnderstandProviderOptions}
+                taskModelLacksImage={provider.taskModelLacksImage}
+                providerDesc={aiConfig?.config.image_understand_provider?.desc}
+                imageUnderstandMcpToolId={imageUnderstandMcpToolId}
+                imageUnderstandToolInfo={imageUnderstandToolInfo}
+                mcpDetails={mcp.mcpDetailsEditing['image_understand_mcp_tool_id'] || {}}
+                onChangeProvider={(v) =>
+                  updateConfigValue(aiConfig.id, 'image_understand_provider', v)
+                }
+                onOpenMcpToolDialog={() => mcp.openMcpToolDialog('image_understand')}
+                onClearMcpTool={() => mcp.handleClearMcpTool('image_understand')}
+                onDetailValueChange={(name, val) =>
+                  mcp.updateMcpDetailValue('image_understand_mcp_tool_id', name, val)
+                }
+                onMcpParamNameChange={(oldN, newN) =>
+                  mcp.renameMcpDetailKey('image_understand_mcp_tool_id', oldN, newN)
+                }
+                onAddMcpDetailRow={() => mcp.addMcpDetailRow('image_understand_mcp_tool_id')}
+                onRemoveMcpDetailRow={(name) =>
+                  mcp.removeMcpDetailRow('image_understand_mcp_tool_id', name)
+                }
+              />
+              <VoiceRecognitionSection
+                t={t}
+                aiConfigId={aiConfig.id}
+                asrProvider={asrProvider}
+                asrProviderOptions={asrProviderOptions}
+                asrProviderDesc={aiConfig?.config.asr_provider?.desc}
+                asrMcpToolId={asrMcpToolId}
+                asrToolInfo={asrToolInfo}
+                mcpDetails={mcp.mcpDetailsEditing['asr_mcp_tool_id'] || {}}
+                onChangeProvider={(v) => updateConfigValue(aiConfig.id, 'asr_provider', v)}
+                onOpenMcpToolDialog={() => mcp.openMcpToolDialog('asr')}
+                onClearMcpTool={() => mcp.handleClearMcpTool('asr')}
+                onDetailValueChange={(name, val) =>
+                  mcp.updateMcpDetailValue('asr_mcp_tool_id', name, val)
+                }
+                onMcpParamNameChange={(oldN, newN) =>
+                  mcp.renameMcpDetailKey('asr_mcp_tool_id', oldN, newN)
+                }
+                onAddMcpDetailRow={() => mcp.addMcpDetailRow('asr_mcp_tool_id')}
+                onRemoveMcpDetailRow={(name) => mcp.removeMcpDetailRow('asr_mcp_tool_id', name)}
+              />
+              <DocumentExtractSection
+                t={t}
+                aiConfigId={aiConfig.id}
+                documentExtractProvider={documentExtractProvider}
+                documentExtractProviderOptions={documentExtractProviderOptions}
+                documentExtractProviderDesc={aiConfig?.config.document_extract_provider?.desc}
+                documentExtractMcpToolId={documentExtractMcpToolId}
+                documentExtractToolInfo={documentExtractToolInfo}
+                mcpDetails={mcp.mcpDetailsEditing['document_extract_mcp_tool_id'] || {}}
+                onChangeProvider={(v) =>
+                  updateConfigValue(aiConfig.id, 'document_extract_provider', v)
+                }
+                onOpenMcpToolDialog={() => mcp.openMcpToolDialog('document_extract')}
+                onClearMcpTool={() => mcp.handleClearMcpTool('document_extract')}
+                onDetailValueChange={(name, val) =>
+                  mcp.updateMcpDetailValue('document_extract_mcp_tool_id', name, val)
+                }
+                onMcpParamNameChange={(oldN, newN) =>
+                  mcp.renameMcpDetailKey('document_extract_mcp_tool_id', oldN, newN)
+                }
+                onAddMcpDetailRow={() => mcp.addMcpDetailRow('document_extract_mcp_tool_id')}
+                onRemoveMcpDetailRow={(name) =>
+                  mcp.removeMcpDetailRow('document_extract_mcp_tool_id', name)
+                }
+              />
+            </div>
+            {provider.allConfigsList.length > 0 && (
+              <TaskModelOverridesPanel
+                t={t}
+                allConfigsList={provider.allConfigsList}
+                refreshKey={taskModelsRefreshKey}
+              />
+            )}
           </div>
         );
+      case 'webSearch':
+        return (
+          <WebSearchSection
+            t={t}
+            websearchProvider={websearchProvider}
+            websearchProviderOptions={websearchProviderOptions}
+            websearchLbStrategy={websearchLbStrategy}
+            websearchLbStrategyOptions={websearchLbStrategyOptions}
+            websearchFallbackOrder={websearchFallbackOrder}
+            websearchFallbackOptions={websearchFallbackOptions}
+            tavilyConfig={tavilyConfig}
+            exaConfig={exaConfig}
+            anysearchConfig={anysearchConfig}
+            firecrawlConfig={firecrawlConfig}
+            jinaConfig={jinaConfig}
+            deepseekConfig={deepseekConfig}
+            miniMaxConfig={miniMaxConfig}
+            websearchMcpToolId={websearchMcpToolId}
+            websearchToolInfo={websearchToolInfo}
+            mcpDetails={mcp.mcpDetailsEditing['websearch_mcp_tool_id'] || {}}
+            onChangeProvider={(v) => {
+              updateConfigValue(aiConfig.id, 'websearch_provider', v);
+              // 静默从备用列表剔除新主用，避免保存时误报 toast
+              const next = filterOutPrimaryProvider(websearchFallbackOrder, v);
+              if (next.length !== websearchFallbackOrder.length) {
+                updateConfigValue(aiConfig.id, 'websearch_fallback_order', next);
+              }
+            }}
+            onChangeLbStrategy={(v) => updateConfigValue(aiConfig.id, 'websearch_lb_strategy', v)}
+            onChangeFallbackOrder={(order) =>
+              updateConfigValue(aiConfig.id, 'websearch_fallback_order', order)
+            }
+            renderImageSources={hasRenderImageSources ? renderImageSources : undefined}
+            renderImageSourceOptions={hasRenderImageSources ? renderImageSourceOptions : undefined}
+            renderEmbedImages={
+              aiConfig?.config.render_embed_images
+                ? aiConfig.config.render_embed_images.value !== false &&
+                  aiConfig.config.render_embed_images.value !== 'false'
+                : undefined
+            }
+            onChangeRenderEmbedImages={
+              aiConfig?.config.render_embed_images
+                ? (enabled) => updateConfigValue(aiConfig.id, 'render_embed_images', enabled)
+                : undefined
+            }
+            onChangeRenderImageSources={
+              hasRenderImageSources
+                ? (order) => updateConfigValue(aiConfig.id, 'render_image_sources', order)
+                : undefined
+            }
+            onUpdateConfig={updateConfigValue}
+            onOpenMcpToolDialog={() => mcp.openMcpToolDialog('websearch')}
+            onClearMcpTool={() => mcp.handleClearMcpTool('websearch')}
+            onDetailValueChange={(name, val) =>
+              mcp.updateMcpDetailValue('websearch_mcp_tool_id', name, val)
+            }
+            onMcpParamNameChange={(oldN, newN) =>
+              mcp.renameMcpDetailKey('websearch_mcp_tool_id', oldN, newN)
+            }
+            onAddMcpDetailRow={() => mcp.addMcpDetailRow('websearch_mcp_tool_id')}
+            onRemoveMcpDetailRow={(name) => mcp.removeMcpDetailRow('websearch_mcp_tool_id', name)}
+          />
+        );
+      case 'webFetch':
+        return (
+          <WebFetchSection
+            t={t}
+            webfetchProvider={webfetchProvider}
+            webfetchProviderOptions={webfetchProviderOptions}
+            webfetchLbStrategy={webfetchLbStrategy}
+            webfetchLbStrategyOptions={webfetchLbStrategyOptions}
+            webfetchFallbackOrder={webfetchFallbackOrder}
+            webfetchFallbackOptions={webfetchFallbackOptions}
+            webFetchConfig={webFetchConfig}
+            jinaConfig={jinaConfig}
+            deepseekConfig={deepseekConfig}
+            onChangeProvider={(v) => {
+              updateConfigValue(aiConfig.id, 'webfetch_provider', v);
+              const next = filterOutPrimaryProvider(webfetchFallbackOrder, v);
+              if (next.length !== webfetchFallbackOrder.length) {
+                updateConfigValue(aiConfig.id, 'webfetch_fallback_order', next);
+              }
+            }}
+            onChangeLbStrategy={(v) => updateConfigValue(aiConfig.id, 'webfetch_lb_strategy', v)}
+            onChangeFallbackOrder={(order) =>
+              updateConfigValue(aiConfig.id, 'webfetch_fallback_order', order)
+            }
+            onUpdateConfig={updateConfigValue}
+          />
+        );
+
       case 'vectorDb':
         return (
           <VectorDbSection
@@ -1050,7 +1058,7 @@ export default function AIConfigPage() {
           <MemeSettingsSection t={t} memeConfig={memeConfig} onUpdateConfig={updateConfigValue} />
         );
       case 'gsCoreAiMcpServer':
-        return <GsCoreAiMcpServerSection t={t} isGlass={isGlass} />;
+        return <GsCoreAiMcpServerSection t={t} />;
       case 'commandExecutor':
         return (
           <CommandExecutorSection
@@ -1079,7 +1087,7 @@ export default function AIConfigPage() {
       value={activeSection}
       onValueChange={setActiveSection}
       disabled={isSectionsLocked}
-      options={sidebarItems.map((item) => ({
+      options={sectionTabDefs.map((item) => ({
         value: item.id,
         label: item.title,
         icon: item.icon,
@@ -1216,32 +1224,32 @@ export default function AIConfigPage() {
           </div>
         }
       >
-        <div className="glass-card rounded-2xl p-3 sm:p-6">
-          {wizard.isBackendPendingRestart && (
-            <GlassAlert tone="warning" icon={AlertTriangle} className="mb-4">
-              <p className="text-xs font-semibold sm:text-sm">
-                {t('aiConfig.serviceSwitch.restartRequiredTitle')}
-              </p>
-              <p className="mt-1 text-xs opacity-90 sm:text-sm">
-                {t('aiConfig.serviceSwitch.restartRequiredDesc')}
-              </p>
-            </GlassAlert>
+        {wizard.isBackendPendingRestart && (
+          <GlassAlert tone="warning" icon={AlertTriangle}>
+            <p className="text-xs font-semibold sm:text-sm">
+              {t('aiConfig.serviceSwitch.restartRequiredTitle')}
+            </p>
+            <p className="mt-1 text-xs opacity-90 sm:text-sm">
+              {t('aiConfig.serviceSwitch.restartRequiredDesc')}
+            </p>
+          </GlassAlert>
+        )}
+        <div
+          className={cn(
+            'transition-opacity duration-200',
+            isSectionsLocked && 'pointer-events-none opacity-50 select-none',
           )}
-          <div
-            className={cn(
-              'transition-opacity duration-200',
-              isSectionsLocked && 'pointer-events-none opacity-50 select-none',
-            )}
-            aria-disabled={isSectionsLocked}
-          >
-            {isLoadingDetail && Object.keys(configs).length === 0 ? (
+          aria-disabled={isSectionsLocked}
+        >
+          {isLoadingDetail && Object.keys(configs).length === 0 ? (
+            <div className="glass-card rounded-xl">
               <div className="flex h-64 items-center justify-center">
                 <Loader2 className="h-8 w-8 animate-spin" />
               </div>
-            ) : (
-              renderActiveSection()
-            )}
-          </div>
+            </div>
+          ) : (
+            renderActiveSection()
+          )}
         </div>
       </PinnedPage>
 

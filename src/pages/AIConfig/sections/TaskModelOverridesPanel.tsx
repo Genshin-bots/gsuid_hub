@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   AlertTriangle,
   ArrowRight,
-  ChevronDown,
   Loader2,
   Lock,
   RotateCcw,
@@ -19,7 +18,6 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { GlassAlert } from '@/components/ui/glass-alert';
 import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,6 +29,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { ConfigSelectDropdown } from '@/components/config';
+import { ConfigCard } from '../shared';
 import {
   AI_TASK_LEVEL_REFS,
   aiStatisticsApi,
@@ -308,13 +307,7 @@ export function TaskModelOverridesPanel({
     const shareLabel = tokens > 0 && sharePct < 0.1 ? '<0.1' : sharePct.toFixed(1);
 
     return (
-      <div
-        key={kind.id}
-        className={cn(
-          'rounded-2xl border p-3 md:p-4 transition-colors',
-          overridden ? 'border-primary/40 bg-primary/5' : 'border-border/50 bg-card/30',
-        )}
-      >
+      <div key={kind.id} className="py-3 first:pt-0 last:pb-0">
         <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
           <div className="min-w-0 space-y-1">
             <div className="flex flex-wrap items-center gap-1.5">
@@ -451,142 +444,122 @@ export function TaskModelOverridesPanel({
   };
 
   return (
-    <Collapsible open={open} onOpenChange={setOpen}>
-      <div className="rounded-2xl border border-dashed border-border/70 bg-muted/10">
-        <CollapsibleTrigger asChild>
-          <button
-            type="button"
-            className="flex w-full items-center justify-between gap-3 rounded-2xl p-3 text-left transition-colors hover:bg-muted/20 md:p-4"
-          >
-            <div className="flex min-w-0 items-center gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                <Workflow className="h-[18px] w-[18px]" />
-              </div>
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2 text-sm font-semibold">
-                  {t('aiConfig.taskModels.title')}
-                  <Badge variant="outline" className="h-5 px-1.5 text-[10px] font-normal">
-                    {t('aiConfig.taskModels.advancedBadge')}
-                  </Badge>
-                  {overriddenCount > 0 && (
-                    <Badge className="h-5 px-1.5 text-[10px]">
-                      {t('aiConfig.taskModels.overriddenCount', { count: overriddenCount })}
-                    </Badge>
-                  )}
-                </div>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  {t('aiConfig.taskModels.description')}
-                </p>
-              </div>
+    <>
+      <ConfigCard
+        icon={<Workflow className="w-5 h-5 text-primary" />}
+        title={
+          <span className="flex flex-wrap items-center gap-2">
+            {t('aiConfig.taskModels.title')}
+            <Badge variant="outline" className="h-5 px-1.5 text-[10px] font-normal">
+              {t('aiConfig.taskModels.advancedBadge')}
+            </Badge>
+            {overriddenCount > 0 && (
+              <Badge className="h-5 px-1.5 text-[10px]">
+                {t('aiConfig.taskModels.overriddenCount', { count: overriddenCount })}
+              </Badge>
+            )}
+          </span>
+        }
+        description={t('aiConfig.taskModels.description')}
+        collapsible={{ open, onOpenChange: setOpen }}
+      >
+        <div className="space-y-4 border-t border-border/40 pt-4">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="relative w-full sm:max-w-xs">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={t('aiConfig.taskModels.searchPlaceholder')}
+                className="h-9 pl-9"
+              />
             </div>
-            <ChevronDown
-              className={cn(
-                'h-4 w-4 shrink-0 text-muted-foreground transition-transform',
-                open && 'rotate-180',
-              )}
-            />
-          </button>
-        </CollapsibleTrigger>
-
-        <CollapsibleContent>
-          <div className="space-y-4 border-t border-border/50 p-3 md:p-4">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div className="relative w-full sm:max-w-xs">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder={t('aiConfig.taskModels.searchPlaceholder')}
-                  className="h-9 pl-9"
-                />
-              </div>
-              <div className="flex items-center gap-3">
-                <TabButtonGroup
-                  size="sm"
-                  value={sortMode}
-                  onValueChange={(v) => setSortMode(v as SortMode)}
-                  options={[
-                    { value: 'group', label: t('aiConfig.taskModels.sortGroup') },
-                    { value: 'usage', label: t('aiConfig.taskModels.sortUsage') },
-                  ]}
-                />
-                <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
-                  <Switch checked={onlyOverridden} onCheckedChange={setOnlyOverridden} />
-                  {t('aiConfig.taskModels.onlyOverridden')}
-                </label>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 gap-1.5 text-xs"
-                  disabled={overriddenCount === 0}
-                  onClick={() => setConfirmResetOpen(true)}
-                >
-                  <RotateCcw className="h-3.5 w-3.5" />
-                  {t('aiConfig.taskModels.resetAll')}
-                </Button>
-              </div>
+            <div className="flex items-center gap-3">
+              <TabButtonGroup
+                size="sm"
+                value={sortMode}
+                onValueChange={(v) => setSortMode(v as SortMode)}
+                options={[
+                  { value: 'group', label: t('aiConfig.taskModels.sortGroup') },
+                  { value: 'usage', label: t('aiConfig.taskModels.sortUsage') },
+                ]}
+              />
+              <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
+                <Switch checked={onlyOverridden} onCheckedChange={setOnlyOverridden} />
+                {t('aiConfig.taskModels.onlyOverridden')}
+              </label>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 gap-1.5 text-xs"
+                disabled={overriddenCount === 0}
+                onClick={() => setConfirmResetOpen(true)}
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+                {t('aiConfig.taskModels.resetAll')}
+              </Button>
             </div>
-
-            {data && data.orphans.length > 0 && (
-              <GlassAlert tone="warning" icon={AlertTriangle} className="p-3">
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <p className="text-xs">
-                    {t('aiConfig.taskModels.orphans', { ids: data.orphans.join(', ') })}
-                  </p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-7 shrink-0 text-xs"
-                    onClick={() => void handleClearOrphans()}
-                  >
-                    {t('aiConfig.taskModels.clearOrphans')}
-                  </Button>
-                </div>
-              </GlassAlert>
-            )}
-
-            {loading && !data && (
-              <div className="flex items-center justify-center py-8 text-muted-foreground">
-                <Loader2 className="h-5 w-5 animate-spin" />
-              </div>
-            )}
-            {loadError && !data && (
-              <GlassAlert tone="danger" icon={AlertTriangle} className="p-3">
-                <p className="text-xs">
-                  {t('aiConfig.taskModels.loadFailed')}: {loadError}
-                </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="mt-2 h-7 text-xs"
-                  onClick={() => void load()}
-                >
-                  {t('aiConfig.taskModels.retry')}
-                </Button>
-              </GlassAlert>
-            )}
-
-            {data && grouped.length === 0 && usageSorted.length === 0 && (
-              <p className="py-6 text-center text-sm text-muted-foreground">
-                {t('aiConfig.taskModels.empty')}
-              </p>
-            )}
-
-            {sortMode === 'usage' ? (
-              <div className="space-y-2">{usageSorted.map(renderKind)}</div>
-            ) : (
-              grouped.map(({ group, kinds }) => (
-                <section key={group} className="space-y-2">
-                  <h4 className="px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    {tr(`aiConfig.taskModels.groups.${group}`, group)}
-                  </h4>
-                  <div className="space-y-2">{kinds.map(renderKind)}</div>
-                </section>
-              ))
-            )}
           </div>
-        </CollapsibleContent>
-      </div>
+
+          {data && data.orphans.length > 0 && (
+            <GlassAlert tone="warning" icon={AlertTriangle} className="p-3">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-xs">
+                  {t('aiConfig.taskModels.orphans', { ids: data.orphans.join(', ') })}
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 shrink-0 text-xs"
+                  onClick={() => void handleClearOrphans()}
+                >
+                  {t('aiConfig.taskModels.clearOrphans')}
+                </Button>
+              </div>
+            </GlassAlert>
+          )}
+
+          {loading && !data && (
+            <div className="flex items-center justify-center py-8 text-muted-foreground">
+              <Loader2 className="h-5 w-5 animate-spin" />
+            </div>
+          )}
+          {loadError && !data && (
+            <GlassAlert tone="danger" icon={AlertTriangle} className="p-3">
+              <p className="text-xs">
+                {t('aiConfig.taskModels.loadFailed')}: {loadError}
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-2 h-7 text-xs"
+                onClick={() => void load()}
+              >
+                {t('aiConfig.taskModels.retry')}
+              </Button>
+            </GlassAlert>
+          )}
+
+          {data && grouped.length === 0 && usageSorted.length === 0 && (
+            <p className="py-6 text-center text-sm text-muted-foreground">
+              {t('aiConfig.taskModels.empty')}
+            </p>
+          )}
+
+          {sortMode === 'usage' ? (
+            <div className="divide-y divide-border/40">{usageSorted.map(renderKind)}</div>
+          ) : (
+            grouped.map(({ group, kinds }) => (
+              <section key={group} className="space-y-1">
+                <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  {tr(`aiConfig.taskModels.groups.${group}`, group)}
+                </h4>
+                <div className="divide-y divide-border/40">{kinds.map(renderKind)}</div>
+              </section>
+            ))
+          )}
+        </div>
+      </ConfigCard>
 
       <AlertDialog open={confirmResetOpen} onOpenChange={setConfirmResetOpen}>
         <AlertDialogContent>
@@ -604,6 +577,6 @@ export function TaskModelOverridesPanel({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </Collapsible>
+    </>
   );
 }

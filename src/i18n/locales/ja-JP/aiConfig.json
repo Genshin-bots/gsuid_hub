@@ -169,6 +169,10 @@
     "title": "Web検索 / 画像理解",
     "description": "Web検索と画像理解機能を設定します"
   },
+  "groups": {
+    "webSearch": "ネット検索",
+    "webFetch": "Web取得"
+  },
   "vectorDb": {
     "title": "ベクトルデータベースサービス",
     "description": "Qdrantのデプロイ方式、埋め込みモデル、再ランキングモデルを設定します",
@@ -183,6 +187,9 @@
     "rerankWarning": "再ランキングモデルサービスは負荷が高く、応答遅延とリソース使用量が増加します。慎重に有効化してください。",
     "extraProviderBanner": "プラグイン **{plugin}** が登録した埋め込みプロバイダー **{displayName}**（{kind} モード）を使用中です。",
     "extraProviderHint": "設定を変更するには、プラグイン管理ページに移動してください。",
+    "apiKeyPlaceholder": "APIキーを入力（複数可）",
+    "selectOrInput": "{name} を選択または入力",
+    "emptyValue": "（空）",
     "embeddingModalities": "埋め込みモデル対応モダリティ",
     "embeddingModalityText": "テキスト",
     "embeddingModalityImage": "画像",
@@ -383,6 +390,8 @@
     "fallbackOrderDesc": "予備を複数選択。数字が優先度（1が最優先）。空ならバックエンドが設定済み全ソースを使用。メインは予備にできず、切替時にリストから除外されます。",
     "primaryConfigSection": "メインソース設定",
     "primaryConfigSectionDesc": "メイン検索ソースのキーとパラメータ。",
+    "sourceConfig": "ソース設定",
+    "sourceConfigDesc": "メインと予備ソースのキーとパラメータ。",
     "fallbackConfigSection": "予備ソース設定",
     "fallbackConfigSectionDesc": "予備検索ソースのキーとパラメータ。メイン失敗時に使用。",
     "rolePrimary": "メイン",
@@ -419,6 +428,8 @@
     "fallbackOrderDesc": "予備を複数選択。数字が優先度。空ならバックエンド既定（通常 local を含む）。メインは予備にできません。",
     "primaryConfigSection": "メインソース設定",
     "primaryConfigSectionDesc": "メイン取得ソースのキーとパラメータ。",
+    "sourceConfig": "ソース設定",
+    "sourceConfigDesc": "メインと予備取得ソースのキーとパラメータ。",
     "fallbackConfigSection": "予備ソース設定",
     "fallbackConfigSectionDesc": "予備取得ソースのパラメータ。メイン失敗時に使用。",
     "providerLocal": "ローカル (local)",
@@ -549,9 +560,6 @@
     "noActiveConfigTitle": "設定未激活",
     "noConfigFileTitle": "なし設定ファイル",
     "noConfigFileWarning": "先にクリック右上「新規設定」追加1つの設定ファイル、然後再に詳細タスクと低レベルタスク選択対応の設定"
-  },
-  "multimodal": {
-    "title": "マルチモーダル"
   },
   "imageUnderstand": {
     "title": "画像理解サービス",

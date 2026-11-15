@@ -177,7 +177,7 @@ export function ChipGroup({
             )}
             <span
               className={cn(
-                'text-sm font-medium min-w-0 sm:min-w-auto',
+                'text-sm font-medium min-w-0 truncate sm:min-w-auto',
                 isSelected && (isConflict ? 'text-destructive' : 'text-primary'),
               )}
             >

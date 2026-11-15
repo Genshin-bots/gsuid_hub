@@ -5,9 +5,8 @@ import {
   type ConfigFieldType,
   type ConfigValue,
 } from '@/components/config';
-import { pageGapClass, pageStackClass } from '@/components/layout/PinnedPage';
-import { Separator } from '@/components/ui/separator';
-import { cn } from '@/lib/utils';
+import { pageStackClass } from '@/components/layout/PinnedPage';
+import { ConfigCard, fieldGridClass } from '../shared';
 import type { PluginConfigItem } from '@/lib/api';
 import { isKitSlotConfigKey, RUNTIME_EXCLUDED_KEYS } from '../runtimeConfigKeys';
 import { RelationshipSettingsSection } from './RelationshipSettingsSection';
@@ -19,7 +18,7 @@ import { RelationshipSettingsSection } from './RelationshipSettingsSection';
  * 例如：multi_agent_lenth（思考轮数）会从 select 类型升级为带预设选项的下拉框。
  */
 export interface AdvancedSettingsSectionProps {
-  t: (key: string) => string;
+  t: (key: string, params?: Record<string, string | number>) => string;
   aiConfig: {
     id: string;
     config: Record<string, PluginConfigItem>;
@@ -68,61 +67,56 @@ export function AdvancedSettingsSection({
 }: AdvancedSettingsSectionProps) {
   return (
     <div className={pageStackClass}>
-      <div>
-        <h2 className="text-lg font-bold flex items-center gap-2 mb-1">
-          <SlidersHorizontal className="w-5 h-5 text-muted-foreground" />
-          {t('aiConfig.advancedSettings.title')}
-        </h2>
-        <p className="text-sm text-muted-foreground">
-          {t('aiConfig.advancedSettings.description')}
-        </p>
-      </div>
-
       <RelationshipSettingsSection t={t} aiConfig={aiConfig} onUpdateConfig={onUpdateConfig} />
-      <Separator className="bg-border/30" />
 
-      <div className={cn('grid grid-cols-2 items-start lg:grid-cols-3', pageGapClass)}>
-        {(() => {
-          const entries = Object.entries(aiConfig.config).filter(
-            ([key]) => !EXCLUDED_KEYS.includes(key) && !isKitSlotConfigKey(key),
-          );
-          if (entries.length === 0) {
-            return (
-              <div className="col-span-full py-12 text-center text-muted-foreground">
-                <p>{t('plugins.noConfigItems') || '暂无配置项'}</p>
-              </div>
+      <ConfigCard
+        icon={<SlidersHorizontal className="w-5 h-5 text-primary" />}
+        title={t('aiConfig.advancedSettings.title')}
+        description={t('aiConfig.advancedSettings.description')}
+      >
+        <div className={fieldGridClass}>
+          {(() => {
+            const entries = Object.entries(aiConfig.config).filter(
+              ([key]) => !EXCLUDED_KEYS.includes(key) && !isKitSlotConfigKey(key),
             );
-          }
-          return entries.map(([key, item]) => {
-            let fieldDef = pluginConfigItemToFieldDef(key, item);
-            if (key === 'multi_agent_lenth') {
-              fieldDef = {
-                ...fieldDef,
-                label: t('aiConfig.advancedSettings.thinkingRounds') || '思考轮数',
-                type: 'select' as ConfigFieldType,
-                options: ['9', '12', '20', '30'],
-                value: String(fieldDef.value || '12'),
-              };
+            if (entries.length === 0) {
+              return (
+                <div className="col-span-full py-12 text-center text-muted-foreground">
+                  <p>{t('plugins.noConfigItems')}</p>
+                </div>
+              );
             }
-            const isDivider = fieldDef.type === 'divider';
-            return (
-              <div key={key} className={isDivider ? 'col-span-full' : undefined}>
-                <ConfigField
-                  fieldKey={key}
-                  field={fieldDef}
-                  onChange={(fieldKey, value) => {
-                    const finalValue =
-                      fieldKey === 'multi_agent_lenth' && typeof value === 'string'
-                        ? parseInt(value, 10)
-                        : value;
-                    onUpdateConfig(aiConfig.id, fieldKey, finalValue);
-                  }}
-                />
-              </div>
-            );
-          });
-        })()}
-      </div>
+            return entries.map(([key, item]) => {
+              let fieldDef = pluginConfigItemToFieldDef(key, item);
+              if (key === 'multi_agent_lenth') {
+                fieldDef = {
+                  ...fieldDef,
+                  label: t('aiConfig.advancedSettings.thinkingRounds'),
+                  type: 'select' as ConfigFieldType,
+                  options: ['9', '12', '20', '30'],
+                  value: String(fieldDef.value || '12'),
+                };
+              }
+              const isDivider = fieldDef.type === 'divider';
+              return (
+                <div key={key} className={isDivider ? 'col-span-full' : undefined}>
+                  <ConfigField
+                    fieldKey={key}
+                    field={fieldDef}
+                    onChange={(fieldKey, value) => {
+                      const finalValue =
+                        fieldKey === 'multi_agent_lenth' && typeof value === 'string'
+                          ? parseInt(value, 10)
+                          : value;
+                      onUpdateConfig(aiConfig.id, fieldKey, finalValue);
+                    }}
+                  />
+                </div>
+              );
+            });
+          })()}
+        </div>
+      </ConfigCard>
     </div>
   );
 }

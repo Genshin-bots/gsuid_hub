@@ -1,4 +1,5 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
+import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
@@ -24,10 +25,12 @@ import so360Icon from '@/assets/search-providers/360.ico';
 import { PluginIcon } from '@/components/ui/plugin-icon';
 import { pageStackClass } from '@/components/layout/PinnedPage';
 import {
+  ConfigCard,
+  ConfigGroup,
+  ConfigGroupList,
   filterOutPrimaryProvider,
-  HeadingWithHelp,
-  LabelWithHelp,
   sameProviderId,
+  SettingRow,
 } from '../shared';
 
 function FaviconIcon({ src, alt }: { src: string; alt: string }) {
@@ -91,7 +94,7 @@ function getImageSourceIcon(source: string) {
 export type WebSearchLbStrategy = 'none' | 'error_switch' | 'auto_balance';
 
 export interface WebSearchSectionProps {
-  t: (key: string) => string;
+  t: (key: string, params?: Record<string, string | number>) => string;
 
   websearchProvider: string;
   websearchProviderOptions: string[];
@@ -144,46 +147,6 @@ const STRATEGY_ICONS: Record<string, ReactNode> = {
   error_switch: <GitBranch className="w-3.5 h-3.5" />,
   auto_balance: <Shuffle className="w-3.5 h-3.5" />,
 };
-
-/** 主用 / 备用 配置区块外壳 */
-function ConfigBlock({
-  blockRole,
-  title,
-  icon,
-  roleLabel,
-  children,
-  className,
-}: {
-  blockRole: 'primary' | 'fallback';
-  title: string;
-  icon?: ReactNode;
-  roleLabel: string;
-  children: ReactNode;
-  className?: string;
-}) {
-  const isPrimary = blockRole === 'primary';
-  return (
-    <div
-      className={cn(
-        'rounded-lg border p-4 space-y-3 glass-card transition-all',
-        isPrimary ? 'border-primary/40' : 'border-dashed border-border/60',
-        className,
-      )}
-    >
-      <div className="flex items-center gap-2 min-w-0">
-        <Badge
-          variant={isPrimary ? 'default' : 'outline'}
-          className={cn('shrink-0 text-[10px] h-5 px-1.5', !isPrimary && 'text-muted-foreground')}
-        >
-          {roleLabel}
-        </Badge>
-        {icon}
-        <span className="text-sm font-medium truncate">{title}</span>
-      </div>
-      {children}
-    </div>
-  );
-}
 
 /**
  * 「网络搜索服务」配置。
@@ -243,6 +206,16 @@ export function WebSearchSection({
 
   /** Chip 展示用 value：主用不显示为已选；成员资格需用户显式勾选，切主用不自动恢复 */
   const fallbackChipValue = effectiveFallbacks;
+
+  // 源配置卡片内的 provider 切换器：主用在首位，备用按顺序
+  const panelProviders = showFallbackUi
+    ? [websearchProvider, ...effectiveFallbacks]
+    : [websearchProvider];
+  const [selectedProvider, setSelectedProvider] = useState(websearchProvider);
+  // 选中项失效（换主用 / 被移出备用顺序）时回落到主用
+  const activePanelProvider = panelProviders.some((p) => sameProviderId(p, selectedProvider))
+    ? selectedProvider
+    : websearchProvider;
 
   const renderProviderPanel = (provider: string) => {
     const key = provider.trim().toLowerCase();
@@ -368,9 +341,7 @@ export function WebSearchSection({
             <div className="flex items-center gap-2 min-w-0 flex-1">
               {websearchToolInfo ? (
                 <>
-                  <div className="flex items-center justify-center flex-shrink-0 w-6 h-6 rounded-md bg-primary/10 text-primary">
-                    <Wrench className="w-3 h-3" />
-                  </div>
+                  <Wrench className="w-3.5 h-3.5 shrink-0 text-primary" />
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5">
                       <span className="text-sm font-medium truncate">
@@ -441,184 +412,182 @@ export function WebSearchSection({
 
   return (
     <div className={pageStackClass}>
-      <HeadingWithHelp
+      {/* 搜索源：主用 / 多源策略 / 备用顺序 */}
+      <ConfigCard
         icon={<Search className="w-5 h-5 text-primary" />}
         title={t('aiConfig.serviceProvider.webSearchService')}
         description={t('aiConfig.serviceProvider.webSearchServiceDesc')}
-      />
-
-      <div className="space-y-2">
-        <LabelWithHelp
-          icon={<Layers className="w-3.5 h-3.5 text-muted-foreground" />}
-          label={t('aiConfig.serviceProvider.primaryProvider')}
-          description={t('aiConfig.serviceProvider.primaryProviderDesc')}
-          className="text-xs font-medium text-muted-foreground"
-        />
-        <ChipGroup
-          options={websearchProviderOptions.map((p) => ({
-            value: p,
-            label: p,
-            icon: getSearchProviderIcon(p),
-          }))}
-          value={[websearchProvider]}
-          onValueChange={(newValue) => onChangeProvider(newValue[0] || '')}
-          selectMode="single"
-          showRadioIndicator
-        />
-      </div>
-
-      <div className="space-y-2 pt-1 border-t border-border/30">
-        <LabelWithHelp
-          icon={<GitBranch className="w-3.5 h-3.5 text-muted-foreground" />}
-          label={t('aiConfig.serviceProvider.lbStrategy')}
-          description={t('aiConfig.serviceProvider.lbStrategyDesc')}
-          className="text-xs font-medium text-muted-foreground"
-        />
-        <ChipGroup
-          options={websearchLbStrategyOptions.map((s) => ({
-            value: s,
-            label: strategyLabels[s] || s,
-            icon: STRATEGY_ICONS[s] ?? <GitBranch className="w-3.5 h-3.5" />,
-          }))}
-          value={[websearchLbStrategy || 'error_switch']}
-          onValueChange={(newValue) => onChangeLbStrategy(newValue[0] || 'error_switch')}
-          selectMode="single"
-          showRadioIndicator
-        />
-      </div>
-
-      {showFallbackUi && (
-        <div className="space-y-2">
-          <LabelWithHelp
-            icon={<ListOrdered className="w-3.5 h-3.5 text-muted-foreground" />}
-            label={t('aiConfig.serviceProvider.fallbackOrder')}
-            description={t('aiConfig.serviceProvider.fallbackOrderDesc')}
-            className="text-xs font-medium text-muted-foreground"
-          />
-          <ChipGroup
-            options={fallbackOpts.map((p) => {
-              const isPrimary = sameProviderId(p, websearchProvider);
-              return {
+      >
+        <ConfigGroupList>
+          <ConfigGroup
+            layout="inline"
+            icon={<Layers className="w-4 h-4 text-muted-foreground" />}
+            label={t('aiConfig.serviceProvider.primaryProvider')}
+            description={t('aiConfig.serviceProvider.primaryProviderDesc')}
+          >
+            <ChipGroup
+              options={websearchProviderOptions.map((p) => ({
                 value: p,
-                label: isPrimary ? `${p} (${t('aiConfig.serviceProvider.rolePrimary')})` : p,
+                label: p,
                 icon: getSearchProviderIcon(p),
-                // 主用：可见、禁用、不可勾选；不参与已选 / 不写入 fallback 字段
-                disabled: isPrimary,
-              };
-            })}
-            value={fallbackChipValue}
-            onValueChange={(visibleSelected) => {
-              // 绝不把当前主用写入 fallback_order（切换主用时由父级静默剔除）
-              onChangeFallbackOrder(filterOutPrimaryProvider(visibleSelected, websearchProvider));
-            }}
-            selectMode="multiple"
-            allowEmpty
-            showOrderIndex
-          />
-        </div>
-      )}
+              }))}
+              value={[websearchProvider]}
+              onValueChange={(newValue) => onChangeProvider(newValue[0] || '')}
+              selectMode="single"
+              showRadioIndicator
+            />
+          </ConfigGroup>
 
-      {/* 主用源配置 */}
-      <div className="space-y-2 pt-1 border-t border-border/30">
-        <LabelWithHelp
-          icon={<Settings2 className="w-3.5 h-3.5 text-muted-foreground" />}
-          label={t('aiConfig.serviceProvider.primaryConfigSection')}
-          description={t('aiConfig.serviceProvider.primaryConfigSectionDesc')}
-          className="text-xs font-medium text-muted-foreground"
-        />
-        <ConfigBlock
-          blockRole="primary"
-          title={websearchProvider}
-          icon={getSearchProviderIcon(websearchProvider)}
-          roleLabel={t('aiConfig.serviceProvider.rolePrimary')}
-        >
-          {renderProviderPanel(websearchProvider)}
-        </ConfigBlock>
-      </div>
+          <ConfigGroup
+            layout="inline"
+            icon={<GitBranch className="w-4 h-4 text-muted-foreground" />}
+            label={t('aiConfig.serviceProvider.lbStrategy')}
+            description={t('aiConfig.serviceProvider.lbStrategyDesc')}
+          >
+            <TabButtonGroup
+              size="sm"
+              value={websearchLbStrategy || 'error_switch'}
+              onValueChange={(v) => onChangeLbStrategy(v || 'error_switch')}
+              options={websearchLbStrategyOptions.map((s) => ({
+                value: s,
+                label: strategyLabels[s] || s,
+                icon: STRATEGY_ICONS[s] ?? <GitBranch className="w-3.5 h-3.5" />,
+              }))}
+            />
+          </ConfigGroup>
 
-      {/* 备用源配置（与主用分区） */}
-      {showFallbackUi && effectiveFallbacks.length > 0 && (
-        <div className="space-y-3">
-          <LabelWithHelp
-            icon={<Layers className="w-3.5 h-3.5 text-muted-foreground" />}
-            label={t('aiConfig.serviceProvider.fallbackConfigSection')}
-            description={t('aiConfig.serviceProvider.fallbackConfigSectionDesc')}
-            className="text-xs font-medium text-muted-foreground"
-          />
-          {effectiveFallbacks.map((p) => (
-            <ConfigBlock
-              key={p}
-              blockRole="fallback"
-              title={p}
-              icon={getSearchProviderIcon(p)}
-              roleLabel={t('aiConfig.serviceProvider.roleFallback')}
+          {showFallbackUi && (
+            <ConfigGroup
+              layout="inline"
+              icon={<ListOrdered className="w-4 h-4 text-muted-foreground" />}
+              label={t('aiConfig.serviceProvider.fallbackOrder')}
+              description={t('aiConfig.serviceProvider.fallbackOrderDesc')}
             >
-              {renderProviderPanel(p)}
-            </ConfigBlock>
-          ))}
+              <ChipGroup
+                options={fallbackOpts.map((p) => {
+                  const isPrimary = sameProviderId(p, websearchProvider);
+                  return {
+                    value: p,
+                    label: isPrimary ? `${p} (${t('aiConfig.serviceProvider.rolePrimary')})` : p,
+                    icon: getSearchProviderIcon(p),
+                    // 主用：可见、禁用、不可勾选；不参与已选 / 不写入 fallback 字段
+                    disabled: isPrimary,
+                  };
+                })}
+                value={fallbackChipValue}
+                onValueChange={(visibleSelected) => {
+                  // 绝不把当前主用写入 fallback_order（切换主用时由父级静默剔除）
+                  onChangeFallbackOrder(
+                    filterOutPrimaryProvider(visibleSelected, websearchProvider),
+                  );
+                }}
+                selectMode="multiple"
+                allowEmpty
+                showOrderIndex
+              />
+            </ConfigGroup>
+          )}
+        </ConfigGroupList>
+      </ConfigCard>
+
+      {/* 源配置：主用 + 备用，TabButtonGroup 切换当前编辑的 provider */}
+      <ConfigCard
+        icon={<Settings2 className="w-5 h-5 text-primary" />}
+        title={t('aiConfig.serviceProvider.sourceConfig')}
+        description={t('aiConfig.serviceProvider.sourceConfigDesc')}
+      >
+        {panelProviders.length > 1 ? (
+          <TabButtonGroup
+            size="sm"
+            value={activePanelProvider}
+            onValueChange={setSelectedProvider}
+            options={panelProviders.map((p, i) => ({
+              value: p,
+              label: p,
+              icon: getSearchProviderIcon(p),
+              badge:
+                i === 0 ? (
+                  <Badge
+                    variant="outline"
+                    className="h-4 px-1 text-[10px] border-primary/30 text-primary"
+                  >
+                    {t('aiConfig.serviceProvider.rolePrimary')}
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="h-4 px-1 text-[10px]">
+                    {i}
+                  </Badge>
+                ),
+            }))}
+          />
+        ) : (
+          <div className="flex items-center gap-2">
+            {getSearchProviderIcon(websearchProvider)}
+            <span className="text-sm font-medium">{websearchProvider}</span>
+            <Badge
+              variant="outline"
+              className="h-4 px-1 text-[10px] border-primary/30 text-primary"
+            >
+              {t('aiConfig.serviceProvider.rolePrimary')}
+            </Badge>
+          </div>
+        )}
+        <div className="border-t border-border/40 pt-4">
+          {renderProviderPanel(activePanelProvider)}
         </div>
-      )}
+      </ConfigCard>
 
       {/* 卡片出图配图设置 */}
       {(onChangeRenderEmbedImages !== undefined ||
         (onChangeRenderImageSources &&
           renderImageSourceOptions &&
           renderImageSourceOptions.length > 0)) && (
-        <div className="space-y-2 pt-1 border-t border-border/30">
-          <LabelWithHelp
-            icon={<Images className="w-3.5 h-3.5 text-muted-foreground" />}
-            label={t('aiConfig.serviceProvider.renderCardSection')}
-            description={t('aiConfig.serviceProvider.renderCardSectionDesc')}
-            className="text-xs font-medium text-muted-foreground"
-          />
+        <ConfigCard
+          icon={<Images className="w-5 h-5 text-primary" />}
+          title={t('aiConfig.serviceProvider.renderCardSection')}
+          description={t('aiConfig.serviceProvider.renderCardSectionDesc')}
+        >
           <div
             className={cn(
-              'rounded-lg border p-4 space-y-3.5 transition-all duration-200 glass-card',
-              renderEmbedImages !== false ? 'border-border/60' : 'border-border/40 opacity-80',
+              'space-y-4 transition-all duration-200',
+              renderEmbedImages === false && 'opacity-80',
             )}
           >
             {/* 允许嵌入配图 主控开关行 */}
             {onChangeRenderEmbedImages !== undefined && (
-              <div className="flex items-start justify-between gap-3 md:gap-4">
-                <div className="flex items-start gap-3 min-w-0">
-                  <div
+              <SettingRow
+                icon={
+                  <Images
                     className={cn(
-                      'flex items-center justify-center w-8 h-8 rounded-lg shrink-0 mt-0.5 transition-colors',
-                      renderEmbedImages !== false
-                        ? 'bg-primary/10 text-primary'
-                        : 'bg-muted text-muted-foreground',
+                      'w-4 h-4',
+                      renderEmbedImages !== false ? 'text-primary' : 'text-muted-foreground',
                     )}
-                  >
-                    <Images className="w-4 h-4" />
-                  </div>
-                  <div className="space-y-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-sm font-medium">
-                        {t('aiConfig.serviceProvider.renderEmbedImages')}
-                      </span>
-                      <Badge
-                        variant={renderEmbedImages !== false ? 'default' : 'secondary'}
-                        className={cn(
-                          'text-[10px] h-4.5 px-1.5 font-normal',
-                          renderEmbedImages !== false &&
-                            'bg-primary/15 text-primary hover:bg-primary/20 border-primary/20',
-                        )}
-                      >
-                        {renderEmbedImages !== false ? t('common.enabled') : t('common.disabled')}
-                      </Badge>
-                    </div>
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      {t('aiConfig.serviceProvider.renderEmbedImagesDesc')}
-                    </p>
-                  </div>
-                </div>
-                <Switch
-                  checked={renderEmbedImages !== false}
-                  onCheckedChange={onChangeRenderEmbedImages}
-                  aria-label={t('aiConfig.serviceProvider.renderEmbedImages')}
-                  className="shrink-0 mt-0.5"
-                />
-              </div>
+                  />
+                }
+                title={
+                  <span className="flex items-center gap-2 flex-wrap">
+                    {t('aiConfig.serviceProvider.renderEmbedImages')}
+                    <Badge
+                      variant={renderEmbedImages !== false ? 'default' : 'secondary'}
+                      className={cn(
+                        'text-[10px] h-4.5 px-1.5 font-normal',
+                        renderEmbedImages !== false &&
+                          'bg-primary/15 text-primary hover:bg-primary/20 border-primary/20',
+                      )}
+                    >
+                      {renderEmbedImages !== false ? t('common.enabled') : t('common.disabled')}
+                    </Badge>
+                  </span>
+                }
+                description={t('aiConfig.serviceProvider.renderEmbedImagesDesc')}
+                control={
+                  <Switch
+                    checked={renderEmbedImages !== false}
+                    onCheckedChange={onChangeRenderEmbedImages}
+                    aria-label={t('aiConfig.serviceProvider.renderEmbedImages')}
+                  />
+                }
+              />
             )}
 
             {/* 出图配图来源 优先级排序选择 */}
@@ -626,18 +595,15 @@ export function WebSearchSection({
               renderImageSourceOptions &&
               renderImageSourceOptions.length > 0 &&
               (renderEmbedImages !== false ? (
-                <div
+                <ConfigGroup
+                  layout="inline"
+                  icon={<ListOrdered className="w-4 h-4 text-muted-foreground" />}
+                  label={t('aiConfig.serviceProvider.renderImageSources')}
+                  description={t('aiConfig.serviceProvider.renderImageSourcesDesc')}
                   className={cn(
-                    'space-y-2',
-                    onChangeRenderEmbedImages !== undefined && 'pt-3 border-t border-border/30',
+                    onChangeRenderEmbedImages !== undefined && 'pt-4 border-t border-border/40',
                   )}
                 >
-                  <LabelWithHelp
-                    icon={<ListOrdered className="w-3.5 h-3.5 text-muted-foreground" />}
-                    label={t('aiConfig.serviceProvider.renderImageSources')}
-                    description={t('aiConfig.serviceProvider.renderImageSourcesDesc')}
-                    className="text-xs font-medium text-muted-foreground"
-                  />
                   <ChipGroup
                     options={renderImageSourceOptions.map((source) => ({
                       value: source,
@@ -650,9 +616,9 @@ export function WebSearchSection({
                     allowEmpty
                     showOrderIndex
                   />
-                </div>
+                </ConfigGroup>
               ) : (
-                <div className="pt-3 border-t border-border/30">
+                <div className="pt-4 border-t border-border/40">
                   <div className="flex items-center gap-2 text-xs text-muted-foreground/80 py-0.5">
                     <Ban className="w-3.5 h-3.5 shrink-0 text-muted-foreground/60" />
                     <span>{t('aiConfig.serviceProvider.renderEmbedImagesDisabledHint')}</span>
@@ -660,7 +626,7 @@ export function WebSearchSection({
                 </div>
               ))}
           </div>
-        </div>
+        </ConfigCard>
       )}
     </div>
   );
