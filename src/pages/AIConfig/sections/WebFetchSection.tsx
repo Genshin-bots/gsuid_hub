@@ -10,16 +10,18 @@ import {
   Settings2,
   Shuffle,
 } from 'lucide-react';
-import { JinaAi, Deepseek } from '@thesvg/react';
+import { JinaAi, Deepseek, Exa } from '@thesvg/react';
 import { Badge } from '@/components/ui/badge';
 import { ChipGroup } from '@/components/ui/MultiSelectChipGroup';
 import { DynamicConfigPanel, type ConfigValue } from '@/components/config';
 import type { PluginConfigItem } from '@/lib/api';
+import anysearchIcon from '@/assets/search-providers/anysearch.ico';
 import { pageStackClass } from '@/components/layout/PinnedPage';
 import {
   ConfigCard,
   ConfigGroup,
   ConfigGroupList,
+  FaviconIcon,
   filterOutPrimaryProvider,
   sameProviderId,
 } from '../shared';
@@ -27,7 +29,7 @@ import {
 export interface WebFetchSectionProps {
   t: (key: string, params?: Record<string, string | number>) => string;
 
-  /** 主用抓取提供方：Jina | DeepSeek | local */
+  /** 主用抓取提供方：Jina | DeepSeek | Exa | AnySearch | local */
   webfetchProvider: string;
   webfetchProviderOptions?: string[];
 
@@ -43,6 +45,10 @@ export interface WebFetchSectionProps {
   jinaConfig?: { id: string; config: Record<string, PluginConfigItem> };
   /** DeepSeek Fetch API 配置，需 API Key */
   deepseekConfig?: { id: string; config: Record<string, PluginConfigItem> };
+  /** Exa Contents 配置，需 API Key */
+  exaConfig?: { id: string; config: Record<string, PluginConfigItem> };
+  /** AnySearch Extract 配置，API Key 可选 */
+  anysearchConfig?: { id: string; config: Record<string, PluginConfigItem> };
 
   onChangeProvider: (provider: string) => void;
   onChangeLbStrategy: (strategy: string) => void;
@@ -54,6 +60,8 @@ function getFetchProviderIcon(provider: string) {
   const key = provider.trim().toLowerCase();
   if (key === 'jina') return <JinaAi width={14} height={14} variant="default" />;
   if (key === 'deepseek') return <Deepseek width={14} height={14} variant="default" />;
+  if (key === 'exa') return <Exa width={14} height={14} variant="default" />;
+  if (key === 'anysearch') return <FaviconIcon src={anysearchIcon} alt="AnySearch" />;
   return <HardDrive className="w-3.5 h-3.5" />;
 }
 
@@ -69,7 +77,7 @@ const STRATEGY_ICONS: Record<string, ReactNode> = {
 export function WebFetchSection({
   t,
   webfetchProvider,
-  webfetchProviderOptions = ['Jina', 'DeepSeek', 'local'],
+  webfetchProviderOptions = ['Jina', 'DeepSeek', 'Exa', 'AnySearch', 'local'],
   webfetchLbStrategy,
   webfetchLbStrategyOptions = ['none', 'error_switch', 'auto_balance'],
   webfetchFallbackOrder,
@@ -77,6 +85,8 @@ export function WebFetchSection({
   webFetchConfig,
   jinaConfig,
   deepseekConfig,
+  exaConfig,
+  anysearchConfig,
   onChangeProvider,
   onChangeLbStrategy,
   onChangeFallbackOrder,
@@ -86,6 +96,16 @@ export function WebFetchSection({
     local: t('aiConfig.webFetch.providerLocal'),
     Jina: t('aiConfig.webFetch.providerJina'),
     DeepSeek: t('aiConfig.webFetch.providerDeepSeek'),
+    Exa: t('aiConfig.webFetch.providerExa'),
+    AnySearch: t('aiConfig.webFetch.providerAnySearch'),
+  };
+
+  const providerHints: Record<string, string> = {
+    local: t('aiConfig.webFetch.localHint'),
+    jina: t('aiConfig.webFetch.jinaHint'),
+    deepseek: t('aiConfig.webFetch.deepseekHint'),
+    exa: t('aiConfig.webFetch.exaHint'),
+    anysearch: t('aiConfig.webFetch.anysearchHint'),
   };
 
   const strategyLabels: Record<string, string> = {
@@ -95,8 +115,6 @@ export function WebFetchSection({
   };
 
   const primary = webfetchProvider || 'Jina';
-  const isJina = primary.trim().toLowerCase() === 'jina';
-  const isDeepSeek = primary.trim().toLowerCase() === 'deepseek';
 
   // 展示全部候选（含主用）；主用禁用且不以「已选」展示
   const fallbackOpts =
@@ -125,6 +143,8 @@ export function WebFetchSection({
     const k = p.trim().toLowerCase();
     if (k === 'jina') return providerLabels.Jina || p;
     if (k === 'deepseek') return providerLabels.DeepSeek || p;
+    if (k === 'exa') return providerLabels.Exa || p;
+    if (k === 'anysearch') return providerLabels.AnySearch || p;
     if (k === 'local') return providerLabels.local || p;
     return p;
   };
@@ -163,6 +183,38 @@ export function WebFetchSection({
         />
       );
     }
+    if (key === 'exa') {
+      if (!exaConfig) {
+        return (
+          <p className="text-sm text-muted-foreground">
+            {t('aiConfig.webFetch.exaConfigNotLoaded')}
+          </p>
+        );
+      }
+      return (
+        <DynamicConfigPanel
+          config={exaConfig.config}
+          configId={exaConfig.id}
+          onChange={onUpdateConfig}
+        />
+      );
+    }
+    if (key === 'anysearch') {
+      if (!anysearchConfig) {
+        return (
+          <p className="text-sm text-muted-foreground">
+            {t('aiConfig.webFetch.anysearchConfigNotLoaded')}
+          </p>
+        );
+      }
+      return (
+        <DynamicConfigPanel
+          config={anysearchConfig.config}
+          configId={anysearchConfig.id}
+          onChange={onUpdateConfig}
+        />
+      );
+    }
     // local
     if (!webFetchConfig) {
       return (
@@ -191,13 +243,7 @@ export function WebFetchSection({
             layout="inline"
             icon={<Layers className="w-4 h-4 text-muted-foreground" />}
             label={t('aiConfig.webFetch.primaryProvider')}
-            description={
-              isJina
-                ? t('aiConfig.webFetch.jinaHint')
-                : isDeepSeek
-                  ? t('aiConfig.webFetch.deepseekHint')
-                  : t('aiConfig.webFetch.localHint')
-            }
+            description={providerHints[primary.trim().toLowerCase()] ?? providerHints.local}
           >
             <ChipGroup
               options={webfetchProviderOptions.map((p) => ({

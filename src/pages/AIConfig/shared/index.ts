@@ -35,3 +35,5 @@ export type { SidebarItemProps } from './SidebarItem';
 export { renderRichText } from './renderRichText';
 
 export { sameProviderId, filterOutPrimaryProvider } from './providerId';
+
+export { FaviconIcon } from './FaviconIcon';

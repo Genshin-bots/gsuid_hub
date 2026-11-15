@@ -28,23 +28,11 @@ import {
   ConfigCard,
   ConfigGroup,
   ConfigGroupList,
+  FaviconIcon,
   filterOutPrimaryProvider,
   sameProviderId,
   SettingRow,
 } from '../shared';
-
-function FaviconIcon({ src, alt }: { src: string; alt: string }) {
-  return (
-    <img
-      src={src}
-      alt={alt}
-      width={14}
-      height={14}
-      className="h-3.5 w-3.5 shrink-0 rounded-[2px] object-contain"
-      draggable={false}
-    />
-  );
-}
 
 /**
  * 网络搜索提供方 -> 品牌图标。

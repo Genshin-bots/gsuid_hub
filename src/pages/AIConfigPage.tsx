@@ -424,6 +424,9 @@ export default function AIConfigPage() {
   ]) as string[];
   const webfetchProviderOptions = (aiConfig?.config.webfetch_provider?.options || [
     'Jina',
+    'DeepSeek',
+    'Exa',
+    'AnySearch',
     'local',
   ]) as string[];
   const webfetchLbStrategyOptions = (aiConfig?.config.webfetch_lb_strategy?.options || [
@@ -1000,6 +1003,8 @@ export default function AIConfigPage() {
             webFetchConfig={webFetchConfig}
             jinaConfig={jinaConfig}
             deepseekConfig={deepseekConfig}
+            exaConfig={exaConfig}
+            anysearchConfig={anysearchConfig}
             onChangeProvider={(v) => {
               updateConfigValue(aiConfig.id, 'webfetch_provider', v);
               const next = filterOutPrimaryProvider(webfetchFallbackOrder, v);

@@ -419,7 +419,7 @@
   },
   "webFetch": {
     "title": "Web Fetch Service",
-    "description": "Configure web_fetch_tool: primary Jina / DeepSeek / local with error switch and auto balance. Changes apply immediately—no restart.",
+    "description": "Configure web_fetch_tool: primary Jina / DeepSeek / Exa / AnySearch / local with error switch and auto balance. Changes apply immediately—no restart.",
     "provider": "Fetch provider",
     "primaryProvider": "Primary fetch provider",
     "lbStrategy": "Multi-source strategy",
@@ -435,12 +435,18 @@
     "providerLocal": "Local",
     "providerJina": "Jina (r.jina.ai)",
     "providerDeepSeek": "DeepSeek (Fetch API)",
+    "providerExa": "Exa (Contents)",
+    "providerAnySearch": "AnySearch (Extract)",
     "localHint": "Direct aiohttp fetch with optional proxy / UA / timeout.",
     "jinaHint": "Read via r.jina.ai; API key optional (higher quota when set). Default primary.",
     "deepseekHint": "Fetch and extract Markdown via official DeepSeek Fetch API, requires API Key.",
+    "exaHint": "Read via Exa Contents; requires an API Key in the Exa config.",
+    "anysearchHint": "Read via AnySearch Extract; API key optional, falls back to the anonymous daily quota.",
     "configNotLoaded": "Web fetch service config not loaded. Ensure the backend is running and WebFetch config is registered",
     "jinaConfigNotLoaded": "Jina config not loaded; ensure backend registered Jina search/fetch settings",
-    "deepseekConfigNotLoaded": "DeepSeek config not loaded; ensure backend registered DeepSeek search/fetch settings"
+    "deepseekConfigNotLoaded": "DeepSeek config not loaded; ensure backend registered DeepSeek search/fetch settings",
+    "exaConfigNotLoaded": "Exa config not loaded; ensure backend registered Exa search settings",
+    "anysearchConfigNotLoaded": "AnySearch config not loaded; ensure backend registered AnySearch search settings"
   },
   "relationshipSettings": {
     "title": "Relationship",

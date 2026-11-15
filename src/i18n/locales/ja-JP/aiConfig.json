@@ -419,7 +419,7 @@
   },
   "webFetch": {
     "title": "Web 取得サービス",
-    "description": "web_fetch_tool：メイン Jina / DeepSeek / local、エラー切替と自動分散対応。保存後すぐ反映、再起動不要。",
+    "description": "web_fetch_tool：メイン Jina / DeepSeek / Exa / AnySearch / local、エラー切替と自動分散対応。保存後すぐ反映、再起動不要。",
     "provider": "取得プロバイダー",
     "primaryProvider": "メイン取得ソース",
     "lbStrategy": "マルチソース戦略",
@@ -435,12 +435,18 @@
     "providerLocal": "ローカル (local)",
     "providerJina": "Jina (r.jina.ai)",
     "providerDeepSeek": "DeepSeek (Fetch API)",
+    "providerExa": "Exa (Contents)",
+    "providerAnySearch": "AnySearch (Extract)",
     "localHint": "aiohttp で直接続。プロキシ / UA / タイムアウト設定可。",
     "jinaHint": "r.jina.ai 経由。API Key は任意。デフォルトのメイン。",
     "deepseekHint": "DeepSeek 公式 Fetch 経由で取得し Markdown を抽出。API Key が必要です。",
+    "exaHint": "Exa Contents 経由で本文を取得。Exa 設定で API Key が必要です。",
+    "anysearchHint": "AnySearch Extract 経由で本文を取得。API Key は任意、未設定なら匿名デイリー枠。",
     "configNotLoaded": "Web 取得サービス設定が未読込です。バックエンドが起動し WebFetch 設定が登録されているか確認してください",
     "jinaConfigNotLoaded": "Jina 設定が未読込です。バックエンドの Jina 検索・取得設定を確認してください",
-    "deepseekConfigNotLoaded": "DeepSeek 設定が未読込です。バックエンドの DeepSeek 検索・取得設定を確認してください"
+    "deepseekConfigNotLoaded": "DeepSeek 設定が未読込です。バックエンドの DeepSeek 検索・取得設定を確認してください",
+    "exaConfigNotLoaded": "Exa 設定が未読込です。バックエンドの Exa 検索設定を確認してください",
+    "anysearchConfigNotLoaded": "AnySearch 設定が未読込です。バックエンドの AnySearch 検索設定を確認してください"
   },
   "relationshipSettings": {
     "title": "関係温度",
