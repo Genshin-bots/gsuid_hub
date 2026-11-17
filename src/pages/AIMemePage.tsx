@@ -504,13 +504,15 @@ const MemeCard = memo(function MemeCard({
             </Badge>
           )}
         </div>
-        <div className="flex items-center justify-between text-[10px] text-muted-foreground/70">
-          <span className="flex items-center gap-1">
-            <FolderOpen className="w-3 h-3" />
-            {meme.folder}
+        <div className="flex items-center justify-between gap-2 text-[10px] text-muted-foreground/70 min-w-0">
+          <span className="flex items-center gap-1 min-w-0">
+            <FolderOpen className="w-3 h-3 shrink-0" />
+            <span className="truncate">{meme.folder}</span>
           </span>
           {meme.use_count > 0 && (
-            <span>{t('aiMeme.card.useCount', { count: meme.use_count })}</span>
+            <span className="shrink-0 whitespace-nowrap">
+              {t('aiMeme.card.useCount', { count: meme.use_count })}
+            </span>
           )}
         </div>
       </CardContent>
@@ -672,13 +674,13 @@ function MemeDetailDialog({
             </div>
 
             {/* Right: Info & Edit */}
-            <div className="flex min-h-0 flex-col border-border/40 md:w-1/2 md:border-l">
+            <div className="flex min-h-0 min-w-0 flex-col border-border/40 md:w-1/2 md:border-l">
               <DialogHeader className="shrink-0 space-y-2 px-6 pb-4 pr-12 pt-6">
                 <DialogTitle className="flex items-center gap-2">
-                  <ImageIcon className="w-5 h-5 text-primary" />
-                  {t('aiMeme.detail.title')}
+                  <ImageIcon className="w-5 h-5 shrink-0 text-primary" />
+                  <span className="truncate">{t('aiMeme.detail.title')}</span>
                 </DialogTitle>
-                <DialogDescription>
+                <DialogDescription className="break-all">
                   {meme.meme_id} · {meme.width}×{meme.height} · {formatFileSize(meme.file_size)}
                 </DialogDescription>
               </DialogHeader>
@@ -775,12 +777,12 @@ function MemeDetailDialog({
                       </span>
                     </div>
                     {meme.last_used_group && (
-                      <div className="flex items-center gap-1.5 col-span-2">
+                      <div className="flex items-center gap-1.5 col-span-2 min-w-0">
                         <Users className="w-3 h-3 text-muted-foreground shrink-0" />
-                        <span className="text-muted-foreground">
+                        <span className="text-muted-foreground shrink-0">
                           {t('aiMeme.detail.lastUsedGroup')}:
                         </span>
-                        <span className="font-medium">{meme.last_used_group}</span>
+                        <span className="font-medium truncate min-w-0">{meme.last_used_group}</span>
                       </div>
                     )}
                   </div>
@@ -1032,22 +1034,22 @@ function UploadDialog({
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
-      <DialogContent className="glass-card max-w-lg">
-        <DialogHeader>
+      <DialogContent className="glass-card flex max-h-[85vh] max-w-lg flex-col">
+        <DialogHeader className="shrink-0 pr-6">
           <DialogTitle className="flex items-center gap-2">
-            <Upload className="w-5 h-5 text-primary" />
-            {t('aiMeme.upload.title')}
+            <Upload className="w-5 h-5 shrink-0 text-primary" />
+            <span className="truncate">{t('aiMeme.upload.title')}</span>
           </DialogTitle>
           <DialogDescription>{t('aiMeme.upload.dragDropHint')}</DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-3 md:space-y-4 py-2">
+        <div className="flex-1 min-h-0 min-w-0 overflow-y-auto pr-1 space-y-3 md:space-y-4 py-2">
           {/* Drop Zone */}
           <div
             className={cn(
-              'relative border-2 border-dashed rounded-xl text-center transition-all duration-300 cursor-pointer',
+              'relative min-w-0 border-2 border-dashed rounded-xl text-center transition-colors duration-300 cursor-pointer',
               isDragOver
-                ? 'border-primary bg-primary/5 scale-[1.02]'
+                ? 'border-primary bg-primary/5'
                 : 'border-border/50 hover:border-primary/50 hover:bg-muted/30',
               hasFiles ? 'p-4' : 'p-8',
             )}
@@ -1071,32 +1073,42 @@ function UploadDialog({
               }}
             />
             {hasFiles ? (
-              <div className="space-y-2 max-h-[200px] overflow-y-auto">
-                {files.map((f, i) => (
-                  <div key={`${f.name}-${i}`} className="flex items-center gap-2 text-left">
-                    {isImage(f) ? (
-                      <ImageIcon className="w-4 h-4 text-muted-foreground shrink-0" />
-                    ) : (
-                      <FileUp className="w-4 h-4 text-muted-foreground shrink-0" />
-                    )}
-                    <span className="text-xs truncate flex-1">{f.name}</span>
-                    <span className="text-[10px] text-muted-foreground whitespace-nowrap">
-                      {formatFileSize(f.size)}
-                    </span>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        removeFile(i);
-                      }}
-                      className="text-muted-foreground hover:text-destructive shrink-0"
+              <div className="space-y-2 min-w-0">
+                <div className="space-y-1.5 max-h-[200px] overflow-y-auto pr-1.5 min-w-0">
+                  {files.map((f, i) => (
+                    <div
+                      key={`${f.name}-${i}`}
+                      className="flex items-center gap-2 text-left min-w-0"
                     >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                ))}
-                <p className="text-[10px] text-muted-foreground pt-1">
-                  {imageFiles.length > 0 && t('aiMeme.upload.dragDropHint')}
-                </p>
+                      {isImage(f) ? (
+                        <ImageIcon className="w-4 h-4 text-muted-foreground shrink-0" />
+                      ) : (
+                        <FileUp className="w-4 h-4 text-muted-foreground shrink-0" />
+                      )}
+                      <span className="text-xs truncate flex-1 min-w-0" title={f.name}>
+                        {f.name}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground whitespace-nowrap shrink-0 tabular-nums">
+                        {formatFileSize(f.size)}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeFile(i);
+                        }}
+                        className="text-muted-foreground hover:text-destructive shrink-0"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                {imageFiles.length > 0 && (
+                  <p className="text-[10px] text-muted-foreground pt-1.5 border-t border-border/30">
+                    {t('aiMeme.upload.dragDropHint')}
+                  </p>
+                )}
               </div>
             ) : (
               <div className="flex flex-col items-center gap-3">
@@ -1121,13 +1133,13 @@ function UploadDialog({
               deduplicated against the personas list so the dropdown only shows
               it once even when the backend reports it as the top result. */}
           {(imageFiles.length > 0 || hasMeme) && (
-            <div className="space-y-2">
+            <div className="space-y-2 min-w-0">
               <Label className="text-sm flex items-center gap-1.5">
-                <Users className="w-3.5 h-3.5 text-muted-foreground" />
-                {t('aiMeme.upload.targetPersona')}
+                <Users className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                <span className="truncate">{t('aiMeme.upload.targetPersona')}</span>
               </Label>
               <Select value={personaHint} onValueChange={setPersonaHint}>
-                <SelectTrigger className="w-full h-9 text-sm">
+                <SelectTrigger className="w-full min-w-0 h-9 text-sm [&>span]:min-w-0 [&>span]:truncate">
                   <SelectValue placeholder={t('aiMeme.upload.targetPersona')} />
                 </SelectTrigger>
                 <SelectContent>
@@ -1136,11 +1148,11 @@ function UploadDialog({
                     .filter((p) => p.persona_hint !== 'common')
                     .map((p) => (
                       <SelectItem key={p.persona_hint} value={p.persona_hint}>
-                        <span className="flex items-center gap-2">
+                        <span className="flex items-center gap-2 min-w-0">
                           <span className="truncate max-w-[200px]">
                             {p.folder || p.persona_hint}
                           </span>
-                          <span className="text-[10px] text-muted-foreground tabular-nums">
+                          <span className="text-[10px] text-muted-foreground tabular-nums shrink-0">
                             {p.count}
                           </span>
                         </span>
@@ -1156,33 +1168,37 @@ function UploadDialog({
 
           {/* Skip Existing Toggle (only for .meme) */}
           {hasMeme && (
-            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
-              <div>
+            <div className="flex items-center justify-between gap-3 p-3 rounded-lg bg-muted/30 min-w-0">
+              <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium">{t('aiMeme.upload.skipExisting')}</p>
                 <p className="text-xs text-muted-foreground">
                   {t('aiMeme.upload.skipExistingDesc')}
                 </p>
               </div>
-              <Switch checked={skipExisting} onCheckedChange={setSkipExisting} />
+              <Switch
+                checked={skipExisting}
+                onCheckedChange={setSkipExisting}
+                className="shrink-0"
+              />
             </div>
           )}
 
           {/* Auto Tag Toggle */}
-          <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
+          <div className="flex items-center justify-between gap-3 p-3 rounded-lg bg-muted/30 min-w-0">
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                 <Sparkles className="w-4 h-4 text-primary" />
               </div>
-              <div>
+              <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium">{t('aiMeme.upload.autoTag')}</p>
                 <p className="text-xs text-muted-foreground">{t('aiMeme.upload.autoTagDesc')}</p>
               </div>
             </div>
-            <Switch checked={autoTag} onCheckedChange={setAutoTag} />
+            <Switch checked={autoTag} onCheckedChange={setAutoTag} className="shrink-0" />
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="shrink-0 gap-2 sm:gap-0">
           <Button variant="outline" onClick={handleClose}>
             {t('common.cancel')}
           </Button>
@@ -2252,19 +2268,19 @@ export default function AIMemePage() {
             <DialogTitle>{t('aiMeme.exportDotMemeTitle')}</DialogTitle>
             <DialogDescription>{t('aiMeme.exportDotMemeDesc')}</DialogDescription>
           </DialogHeader>
-          <div className="space-y-2 py-2">
+          <div className="space-y-2 py-2 min-w-0">
             <Label>{t('aiMeme.exportDotMemePack')}</Label>
             <Select value={exportPackId} onValueChange={setExportPackId}>
-              <SelectTrigger className="h-10 w-full py-0 text-sm">
+              <SelectTrigger className="h-10 w-full min-w-0 py-0 text-sm [&>span]:min-w-0 [&>span]:truncate">
                 <SelectValue placeholder={t('aiMeme.exportDotMemePack')} />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={PERSONA_ALL}>{t('aiMeme.filter.allPersonas')}</SelectItem>
                 {personas.map((pack) => (
                   <SelectItem key={pack.persona_hint} value={pack.persona_hint}>
-                    <span className="flex items-center gap-2">
+                    <span className="flex items-center gap-2 min-w-0">
                       <span className="truncate">{pack.folder}</span>
-                      <span className="text-[10px] text-muted-foreground tabular-nums">
+                      <span className="text-[10px] text-muted-foreground tabular-nums shrink-0">
                         {pack.count}
                       </span>
                     </span>
@@ -2273,7 +2289,7 @@ export default function AIMemePage() {
               </SelectContent>
             </Select>
           </div>
-          <DialogFooter>
+          <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setShowExportDialog(false)}>
               {t('common.cancel')}
             </Button>
@@ -2295,7 +2311,7 @@ export default function AIMemePage() {
             <DialogTitle>{t('aiMeme.importDotMemeTitle')}</DialogTitle>
             <DialogDescription>{t('aiMeme.importDotMemeDesc')}</DialogDescription>
           </DialogHeader>
-          <div className="space-y-3 py-2">
+          <div className="space-y-3 py-2 min-w-0">
             <Input
               type="file"
               accept=".meme,.zip,application/octet-stream,application/zip"
@@ -2307,7 +2323,7 @@ export default function AIMemePage() {
               value={importDotMemePersonaHint}
               onChange={(e) => setImportDotMemePersonaHint(e.target.value)}
             />
-            <div className="flex items-center gap-3 md:gap-4">
+            <div className="flex flex-wrap items-center gap-3 md:gap-4">
               <label className="flex items-center gap-2 text-sm">
                 <Switch checked={importDotMemeSkip} onCheckedChange={setImportDotMemeSkip} />
                 {t('aiMeme.importDotMemeSkipExisting')}
@@ -2318,7 +2334,7 @@ export default function AIMemePage() {
               </label>
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setShowImportDotMemeDialog(false)}>
               {t('common.cancel')}
             </Button>
