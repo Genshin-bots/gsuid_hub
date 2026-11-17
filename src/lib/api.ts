@@ -3501,21 +3501,44 @@ export const personaApi = {
     api.get<{
       persona_name: string;
       content: string;
+      self_content?: string;
+      self_persistent?: string[];
+      self_monthly?: string[];
+      self_yesterday?: string[];
+      self_yesterday_label?: string;
+      self_timeline?: string[];
       standing_summary: string;
+      persistent_summary?: string;
+      monthly_summary?: string;
+      yesterday_summary?: string;
+      group_shards?: Array<{
+        group_id: string;
+        content: string;
+        persistent: string[];
+        monthly: string[];
+        yesterday: string[];
+        month_label: string;
+        yesterday_label: string;
+        timeline: string[];
+        timeline_count: number;
+      }>;
+      archive_months?: string[];
       timeline: string[];
       timeline_count: number;
     }>(`/api/persona/${encodeURIComponent(personaName)}/journal`),
 
-  // 更新角色生活手账
-  updatePersonaJournal: (personaName: string, content: string) =>
+  // 更新角色生活手账（支持可选 shard_id 单分片写回）
+  updatePersonaJournal: (personaName: string, content: string, shardId?: string) =>
     api.put<{ persona_name: string }>(`/api/persona/${encodeURIComponent(personaName)}/journal`, {
       content,
+      ...(shardId ? { shard_id: shardId } : {}),
     }),
 
-  // 整理角色生活手账
-  compactPersonaJournal: (personaName: string) =>
+  // 整理角色生活手账（支持可选 shard_id 单分片快速整理）
+  compactPersonaJournal: (personaName: string, shardId?: string) =>
     api.post<{ persona_name: string; compacted: boolean }>(
       `/api/persona/${encodeURIComponent(personaName)}/journal/compact`,
+      shardId ? { shard_id: shardId } : {},
     ),
 };
 
