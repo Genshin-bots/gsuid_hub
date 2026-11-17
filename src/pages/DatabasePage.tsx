@@ -118,22 +118,28 @@ function DatabaseTableNav({
 
   return (
     <div ref={hostRef} className="relative col-span-2 min-w-0 w-full md:flex-1">
+      {/* 外层 overflow-hidden 截断探针，避免未折叠态宽度的 w-max 撑出宿主，
+          触发 .page-pinned-toolbar 的横向滚动条盖在下方表格顶部 */}
       <div
-        ref={probeRef}
         aria-hidden
-        className="pointer-events-none invisible absolute left-0 top-0 flex h-10 w-max flex-nowrap items-stretch gap-1 rounded-lg border px-0.5"
+        className="pointer-events-none invisible absolute inset-x-0 top-0 overflow-hidden"
       >
-        {tables.map((table) => (
-          <span
-            key={table.table_name}
-            className="inline-flex h-full items-center gap-2 whitespace-nowrap px-2.5 text-sm font-medium sm:px-4"
-          >
-            <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center">
-              <Database className="h-4 w-4" />
+        <div
+          ref={probeRef}
+          className="flex h-10 w-max flex-nowrap items-stretch gap-1 rounded-lg border px-0.5"
+        >
+          {tables.map((table) => (
+            <span
+              key={table.table_name}
+              className="inline-flex h-full items-center gap-2 whitespace-nowrap px-2.5 text-sm font-medium sm:px-4"
+            >
+              <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center">
+                <Database className="h-4 w-4" />
+              </span>
+              {table.label}
             </span>
-            {table.label}
-          </span>
-        ))}
+          ))}
+        </div>
       </div>
       {collapsed ? (
         <SearchableMenu
