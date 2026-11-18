@@ -5,7 +5,6 @@ import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { ChipGroup } from '@/components/ui/MultiSelectChipGroup';
 import { DynamicConfigPanel, McpParamMappingEditor, type ConfigValue } from '@/components/config';
-import type { PluginConfigItem } from '@/lib/api';
 import {
   Search,
   Images,
@@ -21,15 +20,20 @@ import { Tavily, Exa, JinaAi, McpModelContextProtocol, Minimax, Deepseek } from 
 import { cn } from '@/lib/utils';
 import anysearchIcon from '@/assets/search-providers/anysearch.ico';
 import firecrawlIcon from '@/assets/search-providers/firecrawl.ico';
+import keenableIcon from '@/assets/search-providers/keenable.ico';
 import so360Icon from '@/assets/search-providers/360.ico';
 import { PluginIcon } from '@/components/ui/plugin-icon';
 import { pageStackClass } from '@/components/layout/PinnedPage';
+import type { LocalFrameworkConfig } from '../types';
 import {
   ConfigCard,
   ConfigGroup,
   ConfigGroupList,
   FaviconIcon,
   filterOutPrimaryProvider,
+  getExcludedKeysForProvider,
+  isMcpProviderId,
+  resolveProviderFrameworkConfig,
   sameProviderId,
   SettingRow,
 } from '../shared';
@@ -50,6 +54,9 @@ function getSearchProviderIcon(provider: string) {
   }
   if (key === 'firecrawl') {
     return <FaviconIcon src={firecrawlIcon} alt="Firecrawl" />;
+  }
+  if (key === 'keenable') {
+    return <FaviconIcon src={keenableIcon} alt="Keenable" />;
   }
   if (key === '360' || key === 'so') {
     return <FaviconIcon src={so360Icon} alt="360" />;
@@ -100,13 +107,8 @@ export interface WebSearchSectionProps {
   /** 允许嵌入配图。后端未下发时不传。 */
   renderEmbedImages?: boolean;
 
-  tavilyConfig?: { id: string; config: Record<string, PluginConfigItem> };
-  exaConfig?: { id: string; config: Record<string, PluginConfigItem> };
-  anysearchConfig?: { id: string; config: Record<string, PluginConfigItem> };
-  firecrawlConfig?: { id: string; config: Record<string, PluginConfigItem> };
-  jinaConfig?: { id: string; config: Record<string, PluginConfigItem> };
-  deepseekConfig?: { id: string; config: Record<string, PluginConfigItem> };
-  miniMaxConfig?: { id: string; config: Record<string, PluginConfigItem> };
+  /** 后端下发的全部 AI 框架配置（按 id 索引），按 provider 名动态解析对应配置卡 */
+  frameworkConfigs: Record<string, LocalFrameworkConfig>;
 
   websearchMcpToolId: string;
   websearchToolInfo: {
@@ -153,13 +155,7 @@ export function WebSearchSection({
   renderEmbedImages,
   onChangeRenderImageSources,
   onChangeRenderEmbedImages,
-  tavilyConfig,
-  exaConfig,
-  anysearchConfig,
-  firecrawlConfig,
-  jinaConfig,
-  deepseekConfig,
-  miniMaxConfig,
+  frameworkConfigs,
   websearchMcpToolId,
   websearchToolInfo,
   mcpDetails,
@@ -206,123 +202,7 @@ export function WebSearchSection({
     : websearchProvider;
 
   const renderProviderPanel = (provider: string) => {
-    const key = provider.trim().toLowerCase();
-
-    if (key === 'tavily') {
-      if (!tavilyConfig) {
-        return (
-          <p className="text-xs text-muted-foreground">
-            {t('aiConfig.serviceProvider.configNotAvailable')}
-          </p>
-        );
-      }
-      return (
-        <DynamicConfigPanel
-          config={tavilyConfig.config}
-          configId={tavilyConfig.id}
-          onChange={onUpdateConfig}
-        />
-      );
-    }
-    if (key === 'exa') {
-      if (!exaConfig) {
-        return (
-          <p className="text-xs text-muted-foreground">
-            {t('aiConfig.serviceProvider.configNotAvailable')}
-          </p>
-        );
-      }
-      return (
-        <DynamicConfigPanel
-          config={exaConfig.config}
-          configId={exaConfig.id}
-          onChange={onUpdateConfig}
-          // 旧 exa_config 可能仍带 search_type。Core 不读它，面板也不渲染。
-          excludeKeys={['search_type']}
-        />
-      );
-    }
-    if (key === 'anysearch') {
-      if (!anysearchConfig) {
-        return (
-          <p className="text-xs text-muted-foreground">
-            {t('aiConfig.serviceProvider.configNotAvailable')}
-          </p>
-        );
-      }
-      return (
-        <DynamicConfigPanel
-          config={anysearchConfig.config}
-          configId={anysearchConfig.id}
-          onChange={onUpdateConfig}
-        />
-      );
-    }
-    if (key === 'firecrawl') {
-      if (!firecrawlConfig) {
-        return (
-          <p className="text-xs text-muted-foreground">
-            {t('aiConfig.serviceProvider.configNotAvailable')}
-          </p>
-        );
-      }
-      return (
-        <DynamicConfigPanel
-          config={firecrawlConfig.config}
-          configId={firecrawlConfig.id}
-          onChange={onUpdateConfig}
-        />
-      );
-    }
-    if (key === 'jina') {
-      if (!jinaConfig) {
-        return (
-          <p className="text-xs text-muted-foreground">
-            {t('aiConfig.serviceProvider.configNotAvailable')}
-          </p>
-        );
-      }
-      return (
-        <DynamicConfigPanel
-          config={jinaConfig.config}
-          configId={jinaConfig.id}
-          onChange={onUpdateConfig}
-        />
-      );
-    }
-    if (key === 'deepseek') {
-      if (!deepseekConfig) {
-        return (
-          <p className="text-xs text-muted-foreground">
-            {t('aiConfig.serviceProvider.configNotAvailable')}
-          </p>
-        );
-      }
-      return (
-        <DynamicConfigPanel
-          config={deepseekConfig.config}
-          configId={deepseekConfig.id}
-          onChange={onUpdateConfig}
-        />
-      );
-    }
-    if (key === 'minimax') {
-      if (!miniMaxConfig) {
-        return (
-          <p className="text-xs text-muted-foreground">
-            {t('aiConfig.serviceProvider.configNotAvailable')}
-          </p>
-        );
-      }
-      return (
-        <DynamicConfigPanel
-          config={miniMaxConfig.config}
-          configId={miniMaxConfig.id}
-          onChange={onUpdateConfig}
-        />
-      );
-    }
-    if (key === 'mcp' || key === 'modelcontextprotocol' || key === 'model_context_protocol') {
+    if (isMcpProviderId(provider)) {
       return (
         <div className="space-y-3">
           <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -391,10 +271,22 @@ export function WebSearchSection({
         </div>
       );
     }
+
+    const matched = resolveProviderFrameworkConfig(frameworkConfigs, provider, 'search');
+    if (!matched) {
+      return (
+        <p className="text-xs text-muted-foreground">
+          {t('aiConfig.serviceProvider.configNotAvailable')}
+        </p>
+      );
+    }
     return (
-      <p className="text-xs text-muted-foreground">
-        {t('aiConfig.serviceProvider.configNotAvailable')}
-      </p>
+      <DynamicConfigPanel
+        config={matched.config}
+        configId={matched.id}
+        onChange={onUpdateConfig}
+        excludeKeys={getExcludedKeysForProvider(provider)}
+      />
     );
   };
 

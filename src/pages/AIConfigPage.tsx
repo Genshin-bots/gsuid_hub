@@ -143,88 +143,6 @@ export default function AIConfigPage() {
     [configs],
   );
 
-  const tavilyConfig = useMemo(
-    () =>
-      Object.values(configs).find(
-        (c) => c.name.includes('Tavily搜索配置') || c.full_name.includes('Tavily搜索配置'),
-      ),
-    [configs],
-  );
-
-  const exaConfig = useMemo(
-    () =>
-      Object.values(configs).find(
-        (c) => c.name.includes('Exa搜索配置') || c.full_name.includes('Exa搜索配置'),
-      ),
-    [configs],
-  );
-
-  const anysearchConfig = useMemo(
-    () =>
-      Object.values(configs).find(
-        (c) => c.name.includes('AnySearch搜索配置') || c.full_name.includes('AnySearch搜索配置'),
-      ),
-    [configs],
-  );
-
-  const firecrawlConfig = useMemo(
-    () =>
-      Object.values(configs).find(
-        (c) => c.name.includes('Firecrawl搜索配置') || c.full_name.includes('Firecrawl搜索配置'),
-      ),
-    [configs],
-  );
-
-  const miniMaxConfig = useMemo(
-    () =>
-      Object.values(configs).find(
-        (c) => c.name.includes('MiniMax搜索配置') || c.full_name.includes('MiniMax搜索配置'),
-      ),
-    [configs],
-  );
-
-  const jinaConfig = useMemo(
-    () =>
-      Object.values(configs).find((c) => {
-        const name = `${c.name} ${c.full_name}`;
-        // 优先完整中文名；回退仅当名称同时含 Jina 与搜索/抓取语义，避免误匹配其它插件
-        if (c.name.includes('Jina搜索抓取配置') || c.full_name.includes('Jina搜索抓取配置')) {
-          return true;
-        }
-        return (
-          /jina/i.test(name) &&
-          (name.includes('搜索') || name.includes('抓取') || /search|fetch|reader/i.test(name))
-        );
-      }),
-    [configs],
-  );
-
-  const deepseekConfig = useMemo(
-    () =>
-      Object.values(configs).find((c) => {
-        const name = `${c.name} ${c.full_name}`;
-        if (
-          c.name.includes('DeepSeek搜索抓取配置') ||
-          c.full_name.includes('DeepSeek搜索抓取配置')
-        ) {
-          return true;
-        }
-        return (
-          /deepseek/i.test(name) &&
-          (name.includes('搜索') || name.includes('抓取') || /search|fetch/i.test(name))
-        );
-      }),
-    [configs],
-  );
-
-  const webFetchConfig = useMemo(
-    () =>
-      Object.values(configs).find(
-        (c) => c.name.includes('WebFetch抓取配置') || c.full_name.includes('WebFetch抓取配置'),
-      ),
-    [configs],
-  );
-
   const memoryConfig = useMemo(
     () =>
       Object.values(configs).find(
@@ -937,13 +855,7 @@ export default function AIConfigPage() {
             websearchLbStrategyOptions={websearchLbStrategyOptions}
             websearchFallbackOrder={websearchFallbackOrder}
             websearchFallbackOptions={websearchFallbackOptions}
-            tavilyConfig={tavilyConfig}
-            exaConfig={exaConfig}
-            anysearchConfig={anysearchConfig}
-            firecrawlConfig={firecrawlConfig}
-            jinaConfig={jinaConfig}
-            deepseekConfig={deepseekConfig}
-            miniMaxConfig={miniMaxConfig}
+            frameworkConfigs={configs}
             websearchMcpToolId={websearchMcpToolId}
             websearchToolInfo={websearchToolInfo}
             mcpDetails={mcp.mcpDetailsEditing['websearch_mcp_tool_id'] || {}}
@@ -996,15 +908,12 @@ export default function AIConfigPage() {
             t={t}
             webfetchProvider={webfetchProvider}
             webfetchProviderOptions={webfetchProviderOptions}
+            providerDesc={aiConfig?.config.webfetch_provider?.desc}
             webfetchLbStrategy={webfetchLbStrategy}
             webfetchLbStrategyOptions={webfetchLbStrategyOptions}
             webfetchFallbackOrder={webfetchFallbackOrder}
             webfetchFallbackOptions={webfetchFallbackOptions}
-            webFetchConfig={webFetchConfig}
-            jinaConfig={jinaConfig}
-            deepseekConfig={deepseekConfig}
-            exaConfig={exaConfig}
-            anysearchConfig={anysearchConfig}
+            frameworkConfigs={configs}
             onChangeProvider={(v) => {
               updateConfigValue(aiConfig.id, 'webfetch_provider', v);
               const next = filterOutPrimaryProvider(webfetchFallbackOrder, v);

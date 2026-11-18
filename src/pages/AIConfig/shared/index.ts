@@ -34,6 +34,12 @@ export type { SidebarItemProps } from './SidebarItem';
 
 export { renderRichText } from './renderRichText';
 
-export { sameProviderId, filterOutPrimaryProvider } from './providerId';
+export {
+  sameProviderId,
+  filterOutPrimaryProvider,
+  isMcpProviderId,
+  resolveProviderFrameworkConfig,
+  getExcludedKeysForProvider,
+} from './providerId';
 
 export { FaviconIcon } from './FaviconIcon';
