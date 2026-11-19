@@ -16,7 +16,11 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { GlassAlert } from '@/components/ui/glass-alert';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { TabButtonGroup } from '@/components/ui/TabButtonGroup';
+import {
+  TabButtonGroup,
+  tabToolbarControlClass,
+  tabToolbarGroupWrapShrinkClass,
+} from '@/components/ui/TabButtonGroup';
 import {
   AlertTriangle,
   Bot,
@@ -27,6 +31,7 @@ import {
   MemoryStick,
   Save,
   Search,
+  Settings,
   SlidersHorizontal,
   Smile,
   Sparkles,
@@ -996,7 +1001,6 @@ export default function AIConfigPage() {
 
   const sectionTabs = (
     <TabButtonGroup
-      className="w-full"
       collapseOnMobile
       value={activeSection}
       onValueChange={setActiveSection}
@@ -1011,6 +1015,22 @@ export default function AIConfigPage() {
           ) : undefined,
       }))}
     />
+  );
+
+  const manageConfigButton = (
+    <Button
+      type="button"
+      variant="outline"
+      disabled={isSectionsLocked}
+      onClick={() => provider.setIsManageConfigDialogOpen(true)}
+      className={cn(
+        tabToolbarControlClass,
+        'shrink-0 gap-1.5 whitespace-nowrap px-3 text-xs sm:text-sm',
+      )}
+    >
+      <Settings className="h-4 w-4 shrink-0" />
+      {t('aiConfig.manageConfig')}
+    </Button>
   );
 
   return (
@@ -1124,17 +1144,22 @@ export default function AIConfigPage() {
           </div>
         }
         toolbar={
-          <div className="min-w-0">
-            {isSectionsLocked ? (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="inline-flex w-full max-w-full">{sectionTabs}</span>
-                </TooltipTrigger>
-                <TooltipContent side="bottom">{sectionsLockedTooltip}</TooltipContent>
-              </Tooltip>
-            ) : (
-              sectionTabs
-            )}
+          <div className="flex min-w-0 flex-wrap items-center justify-between gap-2.5">
+            <div
+              className={cn(tabToolbarGroupWrapShrinkClass, 'flex-1 md:flex-initial max-w-full')}
+            >
+              {isSectionsLocked ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="inline-flex w-full max-w-full md:w-auto">{sectionTabs}</span>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">{sectionsLockedTooltip}</TooltipContent>
+                </Tooltip>
+              ) : (
+                sectionTabs
+              )}
+            </div>
+            {manageConfigButton}
           </div>
         }
       >

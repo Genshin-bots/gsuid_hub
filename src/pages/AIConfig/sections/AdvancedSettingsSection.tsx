@@ -1,21 +1,29 @@
-import { SlidersHorizontal } from 'lucide-react';
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Wrench } from 'lucide-react';
 import {
   ConfigField,
   pluginConfigItemToFieldDef,
   type ConfigFieldType,
   type ConfigValue,
 } from '@/components/config';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { pageStackClass } from '@/components/layout/PinnedPage';
 import { ConfigCard, fieldGridClass } from '../shared';
 import type { PluginConfigItem } from '@/lib/api';
-import { isKitSlotConfigKey, RUNTIME_EXCLUDED_KEYS } from '../runtimeConfigKeys';
-import { RelationshipSettingsSection } from './RelationshipSettingsSection';
+import {
+  ADVANCED_PRIMARY_GROUPS,
+  EXPERT_TUNING_GROUPS,
+  type AdvancedSettingGroup,
+} from '../runtimeConfigKeys';
 
 /**
  * 「高级设置」Section。
  *
- * 它渲染 aiConfig.config 中除「已经在其它 section 中处理过的字段」以外的所有字段。
- * 例如：multi_agent_lenth（思考轮数）会从 select 类型升级为带预设选项的下拉框。
+ * 采用两段式白名单渲染：
+ * - 上方主卡片展示普通部署者常用的 14 项配置（按场景分 4 组）
+ * - 下方默认折叠的「专家调参」卡片展示开发 / 调试 / 运维用的 16 项配置
  */
 export interface AdvancedSettingsSectionProps {
   t: (key: string, params?: Record<string, string | number>) => string;
@@ -26,97 +34,123 @@ export interface AdvancedSettingsSectionProps {
   onUpdateConfig: (configId: string, fieldKey: string, value: ConfigValue) => void;
 }
 
-/** 在其它 section 中已独占处理的字段 key 列表 */
-const EXCLUDED_KEYS: string[] = [
-  'enable',
-  'enable_rerank',
-  'enable_memory',
-  // 网络搜索：WebSearchSection 专属
-  'websearch_provider',
-  'websearch_lb_strategy',
-  'websearch_fallback_order',
-  'render_image_sources',
-  'render_embed_images',
-  // 网页抓取：WebFetchSection 专属
-  'webfetch_provider',
-  'webfetch_lb_strategy',
-  'webfetch_fallback_order',
-  'image_understand_provider',
-  'embedding_provider',
-  'qdrant_provider',
-  // 主备双配置：以下 4 个 key 均由 TaskConfigSection 专属渲染。
-  // 保留在 EXCLUDED_KEYS 中是为了不与「任务配置」页面里的下拉框重复展示。
-  'high_level_provider_config_name',
-  'low_level_provider_config_name',
-  'high_level_2nd_provider_config_name',
-  'low_level_2nd_provider_config_name',
-  // 按任务覆盖：TaskConfigSection 高级面板专属，经专用接口即时落库
-  'task_model_overrides',
-  'asr_provider',
-  'tts_provider',
-  'video_understand_provider',
-  'document_extract_provider',
-  'rerank_provider',
-  ...RUNTIME_EXCLUDED_KEYS,
-];
-
 export function AdvancedSettingsSection({
   t,
   aiConfig,
   onUpdateConfig,
 }: AdvancedSettingsSectionProps) {
+  const [expertOpen, setExpertOpen] = useState(false);
+
+  const renderField = (key: string, item: PluginConfigItem) => {
+    let fieldDef = pluginConfigItemToFieldDef(key, item);
+    if (key === 'multi_agent_lenth') {
+      fieldDef = {
+        ...fieldDef,
+        label: t('aiConfig.advancedSettings.thinkingRounds'),
+        type: 'select' as ConfigFieldType,
+        options: ['9', '12', '20', '30'],
+        value: String(fieldDef.value || '12'),
+      };
+    }
+    return (
+      <div key={key}>
+        <ConfigField
+          fieldKey={key}
+          field={fieldDef}
+          onChange={(fieldKey, value) => {
+            const finalValue =
+              fieldKey === 'multi_agent_lenth' && typeof value === 'string'
+                ? parseInt(value, 10)
+                : value;
+            onUpdateConfig(aiConfig.id, fieldKey, finalValue);
+          }}
+        />
+      </div>
+    );
+  };
+
+  const resolveGroups = (groups: readonly AdvancedSettingGroup[]) =>
+    groups
+      .map((group) => ({
+        ...group,
+        entries: group.keys.flatMap((key) => {
+          const item = aiConfig.config[key];
+          return item ? ([[key, item]] as [string, PluginConfigItem][]) : [];
+        }),
+      }))
+      .filter((group) => group.entries.length > 0);
+
+  const primaryGroups = resolveGroups(ADVANCED_PRIMARY_GROUPS);
+  const expertGroups = resolveGroups(EXPERT_TUNING_GROUPS);
+  const expertCount = expertGroups.reduce((sum, g) => sum + g.entries.length, 0);
+  const hasFavorSwitch = Boolean(aiConfig.config.favor_engine_enable);
+
   return (
     <div className={pageStackClass}>
-      <RelationshipSettingsSection t={t} aiConfig={aiConfig} onUpdateConfig={onUpdateConfig} />
-
-      <ConfigCard
-        icon={<SlidersHorizontal className="w-5 h-5 text-primary" />}
-        title={t('aiConfig.advancedSettings.title')}
-        description={t('aiConfig.advancedSettings.description')}
-      >
-        <div className={fieldGridClass}>
-          {(() => {
-            const entries = Object.entries(aiConfig.config).filter(
-              ([key]) => !EXCLUDED_KEYS.includes(key) && !isKitSlotConfigKey(key),
-            );
-            if (entries.length === 0) {
-              return (
-                <div className="col-span-full py-12 text-center text-muted-foreground">
-                  <p>{t('plugins.noConfigItems')}</p>
+      <ConfigCard>
+        {primaryGroups.length === 0 ? (
+          <div className="py-12 text-center text-muted-foreground">
+            <p>{t('plugins.noConfigItems')}</p>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {primaryGroups.map((group, idx) => (
+              <div
+                key={group.id}
+                className={idx > 0 ? 'border-t border-border/40 pt-5 space-y-3' : 'space-y-3'}
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h3 className="text-xs font-semibold tracking-wide text-muted-foreground">
+                    {t(group.labelKey)}
+                  </h3>
+                  {group.id === 'personaSafety' && hasFavorSwitch && (
+                    <Button variant="outline" size="sm" className="h-7 shrink-0 text-xs" asChild>
+                      <Link to="/ai-artifacts?tab=relationship">
+                        {t('aiConfig.relationshipSettings.openRuntime')}
+                      </Link>
+                    </Button>
+                  )}
                 </div>
-              );
-            }
-            return entries.map(([key, item]) => {
-              let fieldDef = pluginConfigItemToFieldDef(key, item);
-              if (key === 'multi_agent_lenth') {
-                fieldDef = {
-                  ...fieldDef,
-                  label: t('aiConfig.advancedSettings.thinkingRounds'),
-                  type: 'select' as ConfigFieldType,
-                  options: ['9', '12', '20', '30'],
-                  value: String(fieldDef.value || '12'),
-                };
-              }
-              const isDivider = fieldDef.type === 'divider';
-              return (
-                <div key={key} className={isDivider ? 'col-span-full' : undefined}>
-                  <ConfigField
-                    fieldKey={key}
-                    field={fieldDef}
-                    onChange={(fieldKey, value) => {
-                      const finalValue =
-                        fieldKey === 'multi_agent_lenth' && typeof value === 'string'
-                          ? parseInt(value, 10)
-                          : value;
-                      onUpdateConfig(aiConfig.id, fieldKey, finalValue);
-                    }}
-                  />
+                <div className={fieldGridClass}>
+                  {group.entries.map(([key, item]) => renderField(key, item))}
                 </div>
-              );
-            });
-          })()}
-        </div>
+              </div>
+            ))}
+          </div>
+        )}
       </ConfigCard>
+
+      {expertGroups.length > 0 && (
+        <ConfigCard
+          icon={<Wrench className="w-5 h-5 text-primary" />}
+          title={
+            <span className="flex flex-wrap items-center gap-2">
+              {t('aiConfig.advancedSettings.expertTitle')}
+              <Badge variant="outline" className="h-5 px-1.5 text-[10px] font-normal">
+                {t('aiConfig.advancedSettings.expertBadge', { count: expertCount })}
+              </Badge>
+            </span>
+          }
+          description={t('aiConfig.advancedSettings.expertDescription')}
+          collapsible={{ open: expertOpen, onOpenChange: setExpertOpen }}
+        >
+          <div className="space-y-6 border-t border-border/40 pt-4">
+            {expertGroups.map((group, idx) => (
+              <div
+                key={group.id}
+                className={idx > 0 ? 'border-t border-border/40 pt-5 space-y-3' : 'space-y-3'}
+              >
+                <h3 className="text-xs font-semibold tracking-wide text-muted-foreground">
+                  {t(group.labelKey)}
+                </h3>
+                <div className={fieldGridClass}>
+                  {group.entries.map(([key, item]) => renderField(key, item))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </ConfigCard>
+      )}
     </div>
   );
 }

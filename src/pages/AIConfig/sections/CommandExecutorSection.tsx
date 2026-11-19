@@ -30,7 +30,7 @@ import {
 import { GlassAlert } from '@/components/ui/glass-alert';
 import { pageStackClass } from '@/components/layout/PinnedPage';
 import { Switch } from '@/components/ui/switch';
-import { ConfigCard, fieldGridClass, SettingRow, settingListClass } from '../shared';
+import { ConfigCard, fieldGridClass, SettingRow } from '../shared';
 import type { PluginConfigItem } from '@/lib/api';
 
 export interface CommandExecutorSectionProps {
@@ -74,10 +74,7 @@ export function CommandExecutorSection({
   if (!commandExecutorConfig) {
     return (
       <div className={pageStackClass}>
-        <ConfigCard
-          icon={<Terminal className="w-5 h-5 text-primary" />}
-          title={t('aiConfig.commandExecutor.title')}
-        >
+        <ConfigCard>
           <p className="text-sm text-muted-foreground">{t('aiConfig.commandExecutor.notFound')}</p>
         </ConfigCard>
       </div>
@@ -98,29 +95,24 @@ export function CommandExecutorSection({
 
   return (
     <div className={pageStackClass}>
-      <ConfigCard
-        icon={<Terminal className="w-5 h-5 text-primary" />}
-        title={t('aiConfig.commandExecutor.title')}
-        description={t('aiConfig.commandExecutor.description')}
-      >
-        {/* 总开关：分隔线列表的第一行 */}
-        <div className={settingListClass}>
-          <SettingRow
-            icon={<Terminal className="w-5 h-5 text-primary" />}
-            title={t('aiConfig.commandExecutor.configCard.enableLabel')}
-            description={
-              config.enable?.desc
-                ? String(config.enable.desc)
-                : t('aiConfig.commandExecutor.enableDesc')
-            }
-            control={
-              <Switch
-                checked={enableValue}
-                onCheckedChange={(checked) => onUpdateConfig(configId, 'enable', checked)}
-              />
-            }
-          />
-        </div>
+      <ConfigCard>
+        {/* 总开关 */}
+        <SettingRow
+          className="py-0"
+          icon={<Terminal className="w-5 h-5 text-primary" />}
+          title={t('aiConfig.commandExecutor.configCard.enableLabel')}
+          description={
+            config.enable?.desc
+              ? String(config.enable.desc)
+              : t('aiConfig.commandExecutor.enableDesc')
+          }
+          control={
+            <Switch
+              checked={enableValue}
+              onCheckedChange={(checked) => onUpdateConfig(configId, 'enable', checked)}
+            />
+          }
+        />
 
         {/* 高危提示：开启 + 联网 / 自动安装 时显示 */}
         {enableValue && (allowNetwork || allowAutoProvision) && (

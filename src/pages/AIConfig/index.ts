@@ -46,8 +46,6 @@ export { MemeSettingsSection } from './sections/MemeSettingsSection';
 export type { MemeSettingsSectionProps } from './sections/MemeSettingsSection';
 export { AdvancedSettingsSection } from './sections/AdvancedSettingsSection';
 export type { AdvancedSettingsSectionProps } from './sections/AdvancedSettingsSection';
-export { RelationshipSettingsSection } from './sections/RelationshipSettingsSection';
-export type { RelationshipSettingsSectionProps } from './sections/RelationshipSettingsSection';
 export { GsCoreAiMcpServerSection } from './sections/GsCoreAiMcpServerSection';
 export type { GsCoreAiMcpServerSectionProps } from './sections/GsCoreAiMcpServerSection';
 export { CommandExecutorSection } from './sections/CommandExecutorSection';

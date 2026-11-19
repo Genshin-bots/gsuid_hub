@@ -482,14 +482,28 @@
   },
   "advancedSettings": {
     "title": "高级设置",
-    "description": "配置AI行为参数",
+    "description": "配置AI访问范围、群聊交互与常用运行开关",
     "thinkingRounds": "最多允许AI思考轮数",
     "tokenConsumption": "影响Token消耗",
     "roundsHint": "轮数越多，AI思考越深入，但消耗更多Token",
     "whitelist": "白名单用户",
     "whitelistPlaceholder": "添加用户ID（仅这些用户可用AI）",
     "blacklist": "黑名单用户",
-    "blacklistPlaceholder": "添加用户ID（这些用户不可用AI）"
+    "blacklistPlaceholder": "添加用户ID（这些用户不可用AI）",
+    "groups": {
+      "access": "访问控制",
+      "interaction": "群聊交互",
+      "limits": "成本与上下文上限",
+      "personaSafety": "人格、安全与呈现"
+    },
+    "expertTitle": "专家调参",
+    "expertBadge": "调试 / 开发 · {count} 项",
+    "expertDescription": "面向实机评测、弱模型适配与线上排障的内部参数；默认值已标定，非必要不建议修改。",
+    "expertGroups": {
+      "retrieval": "工具与知识库检索调优",
+      "runtime": "任务代理预算与重试",
+      "debugSafety": "运行时调试与防护"
+    }
   },
   "memorySettings": {
     "title": "记忆配置",

@@ -151,11 +151,7 @@ export function GsCoreAiMcpServerSection({ t }: GsCoreAiMcpServerSectionProps) {
   return (
     <div className={pageStackClass}>
       {/* 状态总览 */}
-      <ConfigCard
-        icon={<Server className="w-5 h-5 text-primary" />}
-        title={t('gsCoreAiMcpServer.title')}
-        description={t('gsCoreAiMcpServer.description')}
-      >
+      <ConfigCard>
         <div className="grid grid-cols-2 gap-y-3 lg:grid-cols-4 lg:divide-x lg:divide-border/40">
           <StatusTile
             icon={<Activity className="w-5 h-5" />}

@@ -482,14 +482,28 @@
   },
   "advancedSettings": {
     "title": "Advanced Settings",
-    "description": "Configure AI behavior parameters",
+    "description": "Configure AI access control, group interaction, and common runtime toggles",
     "thinkingRounds": "Max AI Thinking Rounds",
     "tokenConsumption": "Affects token consumption",
     "roundsHint": "More rounds mean deeper thinking but more token consumption",
     "whitelist": "Whitelist Users",
     "whitelistPlaceholder": "Add user IDs (only these users can use AI)",
     "blacklist": "Blacklist Users",
-    "blacklistPlaceholder": "Add user IDs (these users cannot use AI)"
+    "blacklistPlaceholder": "Add user IDs (these users cannot use AI)",
+    "groups": {
+      "access": "Access Control",
+      "interaction": "Group Interaction",
+      "limits": "Cost & Context Limits",
+      "personaSafety": "Persona, Safety & Rendering"
+    },
+    "expertTitle": "Expert Tuning",
+    "expertBadge": "Debug / Dev · {count}",
+    "expertDescription": "Internal tuning knobs for evaluation, smaller-model adaptation, and troubleshooting. Defaults are calibrated; avoid changing unless needed.",
+    "expertGroups": {
+      "retrieval": "Tool & Knowledge Retrieval",
+      "runtime": "Task Agent Budget & Retries",
+      "debugSafety": "Runtime Debugging & Guards"
+    }
   },
   "memorySettings": {
     "title": "Memory Configuration",

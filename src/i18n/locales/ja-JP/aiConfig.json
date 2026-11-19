@@ -482,14 +482,28 @@
   },
   "advancedSettings": {
     "title": "詳細設定",
-    "description": "AI動作パラメータを設定",
+    "description": "AIのアクセス範囲、グループ会話、主要な動作スイッチを設定",
     "thinkingRounds": "AIの最大思考ラウンド",
     "tokenConsumption": "トークン消費に影響",
     "roundsHint": "ラウンドが多いほど深く考えますが、トークン消費も増えます",
     "whitelist": "ホワイトリストユーザー",
     "whitelistPlaceholder": "ユーザーIDを追加（このユーザーのみAI利用可）",
     "blacklist": "ブラックリストユーザー",
-    "blacklistPlaceholder": "ユーザーIDを追加（このユーザーはAI利用不可）"
+    "blacklistPlaceholder": "ユーザーIDを追加（このユーザーはAI利用不可）",
+    "groups": {
+      "access": "アクセス制御",
+      "interaction": "グループ会話",
+      "limits": "コストとコンテキスト上限",
+      "personaSafety": "ペルソナ・安全・表示"
+    },
+    "expertTitle": "エキスパート調整",
+    "expertBadge": "デバッグ / 開発 · {count} 項目",
+    "expertDescription": "評価・軽量モデル調整・障害調査向けの内部パラメータです。既定値は調整済みのため、必要な場合のみ変更してください。",
+    "expertGroups": {
+      "retrieval": "ツール・知識検索の調整",
+      "runtime": "タスクエージェント予算とリトライ",
+      "debugSafety": "実行時デバッグと保護"
+    }
   },
   "memorySettings": {
     "title": "メモリ設定",

@@ -688,7 +688,6 @@ const routes: Route[] = [
       content_guard_enable: true,
       output_firewall_enable: true,
       render_long_markdown_as_image: true,
-      history_merge_window: 120,
       follow_up_window: 90,
       follow_up_max_total: 600,
     }),

@@ -1,4 +1,4 @@
-import { Smile, Sparkles } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import { pageStackClass } from '@/components/layout/PinnedPage';
 import { Switch } from '@/components/ui/switch';
 import { ConfigField, pluginConfigItemToFieldDef, type ConfigValue } from '@/components/config';
@@ -26,12 +26,9 @@ export function MemeSettingsSection({ t, memeConfig, onUpdateConfig }: MemeSetti
 
   return (
     <div className={pageStackClass}>
-      <ConfigCard
-        icon={<Smile className="w-5 h-5 text-primary" />}
-        title={t('aiConfig.memeSettings.title')}
-        description={t('aiConfig.memeSettings.description')}
-      >
+      <ConfigCard>
         <SettingRow
+          className="py-0"
           icon={<Sparkles className="w-5 h-5 text-primary" strokeWidth={1.5} />}
           title={t('aiConfig.memeSettings.autoCollect')}
           description={t('aiConfig.memeSettings.autoCollectDesc')}

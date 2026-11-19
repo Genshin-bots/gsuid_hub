@@ -293,11 +293,7 @@ export function WebSearchSection({
   return (
     <div className={pageStackClass}>
       {/* 搜索源：主用 / 多源策略 / 备用顺序 */}
-      <ConfigCard
-        icon={<Search className="w-5 h-5 text-primary" />}
-        title={t('aiConfig.serviceProvider.webSearchService')}
-        description={t('aiConfig.serviceProvider.webSearchServiceDesc')}
-      >
+      <ConfigCard>
         <ConfigGroupList>
           <ConfigGroup
             layout="inline"

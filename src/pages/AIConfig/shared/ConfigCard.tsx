@@ -9,10 +9,10 @@ export interface ConfigCardCollapsible {
 }
 
 export interface ConfigCardProps {
-  /** 标题图标，调用方传 `w-5 h-5 text-primary` */
-  icon: ReactNode;
-  /** 卡片标题 */
-  title: ReactNode;
+  /** 标题图标，调用方传 `w-5 h-5 text-primary`；不传 title 时可省略 */
+  icon?: ReactNode;
+  /** 卡片标题；与顶栏页签重复的主卡片可省略，渲染为无标题卡片 */
+  title?: ReactNode;
   /** 标题右侧 `?` tooltip；string 按 Markdown 渲染（复用 LabelWithHelp） */
   description?: ReactNode;
   /** 标题行右侧操作区：Switch / Badge / Button；点击不触发折叠 */
@@ -26,7 +26,7 @@ export interface ConfigCardProps {
 }
 
 /**
- * AI 配置页的卡片基元：glass-card 外壳 + 标题行（图标 + 标题 + ? 帮助 + 操作区）。
+ * AI 配置页的卡片基元：glass-card 外壳 + 可选标题行（图标 + 标题 + ? 帮助 + 操作区）。
  * 替代各 section 散落的 h2 标题块；子区块用 ConfigGroup / SettingRow，
  * 卡片内不再叠嵌套面板（一块玻璃面 = 一张卡）。
  */
@@ -40,7 +40,9 @@ export function ConfigCard({
   className,
   bodyClassName,
 }: ConfigCardProps) {
-  const titleCluster = (
+  const hasTitle = title != null;
+  const hasHeader = hasTitle || collapsible != null || actions != null;
+  const titleCluster = hasTitle ? (
     <div className="flex min-w-0 items-center gap-2">
       {icon}
       <LabelWithHelp
@@ -49,7 +51,7 @@ export function ConfigCard({
         className="min-w-0 truncate text-base font-semibold"
       />
     </div>
-  );
+  ) : null;
   const chevron = collapsible ? (
     <ChevronDown
       className={cn(
@@ -84,14 +86,19 @@ export function ConfigCard({
             {chevron}
           </button>
         </div>
-      ) : (
-        <div className="flex flex-wrap items-center justify-between gap-3">
+      ) : hasHeader ? (
+        <div
+          className={cn(
+            'flex flex-wrap items-center gap-3',
+            hasTitle ? 'justify-between' : 'justify-end',
+          )}
+        >
           {titleCluster}
           {actionsCluster}
         </div>
-      )}
+      ) : null}
       {children != null && (!collapsible || collapsible.open) && (
-        <div className={cn('mt-3 space-y-4', bodyClassName)}>{children}</div>
+        <div className={cn(hasHeader && 'mt-3', 'space-y-4', bodyClassName)}>{children}</div>
       )}
     </section>
   );

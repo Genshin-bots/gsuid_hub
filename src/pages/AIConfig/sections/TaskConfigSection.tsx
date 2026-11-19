@@ -1,4 +1,4 @@
-import { AlertTriangle, ListChecks, Plus, Settings, Sparkles, Zap } from 'lucide-react';
+import { AlertTriangle, Plus, Sparkles, Zap } from 'lucide-react';
 import { pageStackClass } from '@/components/layout/PinnedPage';
 import { Button } from '@/components/ui/button';
 import { GlassAlert } from '@/components/ui/glass-alert';
@@ -69,22 +69,7 @@ export function TaskConfigSection({
 }: TaskConfigSectionProps) {
   return (
     <div className={pageStackClass}>
-      <ConfigCard
-        icon={<ListChecks className="w-5 h-5 text-primary" />}
-        title={t('aiConfig.taskConfig.title')}
-        description={t('aiConfig.taskConfig.description')}
-        actions={
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8 gap-1.5 whitespace-nowrap text-xs shrink-0"
-            onClick={onOpenManageDialog}
-          >
-            <Settings className="w-3.5 h-3.5" />
-            {t('aiConfig.manageConfig')}
-          </Button>
-        }
-      >
+      <ConfigCard>
         {allConfigsList.length === 0 ? (
           <GlassAlert tone="danger" icon={AlertTriangle}>
             <p className="text-sm font-medium">{t('aiConfig.providerConfig.noConfigFileTitle')}</p>

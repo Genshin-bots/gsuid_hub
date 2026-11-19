@@ -175,11 +175,7 @@ export function WebFetchSection({
   return (
     <div className={pageStackClass}>
       {/* 抓取源：主用 / 多源策略 / 备用顺序 */}
-      <ConfigCard
-        icon={<Globe className="w-5 h-5 text-primary" />}
-        title={t('aiConfig.webFetch.title')}
-        description={t('aiConfig.webFetch.description')}
-      >
+      <ConfigCard>
         <ConfigGroupList>
           <ConfigGroup
             layout="inline"
