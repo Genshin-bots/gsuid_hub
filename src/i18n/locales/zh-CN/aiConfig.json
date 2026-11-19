@@ -36,7 +36,17 @@
     "levelHigh": "高级",
     "levelLow": "低级",
     "modeDefault": "默认（{level}）",
+    "modeInheritParent": "继承{parent}",
     "modeConfig": "指定配置",
+    "inheritedFromParent": "（继承自{parent}）",
+    "subAgentsToggle": "按能力代理单独指定（共 {total} 个）",
+    "subAgentsOverridden": "{count} 个已单独覆盖",
+    "nodeSources": {
+      "builtin": "内置",
+      "plugin": "插件",
+      "user": "自定义",
+      "mcp": "MCP"
+    },
     "followsCaller": "跟随调用方",
     "followsCallerHint": "（固定按发起方的档位取配置）",
     "lockedBadge": "不可修改",
@@ -49,7 +59,7 @@
     "effective": "实际使用",
     "effectiveSecondary": "备用",
     "notConfigured": "未配置",
-    "invalidOverride": "覆盖指向的配置文件已不存在，当前已回退到默认档位。请重新选择或恢复默认。",
+    "invalidOverride": "覆盖指向的配置文件已不存在，当前已自动回退到上级或默认配置。请重新选择或恢复默认。",
     "searchPlaceholder": "搜索任务名称或 ID…",
     "sortGroup": "按分组",
     "sortUsage": "按用量",
@@ -93,11 +103,11 @@
       },
       "subagent": {
         "title": "子 Agent",
-        "desc": "主 Agent 派生的子任务（含出图 render_agent）。"
+        "desc": "主 Agent 派生的通用规划子任务（无画像兜底路径）。"
       },
       "capability_agent": {
         "title": "能力代理",
-        "desc": "按能力画像执行的长任务 Agent。"
+        "desc": "按能力画像执行的长任务 Agent（下方可按单个代理分别覆盖）。"
       },
       "capability_eval": {
         "title": "能力代理评估",

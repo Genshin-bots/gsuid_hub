@@ -1830,12 +1830,16 @@ export interface AITaskModelOverride {
   valid: boolean;
 }
 
+export type AITaskNodeSource = 'builtin' | 'plugin' | 'user' | 'mcp';
+
 export interface AITaskModelEffective {
   primary: string;
   secondary: string;
   /** default=未覆盖；level=改用某档位；config=指定配置文件 */
   source: 'default' | 'level' | 'config';
   level: AITaskLevel | null;
+  /** 非空表示实际生效配置继承自该父任务覆盖（如 "capability_agent"） */
+  inherited_from?: string | null;
 }
 
 export interface AITaskKindInfo {
@@ -1852,6 +1856,12 @@ export interface AITaskKindInfo {
   stats_keys: string[];
   override: AITaskModelOverride | null;
   effective: AITaskModelEffective;
+  /** 父任务 ID（能力代理子项指向 "capability_agent"）；顶层任务为 null */
+  parent_id?: string | null;
+  /** 能力代理节点来源；非能力代理子项为 null */
+  node_source?: AITaskNodeSource | null;
+  /** 能力代理所属插件名；非能力代理子项或无宿主插件为 null */
+  plugin?: string | null;
 }
 
 export interface AITaskModelsData {

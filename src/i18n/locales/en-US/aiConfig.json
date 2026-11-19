@@ -36,7 +36,17 @@
     "levelHigh": "High",
     "levelLow": "Low",
     "modeDefault": "Default ({level})",
+    "modeInheritParent": "Inherit {parent}",
     "modeConfig": "Custom config",
+    "inheritedFromParent": "(inherited from {parent})",
+    "subAgentsToggle": "Per-agent overrides ({total})",
+    "subAgentsOverridden": "{count} overridden",
+    "nodeSources": {
+      "builtin": "Built-in",
+      "plugin": "Plugin",
+      "user": "Custom",
+      "mcp": "MCP"
+    },
     "followsCaller": "follows caller",
     "followsCallerHint": "(always uses the caller's tier)",
     "lockedBadge": "Locked",
@@ -49,7 +59,7 @@
     "effective": "In use",
     "effectiveSecondary": "fallback",
     "notConfigured": "Not configured",
-    "invalidOverride": "The config file this override points to no longer exists, so the default tier is used. Choose another config or reset to default.",
+    "invalidOverride": "The config file this override points to no longer exists, so it has fallen back to the parent or default config. Choose another config or reset to default.",
     "searchPlaceholder": "Search task name or ID…",
     "sortGroup": "By group",
     "sortUsage": "By usage",
@@ -93,11 +103,11 @@
       },
       "subagent": {
         "title": "Sub-agent",
-        "desc": "Sub-tasks spawned by the main agent (including render_agent)."
+        "desc": "General planning sub-tasks spawned by the main agent (fallback without a profile)."
       },
       "capability_agent": {
         "title": "Capability agent",
-        "desc": "Long-running agent that works from a capability profile."
+        "desc": "Long-running agent that works from a capability profile (expand below to override per agent)."
       },
       "capability_eval": {
         "title": "Capability evaluation",

@@ -1720,11 +1720,27 @@ export default function AIStatisticsPage() {
 
   const typeLabel = useCallback(
     (raw: string) => {
+      const resolveTitle = (item: AITaskKindInfo) => {
+        const key = `aiConfig.taskModels.kinds.${item.id}.title`;
+        const translated = t(key);
+        return translated === key ? item.title : translated;
+      };
       const kind = taskKinds?.find((k) => (k.stats_keys ?? []).includes(raw));
-      if (!kind) return raw;
-      const key = `aiConfig.taskModels.kinds.${kind.id}.title`;
-      const translated = t(key);
-      return translated === key ? kind.title : translated;
+      if (kind) {
+        const title = resolveTitle(kind);
+        if (kind.parent_id) {
+          const parent = taskKinds?.find((k) => k.id === kind.parent_id);
+          if (parent) return `${resolveTitle(parent)} · ${title}`;
+        }
+        return title;
+      }
+      // 节点被删除后的历史分代理统计键（如 capability_agent:old_node）按父任务名兜底展示
+      const sep = raw.indexOf(':');
+      if (sep > 0) {
+        const parent = taskKinds?.find((k) => k.id === raw.slice(0, sep));
+        if (parent) return `${resolveTitle(parent)} · ${raw.slice(sep + 1)}`;
+      }
+      return raw;
     },
     [taskKinds, t],
   );

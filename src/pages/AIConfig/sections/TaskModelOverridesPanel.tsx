@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   AlertTriangle,
   ArrowRight,
+  ChevronDown,
+  ChevronRight,
   Loader2,
   Lock,
   RotateCcw,
@@ -85,6 +87,8 @@ export function TaskModelOverridesPanel({
   const [usageByKey, setUsageByKey] = useState<Map<string, number>>(new Map());
   // 选了「指定配置」但还没挑配置文件的任务：此时不落库
   const [drafts, setDrafts] = useState<Set<string>>(new Set());
+  // 用户手动展开/折叠子项的覆盖态；搜索或筛选条件变化时清空，恢复自动展开逻辑
+  const [manualExpanded, setManualExpanded] = useState<Record<string, boolean>>({});
   const [confirmResetOpen, setConfirmResetOpen] = useState(false);
 
   const tr = useCallback(
@@ -143,10 +147,55 @@ export function TaskModelOverridesPanel({
 
   const overriddenCount = data ? data.kinds.filter((k) => k.override).length : 0;
 
-  const kindTitle = (kind: AITaskKindInfo) =>
-    tr(`aiConfig.taskModels.kinds.${kind.id}.title`, kind.title);
-  const kindDesc = (kind: AITaskKindInfo) =>
-    tr(`aiConfig.taskModels.kinds.${kind.id}.desc`, kind.desc);
+  const kindById = useMemo(() => {
+    const map = new Map<string, AITaskKindInfo>();
+    for (const k of data?.kinds ?? []) map.set(k.id, k);
+    return map;
+  }, [data]);
+
+  const childrenByParent = useMemo(() => {
+    const map = new Map<string, AITaskKindInfo[]>();
+    for (const k of data?.kinds ?? []) {
+      if (!k.parent_id) continue;
+      const list = map.get(k.parent_id) ?? [];
+      list.push(k);
+      map.set(k.parent_id, list);
+    }
+    return map;
+  }, [data]);
+
+  const shortKindCode = (kind: AITaskKindInfo) => {
+    if (kind.parent_id && kind.id.startsWith(`${kind.parent_id}:`)) {
+      return kind.id.slice(kind.parent_id.length + 1);
+    }
+    return kind.id;
+  };
+
+  const kindTitle = useCallback(
+    (kind: AITaskKindInfo) => tr(`aiConfig.taskModels.kinds.${kind.id}.title`, kind.title),
+    [tr],
+  );
+  const kindDesc = useCallback(
+    (kind: AITaskKindInfo) => tr(`aiConfig.taskModels.kinds.${kind.id}.desc`, kind.desc),
+    [tr],
+  );
+  const kindFullTitle = useCallback(
+    (kind: AITaskKindInfo) => {
+      const title = kindTitle(kind);
+      if (!kind.parent_id) return title;
+      const parent = kindById.get(kind.parent_id);
+      return parent ? `${kindTitle(parent)} · ${title}` : title;
+    },
+    [kindById, kindTitle],
+  );
+  const nodeSourceLabel = (kind: AITaskKindInfo) => {
+    if (!kind.node_source) return '';
+    const base = tr(`aiConfig.taskModels.nodeSources.${kind.node_source}`, kind.node_source);
+    if (kind.node_source === 'plugin' && kind.plugin && kind.plugin !== 'core') {
+      return `${base} · ${kind.plugin}`;
+    }
+    return base;
+  };
   const levelLabel = (level: 'high' | 'low') =>
     level === 'high' ? t('aiConfig.taskModels.levelHigh') : t('aiConfig.taskModels.levelLow');
 
@@ -163,28 +212,51 @@ export function TaskModelOverridesPanel({
       if (!q) return true;
       const hay = [
         k.id,
+        shortKindCode(k),
         k.title,
         k.desc,
-        t(`aiConfig.taskModels.kinds.${k.id}.title`),
-        t(`aiConfig.taskModels.kinds.${k.id}.desc`),
+        k.plugin ?? '',
+        k.node_source ?? '',
+        kindTitle(k),
+        kindDesc(k),
       ]
         .join(' ')
         .toLowerCase();
       return hay.includes(q);
     },
-    [onlyOverridden, query, t],
+    [onlyOverridden, query, kindTitle, kindDesc],
   );
 
   const grouped = useMemo(() => {
     if (!data || sortMode !== 'group')
-      return [] as { group: AITaskGroup; kinds: AITaskKindInfo[] }[];
+      return [] as {
+        group: AITaskGroup;
+        items: {
+          kind: AITaskKindInfo;
+          allChildren: AITaskKindInfo[];
+          visibleChildren: AITaskKindInfo[];
+        }[];
+      }[];
     return data.groups
-      .map((group) => ({
-        group,
-        kinds: data.kinds.filter((k) => k.group === group && matchesFilter(k)),
-      }))
-      .filter((g) => g.kinds.length > 0);
-  }, [data, sortMode, matchesFilter]);
+      .map((group) => {
+        const items: {
+          kind: AITaskKindInfo;
+          allChildren: AITaskKindInfo[];
+          visibleChildren: AITaskKindInfo[];
+        }[] = [];
+        for (const k of data.kinds) {
+          if (k.group !== group) continue;
+          if (k.parent_id && kindById.has(k.parent_id)) continue;
+          const allChildren = childrenByParent.get(k.id) ?? [];
+          const visibleChildren = allChildren.filter(matchesFilter);
+          if (matchesFilter(k) || visibleChildren.length > 0) {
+            items.push({ kind: k, allChildren, visibleChildren });
+          }
+        }
+        return { group, items };
+      })
+      .filter((g) => g.items.length > 0);
+  }, [data, sortMode, matchesFilter, kindById, childrenByParent]);
 
   const usageSorted = useMemo(() => {
     if (!data || sortMode !== 'usage') return [] as AITaskKindInfo[];
@@ -197,11 +269,20 @@ export function TaskModelOverridesPanel({
     [data, kindTokens],
   );
 
+  useEffect(() => {
+    void query;
+    void onlyOverridden;
+    setManualExpanded({});
+  }, [query, onlyOverridden]);
+
+  const toggleParent = (parentId: string, currentOpen: boolean) =>
+    setManualExpanded((prev) => ({ ...prev, [parentId]: !currentOpen }));
+
   const run = async (kind: AITaskKindInfo, action: () => Promise<AITaskModelsData>) => {
     setPendingId(kind.id);
     try {
       setData(await action());
-      toast.success(t('aiConfig.taskModels.updated', { name: kindTitle(kind) }));
+      toast.success(t('aiConfig.taskModels.updated', { name: kindFullTitle(kind) }));
       return true;
     } catch (e) {
       toast.error(e instanceof Error ? e.message : String(e));
@@ -289,32 +370,85 @@ export function TaskModelOverridesPanel({
     );
   };
 
-  const renderKind = (kind: AITaskKindInfo) => {
+  const renderKind = (
+    kind: AITaskKindInfo,
+    options?: {
+      isChild?: boolean;
+      flatWithParentPrefix?: boolean;
+      allChildren?: AITaskKindInfo[];
+      visibleChildren?: AITaskKindInfo[];
+    },
+  ) => {
+    const isChild = Boolean(options?.isChild);
+    const allChildren = options?.allChildren ?? [];
+    const visibleChildren = options?.visibleChildren ?? [];
     const isLocked = kind.follows_caller;
     const isDraft = !isLocked && drafts.has(kind.id);
     const mode: TaskMode = isLocked ? 'default' : isDraft ? 'config' : modeOf(kind);
     const pending = pendingId === kind.id;
     const overridden = !isLocked && Boolean(kind.override);
+    const parentKind = kind.parent_id ? kindById.get(kind.parent_id) : undefined;
+    const parentTitle = parentKind ? kindTitle(parentKind) : (kind.parent_id ?? '');
     const defaultLabel = kind.follows_caller
       ? t('aiConfig.taskModels.followsCaller')
       : levelLabel(kind.default_level);
+    const defaultOptionLabel = kind.parent_id
+      ? t('aiConfig.taskModels.modeInheritParent', { parent: parentTitle })
+      : t('aiConfig.taskModels.modeDefault', { level: defaultLabel });
     const primary = mode === 'config' && !isDraft ? (kind.override?.primary ?? '') : '';
     const secondary = mode === 'config' && !isDraft ? (kind.override?.secondary ?? '') : '';
     const secondaryItems = allConfigsList.filter((c) => c.name !== primary);
-    const showUsage = usageByKey.size > 0 && (kind.stats_keys?.length ?? 0) > 0;
-    const tokens = kindTokens(kind);
+    const hasChildren = !isChild && allChildren.length > 0;
+    const childrenTokens = hasChildren ? allChildren.reduce((sum, c) => sum + kindTokens(c), 0) : 0;
+    const hasUsageKeys =
+      (kind.stats_keys?.length ?? 0) > 0 ||
+      (hasChildren && allChildren.some((c) => (c.stats_keys?.length ?? 0) > 0));
+    const showUsage = usageByKey.size > 0 && hasUsageKeys;
+    const tokens = kindTokens(kind) + childrenTokens;
     const sharePct = totalKindTokens > 0 ? (tokens / totalKindTokens) * 100 : 0;
     const shareLabel = tokens > 0 && sharePct < 0.1 ? '<0.1' : sharePct.toFixed(1);
+    const sourceBadge = nodeSourceLabel(kind);
+    const inheritedKind = kind.effective.inherited_from
+      ? kindById.get(kind.effective.inherited_from)
+      : undefined;
+    const inheritedTitle = inheritedKind
+      ? kindTitle(inheritedKind)
+      : (kind.effective.inherited_from ?? '');
+    const childrenOverriddenCount = allChildren.filter((c) => Boolean(c.override)).length;
+    const hasActiveFilter = Boolean(query.trim() || onlyOverridden);
+    const autoExpanded = hasActiveFilter && visibleChildren.length > 0;
+    const childrenOpen = manualExpanded[kind.id] ?? autoExpanded;
+    const displayedChildren =
+      hasActiveFilter && (onlyOverridden || visibleChildren.length > 0)
+        ? visibleChildren
+        : allChildren;
+    const toggleTotal =
+      displayedChildren.length !== allChildren.length
+        ? `${displayedChildren.length}/${allChildren.length}`
+        : allChildren.length;
 
     return (
-      <div key={kind.id} className="py-3 first:pt-0 last:pb-0">
+      <div
+        key={kind.id}
+        className={cn(isChild ? 'py-2.5 first:pt-0 last:pb-0' : 'py-3 first:pt-0 last:pb-0')}
+      >
         <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
           <div className="min-w-0 space-y-1">
             <div className="flex flex-wrap items-center gap-1.5">
-              <span className="text-sm font-medium">{kindTitle(kind)}</span>
-              <code className="rounded bg-muted/50 px-1.5 py-0.5 text-[10px] text-muted-foreground">
-                {kind.id}
+              <span className={cn('font-medium', isChild ? 'text-[13px]' : 'text-sm')}>
+                {options?.flatWithParentPrefix ? kindFullTitle(kind) : kindTitle(kind)}
+              </span>
+              <code
+                className="rounded bg-muted/50 px-1.5 py-0.5 text-[10px] text-muted-foreground"
+                title={kind.id}
+              >
+                {shortKindCode(kind)}
               </code>
+              {sourceBadge && (
+                <Badge variant="outline" className="h-5 px-1.5 text-[10px] font-normal">
+                  {sourceBadge}
+                </Badge>
+              )}
               {kind.fast && (
                 <Badge variant="outline" className="h-5 gap-1 px-1.5 text-[10px] font-normal">
                   <Zap className="h-3 w-3" />
@@ -337,7 +471,7 @@ export function TaskModelOverridesPanel({
               title={t('aiConfig.taskModels.lockedDefaultTooltip')}
             >
               <Lock className="h-3.5 w-3.5 shrink-0" />
-              <span>{t('aiConfig.taskModels.modeDefault', { level: defaultLabel })}</span>
+              <span>{defaultOptionLabel}</span>
               <span className="opacity-70">· {t('aiConfig.taskModels.lockedBadge')}</span>
             </div>
           ) : (
@@ -349,10 +483,7 @@ export function TaskModelOverridesPanel({
               value={mode}
               onValueChange={(v) => void handleMode(kind, v as TaskMode)}
               options={[
-                {
-                  value: 'default',
-                  label: t('aiConfig.taskModels.modeDefault', { level: defaultLabel }),
-                },
+                { value: 'default', label: defaultOptionLabel },
                 { value: 'high', label: levelLabel('high') },
                 { value: 'low', label: levelLabel('low') },
                 { value: 'config', label: t('aiConfig.taskModels.modeConfig') },
@@ -413,6 +544,11 @@ export function TaskModelOverridesPanel({
               {renderConfigChip(kind.effective.secondary)}
             </>
           )}
+          {kind.effective.inherited_from && (
+            <span className="opacity-70">
+              {t('aiConfig.taskModels.inheritedFromParent', { parent: inheritedTitle })}
+            </span>
+          )}
           {kind.follows_caller && kind.effective.source === 'default' && (
             <span className="opacity-70">{t('aiConfig.taskModels.followsCallerHint')}</span>
           )}
@@ -438,6 +574,36 @@ export function TaskModelOverridesPanel({
             <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
             {t('aiConfig.taskModels.invalidOverride')}
           </p>
+        )}
+
+        {hasChildren && displayedChildren.length > 0 && (
+          <div className="mt-3">
+            <button
+              type="button"
+              className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+              aria-expanded={childrenOpen}
+              onClick={() => toggleParent(kind.id, childrenOpen)}
+            >
+              {childrenOpen ? (
+                <ChevronDown className="h-3.5 w-3.5 shrink-0" />
+              ) : (
+                <ChevronRight className="h-3.5 w-3.5 shrink-0" />
+              )}
+              <span>{t('aiConfig.taskModels.subAgentsToggle', { total: toggleTotal })}</span>
+              {childrenOverriddenCount > 0 && (
+                <Badge className="h-4.5 px-1.5 text-[10px]">
+                  {t('aiConfig.taskModels.subAgentsOverridden', {
+                    count: childrenOverriddenCount,
+                  })}
+                </Badge>
+              )}
+            </button>
+            {childrenOpen && (
+              <div className="mt-2 ml-2 border-l-2 border-border/50 pl-4 divide-y divide-border/30">
+                {displayedChildren.map((child) => renderKind(child, { isChild: true }))}
+              </div>
+            )}
+          </div>
         )}
       </div>
     );
@@ -547,14 +713,22 @@ export function TaskModelOverridesPanel({
           )}
 
           {sortMode === 'usage' ? (
-            <div className="divide-y divide-border/40">{usageSorted.map(renderKind)}</div>
+            <div className="divide-y divide-border/40">
+              {usageSorted.map((kind) =>
+                renderKind(kind, { flatWithParentPrefix: Boolean(kind.parent_id) }),
+              )}
+            </div>
           ) : (
-            grouped.map(({ group, kinds }) => (
+            grouped.map(({ group, items }) => (
               <section key={group} className="space-y-1">
                 <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   {tr(`aiConfig.taskModels.groups.${group}`, group)}
                 </h4>
-                <div className="divide-y divide-border/40">{kinds.map(renderKind)}</div>
+                <div className="divide-y divide-border/40">
+                  {items.map(({ kind, allChildren, visibleChildren }) =>
+                    renderKind(kind, { allChildren, visibleChildren }),
+                  )}
+                </div>
               </section>
             ))
           )}

@@ -1369,11 +1369,19 @@ const routes: Route[] = [
         title: string,
         group: string,
         level: 'high' | 'low',
-        extra: { fast?: boolean; follows_caller?: boolean; stats?: string[] } = {},
+        extra: {
+          fast?: boolean;
+          follows_caller?: boolean;
+          stats?: string[];
+          desc?: string;
+          parent_id?: string | null;
+          node_source?: 'builtin' | 'plugin' | 'user' | 'mcp' | null;
+          plugin?: string | null;
+        } = {},
       ) => ({
         id,
         title,
-        desc: '',
+        desc: extra.desc ?? '',
         group,
         default_level: level,
         follows_caller: extra.follows_caller ?? false,
@@ -1385,7 +1393,11 @@ const routes: Route[] = [
           secondary: '',
           source: 'default',
           level,
+          inherited_from: null,
         },
+        parent_id: extra.parent_id ?? null,
+        node_source: extra.node_source ?? null,
+        plugin: extra.plugin ?? null,
       });
       return {
         groups: ['conversation', 'agent', 'proactive', 'memory', 'multimodal', 'plugin'],
@@ -1399,6 +1411,25 @@ const routes: Route[] = [
             stats: ['turnrouter'],
           }),
           kind('subagent', '子 Agent', 'agent', 'high', { stats: ['autoplanner'] }),
+          kind('capability_agent', '能力代理', 'agent', 'high', { stats: ['capabilityagent'] }),
+          kind('capability_agent:render_agent', '视觉渲染', 'agent', 'high', {
+            desc: '把事实包设计并渲染为竖屏信息图。',
+            parent_id: 'capability_agent',
+            node_source: 'builtin',
+            plugin: 'core',
+          }),
+          kind('capability_agent:research_agent', '调研助手', 'agent', 'high', {
+            desc: '外部信息收集、综合分析与资料汇总。',
+            parent_id: 'capability_agent',
+            node_source: 'builtin',
+            plugin: 'core',
+          }),
+          kind('capability_agent:code_agent', '代码助手', 'agent', 'high', {
+            desc: '沙盒内编写代码、运行脚本与生成报告文件。',
+            parent_id: 'capability_agent',
+            node_source: 'builtin',
+            plugin: 'core',
+          }),
           kind('heartbeat_decision', '巡检决策', 'proactive', 'high'),
           kind('memory_algebra', '记忆抽取', 'memory', 'low', {
             fast: true,

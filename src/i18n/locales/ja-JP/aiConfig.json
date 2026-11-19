@@ -36,7 +36,17 @@
     "levelHigh": "高級",
     "levelLow": "低級",
     "modeDefault": "既定（{level}）",
+    "modeInheritParent": "{parent}を継承",
     "modeConfig": "設定を指定",
+    "inheritedFromParent": "（{parent}から継承）",
+    "subAgentsToggle": "エージェント別に個別指定（全 {total} 件）",
+    "subAgentsOverridden": "{count} 件を個別上書き中",
+    "nodeSources": {
+      "builtin": "組み込み",
+      "plugin": "プラグイン",
+      "user": "カスタム",
+      "mcp": "MCP"
+    },
     "followsCaller": "呼び出し元に従う",
     "followsCallerHint": "（常に呼び出し元の段階の設定を使用）",
     "lockedBadge": "変更不可",
@@ -49,7 +59,7 @@
     "effective": "使用中",
     "effectiveSecondary": "予備",
     "notConfigured": "未設定",
-    "invalidOverride": "上書き先の設定ファイルが存在しないため、既定の段階に戻しています。別の設定を選ぶか既定に戻してください。",
+    "invalidOverride": "上書き先の設定ファイルが存在しないため、上位または既定の設定へ自動フォールバックしています。別の設定を選ぶか既定に戻してください。",
     "searchPlaceholder": "タスク名または ID で検索…",
     "sortGroup": "グループ順",
     "sortUsage": "使用量順",
@@ -93,11 +103,11 @@
       },
       "subagent": {
         "title": "サブエージェント",
-        "desc": "メインエージェントが派生させるサブタスク（render_agent を含む）。"
+        "desc": "メインエージェントが派生させる汎用プランニングタスク（プロファイル未指定時のフォールバック）。"
       },
       "capability_agent": {
         "title": "能力エージェント",
-        "desc": "能力プロファイルに沿って長時間タスクを実行するエージェント。"
+        "desc": "能力プロファイルに沿って長時間タスクを実行するエージェント（下で個別に上書き可能）。"
       },
       "capability_eval": {
         "title": "能力エージェント評価",
