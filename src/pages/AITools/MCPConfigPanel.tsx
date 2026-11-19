@@ -2011,7 +2011,7 @@ export function MCPConfigPanel({
                       <Shield className="h-4 w-4 shrink-0 text-muted-foreground" />
                       <span className="min-w-0 flex-1 flex items-center gap-1.5 text-sm font-medium">
                         {t('mcpConfig.toolPermissions')}
-                        <Tooltip>
+                        <Tooltip openOnClick>
                           <TooltipTrigger asChild>
                             <span onClick={(e) => e.stopPropagation()}>
                               <HelpCircle className="h-3.5 w-3.5 shrink-0 text-muted-foreground cursor-help" />

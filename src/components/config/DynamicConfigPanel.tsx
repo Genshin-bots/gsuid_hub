@@ -291,14 +291,14 @@ export function DynamicConfigPanel({
           </span>
           {item.desc && (
             <TooltipProvider delayDuration={100}>
-              <Tooltip>
+              <Tooltip openOnClick>
                 <TooltipTrigger asChild>
                   <button
                     type="button"
-                    className="inline-flex shrink-0 items-center justify-center rounded-full p-0.5 hover:bg-primary/10 transition-colors focus:outline-none"
-                    onClick={(e) => e.preventDefault()}
+                    className="tooltip-help-trigger inline-flex shrink-0 items-center justify-center rounded-full p-0.5 text-muted-foreground/60 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring data-[state=delayed-open]:text-primary data-[state=instant-open]:text-primary"
+                    aria-label="help"
                   >
-                    <HelpCircle className="w-3.5 h-3.5 text-muted-foreground/60 hover:text-primary cursor-help" />
+                    <HelpCircle className="w-3.5 h-3.5 cursor-help" />
                   </button>
                 </TooltipTrigger>
                 <TooltipContent side="top" className="max-w-xs">

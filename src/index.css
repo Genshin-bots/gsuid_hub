@@ -4368,6 +4368,33 @@ main:has(.console-mobile-fill) .layout-page-inner {
   -webkit-backdrop-filter: none;
 }
 
+/* 窄屏下兜底钳制 tooltip 宽度，避免 max-w-sm 等宽气泡超出 360px 屏幕 */
+@media (max-width: 639px) {
+  .tooltip-surface {
+    max-width: calc(100vw - 1rem);
+  }
+}
+
+/* 「?」帮助问号触发钮：纯图标，不画底板，去掉移动端点击灰暗高亮块与粘滞 hover */
+.tooltip-help-trigger {
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (hover: hover) {
+  .tooltip-help-trigger:hover {
+    color: hsl(var(--primary));
+  }
+}
+
+/* 触屏/移动端可轻触展开的 Tooltip 触发器（含裸 <HelpCircle>/<Info>/<span>）：
+   cursor: pointer 确保 iOS Safari 派发 click，transparent 去掉灰块高亮。 */
+@media (hover: none), (pointer: coarse) {
+  [data-tooltip-tap] {
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
 /* Terminal specific liquid style */
 [data-style="liquid"] .glass-terminal {
   backdrop-filter: blur(calc(var(--blur-intensity, 12px) * 1.3)) saturate(1.7);
