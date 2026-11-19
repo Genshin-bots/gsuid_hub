@@ -7950,7 +7950,7 @@ export interface AgentHookPointInfo {
   anchor: string;
   capabilities: string[];
   default_timeout_ms: number;
-  wired: boolean;
+  wired?: boolean;
   owners: string[];
 }
 

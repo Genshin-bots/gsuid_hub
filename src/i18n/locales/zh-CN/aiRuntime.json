@@ -14,7 +14,7 @@
   "slots": {
     "sealedEmptyCount": "{count} 个密封槽为空",
     "unhealthyCount": "{count} 个不健康",
-    "sealedEmptyHint": "密封槽（出站话术 / 身份锚）当前没有占用者，安全面已被拆开。",
+    "sealedEmptyHint": "密封槽（身份锚）当前没有占用者，安全面已被拆开。",
     "empty": "后端没有返回任何套件槽。",
     "sealed": "密封",
     "unhealthy": "不健康",
@@ -28,14 +28,10 @@
   "hooks": {
     "empty": "没有 Hook 点位。",
     "colName": "点位",
-    "colWired": "接线",
     "colOwners": "挂载者",
     "colTimeout": "超时",
     "colAnchor": "内核锚点",
-    "wired": "已接线",
-    "unwired": "未开火",
-    "noOwner": "无占用",
-    "notFired": "内核未开火"
+    "noOwner": "无占用"
   },
   "relationship": {
     "botId": "Bot ID",

@@ -375,7 +375,7 @@ function HooksPanel({
     setMissing(false);
     try {
       const data = await agentKitsApi.getHooks();
-      setPoints(data.points ?? []);
+      setPoints((data.points ?? []).filter((p) => p.wired !== false));
     } catch (e) {
       if (isBackendMissing(e)) {
         console.warn('[AIDebugPage] /api/agent_kits/hooks 不可用：请升级 gsuid_core。', e);
@@ -418,7 +418,6 @@ function HooksPanel({
                 <TableHeader>
                   <TableRow>
                     <TableHead>{t('aiRuntime.hooks.colName')}</TableHead>
-                    <TableHead>{t('aiRuntime.hooks.colWired')}</TableHead>
                     <TableHead>{t('aiRuntime.hooks.colOwners')}</TableHead>
                     <TableHead>{t('aiRuntime.hooks.colTimeout')}</TableHead>
                     <TableHead>{t('aiRuntime.hooks.colAnchor')}</TableHead>
@@ -439,21 +438,12 @@ function HooksPanel({
                           />
                         )}
                       </TableCell>
-                      <TableCell>
-                        {point.wired ? (
-                          <Badge variant="default">{t('aiRuntime.hooks.wired')}</Badge>
-                        ) : (
-                          <Badge variant="secondary">{t('aiRuntime.hooks.unwired')}</Badge>
-                        )}
-                      </TableCell>
                       <TableCell className="font-mono text-xs">
                         <TruncatedText
                           text={
                             point.owners.length > 0
                               ? point.owners.join(', ')
-                              : point.wired
-                                ? t('aiRuntime.hooks.noOwner')
-                                : t('aiRuntime.hooks.notFired')
+                              : t('aiRuntime.hooks.noOwner')
                           }
                           className="max-w-[32ch]"
                         />

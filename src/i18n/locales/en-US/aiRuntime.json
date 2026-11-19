@@ -14,7 +14,7 @@
   "slots": {
     "sealedEmptyCount": "{count} sealed slots empty",
     "unhealthyCount": "{count} unhealthy",
-    "sealedEmptyHint": "A sealed slot (outbound speech / identity anchor) has no occupant. The safety surface is open.",
+    "sealedEmptyHint": "A sealed slot (identity anchor) has no occupant. The safety surface is open.",
     "empty": "The backend returned no kit slots.",
     "sealed": "Sealed",
     "unhealthy": "Unhealthy",
@@ -28,14 +28,10 @@
   "hooks": {
     "empty": "No hook points.",
     "colName": "Point",
-    "colWired": "Wired",
     "colOwners": "Owners",
     "colTimeout": "Timeout",
     "colAnchor": "Kernel anchor",
-    "wired": "Wired",
-    "unwired": "Not fired",
-    "noOwner": "No owner",
-    "notFired": "Kernel not fired"
+    "noOwner": "No owner"
   },
   "relationship": {
     "botId": "Bot ID",

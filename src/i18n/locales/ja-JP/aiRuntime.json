@@ -14,7 +14,7 @@
   "slots": {
     "sealedEmptyCount": "密封槽が空 {count}",
     "unhealthyCount": "不健全 {count}",
-    "sealedEmptyHint": "密封槽（発話方針 / 身元アンカー）に占有者がいません。安全面が開いています。",
+    "sealedEmptyHint": "密封槽（身元アンカー）に占有者がいません。安全面が開いています。",
     "empty": "バックエンドからキット槽が返されませんでした。",
     "sealed": "密封",
     "unhealthy": "不健全",
@@ -28,14 +28,10 @@
   "hooks": {
     "empty": "Hook 点がありません。",
     "colName": "ポイント",
-    "colWired": "配線",
     "colOwners": "装着者",
     "colTimeout": "タイムアウト",
     "colAnchor": "カーネル錨点",
-    "wired": "配線済",
-    "unwired": "未発火",
-    "noOwner": "占有なし",
-    "notFired": "未発火"
+    "noOwner": "占有なし"
   },
   "relationship": {
     "botId": "Bot ID",
