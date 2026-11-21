@@ -251,13 +251,28 @@ function buildTrace(entries: SessionLogEntry[]): TraceSpan[] {
       }
       case 'tool_call': {
         const tcid = asStr(d.tool_call_id);
+        let dispToolName = asStr(d.tool_name);
+        if (dispToolName === 'call_tool') {
+          let inner = asStr(d.inner_tool_name);
+          if (!inner && d.args) {
+            try {
+              const parsed = typeof d.args === 'string' ? JSON.parse(d.args) : d.args;
+              if (parsed && typeof parsed === 'object' && typeof parsed.tool_name === 'string') {
+                inner = parsed.tool_name.trim();
+              }
+            } catch {
+              // ignore malformed JSON args
+            }
+          }
+          if (inner) dispToolName = `call_tool(${inner})`;
+        }
         const sp: TraceSpan = {
           id: nid(),
           kind: 'tool',
           start: ts,
           end: ts,
           entry: e,
-          toolName: asStr(d.tool_name),
+          toolName: dispToolName,
           contentEntries: [],
           children: [],
         };
