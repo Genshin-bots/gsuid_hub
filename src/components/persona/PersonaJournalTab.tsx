@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Archive,
+  ArrowLeft,
   BookOpen,
   CalendarDays,
   Clock,
@@ -120,6 +121,8 @@ function getTagVariant(tag: string): 'default' | 'secondary' | 'outline' {
 
 export function PersonaJournalTab({ personaName }: PersonaJournalTabProps) {
   const { t } = useLanguage();
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const prevScopeRef = useRef<string>('all');
   const [selectedScope, setSelectedScope] = useState<string>('all');
   const [content, setContent] = useState('');
   const [selfContent, setSelfContent] = useState('');
@@ -192,6 +195,13 @@ export function PersonaJournalTab({ personaName }: PersonaJournalTabProps) {
       setSelectedScope('all');
     }
   }, [activeGroupShard, selectedScope]);
+
+  useEffect(() => {
+    if (prevScopeRef.current !== selectedScope) {
+      prevScopeRef.current = selectedScope;
+      containerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [selectedScope]);
 
   const activeTimeline = useMemo(() => {
     if (selectedScope === '__self__') return selfTimeline;
@@ -294,7 +304,7 @@ export function PersonaJournalTab({ personaName }: PersonaJournalTabProps) {
     : selfYesterdayLabel;
 
   return (
-    <div className="space-y-4 pb-6">
+    <div ref={containerRef} className="space-y-4 pb-6">
       {/* 头部操作栏 */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="space-y-1">
@@ -382,48 +392,89 @@ export function PersonaJournalTab({ personaName }: PersonaJournalTabProps) {
         </div>
       </div>
 
-      {/* 分片范围切换胶囊栏 */}
+      {/* 分片范围切换胶囊栏（高对比主色选中态，避免浅色玻璃主题下失去选中反馈） */}
       {hasStructured && !rawEditing && (
-        <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-border/60 bg-muted/20 p-1.5">
-          <Button
-            variant={selectedScope === 'all' ? 'secondary' : 'ghost'}
-            size="sm"
-            onClick={() => setSelectedScope('all')}
-            className="h-7 gap-1.5 px-2.5 text-xs"
-          >
-            <Layers className="h-3.5 w-3.5" />
-            {t('personaConfig.journalScopeAll')}
-            <Badge variant="outline" className="ml-0.5 px-1 py-0 text-[10px]">
-              {timeline.length}
-            </Badge>
-          </Button>
-          <Button
-            variant={selectedScope === '__self__' ? 'secondary' : 'ghost'}
-            size="sm"
-            onClick={() => setSelectedScope('__self__')}
-            className="h-7 gap-1.5 px-2.5 text-xs"
-          >
-            <BookOpen className="h-3.5 w-3.5" />
-            {t('personaConfig.journalScopeSelf')}
-            <Badge variant="outline" className="ml-0.5 px-1 py-0 text-[10px]">
-              {selfTimeline.length}
-            </Badge>
-          </Button>
-          {groupShards.map((gs) => (
+        <div className="space-y-2">
+          <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-border/60 bg-muted/20 p-1.5">
             <Button
-              key={gs.group_id}
-              variant={selectedScope === gs.group_id ? 'secondary' : 'ghost'}
+              variant={selectedScope === 'all' ? 'default' : 'ghost'}
               size="sm"
-              onClick={() => setSelectedScope(gs.group_id)}
+              aria-pressed={selectedScope === 'all'}
+              onClick={() => setSelectedScope('all')}
               className="h-7 gap-1.5 px-2.5 text-xs"
             >
-              <Users className="h-3.5 w-3.5" />
-              {t('personaConfig.journalScopeGroup', { id: gs.group_id })}
-              <Badge variant="outline" className="ml-0.5 px-1 py-0 text-[10px]">
-                {gs.timeline_count}
+              <Layers className="h-3.5 w-3.5" />
+              {t('personaConfig.journalScopeAll')}
+              <Badge
+                variant={selectedScope === 'all' ? 'secondary' : 'outline'}
+                className="ml-0.5 px-1 py-0 text-[10px]"
+              >
+                {timeline.length}
               </Badge>
             </Button>
-          ))}
+            <Button
+              variant={selectedScope === '__self__' ? 'default' : 'ghost'}
+              size="sm"
+              aria-pressed={selectedScope === '__self__'}
+              onClick={() => setSelectedScope('__self__')}
+              className="h-7 gap-1.5 px-2.5 text-xs"
+            >
+              <BookOpen className="h-3.5 w-3.5" />
+              {t('personaConfig.journalScopeSelf')}
+              <Badge
+                variant={selectedScope === '__self__' ? 'secondary' : 'outline'}
+                className="ml-0.5 px-1 py-0 text-[10px]"
+              >
+                {selfTimeline.length}
+              </Badge>
+            </Button>
+            {groupShards.map((gs) => {
+              const isSelected = selectedScope === gs.group_id;
+              return (
+                <Button
+                  key={gs.group_id}
+                  variant={isSelected ? 'default' : 'ghost'}
+                  size="sm"
+                  aria-pressed={isSelected}
+                  onClick={() => setSelectedScope(gs.group_id)}
+                  className="h-7 gap-1.5 px-2.5 text-xs"
+                >
+                  <Users className="h-3.5 w-3.5" />
+                  {t('personaConfig.journalScopeGroup', { id: gs.group_id })}
+                  <Badge
+                    variant={isSelected ? 'secondary' : 'outline'}
+                    className="ml-0.5 px-1 py-0 text-[10px]"
+                  >
+                    {gs.timeline_count}
+                  </Badge>
+                </Button>
+              );
+            })}
+          </div>
+
+          {selectedScope !== 'all' && (
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/60 bg-muted/30 px-3 py-1.5 text-xs">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSelectedScope('all')}
+                  className="h-7 gap-1 px-2 text-xs"
+                >
+                  <ArrowLeft className="h-3.5 w-3.5" />
+                  {t('personaConfig.journalScopeAll')}
+                </Button>
+                <span className="font-medium text-foreground">
+                  {isGroupScope && activeGroupShard
+                    ? t('personaConfig.journalScopeGroup', { id: activeGroupShard.group_id })
+                    : t('personaConfig.journalScopeSelf')}
+                </span>
+              </div>
+              <span className="font-mono text-[11px] text-muted-foreground">
+                {activeMarkdownPath}
+              </span>
+            </div>
+          )}
         </div>
       )}
 
