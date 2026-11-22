@@ -101,7 +101,12 @@ export function ConfigForm({
           {Object.entries(config).map(([key, field]) => {
             const isDivider = field.type === 'divider';
             return (
-              <div key={key} className={isDivider ? 'col-span-full' : undefined}>
+              <div
+                key={key}
+                className={
+                  isDivider ? 'col-span-full first:[&_[data-config-divider]]:pt-0' : undefined
+                }
+              >
                 <ConfigField fieldKey={key} field={field} onChange={handleChange} />
               </div>
             );
@@ -146,7 +151,10 @@ export function ConfigGrid({ config, onChange, columns = 3, className }: ConfigG
       {Object.entries(config).map(([key, field]) => {
         const isDivider = field.type === 'divider';
         return (
-          <div key={key} className={isDivider ? 'col-span-full' : undefined}>
+          <div
+            key={key}
+            className={isDivider ? 'col-span-full first:[&_[data-config-divider]]:pt-0' : undefined}
+          >
             <ConfigField fieldKey={key} field={field} onChange={onChange} />
           </div>
         );

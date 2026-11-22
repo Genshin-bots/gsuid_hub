@@ -3686,14 +3686,24 @@ main:has(.page-fill) .layout-page-inner {
     --mobile-tabbar-clearance: calc(
       var(--mobile-tabbar-height) +
       var(--mobile-tabbar-bottom) +
-      0.75rem
+      var(--layout-gutter)
     );
   }
 
-  /* 底部悬浮导航栏避让，避免正文、全高卡片与控制台被遮挡 */
+  /* 底部悬浮导航栏避让：滚到底部时留足空间，避免正文末段、全高卡片与控制台被遮挡 */
   .layout-page-inner,
   main:has(.page-fill) .layout-page-inner {
     padding-bottom: var(--mobile-tabbar-clearance);
+  }
+
+  /* 移动端主滚动区隐藏 8px 占位滚动条（与真机 0px 悬浮滚动条一致），避免桌面窄窗下卡片右侧偏窄、与底部全宽菜单栏错位 */
+  main:has(> .layout-page-inner) {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  main:has(> .layout-page-inner)::-webkit-scrollbar {
+    display: none;
   }
 
   /* 抽屉宽度随 gutter 收窄，菜单不至于盖满整屏 */
@@ -3706,15 +3716,13 @@ main:has(.page-fill) .layout-page-inner {
   }
 }
 
-/* 移动端底部悬浮 Tab Bar 与原位上弹菜单：表面直接复用 .tab-segment-row / .glass-card，完整跟随用户圆角、透明度与四套玻璃主题 */
+/* 移动端底部悬浮 Tab Bar 与原位上弹菜单：不占布局高度，与页面同宽（左右对齐 --layout-gutter），表面复用 .tab-segment-row / .glass-card */
 .mobile-floating-tabbar-dock {
   position: fixed;
-  left: 0.75rem;
-  right: 0.75rem;
+  left: var(--layout-gutter, 1rem);
+  right: var(--layout-gutter, 1rem);
   bottom: var(--mobile-tabbar-bottom, max(0.75rem, env(safe-area-inset-bottom, 0px)));
   z-index: 46;
-  margin-inline: auto;
-  max-width: 28rem;
 }
 
 .mobile-floating-menu-backdrop {
@@ -3743,16 +3751,14 @@ main:has(.page-fill) .layout-page-inner {
 
 .mobile-floating-menu-dock {
   position: fixed;
-  left: 0.75rem;
-  right: 0.75rem;
+  left: var(--layout-gutter, 1rem);
+  right: var(--layout-gutter, 1rem);
   bottom: calc(
     var(--mobile-tabbar-height, 3.5rem) +
     var(--mobile-tabbar-bottom, max(0.75rem, env(safe-area-inset-bottom, 0px))) +
     0.5rem
   );
   z-index: 45;
-  margin-inline: auto;
-  max-width: 28rem;
   transform-origin: 88% 100%;
   transition:
     opacity 180ms ease-out,

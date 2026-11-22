@@ -159,7 +159,7 @@ function LayoutContent() {
         - SidebarProvider already provides the flex container
       */}
       <AppSidebar />
-      <SidebarInset className="flex flex-col overflow-hidden">
+      <SidebarInset className="flex h-full min-h-0 flex-col overflow-hidden">
         {/*
           滚动容器与内边距拆开：
           - main 只负责 overflow，避免 padding+overflow 把卡片阴影竖直裁切
@@ -197,7 +197,7 @@ export function AppLayout() {
   }, [isPluginView]);
 
   return (
-    <SidebarProvider open={open} onOpenChange={setOpen} className="h-dvh overflow-hidden">
+    <SidebarProvider open={open} onOpenChange={setOpen} className="h-dvh min-h-0 overflow-hidden">
       <LayoutContent />
     </SidebarProvider>
   );

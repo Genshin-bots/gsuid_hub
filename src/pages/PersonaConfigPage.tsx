@@ -34,14 +34,6 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet';
-import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -52,6 +44,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import {
+  ArrowLeft,
   BookOpen,
   Loader2,
   Plus,
@@ -68,8 +61,6 @@ import {
   Music,
   FileText,
   Upload,
-  Play,
-  Pause,
   Eye,
   ImagePlus,
   Music2,
@@ -92,6 +83,7 @@ import {
   Store,
   Lock,
 } from 'lucide-react';
+import { PersonaAudioPlayer } from '@/components/persona/PersonaAudioPlayer';
 import { PersonaMemePackTab } from '@/components/persona/PersonaMemePackTab';
 import { PersonaJournalTab } from '@/components/persona/PersonaJournalTab';
 // 支持的音频格式
@@ -224,7 +216,7 @@ const CHANNEL_SCOPE_OPTIONS: {
   },
 ];
 const CONFIG_OPTION_BUTTON =
-  'flex items-center gap-2.5 px-3 py-2 rounded-lg border-2 transition-colors text-left min-h-[3.5rem]';
+  'ui-field-trigger flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors text-left min-h-[3.5rem]';
 /** 常驻直装工具名：每轮必然在场，白名单里默认勾上，其余工具才需要用户显式钉。 */
 function collectAlwaysMountedTools(catalog: PersonaToolCatalog | null): string[] {
   if (!catalog) return [];
@@ -631,10 +623,13 @@ function SpeechFields({
 }
 
 export default function PersonaConfigPage() {
-  const { style, mode } = useTheme();
-  const sheetOverlay = mode === 'dark' ? 'bg-black/50' : 'bg-white/40';
+  const { style } = useTheme();
   const promptPanelRef = useRef<PromptGroupPanelHandle>(null);
   const { t } = useLanguage();
+  const tRef = useRef(t);
+  tRef.current = t;
+  const settingsRequestIdRef = useRef(0);
+  const inlineEditorRef = useRef<HTMLDivElement>(null);
   const isGlass = style !== 'solid';
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -651,6 +646,9 @@ export default function PersonaConfigPage() {
 
   const setLibraryView = useCallback(
     (next: 'prompts' | 'personas' | 'capabilityAgents') => {
+      // 切换顶栏主视图或重点「人格」时退出内联编辑回到列表
+      settingsRequestIdRef.current += 1;
+      setEditingPersona(null);
       setLibraryViewState(next);
       setSearchParams(
         next === 'capabilityAgents'
@@ -704,8 +702,7 @@ export default function PersonaConfigPage() {
   // 手动创建对话框状态
   const [createManuallyDialogOpen, setCreateManuallyDialogOpen] = useState(false);
   const [newPersonaContent, setNewPersonaContent] = useState('');
-  // 编辑对话框状态
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  // 内联编辑视图状态（editingPersona !== null 即处于编辑态）
   const [editingPersona, setEditingPersona] = useState<PersonaCardData | null>(null);
   const builtinPersona = editingPersona?.builtin === true || editingPersona?.name === '早柚';
   // git 市场导入的人格：内容/资源/行为配置由仓库拥有，仅双通道范围与目标列表可改
@@ -763,10 +760,8 @@ export default function PersonaConfigPage() {
   }, [editingSettings]);
   const [settingsLoaded, setSettingsLoaded] = useState(false);
   const [settingsLoading, setSettingsLoading] = useState(false);
+  const [settingsError, setSettingsError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('markdown');
-  // 音频播放状态
-  const [playingAudio, setPlayingAudio] = useState<string | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
   // 文件上传状态
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
@@ -904,23 +899,25 @@ export default function PersonaConfigPage() {
       setPersonaDetails(detailsMap);
     } catch (error) {
       console.error('Failed to load persona data:', error);
-      toast.error(t('personaConfig.loadFailed'));
+      toast.error(tRef.current('personaConfig.loadFailed'));
     } finally {
       setIsLoading(false);
     }
-  }, [t]);
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
-  // 清理音频资源
-  useEffect(() => {
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
-    };
   }, []);
+  useEffect(() => {
+    void loadData();
+  }, [loadData]);
+  // 进入内联编辑视图时自动滚回顶部（桌面滚 .page-pinned-body，移动端滚 window）
+  const editingPersonaName = editingPersona?.name ?? null;
+  useEffect(() => {
+    if (!editingPersonaName) return;
+    const body = inlineEditorRef.current?.closest('.page-pinned-body');
+    if (body) {
+      body.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [editingPersonaName]);
   // 创建新人格
   const handleCreatePersona = async () => {
     if (!newPersonaName.trim()) {
@@ -1054,25 +1051,47 @@ export default function PersonaConfigPage() {
       setIsSavingConfig(false);
     }
   };
-  const loadPersonaSettings = useCallback(
-    async (personaName: string) => {
-      setSettingsLoading(true);
+  const closeInlineEditor = useCallback(() => {
+    settingsRequestIdRef.current += 1;
+    setEditingPersona(null);
+    setEditContent('');
+    setEditingGroups([]);
+    setEditingUsers([]);
+    setEditingAIModes([]);
+    setEditingGroupScope('off');
+    setEditingPrivateScope('off');
+    setEditingSettings({});
+    setSettingsLoaded(false);
+    setSettingsLoading(false);
+    setSettingsError(null);
+  }, []);
+  const loadPersonaSettings = useCallback(async (personaName: string) => {
+    const reqId = ++settingsRequestIdRef.current;
+    setSettingsLoading(true);
+    setSettingsLoaded(false);
+    setSettingsError(null);
+    try {
+      const data = await personaApi.getPersonaSettings(personaName);
+      if (reqId !== settingsRequestIdRef.current) return;
+      setEditingSettings(data ?? {});
+      setSettingsLoaded(true);
+    } catch (error) {
+      if (reqId !== settingsRequestIdRef.current) return;
+      console.error('Failed to load persona settings:', error);
+      const errMsg = getApiErrorMessage(
+        error,
+        tRef.current('personaConfig.personaSettingsLoadFailed'),
+      );
+      setSettingsError(errMsg);
+      toast.error(errMsg);
+      setEditingSettings({});
       setSettingsLoaded(false);
-      try {
-        const data = await personaApi.getPersonaSettings(personaName);
-        setEditingSettings(data ?? {});
-        setSettingsLoaded(true);
-      } catch (error) {
-        console.error('Failed to load persona settings:', error);
-        toast.error(t('personaConfig.personaSettingsLoadFailed'));
-        setEditingSettings({});
-        setSettingsLoaded(false);
-      } finally {
+    } finally {
+      if (reqId === settingsRequestIdRef.current) {
         setSettingsLoading(false);
       }
-    },
-    [t],
-  );
+    }
+  }, []);
   const handleSettingsChange = useCallback((key: string, value: ConfigValue) => {
     setEditingSettings((prev) => {
       const current = prev[key];
@@ -1165,8 +1184,8 @@ export default function PersonaConfigPage() {
     );
     setEditingSettings({});
     setSettingsLoaded(false);
+    setSettingsError(null);
     setActiveTab('markdown');
-    setEditDialogOpen(true);
     void loadPersonaSettings(persona.name);
   };
   // 点击头像上传 - 直接触发文件选择
@@ -1399,14 +1418,7 @@ export default function PersonaConfigPage() {
         );
       }
       toast.success(t('personaConfig.saveSuccess'));
-      setEditDialogOpen(false);
-      setEditingPersona(null);
-      setEditContent('');
-      setEditingGroups([]);
-      setEditingUsers([]);
-      setEditingAIModes([]);
-      setEditingGroupScope('off');
-      setEditingPrivateScope('off');
+      closeInlineEditor();
       await loadData();
     } catch (error) {
       console.error('Failed to save persona:', error);
@@ -1492,35 +1504,6 @@ export default function PersonaConfigPage() {
       );
     } finally {
       setIsDeleting(null);
-    }
-  };
-  // 播放/暂停音频
-  const toggleAudioPlayback = (personaName: string) => {
-    const audioUrl = personaApi.getAudioUrl(personaName);
-    if (playingAudio === personaName) {
-      // 暂停当前播放
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
-      setPlayingAudio(null);
-    } else {
-      // 播放新音频
-      if (audioRef.current) {
-        audioRef.current.pause();
-      }
-      const audio = new Audio(audioUrl);
-      audio.onended = () => setPlayingAudio(null);
-      audio.onerror = () => {
-        toast.error(t('personaConfig.loadFailed'));
-        setPlayingAudio(null);
-      };
-      audioRef.current = audio;
-      audio.play().catch(() => {
-        toast.error(t('personaConfig.loadFailed'));
-        setPlayingAudio(null);
-      });
-      setPlayingAudio(personaName);
     }
   };
   // 打开图片预览
@@ -2023,7 +2006,7 @@ export default function PersonaConfigPage() {
               )}
             </div>
             <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2">
-              {libraryView === 'personas' ? (
+              {libraryView === 'personas' && !editingPersona ? (
                 <>
                   <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
                     <DialogTrigger asChild>
@@ -2189,7 +2172,7 @@ export default function PersonaConfigPage() {
                     {t('personaConfig.personaStore')}
                   </Button>
                 </>
-              ) : libraryView === 'prompts' ? (
+              ) : libraryView === 'personas' ? null : libraryView === 'prompts' ? (
                 <Button
                   className={cn(
                     tabToolbarControlClass,
@@ -2247,7 +2230,7 @@ export default function PersonaConfigPage() {
           />
         ) : libraryView === 'capabilityAgents' ? (
           <CapabilityAgentsPanel capability={capability} />
-        ) : (
+        ) : !editingPersona ? (
           <div>
             <div className="mb-3 space-y-3">
               <GlassAlert tone="warning">{t('personaConfig.builtinPersonaWarning')}</GlassAlert>
@@ -2347,109 +2330,160 @@ export default function PersonaConfigPage() {
               </div>
             )}
           </div>
-        )}
-        {/* 编辑：右侧半屏，交互对齐看板详情 Sheet */}
-        <Sheet open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-          <SheetContent
-            side="right"
-            overlayClassName={cn(
-              sheetOverlay,
-              'data-[state=open]:animate-sheet-overlay-in data-[state=closed]:animate-sheet-overlay-out',
-            )}
-            className="flex h-full w-full flex-col gap-0 bg-background/95 p-0 glass-card !fixed !inset-y-0 !right-0 !left-auto !top-0 !rounded-none !border-l !max-w-full sm:!max-w-[60vw] data-[state=open]:animate-sheet-slide-in-right data-[state=closed]:animate-sheet-slide-out-right"
-          >
-            <SheetHeader className="shrink-0 border-b px-6 py-4 pr-12 text-left">
-              <SheetTitle className="flex items-center gap-2">
-                <Brain className="h-5 w-5 text-primary" />
-                {t('personaConfig.editPersona')}: {editingPersona?.name}
-              </SheetTitle>
-              <SheetDescription className="sr-only">
-                {t('personaConfig.editPersonaAriaDesc')}
-              </SheetDescription>
-            </SheetHeader>
-            <Tabs
-              value={activeTab}
-              onValueChange={setActiveTab}
-              className="flex min-h-0 flex-1 flex-col"
-            >
-              <div className="shrink-0 px-6 pt-4">
-                <TabButtonGroup
-                  value={activeTab}
-                  onValueChange={setActiveTab}
-                  options={[
-                    {
-                      value: 'markdown',
-                      label: t('personaConfig.personaMarkdown'),
-                      icon: <FileText className="h-4 w-4" />,
-                    },
-                    {
-                      value: 'config',
-                      label: t('personaConfig.config'),
-                      icon: <Settings className="h-4 w-4" />,
-                    },
-                    {
-                      value: 'settings',
-                      label: t('personaConfig.personaSettings'),
-                      icon: <Sparkles className="h-4 w-4" />,
-                    },
-                    {
-                      value: 'avatar',
-                      label: t('personaConfig.avatar'),
-                      icon: <ImageIcon className="h-4 w-4" />,
-                    },
-                    {
-                      value: 'image',
-                      label: t('personaConfig.image'),
-                      icon: <ImageIcon className="h-4 w-4" />,
-                    },
-                    {
-                      value: 'audio',
-                      label: t('personaConfig.audio'),
-                      icon: <Music className="h-4 w-4" />,
-                    },
-                    {
-                      value: 'meme_packs',
-                      label: t('personaConfig.memePacks'),
-                      icon: <Smile className="h-4 w-4" />,
-                    },
-                    {
-                      value: 'journal',
-                      label: t('personaConfig.journal'),
-                      icon: <BookOpen className="h-4 w-4" />,
-                    },
-                  ]}
-                />
-              </div>
-              <div className="flex min-h-0 flex-1 flex-col px-6 py-4">
-                <TabsContent
-                  value="meme_packs"
-                  className="mt-0 hidden min-h-0 flex-1 overflow-y-auto data-[state=active]:block"
-                >
-                  {editingPersona && (
-                    <PersonaMemePackTab
-                      personaName={editingPersona.name}
-                      allowReply={allowMemeReply}
-                      onAllowReplyChange={setAllowMemeReply}
-                      frequency={memeFrequency}
-                      onFrequencyChange={setMemeFrequency}
-                      cooldownSec={memeSendCooldownSec}
-                      onCooldownSecChange={setMemeSendCooldownSec}
-                      readOnly={managedPersona}
+        ) : (
+          /* 内联人格编辑面板：不加 overflow-hidden，保证光感/液态玻璃高光边完整联动主题 */
+          <Card ref={inlineEditorRef} className="glass-card min-w-0">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="flex min-w-0 flex-col">
+              {/* 顶栏合行：左（返回 + 人格信息）｜中（8 个子页签，宽屏同行省高度，窄屏自动折行横滑）｜右（取消 / 保存） */}
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-2.5 border-b border-border/35 px-4 py-3 sm:px-6">
+                <div className="order-1 flex min-w-0 shrink-0 items-center gap-2 sm:gap-2.5">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={closeInlineEditor}
+                    disabled={isSaving}
+                    className="h-9 shrink-0 gap-1.5"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                    <span>{t('personaConfig.backToList')}</span>
+                  </Button>
+                  <div className="flex min-w-0 items-center gap-2">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-primary/30 bg-primary/10">
+                      {editingPersona.has_avatar ? (
+                        <img
+                          src={personaApi.getAvatarUrl(editingPersona.name, resourceTimestamp)}
+                          alt={editingPersona.name}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <Brain className="h-4 w-4 text-primary" />
+                      )}
+                    </div>
+                    <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+                      <h2 className="max-w-[10rem] truncate text-base font-semibold sm:max-w-[14rem]">
+                        {editingPersona.name}
+                      </h2>
+                      <Badge
+                        className={cn(
+                          CARD_BADGE,
+                          getChannelBadgeStyle({
+                            group_scope: editingGroupScope,
+                            private_scope: editingPrivateScope,
+                          }),
+                        )}
+                      >
+                        {getChannelBadgeLabel(
+                          {
+                            group_scope: editingGroupScope,
+                            private_scope: editingPrivateScope,
+                          },
+                          editingGroups.length,
+                          editingUsers.length,
+                          t,
+                        )}
+                      </Badge>
+                      {managedPersona && (
+                        <Badge variant="secondary" className={cn(CARD_BADGE, 'gap-1')}>
+                          <Lock className="h-2.5 w-2.5" />
+                          {t('personaConfig.managedBadge')}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className="order-3 w-full min-w-0 xl:order-2 xl:flex xl:w-auto xl:flex-1 xl:justify-end">
+                  <div className="w-full max-w-full min-w-0 md:w-auto">
+                    <TabButtonGroup
+                      collapseOnMobile
+                      size="sm"
+                      buttonClassName="px-2.5 xl:px-3"
+                      value={activeTab}
+                      onValueChange={setActiveTab}
+                      options={[
+                        {
+                          value: 'markdown',
+                          label: t('personaConfig.personaMarkdown'),
+                          icon: <FileText className="h-4 w-4" />,
+                        },
+                        {
+                          value: 'config',
+                          label: t('personaConfig.config'),
+                          icon: <Settings className="h-4 w-4" />,
+                        },
+                        {
+                          value: 'settings',
+                          label: t('personaConfig.personaSettings'),
+                          icon: <Sparkles className="h-4 w-4" />,
+                        },
+                        {
+                          value: 'media',
+                          label: t('personaConfig.mediaAssets'),
+                          icon: <ImageIcon className="h-4 w-4" />,
+                        },
+                        {
+                          value: 'meme_packs',
+                          label: t('personaConfig.memePacks'),
+                          icon: <Smile className="h-4 w-4" />,
+                        },
+                        {
+                          value: 'journal',
+                          label: t('personaConfig.journal'),
+                          icon: <BookOpen className="h-4 w-4" />,
+                        },
+                      ]}
                     />
-                  )}
+                  </div>
+                </div>
+                <div className="order-2 ml-auto flex shrink-0 items-center gap-2 xl:order-3 xl:ml-0">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={closeInlineEditor}
+                    disabled={isSaving}
+                    className="h-9"
+                  >
+                    {t('common.cancel')}
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => setSaveConfirmOpen(true)}
+                    disabled={isSaving}
+                    className="button-solid h-9 gap-1.5"
+                  >
+                    {isSaving ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Check className="h-4 w-4" />
+                    )}
+                    {t('personaConfig.savePersona')}
+                  </Button>
+                </div>
+              </div>
+              <div className="min-w-0 p-4 sm:p-6">
+                <TabsContent value="meme_packs" className="mt-0 hidden data-[state=active]:block">
+                  <PersonaMemePackTab
+                    personaName={editingPersona.name}
+                    allowReply={allowMemeReply}
+                    onAllowReplyChange={setAllowMemeReply}
+                    frequency={memeFrequency}
+                    onFrequencyChange={setMemeFrequency}
+                    cooldownSec={memeSendCooldownSec}
+                    onCooldownSecChange={setMemeSendCooldownSec}
+                    readOnly={managedPersona}
+                  />
                 </TabsContent>
-                <TabsContent
-                  value="journal"
-                  className="mt-0 hidden min-h-0 flex-1 overflow-y-auto data-[state=active]:block"
-                >
-                  {editingPersona && <PersonaJournalTab personaName={editingPersona.name} />}
+                <TabsContent value="journal" className="mt-0 hidden data-[state=active]:block">
+                  <PersonaJournalTab personaName={editingPersona.name} />
                 </TabsContent>
                 {/* 自述文档 Tab */}
                 <TabsContent
                   value="markdown"
-                  className="mt-0 hidden min-h-0 flex-1 flex-col data-[state=active]:flex"
+                  className="mt-0 hidden flex-col data-[state=active]:flex"
                 >
-                  <div className="flex min-h-0 flex-1 flex-col gap-2">
+                  <div className="flex flex-col gap-3">
                     <Label className="flex shrink-0 items-center gap-2">
                       <Brain className="h-4 w-4" />
                       {t('personaConfig.personaContent')}
@@ -2468,17 +2502,14 @@ export default function PersonaConfigPage() {
                       value={editContent}
                       onChange={(e) => setEditContent(e.target.value)}
                       readOnly={builtinPersona || managedPersona}
-                      className="h-full min-h-0 flex-1 resize-none font-mono text-sm"
+                      className="min-h-[360px] h-[54vh] sm:min-h-[460px] md:h-[calc(100vh-330px)] max-h-[800px] resize-y font-mono text-sm leading-relaxed"
                       placeholder={t('personaConfig.personaQueryPlaceholder')}
                     />
                   </div>
                 </TabsContent>
                 {/* 配置 Tab */}
-                <TabsContent
-                  value="config"
-                  className="mt-0 hidden min-h-0 flex-1 overflow-y-auto data-[state=active]:block"
-                >
-                  <div className="space-y-8">
+                <TabsContent value="config" className="mt-0 hidden data-[state=active]:block">
+                  <div className="space-y-6 sm:space-y-8">
                     {managedPersona && (
                       <GlassAlert tone="info">{t('personaConfig.managedConfigHint')}</GlassAlert>
                     )}
@@ -2554,14 +2585,9 @@ export default function PersonaConfigPage() {
                               <button
                                 key={option.value}
                                 type="button"
+                                data-active={row.value === option.value || undefined}
                                 onClick={() => row.onSelect(option.value)}
-                                className={cn(
-                                  CONFIG_OPTION_BUTTON,
-                                  'h-full min-w-0',
-                                  row.value === option.value
-                                    ? 'border-primary bg-primary/10'
-                                    : 'border-border hover:border-border/80 hover:bg-muted/50',
-                                )}
+                                className={cn(CONFIG_OPTION_BUTTON, 'h-full min-w-0')}
                               >
                                 <div
                                   className={cn(
@@ -2622,12 +2648,13 @@ export default function PersonaConfigPage() {
                           <Settings className="h-4 w-4" />
                           {t('personaConfig.aiModes')}
                         </Label>
-                        {/* 只有四个模式，仍按启用范围的五列排，末格留空才能上下对齐 */}
-                        <div className="grid grid-cols-2 items-stretch gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                        {/* 四个 AI 行动模式：移动端单列，平板两列，桌面四等分满行 */}
+                        <div className="grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2 lg:grid-cols-4">
                           {AI_MODE_OPTIONS.map((mode) => (
                             <button
                               key={mode.value}
                               type="button"
+                              data-active={editingAIModes.includes(mode.value) || undefined}
                               onClick={() => {
                                 const isSelected = editingAIModes.includes(mode.value);
                                 if (isSelected) {
@@ -2636,12 +2663,7 @@ export default function PersonaConfigPage() {
                                   setEditingAIModes([...editingAIModes, mode.value]);
                                 }
                               }}
-                              className={cn(
-                                CONFIG_OPTION_BUTTON,
-                                editingAIModes.includes(mode.value)
-                                  ? 'border-primary bg-primary/10'
-                                  : 'border-border hover:border-border/80 hover:bg-muted/50',
-                              )}
+                              className={CONFIG_OPTION_BUTTON}
                             >
                               <div
                                 className={cn(
@@ -2707,7 +2729,7 @@ export default function PersonaConfigPage() {
                       重新勾上还得再找一遍。冻结态的标签同样变灰，控件走各自的 disabled 样式。
                       值一直随 payload 提交（inspect_interval / keywords），冻结不影响已存的数据。
                     */}
-                      <div className="grid grid-cols-2 gap-3 md:gap-4">
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:gap-4">
                         <div className="space-y-2">
                           <Label
                             className={cn(
@@ -2821,7 +2843,7 @@ export default function PersonaConfigPage() {
                           />
                         </div>
                       </div>
-                      <div className="grid grid-cols-2 gap-3 md:gap-4">
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:gap-4">
                         <div className="space-y-2">
                           <LabelWithHelp
                             icon={
@@ -2877,7 +2899,7 @@ export default function PersonaConfigPage() {
                           description={t('personaConfig.autonomyHint')}
                           className={cn('text-base font-medium', !showAutonomy && 'opacity-50')}
                         />
-                        <div className="grid grid-cols-2 gap-3 md:gap-4">
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:gap-4">
                           <div className={cn('space-y-2', !showAutonomy && 'opacity-50')}>
                             <Label htmlFor="autonomy-interval" className="text-sm">
                               {t('personaConfig.autonomyInterval')}
@@ -3038,266 +3060,248 @@ export default function PersonaConfigPage() {
                     </div>
                   </div>
                 </TabsContent>
-                <TabsContent
-                  value="settings"
-                  className="mt-0 hidden min-h-0 flex-1 overflow-y-auto data-[state=active]:block"
-                >
+                <TabsContent value="settings" className="mt-0 hidden data-[state=active]:block">
                   {settingsLoading ? (
                     <div className="flex items-center justify-center gap-2 py-12 text-sm text-muted-foreground">
                       <Loader2 className="h-4 w-4 animate-spin" />
                       {t('common.loading')}
                     </div>
                   ) : Object.keys(displaySettings).length === 0 ? (
-                    <div className="text-sm text-muted-foreground p-4 rounded-lg glass-card glass-alert border border-border/30">
-                      {t('personaConfig.personaSettingsLoadFailed')}
+                    <div className="flex flex-col items-start justify-between gap-3 rounded-lg border border-border/30 p-4 text-sm text-muted-foreground glass-card glass-alert sm:flex-row sm:items-center">
+                      <span>{settingsError ?? t('personaConfig.personaSettingsLoadFailed')}</span>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="shrink-0 gap-1.5"
+                        onClick={() => void loadPersonaSettings(editingPersona.name)}
+                      >
+                        <RefreshCw className="h-3.5 w-3.5" />
+                        {t('common.refresh')}
+                      </Button>
                     </div>
                   ) : (
-                    <div className="space-y-3 md:space-y-4">
-                      <LabelWithHelp
-                        label={t('personaConfig.personaSettings')}
-                        description={t('personaConfig.personaSettingsHint')}
-                        className="text-base font-medium"
+                    <div
+                      {...(managedPersona ? ({ inert: '' } as object) : {})}
+                      className={cn(managedPersona && 'pointer-events-none select-none opacity-60')}
+                    >
+                      <ConfigGrid
+                        config={settingsToFormData(displaySettings)}
+                        onChange={handleSettingsChange}
+                        columns={3}
                       />
-                      <div
-                        {...(managedPersona ? ({ inert: '' } as object) : {})}
-                        className={cn(
-                          managedPersona && 'pointer-events-none select-none opacity-60',
-                        )}
-                      >
-                        <ConfigGrid
-                          config={settingsToFormData(displaySettings)}
-                          onChange={handleSettingsChange}
-                          columns={3}
-                        />
-                      </div>
                     </div>
                   )}
                 </TabsContent>
-                {/* 头像 Tab */}
-                <TabsContent
-                  value="avatar"
-                  className="mt-0 hidden min-h-0 flex-1 overflow-y-auto data-[state=active]:block"
-                >
-                  <div className="space-y-3 md:space-y-4">
-                    <div className="flex items-center justify-between">
-                      <Label className="flex items-center gap-2">
-                        <ImageIcon className="h-4 w-4" />
-                        {t('personaConfig.avatar')}
-                      </Label>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="gap-2"
-                        onClick={() => {
-                          if (editingPersona) {
+                {/* 媒体资源 Tab（头像 / 立绘 / 音频单行三列） */}
+                <TabsContent value="media" className="mt-0 hidden data-[state=active]:block">
+                  <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+                    {/* 头像 */}
+                    <div className="glass-card-flat flex min-w-0 flex-col gap-3 rounded-xl p-4">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <Label className="flex items-center gap-2 text-sm font-medium">
+                          <User className="h-4 w-4" />
+                          {t('personaConfig.avatar')}
+                        </Label>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="gap-1.5"
+                          onClick={() => {
                             setUploadTargetPersona(editingPersona.name);
                             setUploadType('avatar');
                             setTimeout(() => fileInputRef.current?.click(), 0);
-                          }
-                        }}
-                        disabled={isUploadingAvatar || managedPersona}
-                      >
-                        {isUploadingAvatar ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
+                          }}
+                          disabled={isUploadingAvatar || managedPersona}
+                        >
+                          {isUploadingAvatar ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Upload className="h-4 w-4" />
+                          )}
+                          {editingPersona.has_avatar
+                            ? t('personaConfig.updateAvatar')
+                            : t('personaConfig.uploadAvatar')}
+                        </Button>
+                      </div>
+                      <div className="flex h-[220px] items-center justify-center rounded-lg border border-border/30 bg-foreground/[0.03] p-4 sm:h-[260px]">
+                        {editingPersona?.has_avatar ? (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              openImagePreview(
+                                personaApi.getAvatarUrl(editingPersona.name, resourceTimestamp),
+                                t('personaConfig.avatar'),
+                              )
+                            }
+                            className="group relative flex h-full max-w-full items-center justify-center rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          >
+                            <img
+                              src={personaApi.getAvatarUrl(editingPersona.name, resourceTimestamp)}
+                              alt={editingPersona.name}
+                              className="max-h-full max-w-full rounded-lg object-contain"
+                            />
+                            <span className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
+                              <span className="inline-flex items-center gap-1.5 rounded-md bg-secondary px-3 py-1.5 text-xs font-medium text-secondary-foreground shadow-sm">
+                                <Eye className="h-3.5 w-3.5" />
+                                {t('common.view')}
+                              </span>
+                            </span>
+                          </button>
                         ) : (
-                          <Upload className="h-4 w-4" />
-                        )}
-                        {editingPersona?.has_avatar
-                          ? t('personaConfig.updateAvatar')
-                          : t('personaConfig.uploadAvatar')}
-                      </Button>
-                    </div>
-                    <div className="flex items-center justify-center p-8 bg-muted/30 rounded-lg min-h-[300px]">
-                      {editingPersona?.has_avatar ? (
-                        <div className="relative group">
-                          <img
-                            src={personaApi.getAvatarUrl(editingPersona.name, resourceTimestamp)}
-                            alt={editingPersona.name}
-                            className="max-w-full max-h-[400px] rounded-lg object-contain"
-                          />
-                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center gap-2">
-                            <Button
-                              variant="secondary"
-                              size="sm"
-                              className="gap-2"
-                              onClick={() =>
-                                openImagePreview(
-                                  personaApi.getAvatarUrl(editingPersona.name, resourceTimestamp),
-                                  t('personaConfig.avatar'),
-                                )
-                              }
-                            >
-                              <Eye className="h-4 w-4" />
-                              {t('common.view')}
-                            </Button>
+                          <div className="text-center">
+                            <User className="mx-auto mb-3 h-12 w-12 text-muted-foreground/70" />
+                            <p className="text-sm text-muted-foreground">
+                              {t('personaConfig.noAvatar')}
+                            </p>
                           </div>
-                        </div>
-                      ) : (
-                        <div className="text-center">
-                          <User className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                          <p className="text-muted-foreground">{t('personaConfig.noAvatar')}</p>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </TabsContent>
-                {/* 立绘 Tab */}
-                <TabsContent
-                  value="image"
-                  className="mt-0 hidden min-h-0 flex-1 overflow-y-auto data-[state=active]:block"
-                >
-                  <div className="space-y-3 md:space-y-4">
-                    <div className="flex items-center justify-between">
-                      <Label className="flex items-center gap-2">
-                        <ImageIcon className="h-4 w-4" />
-                        {t('personaConfig.image')}
-                      </Label>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="gap-2"
-                        onClick={() => {
-                          if (editingPersona) {
+
+                    {/* 立绘 */}
+                    <div className="glass-card-flat flex min-w-0 flex-col gap-3 rounded-xl p-4">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <Label className="flex items-center gap-2 text-sm font-medium">
+                          <ImageIcon className="h-4 w-4" />
+                          {t('personaConfig.image')}
+                        </Label>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="gap-1.5"
+                          onClick={() => {
                             setUploadTargetPersona(editingPersona.name);
                             setUploadType('image');
                             setTimeout(() => fileInputRef.current?.click(), 0);
-                          }
-                        }}
-                        disabled={isUploadingImage || managedPersona}
-                      >
-                        {isUploadingImage ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
+                          }}
+                          disabled={isUploadingImage || managedPersona}
+                        >
+                          {isUploadingImage ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Upload className="h-4 w-4" />
+                          )}
+                          {editingPersona.has_image
+                            ? t('personaConfig.updateImage')
+                            : t('personaConfig.uploadImage')}
+                        </Button>
+                      </div>
+                      <div className="flex h-[220px] items-center justify-center rounded-lg border border-border/30 bg-foreground/[0.03] p-4 sm:h-[260px]">
+                        {editingPersona?.has_image ? (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              openImagePreview(
+                                personaApi.getImageUrl(editingPersona.name, resourceTimestamp),
+                                t('personaConfig.image'),
+                              )
+                            }
+                            className="group relative flex h-full max-w-full items-center justify-center rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          >
+                            <img
+                              src={personaApi.getImageUrl(editingPersona.name, resourceTimestamp)}
+                              alt={editingPersona.name}
+                              className="max-h-full max-w-full rounded-lg object-contain"
+                            />
+                            <span className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
+                              <span className="inline-flex items-center gap-1.5 rounded-md bg-secondary px-3 py-1.5 text-xs font-medium text-secondary-foreground shadow-sm">
+                                <Eye className="h-3.5 w-3.5" />
+                                {t('common.view')}
+                              </span>
+                            </span>
+                          </button>
                         ) : (
-                          <Upload className="h-4 w-4" />
-                        )}
-                        {editingPersona?.has_image
-                          ? t('personaConfig.updateImage')
-                          : t('personaConfig.uploadImage')}
-                      </Button>
-                    </div>
-                    <div className="flex items-center justify-center p-8 bg-muted/30 rounded-lg min-h-[300px]">
-                      {editingPersona?.has_image ? (
-                        <div className="relative group">
-                          <img
-                            src={personaApi.getImageUrl(editingPersona.name, resourceTimestamp)}
-                            alt={editingPersona.name}
-                            className="max-w-full max-h-[400px] rounded-lg object-contain"
-                          />
-                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center gap-2">
-                            <Button
-                              variant="secondary"
-                              size="sm"
-                              className="gap-2"
-                              onClick={() =>
-                                openImagePreview(
-                                  personaApi.getImageUrl(editingPersona.name, resourceTimestamp),
-                                  t('personaConfig.image'),
-                                )
-                              }
-                            >
-                              <Eye className="h-4 w-4" />
-                              {t('common.view')}
-                            </Button>
+                          <div className="text-center">
+                            <ImageIcon className="mx-auto mb-3 h-12 w-12 text-muted-foreground/70" />
+                            <p className="text-sm text-muted-foreground">
+                              {t('personaConfig.noImage')}
+                            </p>
                           </div>
-                        </div>
-                      ) : (
-                        <div className="text-center">
-                          <ImageIcon className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                          <p className="text-muted-foreground">{t('personaConfig.noImage')}</p>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </TabsContent>
-                {/* 音频 Tab */}
-                <TabsContent
-                  value="audio"
-                  className="mt-0 hidden min-h-0 flex-1 overflow-y-auto data-[state=active]:block"
-                >
-                  <div className="space-y-3 md:space-y-4">
-                    <div className="flex items-center justify-between">
-                      <Label className="flex items-center gap-2">
-                        <Music className="h-4 w-4" />
-                        {t('personaConfig.audio')}
-                      </Label>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="gap-2"
-                        onClick={() => {
-                          if (editingPersona) {
+
+                    {/* 音频 */}
+                    <div className="glass-card-flat flex min-w-0 flex-col gap-3 rounded-xl p-4">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <Label className="flex items-center gap-2 text-sm font-medium">
+                          <Music className="h-4 w-4" />
+                          {t('personaConfig.audio')}
+                        </Label>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="gap-1.5"
+                          onClick={() => {
                             setUploadTargetPersona(editingPersona.name);
                             setUploadType('audio');
                             setTimeout(() => fileInputRef.current?.click(), 0);
-                          }
-                        }}
-                        disabled={isUploadingAudio || managedPersona}
-                      >
-                        {isUploadingAudio ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Upload className="h-4 w-4" />
-                        )}
-                        {editingPersona?.has_audio
-                          ? t('personaConfig.updateAudio')
-                          : t('personaConfig.uploadAudio')}
-                      </Button>
-                    </div>
-                    <div className="flex items-center justify-center p-8 bg-muted/30 rounded-lg min-h-[200px]">
-                      {editingPersona?.has_audio ? (
-                        <div className="flex items-center gap-3 md:gap-4">
-                          <Button
-                            variant="outline"
-                            size="lg"
-                            className="gap-2"
-                            onClick={() => toggleAudioPlayback(editingPersona.name)}
-                          >
-                            {playingAudio === editingPersona.name ? (
-                              <>
-                                <Pause className="h-5 w-5" />
-                                {t('personaConfig.pauseAudio')}
-                              </>
-                            ) : (
-                              <>
-                                <Play className="h-5 w-5" />
-                                {t('personaConfig.playAudio')}
-                              </>
-                            )}
-                          </Button>
-                          {playingAudio === editingPersona.name && (
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                              {t('personaConfig.playing')}
-                            </div>
+                          }}
+                          disabled={isUploadingAudio || managedPersona}
+                        >
+                          {isUploadingAudio ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Upload className="h-4 w-4" />
                           )}
-                        </div>
-                      ) : (
-                        <div className="text-center">
-                          <Music className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                          <p className="text-muted-foreground">{t('personaConfig.noAudio')}</p>
-                        </div>
-                      )}
+                          {editingPersona.has_audio
+                            ? t('personaConfig.updateAudio')
+                            : t('personaConfig.uploadAudio')}
+                        </Button>
+                      </div>
+                      <div className="flex h-[220px] items-center justify-center rounded-lg border border-border/30 bg-foreground/[0.03] p-4 sm:h-[260px]">
+                        {editingPersona.has_audio ? (
+                          <PersonaAudioPlayer
+                            src={personaApi.getAudioUrl(editingPersona.name, resourceTimestamp)}
+                            playLabel={t('personaConfig.playAudio')}
+                            pauseLabel={t('personaConfig.pauseAudio')}
+                            playingLabel={t('personaConfig.playing')}
+                            loadFailedMessage={t('personaConfig.loadFailed')}
+                            formatHint={t('personaConfig.supportedAudioFormats')}
+                          />
+                        ) : (
+                          <div className="space-y-1.5 text-center">
+                            <Music className="mx-auto mb-3 h-12 w-12 text-muted-foreground/70" />
+                            <p className="text-sm text-muted-foreground">
+                              {t('personaConfig.noAudio')}
+                            </p>
+                            <p className="text-xs text-muted-foreground/70">
+                              {t('personaConfig.supportedAudioFormats')}
+                            </p>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </TabsContent>
               </div>
             </Tabs>
-            <SheetFooter className="shrink-0 flex-row items-center justify-between gap-3 space-x-0 border-t px-6 py-4">
-              <div className="text-xs tabular-nums text-muted-foreground">
-                {t('personaConfig.charCount', { count: [...editContent].length })}
-              </div>
-              <div className="flex items-center gap-2">
+            {/* 底部操作栏：仅自述文档显示字数统计 + 返回/保存（移动端自适应折行） */}
+            <div className="flex flex-col gap-3 border-t border-border/35 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-4">
+              {activeTab === 'markdown' && (
+                <div className="text-xs tabular-nums text-muted-foreground">
+                  {t('personaConfig.charCount', { count: [...editContent].length })}
+                </div>
+              )}
+              <div className="flex items-center gap-2 sm:ml-auto">
                 <Button
+                  type="button"
                   variant="outline"
-                  onClick={() => setEditDialogOpen(false)}
+                  onClick={closeInlineEditor}
                   disabled={isSaving}
+                  className="flex-1 sm:flex-none"
                 >
                   {t('common.cancel')}
                 </Button>
                 <Button
+                  type="button"
                   onClick={() => setSaveConfirmOpen(true)}
                   disabled={isSaving}
-                  className="button-solid gap-2"
+                  className="button-solid flex-1 gap-2 sm:flex-none"
                 >
                   {isSaving ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -3307,9 +3311,9 @@ export default function PersonaConfigPage() {
                   {t('personaConfig.savePersona')}
                 </Button>
               </div>
-            </SheetFooter>
-          </SheetContent>
-        </Sheet>
+            </div>
+          </Card>
+        )}
         {/* 图片预览对话框 */}
         <Dialog open={imagePreviewOpen} onOpenChange={setImagePreviewOpen}>
           <DialogContent className="sm:max-w-[800px] sm:max-h-[80vh]">

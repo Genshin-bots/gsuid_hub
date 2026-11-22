@@ -251,7 +251,7 @@ export function PersonaMemePackTab({
   return (
     <div className="space-y-4">
       {/* 表情回复总开关 */}
-      <div className="flex items-center justify-between gap-3 rounded-xl border p-4">
+      <div className="glass-card-flat flex items-center justify-between gap-3 rounded-xl p-4">
         <LabelWithHelp
           htmlFor="allow-meme-reply"
           icon={<Smile className="h-4 w-4" />}
@@ -270,7 +270,7 @@ export function PersonaMemePackTab({
 
       {/* 表情频率与冷却配置块（仅在允许回复时展示） */}
       {allowReply && (
-        <div className="space-y-4 rounded-xl border p-4 bg-muted/20">
+        <div className="glass-card-flat space-y-4 rounded-xl p-4">
           {/* 表情发送倾向 / 频率 */}
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-2">
@@ -283,7 +283,7 @@ export function PersonaMemePackTab({
               />
               <span className="shrink-0 text-xs font-semibold text-primary">{tierLabel}</span>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <Input
                 id="meme-frequency"
                 inputMode="numeric"
@@ -309,33 +309,36 @@ export function PersonaMemePackTab({
                   { val: 50, tag: '50 适中' },
                   { val: 75, tag: '75 活跃' },
                   { val: 100, tag: '100 必配' },
-                ].map(({ val, tag }) => (
-                  <button
-                    key={val}
-                    type="button"
-                    disabled={readOnly}
-                    onClick={() => void handleFreqChange(val)}
-                    className={cn(
-                      'h-9 rounded-md px-2.5 sm:px-3 text-xs transition-colors inline-flex items-center justify-center',
-                      (val === 0 && currentFreq === 0) ||
-                        (val === 10 && currentFreq > 0 && currentFreq < 20) ||
-                        (val === 25 && currentFreq >= 20 && currentFreq < 40) ||
-                        (val === 50 && currentFreq >= 40 && currentFreq < 65) ||
-                        (val === 75 && currentFreq >= 65 && currentFreq < 85) ||
-                        (val === 100 && currentFreq >= 85)
-                        ? 'bg-primary text-primary-foreground font-medium'
-                        : 'bg-muted text-muted-foreground hover:bg-accent hover:text-foreground',
-                    )}
-                  >
-                    {tag}
-                  </button>
-                ))}
+                ].map(({ val, tag }) => {
+                  const active =
+                    (val === 0 && currentFreq === 0) ||
+                    (val === 10 && currentFreq > 0 && currentFreq < 20) ||
+                    (val === 25 && currentFreq >= 20 && currentFreq < 40) ||
+                    (val === 50 && currentFreq >= 40 && currentFreq < 65) ||
+                    (val === 75 && currentFreq >= 65 && currentFreq < 85) ||
+                    (val === 100 && currentFreq >= 85);
+                  return (
+                    <button
+                      key={val}
+                      type="button"
+                      disabled={readOnly}
+                      data-active={active || undefined}
+                      onClick={() => void handleFreqChange(val)}
+                      className={cn(
+                        'ui-field-trigger inline-flex h-9 items-center justify-center rounded-md px-2.5 text-xs transition-colors sm:px-3 disabled:opacity-50',
+                        active ? 'font-medium text-primary' : 'text-muted-foreground',
+                      )}
+                    >
+                      {tag}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>
 
           {/* 表情发送冷却 */}
-          <div className="space-y-2 pt-3 border-t">
+          <div className="space-y-2 border-t border-border/35 pt-3">
             <div className="flex items-center justify-between gap-2">
               <LabelWithHelp
                 htmlFor="meme-cooldown"
@@ -348,7 +351,7 @@ export function PersonaMemePackTab({
                 {currentCd === 0 ? `自适应 (${derivedCd} 秒)` : `固定 ${currentCd} 秒`}
               </span>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <Input
                 id="meme-cooldown"
                 inputMode="numeric"
@@ -374,22 +377,24 @@ export function PersonaMemePackTab({
                   { val: 60, tag: '60秒' },
                   { val: 120, tag: '120秒' },
                   { val: 300, tag: '300秒' },
-                ].map(({ val, tag }) => (
-                  <button
-                    key={val}
-                    type="button"
-                    disabled={readOnly}
-                    onClick={() => void handleCooldownChange(val)}
-                    className={cn(
-                      'h-9 rounded-md px-2.5 sm:px-3 text-xs transition-colors inline-flex items-center justify-center',
-                      currentCd === val
-                        ? 'bg-primary text-primary-foreground font-medium'
-                        : 'bg-muted text-muted-foreground hover:bg-accent hover:text-foreground',
-                    )}
-                  >
-                    {tag}
-                  </button>
-                ))}
+                ].map(({ val, tag }) => {
+                  const active = currentCd === val;
+                  return (
+                    <button
+                      key={val}
+                      type="button"
+                      disabled={readOnly}
+                      data-active={active || undefined}
+                      onClick={() => void handleCooldownChange(val)}
+                      className={cn(
+                        'ui-field-trigger inline-flex h-9 items-center justify-center rounded-md px-2.5 text-xs transition-colors sm:px-3 disabled:opacity-50',
+                        active ? 'font-medium text-primary' : 'text-muted-foreground',
+                      )}
+                    >
+                      {tag}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -412,7 +417,7 @@ export function PersonaMemePackTab({
         <div className="grid gap-3 sm:grid-cols-2" aria-busy="true" aria-live="polite">
           <span className="sr-only">正在加载表情包</span>
           {Array.from({ length: 4 }, (_, index) => (
-            <div key={index} className="rounded-xl border p-3">
+            <div key={index} className="glass-card-flat rounded-xl p-3">
               <div className="mb-3 flex items-center gap-2">
                 <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                 <div className="h-4 w-24 animate-pulse rounded bg-muted" />
@@ -426,7 +431,7 @@ export function PersonaMemePackTab({
           ))}
         </div>
       ) : packs.length === 0 ? (
-        <p className="rounded-xl border border-dashed px-4 py-8 text-center text-sm text-muted-foreground">
+        <p className="glass-card-flat rounded-xl border-dashed px-4 py-8 text-center text-sm text-muted-foreground">
           还没有表情包。
         </p>
       ) : (
@@ -439,6 +444,7 @@ export function PersonaMemePackTab({
                 key={pack.pack_id}
                 role="button"
                 tabIndex={0}
+                data-active={on || undefined}
                 onClick={() => toggle(pack.pack_id)}
                 onKeyDown={(event) => {
                   if (event.key === 'Enter' || event.key === ' ') {
@@ -446,10 +452,7 @@ export function PersonaMemePackTab({
                     toggle(pack.pack_id);
                   }
                 }}
-                className={cn(
-                  'rounded-xl border p-3 text-left transition-colors',
-                  on ? 'border-primary bg-primary/5' : 'hover:bg-muted/50',
-                )}
+                className="ui-field-trigger rounded-xl p-3 text-left transition-colors"
               >
                 <div className="mb-3 flex items-center justify-between gap-2">
                   <div className="flex min-w-0 items-center gap-2">

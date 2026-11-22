@@ -269,10 +269,7 @@ export function PersonaJournalTab({ personaName }: PersonaJournalTabProps) {
         {items.map((raw) => {
           const parsed = parseBulletItem(raw);
           return (
-            <li
-              key={raw}
-              className="flex flex-col gap-1 rounded-md bg-muted/30 px-2.5 py-1.5 border border-border/40"
-            >
+            <li key={raw} className="glass-card-flat flex flex-col gap-1 rounded-md px-2.5 py-1.5">
               <span className="break-words">{parsed.text}</span>
               {parsed.archiveHandle && (
                 <span className="font-mono text-[10px] text-muted-foreground/80">
@@ -392,10 +389,10 @@ export function PersonaJournalTab({ personaName }: PersonaJournalTabProps) {
         </div>
       </div>
 
-      {/* 分片范围切换胶囊栏（高对比主色选中态，避免浅色玻璃主题下失去选中反馈） */}
+      {/* 分片范围切换胶囊栏（玻璃底，严格联动主题设置） */}
       {hasStructured && !rawEditing && (
         <div className="space-y-2">
-          <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-border/60 bg-muted/20 p-1.5">
+          <div className="glass-card-flat flex flex-wrap items-center gap-1.5 rounded-lg p-1.5">
             <Button
               variant={selectedScope === 'all' ? 'default' : 'ghost'}
               size="sm"
@@ -453,7 +450,7 @@ export function PersonaJournalTab({ personaName }: PersonaJournalTabProps) {
           </div>
 
           {selectedScope !== 'all' && (
-            <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/60 bg-muted/30 px-3 py-1.5 text-xs">
+            <div className="glass-card-flat flex flex-wrap items-center justify-between gap-2 rounded-lg px-3 py-1.5 text-xs">
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Button
                   variant="outline"
@@ -479,7 +476,7 @@ export function PersonaJournalTab({ personaName }: PersonaJournalTabProps) {
       )}
 
       {rawEditing ? (
-        <Card className="border border-border/80">
+        <Card className="glass-card-flat">
           <CardHeader className="py-3">
             <CardTitle className="text-sm font-medium">
               {t('personaConfig.journalMarkdownTitle')}
@@ -502,7 +499,7 @@ export function PersonaJournalTab({ personaName }: PersonaJournalTabProps) {
           {/* 多尺度记忆层卡片（持久 / 当月 / 昨日） */}
           {hasStructured ? (
             <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-              <Card className="border border-border/70 bg-card/60 shadow-xs">
+              <Card className="glass-card-flat">
                 <CardHeader className="pb-2 pt-3 px-3.5">
                   <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
                     <BookOpen className="h-3.5 w-3.5 text-primary" />
@@ -518,7 +515,7 @@ export function PersonaJournalTab({ personaName }: PersonaJournalTabProps) {
                 </CardContent>
               </Card>
 
-              <Card className="border border-border/70 bg-card/60 shadow-xs">
+              <Card className="glass-card-flat">
                 <CardHeader className="pb-2 pt-3 px-3.5">
                   <div className="flex items-center justify-between gap-2 text-xs font-semibold text-foreground">
                     <div className="flex items-center gap-2">
@@ -541,7 +538,7 @@ export function PersonaJournalTab({ personaName }: PersonaJournalTabProps) {
                 </CardContent>
               </Card>
 
-              <Card className="border border-border/70 bg-card/60 shadow-xs">
+              <Card className="glass-card-flat">
                 <CardHeader className="pb-2 pt-3 px-3.5">
                   <div className="flex items-center justify-between gap-2 text-xs font-semibold text-foreground">
                     <div className="flex items-center gap-2">
@@ -565,7 +562,7 @@ export function PersonaJournalTab({ personaName }: PersonaJournalTabProps) {
               </Card>
             </div>
           ) : (
-            <Card className="border border-border/70 bg-card/60 shadow-xs">
+            <Card className="glass-card-flat">
               <CardHeader className="pb-2 pt-3 px-4">
                 <div className="flex items-center gap-2 text-sm font-medium text-foreground">
                   <BookOpen className="h-4 w-4 text-primary" />
@@ -573,7 +570,7 @@ export function PersonaJournalTab({ personaName }: PersonaJournalTabProps) {
                 </div>
               </CardHeader>
               <CardContent className="px-4 pb-3 pt-0">
-                <div className="text-xs leading-relaxed text-muted-foreground whitespace-pre-wrap rounded-md bg-muted/30 p-2.5 border border-border/40">
+                <div className="glass-card-flat rounded-md p-2.5 text-xs leading-relaxed text-muted-foreground whitespace-pre-wrap">
                   {standingSummary || t('personaConfig.journalSlotEmpty')}
                 </div>
               </CardContent>
@@ -582,7 +579,7 @@ export function PersonaJournalTab({ personaName }: PersonaJournalTabProps) {
 
           {/* 全景模式下展示各驻群分片近况速览卡，点击可切入单群分片 */}
           {selectedScope === 'all' && groupShards.length > 0 && (
-            <Card className="border border-border/70 bg-card/40 shadow-xs">
+            <Card className="glass-card-flat">
               <CardHeader className="pb-2 pt-3 px-4">
                 <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
                   <Users className="h-3.5 w-3.5 text-primary" />
@@ -601,7 +598,7 @@ export function PersonaJournalTab({ personaName }: PersonaJournalTabProps) {
                       key={gs.group_id}
                       type="button"
                       onClick={() => setSelectedScope(gs.group_id)}
-                      className="flex flex-col gap-1 rounded-lg border border-border/50 bg-background/60 p-2.5 text-left transition-colors hover:bg-muted/40"
+                      className="ui-field-trigger flex flex-col gap-1 rounded-lg p-2.5 text-left transition-colors"
                     >
                       <div className="flex items-center justify-between gap-2">
                         <span className="font-mono text-xs font-medium text-foreground">
@@ -622,7 +619,7 @@ export function PersonaJournalTab({ personaName }: PersonaJournalTabProps) {
           )}
 
           {/* 今日行动流水 */}
-          <Card className="border border-border/70 shadow-xs">
+          <Card className="glass-card-flat">
             <CardHeader className="pb-2 pt-3 px-4">
               <div className="flex items-center gap-2 text-sm font-medium text-foreground">
                 <Clock className="h-4 w-4 text-primary" />
@@ -646,7 +643,7 @@ export function PersonaJournalTab({ personaName }: PersonaJournalTabProps) {
                       return (
                         <div key={stableKey} className="relative group text-xs">
                           <div className="absolute -left-[19px] top-1.5 h-2 w-2 rounded-full border-2 border-background bg-primary" />
-                          <div className="rounded-lg border border-border/50 bg-background/60 p-2.5 transition-colors hover:bg-muted/40 space-y-1">
+                          <div className="glass-card-flat rounded-lg p-2.5 space-y-1">
                             <div className="flex flex-wrap items-center gap-1.5">
                               {entry.time && (
                                 <span className="font-mono text-[11px] font-medium text-muted-foreground">
