@@ -1,4 +1,13 @@
-import { useState, useEffect, useCallback, useMemo, useRef, type ReactNode } from 'react';
+import {
+  useState,
+  useEffect,
+  useCallback,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  type ReactNode,
+} from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -71,14 +80,16 @@ import {
   AlertCircle,
   MessageSquare,
   MessageCircle,
+  MessageSquarePlus,
+  MessageSquareText,
   MessagesSquare,
   Clock,
   Compass,
-  Gauge,
+  Workflow,
+  Wrench,
   X,
   Layers,
   ScrollText,
-  AlignLeft,
   Smile,
   Store,
   Lock,
@@ -110,12 +121,13 @@ import {
   type AutonomyCareZone,
   type CuriosityFocus,
   type PluginConfigItem,
+  type PersonaConfigUpdateRequest,
   type PersonaToolCatalog,
   type SpeechShapeSpec,
 } from '@/lib/api';
 import { FALLBACK_SPEECH_SHAPE, SPEECH_SOFT_MAX, SPEECH_SOFT_MIN } from '@/lib/speechShape';
 import { toast } from 'sonner';
-import { pageGapClass, PinnedPage } from '@/components/layout/PinnedPage';
+import { pageGapClass, pageStackClass, PinnedPage } from '@/components/layout/PinnedPage';
 import { GlassAlert } from '@/components/ui/glass-alert';
 import {
   TabButtonGroup,
@@ -489,7 +501,7 @@ function SpeechSliderField({
         icon={icon}
         label={label}
         description={description}
-        className={cn('text-base font-medium', disabled && 'opacity-50')}
+        className="text-sm font-medium"
       />
       <div className="flex items-center gap-3">
         <Slider
@@ -541,7 +553,7 @@ function ProbabilityField({
   }, [value]);
   return (
     <div className={cn('space-y-2', disabled && 'opacity-50')}>
-      <Label htmlFor={id} className="text-sm">
+      <Label htmlFor={id} className="text-sm font-medium">
         {label}
       </Label>
       <div className="flex items-center gap-3">
@@ -595,10 +607,9 @@ function SpeechFields({
 }) {
   const { t } = useLanguage();
   return (
-    <div className="grid grid-cols-2 gap-3 md:gap-4">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:gap-4">
       <SpeechSliderField
         id="persona-chat-style"
-        icon={<MessagesSquare className="h-4 w-4" />}
         label={t('personaConfig.chatStyle')}
         description={t('personaConfig.chatStyleHint')}
         raw={chatStyleText}
@@ -609,7 +620,6 @@ function SpeechFields({
       />
       <SpeechSliderField
         id="persona-speech-soft"
-        icon={<AlignLeft className="h-4 w-4" />}
         label={t('personaConfig.speechSoft')}
         description={t('personaConfig.speechSoftHint', { count: shape.soft_default })}
         raw={speechSoftText}
@@ -619,6 +629,52 @@ function SpeechFields({
         onChange={onSpeechSoftText}
       />
     </div>
+  );
+}
+
+/** 配置 Tab 的分区卡片：图标 + 节标题，内容区可用 locked 整块冻结。 */
+function ConfigSection({
+  icon,
+  title,
+  description,
+  locked,
+  children,
+}: {
+  icon: ReactNode;
+  title: string;
+  description?: string;
+  locked?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <section className="glass-card p-4 sm:p-5">
+      <header className="mb-3 flex items-center gap-2.5 sm:mb-4">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary [&_svg]:h-4 [&_svg]:w-4">
+          {icon}
+        </span>
+        {description ? (
+          <LabelWithHelp
+            label={title}
+            description={description}
+            className="text-sm font-semibold"
+          />
+        ) : (
+          <h3 className="text-sm font-semibold leading-none">{title}</h3>
+        )}
+      </header>
+      {/* git 市场人格的行为配置由仓库拥有：锁只加在内容区，卡片表面保持可读。
+          inert 同时禁指针/键盘/读屏且没有 fieldset 的布局怪癖；
+          React 18 不认布尔 inert，须传空串才落到 DOM */}
+      <div
+        {...(locked ? ({ inert: '' } as object) : {})}
+        className={cn(
+          'flex flex-col gap-5',
+          locked && 'pointer-events-none select-none opacity-60',
+        )}
+      >
+        {children}
+      </div>
+    </section>
   );
 }
 
@@ -1325,6 +1381,143 @@ export default function PersonaConfigPage() {
     }
   };
   // 保存编辑
+  // 提交体与脏检测共用同一份 payload：改这里即同时改保存与「未保存」判断的口径
+  const configPayload = useMemo<PersonaConfigUpdateRequest>(() => {
+    // git 市场人格由仓库拥有行为配置，后端只放行通道范围与目标列表，其余键一并提交会被拒
+    if (managedPersona) {
+      return {
+        group_scope: editingGroupScope,
+        private_scope: editingPrivateScope,
+        target_groups: editingGroups,
+        target_users: editingUsers,
+      };
+    }
+    return {
+      ai_mode: knownAIModes(editingAIModes),
+      group_scope: editingGroupScope,
+      private_scope: editingPrivateScope,
+      target_groups: editingGroups,
+      target_users: editingUsers,
+      inspect_interval: editingInspectInterval,
+      keywords: editingKeywords,
+      aside_image_probability: asideImage,
+      aside_text_probability: asideText,
+      aside_mixed_probability: asideMixed,
+      aside_allow_tools: asideAllowTools,
+      active_hours: activeHours,
+      timezone: timezone.trim(),
+      autonomy_interval_minutes: boundedInt(
+        String(autonomyInterval),
+        15,
+        720,
+        AUTONOMY_INTERVAL_DEFAULT,
+      ),
+      autonomy_care_min_zone: careMinZone,
+      social_initiative: boundInt(driveInitiativeText, 0, 100, DRIVE_TRAIT_DEFAULT),
+      energy_endurance: boundInt(driveEnduranceText, 0, 100, DRIVE_TRAIT_DEFAULT),
+      curiosity_focus: curiosityFocus,
+      arc_persistence: arcPersistence,
+      allow_meme_reply: allowMemeReply,
+      meme_frequency: memeFrequency,
+      meme_send_cooldown_sec: memeSendCooldownSec,
+      ...(toolCatalog && toolCatalog.plugins.length > 0
+        ? {
+            enabled_tools: enabledPluginsToSpec(
+              editingEnabledPlugins,
+              toolCatalog.plugins.map((p) => p.name),
+            ),
+          }
+        : {}),
+      tool_names: editingToolNames,
+      prompt_group: editingPromptGroup,
+      chat_style: boundInt(
+        chatStyleText,
+        speechShape.chat_style_min,
+        speechShape.chat_style_max,
+        50,
+      ),
+      speech_len_soft: boundInt(
+        speechSoftText,
+        SPEECH_SOFT_MIN,
+        SPEECH_SOFT_MAX,
+        speechShape.soft_default,
+      ),
+      ...(delegableAgents.length > 0
+        ? {
+            capability_agents: enabledIdsToSpec(
+              editingEnabledAgents,
+              delegableAgents.map((a) => a.node_id),
+            ),
+          }
+        : {}),
+    };
+  }, [
+    managedPersona,
+    editingGroupScope,
+    editingPrivateScope,
+    editingGroups,
+    editingUsers,
+    editingAIModes,
+    editingInspectInterval,
+    editingKeywords,
+    asideImage,
+    asideText,
+    asideMixed,
+    asideAllowTools,
+    activeHours,
+    timezone,
+    autonomyInterval,
+    careMinZone,
+    driveInitiativeText,
+    driveEnduranceText,
+    curiosityFocus,
+    arcPersistence,
+    allowMemeReply,
+    memeFrequency,
+    memeSendCooldownSec,
+    toolCatalog,
+    editingEnabledPlugins,
+    editingToolNames,
+    editingPromptGroup,
+    chatStyleText,
+    speechSoftText,
+    speechShape,
+    delegableAgents,
+    editingEnabledAgents,
+  ]);
+  const editSignature = editingPersona
+    ? JSON.stringify({ config: configPayload, content: editContent })
+    : null;
+  const settingsSignature = settingsLoaded
+    ? JSON.stringify(settingsToPayload(editingSettings))
+    : null;
+  const [dirtyBaseline, setDirtyBaseline] = useState<{
+    edit: string | null;
+    settings: string | null;
+  }>({ edit: null, settings: null });
+  const editSignatureRef = useRef<string | null>(null);
+  const settingsSignatureRef = useRef<string | null>(null);
+  useLayoutEffect(() => {
+    editSignatureRef.current = editSignature;
+    settingsSignatureRef.current = settingsSignature;
+  });
+  // 工具目录 / 能力代理晚到时重取基线，避免惰性加载把签名差异误报成脏
+  useEffect(() => {
+    setDirtyBaseline((prev) =>
+      prev.edit === editSignatureRef.current ? prev : { ...prev, edit: editSignatureRef.current },
+    );
+  }, [editingPersonaName, toolCatalog, delegableAgents]);
+  useEffect(() => {
+    setDirtyBaseline((prev) =>
+      prev.settings === settingsSignatureRef.current
+        ? prev
+        : { ...prev, settings: settingsSignatureRef.current },
+    );
+  }, [editingPersonaName, settingsLoaded]);
+  const isDirty =
+    editingPersona !== null &&
+    ((dirtyBaseline.edit !== null && editSignature !== dirtyBaseline.edit) ||
+      (dirtyBaseline.settings !== null && settingsSignature !== dirtyBaseline.settings));
   const handleSaveEdit = async () => {
     if (!editingPersona) return;
     try {
@@ -1335,78 +1528,10 @@ export default function PersonaConfigPage() {
       });
       const takeoverConflicts = hasChannelConflicts(saveConflicts);
       // 保存 AI 模式和启用范围配置（冲突抢占交由后端在其余字段全部校验通过后原子执行）。
-      // git 市场人格由仓库拥有行为配置，后端只放行通道范围与目标列表，
-      // 其余键一并提交会被拒，这里就只发启用范围字段。
-      if (managedPersona) {
-        await personaApi.updatePersonaConfig(editingPersona.name, {
-          group_scope: editingGroupScope,
-          private_scope: editingPrivateScope,
-          target_groups: editingGroups,
-          target_users: editingUsers,
-          ...(takeoverConflicts ? { takeover_conflicts: true } : {}),
-        });
-      } else {
-        await personaApi.updatePersonaConfig(editingPersona.name, {
-          ai_mode: knownAIModes(editingAIModes),
-          group_scope: editingGroupScope,
-          private_scope: editingPrivateScope,
-          target_groups: editingGroups,
-          target_users: editingUsers,
-          ...(takeoverConflicts ? { takeover_conflicts: true } : {}),
-          inspect_interval: editingInspectInterval,
-          keywords: editingKeywords,
-          aside_image_probability: asideImage,
-          aside_text_probability: asideText,
-          aside_mixed_probability: asideMixed,
-          aside_allow_tools: asideAllowTools,
-          active_hours: activeHours,
-          timezone: timezone.trim(),
-          autonomy_interval_minutes: boundedInt(
-            String(autonomyInterval),
-            15,
-            720,
-            AUTONOMY_INTERVAL_DEFAULT,
-          ),
-          autonomy_care_min_zone: careMinZone,
-          social_initiative: boundInt(driveInitiativeText, 0, 100, DRIVE_TRAIT_DEFAULT),
-          energy_endurance: boundInt(driveEnduranceText, 0, 100, DRIVE_TRAIT_DEFAULT),
-          curiosity_focus: curiosityFocus,
-          arc_persistence: arcPersistence,
-          allow_meme_reply: allowMemeReply,
-          meme_frequency: memeFrequency,
-          meme_send_cooldown_sec: memeSendCooldownSec,
-          ...(toolCatalog && toolCatalog.plugins.length > 0
-            ? {
-                enabled_tools: enabledPluginsToSpec(
-                  editingEnabledPlugins,
-                  toolCatalog.plugins.map((p) => p.name),
-                ),
-              }
-            : {}),
-          tool_names: editingToolNames,
-          prompt_group: editingPromptGroup,
-          chat_style: boundInt(
-            chatStyleText,
-            speechShape.chat_style_min,
-            speechShape.chat_style_max,
-            50,
-          ),
-          speech_len_soft: boundInt(
-            speechSoftText,
-            SPEECH_SOFT_MIN,
-            SPEECH_SOFT_MAX,
-            speechShape.soft_default,
-          ),
-          ...(delegableAgents.length > 0
-            ? {
-                capability_agents: enabledIdsToSpec(
-                  editingEnabledAgents,
-                  delegableAgents.map((a) => a.node_id),
-                ),
-              }
-            : {}),
-        });
-      }
+      await personaApi.updatePersonaConfig(editingPersona.name, {
+        ...configPayload,
+        ...(takeoverConflicts ? { takeover_conflicts: true } : {}),
+      });
       // 保存 Markdown 内容（仅在内容发生变化时）
       if (!builtinPersona && !managedPersona && editContent !== editingPersona.content) {
         await personaApi.updatePersonaContent(editingPersona.name, editContent);
@@ -1629,61 +1754,41 @@ export default function PersonaConfigPage() {
                     )}
                 </div>
               </div>
-              {/* Heartbeat 运行态 */}
-              {hb && (
-                <div className="flex flex-wrap items-center gap-1 mt-1.5">
-                  <Badge variant={hb.enabled ? 'default' : 'secondary'} className={CARD_BADGE}>
+              {/* 状态行：巡检状态合并为单枚圆点徽章，间隔交给「定时巡检」模式按钮展示 */}
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1">
+                {hb && (
+                  <Badge
+                    variant="outline"
+                    className={cn(CARD_BADGE, 'gap-1')}
+                    title={
+                      hb.job_registered
+                        ? t('personaConfig.jobRegistered')
+                        : t('personaConfig.jobMissing')
+                    }
+                  >
+                    <span
+                      className={cn(
+                        'h-1.5 w-1.5 shrink-0 rounded-full',
+                        !hb.enabled
+                          ? 'bg-muted-foreground/50'
+                          : hb.job_registered
+                            ? 'bg-emerald-500'
+                            : 'bg-amber-500',
+                      )}
+                    />
                     {hb.enabled
-                      ? t('personaConfig.heartbeatEnabled')
+                      ? hb.job_registered
+                        ? t('personaConfig.heartbeatEnabled')
+                        : `${t('personaConfig.heartbeatEnabled')} · ${t('personaConfig.jobMissing')}`
                       : t('personaConfig.heartbeatDisabled')}
                   </Badge>
-                  <Badge
-                    variant={hb.job_registered ? 'default' : 'outline'}
-                    className={cn(
-                      CARD_BADGE,
-                      hb.job_registered
-                        ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20'
-                        : '',
-                    )}
-                  >
-                    {hb.job_registered
-                      ? t('personaConfig.jobRegistered')
-                      : t('personaConfig.jobMissing')}
-                  </Badge>
-                  {hb.inspect_interval != null && (
-                    <Badge variant="outline" className={CARD_BADGE}>
-                      {t('personaConfig.inspectInterval')}: {hb.inspect_interval}
-                      {t('personaConfig.minutesUnit')}
-                    </Badge>
-                  )}
-                </div>
-              )}
-              {/* 状态标签行 - 胶囊样式 */}
-              <div className="flex items-center gap-2 mt-1.5">
-                <Badge className={cn(CARD_BADGE, getChannelBadgeStyle(channelScopes))}>
-                  {getChannelBadgeLabel(
-                    channelScopes,
-                    persona.groups.length,
-                    persona.users.length,
-                    t,
-                  )}
-                </Badge>
-                {aiModes.length > 0 && (
-                  <Badge
-                    className={cn(
-                      CARD_BADGE,
-                      'bg-primary/15 text-primary border border-primary/30',
-                    )}
-                  >
-                    {aiModes.length} {t('personaConfig.modesEnabled')}
-                  </Badge>
                 )}
+                <span className="text-xs text-muted-foreground truncate min-w-0">
+                  {t('personaConfig.personaPromptGroupLine', {
+                    name: persona.config?.prompt_group?.trim() || DEFAULT_PROMPT_GROUP,
+                  })}
+                </span>
               </div>
-              <p className="mt-1 truncate text-xs text-muted-foreground">
-                {t('personaConfig.personaPromptGroupLine', {
-                  name: persona.config?.prompt_group?.trim() || DEFAULT_PROMPT_GROUP,
-                })}
-              </p>
             </div>
           </div>
           {/* === 区域2: 内容预览 === */}
@@ -1728,13 +1833,13 @@ export default function PersonaConfigPage() {
                   onClick={(e) => onClick(e, persona)}
                   className={cn(
                     // 命名 group/pill：卡片根元素自带无别名 group，无别名的 group-hover 会被卡片 hover 一并触发
-                    'group/pill flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-medium transition-all',
+                    'group/pill flex items-center gap-1.5 px-3 h-6 rounded-full text-[11px] font-medium transition-all',
                     has
                       ? activeColor === 'green'
-                        ? 'bg-green-500/15 text-green-600 border border-green-500/30 hover:bg-green-500/25'
+                        ? 'bg-green-500/15 text-green-600 dark:text-green-400 border border-green-500/30 hover:bg-green-500/25'
                         : activeColor === 'blue'
-                          ? 'bg-blue-500/15 text-blue-600 border border-blue-500/30 hover:bg-blue-500/25'
-                          : 'bg-purple-500/15 text-purple-600 border border-purple-500/30 hover:bg-purple-500/25'
+                          ? 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30 hover:bg-blue-500/25'
+                          : 'bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30 hover:bg-purple-500/25'
                       : 'bg-muted/30 text-muted-foreground border border-border/30 hover:bg-muted/50',
                   )}
                   title={hoverLabel}
@@ -1768,148 +1873,153 @@ export default function PersonaConfigPage() {
               );
             })}
           </div>
-          {/* === 区域4: 双通道启用范围选择（群聊 / 私聊独立 3 档） === */}
+          {/* === 区域4: 启用范围与 AI 行动模式（同一设置块，统一分割线与节标题） === */}
           <div
-            className="pt-3 border-t border-primary/10 space-y-2"
+            className="pt-3 border-t border-primary/10 flex flex-col gap-3"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center gap-1">
-              <Globe className="w-3 h-3 text-primary/60" />
-              <Label className="text-[10px] text-muted-foreground leading-none">
-                {t('personaConfig.enableScope')}
-              </Label>
+            {/* 双通道启用范围（群聊 / 私聊独立 3 档分段控件） */}
+            <div>
+              <div className="flex items-center gap-1.5 mb-2">
+                <Globe className="w-3.5 h-3.5 text-primary/60" />
+                <Label className="text-[11px] font-medium text-muted-foreground leading-none">
+                  {t('personaConfig.enableScope')}
+                </Label>
+              </div>
+              <div className="flex flex-col gap-2">
+                {(
+                  [
+                    {
+                      channel: 'group' as const,
+                      label: t('personaConfig.channelGroup'),
+                      icon: <MessagesSquare className="h-3 w-3 shrink-0 text-primary/70" />,
+                      value: channelScopes.group_scope,
+                    },
+                    {
+                      channel: 'private' as const,
+                      label: t('personaConfig.channelPrivate'),
+                      icon: <MessageCircle className="h-3 w-3 shrink-0 text-primary/70" />,
+                      value: channelScopes.private_scope,
+                    },
+                  ] as const
+                ).map((row) => (
+                  <div
+                    key={row.channel}
+                    className="grid grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-2"
+                  >
+                    <span className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground truncate">
+                      {row.icon}
+                      <span className="truncate">{row.label}</span>
+                    </span>
+                    <div className="grid grid-cols-3 gap-0.5 rounded-lg border border-border/40 bg-muted/20 p-0.5">
+                      {CHANNEL_SCOPE_OPTIONS.map((option) => (
+                        <button
+                          key={option.value}
+                          type="button"
+                          onClick={() =>
+                            handleChannelScopeChange(persona.name, row.channel, option.value)
+                          }
+                          disabled={isSavingConfig}
+                          className={cn(
+                            'h-6 rounded-md text-[11px] flex items-center justify-center gap-1 min-w-0 transition-all',
+                            row.value === option.value
+                              ? 'bg-primary/15 text-primary shadow-sm'
+                              : 'text-muted-foreground hover:bg-muted/40',
+                          )}
+                        >
+                          <span className="flex h-3 w-3 shrink-0 items-center justify-center [&_svg]:h-3 [&_svg]:w-3">
+                            {option.icon}
+                          </span>
+                          <span className="min-w-0 truncate">{t(option.labelKey)}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-            {(
-              [
-                {
-                  channel: 'group' as const,
-                  label: t('personaConfig.channelGroup'),
-                  icon: <MessagesSquare className="h-3 w-3 shrink-0 text-primary/70" />,
-                  value: channelScopes.group_scope,
-                },
-                {
-                  channel: 'private' as const,
-                  label: t('personaConfig.channelPrivate'),
-                  icon: <MessageCircle className="h-3 w-3 shrink-0 text-primary/70" />,
-                  value: channelScopes.private_scope,
-                },
-              ] as const
-            ).map((row) => (
-              <div
-                key={row.channel}
-                className="grid grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-1.5"
-              >
-                <span className="flex items-center gap-1 text-[10px] font-medium text-muted-foreground truncate">
-                  {row.icon}
-                  <span className="truncate">{row.label}</span>
-                </span>
-                <div className="grid grid-cols-3 gap-1">
-                  {CHANNEL_SCOPE_OPTIONS.map((option) => (
+            {/* AI 行动模式 */}
+            <div>
+              <div className="flex items-center gap-1.5 mb-2">
+                <Settings className="w-3.5 h-3.5 text-primary/60" />
+                <Label className="text-[11px] font-medium text-muted-foreground leading-none">
+                  {t('personaConfig.aiModes')}
+                </Label>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {AI_MODE_OPTIONS.map((mode) => {
+                  const isSelected = aiModes.includes(mode.value);
+                  return (
                     <button
-                      key={option.value}
+                      key={mode.value}
                       type="button"
-                      onClick={() =>
-                        handleChannelScopeChange(persona.name, row.channel, option.value)
+                      disabled={persona.managed === true}
+                      title={
+                        persona.managed === true ? t('personaConfig.managedConfigHint') : undefined
                       }
-                      disabled={isSavingConfig}
+                      onClick={() => {
+                        const newModes = isSelected
+                          ? aiModes.filter((m) => m !== mode.value)
+                          : [...aiModes, mode.value];
+                        handleAIModesChange(persona.name, newModes as AIMode[]);
+                      }}
                       className={cn(
-                        'flex min-w-0 items-center justify-center gap-1 px-1 py-1.5 rounded-full text-[10px] font-medium leading-tight transition-all border',
-                        row.value === option.value
+                        'relative flex items-center gap-1.5 px-2.5 h-8 rounded-lg text-[11px] font-sans font-medium text-left transition-all border',
+                        'disabled:cursor-not-allowed disabled:opacity-60',
+                        isSelected
                           ? 'bg-primary/15 text-primary border-primary/40 shadow-sm'
                           : 'bg-transparent text-muted-foreground border-border/30 hover:bg-muted/30 hover:border-border/50',
                       )}
                     >
-                      <span className="flex h-3 w-3 shrink-0 items-center justify-center [&_svg]:h-3 [&_svg]:w-3">
-                        {option.icon}
+                      <span className="w-3.5 h-3.5 flex items-center justify-center shrink-0">
+                        {mode.icon}
                       </span>
-                      <span className="min-w-0 truncate">{t(option.labelKey)}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-          {/* === 区域5: AI 模式选择（胶囊按钮） === */}
-          <div onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center gap-1 mb-2">
-              <Settings className="w-3 h-3 text-primary/60" />
-              <Label className="text-[10px] text-muted-foreground leading-none">
-                {t('personaConfig.aiModes')}
-              </Label>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              {AI_MODE_OPTIONS.map((mode) => {
-                const isSelected = aiModes.includes(mode.value);
-                return (
-                  <button
-                    key={mode.value}
-                    type="button"
-                    disabled={persona.managed === true}
-                    title={
-                      persona.managed === true ? t('personaConfig.managedConfigHint') : undefined
-                    }
-                    onClick={() => {
-                      const newModes = isSelected
-                        ? aiModes.filter((m) => m !== mode.value)
-                        : [...aiModes, mode.value];
-                      handleAIModesChange(persona.name, newModes as AIMode[]);
-                    }}
-                    className={cn(
-                      'relative flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-sans font-medium text-left transition-all border',
-                      'disabled:cursor-not-allowed disabled:opacity-60',
-                      isSelected
-                        ? 'bg-primary/15 text-primary border-primary/40 shadow-sm'
-                        : 'bg-transparent text-muted-foreground border-border/30 hover:bg-muted/30 hover:border-border/50',
-                    )}
-                  >
-                    <span className="w-3.5 h-3.5 flex items-center justify-center shrink-0">
-                      {mode.icon}
-                    </span>
-                    <span className="flex-1 text-left">{mode.label}</span>
-                    {mode.value === '定时巡检' && isSelected && inspectInterval && (
-                      <span className="shrink-0 text-[10px] font-medium text-primary/70">
-                        {inspectInterval}
-                        {t('personaConfig.minutesUnit')}
-                      </span>
-                    )}
-                    {mode.value === '命令补充' && isSelected && (
-                      <span
-                        title={t('personaConfig.asideBadgeHint')}
-                        className="shrink-0 text-[10px] font-medium text-primary/70"
-                      >
-                        {asideBadge(
-                          persona.config,
-                          persona.config?.aside_allow_tools
-                            ? t('personaConfig.asideToolsShort')
-                            : '',
-                        )}
-                      </span>
-                    )}
-                    {mode.value === '自主行动' && isSelected && (
-                      <span className="shrink-0 text-[10px] font-medium text-primary/70">
-                        {persona.config?.autonomy_interval_minutes ?? AUTONOMY_INTERVAL_DEFAULT}
-                        {t('personaConfig.minutesUnit')}
-                      </span>
-                    )}
-                    {mode.value === '提及应答' &&
-                      isSelected &&
-                      (persona.config?.keywords?.length ?? 0) > 0 && (
-                        <span className="shrink-0 text-[10px] font-medium text-primary/70">
-                          {persona.config?.keywords?.length}
-                          {t('personaConfig.keywordsCountSuffix')}
+                      <span className="flex-1 min-w-0 truncate text-left">{mode.label}</span>
+                      {mode.value === '定时巡检' && isSelected && inspectInterval && (
+                        <span className="shrink-0 text-[11px] font-medium text-primary/70">
+                          {inspectInterval}
+                          {t('personaConfig.minutesUnit')}
                         </span>
                       )}
-                  </button>
-                );
-              })}
+                      {mode.value === '命令补充' && isSelected && (
+                        <span
+                          title={t('personaConfig.asideBadgeHint')}
+                          className="shrink-0 text-[11px] font-medium text-primary/70"
+                        >
+                          {asideBadge(
+                            persona.config,
+                            persona.config?.aside_allow_tools
+                              ? t('personaConfig.asideToolsShort')
+                              : '',
+                          )}
+                        </span>
+                      )}
+                      {mode.value === '自主行动' && isSelected && (
+                        <span className="shrink-0 text-[11px] font-medium text-primary/70">
+                          {persona.config?.autonomy_interval_minutes ?? AUTONOMY_INTERVAL_DEFAULT}
+                          {t('personaConfig.minutesUnit')}
+                        </span>
+                      )}
+                      {mode.value === '提及应答' &&
+                        isSelected &&
+                        (persona.config?.keywords?.length ?? 0) > 0 && (
+                          <span className="shrink-0 text-[11px] font-medium text-primary/70">
+                            {persona.config?.keywords?.length}
+                            {t('personaConfig.keywordsCountSuffix')}
+                          </span>
+                        )}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
-          {/* === 区域6: 关联群聊 / 私聊用户（按通道独立展示） === */}
+          {/* === 区域5: 关联群聊 / 私聊用户（按通道独立展示） === */}
           {channelScopes.group_scope === 'specific' && (
             <div className="pt-3 border-t border-primary/10" onClick={(e) => e.stopPropagation()}>
-              <div className="flex items-center gap-1 mb-2">
-                <Users className="w-3 h-3 text-primary/60" />
-                <Label className="text-[10px] text-muted-foreground leading-none">
+              <div className="flex items-center gap-1.5 mb-2">
+                <Users className="w-3.5 h-3.5 text-primary/60" />
+                <Label className="text-[11px] font-medium text-muted-foreground leading-none">
                   {t('personaConfig.enabledGroups')}
                 </Label>
               </div>
@@ -1922,9 +2032,9 @@ export default function PersonaConfigPage() {
           )}
           {channelScopes.private_scope === 'specific' && (
             <div className="pt-3 border-t border-primary/10" onClick={(e) => e.stopPropagation()}>
-              <div className="flex items-center gap-1 mb-2">
-                <MessageCircle className="w-3 h-3 text-primary/60" />
-                <Label className="text-[10px] text-muted-foreground leading-none">
+              <div className="flex items-center gap-1.5 mb-2">
+                <MessageCircle className="w-3.5 h-3.5 text-primary/60" />
+                <Label className="text-[11px] font-medium text-muted-foreground leading-none">
                   {t('personaConfig.enabledUsers')}
                 </Label>
               </div>
@@ -2331,11 +2441,16 @@ export default function PersonaConfigPage() {
             )}
           </div>
         ) : (
-          /* 内联人格编辑面板：不加 overflow-hidden，保证光感/液态玻璃高光边完整联动主题 */
-          <Card ref={inlineEditorRef} className="glass-card min-w-0">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="flex min-w-0 flex-col">
-              {/* 顶栏合行：左（返回 + 人格信息）｜中（8 个子页签，宽屏同行省高度，窄屏自动折行横滑）｜右（取消 / 保存） */}
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-2.5 border-b border-border/35 px-4 py-3 sm:px-6">
+          /* 内联人格编辑面板：顶栏/底栏与各 Tab 自带玻璃面，外层只排版；
+             不加 overflow-hidden，避免切到子玻璃卡的光感/液态高光边 */
+          <div ref={inlineEditorRef} className={cn('shadow-safe min-w-0', pageStackClass)}>
+            <Tabs
+              value={activeTab}
+              onValueChange={setActiveTab}
+              className={cn('min-w-0', pageStackClass)}
+            >
+              {/* 顶栏合行：左（返回 + 人格信息）｜右（8 个子页签，宽屏同行省高度，窄屏自动折行横滑） */}
+              <div className="glass-card flex flex-wrap items-center gap-x-3 gap-y-2.5 px-3 py-2.5 sm:px-4 sm:py-3">
                 <div className="order-1 flex min-w-0 shrink-0 items-center gap-2 sm:gap-2.5">
                   <Button
                     type="button"
@@ -2344,9 +2459,10 @@ export default function PersonaConfigPage() {
                     onClick={closeInlineEditor}
                     disabled={isSaving}
                     className="h-9 shrink-0 gap-1.5"
+                    title={t('personaConfig.backToList')}
                   >
                     <ArrowLeft className="h-4 w-4" />
-                    <span>{t('personaConfig.backToList')}</span>
+                    <span className="hidden sm:inline">{t('personaConfig.backToList')}</span>
                   </Button>
                   <div className="flex min-w-0 items-center gap-2">
                     <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-primary/30 bg-primary/10">
@@ -2361,12 +2477,13 @@ export default function PersonaConfigPage() {
                       )}
                     </div>
                     <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-                      <h2 className="max-w-[10rem] truncate text-base font-semibold sm:max-w-[14rem]">
+                      <h2 className="max-w-[8rem] truncate text-base font-semibold sm:max-w-[14rem]">
                         {editingPersona.name}
                       </h2>
                       <Badge
                         className={cn(
                           CARD_BADGE,
+                          'hidden sm:inline-flex',
                           getChannelBadgeStyle({
                             group_scope: editingGroupScope,
                             private_scope: editingPrivateScope,
@@ -2435,34 +2552,8 @@ export default function PersonaConfigPage() {
                     />
                   </div>
                 </div>
-                <div className="order-2 ml-auto flex shrink-0 items-center gap-2 xl:order-3 xl:ml-0">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={closeInlineEditor}
-                    disabled={isSaving}
-                    className="h-9"
-                  >
-                    {t('common.cancel')}
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={() => setSaveConfirmOpen(true)}
-                    disabled={isSaving}
-                    className="button-solid h-9 gap-1.5"
-                  >
-                    {isSaving ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Check className="h-4 w-4" />
-                    )}
-                    {t('personaConfig.savePersona')}
-                  </Button>
-                </div>
               </div>
-              <div className="min-w-0 p-4 sm:p-6">
+              <div className="min-w-0">
                 <TabsContent value="meme_packs" className="mt-0 hidden data-[state=active]:block">
                   <PersonaMemePackTab
                     personaName={editingPersona.name}
@@ -2483,11 +2574,7 @@ export default function PersonaConfigPage() {
                   value="markdown"
                   className="mt-0 hidden flex-col data-[state=active]:flex"
                 >
-                  <div className="flex flex-col gap-3">
-                    <Label className="flex shrink-0 items-center gap-2">
-                      <Brain className="h-4 w-4" />
-                      {t('personaConfig.personaContent')}
-                    </Label>
+                  <div className={pageStackClass}>
                     {builtinPersona && (
                       <GlassAlert tone="warning" className="shrink-0">
                         {t('personaConfig.builtinPersonaWarning')}
@@ -2498,35 +2585,34 @@ export default function PersonaConfigPage() {
                         {t('personaConfig.managedPersonaWarning')}
                       </GlassAlert>
                     )}
-                    <Textarea
-                      value={editContent}
-                      onChange={(e) => setEditContent(e.target.value)}
-                      readOnly={builtinPersona || managedPersona}
-                      className="min-h-[360px] h-[54vh] sm:min-h-[460px] md:h-[calc(100vh-330px)] max-h-[800px] resize-y font-mono text-sm leading-relaxed"
-                      placeholder={t('personaConfig.personaQueryPlaceholder')}
-                    />
+                    <div className="relative">
+                      <Textarea
+                        value={editContent}
+                        onChange={(e) => setEditContent(e.target.value)}
+                        readOnly={builtinPersona || managedPersona}
+                        className="min-h-[360px] h-[54vh] sm:min-h-[460px] md:h-[calc(100vh-330px)] max-h-[800px] resize-y pb-7 font-mono text-sm leading-relaxed"
+                        placeholder={t('personaConfig.personaQueryPlaceholder')}
+                      />
+                      <span className="pointer-events-none absolute bottom-2 right-3 text-xs tabular-nums text-muted-foreground">
+                        {t('personaConfig.charCount', { count: [...editContent].length })}
+                      </span>
+                    </div>
                   </div>
                 </TabsContent>
-                {/* 配置 Tab */}
+                {/* 配置 Tab：按主题分区卡片，卡片间距走全局 --page-row-gap */}
                 <TabsContent value="config" className="mt-0 hidden data-[state=active]:block">
-                  <div className="space-y-6 sm:space-y-8">
+                  <div className={pageStackClass}>
                     {managedPersona && (
                       <GlassAlert tone="info">{t('personaConfig.managedConfigHint')}</GlassAlert>
                     )}
-                    {/* git 市场人格的行为配置由仓库拥有：除启用范围/关联群聊外整块置灰。
-                        inert 同时禁指针/键盘/读屏且没有 fieldset 的布局怪癖；
-                        React 18 不认布尔 inert，须传空串才落到 DOM */}
-                    <div
-                      {...(managedPersona ? ({ inert: '' } as object) : {})}
-                      className={cn(
-                        'space-y-8',
-                        managedPersona && 'pointer-events-none select-none opacity-60',
-                      )}
+                    {/* 说话风格 */}
+                    <ConfigSection
+                      icon={<MessageSquareText />}
+                      title={t('personaConfig.configSectionVoice')}
+                      locked={managedPersona}
                     >
-                      {/* 启用范围配置：标题独占一行，选项格随宽度换行 */}
                       <div className="space-y-2">
-                        <Label className="flex items-center gap-2 text-base">
-                          <ScrollText className="h-4 w-4" />
+                        <Label className="text-sm font-medium">
                           {t('personaConfig.promptGroupLabel')}
                         </Label>
                         <Select value={editingPromptGroup} onValueChange={setEditingPromptGroup}>
@@ -2551,12 +2637,9 @@ export default function PersonaConfigPage() {
                         onChatStyleText={setChatStyleText}
                         onSpeechSoftText={setSpeechSoftText}
                       />
-                    </div>
-                    <div className="space-y-4">
-                      <Label className="flex items-center gap-2 text-base">
-                        <Globe className="h-4 w-4" />
-                        {t('personaConfig.enableScope')}
-                      </Label>
+                    </ConfigSection>
+                    {/* 启用范围：左通道标签，右三档选项随宽度换行 */}
+                    <ConfigSection icon={<Globe />} title={t('personaConfig.enableScope')}>
                       {(
                         [
                           {
@@ -2575,19 +2658,25 @@ export default function PersonaConfigPage() {
                           },
                         ] as const
                       ).map((row) => (
-                        <div key={row.channel} className="space-y-2">
-                          <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                        <div
+                          key={row.channel}
+                          className="grid gap-2 sm:grid-cols-[5.5rem_minmax(0,1fr)] sm:items-center"
+                        >
+                          <div className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
                             {row.icon}
                             <span>{row.label}</span>
                           </div>
-                          <div className="grid grid-cols-1 gap-3 items-stretch sm:grid-cols-3">
+                          <div className="grid grid-cols-3 gap-2 sm:gap-3 items-stretch">
                             {CHANNEL_SCOPE_OPTIONS.map((option) => (
                               <button
                                 key={option.value}
                                 type="button"
                                 data-active={row.value === option.value || undefined}
                                 onClick={() => row.onSelect(option.value)}
-                                className={cn(CONFIG_OPTION_BUTTON, 'h-full min-w-0')}
+                                className={cn(
+                                  CONFIG_OPTION_BUTTON,
+                                  'h-full min-w-0 max-sm:min-h-11 max-sm:gap-1.5 max-sm:px-2',
+                                )}
                               >
                                 <div
                                   className={cn(
@@ -2603,7 +2692,7 @@ export default function PersonaConfigPage() {
                                   <div className="font-medium text-sm truncate">
                                     {t(option.labelKey)}
                                   </div>
-                                  <div className="text-xs text-muted-foreground mt-1 line-clamp-1">
+                                  <div className="hidden sm:block text-xs text-muted-foreground mt-1 line-clamp-1">
                                     {t(
                                       row.channel === 'group'
                                         ? option.groupDescKey
@@ -2616,112 +2705,96 @@ export default function PersonaConfigPage() {
                           </div>
                         </div>
                       ))}
-                    </div>
-
-                    {/* 通道全局冲突提示 */}
-                    {editingPersona &&
-                      (() => {
-                        const editConflicts = findChannelConflicts(
-                          personaConfigs,
-                          editingPersona.name,
-                          {
-                            group_scope: editingGroupScope,
-                            private_scope: editingPrivateScope,
-                          },
-                        );
-                        if (!hasChannelConflicts(editConflicts)) return null;
-                        return (
-                          <GlassAlert tone="warning" icon={AlertCircle}>
-                            {t('personaConfig.channelConflictHint', {
-                              detail: formatConflictDetail(editConflicts, t),
-                            })}
-                          </GlassAlert>
-                        );
-                      })()}
-                    {/* AI 模式配置 */}
-                    <div
-                      {...(managedPersona ? ({ inert: '' } as object) : {})}
-                      className={cn(managedPersona && 'pointer-events-none select-none opacity-60')}
-                    >
-                      <div className="space-y-2">
-                        <Label className="flex items-center gap-2 text-base">
-                          <Settings className="h-4 w-4" />
-                          {t('personaConfig.aiModes')}
-                        </Label>
-                        {/* 四个 AI 行动模式：移动端单列，平板两列，桌面四等分满行 */}
-                        <div className="grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                          {AI_MODE_OPTIONS.map((mode) => (
-                            <button
-                              key={mode.value}
-                              type="button"
-                              data-active={editingAIModes.includes(mode.value) || undefined}
-                              onClick={() => {
-                                const isSelected = editingAIModes.includes(mode.value);
-                                if (isSelected) {
-                                  setEditingAIModes(editingAIModes.filter((m) => m !== mode.value));
-                                } else {
-                                  setEditingAIModes([...editingAIModes, mode.value]);
-                                }
-                              }}
-                              className={CONFIG_OPTION_BUTTON}
-                            >
-                              <div
-                                className={cn(
-                                  'p-1.5 rounded-full shrink-0',
-                                  editingAIModes.includes(mode.value)
-                                    ? 'bg-primary/20 text-primary'
-                                    : 'bg-muted text-muted-foreground',
-                                )}
-                              >
-                                {mode.icon}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                {/* 标题与「(即将推出)」合成一行整体截断：窄格下允许省略，不折成两行 */}
-                                <div className="font-medium text-sm truncate">{mode.label}</div>
-                                <div className="text-xs text-muted-foreground mt-1 line-clamp-1">
-                                  {mode.description}
-                                </div>
-                              </div>
-                            </button>
-                          ))}
+                      {/* 通道全局冲突提示 */}
+                      {editingPersona &&
+                        (() => {
+                          const editConflicts = findChannelConflicts(
+                            personaConfigs,
+                            editingPersona.name,
+                            {
+                              group_scope: editingGroupScope,
+                              private_scope: editingPrivateScope,
+                            },
+                          );
+                          if (!hasChannelConflicts(editConflicts)) return null;
+                          return (
+                            <GlassAlert tone="warning" icon={AlertCircle}>
+                              {t('personaConfig.channelConflictHint', {
+                                detail: formatConflictDetail(editConflicts, t),
+                              })}
+                            </GlassAlert>
+                          );
+                        })()}
+                      {/* 关联群聊 - 群聊通道为 specific 时显示 */}
+                      {editingGroupScope === 'specific' && (
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">
+                            {t('personaConfig.enabledGroups')}
+                          </Label>
+                          <TagsInput
+                            value={editingGroups}
+                            onChange={setEditingGroups}
+                            placeholder={t('personaConfig.groupsPlaceholder')}
+                          />
                         </div>
-                      </div>
-                    </div>
-                    {/* 关联群聊 - 群聊通道为 specific 时显示 */}
-                    {editingGroupScope === 'specific' && (
-                      <div className="space-y-2">
-                        <Label className="flex items-center gap-2 text-base">
-                          <Users className="h-4 w-4" />
-                          {t('personaConfig.enabledGroups')}
-                        </Label>
-                        <TagsInput
-                          value={editingGroups}
-                          onChange={setEditingGroups}
-                          placeholder={t('personaConfig.groupsPlaceholder')}
-                        />
-                      </div>
-                    )}
-                    {/* 关联私聊用户 - 私聊通道为 specific 时显示 */}
-                    {editingPrivateScope === 'specific' && (
-                      <div className="space-y-2">
-                        <Label className="flex items-center gap-2 text-base">
-                          <MessageCircle className="h-4 w-4" />
-                          {t('personaConfig.enabledUsers')}
-                        </Label>
-                        <TagsInput
-                          value={editingUsers}
-                          onChange={setEditingUsers}
-                          placeholder={t('personaConfig.usersPlaceholder')}
-                        />
-                      </div>
-                    )}
-                    <div
-                      {...(managedPersona ? ({ inert: '' } as object) : {})}
-                      className={cn(
-                        'space-y-8',
-                        managedPersona && 'pointer-events-none select-none opacity-60',
                       )}
+                      {/* 关联私聊用户 - 私聊通道为 specific 时显示 */}
+                      {editingPrivateScope === 'specific' && (
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">
+                            {t('personaConfig.enabledUsers')}
+                          </Label>
+                          <TagsInput
+                            value={editingUsers}
+                            onChange={setEditingUsers}
+                            placeholder={t('personaConfig.usersPlaceholder')}
+                          />
+                        </div>
+                      )}
+                    </ConfigSection>
+                    {/* AI 行动模式 */}
+                    <ConfigSection
+                      icon={<Workflow />}
+                      title={t('personaConfig.aiModes')}
+                      locked={managedPersona}
                     >
+                      {/* 四个 AI 行动模式：窄屏两列，桌面四等分满行 */}
+                      <div className="grid grid-cols-2 items-stretch gap-2 sm:gap-3 lg:grid-cols-4">
+                        {AI_MODE_OPTIONS.map((mode) => (
+                          <button
+                            key={mode.value}
+                            type="button"
+                            data-active={editingAIModes.includes(mode.value) || undefined}
+                            onClick={() => {
+                              const isSelected = editingAIModes.includes(mode.value);
+                              if (isSelected) {
+                                setEditingAIModes(editingAIModes.filter((m) => m !== mode.value));
+                              } else {
+                                setEditingAIModes([...editingAIModes, mode.value]);
+                              }
+                            }}
+                            className={cn(CONFIG_OPTION_BUTTON, 'max-sm:gap-2 max-sm:px-2.5')}
+                          >
+                            <div
+                              className={cn(
+                                'p-1.5 rounded-full shrink-0',
+                                editingAIModes.includes(mode.value)
+                                  ? 'bg-primary/20 text-primary'
+                                  : 'bg-muted text-muted-foreground',
+                              )}
+                            >
+                              {mode.icon}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              {/* 标题与「(即将推出)」合成一行整体截断：窄格下允许省略，不折成两行 */}
+                              <div className="font-medium text-sm truncate">{mode.label}</div>
+                              <div className="text-xs text-muted-foreground mt-1 line-clamp-1">
+                                {mode.description}
+                              </div>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
                       {/*
                       定时巡检间隔与触发关键词成组并排一行。
                       两个字段都由 AI 行动模式带出，但模式关掉时**不隐藏、只冻结置灰**：
@@ -2731,15 +2804,14 @@ export default function PersonaConfigPage() {
                     */}
                       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:gap-4">
                         <div className="space-y-2">
+                          {/* 冻结态用 opacity 而不是 text-muted-foreground：本主题里
+                              --muted-foreground 与 --foreground 同色（240 5% 10%），改文字色等于没改 */}
                           <Label
                             className={cn(
-                              'flex items-center gap-2 text-base',
-                              // 冻结态用 opacity 而不是 text-muted-foreground：本主题里
-                              // --muted-foreground 与 --foreground 同色（240 5% 10%），改文字色等于没改
+                              'text-sm font-medium',
                               !showInspectInterval && 'opacity-50',
                             )}
                           >
-                            <Clock className="h-4 w-4" />
                             {t('personaConfig.inspectInterval')}
                           </Label>
                           <Select
@@ -2775,15 +2847,10 @@ export default function PersonaConfigPage() {
                         </div>
                         <div className="space-y-2">
                           <LabelWithHelp
-                            icon={
-                              <MessageSquare
-                                className={cn('h-4 w-4', !showTriggerKeywords && 'opacity-50')}
-                              />
-                            }
                             label={t('personaConfig.triggerKeywords')}
                             description={t('personaConfig.keywordsHint')}
                             className={cn(
-                              'text-base font-medium',
+                              'text-sm font-medium',
                               !showTriggerKeywords && 'opacity-50',
                             )}
                           />
@@ -2795,66 +2862,65 @@ export default function PersonaConfigPage() {
                           />
                         </div>
                       </div>
-                      <div className="space-y-3">
-                        <LabelWithHelp
-                          icon={
-                            <MessageCircle className={cn('h-4 w-4', !showAside && 'opacity-50')} />
-                          }
-                          label={t('personaConfig.asideTitle')}
-                          description={t('personaConfig.asideHint')}
-                          className={cn('text-base font-medium', !showAside && 'opacity-50')}
+                    </ConfigSection>
+                    {/* 命令补充 */}
+                    <ConfigSection
+                      icon={<MessageSquarePlus />}
+                      title={t('personaConfig.asideTitle')}
+                      description={t('personaConfig.asideHint')}
+                      locked={managedPersona}
+                    >
+                      <div className="grid gap-3 md:gap-4 sm:grid-cols-3">
+                        <ProbabilityField
+                          id="aside-image"
+                          label={t('personaConfig.asideImage')}
+                          value={asideImage}
+                          disabled={!showAside}
+                          onChange={setAsideImage}
                         />
-                        <div className="grid gap-3 md:gap-4 sm:grid-cols-3">
-                          <ProbabilityField
-                            id="aside-image"
-                            label={t('personaConfig.asideImage')}
-                            value={asideImage}
-                            disabled={!showAside}
-                            onChange={setAsideImage}
-                          />
-                          <ProbabilityField
-                            id="aside-text"
-                            label={t('personaConfig.asideText')}
-                            value={asideText}
-                            disabled={!showAside}
-                            onChange={setAsideText}
-                          />
-                          <ProbabilityField
-                            id="aside-mixed"
-                            label={t('personaConfig.asideMixed')}
-                            value={asideMixed}
-                            disabled={!showAside}
-                            onChange={setAsideMixed}
-                          />
-                        </div>
-                        <div className="flex items-center justify-between gap-3">
-                          <LabelWithHelp
-                            htmlFor="aside-allow-tools"
-                            label={t('personaConfig.asideAllowTools')}
-                            description={t('personaConfig.asideAllowToolsHint')}
-                            className={cn('text-sm font-medium', !showAside && 'opacity-50')}
-                          />
-                          <Switch
-                            id="aside-allow-tools"
-                            checked={asideAllowTools}
-                            disabled={!showAside}
-                            onCheckedChange={setAsideAllowTools}
-                            aria-label={t('personaConfig.asideAllowTools')}
-                          />
-                        </div>
+                        <ProbabilityField
+                          id="aside-text"
+                          label={t('personaConfig.asideText')}
+                          value={asideText}
+                          disabled={!showAside}
+                          onChange={setAsideText}
+                        />
+                        <ProbabilityField
+                          id="aside-mixed"
+                          label={t('personaConfig.asideMixed')}
+                          value={asideMixed}
+                          disabled={!showAside}
+                          onChange={setAsideMixed}
+                        />
                       </div>
+                      <div className="flex items-center justify-between gap-3 rounded-lg border border-border/40 px-3 py-2.5">
+                        <LabelWithHelp
+                          htmlFor="aside-allow-tools"
+                          label={t('personaConfig.asideAllowTools')}
+                          description={t('personaConfig.asideAllowToolsHint')}
+                          className={cn('text-sm font-medium', !showAside && 'opacity-50')}
+                        />
+                        <Switch
+                          id="aside-allow-tools"
+                          checked={asideAllowTools}
+                          disabled={!showAside}
+                          onCheckedChange={setAsideAllowTools}
+                          aria-label={t('personaConfig.asideAllowTools')}
+                        />
+                      </div>
+                    </ConfigSection>
+                    {/* 主动与作息 */}
+                    <ConfigSection
+                      icon={<Compass />}
+                      title={t('personaConfig.configSectionProactive')}
+                      locked={managedPersona}
+                    >
                       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:gap-4">
                         <div className="space-y-2">
                           <LabelWithHelp
-                            icon={
-                              <Clock className={cn('h-4 w-4', !showActiveHours && 'opacity-50')} />
-                            }
                             label={t('personaConfig.activeHours')}
                             description={t('personaConfig.activeHoursHint')}
-                            className={cn(
-                              'text-base font-medium',
-                              !showActiveHours && 'opacity-50',
-                            )}
+                            className={cn('text-sm font-medium', !showActiveHours && 'opacity-50')}
                           />
                           <TagsInput
                             disabled={!showActiveHours}
@@ -2867,10 +2933,7 @@ export default function PersonaConfigPage() {
                           <LabelWithHelp
                             label={t('personaConfig.timezone')}
                             description={t('personaConfig.timezoneHint')}
-                            className={cn(
-                              'text-base font-medium',
-                              !showActiveHours && 'opacity-50',
-                            )}
+                            className={cn('text-sm font-medium', !showActiveHours && 'opacity-50')}
                           />
                           <Select
                             disabled={!showActiveHours}
@@ -2890,18 +2953,15 @@ export default function PersonaConfigPage() {
                           </Select>
                         </div>
                       </div>
-                      <div className="space-y-3">
+                      <div className="space-y-3 border-t border-border/30 pt-5">
                         <LabelWithHelp
-                          icon={
-                            <Compass className={cn('h-4 w-4', !showAutonomy && 'opacity-50')} />
-                          }
                           label={t('personaConfig.autonomyTitle')}
                           description={t('personaConfig.autonomyHint')}
-                          className={cn('text-base font-medium', !showAutonomy && 'opacity-50')}
+                          className={cn('text-sm font-semibold', !showAutonomy && 'opacity-50')}
                         />
-                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:gap-4">
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4 md:gap-4">
                           <div className={cn('space-y-2', !showAutonomy && 'opacity-50')}>
-                            <Label htmlFor="autonomy-interval" className="text-sm">
+                            <Label htmlFor="autonomy-interval" className="text-sm font-medium">
                               {t('personaConfig.autonomyInterval')}
                             </Label>
                             <Input
@@ -2923,7 +2983,9 @@ export default function PersonaConfigPage() {
                             />
                           </div>
                           <div className="space-y-2">
-                            <Label className={cn('text-sm', !showAutonomy && 'opacity-50')}>
+                            <Label
+                              className={cn('text-sm font-medium', !showAutonomy && 'opacity-50')}
+                            >
                               {t('personaConfig.autonomyCareZone')}
                             </Label>
                             <Select
@@ -2950,7 +3012,7 @@ export default function PersonaConfigPage() {
                             <LabelWithHelp
                               label={t('personaConfig.curiosityFocus')}
                               description={t('personaConfig.curiosityFocusHint')}
-                              className={cn('text-sm', !showAutonomy && 'opacity-50')}
+                              className={cn('text-sm font-medium', !showAutonomy && 'opacity-50')}
                             />
                             <Select
                               disabled={!showAutonomy}
@@ -2980,7 +3042,7 @@ export default function PersonaConfigPage() {
                             <LabelWithHelp
                               label={t('personaConfig.arcPersistence')}
                               description={t('personaConfig.arcPersistenceHint')}
-                              className={cn('text-sm', !showAutonomy && 'opacity-50')}
+                              className={cn('text-sm font-medium', !showAutonomy && 'opacity-50')}
                             />
                             <Select
                               disabled={!showAutonomy}
@@ -2999,14 +3061,11 @@ export default function PersonaConfigPage() {
                           </div>
                         </div>
                       </div>
-                      <div className="space-y-3">
+                      <div className="space-y-3 border-t border-border/30 pt-5">
                         <LabelWithHelp
-                          icon={
-                            <Gauge className={cn('h-4 w-4', !showDriveTraits && 'opacity-50')} />
-                          }
                           label={t('personaConfig.driveTraits')}
                           description={t('personaConfig.driveTraitsHint')}
-                          className={cn('text-base font-medium', !showDriveTraits && 'opacity-50')}
+                          className={cn('text-sm font-semibold', !showDriveTraits && 'opacity-50')}
                         />
                         <div className="grid gap-3 md:gap-4 sm:grid-cols-2">
                           <SpeechSliderField
@@ -3033,7 +3092,13 @@ export default function PersonaConfigPage() {
                           />
                         </div>
                       </div>
-                      {/* 工具装配：启用工具（按插件）/ 显式工具白名单 */}
+                    </ConfigSection>
+                    {/* 工具装配：启用工具（按插件）/ 显式工具白名单 */}
+                    <ConfigSection
+                      icon={<Wrench />}
+                      title={t('personaConfig.configSectionTools')}
+                      locked={managedPersona}
+                    >
                       <PersonaToolScopeEditor
                         catalog={toolCatalog}
                         enabledPlugins={editingEnabledPlugins}
@@ -3051,53 +3116,60 @@ export default function PersonaConfigPage() {
                         searchPlaceholder={t('personaConfig.capabilityAgentsSearchPlaceholder')}
                         emptyText={t('personaConfig.capabilityAgentsEmpty')}
                         help={t('personaConfig.capabilityAgentsHint')}
+                        placeholder={t('personaConfig.capabilityAgentsPlaceholder', {
+                          total: capabilityAgentItems.length,
+                        })}
                         summary={t('personaConfig.listSummary', {
                           selected: editingEnabledAgents.length,
                           total: capabilityAgentItems.length,
                         })}
                         t={t}
                       />
-                    </div>
+                    </ConfigSection>
                   </div>
                 </TabsContent>
                 <TabsContent value="settings" className="mt-0 hidden data-[state=active]:block">
-                  {settingsLoading ? (
-                    <div className="flex items-center justify-center gap-2 py-12 text-sm text-muted-foreground">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      {t('common.loading')}
-                    </div>
-                  ) : Object.keys(displaySettings).length === 0 ? (
-                    <div className="flex flex-col items-start justify-between gap-3 rounded-lg border border-border/30 p-4 text-sm text-muted-foreground glass-card glass-alert sm:flex-row sm:items-center">
-                      <span>{settingsError ?? t('personaConfig.personaSettingsLoadFailed')}</span>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="shrink-0 gap-1.5"
-                        onClick={() => void loadPersonaSettings(editingPersona.name)}
+                  <div className="glass-card p-4 sm:p-6">
+                    {settingsLoading ? (
+                      <div className="flex items-center justify-center gap-2 py-12 text-sm text-muted-foreground">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        {t('common.loading')}
+                      </div>
+                    ) : Object.keys(displaySettings).length === 0 ? (
+                      <div className="flex flex-col items-start justify-between gap-3 rounded-lg border border-border/30 p-4 text-sm text-muted-foreground glass-card glass-alert sm:flex-row sm:items-center">
+                        <span>{settingsError ?? t('personaConfig.personaSettingsLoadFailed')}</span>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="shrink-0 gap-1.5"
+                          onClick={() => void loadPersonaSettings(editingPersona.name)}
+                        >
+                          <RefreshCw className="h-3.5 w-3.5" />
+                          {t('common.refresh')}
+                        </Button>
+                      </div>
+                    ) : (
+                      <div
+                        {...(managedPersona ? ({ inert: '' } as object) : {})}
+                        className={cn(
+                          managedPersona && 'pointer-events-none select-none opacity-60',
+                        )}
                       >
-                        <RefreshCw className="h-3.5 w-3.5" />
-                        {t('common.refresh')}
-                      </Button>
-                    </div>
-                  ) : (
-                    <div
-                      {...(managedPersona ? ({ inert: '' } as object) : {})}
-                      className={cn(managedPersona && 'pointer-events-none select-none opacity-60')}
-                    >
-                      <ConfigGrid
-                        config={settingsToFormData(displaySettings)}
-                        onChange={handleSettingsChange}
-                        columns={3}
-                      />
-                    </div>
-                  )}
+                        <ConfigGrid
+                          config={settingsToFormData(displaySettings)}
+                          onChange={handleSettingsChange}
+                          columns={3}
+                        />
+                      </div>
+                    )}
+                  </div>
                 </TabsContent>
                 {/* 媒体资源 Tab（头像 / 立绘 / 音频单行三列） */}
                 <TabsContent value="media" className="mt-0 hidden data-[state=active]:block">
-                  <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+                  <div className={cn('grid grid-cols-1 lg:grid-cols-3', pageGapClass)}>
                     {/* 头像 */}
-                    <div className="glass-card-flat flex min-w-0 flex-col gap-3 rounded-xl p-4">
+                    <div className="glass-card flex min-w-0 flex-col gap-3 p-4">
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <Label className="flex items-center gap-2 text-sm font-medium">
                           <User className="h-4 w-4" />
@@ -3161,7 +3233,7 @@ export default function PersonaConfigPage() {
                     </div>
 
                     {/* 立绘 */}
-                    <div className="glass-card-flat flex min-w-0 flex-col gap-3 rounded-xl p-4">
+                    <div className="glass-card flex min-w-0 flex-col gap-3 p-4">
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <Label className="flex items-center gap-2 text-sm font-medium">
                           <ImageIcon className="h-4 w-4" />
@@ -3225,7 +3297,7 @@ export default function PersonaConfigPage() {
                     </div>
 
                     {/* 音频 */}
-                    <div className="glass-card-flat flex min-w-0 flex-col gap-3 rounded-xl p-4">
+                    <div className="glass-card flex min-w-0 flex-col gap-3 p-4">
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <Label className="flex items-center gap-2 text-sm font-medium">
                           <Music className="h-4 w-4" />
@@ -3280,39 +3352,54 @@ export default function PersonaConfigPage() {
                 </TabsContent>
               </div>
             </Tabs>
-            {/* 底部操作栏：仅自述文档显示字数统计 + 返回/保存（移动端自适应折行） */}
-            <div className="flex flex-col gap-3 border-t border-border/35 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-4">
-              {activeTab === 'markdown' && (
-                <div className="text-xs tabular-nums text-muted-foreground">
-                  {t('personaConfig.charCount', { count: [...editContent].length })}
-                </div>
-              )}
-              <div className="flex items-center gap-2 sm:ml-auto">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={closeInlineEditor}
-                  disabled={isSaving}
-                  className="flex-1 sm:flex-none"
-                >
-                  {t('common.cancel')}
-                </Button>
+            {/* 右下角悬浮：sticky 约束区已扣掉滚动区的 --shadow-bleed 内边距，用 bottom-0；
+                bottom-3 会在滚到底时把按钮顶进上方间距 */}
+            <div className="pointer-events-none sticky bottom-0 z-30 hidden justify-end gap-2 md:flex">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={closeInlineEditor}
+                disabled={isSaving}
+                className="pointer-events-auto h-10 shadow-lg"
+              >
+                {t('common.cancel')}
+              </Button>
+              <Button
+                type="button"
+                onClick={() => setSaveConfirmOpen(true)}
+                disabled={isSaving}
+                className="button-solid pointer-events-auto h-10 gap-1.5 shadow-lg"
+              >
+                {isSaving ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Check className="h-4 w-4" />
+                )}
+                {t('common.save')}
+              </Button>
+            </div>
+            {/* 移动端悬浮保存出现时补一截空白：.shadow-safe 的 padding-block 会压掉 pb-* 工具类 */}
+            {isDirty && <div aria-hidden className="h-11 md:hidden" />}
+            {/* 移动端悬浮保存：fixed 避让底部悬浮导航；backdrop-filter 祖先会困住 fixed，故 portal 到 body */}
+            {editingPersona &&
+              isDirty &&
+              createPortal(
                 <Button
                   type="button"
                   onClick={() => setSaveConfirmOpen(true)}
                   disabled={isSaving}
-                  className="button-solid flex-1 gap-2 sm:flex-none"
+                  className="button-solid fixed right-[var(--layout-gutter)] bottom-[calc(var(--mobile-tabbar-height)+var(--mobile-tabbar-bottom)+0.5rem)] z-40 h-11 gap-1.5 rounded-full px-5 shadow-lg md:hidden"
                 >
                   {isSaving ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
                     <Check className="h-4 w-4" />
                   )}
-                  {t('personaConfig.savePersona')}
-                </Button>
-              </div>
-            </div>
-          </Card>
+                  {t('common.save')}
+                </Button>,
+                document.body,
+              )}
+          </div>
         )}
         {/* 图片预览对话框 */}
         <Dialog open={imagePreviewOpen} onOpenChange={setImagePreviewOpen}>

@@ -88,8 +88,10 @@ interface CheckListFieldProps {
    * exclude / add 的操作提示会自动接在后面，调用方不用重复写。
    */
   help?: string;
-  /** 常驻摘要行：渲染在收起态触发器下方（收起/展开都在原位） */
-  summary?: React.ReactNode;
+  /** 无已选项时 trigger 里显示的空态文案；缺省回落各模式默认动作语 */
+  placeholder?: string;
+  /** 已选项徽标态下挂在 trigger `title` 上的摘要全文 */
+  summary?: string;
   alwaysLabel?: string;
   showSelectAll?: boolean;
   popoverWidth?: string;
@@ -112,6 +114,7 @@ export function CheckListField({
   searchPlaceholder,
   emptyText,
   help,
+  placeholder,
   summary,
   alwaysLabel,
   showSelectAll = true,
@@ -327,6 +330,7 @@ export function CheckListField({
           <Button
             type="button"
             variant="outline"
+            title={selectedLabels.length === 0 ? (placeholder ?? undefined) : summary}
             className="ui-field-trigger w-full justify-between gap-2 font-normal hover:text-foreground"
           >
             <span
@@ -335,11 +339,12 @@ export function CheckListField({
             >
               {selectedLabels.length === 0 ? (
                 <span className="truncate text-left text-sm text-muted-foreground">
-                  {isExclude
-                    ? t('personaConfig.listExcludeAction')
-                    : isAdd
-                      ? t('personaConfig.addModeAction')
-                      : t('personaConfig.listExpand', { count: 0 })}
+                  {placeholder ??
+                    (isExclude
+                      ? t('personaConfig.listExcludeAction')
+                      : isAdd
+                        ? t('personaConfig.addModeAction')
+                        : t('personaConfig.listExpand', { count: 0 }))}
                 </span>
               ) : (
                 <>
@@ -533,13 +538,6 @@ export function CheckListField({
           </div>
         </PopoverContent>
       </Popover>
-
-      {/*
-        摘要行固定放在触发器下方，不要挪回标题和触发器之间：
-        并排栅格里（能力档位 | 启用工具）它会把 trigger 推得比同行控件低一行。
-        PopoverContent 走 portal 不占布局，收起/展开它都在原位。
-      */}
-      {summary && <p className="text-xs text-muted-foreground">{summary}</p>}
     </div>
   );
 }

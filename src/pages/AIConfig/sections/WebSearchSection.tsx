@@ -21,6 +21,7 @@ import { cn } from '@/lib/utils';
 import anysearchIcon from '@/assets/search-providers/anysearch.ico';
 import firecrawlIcon from '@/assets/search-providers/firecrawl.ico';
 import keenableIcon from '@/assets/search-providers/keenable.ico';
+import parallelIcon from '@/assets/search-providers/parallel.ico';
 import so360Icon from '@/assets/search-providers/360.ico';
 import { PluginIcon } from '@/components/ui/plugin-icon';
 import { pageStackClass } from '@/components/layout/PinnedPage';
@@ -41,7 +42,7 @@ import {
 /**
  * 网络搜索提供方 -> 品牌图标。
  * Tavily / Exa / Jina / MCP / MiniMax 走 @thesvg/react；
- * AnySearch / Firecrawl / 360 用官方 favicon。
+ * AnySearch / Firecrawl / Keenable / Parallel / 360 用官方 favicon。
  */
 function getSearchProviderIcon(provider: string) {
   const key = provider.trim().toLowerCase();
@@ -57,6 +58,9 @@ function getSearchProviderIcon(provider: string) {
   }
   if (key === 'keenable') {
     return <FaviconIcon src={keenableIcon} alt="Keenable" />;
+  }
+  if (key === 'parallel') {
+    return <FaviconIcon src={parallelIcon} alt="Parallel" />;
   }
   if (key === '360' || key === 'so') {
     return <FaviconIcon src={so360Icon} alt="360" />;

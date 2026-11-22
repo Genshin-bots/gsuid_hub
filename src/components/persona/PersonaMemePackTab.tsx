@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { LabelWithHelp } from '@/components/ui/label-with-help';
 import { Switch } from '@/components/ui/switch';
 import { getAuthToken, memeApi, personaApi, type MemePackSummary } from '@/lib/api';
+import { pageGapClass, pageStackClass } from '@/components/layout/PinnedPage';
 import { cn } from '@/lib/utils';
 
 const MAX_PACKS = 16;
@@ -249,9 +250,9 @@ export function PersonaMemePackTab({
   const tierLabel = getTierLabel(currentFreq);
 
   return (
-    <div className="space-y-4">
+    <div className={pageStackClass}>
       {/* 表情回复总开关 */}
-      <div className="glass-card-flat flex items-center justify-between gap-3 rounded-xl p-4">
+      <div className="glass-card flex items-center justify-between gap-3 p-4">
         <LabelWithHelp
           htmlFor="allow-meme-reply"
           icon={<Smile className="h-4 w-4" />}
@@ -270,7 +271,7 @@ export function PersonaMemePackTab({
 
       {/* 表情频率与冷却配置块（仅在允许回复时展示） */}
       {allowReply && (
-        <div className="glass-card-flat space-y-4 rounded-xl p-4">
+        <div className="glass-card space-y-4 p-4">
           {/* 表情发送倾向 / 频率 */}
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-2">
@@ -414,7 +415,11 @@ export function PersonaMemePackTab({
       </div>
 
       {loading ? (
-        <div className="grid gap-3 sm:grid-cols-2" aria-busy="true" aria-live="polite">
+        <div
+          className={cn('grid sm:grid-cols-2', pageGapClass)}
+          aria-busy="true"
+          aria-live="polite"
+        >
           <span className="sr-only">正在加载表情包</span>
           {Array.from({ length: 4 }, (_, index) => (
             <div key={index} className="glass-card-flat rounded-xl p-3">
@@ -435,7 +440,7 @@ export function PersonaMemePackTab({
           还没有表情包。
         </p>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className={cn('grid sm:grid-cols-2', pageGapClass)}>
           {packs.map((pack) => {
             const on = selected.includes(pack.pack_id);
             const ids = pack.pack_id in previews ? previews[pack.pack_id] : undefined;

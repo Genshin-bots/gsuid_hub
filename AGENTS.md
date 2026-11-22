@@ -289,11 +289,11 @@ Switch：不要加冗余 `data-[state=checked]:bg-primary`；被 `TooltipTrigger
 
 **① 文本永远单行，过长用 `...` 截断，任何时候都不许折行。** 折行会把同排控件顶成一高一低，整块排版垮掉（两列网格里最明显）。`truncate` 必须配 `min-w-0`（flex item 的 `min-width:auto` 拒绝收缩，文字照样撑出容器）；图标 / 徽标 / `?` 问号一律 `shrink-0`；截断后补 `title`。字段标题见 `ConfigField` / `DynamicConfigPanel`。
 
-**② 行距只有一套刻度**：段落之间 **12px（窄屏）/ 24px（桌面）**（`PinnedPage` 已内置 `gap-3 md:gap-6` + `space-y-3 md:space-y-6`）；同组控件之间 8px；Label → 控件 8px。**禁止靠叠内边距造间距**（卡片头 `py-4` + 内容 `pt-4` = 32px 双倍间距）；窄屏的负 margin 必须写成 `md:-mt-*`（窄屏 body 没有那层 padding）。
+**② 页面级间距只有一个值：`--page-row-gap`（`index.css`，当前 12px）★★★**：标题 ↔ 控件行 ↔ 内容，以及页面主体里**顶层卡片 / 面板之间**（竖向堆叠、卡片网格、编辑器顶栏 ↔ 各分区卡片 ↔ 底栏），一律等于标题下方那道间距。竖向堆叠用 `pageStackClass`，网格 / 横排用 `pageGapClass`（`@/components/layout/PinnedPage`）；**禁止**在顶层卡片之间写 `gap-4` / `sm:gap-5` / `space-y-6` 等字面量，改完对照截图确认卡片间距和「控件行 → 第一张卡」一致。卡片**内部**另算：同组控件之间 8px；Label → 控件 8px。**禁止靠叠内边距造间距**（卡片头 `py-4` + 内容 `pt-4` = 32px 双倍间距）；窄屏的负 margin 必须写成 `md:-mt-*`（窄屏 body 没有那层 padding）。
 
    **分割线与它下面的内容必须留空隙**（≥4px）：分割线下方 0px 时，比标签行高的徽章（如「密钥」）会被父级 `overflow` 裁掉半个。
 
-   **不要在 `PinnedPage` 上写死 `className="gap-4"` 之类覆盖默认刻度**，各页保持同一套节奏；要调就整站一起调。页面主体内部用 `space-y-3 md:space-y-4`（窄屏 12px / 桌面原值），不要出现裸的 `space-y-5` / `gap-6`。
+   **不要在 `PinnedPage` 上写死 `className="gap-4"` 之类覆盖默认刻度**，各页保持同一套节奏；要调就改 `--page-row-gap` 整站一起调。
 
 **③ 窄屏（<768px）一律两列铺满**：操作区 / 分段组 / 配置网格不要三个挤一行或一个独占；奇数个时最后一个独占整行，**不留半行空白**。想让 flex 换行必须改 `flex-basis` —— `min-width` 的百分比**不参与换行判定**（flex 看的是 hypothetical main size）。≤3 个分段保持一行（`nowrap` + shrink 压进去），不要折行。
 

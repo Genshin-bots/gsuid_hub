@@ -22,6 +22,14 @@ const PRESETS: { key: ToolPreset; label: string; desc: string }[] = [
   { key: 'chat', label: 'presetChat', desc: 'presetChatDesc' },
 ];
 
+type PresetKey = ToolPreset | 'custom';
+
+/** 显示列表多一枚「自定义」：它只是排除态指示器，点击不改配置、不可 disabled 否则 tooltip 不亮。 */
+const PRESET_BUTTONS: { key: PresetKey; label: string; desc: string }[] = [
+  ...PRESETS,
+  { key: 'custom', label: 'presetCustom', desc: 'presetCustomDesc' },
+];
+
 /**
  * 右边清单的操作语义随档位变，标题也要跟着变，否则「全量」模式下写「启用工具」、
  * 用户勾一下却是在排除，认知对不上。自定义混合态没有主语义，回落通用标题。
@@ -142,9 +150,9 @@ export function PersonaToolScopeEditor({
       {/*
         档位与「启用工具」必须并排：档位改的就是右边的插件收录范围，
         分成两块上下放，用户看不出改档位会影响谁。
-        三枚档位横排成一行，说明收进悬停 tooltip——窄列里堆副标题只会挤成一团。
+        四枚档位横排成一行，说明收进悬停 tooltip——窄列里堆副标题只会挤成一团。
       */}
-      <div className="grid items-start gap-4 md:grid-cols-[minmax(0,15rem)_minmax(0,1fr)]">
+      <div className="grid items-start gap-4 md:grid-cols-[minmax(0,18rem)_minmax(0,1fr)]">
         <div className="space-y-2">
           <LabelWithHelp
             icon={<Wrench className="h-4 w-4" />}
@@ -153,36 +161,40 @@ export function PersonaToolScopeEditor({
             className="text-base font-medium"
           />
           <TooltipProvider delayDuration={150}>
-            <div className="grid grid-cols-3 gap-2">
-              {PRESETS.map((preset) => (
-                <Tooltip key={preset.key}>
-                  <TooltipTrigger asChild>
-                    <button
-                      type="button"
-                      onClick={() => applyPreset(preset.key)}
-                      disabled={pluginNames.length === 0}
-                      data-active={currentPreset === preset.key || undefined}
-                      className={cn(
-                        // 与右侧字段共用主题玻璃底；选中态只叠主题色薄染
-                        'ui-field-trigger flex h-10 items-center justify-center rounded-lg px-2 text-sm leading-tight transition-colors disabled:opacity-50',
-                        currentPreset === preset.key
-                          ? 'font-medium text-primary'
-                          : 'text-muted-foreground',
-                      )}
-                    >
-                      {t(`personaConfig.${preset.label}`)}
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="max-w-xs text-left">
-                    {t(`personaConfig.${preset.desc}`)}
-                  </TooltipContent>
-                </Tooltip>
-              ))}
+            <div className="grid grid-cols-4 gap-2">
+              {PRESET_BUTTONS.map((preset) => {
+                const active =
+                  preset.key === 'custom'
+                    ? currentPreset === null && pluginNames.length > 0
+                    : currentPreset === preset.key;
+                return (
+                  <Tooltip key={preset.key}>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        aria-pressed={active}
+                        onClick={() => {
+                          if (preset.key !== 'custom') applyPreset(preset.key);
+                        }}
+                        disabled={pluginNames.length === 0}
+                        data-active={active || undefined}
+                        className={cn(
+                          // 与右侧字段共用主题玻璃底；选中态只叠主题色薄染
+                          'ui-field-trigger flex h-10 min-w-0 items-center justify-center rounded-lg px-2 text-sm leading-tight transition-colors disabled:opacity-50',
+                          active ? 'font-medium text-primary' : 'text-muted-foreground',
+                        )}
+                      >
+                        <span className="truncate">{t(`personaConfig.${preset.label}`)}</span>
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-xs text-left">
+                      {t(`personaConfig.${preset.desc}`)}
+                    </TooltipContent>
+                  </Tooltip>
+                );
+              })}
             </div>
           </TooltipProvider>
-          {currentPreset === null && pluginNames.length > 0 && (
-            <p className="text-xs text-muted-foreground">{t('personaConfig.presetCustomHint')}</p>
-          )}
         </div>
 
         <div className="min-w-0 space-y-2">
@@ -198,9 +210,10 @@ export function PersonaToolScopeEditor({
             alwaysLabel={undefined}
             help={t('personaConfig.enabledToolsHint')}
             t={t}
+            placeholder={t('personaConfig.enabledToolsPlaceholderAll', { count: totalTools })}
             summary={
               excludedPlugins.length === 0
-                ? t('personaConfig.enabledToolsSummaryAll', { count: totalTools })
+                ? undefined
                 : t('personaConfig.enabledToolsSummarySome', {
                     count: enabledToolCount,
                     excluded: excludedPlugins.length,
@@ -230,6 +243,7 @@ export function PersonaToolScopeEditor({
         help={t('personaConfig.toolNamesHint')}
         popoverWidth="min-w-[480px]"
         t={t}
+        placeholder={t('personaConfig.toolNamesPlaceholder', { total: totalTools })}
         summary={
           toolNames.length === 0
             ? undefined

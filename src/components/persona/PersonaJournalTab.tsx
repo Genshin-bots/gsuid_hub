@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Archive,
   ArrowLeft,
   BookOpen,
   CalendarDays,
@@ -23,6 +22,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { personaApi } from '@/lib/api';
+import { pageGapClass, pageStackClass } from '@/components/layout/PinnedPage';
+import { cn } from '@/lib/utils';
 
 interface PersonaJournalTabProps {
   personaName: string;
@@ -134,7 +135,6 @@ export function PersonaJournalTab({ personaName }: PersonaJournalTabProps) {
   const [standingSummary, setStandingSummary] = useState('');
   const [hasStructured, setHasStructured] = useState(false);
   const [groupShards, setGroupShards] = useState<GroupShardView[]>([]);
-  const [archiveMonths, setArchiveMonths] = useState<string[]>([]);
   const [timeline, setTimeline] = useState<string[]>([]);
 
   const [rawEditing, setRawEditing] = useState(false);
@@ -169,7 +169,6 @@ export function PersonaJournalTab({ personaName }: PersonaJournalTabProps) {
         setSelfYesterdayLabel(res.self_yesterday_label || '');
         setSelfTimeline(res.self_timeline || []);
         setGroupShards(res.group_shards || []);
-        setArchiveMonths(res.archive_months || []);
       }
     } catch {
       toast.error(t('personaConfig.loadFailed'));
@@ -300,26 +299,72 @@ export function PersonaJournalTab({ personaName }: PersonaJournalTabProps) {
     ? activeGroupShard?.yesterday_label || ''
     : selfYesterdayLabel;
 
+  const showScopeBar = hasStructured && !rawEditing;
+
   return (
-    <div ref={containerRef} className="space-y-4 pb-6">
-      {/* 头部操作栏 */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="space-y-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h3 className="text-base font-semibold">{t('personaConfig.journal')}</h3>
-            <Badge variant="outline" className="text-xs">
-              {t('personaConfig.journalTotalEntries', { count: activeTimeline.length })}
-            </Badge>
-            {archiveMonths.length > 0 && (
-              <Badge variant="secondary" className="gap-1 text-[11px] font-normal">
-                <Archive className="h-3 w-3" />
-                {t('personaConfig.journalArchivesLabel')}: {archiveMonths.slice(0, 3).join(', ')}
+    <div ref={containerRef} className={pageStackClass}>
+      {/* 一行：左分片胶囊栏，右操作按钮；窄屏上下堆叠 */}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        {showScopeBar && (
+          /* 分片范围切换胶囊栏（玻璃底，严格联动主题设置） */
+          <div className="glass-card-flat flex min-w-0 flex-1 flex-wrap items-center gap-1.5 rounded-lg p-1.5">
+            <Button
+              variant={selectedScope === 'all' ? 'default' : 'ghost'}
+              size="sm"
+              aria-pressed={selectedScope === 'all'}
+              onClick={() => setSelectedScope('all')}
+              className="h-7 gap-1.5 px-2.5 text-xs"
+            >
+              <Layers className="h-3.5 w-3.5" />
+              {t('personaConfig.journalScopeAll')}
+              <Badge
+                variant={selectedScope === 'all' ? 'secondary' : 'outline'}
+                className="ml-0.5 px-1 py-0 text-[10px]"
+              >
+                {timeline.length}
               </Badge>
-            )}
+            </Button>
+            <Button
+              variant={selectedScope === '__self__' ? 'default' : 'ghost'}
+              size="sm"
+              aria-pressed={selectedScope === '__self__'}
+              onClick={() => setSelectedScope('__self__')}
+              className="h-7 gap-1.5 px-2.5 text-xs"
+            >
+              <BookOpen className="h-3.5 w-3.5" />
+              {t('personaConfig.journalScopeSelf')}
+              <Badge
+                variant={selectedScope === '__self__' ? 'secondary' : 'outline'}
+                className="ml-0.5 px-1 py-0 text-[10px]"
+              >
+                {selfTimeline.length}
+              </Badge>
+            </Button>
+            {groupShards.map((gs) => {
+              const isSelected = selectedScope === gs.group_id;
+              return (
+                <Button
+                  key={gs.group_id}
+                  variant={isSelected ? 'default' : 'ghost'}
+                  size="sm"
+                  aria-pressed={isSelected}
+                  onClick={() => setSelectedScope(gs.group_id)}
+                  className="h-7 gap-1.5 px-2.5 text-xs"
+                >
+                  <Users className="h-3.5 w-3.5" />
+                  {t('personaConfig.journalScopeGroup', { id: gs.group_id })}
+                  <Badge
+                    variant={isSelected ? 'secondary' : 'outline'}
+                    className="ml-0.5 px-1 py-0 text-[10px]"
+                  >
+                    {gs.timeline_count}
+                  </Badge>
+                </Button>
+              );
+            })}
           </div>
-          <p className="text-xs text-muted-foreground">{t('personaConfig.journalDesc')}</p>
-        </div>
-        <div className="flex items-center gap-2">
+        )}
+        <div className="flex flex-wrap items-center gap-2 sm:ml-auto sm:shrink-0">
           {!rawEditing ? (
             <>
               <Button
@@ -389,94 +434,30 @@ export function PersonaJournalTab({ personaName }: PersonaJournalTabProps) {
         </div>
       </div>
 
-      {/* 分片范围切换胶囊栏（玻璃底，严格联动主题设置） */}
-      {hasStructured && !rawEditing && (
-        <div className="space-y-2">
-          <div className="glass-card-flat flex flex-wrap items-center gap-1.5 rounded-lg p-1.5">
+      {showScopeBar && selectedScope !== 'all' && (
+        <div className="glass-card-flat flex flex-wrap items-center justify-between gap-2 rounded-lg px-3 py-1.5 text-xs">
+          <div className="flex items-center gap-2 text-muted-foreground">
             <Button
-              variant={selectedScope === 'all' ? 'default' : 'ghost'}
+              variant="outline"
               size="sm"
-              aria-pressed={selectedScope === 'all'}
               onClick={() => setSelectedScope('all')}
-              className="h-7 gap-1.5 px-2.5 text-xs"
+              className="h-7 gap-1 px-2 text-xs"
             >
-              <Layers className="h-3.5 w-3.5" />
+              <ArrowLeft className="h-3.5 w-3.5" />
               {t('personaConfig.journalScopeAll')}
-              <Badge
-                variant={selectedScope === 'all' ? 'secondary' : 'outline'}
-                className="ml-0.5 px-1 py-0 text-[10px]"
-              >
-                {timeline.length}
-              </Badge>
             </Button>
-            <Button
-              variant={selectedScope === '__self__' ? 'default' : 'ghost'}
-              size="sm"
-              aria-pressed={selectedScope === '__self__'}
-              onClick={() => setSelectedScope('__self__')}
-              className="h-7 gap-1.5 px-2.5 text-xs"
-            >
-              <BookOpen className="h-3.5 w-3.5" />
-              {t('personaConfig.journalScopeSelf')}
-              <Badge
-                variant={selectedScope === '__self__' ? 'secondary' : 'outline'}
-                className="ml-0.5 px-1 py-0 text-[10px]"
-              >
-                {selfTimeline.length}
-              </Badge>
-            </Button>
-            {groupShards.map((gs) => {
-              const isSelected = selectedScope === gs.group_id;
-              return (
-                <Button
-                  key={gs.group_id}
-                  variant={isSelected ? 'default' : 'ghost'}
-                  size="sm"
-                  aria-pressed={isSelected}
-                  onClick={() => setSelectedScope(gs.group_id)}
-                  className="h-7 gap-1.5 px-2.5 text-xs"
-                >
-                  <Users className="h-3.5 w-3.5" />
-                  {t('personaConfig.journalScopeGroup', { id: gs.group_id })}
-                  <Badge
-                    variant={isSelected ? 'secondary' : 'outline'}
-                    className="ml-0.5 px-1 py-0 text-[10px]"
-                  >
-                    {gs.timeline_count}
-                  </Badge>
-                </Button>
-              );
-            })}
+            <span className="font-medium text-foreground">
+              {isGroupScope && activeGroupShard
+                ? t('personaConfig.journalScopeGroup', { id: activeGroupShard.group_id })
+                : t('personaConfig.journalScopeSelf')}
+            </span>
           </div>
-
-          {selectedScope !== 'all' && (
-            <div className="glass-card-flat flex flex-wrap items-center justify-between gap-2 rounded-lg px-3 py-1.5 text-xs">
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setSelectedScope('all')}
-                  className="h-7 gap-1 px-2 text-xs"
-                >
-                  <ArrowLeft className="h-3.5 w-3.5" />
-                  {t('personaConfig.journalScopeAll')}
-                </Button>
-                <span className="font-medium text-foreground">
-                  {isGroupScope && activeGroupShard
-                    ? t('personaConfig.journalScopeGroup', { id: activeGroupShard.group_id })
-                    : t('personaConfig.journalScopeSelf')}
-                </span>
-              </div>
-              <span className="font-mono text-[11px] text-muted-foreground">
-                {activeMarkdownPath}
-              </span>
-            </div>
-          )}
+          <span className="font-mono text-[11px] text-muted-foreground">{activeMarkdownPath}</span>
         </div>
       )}
 
       {rawEditing ? (
-        <Card className="glass-card-flat">
+        <Card className="glass-card">
           <CardHeader className="py-3">
             <CardTitle className="text-sm font-medium">
               {t('personaConfig.journalMarkdownTitle')}
@@ -495,11 +476,11 @@ export function PersonaJournalTab({ personaName }: PersonaJournalTabProps) {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-4">
+        <div className={pageStackClass}>
           {/* 多尺度记忆层卡片（持久 / 当月 / 昨日） */}
           {hasStructured ? (
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-              <Card className="glass-card-flat">
+            <div className={cn('grid grid-cols-1 md:grid-cols-3', pageGapClass)}>
+              <Card className="glass-card">
                 <CardHeader className="pb-2 pt-3 px-3.5">
                   <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
                     <BookOpen className="h-3.5 w-3.5 text-primary" />
@@ -515,7 +496,7 @@ export function PersonaJournalTab({ personaName }: PersonaJournalTabProps) {
                 </CardContent>
               </Card>
 
-              <Card className="glass-card-flat">
+              <Card className="glass-card">
                 <CardHeader className="pb-2 pt-3 px-3.5">
                   <div className="flex items-center justify-between gap-2 text-xs font-semibold text-foreground">
                     <div className="flex items-center gap-2">
@@ -538,7 +519,7 @@ export function PersonaJournalTab({ personaName }: PersonaJournalTabProps) {
                 </CardContent>
               </Card>
 
-              <Card className="glass-card-flat">
+              <Card className="glass-card">
                 <CardHeader className="pb-2 pt-3 px-3.5">
                   <div className="flex items-center justify-between gap-2 text-xs font-semibold text-foreground">
                     <div className="flex items-center gap-2">
@@ -562,7 +543,7 @@ export function PersonaJournalTab({ personaName }: PersonaJournalTabProps) {
               </Card>
             </div>
           ) : (
-            <Card className="glass-card-flat">
+            <Card className="glass-card">
               <CardHeader className="pb-2 pt-3 px-4">
                 <div className="flex items-center gap-2 text-sm font-medium text-foreground">
                   <BookOpen className="h-4 w-4 text-primary" />
@@ -579,7 +560,7 @@ export function PersonaJournalTab({ personaName }: PersonaJournalTabProps) {
 
           {/* 全景模式下展示各驻群分片近况速览卡，点击可切入单群分片 */}
           {selectedScope === 'all' && groupShards.length > 0 && (
-            <Card className="glass-card-flat">
+            <Card className="glass-card">
               <CardHeader className="pb-2 pt-3 px-4">
                 <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
                   <Users className="h-3.5 w-3.5 text-primary" />
@@ -619,7 +600,7 @@ export function PersonaJournalTab({ personaName }: PersonaJournalTabProps) {
           )}
 
           {/* 今日行动流水 */}
-          <Card className="glass-card-flat">
+          <Card className="glass-card">
             <CardHeader className="pb-2 pt-3 px-4">
               <div className="flex items-center gap-2 text-sm font-medium text-foreground">
                 <Clock className="h-4 w-4 text-primary" />
