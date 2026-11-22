@@ -58,7 +58,9 @@ import {
   generateErrorReportDates,
   generatePersonaList,
   generatePersonaDetail,
+  generatePersonaConfig,
   generatePersonaConfigAll,
+  applyPersonaConfigUpdate,
   generateGlobalPersonaConfig,
   generatePlaceholderPreview,
   generatePromptGroups,
@@ -1108,6 +1110,22 @@ const routes: Route[] = [
     h: () => generatePlaceholderPreview(),
   },
   { m: 'GET', re: /^\/api\/persona\/config\/global$/, h: () => generateGlobalPersonaConfig() },
+  {
+    m: 'GET',
+    re: /^\/api\/persona\/([^/]+)\/config$/,
+    h: ({ url }) => {
+      const name = decodeURIComponent(url.pathname.match(/\/persona\/([^/]+)\/config$/)![1]);
+      return generatePersonaConfig(name);
+    },
+  },
+  {
+    m: 'PUT',
+    re: /^\/api\/persona\/([^/]+)\/config$/,
+    h: ({ url, body }) => {
+      const name = decodeURIComponent(url.pathname.match(/\/persona\/([^/]+)\/config$/)![1]);
+      return applyPersonaConfigUpdate(name, body);
+    },
+  },
   {
     m: 'GET',
     re: /^\/api\/persona\/([^/]+)\/settings$/,

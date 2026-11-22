@@ -109,13 +109,11 @@ import {
   getApiErrorMessage,
   personaApi,
   promptGroupApi,
-  frameworkConfigApi,
   capabilityAgentsApi,
   type AgentNodeItem,
   type PersonaListItem,
-  type PersonaFrameworkConfig,
   type PersonaConfig,
-  type PersonaScope,
+  type ChannelScope,
   type AIMode,
   type AutonomyCareZone,
   type CuriosityFocus,
@@ -144,6 +142,15 @@ import { CapabilityAgentsPanel } from '@/components/persona/CapabilityAgentsPane
 import { useCapabilityAgents } from '@/components/persona/useCapabilityAgents';
 import { enabledIdsToSpec, specToEnabledIds } from '@/lib/capabilityAgentAllowlist';
 import { enabledPluginsToSpec, specToEnabledPlugins } from '@/lib/personaToolScope';
+import {
+  findChannelConflicts,
+  hasChannelConflicts,
+  isPersonaScopeEnabled,
+  resolveChannelScopes,
+  type ChannelConflicts,
+  type PersonaChannel,
+  type ResolvedChannelScopes,
+} from '@/lib/personaScope';
 import { PersonaToolScopeEditor } from '@/components/persona/PersonaToolScopeEditor';
 // ============================================================================
 // 类型定义
@@ -151,6 +158,7 @@ import { PersonaToolScopeEditor } from '@/components/persona/PersonaToolScopeEdi
 interface PersonaCardData extends PersonaListItem {
   enabled: boolean;
   groups: string[];
+  users: string[];
   content: string;
   config?: PersonaConfig;
 }
@@ -186,41 +194,33 @@ const AI_MODE_OPTIONS: {
     description: '空闲时自己看一眼，再决定要不要说',
   },
 ];
-const SCOPE_OPTIONS: {
-  value: PersonaScope;
+const CHANNEL_SCOPE_OPTIONS: {
+  value: ChannelScope;
   labelKey: string;
-  descKey: string;
+  groupDescKey: string;
+  privateDescKey: string;
   icon: React.ReactNode;
 }[] = [
   {
-    value: 'disabled',
-    labelKey: 'personaConfig.scopeDisabled',
-    descKey: 'personaConfig.scopeDisabledDesc',
+    value: 'off',
+    labelKey: 'personaConfig.channelScopeOff',
+    groupDescKey: 'personaConfig.channelGroupOffDesc',
+    privateDescKey: 'personaConfig.channelPrivateOffDesc',
     icon: <PowerOff className="w-4 h-4" />,
   },
   {
     value: 'specific',
-    labelKey: 'personaConfig.scopeSpecific',
-    descKey: 'personaConfig.scopeSpecificDesc',
+    labelKey: 'personaConfig.channelScopeSpecific',
+    groupDescKey: 'personaConfig.channelGroupSpecificDesc',
+    privateDescKey: 'personaConfig.channelPrivateSpecificDesc',
     icon: <Users className="w-4 h-4" />,
   },
   {
-    value: 'global',
-    labelKey: 'personaConfig.scopeGlobal',
-    descKey: 'personaConfig.scopeGlobalDesc',
+    value: 'all',
+    labelKey: 'personaConfig.channelScopeAll',
+    groupDescKey: 'personaConfig.channelGroupAllDesc',
+    privateDescKey: 'personaConfig.channelPrivateAllDesc',
     icon: <Globe className="w-4 h-4" />,
-  },
-  {
-    value: 'global_group',
-    labelKey: 'personaConfig.scopeGlobalGroup',
-    descKey: 'personaConfig.scopeGlobalGroupDesc',
-    icon: <MessagesSquare className="w-4 h-4" />,
-  },
-  {
-    value: 'global_private',
-    labelKey: 'personaConfig.scopeGlobalPrivate',
-    descKey: 'personaConfig.scopeGlobalPrivateDesc',
-    icon: <MessageCircle className="w-4 h-4" />,
   },
 ];
 const CONFIG_OPTION_BUTTON =
@@ -237,18 +237,20 @@ function collectAlwaysMountedTools(catalog: PersonaToolCatalog | null): string[]
   return Array.from(names).sort();
 }
 const CARD_BADGE = 'h-5 px-1.5 text-[10px] font-sans font-medium';
-function isGlobalLikeScope(scope: PersonaScope | undefined): boolean {
-  return scope === 'global' || scope === 'global_group' || scope === 'global_private';
-}
-function findConflictingPersonas(
-  configs: Record<string, PersonaConfig>,
-  personaName: string,
-  newScope: PersonaScope,
-): string[] {
-  if (!isGlobalLikeScope(newScope)) return [];
-  return Object.entries(configs)
-    .filter(([name, cfg]) => name !== personaName && isGlobalLikeScope(cfg.scope))
-    .map(([name]) => name);
+function formatConflictDetail(
+  conflicts: ChannelConflicts,
+  t: (key: string, params?: Record<string, string | number>) => string,
+): string {
+  const parts: string[] = [];
+  if (conflicts.group.length > 0) {
+    parts.push(t('personaConfig.channelGlobalGroupEntry', { name: conflicts.group.join('、') }));
+  }
+  if (conflicts.private.length > 0) {
+    parts.push(
+      t('personaConfig.channelGlobalPrivateEntry', { name: conflicts.private.join('、') }),
+    );
+  }
+  return parts.join(' / ');
 }
 // ============================================================================
 // 工具函数
@@ -317,19 +319,23 @@ function fileToBase64(file: File): Promise<string> {
   });
 }
 // 获取范围标签样式
-function getScopeBadgeStyle(scope: PersonaScope) {
-  switch (scope) {
-    case 'global':
-      return 'bg-blue-500/15 text-blue-600 border border-blue-500/30';
-    case 'global_group':
-      return 'bg-sky-500/15 text-sky-600 border border-sky-500/30';
-    case 'global_private':
-      return 'bg-violet-500/15 text-violet-600 border border-violet-500/30';
-    case 'specific':
-      return 'bg-green-500/15 text-green-600 border border-green-500/30';
-    default:
-      return 'bg-gray-500/15 text-gray-500 border border-gray-500/30';
+function getChannelBadgeStyle(scopes: ResolvedChannelScopes) {
+  if (scopes.group_scope === 'all' && scopes.private_scope === 'all') {
+    return 'bg-blue-500/15 text-blue-600 border border-blue-500/30';
   }
+  if (scopes.group_scope === 'all' && scopes.private_scope === 'off') {
+    return 'bg-sky-500/15 text-sky-600 border border-sky-500/30';
+  }
+  if (scopes.group_scope === 'off' && scopes.private_scope === 'all') {
+    return 'bg-violet-500/15 text-violet-600 border border-violet-500/30';
+  }
+  if (scopes.group_scope === 'all' || scopes.private_scope === 'all') {
+    return 'bg-indigo-500/15 text-indigo-600 border border-indigo-500/30';
+  }
+  if (scopes.group_scope === 'specific' || scopes.private_scope === 'specific') {
+    return 'bg-green-500/15 text-green-600 border border-green-500/30';
+  }
+  return 'bg-gray-500/15 text-gray-500 border border-gray-500/30';
 }
 function speechShapeOf(config: PersonaConfig | undefined): SpeechShapeSpec {
   const shape = config?.speech_shape;
@@ -345,19 +351,44 @@ function boundInt(raw: string, min: number, max: number, fallback: number): numb
   return value;
 }
 
-function getScopeLabel(scope: PersonaScope, t: (key: string) => string) {
-  switch (scope) {
-    case 'global':
-      return t('personaConfig.scopeGlobal');
-    case 'global_group':
-      return t('personaConfig.scopeGlobalGroup');
-    case 'global_private':
-      return t('personaConfig.scopeGlobalPrivate');
-    case 'specific':
-      return t('personaConfig.scopeSpecific');
-    default:
-      return t('personaConfig.scopeDisabled');
+function getChannelBadgeLabel(
+  scopes: ResolvedChannelScopes,
+  groupCount: number,
+  userCount: number,
+  t: (key: string, params?: Record<string, string | number>) => string,
+) {
+  if (scopes.group_scope === 'off' && scopes.private_scope === 'off') {
+    return t('personaConfig.scopeDisabled');
   }
+  if (scopes.group_scope === 'all' && scopes.private_scope === 'all') {
+    return t('personaConfig.scopeGlobal');
+  }
+  if (scopes.group_scope === 'all' && scopes.private_scope === 'off') {
+    return t('personaConfig.scopeGlobalGroup');
+  }
+  if (scopes.group_scope === 'off' && scopes.private_scope === 'all') {
+    return t('personaConfig.scopeGlobalPrivate');
+  }
+  const parts: string[] = [];
+  if (scopes.group_scope === 'all') {
+    parts.push(t('personaConfig.scopeGlobalGroup'));
+  } else if (scopes.group_scope === 'specific') {
+    parts.push(
+      groupCount > 0
+        ? t('personaConfig.scopeGroupCountShort', { count: groupCount })
+        : `${t('personaConfig.channelGroup')}:${t('personaConfig.channelScopeSpecific')}`,
+    );
+  }
+  if (scopes.private_scope === 'all') {
+    parts.push(t('personaConfig.scopeGlobalPrivate'));
+  } else if (scopes.private_scope === 'specific') {
+    parts.push(
+      userCount > 0
+        ? t('personaConfig.scopeUserCountShort', { count: userCount })
+        : `${t('personaConfig.channelPrivate')}:${t('personaConfig.channelScopeSpecific')}`,
+    );
+  }
+  return parts.join(' · ');
 }
 // ============================================================================
 // 组件定义
@@ -660,7 +691,6 @@ export default function PersonaConfigPage() {
       }
     >
   >({});
-  const [frameworkConfig, setFrameworkConfig] = useState<PersonaFrameworkConfig | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
@@ -678,7 +708,7 @@ export default function PersonaConfigPage() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingPersona, setEditingPersona] = useState<PersonaCardData | null>(null);
   const builtinPersona = editingPersona?.builtin === true || editingPersona?.name === '早柚';
-  // git 市场导入的人格：内容/资源/行为配置由仓库拥有，仅启用范围（scope/target_groups）可改
+  // git 市场导入的人格：内容/资源/行为配置由仓库拥有，仅双通道范围与目标列表可改
   const managedPersona = editingPersona?.managed === true;
   const [promptGroupNames, setPromptGroupNames] = useState<string[]>(['默认']);
   const [editingPromptGroup, setEditingPromptGroup] = useState('默认');
@@ -687,8 +717,10 @@ export default function PersonaConfigPage() {
   const [speechSoftText, setSpeechSoftText] = useState('60');
   const [editContent, setEditContent] = useState('');
   const [editingGroups, setEditingGroups] = useState<string[]>([]);
+  const [editingUsers, setEditingUsers] = useState<string[]>([]);
   const [editingAIModes, setEditingAIModes] = useState<AIMode[]>([]);
-  const [editingScope, setEditingScope] = useState<PersonaScope>('disabled');
+  const [editingGroupScope, setEditingGroupScope] = useState<ChannelScope>('off');
+  const [editingPrivateScope, setEditingPrivateScope] = useState<ChannelScope>('off');
   const [editingInspectInterval, setEditingInspectInterval] = useState<number>(10);
   const [editingKeywords, setEditingKeywords] = useState<string[]>([]);
   const [asideImage, setAsideImage] = useState(ASIDE_IMAGE_DEFAULT);
@@ -748,8 +780,8 @@ export default function PersonaConfigPage() {
   const [scopeChangeConfirmOpen, setScopeChangeConfirmOpen] = useState(false);
   const [pendingScopeChange, setPendingScopeChange] = useState<{
     personaName: string;
-    newScope: PersonaScope;
-    conflicts: string[];
+    patch: Partial<ResolvedChannelScopes>;
+    conflicts: ChannelConflicts;
   } | null>(null);
   // 图片预览对话框
   const [imagePreviewOpen, setImagePreviewOpen] = useState(false);
@@ -761,14 +793,6 @@ export default function PersonaConfigPage() {
   const [uploadType, setUploadType] = useState<'avatar' | 'image' | 'audio'>('avatar');
   // 资源刷新时间戳 - 用于强制刷新图片缓存
   const [resourceTimestamp, setResourceTimestamp] = useState<number>(Date.now());
-  // 获取启用人格列表
-  const enabledPersonas = useMemo(() => {
-    return frameworkConfig?.config?.enable_persona?.value || [];
-  }, [frameworkConfig]);
-  // 获取人格对应的群聊映射
-  const personaGroupsMap = useMemo(() => {
-    return frameworkConfig?.config?.persona_for_session?.value || {};
-  }, [frameworkConfig]);
   // 可委派能力代理：列表项（node_id 为主键，display_name 兜底）
   const capabilityAgentItems = useMemo(
     () =>
@@ -785,13 +809,14 @@ export default function PersonaConfigPage() {
       const config = personaConfigs[item.name];
       return {
         ...item,
-        enabled: enabledPersonas.includes(item.name),
-        groups: config?.target_groups || personaGroupsMap[item.name] || [],
+        enabled: isPersonaScopeEnabled(config),
+        groups: config?.target_groups || [],
+        users: config?.target_users || [],
         content: personaDetails[item.name]?.content || '',
         config: config,
       };
     });
-  }, [personaList, enabledPersonas, personaGroupsMap, personaDetails, personaConfigs]);
+  }, [personaList, personaDetails, personaConfigs]);
   const activePromptLines = useMemo(
     () =>
       activePromptGroupLines(
@@ -808,26 +833,22 @@ export default function PersonaConfigPage() {
     for (const line of activePromptLines) grouped[line.group] = line.names;
     return grouped;
   }, [activePromptLines]);
-  // 加载人格列表和框架配置
+  // 加载人格列表与配置
   const loadData = useCallback(async () => {
     try {
       setIsLoading(true);
-      const [listData, frameworkData, allConfigs, hbStatus, agentList, catalog] = await Promise.all(
-        [
-          personaApi.getPersonaList(),
-          personaApi.getFrameworkConfig(),
-          personaApi.getAllPersonaConfigs().catch(() => ({}) as Record<string, PersonaConfig>),
-          personaApi.getHeartbeatStatus().catch(() => null),
-          capabilityAgentsApi
-            .getList(undefined, { delegable: true })
-            .catch(() => ({ items: [], count: 0 })),
-          personaApi.getToolCatalog().catch(() => null),
-        ],
-      );
+      const [listData, allConfigs, hbStatus, agentList, catalog] = await Promise.all([
+        personaApi.getPersonaList(),
+        personaApi.getAllPersonaConfigs().catch(() => ({}) as Record<string, PersonaConfig>),
+        personaApi.getHeartbeatStatus().catch(() => null),
+        capabilityAgentsApi
+          .getList(undefined, { delegable: true })
+          .catch(() => ({ items: [], count: 0 })),
+        personaApi.getToolCatalog().catch(() => null),
+      ]);
       setDelegableAgents(agentList.items ?? []);
       setToolCatalog(catalog);
       setPersonaList(listData);
-      setFrameworkConfig(frameworkData);
       setPersonaConfigs(allConfigs);
       try {
         const groups = await promptGroupApi.list();
@@ -860,8 +881,9 @@ export default function PersonaConfigPage() {
               has_avatar: detail.metadata?.has_avatar ?? item.has_avatar,
               has_image: detail.metadata?.has_image ?? item.has_image,
               has_audio: detail.metadata?.has_audio ?? item.has_audio,
-              enabled: enabledPersonas.includes(item.name),
-              groups: config?.target_groups || personaGroupsMap[item.name] || [],
+              enabled: isPersonaScopeEnabled(config),
+              groups: config?.target_groups || [],
+              users: config?.target_users || [],
               config: config,
             };
           } catch {
@@ -872,6 +894,7 @@ export default function PersonaConfigPage() {
               has_audio: item.has_audio,
               enabled: false,
               groups: [],
+              users: [],
               content: '',
               config: allConfigs[item.name],
             };
@@ -885,10 +908,10 @@ export default function PersonaConfigPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [t, enabledPersonas, personaGroupsMap]);
+  }, [t]);
   useEffect(() => {
     loadData();
-  }, []);
+  }, [loadData]);
   // 清理音频资源
   useEffect(() => {
     return () => {
@@ -898,20 +921,6 @@ export default function PersonaConfigPage() {
       }
     };
   }, []);
-  // 更新框架配置到后端
-  const updateFrameworkConfig = useCallback(
-    async (configName: string, config: Record<string, unknown>) => {
-      try {
-        await frameworkConfigApi.updateFrameworkConfig(configName, config);
-        toast.success(t('common.saveSuccess'));
-      } catch (error) {
-        console.error('Failed to update framework config:', error);
-        toast.error(t('common.saveFailed'));
-        throw error;
-      }
-    },
-    [t],
-  );
   // 创建新人格
   const handleCreatePersona = async () => {
     if (!newPersonaName.trim()) {
@@ -970,39 +979,34 @@ export default function PersonaConfigPage() {
       setIsCreating(false);
     }
   };
-  // 切换人格启用状态（旧版兼容）
-  const _handleToggleEnabled = async (personaName: string, enabled: boolean) => {
-    if (!frameworkConfig) return;
-    try {
-      const newEnabledList = enabled
-        ? [...enabledPersonas, personaName]
-        : enabledPersonas.filter((n) => n !== personaName);
-      await updateFrameworkConfig(frameworkConfig.full_name, {
-        enable_persona: newEnabledList,
-      });
-      await loadData();
-    } catch (error) {
-      console.error('Failed to toggle persona:', error);
-    }
-  };
-  // 处理范围变更
-  const handleScopeChange = async (personaName: string, newScope: PersonaScope) => {
-    const conflicts = findConflictingPersonas(personaConfigs, personaName, newScope);
-    if (conflicts.length > 0) {
-      setPendingScopeChange({ personaName, newScope, conflicts });
+  // 处理单通道范围变更（群聊 / 私聊独立互斥）
+  const handleChannelScopeChange = async (
+    personaName: string,
+    channel: PersonaChannel,
+    newValue: ChannelScope,
+  ) => {
+    const current = resolveChannelScopes(personaConfigs[personaName]);
+    const currentValue = channel === 'group' ? current.group_scope : current.private_scope;
+    if (currentValue === newValue) return;
+    const patch: Partial<ResolvedChannelScopes> =
+      channel === 'group' ? { group_scope: newValue } : { private_scope: newValue };
+    const conflicts = findChannelConflicts(personaConfigs, personaName, patch);
+    if (hasChannelConflicts(conflicts)) {
+      setPendingScopeChange({ personaName, patch, conflicts });
       setScopeChangeConfirmOpen(true);
       return;
     }
-    await applyScopeChange(personaName, newScope);
+    await applyChannelScopeChange(personaName, patch);
   };
-  // 应用范围变更
-  const applyScopeChange = async (personaName: string, newScope: PersonaScope) => {
+  // 应用通道范围变更
+  const applyChannelScopeChange = async (
+    personaName: string,
+    patch: Partial<ResolvedChannelScopes>,
+  ) => {
     try {
       setIsSavingConfig(true);
-      // 只发改动的键：后端按 key 逐项应用；git 市场人格走白名单，夹带全量 config 会整体被拒
-      await personaApi.updatePersonaConfig(personaName, {
-        scope: newScope,
-      });
+      // 只发改动的键：后端按 key 逐项应用；git 市场人格走白名单
+      await personaApi.updatePersonaConfig(personaName, patch);
       toast.success(t('personaConfig.configUpdated'));
       await loadData();
     } catch (error) {
@@ -1013,22 +1017,15 @@ export default function PersonaConfigPage() {
       setPendingScopeChange(null);
     }
   };
-  // 确认切换全局启用
+  // 确认切换通道全局范围（后端原子关闭对方冲突通道，保留对方另一通道）
   const handleConfirmScopeChange = async () => {
     if (!pendingScopeChange) return;
 
     try {
       setIsSavingConfig(true);
-
-      for (const conflictName of pendingScopeChange.conflicts) {
-        await personaApi.updatePersonaConfig(conflictName, {
-          scope: 'disabled',
-        });
-      }
-
-      // 然后设置新的人格为全局启用
       await personaApi.updatePersonaConfig(pendingScopeChange.personaName, {
-        scope: pendingScopeChange.newScope,
+        ...pendingScopeChange.patch,
+        takeover_conflicts: true,
       });
       toast.success(t('personaConfig.configUpdated'));
       await loadData();
@@ -1085,11 +1082,14 @@ export default function PersonaConfigPage() {
   }, []);
   // 打开编辑对话框（点击卡片）
   const handleCardClick = (persona: PersonaCardData) => {
+    const resolvedScopes = resolveChannelScopes(persona.config);
     setEditingPersona(persona);
     setEditContent(persona.content);
     setEditingGroups([...persona.groups]);
+    setEditingUsers([...persona.users]);
     setEditingAIModes(knownAIModes(persona.config?.ai_mode));
-    setEditingScope(persona.config?.scope || 'disabled');
+    setEditingGroupScope(resolvedScopes.group_scope);
+    setEditingPrivateScope(resolvedScopes.private_scope);
     setEditingPromptGroup(persona.config?.prompt_group || '默认');
     const shape = speechShapeOf(persona.config);
     setSpeechShape(shape);
@@ -1305,48 +1305,35 @@ export default function PersonaConfigPage() {
       }
     }
   };
-  // 保存编辑（群聊关联）
+  // 保存编辑
   const handleSaveEdit = async () => {
-    if (!editingPersona || !frameworkConfig) return;
+    if (!editingPersona) return;
     try {
       setIsSaving(true);
-      // 保存群聊关联
-      const updatedPersonaForSession = {
-        ...personaGroupsMap,
-        [editingPersona.name]: editingGroups,
-      };
-      await updateFrameworkConfig(frameworkConfig.full_name, {
-        persona_for_session: updatedPersonaForSession,
+      const saveConflicts = findChannelConflicts(personaConfigs, editingPersona.name, {
+        group_scope: editingGroupScope,
+        private_scope: editingPrivateScope,
       });
-      const saveConflicts = findConflictingPersonas(
-        personaConfigs,
-        editingPersona.name,
-        editingScope,
-      );
-      for (const conflictName of saveConflicts) {
-        const conflictConfig = personaConfigs[conflictName] || {
-          ai_mode: [],
-          scope: 'disabled' as PersonaScope,
-          target_groups: [],
-        };
-        await personaApi.updatePersonaConfig(conflictName, {
-          ...conflictConfig,
-          scope: 'disabled',
-        });
-      }
-      // 保存 AI 模式和启用范围配置。
-      // git 市场人格由仓库拥有行为配置，后端只放行 scope/target_groups，
-      // 其余键一并提交会被拒，这里就只发启用范围两个字段。
+      const takeoverConflicts = hasChannelConflicts(saveConflicts);
+      // 保存 AI 模式和启用范围配置（冲突抢占交由后端在其余字段全部校验通过后原子执行）。
+      // git 市场人格由仓库拥有行为配置，后端只放行通道范围与目标列表，
+      // 其余键一并提交会被拒，这里就只发启用范围字段。
       if (managedPersona) {
         await personaApi.updatePersonaConfig(editingPersona.name, {
-          scope: editingScope,
+          group_scope: editingGroupScope,
+          private_scope: editingPrivateScope,
           target_groups: editingGroups,
+          target_users: editingUsers,
+          ...(takeoverConflicts ? { takeover_conflicts: true } : {}),
         });
       } else {
         await personaApi.updatePersonaConfig(editingPersona.name, {
           ai_mode: knownAIModes(editingAIModes),
-          scope: editingScope,
+          group_scope: editingGroupScope,
+          private_scope: editingPrivateScope,
           target_groups: editingGroups,
+          target_users: editingUsers,
+          ...(takeoverConflicts ? { takeover_conflicts: true } : {}),
           inspect_interval: editingInspectInterval,
           keywords: editingKeywords,
           aside_image_probability: asideImage,
@@ -1416,8 +1403,10 @@ export default function PersonaConfigPage() {
       setEditingPersona(null);
       setEditContent('');
       setEditingGroups([]);
+      setEditingUsers([]);
       setEditingAIModes([]);
-      setEditingScope('disabled');
+      setEditingGroupScope('off');
+      setEditingPrivateScope('off');
       await loadData();
     } catch (error) {
       console.error('Failed to save persona:', error);
@@ -1460,7 +1449,6 @@ export default function PersonaConfigPage() {
   };
   // 处理卡片上的群聊标签变化（直接保存）
   const handleGroupsChange = async (personaName: string, groups: string[]) => {
-    if (!frameworkConfig) return;
     try {
       await personaApi.updatePersonaConfig(personaName, {
         target_groups: groups,
@@ -1469,6 +1457,18 @@ export default function PersonaConfigPage() {
       await loadData();
     } catch (error) {
       console.error('Failed to save groups:', error);
+      toast.error(getApiErrorMessage(error, t('common.saveFailed')));
+    }
+  };
+  // 处理卡片上的私聊用户标签变化（直接保存）
+  const handleUsersChange = async (personaName: string, users: string[]) => {
+    try {
+      await personaApi.updatePersonaConfig(personaName, {
+        target_users: users,
+      });
+      await loadData();
+    } catch (error) {
+      console.error('Failed to save target users:', error);
       toast.error(getApiErrorMessage(error, t('common.saveFailed')));
     }
   };
@@ -1535,7 +1535,7 @@ export default function PersonaConfigPage() {
     const avatarUrl = personaApi.getAvatarUrl(persona.name, resourceTimestamp);
     const imageUrl = personaApi.getImageUrl(persona.name, resourceTimestamp);
     const hasImage = persona.has_image;
-    const scope = persona.config?.scope || 'disabled';
+    const channelScopes = resolveChannelScopes(persona.config);
     const aiModes = knownAIModes(persona.config?.ai_mode);
     const inspectInterval = persona.config?.inspect_interval;
     const hb = heartbeatStatus[persona.name];
@@ -1677,8 +1677,13 @@ export default function PersonaConfigPage() {
               )}
               {/* 状态标签行 - 胶囊样式 */}
               <div className="flex items-center gap-2 mt-1.5">
-                <Badge className={cn(CARD_BADGE, getScopeBadgeStyle(scope))}>
-                  {getScopeLabel(scope, t)}
+                <Badge className={cn(CARD_BADGE, getChannelBadgeStyle(channelScopes))}>
+                  {getChannelBadgeLabel(
+                    channelScopes,
+                    persona.groups.length,
+                    persona.users.length,
+                    t,
+                  )}
                 </Badge>
                 {aiModes.length > 0 && (
                   <Badge
@@ -1780,37 +1785,66 @@ export default function PersonaConfigPage() {
               );
             })}
           </div>
-          {/* === 区域4: 启用范围选择（分隔线 + 胶囊按钮） === */}
-          <div className="pt-3 border-t border-primary/10" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center gap-1 mb-2">
+          {/* === 区域4: 双通道启用范围选择（群聊 / 私聊独立 3 档） === */}
+          <div
+            className="pt-3 border-t border-primary/10 space-y-2"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-1">
               <Globe className="w-3 h-3 text-primary/60" />
               <Label className="text-[10px] text-muted-foreground leading-none">
                 {t('personaConfig.enableScope')}
               </Label>
             </div>
-            {/* 5 个范围：窄屏三列（两行）才放得下文案；桌面仍五等分锁一行 */}
-            <div className="grid grid-cols-3 gap-1 sm:grid-cols-5">
-              {SCOPE_OPTIONS.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => handleScopeChange(persona.name, option.value)}
-                  disabled={isSavingConfig}
-                  className={cn(
-                    'flex min-w-0 items-center justify-center gap-1 px-1 py-2.5 sm:py-1.5 rounded-full text-[10px] font-medium leading-tight transition-all',
-                    'border',
-                    scope === option.value
-                      ? 'bg-primary/15 text-primary border-primary/40 shadow-sm'
-                      : 'bg-transparent text-muted-foreground border-border/30 hover:bg-muted/30 hover:border-border/50',
-                  )}
-                >
-                  <span className="flex h-3 w-3 shrink-0 items-center justify-center [&_svg]:h-3 [&_svg]:w-3">
-                    {option.icon}
-                  </span>
-                  <span className="min-w-0 truncate">{t(option.labelKey)}</span>
-                </button>
-              ))}
-            </div>
+            {(
+              [
+                {
+                  channel: 'group' as const,
+                  label: t('personaConfig.channelGroup'),
+                  icon: <MessagesSquare className="h-3 w-3 shrink-0 text-primary/70" />,
+                  value: channelScopes.group_scope,
+                },
+                {
+                  channel: 'private' as const,
+                  label: t('personaConfig.channelPrivate'),
+                  icon: <MessageCircle className="h-3 w-3 shrink-0 text-primary/70" />,
+                  value: channelScopes.private_scope,
+                },
+              ] as const
+            ).map((row) => (
+              <div
+                key={row.channel}
+                className="grid grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-1.5"
+              >
+                <span className="flex items-center gap-1 text-[10px] font-medium text-muted-foreground truncate">
+                  {row.icon}
+                  <span className="truncate">{row.label}</span>
+                </span>
+                <div className="grid grid-cols-3 gap-1">
+                  {CHANNEL_SCOPE_OPTIONS.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() =>
+                        handleChannelScopeChange(persona.name, row.channel, option.value)
+                      }
+                      disabled={isSavingConfig}
+                      className={cn(
+                        'flex min-w-0 items-center justify-center gap-1 px-1 py-1.5 rounded-full text-[10px] font-medium leading-tight transition-all border',
+                        row.value === option.value
+                          ? 'bg-primary/15 text-primary border-primary/40 shadow-sm'
+                          : 'bg-transparent text-muted-foreground border-border/30 hover:bg-muted/30 hover:border-border/50',
+                      )}
+                    >
+                      <span className="flex h-3 w-3 shrink-0 items-center justify-center [&_svg]:h-3 [&_svg]:w-3">
+                        {option.icon}
+                      </span>
+                      <span className="min-w-0 truncate">{t(option.labelKey)}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
           {/* === 区域5: AI 模式选择（胶囊按钮） === */}
           <div onClick={(e) => e.stopPropagation()}>
@@ -1887,8 +1921,8 @@ export default function PersonaConfigPage() {
               })}
             </div>
           </div>
-          {/* === 区域6: 关联群聊（仅特定模式） === */}
-          {scope === 'specific' && (
+          {/* === 区域6: 关联群聊 / 私聊用户（按通道独立展示） === */}
+          {channelScopes.group_scope === 'specific' && (
             <div className="pt-3 border-t border-primary/10" onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center gap-1 mb-2">
                 <Users className="w-3 h-3 text-primary/60" />
@@ -1900,6 +1934,21 @@ export default function PersonaConfigPage() {
                 value={persona.groups}
                 onChange={(groups) => handleGroupsChange(persona.name, groups)}
                 placeholder={t('personaConfig.groupsPlaceholder')}
+              />
+            </div>
+          )}
+          {channelScopes.private_scope === 'specific' && (
+            <div className="pt-3 border-t border-primary/10" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center gap-1 mb-2">
+                <MessageCircle className="w-3 h-3 text-primary/60" />
+                <Label className="text-[10px] text-muted-foreground leading-none">
+                  {t('personaConfig.enabledUsers')}
+                </Label>
+              </div>
+              <TagsInput
+                value={persona.users}
+                onChange={(users) => handleUsersChange(persona.name, users)}
+                placeholder={t('personaConfig.usersPlaceholder')}
               />
             </div>
           )}
@@ -2202,45 +2251,75 @@ export default function PersonaConfigPage() {
           <div>
             <div className="mb-3 space-y-3">
               <GlassAlert tone="warning">{t('personaConfig.builtinPersonaWarning')}</GlassAlert>
-              {/* 全局启用提示 */}
-              {personaCards.some((p) => isGlobalLikeScope(p.config?.scope)) && (
-                <GlassAlert tone="info" icon={Globe}>
-                  {t('personaConfig.globalEnabledHint', {
-                    name: personaCards
-                      .filter((p) => isGlobalLikeScope(p.config?.scope))
-                      .map((p) => `${p.name}（${getScopeLabel(p.config?.scope || 'disabled', t)}）`)
-                      .join('、'),
-                  })}
-                </GlassAlert>
-              )}
-              {/* 无启用人格警告 */}
-              {!personaCards.some((p) => isGlobalLikeScope(p.config?.scope)) &&
-                !personaCards.some((p) => p.config?.scope === 'specific') &&
-                personaCards.length > 0 && (
-                  <GlassAlert tone="warning">
-                    {t('personaConfig.noPersonaEnabledWarning')}
-                  </GlassAlert>
-                )}
-              {/* 仅特定群聊启用警告 */}
-              {!personaCards.some((p) => isGlobalLikeScope(p.config?.scope)) &&
-                personaCards.some((p) => p.config?.scope === 'specific') && (
-                  <GlassAlert
-                    tone="warning"
-                    className="grid w-full max-w-full grid-cols-[auto_minmax(0,1fr)]"
-                    contentClassName="whitespace-normal break-all"
-                  >
-                    {t('personaConfig.specificOnlyWarning', {
-                      groups:
-                        personaCards
-                          .filter((p) => p.config?.scope === 'specific' && p.groups.length > 0)
-                          .flatMap((p) => p.groups)
-                          .join('、') || t('personaConfig.noGroups'),
-                    })}
-                  </GlassAlert>
-                )}
+              {/* 双通道全局兜底提示 */}
+              {(() => {
+                const groupFallbacks = personaCards
+                  .filter((p) => resolveChannelScopes(p.config).group_scope === 'all')
+                  .map((p) => p.name);
+                const privateFallbacks = personaCards
+                  .filter((p) => resolveChannelScopes(p.config).private_scope === 'all')
+                  .map((p) => p.name);
+                const summaryParts: string[] = [];
+                if (groupFallbacks.length > 0) {
+                  summaryParts.push(
+                    t('personaConfig.channelGlobalGroupEntry', { name: groupFallbacks.join('、') }),
+                  );
+                }
+                if (privateFallbacks.length > 0) {
+                  summaryParts.push(
+                    t('personaConfig.channelGlobalPrivateEntry', {
+                      name: privateFallbacks.join('、'),
+                    }),
+                  );
+                }
+                const anyFallback = summaryParts.length > 0;
+                const anyEnabled = personaCards.some((p) => isPersonaScopeEnabled(p.config));
+                const specificTargets = Array.from(
+                  new Set(
+                    personaCards.flatMap((p) => {
+                      const sc = resolveChannelScopes(p.config);
+                      return [
+                        ...(sc.group_scope === 'specific'
+                          ? p.groups.map((id) => `${t('personaConfig.channelGroup')}:${id}`)
+                          : []),
+                        ...(sc.private_scope === 'specific'
+                          ? p.users.map((id) => `${t('personaConfig.channelPrivate')}:${id}`)
+                          : []),
+                      ];
+                    }),
+                  ),
+                );
+                return (
+                  <>
+                    {anyFallback && (
+                      <GlassAlert tone="info" icon={Globe}>
+                        {t('personaConfig.channelGlobalSummary', {
+                          detail: summaryParts.join(' ｜ '),
+                        })}
+                      </GlassAlert>
+                    )}
+                    {!anyEnabled && personaCards.length > 0 && (
+                      <GlassAlert tone="warning">
+                        {t('personaConfig.noPersonaEnabledWarning')}
+                      </GlassAlert>
+                    )}
+                    {!anyFallback && anyEnabled && (
+                      <GlassAlert
+                        tone="warning"
+                        className="grid w-full max-w-full grid-cols-[auto_minmax(0,1fr)]"
+                        contentClassName="whitespace-normal break-all"
+                      >
+                        {t('personaConfig.specificOnlyTargetsWarning', {
+                          targets: specificTargets.join('、') || t('personaConfig.noTargets'),
+                        })}
+                      </GlassAlert>
+                    )}
+                  </>
+                );
+              })()}
             </div>
             {/* 人格列表 - 固定列数的响应式网格。不用 auto-fit：空轨道会被折叠成 0，
-            只剩一张卡时它就被拉满整行；卡片内部本就是 5 等分范围胶囊的窄卡设计。 */}
+            只剩一张卡时它就被拉满整行；卡片内部为双行 3 档范围胶囊的窄卡设计。 */}
             {isLoading ? (
               <div className="flex items-center justify-center h-64">
                 <Loader2 className="w-8 h-8 animate-spin" />
@@ -2442,62 +2521,97 @@ export default function PersonaConfigPage() {
                         onSpeechSoftText={setSpeechSoftText}
                       />
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-4">
                       <Label className="flex items-center gap-2 text-base">
                         <Globe className="h-4 w-4" />
                         {t('personaConfig.enableScope')}
                       </Label>
-                      <div className="grid grid-cols-2 gap-3 items-stretch sm:grid-cols-3 lg:grid-cols-5">
-                        {SCOPE_OPTIONS.map((option) => (
-                          <button
-                            key={option.value}
-                            type="button"
-                            onClick={() => setEditingScope(option.value)}
-                            className={cn(
-                              CONFIG_OPTION_BUTTON,
-                              'h-full min-w-0',
-                              editingScope === option.value
-                                ? 'border-primary bg-primary/10'
-                                : 'border-border hover:border-border/80 hover:bg-muted/50',
-                            )}
-                          >
-                            <div
-                              className={cn(
-                                'p-1.5 rounded-full shrink-0',
-                                editingScope === option.value
-                                  ? 'bg-primary/20 text-primary'
-                                  : 'bg-muted text-muted-foreground',
-                              )}
-                            >
-                              {option.icon}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="font-medium text-sm truncate">
-                                {t(option.labelKey)}
-                              </div>
-                              <div className="text-xs text-muted-foreground mt-1 line-clamp-1">
-                                {t(option.descKey)}
-                              </div>
-                            </div>
-                          </button>
-                        ))}
-                      </div>
+                      {(
+                        [
+                          {
+                            channel: 'group' as const,
+                            label: t('personaConfig.channelGroup'),
+                            icon: <MessagesSquare className="h-3.5 w-3.5 text-primary/70" />,
+                            value: editingGroupScope,
+                            onSelect: setEditingGroupScope,
+                          },
+                          {
+                            channel: 'private' as const,
+                            label: t('personaConfig.channelPrivate'),
+                            icon: <MessageCircle className="h-3.5 w-3.5 text-primary/70" />,
+                            value: editingPrivateScope,
+                            onSelect: setEditingPrivateScope,
+                          },
+                        ] as const
+                      ).map((row) => (
+                        <div key={row.channel} className="space-y-2">
+                          <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                            {row.icon}
+                            <span>{row.label}</span>
+                          </div>
+                          <div className="grid grid-cols-1 gap-3 items-stretch sm:grid-cols-3">
+                            {CHANNEL_SCOPE_OPTIONS.map((option) => (
+                              <button
+                                key={option.value}
+                                type="button"
+                                onClick={() => row.onSelect(option.value)}
+                                className={cn(
+                                  CONFIG_OPTION_BUTTON,
+                                  'h-full min-w-0',
+                                  row.value === option.value
+                                    ? 'border-primary bg-primary/10'
+                                    : 'border-border hover:border-border/80 hover:bg-muted/50',
+                                )}
+                              >
+                                <div
+                                  className={cn(
+                                    'p-1.5 rounded-full shrink-0',
+                                    row.value === option.value
+                                      ? 'bg-primary/20 text-primary'
+                                      : 'bg-muted text-muted-foreground',
+                                  )}
+                                >
+                                  {option.icon}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="font-medium text-sm truncate">
+                                    {t(option.labelKey)}
+                                  </div>
+                                  <div className="text-xs text-muted-foreground mt-1 line-clamp-1">
+                                    {t(
+                                      row.channel === 'group'
+                                        ? option.groupDescKey
+                                        : option.privateDescKey,
+                                    )}
+                                  </div>
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
                     </div>
 
-                    {/* 全局启用冲突提示 */}
+                    {/* 通道全局冲突提示 */}
                     {editingPersona &&
-                      findConflictingPersonas(personaConfigs, editingPersona.name, editingScope)
-                        .length > 0 && (
-                        <GlassAlert tone="warning" icon={AlertCircle}>
-                          {t('personaConfig.globalConflictHint', {
-                            name: findConflictingPersonas(
-                              personaConfigs,
-                              editingPersona.name,
-                              editingScope,
-                            ).join('、'),
-                          })}
-                        </GlassAlert>
-                      )}
+                      (() => {
+                        const editConflicts = findChannelConflicts(
+                          personaConfigs,
+                          editingPersona.name,
+                          {
+                            group_scope: editingGroupScope,
+                            private_scope: editingPrivateScope,
+                          },
+                        );
+                        if (!hasChannelConflicts(editConflicts)) return null;
+                        return (
+                          <GlassAlert tone="warning" icon={AlertCircle}>
+                            {t('personaConfig.channelConflictHint', {
+                              detail: formatConflictDetail(editConflicts, t),
+                            })}
+                          </GlassAlert>
+                        );
+                      })()}
                     {/* AI 模式配置 */}
                     <div
                       {...(managedPersona ? ({ inert: '' } as object) : {})}
@@ -2551,8 +2665,8 @@ export default function PersonaConfigPage() {
                         </div>
                       </div>
                     </div>
-                    {/* 关联群聊 - 仅在 specific 模式下显示 */}
-                    {editingScope === 'specific' && (
+                    {/* 关联群聊 - 群聊通道为 specific 时显示 */}
+                    {editingGroupScope === 'specific' && (
                       <div className="space-y-2">
                         <Label className="flex items-center gap-2 text-base">
                           <Users className="h-4 w-4" />
@@ -2562,6 +2676,20 @@ export default function PersonaConfigPage() {
                           value={editingGroups}
                           onChange={setEditingGroups}
                           placeholder={t('personaConfig.groupsPlaceholder')}
+                        />
+                      </div>
+                    )}
+                    {/* 关联私聊用户 - 私聊通道为 specific 时显示 */}
+                    {editingPrivateScope === 'specific' && (
+                      <div className="space-y-2">
+                        <Label className="flex items-center gap-2 text-base">
+                          <MessageCircle className="h-4 w-4" />
+                          {t('personaConfig.enabledUsers')}
+                        </Label>
+                        <TagsInput
+                          value={editingUsers}
+                          onChange={setEditingUsers}
+                          placeholder={t('personaConfig.usersPlaceholder')}
                         />
                       </div>
                     )}
@@ -3215,19 +3343,24 @@ export default function PersonaConfigPage() {
               <AlertDialogTitle>{t('personaConfig.confirmSave')}</AlertDialogTitle>
               <AlertDialogDescription>
                 {editingPersona &&
-                findConflictingPersonas(personaConfigs, editingPersona.name, editingScope).length >
-                  0
-                  ? t('personaConfig.confirmSaveWithConflict', {
-                      name: editingPersona.name,
-                      current: findConflictingPersonas(
-                        personaConfigs,
-                        editingPersona.name,
-                        editingScope,
-                      ).join('、'),
-                    })
-                  : t('personaConfig.confirmSaveMessage', {
-                      name: editingPersona?.name,
-                    })}
+                  (() => {
+                    const saveConflicts = findChannelConflicts(
+                      personaConfigs,
+                      editingPersona.name,
+                      {
+                        group_scope: editingGroupScope,
+                        private_scope: editingPrivateScope,
+                      },
+                    );
+                    return hasChannelConflicts(saveConflicts)
+                      ? t('personaConfig.confirmSaveWithChannelConflict', {
+                          name: editingPersona.name,
+                          detail: formatConflictDetail(saveConflicts, t),
+                        })
+                      : t('personaConfig.confirmSaveMessage', {
+                          name: editingPersona.name,
+                        });
+                  })()}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -3236,19 +3369,27 @@ export default function PersonaConfigPage() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-        {/* 全局启用冲突确认 */}
-        <AlertDialog open={scopeChangeConfirmOpen} onOpenChange={setScopeChangeConfirmOpen}>
+        {/* 通道全局冲突确认 */}
+        <AlertDialog
+          open={scopeChangeConfirmOpen}
+          onOpenChange={(open) => {
+            setScopeChangeConfirmOpen(open);
+            if (!open) setPendingScopeChange(null);
+          }}
+        >
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle className="flex items-center gap-2">
                 <AlertCircle className="h-5 w-5 text-amber-500" />
-                {t('personaConfig.globalConflictTitle')}
+                {t('personaConfig.channelConflictTitle')}
               </AlertDialogTitle>
               <AlertDialogDescription>
-                {t('personaConfig.globalConflictMessage', {
-                  current: pendingScopeChange?.conflicts.join('、'),
-                  new: pendingScopeChange?.personaName,
-                })}
+                {pendingScopeChange
+                  ? t('personaConfig.channelConflictMessage', {
+                      detail: formatConflictDetail(pendingScopeChange.conflicts, t),
+                      new: pendingScopeChange.personaName,
+                    })
+                  : ''}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

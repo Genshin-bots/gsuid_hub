@@ -3172,6 +3172,7 @@ export interface PersonaFrameworkConfig {
 }
 
 // 角色配置相关类型
+export type ChannelScope = 'off' | 'specific' | 'all';
 export type PersonaScope = 'disabled' | 'global' | 'specific' | 'global_group' | 'global_private';
 export type AIMode = '提及应答' | '定时巡检' | '命令补充' | '自主行动';
 export type AutonomyCareZone = 'familiar' | 'close';
@@ -3197,7 +3198,10 @@ export interface SpeechShapeSpec {
 export interface PersonaConfig {
   ai_mode: AIMode[];
   scope: PersonaScope;
+  group_scope?: ChannelScope;
+  private_scope?: ChannelScope;
   target_groups: string[];
+  target_users?: string[];
   inspect_interval?: number; // 定时巡检间隔（分钟）�?, 10, 15, 30, 60
   keywords?: string[]; // 触发关键词列表（用于提及应答模式�?
   aside_image_probability?: number;
@@ -3245,7 +3249,11 @@ export interface PersonaConfigResponse {
 export interface PersonaConfigUpdateRequest {
   ai_mode?: AIMode[];
   scope?: PersonaScope;
+  group_scope?: ChannelScope;
+  private_scope?: ChannelScope;
   target_groups?: string[];
+  target_users?: string[];
+  takeover_conflicts?: boolean;
   inspect_interval?: number;
   keywords?: string[];
   aside_image_probability?: number;
@@ -6901,7 +6909,10 @@ export interface AIWizardPersonaScope {
   inspect_interval: number | null;
   has_inspect: boolean;
   scope: 'disabled' | 'global' | 'specific' | 'global_group' | 'global_private';
+  group_scope?: ChannelScope;
+  private_scope?: ChannelScope;
   target_groups: string[];
+  target_users?: string[];
   is_enabled: boolean;
   scope_desc: string;
 }

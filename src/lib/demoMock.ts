@@ -217,9 +217,12 @@ export const generateAIWizardStatus = () => ({
         inspect_interval: null,
         has_inspect: false,
         scope: 'global' as const,
+        group_scope: 'all' as const,
+        private_scope: 'all' as const,
         target_groups: [],
+        target_users: [],
         is_enabled: true,
-        scope_desc: '全局启用',
+        scope_desc: '全部群聊与私聊',
       },
       {
         name: '可莉',
@@ -227,9 +230,12 @@ export const generateAIWizardStatus = () => ({
         inspect_interval: 30,
         has_inspect: true,
         scope: 'specific' as const,
+        group_scope: 'specific' as const,
+        private_scope: 'off' as const,
         target_groups: ['114514'],
+        target_users: [],
         is_enabled: true,
-        scope_desc: '指定 1 个群',
+        scope_desc: '1 个群聊',
       },
       {
         name: '钟离',
@@ -237,7 +243,10 @@ export const generateAIWizardStatus = () => ({
         inspect_interval: null,
         has_inspect: false,
         scope: 'disabled' as const,
+        group_scope: 'off' as const,
+        private_scope: 'off' as const,
         target_groups: [],
+        target_users: [],
         is_enabled: false,
         scope_desc: '已禁用',
       },
@@ -1468,7 +1477,10 @@ const DEMO_PERSONAS = [
     description: 'Wind Spirit. 是一只来自璃月的小风精灵，活泼可爱，喜欢早安问候与小憩。',
     enabled: true,
     scope: 'global' as const,
+    group_scope: 'all' as const,
+    private_scope: 'all' as const,
     target_groups: [] as string[],
+    target_users: [] as string[],
     ai_mode: ['mention'],
     avatar: demoPlaceholderImage('persona-sayu', '早柚'),
     bound_groups_count: 0,
@@ -1479,7 +1491,10 @@ const DEMO_PERSONAS = [
     description: '嘟嘟可大魔王. 西风骑士团火花骑士，热爱炸鱼与画画。',
     enabled: true,
     scope: 'specific' as const,
+    group_scope: 'specific' as const,
+    private_scope: 'off' as const,
     target_groups: ['114514', '1919810'],
+    target_users: [] as string[],
     ai_mode: ['mention', 'inspect'],
     avatar: demoPlaceholderImage('persona-klee', '可莉'),
     bound_groups_count: 2,
@@ -1490,7 +1505,10 @@ const DEMO_PERSONAS = [
     description: '岩神. 来自璃月的神明，沉稳渊博，对人类与历史充满兴趣。',
     enabled: false,
     scope: 'disabled' as const,
-    target_groups: [],
+    group_scope: 'off' as const,
+    private_scope: 'off' as const,
+    target_groups: [] as string[],
+    target_users: [] as string[],
     ai_mode: ['mention'],
     avatar: demoPlaceholderImage('persona-zhongli', '钟离'),
     bound_groups_count: 0,
@@ -1501,7 +1519,10 @@ const DEMO_PERSONAS = [
     description: '应急食品. 最好的旅伴。',
     enabled: true,
     scope: 'specific' as const,
+    group_scope: 'specific' as const,
+    private_scope: 'off' as const,
     target_groups: ['10086'],
+    target_users: [] as string[],
     ai_mode: ['mention'],
     avatar: demoPlaceholderImage('persona-paimon', '派蒙'),
     bound_groups_count: 1,
@@ -1533,8 +1554,11 @@ export const applyPersonaCopy = (name: string) => {
     name: dest,
     enabled: false,
     scope: 'disabled',
+    group_scope: 'off',
+    private_scope: 'off',
     is_default: false,
     target_groups: [],
+    target_users: [],
     bound_groups_count: 0,
   });
   return { name: dest, source: name };
@@ -1546,7 +1570,10 @@ export const generatePersonaList = () =>
     description: p.description,
     enabled: p.enabled,
     scope: p.scope,
+    group_scope: p.group_scope,
+    private_scope: p.private_scope,
     target_groups: p.target_groups,
+    target_users: p.target_users,
     ai_mode: p.ai_mode,
     avatar: p.avatar,
     is_default: p.is_default,
@@ -1565,20 +1592,117 @@ export const generatePersonaDetail = (name: string) => {
       enable_persona: found.enabled,
       ai_mode: found.ai_mode,
       scope: found.scope,
+      group_scope: found.group_scope,
+      private_scope: found.private_scope,
       target_groups: found.target_groups,
+      target_users: found.target_users,
       inspect_interval: 30,
       trigger_words: ['早柚', '小风'],
     },
   };
 };
-export const generatePersonaConfigAll = () =>
-  allDemoPersonas().map((p) => ({
-    name: p.name,
-    enable_persona: p.enabled,
-    ai_mode: p.ai_mode,
-    scope: p.scope,
-    target_groups: p.target_groups,
-  }));
+export const generatePersonaConfigAll = () => {
+  const out: Record<
+    string,
+    {
+      ai_mode: string[];
+      scope: 'disabled' | 'global' | 'specific' | 'global_group' | 'global_private';
+      group_scope: 'off' | 'specific' | 'all';
+      private_scope: 'off' | 'specific' | 'all';
+      target_groups: string[];
+      target_users: string[];
+    }
+  > = {};
+  for (const p of allDemoPersonas()) {
+    out[p.name] = {
+      ai_mode: p.ai_mode,
+      scope: p.scope,
+      group_scope: p.group_scope,
+      private_scope: p.private_scope,
+      target_groups: p.target_groups,
+      target_users: p.target_users,
+    };
+  }
+  return out;
+};
+
+function deriveDemoLegacyScope(
+  groupScope: 'off' | 'specific' | 'all',
+  privateScope: 'off' | 'specific' | 'all',
+): 'disabled' | 'global' | 'specific' | 'global_group' | 'global_private' {
+  if (groupScope === 'off' && privateScope === 'off') return 'disabled';
+  if (groupScope === 'all' && privateScope === 'all') return 'global';
+  if (groupScope === 'all' && privateScope === 'off') return 'global_group';
+  if (groupScope === 'off' && privateScope === 'all') return 'global_private';
+  return 'specific';
+}
+
+export const generatePersonaConfig = (name: string) => {
+  const all = generatePersonaConfigAll();
+  return all[name] ?? null;
+};
+
+export const applyPersonaConfigUpdate = (name: string, body: unknown) => {
+  const all = allDemoPersonas();
+  const target = all.find((p) => p.name === name);
+  if (!target) return null;
+  const patch = (body ?? {}) as {
+    group_scope?: 'off' | 'specific' | 'all';
+    private_scope?: 'off' | 'specific' | 'all';
+    scope?: 'disabled' | 'global' | 'specific' | 'global_group' | 'global_private';
+    target_groups?: string[];
+    target_users?: string[];
+    ai_mode?: string[];
+    takeover_conflicts?: boolean;
+  };
+  let nextGroup = target.group_scope;
+  let nextPrivate = target.private_scope;
+  if (patch.group_scope !== undefined || patch.private_scope !== undefined) {
+    if (patch.group_scope !== undefined) nextGroup = patch.group_scope;
+    if (patch.private_scope !== undefined) nextPrivate = patch.private_scope;
+  } else if (patch.scope !== undefined) {
+    if (patch.scope === 'global') {
+      nextGroup = 'all';
+      nextPrivate = 'all';
+    } else if (patch.scope === 'global_group') {
+      nextGroup = 'all';
+      nextPrivate = 'off';
+    } else if (patch.scope === 'global_private') {
+      nextGroup = 'off';
+      nextPrivate = 'all';
+    } else if (patch.scope === 'specific') {
+      nextGroup = 'specific';
+      nextPrivate = 'off';
+    } else {
+      nextGroup = 'off';
+      nextPrivate = 'off';
+    }
+  }
+  if (patch.takeover_conflicts) {
+    for (const other of all) {
+      if (other.name === name) continue;
+      if (nextGroup === 'all' && other.group_scope === 'all') other.group_scope = 'off';
+      if (nextPrivate === 'all' && other.private_scope === 'all') other.private_scope = 'off';
+      other.scope = deriveDemoLegacyScope(other.group_scope, other.private_scope);
+      other.enabled = other.group_scope !== 'off' || other.private_scope !== 'off';
+    }
+  }
+  target.group_scope = nextGroup;
+  target.private_scope = nextPrivate;
+  target.scope = deriveDemoLegacyScope(nextGroup, nextPrivate);
+  target.enabled = nextGroup !== 'off' || nextPrivate !== 'off';
+  if (Array.isArray(patch.target_groups)) {
+    target.target_groups = patch.target_groups;
+    target.bound_groups_count = patch.target_groups.length;
+  }
+  if (Array.isArray(patch.target_users)) {
+    target.target_users = patch.target_users;
+  }
+  if (Array.isArray(patch.ai_mode)) {
+    target.ai_mode = patch.ai_mode;
+  }
+  return generatePersonaConfig(name);
+};
 type DemoPromptField = {
   key: string;
   section: string;
@@ -1710,11 +1834,10 @@ export const generatePlaceholderPreview = () => ({
 });
 
 export const generateGlobalPersonaConfig = () => {
-  const enabled = DEMO_PERSONAS.filter((p) => p.enabled);
-  return {
-    enabled_personas: enabled.map((p) => p.name),
-    default_persona: enabled[0]?.name ?? '早柚',
-  };
+  const fullGlobal = allDemoPersonas().find(
+    (p) => p.group_scope === 'all' && p.private_scope === 'all',
+  );
+  return fullGlobal?.name ?? null;
 };
 
 type DemoPersonaSettingItem = {

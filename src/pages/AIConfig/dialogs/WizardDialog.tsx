@@ -13,6 +13,7 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { PersonaAvatar } from '../shared/PersonaAvatar';
+import { resolveChannelScopes } from '@/lib/personaScope';
 import type { AIWizardChecklistItem, AIWizardStatusResponse } from '@/lib/api';
 
 export interface WizardDialogProps {
@@ -161,32 +162,63 @@ export function WizardDialog({
                             </div>
                           </div>
                         </div>
-                        <div className="flex items-center gap-1.5 mb-1">
-                          <Badge variant="default" className="text-[10px]">
-                            {persona.scope === 'global' && t('aiConfig.wizard.scopeGlobal')}
-                            {persona.scope === 'global_group' &&
-                              t('aiConfig.wizard.scopeGlobalGroup')}
-                            {persona.scope === 'global_private' &&
-                              t('aiConfig.wizard.scopeGlobalPrivate')}
-                            {persona.scope === 'specific' && t('aiConfig.wizard.scopeSpecific')}
-                            {persona.scope === 'disabled' && t('aiConfig.wizard.scopeDisabled')}
-                          </Badge>
-                          {persona.has_inspect && (
-                            <Badge variant="secondary" className="text-[10px]">
-                              {t('aiConfig.wizard.inspect') || '巡检'}({persona.inspect_interval})
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="text-muted-foreground text-[11px]">{persona.scope_desc}</p>
-                        {persona.scope === 'specific' && persona.target_groups.length > 0 && (
-                          <div className="mt-1.5 space-y-0.5">
-                            {persona.target_groups.map((group) => (
-                              <p key={group} className="text-muted-foreground/70 text-[10px] ml-1">
-                                ├ {group}
+                        {(() => {
+                          const sc = resolveChannelScopes(persona);
+                          return (
+                            <>
+                              <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                                <Badge variant="default" className="text-[10px]">
+                                  {sc.group_scope === 'all' && sc.private_scope === 'all'
+                                    ? t('aiConfig.wizard.scopeGlobal')
+                                    : sc.group_scope === 'all' && sc.private_scope === 'off'
+                                      ? t('aiConfig.wizard.scopeGlobalGroup')
+                                      : sc.group_scope === 'off' && sc.private_scope === 'all'
+                                        ? t('aiConfig.wizard.scopeGlobalPrivate')
+                                        : sc.group_scope === 'all' || sc.private_scope === 'all'
+                                          ? t('personaConfig.scopeMixedBadge')
+                                          : !persona.is_enabled
+                                            ? t('aiConfig.wizard.scopeDisabled')
+                                            : t('aiConfig.wizard.scopeSpecific')}
+                                </Badge>
+                                {persona.has_inspect && (
+                                  <Badge variant="secondary" className="text-[10px]">
+                                    {t('aiConfig.wizard.inspect') || '巡检'}(
+                                    {persona.inspect_interval})
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-muted-foreground text-[11px]">
+                                {persona.scope_desc}
                               </p>
-                            ))}
-                          </div>
-                        )}
+                              {sc.group_scope === 'specific' &&
+                                persona.target_groups.length > 0 && (
+                                  <div className="mt-1.5 space-y-0.5">
+                                    {persona.target_groups.map((group) => (
+                                      <p
+                                        key={group}
+                                        className="text-muted-foreground/70 text-[10px] ml-1"
+                                      >
+                                        ├ {group}
+                                      </p>
+                                    ))}
+                                  </div>
+                                )}
+                              {sc.private_scope === 'specific' &&
+                                (persona.target_users?.length ?? 0) > 0 && (
+                                  <div className="mt-1.5 space-y-0.5">
+                                    {(persona.target_users ?? []).map((user) => (
+                                      <p
+                                        key={user}
+                                        className="text-muted-foreground/70 text-[10px] ml-1"
+                                      >
+                                        ├ DM: {user}
+                                      </p>
+                                    ))}
+                                  </div>
+                                )}
+                            </>
+                          );
+                        })()}
                       </div>
                     ))}
                   </div>
