@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Archive,
   ArrowLeft,
   BookOpen,
   CalendarDays,
@@ -12,7 +13,9 @@ import {
   RotateCcw,
   Save,
   Sparkles,
+  User,
   Users,
+  X,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -39,6 +42,27 @@ interface GroupShardView {
   yesterday_label: string;
   timeline: string[];
   timeline_count: number;
+}
+
+interface UserShardView {
+  user_id: string;
+  shard_id: string;
+  content: string;
+  persistent: string[];
+  monthly: string[];
+  yesterday: string[];
+  month_label: string;
+  yesterday_label: string;
+  timeline: string[];
+  timeline_count: number;
+}
+
+interface JournalArchiveRecord {
+  date: string;
+  shard: string;
+  kind: string;
+  entries: string[];
+  ts: number;
 }
 
 interface ParsedTimelineEntry {
@@ -101,6 +125,17 @@ function parseBulletItem(raw: string): ParsedBulletItem {
   };
 }
 
+function parseArchiveHandle(handle: string): { shardId: string; dateOrMonth: string } | null {
+  const trimmed = handle.trim();
+  if (!trimmed.startsWith('journal:')) return null;
+  const parts = trimmed.split(':');
+  if (parts.length < 4) return null;
+  const dateOrMonth = parts[parts.length - 1] || '';
+  const shardId = parts.slice(2, -1).join(':');
+  if (!shardId || !dateOrMonth) return null;
+  return { shardId, dateOrMonth };
+}
+
 function splitBulletsFallback(summary?: string): string[] {
   if (!summary) return [];
   return summary
@@ -123,7 +158,10 @@ function getTagVariant(tag: string): 'default' | 'secondary' | 'outline' {
 export function PersonaJournalTab({ personaName }: PersonaJournalTabProps) {
   const { t } = useLanguage();
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const archiveSectionRef = useRef<HTMLDivElement | null>(null);
   const prevScopeRef = useRef<string>('all');
+  const archiveReqSeqRef = useRef(0);
+  const scrollToArchiveRef = useRef(false);
   const [selectedScope, setSelectedScope] = useState<string>('all');
   const [content, setContent] = useState('');
   const [selfContent, setSelfContent] = useState('');
@@ -135,7 +173,16 @@ export function PersonaJournalTab({ personaName }: PersonaJournalTabProps) {
   const [standingSummary, setStandingSummary] = useState('');
   const [hasStructured, setHasStructured] = useState(false);
   const [groupShards, setGroupShards] = useState<GroupShardView[]>([]);
+  const [userShards, setUserShards] = useState<UserShardView[]>([]);
+  const [archiveMonths, setArchiveMonths] = useState<string[]>([]);
   const [timeline, setTimeline] = useState<string[]>([]);
+
+  const [showArchives, setShowArchives] = useState(false);
+  const [archiveLoading, setArchiveLoading] = useState(false);
+  const [archiveRecords, setArchiveRecords] = useState<JournalArchiveRecord[]>([]);
+  const [archiveRequestedMonth, setArchiveRequestedMonth] = useState('');
+  const [archiveResolvedMonth, setArchiveResolvedMonth] = useState('');
+  const [archiveDateFilter, setArchiveDateFilter] = useState('');
 
   const [rawEditing, setRawEditing] = useState(false);
   const [editContent, setEditContent] = useState('');
@@ -144,8 +191,16 @@ export function PersonaJournalTab({ personaName }: PersonaJournalTabProps) {
   const [compacting, setCompacting] = useState(false);
 
   useEffect(() => {
+    archiveReqSeqRef.current += 1;
+    scrollToArchiveRef.current = false;
     setSelectedScope('all');
     setRawEditing(false);
+    setShowArchives(false);
+    setArchiveLoading(false);
+    setArchiveRecords([]);
+    setArchiveRequestedMonth('');
+    setArchiveResolvedMonth('');
+    setArchiveDateFilter('');
   }, [personaName]);
 
   const fetchJournal = useCallback(async () => {
@@ -161,7 +216,8 @@ export function PersonaJournalTab({ personaName }: PersonaJournalTabProps) {
         const structuredPresent =
           Array.isArray(res.self_persistent) ||
           typeof res.persistent_summary === 'string' ||
-          Array.isArray(res.group_shards);
+          Array.isArray(res.group_shards) ||
+          Array.isArray(res.user_shards);
         setHasStructured(structuredPresent);
         setSelfPersistent(res.self_persistent ?? splitBulletsFallback(res.persistent_summary));
         setSelfMonthly(res.self_monthly ?? splitBulletsFallback(res.monthly_summary));
@@ -169,6 +225,8 @@ export function PersonaJournalTab({ personaName }: PersonaJournalTabProps) {
         setSelfYesterdayLabel(res.self_yesterday_label || '');
         setSelfTimeline(res.self_timeline || []);
         setGroupShards(res.group_shards || []);
+        setUserShards(res.user_shards || []);
+        setArchiveMonths(res.archive_months || []);
       }
     } catch {
       toast.error(t('personaConfig.loadFailed'));
@@ -177,42 +235,102 @@ export function PersonaJournalTab({ personaName }: PersonaJournalTabProps) {
     }
   }, [personaName, t]);
 
+  const fetchArchives = useCallback(
+    async (opts?: { month?: string; shardId?: string; date?: string }) => {
+      const seq = ++archiveReqSeqRef.current;
+      try {
+        setArchiveLoading(true);
+        const res = await personaApi.getPersonaJournalArchives(personaName, opts);
+        if (seq !== archiveReqSeqRef.current) return;
+        if (res) {
+          setArchiveRecords(res.records || []);
+          setArchiveResolvedMonth(res.selected_month || '');
+          if (Array.isArray(res.available_months) && res.available_months.length > 0) {
+            setArchiveMonths(res.available_months);
+          }
+        }
+      } catch {
+        if (seq === archiveReqSeqRef.current) {
+          toast.error(t('personaConfig.journalArchiveLoadFailed'));
+        }
+      } finally {
+        if (seq === archiveReqSeqRef.current) {
+          setArchiveLoading(false);
+        }
+      }
+    },
+    [personaName, t],
+  );
+
   useEffect(() => {
     fetchJournal();
   }, [fetchJournal]);
 
   const activeGroupShard = useMemo(
     () =>
-      selectedScope !== 'all' && selectedScope !== '__self__'
+      selectedScope !== 'all' && selectedScope !== '__self__' && !selectedScope.startsWith('user:')
         ? (groupShards.find((g) => g.group_id === selectedScope) ?? null)
         : null,
     [groupShards, selectedScope],
   );
 
+  const activeUserShard = useMemo(
+    () =>
+      selectedScope.startsWith('user:')
+        ? (userShards.find((u) => u.shard_id === selectedScope) ?? null)
+        : null,
+    [userShards, selectedScope],
+  );
+
   useEffect(() => {
-    if (selectedScope !== 'all' && selectedScope !== '__self__' && !activeGroupShard) {
+    if (
+      selectedScope !== 'all' &&
+      selectedScope !== '__self__' &&
+      !activeGroupShard &&
+      !activeUserShard
+    ) {
       setSelectedScope('all');
     }
-  }, [activeGroupShard, selectedScope]);
+  }, [activeGroupShard, activeUserShard, selectedScope]);
 
   useEffect(() => {
     if (prevScopeRef.current !== selectedScope) {
       prevScopeRef.current = selectedScope;
-      containerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (!scrollToArchiveRef.current) {
+        containerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
     }
   }, [selectedScope]);
+
+  useEffect(() => {
+    if (!showArchives) return;
+    const scopeShard = selectedScope === 'all' ? undefined : selectedScope;
+    fetchArchives({
+      month: archiveRequestedMonth || undefined,
+      shardId: scopeShard,
+      date: archiveDateFilter || undefined,
+    });
+  }, [showArchives, selectedScope, archiveRequestedMonth, archiveDateFilter, fetchArchives]);
+
+  useEffect(() => {
+    if (!showArchives || archiveLoading || !scrollToArchiveRef.current) return;
+    scrollToArchiveRef.current = false;
+    archiveSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, [showArchives, archiveLoading]);
 
   const activeTimeline = useMemo(() => {
     if (selectedScope === '__self__') return selfTimeline;
     if (activeGroupShard) return activeGroupShard.timeline || [];
+    if (activeUserShard) return activeUserShard.timeline || [];
     return timeline;
-  }, [activeGroupShard, selectedScope, selfTimeline, timeline]);
+  }, [activeGroupShard, activeUserShard, selectedScope, selfTimeline, timeline]);
 
   const activeMarkdownForEdit = useMemo(() => {
     if (selectedScope === '__self__') return selfContent || content;
     if (activeGroupShard) return activeGroupShard.content || '';
+    if (activeUserShard) return activeUserShard.content || '';
     return content;
-  }, [activeGroupShard, content, selectedScope, selfContent]);
+  }, [activeGroupShard, activeUserShard, content, selectedScope, selfContent]);
 
   const activeMarkdownPath = useMemo(() => {
     if (selectedScope === '__self__') {
@@ -221,8 +339,11 @@ export function PersonaJournalTab({ personaName }: PersonaJournalTabProps) {
     if (activeGroupShard) {
       return `data/ai_core/journals/personas/${personaName}/groups/${activeGroupShard.group_id}.md`;
     }
-    return `data/ai_core/journals/personas/${personaName}/ (self.md + groups/*.md)`;
-  }, [activeGroupShard, personaName, selectedScope]);
+    if (activeUserShard) {
+      return `data/ai_core/journals/personas/${personaName}/users/${activeUserShard.user_id}.md`;
+    }
+    return `data/ai_core/journals/personas/${personaName}/ (self.md + groups/*.md + users/*.md)`;
+  }, [activeGroupShard, activeUserShard, personaName, selectedScope]);
 
   const handleSaveRaw = async () => {
     try {
@@ -257,6 +378,28 @@ export function PersonaJournalTab({ personaName }: PersonaJournalTabProps) {
     }
   };
 
+  const handleOpenArchiveHandle = (handle: string) => {
+    const parsed = parseArchiveHandle(handle);
+    if (!parsed) return;
+    scrollToArchiveRef.current = true;
+    if (
+      parsed.shardId === '__self__' ||
+      groupShards.some((g) => g.group_id === parsed.shardId) ||
+      userShards.some((u) => u.shard_id === parsed.shardId)
+    ) {
+      setSelectedScope(parsed.shardId);
+    }
+    const dm = parsed.dateOrMonth;
+    if (dm.length === 10) {
+      setArchiveRequestedMonth(dm.slice(0, 7));
+      setArchiveDateFilter(dm);
+    } else {
+      setArchiveRequestedMonth(dm);
+      setArchiveDateFilter('');
+    }
+    setShowArchives(true);
+  };
+
   const renderSlotBullets = (items: string[]) => {
     if (items.length === 0) {
       return (
@@ -267,14 +410,24 @@ export function PersonaJournalTab({ personaName }: PersonaJournalTabProps) {
       <ul className="space-y-1.5 text-xs leading-relaxed text-foreground/90">
         {items.map((raw) => {
           const parsed = parseBulletItem(raw);
+          const isClickableJournalHandle = parsed.archiveHandle.startsWith('journal:');
           return (
             <li key={raw} className="glass-card-flat flex flex-col gap-1 rounded-md px-2.5 py-1.5">
               <span className="break-words">{parsed.text}</span>
-              {parsed.archiveHandle && (
-                <span className="font-mono text-[10px] text-muted-foreground/80">
-                  {parsed.archiveHandle}
-                </span>
-              )}
+              {parsed.archiveHandle &&
+                (isClickableJournalHandle ? (
+                  <button
+                    type="button"
+                    onClick={() => handleOpenArchiveHandle(parsed.archiveHandle)}
+                    className="w-fit font-mono text-[10px] text-primary/90 underline-offset-2 hover:underline"
+                  >
+                    {parsed.archiveHandle}
+                  </button>
+                ) : (
+                  <span className="font-mono text-[10px] text-muted-foreground/80">
+                    {parsed.archiveHandle}
+                  </span>
+                ))}
             </li>
           );
         })}
@@ -291,13 +444,46 @@ export function PersonaJournalTab({ personaName }: PersonaJournalTabProps) {
   }
 
   const isGroupScope = Boolean(activeGroupShard);
-  const slotPersistent = isGroupScope ? (activeGroupShard?.persistent ?? []) : selfPersistent;
-  const slotMonthly = isGroupScope ? (activeGroupShard?.monthly ?? []) : selfMonthly;
-  const slotYesterday = isGroupScope ? (activeGroupShard?.yesterday ?? []) : selfYesterday;
-  const monthLabel = isGroupScope ? activeGroupShard?.month_label || '' : '';
+  const isUserScope = Boolean(activeUserShard);
+  const slotPersistent = isGroupScope
+    ? (activeGroupShard?.persistent ?? [])
+    : isUserScope
+      ? (activeUserShard?.persistent ?? [])
+      : selfPersistent;
+  const slotMonthly = isGroupScope
+    ? (activeGroupShard?.monthly ?? [])
+    : isUserScope
+      ? (activeUserShard?.monthly ?? [])
+      : selfMonthly;
+  const slotYesterday = isGroupScope
+    ? (activeGroupShard?.yesterday ?? [])
+    : isUserScope
+      ? (activeUserShard?.yesterday ?? [])
+      : selfYesterday;
+  const monthLabel = isGroupScope
+    ? activeGroupShard?.month_label || ''
+    : isUserScope
+      ? activeUserShard?.month_label || ''
+      : '';
   const yesterdayLabel = isGroupScope
     ? activeGroupShard?.yesterday_label || ''
-    : selfYesterdayLabel;
+    : isUserScope
+      ? activeUserShard?.yesterday_label || ''
+      : selfYesterdayLabel;
+
+  const formatShardLabel = (shard: string) => {
+    if (shard === '__self__' || !shard) return t('personaConfig.journalScopeSelf');
+    if (shard.startsWith('user:')) {
+      return t('personaConfig.journalScopeUser', { id: shard.slice('user:'.length) });
+    }
+    return t('personaConfig.journalScopeGroup', { id: shard });
+  };
+
+  const formatArchiveKind = (kind: string) => {
+    if (kind === 'monthly_rollup') return t('personaConfig.journalArchiveKindMonthly');
+    if (kind === 'legacy_self_v1_archive') return t('personaConfig.journalArchiveKindLegacy');
+    return t('personaConfig.journalArchiveKindDaily');
+  };
 
   const showScopeBar = hasStructured && !rawEditing;
 
@@ -358,6 +544,28 @@ export function PersonaJournalTab({ personaName }: PersonaJournalTabProps) {
                     className="ml-0.5 px-1 py-0 text-[10px]"
                   >
                     {gs.timeline_count}
+                  </Badge>
+                </Button>
+              );
+            })}
+            {userShards.map((us) => {
+              const isSelected = selectedScope === us.shard_id;
+              return (
+                <Button
+                  key={us.shard_id}
+                  variant={isSelected ? 'default' : 'ghost'}
+                  size="sm"
+                  aria-pressed={isSelected}
+                  onClick={() => setSelectedScope(us.shard_id)}
+                  className="h-7 gap-1.5 px-2.5 text-xs"
+                >
+                  <User className="h-3.5 w-3.5" />
+                  {t('personaConfig.journalScopeUser', { id: us.user_id })}
+                  <Badge
+                    variant={isSelected ? 'secondary' : 'outline'}
+                    className="ml-0.5 px-1 py-0 text-[10px]"
+                  >
+                    {us.timeline_count}
                   </Badge>
                 </Button>
               );
@@ -449,7 +657,9 @@ export function PersonaJournalTab({ personaName }: PersonaJournalTabProps) {
             <span className="font-medium text-foreground">
               {isGroupScope && activeGroupShard
                 ? t('personaConfig.journalScopeGroup', { id: activeGroupShard.group_id })
-                : t('personaConfig.journalScopeSelf')}
+                : isUserScope && activeUserShard
+                  ? t('personaConfig.journalScopeUser', { id: activeUserShard.user_id })
+                  : t('personaConfig.journalScopeSelf')}
             </span>
           </div>
           <span className="font-mono text-[11px] text-muted-foreground">{activeMarkdownPath}</span>
@@ -487,7 +697,9 @@ export function PersonaJournalTab({ personaName }: PersonaJournalTabProps) {
                     <span>
                       {isGroupScope
                         ? t('personaConfig.journalSlotPersistentGroup')
-                        : t('personaConfig.journalSlotPersistentSelf')}
+                        : isUserScope
+                          ? t('personaConfig.journalSlotPersistentUser')
+                          : t('personaConfig.journalSlotPersistentSelf')}
                     </span>
                   </div>
                 </CardHeader>
@@ -504,7 +716,9 @@ export function PersonaJournalTab({ personaName }: PersonaJournalTabProps) {
                       <span>
                         {isGroupScope
                           ? t('personaConfig.journalSlotMonthlyGroup')
-                          : t('personaConfig.journalSlotMonthlySelf')}
+                          : isUserScope
+                            ? t('personaConfig.journalSlotMonthlyUser')
+                            : t('personaConfig.journalSlotMonthlySelf')}
                       </span>
                     </div>
                     {monthLabel && (
@@ -527,7 +741,9 @@ export function PersonaJournalTab({ personaName }: PersonaJournalTabProps) {
                       <span>
                         {isGroupScope
                           ? t('personaConfig.journalSlotYesterdayGroup')
-                          : t('personaConfig.journalSlotYesterdaySelf')}
+                          : isUserScope
+                            ? t('personaConfig.journalSlotYesterdayUser')
+                            : t('personaConfig.journalSlotYesterdaySelf')}
                       </span>
                     </div>
                     {yesterdayLabel && (
@@ -599,12 +815,66 @@ export function PersonaJournalTab({ personaName }: PersonaJournalTabProps) {
             </Card>
           )}
 
+          {/* 全景模式下展示各私聊分片近况速览卡，点击可切入单用户私聊分片 */}
+          {selectedScope === 'all' && userShards.length > 0 && (
+            <Card className="glass-card">
+              <CardHeader className="pb-2 pt-3 px-4">
+                <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
+                  <User className="h-3.5 w-3.5 text-primary" />
+                  <span>{t('personaConfig.journalUserOverviewTitle')}</span>
+                </div>
+              </CardHeader>
+              <CardContent className="grid grid-cols-1 gap-2.5 px-4 pb-3 pt-0 sm:grid-cols-2">
+                {userShards.map((us) => {
+                  const previewLine =
+                    us.yesterday[0] ||
+                    us.monthly[0] ||
+                    us.persistent[0] ||
+                    t('personaConfig.journalSlotEmpty');
+                  return (
+                    <button
+                      key={us.shard_id}
+                      type="button"
+                      onClick={() => setSelectedScope(us.shard_id)}
+                      className="ui-field-trigger flex flex-col gap-1 rounded-lg p-2.5 text-left transition-colors"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-mono text-xs font-medium text-foreground">
+                          {t('personaConfig.journalScopeUser', { id: us.user_id })}
+                        </span>
+                        <Badge variant="outline" className="px-1.5 py-0 text-[10px]">
+                          {t('personaConfig.journalTotalEntries', { count: us.timeline_count })}
+                        </Badge>
+                      </div>
+                      <p className="line-clamp-2 text-xs text-muted-foreground">
+                        {parseBulletItem(previewLine).text}
+                      </p>
+                    </button>
+                  );
+                })}
+              </CardContent>
+            </Card>
+          )}
+
           {/* 今日行动流水 */}
           <Card className="glass-card">
             <CardHeader className="pb-2 pt-3 px-4">
-              <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                <Clock className="h-4 w-4 text-primary" />
-                <span>{t('personaConfig.journalTimelineTitle')}</span>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                  <Clock className="h-4 w-4 text-primary" />
+                  <span>{t('personaConfig.journalTimelineTitle')}</span>
+                </div>
+                {archiveMonths.length > 0 && (
+                  <Button
+                    variant={showArchives ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setShowArchives((prev) => !prev)}
+                    className="h-7 gap-1.5 px-2.5 text-xs"
+                  >
+                    <Archive className="h-3.5 w-3.5" />
+                    {t('personaConfig.journalArchiveToggle')}
+                  </Button>
+                )}
               </div>
             </CardHeader>
             <CardContent className="px-4 pb-3 pt-0">
@@ -683,6 +953,142 @@ export function PersonaJournalTab({ personaName }: PersonaJournalTabProps) {
               )}
             </CardContent>
           </Card>
+
+          {/* 历史 / 昨日归档流水查看面板 */}
+          {showArchives && (
+            <Card ref={archiveSectionRef} className="glass-card">
+              <CardHeader className="pb-2 pt-3 px-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                    <Archive className="h-4 w-4 text-primary" />
+                    <span>{t('personaConfig.journalArchiveTitle')}</span>
+                    {archiveDateFilter && (
+                      <Badge variant="secondary" className="gap-1 font-mono text-[10px]">
+                        {archiveDateFilter}
+                        <button
+                          type="button"
+                          onClick={() => setArchiveDateFilter('')}
+                          aria-label={t('personaConfig.journalArchiveClearDate')}
+                          className="ml-0.5 hover:text-foreground"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {archiveMonths.map((m) => {
+                      const activeArchiveMonth = archiveRequestedMonth || archiveResolvedMonth;
+                      return (
+                        <Button
+                          key={m}
+                          variant={activeArchiveMonth === m ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => {
+                            setArchiveDateFilter('');
+                            setArchiveRequestedMonth(m);
+                          }}
+                          className="h-6 px-2 font-mono text-[11px]"
+                        >
+                          {m}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="px-4 pb-3 pt-0">
+                {archiveLoading ? (
+                  <div className="flex h-24 items-center justify-center">
+                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                  </div>
+                ) : archiveRecords.length === 0 ? (
+                  <div className="flex h-20 items-center justify-center text-xs text-muted-foreground">
+                    {t('personaConfig.journalArchiveEmpty')}
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {(() => {
+                      const seenRecs = new Map<string, number>();
+                      return archiveRecords.map((rec) => {
+                        const baseRecKey = `${rec.date}|${rec.shard}|${rec.kind}|${rec.ts}`;
+                        const recOcc = seenRecs.get(baseRecKey) ?? 0;
+                        seenRecs.set(baseRecKey, recOcc + 1);
+                        const recKey = recOcc === 0 ? baseRecKey : `${baseRecKey}|${recOcc}`;
+                        const seenLines = new Map<string, number>();
+                        return (
+                          <div key={recKey} className="glass-card-flat rounded-lg p-3 space-y-2">
+                            <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                              <Badge variant="outline" className="font-mono text-[10px]">
+                                {rec.date}
+                              </Badge>
+                              <Badge variant="secondary" className="text-[10px] font-normal">
+                                {formatShardLabel(rec.shard)}
+                              </Badge>
+                              <Badge variant="outline" className="text-[10px] font-normal">
+                                {formatArchiveKind(rec.kind)}
+                              </Badge>
+                            </div>
+                            <div className="space-y-1.5">
+                              {rec.entries.map((rawLine) => {
+                                const lineOcc = seenLines.get(rawLine) ?? 0;
+                                seenLines.set(rawLine, lineOcc + 1);
+                                const lineKey = lineOcc === 0 ? rawLine : `${rawLine}__${lineOcc}`;
+                                const entry = parseTimelineLine(rawLine);
+                                return (
+                                  <div
+                                    key={lineKey}
+                                    className="glass-card-flat rounded-md px-2.5 py-1.5 text-xs space-y-0.5"
+                                  >
+                                    <div className="flex flex-wrap items-center gap-1.5">
+                                      {entry.time && (
+                                        <span className="font-mono text-[11px] text-muted-foreground">
+                                          {entry.time}
+                                        </span>
+                                      )}
+                                      {entry.tag && (
+                                        <Badge
+                                          variant={getTagVariant(entry.tag)}
+                                          className="px-1.5 py-0 text-[10px] font-normal"
+                                        >
+                                          {entry.tag}
+                                        </Badge>
+                                      )}
+                                      {entry.requestedBy && (
+                                        <Badge
+                                          variant="outline"
+                                          className="px-1.5 py-0 font-mono text-[10px] text-muted-foreground/80"
+                                        >
+                                          {t('personaConfig.journalRequestedBy', {
+                                            uid: entry.requestedBy,
+                                          })}
+                                        </Badge>
+                                      )}
+                                      {entry.count && (
+                                        <Badge
+                                          variant="secondary"
+                                          className="px-1 py-0 text-[10px] text-amber-500 font-mono"
+                                        >
+                                          {entry.count}
+                                        </Badge>
+                                      )}
+                                    </div>
+                                    <div className="text-foreground/90 leading-relaxed break-words">
+                                      {entry.text}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </div>
       )}
     </div>

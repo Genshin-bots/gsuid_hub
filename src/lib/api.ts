@@ -3540,10 +3540,46 @@ export const personaApi = {
         timeline: string[];
         timeline_count: number;
       }>;
+      user_shards?: Array<{
+        user_id: string;
+        shard_id: string;
+        content: string;
+        persistent: string[];
+        monthly: string[];
+        yesterday: string[];
+        month_label: string;
+        yesterday_label: string;
+        timeline: string[];
+        timeline_count: number;
+      }>;
       archive_months?: string[];
       timeline: string[];
       timeline_count: number;
     }>(`/api/persona/${encodeURIComponent(personaName)}/journal`),
+
+  // 按月/分片/日期读取历史归档手账流水（含昨日流水与历史冷归档）
+  getPersonaJournalArchives: (
+    personaName: string,
+    params?: { month?: string; shardId?: string; date?: string },
+  ) => {
+    const query = new URLSearchParams();
+    if (params?.month) query.set('month', params.month);
+    if (params?.shardId) query.set('shard_id', params.shardId);
+    if (params?.date) query.set('date', params.date);
+    const qs = query.toString();
+    return api.get<{
+      persona_name: string;
+      selected_month: string;
+      available_months: string[];
+      records: Array<{
+        date: string;
+        shard: string;
+        kind: string;
+        entries: string[];
+        ts: number;
+      }>;
+    }>(`/api/persona/${encodeURIComponent(personaName)}/journal/archives${qs ? `?${qs}` : ''}`);
+  },
 
   // 更新角色生活手账（支持可选 shard_id 单分片写回）
   updatePersonaJournal: (personaName: string, content: string, shardId?: string) =>
