@@ -121,6 +121,17 @@ import {
   generateCoreFrameworkConfigDetail,
   applyCoreFrameworkConfigSave,
 } from './demoMock';
+import {
+  deletePersonaMockBackup,
+  generatePersonaResetPreview,
+  generatePersonaRestorePreview,
+  getPersonaMockActiveJob,
+  getPersonaMockJob,
+  listPersonaMockBackups,
+  resumePersonaMockJob,
+  startPersonaMockReset,
+  startPersonaMockRestore,
+} from './demoMockPersonaReset';
 
 type Ctx = { url: URL; method: string; body: unknown };
 type Handler = (ctx: Ctx) => unknown | Response;
@@ -129,6 +140,9 @@ interface Route {
   re: RegExp;
   h: Handler;
 }
+
+const pathSeg = (url: URL, index: number) =>
+  decodeURIComponent(url.pathname.split('/')[index] ?? '');
 
 const mockUploadDeclared = new Map<string, number>();
 
@@ -1103,6 +1117,60 @@ const routes: Route[] = [
   },
   { m: 'POST', re: /^\/api\/prompt-groups$/, h: ({ body }) => applyPromptGroupCreate(body) },
   { m: 'GET', re: /^\/api\/persona\/list$/, h: () => generatePersonaList() },
+  // 人格重置 / 备份 / 还原（必须在 /api/persona/{name} 详情之前）
+  {
+    m: 'GET',
+    re: /^\/api\/persona-reset\/jobs\/[^/]+$/,
+    h: ({ url }) => getPersonaMockJob(pathSeg(url, 4)),
+  },
+  {
+    m: 'POST',
+    re: /^\/api\/persona-reset\/jobs\/[^/]+\/resume$/,
+    h: ({ url }) => resumePersonaMockJob(pathSeg(url, 4)),
+  },
+  {
+    m: 'GET',
+    re: /^\/api\/persona\/[^/]+\/reset\/preview$/,
+    h: ({ url }) => generatePersonaResetPreview(pathSeg(url, 3)),
+  },
+  {
+    m: 'GET',
+    re: /^\/api\/persona\/[^/]+\/reset\/active$/,
+    h: ({ url }) => getPersonaMockActiveJob(pathSeg(url, 3)),
+  },
+  {
+    m: 'POST',
+    re: /^\/api\/persona\/[^/]+\/reset$/,
+    h: ({ url, body }) => startPersonaMockReset(pathSeg(url, 3), body),
+  },
+  {
+    m: 'GET',
+    re: /^\/api\/persona\/[^/]+\/backups$/,
+    h: ({ url }) => listPersonaMockBackups(pathSeg(url, 3)),
+  },
+  {
+    m: 'GET',
+    re: /^\/api\/persona\/[^/]+\/backups\/[^/]+\/download$/,
+    h: () =>
+      new Response(new Blob(['demo backup'], { type: 'application/zip' }), {
+        headers: { 'Content-Type': 'application/zip' },
+      }),
+  },
+  {
+    m: 'GET',
+    re: /^\/api\/persona\/[^/]+\/backups\/[^/]+\/restore\/preview$/,
+    h: ({ url }) => generatePersonaRestorePreview(pathSeg(url, 3), pathSeg(url, 5)),
+  },
+  {
+    m: 'POST',
+    re: /^\/api\/persona\/[^/]+\/backups\/[^/]+\/restore$/,
+    h: ({ url, body }) => startPersonaMockRestore(pathSeg(url, 3), body),
+  },
+  {
+    m: 'DELETE',
+    re: /^\/api\/persona\/[^/]+\/backups\/[^/]+$/,
+    h: ({ url }) => deletePersonaMockBackup(pathSeg(url, 3), pathSeg(url, 5)),
+  },
   { m: 'GET', re: /^\/api\/persona\/config\/all$/, h: () => generatePersonaConfigAll() },
   {
     m: 'GET',

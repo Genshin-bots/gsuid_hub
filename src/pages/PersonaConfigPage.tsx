@@ -93,10 +93,14 @@ import {
   Smile,
   Store,
   Lock,
+  DatabaseBackup,
 } from 'lucide-react';
 import { PersonaAudioPlayer } from '@/components/persona/PersonaAudioPlayer';
 import { PersonaMemePackTab } from '@/components/persona/PersonaMemePackTab';
 import { PersonaJournalTab } from '@/components/persona/PersonaJournalTab';
+import { PersonaActiveJobBanner } from '@/components/persona/PersonaActiveJobBanner';
+import { PersonaDangerZone } from '@/components/persona/PersonaDangerZone';
+import { usePersonaJobController } from '@/components/persona/usePersonaJobController';
 // 支持的音频格式
 const SUPPORTED_AUDIO_FORMATS = ['mp3', 'ogg', 'wav', 'm4a', 'flac'];
 const SUPPORTED_AUDIO_MIME_TYPES = [
@@ -965,6 +969,7 @@ export default function PersonaConfigPage() {
   }, [loadData]);
   // 进入内联编辑视图时自动滚回顶部（桌面滚 .page-pinned-body，移动端滚 window）
   const editingPersonaName = editingPersona?.name ?? null;
+  const personaJobs = usePersonaJobController(editingPersonaName);
   useEffect(() => {
     if (!editingPersonaName) return;
     const body = inlineEditorRef.current?.closest('.page-pinned-body');
@@ -2444,6 +2449,7 @@ export default function PersonaConfigPage() {
           /* 内联人格编辑面板：顶栏/底栏与各 Tab 自带玻璃面，外层只排版；
              不加 overflow-hidden，避免切到子玻璃卡的光感/液态高光边 */
           <div ref={inlineEditorRef} className={cn('shadow-safe min-w-0', pageStackClass)}>
+            <PersonaActiveJobBanner controller={personaJobs} />
             <Tabs
               value={activeTab}
               onValueChange={setActiveTab}
@@ -2548,6 +2554,11 @@ export default function PersonaConfigPage() {
                           label: t('personaConfig.journal'),
                           icon: <BookOpen className="h-4 w-4" />,
                         },
+                        {
+                          value: 'memory_reset',
+                          label: t('personaReset.tabTitle'),
+                          icon: <DatabaseBackup className="h-4 w-4" />,
+                        },
                       ]}
                     />
                   </div>
@@ -2568,6 +2579,9 @@ export default function PersonaConfigPage() {
                 </TabsContent>
                 <TabsContent value="journal" className="mt-0 hidden data-[state=active]:block">
                   <PersonaJournalTab personaName={editingPersona.name} />
+                </TabsContent>
+                <TabsContent value="memory_reset" className="mt-0 hidden data-[state=active]:block">
+                  <PersonaDangerZone personaName={editingPersona.name} controller={personaJobs} />
                 </TabsContent>
                 {/* 自述文档 Tab */}
                 <TabsContent

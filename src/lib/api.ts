@@ -3377,6 +3377,137 @@ export const promptGroupApi = {
     api.delete<{ name?: string }>(`/api/prompt-groups/${encodeURIComponent(name)}`),
 };
 
+// 人格重置 / 备份 / 还原 API
+export type PersonaResetItemKey =
+  | 'journal'
+  | 'self_memory'
+  | 'relationship'
+  | 'persona_state'
+  | 'session_history'
+  | 'scheduled_tasks'
+  | 'global_group'
+  | 'global_user';
+
+export type PersonaResetItemGroup = 'persona' | 'global';
+export type PersonaResetUnit = 'rows' | 'files' | 'sessions' | 'tasks' | 'keys';
+
+export interface PersonaResetItemPreview {
+  key: PersonaResetItemKey;
+  group: PersonaResetItemGroup;
+  default_checked: boolean;
+  count: number;
+  unit: PersonaResetUnit;
+  backup_supported: boolean;
+  backup_seconds: number;
+  backup_bytes: number;
+}
+
+export interface PersonaResetPreview {
+  persona: string;
+  items: PersonaResetItemPreview[];
+  other_personas: string[];
+  legacy_self_key: boolean;
+  active_job: PersonaJobView | null;
+}
+
+export type PersonaJobKind = 'reset' | 'restore';
+export type PersonaJobStatus = 'running' | 'done' | 'failed' | 'resumable';
+export type PersonaJobStepStatus = 'pending' | 'running' | 'done' | 'skipped' | 'failed';
+export type PersonaJobStepKey =
+  | 'prepare'
+  | 'backup'
+  | 'memory'
+  | 'journal'
+  | 'relationship'
+  | 'persona_state'
+  | 'scheduled_tasks'
+  | 'clear'
+  | 'import'
+  | 'files'
+  | 'vectors'
+  | 'finish';
+
+export interface PersonaJobStep {
+  key: PersonaJobStepKey;
+  status: PersonaJobStepStatus;
+  done: number;
+  total: number;
+}
+
+export interface PersonaJobView {
+  job_id: string;
+  kind: PersonaJobKind;
+  persona: string;
+  status: PersonaJobStatus;
+  steps: PersonaJobStep[];
+  eta_seconds: number;
+  error: string;
+  backup_file: string;
+  counts: Record<string, number>;
+  started_at: number;
+  finished_at: number;
+}
+
+export interface PersonaBackupInfo {
+  file: string;
+  created_at: number;
+  items: PersonaResetItemKey[];
+  counts: Record<string, number>;
+  size_bytes: number;
+  embedding_model: string;
+}
+
+export interface PersonaRestorePreview {
+  file: string;
+  items: PersonaResetItemKey[];
+  overwrite_counts: Record<string, number>;
+  import_counts: Record<string, number>;
+  vector_texts: number;
+  vector_eta_seconds: number;
+  throughput_per_sec: number;
+  embedding_model: string;
+  active_job: PersonaJobView | null;
+}
+
+const personaResetBase = (name: string) => `/api/persona/${encodeURIComponent(name)}`;
+const personaBackupPath = (name: string, file: string) =>
+  `${personaResetBase(name)}/backups/${encodeURIComponent(file)}`;
+
+export const personaResetApi = {
+  getResetPreview: (name: string) =>
+    api.get<PersonaResetPreview>(`${personaResetBase(name)}/reset/preview`),
+
+  startReset: (
+    name: string,
+    body: { items: PersonaResetItemKey[]; confirm_name: string; backup: boolean },
+  ) => api.post<{ job_id: string }>(`${personaResetBase(name)}/reset`, body),
+
+  getActiveJob: (name: string) =>
+    api.get<PersonaJobView | null>(`${personaResetBase(name)}/reset/active`),
+
+  getJob: (jobId: string) =>
+    api.get<PersonaJobView>(`/api/persona-reset/jobs/${encodeURIComponent(jobId)}`),
+
+  resumeJob: (jobId: string) =>
+    api.post<{ job_id: string }>(`/api/persona-reset/jobs/${encodeURIComponent(jobId)}/resume`),
+
+  listBackups: (name: string) => api.get<PersonaBackupInfo[]>(`${personaResetBase(name)}/backups`),
+
+  downloadBackup: (name: string, file: string): Promise<Blob> =>
+    api.downloadBlob(`${personaBackupPath(name, file)}/download`),
+
+  deleteBackup: (name: string, file: string) => api.delete<null>(personaBackupPath(name, file)),
+
+  getRestorePreview: (name: string, file: string) =>
+    api.get<PersonaRestorePreview>(`${personaBackupPath(name, file)}/restore/preview`),
+
+  startRestore: (
+    name: string,
+    file: string,
+    body: { items: PersonaResetItemKey[]; confirm_name: string },
+  ) => api.post<{ job_id: string }>(`${personaBackupPath(name, file)}/restore`, body),
+};
+
 export const personaApi = {
   /** Heartbeat 巡检运行态（每 persona job 是否注册） */
   getHeartbeatStatus: () =>

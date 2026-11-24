@@ -1,0 +1,143 @@
+{
+  "tabTitle": "Memory & Backup",
+  "dangerZone": "Danger zone",
+  "resetButton": "Start over (clear memory)",
+  "resetIntro": "Clear this persona's memory and start a new roleplay. The persona definition, meme packs and knowledge base are not affected.",
+  "resetTitle": "Start over: {name}",
+  "resetDesc": "Select what to clear. The persona definition, meme packs and knowledge base are not affected.",
+  "progressTitle": "Task progress",
+  "progressDesc": "Closing this dialog does not stop the task. It continues in the background.",
+  "loading": "Loading…",
+  "loadFailed": "Failed to load",
+  "groupPersona": "This persona only",
+  "groupGlobal": "Shared by all personas",
+  "groupGlobalHelp": "All personas share this data. You must confirm again when you select it.",
+  "items": {
+    "journal": {
+      "name": "Life journal",
+      "desc": "Journal, archives and autonomy records of this persona"
+    },
+    "self_memory": {
+      "name": "Self memory",
+      "desc": "This persona's own experiences, entities, relations and preferences"
+    },
+    "relationship": {
+      "name": "Favorability & relationships",
+      "desc": "Favorability and relationship terms with all users"
+    },
+    "persona_state": { "name": "Mood & state", "desc": "Current mood, homeostasis and presence" },
+    "session_history": {
+      "name": "Current session history",
+      "desc": "Context of sessions using this persona (not backed up)"
+    },
+    "scheduled_tasks": {
+      "name": "Scheduled tasks",
+      "desc": "Pending and paused tasks of this persona, marked as cancelled"
+    },
+    "global_group": {
+      "name": "Memory of all groups",
+      "desc": "Memory graph and profiles of all groups and their members"
+    },
+    "global_user": {
+      "name": "Global profiles of all users",
+      "desc": "Global memory and preferences of all users"
+    }
+  },
+  "units": {
+    "rows": "{count} rows",
+    "files": "{count} files",
+    "sessions": "{count} sessions",
+    "tasks": "{count} tasks",
+    "keys": "{count} keys"
+  },
+  "globalConfirmTitle": "Clear shared memory?",
+  "globalConfirmDesc": "All personas share group memory and global user profiles. After deletion, other personas forget this content too.",
+  "globalConfirmOthers": "Other personas affected: {names}",
+  "globalConfirmNoOthers": "There are no other personas.",
+  "globalConfirmAction": "I understand, select it",
+  "legacySelfKeyHint": "This persona still has legacy self memory from before migration. It is cleared together with \"Self memory\".",
+  "backupFirst": "Back up first",
+  "backupHelp": "Only the selected items are backed up. You can restore them in \"Backup & restore\". Each persona keeps at most 5 backups.",
+  "backupEstimate": "Estimated time {duration}, size about {size}",
+  "backupUnsupported": "These items are not backed up: {names}",
+  "confirmNameLabel": "Type the persona name \"{name}\" to confirm",
+  "start": "Start",
+  "starting": "Submitting…",
+  "startFailed": "Failed to start the task",
+  "noItemSelected": "Select at least one item",
+  "duration": {
+    "lessThanSecond": "under 1 second",
+    "seconds": "about {value} s",
+    "minutes": "about {value} min",
+    "hours": "about {value} h"
+  },
+  "jobKind": {
+    "reset": "Clear memory",
+    "restore": "Restore backup"
+  },
+  "jobStatus": {
+    "running": "Running",
+    "done": "Done",
+    "failed": "Failed",
+    "resumable": "Incomplete"
+  },
+  "steps": {
+    "prepare": "Prepare (pause writes, clear sessions)",
+    "backup": "Backup",
+    "memory": "Delete memory graph",
+    "journal": "Life journal",
+    "relationship": "Favorability & relationships",
+    "persona_state": "Mood & state",
+    "scheduled_tasks": "Scheduled tasks",
+    "clear": "Clear current data",
+    "import": "Import data",
+    "files": "Write back journal & state",
+    "vectors": "Rebuild vectors",
+    "finish": "Finish"
+  },
+  "overall": "Overall {percent}%",
+  "eta": "{duration} left",
+  "runningHint": "Closing this dialog does not stop the task.",
+  "vectorsHint": "Data is restored and the AI is ready to use. Until vectors are rebuilt, memory search uses keywords only. You can close this dialog and let the task run in the background.",
+  "doneTitle": "Task completed",
+  "backupFileSaved": "Backup file: {file}",
+  "failedTitle": "Task failed",
+  "retry": "Retry",
+  "resumableTitle": "Vector rebuild incomplete",
+  "resumableDesc": "The last vector rebuild was interrupted. You can continue it.",
+  "resume": "Continue",
+  "resumeFailed": "Failed to continue the task",
+  "bannerRunning": "Background task ({kind}) running: {percent}%",
+  "viewProgress": "View progress",
+  "backups": "Backup & restore",
+  "backupsHelp": "Each persona keeps the 5 latest backups. When a 6th is created, the oldest is deleted.",
+  "backupsEmpty": "No backups",
+  "backupsLoadFailed": "Failed to load backups",
+  "colTime": "Time",
+  "colItems": "Items",
+  "colSize": "Size",
+  "colModel": "Embedding model",
+  "colActions": "Actions",
+  "download": "Download",
+  "downloadFailed": "Download failed",
+  "delete": "Delete",
+  "deleteConfirmTitle": "Delete backup?",
+  "deleteConfirmDesc": "Backup \"{file}\" will be permanently deleted. This cannot be undone.",
+  "deleteSuccess": "Backup deleted",
+  "deleteFailed": "Failed to delete backup",
+  "restore": "Restore",
+  "restoreTitle": "Restore backup: {file}",
+  "restoreDesc": "Select the items to restore. Each item clears the current data first, then imports the backup.",
+  "restoreItems": "Restore scope",
+  "restoreImport": "Import {count}",
+  "restoreOverwrite": "Overwrite {count}",
+  "restoreOverwriteWarning": "This current data is deleted before the backup is imported:",
+  "restoreOverwriteNote": "Data of the same kind added after the backup will be lost.",
+  "restoreVector": "{count} texts need re-embedding, estimated {duration}",
+  "restoreVectorUnknown": "{count} texts need re-embedding, time cannot be estimated",
+  "restoreVectorHint": "The AI is usable during the vector rebuild. You can close this dialog and let the task run in the background.",
+  "restoreModel": "Current embedding model: {model}",
+  "restoreBackupModel": "Embedding model at backup time: {model}",
+  "restoreModelNote": "Vectors are always rebuilt with the current embedding model.",
+  "restoreNoItems": "This backup has no items to restore"
+}
